@@ -47,48 +47,48 @@ export class Dispatch extends Context.Tag('@foldkit/Dispatch')<
 export type { Command } from '../command'
 
 /** Configuration for browser URL integration with handlers for URL requests and URL changes. */
-export type BrowserConfig<Message> = {
-  readonly onUrlRequest: (request: UrlRequest) => Message
-  readonly onUrlChange: (url: Url) => Message
-}
+export type BrowserConfig<Message> = Readonly<{
+  onUrlRequest: (request: UrlRequest) => Message
+  onUrlChange: (url: Url) => Message
+}>
 
 /** Full runtime configuration including model schema, flags, init, update, view, and optional browser/stream config. */
-export interface RuntimeConfig<
+type RuntimeConfig<
   Model,
   Message,
   StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
   Flags,
   Resources = never,
   ManagedResourceServices = never,
-> {
+> = Readonly<{
   Model: Schema.Schema<Model, any, never>
   Flags: Schema.Schema<Flags, any, never>
-  readonly flags: Effect.Effect<Flags>
-  readonly init: (
+  flags: Effect.Effect<Flags>
+  init: (
     flags: Flags,
     url?: Url,
   ) => [
     Model,
     ReadonlyArray<Command<Message, never, Resources | ManagedResourceServices>>,
   ]
-  readonly update: (
+  update: (
     model: Model,
     message: Message,
   ) => [
     Model,
     ReadonlyArray<Command<Message, never, Resources | ManagedResourceServices>>,
   ]
-  readonly view: (model: Model) => Html
-  readonly subscriptions?: Subscriptions<
+  view: (model: Model) => Html
+  subscriptions?: Subscriptions<
     Model,
     Message,
     StreamDepsMap,
     Resources | ManagedResourceServices
   >
-  readonly container: HTMLElement
-  readonly browser?: BrowserConfig<Message>
-  readonly errorView?: (error: Error) => Html
-  readonly slowViewThresholdMs?: number | false
+  container: HTMLElement
+  browser?: BrowserConfig<Message>
+  errorView?: (error: Error) => Html
+  slowViewThresholdMs?: number | false
   /**
    * An Effect Layer providing long-lived resources that persist across command
    * invocations. Use this for browser resources with lifecycle (AudioContext,
@@ -98,179 +98,179 @@ export interface RuntimeConfig<
    * The runtime memoizes the layer, ensuring a single shared instance for all
    * commands and subscriptions throughout the application's lifetime.
    */
-  readonly resources?: Layer.Layer<Resources>
+  resources?: Layer.Layer<Resources>
   /**
    * Model-driven resources with acquire/release lifecycle. Unlike `resources`
    * which persist for the application's lifetime, managed resources are
    * acquired and released based on the current model state. Create with
    * `makeManagedResources`.
    */
-  readonly managedResources?: ManagedResources<
-    Model,
-    Message,
-    ManagedResourceServices
-  >
-}
+  managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
+}>
 
-interface BaseElementConfig<
+type BaseElementConfig<
   Model,
   Message,
   StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
   Resources = never,
   ManagedResourceServices = never,
-> {
-  readonly Model: Schema.Schema<Model, any, never>
-  readonly update: (
+> = Readonly<{
+  Model: Schema.Schema<Model, any, never>
+  update: (
     model: Model,
     message: Message,
   ) => [
     Model,
     ReadonlyArray<Command<Message, never, Resources | ManagedResourceServices>>,
   ]
-  readonly view: (model: Model) => Html
-  readonly subscriptions?: Subscriptions<
+  view: (model: Model) => Html
+  subscriptions?: Subscriptions<
     Model,
     Message,
     StreamDepsMap,
     Resources | ManagedResourceServices
   >
-  readonly container: HTMLElement
-  readonly errorView?: (error: Error) => Html
-  readonly slowViewThresholdMs?: number | false
-  readonly resources?: Layer.Layer<Resources>
-  readonly managedResources?: ManagedResources<
-    Model,
-    Message,
-    ManagedResourceServices
-  >
-}
+  container: HTMLElement
+  errorView?: (error: Error) => Html
+  slowViewThresholdMs?: number | false
+  resources?: Layer.Layer<Resources>
+  managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
+}>
 
 /** Configuration for `makeElement` when the element receives initial data via flags. */
-export interface ElementConfigWithFlags<
+export type ElementConfigWithFlags<
   Model,
   Message,
   StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
   Flags,
   Resources = never,
   ManagedResourceServices = never,
-> extends BaseElementConfig<
+> = BaseElementConfig<
   Model,
   Message,
   StreamDepsMap,
   Resources,
   ManagedResourceServices
-> {
-  readonly Flags: Schema.Schema<Flags, any, never>
-  readonly flags: Effect.Effect<Flags>
-  readonly init: (
-    flags: Flags,
-  ) => [
-    Model,
-    ReadonlyArray<Command<Message, never, Resources | ManagedResourceServices>>,
-  ]
-}
+> &
+  Readonly<{
+    Flags: Schema.Schema<Flags, any, never>
+    flags: Effect.Effect<Flags>
+    init: (
+      flags: Flags,
+    ) => [
+      Model,
+      ReadonlyArray<
+        Command<Message, never, Resources | ManagedResourceServices>
+      >,
+    ]
+  }>
 
 /** Configuration for `makeElement` without flags. */
-export interface ElementConfigWithoutFlags<
+export type ElementConfigWithoutFlags<
   Model,
   Message,
   StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
   Resources = never,
   ManagedResourceServices = never,
-> extends BaseElementConfig<
+> = BaseElementConfig<
   Model,
   Message,
   StreamDepsMap,
   Resources,
   ManagedResourceServices
-> {
-  readonly init: () => [
-    Model,
-    ReadonlyArray<Command<Message, never, Resources | ManagedResourceServices>>,
-  ]
-}
+> &
+  Readonly<{
+    init: () => [
+      Model,
+      ReadonlyArray<
+        Command<Message, never, Resources | ManagedResourceServices>
+      >,
+    ]
+  }>
 
-interface BaseApplicationConfig<
+type BaseApplicationConfig<
   Model,
   Message,
   StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
   Resources = never,
   ManagedResourceServices = never,
-> {
-  readonly Model: Schema.Schema<Model, any, never>
-  readonly update: (
+> = Readonly<{
+  Model: Schema.Schema<Model, any, never>
+  update: (
     model: Model,
     message: Message,
   ) => [
     Model,
     ReadonlyArray<Command<Message, never, Resources | ManagedResourceServices>>,
   ]
-  readonly view: (model: Model) => Html
-  readonly subscriptions?: Subscriptions<
+  view: (model: Model) => Html
+  subscriptions?: Subscriptions<
     Model,
     Message,
     StreamDepsMap,
     Resources | ManagedResourceServices
   >
-  readonly container: HTMLElement
-  readonly browser: BrowserConfig<Message>
-  readonly errorView?: (error: Error) => Html
-  readonly slowViewThresholdMs?: number | false
-  readonly resources?: Layer.Layer<Resources>
-  readonly managedResources?: ManagedResources<
-    Model,
-    Message,
-    ManagedResourceServices
-  >
-}
+  container: HTMLElement
+  browser: BrowserConfig<Message>
+  errorView?: (error: Error) => Html
+  slowViewThresholdMs?: number | false
+  resources?: Layer.Layer<Resources>
+  managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
+}>
 
 /** Configuration for `makeApplication` when the application receives initial data via flags. */
-export interface ApplicationConfigWithFlags<
+export type ApplicationConfigWithFlags<
   Model,
   Message,
   StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
   Flags,
   Resources = never,
   ManagedResourceServices = never,
-> extends BaseApplicationConfig<
+> = BaseApplicationConfig<
   Model,
   Message,
   StreamDepsMap,
   Resources,
   ManagedResourceServices
-> {
-  readonly Flags: Schema.Schema<Flags, any, never>
-  readonly flags: Effect.Effect<Flags>
-  readonly init: (
-    flags: Flags,
-    url: Url,
-  ) => [
-    Model,
-    ReadonlyArray<Command<Message, never, Resources | ManagedResourceServices>>,
-  ]
-}
+> &
+  Readonly<{
+    Flags: Schema.Schema<Flags, any, never>
+    flags: Effect.Effect<Flags>
+    init: (
+      flags: Flags,
+      url: Url,
+    ) => [
+      Model,
+      ReadonlyArray<
+        Command<Message, never, Resources | ManagedResourceServices>
+      >,
+    ]
+  }>
 
 /** Configuration for `makeApplication` without flags. */
-export interface ApplicationConfigWithoutFlags<
+export type ApplicationConfigWithoutFlags<
   Model,
   Message,
   StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
   Resources = never,
   ManagedResourceServices = never,
-> extends BaseApplicationConfig<
+> = BaseApplicationConfig<
   Model,
   Message,
   StreamDepsMap,
   Resources,
   ManagedResourceServices
-> {
-  readonly init: (
-    url: Url,
-  ) => [
-    Model,
-    ReadonlyArray<Command<Message, never, Resources | ManagedResourceServices>>,
-  ]
-}
+> &
+  Readonly<{
+    init: (
+      url: Url,
+    ) => [
+      Model,
+      ReadonlyArray<
+        Command<Message, never, Resources | ManagedResourceServices>
+      >,
+    ]
+  }>
 
 /** The `init` function type for elements, with an optional `flags` parameter when `Flags` is not `void`. */
 export type ElementInit<
