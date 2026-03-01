@@ -731,7 +731,7 @@ const makeRuntime =
               viewDuration > slowViewThresholdMs
             ) {
               console.warn(
-                `[foldkit] Slow view: ${viewDuration.toFixed(1)}ms (budget: ${slowViewThresholdMs}ms)`,
+                `[foldkit] Slow view: ${viewDuration.toFixed(1)}ms (budget: ${slowViewThresholdMs}ms). Consider moving computation to update or memoizing with createLazy.`,
               )
             }
 

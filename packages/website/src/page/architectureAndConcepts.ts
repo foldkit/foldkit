@@ -11,6 +11,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../prose'
+import { advancedPatternsRouter } from '../route'
 import * as Snippets from '../snippet'
 import { highlightedCodeBlock } from '../view/codeBlock'
 
@@ -128,6 +129,12 @@ const errorViewHeader: TableOfContentsEntry = {
   text: 'Error View',
 }
 
+const slowViewWarningHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'slow-view-warning',
+  text: 'Slow View Warning',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   counterExampleHeader,
   modelHeader,
@@ -148,6 +155,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   managedResourcesHeader,
   accessingManagedResourcesHeader,
   errorViewHeader,
+  slowViewWarningHeader,
 ]
 
 export const view = (model: Model): Html =>
@@ -855,6 +863,58 @@ export const view = (model: Model): Html =>
         'See the ',
         link(Link.exampleErrorView, 'error-view example'),
         ' for a working demonstration.',
+      ),
+      tableOfContentsEntryToHeader(slowViewWarningHeader),
+      para(
+        'During development, Foldkit warns in the console when a ',
+        inlineCode('view'),
+        ' call takes longer than the frame budget. A view that exceeds 16ms is already dropping frames. The warning nudges you to move computation into ',
+        inlineCode('update'),
+        ' or memoize expensive subtrees with ',
+        link(
+          advancedPatternsRouter.build({}) + '#create-lazy',
+          'createLazy',
+        ),
+        ' and ',
+        link(
+          advancedPatternsRouter.build({}) + '#create-keyed-lazy',
+          'createKeyedLazy',
+        ),
+        '.',
+      ),
+      para(
+        'The warning only runs in dev mode (gated behind ',
+        inlineCode('import.meta.hot'),
+        '), so there is zero runtime cost in production builds.',
+      ),
+      para(
+        'The default threshold is 16ms (one frame at 60fps). Pass ',
+        inlineCode('slowViewThresholdMs'),
+        ' to ',
+        inlineCode('makeElement'),
+        ' or ',
+        inlineCode('makeApplication'),
+        ' to customize it:',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.slowViewThresholdHighlighted),
+          ],
+          [],
+        ),
+        Snippets.slowViewThresholdRaw,
+        'Custom slow view threshold',
+        model,
+        'mb-8',
+      ),
+      para(
+        'Set ',
+        inlineCode('slowViewThresholdMs'),
+        ' to ',
+        inlineCode('false'),
+        ' to disable the warning entirely.',
       ),
     ],
   )
