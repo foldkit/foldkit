@@ -7,6 +7,7 @@ import {
   MutableRef,
   Option,
   Stream,
+  pipe,
 } from 'effect'
 import { Command } from 'foldkit/command'
 import { Subscription } from 'foldkit/subscription'
@@ -54,9 +55,15 @@ export const activeSection: Subscription<
         'AdvancedPatterns',
         () => Page.AdvancedPatterns.tableOfContents,
       ),
-      M.tag(
-        'ApiReference',
-        () => Page.ApiReference.apiReferenceTableOfContents,
+      M.tag('ApiModule', ({ moduleSlug }) =>
+        pipe(
+          moduleSlug,
+          Page.ApiReference.slugToModule,
+          Option.match({
+            onNone: () => [],
+            onSome: Page.ApiReference.toModuleTableOfContents,
+          }),
+        ),
       ),
       M.tag('FoldkitUi', () => Page.FoldkitUi.tableOfContents),
       M.option,

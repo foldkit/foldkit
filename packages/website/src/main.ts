@@ -10,6 +10,7 @@ import {
   Match as M,
   Option,
   Schema as S,
+  pipe,
 } from 'effect'
 import { Runtime, Ui } from 'foldkit'
 import { Command } from 'foldkit/command'
@@ -59,7 +60,6 @@ import { Link } from './link'
 import * as Page from './page'
 import {
   AdvancedPatternsRoute,
-  ApiReferenceRoute,
   AppRoute,
   ArchitectureAndConceptsRoute,
   BestPracticesRoute,
@@ -72,7 +72,7 @@ import {
   RoutingAndNavigationRoute,
   WhyFoldkitRoute,
   advancedPatternsRouter,
-  apiReferenceRouter,
+  apiModuleRouter,
   architectureAndConceptsRouter,
   bestPracticesRouter,
   comingFromReactRouter,
@@ -162,11 +162,12 @@ export const Model = S.Struct({
   route: AppRoute,
   url: Url,
   copiedSnippets: S.HashSet(S.String),
-  mobileMenuOpen: S.Boolean,
-  mobileTableOfContentsOpen: S.Boolean,
+  isMobileMenuOpen: S.Boolean,
+  isMobileTableOfContentsOpen: S.Boolean,
   activeSection: S.Option(S.String),
   isLandingHeaderVisible: S.Boolean,
   isNarrowViewport: S.Boolean,
+  apiReferenceGroup: Ui.Disclosure.Model,
   themePreference: ThemePreference,
   systemTheme: ResolvedTheme,
   resolvedTheme: ResolvedTheme,
@@ -241,6 +242,9 @@ const GotComingFromReactMessage = m('GotComingFromReactMessage', {
 const GotApiReferenceMessage = m('GotApiReferenceMessage', {
   message: Page.ApiReference.Message,
 })
+const GotApiReferenceGroupMessage = m('GotApiReferenceGroupMessage', {
+  message: Ui.Disclosure.Message,
+})
 
 const Message = S.Union(
   NoOp,
@@ -264,6 +268,7 @@ const Message = S.Union(
   GotFoldkitUiMessage,
   GotComingFromReactMessage,
   GotApiReferenceMessage,
+  GotApiReferenceGroupMessage,
 )
 export type Message = typeof Message.Type
 
@@ -317,16 +322,22 @@ const init: Runtime.ApplicationInit<
     Effect.map(message => GotApiReferenceMessage({ message })),
   )
 
+  const initialRoute = urlToAppRoute(url)
+
   return [
     {
-      route: urlToAppRoute(url),
+      route: initialRoute,
       url,
       copiedSnippets: HashSet.empty(),
-      mobileMenuOpen: false,
-      mobileTableOfContentsOpen: false,
+      isMobileMenuOpen: false,
+      isMobileTableOfContentsOpen: false,
       activeSection: Option.none(),
       isLandingHeaderVisible: false,
       isNarrowViewport: loadedFlags.isNarrowViewport,
+      apiReferenceGroup: {
+        ...Ui.Disclosure.init({ id: 'api-reference-group' }),
+        isOpen: initialRoute._tag === 'ApiModule',
+      },
       themePreference,
       systemTheme,
       resolvedTheme,
@@ -399,17 +410,25 @@ const update = (
           }),
         ),
 
-      ChangedUrl: ({ url }) => [
-        evo(model, {
-          route: () => urlToAppRoute(url),
-          url: () => url,
-          mobileMenuOpen: () => false,
-        }),
-        Option.match(url.hash, {
-          onNone: () => [scrollToTop],
-          onSome: hash => [scrollToHash(hash)],
-        }),
-      ],
+      ChangedUrl: ({ url }) => {
+        const nextRoute = urlToAppRoute(url)
+
+        return [
+          evo(model, {
+            route: () => nextRoute,
+            url: () => url,
+            isMobileMenuOpen: () => false,
+            apiReferenceGroup: apiReferenceGroup =>
+              nextRoute._tag === 'ApiModule'
+                ? { ...apiReferenceGroup, isOpen: true }
+                : apiReferenceGroup,
+          }),
+          Option.match(url.hash, {
+            onNone: () => [scrollToTop],
+            onSome: hash => [scrollToHash(hash)],
+          }),
+        ]
+      },
 
       ClickedCopySnippet: ({ text }) => [
         model,
@@ -444,19 +463,19 @@ const update = (
 
       ToggledMobileMenu: () => [
         evo(model, {
-          mobileMenuOpen: mobileMenuOpen => !mobileMenuOpen,
+          isMobileMenuOpen: isMobileMenuOpen => !isMobileMenuOpen,
         }),
         [],
       ],
 
       ToggledMobileTableOfContents: ({ isOpen }) => [
-        evo(model, { mobileTableOfContentsOpen: () => isOpen }),
+        evo(model, { isMobileTableOfContentsOpen: () => isOpen }),
         [],
       ],
 
       ClickedMobileTableOfContentsLink: ({ sectionId }) => [
         evo(model, {
-          mobileTableOfContentsOpen: () => false,
+          isMobileTableOfContentsOpen: () => false,
           activeSection: () => Option.some(sectionId),
         }),
         [],
@@ -602,6 +621,22 @@ const update = (
           ),
         ]
       },
+
+      GotApiReferenceGroupMessage: ({ message }) => {
+        const [nextApiReferenceGroup, apiReferenceGroupCommands] =
+          Ui.Disclosure.update(model.apiReferenceGroup, message)
+
+        return [
+          evo(model, {
+            apiReferenceGroup: () => nextApiReferenceGroup,
+          }),
+          apiReferenceGroupCommands.map(
+            Effect.map(message =>
+              GotApiReferenceGroupMessage({ message }),
+            ),
+          ),
+        ]
+      },
     }),
   )
 
@@ -711,8 +746,11 @@ const saveThemePreference = (
 
 const sidebarView = (
   currentRoute: AppRoute,
-  mobileMenuOpen: boolean,
+  isMobileMenuOpen: boolean,
+  apiReferenceGroup: Ui.Disclosure.Model,
 ) => {
+  const isOnApiModulePage = currentRoute._tag === 'ApiModule'
+
   const linkClass = (isActive: boolean) =>
     classNames(
       'block px-4 py-3 md:px-2.5 md:py-1 rounded transition text-base md:text-sm font-medium md:font-normal',
@@ -746,8 +784,8 @@ const sidebarView = (
         classNames(
           'fixed inset-0 md:top-[var(--header-height)] md:bottom-0 md:left-0 md:right-auto z-[60] md:z-40 md:w-64 bg-white dark:bg-gray-900 md:border-r border-gray-300 dark:border-gray-800 flex flex-col',
           {
-            flex: mobileMenuOpen,
-            'hidden md:flex': !mobileMenuOpen,
+            flex: isMobileMenuOpen,
+            'hidden md:flex': !isMobileMenuOpen,
           },
         ),
       ),
@@ -850,10 +888,56 @@ const sidebarView = (
                 S.is(FoldkitUiRoute)(currentRoute),
                 'Foldkit UI',
               ),
-              navLink(
-                apiReferenceRouter.build({}),
-                S.is(ApiReferenceRoute)(currentRoute),
-                'API Reference',
+              li(
+                [],
+                [
+                  Ui.Disclosure.view({
+                    model: apiReferenceGroup,
+                    toMessage: message =>
+                      GotApiReferenceGroupMessage({ message }),
+                    buttonClassName: classNames(
+                      linkClass(false),
+                      'w-full flex items-center justify-between cursor-pointer',
+                    ),
+                    buttonContent: div(
+                      [
+                        Class(
+                          'flex items-center justify-between w-full',
+                        ),
+                      ],
+                      [
+                        span([], ['API Reference']),
+                        span(
+                          [
+                            Class(
+                              classNames('transition-transform', {
+                                'rotate-180':
+                                  apiReferenceGroup.isOpen,
+                              }),
+                            ),
+                          ],
+                          [Icon.chevronDown('w-4 h-4')],
+                        ),
+                      ],
+                    ),
+                    panelClassName: 'pl-4 space-y-1 mt-1',
+                    panelContent: ul(
+                      [],
+                      Array.map(
+                        Page.ApiReference.moduleSlugs,
+                        ({ slug, name }) =>
+                          navLink(
+                            apiModuleRouter.build({
+                              moduleSlug: slug,
+                            }),
+                            isOnApiModulePage &&
+                              currentRoute.moduleSlug === slug,
+                            name,
+                          ),
+                      ),
+                    ),
+                  }),
+                ],
               ),
             ],
           ),
@@ -1272,7 +1356,7 @@ const docsHeaderView = (model: Model) =>
               Class(
                 'md:hidden p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 cursor-pointer',
               ),
-              AriaExpanded(model.mobileMenuOpen),
+              AriaExpanded(model.isMobileMenuOpen),
               AriaLabel('Toggle menu'),
               OnClick(ToggledMobileMenu()),
             ],
@@ -1319,10 +1403,11 @@ const toApiReferenceMessage = (
 ): Message => GotApiReferenceMessage({ message })
 
 const apiReferenceView = (
+  module: Page.ApiReference.ApiModule,
   apiReferenceModel: Page.ApiReference.Model,
 ): Html =>
   Page.ApiReference.view(
-    Page.ApiReference.apiReference.modules,
+    module,
     apiReferenceModel,
     toApiReferenceMessage,
   )
@@ -1347,8 +1432,20 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
       BestPractices: () => Page.BestPractices.view(model),
       ProjectOrganization: () => Page.ProjectOrganization.view(model),
       AdvancedPatterns: () => Page.AdvancedPatterns.view(model),
-      ApiReference: () =>
-        lazyApiReference(apiReferenceView, [model.apiReference]),
+      ApiModule: ({ moduleSlug }) =>
+        pipe(
+          moduleSlug,
+          Page.ApiReference.slugToModule,
+          Option.match({
+            onSome: module =>
+              lazyApiReference(apiReferenceView, [
+                module,
+                model.apiReference,
+              ]),
+            onNone: () =>
+              Page.NotFound.view(moduleSlug, homeRouter.build({})),
+          }),
+        ),
       FoldkitUi: () =>
         Page.FoldkitUi.view(model.foldkitUi, message =>
           GotFoldkitUiMessage({ message }),
@@ -1383,8 +1480,12 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
     M.tag('AdvancedPatterns', () =>
       Option.some(Page.AdvancedPatterns.tableOfContents),
     ),
-    M.tag('ApiReference', () =>
-      Option.some(Page.ApiReference.apiReferenceTableOfContents),
+    M.tag('ApiModule', ({ moduleSlug }) =>
+      pipe(
+        moduleSlug,
+        Page.ApiReference.slugToModule,
+        Option.map(Page.ApiReference.toModuleTableOfContents),
+      ),
     ),
     M.tag('FoldkitUi', () =>
       Option.some(Page.FoldkitUi.tableOfContents),
@@ -1398,7 +1499,7 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
     [
       Class(
         classNames('flex flex-col min-h-screen', {
-          'overflow-hidden': model.mobileMenuOpen,
+          'overflow-hidden': model.isMobileMenuOpen,
         }),
       ),
     ],
@@ -1408,7 +1509,11 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
       div(
         [Class('flex flex-1 pt-[var(--header-height)] md:pl-64')],
         [
-          sidebarView(model.route, model.mobileMenuOpen),
+          sidebarView(
+            model.route,
+            model.isMobileMenuOpen,
+            model.apiReferenceGroup,
+          ),
           main(
             [
               Id('main-content'),
@@ -1429,12 +1534,18 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
                   mobileTableOfContentsView(
                     tableOfContents,
                     model.activeSection,
-                    model.mobileTableOfContentsOpen,
+                    model.isMobileTableOfContentsOpen,
                   ),
                 onNone: () => empty,
               }),
               keyed('div')(
-                model.route._tag,
+                M.value(docsRoute).pipe(
+                  M.tag(
+                    'ApiModule',
+                    ({ moduleSlug }) => `ApiModule-${moduleSlug}`,
+                  ),
+                  M.orElse(({ _tag }) => _tag),
+                ),
                 [
                   Class(
                     'px-4 py-6 md:px-8 md:py-10 px- max-w-4xl mx-auto min-w-0',

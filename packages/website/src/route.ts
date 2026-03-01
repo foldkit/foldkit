@@ -1,6 +1,6 @@
 import { Schema as S, pipe } from 'effect'
 import { Route } from 'foldkit'
-import { literal, r } from 'foldkit/route'
+import { literal, r, slash, string } from 'foldkit/route'
 
 // ROUTE SCHEMAS
 
@@ -16,7 +16,7 @@ export const ExamplesRoute = r('Examples')
 export const BestPracticesRoute = r('BestPractices')
 export const ProjectOrganizationRoute = r('ProjectOrganization')
 export const AdvancedPatternsRoute = r('AdvancedPatterns')
-export const ApiReferenceRoute = r('ApiReference')
+export const ApiModuleRoute = r('ApiModule', { moduleSlug: S.String })
 export const FoldkitUiRoute = r('FoldkitUi')
 export const NotFoundRoute = r('NotFound', { path: S.String })
 
@@ -30,7 +30,7 @@ export const DocsRoute = S.Union(
   BestPracticesRoute,
   ProjectOrganizationRoute,
   AdvancedPatternsRoute,
-  ApiReferenceRoute,
+  ApiModuleRoute,
   FoldkitUiRoute,
   NotFoundRoute,
 )
@@ -51,7 +51,7 @@ export type BestPracticesRoute = typeof BestPracticesRoute.Type
 export type ProjectOrganizationRoute =
   typeof ProjectOrganizationRoute.Type
 export type AdvancedPatternsRoute = typeof AdvancedPatternsRoute.Type
-export type ApiReferenceRoute = typeof ApiReferenceRoute.Type
+export type ApiModuleRoute = typeof ApiModuleRoute.Type
 export type FoldkitUiRoute = typeof FoldkitUiRoute.Type
 export type NotFoundRoute = typeof NotFoundRoute.Type
 export type AppRoute = typeof AppRoute.Type
@@ -95,9 +95,10 @@ export const advancedPatternsRouter = pipe(
   literal('advanced-patterns'),
   Route.mapTo(AdvancedPatternsRoute),
 )
-export const apiReferenceRouter = pipe(
+export const apiModuleRouter = pipe(
   literal('api-reference'),
-  Route.mapTo(ApiReferenceRoute),
+  slash(string('moduleSlug')),
+  Route.mapTo(ApiModuleRoute),
 )
 export const foldkitUiRouter = pipe(
   literal('foldkit-ui'),
@@ -120,7 +121,7 @@ const docsParser = Route.oneOf(
 
 export const routeParser = Route.oneOf(
   docsParser,
-  apiReferenceRouter,
+  apiModuleRouter,
   foldkitUiRouter,
   homeRouter,
 )

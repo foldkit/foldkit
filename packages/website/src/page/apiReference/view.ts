@@ -13,7 +13,7 @@ import {
   InnerHTML,
   a,
   div,
-  h4,
+  h3,
   p,
   span,
 } from '../../html'
@@ -102,7 +102,7 @@ const functionView = (
           div(
             [Class('flex items-center gap-2')],
             [
-              h4(
+              h3(
                 [
                   Class(
                     'text-base font-mono font-medium text-gray-900 dark:text-white scroll-mt-6',
@@ -369,7 +369,7 @@ const typeView = (moduleName: string, type: ApiType): Html => {
           div(
             [Class('flex items-center gap-2')],
             [
-              h4(
+              h3(
                 [
                   Class(
                     'text-base font-mono font-medium text-gray-900 dark:text-white scroll-mt-6',
@@ -443,7 +443,7 @@ const interfaceView = (
           div(
             [Class('flex items-center gap-2')],
             [
-              h4(
+              h3(
                 [
                   Class(
                     'text-base font-mono font-medium text-gray-900 dark:text-white scroll-mt-6',
@@ -520,7 +520,7 @@ const variableView = (
           div(
             [Class('flex items-center gap-2')],
             [
-              h4(
+              h3(
                 [
                   Class(
                     'text-base font-mono font-medium text-gray-900 dark:text-white scroll-mt-6',
@@ -583,92 +583,71 @@ const section = <T extends { readonly name: string }>(
   Array.match(items, {
     onEmpty: () => [],
     onNonEmpty: items => [
-      heading('h3', `${moduleName}-${label.toLowerCase()}`, label),
+      heading('h2', `${moduleName}-${label.toLowerCase()}`, label),
       ...Array.map(items, item => itemView(moduleName, item)),
     ],
   })
 
 export const view = (
-  modules: ReadonlyArray<ApiModule>,
+  module: ApiModule,
   model: Model,
   toMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
     [],
     [
-      pageTitle('api-reference', 'API Reference'),
-      ...Array.flatMap(modules, (module, index) => [
-        div(
-          [
-            Class(
-              index > 0
-                ? 'border-t border-gray-300 dark:border-gray-600 mt-8'
-                : '',
-            ),
-          ],
-          [
-            heading('h2', module.name, module.name),
-            ...section(
-              module.name,
-              'Functions',
-              module.functions,
-              (moduleName, apiFunction) => {
-                const key = scopedId(
-                  'function',
-                  moduleName,
-                  apiFunction.name,
-                )
-                return lazyItem(key, functionView, [
-                  moduleName,
-                  apiFunction,
-                  model[key],
-                  toMessage,
-                ])
-              },
-            ),
-            ...section(
-              module.name,
-              'Types',
-              module.types,
-              (moduleName, type) => {
-                const key = scopedId('type', moduleName, type.name)
-                return lazyItem(key, typeView, [moduleName, type])
-              },
-            ),
-            ...section(
-              module.name,
-              'Interfaces',
-              module.interfaces,
-              (moduleName, apiInterface) => {
-                const key = scopedId(
-                  'interface',
-                  moduleName,
-                  apiInterface.name,
-                )
-                return lazyItem(key, interfaceView, [
-                  moduleName,
-                  apiInterface,
-                ])
-              },
-            ),
-            ...section(
-              module.name,
-              'Constants',
-              module.variables,
-              (moduleName, variable) => {
-                const key = scopedId(
-                  'const',
-                  moduleName,
-                  variable.name,
-                )
-                return lazyItem(key, variableView, [
-                  moduleName,
-                  variable,
-                ])
-              },
-            ),
-          ],
-        ),
-      ]),
+      pageTitle(module.name, module.name),
+      ...section(
+        module.name,
+        'Functions',
+        module.functions,
+        (moduleName, apiFunction) => {
+          const key = scopedId(
+            'function',
+            moduleName,
+            apiFunction.name,
+          )
+          return lazyItem(key, functionView, [
+            moduleName,
+            apiFunction,
+            model[key],
+            toMessage,
+          ])
+        },
+      ),
+      ...section(
+        module.name,
+        'Types',
+        module.types,
+        (moduleName, type) => {
+          const key = scopedId('type', moduleName, type.name)
+          return lazyItem(key, typeView, [moduleName, type])
+        },
+      ),
+      ...section(
+        module.name,
+        'Interfaces',
+        module.interfaces,
+        (moduleName, apiInterface) => {
+          const key = scopedId(
+            'interface',
+            moduleName,
+            apiInterface.name,
+          )
+          return lazyItem(key, interfaceView, [
+            moduleName,
+            apiInterface,
+          ])
+        },
+      ),
+      ...section(
+        module.name,
+        'Constants',
+        module.variables,
+        (moduleName, variable) => {
+          const key = scopedId('const', moduleName, variable.name)
+          return lazyItem(key, variableView, [moduleName, variable])
+        },
+      ),
     ],
   )

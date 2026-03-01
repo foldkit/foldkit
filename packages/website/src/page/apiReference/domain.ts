@@ -320,7 +320,7 @@ const sectionEntries = <T extends { readonly name: string }>(
       {
         id: `${moduleName}-${label.toLowerCase()}`,
         text: label,
-        level: 'h3' as const,
+        level: 'h2' as const,
       },
       ...pipe(
         items,
@@ -328,34 +328,38 @@ const sectionEntries = <T extends { readonly name: string }>(
         Array.map(item => ({
           id: `${idPrefix}-${moduleName}/${item.name}`,
           text: item.name,
-          level: 'h4' as const,
+          level: 'h3' as const,
         })),
       ),
     ],
   })
 
-export const toTableOfContents = (
-  parsed: ParsedApiReference,
-): ReadonlyArray<TableOfContentsEntry> =>
-  Array.flatMap(parsed.modules, module => [
-    { id: module.name, text: module.name, level: 'h2' as const },
-    ...sectionEntries(
-      module.name,
-      'Functions',
-      module.functions,
-      'function',
-    ),
-    ...sectionEntries(module.name, 'Types', module.types, 'type'),
-    ...sectionEntries(
-      module.name,
-      'Interfaces',
-      module.interfaces,
-      'interface',
-    ),
-    ...sectionEntries(
-      module.name,
-      'Constants',
-      module.variables,
-      'const',
-    ),
-  ])
+export const toModuleTableOfContents = (
+  module: ApiModule,
+): ReadonlyArray<TableOfContentsEntry> => [
+  ...sectionEntries(
+    module.name,
+    'Functions',
+    module.functions,
+    'function',
+  ),
+  ...sectionEntries(module.name, 'Types', module.types, 'type'),
+  ...sectionEntries(
+    module.name,
+    'Interfaces',
+    module.interfaces,
+    'interface',
+  ),
+  ...sectionEntries(
+    module.name,
+    'Constants',
+    module.variables,
+    'const',
+  ),
+]
+
+const pascalToKebab = (text: string): string =>
+  text.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()
+
+export const moduleNameToSlug = (name: string): string =>
+  pipe(name, String.replaceAll('/', '-'), pascalToKebab)
