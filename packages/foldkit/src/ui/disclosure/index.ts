@@ -53,6 +53,8 @@ export const init = (config: InitConfig): Model => ({
 
 const buttonId = (id: string): string => `${id}-button`
 
+const buttonSelector = (id: string): string => `#${CSS.escape(buttonId(id))}`
+
 const panelId = (id: string): string => `${id}-panel`
 
 /** Processes a disclosure message and returns the next model and commands. */
@@ -65,7 +67,7 @@ export const update = (
     M.tagsExhaustive({
       Toggled: () => {
         const maybeFocus = Option.liftPredicate(
-          Task.focus(`#${buttonId(model.id)}`).pipe(
+          Task.focus(buttonSelector(model.id)).pipe(
             Effect.ignore,
             Effect.as(NoOp()),
           ),
@@ -79,7 +81,7 @@ export const update = (
       },
       Closed: () => {
         const maybeFocus = Option.liftPredicate(
-          Task.focus(`#${buttonId(model.id)}`).pipe(
+          Task.focus(buttonSelector(model.id)).pipe(
             Effect.ignore,
             Effect.as(NoOp()),
           ),
