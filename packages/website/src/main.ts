@@ -18,6 +18,7 @@ import { m } from 'foldkit/message'
 import { load, pushUrl } from 'foldkit/navigation'
 import { UrlRequest } from 'foldkit/runtime'
 import { evo } from 'foldkit/struct'
+import { makeSubscriptions } from 'foldkit/subscription'
 import { Url, toString as urlToString } from 'foldkit/url'
 
 import {
@@ -1478,7 +1479,7 @@ const SubscriptionDeps = S.Struct({
 
 export type SubscriptionDeps = typeof SubscriptionDeps.Type
 
-const subscriptions = Runtime.makeSubscriptions(SubscriptionDeps)<
+const subscriptions = makeSubscriptions(SubscriptionDeps)<
   Model,
   Message
 >({

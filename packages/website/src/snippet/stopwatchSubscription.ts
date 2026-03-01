@@ -1,5 +1,5 @@
 import { Duration, Effect, Schema as S, Stream } from 'effect'
-import { Runtime } from 'foldkit'
+import { Subscription } from 'foldkit'
 import { m } from 'foldkit/message'
 
 // MESSAGE
@@ -25,10 +25,9 @@ const SubscriptionDeps = S.Struct({
   }),
 })
 
-const subscriptions = Runtime.makeSubscriptions(SubscriptionDeps)<
-  Model,
-  Message
->({
+const subscriptions = Subscription.makeSubscriptions(
+  SubscriptionDeps,
+)<Model, Message>({
   tick: {
     modelToDependencies: model => ({ isRunning: model.isRunning }),
     depsToStream: ({ isRunning }) =>

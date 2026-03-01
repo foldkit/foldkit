@@ -7,7 +7,7 @@ import {
   Stream,
   pipe,
 } from 'effect'
-import { Runtime } from 'foldkit'
+import { Runtime, Subscription } from 'foldkit'
 import { Command } from 'foldkit/command'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -250,7 +250,7 @@ const SubscriptionDeps = S.Struct({
   keyboard: S.Null,
 })
 
-const subscriptions = Runtime.makeSubscriptions(SubscriptionDeps)<
+const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
   Model,
   Message
 >({

@@ -1,5 +1,5 @@
 import { Effect, Match as M, Option, Schema as S, Stream } from 'effect'
-import { Runtime } from 'foldkit'
+import { Subscription } from 'foldkit'
 
 import { GotHomeMessage, GotRoomMessage, Message, NoOp } from './message'
 import { Model } from './model'
@@ -15,7 +15,7 @@ const SubscriptionDeps = S.Struct({
   }),
 })
 
-export const subscriptions = Runtime.makeSubscriptions(SubscriptionDeps)<Model, Message>({
+export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<Model, Message>({
   roomSubscription: {
     modelToDependencies: (model: Model) =>
       M.value(model.route).pipe(

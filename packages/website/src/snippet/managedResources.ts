@@ -11,7 +11,7 @@ const ManagedResourceDeps = S.Struct({
 })
 
 // 3. Wire lifecycle with makeManagedResources
-const managedResources = Runtime.makeManagedResources(
+const managedResources = ManagedResource.makeManagedResources(
   ManagedResourceDeps,
 )<Model, Message>({
   camera: {

@@ -19,6 +19,10 @@
       "types": "./dist/html/public.d.ts",
       "import": "./dist/html/public.js"
     },
+    "./managedResource": {
+      "types": "./dist/managedResource/public.d.ts",
+      "import": "./dist/managedResource/public.js"
+    },
     "./message": {
       "types": "./dist/message/public.d.ts",
       "import": "./dist/message/public.js"
@@ -46,6 +50,10 @@
     "./struct": {
       "types": "./dist/struct/public.d.ts",
       "import": "./dist/struct/public.js"
+    },
+    "./subscription": {
+      "types": "./dist/subscription/public.d.ts",
+      "import": "./dist/subscription/public.js"
     },
     "./task": {
       "types": "./dist/task/public.d.ts",

@@ -1,6 +1,6 @@
 import { Effect, Stream } from 'effect'
 import { Command } from 'foldkit/command'
-import { Subscription } from 'foldkit/runtime'
+import { Subscription } from 'foldkit/subscription'
 
 import {
   ChangedViewportWidth,

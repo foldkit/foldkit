@@ -9,7 +9,7 @@ import {
   Stream,
   String,
 } from 'effect'
-import { ManagedResource, Runtime, Task } from 'foldkit'
+import { ManagedResource, Runtime, Subscription, Task } from 'foldkit'
 import { Command } from 'foldkit/command'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -242,10 +242,9 @@ const ManagedResourceDeps = S.Struct({
   chatSocket: S.Option(S.Null),
 })
 
-const managedResources = Runtime.makeManagedResources(ManagedResourceDeps)<
-  Model,
-  Message
->({
+const managedResources = ManagedResource.makeManagedResources(
+  ManagedResourceDeps,
+)<Model, Message>({
   chatSocket: {
     resource: ChatSocket,
     modelToMaybeRequirements: model =>
@@ -300,7 +299,7 @@ const SubscriptionDeps = S.Struct({
   isConnected: S.Boolean,
 })
 
-const subscriptions = Runtime.makeSubscriptions(SubscriptionDeps)<
+const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
   Model,
   Message,
   ChatSocketService

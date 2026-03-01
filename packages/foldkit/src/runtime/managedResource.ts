@@ -78,7 +78,7 @@ export type ManagedResourceServicesOf<MR> =
  *   camera: S.Option(S.Struct({ facingMode: S.String })),
  * })
  *
- * const managedResources = Runtime.makeManagedResources(
+ * const managedResources = ManagedResource.makeManagedResources(
  *   ManagedResourceDeps,
  * )<Model, Message>({
  *   camera: {
