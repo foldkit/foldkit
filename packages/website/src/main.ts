@@ -1313,13 +1313,17 @@ const docsHeaderView = (model: Model) =>
     ],
   )
 
+const toApiReferenceMessage = (
+  message: Page.ApiReference.Message,
+): Message => GotApiReferenceMessage({ message })
+
 const apiReferenceView = (
   apiReferenceModel: Page.ApiReference.Model,
 ): Html =>
   Page.ApiReference.view(
     Page.ApiReference.apiReference.modules,
     apiReferenceModel,
-    message => GotApiReferenceMessage({ message }),
+    toApiReferenceMessage,
   )
 
 const lazyApiReference = createLazy()

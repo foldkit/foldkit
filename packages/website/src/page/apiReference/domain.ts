@@ -230,6 +230,7 @@ const parseItemsAsModule = (
     children,
     Array.filter(item => item.kind === Kind.Function),
     Array.map(parseFunction),
+    Array.sort(byName()),
   ),
   types: pipe(
     children,
@@ -239,16 +240,19 @@ const parseItemsAsModule = (
         !Option.exists(type, ({ type }) => type === 'query'),
     ),
     Array.map(parseType),
+    Array.sort(byName()),
   ),
   interfaces: pipe(
     children,
     Array.filter(item => item.kind === Kind.Interface),
     Array.map(parseInterface),
+    Array.sort(byName()),
   ),
   variables: pipe(
     children,
     Array.filter(item => item.kind === Kind.Variable),
     Array.map(parseVariable),
+    Array.sort(byName()),
   ),
 })
 

@@ -1,6 +1,8 @@
-import { Array, Option, Order, Record, String, pipe } from 'effect'
+import classNames from 'classnames'
+import { Array, Option, Record, String, pipe } from 'effect'
 import { Ui } from 'foldkit'
-import { Html } from 'foldkit/html'
+import { Html, createKeyedLazy } from 'foldkit/html'
+import { Disclosure } from 'foldkit/ui'
 import highlights from 'virtual:api-highlights'
 
 import {
@@ -77,15 +79,12 @@ const sourceLink = (
     ],
   })
 
-const byName = <
-  T extends { readonly name: string },
->(): Order.Order<T> =>
-  Order.mapInput(Order.string, ({ name }: T) => name)
+const lazyItem = createKeyedLazy()
 
 const functionView = (
   moduleName: string,
   apiFunction: ApiFunction,
-  model: Model,
+  maybeDisclosure: Disclosure.Model | undefined,
   toMessage: (message: Message) => ParentMessage,
 ): Html => {
   const id = scopedId('function', moduleName, apiFunction.name)
@@ -130,7 +129,7 @@ const functionView = (
         onNone: () => [],
         onSome: descriptionView,
       }),
-      signaturesView(id, apiFunction, model, toMessage),
+      signaturesView(id, apiFunction, maybeDisclosure, toMessage),
     ],
   )
 }
@@ -180,7 +179,9 @@ const chevron = (isOpen: boolean) =>
   span(
     [
       Class(
-        `text-gray-500 dark:text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`,
+        classNames('text-gray-500 dark:text-gray-400', {
+          'rotate-180': isOpen,
+        }),
       ),
     ],
     [Icon.chevronDown('w-4 h-4')],
@@ -189,52 +190,63 @@ const chevron = (isOpen: boolean) =>
 const disclosureButtonClassName =
   'w-full flex items-center justify-between px-3 py-2 text-left text-base cursor-pointer transition border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-800 rounded-lg data-[open]:rounded-b-none select-none'
 
-const disclosurePanelClassName =
-  'border-x border-b border-gray-200 dark:border-gray-700 rounded-b-lg overflow-x-auto'
+const disclosurePanelClassName = 'rounded-b-lg overflow-x-auto'
 
 const signaturesView = (
   key: string,
   apiFunction: ApiFunction,
-  model: Model,
+  maybeDisclosure: Disclosure.Model | undefined,
   toMessage: (message: Message) => ParentMessage,
 ): Html => {
   const maybeHighlighted = Record.get(highlights, key)
-  const maybeDisclosure = Record.get(model, key)
+  const isInDisclosure = maybeDisclosure !== undefined
 
   const { wrapperClass, content } = Option.match(maybeHighlighted, {
     onSome: highlighted => ({
-      wrapperClass:
-        'rounded text-sm [&_pre]:!rounded [&_pre]:!py-4 [&_pre]:!pl-4 [&_pre]:!pr-0 [&_code]:block [&_code]:w-fit [&_code]:min-w-full [&_code]:pr-4',
+      wrapperClass: classNames(
+        'text-sm [&_pre]:!py-4 [&_pre]:!pl-4 [&_pre]:!pr-0 [&_code]:block [&_code]:w-fit [&_code]:min-w-full [&_code]:pr-4',
+        {
+          'rounded [&_pre]:!rounded': !isInDisclosure,
+          'rounded-b-lg rounded-t-none [&_pre]:!rounded-b-lg [&_pre]:!rounded-t-none':
+            isInDisclosure,
+        },
+      ),
       content: [
         div([InnerHTML(highlighted)], []),
         ...allParameterDescriptions(apiFunction),
       ],
     }),
     onNone: () => ({
-      wrapperClass:
-        'bg-white dark:bg-gray-800 rounded p-4 font-mono text-sm',
+      wrapperClass: classNames(
+        'bg-white dark:bg-gray-800 p-4 font-mono text-sm',
+        {
+          rounded: !isInDisclosure,
+          'rounded-b-lg rounded-t-none': isInDisclosure,
+        },
+      ),
       content: Array.flatMap(apiFunction.signatures, signature =>
         signatureChildrenFallback(signature),
       ),
     }),
   })
 
-  return Option.match(maybeDisclosure, {
-    onSome: disclosure =>
-      Ui.Disclosure.view({
-        model: disclosure,
+  return maybeDisclosure !== undefined
+    ? Ui.Disclosure.view({
+        model: maybeDisclosure,
         toMessage: message =>
           toMessage(GotDisclosureMessage({ id: key, message })),
         buttonClassName: disclosureButtonClassName,
         buttonContent: div(
           [Class('flex items-center justify-between w-full')],
-          [span([], ['Show signature']), chevron(disclosure.isOpen)],
+          [
+            span([], ['Show signature']),
+            chevron(maybeDisclosure.isOpen),
+          ],
         ),
         panelClassName: disclosurePanelClassName,
         panelContent: div([Class(wrapperClass)], content),
-      }),
-    onNone: () => div([Class(wrapperClass)], content),
-  })
+      })
+    : div([Class(wrapperClass)], content)
 }
 
 const parameterDescriptions = (
@@ -572,11 +584,7 @@ const section = <T extends { readonly name: string }>(
     onEmpty: () => [],
     onNonEmpty: items => [
       heading('h3', `${moduleName}-${label.toLowerCase()}`, label),
-      ...pipe(
-        items,
-        Array.sort(byName()),
-        Array.map(item => itemView(moduleName, item)),
-      ),
+      ...Array.map(items, item => itemView(moduleName, item)),
     ],
   })
 
@@ -604,26 +612,60 @@ export const view = (
               module.name,
               'Functions',
               module.functions,
-              (moduleName, apiFunction) =>
-                functionView(
+              (moduleName, apiFunction) => {
+                const key = scopedId(
+                  'function',
+                  moduleName,
+                  apiFunction.name,
+                )
+                return lazyItem(key, functionView, [
                   moduleName,
                   apiFunction,
-                  model,
+                  model[key],
                   toMessage,
-                ),
+                ])
+              },
             ),
-            ...section(module.name, 'Types', module.types, typeView),
+            ...section(
+              module.name,
+              'Types',
+              module.types,
+              (moduleName, type) => {
+                const key = scopedId('type', moduleName, type.name)
+                return lazyItem(key, typeView, [moduleName, type])
+              },
+            ),
             ...section(
               module.name,
               'Interfaces',
               module.interfaces,
-              interfaceView,
+              (moduleName, apiInterface) => {
+                const key = scopedId(
+                  'interface',
+                  moduleName,
+                  apiInterface.name,
+                )
+                return lazyItem(key, interfaceView, [
+                  moduleName,
+                  apiInterface,
+                ])
+              },
             ),
             ...section(
               module.name,
               'Constants',
               module.variables,
-              variableView,
+              (moduleName, variable) => {
+                const key = scopedId(
+                  'const',
+                  moduleName,
+                  variable.name,
+                )
+                return lazyItem(key, variableView, [
+                  moduleName,
+                  variable,
+                ])
+              },
             ),
           ],
         ),
