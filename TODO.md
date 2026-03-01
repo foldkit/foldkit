@@ -100,3 +100,5 @@
 - [ ] Maybe show a better error if the user provides a container to run that does not exist?
 
 - [ ] Communicating this idea somewhere on the website: "You can trust AI-written Foldkit code more that other frameworks, because the architecture makes correctness visible."
+
+- [ ] Swap classnames for clsx across entire repo
