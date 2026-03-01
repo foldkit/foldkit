@@ -8,7 +8,6 @@ import {
   Record,
   Ref,
   String,
-  flow,
   pipe,
 } from 'effect'
 import { h } from 'snabbdom'
@@ -621,8 +620,8 @@ const buildVNodeData = <Message>(
             Effect.gen(function* () {
               const classObject = pipe(
                 value,
-                String.split(' '),
-                Array.filter(flow(String.trim, String.isNonEmpty)),
+                String.split(/\s+/),
+                Array.filter(String.isNonEmpty),
                 Array.reduce({}, (acc, className) => ({
                   ...acc,
                   [className]: true,
