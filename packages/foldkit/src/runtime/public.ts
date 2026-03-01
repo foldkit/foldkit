@@ -1,18 +1,15 @@
-export {
-  makeElement,
-  makeApplication,
-  run,
-  makeSubscriptions,
-  makeManagedResources,
-} from './runtime'
+export { makeManagedResources } from './managedResource'
 
 export type {
-  BrowserConfig,
-  Subscription,
-  Subscriptions,
   ManagedResourceConfig,
   ManagedResources,
   ManagedResourceServicesOf,
+} from './managedResource'
+
+export { makeElement, makeApplication, run } from './runtime'
+
+export type {
+  BrowserConfig,
   ElementConfigWithFlags,
   ElementConfigWithoutFlags,
   ApplicationConfigWithFlags,
@@ -21,6 +18,10 @@ export type {
   ApplicationInit,
   MakeRuntimeReturn,
 } from './runtime'
+
+export { makeSubscriptions } from './subscription'
+
+export type { Subscription, Subscriptions } from './subscription'
 
 export { UrlRequest } from './urlRequest'
 
