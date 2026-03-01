@@ -6,6 +6,7 @@ import {
   Schema as S,
   String,
   flow,
+  pipe,
 } from 'effect'
 
 import { ts } from '../schema'
@@ -129,7 +130,10 @@ export const between = (
   max: number,
   message?: string,
 ): Validation<number> => [
-  value => value >= min && value <= max,
+  Predicate.and(
+    Number_.greaterThanOrEqualTo(min),
+    Number_.lessThanOrEqualTo(max),
+  ),
   message ?? `Must be between ${min} and ${max}`,
 ]
 
@@ -166,19 +170,19 @@ export const oneOf = (
 /** Runs validations against a value, returning the first failure as `Invalid` or `Valid` if all pass. */
 export const validateField =
   <T>(fieldValidations: ReadonlyArray<Validation<T>>) =>
-  (value: T) => {
-    for (const [predicate, message] of fieldValidations) {
-      if (!predicate(value)) {
-        return {
+  (value: T) =>
+    pipe(
+      fieldValidations,
+      Array.findFirst(([predicate]) => !predicate(value)),
+      Option.match({
+        onNone: () => ({
+          _tag: 'Valid' as const,
+          value,
+        }),
+        onSome: ([, error]) => ({
           _tag: 'Invalid' as const,
           value,
-          error: message,
-        }
-      }
-    }
-
-    return {
-      _tag: 'Valid' as const,
-      value,
-    }
-  }
+          error,
+        }),
+      }),
+    )
