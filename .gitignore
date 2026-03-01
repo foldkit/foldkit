@@ -2,5 +2,6 @@ node_modules
 dist
 *.tsbuildinfo
 .vercel
-settings.local.json
+.claude/*
+!.claude/commands/
 packages/website/src/generated/
