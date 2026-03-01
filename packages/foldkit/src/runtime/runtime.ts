@@ -32,6 +32,8 @@ import {
 import { defaultErrorView, noOpDispatch } from './errorUI'
 import { UrlRequest } from './urlRequest'
 
+const SLOW_VIEW_THRESHOLD_MS = 16
+
 /** Effect service tag that provides message dispatching to the view layer. */
 export class Dispatch extends Context.Tag('@foldkit/Dispatch')<
   Dispatch,
@@ -85,6 +87,7 @@ export interface RuntimeConfig<
   readonly container: HTMLElement
   readonly browser?: BrowserConfig<Message>
   readonly errorView?: (error: Error) => Html
+  readonly slowViewThresholdMs?: number | false
   /**
    * An Effect Layer providing long-lived resources that persist across command
    * invocations. Use this for browser resources with lifecycle (AudioContext,
@@ -132,6 +135,7 @@ interface BaseElementConfig<
   >
   readonly container: HTMLElement
   readonly errorView?: (error: Error) => Html
+  readonly slowViewThresholdMs?: number | false
   readonly resources?: Layer.Layer<Resources>
   readonly managedResources?: ManagedResources<
     Model,
@@ -210,6 +214,7 @@ interface BaseApplicationConfig<
   readonly container: HTMLElement
   readonly browser: BrowserConfig<Message>
   readonly errorView?: (error: Error) => Html
+  readonly slowViewThresholdMs?: number | false
   readonly resources?: Layer.Layer<Resources>
   readonly managedResources?: ManagedResources<
     Model,
@@ -528,6 +533,7 @@ const makeRuntime =
     container,
     browser: browserConfig,
     errorView,
+    slowViewThresholdMs = SLOW_VIEW_THRESHOLD_MS,
     resources,
     managedResources,
   }: RuntimeConfig<
@@ -714,16 +720,27 @@ const makeRuntime =
           enqueueMessage(message as Message)
 
         const render = (model: Model) =>
-          view(model).pipe(
-            Effect.flatMap(nextVNodeNullish =>
-              Effect.gen(function* () {
-                const maybeCurrentVNode = yield* Ref.get(maybeCurrentVNodeRef)
-                const patchedVNode = yield* Effect.sync(() =>
-                  patchVNode(maybeCurrentVNode, nextVNodeNullish, container),
-                )
-                yield* Ref.set(maybeCurrentVNodeRef, Option.some(patchedVNode))
-              }),
-            ),
+          Effect.gen(function* () {
+            const viewStart = performance.now()
+            const nextVNodeNullish = yield* view(model)
+            const viewDuration = performance.now() - viewStart
+
+            if (
+              import.meta.hot &&
+              slowViewThresholdMs !== false &&
+              viewDuration > slowViewThresholdMs
+            ) {
+              console.warn(
+                `[foldkit] Slow view: ${viewDuration.toFixed(1)}ms (budget: ${slowViewThresholdMs}ms)`,
+              )
+            }
+
+            const maybeCurrentVNode = yield* Ref.get(maybeCurrentVNodeRef)
+            const patchedVNode = yield* Effect.sync(() =>
+              patchVNode(maybeCurrentVNode, nextVNodeNullish, container),
+            )
+            yield* Ref.set(maybeCurrentVNodeRef, Option.some(patchedVNode))
+          }).pipe(
             Effect.provideService(Dispatch, {
               dispatchAsync,
               dispatchSync,
@@ -999,6 +1016,9 @@ export function makeElement<
     ...(config.subscriptions && { subscriptions: config.subscriptions }),
     container: config.container,
     ...(config.errorView && { errorView: config.errorView }),
+    ...(Predicate.isNotUndefined(config.slowViewThresholdMs) && {
+      slowViewThresholdMs: config.slowViewThresholdMs,
+    }),
     ...(config.resources && { resources: config.resources }),
     ...(config.managedResources && {
       managedResources: config.managedResources,
@@ -1110,6 +1130,9 @@ export function makeApplication<
     container: config.container,
     browser: config.browser,
     ...(config.errorView && { errorView: config.errorView }),
+    ...(Predicate.isNotUndefined(config.slowViewThresholdMs) && {
+      slowViewThresholdMs: config.slowViewThresholdMs,
+    }),
     ...(config.resources && { resources: config.resources }),
     ...(config.managedResources && {
       managedResources: config.managedResources,
