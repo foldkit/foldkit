@@ -375,14 +375,14 @@ const includedSection = (): Html =>
               ),
             ],
             [
-              "No more stitching together a routing library, a state manager, a UI kit, and a form validator. Foldkit ships everything you need as one coherent system. And nothing you don't.",
+              'Foldkit is a complete system, not a collection of libraries you stitch together.',
             ],
           ),
           div(
             [Class('grid gap-6 sm:grid-cols-2 lg:grid-cols-3')],
             [
               includedFeature(Icon.route('w-6 h-6'), 'Routing', [
-                'Type-safe bidirectional routing. URLs parse into typed routes and routes build back into URLs. No string matching, no runtime surprises.',
+                'Type-safe bidirectional routing. URLs parse into typed routes and routes build back into URLs. No string matching, no mismatches between parsing and building.',
               ]),
               div(
                 [Class('landing-card p-6 dark:bg-gray-850')],
@@ -416,7 +416,7 @@ const includedSection = (): Html =>
                       ),
                     ],
                     [
-                      'Accessible headless primitives — dialog, menu, tabs, disclosure — built for the Elm Architecture. No React dependency.',
+                      'Fully accessible primitives — dialog, menu, tabs, listbox, disclosure — that are easy to style and customize.',
                     ],
                   ),
                   a(
@@ -450,28 +450,28 @@ const includedSection = (): Html =>
                     ],
                     ['Snabbdom'],
                   ),
-                  '. Fast, keyed diffing with declarative views that are plain functions of your model.',
+                  '. Declarative views powered by keyed diffing. Views are plain functions of your Model.',
                 ],
               ),
               includedFeature(
                 Icon.signal('w-6 h-6'),
                 'Subscriptions',
                 [
-                  'Declarative subscriptions that react to model changes. Timers, DOM observers, and external events are managed automatically. Set up when needed, torn down when not.',
+                  'Declare which streams your app needs as a function of your Model. The runtime diffs and switches them when the Model changes.',
                 ],
               ),
               includedFeature(
                 Icon.shieldCheck('w-6 h-6'),
                 'Field Validation',
                 [
-                  'Schema-driven validation with per-field error states. Validation rules live in your model, not scattered across event handlers.',
+                  'Per-field validation state modeled as a discriminated union. Define rules as data, apply them in update, and the Model tracks the result.',
                 ],
               ),
               includedFeature(
                 Icon.cog('w-6 h-6'),
-                'Side Effect Management',
+                'Commands',
                 [
-                  'Automatic cancellation, retry, and timeout powered by Effect. Commands compose naturally and the runtime manages their lifecycle.',
+                  'Side effects are described as Effects that return Messages and are executed by the runtime. Use retry, timeout, race, and parallel composition naturally.',
                 ],
               ),
             ],
