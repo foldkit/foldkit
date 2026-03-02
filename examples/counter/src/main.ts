@@ -1,4 +1,4 @@
-import { Match as M, Schema } from 'effect'
+import { Match as M, Schema as S } from 'effect'
 import { Runtime } from 'foldkit'
 import { Command } from 'foldkit/command'
 import { Html, html } from 'foldkit/html'
@@ -6,7 +6,7 @@ import { m } from 'foldkit/message'
 
 // MODEL
 
-const Model = Schema.Number
+const Model = S.Struct({ count: S.Number })
 type Model = typeof Model.Type
 
 // MESSAGE
@@ -15,33 +15,33 @@ const ClickedDecrement = m('ClickedDecrement')
 const ClickedIncrement = m('ClickedIncrement')
 const ClickedReset = m('ClickedReset')
 
-const Message = Schema.Union(ClickedDecrement, ClickedIncrement, ClickedReset)
+const Message = S.Union(ClickedDecrement, ClickedIncrement, ClickedReset)
 export type Message = typeof Message.Type
 
 // UPDATE
 
 const update = (
-  count: Model,
+  model: Model,
   message: Message,
 ): [Model, ReadonlyArray<Command<Message>>] =>
   M.value(message).pipe(
     M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
     M.tagsExhaustive({
-      ClickedDecrement: () => [count - 1, []],
-      ClickedIncrement: () => [count + 1, []],
-      ClickedReset: () => [0, []],
+      ClickedDecrement: () => [{ count: model.count - 1 }, []],
+      ClickedIncrement: () => [{ count: model.count + 1 }, []],
+      ClickedReset: () => [{ count: 0 }, []],
     }),
   )
 
 // INIT
 
-const init: Runtime.ElementInit<Model, Message> = () => [0, []]
+const init: Runtime.ElementInit<Model, Message> = () => [{ count: 0 }, []]
 
 // VIEW
 
 const { div, button, Class, OnClick } = html<Message>()
 
-const view = (count: Model): Html =>
+const view = (model: Model): Html =>
   div(
     [
       Class(
@@ -49,7 +49,10 @@ const view = (count: Model): Html =>
       ),
     ],
     [
-      div([Class('text-6xl font-bold text-gray-800')], [count.toString()]),
+      div(
+        [Class('text-6xl font-bold text-gray-800')],
+        [model.count.toString()],
+      ),
       div(
         [Class('flex flex-wrap justify-center gap-4')],
         [

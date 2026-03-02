@@ -1,41 +1,52 @@
-# Foldkit
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/devinjameson/foldkit/main/packages/website/public/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/devinjameson/foldkit/main/packages/website/public/logo.svg">
+    <img src="https://raw.githubusercontent.com/devinjameson/foldkit/main/packages/website/public/logo.svg" alt="Foldkit" width="350">
+  </picture>
+</p>
 
-> ⚠️ Foldkit is pre-1.0. APIs may change between minor versions.
+<p align="center">
+  <a href="https://www.npmjs.com/package/foldkit"><img src="https://img.shields.io/npm/v/foldkit" alt="npm version"></a>
+</p>
 
-**Foldkit** is an [Elm](https://elm-lang.org/)-inspired framework for building web applications powered by [Effect](https://effect.website/).
+<h3 align="center">Beautifully boring frontend applications.</h3>
 
-> Like origami: simple parts become intricate when folded together.
+<p align="center">
+  <a href="https://foldkit.dev"><strong>Documentation</strong></a> · <a href="https://github.com/devinjameson/foldkit#examples"><strong>Examples</strong></a> · <a href="https://foldkit.dev/getting-started"><strong>Getting Started</strong></a>
+</p>
 
 ---
 
-## Philosophy
+Foldkit is an [Elm Architecture](https://guide.elm-lang.org/architecture/) framework for TypeScript, powered by [Effect](https://effect.website/). One Model, one update function, one way to do things. No hooks, no local state, no hidden mutations.
 
-Foldkit applies functional programming principles to web application development.
+> [!WARNING]
+> Foldkit is pre-1.0. APIs may change between minor versions.
 
-- **Pure updates** — State transitions are deterministic functions: `(model: Model, message: Message): Model` is the only way to change state.
-- **Controlled side effects** — Side effects are described as `Command<Message>` values and executed by the runtime, not performed directly in update functions.
-- **Explicit state transitions** — Every state change is modeled as a specific message type and is captured in the update function.
+## Who It's For
 
----
+Foldkit is for developers who want their architecture to prevent bugs, not just catch them. If you want a single pattern that scales from a counter to a multiplayer game without complexity creep, this is it.
 
-## Installation
+It's not incremental. There's no React interop, no escape hatch from Effect, no way to "just use hooks for this one part." You're all in or you're not.
 
-The best way to get started with Foldkit is to use `create-foldkit-app`. This
-will guide you through creating a new Foldkit project with your preferred
-package manager and example template.
+## Built on Effect
+
+Every Foldkit application is an [Effect](https://effect.website/) program. Your Model is a [Schema](https://effect.website/docs/schema/introduction/). Side effects are values you return, not callbacks you fire — the runtime handles when and how. If you already know Effect, Foldkit feels natural. If you're new to Effect, Foldkit is a great way to immerse yourself in it.
+
+## Get Started
+
+`create-foldkit-app` is the recommended way to start a new project. It scaffolds a complete setup with Tailwind, TypeScript, ESLint, Prettier, and the Vite plugin for state-preserving HMR — and lets you choose from a set of examples as your starting point.
 
 ```bash
 npx create-foldkit-app@latest --wizard
 ```
 
----
+## Counter
 
-### Simple Counter Example
-
-See the full example at [examples/counter/src/main.ts](https://github.com/devinjameson/foldkit/blob/main/examples/counter/src/main.ts)
+This is a complete Foldkit program. State lives in a single Model. Events become Messages. A pure function handles every transition.
 
 ```ts
-import { Match as M, Schema } from 'effect'
+import { Match as M, Schema as S } from 'effect'
 import { Runtime } from 'foldkit'
 import { Command } from 'foldkit/command'
 import { Html, html } from 'foldkit/html'
@@ -43,7 +54,7 @@ import { m } from 'foldkit/message'
 
 // MODEL
 
-const Model = Schema.Number
+const Model = S.Struct({ count: S.Number })
 type Model = typeof Model.Type
 
 // MESSAGE
@@ -52,33 +63,33 @@ const ClickedDecrement = m('ClickedDecrement')
 const ClickedIncrement = m('ClickedIncrement')
 const ClickedReset = m('ClickedReset')
 
-const Message = Schema.Union(ClickedDecrement, ClickedIncrement, ClickedReset)
+const Message = S.Union(ClickedDecrement, ClickedIncrement, ClickedReset)
 export type Message = typeof Message.Type
 
 // UPDATE
 
 const update = (
-  count: Model,
+  model: Model,
   message: Message,
 ): [Model, ReadonlyArray<Command<Message>>] =>
   M.value(message).pipe(
     M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
     M.tagsExhaustive({
-      ClickedDecrement: () => [count - 1, []],
-      ClickedIncrement: () => [count + 1, []],
-      ClickedReset: () => [0, []],
+      ClickedDecrement: () => [{ count: model.count - 1 }, []],
+      ClickedIncrement: () => [{ count: model.count + 1 }, []],
+      ClickedReset: () => [{ count: 0 }, []],
     }),
   )
 
 // INIT
 
-const init: Runtime.ElementInit<Model, Message> = () => [0, []]
+const init: Runtime.ElementInit<Model, Message> = () => [{ count: 0 }, []]
 
 // VIEW
 
 const { div, button, Class, OnClick } = html<Message>()
 
-const view = (count: Model): Html =>
+const view = (model: Model): Html =>
   div(
     [
       Class(
@@ -86,7 +97,10 @@ const view = (count: Model): Html =>
       ),
     ],
     [
-      div([Class('text-6xl font-bold text-gray-800')], [count.toString()]),
+      div(
+        [Class('text-6xl font-bold text-gray-800')],
+        [model.count.toString()],
+      ),
       div(
         [Class('flex flex-wrap justify-center gap-4')],
         [
@@ -115,41 +129,42 @@ const element = Runtime.makeElement({
 Runtime.run(element)
 ```
 
----
+Source: [examples/counter/src/main.ts](https://github.com/devinjameson/foldkit/blob/main/examples/counter/src/main.ts)
 
-## Development
+## What Ships With Foldkit
 
-Explore the examples locally:
+Foldkit is a complete system, not a collection of libraries you stitch together.
 
-```bash
-git clone https://github.com/devinjameson/foldkit.git
-cd foldkit
-pnpm install
+- **Commands** — Side effects are described as Effects that return Messages and are executed by the runtime. Use any Effect combinator you want — retry, timeout, race, parallel. You write the Effect, the runtime runs it.
+- **Routing** — Type-safe bidirectional routing. URLs parse into typed routes and routes build back into URLs. No string matching, no mismatches between parsing and building.
+- **Subscriptions** — Declare which streams your app needs as a function of the Model. The runtime diffs and switches them when the Model changes.
+- **Managed Resources** — Model-driven lifecycle for long-lived browser resources like WebSockets, AudioContext, and RTCPeerConnection. Acquire on state change, release on cleanup.
+- **UI Components** — Dialog, menu, tabs, listbox, disclosure — fully accessible primitives that are easy to style and customize.
+- **Field Validation** — Per-field validation state modeled as a discriminated union. Define rules as data, apply them in update, and the Model tracks the result.
+- **Virtual DOM** — Declarative Views powered by [Snabbdom](https://github.com/snabbdom/snabbdom). Fast, keyed diffing. Views are plain functions of your Model.
+- **HMR** — Vite plugin with state-preserving hot module replacement. Change your view, keep your state.
 
-# In one terminal - build Foldkit in watch mode
-pnpm dev:core
+## Correctness You (And Your LLM) Can See
 
-# In another terminal - run the counter example
-pnpm dev:example:counter
-```
+Every state change flows through one update function. Every side effect is declared explicitly — in Commands, Subscription streams, and Managed Resource lifecycles. You don't have to hold a mental model of what runs when — you can point at it.
 
----
+This is what makes Foldkit unusually AI-friendly. The same property that makes the code easy for humans to reason about makes it easy for LLMs to generate and review. The architecture makes correctness visible, whether the reader is a person or an LLM.
 
-## Status
+## Examples
 
-We're building in the open. Feedback, issues, and contributions are welcome.
-
----
-
-## Roadmap
-
-- [x] Core program loop with ADT-based update
-- [x] DOM rendering
-- [x] Optimized DOM rendering (minimal diffs, efficient updates)
-- [x] Router integration
-- [ ] Devtools + tracing
-
----
+- **[Counter](https://github.com/devinjameson/foldkit/blob/main/examples/counter/src/main.ts)** — Increment/decrement with reset
+- **[Stopwatch](https://github.com/devinjameson/foldkit/blob/main/examples/stopwatch/src/main.ts)** — Timer with start/stop/reset
+- **[Weather](https://github.com/devinjameson/foldkit/blob/main/examples/weather/src/main.ts)** — HTTP requests with async state handling
+- **[Todo](https://github.com/devinjameson/foldkit/blob/main/examples/todo/src/main.ts)** — CRUD operations with localStorage persistence
+- **[Form](https://github.com/devinjameson/foldkit/blob/main/examples/form/src/main.ts)** — Form validation with async email checking
+- **[Routing](https://github.com/devinjameson/foldkit/blob/main/examples/routing/src/main.ts)** — URL routing with parser combinators
+- **[Shopping Cart](https://github.com/devinjameson/foldkit/blob/main/examples/shopping-cart/src/main.ts)** — Nested models and complex state
+- **[Snake](https://github.com/devinjameson/foldkit/blob/main/examples/snake/src/main.ts)** — Classic game built with Subscriptions
+- **[WebSocket Chat](https://github.com/devinjameson/foldkit/blob/main/examples/websocket-chat/src/main.ts)** — Managed Resources with WebSocket integration
+- **[Auth](https://github.com/devinjameson/foldkit/blob/main/examples/auth/src/main.ts)** — Authentication flow with model-as-union
+- **[Query Sync](https://github.com/devinjameson/foldkit/blob/main/examples/query-sync/src/main.ts)** — URL query parameter sync with filtering and sorting
+- **[Error View](https://github.com/devinjameson/foldkit/blob/main/examples/error-view/src/main.ts)** — Custom error fallback UI
+- **[Typing Game](https://github.com/devinjameson/foldkit/tree/main/packages/typing-game)** — Multiplayer typing game with Effect RPC backend
 
 ## License
 
