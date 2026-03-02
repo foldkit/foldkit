@@ -19,6 +19,13 @@
     "StrictKeys",
     "RequestedItemClick",
     "PressedPointerOnButton",
-    "ReleasedPointerOnItems"
+    "ReleasedPointerOnItems",
+    "BaseApplicationConfig",
+    "BaseElementConfig",
+    "ManagedResourceTypeId",
+    "BaseInitConfig",
+    "BaseViewConfig",
+    "UpdateReturn",
+    "EvolveTransform"
   ]
 }
