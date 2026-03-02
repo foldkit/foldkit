@@ -782,6 +782,11 @@ export const view = (model: Model): Html =>
         inlineCode('catchTag'),
         ' is a safety net that never fires. But if your model logic has a bug, you get a graceful error message instead of a crash.',
       ),
+      para(
+        'In fast-changing UIs there can still be brief timing windows between acquire/release transitions and command execution. Treat ',
+        inlineCode('ResourceNotAvailable'),
+        ' as the explicit safety signal for those windows, and decide command policy in Effect (e.g. return a fallback message, retry with backoff, or ignore).',
+      ),
       callout(
         'Resources vs Managed Resources',
         para(
