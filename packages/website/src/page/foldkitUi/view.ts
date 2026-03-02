@@ -17,24 +17,9 @@ const plannedComponents: ReadonlyArray<{
   readonly description: string
 }> = [
   {
-    entry: { level: 'h2', id: 'combobox', text: 'Combobox' },
+    entry: { level: 'h2', id: 'button', text: 'Button' },
     description:
-      'An autocomplete input with filtering, keyboard navigation, and custom rendering.',
-  },
-  {
-    entry: { level: 'h2', id: 'popover', text: 'Popover' },
-    description:
-      'A floating panel that attaches to a trigger element with proper focus management.',
-  },
-  {
-    entry: { level: 'h2', id: 'switch', text: 'Switch' },
-    description:
-      'A toggle switch component with accessible labeling and keyboard support.',
-  },
-  {
-    entry: { level: 'h2', id: 'radio-group', text: 'Radio Group' },
-    description:
-      'A set of radio buttons with keyboard navigation and custom styling.',
+      'An accessible button with loading state, disabled styling, and keyboard support.',
   },
   {
     entry: { level: 'h2', id: 'checkbox', text: 'Checkbox' },
@@ -42,9 +27,29 @@ const plannedComponents: ReadonlyArray<{
       'A custom checkbox with accessible labeling, indeterminate state, and keyboard support.',
   },
   {
+    entry: { level: 'h2', id: 'combobox', text: 'Combobox' },
+    description:
+      'An autocomplete input with filtering, keyboard navigation, and custom rendering.',
+  },
+  {
+    entry: { level: 'h2', id: 'fieldset', text: 'Fieldset' },
+    description:
+      'A group of related form controls with a legend, supporting disabled state propagation to all children.',
+  },
+  {
     entry: { level: 'h2', id: 'input', text: 'Input' },
     description:
       'An accessible text input with description and error message associations via ARIA attributes.',
+  },
+  {
+    entry: { level: 'h2', id: 'popover', text: 'Popover' },
+    description:
+      'A floating panel that attaches to a trigger element with proper focus management.',
+  },
+  {
+    entry: { level: 'h2', id: 'radio-group', text: 'Radio Group' },
+    description:
+      'A set of radio buttons with keyboard navigation and custom styling.',
   },
   {
     entry: { level: 'h2', id: 'select', text: 'Select' },
@@ -52,14 +57,19 @@ const plannedComponents: ReadonlyArray<{
       'An accessible native select wrapper with labeling and description support.',
   },
   {
+    entry: { level: 'h2', id: 'switch', text: 'Switch' },
+    description:
+      'A toggle switch component with accessible labeling and keyboard support.',
+  },
+  {
     entry: { level: 'h2', id: 'textarea', text: 'Textarea' },
     description:
       'An accessible textarea with description and error message associations via ARIA attributes.',
   },
   {
-    entry: { level: 'h2', id: 'fieldset', text: 'Fieldset' },
+    entry: { level: 'h2', id: 'transition', text: 'Transition' },
     description:
-      'A group of related form controls with a legend, supporting disabled state propagation to all children.',
+      'A component for coordinating enter and leave CSS transitions with mount and unmount lifecycle.',
   },
 ]
 
