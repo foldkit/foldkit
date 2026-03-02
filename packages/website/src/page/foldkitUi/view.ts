@@ -8,6 +8,7 @@ import * as Listbox from './listbox'
 import * as Menu from './menu'
 import type { Message } from './message'
 import type { Model } from './model'
+import * as Popover from './popover'
 import * as Tabs from './tabs'
 
 // TABLE OF CONTENTS
@@ -40,11 +41,6 @@ const plannedComponents: ReadonlyArray<{
     entry: { level: 'h2', id: 'input', text: 'Input' },
     description:
       'An accessible text input with description and error message associations via ARIA attributes.',
-  },
-  {
-    entry: { level: 'h2', id: 'popover', text: 'Popover' },
-    description:
-      'A floating panel that attaches to a trigger element with proper focus management.',
   },
   {
     entry: { level: 'h2', id: 'radio-group', text: 'Radio Group' },
@@ -82,6 +78,9 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   Menu.menuHeader,
   Menu.basicHeader,
   Menu.animatedHeader,
+  Popover.popoverHeader,
+  Popover.basicHeader,
+  Popover.animatedHeader,
   Listbox.listboxHeader,
   Listbox.basicHeader,
   Listbox.multiSelectHeader,
@@ -150,6 +149,16 @@ export const view = (
       ),
       ...Menu.basicDemo(model, toMessage),
       ...Menu.animatedDemo(model, toMessage),
+      heading(
+        'h2',
+        Popover.popoverHeader.id,
+        Popover.popoverHeader.text,
+      ),
+      para(
+        'A floating panel that attaches to a trigger button with proper focus management. Unlike Menu (which has role="menu" and item navigation), Popover uses the disclosure pattern — the panel holds arbitrary content with natural Tab navigation.',
+      ),
+      ...Popover.basicDemo(model, toMessage),
+      ...Popover.animatedDemo(model, toMessage),
       heading(
         'h2',
         Listbox.listboxHeader.id,

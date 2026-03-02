@@ -79,6 +79,10 @@
       "types": "./dist/ui/menu/public.d.ts",
       "import": "./dist/ui/menu/public.js"
     },
+    "./ui/popover": {
+      "types": "./dist/ui/popover/public.d.ts",
+      "import": "./dist/ui/popover/public.js"
+    },
     "./ui/tabs": {
       "types": "./dist/ui/tabs/public.d.ts",
       "import": "./dist/ui/tabs/public.js"

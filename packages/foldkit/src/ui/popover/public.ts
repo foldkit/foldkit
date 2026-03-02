@@ -3,23 +3,16 @@ export { init, update, view, Model, Message } from './index'
 export { TransitionState } from '../transition'
 
 export type {
-  ActivationTrigger,
   Opened,
   Closed,
   ClosedByTab,
-  ActivatedItem,
-  DeactivatedItem,
-  SelectedItem,
-  MovedPointerOverItem,
-  Searched,
-  ClearedSearch,
+  PressedPointerOnButton,
   NoOp,
   AdvancedTransitionFrame,
   EndedTransition,
+  DetectedButtonMovement,
   InitConfig,
   ViewConfig,
-  ItemConfig,
-  GroupHeading,
 } from './index'
 
 export type { AnchorConfig } from '../anchor'

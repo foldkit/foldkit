@@ -8,7 +8,7 @@ import {
 } from '@floating-ui/dom'
 import type { Placement } from '@floating-ui/dom'
 
-/** Static configuration for anchor-based positioning of menu items relative to the button. */
+/** Static configuration for anchor-based positioning of a floating element relative to a button. */
 export type AnchorConfig = Readonly<{
   placement?: Placement
   gap?: number
@@ -34,10 +34,11 @@ const getOrCreatePortalRoot = (): HTMLElement => {
 
 const anchorCleanups = new WeakMap<Element, () => void>()
 
-/** Returns insert/destroy hook callbacks that position the menu items container relative to its button using Floating UI. */
+/** Returns insert/destroy hook callbacks that position a floating element relative to its button using Floating UI. When `interceptTab` is true (default), Tab key in portal mode refocuses the button — set to false for components like Popover where Tab should navigate naturally within the panel. */
 export const anchorHooks = (config: {
   buttonId: string
   anchor: AnchorConfig
+  interceptTab?: boolean
 }): Readonly<{
   onInsert: (items: Element) => void
   onDestroy: (items: Element) => void
@@ -56,6 +57,7 @@ export const anchorHooks = (config: {
     }
 
     const { placement, gap, offset: crossAxis, padding } = config.anchor
+    const shouldInterceptTab = config.interceptTab ?? true
 
     let isFirstUpdate = true
 
@@ -90,7 +92,7 @@ export const anchorHooks = (config: {
       })
     })
 
-    if (isPortal) {
+    if (isPortal && shouldInterceptTab) {
       const handleTabKey = (event: Event): void => {
         if (event instanceof KeyboardEvent && event.key === 'Tab') {
           button.focus()

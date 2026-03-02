@@ -15,10 +15,11 @@ import { type Html, html } from '../../html'
 import { m } from '../../message'
 import { makeConstrainedEvo } from '../../struct'
 import * as Task from '../../task'
+import { anchorHooks } from '../anchor'
+import type { AnchorConfig } from '../anchor'
 import { groupContiguous } from '../group'
 import { findFirstEnabledIndex, isPrintableKey, keyToIndex } from '../keyboard'
-import { anchorHooks } from '../menu/anchor'
-import type { AnchorConfig } from '../menu/anchor'
+import { TransitionState } from '../transition'
 import { resolveTypeaheadMatch } from '../typeahead'
 
 export { resolveTypeaheadMatch }
@@ -28,16 +29,6 @@ export { resolveTypeaheadMatch }
 /** Schema for the activation trigger — whether the user interacted via mouse or keyboard. */
 export const ActivationTrigger = S.Literal('Pointer', 'Keyboard')
 export type ActivationTrigger = typeof ActivationTrigger.Type
-
-/** Schema for the transition animation state, tracking enter/leave phases for CSS transition coordination. */
-export const TransitionState = S.Literal(
-  'Idle',
-  'EnterStart',
-  'EnterAnimating',
-  'LeaveStart',
-  'LeaveAnimating',
-)
-export type TransitionState = typeof TransitionState.Type
 
 /** Schema for the listbox orientation — whether items flow vertically or horizontally. */
 export const Orientation = S.Literal('Vertical', 'Horizontal')

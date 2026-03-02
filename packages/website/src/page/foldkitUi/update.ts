@@ -12,6 +12,8 @@ import {
   GotListboxMultiDemoMessage,
   GotMenuAnimatedDemoMessage,
   GotMenuBasicDemoMessage,
+  GotPopoverAnimatedDemoMessage,
+  GotPopoverBasicDemoMessage,
   GotVerticalTabsDemoMessage,
   type Message,
 } from './message'
@@ -136,6 +138,38 @@ export const update = (
           menuAnimatedCommands.map(
             Effect.map(message =>
               GotMenuAnimatedDemoMessage({ message }),
+            ),
+          ),
+        ]
+      },
+
+      GotPopoverBasicDemoMessage: ({ message }) => {
+        const [nextPopoverBasicDemo, popoverBasicCommands] =
+          Ui.Popover.update(model.popoverBasicDemo, message)
+
+        return [
+          evo(model, {
+            popoverBasicDemo: () => nextPopoverBasicDemo,
+          }),
+          popoverBasicCommands.map(
+            Effect.map(message =>
+              GotPopoverBasicDemoMessage({ message }),
+            ),
+          ),
+        ]
+      },
+
+      GotPopoverAnimatedDemoMessage: ({ message }) => {
+        const [nextPopoverAnimatedDemo, popoverAnimatedCommands] =
+          Ui.Popover.update(model.popoverAnimatedDemo, message)
+
+        return [
+          evo(model, {
+            popoverAnimatedDemo: () => nextPopoverAnimatedDemo,
+          }),
+          popoverAnimatedCommands.map(
+            Effect.map(message =>
+              GotPopoverAnimatedDemoMessage({ message }),
             ),
           ),
         ]

@@ -22,6 +22,11 @@ export const init = (): InitReturn => [
       id: 'menu-animated-demo',
       isAnimated: true,
     }),
+    popoverBasicDemo: Ui.Popover.init({ id: 'popover-basic-demo' }),
+    popoverAnimatedDemo: Ui.Popover.init({
+      id: 'popover-animated-demo',
+      isAnimated: true,
+    }),
     horizontalTabsDemo: Ui.Tabs.init({ id: 'horizontal-tabs-demo' }),
     verticalTabsDemo: Ui.Tabs.init({
       id: 'vertical-tabs-demo',
