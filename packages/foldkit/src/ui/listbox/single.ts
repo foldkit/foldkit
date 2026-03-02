@@ -68,9 +68,4 @@ export const view = makeView<Model>({
       Array.findFirstIndex(items, item => itemToValue(item) === selectedItem),
     ),
   ariaMultiSelectable: false,
-  selectedValues: model =>
-    Option.match(model.maybeSelectedItem, {
-      onNone: () => [],
-      onSome: selectedItem => [selectedItem],
-    }),
 })

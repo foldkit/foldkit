@@ -588,7 +588,6 @@ type ViewBehavior<Model extends BaseModel> = Readonly<{
     itemToValue: (item: Item) => string,
   ) => Option.Option<number>
   ariaMultiSelectable: boolean
-  selectedValues: (model: Model) => ReadonlyArray<string>
 }>
 
 export const makeView =
@@ -1039,8 +1038,16 @@ export const makeView =
 
     const formAttribute = form ? [Attribute('form', form)] : []
 
+    const selectedValues = pipe(
+      items,
+      Array.filter(item =>
+        behavior.isItemSelected(config.model, itemToValue(item)),
+      ),
+      Array.map(itemToValue),
+    )
+
     const hiddenInputs = name
-      ? Array.match(behavior.selectedValues(config.model), {
+      ? Array.match(selectedValues, {
           onEmpty: () => [
             input([Type('hidden'), Name(name), ...formAttribute]),
           ],

@@ -62,5 +62,4 @@ export const view = makeView<Model>({
       ),
     ),
   ariaMultiSelectable: true,
-  selectedValues: model => model.selectedItems,
 })
