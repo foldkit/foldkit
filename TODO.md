@@ -83,7 +83,7 @@
   - [x] Tabs: outer wrapper className — styling hook for the root container div
   - [ ] Data attributes convention — every foldkit-ui component should emit `data-*` attributes reflecting its interactive state (e.g. `data-selected`, `data-disabled`, `data-active`, `data-checked`, `data-open`). Consumers style against these with CSS selectors or Tailwind's `data-[selected]:` modifiers instead of computing classNames from state. Design and implement this pattern on Tabs first (retrofitting `data-selected`, `data-disabled`), then apply consistently to all subsequent components.
   - [x] Menu: dropdown menu with keyboard navigation, typeahead search, aria-activedescendant focus management
-  - [ ] Remaining components: Listbox, Combobox, Popover, Switch, Radio Group, Checkbox, Input, Select, Textarea, Fieldset
+  - [ ] Remaining components: Listbox, Combobox, Switch, Radio Group, Checkbox, Input, Select, Textarea, Fieldset
   - [ ] `OnKeyDown` modifier keys (`shiftKey`, `ctrlKey`, `altKey`, `metaKey`) — useful for keyboard shortcuts, complex keyboard interactions, and potential future focus trap alternatives
   - [ ] General portal support for components that need to escape stacking contexts without native `<dialog>`
 
@@ -102,3 +102,5 @@
 - [ ] Communicating this idea somewhere on the website: "You can trust AI-written Foldkit code more that other frameworks, because the architecture makes correctness visible."
 
 - [ ] Swap classnames for clsx across entire repo
+
+- [ ] Write a manifesto — "Correctness You Can See" or similar. The core thesis: Foldkit's architecture makes correctness visible, not just achievable. Every state change and side effect lives in the update function. The same property that makes the code easy for humans to reason about makes it easy for LLMs to generate and review. This deserves a standalone page on the website, not just a README section.
