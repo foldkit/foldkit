@@ -77,7 +77,7 @@ export const update = (
 
       GotListboxMultiDemoMessage: ({ message }) => {
         const [nextListboxMultiDemo, listboxMultiCommands] =
-          Ui.Listbox.update(model.listboxMultiDemo, message)
+          Ui.Listbox.Multi.update(model.listboxMultiDemo, message)
 
         return [
           evo(model, {

@@ -21,11 +21,9 @@ import {
   RequestedItemClick,
   Searched,
   SelectedItem,
-  init,
-  update,
-  view,
-} from './index'
-import type { Model, ViewConfig } from './index'
+} from './shared'
+import { init, update, view } from './single'
+import type { Model, ViewConfig } from './single'
 
 const closedModel = () => init({ id: 'test' })
 
@@ -57,14 +55,13 @@ describe('Listbox', () => {
         isOpen: false,
         isAnimated: false,
         isModal: false,
-        isMultiple: false,
         orientation: 'Vertical',
         transitionState: 'Idle',
         maybeActiveItemIndex: Option.none(),
         activationTrigger: 'Keyboard',
         searchQuery: '',
         searchVersion: 0,
-        selectedItems: [],
+        maybeSelectedItem: Option.none(),
         maybeLastPointerPosition: Option.none(),
         maybeLastButtonPointerType: Option.none(),
       })
@@ -86,27 +83,14 @@ describe('Listbox', () => {
       expect(model.isModal).toBe(true)
     })
 
-    it('accepts selectedItems option', () => {
-      const model = init({
-        id: 'test',
-        selectedItems: ['apple'],
-      })
-      expect(model.selectedItems).toStrictEqual(['apple'])
+    it('accepts selectedItem option', () => {
+      const model = init({ id: 'test', selectedItem: 'apple' })
+      expect(model.maybeSelectedItem).toStrictEqual(Option.some('apple'))
     })
 
-    it('defaults selectedItems to empty', () => {
+    it('defaults maybeSelectedItem to none', () => {
       const model = init({ id: 'test' })
-      expect(model.selectedItems).toStrictEqual([])
-    })
-
-    it('accepts isMultiple option', () => {
-      const model = init({ id: 'test', isMultiple: true })
-      expect(model.isMultiple).toBe(true)
-    })
-
-    it('defaults isMultiple to false', () => {
-      const model = init({ id: 'test' })
-      expect(model.isMultiple).toBe(false)
+      expect(model.maybeSelectedItem).toStrictEqual(Option.none())
     })
 
     it('defaults orientation to Vertical', () => {
@@ -470,11 +454,11 @@ describe('Listbox', () => {
       })
     })
 
-    describe('SelectedItem (single)', () => {
-      it('stores item value in selectedItems', () => {
+    describe('SelectedItem', () => {
+      it('stores item value in maybeSelectedItem', () => {
         const model = openModel()
         const [result] = update(model, SelectedItem({ item: 'apple' }))
-        expect(result.selectedItems).toStrictEqual(['apple'])
+        expect(result.maybeSelectedItem).toStrictEqual(Option.some('apple'))
       })
 
       it('closes the listbox on selection', () => {
@@ -494,29 +478,27 @@ describe('Listbox', () => {
         const model = openModel()
         const [afterSelect] = update(model, SelectedItem({ item: 'apple' }))
         expect(afterSelect.isOpen).toBe(false)
-        expect(afterSelect.selectedItems).toStrictEqual(['apple'])
+        expect(afterSelect.maybeSelectedItem).toStrictEqual(
+          Option.some('apple'),
+        )
       })
 
       it('selection persists across open/close cycles', () => {
-        const model = init({
-          id: 'test',
-          selectedItems: ['banana'],
-        })
+        const model = init({ id: 'test', selectedItem: 'banana' })
         const [afterOpen] = update(
           model,
           Opened({ maybeActiveItemIndex: Option.some(0) }),
         )
-        expect(afterOpen.selectedItems).toStrictEqual(['banana'])
+        expect(afterOpen.maybeSelectedItem).toStrictEqual(Option.some('banana'))
 
         const [afterClose] = update(afterOpen, Closed())
-        expect(afterClose.selectedItems).toStrictEqual(['banana'])
+        expect(afterClose.maybeSelectedItem).toStrictEqual(
+          Option.some('banana'),
+        )
       })
 
       it('replaces previous selection with new value', () => {
-        const model = init({
-          id: 'test',
-          selectedItems: ['apple'],
-        })
+        const model = init({ id: 'test', selectedItem: 'apple' })
         const [afterOpen] = update(
           model,
           Opened({ maybeActiveItemIndex: Option.some(0) }),
@@ -525,69 +507,9 @@ describe('Listbox', () => {
           afterOpen,
           SelectedItem({ item: 'banana' }),
         )
-        expect(afterSelect.selectedItems).toStrictEqual(['banana'])
-      })
-    })
-
-    describe('SelectedItem (multiple)', () => {
-      const openMultiModel = () => {
-        const model = init({ id: 'test', isMultiple: true })
-        const [result] = update(
-          model,
-          Opened({ maybeActiveItemIndex: Option.some(0) }),
+        expect(afterSelect.maybeSelectedItem).toStrictEqual(
+          Option.some('banana'),
         )
-        return result
-      }
-
-      it('adds item to selectedItems', () => {
-        const model = openMultiModel()
-        const [result] = update(model, SelectedItem({ item: 'apple' }))
-        expect(result.selectedItems).toStrictEqual(['apple'])
-      })
-
-      it('stays open after selection', () => {
-        const model = openMultiModel()
-        const [result] = update(model, SelectedItem({ item: 'apple' }))
-        expect(result.isOpen).toBe(true)
-      })
-
-      it('returns no commands', () => {
-        const model = openMultiModel()
-        const [, commands] = update(model, SelectedItem({ item: 'apple' }))
-        expect(commands).toHaveLength(0)
-      })
-
-      it('toggles item off when already selected', () => {
-        const model = openMultiModel()
-        const [afterFirst] = update(model, SelectedItem({ item: 'apple' }))
-        const [afterSecond] = update(
-          afterFirst,
-          SelectedItem({ item: 'apple' }),
-        )
-        expect(afterSecond.selectedItems).toStrictEqual([])
-      })
-
-      it('accumulates multiple selections', () => {
-        const model = openMultiModel()
-        const [afterFirst] = update(model, SelectedItem({ item: 'apple' }))
-        const [afterSecond] = update(
-          afterFirst,
-          SelectedItem({ item: 'banana' }),
-        )
-        expect(afterSecond.selectedItems).toStrictEqual(['apple', 'banana'])
-      })
-
-      it('preserves active item after selection', () => {
-        const model = openMultiModel()
-        const [afterActivate] = update(
-          model,
-          ActivatedItem({ index: 2, activationTrigger: 'Keyboard' }),
-        )
-        const [afterSelect] = update(
-          afterActivate,
-          SelectedItem({ item: 'apple' }),
-        )
-        expect(afterSelect.maybeActiveItemIndex).toStrictEqual(Option.some(2))
       })
     })
 
@@ -1024,7 +946,7 @@ describe('Listbox', () => {
       it('selected item has aria-selected="true"', () => {
         const model = {
           ...openModel(),
-          selectedItems: ['Apple'],
+          maybeSelectedItem: Option.some('Apple'),
         }
         const config = baseViewConfig(model)
         const vnode = renderView(config)
@@ -1037,7 +959,7 @@ describe('Listbox', () => {
       it('non-selected items have aria-selected="false"', () => {
         const model = {
           ...openModel(),
-          selectedItems: ['Apple'],
+          maybeSelectedItem: Option.some('Apple'),
         }
         const config = baseViewConfig(model)
         const vnode = renderView(config)
@@ -1050,7 +972,7 @@ describe('Listbox', () => {
       it('data-selected attribute on selected item', () => {
         const model = {
           ...openModel(),
-          selectedItems: ['Banana'],
+          maybeSelectedItem: Option.some('Banana'),
         }
         const config = baseViewConfig(model)
         const vnode = renderView(config)
@@ -1060,6 +982,17 @@ describe('Listbox', () => {
 
         expect(firstItem?.data?.attrs?.['data-selected']).toBeUndefined()
         expect(secondItem?.data?.attrs?.['data-selected']).toBe('')
+      })
+
+      it('items container has no aria-multiselectable', () => {
+        const model = openModel()
+        const config = baseViewConfig(model)
+        const vnode = renderView(config)
+        const itemsContainer = findChildByKey(vnode, 'test-items-container')
+
+        expect(
+          itemsContainer?.data?.attrs?.['aria-multiselectable'],
+        ).toBeUndefined()
       })
     })
 
@@ -1085,7 +1018,7 @@ describe('Listbox', () => {
       it('hidden input value matches selected item', () => {
         const model = {
           ...closedModel(),
-          selectedItems: ['Apple'],
+          maybeSelectedItem: Option.some('Apple'),
         }
         const config = {
           ...baseViewConfig(model),
@@ -1135,7 +1068,7 @@ describe('Listbox', () => {
       it('itemToConfig receives isSelected: true for selected item', () => {
         const model = {
           ...openModel(),
-          selectedItems: ['Apple'],
+          maybeSelectedItem: Option.some('Apple'),
         }
         const contexts: Array<{
           isActive: boolean
@@ -1167,7 +1100,7 @@ describe('Listbox', () => {
       it('itemToConfig receives isSelected: false for non-selected items', () => {
         const model = {
           ...openModel(),
-          selectedItems: ['Apple'],
+          maybeSelectedItem: Option.some('Apple'),
         }
         const contexts: Array<{
           isActive: boolean
@@ -1407,7 +1340,7 @@ describe('Listbox', () => {
       it('selected item matches by itemToValue', () => {
         const model = {
           ...openModel(),
-          selectedItems: ['2'],
+          maybeSelectedItem: Option.some('2'),
         }
         const config = personViewConfig(model)
         const vnode = renderView(config)
@@ -1421,7 +1354,7 @@ describe('Listbox', () => {
       it('non-selected item has aria-selected false', () => {
         const model = {
           ...openModel(),
-          selectedItems: ['2'],
+          maybeSelectedItem: Option.some('2'),
         }
         const config = personViewConfig(model)
         const vnode = renderView(config)
@@ -1435,7 +1368,7 @@ describe('Listbox', () => {
       it('hidden input uses itemToValue for value', () => {
         const model = {
           ...closedModel(),
-          selectedItems: ['1'],
+          maybeSelectedItem: Option.some('1'),
         }
         const config = {
           ...personViewConfig(model),
@@ -1449,96 +1382,6 @@ describe('Listbox', () => {
         )
 
         expect(hiddenInput?.data?.props?.['value']).toBe('1')
-      })
-    })
-
-    describe('multiple selection', () => {
-      const openMultiModel = () => {
-        const model = init({ id: 'test', isMultiple: true })
-        const [result] = update(
-          model,
-          Opened({ maybeActiveItemIndex: Option.some(0) }),
-        )
-        return result
-      }
-
-      it('items container has aria-multiselectable when isMultiple', () => {
-        const model = openMultiModel()
-        const config = baseViewConfig(model)
-        const vnode = renderView(config)
-        const itemsContainer = findChildByKey(vnode, 'test-items-container')
-
-        expect(itemsContainer?.data?.attrs?.['aria-multiselectable']).toBe(
-          'true',
-        )
-      })
-
-      it('items container has no aria-multiselectable when single', () => {
-        const model = openModel()
-        const config = baseViewConfig(model)
-        const vnode = renderView(config)
-        const itemsContainer = findChildByKey(vnode, 'test-items-container')
-
-        expect(
-          itemsContainer?.data?.attrs?.['aria-multiselectable'],
-        ).toBeUndefined()
-      })
-
-      it('multiple items have data-selected', () => {
-        const model = {
-          ...openMultiModel(),
-          selectedItems: ['Apple', 'Banana'],
-        }
-        const config = baseViewConfig(model)
-        const vnode = renderView(config)
-        const itemsContainer = findChildByKey(vnode, 'test-items-container')
-        const firstItem = findChildByKey(itemsContainer!, 'test-item-0')
-        const secondItem = findChildByKey(itemsContainer!, 'test-item-1')
-
-        expect(firstItem?.data?.attrs?.['data-selected']).toBe('')
-        expect(secondItem?.data?.attrs?.['data-selected']).toBe('')
-      })
-
-      it('renders multiple hidden inputs for multi-select', () => {
-        const model = {
-          ...closedModel(),
-          isMultiple: true,
-          selectedItems: ['Apple', 'Banana'],
-        }
-        const config = {
-          ...baseViewConfig(model),
-          name: 'fruit',
-        }
-        const vnode = renderView(config)
-        const children = vnode.children as ReadonlyArray<VNode>
-        const inputs = children.filter(
-          (child): child is VNode =>
-            typeof child !== 'string' && child.sel === 'input',
-        )
-
-        expect(inputs).toHaveLength(2)
-        expect(inputs[0]?.data?.props?.['value']).toBe('Apple')
-        expect(inputs[1]?.data?.props?.['value']).toBe('Banana')
-      })
-
-      it('renders empty hidden input when no items selected', () => {
-        const model = {
-          ...closedModel(),
-          isMultiple: true,
-        }
-        const config = {
-          ...baseViewConfig(model),
-          name: 'fruit',
-        }
-        const vnode = renderView(config)
-        const children = vnode.children as ReadonlyArray<VNode>
-        const inputs = children.filter(
-          (child): child is VNode =>
-            typeof child !== 'string' && child.sel === 'input',
-        )
-
-        expect(inputs).toHaveLength(1)
-        expect(inputs[0]?.data?.props?.['value']).toBeUndefined()
       })
     })
   })

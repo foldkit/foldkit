@@ -1,4 +1,4 @@
-import { Array, Option, pipe } from 'effect'
+import { Array, Option } from 'effect'
 import { Ui } from 'foldkit'
 import type { AnchorConfig } from 'foldkit/ui/listbox'
 
@@ -117,9 +117,9 @@ export const basicDemo = (
   model: Model,
   toMessage: (message: Message) => ParentMessage,
 ) => {
-  const buttonLabel = pipe(
-    Array.head(model.listboxDemo.selectedItems),
-    Option.getOrElse(() => 'Select a Bluth'),
+  const buttonLabel = Option.getOrElse(
+    model.listboxDemo.maybeSelectedItem,
+    () => 'Select a Bluth',
   )
 
   return [
@@ -175,7 +175,7 @@ export const multiSelectDemo = (
     div(
       [Class('relative')],
       [
-        Ui.Listbox.view({
+        Ui.Listbox.Multi.view({
           model: model.listboxMultiDemo,
           toMessage: message =>
             toMessage(GotListboxMultiDemoMessage({ message })),
@@ -211,9 +211,9 @@ export const groupedDemo = (
   model: Model,
   toMessage: (message: Message) => ParentMessage,
 ) => {
-  const buttonLabel = pipe(
-    Array.head(model.listboxGroupedDemo.selectedItems),
-    Option.getOrElse(() => 'Select a character'),
+  const buttonLabel = Option.getOrElse(
+    model.listboxGroupedDemo.maybeSelectedItem,
+    () => 'Select a character',
   )
 
   return [

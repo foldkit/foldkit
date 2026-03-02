@@ -340,14 +340,6 @@ const routeToBrowseFields = (route: AppRoute): BrowseFields =>
     M.orElse(() => emptyBrowseFields),
   )
 
-const paramToSelectedItems = (
-  param: Option.Option<string>,
-): ReadonlyArray<string> =>
-  Option.match(param, {
-    onNone: () => [''],
-    onSome: value => [value],
-  })
-
 const init: Runtime.ApplicationInit<Model, Message> = (url: Url) => {
   const route = urlToAppRoute(url)
   const fields = routeToBrowseFields(route)
@@ -357,11 +349,11 @@ const init: Runtime.ApplicationInit<Model, Message> = (url: Url) => {
       route,
       dietListbox: Ui.Listbox.init({
         id: 'diet-filter',
-        selectedItems: paramToSelectedItems(fields.diet),
+        selectedItem: Option.getOrElse(fields.diet, () => ''),
       }),
       periodListbox: Ui.Listbox.init({
         id: 'period-filter',
-        selectedItems: paramToSelectedItems(fields.period),
+        selectedItem: Option.getOrElse(fields.period, () => ''),
       }),
     },
     [],
@@ -395,11 +387,11 @@ const nextSorting = (sorting: Sorting, column: SortColumn): Sorting =>
   )
 
 const selectionToParam = <A extends string>(
-  selectedItems: ReadonlyArray<string>,
+  maybeSelectedItem: Option.Option<string>,
   schema: S.Schema<A, A>,
 ): Option.Option<A> =>
   pipe(
-    Array.head(selectedItems),
+    maybeSelectedItem,
     Option.filter(String.isNonEmpty),
     Option.filter(S.is(schema)),
   )
@@ -440,11 +432,13 @@ const update = (model: Model, message: Message): UpdateReturn =>
             route: () => nextRoute,
             dietListbox: () =>
               evo(model.dietListbox, {
-                selectedItems: () => paramToSelectedItems(fields.diet),
+                maybeSelectedItem: () =>
+                  Option.orElse(fields.diet, () => Option.some('')),
               }),
             periodListbox: () =>
               evo(model.periodListbox, {
-                selectedItems: () => paramToSelectedItems(fields.period),
+                maybeSelectedItem: () =>
+                  Option.orElse(fields.period, () => Option.some('')),
               }),
           }),
           [],
@@ -499,7 +493,10 @@ const update = (model: Model, message: Message): UpdateReturn =>
                 ...commands,
                 replaceFilters({
                   ...fields,
-                  diet: selectionToParam(nextDietListbox.selectedItems, Diet),
+                  diet: selectionToParam(
+                    nextDietListbox.maybeSelectedItem,
+                    Diet,
+                  ),
                 }),
               ],
             ]
@@ -532,7 +529,7 @@ const update = (model: Model, message: Message): UpdateReturn =>
                 replaceFilters({
                   ...fields,
                   period: selectionToParam(
-                    nextPeriodListbox.selectedItems,
+                    nextPeriodListbox.maybeSelectedItem,
                     Period,
                   ),
                 }),
@@ -783,11 +780,11 @@ const filterButtonContent = (label: string): Html =>
   )
 
 const filterButtonLabel = (
-  selectedItems: ReadonlyArray<string>,
+  maybeSelectedItem: Option.Option<string>,
   fallback: string,
 ): string =>
   pipe(
-    Array.head(selectedItems),
+    maybeSelectedItem,
     Option.filter(String.isNonEmpty),
     Option.getOrElse(() => fallback),
   )
@@ -835,7 +832,10 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
             itemToConfig: item => filterItemConfig(dietLabel(item)),
             itemToSearchText: dietLabel,
             buttonContent: filterButtonContent(
-              filterButtonLabel(model.dietListbox.selectedItems, 'All Diets'),
+              filterButtonLabel(
+                model.dietListbox.maybeSelectedItem,
+                'All Diets',
+              ),
             ),
             buttonClassName: listboxButtonClassName,
             itemsClassName: listboxItemsClassName,
@@ -851,7 +851,7 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
             itemToSearchText: periodLabel,
             buttonContent: filterButtonContent(
               filterButtonLabel(
-                model.periodListbox.selectedItems,
+                model.periodListbox.maybeSelectedItem,
                 'All Periods',
               ),
             ),

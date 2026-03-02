@@ -31,3 +31,13 @@ export const evo: {
     t: StrictKeys<O, T>,
   ): Evolved<O, T>
 } = Struct.evolve
+
+/** Creates a variant of `evo` whose transforms are checked against a supertype. Useful in generic contexts where `evo`'s `StrictKeys` can't resolve `keyof` on an open type parameter. The returned function evolves a subtype model, preserving all fields not in the transform, and returns the subtype. */
+export const makeConstrainedEvo =
+  <Constraint extends Record<string, unknown>>() =>
+  <Model extends Constraint>(
+    model: Model,
+    transforms: EvolveTransform<Constraint>,
+  ): Model =>
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    Struct.evolve(model, transforms as any) as Model

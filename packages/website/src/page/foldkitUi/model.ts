@@ -5,7 +5,7 @@ export const Model = S.Struct({
   dialogDemo: Dialog.Model,
   disclosureDemo: Disclosure.Model,
   listboxDemo: Listbox.Model,
-  listboxMultiDemo: Listbox.Model,
+  listboxMultiDemo: Listbox.Multi.Model,
   listboxGroupedDemo: Listbox.Model,
   menuBasicDemo: Menu.Model,
   menuAnimatedDemo: Menu.Model,

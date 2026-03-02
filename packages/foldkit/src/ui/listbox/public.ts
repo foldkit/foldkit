@@ -1,12 +1,6 @@
-export {
-  init,
-  update,
-  view,
-  Model,
-  Message,
-  TransitionState,
-  Orientation,
-} from './index'
+export { init, update, view, Model } from './single'
+
+export { Message, TransitionState, Orientation } from './shared'
 
 export type {
   ActivationTrigger,
@@ -22,10 +16,12 @@ export type {
   NoOp,
   AdvancedTransitionFrame,
   EndedTransition,
-  InitConfig,
-  ViewConfig,
   ItemConfig,
   GroupHeading,
-} from './index'
+} from './shared'
+
+export type { InitConfig, ViewConfig } from './single'
 
 export type { AnchorConfig } from '../menu/anchor'
+
+export * as Multi from './multiPublic'
