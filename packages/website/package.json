@@ -7,14 +7,13 @@
     "predev": "pnpm --filter foldkit docs",
     "dev": "vite",
     "prebuild": "pnpm --filter foldkit docs",
-    "build": "vite build && pnpm prerender",
+    "build": "vite build",
     "preview": "vite preview",
     "pretypecheck": "pnpm --filter foldkit docs",
     "typecheck": "tsc --noEmit",
     "format": "prettier -w .",
     "lint": "eslint .",
     "test": "vitest run",
-    "preprerender": "pnpm exec playwright install --with-deps chromium",
     "prerender": "tsx scripts/prerender.ts"
   },
   "dependencies": {

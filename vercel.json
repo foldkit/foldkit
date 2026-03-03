@@ -1,6 +1,6 @@
 {
-  "installCommand": "pnpm install",
-  "buildCommand": "pnpm build:website",
+  "installCommand": "echo 'Dependencies already installed in CI'",
+  "buildCommand": "echo 'Build already completed in CI'",
   "outputDirectory": "packages/website/dist",
   "rewrites": [
     {
