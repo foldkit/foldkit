@@ -14,7 +14,7 @@
     "format": "prettier -w .",
     "lint": "eslint .",
     "test": "vitest run",
-    "preprerender": "pnpm exec playwright install chromium",
+    "preprerender": "pnpm exec playwright install --with-deps chromium",
     "prerender": "tsx scripts/prerender.ts"
   },
   "dependencies": {
