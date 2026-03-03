@@ -1,6 +1,14 @@
 import { Schema as S, pipe } from 'effect'
-import { Route } from 'foldkit'
-import { literal, r, slash, string } from 'foldkit/route'
+import {
+  literal,
+  mapTo,
+  oneOf,
+  parseUrlWithFallback,
+  r,
+  root,
+  slash,
+  string,
+} from 'foldkit/route'
 
 // ROUTE SCHEMAS
 
@@ -58,56 +66,56 @@ export type AppRoute = typeof AppRoute.Type
 
 // ROUTERS
 
-export const homeRouter = pipe(Route.root, Route.mapTo(HomeRoute))
+export const homeRouter = pipe(root, mapTo(HomeRoute))
 export const whyFoldkitRouter = pipe(
   literal('why-foldkit'),
-  Route.mapTo(WhyFoldkitRoute),
+  mapTo(WhyFoldkitRoute),
 )
 export const comingFromReactRouter = pipe(
   literal('coming-from-react'),
-  Route.mapTo(ComingFromReactRoute),
+  mapTo(ComingFromReactRoute),
 )
 export const gettingStartedRouter = pipe(
   literal('getting-started'),
-  Route.mapTo(GettingStartedRoute),
+  mapTo(GettingStartedRoute),
 )
 export const architectureAndConceptsRouter = pipe(
   literal('architecture-and-concepts'),
-  Route.mapTo(ArchitectureAndConceptsRoute),
+  mapTo(ArchitectureAndConceptsRoute),
 )
 export const routingAndNavigationRouter = pipe(
   literal('routing-and-navigation'),
-  Route.mapTo(RoutingAndNavigationRoute),
+  mapTo(RoutingAndNavigationRoute),
 )
 export const examplesRouter = pipe(
   literal('example-apps'),
-  Route.mapTo(ExamplesRoute),
+  mapTo(ExamplesRoute),
 )
 export const bestPracticesRouter = pipe(
   literal('best-practices'),
-  Route.mapTo(BestPracticesRoute),
+  mapTo(BestPracticesRoute),
 )
 export const projectOrganizationRouter = pipe(
   literal('project-organization'),
-  Route.mapTo(ProjectOrganizationRoute),
+  mapTo(ProjectOrganizationRoute),
 )
 export const advancedPatternsRouter = pipe(
   literal('advanced-patterns'),
-  Route.mapTo(AdvancedPatternsRoute),
+  mapTo(AdvancedPatternsRoute),
 )
 export const apiModuleRouter = pipe(
   literal('api-reference'),
   slash(string('moduleSlug')),
-  Route.mapTo(ApiModuleRoute),
+  mapTo(ApiModuleRoute),
 )
 export const foldkitUiRouter = pipe(
   literal('foldkit-ui'),
-  Route.mapTo(FoldkitUiRoute),
+  mapTo(FoldkitUiRoute),
 )
 
 // PARSER
 
-const docsParser = Route.oneOf(
+const docsParser = oneOf(
   whyFoldkitRouter,
   comingFromReactRouter,
   gettingStartedRouter,
@@ -119,14 +127,14 @@ const docsParser = Route.oneOf(
   advancedPatternsRouter,
 )
 
-export const routeParser = Route.oneOf(
+export const routeParser = oneOf(
   docsParser,
   apiModuleRouter,
   foldkitUiRouter,
   homeRouter,
 )
 
-export const urlToAppRoute = Route.parseUrlWithFallback(
+export const urlToAppRoute = parseUrlWithFallback(
   routeParser,
   NotFoundRoute,
 )

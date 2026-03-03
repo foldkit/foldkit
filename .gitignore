@@ -5,3 +5,4 @@ dist
 **/.claude/*
 !/.claude/commands/
 packages/website/src/generated/
+.playwright-mcp/
