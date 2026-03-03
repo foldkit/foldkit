@@ -3,10 +3,12 @@ import { NodeContext, NodeRuntime } from '@effect/platform-node'
 import {
   Array,
   Console,
+  DateTime,
   Deferred,
   Effect,
   Match as M,
   Schema as S,
+  String as Str,
   Stream,
   pipe,
 } from 'effect'
@@ -14,6 +16,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { type Browser, chromium } from 'playwright'
 
+import { moduleNameToSlug } from '../src/page/apiReference/domain'
 import {
   AdvancedPatternsRoute,
   ApiModuleRoute,
@@ -198,7 +201,9 @@ const readApiModuleNames = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem
   const raw = yield* fs.readFileString(API_JSON_PATH)
   const apiDoc = yield* S.decodeUnknown(ApiDocJson)(raw)
-  return Array.map(apiDoc.children, ({ name }) => name)
+  return Array.map(apiDoc.children, ({ name }) =>
+    moduleNameToSlug(name),
+  )
 })
 
 const prerenderRoute =
@@ -226,6 +231,44 @@ const prerenderRoute =
       ),
     )
 
+// SITEMAP
+
+const SITE_URL = 'https://foldkit.dev'
+
+const formatDateIso = (dateTime: DateTime.DateTime): string => {
+  const { year, month, day } = DateTime.toPartsUtc(dateTime)
+  return pipe(
+    [String(year), String(month), String(day)],
+    Array.map(Str.padStart(2, '0')),
+    Array.join('-'),
+  )
+}
+
+const routeToSitemapEntry =
+  (lastModification: string) => (route: AppRoute) => {
+    const urlPath = routeToUrlPath(route)
+    return `<url>
+  <loc>${SITE_URL}${urlPath}</loc>
+  <lastmod>${lastModification}</lastmod>
+</url>`
+  }
+
+const buildSitemap = (
+  routes: ReadonlyArray<AppRoute>,
+  lastModification: string,
+): string => {
+  const entries = pipe(
+    routes,
+    Array.map(routeToSitemapEntry(lastModification)),
+    Array.join('\n'),
+  )
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${entries}
+</urlset>`
+}
+
 // PROGRAM
 
 const program = Effect.scoped(
@@ -246,6 +289,12 @@ const program = Effect.scoped(
     yield* Effect.forEach(routes, prerenderRoute(browser, baseHtml), {
       concurrency: 4,
     })
+
+    const lastModification = formatDateIso(yield* DateTime.now)
+    yield* fs.writeFileString(
+      resolve(DIST_DIR, 'sitemap.xml'),
+      buildSitemap(routes, lastModification),
+    )
 
     yield* Console.log(`Prerendered ${routes.length} routes.`)
   }),
