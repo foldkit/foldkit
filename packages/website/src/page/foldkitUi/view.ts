@@ -9,6 +9,7 @@ import * as Menu from './menu'
 import type { Message } from './message'
 import type { Model } from './model'
 import * as Popover from './popover'
+import * as Switch from './switch'
 import * as Tabs from './tabs'
 
 // TABLE OF CONTENTS
@@ -53,11 +54,6 @@ const plannedComponents: ReadonlyArray<{
       'An accessible native select wrapper with labeling and description support.',
   },
   {
-    entry: { level: 'h2', id: 'switch', text: 'Switch' },
-    description:
-      'A toggle switch component with accessible labeling and keyboard support.',
-  },
-  {
     entry: { level: 'h2', id: 'textarea', text: 'Textarea' },
     description:
       'An accessible textarea with description and error message associations via ARIA attributes.',
@@ -85,6 +81,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   Listbox.basicHeader,
   Listbox.multiSelectHeader,
   Listbox.groupedHeader,
+  Switch.switchHeader,
   ...plannedComponents.map(({ entry }) => entry),
 ]
 
@@ -170,6 +167,11 @@ export const view = (
       ...Listbox.basicDemo(model, toMessage),
       ...Listbox.multiSelectDemo(model, toMessage),
       ...Listbox.groupedDemo(model, toMessage),
+      heading('h2', Switch.switchHeader.id, Switch.switchHeader.text),
+      para(
+        'A toggle switch for on/off states with accessible labeling, keyboard support, and optional form integration via a hidden input.',
+      ),
+      ...Switch.switchDemo(model, toMessage),
       div(
         [Class('mt-12')],
         plannedComponents.map(({ entry, description }) =>

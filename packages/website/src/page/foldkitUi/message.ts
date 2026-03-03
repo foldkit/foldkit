@@ -47,6 +47,9 @@ export const GotPopoverAnimatedDemoMessage = m(
     message: Ui.Popover.Message,
   },
 )
+export const GotSwitchDemoMessage = m('GotSwitchDemoMessage', {
+  message: Ui.Switch.Message,
+})
 export const GotHorizontalTabsDemoMessage = m(
   'GotHorizontalTabsDemoMessage',
   {
@@ -70,6 +73,7 @@ export const Message = S.Union(
   GotMenuAnimatedDemoMessage,
   GotPopoverBasicDemoMessage,
   GotPopoverAnimatedDemoMessage,
+  GotSwitchDemoMessage,
   GotHorizontalTabsDemoMessage,
   GotVerticalTabsDemoMessage,
 )

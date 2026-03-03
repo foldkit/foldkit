@@ -69,6 +69,7 @@ export type ViewConfig<Message> = Readonly<{
   label: string
   description?: string
   isDisabled?: boolean
+  buttonContent?: Html
   name?: string
   value?: string
   className?: string
@@ -109,6 +110,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     label: labelText,
     description,
     isDisabled = false,
+    buttonContent,
     name,
     value: formValue = 'on',
     className,
@@ -166,7 +168,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
   ]
 
   return div(wrapperAttributes, [
-    button(buttonAttributes, []),
+    button(buttonAttributes, buttonContent ? [buttonContent] : []),
     labelElement,
     ...descriptionElement,
     ...hiddenInput,
