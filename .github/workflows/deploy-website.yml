@@ -37,7 +37,7 @@ jobs:
         run: pnpm build:website
 
       - name: Install Playwright chromium
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm --filter website exec playwright install --with-deps chromium
 
       - name: Prerender
         run: pnpm --filter website prerender
