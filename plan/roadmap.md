@@ -1,6 +1,6 @@
 # Roadmap
 
-Open items from TODO.md, organized into phases by dependency and priority. Menu work is tracked separately in `plan/menu-headlessui-parity.md`. Website prerendering is tracked in `plan/website-prerender.md`.
+Open items from TODO.md, organized into phases by dependency and priority. Menu work is tracked separately in `plan/menu-headlessui-parity.md`.
 
 ## Phase 1: Foundations
 
@@ -116,13 +116,14 @@ Priority order (by general usefulness and dependency):
 
 1. **Switch** — simplest, good for establishing the component template post-convention
 2. **Popover** — shares portal/positioning infrastructure with Menu (from menu plan item #3)
-3. **Listbox** — similar to Menu but for form selection
-4. **Combobox** — Listbox + text input, builds on Listbox
-5. **Radio Group, Checkbox** — form primitives
-6. **Dialog** — may share portal infrastructure with Popover
-7. **Input, Select, Textarea, Fieldset** — form wrappers, lower priority
+3. **Combobox** — Listbox + text input, builds on Listbox
+4. **Radio Group, Checkbox** — form primitives
+5. **Dialog** — may share portal infrastructure with Popover
+6. **Input, Select, Textarea, Fieldset** — form wrappers, lower priority
 
-**Dependencies:** Data attributes convention (Phase 1b). Portal support from Menu plan item #3 unblocks Popover, Listbox, Combobox, Dialog.
+Listbox is complete (single-select and multi-select, tracked in `plan/listbox-headlessui-parity.md`).
+
+**Dependencies:** Data attributes convention (Phase 1b). Portal support from Menu plan item #3 unblocks Popover, Combobox, Dialog.
 
 ### 3c. General portal support
 
