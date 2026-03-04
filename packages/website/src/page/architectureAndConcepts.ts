@@ -445,7 +445,7 @@ export const view = (model: Model): Html =>
       ),
       para(
         'For a more complex example using WebSocket connections, see the ',
-        link(Link.websocketChatExample, 'websocket-chat example'),
+        link(Link.exampleWebsocketChat, 'websocket-chat example'),
         '. For a full real-world application, check out ',
         link(Link.typingTerminal, 'Typing Terminal'),
         ' (',

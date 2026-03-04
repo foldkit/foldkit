@@ -11,11 +11,7 @@ import {
 } from 'effect'
 import { FieldValidation } from 'foldkit'
 import { Command } from 'foldkit/command'
-import {
-  type Validation,
-  makeField,
-  validateField,
-} from 'foldkit/fieldValidation'
+import { type Validation, makeField } from 'foldkit/fieldValidation'
 import { Html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -104,8 +100,8 @@ const passwordValidations: ReadonlyArray<Validation<string>> = [
   FieldValidation.required('Password is required'),
 ]
 
-const validateEmail = validateField(emailValidations)
-const validatePassword = validateField(passwordValidations)
+const validateEmail = StringField.validate(emailValidations)
+const validatePassword = StringField.validate(passwordValidations)
 
 const isFormValid = (model: Model): boolean =>
   Array.every([model.email, model.password], S.is(StringFieldValid))
@@ -179,7 +175,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       FailedAuth: ({ error }) => [
         evo(model, {
           password: () =>
-            StringFieldInvalid({ value: model.password.value, error }),
+            StringFieldInvalid({
+              value: model.password.value,
+              errors: [error],
+            }),
           isSubmitting: () => false,
         }),
         [],
@@ -246,8 +245,11 @@ const fieldView = (
           NotValidated: () => empty,
           Validating: () => empty,
           Valid: () => empty,
-          Invalid: ({ error }) =>
-            div([Class('text-red-600 text-sm mt-1')], [error]),
+          Invalid: ({ errors }) =>
+            div(
+              [Class('text-red-600 text-sm mt-1')],
+              [Array.headNonEmpty(errors)],
+            ),
         }),
       ),
     ],

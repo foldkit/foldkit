@@ -17,7 +17,6 @@ export {
   nonNegative,
   integer,
   oneOf,
-  validateField,
 } from './index'
 
-export type { Validation } from './index'
+export type { Validation, ValidationMessage } from './index'

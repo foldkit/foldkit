@@ -9,11 +9,7 @@ import {
 } from 'effect'
 import { FieldValidation, Runtime } from 'foldkit'
 import { Command } from 'foldkit/command'
-import {
-  type Validation,
-  makeField,
-  validateField,
-} from 'foldkit/fieldValidation'
+import { type Validation, makeField } from 'foldkit/fieldValidation'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
@@ -121,7 +117,7 @@ const validateEmailNotOnWaitlist = (
         validationId,
         field: StringField.Invalid({
           value: email,
-          error: 'This email is already on our waitlist',
+          errors: ['This email is already on our waitlist'],
         }),
       })
     } else {
@@ -132,8 +128,8 @@ const validateEmailNotOnWaitlist = (
     }
   })
 
-const validateName = validateField(nameValidations)
-const validateEmail = validateField(emailValidations)
+const validateName = StringField.validate(nameValidations)
+const validateEmail = StringField.validate(emailValidations)
 
 const isFormValid = (model: Model): boolean =>
   Array.every([model.name, model.email], field => field._tag === 'Valid')
@@ -340,8 +336,11 @@ const fieldView = (
           Validating: () =>
             div([Class('text-blue-600 text-sm mt-1')], ['Checking...']),
           Valid: () => empty,
-          Invalid: ({ error }) =>
-            div([Class('text-red-600 text-sm mt-1')], [error]),
+          Invalid: ({ errors }) =>
+            div(
+              [Class('text-red-600 text-sm mt-1')],
+              [Array.headNonEmpty(errors)],
+            ),
         }),
       ),
     ],

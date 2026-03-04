@@ -44,6 +44,10 @@ export const activeSection: Subscription<
         () => Page.Routing.tableOfContents,
       ),
       M.tag(
+        'FieldValidation',
+        () => Page.FieldValidation.tableOfContents,
+      ),
+      M.tag(
         'BestPractices',
         () => Page.BestPractices.tableOfContents,
       ),

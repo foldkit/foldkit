@@ -20,9 +20,9 @@ import {
   pattern,
   positive,
   required,
+  resolveMessage,
   startsWith,
   url,
-  validateField,
 } from './index'
 
 describe('makeField', () => {
@@ -47,10 +47,10 @@ describe('makeField', () => {
   })
 
   it('creates Invalid via schema make', () => {
-    const field = StringField.Invalid({ value: 'hello', error: 'bad' })
+    const field = StringField.Invalid({ value: 'hello', errors: ['bad'] })
     expect(field._tag).toBe('Invalid')
     expect(field.value).toBe('hello')
-    expect(field.error).toBe('bad')
+    expect(field.errors).toEqual(['bad'])
   })
 
   it('Union schema decodes NotValidated', () => {
@@ -65,7 +65,7 @@ describe('makeField', () => {
     const result = S.decodeUnknownOption(StringField.Union)({
       _tag: 'Invalid',
       value: 'hi',
-      error: 'bad',
+      errors: ['bad'],
     })
     expect(Option.isSome(result)).toBe(true)
   })
@@ -100,12 +100,12 @@ describe('string validators', () => {
 
     it('uses default message', () => {
       const [, message] = required()
-      expect(message).toBe('Required')
+      expect(resolveMessage(message, '')).toBe('Required')
     })
 
     it('accepts custom message', () => {
       const [, message] = required('Email is required')
-      expect(message).toBe('Email is required')
+      expect(resolveMessage(message, '')).toBe('Email is required')
     })
   })
 
@@ -127,12 +127,12 @@ describe('string validators', () => {
 
     it('uses default message', () => {
       const [, message] = minLength(3)
-      expect(message).toBe('Must be at least 3 characters')
+      expect(resolveMessage(message, '')).toBe('Must be at least 3 characters')
     })
 
     it('accepts custom message', () => {
       const [, message] = minLength(3, 'Too short')
-      expect(message).toBe('Too short')
+      expect(resolveMessage(message, '')).toBe('Too short')
     })
   })
 
@@ -154,12 +154,12 @@ describe('string validators', () => {
 
     it('uses default message', () => {
       const [, message] = maxLength(5)
-      expect(message).toBe('Must be at most 5 characters')
+      expect(resolveMessage(message, '')).toBe('Must be at most 5 characters')
     })
 
     it('accepts custom message', () => {
       const [, message] = maxLength(5, 'Too long')
-      expect(message).toBe('Too long')
+      expect(resolveMessage(message, '')).toBe('Too long')
     })
   })
 
@@ -178,12 +178,12 @@ describe('string validators', () => {
 
     it('uses default message', () => {
       const [, message] = pattern(hexRegex)
-      expect(message).toBe('Invalid format')
+      expect(resolveMessage(message, '')).toBe('Invalid format')
     })
 
     it('accepts custom message', () => {
       const [, message] = pattern(hexRegex, 'Must be a hex color')
-      expect(message).toBe('Must be a hex color')
+      expect(resolveMessage(message, '')).toBe('Must be a hex color')
     })
   })
 
@@ -200,12 +200,12 @@ describe('string validators', () => {
 
     it('uses default message', () => {
       const [, message] = email()
-      expect(message).toBe('Invalid email address')
+      expect(resolveMessage(message, '')).toBe('Invalid email address')
     })
 
     it('accepts custom message', () => {
       const [, message] = email('Bad email')
-      expect(message).toBe('Bad email')
+      expect(resolveMessage(message, '')).toBe('Bad email')
     })
   })
 
@@ -227,12 +227,12 @@ describe('string validators', () => {
 
     it('uses default message', () => {
       const [, message] = url()
-      expect(message).toBe('Invalid URL')
+      expect(resolveMessage(message, '')).toBe('Invalid URL')
     })
 
     it('accepts custom message', () => {
       const [, message] = url('Enter a valid link')
-      expect(message).toBe('Enter a valid link')
+      expect(resolveMessage(message, '')).toBe('Enter a valid link')
     })
   })
 
@@ -249,12 +249,12 @@ describe('string validators', () => {
 
     it('uses default message', () => {
       const [, message] = startsWith('https://')
-      expect(message).toBe('Must start with https://')
+      expect(resolveMessage(message, '')).toBe('Must start with https://')
     })
 
     it('accepts custom message', () => {
       const [, message] = startsWith('https://', 'Needs HTTPS')
-      expect(message).toBe('Needs HTTPS')
+      expect(resolveMessage(message, '')).toBe('Needs HTTPS')
     })
   })
 
@@ -271,12 +271,12 @@ describe('string validators', () => {
 
     it('uses default message', () => {
       const [, message] = endsWith('.com')
-      expect(message).toBe('Must end with .com')
+      expect(resolveMessage(message, '')).toBe('Must end with .com')
     })
 
     it('accepts custom message', () => {
       const [, message] = endsWith('.com', 'Only .com domains')
-      expect(message).toBe('Only .com domains')
+      expect(resolveMessage(message, '')).toBe('Only .com domains')
     })
   })
 
@@ -293,12 +293,12 @@ describe('string validators', () => {
 
     it('uses default message', () => {
       const [, message] = includes('@')
-      expect(message).toBe('Must contain @')
+      expect(resolveMessage(message, '')).toBe('Must contain @')
     })
 
     it('accepts custom message', () => {
       const [, message] = includes('@', 'Needs an @ sign')
-      expect(message).toBe('Needs an @ sign')
+      expect(resolveMessage(message, '')).toBe('Needs an @ sign')
     })
   })
 
@@ -315,12 +315,12 @@ describe('string validators', () => {
 
     it('uses default message', () => {
       const [, message] = equals('DELETE')
-      expect(message).toBe('Must match DELETE')
+      expect(resolveMessage(message, '')).toBe('Must match DELETE')
     })
 
     it('accepts custom message', () => {
       const [, message] = equals('DELETE', 'Type DELETE to confirm')
-      expect(message).toBe('Type DELETE to confirm')
+      expect(resolveMessage(message, '')).toBe('Type DELETE to confirm')
     })
   })
 })
@@ -339,12 +339,12 @@ describe('number validators', () => {
 
     it('uses default message', () => {
       const [, message] = min(5)
-      expect(message).toBe('Must be at least 5')
+      expect(resolveMessage(message, 0)).toBe('Must be at least 5')
     })
 
     it('accepts custom message', () => {
       const [, message] = min(5, 'Too low')
-      expect(message).toBe('Too low')
+      expect(resolveMessage(message, 0)).toBe('Too low')
     })
   })
 
@@ -361,12 +361,12 @@ describe('number validators', () => {
 
     it('uses default message', () => {
       const [, message] = max(10)
-      expect(message).toBe('Must be at most 10')
+      expect(resolveMessage(message, 0)).toBe('Must be at most 10')
     })
 
     it('accepts custom message', () => {
       const [, message] = max(10, 'Too high')
-      expect(message).toBe('Too high')
+      expect(resolveMessage(message, 0)).toBe('Too high')
     })
   })
 
@@ -398,12 +398,12 @@ describe('number validators', () => {
 
     it('uses default message', () => {
       const [, message] = between(1, 10)
-      expect(message).toBe('Must be between 1 and 10')
+      expect(resolveMessage(message, 0)).toBe('Must be between 1 and 10')
     })
 
     it('accepts custom message', () => {
       const [, message] = between(1, 10, 'Out of range')
-      expect(message).toBe('Out of range')
+      expect(resolveMessage(message, 0)).toBe('Out of range')
     })
   })
 
@@ -425,12 +425,12 @@ describe('number validators', () => {
 
     it('uses default message', () => {
       const [, message] = positive()
-      expect(message).toBe('Must be positive')
+      expect(resolveMessage(message, 0)).toBe('Must be positive')
     })
 
     it('accepts custom message', () => {
       const [, message] = positive('Needs to be > 0')
-      expect(message).toBe('Needs to be > 0')
+      expect(resolveMessage(message, 0)).toBe('Needs to be > 0')
     })
   })
 
@@ -452,12 +452,12 @@ describe('number validators', () => {
 
     it('uses default message', () => {
       const [, message] = nonNegative()
-      expect(message).toBe('Must be non-negative')
+      expect(resolveMessage(message, 0)).toBe('Must be non-negative')
     })
 
     it('accepts custom message', () => {
       const [, message] = nonNegative('No negatives')
-      expect(message).toBe('No negatives')
+      expect(resolveMessage(message, 0)).toBe('No negatives')
     })
   })
 
@@ -484,12 +484,12 @@ describe('number validators', () => {
 
     it('uses default message', () => {
       const [, message] = integer()
-      expect(message).toBe('Must be a whole number')
+      expect(resolveMessage(message, 0)).toBe('Must be a whole number')
     })
 
     it('accepts custom message', () => {
       const [, message] = integer('No decimals')
-      expect(message).toBe('No decimals')
+      expect(resolveMessage(message, 0)).toBe('No decimals')
     })
   })
 })
@@ -510,47 +510,89 @@ describe('generic validators', () => {
 
     it('uses default message', () => {
       const [, message] = oneOf(colors)
-      expect(message).toBe('Must be one of: red, green, blue')
+      expect(resolveMessage(message, '')).toBe(
+        'Must be one of: red, green, blue',
+      )
     })
 
     it('accepts custom message', () => {
       const [, message] = oneOf(colors, 'Pick a color')
-      expect(message).toBe('Pick a color')
+      expect(resolveMessage(message, '')).toBe('Pick a color')
     })
   })
 })
 
-describe('validateField', () => {
+describe('makeField.validate', () => {
+  const StringField = makeField(S.String)
   const validations: ReadonlyArray<Validation<string>> = [
-    required('Name is required'),
-    minLength(2, 'At least 2 chars'),
+    required('Required'),
+    minLength(3, 'Too short'),
   ]
-  const validate = validateField(validations)
+  const validate = StringField.validate(validations)
 
-  it('returns Valid when all validations pass', () => {
+  it('returns a Valid schema instance', () => {
     const result = validate('hello')
     expect(result._tag).toBe('Valid')
-    expect(result.value).toBe('hello')
+    expect(S.is(StringField.Valid)(result)).toBe(true)
   })
 
-  it('returns Invalid with first failing validation message', () => {
+  it('returns an Invalid schema instance with first error', () => {
     const result = validate('')
     expect(result._tag).toBe('Invalid')
+    expect(S.is(StringField.Invalid)(result)).toBe(true)
     if (result._tag === 'Invalid') {
-      expect(result.error).toBe('Name is required')
+      expect(result.errors).toEqual(['Required'])
     }
   })
 
   it('stops at the first failure', () => {
-    const result = validate('a')
+    const result = validate('ab')
     expect(result._tag).toBe('Invalid')
     if (result._tag === 'Invalid') {
-      expect(result.error).toBe('At least 2 chars')
+      expect(result.errors).toEqual(['Too short'])
     }
   })
 
   it('returns Valid for empty validations', () => {
-    const noValidations = validateField<string>([])
+    const noValidations = StringField.validate([])
+    const result = noValidations('anything')
+    expect(result._tag).toBe('Valid')
+  })
+})
+
+describe('makeField.validateAll', () => {
+  const StringField = makeField(S.String)
+  const validations: ReadonlyArray<Validation<string>> = [
+    required('Required'),
+    minLength(3, 'Too short'),
+  ]
+  const validate = StringField.validateAll(validations)
+
+  it('returns a Valid schema instance', () => {
+    const result = validate('hello')
+    expect(result._tag).toBe('Valid')
+    expect(S.is(StringField.Valid)(result)).toBe(true)
+  })
+
+  it('returns an Invalid schema instance with all errors', () => {
+    const result = validate('')
+    expect(result._tag).toBe('Invalid')
+    expect(S.is(StringField.Invalid)(result)).toBe(true)
+    if (result._tag === 'Invalid') {
+      expect(result.errors).toEqual(['Required', 'Too short'])
+    }
+  })
+
+  it('collects only the failing validations', () => {
+    const result = validate('ab')
+    expect(result._tag).toBe('Invalid')
+    if (result._tag === 'Invalid') {
+      expect(result.errors).toEqual(['Too short'])
+    }
+  })
+
+  it('returns Valid for empty validations', () => {
+    const noValidations = StringField.validateAll([])
     const result = noValidations('anything')
     expect(result._tag).toBe('Valid')
   })

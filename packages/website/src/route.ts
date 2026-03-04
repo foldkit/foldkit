@@ -20,6 +20,7 @@ export const ArchitectureAndConceptsRoute = r(
   'ArchitectureAndConcepts',
 )
 export const RoutingAndNavigationRoute = r('RoutingAndNavigation')
+export const FieldValidationRoute = r('FieldValidation')
 export const ExamplesRoute = r('Examples')
 export const BestPracticesRoute = r('BestPractices')
 export const ProjectOrganizationRoute = r('ProjectOrganization')
@@ -34,6 +35,7 @@ export const DocsRoute = S.Union(
   GettingStartedRoute,
   ArchitectureAndConceptsRoute,
   RoutingAndNavigationRoute,
+  FieldValidationRoute,
   ExamplesRoute,
   BestPracticesRoute,
   ProjectOrganizationRoute,
@@ -54,6 +56,7 @@ export type ArchitectureAndConceptsRoute =
   typeof ArchitectureAndConceptsRoute.Type
 export type RoutingAndNavigationRoute =
   typeof RoutingAndNavigationRoute.Type
+export type FieldValidationRoute = typeof FieldValidationRoute.Type
 export type ExamplesRoute = typeof ExamplesRoute.Type
 export type BestPracticesRoute = typeof BestPracticesRoute.Type
 export type ProjectOrganizationRoute =
@@ -86,6 +89,10 @@ export const architectureAndConceptsRouter = pipe(
 export const routingAndNavigationRouter = pipe(
   literal('routing-and-navigation'),
   mapTo(RoutingAndNavigationRoute),
+)
+export const fieldValidationRouter = pipe(
+  literal('field-validation'),
+  mapTo(FieldValidationRoute),
 )
 export const examplesRouter = pipe(
   literal('example-apps'),
@@ -121,6 +128,7 @@ const docsParser = oneOf(
   gettingStartedRouter,
   architectureAndConceptsRouter,
   routingAndNavigationRouter,
+  fieldValidationRouter,
   examplesRouter,
   bestPracticesRouter,
   projectOrganizationRouter,

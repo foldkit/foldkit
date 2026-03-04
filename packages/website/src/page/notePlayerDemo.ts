@@ -12,7 +12,7 @@ import {
 } from 'effect'
 import { FieldValidation, Task } from 'foldkit'
 import { Command } from 'foldkit/command'
-import { makeField, validateField } from 'foldkit/fieldValidation'
+import { makeField } from 'foldkit/fieldValidation'
 import { Html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
@@ -156,7 +156,9 @@ const noteInputValidations = [
   ),
 ]
 
-const validateNoteInput = validateField(noteInputValidations)
+const validateNoteInput = NoteInputField.validate(
+  noteInputValidations,
+)
 
 const parseNotes = (value: string) =>
   pipe(
@@ -657,10 +659,10 @@ const noteInputView = (
               [Class('text-xs text-gray-500 dark:text-gray-400')],
               [`${parseNotes(model.noteInput.value).length} notes`],
             ),
-          Invalid: ({ error }) =>
+          Invalid: ({ errors }) =>
             p(
               [Class('text-xs text-red-600 dark:text-red-400')],
-              [error],
+              [Array.headNonEmpty(errors)],
             ),
         }),
       ),
@@ -849,7 +851,8 @@ const noteInputLabel = (model: Model): string =>
   M.value(model.noteInput).pipe(
     M.tagsExhaustive({
       Valid: ({ value }) => `Valid("${value}")`,
-      Invalid: ({ error }) => `Invalid("${error}")`,
+      Invalid: ({ errors }) =>
+        `Invalid("${Array.headNonEmpty(errors)}")`,
       NotValidated: ({ value }) => `NotValidated("${value}")`,
       Validating: ({ value }) => `Validating("${value}")`,
     }),

@@ -16,7 +16,37 @@ export const makeField = <A, I>(value: S.Schema<A, I>) => {
   const NotValidated = ts('NotValidated', { value })
   const Validating = ts('Validating', { value })
   const Valid = ts('Valid', { value })
-  const Invalid = ts('Invalid', { value, error: S.String })
+  const Invalid = ts('Invalid', { value, errors: S.NonEmptyArray(S.String) })
+
+  const validate =
+    (fieldValidations: ReadonlyArray<Validation<A>>) => (fieldValue: A) =>
+      pipe(
+        fieldValidations,
+        Array.findFirst(([predicate]) => !predicate(fieldValue)),
+        Option.match({
+          onNone: () => Valid({ value: fieldValue }),
+          onSome: ([, message]) =>
+            Invalid({
+              value: fieldValue,
+              errors: [resolveMessage(message, fieldValue)],
+            }),
+        }),
+      )
+
+  const validateAll =
+    (fieldValidations: ReadonlyArray<Validation<A>>) => (fieldValue: A) =>
+      pipe(
+        fieldValidations,
+        Array.filterMap(([predicate, message]) =>
+          predicate(fieldValue)
+            ? Option.none()
+            : Option.some(resolveMessage(message, fieldValue)),
+        ),
+        Array.match({
+          onEmpty: () => Valid({ value: fieldValue }),
+          onNonEmpty: errors => Invalid({ value: fieldValue, errors }),
+        }),
+      )
 
   return {
     NotValidated,
@@ -24,24 +54,33 @@ export const makeField = <A, I>(value: S.Schema<A, I>) => {
     Valid,
     Invalid,
     Union: S.Union(NotValidated, Validating, Valid, Invalid),
+    validate,
+    validateAll,
   }
 }
 
+/** An error message for a validation rule — either a static string or a function that receives the invalid value. */
+export type ValidationMessage<T> = string | ((value: T) => string)
+
 /** A tuple of a predicate and error message used for field validation. */
-export type Validation<T> = [Predicate.Predicate<T>, string]
+export type Validation<T> = [Predicate.Predicate<T>, ValidationMessage<T>]
+
+export const resolveMessage = <T>(
+  message: ValidationMessage<T>,
+  value: T,
+): string => (typeof message === 'string' ? message : message(value))
 
 // STRING VALIDATORS
 
 /** Creates a `Validation` that checks if a string is non-empty. */
-export const required = (message = 'Required'): Validation<string> => [
-  String.isNonEmpty,
-  message,
-]
+export const required = (
+  message: ValidationMessage<string> = 'Required',
+): Validation<string> => [String.isNonEmpty, message]
 
 /** Creates a `Validation` that checks if a string meets a minimum length. */
 export const minLength = (
   min: number,
-  message?: string,
+  message?: ValidationMessage<string>,
 ): Validation<string> => [
   flow(String.length, Number_.greaterThanOrEqualTo(min)),
   message ?? `Must be at least ${min} characters`,
@@ -50,7 +89,7 @@ export const minLength = (
 /** Creates a `Validation` that checks if a string does not exceed a maximum length. */
 export const maxLength = (
   max: number,
-  message?: string,
+  message?: ValidationMessage<string>,
 ): Validation<string> => [
   flow(String.length, Number_.lessThanOrEqualTo(max)),
   message ?? `Must be at most ${max} characters`,
@@ -59,25 +98,27 @@ export const maxLength = (
 /** Creates a `Validation` that checks if a string matches a regular expression. */
 export const pattern = (
   regex: RegExp,
-  message = 'Invalid format',
+  message: ValidationMessage<string> = 'Invalid format',
 ): Validation<string> => [flow(String.match(regex), Option.isSome), message]
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 /** Creates a `Validation` that checks if a string is a valid email format. */
-export const email = (message = 'Invalid email address'): Validation<string> =>
-  pattern(EMAIL_REGEX, message)
+export const email = (
+  message: ValidationMessage<string> = 'Invalid email address',
+): Validation<string> => pattern(EMAIL_REGEX, message)
 
 const URL_REGEX = /^https?:\/\/.+/
 
 /** Creates a `Validation` that checks if a string is a valid URL format. */
-export const url = (message = 'Invalid URL'): Validation<string> =>
-  pattern(URL_REGEX, message)
+export const url = (
+  message: ValidationMessage<string> = 'Invalid URL',
+): Validation<string> => pattern(URL_REGEX, message)
 
 /** Creates a `Validation` that checks if a string begins with a specified prefix. */
 export const startsWith = (
   prefix: string,
-  message?: string,
+  message?: ValidationMessage<string>,
 ): Validation<string> => [
   flow(String.startsWith(prefix)),
   message ?? `Must start with ${prefix}`,
@@ -86,7 +127,7 @@ export const startsWith = (
 /** Creates a `Validation` that checks if a string ends with a specified suffix. */
 export const endsWith = (
   suffix: string,
-  message?: string,
+  message?: ValidationMessage<string>,
 ): Validation<string> => [
   flow(String.endsWith(suffix)),
   message ?? `Must end with ${suffix}`,
@@ -95,7 +136,7 @@ export const endsWith = (
 /** Creates a `Validation` that checks if a string contains a specified substring. */
 export const includes = (
   substring: string,
-  message?: string,
+  message?: ValidationMessage<string>,
 ): Validation<string> => [
   flow(String.includes(substring)),
   message ?? `Must contain ${substring}`,
@@ -104,7 +145,7 @@ export const includes = (
 /** Creates a `Validation` that checks if a string exactly matches an expected value. */
 export const equals = (
   expected: string,
-  message?: string,
+  message?: ValidationMessage<string>,
 ): Validation<string> => [
   value => value === expected,
   message ?? `Must match ${expected}`,
@@ -113,13 +154,19 @@ export const equals = (
 // NUMBER VALIDATORS
 
 /** Creates a `Validation` that checks if a number is greater than or equal to a minimum value. */
-export const min = (num: number, message?: string): Validation<number> => [
+export const min = (
+  num: number,
+  message?: ValidationMessage<number>,
+): Validation<number> => [
   Number_.greaterThanOrEqualTo(num),
   message ?? `Must be at least ${num}`,
 ]
 
 /** Creates a `Validation` that checks if a number is less than or equal to a maximum value. */
-export const max = (num: number, message?: string): Validation<number> => [
+export const max = (
+  num: number,
+  message?: ValidationMessage<number>,
+): Validation<number> => [
   Number_.lessThanOrEqualTo(num),
   message ?? `Must be at most ${num}`,
 ]
@@ -128,7 +175,7 @@ export const max = (num: number, message?: string): Validation<number> => [
 export const between = (
   min: number,
   max: number,
-  message?: string,
+  message?: ValidationMessage<number>,
 ): Validation<number> => [
   Predicate.and(
     Number_.greaterThanOrEqualTo(min),
@@ -138,19 +185,18 @@ export const between = (
 ]
 
 /** Creates a `Validation` that checks if a number is greater than zero. */
-export const positive = (message = 'Must be positive'): Validation<number> => [
-  Number_.greaterThan(0),
-  message,
-]
+export const positive = (
+  message: ValidationMessage<number> = 'Must be positive',
+): Validation<number> => [Number_.greaterThan(0), message]
 
 /** Creates a `Validation` that checks if a number is zero or greater. */
 export const nonNegative = (
-  message = 'Must be non-negative',
+  message: ValidationMessage<number> = 'Must be non-negative',
 ): Validation<number> => [Number_.greaterThanOrEqualTo(0), message]
 
 /** Creates a `Validation` that checks if a number is a whole number (integer). */
 export const integer = (
-  message = 'Must be a whole number',
+  message: ValidationMessage<number> = 'Must be a whole number',
 ): Validation<number> => [value => Number.isInteger(value), message]
 
 // GENERIC VALIDATORS
@@ -158,31 +204,11 @@ export const integer = (
 /** Creates a `Validation` that checks if a string is one of a specified set of allowed values. */
 export const oneOf = (
   values: ReadonlyArray<string>,
-  message?: string,
+  message?: ValidationMessage<string>,
 ): Validation<string> => {
   const joinedValues = Array.join(values, ', ')
-  const message_ = message ?? `Must be one of: ${joinedValues}`
-  return [value => Array.contains(values, value), message_]
+  return [
+    value => Array.contains(values, value),
+    message ?? `Must be one of: ${joinedValues}`,
+  ]
 }
-
-// VALIDATE
-
-/** Runs validations against a value, returning the first failure as `Invalid` or `Valid` if all pass. */
-export const validateField =
-  <T>(fieldValidations: ReadonlyArray<Validation<T>>) =>
-  (value: T) =>
-    pipe(
-      fieldValidations,
-      Array.findFirst(([predicate]) => !predicate(value)),
-      Option.match({
-        onNone: () => ({
-          _tag: 'Valid' as const,
-          value,
-        }),
-        onSome: ([, error]) => ({
-          _tag: 'Invalid' as const,
-          value,
-          error,
-        }),
-      }),
-    )

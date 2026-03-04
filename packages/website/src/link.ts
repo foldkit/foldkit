@@ -4,7 +4,6 @@ const exampleBase =
 export const Link = {
   elm: 'https://elm-lang.org',
   elmArchitecture: 'https://guide.elm-lang.org/architecture/',
-  theElmArchitecture: 'https://guide.elm-lang.org/architecture/',
   effect: 'https://effect.website',
   effectSchema: 'https://effect.website/docs/schema/introduction/',
   effectMatch:
@@ -20,26 +19,25 @@ export const Link = {
   foldkitVdom:
     'https://github.com/devinjameson/foldkit/blob/main/packages/foldkit/src/vdom.ts',
   foldkitExamples: exampleBase,
-  exampleAuth: `${exampleBase}/auth`,
-  exampleCounter: `${exampleBase}/counter`,
-  exampleErrorView: `${exampleBase}/error-view`,
-  exampleForm: `${exampleBase}/form`,
-  exampleQuerySync: `${exampleBase}/query-sync`,
-  exampleRouting: `${exampleBase}/routing`,
-  exampleShoppingCart: `${exampleBase}/shopping-cart`,
+  exampleAuth: `${exampleBase}/auth/src/main.ts`,
+  exampleAuthLogin: `${exampleBase}/auth/src/page/loggedOut/page/login.ts`,
+  exampleCounter: `${exampleBase}/counter/src/main.ts`,
+  exampleErrorView: `${exampleBase}/error-view/src/main.ts`,
+  exampleForm: `${exampleBase}/form/src/main.ts`,
+  exampleQuerySync: `${exampleBase}/query-sync/src/main.ts`,
+  exampleRouting: `${exampleBase}/routing/src/main.ts`,
+  exampleShoppingCart: `${exampleBase}/shopping-cart/src/main.ts`,
   exampleShoppingCartSubmodel:
     'https://github.com/devinjameson/foldkit/blob/main/examples/shopping-cart/src/main.ts#L139-L153',
-  exampleSnake: `${exampleBase}/snake`,
+  exampleSnake: `${exampleBase}/snake/src/main.ts`,
   exampleSnakeRequestPattern:
     'https://github.com/devinjameson/foldkit/blob/main/examples/snake/src/main.ts#L138-L174',
-  exampleStopwatch: `${exampleBase}/stopwatch`,
-  exampleTodo: `${exampleBase}/todo`,
-  exampleWeather: `${exampleBase}/weather`,
+  exampleStopwatch: `${exampleBase}/stopwatch/src/main.ts`,
+  exampleTodo: `${exampleBase}/todo/src/main.ts`,
+  exampleWeather: `${exampleBase}/weather/src/main.ts`,
   exampleWeatherTests:
     'https://github.com/devinjameson/foldkit/blob/main/examples/weather/src/main.test.ts',
-  exampleWebsocketChat: `${exampleBase}/websocket-chat`,
-  websocketChatExample:
-    'https://github.com/devinjameson/foldkit/tree/main/examples/websocket-chat',
+  exampleWebsocketChat: `${exampleBase}/websocket-chat/src/main.ts`,
   typingTerminal: 'https://typingterminal.com',
   typingTerminalSource:
     'https://github.com/devinjameson/foldkit/tree/main/packages/typing-game',

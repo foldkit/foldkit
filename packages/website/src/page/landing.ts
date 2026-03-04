@@ -504,7 +504,7 @@ const whyFoldkitSection = (): Html =>
               'Foldkit asks you to think about frontend development differently. It uses ',
               a(
                 [
-                  Href(Link.theElmArchitecture),
+                  Href(Link.elmArchitecture),
                   Class(
                     'text-pink-600 dark:text-pink-500 hover:underline',
                   ),

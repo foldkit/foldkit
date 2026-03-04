@@ -66,6 +66,7 @@ import {
   ComingFromReactRoute,
   DocsRoute,
   ExamplesRoute,
+  FieldValidationRoute,
   FoldkitUiRoute,
   GettingStartedRoute,
   ProjectOrganizationRoute,
@@ -77,6 +78,7 @@ import {
   bestPracticesRouter,
   comingFromReactRouter,
   examplesRouter,
+  fieldValidationRouter,
   foldkitUiRouter,
   gettingStartedRouter,
   homeRouter,
@@ -864,6 +866,11 @@ const sidebarView = (
                 'Routing & Navigation',
               ),
               navLink(
+                fieldValidationRouter.build({}),
+                S.is(FieldValidationRoute)(currentRoute),
+                'Field Validation',
+              ),
+              navLink(
                 projectOrganizationRouter.build({}),
                 S.is(ProjectOrganizationRoute)(currentRoute),
                 'Project Organization',
@@ -1428,6 +1435,7 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
       ArchitectureAndConcepts: () =>
         Page.ArchitectureAndConcepts.view(model),
       RoutingAndNavigation: () => Page.Routing.view(model),
+      FieldValidation: () => Page.FieldValidation.view(model),
       Examples: Page.Examples.view,
       BestPractices: () => Page.BestPractices.view(model),
       ProjectOrganization: () => Page.ProjectOrganization.view(model),
@@ -1470,6 +1478,9 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
     ),
     M.tag('RoutingAndNavigation', () =>
       Option.some(Page.Routing.tableOfContents),
+    ),
+    M.tag('FieldValidation', () =>
+      Option.some(Page.FieldValidation.tableOfContents),
     ),
     M.tag('BestPractices', () =>
       Option.some(Page.BestPractices.tableOfContents),
