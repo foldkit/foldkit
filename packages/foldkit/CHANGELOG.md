@@ -1,5 +1,13 @@
 # foldkit
 
+## 0.26.0
+
+### Minor Changes
+
+- 7b164d1: Add Popover and Switch UI components with shared anchor and transition infrastructure.
+
+  **Breaking:** Field Validation API improvements — `Invalid` now carries `errors: NonEmptyArray<string>` instead of `error: string`, `validate` and `validateAll` are now methods on the `makeField` return value (standalone `validateField`/`validateFieldAll` exports removed), and `Validation<T>` accepts `ValidationMessage<T>` (string or function).
+
 ## 0.25.0
 
 ### Minor Changes

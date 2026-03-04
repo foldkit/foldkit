@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.4.2
+
+### Patch Changes
+
+- 7b164d1: Read CLI version from package.json at runtime instead of hardcoding it.
+
 ## 0.4.1
 
 ### Patch Changes
