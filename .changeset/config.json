@@ -22,6 +22,7 @@
     "counter-example",
     "websocket-chat-example",
     "snake-example",
-    "error-view-example"
+    "error-view-example",
+    "query-sync-example"
   ]
 }

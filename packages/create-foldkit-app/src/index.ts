@@ -3,8 +3,14 @@ import { Command, HelpDoc, Options } from '@effect/cli'
 import { FetchHttpClient } from '@effect/platform'
 import { NodeContext, NodeRuntime } from '@effect/platform-node'
 import { Effect, Match, Option, Schema, String, flow } from 'effect'
+import { createRequire } from 'node:module'
 
 import { create as create_ } from './commands/create.js'
+
+/* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+const packageJson = createRequire(import.meta.url)('../package.json') as {
+  version: string
+}
 
 const nameSchema = Schema.String.pipe(
   Schema.filter(name =>
@@ -93,7 +99,7 @@ const create = Command.make(
 
 const cli = Command.run(create, {
   name: 'Create Foldkit App',
-  version: '0.3.1',
+  version: packageJson.version,
   summary: HelpDoc.getSpan(HelpDoc.p('Create a new Foldkit application')),
 })
 
