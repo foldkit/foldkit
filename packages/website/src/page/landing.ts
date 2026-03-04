@@ -79,13 +79,21 @@ const heroSection = (model: Model): Html =>
         [Class('landing-section-narrow text-center relative')],
         [
           div(
-            [Class('flex justify-center mb-8')],
+            [Class('flex justify-center items-center gap-3 mb-8')],
             [
               img([
                 Src('/logo.svg'),
                 Alt('Foldkit'),
                 Class('h-10 md:h-12 dark:invert'),
               ]),
+              span(
+                [
+                  Class(
+                    'inline-block -rotate-6 rounded bg-pink-600 dark:bg-pink-500 px-2 py-1 text-xs font-bold uppercase leading-none tracking-wider text-white select-none',
+                  ),
+                ],
+                ['Beta'],
+              ),
             ],
           ),
           h1(

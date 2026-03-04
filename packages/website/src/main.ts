@@ -1222,13 +1222,25 @@ const landingHeaderView = (model: Model) =>
     ],
     [
       a(
-        [Href(homeRouter.build({}))],
+        [
+          Href(homeRouter.build({})),
+          Class('flex items-center gap-2'),
+        ],
         [
           img([
             Src('/logo.svg'),
             Alt('Foldkit'),
             Class('h-6 md:h-8 dark:invert'),
           ]),
+          span(
+            [
+              Class(
+                'inline-block -rotate-6 rounded bg-pink-600 dark:bg-pink-500 px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none tracking-wider text-white select-none',
+              ),
+              AriaLabel('Beta'),
+            ],
+            ['Beta'],
+          ),
         ],
       ),
       nav(
@@ -1370,13 +1382,25 @@ const docsHeaderView = (model: Model) =>
             [Icon.menu('w-6 h-6')],
           ),
           a(
-            [Href(homeRouter.build({}))],
+            [
+              Href(homeRouter.build({})),
+              Class('flex items-center gap-2'),
+            ],
             [
               img([
                 Src('/logo.svg'),
                 Alt('Foldkit'),
                 Class('h-6 md:h-8 dark:invert'),
               ]),
+              span(
+                [
+                  Class(
+                    'inline-block -rotate-6 rounded bg-pink-600 dark:bg-pink-500 px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none tracking-wider text-white select-none',
+                  ),
+                  AriaLabel('Beta'),
+                ],
+                ['Beta'],
+              ),
             ],
           ),
         ],
