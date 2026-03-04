@@ -16,6 +16,10 @@
 
 ## Foldkit
 
+- [ ] Consider exporting pre-built `StringField` and `NumberField` from `foldkit/fieldValidation` as convenience aliases, so most users don't need to call `makeField` directly
+
+- [ ] Add a docs example showing `makeField` with non-primitive Schema types (e.g. `S.DateFromString`, branded types, `S.Literal` unions) to illustrate when and why the schema factory matters beyond `S.String` / `S.Number`
+
 - [ ] Why does the html function not require a generic arg?
 
 - [ ] Route.oneOf has overloads up to 10 args — consider making it truly variadic or documenting that users should chain oneOfs for more

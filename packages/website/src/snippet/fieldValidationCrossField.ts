@@ -1,13 +1,16 @@
 import { Match as M, Schema as S } from 'effect'
-import { FieldValidation } from 'foldkit'
-import { makeField } from 'foldkit/fieldValidation'
+import {
+  makeField,
+  minLength,
+  required,
+} from 'foldkit/fieldValidation'
 import { evo } from 'foldkit/struct'
 
 const StringField = makeField(S.String)
 
 const validatePassword = StringField.validate([
-  FieldValidation.required('Password is required'),
-  FieldValidation.minLength(8, 'Must be at least 8 characters'),
+  required('Password is required'),
+  minLength(8, 'Must be at least 8 characters'),
 ])
 
 const validateConfirmPassword = (

@@ -280,7 +280,7 @@ const promiseSection = (): Html =>
               pillarCard(
                 Icon.bolt('w-6 h-6'),
                 'Explicit effects',
-                'Side effects are values you return, not callbacks you fire. Commands declare what should happen. The runtime handles when and how.',
+                'Side effects are values you return from update, not imperative calls buried in handlers. Commands describe what should happen. The runtime handles when and how.',
               ),
               pillarCard(
                 Icon.arrowsPointingOut('w-6 h-6'),
@@ -468,7 +468,7 @@ const includedSection = (): Html =>
                 ],
               ),
               includedFeature(Icon.cog('w-6 h-6'), 'Commands', [
-                'Side effects live safely in Commands: Effects that return Messages. You write the Effect with whatever combinators you want and the runtime runs it.',
+                'Commands are Effects that return Messages — you write the Effect with whatever combinators you want and the runtime runs it.',
               ]),
             ],
           ),
