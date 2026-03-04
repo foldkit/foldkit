@@ -4,6 +4,15 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  effect: ^3.19.19
+  '@effect/platform': ^0.94.5
+  '@effect/platform-browser': ^0.74.0
+  '@effect/platform-node': ^0.104.1
+  '@effect/rpc': ^0.73.0
+  '@effect/cli': ^0.73.0
+  '@effect/vitest': ^0.27.0
+
 importers:
 
   .:
@@ -961,25 +970,25 @@ packages:
   '@effect/cli@0.73.0':
     resolution: {integrity: sha512-KkRtFjfyG52kQ6Z3ZEjwytfKZQACsLzn/RI2jKKxMJDebY9BQganOiE3VGCT4slU3Zisur6SP//ghM0vCLQs4g==}
     peerDependencies:
-      '@effect/platform': ^0.94.0
+      '@effect/platform': ^0.94.5
       '@effect/printer': ^0.47.0
       '@effect/printer-ansi': ^0.47.0
-      effect: ^3.19.13
+      effect: ^3.19.19
 
   '@effect/cluster@0.56.1':
     resolution: {integrity: sha512-gnrsH6kfrUjn+82j/bw1IR4yFqJqV8tc7xZvrbJPRgzANycc6K1hu3LMg548uYbUkTzD8YYyqrSatMO1mkQpzw==}
     peerDependencies:
-      '@effect/platform': ^0.94.1
+      '@effect/platform': ^0.94.5
       '@effect/rpc': ^0.73.0
       '@effect/sql': ^0.49.0
       '@effect/workflow': ^0.16.0
-      effect: ^3.19.14
+      effect: ^3.19.19
 
   '@effect/experimental@0.58.0':
     resolution: {integrity: sha512-IEP9sapjF6rFy5TkoqDPc86st/fnqUfjT7Xa3pWJrFGr1hzaMXHo+mWsYOZS9LAOVKnpHuVziDK97EP5qsCHVA==}
     peerDependencies:
-      '@effect/platform': ^0.94.0
-      effect: ^3.19.13
+      '@effect/platform': ^0.94.5
+      effect: ^3.19.19
       ioredis: ^5
       lmdb: ^3
     peerDependenciesMeta:
@@ -991,75 +1000,75 @@ packages:
   '@effect/platform-browser@0.74.0':
     resolution: {integrity: sha512-PAgkg5L5cASQpScA0SZTSy543MVA4A9kmpVCjo2fCINLRpTeuCFAOQHgPmw8dKHnYS0yGs2TYn7AlrhhqQ5o3g==}
     peerDependencies:
-      '@effect/platform': ^0.94.0
-      effect: ^3.19.13
+      '@effect/platform': ^0.94.5
+      effect: ^3.19.19
 
   '@effect/platform-node-shared@0.57.1':
     resolution: {integrity: sha512-oX/bApMdoKsyrDiNdJxo7U9Rz1RXsjRv+ecfAPp1qGlSdGIo32wVRvJ2XCHqYj0sqaYJS0pU0/GCulRfVGuJag==}
     peerDependencies:
       '@effect/cluster': ^0.56.1
-      '@effect/platform': ^0.94.2
+      '@effect/platform': ^0.94.5
       '@effect/rpc': ^0.73.0
       '@effect/sql': ^0.49.0
-      effect: ^3.19.15
+      effect: ^3.19.19
 
   '@effect/platform-node@0.104.1':
     resolution: {integrity: sha512-jT1a/z98niK6fnEU8pWHPPCdJMVDRCIdB65lolcOjse5rsTwVbczMjvKkhVQpF63mNWoOnol7OTRNkw5L54llg==}
     peerDependencies:
       '@effect/cluster': ^0.56.1
-      '@effect/platform': ^0.94.2
+      '@effect/platform': ^0.94.5
       '@effect/rpc': ^0.73.0
       '@effect/sql': ^0.49.0
-      effect: ^3.19.15
+      effect: ^3.19.19
 
   '@effect/platform@0.94.5':
     resolution: {integrity: sha512-z05APUiDDPbodhTkH/RJqOLoCU11bU2IZLfcwLFrld03+ob1VeqRnELQlmueLIYm6NZifHAtjl32V+GRt34y4A==}
     peerDependencies:
-      effect: ^3.19.17
+      effect: ^3.19.19
 
   '@effect/printer-ansi@0.47.0':
     resolution: {integrity: sha512-tDEQ9XJpXDNYoWMQJHFRMxKGmEOu6z32x3Kb8YLOV5nkauEKnKmWNs7NBp8iio/pqoJbaSwqDwUg9jXVquxfWQ==}
     peerDependencies:
       '@effect/typeclass': ^0.38.0
-      effect: ^3.19.0
+      effect: ^3.19.19
 
   '@effect/printer@0.47.0':
     resolution: {integrity: sha512-VgR8e+YWWhMEAh9qFOjwiZ3OXluAbcVLIOtvp2S5di1nSrPOZxj78g8LE77JSvyfp5y5bS2gmFW+G7xD5uU+2Q==}
     peerDependencies:
       '@effect/typeclass': ^0.38.0
-      effect: ^3.19.0
+      effect: ^3.19.19
 
   '@effect/rpc@0.73.0':
     resolution: {integrity: sha512-iMPf6tTriz8sK0l5x4koFId8Hz5nFptHYg8WqyjHGIIVLTpZxuiSqhmXZG7FnAs5N2n6uCEws4wWGcIgXNUrFg==}
     peerDependencies:
-      '@effect/platform': ^0.94.0
-      effect: ^3.19.13
+      '@effect/platform': ^0.94.5
+      effect: ^3.19.19
 
   '@effect/sql@0.49.0':
     resolution: {integrity: sha512-9UEKR+z+MrI/qMAmSvb/RiD9KlgIazjZUCDSpwNgm0lEK9/Q6ExEyfziiYFVCPiptp52cBw8uBHRic8hHnwqXA==}
     peerDependencies:
       '@effect/experimental': ^0.58.0
-      '@effect/platform': ^0.94.0
-      effect: ^3.19.13
+      '@effect/platform': ^0.94.5
+      effect: ^3.19.19
 
   '@effect/typeclass@0.38.0':
     resolution: {integrity: sha512-lMUcJTRtG8KXhXoczapZDxbLK5os7M6rn0zkvOgncJW++A0UyelZfMVMKdT5R+fgpZcsAU/1diaqw3uqLJwGxA==}
     peerDependencies:
-      effect: ^3.19.0
+      effect: ^3.19.19
 
   '@effect/vitest@0.27.0':
     resolution: {integrity: sha512-8bM7n9xlMUYw9GqPIVgXFwFm2jf27m/R7psI64PGpwU5+26iwyxp9eAXEsfT5S6lqztYfpQQ1Ubp5o6HfNYzJQ==}
     peerDependencies:
-      effect: ^3.19.0
+      effect: ^3.19.19
       vitest: ^3.2.0
 
   '@effect/workflow@0.16.0':
     resolution: {integrity: sha512-MiAdlxx3TixkgHdbw+Yf1Z3tHAAE0rOQga12kIydJqj05Fnod+W/I+kQGRMY/XWRg+QUsVxhmh1qTr7Ype6lrw==}
     peerDependencies:
       '@effect/experimental': ^0.58.0
-      '@effect/platform': ^0.94.0
+      '@effect/platform': ^0.94.5
       '@effect/rpc': ^0.73.0
-      effect: ^3.19.13
+      effect: ^3.19.19
 
   '@esbuild/aix-ppc64@0.27.2':
     resolution: {integrity: sha512-GZMB+a0mOMZs4MpDbj8RJp4cw+w1WV5NYD6xzgvzUJ5Ek2jerwfO2eADyI6ExDSUED+1X8aMbegahsJi+8mgpw==}
