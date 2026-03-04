@@ -115,7 +115,7 @@
   "devDependencies": {
     "@effect/platform-browser": "^0.74.0",
     "@effect/vitest": "^0.27.0",
-    "effect": "^3.19.15",
+    "effect": "^3.19.19",
     "happy-dom": "^18.0.1",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"

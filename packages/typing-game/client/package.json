@@ -12,13 +12,13 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@effect/platform": "^0.94.2",
+    "@effect/platform": "^0.94.5",
     "@effect/platform-browser": "^0.74.0",
     "@effect/rpc": "^0.73.0",
     "@tailwindcss/vite": "^4.1.18",
     "@typing-game/shared": "workspace:*",
     "classnames": "^2.5.1",
-    "effect": "^3.19.15",
+    "effect": "^3.19.19",
     "foldkit": "workspace:*",
     "tailwindcss": "^4.1.18"
   },

@@ -8,10 +8,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@effect/platform": "^0.94.2",
+    "@effect/platform": "^0.94.5",
     "@effect/platform-browser": "^0.74.0",
     "@tailwindcss/vite": "^4.1.18",
-    "effect": "^3.19.15",
+    "effect": "^3.19.19",
     "foldkit": "workspace:*",
     "tailwindcss": "^4.1.18"
   },
