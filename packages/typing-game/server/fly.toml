@@ -2,7 +2,8 @@ app = "foldkit-typing-game"
 primary_region = "sjc"
 
 [build]
-  dockerfile = "../../../Dockerfile.typing-game-server"
+  dockerfile = "Dockerfile"
+  context = "../../.."
 
 [env]
   PORT = "3001"

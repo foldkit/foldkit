@@ -7,7 +7,7 @@ on:
     paths:
       - 'packages/typing-game/server/**'
       - 'packages/typing-game/shared/**'
-      - 'Dockerfile.typing-game-server'
+      - 'packages/typing-game/server/Dockerfile'
       - '.github/workflows/deploy-typing-game-server.yml'
 
 jobs:
