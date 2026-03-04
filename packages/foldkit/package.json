@@ -83,6 +83,10 @@
       "types": "./dist/ui/popover/public.d.ts",
       "import": "./dist/ui/popover/public.js"
     },
+    "./ui/switch": {
+      "types": "./dist/ui/switch/public.d.ts",
+      "import": "./dist/ui/switch/public.js"
+    },
     "./ui/tabs": {
       "types": "./dist/ui/tabs/public.d.ts",
       "import": "./dist/ui/tabs/public.js"

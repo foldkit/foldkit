@@ -14,6 +14,7 @@ import {
   GotMenuBasicDemoMessage,
   GotPopoverAnimatedDemoMessage,
   GotPopoverBasicDemoMessage,
+  GotSwitchDemoMessage,
   GotVerticalTabsDemoMessage,
   type Message,
 } from './message'
@@ -171,6 +172,22 @@ export const update = (
             Effect.map(message =>
               GotPopoverAnimatedDemoMessage({ message }),
             ),
+          ),
+        ]
+      },
+
+      GotSwitchDemoMessage: ({ message }) => {
+        const [nextSwitchDemo, switchCommands] = Ui.Switch.update(
+          model.switchDemo,
+          message,
+        )
+
+        return [
+          evo(model, {
+            switchDemo: () => nextSwitchDemo,
+          }),
+          switchCommands.map(
+            Effect.map(message => GotSwitchDemoMessage({ message })),
           ),
         ]
       },

@@ -5,6 +5,7 @@ import {
   Listbox,
   Menu,
   Popover,
+  Switch,
   Tabs,
 } from 'foldkit/ui'
 
@@ -18,6 +19,7 @@ export const Model = S.Struct({
   menuAnimatedDemo: Menu.Model,
   popoverBasicDemo: Popover.Model,
   popoverAnimatedDemo: Popover.Model,
+  switchDemo: Switch.Model,
   horizontalTabsDemo: Tabs.Model,
   verticalTabsDemo: Tabs.Model,
 })

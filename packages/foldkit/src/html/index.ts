@@ -251,7 +251,8 @@ export type TagName =
   | 'munderover'
   | 'semantics'
 
-type Attribute<Message> = Data.TaggedEnum<{
+/** Union of all HTML, SVG, and MathML attributes a virtual DOM element can carry. */
+export type Attribute<Message> = Data.TaggedEnum<{
   Key: { readonly value: string }
   Class: { readonly value: string }
   Id: { readonly value: string }
