@@ -38,6 +38,9 @@ jobs:
       - name: Install Dependencies
         run: pnpm install
 
+      - name: Verify changeset ignore list
+        run: pnpm check:changeset-ignore
+
       - name: Create Release Pull Request or Publish
         id: changesets
         uses: changesets/action@v1
