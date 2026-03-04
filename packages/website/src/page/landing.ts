@@ -468,7 +468,7 @@ const includedSection = (): Html =>
                 ],
               ),
               includedFeature(Icon.cog('w-6 h-6'), 'Commands', [
-                'Side effects live safely in Commands: Effects that return Messages. Retry, timeout, race, parallel, yield from services — use any combinator you want. You write the Effect, the runtime runs it.',
+                'Side effects live safely in Commands: Effects that return Messages. You write the Effect with whatever combinators you want and the runtime runs it.',
               ]),
             ],
           ),
