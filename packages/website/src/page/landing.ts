@@ -174,7 +174,7 @@ const poweredBySection = (): Html =>
           h2(
             [
               Class(
-                'text-3xl md:text-4xl font-light text-gray-900 dark:text-white text-balance',
+                'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white text-balance',
               ),
             ],
             [
@@ -257,7 +257,7 @@ const promiseSection = (): Html =>
           h2(
             [
               Class(
-                'text-3xl md:text-4xl font-light text-gray-900 dark:text-white mb-3 text-balance',
+                'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-3 text-balance',
               ),
             ],
             ['Declare behavior. Ship. Repeat.'],
@@ -309,7 +309,7 @@ const demoSection = (demoTabsView: Html): Html =>
           h2(
             [
               Class(
-                'text-3xl md:text-4xl font-light text-gray-900 dark:text-white mb-3 text-balance',
+                'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-3 text-balance',
               ),
             ],
             ['See it work.'],
@@ -369,7 +369,7 @@ const includedSection = (): Html =>
           h2(
             [
               Class(
-                'text-3xl md:text-4xl font-light text-gray-900 dark:text-white mb-3 text-balance',
+                'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-3 text-balance',
               ),
             ],
             ['Batteries included.'],
@@ -499,7 +499,7 @@ const whyFoldkitSection = (): Html =>
           h2(
             [
               Class(
-                'text-3xl md:text-4xl font-light text-gray-900 dark:text-white mb-3 text-balance',
+                'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-3 text-balance',
               ),
             ],
             ["What's the catch?"],
@@ -565,7 +565,7 @@ const audienceSection = (): Html =>
                   h2(
                     [
                       Class(
-                        'text-3xl font-light text-gray-900 dark:text-white mb-6 text-balance',
+                        'text-3xl font-normal text-gray-900 dark:text-white mb-6 text-balance',
                       ),
                     ],
                     ["Who it's for"],
@@ -595,7 +595,7 @@ const audienceSection = (): Html =>
                   h2(
                     [
                       Class(
-                        'text-3xl font-light text-gray-900 dark:text-white mb-6 text-balance',
+                        'text-3xl font-normal text-gray-900 dark:text-white mb-6 text-balance',
                       ),
                     ],
                     ["Who it's not for"],
@@ -702,7 +702,7 @@ const comparisonStripSection = (): Html =>
           h2(
             [
               Class(
-                'text-3xl md:text-4xl font-light text-gray-900 dark:text-white mb-4 text-balance',
+                'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-4 text-balance',
               ),
             ],
             ['How does Foldkit compare to React?'],
@@ -746,7 +746,7 @@ const trustSection = (): Html =>
           h2(
             [
               Class(
-                'text-3xl md:text-4xl font-light text-gray-900 dark:text-white mb-6 text-balance',
+                'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-6 text-balance',
               ),
             ],
             ['Proof of life.'],
@@ -852,7 +852,7 @@ const aiSection = (): Html =>
           h2(
             [
               Class(
-                'text-3xl md:text-4xl font-light text-gray-900 dark:text-white mb-4 text-balance',
+                'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-4 text-balance',
               ),
             ],
             [
@@ -901,7 +901,7 @@ const finalCtaSection = (): Html =>
           h2(
             [
               Class(
-                'text-3xl md:text-4xl font-light text-gray-900 dark:text-white mb-4 text-balance',
+                'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-4 text-balance',
               ),
             ],
             ['Ready to be bored?'],
