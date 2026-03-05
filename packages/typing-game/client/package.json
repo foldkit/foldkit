@@ -14,7 +14,7 @@
   "dependencies": {
     "@effect/platform": "^0.94.5",
     "@effect/platform-browser": "^0.74.0",
-    "@effect/rpc": "^0.73.0",
+    "@effect/rpc": "^0.73.2",
     "@tailwindcss/vite": "^4.1.18",
     "@typing-game/shared": "workspace:*",
     "classnames": "^2.5.1",
