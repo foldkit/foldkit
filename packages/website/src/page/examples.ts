@@ -195,7 +195,7 @@ const exampleCard = (example: Example): Html =>
               [
                 Href(example.liveUrl),
                 Class(
-                  'text-xs text-accent-600 dark:text-accent-500 hover:underline mt-5 inline-block',
+                  'text-xs text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500 mt-5 inline-block',
                 ),
               ],
               ['Live →'],
@@ -216,7 +216,7 @@ export const view = (): Html =>
           [
             Href(Link.createFoldkitApp),
             Class(
-              'text-accent-600 dark:text-accent-500 hover:underline',
+              'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500',
             ),
           ],
           ['Create Foldkit App'],
@@ -226,7 +226,7 @@ export const view = (): Html =>
           [
             Href('/getting-started'),
             Class(
-              'text-accent-600 dark:text-accent-500 hover:underline',
+              'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500',
             ),
           ],
           ['Getting Started'],

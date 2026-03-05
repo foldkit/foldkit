@@ -164,7 +164,7 @@ export const Model = S.Struct({
   route: AppRoute,
   url: Url,
   copiedSnippets: S.HashSet(S.String),
-  isMobileMenuOpen: S.Boolean,
+  mobileMenuDialog: Ui.Dialog.Model,
   isMobileTableOfContentsOpen: S.Boolean,
   activeSection: S.Option(S.String),
   isLandingHeaderVisible: S.Boolean,
@@ -200,7 +200,9 @@ const SucceededCopy = m('SucceededCopy', { text: S.String })
 const HiddenCopiedIndicator = m('HiddenCopiedIndicator', {
   text: S.String,
 })
-const ToggledMobileMenu = m('ToggledMobileMenu')
+const GotMobileMenuDialogMessage = m('GotMobileMenuDialogMessage', {
+  message: Ui.Dialog.Message,
+})
 const ToggledMobileTableOfContents = m(
   'ToggledMobileTableOfContents',
   {
@@ -256,7 +258,7 @@ const Message = S.Union(
   ClickedCopyLink,
   SucceededCopy,
   HiddenCopiedIndicator,
-  ToggledMobileMenu,
+  GotMobileMenuDialogMessage,
   ToggledMobileTableOfContents,
   ClickedMobileTableOfContentsLink,
   ChangedActiveSection,
@@ -331,7 +333,7 @@ const init: Runtime.ApplicationInit<
       route: initialRoute,
       url,
       copiedSnippets: HashSet.empty(),
-      isMobileMenuOpen: false,
+      mobileMenuDialog: Ui.Dialog.init({ id: 'mobile-menu' }),
       isMobileTableOfContentsOpen: false,
       activeSection: Option.none(),
       isLandingHeaderVisible: false,
@@ -414,21 +416,32 @@ const update = (
 
       ChangedUrl: ({ url }) => {
         const nextRoute = urlToAppRoute(url)
+        const [closedDialog, closeDialogCommands] = Ui.Dialog.update(
+          model.mobileMenuDialog,
+          Ui.Dialog.Closed(),
+        )
 
         return [
           evo(model, {
             route: () => nextRoute,
             url: () => url,
-            isMobileMenuOpen: () => false,
+            mobileMenuDialog: () => closedDialog,
             apiReferenceGroup: apiReferenceGroup =>
               nextRoute._tag === 'ApiModule'
                 ? { ...apiReferenceGroup, isOpen: true }
                 : apiReferenceGroup,
           }),
-          Option.match(url.hash, {
-            onNone: () => [scrollToTop],
-            onSome: hash => [scrollToHash(hash)],
-          }),
+          [
+            ...closeDialogCommands.map(
+              Effect.map(message =>
+                GotMobileMenuDialogMessage({ message }),
+              ),
+            ),
+            ...Option.match(url.hash, {
+              onNone: () => [scrollToTop],
+              onSome: hash => [scrollToHash(hash)],
+            }),
+          ],
         ]
       },
 
@@ -463,12 +476,21 @@ const update = (
         [],
       ],
 
-      ToggledMobileMenu: () => [
-        evo(model, {
-          isMobileMenuOpen: isMobileMenuOpen => !isMobileMenuOpen,
-        }),
-        [],
-      ],
+      GotMobileMenuDialogMessage: ({ message }) => {
+        const [nextMobileMenuDialog, mobileMenuDialogCommands] =
+          Ui.Dialog.update(model.mobileMenuDialog, message)
+
+        return [
+          evo(model, {
+            mobileMenuDialog: () => nextMobileMenuDialog,
+          }),
+          mobileMenuDialogCommands.map(
+            Effect.map(message =>
+              GotMobileMenuDialogMessage({ message }),
+            ),
+          ),
+        ]
+      },
 
       ToggledMobileTableOfContents: ({ isOpen }) => [
         evo(model, { isMobileTableOfContentsOpen: () => isOpen }),
@@ -748,7 +770,7 @@ const saveThemePreference = (
 
 const sidebarView = (
   currentRoute: AppRoute,
-  isMobileMenuOpen: boolean,
+  mobileMenuDialog: Ui.Dialog.Model,
   apiReferenceGroup: Ui.Disclosure.Model,
 ) => {
   const isOnApiModulePage = currentRoute._tag === 'ApiModule'
@@ -779,24 +801,149 @@ const sidebarView = (
       ],
     )
 
-  return aside(
+  const navLinks = ul(
+    [Class('space-y-1')],
+    [
+      navLink(
+        whyFoldkitRouter.build({}),
+        S.is(WhyFoldkitRoute)(currentRoute),
+        'Why Foldkit?',
+      ),
+      navLink(
+        comingFromReactRouter.build({}),
+        S.is(ComingFromReactRoute)(currentRoute),
+        'Coming from React',
+      ),
+      navLink(
+        gettingStartedRouter.build({}),
+        S.is(GettingStartedRoute)(currentRoute),
+        'Getting Started',
+      ),
+      navLink(
+        architectureAndConceptsRouter.build({}),
+        S.is(ArchitectureAndConceptsRoute)(currentRoute),
+        'Architecture & Concepts',
+      ),
+      navLink(
+        routingAndNavigationRouter.build({}),
+        S.is(RoutingAndNavigationRoute)(currentRoute),
+        'Routing & Navigation',
+      ),
+      navLink(
+        fieldValidationRouter.build({}),
+        S.is(FieldValidationRoute)(currentRoute),
+        'Field Validation',
+      ),
+      navLink(
+        projectOrganizationRouter.build({}),
+        S.is(ProjectOrganizationRoute)(currentRoute),
+        'Project Organization',
+      ),
+      navLink(
+        advancedPatternsRouter.build({}),
+        S.is(AdvancedPatternsRoute)(currentRoute),
+        'Advanced Patterns',
+      ),
+      navLink(
+        bestPracticesRouter.build({}),
+        S.is(BestPracticesRoute)(currentRoute),
+        'Best Practices',
+      ),
+      navLink(
+        examplesRouter.build({}),
+        S.is(ExamplesRoute)(currentRoute),
+        'Example Apps',
+      ),
+      navLink(
+        foldkitUiRouter.build({}),
+        S.is(FoldkitUiRoute)(currentRoute),
+        'Foldkit UI',
+      ),
+      li(
+        [],
+        [
+          Ui.Disclosure.view({
+            model: apiReferenceGroup,
+            toMessage: message =>
+              GotApiReferenceGroupMessage({ message }),
+            buttonClassName: classNames(
+              linkClass(false),
+              'w-full flex items-center justify-between cursor-pointer',
+            ),
+            buttonContent: div(
+              [Class('flex items-center justify-between w-full')],
+              [
+                span([], ['API Reference']),
+                span(
+                  [
+                    Class(
+                      classNames('transition-transform', {
+                        'rotate-180': apiReferenceGroup.isOpen,
+                      }),
+                    ),
+                  ],
+                  [Icon.chevronDown('w-4 h-4')],
+                ),
+              ],
+            ),
+            panelClassName: 'pl-4 space-y-1 mt-1',
+            panelContent: ul(
+              [],
+              Array.map(
+                Page.ApiReference.moduleSlugs,
+                ({ slug, name }) =>
+                  navLink(
+                    apiModuleRouter.build({
+                      moduleSlug: slug,
+                    }),
+                    isOnApiModulePage &&
+                      currentRoute.moduleSlug === slug,
+                    name,
+                  ),
+              ),
+            ),
+          }),
+        ],
+      ),
+    ],
+  )
+
+  const desktopSidebar = aside(
     [
       AriaLabel('Documentation sidebar'),
       Class(
-        classNames(
-          'fixed inset-0 md:top-[var(--header-height)] md:bottom-0 md:left-0 md:right-auto z-[60] md:z-40 md:w-64 bg-cream dark:bg-gray-900 md:border-r border-gray-300 dark:border-gray-800 flex flex-col',
-          {
-            flex: isMobileMenuOpen,
-            'hidden md:flex': !isMobileMenuOpen,
-          },
-        ),
+        'hidden md:flex fixed top-[var(--header-height)] bottom-0 left-0 z-40 w-64 bg-cream dark:bg-gray-900 border-r border-gray-300 dark:border-gray-800 flex-col',
       ),
     ],
+    [
+      nav(
+        [
+          AriaLabel('Documentation'),
+          Class('flex-1 overflow-y-auto p-4'),
+        ],
+        [
+          h2(
+            [
+              AriaHidden(true),
+              Class(
+                'text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3',
+              ),
+            ],
+            ['Documentation'],
+          ),
+          navLinks,
+        ],
+      ),
+    ],
+  )
+
+  const mobileMenuContent = div(
+    [Class('flex flex-col h-full')],
     [
       div(
         [
           Class(
-            'flex justify-between items-center p-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] md:hidden border-b border-gray-300 dark:border-gray-800 shrink-0 bg-cream dark:bg-black',
+            'flex justify-between items-center p-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] border-b border-gray-300 dark:border-gray-800 shrink-0',
           ),
         ],
         [
@@ -816,7 +963,11 @@ const sidebarView = (
                 'p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 cursor-pointer',
               ),
               AriaLabel('Close menu'),
-              OnClick(ToggledMobileMenu()),
+              OnClick(
+                GotMobileMenuDialogMessage({
+                  message: Ui.Dialog.Closed(),
+                }),
+              ),
             ],
             [Icon.close('w-6 h-6')],
           ),
@@ -827,133 +978,12 @@ const sidebarView = (
           AriaLabel('Documentation'),
           Class('flex-1 overflow-y-auto p-4'),
         ],
-        [
-          h2(
-            [
-              AriaHidden(true),
-              Class(
-                'hidden md:block text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3',
-              ),
-            ],
-            ['Documentation'],
-          ),
-          ul(
-            [Class('space-y-1')],
-            [
-              navLink(
-                whyFoldkitRouter.build({}),
-                S.is(WhyFoldkitRoute)(currentRoute),
-                'Why Foldkit?',
-              ),
-              navLink(
-                comingFromReactRouter.build({}),
-                S.is(ComingFromReactRoute)(currentRoute),
-                'Coming from React',
-              ),
-              navLink(
-                gettingStartedRouter.build({}),
-                S.is(GettingStartedRoute)(currentRoute),
-                'Getting Started',
-              ),
-              navLink(
-                architectureAndConceptsRouter.build({}),
-                S.is(ArchitectureAndConceptsRoute)(currentRoute),
-                'Architecture & Concepts',
-              ),
-              navLink(
-                routingAndNavigationRouter.build({}),
-                S.is(RoutingAndNavigationRoute)(currentRoute),
-                'Routing & Navigation',
-              ),
-              navLink(
-                fieldValidationRouter.build({}),
-                S.is(FieldValidationRoute)(currentRoute),
-                'Field Validation',
-              ),
-              navLink(
-                projectOrganizationRouter.build({}),
-                S.is(ProjectOrganizationRoute)(currentRoute),
-                'Project Organization',
-              ),
-              navLink(
-                advancedPatternsRouter.build({}),
-                S.is(AdvancedPatternsRoute)(currentRoute),
-                'Advanced Patterns',
-              ),
-              navLink(
-                bestPracticesRouter.build({}),
-                S.is(BestPracticesRoute)(currentRoute),
-                'Best Practices',
-              ),
-              navLink(
-                examplesRouter.build({}),
-                S.is(ExamplesRoute)(currentRoute),
-                'Example Apps',
-              ),
-              navLink(
-                foldkitUiRouter.build({}),
-                S.is(FoldkitUiRoute)(currentRoute),
-                'Foldkit UI',
-              ),
-              li(
-                [],
-                [
-                  Ui.Disclosure.view({
-                    model: apiReferenceGroup,
-                    toMessage: message =>
-                      GotApiReferenceGroupMessage({ message }),
-                    buttonClassName: classNames(
-                      linkClass(false),
-                      'w-full flex items-center justify-between cursor-pointer',
-                    ),
-                    buttonContent: div(
-                      [
-                        Class(
-                          'flex items-center justify-between w-full',
-                        ),
-                      ],
-                      [
-                        span([], ['API Reference']),
-                        span(
-                          [
-                            Class(
-                              classNames('transition-transform', {
-                                'rotate-180':
-                                  apiReferenceGroup.isOpen,
-                              }),
-                            ),
-                          ],
-                          [Icon.chevronDown('w-4 h-4')],
-                        ),
-                      ],
-                    ),
-                    panelClassName: 'pl-4 space-y-1 mt-1',
-                    panelContent: ul(
-                      [],
-                      Array.map(
-                        Page.ApiReference.moduleSlugs,
-                        ({ slug, name }) =>
-                          navLink(
-                            apiModuleRouter.build({
-                              moduleSlug: slug,
-                            }),
-                            isOnApiModulePage &&
-                              currentRoute.moduleSlug === slug,
-                            name,
-                          ),
-                      ),
-                    ),
-                  }),
-                ],
-              ),
-            ],
-          ),
-        ],
+        [navLinks],
       ),
       div(
         [
           Class(
-            'md:hidden p-4 border-t border-gray-300 dark:border-gray-800 shrink-0',
+            'p-4 border-t border-gray-300 dark:border-gray-800 shrink-0',
           ),
         ],
         [
@@ -968,6 +998,18 @@ const sidebarView = (
       ),
     ],
   )
+
+  const mobileMenu = Ui.Dialog.view({
+    model: mobileMenuDialog,
+    toMessage: message => GotMobileMenuDialogMessage({ message }),
+    panelContent: mobileMenuContent,
+    panelClassName:
+      'fixed inset-0 z-[60] bg-cream dark:bg-gray-900 flex flex-col',
+    backdropClassName: 'fixed inset-0 z-[59]',
+    className: 'md:hidden',
+  })
+
+  return div([], [desktopSidebar, mobileMenu])
 }
 
 const iconLink = (link: string, ariaLabel: string, icon: Html) =>
@@ -1247,7 +1289,10 @@ const landingHeaderView = (model: Model) =>
       nav(
         [AriaLabel('Main'), Class('flex items-center gap-3')],
         [
-          themeSelector(model.themePreference),
+          div(
+            [Class('hidden md:flex')],
+            [themeSelector(model.themePreference)],
+          ),
           a(
             [
               Href(Link.gettingStarted),
@@ -1275,7 +1320,7 @@ const skipNavLink: Html = a(
 const landingFooter: Html = footer(
   [
     Class(
-      'px-6 py-8 md:px-12 lg:px-20 border-t border-gray-200 dark:border-gray-800 text-center text-sm text-gray-500 dark:text-gray-400',
+      'px-6 py-8 md:px-12 lg:px-20 border-t border-gray-200 dark:border-gray-800 text-center text-base text-gray-500 dark:text-gray-400',
     ),
   ],
   [
@@ -1285,9 +1330,9 @@ const landingFooter: Html = footer(
         'Built with ',
         a(
           [
-            Href(Link.github),
+            Href(`${Link.websiteSource}/src/main.ts`),
             Class(
-              'text-accent-600 dark:text-accent-500 hover:underline',
+              'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500',
             ),
           ],
           ['Foldkit'],
@@ -1306,7 +1351,7 @@ const demoTabs: ReadonlyArray<DemoTab> = [
 ]
 
 const demoTabButtonClassName =
-  'px-3 py-2 text-sm font-normal cursor-pointer transition border border-gray-300 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-t-lg lg:rounded-t-none lg:rounded-l-lg lg:border-r-0 mb-[-1px] lg:mb-0 lg:mr-[-1px] data-[selected]:relative data-[selected]:z-10 data-[selected]:bg-gray-100 data-[selected]:dark:bg-gray-900 data-[selected]:text-gray-900 data-[selected]:dark:text-white data-[selected]:border-b-0 lg:data-[selected]:border-b lg:data-[selected]:border-r-0'
+  'px-3 py-2 text-sm font-normal cursor-pointer transition border border-gray-300 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-t-lg lg:rounded-t-none lg:rounded-l-lg lg:border-r-0 mb-[-1px] lg:mb-0 lg:mr-[-1px] data-[selected]:relative data-[selected]:z-10 data-[selected]:bg-gray-100 data-[selected]:dark:bg-gray-900 data-[selected]:text-gray-900 data-[selected]:dark:text-white data-[selected]:border-b-0 lg:data-[selected]:border-b lg:data-[selected]:border-r-0'
 
 const demoTabPanelClassName =
   'flex-1 min-w-0 p-4 bg-gray-100 dark:bg-gray-900 rounded-b-lg rounded-tr-lg lg:rounded-b-none lg:rounded-r-lg lg:rounded-bl-lg border border-gray-300 dark:border-gray-800'
@@ -1378,9 +1423,13 @@ const docsHeaderView = (model: Model) =>
               Class(
                 'md:hidden p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 cursor-pointer',
               ),
-              AriaExpanded(model.isMobileMenuOpen),
+              AriaExpanded(model.mobileMenuDialog.isOpen),
               AriaLabel('Toggle menu'),
-              OnClick(ToggledMobileMenu()),
+              OnClick(
+                GotMobileMenuDialogMessage({
+                  message: Ui.Dialog.Opened(),
+                }),
+              ),
             ],
             [Icon.menu('w-6 h-6')],
           ),
@@ -1413,7 +1462,7 @@ const docsHeaderView = (model: Model) =>
         [
           themeSelector(model.themePreference),
           div(
-            [Class('flex items-center gap-3 md:gap-4')],
+            [Class('hidden md:flex items-center gap-3 md:gap-4')],
             [
               iconLink(
                 Link.github,
@@ -1534,13 +1583,7 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
 
   return keyed('div')(
     'docs',
-    [
-      Class(
-        classNames('flex flex-col min-h-screen', {
-          'overflow-hidden': model.isMobileMenuOpen,
-        }),
-      ),
-    ],
+    [Class('flex flex-col min-h-screen')],
     [
       skipNavLink,
       docsHeaderView(model),
@@ -1549,7 +1592,7 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
         [
           sidebarView(
             model.route,
-            model.isMobileMenuOpen,
+            model.mobileMenuDialog,
             model.apiReferenceGroup,
           ),
           main(
@@ -1586,7 +1629,7 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
                 ),
                 [
                   Class(
-                    'px-4 py-6 md:px-8 md:py-10 px- max-w-4xl mx-auto min-w-0',
+                    'px-4 py-6 md:px-8 md:py-8 2xl:py-10 max-w-4xl mx-auto min-w-0',
                   ),
                 ],
                 [content],

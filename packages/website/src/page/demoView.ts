@@ -139,7 +139,7 @@ export const demoViewShell = (
       p(
         [
           Class(
-            'text-sm text-gray-400 dark:text-gray-500 text-center text-balance lg:hidden',
+            'text-sm text-gray-500 dark:text-gray-500 text-center text-balance lg:hidden',
           ),
           AriaHidden(true),
         ],

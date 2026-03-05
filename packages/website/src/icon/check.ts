@@ -23,7 +23,7 @@ export const check = (className: string = 'w-6 h-6'): Html =>
       Xmlns('http://www.w3.org/2000/svg'),
       Fill('none'),
       ViewBox('0 0 24 24'),
-      StrokeWidth('1.5'),
+      StrokeWidth('2'),
       Stroke('currentColor'),
     ],
     [

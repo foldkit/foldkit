@@ -43,7 +43,7 @@ const copyButtonWithIndicator = (
   const copyButton = button(
     [
       Class(
-        'p-2 rounded transition cursor-pointer border border-gray-700/50 text-gray-400 hover:text-white hover:border-gray-500 hover:bg-gray-700/30',
+        'p-2 rounded transition cursor-pointer border border-gray-700/50 bg-[#1c1a20] text-gray-400 hover:text-white hover:border-gray-500 hover:bg-gray-700/30',
       ),
       AriaLabel(ariaLabel),
       OnClick(ClickedCopySnippet({ text: textToCopy })),

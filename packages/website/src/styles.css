@@ -91,7 +91,7 @@
   }
 
   pre {
-    @apply pr-14 pl-[11px] py-4 rounded overflow-x-auto border border-gray-700/50 font-[200] text-sm;
+    @apply pr-14 pl-[11px] py-4 rounded-lg overflow-x-auto border border-transparent dark:border-gray-700/50 font-[200] text-sm;
   }
 
   pre code {

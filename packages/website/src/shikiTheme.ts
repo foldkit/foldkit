@@ -11,7 +11,7 @@ export const shikiTheme: ThemeRegistration = {
   tokenColors: [
     {
       scope: ['comment', 'punctuation.definition.comment'],
-      settings: { foreground: '#6B6780' },
+      settings: { foreground: '#8A869C' },
     },
     {
       scope: ['keyword', 'storage', 'storage.type'],

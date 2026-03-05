@@ -64,10 +64,10 @@ const heroSection = (model: Model): Html =>
     ],
     [
       div(
-        [Class('landing-section-narrow text-center relative')],
+        [Class('landing-section-narrow relative')],
         [
           div(
-            [Class('flex justify-center items-center gap-3 mb-8')],
+            [Class('flex items-center gap-3 mb-8')],
             [
               img([
                 Src('/logo.svg'),
@@ -101,7 +101,7 @@ const heroSection = (model: Model): Html =>
           p(
             [
               Class(
-                'mt-6 text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed text-balance',
+                'mt-6 text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-2xl leading-relaxed text-balance',
               ),
             ],
             [
@@ -115,14 +115,14 @@ const heroSection = (model: Model): Html =>
                 INSTALL_COMMAND,
                 'Copy install command',
                 model,
-                'max-w-fit mx-auto [&_pre]:text-xs [&_pre]:md:text-sm',
+                'max-w-fit [&_pre]:text-xs [&_pre]:md:text-sm',
               ),
             ],
           ),
           div(
             [
               Class(
-                'mt-8 flex flex-col sm:flex-row items-center justify-center gap-4',
+                'mt-8 flex flex-col sm:flex-row items-start sm:items-center gap-4',
               ),
             ],
             [
@@ -145,13 +145,17 @@ const heroSection = (model: Model): Html =>
 
 const poweredByItem = (text: string): Html =>
   li(
-    [Class('flex items-center gap-2')],
+    [Class('flex items-start gap-3')],
     [
       div(
-        [Class('shrink-0 text-green-600 dark:text-green-400')],
-        [Icon.check('w-5 h-5')],
+        [
+          Class(
+            'shrink-0 mt-0.5 w-6 h-6 rounded bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 flex items-center justify-center',
+          ),
+        ],
+        [Icon.check('w-3.5 h-3.5')],
       ),
-      span([], [text]),
+      span([Class('font-normal')], [text]),
     ],
   )
 
@@ -160,7 +164,7 @@ const poweredBySection = (): Html =>
     [
       Id('powered-by-effect'),
       Class(
-        'landing-section py-10 md:py-14 text-center bg-gray-50 dark:bg-gray-850',
+        'landing-section py-10 md:py-14 bg-gray-50 dark:bg-gray-850',
       ),
     ],
     [
@@ -179,7 +183,7 @@ const poweredBySection = (): Html =>
                 [
                   Href(Link.effect),
                   Class(
-                    'text-accent-600 dark:text-accent-500 hover:underline',
+                    'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500 font-normal',
                   ),
                 ],
                 ['Effect'],
@@ -191,7 +195,7 @@ const poweredBySection = (): Html =>
             [
               Role('list'),
               Class(
-                'mt-4 flex flex-col gap-2 items-center text-lg text-gray-600 dark:text-gray-300 list-none',
+                'mt-4 flex flex-col gap-2 text-lg text-gray-600 dark:text-gray-300 list-none',
               ),
             ],
             [
@@ -228,7 +232,7 @@ const pillarCard = (
       h3(
         [
           Class(
-            'text-xl font-light text-gray-900 dark:text-white mb-2',
+            'text-xl font-normal text-gray-900 dark:text-white mb-2',
           ),
         ],
         [title],
@@ -253,7 +257,7 @@ const promiseSection = (): Html =>
           h2(
             [
               Class(
-                'text-3xl md:text-4xl font-light text-gray-900 dark:text-white mb-3 text-center text-balance',
+                'text-3xl md:text-4xl font-light text-gray-900 dark:text-white mb-3 text-balance',
               ),
             ],
             ['Declare behavior. Ship. Repeat.'],
@@ -261,7 +265,7 @@ const promiseSection = (): Html =>
           p(
             [
               Class(
-                'text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl mx-auto text-center text-balance',
+                'text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl text-balance',
               ),
             ],
             [
@@ -305,7 +309,7 @@ const demoSection = (demoTabsView: Html): Html =>
           h2(
             [
               Class(
-                'text-3xl md:text-4xl font-light text-gray-900 dark:text-white mb-3 text-center text-balance',
+                'text-3xl md:text-4xl font-light text-gray-900 dark:text-white mb-3 text-balance',
               ),
             ],
             ['See it work.'],
@@ -313,7 +317,7 @@ const demoSection = (demoTabsView: Html): Html =>
           p(
             [
               Class(
-                'text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl mx-auto text-center text-balance',
+                'text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl text-balance',
               ),
             ],
             [
@@ -343,7 +347,7 @@ const includedFeature = (
       h3(
         [
           Class(
-            'text-xl font-light text-gray-900 dark:text-white mb-2',
+            'text-xl font-normal text-gray-900 dark:text-white mb-2',
           ),
         ],
         [title],
@@ -400,7 +404,7 @@ const includedSection = (): Html =>
                   h3(
                     [
                       Class(
-                        'flex items-center text-xl font-light text-gray-900 dark:text-white mb-2',
+                        'flex items-center text-xl font-normal text-gray-900 dark:text-white mb-2',
                       ),
                     ],
                     [
@@ -429,7 +433,7 @@ const includedSection = (): Html =>
                     [
                       Href('/foldkit-ui'),
                       Class(
-                        'text-accent-600 dark:text-accent-500 hover:underline font-normal text-sm',
+                        'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500 font-normal',
                       ),
                     ],
                     [
@@ -451,7 +455,7 @@ const includedSection = (): Html =>
                     [
                       Href(Link.snabbdom),
                       Class(
-                        'text-accent-600 dark:text-accent-500 hover:underline',
+                        'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500 font-normal',
                       ),
                     ],
                     ['Snabbdom'],
@@ -512,7 +516,7 @@ const whyFoldkitSection = (): Html =>
                 [
                   Href(Link.elmArchitecture),
                   Class(
-                    'text-accent-600 dark:text-accent-500 hover:underline',
+                    'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500 font-normal',
                   ),
                 ],
                 ['The Elm Architecture'],
@@ -636,7 +640,7 @@ const audienceForItem = (title: string, description: string): Html =>
           h3(
             [
               Class(
-                'text-base font-light text-gray-900 dark:text-white mb-1',
+                'text-base font-normal text-gray-900 dark:text-white mb-1',
               ),
             ],
             [title],
@@ -668,7 +672,7 @@ const audienceNotItem = (title: string, description: string): Html =>
           h3(
             [
               Class(
-                'text-base font-light text-gray-900 dark:text-white mb-1',
+                'text-base font-normal text-gray-900 dark:text-white mb-1',
               ),
             ],
             [title],
@@ -690,10 +694,7 @@ const audienceNotItem = (title: string, description: string): Html =>
 
 const comparisonStripSection = (): Html =>
   section(
-    [
-      Id('foldkit-vs-react'),
-      Class('landing-section py-10 md:py-14 text-center'),
-    ],
+    [Id('foldkit-vs-react'), Class('landing-section py-10 md:py-14')],
     [
       div(
         [Class('landing-section-narrow')],
@@ -709,7 +710,7 @@ const comparisonStripSection = (): Html =>
           p(
             [
               Class(
-                'text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto text-balance',
+                'text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-2xl text-balance',
               ),
             ],
             [
@@ -745,7 +746,7 @@ const trustSection = (): Html =>
           h2(
             [
               Class(
-                'text-3xl md:text-4xl font-light text-gray-900 dark:text-white mb-6 text-center text-balance',
+                'text-3xl md:text-4xl font-light text-gray-900 dark:text-white mb-6 text-balance',
               ),
             ],
             ['Proof of life.'],
@@ -783,7 +784,7 @@ const trustSection = (): Html =>
 
 const trustItem = (label: string, value: string): Html =>
   li(
-    [Class('landing-card p-5 text-center dark:bg-gray-850')],
+    [Class('landing-card p-5 dark:bg-gray-850')],
     [
       p(
         [
@@ -806,7 +807,7 @@ const trustItemWithLink = (
   href: string,
 ): Html =>
   li(
-    [Class('landing-card p-5 text-center dark:bg-gray-850')],
+    [Class('landing-card p-5 dark:bg-gray-850')],
     [
       p(
         [
@@ -820,7 +821,7 @@ const trustItemWithLink = (
         [
           Href(href),
           Class(
-            'text-accent-600 dark:text-accent-500 hover:underline text-lg font-normal',
+            'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500 text-lg font-normal',
           ),
         ],
         [
@@ -841,7 +842,7 @@ const aiSection = (): Html =>
     [
       Id('ai'),
       Class(
-        'landing-section py-10 md:py-14 text-center relative overflow-hidden',
+        'landing-section py-10 md:py-14 relative overflow-hidden',
       ),
     ],
     [
@@ -857,11 +858,7 @@ const aiSection = (): Html =>
             [
               'Your favorite ',
               span(
-                [
-                  Class(
-                    'text-accent-600 dark:text-accent-500 font-semibold',
-                  ),
-                ],
+                [Class('text-accent-600 dark:text-accent-500')],
                 ['LLM'],
               ),
               ' has a crush on Foldkit.',
@@ -870,7 +867,7 @@ const aiSection = (): Html =>
           p(
             [
               Class(
-                'text-lg text-gray-600 dark:text-gray-300 mb-4 max-w-2xl mx-auto text-balance',
+                'text-lg text-gray-600 dark:text-gray-300 mb-4 max-w-2xl text-balance',
               ),
             ],
             [
@@ -896,7 +893,7 @@ const aiSection = (): Html =>
 
 const finalCtaSection = (): Html =>
   section(
-    [Id('get-started'), Class('landing-section text-center')],
+    [Id('get-started'), Class('landing-section')],
     [
       div(
         [Class('landing-section-narrow')],
@@ -912,7 +909,7 @@ const finalCtaSection = (): Html =>
           p(
             [
               Class(
-                'text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-xl mx-auto text-balance',
+                'text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-xl text-balance',
               ),
             ],
             ['Describe your app. Let the runtime handle the rest.'],
@@ -920,7 +917,7 @@ const finalCtaSection = (): Html =>
           div(
             [
               Class(
-                'flex flex-col sm:flex-row items-center justify-center gap-4',
+                'flex flex-col sm:flex-row items-start sm:items-center gap-4',
               ),
             ],
             [

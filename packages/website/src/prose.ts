@@ -27,12 +27,12 @@ export const headingLinkButton = (id: string, text: string): Html =>
     [
       Href(`#${id}`),
       Class(
-        'p-0.5 md:p-1 rounded transition-opacity text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 focus-visible:text-gray-800 dark:focus-visible:text-gray-200 focus-visible:opacity-100 cursor-pointer hover-capable:opacity-0 hover-capable:group-hover:opacity-100',
+        'px-0.5 py-1 rounded transition-opacity text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 focus-visible:text-gray-800 dark:focus-visible:text-gray-200 focus-visible:opacity-100 cursor-pointer hover-capable:opacity-0 hover-capable:group-hover:opacity-100',
       ),
       AriaLabel(`Copy link to ${text}`),
       OnClick(ClickedCopyLink({ hash: id })),
     ],
-    [Icon.link('w-4 h-4 md:w-5 md:h-5')],
+    [Icon.link('w-5 h-5')],
   )
 
 export const link = (href: string, text: string): Html =>
@@ -40,7 +40,7 @@ export const link = (href: string, text: string): Html =>
     [
       Href(href),
       Class(
-        'text-accent-600 dark:text-accent-500 hover:underline font-normal',
+        'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500 font-normal',
       ),
     ],
     [text],
@@ -62,19 +62,19 @@ const sectionHeadingConfig = {
     textClassName:
       'text-2xl font-normal text-gray-900 dark:text-white scroll-mt-6',
     wrapperClassName:
-      'group flex items-center gap-1 mt-8 mb-4 md:flex-row-reverse md:justify-end md:-ml-8',
+      'group flex items-center gap-1 md:gap-0 mt-8 mb-4 md:flex-row-reverse md:justify-end md:-ml-[1.5rem]',
   },
   h3: {
     textClassName:
       'text-xl font-normal text-gray-900 dark:text-white scroll-mt-6',
     wrapperClassName:
-      'group flex items-center gap-1 mt-6 mb-3 md:flex-row-reverse md:justify-end md:-ml-8',
+      'group flex items-center gap-1 md:gap-0 mt-6 mb-3 md:flex-row-reverse md:justify-end md:-ml-[1.5rem]',
   },
   h4: {
     textClassName:
       'text-base font-mono font-normal text-gray-900 dark:text-white scroll-mt-6',
     wrapperClassName:
-      'group flex items-center gap-1 md:flex-row-reverse md:justify-end md:-ml-8',
+      'group flex items-center gap-1 md:gap-0 md:flex-row-reverse md:justify-end md:-ml-[1.5rem]',
   },
 }
 
@@ -125,7 +125,7 @@ export const inlineCode = (text: string): Html =>
   code(
     [
       Class(
-        'bg-gray-200/70 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm border border-gray-300/50 dark:border-gray-700/50',
+        'bg-gray-200/70 dark:bg-gray-800 px-1.5 py-px rounded text-sm border border-gray-300/50 dark:border-gray-700/50',
       ),
     ],
     [text],
