@@ -518,7 +518,7 @@ const inputBorderClass = (
   M.value(field).pipe(
     M.tagsExhaustive({
       NotValidated: () => 'border-gray-300 dark:border-gray-600',
-      Validating: () => 'border-blue-300 dark:border-blue-600',
+      Validating: () => 'border-accent-300 dark:border-accent-600',
       Valid: () => 'border-gray-300 dark:border-gray-600',
       Invalid: () => 'border-red-500 dark:border-red-400',
     }),
@@ -529,7 +529,7 @@ const durationButtonClass = (
   isInputLocked: boolean,
 ): string =>
   classNames(
-    'flex-1 px-3 py-1.5 text-sm font-medium transition text-center',
+    'flex-1 px-3 py-1.5 text-sm font-normal transition text-center',
     {
       'bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900':
         isSelected,
@@ -722,7 +722,7 @@ const playbackControlView = (
         ? button(
             [
               Class(
-                'flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition bg-pink-600 dark:bg-pink-500 text-white hover:bg-pink-700 dark:hover:bg-pink-600 active:bg-pink-800 dark:active:bg-pink-700 cursor-pointer',
+                'flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-normal transition bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 hover:bg-accent-700 dark:hover:bg-accent-600 active:bg-accent-800 dark:active:bg-accent-700 cursor-pointer',
               ),
               AriaLabel('Pause'),
               OnClick(toMessage(ClickedPause())),
@@ -733,9 +733,9 @@ const playbackControlView = (
             [
               Class(
                 classNames(
-                  'flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition',
+                  'flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-normal transition',
                   {
-                    'bg-pink-600 dark:bg-pink-500 text-white hover:bg-pink-700 dark:hover:bg-pink-600 active:bg-pink-800 dark:active:bg-pink-700 cursor-pointer':
+                    'bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 hover:bg-accent-700 dark:hover:bg-accent-600 active:bg-accent-800 dark:active:bg-accent-700 cursor-pointer':
                       canPlay,
                     'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed':
                       !canPlay,
@@ -752,7 +752,7 @@ const playbackControlView = (
         [
           Class(
             classNames(
-              'flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition',
+              'flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-normal transition',
               {
                 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-pointer':
                   isActive,
@@ -833,7 +833,7 @@ const noteVisualizerView = (
             classNames(
               'flex-1 h-10 rounded-lg flex items-center justify-center text-sm font-bold transition-colors duration-150',
               {
-                'bg-pink-600 dark:bg-pink-500 text-white':
+                'bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900':
                   isCurrentNote,
                 'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300':
                   !isCurrentNote,
@@ -906,7 +906,7 @@ const phaseColorClass = (phase: NoteHighlightPhase): string =>
     M.whenOr(
       'PlayModel',
       'NoteModel',
-      () => 'text-blue-600 dark:text-blue-400',
+      () => 'text-accent-600 dark:text-accent-400',
     ),
     M.when(
       'NoteCommand',

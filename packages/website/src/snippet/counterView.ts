@@ -28,7 +28,7 @@ const view = (model: Model): Html =>
 // STYLE
 
 const containerStyle =
-  'min-h-screen bg-white flex flex-col items-center justify-center gap-6 p-6'
+  'min-h-screen bg-cream flex flex-col items-center justify-center gap-6 p-6'
 
 const buttonStyle =
   'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'

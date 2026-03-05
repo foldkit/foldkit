@@ -166,7 +166,7 @@ const exampleCard = (example: Example): Html =>
     [
       Href(example.href),
       Class(
-        'block p-5 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-blue-500 dark:hover:border-blue-400 transition-colors',
+        'block p-5 rounded-lg bg-gray-100 dark:bg-gray-850 border border-gray-300 dark:border-gray-700 hover:bg-gray-200/60 dark:hover:bg-gray-800 hover:border-gray-400 dark:hover:border-gray-600 transition-colors',
       ),
     ],
     [
@@ -195,7 +195,7 @@ const exampleCard = (example: Example): Html =>
               [
                 Href(example.liveUrl),
                 Class(
-                  'text-xs text-blue-500 dark:text-blue-400 hover:underline mt-5 inline-block',
+                  'text-xs text-accent-600 dark:text-accent-500 hover:underline mt-5 inline-block',
                 ),
               ],
               ['Live →'],
@@ -215,7 +215,9 @@ export const view = (): Html =>
         a(
           [
             Href(Link.createFoldkitApp),
-            Class('text-blue-500 dark:text-blue-400 hover:underline'),
+            Class(
+              'text-accent-600 dark:text-accent-500 hover:underline',
+            ),
           ],
           ['Create Foldkit App'],
         ),
@@ -223,7 +225,9 @@ export const view = (): Html =>
         a(
           [
             Href('/getting-started'),
-            Class('text-blue-500 dark:text-blue-400 hover:underline'),
+            Class(
+              'text-accent-600 dark:text-accent-500 hover:underline',
+            ),
           ],
           ['Getting Started'],
         ),

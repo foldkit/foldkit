@@ -755,9 +755,9 @@ const sidebarView = (
 
   const linkClass = (isActive: boolean) =>
     classNames(
-      'block px-4 py-3 md:px-2.5 md:py-1 rounded transition text-base md:text-sm font-medium md:font-normal',
+      'block px-4 py-3 md:px-2.5 md:py-1 rounded transition text-base md:text-sm font-normal md:font-normal',
       {
-        'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400':
+        'bg-accent-100 dark:bg-accent-900/50 text-accent-700 dark:text-accent-400':
           isActive,
         'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800':
           !isActive,
@@ -784,7 +784,7 @@ const sidebarView = (
       AriaLabel('Documentation sidebar'),
       Class(
         classNames(
-          'fixed inset-0 md:top-[var(--header-height)] md:bottom-0 md:left-0 md:right-auto z-[60] md:z-40 md:w-64 bg-white dark:bg-gray-900 md:border-r border-gray-300 dark:border-gray-800 flex flex-col',
+          'fixed inset-0 md:top-[var(--header-height)] md:bottom-0 md:left-0 md:right-auto z-[60] md:z-40 md:w-64 bg-cream dark:bg-gray-900 md:border-r border-gray-300 dark:border-gray-800 flex flex-col',
           {
             flex: isMobileMenuOpen,
             'hidden md:flex': !isMobileMenuOpen,
@@ -796,7 +796,7 @@ const sidebarView = (
       div(
         [
           Class(
-            'flex justify-between items-center p-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] md:hidden border-b border-gray-300 dark:border-gray-800 shrink-0 bg-white dark:bg-black',
+            'flex justify-between items-center p-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] md:hidden border-b border-gray-300 dark:border-gray-800 shrink-0 bg-cream dark:bg-black',
           ),
         ],
         [
@@ -1005,7 +1005,8 @@ const tableOfContentsEntryView = (
           OnClick(ChangedActiveSection({ sectionId: id })),
           Class(
             classNames('transition block', {
-              'text-blue-600 dark:text-blue-400 underline': isActive,
+              'text-accent-600 dark:text-accent-400 underline':
+                isActive,
               'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white':
                 !isActive,
             }),
@@ -1095,7 +1096,7 @@ const mobileTableOfContentsView = (
         ToggledMobileTableOfContents({ isOpen: open }),
       ),
       Class(
-        'group xl:hidden fixed top-[var(--header-height)] left-0 right-0 md:left-64 z-40 bg-white dark:bg-black border-b border-gray-300 dark:border-gray-800',
+        'group xl:hidden fixed top-[var(--header-height)] left-0 right-0 md:left-64 z-40 bg-cream dark:bg-gray-900 border-b border-gray-300 dark:border-gray-800',
       ),
     ],
     [
@@ -1173,7 +1174,7 @@ const mobileTableOfContentsView = (
                           {
                             'pl-8': level === 'h3',
                             'pl-12': level === 'h4',
-                            'text-blue-600 dark:text-blue-400':
+                            'text-accent-600 dark:text-accent-400':
                               isActive,
                             'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white':
                               !isActive,
@@ -1186,7 +1187,7 @@ const mobileTableOfContentsView = (
                       text,
                       isActive
                         ? Icon.check(
-                            'w-4 h-4 text-blue-600 dark:text-blue-400',
+                            'w-4 h-4 text-accent-600 dark:text-accent-400',
                           )
                         : empty,
                     ],
@@ -1212,7 +1213,7 @@ const landingHeaderView = (model: Model) =>
     [
       Class(
         classNames(
-          'fixed top-0 inset-x-0 z-50 h-[var(--header-height)] pt-[env(safe-area-inset-top,0px)] bg-white/80 dark:bg-gray-850/80 backdrop-blur-sm border-b border-gray-300 dark:border-gray-800 px-4 md:px-8 flex items-center justify-between transition-transform duration-300',
+          'fixed top-0 inset-x-0 z-50 h-[var(--header-height)] pt-[env(safe-area-inset-top,0px)] bg-cream/80 dark:bg-gray-950/80 backdrop-blur-sm border-b border-gray-300 dark:border-gray-800 px-4 md:px-8 flex items-center justify-between transition-transform duration-300',
           {
             '-translate-y-full': !model.isLandingHeaderVisible,
             'translate-y-0': model.isLandingHeaderVisible,
@@ -1235,7 +1236,7 @@ const landingHeaderView = (model: Model) =>
           span(
             [
               Class(
-                'inline-block -rotate-6 rounded bg-pink-600 dark:bg-pink-500 px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none tracking-wider text-white select-none',
+                'inline-block -rotate-6 rounded bg-accent-700 dark:bg-accent-500 px-1.5 py-0.5 text-[10px] font-extrabold uppercase leading-none tracking-wider text-white dark:text-accent-900 select-none',
               ),
               AriaLabel('Beta'),
             ],
@@ -1251,7 +1252,7 @@ const landingHeaderView = (model: Model) =>
             [
               Href(Link.gettingStarted),
               Class(
-                'inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-pink-600 dark:bg-pink-500 text-white text-sm font-semibold transition hover:bg-pink-700 dark:hover:bg-pink-600',
+                'inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 text-sm font-normal transition hover:bg-accent-700 dark:hover:bg-accent-600',
               ),
             ],
             ['Dive In', Icon.arrowRight('w-4 h-4')],
@@ -1265,7 +1266,7 @@ const skipNavLink: Html = a(
   [
     Href('#main-content'),
     Class(
-      'sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-pink-600 dark:focus:bg-pink-500 focus:text-white focus:text-sm focus:font-semibold',
+      'sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-accent-600 dark:focus:bg-accent-500 focus:text-white focus:text-sm focus:font-normal',
     ),
   ],
   ['Skip to main content'],
@@ -1285,7 +1286,9 @@ const landingFooter: Html = footer(
         a(
           [
             Href(Link.github),
-            Class('text-pink-600 dark:text-pink-500 hover:underline'),
+            Class(
+              'text-accent-600 dark:text-accent-500 hover:underline',
+            ),
           ],
           ['Foldkit'],
         ),
@@ -1303,7 +1306,7 @@ const demoTabs: ReadonlyArray<DemoTab> = [
 ]
 
 const demoTabButtonClassName =
-  'px-3 py-2 text-sm font-medium cursor-pointer transition border border-gray-300 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-t-lg lg:rounded-t-none lg:rounded-l-lg lg:border-r-0 mb-[-1px] lg:mb-0 lg:mr-[-1px] data-[selected]:relative data-[selected]:z-10 data-[selected]:bg-gray-100 data-[selected]:dark:bg-gray-900 data-[selected]:text-gray-900 data-[selected]:dark:text-white data-[selected]:border-b-0 lg:data-[selected]:border-b lg:data-[selected]:border-r-0'
+  'px-3 py-2 text-sm font-normal cursor-pointer transition border border-gray-300 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-t-lg lg:rounded-t-none lg:rounded-l-lg lg:border-r-0 mb-[-1px] lg:mb-0 lg:mr-[-1px] data-[selected]:relative data-[selected]:z-10 data-[selected]:bg-gray-100 data-[selected]:dark:bg-gray-900 data-[selected]:text-gray-900 data-[selected]:dark:text-white data-[selected]:border-b-0 lg:data-[selected]:border-b lg:data-[selected]:border-r-0'
 
 const demoTabPanelClassName =
   'flex-1 min-w-0 p-4 bg-gray-100 dark:bg-gray-900 rounded-b-lg rounded-tr-lg lg:rounded-b-none lg:rounded-r-lg lg:rounded-bl-lg border border-gray-300 dark:border-gray-800'
@@ -1363,7 +1366,7 @@ const docsHeaderView = (model: Model) =>
   header(
     [
       Class(
-        'fixed top-0 inset-x-0 z-50 h-[var(--header-height)] pt-[env(safe-area-inset-top,0px)] bg-white dark:bg-gray-900 border-b border-gray-300 dark:border-gray-800 pl-2 pr-3 md:px-8 flex items-center justify-between transform-gpu',
+        'fixed top-0 inset-x-0 z-50 h-[var(--header-height)] pt-[env(safe-area-inset-top,0px)] bg-cream dark:bg-gray-900 border-b border-gray-300 dark:border-gray-800 pl-2 pr-3 md:px-8 flex items-center justify-between transform-gpu',
       ),
     ],
     [
@@ -1395,7 +1398,7 @@ const docsHeaderView = (model: Model) =>
               span(
                 [
                   Class(
-                    'inline-block -rotate-6 rounded bg-pink-600 dark:bg-pink-500 px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none tracking-wider text-white select-none',
+                    'inline-block -rotate-6 rounded bg-accent-700 dark:bg-accent-500 px-1.5 py-0.5 text-[10px] font-extrabold uppercase leading-none tracking-wider text-white dark:text-accent-900 select-none',
                   ),
                   AriaLabel('Beta'),
                 ],
@@ -1554,7 +1557,7 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
               Id('main-content'),
               Class(
                 classNames(
-                  'flex-1 min-w-0 bg-gray-100 dark:bg-gray-900',
+                  'flex-1 min-w-0 bg-cream dark:bg-gray-900',
                   {
                     'pt-[var(--mobile-toc-height)]': Option.isSome(
                       currentPageTableOfContents,
@@ -1611,9 +1614,6 @@ const SubscriptionDeps = S.Struct({
     pageId: S.String,
     sections: S.Array(S.String),
   }),
-  aiGrid: S.Struct({
-    isLandingPage: S.Boolean,
-  }),
   heroVisibility: S.Struct({
     isLandingPage: S.Boolean,
   }),
@@ -1630,7 +1630,6 @@ const subscriptions = makeSubscriptions(SubscriptionDeps)<
   Message
 >({
   activeSection: Subscription.activeSection,
-  aiGrid: Subscription.aiGrid,
   heroVisibility: Subscription.heroVisibility,
   systemTheme: Subscription.systemTheme,
   viewportWidth: Subscription.viewportWidth,

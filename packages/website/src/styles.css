@@ -1,5 +1,131 @@
 @import 'tailwindcss';
 
+@font-face {
+  font-family: 'Signifier';
+  src: url('/fonts/test-signifier-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Signifier';
+  src: url('/fonts/test-signifier-medium.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Signifier';
+  src: url('/fonts/test-signifier-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Söhne';
+  src: url('/fonts/test-soehne-buch.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Söhne';
+  src: url('/fonts/test-soehne-kraftig.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Söhne';
+  src: url('/fonts/test-soehne-halbfett.woff2') format('woff2');
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Söhne Mono';
+  src: url('/fonts/test-soehne-mono-buch.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Söhne Mono';
+  src: url('/fonts/test-soehne-mono-halbfett.woff2') format('woff2');
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Die Grotesk';
+  src: url('/fonts/test-die-grotesk-a-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Die Grotesk';
+  src: url('/fonts/test-die-grotesk-a-medium.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Die Grotesk';
+  src: url('/fonts/test-die-grotesk-a-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Untitled Sans';
+  src: url('/fonts/test-untitled-sans-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Untitled Sans';
+  src: url('/fonts/test-untitled-sans-medium.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Untitled Sans';
+  src: url('/fonts/test-untitled-sans-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Akkurat';
+  src: url('/fonts/trial-akkurat-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Akkurat';
+  src: url('/fonts/trial-akkurat-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'ABC Favorit';
+  src: url('/fonts/ABCFavorit-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'ABC Favorit';
+  src: url('/fonts/ABCFavorit-Book.woff2') format('woff2');
+  font-weight: 350;
+  font-display: swap;
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 @custom-variant hover-capable {
   @media (hover: hover) {
@@ -8,7 +134,32 @@
 }
 
 @theme {
-  --color-gray-850: #131921;
+  --color-cream: #f8f7fb;
+  --color-gray-50: #f5f4f8;
+  --color-gray-100: #eeedf2;
+  --color-gray-200: #e0dfe6;
+  --color-gray-300: #cdcbd4;
+  --color-gray-400: #9e9baa;
+  --color-gray-500: #716e7e;
+  --color-gray-600: #534f60;
+  --color-gray-700: #3e3a4a;
+  --color-gray-800: #2a2833;
+  --color-gray-850: #232129;
+  --color-gray-900: #1e1c21;
+  --color-gray-950: #13121a;
+  --color-accent-100: #e8f5d0;
+  --color-accent-200: #c8e494;
+  --color-accent-300: #a3d154;
+  --color-accent-400: #82b536;
+  --color-accent-500: #82b536;
+  --color-accent-600: #4d7a15;
+  --color-accent-700: #416812;
+  --color-accent-800: #365610;
+  --color-accent-900: #253b0a;
+  --font-sans: 'ABC Favorit', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-weight-normal: 350;
+  --font-serif: 'Signifier', Georgia, serif;
 }
 
 :root {
@@ -45,11 +196,15 @@
   }
 
   body {
-    @apply text-base text-gray-800 dark:text-gray-300 bg-gray-100 dark:bg-gray-900;
+    @apply text-lg leading-loose font-light text-gray-800 dark:text-gray-300 bg-cream dark:bg-gray-900;
+  }
+
+  :is(h1, h2, h3, h4).font-mono {
+    font-family: var(--font-mono);
   }
 
   pre {
-    @apply pr-14 pl-[11px] py-4 rounded-lg overflow-x-auto;
+    @apply pr-14 pl-[11px] py-4 rounded overflow-x-auto border border-gray-700/50 font-[200] text-sm;
   }
 
   pre code {
@@ -92,48 +247,56 @@
   }
 
   .cta-primary {
-    @apply inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-pink-600 dark:bg-pink-500 text-white font-semibold text-base transition hover:bg-pink-700 dark:hover:bg-pink-600 active:bg-pink-800 dark:active:bg-pink-700;
+    @apply inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 font-normal text-base transition hover:bg-accent-700 dark:hover:bg-accent-600 active:bg-accent-800 dark:active:bg-accent-700;
   }
 
   .cta-secondary {
-    @apply inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white font-semibold text-base transition hover:bg-gray-200 hover:border-gray-400 dark:hover:bg-gray-800 dark:hover:border-gray-400;
+    @apply inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white font-normal text-base transition hover:bg-gray-200 hover:border-gray-400 dark:hover:bg-gray-800 dark:hover:border-gray-400;
   }
 
-  .cta-gradient {
-    @apply inline-flex items-center gap-2 px-6 py-3 rounded-lg font-semibold text-base transition relative;
+  .cta-outline {
+    @apply inline-flex items-center gap-2 px-6 py-3 rounded-lg font-normal text-base transition relative;
     background: transparent;
     color: theme(--color-gray-900);
   }
 
-  .cta-gradient::before {
+  .cta-outline::before {
     content: '';
     @apply absolute inset-0 rounded-lg;
     padding: 1px;
-    background: theme(--color-pink-600);
+    background: var(--color-accent-600);
     mask:
       linear-gradient(#fff 0 0) content-box,
       linear-gradient(#fff 0 0);
     mask-composite: exclude;
   }
 
-  .cta-gradient:hover {
-    background: rgba(219, 39, 119, 0.05);
+  .cta-outline:hover {
+    background: color-mix(
+      in srgb,
+      var(--color-accent-600) 8%,
+      transparent
+    );
   }
 
-  .dark .cta-gradient {
+  .dark .cta-outline {
     color: white;
   }
 
-  .dark .cta-gradient::before {
-    background: theme(--color-pink-500);
+  .dark .cta-outline::before {
+    background: var(--color-accent-500);
   }
 
-  .dark .cta-gradient:hover {
-    background: rgba(236, 72, 153, 0.1);
+  .dark .cta-outline:hover {
+    background: color-mix(
+      in srgb,
+      var(--color-accent-500) 12%,
+      transparent
+    );
   }
 
   .landing-card {
-    @apply rounded-xl bg-white border border-gray-200 dark:border-gray-700;
+    @apply rounded-xl bg-cream border border-gray-200 dark:border-gray-700;
   }
 
   @media (min-width: theme(--breakpoint-lg)) {
@@ -178,6 +341,7 @@
   .note-demo-code-panel pre {
     background: transparent !important;
     border-radius: 0;
+    border: none;
   }
 
   .demo-code-panel pre code .line[data-line]::before,
@@ -186,7 +350,7 @@
   }
 
   .demo-code-panel pre {
-    @apply pr-4 py-3 text-xs;
+    @apply pr-4 py-3 text-sm;
   }
 
   .demo-code-panel pre code .line {
@@ -285,7 +449,7 @@
 
   /* Note player demo base styles */
   .note-demo-code-panel pre {
-    @apply pr-4 py-3 text-xs;
+    @apply pr-4 py-3 text-sm;
   }
 
   .note-demo-code-panel pre code .line {

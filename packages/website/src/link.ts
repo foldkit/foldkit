@@ -54,6 +54,7 @@ export const Link = {
     'https://github.com/devinjameson/foldkit/tree/main/packages/website',
   changelog:
     'https://github.com/devinjameson/foldkit/blob/main/packages/foldkit/CHANGELOG.md',
+  architectureAndConcepts: '/architecture-and-concepts',
   gettingStarted: '/getting-started',
   whyFoldkit: '/why-foldkit',
   docs: '/why-foldkit',

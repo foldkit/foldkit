@@ -905,12 +905,18 @@ export const view = <Message, Item extends string>(
         ...(isInteractive
           ? [
               OnClick(toMessage(SelectedItem({ index }))),
-              OnPointerMove((screenX, screenY, pointerType) =>
-                OptionExt.when(
-                  pointerType !== 'touch',
-                  toMessage(MovedPointerOverItem({ index, screenX, screenY })),
-                ),
-              ),
+              ...(isActiveItem
+                ? []
+                : [
+                    OnPointerMove((screenX, screenY, pointerType) =>
+                      OptionExt.when(
+                        pointerType !== 'touch',
+                        toMessage(
+                          MovedPointerOverItem({ index, screenX, screenY }),
+                        ),
+                      ),
+                    ),
+                  ]),
               OnPointerLeave(pointerType =>
                 OptionExt.when(
                   pointerType !== 'touch',

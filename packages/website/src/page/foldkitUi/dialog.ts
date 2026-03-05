@@ -17,24 +17,24 @@ export const dialogHeader: TableOfContentsEntry = {
 // DEMO CONTENT
 
 const triggerClassName =
-  'px-4 py-2 text-base font-medium cursor-pointer transition rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 select-none'
+  'px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 dark:border-gray-700 bg-cream dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 select-none'
 
 const backdropClassName = 'fixed inset-0 bg-black/50'
 
 const panelClassName =
-  'bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-auto relative shadow-xl'
+  'bg-cream dark:bg-gray-800 rounded-lg p-6 max-w-md mx-auto relative shadow-xl'
 
 const titleClassName =
-  'text-lg font-medium text-gray-900 dark:text-white mb-2'
+  'text-lg font-normal text-gray-900 dark:text-white mb-2'
 
 const dialogClassName =
   'backdrop:bg-transparent bg-transparent p-0 m-auto'
 
 const cancelButtonClassName =
-  'px-4 py-2 text-sm font-medium cursor-pointer transition rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+  'px-4 py-2 text-sm font-normal cursor-pointer transition rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
 
 const confirmButtonClassName =
-  'px-4 py-2 text-sm font-medium cursor-pointer transition rounded-lg bg-blue-600 text-white hover:bg-blue-700'
+  'px-4 py-2 text-sm font-normal cursor-pointer transition rounded-lg bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 hover:bg-accent-700'
 
 // VIEW
 

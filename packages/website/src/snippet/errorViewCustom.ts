@@ -14,7 +14,7 @@ const errorView = (error: Error): Html => {
       div(
         [
           Class(
-            'max-w-md w-full bg-white rounded-lg border border-red-200 p-8 text-center',
+            'max-w-md w-full bg-cream rounded-lg border border-red-200 p-8 text-center',
           ),
         ],
         [
@@ -26,7 +26,7 @@ const errorView = (error: Error): Html => {
           button(
             [
               Class(
-                'bg-red-600 text-white px-6 py-2.5 rounded-md text-sm font-medium cursor-pointer',
+                'bg-red-600 text-white px-6 py-2.5 rounded-md text-sm font-normal cursor-pointer',
               ),
               Attribute('onclick', 'location.reload()'),
             ],

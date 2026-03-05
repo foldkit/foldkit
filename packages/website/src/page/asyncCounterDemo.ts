@@ -268,7 +268,7 @@ const phaseColorClass = (phase: AnimationPhase): string =>
     M.whenOr(
       'IncrementModel',
       'ResetModel',
-      () => 'text-blue-600 dark:text-blue-400',
+      () => 'text-accent-600 dark:text-accent-400',
     ),
     M.when(
       'ResetCommand',
@@ -329,7 +329,7 @@ const MAX_RESET_DURATION = 5
 
 const stepperButtonClass = (isDisabled: boolean): string =>
   classNames(
-    'px-2.5 rounded-lg border text-sm font-semibold transition',
+    'px-2.5 rounded-lg border text-sm font-normal transition',
     {
       'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-300 dark:text-gray-600 cursor-not-allowed':
         isDisabled,
@@ -373,7 +373,7 @@ const viewAndControlsView = (
       button(
         [
           Class(
-            'px-4 py-2 rounded-lg bg-pink-600 dark:bg-pink-500 text-white text-sm font-semibold transition hover:bg-pink-700 dark:hover:bg-pink-600 active:bg-pink-800 dark:active:bg-pink-700 cursor-pointer',
+            'px-4 py-2 rounded-lg bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 text-sm font-normal transition hover:bg-accent-700 dark:hover:bg-accent-600 active:bg-accent-800 dark:active:bg-accent-700 cursor-pointer',
           ),
           OnClick(toMessage(ClickedDemoIncrement())),
         ],
@@ -461,11 +461,11 @@ const viewAndControlsView = (
         [
           Class(
             classNames(
-              'px-4 py-2 rounded-lg text-sm font-semibold transition',
+              'px-4 py-2 rounded-lg text-sm font-normal transition',
               {
                 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed':
                   model.isResetting,
-                'bg-pink-600 dark:bg-pink-500 text-white hover:bg-pink-700 dark:hover:bg-pink-600 active:bg-pink-800 dark:active:bg-pink-700 cursor-pointer':
+                'bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 hover:bg-accent-700 dark:hover:bg-accent-600 active:bg-accent-800 dark:active:bg-accent-700 cursor-pointer':
                   !model.isResetting,
               },
             ),

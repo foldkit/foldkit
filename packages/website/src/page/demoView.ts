@@ -26,7 +26,7 @@ export const modelStateField = (name: string, value: string): Html =>
   div(
     [],
     [
-      span([Class('text-blue-600 dark:text-blue-400')], [name]),
+      span([Class('text-accent-600 dark:text-accent-400')], [name]),
       span([Class('text-gray-400 dark:text-gray-500')], [': ']),
       span([Class('text-amber-600 dark:text-amber-300')], [value]),
     ],
@@ -113,7 +113,7 @@ export const codePanelView = (
     [
       Class(
         panelClassName +
-          ' rounded-xl order-last lg:order-none bg-[#24292e] min-w-0',
+          ' rounded-xl order-last lg:order-none bg-[#1c1a20] min-w-0',
       ),
       DataAttribute(dataAttributeName, phase),
     ],

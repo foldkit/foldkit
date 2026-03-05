@@ -30,7 +30,7 @@ const cell = (
         classNames(
           'px-4 py-3 text-sm',
           isFirstColumn
-            ? 'font-medium text-gray-900 dark:text-white'
+            ? 'font-normal text-gray-900 dark:text-white'
             : 'text-gray-700 dark:text-gray-300',
           { [columnBorder]: !isLastColumn },
         ),
@@ -56,7 +56,7 @@ export const comparisonTable = (
           thead(
             [
               Class(
-                'bg-white dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700',
+                'bg-cream dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700',
               ),
             ],
             [
@@ -69,7 +69,7 @@ export const comparisonTable = (
             ],
           ),
           tbody(
-            [Class('bg-white dark:bg-gray-900')],
+            [Class('bg-cream dark:bg-gray-900')],
             Array.map(rows, row =>
               tr(
                 [

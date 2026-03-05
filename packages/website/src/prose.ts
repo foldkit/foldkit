@@ -39,7 +39,9 @@ export const link = (href: string, text: string): Html =>
   a(
     [
       Href(href),
-      Class('text-blue-500 dark:text-blue-400 hover:underline'),
+      Class(
+        'text-accent-600 dark:text-accent-500 hover:underline font-normal',
+      ),
     ],
     [text],
   )
@@ -48,7 +50,7 @@ export const pageTitle = (id: string, text: string): Html =>
   h1(
     [
       Class(
-        'text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6',
+        'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-6',
       ),
       Id(id),
     ],
@@ -58,19 +60,19 @@ export const pageTitle = (id: string, text: string): Html =>
 const sectionHeadingConfig = {
   h2: {
     textClassName:
-      'text-2xl font-semibold text-gray-900 dark:text-white scroll-mt-6',
+      'text-2xl font-normal text-gray-900 dark:text-white scroll-mt-6',
     wrapperClassName:
       'group flex items-center gap-1 mt-8 mb-4 md:flex-row-reverse md:justify-end md:-ml-8',
   },
   h3: {
     textClassName:
-      'text-lg font-semibold text-gray-900 dark:text-white scroll-mt-6',
+      'text-xl font-normal text-gray-900 dark:text-white scroll-mt-6',
     wrapperClassName:
       'group flex items-center gap-1 mt-6 mb-3 md:flex-row-reverse md:justify-end md:-ml-8',
   },
   h4: {
     textClassName:
-      'text-base font-mono font-medium text-gray-900 dark:text-white scroll-mt-6',
+      'text-base font-mono font-normal text-gray-900 dark:text-white scroll-mt-6',
     wrapperClassName:
       'group flex items-center gap-1 md:flex-row-reverse md:justify-end md:-ml-8',
   },
@@ -123,7 +125,7 @@ export const inlineCode = (text: string): Html =>
   code(
     [
       Class(
-        'bg-gray-200 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm',
+        'bg-gray-200/70 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm border border-gray-300/50 dark:border-gray-700/50',
       ),
     ],
     [text],
@@ -136,7 +138,7 @@ export const callout = (
   div(
     [
       Class(
-        'border-l-4 border-gray-400 dark:border-gray-500 bg-gray-200/40 dark:bg-gray-800/40 p-4 mb-6 rounded-r-lg',
+        'border border-gray-300 dark:border-gray-700 bg-gray-200/40 dark:bg-gray-800/40 py-3.5 px-5 mb-6 rounded-lg',
       ),
     ],
     [
@@ -148,6 +150,9 @@ export const callout = (
         ],
         [label],
       ),
-      p([Class('text-gray-700 dark:text-gray-300')], content),
+      p(
+        [Class('text-gray-700 dark:text-gray-300 leading-7')],
+        content,
+      ),
     ],
   )
