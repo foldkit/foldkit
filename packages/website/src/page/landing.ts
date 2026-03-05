@@ -30,11 +30,11 @@ import { exampleAppCount } from './examples'
 
 export const HERO_SECTION_ID = 'hero'
 
-const glyph = (symbol: string): Html =>
+const glyph = (symbol: string, offsetY?: string): Html =>
   div(
     [
       Class(
-        '-my-[9rem] md:-my-[13.5rem] px-6 md:px-12 lg:px-20 select-none pointer-events-none overflow-hidden',
+        '-my-[9rem] md:-my-[13.5rem] px-6 md:px-12 lg:px-20 select-none pointer-events-none',
       ),
     ],
     [
@@ -44,7 +44,7 @@ const glyph = (symbol: string): Html =>
           span(
             [
               Class(
-                'inline-block -translate-x-1/4 text-accent-100/35 dark:text-accent-400/4 font-mono text-[18rem] md:text-[27rem] font-extrabold leading-none -z-10 relative whitespace-nowrap',
+                `inline-block -translate-x-1/4 text-accent-200/22 dark:text-accent-400/4 font-mono text-[18rem] md:text-[27rem] font-extrabold leading-none -z-10 relative whitespace-nowrap${offsetY ? ` ${offsetY}` : ''}`,
               ),
             ],
             [symbol],
@@ -58,14 +58,14 @@ const glyph = (symbol: string): Html =>
 
 export const view = (model: Model, demoTabsView: Html): Html =>
   div(
-    [Class('isolate')],
+    [Class('isolate overflow-x-hidden')],
     [
       heroSection(model),
       glyph('{ }'),
       promiseSection(),
       glyph('=>'),
       demoSection(demoTabsView),
-      glyph('|>'),
+      glyph('|>', '-translate-y-1/4'),
       poweredBySection(),
       glyph('[ ]'),
       includedSection(),
@@ -75,7 +75,7 @@ export const view = (model: Model, demoTabsView: Html): Html =>
       tradeOffsSection(),
       glyph('( )'),
       audienceSection(),
-      glyph('...'),
+      glyph('...', '-translate-y-1/3'),
       trustSection(),
       glyph('->'),
       finalCtaSection(),

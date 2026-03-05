@@ -113,7 +113,7 @@ export const codePanelView = (
     [
       Class(
         panelClassName +
-          ' rounded-xl order-last lg:order-none bg-[#1c1a20] min-w-0',
+          ' rounded-xl order-last lg:order-none bg-gray-100 dark:bg-[#1c1a20] min-w-0',
       ),
       DataAttribute(dataAttributeName, phase),
     ],

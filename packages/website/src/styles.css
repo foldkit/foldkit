@@ -91,7 +91,13 @@
   }
 
   pre {
-    @apply pr-14 pl-[11px] py-4 rounded-lg overflow-x-auto border border-transparent dark:border-gray-700/50 font-[200] text-sm;
+    @apply pr-14 pl-[11px] py-4 rounded-lg overflow-x-auto border border-gray-200 dark:border-gray-700/50 font-[200] text-sm;
+  }
+
+  .dark .shiki,
+  .dark .shiki span {
+    color: var(--shiki-dark) !important;
+    background-color: var(--shiki-dark-bg) !important;
   }
 
   pre code {
@@ -104,7 +110,7 @@
 
   pre code .line[data-line]::before {
     content: attr(data-line);
-    @apply inline-block mr-4 text-right text-gray-500 select-none border-r border-gray-600 pr-4;
+    @apply inline-block mr-4 text-right text-gray-500 select-none border-r border-gray-300 dark:border-gray-600 pr-4;
   }
 
   pre[data-line-digits='1'] code .line[data-line]::before {
