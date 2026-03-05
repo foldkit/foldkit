@@ -10,7 +10,7 @@ overrides:
   '@effect/platform-browser': ^0.74.0
   '@effect/platform-node': ^0.104.1
   '@effect/rpc': ^0.73.0
-  '@effect/cli': ^0.73.0
+  '@effect/cli': ^0.73.2
   '@effect/vitest': ^0.27.0
 
 importers:
@@ -679,7 +679,7 @@ importers:
         specifier: ^0.74.0
         version: 0.74.0(@effect/platform@0.94.5(effect@3.19.19))(effect@3.19.19)
       '@effect/rpc':
-        specifier: ^0.73.2
+        specifier: ^0.73.0
         version: 0.73.2(@effect/platform@0.94.5(effect@3.19.19))(effect@3.19.19)
       '@tailwindcss/vite':
         specifier: ^4.1.18
@@ -740,7 +740,7 @@ importers:
         specifier: ^0.104.1
         version: 0.104.1(@effect/cluster@0.56.1(@effect/platform@0.94.5(effect@3.19.19))(@effect/rpc@0.73.2(@effect/platform@0.94.5(effect@3.19.19))(effect@3.19.19))(@effect/sql@0.49.0(@effect/experimental@0.58.0(@effect/platform@0.94.5(effect@3.19.19))(effect@3.19.19))(@effect/platform@0.94.5(effect@3.19.19))(effect@3.19.19))(@effect/workflow@0.16.0(@effect/experimental@0.58.0(@effect/platform@0.94.5(effect@3.19.19))(effect@3.19.19))(@effect/platform@0.94.5(effect@3.19.19))(@effect/rpc@0.73.2(@effect/platform@0.94.5(effect@3.19.19))(effect@3.19.19))(effect@3.19.19))(effect@3.19.19))(@effect/platform@0.94.5(effect@3.19.19))(@effect/rpc@0.73.2(@effect/platform@0.94.5(effect@3.19.19))(effect@3.19.19))(@effect/sql@0.49.0(@effect/experimental@0.58.0(@effect/platform@0.94.5(effect@3.19.19))(effect@3.19.19))(@effect/platform@0.94.5(effect@3.19.19))(effect@3.19.19))(effect@3.19.19)
       '@effect/rpc':
-        specifier: ^0.73.2
+        specifier: ^0.73.0
         version: 0.73.2(@effect/platform@0.94.5(effect@3.19.19))(effect@3.19.19)
       '@typing-game/shared':
         specifier: workspace:*
@@ -777,7 +777,7 @@ importers:
   packages/typing-game/shared:
     dependencies:
       '@effect/rpc':
-        specifier: ^0.73.2
+        specifier: ^0.73.0
         version: 0.73.2(@effect/platform@0.94.5(effect@3.19.19))(effect@3.19.19)
       effect:
         specifier: ^3.19.19

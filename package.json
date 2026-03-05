@@ -63,7 +63,7 @@
       "@effect/platform-browser": "^0.74.0",
       "@effect/platform-node": "^0.104.1",
       "@effect/rpc": "^0.73.0",
-      "@effect/cli": "^0.73.0",
+      "@effect/cli": "^0.73.2",
       "@effect/vitest": "^0.27.0"
     }
   },
