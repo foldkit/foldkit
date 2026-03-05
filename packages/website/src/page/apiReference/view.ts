@@ -105,7 +105,7 @@ const functionView = (
               h3(
                 [
                   Class(
-                    'text-base font-mono font-medium text-gray-900 dark:text-white scroll-mt-6',
+                    'text-lg font-mono font-[200] text-gray-900 dark:text-white scroll-mt-6',
                   ),
                   Id(id),
                 ],
@@ -114,7 +114,7 @@ const functionView = (
               span(
                 [
                   Class(
-                    'text-xs px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300',
+                    'text-xs px-2 py-0.5 rounded bg-accent-100 dark:bg-accent-900 text-accent-700 dark:text-accent-300',
                   ),
                 ],
                 ['function'],
@@ -149,7 +149,7 @@ const allParameterDescriptions = (
           [Class('mb-1')],
           [
             span(
-              [Class('font-medium text-gray-900 dark:text-gray-200')],
+              [Class('font-normal text-gray-900 dark:text-gray-200')],
               [parameter.name],
             ),
             span(
@@ -218,7 +218,7 @@ const signaturesView = (
     }),
     onNone: () => ({
       wrapperClass: classNames(
-        'bg-white dark:bg-gray-800 p-4 font-mono text-sm',
+        'bg-cream dark:bg-gray-800 p-4 font-mono text-sm',
         {
           rounded: !isInDisclosure,
           'rounded-b-lg rounded-t-none': isInDisclosure,
@@ -260,7 +260,7 @@ const parameterDescriptions = (
           [Class('mb-1')],
           [
             span(
-              [Class('font-medium text-gray-900 dark:text-gray-200')],
+              [Class('font-normal text-gray-900 dark:text-gray-200')],
               [parameter.name],
             ),
             span(
@@ -293,7 +293,7 @@ const parameterView = (
   parameter: ApiParameter,
 ): ReadonlyArray<Html> => [
   span(
-    [Class('font-medium text-gray-900 dark:text-gray-200')],
+    [Class('font-normal text-gray-900 dark:text-gray-200')],
     [parameter.name],
   ),
   ...(parameter.isOptional ? [punctuation('?')] : []),
@@ -372,7 +372,7 @@ const typeView = (moduleName: string, type: ApiType): Html => {
               h3(
                 [
                   Class(
-                    'text-base font-mono font-medium text-gray-900 dark:text-white scroll-mt-6',
+                    'text-lg font-mono font-[200] text-gray-900 dark:text-white scroll-mt-6',
                   ),
                   Id(id),
                 ],
@@ -446,7 +446,7 @@ const interfaceView = (
               h3(
                 [
                   Class(
-                    'text-base font-mono font-medium text-gray-900 dark:text-white scroll-mt-6',
+                    'text-lg font-mono font-[200] text-gray-900 dark:text-white scroll-mt-6',
                   ),
                   Id(id),
                 ],
@@ -523,7 +523,7 @@ const variableView = (
               h3(
                 [
                   Class(
-                    'text-base font-mono font-medium text-gray-900 dark:text-white scroll-mt-6',
+                    'text-lg font-mono font-[200] text-gray-900 dark:text-white scroll-mt-6',
                   ),
                   Id(id),
                 ],

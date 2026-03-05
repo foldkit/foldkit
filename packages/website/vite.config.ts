@@ -18,6 +18,7 @@ import {
   type TypeDocSignature,
   type TypeDocTypeParam,
 } from './src/page/apiReference/typedoc'
+import { shikiTheme } from './src/shikiTheme'
 
 const highlightCodePlugin = (): Plugin => ({
   name: 'highlight-code',
@@ -35,7 +36,7 @@ const highlightCodePlugin = (): Plugin => ({
 
       const html = await codeToHtml(code, {
         lang,
-        theme: 'github-dark',
+        theme: shikiTheme,
         decorations: lines.map((line, i) => ({
           start: { line: i, character: 0 },
           end: { line: i, character: line.length },
@@ -249,7 +250,7 @@ const highlightApiSignaturesPlugin = (): Plugin => ({
       Array.map(entries, async ([key, tsString]) => {
         const html = await codeToHtml(tsString, {
           lang: 'typescript',
-          theme: 'github-dark',
+          theme: shikiTheme,
         })
         return [
           key,
@@ -328,7 +329,7 @@ const counterDemoCodePlugin = (): Plugin => ({
 
     const html = await codeToHtml(code, {
       lang: 'typescript',
-      theme: 'github-dark',
+      theme: shikiTheme,
       decorations: lines.map((line, i) => ({
         start: { line: i, character: 0 },
         end: { line: i, character: line.length },
@@ -446,7 +447,7 @@ const notePlayerDemoCodePlugin = (): Plugin => ({
 
     const html = await codeToHtml(code, {
       lang: 'typescript',
-      theme: 'github-dark',
+      theme: shikiTheme,
       decorations: lines.map((line, i) => ({
         start: { line: i, character: 0 },
         end: { line: i, character: line.length },

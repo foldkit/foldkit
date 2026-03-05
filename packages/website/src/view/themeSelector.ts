@@ -24,7 +24,7 @@ export const themeSelector = (
       Role('group'),
       AriaLabel('Theme preference'),
       Class(
-        'flex items-center gap-0.5 p-0.5 rounded-lg bg-gray-100 dark:bg-gray-800',
+        'flex items-center gap-0.5 p-0.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700',
       ),
     ],
     [

@@ -209,7 +209,7 @@ export const view = (model: Model): Html =>
         'mb-8',
       ),
       callout(
-        'For React developers',
+        'One state tree, not many',
         'Think of the Model as combining useState, useContext, and your Redux store into one typed structure. Instead of state scattered across components, everything lives here.',
       ),
       tableOfContentsEntryToHeader(messagesHeader),
@@ -235,7 +235,7 @@ export const view = (model: Model): Html =>
         'mb-8',
       ),
       callout(
-        'For React developers',
+        'Actions without the boilerplate',
         'Messages are similar to Redux action types, but more ergonomic with Effect Schema. Instead of string constants and action creators, you get type inference and pattern matching for free.',
       ),
       tableOfContentsEntryToHeader(updateHeader),
@@ -261,7 +261,7 @@ export const view = (model: Model): Html =>
         'mb-8',
       ),
       callout(
-        'For React developers',
+        'Effects are return values, not side effects',
         "Like a Redux reducer, but update returns Commands instead of triggering useEffect. You'll never wonder why an effect ran — it's explicit in the return value.",
       ),
       tableOfContentsEntryToHeader(viewHeader),
@@ -282,7 +282,7 @@ export const view = (model: Model): Html =>
         'mb-8',
       ),
       callout(
-        'For React developers',
+        'Pure functions, no hook rules',
         'The view is like a functional component, but guaranteed pure — no hooks, no effects, no local state. It\'s a function from Model to Html. This simplicity means no "rules of hooks" to follow.',
       ),
       tableOfContentsEntryToHeader(typedHtmlHelpersHeader),

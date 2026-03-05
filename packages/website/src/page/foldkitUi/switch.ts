@@ -19,10 +19,10 @@ export const switchHeader: TableOfContentsEntry = {
 const wrapperClassName = 'flex items-center gap-3'
 
 const buttonClassName =
-  'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer bg-gray-300 dark:bg-gray-600 data-[checked]:bg-blue-600 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50'
+  'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer bg-gray-300 dark:bg-gray-600 data-[checked]:bg-accent-600 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50'
 
 const labelClassName =
-  'text-sm font-medium text-gray-900 dark:text-white cursor-pointer select-none'
+  'text-sm font-normal text-gray-900 dark:text-white cursor-pointer select-none'
 
 const descriptionClassName =
   'text-sm text-gray-500 dark:text-gray-400'

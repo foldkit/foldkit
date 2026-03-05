@@ -929,14 +929,18 @@ export const makeView =
           ...(isInteractive
             ? [
                 OnClick(toMessage(SelectedItem({ item: itemToValue(item) }))),
-                OnPointerMove((screenX, screenY, pointerType) =>
-                  OptionExt.when(
-                    pointerType !== 'touch',
-                    toMessage(
-                      MovedPointerOverItem({ index, screenX, screenY }),
-                    ),
-                  ),
-                ),
+                ...(isActiveItem
+                  ? []
+                  : [
+                      OnPointerMove((screenX, screenY, pointerType) =>
+                        OptionExt.when(
+                          pointerType !== 'touch',
+                          toMessage(
+                            MovedPointerOverItem({ index, screenX, screenY }),
+                          ),
+                        ),
+                      ),
+                    ]),
                 OnPointerLeave(pointerType =>
                   OptionExt.when(
                     pointerType !== 'touch',

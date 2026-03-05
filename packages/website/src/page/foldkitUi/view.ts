@@ -90,7 +90,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 const comingSoonBadge = span(
   [
     Class(
-      'inline-block px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400',
+      'inline-block px-2.5 py-0.5 text-xs font-normal rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400',
     ),
   ],
   ['Coming Soon'],
