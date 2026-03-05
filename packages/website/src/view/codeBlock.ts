@@ -64,7 +64,11 @@ export const codeBlock = (
   className?: string,
 ) => {
   const content = pre(
-    [Class('text-[#E0DEE6] text-sm p-4 pr-14 overflow-x-auto')],
+    [
+      Class(
+        'text-[#E0DEE6] text-sm p-4 pr-14 overflow-x-auto !rounded-none !border-none',
+      ),
+    ],
     [code],
   )
 
@@ -72,7 +76,7 @@ export const codeBlock = (
     [
       Class(
         classNames(
-          'relative min-w-0 rounded-lg bg-[#1c1a20]',
+          'relative min-w-0 rounded-lg bg-[#1c1a20] overflow-hidden',
           className,
         ),
       ),
