@@ -11,7 +11,7 @@ const headerCell = (text: string, isLastColumn: boolean): Html =>
     [
       Class(
         classNames(
-          'px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white',
+          'px-4 py-3 text-left text-base font-semibold text-gray-900 dark:text-white',
           { [columnBorder]: !isLastColumn },
         ),
       ),
@@ -28,7 +28,7 @@ const cell = (
     [
       Class(
         classNames(
-          'px-4 py-3 text-sm',
+          'px-4 py-3 text-base',
           isFirstColumn
             ? 'font-normal text-gray-900 dark:text-white'
             : 'text-gray-700 dark:text-gray-300',

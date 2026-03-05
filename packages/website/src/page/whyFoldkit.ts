@@ -170,7 +170,7 @@ export const view = (): Html =>
         ', a proven pattern for building reliable user interfaces.',
       ),
       ul(
-        [Class('list-disc mb-6 space-y-2 ml-4')],
+        [Class('list-disc mb-6 space-y-2')],
         [
           li(
             [],
@@ -229,7 +229,7 @@ export const view = (): Html =>
         ', a powerful library for type-safe, composable programming in TypeScript.',
       ),
       ul(
-        [Class('list-disc mb-6 space-y-2 ml-4')],
+        [Class('list-disc mb-6 space-y-2')],
         [
           li(
             [],
@@ -267,7 +267,7 @@ export const view = (): Html =>
       ),
       tableOfContentsEntryToHeader(whoItsForHeader),
       ul(
-        [Class('list-disc mb-6 space-y-2 ml-4')],
+        [Class('list-disc mb-6 space-y-2')],
         [
           li(
             [],

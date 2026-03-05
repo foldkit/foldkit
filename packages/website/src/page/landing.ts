@@ -1,3 +1,4 @@
+import classNames from 'classnames'
 import { Html } from 'foldkit/html'
 import { foldkitVersion } from 'virtual:landing-data'
 
@@ -44,7 +45,10 @@ const glyph = (symbol: string, offsetY?: string): Html =>
           span(
             [
               Class(
-                `inline-block -translate-x-1/4 text-accent-200/22 dark:text-accent-400/4 font-mono text-[18rem] md:text-[27rem] font-extrabold leading-none -z-10 relative whitespace-nowrap${offsetY ? ` ${offsetY}` : ''}`,
+                classNames(
+                  'inline-block -translate-x-1/4 text-accent-200/18 dark:text-accent-400/4 font-mono text-[18rem] md:text-[27rem] font-extrabold leading-none -z-10 relative whitespace-nowrap',
+                  offsetY,
+                ),
               ),
             ],
             [symbol],

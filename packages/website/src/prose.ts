@@ -112,7 +112,7 @@ export const bullets = (
   ...items: ReadonlyArray<string | Html>
 ): Html =>
   ul(
-    [Class('list-disc mb-8 space-y-2 ml-4')],
+    [Class('list-disc mb-8 space-y-2')],
     Array.map(items, item => li([], [item])),
   )
 

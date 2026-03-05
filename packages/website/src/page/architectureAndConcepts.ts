@@ -260,10 +260,6 @@ export const view = (model: Model): Html =>
         model,
         'mb-8',
       ),
-      callout(
-        'Effects are return values, not side effects',
-        "Like a Redux reducer, but update returns Commands instead of triggering useEffect. You'll never wonder why an effect ran — it's explicit in the return value.",
-      ),
       tableOfContentsEntryToHeader(viewHeader),
       para(
         'The view function is a pure function that transforms your model into HTML. Given the same model, it always produces the same HTML output. The view never directly modifies state — instead, it dispatches messages through event handlers.',
@@ -386,6 +382,14 @@ export const view = (model: Model): Html =>
         'Copy HTTP command fetchCount example to clipboard',
         model,
         'mb-8',
+      ),
+      callout(
+        'Errors are tracked, not hidden',
+        'Commands use Effect\u2019s typed error channel \u2014 if a command can fail, the type signature tells you. ',
+        inlineCode('Effect.catchAll'),
+        ' turns failures into messages like ',
+        inlineCode('FailedWeatherFetch'),
+        ', and once all errors are handled, the type confirms it. The update function handles errors the same way it handles success: as facts about what happened.',
       ),
       tableOfContentsEntryToHeader(subscriptionsHeader),
       para(

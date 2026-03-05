@@ -88,7 +88,7 @@ export const view = (model: Model): Html =>
         "Foldkit's routing is based on biparsers — parsers that work in both directions. A single route definition handles:",
       ),
       ul(
-        [Class('list-disc mb-6 space-y-2 ml-4')],
+        [Class('list-disc mb-6 space-y-2')],
         [
           li(
             [],

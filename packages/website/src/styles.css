@@ -90,6 +90,18 @@
     font-family: var(--font-mono);
   }
 
+  .list-disc {
+    padding-left: 2rem;
+  }
+
+  .list-disc li {
+    list-style-type: '=> ';
+  }
+
+  .list-disc li::marker {
+    @apply font-mono font-normal text-accent-500 dark:text-accent-400 text-sm;
+  }
+
   pre {
     @apply pr-14 pl-[11px] py-4 rounded-lg overflow-x-auto border border-gray-200 dark:border-gray-700/50 font-[200] text-sm;
   }

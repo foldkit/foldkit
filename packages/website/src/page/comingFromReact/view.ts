@@ -213,7 +213,7 @@ export const view = (
       tableOfContentsEntryToHeader(mentalModelShiftsHeader),
       para('The biggest shifts when moving from React to Foldkit:'),
       ul(
-        [Class('list-disc mb-6 space-y-3 ml-4')],
+        [Class('list-disc mb-6 space-y-3')],
         [
           li(
             [],
@@ -338,7 +338,7 @@ export const view = (
         "Let's be honest about the tradeoffs. Coming from React, you may miss:",
       ),
       ul(
-        [Class('list-disc mb-6 space-y-2 ml-4')],
+        [Class('list-disc mb-6 space-y-2')],
         [
           li(
             [],
@@ -380,7 +380,7 @@ export const view = (
       tableOfContentsEntryToHeader(whatYoullGainHeader),
       para("In return, you'll gain:"),
       ul(
-        [Class('list-disc mb-6 space-y-2 ml-4')],
+        [Class('list-disc mb-6 space-y-2')],
         [
           li(
             [],

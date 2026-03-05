@@ -111,7 +111,7 @@ export const view = (model: Model): Html =>
       ),
       tableOfContentsEntryToHeader(viewIsPureHeader),
       ul(
-        [Class('list-disc mb-6 space-y-2 ml-4')],
+        [Class('list-disc mb-6 space-y-2')],
         [
           li([], ['No hooks, no lifecycle methods']),
           li([], ['No fetching data, no timers, no subscriptions']),
@@ -149,7 +149,7 @@ export const view = (model: Model): Html =>
       ),
       tableOfContentsEntryToHeader(updateIsPureHeader),
       ul(
-        [Class('list-disc mb-6 space-y-2 ml-4')],
+        [Class('list-disc mb-6 space-y-2')],
         [
           li(
             [],
@@ -332,7 +332,7 @@ export const view = (model: Model): Html =>
       ),
       tableOfContentsEntryToHeader(goodMessageNamesHeader),
       ul(
-        [Class('list-disc mb-4 space-y-1 ml-4 font-mono text-sm')],
+        [Class('list-disc mb-4 space-y-1 font-mono text-sm')],
         [
           li([], ['ClickedAddToCart']),
           li([], ['ChangedSearchInput']),
@@ -341,7 +341,7 @@ export const view = (model: Model): Html =>
       ),
       tableOfContentsEntryToHeader(avoidTheseHeader),
       ul(
-        [Class('list-disc mb-6 space-y-1 ml-4 font-mono text-sm')],
+        [Class('list-disc mb-6 space-y-1 font-mono text-sm')],
         [
           li([], ['SetCartItems']),
           li([], ['UpdateSearchText']),
