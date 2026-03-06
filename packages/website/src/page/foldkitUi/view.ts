@@ -6,6 +6,7 @@ import { Class, div, p, section, span } from '../../html'
 import type { TableOfContentsEntry } from '../../main'
 import type { Message as ParentMessage } from '../../main'
 import { heading, pageTitle, para } from '../../prose'
+import * as Combobox from './combobox'
 import * as Dialog from './dialog'
 import * as Disclosure from './disclosure'
 import * as Listbox from './listbox'
@@ -31,11 +32,6 @@ const plannedComponents: ReadonlyArray<{
     entry: { level: 'h2', id: 'checkbox', text: 'Checkbox' },
     description:
       'A custom checkbox with accessible labeling, indeterminate state, and keyboard support.',
-  },
-  {
-    entry: { level: 'h2', id: 'combobox', text: 'Combobox' },
-    description:
-      'An autocomplete input with filtering, keyboard navigation, and custom rendering.',
   },
   {
     entry: { level: 'h2', id: 'fieldset', text: 'Fieldset' },
@@ -86,6 +82,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   Listbox.multiSelectHeader,
   Listbox.groupedHeader,
   Switch.switchHeader,
+  Combobox.comboboxHeader,
   ...plannedComponents.map(({ entry }) => entry),
 ]
 
@@ -98,6 +95,7 @@ const lazyMenuSection = createLazy()
 const lazyPopoverSection = createLazy()
 const lazyListboxSection = createLazy()
 const lazySwitchSection = createLazy()
+const lazyComboboxSection = createLazy()
 
 // VIEW
 
@@ -250,6 +248,25 @@ const switchSectionView = (
     ],
   )
 
+const comboboxSectionView = (
+  comboboxDemo: Ui.Combobox.Model,
+  toMessage: (message: Message) => ParentMessage,
+): Html =>
+  div(
+    [],
+    [
+      heading(
+        'h2',
+        Combobox.comboboxHeader.id,
+        Combobox.comboboxHeader.text,
+      ),
+      para(
+        'An autocomplete input with filtering, keyboard navigation, and custom rendering. Uses aria-activedescendant for focus management and supports grouped items.',
+      ),
+      ...Combobox.comboboxDemo(comboboxDemo, toMessage),
+    ],
+  )
+
 export const view = (
   model: Model,
   toMessage: (message: Message) => ParentMessage,
@@ -292,6 +309,10 @@ export const view = (
       ]),
       lazySwitchSection(switchSectionView, [
         model.switchDemo,
+        toMessage,
+      ]),
+      lazyComboboxSection(comboboxSectionView, [
+        model.comboboxDemo,
         toMessage,
       ]),
       div(

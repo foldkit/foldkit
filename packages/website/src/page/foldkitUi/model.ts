@@ -1,5 +1,6 @@
 import { Schema as S } from 'effect'
 import {
+  Combobox,
   Dialog,
   Disclosure,
   Listbox,
@@ -10,6 +11,7 @@ import {
 } from 'foldkit/ui'
 
 export const Model = S.Struct({
+  comboboxDemo: Combobox.Model,
   dialogDemo: Dialog.Model,
   disclosureDemo: Disclosure.Model,
   listboxDemo: Listbox.Model,

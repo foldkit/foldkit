@@ -75,6 +75,10 @@
       "types": "./dist/ui/listbox/public.d.ts",
       "import": "./dist/ui/listbox/public.js"
     },
+    "./ui/combobox": {
+      "types": "./dist/ui/combobox/public.d.ts",
+      "import": "./dist/ui/combobox/public.js"
+    },
     "./ui/menu": {
       "types": "./dist/ui/menu/public.d.ts",
       "import": "./dist/ui/menu/public.js"

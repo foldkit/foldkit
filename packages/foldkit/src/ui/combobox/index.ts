@@ -5,7 +5,6 @@ import {
   Option,
   Predicate,
   Schema as S,
-  String as Str,
   pipe,
 } from 'effect'
 
@@ -19,9 +18,8 @@ import * as Task from '../../task'
 import { anchorHooks } from '../anchor'
 import type { AnchorConfig } from '../anchor'
 import { groupContiguous } from '../group'
-import { findFirstEnabledIndex, isPrintableKey, keyToIndex } from '../keyboard'
+import { findFirstEnabledIndex, keyToIndex } from '../keyboard'
 import { TransitionState } from '../transition'
-import { resolveTypeaheadMatch } from '../typeahead'
 
 // MODEL
 
@@ -29,13 +27,7 @@ import { resolveTypeaheadMatch } from '../typeahead'
 export const ActivationTrigger = S.Literal('Pointer', 'Keyboard')
 export type ActivationTrigger = typeof ActivationTrigger.Type
 
-const PointerOrigin = S.Struct({
-  screenX: S.Number,
-  screenY: S.Number,
-  timeStamp: S.Number,
-})
-
-/** Schema for the menu component's state, tracking open/closed status, active item, activation trigger, and typeahead search. */
+/** Schema for the combobox component's state, tracking open/closed status, active item, input value, and selected item. */
 export const Model = S.Struct({
   id: S.String,
   isOpen: S.Boolean,
@@ -44,77 +36,64 @@ export const Model = S.Struct({
   transitionState: TransitionState,
   maybeActiveItemIndex: S.OptionFromSelf(S.Number),
   activationTrigger: ActivationTrigger,
-  searchQuery: S.String,
-  searchVersion: S.Number,
+  inputValue: S.String,
+  maybeSelectedItem: S.OptionFromSelf(S.String),
+  maybeSelectedDisplayText: S.OptionFromSelf(S.String),
   maybeLastPointerPosition: S.OptionFromSelf(
     S.Struct({ screenX: S.Number, screenY: S.Number }),
   ),
-  maybeLastButtonPointerType: S.OptionFromSelf(S.String),
-  maybePointerOrigin: S.OptionFromSelf(PointerOrigin),
 })
 
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-/** Sent when the menu opens via button click or keyboard. Contains an optional initial active item index — None for pointer, Some for keyboard. */
+/** Sent when the combobox popup opens. Contains an optional initial active item index. */
 export const Opened = m('Opened', {
   maybeActiveItemIndex: S.OptionFromSelf(S.Number),
 })
-/** Sent when the menu closes via Escape key or backdrop click. */
+/** Sent when the combobox closes via Escape key or backdrop click. */
 export const Closed = m('Closed')
-/** Sent when focus leaves the menu items container via Tab key or blur. */
+/** Sent when focus leaves the input via Tab key or blur. */
 export const ClosedByTab = m('ClosedByTab')
-/** Sent when an item is highlighted via arrow keys or mouse hover. Includes activation trigger. */
+/** Sent when an item is highlighted via arrow keys or mouse hover. */
 export const ActivatedItem = m('ActivatedItem', {
   index: S.Number,
   activationTrigger: ActivationTrigger,
 })
 /** Sent when the mouse leaves an enabled item. */
 export const DeactivatedItem = m('DeactivatedItem')
-/** Sent when an item is selected via Enter, Space, or click. */
-export const SelectedItem = m('SelectedItem', { index: S.Number })
-/** Sent when Enter or Space is pressed on the active item, triggering a programmatic click on the DOM element. */
-export const RequestedItemClick = m('RequestedItemClick', {
-  index: S.Number,
+/** Sent when an item is selected via Enter or click. Includes display text for restoring input value on close. */
+export const SelectedItem = m('SelectedItem', {
+  item: S.String,
+  displayText: S.String,
 })
-/** Sent when a printable character is typed for typeahead search. */
-export const Searched = m('Searched', {
-  key: S.String,
-  maybeTargetIndex: S.OptionFromSelf(S.Number),
-})
-/** Sent after the search debounce period to clear the accumulated query. */
-export const ClearedSearch = m('ClearedSearch', { version: S.Number })
-/** Sent when the pointer moves over a menu item, carrying screen coordinates for tracked-pointer comparison. */
+/** Sent when the pointer moves over a combobox item. */
 export const MovedPointerOverItem = m('MovedPointerOverItem', {
   index: S.Number,
   screenX: S.Number,
   screenY: S.Number,
 })
+/** Sent when Enter or Space is pressed on the active item, triggering a programmatic click. */
+export const RequestedItemClick = m('RequestedItemClick', {
+  index: S.Number,
+})
 /** Placeholder message used when no action is needed. */
 export const NoOp = m('NoOp')
 /** Sent internally when a double-rAF completes, advancing the transition to its animating phase. */
 export const AdvancedTransitionFrame = m('AdvancedTransitionFrame')
-/** Sent internally when all CSS transitions on the menu items container have completed. */
+/** Sent internally when all CSS transitions on the items container have completed. */
 export const EndedTransition = m('EndedTransition')
-/** Sent internally when the menu button moves in the viewport during a leave transition, cancelling the animation. */
-export const DetectedButtonMovement = m('DetectedButtonMovement')
-/** Sent when the user presses a pointer device on the menu button. Records pointer type and toggles for mouse. */
-export const PressedPointerOnButton = m('PressedPointerOnButton', {
-  pointerType: S.String,
-  button: S.Number,
-  screenX: S.Number,
-  screenY: S.Number,
-  timeStamp: S.Number,
+/** Sent internally when the input wrapper moves in the viewport during a leave transition, cancelling the animation. */
+export const DetectedInputMovement = m('DetectedInputMovement')
+/** Sent when the user types in the input. */
+export const UpdatedInputValue = m('UpdatedInputValue', {
+  value: S.String,
 })
-/** Sent when the user releases a pointer on the items container, enabling drag-to-select for mouse. */
-export const ReleasedPointerOnItems = m('ReleasedPointerOnItems', {
-  screenX: S.Number,
-  screenY: S.Number,
-  timeStamp: S.Number,
-})
+/** Sent when the optional toggle button is clicked. */
+export const PressedToggleButton = m('PressedToggleButton')
 
-/** Union of all messages the menu component can produce. */
+/** Union of all messages the combobox component can produce. */
 export const Message = S.Union(
   Opened,
   Closed,
@@ -124,14 +103,12 @@ export const Message = S.Union(
   SelectedItem,
   MovedPointerOverItem,
   RequestedItemClick,
-  Searched,
-  ClearedSearch,
   NoOp,
   AdvancedTransitionFrame,
   EndedTransition,
-  DetectedButtonMovement,
-  PressedPointerOnButton,
-  ReleasedPointerOnItems,
+  DetectedInputMovement,
+  UpdatedInputValue,
+  PressedToggleButton,
 )
 
 export type Opened = typeof Opened.Type
@@ -142,32 +119,25 @@ export type DeactivatedItem = typeof DeactivatedItem.Type
 export type SelectedItem = typeof SelectedItem.Type
 export type MovedPointerOverItem = typeof MovedPointerOverItem.Type
 export type RequestedItemClick = typeof RequestedItemClick.Type
-export type Searched = typeof Searched.Type
-export type ClearedSearch = typeof ClearedSearch.Type
 export type NoOp = typeof NoOp.Type
 export type AdvancedTransitionFrame = typeof AdvancedTransitionFrame.Type
 export type EndedTransition = typeof EndedTransition.Type
-export type DetectedButtonMovement = typeof DetectedButtonMovement.Type
-export type PressedPointerOnButton = typeof PressedPointerOnButton.Type
-export type ReleasedPointerOnItems = typeof ReleasedPointerOnItems.Type
+export type DetectedInputMovement = typeof DetectedInputMovement.Type
+export type UpdatedInputValue = typeof UpdatedInputValue.Type
+export type PressedToggleButton = typeof PressedToggleButton.Type
 
 export type Message = typeof Message.Type
 
 // INIT
 
-const SEARCH_DEBOUNCE_MILLISECONDS = 350
-const LEFT_MOUSE_BUTTON = 0
-const POINTER_HOLD_THRESHOLD_MILLISECONDS = 200
-const POINTER_MOVEMENT_THRESHOLD_PIXELS = 5
-
-/** Configuration for creating a menu model with `init`. `isAnimated` enables CSS transition coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). */
+/** Configuration for creating a combobox model with `init`. `isAnimated` enables CSS transition coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). */
 export type InitConfig = Readonly<{
   id: string
   isAnimated?: boolean
   isModal?: boolean
 }>
 
-/** Creates an initial menu model from a config. Defaults to closed with no active item. */
+/** Creates an initial combobox model from a config. Defaults to closed with no active item and empty input. */
 export const init = (config: InitConfig): Model => ({
   id: config.id,
   isOpen: false,
@@ -176,11 +146,10 @@ export const init = (config: InitConfig): Model => ({
   transitionState: 'Idle',
   maybeActiveItemIndex: Option.none(),
   activationTrigger: 'Keyboard',
-  searchQuery: '',
-  searchVersion: 0,
+  inputValue: '',
+  maybeSelectedItem: Option.none(),
+  maybeSelectedDisplayText: Option.none(),
   maybeLastPointerPosition: Option.none(),
-  maybeLastButtonPointerType: Option.none(),
-  maybePointerOrigin: Option.none(),
 })
 
 // UPDATE
@@ -191,14 +160,13 @@ const closedModel = (model: Model): Model =>
     transitionState: () => (model.isAnimated ? 'LeaveStart' : 'Idle'),
     maybeActiveItemIndex: () => Option.none(),
     activationTrigger: () => 'Keyboard',
-    searchQuery: () => '',
-    searchVersion: () => 0,
+    inputValue: () =>
+      Option.getOrElse(model.maybeSelectedDisplayText, () => ''),
     maybeLastPointerPosition: () => Option.none(),
-    maybeLastButtonPointerType: () => Option.none(),
-    maybePointerOrigin: () => Option.none(),
   })
 
-const buttonSelector = (id: string): string => `#${id}-button`
+const inputSelector = (id: string): string => `#${id}-input`
+const inputWrapperSelector = (id: string): string => `#${id}-input-wrapper`
 const itemsSelector = (id: string): string => `#${id}-items`
 const itemSelector = (id: string, index: number): string =>
   `#${id}-item-${index}`
@@ -206,7 +174,7 @@ const itemSelector = (id: string, index: number): string =>
 type UpdateReturn = [Model, ReadonlyArray<Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-/** Processes a menu message and returns the next model and commands. */
+/** Processes a combobox message and returns the next model and commands. */
 export const update = (model: Model, message: Message): UpdateReturn => {
   const maybeNextFrame = OptionExt.when(
     model.isAnimated,
@@ -226,7 +194,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
   const maybeInertOthers = OptionExt.when(
     model.isModal,
     Task.inertOthers(model.id, [
-      buttonSelector(model.id),
+      inputWrapperSelector(model.id),
       itemsSelector(model.id),
     ]).pipe(Effect.as(NoOp())),
   )
@@ -249,22 +217,12 @@ export const update = (model: Model, message: Message): UpdateReturn => {
               onNone: () => 'Pointer',
               onSome: () => 'Keyboard',
             }),
-          searchQuery: () => '',
-          searchVersion: () => 0,
           maybeLastPointerPosition: () => Option.none(),
         })
 
         return [
           nextModel,
-          pipe(
-            Array.getSomes([maybeNextFrame, maybeLockScroll, maybeInertOthers]),
-            Array.prepend(
-              Task.focus(itemsSelector(model.id)).pipe(
-                Effect.ignore,
-                Effect.as(NoOp()),
-              ),
-            ),
-          ),
+          Array.getSomes([maybeNextFrame, maybeLockScroll, maybeInertOthers]),
         ]
       },
 
@@ -277,7 +235,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             maybeRestoreInert,
           ]),
           Array.prepend(
-            Task.focus(buttonSelector(model.id)).pipe(
+            Task.focus(inputSelector(model.id)).pipe(
               Effect.ignore,
               Effect.as(NoOp()),
             ),
@@ -331,22 +289,35 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           ? [evo(model, { maybeActiveItemIndex: () => Option.none() }), []]
           : [model, []],
 
-      SelectedItem: () => [
-        closedModel(model),
-        pipe(
-          Array.getSomes([
-            maybeNextFrame,
-            maybeUnlockScroll,
-            maybeRestoreInert,
-          ]),
-          Array.prepend(
-            Task.focus(buttonSelector(model.id)).pipe(
-              Effect.ignore,
-              Effect.as(NoOp()),
+      SelectedItem: ({ item, displayText }) => {
+        const nextModel = evo(model, {
+          isOpen: () => false,
+          transitionState: () => (model.isAnimated ? 'LeaveStart' : 'Idle'),
+          maybeActiveItemIndex: () => Option.none(),
+          activationTrigger: () => 'Keyboard',
+          inputValue: () => displayText,
+          maybeSelectedItem: () => Option.some(item),
+          maybeSelectedDisplayText: () => Option.some(displayText),
+          maybeLastPointerPosition: () => Option.none(),
+        })
+
+        return [
+          nextModel,
+          pipe(
+            Array.getSomes([
+              maybeNextFrame,
+              maybeUnlockScroll,
+              maybeRestoreInert,
+            ]),
+            Array.prepend(
+              Task.focus(inputSelector(model.id)).pipe(
+                Effect.ignore,
+                Effect.as(NoOp()),
+              ),
             ),
           ),
-        ),
-      ],
+        ]
+      },
 
       RequestedItemClick: ({ index }) => [
         model,
@@ -358,31 +329,73 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         ],
       ],
 
-      Searched: ({ key, maybeTargetIndex }) => {
-        const nextSearchQuery = model.searchQuery + key
-        const nextSearchVersion = model.searchVersion + 1
+      UpdatedInputValue: ({ value }) => {
+        if (model.isOpen) {
+          return [
+            evo(model, {
+              inputValue: () => value,
+              maybeActiveItemIndex: () => Option.some(0),
+              activationTrigger: () => 'Keyboard',
+            }),
+            [],
+          ]
+        }
+
+        const nextModel = evo(model, {
+          isOpen: () => true,
+          transitionState: () => (model.isAnimated ? 'EnterStart' : 'Idle'),
+          inputValue: () => value,
+          maybeActiveItemIndex: () => Option.some(0),
+          activationTrigger: () => 'Keyboard',
+          maybeLastPointerPosition: () => Option.none(),
+        })
 
         return [
-          evo(model, {
-            searchQuery: () => nextSearchQuery,
-            searchVersion: () => nextSearchVersion,
-            maybeActiveItemIndex: () =>
-              Option.orElse(maybeTargetIndex, () => model.maybeActiveItemIndex),
-          }),
-          [
-            Task.delay(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
-              Effect.as(ClearedSearch({ version: nextSearchVersion })),
-            ),
-          ],
+          nextModel,
+          Array.getSomes([maybeNextFrame, maybeLockScroll, maybeInertOthers]),
         ]
       },
 
-      ClearedSearch: ({ version }) => {
-        if (version !== model.searchVersion) {
-          return [model, []]
+      PressedToggleButton: () => {
+        if (model.isOpen) {
+          return [
+            closedModel(model),
+            pipe(
+              Array.getSomes([
+                maybeNextFrame,
+                maybeUnlockScroll,
+                maybeRestoreInert,
+              ]),
+              Array.prepend(
+                Task.focus(inputSelector(model.id)).pipe(
+                  Effect.ignore,
+                  Effect.as(NoOp()),
+                ),
+              ),
+            ),
+          ]
         }
 
-        return [evo(model, { searchQuery: () => '' }), []]
+        const nextModel = evo(model, {
+          isOpen: () => true,
+          transitionState: () => (model.isAnimated ? 'EnterStart' : 'Idle'),
+          maybeActiveItemIndex: () => Option.none(),
+          activationTrigger: () => 'Pointer',
+          maybeLastPointerPosition: () => Option.none(),
+        })
+
+        return [
+          nextModel,
+          pipe(
+            Array.getSomes([maybeNextFrame, maybeLockScroll, maybeInertOthers]),
+            Array.prepend(
+              Task.focus(inputSelector(model.id)).pipe(
+                Effect.ignore,
+                Effect.as(NoOp()),
+              ),
+            ),
+          ),
+        ]
       },
 
       AdvancedTransitionFrame: () =>
@@ -400,8 +413,8 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             evo(model, { transitionState: () => 'LeaveAnimating' }),
             [
               Effect.raceFirst(
-                Task.detectElementMovement(buttonSelector(model.id)).pipe(
-                  Effect.as(DetectedButtonMovement()),
+                Task.detectElementMovement(inputWrapperSelector(model.id)).pipe(
+                  Effect.as(DetectedInputMovement()),
                 ),
                 Task.waitForTransitions(itemsSelector(model.id)).pipe(
                   Effect.as(EndedTransition()),
@@ -422,7 +435,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           M.orElse(() => [model, []]),
         ),
 
-      DetectedButtonMovement: () =>
+      DetectedInputMovement: () =>
         M.value(model.transitionState).pipe(
           withUpdateReturn,
           M.when('LeaveAnimating', () => [
@@ -432,105 +445,6 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           M.orElse(() => [model, []]),
         ),
 
-      PressedPointerOnButton: ({
-        pointerType,
-        button,
-        screenX,
-        screenY,
-        timeStamp,
-      }) => {
-        const withPointerType = evo(model, {
-          maybeLastButtonPointerType: () => Option.some(pointerType),
-        })
-
-        if (pointerType !== 'mouse' || button !== LEFT_MOUSE_BUTTON) {
-          return [withPointerType, []]
-        }
-
-        if (model.isOpen) {
-          return [
-            closedModel(withPointerType),
-            pipe(
-              Array.getSomes([
-                maybeNextFrame,
-                maybeUnlockScroll,
-                maybeRestoreInert,
-              ]),
-              Array.prepend(
-                Task.focus(buttonSelector(model.id)).pipe(
-                  Effect.ignore,
-                  Effect.as(NoOp()),
-                ),
-              ),
-            ),
-          ]
-        }
-
-        const nextModel = evo(withPointerType, {
-          isOpen: () => true,
-          transitionState: () => (model.isAnimated ? 'EnterStart' : 'Idle'),
-          maybeActiveItemIndex: () => Option.none(),
-          activationTrigger: () => 'Pointer',
-          searchQuery: () => '',
-          searchVersion: () => 0,
-          maybeLastPointerPosition: () => Option.none(),
-          maybePointerOrigin: () =>
-            Option.some({ screenX, screenY, timeStamp }),
-        })
-
-        return [
-          nextModel,
-          pipe(
-            Array.getSomes([maybeNextFrame, maybeLockScroll, maybeInertOthers]),
-            Array.prepend(
-              Task.focus(itemsSelector(model.id)).pipe(
-                Effect.ignore,
-                Effect.as(NoOp()),
-              ),
-            ),
-          ),
-        ]
-      },
-
-      ReleasedPointerOnItems: ({ screenX, screenY, timeStamp }) => {
-        const hasNoOrigin = Option.isNone(model.maybePointerOrigin)
-
-        const hasNoActiveItem = Option.isNone(model.maybeActiveItemIndex)
-
-        const isMovementBelowThreshold = Option.exists(
-          model.maybePointerOrigin,
-          origin =>
-            Math.abs(screenX - origin.screenX) <
-              POINTER_MOVEMENT_THRESHOLD_PIXELS &&
-            Math.abs(screenY - origin.screenY) <
-              POINTER_MOVEMENT_THRESHOLD_PIXELS,
-        )
-
-        const isHoldTimeBelowThreshold = Option.exists(
-          model.maybePointerOrigin,
-          origin =>
-            timeStamp - origin.timeStamp < POINTER_HOLD_THRESHOLD_MILLISECONDS,
-        )
-
-        if (
-          hasNoOrigin ||
-          isMovementBelowThreshold ||
-          isHoldTimeBelowThreshold ||
-          hasNoActiveItem
-        ) {
-          return [model, []]
-        }
-
-        return [
-          model,
-          [
-            Task.clickElement(
-              itemSelector(model.id, model.maybeActiveItemIndex.value),
-            ).pipe(Effect.ignore, Effect.as(NoOp())),
-          ],
-        ]
-      },
-
       NoOp: () => [model, []],
     }),
   )
@@ -538,7 +452,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
 
 // VIEW
 
-/** Configuration for an individual menu item's appearance. */
+/** Configuration for an individual combobox item's appearance. */
 export type ItemConfig = Readonly<{
   className: string
   content: Html
@@ -550,7 +464,7 @@ export type GroupHeading = Readonly<{
   className: string
 }>
 
-/** Configuration for rendering a menu with `view`. */
+/** Configuration for rendering a combobox with `view`. */
 export type ViewConfig<Message, Item extends string> = Readonly<{
   model: Model
   toMessage: (
@@ -563,9 +477,8 @@ export type ViewConfig<Message, Item extends string> = Readonly<{
       | SelectedItem
       | MovedPointerOverItem
       | RequestedItemClick
-      | Searched
-      | PressedPointerOnButton
-      | ReleasedPointerOnItems
+      | UpdatedInputValue
+      | PressedToggleButton
       | NoOp,
   ) => Message
   items: ReadonlyArray<Item>
@@ -573,15 +486,22 @@ export type ViewConfig<Message, Item extends string> = Readonly<{
     item: Item,
     context: Readonly<{ isActive: boolean; isDisabled: boolean }>,
   ) => ItemConfig
+  itemToValue: (item: Item, index: number) => string
+  itemToDisplayText: (item: Item, index: number) => string
   isItemDisabled?: (item: Item, index: number) => boolean
-  itemToSearchText?: (item: Item, index: number) => string
-  isButtonDisabled?: boolean
-  buttonContent: Html
-  buttonClassName: string
+  inputClassName: string
+  inputPlaceholder?: string
   itemsClassName: string
   itemsScrollClassName?: string
   backdropClassName: string
   className?: string
+  inputWrapperClassName?: string
+  buttonContent?: Html
+  buttonClassName?: string
+  formName?: string
+  isDisabled?: boolean
+  isInvalid?: boolean
+  openOnFocus?: boolean
   itemGroupKey?: (item: Item, index: number) => string
   groupToHeading?: (groupKey: string) => GroupHeading | undefined
   groupClassName?: string
@@ -589,63 +509,67 @@ export type ViewConfig<Message, Item extends string> = Readonly<{
   anchor?: AnchorConfig
 }>
 
-export { groupContiguous, resolveTypeaheadMatch }
+export { groupContiguous }
 
 const itemId = (id: string, index: number): string => `${id}-item-${index}`
 
-/** Renders a headless menu with typeahead search, keyboard navigation, and aria-activedescendant focus management. */
+/** Renders a headless combobox with keyboard navigation, aria-activedescendant focus management, and consumer-controlled filtering. */
 export const view = <Message, Item extends string>(
   config: ViewConfig<Message, Item>,
 ): Html => {
   const {
     div,
+    input,
     AriaActiveDescendant,
     AriaControls,
     AriaDisabled,
     AriaExpanded,
-    AriaHasPopup,
+    AriaInvalid,
     AriaLabelledBy,
+    Attribute,
+    Autocomplete,
     Class,
     DataAttribute,
     Id,
+    Name,
     OnBlur,
     OnClick,
     OnDestroy,
+    OnFocus,
+    OnInput,
     OnInsert,
     OnKeyDownPreventDefault,
-    OnKeyUpPreventDefault,
-    OnPointerDown,
     OnPointerLeave,
     OnPointerMove,
-    OnPointerUp,
     Role,
     Style,
     Tabindex,
     Type,
+    Value,
     keyed,
   } = html<Message>()
 
   const {
-    model: {
-      id,
-      isOpen,
-      transitionState,
-      maybeActiveItemIndex,
-      searchQuery,
-      maybeLastButtonPointerType,
-    },
+    model: { id, isOpen, transitionState, maybeActiveItemIndex },
     toMessage,
     items,
     itemToConfig,
+    itemToValue,
+    itemToDisplayText,
     isItemDisabled,
-    itemToSearchText = (item: Item) => item,
-    isButtonDisabled,
-    buttonContent,
-    buttonClassName,
+    inputClassName,
+    inputPlaceholder,
     itemsClassName,
     itemsScrollClassName,
     backdropClassName,
     className,
+    inputWrapperClassName,
+    buttonContent,
+    buttonClassName,
+    formName,
+    isDisabled,
+    isInvalid,
+    openOnFocus,
     itemGroupKey,
     groupToHeading,
     groupClassName,
@@ -680,7 +604,7 @@ export const view = <Message, Item extends string>(
       M.orElse(() => []),
     )
 
-  const isDisabled = (index: number): boolean =>
+  const isDisabledAtIndex = (index: number): boolean =>
     Predicate.isNotUndefined(isItemDisabled) &&
     pipe(
       items,
@@ -691,203 +615,173 @@ export const view = <Message, Item extends string>(
   const firstEnabledIndex = findFirstEnabledIndex(
     items.length,
     0,
-    isDisabled,
+    isDisabledAtIndex,
   )(0, 1)
 
   const lastEnabledIndex = findFirstEnabledIndex(
     items.length,
     0,
-    isDisabled,
+    isDisabledAtIndex,
   )(items.length - 1, -1)
-
-  const handleButtonKeyDown = (key: string): Option.Option<Message> =>
-    M.value(key).pipe(
-      M.whenOr('Enter', ' ', 'ArrowDown', () =>
-        Option.some(
-          toMessage(
-            Opened({
-              maybeActiveItemIndex: Option.some(firstEnabledIndex),
-            }),
-          ),
-        ),
-      ),
-      M.when('ArrowUp', () =>
-        Option.some(
-          toMessage(
-            Opened({
-              maybeActiveItemIndex: Option.some(lastEnabledIndex),
-            }),
-          ),
-        ),
-      ),
-      M.orElse(() => Option.none()),
-    )
-
-  const handleButtonPointerDown = (
-    pointerType: string,
-    button: number,
-    screenX: number,
-    screenY: number,
-    timeStamp: number,
-  ): Option.Option<Message> =>
-    Option.some(
-      toMessage(
-        PressedPointerOnButton({
-          pointerType,
-          button,
-          screenX,
-          screenY,
-          timeStamp,
-        }),
-      ),
-    )
-
-  const handleButtonClick = (): Message => {
-    const isMouse = Option.exists(
-      maybeLastButtonPointerType,
-      type => type === 'mouse',
-    )
-
-    if (isMouse) {
-      return toMessage(NoOp())
-    } else if (isOpen) {
-      return toMessage(Closed())
-    } else {
-      return toMessage(Opened({ maybeActiveItemIndex: Option.none() }))
-    }
-  }
-
-  const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
-    OptionExt.when(key === ' ', toMessage(NoOp()))
 
   const resolveActiveIndex = keyToIndex(
     'ArrowDown',
     'ArrowUp',
     items.length,
-    Option.getOrElse(maybeActiveItemIndex, () => 0),
-    isDisabled,
+    Option.getOrElse(maybeActiveItemIndex, () => -1),
+    isDisabledAtIndex,
   )
 
-  const searchForKey = (key: string): Option.Option<Message> => {
-    const nextQuery = searchQuery + key
-    const maybeTargetIndex = resolveTypeaheadMatch(
-      items,
-      nextQuery,
-      maybeActiveItemIndex,
-      isDisabled,
-      itemToSearchText,
-      Str.isNonEmpty(searchQuery),
-    )
-    return Option.some(toMessage(Searched({ key, maybeTargetIndex })))
-  }
-
-  const handleItemsKeyDown = (key: string): Option.Option<Message> =>
+  const handleInputKeyDown = (key: string): Option.Option<Message> =>
     M.value(key).pipe(
-      M.when('Escape', () => Option.some(toMessage(Closed()))),
-      M.when('Enter', () =>
-        Option.map(maybeActiveItemIndex, index =>
-          toMessage(RequestedItemClick({ index })),
-        ),
-      ),
-      M.when(' ', () =>
-        Str.isNonEmpty(searchQuery)
-          ? searchForKey(' ')
-          : Option.map(maybeActiveItemIndex, index =>
-              toMessage(RequestedItemClick({ index })),
-            ),
-      ),
-      M.whenOr(
-        'ArrowDown',
-        'ArrowUp',
-        'Home',
-        'End',
-        'PageUp',
-        'PageDown',
-        () =>
-          Option.some(
+      M.when('ArrowDown', () => {
+        if (!isOpen) {
+          return Option.some(
             toMessage(
-              ActivatedItem({
-                index: resolveActiveIndex(key),
-                activationTrigger: 'Keyboard',
+              Opened({
+                maybeActiveItemIndex: Option.some(firstEnabledIndex),
               }),
             ),
+          )
+        }
+        return Option.some(
+          toMessage(
+            ActivatedItem({
+              index: resolveActiveIndex('ArrowDown'),
+              activationTrigger: 'Keyboard',
+            }),
           ),
-      ),
-      M.when(isPrintableKey, () => searchForKey(key)),
+        )
+      }),
+      M.when('ArrowUp', () => {
+        if (!isOpen) {
+          return Option.some(
+            toMessage(
+              Opened({
+                maybeActiveItemIndex: Option.some(lastEnabledIndex),
+              }),
+            ),
+          )
+        }
+        return Option.some(
+          toMessage(
+            ActivatedItem({
+              index: resolveActiveIndex('ArrowUp'),
+              activationTrigger: 'Keyboard',
+            }),
+          ),
+        )
+      }),
+      M.when('Enter', () => {
+        if (!isOpen) {
+          return Option.none()
+        }
+        return Option.map(maybeActiveItemIndex, index =>
+          toMessage(RequestedItemClick({ index })),
+        )
+      }),
+      M.when('Escape', () => {
+        if (!isOpen) {
+          return Option.none()
+        }
+        return Option.some(toMessage(Closed()))
+      }),
+      M.whenOr('Home', 'End', () => {
+        if (!isOpen) {
+          return Option.none()
+        }
+        return Option.some(
+          toMessage(
+            ActivatedItem({
+              index: resolveActiveIndex(key),
+              activationTrigger: 'Keyboard',
+            }),
+          ),
+        )
+      }),
       M.orElse(() => Option.none()),
     )
 
-  const handleItemsPointerUp = (
-    screenX: number,
-    screenY: number,
-    pointerType: string,
-    timeStamp: number,
-  ): Option.Option<Message> =>
-    OptionExt.when(
-      pointerType === 'mouse',
-      toMessage(ReleasedPointerOnItems({ screenX, screenY, timeStamp })),
+  const preventBlurOnPointerDown = (element: Element): void => {
+    element.addEventListener(
+      'pointerdown',
+      (event: Event) => {
+        event.preventDefault()
+      },
+      { capture: true },
     )
-
-  const buttonAttributes = [
-    Id(`${id}-button`),
-    Type('button'),
-    Class(buttonClassName),
-    AriaHasPopup('menu'),
-    AriaExpanded(isVisible),
-    AriaControls(`${id}-items`),
-    ...(isButtonDisabled
-      ? [AriaDisabled(true), DataAttribute('disabled', '')]
-      : [
-          OnPointerDown(handleButtonPointerDown),
-          OnKeyDownPreventDefault(handleButtonKeyDown),
-          OnKeyUpPreventDefault(handleSpaceKeyUp),
-          OnClick(handleButtonClick()),
-        ]),
-    ...(isVisible ? [DataAttribute('open', '')] : []),
-  ]
+  }
 
   const maybeActiveDescendant = Option.match(maybeActiveItemIndex, {
     onNone: () => [],
     onSome: index => [AriaActiveDescendant(itemId(id, index))],
   })
 
+  const inputAttributes = [
+    Id(`${id}-input`),
+    Role('combobox'),
+    Class(inputClassName),
+    AriaExpanded(isVisible),
+    AriaControls(`${id}-items`),
+    Attribute('aria-autocomplete', 'list'),
+    Attribute('aria-haspopup', 'listbox'),
+    Autocomplete('off'),
+    Value(config.model.inputValue),
+    ...maybeActiveDescendant,
+    ...(inputPlaceholder ? [Attribute('placeholder', inputPlaceholder)] : []),
+    ...(isDisabled
+      ? [AriaDisabled(true), DataAttribute('disabled', '')]
+      : [
+          OnInput(value => toMessage(UpdatedInputValue({ value }))),
+          OnKeyDownPreventDefault(handleInputKeyDown),
+          OnBlur(toMessage(ClosedByTab())),
+          ...(openOnFocus
+            ? [
+                OnFocus(
+                  toMessage(Opened({ maybeActiveItemIndex: Option.none() })),
+                ),
+              ]
+            : []),
+        ]),
+    ...(isInvalid ? [AriaInvalid(true), DataAttribute('invalid', '')] : []),
+    ...(isVisible ? [DataAttribute('open', '')] : []),
+  ]
+
   const hooks = anchor
-    ? anchorHooks({ buttonId: `${id}-button`, anchor })
+    ? anchorHooks({
+        buttonId: `${id}-input-wrapper`,
+        anchor,
+        interceptTab: false,
+      })
     : undefined
 
   const anchorAttributes = hooks
     ? [
         Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
-        OnInsert(hooks.onInsert),
+        OnInsert((element: Element) => {
+          preventBlurOnPointerDown(element)
+          hooks.onInsert(element)
+        }),
         OnDestroy(hooks.onDestroy),
       ]
-    : []
+    : [OnInsert(preventBlurOnPointerDown)]
 
   const itemsContainerAttributes = [
     Id(`${id}-items`),
-    Role('menu'),
-    AriaLabelledBy(`${id}-button`),
-    ...maybeActiveDescendant,
-    Tabindex(0),
+    Role('listbox'),
+    AriaLabelledBy(`${id}-input`),
+    Tabindex(-1),
     Class(itemsClassName),
     ...anchorAttributes,
     ...transitionAttributes,
-    ...(isLeaving
-      ? []
-      : [
-          OnKeyDownPreventDefault(handleItemsKeyDown),
-          OnKeyUpPreventDefault(handleSpaceKeyUp),
-          OnPointerUp(handleItemsPointerUp),
-          OnBlur(toMessage(ClosedByTab())),
-        ]),
   ]
 
-  const menuItems = Array.map(items, (item, index) => {
+  const comboboxItems = Array.map(items, (item, index) => {
     const isActiveItem = Option.exists(
       maybeActiveItemIndex,
       activeIndex => activeIndex === index,
     )
-    const isDisabledItem = isDisabled(index)
+    const isDisabledItem = isDisabledAtIndex(index)
     const itemConfig = itemToConfig(item, {
       isActive: isActiveItem,
       isDisabled: isDisabledItem,
@@ -899,7 +793,7 @@ export const view = <Message, Item extends string>(
       itemId(id, index),
       [
         Id(itemId(id, index)),
-        Role('menuitem'),
+        Role('option'),
         Class(itemConfig.className),
         ...(isActiveItem ? [DataAttribute('active', '')] : []),
         ...(isDisabledItem
@@ -907,19 +801,20 @@ export const view = <Message, Item extends string>(
           : []),
         ...(isInteractive
           ? [
-              OnClick(toMessage(SelectedItem({ index }))),
-              ...(isActiveItem
-                ? []
-                : [
-                    OnPointerMove((screenX, screenY, pointerType) =>
-                      OptionExt.when(
-                        pointerType !== 'touch',
-                        toMessage(
-                          MovedPointerOverItem({ index, screenX, screenY }),
-                        ),
-                      ),
-                    ),
-                  ]),
+              OnClick(
+                toMessage(
+                  SelectedItem({
+                    item: itemToValue(item, index),
+                    displayText: itemToDisplayText(item, index),
+                  }),
+                ),
+              ),
+              OnPointerMove((screenX, screenY, pointerType) =>
+                OptionExt.when(
+                  pointerType !== 'touch',
+                  toMessage(MovedPointerOverItem({ index, screenX, screenY })),
+                ),
+              ),
               OnPointerLeave(pointerType =>
                 OptionExt.when(
                   pointerType !== 'touch',
@@ -935,10 +830,10 @@ export const view = <Message, Item extends string>(
 
   const renderGroupedItems = (): ReadonlyArray<Html> => {
     if (!itemGroupKey) {
-      return menuItems
+      return comboboxItems
     }
 
-    const segments = groupContiguous(menuItems, (_, index) =>
+    const segments = groupContiguous(comboboxItems, (_, index) =>
       Array.get(items, index).pipe(
         Option.match({
           onNone: () => '',
@@ -1016,18 +911,59 @@ export const view = <Message, Item extends string>(
     ),
   ]
 
+  const inputWrapperAttributes = [
+    Id(`${id}-input-wrapper`),
+    ...(inputWrapperClassName ? [Class(inputWrapperClassName)] : []),
+  ]
+
+  const toggleButton =
+    buttonContent && buttonClassName
+      ? [
+          keyed('button')(
+            `${id}-button`,
+            [
+              Id(`${id}-button`),
+              Type('button'),
+              Class(buttonClassName),
+              Tabindex(-1),
+              AriaControls(`${id}-items`),
+              AriaExpanded(isVisible),
+              Attribute('aria-haspopup', 'listbox'),
+              ...(isDisabled
+                ? [AriaDisabled(true), DataAttribute('disabled', '')]
+                : [OnClick(toMessage(PressedToggleButton()))]),
+              OnInsert(preventBlurOnPointerDown),
+            ],
+            [buttonContent],
+          ),
+        ]
+      : []
+
+  const hiddenInput = formName
+    ? [
+        input([
+          Type('hidden'),
+          Name(formName),
+          Value(Option.getOrElse(config.model.maybeSelectedItem, () => '')),
+        ]),
+      ]
+    : []
+
   const wrapperAttributes = [
     ...(className ? [Class(className)] : []),
     ...(isVisible ? [DataAttribute('open', '')] : []),
+    ...(isDisabled ? [DataAttribute('disabled', '')] : []),
+    ...(isInvalid ? [DataAttribute('invalid', '')] : []),
   ]
 
   return div(wrapperAttributes, [
-    keyed('button')(`${id}-button`, buttonAttributes, [buttonContent]),
-    ...(isVisible ? visibleContent : []),
+    div(inputWrapperAttributes, [input(inputAttributes), ...toggleButton]),
+    ...(isVisible && Array.isNonEmptyArray(items) ? visibleContent : []),
+    ...hiddenInput,
   ])
 }
 
-/** Creates a memoized menu view. Static config is captured in a closure;
+/** Creates a memoized combobox view. Static config is captured in a closure;
  *  only `model` and `toMessage` are compared per render via `createLazy`. */
 export const lazy = <Message, Item extends string>(
   staticConfig: Omit<ViewConfig<Message, Item>, 'model' | 'toMessage'>,
