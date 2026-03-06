@@ -1,0 +1,117 @@
+import { Array, Schema as S } from 'effect'
+
+import type { Html } from '../../html'
+import { createLazy } from '../../html/lazy'
+import { evo } from '../../struct'
+import {
+  type BaseInitConfig,
+  BaseModel,
+  type BaseViewConfig,
+  baseInit,
+  closedBaseModel,
+  makeUpdate,
+  makeView,
+} from './shared'
+
+// MODEL
+
+/** Schema for the multi-select combobox component's state, tracking open/closed status, active item, input value, and selected items. */
+export const Model = BaseModel.pipe(
+  S.extend(S.Struct({ selectedItems: S.Array(S.String) })),
+)
+
+export type Model = typeof Model.Type
+
+// INIT
+
+/** Configuration for creating a multi-select combobox model with `init`. `isAnimated` enables CSS transition coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). `selectedItems` sets the initial selection (default `[]`). */
+export type InitConfig = BaseInitConfig &
+  Readonly<{
+    selectedItems?: ReadonlyArray<string>
+  }>
+
+/** Creates an initial multi-select combobox model from a config. Defaults to closed with no active item, empty input, and no selection. */
+export const init = (config: InitConfig): Model => ({
+  ...baseInit(config),
+  selectedItems: config.selectedItems ?? [],
+})
+
+// UPDATE
+
+const toggleItem = (
+  selectedItems: ReadonlyArray<string>,
+  item: string,
+): ReadonlyArray<string> =>
+  Array.contains(selectedItems, item)
+    ? Array.filter(selectedItems, selected => selected !== item)
+    : Array.append(selectedItems, item)
+
+const emptySelection: ReadonlyArray<string> = []
+
+/** Processes a combobox message and returns the next model and commands. Stays open on selection and toggles item membership (multi-select behavior). */
+export const update = makeUpdate<Model>({
+  handleClose: model => {
+    if (model.nullable && model.inputValue === '') {
+      return evo(closedBaseModel(model), {
+        selectedItems: () => emptySelection,
+        inputValue: () => '',
+      })
+    }
+
+    return evo(closedBaseModel(model), {
+      inputValue: () => '',
+    })
+  },
+
+  handleSelectedItem: (model, item) => {
+    const nextSelectedItems = toggleItem(model.selectedItems, item)
+
+    return [evo(model, { selectedItems: () => nextSelectedItems }), []]
+  },
+
+  handleImmediateActivation: (model, item) =>
+    evo(model, {
+      selectedItems: () => toggleItem(model.selectedItems, item),
+    }),
+})
+
+// VIEW
+
+/** Configuration for rendering a multi-select combobox with `view`. */
+export type ViewConfig<Message, Item extends string> = BaseViewConfig<
+  Message,
+  Item,
+  Model
+>
+
+/** Renders a headless multi-select combobox with keyboard navigation, selection tracking, and aria-activedescendant focus management. */
+export const view = makeView<Model>({
+  isItemSelected: (model, itemValue) =>
+    Array.contains(model.selectedItems, itemValue),
+  ariaMultiSelectable: true,
+})
+
+/** Creates a memoized multi-select combobox view. Static config is captured in a closure;
+ *  only `model` and `toMessage` are compared per render via `createLazy`. */
+export const lazy = <Message, Item extends string>(
+  staticConfig: Omit<ViewConfig<Message, Item>, 'model' | 'toMessage'>,
+): ((
+  model: Model,
+  toMessage: BaseViewConfig<Message, Item, Model>['toMessage'],
+) => Html) => {
+  const lazyView = createLazy()
+
+  return (model, toMessage) =>
+    lazyView(
+      (
+        currentModel: Model,
+        currentToMessage: BaseViewConfig<Message, Item, Model>['toMessage'],
+      ) =>
+        view({
+          ...staticConfig,
+          model: currentModel,
+          toMessage: currentToMessage,
+        }),
+      [model, toMessage],
+    )
+}

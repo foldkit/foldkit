@@ -1,5 +1,6 @@
 import { Array } from 'effect'
 import { Html } from 'foldkit/html'
+import { twMerge } from 'tailwind-merge'
 
 import {
   AriaLabel,
@@ -68,7 +69,7 @@ const sectionHeadingConfig = {
     textClassName:
       'text-xl font-normal text-gray-900 dark:text-white scroll-mt-6',
     wrapperClassName:
-      'group flex items-center gap-1 md:gap-0 mt-6 mb-3 md:flex-row-reverse md:justify-end md:-ml-[1.5rem]',
+      'group flex items-center gap-1 md:gap-0 mt-6 mb-2 md:flex-row-reverse md:justify-end md:-ml-[1.5rem]',
   },
   h4: {
     textClassName:
@@ -99,6 +100,18 @@ export const para = (
   ...content: ReadonlyArray<string | Html>
 ): Html => p([Class('mb-4 leading-7')], content)
 
+export const subPara = (
+  ...content: ReadonlyArray<string | Html>
+): Html =>
+  p(
+    [
+      Class(
+        'mb-4 text-sm leading-6 text-gray-600 dark:text-gray-400',
+      ),
+    ],
+    content,
+  )
+
 export const paragraphs = (
   ...contents: ReadonlyArray<string>
 ): ReadonlyArray<Html> =>
@@ -121,11 +134,16 @@ export const bulletPoint = (
   description: string,
 ): Html => li([], [strong([], [`${label}:`]), ` ${description}`])
 
-export const inlineCode = (text: string): Html =>
+const inlineCodeClassName =
+  'bg-gray-200/70 dark:bg-gray-800 px-1.5 py-px rounded text-sm border border-gray-300/50 dark:border-gray-700/50'
+
+export const inlineCode = (text: string, className?: string): Html =>
   code(
     [
       Class(
-        'bg-gray-200/70 dark:bg-gray-800 px-1.5 py-px rounded text-sm border border-gray-300/50 dark:border-gray-700/50',
+        className
+          ? twMerge(inlineCodeClassName, className)
+          : inlineCodeClassName,
       ),
     ],
     [text],

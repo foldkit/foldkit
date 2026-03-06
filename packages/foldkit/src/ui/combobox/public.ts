@@ -1,4 +1,6 @@
-export { init, update, view, lazy, Model, Message } from './index'
+export { init, update, view, lazy, Model } from './single'
+
+export { Message } from './shared'
 
 export { TransitionState } from '../transition'
 
@@ -18,10 +20,12 @@ export type {
   AdvancedTransitionFrame,
   EndedTransition,
   DetectedInputMovement,
-  InitConfig,
-  ViewConfig,
   ItemConfig,
   GroupHeading,
-} from './index'
+} from './shared'
+
+export type { InitConfig, ViewConfig } from './single'
 
 export type { AnchorConfig } from '../anchor'
+
+export * as Multi from './multiPublic'

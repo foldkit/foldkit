@@ -5,6 +5,24 @@ import { m } from 'foldkit/message'
 export const GotComboboxDemoMessage = m('GotComboboxDemoMessage', {
   message: Ui.Combobox.Message,
 })
+export const GotComboboxNullableDemoMessage = m(
+  'GotComboboxNullableDemoMessage',
+  {
+    message: Ui.Combobox.Message,
+  },
+)
+export const GotComboboxMultiDemoMessage = m(
+  'GotComboboxMultiDemoMessage',
+  {
+    message: Ui.Combobox.Message,
+  },
+)
+export const GotComboboxSelectOnFocusDemoMessage = m(
+  'GotComboboxSelectOnFocusDemoMessage',
+  {
+    message: Ui.Combobox.Message,
+  },
+)
 export const GotDialogDemoMessage = m('GotDialogDemoMessage', {
   message: Ui.Dialog.Message,
 })
@@ -68,6 +86,9 @@ export const GotVerticalTabsDemoMessage = m(
 
 export const Message = S.Union(
   GotComboboxDemoMessage,
+  GotComboboxNullableDemoMessage,
+  GotComboboxMultiDemoMessage,
+  GotComboboxSelectOnFocusDemoMessage,
   GotDialogDemoMessage,
   GotDisclosureDemoMessage,
   GotListboxDemoMessage,

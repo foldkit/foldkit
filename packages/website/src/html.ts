@@ -19,6 +19,7 @@ export const {
   h3,
   h4,
   header,
+  hr,
   img,
   input,
   keyed,

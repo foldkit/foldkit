@@ -12,6 +12,9 @@ import {
 
 export const Model = S.Struct({
   comboboxDemo: Combobox.Model,
+  comboboxNullableDemo: Combobox.Model,
+  comboboxMultiDemo: Combobox.Multi.Model,
+  comboboxSelectOnFocusDemo: Combobox.Model,
   dialogDemo: Dialog.Model,
   disclosureDemo: Disclosure.Model,
   listboxDemo: Listbox.Model,

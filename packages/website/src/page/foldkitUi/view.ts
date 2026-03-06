@@ -2,7 +2,7 @@ import { Ui } from 'foldkit'
 import { createLazy } from 'foldkit/html'
 import type { Html } from 'foldkit/html'
 
-import { Class, div, p, section, span } from '../../html'
+import { Class, div, hr, p, section, span } from '../../html'
 import type { TableOfContentsEntry } from '../../main'
 import type { Message as ParentMessage } from '../../main'
 import { heading, pageTitle, para } from '../../prose'
@@ -78,11 +78,15 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   Popover.basicHeader,
   Popover.animatedHeader,
   Listbox.listboxHeader,
-  Listbox.basicHeader,
+  Listbox.singleSelectHeader,
   Listbox.multiSelectHeader,
   Listbox.groupedHeader,
   Switch.switchHeader,
   Combobox.comboboxHeader,
+  Combobox.singleSelectHeader,
+  Combobox.nullableHeader,
+  Combobox.multiHeader,
+  Combobox.selectOnFocusHeader,
   ...plannedComponents.map(({ entry }) => entry),
 ]
 
@@ -248,8 +252,15 @@ const switchSectionView = (
     ],
   )
 
+const sectionSeparator = hr([
+  Class('my-8 border-gray-200 dark:border-gray-700/50'),
+])
+
 const comboboxSectionView = (
   comboboxDemo: Ui.Combobox.Model,
+  comboboxNullableDemo: Ui.Combobox.Model,
+  comboboxMultiDemo: Ui.Combobox.Multi.Model,
+  comboboxSelectOnFocusDemo: Ui.Combobox.Model,
   toMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
@@ -264,6 +275,12 @@ const comboboxSectionView = (
         'An autocomplete input with filtering, keyboard navigation, and custom rendering. Uses aria-activedescendant for focus management and supports grouped items.',
       ),
       ...Combobox.comboboxDemo(comboboxDemo, toMessage),
+      ...Combobox.nullableDemo(comboboxNullableDemo, toMessage),
+      ...Combobox.multiDemo(comboboxMultiDemo, toMessage),
+      ...Combobox.selectOnFocusDemo(
+        comboboxSelectOnFocusDemo,
+        toMessage,
+      ),
     ],
   )
 
@@ -283,36 +300,46 @@ export const view = (
         model.verticalTabsDemo,
         toMessage,
       ]),
+      sectionSeparator,
       lazyDisclosureSection(disclosureSectionView, [
         model.disclosureDemo,
         toMessage,
       ]),
+      sectionSeparator,
       lazyDialogSection(dialogSectionView, [
         model.dialogDemo,
         toMessage,
       ]),
+      sectionSeparator,
       lazyMenuSection(menuSectionView, [
         model.menuBasicDemo,
         model.menuAnimatedDemo,
         toMessage,
       ]),
+      sectionSeparator,
       lazyPopoverSection(popoverSectionView, [
         model.popoverBasicDemo,
         model.popoverAnimatedDemo,
         toMessage,
       ]),
+      sectionSeparator,
       lazyListboxSection(listboxSectionView, [
         model.listboxDemo,
         model.listboxMultiDemo,
         model.listboxGroupedDemo,
         toMessage,
       ]),
+      sectionSeparator,
       lazySwitchSection(switchSectionView, [
         model.switchDemo,
         toMessage,
       ]),
+      sectionSeparator,
       lazyComboboxSection(comboboxSectionView, [
         model.comboboxDemo,
+        model.comboboxNullableDemo,
+        model.comboboxMultiDemo,
+        model.comboboxSelectOnFocusDemo,
         toMessage,
       ]),
       div(

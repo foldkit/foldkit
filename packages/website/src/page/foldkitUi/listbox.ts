@@ -22,10 +22,10 @@ export const listboxHeader: TableOfContentsEntry = {
   text: 'Listbox',
 }
 
-export const basicHeader: TableOfContentsEntry = {
+export const singleSelectHeader: TableOfContentsEntry = {
   level: 'h3',
-  id: 'basic-listbox',
-  text: 'Basic',
+  id: 'single-select-listbox',
+  text: 'Single-Select',
 }
 
 export const multiSelectHeader: TableOfContentsEntry = {
@@ -122,7 +122,7 @@ export const basicDemo = (
   )
 
   return [
-    heading('h3', basicHeader.id, basicHeader.text),
+    heading('h3', singleSelectHeader.id, singleSelectHeader.text),
     div(
       [Class('relative')],
       [

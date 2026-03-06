@@ -5,6 +5,9 @@ import { evo } from 'foldkit/struct'
 
 import {
   GotComboboxDemoMessage,
+  GotComboboxMultiDemoMessage,
+  GotComboboxNullableDemoMessage,
+  GotComboboxSelectOnFocusDemoMessage,
   GotDialogDemoMessage,
   GotDisclosureDemoMessage,
   GotHorizontalTabsDemoMessage,
@@ -42,6 +45,60 @@ export const update = (
           comboboxCommands.map(
             Effect.map(message =>
               GotComboboxDemoMessage({ message }),
+            ),
+          ),
+        ]
+      },
+
+      GotComboboxNullableDemoMessage: ({ message }) => {
+        const [nextComboboxNullableDemo, comboboxNullableCommands] =
+          Ui.Combobox.update(model.comboboxNullableDemo, message)
+
+        return [
+          evo(model, {
+            comboboxNullableDemo: () => nextComboboxNullableDemo,
+          }),
+          comboboxNullableCommands.map(
+            Effect.map(message =>
+              GotComboboxNullableDemoMessage({ message }),
+            ),
+          ),
+        ]
+      },
+
+      GotComboboxMultiDemoMessage: ({ message }) => {
+        const [nextComboboxMultiDemo, comboboxMultiCommands] =
+          Ui.Combobox.Multi.update(model.comboboxMultiDemo, message)
+
+        return [
+          evo(model, {
+            comboboxMultiDemo: () => nextComboboxMultiDemo,
+          }),
+          comboboxMultiCommands.map(
+            Effect.map(message =>
+              GotComboboxMultiDemoMessage({ message }),
+            ),
+          ),
+        ]
+      },
+
+      GotComboboxSelectOnFocusDemoMessage: ({ message }) => {
+        const [
+          nextComboboxSelectOnFocusDemo,
+          comboboxSelectOnFocusCommands,
+        ] = Ui.Combobox.update(
+          model.comboboxSelectOnFocusDemo,
+          message,
+        )
+
+        return [
+          evo(model, {
+            comboboxSelectOnFocusDemo: () =>
+              nextComboboxSelectOnFocusDemo,
+          }),
+          comboboxSelectOnFocusCommands.map(
+            Effect.map(message =>
+              GotComboboxSelectOnFocusDemoMessage({ message }),
             ),
           ),
         ]
