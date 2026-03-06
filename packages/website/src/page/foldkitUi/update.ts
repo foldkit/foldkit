@@ -4,6 +4,7 @@ import { Command } from 'foldkit/command'
 import { evo } from 'foldkit/struct'
 
 import {
+  GotComboboxDemoMessage,
   GotDialogDemoMessage,
   GotDisclosureDemoMessage,
   GotHorizontalTabsDemoMessage,
@@ -30,6 +31,22 @@ export const update = (
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
+      GotComboboxDemoMessage: ({ message }) => {
+        const [nextComboboxDemo, comboboxCommands] =
+          Ui.Combobox.update(model.comboboxDemo, message)
+
+        return [
+          evo(model, {
+            comboboxDemo: () => nextComboboxDemo,
+          }),
+          comboboxCommands.map(
+            Effect.map(message =>
+              GotComboboxDemoMessage({ message }),
+            ),
+          ),
+        ]
+      },
+
       GotDialogDemoMessage: ({ message }) => {
         const [nextDialogDemo, dialogCommands] = Ui.Dialog.update(
           model.dialogDemo,

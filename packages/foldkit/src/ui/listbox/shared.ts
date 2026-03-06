@@ -556,6 +556,7 @@ export type BaseViewConfig<Message, Item, Model extends BaseModel> = Readonly<{
   buttonContent: Html
   buttonClassName: string
   itemsClassName: string
+  itemsScrollClassName?: string
   backdropClassName: string
   className?: string
   itemGroupKey?: (item: Item, index: number) => string
@@ -636,6 +637,7 @@ export const makeView =
       buttonContent,
       buttonClassName,
       itemsClassName,
+      itemsScrollClassName,
       backdropClassName,
       className,
       itemGroupKey,
@@ -1022,12 +1024,16 @@ export const makeView =
 
     const renderedItems = renderGroupedItems()
 
+    const scrollableItems = itemsScrollClassName
+      ? [div([Class(itemsScrollClassName)], renderedItems)]
+      : renderedItems
+
     const visibleContent = [
       backdrop,
       keyed('div')(
         `${id}-items-container`,
         itemsContainerAttributes,
-        renderedItems,
+        scrollableItems,
       ),
     ]
 

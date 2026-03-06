@@ -8,6 +8,7 @@ export type InitReturn = [Model, ReadonlyArray<Command<Message>>]
 
 export const init = (): InitReturn => [
   {
+    comboboxDemo: Ui.Combobox.init({ id: 'combobox-demo' }),
     dialogDemo: Ui.Dialog.init({ id: 'dialog-demo' }),
     disclosureDemo: Ui.Disclosure.init({ id: 'disclosure-demo' }),
     listboxDemo: Ui.Listbox.init({ id: 'listbox-demo' }),

@@ -2,6 +2,9 @@ import { Schema as S } from 'effect'
 import { Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 
+export const GotComboboxDemoMessage = m('GotComboboxDemoMessage', {
+  message: Ui.Combobox.Message,
+})
 export const GotDialogDemoMessage = m('GotDialogDemoMessage', {
   message: Ui.Dialog.Message,
 })
@@ -64,6 +67,7 @@ export const GotVerticalTabsDemoMessage = m(
 )
 
 export const Message = S.Union(
+  GotComboboxDemoMessage,
   GotDialogDemoMessage,
   GotDisclosureDemoMessage,
   GotListboxDemoMessage,
