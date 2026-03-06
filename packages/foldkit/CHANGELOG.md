@@ -1,5 +1,11 @@
 # foldkit
 
+## 0.27.0
+
+### Minor Changes
+
+- 4153513: Add Combobox UI component with nullable, multi-select, and select-on-focus modes. Add lazy factory to all UI components.
+
 ## 0.26.0
 
 ### Minor Changes
