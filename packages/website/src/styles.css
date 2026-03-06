@@ -122,7 +122,11 @@
 
   pre code .line[data-line]::before {
     content: attr(data-line);
-    @apply inline-block mr-4 text-right text-gray-500 select-none border-r border-gray-300 dark:border-gray-600 pr-4;
+    @apply inline-block mr-4 text-right text-gray-500 select-none border-r border-gray-300 pr-4;
+  }
+
+  .dark pre code .line[data-line]::before {
+    border-color: #332f3b;
   }
 
   pre[data-line-digits='1'] code .line[data-line]::before {
