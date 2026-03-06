@@ -10,7 +10,6 @@ import {
   GotVerticalTabsDemoMessage,
   type Message,
 } from './message'
-import type { Model } from './model'
 
 // TABLE OF CONTENTS
 
@@ -149,12 +148,12 @@ const verticalTabToConfig = (
 // VIEW
 
 export const horizontalDemo = (
-  model: Model,
+  tabsModel: Ui.Tabs.Model,
   toMessage: (message: Message) => ParentMessage,
 ) => [
   heading('h3', horizontalHeader.id, horizontalHeader.text),
   Ui.Tabs.view({
-    model: model.horizontalTabsDemo,
+    model: tabsModel,
     toMessage: message =>
       toMessage(GotHorizontalTabsDemoMessage({ message })),
     tabs: demoTabs,
@@ -164,12 +163,12 @@ export const horizontalDemo = (
 ]
 
 export const verticalDemo = (
-  model: Model,
+  tabsModel: Ui.Tabs.Model,
   toMessage: (message: Message) => ParentMessage,
 ) => [
   heading('h3', verticalHeader.id, verticalHeader.text),
   Ui.Tabs.view({
-    model: model.verticalTabsDemo,
+    model: tabsModel,
     toMessage: message =>
       toMessage(GotVerticalTabsDemoMessage({ message })),
     tabs: demoTabs,

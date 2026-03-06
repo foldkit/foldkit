@@ -2,6 +2,7 @@ export {
   init,
   update,
   view,
+  lazy,
   titleId,
   descriptionId,
   Model,

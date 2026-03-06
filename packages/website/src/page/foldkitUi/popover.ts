@@ -10,7 +10,6 @@ import {
   GotPopoverBasicDemoMessage,
   type Message,
 } from './message'
-import type { Model } from './model'
 
 // TABLE OF CONTENTS
 
@@ -86,7 +85,7 @@ const popoverViewConfig = (panelClassName: string) => ({
 })
 
 export const basicDemo = (
-  model: Model,
+  popoverModel: Ui.Popover.Model,
   toMessage: (message: Message) => ParentMessage,
 ) => [
   heading('h3', basicHeader.id, basicHeader.text),
@@ -94,7 +93,7 @@ export const basicDemo = (
     [Class('relative')],
     [
       Ui.Popover.view({
-        model: model.popoverBasicDemo,
+        model: popoverModel,
         toMessage: message =>
           toMessage(GotPopoverBasicDemoMessage({ message })),
         ...popoverViewConfig(basicPanelClassName),
@@ -104,7 +103,7 @@ export const basicDemo = (
 ]
 
 export const animatedDemo = (
-  model: Model,
+  popoverModel: Ui.Popover.Model,
   toMessage: (message: Message) => ParentMessage,
 ) => [
   heading('h3', animatedHeader.id, animatedHeader.text),
@@ -112,7 +111,7 @@ export const animatedDemo = (
     [Class('relative')],
     [
       Ui.Popover.view({
-        model: model.popoverAnimatedDemo,
+        model: popoverModel,
         toMessage: message =>
           toMessage(GotPopoverAnimatedDemoMessage({ message })),
         ...popoverViewConfig(animatedPanelClassName),

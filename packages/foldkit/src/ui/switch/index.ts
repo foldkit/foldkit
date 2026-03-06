@@ -4,6 +4,7 @@ import type { Command } from '../../command'
 import type { Attribute } from '../../html'
 import { html } from '../../html'
 import type { Html } from '../../html'
+import { createLazy } from '../../html/lazy'
 import { m } from '../../message'
 import { evo } from '../../struct'
 
@@ -152,4 +153,26 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     description: descriptionAttributes,
     hiddenInput: hiddenInputAttributes,
   })
+}
+
+/** Creates a memoized switch view. Static config is captured in a closure;
+ *  only `model` and `toMessage` are compared per render via `createLazy`. */
+export const lazy = <Message>(
+  staticConfig: Omit<ViewConfig<Message>, 'model' | 'toMessage'>,
+): ((model: Model, toMessage: ViewConfig<Message>['toMessage']) => Html) => {
+  const lazyView = createLazy()
+
+  return (model, toMessage) =>
+    lazyView(
+      (
+        currentModel: Model,
+        currentToMessage: ViewConfig<Message>['toMessage'],
+      ) =>
+        view({
+          ...staticConfig,
+          model: currentModel,
+          toMessage: currentToMessage,
+        }),
+      [model, toMessage],
+    )
 }

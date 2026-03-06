@@ -12,6 +12,7 @@ import {
 import type { Command } from '../../command'
 import { OptionExt } from '../../effectExtensions'
 import { type Html, html } from '../../html'
+import { createLazy } from '../../html/lazy'
 import { m } from '../../message'
 import { evo } from '../../struct'
 import * as Task from '../../task'
@@ -1018,4 +1019,29 @@ export const view = <Message, Item extends string>(
     keyed('button')(`${id}-button`, buttonAttributes, [buttonContent]),
     ...(isVisible ? visibleContent : []),
   ])
+}
+
+/** Creates a memoized menu view. Static config is captured in a closure;
+ *  only `model` and `toMessage` are compared per render via `createLazy`. */
+export const lazy = <Message, Item extends string>(
+  staticConfig: Omit<ViewConfig<Message, Item>, 'model' | 'toMessage'>,
+): ((
+  model: Model,
+  toMessage: ViewConfig<Message, Item>['toMessage'],
+) => Html) => {
+  const lazyView = createLazy()
+
+  return (model, toMessage) =>
+    lazyView(
+      (
+        currentModel: Model,
+        currentToMessage: ViewConfig<Message, Item>['toMessage'],
+      ) =>
+        view({
+          ...staticConfig,
+          model: currentModel,
+          toMessage: currentToMessage,
+        }),
+      [model, toMessage],
+    )
 }

@@ -4,7 +4,6 @@ import { Class, button, div, label, p, span } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import { GotSwitchDemoMessage, type Message } from './message'
-import type { Model } from './model'
 
 // TABLE OF CONTENTS
 
@@ -40,14 +39,14 @@ const knob = (isChecked: boolean) =>
 // VIEW
 
 export const switchDemo = (
-  model: Model,
+  switchModel: Ui.Switch.Model,
   toMessage: (message: Message) => ParentMessage,
 ) => [
   div(
     [Class('mt-6')],
     [
       Ui.Switch.view({
-        model: model.switchDemo,
+        model: switchModel,
         toMessage: message =>
           toMessage(GotSwitchDemoMessage({ message })),
         toView: attributes =>
@@ -56,7 +55,7 @@ export const switchDemo = (
             [
               button(
                 [...attributes.button, Class(buttonClassName)],
-                [knob(model.switchDemo.isChecked)],
+                [knob(switchModel.isChecked)],
               ),
               div(
                 [],

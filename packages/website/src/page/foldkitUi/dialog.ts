@@ -4,7 +4,6 @@ import { Class, Id, OnClick, button, div, h2, p } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import { GotDialogDemoMessage, type Message } from './message'
-import type { Model } from './model'
 
 // TABLE OF CONTENTS
 
@@ -39,7 +38,7 @@ const confirmButtonClassName =
 // VIEW
 
 export const dialogDemo = (
-  model: Model,
+  dialogModel: Ui.Dialog.Model,
   toMessage: (message: Message) => ParentMessage,
 ) => {
   const toDialogMessage = (message: Ui.Dialog.Message) =>
@@ -59,7 +58,7 @@ export const dialogDemo = (
       ],
     ),
     Ui.Dialog.view({
-      model: model.dialogDemo,
+      model: dialogModel,
       toMessage: toDialogMessage,
       panelContent: div(
         [],
@@ -67,7 +66,7 @@ export const dialogDemo = (
           h2(
             [
               Class(titleClassName),
-              Id(Ui.Dialog.titleId(model.dialogDemo)),
+              Id(Ui.Dialog.titleId(dialogModel)),
             ],
             ['Confirm Action'],
           ),

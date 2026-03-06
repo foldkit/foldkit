@@ -276,6 +276,10 @@ const Message = S.Union(
 )
 export type Message = typeof Message.Type
 
+const toFoldkitUiMessage = (
+  message: Page.FoldkitUi.Message,
+): Message => GotFoldkitUiMessage({ message })
+
 // INIT
 
 const init: Runtime.ApplicationInit<
@@ -1531,9 +1535,7 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
           }),
         ),
       FoldkitUi: () =>
-        Page.FoldkitUi.view(model.foldkitUi, message =>
-          GotFoldkitUiMessage({ message }),
-        ),
+        Page.FoldkitUi.view(model.foldkitUi, toFoldkitUiMessage),
       NotFound: ({ path }) =>
         Page.NotFound.view(path, homeRouter.build({})),
     }),

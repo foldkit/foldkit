@@ -1,5 +1,7 @@
 import { Array, Option, Schema as S, pipe } from 'effect'
 
+import type { Html } from '../../html'
+import { createLazy } from '../../html/lazy'
 import { evo } from '../../struct'
 import {
   type BaseInitConfig,
@@ -63,3 +65,28 @@ export const view = makeView<Model>({
     ),
   ariaMultiSelectable: true,
 })
+
+/** Creates a memoized multi-select listbox view. Static config is captured in a closure;
+ *  only `model` and `toMessage` are compared per render via `createLazy`. */
+export const lazy = <Message, Item>(
+  staticConfig: Omit<ViewConfig<Message, Item>, 'model' | 'toMessage'>,
+): ((
+  model: Model,
+  toMessage: BaseViewConfig<Message, Item, Model>['toMessage'],
+) => Html) => {
+  const lazyView = createLazy()
+
+  return (model, toMessage) =>
+    lazyView(
+      (
+        currentModel: Model,
+        currentToMessage: BaseViewConfig<Message, Item, Model>['toMessage'],
+      ) =>
+        view({
+          ...staticConfig,
+          model: currentModel,
+          toMessage: currentToMessage,
+        }),
+      [model, toMessage],
+    )
+}

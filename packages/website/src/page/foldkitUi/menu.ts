@@ -13,7 +13,6 @@ import {
   GotMenuBasicDemoMessage,
   type Message,
 } from './message'
-import type { Model } from './model'
 
 // TABLE OF CONTENTS
 
@@ -129,7 +128,7 @@ const menuViewConfig = (itemsClassName: string) => ({
 })
 
 export const basicDemo = (
-  model: Model,
+  menuModel: Ui.Menu.Model,
   toMessage: (message: Message) => ParentMessage,
 ) => [
   heading('h3', basicHeader.id, basicHeader.text),
@@ -137,7 +136,7 @@ export const basicDemo = (
     [Class('relative')],
     [
       Ui.Menu.view({
-        model: model.menuBasicDemo,
+        model: menuModel,
         toMessage: message =>
           toMessage(GotMenuBasicDemoMessage({ message })),
         ...menuViewConfig(basicItemsClassName),
@@ -147,7 +146,7 @@ export const basicDemo = (
 ]
 
 export const animatedDemo = (
-  model: Model,
+  menuModel: Ui.Menu.Model,
   toMessage: (message: Message) => ParentMessage,
 ) => [
   heading('h3', animatedHeader.id, animatedHeader.text),
@@ -155,7 +154,7 @@ export const animatedDemo = (
     [Class('relative')],
     [
       Ui.Menu.view({
-        model: model.menuAnimatedDemo,
+        model: menuModel,
         toMessage: message =>
           toMessage(GotMenuAnimatedDemoMessage({ message })),
         ...menuViewConfig(animatedItemsClassName),

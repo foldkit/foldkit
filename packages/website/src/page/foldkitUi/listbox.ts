@@ -13,7 +13,6 @@ import {
   GotListboxMultiDemoMessage,
   type Message,
 } from './message'
-import type { Model } from './model'
 
 // TABLE OF CONTENTS
 
@@ -114,11 +113,11 @@ const LISTBOX_ANCHOR: AnchorConfig = {
 // VIEW
 
 export const basicDemo = (
-  model: Model,
+  listboxModel: Ui.Listbox.Model,
   toMessage: (message: Message) => ParentMessage,
 ) => {
   const buttonLabel = Option.getOrElse(
-    model.listboxDemo.maybeSelectedItem,
+    listboxModel.maybeSelectedItem,
     () => 'Select a Bluth',
   )
 
@@ -128,7 +127,7 @@ export const basicDemo = (
       [Class('relative')],
       [
         Ui.Listbox.view({
-          model: model.listboxDemo,
+          model: listboxModel,
           toMessage: message =>
             toMessage(GotListboxDemoMessage({ message })),
           anchor: LISTBOX_ANCHOR,
@@ -160,10 +159,10 @@ export const basicDemo = (
 }
 
 export const multiSelectDemo = (
-  model: Model,
+  listboxModel: Ui.Listbox.Multi.Model,
   toMessage: (message: Message) => ParentMessage,
 ) => {
-  const { selectedItems } = model.listboxMultiDemo
+  const { selectedItems } = listboxModel
   const buttonLabel = Array.match(selectedItems, {
     onEmpty: () => 'Select Bluths',
     onNonEmpty: items =>
@@ -176,7 +175,7 @@ export const multiSelectDemo = (
       [Class('relative')],
       [
         Ui.Listbox.Multi.view({
-          model: model.listboxMultiDemo,
+          model: listboxModel,
           toMessage: message =>
             toMessage(GotListboxMultiDemoMessage({ message })),
           anchor: LISTBOX_ANCHOR,
@@ -208,11 +207,11 @@ export const multiSelectDemo = (
 }
 
 export const groupedDemo = (
-  model: Model,
+  listboxModel: Ui.Listbox.Model,
   toMessage: (message: Message) => ParentMessage,
 ) => {
   const buttonLabel = Option.getOrElse(
-    model.listboxGroupedDemo.maybeSelectedItem,
+    listboxModel.maybeSelectedItem,
     () => 'Select a character',
   )
 
@@ -222,7 +221,7 @@ export const groupedDemo = (
       [Class('relative')],
       [
         Ui.Listbox.view({
-          model: model.listboxGroupedDemo,
+          model: listboxModel,
           toMessage: message =>
             toMessage(GotListboxGroupedDemoMessage({ message })),
           anchor: LISTBOX_ANCHOR,

@@ -11,6 +11,7 @@ import {
 import type { Command } from '../../command'
 import { html } from '../../html'
 import type { Html, TagName } from '../../html'
+import { createLazy } from '../../html/lazy'
 import { m } from '../../message'
 import { evo } from '../../struct'
 import * as Task from '../../task'
@@ -321,4 +322,29 @@ export const view = <Message, Tab extends string>(
     keyed(tabListElement)(`${id}-tablist`, tabListAttributes, tabButtons),
     ...tabPanels,
   ])
+}
+
+/** Creates a memoized tabs view. Static config is captured in a closure;
+ *  only `model` and `toMessage` are compared per render via `createLazy`. */
+export const lazy = <Message, Tab extends string>(
+  staticConfig: Omit<ViewConfig<Message, Tab>, 'model' | 'toMessage'>,
+): ((
+  model: Model,
+  toMessage: ViewConfig<Message, Tab>['toMessage'],
+) => Html) => {
+  const lazyView = createLazy()
+
+  return (model, toMessage) =>
+    lazyView(
+      (
+        currentModel: Model,
+        currentToMessage: ViewConfig<Message, Tab>['toMessage'],
+      ) =>
+        view({
+          ...staticConfig,
+          model: currentModel,
+          toMessage: currentToMessage,
+        }),
+      [model, toMessage],
+    )
 }

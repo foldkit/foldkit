@@ -1,4 +1,4 @@
-export { init, update, view, Model } from './single'
+export { init, update, view, lazy, Model } from './single'
 
 export { Message, Orientation } from './shared'
 

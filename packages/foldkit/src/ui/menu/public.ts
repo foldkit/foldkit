@@ -1,4 +1,4 @@
-export { init, update, view, Model, Message } from './index'
+export { init, update, view, lazy, Model, Message } from './index'
 
 export { TransitionState } from '../transition'
 

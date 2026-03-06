@@ -5,7 +5,6 @@ import { Icon } from '../../icon'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import { GotDisclosureDemoMessage, type Message } from './message'
-import type { Model } from './model'
 
 // TABLE OF CONTENTS
 
@@ -36,11 +35,11 @@ const chevron = (isOpen: boolean) =>
 // VIEW
 
 export const disclosureDemo = (
-  model: Model,
+  disclosureModel: Ui.Disclosure.Model,
   toMessage: (message: Message) => ParentMessage,
 ) => [
   Ui.Disclosure.view({
-    model: model.disclosureDemo,
+    model: disclosureModel,
     toMessage: message =>
       toMessage(GotDisclosureDemoMessage({ message })),
     buttonClassName,
@@ -48,7 +47,7 @@ export const disclosureDemo = (
       [Class('flex items-center justify-between w-full')],
       [
         span([], ['What is Foldkit?']),
-        chevron(model.disclosureDemo.isOpen),
+        chevron(disclosureModel.isOpen),
       ],
     ),
     panelClassName,
