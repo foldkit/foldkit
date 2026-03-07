@@ -1,6 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import { Class, InnerHTML, div, em } from '../../html'
+import { Class, InnerHTML, div } from '../../html'
 import { Link } from '../../link'
 import type { Model, TableOfContentsEntry } from '../../main'
 import {
@@ -75,9 +75,7 @@ export const view = (model: Model): Html =>
         'Think of the Model as combining useState, useContext, and your Redux store into one typed structure. Instead of state scattered across components, everything lives here.',
       ),
       para(
-        'The model captures what your app ',
-        em([], ['is']),
-        ' at any moment. But how does it change? In Foldkit, every change starts with a Message — a fact about something that happened.',
+        'The model captures what your app is at any moment. But how does it change? In Foldkit, every change starts with a Message — a fact about something that happened.',
       ),
     ],
   )

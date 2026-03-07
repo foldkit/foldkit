@@ -138,16 +138,7 @@ const inlineCodeClassName =
   'bg-gray-200/70 dark:bg-gray-800 px-1 py-px rounded text-sm border border-gray-300/50 dark:border-gray-700/50'
 
 export const inlineCode = (text: string, className?: string): Html =>
-  code(
-    [
-      Class(
-        className
-          ? twMerge(inlineCodeClassName, className)
-          : inlineCodeClassName,
-      ),
-    ],
-    [text],
-  )
+  code([Class(twMerge(inlineCodeClassName, className))], [text])
 
 export const callout = (
   label: string,

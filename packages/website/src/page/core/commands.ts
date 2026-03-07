@@ -18,8 +18,15 @@ const overviewHeader: TableOfContentsEntry = {
   text: 'Overview',
 }
 
+const httpRequestsHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'http-requests',
+  text: 'HTTP Requests',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
+  httpRequestsHeader,
 ]
 
 export const view = (model: Model): Html =>
@@ -29,10 +36,19 @@ export const view = (model: Model): Html =>
       pageTitle('core/commands', 'Commands'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        "You're probably wondering how to handle side effects like HTTP requests, timers, or interacting with the browser API. In Foldkit, side effects are managed through Commands returned by the update function. This keeps your update logic pure and testable.",
+        "So far, update has been returning an empty Commands array. It's time to put it to use. But before we write our first Command, there's a fundamental idea to understand: the update function doesn't actually do anything.",
       ),
       para(
-        "Let's start simple. Say we want to wait one second before resetting the count if the user clicks reset. This is how we might implement that:",
+        'In React, when a user clicks a button, your event handler does things — calls ',
+        inlineCode('fetch()'),
+        ', starts a timer, writes to ',
+        inlineCode('localStorage'),
+        '. The side effects happen right there in your handler. In Foldkit, update is a pure function. When it runs, no HTTP request fires, no timer starts, no DOM changes. It returns data — a new Model and a list of Commands that ',
+        'describe',
+        ' what should happen. The Foldkit runtime reads those descriptions and executes them.',
+      ),
+      para(
+        "Let's see what that looks like. Say we want a delayed reset — when the user clicks reset, the count resets after one second:",
       ),
       highlightedCodeBlock(
         div(
@@ -47,6 +63,43 @@ export const view = (model: Model): Html =>
         model,
         'mb-8',
       ),
+      para(
+        'Look at what update does when ',
+        inlineCode('ClickedResetAfterDelay'),
+        " arrives: it returns the Model unchanged, along with a Command that describes a one-second delay. The update function didn't start a timer — it handed the runtime a description that says ",
+        '"wait one second, then send me ',
+        inlineCode('ElapsedResetDelay'),
+        '." The runtime does the waiting. When the delay fires, ',
+        inlineCode('ElapsedResetDelay'),
+        ' arrives as a new Message, and update resets the count to zero.',
+      ),
+      callout(
+        'The restaurant analogy',
+        'Think of update as a waiter taking your order. The waiter doesn\u2019t cook \u2014 they write down what you asked for and hand the slip to the kitchen. The Foldkit runtime is the kitchen: it reads the slip, does the work, and sends the result back as a new Message.',
+      ),
+      para(
+        'This separation has a practical consequence: you can test your entire state machine without mocking anything.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.counterCommandsTestHighlighted),
+          ],
+          [],
+        ),
+        Snippets.counterCommandsTestRaw,
+        'Copy test example to clipboard',
+        model,
+        'mb-8',
+      ),
+      para(
+        'No fake timers. No test utilities. No setup or teardown. You call update with a Model and a Message, and you check what comes out. The first assertion proves that update described work without doing it \u2014 the count is still 5. The second proves that when the result arrives, the state transitions correctly.',
+      ),
+      para(
+        'This tests the state machine in isolation. In the future, Foldkit may provide a program-level test runner that simulates the full runtime loop \u2014 executing Commands, feeding results back through update, and asserting on the rendered view \u2014 all without a browser.',
+      ),
+      tableOfContentsEntryToHeader(httpRequestsHeader),
       para(
         'Now, what if we want to get the next count from an API instead of incrementing locally? We can create a Command that performs the HTTP request and returns a Message when it completes:',
       ),
@@ -87,8 +140,8 @@ export const view = (model: Model): Html =>
         'Errors are tracked, not hidden',
         'Commands use Effect\u2019s typed error channel \u2014 if a Command can fail, the type signature tells you. ',
         inlineCode('Effect.catchAll'),
-        ' turns failures into messages like ',
-        inlineCode('FailedWeatherFetch'),
+        ' turns failures into Messages like ',
+        inlineCode('FailedCountFetch'),
         ', and once all errors are handled, the type confirms it. The update function handles errors the same way it handles success: as facts about what happened.',
       ),
       para(

@@ -1,6 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import { Class, InnerHTML, div, em } from '../../html'
+import { Class, InnerHTML, div } from '../../html'
 import type { Model, TableOfContentsEntry } from '../../main'
 import {
   callout,
@@ -29,20 +29,12 @@ export const view = (model: Model): Html =>
       pageTitle('core/messages', 'Messages'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'Messages represent all the events that can occur in your application. They describe ',
-        em([], ['what happened']),
-        ', not ',
-        em([], ['how to handle it']),
-        '. Messages are implemented as tagged unions, providing exhaustive pattern matching and type safety.',
+        'Messages represent all the events that can occur in your application. They describe what happened, not how to handle it. Messages are implemented as tagged unions, providing exhaustive pattern matching and type safety.',
       ),
       para(
         'This distinction matters more than it sounds. A message like ',
         inlineCode('PressedIncrement'),
-        " doesn't say ",
-        em([], ["'add one to the count'"]),
-        ' — it says ',
-        em([], ["'the user pressed the increment button.'"]),
-        ' The update function decides what that means. Maybe today it adds one. Maybe tomorrow it fetches a new count from a server. The message stays the same.',
+        " doesn't say 'add one to the count' — it says 'the user pressed the increment button.' The update function decides what that means. Maybe today it adds one. Maybe tomorrow it fetches a new count from a server. The message stays the same.",
       ),
       para('The counter example has three simple messages:'),
       highlightedCodeBlock(

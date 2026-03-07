@@ -1,6 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import { Class, InnerHTML, div, em } from '../../html'
+import { Class, InnerHTML, div } from '../../html'
 import { Link } from '../../link'
 import type { Model, TableOfContentsEntry } from '../../main'
 import {
@@ -59,9 +59,7 @@ export const view = (model: Model): Html =>
         'mb-8',
       ),
       para(
-        'Notice that update returns a tuple: the new Model ',
-        em([], ['and']),
-        ' an array of Commands. Commands represent side effects — HTTP requests, timers, browser API calls. For the counter, the Commands array is always empty. But when we add a delayed reset on the Commands page, that will change.',
+        'Notice that update returns a tuple: the new Model and an array of Commands. Commands represent side effects — HTTP requests, timers, browser API calls. For the counter, the Commands array is always empty. But when we add a delayed reset on the Commands page, that will change.',
       ),
       para(
         "Before we get to side effects, there's one more piece of the counter to understand: the view function, which turns your Model into what the user sees on screen.",

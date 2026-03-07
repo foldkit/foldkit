@@ -90,7 +90,7 @@ export const view = (model: Model): Html =>
       ),
       tableOfContentsEntryToHeader(eventHandlingHeader),
       para(
-        'Event handlers in Foldkit work differently from React. Instead of passing a callback function, you pass a Message. When the event fires, Foldkit dispatches that Message to your update function.',
+        'Event handlers in Foldkit work differently from React. Instead of passing imperative handlers that modify state, you pass a Message — or a function that maps an event to a Message.',
       ),
       highlightedCodeBlock(
         div(

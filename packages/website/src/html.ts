@@ -10,7 +10,6 @@ export const {
   code,
   details,
   div,
-  em,
   empty,
   footer,
   form,

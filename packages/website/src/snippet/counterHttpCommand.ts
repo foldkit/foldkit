@@ -17,20 +17,12 @@ const update = (
   M.value(message).pipe(
     M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
     M.tagsExhaustive({
-      // Tell Foldkit to fetch the count from the API
       ClickedFetchCount: () => [model, [fetchCount]],
-      // Update the count on successful API response
       SucceededCountFetch: ({ count }) => [count, []],
-      // Keep the current count on failure
-      FailedCountFetch: ({ error }) => {
-        // We could also update our model to include the error message
-        // and display it in the view.
-        return [model, []]
-      },
+      FailedCountFetch: () => [model, []],
     }),
   )
 
-// Command that fetches the count from an API
 const fetchCount: Command<
   typeof SucceededCountFetch | typeof FailedCountFetch
 > = Effect.gen(function* () {

@@ -59,12 +59,6 @@ export const view = (model: Model): Html =>
     [],
     [
       pageTitle('getting-started', 'Getting Started'),
-      callout(
-        'Coming from React?',
-        "If you're familiar with React, check out the ",
-        link(comingFromReactRouter(), 'Coming from React'),
-        ' guide to understand how your existing knowledge applies.',
-      ),
       tableOfContentsEntryToHeader(quickStartHeader),
       para(
         link(Link.createFoldkitApp, 'Create Foldkit app'),
@@ -82,12 +76,18 @@ export const view = (model: Model): Html =>
         'Once the project is created, navigate to the project directory and start the dev server:',
       ),
       div(
-        [Class('flex gap-2 flex-wrap')],
+        [Class('flex gap-2 flex-wrap mb-8')],
         [
           codeBlock(DEV_PNPM, 'Copy pnpm command', model),
           codeBlock(DEV_NPM, 'Copy npm command', model),
           codeBlock(DEV_YARN, 'Copy yarn command', model),
         ],
+      ),
+      callout(
+        'Coming from React?',
+        "If you're familiar with React, check out the ",
+        link(comingFromReactRouter(), 'Coming from React'),
+        ' guide to understand how your existing knowledge applies.',
       ),
       tableOfContentsEntryToHeader(projectStructureHeader),
       para('A new Foldkit project has the following structure:'),
