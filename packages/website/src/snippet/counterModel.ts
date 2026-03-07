@@ -1,7 +1,8 @@
-import { Schema } from 'effect'
+import { Schema as S } from 'effect'
 
-// MODEL - The shape of your application state
-// In this case, our state is just a number representing the count
+// MODEL
 
-const Model = Schema.Number
+const Model = S.Struct({
+  count: S.Number,
+})
 type Model = typeof Model.Type

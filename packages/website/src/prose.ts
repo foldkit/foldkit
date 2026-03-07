@@ -106,7 +106,7 @@ export const subPara = (
   p(
     [
       Class(
-        'mb-4 text-sm leading-6 text-gray-600 dark:text-gray-400',
+        'mb-4 text-sm leading-6 text-gray-800 dark:text-gray-400',
       ),
     ],
     content,

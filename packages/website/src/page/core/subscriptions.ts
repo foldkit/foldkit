@@ -1,6 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import { Class, InnerHTML, div, strong } from '../../html'
+import { Class, InnerHTML, div, li, ul } from '../../html'
 import { Link } from '../../link'
 import type { Model, TableOfContentsEntry } from '../../main'
 import {
@@ -30,11 +30,9 @@ export const view = (model: Model): Html =>
       pageTitle('core/subscriptions', 'Subscriptions'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'Commands handle one-off side effects, but what about ongoing streams of events? What if we want our counter to tick automatically — incrementing once per second when the user toggles auto-count mode? For ongoing streams like timers, ',
+        'Commands handle one-off side effects \u2014 a slip to the kitchen that comes back with a result. But what about ongoing streams? In the restaurant analogy, a subscription is a standing order: "keep the coffee coming for table 5." For timers, ',
         inlineCode('WebSocket'),
-        ' connections, or keyboard input, Foldkit provides ',
-        strong([], ['subscriptions']),
-        '.',
+        ' connections, or keyboard input, Foldkit provides subscriptions.',
       ),
       para(
         'A Subscription is a reactive binding between your Model and a long-running stream. You declare which part of the Model the Subscription depends on, and Foldkit manages the stream lifecycle automatically — starting it when dependencies are met, stopping it when they change.',
@@ -66,13 +64,24 @@ export const view = (model: Model): Html =>
         inlineCode('SubscriptionDeps'),
         '. This schema defines what parts of the Model your Subscriptions depend on. Each Subscription has two functions:',
       ),
-      para(
-        inlineCode('modelToDependencies'),
-        ' extracts the relevant dependencies from the Model.',
-      ),
-      para(
-        inlineCode('depsToStream'),
-        ' creates a stream based on those dependencies.',
+      ul(
+        [Class('list-disc mb-8 space-y-2')],
+        [
+          li(
+            [],
+            [
+              inlineCode('modelToDependencies'),
+              ' extracts the relevant dependencies from the Model.',
+            ],
+          ),
+          li(
+            [],
+            [
+              inlineCode('depsToStream'),
+              ' creates a stream based on those dependencies.',
+            ],
+          ),
+        ],
       ),
       para(
         'Foldkit structurally compares the dependencies between model updates. The stream is only restarted when the dependencies actually change, not on every model update.',
@@ -100,7 +109,7 @@ export const view = (model: Model): Html =>
         ').',
       ),
       para(
-        "If you're coming from Elm, subscriptions in Foldkit produce ",
+        "If you're coming from Elm, you may notice subscriptions in Foldkit produce ",
         inlineCode('Command<Message>'),
         ' rather than plain ',
         inlineCode('Message'),

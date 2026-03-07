@@ -1,7 +1,7 @@
 import { Match as M } from 'effect'
 import { Ui } from 'foldkit'
 
-import { Class, div, p, span, strong } from '../../html'
+import { Class, div, p, span } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import { heading } from '../../prose'
@@ -49,7 +49,7 @@ const foldkitPanel = div(
     p(
       [Class('text-gray-700 dark:text-gray-300 mb-3')],
       [
-        strong(
+        span(
           [Class('text-gray-900 dark:text-white')],
           ['Model-View-Update'],
         ),
@@ -71,7 +71,7 @@ const reactPanel = div(
     p(
       [Class('text-gray-700 dark:text-gray-300 mb-3')],
       [
-        strong(
+        span(
           [Class('text-gray-900 dark:text-white')],
           ['Component-based'],
         ),
@@ -93,7 +93,7 @@ const elmPanel = div(
     p(
       [Class('text-gray-700 dark:text-gray-300 mb-3')],
       [
-        strong(
+        span(
           [Class('text-gray-900 dark:text-white')],
           ['The original Elm Architecture'],
         ),

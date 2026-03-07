@@ -1,15 +1,14 @@
-import { Schema } from 'effect'
+import { Schema as S } from 'effect'
 import { m } from 'foldkit/message'
 
-// MESSAGE - All possible events that can happen in your application
-// Messages are dispatched from the view and handled by the update function
+// MESSAGE
 
-// m wraps Schema.TaggedStruct with a callable constructor — write Foo() instead of Foo.make()
+// m() gives you a Message type with a callable constructor
 const ClickedDecrement = m('ClickedDecrement')
 const ClickedIncrement = m('ClickedIncrement')
 const ClickedReset = m('ClickedReset')
 
-const Message = Schema.Union(
+const Message = S.Union(
   ClickedDecrement,
   ClickedIncrement,
   ClickedReset,

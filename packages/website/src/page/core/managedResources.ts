@@ -1,6 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import { Class, InnerHTML, div, strong } from '../../html'
+import { Class, InnerHTML, div } from '../../html'
 import type { Model, TableOfContentsEntry } from '../../main'
 import {
   callout,
@@ -39,8 +39,7 @@ export const view = (model: Model): Html =>
         'Resources live for the entire application lifecycle. But some resources are heavy and should only be active while the model is in a particular state — a camera stream during a video call, a ',
         inlineCode('WebSocket'),
         ' connection while on a chat page, or a Web Worker pool during a computation. ',
-        strong([], ['Managed resources']),
-        ' provide model-driven acquire/release lifecycle, using the same deps-diffing engine as subscriptions.',
+        'Managed resources provide model-driven acquire/release lifecycle, using the same deps-diffing engine as subscriptions.',
       ),
       para(
         'Define a managed resource identity with ',

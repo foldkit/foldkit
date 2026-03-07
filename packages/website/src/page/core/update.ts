@@ -41,9 +41,9 @@ export const view = (model: Model): Html =>
         ' for exhaustive pattern matching on Messages. The TypeScript compiler will error if you forget to handle a Message type.',
       ),
       para(
-        'Add a new Message to your app and forget to handle it here? The compiler tells you. There are no forgotten cases, no ',
+        'Add a new Message to your app and forget to handle it here? The compiler tells you. No forgotten cases, no ',
         inlineCode('default'),
-        ' branches silently swallowing new Messages. Every Message gets an explicit handler.',
+        ' branches silently swallowing new Messages (unless you explicitly opt into a catch-all).',
       ),
       highlightedCodeBlock(
         div(

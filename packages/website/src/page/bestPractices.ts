@@ -1,6 +1,6 @@
 import { Html } from 'foldkit/html'
 
-import { Class, InnerHTML, div, li, strong, ul } from '../html'
+import { Class, InnerHTML, div, li, ul } from '../html'
 import { Link } from '../link'
 import type { Model, TableOfContentsEntry } from '../main'
 import {
@@ -194,7 +194,7 @@ export const view = (model: Model): Html =>
       ),
       para(
         'Side effects happen in ',
-        strong([], ['Commands']),
+        'Commands',
         '. A Command is an Effect that describes a side effect — fetch this URL, wait 500ms, read from storage. Your ',
         inlineCode('update'),
         " function doesn't execute anything; it just returns data describing what should happen. Foldkit's runtime takes those Commands, executes them, and feeds the results back as Messages.",
@@ -309,9 +309,9 @@ export const view = (model: Model): Html =>
       tableOfContentsEntryToHeader(messagesAsEventsHeader),
       para(
         'Messages describe ',
-        strong([], ['what happened']),
+        'what happened',
         ', not ',
-        strong([], ['what to do']),
+        'what to do',
         '. Name them as verb-first, past-tense events where the prefix acts as a category marker: ',
         inlineCode('Clicked*'),
         ' for button presses, ',

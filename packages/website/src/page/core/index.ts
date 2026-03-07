@@ -1,3 +1,4 @@
+export * as Architecture from './architecture'
 export * as CounterExample from './counterExample'
 export * as CoreModel from './model'
 export * as Messages from './messages'

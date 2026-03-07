@@ -12,6 +12,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
+import { bestPracticesRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { highlightedCodeBlock } from '../../view/codeBlock'
 
@@ -94,7 +95,7 @@ export const view = (model: Model): Html =>
       ),
       para(
         'Arguments are compared by reference, not by value. This works naturally with ',
-        link('/best-practices#immutable-updates', 'evo'),
+        link(`${bestPracticesRouter()}#immutable-updates`, 'evo'),
         " — when a model field isn't updated, ",
         inlineCode('evo'),
         ' preserves its reference. Only fields that actually changed get new references, so unchanged arguments automatically pass the ',

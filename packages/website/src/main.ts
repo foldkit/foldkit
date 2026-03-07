@@ -1719,6 +1719,7 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
               Page.NotFound.view(moduleSlug, homeRouter()),
           }),
         ),
+      CoreArchitecture: () => Page.Core.Architecture.view(),
       CoreCounterExample: () => Page.Core.CounterExample.view(model),
       CoreModel: () => Page.Core.CoreModel.view(model),
       CoreMessages: () => Page.Core.Messages.view(model),
@@ -1791,6 +1792,8 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
           Page.ApiReference.slugToModule,
           Option.map(Page.ApiReference.toModuleTableOfContents),
         ),
+      CoreArchitecture: () =>
+        Option.some(Page.Core.Architecture.tableOfContents),
       CoreCounterExample: () =>
         Option.some(Page.Core.CounterExample.tableOfContents),
       CoreModel: () =>

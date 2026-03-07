@@ -1,63 +1,61 @@
-import { Match as M, Schema } from 'effect'
+import { Match as M, Schema as S } from 'effect'
 import { Runtime } from 'foldkit'
 import { Command } from 'foldkit/command'
 import { m } from 'foldkit/message'
 
 import { Class, Html, OnClick, button, div } from '../html'
 
-// MODEL - The shape of your application state
-// In this case, our state is just a number representing the count
+// MODEL
 
-const Model = Schema.Number
+const Model = S.Struct({
+  count: S.Number,
+})
 type Model = typeof Model.Type
 
-// MESSAGE - All possible events that can happen in your application
-// Messages are dispatched from the view and handled by the update function
+// MESSAGE
 
 const ClickedDecrement = m('ClickedDecrement')
 const ClickedIncrement = m('ClickedIncrement')
 const ClickedReset = m('ClickedReset')
 
-const Message = Schema.Union(
+const Message = S.Union(
   ClickedDecrement,
   ClickedIncrement,
   ClickedReset,
 )
 type Message = typeof Message.Type
 
-// UPDATE - How your state changes in response to messages
-// Returns a tuple of [nextModel, commands]
-// Commands are side effects like HTTP requests (none needed here)
+// UPDATE
 
 const update = (
-  count: Model,
+  model: Model,
   message: Message,
 ): [Model, ReadonlyArray<Command<Message>>] =>
   M.value(message).pipe(
     M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
     M.tagsExhaustive({
-      ClickedDecrement: () => [count - 1, []],
-      ClickedIncrement: () => [count + 1, []],
-      ClickedReset: () => [0, []],
+      ClickedDecrement: () => [Model({ count: model.count - 1 }), []],
+      ClickedIncrement: () => [Model({ count: model.count + 1 }), []],
+      ClickedReset: () => [Model({ count: 0 }), []],
     }),
   )
 
-// INIT - The initial model and any commands to run on startup
-// Returns a tuple of [initialModel, initialCommands]
+// INIT
 
-const init: Runtime.ElementInit<Model, Message> = () => [0, []]
+const init: Runtime.ElementInit<Model, Message> = () => [
+  Model({ count: 0 }),
+  [],
+]
 
-// VIEW - Renders your state as HTML
-// Pure function: same state always produces the same HTML - no side effects in
-// the view
+// VIEW
 
-const view = (count: Model): Html =>
+const view = (model: Model): Html =>
   div(
     [Class(containerStyle)],
     [
       div(
         [Class('text-6xl font-bold text-gray-800')],
-        [count.toString()],
+        [model.count.toString()],
       ),
       div(
         [Class('flex flex-wrap justify-center gap-4')],
@@ -87,7 +85,7 @@ const containerStyle =
 const buttonStyle =
   'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
 
-// RUN - Wire everything together and start the application
+// RUN
 
 const element = Runtime.makeElement({
   Model,

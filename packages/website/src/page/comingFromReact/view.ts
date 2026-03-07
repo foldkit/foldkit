@@ -2,16 +2,7 @@ import { Option, Record } from 'effect'
 import { Ui } from 'foldkit'
 import { Html } from 'foldkit/html'
 
-import {
-  Class,
-  InnerHTML,
-  div,
-  li,
-  p,
-  span,
-  strong,
-  ul,
-} from '../../html'
+import { Class, InnerHTML, div, li, p, span, ul } from '../../html'
 import { Icon } from '../../icon'
 import { Link } from '../../link'
 import type {
@@ -218,35 +209,35 @@ export const view = (
           li(
             [],
             [
-              strong([], ['Components → Functions']),
+              'Components → Functions',
               ' — Instead of components with their own state and lifecycle, you have pure functions. The view is just a function from Model to HTML.',
             ],
           ),
           li(
             [],
             [
-              strong([], ['Local State → Single Model']),
+              'Local State → Single Model',
               " — There's no useState scattered across components. All application state lives in one place, making it trivial to understand what your app knows at any moment.",
             ],
           ),
           li(
             [],
             [
-              strong([], ['useEffect → Commands']),
+              'useEffect → Commands',
               ' — Side effects are explicit return values from update, not callbacks triggered by dependency arrays. You never wonder "why did this effect run?"',
             ],
           ),
           li(
             [],
             [
-              strong([], ['Hooks Rules → No Rules']),
+              'Hooks Rules → No Rules',
               ' — No worrying about calling hooks in the wrong order, in conditionals, or in loops. There are no hooks — just functions.',
             ],
           ),
           li(
             [],
             [
-              strong([], ['Props Drilling → Direct Access']),
+              'Props Drilling → Direct Access',
               " — With a single Model, any part of your view can access any state. You don't need Context or state management libraries to avoid prop drilling.",
             ],
           ),
@@ -343,35 +334,35 @@ export const view = (
           li(
             [],
             [
-              strong([], ['Component encapsulation']),
+              'Component encapsulation',
               ' — In React, components encapsulate state and behavior. In Foldkit, state is centralized. This is a feature, not a bug, but it requires a different way of thinking about code organization.',
             ],
           ),
           li(
             [],
             [
-              strong([], ['The React ecosystem']),
+              'The React ecosystem',
               " — React has thousands of component libraries, UI kits, and integrations. Foldkit is much smaller. You'll often write more from scratch.",
             ],
           ),
           li(
             [],
             [
-              strong([], ['JSX']),
+              'JSX',
               " — Many developers prefer JSX's HTML-like syntax. Foldkit uses function calls that some find more verbose. Others prefer the consistency — it's just functions all the way down.",
             ],
           ),
           li(
             [],
             [
-              strong([], ['Gradual adoption']),
+              'Gradual adoption',
               " — You can add React to any page incrementally. Foldkit works best as a full-page application. It's harder to embed a Foldkit widget in an existing React app.",
             ],
           ),
           li(
             [],
             [
-              strong([], ['Familiarity']),
+              'Familiarity',
               " — Most frontend developers know React. Foldkit's patterns, while not difficult, require learning. Team onboarding takes longer.",
             ],
           ),
@@ -385,42 +376,42 @@ export const view = (
           li(
             [],
             [
-              strong([], ['No stale closures']),
+              'No stale closures',
               " — Ever. The update function always receives the current model. There's no dependency array to get wrong.",
             ],
           ),
           li(
             [],
             [
-              strong([], ['Explicit effects']),
+              'Explicit effects',
               ' — Every side effect is a return value from update. You can see exactly what effects a message triggers by reading the code.',
             ],
           ),
           li(
             [],
             [
-              strong([], ['Testable by default']),
+              'Testable by default',
               ' — Your update function is pure. Give it a model and message, check the output. No mocking useState or useEffect.',
             ],
           ),
           li(
             [],
             [
-              strong([], ['Type-safe everything']),
+              'Type-safe everything',
               ' — Model, Messages, Commands — all typed. Effect Schema validates at runtime too. Fewer "undefined is not a function" errors.',
             ],
           ),
           li(
             [],
             [
-              strong([], ['No hook rules']),
+              'No hook rules',
               ' — Call any function anywhere. No "rules of hooks" to remember, no linter errors about missing dependencies.',
             ],
           ),
           li(
             [],
             [
-              strong([], ['Single source of truth']),
+              'Single source of truth',
               " — Want to know your app's state? It's all in the Model. Want to know what can happen? Look at Messages. Want to know how state changes? Read update.",
             ],
           ),

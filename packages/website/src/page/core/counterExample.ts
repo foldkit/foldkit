@@ -1,6 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import { Class, InnerHTML, div, strong } from '../../html'
+import { Class, InnerHTML, div } from '../../html'
 import type { Model, TableOfContentsEntry } from '../../main'
 import {
   pageTitle,
@@ -27,18 +27,7 @@ export const view = (model: Model): Html =>
       pageTitle('core/counter-example', 'A Simple Counter Example'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'Every Foldkit app is built from the same four pieces: a ',
-        strong([], ['Model']),
-        ' (application state), ',
-        strong([], ['Messages']),
-        ' (events that can happen), an ',
-        strong([], ['Update']),
-        ' function (state transitions), and a ',
-        strong([], ['View']),
-        ' (rendering).',
-      ),
-      para(
-        "Here's a complete counter application that puts all four together.",
+        "Here's a complete counter application. It has all the pieces from the architecture page \u2014 a Model, Messages, update, init, and view \u2014 wired together and running.",
       ),
       highlightedCodeBlock(
         div(
@@ -51,10 +40,10 @@ export const view = (model: Model): Html =>
         'mb-8',
       ),
       para(
-        "Don't worry about understanding every line yet. The next four pages break this code apart piece by piece. After that, we'll add new features to the counter — a delayed reset, auto-counting, loading saved state — and each one will introduce a new concept.",
+        "Don't worry about understanding every line yet. The next four pages break this code apart piece by piece. After that, we'll add new features to the counter \u2014 a delayed reset, auto-counting, loading saved state \u2014 and each one will introduce a new concept.",
       ),
       para(
-        "Let's start with the Model — the single data structure that holds everything your application can be.",
+        "Let's start with the Model \u2014 the single data structure that holds everything your application can be.",
       ),
     ],
   )

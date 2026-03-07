@@ -1,6 +1,6 @@
 import { Html } from 'foldkit/html'
 
-import { Class, div, li, strong, ul } from '../html'
+import { Class, div, li, ul } from '../html'
 import { Link } from '../link'
 import type { TableOfContentsEntry } from '../main'
 import {
@@ -160,7 +160,7 @@ export const view = (): Html =>
       ),
       foldkitVsReactTable(),
       para(
-        strong([], ['Key insight:']),
+        'Key insight:',
         " React's simplicity at small scale becomes complexity debt. Foldkit's structure feels like overhead at first but pays off as the app grows.",
       ),
       tableOfContentsEntryToHeader(theElmArchitectureHeader),
@@ -175,28 +175,28 @@ export const view = (): Html =>
           li(
             [],
             [
-              strong([], ['Single source of truth']),
+              'Single source of truth',
               ' — All application state lives in one Model',
             ],
           ),
           li(
             [],
             [
-              strong([], ['Explicit state transitions']),
+              'Explicit state transitions',
               ' — Messages describe what happened, Update decides what changes',
             ],
           ),
           li(
             [],
             [
-              strong([], ['Pure functions everywhere']),
+              'Pure functions everywhere',
               ' — Update returns new state + Commands, runtime executes effects',
             ],
           ),
           li(
             [],
             [
-              strong([], ['Predictable debugging']),
+              'Predictable debugging',
               ' — If you know the Model and Message, you know what happens next',
             ],
           ),
@@ -234,21 +234,21 @@ export const view = (): Html =>
           li(
             [],
             [
-              strong([], ['Type-safe error handling']),
+              'Type-safe error handling',
               ' — Errors are tracked in the type system',
             ],
           ),
           li(
             [],
             [
-              strong([], ['Composable side effects']),
+              'Composable side effects',
               ' — Build complex operations from simple pieces',
             ],
           ),
           li(
             [],
             [
-              strong([], ['Schema validation']),
+              'Schema validation',
               ' — Runtime type checking with ',
               inlineCode('Schema'),
             ],
@@ -256,7 +256,7 @@ export const view = (): Html =>
           li(
             [],
             [
-              strong([], ['Subscriptions']),
+              'Subscriptions',
               ' — For timers, WebSockets, and other ongoing effects',
             ],
           ),
@@ -272,28 +272,28 @@ export const view = (): Html =>
           li(
             [],
             [
-              strong([], ['Elm developers']),
+              'Elm developers',
               ' who need access to the TypeScript ecosystem',
             ],
           ),
           li(
             [],
             [
-              strong([], ['Effect users']),
+              'Effect users',
               ' who want a UI framework built on familiar patterns',
             ],
           ),
           li(
             [],
             [
-              strong([], ['React developers']),
+              'React developers',
               ' tired of state management complexity',
             ],
           ),
           li(
             [],
             [
-              strong([], ['Teams']),
+              'Teams',
               ' who value predictability and testability over flexibility',
             ],
           ),

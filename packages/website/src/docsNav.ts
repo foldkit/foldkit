@@ -3,6 +3,7 @@ import { Array, Number, Option, pipe } from 'effect'
 import {
   bestPracticesRouter,
   comingFromReactRouter,
+  coreArchitectureRouter,
   coreCommandsRouter,
   coreCounterExampleRouter,
   coreErrorViewRouter,
@@ -76,6 +77,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
   {
     label: 'Core Concepts',
     pages: [
+      {
+        _tag: 'CoreArchitecture',
+        href: coreArchitectureRouter(),
+        label: 'Architecture',
+      },
       {
         _tag: 'CoreCounterExample',
         href: coreCounterExampleRouter(),

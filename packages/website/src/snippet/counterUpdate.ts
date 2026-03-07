@@ -1,10 +1,10 @@
 import { Match as M } from 'effect'
 import { Command } from 'foldkit/command'
 
-// UPDATE - How your state changes in response to messages
-// Returns a tuple of [nextModel, commands]
-// Commands are side effects like HTTP requests (none needed here)
+// UPDATE
 
+// Returns a tuple of [nextModel, commands] —
+// commands are side effects like HTTP requests (none needed here)
 const update = (
   model: Model,
   message: Message,
@@ -12,10 +12,8 @@ const update = (
   M.value(message).pipe(
     M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
     M.tagsExhaustive({
-      // This means: the next model (application state) is
-      // model - 1 and there are no commands to run
-      ClickedDecrement: () => [model - 1, []],
-      ClickedIncrement: () => [model + 1, []],
-      ClickedReset: () => [0, []],
+      ClickedDecrement: () => [Model({ count: model.count - 1 }), []],
+      ClickedIncrement: () => [Model({ count: model.count + 1 }), []],
+      ClickedReset: () => [Model({ count: 0 }), []],
     }),
   )

@@ -1,7 +1,6 @@
 import { Class, Html, OnClick, button, div } from '../html'
 
-// VIEW - Renders your state as HTML
-// Pure function: same state always produces the same HTML — no side effects
+// VIEW
 
 const view = (model: Model): Html =>
   div(
@@ -9,7 +8,7 @@ const view = (model: Model): Html =>
     [
       div(
         [Class('text-6xl font-bold text-gray-800')],
-        [model.toString()],
+        [model.count.toString()],
       ),
       div(
         [Class('flex flex-wrap justify-center gap-4')],

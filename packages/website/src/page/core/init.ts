@@ -38,6 +38,9 @@ export const view = (model: Model): Html =>
         "The counter works, but every time the user refreshes the page, the count resets to zero. What if we want to remember the last count? That's where Init comes in — and where flags let you pass data into your app at startup.",
       ),
       para(
+        'In the restaurant analogy, init is the waiter\u2019s notebook at the start of the shift \u2014 the state of every table before the first customer walks in.',
+      ),
+      para(
         'The ',
         inlineCode('init'),
         ' function returns the initial Model and any Commands to run on startup. It returns a tuple of ',
@@ -62,7 +65,10 @@ export const view = (model: Model): Html =>
       ),
       tableOfContentsEntryToHeader(flagsHeader),
       para(
-        'Flags let you pass initialization data into your application — things like persisted state from localStorage or configuration values. Define a Flags schema and provide an Effect that loads the flags.',
+        'In the restaurant analogy, flags are what the manager tells the waiter before the shift: "table 5 has a reservation at 7, and we\u2019re out of the salmon." Information from outside the app that shapes the initial state.',
+      ),
+      para(
+        'Flags let you pass initialization data into your application \u2014 things like persisted state from localStorage or configuration values. Define a Flags schema and provide an Effect that loads the flags.',
       ),
       highlightedCodeBlock(
         div(

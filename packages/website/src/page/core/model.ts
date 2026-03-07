@@ -5,7 +5,6 @@ import { Link } from '../../link'
 import type { Model, TableOfContentsEntry } from '../../main'
 import {
   callout,
-  inlineCode,
   link,
   pageTitle,
   para,
@@ -33,9 +32,11 @@ export const view = (model: Model): Html =>
       para(
         'The Model represents your entire application state in a single, immutable data structure defined with ',
         link(Link.effectSchema, 'Effect Schema'),
-        '. Everything your app can be at any moment lives here — not scattered across components, not split between local and global state.',
+        '. Everything your app can be at any moment lives here \u2014 not scattered across components, not split between local and global state.',
       ),
-      para('In the counter example, the model is simply a number.'),
+      para(
+        'In the counter example, the Model is a Struct with a single field:',
+      ),
       highlightedCodeBlock(
         div(
           [
@@ -50,12 +51,10 @@ export const view = (model: Model): Html =>
         'mb-8',
       ),
       para(
-        'Why use Schema instead of a plain TypeScript type? Schema gives you a callable constructor that validates at the boundary — when data enters your app from localStorage, a ',
-        inlineCode('WebSocket'),
-        ', or a URL, Schema ensures it matches the shape you declared. As your app grows, this prevents impossible states from sneaking into your model.',
+        'TypeScript types disappear when your code compiles \u2014 they help the compiler check your code, but they don\u2019t exist at runtime. Schema keeps that type information alive as a value. This gives Foldkit knowledge of your Model at runtime: it can compare models for equality, decode state from unknown sources, and manage resource lifecycles \u2014 things that require knowing the shape of your data, not just its type. You\u2019ll see these capabilities pay off as the counter grows, especially on the Subscriptions page.',
       ),
       para(
-        'The counter starts with a simple number, but models grow with your app. When we add auto-counting later, the model will expand:',
+        'The counter starts with a single field, but models grow with your app. When we add auto-counting later, the Model will expand:',
       ),
       highlightedCodeBlock(
         div(
@@ -75,7 +74,7 @@ export const view = (model: Model): Html =>
         'Think of the Model as combining useState, useContext, and your Redux store into one typed structure. Instead of state scattered across components, everything lives here.',
       ),
       para(
-        'The model captures what your app is at any moment. But how does it change? In Foldkit, every change starts with a Message — a fact about something that happened.',
+        'The Model captures what your app is at any moment. But how does it change? In Foldkit, every change starts with a Message \u2014 a fact about something that happened.',
       ),
     ],
   )

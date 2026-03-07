@@ -23,6 +23,7 @@ export const BestPracticesRoute = r('BestPractices')
 export const ProjectOrganizationRoute = r('ProjectOrganization')
 export const ApiModuleRoute = r('ApiModule', { moduleSlug: S.String })
 
+export const CoreArchitectureRoute = r('CoreArchitecture')
 export const CoreCounterExampleRoute = r('CoreCounterExample')
 export const CoreModelRoute = r('CoreModel')
 export const CoreMessagesRoute = r('CoreMessages')
@@ -64,6 +65,7 @@ export const DocsRoute = S.Union(
   BestPracticesRoute,
   ProjectOrganizationRoute,
   ApiModuleRoute,
+  CoreArchitectureRoute,
   CoreCounterExampleRoute,
   CoreModelRoute,
   CoreMessagesRoute,
@@ -108,6 +110,7 @@ export type BestPracticesRoute = typeof BestPracticesRoute.Type
 export type ProjectOrganizationRoute =
   typeof ProjectOrganizationRoute.Type
 export type ApiModuleRoute = typeof ApiModuleRoute.Type
+export type CoreArchitectureRoute = typeof CoreArchitectureRoute.Type
 export type CoreCounterExampleRoute =
   typeof CoreCounterExampleRoute.Type
 export type CoreModelRoute = typeof CoreModelRoute.Type
@@ -185,6 +188,11 @@ export const apiModuleRouter = pipe(
   literal('api-reference'),
   slash(string('moduleSlug')),
   mapTo(ApiModuleRoute),
+)
+export const coreArchitectureRouter = pipe(
+  literal('core'),
+  slash(literal('architecture')),
+  mapTo(CoreArchitectureRoute),
 )
 export const coreCounterExampleRouter = pipe(
   literal('core'),
@@ -332,6 +340,7 @@ const legacyDocsParser = oneOf(
 )
 
 const coreParser = oneOf(
+  coreArchitectureRouter,
   coreCounterExampleRouter,
   coreModelRouter,
   coreMessagesRouter,

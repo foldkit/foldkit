@@ -1,13 +1,13 @@
-import { Effect, Match as M, Schema } from 'effect'
+import { Effect, Match as M, Schema as S } from 'effect'
 import { Command } from 'foldkit/command'
 import { m } from 'foldkit/message'
 
 const ClickedFetchCount = m('ClickedFetchCount')
 const SucceededCountFetch = m('SucceededCountFetch', {
-  count: Schema.Number,
+  count: S.Number,
 })
 const FailedCountFetch = m('FailedCountFetch', {
-  error: Schema.String,
+  error: S.String,
 })
 
 const update = (
@@ -18,7 +18,7 @@ const update = (
     M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
     M.tagsExhaustive({
       ClickedFetchCount: () => [model, [fetchCount]],
-      SucceededCountFetch: ({ count }) => [count, []],
+      SucceededCountFetch: ({ count }) => [Model({ count }), []],
       FailedCountFetch: () => [model, []],
     }),
   )

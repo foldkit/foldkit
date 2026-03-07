@@ -17,6 +17,6 @@ const update = (
         model,
         [Task.delay('1 second').pipe(Effect.as(ElapsedResetDelay()))],
       ],
-      ElapsedResetDelay: () => [0, []],
+      ElapsedResetDelay: () => [Model({ count: 0 }), []],
     }),
   )

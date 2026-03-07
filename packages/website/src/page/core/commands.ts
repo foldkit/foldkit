@@ -36,16 +36,21 @@ export const view = (model: Model): Html =>
       pageTitle('core/commands', 'Commands'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        "So far, update has been returning an empty Commands array. It's time to put it to use. But before we write our first Command, there's a fundamental idea to understand: the update function doesn't actually do anything.",
+        'So far, update has been returning an empty Commands array. It\u2019s time to put it to use. But before we write our first Command, there\u2019s a fundamental idea to understand: the update function doesn\u2019t actually do anything.',
       ),
       para(
-        'In React, when a user clicks a button, your event handler does things — calls ',
+        'In the restaurant analogy, Commands are the slips the waiter hands to the kitchen. The waiter doesn\u2019t cook \u2014 they describe what\u2019s needed and hand it off. The kitchen does the work and reports back when it\u2019s done.',
+      ),
+      para(
+        'When update runs, no HTTP request fires, no timer starts, no DOM changes. It returns data \u2014 a new Model and a list of Commands that describe what should happen. The Foldkit runtime reads those descriptions and executes them.',
+      ),
+      callout(
+        'A different model for side effects',
+        'In React, event handlers do things directly \u2014 call ',
         inlineCode('fetch()'),
-        ', starts a timer, writes to ',
+        ', start a timer, write to ',
         inlineCode('localStorage'),
-        '. The side effects happen right there in your handler. In Foldkit, update is a pure function. When it runs, no HTTP request fires, no timer starts, no DOM changes. It returns data — a new Model and a list of Commands that ',
-        'describe',
-        ' what should happen. The Foldkit runtime reads those descriptions and executes them.',
+        '. In Foldkit, update is pure. It describes what should happen and the runtime does it.',
       ),
       para(
         "Let's see what that looks like. Say we want a delayed reset — when the user clicks reset, the count resets after one second:",
@@ -72,10 +77,6 @@ export const view = (model: Model): Html =>
         '." The runtime does the waiting. When the delay fires, ',
         inlineCode('ElapsedResetDelay'),
         ' arrives as a new Message, and update resets the count to zero.',
-      ),
-      callout(
-        'The restaurant analogy',
-        'Think of update as a waiter taking your order. The waiter doesn\u2019t cook \u2014 they write down what you asked for and hand the slip to the kitchen. The Foldkit runtime is the kitchen: it reads the slip, does the work, and sends the result back as a new Message.',
       ),
       para(
         'This separation has a practical consequence: you can test your entire state machine without mocking anything.',

@@ -43,7 +43,10 @@ export const view = (model: Model): Html =>
       pageTitle('core/view', 'View'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'The view function is a pure function that transforms your Model into HTML. Given the same Model, it always produces the same HTML output. The view never directly modifies state — instead, it dispatches Messages through event handlers.',
+        'The update function produces a new Model. But the user doesn\u2019t see the Model \u2014 they see what the view function renders from it. In the restaurant analogy, the waiter\u2019s notebook says "table 3: salmon, ready." The view is what\u2019s actually on the table \u2014 the plate in front of the customer.',
+      ),
+      para(
+        'Given the same Model, view always produces the same HTML. It never modifies state directly \u2014 instead, it dispatches Messages through event handlers, feeding them back into the loop.',
       ),
       highlightedCodeBlock(
         div(
@@ -59,8 +62,8 @@ export const view = (model: Model): Html =>
         'mb-8',
       ),
       callout(
-        'Pure functions, no hook rules',
-        'The view is like a functional component, but guaranteed pure — no hooks, no effects, no local state. It\'s a function from Model to Html. This simplicity means no "rules of hooks" to follow.',
+        'No hook rules',
+        'In React, functional components can hold local state and run effects via hooks, which come with ordering rules you have to follow. In Foldkit, view is guaranteed pure \u2014 no hooks, no effects, no local state. It\u2019s a function from Model to Html.',
       ),
       tableOfContentsEntryToHeader(typedHtmlHelpersHeader),
       para(
@@ -82,15 +85,15 @@ export const view = (model: Model): Html =>
         'mb-8',
       ),
       para(
-        "This pattern might seem unusual if you're coming from React, but it provides strong type safety. If you try to pass an invalid Message to ",
+        'This gives you strong type safety \u2014 if you try to pass an invalid Message to ',
         inlineCode('OnClick'),
-        ', TypeScript will catch it at compile time. You only need to do this once per module — most apps create a single ',
+        ', TypeScript catches it at compile time. You only need to do this once per module \u2014 most apps create a single ',
         inlineCode('html.ts'),
         ' file and import from there.',
       ),
       tableOfContentsEntryToHeader(eventHandlingHeader),
       para(
-        'Event handlers in Foldkit work differently from React. Instead of passing imperative handlers that modify state, you pass a Message — or a function that maps an event to a Message.',
+        'When the customer flags the waiter, that\u2019s a Message. In the view, event handlers work the same way \u2014 instead of imperative callbacks that modify state, you pass a Message, or a function that maps an event to a Message.',
       ),
       highlightedCodeBlock(
         div(
