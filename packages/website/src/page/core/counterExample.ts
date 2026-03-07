@@ -27,18 +27,18 @@ export const view = (model: Model): Html =>
       pageTitle('core/counter-example', 'A Simple Counter Example'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'The easiest way to learn how Foldkit works is to first look at examples, then dive deeper to understand each piece in isolation.',
-      ),
-      para(
-        "Here's a simple counter application that demonstrates Foldkit's core concepts: the ",
+        'Every Foldkit app is built from the same four pieces: a ',
         strong([], ['Model']),
         ' (application state), ',
         strong([], ['Messages']),
-        ' (model updates), ',
+        ' (events that can happen), an ',
         strong([], ['Update']),
-        ' (state transitions), and ',
+        ' function (state transitions), and a ',
         strong([], ['View']),
-        ' (rendering). Take a look at the counter example below in full, then continue to see a more detailed explanation of each piece.',
+        ' (rendering).',
+      ),
+      para(
+        "Here's a complete counter application that puts all four together.",
       ),
       highlightedCodeBlock(
         div(
@@ -49,6 +49,12 @@ export const view = (model: Model): Html =>
         'Copy counter example to clipboard',
         model,
         'mb-8',
+      ),
+      para(
+        "Don't worry about understanding every line yet. The next four pages break this code apart piece by piece. After that, we'll add new features to the counter — a delayed reset, auto-counting, loading saved state — and each one will introduce a new concept.",
+      ),
+      para(
+        "Let's start with the Model — the single data structure that holds everything your application can be.",
       ),
     ],
   )

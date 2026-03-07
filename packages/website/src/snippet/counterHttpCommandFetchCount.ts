@@ -22,7 +22,7 @@ const fetchCount: Command<
   return SucceededCountFetch({ count: result.count })
 }).pipe(
   // We are forced by the type system to handle the error case because
-  // Command's may not fail. They must always return a Message. Here, we recover
+  // Commands may not fail. They must always return a Message. Here, we recover
   // from failure by returning a FailedCountFetch Message with the error message.
   // In a real application, we might log the error to an external service,
   // retry the request, etc.

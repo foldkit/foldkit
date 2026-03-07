@@ -35,7 +35,7 @@ export const view = (model: Model): Html =>
         inlineCode('update'),
         ', ',
         inlineCode('view'),
-        ', or command execution, it stops all processing and renders a fallback UI. This is not error handling \u2014 there is no recovery from this state. The runtime is dead.',
+        ', or Command execution, it stops all processing and renders a fallback UI. This is not error handling \u2014 there is no recovery from this state. The runtime is dead.',
       ),
       para(
         'By default, Foldkit shows a built-in error screen with the error message and a reload button. Pass an ',
@@ -77,7 +77,7 @@ export const view = (model: Model): Html =>
       para(
         'Foldkit\u2019s event handlers like ',
         inlineCode('OnClick'),
-        ' work by dispatching messages to the runtime. Since the runtime has stopped, those handlers are silently ignored. For interactivity, like a reload button, use ',
+        ' work by dispatching Messages to the runtime. Since the runtime has stopped, those handlers are silently ignored. For interactivity, like a reload button, use ',
         inlineCode("Attribute('onclick', 'location.reload()')"),
         '. This sets a raw DOM event handler directly on the element, bypassing Foldkit\u2019s dispatch system entirely.',
       ),
@@ -85,7 +85,7 @@ export const view = (model: Model): Html =>
         'Only in errorView',
         'In a normal Foldkit app, always use ',
         inlineCode('OnClick'),
-        ' with messages \u2014 never raw DOM event attributes. ',
+        ' with Messages \u2014 never raw DOM event attributes. ',
         inlineCode('errorView'),
         ' is the one exception because the runtime is no longer running.',
       ),
@@ -100,6 +100,9 @@ export const view = (model: Model): Html =>
         'See the ',
         link(Link.exampleErrorView, 'error-view example'),
         ' for a working demonstration.',
+      ),
+      para(
+        'Error views handle the worst case. For the common case — keeping your app fast — the next two pages cover how Foldkit warns you about slow views during development and how to memoize expensive subtrees.',
       ),
     ],
   )

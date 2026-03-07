@@ -36,7 +36,9 @@ export const view = (model: Model): Html =>
       pageTitle('core/managed-resources', 'Managed Resources'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'Resources live for the entire application lifecycle. But some resources are heavy and should only be active while the model is in a particular state — a camera stream during a video call, a WebSocket connection while on a chat page, or a Web Worker pool during a computation. ',
+        'Resources live for the entire application lifecycle. But some resources are heavy and should only be active while the model is in a particular state — a camera stream during a video call, a ',
+        inlineCode('WebSocket'),
+        ' connection while on a chat page, or a Web Worker pool during a computation. ',
         strong([], ['Managed resources']),
         ' provide model-driven acquire/release lifecycle, using the same deps-diffing engine as subscriptions.',
       ),
@@ -94,7 +96,7 @@ export const view = (model: Model): Html =>
         inlineCode('.get'),
         ' can fail with ',
         inlineCode('ResourceNotAvailable'),
-        '. The type system enforces this — your command won\u2019t compile unless you handle the error.',
+        '. The type system enforces this — your Command won\u2019t compile unless you handle the error.',
       ),
       highlightedCodeBlock(
         div(
@@ -122,13 +124,20 @@ export const view = (model: Model): Html =>
       ),
       callout(
         'Resources vs Managed Resources',
-        para(
-          'Use ',
-          inlineCode('resources'),
-          ' for things that live forever (AudioContext, CanvasRenderingContext2D). Use ',
-          inlineCode('managedResources'),
-          ' for things tied to a model state (camera streams, WebSocket connections, media recorders).',
-        ),
+        'Use ',
+        inlineCode('resources'),
+        ' for things that live forever (',
+        inlineCode('AudioContext'),
+        ', ',
+        inlineCode('CanvasRenderingContext2D'),
+        '). Use ',
+        inlineCode('managedResources'),
+        ' for things tied to a model state (camera streams, ',
+        inlineCode('WebSocket'),
+        ' connections, media recorders).',
+      ),
+      para(
+        'With resources and managed resources, your app can work with any browser API. But what happens when something goes seriously wrong — an unrecoverable error in update, view, or a command? The next page covers error views.',
       ),
     ],
   )

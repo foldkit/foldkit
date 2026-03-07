@@ -89,5 +89,12 @@ export const view = (model: Model): Html =>
         inlineCode('false'),
         ' to disable the warning entirely.',
       ),
+      para(
+        'When the warning fires, the most effective fix is usually memoization. The next page covers ',
+        inlineCode('createLazy'),
+        ' and ',
+        inlineCode('createKeyedLazy'),
+        ' — two tools for caching view subtrees so they skip both VNode construction and DOM diffing.',
+      ),
     ],
   )

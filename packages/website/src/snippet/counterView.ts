@@ -17,9 +17,18 @@ const view = (model: Model): Html =>
           // OnClick takes a Message, not a callback. The Message doesn't
           // execute anything — it just declares what should happen on click.
           // Foldkit dispatches it to your update function.
-          button([OnClick(Decrement()), Class(buttonStyle)], ['-']),
-          button([OnClick(Reset()), Class(buttonStyle)], ['Reset']),
-          button([OnClick(Increment()), Class(buttonStyle)], ['+']),
+          button(
+            [OnClick(ClickedDecrement()), Class(buttonStyle)],
+            ['-'],
+          ),
+          button(
+            [OnClick(ClickedReset()), Class(buttonStyle)],
+            ['Reset'],
+          ),
+          button(
+            [OnClick(ClickedIncrement()), Class(buttonStyle)],
+            ['+'],
+          ),
         ],
       ),
     ],

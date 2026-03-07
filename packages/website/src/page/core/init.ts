@@ -35,9 +35,12 @@ export const view = (model: Model): Html =>
       pageTitle('core/init', 'Init'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
+        "The counter works, but every time the user refreshes the page, the count resets to zero. What if we want to remember the last count? That's where Init comes in — and where flags let you pass data into your app at startup.",
+      ),
+      para(
         'The ',
         inlineCode('init'),
-        ' function returns the initial model and any commands to run on startup. It returns a tuple of ',
+        ' function returns the initial Model and any Commands to run on startup. It returns a tuple of ',
         inlineCode('[Model, ReadonlyArray<Command<Message>>]'),
         '.',
       ),
@@ -89,6 +92,9 @@ export const view = (model: Model): Html =>
         'Copy init with flags to clipboard',
         model,
         'mb-8',
+      ),
+      para(
+        "You've now seen the full Foldkit architecture: the Model holds your state, Messages describe events, update transitions state, the view renders it, Commands handle one-off side effects, Subscriptions manage ongoing streams, and init bootstraps everything. The remaining pages cover utilities, runtime configuration, and advanced topics you'll reach for as your app grows.",
       ),
     ],
   )

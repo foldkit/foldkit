@@ -9,5 +9,5 @@ const focusEmailInput = Task.focus('#email-input').pipe(
 
 // Generate a random integer between 1 and 6 (dice roll)
 const rollDice = Task.randomInt(1, 7).pipe(
-  Effect.map(value => GotDiceRoll({ value })),
+  Effect.map(value => RolledDice({ value })),
 )

@@ -70,5 +70,8 @@ export const view = (model: Model): Html =>
         model,
         'mb-8',
       ),
+      para(
+        'Now that you know how to write commands and use built-in tasks, the next step is wiring everything together into a running application.',
+      ),
     ],
   )

@@ -43,7 +43,7 @@ export const view = (model: Model): Html =>
       pageTitle('core/view', 'View'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'The view function is a pure function that transforms your model into HTML. Given the same model, it always produces the same HTML output. The view never directly modifies state — instead, it dispatches messages through event handlers.',
+        'The view function is a pure function that transforms your Model into HTML. Given the same Model, it always produces the same HTML output. The view never directly modifies state — instead, it dispatches Messages through event handlers.',
       ),
       highlightedCodeBlock(
         div(
@@ -107,6 +107,9 @@ export const view = (model: Model): Html =>
       ),
       para(
         'For simple events like clicks, you pass the Message directly. For events that carry data (like input changes), you pass a function that receives the event and returns a Message. This keeps your view declarative — it describes what Messages should be sent, not how to handle them.',
+      ),
+      para(
+        "So far everything has been synchronous — the user clicks a button, update produces a new Model, the view rerenders. But real apps need side effects: HTTP requests, timers, browser APIs. That's where Commands come in.",
       ),
     ],
   )

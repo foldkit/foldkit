@@ -7,6 +7,7 @@ type Model = typeof Model.Type
 
 const ClickedIncrement = m('ClickedIncrement')
 const ClickedDecrement = m('ClickedDecrement')
+
 const Message = S.Union(ClickedIncrement, ClickedDecrement)
 type Message = typeof Message.Type
 

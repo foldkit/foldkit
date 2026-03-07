@@ -122,7 +122,11 @@ export const view = (model: Model): Html =>
         'mb-8',
       ),
       para(
-        'When one item in the list changes, only that item is recomputed. All other items return their cached VNodes instantly. This turns an O(n) view rebuild into O(1) for the common case where only one or two items change.',
+        'When one item in the list changes, only that item is recomputed. All other items return their cached VNodes instantly. This turns an ',
+        inlineCode('O(n)'),
+        ' view rebuild into ',
+        inlineCode('O(1)'),
+        ' for the common case where only one or two items change.',
       ),
       tableOfContentsEntryToHeader(whenToUseLazyHeader),
       para('Lazy views help most when:'),

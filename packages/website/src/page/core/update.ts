@@ -1,9 +1,10 @@
 import type { Html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
+import { Class, InnerHTML, div, em } from '../../html'
 import { Link } from '../../link'
 import type { Model, TableOfContentsEntry } from '../../main'
 import {
+  inlineCode,
   link,
   pageTitle,
   para,
@@ -29,12 +30,20 @@ export const view = (model: Model): Html =>
       pageTitle('core/update', 'Update'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        "The update function is the heart of your application logic. It's a pure function that takes the current model and a message, and returns a new model along with any commands to execute. Commands represent side effects and are covered later on this page.",
+        "The update function is the heart of your application logic. It's a pure function that takes the current Model and a Message, and returns a new Model along with any Commands to execute.",
+      ),
+      para(
+        'Pure means predictable: given the same Model and the same Message, update always returns the same result. No hidden state, no ambient mutation, no surprises. This makes every state transition easy to reason about and trivial to test — pass in a Model and a Message, assert on the output.',
       ),
       para(
         'Foldkit uses ',
         link(Link.effectMatch, 'Effect.Match'),
-        ' for exhaustive pattern matching on messages. The TypeScript compiler will error if you forget to handle a message type.',
+        ' for exhaustive pattern matching on Messages. The TypeScript compiler will error if you forget to handle a Message type.',
+      ),
+      para(
+        'Add a new Message to your app and forget to handle it here? The compiler tells you. There are no forgotten cases, no ',
+        inlineCode('default'),
+        ' branches silently swallowing new Messages. Every Message gets an explicit handler.',
       ),
       highlightedCodeBlock(
         div(
@@ -48,6 +57,14 @@ export const view = (model: Model): Html =>
         'Copy update example to clipboard',
         model,
         'mb-8',
+      ),
+      para(
+        'Notice that update returns a tuple: the new Model ',
+        em([], ['and']),
+        ' an array of Commands. Commands represent side effects — HTTP requests, timers, browser API calls. For the counter, the Commands array is always empty. But when we add a delayed reset on the Commands page, that will change.',
+      ),
+      para(
+        "Before we get to side effects, there's one more piece of the counter to understand: the view function, which turns your Model into what the user sees on screen.",
       ),
     ],
   )

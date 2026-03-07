@@ -9,14 +9,14 @@ const searchRouter = pipe(
     S.Struct({
       q: S.OptionFromUndefinedOr(S.String),
       page: S.OptionFromUndefinedOr(S.NumberFromString),
-      sort: S.OptionFromUndefinedOr(S.Literal('asc', 'desc')),
+      sort: S.OptionFromUndefinedOr(S.Literal('Asc', 'Desc')),
     }),
   ),
   Route.mapTo(SearchRoute),
 )
 
 // Parsing /search?q=hello&page=2&sort=asc gives you:
-// → SearchRoute { q: Some('hello'), page: Some(2), sort: Some('asc') }
+// → SearchRoute { q: Some('hello'), page: Some(2), sort: Some('Asc') }
 
 // Building
 const searchUrl = searchRouter({

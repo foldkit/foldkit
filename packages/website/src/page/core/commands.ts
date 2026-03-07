@@ -29,7 +29,7 @@ export const view = (model: Model): Html =>
       pageTitle('core/commands', 'Commands'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        "You're probably wondering how to handle side effects like HTTP requests, timers, or interacting with the browser API. In Foldkit, side effects are managed through commands returned by the update function. This keeps your update logic pure and testable.",
+        "You're probably wondering how to handle side effects like HTTP requests, timers, or interacting with the browser API. In Foldkit, side effects are managed through Commands returned by the update function. This keeps your update logic pure and testable.",
       ),
       para(
         "Let's start simple. Say we want to wait one second before resetting the count if the user clicks reset. This is how we might implement that:",
@@ -85,11 +85,16 @@ export const view = (model: Model): Html =>
       ),
       callout(
         'Errors are tracked, not hidden',
-        'Commands use Effect\u2019s typed error channel \u2014 if a command can fail, the type signature tells you. ',
+        'Commands use Effect\u2019s typed error channel \u2014 if a Command can fail, the type signature tells you. ',
         inlineCode('Effect.catchAll'),
         ' turns failures into messages like ',
         inlineCode('FailedWeatherFetch'),
         ', and once all errors are handled, the type confirms it. The update function handles errors the same way it handles success: as facts about what happened.',
+      ),
+      para(
+        'Commands fire once and produce a single Message when they finish. But what about effects that run continuously — a timer that ticks every second, a ',
+        inlineCode('WebSocket'),
+        ' that stays open, keyboard input? For ongoing streams, Foldkit has Subscriptions.',
       ),
     ],
   )

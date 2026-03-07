@@ -57,7 +57,7 @@ export const view = (model: Model): Html =>
         inlineCode('makeApplication'),
         ' via the ',
         inlineCode('resources'),
-        ' config field. The runtime memoizes the layer once and provides it to every command and subscription automatically.',
+        ' config field. The runtime creates the layer once and makes it available to every Command. Commands access it by yielding the service tag.',
       ),
       highlightedCodeBlock(
         div(
@@ -81,15 +81,13 @@ export const view = (model: Model): Html =>
       ),
       callout(
         'When not to use resources',
-        para(
-          'Resources are for mutable browser singletons with lifecycle — things that must be created once and reused. Stateless services like ',
-          inlineCode('HttpClient'),
-          ' or ',
-          inlineCode('BrowserKeyValueStore'),
-          ' should be provided per-command with ',
-          inlineCode('Effect.provide'),
-          ' instead.',
-        ),
+        'Resources are for mutable browser singletons with lifecycle — things that must be created once and reused. Stateless services like ',
+        inlineCode('HttpClient'),
+        ' or ',
+        inlineCode('BrowserKeyValueStore'),
+        ' should be provided per-command with ',
+        inlineCode('Effect.provide'),
+        ' instead.',
       ),
       tableOfContentsEntryToHeader(providingMultipleServicesHeader),
       para(
@@ -113,6 +111,11 @@ export const view = (model: Model): Html =>
         'Copy multiple resources example to clipboard',
         model,
         'mb-8',
+      ),
+      para(
+        'Resources live for the entire application. But what if a resource should only exist while the model is in a certain state — a camera stream during a video call, or a ',
+        inlineCode('WebSocket'),
+        ' while on a chat page? That\u2019s what Managed Resources are for.',
       ),
     ],
   )

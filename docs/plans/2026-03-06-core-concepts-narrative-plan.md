@@ -15,6 +15,7 @@
 ### Task 1: Counter Example page — reframe opening and add walkthrough framing
 
 **Files:**
+
 - Modify: `packages/website/src/page/core/counterExample.ts`
 
 **Step 1: Edit the opening paragraphs**
@@ -67,6 +68,7 @@ docs(website): reframe counter example page with walkthrough framing
 ### Task 2: Model page — expand prose and add preview snippet
 
 **Files:**
+
 - Modify: `packages/website/src/page/core/model.ts`
 - Create: `packages/website/src/snippet/counterModelPreview.ts`
 - Modify: `packages/website/src/snippet/index.ts`
@@ -102,6 +104,7 @@ export { default as counterModelPreviewHighlighted } from './counterModelPreview
 Replace the full view function body in `packages/website/src/page/core/model.ts` with updated prose:
 
 Opening paragraph — tighten to focus on the key idea:
+
 ```ts
 para(
   'The Model represents your entire application state in a single, immutable data structure defined with ',
@@ -111,6 +114,7 @@ para(
 ```
 
 After the existing counter model code block, add explanatory prose:
+
 ```ts
 para(
   'Why use Schema instead of a plain TypeScript type? Schema gives you a callable constructor that validates at the boundary — when data enters your app from localStorage, a WebSocket, or a URL, Schema ensures it matches the shape you declared. As your app grows, this prevents impossible states from sneaking into your model.',
@@ -118,6 +122,7 @@ para(
 ```
 
 Add a paragraph introducing the preview snippet:
+
 ```ts
 para(
   'The counter starts with a simple number, but models grow with your app. When we add auto-counting later, the model will expand:',
@@ -125,6 +130,7 @@ para(
 ```
 
 Then the preview code block:
+
 ```ts
 highlightedCodeBlock(
   div(
@@ -144,6 +150,7 @@ highlightedCodeBlock(
 Keep the existing callout.
 
 Add transition:
+
 ```ts
 para(
   'The model captures what your app ',
@@ -170,6 +177,7 @@ docs(website): expand model page with Schema motivation and preview snippet
 ### Task 3: Messages page — expand prose with naming conventions and m() explanation
 
 **Files:**
+
 - Modify: `packages/website/src/page/core/messages.ts`
 
 **Step 1: Edit the Messages page prose**
@@ -220,6 +228,7 @@ para(
 Note: Add `inlineCode` and `em` to the prose imports if not already present.
 
 Add transition after the callout:
+
 ```ts
 para(
   "Messages describe what happened. But who decides what to do about it? That's the update function — the single place where your application's state transitions live.",
@@ -242,6 +251,7 @@ docs(website): expand messages page with naming conventions and m() explanation
 ### Task 4: Update page — expand with pure functions, exhaustive matching, and commands preview
 
 **Files:**
+
 - Modify: `packages/website/src/page/core/update.ts`
 
 **Step 1: Edit the Update page prose**
@@ -277,6 +287,7 @@ para(
 Note: Add `em` and `inlineCode` to imports if not already present.
 
 Add transition:
+
 ```ts
 para(
   "Update is pure — it can't make HTTP requests or set timers directly. So what happens when your app needs side effects? That's where commands come in.",
@@ -284,6 +295,7 @@ para(
 ```
 
 Wait — View comes before Commands in the page order. Fix the transition:
+
 ```ts
 para(
   "Before we get to side effects, there's one more piece of the counter to understand: the view function, which turns your model into what the user sees on screen.",
@@ -306,6 +318,7 @@ docs(website): expand update page with purity, exhaustive matching, and commands
 ### Task 5: View page — add cycle framing and transition
 
 **Files:**
+
 - Modify: `packages/website/src/page/core/view.ts`
 
 **Step 1: Add transition paragraph at the end**
@@ -334,6 +347,7 @@ docs(website): add transition text to view page
 ### Task 6: Commands page — connect to counter narrative and add transition
 
 **Files:**
+
 - Modify: `packages/website/src/page/core/commands.ts`
 
 **Step 1: Edit the opening paragraph**
@@ -366,6 +380,7 @@ docs(website): add transition text to commands page
 ### Task 7: Subscriptions page — reframe as counter auto-count and add transition
 
 **Files:**
+
 - Create: `packages/website/src/snippet/counterAutoCount.ts`
 - Modify: `packages/website/src/snippet/index.ts`
 - Modify: `packages/website/src/page/core/subscriptions.ts`
@@ -405,9 +420,10 @@ const SubscriptionDeps = S.Struct({
   }),
 })
 
-const subscriptions = Subscription.makeSubscriptions(
-  SubscriptionDeps,
-)<Model, Message>({
+const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
+  Model,
+  Message
+>({
   tick: {
     modelToDependencies: model => ({ isAutoCount: model.isAutoCount }),
     depsToStream: ({ isAutoCount }) =>
@@ -464,6 +480,7 @@ docs(website): reframe subscriptions page with counter auto-count example
 ### Task 8: Init page — connect to counter narrative and add transition
 
 **Files:**
+
 - Modify: `packages/website/src/page/core/init.ts`
 
 **Step 1: Add framing prose**
@@ -500,6 +517,7 @@ docs(website): connect init page to counter narrative and add summary transition
 ### Task 9: Add transition text to Task page
 
 **Files:**
+
 - Modify: `packages/website/src/page/core/task.ts`
 
 **Step 1: Add transition at the end**
@@ -528,6 +546,7 @@ docs(website): add transition text to task page
 ### Task 10: Add transition text to Running Your App page
 
 **Files:**
+
 - Modify: `packages/website/src/page/core/runningYourApp.ts`
 
 **Step 1: Add transition at the end**
@@ -556,6 +575,7 @@ docs(website): add transition text to running your app page
 ### Task 11: Add transition text to Resources page
 
 **Files:**
+
 - Modify: `packages/website/src/page/core/resources.ts`
 
 **Step 1: Add transition at the end**
@@ -584,6 +604,7 @@ docs(website): add transition text to resources page
 ### Task 12: Add transition text to Managed Resources page
 
 **Files:**
+
 - Modify: `packages/website/src/page/core/managedResources.ts`
 
 **Step 1: Add transition at the end**
@@ -612,6 +633,7 @@ docs(website): add transition text to managed resources page
 ### Task 13: Add transition text to Error View page
 
 **Files:**
+
 - Modify: `packages/website/src/page/core/errorView.ts`
 
 **Step 1: Add transition at the end**
@@ -640,6 +662,7 @@ docs(website): add transition text to error view page
 ### Task 14: Add transition text to Slow View Warning page
 
 **Files:**
+
 - Modify: `packages/website/src/page/core/slowViewWarning.ts`
 
 **Step 1: Add transition at the end**
@@ -685,6 +708,7 @@ Expected: Build succeeds with no errors.
 Run: `cd packages/website && pnpm dev`
 
 Navigate through all 15 core concepts pages in order. Verify:
+
 - Each page has a transition paragraph at the bottom
 - Counter Example, Model, Messages, Update, and Init reference the evolving counter
 - Subscriptions page uses the auto-count snippet instead of stopwatch
