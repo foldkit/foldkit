@@ -53,4 +53,6 @@
 
 - [ ] Swap classnames for clsx across entire repo
 
-- [ ] Write a manifesto — "Correctness You Can See" or similar. The core thesis: Foldkit's architecture makes correctness visible, not just achievable. Every state change and side effect lives in the update function. The same property that makes the code easy for humans to reason about makes it easy for LLMs to generate and review. This deserves a standalone page on the website, not just a README section.
+- [x] Write a manifesto page for the website
+
+- [ ] Elevate "Foldkit models the frontend" as a core messaging concept — consider using it as the landing page subtitle, meta description, or Getting Started opener. The full line: "Foldkit models the frontend so you can model your domain."

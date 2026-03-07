@@ -1,6 +1,6 @@
 import { Html } from 'foldkit/html'
 
-import { Class, div, li, ul } from '../html'
+import { Class, div } from '../html'
 import { Link } from '../link'
 import type { Model, TableOfContentsEntry } from '../main'
 import {
@@ -14,8 +14,10 @@ import {
 import {
   comingFromReactRouter,
   coreCounterExampleRouter,
+  examplesRouter,
 } from '../route'
 import { codeBlock } from '../view/codeBlock'
+import { comparisonTable } from '../view/table'
 
 const CREATE_FOLDKIT_APP_COMMAND =
   'npx create-foldkit-app@latest --wizard'
@@ -35,12 +37,6 @@ const projectStructureHeader: TableOfContentsEntry = {
   text: 'Project Structure',
 }
 
-const nextStepsHeader: TableOfContentsEntry = {
-  level: 'h2',
-  id: 'next-steps',
-  text: 'Next Steps',
-}
-
 const aiAssistedHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'ai-assisted',
@@ -50,7 +46,6 @@ const aiAssistedHeader: TableOfContentsEntry = {
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   quickStartHeader,
   projectStructureHeader,
-  nextStepsHeader,
   aiAssistedHeader,
 ]
 
@@ -59,12 +54,13 @@ export const view = (model: Model): Html =>
     [],
     [
       pageTitle('getting-started', 'Getting Started'),
+      para('Let\u2019s get a Foldkit app running.'),
       tableOfContentsEntryToHeader(quickStartHeader),
       para(
         link(Link.createFoldkitApp, 'Create Foldkit app'),
-        " is the recommended way to get started with Foldkit. You'll be able to select the ",
-        link(Link.foldkitExamples, 'example'),
-        " you would like to start with and the package manager you'd like to use.",
+        " is the recommended way to get started. You'll select an ",
+        link(examplesRouter(), 'example'),
+        " to start with and the package manager you'd like to use.",
       ),
       codeBlock(
         CREATE_FOLDKIT_APP_COMMAND,
@@ -91,51 +87,46 @@ export const view = (model: Model): Html =>
       ),
       tableOfContentsEntryToHeader(projectStructureHeader),
       para('A new Foldkit project has the following structure:'),
-      ul(
-        [Class('list-none mb-6 space-y-2 font-mono text-sm')],
+      comparisonTable(
+        ['File', 'Description'],
         [
-          li(
-            [],
-            [inlineCode('src/main.ts'), ' — Your application code'],
-          ),
-          li([], [inlineCode('index.html'), ' — HTML entry point']),
-          li(
-            [],
-            [
-              inlineCode('vite.config.ts'),
-              ' — Vite configuration with Foldkit HMR plugin',
-            ],
-          ),
-          li(
-            [],
-            [
-              inlineCode('tsconfig.json'),
-              ' — TypeScript configuration',
-            ],
-          ),
-          li(
-            [],
-            [
-              inlineCode('package.json'),
-              ' — Dependencies and scripts',
-            ],
-          ),
+          [[inlineCode('src/main.ts')], ['Your application code']],
+          [
+            [inlineCode('src/styles.css')],
+            ['Tailwind CSS entry point'],
+          ],
+          [[inlineCode('index.html')], ['HTML entry point']],
+          [
+            [inlineCode('vite.config.ts')],
+            ['Vite configuration with Foldkit HMR plugin'],
+          ],
+          [
+            [inlineCode('tsconfig.json')],
+            ['TypeScript configuration'],
+          ],
+          [
+            [inlineCode('eslint.config.mjs')],
+            ['ESLint configuration'],
+          ],
+          [[inlineCode('.prettierrc')], ['Prettier configuration']],
+          [
+            [inlineCode('AGENTS.md')],
+            ['AI coding assistant conventions'],
+          ],
         ],
       ),
       para(
-        'The ',
         inlineCode('src/main.ts'),
-        ' file is the entry point for your application. In the starter examples, it contains the Model, Messages, Update function, and View all in one file. As your app grows, you can split these into separate modules.',
+        ' is the entry point for your application. Some starter examples keep everything in one file, while others split the Model, Messages, update, and view into separate modules.',
       ),
-      tableOfContentsEntryToHeader(nextStepsHeader),
       para(
-        'Now that you have a running app, head to the ',
+        'When you\u2019re ready to dig in, head to the ',
         link(coreCounterExampleRouter(), 'Counter Example'),
-        ' page to understand how the pieces fit together.',
+        ' to understand how the pieces fit together.',
       ),
       tableOfContentsEntryToHeader(aiAssistedHeader),
       para(
-        "Foldkit's explicit architecture — state in the Model, events as Messages, logic in pure functions — works well with AI coding assistants like Claude Code. The patterns are predictable, so the AI can follow and extend them reliably.",
+        'Foldkit\u2019s predictable architecture works well with AI coding assistants. Every app has the same structure, so the AI can follow and extend the patterns reliably.',
       ),
       para(
         'For the best experience, clone the ',
@@ -148,35 +139,18 @@ export const view = (model: Model): Html =>
         model,
         'mb-4',
       ),
-      para('To update the submodule when Foldkit changes:'),
-      codeBlock(
-        'git submodule update --remote foldkit',
-        'Copy update command',
-        model,
-        'mb-4',
-      ),
       para(
-        'The starter template includes a ',
-        inlineCode('.ignore'),
-        ' file that keeps the ',
-        inlineCode('foldkit/'),
-        " submodule out of your editor's file search and file tree.",
-      ),
-      para(
-        'It also includes a ',
-        inlineCode('AGENTS.md'),
-        ' with Foldkit conventions. The submodule gives the AI access to the ',
+        'This gives the AI access to the ',
         link(Link.foldkitSource, 'Foldkit source code'),
         ', the ',
         link(Link.foldkitExamples, 'examples'),
-        ', ',
-        link(Link.typingTerminal, 'Typing Terminal'),
-        ' (',
-        link(Link.typingTerminalSource, 'source'),
-        ')',
         ', and ',
         link(Link.websiteSource, 'this documentation site'),
-        ' — real patterns it can learn from and apply to your code.',
+        ' \u2014 real patterns it can learn from and apply to your code. The starter template includes an ',
+        inlineCode('AGENTS.md'),
+        ' with Foldkit conventions and a ',
+        inlineCode('.ignore'),
+        ' file that keeps the submodule out of your editor\u2019s file tree.',
       ),
     ],
   )

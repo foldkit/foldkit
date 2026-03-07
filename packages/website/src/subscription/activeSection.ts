@@ -27,7 +27,7 @@ export const activeSection: Subscription<
   modelToDependencies: (model: Model) => {
     const currentPageTableOfContents = M.value(model.route)
       .pipe(
-        M.tag('WhyFoldkit', () => Page.WhyFoldkit.tableOfContents),
+        M.tag('Manifesto', () => Page.Manifesto.tableOfContents),
         M.tag(
           'GettingStarted',
           () => Page.GettingStarted.tableOfContents,

@@ -42,6 +42,7 @@ import {
   FieldValidationRoute,
   GettingStartedRoute,
   HomeRoute,
+  ManifestoRoute,
   PatternsModelAsUnionRoute,
   PatternsOutMessageRoute,
   PatternsSubmodelsRoute,
@@ -56,7 +57,6 @@ import {
   UiRadioGroupRoute,
   UiSwitchRoute,
   UiTabsRoute,
-  WhyFoldkitRoute,
   apiModuleRouter,
   bestPracticesRouter,
   comingFromReactRouter,
@@ -80,6 +80,7 @@ import {
   fieldValidationRouter,
   gettingStartedRouter,
   homeRouter,
+  manifestoRouter,
   patternsModelAsUnionRouter,
   patternsOutMessageRouter,
   patternsSubmodelsRouter,
@@ -94,14 +95,13 @@ import {
   uiRadioGroupRouter,
   uiSwitchRouter,
   uiTabsRouter,
-  whyFoldkitRouter,
 } from '../src/route'
 
 // ROUTES
 
 export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   HomeRoute(),
-  WhyFoldkitRoute(),
+  ManifestoRoute(),
   GettingStartedRoute(),
   ComingFromReactRoute(),
   RoutingAndNavigationRoute(),
@@ -144,7 +144,7 @@ export const routeToUrlPath = (route: AppRoute): string =>
     M.withReturnType<string>(),
     M.tagsExhaustive({
       Home: () => homeRouter(),
-      WhyFoldkit: () => whyFoldkitRouter(),
+      Manifesto: () => manifestoRouter(),
       GettingStarted: () => gettingStartedRouter(),
       ComingFromReact: () => comingFromReactRouter(),
       RoutingAndNavigation: () => routingAndNavigationRouter(),

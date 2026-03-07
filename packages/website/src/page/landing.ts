@@ -601,7 +601,7 @@ const tradeOffsSection = (): Html =>
                   ),
                   a(
                     [
-                      Href('/why-foldkit#foldkit-vs-react'),
+                      Href('/coming-from-react'),
                       Class('cta-secondary'),
                     ],
                     [

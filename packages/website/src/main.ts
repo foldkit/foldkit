@@ -1692,7 +1692,7 @@ const pageNavigationView = (tag: string) => {
 const docsView = (model: Model, docsRoute: DocsRoute) => {
   const content = M.value(docsRoute).pipe(
     M.tagsExhaustive({
-      WhyFoldkit: Page.WhyFoldkit.view,
+      Manifesto: Page.Manifesto.view,
       ComingFromReact: () =>
         Page.ComingFromReact.view(
           model,
@@ -1778,7 +1778,7 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
       Option.Option<ReadonlyArray<TableOfContentsEntry>>
     >(),
     M.tagsExhaustive({
-      WhyFoldkit: () => Option.some(Page.WhyFoldkit.tableOfContents),
+      Manifesto: () => Option.some(Page.Manifesto.tableOfContents),
       ComingFromReact: () =>
         Option.some(Page.ComingFromReact.tableOfContents),
       GettingStarted: () =>

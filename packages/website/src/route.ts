@@ -13,7 +13,7 @@ import {
 // ROUTE SCHEMAS
 
 export const HomeRoute = r('Home')
-export const WhyFoldkitRoute = r('WhyFoldkit')
+export const ManifestoRoute = r('Manifesto')
 export const ComingFromReactRoute = r('ComingFromReact')
 export const GettingStartedRoute = r('GettingStarted')
 export const RoutingAndNavigationRoute = r('RoutingAndNavigation')
@@ -57,7 +57,7 @@ export const UiComboboxRoute = r('UiCombobox')
 export const NotFoundRoute = r('NotFound', { path: S.String })
 
 export const DocsRoute = S.Union(
-  WhyFoldkitRoute,
+  ManifestoRoute,
   ComingFromReactRoute,
   GettingStartedRoute,
   RoutingAndNavigationRoute,
@@ -101,7 +101,7 @@ export type DocsRoute = typeof DocsRoute.Type
 export const AppRoute = S.Union(HomeRoute, DocsRoute)
 
 export type HomeRoute = typeof HomeRoute.Type
-export type WhyFoldkitRoute = typeof WhyFoldkitRoute.Type
+export type ManifestoRoute = typeof ManifestoRoute.Type
 export type ComingFromReactRoute = typeof ComingFromReactRoute.Type
 export type GettingStartedRoute = typeof GettingStartedRoute.Type
 export type RoutingAndNavigationRoute =
@@ -155,9 +155,9 @@ export type AppRoute = typeof AppRoute.Type
 // ROUTERS
 
 export const homeRouter = pipe(root, mapTo(HomeRoute))
-export const whyFoldkitRouter = pipe(
-  literal('why-foldkit'),
-  mapTo(WhyFoldkitRoute),
+export const manifestoRouter = pipe(
+  literal('manifesto'),
+  mapTo(ManifestoRoute),
 )
 export const comingFromReactRouter = pipe(
   literal('coming-from-react'),
@@ -337,7 +337,7 @@ export const uiComboboxRouter = pipe(
 // PARSER
 
 const legacyDocsParser = oneOf(
-  whyFoldkitRouter,
+  manifestoRouter,
   comingFromReactRouter,
   gettingStartedRouter,
   routingAndNavigationRouter,

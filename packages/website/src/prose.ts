@@ -51,7 +51,7 @@ export const pageTitle = (id: string, text: string): Html =>
   h1(
     [
       Class(
-        'text-3xl md:text-[2.5rem] leading-normal font-normal text-gray-900 dark:text-white',
+        'text-3xl md:text-[2.5rem] leading-normal font-normal text-gray-900 dark:text-white mb-4',
       ),
       Id(id),
     ],
@@ -98,7 +98,7 @@ export const heading = (
 
 export const para = (
   ...content: ReadonlyArray<string | Html>
-): Html => p([Class('mb-4 leading-7')], content)
+): Html => p([Class('mb-4 leading-relaxed')], content)
 
 export const subPara = (
   ...content: ReadonlyArray<string | Html>

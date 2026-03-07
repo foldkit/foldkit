@@ -22,6 +22,7 @@ import {
   examplesRouter,
   fieldValidationRouter,
   gettingStartedRouter,
+  manifestoRouter,
   patternsModelAsUnionRouter,
   patternsOutMessageRouter,
   patternsSubmodelsRouter,
@@ -36,7 +37,6 @@ import {
   uiRadioGroupRouter,
   uiSwitchRouter,
   uiTabsRouter,
-  whyFoldkitRouter,
 } from './route'
 
 // NAV PAGE
@@ -59,14 +59,9 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     label: 'Get Started',
     pages: [
       {
-        _tag: 'WhyFoldkit',
-        href: whyFoldkitRouter(),
-        label: 'Why Foldkit?',
-      },
-      {
-        _tag: 'ComingFromReact',
-        href: comingFromReactRouter(),
-        label: 'Coming from React',
+        _tag: 'Manifesto',
+        href: manifestoRouter(),
+        label: 'Manifesto',
       },
       {
         _tag: 'GettingStarted',
@@ -163,6 +158,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
   {
     label: 'Guides',
     pages: [
+      {
+        _tag: 'ComingFromReact',
+        href: comingFromReactRouter(),
+        label: 'Coming from React',
+      },
       {
         _tag: 'RoutingAndNavigation',
         href: routingAndNavigationRouter(),
