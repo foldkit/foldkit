@@ -1,5 +1,11 @@
 # foldkit
 
+## 0.28.0
+
+### Minor Changes
+
+- a672d0c: Add Radio Group component (`Ui.RadioGroup`) with roving tabindex, orientation-aware arrow key navigation, per-option disabled state, and form submission via hidden input
+
 ## 0.27.0
 
 ### Minor Changes
