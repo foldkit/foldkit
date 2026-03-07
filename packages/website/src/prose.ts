@@ -51,7 +51,7 @@ export const pageTitle = (id: string, text: string): Html =>
   h1(
     [
       Class(
-        'text-3xl md:text-[2.5rem] leading-normal font-normal text-gray-900 dark:text-white mb-2',
+        'text-3xl md:text-[2.5rem] leading-normal font-normal text-gray-900 dark:text-white',
       ),
       Id(id),
     ],

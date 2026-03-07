@@ -48,27 +48,28 @@ export type Biparser<A> = {
   print: (value: A, state: PrintState) => Effect.Effect<PrintState, ParseError>
 }
 
+type BuildFn<A> = A extends { _tag: string }
+  ? keyof Omit<A, '_tag'> extends never
+    ? (value?: Omit<A, '_tag'>) => string
+    : (value: Omit<A, '_tag'>) => string
+  : never
+
 /**
  * A parser with a `build` method that can reconstruct URLs from parsed values.
  *
  * Created by applying `mapTo` to a `Biparser`, binding it to a tagged
  * type constructor so parsed values carry a discriminant tag and URLs can be
  * built from tag payloads.
+ *
+ * Routers are callable — `homeRouter()` or `personRouter({ id: 42 })` —
+ * and also expose `.build` as an alias and `.parse` for URL matching.
  */
-export type Router<A> = (A extends { _tag: string }
-  ? keyof Omit<A, '_tag'> extends never
-    ? (value?: Omit<A, '_tag'>) => string
-    : (value: Omit<A, '_tag'>) => string
-  : never) & {
+export type Router<A> = BuildFn<A> & {
   parse: (
     segments: ReadonlyArray<string>,
     search?: string,
   ) => Effect.Effect<ParseResult<A>, ParseError>
-  build: A extends { _tag: string }
-    ? keyof Omit<A, '_tag'> extends never
-      ? (value?: Omit<A, '_tag'>) => string
-      : (value: Omit<A, '_tag'>) => string
-    : never
+  build: BuildFn<A>
 }
 
 /**
@@ -239,158 +240,34 @@ export type Parser<A> = {
   ) => Effect.Effect<ParseResult<A>, ParseError>
 }
 
+type ParserInput = Biparser<any> | Parser<any>
+
+type InferParsed<P> =
+  P extends Biparser<infer A> ? A : P extends Parser<infer A> ? A : never
+
 /**
  * Combines multiple parsers, trying each in order until one succeeds.
  *
  * Returns a `Parser` (parse-only) since the union of different route
  * shapes cannot provide a single unified print function.
  */
-export function oneOf<A>(p1: Biparser<A> | Parser<A>): Parser<A>
-export function oneOf<A, B = never>(
-  p1: Biparser<A> | Parser<A>,
-  p2: Biparser<B> | Parser<B>,
-): Parser<A | B>
-export function oneOf<A, B = never, C = never>(
-  p1: Biparser<A> | Parser<A>,
-  p2: Biparser<B> | Parser<B>,
-  p3: Biparser<C> | Parser<C>,
-): Parser<A | B | C>
-export function oneOf<A, B = never, C = never, D = never>(
-  p1: Biparser<A> | Parser<A>,
-  p2: Biparser<B> | Parser<B>,
-  p3: Biparser<C> | Parser<C>,
-  p4: Biparser<D> | Parser<D>,
-): Parser<A | B | C | D>
-export function oneOf<A, B = never, C = never, D = never, E = never>(
-  p1: Biparser<A> | Parser<A>,
-  p2: Biparser<B> | Parser<B>,
-  p3: Biparser<C> | Parser<C>,
-  p4: Biparser<D> | Parser<D>,
-  p5: Biparser<E> | Parser<E>,
-): Parser<A | B | C | D | E>
-export function oneOf<A, B = never, C = never, D = never, E = never, F = never>(
-  p1: Biparser<A> | Parser<A>,
-  p2: Biparser<B> | Parser<B>,
-  p3: Biparser<C> | Parser<C>,
-  p4: Biparser<D> | Parser<D>,
-  p5: Biparser<E> | Parser<E>,
-  p6: Biparser<F> | Parser<F>,
-): Parser<A | B | C | D | E | F>
-export function oneOf<
-  A,
-  B = never,
-  C = never,
-  D = never,
-  E = never,
-  F = never,
-  G = never,
->(
-  p1: Biparser<A> | Parser<A>,
-  p2: Biparser<B> | Parser<B>,
-  p3: Biparser<C> | Parser<C>,
-  p4: Biparser<D> | Parser<D>,
-  p5: Biparser<E> | Parser<E>,
-  p6: Biparser<F> | Parser<F>,
-  p7: Biparser<G> | Parser<G>,
-): Parser<A | B | C | D | E | F | G>
-export function oneOf<
-  A,
-  B = never,
-  C = never,
-  D = never,
-  E = never,
-  F = never,
-  G = never,
-  H = never,
->(
-  p1: Biparser<A> | Parser<A>,
-  p2: Biparser<B> | Parser<B>,
-  p3: Biparser<C> | Parser<C>,
-  p4: Biparser<D> | Parser<D>,
-  p5: Biparser<E> | Parser<E>,
-  p6: Biparser<F> | Parser<F>,
-  p7: Biparser<G> | Parser<G>,
-  p8: Biparser<H> | Parser<H>,
-): Parser<A | B | C | D | E | F | G | H>
-export function oneOf<
-  A,
-  B = never,
-  C = never,
-  D = never,
-  E = never,
-  F = never,
-  G = never,
-  H = never,
-  I = never,
->(
-  p1: Biparser<A> | Parser<A>,
-  p2: Biparser<B> | Parser<B>,
-  p3: Biparser<C> | Parser<C>,
-  p4: Biparser<D> | Parser<D>,
-  p5: Biparser<E> | Parser<E>,
-  p6: Biparser<F> | Parser<F>,
-  p7: Biparser<G> | Parser<G>,
-  p8: Biparser<H> | Parser<H>,
-  p9: Biparser<I> | Parser<I>,
-): Parser<A | B | C | D | E | F | G | H | I>
-export function oneOf<
-  A,
-  B = never,
-  C = never,
-  D = never,
-  E = never,
-  F = never,
-  G = never,
-  H = never,
-  I = never,
-  J = never,
->(
-  p1: Biparser<A> | Parser<A>,
-  p2: Biparser<B> | Parser<B>,
-  p3: Biparser<C> | Parser<C>,
-  p4: Biparser<D> | Parser<D>,
-  p5: Biparser<E> | Parser<E>,
-  p6: Biparser<F> | Parser<F>,
-  p7: Biparser<G> | Parser<G>,
-  p8: Biparser<H> | Parser<H>,
-  p9: Biparser<I> | Parser<I>,
-  p10: Biparser<J> | Parser<J>,
-): Parser<A | B | C | D | E | F | G | H | I | J>
-export function oneOf(
-  p1: Biparser<any> | Parser<any>,
-  p2?: Biparser<any> | Parser<any>,
-  p3?: Biparser<any> | Parser<any>,
-  p4?: Biparser<any> | Parser<any>,
-  p5?: Biparser<any> | Parser<any>,
-  p6?: Biparser<any> | Parser<any>,
-  p7?: Biparser<any> | Parser<any>,
-  p8?: Biparser<any> | Parser<any>,
-  p9?: Biparser<any> | Parser<any>,
-  p10?: Biparser<any> | Parser<any>,
-): Parser<any> {
-  const parsers = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10].filter(
-    p => p !== undefined,
-  )
-
-  return {
-    parse: (segments, search) =>
-      Array.matchLeft(parsers, {
-        onEmpty: () => {
-          const segmentsStr = '/' + Array.join(segments, '/')
-
-          return Effect.fail(
-            new ParseError({
-              message: `No parsers provided for path: ${segmentsStr}`,
-            }),
-          )
-        },
-        onNonEmpty: () =>
-          Effect.firstSuccessOf(
-            Array.map(parsers, parser => parser.parse(segments, search)),
-          ),
-      }),
-  }
-}
+export const oneOf = <Parsers extends ReadonlyArray<ParserInput>>(
+  ...parsers: Parsers
+): Parser<InferParsed<Parsers[number]>> => ({
+  parse: (segments, search) =>
+    Array.matchLeft(parsers, {
+      onEmpty: () =>
+        Effect.fail(
+          new ParseError({
+            message: `No parsers provided for path: /${Array.join(segments, '/')}`,
+          }),
+        ),
+      onNonEmpty: () =>
+        Effect.firstSuccessOf(
+          Array.map(parsers, parser => parser.parse(segments, search)),
+        ),
+    }),
+})
 
 /**
  * Converts a `Biparser` into a `Router` by mapping parsed values to a
@@ -497,8 +374,8 @@ export const query =
     parser: Biparser<B>,
   ): TerminalParser<B & A> => {
     const queryParser: Biparser<B & A> = {
-      parse: (segments, search) => {
-        return pipe(
+      parse: (segments, search) =>
+        pipe(
           parser.parse(segments, search),
           Effect.flatMap(([pathValue, remainingSegments]) => {
             const searchParams = new URLSearchParams(search ?? '')
@@ -525,13 +402,12 @@ export const query =
               ),
             )
           }),
-        )
-      },
+        ),
       print: (value, state) =>
         pipe(
           parser.print(value, state),
-          Effect.flatMap(newState => {
-            return pipe(
+          Effect.flatMap(newState =>
+            pipe(
               Schema.encode(schema)(value),
               Effect.map(queryValue => {
                 const newQueryParams = new URLSearchParams(newState.queryParams)
@@ -555,8 +431,8 @@ export const query =
                     message: `Query parameter encoding failed: ${error.message}`,
                   }),
               ),
-            )
-          }),
+            ),
+          ),
         ),
     }
     return makeTerminalParser(queryParser)
@@ -581,13 +457,12 @@ const complete = <A>([value, remaining]: ParseResult<A>) =>
 
 const parseUrl =
   <A>(parser: Biparser<A> | TerminalParser<A> | Parser<A>) =>
-  (url: Url) => {
-    return pipe(
+  (url: Url) =>
+    pipe(
       pathToSegments(url.pathname),
       segments => parser.parse(segments, Option.getOrUndefined(url.search)),
       Effect.flatMap(complete),
     )
-  }
 
 /**
  * Parses a URL against a parser, falling back to a not-found route if no
