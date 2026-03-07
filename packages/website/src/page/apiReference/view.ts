@@ -14,7 +14,6 @@ import {
   a,
   div,
   h3,
-  p,
   span,
 } from '../../html'
 import { Icon } from '../../icon'
@@ -24,6 +23,7 @@ import {
   headingLinkButton,
   inlineCode,
   pageTitle,
+  para,
 } from '../../prose'
 import {
   type ApiFunction,
@@ -51,12 +51,7 @@ const descriptionView = (description: string): ReadonlyArray<Html> =>
     String.split(description, '\n\n'),
     Array.map(String.trim),
     Array.filter(String.isNonEmpty),
-    Array.map(paragraph =>
-      p(
-        [Class('text-gray-600 dark:text-gray-400 mb-2')],
-        descriptionWithCode(paragraph),
-      ),
-    ),
+    Array.map(paragraph => para(...descriptionWithCode(paragraph))),
   )
 
 const sourceLink = (
@@ -95,7 +90,7 @@ const functionView = (
       div(
         [
           Class(
-            'group flex items-center gap-1 mb-2 md:flex-row-reverse md:justify-end md:-ml-8',
+            'group flex items-center gap-1 md:hover-capable:gap-0 mb-2 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
           ),
         ],
         [
@@ -362,7 +357,7 @@ const typeView = (moduleName: string, type: ApiType): Html => {
       div(
         [
           Class(
-            'group flex items-center gap-1 mb-2 md:flex-row-reverse md:justify-end md:-ml-8',
+            'group flex items-center gap-1 md:hover-capable:gap-0 mb-2 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
           ),
         ],
         [
@@ -436,7 +431,7 @@ const interfaceView = (
       div(
         [
           Class(
-            'group flex items-center gap-1 mb-2 md:flex-row-reverse md:justify-end md:-ml-8',
+            'group flex items-center gap-1 md:hover-capable:gap-0 mb-2 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
           ),
         ],
         [
@@ -513,7 +508,7 @@ const variableView = (
       div(
         [
           Class(
-            'group flex items-center gap-1 mb-2 md:flex-row-reverse md:justify-end md:-ml-8',
+            'group flex items-center gap-1 md:hover-capable:gap-0 mb-2 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
           ),
         ],
         [

@@ -56,7 +56,7 @@ export const comparisonTable = (
           thead(
             [
               Class(
-                'bg-cream dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700',
+                'bg-cream dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700',
               ),
             ],
             [

@@ -10,7 +10,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../prose'
-import { advancedPatternsRouter } from '../route'
+import { patternsSubmodelsRouter } from '../route'
 import * as Snippets from '../snippet'
 import { codeBlock, highlightedCodeBlock } from '../view/codeBlock'
 
@@ -70,7 +70,7 @@ export const view = (model: Model): Html =>
       para(
         'As your app grows and you ',
         link(
-          advancedPatternsRouter.build({}),
+          patternsSubmodelsRouter.build({}),
           'scale with submodels',
         ),
         ', a consistent file layout helps you navigate the codebase. Each page or feature becomes a folder:',

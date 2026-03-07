@@ -70,7 +70,7 @@ const inputClassName =
   'w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-cream dark:bg-gray-800 text-gray-900 dark:text-white pl-3 pr-10 py-2 text-base outline-none focus:ring-2 focus:ring-accent-500'
 
 const buttonClassName =
-  'absolute inset-y-0 right-0 flex items-center px-4 cursor-pointer text-gray-900 dark:text-white'
+  'absolute inset-y-0 right-0 flex items-center px-4 cursor-pointer text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors'
 
 const itemsClassName =
   'absolute mt-2 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-cream dark:bg-gray-800 shadow-lg overflow-hidden z-10 outline-none'

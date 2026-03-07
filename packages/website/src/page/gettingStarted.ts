@@ -12,8 +12,8 @@ import {
   tableOfContentsEntryToHeader,
 } from '../prose'
 import {
-  architectureAndConceptsRouter,
   comingFromReactRouter,
+  coreCounterExampleRouter,
 } from '../route'
 import { codeBlock } from '../view/codeBlock'
 
@@ -130,10 +130,7 @@ export const view = (model: Model): Html =>
       tableOfContentsEntryToHeader(nextStepsHeader),
       para(
         'Now that you have a running app, head to the ',
-        link(
-          architectureAndConceptsRouter.build({}),
-          'Architecture & Concepts',
-        ),
+        link(coreCounterExampleRouter.build({}), 'Counter Example'),
         ' page to understand how the pieces fit together.',
       ),
       tableOfContentsEntryToHeader(aiAssistedHeader),

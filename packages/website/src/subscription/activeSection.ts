@@ -25,53 +25,133 @@ export const activeSection: Subscription<
   SubscriptionDeps['activeSection']
 > = {
   modelToDependencies: (model: Model) => {
-    const currentPageTableOfContents = M.value(model.route).pipe(
-      M.tag('WhyFoldkit', () => Page.WhyFoldkit.tableOfContents),
-      M.tag(
-        'GettingStarted',
-        () => Page.GettingStarted.tableOfContents,
-      ),
-      M.tag(
-        'ArchitectureAndConcepts',
-        () => Page.ArchitectureAndConcepts.tableOfContents,
-      ),
-      M.tag(
-        'ComingFromReact',
-        () => Page.ComingFromReact.tableOfContents,
-      ),
-      M.tag(
-        'RoutingAndNavigation',
-        () => Page.Routing.tableOfContents,
-      ),
-      M.tag(
-        'FieldValidation',
-        () => Page.FieldValidation.tableOfContents,
-      ),
-      M.tag(
-        'BestPractices',
-        () => Page.BestPractices.tableOfContents,
-      ),
-      M.tag(
-        'ProjectOrganization',
-        () => Page.ProjectOrganization.tableOfContents,
-      ),
-      M.tag(
-        'AdvancedPatterns',
-        () => Page.AdvancedPatterns.tableOfContents,
-      ),
-      M.tag('ApiModule', ({ moduleSlug }) =>
-        pipe(
-          moduleSlug,
-          Page.ApiReference.slugToModule,
-          Option.match({
-            onNone: () => [],
-            onSome: Page.ApiReference.toModuleTableOfContents,
-          }),
+    const currentPageTableOfContents = M.value(model.route)
+      .pipe(
+        M.tag('WhyFoldkit', () => Page.WhyFoldkit.tableOfContents),
+        M.tag(
+          'GettingStarted',
+          () => Page.GettingStarted.tableOfContents,
         ),
-      ),
-      M.tag('FoldkitUi', () => Page.FoldkitUi.tableOfContents),
-      M.option,
-    )
+        M.tag(
+          'ComingFromReact',
+          () => Page.ComingFromReact.tableOfContents,
+        ),
+        M.tag(
+          'RoutingAndNavigation',
+          () => Page.Routing.tableOfContents,
+        ),
+        M.tag(
+          'FieldValidation',
+          () => Page.FieldValidation.tableOfContents,
+        ),
+        M.tag(
+          'BestPractices',
+          () => Page.BestPractices.tableOfContents,
+        ),
+        M.tag(
+          'ProjectOrganization',
+          () => Page.ProjectOrganization.tableOfContents,
+        ),
+        M.tag('ApiModule', ({ moduleSlug }) =>
+          pipe(
+            moduleSlug,
+            Page.ApiReference.slugToModule,
+            Option.match({
+              onNone: () => [],
+              onSome: Page.ApiReference.toModuleTableOfContents,
+            }),
+          ),
+        ),
+        M.tag(
+          'CoreCounterExample',
+          () => Page.Core.CounterExample.tableOfContents,
+        ),
+        M.tag('CoreModel', () => Page.Core.CoreModel.tableOfContents),
+        M.tag(
+          'CoreMessages',
+          () => Page.Core.Messages.tableOfContents,
+        ),
+        M.tag(
+          'CoreUpdate',
+          () => Page.Core.CoreUpdate.tableOfContents,
+        ),
+        M.tag('CoreView', () => Page.Core.CoreView.tableOfContents),
+        M.tag(
+          'CoreCommands',
+          () => Page.Core.Commands.tableOfContents,
+        ),
+        M.tag(
+          'CoreSubscriptions',
+          () => Page.Core.Subscriptions.tableOfContents,
+        ),
+        M.tag('CoreInit', () => Page.Core.Init.tableOfContents),
+        M.tag('CoreTask', () => Page.Core.CoreTask.tableOfContents),
+        M.tag(
+          'CoreRunningYourApp',
+          () => Page.Core.RunningYourApp.tableOfContents,
+        ),
+      )
+      .pipe(
+        M.tag(
+          'CoreResources',
+          () => Page.Core.Resources.tableOfContents,
+        ),
+        M.tag(
+          'CoreManagedResources',
+          () => Page.Core.ManagedResources.tableOfContents,
+        ),
+        M.tag(
+          'CoreErrorView',
+          () => Page.Core.ErrorView.tableOfContents,
+        ),
+        M.tag(
+          'CoreSlowViewWarning',
+          () => Page.Core.SlowViewWarning.tableOfContents,
+        ),
+        M.tag(
+          'PatternsSubmodels',
+          () => Page.Patterns.Submodels.tableOfContents,
+        ),
+        M.tag(
+          'PatternsModelAsUnion',
+          () => Page.Patterns.ModelAsUnion.tableOfContents,
+        ),
+        M.tag(
+          'PatternsOutMessage',
+          () => Page.Patterns.OutMessage.tableOfContents,
+        ),
+        M.tag(
+          'CoreViewMemoization',
+          () => Page.Core.ViewMemoization.tableOfContents,
+        ),
+        M.tag('UiTabs', () => Page.UiPages.TabsPage.tableOfContents),
+        M.tag(
+          'UiDisclosure',
+          () => Page.UiPages.DisclosurePage.tableOfContents,
+        ),
+        M.tag(
+          'UiDialog',
+          () => Page.UiPages.DialogPage.tableOfContents,
+        ),
+        M.tag('UiMenu', () => Page.UiPages.MenuPage.tableOfContents),
+        M.tag(
+          'UiPopover',
+          () => Page.UiPages.PopoverPage.tableOfContents,
+        ),
+        M.tag(
+          'UiListbox',
+          () => Page.UiPages.ListboxPage.tableOfContents,
+        ),
+        M.tag(
+          'UiSwitch',
+          () => Page.UiPages.SwitchPage.tableOfContents,
+        ),
+        M.tag(
+          'UiCombobox',
+          () => Page.UiPages.ComboboxPage.tableOfContents,
+        ),
+        M.option,
+      )
 
     return {
       pageId: model.route._tag,

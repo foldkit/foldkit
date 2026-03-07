@@ -42,7 +42,6 @@ import {
   div,
   empty,
   footer,
-  h2,
   h3,
   header,
   img,
@@ -59,31 +58,43 @@ import { Icon } from './icon'
 import { Link } from './link'
 import * as Page from './page'
 import {
-  AdvancedPatternsRoute,
   AppRoute,
-  ArchitectureAndConceptsRoute,
-  BestPracticesRoute,
-  ComingFromReactRoute,
   DocsRoute,
-  ExamplesRoute,
-  FieldValidationRoute,
-  FoldkitUiRoute,
-  GettingStartedRoute,
-  ProjectOrganizationRoute,
-  RoutingAndNavigationRoute,
-  WhyFoldkitRoute,
-  advancedPatternsRouter,
   apiModuleRouter,
-  architectureAndConceptsRouter,
   bestPracticesRouter,
   comingFromReactRouter,
+  coreCommandsRouter,
+  coreCounterExampleRouter,
+  coreErrorViewRouter,
+  coreInitRouter,
+  coreManagedResourcesRouter,
+  coreMessagesRouter,
+  coreModelRouter,
+  coreResourcesRouter,
+  coreRunningYourAppRouter,
+  coreSlowViewWarningRouter,
+  coreSubscriptionsRouter,
+  coreTaskRouter,
+  coreUpdateRouter,
+  coreViewMemoizationRouter,
+  coreViewRouter,
   examplesRouter,
   fieldValidationRouter,
-  foldkitUiRouter,
   gettingStartedRouter,
   homeRouter,
+  patternsModelAsUnionRouter,
+  patternsOutMessageRouter,
+  patternsSubmodelsRouter,
   projectOrganizationRouter,
   routingAndNavigationRouter,
+  uiComboboxRouter,
+  uiDialogRouter,
+  uiDisclosureRouter,
+  uiListboxRouter,
+  uiMenuRouter,
+  uiPopoverRouter,
+  uiSwitchRouter,
+  uiTabsRouter,
   urlToAppRoute,
   whyFoldkitRouter,
 } from './route'
@@ -169,6 +180,12 @@ export const Model = S.Struct({
   activeSection: S.Option(S.String),
   isLandingHeaderVisible: S.Boolean,
   isNarrowViewport: S.Boolean,
+  getStartedGroup: Ui.Disclosure.Model,
+  coreConceptsGroup: Ui.Disclosure.Model,
+  guidesGroup: Ui.Disclosure.Model,
+  patternsGroup: Ui.Disclosure.Model,
+  foldkitUiGroup: Ui.Disclosure.Model,
+  examplesGroup: Ui.Disclosure.Model,
   apiReferenceGroup: Ui.Disclosure.Model,
   themePreference: ThemePreference,
   systemTheme: ResolvedTheme,
@@ -176,7 +193,7 @@ export const Model = S.Struct({
   demoTabs: Ui.Tabs.Model,
   asyncCounterDemo: Page.AsyncCounterDemo.Model,
   notePlayerDemo: Page.NotePlayerDemo.Model,
-  foldkitUi: Page.FoldkitUi.Model,
+  uiPages: Page.UiPages.Model,
   comingFromReact: Page.ComingFromReact.Model,
   apiReference: Page.ApiReference.Model,
 })
@@ -237,14 +254,32 @@ const GotAsyncCounterDemoMessage = m('GotAsyncCounterDemoMessage', {
 const GotNotePlayerDemoMessage = m('GotNotePlayerDemoMessage', {
   message: Page.NotePlayerDemo.Message,
 })
-const GotFoldkitUiMessage = m('GotFoldkitUiMessage', {
-  message: Page.FoldkitUi.Message,
-})
 const GotComingFromReactMessage = m('GotComingFromReactMessage', {
   message: Page.ComingFromReact.Message,
 })
 const GotApiReferenceMessage = m('GotApiReferenceMessage', {
   message: Page.ApiReference.Message,
+})
+const GotUiPageMessage = m('GotUiPageMessage', {
+  message: Page.UiPages.Message,
+})
+const GotGetStartedGroupMessage = m('GotGetStartedGroupMessage', {
+  message: Ui.Disclosure.Message,
+})
+const GotCoreConceptsGroupMessage = m('GotCoreConceptsGroupMessage', {
+  message: Ui.Disclosure.Message,
+})
+const GotGuidesGroupMessage = m('GotGuidesGroupMessage', {
+  message: Ui.Disclosure.Message,
+})
+const GotPatternsGroupMessage = m('GotPatternsGroupMessage', {
+  message: Ui.Disclosure.Message,
+})
+const GotFoldkitUiGroupMessage = m('GotFoldkitUiGroupMessage', {
+  message: Ui.Disclosure.Message,
+})
+const GotExamplesGroupMessage = m('GotExamplesGroupMessage', {
+  message: Ui.Disclosure.Message,
 })
 const GotApiReferenceGroupMessage = m('GotApiReferenceGroupMessage', {
   message: Ui.Disclosure.Message,
@@ -269,16 +304,21 @@ const Message = S.Union(
   GotDemoTabsMessage,
   GotAsyncCounterDemoMessage,
   GotNotePlayerDemoMessage,
-  GotFoldkitUiMessage,
+  GotUiPageMessage,
   GotComingFromReactMessage,
   GotApiReferenceMessage,
+  GotGetStartedGroupMessage,
+  GotCoreConceptsGroupMessage,
+  GotGuidesGroupMessage,
+  GotPatternsGroupMessage,
+  GotFoldkitUiGroupMessage,
+  GotExamplesGroupMessage,
   GotApiReferenceGroupMessage,
 )
 export type Message = typeof Message.Type
 
-const toFoldkitUiMessage = (
-  message: Page.FoldkitUi.Message,
-): Message => GotFoldkitUiMessage({ message })
+const toUiPageMessage = (message: Page.UiPages.Message): Message =>
+  GotUiPageMessage({ message })
 
 // INIT
 
@@ -303,7 +343,7 @@ const init: Runtime.ApplicationInit<
     Page.AsyncCounterDemo.init()
   const [notePlayerDemo, notePlayerDemoCommands] =
     Page.NotePlayerDemo.init()
-  const [foldkitUi, foldkitUiCommands] = Page.FoldkitUi.init()
+  const [uiPages, uiPagesCommands] = Page.UiPages.init()
   const [comingFromReact, comingFromReactCommands] =
     Page.ComingFromReact.init()
   const [apiReference, apiReferenceCommands] = Page.ApiReference.init(
@@ -318,8 +358,8 @@ const init: Runtime.ApplicationInit<
     Effect.map(message => GotNotePlayerDemoMessage({ message })),
   )
 
-  const mappedFoldkitUiCommands = foldkitUiCommands.map(message =>
-    Effect.map(message, message => GotFoldkitUiMessage({ message })),
+  const mappedUiPagesCommands = uiPagesCommands.map(
+    Effect.map(message => GotUiPageMessage({ message })),
   )
 
   const mappedComingFromReactCommands = comingFromReactCommands.map(
@@ -342,6 +382,30 @@ const init: Runtime.ApplicationInit<
       activeSection: Option.none(),
       isLandingHeaderVisible: false,
       isNarrowViewport: loadedFlags.isNarrowViewport,
+      getStartedGroup: {
+        ...Ui.Disclosure.init({ id: 'get-started-group' }),
+        isOpen: true,
+      },
+      coreConceptsGroup: {
+        ...Ui.Disclosure.init({ id: 'core-concepts-group' }),
+        isOpen: true,
+      },
+      guidesGroup: {
+        ...Ui.Disclosure.init({ id: 'guides-group' }),
+        isOpen: true,
+      },
+      patternsGroup: {
+        ...Ui.Disclosure.init({ id: 'patterns-group' }),
+        isOpen: true,
+      },
+      foldkitUiGroup: {
+        ...Ui.Disclosure.init({ id: 'foldkit-ui-group' }),
+        isOpen: true,
+      },
+      examplesGroup: {
+        ...Ui.Disclosure.init({ id: 'examples-group' }),
+        isOpen: true,
+      },
       apiReferenceGroup: {
         ...Ui.Disclosure.init({ id: 'api-reference-group' }),
         isOpen: initialRoute._tag === 'ApiModule',
@@ -352,7 +416,7 @@ const init: Runtime.ApplicationInit<
       demoTabs,
       asyncCounterDemo,
       notePlayerDemo,
-      foldkitUi,
+      uiPages,
       comingFromReact,
       apiReference,
     },
@@ -362,7 +426,7 @@ const init: Runtime.ApplicationInit<
       applyThemeToDocument(resolvedTheme),
       ...mappedAsyncCounterDemoCommands,
       ...mappedNotePlayerDemoCommands,
-      ...mappedFoldkitUiCommands,
+      ...mappedUiPagesCommands,
       ...mappedComingFromReactCommands,
       ...mappedApiReferenceCommands,
       ...Option.match(url.hash, {
@@ -593,18 +657,6 @@ const update = (
         ]
       },
 
-      GotFoldkitUiMessage: ({ message }) => {
-        const [nextFoldkitUi, foldkitUiCommands] =
-          Page.FoldkitUi.update(model.foldkitUi, message)
-
-        return [
-          evo(model, { foldkitUi: () => nextFoldkitUi }),
-          foldkitUiCommands.map(
-            Effect.map(message => GotFoldkitUiMessage({ message })),
-          ),
-        ]
-      },
-
       ChangedSystemTheme: ({ theme }) => {
         const resolvedTheme = resolveTheme(
           model.themePreference,
@@ -645,6 +697,114 @@ const update = (
           apiReferenceCommands.map(
             Effect.map(message =>
               GotApiReferenceMessage({ message }),
+            ),
+          ),
+        ]
+      },
+
+      GotUiPageMessage: ({ message }) => {
+        const [nextUiPages, uiPagesCommands] = Page.UiPages.update(
+          model.uiPages,
+          message,
+        )
+
+        return [
+          evo(model, { uiPages: () => nextUiPages }),
+          uiPagesCommands.map(
+            Effect.map(message => GotUiPageMessage({ message })),
+          ),
+        ]
+      },
+
+      GotGetStartedGroupMessage: ({ message }) => {
+        const [nextGetStartedGroup, getStartedGroupCommands] =
+          Ui.Disclosure.update(model.getStartedGroup, message)
+
+        return [
+          evo(model, {
+            getStartedGroup: () => nextGetStartedGroup,
+          }),
+          getStartedGroupCommands.map(
+            Effect.map(message =>
+              GotGetStartedGroupMessage({ message }),
+            ),
+          ),
+        ]
+      },
+
+      GotCoreConceptsGroupMessage: ({ message }) => {
+        const [nextCoreConceptsGroup, coreConceptsGroupCommands] =
+          Ui.Disclosure.update(model.coreConceptsGroup, message)
+
+        return [
+          evo(model, {
+            coreConceptsGroup: () => nextCoreConceptsGroup,
+          }),
+          coreConceptsGroupCommands.map(
+            Effect.map(message =>
+              GotCoreConceptsGroupMessage({ message }),
+            ),
+          ),
+        ]
+      },
+
+      GotGuidesGroupMessage: ({ message }) => {
+        const [nextGuidesGroup, guidesGroupCommands] =
+          Ui.Disclosure.update(model.guidesGroup, message)
+
+        return [
+          evo(model, {
+            guidesGroup: () => nextGuidesGroup,
+          }),
+          guidesGroupCommands.map(
+            Effect.map(message => GotGuidesGroupMessage({ message })),
+          ),
+        ]
+      },
+
+      GotPatternsGroupMessage: ({ message }) => {
+        const [nextPatternsGroup, patternsGroupCommands] =
+          Ui.Disclosure.update(model.patternsGroup, message)
+
+        return [
+          evo(model, {
+            patternsGroup: () => nextPatternsGroup,
+          }),
+          patternsGroupCommands.map(
+            Effect.map(message =>
+              GotPatternsGroupMessage({ message }),
+            ),
+          ),
+        ]
+      },
+
+      GotFoldkitUiGroupMessage: ({ message }) => {
+        const [nextFoldkitUiGroup, foldkitUiGroupCommands] =
+          Ui.Disclosure.update(model.foldkitUiGroup, message)
+
+        return [
+          evo(model, {
+            foldkitUiGroup: () => nextFoldkitUiGroup,
+          }),
+          foldkitUiGroupCommands.map(
+            Effect.map(message =>
+              GotFoldkitUiGroupMessage({ message }),
+            ),
+          ),
+        ]
+      },
+
+      GotExamplesGroupMessage: ({ message }) => {
+        const [nextExamplesGroup, examplesGroupCommands] =
+          Ui.Disclosure.update(model.examplesGroup, message)
+
+        return [
+          evo(model, {
+            examplesGroup: () => nextExamplesGroup,
+          }),
+          examplesGroupCommands.map(
+            Effect.map(message =>
+              GotExamplesGroupMessage({ message }),
             ),
           ),
         ]
@@ -772,11 +932,49 @@ const saveThemePreference = (
 
 // VIEW
 
-const sidebarView = (
-  currentRoute: AppRoute,
-  mobileMenuDialog: Ui.Dialog.Model,
-  apiReferenceGroup: Ui.Disclosure.Model,
-) => {
+const sidebarGroup = (config: {
+  readonly label: string
+  readonly model: Ui.Disclosure.Model
+  readonly toMessage: (message: Ui.Disclosure.Message) => Message
+  readonly children: Html
+}): Html =>
+  li(
+    [],
+    [
+      Ui.Disclosure.view({
+        model: config.model,
+        toMessage: config.toMessage,
+        buttonClassName: classNames(
+          'w-full flex items-center justify-between cursor-pointer',
+          'px-4 py-2 md:px-2.5 md:py-1.5',
+          'text-base md:text-xs font-semibold uppercase tracking-wider',
+          'text-gray-500 dark:text-gray-400',
+          'hover:text-gray-700 dark:hover:text-gray-300',
+        ),
+        buttonContent: div(
+          [Class('flex items-center justify-between w-full')],
+          [
+            span([], [config.label]),
+            span(
+              [
+                Class(
+                  classNames('transition-transform', {
+                    'rotate-180': config.model.isOpen,
+                  }),
+                ),
+              ],
+              [Icon.chevronDown('w-3 h-3')],
+            ),
+          ],
+        ),
+        panelClassName: 'pl-2 space-y-0.5 mt-0.5',
+        panelContent: config.children,
+      }),
+    ],
+  )
+
+const sidebarView = (model: Model) => {
+  const currentRoute = model.route
   const isOnApiModulePage = currentRoute._tag === 'ApiModule'
 
   const linkClass = (isActive: boolean) =>
@@ -806,109 +1004,257 @@ const sidebarView = (
     )
 
   const navLinks = ul(
-    [Class('space-y-1')],
+    [Class('space-y-3')],
     [
-      navLink(
-        whyFoldkitRouter.build({}),
-        S.is(WhyFoldkitRoute)(currentRoute),
-        'Why Foldkit?',
-      ),
-      navLink(
-        comingFromReactRouter.build({}),
-        S.is(ComingFromReactRoute)(currentRoute),
-        'Coming from React',
-      ),
-      navLink(
-        gettingStartedRouter.build({}),
-        S.is(GettingStartedRoute)(currentRoute),
-        'Getting Started',
-      ),
-      navLink(
-        architectureAndConceptsRouter.build({}),
-        S.is(ArchitectureAndConceptsRoute)(currentRoute),
-        'Architecture & Concepts',
-      ),
-      navLink(
-        routingAndNavigationRouter.build({}),
-        S.is(RoutingAndNavigationRoute)(currentRoute),
-        'Routing & Navigation',
-      ),
-      navLink(
-        fieldValidationRouter.build({}),
-        S.is(FieldValidationRoute)(currentRoute),
-        'Field Validation',
-      ),
-      navLink(
-        projectOrganizationRouter.build({}),
-        S.is(ProjectOrganizationRoute)(currentRoute),
-        'Project Organization',
-      ),
-      navLink(
-        advancedPatternsRouter.build({}),
-        S.is(AdvancedPatternsRoute)(currentRoute),
-        'Advanced Patterns',
-      ),
-      navLink(
-        bestPracticesRouter.build({}),
-        S.is(BestPracticesRoute)(currentRoute),
-        'Best Practices',
-      ),
-      navLink(
-        examplesRouter.build({}),
-        S.is(ExamplesRoute)(currentRoute),
-        'Example Apps',
-      ),
-      navLink(
-        foldkitUiRouter.build({}),
-        S.is(FoldkitUiRoute)(currentRoute),
-        'Foldkit UI',
-      ),
-      li(
-        [],
-        [
-          Ui.Disclosure.view({
-            model: apiReferenceGroup,
-            toMessage: message =>
-              GotApiReferenceGroupMessage({ message }),
-            buttonClassName: classNames(
-              linkClass(false),
-              'w-full flex items-center justify-between cursor-pointer',
+      sidebarGroup({
+        label: 'Get Started',
+        model: model.getStartedGroup,
+        toMessage: message => GotGetStartedGroupMessage({ message }),
+        children: ul(
+          [],
+          [
+            navLink(
+              whyFoldkitRouter.build({}),
+              currentRoute._tag === 'WhyFoldkit',
+              'Why Foldkit?',
             ),
-            buttonContent: div(
-              [Class('flex items-center justify-between w-full')],
-              [
-                span([], ['API Reference']),
-                span(
-                  [
-                    Class(
-                      classNames('transition-transform', {
-                        'rotate-180': apiReferenceGroup.isOpen,
-                      }),
-                    ),
-                  ],
-                  [Icon.chevronDown('w-4 h-4')],
-                ),
-              ],
+            navLink(
+              comingFromReactRouter.build({}),
+              currentRoute._tag === 'ComingFromReact',
+              'Coming from React',
             ),
-            panelClassName: 'pl-4 space-y-1 mt-1',
-            panelContent: ul(
-              [],
-              Array.map(
-                Page.ApiReference.moduleSlugs,
-                ({ slug, name }) =>
-                  navLink(
-                    apiModuleRouter.build({
-                      moduleSlug: slug,
-                    }),
-                    isOnApiModulePage &&
-                      currentRoute.moduleSlug === slug,
-                    name,
-                  ),
-              ),
+            navLink(
+              gettingStartedRouter.build({}),
+              currentRoute._tag === 'GettingStarted',
+              'Getting Started',
             ),
-          }),
-        ],
-      ),
+          ],
+        ),
+      }),
+      sidebarGroup({
+        label: 'Core Concepts',
+        model: model.coreConceptsGroup,
+        toMessage: message =>
+          GotCoreConceptsGroupMessage({ message }),
+        children: ul(
+          [],
+          [
+            navLink(
+              coreCounterExampleRouter.build({}),
+              currentRoute._tag === 'CoreCounterExample',
+              'Counter Example',
+            ),
+            navLink(
+              coreModelRouter.build({}),
+              currentRoute._tag === 'CoreModel',
+              'Model',
+            ),
+            navLink(
+              coreMessagesRouter.build({}),
+              currentRoute._tag === 'CoreMessages',
+              'Messages',
+            ),
+            navLink(
+              coreUpdateRouter.build({}),
+              currentRoute._tag === 'CoreUpdate',
+              'Update',
+            ),
+            navLink(
+              coreViewRouter.build({}),
+              currentRoute._tag === 'CoreView',
+              'View',
+            ),
+            navLink(
+              coreCommandsRouter.build({}),
+              currentRoute._tag === 'CoreCommands',
+              'Commands',
+            ),
+            navLink(
+              coreSubscriptionsRouter.build({}),
+              currentRoute._tag === 'CoreSubscriptions',
+              'Subscriptions',
+            ),
+            navLink(
+              coreInitRouter.build({}),
+              currentRoute._tag === 'CoreInit',
+              'Init',
+            ),
+            navLink(
+              coreTaskRouter.build({}),
+              currentRoute._tag === 'CoreTask',
+              'Task',
+            ),
+            navLink(
+              coreRunningYourAppRouter.build({}),
+              currentRoute._tag === 'CoreRunningYourApp',
+              'Running Your App',
+            ),
+            navLink(
+              coreResourcesRouter.build({}),
+              currentRoute._tag === 'CoreResources',
+              'Resources',
+            ),
+            navLink(
+              coreManagedResourcesRouter.build({}),
+              currentRoute._tag === 'CoreManagedResources',
+              'Managed Resources',
+            ),
+            navLink(
+              coreErrorViewRouter.build({}),
+              currentRoute._tag === 'CoreErrorView',
+              'Error View',
+            ),
+            navLink(
+              coreSlowViewWarningRouter.build({}),
+              currentRoute._tag === 'CoreSlowViewWarning',
+              'Slow View Warning',
+            ),
+            navLink(
+              coreViewMemoizationRouter.build({}),
+              currentRoute._tag === 'CoreViewMemoization',
+              'View Memoization',
+            ),
+          ],
+        ),
+      }),
+      sidebarGroup({
+        label: 'Guides',
+        model: model.guidesGroup,
+        toMessage: message => GotGuidesGroupMessage({ message }),
+        children: ul(
+          [],
+          [
+            navLink(
+              routingAndNavigationRouter.build({}),
+              currentRoute._tag === 'RoutingAndNavigation',
+              'Routing & Navigation',
+            ),
+            navLink(
+              fieldValidationRouter.build({}),
+              currentRoute._tag === 'FieldValidation',
+              'Field Validation',
+            ),
+            navLink(
+              projectOrganizationRouter.build({}),
+              currentRoute._tag === 'ProjectOrganization',
+              'Project Organization',
+            ),
+            navLink(
+              bestPracticesRouter.build({}),
+              currentRoute._tag === 'BestPractices',
+              'Best Practices',
+            ),
+          ],
+        ),
+      }),
+      sidebarGroup({
+        label: 'Patterns',
+        model: model.patternsGroup,
+        toMessage: message => GotPatternsGroupMessage({ message }),
+        children: ul(
+          [],
+          [
+            navLink(
+              patternsSubmodelsRouter.build({}),
+              currentRoute._tag === 'PatternsSubmodels',
+              'Submodels',
+            ),
+            navLink(
+              patternsModelAsUnionRouter.build({}),
+              currentRoute._tag === 'PatternsModelAsUnion',
+              'Model as Union',
+            ),
+            navLink(
+              patternsOutMessageRouter.build({}),
+              currentRoute._tag === 'PatternsOutMessage',
+              'OutMessage',
+            ),
+          ],
+        ),
+      }),
+      sidebarGroup({
+        label: 'Foldkit UI',
+        model: model.foldkitUiGroup,
+        toMessage: message => GotFoldkitUiGroupMessage({ message }),
+        children: ul(
+          [],
+          [
+            navLink(
+              uiTabsRouter.build({}),
+              currentRoute._tag === 'UiTabs',
+              'Tabs',
+            ),
+            navLink(
+              uiDisclosureRouter.build({}),
+              currentRoute._tag === 'UiDisclosure',
+              'Disclosure',
+            ),
+            navLink(
+              uiDialogRouter.build({}),
+              currentRoute._tag === 'UiDialog',
+              'Dialog',
+            ),
+            navLink(
+              uiMenuRouter.build({}),
+              currentRoute._tag === 'UiMenu',
+              'Menu',
+            ),
+            navLink(
+              uiPopoverRouter.build({}),
+              currentRoute._tag === 'UiPopover',
+              'Popover',
+            ),
+            navLink(
+              uiListboxRouter.build({}),
+              currentRoute._tag === 'UiListbox',
+              'Listbox',
+            ),
+            navLink(
+              uiSwitchRouter.build({}),
+              currentRoute._tag === 'UiSwitch',
+              'Switch',
+            ),
+            navLink(
+              uiComboboxRouter.build({}),
+              currentRoute._tag === 'UiCombobox',
+              'Combobox',
+            ),
+          ],
+        ),
+      }),
+      sidebarGroup({
+        label: 'Examples',
+        model: model.examplesGroup,
+        toMessage: message => GotExamplesGroupMessage({ message }),
+        children: ul(
+          [],
+          [
+            navLink(
+              examplesRouter.build({}),
+              currentRoute._tag === 'Examples',
+              'Example Apps',
+            ),
+          ],
+        ),
+      }),
+      sidebarGroup({
+        label: 'API Reference',
+        model: model.apiReferenceGroup,
+        toMessage: message =>
+          GotApiReferenceGroupMessage({ message }),
+        children: ul(
+          [],
+          Array.map(Page.ApiReference.moduleSlugs, ({ slug, name }) =>
+            navLink(
+              apiModuleRouter.build({
+                moduleSlug: slug,
+              }),
+              isOnApiModulePage && currentRoute.moduleSlug === slug,
+              name,
+            ),
+          ),
+        ),
+      }),
     ],
   )
 
@@ -925,18 +1271,7 @@ const sidebarView = (
           AriaLabel('Documentation'),
           Class('flex-1 overflow-y-auto p-4'),
         ],
-        [
-          h2(
-            [
-              AriaHidden(true),
-              Class(
-                'text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3',
-              ),
-            ],
-            ['Documentation'],
-          ),
-          navLinks,
-        ],
+        [navLinks],
       ),
     ],
   )
@@ -1004,7 +1339,7 @@ const sidebarView = (
   )
 
   const mobileMenu = Ui.Dialog.view({
-    model: mobileMenuDialog,
+    model: model.mobileMenuDialog,
     toMessage: message => GotMobileMenuDialogMessage({ message }),
     panelContent: mobileMenuContent,
     panelClassName:
@@ -1512,14 +1847,11 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
           message => GotComingFromReactMessage({ message }),
         ),
       GettingStarted: () => Page.GettingStarted.view(model),
-      ArchitectureAndConcepts: () =>
-        Page.ArchitectureAndConcepts.view(model),
       RoutingAndNavigation: () => Page.Routing.view(model),
       FieldValidation: () => Page.FieldValidation.view(model),
       Examples: Page.Examples.view,
       BestPractices: () => Page.BestPractices.view(model),
       ProjectOrganization: () => Page.ProjectOrganization.view(model),
-      AdvancedPatterns: () => Page.AdvancedPatterns.view(model),
       ApiModule: ({ moduleSlug }) =>
         pipe(
           moduleSlug,
@@ -1534,53 +1866,131 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
               Page.NotFound.view(moduleSlug, homeRouter.build({})),
           }),
         ),
-      FoldkitUi: () =>
-        Page.FoldkitUi.view(model.foldkitUi, toFoldkitUiMessage),
+      CoreCounterExample: () => Page.Core.CounterExample.view(model),
+      CoreModel: () => Page.Core.CoreModel.view(model),
+      CoreMessages: () => Page.Core.Messages.view(model),
+      CoreUpdate: () => Page.Core.CoreUpdate.view(model),
+      CoreView: () => Page.Core.CoreView.view(model),
+      CoreCommands: () => Page.Core.Commands.view(model),
+      CoreSubscriptions: () => Page.Core.Subscriptions.view(model),
+      CoreInit: () => Page.Core.Init.view(model),
+      CoreTask: () => Page.Core.CoreTask.view(model),
+      CoreRunningYourApp: () => Page.Core.RunningYourApp.view(model),
+      CoreResources: () => Page.Core.Resources.view(model),
+      CoreManagedResources: () =>
+        Page.Core.ManagedResources.view(model),
+      CoreErrorView: () => Page.Core.ErrorView.view(model),
+      CoreSlowViewWarning: () =>
+        Page.Core.SlowViewWarning.view(model),
+      PatternsSubmodels: () => Page.Patterns.Submodels.view(model),
+      PatternsModelAsUnion: () =>
+        Page.Patterns.ModelAsUnion.view(model),
+      PatternsOutMessage: () => Page.Patterns.OutMessage.view(model),
+      CoreViewMemoization: () =>
+        Page.Core.ViewMemoization.view(model),
+      UiTabs: () =>
+        Page.UiPages.TabsPage.view(model.uiPages, toUiPageMessage),
+      UiDisclosure: () =>
+        Page.UiPages.DisclosurePage.view(
+          model.uiPages,
+          toUiPageMessage,
+        ),
+      UiDialog: () =>
+        Page.UiPages.DialogPage.view(model.uiPages, toUiPageMessage),
+      UiMenu: () =>
+        Page.UiPages.MenuPage.view(model.uiPages, toUiPageMessage),
+      UiPopover: () =>
+        Page.UiPages.PopoverPage.view(model.uiPages, toUiPageMessage),
+      UiListbox: () =>
+        Page.UiPages.ListboxPage.view(model.uiPages, toUiPageMessage),
+      UiSwitch: () =>
+        Page.UiPages.SwitchPage.view(model.uiPages, toUiPageMessage),
+      UiCombobox: () =>
+        Page.UiPages.ComboboxPage.view(
+          model.uiPages,
+          toUiPageMessage,
+        ),
       NotFound: ({ path }) =>
         Page.NotFound.view(path, homeRouter.build({})),
     }),
   )
 
   const currentPageTableOfContents = M.value(docsRoute).pipe(
-    M.tag('WhyFoldkit', () =>
-      Option.some(Page.WhyFoldkit.tableOfContents),
-    ),
-    M.tag('ComingFromReact', () =>
-      Option.some(Page.ComingFromReact.tableOfContents),
-    ),
-    M.tag('GettingStarted', () =>
-      Option.some(Page.GettingStarted.tableOfContents),
-    ),
-    M.tag('ArchitectureAndConcepts', () =>
-      Option.some(Page.ArchitectureAndConcepts.tableOfContents),
-    ),
-    M.tag('RoutingAndNavigation', () =>
-      Option.some(Page.Routing.tableOfContents),
-    ),
-    M.tag('FieldValidation', () =>
-      Option.some(Page.FieldValidation.tableOfContents),
-    ),
-    M.tag('BestPractices', () =>
-      Option.some(Page.BestPractices.tableOfContents),
-    ),
-    M.tag('ProjectOrganization', () =>
-      Option.some(Page.ProjectOrganization.tableOfContents),
-    ),
-    M.tag('AdvancedPatterns', () =>
-      Option.some(Page.AdvancedPatterns.tableOfContents),
-    ),
-    M.tag('ApiModule', ({ moduleSlug }) =>
-      pipe(
-        moduleSlug,
-        Page.ApiReference.slugToModule,
-        Option.map(Page.ApiReference.toModuleTableOfContents),
-      ),
-    ),
-    M.tag('FoldkitUi', () =>
-      Option.some(Page.FoldkitUi.tableOfContents),
-    ),
-    M.tag('Examples', 'NotFound', () => Option.none()),
-    M.exhaustive,
+    M.withReturnType<
+      Option.Option<ReadonlyArray<TableOfContentsEntry>>
+    >(),
+    M.tagsExhaustive({
+      WhyFoldkit: () => Option.some(Page.WhyFoldkit.tableOfContents),
+      ComingFromReact: () =>
+        Option.some(Page.ComingFromReact.tableOfContents),
+      GettingStarted: () =>
+        Option.some(Page.GettingStarted.tableOfContents),
+      RoutingAndNavigation: () =>
+        Option.some(Page.Routing.tableOfContents),
+      FieldValidation: () =>
+        Option.some(Page.FieldValidation.tableOfContents),
+      BestPractices: () =>
+        Option.some(Page.BestPractices.tableOfContents),
+      ProjectOrganization: () =>
+        Option.some(Page.ProjectOrganization.tableOfContents),
+      ApiModule: ({ moduleSlug }) =>
+        pipe(
+          moduleSlug,
+          Page.ApiReference.slugToModule,
+          Option.map(Page.ApiReference.toModuleTableOfContents),
+        ),
+      CoreCounterExample: () =>
+        Option.some(Page.Core.CounterExample.tableOfContents),
+      CoreModel: () =>
+        Option.some(Page.Core.CoreModel.tableOfContents),
+      CoreMessages: () =>
+        Option.some(Page.Core.Messages.tableOfContents),
+      CoreUpdate: () =>
+        Option.some(Page.Core.CoreUpdate.tableOfContents),
+      CoreView: () => Option.some(Page.Core.CoreView.tableOfContents),
+      CoreCommands: () =>
+        Option.some(Page.Core.Commands.tableOfContents),
+      CoreSubscriptions: () =>
+        Option.some(Page.Core.Subscriptions.tableOfContents),
+      CoreInit: () => Option.some(Page.Core.Init.tableOfContents),
+      CoreTask: () => Option.some(Page.Core.CoreTask.tableOfContents),
+      CoreRunningYourApp: () =>
+        Option.some(Page.Core.RunningYourApp.tableOfContents),
+      CoreResources: () =>
+        Option.some(Page.Core.Resources.tableOfContents),
+      CoreManagedResources: () =>
+        Option.some(Page.Core.ManagedResources.tableOfContents),
+      CoreErrorView: () =>
+        Option.some(Page.Core.ErrorView.tableOfContents),
+      CoreSlowViewWarning: () =>
+        Option.some(Page.Core.SlowViewWarning.tableOfContents),
+      PatternsSubmodels: () =>
+        Option.some(Page.Patterns.Submodels.tableOfContents),
+      PatternsModelAsUnion: () =>
+        Option.some(Page.Patterns.ModelAsUnion.tableOfContents),
+      PatternsOutMessage: () =>
+        Option.some(Page.Patterns.OutMessage.tableOfContents),
+      CoreViewMemoization: () =>
+        Option.some(Page.Core.ViewMemoization.tableOfContents),
+      UiTabs: () =>
+        Option.some(Page.UiPages.TabsPage.tableOfContents),
+      UiDisclosure: () =>
+        Option.some(Page.UiPages.DisclosurePage.tableOfContents),
+      UiDialog: () =>
+        Option.some(Page.UiPages.DialogPage.tableOfContents),
+      UiMenu: () =>
+        Option.some(Page.UiPages.MenuPage.tableOfContents),
+      UiPopover: () =>
+        Option.some(Page.UiPages.PopoverPage.tableOfContents),
+      UiListbox: () =>
+        Option.some(Page.UiPages.ListboxPage.tableOfContents),
+      UiSwitch: () =>
+        Option.some(Page.UiPages.SwitchPage.tableOfContents),
+      UiCombobox: () =>
+        Option.some(Page.UiPages.ComboboxPage.tableOfContents),
+      Examples: () => Option.none(),
+      NotFound: () => Option.none(),
+    }),
   )
 
   return keyed('div')(
@@ -1592,11 +2002,7 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
       div(
         [Class('flex flex-1 pt-[var(--header-height)] md:pl-64')],
         [
-          sidebarView(
-            model.route,
-            model.mobileMenuDialog,
-            model.apiReferenceGroup,
-          ),
+          sidebarView(model),
           main(
             [
               Id('main-content'),

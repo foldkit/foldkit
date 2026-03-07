@@ -83,7 +83,7 @@
   }
 
   body {
-    @apply text-lg leading-loose font-light text-gray-800 dark:text-gray-300 bg-cream dark:bg-gray-900;
+    @apply text-base leading-relaxed font-light text-gray-800 dark:text-gray-300 bg-cream dark:bg-gray-900;
   }
 
   :is(h1, h2, h3, h4).font-mono {

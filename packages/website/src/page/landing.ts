@@ -460,7 +460,7 @@ const includedSection = (): Html =>
                   ),
                   a(
                     [
-                      Href('/foldkit-ui'),
+                      Href('/ui/tabs'),
                       Class(
                         'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500 font-normal',
                       ),
@@ -571,7 +571,7 @@ const tradeOffsSection = (): Html =>
                   ),
                   a(
                     [
-                      Href(Link.architectureAndConcepts),
+                      Href(Link.coreCounterExample),
                       Class('cta-secondary'),
                     ],
                     ['See how it works', Icon.arrowRight('w-5 h-5')],

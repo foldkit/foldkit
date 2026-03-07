@@ -28,9 +28,9 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import {
-  advancedPatternsRouter,
-  architectureAndConceptsRouter,
+  coreCounterExampleRouter,
   gettingStartedRouter,
+  patternsSubmodelsRouter,
   routingAndNavigationRouter,
 } from '../../route'
 import * as Snippets from '../../snippet'
@@ -465,7 +465,7 @@ export const view = (
             link(Link.exampleShoppingCart, 'Shopping Cart example'),
             ' for a concrete example, or ',
             link(
-              advancedPatternsRouter.build({}),
+              patternsSubmodelsRouter.build({}),
               'Scaling with Submodels',
             ),
             ' for the full pattern.',
@@ -512,8 +512,8 @@ export const view = (
             link(gettingStartedRouter.build({}), 'Getting Started'),
             ' to create your first Foldkit app. Then read ',
             link(
-              architectureAndConceptsRouter.build({}),
-              'Architecture & Concepts',
+              coreCounterExampleRouter.build({}),
+              'Counter Example',
             ),
             ' to understand the pieces in depth.',
           ),

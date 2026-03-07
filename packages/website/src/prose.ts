@@ -51,7 +51,7 @@ export const pageTitle = (id: string, text: string): Html =>
   h1(
     [
       Class(
-        'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-6',
+        'text-3xl md:text-[2.5rem] leading-normal font-normal text-gray-900 dark:text-white mb-2',
       ),
       Id(id),
     ],
@@ -61,21 +61,21 @@ export const pageTitle = (id: string, text: string): Html =>
 const sectionHeadingConfig = {
   h2: {
     textClassName:
-      'text-2xl font-normal text-gray-900 dark:text-white scroll-mt-6',
+      'text-3xl font-normal text-gray-900 dark:text-white scroll-mt-6',
     wrapperClassName:
-      'group flex items-center gap-1 md:gap-0 mt-8 mb-4 md:flex-row-reverse md:justify-end md:-ml-[1.5rem]',
+      'group flex items-center gap-1 md:hover-capable:gap-0 mt-8 mb-4 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
   },
   h3: {
     textClassName:
       'text-xl font-normal text-gray-900 dark:text-white scroll-mt-6',
     wrapperClassName:
-      'group flex items-center gap-1 md:gap-0 mt-6 mb-2 md:flex-row-reverse md:justify-end md:-ml-[1.5rem]',
+      'group flex items-center gap-1 md:hover-capable:gap-0 mt-6 mb-2 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
   },
   h4: {
     textClassName:
       'text-base font-mono font-normal text-gray-900 dark:text-white scroll-mt-6',
     wrapperClassName:
-      'group flex items-center gap-1 md:gap-0 md:flex-row-reverse md:justify-end md:-ml-[1.5rem]',
+      'group flex items-center gap-1 md:hover-capable:gap-0 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
   },
 }
 
@@ -135,7 +135,7 @@ export const bulletPoint = (
 ): Html => li([], [strong([], [`${label}:`]), ` ${description}`])
 
 const inlineCodeClassName =
-  'bg-gray-200/70 dark:bg-gray-800 px-1.5 py-px rounded text-sm border border-gray-300/50 dark:border-gray-700/50'
+  'bg-gray-200/70 dark:bg-gray-800 px-1 py-px rounded text-sm border border-gray-300/50 dark:border-gray-700/50'
 
 export const inlineCode = (text: string, className?: string): Html =>
   code(
