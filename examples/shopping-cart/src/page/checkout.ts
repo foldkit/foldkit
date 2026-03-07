@@ -61,7 +61,7 @@ export const view = (
         ),
         a(
           [
-            Href(productsRouter.build({ searchText: Option.none() })),
+            Href(productsRouter({ searchText: Option.none() })),
             Class(
               'bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium inline-block',
             ),
@@ -89,7 +89,7 @@ export const view = (
               [
                 a(
                   [
-                    Href(productsRouter.build({ searchText: Option.none() })),
+                    Href(productsRouter({ searchText: Option.none() })),
                     Class(
                       'bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium inline-block',
                     ),
@@ -182,7 +182,7 @@ export const view = (
               [
                 a(
                   [
-                    Href(cartRouter.build({})),
+                    Href(cartRouter()),
                     Class(
                       'bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium',
                     ),

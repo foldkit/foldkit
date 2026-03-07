@@ -397,7 +397,7 @@ const selectionToParam = <A extends string>(
   )
 
 const replaceFilters = (fields: BrowseFields): Command<typeof NoOp> =>
-  replaceUrl(browseRouter.build(fields)).pipe(Effect.as(NoOp()))
+  replaceUrl(browseRouter(fields)).pipe(Effect.as(NoOp()))
 
 type UpdateReturn = [Model, ReadonlyArray<Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
@@ -1008,7 +1008,7 @@ const notFoundView = (path: string): Html =>
       ),
       a(
         [
-          Href(browseRouter.build(emptyBrowseFields)),
+          Href(browseRouter(emptyBrowseFields)),
           Class('text-emerald-600 hover:underline'),
         ],
         ['\u2190 Back to Dinosaur Explorer'],

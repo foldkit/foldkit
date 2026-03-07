@@ -244,7 +244,7 @@ const navigationView = (currentRoute: AppRoute, cartCount: number): Html => {
             [
               a(
                 [
-                  Href(productsRouter.build({ searchText: Option.none() })),
+                  Href(productsRouter({ searchText: Option.none() })),
                   Class(navLinkClassName(currentRoute._tag === 'Products')),
                 ],
                 ['Products'],
@@ -256,7 +256,7 @@ const navigationView = (currentRoute: AppRoute, cartCount: number): Html => {
             [
               a(
                 [
-                  Href(cartRouter.build({})),
+                  Href(cartRouter()),
                   Class(navLinkClassName(currentRoute._tag === 'Cart')),
                 ],
                 cartCount > 0 ? [`Cart (${cartCount})`] : ['Cart'],
@@ -268,7 +268,7 @@ const navigationView = (currentRoute: AppRoute, cartCount: number): Html => {
             [
               a(
                 [
-                  Href(checkoutRouter.build({})),
+                  Href(checkoutRouter()),
                   Class(navLinkClassName(currentRoute._tag === 'Checkout')),
                 ],
                 ['Checkout'],
@@ -320,7 +320,7 @@ const notFoundView = (path: string): Html =>
       ),
       a(
         [
-          Href(productsRouter.build({ searchText: Option.none() })),
+          Href(productsRouter({ searchText: Option.none() })),
           Class('text-blue-500 hover:underline'),
         ],
         ['← Go to Products'],

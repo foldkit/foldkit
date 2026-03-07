@@ -36,12 +36,12 @@ export const view = (model: Model): Html =>
         inlineCode('update'),
         ' or memoize expensive subtrees with ',
         link(
-          coreViewMemoizationRouter.build({}) + '#create-lazy',
+          coreViewMemoizationRouter() + '#create-lazy',
           'createLazy',
         ),
         ' and ',
         link(
-          coreViewMemoizationRouter.build({}) + '#create-keyed-lazy',
+          coreViewMemoizationRouter() + '#create-keyed-lazy',
           'createKeyedLazy',
         ),
         '.',

@@ -322,10 +322,7 @@ export const view = (
             [
               span([Class('text-gray-600')], ['Back to ']),
               a(
-                [
-                  Href(homeRouter.build({})),
-                  Class('text-blue-500 hover:underline'),
-                ],
+                [Href(homeRouter()), Class('text-blue-500 hover:underline')],
                 ['Home'],
               ),
             ],

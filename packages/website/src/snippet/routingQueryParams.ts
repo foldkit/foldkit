@@ -19,7 +19,7 @@ const searchRouter = pipe(
 // → SearchRoute { q: Some('hello'), page: Some(2), sort: Some('asc') }
 
 // Building
-const searchUrl = searchRouter.build({
+const searchUrl = searchRouter({
   q: Option.some('hello'),
   page: Option.some(2),
   sort: Option.none(),

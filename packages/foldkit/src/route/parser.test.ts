@@ -277,7 +277,7 @@ describe('mapTo', () => {
       slash(string('id')),
       mapTo(UserProfile),
     )
-    const url = router.build({ id: 'abc' })
+    const url = router({ id: 'abc' })
     expect(url).toBe('/users/abc')
   })
 })
@@ -311,14 +311,14 @@ describe('round-trip: parse then build', () => {
   )
 
   it('build produces the expected path', () => {
-    const url = router.build({ userId: 'jane', postId: 7 })
+    const url = router({ userId: 'jane', postId: 7 })
     expect(url).toBe('/users/jane/7')
   })
 
   it.scoped('parse then build round-trips', () =>
     Effect.gen(function* () {
       const [parsed] = yield* router.parse(['users', 'jane', '7'])
-      const rebuilt = router.build({
+      const rebuilt = router({
         userId: parsed.userId,
         postId: parsed.postId,
       })

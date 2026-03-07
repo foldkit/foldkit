@@ -58,17 +58,17 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     pages: [
       {
         _tag: 'WhyFoldkit',
-        href: whyFoldkitRouter.build({}),
+        href: whyFoldkitRouter(),
         label: 'Why Foldkit?',
       },
       {
         _tag: 'ComingFromReact',
-        href: comingFromReactRouter.build({}),
+        href: comingFromReactRouter(),
         label: 'Coming from React',
       },
       {
         _tag: 'GettingStarted',
-        href: gettingStartedRouter.build({}),
+        href: gettingStartedRouter(),
         label: 'Getting Started',
       },
     ],
@@ -78,77 +78,77 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     pages: [
       {
         _tag: 'CoreCounterExample',
-        href: coreCounterExampleRouter.build({}),
+        href: coreCounterExampleRouter(),
         label: 'Counter Example',
       },
       {
         _tag: 'CoreModel',
-        href: coreModelRouter.build({}),
+        href: coreModelRouter(),
         label: 'Model',
       },
       {
         _tag: 'CoreMessages',
-        href: coreMessagesRouter.build({}),
+        href: coreMessagesRouter(),
         label: 'Messages',
       },
       {
         _tag: 'CoreUpdate',
-        href: coreUpdateRouter.build({}),
+        href: coreUpdateRouter(),
         label: 'Update',
       },
       {
         _tag: 'CoreView',
-        href: coreViewRouter.build({}),
+        href: coreViewRouter(),
         label: 'View',
       },
       {
         _tag: 'CoreCommands',
-        href: coreCommandsRouter.build({}),
+        href: coreCommandsRouter(),
         label: 'Commands',
       },
       {
         _tag: 'CoreSubscriptions',
-        href: coreSubscriptionsRouter.build({}),
+        href: coreSubscriptionsRouter(),
         label: 'Subscriptions',
       },
       {
         _tag: 'CoreInit',
-        href: coreInitRouter.build({}),
+        href: coreInitRouter(),
         label: 'Init',
       },
       {
         _tag: 'CoreTask',
-        href: coreTaskRouter.build({}),
+        href: coreTaskRouter(),
         label: 'Task',
       },
       {
         _tag: 'CoreRunningYourApp',
-        href: coreRunningYourAppRouter.build({}),
+        href: coreRunningYourAppRouter(),
         label: 'Running Your App',
       },
       {
         _tag: 'CoreResources',
-        href: coreResourcesRouter.build({}),
+        href: coreResourcesRouter(),
         label: 'Resources',
       },
       {
         _tag: 'CoreManagedResources',
-        href: coreManagedResourcesRouter.build({}),
+        href: coreManagedResourcesRouter(),
         label: 'Managed Resources',
       },
       {
         _tag: 'CoreErrorView',
-        href: coreErrorViewRouter.build({}),
+        href: coreErrorViewRouter(),
         label: 'Error View',
       },
       {
         _tag: 'CoreSlowViewWarning',
-        href: coreSlowViewWarningRouter.build({}),
+        href: coreSlowViewWarningRouter(),
         label: 'Slow View Warning',
       },
       {
         _tag: 'CoreViewMemoization',
-        href: coreViewMemoizationRouter.build({}),
+        href: coreViewMemoizationRouter(),
         label: 'View Memoization',
       },
     ],
@@ -158,22 +158,22 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     pages: [
       {
         _tag: 'RoutingAndNavigation',
-        href: routingAndNavigationRouter.build({}),
+        href: routingAndNavigationRouter(),
         label: 'Routing & Navigation',
       },
       {
         _tag: 'FieldValidation',
-        href: fieldValidationRouter.build({}),
+        href: fieldValidationRouter(),
         label: 'Field Validation',
       },
       {
         _tag: 'ProjectOrganization',
-        href: projectOrganizationRouter.build({}),
+        href: projectOrganizationRouter(),
         label: 'Project Organization',
       },
       {
         _tag: 'BestPractices',
-        href: bestPracticesRouter.build({}),
+        href: bestPracticesRouter(),
         label: 'Best Practices',
       },
     ],
@@ -183,17 +183,17 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     pages: [
       {
         _tag: 'PatternsSubmodels',
-        href: patternsSubmodelsRouter.build({}),
+        href: patternsSubmodelsRouter(),
         label: 'Submodels',
       },
       {
         _tag: 'PatternsModelAsUnion',
-        href: patternsModelAsUnionRouter.build({}),
+        href: patternsModelAsUnionRouter(),
         label: 'Model as Union',
       },
       {
         _tag: 'PatternsOutMessage',
-        href: patternsOutMessageRouter.build({}),
+        href: patternsOutMessageRouter(),
         label: 'OutMessage',
       },
     ],
@@ -203,7 +203,7 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     pages: [
       {
         _tag: 'Examples',
-        href: examplesRouter.build({}),
+        href: examplesRouter(),
         label: 'Example Apps',
       },
     ],
@@ -213,42 +213,42 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     pages: [
       {
         _tag: 'UiTabs',
-        href: uiTabsRouter.build({}),
+        href: uiTabsRouter(),
         label: 'Tabs',
       },
       {
         _tag: 'UiDisclosure',
-        href: uiDisclosureRouter.build({}),
+        href: uiDisclosureRouter(),
         label: 'Disclosure',
       },
       {
         _tag: 'UiDialog',
-        href: uiDialogRouter.build({}),
+        href: uiDialogRouter(),
         label: 'Dialog',
       },
       {
         _tag: 'UiMenu',
-        href: uiMenuRouter.build({}),
+        href: uiMenuRouter(),
         label: 'Menu',
       },
       {
         _tag: 'UiPopover',
-        href: uiPopoverRouter.build({}),
+        href: uiPopoverRouter(),
         label: 'Popover',
       },
       {
         _tag: 'UiListbox',
-        href: uiListboxRouter.build({}),
+        href: uiListboxRouter(),
         label: 'Listbox',
       },
       {
         _tag: 'UiSwitch',
-        href: uiSwitchRouter.build({}),
+        href: uiSwitchRouter(),
         label: 'Switch',
       },
       {
         _tag: 'UiCombobox',
-        href: uiComboboxRouter.build({}),
+        href: uiComboboxRouter(),
         label: 'Combobox',
       },
     ],

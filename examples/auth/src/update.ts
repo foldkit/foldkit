@@ -62,7 +62,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                 ]),
                 M.orElse(() => [
                   model,
-                  [replaceUrl(loginRouter.build({})).pipe(Effect.as(NoOp()))],
+                  [replaceUrl(loginRouter()).pipe(Effect.as(NoOp()))],
                 ]),
               ),
 
@@ -75,11 +75,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                 ]),
                 M.orElse(() => [
                   model,
-                  [
-                    replaceUrl(dashboardRouter.build({})).pipe(
-                      Effect.as(NoOp()),
-                    ),
-                  ],
+                  [replaceUrl(dashboardRouter()).pipe(Effect.as(NoOp()))],
                 ]),
               ),
           }),
@@ -145,7 +141,7 @@ const handleGotLoggedOutMessage = (
             [
               ...mappedCommands,
               saveSession(session).pipe(Effect.as(NoOp())),
-              replaceUrl(dashboardRouter.build({})).pipe(Effect.as(NoOp())),
+              replaceUrl(dashboardRouter()).pipe(Effect.as(NoOp())),
             ],
           ],
         }),
@@ -178,7 +174,7 @@ const handleGotLoggedInMessage = (
             [
               ...mappedCommands,
               clearSession().pipe(Effect.as(NoOp())),
-              replaceUrl(homeRouter.build({})).pipe(Effect.as(NoOp())),
+              replaceUrl(homeRouter()).pipe(Effect.as(NoOp())),
             ],
           ],
         }),

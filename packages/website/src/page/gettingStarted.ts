@@ -62,7 +62,7 @@ export const view = (model: Model): Html =>
       callout(
         'Coming from React?',
         "If you're familiar with React, check out the ",
-        link(comingFromReactRouter.build({}), 'Coming from React'),
+        link(comingFromReactRouter(), 'Coming from React'),
         ' guide to understand how your existing knowledge applies.',
       ),
       tableOfContentsEntryToHeader(quickStartHeader),
@@ -130,7 +130,7 @@ export const view = (model: Model): Html =>
       tableOfContentsEntryToHeader(nextStepsHeader),
       para(
         'Now that you have a running app, head to the ',
-        link(coreCounterExampleRouter.build({}), 'Counter Example'),
+        link(coreCounterExampleRouter(), 'Counter Example'),
         ' page to understand how the pieces fit together.',
       ),
       tableOfContentsEntryToHeader(aiAssistedHeader),

@@ -24,8 +24,7 @@ export const view = (
             Login.view(model.loginModel, message =>
               toMessage(GotLoginMessage({ message })),
             ),
-          NotFound: ({ path }) =>
-            notFoundView(path, homeRouter.build({}), 'Go Home'),
+          NotFound: ({ path }) => notFoundView(path, homeRouter(), 'Go Home'),
         }),
       ),
     ],

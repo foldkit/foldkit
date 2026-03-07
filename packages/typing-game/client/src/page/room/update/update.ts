@@ -210,7 +210,7 @@ const leaveRoom = (model: Model): UpdateReturn => [
     maybeSession: () => Option.none(),
     roomRemoteData: () => RoomRemoteData.Loading(),
   }),
-  [clearSession(), pushUrl(homeRouter.build({})).pipe(Effect.as(NoOp()))],
+  [clearSession(), pushUrl(homeRouter()).pipe(Effect.as(NoOp()))],
 ]
 
 const handleStartGame = (model: Model, room: Shared.Room) => (): UpdateReturn =>

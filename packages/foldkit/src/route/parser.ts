@@ -55,12 +55,20 @@ export type Biparser<A> = {
  * type constructor so parsed values carry a discriminant tag and URLs can be
  * built from tag payloads.
  */
-export type Router<A> = {
+export type Router<A> = (A extends { _tag: string }
+  ? keyof Omit<A, '_tag'> extends never
+    ? (value?: Omit<A, '_tag'>) => string
+    : (value: Omit<A, '_tag'>) => string
+  : never) & {
   parse: (
     segments: ReadonlyArray<string>,
     search?: string,
   ) => Effect.Effect<ParseResult<A>, ParseError>
-  build: (value: A extends { _tag: string } ? Omit<A, '_tag'> : never) => string
+  build: A extends { _tag: string }
+    ? keyof Omit<A, '_tag'> extends never
+      ? (value?: Omit<A, '_tag'>) => string
+      : (value: Omit<A, '_tag'>) => string
+    : never
 }
 
 /**
@@ -405,7 +413,8 @@ export const mapTo: {
   }): (parser: Biparser<A>) => Router<T>
 } = (appRouteConstructor: any): any => {
   return (parser: any) => {
-    return {
+    const build = buildUrl(parser)
+    const router = Object.assign(build, {
       parse: (segments: ReadonlyArray<string>, search?: string) =>
         pipe(
           parser.parse(segments, search),
@@ -417,8 +426,9 @@ export const mapTo: {
             return [result, remaining]
           }),
         ),
-      build: buildUrl(parser),
-    }
+      build,
+    })
+    return router
   }
 }
 

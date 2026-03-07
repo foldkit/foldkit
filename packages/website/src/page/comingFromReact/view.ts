@@ -464,10 +464,7 @@ export const view = (
             ' is a submodel — a self-contained piece of state defined in its own module, with its own Message types, update function, and view. This is similar to what experienced React devs often end up doing anyway — lifting state out of components into a parent. Foldkit just enforces this pattern from the start. See the ',
             link(Link.exampleShoppingCart, 'Shopping Cart example'),
             ' for a concrete example, or ',
-            link(
-              patternsSubmodelsRouter.build({}),
-              'Scaling with Submodels',
-            ),
+            link(patternsSubmodelsRouter(), 'Scaling with Submodels'),
             ' for the full pattern.',
           ),
         ],
@@ -481,7 +478,7 @@ export const view = (
           para(
             'Foldkit has built-in typed routing. See the ',
             link(
-              routingAndNavigationRouter.build({}),
+              routingAndNavigationRouter(),
               'Routing & Navigation',
             ),
             ' page for details.',
@@ -509,12 +506,9 @@ export const view = (
         [
           para(
             'Head to ',
-            link(gettingStartedRouter.build({}), 'Getting Started'),
+            link(gettingStartedRouter(), 'Getting Started'),
             ' to create your first Foldkit app. Then read ',
-            link(
-              coreCounterExampleRouter.build({}),
-              'Counter Example',
-            ),
+            link(coreCounterExampleRouter(), 'Counter Example'),
             ' to understand the pieces in depth.',
           ),
         ],

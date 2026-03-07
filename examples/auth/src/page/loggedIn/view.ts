@@ -33,7 +33,7 @@ const navigationView = (session: Session, currentRouteTag: string): Html =>
                 [
                   a(
                     [
-                      Href(dashboardRouter.build({})),
+                      Href(dashboardRouter()),
                       Class(navLinkClassName(currentRouteTag === 'Dashboard')),
                     ],
                     ['Dashboard'],
@@ -45,7 +45,7 @@ const navigationView = (session: Session, currentRouteTag: string): Html =>
                 [
                   a(
                     [
-                      Href(settingsRouter.build({})),
+                      Href(settingsRouter()),
                       Class(navLinkClassName(currentRouteTag === 'Settings')),
                     ],
                     ['Settings'],
@@ -79,11 +79,7 @@ export const view = (
                   toMessage(GotSettingsMessage({ message })),
                 ),
               NotFound: ({ path }) =>
-                notFoundView(
-                  path,
-                  dashboardRouter.build({}),
-                  'Go to Dashboard',
-                ),
+                notFoundView(path, dashboardRouter(), 'Go to Dashboard'),
             }),
           ),
         ],

@@ -1034,7 +1034,7 @@ const sidebarView = (model: Model) => {
           [],
           Array.map(Page.ApiReference.moduleSlugs, ({ slug, name }) =>
             navLink(
-              apiModuleRouter.build({
+              apiModuleRouter({
                 moduleSlug: slug,
               }),
               isOnApiModulePage && currentRoute.moduleSlug === slug,
@@ -1075,7 +1075,7 @@ const sidebarView = (model: Model) => {
         ],
         [
           a(
-            [Href(homeRouter.build({}))],
+            [Href(homeRouter())],
             [
               img([
                 Src('/logo.svg'),
@@ -1392,10 +1392,7 @@ const landingHeaderView = (model: Model) =>
     ],
     [
       a(
-        [
-          Href(homeRouter.build({})),
-          Class('flex items-center gap-2'),
-        ],
+        [Href(homeRouter()), Class('flex items-center gap-2')],
         [
           img([
             Src('/logo.svg'),
@@ -1561,10 +1558,7 @@ const docsHeaderView = (model: Model) =>
             [Icon.menu('w-6 h-6')],
           ),
           a(
-            [
-              Href(homeRouter.build({})),
-              Class('flex items-center gap-2'),
-            ],
+            [Href(homeRouter()), Class('flex items-center gap-2')],
             [
               img([
                 Src('/logo.svg'),
@@ -1722,7 +1716,7 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
                 model.apiReference,
               ]),
             onNone: () =>
-              Page.NotFound.view(moduleSlug, homeRouter.build({})),
+              Page.NotFound.view(moduleSlug, homeRouter()),
           }),
         ),
       CoreCounterExample: () => Page.Core.CounterExample.view(model),
@@ -1769,8 +1763,7 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
           model.uiPages,
           toUiPageMessage,
         ),
-      NotFound: ({ path }) =>
-        Page.NotFound.view(path, homeRouter.build({})),
+      NotFound: ({ path }) => Page.NotFound.view(path, homeRouter()),
     }),
   )
 

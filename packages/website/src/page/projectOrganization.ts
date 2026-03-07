@@ -69,10 +69,7 @@ export const view = (model: Model): Html =>
       tableOfContentsEntryToHeader(fileLayoutHeader),
       para(
         'As your app grows and you ',
-        link(
-          patternsSubmodelsRouter.build({}),
-          'scale with submodels',
-        ),
+        link(patternsSubmodelsRouter(), 'scale with submodels'),
         ', a consistent file layout helps you navigate the codebase. Each page or feature becomes a folder:',
       ),
       codeBlock(

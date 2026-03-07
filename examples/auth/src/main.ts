@@ -62,7 +62,7 @@ const init: Runtime.ApplicationInit<Model, Message, Flags> = (
         M.when(S.is(LoggedOutRoute), route => [LoggedOut.init(route), []]),
         M.orElse(() => [
           LoggedOut.init(LoginRoute()),
-          [replaceUrl(loginRouter.build({})).pipe(Effect.as(NoOp()))],
+          [replaceUrl(loginRouter()).pipe(Effect.as(NoOp()))],
         ]),
       ),
 
@@ -75,7 +75,7 @@ const init: Runtime.ApplicationInit<Model, Message, Flags> = (
         ]),
         M.orElse(() => [
           LoggedIn.init(DashboardRoute(), session),
-          [replaceUrl(dashboardRouter.build({})).pipe(Effect.as(NoOp()))],
+          [replaceUrl(dashboardRouter()).pipe(Effect.as(NoOp()))],
         ]),
       ),
   })

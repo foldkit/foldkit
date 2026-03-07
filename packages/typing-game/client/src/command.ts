@@ -24,7 +24,7 @@ export const joinRoom = (
   )
 
 export const navigateToRoom = (roomId: string): Command<typeof NoOp> =>
-  pushUrl(roomRouter.build({ roomId })).pipe(Effect.as(NoOp()))
+  pushUrl(roomRouter({ roomId })).pipe(Effect.as(NoOp()))
 
 export const savePlayerToSessionStorage = (
   session: Room.Model.RoomPlayerSession,

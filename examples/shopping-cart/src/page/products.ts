@@ -69,7 +69,7 @@ export const update =
           }),
           [
             replaceUrl(
-              productsRouter.build({
+              productsRouter({
                 searchText: Option.fromNullable(value || null),
               }),
             ).pipe(Effect.as(NoOp())),
@@ -202,7 +202,7 @@ export const view = (
                 [
                   a(
                     [
-                      Href(cartRouter.build({})),
+                      Href(cartRouter()),
                       Class(
                         'bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium inline-block',
                       ),

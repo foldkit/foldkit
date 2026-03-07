@@ -379,7 +379,7 @@ export const view = (model: Model): Html =>
       para(
         'See the full ',
         link(
-          apiModuleRouter.build({ moduleSlug: 'field-validation' }),
+          apiModuleRouter({ moduleSlug: 'field-validation' }),
           'API reference',
         ),
         ' for details on every export. For a complete working example with sync validation, async server checks, and form submission gating, see the ',

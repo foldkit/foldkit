@@ -22,7 +22,7 @@ export const view = (): Html =>
           ),
           a(
             [
-              Href(loginRouter.build({})),
+              Href(loginRouter()),
               Class(
                 'inline-block px-8 py-3 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition',
               ),

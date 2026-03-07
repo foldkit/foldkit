@@ -150,7 +150,7 @@ const update = (
         model,
         [
           replaceUrl(
-            peopleRouter.build({
+            peopleRouter({
               searchText: Option.fromNullable(value || null),
             }),
           ).pipe(Effect.as(NoOp())),
@@ -198,7 +198,7 @@ const navigationView = (currentRoute: AppRoute): Html => {
             [
               a(
                 [
-                  Href(homeRouter.build({})),
+                  Href(homeRouter()),
                   Class(navLinkClassName(currentRoute._tag === 'Home')),
                 ],
                 ['Home'],
@@ -210,7 +210,7 @@ const navigationView = (currentRoute: AppRoute): Html => {
             [
               a(
                 [
-                  Href(peopleRouter.build({ searchText: Option.none() })),
+                  Href(peopleRouter({ searchText: Option.none() })),
                   Class(
                     navLinkClassName(
                       currentRoute._tag === 'People' ||
@@ -227,7 +227,7 @@ const navigationView = (currentRoute: AppRoute): Html => {
             [
               a(
                 [
-                  Href(nestedRouter.build({})),
+                  Href(nestedRouter()),
                   Class(navLinkClassName(currentRoute._tag === 'Nested')),
                 ],
                 ['Nested'],
@@ -319,7 +319,7 @@ const peopleView = (searchText: Option.Option<string>): Html => {
             [
               a(
                 [
-                  Href(personRouter.build({ personId: person.id })),
+                  Href(personRouter({ personId: person.id })),
                   Class('block p-4 '),
                 ],
                 [
@@ -361,7 +361,7 @@ const personView = (personId: number): Html => {
           ),
           a(
             [
-              Href(peopleRouter.build({ searchText: Option.none() })),
+              Href(peopleRouter({ searchText: Option.none() })),
               Class('text-blue-500 hover:underline'),
             ],
             ['← Back to People'],
@@ -375,7 +375,7 @@ const personView = (personId: number): Html => {
         [
           a(
             [
-              Href(peopleRouter.build({ searchText: Option.none() })),
+              Href(peopleRouter({ searchText: Option.none() })),
               Class('text-blue-500 hover:underline mb-4 inline-block'),
             ],
             ['← Back to People'],
@@ -453,7 +453,7 @@ const notFoundView = (path: string): Html =>
         [`The path "${path}" was not found.`],
       ),
       a(
-        [Href(homeRouter.build({})), Class('text-blue-500 hover:underline')],
+        [Href(homeRouter()), Class('text-blue-500 hover:underline')],
         ['← Go Home'],
       ),
     ],
