@@ -12,6 +12,7 @@ import {
 } from './src/page/apiReference/typeToString'
 import {
   Kind,
+  type TypeDocCommentPart,
   type TypeDocItem,
   TypeDocJson,
   type TypeDocParam,
@@ -130,6 +131,52 @@ const buildFunctionSignatureString = (
   return `${typeParamString}${paramString}: ${typeToString(signature.type)}`
 }
 
+const partsToText = (
+  parts: ReadonlyArray<TypeDocCommentPart>,
+): Option.Option<string> =>
+  pipe(
+    Array.map(parts, ({ text }) => text),
+    Array.join(''),
+    text => text.trim(),
+    Option.liftPredicate(text => text.length > 0),
+  )
+
+const itemDescription = (item: TypeDocItem): Option.Option<string> =>
+  pipe(
+    item.comment,
+    Option.flatMap(comment => comment.summary),
+    Option.flatMap(partsToText),
+  )
+
+const signatureDescription = (
+  item: TypeDocItem,
+): Option.Option<string> =>
+  pipe(
+    item.signatures,
+    Option.flatMap(Array.head),
+    Option.flatMap(({ comment }) => comment),
+    Option.flatMap(comment => comment.summary),
+    Option.flatMap(partsToText),
+  )
+
+const formatAsDocComment = (description: string): string => {
+  const lines = description.split('\n')
+  if (lines.length === 1) {
+    return `/** ${description} */`
+  }
+  return ['/**', ...lines.map(line => ` * ${line}`), ' */'].join('\n')
+}
+
+const prependDescription = (
+  code: string,
+  maybeDescription: Option.Option<string>,
+): string =>
+  Option.match(maybeDescription, {
+    onNone: () => code,
+    onSome: description =>
+      `${formatAsDocComment(description)}\n${code}`,
+  })
+
 const functionEntries = (
   prefix: string,
   item: TypeDocItem,
@@ -142,13 +189,16 @@ const functionEntries = (
       onSome: signatures => [
         [
           `function-${prefix}${item.name}`,
-          pipe(
-            signatures,
-            Array.map(
-              signature =>
-                `declare function _${buildFunctionSignatureString(signature)}`,
+          prependDescription(
+            pipe(
+              signatures,
+              Array.map(
+                signature =>
+                  `declare function _${buildFunctionSignatureString(signature)}`,
+              ),
+              Array.join('\n\n'),
             ),
-            Array.join('\n\n'),
+            signatureDescription(item),
           ),
         ] as const,
       ],
@@ -170,7 +220,12 @@ const typeAliasEntries = (
       `type ${item.name} = ${typeDefFromChildren(item.children)}`,
     onSome: () => `type ${item.name} = ${typeToString(item.type)}`,
   })
-  return [[`type-${prefix}${item.name}`, tsString] as const]
+  return [
+    [
+      `type-${prefix}${item.name}`,
+      prependDescription(tsString, itemDescription(item)),
+    ] as const,
+  ]
 }
 
 const interfaceEntries = (
@@ -179,7 +234,10 @@ const interfaceEntries = (
 ): ReadonlyArray<readonly [string, string]> => [
   [
     `interface-${prefix}${item.name}`,
-    `interface ${item.name} ${typeDefFromChildren(item.children)}`,
+    prependDescription(
+      `interface ${item.name} ${typeDefFromChildren(item.children)}`,
+      itemDescription(item),
+    ),
   ] as const,
 ]
 
@@ -189,7 +247,10 @@ const variableEntries = (
 ): ReadonlyArray<readonly [string, string]> => [
   [
     `const-${prefix}${item.name}`,
-    `const ${item.name}: ${typeToString(item.type)}`,
+    prependDescription(
+      `const ${item.name}: ${typeToString(item.type)}`,
+      itemDescription(item),
+    ),
   ] as const,
 ]
 

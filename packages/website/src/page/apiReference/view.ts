@@ -1,5 +1,5 @@
 import classNames from 'classnames'
-import { Array, Option, Record, String, pipe } from 'effect'
+import { Array, Option, Record, pipe } from 'effect'
 import { Ui } from 'foldkit'
 import { Html, createKeyedLazy } from 'foldkit/html'
 import { Disclosure } from 'foldkit/ui'
@@ -18,13 +18,7 @@ import {
 } from '../../html'
 import { Icon } from '../../icon'
 import type { Message as ParentMessage } from '../../main'
-import {
-  heading,
-  headingLinkButton,
-  inlineCode,
-  pageTitle,
-  para,
-} from '../../prose'
+import { heading, headingLinkButton, pageTitle } from '../../prose'
 import {
   type ApiFunction,
   type ApiInterface,
@@ -36,23 +30,6 @@ import {
 } from './domain'
 import { GotDisclosureMessage, type Message } from './message'
 import type { Model } from './model'
-
-const descriptionWithCode = (
-  text: string,
-): ReadonlyArray<Html | string> => {
-  const parts = String.split(text, '`')
-  return Array.map(parts, (part, index) =>
-    index % 2 === 1 ? inlineCode(part) : part,
-  )
-}
-
-const descriptionView = (description: string): ReadonlyArray<Html> =>
-  pipe(
-    String.split(description, '\n\n'),
-    Array.map(String.trim),
-    Array.filter(String.isNonEmpty),
-    Array.map(paragraph => para(...descriptionWithCode(paragraph))),
-  )
 
 const sourceLink = (
   sourceUrl: Option.Option<string>,
@@ -120,10 +97,6 @@ const functionView = (
           headingLinkButton(id, apiFunction.name),
         ],
       ),
-      ...Option.match(apiFunction.description, {
-        onNone: () => [],
-        onSome: descriptionView,
-      }),
       signaturesView(id, apiFunction, maybeDisclosure, toMessage),
     ],
   )
@@ -183,7 +156,7 @@ const chevron = (isOpen: boolean) =>
   )
 
 const disclosureButtonClassName =
-  'w-full flex items-center justify-between px-3 py-2 text-left text-base cursor-pointer transition border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-800 rounded-lg data-[open]:rounded-b-none select-none'
+  'w-full flex items-center justify-between px-3 py-2 text-left text-base cursor-pointer transition border border-gray-200 dark:border-gray-700/50 text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-800 rounded-lg data-[open]:rounded-b-none select-none'
 
 const disclosurePanelClassName = 'rounded-b-lg overflow-x-auto'
 
@@ -219,9 +192,12 @@ const signaturesView = (
           'rounded-b-lg rounded-t-none': isInDisclosure,
         },
       ),
-      content: Array.flatMap(apiFunction.signatures, signature =>
-        signatureChildrenFallback(signature),
-      ),
+      content: [
+        ...descriptionCommentFallback(apiFunction.description),
+        ...Array.flatMap(apiFunction.signatures, signature =>
+          signatureChildrenFallback(signature),
+        ),
+      ],
     }),
   })
 
@@ -329,6 +305,23 @@ const returnTypeView = (returnType: string): Html =>
     ],
   )
 
+const descriptionCommentFallback = (
+  maybeDescription: Option.Option<string>,
+): ReadonlyArray<Html> =>
+  Option.match(maybeDescription, {
+    onNone: () => [],
+    onSome: description => [
+      div(
+        [
+          Class(
+            'text-gray-500 dark:text-gray-400 mb-3 whitespace-pre-wrap',
+          ),
+        ],
+        [`/** ${description} */`],
+      ),
+    ],
+  })
+
 const signatureChildrenFallback = (signature: {
   readonly parameters: ReadonlyArray<ApiParameter>
   readonly returnType: string
@@ -387,10 +380,6 @@ const typeView = (moduleName: string, type: ApiType): Html => {
           headingLinkButton(id, type.name),
         ],
       ),
-      ...Option.match(type.description, {
-        onNone: () => [],
-        onSome: descriptionView,
-      }),
       ...Option.match(maybeHighlighted, {
         onSome: highlighted => [
           div(
@@ -410,7 +399,10 @@ const typeView = (moduleName: string, type: ApiType): Html => {
                 'block bg-gray-50 dark:bg-gray-800 rounded p-4 font-mono text-sm whitespace-pre-wrap',
               ),
             ],
-            [type.typeDefinition],
+            [
+              ...descriptionCommentFallback(type.description),
+              type.typeDefinition,
+            ],
           ),
         ],
       }),
@@ -464,10 +456,6 @@ const interfaceView = (
           headingLinkButton(id, apiInterface.name),
         ],
       ),
-      ...Option.match(apiInterface.description, {
-        onNone: () => [],
-        onSome: descriptionView,
-      }),
       ...Option.match(maybeHighlighted, {
         onSome: highlighted => [
           div(
@@ -487,7 +475,10 @@ const interfaceView = (
                 'block bg-gray-50 dark:bg-gray-800 rounded p-4 font-mono text-sm whitespace-pre-wrap',
               ),
             ],
-            [apiInterface.typeDefinition],
+            [
+              ...descriptionCommentFallback(apiInterface.description),
+              apiInterface.typeDefinition,
+            ],
           ),
         ],
       }),
@@ -538,10 +529,6 @@ const variableView = (
           headingLinkButton(id, variable.name),
         ],
       ),
-      ...Option.match(variable.description, {
-        onNone: () => [],
-        onSome: descriptionView,
-      }),
       ...Option.match(maybeHighlighted, {
         onSome: highlighted => [
           div(
@@ -561,7 +548,10 @@ const variableView = (
                 'block bg-gray-50 dark:bg-gray-800 rounded p-4 font-mono text-sm whitespace-pre-wrap',
               ),
             ],
-            [variable.type],
+            [
+              ...descriptionCommentFallback(variable.description),
+              variable.type,
+            ],
           ),
         ],
       }),
