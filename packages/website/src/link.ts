@@ -28,10 +28,10 @@ export const Link = {
   exampleRouting: `${exampleBase}/routing/src/main.ts`,
   exampleShoppingCart: `${exampleBase}/shopping-cart/src/main.ts`,
   exampleShoppingCartSubmodel:
-    'https://github.com/devinjameson/foldkit/blob/main/examples/shopping-cart/src/main.ts#L139-L153',
+    'https://github.com/devinjameson/foldkit/blob/main/examples/shopping-cart/src/main.ts#L163-L175',
   exampleSnake: `${exampleBase}/snake/src/main.ts`,
   exampleSnakeRequestPattern:
-    'https://github.com/devinjameson/foldkit/blob/main/examples/snake/src/main.ts#L138-L174',
+    'https://github.com/devinjameson/foldkit/blob/main/examples/snake/src/main.ts#L220-L234',
   exampleStopwatch: `${exampleBase}/stopwatch/src/main.ts`,
   exampleTodo: `${exampleBase}/todo/src/main.ts`,
   exampleWeather: `${exampleBase}/weather/src/main.ts`,
