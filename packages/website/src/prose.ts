@@ -61,13 +61,13 @@ export const pageTitle = (id: string, text: string): Html =>
 const sectionHeadingConfig = {
   h2: {
     textClassName:
-      'text-3xl font-normal text-gray-900 dark:text-white scroll-mt-6',
+      'text-2xl md:text-3xl font-normal text-gray-900 dark:text-white scroll-mt-6',
     wrapperClassName:
       'group flex items-center gap-1 md:hover-capable:gap-0 mt-8 mb-4 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
   },
   h3: {
     textClassName:
-      'text-xl font-normal text-gray-900 dark:text-white scroll-mt-6',
+      'text-lg font-normal text-gray-900 dark:text-white scroll-mt-6',
     wrapperClassName:
       'group flex items-center gap-1 md:hover-capable:gap-0 mt-6 mb-2 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
   },

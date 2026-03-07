@@ -77,7 +77,7 @@ const functionView = (
               h3(
                 [
                   Class(
-                    'text-lg font-mono font-[200] text-gray-900 dark:text-white scroll-mt-6',
+                    'text-base font-mono font-[200] text-gray-900 dark:text-white scroll-mt-6',
                   ),
                   Id(id),
                 ],
@@ -360,7 +360,7 @@ const typeView = (moduleName: string, type: ApiType): Html => {
               h3(
                 [
                   Class(
-                    'text-lg font-mono font-[200] text-gray-900 dark:text-white scroll-mt-6',
+                    'text-base font-mono font-[200] text-gray-900 dark:text-white scroll-mt-6',
                   ),
                   Id(id),
                 ],
@@ -433,7 +433,7 @@ const interfaceView = (
               h3(
                 [
                   Class(
-                    'text-lg font-mono font-[200] text-gray-900 dark:text-white scroll-mt-6',
+                    'text-base font-mono font-[200] text-gray-900 dark:text-white scroll-mt-6',
                   ),
                   Id(id),
                 ],
@@ -509,7 +509,7 @@ const variableView = (
               h3(
                 [
                   Class(
-                    'text-lg font-mono font-[200] text-gray-900 dark:text-white scroll-mt-6',
+                    'text-base font-mono font-[200] text-gray-900 dark:text-white scroll-mt-6',
                   ),
                   Id(id),
                 ],
