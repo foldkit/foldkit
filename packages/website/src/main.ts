@@ -22,6 +22,7 @@ import { evo } from 'foldkit/struct'
 import { makeSubscriptions } from 'foldkit/subscription'
 import { Url, toString as urlToString } from 'foldkit/url'
 
+import { type NavPage, docsSections, pageNeighbors } from './docsNav'
 import {
   Alt,
   AriaCurrent,
@@ -61,42 +62,8 @@ import {
   AppRoute,
   DocsRoute,
   apiModuleRouter,
-  bestPracticesRouter,
-  comingFromReactRouter,
-  coreCommandsRouter,
-  coreCounterExampleRouter,
-  coreErrorViewRouter,
-  coreInitRouter,
-  coreManagedResourcesRouter,
-  coreMessagesRouter,
-  coreModelRouter,
-  coreResourcesRouter,
-  coreRunningYourAppRouter,
-  coreSlowViewWarningRouter,
-  coreSubscriptionsRouter,
-  coreTaskRouter,
-  coreUpdateRouter,
-  coreViewMemoizationRouter,
-  coreViewRouter,
-  examplesRouter,
-  fieldValidationRouter,
-  gettingStartedRouter,
   homeRouter,
-  patternsModelAsUnionRouter,
-  patternsOutMessageRouter,
-  patternsSubmodelsRouter,
-  projectOrganizationRouter,
-  routingAndNavigationRouter,
-  uiComboboxRouter,
-  uiDialogRouter,
-  uiDisclosureRouter,
-  uiListboxRouter,
-  uiMenuRouter,
-  uiPopoverRouter,
-  uiSwitchRouter,
-  uiTabsRouter,
   urlToAppRoute,
-  whyFoldkitRouter,
 } from './route'
 import * as Subscription from './subscription'
 import { themeSelector } from './view/themeSelector'
@@ -1003,240 +970,61 @@ const sidebarView = (model: Model) => {
       ],
     )
 
+  const sectionDisclosures: ReadonlyArray<
+    Readonly<{
+      model: Ui.Disclosure.Model
+      toMessage: (message: Ui.Disclosure.Message) => Message
+    }>
+  > = [
+    {
+      model: model.getStartedGroup,
+      toMessage: message => GotGetStartedGroupMessage({ message }),
+    },
+    {
+      model: model.coreConceptsGroup,
+      toMessage: message => GotCoreConceptsGroupMessage({ message }),
+    },
+    {
+      model: model.guidesGroup,
+      toMessage: message => GotGuidesGroupMessage({ message }),
+    },
+    {
+      model: model.patternsGroup,
+      toMessage: message => GotPatternsGroupMessage({ message }),
+    },
+    {
+      model: model.examplesGroup,
+      toMessage: message => GotExamplesGroupMessage({ message }),
+    },
+    {
+      model: model.foldkitUiGroup,
+      toMessage: message => GotFoldkitUiGroupMessage({ message }),
+    },
+  ]
+
   const navLinks = ul(
     [Class('space-y-3')],
     [
-      sidebarGroup({
-        label: 'Get Started',
-        model: model.getStartedGroup,
-        toMessage: message => GotGetStartedGroupMessage({ message }),
-        children: ul(
-          [],
-          [
-            navLink(
-              whyFoldkitRouter.build({}),
-              currentRoute._tag === 'WhyFoldkit',
-              'Why Foldkit?',
+      ...Array.zipWith(
+        docsSections,
+        sectionDisclosures,
+        (section, disclosure) =>
+          sidebarGroup({
+            label: section.label,
+            model: disclosure.model,
+            toMessage: disclosure.toMessage,
+            children: ul(
+              [],
+              Array.map(section.pages, page =>
+                navLink(
+                  page.href,
+                  currentRoute._tag === page._tag,
+                  page.label,
+                ),
+              ),
             ),
-            navLink(
-              comingFromReactRouter.build({}),
-              currentRoute._tag === 'ComingFromReact',
-              'Coming from React',
-            ),
-            navLink(
-              gettingStartedRouter.build({}),
-              currentRoute._tag === 'GettingStarted',
-              'Getting Started',
-            ),
-          ],
-        ),
-      }),
-      sidebarGroup({
-        label: 'Core Concepts',
-        model: model.coreConceptsGroup,
-        toMessage: message =>
-          GotCoreConceptsGroupMessage({ message }),
-        children: ul(
-          [],
-          [
-            navLink(
-              coreCounterExampleRouter.build({}),
-              currentRoute._tag === 'CoreCounterExample',
-              'Counter Example',
-            ),
-            navLink(
-              coreModelRouter.build({}),
-              currentRoute._tag === 'CoreModel',
-              'Model',
-            ),
-            navLink(
-              coreMessagesRouter.build({}),
-              currentRoute._tag === 'CoreMessages',
-              'Messages',
-            ),
-            navLink(
-              coreUpdateRouter.build({}),
-              currentRoute._tag === 'CoreUpdate',
-              'Update',
-            ),
-            navLink(
-              coreViewRouter.build({}),
-              currentRoute._tag === 'CoreView',
-              'View',
-            ),
-            navLink(
-              coreCommandsRouter.build({}),
-              currentRoute._tag === 'CoreCommands',
-              'Commands',
-            ),
-            navLink(
-              coreSubscriptionsRouter.build({}),
-              currentRoute._tag === 'CoreSubscriptions',
-              'Subscriptions',
-            ),
-            navLink(
-              coreInitRouter.build({}),
-              currentRoute._tag === 'CoreInit',
-              'Init',
-            ),
-            navLink(
-              coreTaskRouter.build({}),
-              currentRoute._tag === 'CoreTask',
-              'Task',
-            ),
-            navLink(
-              coreRunningYourAppRouter.build({}),
-              currentRoute._tag === 'CoreRunningYourApp',
-              'Running Your App',
-            ),
-            navLink(
-              coreResourcesRouter.build({}),
-              currentRoute._tag === 'CoreResources',
-              'Resources',
-            ),
-            navLink(
-              coreManagedResourcesRouter.build({}),
-              currentRoute._tag === 'CoreManagedResources',
-              'Managed Resources',
-            ),
-            navLink(
-              coreErrorViewRouter.build({}),
-              currentRoute._tag === 'CoreErrorView',
-              'Error View',
-            ),
-            navLink(
-              coreSlowViewWarningRouter.build({}),
-              currentRoute._tag === 'CoreSlowViewWarning',
-              'Slow View Warning',
-            ),
-            navLink(
-              coreViewMemoizationRouter.build({}),
-              currentRoute._tag === 'CoreViewMemoization',
-              'View Memoization',
-            ),
-          ],
-        ),
-      }),
-      sidebarGroup({
-        label: 'Guides',
-        model: model.guidesGroup,
-        toMessage: message => GotGuidesGroupMessage({ message }),
-        children: ul(
-          [],
-          [
-            navLink(
-              routingAndNavigationRouter.build({}),
-              currentRoute._tag === 'RoutingAndNavigation',
-              'Routing & Navigation',
-            ),
-            navLink(
-              fieldValidationRouter.build({}),
-              currentRoute._tag === 'FieldValidation',
-              'Field Validation',
-            ),
-            navLink(
-              projectOrganizationRouter.build({}),
-              currentRoute._tag === 'ProjectOrganization',
-              'Project Organization',
-            ),
-            navLink(
-              bestPracticesRouter.build({}),
-              currentRoute._tag === 'BestPractices',
-              'Best Practices',
-            ),
-          ],
-        ),
-      }),
-      sidebarGroup({
-        label: 'Patterns',
-        model: model.patternsGroup,
-        toMessage: message => GotPatternsGroupMessage({ message }),
-        children: ul(
-          [],
-          [
-            navLink(
-              patternsSubmodelsRouter.build({}),
-              currentRoute._tag === 'PatternsSubmodels',
-              'Submodels',
-            ),
-            navLink(
-              patternsModelAsUnionRouter.build({}),
-              currentRoute._tag === 'PatternsModelAsUnion',
-              'Model as Union',
-            ),
-            navLink(
-              patternsOutMessageRouter.build({}),
-              currentRoute._tag === 'PatternsOutMessage',
-              'OutMessage',
-            ),
-          ],
-        ),
-      }),
-      sidebarGroup({
-        label: 'Foldkit UI',
-        model: model.foldkitUiGroup,
-        toMessage: message => GotFoldkitUiGroupMessage({ message }),
-        children: ul(
-          [],
-          [
-            navLink(
-              uiTabsRouter.build({}),
-              currentRoute._tag === 'UiTabs',
-              'Tabs',
-            ),
-            navLink(
-              uiDisclosureRouter.build({}),
-              currentRoute._tag === 'UiDisclosure',
-              'Disclosure',
-            ),
-            navLink(
-              uiDialogRouter.build({}),
-              currentRoute._tag === 'UiDialog',
-              'Dialog',
-            ),
-            navLink(
-              uiMenuRouter.build({}),
-              currentRoute._tag === 'UiMenu',
-              'Menu',
-            ),
-            navLink(
-              uiPopoverRouter.build({}),
-              currentRoute._tag === 'UiPopover',
-              'Popover',
-            ),
-            navLink(
-              uiListboxRouter.build({}),
-              currentRoute._tag === 'UiListbox',
-              'Listbox',
-            ),
-            navLink(
-              uiSwitchRouter.build({}),
-              currentRoute._tag === 'UiSwitch',
-              'Switch',
-            ),
-            navLink(
-              uiComboboxRouter.build({}),
-              currentRoute._tag === 'UiCombobox',
-              'Combobox',
-            ),
-          ],
-        ),
-      }),
-      sidebarGroup({
-        label: 'Examples',
-        model: model.examplesGroup,
-        toMessage: message => GotExamplesGroupMessage({ message }),
-        children: ul(
-          [],
-          [
-            navLink(
-              examplesRouter.build({}),
-              currentRoute._tag === 'Examples',
-              'Example Apps',
-            ),
-          ],
-        ),
-      }),
+          }),
+      ),
       sidebarGroup({
         label: 'API Reference',
         model: model.apiReferenceGroup,
@@ -1836,6 +1624,77 @@ const apiReferenceView = (
 
 const lazyApiReference = createLazy()
 
+const neighborLink = (
+  config: Readonly<{
+    page: NavPage
+    direction: 'Previous' | 'Next'
+  }>,
+) =>
+  a(
+    [
+      Href(config.page.href),
+      Class(
+        classNames('group flex flex-col gap-1', {
+          'items-start text-left': config.direction === 'Previous',
+          'items-end text-right ml-auto': config.direction === 'Next',
+        }),
+      ),
+    ],
+    [
+      span(
+        [
+          Class(
+            'text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider',
+          ),
+        ],
+        [config.direction],
+      ),
+      span(
+        [
+          Class(
+            'text-sm font-medium text-accent-600 dark:text-accent-400 group-hover:underline',
+          ),
+        ],
+        config.direction === 'Previous'
+          ? [
+              span([Class('mr-1'), AriaHidden(true)], ['\u2190']),
+              config.page.label,
+            ]
+          : [
+              config.page.label,
+              span([Class('ml-1'), AriaHidden(true)], ['\u2192']),
+            ],
+      ),
+    ],
+  )
+
+const pageNavigationView = (tag: string) => {
+  const { maybePrevious, maybeNext } = pageNeighbors(tag)
+
+  if (Option.isNone(maybePrevious) && Option.isNone(maybeNext)) {
+    return empty
+  }
+
+  return nav(
+    [
+      AriaLabel('Page navigation'),
+      Class(
+        'flex items-stretch justify-between gap-4 mt-12 pt-6 border-t border-gray-300 dark:border-gray-700',
+      ),
+    ],
+    [
+      Option.match(maybePrevious, {
+        onNone: () => empty,
+        onSome: page => neighborLink({ page, direction: 'Previous' }),
+      }),
+      Option.match(maybeNext, {
+        onNone: () => empty,
+        onSome: page => neighborLink({ page, direction: 'Next' }),
+      }),
+    ],
+  )
+}
+
 const docsView = (model: Model, docsRoute: DocsRoute) => {
   const content = M.value(docsRoute).pipe(
     M.tagsExhaustive({
@@ -2040,7 +1899,7 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
                     'px-4 py-6 md:px-8 md:py-8 2xl:py-10 max-w-4xl mx-auto min-w-0',
                   ),
                 ],
-                [content],
+                [content, pageNavigationView(docsRoute._tag)],
               ),
             ],
           ),
