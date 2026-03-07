@@ -30,9 +30,18 @@ export const view = (model: Model): Html =>
       pageTitle('core/slow-view-warning', 'Slow View Warning'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'During development, Foldkit warns in the console when a ',
+        'Every time your model changes, Foldkit calls your ',
         inlineCode('view'),
-        ' call takes longer than the frame budget. A view that exceeds 16ms is already dropping frames. The warning nudges you to move computation into ',
+        ' function to build a virtual DOM tree describing what the screen should look like. Foldkit then diffs that tree against the previous one and patches the real DOM. The ',
+        inlineCode('view'),
+        ' call is only the first step — the diff, DOM patch, browser layout, and paint still happen after it returns.',
+      ),
+      para(
+        'During development, Foldkit measures how long the ',
+        inlineCode('view'),
+        ' call takes and warns in the console when it exceeds the frame budget. At 60fps the entire frame gets 16ms, so if ',
+        inlineCode('view'),
+        ' alone takes that long, you are already dropping frames before the DOM work even begins. The warning nudges you to move computation into ',
         inlineCode('update'),
         ' or memoize expensive subtrees with ',
         link(

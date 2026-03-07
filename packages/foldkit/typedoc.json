@@ -26,6 +26,9 @@
     "BaseInitConfig",
     "BaseViewConfig",
     "UpdateReturn",
-    "EvolveTransform"
+    "EvolveTransform",
+    "BuildFn",
+    "InferParsed",
+    "ParserInput"
   ]
 }
