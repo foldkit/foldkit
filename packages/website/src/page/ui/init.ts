@@ -39,6 +39,13 @@ export const init = (): InitReturn => [
       id: 'popover-animated-demo',
       isAnimated: true,
     }),
+    verticalRadioGroupDemo: Ui.RadioGroup.init({
+      id: 'vertical-radio-group-demo',
+    }),
+    horizontalRadioGroupDemo: Ui.RadioGroup.init({
+      id: 'horizontal-radio-group-demo',
+      orientation: 'Horizontal',
+    }),
     switchDemo: Ui.Switch.init({ id: 'switch-demo' }),
     horizontalTabsDemo: Ui.Tabs.init({ id: 'horizontal-tabs-demo' }),
     verticalTabsDemo: Ui.Tabs.init({

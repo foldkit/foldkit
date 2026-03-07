@@ -50,6 +50,7 @@ export const UiDialogRoute = r('UiDialog')
 export const UiMenuRoute = r('UiMenu')
 export const UiPopoverRoute = r('UiPopover')
 export const UiListboxRoute = r('UiListbox')
+export const UiRadioGroupRoute = r('UiRadioGroup')
 export const UiSwitchRoute = r('UiSwitch')
 export const UiComboboxRoute = r('UiCombobox')
 
@@ -90,6 +91,7 @@ export const DocsRoute = S.Union(
   UiMenuRoute,
   UiPopoverRoute,
   UiListboxRoute,
+  UiRadioGroupRoute,
   UiSwitchRoute,
   UiComboboxRoute,
   NotFoundRoute,
@@ -144,6 +146,7 @@ export type UiDialogRoute = typeof UiDialogRoute.Type
 export type UiMenuRoute = typeof UiMenuRoute.Type
 export type UiPopoverRoute = typeof UiPopoverRoute.Type
 export type UiListboxRoute = typeof UiListboxRoute.Type
+export type UiRadioGroupRoute = typeof UiRadioGroupRoute.Type
 export type UiSwitchRoute = typeof UiSwitchRoute.Type
 export type UiComboboxRoute = typeof UiComboboxRoute.Type
 export type NotFoundRoute = typeof NotFoundRoute.Type
@@ -315,6 +318,11 @@ export const uiListboxRouter = pipe(
   slash(literal('listbox')),
   mapTo(UiListboxRoute),
 )
+export const uiRadioGroupRouter = pipe(
+  literal('ui'),
+  slash(literal('radio-group')),
+  mapTo(UiRadioGroupRoute),
+)
 export const uiSwitchRouter = pipe(
   literal('ui'),
   slash(literal('switch')),
@@ -374,6 +382,7 @@ const uiParser = oneOf(
   uiMenuRouter,
   uiPopoverRouter,
   uiListboxRouter,
+  uiRadioGroupRouter,
   uiSwitchRouter,
   uiComboboxRouter,
 )

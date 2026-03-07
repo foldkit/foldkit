@@ -10,6 +10,7 @@ import {
   GotComboboxSelectOnFocusDemoMessage,
   GotDialogDemoMessage,
   GotDisclosureDemoMessage,
+  GotHorizontalRadioGroupDemoMessage,
   GotHorizontalTabsDemoMessage,
   GotListboxDemoMessage,
   GotListboxGroupedDemoMessage,
@@ -19,6 +20,7 @@ import {
   GotPopoverAnimatedDemoMessage,
   GotPopoverBasicDemoMessage,
   GotSwitchDemoMessage,
+  GotVerticalRadioGroupDemoMessage,
   GotVerticalTabsDemoMessage,
   type Message,
 } from './message'
@@ -245,6 +247,49 @@ export const update = (
           popoverAnimatedCommands.map(
             Effect.map(message =>
               GotPopoverAnimatedDemoMessage({ message }),
+            ),
+          ),
+        ]
+      },
+
+      GotVerticalRadioGroupDemoMessage: ({ message }) => {
+        const [
+          nextVerticalRadioGroupDemo,
+          verticalRadioGroupCommands,
+        ] = Ui.RadioGroup.update(
+          model.verticalRadioGroupDemo,
+          message,
+        )
+
+        return [
+          evo(model, {
+            verticalRadioGroupDemo: () => nextVerticalRadioGroupDemo,
+          }),
+          verticalRadioGroupCommands.map(
+            Effect.map(message =>
+              GotVerticalRadioGroupDemoMessage({ message }),
+            ),
+          ),
+        ]
+      },
+
+      GotHorizontalRadioGroupDemoMessage: ({ message }) => {
+        const [
+          nextHorizontalRadioGroupDemo,
+          horizontalRadioGroupCommands,
+        ] = Ui.RadioGroup.update(
+          model.horizontalRadioGroupDemo,
+          message,
+        )
+
+        return [
+          evo(model, {
+            horizontalRadioGroupDemo: () =>
+              nextHorizontalRadioGroupDemo,
+          }),
+          horizontalRadioGroupCommands.map(
+            Effect.map(message =>
+              GotHorizontalRadioGroupDemoMessage({ message }),
             ),
           ),
         ]

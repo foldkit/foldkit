@@ -1757,6 +1757,11 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
         Page.UiPages.PopoverPage.view(model.uiPages, toUiPageMessage),
       UiListbox: () =>
         Page.UiPages.ListboxPage.view(model.uiPages, toUiPageMessage),
+      UiRadioGroup: () =>
+        Page.UiPages.RadioGroupPage.view(
+          model.uiPages,
+          toUiPageMessage,
+        ),
       UiSwitch: () =>
         Page.UiPages.SwitchPage.view(model.uiPages, toUiPageMessage),
       UiCombobox: () =>
@@ -1839,6 +1844,8 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
         Option.some(Page.UiPages.PopoverPage.tableOfContents),
       UiListbox: () =>
         Option.some(Page.UiPages.ListboxPage.tableOfContents),
+      UiRadioGroup: () =>
+        Option.some(Page.UiPages.RadioGroupPage.tableOfContents),
       UiSwitch: () =>
         Option.some(Page.UiPages.SwitchPage.tableOfContents),
       UiCombobox: () =>

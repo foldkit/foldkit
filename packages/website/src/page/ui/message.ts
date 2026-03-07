@@ -68,6 +68,18 @@ export const GotPopoverAnimatedDemoMessage = m(
     message: Ui.Popover.Message,
   },
 )
+export const GotVerticalRadioGroupDemoMessage = m(
+  'GotVerticalRadioGroupDemoMessage',
+  {
+    message: Ui.RadioGroup.Message,
+  },
+)
+export const GotHorizontalRadioGroupDemoMessage = m(
+  'GotHorizontalRadioGroupDemoMessage',
+  {
+    message: Ui.RadioGroup.Message,
+  },
+)
 export const GotSwitchDemoMessage = m('GotSwitchDemoMessage', {
   message: Ui.Switch.Message,
 })
@@ -98,6 +110,8 @@ export const Message = S.Union(
   GotMenuAnimatedDemoMessage,
   GotPopoverBasicDemoMessage,
   GotPopoverAnimatedDemoMessage,
+  GotVerticalRadioGroupDemoMessage,
+  GotHorizontalRadioGroupDemoMessage,
   GotSwitchDemoMessage,
   GotHorizontalTabsDemoMessage,
   GotVerticalTabsDemoMessage,

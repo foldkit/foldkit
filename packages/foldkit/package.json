@@ -87,6 +87,10 @@
       "types": "./dist/ui/popover/public.d.ts",
       "import": "./dist/ui/popover/public.js"
     },
+    "./ui/radioGroup": {
+      "types": "./dist/ui/radioGroup/public.d.ts",
+      "import": "./dist/ui/radioGroup/public.js"
+    },
     "./ui/switch": {
       "types": "./dist/ui/switch/public.d.ts",
       "import": "./dist/ui/switch/public.js"

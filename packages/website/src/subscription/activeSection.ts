@@ -143,6 +143,10 @@ export const activeSection: Subscription<
           () => Page.UiPages.ListboxPage.tableOfContents,
         ),
         M.tag(
+          'UiRadioGroup',
+          () => Page.UiPages.RadioGroupPage.tableOfContents,
+        ),
+        M.tag(
           'UiSwitch',
           () => Page.UiPages.SwitchPage.tableOfContents,
         ),

@@ -33,6 +33,7 @@ import {
   uiListboxRouter,
   uiMenuRouter,
   uiPopoverRouter,
+  uiRadioGroupRouter,
   uiSwitchRouter,
   uiTabsRouter,
   whyFoldkitRouter,
@@ -246,6 +247,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
         _tag: 'UiListbox',
         href: uiListboxRouter(),
         label: 'Listbox',
+      },
+      {
+        _tag: 'UiRadioGroup',
+        href: uiRadioGroupRouter(),
+        label: 'Radio Group',
       },
       {
         _tag: 'UiSwitch',
