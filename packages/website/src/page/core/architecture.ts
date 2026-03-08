@@ -1,6 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import { div } from '../../html'
+import { Class, div, pre } from '../../html'
 import { Link } from '../../link'
 import type { TableOfContentsEntry } from '../../main'
 import {
@@ -74,6 +74,42 @@ export const view = (): Html =>
           'Message \u2192 update \u2192 Model + Commands \u2192 view \u2192 Message',
         ),
         '. Every state transition in your app flows through this single loop. There\u2019s no action-at-a-distance, no hidden state mutation, no effect that runs outside the cycle. If you want to know how the app got into its current state, you follow the Messages.',
+      ),
+      para(
+        'The complete cycle, including Subscriptions and ManagedResources, looks like this:',
+      ),
+      pre(
+        [
+          Class(
+            'mb-4 mx-auto w-fit max-w-full text-[#403d4a] dark:text-[#E0DEE6] text-sm p-4 overflow-x-auto rounded-lg bg-gray-100 dark:bg-[#1c1a20] border border-gray-200 dark:border-gray-700/50',
+          ),
+        ],
+        [
+          '          +------------------------------------------------------+\n' +
+            '          |                                                      |\n' +
+            '          \u2193                                                      |\n' +
+            '       Message                                                   |\n' +
+            '          |                                                      |\n' +
+            '          \u2193                                                      |\n' +
+            '  +---------------+                                              |\n' +
+            '  |    update     |                                              |\n' +
+            '  +-------+-------+                                              |\n' +
+            '  \u2193               \u2193                                              |\n' +
+            'Model    Command<Message>[]                                      |\n' +
+            '  |               |                                              |\n' +
+            '  |               +-> Runtime -----------------------------------+\n' +
+            '  |                                                              |\n' +
+            '  +-> view -> Browser -> user events ----------------------------+\n' +
+            '  |                                                              |\n' +
+            '  +-> Subscriptions -> Stream<Command<Message>> -> Runtime ------+\n' +
+            '  |                                                              |\n' +
+            '  +-> ManagedResources -> lifecycle -----------------------------+',
+        ],
+      ),
+      para(
+        'Every path on the right side produces a Message that feeds back into ',
+        inlineCode('update'),
+        '. Commands are one-shot effects. Subscriptions emit a continuous stream of Commands. ManagedResources dispatch Messages when they\u2019re acquired, released, or fail to acquire. The Browser sends Messages when the user interacts with the DOM. Four sources, one loop.',
       ),
       tableOfContentsEntryToHeader(theRestaurantAnalogyHeader),
       para(
