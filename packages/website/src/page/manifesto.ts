@@ -54,7 +54,7 @@ export const view = (): Html =>
         'React isn\u2019t bad. It\u2019s great. It\u2019s also insufficient.',
       ),
       para(
-        'What if the framework itself was the architecture? What if there were no decisions to make? Not because someone took them away, but because the right answer was the only answer. What if you never had to ask, "Which state management library do we use?" or "How do we wire streams into our UI?" and instead asked, "How do we model this domain? How should this feature behave?" What if architecture was solved, and the only questions left were about your product?',
+        'What if there were no decisions to make about how to structure your application? Not because someone took choice away, but because the right answer was the only answer. What if frontend architecture was solved?',
       ),
       para('That\u2019s Foldkit.'),
       tableOfContentsEntryToHeader(powerThroughConstraintsHeader),
@@ -62,13 +62,13 @@ export const view = (): Html =>
         'Every Foldkit app has the same architecture. Not by convention. By design.',
       ),
       para(
-        'State lives in the Model. Events are Messages. Every state change flows through update. Side effects are managed by Commands. Ongoing streams are Subscriptions. This isn\u2019t a recommendation. It\u2019s the only path. You can\u2019t scatter state across components because there are no component-local state hooks. You can\u2019t hide side effects in the view because the view is a pure function.',
+        'State lives in the Model. Events are Messages. Every state change flows through update. Side effects are managed by Commands. Ongoing streams are Subscriptions. These aren\u2019t conventions. This is the only path. You can\u2019t scatter state across components because there are no component-local state hooks. You can\u2019t hide side effects in the view because the view is a pure function.',
       ),
       para(
-        'This might sound limiting. It\u2019s the opposite. When architectural decisions are off the table, development gets more interesting. The questions shift from plumbing to modeling. Not "Where do we put this side effect?" but "What Commands does this Message produce?" Not "How do we manage loading states across components?" but "What does our Model look like when data is loading, loaded, or failed?"',
+        'This might sound limiting. It\u2019s the opposite. When architectural decisions are off the table, development gets more interesting. The questions shift from implementation to behavior. Not \u201cHow should we manage side effects in this component?\u201d but \u201cHow should this feature behave?\u201d Not \u201cWhat tool should we use for streams and should we wire them up to our components?\u201d but \u201cWhat Model state should turn this Subscription on and off?\u201d',
       ),
       para(
-        'You spend your time in the domain, the layer where your app is actually different from every other app, instead of the accidental complexity of wiring libraries together.',
+        'Your focus elevates from implementation to behavior: the stuff that actually makes your application unique.',
       ),
       tableOfContentsEntryToHeader(readableByDesignHeader),
       para(
@@ -82,13 +82,13 @@ export const view = (): Html =>
       ),
       tableOfContentsEntryToHeader(buildYourProductHeader),
       para(
-        'Frontend development should be about solving domain problems, not architectural ones. The years spent debating state management, choosing libraries, and enforcing conventions are years not spent on your product.',
+        'Frontend development should be about solving domain problems, not architectural ones. Time spent debating state management, hand-selecting libraries for basic functionality, and carefully enforcing conventions is pure overhead. Now, you can just spin up a Foldkit application and start modeling behavior.',
       ),
       para(
-        'Foldkit models the frontend so you can model your domain. State, events, transitions, effects, streams. All accounted for. All typed. All in one place.',
+        'So here\u2019s the big claim: Foldkit models the frontend so you can model everything else. State, events, transitions, effects, streams, resource management. All accounted for. All connected. All typed. All in one place.',
       ),
       para(
-        'The architecture is solved. The only questions left are about your product. Now go build something cool.',
+        'Frontend architecture is solved. The only question left is, what are you going to create? Make it cool.',
       ),
       div(
         [Class('mb-4')],
