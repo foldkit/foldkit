@@ -13,6 +13,7 @@ import {
   GotComboboxSelectOnFocusDemoMessage,
   GotDialogDemoMessage,
   GotDisclosureDemoMessage,
+  GotFieldsetCheckboxDemoMessage,
   GotHorizontalRadioGroupDemoMessage,
   GotHorizontalTabsDemoMessage,
   GotListboxDemoMessage,
@@ -45,6 +46,30 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         evo(model, { textareaDemoValue: () => value }),
         [],
       ],
+
+      UpdatedFieldsetInputValue: ({ value }) => [
+        evo(model, { fieldsetInputValue: () => value }),
+        [],
+      ],
+
+      UpdatedFieldsetTextareaValue: ({ value }) => [
+        evo(model, { fieldsetTextareaValue: () => value }),
+        [],
+      ],
+
+      GotFieldsetCheckboxDemoMessage: ({ message }) => {
+        const [nextFieldsetCheckboxDemo, fieldsetCheckboxCommands] =
+          Ui.Checkbox.update(model.fieldsetCheckboxDemo, message)
+
+        return [
+          evo(model, {
+            fieldsetCheckboxDemo: () => nextFieldsetCheckboxDemo,
+          }),
+          fieldsetCheckboxCommands.map(
+            Effect.map(message => GotFieldsetCheckboxDemoMessage({ message })),
+          ),
+        ]
+      },
 
       ClickedButtonDemo: () => [
         evo(model, {

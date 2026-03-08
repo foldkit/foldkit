@@ -52,6 +52,7 @@ import {
   UiComboboxRoute,
   UiDialogRoute,
   UiDisclosureRoute,
+  UiFieldsetRoute,
   UiInputRoute,
   UiListboxRoute,
   UiMenuRoute,
@@ -93,6 +94,7 @@ import {
   uiComboboxRouter,
   uiDialogRouter,
   uiDisclosureRouter,
+  uiFieldsetRouter,
   uiInputRouter,
   uiListboxRouter,
   uiMenuRouter,
@@ -146,6 +148,7 @@ export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   UiComboboxRoute(),
   UiInputRoute(),
   UiTextareaRoute(),
+  UiFieldsetRoute(),
 ]
 
 export const routeToUrlPath = (route: AppRoute): string =>
@@ -192,6 +195,7 @@ export const routeToUrlPath = (route: AppRoute): string =>
       UiCombobox: () => uiComboboxRouter(),
       UiInput: () => uiInputRouter(),
       UiTextarea: () => uiTextareaRouter(),
+      UiFieldset: () => uiFieldsetRouter(),
       ApiModule: ({ moduleSlug }) => apiModuleRouter({ moduleSlug }),
       NotFound: () => '/',
     }),

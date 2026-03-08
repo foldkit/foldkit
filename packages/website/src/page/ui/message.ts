@@ -9,6 +9,18 @@ export const UpdatedInputDemoValue = m('UpdatedInputDemoValue', {
 export const UpdatedTextareaDemoValue = m('UpdatedTextareaDemoValue', {
   value: S.String,
 })
+export const UpdatedFieldsetInputValue = m('UpdatedFieldsetInputValue', {
+  value: S.String,
+})
+export const UpdatedFieldsetTextareaValue = m('UpdatedFieldsetTextareaValue', {
+  value: S.String,
+})
+export const GotFieldsetCheckboxDemoMessage = m(
+  'GotFieldsetCheckboxDemoMessage',
+  {
+    message: Ui.Checkbox.Message,
+  },
+)
 export const GotCheckboxBasicDemoMessage = m('GotCheckboxBasicDemoMessage', {
   message: Ui.Checkbox.Message,
 })
@@ -101,6 +113,9 @@ export const Message = S.Union(
   ClickedButtonDemo,
   UpdatedInputDemoValue,
   UpdatedTextareaDemoValue,
+  UpdatedFieldsetInputValue,
+  UpdatedFieldsetTextareaValue,
+  GotFieldsetCheckboxDemoMessage,
   GotCheckboxBasicDemoMessage,
   GotCheckboxAllDemoMessage,
   GotCheckboxOptionADemoMessage,

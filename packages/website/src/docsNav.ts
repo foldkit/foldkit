@@ -32,6 +32,7 @@ import {
   uiComboboxRouter,
   uiDialogRouter,
   uiDisclosureRouter,
+  uiFieldsetRouter,
   uiInputRouter,
   uiListboxRouter,
   uiMenuRouter,
@@ -235,6 +236,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
         _tag: 'UiCheckbox',
         href: uiCheckboxRouter(),
         label: 'Checkbox',
+      },
+      {
+        _tag: 'UiFieldset',
+        href: uiFieldsetRouter(),
+        label: 'Fieldset',
       },
       {
         _tag: 'UiRadioGroup',

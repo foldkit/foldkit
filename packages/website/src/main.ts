@@ -1880,6 +1880,11 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
           Page.UiPages.TextareaPage.view(model.uiPages, toUiPageMessage),
           Page.UiPages.TextareaPage.tableOfContents,
         ),
+      UiFieldset: () =>
+        withTableOfContents(
+          Page.UiPages.FieldsetPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.FieldsetPage.tableOfContents,
+        ),
       NotFound: ({ path }) =>
         withoutTableOfContents(Page.NotFound.view(path, homeRouter())),
     }),

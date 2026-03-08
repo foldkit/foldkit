@@ -56,6 +56,7 @@ export const UiSwitchRoute = r('UiSwitch')
 export const UiComboboxRoute = r('UiCombobox')
 export const UiInputRoute = r('UiInput')
 export const UiTextareaRoute = r('UiTextarea')
+export const UiFieldsetRoute = r('UiFieldset')
 
 export const NotFoundRoute = r('NotFound', { path: S.String })
 
@@ -100,6 +101,7 @@ export const DocsRoute = S.Union(
   UiComboboxRoute,
   UiInputRoute,
   UiTextareaRoute,
+  UiFieldsetRoute,
   NotFoundRoute,
 )
 export type DocsRoute = typeof DocsRoute.Type
@@ -147,6 +149,7 @@ export type UiSwitchRoute = typeof UiSwitchRoute.Type
 export type UiComboboxRoute = typeof UiComboboxRoute.Type
 export type UiInputRoute = typeof UiInputRoute.Type
 export type UiTextareaRoute = typeof UiTextareaRoute.Type
+export type UiFieldsetRoute = typeof UiFieldsetRoute.Type
 export type NotFoundRoute = typeof NotFoundRoute.Type
 export type AppRoute = typeof AppRoute.Type
 
@@ -343,6 +346,11 @@ export const uiTextareaRouter = pipe(
   slash(literal('textarea')),
   mapTo(UiTextareaRoute),
 )
+export const uiFieldsetRouter = pipe(
+  literal('ui'),
+  slash(literal('fieldset')),
+  mapTo(UiFieldsetRoute),
+)
 
 // PARSER
 
@@ -395,6 +403,7 @@ const uiParser = oneOf(
   uiComboboxRouter,
   uiInputRouter,
   uiTextareaRouter,
+  uiFieldsetRouter,
 )
 
 const docsParser = oneOf(

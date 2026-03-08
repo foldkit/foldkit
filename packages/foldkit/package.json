@@ -79,6 +79,10 @@
       "types": "./dist/ui/disclosure/public.d.ts",
       "import": "./dist/ui/disclosure/public.js"
     },
+    "./ui/fieldset": {
+      "types": "./dist/ui/fieldset/public.d.ts",
+      "import": "./dist/ui/fieldset/public.js"
+    },
     "./ui/input": {
       "types": "./dist/ui/input/public.d.ts",
       "import": "./dist/ui/input/public.js"

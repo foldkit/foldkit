@@ -107,6 +107,7 @@ export const activeSection: Subscription<
           () => Page.UiPages.DisclosurePage.tableOfContents,
         ),
         M.tag('UiTabs', () => Page.UiPages.TabsPage.tableOfContents),
+        M.tag('UiFieldset', () => Page.UiPages.FieldsetPage.tableOfContents),
         M.option,
       )
 
