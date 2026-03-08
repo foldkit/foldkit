@@ -1,7 +1,7 @@
 import type { Html } from 'foldkit/html'
 
 import { Class, InnerHTML, div } from '../../html'
-import type { Model, TableOfContentsEntry } from '../../main'
+import type { TableOfContentsEntry } from '../../main'
 import {
   inlineCode,
   pageTitle,
@@ -9,7 +9,10 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import * as Snippets from '../../snippet'
-import { highlightedCodeBlock } from '../../view/codeBlock'
+import {
+  type CopiedSnippets,
+  highlightedCodeBlock,
+} from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -21,7 +24,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
 ]
 
-export const view = (model: Model): Html =>
+export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
     [],
     [
@@ -48,7 +51,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.taskGetTimeRaw,
         'Copy task time examples to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(
@@ -67,7 +70,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.taskFocusRaw,
         'Copy task focus example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(

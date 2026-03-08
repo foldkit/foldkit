@@ -6,7 +6,6 @@ import { Class, InnerHTML, div, p, span } from '../../html'
 import { Icon } from '../../icon'
 import { Link } from '../../link'
 import type {
-  Model as MainModel,
   Message as ParentMessage,
   TableOfContentsEntry,
 } from '../../main'
@@ -26,7 +25,10 @@ import {
   routingAndNavigationRouter,
 } from '../../route'
 import * as Snippets from '../../snippet'
-import { highlightedCodeBlock } from '../../view/codeBlock'
+import {
+  type CopiedSnippets,
+  highlightedCodeBlock,
+} from '../../view/codeBlock'
 import { comparisonTable } from '../../view/table'
 import { FAQ_IDS } from './faq'
 import { GotFaqDisclosureMessage, type Message } from './message'
@@ -181,7 +183,7 @@ const faqItem = (
   })
 
 export const view = (
-  mainModel: MainModel,
+  copiedSnippets: CopiedSnippets,
   model: Model,
   toMessage: (message: Message) => ParentMessage,
 ): Html =>
@@ -204,7 +206,7 @@ export const view = (
         ),
         Snippets.reactCounterRaw,
         'Copy React counter',
-        mainModel,
+        copiedSnippets,
         'mb-4',
       ),
       para('The same counter in Foldkit:'),
@@ -218,7 +220,7 @@ export const view = (
         ),
         Snippets.foldkitCounterRaw,
         'Copy Foldkit counter',
-        mainModel,
+        copiedSnippets,
         'mb-6',
       ),
       para(
@@ -243,7 +245,7 @@ export const view = (
         ),
         Snippets.reactCounterResetRaw,
         'Copy React counter with auto-play',
-        mainModel,
+        copiedSnippets,
         'mb-4',
       ),
       para(
@@ -260,7 +262,7 @@ export const view = (
         ),
         Snippets.foldkitCounterResetRaw,
         'Copy Foldkit counter with auto-play',
-        mainModel,
+        copiedSnippets,
         'mb-6',
       ),
       para(
@@ -291,7 +293,7 @@ export const view = (
         ),
         Snippets.reactCounterAutoPlayRaw,
         'Copy React counter with step size',
-        mainModel,
+        copiedSnippets,
         'mb-4',
       ),
       para(
@@ -308,7 +310,7 @@ export const view = (
         ),
         Snippets.foldkitCounterAutoPlayRaw,
         'Copy Foldkit counter with step size',
-        mainModel,
+        copiedSnippets,
         'mb-6',
       ),
       para(
@@ -374,7 +376,7 @@ export const view = (
             ),
             Snippets.multipleInstancesRaw,
             'Copy Model example',
-            mainModel,
+            copiedSnippets,
             'mb-4',
           ),
           para(

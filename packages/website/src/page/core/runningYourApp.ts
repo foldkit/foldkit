@@ -1,7 +1,7 @@
 import type { Html } from 'foldkit/html'
 
 import { Class, InnerHTML, div } from '../../html'
-import type { Model, TableOfContentsEntry } from '../../main'
+import type { TableOfContentsEntry } from '../../main'
 import {
   inlineCode,
   link,
@@ -11,7 +11,10 @@ import {
 } from '../../prose'
 import { routingAndNavigationRouter } from '../../route'
 import * as Snippets from '../../snippet'
-import { highlightedCodeBlock } from '../../view/codeBlock'
+import {
+  type CopiedSnippets,
+  highlightedCodeBlock,
+} from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -37,7 +40,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   makeApplicationHeader,
 ]
 
-export const view = (model: Model): Html =>
+export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
     [],
     [
@@ -67,7 +70,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.runMakeElementRaw,
         'Copy makeElement example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       tableOfContentsEntryToHeader(makeApplicationHeader),
@@ -87,7 +90,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.runMakeApplicationRaw,
         'Copy makeApplication example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(

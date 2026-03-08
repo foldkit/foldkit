@@ -2,7 +2,7 @@ import { Html } from 'foldkit/html'
 
 import { Class, InnerHTML, div, li, ul } from '../html'
 import { Link } from '../link'
-import type { Model, TableOfContentsEntry } from '../main'
+import type { TableOfContentsEntry } from '../main'
 import {
   inlineCode,
   link,
@@ -11,7 +11,10 @@ import {
   tableOfContentsEntryToHeader,
 } from '../prose'
 import * as Snippets from '../snippet'
-import { highlightedCodeBlock } from '../view/codeBlock'
+import {
+  type CopiedSnippets,
+  highlightedCodeBlock,
+} from '../view/codeBlock'
 
 const pureFunctionsHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -93,7 +96,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   avoidTheseHeader,
 ]
 
-export const view = (model: Model): Html =>
+export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
     [],
     [
@@ -131,7 +134,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.viewPureBadRaw,
         'Copy bad view example to clipboard',
-        model,
+        copiedSnippets,
         'mb-4',
       ),
       highlightedCodeBlock(
@@ -144,7 +147,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.viewPureGoodRaw,
         'Copy good view example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       tableOfContentsEntryToHeader(updateIsPureHeader),
@@ -176,7 +179,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.updatePureBadRaw,
         'Copy bad update example to clipboard',
-        model,
+        copiedSnippets,
         'mb-4',
       ),
       highlightedCodeBlock(
@@ -189,7 +192,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.updatePureGoodRaw,
         'Copy good update example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(
@@ -223,7 +226,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.testingUpdateRaw,
         'Copy testing example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(
@@ -248,7 +251,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.pureUpdateBadRaw,
         'Copy bad example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       tableOfContentsEntryToHeader(requestViaCommandHeader),
@@ -265,7 +268,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.pureUpdateGoodRaw,
         'Copy good example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(
@@ -300,7 +303,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.evoExampleRaw,
         'Copy evo example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(

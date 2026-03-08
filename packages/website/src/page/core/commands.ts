@@ -1,7 +1,7 @@
 import type { Html } from 'foldkit/html'
 
 import { Class, InnerHTML, div } from '../../html'
-import type { Model, TableOfContentsEntry } from '../../main'
+import type { TableOfContentsEntry } from '../../main'
 import {
   callout,
   inlineCode,
@@ -10,7 +10,10 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import * as Snippets from '../../snippet'
-import { highlightedCodeBlock } from '../../view/codeBlock'
+import {
+  type CopiedSnippets,
+  highlightedCodeBlock,
+} from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -29,7 +32,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   httpRequestsHeader,
 ]
 
-export const view = (model: Model): Html =>
+export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
     [],
     [
@@ -65,7 +68,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.counterCommandsRaw,
         'Copy commands example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(
@@ -91,7 +94,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.counterCommandsTestRaw,
         'Copy test example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(
@@ -114,7 +117,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.counterHttpCommandRaw,
         'Copy HTTP command example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(
@@ -134,7 +137,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.counterHttpCommandFetchCountRaw,
         'Copy HTTP command fetchCount example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       callout(

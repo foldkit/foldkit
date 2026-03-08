@@ -2,7 +2,7 @@ import { Html } from 'foldkit/html'
 
 import { Class, InnerHTML, code, div } from '../html'
 import { Link } from '../link'
-import type { Model, TableOfContentsEntry } from '../main'
+import type { TableOfContentsEntry } from '../main'
 import {
   callout,
   inlineCode,
@@ -13,7 +13,10 @@ import {
 } from '../prose'
 import { apiModuleRouter } from '../route'
 import * as Snippets from '../snippet'
-import { highlightedCodeBlock } from '../view/codeBlock'
+import {
+  type CopiedSnippets,
+  highlightedCodeBlock,
+} from '../view/codeBlock'
 import { comparisonTable } from '../view/table'
 
 const plainCode = (text: string): Html =>
@@ -78,7 +81,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   builtInValidatorsHeader,
 ]
 
-export const view = (model: Model): Html =>
+export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
     [],
     [
@@ -112,7 +115,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.fieldValidationMakeFieldRaw,
         'Copy makeField example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(
@@ -149,7 +152,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.fieldValidationRulesRaw,
         'Copy validation rules example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(
@@ -184,7 +187,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.fieldValidationApplyRaw,
         'Copy validateField example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(
@@ -211,7 +214,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.fieldValidationViewRaw,
         'Copy validation view example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(
@@ -236,7 +239,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.fieldValidationAsyncRaw,
         'Copy async validation example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(
@@ -267,7 +270,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.fieldValidationCustomRuleRaw,
         'Copy custom validator example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(
@@ -290,7 +293,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.fieldValidationCrossFieldRaw,
         'Copy cross-field validation example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(

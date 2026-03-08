@@ -2,7 +2,7 @@ import type { Html } from 'foldkit/html'
 
 import { Class, InnerHTML, div, li, ul } from '../../html'
 import { Link } from '../../link'
-import type { Model, TableOfContentsEntry } from '../../main'
+import type { TableOfContentsEntry } from '../../main'
 import {
   inlineCode,
   link,
@@ -11,7 +11,10 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import * as Snippets from '../../snippet'
-import { highlightedCodeBlock } from '../../view/codeBlock'
+import {
+  type CopiedSnippets,
+  highlightedCodeBlock,
+} from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -23,7 +26,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
 ]
 
-export const view = (model: Model): Html =>
+export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
     [],
     [
@@ -56,7 +59,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.counterAutoCountRaw,
         'Copy subscription example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(

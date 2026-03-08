@@ -2,7 +2,7 @@ import type { Html } from 'foldkit/html'
 
 import { Class, InnerHTML, div } from '../../html'
 import { Link } from '../../link'
-import type { Model, TableOfContentsEntry } from '../../main'
+import type { TableOfContentsEntry } from '../../main'
 import {
   callout,
   inlineCode,
@@ -12,7 +12,10 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import * as Snippets from '../../snippet'
-import { highlightedCodeBlock } from '../../view/codeBlock'
+import {
+  type CopiedSnippets,
+  highlightedCodeBlock,
+} from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -45,7 +48,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   handlingInTheParentHeader,
 ]
 
-export const view = (model: Model): Html =>
+export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
     [],
     [
@@ -85,7 +88,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.outMessageDefinitionRaw,
         'Copy OutMessage definition to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       tableOfContentsEntryToHeader(emittingFromTheChildHeader),
@@ -108,7 +111,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.outMessageChildUpdateRaw,
         'Copy child update to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(
@@ -142,7 +145,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.outMessageParentHandleRaw,
         'Copy parent handling to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(

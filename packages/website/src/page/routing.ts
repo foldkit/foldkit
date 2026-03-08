@@ -2,7 +2,7 @@ import { Html } from 'foldkit/html'
 
 import { Class, InnerHTML, div, li, ul } from '../html'
 import { Link } from '../link'
-import type { Model, TableOfContentsEntry } from '../main'
+import type { TableOfContentsEntry } from '../main'
 import {
   inlineCode,
   link,
@@ -11,7 +11,10 @@ import {
   tableOfContentsEntryToHeader,
 } from '../prose'
 import * as Snippets from '../snippet'
-import { highlightedCodeBlock } from '../view/codeBlock'
+import {
+  type CopiedSnippets,
+  highlightedCodeBlock,
+} from '../view/codeBlock'
 
 const biparserHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -72,7 +75,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   navigationHeader,
 ]
 
-export const view = (model: Model): Html =>
+export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
     [],
     [
@@ -129,7 +132,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.routingDefineRoutesRaw,
         'Copy route definitions to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       ul(
@@ -176,7 +179,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.routingBuildRoutersRaw,
         'Copy router definitions to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para('The primitives:'),
@@ -244,7 +247,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.routingParsingRaw,
         'Copy URL parsing example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(
@@ -270,7 +273,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.routingBuildingRaw,
         'Copy URL building example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(
@@ -296,7 +299,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.routingQueryParamsRaw,
         'Copy query parameters example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(
@@ -332,7 +335,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.routingKeyedRaw,
         'Copy keyed route example to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(
@@ -357,7 +360,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.navigationCommandsRaw,
         'Copy navigation commands to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       ul(
@@ -414,7 +417,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.navigationHandleUrlRequestRaw,
         'Copy URL request handling to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(

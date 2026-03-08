@@ -2,7 +2,7 @@ import { Html } from 'foldkit/html'
 
 import { Class, InnerHTML, div } from '../html'
 import { Link } from '../link'
-import type { Model, TableOfContentsEntry } from '../main'
+import type { TableOfContentsEntry } from '../main'
 import {
   inlineCode,
   link,
@@ -12,7 +12,11 @@ import {
 } from '../prose'
 import { patternsSubmodelsRouter } from '../route'
 import * as Snippets from '../snippet'
-import { codeBlock, highlightedCodeBlock } from '../view/codeBlock'
+import {
+  type CopiedSnippets,
+  codeBlock,
+  highlightedCodeBlock,
+} from '../view/codeBlock'
 
 const startingSimpleHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -45,7 +49,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   indexReexportsHeader,
 ]
 
-export const view = (model: Model): Html =>
+export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
     [],
     [
@@ -75,7 +79,7 @@ export const view = (model: Model): Html =>
       codeBlock(
         Snippets.fileLayoutRaw,
         'Copy file layout to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(
@@ -109,7 +113,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.domainModuleRaw,
         'Copy domain module to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(
@@ -135,7 +139,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.indexReexportsRaw,
         'Copy index re-exports to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para('Then import and use the namespace:'),
@@ -149,7 +153,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.indexUsageRaw,
         'Copy namespace usage to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(

@@ -23,8 +23,7 @@ import {
 } from '../html'
 import { Icon } from '../icon'
 import { Link } from '../link'
-import { type Model } from '../main'
-import { codeBlock } from '../view/codeBlock'
+import { type CopiedSnippets, codeBlock } from '../view/codeBlock'
 import { exampleAppCount } from './examples'
 
 // CONSTANTS
@@ -60,11 +59,14 @@ const glyph = (symbol: string, offsetY?: string): Html =>
 
 // VIEW
 
-export const view = (model: Model, demoTabsView: Html): Html =>
+export const view = (
+  copiedSnippets: CopiedSnippets,
+  demoTabsView: Html,
+): Html =>
   div(
     [Class('isolate overflow-x-hidden')],
     [
-      heroSection(model),
+      heroSection(copiedSnippets),
       glyph('{ }'),
       promiseSection(),
       glyph('=>'),
@@ -90,7 +92,7 @@ export const view = (model: Model, demoTabsView: Html): Html =>
 
 const INSTALL_COMMAND = 'npx create-foldkit-app@latest --wizard'
 
-const heroSection = (model: Model): Html =>
+const heroSection = (copiedSnippets: CopiedSnippets): Html =>
   section(
     [
       Id(HERO_SECTION_ID),
@@ -148,7 +150,7 @@ const heroSection = (model: Model): Html =>
               codeBlock(
                 INSTALL_COMMAND,
                 'Copy install command',
-                model,
+                copiedSnippets,
                 'max-w-fit [&_pre]:text-xs [&_pre]:md:text-sm',
               ),
             ],

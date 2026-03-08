@@ -2,7 +2,7 @@ import { Html } from 'foldkit/html'
 
 import { Class, div } from '../html'
 import { Link } from '../link'
-import type { Model, TableOfContentsEntry } from '../main'
+import type { TableOfContentsEntry } from '../main'
 import {
   callout,
   inlineCode,
@@ -16,7 +16,7 @@ import {
   coreCounterExampleRouter,
   examplesRouter,
 } from '../route'
-import { codeBlock } from '../view/codeBlock'
+import { type CopiedSnippets, codeBlock } from '../view/codeBlock'
 import { comparisonTable } from '../view/table'
 
 const CREATE_FOLDKIT_APP_COMMAND =
@@ -49,7 +49,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   aiAssistedHeader,
 ]
 
-export const view = (model: Model): Html =>
+export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
     [],
     [
@@ -65,7 +65,7 @@ export const view = (model: Model): Html =>
       codeBlock(
         CREATE_FOLDKIT_APP_COMMAND,
         'Copy command to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(
@@ -74,9 +74,9 @@ export const view = (model: Model): Html =>
       div(
         [Class('flex gap-2 flex-wrap mb-8')],
         [
-          codeBlock(DEV_PNPM, 'Copy pnpm command', model),
-          codeBlock(DEV_NPM, 'Copy npm command', model),
-          codeBlock(DEV_YARN, 'Copy yarn command', model),
+          codeBlock(DEV_PNPM, 'Copy pnpm command', copiedSnippets),
+          codeBlock(DEV_NPM, 'Copy npm command', copiedSnippets),
+          codeBlock(DEV_YARN, 'Copy yarn command', copiedSnippets),
         ],
       ),
       callout(
@@ -136,7 +136,7 @@ export const view = (model: Model): Html =>
       codeBlock(
         'git submodule add https://github.com/devinjameson/foldkit.git',
         'Copy submodule command',
-        model,
+        copiedSnippets,
         'mb-4',
       ),
       para(

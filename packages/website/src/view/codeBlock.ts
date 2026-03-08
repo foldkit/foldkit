@@ -15,14 +15,16 @@ import {
   span,
 } from '../html'
 import { Icon } from '../icon'
-import { ClickedCopySnippet, type Model } from '../main'
+import { ClickedCopySnippet } from '../main'
+
+export type CopiedSnippets = HashSet.HashSet<string>
 
 const copyButtonWithIndicator = (
   textToCopy: string,
   ariaLabel: string,
-  model: Model,
+  copiedSnippets: CopiedSnippets,
 ) => {
-  const isCopied = HashSet.has(model.copiedSnippets, textToCopy)
+  const isCopied = HashSet.has(copiedSnippets, textToCopy)
 
   const copiedIndicator = isCopied
     ? div(
@@ -60,7 +62,7 @@ const copyButtonWithIndicator = (
 export const codeBlock = (
   code: string,
   ariaLabel: string,
-  model: Model,
+  copiedSnippets: CopiedSnippets,
   className?: string,
 ) => {
   const content = pre(
@@ -81,7 +83,10 @@ export const codeBlock = (
         ),
       ),
     ],
-    [content, copyButtonWithIndicator(code, ariaLabel, model)],
+    [
+      content,
+      copyButtonWithIndicator(code, ariaLabel, copiedSnippets),
+    ],
   )
 }
 
@@ -89,10 +94,13 @@ export const highlightedCodeBlock = (
   content: Html,
   rawCode: string,
   ariaLabel: string,
-  model: Model,
+  copiedSnippets: CopiedSnippets,
   className?: string,
 ) =>
   div(
     [Class(classNames('relative min-w-0', className))],
-    [content, copyButtonWithIndicator(rawCode, ariaLabel, model)],
+    [
+      content,
+      copyButtonWithIndicator(rawCode, ariaLabel, copiedSnippets),
+    ],
   )

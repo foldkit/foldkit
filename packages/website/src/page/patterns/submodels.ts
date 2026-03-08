@@ -2,7 +2,7 @@ import type { Html } from 'foldkit/html'
 
 import { Class, InnerHTML, div } from '../../html'
 import { Link } from '../../link'
-import type { Model, TableOfContentsEntry } from '../../main'
+import type { TableOfContentsEntry } from '../../main'
 import {
   callout,
   inlineCode,
@@ -13,7 +13,10 @@ import {
 } from '../../prose'
 import { patternsOutMessageRouter } from '../../route'
 import * as Snippets from '../../snippet'
-import { highlightedCodeBlock } from '../../view/codeBlock'
+import {
+  type CopiedSnippets,
+  highlightedCodeBlock,
+} from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -60,7 +63,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   delegatingInUpdateHeader,
 ]
 
-export const view = (model: Model): Html =>
+export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
     [],
     [
@@ -93,7 +96,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.submodelChildModuleRaw,
         'Copy child module to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(
@@ -117,7 +120,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.submodelParentModelRaw,
         'Copy parent model to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       tableOfContentsEntryToHeader(wrappingMessagesHeader),
@@ -140,7 +143,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.submodelWrapperMessageRaw,
         'Copy wrapper message to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       tableOfContentsEntryToHeader(delegatingInUpdateHeader),
@@ -159,7 +162,7 @@ export const view = (model: Model): Html =>
         ),
         Snippets.submodelUpdateDelegationRaw,
         'Copy update delegation to clipboard',
-        model,
+        copiedSnippets,
         'mb-8',
       ),
       para(
