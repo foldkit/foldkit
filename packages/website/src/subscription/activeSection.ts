@@ -104,6 +104,7 @@ export const activeSection: Subscription<
         M.tag('UiCheckbox', () => Page.UiPages.CheckboxPage.tableOfContents),
         M.tag('UiCombobox', () => Page.UiPages.ComboboxPage.tableOfContents),
         M.tag('UiInput', () => Page.UiPages.InputPage.tableOfContents),
+        M.tag('UiTextarea', () => Page.UiPages.TextareaPage.tableOfContents),
         M.option,
       )
 

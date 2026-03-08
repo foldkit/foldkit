@@ -6,6 +6,9 @@ export const ClickedButtonDemo = m('ClickedButtonDemo')
 export const UpdatedInputDemoValue = m('UpdatedInputDemoValue', {
   value: S.String,
 })
+export const UpdatedTextareaDemoValue = m('UpdatedTextareaDemoValue', {
+  value: S.String,
+})
 export const GotCheckboxBasicDemoMessage = m('GotCheckboxBasicDemoMessage', {
   message: Ui.Checkbox.Message,
 })
@@ -97,6 +100,7 @@ export const GotVerticalTabsDemoMessage = m('GotVerticalTabsDemoMessage', {
 export const Message = S.Union(
   ClickedButtonDemo,
   UpdatedInputDemoValue,
+  UpdatedTextareaDemoValue,
   GotCheckboxBasicDemoMessage,
   GotCheckboxAllDemoMessage,
   GotCheckboxOptionADemoMessage,

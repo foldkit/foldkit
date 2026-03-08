@@ -107,6 +107,10 @@
       "types": "./dist/ui/switch/public.d.ts",
       "import": "./dist/ui/switch/public.js"
     },
+    "./ui/textarea": {
+      "types": "./dist/ui/textarea/public.d.ts",
+      "import": "./dist/ui/textarea/public.js"
+    },
     "./ui/tabs": {
       "types": "./dist/ui/tabs/public.d.ts",
       "import": "./dist/ui/tabs/public.js"

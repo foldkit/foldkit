@@ -39,6 +39,7 @@ import {
   uiRadioGroupRouter,
   uiSwitchRouter,
   uiTabsRouter,
+  uiTextareaRouter,
 } from './route'
 
 // NAV PAGE
@@ -274,6 +275,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
         _tag: 'UiInput',
         href: uiInputRouter(),
         label: 'Input',
+      },
+      {
+        _tag: 'UiTextarea',
+        href: uiTextareaRouter(),
+        label: 'Textarea',
       },
     ],
   },

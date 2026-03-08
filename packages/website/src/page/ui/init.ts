@@ -10,6 +10,7 @@ export const init = (): InitReturn => [
   {
     buttonClickCount: 0,
     inputDemoValue: '',
+    textareaDemoValue: '',
     checkboxBasicDemo: Ui.Checkbox.init({ id: 'checkbox-basic-demo' }),
     checkboxOptionADemo: Ui.Checkbox.init({
       id: 'checkbox-option-a-demo',

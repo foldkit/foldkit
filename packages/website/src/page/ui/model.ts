@@ -15,6 +15,7 @@ import {
 export const Model = S.Struct({
   buttonClickCount: S.Number,
   inputDemoValue: S.String,
+  textareaDemoValue: S.String,
   checkboxBasicDemo: Checkbox.Model,
   checkboxOptionADemo: Checkbox.Model,
   checkboxOptionBDemo: Checkbox.Model,

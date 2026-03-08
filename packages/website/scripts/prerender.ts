@@ -59,6 +59,7 @@ import {
   UiRadioGroupRoute,
   UiSwitchRoute,
   UiTabsRoute,
+  UiTextareaRoute,
   apiModuleRouter,
   bestPracticesRouter,
   comingFromReactRouter,
@@ -99,6 +100,7 @@ import {
   uiRadioGroupRouter,
   uiSwitchRouter,
   uiTabsRouter,
+  uiTextareaRouter,
 } from '../src/route'
 
 // ROUTES
@@ -143,6 +145,7 @@ export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   UiCheckboxRoute(),
   UiComboboxRoute(),
   UiInputRoute(),
+  UiTextareaRoute(),
 ]
 
 export const routeToUrlPath = (route: AppRoute): string =>
@@ -188,6 +191,7 @@ export const routeToUrlPath = (route: AppRoute): string =>
       UiCheckbox: () => uiCheckboxRouter(),
       UiCombobox: () => uiComboboxRouter(),
       UiInput: () => uiInputRouter(),
+      UiTextarea: () => uiTextareaRouter(),
       ApiModule: ({ moduleSlug }) => apiModuleRouter({ moduleSlug }),
       NotFound: () => '/',
     }),

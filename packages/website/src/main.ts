@@ -1868,6 +1868,11 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
           Page.UiPages.InputPage.view(model.uiPages, toUiPageMessage),
           Page.UiPages.InputPage.tableOfContents,
         ),
+      UiTextarea: () =>
+        withTableOfContents(
+          Page.UiPages.TextareaPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.TextareaPage.tableOfContents,
+        ),
       NotFound: ({ path }) =>
         withoutTableOfContents(Page.NotFound.view(path, homeRouter())),
     }),
