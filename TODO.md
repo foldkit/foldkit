@@ -56,3 +56,7 @@
 - [x] Write a manifesto page for the website
 
 - [ ] Elevate "Foldkit models the frontend" as a core messaging concept — consider using it as the landing page subtitle, meta description, or Getting Started opener. The full line: "Foldkit models the frontend so you can model your domain."
+
+- [ ] Copy button not centered in single line code blocks
+
+- [ ] Highlighting not visible on live demo in "See it work" section on landing page in dark mode
