@@ -71,7 +71,11 @@ const fetchWeather = (
   Effect.gen(function* () {
     // ...
     return SucceededWeatherFetch({ data })
-  }).pipe(Effect.catchAll(error => Effect.succeed(FailedWeatherFetch({ error: String(error) }))))
+  }).pipe(
+    Effect.catchAll(error =>
+      Effect.succeed(FailedWeatherFetch({ error: String(error) })),
+    ),
+  )
 ```
 
 Commands return specific schema types (e.g. `Command<typeof SucceededMsg | typeof FailedMsg>`) rather than the full Message type.

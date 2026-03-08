@@ -6,10 +6,7 @@ import { resolve } from 'node:path'
 import { codeToHtml } from 'shiki'
 import { type Plugin, defineConfig } from 'vite'
 
-import {
-  typeDefFromChildren,
-  typeToString,
-} from './src/page/apiReference/typeToString'
+import { typeDefFromChildren, typeToString } from './src/page/apiReference/typeToString'
 import {
   Kind,
   type TypeDocCommentPart,
@@ -75,17 +72,12 @@ const formatTypeParam = (typeParam: TypeDocTypeParam): string => {
   return `${typeParam.name}${constraint}${defaultValue}`
 }
 
-const formatParam = (
-  parameter: TypeDocParam,
-  depth: number,
-): string => {
+const formatParam = (parameter: TypeDocParam, depth: number): string => {
   const optionalSuffix = parameter.flags.isOptional ? '?' : ''
   return `${parameter.name}${optionalSuffix}: ${typeToString(parameter.type, depth)}`
 }
 
-const formatParams = (
-  parameters: ReadonlyArray<TypeDocParam>,
-): string =>
+const formatParams = (parameters: ReadonlyArray<TypeDocParam>): string =>
   Array.matchLeft(parameters, {
     onEmpty: () => '()',
     onNonEmpty: (first, rest) =>
@@ -101,9 +93,7 @@ const formatParams = (
       }),
   })
 
-const buildFunctionSignatureString = (
-  signature: TypeDocSignature,
-): string => {
+const buildFunctionSignatureString = (signature: TypeDocSignature): string => {
   const typeParamString = pipe(
     signature.typeParameters,
     Option.filter(Array.isNonEmptyReadonlyArray),
@@ -131,9 +121,7 @@ const buildFunctionSignatureString = (
   return `${typeParamString}${paramString}: ${typeToString(signature.type)}`
 }
 
-const partsToText = (
-  parts: ReadonlyArray<TypeDocCommentPart>,
-): Option.Option<string> =>
+const partsToText = (parts: ReadonlyArray<TypeDocCommentPart>): Option.Option<string> =>
   pipe(
     Array.map(parts, ({ text }) => text),
     Array.join(''),
@@ -148,9 +136,7 @@ const itemDescription = (item: TypeDocItem): Option.Option<string> =>
     Option.flatMap(partsToText),
   )
 
-const signatureDescription = (
-  item: TypeDocItem,
-): Option.Option<string> =>
+const signatureDescription = (item: TypeDocItem): Option.Option<string> =>
   pipe(
     item.signatures,
     Option.flatMap(Array.head),
@@ -173,8 +159,7 @@ const prependDescription = (
 ): string =>
   Option.match(maybeDescription, {
     onNone: () => code,
-    onSome: description =>
-      `${formatAsDocComment(description)}\n${code}`,
+    onSome: description => `${formatAsDocComment(description)}\n${code}`,
   })
 
 const functionEntries = (
@@ -216,8 +201,7 @@ const typeAliasEntries = (
     return []
   }
   const tsString = Option.match(item.type, {
-    onNone: () =>
-      `type ${item.name} = ${typeDefFromChildren(item.children)}`,
+    onNone: () => `type ${item.name} = ${typeDefFromChildren(item.children)}`,
     onSome: () => `type ${item.name} = ${typeToString(item.type)}`,
   })
   return [
@@ -299,17 +283,13 @@ const highlightApiSignaturesPlugin = (): Plugin => ({
           ? Option.match(item.children, {
               onNone: () => [],
               onSome: namespaceChildren =>
-                itemsToEntries(
-                  `${prefix}${item.name}/`,
-                  namespaceChildren,
-                ),
+                itemsToEntries(`${prefix}${item.name}/`, namespaceChildren),
             })
           : itemToEntries(prefix, item),
       )
 
-    const entries = Array.flatMap(
-      json.children,
-      ({ name, children }) => itemsToEntries(`${name}/`, children),
+    const entries = Array.flatMap(json.children, ({ name, children }) =>
+      itemsToEntries(`${name}/`, children),
     )
 
     const highlightedEntries = await Promise.all(
@@ -320,9 +300,7 @@ const highlightApiSignaturesPlugin = (): Plugin => ({
         })
         return [
           key,
-          key.startsWith('function-')
-            ? stripDeclarePrefix(html)
-            : html,
+          key.startsWith('function-') ? stripDeclarePrefix(html) : html,
         ] as const
       }),
     )
@@ -403,18 +381,14 @@ const counterDemoCodePlugin = (): Plugin => ({
       })),
     })
 
-    const htmlWithDigits = html.replace(
-      '<pre ',
-      `<pre data-line-digits="${lineDigits}" `,
-    )
+    const htmlWithDigits = html.replace('<pre ', `<pre data-line-digits="${lineDigits}" `)
 
     return `export default ${JSON.stringify(htmlWithDigits)}`
   },
 })
 
 const NOTE_PLAYER_DEMO_CODE_ID = 'virtual:note-player-demo-code'
-const RESOLVED_NOTE_PLAYER_DEMO_CODE_ID =
-  '\0' + NOTE_PLAYER_DEMO_CODE_ID
+const RESOLVED_NOTE_PLAYER_DEMO_CODE_ID = '\0' + NOTE_PLAYER_DEMO_CODE_ID
 
 const NOTE_PLAYER_DEMO_CODE = `// MODEL
 
@@ -521,10 +495,7 @@ const notePlayerDemoCodePlugin = (): Plugin => ({
       })),
     })
 
-    const htmlWithDigits = html.replace(
-      '<pre ',
-      `<pre data-line-digits="${lineDigits}" `,
-    )
+    const htmlWithDigits = html.replace('<pre ', `<pre data-line-digits="${lineDigits}" `)
 
     return `export default ${JSON.stringify(htmlWithDigits)}`
   },
@@ -546,10 +517,7 @@ const landingDataPlugin = (): Plugin => ({
     }
 
     const packageJson = JSON.parse(
-      await readFile(
-        resolve(__dirname, '../foldkit/package.json'),
-        'utf-8',
-      ),
+      await readFile(resolve(__dirname, '../foldkit/package.json'), 'utf-8'),
     )
 
     return `export const foldkitVersion = ${JSON.stringify(packageJson.version)}`

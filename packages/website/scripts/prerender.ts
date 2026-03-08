@@ -183,21 +183,13 @@ export const routeToUrlPath = (route: AppRoute): string =>
 
 export const routeToOutputPath = (route: AppRoute): string => {
   const urlPath = routeToUrlPath(route)
-  return urlPath === '/'
-    ? 'index.html'
-    : `${urlPath.slice(1)}/index.html`
+  return urlPath === '/' ? 'index.html' : `${urlPath.slice(1)}/index.html`
 }
 
 const ROOT_PLACEHOLDER = '<div id="root"></div>'
 
-export const injectHtml = (
-  baseHtml: string,
-  renderedHtml: string,
-): string =>
-  baseHtml.replace(
-    ROOT_PLACEHOLDER,
-    `<div id="root">${renderedHtml}</div>`,
-  )
+export const injectHtml = (baseHtml: string, renderedHtml: string): string =>
+  baseHtml.replace(ROOT_PLACEHOLDER, `<div id="root">${renderedHtml}</div>`)
 
 export const enumerateRoutes = (
   apiModuleNames: ReadonlyArray<string>,
@@ -205,9 +197,7 @@ export const enumerateRoutes = (
   pipe(
     STATIC_ROUTES,
     Array.appendAll(
-      Array.map(apiModuleNames, moduleSlug =>
-        ApiModuleRoute({ moduleSlug }),
-      ),
+      Array.map(apiModuleNames, moduleSlug => ApiModuleRoute({ moduleSlug })),
     ),
   )
 
@@ -278,9 +268,7 @@ const captureRouteHtml = (browser: Browser, url: string) =>
           }),
         )
         return yield* Effect.tryPromise(() =>
-          page.evaluate(
-            () => document.body.firstElementChild?.outerHTML ?? '',
-          ),
+          page.evaluate(() => document.body.firstElementChild?.outerHTML ?? ''),
         )
       }),
     page => Effect.promise(() => page.close()),
@@ -298,35 +286,30 @@ const readApiModuleNames = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem
   const raw = yield* fs.readFileString(API_JSON_PATH)
   const apiDoc = yield* S.decodeUnknown(ApiDocJson)(raw)
-  return Array.map(apiDoc.children, ({ name }) =>
-    moduleNameToSlug(name),
-  )
+  return Array.map(apiDoc.children, ({ name }) => moduleNameToSlug(name))
 })
 
-const prerenderRoute =
-  (browser: Browser, baseHtml: string) => (route: AppRoute) =>
-    Effect.gen(function* () {
-      const urlPath = routeToUrlPath(route)
-      const outputPath = routeToOutputPath(route)
-      const url = `${PREVIEW_BASE_URL}${urlPath}`
-      const outputFilePath = resolve(DIST_DIR, outputPath)
+const prerenderRoute = (browser: Browser, baseHtml: string) => (route: AppRoute) =>
+  Effect.gen(function* () {
+    const urlPath = routeToUrlPath(route)
+    const outputPath = routeToOutputPath(route)
+    const url = `${PREVIEW_BASE_URL}${urlPath}`
+    const outputFilePath = resolve(DIST_DIR, outputPath)
 
-      const renderedHtml = yield* captureRouteHtml(browser, url)
-      const outputHtml = injectHtml(baseHtml, renderedHtml)
+    const renderedHtml = yield* captureRouteHtml(browser, url)
+    const outputHtml = injectHtml(baseHtml, renderedHtml)
 
-      const fs = yield* FileSystem.FileSystem
-      yield* fs.makeDirectory(dirname(outputFilePath), {
-        recursive: true,
-      })
-      yield* fs.writeFileString(outputFilePath, outputHtml)
-      yield* Console.log(`  ✓ ${urlPath}`)
-    }).pipe(
-      Effect.catchAll(error =>
-        Console.warn(
-          `  ✗ ${routeToUrlPath(route)}: ${String(error)}`,
-        ),
-      ),
-    )
+    const fs = yield* FileSystem.FileSystem
+    yield* fs.makeDirectory(dirname(outputFilePath), {
+      recursive: true,
+    })
+    yield* fs.writeFileString(outputFilePath, outputHtml)
+    yield* Console.log(`  ✓ ${urlPath}`)
+  }).pipe(
+    Effect.catchAll(error =>
+      Console.warn(`  ✗ ${routeToUrlPath(route)}: ${String(error)}`),
+    ),
+  )
 
 // SITEMAP
 
@@ -341,14 +324,13 @@ const formatDateIso = (dateTime: DateTime.DateTime): string => {
   )
 }
 
-const routeToSitemapEntry =
-  (lastModification: string) => (route: AppRoute) => {
-    const urlPath = routeToUrlPath(route)
-    return `<url>
+const routeToSitemapEntry = (lastModification: string) => (route: AppRoute) => {
+  const urlPath = routeToUrlPath(route)
+  return `<url>
   <loc>${SITE_URL}${urlPath}</loc>
   <lastmod>${lastModification}</lastmod>
 </url>`
-  }
+}
 
 const buildSitemap = (
   routes: ReadonlyArray<AppRoute>,
@@ -379,9 +361,7 @@ const program = Effect.scoped(
     const routes = enumerateRoutes(apiModuleNames)
 
     const fs = yield* FileSystem.FileSystem
-    const baseHtml = yield* fs.readFileString(
-      resolve(DIST_DIR, 'index.html'),
-    )
+    const baseHtml = yield* fs.readFileString(resolve(DIST_DIR, 'index.html'))
 
     yield* Effect.forEach(routes, prerenderRoute(browser, baseHtml), {
       concurrency: 4,

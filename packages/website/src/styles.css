@@ -73,9 +73,7 @@
 
   html {
     color-scheme: light;
-    scroll-padding-top: calc(
-      var(--header-height) + var(--mobile-toc-height)
-    );
+    scroll-padding-top: calc(var(--header-height) + var(--mobile-toc-height));
   }
 
   html.dark {
@@ -242,20 +240,15 @@
   }
 
   /* Demo line highlights: message (emerald), update (amber), model (blue), command (violet) */
-  .demo-code-panel[data-demo-phase='IncrementMessage']
-    [data-line='11'] {
+  .demo-code-panel[data-demo-phase='IncrementMessage'] [data-line='11'] {
     @apply bg-emerald-500/15;
     border-left-color: theme(--color-emerald-400);
   }
 
-  .demo-code-panel[data-demo-phase='IncrementUpdate']
-    [data-line='21'],
-  .demo-code-panel[data-demo-phase='IncrementUpdate']
-    [data-line='22'],
-  .demo-code-panel[data-demo-phase='IncrementUpdate']
-    [data-line='23'],
-  .demo-code-panel[data-demo-phase='IncrementUpdate']
-    [data-line='24'] {
+  .demo-code-panel[data-demo-phase='IncrementUpdate'] [data-line='21'],
+  .demo-code-panel[data-demo-phase='IncrementUpdate'] [data-line='22'],
+  .demo-code-panel[data-demo-phase='IncrementUpdate'] [data-line='23'],
+  .demo-code-panel[data-demo-phase='IncrementUpdate'] [data-line='24'] {
     @apply bg-amber-500/15;
     border-left-color: theme(--color-amber-400);
   }
@@ -292,20 +285,15 @@
     animation: demo-pulse 1s ease-in-out infinite;
   }
 
-  .demo-code-panel[data-demo-phase='ResetCommandMessage']
-    [data-line='16'] {
+  .demo-code-panel[data-demo-phase='ResetCommandMessage'] [data-line='16'] {
     @apply bg-emerald-500/15;
     border-left-color: theme(--color-emerald-400);
   }
 
-  .demo-code-panel[data-demo-phase='ResetCommandUpdate']
-    [data-line='35'],
-  .demo-code-panel[data-demo-phase='ResetCommandUpdate']
-    [data-line='36'],
-  .demo-code-panel[data-demo-phase='ResetCommandUpdate']
-    [data-line='37'],
-  .demo-code-panel[data-demo-phase='ResetCommandUpdate']
-    [data-line='38'] {
+  .demo-code-panel[data-demo-phase='ResetCommandUpdate'] [data-line='35'],
+  .demo-code-panel[data-demo-phase='ResetCommandUpdate'] [data-line='36'],
+  .demo-code-panel[data-demo-phase='ResetCommandUpdate'] [data-line='37'],
+  .demo-code-panel[data-demo-phase='ResetCommandUpdate'] [data-line='38'] {
     @apply bg-amber-500/15;
     border-left-color: theme(--color-amber-400);
   }
@@ -331,144 +319,89 @@
   }
 
   /* Note player demo line highlights: message (emerald), update (amber), model (blue), command (violet) */
-  .note-demo-code-panel[data-note-demo-phase='PlayMessage']
-    [data-line='11'] {
+  .note-demo-code-panel[data-note-demo-phase='PlayMessage'] [data-line='11'] {
     @apply bg-emerald-500/15;
     border-left-color: theme(--color-emerald-400);
   }
 
-  .note-demo-code-panel[data-note-demo-phase='PauseMessage']
-    [data-line='12'] {
+  .note-demo-code-panel[data-note-demo-phase='PauseMessage'] [data-line='12'] {
     @apply bg-emerald-500/15;
     border-left-color: theme(--color-emerald-400);
   }
 
-  .note-demo-code-panel[data-note-demo-phase='PlayUpdate']
-    [data-line='20'],
-  .note-demo-code-panel[data-note-demo-phase='PlayUpdate']
-    [data-line='21'],
-  .note-demo-code-panel[data-note-demo-phase='PlayUpdate']
-    [data-line='22'],
-  .note-demo-code-panel[data-note-demo-phase='PlayUpdate']
-    [data-line='23'],
-  .note-demo-code-panel[data-note-demo-phase='PlayUpdate']
-    [data-line='24'],
-  .note-demo-code-panel[data-note-demo-phase='PlayUpdate']
-    [data-line='25'],
-  .note-demo-code-panel[data-note-demo-phase='PlayUpdate']
-    [data-line='26'] {
+  .note-demo-code-panel[data-note-demo-phase='PlayUpdate'] [data-line='20'],
+  .note-demo-code-panel[data-note-demo-phase='PlayUpdate'] [data-line='21'],
+  .note-demo-code-panel[data-note-demo-phase='PlayUpdate'] [data-line='22'],
+  .note-demo-code-panel[data-note-demo-phase='PlayUpdate'] [data-line='23'],
+  .note-demo-code-panel[data-note-demo-phase='PlayUpdate'] [data-line='24'],
+  .note-demo-code-panel[data-note-demo-phase='PlayUpdate'] [data-line='25'],
+  .note-demo-code-panel[data-note-demo-phase='PlayUpdate'] [data-line='26'] {
     @apply bg-amber-500/15;
     border-left-color: theme(--color-amber-400);
   }
 
-  .note-demo-code-panel[data-note-demo-phase='PlayModel']
-    [data-line='3'],
-  .note-demo-code-panel[data-note-demo-phase='PlayModel']
-    [data-line='4'],
-  .note-demo-code-panel[data-note-demo-phase='PlayModel']
-    [data-line='5'],
-  .note-demo-code-panel[data-note-demo-phase='PlayModel']
-    [data-line='6'],
-  .note-demo-code-panel[data-note-demo-phase='PlayModel']
-    [data-line='7'] {
+  .note-demo-code-panel[data-note-demo-phase='PlayModel'] [data-line='3'],
+  .note-demo-code-panel[data-note-demo-phase='PlayModel'] [data-line='4'],
+  .note-demo-code-panel[data-note-demo-phase='PlayModel'] [data-line='5'],
+  .note-demo-code-panel[data-note-demo-phase='PlayModel'] [data-line='6'],
+  .note-demo-code-panel[data-note-demo-phase='PlayModel'] [data-line='7'] {
     @apply bg-blue-500/15;
     border-left-color: theme(--color-blue-400);
   }
 
-  .note-demo-code-panel[data-note-demo-phase='NoteMessage']
-    [data-line='13'],
-  .note-demo-code-panel[data-note-demo-phase='NoteMessage']
-    [data-line='14'],
-  .note-demo-code-panel[data-note-demo-phase='NoteMessage']
-    [data-line='15'] {
+  .note-demo-code-panel[data-note-demo-phase='NoteMessage'] [data-line='13'],
+  .note-demo-code-panel[data-note-demo-phase='NoteMessage'] [data-line='14'],
+  .note-demo-code-panel[data-note-demo-phase='NoteMessage'] [data-line='15'] {
     @apply bg-emerald-500/15;
     border-left-color: theme(--color-emerald-400);
   }
 
-  .note-demo-code-panel[data-note-demo-phase='NoteUpdate']
-    [data-line='34'],
-  .note-demo-code-panel[data-note-demo-phase='NoteUpdate']
-    [data-line='35'],
-  .note-demo-code-panel[data-note-demo-phase='NoteUpdate']
-    [data-line='36'],
-  .note-demo-code-panel[data-note-demo-phase='NoteUpdate']
-    [data-line='37'],
-  .note-demo-code-panel[data-note-demo-phase='NoteUpdate']
-    [data-line='38'],
-  .note-demo-code-panel[data-note-demo-phase='NoteUpdate']
-    [data-line='39'],
-  .note-demo-code-panel[data-note-demo-phase='NoteUpdate']
-    [data-line='40'],
-  .note-demo-code-panel[data-note-demo-phase='NoteUpdate']
-    [data-line='41'],
-  .note-demo-code-panel[data-note-demo-phase='NoteUpdate']
-    [data-line='42'],
-  .note-demo-code-panel[data-note-demo-phase='NoteUpdate']
-    [data-line='43'],
-  .note-demo-code-panel[data-note-demo-phase='NoteUpdate']
-    [data-line='44'],
-  .note-demo-code-panel[data-note-demo-phase='NoteUpdate']
-    [data-line='45'],
-  .note-demo-code-panel[data-note-demo-phase='NoteUpdate']
-    [data-line='46'],
-  .note-demo-code-panel[data-note-demo-phase='NoteUpdate']
-    [data-line='47'],
-  .note-demo-code-panel[data-note-demo-phase='NoteUpdate']
-    [data-line='48'],
-  .note-demo-code-panel[data-note-demo-phase='NoteUpdate']
-    [data-line='49'],
-  .note-demo-code-panel[data-note-demo-phase='NoteUpdate']
-    [data-line='50'],
-  .note-demo-code-panel[data-note-demo-phase='NoteUpdate']
-    [data-line='51'],
-  .note-demo-code-panel[data-note-demo-phase='NoteUpdate']
-    [data-line='52'] {
+  .note-demo-code-panel[data-note-demo-phase='NoteUpdate'] [data-line='34'],
+  .note-demo-code-panel[data-note-demo-phase='NoteUpdate'] [data-line='35'],
+  .note-demo-code-panel[data-note-demo-phase='NoteUpdate'] [data-line='36'],
+  .note-demo-code-panel[data-note-demo-phase='NoteUpdate'] [data-line='37'],
+  .note-demo-code-panel[data-note-demo-phase='NoteUpdate'] [data-line='38'],
+  .note-demo-code-panel[data-note-demo-phase='NoteUpdate'] [data-line='39'],
+  .note-demo-code-panel[data-note-demo-phase='NoteUpdate'] [data-line='40'],
+  .note-demo-code-panel[data-note-demo-phase='NoteUpdate'] [data-line='41'],
+  .note-demo-code-panel[data-note-demo-phase='NoteUpdate'] [data-line='42'],
+  .note-demo-code-panel[data-note-demo-phase='NoteUpdate'] [data-line='43'],
+  .note-demo-code-panel[data-note-demo-phase='NoteUpdate'] [data-line='44'],
+  .note-demo-code-panel[data-note-demo-phase='NoteUpdate'] [data-line='45'],
+  .note-demo-code-panel[data-note-demo-phase='NoteUpdate'] [data-line='46'],
+  .note-demo-code-panel[data-note-demo-phase='NoteUpdate'] [data-line='47'],
+  .note-demo-code-panel[data-note-demo-phase='NoteUpdate'] [data-line='48'],
+  .note-demo-code-panel[data-note-demo-phase='NoteUpdate'] [data-line='49'],
+  .note-demo-code-panel[data-note-demo-phase='NoteUpdate'] [data-line='50'],
+  .note-demo-code-panel[data-note-demo-phase='NoteUpdate'] [data-line='51'],
+  .note-demo-code-panel[data-note-demo-phase='NoteUpdate'] [data-line='52'] {
     @apply bg-amber-500/15;
     border-left-color: theme(--color-amber-400);
   }
 
-  .note-demo-code-panel[data-note-demo-phase='NoteModel']
-    [data-line='3'],
-  .note-demo-code-panel[data-note-demo-phase='NoteModel']
-    [data-line='4'],
-  .note-demo-code-panel[data-note-demo-phase='NoteModel']
-    [data-line='5'],
-  .note-demo-code-panel[data-note-demo-phase='NoteModel']
-    [data-line='6'],
-  .note-demo-code-panel[data-note-demo-phase='NoteModel']
-    [data-line='7'] {
+  .note-demo-code-panel[data-note-demo-phase='NoteModel'] [data-line='3'],
+  .note-demo-code-panel[data-note-demo-phase='NoteModel'] [data-line='4'],
+  .note-demo-code-panel[data-note-demo-phase='NoteModel'] [data-line='5'],
+  .note-demo-code-panel[data-note-demo-phase='NoteModel'] [data-line='6'],
+  .note-demo-code-panel[data-note-demo-phase='NoteModel'] [data-line='7'] {
     @apply bg-blue-500/15;
     border-left-color: theme(--color-blue-400);
   }
 
-  .note-demo-code-panel[data-note-demo-phase='NoteCommand']
-    [data-line='64'],
-  .note-demo-code-panel[data-note-demo-phase='NoteCommand']
-    [data-line='65'],
-  .note-demo-code-panel[data-note-demo-phase='NoteCommand']
-    [data-line='66'],
-  .note-demo-code-panel[data-note-demo-phase='NoteCommand']
-    [data-line='67'],
-  .note-demo-code-panel[data-note-demo-phase='NoteCommand']
-    [data-line='68'],
-  .note-demo-code-panel[data-note-demo-phase='NoteCommand']
-    [data-line='69'],
-  .note-demo-code-panel[data-note-demo-phase='NoteCommand']
-    [data-line='70'],
-  .note-demo-code-panel[data-note-demo-phase='NoteCommand']
-    [data-line='71'],
-  .note-demo-code-panel[data-note-demo-phase='NoteCommand']
-    [data-line='72'],
-  .note-demo-code-panel[data-note-demo-phase='NoteCommand']
-    [data-line='73'],
-  .note-demo-code-panel[data-note-demo-phase='NoteCommand']
-    [data-line='74'],
-  .note-demo-code-panel[data-note-demo-phase='NoteCommand']
-    [data-line='75'],
-  .note-demo-code-panel[data-note-demo-phase='NoteCommand']
-    [data-line='76'],
-  .note-demo-code-panel[data-note-demo-phase='NoteCommand']
-    [data-line='77'] {
+  .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='64'],
+  .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='65'],
+  .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='66'],
+  .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='67'],
+  .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='68'],
+  .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='69'],
+  .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='70'],
+  .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='71'],
+  .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='72'],
+  .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='73'],
+  .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='74'],
+  .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='75'],
+  .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='76'],
+  .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='77'] {
     @apply bg-violet-500/15;
     border-left-color: theme(--color-violet-400);
   }

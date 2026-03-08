@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  STATIC_ROUTES,
-  enumerateRoutes,
-  injectHtml,
-} from './prerender'
+import { STATIC_ROUTES, enumerateRoutes, injectHtml } from './prerender'
 
 describe('injectHtml', () => {
   it('wraps rendered html in the root div', () => {
