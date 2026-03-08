@@ -27,6 +27,7 @@ import {
   patternsSubmodelsRouter,
   projectOrganizationRouter,
   routingAndNavigationRouter,
+  uiButtonRouter,
   uiCheckboxRouter,
   uiComboboxRouter,
   uiDialogRouter,
@@ -213,6 +214,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
   {
     label: 'Foldkit UI',
     pages: [
+      {
+        _tag: 'UiButton',
+        href: uiButtonRouter(),
+        label: 'Button',
+      },
       {
         _tag: 'UiTabs',
         href: uiTabsRouter(),

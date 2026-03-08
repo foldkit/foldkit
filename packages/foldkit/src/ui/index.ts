@@ -1,3 +1,4 @@
+export * as Button from './button/public'
 export * as Checkbox from './checkbox/public'
 export * as Combobox from './combobox/public'
 export * as Dialog from './dialog/public'

@@ -86,6 +86,7 @@ export const activeSection: Subscription<
           'CoreViewMemoization',
           () => Page.Core.ViewMemoization.tableOfContents,
         ),
+        M.tag('UiButton', () => Page.UiPages.ButtonPage.tableOfContents),
         M.tag('UiTabs', () => Page.UiPages.TabsPage.tableOfContents),
         M.tag(
           'UiDisclosure',

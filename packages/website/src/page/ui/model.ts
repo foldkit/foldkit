@@ -13,6 +13,7 @@ import {
 } from 'foldkit/ui'
 
 export const Model = S.Struct({
+  buttonClickCount: S.Number,
   checkboxBasicDemo: Checkbox.Model,
   checkboxOptionADemo: Checkbox.Model,
   checkboxOptionBDemo: Checkbox.Model,

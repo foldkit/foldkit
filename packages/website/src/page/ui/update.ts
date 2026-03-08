@@ -1,9 +1,10 @@
-import { Effect, Match as M } from 'effect'
+import { Effect, Match as M, Number } from 'effect'
 import { Ui } from 'foldkit'
 import { Command } from 'foldkit/command'
 import { evo } from 'foldkit/struct'
 
 import {
+  ClickedButtonDemo,
   GotCheckboxBasicDemoMessage,
   GotCheckboxOptionADemoMessage,
   GotCheckboxOptionBDemoMessage,
@@ -36,6 +37,13 @@ export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
+      ClickedButtonDemo: () => [
+        evo(model, {
+          buttonClickCount: Number.increment,
+        }),
+        [],
+      ],
+
       GotCheckboxBasicDemoMessage: ({ message }) => {
         const [nextCheckboxBasicDemo, checkboxBasicCommands] =
           Ui.Checkbox.update(model.checkboxBasicDemo, message)

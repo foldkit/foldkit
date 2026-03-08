@@ -2,6 +2,7 @@ import { Schema as S } from 'effect'
 import { Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 
+export const ClickedButtonDemo = m('ClickedButtonDemo')
 export const GotCheckboxBasicDemoMessage = m('GotCheckboxBasicDemoMessage', {
   message: Ui.Checkbox.Message,
 })
@@ -91,6 +92,7 @@ export const GotVerticalTabsDemoMessage = m('GotVerticalTabsDemoMessage', {
 })
 
 export const Message = S.Union(
+  ClickedButtonDemo,
   GotCheckboxBasicDemoMessage,
   GotCheckboxAllDemoMessage,
   GotCheckboxOptionADemoMessage,

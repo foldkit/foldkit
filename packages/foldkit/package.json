@@ -63,6 +63,10 @@
       "types": "./dist/ui/index.d.ts",
       "import": "./dist/ui/index.js"
     },
+    "./ui/button": {
+      "types": "./dist/ui/button/public.d.ts",
+      "import": "./dist/ui/button/public.js"
+    },
     "./ui/checkbox": {
       "types": "./dist/ui/checkbox/public.d.ts",
       "import": "./dist/ui/checkbox/public.js"
