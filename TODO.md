@@ -60,3 +60,5 @@
 - [ ] Copy button not centered in single line code blocks
 
 - [ ] Highlighting not visible on live demo in "See it work" section on landing page in dark mode
+
+- [ ] Web component interop — consume custom elements in views (property setting, custom events to Messages) and wrap Foldkit apps as custom elements for embedding. See `docs/plans/web-component-interop.md`
