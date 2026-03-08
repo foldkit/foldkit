@@ -832,7 +832,7 @@ const sidebarGroup = (config: {
         buttonClassName: classNames(
           'w-full flex items-center justify-between cursor-pointer',
           'px-4 py-2 md:px-2.5 md:py-1.5',
-          'text-base md:text-xs font-semibold uppercase tracking-wider',
+          'text-xs font-semibold uppercase tracking-wider',
           'text-gray-500 dark:text-gray-400',
           'hover:text-gray-700 dark:hover:text-gray-300',
         ),
@@ -843,7 +843,7 @@ const sidebarGroup = (config: {
             span(
               [
                 Class(
-                  classNames('transition-transform', {
+                  classNames({
                     'rotate-180': config.model.isOpen,
                   }),
                 ),
@@ -852,7 +852,7 @@ const sidebarGroup = (config: {
             ),
           ],
         ),
-        panelClassName: 'pl-2 space-y-0.5 mt-0.5',
+        panelClassName: 'pl-1 space-y-1 mt-0.5',
         panelContent: config.children,
       }),
     ],
@@ -873,7 +873,7 @@ const sidebarViewInner = (
 
   const linkClass = (isActive: boolean) =>
     classNames(
-      'block px-4 py-3 md:px-2.5 md:py-1 rounded transition text-base md:text-sm font-normal md:font-normal',
+      'block px-4 py-2.5 md:px-2.5 md:py-1 rounded-md transition text-sm font-normal',
       {
         'bg-accent-100 dark:bg-accent-900/50 text-accent-700 dark:text-accent-400':
           isActive,
@@ -930,7 +930,7 @@ const sidebarViewInner = (
   ]
 
   const navLinks = ul(
-    [Class('space-y-3')],
+    [Class('space-y-2')],
     [
       ...Array.zipWith(docsSections, sectionDisclosures, (section, disclosure) =>
         sidebarGroup({
@@ -938,7 +938,7 @@ const sidebarViewInner = (
           model: disclosure.model,
           toMessage: disclosure.toMessage,
           children: ul(
-            [],
+            [Class('space-y-1')],
             Array.map(section.pages, page =>
               navLink(page.href, route._tag === page._tag, page.label),
             ),
@@ -950,7 +950,7 @@ const sidebarViewInner = (
         model: apiReferenceGroup,
         toMessage: message => GotApiReferenceGroupMessage({ message }),
         children: ul(
-          [],
+          [Class('space-y-1')],
           Array.map(Page.ApiReference.moduleSlugs, ({ slug, name }) =>
             navLink(
               apiModuleRouter({
@@ -981,13 +981,13 @@ const sidebarViewInner = (
       div(
         [
           Class(
-            'flex justify-between items-center p-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] border-b border-gray-300 dark:border-gray-800 shrink-0',
+            'flex justify-between items-center h-[var(--header-height)] pt-[env(safe-area-inset-top,0px)] px-3 border-b border-gray-300 dark:border-gray-800 shrink-0',
           ),
         ],
         [
           a(
-            [Href(homeRouter())],
-            [img([Src('/logo.svg'), Alt('Foldkit'), Class('h-6 dark:invert')])],
+            [Href(homeRouter()), Class('flex items-center gap-2')],
+            [img([Src('/logo.svg'), Alt('Foldkit'), Class('h-6 dark:invert')]), betaTag],
           ),
           button(
             [
@@ -1005,7 +1005,7 @@ const sidebarViewInner = (
           ),
         ],
       ),
-      nav([AriaLabel('Documentation'), Class('flex-1 overflow-y-auto p-4')], [navLinks]),
+      nav([AriaLabel('Documentation'), Class('flex-1 overflow-y-auto p-2')], [navLinks]),
       div(
         [Class('p-4 border-t border-gray-300 dark:border-gray-800 shrink-0')],
         [
@@ -1057,6 +1057,16 @@ const iconLink = (link: string, ariaLabel: string, icon: Html) =>
     ],
     [icon],
   )
+
+const betaTag: Html = span(
+  [
+    Class(
+      'inline-block -rotate-6 rounded bg-accent-700 dark:bg-accent-500 px-1.5 py-0.5 text-[10px] font-extrabold uppercase leading-none tracking-wider text-white dark:text-accent-900 select-none',
+    ),
+    AriaLabel('Beta'),
+  ],
+  ['Beta'],
+)
 
 const tableOfContentsEntryView = (
   level: TableOfContentsEntry['level'],
@@ -1286,15 +1296,7 @@ const landingHeaderView = (model: Model) =>
         [Href(homeRouter()), Class('flex items-center gap-2')],
         [
           img([Src('/logo.svg'), Alt('Foldkit'), Class('h-6 md:h-8 dark:invert')]),
-          span(
-            [
-              Class(
-                'inline-block -rotate-6 rounded bg-accent-700 dark:bg-accent-500 px-1.5 py-0.5 text-[10px] font-extrabold uppercase leading-none tracking-wider text-white dark:text-accent-900 select-none',
-              ),
-              AriaLabel('Beta'),
-            ],
-            ['Beta'],
-          ),
+          betaTag,
         ],
       ),
       nav(
@@ -1416,13 +1418,33 @@ const docsHeaderView = (model: Model) =>
   header(
     [
       Class(
-        'fixed top-0 inset-x-0 z-50 h-[var(--header-height)] pt-[env(safe-area-inset-top,0px)] bg-cream dark:bg-gray-900 border-b border-gray-300 dark:border-gray-800 pl-2 pr-3 md:px-8 flex items-center justify-between transform-gpu',
+        'fixed top-0 inset-x-0 z-50 h-[var(--header-height)] pt-[env(safe-area-inset-top,0px)] bg-cream dark:bg-gray-900 border-b border-gray-300 dark:border-gray-800 px-3 md:px-8 flex items-center justify-between transform-gpu',
       ),
     ],
     [
       div(
         [Class('flex items-center gap-2')],
         [
+          a(
+            [Href(homeRouter()), Class('flex items-center gap-2')],
+            [
+              img([Src('/logo.svg'), Alt('Foldkit'), Class('h-6 md:h-8 dark:invert')]),
+              betaTag,
+            ],
+          ),
+        ],
+      ),
+      div(
+        [Class('flex items-center gap-3 md:gap-8')],
+        [
+          themeSelector(model.themePreference),
+          div(
+            [Class('hidden md:flex items-center gap-3 md:gap-4')],
+            [
+              iconLink(Link.github, 'GitHub', Icon.github('w-5 h-5 md:w-6 md:h-6')),
+              iconLink(Link.npm, 'npm', Icon.npm('w-6 h-6 md:w-8 md:h-8')),
+            ],
+          ),
           button(
             [
               Class(
@@ -1437,34 +1459,6 @@ const docsHeaderView = (model: Model) =>
               ),
             ],
             [Icon.menu('w-6 h-6')],
-          ),
-          a(
-            [Href(homeRouter()), Class('flex items-center gap-2')],
-            [
-              img([Src('/logo.svg'), Alt('Foldkit'), Class('h-6 md:h-8 dark:invert')]),
-              span(
-                [
-                  Class(
-                    'inline-block -rotate-6 rounded bg-accent-700 dark:bg-accent-500 px-1.5 py-0.5 text-[10px] font-extrabold uppercase leading-none tracking-wider text-white dark:text-accent-900 select-none',
-                  ),
-                  AriaLabel('Beta'),
-                ],
-                ['Beta'],
-              ),
-            ],
-          ),
-        ],
-      ),
-      div(
-        [Class('flex items-center gap-6 md:gap-8')],
-        [
-          themeSelector(model.themePreference),
-          div(
-            [Class('hidden md:flex items-center gap-3 md:gap-4')],
-            [
-              iconLink(Link.github, 'GitHub', Icon.github('w-5 h-5 md:w-6 md:h-6')),
-              iconLink(Link.npm, 'npm', Icon.npm('w-6 h-6 md:w-8 md:h-8')),
-            ],
           ),
         ],
       ),
