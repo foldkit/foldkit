@@ -34,7 +34,7 @@
   - Each component exposes its own Model, Message, update, and view
   - Consumers compose them into their app's model and wire messages through update
   - [ ] Data attributes convention — every foldkit-ui component should emit `data-*` attributes reflecting its interactive state (e.g. `data-selected`, `data-disabled`, `data-active`, `data-checked`, `data-open`). Consumers style against these with CSS selectors or Tailwind's `data-[selected]:` modifiers instead of computing classNames from state. Design and implement this pattern on Tabs first (retrofitting `data-selected`, `data-disabled`), then apply consistently to all subsequent components.
-  - [ ] Remaining components: Input, Select, Textarea, Fieldset
+  - [ ] Remaining components: Select, Textarea, Fieldset
   - [ ] Virtual scrolling for Listbox, Menu, and Combobox — needed when item counts are large enough that rendering every DOM node hurts performance. Listbox and Menu are the most likely to hit this in practice (long option lists, command palettes). Combobox less so since filtering reduces the visible set, but still relevant for unfiltered/initial state.
   - [ ] `OnKeyDown` modifier keys (`shiftKey`, `ctrlKey`, `altKey`, `metaKey`) — useful for keyboard shortcuts, complex keyboard interactions, and potential future focus trap alternatives
   - [ ] General portal support for components that need to escape stacking contexts without native `<dialog>`

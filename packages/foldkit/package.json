@@ -79,6 +79,10 @@
       "types": "./dist/ui/disclosure/public.d.ts",
       "import": "./dist/ui/disclosure/public.js"
     },
+    "./ui/input": {
+      "types": "./dist/ui/input/public.d.ts",
+      "import": "./dist/ui/input/public.js"
+    },
     "./ui/listbox": {
       "types": "./dist/ui/listbox/public.d.ts",
       "import": "./dist/ui/listbox/public.js"

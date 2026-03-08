@@ -4,6 +4,7 @@ export { init } from './init'
 export { update } from './update'
 
 export * as ButtonPage from './buttonPage'
+export * as InputPage from './inputPage'
 export * as CheckboxPage from './checkboxPage'
 export * as TabsPage from './tabsPage'
 export * as DisclosurePage from './disclosurePage'

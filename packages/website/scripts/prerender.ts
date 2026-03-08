@@ -52,6 +52,7 @@ import {
   UiComboboxRoute,
   UiDialogRoute,
   UiDisclosureRoute,
+  UiInputRoute,
   UiListboxRoute,
   UiMenuRoute,
   UiPopoverRoute,
@@ -91,6 +92,7 @@ import {
   uiComboboxRouter,
   uiDialogRouter,
   uiDisclosureRouter,
+  uiInputRouter,
   uiListboxRouter,
   uiMenuRouter,
   uiPopoverRouter,
@@ -140,6 +142,7 @@ export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   UiButtonRoute(),
   UiCheckboxRoute(),
   UiComboboxRoute(),
+  UiInputRoute(),
 ]
 
 export const routeToUrlPath = (route: AppRoute): string =>
@@ -184,6 +187,7 @@ export const routeToUrlPath = (route: AppRoute): string =>
       UiButton: () => uiButtonRouter(),
       UiCheckbox: () => uiCheckboxRouter(),
       UiCombobox: () => uiComboboxRouter(),
+      UiInput: () => uiInputRouter(),
       ApiModule: ({ moduleSlug }) => apiModuleRouter({ moduleSlug }),
       NotFound: () => '/',
     }),

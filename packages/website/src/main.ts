@@ -1863,6 +1863,11 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
           Page.UiPages.ComboboxPage.view(model.uiPages, toUiPageMessage),
           Page.UiPages.ComboboxPage.tableOfContents,
         ),
+      UiInput: () =>
+        withTableOfContents(
+          Page.UiPages.InputPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.InputPage.tableOfContents,
+        ),
       NotFound: ({ path }) =>
         withoutTableOfContents(Page.NotFound.view(path, homeRouter())),
     }),

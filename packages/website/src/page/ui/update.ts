@@ -36,6 +36,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
+      UpdatedInputDemoValue: ({ value }) => [
+        evo(model, { inputDemoValue: () => value }),
+        [],
+      ],
+
       ClickedButtonDemo: () => [
         evo(model, {
           buttonClickCount: Number.increment,
