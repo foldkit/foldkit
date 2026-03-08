@@ -1899,7 +1899,7 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
                 ),
                 [
                   Class(
-                    'px-4 py-6 md:px-8 2xl:py-10 max-w-4xl mx-auto min-w-0',
+                    'px-4 py-6 md:px-6 2xl:py-10 max-w-4xl mx-auto min-w-0',
                   ),
                 ],
                 [content, pageNavigationView(docsRoute._tag)],

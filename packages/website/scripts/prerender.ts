@@ -47,6 +47,7 @@ import {
   PatternsSubmodelsRoute,
   ProjectOrganizationRoute,
   RoutingAndNavigationRoute,
+  UiCheckboxRoute,
   UiComboboxRoute,
   UiDialogRoute,
   UiDisclosureRoute,
@@ -84,6 +85,7 @@ import {
   patternsSubmodelsRouter,
   projectOrganizationRouter,
   routingAndNavigationRouter,
+  uiCheckboxRouter,
   uiComboboxRouter,
   uiDialogRouter,
   uiDisclosureRouter,
@@ -133,6 +135,7 @@ export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   UiListboxRoute(),
   UiRadioGroupRoute(),
   UiSwitchRoute(),
+  UiCheckboxRoute(),
   UiComboboxRoute(),
 ]
 
@@ -175,6 +178,7 @@ export const routeToUrlPath = (route: AppRoute): string =>
       UiListbox: () => uiListboxRouter(),
       UiRadioGroup: () => uiRadioGroupRouter(),
       UiSwitch: () => uiSwitchRouter(),
+      UiCheckbox: () => uiCheckboxRouter(),
       UiCombobox: () => uiComboboxRouter(),
       ApiModule: ({ moduleSlug }) => apiModuleRouter({ moduleSlug }),
       NotFound: () => '/',

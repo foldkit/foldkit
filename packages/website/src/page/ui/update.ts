@@ -4,7 +4,6 @@ import { Command } from 'foldkit/command'
 import { evo } from 'foldkit/struct'
 
 import {
-  GotCheckboxAllDemoMessage,
   GotCheckboxBasicDemoMessage,
   GotCheckboxOptionADemoMessage,
   GotCheckboxOptionBDemoMessage,
