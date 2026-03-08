@@ -59,7 +59,10 @@ const glyph = (symbol: string, offsetY?: string): Html =>
 
 // VIEW
 
-export const view = (copiedSnippets: CopiedSnippets, demoTabsView: Html): Html =>
+export const view = (
+  copiedSnippets: CopiedSnippets,
+  demoTabsView: Html,
+): Html =>
   div(
     [Class('isolate overflow-x-hidden')],
     [
@@ -99,7 +102,11 @@ const heroSection = (copiedSnippets: CopiedSnippets): Html =>
           div(
             [Class('flex items-center gap-3 mb-8')],
             [
-              img([Src('/logo.svg'), Alt('Foldkit'), Class('h-10 md:h-12 dark:invert')]),
+              img([
+                Src('/logo.svg'),
+                Alt('Foldkit'),
+                Class('h-10 md:h-12 dark:invert'),
+              ]),
               span(
                 [
                   Class(
@@ -117,7 +124,10 @@ const heroSection = (copiedSnippets: CopiedSnippets): Html =>
               ),
             ],
             [
-              span([Class('text-accent-600 dark:text-accent-500')], ['Beautifully']),
+              span(
+                [Class('text-accent-600 dark:text-accent-500')],
+                ['Beautifully'],
+              ),
               ' boring frontend applications.',
             ],
           ),
@@ -143,7 +153,11 @@ const heroSection = (copiedSnippets: CopiedSnippets): Html =>
             ],
           ),
           div(
-            [Class('mt-8 flex flex-col sm:flex-row items-start sm:items-center gap-4')],
+            [
+              Class(
+                'mt-8 flex flex-col sm:flex-row items-start sm:items-center gap-4',
+              ),
+            ],
             [
               a(
                 [Href(Link.gettingStarted), Class('cta-primary')],
@@ -211,7 +225,9 @@ const poweredBySection = (): Html =>
             [
               poweredByItem('Every Foldkit application is an Effect'),
               poweredByItem('All state is a single Schema'),
-              poweredByItem('Side effects are modeled as Effects that never fail'),
+              poweredByItem(
+                'Side effects are modeled as Effects that never fail',
+              ),
             ],
           ),
           p(
@@ -230,8 +246,14 @@ const pillarCard = (icon: Html, title: string, description: string): Html =>
     [Class('landing-card')],
     [
       div([Class('mb-3 text-accent-600 dark:text-accent-500')], [icon]),
-      h3([Class('text-xl font-normal text-gray-900 dark:text-white mb-2')], [title]),
-      p([Class('text-gray-600 dark:text-gray-300 leading-relaxed')], [description]),
+      h3(
+        [Class('text-xl font-normal text-gray-900 dark:text-white mb-2')],
+        [title],
+      ),
+      p(
+        [Class('text-gray-600 dark:text-gray-300 leading-relaxed')],
+        [description],
+      ),
     ],
   )
 
@@ -329,8 +351,14 @@ const includedFeature = (
     [Class('landing-card')],
     [
       div([Class('mb-3 text-accent-600 dark:text-accent-500')], [icon]),
-      h3([Class('text-xl font-normal text-gray-900 dark:text-white mb-2')], [title]),
-      p([Class('text-gray-600 dark:text-gray-300 leading-relaxed')], description),
+      h3(
+        [Class('text-xl font-normal text-gray-900 dark:text-white mb-2')],
+        [title],
+      ),
+      p(
+        [Class('text-gray-600 dark:text-gray-300 leading-relaxed')],
+        description,
+      ),
     ],
   )
 
@@ -391,7 +419,11 @@ const includedSection = (): Html =>
                     ],
                   ),
                   p(
-                    [Class('text-gray-600 dark:text-gray-300 leading-relaxed mb-3')],
+                    [
+                      Class(
+                        'text-gray-600 dark:text-gray-300 leading-relaxed mb-3',
+                      ),
+                    ],
                     [
                       'Accessible primitives — dialog, menu, tabs, listbox, disclosure, and more — built for the Elm Architecture. Easy to style and customize.',
                     ],
@@ -623,7 +655,10 @@ const audienceForItem = (title: string, description: string): Html =>
             [Class('text-base font-normal text-gray-900 dark:text-white mb-1')],
             [title],
           ),
-          p([Class('text-gray-600 dark:text-gray-300 leading-relaxed')], [description]),
+          p(
+            [Class('text-gray-600 dark:text-gray-300 leading-relaxed')],
+            [description],
+          ),
         ],
       ),
     ],
@@ -644,7 +679,10 @@ const audienceNotItem = (title: string, description: string): Html =>
             [Class('text-base font-normal text-gray-900 dark:text-white mb-1')],
             [title],
           ),
-          p([Class('text-gray-600 dark:text-gray-300 leading-relaxed')], [description]),
+          p(
+            [Class('text-gray-600 dark:text-gray-300 leading-relaxed')],
+            [description],
+          ),
         ],
       ),
     ],
@@ -668,7 +706,10 @@ const trustSection = (): Html =>
             ['Proof of life.'],
           ),
           ul(
-            [Role('list'), Class('grid gap-6 sm:grid-cols-2 lg:grid-cols-4 list-none')],
+            [
+              Role('list'),
+              Class('grid gap-6 sm:grid-cols-2 lg:grid-cols-4 list-none'),
+            ],
             [
               trustItem('Version', `v${foldkitVersion}`),
               trustItemWithLink(
@@ -676,7 +717,11 @@ const trustSection = (): Html =>
                 String(exampleAppCount),
                 Link.exampleApps,
               ),
-              trustItemWithLink('Production app', 'Typing Terminal', Link.typingTerminal),
+              trustItemWithLink(
+                'Production app',
+                'Typing Terminal',
+                Link.typingTerminal,
+              ),
               trustItemWithLink('Changelog', 'View releases', Link.changelog),
             ],
           ),
@@ -701,7 +746,11 @@ const trustItem = (label: string, value: string): Html =>
     ],
   )
 
-const trustItemWithLink = (label: string, linkText: string, href: string): Html =>
+const trustItemWithLink = (
+  label: string,
+  linkText: string,
+  href: string,
+): Html =>
   li(
     [Class('landing-card')],
     [
@@ -722,7 +771,10 @@ const trustItemWithLink = (label: string, linkText: string, href: string): Html 
         ],
         [
           linkText,
-          span([Class('inline-block ml-1')], [Icon.arrowRight('w-4 h-4 inline')]),
+          span(
+            [Class('inline-block ml-1')],
+            [Icon.arrowRight('w-4 h-4 inline')],
+          ),
         ],
       ),
     ],
@@ -732,7 +784,10 @@ const trustItemWithLink = (label: string, linkText: string, href: string): Html 
 
 const aiSection = (): Html =>
   section(
-    [Id('ai'), Class('landing-section py-10 md:py-14 relative overflow-hidden')],
+    [
+      Id('ai'),
+      Class('landing-section py-10 md:py-14 relative overflow-hidden'),
+    ],
     [
       div(
         [Class('landing-section-narrow relative')],
@@ -786,7 +841,11 @@ const finalCtaSection = (): Html =>
             ['Describe your app. Let the runtime handle the rest.'],
           ),
           div(
-            [Class('flex flex-col sm:flex-row items-start sm:items-center gap-4')],
+            [
+              Class(
+                'flex flex-col sm:flex-row items-start sm:items-center gap-4',
+              ),
+            ],
             [
               a(
                 [Href(Link.gettingStarted), Class('cta-primary')],

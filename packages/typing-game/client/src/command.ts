@@ -19,7 +19,9 @@ export const joinRoom = (
     const { player, room } = yield* client.joinRoom({ username, roomId })
     return Home.Message.JoinedRoom({ roomId: room.id, player })
   }).pipe(
-    Effect.catchAll(error => Effect.succeed(Home.Message.FailedRoom({ error: String(error) }))),
+    Effect.catchAll(error =>
+      Effect.succeed(Home.Message.FailedRoom({ error: String(error) })),
+    ),
     Effect.provide(RoomsClient.Default),
   )
 

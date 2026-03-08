@@ -28,7 +28,11 @@ export const close = (className: string = 'w-6 h-6'): Html =>
     ],
     [
       path(
-        [StrokeLinecap('round'), StrokeLinejoin('round'), D('M6 18L18 6M6 6l12 12')],
+        [
+          StrokeLinecap('round'),
+          StrokeLinejoin('round'),
+          D('M6 18L18 6M6 6l12 12'),
+        ],
         [],
       ),
     ],

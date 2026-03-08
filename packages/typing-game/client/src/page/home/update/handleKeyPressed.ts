@@ -6,7 +6,14 @@ import { evo } from 'foldkit/struct'
 import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../../constant'
 import { createRoom } from '../command'
 import { Message, NoOp } from '../message'
-import { EnterRoomId, EnterUsername, HOME_ACTIONS, HomeAction, Model, SelectAction } from '../model'
+import {
+  EnterRoomId,
+  EnterUsername,
+  HOME_ACTIONS,
+  HomeAction,
+  Model,
+  SelectAction,
+} from '../model'
 
 type UpdateReturn = [Model, ReadonlyArray<Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
@@ -25,8 +32,12 @@ const whenSelectAction =
   (selectAction: SelectAction): UpdateReturn =>
     M.value(key).pipe(
       withUpdateReturn,
-      M.when('ArrowUp', () => moveSelection(Number.decrement)(model, selectAction)),
-      M.when('ArrowDown', () => moveSelection(Number.increment)(model, selectAction)),
+      M.when('ArrowUp', () =>
+        moveSelection(Number.decrement)(model, selectAction),
+      ),
+      M.when('ArrowDown', () =>
+        moveSelection(Number.increment)(model, selectAction),
+      ),
       M.when('Enter', () => confirmSelection(model)(selectAction)),
       M.orElse(() => [model, []]),
     )
@@ -44,23 +55,25 @@ const moveSelection =
     [],
   ]
 
-const cycleAction = (f: (a: number) => number) => (selectedAction: HomeAction) => {
-  const homeActionsLength = Array.length(HOME_ACTIONS)
+const cycleAction =
+  (f: (a: number) => number) => (selectedAction: HomeAction) => {
+    const homeActionsLength = Array.length(HOME_ACTIONS)
 
-  return pipe(
-    HOME_ACTIONS,
-    Array.findFirstIndex(action => action === selectedAction),
-    Option.map(
-      flow(
-        f,
-        Number.remainder(homeActionsLength),
-        remainder => (remainder < 0 ? remainder + homeActionsLength : remainder),
-        nextIndex => Array.unsafeGet(HOME_ACTIONS, nextIndex),
+    return pipe(
+      HOME_ACTIONS,
+      Array.findFirstIndex(action => action === selectedAction),
+      Option.map(
+        flow(
+          f,
+          Number.remainder(homeActionsLength),
+          remainder =>
+            remainder < 0 ? remainder + homeActionsLength : remainder,
+          nextIndex => Array.unsafeGet(HOME_ACTIONS, nextIndex),
+        ),
       ),
-    ),
-    Option.getOrThrow,
-  )
-}
+      Option.getOrThrow,
+    )
+  }
 
 const confirmSelection =
   (model: Model) =>
@@ -77,13 +90,23 @@ const confirmSelection =
               roomIdValidationId: Date.now(),
             }),
         }),
-        [Task.focus(`#${ROOM_ID_INPUT_ID}`).pipe(Effect.ignore, Effect.as(NoOp()))],
+        [
+          Task.focus(`#${ROOM_ID_INPUT_ID}`).pipe(
+            Effect.ignore,
+            Effect.as(NoOp()),
+          ),
+        ],
       ]),
       M.when('ChangeUsername', () => [
         evo(model, {
           homeStep: () => EnterUsername({ username: '' }),
         }),
-        [Task.focus(`#${USERNAME_INPUT_ID}`).pipe(Effect.ignore, Effect.as(NoOp()))],
+        [
+          Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
+            Effect.ignore,
+            Effect.as(NoOp()),
+          ),
+        ],
       ]),
       M.exhaustive,
     )

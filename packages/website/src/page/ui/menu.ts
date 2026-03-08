@@ -152,7 +152,8 @@ export const animatedDemo = (
     [
       Ui.Menu.view({
         model: menuModel,
-        toMessage: message => toMessage(GotMenuAnimatedDemoMessage({ message })),
+        toMessage: message =>
+          toMessage(GotMenuAnimatedDemoMessage({ message })),
         ...menuViewConfig(animatedItemsClassName),
       }),
     ],

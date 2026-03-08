@@ -1,4 +1,12 @@
-import { Array, Effect, Equal, Option, Predicate, String as Str, pipe } from 'effect'
+import {
+  Array,
+  Effect,
+  Equal,
+  Option,
+  Predicate,
+  String as Str,
+  pipe,
+} from 'effect'
 
 import { MAX_WRONG_CHARS } from '../../constant'
 
@@ -11,7 +19,8 @@ export const validateUserTextInput = (
   Effect.gen(function* () {
     yield* toNonEmptyStringOption(newUserText)
     const gameText = yield* maybeGameText
-    const firstWrongIndex = yield* findFirstWrongCharIndex(newUserText)(gameText)
+    const firstWrongIndex =
+      yield* findFirstWrongCharIndex(newUserText)(gameText)
 
     const wrongCharCount = Str.length(newUserText) - firstWrongIndex
     const exceedsMaxWrongChars = wrongCharCount > MAX_WRONG_CHARS
@@ -31,6 +40,10 @@ export const findFirstWrongCharIndex =
       userGameText,
       Str.split(''),
       Array.findFirstIndex((char, index) =>
-        pipe(gameText, Str.at(index), Option.exists(Predicate.not(Equal.equals(char)))),
+        pipe(
+          gameText,
+          Str.at(index),
+          Option.exists(Predicate.not(Equal.equals(char))),
+        ),
       ),
     )

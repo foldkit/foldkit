@@ -58,7 +58,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' creates a component without URL handling. The init function takes no arguments. If you configure a Flags schema, init receives the flags as its argument. Use this for standalone widgets or components embedded in existing pages.',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.runMakeElementHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.runMakeElementHighlighted)],
+          [],
+        ),
         Snippets.runMakeElementRaw,
         'Copy makeElement example to clipboard',
         copiedSnippets,
@@ -72,7 +75,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' config to handle URL changes.',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.runMakeApplicationHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.runMakeApplicationHighlighted)],
+          [],
+        ),
         Snippets.runMakeApplicationRaw,
         'Copy makeApplication example to clipboard',
         copiedSnippets,

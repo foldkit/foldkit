@@ -179,7 +179,10 @@ export const init = (): [
 
 // UPDATE
 
-type UpdateReturn = [Model, ReadonlyArray<Command<Message, never, AudioContextService>>]
+type UpdateReturn = [
+  Model,
+  ReadonlyArray<Command<Message, never, AudioContextService>>,
+]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 const prependToLog =
@@ -187,7 +190,9 @@ const prependToLog =
   (messageLog: ReadonlyArray<string>): ReadonlyArray<string> =>
     Array.take([entry, ...messageLog], MAX_LOG_ENTRIES)
 
-const sleepThenAdvance = (generation: number): Command<typeof AdvancedNotePhase> =>
+const sleepThenAdvance = (
+  generation: number,
+): Command<typeof AdvancedNotePhase> =>
   Task.delay(PHASE_DURATION).pipe(Effect.as(AdvancedNotePhase({ generation })))
 
 const enterNoteCommandPhase = (
@@ -203,7 +208,13 @@ const enterNoteCommandPhase = (
       }),
     highlightPhase: () => 'NoteCommand',
   }),
-  [playNote(Array.unsafeGet(noteSequence, noteIndex), model.noteDuration, noteIndex)],
+  [
+    playNote(
+      Array.unsafeGet(noteSequence, noteIndex),
+      model.noteDuration,
+      noteIndex,
+    ),
+  ],
 ]
 
 export const update = (model: Model, message: Message): UpdateReturn =>
@@ -270,7 +281,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           }),
           M.tag('Idle', () => {
             const noteSequence =
-              model.noteInput._tag === 'Valid' ? parseNotes(model.noteInput.value) : []
+              model.noteInput._tag === 'Valid'
+                ? parseNotes(model.noteInput.value)
+                : []
 
             if (Array.isEmptyArray(noteSequence)) {
               return [model, []]
@@ -438,7 +451,8 @@ const playNote = (
         audioContext.currentTime,
       )
 
-      const releaseEnd = audioContext.currentTime + durationSeconds - GAIN_RELEASE_TIME
+      const releaseEnd =
+        audioContext.currentTime + durationSeconds - GAIN_RELEASE_TIME
 
       gainNode.gain.setValueAtTime(0, audioContext.currentTime)
       gainNode.gain.linearRampToValueAtTime(
@@ -472,12 +486,16 @@ const inputBorderClass = (field: typeof NoteInputField.Union.Type): string =>
     }),
   )
 
-const durationButtonClass = (isSelected: boolean, isInputLocked: boolean): string =>
+const durationButtonClass = (
+  isSelected: boolean,
+  isInputLocked: boolean,
+): string =>
   classNames('flex-1 px-3 py-1.5 text-sm font-normal transition text-center', {
     'bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900': isSelected,
     'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 cursor-pointer':
       !isSelected && !isInputLocked,
-    'text-gray-300 dark:text-gray-600 cursor-not-allowed': !isSelected && isInputLocked,
+    'text-gray-300 dark:text-gray-600 cursor-not-allowed':
+      !isSelected && isInputLocked,
   })
 
 export const view = (
@@ -494,7 +512,10 @@ export const view = (
     appPanel(model, toMessage),
   )
 
-const appPanel = (model: Model, toMessage: (message: Message) => ParentMessage): Html => {
+const appPanel = (
+  model: Model,
+  toMessage: (message: Message) => ParentMessage,
+): Html => {
   const isPlaying = model.playbackState._tag === 'Playing'
   const isPaused = model.playbackState._tag === 'Paused'
   const isInputLocked = isPlaying || isPaused
@@ -517,7 +538,10 @@ const appPanel = (model: Model, toMessage: (message: Message) => ParentMessage):
             ],
           ),
           DemoView.modelStateView([
-            DemoView.modelStateField('playbackState', playbackStateLabel(model)),
+            DemoView.modelStateField(
+              'playbackState',
+              playbackStateLabel(model),
+            ),
             DemoView.modelStateField('noteDuration', model.noteDuration),
             DemoView.modelStateField('noteInput', noteInputLabel(model)),
           ]),
@@ -570,7 +594,8 @@ const noteInputView = (
               [Class('text-xs text-gray-400 dark:text-gray-500')],
               [`${MIN_NOTES}\u2013${MAX_NOTES} notes, A through G`],
             ),
-          Validating: () => p([Class('text-xs text-gray-400 dark:text-gray-500')], ['']),
+          Validating: () =>
+            p([Class('text-xs text-gray-400 dark:text-gray-500')], ['']),
           Valid: () =>
             p(
               [Class('text-xs text-gray-500 dark:text-gray-400')],
@@ -594,7 +619,10 @@ const durationSelectorView = (
   div(
     [Class('flex flex-col gap-1.5')],
     [
-      label([Class('text-xs text-gray-500 dark:text-gray-400')], ['Note Length']),
+      label(
+        [Class('text-xs text-gray-500 dark:text-gray-400')],
+        ['Note Length'],
+      ),
       div(
         [
           Class('flex rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden'),
@@ -702,7 +730,11 @@ const noteSequenceView = (model: Model): Html => {
   const notes = parseNotes(model.noteInput.value)
 
   return div(
-    [Class('flex flex-col gap-2 pb-3 border-b border-gray-300 dark:border-gray-800')],
+    [
+      Class(
+        'flex flex-col gap-2 pb-3 border-b border-gray-300 dark:border-gray-800',
+      ),
+    ],
     [
       Array.match(notes, {
         onEmpty: () => placeholderVisualizerView,
@@ -714,7 +746,9 @@ const noteSequenceView = (model: Model): Html => {
 
 const noteVisualizerView = (model: Model, notes: ReadonlyArray<Note>): Html => {
   const maybeCurrentIndex = M.value(model.playbackState).pipe(
-    M.tag('Playing', 'Paused', ({ currentNoteIndex }) => Option.some(currentNoteIndex)),
+    M.tag('Playing', 'Paused', ({ currentNoteIndex }) =>
+      Option.some(currentNoteIndex),
+    ),
     M.tag('Idle', () => Option.none()),
     M.exhaustive,
   )
@@ -794,8 +828,16 @@ const phaseColorClass = (phase: NoteHighlightPhase): string =>
       'NoteMessage',
       () => 'text-emerald-600 dark:text-emerald-400',
     ),
-    M.whenOr('PlayUpdate', 'NoteUpdate', () => 'text-amber-600 dark:text-amber-400'),
-    M.whenOr('PlayModel', 'NoteModel', () => 'text-accent-600 dark:text-accent-400'),
+    M.whenOr(
+      'PlayUpdate',
+      'NoteUpdate',
+      () => 'text-amber-600 dark:text-amber-400',
+    ),
+    M.whenOr(
+      'PlayModel',
+      'NoteModel',
+      () => 'text-accent-600 dark:text-accent-400',
+    ),
     M.when('NoteCommand', () => 'text-violet-600 dark:text-violet-400'),
     M.exhaustive,
   )

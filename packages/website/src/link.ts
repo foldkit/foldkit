@@ -6,7 +6,8 @@ export const Link = {
   effect: 'https://effect.website',
   effectSchema: 'https://effect.website/docs/schema/introduction/',
   effectMatch: 'https://effect.website/docs/code-style/pattern-matching/',
-  effectService: 'https://effect.website/docs/requirements-management/services/',
+  effectService:
+    'https://effect.website/docs/requirements-management/services/',
   react: 'https://react.dev',
   vue: 'https://vuejs.org',
   angular: 'https://angular.dev',
@@ -46,9 +47,11 @@ export const Link = {
     'https://github.com/devinjameson/foldkit/tree/main/packages/create-foldkit-app',
   msw: 'https://mswjs.io',
   github: 'https://github.com/devinjameson/foldkit',
-  foldkitSource: 'https://github.com/devinjameson/foldkit/tree/main/packages/foldkit',
+  foldkitSource:
+    'https://github.com/devinjameson/foldkit/tree/main/packages/foldkit',
   npm: 'https://www.npmjs.com/package/foldkit',
-  websiteSource: 'https://github.com/devinjameson/foldkit/tree/main/packages/website',
+  websiteSource:
+    'https://github.com/devinjameson/foldkit/tree/main/packages/website',
   changelog:
     'https://github.com/devinjameson/foldkit/blob/main/packages/foldkit/CHANGELOG.md',
   coreCounterExample: '/core/counter-example',

@@ -94,7 +94,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' to combine multiple service layers into one.',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.resourcesMultipleHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.resourcesMultipleHighlighted)],
+          [],
+        ),
         Snippets.resourcesMultipleRaw,
         'Copy multiple resources example to clipboard',
         copiedSnippets,

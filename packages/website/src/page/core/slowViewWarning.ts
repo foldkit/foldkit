@@ -19,7 +19,9 @@ const overviewHeader: TableOfContentsEntry = {
   text: 'Overview',
 }
 
-export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [overviewHeader]
+export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
+  overviewHeader,
+]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
@@ -44,7 +46,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' or memoize expensive subtrees with ',
         link(coreViewMemoizationRouter() + '#create-lazy', 'createLazy'),
         ' and ',
-        link(coreViewMemoizationRouter() + '#create-keyed-lazy', 'createKeyedLazy'),
+        link(
+          coreViewMemoizationRouter() + '#create-keyed-lazy',
+          'createKeyedLazy',
+        ),
         '.',
       ),
       para(
@@ -62,7 +67,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' to customize it:',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.slowViewThresholdHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.slowViewThresholdHighlighted)],
+          [],
+        ),
         Snippets.slowViewThresholdRaw,
         'Custom slow view threshold',
         copiedSnippets,

@@ -46,7 +46,10 @@ import {
   homeActionToLabel,
 } from './model'
 
-export const view = (model: Model, toMessage: (message: Message) => ParentMessage): Html => {
+export const view = (
+  model: Model,
+  toMessage: (message: Message) => ParentMessage,
+): Html => {
   const maybeUsername = M.value(model.homeStep).pipe(
     M.tagsExhaustive({
       EnterUsername: () => Option.none(),
@@ -119,7 +122,10 @@ const selectAction = ({ selectedAction }: SelectAction): Html =>
     [Class('space-y-4')],
     [
       ...Array.map(HOME_ACTIONS, action(selectedAction)),
-      div([Class('text-terminal-green mt-8')], ['(↑↓ to navigate, Enter to select)']),
+      div(
+        [Class('text-terminal-green mt-8')],
+        ['(↑↓ to navigate, Enter to select)'],
+      ),
     ],
   )
 
@@ -128,7 +134,10 @@ const action =
   (homeAction: HomeAction): Html =>
     div(
       [Class('whitespace-pre-wrap')],
-      [selectedAction === homeAction ? '> ' : '  ', homeActionToLabel(homeAction)],
+      [
+        selectedAction === homeAction ? '> ' : '  ',
+        homeActionToLabel(homeAction),
+      ],
     )
 
 const enterRoomId =
@@ -140,7 +149,10 @@ const enterRoomId =
         div(
           [Class('flex items-center gap-2')],
           [
-            label([For(ROOM_ID_INPUT_ID)], ['Enter room ID (or "exit" to go back): ']),
+            label(
+              [For(ROOM_ID_INPUT_ID)],
+              ['Enter room ID (or "exit" to go back): '],
+            ),
             div(
               [Class('flex items-center gap-2 flex-1')],
               [

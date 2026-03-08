@@ -9,7 +9,10 @@ export const update = (
   M.value(message).pipe(
     M.tagsExhaustive({
       GotSettingsMessage: ({ message }) => {
-        const [nextSettings, commands] = Settings.update(model.settings, message)
+        const [nextSettings, commands] = Settings.update(
+          model.settings,
+          message,
+        )
 
         const mappedCommands = Array.map(
           commands,

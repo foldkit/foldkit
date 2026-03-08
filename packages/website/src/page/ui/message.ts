@@ -5,9 +5,12 @@ import { m } from 'foldkit/message'
 export const GotComboboxDemoMessage = m('GotComboboxDemoMessage', {
   message: Ui.Combobox.Message,
 })
-export const GotComboboxNullableDemoMessage = m('GotComboboxNullableDemoMessage', {
-  message: Ui.Combobox.Message,
-})
+export const GotComboboxNullableDemoMessage = m(
+  'GotComboboxNullableDemoMessage',
+  {
+    message: Ui.Combobox.Message,
+  },
+)
 export const GotComboboxMultiDemoMessage = m('GotComboboxMultiDemoMessage', {
   message: Ui.Combobox.Message,
 })
@@ -41,12 +44,18 @@ export const GotMenuAnimatedDemoMessage = m('GotMenuAnimatedDemoMessage', {
 export const GotPopoverBasicDemoMessage = m('GotPopoverBasicDemoMessage', {
   message: Ui.Popover.Message,
 })
-export const GotPopoverAnimatedDemoMessage = m('GotPopoverAnimatedDemoMessage', {
-  message: Ui.Popover.Message,
-})
-export const GotVerticalRadioGroupDemoMessage = m('GotVerticalRadioGroupDemoMessage', {
-  message: Ui.RadioGroup.Message,
-})
+export const GotPopoverAnimatedDemoMessage = m(
+  'GotPopoverAnimatedDemoMessage',
+  {
+    message: Ui.Popover.Message,
+  },
+)
+export const GotVerticalRadioGroupDemoMessage = m(
+  'GotVerticalRadioGroupDemoMessage',
+  {
+    message: Ui.RadioGroup.Message,
+  },
+)
 export const GotHorizontalRadioGroupDemoMessage = m(
   'GotHorizontalRadioGroupDemoMessage',
   {

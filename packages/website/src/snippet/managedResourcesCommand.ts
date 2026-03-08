@@ -25,5 +25,7 @@ const takePhoto = (): Command<
 
     return TookPhoto({ width: bitmap.width, height: bitmap.height })
   }).pipe(
-    Effect.catchTag('ResourceNotAvailable', () => Effect.succeed(CameraUnavailable())),
+    Effect.catchTag('ResourceNotAvailable', () =>
+      Effect.succeed(CameraUnavailable()),
+    ),
   )

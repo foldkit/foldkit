@@ -11,7 +11,11 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../prose'
-import { comingFromReactRouter, coreCounterExampleRouter, examplesRouter } from '../route'
+import {
+  comingFromReactRouter,
+  coreCounterExampleRouter,
+  examplesRouter,
+} from '../route'
 import { type CopiedSnippets, codeBlock } from '../view/codeBlock'
 import { comparisonTable } from '../view/table'
 

@@ -2,7 +2,12 @@ import type { Html } from 'foldkit/html'
 
 import { Class, InnerHTML, div } from '../../html'
 import type { TableOfContentsEntry } from '../../main'
-import { inlineCode, pageTitle, para, tableOfContentsEntryToHeader } from '../../prose'
+import {
+  inlineCode,
+  pageTitle,
+  para,
+  tableOfContentsEntryToHeader,
+} from '../../prose'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
@@ -12,7 +17,9 @@ const overviewHeader: TableOfContentsEntry = {
   text: 'Overview',
 }
 
-export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [overviewHeader]
+export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
+  overviewHeader,
+]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(

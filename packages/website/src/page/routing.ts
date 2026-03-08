@@ -3,7 +3,13 @@ import { Html } from 'foldkit/html'
 import { Class, InnerHTML, div, li, ul } from '../html'
 import { Link } from '../link'
 import type { TableOfContentsEntry } from '../main'
-import { inlineCode, link, pageTitle, para, tableOfContentsEntryToHeader } from '../prose'
+import {
+  inlineCode,
+  link,
+  pageTitle,
+  para,
+  tableOfContentsEntryToHeader,
+} from '../prose'
 import * as Snippets from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 
@@ -114,7 +120,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         '. Each route variant carries the data extracted from the URL.',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.routingDefineRoutesHighlighted)], []),
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.routingDefineRoutesHighlighted),
+          ],
+          [],
+        ),
         Snippets.routingDefineRoutesRaw,
         'Copy route definitions to clipboard',
         copiedSnippets,
@@ -126,7 +138,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           li([], [inlineCode('HomeRoute'), ' — no parameters']),
           li(
             [],
-            [inlineCode('PersonRoute'), ' — holds a ', inlineCode('personId: number')],
+            [
+              inlineCode('PersonRoute'),
+              ' — holds a ',
+              inlineCode('personId: number'),
+            ],
           ),
           li(
             [],
@@ -151,7 +167,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Routers are built by composing small primitives. Each primitive is a biparser that handles one part of the URL.',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.routingBuildRoutersHighlighted)], []),
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.routingBuildRoutersHighlighted),
+          ],
+          [],
+        ),
         Snippets.routingBuildRoutersRaw,
         'Copy router definitions to clipboard',
         copiedSnippets,
@@ -169,10 +191,25 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
               inlineCode('people'),
             ],
           ),
-          li([], [inlineCode("int('personId')"), ' — captures an integer parameter']),
-          li([], [inlineCode("string('name')"), ' — captures a string parameter']),
-          li([], [inlineCode('slash(...)'), ' — chains path segments together']),
-          li([], [inlineCode('Route.query(Schema)'), ' — adds query parameter parsing']),
+          li(
+            [],
+            [inlineCode("int('personId')"), ' — captures an integer parameter'],
+          ),
+          li(
+            [],
+            [inlineCode("string('name')"), ' — captures a string parameter'],
+          ),
+          li(
+            [],
+            [inlineCode('slash(...)'), ' — chains path segments together'],
+          ),
+          li(
+            [],
+            [
+              inlineCode('Route.query(Schema)'),
+              ' — adds query parameter parsing',
+            ],
+          ),
           li(
             [],
             [
@@ -189,7 +226,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' and create a parser with a fallback for unmatched URLs.',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.routingParsingHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.routingParsingHighlighted)],
+          [],
+        ),
         Snippets.routingParsingRaw,
         'Copy URL parsing example to clipboard',
         copiedSnippets,
@@ -209,7 +249,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         "Here's where the biparser pays off. The same router that parses URLs can build them:",
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.routingBuildingHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.routingBuildingHighlighted)],
+          [],
+        ),
         Snippets.routingBuildingRaw,
         'Copy URL building example to clipboard',
         copiedSnippets,
@@ -229,7 +272,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' for validation. This gives you type-safe parsing, optional parameters, and automatic encoding/decoding.',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.routingQueryParamsHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.routingQueryParamsHighlighted)],
+          [],
+        ),
         Snippets.routingQueryParamsRaw,
         'Copy query parameters example to clipboard',
         copiedSnippets,
@@ -259,7 +305,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ') that different routes are distinct trees that should be fully replaced rather than patched.',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.routingKeyedHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.routingKeyedHighlighted)],
+          [],
+        ),
         Snippets.routingKeyedRaw,
         'Copy keyed route example to clipboard',
         copiedSnippets,
@@ -278,7 +327,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Foldkit provides navigation commands for programmatically changing the URL. These are returned from your update function like any other command.',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.navigationCommandsHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.navigationCommandsHighlighted)],
+          [],
+        ),
         Snippets.navigationCommandsRaw,
         'Copy navigation commands to clipboard',
         copiedSnippets,
@@ -289,7 +341,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         [
           li(
             [],
-            [inlineCode('Navigation.pushUrl'), ' — adds a new entry to browser history'],
+            [
+              inlineCode('Navigation.pushUrl'),
+              ' — adds a new entry to browser history',
+            ],
           ),
           li(
             [],
@@ -309,7 +364,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           ),
           li(
             [],
-            [inlineCode('Navigation.load'), ' — full page load (for external URLs)'],
+            [
+              inlineCode('Navigation.load'),
+              ' — full page load (for external URLs)',
+            ],
           ),
         ],
       ),
@@ -324,7 +382,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       highlightedCodeBlock(
         div(
-          [Class('text-sm'), InnerHTML(Snippets.navigationHandleUrlRequestHighlighted)],
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.navigationHandleUrlRequestHighlighted),
+          ],
           [],
         ),
         Snippets.navigationHandleUrlRequestRaw,

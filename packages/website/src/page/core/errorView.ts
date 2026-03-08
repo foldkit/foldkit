@@ -20,7 +20,9 @@ const overviewHeader: TableOfContentsEntry = {
   text: 'Overview',
 }
 
-export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [overviewHeader]
+export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
+  overviewHeader,
+]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
@@ -49,7 +51,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ':',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.errorViewCustomHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.errorViewCustomHighlighted)],
+          [],
+        ),
         Snippets.errorViewCustomRaw,
         'Custom errorView example',
         copiedSnippets,

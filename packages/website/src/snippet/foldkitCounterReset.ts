@@ -30,7 +30,10 @@ const SubscriptionDeps = S.Struct({
   tick: S.Struct({ isAutoCounting: S.Boolean }),
 })
 
-const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<Model, Message>({
+const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
+  Model,
+  Message
+>({
   tick: {
     modelToDependencies: model => ({
       isAutoCounting: model.isAutoCounting,

@@ -84,7 +84,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'A child module has its own Model, Message, and update. Here\u2019s a Settings module that manages theme preferences:',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.submodelChildModuleHighlighted)], []),
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.submodelChildModuleHighlighted),
+          ],
+          [],
+        ),
         Snippets.submodelChildModuleRaw,
         'Copy child module to clipboard',
         copiedSnippets,
@@ -98,9 +104,17 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'The parent has three jobs: embed the child\u2019s Model, wrap the child\u2019s Messages, and delegate to the child\u2019s update.',
       ),
       tableOfContentsEntryToHeader(embeddingTheModelHeader),
-      para('The child\u2019s Model becomes a field in the parent\u2019s Model:'),
+      para(
+        'The child\u2019s Model becomes a field in the parent\u2019s Model:',
+      ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.submodelParentModelHighlighted)], []),
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.submodelParentModelHighlighted),
+          ],
+          [],
+        ),
         Snippets.submodelParentModelRaw,
         'Copy parent model to clipboard',
         copiedSnippets,
@@ -118,7 +132,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       highlightedCodeBlock(
         div(
-          [Class('text-sm'), InnerHTML(Snippets.submodelWrapperMessageHighlighted)],
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.submodelWrapperMessageHighlighted),
+          ],
           [],
         ),
         Snippets.submodelWrapperMessageRaw,
@@ -134,7 +151,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       highlightedCodeBlock(
         div(
-          [Class('text-sm'), InnerHTML(Snippets.submodelUpdateDelegationHighlighted)],
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.submodelUpdateDelegationHighlighted),
+          ],
           [],
         ),
         Snippets.submodelUpdateDelegationRaw,

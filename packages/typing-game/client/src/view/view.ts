@@ -5,7 +5,19 @@ import { GotHomeMessage, GotRoomMessage } from '../message'
 import { Model } from '../model'
 import { Home, Room } from '../page'
 import { NotFoundRoute } from '../route'
-import { Class, Href, a, div, footer, h1, keyed, main, p, section, span } from './html'
+import {
+  Class,
+  Href,
+  a,
+  div,
+  footer,
+  h1,
+  keyed,
+  main,
+  p,
+  section,
+  span,
+} from './html'
 
 export const view = (model: Model): Html => {
   const content = M.value(model.route).pipe(
@@ -31,7 +43,10 @@ export const view = (model: Model): Html => {
   return div(
     [Class('min-h-screen flex flex-col p-16')],
     [
-      main([Class('flex-1 flex flex-col')], [keyed('div')(model.route._tag, [], [content])]),
+      main(
+        [Class('flex-1 flex flex-col')],
+        [keyed('div')(model.route._tag, [], [content])],
+      ),
       footerElement,
     ],
   )

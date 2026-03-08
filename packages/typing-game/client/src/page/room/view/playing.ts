@@ -53,7 +53,11 @@ const gameTextWithProgress = (
 ): Html =>
   div(
     [Class('whitespace-pre-wrap')],
-    pipe(gameText, Str.split(''), Array.map(char(userGameText, maybeWrongCharIndex))),
+    pipe(
+      gameText,
+      Str.split(''),
+      Array.map(char(userGameText, maybeWrongCharIndex)),
+    ),
   )
 
 const char =
@@ -101,11 +105,14 @@ export const playing = (
     [
       h3(
         [Class('uppercase')],
-        [`[Time remaining] ${secondsLeft} ${secondsLeft === 1 ? 'second' : 'seconds'}`],
+        [
+          `[Time remaining] ${secondsLeft} ${secondsLeft === 1 ? 'second' : 'seconds'}`,
+        ],
       ),
       Option.match(maybeGameText, {
         onNone: () => empty,
-        onSome: gameText => typing(gameText, userGameText, maybeWrongCharIndex, toMessage),
+        onSome: gameText =>
+          typing(gameText, userGameText, maybeWrongCharIndex, toMessage),
       }),
     ],
   )

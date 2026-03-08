@@ -47,7 +47,10 @@ export const dialogDemo = (
       [Class('flex gap-3')],
       [
         button(
-          [Class(triggerClassName), OnClick(toDialogMessage(Ui.Dialog.Opened()))],
+          [
+            Class(triggerClassName),
+            OnClick(toDialogMessage(Ui.Dialog.Opened())),
+          ],
           ['Open Dialog'],
         ),
       ],

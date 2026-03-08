@@ -1,5 +1,13 @@
 import * as Shared from '@typing-game/shared'
-import { Array, Effect, Match as M, Number, Option, String as Str, pipe } from 'effect'
+import {
+  Array,
+  Effect,
+  Match as M,
+  Number,
+  Option,
+  String as Str,
+  pipe,
+} from 'effect'
 import { Task } from 'foldkit'
 import { Command } from 'foldkit/command'
 import { pushUrl } from 'foldkit/navigation'
@@ -54,9 +62,17 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         const nextCharsTyped = model.charsTyped + newCharsTyped
 
         const commands = pipe(
-          Option.all([model.maybeSession, Option.flatMap(maybeRoom, ({ maybeGame }) => maybeGame)]),
+          Option.all([
+            model.maybeSession,
+            Option.flatMap(maybeRoom, ({ maybeGame }) => maybeGame),
+          ]),
           Option.map(([session, game]) =>
-            updatePlayerProgress(session.player.id, game.id, userGameText, nextCharsTyped),
+            updatePlayerProgress(
+              session.player.id,
+              game.id,
+              userGameText,
+              nextCharsTyped,
+            ),
           ),
         )
 
@@ -71,7 +87,12 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       BlurredRoomPageUsernameInput: () => [
         model,
-        [Task.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(Effect.ignore, Effect.as(NoOp()))],
+        [
+          Task.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(
+            Effect.ignore,
+            Effect.as(NoOp()),
+          ),
+        ],
       ],
 
       ChangedRoomPageUsername: ({ value }) => [
@@ -95,7 +116,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         return [model, []]
       },
 
-      RequestedStartGame: ({ roomId, playerId }) => [model, [startGame(roomId, playerId)]],
+      RequestedStartGame: ({ roomId, playerId }) => [
+        model,
+        [startGame(roomId, playerId)],
+      ],
 
       LoadedSession: ({ maybeSession }) => [
         evo(model, {
@@ -108,7 +132,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         const maybeFocusRoomUsernameInput = Option.match(model.maybeSession, {
           onNone: () =>
             Option.some(
-              Task.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(Effect.ignore, Effect.as(NoOp())),
+              Task.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(
+                Effect.ignore,
+                Effect.as(NoOp()),
+              ),
             ),
           onSome: () => Option.none(),
         })
@@ -123,12 +150,16 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       FailedRoomFetch: () => [
         evo(model, {
-          roomRemoteData: () => RoomRemoteData.Error({ error: 'Room not found' }),
+          roomRemoteData: () =>
+            RoomRemoteData.Error({ error: 'Room not found' }),
         }),
         [],
       ],
 
-      ClickedCopyRoomId: ({ roomId }) => [model, [copyRoomIdToClipboard(roomId)]],
+      ClickedCopyRoomId: ({ roomId }) => [
+        model,
+        [copyRoomIdToClipboard(roomId)],
+      ],
 
       SucceededCopyRoomId: () =>
         model.isRoomIdCopyIndicatorVisible
@@ -149,7 +180,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       TickedExitCountdown: () => {
         const nextSecondsLeft = Number.decrement(model.exitCountdownSecondsLeft)
-        const maybeTick = optionWhen(nextSecondsLeft > 0, () => exitCountdownTick)
+        const maybeTick = optionWhen(
+          nextSecondsLeft > 0,
+          () => exitCountdownTick,
+        )
 
         return [
           evo(model, {
@@ -187,7 +221,11 @@ const handleKeyPressed =
       M.orElse(() => [model, []]),
     )
 
-const whenWaiting = (model: Model, key: string, room: Shared.Room): UpdateReturn =>
+const whenWaiting = (
+  model: Model,
+  key: string,
+  room: Shared.Room,
+): UpdateReturn =>
   M.value(key).pipe(
     withUpdateReturn,
     M.when('Backspace', () => leaveRoom(model)),
@@ -195,7 +233,11 @@ const whenWaiting = (model: Model, key: string, room: Shared.Room): UpdateReturn
     M.orElse(() => [model, []]),
   )
 
-const whenFinished = (model: Model, key: string, room: Shared.Room): UpdateReturn =>
+const whenFinished = (
+  model: Model,
+  key: string,
+  room: Shared.Room,
+): UpdateReturn =>
   M.value(key).pipe(
     withUpdateReturn,
     M.when('Backspace', () =>
@@ -217,7 +259,9 @@ const handleStartGame = (model: Model, room: Shared.Room) => (): UpdateReturn =>
   Option.match(model.maybeSession, {
     onSome: session => {
       const isHost = session.player.id === room.hostId
-      const maybeStartGame = optionWhen(isHost, () => startGame(room.id, session.player.id))
+      const maybeStartGame = optionWhen(isHost, () =>
+        startGame(room.id, session.player.id),
+      )
       return [model, Array.fromOption(maybeStartGame)]
     },
     onNone: () => [model, []],

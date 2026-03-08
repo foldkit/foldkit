@@ -1,7 +1,16 @@
 import { Array } from 'effect'
 import { Html } from 'foldkit/html'
 
-import { AriaHidden, Class, DataAttribute, InnerHTML, div, keyed, p, span } from '../html'
+import {
+  AriaHidden,
+  Class,
+  DataAttribute,
+  InnerHTML,
+  div,
+  keyed,
+  p,
+  span,
+} from '../html'
 
 export const sectionLabel = (label: string): Html =>
   p(
@@ -71,7 +80,11 @@ export const phaseIndicatorView = (
     [
       sectionLabel('Phase'),
       div(
-        [Class('flex items-center gap-2 text-xs font-semibold uppercase tracking-wider')],
+        [
+          Class(
+            'flex items-center gap-2 text-xs font-semibold uppercase tracking-wider',
+          ),
+        ],
         [
           div([Class('w-2 h-2 rounded-full bg-current ' + colorClass)], []),
           span([Class(colorClass)], [label]),
@@ -95,7 +108,12 @@ export const codePanelView = (
       ),
       DataAttribute(dataAttributeName, phase),
     ],
-    [div([Class('demo-code-scroll overflow-auto')], [div([InnerHTML(html)], [])])],
+    [
+      div(
+        [Class('demo-code-scroll overflow-auto')],
+        [div([InnerHTML(html)], [])],
+      ),
+    ],
   )
 
 export const demoViewShell = (codePanel: Html, appPanel: Html): Html =>

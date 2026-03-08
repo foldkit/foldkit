@@ -5,7 +5,17 @@ import { Html, createKeyedLazy } from 'foldkit/html'
 import { Disclosure } from 'foldkit/ui'
 import highlights from 'virtual:api-highlights'
 
-import { AriaLabel, Class, Href, Id, InnerHTML, a, div, h3, span } from '../../html'
+import {
+  AriaLabel,
+  Class,
+  Href,
+  Id,
+  InnerHTML,
+  a,
+  div,
+  h3,
+  span,
+} from '../../html'
 import { Icon } from '../../icon'
 import type { Message as ParentMessage } from '../../main'
 import { heading, headingLinkButton, pageTitle } from '../../prose'
@@ -30,7 +40,9 @@ const sourceLink = (
     onSome: url => [
       a(
         [
-          Class('text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'),
+          Class(
+            'text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300',
+          ),
           AriaLabel(`View source for ${name}`),
           Href(url),
         ],
@@ -90,7 +102,9 @@ const functionView = (
   )
 }
 
-const allParameterDescriptions = (apiFunction: ApiFunction): ReadonlyArray<Html> =>
+const allParameterDescriptions = (
+  apiFunction: ApiFunction,
+): ReadonlyArray<Html> =>
   pipe(
     Array.flatMap(apiFunction.signatures, signature => signature.parameters),
     Array.dedupeWith((a, b) => a.name === b.name),
@@ -103,7 +117,10 @@ const allParameterDescriptions = (apiFunction: ApiFunction): ReadonlyArray<Html>
               [Class('font-normal text-gray-900 dark:text-gray-200')],
               [parameter.name],
             ),
-            span([Class('text-gray-500 dark:text-gray-400')], [` — ${description}`]),
+            span(
+              [Class('text-gray-500 dark:text-gray-400')],
+              [` — ${description}`],
+            ),
           ],
         ),
       ),
@@ -112,7 +129,11 @@ const allParameterDescriptions = (apiFunction: ApiFunction): ReadonlyArray<Html>
       onEmpty: () => [],
       onNonEmpty: items => [
         div(
-          [Class('mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-sm')],
+          [
+            Class(
+              'mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-sm',
+            ),
+          ],
           items,
         ),
       ],
@@ -161,10 +182,13 @@ const signaturesView = (
       ],
     }),
     onNone: () => ({
-      wrapperClass: classNames('bg-cream dark:bg-gray-800 p-4 font-mono text-sm', {
-        rounded: !isInDisclosure,
-        'rounded-b-lg rounded-t-none': isInDisclosure,
-      }),
+      wrapperClass: classNames(
+        'bg-cream dark:bg-gray-800 p-4 font-mono text-sm',
+        {
+          rounded: !isInDisclosure,
+          'rounded-b-lg rounded-t-none': isInDisclosure,
+        },
+      ),
       content: [
         ...descriptionCommentFallback(apiFunction.description),
         ...Array.flatMap(apiFunction.signatures, signature =>
@@ -177,7 +201,8 @@ const signaturesView = (
   return maybeDisclosure !== undefined
     ? Ui.Disclosure.view({
         model: maybeDisclosure,
-        toMessage: message => toMessage(GotDisclosureMessage({ id: key, message })),
+        toMessage: message =>
+          toMessage(GotDisclosureMessage({ id: key, message })),
         buttonClassName: disclosureButtonClassName,
         buttonContent: div(
           [Class('flex items-center justify-between w-full')],
@@ -203,7 +228,10 @@ const parameterDescriptions = (
               [Class('font-normal text-gray-900 dark:text-gray-200')],
               [parameter.name],
             ),
-            span([Class('text-gray-500 dark:text-gray-400')], [` — ${description}`]),
+            span(
+              [Class('text-gray-500 dark:text-gray-400')],
+              [` — ${description}`],
+            ),
           ],
         ),
       ),
@@ -212,17 +240,25 @@ const parameterDescriptions = (
       onEmpty: () => [],
       onNonEmpty: items => [
         div(
-          [Class('mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-sm')],
+          [
+            Class(
+              'mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-sm',
+            ),
+          ],
           items,
         ),
       ],
     }),
   )
 
-const punctuation = (text: string): Html => span([Class('text-gray-500')], [text])
+const punctuation = (text: string): Html =>
+  span([Class('text-gray-500')], [text])
 
 const parameterView = (parameter: ApiParameter): ReadonlyArray<Html> => [
-  span([Class('font-normal text-gray-900 dark:text-gray-200')], [parameter.name]),
+  span(
+    [Class('font-normal text-gray-900 dark:text-gray-200')],
+    [parameter.name],
+  ),
   ...(parameter.isOptional ? [punctuation('?')] : []),
   punctuation(': '),
   span([Class('whitespace-pre-wrap')], [parameter.type]),
@@ -279,7 +315,10 @@ const signatureChildrenFallback = (signature: {
   ...Array.match(signature.typeParameters, {
     onEmpty: () => [],
     onNonEmpty: typeParameters => [
-      div([Class('text-gray-500 mb-2')], [`<${Array.join(typeParameters, ', ')}>`]),
+      div(
+        [Class('text-gray-500 mb-2')],
+        [`<${Array.join(typeParameters, ', ')}>`],
+      ),
     ],
   }),
   ...parameterListView(signature.parameters),
@@ -345,7 +384,10 @@ const typeView = (moduleName: string, type: ApiType): Html => {
                 'block bg-gray-50 dark:bg-gray-800 rounded p-4 font-mono text-sm whitespace-pre-wrap',
               ),
             ],
-            [...descriptionCommentFallback(type.description), type.typeDefinition],
+            [
+              ...descriptionCommentFallback(type.description),
+              type.typeDefinition,
+            ],
           ),
         ],
       }),
@@ -353,7 +395,10 @@ const typeView = (moduleName: string, type: ApiType): Html => {
   )
 }
 
-const interfaceView = (moduleName: string, apiInterface: ApiInterface): Html => {
+const interfaceView = (
+  moduleName: string,
+  apiInterface: ApiInterface,
+): Html => {
   const id = scopedId('interface', moduleName, apiInterface.name)
   const maybeHighlighted = Record.get(highlights, id)
 
@@ -482,7 +527,10 @@ const variableView = (moduleName: string, variable: ApiVariable): Html => {
                 'block bg-gray-50 dark:bg-gray-800 rounded p-4 font-mono text-sm whitespace-pre-wrap',
               ),
             ],
-            [...descriptionCommentFallback(variable.description), variable.type],
+            [
+              ...descriptionCommentFallback(variable.description),
+              variable.type,
+            ],
           ),
         ],
       }),

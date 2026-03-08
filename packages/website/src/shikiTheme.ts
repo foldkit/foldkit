@@ -26,7 +26,12 @@ export const shikiDarkTheme: ThemeRegistration = {
       settings: { foreground: '#BCDF59' },
     },
     {
-      scope: ['constant', 'constant.numeric', 'variable.language', 'support.constant'],
+      scope: [
+        'constant',
+        'constant.numeric',
+        'variable.language',
+        'support.constant',
+      ],
       settings: { foreground: '#49CAE4' },
     },
     {
@@ -89,7 +94,12 @@ export const shikiLightTheme: ThemeRegistration = {
       settings: { foreground: '#3d6b06' },
     },
     {
-      scope: ['constant', 'constant.numeric', 'variable.language', 'support.constant'],
+      scope: [
+        'constant',
+        'constant.numeric',
+        'variable.language',
+        'support.constant',
+      ],
       settings: { foreground: '#0e7490' },
     },
     {

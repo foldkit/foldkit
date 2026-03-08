@@ -19,7 +19,9 @@ const overviewHeader: TableOfContentsEntry = {
   text: 'Overview',
 }
 
-export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [overviewHeader]
+export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
+  overviewHeader,
+]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
@@ -44,7 +46,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' branches silently swallowing new Messages (unless you explicitly opt into a catch-all).',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.counterUpdateHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.counterUpdateHighlighted)],
+          [],
+        ),
         Snippets.counterUpdateRaw,
         'Copy update example to clipboard',
         copiedSnippets,

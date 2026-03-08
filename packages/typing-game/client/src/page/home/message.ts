@@ -10,8 +10,14 @@ export const ChangedRoomId = m('ChangedRoomId', { value: S.String })
 export const BlurredRoomIdInput = m('BlurredRoomIdInput')
 export const ClickedCreateRoom = m('ClickedCreateRoom')
 export const ClickedJoinRoom = m('ClickedJoinRoom')
-export const CreatedRoom = m('CreatedRoom', { roomId: S.String, player: Shared.Player })
-export const JoinedRoom = m('JoinedRoom', { roomId: S.String, player: Shared.Player })
+export const CreatedRoom = m('CreatedRoom', {
+  roomId: S.String,
+  player: Shared.Player,
+})
+export const JoinedRoom = m('JoinedRoom', {
+  roomId: S.String,
+  player: Shared.Player,
+})
 export const FailedRoom = m('FailedRoom', { error: S.String })
 export const PressedKey = m('PressedKey', { key: S.String })
 

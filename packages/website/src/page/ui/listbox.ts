@@ -163,7 +163,8 @@ export const multiSelectDemo = (
   const { selectedItems } = listboxModel
   const buttonLabel = Array.match(selectedItems, {
     onEmpty: () => 'Select Bluths',
-    onNonEmpty: items => (items.length === 1 ? items[0] : `${items.length} selected`),
+    onNonEmpty: items =>
+      items.length === 1 ? items[0] : `${items.length} selected`,
   })
 
   return [
@@ -173,7 +174,8 @@ export const multiSelectDemo = (
       [
         Ui.Listbox.Multi.view({
           model: listboxModel,
-          toMessage: message => toMessage(GotListboxMultiDemoMessage({ message })),
+          toMessage: message =>
+            toMessage(GotListboxMultiDemoMessage({ message })),
           anchor: LISTBOX_ANCHOR,
           items: LISTBOX_ITEMS,
           itemToConfig: item => ({
@@ -218,7 +220,8 @@ export const groupedDemo = (
       [
         Ui.Listbox.view({
           model: listboxModel,
-          toMessage: message => toMessage(GotListboxGroupedDemoMessage({ message })),
+          toMessage: message =>
+            toMessage(GotListboxGroupedDemoMessage({ message })),
           anchor: LISTBOX_ANCHOR,
           items: GROUPED_CHARACTERS,
           itemToValue: characterName,

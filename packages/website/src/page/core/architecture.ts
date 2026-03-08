@@ -89,8 +89,14 @@ export const view = (): Html =>
       comparisonTable(
         ['Your App', 'The Restaurant'],
         [
-          [['Model'], ["The waiter's notebook \u2014 the current state of everything"]],
-          [['Message'], ['Something that happens: "table 3 asked for the check"']],
+          [
+            ['Model'],
+            ["The waiter's notebook \u2014 the current state of everything"],
+          ],
+          [
+            ['Message'],
+            ['Something that happens: "table 3 asked for the check"'],
+          ],
           [
             ['update'],
             [
@@ -104,8 +110,14 @@ export const view = (): Html =>
             ],
           ],
           [['Command'], ['A slip for the kitchen: "prepare the salmon"']],
-          [['Subscription'], ['A standing order: "keep the coffee coming for table 5"']],
-          [['Runtime'], ['The kitchen \u2014 does the work, reports back when done']],
+          [
+            ['Subscription'],
+            ['A standing order: "keep the coffee coming for table 5"'],
+          ],
+          [
+            ['Runtime'],
+            ['The kitchen \u2014 does the work, reports back when done'],
+          ],
         ],
       ),
       para(

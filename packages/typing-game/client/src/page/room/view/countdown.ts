@@ -3,7 +3,10 @@ import { Html } from 'foldkit/html'
 
 import { Class, div, empty, h3 } from '../../../view/html'
 
-export const countdown = (secondsLeft: number, maybeGameText: Option.Option<string>): Html =>
+export const countdown = (
+  secondsLeft: number,
+  maybeGameText: Option.Option<string>,
+): Html =>
   div(
     [Class('space-y-6')],
     [

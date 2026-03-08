@@ -50,10 +50,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotComboboxNullableDemoMessage: ({ message }) => {
-        const [nextComboboxNullableDemo, comboboxNullableCommands] = Ui.Combobox.update(
-          model.comboboxNullableDemo,
-          message,
-        )
+        const [nextComboboxNullableDemo, comboboxNullableCommands] =
+          Ui.Combobox.update(model.comboboxNullableDemo, message)
 
         return [
           evo(model, {
@@ -66,10 +64,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotComboboxMultiDemoMessage: ({ message }) => {
-        const [nextComboboxMultiDemo, comboboxMultiCommands] = Ui.Combobox.Multi.update(
-          model.comboboxMultiDemo,
-          message,
-        )
+        const [nextComboboxMultiDemo, comboboxMultiCommands] =
+          Ui.Combobox.Multi.update(model.comboboxMultiDemo, message)
 
         return [
           evo(model, {
@@ -90,7 +86,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             comboboxSelectOnFocusDemo: () => nextComboboxSelectOnFocusDemo,
           }),
           comboboxSelectOnFocusCommands.map(
-            Effect.map(message => GotComboboxSelectOnFocusDemoMessage({ message })),
+            Effect.map(message =>
+              GotComboboxSelectOnFocusDemoMessage({ message }),
+            ),
           ),
         ]
       },
@@ -105,7 +103,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           evo(model, {
             dialogDemo: () => nextDialogDemo,
           }),
-          dialogCommands.map(Effect.map(message => GotDialogDemoMessage({ message }))),
+          dialogCommands.map(
+            Effect.map(message => GotDialogDemoMessage({ message })),
+          ),
         ]
       },
 
@@ -135,15 +135,15 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           evo(model, {
             listboxDemo: () => nextListboxDemo,
           }),
-          listboxCommands.map(Effect.map(message => GotListboxDemoMessage({ message }))),
+          listboxCommands.map(
+            Effect.map(message => GotListboxDemoMessage({ message })),
+          ),
         ]
       },
 
       GotListboxMultiDemoMessage: ({ message }) => {
-        const [nextListboxMultiDemo, listboxMultiCommands] = Ui.Listbox.Multi.update(
-          model.listboxMultiDemo,
-          message,
-        )
+        const [nextListboxMultiDemo, listboxMultiCommands] =
+          Ui.Listbox.Multi.update(model.listboxMultiDemo, message)
 
         return [
           evo(model, {
@@ -156,10 +156,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotListboxGroupedDemoMessage: ({ message }) => {
-        const [nextListboxGroupedDemo, listboxGroupedCommands] = Ui.Listbox.update(
-          model.listboxGroupedDemo,
-          message,
-        )
+        const [nextListboxGroupedDemo, listboxGroupedCommands] =
+          Ui.Listbox.update(model.listboxGroupedDemo, message)
 
         return [
           evo(model, {
@@ -220,10 +218,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       GotPopoverAnimatedDemoMessage: ({ message }) => {
-        const [nextPopoverAnimatedDemo, popoverAnimatedCommands] = Ui.Popover.update(
-          model.popoverAnimatedDemo,
-          message,
-        )
+        const [nextPopoverAnimatedDemo, popoverAnimatedCommands] =
+          Ui.Popover.update(model.popoverAnimatedDemo, message)
 
         return [
           evo(model, {
@@ -244,7 +240,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             verticalRadioGroupDemo: () => nextVerticalRadioGroupDemo,
           }),
           verticalRadioGroupCommands.map(
-            Effect.map(message => GotVerticalRadioGroupDemoMessage({ message })),
+            Effect.map(message =>
+              GotVerticalRadioGroupDemoMessage({ message }),
+            ),
           ),
         ]
       },
@@ -258,7 +256,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             horizontalRadioGroupDemo: () => nextHorizontalRadioGroupDemo,
           }),
           horizontalRadioGroupCommands.map(
-            Effect.map(message => GotHorizontalRadioGroupDemoMessage({ message })),
+            Effect.map(message =>
+              GotHorizontalRadioGroupDemoMessage({ message }),
+            ),
           ),
         ]
       },
@@ -273,7 +273,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           evo(model, {
             switchDemo: () => nextSwitchDemo,
           }),
-          switchCommands.map(Effect.map(message => GotSwitchDemoMessage({ message }))),
+          switchCommands.map(
+            Effect.map(message => GotSwitchDemoMessage({ message })),
+          ),
         ]
       },
 

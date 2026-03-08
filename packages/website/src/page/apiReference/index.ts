@@ -12,7 +12,9 @@ export { update } from './update'
 export { view } from './view'
 export type { TypeDocJson } from './typedoc'
 
-export const apiReference = parseTypedocJson(S.decodeUnknownSync(TypeDocJson)(apiJson))
+export const apiReference = parseTypedocJson(
+  S.decodeUnknownSync(TypeDocJson)(apiJson),
+)
 
 export const modulesBySlug: Record<string, ApiModule> = pipe(
   apiReference.modules,

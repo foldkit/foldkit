@@ -55,7 +55,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' when it should be released.',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.managedResourcesHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.managedResourcesHighlighted)],
+          [],
+        ),
         Snippets.managedResourcesRaw,
         'Copy managed resources example to clipboard',
         copiedSnippets,
@@ -93,7 +96,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       highlightedCodeBlock(
         div(
-          [Class('text-sm'), InnerHTML(Snippets.managedResourcesCommandHighlighted)],
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.managedResourcesCommandHighlighted),
+          ],
           [],
         ),
         Snippets.managedResourcesCommandRaw,

@@ -31,7 +31,9 @@ const update = (model: Model, message: Message) =>
           confirmPassword: confirmPassword =>
             M.value(confirmPassword).pipe(
               M.tag('NotValidated', () => confirmPassword),
-              M.orElse(() => validateConfirmPassword(value, confirmPassword.value)),
+              M.orElse(() =>
+                validateConfirmPassword(value, confirmPassword.value),
+              ),
             ),
         }),
         [],
@@ -39,7 +41,8 @@ const update = (model: Model, message: Message) =>
 
       ChangedConfirmPassword: ({ value }) => [
         evo(model, {
-          confirmPassword: () => validateConfirmPassword(model.password.value, value),
+          confirmPassword: () =>
+            validateConfirmPassword(model.password.value, value),
         }),
         [],
       ],

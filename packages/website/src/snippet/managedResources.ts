@@ -10,17 +10,17 @@ const ManagedResourceDeps = S.Struct({
 })
 
 // 3. Wire lifecycle with makeManagedResources
-const managedResources = ManagedResource.makeManagedResources(ManagedResourceDeps)<
-  Model,
-  Message
->({
+const managedResources = ManagedResource.makeManagedResources(
+  ManagedResourceDeps,
+)<Model, Message>({
   camera: {
     resource: CameraStream,
     modelToMaybeRequirements: model =>
       pipe(
         model.callState,
         Option.liftPredicate(
-          (callState): callState is typeof InCall.Type => callState._tag === 'InCall',
+          (callState): callState is typeof InCall.Type =>
+            callState._tag === 'InCall',
         ),
         Option.map(callState => ({
           facingMode: callState.facingMode,

@@ -104,7 +104,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         '-backed cache where each key gets its own independent memoization slot. This is designed for lists where individual items change independently:',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.createKeyedLazyHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.createKeyedLazyHighlighted)],
+          [],
+        ),
         Snippets.createKeyedLazyRaw,
         'Copy createKeyedLazy example to clipboard',
         copiedSnippets,

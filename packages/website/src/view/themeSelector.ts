@@ -1,7 +1,15 @@
 import classNames from 'classnames'
 import { Html } from 'foldkit/html'
 
-import { AriaLabel, AriaPressed, Class, OnClick, Role, button, div } from '../html'
+import {
+  AriaLabel,
+  AriaPressed,
+  Class,
+  OnClick,
+  Role,
+  button,
+  div,
+} from '../html'
 import { Icon } from '../icon'
 import { SelectedThemePreference, type ThemePreference } from '../main'
 
@@ -15,14 +23,24 @@ export const themeSelector = (activePreference: ThemePreference): Html =>
       ),
     ],
     [
-      themeSelectorButton('Light', activePreference, Icon.sun('w-4 h-4'), 'Light mode'),
+      themeSelectorButton(
+        'Light',
+        activePreference,
+        Icon.sun('w-4 h-4'),
+        'Light mode',
+      ),
       themeSelectorButton(
         'System',
         activePreference,
         Icon.computer('w-4 h-4'),
         'System mode',
       ),
-      themeSelectorButton('Dark', activePreference, Icon.moon('w-4 h-4'), 'Dark mode'),
+      themeSelectorButton(
+        'Dark',
+        activePreference,
+        Icon.moon('w-4 h-4'),
+        'Dark mode',
+      ),
     ],
   )
 

@@ -84,7 +84,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'When the customer flags the waiter, that\u2019s a Message. In the view, event handlers work the same way \u2014 instead of imperative callbacks that modify state, you pass a Message, or a function that maps an event to a Message.',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.eventHandlingHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.eventHandlingHighlighted)],
+          [],
+        ),
         Snippets.eventHandlingRaw,
         'Copy event handling example to clipboard',
         copiedSnippets,

@@ -29,7 +29,9 @@ export const systemTheme: Subscription<
 
         mediaQuery.addEventListener('change', handler)
 
-        return Effect.sync(() => mediaQuery.removeEventListener('change', handler))
+        return Effect.sync(() =>
+          mediaQuery.removeEventListener('change', handler),
+        )
       }),
       () => isSystemPreference,
     ),

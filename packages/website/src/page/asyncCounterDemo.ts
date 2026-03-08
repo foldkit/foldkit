@@ -141,7 +141,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ChangedDemoResetDuration: ({ seconds }) => [
         evo(model, {
           resetDuration: () => seconds,
-          messageLog: prependToLog(`ChangedResetDuration({ seconds: ${seconds} })`),
+          messageLog: prependToLog(
+            `ChangedResetDuration({ seconds: ${seconds} })`,
+          ),
         }),
         [],
       ],
@@ -173,7 +175,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               evo(model, { phase: () => 'IncrementModel' }),
               [sleepThenAdvance(generation, PHASE_DURATION)],
             ]),
-            M.when('IncrementModel', () => [evo(model, { phase: () => 'Idle' }), []]),
+            M.when('IncrementModel', () => [
+              evo(model, { phase: () => 'Idle' }),
+              [],
+            ]),
             M.when('ResetMessage', () => [
               evo(model, { phase: () => 'ResetUpdate' }),
               [sleepThenAdvance(generation, PHASE_DURATION)],
@@ -206,7 +211,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               }),
               [sleepThenAdvance(generation, PHASE_DURATION)],
             ]),
-            M.when('ResetModel', () => [evo(model, { phase: () => 'Idle' }), []]),
+            M.when('ResetModel', () => [
+              evo(model, { phase: () => 'Idle' }),
+              [],
+            ]),
             M.when('Idle', () => [model, []]),
             M.exhaustive,
           )
@@ -220,8 +228,18 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 const phaseLabel = (phase: AnimationPhase): string =>
   M.value(phase).pipe(
     M.when('Idle', () => 'Idle'),
-    M.whenOr('IncrementMessage', 'ResetMessage', 'ResetCommandMessage', () => 'Message'),
-    M.whenOr('IncrementUpdate', 'ResetUpdate', 'ResetCommandUpdate', () => 'Update'),
+    M.whenOr(
+      'IncrementMessage',
+      'ResetMessage',
+      'ResetCommandMessage',
+      () => 'Message',
+    ),
+    M.whenOr(
+      'IncrementUpdate',
+      'ResetUpdate',
+      'ResetCommandUpdate',
+      () => 'Update',
+    ),
     M.whenOr('IncrementModel', 'ResetModel', () => 'Model'),
     M.when('ResetCommand', () => 'Command'),
     M.exhaustive,
@@ -256,11 +274,19 @@ export const view = (
   toMessage: (message: Message) => ParentMessage,
 ): Html =>
   DemoView.demoViewShell(
-    DemoView.codePanelView('demo-code-panel', 'demo-phase', model.phase, demoCodeHtml),
+    DemoView.codePanelView(
+      'demo-code-panel',
+      'demo-phase',
+      model.phase,
+      demoCodeHtml,
+    ),
     appPanel(model, toMessage),
   )
 
-const appPanel = (model: Model, toMessage: (message: Message) => ParentMessage): Html =>
+const appPanel = (
+  model: Model,
+  toMessage: (message: Message) => ParentMessage,
+): Html =>
   div(
     [Class('relative')],
     [
@@ -271,7 +297,10 @@ const appPanel = (model: Model, toMessage: (message: Message) => ParentMessage):
           DemoView.modelStateView([
             DemoView.modelStateField('count', String(model.count)),
             DemoView.modelStateField('isResetting', String(model.isResetting)),
-            DemoView.modelStateField('resetDuration', String(model.resetDuration)),
+            DemoView.modelStateField(
+              'resetDuration',
+              String(model.resetDuration),
+            ),
           ]),
           phaseIndicatorView(model),
           DemoView.eventLogView(model.messageLog),
@@ -312,7 +341,11 @@ const viewAndControlsView = (
             ],
             [
               p(
-                [Class('text-3xl font-bold text-gray-800 dark:text-gray-200 font-mono')],
+                [
+                  Class(
+                    'text-3xl font-bold text-gray-800 dark:text-gray-200 font-mono',
+                  ),
+                ],
                 [`${model.count}`],
               ),
             ],
@@ -360,7 +393,11 @@ const viewAndControlsView = (
               ]),
               button(
                 [
-                  Class(stepperButtonClass(model.resetDuration <= MIN_RESET_DURATION)),
+                  Class(
+                    stepperButtonClass(
+                      model.resetDuration <= MIN_RESET_DURATION,
+                    ),
+                  ),
                   AriaLabel('Decrease reset delay'),
                   Disabled(model.resetDuration <= MIN_RESET_DURATION),
                   OnClick(
@@ -378,7 +415,11 @@ const viewAndControlsView = (
               ),
               button(
                 [
-                  Class(stepperButtonClass(model.resetDuration >= MAX_RESET_DURATION)),
+                  Class(
+                    stepperButtonClass(
+                      model.resetDuration >= MAX_RESET_DURATION,
+                    ),
+                  ),
                   AriaLabel('Increase reset delay'),
                   Disabled(model.resetDuration >= MAX_RESET_DURATION),
                   OnClick(

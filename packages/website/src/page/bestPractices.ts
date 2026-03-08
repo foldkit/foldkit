@@ -3,7 +3,13 @@ import { Html } from 'foldkit/html'
 import { Class, InnerHTML, div, li, ul } from '../html'
 import { Link } from '../link'
 import type { TableOfContentsEntry } from '../main'
-import { inlineCode, link, pageTitle, para, tableOfContentsEntryToHeader } from '../prose'
+import {
+  inlineCode,
+  link,
+  pageTitle,
+  para,
+  tableOfContentsEntryToHeader,
+} from '../prose'
 import * as Snippets from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 
@@ -120,7 +126,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-4',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.viewPureGoodHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.viewPureGoodHighlighted)],
+          [],
+        ),
         Snippets.viewPureGoodRaw,
         'Copy good view example to clipboard',
         copiedSnippets,
@@ -137,18 +146,29 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
             ],
           ),
           li([], ['No mutations, no side effects']),
-          li([], ['Given the same Model and Message, always returns the same result']),
+          li(
+            [],
+            [
+              'Given the same Model and Message, always returns the same result',
+            ],
+          ),
         ],
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.updatePureBadHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.updatePureBadHighlighted)],
+          [],
+        ),
         Snippets.updatePureBadRaw,
         'Copy bad update example to clipboard',
         copiedSnippets,
         'mb-4',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.updatePureGoodHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.updatePureGoodHighlighted)],
+          [],
+        ),
         Snippets.updatePureGoodRaw,
         'Copy good update example to clipboard',
         copiedSnippets,
@@ -176,7 +196,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' or stubbing globals:',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.testingUpdateHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.testingUpdateHighlighted)],
+          [],
+        ),
         Snippets.testingUpdateRaw,
         'Copy testing example to clipboard',
         copiedSnippets,
@@ -195,7 +218,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(dontComputeInUpdateHeader),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.pureUpdateBadHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.pureUpdateBadHighlighted)],
+          [],
+        ),
         Snippets.pureUpdateBadRaw,
         'Copy bad example to clipboard',
         copiedSnippets,
@@ -206,7 +232,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Instead, return a Command that generates the value and sends it back as a Message:',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.pureUpdateGoodHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.pureUpdateGoodHighlighted)],
+          [],
+        ),
         Snippets.pureUpdateGoodRaw,
         'Copy good example to clipboard',
         copiedSnippets,

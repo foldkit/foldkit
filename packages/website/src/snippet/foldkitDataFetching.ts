@@ -44,7 +44,9 @@ const fetchUser = (
     return SucceededUserFetch({ data })
   }).pipe(
     // Every Command must return a Message — no errors bubble up
-    Effect.catchAll(error => Effect.succeed(FailedUserFetch({ error: String(error) }))),
+    Effect.catchAll(error =>
+      Effect.succeed(FailedUserFetch({ error: String(error) })),
+    ),
   )
 
 // UPDATE - How Messages change the Model

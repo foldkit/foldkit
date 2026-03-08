@@ -30,7 +30,9 @@ export const getRoomById = (
     Effect.provide(RoomsClient.Default),
   )
 
-export const loadSessionFromStorage = (roomId: string): Command<typeof LoadedSession> =>
+export const loadSessionFromStorage = (
+  roomId: string,
+): Command<typeof LoadedSession> =>
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
     const maybeSessionJson = yield* store.get(ROOM_PLAYER_SESSION_KEY)
@@ -41,12 +43,17 @@ export const loadSessionFromStorage = (roomId: string): Command<typeof LoadedSes
     return yield* decodeSession(sessionJson).pipe(
       Effect.map(session =>
         LoadedSession({
-          maybeSession: Option.liftPredicate(session, session => session.roomId === roomId),
+          maybeSession: Option.liftPredicate(
+            session,
+            session => session.roomId === roomId,
+          ),
         }),
       ),
     )
   }).pipe(
-    Effect.catchAll(() => Effect.succeed(LoadedSession({ maybeSession: Option.none() }))),
+    Effect.catchAll(() =>
+      Effect.succeed(LoadedSession({ maybeSession: Option.none() })),
+    ),
     Effect.provide(BrowserKeyValueStore.layerSessionStorage),
   )
 
@@ -63,7 +70,10 @@ export const joinRoom = (
     Effect.provide(RoomsClient.Default),
   )
 
-export const startGame = (roomId: string, playerId: string): Command<typeof NoOp> =>
+export const startGame = (
+  roomId: string,
+  playerId: string,
+): Command<typeof NoOp> =>
   Effect.gen(function* () {
     const client = yield* RoomsClient
     yield* client.startGame({ roomId, playerId })
@@ -81,7 +91,12 @@ export const updatePlayerProgress = (
 ): Command<typeof NoOp> =>
   Effect.gen(function* () {
     const client = yield* RoomsClient
-    yield* client.updatePlayerProgress({ playerId, gameId, userText: userGameText, charsTyped })
+    yield* client.updatePlayerProgress({
+      playerId,
+      gameId,
+      userText: userGameText,
+      charsTyped,
+    })
     return NoOp()
   }).pipe(
     Effect.catchAll(() => Effect.succeed(NoOp())),
@@ -99,11 +114,14 @@ export const copyRoomIdToClipboard = (
     Effect.catchAll(() => Effect.succeed(NoOp())),
   )
 
-export const exitCountdownTick: Command<typeof TickedExitCountdown> = Task.delay('1 second').pipe(
-  Effect.as(TickedExitCountdown()),
-)
+export const exitCountdownTick: Command<typeof TickedExitCountdown> =
+  Task.delay('1 second').pipe(Effect.as(TickedExitCountdown()))
 
 const COPY_INDICATOR_DURATION = '2 seconds'
 
-export const hideRoomIdCopiedIndicator = (): Command<typeof HiddenRoomIdCopiedIndicator> =>
-  Effect.sleep(COPY_INDICATOR_DURATION).pipe(Effect.as(HiddenRoomIdCopiedIndicator()))
+export const hideRoomIdCopiedIndicator = (): Command<
+  typeof HiddenRoomIdCopiedIndicator
+> =>
+  Effect.sleep(COPY_INDICATOR_DURATION).pipe(
+    Effect.as(HiddenRoomIdCopiedIndicator()),
+  )

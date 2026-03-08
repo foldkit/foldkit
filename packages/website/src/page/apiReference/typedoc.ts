@@ -172,8 +172,8 @@ type TypeDocTypeEncoded =
   | TypeDocPredicateType
   | TypeDocUnknownType
 
-export const TypeDocTypeSchema: S.Schema<TypeDocType, TypeDocTypeEncoded> = S.suspend(
-  () =>
+export const TypeDocTypeSchema: S.Schema<TypeDocType, TypeDocTypeEncoded> =
+  S.suspend(() =>
     S.Union(
       S.Struct({ type: S.Literal('intrinsic'), name: S.String }),
       S.Struct({ type: S.Literal('literal'), value: S.Unknown }),
@@ -235,7 +235,7 @@ export const TypeDocTypeSchema: S.Schema<TypeDocType, TypeDocTypeEncoded> = S.su
       S.Struct({ type: S.Literal('predicate') }),
       S.Struct({ type: S.Literal('unknown') }),
     ),
-)
+  )
 
 export const TypeDocTypeParam = S.Struct({
   id: S.Number,
@@ -295,7 +295,9 @@ export interface TypeDocItem extends S.Struct.Type<typeof typeDocItemFields> {
   readonly children: Option.Option<ReadonlyArray<TypeDocItem>>
 }
 
-interface TypeDocItemEncoded extends S.Struct.Encoded<typeof typeDocItemFields> {
+interface TypeDocItemEncoded extends S.Struct.Encoded<
+  typeof typeDocItemFields
+> {
   readonly type: TypeDocTypeEncoded | undefined
   readonly children: ReadonlyArray<TypeDocItemEncoded> | undefined
 }
@@ -304,7 +306,9 @@ export const TypeDocItem = S.Struct({
   ...typeDocItemFields,
   type: S.OptionFromUndefinedOr(TypeDocTypeSchema),
   children: S.OptionFromUndefinedOr(
-    S.Array(S.suspend((): S.Schema<TypeDocItem, TypeDocItemEncoded> => TypeDocItem)),
+    S.Array(
+      S.suspend((): S.Schema<TypeDocItem, TypeDocItemEncoded> => TypeDocItem),
+    ),
   ),
 })
 

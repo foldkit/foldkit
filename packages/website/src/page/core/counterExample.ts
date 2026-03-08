@@ -12,7 +12,9 @@ const overviewHeader: TableOfContentsEntry = {
   text: 'Overview',
 }
 
-export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [overviewHeader]
+export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
+  overviewHeader,
+]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(

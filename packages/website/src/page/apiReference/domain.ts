@@ -97,13 +97,18 @@ export const signaturesLength = (apiFunction: ApiFunction): number =>
         signature.parameters,
         0,
         (innerTotal, parameter) =>
-          innerTotal + String.length(parameter.name) + String.length(parameter.type),
+          innerTotal +
+          String.length(parameter.name) +
+          String.length(parameter.type),
       ) +
       String.length(signature.returnType),
   )
 
-export const scopedId = (kind: string, moduleName: string, name: string): string =>
-  `${kind}-${moduleName}/${name}`
+export const scopedId = (
+  kind: string,
+  moduleName: string,
+  name: string,
+): string => `${kind}-${moduleName}/${name}`
 
 // PARSE
 
@@ -152,7 +157,9 @@ const parseParameter = (parameter: TypeDocParam): ApiParameter => ({
   ),
 })
 
-const parseSignatures = (item: TypeDocItem): ReadonlyArray<ApiFunctionSignature> =>
+const parseSignatures = (
+  item: TypeDocItem,
+): ReadonlyArray<ApiFunctionSignature> =>
   Option.match(item.signatures, {
     onNone: () => [],
     onSome: Array.map(signature => ({
@@ -214,7 +221,8 @@ const parseItemsAsModule = (
     children,
     Array.filter(
       ({ kind, type }) =>
-        kind === Kind.TypeAlias && !Option.exists(type, ({ type }) => type === 'query'),
+        kind === Kind.TypeAlias &&
+        !Option.exists(type, ({ type }) => type === 'query'),
     ),
     Array.map(parseType),
     Array.sort(byName()),
@@ -234,7 +242,10 @@ const parseItemsAsModule = (
 })
 
 const parseModule = (module: TypeDocModule): ReadonlyArray<ApiModule> => {
-  const namespaces = Array.filter(module.children, ({ kind }) => kind === Kind.Namespace)
+  const namespaces = Array.filter(
+    module.children,
+    ({ kind }) => kind === Kind.Namespace,
+  )
   const directChildren = Array.filter(
     module.children,
     ({ kind }) => kind !== Kind.Namespace,

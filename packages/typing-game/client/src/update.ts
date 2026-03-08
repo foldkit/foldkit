@@ -12,10 +12,16 @@ import { Model } from './model'
 import { Home, Room } from './page'
 import { urlToAppRoute } from './route'
 
-export type UpdateReturn<Model, Message> = [Model, ReadonlyArray<Command<Message>>]
+export type UpdateReturn<Model, Message> = [
+  Model,
+  ReadonlyArray<Command<Message>>,
+]
 const withUpdateReturn = M.withReturnType<UpdateReturn<Model, Message>>()
 
-export const update = (model: Model, message: Message): UpdateReturn<Model, Message> =>
+export const update = (
+  model: Model,
+  message: Message,
+): UpdateReturn<Model, Message> =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
@@ -25,8 +31,14 @@ export const update = (model: Model, message: Message): UpdateReturn<Model, Mess
         M.value(request).pipe(
           withUpdateReturn,
           M.tagsExhaustive({
-            Internal: ({ url }) => [model, [pushUrl(Url.toString(url)).pipe(Effect.as(NoOp()))]],
-            External: ({ href }) => [model, [load(href).pipe(Effect.as(NoOp()))]],
+            Internal: ({ url }) => [
+              model,
+              [pushUrl(Url.toString(url)).pipe(Effect.as(NoOp()))],
+            ],
+            External: ({ href }) => [
+              model,
+              [load(href).pipe(Effect.as(NoOp()))],
+            ],
           }),
         ),
 
@@ -34,7 +46,10 @@ export const update = (model: Model, message: Message): UpdateReturn<Model, Mess
         const nextRoute = urlToAppRoute(url)
         const maybeFocusUsernameInput = M.value(nextRoute).pipe(
           M.tag('Home', () =>
-            Task.focus(`#${USERNAME_INPUT_ID}`).pipe(Effect.ignore, Effect.as(NoOp())),
+            Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
+              Effect.ignore,
+              Effect.as(NoOp()),
+            ),
           ),
           M.option,
         )
@@ -47,9 +62,14 @@ export const update = (model: Model, message: Message): UpdateReturn<Model, Mess
       },
 
       GotHomeMessage: ({ message }) => {
-        const [nextHomeModel, homeCommands, maybeOutMessage] = Home.update(model.home, message)
+        const [nextHomeModel, homeCommands, maybeOutMessage] = Home.update(
+          model.home,
+          message,
+        )
 
-        const mappedCommands = homeCommands.map(Effect.map(message => GotHomeMessage({ message })))
+        const mappedCommands = homeCommands.map(
+          Effect.map(message => GotHomeMessage({ message })),
+        )
 
         return Option.match(maybeOutMessage, {
           onNone: () => [
@@ -97,6 +117,8 @@ const handleRoomJoined = (roomId: string, player: Shared.Player) => {
   return [
     navigateToRoom(roomId),
     savePlayerToSessionStorage(session),
-    Effect.succeed(GotRoomMessage({ message: Room.Message.JoinedRoom({ roomId, player }) })),
+    Effect.succeed(
+      GotRoomMessage({ message: Room.Message.JoinedRoom({ roomId, player }) }),
+    ),
   ]
 }

@@ -38,7 +38,10 @@ const update = (
 
 // INIT
 
-const init: Runtime.ElementInit<Model, Message> = () => [Model({ count: 0 }), []]
+const init: Runtime.ElementInit<Model, Message> = () => [
+  Model({ count: 0 }),
+  [],
+]
 
 // VIEW
 
@@ -46,7 +49,10 @@ const view = (model: Model): Html =>
   div(
     [Class(containerStyle)],
     [
-      div([Class('text-6xl font-bold text-gray-800')], [model.count.toString()]),
+      div(
+        [Class('text-6xl font-bold text-gray-800')],
+        [model.count.toString()],
+      ),
       div(
         [Class('flex flex-wrap justify-center gap-4')],
         [

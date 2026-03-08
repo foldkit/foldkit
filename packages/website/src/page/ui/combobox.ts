@@ -150,7 +150,8 @@ export const nullableDemo = (
       [
         Ui.Combobox.view({
           model: comboboxNullableModel,
-          toMessage: message => toMessage(GotComboboxNullableDemoMessage({ message })),
+          toMessage: message =>
+            toMessage(GotComboboxNullableDemoMessage({ message })),
           items: filteredShapes,
           itemToConfig: (shape, context) => ({
             className: itemClassName,
@@ -261,7 +262,8 @@ export const multiDemo = (
         ),
         Ui.Combobox.Multi.view({
           model: comboboxMultiModel,
-          toMessage: message => toMessage(GotComboboxMultiDemoMessage({ message })),
+          toMessage: message =>
+            toMessage(GotComboboxMultiDemoMessage({ message })),
           items: filteredShapes,
           itemToConfig: (shape, context) => ({
             className: itemClassName,

@@ -17,7 +17,11 @@ import {
 import { EnterRoomId, EnterUsername, Model, SelectAction } from '../model'
 import { handleKeyPressed } from './handleKeyPressed'
 
-export type UpdateReturn = [Model, ReadonlyArray<Command<Message>>, Option.Option<OutMessage>]
+export type UpdateReturn = [
+  Model,
+  ReadonlyArray<Command<Message>>,
+  Option.Option<OutMessage>,
+]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 export const update = (model: Model, message: Message): UpdateReturn =>
@@ -32,7 +36,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           M.tag('EnterUsername', ({ username }) => {
             const nextModel = Str.isNonEmpty(username)
               ? evo(model, {
-                  homeStep: () => SelectAction({ username, selectedAction: 'CreateRoom' }),
+                  homeStep: () =>
+                    SelectAction({ username, selectedAction: 'CreateRoom' }),
                 })
               : model
 
@@ -41,7 +46,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           M.orElse(() => [model, [], Option.none()]),
         ),
 
-      PressedKey: message => [...handleKeyPressed(model)(message), Option.none()],
+      PressedKey: message => [
+        ...handleKeyPressed(model)(message),
+        Option.none(),
+      ],
 
       ChangedUsername: ({ value }) =>
         M.value(model.homeStep).pipe(
@@ -59,13 +67,23 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       BlurredUsernameInput: () => [
         model,
-        [Task.focus(`#${USERNAME_INPUT_ID}`).pipe(Effect.ignore, Effect.as(NoOp()))],
+        [
+          Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
+            Effect.ignore,
+            Effect.as(NoOp()),
+          ),
+        ],
         Option.none(),
       ],
 
       BlurredRoomIdInput: () => [
         model,
-        [Task.focus(`#${ROOM_ID_INPUT_ID}`).pipe(Effect.ignore, Effect.as(NoOp()))],
+        [
+          Task.focus(`#${ROOM_ID_INPUT_ID}`).pipe(
+            Effect.ignore,
+            Effect.as(NoOp()),
+          ),
+        ],
         Option.none(),
       ],
 
@@ -91,7 +109,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ClickedCreateRoom: () =>
         M.value(model.homeStep).pipe(
           withUpdateReturn,
-          M.tag('SelectAction', ({ username }) => [model, [createRoom(username)], Option.none()]),
+          M.tag('SelectAction', ({ username }) => [
+            model,
+            [createRoom(username)],
+            Option.none(),
+          ]),
           M.orElse(() => [model, [], Option.none()]),
         ),
 
@@ -102,14 +124,17 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             if (roomId === 'exit') {
               return [
                 evo(model, {
-                  homeStep: () => SelectAction({ username, selectedAction: 'JoinRoom' }),
+                  homeStep: () =>
+                    SelectAction({ username, selectedAction: 'JoinRoom' }),
                 }),
                 [],
                 Option.none(),
               ]
             }
 
-            const maybeJoin = optionWhen(Str.isNonEmpty(roomId), () => joinRoom(username, roomId))
+            const maybeJoin = optionWhen(Str.isNonEmpty(roomId), () =>
+              joinRoom(username, roomId),
+            )
 
             return [model, Array.fromOption(maybeJoin), Option.none()]
           }),

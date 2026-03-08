@@ -25,7 +25,10 @@ const SubscriptionDeps = S.Struct({
   }),
 })
 
-const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<Model, Message>({
+const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
+  Model,
+  Message
+>({
   tick: {
     modelToDependencies: model => ({ isRunning: model.isRunning }),
     depsToStream: ({ isRunning }) =>

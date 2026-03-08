@@ -58,7 +58,8 @@ export const view =
 
     const welcomeText = Option.match(model.maybeSession, {
       onNone: () => empty,
-      onSome: ({ player }) => h2([Class('mb-6')], [`Welcome, ${player.username}!`]),
+      onSome: ({ player }) =>
+        h2([Class('mb-6')], [`Welcome, ${player.username}!`]),
     })
 
     const copiedIndicator = model.isRoomIdCopyIndicatorVisible
@@ -84,7 +85,11 @@ export const view =
     )
 
     const isInLeavableState = M.value(model.roomRemoteData).pipe(
-      M.tag('Ok', ({ data }) => data.status._tag === 'Waiting' || data.status._tag === 'Finished'),
+      M.tag(
+        'Ok',
+        ({ data }) =>
+          data.status._tag === 'Waiting' || data.status._tag === 'Finished',
+      ),
       M.orElse(() => false),
     )
 
@@ -133,7 +138,8 @@ const content = (
       Ok: ({ data: room }) =>
         Option.match(maybeSession, {
           onNone: () => joinForm(username, roomId, toMessage),
-          onSome: () => gameContent(room, maybeSession, userGameText, toMessage),
+          onSome: () =>
+            gameContent(room, maybeSession, userGameText, toMessage),
         }),
     }),
   )
@@ -145,7 +151,10 @@ const gameContent = (
   toMessage: (message: Message) => ParentMessage,
 ): Html => {
   const maybeGameText = Option.map(room.maybeGame, ({ text }) => text)
-  const maybeWrongCharIndex = Option.flatMap(maybeGameText, findFirstWrongCharIndex(userGameText))
+  const maybeWrongCharIndex = Option.flatMap(
+    maybeGameText,
+    findFirstWrongCharIndex(userGameText),
+  )
 
   return M.value(room.status).pipe(
     M.tagsExhaustive({
@@ -153,7 +162,13 @@ const gameContent = (
       GetReady: () => getReady(maybeGameText),
       Countdown: ({ secondsLeft }) => countdown(secondsLeft, maybeGameText),
       Playing: ({ secondsLeft }) =>
-        playing(secondsLeft, maybeGameText, userGameText, maybeWrongCharIndex, toMessage),
+        playing(
+          secondsLeft,
+          maybeGameText,
+          userGameText,
+          maybeWrongCharIndex,
+          toMessage,
+        ),
       Finished: () => finished(room.maybeScoreboard, room.hostId, maybeSession),
     }),
   )

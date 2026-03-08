@@ -76,7 +76,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         '. The child doesn\u2019t know or care what the parent does with the information.',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.outMessageDefinitionHighlighted)], []),
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.outMessageDefinitionHighlighted),
+          ],
+          [],
+        ),
         Snippets.outMessageDefinitionRaw,
         'Copy OutMessage definition to clipboard',
         copiedSnippets,
@@ -93,7 +99,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ':',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.outMessageChildUpdateHighlighted)], []),
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.outMessageChildUpdateHighlighted),
+          ],
+          [],
+        ),
         Snippets.outMessageChildUpdateRaw,
         'Copy child update to clipboard',
         copiedSnippets,
@@ -122,7 +134,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       highlightedCodeBlock(
         div(
-          [Class('text-sm'), InnerHTML(Snippets.outMessageParentHandleHighlighted)],
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.outMessageParentHandleHighlighted),
+          ],
           [],
         ),
         Snippets.outMessageParentHandleRaw,

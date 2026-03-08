@@ -56,7 +56,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         "Let's see what that looks like. Say we want a delayed reset — when the user clicks reset, the count resets after one second:",
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.counterCommandsHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.counterCommandsHighlighted)],
+          [],
+        ),
         Snippets.counterCommandsRaw,
         'Copy commands example to clipboard',
         copiedSnippets,
@@ -76,7 +79,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'This separation has a practical consequence: you can test your entire state machine without mocking anything.',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.counterCommandsTestHighlighted)], []),
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.counterCommandsTestHighlighted),
+          ],
+          [],
+        ),
         Snippets.counterCommandsTestRaw,
         'Copy test example to clipboard',
         copiedSnippets,
@@ -93,7 +102,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Now, what if we want to get the next count from an API instead of incrementing locally? We can create a Command that performs the HTTP request and returns a Message when it completes:',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.counterHttpCommandHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.counterHttpCommandHighlighted)],
+          [],
+        ),
         Snippets.counterHttpCommandRaw,
         'Copy HTTP command example to clipboard',
         copiedSnippets,
@@ -106,7 +118,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       highlightedCodeBlock(
         div(
-          [Class('text-sm'), InnerHTML(Snippets.counterHttpCommandFetchCountHighlighted)],
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.counterHttpCommandFetchCountHighlighted),
+          ],
           [],
         ),
         Snippets.counterHttpCommandFetchCountRaw,

@@ -19,7 +19,9 @@ const overviewHeader: TableOfContentsEntry = {
   text: 'Overview',
 }
 
-export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [overviewHeader]
+export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
+  overviewHeader,
+]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
@@ -45,7 +47,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ', the stream stops.',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.counterAutoCountHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.counterAutoCountHighlighted)],
+          [],
+        ),
         Snippets.counterAutoCountRaw,
         'Copy subscription example to clipboard',
         copiedSnippets,

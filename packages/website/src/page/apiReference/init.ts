@@ -20,7 +20,8 @@ export const init = (modules: ReadonlyArray<ApiModule>): InitReturn => {
       pipe(
         module.functions,
         Array.filter(
-          apiFunction => signaturesLength(apiFunction) > SIGNATURE_COLLAPSE_THRESHOLD,
+          apiFunction =>
+            signaturesLength(apiFunction) > SIGNATURE_COLLAPSE_THRESHOLD,
         ),
         Array.map(apiFunction => {
           const id = scopedId('function', module.name, apiFunction.name)

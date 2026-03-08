@@ -8,14 +8,19 @@ import { AppRoute } from './route'
 import { RoomsClient } from './rpc'
 
 const SubscriptionDeps = S.Struct({
-  roomSubscription: S.Option(S.Struct({ roomId: S.String, playerId: S.String })),
+  roomSubscription: S.Option(
+    S.Struct({ roomId: S.String, playerId: S.String }),
+  ),
   keyboard: S.Struct({
     shouldCaptureKeyboard: S.Boolean,
     route: AppRoute,
   }),
 })
 
-export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<Model, Message>({
+export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
+  Model,
+  Message
+>({
   roomSubscription: {
     modelToDependencies: (model: Model) =>
       M.value(model.route).pipe(
@@ -27,7 +32,12 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<Mo
         ),
         M.orElse(() => Option.none()),
       ),
-    depsToStream: (maybeRoomSubscription: Option.Option<{ roomId: string; playerId: string }>) =>
+    depsToStream: (
+      maybeRoomSubscription: Option.Option<{
+        roomId: string
+        playerId: string
+      }>,
+    ) =>
       Option.match(maybeRoomSubscription, {
         onNone: () => Stream.empty,
         onSome: ({ roomId, playerId }) =>
@@ -37,7 +47,10 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<Mo
               Stream.map(({ room, maybePlayerProgress }) =>
                 Effect.succeed(
                   GotRoomMessage({
-                    message: Room.Message.UpdatedRoom({ room, maybePlayerProgress }),
+                    message: Room.Message.UpdatedRoom({
+                      room,
+                      maybePlayerProgress,
+                    }),
                   }),
                 ),
               ),
@@ -45,7 +58,9 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<Mo
                 Stream.make(
                   Effect.succeed(
                     GotRoomMessage({
-                      message: Room.Message.FailedRoomStream({ error: String(error) }),
+                      message: Room.Message.FailedRoomStream({
+                        error: String(error),
+                      }),
                     }),
                   ),
                 ),
@@ -67,7 +82,9 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<Mo
               M.value(room.roomRemoteData).pipe(
                 M.tag(
                   'Ok',
-                  ({ data }) => data.status._tag === 'Waiting' || data.status._tag === 'Finished',
+                  ({ data }) =>
+                    data.status._tag === 'Waiting' ||
+                    data.status._tag === 'Finished',
                 ),
                 M.orElse(() => false),
               )
@@ -89,8 +106,14 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<Mo
 
               return M.value(deps.route).pipe(
                 M.tagsExhaustive({
-                  Home: () => GotHomeMessage({ message: Home.Message.PressedKey({ key }) }),
-                  Room: () => GotRoomMessage({ message: Room.Message.PressedKey({ key }) }),
+                  Home: () =>
+                    GotHomeMessage({
+                      message: Home.Message.PressedKey({ key }),
+                    }),
+                  Room: () =>
+                    GotRoomMessage({
+                      message: Room.Message.PressedKey({ key }),
+                    }),
                   NotFound: () => NoOp(),
                 }),
               )

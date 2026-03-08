@@ -74,7 +74,9 @@ const reactPanel = div(
     ),
     p(
       [Class('text-gray-500 dark:text-gray-400 text-sm')],
-      ['JSX views, hooks-driven state, and implicit side effects via useEffect.'],
+      [
+        'JSX views, hooks-driven state, and implicit side effects via useEffect.',
+      ],
     ),
   ],
 )
@@ -85,7 +87,10 @@ const elmPanel = div(
     p(
       [Class('text-gray-700 dark:text-gray-300 mb-3')],
       [
-        span([Class('text-gray-900 dark:text-white')], ['The original Elm Architecture']),
+        span(
+          [Class('text-gray-900 dark:text-white')],
+          ['The original Elm Architecture'],
+        ),
         '. Elm pioneered the Model-View-Update architecture with a pure functional language that compiles to JavaScript. No runtime exceptions, a strict compiler, and managed effects through Cmd and Sub. Foldkit brings these ideas to TypeScript.',
       ],
     ),

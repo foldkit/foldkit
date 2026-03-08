@@ -104,9 +104,15 @@ const patternMappingTable = (): Html =>
         ['React Hook Form / Formik'],
         ['Model + Messages + ', inlineCode('foldkit/fieldValidation')],
       ],
-      [['Event streams (useEffect / RxJS)'], ['Subscriptions (automatic lifecycle)']],
+      [
+        ['Event streams (useEffect / RxJS)'],
+        ['Subscriptions (automatic lifecycle)'],
+      ],
       [['Headless UI / Radix UI'], ['Foldkit UI (headless, typed components)']],
-      [['Error boundaries'], ['Typed errors in Effects + ', inlineCode('errorView')]],
+      [
+        ['Error boundaries'],
+        ['Typed errors in Effects + ', inlineCode('errorView')],
+      ],
     ],
   )
 
@@ -137,7 +143,8 @@ const faqItem = (
     onSome: disclosure =>
       Ui.Disclosure.view({
         model: disclosure,
-        toMessage: message => toMessage(GotFaqDisclosureMessage({ id, message })),
+        toMessage: message =>
+          toMessage(GotFaqDisclosureMessage({ id, message })),
         buttonClassName: faqButtonClassName,
         buttonContent: div(
           [Class('flex items-center justify-between w-full')],
@@ -147,7 +154,8 @@ const faqItem = (
         panelContent: div([], answerContent),
         className: 'mb-2',
       }),
-    onNone: () => div([], [p([Class('font-bold')], [question]), ...answerContent]),
+    onNone: () =>
+      div([], [p([Class('font-bold')], [question]), ...answerContent]),
   })
 
 export const view = (
@@ -165,7 +173,10 @@ export const view = (
       tableOfContentsEntryToHeader(simpleCounterHeader),
       para('A counter in React:'),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.reactCounterHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.reactCounterHighlighted)],
+          [],
+        ),
         Snippets.reactCounterRaw,
         'Copy React counter',
         copiedSnippets,
@@ -173,7 +184,10 @@ export const view = (
       ),
       para('The same counter in Foldkit:'),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.foldkitCounterHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.foldkitCounterHighlighted)],
+          [],
+        ),
         Snippets.foldkitCounterRaw,
         'Copy Foldkit counter',
         copiedSnippets,
@@ -192,7 +206,10 @@ export const view = (
         ' to start and stop the interval:',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.reactCounterResetHighlighted)], []),
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.reactCounterResetHighlighted)],
+          [],
+        ),
         Snippets.reactCounterResetRaw,
         'Copy React counter with auto-play',
         copiedSnippets,
@@ -203,7 +220,13 @@ export const view = (
       ),
       para('Foldkit adds a Subscription and a Message:'),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.foldkitCounterResetHighlighted)], []),
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.foldkitCounterResetHighlighted),
+          ],
+          [],
+        ),
         Snippets.foldkitCounterResetRaw,
         'Copy Foldkit counter with auto-play',
         copiedSnippets,
@@ -228,7 +251,13 @@ export const view = (
         ' at creation time. If you change the step while playing, the interval keeps using the old value \u2014 a stale closure. The fix: a ref and a sync effect to keep it current:',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.reactCounterAutoPlayHighlighted)], []),
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.reactCounterAutoPlayHighlighted),
+          ],
+          [],
+        ),
         Snippets.reactCounterAutoPlayRaw,
         'Copy React counter with step size',
         copiedSnippets,
@@ -240,7 +269,10 @@ export const view = (
       para('In Foldkit, there is no stale closure:'),
       highlightedCodeBlock(
         div(
-          [Class('text-sm'), InnerHTML(Snippets.foldkitCounterAutoPlayHighlighted)],
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.foldkitCounterAutoPlayHighlighted),
+          ],
           [],
         ),
         Snippets.foldkitCounterAutoPlayRaw,
@@ -302,7 +334,13 @@ export const view = (
             'State always lives in your Model, and views are functions from Model to Html. For multiple instances with independent state, model each one explicitly:',
           ),
           highlightedCodeBlock(
-            div([Class('text-sm'), InnerHTML(Snippets.multipleInstancesHighlighted)], []),
+            div(
+              [
+                Class('text-sm'),
+                InnerHTML(Snippets.multipleInstancesHighlighted),
+              ],
+              [],
+            ),
             Snippets.multipleInstancesRaw,
             'Copy Model example',
             copiedSnippets,

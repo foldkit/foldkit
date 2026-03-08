@@ -16,7 +16,8 @@ const badgeToString = Match.type<Badge>().pipe(
 const isLocalPlayer = (
   player: Shared.Player,
   maybeSession: Option.Option<RoomPlayerSession>,
-): boolean => Option.exists(maybeSession, session => session.player.id === player.id)
+): boolean =>
+  Option.exists(maybeSession, session => session.player.id === player.id)
 
 const player = (
   players: ReadonlyArray<Shared.Player>,
@@ -34,7 +35,9 @@ const player = (
           Match.exhaustive,
         ),
       ),
-      Array.map(badge => span([Class('uppercase')], [` [${badgeToString(badge)}]`])),
+      Array.map(badge =>
+        span([Class('uppercase')], [` [${badgeToString(badge)}]`]),
+      ),
     )
 
     return div([], [span([], [player.username]), ...badges])
@@ -45,7 +48,10 @@ export const waiting = (
   hostId: string,
   maybeSession: Option.Option<RoomPlayerSession>,
 ): Html => {
-  const isLocalPlayerHost = Option.exists(maybeSession, session => session.player.id === hostId)
+  const isLocalPlayerHost = Option.exists(
+    maybeSession,
+    session => session.player.id === hostId,
+  )
 
   return div(
     [],

@@ -16,7 +16,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         Option.match(Record.get(model, id), {
           onNone: () => [model, []],
           onSome: disclosure => {
-            const [nextDisclosure, commands] = Ui.Disclosure.update(disclosure, message)
+            const [nextDisclosure, commands] = Ui.Disclosure.update(
+              disclosure,
+              message,
+            )
 
             return [
               Record.set(model, id, nextDisclosure),

@@ -20,11 +20,15 @@ export const viewportWidth: Subscription<
       const mediaQuery = window.matchMedia(NARROW_VIEWPORT_QUERY)
 
       const handler = (event: MediaQueryListEvent) => {
-        emit.single(Effect.succeed(ChangedViewportWidth({ isNarrow: event.matches })))
+        emit.single(
+          Effect.succeed(ChangedViewportWidth({ isNarrow: event.matches })),
+        )
       }
 
       mediaQuery.addEventListener('change', handler)
 
-      return Effect.sync(() => mediaQuery.removeEventListener('change', handler))
+      return Effect.sync(() =>
+        mediaQuery.removeEventListener('change', handler),
+      )
     }),
 }

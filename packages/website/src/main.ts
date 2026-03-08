@@ -3,7 +3,15 @@ import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { inject } from '@vercel/analytics'
 import * as SpeedInsights from '@vercel/speed-insights'
 import classNames from 'classnames'
-import { Array, Effect, HashSet, Match as M, Option, Schema as S, pipe } from 'effect'
+import {
+  Array,
+  Effect,
+  HashSet,
+  Match as M,
+  Option,
+  Schema as S,
+  pipe,
+} from 'effect'
 import { Runtime, Ui } from 'foldkit'
 import { Command } from 'foldkit/command'
 import { Html, createKeyedLazy, createLazy } from 'foldkit/html'
@@ -50,7 +58,13 @@ import {
 import { Icon } from './icon'
 import { Link } from './link'
 import * as Page from './page'
-import { AppRoute, DocsRoute, apiModuleRouter, homeRouter, urlToAppRoute } from './route'
+import {
+  AppRoute,
+  DocsRoute,
+  apiModuleRouter,
+  homeRouter,
+  urlToAppRoute,
+} from './route'
 import * as Subscription from './subscription'
 import { themeSelector } from './view/themeSelector'
 
@@ -286,7 +300,8 @@ const init: Runtime.ApplicationInit<
     id: 'demo-tabs',
   })
 
-  const [asyncCounterDemo, asyncCounterDemoCommands] = Page.AsyncCounterDemo.init()
+  const [asyncCounterDemo, asyncCounterDemoCommands] =
+    Page.AsyncCounterDemo.init()
   const [notePlayerDemo, notePlayerDemoCommands] = Page.NotePlayerDemo.init()
   const [uiPages, uiPagesCommands] = Page.UiPages.init()
   const [comingFromReact, comingFromReactCommands] = Page.ComingFromReact.init()
@@ -388,13 +403,17 @@ const update = (
   message: Message,
 ): [
   Model,
-  ReadonlyArray<Command<Message, never, Page.NotePlayerDemo.AudioContextService>>,
+  ReadonlyArray<
+    Command<Message, never, Page.NotePlayerDemo.AudioContextService>
+  >,
 ] =>
   M.value(message).pipe(
     M.withReturnType<
       [
         Model,
-        ReadonlyArray<Command<Message, never, Page.NotePlayerDemo.AudioContextService>>,
+        ReadonlyArray<
+          Command<Message, never, Page.NotePlayerDemo.AudioContextService>
+        >,
       ]
     >(),
     M.tagsExhaustive({
@@ -403,11 +422,15 @@ const update = (
       ClickedLink: ({ request }) =>
         M.value(request).pipe(
           M.tagsExhaustive({
-            Internal: ({ url }): [Model, ReadonlyArray<Command<typeof NoOp>>] => [
+            Internal: ({
+              url,
+            }): [Model, ReadonlyArray<Command<typeof NoOp>>] => [
               model,
               [pushUrl(urlToString(url)).pipe(Effect.as(NoOp()))],
             ],
-            External: ({ href }): [Model, ReadonlyArray<Command<typeof NoOp>>] => [
+            External: ({
+              href,
+            }): [Model, ReadonlyArray<Command<typeof NoOp>>] => [
               model,
               [load(href).pipe(Effect.as(NoOp()))],
             ],
@@ -447,7 +470,11 @@ const update = (
 
       ClickedCopyLink: ({ hash }) => [
         model,
-        [copyLinkToClipboard(urlToString({ ...model.url, hash: Option.some(hash) }))],
+        [
+          copyLinkToClipboard(
+            urlToString({ ...model.url, hash: Option.some(hash) }),
+          ),
+        ],
       ],
 
       SucceededCopy: ({ text }) =>
@@ -468,10 +495,8 @@ const update = (
       ],
 
       GotMobileMenuDialogMessage: ({ message }) => {
-        const [nextMobileMenuDialog, mobileMenuDialogCommands] = Ui.Dialog.update(
-          model.mobileMenuDialog,
-          message,
-        )
+        const [nextMobileMenuDialog, mobileMenuDialogCommands] =
+          Ui.Dialog.update(model.mobileMenuDialog, message)
 
         return [
           evo(model, {
@@ -521,16 +546,24 @@ const update = (
             themePreference: () => preference,
             resolvedTheme: () => resolvedTheme,
           }),
-          [applyThemeToDocument(resolvedTheme), saveThemePreference(preference)],
+          [
+            applyThemeToDocument(resolvedTheme),
+            saveThemePreference(preference),
+          ],
         ]
       },
 
       GotDemoTabsMessage: ({ message }) => {
-        const [nextDemoTabs, demoTabsCommands] = Ui.Tabs.update(model.demoTabs, message)
+        const [nextDemoTabs, demoTabsCommands] = Ui.Tabs.update(
+          model.demoTabs,
+          message,
+        )
 
         return [
           evo(model, { demoTabs: () => nextDemoTabs }),
-          demoTabsCommands.map(Effect.map(message => GotDemoTabsMessage({ message }))),
+          demoTabsCommands.map(
+            Effect.map(message => GotDemoTabsMessage({ message })),
+          ),
         ]
       },
 
@@ -549,10 +582,8 @@ const update = (
       },
 
       GotNotePlayerDemoMessage: ({ message }) => {
-        const [nextNotePlayerDemo, notePlayerDemoCommands] = Page.NotePlayerDemo.update(
-          model.notePlayerDemo,
-          message,
-        )
+        const [nextNotePlayerDemo, notePlayerDemoCommands] =
+          Page.NotePlayerDemo.update(model.notePlayerDemo, message)
 
         return [
           evo(model, {
@@ -591,10 +622,8 @@ const update = (
       },
 
       GotApiReferenceMessage: ({ message }) => {
-        const [nextApiReference, apiReferenceCommands] = Page.ApiReference.update(
-          model.apiReference,
-          message,
-        )
+        const [nextApiReference, apiReferenceCommands] =
+          Page.ApiReference.update(model.apiReference, message)
 
         return [
           evo(model, { apiReference: () => nextApiReference }),
@@ -605,19 +634,22 @@ const update = (
       },
 
       GotUiPageMessage: ({ message }) => {
-        const [nextUiPages, uiPagesCommands] = Page.UiPages.update(model.uiPages, message)
+        const [nextUiPages, uiPagesCommands] = Page.UiPages.update(
+          model.uiPages,
+          message,
+        )
 
         return [
           evo(model, { uiPages: () => nextUiPages }),
-          uiPagesCommands.map(Effect.map(message => GotUiPageMessage({ message }))),
+          uiPagesCommands.map(
+            Effect.map(message => GotUiPageMessage({ message })),
+          ),
         ]
       },
 
       GotGetStartedGroupMessage: ({ message }) => {
-        const [nextGetStartedGroup, getStartedGroupCommands] = Ui.Disclosure.update(
-          model.getStartedGroup,
-          message,
-        )
+        const [nextGetStartedGroup, getStartedGroupCommands] =
+          Ui.Disclosure.update(model.getStartedGroup, message)
 
         return [
           evo(model, {
@@ -630,10 +662,8 @@ const update = (
       },
 
       GotCoreConceptsGroupMessage: ({ message }) => {
-        const [nextCoreConceptsGroup, coreConceptsGroupCommands] = Ui.Disclosure.update(
-          model.coreConceptsGroup,
-          message,
-        )
+        const [nextCoreConceptsGroup, coreConceptsGroupCommands] =
+          Ui.Disclosure.update(model.coreConceptsGroup, message)
 
         return [
           evo(model, {
@@ -678,10 +708,8 @@ const update = (
       },
 
       GotFoldkitUiGroupMessage: ({ message }) => {
-        const [nextFoldkitUiGroup, foldkitUiGroupCommands] = Ui.Disclosure.update(
-          model.foldkitUiGroup,
-          message,
-        )
+        const [nextFoldkitUiGroup, foldkitUiGroupCommands] =
+          Ui.Disclosure.update(model.foldkitUiGroup, message)
 
         return [
           evo(model, {
@@ -710,10 +738,8 @@ const update = (
       },
 
       GotApiReferenceGroupMessage: ({ message }) => {
-        const [nextApiReferenceGroup, apiReferenceGroupCommands] = Ui.Disclosure.update(
-          model.apiReferenceGroup,
-          message,
-        )
+        const [nextApiReferenceGroup, apiReferenceGroupCommands] =
+          Ui.Disclosure.update(model.apiReferenceGroup, message)
 
         return [
           evo(model, {
@@ -760,7 +786,9 @@ const copyLinkToClipboard = (url: string): Command<typeof NoOp> =>
 const COPY_INDICATOR_DURATION = '2 seconds'
 
 const hideIndicator = (text: string): Command<typeof HiddenCopiedIndicator> =>
-  Effect.sleep(COPY_INDICATOR_DURATION).pipe(Effect.as(HiddenCopiedIndicator({ text })))
+  Effect.sleep(COPY_INDICATOR_DURATION).pipe(
+    Effect.as(HiddenCopiedIndicator({ text })),
+  )
 
 const scrollToTop: Command<typeof NoOp> = Effect.sync(() => {
   window.scrollTo({ top: 0, behavior: 'instant' })
@@ -805,7 +833,9 @@ const applyThemeToDocument = (theme: ResolvedTheme): Command<typeof NoOp> =>
     return NoOp()
   })
 
-const saveThemePreference = (preference: ThemePreference): Command<typeof NoOp> =>
+const saveThemePreference = (
+  preference: ThemePreference,
+): Command<typeof NoOp> =>
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
     yield* store.set(THEME_STORAGE_KEY, JSON.stringify(preference))
@@ -932,18 +962,21 @@ const sidebarViewInner = (
   const navLinks = ul(
     [Class('space-y-2')],
     [
-      ...Array.zipWith(docsSections, sectionDisclosures, (section, disclosure) =>
-        sidebarGroup({
-          label: section.label,
-          model: disclosure.model,
-          toMessage: disclosure.toMessage,
-          children: ul(
-            [Class('space-y-1')],
-            Array.map(section.pages, page =>
-              navLink(page.href, route._tag === page._tag, page.label),
+      ...Array.zipWith(
+        docsSections,
+        sectionDisclosures,
+        (section, disclosure) =>
+          sidebarGroup({
+            label: section.label,
+            model: disclosure.model,
+            toMessage: disclosure.toMessage,
+            children: ul(
+              [Class('space-y-1')],
+              Array.map(section.pages, page =>
+                navLink(page.href, route._tag === page._tag, page.label),
+              ),
             ),
-          ),
-        }),
+          }),
       ),
       sidebarGroup({
         label: 'API Reference',
@@ -972,7 +1005,12 @@ const sidebarViewInner = (
         'hidden md:flex fixed top-[var(--header-height)] bottom-0 left-0 z-40 w-64 bg-cream dark:bg-gray-900 border-r border-gray-300 dark:border-gray-800 flex-col',
       ),
     ],
-    [nav([AriaLabel('Documentation'), Class('flex-1 overflow-y-auto p-4')], [navLinks])],
+    [
+      nav(
+        [AriaLabel('Documentation'), Class('flex-1 overflow-y-auto p-4')],
+        [navLinks],
+      ),
+    ],
   )
 
   const mobileMenuContent = div(
@@ -987,7 +1025,10 @@ const sidebarViewInner = (
         [
           a(
             [Href(homeRouter()), Class('flex items-center gap-2')],
-            [img([Src('/logo.svg'), Alt('Foldkit'), Class('h-6 dark:invert')]), betaTag],
+            [
+              img([Src('/logo.svg'), Alt('Foldkit'), Class('h-6 dark:invert')]),
+              betaTag,
+            ],
           ),
           button(
             [
@@ -1005,7 +1046,10 @@ const sidebarViewInner = (
           ),
         ],
       ),
-      nav([AriaLabel('Documentation'), Class('flex-1 overflow-y-auto p-2')], [navLinks]),
+      nav(
+        [AriaLabel('Documentation'), Class('flex-1 overflow-y-auto p-2')],
+        [navLinks],
+      ),
       div(
         [Class('p-4 border-t border-gray-300 dark:border-gray-800 shrink-0')],
         [
@@ -1025,7 +1069,8 @@ const sidebarViewInner = (
     model: mobileMenuDialog,
     toMessage: message => GotMobileMenuDialogMessage({ message }),
     panelContent: mobileMenuContent,
-    panelClassName: 'fixed inset-0 z-[60] bg-cream dark:bg-gray-900 flex flex-col',
+    panelClassName:
+      'fixed inset-0 z-[60] bg-cream dark:bg-gray-900 flex flex-col',
     backdropClassName: 'fixed inset-0 z-[59]',
     className: 'md:hidden',
   })
@@ -1258,7 +1303,9 @@ const mobileTableOfContentsView = (
                     [
                       text,
                       isActive
-                        ? Icon.check('w-4 h-4 text-accent-600 dark:text-accent-400')
+                        ? Icon.check(
+                            'w-4 h-4 text-accent-600 dark:text-accent-400',
+                          )
                         : empty,
                     ],
                   ),
@@ -1295,14 +1342,21 @@ const landingHeaderView = (model: Model) =>
       a(
         [Href(homeRouter()), Class('flex items-center gap-2')],
         [
-          img([Src('/logo.svg'), Alt('Foldkit'), Class('h-6 md:h-8 dark:invert')]),
+          img([
+            Src('/logo.svg'),
+            Alt('Foldkit'),
+            Class('h-6 md:h-8 dark:invert'),
+          ]),
           betaTag,
         ],
       ),
       nav(
         [AriaLabel('Main'), Class('flex items-center gap-3')],
         [
-          div([Class('hidden md:flex')], [themeSelector(model.themePreference)]),
+          div(
+            [Class('hidden md:flex')],
+            [themeSelector(model.themePreference)],
+          ),
           a(
             [
               Href(Link.gettingStarted),
@@ -1364,10 +1418,10 @@ const demoTabPanelClassName =
   'flex-1 min-w-0 p-4 bg-cream dark:bg-gray-900 rounded-b-lg rounded-tr-lg lg:rounded-bl-lg lg:rounded-r-lg lg:rounded-tl-none border border-gray-300 dark:border-gray-800'
 
 const landingView = (model: Model) => {
-  const asyncCounterDemoView = lazyAsyncCounterDemo(Page.AsyncCounterDemo.view, [
-    model.asyncCounterDemo,
-    toAsyncCounterDemoMessage,
-  ])
+  const asyncCounterDemoView = lazyAsyncCounterDemo(
+    Page.AsyncCounterDemo.view,
+    [model.asyncCounterDemo, toAsyncCounterDemoMessage],
+  )
 
   const notePlayerDemoView = lazyNotePlayerDemo(Page.NotePlayerDemo.view, [
     model.notePlayerDemo,
@@ -1428,7 +1482,11 @@ const docsHeaderView = (model: Model) =>
           a(
             [Href(homeRouter()), Class('flex items-center gap-2')],
             [
-              img([Src('/logo.svg'), Alt('Foldkit'), Class('h-6 md:h-8 dark:invert')]),
+              img([
+                Src('/logo.svg'),
+                Alt('Foldkit'),
+                Class('h-6 md:h-8 dark:invert'),
+              ]),
               betaTag,
             ],
           ),
@@ -1441,7 +1499,11 @@ const docsHeaderView = (model: Model) =>
           div(
             [Class('hidden md:flex items-center gap-3 md:gap-4')],
             [
-              iconLink(Link.github, 'GitHub', Icon.github('w-5 h-5 md:w-6 md:h-6')),
+              iconLink(
+                Link.github,
+                'GitHub',
+                Icon.github('w-5 h-5 md:w-6 md:h-6'),
+              ),
               iconLink(Link.npm, 'npm', Icon.npm('w-6 h-6 md:w-8 md:h-8')),
             ],
           ),
@@ -1465,11 +1527,13 @@ const docsHeaderView = (model: Model) =>
     ],
   )
 
-const toAsyncCounterDemoMessage = (message: Page.AsyncCounterDemo.Message): Message =>
-  GotAsyncCounterDemoMessage({ message })
+const toAsyncCounterDemoMessage = (
+  message: Page.AsyncCounterDemo.Message,
+): Message => GotAsyncCounterDemoMessage({ message })
 
-const toNotePlayerDemoMessage = (message: Page.NotePlayerDemo.Message): Message =>
-  GotNotePlayerDemoMessage({ message })
+const toNotePlayerDemoMessage = (
+  message: Page.NotePlayerDemo.Message,
+): Message => GotNotePlayerDemoMessage({ message })
 
 const toApiReferenceMessage = (message: Page.ApiReference.Message): Message =>
   GotApiReferenceMessage({ message })
@@ -1477,7 +1541,8 @@ const toApiReferenceMessage = (message: Page.ApiReference.Message): Message =>
 const apiReferenceView = (
   module: Page.ApiReference.ApiModule,
   apiReferenceModel: Page.ApiReference.Model,
-): Html => Page.ApiReference.view(module, apiReferenceModel, toApiReferenceMessage)
+): Html =>
+  Page.ApiReference.view(module, apiReferenceModel, toApiReferenceMessage)
 
 const lazyAsyncCounterDemo = createLazy()
 const lazyNotePlayerDemo = createLazy()
@@ -1516,8 +1581,14 @@ const neighborLink = (
           ),
         ],
         config.direction === 'Previous'
-          ? [span([Class('mr-1'), AriaHidden(true)], ['\u2190']), config.page.label]
-          : [config.page.label, span([Class('ml-1'), AriaHidden(true)], ['\u2192'])],
+          ? [
+              span([Class('mr-1'), AriaHidden(true)], ['\u2190']),
+              config.page.label,
+            ]
+          : [
+              config.page.label,
+              span([Class('ml-1'), AriaHidden(true)], ['\u2192']),
+            ],
       ),
     ],
   )
@@ -1573,7 +1644,8 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
   ).pipe(
     M.withReturnType<DocsPageView>(),
     M.tagsExhaustive({
-      Manifesto: () => withToc(Page.Manifesto.view(), Page.Manifesto.tableOfContents),
+      Manifesto: () =>
+        withToc(Page.Manifesto.view(), Page.Manifesto.tableOfContents),
       ComingFromReact: () =>
         withToc(
           Page.ComingFromReact.view(
@@ -1606,7 +1678,9 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       ProjectOrganization: () =>
         withToc(
-          lazyDocsContent(Page.ProjectOrganization.view, [model.copiedSnippets]),
+          lazyDocsContent(Page.ProjectOrganization.view, [
+            model.copiedSnippets,
+          ]),
           Page.ProjectOrganization.tableOfContents,
         ),
       ApiModule: ({ moduleSlug }) =>
@@ -1615,19 +1689,28 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
           Page.ApiReference.slugToModule,
           Option.match({
             onSome: module => ({
-              content: lazyApiReference(apiReferenceView, [module, model.apiReference]),
+              content: lazyApiReference(apiReferenceView, [
+                module,
+                model.apiReference,
+              ]),
               tableOfContents: Option.some(
                 Page.ApiReference.toModuleTableOfContents(module),
               ),
             }),
-            onNone: () => withoutToc(Page.NotFound.view(moduleSlug, homeRouter())),
+            onNone: () =>
+              withoutToc(Page.NotFound.view(moduleSlug, homeRouter())),
           }),
         ),
       CoreArchitecture: () =>
-        withToc(Page.Core.Architecture.view(), Page.Core.Architecture.tableOfContents),
+        withToc(
+          Page.Core.Architecture.view(),
+          Page.Core.Architecture.tableOfContents,
+        ),
       CoreCounterExample: () =>
         withToc(
-          lazyDocsContent(Page.Core.CounterExample.view, [model.copiedSnippets]),
+          lazyDocsContent(Page.Core.CounterExample.view, [
+            model.copiedSnippets,
+          ]),
           Page.Core.CounterExample.tableOfContents,
         ),
       CoreModel: () =>
@@ -1672,7 +1755,9 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       CoreRunningYourApp: () =>
         withToc(
-          lazyDocsContent(Page.Core.RunningYourApp.view, [model.copiedSnippets]),
+          lazyDocsContent(Page.Core.RunningYourApp.view, [
+            model.copiedSnippets,
+          ]),
           Page.Core.RunningYourApp.tableOfContents,
         ),
       CoreResources: () =>
@@ -1682,7 +1767,9 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       CoreManagedResources: () =>
         withToc(
-          lazyDocsContent(Page.Core.ManagedResources.view, [model.copiedSnippets]),
+          lazyDocsContent(Page.Core.ManagedResources.view, [
+            model.copiedSnippets,
+          ]),
           Page.Core.ManagedResources.tableOfContents,
         ),
       CoreErrorView: () =>
@@ -1692,7 +1779,9 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       CoreSlowViewWarning: () =>
         withToc(
-          lazyDocsContent(Page.Core.SlowViewWarning.view, [model.copiedSnippets]),
+          lazyDocsContent(Page.Core.SlowViewWarning.view, [
+            model.copiedSnippets,
+          ]),
           Page.Core.SlowViewWarning.tableOfContents,
         ),
       PatternsSubmodels: () =>
@@ -1702,12 +1791,16 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       PatternsOutMessage: () =>
         withToc(
-          lazyDocsContent(Page.Patterns.OutMessage.view, [model.copiedSnippets]),
+          lazyDocsContent(Page.Patterns.OutMessage.view, [
+            model.copiedSnippets,
+          ]),
           Page.Patterns.OutMessage.tableOfContents,
         ),
       CoreViewMemoization: () =>
         withToc(
-          lazyDocsContent(Page.Core.ViewMemoization.view, [model.copiedSnippets]),
+          lazyDocsContent(Page.Core.ViewMemoization.view, [
+            model.copiedSnippets,
+          ]),
           Page.Core.ViewMemoization.tableOfContents,
         ),
       UiTabs: () =>
@@ -1755,7 +1848,8 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
           Page.UiPages.ComboboxPage.view(model.uiPages, toUiPageMessage),
           Page.UiPages.ComboboxPage.tableOfContents,
         ),
-      NotFound: ({ path }) => withoutToc(Page.NotFound.view(path, homeRouter())),
+      NotFound: ({ path }) =>
+        withoutToc(Page.NotFound.view(path, homeRouter())),
     }),
   )
 
@@ -1792,10 +1886,17 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
               }),
               keyed('div')(
                 M.value(docsRoute).pipe(
-                  M.tag('ApiModule', ({ moduleSlug }) => `ApiModule-${moduleSlug}`),
+                  M.tag(
+                    'ApiModule',
+                    ({ moduleSlug }) => `ApiModule-${moduleSlug}`,
+                  ),
                   M.orElse(({ _tag }) => _tag),
                 ),
-                [Class('px-4 py-6 md:px-8 md:py-8 2xl:py-10 max-w-4xl mx-auto min-w-0')],
+                [
+                  Class(
+                    'px-4 py-6 md:px-8 md:py-8 2xl:py-10 max-w-4xl mx-auto min-w-0',
+                  ),
+                ],
                 [content, pageNavigationView(docsRoute._tag)],
               ),
             ],

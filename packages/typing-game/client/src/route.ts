@@ -15,7 +15,14 @@ export type NotFoundRoute = typeof NotFoundRoute.Type
 export type AppRoute = typeof AppRoute.Type
 
 export const homeRouter = pipe(Route.root, Route.mapTo(HomeRoute))
-export const roomRouter = pipe(literal('room'), slash(string('roomId')), Route.mapTo(RoomRoute))
+export const roomRouter = pipe(
+  literal('room'),
+  slash(string('roomId')),
+  Route.mapTo(RoomRoute),
+)
 const routeParser = Route.oneOf(roomRouter, homeRouter)
 
-export const urlToAppRoute = Route.parseUrlWithFallback(routeParser, NotFoundRoute)
+export const urlToAppRoute = Route.parseUrlWithFallback(
+  routeParser,
+  NotFoundRoute,
+)

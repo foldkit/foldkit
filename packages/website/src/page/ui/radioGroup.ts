@@ -70,7 +70,8 @@ const labelClassName = 'text-sm font-medium text-gray-900 dark:text-white'
 
 const descriptionClassName = 'text-sm text-gray-600 dark:text-gray-300'
 
-const priceClassName = 'text-sm font-semibold text-accent-600 dark:text-accent-400'
+const priceClassName =
+  'text-sm font-semibold text-accent-600 dark:text-accent-400'
 
 const checkIcon = svg(
   [
@@ -103,7 +104,8 @@ export const verticalDemo = (
   heading('h3', verticalHeader.id, verticalHeader.text),
   Ui.RadioGroup.view<ParentMessage, Plan>({
     model: radioGroupModel,
-    toMessage: message => toMessage(GotVerticalRadioGroupDemoMessage({ message })),
+    toMessage: message =>
+      toMessage(GotVerticalRadioGroupDemoMessage({ message })),
     options: plans,
     optionToConfig: (plan, { isSelected }) => ({
       value: plan,
@@ -147,7 +149,8 @@ export const horizontalDemo = (
   heading('h3', horizontalHeader.id, horizontalHeader.text),
   Ui.RadioGroup.view<ParentMessage, Plan>({
     model: radioGroupModel,
-    toMessage: message => toMessage(GotHorizontalRadioGroupDemoMessage({ message })),
+    toMessage: message =>
+      toMessage(GotHorizontalRadioGroupDemoMessage({ message })),
     options: plans,
     optionToConfig: (plan, { isSelected }) => ({
       value: plan,

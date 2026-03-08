@@ -158,7 +158,10 @@ export const fieldValidationRouter = pipe(
   literal('field-validation'),
   mapTo(FieldValidationRoute),
 )
-export const examplesRouter = pipe(literal('example-apps'), mapTo(ExamplesRoute))
+export const examplesRouter = pipe(
+  literal('example-apps'),
+  mapTo(ExamplesRoute),
+)
 export const bestPracticesRouter = pipe(
   literal('best-practices'),
   mapTo(BestPracticesRoute),

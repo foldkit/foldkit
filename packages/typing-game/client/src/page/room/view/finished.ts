@@ -3,7 +3,19 @@ import classNames from 'classnames'
 import { Array, Number, Option, Order, pipe } from 'effect'
 import { Html } from 'foldkit/html'
 
-import { Class, div, empty, h3, span, table, tbody, td, th, thead, tr } from '../../../view/html'
+import {
+  Class,
+  div,
+  empty,
+  h3,
+  span,
+  table,
+  tbody,
+  td,
+  th,
+  thead,
+  tr,
+} from '../../../view/html'
 import { RoomPlayerSession } from '../model'
 
 const byHighestWpm = pipe(
@@ -24,13 +36,38 @@ const scoreboardView = (scoreboard: Shared.Scoreboard, hostId: string) => {
           tr(
             [],
             [
-              th([Class('p-4 border-b-2 border-terminal-green uppercase text-left')], ['Player']),
-              th([Class('p-4 border-b-2 border-terminal-green uppercase text-right')], ['WPM']),
               th(
-                [Class('p-4 border-b-2 border-terminal-green uppercase text-right')],
+                [
+                  Class(
+                    'p-4 border-b-2 border-terminal-green uppercase text-left',
+                  ),
+                ],
+                ['Player'],
+              ),
+              th(
+                [
+                  Class(
+                    'p-4 border-b-2 border-terminal-green uppercase text-right',
+                  ),
+                ],
+                ['WPM'],
+              ),
+              th(
+                [
+                  Class(
+                    'p-4 border-b-2 border-terminal-green uppercase text-right',
+                  ),
+                ],
                 ['Accuracy'],
               ),
-              th([Class('p-4 border-b-2 border-terminal-green uppercase text-right')], ['Chars']),
+              th(
+                [
+                  Class(
+                    'p-4 border-b-2 border-terminal-green uppercase text-right',
+                  ),
+                ],
+                ['Chars'],
+              ),
             ],
           ),
         ],
@@ -105,7 +142,10 @@ export const finished = (
   hostId: string,
   maybeSession: Option.Option<RoomPlayerSession>,
 ): Html => {
-  const isLocalPlayerHost = Option.exists(maybeSession, session => session.player.id === hostId)
+  const isLocalPlayerHost = Option.exists(
+    maybeSession,
+    session => session.player.id === hostId,
+  )
 
   return div(
     [Class('space-y-6')],
@@ -115,7 +155,9 @@ export const finished = (
         onNone: () => empty,
         onSome: scoreboard => scoreboardView(scoreboard, hostId),
       }),
-      ...(isLocalPlayerHost ? [div([Class('mt-4')], ['> Enter to play again'])] : []),
+      ...(isLocalPlayerHost
+        ? [div([Class('mt-4')], ['> Enter to play again'])]
+        : []),
     ],
   )
 }
