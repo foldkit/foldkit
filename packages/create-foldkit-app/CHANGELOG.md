@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.4.3
+
+### Patch Changes
+
+- 15e6c87: Update base template formatting to printWidth 80 and refresh example descriptions.
+
 ## 0.4.2
 
 ### Patch Changes
