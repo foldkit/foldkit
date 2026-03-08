@@ -940,9 +940,18 @@ const sidebarGroup = (config: {
     ],
   )
 
-const sidebarView = (model: Model) => {
-  const currentRoute = model.route
-  const isOnApiModulePage = currentRoute._tag === 'ApiModule'
+const sidebarViewInner = (
+  route: Model['route'],
+  getStartedGroup: Ui.Disclosure.Model,
+  coreConceptsGroup: Ui.Disclosure.Model,
+  guidesGroup: Ui.Disclosure.Model,
+  patternsGroup: Ui.Disclosure.Model,
+  examplesGroup: Ui.Disclosure.Model,
+  foldkitUiGroup: Ui.Disclosure.Model,
+  apiReferenceGroup: Ui.Disclosure.Model,
+  mobileMenuDialog: Ui.Dialog.Model,
+): Html => {
+  const isOnApiModulePage = route._tag === 'ApiModule'
 
   const linkClass = (isActive: boolean) =>
     classNames(
@@ -977,27 +986,27 @@ const sidebarView = (model: Model) => {
     }>
   > = [
     {
-      model: model.getStartedGroup,
+      model: getStartedGroup,
       toMessage: message => GotGetStartedGroupMessage({ message }),
     },
     {
-      model: model.coreConceptsGroup,
+      model: coreConceptsGroup,
       toMessage: message => GotCoreConceptsGroupMessage({ message }),
     },
     {
-      model: model.guidesGroup,
+      model: guidesGroup,
       toMessage: message => GotGuidesGroupMessage({ message }),
     },
     {
-      model: model.patternsGroup,
+      model: patternsGroup,
       toMessage: message => GotPatternsGroupMessage({ message }),
     },
     {
-      model: model.examplesGroup,
+      model: examplesGroup,
       toMessage: message => GotExamplesGroupMessage({ message }),
     },
     {
-      model: model.foldkitUiGroup,
+      model: foldkitUiGroup,
       toMessage: message => GotFoldkitUiGroupMessage({ message }),
     },
   ]
@@ -1018,7 +1027,7 @@ const sidebarView = (model: Model) => {
               Array.map(section.pages, page =>
                 navLink(
                   page.href,
-                  currentRoute._tag === page._tag,
+                  route._tag === page._tag,
                   page.label,
                 ),
               ),
@@ -1027,7 +1036,7 @@ const sidebarView = (model: Model) => {
       ),
       sidebarGroup({
         label: 'API Reference',
-        model: model.apiReferenceGroup,
+        model: apiReferenceGroup,
         toMessage: message =>
           GotApiReferenceGroupMessage({ message }),
         children: ul(
@@ -1037,7 +1046,7 @@ const sidebarView = (model: Model) => {
               apiModuleRouter({
                 moduleSlug: slug,
               }),
-              isOnApiModulePage && currentRoute.moduleSlug === slug,
+              isOnApiModulePage && route.moduleSlug === slug,
               name,
             ),
           ),
@@ -1127,7 +1136,7 @@ const sidebarView = (model: Model) => {
   )
 
   const mobileMenu = Ui.Dialog.view({
-    model: model.mobileMenuDialog,
+    model: mobileMenuDialog,
     toMessage: message => GotMobileMenuDialogMessage({ message }),
     panelContent: mobileMenuContent,
     panelClassName:
@@ -1138,6 +1147,19 @@ const sidebarView = (model: Model) => {
 
   return div([], [desktopSidebar, mobileMenu])
 }
+
+const sidebarView = (model: Model): Html =>
+  lazySidebar(sidebarViewInner, [
+    model.route,
+    model.getStartedGroup,
+    model.coreConceptsGroup,
+    model.guidesGroup,
+    model.patternsGroup,
+    model.examplesGroup,
+    model.foldkitUiGroup,
+    model.apiReferenceGroup,
+    model.mobileMenuDialog,
+  ])
 
 const iconLink = (link: string, ariaLabel: string, icon: Html) =>
   a(
@@ -1188,6 +1210,7 @@ const tableOfContentsEntryView = (
   )
 
 const lazyTocEntry = createKeyedLazy()
+const lazySidebar = createLazy()
 
 const tableOfContentsView = (
   entries: ReadonlyArray<TableOfContentsEntry>,
@@ -1481,14 +1504,14 @@ const demoTabPanelClassName =
   'flex-1 min-w-0 p-4 bg-cream dark:bg-gray-900 rounded-b-lg rounded-tr-lg lg:rounded-bl-lg lg:rounded-r-lg lg:rounded-tl-none border border-gray-300 dark:border-gray-800'
 
 const landingView = (model: Model) => {
-  const asyncCounterDemoView = Page.AsyncCounterDemo.view(
-    model.asyncCounterDemo,
-    message => GotAsyncCounterDemoMessage({ message }),
+  const asyncCounterDemoView = lazyAsyncCounterDemo(
+    Page.AsyncCounterDemo.view,
+    [model.asyncCounterDemo, toAsyncCounterDemoMessage],
   )
 
-  const notePlayerDemoView = Page.NotePlayerDemo.view(
-    model.notePlayerDemo,
-    message => GotNotePlayerDemoMessage({ message }),
+  const notePlayerDemoView = lazyNotePlayerDemo(
+    Page.NotePlayerDemo.view,
+    [model.notePlayerDemo, toNotePlayerDemoMessage],
   )
 
   const demoTabsView = Ui.Tabs.view<Message, DemoTab>({
@@ -1602,6 +1625,14 @@ const docsHeaderView = (model: Model) =>
     ],
   )
 
+const toAsyncCounterDemoMessage = (
+  message: Page.AsyncCounterDemo.Message,
+): Message => GotAsyncCounterDemoMessage({ message })
+
+const toNotePlayerDemoMessage = (
+  message: Page.NotePlayerDemo.Message,
+): Message => GotNotePlayerDemoMessage({ message })
+
 const toApiReferenceMessage = (
   message: Page.ApiReference.Message,
 ): Message => GotApiReferenceMessage({ message })
@@ -1616,6 +1647,8 @@ const apiReferenceView = (
     toApiReferenceMessage,
   )
 
+const lazyAsyncCounterDemo = createLazy()
+const lazyNotePlayerDemo = createLazy()
 const lazyApiReference = createLazy()
 
 const neighborLink = (
@@ -1689,167 +1722,255 @@ const pageNavigationView = (tag: string) => {
   )
 }
 
-const docsView = (model: Model, docsRoute: DocsRoute) => {
-  const content = M.value(docsRoute).pipe(
-    M.tagsExhaustive({
-      Manifesto: Page.Manifesto.view,
-      ComingFromReact: () =>
-        Page.ComingFromReact.view(
-          model,
-          model.comingFromReact,
-          message => GotComingFromReactMessage({ message }),
-        ),
-      GettingStarted: () => Page.GettingStarted.view(model),
-      RoutingAndNavigation: () => Page.Routing.view(model),
-      FieldValidation: () => Page.FieldValidation.view(model),
-      Examples: Page.Examples.view,
-      BestPractices: () => Page.BestPractices.view(model),
-      ProjectOrganization: () => Page.ProjectOrganization.view(model),
-      ApiModule: ({ moduleSlug }) =>
-        pipe(
-          moduleSlug,
-          Page.ApiReference.slugToModule,
-          Option.match({
-            onSome: module =>
-              lazyApiReference(apiReferenceView, [
-                module,
-                model.apiReference,
-              ]),
-            onNone: () =>
-              Page.NotFound.view(moduleSlug, homeRouter()),
-          }),
-        ),
-      CoreArchitecture: () => Page.Core.Architecture.view(),
-      CoreCounterExample: () => Page.Core.CounterExample.view(model),
-      CoreModel: () => Page.Core.CoreModel.view(model),
-      CoreMessages: () => Page.Core.Messages.view(model),
-      CoreUpdate: () => Page.Core.CoreUpdate.view(model),
-      CoreView: () => Page.Core.CoreView.view(model),
-      CoreCommands: () => Page.Core.Commands.view(model),
-      CoreSubscriptions: () => Page.Core.Subscriptions.view(model),
-      CoreInit: () => Page.Core.Init.view(model),
-      CoreTask: () => Page.Core.CoreTask.view(model),
-      CoreRunningYourApp: () => Page.Core.RunningYourApp.view(model),
-      CoreResources: () => Page.Core.Resources.view(model),
-      CoreManagedResources: () =>
-        Page.Core.ManagedResources.view(model),
-      CoreErrorView: () => Page.Core.ErrorView.view(model),
-      CoreSlowViewWarning: () =>
-        Page.Core.SlowViewWarning.view(model),
-      PatternsSubmodels: () => Page.Patterns.Submodels.view(model),
-      PatternsOutMessage: () => Page.Patterns.OutMessage.view(model),
-      CoreViewMemoization: () =>
-        Page.Core.ViewMemoization.view(model),
-      UiTabs: () =>
-        Page.UiPages.TabsPage.view(model.uiPages, toUiPageMessage),
-      UiDisclosure: () =>
-        Page.UiPages.DisclosurePage.view(
-          model.uiPages,
-          toUiPageMessage,
-        ),
-      UiDialog: () =>
-        Page.UiPages.DialogPage.view(model.uiPages, toUiPageMessage),
-      UiMenu: () =>
-        Page.UiPages.MenuPage.view(model.uiPages, toUiPageMessage),
-      UiPopover: () =>
-        Page.UiPages.PopoverPage.view(model.uiPages, toUiPageMessage),
-      UiListbox: () =>
-        Page.UiPages.ListboxPage.view(model.uiPages, toUiPageMessage),
-      UiRadioGroup: () =>
-        Page.UiPages.RadioGroupPage.view(
-          model.uiPages,
-          toUiPageMessage,
-        ),
-      UiSwitch: () =>
-        Page.UiPages.SwitchPage.view(model.uiPages, toUiPageMessage),
-      UiCombobox: () =>
-        Page.UiPages.ComboboxPage.view(
-          model.uiPages,
-          toUiPageMessage,
-        ),
-      NotFound: ({ path }) => Page.NotFound.view(path, homeRouter()),
-    }),
-  )
+type DocsPageView = Readonly<{
+  content: Html
+  tableOfContents: Option.Option<ReadonlyArray<TableOfContentsEntry>>
+}>
 
-  const currentPageTableOfContents = M.value(docsRoute).pipe(
-    M.withReturnType<
-      Option.Option<ReadonlyArray<TableOfContentsEntry>>
-    >(),
-    M.tagsExhaustive({
-      Manifesto: () => Option.some(Page.Manifesto.tableOfContents),
-      ComingFromReact: () =>
-        Option.some(Page.ComingFromReact.tableOfContents),
-      GettingStarted: () =>
-        Option.some(Page.GettingStarted.tableOfContents),
-      RoutingAndNavigation: () =>
-        Option.some(Page.Routing.tableOfContents),
-      FieldValidation: () =>
-        Option.some(Page.FieldValidation.tableOfContents),
-      BestPractices: () =>
-        Option.some(Page.BestPractices.tableOfContents),
-      ProjectOrganization: () =>
-        Option.some(Page.ProjectOrganization.tableOfContents),
-      ApiModule: ({ moduleSlug }) =>
-        pipe(
-          moduleSlug,
-          Page.ApiReference.slugToModule,
-          Option.map(Page.ApiReference.toModuleTableOfContents),
-        ),
-      CoreArchitecture: () =>
-        Option.some(Page.Core.Architecture.tableOfContents),
-      CoreCounterExample: () =>
-        Option.some(Page.Core.CounterExample.tableOfContents),
-      CoreModel: () =>
-        Option.some(Page.Core.CoreModel.tableOfContents),
-      CoreMessages: () =>
-        Option.some(Page.Core.Messages.tableOfContents),
-      CoreUpdate: () =>
-        Option.some(Page.Core.CoreUpdate.tableOfContents),
-      CoreView: () => Option.some(Page.Core.CoreView.tableOfContents),
-      CoreCommands: () =>
-        Option.some(Page.Core.Commands.tableOfContents),
-      CoreSubscriptions: () =>
-        Option.some(Page.Core.Subscriptions.tableOfContents),
-      CoreInit: () => Option.some(Page.Core.Init.tableOfContents),
-      CoreTask: () => Option.some(Page.Core.CoreTask.tableOfContents),
-      CoreRunningYourApp: () =>
-        Option.some(Page.Core.RunningYourApp.tableOfContents),
-      CoreResources: () =>
-        Option.some(Page.Core.Resources.tableOfContents),
-      CoreManagedResources: () =>
-        Option.some(Page.Core.ManagedResources.tableOfContents),
-      CoreErrorView: () =>
-        Option.some(Page.Core.ErrorView.tableOfContents),
-      CoreSlowViewWarning: () =>
-        Option.some(Page.Core.SlowViewWarning.tableOfContents),
-      PatternsSubmodels: () =>
-        Option.some(Page.Patterns.Submodels.tableOfContents),
-      PatternsOutMessage: () =>
-        Option.some(Page.Patterns.OutMessage.tableOfContents),
-      CoreViewMemoization: () =>
-        Option.some(Page.Core.ViewMemoization.tableOfContents),
-      UiTabs: () =>
-        Option.some(Page.UiPages.TabsPage.tableOfContents),
-      UiDisclosure: () =>
-        Option.some(Page.UiPages.DisclosurePage.tableOfContents),
-      UiDialog: () =>
-        Option.some(Page.UiPages.DialogPage.tableOfContents),
-      UiMenu: () =>
-        Option.some(Page.UiPages.MenuPage.tableOfContents),
-      UiPopover: () =>
-        Option.some(Page.UiPages.PopoverPage.tableOfContents),
-      UiListbox: () =>
-        Option.some(Page.UiPages.ListboxPage.tableOfContents),
-      UiRadioGroup: () =>
-        Option.some(Page.UiPages.RadioGroupPage.tableOfContents),
-      UiSwitch: () =>
-        Option.some(Page.UiPages.SwitchPage.tableOfContents),
-      UiCombobox: () =>
-        Option.some(Page.UiPages.ComboboxPage.tableOfContents),
-      Examples: () => Option.none(),
-      NotFound: () => Option.none(),
-    }),
-  )
+const withToc = (
+  content: Html,
+  tableOfContents: ReadonlyArray<TableOfContentsEntry>,
+): DocsPageView => ({
+  content,
+  tableOfContents: Option.some(tableOfContents),
+})
+
+const withoutToc = (content: Html): DocsPageView => ({
+  content,
+  tableOfContents: Option.none(),
+})
+
+const docsView = (model: Model, docsRoute: DocsRoute) => {
+  const { content, tableOfContents: currentPageTableOfContents } =
+    M.value(docsRoute).pipe(
+      M.withReturnType<DocsPageView>(),
+      M.tagsExhaustive({
+        Manifesto: () =>
+          withToc(
+            Page.Manifesto.view(),
+            Page.Manifesto.tableOfContents,
+          ),
+        ComingFromReact: () =>
+          withToc(
+            Page.ComingFromReact.view(
+              model,
+              model.comingFromReact,
+              message => GotComingFromReactMessage({ message }),
+            ),
+            Page.ComingFromReact.tableOfContents,
+          ),
+        GettingStarted: () =>
+          withToc(
+            Page.GettingStarted.view(model),
+            Page.GettingStarted.tableOfContents,
+          ),
+        RoutingAndNavigation: () =>
+          withToc(
+            Page.Routing.view(model),
+            Page.Routing.tableOfContents,
+          ),
+        FieldValidation: () =>
+          withToc(
+            Page.FieldValidation.view(model),
+            Page.FieldValidation.tableOfContents,
+          ),
+        Examples: () => withoutToc(Page.Examples.view()),
+        BestPractices: () =>
+          withToc(
+            Page.BestPractices.view(model),
+            Page.BestPractices.tableOfContents,
+          ),
+        ProjectOrganization: () =>
+          withToc(
+            Page.ProjectOrganization.view(model),
+            Page.ProjectOrganization.tableOfContents,
+          ),
+        ApiModule: ({ moduleSlug }) =>
+          pipe(
+            moduleSlug,
+            Page.ApiReference.slugToModule,
+            Option.match({
+              onSome: module => ({
+                content: lazyApiReference(apiReferenceView, [
+                  module,
+                  model.apiReference,
+                ]),
+                tableOfContents: Option.some(
+                  Page.ApiReference.toModuleTableOfContents(module),
+                ),
+              }),
+              onNone: () =>
+                withoutToc(
+                  Page.NotFound.view(moduleSlug, homeRouter()),
+                ),
+            }),
+          ),
+        CoreArchitecture: () =>
+          withToc(
+            Page.Core.Architecture.view(),
+            Page.Core.Architecture.tableOfContents,
+          ),
+        CoreCounterExample: () =>
+          withToc(
+            Page.Core.CounterExample.view(model),
+            Page.Core.CounterExample.tableOfContents,
+          ),
+        CoreModel: () =>
+          withToc(
+            Page.Core.CoreModel.view(model),
+            Page.Core.CoreModel.tableOfContents,
+          ),
+        CoreMessages: () =>
+          withToc(
+            Page.Core.Messages.view(model),
+            Page.Core.Messages.tableOfContents,
+          ),
+        CoreUpdate: () =>
+          withToc(
+            Page.Core.CoreUpdate.view(model),
+            Page.Core.CoreUpdate.tableOfContents,
+          ),
+        CoreView: () =>
+          withToc(
+            Page.Core.CoreView.view(model),
+            Page.Core.CoreView.tableOfContents,
+          ),
+        CoreCommands: () =>
+          withToc(
+            Page.Core.Commands.view(model),
+            Page.Core.Commands.tableOfContents,
+          ),
+        CoreSubscriptions: () =>
+          withToc(
+            Page.Core.Subscriptions.view(model),
+            Page.Core.Subscriptions.tableOfContents,
+          ),
+        CoreInit: () =>
+          withToc(
+            Page.Core.Init.view(model),
+            Page.Core.Init.tableOfContents,
+          ),
+        CoreTask: () =>
+          withToc(
+            Page.Core.CoreTask.view(model),
+            Page.Core.CoreTask.tableOfContents,
+          ),
+        CoreRunningYourApp: () =>
+          withToc(
+            Page.Core.RunningYourApp.view(model),
+            Page.Core.RunningYourApp.tableOfContents,
+          ),
+        CoreResources: () =>
+          withToc(
+            Page.Core.Resources.view(model),
+            Page.Core.Resources.tableOfContents,
+          ),
+        CoreManagedResources: () =>
+          withToc(
+            Page.Core.ManagedResources.view(model),
+            Page.Core.ManagedResources.tableOfContents,
+          ),
+        CoreErrorView: () =>
+          withToc(
+            Page.Core.ErrorView.view(model),
+            Page.Core.ErrorView.tableOfContents,
+          ),
+        CoreSlowViewWarning: () =>
+          withToc(
+            Page.Core.SlowViewWarning.view(model),
+            Page.Core.SlowViewWarning.tableOfContents,
+          ),
+        PatternsSubmodels: () =>
+          withToc(
+            Page.Patterns.Submodels.view(model),
+            Page.Patterns.Submodels.tableOfContents,
+          ),
+        PatternsOutMessage: () =>
+          withToc(
+            Page.Patterns.OutMessage.view(model),
+            Page.Patterns.OutMessage.tableOfContents,
+          ),
+        CoreViewMemoization: () =>
+          withToc(
+            Page.Core.ViewMemoization.view(model),
+            Page.Core.ViewMemoization.tableOfContents,
+          ),
+        UiTabs: () =>
+          withToc(
+            Page.UiPages.TabsPage.view(
+              model.uiPages,
+              toUiPageMessage,
+            ),
+            Page.UiPages.TabsPage.tableOfContents,
+          ),
+        UiDisclosure: () =>
+          withToc(
+            Page.UiPages.DisclosurePage.view(
+              model.uiPages,
+              toUiPageMessage,
+            ),
+            Page.UiPages.DisclosurePage.tableOfContents,
+          ),
+        UiDialog: () =>
+          withToc(
+            Page.UiPages.DialogPage.view(
+              model.uiPages,
+              toUiPageMessage,
+            ),
+            Page.UiPages.DialogPage.tableOfContents,
+          ),
+        UiMenu: () =>
+          withToc(
+            Page.UiPages.MenuPage.view(
+              model.uiPages,
+              toUiPageMessage,
+            ),
+            Page.UiPages.MenuPage.tableOfContents,
+          ),
+        UiPopover: () =>
+          withToc(
+            Page.UiPages.PopoverPage.view(
+              model.uiPages,
+              toUiPageMessage,
+            ),
+            Page.UiPages.PopoverPage.tableOfContents,
+          ),
+        UiListbox: () =>
+          withToc(
+            Page.UiPages.ListboxPage.view(
+              model.uiPages,
+              toUiPageMessage,
+            ),
+            Page.UiPages.ListboxPage.tableOfContents,
+          ),
+        UiRadioGroup: () =>
+          withToc(
+            Page.UiPages.RadioGroupPage.view(
+              model.uiPages,
+              toUiPageMessage,
+            ),
+            Page.UiPages.RadioGroupPage.tableOfContents,
+          ),
+        UiSwitch: () =>
+          withToc(
+            Page.UiPages.SwitchPage.view(
+              model.uiPages,
+              toUiPageMessage,
+            ),
+            Page.UiPages.SwitchPage.tableOfContents,
+          ),
+        UiCombobox: () =>
+          withToc(
+            Page.UiPages.ComboboxPage.view(
+              model.uiPages,
+              toUiPageMessage,
+            ),
+            Page.UiPages.ComboboxPage.tableOfContents,
+          ),
+        NotFound: ({ path }) =>
+          withoutToc(Page.NotFound.view(path, homeRouter())),
+      }),
+    )
 
   return keyed('div')(
     'docs',

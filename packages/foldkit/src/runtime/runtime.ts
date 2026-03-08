@@ -472,12 +472,14 @@ const makeRuntime =
 
             const [nextModel, commands] = update(currentModel, message)
 
-            yield* Ref.set(modelRef, nextModel)
-            yield* render(nextModel)
+            if (currentModel !== nextModel) {
+              yield* Ref.set(modelRef, nextModel)
+              yield* render(nextModel)
 
-            if (!modelEquivalence(currentModel, nextModel)) {
-              yield* SubscriptionRef.set(modelSubscriptionRef, nextModel)
-              preserveModel(nextModel)
+              if (!modelEquivalence(currentModel, nextModel)) {
+                yield* SubscriptionRef.set(modelSubscriptionRef, nextModel)
+                preserveModel(nextModel)
+              }
             }
 
             yield* Effect.forEach(commands, command =>
