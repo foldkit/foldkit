@@ -1737,8 +1737,6 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
       CoreSlowViewWarning: () =>
         Page.Core.SlowViewWarning.view(model),
       PatternsSubmodels: () => Page.Patterns.Submodels.view(model),
-      PatternsModelAsUnion: () =>
-        Page.Patterns.ModelAsUnion.view(model),
       PatternsOutMessage: () => Page.Patterns.OutMessage.view(model),
       CoreViewMemoization: () =>
         Page.Core.ViewMemoization.view(model),
@@ -1826,8 +1824,6 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
         Option.some(Page.Core.SlowViewWarning.tableOfContents),
       PatternsSubmodels: () =>
         Option.some(Page.Patterns.Submodels.tableOfContents),
-      PatternsModelAsUnion: () =>
-        Option.some(Page.Patterns.ModelAsUnion.tableOfContents),
       PatternsOutMessage: () =>
         Option.some(Page.Patterns.OutMessage.tableOfContents),
       CoreViewMemoization: () =>

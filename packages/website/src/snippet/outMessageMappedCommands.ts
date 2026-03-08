@@ -1,10 +1,10 @@
 import { Array, Effect } from 'effect'
 
-const [nextSettings, commands, maybeOutMessage] = Settings.update(
-  model.settings,
+const [nextLogin, commands, maybeOutMessage] = Login.update(
+  model.login,
   message,
 )
 
 const mappedCommands = Array.map(commands, command =>
-  Effect.map(command, message => GotSettingsMessage({ message })),
+  Effect.map(command, message => GotLoginMessage({ message })),
 )

@@ -72,7 +72,7 @@ export const view = (model: Model): Html =>
         ' for Command results, and ',
         inlineCode('Got*'),
         ' for ',
-        link(patternsSubmodelsRouter(), 'submodel results'),
+        link(patternsSubmodelsRouter(), 'Submodel results'),
         '.',
       ),
       para(

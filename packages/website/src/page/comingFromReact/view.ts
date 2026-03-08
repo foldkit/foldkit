@@ -423,7 +423,7 @@ export const view = (
         'How do I make reusable "components"?',
         [
           para(
-            "Create functions that take parts of your Model and return Html. They're not components in the React sense — they don't have their own state — but they're reusable view logic. For complex features, you can use the submodel pattern to organize related state and logic together.",
+            "Create functions that take parts of your Model and return Html. They're not components in the React sense — they don't have their own state — but they're reusable view logic. For complex features, you can use the Submodel pattern to organize related state and logic together.",
           ),
         ],
         model,
@@ -452,7 +452,7 @@ export const view = (
           para(
             'Here ',
             inlineCode('Accordion.Model'),
-            ' is a submodel — a self-contained piece of state defined in its own module, with its own Message types, update function, and view. This is similar to what experienced React devs often end up doing anyway — lifting state out of components into a parent. Foldkit just enforces this pattern from the start. See the ',
+            ' is a Submodel — a self-contained piece of state defined in its own module, with its own Message types, update function, and view. This is similar to what experienced React devs often end up doing anyway — lifting state out of components into a parent. Foldkit just enforces this pattern from the start. See the ',
             link(Link.exampleShoppingCart, 'Shopping Cart example'),
             ' for a concrete example, or ',
             link(patternsSubmodelsRouter(), 'Scaling with Submodels'),

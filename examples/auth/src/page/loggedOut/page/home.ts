@@ -17,7 +17,7 @@ export const view = (): Html =>
           p(
             [Class('text-xl text-gray-600 mb-8')],
             [
-              'A demonstration of the Model-as-Union pattern for authentication in foldkit.',
+              'A demonstration of authentication with Submodels and OutMessage in Foldkit.',
             ],
           ),
           a(

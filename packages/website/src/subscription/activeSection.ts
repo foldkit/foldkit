@@ -113,10 +113,6 @@ export const activeSection: Subscription<
           () => Page.Patterns.Submodels.tableOfContents,
         ),
         M.tag(
-          'PatternsModelAsUnion',
-          () => Page.Patterns.ModelAsUnion.tableOfContents,
-        ),
-        M.tag(
           'PatternsOutMessage',
           () => Page.Patterns.OutMessage.tableOfContents,
         ),

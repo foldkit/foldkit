@@ -11,10 +11,15 @@ export const update = (
 ] =>
   M.value(message).pipe(
     M.tagsExhaustive({
-      ClickedLogout: () => [
+      SubmittedLoginForm: () => [
+        model,
+        [login(model.email, model.password)],
+        Option.none(),
+      ],
+      SucceededLoginRequest: ({ sessionId }) => [
         model,
         [],
-        Option.some(RequestedLogout()),
+        Option.some(SucceededLogin({ sessionId })),
       ],
     }),
   )

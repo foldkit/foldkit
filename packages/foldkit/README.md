@@ -161,7 +161,7 @@ This is what makes Foldkit unusually AI-friendly. The same property that makes t
 - **[Shopping Cart](https://github.com/devinjameson/foldkit/blob/main/examples/shopping-cart/src/main.ts)** — Nested models and complex state
 - **[Snake](https://github.com/devinjameson/foldkit/blob/main/examples/snake/src/main.ts)** — Classic game built with Subscriptions
 - **[WebSocket Chat](https://github.com/devinjameson/foldkit/blob/main/examples/websocket-chat/src/main.ts)** — Managed Resources with WebSocket integration
-- **[Auth](https://github.com/devinjameson/foldkit/blob/main/examples/auth/src/main.ts)** — Authentication flow with model-as-union
+- **[Auth](https://github.com/devinjameson/foldkit/blob/main/examples/auth/src/main.ts)** — Authentication flow with Submodels and OutMessage
 - **[Query Sync](https://github.com/devinjameson/foldkit/blob/main/examples/query-sync/src/main.ts)** — URL query parameter sync with filtering and sorting
 - **[Error View](https://github.com/devinjameson/foldkit/blob/main/examples/error-view/src/main.ts)** — Custom error fallback UI
 - **[Typing Game](https://github.com/devinjameson/foldkit/tree/main/packages/typing-game)** — Multiplayer typing game with Effect RPC backend

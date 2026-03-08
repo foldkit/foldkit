@@ -23,7 +23,6 @@ import {
   fieldValidationRouter,
   gettingStartedRouter,
   manifestoRouter,
-  patternsModelAsUnionRouter,
   patternsOutMessageRouter,
   patternsSubmodelsRouter,
   projectOrganizationRouter,
@@ -192,11 +191,6 @@ export const docsSections: ReadonlyArray<DocsSection> = [
         _tag: 'PatternsSubmodels',
         href: patternsSubmodelsRouter(),
         label: 'Submodels',
-      },
-      {
-        _tag: 'PatternsModelAsUnion',
-        href: patternsModelAsUnionRouter(),
-        label: 'Model as Union',
       },
       {
         _tag: 'PatternsOutMessage',

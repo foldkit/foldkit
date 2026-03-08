@@ -3,12 +3,16 @@ import { m } from 'foldkit/message'
 
 // MESSAGE
 
-export const ClickedLogout = m('ClickedLogout')
-export const Message = S.Union(ClickedLogout)
+export const SubmittedLoginForm = m('SubmittedLoginForm')
+
+export const Message = S.Union(SubmittedLoginForm)
 export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
-export const RequestedLogout = m('RequestedLogout')
-export const OutMessage = S.Union(RequestedLogout)
+export const SucceededLogin = m('SucceededLogin', {
+  sessionId: S.String,
+})
+
+export const OutMessage = S.Union(SucceededLogin)
 export type OutMessage = typeof OutMessage.Type

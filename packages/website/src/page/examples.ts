@@ -76,10 +76,10 @@ const examples: ReadonlyArray<Example> = [
   {
     title: 'Auth',
     description:
-      'Authentication flow with Model-as-Union pattern, protected routes, and session management.',
+      'Authentication flow with Submodels, OutMessage, protected routes, and session management.',
     href: Link.exampleAuth,
     difficulty: 'Advanced',
-    tags: ['Auth', 'Routing'],
+    tags: ['Auth', 'Routing', 'Submodels', 'OutMessage'],
   },
   {
     title: 'Shopping Cart',

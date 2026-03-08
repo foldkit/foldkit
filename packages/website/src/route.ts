@@ -41,7 +41,6 @@ export const CoreSlowViewWarningRoute = r('CoreSlowViewWarning')
 export const CoreViewMemoizationRoute = r('CoreViewMemoization')
 
 export const PatternsSubmodelsRoute = r('PatternsSubmodels')
-export const PatternsModelAsUnionRoute = r('PatternsModelAsUnion')
 export const PatternsOutMessageRoute = r('PatternsOutMessage')
 
 export const UiTabsRoute = r('UiTabs')
@@ -83,7 +82,6 @@ export const DocsRoute = S.Union(
   CoreSlowViewWarningRoute,
   CoreViewMemoizationRoute,
   PatternsSubmodelsRoute,
-  PatternsModelAsUnionRoute,
   PatternsOutMessageRoute,
   UiTabsRoute,
   UiDisclosureRoute,
@@ -134,8 +132,6 @@ export type CoreSlowViewWarningRoute =
   typeof CoreSlowViewWarningRoute.Type
 export type PatternsSubmodelsRoute =
   typeof PatternsSubmodelsRoute.Type
-export type PatternsModelAsUnionRoute =
-  typeof PatternsModelAsUnionRoute.Type
 export type PatternsOutMessageRoute =
   typeof PatternsOutMessageRoute.Type
 export type CoreViewMemoizationRoute =
@@ -278,11 +274,6 @@ export const patternsSubmodelsRouter = pipe(
   slash(literal('submodels')),
   mapTo(PatternsSubmodelsRoute),
 )
-export const patternsModelAsUnionRouter = pipe(
-  literal('patterns'),
-  slash(literal('model-as-union')),
-  mapTo(PatternsModelAsUnionRoute),
-)
 export const patternsOutMessageRouter = pipe(
   literal('patterns'),
   slash(literal('out-message')),
@@ -371,7 +362,6 @@ const coreExtendedParser = oneOf(
 
 const patternsParser = oneOf(
   patternsSubmodelsRouter,
-  patternsModelAsUnionRouter,
   patternsOutMessageRouter,
 )
 

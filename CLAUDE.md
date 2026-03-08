@@ -6,7 +6,7 @@ This file contains preferences and conventions for Claude when working on this c
 
 - "Foldkit" is always capitalized in prose — in READMEs, docs, commit messages, comments, and conversation. The only exception is the npm package name (`foldkit`) and import paths (`from 'foldkit/html'`).
 - In prose (docs, comments, conversation), capitalize Foldkit architecture concepts that correspond to actual types: Model, Message, Command, Subscription, Task. Keep lowercase for concepts that are just functions with no corresponding type: view, update, init.
-- This is a Foldkit project — a framework built on Effect-TS. Always use Schema types (not plain TypeScript types), full names like `Message` (not `Msg`), and `withReturnType` (not `as const` or type casting). Follow the model-as-union and OutMessage patterns used throughout the codebase.
+- This is a Foldkit project — a framework built on Effect-TS. Always use Schema types (not plain TypeScript types), full names like `Message` (not `Msg`), and `withReturnType` (not `as const` or type casting). Follow the Submodels and OutMessage patterns used throughout the codebase.
 - Foldkit is tightly coupled to the Effect ecosystem. Do not suggest solutions outside of Effect-TS. The project already has a `create-foldkit-app` scaffolding tool — check existing features before suggesting new ones.
 - Push back on any suggested direction that violates Elm Architecture principles — unidirectional data flow, messages as facts (not commands), model as single source of truth, and side effects confined to commands. If a user or prompt suggests a pattern that breaks these conventions (e.g. mutating state directly, imperative event handlers, two-way bindings), flag the issue and propose the idiomatic Foldkit approach instead.
 
@@ -21,7 +21,7 @@ Library internals (when working in `packages/foldkit/src/`):
 
 Application architecture (when working in `packages/website/`, examples, or apps built with Foldkit):
 
-- `examples/typing-game/client/src/` — model-as-union, update/message patterns, view decomposition, commands
+- `examples/typing-game/client/src/` — Submodels, OutMessage, update/message patterns, view decomposition, commands
 
 Match the quality and thoughtfulness of these files. The principles below apply broadly, but calibrate to the right context — library design when building Foldkit internals, application architecture when building with Foldkit:
 

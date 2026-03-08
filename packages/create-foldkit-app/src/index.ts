@@ -72,7 +72,7 @@ const example = Options.choice('example', [
       '  query-sync - URL-driven filtering, sorting, and search with query parameters\n' +
       '  shopping-cart - Complex state management with nested models and routing\n' +
       '  websocket-chat - Managed resources with WebSocket integration\n' +
-      '  auth - Authentication with Model-as-Union pattern and protected routes',
+      '  auth - Authentication with Submodels, OutMessage, and protected routes',
   ),
 )
 
