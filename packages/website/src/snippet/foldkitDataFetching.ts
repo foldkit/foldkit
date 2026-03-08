@@ -11,7 +11,7 @@ const UserSuccess = ts('UserSuccess', { data: UserSchema })
 const UserFailure = ts('UserFailure', { error: S.String })
 const UserState = S.Union(UserLoading, UserSuccess, UserFailure)
 
-// MODEL - your entire application state
+// MODEL - Your entire application state
 
 const Model = S.Struct({
   userId: S.String,
@@ -19,7 +19,7 @@ const Model = S.Struct({
 })
 type Model = typeof Model.Type
 
-// MESSAGE - events that can happen in your app
+// MESSAGE - Events that can happen in your app
 
 const ClickedFetchUser = m('ClickedFetchUser', { userId: S.String })
 const SucceededUserFetch = m('SucceededUserFetch', {
@@ -34,7 +34,7 @@ const Message = S.Union(
 )
 type Message = typeof Message.Type
 
-// COMMAND - descriptions of side effects that resolve to Messages
+// COMMAND - Descriptions of side effects that resolve to Messages
 
 const fetchUser = (
   userId: string,
@@ -53,7 +53,7 @@ const fetchUser = (
     ),
   )
 
-// UPDATE - how Messages change the Model
+// UPDATE - How Messages change the Model
 
 const update = (
   model: Model,

@@ -2,7 +2,7 @@ import { Option, Record } from 'effect'
 import { Ui } from 'foldkit'
 import { Html } from 'foldkit/html'
 
-import { Class, InnerHTML, div, li, p, span, ul } from '../../html'
+import { Class, InnerHTML, div, p, span } from '../../html'
 import { Icon } from '../../icon'
 import { Link } from '../../link'
 import type {
@@ -19,6 +19,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import {
+  bestPracticesRouter,
   coreCounterExampleRouter,
   gettingStartedRouter,
   patternsSubmodelsRouter,
@@ -36,43 +37,33 @@ const [
   faqMultipleInstances,
   faqRouting,
   faqForms,
+  faqDataFetching,
+  faqTesting,
   faqWhereToStart,
 ] = FAQ_IDS
 
-const introductionHeader: TableOfContentsEntry = {
+const simpleCounterHeader: TableOfContentsEntry = {
   level: 'h2',
-  id: 'introduction',
-  text: 'Introduction',
+  id: 'a-simple-counter',
+  text: 'A Simple Counter',
 }
 
-const mentalModelShiftsHeader: TableOfContentsEntry = {
+const autoCountHeader: TableOfContentsEntry = {
   level: 'h2',
-  id: 'mental-model-shifts',
-  text: 'Mental Model Shifts',
+  id: 'adding-auto-count',
+  text: 'Adding Auto-Count',
 }
 
-const codeComparisonHeader: TableOfContentsEntry = {
+const stepSizeHeader: TableOfContentsEntry = {
   level: 'h2',
-  id: 'code-comparison',
-  text: 'Side-by-Side Code Comparison',
+  id: 'adding-a-step-size',
+  text: 'Adding a Step Size',
 }
 
-const patternMappingHeader: TableOfContentsEntry = {
+const translatingConceptsHeader: TableOfContentsEntry = {
   level: 'h2',
-  id: 'pattern-mapping',
-  text: 'Pattern Mapping',
-}
-
-const whatYoullMissHeader: TableOfContentsEntry = {
-  level: 'h2',
-  id: 'what-youll-miss',
-  text: "What You'll Miss",
-}
-
-const whatYoullGainHeader: TableOfContentsEntry = {
-  level: 'h2',
-  id: 'what-youll-gain',
-  text: "What You'll Gain",
+  id: 'translating-react-concepts',
+  text: 'Translating React Concepts',
 }
 
 const faqHeader: TableOfContentsEntry = {
@@ -82,12 +73,10 @@ const faqHeader: TableOfContentsEntry = {
 }
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
-  introductionHeader,
-  mentalModelShiftsHeader,
-  codeComparisonHeader,
-  patternMappingHeader,
-  whatYoullMissHeader,
-  whatYoullGainHeader,
+  simpleCounterHeader,
+  autoCountHeader,
+  stepSizeHeader,
+  translatingConceptsHeader,
   faqHeader,
 ]
 
@@ -101,7 +90,7 @@ const patternMappingTable = (): Html =>
         [inlineCode('update'), ' function'],
       ],
       [
-        [inlineCode('useEffect')],
+        [inlineCode('useEffect'), ' (one-off)'],
         ['Commands (returned from ', inlineCode('update'), ')'],
       ],
       [
@@ -113,7 +102,7 @@ const patternMappingTable = (): Html =>
         ['Not needed (no stale closures)'],
       ],
       [['Custom hooks'], ['Domain modules with pure functions']],
-      [['JSX'], ['Typed HTML helper functions']],
+      [['JSX'], ['Plain functions from Model to HTML']],
       [['Component props'], ['Function parameters']],
       [['Component state'], ['Part of the single Model']],
       [
@@ -126,13 +115,19 @@ const patternMappingTable = (): Html =>
       ],
       [
         ['React Hook Form / Formik'],
-        ['Model + Messages + Effect Schema validation'],
+        [
+          'Model + Messages + ',
+          inlineCode('foldkit/fieldValidation'),
+        ],
       ],
       [
-        ['TanStack Query / SWR'],
-        ['Commands + Subscriptions + typed async state'],
+        ['Event streams (useEffect / RxJS)'],
+        ['Subscriptions (automatic lifecycle)'],
       ],
-      [['WebSocket libraries / real-time'], ['Subscriptions']],
+      [
+        ['Headless UI / Radix UI'],
+        ['Foldkit UI (headless, typed components)'],
+      ],
       [
         ['Error boundaries'],
         ['Typed errors in Effects + ', inlineCode('errorView')],
@@ -194,63 +189,11 @@ export const view = (
     [],
     [
       pageTitle('coming-from-react', 'Coming from React'),
-      tableOfContentsEntryToHeader(introductionHeader),
       para(
-        "If you're coming from React, you already understand component-based UI, state management, and the challenges of building complex web applications. Foldkit takes a different approach — one that may feel unfamiliar at first but addresses many frustrations you've likely encountered.",
+        'If you know React, you already have the instincts for building UIs. Foldkit channels those instincts through a different structure \u2014 one where every state change, every side effect, and every event is explicit and visible. The best way to feel the difference is to build the same thing in both.',
       ),
-      para(
-        "This guide won't try to convince you that React is bad. React is a great tool that has shaped modern frontend development. But if you've ever struggled with stale closures, effect dependency arrays, or state scattered across components, Foldkit offers an alternative worth exploring.",
-      ),
-      tableOfContentsEntryToHeader(mentalModelShiftsHeader),
-      para('The biggest shifts when moving from React to Foldkit:'),
-      ul(
-        [Class('list-disc mb-6 space-y-3')],
-        [
-          li(
-            [],
-            [
-              'Components → Functions',
-              ' — Instead of components with their own state and lifecycle, you have pure functions. The view is just a function from Model to HTML.',
-            ],
-          ),
-          li(
-            [],
-            [
-              'Local State → Single Model',
-              " — There's no useState scattered across components. All application state lives in one place, making it trivial to understand what your app knows at any moment.",
-            ],
-          ),
-          li(
-            [],
-            [
-              'useEffect → Commands',
-              ' — Side effects are explicit return values from update, not callbacks triggered by dependency arrays. You never wonder "why did this effect run?"',
-            ],
-          ),
-          li(
-            [],
-            [
-              'Hooks Rules → No Rules',
-              ' — No worrying about calling hooks in the wrong order, in conditionals, or in loops. There are no hooks — just functions.',
-            ],
-          ),
-          li(
-            [],
-            [
-              'Props Drilling → Direct Access',
-              " — With a single Model, any part of your view can access any state. You don't need Context or state management libraries to avoid prop drilling.",
-            ],
-          ),
-        ],
-      ),
-      callout(
-        'If you know Redux...',
-        'The Model-View-Update pattern will feel familiar. Think of the Model as your Redux store, Messages as actions, and update as your reducer — but without the boilerplate of action creators, selectors, and middleware.',
-      ),
-      tableOfContentsEntryToHeader(codeComparisonHeader),
-      para(
-        "Let's compare a counter in React and Foldkit. The React version uses hooks:",
-      ),
+      tableOfContentsEntryToHeader(simpleCounterHeader),
+      para('A counter in React:'),
       highlightedCodeBlock(
         div(
           [
@@ -264,9 +207,7 @@ export const view = (
         mainModel,
         'mb-4',
       ),
-      para(
-        'The Foldkit version separates state, events, how events update state, and view:',
-      ),
+      para('The same counter in Foldkit:'),
       highlightedCodeBlock(
         div(
           [
@@ -281,141 +222,126 @@ export const view = (
         'mb-6',
       ),
       para(
-        "Foldkit is more lines of code. It doesn't optimize for fewer characters or clever shortcuts — it optimizes for honesty. Every state is named, every event is typed, every transition is visible. At small scale that feels like overhead. At large scale it's the reason you can still understand your app.",
+        'More lines, same result. At this scale, Foldkit\u2019s structure \u2014 Model, Message, update, view \u2014 looks like overhead. The benefits come with scale. Every piece earns its place as more complex behavior is introduced.',
+      ),
+      tableOfContentsEntryToHeader(autoCountHeader),
+      para(
+        'New requirement: a play/pause button that auto-increments the counter every second.',
       ),
       para(
-        "Here's a data fetching example. React requires careful handling of loading states, race conditions, and cleanup:",
+        'React adds a ref to hold the interval ID and a ',
+        inlineCode('useEffect'),
+        ' to start and stop the interval:',
       ),
       highlightedCodeBlock(
         div(
           [
             Class('text-sm'),
-            InnerHTML(Snippets.reactDataFetchingHighlighted),
+            InnerHTML(Snippets.reactCounterResetHighlighted),
           ],
           [],
         ),
-        Snippets.reactDataFetchingRaw,
-        'Copy React data fetching',
+        Snippets.reactCounterResetRaw,
+        'Copy React counter with auto-play',
         mainModel,
         'mb-4',
       ),
       para(
-        'In Foldkit, the same pattern is explicit, auditable, and safe by default:',
+        'The interval state lives outside React\u2019s state system \u2014 in a ref \u2014 because the effect needs to clear the previous interval before starting a new one. The cleanup function is critical: miss it and you leak intervals.',
+      ),
+      para('Foldkit adds a Subscription and a Message:'),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.foldkitCounterResetHighlighted),
+          ],
+          [],
+        ),
+        Snippets.foldkitCounterResetRaw,
+        'Copy Foldkit counter with auto-play',
+        mainModel,
+        'mb-6',
+      ),
+      para(
+        'The Subscription emits ',
+        inlineCode('Ticked'),
+        ' every second while ',
+        inlineCode('isAutoCounting'),
+        ' is true. Foldkit manages the stream lifecycle \u2014 starts it when the dependency changes to true, tears it down when it changes to false. No refs, no manual cleanup.',
+      ),
+      tableOfContentsEntryToHeader(stepSizeHeader),
+      para(
+        'One more feature: an input that controls how much each tick and manual click increments by.',
+      ),
+      para(
+        'This is where the React version hits a wall. The ',
+        inlineCode('setInterval'),
+        ' callback captures ',
+        inlineCode('step'),
+        ' at creation time. If you change the step while playing, the interval keeps using the old value \u2014 a stale closure. The fix: a ref and a sync effect to keep it current:',
       ),
       highlightedCodeBlock(
         div(
           [
             Class('text-sm'),
-            InnerHTML(Snippets.foldkitDataFetchingHighlighted),
+            InnerHTML(Snippets.reactCounterAutoPlayHighlighted),
           ],
           [],
         ),
-        Snippets.foldkitDataFetchingRaw,
-        'Copy Foldkit data fetching',
+        Snippets.reactCounterAutoPlayRaw,
+        'Copy React counter with step size',
+        mainModel,
+        'mb-4',
+      ),
+      para(
+        'Two refs, two effects, and a subtle bug that only manifests at runtime \u2014 the interval silently uses a stale value until you add the ref workaround. Most React developers have been burned by this.',
+      ),
+      para('In Foldkit, there is no stale closure:'),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.foldkitCounterAutoPlayHighlighted),
+          ],
+          [],
+        ),
+        Snippets.foldkitCounterAutoPlayRaw,
+        'Copy Foldkit counter with step size',
         mainModel,
         'mb-6',
       ),
       para(
-        "Notice there's no cleanup function, no cancelled flag, no stale closure risk. The Command runs, and when it completes, it returns a Message. The architecture eliminates the need for defensive coding.",
+        inlineCode('model.step'),
+        ' is always current. The update function receives the latest Model every time a Message arrives. Both ',
+        inlineCode('ClickedIncrement'),
+        ' and ',
+        inlineCode('Ticked'),
+        ' use ',
+        inlineCode('model.step'),
+        ' and it just works \u2014 no refs, no sync effects, no runtime surprises.',
       ),
       para(
-        'Now read the update function. Every state transition in the app is right there — when the user clicks fetch, set loading and fire the command. When the fetch succeeds, store the data. When it fails, store the error. Want to know what your app does? Read update. In React, the same understanding requires tracing through hooks, effects, and closures across multiple components.',
+        'Read the update function top to bottom. Every behavior in the app is right there. Each case is independent \u2014 they don\u2019t interact through shared mutable state or overlapping effect dependencies. Adding a feature meant adding cases, not restructuring existing ones.',
       ),
-      tableOfContentsEntryToHeader(patternMappingHeader),
-      para("Here's how common React patterns map to Foldkit:"),
+      callout(
+        'The pattern',
+        'In React, complexity compounds. Each feature interacts with existing effects, refs, and closures. In Foldkit, complexity scales linearly. Each feature adds Messages, update cases, and possibly Commands or Subscriptions \u2014 but they don\u2019t interact with each other through shared mutable state.',
+      ),
+      para(
+        'This structure also makes testing trivial. Your update function is pure \u2014 pass a Model and a Message, assert on the returned Model. No rendering, no mocking ',
+        inlineCode('useEffect'),
+        ', no wrapping in providers.',
+      ),
+      para(
+        'This is a toy example. Consider what happens at real scale \u2014 a multiplayer game with WebSocket streams, a mix of client and server state, handling keyboard events, animations, and reconnection logic. In React, every feature adds effects that interact with every other effect. In Foldkit, the architecture is the same as the counter: Messages come in, the update function decides what to do, Commands and Subscriptions handle the rest. The complexity of your domain grows, but the complexity of your architecture doesn\u2019t.',
+      ),
+      tableOfContentsEntryToHeader(translatingConceptsHeader),
+      para('Here\u2019s how React patterns map to Foldkit:'),
       patternMappingTable(),
-      tableOfContentsEntryToHeader(whatYoullMissHeader),
-      para(
-        "Let's be honest about the tradeoffs. Coming from React, you may miss:",
-      ),
-      ul(
-        [Class('list-disc mb-6 space-y-2')],
-        [
-          li(
-            [],
-            [
-              'Component encapsulation',
-              ' — In React, components encapsulate state and behavior. In Foldkit, state is centralized. This is a feature, not a bug, but it requires a different way of thinking about code organization.',
-            ],
-          ),
-          li(
-            [],
-            [
-              'The React ecosystem',
-              " — React has thousands of component libraries, UI kits, and integrations. Foldkit is much smaller. You'll often write more from scratch.",
-            ],
-          ),
-          li(
-            [],
-            [
-              'JSX',
-              " — Many developers prefer JSX's HTML-like syntax. Foldkit uses function calls that some find more verbose. Others prefer the consistency — it's just functions all the way down.",
-            ],
-          ),
-          li(
-            [],
-            [
-              'Gradual adoption',
-              " — You can add React to any page incrementally. Foldkit works best as a full-page application. It's harder to embed a Foldkit widget in an existing React app.",
-            ],
-          ),
-          li(
-            [],
-            [
-              'Familiarity',
-              " — Most frontend developers know React. Foldkit's patterns, while not difficult, require learning. Team onboarding takes longer.",
-            ],
-          ),
-        ],
-      ),
-      tableOfContentsEntryToHeader(whatYoullGainHeader),
-      para("In return, you'll gain:"),
-      ul(
-        [Class('list-disc mb-6 space-y-2')],
-        [
-          li(
-            [],
-            [
-              'No stale closures',
-              " — Ever. The update function always receives the current model. There's no dependency array to get wrong.",
-            ],
-          ),
-          li(
-            [],
-            [
-              'Explicit effects',
-              ' — Every side effect is a return value from update. You can see exactly what effects a message triggers by reading the code.',
-            ],
-          ),
-          li(
-            [],
-            [
-              'Testable by default',
-              ' — Your update function is pure. Give it a model and message, check the output. No mocking useState or useEffect.',
-            ],
-          ),
-          li(
-            [],
-            [
-              'Type-safe everything',
-              ' — Model, Messages, Commands — all typed. Effect Schema validates at runtime too. Fewer "undefined is not a function" errors.',
-            ],
-          ),
-          li(
-            [],
-            [
-              'No hook rules',
-              ' — Call any function anywhere. No "rules of hooks" to remember, no linter errors about missing dependencies.',
-            ],
-          ),
-          li(
-            [],
-            [
-              'Single source of truth',
-              " — Want to know your app's state? It's all in the Model. Want to know what can happen? Look at Messages. Want to know how state changes? Read update.",
-            ],
-          ),
-        ],
+      callout(
+        'If you know Redux...',
+        'The Model-View-Update pattern will feel familiar. Think of the Model as your Redux store, Messages as actions, and update as your reducer \u2014 but without action creators, selectors, or middleware.',
       ),
       tableOfContentsEntryToHeader(faqHeader),
       faqItem(
@@ -423,7 +349,9 @@ export const view = (
         'How do I make reusable "components"?',
         [
           para(
-            "Create functions that take parts of your Model and return Html. They're not components in the React sense — they don't have their own state — but they're reusable view logic. For complex features, you can use the Submodel pattern to organize related state and logic together.",
+            'Create functions that take parts of your Model and return Html. They\u2019re not components in the React sense \u2014 they don\u2019t have their own state or lifecycle \u2014 but they\u2019re reusable view logic. For complex features that need their own state, use the ',
+            link(patternsSubmodelsRouter(), 'Submodels'),
+            ' pattern: the child module gets its own Model, Message, and update, and the parent embeds and delegates to it.',
           ),
         ],
         model,
@@ -434,7 +362,7 @@ export const view = (
         'How do I create multiple components with their own state?',
         [
           para(
-            'There are no components in Foldkit. State always lives in your Model, and views are just functions from Model to Html. Say you need multiple accordions with independent state — you model that explicitly:',
+            'State always lives in your Model, and views are functions from Model to Html. For multiple instances with independent state, model each one explicitly:',
           ),
           highlightedCodeBlock(
             div(
@@ -450,13 +378,11 @@ export const view = (
             'mb-4',
           ),
           para(
-            'Here ',
+            'Each ',
             inlineCode('Accordion.Model'),
-            ' is a Submodel — a self-contained piece of state defined in its own module, with its own Message types, update function, and view. This is similar to what experienced React devs often end up doing anyway — lifting state out of components into a parent. Foldkit just enforces this pattern from the start. See the ',
+            ' is a Submodel \u2014 a self-contained piece of state with its own Messages, update, and view. This is similar to what React developers end up doing anyway \u2014 lifting state into a parent \u2014 but Foldkit enforces it from the start. See the ',
             link(Link.exampleShoppingCart, 'Shopping Cart example'),
-            ' for a concrete example, or ',
-            link(patternsSubmodelsRouter(), 'Scaling with Submodels'),
-            ' for the full pattern.',
+            ' for a concrete implementation.',
           ),
         ],
         model,
@@ -467,12 +393,12 @@ export const view = (
         'How does routing work?',
         [
           para(
-            'Foldkit has built-in typed routing. See the ',
+            'Foldkit has built-in typed routing with bidirectional parsers \u2014 define routes once, use them for both URL parsing and URL building. See ',
             link(
               routingAndNavigationRouter(),
               'Routing & Navigation',
             ),
-            ' page for details.',
+            '.',
           ),
         ],
         model,
@@ -483,9 +409,48 @@ export const view = (
         'What about forms?',
         [
           para(
-            'Forms work like everything else: form state lives in your Model, input dispatches Messages, and update handles validation. Check the ',
-            link(Link.exampleForm, 'form example'),
-            ' for patterns.',
+            'Form state lives in your Model, inputs dispatch Messages, and update handles validation. Foldkit ships a field validation module with four-state fields (',
+            inlineCode('NotValidated'),
+            ', ',
+            inlineCode('Validating'),
+            ', ',
+            inlineCode('Valid'),
+            ', ',
+            inlineCode('Invalid'),
+            '). See the ',
+            link(Link.exampleForm, 'Form example'),
+            '.',
+          ),
+        ],
+        model,
+        toMessage,
+      ),
+      faqItem(
+        faqDataFetching,
+        'How do I fetch data?',
+        [
+          para(
+            'Return a Command from your update function. The Command runs an Effect (an HTTP request, a database call, whatever you need), and the result comes back as a Message. No ',
+            inlineCode('useEffect'),
+            ', no cleanup functions, no race conditions. See the ',
+            link(Link.exampleWeatherFetch, 'Weather example'),
+            ' for a complete implementation.',
+          ),
+        ],
+        model,
+        toMessage,
+      ),
+      faqItem(
+        faqTesting,
+        'How do I test my app?',
+        [
+          para(
+            'Your update function is pure \u2014 give it a Model and a Message, check the returned Model and Commands. No rendering, no mocking hooks, no test utilities. Commands are Effects with explicit dependencies, so you can swap in test layers without stubbing globals. See ',
+            link(
+              `${bestPracticesRouter()}#testing-update`,
+              'Best Practices',
+            ),
+            ' for a complete testing example.',
           ),
         ],
         model,
@@ -498,9 +463,9 @@ export const view = (
           para(
             'Head to ',
             link(gettingStartedRouter(), 'Getting Started'),
-            ' to create your first Foldkit app. Then read ',
+            ' to create your first Foldkit app, then read the ',
             link(coreCounterExampleRouter(), 'Counter Example'),
-            ' to understand the pieces in depth.',
+            ' to understand each piece in depth.',
           ),
         ],
         model,

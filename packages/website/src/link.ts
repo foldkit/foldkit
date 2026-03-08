@@ -35,6 +35,8 @@ export const Link = {
   exampleStopwatch: `${exampleBase}/stopwatch/src/main.ts`,
   exampleTodo: `${exampleBase}/todo/src/main.ts`,
   exampleWeather: `${exampleBase}/weather/src/main.ts`,
+  exampleWeatherFetch:
+    'https://github.com/devinjameson/foldkit/blob/main/examples/weather/src/main.ts#L123-L177',
   exampleWeatherTests:
     'https://github.com/devinjameson/foldkit/blob/main/examples/weather/src/main.test.ts',
   exampleWebsocketChat: `${exampleBase}/websocket-chat/src/main.ts`,
