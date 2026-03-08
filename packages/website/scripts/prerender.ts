@@ -289,27 +289,28 @@ const readApiModuleNames = Effect.gen(function* () {
   return Array.map(apiDoc.children, ({ name }) => moduleNameToSlug(name))
 })
 
-const prerenderRoute = (browser: Browser, baseHtml: string) => (route: AppRoute) =>
-  Effect.gen(function* () {
-    const urlPath = routeToUrlPath(route)
-    const outputPath = routeToOutputPath(route)
-    const url = `${PREVIEW_BASE_URL}${urlPath}`
-    const outputFilePath = resolve(DIST_DIR, outputPath)
+const prerenderRoute =
+  (browser: Browser, baseHtml: string) => (route: AppRoute) =>
+    Effect.gen(function* () {
+      const urlPath = routeToUrlPath(route)
+      const outputPath = routeToOutputPath(route)
+      const url = `${PREVIEW_BASE_URL}${urlPath}`
+      const outputFilePath = resolve(DIST_DIR, outputPath)
 
-    const renderedHtml = yield* captureRouteHtml(browser, url)
-    const outputHtml = injectHtml(baseHtml, renderedHtml)
+      const renderedHtml = yield* captureRouteHtml(browser, url)
+      const outputHtml = injectHtml(baseHtml, renderedHtml)
 
-    const fs = yield* FileSystem.FileSystem
-    yield* fs.makeDirectory(dirname(outputFilePath), {
-      recursive: true,
-    })
-    yield* fs.writeFileString(outputFilePath, outputHtml)
-    yield* Console.log(`  ✓ ${urlPath}`)
-  }).pipe(
-    Effect.catchAll(error =>
-      Console.warn(`  ✗ ${routeToUrlPath(route)}: ${String(error)}`),
-    ),
-  )
+      const fs = yield* FileSystem.FileSystem
+      yield* fs.makeDirectory(dirname(outputFilePath), {
+        recursive: true,
+      })
+      yield* fs.writeFileString(outputFilePath, outputHtml)
+      yield* Console.log(`  ✓ ${urlPath}`)
+    }).pipe(
+      Effect.catchAll(error =>
+        Console.warn(`  ✗ ${routeToUrlPath(route)}: ${String(error)}`),
+      ),
+    )
 
 // SITEMAP
 

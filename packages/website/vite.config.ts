@@ -6,7 +6,10 @@ import { resolve } from 'node:path'
 import { codeToHtml } from 'shiki'
 import { type Plugin, defineConfig } from 'vite'
 
-import { typeDefFromChildren, typeToString } from './src/page/apiReference/typeToString'
+import {
+  typeDefFromChildren,
+  typeToString,
+} from './src/page/apiReference/typeToString'
 import {
   Kind,
   type TypeDocCommentPart,
@@ -121,7 +124,9 @@ const buildFunctionSignatureString = (signature: TypeDocSignature): string => {
   return `${typeParamString}${paramString}: ${typeToString(signature.type)}`
 }
 
-const partsToText = (parts: ReadonlyArray<TypeDocCommentPart>): Option.Option<string> =>
+const partsToText = (
+  parts: ReadonlyArray<TypeDocCommentPart>,
+): Option.Option<string> =>
   pipe(
     Array.map(parts, ({ text }) => text),
     Array.join(''),
@@ -381,7 +386,10 @@ const counterDemoCodePlugin = (): Plugin => ({
       })),
     })
 
-    const htmlWithDigits = html.replace('<pre ', `<pre data-line-digits="${lineDigits}" `)
+    const htmlWithDigits = html.replace(
+      '<pre ',
+      `<pre data-line-digits="${lineDigits}" `,
+    )
 
     return `export default ${JSON.stringify(htmlWithDigits)}`
   },
@@ -495,7 +503,10 @@ const notePlayerDemoCodePlugin = (): Plugin => ({
       })),
     })
 
-    const htmlWithDigits = html.replace('<pre ', `<pre data-line-digits="${lineDigits}" `)
+    const htmlWithDigits = html.replace(
+      '<pre ',
+      `<pre data-line-digits="${lineDigits}" `,
+    )
 
     return `export default ${JSON.stringify(htmlWithDigits)}`
   },
