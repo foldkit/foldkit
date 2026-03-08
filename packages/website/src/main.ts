@@ -1148,7 +1148,7 @@ const tableOfContentsEntryView = (
     ],
   )
 
-const lazyTocEntry = createKeyedLazy()
+const lazyTableOfContentsEntry = createKeyedLazy()
 const lazySidebar = createLazy()
 
 const tableOfContentsView = (
@@ -1182,7 +1182,7 @@ const tableOfContentsView = (
                 activeSectionId => activeSectionId === id,
               )
 
-              return lazyTocEntry(id, tableOfContentsEntryView, [
+              return lazyTableOfContentsEntry(id, tableOfContentsEntryView, [
                 level,
                 id,
                 text,
@@ -1625,7 +1625,7 @@ type DocsPageView = Readonly<{
   tableOfContents: Option.Option<ReadonlyArray<TableOfContentsEntry>>
 }>
 
-const withToc = (
+const withTableOfContents = (
   content: Html,
   tableOfContents: ReadonlyArray<TableOfContentsEntry>,
 ): DocsPageView => ({
@@ -1633,7 +1633,7 @@ const withToc = (
   tableOfContents: Option.some(tableOfContents),
 })
 
-const withoutToc = (content: Html): DocsPageView => ({
+const withoutTableOfContents = (content: Html): DocsPageView => ({
   content,
   tableOfContents: Option.none(),
 })
@@ -1645,9 +1645,12 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
     M.withReturnType<DocsPageView>(),
     M.tagsExhaustive({
       Manifesto: () =>
-        withToc(Page.Manifesto.view(), Page.Manifesto.tableOfContents),
+        withTableOfContents(
+          Page.Manifesto.view(),
+          Page.Manifesto.tableOfContents,
+        ),
       ComingFromReact: () =>
-        withToc(
+        withTableOfContents(
           Page.ComingFromReact.view(
             model.copiedSnippets,
             model.comingFromReact,
@@ -1656,28 +1659,28 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
           Page.ComingFromReact.tableOfContents,
         ),
       GettingStarted: () =>
-        withToc(
+        withTableOfContents(
           lazyDocsContent(Page.GettingStarted.view, [model.copiedSnippets]),
           Page.GettingStarted.tableOfContents,
         ),
       RoutingAndNavigation: () =>
-        withToc(
+        withTableOfContents(
           lazyDocsContent(Page.Routing.view, [model.copiedSnippets]),
           Page.Routing.tableOfContents,
         ),
       FieldValidation: () =>
-        withToc(
+        withTableOfContents(
           lazyDocsContent(Page.FieldValidation.view, [model.copiedSnippets]),
           Page.FieldValidation.tableOfContents,
         ),
-      Examples: () => withoutToc(Page.Examples.view()),
+      Examples: () => withoutTableOfContents(Page.Examples.view()),
       BestPractices: () =>
-        withToc(
+        withTableOfContents(
           lazyDocsContent(Page.BestPractices.view, [model.copiedSnippets]),
           Page.BestPractices.tableOfContents,
         ),
       ProjectOrganization: () =>
-        withToc(
+        withTableOfContents(
           lazyDocsContent(Page.ProjectOrganization.view, [
             model.copiedSnippets,
           ]),
@@ -1698,163 +1701,165 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
               ),
             }),
             onNone: () =>
-              withoutToc(Page.NotFound.view(moduleSlug, homeRouter())),
+              withoutTableOfContents(
+                Page.NotFound.view(moduleSlug, homeRouter()),
+              ),
           }),
         ),
       CoreArchitecture: () =>
-        withToc(
+        withTableOfContents(
           Page.Core.Architecture.view(),
           Page.Core.Architecture.tableOfContents,
         ),
       CoreCounterExample: () =>
-        withToc(
+        withTableOfContents(
           lazyDocsContent(Page.Core.CounterExample.view, [
             model.copiedSnippets,
           ]),
           Page.Core.CounterExample.tableOfContents,
         ),
       CoreModel: () =>
-        withToc(
+        withTableOfContents(
           lazyDocsContent(Page.Core.CoreModel.view, [model.copiedSnippets]),
           Page.Core.CoreModel.tableOfContents,
         ),
       CoreMessages: () =>
-        withToc(
+        withTableOfContents(
           lazyDocsContent(Page.Core.Messages.view, [model.copiedSnippets]),
           Page.Core.Messages.tableOfContents,
         ),
       CoreUpdate: () =>
-        withToc(
+        withTableOfContents(
           lazyDocsContent(Page.Core.CoreUpdate.view, [model.copiedSnippets]),
           Page.Core.CoreUpdate.tableOfContents,
         ),
       CoreView: () =>
-        withToc(
+        withTableOfContents(
           lazyDocsContent(Page.Core.CoreView.view, [model.copiedSnippets]),
           Page.Core.CoreView.tableOfContents,
         ),
       CoreCommands: () =>
-        withToc(
+        withTableOfContents(
           lazyDocsContent(Page.Core.Commands.view, [model.copiedSnippets]),
           Page.Core.Commands.tableOfContents,
         ),
       CoreSubscriptions: () =>
-        withToc(
+        withTableOfContents(
           lazyDocsContent(Page.Core.Subscriptions.view, [model.copiedSnippets]),
           Page.Core.Subscriptions.tableOfContents,
         ),
       CoreInit: () =>
-        withToc(
+        withTableOfContents(
           lazyDocsContent(Page.Core.Init.view, [model.copiedSnippets]),
           Page.Core.Init.tableOfContents,
         ),
       CoreTask: () =>
-        withToc(
+        withTableOfContents(
           lazyDocsContent(Page.Core.CoreTask.view, [model.copiedSnippets]),
           Page.Core.CoreTask.tableOfContents,
         ),
       CoreRunningYourApp: () =>
-        withToc(
+        withTableOfContents(
           lazyDocsContent(Page.Core.RunningYourApp.view, [
             model.copiedSnippets,
           ]),
           Page.Core.RunningYourApp.tableOfContents,
         ),
       CoreResources: () =>
-        withToc(
+        withTableOfContents(
           lazyDocsContent(Page.Core.Resources.view, [model.copiedSnippets]),
           Page.Core.Resources.tableOfContents,
         ),
       CoreManagedResources: () =>
-        withToc(
+        withTableOfContents(
           lazyDocsContent(Page.Core.ManagedResources.view, [
             model.copiedSnippets,
           ]),
           Page.Core.ManagedResources.tableOfContents,
         ),
       CoreErrorView: () =>
-        withToc(
+        withTableOfContents(
           lazyDocsContent(Page.Core.ErrorView.view, [model.copiedSnippets]),
           Page.Core.ErrorView.tableOfContents,
         ),
       CoreSlowViewWarning: () =>
-        withToc(
+        withTableOfContents(
           lazyDocsContent(Page.Core.SlowViewWarning.view, [
             model.copiedSnippets,
           ]),
           Page.Core.SlowViewWarning.tableOfContents,
         ),
       PatternsSubmodels: () =>
-        withToc(
+        withTableOfContents(
           lazyDocsContent(Page.Patterns.Submodels.view, [model.copiedSnippets]),
           Page.Patterns.Submodels.tableOfContents,
         ),
       PatternsOutMessage: () =>
-        withToc(
+        withTableOfContents(
           lazyDocsContent(Page.Patterns.OutMessage.view, [
             model.copiedSnippets,
           ]),
           Page.Patterns.OutMessage.tableOfContents,
         ),
       CoreViewMemoization: () =>
-        withToc(
+        withTableOfContents(
           lazyDocsContent(Page.Core.ViewMemoization.view, [
             model.copiedSnippets,
           ]),
           Page.Core.ViewMemoization.tableOfContents,
         ),
       UiTabs: () =>
-        withToc(
+        withTableOfContents(
           Page.UiPages.TabsPage.view(model.uiPages, toUiPageMessage),
           Page.UiPages.TabsPage.tableOfContents,
         ),
       UiDisclosure: () =>
-        withToc(
+        withTableOfContents(
           Page.UiPages.DisclosurePage.view(model.uiPages, toUiPageMessage),
           Page.UiPages.DisclosurePage.tableOfContents,
         ),
       UiDialog: () =>
-        withToc(
+        withTableOfContents(
           Page.UiPages.DialogPage.view(model.uiPages, toUiPageMessage),
           Page.UiPages.DialogPage.tableOfContents,
         ),
       UiMenu: () =>
-        withToc(
+        withTableOfContents(
           Page.UiPages.MenuPage.view(model.uiPages, toUiPageMessage),
           Page.UiPages.MenuPage.tableOfContents,
         ),
       UiPopover: () =>
-        withToc(
+        withTableOfContents(
           Page.UiPages.PopoverPage.view(model.uiPages, toUiPageMessage),
           Page.UiPages.PopoverPage.tableOfContents,
         ),
       UiListbox: () =>
-        withToc(
+        withTableOfContents(
           Page.UiPages.ListboxPage.view(model.uiPages, toUiPageMessage),
           Page.UiPages.ListboxPage.tableOfContents,
         ),
       UiRadioGroup: () =>
-        withToc(
+        withTableOfContents(
           Page.UiPages.RadioGroupPage.view(model.uiPages, toUiPageMessage),
           Page.UiPages.RadioGroupPage.tableOfContents,
         ),
       UiSwitch: () =>
-        withToc(
+        withTableOfContents(
           Page.UiPages.SwitchPage.view(model.uiPages, toUiPageMessage),
           Page.UiPages.SwitchPage.tableOfContents,
         ),
       UiCheckbox: () =>
-        withToc(
+        withTableOfContents(
           Page.UiPages.CheckboxPage.view(model.uiPages, toUiPageMessage),
           Page.UiPages.CheckboxPage.tableOfContents,
         ),
       UiCombobox: () =>
-        withToc(
+        withTableOfContents(
           Page.UiPages.ComboboxPage.view(model.uiPages, toUiPageMessage),
           Page.UiPages.ComboboxPage.tableOfContents,
         ),
       NotFound: ({ path }) =>
-        withoutToc(Page.NotFound.view(path, homeRouter())),
+        withoutTableOfContents(Page.NotFound.view(path, homeRouter())),
     }),
   )
 
