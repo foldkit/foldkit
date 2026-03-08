@@ -1,5 +1,6 @@
 import { Schema as S } from 'effect'
 import {
+  Checkbox,
   Combobox,
   Dialog,
   Disclosure,
@@ -12,6 +13,9 @@ import {
 } from 'foldkit/ui'
 
 export const Model = S.Struct({
+  checkboxBasicDemo: Checkbox.Model,
+  checkboxOptionADemo: Checkbox.Model,
+  checkboxOptionBDemo: Checkbox.Model,
   comboboxDemo: Combobox.Model,
   comboboxNullableDemo: Combobox.Model,
   comboboxMultiDemo: Combobox.Multi.Model,

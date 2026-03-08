@@ -100,6 +100,7 @@ export const activeSection: Subscription<
           () => Page.UiPages.RadioGroupPage.tableOfContents,
         ),
         M.tag('UiSwitch', () => Page.UiPages.SwitchPage.tableOfContents),
+        M.tag('UiCheckbox', () => Page.UiPages.CheckboxPage.tableOfContents),
         M.tag('UiCombobox', () => Page.UiPages.ComboboxPage.tableOfContents),
         M.option,
       )

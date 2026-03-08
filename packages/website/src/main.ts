@@ -1843,6 +1843,11 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
           Page.UiPages.SwitchPage.view(model.uiPages, toUiPageMessage),
           Page.UiPages.SwitchPage.tableOfContents,
         ),
+      UiCheckbox: () =>
+        withToc(
+          Page.UiPages.CheckboxPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.CheckboxPage.tableOfContents,
+        ),
       UiCombobox: () =>
         withToc(
           Page.UiPages.ComboboxPage.view(model.uiPages, toUiPageMessage),
@@ -1894,7 +1899,7 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
                 ),
                 [
                   Class(
-                    'px-4 py-6 md:px-8 md:py-8 2xl:py-10 max-w-4xl mx-auto min-w-0',
+                    'px-4 py-6 md:px-8 2xl:py-10 max-w-4xl mx-auto min-w-0',
                   ),
                 ],
                 [content, pageNavigationView(docsRoute._tag)],

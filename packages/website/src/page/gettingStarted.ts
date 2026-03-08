@@ -53,7 +53,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
     [],
     [
       pageTitle('getting-started', 'Getting Started'),
-      para('Let\u2019s get a Foldkit app running.'),
+      para('Let\u2019s get your Foldkit application running.'),
       tableOfContentsEntryToHeader(quickStartHeader),
       para(
         link(Link.createFoldkitApp, 'Create Foldkit app'),

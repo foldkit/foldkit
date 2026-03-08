@@ -43,6 +43,7 @@ export const CoreViewMemoizationRoute = r('CoreViewMemoization')
 export const PatternsSubmodelsRoute = r('PatternsSubmodels')
 export const PatternsOutMessageRoute = r('PatternsOutMessage')
 
+export const UiCheckboxRoute = r('UiCheckbox')
 export const UiTabsRoute = r('UiTabs')
 export const UiDisclosureRoute = r('UiDisclosure')
 export const UiDialogRoute = r('UiDialog')
@@ -83,6 +84,7 @@ export const DocsRoute = S.Union(
   CoreViewMemoizationRoute,
   PatternsSubmodelsRoute,
   PatternsOutMessageRoute,
+  UiCheckboxRoute,
   UiTabsRoute,
   UiDisclosureRoute,
   UiDialogRoute,
@@ -126,6 +128,7 @@ export type CoreSlowViewWarningRoute = typeof CoreSlowViewWarningRoute.Type
 export type PatternsSubmodelsRoute = typeof PatternsSubmodelsRoute.Type
 export type PatternsOutMessageRoute = typeof PatternsOutMessageRoute.Type
 export type CoreViewMemoizationRoute = typeof CoreViewMemoizationRoute.Type
+export type UiCheckboxRoute = typeof UiCheckboxRoute.Type
 export type UiTabsRoute = typeof UiTabsRoute.Type
 export type UiDisclosureRoute = typeof UiDisclosureRoute.Type
 export type UiDialogRoute = typeof UiDialogRoute.Type
@@ -306,6 +309,11 @@ export const uiSwitchRouter = pipe(
   slash(literal('switch')),
   mapTo(UiSwitchRoute),
 )
+export const uiCheckboxRouter = pipe(
+  literal('ui'),
+  slash(literal('checkbox')),
+  mapTo(UiCheckboxRoute),
+)
 export const uiComboboxRouter = pipe(
   literal('ui'),
   slash(literal('combobox')),
@@ -350,6 +358,7 @@ const coreExtendedParser = oneOf(
 const patternsParser = oneOf(patternsSubmodelsRouter, patternsOutMessageRouter)
 
 const uiParser = oneOf(
+  uiCheckboxRouter,
   uiTabsRouter,
   uiDisclosureRouter,
   uiDialogRouter,

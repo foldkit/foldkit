@@ -1,3 +1,4 @@
+export * as Checkbox from './checkbox/public'
 export * as Combobox from './combobox/public'
 export * as Dialog from './dialog/public'
 export * as Disclosure from './disclosure/public'

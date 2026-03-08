@@ -8,6 +8,13 @@ export type InitReturn = [Model, ReadonlyArray<Command<Message>>]
 
 export const init = (): InitReturn => [
   {
+    checkboxBasicDemo: Ui.Checkbox.init({ id: 'checkbox-basic-demo' }),
+    checkboxOptionADemo: Ui.Checkbox.init({
+      id: 'checkbox-option-a-demo',
+    }),
+    checkboxOptionBDemo: Ui.Checkbox.init({
+      id: 'checkbox-option-b-demo',
+    }),
     comboboxDemo: Ui.Combobox.init({ id: 'combobox-demo' }),
     comboboxNullableDemo: Ui.Combobox.init({
       id: 'combobox-nullable-demo',

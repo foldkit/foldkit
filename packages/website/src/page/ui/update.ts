@@ -4,6 +4,10 @@ import { Command } from 'foldkit/command'
 import { evo } from 'foldkit/struct'
 
 import {
+  GotCheckboxAllDemoMessage,
+  GotCheckboxBasicDemoMessage,
+  GotCheckboxOptionADemoMessage,
+  GotCheckboxOptionBDemoMessage,
   GotComboboxDemoMessage,
   GotComboboxMultiDemoMessage,
   GotComboboxNullableDemoMessage,
@@ -33,6 +37,73 @@ export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
+      GotCheckboxBasicDemoMessage: ({ message }) => {
+        const [nextCheckboxBasicDemo, checkboxBasicCommands] =
+          Ui.Checkbox.update(model.checkboxBasicDemo, message)
+
+        return [
+          evo(model, {
+            checkboxBasicDemo: () => nextCheckboxBasicDemo,
+          }),
+          checkboxBasicCommands.map(
+            Effect.map(message => GotCheckboxBasicDemoMessage({ message })),
+          ),
+        ]
+      },
+
+      GotCheckboxAllDemoMessage: () => {
+        const isAllChecked =
+          model.checkboxOptionADemo.isChecked &&
+          model.checkboxOptionBDemo.isChecked
+        const nextChecked = !isAllChecked
+
+        return [
+          evo(model, {
+            checkboxOptionADemo: () =>
+              evo(model.checkboxOptionADemo, {
+                isChecked: () => nextChecked,
+              }),
+            checkboxOptionBDemo: () =>
+              evo(model.checkboxOptionBDemo, {
+                isChecked: () => nextChecked,
+              }),
+          }),
+          [],
+        ]
+      },
+
+      GotCheckboxOptionADemoMessage: ({ message }) => {
+        const [nextOptionA, optionACommands] = Ui.Checkbox.update(
+          model.checkboxOptionADemo,
+          message,
+        )
+
+        return [
+          evo(model, {
+            checkboxOptionADemo: () => nextOptionA,
+          }),
+          optionACommands.map(
+            Effect.map(message => GotCheckboxOptionADemoMessage({ message })),
+          ),
+        ]
+      },
+
+      GotCheckboxOptionBDemoMessage: ({ message }) => {
+        const [nextOptionB, optionBCommands] = Ui.Checkbox.update(
+          model.checkboxOptionBDemo,
+          message,
+        )
+
+        return [
+          evo(model, {
+            checkboxOptionBDemo: () => nextOptionB,
+          }),
+          optionBCommands.map(
+            Effect.map(message => GotCheckboxOptionBDemoMessage({ message })),
+          ),
+        ]
+      },
+
       GotComboboxDemoMessage: ({ message }) => {
         const [nextComboboxDemo, comboboxCommands] = Ui.Combobox.update(
           model.comboboxDemo,

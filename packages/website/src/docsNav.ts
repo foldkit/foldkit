@@ -27,6 +27,7 @@ import {
   patternsSubmodelsRouter,
   projectOrganizationRouter,
   routingAndNavigationRouter,
+  uiCheckboxRouter,
   uiComboboxRouter,
   uiDialogRouter,
   uiDisclosureRouter,
@@ -251,6 +252,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
         _tag: 'UiSwitch',
         href: uiSwitchRouter(),
         label: 'Switch',
+      },
+      {
+        _tag: 'UiCheckbox',
+        href: uiCheckboxRouter(),
+        label: 'Checkbox',
       },
       {
         _tag: 'UiCombobox',

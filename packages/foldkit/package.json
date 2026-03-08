@@ -63,6 +63,10 @@
       "types": "./dist/ui/index.d.ts",
       "import": "./dist/ui/index.js"
     },
+    "./ui/checkbox": {
+      "types": "./dist/ui/checkbox/public.d.ts",
+      "import": "./dist/ui/checkbox/public.js"
+    },
     "./ui/dialog": {
       "types": "./dist/ui/dialog/public.d.ts",
       "import": "./dist/ui/dialog/public.js"

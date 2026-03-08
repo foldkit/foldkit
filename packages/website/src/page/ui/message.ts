@@ -2,6 +2,24 @@ import { Schema as S } from 'effect'
 import { Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 
+export const GotCheckboxBasicDemoMessage = m('GotCheckboxBasicDemoMessage', {
+  message: Ui.Checkbox.Message,
+})
+export const GotCheckboxAllDemoMessage = m('GotCheckboxAllDemoMessage', {
+  message: Ui.Checkbox.Message,
+})
+export const GotCheckboxOptionADemoMessage = m(
+  'GotCheckboxOptionADemoMessage',
+  {
+    message: Ui.Checkbox.Message,
+  },
+)
+export const GotCheckboxOptionBDemoMessage = m(
+  'GotCheckboxOptionBDemoMessage',
+  {
+    message: Ui.Checkbox.Message,
+  },
+)
 export const GotComboboxDemoMessage = m('GotComboboxDemoMessage', {
   message: Ui.Combobox.Message,
 })
@@ -73,6 +91,10 @@ export const GotVerticalTabsDemoMessage = m('GotVerticalTabsDemoMessage', {
 })
 
 export const Message = S.Union(
+  GotCheckboxBasicDemoMessage,
+  GotCheckboxAllDemoMessage,
+  GotCheckboxOptionADemoMessage,
+  GotCheckboxOptionBDemoMessage,
   GotComboboxDemoMessage,
   GotComboboxNullableDemoMessage,
   GotComboboxMultiDemoMessage,

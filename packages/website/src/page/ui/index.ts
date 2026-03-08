@@ -3,6 +3,7 @@ export { Message } from './message'
 export { init } from './init'
 export { update } from './update'
 
+export * as CheckboxPage from './checkboxPage'
 export * as TabsPage from './tabsPage'
 export * as DisclosurePage from './disclosurePage'
 export * as DialogPage from './dialogPage'

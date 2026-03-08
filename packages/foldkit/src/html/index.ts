@@ -377,7 +377,7 @@ export type Attribute<Message> = Data.TaggedEnum<{
   AriaHidden: { readonly value: boolean }
   AriaExpanded: { readonly value: boolean }
   AriaSelected: { readonly value: boolean }
-  AriaChecked: { readonly value: boolean }
+  AriaChecked: { readonly value: boolean | 'mixed' }
   AriaDisabled: { readonly value: boolean }
   AriaRequired: { readonly value: boolean }
   AriaInvalid: { readonly value: boolean }
@@ -1782,9 +1782,9 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'AriaSelected'
     readonly value: boolean
   }
-  AriaChecked: (value: boolean) => {
+  AriaChecked: (value: boolean | 'mixed') => {
     readonly _tag: 'AriaChecked'
-    readonly value: boolean
+    readonly value: boolean | 'mixed'
   }
   AriaDisabled: (value: boolean) => {
     readonly _tag: 'AriaDisabled'
@@ -2055,7 +2055,7 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   AriaHidden: (value: boolean) => AriaHidden({ value }),
   AriaExpanded: (value: boolean) => AriaExpanded({ value }),
   AriaSelected: (value: boolean) => AriaSelected({ value }),
-  AriaChecked: (value: boolean) => AriaChecked({ value }),
+  AriaChecked: (value: boolean | 'mixed') => AriaChecked({ value }),
   AriaDisabled: (value: boolean) => AriaDisabled({ value }),
   AriaRequired: (value: boolean) => AriaRequired({ value }),
   AriaInvalid: (value: boolean) => AriaInvalid({ value }),
