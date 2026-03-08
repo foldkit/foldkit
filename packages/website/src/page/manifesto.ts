@@ -90,9 +90,6 @@ export const view = (): Html =>
       para(
         'Frontend architecture is solved. The only question left is, what are you going to create? Make it cool.',
       ),
-      div(
-        [Class('mb-4')],
-        [p([], ['See you on GitHub,']), p([], ['Devin Jameson'])],
-      ),
+      div([Class('mb-4')], [p([], ['See you on GitHub,']), p([], ['Devin'])]),
     ],
   )
