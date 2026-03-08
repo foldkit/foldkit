@@ -47,6 +47,7 @@
   --font-sans: 'ABC Favorit', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   --font-weight-normal: 350;
+  --font-weight-code: 400;
 }
 
 :root {
@@ -78,10 +79,11 @@
 
   html.dark {
     color-scheme: dark;
+    --font-weight-code: 300;
   }
 
   body {
-    @apply text-base leading-relaxed font-light text-gray-800 dark:text-gray-300 bg-cream dark:bg-gray-900;
+    @apply text-base leading-relaxed font-light tracking-[0.01em] text-gray-800 dark:text-gray-300 bg-cream dark:bg-gray-900;
   }
 
   strong {
@@ -105,7 +107,7 @@
   }
 
   pre {
-    @apply pr-14 pl-[11px] py-4 rounded-lg overflow-x-auto border border-gray-200 dark:border-gray-700/50 font-[200] text-sm;
+    @apply pr-14 pl-[11px] py-4 rounded-lg overflow-x-auto border border-gray-200 dark:border-gray-700/50 font-code text-sm;
   }
 
   .dark .shiki,
