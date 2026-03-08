@@ -26,7 +26,6 @@ import {
   GotVerticalRadioGroupDemoMessage,
   GotVerticalTabsDemoMessage,
   type Message,
-  UpdatedTextareaDemoValue,
 } from './message'
 import type { Model } from './model'
 

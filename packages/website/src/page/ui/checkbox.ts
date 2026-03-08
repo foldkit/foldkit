@@ -31,7 +31,7 @@ export const indeterminateHeader: TableOfContentsEntry = {
 
 const wrapperClassName = 'flex flex-col gap-1'
 
-const topRowClassName = 'flex items-center gap-3'
+const topRowClassName = 'flex items-center gap-2'
 
 const checkboxClassName =
   'flex h-5 w-5 shrink-0 items-center justify-center rounded border border-gray-400 dark:border-gray-500 cursor-pointer data-[checked]:bg-accent-600 data-[checked]:border-accent-600 data-[indeterminate]:bg-accent-600 data-[indeterminate]:border-accent-600 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50'
