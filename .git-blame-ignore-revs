@@ -1,2 +1,5 @@
 # style(website): increase printWidth from 70 to 90
 4d0e416b08a93212a7a7cab0b67a74108c8e47fa
+
+# style: standardize printWidth to 80 across all packages
+a3267189d9c8496a4ec0efb702d2fdc82848b9a4
