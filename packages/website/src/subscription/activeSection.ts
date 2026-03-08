@@ -87,24 +87,26 @@ export const activeSection: Subscription<
           () => Page.Core.ViewMemoization.tableOfContents,
         ),
         M.tag('UiButton', () => Page.UiPages.ButtonPage.tableOfContents),
-        M.tag('UiTabs', () => Page.UiPages.TabsPage.tableOfContents),
-        M.tag(
-          'UiDisclosure',
-          () => Page.UiPages.DisclosurePage.tableOfContents,
-        ),
-        M.tag('UiDialog', () => Page.UiPages.DialogPage.tableOfContents),
-        M.tag('UiMenu', () => Page.UiPages.MenuPage.tableOfContents),
-        M.tag('UiPopover', () => Page.UiPages.PopoverPage.tableOfContents),
-        M.tag('UiListbox', () => Page.UiPages.ListboxPage.tableOfContents),
+        M.tag('UiInput', () => Page.UiPages.InputPage.tableOfContents),
+        M.tag('UiTextarea', () => Page.UiPages.TextareaPage.tableOfContents),
+        M.tag('UiCheckbox', () => Page.UiPages.CheckboxPage.tableOfContents),
         M.tag(
           'UiRadioGroup',
           () => Page.UiPages.RadioGroupPage.tableOfContents,
         ),
         M.tag('UiSwitch', () => Page.UiPages.SwitchPage.tableOfContents),
-        M.tag('UiCheckbox', () => Page.UiPages.CheckboxPage.tableOfContents),
+        M.tag('UiListbox', () => Page.UiPages.ListboxPage.tableOfContents),
         M.tag('UiCombobox', () => Page.UiPages.ComboboxPage.tableOfContents),
-        M.tag('UiInput', () => Page.UiPages.InputPage.tableOfContents),
-        M.tag('UiTextarea', () => Page.UiPages.TextareaPage.tableOfContents),
+      )
+      .pipe(
+        M.tag('UiDialog', () => Page.UiPages.DialogPage.tableOfContents),
+        M.tag('UiMenu', () => Page.UiPages.MenuPage.tableOfContents),
+        M.tag('UiPopover', () => Page.UiPages.PopoverPage.tableOfContents),
+        M.tag(
+          'UiDisclosure',
+          () => Page.UiPages.DisclosurePage.tableOfContents,
+        ),
+        M.tag('UiTabs', () => Page.UiPages.TabsPage.tableOfContents),
         M.option,
       )
 
