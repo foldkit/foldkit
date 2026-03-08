@@ -29,6 +29,7 @@ import {
   AriaExpanded,
   AriaHidden,
   AriaLabel,
+  Autofocus,
   Class,
   Href,
   Id,
@@ -36,6 +37,7 @@ import {
   OnToggle,
   Open,
   Src,
+  Tabindex,
   a,
   aside,
   button,
@@ -1047,7 +1049,12 @@ const sidebarViewInner = (
         ],
       ),
       nav(
-        [AriaLabel('Documentation'), Class('flex-1 overflow-y-auto p-2')],
+        [
+          AriaLabel('Documentation'),
+          Class('flex-1 overflow-y-auto p-2'),
+          Tabindex(-1),
+          Autofocus(true),
+        ],
         [navLinks],
       ),
       div(
