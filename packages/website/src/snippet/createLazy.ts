@@ -35,11 +35,7 @@ const view = (model: Model) =>
     [],
     [
       headerView(model),
-      lazyStats(statsView, [
-        model.revenue,
-        model.orderCount,
-        model.topProducts,
-      ]),
+      lazyStats(statsView, [model.revenue, model.orderCount, model.topProducts]),
       sidebarView(model),
     ],
   )

@@ -10,10 +10,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import * as Snippets from '../../snippet'
-import {
-  type CopiedSnippets,
-  highlightedCodeBlock,
-} from '../../view/codeBlock'
+import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -52,13 +49,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Given the same Model, view always produces the same HTML. It never modifies state directly \u2014 instead, it dispatches Messages through event handlers, feeding them back into the loop.',
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.counterViewHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.counterViewHighlighted)], []),
         Snippets.counterViewRaw,
         'Copy view example to clipboard',
         copiedSnippets,
@@ -75,13 +66,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' and destructuring the elements and attributes you need:',
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.htmlHelpersHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.htmlHelpersHighlighted)], []),
         Snippets.htmlHelpersRaw,
         'Copy HTML helpers example to clipboard',
         copiedSnippets,
@@ -99,13 +84,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'When the customer flags the waiter, that\u2019s a Message. In the view, event handlers work the same way \u2014 instead of imperative callbacks that modify state, you pass a Message, or a function that maps an event to a Message.',
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.eventHandlingHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.eventHandlingHighlighted)], []),
         Snippets.eventHandlingRaw,
         'Copy event handling example to clipboard',
         copiedSnippets,

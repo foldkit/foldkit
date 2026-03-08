@@ -23,8 +23,7 @@ const buttonClassName =
 const labelClassName =
   'text-sm font-normal text-gray-900 dark:text-white cursor-pointer select-none'
 
-const descriptionClassName =
-  'text-sm text-gray-500 dark:text-gray-400'
+const descriptionClassName = 'text-sm text-gray-500 dark:text-gray-400'
 
 const knob = (isChecked: boolean) =>
   span(
@@ -47,8 +46,7 @@ export const switchDemo = (
     [
       Ui.Switch.view({
         model: switchModel,
-        toMessage: message =>
-          toMessage(GotSwitchDemoMessage({ message })),
+        toMessage: message => toMessage(GotSwitchDemoMessage({ message })),
         toView: attributes =>
           div(
             [Class(wrapperClassName)],
@@ -65,13 +63,8 @@ export const switchDemo = (
                     ['Enable notifications'],
                   ),
                   p(
-                    [
-                      ...attributes.description,
-                      Class(descriptionClassName),
-                    ],
-                    [
-                      'Get notified when something important happens.',
-                    ],
+                    [...attributes.description, Class(descriptionClassName)],
+                    ['Get notified when something important happens.'],
                   ),
                 ],
               ),

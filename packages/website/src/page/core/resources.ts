@@ -12,10 +12,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import * as Snippets from '../../snippet'
-import {
-  type CopiedSnippets,
-  highlightedCodeBlock,
-} from '../../view/codeBlock'
+import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -63,13 +60,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' config field. The runtime creates the layer once and makes it available to every Command. Commands access it by yielding the service tag.',
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.resourcesHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.resourcesHighlighted)], []),
         Snippets.resourcesRaw,
         'Copy resources example to clipboard',
         copiedSnippets,
@@ -103,13 +94,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' to combine multiple service layers into one.',
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.resourcesMultipleHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.resourcesMultipleHighlighted)], []),
         Snippets.resourcesMultipleRaw,
         'Copy multiple resources example to clipboard',
         copiedSnippets,

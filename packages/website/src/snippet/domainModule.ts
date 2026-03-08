@@ -10,10 +10,7 @@ export type Cart = typeof Cart.Type
 export const addItem =
   (item: Item) =>
   (cart: Cart): Cart => {
-    const existing = Array.findFirst(
-      cart,
-      cartItem => cartItem.item.id === item.id,
-    )
+    const existing = Array.findFirst(cart, cartItem => cartItem.item.id === item.id)
 
     return Option.match(existing, {
       onNone: () => [...cart, { item, quantity: 1 }],

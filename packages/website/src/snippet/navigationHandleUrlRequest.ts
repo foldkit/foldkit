@@ -20,10 +20,7 @@ const personRouter = pipe(
   Route.mapTo(PersonRoute),
 )
 const routeParser = Route.oneOf(personRouter, homeRouter)
-const urlToAppRoute = Route.parseUrlWithFallback(
-  routeParser,
-  NotFoundRoute,
-)
+const urlToAppRoute = Route.parseUrlWithFallback(routeParser, NotFoundRoute)
 
 // MODEL
 
@@ -52,20 +49,12 @@ const update = (model: Model, message: Message) =>
         M.value(request).pipe(
           M.tagsExhaustive({
             // Same-origin link - push to history
-            Internal: ({
-              url,
-            }): [Model, ReadonlyArray<Command<Message>>] => [
+            Internal: ({ url }): [Model, ReadonlyArray<Command<Message>>] => [
               model,
-              [
-                Navigation.pushUrl(Url.toString(url)).pipe(
-                  Effect.as(NoOp()),
-                ),
-              ],
+              [Navigation.pushUrl(Url.toString(url)).pipe(Effect.as(NoOp()))],
             ],
             // Different-origin link - full page load
-            External: ({
-              href,
-            }): [Model, ReadonlyArray<Command<Message>>] => [
+            External: ({ href }): [Model, ReadonlyArray<Command<Message>>] => [
               model,
               [Navigation.load(href).pipe(Effect.as(NoOp()))],
             ],

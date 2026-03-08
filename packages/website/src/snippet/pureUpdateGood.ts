@@ -2,11 +2,7 @@ import { Effect, Match, Random } from 'effect'
 import { Command } from 'foldkit/command'
 
 import { GRID_SIZE } from './constants'
-import {
-  GotApplePosition,
-  Message,
-  RequestedAppleSpawn,
-} from './message'
+import { GotApplePosition, Message, RequestedAppleSpawn } from './message'
 import { Model } from './model'
 
 // ✅ Do this - request the value via a Command
@@ -14,21 +10,16 @@ const update = (model: Model, message: Message) =>
   Match.value(message).pipe(
     Match.tagsExhaustive({
       RequestedAppleSpawn: () => [model, [generateApplePosition]],
-      GotApplePosition: ({ position }) => [
-        { ...model, apple: position },
-        [],
-      ],
+      GotApplePosition: ({ position }) => [{ ...model, apple: position }, []],
     }),
   )
 
 // The Command that performs the side effect
-const generateApplePosition: Command<Message> = Effect.gen(
-  function* () {
-    const x = yield* Random.nextIntBetween(0, GRID_SIZE)
-    const y = yield* Random.nextIntBetween(0, GRID_SIZE)
-    return GotApplePosition({ position: { x, y } })
-  },
-)
+const generateApplePosition: Command<Message> = Effect.gen(function* () {
+  const x = yield* Random.nextIntBetween(0, GRID_SIZE)
+  const y = yield* Random.nextIntBetween(0, GRID_SIZE)
+  return GotApplePosition({ position: { x, y } })
+})
 
 // Same inputs always produce the same outputs - purity preserved!
 const model = { snake: [{ x: 0, y: 0 }], apple: { x: 5, y: 5 } }

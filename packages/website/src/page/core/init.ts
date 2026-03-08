@@ -2,17 +2,9 @@ import type { Html } from 'foldkit/html'
 
 import { Class, InnerHTML, div } from '../../html'
 import type { TableOfContentsEntry } from '../../main'
-import {
-  inlineCode,
-  pageTitle,
-  para,
-  tableOfContentsEntryToHeader,
-} from '../../prose'
+import { inlineCode, pageTitle, para, tableOfContentsEntryToHeader } from '../../prose'
 import * as Snippets from '../../snippet'
-import {
-  type CopiedSnippets,
-  highlightedCodeBlock,
-} from '../../view/codeBlock'
+import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -51,13 +43,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         '.',
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.initSimpleHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.initSimpleHighlighted)], []),
         Snippets.initSimpleRaw,
         'Copy init example to clipboard',
         copiedSnippets,
@@ -74,29 +60,15 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Flags let you pass initialization data into your application \u2014 things like persisted state from localStorage or configuration values. Define a Flags schema and provide an Effect that loads the flags.',
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.flagsDefinitionHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.flagsDefinitionHighlighted)], []),
         Snippets.flagsDefinitionRaw,
         'Copy flags definition to clipboard',
         copiedSnippets,
         'mb-8',
       ),
-      para(
-        'When using flags, your init function receives them as the first argument:',
-      ),
+      para('When using flags, your init function receives them as the first argument:'),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.initWithFlagsHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.initWithFlagsHighlighted)], []),
         Snippets.initWithFlagsRaw,
         'Copy init with flags to clipboard',
         copiedSnippets,

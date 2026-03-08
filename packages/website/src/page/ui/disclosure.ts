@@ -24,11 +24,7 @@ const panelClassName =
 
 const chevron = (isOpen: boolean) =>
   span(
-    [
-      Class(
-        `text-gray-600 dark:text-gray-300 ${isOpen ? 'rotate-180' : ''}`,
-      ),
-    ],
+    [Class(`text-gray-600 dark:text-gray-300 ${isOpen ? 'rotate-180' : ''}`)],
     [Icon.chevronDown('w-4 h-4')],
   )
 
@@ -40,15 +36,11 @@ export const disclosureDemo = (
 ) => [
   Ui.Disclosure.view({
     model: disclosureModel,
-    toMessage: message =>
-      toMessage(GotDisclosureDemoMessage({ message })),
+    toMessage: message => toMessage(GotDisclosureDemoMessage({ message })),
     buttonClassName,
     buttonContent: div(
       [Class('flex items-center justify-between w-full')],
-      [
-        span([], ['What is Foldkit?']),
-        chevron(disclosureModel.isOpen),
-      ],
+      [span([], ['What is Foldkit?']), chevron(disclosureModel.isOpen)],
     ),
     panelClassName,
     panelContent: p(

@@ -35,8 +35,5 @@ const { div, button, p, OnClick } = html<Message>()
 const view = (model: Model): Html =>
   div(
     [],
-    [
-      p([], [`Count: ${model}`]),
-      button([OnClick(ClickedIncrement())], ['Increment']),
-    ],
+    [p([], [`Count: ${model}`]), button([OnClick(ClickedIncrement())], ['Increment'])],
   )

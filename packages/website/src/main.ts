@@ -3,15 +3,7 @@ import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { inject } from '@vercel/analytics'
 import * as SpeedInsights from '@vercel/speed-insights'
 import classNames from 'classnames'
-import {
-  Array,
-  Effect,
-  HashSet,
-  Match as M,
-  Option,
-  Schema as S,
-  pipe,
-} from 'effect'
+import { Array, Effect, HashSet, Match as M, Option, Schema as S, pipe } from 'effect'
 import { Runtime, Ui } from 'foldkit'
 import { Command } from 'foldkit/command'
 import { Html, createKeyedLazy, createLazy } from 'foldkit/html'
@@ -58,13 +50,7 @@ import {
 import { Icon } from './icon'
 import { Link } from './link'
 import * as Page from './page'
-import {
-  AppRoute,
-  DocsRoute,
-  apiModuleRouter,
-  homeRouter,
-  urlToAppRoute,
-} from './route'
+import { AppRoute, DocsRoute, apiModuleRouter, homeRouter, urlToAppRoute } from './route'
 import * as Subscription from './subscription'
 import { themeSelector } from './view/themeSelector'
 
@@ -106,9 +92,7 @@ const Flags = S.Struct({
 type Flags = typeof Flags.Type
 
 const getSystemTheme = (): ResolvedTheme =>
-  window.matchMedia('(prefers-color-scheme: dark)').matches
-    ? 'Dark'
-    : 'Light'
+  window.matchMedia('(prefers-color-scheme: dark)').matches ? 'Dark' : 'Light'
 
 export const NARROW_VIEWPORT_QUERY = '(max-width: 1023px)'
 
@@ -187,16 +171,12 @@ const HiddenCopiedIndicator = m('HiddenCopiedIndicator', {
 const GotMobileMenuDialogMessage = m('GotMobileMenuDialogMessage', {
   message: Ui.Dialog.Message,
 })
-const ToggledMobileTableOfContents = m(
-  'ToggledMobileTableOfContents',
-  {
-    isOpen: S.Boolean,
-  },
-)
-const ClickedMobileTableOfContentsLink = m(
-  'ClickedMobileTableOfContentsLink',
-  { sectionId: S.String },
-)
+const ToggledMobileTableOfContents = m('ToggledMobileTableOfContents', {
+  isOpen: S.Boolean,
+})
+const ClickedMobileTableOfContentsLink = m('ClickedMobileTableOfContentsLink', {
+  sectionId: S.String,
+})
 export const ChangedActiveSection = m('ChangedActiveSection', {
   sectionId: S.String,
 })
@@ -306,13 +286,10 @@ const init: Runtime.ApplicationInit<
     id: 'demo-tabs',
   })
 
-  const [asyncCounterDemo, asyncCounterDemoCommands] =
-    Page.AsyncCounterDemo.init()
-  const [notePlayerDemo, notePlayerDemoCommands] =
-    Page.NotePlayerDemo.init()
+  const [asyncCounterDemo, asyncCounterDemoCommands] = Page.AsyncCounterDemo.init()
+  const [notePlayerDemo, notePlayerDemoCommands] = Page.NotePlayerDemo.init()
   const [uiPages, uiPagesCommands] = Page.UiPages.init()
-  const [comingFromReact, comingFromReactCommands] =
-    Page.ComingFromReact.init()
+  const [comingFromReact, comingFromReactCommands] = Page.ComingFromReact.init()
   const [apiReference, apiReferenceCommands] = Page.ApiReference.init(
     Page.ApiReference.apiReference.modules,
   )
@@ -411,21 +388,13 @@ const update = (
   message: Message,
 ): [
   Model,
-  ReadonlyArray<
-    Command<Message, never, Page.NotePlayerDemo.AudioContextService>
-  >,
+  ReadonlyArray<Command<Message, never, Page.NotePlayerDemo.AudioContextService>>,
 ] =>
   M.value(message).pipe(
     M.withReturnType<
       [
         Model,
-        ReadonlyArray<
-          Command<
-            Message,
-            never,
-            Page.NotePlayerDemo.AudioContextService
-          >
-        >,
+        ReadonlyArray<Command<Message, never, Page.NotePlayerDemo.AudioContextService>>,
       ]
     >(),
     M.tagsExhaustive({
@@ -434,15 +403,11 @@ const update = (
       ClickedLink: ({ request }) =>
         M.value(request).pipe(
           M.tagsExhaustive({
-            Internal: ({
-              url,
-            }): [Model, ReadonlyArray<Command<typeof NoOp>>] => [
+            Internal: ({ url }): [Model, ReadonlyArray<Command<typeof NoOp>>] => [
               model,
               [pushUrl(urlToString(url)).pipe(Effect.as(NoOp()))],
             ],
-            External: ({
-              href,
-            }): [Model, ReadonlyArray<Command<typeof NoOp>>] => [
+            External: ({ href }): [Model, ReadonlyArray<Command<typeof NoOp>>] => [
               model,
               [load(href).pipe(Effect.as(NoOp()))],
             ],
@@ -468,9 +433,7 @@ const update = (
           }),
           [
             ...closeDialogCommands.map(
-              Effect.map(message =>
-                GotMobileMenuDialogMessage({ message }),
-              ),
+              Effect.map(message => GotMobileMenuDialogMessage({ message })),
             ),
             ...Option.match(url.hash, {
               onNone: () => [scrollToTop],
@@ -480,18 +443,11 @@ const update = (
         ]
       },
 
-      ClickedCopySnippet: ({ text }) => [
-        model,
-        [copySnippetToClipboard(text)],
-      ],
+      ClickedCopySnippet: ({ text }) => [model, [copySnippetToClipboard(text)]],
 
       ClickedCopyLink: ({ hash }) => [
         model,
-        [
-          copyLinkToClipboard(
-            urlToString({ ...model.url, hash: Option.some(hash) }),
-          ),
-        ],
+        [copyLinkToClipboard(urlToString({ ...model.url, hash: Option.some(hash) }))],
       ],
 
       SucceededCopy: ({ text }) =>
@@ -512,17 +468,17 @@ const update = (
       ],
 
       GotMobileMenuDialogMessage: ({ message }) => {
-        const [nextMobileMenuDialog, mobileMenuDialogCommands] =
-          Ui.Dialog.update(model.mobileMenuDialog, message)
+        const [nextMobileMenuDialog, mobileMenuDialogCommands] = Ui.Dialog.update(
+          model.mobileMenuDialog,
+          message,
+        )
 
         return [
           evo(model, {
             mobileMenuDialog: () => nextMobileMenuDialog,
           }),
           mobileMenuDialogCommands.map(
-            Effect.map(message =>
-              GotMobileMenuDialogMessage({ message }),
-            ),
+            Effect.map(message => GotMobileMenuDialogMessage({ message })),
           ),
         ]
       },
@@ -558,77 +514,58 @@ const update = (
       ],
 
       SelectedThemePreference: ({ preference }) => {
-        const resolvedTheme = resolveTheme(
-          preference,
-          model.systemTheme,
-        )
+        const resolvedTheme = resolveTheme(preference, model.systemTheme)
 
         return [
           evo(model, {
             themePreference: () => preference,
             resolvedTheme: () => resolvedTheme,
           }),
-          [
-            applyThemeToDocument(resolvedTheme),
-            saveThemePreference(preference),
-          ],
+          [applyThemeToDocument(resolvedTheme), saveThemePreference(preference)],
         ]
       },
 
       GotDemoTabsMessage: ({ message }) => {
-        const [nextDemoTabs, demoTabsCommands] = Ui.Tabs.update(
-          model.demoTabs,
-          message,
-        )
+        const [nextDemoTabs, demoTabsCommands] = Ui.Tabs.update(model.demoTabs, message)
 
         return [
           evo(model, { demoTabs: () => nextDemoTabs }),
-          demoTabsCommands.map(
-            Effect.map(message => GotDemoTabsMessage({ message })),
-          ),
+          demoTabsCommands.map(Effect.map(message => GotDemoTabsMessage({ message }))),
         ]
       },
 
       GotAsyncCounterDemoMessage: ({ message }) => {
         const [nextAsyncCounterDemo, asyncCounterDemoCommands] =
-          Page.AsyncCounterDemo.update(
-            model.asyncCounterDemo,
-            message,
-          )
+          Page.AsyncCounterDemo.update(model.asyncCounterDemo, message)
 
         return [
           evo(model, {
             asyncCounterDemo: () => nextAsyncCounterDemo,
           }),
           asyncCounterDemoCommands.map(
-            Effect.map(message =>
-              GotAsyncCounterDemoMessage({ message }),
-            ),
+            Effect.map(message => GotAsyncCounterDemoMessage({ message })),
           ),
         ]
       },
 
       GotNotePlayerDemoMessage: ({ message }) => {
-        const [nextNotePlayerDemo, notePlayerDemoCommands] =
-          Page.NotePlayerDemo.update(model.notePlayerDemo, message)
+        const [nextNotePlayerDemo, notePlayerDemoCommands] = Page.NotePlayerDemo.update(
+          model.notePlayerDemo,
+          message,
+        )
 
         return [
           evo(model, {
             notePlayerDemo: () => nextNotePlayerDemo,
           }),
           notePlayerDemoCommands.map(
-            Effect.map(message =>
-              GotNotePlayerDemoMessage({ message }),
-            ),
+            Effect.map(message => GotNotePlayerDemoMessage({ message })),
           ),
         ]
       },
 
       ChangedSystemTheme: ({ theme }) => {
-        const resolvedTheme = resolveTheme(
-          model.themePreference,
-          theme,
-        )
+        const resolvedTheme = resolveTheme(model.themePreference, theme)
 
         return [
           evo(model, {
@@ -648,76 +585,71 @@ const update = (
             comingFromReact: () => nextComingFromReact,
           }),
           comingFromReactCommands.map(
-            Effect.map(message =>
-              GotComingFromReactMessage({ message }),
-            ),
+            Effect.map(message => GotComingFromReactMessage({ message })),
           ),
         ]
       },
 
       GotApiReferenceMessage: ({ message }) => {
-        const [nextApiReference, apiReferenceCommands] =
-          Page.ApiReference.update(model.apiReference, message)
+        const [nextApiReference, apiReferenceCommands] = Page.ApiReference.update(
+          model.apiReference,
+          message,
+        )
 
         return [
           evo(model, { apiReference: () => nextApiReference }),
           apiReferenceCommands.map(
-            Effect.map(message =>
-              GotApiReferenceMessage({ message }),
-            ),
+            Effect.map(message => GotApiReferenceMessage({ message })),
           ),
         ]
       },
 
       GotUiPageMessage: ({ message }) => {
-        const [nextUiPages, uiPagesCommands] = Page.UiPages.update(
-          model.uiPages,
-          message,
-        )
+        const [nextUiPages, uiPagesCommands] = Page.UiPages.update(model.uiPages, message)
 
         return [
           evo(model, { uiPages: () => nextUiPages }),
-          uiPagesCommands.map(
-            Effect.map(message => GotUiPageMessage({ message })),
-          ),
+          uiPagesCommands.map(Effect.map(message => GotUiPageMessage({ message }))),
         ]
       },
 
       GotGetStartedGroupMessage: ({ message }) => {
-        const [nextGetStartedGroup, getStartedGroupCommands] =
-          Ui.Disclosure.update(model.getStartedGroup, message)
+        const [nextGetStartedGroup, getStartedGroupCommands] = Ui.Disclosure.update(
+          model.getStartedGroup,
+          message,
+        )
 
         return [
           evo(model, {
             getStartedGroup: () => nextGetStartedGroup,
           }),
           getStartedGroupCommands.map(
-            Effect.map(message =>
-              GotGetStartedGroupMessage({ message }),
-            ),
+            Effect.map(message => GotGetStartedGroupMessage({ message })),
           ),
         ]
       },
 
       GotCoreConceptsGroupMessage: ({ message }) => {
-        const [nextCoreConceptsGroup, coreConceptsGroupCommands] =
-          Ui.Disclosure.update(model.coreConceptsGroup, message)
+        const [nextCoreConceptsGroup, coreConceptsGroupCommands] = Ui.Disclosure.update(
+          model.coreConceptsGroup,
+          message,
+        )
 
         return [
           evo(model, {
             coreConceptsGroup: () => nextCoreConceptsGroup,
           }),
           coreConceptsGroupCommands.map(
-            Effect.map(message =>
-              GotCoreConceptsGroupMessage({ message }),
-            ),
+            Effect.map(message => GotCoreConceptsGroupMessage({ message })),
           ),
         ]
       },
 
       GotGuidesGroupMessage: ({ message }) => {
-        const [nextGuidesGroup, guidesGroupCommands] =
-          Ui.Disclosure.update(model.guidesGroup, message)
+        const [nextGuidesGroup, guidesGroupCommands] = Ui.Disclosure.update(
+          model.guidesGroup,
+          message,
+        )
 
         return [
           evo(model, {
@@ -730,65 +662,65 @@ const update = (
       },
 
       GotPatternsGroupMessage: ({ message }) => {
-        const [nextPatternsGroup, patternsGroupCommands] =
-          Ui.Disclosure.update(model.patternsGroup, message)
+        const [nextPatternsGroup, patternsGroupCommands] = Ui.Disclosure.update(
+          model.patternsGroup,
+          message,
+        )
 
         return [
           evo(model, {
             patternsGroup: () => nextPatternsGroup,
           }),
           patternsGroupCommands.map(
-            Effect.map(message =>
-              GotPatternsGroupMessage({ message }),
-            ),
+            Effect.map(message => GotPatternsGroupMessage({ message })),
           ),
         ]
       },
 
       GotFoldkitUiGroupMessage: ({ message }) => {
-        const [nextFoldkitUiGroup, foldkitUiGroupCommands] =
-          Ui.Disclosure.update(model.foldkitUiGroup, message)
+        const [nextFoldkitUiGroup, foldkitUiGroupCommands] = Ui.Disclosure.update(
+          model.foldkitUiGroup,
+          message,
+        )
 
         return [
           evo(model, {
             foldkitUiGroup: () => nextFoldkitUiGroup,
           }),
           foldkitUiGroupCommands.map(
-            Effect.map(message =>
-              GotFoldkitUiGroupMessage({ message }),
-            ),
+            Effect.map(message => GotFoldkitUiGroupMessage({ message })),
           ),
         ]
       },
 
       GotExamplesGroupMessage: ({ message }) => {
-        const [nextExamplesGroup, examplesGroupCommands] =
-          Ui.Disclosure.update(model.examplesGroup, message)
+        const [nextExamplesGroup, examplesGroupCommands] = Ui.Disclosure.update(
+          model.examplesGroup,
+          message,
+        )
 
         return [
           evo(model, {
             examplesGroup: () => nextExamplesGroup,
           }),
           examplesGroupCommands.map(
-            Effect.map(message =>
-              GotExamplesGroupMessage({ message }),
-            ),
+            Effect.map(message => GotExamplesGroupMessage({ message })),
           ),
         ]
       },
 
       GotApiReferenceGroupMessage: ({ message }) => {
-        const [nextApiReferenceGroup, apiReferenceGroupCommands] =
-          Ui.Disclosure.update(model.apiReferenceGroup, message)
+        const [nextApiReferenceGroup, apiReferenceGroupCommands] = Ui.Disclosure.update(
+          model.apiReferenceGroup,
+          message,
+        )
 
         return [
           evo(model, {
             apiReferenceGroup: () => nextApiReferenceGroup,
           }),
           apiReferenceGroupCommands.map(
-            Effect.map(message =>
-              GotApiReferenceGroupMessage({ message }),
-            ),
+            Effect.map(message => GotApiReferenceGroupMessage({ message })),
           ),
         ]
       },
@@ -797,9 +729,9 @@ const update = (
 
 // COMMAND
 
-const injectAnalytics: Command<typeof NoOp> = Effect.sync(() =>
-  inject(),
-).pipe(Effect.as(NoOp()))
+const injectAnalytics: Command<typeof NoOp> = Effect.sync(() => inject()).pipe(
+  Effect.as(NoOp()),
+)
 
 const injectSpeedInsights: Command<typeof NoOp> = Effect.sync(() =>
   SpeedInsights.injectSpeedInsights(),
@@ -827,12 +759,8 @@ const copyLinkToClipboard = (url: string): Command<typeof NoOp> =>
 
 const COPY_INDICATOR_DURATION = '2 seconds'
 
-const hideIndicator = (
-  text: string,
-): Command<typeof HiddenCopiedIndicator> =>
-  Effect.sleep(COPY_INDICATOR_DURATION).pipe(
-    Effect.as(HiddenCopiedIndicator({ text })),
-  )
+const hideIndicator = (text: string): Command<typeof HiddenCopiedIndicator> =>
+  Effect.sleep(COPY_INDICATOR_DURATION).pipe(Effect.as(HiddenCopiedIndicator({ text })))
 
 const scrollToTop: Command<typeof NoOp> = Effect.sync(() => {
   window.scrollTo({ top: 0, behavior: 'instant' })
@@ -859,9 +787,7 @@ const scrollToHash = (hash: string): Command<typeof NoOp> =>
     return NoOp()
   })
 
-const scrollToHashAfterRender = (
-  hash: string,
-): Command<typeof NoOp> =>
+const scrollToHashAfterRender = (hash: string): Command<typeof NoOp> =>
   Effect.async(resume => {
     requestAnimationFrame(() => {
       focusAndScrollToHash(hash)
@@ -869,25 +795,17 @@ const scrollToHashAfterRender = (
     })
   })
 
-const applyThemeToDocument = (
-  theme: ResolvedTheme,
-): Command<typeof NoOp> =>
+const applyThemeToDocument = (theme: ResolvedTheme): Command<typeof NoOp> =>
   Effect.sync(() => {
     M.value(theme).pipe(
-      M.when('Dark', () =>
-        document.documentElement.classList.add('dark'),
-      ),
-      M.when('Light', () =>
-        document.documentElement.classList.remove('dark'),
-      ),
+      M.when('Dark', () => document.documentElement.classList.add('dark')),
+      M.when('Light', () => document.documentElement.classList.remove('dark')),
       M.exhaustive,
     )
     return NoOp()
   })
 
-const saveThemePreference = (
-  preference: ThemePreference,
-): Command<typeof NoOp> =>
+const saveThemePreference = (preference: ThemePreference): Command<typeof NoOp> =>
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
     yield* store.set(THEME_STORAGE_KEY, JSON.stringify(preference))
@@ -1014,31 +932,23 @@ const sidebarViewInner = (
   const navLinks = ul(
     [Class('space-y-3')],
     [
-      ...Array.zipWith(
-        docsSections,
-        sectionDisclosures,
-        (section, disclosure) =>
-          sidebarGroup({
-            label: section.label,
-            model: disclosure.model,
-            toMessage: disclosure.toMessage,
-            children: ul(
-              [],
-              Array.map(section.pages, page =>
-                navLink(
-                  page.href,
-                  route._tag === page._tag,
-                  page.label,
-                ),
-              ),
+      ...Array.zipWith(docsSections, sectionDisclosures, (section, disclosure) =>
+        sidebarGroup({
+          label: section.label,
+          model: disclosure.model,
+          toMessage: disclosure.toMessage,
+          children: ul(
+            [],
+            Array.map(section.pages, page =>
+              navLink(page.href, route._tag === page._tag, page.label),
             ),
-          }),
+          ),
+        }),
       ),
       sidebarGroup({
         label: 'API Reference',
         model: apiReferenceGroup,
-        toMessage: message =>
-          GotApiReferenceGroupMessage({ message }),
+        toMessage: message => GotApiReferenceGroupMessage({ message }),
         children: ul(
           [],
           Array.map(Page.ApiReference.moduleSlugs, ({ slug, name }) =>
@@ -1062,15 +972,7 @@ const sidebarViewInner = (
         'hidden md:flex fixed top-[var(--header-height)] bottom-0 left-0 z-40 w-64 bg-cream dark:bg-gray-900 border-r border-gray-300 dark:border-gray-800 flex-col',
       ),
     ],
-    [
-      nav(
-        [
-          AriaLabel('Documentation'),
-          Class('flex-1 overflow-y-auto p-4'),
-        ],
-        [navLinks],
-      ),
-    ],
+    [nav([AriaLabel('Documentation'), Class('flex-1 overflow-y-auto p-4')], [navLinks])],
   )
 
   const mobileMenuContent = div(
@@ -1085,13 +987,7 @@ const sidebarViewInner = (
         [
           a(
             [Href(homeRouter())],
-            [
-              img([
-                Src('/logo.svg'),
-                Alt('Foldkit'),
-                Class('h-6 dark:invert'),
-              ]),
-            ],
+            [img([Src('/logo.svg'), Alt('Foldkit'), Class('h-6 dark:invert')])],
           ),
           button(
             [
@@ -1109,19 +1005,9 @@ const sidebarViewInner = (
           ),
         ],
       ),
-      nav(
-        [
-          AriaLabel('Documentation'),
-          Class('flex-1 overflow-y-auto p-4'),
-        ],
-        [navLinks],
-      ),
+      nav([AriaLabel('Documentation'), Class('flex-1 overflow-y-auto p-4')], [navLinks]),
       div(
-        [
-          Class(
-            'p-4 border-t border-gray-300 dark:border-gray-800 shrink-0',
-          ),
-        ],
+        [Class('p-4 border-t border-gray-300 dark:border-gray-800 shrink-0')],
         [
           div(
             [Class('flex items-center justify-center gap-8')],
@@ -1139,8 +1025,7 @@ const sidebarViewInner = (
     model: mobileMenuDialog,
     toMessage: message => GotMobileMenuDialogMessage({ message }),
     panelContent: mobileMenuContent,
-    panelClassName:
-      'fixed inset-0 z-[60] bg-cream dark:bg-gray-900 flex flex-col',
+    panelClassName: 'fixed inset-0 z-[60] bg-cream dark:bg-gray-900 flex flex-col',
     backdropClassName: 'fixed inset-0 z-[59]',
     className: 'md:hidden',
   })
@@ -1196,8 +1081,7 @@ const tableOfContentsEntryView = (
           OnClick(ChangedActiveSection({ sectionId: id })),
           Class(
             classNames('transition block', {
-              'text-accent-600 dark:text-accent-400 underline':
-                isActive,
+              'text-accent-600 dark:text-accent-400 underline': isActive,
               'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white':
                 !isActive,
             }),
@@ -1284,9 +1168,7 @@ const mobileTableOfContentsView = (
     [
       Id('mobile-table-of-contents'),
       Open(isOpen),
-      OnToggle(open =>
-        ToggledMobileTableOfContents({ isOpen: open }),
-      ),
+      OnToggle(open => ToggledMobileTableOfContents({ isOpen: open })),
       Class(
         'group xl:hidden fixed top-[var(--header-height)] left-0 right-0 md:left-64 z-40 bg-cream dark:bg-gray-900 border-b border-gray-300 dark:border-gray-800',
       ),
@@ -1311,11 +1193,7 @@ const mobileTableOfContentsView = (
                 ['On this page'],
               ),
               span(
-                [
-                  Class(
-                    'text-sm text-gray-900 dark:text-white truncate',
-                  ),
-                ],
+                [Class('text-sm text-gray-900 dark:text-white truncate')],
                 [activeSectionText],
               ),
             ],
@@ -1331,17 +1209,10 @@ const mobileTableOfContentsView = (
         ],
       ),
       nav(
-        [
-          AriaLabel('Table of contents'),
-          Class('max-h-[50vh] overflow-y-auto'),
-        ],
+        [AriaLabel('Table of contents'), Class('max-h-[50vh] overflow-y-auto')],
         [
           ul(
-            [
-              Class(
-                'text-sm divide-y divide-gray-300 dark:divide-gray-700',
-              ),
-            ],
+            [Class('text-sm divide-y divide-gray-300 dark:divide-gray-700')],
             Array.map(entries, ({ level, id, text }) => {
               const isActive = Option.match(maybeActiveSectionId, {
                 onNone: () => false,
@@ -1366,8 +1237,7 @@ const mobileTableOfContentsView = (
                           {
                             'pl-8': level === 'h3',
                             'pl-12': level === 'h4',
-                            'text-accent-600 dark:text-accent-400':
-                              isActive,
+                            'text-accent-600 dark:text-accent-400': isActive,
                             'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white':
                               !isActive,
                           },
@@ -1378,9 +1248,7 @@ const mobileTableOfContentsView = (
                     [
                       text,
                       isActive
-                        ? Icon.check(
-                            'w-4 h-4 text-accent-600 dark:text-accent-400',
-                          )
+                        ? Icon.check('w-4 h-4 text-accent-600 dark:text-accent-400')
                         : empty,
                     ],
                   ),
@@ -1417,11 +1285,7 @@ const landingHeaderView = (model: Model) =>
       a(
         [Href(homeRouter()), Class('flex items-center gap-2')],
         [
-          img([
-            Src('/logo.svg'),
-            Alt('Foldkit'),
-            Class('h-6 md:h-8 dark:invert'),
-          ]),
+          img([Src('/logo.svg'), Alt('Foldkit'), Class('h-6 md:h-8 dark:invert')]),
           span(
             [
               Class(
@@ -1436,10 +1300,7 @@ const landingHeaderView = (model: Model) =>
       nav(
         [AriaLabel('Main'), Class('flex items-center gap-3')],
         [
-          div(
-            [Class('hidden md:flex')],
-            [themeSelector(model.themePreference)],
-          ),
+          div([Class('hidden md:flex')], [themeSelector(model.themePreference)]),
           a(
             [
               Href(Link.gettingStarted),
@@ -1492,10 +1353,7 @@ const landingFooter: Html = footer(
 
 type DemoTab = 'Architecture' | 'Note Player'
 
-const demoTabs: ReadonlyArray<DemoTab> = [
-  'Architecture',
-  'Note Player',
-]
+const demoTabs: ReadonlyArray<DemoTab> = ['Architecture', 'Note Player']
 
 const demoTabButtonClassName =
   'px-3 py-2 text-sm font-normal cursor-pointer transition border border-gray-300 dark:border-gray-800 bg-cream dark:bg-gray-900 text-gray-500 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-t-lg lg:rounded-t-none lg:rounded-l-lg lg:border-r-0 mb-[-1px] lg:mb-0 lg:mr-[-1px] data-[selected]:relative data-[selected]:z-10 data-[selected]:bg-cream data-[selected]:dark:bg-gray-900 data-[selected]:text-gray-900 data-[selected]:dark:text-white data-[selected]:border-b-0 lg:data-[selected]:border-b lg:data-[selected]:border-r-0'
@@ -1504,15 +1362,15 @@ const demoTabPanelClassName =
   'flex-1 min-w-0 p-4 bg-cream dark:bg-gray-900 rounded-b-lg rounded-tr-lg lg:rounded-bl-lg lg:rounded-r-lg lg:rounded-tl-none border border-gray-300 dark:border-gray-800'
 
 const landingView = (model: Model) => {
-  const asyncCounterDemoView = lazyAsyncCounterDemo(
-    Page.AsyncCounterDemo.view,
-    [model.asyncCounterDemo, toAsyncCounterDemoMessage],
-  )
+  const asyncCounterDemoView = lazyAsyncCounterDemo(Page.AsyncCounterDemo.view, [
+    model.asyncCounterDemo,
+    toAsyncCounterDemoMessage,
+  ])
 
-  const notePlayerDemoView = lazyNotePlayerDemo(
-    Page.NotePlayerDemo.view,
-    [model.notePlayerDemo, toNotePlayerDemoMessage],
-  )
+  const notePlayerDemoView = lazyNotePlayerDemo(Page.NotePlayerDemo.view, [
+    model.notePlayerDemo,
+    toNotePlayerDemoMessage,
+  ])
 
   const demoTabsView = Ui.Tabs.view<Message, DemoTab>({
     model: model.demoTabs,
@@ -1583,11 +1441,7 @@ const docsHeaderView = (model: Model) =>
           a(
             [Href(homeRouter()), Class('flex items-center gap-2')],
             [
-              img([
-                Src('/logo.svg'),
-                Alt('Foldkit'),
-                Class('h-6 md:h-8 dark:invert'),
-              ]),
+              img([Src('/logo.svg'), Alt('Foldkit'), Class('h-6 md:h-8 dark:invert')]),
               span(
                 [
                   Class(
@@ -1608,16 +1462,8 @@ const docsHeaderView = (model: Model) =>
           div(
             [Class('hidden md:flex items-center gap-3 md:gap-4')],
             [
-              iconLink(
-                Link.github,
-                'GitHub',
-                Icon.github('w-5 h-5 md:w-6 md:h-6'),
-              ),
-              iconLink(
-                Link.npm,
-                'npm',
-                Icon.npm('w-6 h-6 md:w-8 md:h-8'),
-              ),
+              iconLink(Link.github, 'GitHub', Icon.github('w-5 h-5 md:w-6 md:h-6')),
+              iconLink(Link.npm, 'npm', Icon.npm('w-6 h-6 md:w-8 md:h-8')),
             ],
           ),
         ],
@@ -1625,27 +1471,19 @@ const docsHeaderView = (model: Model) =>
     ],
   )
 
-const toAsyncCounterDemoMessage = (
-  message: Page.AsyncCounterDemo.Message,
-): Message => GotAsyncCounterDemoMessage({ message })
+const toAsyncCounterDemoMessage = (message: Page.AsyncCounterDemo.Message): Message =>
+  GotAsyncCounterDemoMessage({ message })
 
-const toNotePlayerDemoMessage = (
-  message: Page.NotePlayerDemo.Message,
-): Message => GotNotePlayerDemoMessage({ message })
+const toNotePlayerDemoMessage = (message: Page.NotePlayerDemo.Message): Message =>
+  GotNotePlayerDemoMessage({ message })
 
-const toApiReferenceMessage = (
-  message: Page.ApiReference.Message,
-): Message => GotApiReferenceMessage({ message })
+const toApiReferenceMessage = (message: Page.ApiReference.Message): Message =>
+  GotApiReferenceMessage({ message })
 
 const apiReferenceView = (
   module: Page.ApiReference.ApiModule,
   apiReferenceModel: Page.ApiReference.Model,
-): Html =>
-  Page.ApiReference.view(
-    module,
-    apiReferenceModel,
-    toApiReferenceMessage,
-  )
+): Html => Page.ApiReference.view(module, apiReferenceModel, toApiReferenceMessage)
 
 const lazyAsyncCounterDemo = createLazy()
 const lazyNotePlayerDemo = createLazy()
@@ -1684,14 +1522,8 @@ const neighborLink = (
           ),
         ],
         config.direction === 'Previous'
-          ? [
-              span([Class('mr-1'), AriaHidden(true)], ['\u2190']),
-              config.page.label,
-            ]
-          : [
-              config.page.label,
-              span([Class('ml-1'), AriaHidden(true)], ['\u2192']),
-            ],
+          ? [span([Class('mr-1'), AriaHidden(true)], ['\u2190']), config.page.label]
+          : [config.page.label, span([Class('ml-1'), AriaHidden(true)], ['\u2192'])],
       ),
     ],
   )
@@ -1742,280 +1574,196 @@ const withoutToc = (content: Html): DocsPageView => ({
 })
 
 const docsView = (model: Model, docsRoute: DocsRoute) => {
-  const { content, tableOfContents: currentPageTableOfContents } =
-    M.value(docsRoute).pipe(
-      M.withReturnType<DocsPageView>(),
-      M.tagsExhaustive({
-        Manifesto: () =>
-          withToc(
-            Page.Manifesto.view(),
-            Page.Manifesto.tableOfContents,
+  const { content, tableOfContents: currentPageTableOfContents } = M.value(
+    docsRoute,
+  ).pipe(
+    M.withReturnType<DocsPageView>(),
+    M.tagsExhaustive({
+      Manifesto: () => withToc(Page.Manifesto.view(), Page.Manifesto.tableOfContents),
+      ComingFromReact: () =>
+        withToc(
+          Page.ComingFromReact.view(
+            model.copiedSnippets,
+            model.comingFromReact,
+            message => GotComingFromReactMessage({ message }),
           ),
-        ComingFromReact: () =>
-          withToc(
-            Page.ComingFromReact.view(
-              model.copiedSnippets,
-              model.comingFromReact,
-              message => GotComingFromReactMessage({ message }),
-            ),
-            Page.ComingFromReact.tableOfContents,
-          ),
-        GettingStarted: () =>
-          withToc(
-            lazyDocsContent(Page.GettingStarted.view, [
-              model.copiedSnippets,
-            ]),
-            Page.GettingStarted.tableOfContents,
-          ),
-        RoutingAndNavigation: () =>
-          withToc(
-            lazyDocsContent(Page.Routing.view, [
-              model.copiedSnippets,
-            ]),
-            Page.Routing.tableOfContents,
-          ),
-        FieldValidation: () =>
-          withToc(
-            lazyDocsContent(Page.FieldValidation.view, [
-              model.copiedSnippets,
-            ]),
-            Page.FieldValidation.tableOfContents,
-          ),
-        Examples: () => withoutToc(Page.Examples.view()),
-        BestPractices: () =>
-          withToc(
-            lazyDocsContent(Page.BestPractices.view, [
-              model.copiedSnippets,
-            ]),
-            Page.BestPractices.tableOfContents,
-          ),
-        ProjectOrganization: () =>
-          withToc(
-            lazyDocsContent(Page.ProjectOrganization.view, [
-              model.copiedSnippets,
-            ]),
-            Page.ProjectOrganization.tableOfContents,
-          ),
-        ApiModule: ({ moduleSlug }) =>
-          pipe(
-            moduleSlug,
-            Page.ApiReference.slugToModule,
-            Option.match({
-              onSome: module => ({
-                content: lazyApiReference(apiReferenceView, [
-                  module,
-                  model.apiReference,
-                ]),
-                tableOfContents: Option.some(
-                  Page.ApiReference.toModuleTableOfContents(module),
-                ),
-              }),
-              onNone: () =>
-                withoutToc(
-                  Page.NotFound.view(moduleSlug, homeRouter()),
-                ),
+          Page.ComingFromReact.tableOfContents,
+        ),
+      GettingStarted: () =>
+        withToc(
+          lazyDocsContent(Page.GettingStarted.view, [model.copiedSnippets]),
+          Page.GettingStarted.tableOfContents,
+        ),
+      RoutingAndNavigation: () =>
+        withToc(
+          lazyDocsContent(Page.Routing.view, [model.copiedSnippets]),
+          Page.Routing.tableOfContents,
+        ),
+      FieldValidation: () =>
+        withToc(
+          lazyDocsContent(Page.FieldValidation.view, [model.copiedSnippets]),
+          Page.FieldValidation.tableOfContents,
+        ),
+      Examples: () => withoutToc(Page.Examples.view()),
+      BestPractices: () =>
+        withToc(
+          lazyDocsContent(Page.BestPractices.view, [model.copiedSnippets]),
+          Page.BestPractices.tableOfContents,
+        ),
+      ProjectOrganization: () =>
+        withToc(
+          lazyDocsContent(Page.ProjectOrganization.view, [model.copiedSnippets]),
+          Page.ProjectOrganization.tableOfContents,
+        ),
+      ApiModule: ({ moduleSlug }) =>
+        pipe(
+          moduleSlug,
+          Page.ApiReference.slugToModule,
+          Option.match({
+            onSome: module => ({
+              content: lazyApiReference(apiReferenceView, [module, model.apiReference]),
+              tableOfContents: Option.some(
+                Page.ApiReference.toModuleTableOfContents(module),
+              ),
             }),
-          ),
-        CoreArchitecture: () =>
-          withToc(
-            Page.Core.Architecture.view(),
-            Page.Core.Architecture.tableOfContents,
-          ),
-        CoreCounterExample: () =>
-          withToc(
-            lazyDocsContent(Page.Core.CounterExample.view, [
-              model.copiedSnippets,
-            ]),
-            Page.Core.CounterExample.tableOfContents,
-          ),
-        CoreModel: () =>
-          withToc(
-            lazyDocsContent(Page.Core.CoreModel.view, [
-              model.copiedSnippets,
-            ]),
-            Page.Core.CoreModel.tableOfContents,
-          ),
-        CoreMessages: () =>
-          withToc(
-            lazyDocsContent(Page.Core.Messages.view, [
-              model.copiedSnippets,
-            ]),
-            Page.Core.Messages.tableOfContents,
-          ),
-        CoreUpdate: () =>
-          withToc(
-            lazyDocsContent(Page.Core.CoreUpdate.view, [
-              model.copiedSnippets,
-            ]),
-            Page.Core.CoreUpdate.tableOfContents,
-          ),
-        CoreView: () =>
-          withToc(
-            lazyDocsContent(Page.Core.CoreView.view, [
-              model.copiedSnippets,
-            ]),
-            Page.Core.CoreView.tableOfContents,
-          ),
-        CoreCommands: () =>
-          withToc(
-            lazyDocsContent(Page.Core.Commands.view, [
-              model.copiedSnippets,
-            ]),
-            Page.Core.Commands.tableOfContents,
-          ),
-        CoreSubscriptions: () =>
-          withToc(
-            lazyDocsContent(Page.Core.Subscriptions.view, [
-              model.copiedSnippets,
-            ]),
-            Page.Core.Subscriptions.tableOfContents,
-          ),
-        CoreInit: () =>
-          withToc(
-            lazyDocsContent(Page.Core.Init.view, [
-              model.copiedSnippets,
-            ]),
-            Page.Core.Init.tableOfContents,
-          ),
-        CoreTask: () =>
-          withToc(
-            lazyDocsContent(Page.Core.CoreTask.view, [
-              model.copiedSnippets,
-            ]),
-            Page.Core.CoreTask.tableOfContents,
-          ),
-        CoreRunningYourApp: () =>
-          withToc(
-            lazyDocsContent(Page.Core.RunningYourApp.view, [
-              model.copiedSnippets,
-            ]),
-            Page.Core.RunningYourApp.tableOfContents,
-          ),
-        CoreResources: () =>
-          withToc(
-            lazyDocsContent(Page.Core.Resources.view, [
-              model.copiedSnippets,
-            ]),
-            Page.Core.Resources.tableOfContents,
-          ),
-        CoreManagedResources: () =>
-          withToc(
-            lazyDocsContent(Page.Core.ManagedResources.view, [
-              model.copiedSnippets,
-            ]),
-            Page.Core.ManagedResources.tableOfContents,
-          ),
-        CoreErrorView: () =>
-          withToc(
-            lazyDocsContent(Page.Core.ErrorView.view, [
-              model.copiedSnippets,
-            ]),
-            Page.Core.ErrorView.tableOfContents,
-          ),
-        CoreSlowViewWarning: () =>
-          withToc(
-            lazyDocsContent(Page.Core.SlowViewWarning.view, [
-              model.copiedSnippets,
-            ]),
-            Page.Core.SlowViewWarning.tableOfContents,
-          ),
-        PatternsSubmodels: () =>
-          withToc(
-            lazyDocsContent(Page.Patterns.Submodels.view, [
-              model.copiedSnippets,
-            ]),
-            Page.Patterns.Submodels.tableOfContents,
-          ),
-        PatternsOutMessage: () =>
-          withToc(
-            lazyDocsContent(Page.Patterns.OutMessage.view, [
-              model.copiedSnippets,
-            ]),
-            Page.Patterns.OutMessage.tableOfContents,
-          ),
-        CoreViewMemoization: () =>
-          withToc(
-            lazyDocsContent(Page.Core.ViewMemoization.view, [
-              model.copiedSnippets,
-            ]),
-            Page.Core.ViewMemoization.tableOfContents,
-          ),
-        UiTabs: () =>
-          withToc(
-            Page.UiPages.TabsPage.view(
-              model.uiPages,
-              toUiPageMessage,
-            ),
-            Page.UiPages.TabsPage.tableOfContents,
-          ),
-        UiDisclosure: () =>
-          withToc(
-            Page.UiPages.DisclosurePage.view(
-              model.uiPages,
-              toUiPageMessage,
-            ),
-            Page.UiPages.DisclosurePage.tableOfContents,
-          ),
-        UiDialog: () =>
-          withToc(
-            Page.UiPages.DialogPage.view(
-              model.uiPages,
-              toUiPageMessage,
-            ),
-            Page.UiPages.DialogPage.tableOfContents,
-          ),
-        UiMenu: () =>
-          withToc(
-            Page.UiPages.MenuPage.view(
-              model.uiPages,
-              toUiPageMessage,
-            ),
-            Page.UiPages.MenuPage.tableOfContents,
-          ),
-        UiPopover: () =>
-          withToc(
-            Page.UiPages.PopoverPage.view(
-              model.uiPages,
-              toUiPageMessage,
-            ),
-            Page.UiPages.PopoverPage.tableOfContents,
-          ),
-        UiListbox: () =>
-          withToc(
-            Page.UiPages.ListboxPage.view(
-              model.uiPages,
-              toUiPageMessage,
-            ),
-            Page.UiPages.ListboxPage.tableOfContents,
-          ),
-        UiRadioGroup: () =>
-          withToc(
-            Page.UiPages.RadioGroupPage.view(
-              model.uiPages,
-              toUiPageMessage,
-            ),
-            Page.UiPages.RadioGroupPage.tableOfContents,
-          ),
-        UiSwitch: () =>
-          withToc(
-            Page.UiPages.SwitchPage.view(
-              model.uiPages,
-              toUiPageMessage,
-            ),
-            Page.UiPages.SwitchPage.tableOfContents,
-          ),
-        UiCombobox: () =>
-          withToc(
-            Page.UiPages.ComboboxPage.view(
-              model.uiPages,
-              toUiPageMessage,
-            ),
-            Page.UiPages.ComboboxPage.tableOfContents,
-          ),
-        NotFound: ({ path }) =>
-          withoutToc(Page.NotFound.view(path, homeRouter())),
-      }),
-    )
+            onNone: () => withoutToc(Page.NotFound.view(moduleSlug, homeRouter())),
+          }),
+        ),
+      CoreArchitecture: () =>
+        withToc(Page.Core.Architecture.view(), Page.Core.Architecture.tableOfContents),
+      CoreCounterExample: () =>
+        withToc(
+          lazyDocsContent(Page.Core.CounterExample.view, [model.copiedSnippets]),
+          Page.Core.CounterExample.tableOfContents,
+        ),
+      CoreModel: () =>
+        withToc(
+          lazyDocsContent(Page.Core.CoreModel.view, [model.copiedSnippets]),
+          Page.Core.CoreModel.tableOfContents,
+        ),
+      CoreMessages: () =>
+        withToc(
+          lazyDocsContent(Page.Core.Messages.view, [model.copiedSnippets]),
+          Page.Core.Messages.tableOfContents,
+        ),
+      CoreUpdate: () =>
+        withToc(
+          lazyDocsContent(Page.Core.CoreUpdate.view, [model.copiedSnippets]),
+          Page.Core.CoreUpdate.tableOfContents,
+        ),
+      CoreView: () =>
+        withToc(
+          lazyDocsContent(Page.Core.CoreView.view, [model.copiedSnippets]),
+          Page.Core.CoreView.tableOfContents,
+        ),
+      CoreCommands: () =>
+        withToc(
+          lazyDocsContent(Page.Core.Commands.view, [model.copiedSnippets]),
+          Page.Core.Commands.tableOfContents,
+        ),
+      CoreSubscriptions: () =>
+        withToc(
+          lazyDocsContent(Page.Core.Subscriptions.view, [model.copiedSnippets]),
+          Page.Core.Subscriptions.tableOfContents,
+        ),
+      CoreInit: () =>
+        withToc(
+          lazyDocsContent(Page.Core.Init.view, [model.copiedSnippets]),
+          Page.Core.Init.tableOfContents,
+        ),
+      CoreTask: () =>
+        withToc(
+          lazyDocsContent(Page.Core.CoreTask.view, [model.copiedSnippets]),
+          Page.Core.CoreTask.tableOfContents,
+        ),
+      CoreRunningYourApp: () =>
+        withToc(
+          lazyDocsContent(Page.Core.RunningYourApp.view, [model.copiedSnippets]),
+          Page.Core.RunningYourApp.tableOfContents,
+        ),
+      CoreResources: () =>
+        withToc(
+          lazyDocsContent(Page.Core.Resources.view, [model.copiedSnippets]),
+          Page.Core.Resources.tableOfContents,
+        ),
+      CoreManagedResources: () =>
+        withToc(
+          lazyDocsContent(Page.Core.ManagedResources.view, [model.copiedSnippets]),
+          Page.Core.ManagedResources.tableOfContents,
+        ),
+      CoreErrorView: () =>
+        withToc(
+          lazyDocsContent(Page.Core.ErrorView.view, [model.copiedSnippets]),
+          Page.Core.ErrorView.tableOfContents,
+        ),
+      CoreSlowViewWarning: () =>
+        withToc(
+          lazyDocsContent(Page.Core.SlowViewWarning.view, [model.copiedSnippets]),
+          Page.Core.SlowViewWarning.tableOfContents,
+        ),
+      PatternsSubmodels: () =>
+        withToc(
+          lazyDocsContent(Page.Patterns.Submodels.view, [model.copiedSnippets]),
+          Page.Patterns.Submodels.tableOfContents,
+        ),
+      PatternsOutMessage: () =>
+        withToc(
+          lazyDocsContent(Page.Patterns.OutMessage.view, [model.copiedSnippets]),
+          Page.Patterns.OutMessage.tableOfContents,
+        ),
+      CoreViewMemoization: () =>
+        withToc(
+          lazyDocsContent(Page.Core.ViewMemoization.view, [model.copiedSnippets]),
+          Page.Core.ViewMemoization.tableOfContents,
+        ),
+      UiTabs: () =>
+        withToc(
+          Page.UiPages.TabsPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.TabsPage.tableOfContents,
+        ),
+      UiDisclosure: () =>
+        withToc(
+          Page.UiPages.DisclosurePage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.DisclosurePage.tableOfContents,
+        ),
+      UiDialog: () =>
+        withToc(
+          Page.UiPages.DialogPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.DialogPage.tableOfContents,
+        ),
+      UiMenu: () =>
+        withToc(
+          Page.UiPages.MenuPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.MenuPage.tableOfContents,
+        ),
+      UiPopover: () =>
+        withToc(
+          Page.UiPages.PopoverPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.PopoverPage.tableOfContents,
+        ),
+      UiListbox: () =>
+        withToc(
+          Page.UiPages.ListboxPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.ListboxPage.tableOfContents,
+        ),
+      UiRadioGroup: () =>
+        withToc(
+          Page.UiPages.RadioGroupPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.RadioGroupPage.tableOfContents,
+        ),
+      UiSwitch: () =>
+        withToc(
+          Page.UiPages.SwitchPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.SwitchPage.tableOfContents,
+        ),
+      UiCombobox: () =>
+        withToc(
+          Page.UiPages.ComboboxPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.ComboboxPage.tableOfContents,
+        ),
+      NotFound: ({ path }) => withoutToc(Page.NotFound.view(path, homeRouter())),
+    }),
+  )
 
   return keyed('div')(
     'docs',
@@ -2031,14 +1779,11 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
             [
               Id('main-content'),
               Class(
-                classNames(
-                  'flex-1 min-w-0 bg-cream dark:bg-gray-900',
-                  {
-                    'pt-[var(--mobile-toc-height)]': Option.isSome(
-                      currentPageTableOfContents,
-                    ),
-                  },
-                ),
+                classNames('flex-1 min-w-0 bg-cream dark:bg-gray-900', {
+                  'pt-[var(--mobile-toc-height)]': Option.isSome(
+                    currentPageTableOfContents,
+                  ),
+                }),
               ),
             ],
             [
@@ -2053,27 +1798,17 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
               }),
               keyed('div')(
                 M.value(docsRoute).pipe(
-                  M.tag(
-                    'ApiModule',
-                    ({ moduleSlug }) => `ApiModule-${moduleSlug}`,
-                  ),
+                  M.tag('ApiModule', ({ moduleSlug }) => `ApiModule-${moduleSlug}`),
                   M.orElse(({ _tag }) => _tag),
                 ),
-                [
-                  Class(
-                    'px-4 py-6 md:px-8 md:py-8 2xl:py-10 max-w-4xl mx-auto min-w-0',
-                  ),
-                ],
+                [Class('px-4 py-6 md:px-8 md:py-8 2xl:py-10 max-w-4xl mx-auto min-w-0')],
                 [content, pageNavigationView(docsRoute._tag)],
               ),
             ],
           ),
           Option.match(currentPageTableOfContents, {
             onSome: tableOfContents =>
-              tableOfContentsView(
-                tableOfContents,
-                model.activeSection,
-              ),
+              tableOfContentsView(tableOfContents, model.activeSection),
             onNone: () => empty,
           }),
         ],
@@ -2100,10 +1835,7 @@ const SubscriptionDeps = S.Struct({
 
 export type SubscriptionDeps = typeof SubscriptionDeps.Type
 
-const subscriptions = makeSubscriptions(SubscriptionDeps)<
-  Model,
-  Message
->({
+const subscriptions = makeSubscriptions(SubscriptionDeps)<Model, Message>({
   activeSection: Subscription.activeSection,
   heroVisibility: Subscription.heroVisibility,
   systemTheme: Subscription.systemTheme,

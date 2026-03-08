@@ -5,11 +5,7 @@ const errorView = (error: Error): Html => {
   const { div, h1, p, button, Class, Attribute } = html<never>()
 
   return div(
-    [
-      Class(
-        'min-h-screen flex items-center justify-center bg-red-50 p-8',
-      ),
-    ],
+    [Class('min-h-screen flex items-center justify-center bg-red-50 p-8')],
     [
       div(
         [

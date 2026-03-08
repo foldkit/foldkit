@@ -8,10 +8,7 @@ export const update = (
   M.value(message).pipe(
     M.tagsExhaustive({
       GotLoginMessage: ({ message }) => {
-        const [nextLogin, commands, maybeOutMessage] = Login.update(
-          model.login,
-          message,
-        )
+        const [nextLogin, commands, maybeOutMessage] = Login.update(model.login, message)
 
         const mappedCommands = Array.map(
           commands,
@@ -19,10 +16,7 @@ export const update = (
         )
 
         return Option.match(maybeOutMessage, {
-          onNone: () => [
-            evo(model, { login: () => nextLogin }),
-            mappedCommands,
-          ],
+          onNone: () => [evo(model, { login: () => nextLogin }), mappedCommands],
           onSome: outMessage =>
             M.value(outMessage).pipe(
               M.tagsExhaustive({

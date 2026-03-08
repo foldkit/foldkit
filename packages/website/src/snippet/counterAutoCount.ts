@@ -28,18 +28,14 @@ const SubscriptionDeps = S.Struct({
   }),
 })
 
-const subscriptions = Subscription.makeSubscriptions(
-  SubscriptionDeps,
-)<Model, Message>({
+const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<Model, Message>({
   tick: {
     modelToDependencies: model => ({
       isAutoCounting: model.isAutoCounting,
     }),
     depsToStream: ({ isAutoCounting }) =>
       Stream.when(
-        Stream.tick(Duration.seconds(1)).pipe(
-          Stream.map(() => Effect.succeed(Ticked())),
-        ),
+        Stream.tick(Duration.seconds(1)).pipe(Stream.map(() => Effect.succeed(Ticked()))),
         () => isAutoCounting,
       ),
   },

@@ -12,10 +12,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import * as Snippets from '../../snippet'
-import {
-  type CopiedSnippets,
-  highlightedCodeBlock,
-} from '../../view/codeBlock'
+import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -23,9 +20,7 @@ const overviewHeader: TableOfContentsEntry = {
   text: 'Overview',
 }
 
-export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
-  overviewHeader,
-]
+export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [overviewHeader]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
@@ -54,13 +49,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ':',
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.errorViewCustomHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.errorViewCustomHighlighted)], []),
         Snippets.errorViewCustomRaw,
         'Custom errorView example',
         copiedSnippets,

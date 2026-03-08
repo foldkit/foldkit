@@ -2,11 +2,7 @@ import type { Html } from 'foldkit/html'
 
 import { Class, div, p } from '../html'
 import type { TableOfContentsEntry } from '../main'
-import {
-  pageTitle,
-  para,
-  tableOfContentsEntryToHeader,
-} from '../prose'
+import { pageTitle, para, tableOfContentsEntryToHeader } from '../prose'
 
 const theArchitectureProblemHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -54,17 +50,13 @@ export const view = (): Html =>
       para(
         'This is why large, well-architected React codebases are vanishingly rare. Building and maintaining a large React application requires that one or two Staff-level people have a strong, bespoke architectural vision, make that vision clear to all contributors, and enforce alignment to it over years. This is not the norm.',
       ),
-      para(
-        'React isn\u2019t bad. It\u2019s great. It\u2019s also insufficient.',
-      ),
+      para('React isn\u2019t bad. It\u2019s great. It\u2019s also insufficient.'),
       para(
         'What if the framework itself was the architecture? What if there were no decisions to make? Not because someone took them away, but because the right answer was the only answer. What if you never had to ask, "Which state management library do we use?" or "How do we wire streams into our UI?" and instead asked, "How do we model this domain? How should this feature behave?" What if architecture was solved, and the only questions left were about your product?',
       ),
       para('That\u2019s Foldkit.'),
       tableOfContentsEntryToHeader(powerThroughConstraintsHeader),
-      para(
-        'Every Foldkit app has the same architecture. Not by convention. By design.',
-      ),
+      para('Every Foldkit app has the same architecture. Not by convention. By design.'),
       para(
         'State lives in the Model. Events are Messages. Every state change flows through update. Side effects are managed by Commands. Ongoing streams are Subscriptions. This isn\u2019t a recommendation. It\u2019s the only path. You can\u2019t scatter state across components because there are no component-local state hooks. You can\u2019t hide side effects in the view because the view is a pure function.',
       ),
@@ -94,9 +86,6 @@ export const view = (): Html =>
       para(
         'The architecture is solved. The only questions left are about your product. Now go build something cool.',
       ),
-      div(
-        [Class('mb-4')],
-        [p([], ['See you on GitHub,']), p([], ['Devin Jameson'])],
-      ),
+      div([Class('mb-4')], [p([], ['See you on GitHub,']), p([], ['Devin Jameson'])]),
     ],
   )

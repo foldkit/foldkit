@@ -3,11 +3,7 @@ import type { Html } from 'foldkit/html'
 import { div } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
-import {
-  pageTitle,
-  para,
-  tableOfContentsEntryToHeader,
-} from '../../prose'
+import { pageTitle, para, tableOfContentsEntryToHeader } from '../../prose'
 import * as Combobox from './combobox'
 import type { Message } from './message'
 import type { Model } from './model'
@@ -41,9 +37,6 @@ export const view = (
       ...Combobox.comboboxDemo(model.comboboxDemo, toMessage),
       ...Combobox.nullableDemo(model.comboboxNullableDemo, toMessage),
       ...Combobox.multiDemo(model.comboboxMultiDemo, toMessage),
-      ...Combobox.selectOnFocusDemo(
-        model.comboboxSelectOnFocusDemo,
-        toMessage,
-      ),
+      ...Combobox.selectOnFocusDemo(model.comboboxSelectOnFocusDemo, toMessage),
     ],
   )

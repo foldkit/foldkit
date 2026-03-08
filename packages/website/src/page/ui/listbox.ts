@@ -97,8 +97,7 @@ const groupedItemClassName =
 const groupHeadingClassName =
   'px-3 pt-3 pb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500'
 
-const separatorClassName =
-  'border-t border-gray-200 dark:border-gray-700'
+const separatorClassName = 'border-t border-gray-200 dark:border-gray-700'
 
 const backdropClassName = 'fixed inset-0 z-0'
 
@@ -128,8 +127,7 @@ export const basicDemo = (
       [
         Ui.Listbox.view({
           model: listboxModel,
-          toMessage: message =>
-            toMessage(GotListboxDemoMessage({ message })),
+          toMessage: message => toMessage(GotListboxDemoMessage({ message })),
           anchor: LISTBOX_ANCHOR,
           items: LISTBOX_ITEMS,
           itemToConfig: item => ({
@@ -165,8 +163,7 @@ export const multiSelectDemo = (
   const { selectedItems } = listboxModel
   const buttonLabel = Array.match(selectedItems, {
     onEmpty: () => 'Select Bluths',
-    onNonEmpty: items =>
-      items.length === 1 ? items[0] : `${items.length} selected`,
+    onNonEmpty: items => (items.length === 1 ? items[0] : `${items.length} selected`),
   })
 
   return [
@@ -176,8 +173,7 @@ export const multiSelectDemo = (
       [
         Ui.Listbox.Multi.view({
           model: listboxModel,
-          toMessage: message =>
-            toMessage(GotListboxMultiDemoMessage({ message })),
+          toMessage: message => toMessage(GotListboxMultiDemoMessage({ message })),
           anchor: LISTBOX_ANCHOR,
           items: LISTBOX_ITEMS,
           itemToConfig: item => ({
@@ -222,8 +218,7 @@ export const groupedDemo = (
       [
         Ui.Listbox.view({
           model: listboxModel,
-          toMessage: message =>
-            toMessage(GotListboxGroupedDemoMessage({ message })),
+          toMessage: message => toMessage(GotListboxGroupedDemoMessage({ message })),
           anchor: LISTBOX_ANCHOR,
           items: GROUPED_CHARACTERS,
           itemToValue: characterName,

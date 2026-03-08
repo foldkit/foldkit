@@ -12,10 +12,7 @@ import {
 } from '../../prose'
 import { patternsSubmodelsRouter } from '../../route'
 import * as Snippets from '../../snippet'
-import {
-  type CopiedSnippets,
-  highlightedCodeBlock,
-} from '../../view/codeBlock'
+import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -23,9 +20,7 @@ const overviewHeader: TableOfContentsEntry = {
   text: 'Overview',
 }
 
-export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
-  overviewHeader,
-]
+export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [overviewHeader]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
@@ -45,13 +40,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para('The counter has three Messages:'),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.counterMessagesHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.counterMessagesHighlighted)], []),
         Snippets.counterMessagesRaw,
         'Copy messages example to clipboard',
         copiedSnippets,

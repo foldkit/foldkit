@@ -2,16 +2,9 @@ import type { Html } from 'foldkit/html'
 
 import { Class, InnerHTML, div } from '../../html'
 import type { TableOfContentsEntry } from '../../main'
-import {
-  pageTitle,
-  para,
-  tableOfContentsEntryToHeader,
-} from '../../prose'
+import { pageTitle, para, tableOfContentsEntryToHeader } from '../../prose'
 import * as Snippets from '../../snippet'
-import {
-  type CopiedSnippets,
-  highlightedCodeBlock,
-} from '../../view/codeBlock'
+import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -19,9 +12,7 @@ const overviewHeader: TableOfContentsEntry = {
   text: 'Overview',
 }
 
-export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
-  overviewHeader,
-]
+export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [overviewHeader]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
@@ -33,10 +24,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         "Here's a complete counter application. It has all the pieces from the architecture page \u2014 a Model, Messages, update, init, and view \u2014 wired together and running.",
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.counterHighlighted)],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.counterHighlighted)], []),
         Snippets.counterRaw,
         'Copy counter example to clipboard',
         copiedSnippets,

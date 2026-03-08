@@ -23,11 +23,9 @@ const backdropClassName = 'fixed inset-0 bg-black/50'
 const panelClassName =
   'bg-cream dark:bg-gray-800 rounded-lg p-6 max-w-md mx-auto relative shadow-xl'
 
-const titleClassName =
-  'text-lg font-normal text-gray-900 dark:text-white mb-2'
+const titleClassName = 'text-lg font-normal text-gray-900 dark:text-white mb-2'
 
-const dialogClassName =
-  'backdrop:bg-transparent bg-transparent p-0 m-auto'
+const dialogClassName = 'backdrop:bg-transparent bg-transparent p-0 m-auto'
 
 const cancelButtonClassName =
   'px-4 py-2 text-sm font-normal cursor-pointer transition rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -49,10 +47,7 @@ export const dialogDemo = (
       [Class('flex gap-3')],
       [
         button(
-          [
-            Class(triggerClassName),
-            OnClick(toDialogMessage(Ui.Dialog.Opened())),
-          ],
+          [Class(triggerClassName), OnClick(toDialogMessage(Ui.Dialog.Opened()))],
           ['Open Dialog'],
         ),
       ],
@@ -64,10 +59,7 @@ export const dialogDemo = (
         [],
         [
           h2(
-            [
-              Class(titleClassName),
-              Id(Ui.Dialog.titleId(dialogModel)),
-            ],
+            [Class(titleClassName), Id(Ui.Dialog.titleId(dialogModel))],
             ['Confirm Action'],
           ),
           p(

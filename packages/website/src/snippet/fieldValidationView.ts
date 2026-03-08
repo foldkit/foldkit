@@ -21,7 +21,4 @@ const statusIndicator = (field: StringField) =>
   )
 
 const isFormValid = (model: Model): boolean =>
-  Array.every(
-    [model.username, model.email],
-    field => field._tag === 'Valid',
-  )
+  Array.every([model.username, model.email], field => field._tag === 'Valid')

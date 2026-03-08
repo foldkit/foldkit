@@ -42,11 +42,7 @@ export const horizontalHeader: TableOfContentsEntry = {
 
 type Plan = 'Startup' | 'Business' | 'Enterprise'
 
-const plans: ReadonlyArray<Plan> = [
-  'Startup',
-  'Business',
-  'Enterprise',
-]
+const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']
 
 const planDescriptions: Record<Plan, string> = {
   Startup: '12GB / 6 CPUs — Perfect for small projects',
@@ -70,14 +66,11 @@ const horizontalGroupClassName = 'flex flex-row gap-3 w-full'
 const horizontalOptionClassName =
   'relative flex flex-1 cursor-pointer rounded-lg border border-gray-200 dark:border-gray-700 p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 data-[checked]:border-accent-600 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900'
 
-const labelClassName =
-  'text-sm font-medium text-gray-900 dark:text-white'
+const labelClassName = 'text-sm font-medium text-gray-900 dark:text-white'
 
-const descriptionClassName =
-  'text-sm text-gray-600 dark:text-gray-300'
+const descriptionClassName = 'text-sm text-gray-600 dark:text-gray-300'
 
-const priceClassName =
-  'text-sm font-semibold text-accent-600 dark:text-accent-400'
+const priceClassName = 'text-sm font-semibold text-accent-600 dark:text-accent-400'
 
 const checkIcon = svg(
   [
@@ -88,9 +81,7 @@ const checkIcon = svg(
   [
     path(
       [
-        D(
-          'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-        ),
+        D('M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z'),
         Stroke('currentColor'),
         StrokeWidth('1.5'),
         StrokeLinecap('round'),
@@ -112,8 +103,7 @@ export const verticalDemo = (
   heading('h3', verticalHeader.id, verticalHeader.text),
   Ui.RadioGroup.view<ParentMessage, Plan>({
     model: radioGroupModel,
-    toMessage: message =>
-      toMessage(GotVerticalRadioGroupDemoMessage({ message })),
+    toMessage: message => toMessage(GotVerticalRadioGroupDemoMessage({ message })),
     options: plans,
     optionToConfig: (plan, { isSelected }) => ({
       value: plan,
@@ -127,15 +117,9 @@ export const verticalDemo = (
                 div(
                   [],
                   [
-                    span(
-                      [...attributes.label, Class(labelClassName)],
-                      [plan],
-                    ),
+                    span([...attributes.label, Class(labelClassName)], [plan]),
                     p(
-                      [
-                        ...attributes.description,
-                        Class(descriptionClassName),
-                      ],
+                      [...attributes.description, Class(descriptionClassName)],
                       [planDescriptions[plan]],
                     ),
                   ],
@@ -163,8 +147,7 @@ export const horizontalDemo = (
   heading('h3', horizontalHeader.id, horizontalHeader.text),
   Ui.RadioGroup.view<ParentMessage, Plan>({
     model: radioGroupModel,
-    toMessage: message =>
-      toMessage(GotHorizontalRadioGroupDemoMessage({ message })),
+    toMessage: message => toMessage(GotHorizontalRadioGroupDemoMessage({ message })),
     options: plans,
     optionToConfig: (plan, { isSelected }) => ({
       value: plan,
@@ -178,15 +161,9 @@ export const horizontalDemo = (
                 div(
                   [],
                   [
-                    span(
-                      [...attributes.label, Class(labelClassName)],
-                      [plan],
-                    ),
+                    span([...attributes.label, Class(labelClassName)], [plan]),
                     p(
-                      [
-                        ...attributes.description,
-                        Class(descriptionClassName),
-                      ],
+                      [...attributes.description, Class(descriptionClassName)],
                       [planDescriptions[plan]],
                     ),
                   ],
@@ -194,10 +171,7 @@ export const horizontalDemo = (
                 isSelected ? checkIcon : checkPlaceholder,
               ],
             ),
-            span(
-              [Class(priceClassName + ' mt-2')],
-              [planPrices[plan]],
-            ),
+            span([Class(priceClassName + ' mt-2')], [planPrices[plan]]),
           ],
         ),
     }),

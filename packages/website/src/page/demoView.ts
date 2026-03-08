@@ -1,16 +1,7 @@
 import { Array } from 'effect'
 import { Html } from 'foldkit/html'
 
-import {
-  AriaHidden,
-  Class,
-  DataAttribute,
-  InnerHTML,
-  div,
-  keyed,
-  p,
-  span,
-} from '../html'
+import { AriaHidden, Class, DataAttribute, InnerHTML, div, keyed, p, span } from '../html'
 
 export const sectionLabel = (label: string): Html =>
   p(
@@ -48,9 +39,7 @@ export const modelStateView = (fields: ReadonlyArray<Html>): Html =>
     ],
   )
 
-export const eventLogView = (
-  messageLog: ReadonlyArray<string>,
-): Html =>
+export const eventLogView = (messageLog: ReadonlyArray<string>): Html =>
   div(
     [Class('flex-1 flex flex-col min-h-0')],
     [
@@ -64,11 +53,7 @@ export const eventLogView = (
         Array.map(messageLog, (entry, index) =>
           keyed('div')(
             `${entry}-${index}`,
-            [
-              Class(
-                'py-0.5 text-emerald-600 dark:text-emerald-400 break-all',
-              ),
-            ],
+            [Class('py-0.5 text-emerald-600 dark:text-emerald-400 break-all')],
             [span([], [entry])],
           ),
         ),
@@ -86,16 +71,9 @@ export const phaseIndicatorView = (
     [
       sectionLabel('Phase'),
       div(
+        [Class('flex items-center gap-2 text-xs font-semibold uppercase tracking-wider')],
         [
-          Class(
-            'flex items-center gap-2 text-xs font-semibold uppercase tracking-wider',
-          ),
-        ],
-        [
-          div(
-            [Class('w-2 h-2 rounded-full bg-current ' + colorClass)],
-            [],
-          ),
+          div([Class('w-2 h-2 rounded-full bg-current ' + colorClass)], []),
           span([Class(colorClass)], [label]),
           ...extraChildren,
         ],
@@ -117,18 +95,10 @@ export const codePanelView = (
       ),
       DataAttribute(dataAttributeName, phase),
     ],
-    [
-      div(
-        [Class('demo-code-scroll overflow-auto')],
-        [div([InnerHTML(html)], [])],
-      ),
-    ],
+    [div([Class('demo-code-scroll overflow-auto')], [div([InnerHTML(html)], [])])],
   )
 
-export const demoViewShell = (
-  codePanel: Html,
-  appPanel: Html,
-): Html =>
+export const demoViewShell = (codePanel: Html, appPanel: Html): Html =>
   div(
     [
       Class(

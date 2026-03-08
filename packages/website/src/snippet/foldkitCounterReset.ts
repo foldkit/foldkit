@@ -1,10 +1,4 @@
-import {
-  Duration,
-  Effect,
-  Match as M,
-  Schema as S,
-  Stream,
-} from 'effect'
+import { Duration, Effect, Match as M, Schema as S, Stream } from 'effect'
 import { Subscription } from 'foldkit'
 import { Command } from 'foldkit/command'
 import { Html, html } from 'foldkit/html'
@@ -27,11 +21,7 @@ const ClickedIncrement = m('ClickedIncrement')
 const ClickedToggleAutoCount = m('ClickedToggleAutoCount')
 const Ticked = m('Ticked')
 
-const Message = S.Union(
-  ClickedIncrement,
-  ClickedToggleAutoCount,
-  Ticked,
-)
+const Message = S.Union(ClickedIncrement, ClickedToggleAutoCount, Ticked)
 type Message = typeof Message.Type
 
 // SUBSCRIPTION
@@ -40,9 +30,7 @@ const SubscriptionDeps = S.Struct({
   tick: S.Struct({ isAutoCounting: S.Boolean }),
 })
 
-const subscriptions = Subscription.makeSubscriptions(
-  SubscriptionDeps,
-)<Model, Message>({
+const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<Model, Message>({
   tick: {
     modelToDependencies: model => ({
       isAutoCounting: model.isAutoCounting,
@@ -66,10 +54,7 @@ const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      ClickedIncrement: () => [
-        evo(model, { count: count => count + 1 }),
-        [],
-      ],
+      ClickedIncrement: () => [evo(model, { count: count => count + 1 }), []],
       ClickedToggleAutoCount: () => [
         evo(model, {
           isAutoCounting: isAutoCounting => !isAutoCounting,

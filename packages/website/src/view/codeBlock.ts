@@ -83,10 +83,7 @@ export const codeBlock = (
         ),
       ),
     ],
-    [
-      content,
-      copyButtonWithIndicator(code, ariaLabel, copiedSnippets),
-    ],
+    [content, copyButtonWithIndicator(code, ariaLabel, copiedSnippets)],
   )
 }
 
@@ -99,8 +96,5 @@ export const highlightedCodeBlock = (
 ) =>
   div(
     [Class(classNames('relative min-w-0', className))],
-    [
-      content,
-      copyButtonWithIndicator(rawCode, ariaLabel, copiedSnippets),
-    ],
+    [content, copyButtonWithIndicator(rawCode, ariaLabel, copiedSnippets)],
   )

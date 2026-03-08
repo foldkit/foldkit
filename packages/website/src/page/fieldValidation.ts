@@ -13,14 +13,10 @@ import {
 } from '../prose'
 import { apiModuleRouter } from '../route'
 import * as Snippets from '../snippet'
-import {
-  type CopiedSnippets,
-  highlightedCodeBlock,
-} from '../view/codeBlock'
+import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 import { comparisonTable } from '../view/table'
 
-const plainCode = (text: string): Html =>
-  code([Class('text-sm')], [text])
+const plainCode = (text: string): Html => code([Class('text-sm')], [text])
 
 const creatingFieldHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -107,10 +103,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       highlightedCodeBlock(
         div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.fieldValidationMakeFieldHighlighted),
-          ],
+          [Class('text-sm'), InnerHTML(Snippets.fieldValidationMakeFieldHighlighted)],
           [],
         ),
         Snippets.fieldValidationMakeFieldRaw,
@@ -143,13 +136,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' tuples. Foldkit ships built-in validators for common cases — compose them into an array for each field.',
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.fieldValidationRulesHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.fieldValidationRulesHighlighted)], []),
         Snippets.fieldValidationRulesRaw,
         'Copy validation rules example to clipboard',
         copiedSnippets,
@@ -178,13 +165,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' to set the field state.',
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.fieldValidationApplyHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.fieldValidationApplyHighlighted)], []),
         Snippets.fieldValidationApplyRaw,
         'Copy validateField example to clipboard',
         copiedSnippets,
@@ -205,13 +186,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         '.',
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.fieldValidationViewHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.fieldValidationViewHighlighted)], []),
         Snippets.fieldValidationViewRaw,
         'Copy validation view example to clipboard',
         copiedSnippets,
@@ -230,13 +205,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ', fire a command, and handle the result message.',
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.fieldValidationAsyncHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.fieldValidationAsyncHighlighted)], []),
         Snippets.fieldValidationAsyncRaw,
         'Copy async validation example to clipboard',
         copiedSnippets,
@@ -262,10 +231,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       highlightedCodeBlock(
         div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.fieldValidationCustomRuleHighlighted),
-          ],
+          [Class('text-sm'), InnerHTML(Snippets.fieldValidationCustomRuleHighlighted)],
           [],
         ),
         Snippets.fieldValidationCustomRuleRaw,
@@ -285,10 +251,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       highlightedCodeBlock(
         div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.fieldValidationCrossFieldHighlighted),
-          ],
+          [Class('text-sm'), InnerHTML(Snippets.fieldValidationCrossFieldHighlighted)],
           [],
         ),
         Snippets.fieldValidationCrossFieldRaw,
@@ -305,62 +268,30 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
 
       tableOfContentsEntryToHeader(builtInValidatorsHeader),
-      para(
-        'Foldkit ships validators for strings, numbers, and generic values.',
-      ),
+      para('Foldkit ships validators for strings, numbers, and generic values.'),
       para('String validators:'),
       comparisonTable(
         ['Validator', 'Description'],
         [
           [[plainCode('required(message?)')], ['Non-empty string']],
-          [
-            [plainCode('minLength(min, message?)')],
-            ['Minimum character count'],
-          ],
-          [
-            [plainCode('maxLength(max, message?)')],
-            ['Maximum character count'],
-          ],
-          [
-            [plainCode('pattern(regex, message?)')],
-            ['Matches a regular expression'],
-          ],
+          [[plainCode('minLength(min, message?)')], ['Minimum character count']],
+          [[plainCode('maxLength(max, message?)')], ['Maximum character count']],
+          [[plainCode('pattern(regex, message?)')], ['Matches a regular expression']],
           [[plainCode('email(message?)')], ['Valid email format']],
           [[plainCode('url(message?)')], ['Valid URL format']],
-          [
-            [plainCode('startsWith(prefix, message?)')],
-            ['Begins with a prefix'],
-          ],
-          [
-            [plainCode('endsWith(suffix, message?)')],
-            ['Ends with a suffix'],
-          ],
-          [
-            [plainCode('includes(substring, message?)')],
-            ['Contains a substring'],
-          ],
-          [
-            [plainCode('equals(expected, message?)')],
-            ['Exact string match'],
-          ],
+          [[plainCode('startsWith(prefix, message?)')], ['Begins with a prefix']],
+          [[plainCode('endsWith(suffix, message?)')], ['Ends with a suffix']],
+          [[plainCode('includes(substring, message?)')], ['Contains a substring']],
+          [[plainCode('equals(expected, message?)')], ['Exact string match']],
         ],
       ),
       para('Number validators:'),
       comparisonTable(
         ['Validator', 'Description'],
         [
-          [
-            [plainCode('min(num, message?)')],
-            ['Greater than or equal to'],
-          ],
-          [
-            [plainCode('max(num, message?)')],
-            ['Less than or equal to'],
-          ],
-          [
-            [plainCode('between(min, max, message?)')],
-            ['Within an inclusive range'],
-          ],
+          [[plainCode('min(num, message?)')], ['Greater than or equal to']],
+          [[plainCode('max(num, message?)')], ['Less than or equal to']],
+          [[plainCode('between(min, max, message?)')], ['Within an inclusive range']],
           [[plainCode('positive(message?)')], ['Greater than zero']],
           [[plainCode('nonNegative(message?)')], ['Zero or greater']],
           [[plainCode('integer(message?)')], ['Whole number']],
@@ -381,10 +312,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para(
         'See the full ',
-        link(
-          apiModuleRouter({ moduleSlug: 'field-validation' }),
-          'API reference',
-        ),
+        link(apiModuleRouter({ moduleSlug: 'field-validation' }), 'API reference'),
         ' for details on every export. For a complete working example with sync validation, async server checks, and form submission gating, see the ',
         link(Link.exampleForm, 'Form example'),
         '. For sync-only validation with OutMessage context, see the ',

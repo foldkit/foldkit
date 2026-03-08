@@ -104,8 +104,7 @@ export const comboboxDemo = (
       [
         Ui.Combobox.view({
           model: comboboxModel,
-          toMessage: message =>
-            toMessage(GotComboboxDemoMessage({ message })),
+          toMessage: message => toMessage(GotComboboxDemoMessage({ message })),
           items: filteredShapes,
           itemToConfig: (shape, context) => ({
             className: itemClassName,
@@ -113,13 +112,10 @@ export const comboboxDemo = (
               [Class('flex items-center gap-2')],
               [
                 Icon.check(
-                  classNames(
-                    'w-4 h-4 shrink-0 text-gray-900 dark:text-white',
-                    {
-                      visible: context.isSelected,
-                      invisible: !context.isSelected,
-                    },
-                  ),
+                  classNames('w-4 h-4 shrink-0 text-gray-900 dark:text-white', {
+                    visible: context.isSelected,
+                    invisible: !context.isSelected,
+                  }),
                 ),
                 span([], [shape]),
               ],
@@ -145,9 +141,7 @@ export const nullableDemo = (
   comboboxNullableModel: Ui.Combobox.Model,
   toMessage: (message: Message) => ParentMessage,
 ) => {
-  const filteredShapes = filterShapes(
-    comboboxNullableModel.inputValue,
-  )
+  const filteredShapes = filterShapes(comboboxNullableModel.inputValue)
 
   return [
     heading('h3', nullableHeader.id, nullableHeader.text),
@@ -156,8 +150,7 @@ export const nullableDemo = (
       [
         Ui.Combobox.view({
           model: comboboxNullableModel,
-          toMessage: message =>
-            toMessage(GotComboboxNullableDemoMessage({ message })),
+          toMessage: message => toMessage(GotComboboxNullableDemoMessage({ message })),
           items: filteredShapes,
           itemToConfig: (shape, context) => ({
             className: itemClassName,
@@ -165,13 +158,10 @@ export const nullableDemo = (
               [Class('flex items-center gap-2')],
               [
                 Icon.check(
-                  classNames(
-                    'w-4 h-4 shrink-0 text-gray-900 dark:text-white',
-                    {
-                      visible: context.isSelected,
-                      invisible: !context.isSelected,
-                    },
-                  ),
+                  classNames('w-4 h-4 shrink-0 text-gray-900 dark:text-white', {
+                    visible: context.isSelected,
+                    invisible: !context.isSelected,
+                  }),
                 ),
                 span([], [shape]),
               ],
@@ -197,9 +187,7 @@ export const selectOnFocusDemo = (
   comboboxSelectOnFocusModel: Ui.Combobox.Model,
   toMessage: (message: Message) => ParentMessage,
 ) => {
-  const filteredShapes = filterShapes(
-    comboboxSelectOnFocusModel.inputValue,
-  )
+  const filteredShapes = filterShapes(comboboxSelectOnFocusModel.inputValue)
 
   return [
     heading('h3', selectOnFocusHeader.id, selectOnFocusHeader.text),
@@ -214,9 +202,7 @@ export const selectOnFocusDemo = (
         Ui.Combobox.view({
           model: comboboxSelectOnFocusModel,
           toMessage: message =>
-            toMessage(
-              GotComboboxSelectOnFocusDemoMessage({ message }),
-            ),
+            toMessage(GotComboboxSelectOnFocusDemoMessage({ message })),
           items: filteredShapes,
           itemToConfig: (shape, context) => ({
             className: itemClassName,
@@ -224,13 +210,10 @@ export const selectOnFocusDemo = (
               [Class('flex items-center gap-2')],
               [
                 Icon.check(
-                  classNames(
-                    'w-4 h-4 shrink-0 text-gray-900 dark:text-white',
-                    {
-                      visible: context.isSelected,
-                      invisible: !context.isSelected,
-                    },
-                  ),
+                  classNames('w-4 h-4 shrink-0 text-gray-900 dark:text-white', {
+                    visible: context.isSelected,
+                    invisible: !context.isSelected,
+                  }),
                 ),
                 span([], [shape]),
               ],
@@ -255,8 +238,7 @@ export const selectOnFocusDemo = (
 const tagClassName =
   'inline-flex items-center gap-1 px-2 py-0.5 text-sm rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200'
 
-const emptyTagClassName =
-  'text-sm py-0.5 text-gray-400 dark:text-gray-500'
+const emptyTagClassName = 'text-sm py-0.5 text-gray-400 dark:text-gray-500'
 
 export const multiDemo = (
   comboboxMultiModel: Ui.Combobox.Multi.Model,
@@ -272,19 +254,14 @@ export const multiDemo = (
         div(
           [Class('flex flex-wrap gap-1.5 mb-2')],
           Array.match(comboboxMultiModel.selectedItems, {
-            onEmpty: () => [
-              span([Class(emptyTagClassName)], ['No selection']),
-            ],
+            onEmpty: () => [span([Class(emptyTagClassName)], ['No selection'])],
             onNonEmpty: selectedItems =>
-              selectedItems.map(item =>
-                span([Class(tagClassName)], [item]),
-              ),
+              selectedItems.map(item => span([Class(tagClassName)], [item])),
           }),
         ),
         Ui.Combobox.Multi.view({
           model: comboboxMultiModel,
-          toMessage: message =>
-            toMessage(GotComboboxMultiDemoMessage({ message })),
+          toMessage: message => toMessage(GotComboboxMultiDemoMessage({ message })),
           items: filteredShapes,
           itemToConfig: (shape, context) => ({
             className: itemClassName,
@@ -292,13 +269,10 @@ export const multiDemo = (
               [Class('flex items-center gap-2')],
               [
                 Icon.check(
-                  classNames(
-                    'w-4 h-4 shrink-0 text-gray-900 dark:text-white',
-                    {
-                      visible: context.isSelected,
-                      invisible: !context.isSelected,
-                    },
-                  ),
+                  classNames('w-4 h-4 shrink-0 text-gray-900 dark:text-white', {
+                    visible: context.isSelected,
+                    invisible: !context.isSelected,
+                  }),
                 ),
                 span([], [shape]),
               ],

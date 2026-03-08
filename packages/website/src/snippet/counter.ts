@@ -18,11 +18,7 @@ const ClickedDecrement = m('ClickedDecrement')
 const ClickedIncrement = m('ClickedIncrement')
 const ClickedReset = m('ClickedReset')
 
-const Message = S.Union(
-  ClickedDecrement,
-  ClickedIncrement,
-  ClickedReset,
-)
+const Message = S.Union(ClickedDecrement, ClickedIncrement, ClickedReset)
 type Message = typeof Message.Type
 
 // UPDATE
@@ -42,10 +38,7 @@ const update = (
 
 // INIT
 
-const init: Runtime.ElementInit<Model, Message> = () => [
-  Model({ count: 0 }),
-  [],
-]
+const init: Runtime.ElementInit<Model, Message> = () => [Model({ count: 0 }), []]
 
 // VIEW
 
@@ -53,25 +46,13 @@ const view = (model: Model): Html =>
   div(
     [Class(containerStyle)],
     [
-      div(
-        [Class('text-6xl font-bold text-gray-800')],
-        [model.count.toString()],
-      ),
+      div([Class('text-6xl font-bold text-gray-800')], [model.count.toString()]),
       div(
         [Class('flex flex-wrap justify-center gap-4')],
         [
-          button(
-            [OnClick(ClickedDecrement()), Class(buttonStyle)],
-            ['-'],
-          ),
-          button(
-            [OnClick(ClickedReset()), Class(buttonStyle)],
-            ['Reset'],
-          ),
-          button(
-            [OnClick(ClickedIncrement()), Class(buttonStyle)],
-            ['+'],
-          ),
+          button([OnClick(ClickedDecrement()), Class(buttonStyle)], ['-']),
+          button([OnClick(ClickedReset()), Class(buttonStyle)], ['Reset']),
+          button([OnClick(ClickedIncrement()), Class(buttonStyle)], ['+']),
         ],
       ),
     ],
@@ -82,8 +63,7 @@ const view = (model: Model): Html =>
 const containerStyle =
   'min-h-screen bg-cream flex flex-col items-center justify-center gap-6 p-6'
 
-const buttonStyle =
-  'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
+const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
 
 // RUN
 

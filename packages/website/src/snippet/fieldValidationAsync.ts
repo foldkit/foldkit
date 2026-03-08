@@ -39,10 +39,7 @@ const update = (model: Model, message: Message) =>
             }),
             [checkEmailAvailable(value, validationId)],
           ]),
-          M.orElse(() => [
-            evo(model, { email: () => syncResult }),
-            [],
-          ]),
+          M.orElse(() => [evo(model, { email: () => syncResult }), []]),
         )
       },
 

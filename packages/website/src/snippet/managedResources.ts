@@ -2,8 +2,7 @@ import { Effect, Option, Schema as S, pipe } from 'effect'
 import { ManagedResource, Runtime } from 'foldkit'
 
 // 1. Define a managed resource identity
-const CameraStream =
-  ManagedResource.tag<MediaStream>()('CameraStream')
+const CameraStream = ManagedResource.tag<MediaStream>()('CameraStream')
 
 // 2. Define a requirements schema — Option.some = active, Option.none = inactive
 const ManagedResourceDeps = S.Struct({
@@ -11,17 +10,17 @@ const ManagedResourceDeps = S.Struct({
 })
 
 // 3. Wire lifecycle with makeManagedResources
-const managedResources = ManagedResource.makeManagedResources(
-  ManagedResourceDeps,
-)<Model, Message>({
+const managedResources = ManagedResource.makeManagedResources(ManagedResourceDeps)<
+  Model,
+  Message
+>({
   camera: {
     resource: CameraStream,
     modelToMaybeRequirements: model =>
       pipe(
         model.callState,
         Option.liftPredicate(
-          (callState): callState is typeof InCall.Type =>
-            callState._tag === 'InCall',
+          (callState): callState is typeof InCall.Type => callState._tag === 'InCall',
         ),
         Option.map(callState => ({
           facingMode: callState.facingMode,
@@ -34,13 +33,10 @@ const managedResources = ManagedResource.makeManagedResources(
         }),
       ),
     release: stream =>
-      Effect.sync(() =>
-        stream.getTracks().forEach(track => track.stop()),
-      ),
+      Effect.sync(() => stream.getTracks().forEach(track => track.stop())),
     onAcquired: () => AcquiredCamera(),
     onReleased: () => ReleasedCamera(),
-    onAcquireError: error =>
-      FailedToAcquireCamera({ error: String(error) }),
+    onAcquireError: error => FailedToAcquireCamera({ error: String(error) }),
   },
 })
 

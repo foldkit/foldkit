@@ -3,18 +3,9 @@ import type { Html } from 'foldkit/html'
 import { Class, InnerHTML, div } from '../../html'
 import { Link } from '../../link'
 import type { TableOfContentsEntry } from '../../main'
-import {
-  callout,
-  link,
-  pageTitle,
-  para,
-  tableOfContentsEntryToHeader,
-} from '../../prose'
+import { callout, link, pageTitle, para, tableOfContentsEntryToHeader } from '../../prose'
 import * as Snippets from '../../snippet'
-import {
-  type CopiedSnippets,
-  highlightedCodeBlock,
-} from '../../view/codeBlock'
+import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -22,9 +13,7 @@ const overviewHeader: TableOfContentsEntry = {
   text: 'Overview',
 }
 
-export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
-  overviewHeader,
-]
+export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [overviewHeader]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
@@ -37,17 +26,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         link(Link.effectSchema, 'Effect Schema'),
         '. Everything your app can be at any moment lives here \u2014 not scattered across components, not split between local and global state.',
       ),
-      para(
-        'In the counter example, the Model is a Struct with a single field:',
-      ),
+      para('In the counter example, the Model is a Struct with a single field:'),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.counterModelHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.counterModelHighlighted)], []),
         Snippets.counterModelRaw,
         'Copy model example to clipboard',
         copiedSnippets,
@@ -60,13 +41,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'The counter starts with a single field, but models grow with your app. When we add auto-counting later, the Model will expand:',
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.counterModelPreviewHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.counterModelPreviewHighlighted)], []),
         Snippets.counterModelPreviewRaw,
         'Copy expanded model example to clipboard',
         copiedSnippets,

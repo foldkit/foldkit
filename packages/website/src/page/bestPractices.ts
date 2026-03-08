@@ -3,18 +3,9 @@ import { Html } from 'foldkit/html'
 import { Class, InnerHTML, div, li, ul } from '../html'
 import { Link } from '../link'
 import type { TableOfContentsEntry } from '../main'
-import {
-  inlineCode,
-  link,
-  pageTitle,
-  para,
-  tableOfContentsEntryToHeader,
-} from '../prose'
+import { inlineCode, link, pageTitle, para, tableOfContentsEntryToHeader } from '../prose'
 import * as Snippets from '../snippet'
-import {
-  type CopiedSnippets,
-  highlightedCodeBlock,
-} from '../view/codeBlock'
+import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 
 const pureFunctionsHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -118,33 +109,18 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         [
           li([], ['No hooks, no lifecycle methods']),
           li([], ['No fetching data, no timers, no subscriptions']),
-          li(
-            [],
-            ['Given the same Model, always returns the same Html'],
-          ),
+          li([], ['Given the same Model, always returns the same Html']),
         ],
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.viewPureBadHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.viewPureBadHighlighted)], []),
         Snippets.viewPureBadRaw,
         'Copy bad view example to clipboard',
         copiedSnippets,
         'mb-4',
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.viewPureGoodHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.viewPureGoodHighlighted)], []),
         Snippets.viewPureGoodRaw,
         'Copy good view example to clipboard',
         copiedSnippets,
@@ -161,35 +137,18 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
             ],
           ),
           li([], ['No mutations, no side effects']),
-          li(
-            [],
-            [
-              'Given the same Model and Message, always returns the same result',
-            ],
-          ),
+          li([], ['Given the same Model and Message, always returns the same result']),
         ],
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.updatePureBadHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.updatePureBadHighlighted)], []),
         Snippets.updatePureBadRaw,
         'Copy bad update example to clipboard',
         copiedSnippets,
         'mb-4',
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.updatePureGoodHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.updatePureGoodHighlighted)], []),
         Snippets.updatePureGoodRaw,
         'Copy good update example to clipboard',
         copiedSnippets,
@@ -217,13 +176,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' or stubbing globals:',
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.testingUpdateHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.testingUpdateHighlighted)], []),
         Snippets.testingUpdateRaw,
         'Copy testing example to clipboard',
         copiedSnippets,
@@ -242,13 +195,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(dontComputeInUpdateHeader),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.pureUpdateBadHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.pureUpdateBadHighlighted)], []),
         Snippets.pureUpdateBadRaw,
         'Copy bad example to clipboard',
         copiedSnippets,
@@ -259,13 +206,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Instead, return a Command that generates the value and sends it back as a Message:',
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.pureUpdateGoodHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.pureUpdateGoodHighlighted)], []),
         Snippets.pureUpdateGoodRaw,
         'Copy good example to clipboard',
         copiedSnippets,
@@ -294,13 +235,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         " with stricter type checking — if you remove or rename a key from your Model, you'll get type errors everywhere you try to update it.",
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.evoExampleHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.evoExampleHighlighted)], []),
         Snippets.evoExampleRaw,
         'Copy evo example to clipboard',
         copiedSnippets,

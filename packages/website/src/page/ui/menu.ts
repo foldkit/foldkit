@@ -85,9 +85,7 @@ const itemGroupKey = (item: MenuItem): string =>
     M.orElse(() => 'Actions'),
   )
 
-const groupToHeading = (
-  groupKey: string,
-): Ui.Menu.GroupHeading | undefined =>
+const groupToHeading = (groupKey: string): Ui.Menu.GroupHeading | undefined =>
   M.value(groupKey).pipe(
     M.when('Danger', () => ({
       content: span([], ['Danger Zone']),
@@ -137,8 +135,7 @@ export const basicDemo = (
     [
       Ui.Menu.view({
         model: menuModel,
-        toMessage: message =>
-          toMessage(GotMenuBasicDemoMessage({ message })),
+        toMessage: message => toMessage(GotMenuBasicDemoMessage({ message })),
         ...menuViewConfig(basicItemsClassName),
       }),
     ],
@@ -155,8 +152,7 @@ export const animatedDemo = (
     [
       Ui.Menu.view({
         model: menuModel,
-        toMessage: message =>
-          toMessage(GotMenuAnimatedDemoMessage({ message })),
+        toMessage: message => toMessage(GotMenuAnimatedDemoMessage({ message })),
         ...menuViewConfig(animatedItemsClassName),
       }),
     ],

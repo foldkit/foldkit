@@ -1,9 +1,5 @@
 import { Match as M, Schema as S } from 'effect'
-import {
-  makeField,
-  minLength,
-  required,
-} from 'foldkit/fieldValidation'
+import { makeField, minLength, required } from 'foldkit/fieldValidation'
 import { evo } from 'foldkit/struct'
 
 const StringField = makeField(S.String)
@@ -13,10 +9,7 @@ const validatePassword = StringField.validate([
   minLength(8, 'Must be at least 8 characters'),
 ])
 
-const validateConfirmPassword = (
-  password: string,
-  confirmPassword: string,
-) =>
+const validateConfirmPassword = (password: string, confirmPassword: string) =>
   M.value(validatePassword(confirmPassword)).pipe(
     M.tag('Valid', () =>
       confirmPassword === password
@@ -38,9 +31,7 @@ const update = (model: Model, message: Message) =>
           confirmPassword: confirmPassword =>
             M.value(confirmPassword).pipe(
               M.tag('NotValidated', () => confirmPassword),
-              M.orElse(() =>
-                validateConfirmPassword(value, confirmPassword.value),
-              ),
+              M.orElse(() => validateConfirmPassword(value, confirmPassword.value)),
             ),
         }),
         [],
@@ -48,8 +39,7 @@ const update = (model: Model, message: Message) =>
 
       ChangedConfirmPassword: ({ value }) => [
         evo(model, {
-          confirmPassword: () =>
-            validateConfirmPassword(model.password.value, value),
+          confirmPassword: () => validateConfirmPassword(model.password.value, value),
         }),
         [],
       ],

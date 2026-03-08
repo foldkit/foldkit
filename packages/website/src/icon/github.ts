@@ -1,23 +1,10 @@
 import { Html } from 'foldkit/html'
 
-import {
-  AriaHidden,
-  Class,
-  D,
-  Fill,
-  ViewBox,
-  path,
-  svg,
-} from '../html'
+import { AriaHidden, Class, D, Fill, ViewBox, path, svg } from '../html'
 
 export const github = (className = 'w-5 h-5'): Html =>
   svg(
-    [
-      AriaHidden(true),
-      Class(className),
-      ViewBox('0 0 16 16'),
-      Fill('currentColor'),
-    ],
+    [AriaHidden(true), Class(className), ViewBox('0 0 16 16'), Fill('currentColor')],
     [
       path(
         [

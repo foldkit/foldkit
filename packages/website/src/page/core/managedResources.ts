@@ -10,10 +10,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import * as Snippets from '../../snippet'
-import {
-  type CopiedSnippets,
-  highlightedCodeBlock,
-} from '../../view/codeBlock'
+import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -58,13 +55,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' when it should be released.',
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.managedResourcesHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.managedResourcesHighlighted)], []),
         Snippets.managedResourcesRaw,
         'Copy managed resources example to clipboard',
         copiedSnippets,
@@ -102,10 +93,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       highlightedCodeBlock(
         div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.managedResourcesCommandHighlighted),
-          ],
+          [Class('text-sm'), InnerHTML(Snippets.managedResourcesCommandHighlighted)],
           [],
         ),
         Snippets.managedResourcesCommandRaw,

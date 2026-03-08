@@ -72,17 +72,9 @@ export const comparisonTable = (
             [Class('bg-cream dark:bg-gray-900')],
             Array.map(rows, row =>
               tr(
-                [
-                  Class(
-                    'border-b border-gray-300 dark:border-gray-700 last:border-b-0',
-                  ),
-                ],
+                [Class('border-b border-gray-300 dark:border-gray-700 last:border-b-0')],
                 Array.map(row, (content, index) =>
-                  cell(
-                    content,
-                    index === 0,
-                    index === row.length - 1,
-                  ),
+                  cell(content, index === 0, index === row.length - 1),
                 ),
               ),
             ),

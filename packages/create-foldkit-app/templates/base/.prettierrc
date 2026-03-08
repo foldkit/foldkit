@@ -3,7 +3,7 @@
   "singleQuote": true,
   "arrowParens": "avoid",
   "trailingComma": "all",
-  "printWidth": 100,
+  "printWidth": 90,
 
   "importOrder": ["<THIRD_PARTY_MODULES>", "^[./]"],
   "importOrderSeparation": true,

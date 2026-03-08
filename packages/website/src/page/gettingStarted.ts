@@ -11,16 +11,11 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../prose'
-import {
-  comingFromReactRouter,
-  coreCounterExampleRouter,
-  examplesRouter,
-} from '../route'
+import { comingFromReactRouter, coreCounterExampleRouter, examplesRouter } from '../route'
 import { type CopiedSnippets, codeBlock } from '../view/codeBlock'
 import { comparisonTable } from '../view/table'
 
-const CREATE_FOLDKIT_APP_COMMAND =
-  'npx create-foldkit-app@latest --wizard'
+const CREATE_FOLDKIT_APP_COMMAND = 'npx create-foldkit-app@latest --wizard'
 const DEV_PNPM = 'pnpm dev'
 const DEV_NPM = 'npm run dev'
 const DEV_YARN = 'yarn dev'
@@ -91,28 +86,16 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ['File', 'Description'],
         [
           [[inlineCode('src/main.ts')], ['Your application code']],
-          [
-            [inlineCode('src/styles.css')],
-            ['Tailwind CSS entry point'],
-          ],
+          [[inlineCode('src/styles.css')], ['Tailwind CSS entry point']],
           [[inlineCode('index.html')], ['HTML entry point']],
           [
             [inlineCode('vite.config.ts')],
             ['Vite configuration with Foldkit HMR plugin'],
           ],
-          [
-            [inlineCode('tsconfig.json')],
-            ['TypeScript configuration'],
-          ],
-          [
-            [inlineCode('eslint.config.mjs')],
-            ['ESLint configuration'],
-          ],
+          [[inlineCode('tsconfig.json')], ['TypeScript configuration']],
+          [[inlineCode('eslint.config.mjs')], ['ESLint configuration']],
           [[inlineCode('.prettierrc')], ['Prettier configuration']],
-          [
-            [inlineCode('AGENTS.md')],
-            ['AI coding assistant conventions'],
-          ],
+          [[inlineCode('AGENTS.md')], ['AI coding assistant conventions']],
         ],
       ),
       para(

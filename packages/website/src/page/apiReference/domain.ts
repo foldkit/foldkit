@@ -1,11 +1,4 @@
-import {
-  Array,
-  Option,
-  Order,
-  Schema as S,
-  String,
-  pipe,
-} from 'effect'
+import { Array, Option, Order, Schema as S, String, pipe } from 'effect'
 
 import { typeDefFromChildren, typeToString } from './typeToString'
 import {
@@ -99,27 +92,18 @@ export const signaturesLength = (apiFunction: ApiFunction): number =>
     0,
     (total, signature) =>
       total +
-      pipe(
-        signature.typeParameters,
-        Array.join(', '),
-        String.length,
-      ) +
+      pipe(signature.typeParameters, Array.join(', '), String.length) +
       Array.reduce(
         signature.parameters,
         0,
         (innerTotal, parameter) =>
-          innerTotal +
-          String.length(parameter.name) +
-          String.length(parameter.type),
+          innerTotal + String.length(parameter.name) + String.length(parameter.type),
       ) +
       String.length(signature.returnType),
   )
 
-export const scopedId = (
-  kind: string,
-  moduleName: string,
-  name: string,
-): string => `${kind}-${moduleName}/${name}`
+export const scopedId = (kind: string, moduleName: string, name: string): string =>
+  `${kind}-${moduleName}/${name}`
 
 // PARSE
 
@@ -133,9 +117,7 @@ const partsToSummaryText = (
     Option.liftPredicate(String.isNonEmpty),
   )
 
-const itemToDescription = (
-  item: TypeDocItem,
-): Option.Option<string> =>
+const itemToDescription = (item: TypeDocItem): Option.Option<string> =>
   pipe(
     item.comment,
     Option.flatMap(comment => comment.summary),
@@ -149,9 +131,7 @@ const itemToSourceUrl = (item: TypeDocItem): Option.Option<string> =>
     Option.flatMap(({ url }) => url),
   )
 
-const signatureToDescription = (
-  item: TypeDocItem,
-): Option.Option<string> =>
+const signatureToDescription = (item: TypeDocItem): Option.Option<string> =>
   pipe(
     item.signatures,
     Option.flatMap(Array.head),
@@ -172,9 +152,7 @@ const parseParameter = (parameter: TypeDocParam): ApiParameter => ({
   ),
 })
 
-const parseSignatures = (
-  item: TypeDocItem,
-): ReadonlyArray<ApiFunctionSignature> =>
+const parseSignatures = (item: TypeDocItem): ReadonlyArray<ApiFunctionSignature> =>
   Option.match(item.signatures, {
     onNone: () => [],
     onSome: Array.map(signature => ({
@@ -236,8 +214,7 @@ const parseItemsAsModule = (
     children,
     Array.filter(
       ({ kind, type }) =>
-        kind === Kind.TypeAlias &&
-        !Option.exists(type, ({ type }) => type === 'query'),
+        kind === Kind.TypeAlias && !Option.exists(type, ({ type }) => type === 'query'),
     ),
     Array.map(parseType),
     Array.sort(byName()),
@@ -256,13 +233,8 @@ const parseItemsAsModule = (
   ),
 })
 
-const parseModule = (
-  module: TypeDocModule,
-): ReadonlyArray<ApiModule> => {
-  const namespaces = Array.filter(
-    module.children,
-    ({ kind }) => kind === Kind.Namespace,
-  )
+const parseModule = (module: TypeDocModule): ReadonlyArray<ApiModule> => {
+  const namespaces = Array.filter(module.children, ({ kind }) => kind === Kind.Namespace)
   const directChildren = Array.filter(
     module.children,
     ({ kind }) => kind !== Kind.Namespace,
@@ -272,10 +244,7 @@ const parseModule = (
     Option.match(namespace.children, {
       onNone: () => [],
       onSome: children => [
-        parseItemsAsModule(
-          `${module.name}/${namespace.name}`,
-          children,
-        ),
+        parseItemsAsModule(`${module.name}/${namespace.name}`, children),
       ],
     }),
   )
@@ -289,9 +258,7 @@ const parseModule = (
   })
 }
 
-export const parseTypedocJson = (
-  json: TypeDocJson,
-): ParsedApiReference => ({
+export const parseTypedocJson = (json: TypeDocJson): ParsedApiReference => ({
   modules: Array.flatMap(json.children, parseModule),
 })
 
@@ -301,9 +268,7 @@ export type TableOfContentsEntry = {
   readonly level: 'h2' | 'h3' | 'h4'
 }
 
-const byName = <
-  T extends { readonly name: string },
->(): Order.Order<T> =>
+const byName = <T extends { readonly name: string }>(): Order.Order<T> =>
   Order.mapInput(Order.string, ({ name }: T) => name)
 
 const sortByName = Array.sort(byName())
@@ -337,25 +302,10 @@ const sectionEntries = <T extends { readonly name: string }>(
 export const toModuleTableOfContents = (
   module: ApiModule,
 ): ReadonlyArray<TableOfContentsEntry> => [
-  ...sectionEntries(
-    module.name,
-    'Functions',
-    module.functions,
-    'function',
-  ),
+  ...sectionEntries(module.name, 'Functions', module.functions, 'function'),
   ...sectionEntries(module.name, 'Types', module.types, 'type'),
-  ...sectionEntries(
-    module.name,
-    'Interfaces',
-    module.interfaces,
-    'interface',
-  ),
-  ...sectionEntries(
-    module.name,
-    'Constants',
-    module.variables,
-    'const',
-  ),
+  ...sectionEntries(module.name, 'Interfaces', module.interfaces, 'interface'),
+  ...sectionEntries(module.name, 'Constants', module.variables, 'const'),
 ]
 
 const pascalToKebab = (text: string): string =>

@@ -5,17 +5,7 @@ import { Html, createKeyedLazy } from 'foldkit/html'
 import { Disclosure } from 'foldkit/ui'
 import highlights from 'virtual:api-highlights'
 
-import {
-  AriaLabel,
-  Class,
-  Href,
-  Id,
-  InnerHTML,
-  a,
-  div,
-  h3,
-  span,
-} from '../../html'
+import { AriaLabel, Class, Href, Id, InnerHTML, a, div, h3, span } from '../../html'
 import { Icon } from '../../icon'
 import type { Message as ParentMessage } from '../../main'
 import { heading, headingLinkButton, pageTitle } from '../../prose'
@@ -40,9 +30,7 @@ const sourceLink = (
     onSome: url => [
       a(
         [
-          Class(
-            'text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300',
-          ),
+          Class('text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'),
           AriaLabel(`View source for ${name}`),
           Href(url),
         ],
@@ -102,14 +90,9 @@ const functionView = (
   )
 }
 
-const allParameterDescriptions = (
-  apiFunction: ApiFunction,
-): ReadonlyArray<Html> =>
+const allParameterDescriptions = (apiFunction: ApiFunction): ReadonlyArray<Html> =>
   pipe(
-    Array.flatMap(
-      apiFunction.signatures,
-      signature => signature.parameters,
-    ),
+    Array.flatMap(apiFunction.signatures, signature => signature.parameters),
     Array.dedupeWith((a, b) => a.name === b.name),
     Array.filterMap(parameter =>
       Option.map(parameter.description, description =>
@@ -120,10 +103,7 @@ const allParameterDescriptions = (
               [Class('font-normal text-gray-900 dark:text-gray-200')],
               [parameter.name],
             ),
-            span(
-              [Class('text-gray-500 dark:text-gray-400')],
-              [` — ${description}`],
-            ),
+            span([Class('text-gray-500 dark:text-gray-400')], [` — ${description}`]),
           ],
         ),
       ),
@@ -132,11 +112,7 @@ const allParameterDescriptions = (
       onEmpty: () => [],
       onNonEmpty: items => [
         div(
-          [
-            Class(
-              'mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-sm',
-            ),
-          ],
+          [Class('mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-sm')],
           items,
         ),
       ],
@@ -185,13 +161,10 @@ const signaturesView = (
       ],
     }),
     onNone: () => ({
-      wrapperClass: classNames(
-        'bg-cream dark:bg-gray-800 p-4 font-mono text-sm',
-        {
-          rounded: !isInDisclosure,
-          'rounded-b-lg rounded-t-none': isInDisclosure,
-        },
-      ),
+      wrapperClass: classNames('bg-cream dark:bg-gray-800 p-4 font-mono text-sm', {
+        rounded: !isInDisclosure,
+        'rounded-b-lg rounded-t-none': isInDisclosure,
+      }),
       content: [
         ...descriptionCommentFallback(apiFunction.description),
         ...Array.flatMap(apiFunction.signatures, signature =>
@@ -204,15 +177,11 @@ const signaturesView = (
   return maybeDisclosure !== undefined
     ? Ui.Disclosure.view({
         model: maybeDisclosure,
-        toMessage: message =>
-          toMessage(GotDisclosureMessage({ id: key, message })),
+        toMessage: message => toMessage(GotDisclosureMessage({ id: key, message })),
         buttonClassName: disclosureButtonClassName,
         buttonContent: div(
           [Class('flex items-center justify-between w-full')],
-          [
-            span([], ['Show signature']),
-            chevron(maybeDisclosure.isOpen),
-          ],
+          [span([], ['Show signature']), chevron(maybeDisclosure.isOpen)],
         ),
         panelClassName: disclosurePanelClassName,
         panelContent: div([Class(wrapperClass)], content),
@@ -234,10 +203,7 @@ const parameterDescriptions = (
               [Class('font-normal text-gray-900 dark:text-gray-200')],
               [parameter.name],
             ),
-            span(
-              [Class('text-gray-500 dark:text-gray-400')],
-              [` — ${description}`],
-            ),
+            span([Class('text-gray-500 dark:text-gray-400')], [` — ${description}`]),
           ],
         ),
       ),
@@ -246,27 +212,17 @@ const parameterDescriptions = (
       onEmpty: () => [],
       onNonEmpty: items => [
         div(
-          [
-            Class(
-              'mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-sm',
-            ),
-          ],
+          [Class('mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-sm')],
           items,
         ),
       ],
     }),
   )
 
-const punctuation = (text: string): Html =>
-  span([Class('text-gray-500')], [text])
+const punctuation = (text: string): Html => span([Class('text-gray-500')], [text])
 
-const parameterView = (
-  parameter: ApiParameter,
-): ReadonlyArray<Html> => [
-  span(
-    [Class('font-normal text-gray-900 dark:text-gray-200')],
-    [parameter.name],
-  ),
+const parameterView = (parameter: ApiParameter): ReadonlyArray<Html> => [
+  span([Class('font-normal text-gray-900 dark:text-gray-200')], [parameter.name]),
   ...(parameter.isOptional ? [punctuation('?')] : []),
   punctuation(': '),
   span([Class('whitespace-pre-wrap')], [parameter.type]),
@@ -298,10 +254,7 @@ const returnTypeView = (returnType: string): Html =>
     [Class('whitespace-pre-wrap')],
     [
       punctuation('→ '),
-      span(
-        [Class('text-green-600 dark:text-green-400')],
-        [returnType],
-      ),
+      span([Class('text-green-600 dark:text-green-400')], [returnType]),
     ],
   )
 
@@ -312,11 +265,7 @@ const descriptionCommentFallback = (
     onNone: () => [],
     onSome: description => [
       div(
-        [
-          Class(
-            'text-gray-500 dark:text-gray-400 mb-3 whitespace-pre-wrap',
-          ),
-        ],
+        [Class('text-gray-500 dark:text-gray-400 mb-3 whitespace-pre-wrap')],
         [`/** ${description} */`],
       ),
     ],
@@ -330,10 +279,7 @@ const signatureChildrenFallback = (signature: {
   ...Array.match(signature.typeParameters, {
     onEmpty: () => [],
     onNonEmpty: typeParameters => [
-      div(
-        [Class('text-gray-500 mb-2')],
-        [`<${Array.join(typeParameters, ', ')}>`],
-      ),
+      div([Class('text-gray-500 mb-2')], [`<${Array.join(typeParameters, ', ')}>`]),
     ],
   }),
   ...parameterListView(signature.parameters),
@@ -399,10 +345,7 @@ const typeView = (moduleName: string, type: ApiType): Html => {
                 'block bg-gray-50 dark:bg-gray-800 rounded p-4 font-mono text-sm whitespace-pre-wrap',
               ),
             ],
-            [
-              ...descriptionCommentFallback(type.description),
-              type.typeDefinition,
-            ],
+            [...descriptionCommentFallback(type.description), type.typeDefinition],
           ),
         ],
       }),
@@ -410,10 +353,7 @@ const typeView = (moduleName: string, type: ApiType): Html => {
   )
 }
 
-const interfaceView = (
-  moduleName: string,
-  apiInterface: ApiInterface,
-): Html => {
+const interfaceView = (moduleName: string, apiInterface: ApiInterface): Html => {
   const id = scopedId('interface', moduleName, apiInterface.name)
   const maybeHighlighted = Record.get(highlights, id)
 
@@ -447,10 +387,7 @@ const interfaceView = (
                 ],
                 ['interface'],
               ),
-              ...sourceLink(
-                apiInterface.sourceUrl,
-                apiInterface.name,
-              ),
+              ...sourceLink(apiInterface.sourceUrl, apiInterface.name),
             ],
           ),
           headingLinkButton(id, apiInterface.name),
@@ -486,10 +423,7 @@ const interfaceView = (
   )
 }
 
-const variableView = (
-  moduleName: string,
-  variable: ApiVariable,
-): Html => {
+const variableView = (moduleName: string, variable: ApiVariable): Html => {
   const id = scopedId('const', moduleName, variable.name)
   const maybeHighlighted = Record.get(highlights, id)
 
@@ -548,10 +482,7 @@ const variableView = (
                 'block bg-gray-50 dark:bg-gray-800 rounded p-4 font-mono text-sm whitespace-pre-wrap',
               ),
             ],
-            [
-              ...descriptionCommentFallback(variable.description),
-              variable.type,
-            ],
+            [...descriptionCommentFallback(variable.description), variable.type],
           ),
         ],
       }),
@@ -582,11 +513,7 @@ export const view = (
     [
       pageTitle(module.name, module.name),
       ...section('Functions', module.functions, apiFunction => {
-        const key = scopedId(
-          'function',
-          module.name,
-          apiFunction.name,
-        )
+        const key = scopedId('function', module.name, apiFunction.name)
         return lazyItem(key, functionView, [
           module.name,
           apiFunction,
@@ -599,15 +526,8 @@ export const view = (
         return lazyItem(key, typeView, [module.name, type])
       }),
       ...section('Interfaces', module.interfaces, apiInterface => {
-        const key = scopedId(
-          'interface',
-          module.name,
-          apiInterface.name,
-        )
-        return lazyItem(key, interfaceView, [
-          module.name,
-          apiInterface,
-        ])
+        const key = scopedId('interface', module.name, apiInterface.name)
+        return lazyItem(key, interfaceView, [module.name, apiInterface])
       }),
       ...section('Constants', module.variables, variable => {
         const key = scopedId('const', module.name, variable.name)

@@ -57,19 +57,10 @@ const POPOVER_ANCHOR: AnchorConfig = {
 const panelContent = div(
   [],
   [
-    p(
-      [
-        Class(
-          'text-sm font-semibold text-gray-900 dark:text-white mb-2',
-        ),
-      ],
-      ['Analytics'],
-    ),
+    p([Class('text-sm font-semibold text-gray-900 dark:text-white mb-2')], ['Analytics']),
     p(
       [Class('text-sm text-gray-600 dark:text-gray-400')],
-      [
-        'Get a better understanding of where your traffic is coming from.',
-      ],
+      ['Get a better understanding of where your traffic is coming from.'],
     ),
   ],
 )
@@ -94,8 +85,7 @@ export const basicDemo = (
     [
       Ui.Popover.view({
         model: popoverModel,
-        toMessage: message =>
-          toMessage(GotPopoverBasicDemoMessage({ message })),
+        toMessage: message => toMessage(GotPopoverBasicDemoMessage({ message })),
         ...popoverViewConfig(basicPanelClassName),
       }),
     ],
@@ -112,8 +102,7 @@ export const animatedDemo = (
     [
       Ui.Popover.view({
         model: popoverModel,
-        toMessage: message =>
-          toMessage(GotPopoverAnimatedDemoMessage({ message })),
+        toMessage: message => toMessage(GotPopoverAnimatedDemoMessage({ message })),
         ...popoverViewConfig(animatedPanelClassName),
       }),
     ],

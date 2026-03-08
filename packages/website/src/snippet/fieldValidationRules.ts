@@ -11,10 +11,7 @@ const usernameValidations: ReadonlyArray<Validation<string>> = [
   required('Username is required'),
   minLength(3, 'Must be at least 3 characters'),
   maxLength(20, value => `Too long (${value.length}/20)`),
-  pattern(
-    /^[a-zA-Z0-9_]+$/,
-    'Letters, numbers, and underscores only',
-  ),
+  pattern(/^[a-zA-Z0-9_]+$/, 'Letters, numbers, and underscores only'),
 ]
 
 const emailValidations: ReadonlyArray<Validation<string>> = [

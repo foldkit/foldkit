@@ -16,10 +16,7 @@ const playNote = (
   Effect.gen(function* () {
     const audioContext = yield* AudioContextService
     const oscillator = audioContext.createOscillator()
-    oscillator.frequency.setValueAtTime(
-      frequency,
-      audioContext.currentTime,
-    )
+    oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime)
     oscillator.connect(audioContext.destination)
     oscillator.start()
     oscillator.stop(audioContext.currentTime + duration)

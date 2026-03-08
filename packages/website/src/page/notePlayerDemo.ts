@@ -146,27 +146,17 @@ export type Message = typeof Message.Type
 const noteInputValidations = [
   FieldValidation.required('Enter some notes'),
   FieldValidation.pattern(/^[A-G]+$/, 'Use notes A through G'),
-  FieldValidation.minLength(
-    MIN_NOTES,
-    `Enter at least ${MIN_NOTES} notes`,
-  ),
-  FieldValidation.maxLength(
-    MAX_NOTES,
-    `Enter at most ${MAX_NOTES} notes`,
-  ),
+  FieldValidation.minLength(MIN_NOTES, `Enter at least ${MIN_NOTES} notes`),
+  FieldValidation.maxLength(MAX_NOTES, `Enter at most ${MAX_NOTES} notes`),
 ]
 
-const validateNoteInput = NoteInputField.validate(
-  noteInputValidations,
-)
+const validateNoteInput = NoteInputField.validate(noteInputValidations)
 
 const parseNotes = (value: string) =>
   pipe(
     value,
     Array.fromIterable,
-    Array.filterMap(character =>
-      S.decodeUnknownOption(Note)(character),
-    ),
+    Array.filterMap(character => S.decodeUnknownOption(Note)(character)),
   )
 // INIT
 
@@ -189,10 +179,7 @@ export const init = (): [
 
 // UPDATE
 
-type UpdateReturn = [
-  Model,
-  ReadonlyArray<Command<Message, never, AudioContextService>>,
-]
+type UpdateReturn = [Model, ReadonlyArray<Command<Message, never, AudioContextService>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 const prependToLog =
@@ -200,12 +187,8 @@ const prependToLog =
   (messageLog: ReadonlyArray<string>): ReadonlyArray<string> =>
     Array.take([entry, ...messageLog], MAX_LOG_ENTRIES)
 
-const sleepThenAdvance = (
-  generation: number,
-): Command<typeof AdvancedNotePhase> =>
-  Task.delay(PHASE_DURATION).pipe(
-    Effect.as(AdvancedNotePhase({ generation })),
-  )
+const sleepThenAdvance = (generation: number): Command<typeof AdvancedNotePhase> =>
+  Task.delay(PHASE_DURATION).pipe(Effect.as(AdvancedNotePhase({ generation })))
 
 const enterNoteCommandPhase = (
   model: Model,
@@ -220,19 +203,10 @@ const enterNoteCommandPhase = (
       }),
     highlightPhase: () => 'NoteCommand',
   }),
-  [
-    playNote(
-      Array.unsafeGet(noteSequence, noteIndex),
-      model.noteDuration,
-      noteIndex,
-    ),
-  ],
+  [playNote(Array.unsafeGet(noteSequence, noteIndex), model.noteDuration, noteIndex)],
 ]
 
-export const update = (
-  model: Model,
-  message: Message,
-): UpdateReturn =>
+export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
@@ -255,9 +229,7 @@ export const update = (
       SelectedNoteDuration: ({ duration }) => [
         evo(model, {
           noteDuration: () => duration,
-          messageLog: prependToLog(
-            `SelectedNoteDuration(${duration})`,
-          ),
+          messageLog: prependToLog(`SelectedNoteDuration(${duration})`),
         }),
         [],
       ],
@@ -298,9 +270,7 @@ export const update = (
           }),
           M.tag('Idle', () => {
             const noteSequence =
-              model.noteInput._tag === 'Valid'
-                ? parseNotes(model.noteInput.value)
-                : []
+              model.noteInput._tag === 'Valid' ? parseNotes(model.noteInput.value) : []
 
             if (Array.isEmptyArray(noteSequence)) {
               return [model, []]
@@ -398,20 +368,12 @@ export const update = (
           ]),
           M.when('PlayModel', () => {
             if (model.playbackState._tag !== 'Playing') {
-              return [
-                evo(model, { highlightPhase: () => 'Idle' }),
-                [],
-              ]
+              return [evo(model, { highlightPhase: () => 'Idle' }), []]
             }
 
-            const { noteSequence, currentNoteIndex } =
-              model.playbackState
+            const { noteSequence, currentNoteIndex } = model.playbackState
 
-            return enterNoteCommandPhase(
-              model,
-              noteSequence,
-              currentNoteIndex,
-            )
+            return enterNoteCommandPhase(model, noteSequence, currentNoteIndex)
           }),
           M.when('NoteMessage', () => [
             evo(model, { highlightPhase: () => 'NoteUpdate' }),
@@ -423,14 +385,10 @@ export const update = (
           ]),
           M.when('NoteModel', () => {
             if (model.playbackState._tag !== 'Playing') {
-              return [
-                evo(model, { highlightPhase: () => 'Idle' }),
-                [],
-              ]
+              return [evo(model, { highlightPhase: () => 'Idle' }), []]
             }
 
-            const { noteSequence, currentNoteIndex } =
-              model.playbackState
+            const { noteSequence, currentNoteIndex } = model.playbackState
             const nextIndex = Number.increment(currentNoteIndex)
 
             if (nextIndex >= noteSequence.length) {
@@ -443,11 +401,7 @@ export const update = (
               ]
             }
 
-            return enterNoteCommandPhase(
-              model,
-              noteSequence,
-              nextIndex,
-            )
+            return enterNoteCommandPhase(model, noteSequence, nextIndex)
           }),
           M.whenOr('Idle', 'NoteCommand', () => [model, []]),
           M.exhaustive,
@@ -484,18 +438,14 @@ const playNote = (
         audioContext.currentTime,
       )
 
-      const releaseEnd =
-        audioContext.currentTime + durationSeconds - GAIN_RELEASE_TIME
+      const releaseEnd = audioContext.currentTime + durationSeconds - GAIN_RELEASE_TIME
 
       gainNode.gain.setValueAtTime(0, audioContext.currentTime)
       gainNode.gain.linearRampToValueAtTime(
         0.1,
         audioContext.currentTime + GAIN_ATTACK_TIME,
       )
-      gainNode.gain.exponentialRampToValueAtTime(
-        GAIN_NEAR_SILENT,
-        releaseEnd,
-      )
+      gainNode.gain.exponentialRampToValueAtTime(GAIN_NEAR_SILENT, releaseEnd)
 
       oscillator.connect(gainNode)
       gainNode.connect(audioContext.destination)
@@ -512,9 +462,7 @@ const playNote = (
 
 // VIEW
 
-const inputBorderClass = (
-  field: typeof NoteInputField.Union.Type,
-): string =>
+const inputBorderClass = (field: typeof NoteInputField.Union.Type): string =>
   M.value(field).pipe(
     M.tagsExhaustive({
       NotValidated: () => 'border-gray-300 dark:border-gray-600',
@@ -524,21 +472,13 @@ const inputBorderClass = (
     }),
   )
 
-const durationButtonClass = (
-  isSelected: boolean,
-  isInputLocked: boolean,
-): string =>
-  classNames(
-    'flex-1 px-3 py-1.5 text-sm font-normal transition text-center',
-    {
-      'bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900':
-        isSelected,
-      'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 cursor-pointer':
-        !isSelected && !isInputLocked,
-      'text-gray-300 dark:text-gray-600 cursor-not-allowed':
-        !isSelected && isInputLocked,
-    },
-  )
+const durationButtonClass = (isSelected: boolean, isInputLocked: boolean): string =>
+  classNames('flex-1 px-3 py-1.5 text-sm font-normal transition text-center', {
+    'bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900': isSelected,
+    'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 cursor-pointer':
+      !isSelected && !isInputLocked,
+    'text-gray-300 dark:text-gray-600 cursor-not-allowed': !isSelected && isInputLocked,
+  })
 
 export const view = (
   model: Model,
@@ -554,10 +494,7 @@ export const view = (
     appPanel(model, toMessage),
   )
 
-const appPanel = (
-  model: Model,
-  toMessage: (message: Message) => ParentMessage,
-): Html => {
+const appPanel = (model: Model, toMessage: (message: Message) => ParentMessage): Html => {
   const isPlaying = model.playbackState._tag === 'Playing'
   const isPaused = model.playbackState._tag === 'Paused'
   const isInputLocked = isPlaying || isPaused
@@ -568,11 +505,7 @@ const appPanel = (
     [Class('relative')],
     [
       div(
-        [
-          Class(
-            'lg:absolute lg:inset-0 flex flex-col gap-4 overflow-hidden',
-          ),
-        ],
+        [Class('lg:absolute lg:inset-0 flex flex-col gap-4 overflow-hidden')],
         [
           div(
             [Class('flex flex-col gap-3')],
@@ -584,18 +517,9 @@ const appPanel = (
             ],
           ),
           DemoView.modelStateView([
-            DemoView.modelStateField(
-              'playbackState',
-              playbackStateLabel(model),
-            ),
-            DemoView.modelStateField(
-              'noteDuration',
-              model.noteDuration,
-            ),
-            DemoView.modelStateField(
-              'noteInput',
-              noteInputLabel(model),
-            ),
+            DemoView.modelStateField('playbackState', playbackStateLabel(model)),
+            DemoView.modelStateField('noteDuration', model.noteDuration),
+            DemoView.modelStateField('noteInput', noteInputLabel(model)),
           ]),
           phaseIndicatorView(model),
           DemoView.eventLogView(model.messageLog),
@@ -620,10 +544,7 @@ const noteInputView = (
     ],
     [
       label(
-        [
-          For('note-input'),
-          Class('text-xs text-gray-500 dark:text-gray-400'),
-        ],
+        [For('note-input'), Class('text-xs text-gray-500 dark:text-gray-400')],
         ['Note Sequence'],
       ),
       input([
@@ -649,11 +570,7 @@ const noteInputView = (
               [Class('text-xs text-gray-400 dark:text-gray-500')],
               [`${MIN_NOTES}\u2013${MAX_NOTES} notes, A through G`],
             ),
-          Validating: () =>
-            p(
-              [Class('text-xs text-gray-400 dark:text-gray-500')],
-              [''],
-            ),
+          Validating: () => p([Class('text-xs text-gray-400 dark:text-gray-500')], ['']),
           Valid: () =>
             p(
               [Class('text-xs text-gray-500 dark:text-gray-400')],
@@ -677,15 +594,10 @@ const durationSelectorView = (
   div(
     [Class('flex flex-col gap-1.5')],
     [
-      label(
-        [Class('text-xs text-gray-500 dark:text-gray-400')],
-        ['Note Length'],
-      ),
+      label([Class('text-xs text-gray-500 dark:text-gray-400')], ['Note Length']),
       div(
         [
-          Class(
-            'flex rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden',
-          ),
+          Class('flex rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden'),
           Role('radiogroup'),
           AriaLabel('Note length'),
         ],
@@ -790,29 +702,19 @@ const noteSequenceView = (model: Model): Html => {
   const notes = parseNotes(model.noteInput.value)
 
   return div(
-    [
-      Class(
-        'flex flex-col gap-2 pb-3 border-b border-gray-300 dark:border-gray-800',
-      ),
-    ],
+    [Class('flex flex-col gap-2 pb-3 border-b border-gray-300 dark:border-gray-800')],
     [
       Array.match(notes, {
         onEmpty: () => placeholderVisualizerView,
-        onNonEmpty: validNotes =>
-          noteVisualizerView(model, validNotes),
+        onNonEmpty: validNotes => noteVisualizerView(model, validNotes),
       }),
     ],
   )
 }
 
-const noteVisualizerView = (
-  model: Model,
-  notes: ReadonlyArray<Note>,
-): Html => {
+const noteVisualizerView = (model: Model, notes: ReadonlyArray<Note>): Html => {
   const maybeCurrentIndex = M.value(model.playbackState).pipe(
-    M.tag('Playing', 'Paused', ({ currentNoteIndex }) =>
-      Option.some(currentNoteIndex),
-    ),
+    M.tag('Playing', 'Paused', ({ currentNoteIndex }) => Option.some(currentNoteIndex)),
     M.tag('Idle', () => Option.none()),
     M.exhaustive,
   )
@@ -851,8 +753,7 @@ const noteInputLabel = (model: Model): string =>
   M.value(model.noteInput).pipe(
     M.tagsExhaustive({
       Valid: ({ value }) => `Valid("${value}")`,
-      Invalid: ({ errors }) =>
-        `Invalid("${Array.headNonEmpty(errors)}")`,
+      Invalid: ({ errors }) => `Invalid("${Array.headNonEmpty(errors)}")`,
       NotValidated: ({ value }) => `NotValidated("${value}")`,
       Validating: ({ value }) => `Validating("${value}")`,
     }),
@@ -877,12 +778,7 @@ const playbackStateLabel = (model: Model): string =>
 const phaseLabel = (phase: NoteHighlightPhase): string =>
   M.value(phase).pipe(
     M.when('Idle', () => 'Idle'),
-    M.whenOr(
-      'PlayMessage',
-      'PauseMessage',
-      'NoteMessage',
-      () => 'Message',
-    ),
+    M.whenOr('PlayMessage', 'PauseMessage', 'NoteMessage', () => 'Message'),
     M.whenOr('PlayUpdate', 'NoteUpdate', () => 'Update'),
     M.whenOr('PlayModel', 'NoteModel', () => 'Model'),
     M.when('NoteCommand', () => 'Command'),
@@ -898,20 +794,9 @@ const phaseColorClass = (phase: NoteHighlightPhase): string =>
       'NoteMessage',
       () => 'text-emerald-600 dark:text-emerald-400',
     ),
-    M.whenOr(
-      'PlayUpdate',
-      'NoteUpdate',
-      () => 'text-amber-600 dark:text-amber-400',
-    ),
-    M.whenOr(
-      'PlayModel',
-      'NoteModel',
-      () => 'text-accent-600 dark:text-accent-400',
-    ),
-    M.when(
-      'NoteCommand',
-      () => 'text-violet-600 dark:text-violet-400',
-    ),
+    M.whenOr('PlayUpdate', 'NoteUpdate', () => 'text-amber-600 dark:text-amber-400'),
+    M.whenOr('PlayModel', 'NoteModel', () => 'text-accent-600 dark:text-accent-400'),
+    M.when('NoteCommand', () => 'text-violet-600 dark:text-violet-400'),
     M.exhaustive,
   )
 

@@ -113,19 +113,14 @@ const sleepThenAdvance = (
   generation: number,
   duration: Duration.DurationInput,
 ): Command<typeof AdvancedDemoPhase> =>
-  Task.delay(duration).pipe(
-    Effect.as(AdvancedDemoPhase({ generation })),
-  )
+  Task.delay(duration).pipe(Effect.as(AdvancedDemoPhase({ generation })))
 
 const prependToLog =
   (entry: string) =>
   (messageLog: ReadonlyArray<string>): ReadonlyArray<string> =>
     pipe([entry, ...messageLog], Array.take(MAX_LOG_ENTRIES))
 
-export const update = (
-  model: Model,
-  message: Message,
-): UpdateReturn =>
+export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
@@ -146,9 +141,7 @@ export const update = (
       ChangedDemoResetDuration: ({ seconds }) => [
         evo(model, {
           resetDuration: () => seconds,
-          messageLog: prependToLog(
-            `ChangedResetDuration({ seconds: ${seconds} })`,
-          ),
+          messageLog: prependToLog(`ChangedResetDuration({ seconds: ${seconds} })`),
         }),
         [],
       ],
@@ -180,10 +173,7 @@ export const update = (
               evo(model, { phase: () => 'IncrementModel' }),
               [sleepThenAdvance(generation, PHASE_DURATION)],
             ]),
-            M.when('IncrementModel', () => [
-              evo(model, { phase: () => 'Idle' }),
-              [],
-            ]),
+            M.when('IncrementModel', () => [evo(model, { phase: () => 'Idle' }), []]),
             M.when('ResetMessage', () => [
               evo(model, { phase: () => 'ResetUpdate' }),
               [sleepThenAdvance(generation, PHASE_DURATION)],
@@ -216,10 +206,7 @@ export const update = (
               }),
               [sleepThenAdvance(generation, PHASE_DURATION)],
             ]),
-            M.when('ResetModel', () => [
-              evo(model, { phase: () => 'Idle' }),
-              [],
-            ]),
+            M.when('ResetModel', () => [evo(model, { phase: () => 'Idle' }), []]),
             M.when('Idle', () => [model, []]),
             M.exhaustive,
           )
@@ -233,18 +220,8 @@ export const update = (
 const phaseLabel = (phase: AnimationPhase): string =>
   M.value(phase).pipe(
     M.when('Idle', () => 'Idle'),
-    M.whenOr(
-      'IncrementMessage',
-      'ResetMessage',
-      'ResetCommandMessage',
-      () => 'Message',
-    ),
-    M.whenOr(
-      'IncrementUpdate',
-      'ResetUpdate',
-      'ResetCommandUpdate',
-      () => 'Update',
-    ),
+    M.whenOr('IncrementMessage', 'ResetMessage', 'ResetCommandMessage', () => 'Message'),
+    M.whenOr('IncrementUpdate', 'ResetUpdate', 'ResetCommandUpdate', () => 'Update'),
     M.whenOr('IncrementModel', 'ResetModel', () => 'Model'),
     M.when('ResetCommand', () => 'Command'),
     M.exhaustive,
@@ -270,10 +247,7 @@ const phaseColorClass = (phase: AnimationPhase): string =>
       'ResetModel',
       () => 'text-accent-600 dark:text-accent-400',
     ),
-    M.when(
-      'ResetCommand',
-      () => 'text-violet-600 dark:text-violet-400',
-    ),
+    M.when('ResetCommand', () => 'text-violet-600 dark:text-violet-400'),
     M.exhaustive,
   )
 
@@ -282,40 +256,22 @@ export const view = (
   toMessage: (message: Message) => ParentMessage,
 ): Html =>
   DemoView.demoViewShell(
-    DemoView.codePanelView(
-      'demo-code-panel',
-      'demo-phase',
-      model.phase,
-      demoCodeHtml,
-    ),
+    DemoView.codePanelView('demo-code-panel', 'demo-phase', model.phase, demoCodeHtml),
     appPanel(model, toMessage),
   )
 
-const appPanel = (
-  model: Model,
-  toMessage: (message: Message) => ParentMessage,
-): Html =>
+const appPanel = (model: Model, toMessage: (message: Message) => ParentMessage): Html =>
   div(
     [Class('relative')],
     [
       div(
-        [
-          Class(
-            'lg:absolute lg:inset-0 flex flex-col gap-4 overflow-hidden',
-          ),
-        ],
+        [Class('lg:absolute lg:inset-0 flex flex-col gap-4 overflow-hidden')],
         [
           viewAndControlsView(model, toMessage),
           DemoView.modelStateView([
             DemoView.modelStateField('count', String(model.count)),
-            DemoView.modelStateField(
-              'isResetting',
-              String(model.isResetting),
-            ),
-            DemoView.modelStateField(
-              'resetDuration',
-              String(model.resetDuration),
-            ),
+            DemoView.modelStateField('isResetting', String(model.isResetting)),
+            DemoView.modelStateField('resetDuration', String(model.resetDuration)),
           ]),
           phaseIndicatorView(model),
           DemoView.eventLogView(model.messageLog),
@@ -328,15 +284,12 @@ const MIN_RESET_DURATION = 1
 const MAX_RESET_DURATION = 5
 
 const stepperButtonClass = (isDisabled: boolean): string =>
-  classNames(
-    'px-2.5 rounded-lg border text-sm font-normal transition',
-    {
-      'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-300 dark:text-gray-600 cursor-not-allowed':
-        isDisabled,
-      'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer':
-        !isDisabled,
-    },
-  )
+  classNames('px-2.5 rounded-lg border text-sm font-normal transition', {
+    'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-300 dark:text-gray-600 cursor-not-allowed':
+      isDisabled,
+    'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer':
+      !isDisabled,
+  })
 
 const parseResetDuration = (value: string): number =>
   N.clamp(Number(value), { minimum: 0, maximum: MAX_RESET_DURATION })
@@ -359,11 +312,7 @@ const viewAndControlsView = (
             ],
             [
               p(
-                [
-                  Class(
-                    'text-3xl font-bold text-gray-800 dark:text-gray-200 font-mono',
-                  ),
-                ],
+                [Class('text-3xl font-bold text-gray-800 dark:text-gray-200 font-mono')],
                 [`${model.count}`],
               ),
             ],
@@ -411,11 +360,7 @@ const viewAndControlsView = (
               ]),
               button(
                 [
-                  Class(
-                    stepperButtonClass(
-                      model.resetDuration <= MIN_RESET_DURATION,
-                    ),
-                  ),
+                  Class(stepperButtonClass(model.resetDuration <= MIN_RESET_DURATION)),
                   AriaLabel('Decrease reset delay'),
                   Disabled(model.resetDuration <= MIN_RESET_DURATION),
                   OnClick(
@@ -433,11 +378,7 @@ const viewAndControlsView = (
               ),
               button(
                 [
-                  Class(
-                    stepperButtonClass(
-                      model.resetDuration >= MAX_RESET_DURATION,
-                    ),
-                  ),
+                  Class(stepperButtonClass(model.resetDuration >= MAX_RESET_DURATION)),
                   AriaLabel('Increase reset delay'),
                   Disabled(model.resetDuration >= MAX_RESET_DURATION),
                   OnClick(
@@ -460,15 +401,12 @@ const viewAndControlsView = (
       button(
         [
           Class(
-            classNames(
-              'px-4 py-2 rounded-lg text-sm font-normal transition',
-              {
-                'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed':
-                  model.isResetting,
-                'bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 hover:bg-accent-700 dark:hover:bg-accent-600 active:bg-accent-800 dark:active:bg-accent-700 cursor-pointer':
-                  !model.isResetting,
-              },
-            ),
+            classNames('px-4 py-2 rounded-lg text-sm font-normal transition', {
+              'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed':
+                model.isResetting,
+              'bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 hover:bg-accent-700 dark:hover:bg-accent-600 active:bg-accent-800 dark:active:bg-accent-700 cursor-pointer':
+                !model.isResetting,
+            }),
           ),
           Disabled(model.isResetting),
           OnClick(toMessage(ClickedDemoReset())),

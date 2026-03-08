@@ -28,9 +28,6 @@ export const update = (
   M.value(message).pipe(
     M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
     M.tagsExhaustive({
-      ChangedTheme: ({ theme }) => [
-        evo(model, { theme: () => theme }),
-        [],
-      ],
+      ChangedTheme: ({ theme }) => [evo(model, { theme: () => theme }), []],
     }),
   )

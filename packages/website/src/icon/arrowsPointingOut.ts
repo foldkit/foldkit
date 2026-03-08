@@ -15,9 +15,7 @@ import {
   svg,
 } from '../html'
 
-export const arrowsPointingOut = (
-  className: string = 'w-5 h-5',
-): Html =>
+export const arrowsPointingOut = (className: string = 'w-5 h-5'): Html =>
   svg(
     [
       AriaHidden(true),

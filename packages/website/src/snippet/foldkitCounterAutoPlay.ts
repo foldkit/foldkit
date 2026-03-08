@@ -1,10 +1,4 @@
-import {
-  Duration,
-  Effect,
-  Match as M,
-  Schema as S,
-  Stream,
-} from 'effect'
+import { Duration, Effect, Match as M, Schema as S, Stream } from 'effect'
 import { Subscription } from 'foldkit'
 import { Command } from 'foldkit/command'
 import { Html, html } from 'foldkit/html'
@@ -29,12 +23,7 @@ const ClickedToggleAutoCount = m('ClickedToggleAutoCount')
 const ChangedStep = m('ChangedStep', { step: S.Number })
 const Ticked = m('Ticked')
 
-const Message = S.Union(
-  ClickedIncrement,
-  ClickedToggleAutoCount,
-  ChangedStep,
-  Ticked,
-)
+const Message = S.Union(ClickedIncrement, ClickedToggleAutoCount, ChangedStep, Ticked)
 type Message = typeof Message.Type
 
 // SUBSCRIPTION
@@ -43,9 +32,7 @@ const SubscriptionDeps = S.Struct({
   tick: S.Struct({ isAutoCounting: S.Boolean }),
 })
 
-const subscriptions = Subscription.makeSubscriptions(
-  SubscriptionDeps,
-)<Model, Message>({
+const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<Model, Message>({
   tick: {
     modelToDependencies: model => ({
       isAutoCounting: model.isAutoCounting,
@@ -69,31 +56,21 @@ const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      ClickedIncrement: () => [
-        evo(model, { count: count => count + model.step }),
-        [],
-      ],
+      ClickedIncrement: () => [evo(model, { count: count => count + model.step }), []],
       ClickedToggleAutoCount: () => [
         evo(model, {
           isAutoCounting: isAutoCounting => !isAutoCounting,
         }),
         [],
       ],
-      ChangedStep: ({ step }) => [
-        evo(model, { step: () => step }),
-        [],
-      ],
-      Ticked: () => [
-        evo(model, { count: count => count + model.step }),
-        [],
-      ],
+      ChangedStep: ({ step }) => [evo(model, { step: () => step }), []],
+      Ticked: () => [evo(model, { count: count => count + model.step }), []],
     }),
   )
 
 // VIEW
 
-const { div, button, p, label, input, OnClick, OnInput } =
-  html<Message>()
+const { div, button, p, label, input, OnClick, OnInput } = html<Message>()
 
 const view = (model: Model): Html =>
   div(
@@ -102,12 +79,7 @@ const view = (model: Model): Html =>
       p([], [`Count: ${model.count}`]),
       label(
         [],
-        [
-          'Step: ',
-          input([
-            OnInput(value => ChangedStep({ step: Number(value) })),
-          ]),
-        ],
+        ['Step: ', input([OnInput(value => ChangedStep({ step: Number(value) }))])],
       ),
       button([OnClick(ClickedIncrement())], ['Increment']),
       button(

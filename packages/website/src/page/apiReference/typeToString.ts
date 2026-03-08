@@ -1,10 +1,6 @@
 import { Array, Match as M, Option, pipe } from 'effect'
 
-import type {
-  TypeDocItem,
-  TypeDocSignature,
-  TypeDocType,
-} from './typedoc'
+import type { TypeDocItem, TypeDocSignature, TypeDocType } from './typedoc'
 
 const indent = (depth: number): string => '  '.repeat(depth)
 
@@ -32,10 +28,7 @@ const objectLiteralToString = (
     }),
   )
 
-const callSignatureToString = (
-  signature: TypeDocSignature,
-  depth: number,
-): string => {
+const callSignatureToString = (signature: TypeDocSignature, depth: number): string => {
   const parameters = Option.match(signature.parameters, {
     onNone: () => '',
     onSome: params =>
@@ -63,8 +56,7 @@ const reflectionToString = (
         Option.flatMap(Array.head),
         Option.match({
           onNone: () => objectLiteralToString(item.children, depth),
-          onSome: signature =>
-            callSignatureToString(signature, depth),
+          onSome: signature => callSignatureToString(signature, depth),
         }),
       ),
   })
@@ -88,25 +80,15 @@ const formatType = (type: TypeDocType, depth: number): string =>
         }),
       ),
     ),
-    whenType(
-      'array',
-      ({ elementType }) => `Array<${formatType(elementType, depth)}>`,
-    ),
+    whenType('array', ({ elementType }) => `Array<${formatType(elementType, depth)}>`),
     whenType('tuple', ({ elements }) => {
-      const formatted = Array.map(elements, element =>
-        formatType(element, depth),
-      )
-      const isMultiLine = Array.some(formatted, line =>
-        line.includes('\n'),
-      )
+      const formatted = Array.map(elements, element => formatType(element, depth))
+      const isMultiLine = Array.some(formatted, line => line.includes('\n'))
 
       return isMultiLine
         ? pipe(
             elements,
-            Array.map(
-              element =>
-                `${indent(depth + 1)}${formatType(element, depth + 1)}`,
-            ),
+            Array.map(element => `${indent(depth + 1)}${formatType(element, depth + 1)}`),
             Array.join(',\n'),
             joined => `[\n${joined}\n${indent(depth)}]`,
           )
@@ -126,57 +108,37 @@ const formatType = (type: TypeDocType, depth: number): string =>
         Array.join(' & '),
       ),
     ),
-    whenType('reflection', ({ declaration }) =>
-      reflectionToString(declaration, depth),
-    ),
+    whenType('reflection', ({ declaration }) => reflectionToString(declaration, depth)),
     whenType(
       'typeOperator',
-      ({ operator, target }) =>
-        `${operator} ${formatType(target, depth)}`,
+      ({ operator, target }) => `${operator} ${formatType(target, depth)}`,
     ),
-    whenType(
-      'query',
-      ({ queryType }) => `typeof ${formatType(queryType, depth)}`,
-    ),
+    whenType('query', ({ queryType }) => `typeof ${formatType(queryType, depth)}`),
     whenType(
       'indexedAccess',
       ({ objectType, indexType }) =>
         `${formatType(objectType, depth)}[${formatType(indexType, depth)}]`,
     ),
-    whenType(
-      'conditional',
-      ({ checkType, extendsType, trueType, falseType }) =>
-        Array.join(
-          [
-            `${formatType(checkType, depth)} extends ${formatType(extendsType, depth)}`,
-            `${indent(depth + 1)}? ${formatType(trueType, depth + 1)}`,
-            `${indent(depth + 1)}: ${formatType(falseType, depth + 1)}`,
-          ],
-          '\n',
-        ),
+    whenType('conditional', ({ checkType, extendsType, trueType, falseType }) =>
+      Array.join(
+        [
+          `${formatType(checkType, depth)} extends ${formatType(extendsType, depth)}`,
+          `${indent(depth + 1)}? ${formatType(trueType, depth + 1)}`,
+          `${indent(depth + 1)}: ${formatType(falseType, depth + 1)}`,
+        ],
+        '\n',
+      ),
     ),
-    whenType(
-      'mapped',
-      ({
-        parameter,
-        parameterType,
-        templateType,
-        readonlyModifier,
-      }) => {
-        const readonlyPrefix =
-          readonlyModifier === '+' ? 'readonly ' : ''
-        return `{\n${indent(depth + 1)}${readonlyPrefix}[${parameter} in ${formatType(parameterType, depth + 1)}]: ${formatType(templateType, depth + 1)}\n${indent(depth)}}`
-      },
-    ),
+    whenType('mapped', ({ parameter, parameterType, templateType, readonlyModifier }) => {
+      const readonlyPrefix = readonlyModifier === '+' ? 'readonly ' : ''
+      return `{\n${indent(depth + 1)}${readonlyPrefix}[${parameter} in ${formatType(parameterType, depth + 1)}]: ${formatType(templateType, depth + 1)}\n${indent(depth)}}`
+    }),
     whenType('inferred', ({ name }) => `infer ${name}`),
     whenType('predicate', 'unknown', () => 'unknown'),
     M.exhaustive,
   )
 
-export const typeToString = (
-  maybeType: Option.Option<TypeDocType>,
-  depth = 0,
-): string =>
+export const typeToString = (maybeType: Option.Option<TypeDocType>, depth = 0): string =>
   Option.match(maybeType, {
     onNone: () => 'unknown',
     onSome: type => formatType(type, depth),
@@ -193,10 +155,7 @@ export const typeDefFromChildren = (
       onSome: items =>
         pipe(
           items,
-          Array.map(
-            child =>
-              `  ${child.name}: ${typeToString(child.type, 1)}`,
-          ),
+          Array.map(child => `  ${child.name}: ${typeToString(child.type, 1)}`),
           Array.join('\n'),
           properties => `{\n${properties}\n}`,
         ),

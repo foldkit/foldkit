@@ -12,11 +12,7 @@ import {
 import { Command } from 'foldkit/command'
 import { Subscription } from 'foldkit/subscription'
 
-import {
-  ChangedActiveSection,
-  Model,
-  SubscriptionDeps,
-} from '../main'
+import { ChangedActiveSection, Model, SubscriptionDeps } from '../main'
 import * as Page from '../page'
 
 export const activeSection: Subscription<
@@ -28,30 +24,12 @@ export const activeSection: Subscription<
     const currentPageTableOfContents = M.value(model.route)
       .pipe(
         M.tag('Manifesto', () => Page.Manifesto.tableOfContents),
-        M.tag(
-          'GettingStarted',
-          () => Page.GettingStarted.tableOfContents,
-        ),
-        M.tag(
-          'ComingFromReact',
-          () => Page.ComingFromReact.tableOfContents,
-        ),
-        M.tag(
-          'RoutingAndNavigation',
-          () => Page.Routing.tableOfContents,
-        ),
-        M.tag(
-          'FieldValidation',
-          () => Page.FieldValidation.tableOfContents,
-        ),
-        M.tag(
-          'BestPractices',
-          () => Page.BestPractices.tableOfContents,
-        ),
-        M.tag(
-          'ProjectOrganization',
-          () => Page.ProjectOrganization.tableOfContents,
-        ),
+        M.tag('GettingStarted', () => Page.GettingStarted.tableOfContents),
+        M.tag('ComingFromReact', () => Page.ComingFromReact.tableOfContents),
+        M.tag('RoutingAndNavigation', () => Page.Routing.tableOfContents),
+        M.tag('FieldValidation', () => Page.FieldValidation.tableOfContents),
+        M.tag('BestPractices', () => Page.BestPractices.tableOfContents),
+        M.tag('ProjectOrganization', () => Page.ProjectOrganization.tableOfContents),
         M.tag('ApiModule', ({ moduleSlug }) =>
           pipe(
             moduleSlug,
@@ -62,94 +40,34 @@ export const activeSection: Subscription<
             }),
           ),
         ),
-        M.tag(
-          'CoreCounterExample',
-          () => Page.Core.CounterExample.tableOfContents,
-        ),
+        M.tag('CoreCounterExample', () => Page.Core.CounterExample.tableOfContents),
         M.tag('CoreModel', () => Page.Core.CoreModel.tableOfContents),
-        M.tag(
-          'CoreMessages',
-          () => Page.Core.Messages.tableOfContents,
-        ),
-        M.tag(
-          'CoreUpdate',
-          () => Page.Core.CoreUpdate.tableOfContents,
-        ),
+        M.tag('CoreMessages', () => Page.Core.Messages.tableOfContents),
+        M.tag('CoreUpdate', () => Page.Core.CoreUpdate.tableOfContents),
         M.tag('CoreView', () => Page.Core.CoreView.tableOfContents),
-        M.tag(
-          'CoreCommands',
-          () => Page.Core.Commands.tableOfContents,
-        ),
-        M.tag(
-          'CoreSubscriptions',
-          () => Page.Core.Subscriptions.tableOfContents,
-        ),
+        M.tag('CoreCommands', () => Page.Core.Commands.tableOfContents),
+        M.tag('CoreSubscriptions', () => Page.Core.Subscriptions.tableOfContents),
         M.tag('CoreInit', () => Page.Core.Init.tableOfContents),
         M.tag('CoreTask', () => Page.Core.CoreTask.tableOfContents),
-        M.tag(
-          'CoreRunningYourApp',
-          () => Page.Core.RunningYourApp.tableOfContents,
-        ),
+        M.tag('CoreRunningYourApp', () => Page.Core.RunningYourApp.tableOfContents),
       )
       .pipe(
-        M.tag(
-          'CoreResources',
-          () => Page.Core.Resources.tableOfContents,
-        ),
-        M.tag(
-          'CoreManagedResources',
-          () => Page.Core.ManagedResources.tableOfContents,
-        ),
-        M.tag(
-          'CoreErrorView',
-          () => Page.Core.ErrorView.tableOfContents,
-        ),
-        M.tag(
-          'CoreSlowViewWarning',
-          () => Page.Core.SlowViewWarning.tableOfContents,
-        ),
-        M.tag(
-          'PatternsSubmodels',
-          () => Page.Patterns.Submodels.tableOfContents,
-        ),
-        M.tag(
-          'PatternsOutMessage',
-          () => Page.Patterns.OutMessage.tableOfContents,
-        ),
-        M.tag(
-          'CoreViewMemoization',
-          () => Page.Core.ViewMemoization.tableOfContents,
-        ),
+        M.tag('CoreResources', () => Page.Core.Resources.tableOfContents),
+        M.tag('CoreManagedResources', () => Page.Core.ManagedResources.tableOfContents),
+        M.tag('CoreErrorView', () => Page.Core.ErrorView.tableOfContents),
+        M.tag('CoreSlowViewWarning', () => Page.Core.SlowViewWarning.tableOfContents),
+        M.tag('PatternsSubmodels', () => Page.Patterns.Submodels.tableOfContents),
+        M.tag('PatternsOutMessage', () => Page.Patterns.OutMessage.tableOfContents),
+        M.tag('CoreViewMemoization', () => Page.Core.ViewMemoization.tableOfContents),
         M.tag('UiTabs', () => Page.UiPages.TabsPage.tableOfContents),
-        M.tag(
-          'UiDisclosure',
-          () => Page.UiPages.DisclosurePage.tableOfContents,
-        ),
-        M.tag(
-          'UiDialog',
-          () => Page.UiPages.DialogPage.tableOfContents,
-        ),
+        M.tag('UiDisclosure', () => Page.UiPages.DisclosurePage.tableOfContents),
+        M.tag('UiDialog', () => Page.UiPages.DialogPage.tableOfContents),
         M.tag('UiMenu', () => Page.UiPages.MenuPage.tableOfContents),
-        M.tag(
-          'UiPopover',
-          () => Page.UiPages.PopoverPage.tableOfContents,
-        ),
-        M.tag(
-          'UiListbox',
-          () => Page.UiPages.ListboxPage.tableOfContents,
-        ),
-        M.tag(
-          'UiRadioGroup',
-          () => Page.UiPages.RadioGroupPage.tableOfContents,
-        ),
-        M.tag(
-          'UiSwitch',
-          () => Page.UiPages.SwitchPage.tableOfContents,
-        ),
-        M.tag(
-          'UiCombobox',
-          () => Page.UiPages.ComboboxPage.tableOfContents,
-        ),
+        M.tag('UiPopover', () => Page.UiPages.PopoverPage.tableOfContents),
+        M.tag('UiListbox', () => Page.UiPages.ListboxPage.tableOfContents),
+        M.tag('UiRadioGroup', () => Page.UiPages.RadioGroupPage.tableOfContents),
+        M.tag('UiSwitch', () => Page.UiPages.SwitchPage.tableOfContents),
+        M.tag('UiCombobox', () => Page.UiPages.ComboboxPage.tableOfContents),
         M.option,
       )
 
@@ -171,29 +89,22 @@ export const activeSection: Subscription<
 
       const observer = new IntersectionObserver(
         entries => {
-          Array.forEach(
-            entries,
-            ({ isIntersecting, target: { id } }) => {
-              if (isIntersecting) {
-                MutableRef.update(visibleSections, HashSet.add(id))
-              } else {
-                MutableRef.update(visibleSections, HashSet.remove(id))
-              }
-            },
-          )
+          Array.forEach(entries, ({ isIntersecting, target: { id } }) => {
+            if (isIntersecting) {
+              MutableRef.update(visibleSections, HashSet.add(id))
+            } else {
+              MutableRef.update(visibleSections, HashSet.remove(id))
+            }
+          })
 
-          const activeSectionId = Array.findFirst(
-            sections,
-            sectionId =>
-              HashSet.has(MutableRef.get(visibleSections), sectionId),
+          const activeSectionId = Array.findFirst(sections, sectionId =>
+            HashSet.has(MutableRef.get(visibleSections), sectionId),
           )
 
           Option.match(activeSectionId, {
             onNone: Function.constVoid,
             onSome: sectionId => {
-              emit.single(
-                Effect.succeed(ChangedActiveSection({ sectionId })),
-              )
+              emit.single(Effect.succeed(ChangedActiveSection({ sectionId })))
             },
           })
         },

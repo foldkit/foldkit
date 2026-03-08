@@ -49,10 +49,7 @@ const foldkitPanel = div(
     p(
       [Class('text-gray-700 dark:text-gray-300 mb-3')],
       [
-        span(
-          [Class('text-gray-900 dark:text-white')],
-          ['Model-View-Update'],
-        ),
+        span([Class('text-gray-900 dark:text-white')], ['Model-View-Update']),
         ' with Effect. A single immutable model holds all state, messages describe what happened, and a pure update function produces the next state. Side effects are explicit commands — never hidden in the view layer.',
       ],
     ),
@@ -71,18 +68,13 @@ const reactPanel = div(
     p(
       [Class('text-gray-700 dark:text-gray-300 mb-3')],
       [
-        span(
-          [Class('text-gray-900 dark:text-white')],
-          ['Component-based'],
-        ),
+        span([Class('text-gray-900 dark:text-white')], ['Component-based']),
         ' with hooks for state and effects. Each component manages its own local state via useState and useReducer, with useEffect for side effects. State flows down through props, and changes propagate back up through callbacks.',
       ],
     ),
     p(
       [Class('text-gray-500 dark:text-gray-400 text-sm')],
-      [
-        'JSX views, hooks-driven state, and implicit side effects via useEffect.',
-      ],
+      ['JSX views, hooks-driven state, and implicit side effects via useEffect.'],
     ),
   ],
 )
@@ -93,10 +85,7 @@ const elmPanel = div(
     p(
       [Class('text-gray-700 dark:text-gray-300 mb-3')],
       [
-        span(
-          [Class('text-gray-900 dark:text-white')],
-          ['The original Elm Architecture'],
-        ),
+        span([Class('text-gray-900 dark:text-white')], ['The original Elm Architecture']),
         '. Elm pioneered the Model-View-Update architecture with a pure functional language that compiles to JavaScript. No runtime exceptions, a strict compiler, and managed effects through Cmd and Sub. Foldkit brings these ideas to TypeScript.',
       ],
     ),
@@ -154,8 +143,7 @@ export const horizontalDemo = (
   heading('h3', horizontalHeader.id, horizontalHeader.text),
   Ui.Tabs.view({
     model: tabsModel,
-    toMessage: message =>
-      toMessage(GotHorizontalTabsDemoMessage({ message })),
+    toMessage: message => toMessage(GotHorizontalTabsDemoMessage({ message })),
     tabs: demoTabs,
     tabToConfig,
     tabListClassName: 'flex',
@@ -169,8 +157,7 @@ export const verticalDemo = (
   heading('h3', verticalHeader.id, verticalHeader.text),
   Ui.Tabs.view({
     model: tabsModel,
-    toMessage: message =>
-      toMessage(GotVerticalTabsDemoMessage({ message })),
+    toMessage: message => toMessage(GotVerticalTabsDemoMessage({ message })),
     tabs: demoTabs,
     tabToConfig: verticalTabToConfig,
     orientation: 'Vertical',

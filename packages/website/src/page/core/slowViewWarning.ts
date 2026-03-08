@@ -11,10 +11,7 @@ import {
 } from '../../prose'
 import { coreViewMemoizationRouter } from '../../route'
 import * as Snippets from '../../snippet'
-import {
-  type CopiedSnippets,
-  highlightedCodeBlock,
-} from '../../view/codeBlock'
+import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -22,9 +19,7 @@ const overviewHeader: TableOfContentsEntry = {
   text: 'Overview',
 }
 
-export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
-  overviewHeader,
-]
+export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [overviewHeader]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
@@ -47,15 +42,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' alone takes that long, you are already dropping frames before the DOM work even begins. The warning nudges you to move computation into ',
         inlineCode('update'),
         ' or memoize expensive subtrees with ',
-        link(
-          coreViewMemoizationRouter() + '#create-lazy',
-          'createLazy',
-        ),
+        link(coreViewMemoizationRouter() + '#create-lazy', 'createLazy'),
         ' and ',
-        link(
-          coreViewMemoizationRouter() + '#create-keyed-lazy',
-          'createKeyedLazy',
-        ),
+        link(coreViewMemoizationRouter() + '#create-keyed-lazy', 'createKeyedLazy'),
         '.',
       ),
       para(
@@ -73,13 +62,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' to customize it:',
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.slowViewThresholdHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.slowViewThresholdHighlighted)], []),
         Snippets.slowViewThresholdRaw,
         'Custom slow view threshold',
         copiedSnippets,

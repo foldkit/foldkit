@@ -66,8 +66,7 @@ const sectionHeadingConfig = {
       'group flex items-center gap-1 md:hover-capable:gap-0 mt-8 mb-4 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
   },
   h3: {
-    textClassName:
-      'text-lg font-normal text-gray-900 dark:text-white scroll-mt-6',
+    textClassName: 'text-lg font-normal text-gray-900 dark:text-white scroll-mt-6',
     wrapperClassName:
       'group flex items-center gap-1 md:hover-capable:gap-0 mt-6 mb-2 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
   },
@@ -79,11 +78,7 @@ const sectionHeadingConfig = {
   },
 }
 
-export const heading = (
-  level: 'h2' | 'h3' | 'h4',
-  id: string,
-  text: string,
-): Html => {
+export const heading = (level: 'h2' | 'h3' | 'h4', id: string, text: string): Html => {
   const tag = { h2, h3, h4 }
   const config = sectionHeadingConfig[level]
 
@@ -96,43 +91,26 @@ export const heading = (
   )
 }
 
-export const para = (
-  ...content: ReadonlyArray<string | Html>
-): Html => p([Class('mb-4 leading-relaxed')], content)
+export const para = (...content: ReadonlyArray<string | Html>): Html =>
+  p([Class('mb-4 leading-relaxed')], content)
 
-export const subPara = (
-  ...content: ReadonlyArray<string | Html>
-): Html =>
-  p(
-    [
-      Class(
-        'mb-4 text-sm leading-6 text-gray-800 dark:text-gray-400',
-      ),
-    ],
-    content,
-  )
+export const subPara = (...content: ReadonlyArray<string | Html>): Html =>
+  p([Class('mb-4 text-sm leading-6 text-gray-800 dark:text-gray-400')], content)
 
-export const paragraphs = (
-  ...contents: ReadonlyArray<string>
-): ReadonlyArray<Html> =>
+export const paragraphs = (...contents: ReadonlyArray<string>): ReadonlyArray<Html> =>
   Array.map(contents, text => p([Class('mb-4')], [text]))
 
-export const tableOfContentsEntryToHeader = (
-  entry: TableOfContentsEntry,
-): Html => heading(entry.level, entry.id, entry.text)
+export const tableOfContentsEntryToHeader = (entry: TableOfContentsEntry): Html =>
+  heading(entry.level, entry.id, entry.text)
 
-export const bullets = (
-  ...items: ReadonlyArray<string | Html>
-): Html =>
+export const bullets = (...items: ReadonlyArray<string | Html>): Html =>
   ul(
     [Class('list-disc mb-8 space-y-2')],
     Array.map(items, item => li([], [item])),
   )
 
-export const bulletPoint = (
-  label: string,
-  description: string,
-): Html => li([], [strong([], [`${label}:`]), ` ${description}`])
+export const bulletPoint = (label: string, description: string): Html =>
+  li([], [strong([], [`${label}:`]), ` ${description}`])
 
 const inlineCodeClassName =
   'bg-gray-200/70 dark:bg-gray-800 px-1 py-px rounded text-sm border border-gray-300/50 dark:border-gray-700/50'
@@ -140,10 +118,7 @@ const inlineCodeClassName =
 export const inlineCode = (text: string, className?: string): Html =>
   code([Class(twMerge(inlineCodeClassName, className))], [text])
 
-export const callout = (
-  label: string,
-  ...content: ReadonlyArray<string | Html>
-): Html =>
+export const callout = (label: string, ...content: ReadonlyArray<string | Html>): Html =>
   div(
     [
       Class(
@@ -151,17 +126,7 @@ export const callout = (
       ),
     ],
     [
-      p(
-        [
-          Class(
-            'font-semibold text-gray-800 dark:text-gray-200 mb-1',
-          ),
-        ],
-        [label],
-      ),
-      p(
-        [Class('text-gray-700 dark:text-gray-300 leading-7')],
-        content,
-      ),
+      p([Class('font-semibold text-gray-800 dark:text-gray-200 mb-1')], [label]),
+      p([Class('text-gray-700 dark:text-gray-300 leading-7')], content),
     ],
   )

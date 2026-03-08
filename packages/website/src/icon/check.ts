@@ -28,11 +28,7 @@ export const check = (className: string = 'w-6 h-6'): Html =>
     ],
     [
       path(
-        [
-          StrokeLinecap('round'),
-          StrokeLinejoin('round'),
-          D('M4.5 12.75l6 6 9-13.5'),
-        ],
+        [StrokeLinecap('round'), StrokeLinejoin('round'), D('M4.5 12.75l6 6 9-13.5')],
         [],
       ),
     ],

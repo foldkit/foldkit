@@ -15,9 +15,7 @@ test('ClickedFetchWeather sets loading state and returns fetch command', () => {
 
 test('fetchWeather returns SucceededWeatherFetch with data on success', async () => {
   const mockResponse = {
-    current_condition: [
-      { temp_F: '72', weatherDesc: [{ value: 'Sunny' }] },
-    ],
+    current_condition: [{ temp_F: '72', weatherDesc: [{ value: 'Sunny' }] }],
     nearest_area: [{ areaName: [{ value: 'Beverly Hills' }] }],
   }
 

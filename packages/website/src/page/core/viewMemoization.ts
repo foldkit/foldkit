@@ -14,10 +14,7 @@ import {
 } from '../../prose'
 import { bestPracticesRouter } from '../../route'
 import * as Snippets from '../../snippet'
-import {
-  type CopiedSnippets,
-  highlightedCodeBlock,
-} from '../../view/codeBlock'
+import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -79,13 +76,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' creates a single memoization slot. Call it at module level to create a cache, then use it in your view to wrap an expensive subtree:',
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.createLazyHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.createLazyHighlighted)], []),
         Snippets.createLazyRaw,
         'Copy createLazy example to clipboard',
         copiedSnippets,
@@ -113,13 +104,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         '-backed cache where each key gets its own independent memoization slot. This is designed for lists where individual items change independently:',
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.createKeyedLazyHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.createKeyedLazyHighlighted)], []),
         Snippets.createKeyedLazyRaw,
         'Copy createKeyedLazy example to clipboard',
         copiedSnippets,

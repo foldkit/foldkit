@@ -13,25 +13,17 @@ import type { Model } from './model'
 
 export type InitReturn = [Model, ReadonlyArray<Command<Message>>]
 
-export const init = (
-  modules: ReadonlyArray<ApiModule>,
-): InitReturn => {
+export const init = (modules: ReadonlyArray<ApiModule>): InitReturn => {
   const disclosures: Model = pipe(
     modules,
     Array.flatMap(module =>
       pipe(
         module.functions,
         Array.filter(
-          apiFunction =>
-            signaturesLength(apiFunction) >
-            SIGNATURE_COLLAPSE_THRESHOLD,
+          apiFunction => signaturesLength(apiFunction) > SIGNATURE_COLLAPSE_THRESHOLD,
         ),
         Array.map(apiFunction => {
-          const id = scopedId(
-            'function',
-            module.name,
-            apiFunction.name,
-          )
+          const id = scopedId('function', module.name, apiFunction.name)
           return [id, Ui.Disclosure.init({ id })] as const
         }),
       ),

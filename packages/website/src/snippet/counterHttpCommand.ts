@@ -23,18 +23,15 @@ const update = (
     }),
   )
 
-const fetchCount: Command<
-  typeof SucceededCountFetch | typeof FailedCountFetch
-> = Effect.gen(function* () {
-  const result = yield* Effect.tryPromise(() =>
-    fetch('/api/count').then(res => {
-      if (!res.ok) throw new Error('API request failed')
-      return res.json() as unknown as { count: number }
-    }),
+const fetchCount: Command<typeof SucceededCountFetch | typeof FailedCountFetch> =
+  Effect.gen(function* () {
+    const result = yield* Effect.tryPromise(() =>
+      fetch('/api/count').then(res => {
+        if (!res.ok) throw new Error('API request failed')
+        return res.json() as unknown as { count: number }
+      }),
+    )
+    return SucceededCountFetch({ count: result.count })
+  }).pipe(
+    Effect.catchAll(error => Effect.succeed(FailedCountFetch({ error: error.message }))),
   )
-  return SucceededCountFetch({ count: result.count })
-}).pipe(
-  Effect.catchAll(error =>
-    Effect.succeed(FailedCountFetch({ error: error.message })),
-  ),
-)

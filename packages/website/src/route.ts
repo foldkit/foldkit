@@ -102,40 +102,30 @@ export type HomeRoute = typeof HomeRoute.Type
 export type ManifestoRoute = typeof ManifestoRoute.Type
 export type ComingFromReactRoute = typeof ComingFromReactRoute.Type
 export type GettingStartedRoute = typeof GettingStartedRoute.Type
-export type RoutingAndNavigationRoute =
-  typeof RoutingAndNavigationRoute.Type
+export type RoutingAndNavigationRoute = typeof RoutingAndNavigationRoute.Type
 export type FieldValidationRoute = typeof FieldValidationRoute.Type
 export type ExamplesRoute = typeof ExamplesRoute.Type
 export type BestPracticesRoute = typeof BestPracticesRoute.Type
-export type ProjectOrganizationRoute =
-  typeof ProjectOrganizationRoute.Type
+export type ProjectOrganizationRoute = typeof ProjectOrganizationRoute.Type
 export type ApiModuleRoute = typeof ApiModuleRoute.Type
 export type CoreArchitectureRoute = typeof CoreArchitectureRoute.Type
-export type CoreCounterExampleRoute =
-  typeof CoreCounterExampleRoute.Type
+export type CoreCounterExampleRoute = typeof CoreCounterExampleRoute.Type
 export type CoreModelRoute = typeof CoreModelRoute.Type
 export type CoreMessagesRoute = typeof CoreMessagesRoute.Type
 export type CoreUpdateRoute = typeof CoreUpdateRoute.Type
 export type CoreViewRoute = typeof CoreViewRoute.Type
 export type CoreCommandsRoute = typeof CoreCommandsRoute.Type
-export type CoreSubscriptionsRoute =
-  typeof CoreSubscriptionsRoute.Type
+export type CoreSubscriptionsRoute = typeof CoreSubscriptionsRoute.Type
 export type CoreInitRoute = typeof CoreInitRoute.Type
 export type CoreTaskRoute = typeof CoreTaskRoute.Type
-export type CoreRunningYourAppRoute =
-  typeof CoreRunningYourAppRoute.Type
+export type CoreRunningYourAppRoute = typeof CoreRunningYourAppRoute.Type
 export type CoreResourcesRoute = typeof CoreResourcesRoute.Type
-export type CoreManagedResourcesRoute =
-  typeof CoreManagedResourcesRoute.Type
+export type CoreManagedResourcesRoute = typeof CoreManagedResourcesRoute.Type
 export type CoreErrorViewRoute = typeof CoreErrorViewRoute.Type
-export type CoreSlowViewWarningRoute =
-  typeof CoreSlowViewWarningRoute.Type
-export type PatternsSubmodelsRoute =
-  typeof PatternsSubmodelsRoute.Type
-export type PatternsOutMessageRoute =
-  typeof PatternsOutMessageRoute.Type
-export type CoreViewMemoizationRoute =
-  typeof CoreViewMemoizationRoute.Type
+export type CoreSlowViewWarningRoute = typeof CoreSlowViewWarningRoute.Type
+export type PatternsSubmodelsRoute = typeof PatternsSubmodelsRoute.Type
+export type PatternsOutMessageRoute = typeof PatternsOutMessageRoute.Type
+export type CoreViewMemoizationRoute = typeof CoreViewMemoizationRoute.Type
 export type UiTabsRoute = typeof UiTabsRoute.Type
 export type UiDisclosureRoute = typeof UiDisclosureRoute.Type
 export type UiDialogRoute = typeof UiDialogRoute.Type
@@ -151,10 +141,7 @@ export type AppRoute = typeof AppRoute.Type
 // ROUTERS
 
 export const homeRouter = pipe(root, mapTo(HomeRoute))
-export const manifestoRouter = pipe(
-  literal('manifesto'),
-  mapTo(ManifestoRoute),
-)
+export const manifestoRouter = pipe(literal('manifesto'), mapTo(ManifestoRoute))
 export const comingFromReactRouter = pipe(
   literal('coming-from-react'),
   mapTo(ComingFromReactRoute),
@@ -171,10 +158,7 @@ export const fieldValidationRouter = pipe(
   literal('field-validation'),
   mapTo(FieldValidationRoute),
 )
-export const examplesRouter = pipe(
-  literal('example-apps'),
-  mapTo(ExamplesRoute),
-)
+export const examplesRouter = pipe(literal('example-apps'), mapTo(ExamplesRoute))
 export const bestPracticesRouter = pipe(
   literal('best-practices'),
   mapTo(BestPracticesRoute),
@@ -360,10 +344,7 @@ const coreExtendedParser = oneOf(
   coreViewMemoizationRouter,
 )
 
-const patternsParser = oneOf(
-  patternsSubmodelsRouter,
-  patternsOutMessageRouter,
-)
+const patternsParser = oneOf(patternsSubmodelsRouter, patternsOutMessageRouter)
 
 const uiParser = oneOf(
   uiTabsRouter,
@@ -385,13 +366,6 @@ const docsParser = oneOf(
   uiParser,
 )
 
-export const routeParser = oneOf(
-  docsParser,
-  apiModuleRouter,
-  homeRouter,
-)
+export const routeParser = oneOf(docsParser, apiModuleRouter, homeRouter)
 
-export const urlToAppRoute = parseUrlWithFallback(
-  routeParser,
-  NotFoundRoute,
-)
+export const urlToAppRoute = parseUrlWithFallback(routeParser, NotFoundRoute)

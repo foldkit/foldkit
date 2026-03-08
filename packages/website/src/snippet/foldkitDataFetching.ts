@@ -27,11 +27,7 @@ const SucceededUserFetch = m('SucceededUserFetch', {
 })
 const FailedUserFetch = m('FailedUserFetch', { error: S.String })
 
-const Message = S.Union(
-  ClickedFetchUser,
-  SucceededUserFetch,
-  FailedUserFetch,
-)
+const Message = S.Union(ClickedFetchUser, SucceededUserFetch, FailedUserFetch)
 type Message = typeof Message.Type
 
 // COMMAND - Descriptions of side effects that resolve to Messages
@@ -48,9 +44,7 @@ const fetchUser = (
     return SucceededUserFetch({ data })
   }).pipe(
     // Every Command must return a Message — no errors bubble up
-    Effect.catchAll(error =>
-      Effect.succeed(FailedUserFetch({ error: String(error) })),
-    ),
+    Effect.catchAll(error => Effect.succeed(FailedUserFetch({ error: String(error) }))),
   )
 
 // UPDATE - How Messages change the Model

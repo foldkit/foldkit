@@ -172,71 +172,69 @@ type TypeDocTypeEncoded =
   | TypeDocPredicateType
   | TypeDocUnknownType
 
-export const TypeDocTypeSchema: S.Schema<
-  TypeDocType,
-  TypeDocTypeEncoded
-> = S.suspend(() =>
-  S.Union(
-    S.Struct({ type: S.Literal('intrinsic'), name: S.String }),
-    S.Struct({ type: S.Literal('literal'), value: S.Unknown }),
-    S.Struct({
-      type: S.Literal('reference'),
-      name: S.String,
-      package: S.optional(S.String),
-      typeArguments: S.optional(S.Array(TypeDocTypeSchema)),
-    }),
-    S.Struct({
-      type: S.Literal('array'),
-      elementType: TypeDocTypeSchema,
-    }),
-    S.Struct({
-      type: S.Literal('tuple'),
-      elements: S.Array(TypeDocTypeSchema),
-    }),
-    S.Struct({
-      type: S.Literal('union'),
-      types: S.Array(TypeDocTypeSchema),
-    }),
-    S.Struct({
-      type: S.Literal('intersection'),
-      types: S.Array(TypeDocTypeSchema),
-    }),
-    S.Struct({
-      type: S.Literal('reflection'),
-      declaration: S.OptionFromUndefinedOr(TypeDocItem),
-    }),
-    S.Struct({
-      type: S.Literal('typeOperator'),
-      operator: S.String,
-      target: TypeDocTypeSchema,
-    }),
-    S.Struct({
-      type: S.Literal('mapped'),
-      parameter: S.String,
-      parameterType: TypeDocTypeSchema,
-      templateType: TypeDocTypeSchema,
-      readonlyModifier: S.optional(S.String),
-    }),
-    S.Struct({
-      type: S.Literal('conditional'),
-      checkType: TypeDocTypeSchema,
-      extendsType: TypeDocTypeSchema,
-      trueType: TypeDocTypeSchema,
-      falseType: TypeDocTypeSchema,
-    }),
-    S.Struct({
-      type: S.Literal('indexedAccess'),
-      objectType: TypeDocTypeSchema,
-      indexType: TypeDocTypeSchema,
-    }),
-    S.Struct({
-      type: S.Literal('query'),
-      queryType: TypeDocTypeSchema,
-    }),
-    S.Struct({ type: S.Literal('inferred'), name: S.String }),
-    S.Struct({ type: S.Literal('predicate') }),
-    S.Struct({ type: S.Literal('unknown') }),
-  ),
+export const TypeDocTypeSchema: S.Schema<TypeDocType, TypeDocTypeEncoded> = S.suspend(
+  () =>
+    S.Union(
+      S.Struct({ type: S.Literal('intrinsic'), name: S.String }),
+      S.Struct({ type: S.Literal('literal'), value: S.Unknown }),
+      S.Struct({
+        type: S.Literal('reference'),
+        name: S.String,
+        package: S.optional(S.String),
+        typeArguments: S.optional(S.Array(TypeDocTypeSchema)),
+      }),
+      S.Struct({
+        type: S.Literal('array'),
+        elementType: TypeDocTypeSchema,
+      }),
+      S.Struct({
+        type: S.Literal('tuple'),
+        elements: S.Array(TypeDocTypeSchema),
+      }),
+      S.Struct({
+        type: S.Literal('union'),
+        types: S.Array(TypeDocTypeSchema),
+      }),
+      S.Struct({
+        type: S.Literal('intersection'),
+        types: S.Array(TypeDocTypeSchema),
+      }),
+      S.Struct({
+        type: S.Literal('reflection'),
+        declaration: S.OptionFromUndefinedOr(TypeDocItem),
+      }),
+      S.Struct({
+        type: S.Literal('typeOperator'),
+        operator: S.String,
+        target: TypeDocTypeSchema,
+      }),
+      S.Struct({
+        type: S.Literal('mapped'),
+        parameter: S.String,
+        parameterType: TypeDocTypeSchema,
+        templateType: TypeDocTypeSchema,
+        readonlyModifier: S.optional(S.String),
+      }),
+      S.Struct({
+        type: S.Literal('conditional'),
+        checkType: TypeDocTypeSchema,
+        extendsType: TypeDocTypeSchema,
+        trueType: TypeDocTypeSchema,
+        falseType: TypeDocTypeSchema,
+      }),
+      S.Struct({
+        type: S.Literal('indexedAccess'),
+        objectType: TypeDocTypeSchema,
+        indexType: TypeDocTypeSchema,
+      }),
+      S.Struct({
+        type: S.Literal('query'),
+        queryType: TypeDocTypeSchema,
+      }),
+      S.Struct({ type: S.Literal('inferred'), name: S.String }),
+      S.Struct({ type: S.Literal('predicate') }),
+      S.Struct({ type: S.Literal('unknown') }),
+    ),
 )
 
 export const TypeDocTypeParam = S.Struct({
@@ -292,16 +290,12 @@ const typeDocItemFields = {
   typeParameters: S.OptionFromUndefinedOr(S.Array(TypeDocTypeParam)),
 }
 
-export interface TypeDocItem extends S.Struct.Type<
-  typeof typeDocItemFields
-> {
+export interface TypeDocItem extends S.Struct.Type<typeof typeDocItemFields> {
   readonly type: Option.Option<TypeDocType>
   readonly children: Option.Option<ReadonlyArray<TypeDocItem>>
 }
 
-interface TypeDocItemEncoded extends S.Struct.Encoded<
-  typeof typeDocItemFields
-> {
+interface TypeDocItemEncoded extends S.Struct.Encoded<typeof typeDocItemFields> {
   readonly type: TypeDocTypeEncoded | undefined
   readonly children: ReadonlyArray<TypeDocItemEncoded> | undefined
 }
@@ -310,11 +304,7 @@ export const TypeDocItem = S.Struct({
   ...typeDocItemFields,
   type: S.OptionFromUndefinedOr(TypeDocTypeSchema),
   children: S.OptionFromUndefinedOr(
-    S.Array(
-      S.suspend(
-        (): S.Schema<TypeDocItem, TypeDocItemEncoded> => TypeDocItem,
-      ),
-    ),
+    S.Array(S.suspend((): S.Schema<TypeDocItem, TypeDocItemEncoded> => TypeDocItem)),
   ),
 })
 

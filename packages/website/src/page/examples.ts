@@ -19,8 +19,7 @@ type Example = {
 const examples: ReadonlyArray<Example> = [
   {
     title: 'Counter',
-    description:
-      'The classic counter example. Increment, decrement, and reset a number.',
+    description: 'The classic counter example. Increment, decrement, and reset a number.',
     href: Link.exampleCounter,
     difficulty: 'Beginner',
     tags: ['State'],
@@ -130,25 +129,19 @@ const difficultyToTag = (difficulty: Difficulty): Html => {
   const { label, colors } = Match.value(difficulty).pipe(
     Match.when('Beginner', () => ({
       label: 'Beginner',
-      colors:
-        'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400',
+      colors: 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400',
     })),
     Match.when('Intermediate', () => ({
       label: 'Intermediate',
-      colors:
-        'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400',
+      colors: 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400',
     })),
     Match.when('Advanced', () => ({
       label: 'Advanced',
-      colors:
-        'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400',
+      colors: 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400',
     })),
     Match.exhaustive,
   )
-  return div(
-    [Class(`text-xs px-2 py-0.5 rounded-full ${colors}`)],
-    [label],
-  )
+  return div([Class(`text-xs px-2 py-0.5 rounded-full ${colors}`)], [label])
 }
 
 const featureTag = (text: string): Html =>
@@ -171,23 +164,13 @@ const exampleCard = (example: Example): Html =>
     ],
     [
       h3(
-        [
-          Class(
-            'text-lg font-semibold text-gray-900 dark:text-white mb-2',
-          ),
-        ],
+        [Class('text-lg font-semibold text-gray-900 dark:text-white mb-2')],
         [example.title],
       ),
-      p(
-        [Class('text-sm text-gray-600 dark:text-gray-400 mb-3')],
-        [example.description],
-      ),
+      p([Class('text-sm text-gray-600 dark:text-gray-400 mb-3')], [example.description]),
       div(
         [Class('flex gap-2 flex-wrap')],
-        [
-          difficultyToTag(example.difficulty),
-          ...Array.map(example.tags, featureTag),
-        ],
+        [difficultyToTag(example.difficulty), ...Array.map(example.tags, featureTag)],
       ),
       ...(example.liveUrl
         ? [
@@ -234,11 +217,7 @@ export const view = (): Html =>
         ' to get up and running.',
       ),
       div(
-        [
-          Class(
-            'grid gap-4 sm:grid-cols-2 lg:grid-cols-3 items-start',
-          ),
-        ],
+        [Class('grid gap-4 sm:grid-cols-2 lg:grid-cols-3 items-start')],
         examples.map(exampleCard),
       ),
     ],

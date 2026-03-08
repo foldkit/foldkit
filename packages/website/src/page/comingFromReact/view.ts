@@ -5,10 +5,7 @@ import { Html } from 'foldkit/html'
 import { Class, InnerHTML, div, p, span } from '../../html'
 import { Icon } from '../../icon'
 import { Link } from '../../link'
-import type {
-  Message as ParentMessage,
-  TableOfContentsEntry,
-} from '../../main'
+import type { Message as ParentMessage, TableOfContentsEntry } from '../../main'
 import {
   callout,
   inlineCode,
@@ -25,10 +22,7 @@ import {
   routingAndNavigationRouter,
 } from '../../route'
 import * as Snippets from '../../snippet'
-import {
-  type CopiedSnippets,
-  highlightedCodeBlock,
-} from '../../view/codeBlock'
+import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 import { comparisonTable } from '../../view/table'
 import { FAQ_IDS } from './faq'
 import { GotFaqDisclosureMessage, type Message } from './message'
@@ -87,10 +81,7 @@ const patternMappingTable = (): Html =>
     ['React Ecosystem', 'Foldkit'],
     [
       [[inlineCode('useState')], ['Model (single state tree)']],
-      [
-        [inlineCode('useReducer')],
-        [inlineCode('update'), ' function'],
-      ],
+      [[inlineCode('useReducer')], [inlineCode('update'), ' function']],
       [
         [inlineCode('useEffect'), ' (one-off)'],
         ['Commands (returned from ', inlineCode('update'), ')'],
@@ -107,33 +98,15 @@ const patternMappingTable = (): Html =>
       [['JSX'], ['Plain functions from Model to HTML']],
       [['Component props'], ['Function parameters']],
       [['Component state'], ['Part of the single Model']],
-      [
-        ['Event handlers'],
-        ['Messages dispatched to ', inlineCode('update')],
-      ],
-      [
-        ['React Router / TanStack Router'],
-        ['Built-in typed routing'],
-      ],
+      [['Event handlers'], ['Messages dispatched to ', inlineCode('update')]],
+      [['React Router / TanStack Router'], ['Built-in typed routing']],
       [
         ['React Hook Form / Formik'],
-        [
-          'Model + Messages + ',
-          inlineCode('foldkit/fieldValidation'),
-        ],
+        ['Model + Messages + ', inlineCode('foldkit/fieldValidation')],
       ],
-      [
-        ['Event streams (useEffect / RxJS)'],
-        ['Subscriptions (automatic lifecycle)'],
-      ],
-      [
-        ['Headless UI / Radix UI'],
-        ['Foldkit UI (headless, typed components)'],
-      ],
-      [
-        ['Error boundaries'],
-        ['Typed errors in Effects + ', inlineCode('errorView')],
-      ],
+      [['Event streams (useEffect / RxJS)'], ['Subscriptions (automatic lifecycle)']],
+      [['Headless UI / Radix UI'], ['Foldkit UI (headless, typed components)']],
+      [['Error boundaries'], ['Typed errors in Effects + ', inlineCode('errorView')]],
     ],
   )
 
@@ -164,8 +137,7 @@ const faqItem = (
     onSome: disclosure =>
       Ui.Disclosure.view({
         model: disclosure,
-        toMessage: message =>
-          toMessage(GotFaqDisclosureMessage({ id, message })),
+        toMessage: message => toMessage(GotFaqDisclosureMessage({ id, message })),
         buttonClassName: faqButtonClassName,
         buttonContent: div(
           [Class('flex items-center justify-between w-full')],
@@ -175,11 +147,7 @@ const faqItem = (
         panelContent: div([], answerContent),
         className: 'mb-2',
       }),
-    onNone: () =>
-      div(
-        [],
-        [p([Class('font-bold')], [question]), ...answerContent],
-      ),
+    onNone: () => div([], [p([Class('font-bold')], [question]), ...answerContent]),
   })
 
 export const view = (
@@ -197,13 +165,7 @@ export const view = (
       tableOfContentsEntryToHeader(simpleCounterHeader),
       para('A counter in React:'),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.reactCounterHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.reactCounterHighlighted)], []),
         Snippets.reactCounterRaw,
         'Copy React counter',
         copiedSnippets,
@@ -211,13 +173,7 @@ export const view = (
       ),
       para('The same counter in Foldkit:'),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.foldkitCounterHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.foldkitCounterHighlighted)], []),
         Snippets.foldkitCounterRaw,
         'Copy Foldkit counter',
         copiedSnippets,
@@ -236,13 +192,7 @@ export const view = (
         ' to start and stop the interval:',
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.reactCounterResetHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.reactCounterResetHighlighted)], []),
         Snippets.reactCounterResetRaw,
         'Copy React counter with auto-play',
         copiedSnippets,
@@ -253,13 +203,7 @@ export const view = (
       ),
       para('Foldkit adds a Subscription and a Message:'),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.foldkitCounterResetHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.foldkitCounterResetHighlighted)], []),
         Snippets.foldkitCounterResetRaw,
         'Copy Foldkit counter with auto-play',
         copiedSnippets,
@@ -284,13 +228,7 @@ export const view = (
         ' at creation time. If you change the step while playing, the interval keeps using the old value \u2014 a stale closure. The fix: a ref and a sync effect to keep it current:',
       ),
       highlightedCodeBlock(
-        div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.reactCounterAutoPlayHighlighted),
-          ],
-          [],
-        ),
+        div([Class('text-sm'), InnerHTML(Snippets.reactCounterAutoPlayHighlighted)], []),
         Snippets.reactCounterAutoPlayRaw,
         'Copy React counter with step size',
         copiedSnippets,
@@ -302,10 +240,7 @@ export const view = (
       para('In Foldkit, there is no stale closure:'),
       highlightedCodeBlock(
         div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.foldkitCounterAutoPlayHighlighted),
-          ],
+          [Class('text-sm'), InnerHTML(Snippets.foldkitCounterAutoPlayHighlighted)],
           [],
         ),
         Snippets.foldkitCounterAutoPlayRaw,
@@ -367,13 +302,7 @@ export const view = (
             'State always lives in your Model, and views are functions from Model to Html. For multiple instances with independent state, model each one explicitly:',
           ),
           highlightedCodeBlock(
-            div(
-              [
-                Class('text-sm'),
-                InnerHTML(Snippets.multipleInstancesHighlighted),
-              ],
-              [],
-            ),
+            div([Class('text-sm'), InnerHTML(Snippets.multipleInstancesHighlighted)], []),
             Snippets.multipleInstancesRaw,
             'Copy Model example',
             copiedSnippets,
@@ -396,10 +325,7 @@ export const view = (
         [
           para(
             'Foldkit has built-in typed routing with bidirectional parsers \u2014 define routes once, use them for both URL parsing and URL building. See ',
-            link(
-              routingAndNavigationRouter(),
-              'Routing & Navigation',
-            ),
+            link(routingAndNavigationRouter(), 'Routing & Navigation'),
             '.',
           ),
         ],
@@ -448,10 +374,7 @@ export const view = (
         [
           para(
             'Your update function is pure \u2014 give it a Model and a Message, check the returned Model and Commands. No rendering, no mocking hooks, no test utilities. Commands are Effects with explicit dependencies, so you can swap in test layers without stubbing globals. See ',
-            link(
-              `${bestPracticesRouter()}#testing-update`,
-              'Best Practices',
-            ),
+            link(`${bestPracticesRouter()}#testing-update`, 'Best Practices'),
             ' for a complete testing example.',
           ),
         ],

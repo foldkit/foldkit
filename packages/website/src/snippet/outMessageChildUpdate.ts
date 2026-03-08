@@ -4,11 +4,7 @@ import { Command } from 'foldkit/command'
 export const update = (
   model: Model,
   message: Message,
-): [
-  Model,
-  ReadonlyArray<Command<Message>>,
-  Option.Option<OutMessage>,
-] =>
+): [Model, ReadonlyArray<Command<Message>>, Option.Option<OutMessage>] =>
   M.value(message).pipe(
     M.tagsExhaustive({
       SubmittedLoginForm: () => [
