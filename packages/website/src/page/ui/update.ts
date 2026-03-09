@@ -11,6 +11,7 @@ import {
   GotComboboxMultiDemoMessage,
   GotComboboxNullableDemoMessage,
   GotComboboxSelectOnFocusDemoMessage,
+  GotDialogAnimatedDemoMessage,
   GotDialogDemoMessage,
   GotDisclosureDemoMessage,
   GotFieldsetCheckboxDemoMessage,
@@ -222,6 +223,20 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           }),
           dialogCommands.map(
             Effect.map(message => GotDialogDemoMessage({ message })),
+          ),
+        ]
+      },
+
+      GotDialogAnimatedDemoMessage: ({ message }) => {
+        const [nextDialogAnimatedDemo, dialogAnimatedCommands] =
+          Ui.Dialog.update(model.dialogAnimatedDemo, message)
+
+        return [
+          evo(model, {
+            dialogAnimatedDemo: () => nextDialogAnimatedDemo,
+          }),
+          dialogAnimatedCommands.map(
+            Effect.map(message => GotDialogAnimatedDemoMessage({ message })),
           ),
         ]
       },

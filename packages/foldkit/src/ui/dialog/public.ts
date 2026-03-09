@@ -10,6 +10,8 @@ export {
   Opened,
   Closed,
   NoOp,
+  AdvancedTransitionFrame,
+  EndedTransition,
 } from './index'
 
 export type { InitConfig, ViewConfig } from './index'

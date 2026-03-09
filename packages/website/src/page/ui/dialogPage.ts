@@ -16,6 +16,8 @@ const overviewHeader: TableOfContentsEntry = {
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
+  Dialog.basicHeader,
+  Dialog.animatedHeader,
 ]
 
 export const view = (
@@ -31,5 +33,6 @@ export const view = (
         'A modal dialog backed by the native <dialog> element. Uses showModal() for focus trapping, backdrop rendering, and scroll locking — no JavaScript focus trap needed.',
       ),
       ...Dialog.dialogDemo(model.dialogDemo, toMessage),
+      ...Dialog.dialogAnimatedDemo(model.dialogAnimatedDemo, toMessage),
     ],
   )

@@ -1,19 +1,23 @@
-import { Effect, Match as M, Option, Schema as S } from 'effect'
+import { Array, Effect, Match as M, Option, Schema as S } from 'effect'
 
 import type { Command } from '../../command'
+import { OptionExt } from '../../effectExtensions'
 import { html } from '../../html'
 import type { Html } from '../../html'
 import { createLazy } from '../../html/lazy'
 import { m } from '../../message'
 import { evo } from '../../struct'
 import * as Task from '../../task'
+import { TransitionState } from '../transition'
 
 // MODEL
 
-/** Schema for the dialog component's state, tracking its unique ID and open/closed status. */
+/** Schema for the dialog component's state, tracking its unique ID, open/closed status, animation support, and transition phase. */
 export const Model = S.Struct({
   id: S.String,
   isOpen: S.Boolean,
+  isAnimated: S.Boolean,
+  transitionState: TransitionState,
 })
 
 export type Model = typeof Model.Type
@@ -26,9 +30,19 @@ export const Opened = m('Opened')
 export const Closed = m('Closed')
 /** Placeholder message used when no action is needed, such as after a showModal or closeModal command completes. */
 export const NoOp = m('NoOp')
+/** Sent internally when a double-rAF completes, advancing the transition to its animating phase. */
+export const AdvancedTransitionFrame = m('AdvancedTransitionFrame')
+/** Sent internally when all CSS transitions on the dialog panel have completed. */
+export const EndedTransition = m('EndedTransition')
 
 /** Union of all messages the dialog component can produce. */
-export const Message = S.Union(Opened, Closed, NoOp)
+export const Message = S.Union(
+  Opened,
+  Closed,
+  NoOp,
+  AdvancedTransitionFrame,
+  EndedTransition,
+)
 
 export type Opened = typeof Opened.Type
 export type Closed = typeof Closed.Type
@@ -38,29 +52,38 @@ export type Message = typeof Message.Type
 
 // INIT
 
-/** Configuration for creating a dialog model with `init`. */
+/** Configuration for creating a dialog model with `init`. `isAnimated` enables CSS transition coordination (default `false`). */
 export type InitConfig = Readonly<{
   id: string
   isOpen?: boolean
+  isAnimated?: boolean
 }>
 
-/** Creates an initial dialog model from a config. Defaults to closed. */
+/** Creates an initial dialog model from a config. Defaults to closed and non-animated. */
 export const init = (config: InitConfig): Model => ({
   id: config.id,
   isOpen: config.isOpen ?? false,
+  isAnimated: config.isAnimated ?? false,
+  transitionState: 'Idle',
 })
 
 // UPDATE
 
 const dialogSelector = (id: string): string => `#${id}`
+const panelSelector = (id: string): string => `#${id}-panel`
+
+type UpdateReturn = [Model, ReadonlyArray<Command<Message>>]
+const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 /** Processes a dialog message and returns the next model and commands. */
-export const update = (
-  model: Model,
-  message: Message,
-): [Model, ReadonlyArray<Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
+export const update = (model: Model, message: Message): UpdateReturn => {
+  const maybeNextFrame = OptionExt.when(
+    model.isAnimated,
+    Task.nextFrame.pipe(Effect.as(AdvancedTransitionFrame())),
+  )
+
+  return M.value(message).pipe(
+    withUpdateReturn,
     M.tagsExhaustive({
       Opened: () => {
         const maybeShow = Option.liftPredicate(
@@ -71,9 +94,34 @@ export const update = (
           () => !model.isOpen,
         )
 
-        return [evo(model, { isOpen: () => true }), Option.toArray(maybeShow)]
+        return [
+          evo(model, {
+            isOpen: () => true,
+            transitionState: () => (model.isAnimated ? 'EnterStart' : 'Idle'),
+          }),
+          Array.getSomes([maybeShow, maybeNextFrame]),
+        ]
       },
+
       Closed: () => {
+        const isLeaving =
+          model.transitionState === 'LeaveStart' ||
+          model.transitionState === 'LeaveAnimating'
+
+        if (isLeaving) {
+          return [model, []]
+        }
+
+        if (model.isAnimated) {
+          return [
+            evo(model, {
+              isOpen: () => false,
+              transitionState: () => 'LeaveStart',
+            }),
+            Option.toArray(maybeNextFrame),
+          ]
+        }
+
         const maybeClose = Option.liftPredicate(
           Task.closeModal(dialogSelector(model.id)).pipe(
             Effect.ignore,
@@ -84,9 +132,52 @@ export const update = (
 
         return [evo(model, { isOpen: () => false }), Option.toArray(maybeClose)]
       },
+
+      AdvancedTransitionFrame: () =>
+        M.value(model.transitionState).pipe(
+          withUpdateReturn,
+          M.when('EnterStart', () => [
+            evo(model, { transitionState: () => 'EnterAnimating' }),
+            [
+              Task.waitForTransitions(panelSelector(model.id)).pipe(
+                Effect.as(EndedTransition()),
+              ),
+            ],
+          ]),
+          M.when('LeaveStart', () => [
+            evo(model, { transitionState: () => 'LeaveAnimating' }),
+            [
+              Task.waitForTransitions(panelSelector(model.id)).pipe(
+                Effect.as(EndedTransition()),
+              ),
+            ],
+          ]),
+          M.orElse(() => [model, []]),
+        ),
+
+      EndedTransition: () =>
+        M.value(model.transitionState).pipe(
+          withUpdateReturn,
+          M.when('EnterAnimating', () => [
+            evo(model, { transitionState: () => 'Idle' }),
+            [],
+          ]),
+          M.when('LeaveAnimating', () => [
+            evo(model, { transitionState: () => 'Idle' }),
+            [
+              Task.closeModal(dialogSelector(model.id)).pipe(
+                Effect.ignore,
+                Effect.as(NoOp()),
+              ),
+            ],
+          ]),
+          M.orElse(() => [model, []]),
+        ),
+
       NoOp: () => [model, []],
     }),
   )
+}
 
 // VIEW
 
@@ -120,7 +211,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
   } = html<Message>()
 
   const {
-    model: { id, isOpen },
+    model: { id, isOpen, transitionState },
     toMessage,
     panelContent,
     panelClassName,
@@ -128,28 +219,59 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     className,
   } = config
 
+  const isLeaving =
+    transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
+  const isVisible = isOpen || isLeaving
+
+  const transitionAttributes: ReadonlyArray<ReturnType<typeof DataAttribute>> =
+    M.value(transitionState).pipe(
+      M.when('EnterStart', () => [
+        DataAttribute('closed', ''),
+        DataAttribute('enter', ''),
+        DataAttribute('transition', ''),
+      ]),
+      M.when('EnterAnimating', () => [
+        DataAttribute('enter', ''),
+        DataAttribute('transition', ''),
+      ]),
+      M.when('LeaveStart', () => [
+        DataAttribute('leave', ''),
+        DataAttribute('transition', ''),
+      ]),
+      M.when('LeaveAnimating', () => [
+        DataAttribute('closed', ''),
+        DataAttribute('leave', ''),
+        DataAttribute('transition', ''),
+      ]),
+      M.orElse(() => []),
+    )
+
   const dialogAttributes = [
     Id(id),
     AriaLabelledBy(`${id}-title`),
     AriaDescribedBy(`${id}-description`),
     OnCancel(toMessage(Closed())),
-    ...(isOpen ? [DataAttribute('open', '')] : []),
+    ...(isVisible ? [DataAttribute('open', '')] : []),
     ...(className ? [Class(className)] : []),
   ]
 
   const backdrop = keyed('div')(
     `${id}-backdrop`,
-    [Class(backdropClassName), OnClick(toMessage(Closed()))],
+    [
+      Class(backdropClassName),
+      ...transitionAttributes,
+      ...(isLeaving ? [] : [OnClick(toMessage(Closed()))]),
+    ],
     [],
   )
 
   const panel = keyed('div')(
     `${id}-panel`,
-    [Class(panelClassName)],
+    [Id(`${id}-panel`), Class(panelClassName), ...transitionAttributes],
     [panelContent],
   )
 
-  const content = isOpen ? [backdrop, panel] : []
+  const content = isVisible ? [backdrop, panel] : []
 
   return keyed('dialog')(id, dialogAttributes, content)
 }

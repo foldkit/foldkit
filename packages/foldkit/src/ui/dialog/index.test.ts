@@ -17,6 +17,8 @@ describe('Dialog', () => {
       expect(init({ id: 'test' })).toStrictEqual({
         id: 'test',
         isOpen: false,
+        isAnimated: false,
+        transitionState: 'Idle',
       })
     })
 
@@ -24,6 +26,8 @@ describe('Dialog', () => {
       expect(init({ id: 'test', isOpen: true })).toStrictEqual({
         id: 'test',
         isOpen: true,
+        isAnimated: false,
+        transitionState: 'Idle',
       })
     })
   })

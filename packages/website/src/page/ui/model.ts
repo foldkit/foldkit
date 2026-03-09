@@ -27,6 +27,7 @@ export const Model = S.Struct({
   comboboxMultiDemo: Combobox.Multi.Model,
   comboboxSelectOnFocusDemo: Combobox.Model,
   dialogDemo: Dialog.Model,
+  dialogAnimatedDemo: Dialog.Model,
   disclosureDemo: Disclosure.Model,
   listboxDemo: Listbox.Model,
   listboxMultiDemo: Listbox.Multi.Model,

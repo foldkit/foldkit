@@ -34,6 +34,10 @@ export const uiInit = (): [UiModel, ReadonlyArray<Command<UiMessage>>] => [
       selectInputOnFocus: true,
     }),
     dialogDemo: Ui.Dialog.init({ id: 'dialog-demo' }),
+    dialogAnimatedDemo: Ui.Dialog.init({
+      id: 'dialog-animated-demo',
+      isAnimated: true,
+    }),
     disclosureDemo: Ui.Disclosure.init({ id: 'disclosure-demo' }),
     listboxDemo: Ui.Listbox.init({ id: 'listbox-demo' }),
     listboxMultiDemo: Ui.Listbox.Multi.init({

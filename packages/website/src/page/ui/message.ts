@@ -60,6 +60,9 @@ export const GotComboboxSelectOnFocusDemoMessage = m(
 export const GotDialogDemoMessage = m('GotDialogDemoMessage', {
   message: Ui.Dialog.Message,
 })
+export const GotDialogAnimatedDemoMessage = m('GotDialogAnimatedDemoMessage', {
+  message: Ui.Dialog.Message,
+})
 export const GotDisclosureDemoMessage = m('GotDisclosureDemoMessage', {
   message: Ui.Disclosure.Message,
 })
@@ -128,6 +131,7 @@ export const Message = S.Union(
   GotComboboxMultiDemoMessage,
   GotComboboxSelectOnFocusDemoMessage,
   GotDialogDemoMessage,
+  GotDialogAnimatedDemoMessage,
   GotDisclosureDemoMessage,
   GotListboxDemoMessage,
   GotListboxMultiDemoMessage,
