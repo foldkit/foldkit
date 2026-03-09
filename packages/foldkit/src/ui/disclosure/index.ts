@@ -126,7 +126,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     Hidden,
     Id,
     OnClick,
-    OnKeyDown,
+    OnKeyDownPreventDefault,
     Tabindex,
     Type,
     keyed,
@@ -148,12 +148,11 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
 
   const isNativeButton = buttonElement === 'button'
 
-  const handleKeyDown = (key: string): Message =>
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const handleKeyDown = (key: string): Option.Option<Message> =>
     M.value(key).pipe(
-      M.whenOr('Enter', ' ', () => toMessage(Toggled())),
-      M.orElse(() => toMessage(NoOp())),
-    ) as Message
+      M.whenOr('Enter', ' ', () => Option.some(toMessage(Toggled()))),
+      M.orElse(() => Option.none()),
+    )
 
   const disabledAttributes = [
     Disabled(true),
@@ -165,7 +164,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     ? disabledAttributes
     : [
         OnClick(toMessage(Toggled())),
-        ...(!isNativeButton ? [OnKeyDown(handleKeyDown)] : []),
+        ...(!isNativeButton ? [OnKeyDownPreventDefault(handleKeyDown)] : []),
       ]
 
   const buttonAttributes = [
