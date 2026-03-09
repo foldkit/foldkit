@@ -108,6 +108,7 @@ import {
   uiTabsRouter,
   uiTextareaRouter,
 } from '../src/route'
+import { generateOgImages, injectMetaTags } from './og-image'
 
 // ROUTES
 
@@ -326,7 +327,8 @@ const prerenderRoute =
       const outputFilePath = resolve(DIST_DIR, outputPath)
 
       const renderedHtml = yield* captureRouteHtml(browser, url)
-      const outputHtml = injectHtml(baseHtml, renderedHtml)
+      const injectedHtml = injectHtml(baseHtml, renderedHtml)
+      const outputHtml = injectMetaTags(injectedHtml, route, urlPath)
 
       const fs = yield* FileSystem.FileSystem
       yield* fs.makeDirectory(dirname(outputFilePath), {
@@ -388,6 +390,8 @@ const program = Effect.scoped(
 
     const apiModuleNames = yield* readApiModuleNames
     const routes = enumerateRoutes(apiModuleNames)
+
+    yield* generateOgImages(routes, routeToUrlPath, DIST_DIR)
 
     const fs = yield* FileSystem.FileSystem
     const baseHtml = yield* fs.readFileString(resolve(DIST_DIR, 'index.html'))
