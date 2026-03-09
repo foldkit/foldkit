@@ -23,6 +23,7 @@
     "websocket-chat-example",
     "snake-example",
     "error-view-example",
-    "query-sync-example"
+    "query-sync-example",
+    "ui-showcase"
   ]
 }
