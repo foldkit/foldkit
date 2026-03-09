@@ -36,6 +36,7 @@ import {
   uiInputRouter,
   uiListboxRouter,
   uiMenuRouter,
+  uiOverviewRouter,
   uiPopoverRouter,
   uiRadioGroupRouter,
   uiSelectRouter,
@@ -218,6 +219,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
   {
     label: 'Foldkit UI',
     pages: [
+      {
+        _tag: 'UiOverview',
+        href: uiOverviewRouter(),
+        label: 'Overview',
+      },
       {
         _tag: 'UiButton',
         href: uiButtonRouter(),

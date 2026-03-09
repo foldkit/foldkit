@@ -37,6 +37,7 @@ export const Link = {
     'https://github.com/devinjameson/foldkit/blob/main/examples/weather/src/main.ts#L123-L177',
   exampleWeatherTests:
     'https://github.com/devinjameson/foldkit/blob/main/examples/weather/src/main.test.ts',
+  exampleUiShowcase: `${exampleBase}/ui-showcase/src/main.ts`,
   exampleWebsocketChat: `${exampleBase}/websocket-chat/src/main.ts`,
   typingTerminal: 'https://typingterminal.com',
   typingTerminalSource:

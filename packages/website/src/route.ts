@@ -43,6 +43,7 @@ export const CoreViewMemoizationRoute = r('CoreViewMemoization')
 export const PatternsSubmodelsRoute = r('PatternsSubmodels')
 export const PatternsOutMessageRoute = r('PatternsOutMessage')
 
+export const UiOverviewRoute = r('UiOverview')
 export const UiButtonRoute = r('UiButton')
 export const UiCheckboxRoute = r('UiCheckbox')
 export const UiTabsRoute = r('UiTabs')
@@ -89,6 +90,7 @@ export const DocsRoute = S.Union(
   CoreViewMemoizationRoute,
   PatternsSubmodelsRoute,
   PatternsOutMessageRoute,
+  UiOverviewRoute,
   UiButtonRoute,
   UiCheckboxRoute,
   UiTabsRoute,
@@ -138,6 +140,7 @@ export type CoreSlowViewWarningRoute = typeof CoreSlowViewWarningRoute.Type
 export type PatternsSubmodelsRoute = typeof PatternsSubmodelsRoute.Type
 export type PatternsOutMessageRoute = typeof PatternsOutMessageRoute.Type
 export type CoreViewMemoizationRoute = typeof CoreViewMemoizationRoute.Type
+export type UiOverviewRoute = typeof UiOverviewRoute.Type
 export type UiButtonRoute = typeof UiButtonRoute.Type
 export type UiCheckboxRoute = typeof UiCheckboxRoute.Type
 export type UiTabsRoute = typeof UiTabsRoute.Type
@@ -284,6 +287,11 @@ export const patternsOutMessageRouter = pipe(
   slash(literal('out-message')),
   mapTo(PatternsOutMessageRoute),
 )
+export const uiOverviewRouter = pipe(
+  literal('ui'),
+  slash(literal('overview')),
+  mapTo(UiOverviewRoute),
+)
 export const uiTabsRouter = pipe(
   literal('ui'),
   slash(literal('tabs')),
@@ -398,6 +406,7 @@ const coreExtendedParser = oneOf(
 const patternsParser = oneOf(patternsSubmodelsRouter, patternsOutMessageRouter)
 
 const uiParser = oneOf(
+  uiOverviewRouter,
   uiButtonRouter,
   uiCheckboxRouter,
   uiTabsRouter,

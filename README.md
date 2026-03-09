@@ -164,6 +164,7 @@ This is what makes Foldkit unusually AI-friendly. The same property that makes t
 - **[Auth](examples/auth/src/main.ts)** — Authentication flow with Submodels and OutMessage
 - **[Query Sync](examples/query-sync/src/main.ts)** — URL query parameter sync with filtering and sorting
 - **[Error View](examples/error-view/src/main.ts)** — Custom error fallback UI
+- **[UI Showcase](examples/ui-showcase/src/main.ts)** — Interactive showcase of every Foldkit UI component
 - **[Typing Game](packages/typing-game)** — Multiplayer typing game with Effect RPC backend
 
 ## Development

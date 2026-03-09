@@ -1815,6 +1815,11 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
           ]),
           Page.Core.ViewMemoization.tableOfContents,
         ),
+      UiOverview: () =>
+        withTableOfContents(
+          Page.UiPages.OverviewPage.view(),
+          Page.UiPages.OverviewPage.tableOfContents,
+        ),
       UiButton: () =>
         withTableOfContents(
           Page.UiPages.ButtonPage.view(model.uiPages, toUiPageMessage),

@@ -3,6 +3,7 @@ export { Message } from './message'
 export { init } from './init'
 export { update } from './update'
 
+export * as OverviewPage from './overviewPage'
 export * as ButtonPage from './buttonPage'
 export * as InputPage from './inputPage'
 export * as TextareaPage from './textareaPage'
