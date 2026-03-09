@@ -57,6 +57,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [],
       ],
 
+      UpdatedSelectDemoValue: ({ value }) => [
+        evo(model, { selectDemoValue: () => value }),
+        [],
+      ],
+
       GotFieldsetCheckboxDemoMessage: ({ message }) => {
         const [nextFieldsetCheckboxDemo, fieldsetCheckboxCommands] =
           Ui.Checkbox.update(model.fieldsetCheckboxDemo, message)

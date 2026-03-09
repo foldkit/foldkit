@@ -38,6 +38,7 @@ import {
   uiMenuRouter,
   uiPopoverRouter,
   uiRadioGroupRouter,
+  uiSelectRouter,
   uiSwitchRouter,
   uiTabsRouter,
   uiTextareaRouter,
@@ -251,6 +252,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
         _tag: 'UiSwitch',
         href: uiSwitchRouter(),
         label: 'Switch',
+      },
+      {
+        _tag: 'UiSelect',
+        href: uiSelectRouter(),
+        label: 'Select',
       },
       {
         _tag: 'UiListbox',

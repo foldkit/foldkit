@@ -102,6 +102,9 @@ export const GotHorizontalRadioGroupDemoMessage = m(
 export const GotSwitchDemoMessage = m('GotSwitchDemoMessage', {
   message: Ui.Switch.Message,
 })
+export const UpdatedSelectDemoValue = m('UpdatedSelectDemoValue', {
+  value: S.String,
+})
 export const GotHorizontalTabsDemoMessage = m('GotHorizontalTabsDemoMessage', {
   message: Ui.Tabs.Message,
 })
@@ -135,6 +138,7 @@ export const Message = S.Union(
   GotPopoverAnimatedDemoMessage,
   GotVerticalRadioGroupDemoMessage,
   GotHorizontalRadioGroupDemoMessage,
+  UpdatedSelectDemoValue,
   GotSwitchDemoMessage,
   GotHorizontalTabsDemoMessage,
   GotVerticalTabsDemoMessage,

@@ -37,6 +37,7 @@ export const Model = S.Struct({
   popoverAnimatedDemo: Popover.Model,
   verticalRadioGroupDemo: RadioGroup.Model,
   horizontalRadioGroupDemo: RadioGroup.Model,
+  selectDemoValue: S.String,
   switchDemo: Switch.Model,
   horizontalTabsDemo: Tabs.Model,
   verticalTabsDemo: Tabs.Model,

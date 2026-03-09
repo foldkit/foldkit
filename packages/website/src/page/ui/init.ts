@@ -61,6 +61,7 @@ export const init = (): InitReturn => [
       id: 'horizontal-radio-group-demo',
       orientation: 'Horizontal',
     }),
+    selectDemoValue: 'us',
     switchDemo: Ui.Switch.init({ id: 'switch-demo' }),
     horizontalTabsDemo: Ui.Tabs.init({ id: 'horizontal-tabs-demo' }),
     verticalTabsDemo: Ui.Tabs.init({

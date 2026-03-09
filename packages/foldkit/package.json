@@ -107,6 +107,10 @@
       "types": "./dist/ui/radioGroup/public.d.ts",
       "import": "./dist/ui/radioGroup/public.js"
     },
+    "./ui/select": {
+      "types": "./dist/ui/select/public.d.ts",
+      "import": "./dist/ui/select/public.js"
+    },
     "./ui/switch": {
       "types": "./dist/ui/switch/public.d.ts",
       "import": "./dist/ui/switch/public.js"
