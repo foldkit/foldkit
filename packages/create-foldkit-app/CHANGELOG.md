@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.5.0
+
+### Minor Changes
+
+- 8c9e95f: Add ui-showcase as a starter template showing every Foldkit UI component with sidebar navigation and routing.
+
 ## 0.4.3
 
 ### Patch Changes
