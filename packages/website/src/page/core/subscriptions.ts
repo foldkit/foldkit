@@ -30,7 +30,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       pageTitle('core/subscriptions', 'Subscriptions'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'Commands handle one-off side effects \u2014 a slip to the kitchen that comes back with a result. But what about ongoing streams? In the restaurant analogy, a subscription is a standing order: "keep the coffee coming for table 5." For timers, ',
+        'Commands handle one-off side effects \u2014 a slip to the kitchen that comes back with a result. But what about ongoing streams? In the restaurant analogy, a subscription is a standing order: \u201Ckeep the coffee coming for table 5.\u201D For timers, ',
         inlineCode('WebSocket'),
         ' connections, or keyboard input, Foldkit provides subscriptions.',
       ),
@@ -38,7 +38,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'A Subscription is a reactive binding between your Model and a long-running stream. You declare which part of the Model the Subscription depends on, and Foldkit manages the stream lifecycle automatically — starting it when dependencies are met, stopping it when they change.',
       ),
       para(
-        "Here's how we add auto-counting to the counter. When ",
+        'Here\u2019s how we add auto-counting to the counter. When ',
         inlineCode('isAutoCounting'),
         ' is ',
         inlineCode('true'),
@@ -106,18 +106,18 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ').',
       ),
       para(
-        "If you're coming from Elm, you may notice subscriptions in Foldkit produce ",
+        'If you\u2019re coming from Elm, you may notice subscriptions in Foldkit produce ',
         inlineCode('Command<Message>'),
         ' rather than plain ',
         inlineCode('Message'),
-        ". In most cases you'll just wrap a message in ",
+        '. In most cases you\u2019ll just wrap a message in ',
         inlineCode('Effect.succeed'),
         ', but the Command wrapper lets a stream item do its own async work — like decoding a ',
         inlineCode('WebSocket'),
         ' frame — before producing the Message that update sees.',
       ),
       para(
-        "You've now seen how state changes flow through update, how one-off side effects work as Commands, and how ongoing streams are managed with Subscriptions. But where do the first Model and Commands come from? That's init.",
+        'You\u2019ve now seen how state changes flow through update, how one-off side effects work as Commands, and how ongoing streams are managed with Subscriptions. But where do the first Model and Commands come from? That\u2019s init.',
       ),
     ],
   )

@@ -331,7 +331,7 @@ const demoSection = (demoTabsView: Html): Html =>
               ),
             ],
             [
-              "Watch a message flow through update into the model. The code highlights in real time to show you what's happening at each step.",
+              'Watch a message flow through update into the model. The code highlights in real time to show you what\u2019s happening at each step.',
             ],
           ),
           div([Class('demo-viewport-constraint')], [demoTabsView]),
@@ -495,7 +495,7 @@ const tradeOffsSection = (): Html =>
                         'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-3 text-balance',
                       ),
                     ],
-                    ["What's the catch?"],
+                    ['What\u2019s the catch?'],
                   ),
                   p(
                     [
@@ -514,7 +514,7 @@ const tradeOffsSection = (): Html =>
                         ],
                         ['The Elm Architecture'],
                       ),
-                      ", so there are no components, no hooks, no local state. Everything is declarative and structured. You'll need to shift how you think about state, effects, and views.",
+                      ', so there are no components, no hooks, no local state. Everything is declarative and structured. You\u2019ll need to shift how you think about state, effects, and views.',
                     ],
                   ),
                   p(
@@ -523,7 +523,9 @@ const tradeOffsSection = (): Html =>
                         'text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-8',
                       ),
                     ],
-                    ["It's a discipline. It pays off, but it's a real ask."],
+                    [
+                      'It\u2019s a discipline. It pays off, but it\u2019s a real ask.',
+                    ],
                   ),
                   a(
                     [Href(Link.coreCounterExample), Class('cta-secondary')],
@@ -545,7 +547,7 @@ const tradeOffsSection = (): Html =>
                   p(
                     [Class('text-lg text-gray-600 dark:text-gray-300 mb-8')],
                     [
-                      "It's a different architecture. See where the approaches diverge and where they don't.",
+                      'It\u2019s a different architecture. See where the approaches diverge and where they don\u2019t.',
                     ],
                   ),
                   a(
@@ -582,7 +584,7 @@ const audienceSection = (): Html =>
                         'text-3xl font-normal text-gray-900 dark:text-white mb-6 text-balance',
                       ),
                     ],
-                    ["Who it's for"],
+                    ['Who it\u2019s for'],
                   ),
                   ul(
                     [Role('list'), Class('list-none')],
@@ -612,22 +614,22 @@ const audienceSection = (): Html =>
                         'text-3xl font-normal text-gray-900 dark:text-white mb-6 text-balance',
                       ),
                     ],
-                    ["Who it's not for"],
+                    ['Who it\u2019s not for'],
                   ),
                   ul(
                     [Role('list'), Class('list-none')],
                     [
                       audienceNotItem(
                         'Large existing React codebases',
-                        "Foldkit isn't an incremental adoption — it's a different architecture. Migration means a rewrite.",
+                        'Foldkit isn\u2019t an incremental adoption \u2014 it\u2019s a different architecture. Migration means a rewrite.',
                       ),
                       audienceNotItem(
                         'Teams not ready to invest in Effect',
-                        "Foldkit leans on pipe, discriminated unions, and Effect throughout. There's no escape hatch — you're all in or you're not.",
+                        'Foldkit leans on pipe, discriminated unions, and Effect throughout. There\u2019s no escape hatch \u2014 you\u2019re all in or you\u2019re not.',
                       ),
                       audienceNotItem(
                         'Projects that need the React ecosystem',
-                        "No React component libraries, no Next.js, no existing middleware. You're building on different foundations.",
+                        'No React component libraries, no Next.js, no existing middleware. You\u2019re building on different foundations.',
                       ),
                     ],
                   ),

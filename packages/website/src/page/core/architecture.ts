@@ -116,22 +116,24 @@ export const view = (): Html =>
         'Think of a Foldkit app like a restaurant. The waiter keeps a notebook \u2014 a running picture of everything happening right now. Table 3 ordered the salmon. Table 5 is waiting for dessert. When something happens \u2014 a customer flags the waiter, the kitchen rings the bell \u2014 the waiter hears about it, updates their notebook, and maybe writes a slip for the kitchen. The waiter doesn\u2019t cook the salmon \u2014 they hand the slip to the kitchen, and the kitchen reports back when it\u2019s done.',
       ),
       para(
-        'Messages work the same way. "Table 3 asked for the check" is a fact given to the waiter, not an instruction. The waiter decides what to do \u2014 maybe bring the check immediately, maybe offer dessert first. The message stays the same either way.',
+        'Messages work the same way. \u201CTable 3 asked for the check\u201D is a fact given to the waiter, not an instruction. The waiter decides what to do \u2014 maybe bring the check immediately, maybe offer dessert first. The message stays the same either way.',
       ),
       callout(
         'The restaurant analogy',
-        "This analogy maps to every concept you'll encounter in Core Concepts. The table below is a reference you can come back to as you read.",
+        'This analogy maps to every concept you\u2019ll encounter in Core Concepts. The table below is a reference you can come back to as you read.',
       ),
       comparisonTable(
         ['Your App', 'The Restaurant'],
         [
           [
             ['Model'],
-            ["The waiter's notebook \u2014 the current state of everything"],
+            [
+              'The waiter\u2019s notebook \u2014 the current state of everything',
+            ],
           ],
           [
             ['Message'],
-            ['Something that happens: "table 3 asked for the check"'],
+            ['Something that happens: \u201Ctable 3 asked for the check\u201D'],
           ],
           [
             ['update'],
@@ -145,10 +147,15 @@ export const view = (): Html =>
               'What the customers actually see \u2014 plates on the table, the check arriving',
             ],
           ],
-          [['Command'], ['A slip for the kitchen: "prepare the salmon"']],
+          [
+            ['Command'],
+            ['A slip for the kitchen: \u201Cprepare the salmon\u201D'],
+          ],
           [
             ['Subscription'],
-            ['A standing order: "keep the coffee coming for table 5"'],
+            [
+              'A standing order: \u201Ckeep the coffee coming for table 5\u201D',
+            ],
           ],
           [
             ['Runtime'],
@@ -157,7 +164,7 @@ export const view = (): Html =>
         ],
       ),
       para(
-        "That's the architecture in the abstract. The next page shows a complete counter application \u2014 and you'll see each of these pieces in the code.",
+        'That\u2019s the architecture in the abstract. The next page shows a complete counter application \u2014 and you\u2019ll see each of these pieces in the code.',
       ),
     ],
   )

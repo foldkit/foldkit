@@ -238,7 +238,7 @@ export const disabledDemo = (
                 id: 'fieldset-disabled-bio-textarea',
                 isDisabled: true,
                 value:
-                  "Mathematician and writer, known for work on Charles Babbage's Analytical Engine.",
+                  'Mathematician and writer, known for work on Charles Babbage\u2019s Analytical Engine.',
                 rows: 3,
                 toView: textareaAttributes =>
                   div(

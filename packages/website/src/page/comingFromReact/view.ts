@@ -315,7 +315,7 @@ export const view = (
       tableOfContentsEntryToHeader(faqHeader),
       faqItem(
         faqReusableComponents,
-        'How do I make reusable "components"?',
+        'How do I make reusable \u201Ccomponents\u201D?',
         [
           para(
             'Create functions that take parts of your Model and return Html. They\u2019re not components in the React sense \u2014 they don\u2019t have their own state or lifecycle \u2014 but they\u2019re reusable view logic. For complex features that need their own state, use the ',
@@ -421,7 +421,7 @@ export const view = (
       ),
       faqItem(
         faqWhereToStart,
-        "I'm sold. Where do I start?",
+        'I\u2019m sold. Where do I start?',
         [
           para(
             'Head to ',

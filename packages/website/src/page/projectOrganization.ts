@@ -57,7 +57,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Foldkit apps can start in a single ',
         inlineCode('main.ts'),
-        " and split into modules as they grow. Here's how to organize your code as complexity increases.",
+        ' and split into modules as they grow. Here\u2019s how to organize your code as complexity increases.',
       ),
       tableOfContentsEntryToHeader(startingSimpleHeader),
       para(
@@ -68,7 +68,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' is a good reference.',
       ),
       para(
-        "This is fine for small apps. You don't need to split into multiple files until the single file becomes hard to navigate.",
+        'This is fine for small apps. You don\u2019t need to split into multiple files until the single file becomes hard to navigate.',
       ),
       tableOfContentsEntryToHeader(fileLayoutHeader),
       para(

@@ -73,7 +73,7 @@ export const disabledDemo = (
     id: 'textarea-disabled-demo',
     isDisabled: true,
     value:
-      "Mathematician and writer, known for work on Charles Babbage's Analytical Engine.",
+      'Mathematician and writer, known for work on Charles Babbage\u2019s Analytical Engine.',
     rows: 3,
     toView: attributes =>
       div(

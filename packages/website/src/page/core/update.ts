@@ -30,7 +30,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       pageTitle('core/update', 'Update'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        "The update function is the heart of your application logic. It's a pure function that takes the current Model and a Message, and returns a new Model along with any Commands to execute.",
+        'The update function is the heart of your application logic. It\u2019s a pure function that takes the current Model and a Message, and returns a new Model along with any Commands to execute.',
       ),
       para(
         'Pure means predictable: given the same Model and the same Message, update always returns the same result. No hidden state, no ambient mutation, no surprises. This makes every state transition easy to reason about and trivial to test — pass in a Model and a Message, assert on the output.',
@@ -59,7 +59,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Notice that update returns a tuple: the new Model and an array of Commands. Commands represent side effects — HTTP requests, timers, browser API calls. For the counter, the Commands array is always empty. But when we add a delayed reset on the Commands page, that will change.',
       ),
       para(
-        "Before we get to side effects, there's one more piece of the counter to understand: the view function, which turns your Model into what the user sees on screen.",
+        'Before we get to side effects, there\u2019s one more piece of the counter to understand: the view function, which turns your Model into what the user sees on screen.',
       ),
     ],
   )

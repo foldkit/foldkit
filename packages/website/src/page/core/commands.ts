@@ -53,7 +53,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         '. In Foldkit, update is pure. It describes what should happen and the runtime does it.',
       ),
       para(
-        "Let's see what that looks like. Say we want a delayed reset — when the user clicks reset, the count resets after one second:",
+        'Let\u2019s see what that looks like. Say we want a delayed reset — when the user clicks reset, the count resets after one second:',
       ),
       highlightedCodeBlock(
         div(
@@ -68,10 +68,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Look at what update does when ',
         inlineCode('ClickedResetAfterDelay'),
-        " arrives: it returns the Model unchanged, along with a Command that describes a one-second delay. The update function didn't start a timer — it handed the runtime a description that says ",
-        '"wait one second, then send me ',
+        ' arrives: it returns the Model unchanged, along with a Command that describes a one-second delay. The update function didn\u2019t start a timer \u2014 it handed the runtime a description that says ',
+        '\u201Cwait one second, then send me ',
         inlineCode('ElapsedResetDelay'),
-        '." The runtime does the waiting. When the delay fires, ',
+        '.\u201D The runtime does the waiting. When the delay fires, ',
         inlineCode('ElapsedResetDelay'),
         ' arrives as a new Message, and update resets the count to zero.',
       ),
@@ -112,9 +112,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        "Let's zoom in on ",
+        'Let\u2019s zoom in on ',
         inlineCode('fetchCount'),
-        " to understand what's happening here:",
+        ' to understand what\u2019s happening here:',
       ),
       highlightedCodeBlock(
         div(

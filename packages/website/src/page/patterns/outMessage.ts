@@ -55,7 +55,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Your login Submodel has authenticated the user. Now what? The child can\u2019t transition the root Model to a logged-in state because it only knows about its own Model. And it shouldn\u2019t know about the root Model \u2014 that would break the encapsulation that makes Submodels useful in the first place.',
       ),
       para(
-        'The OutMessage pattern solves this. The child emits a semantic event \u2014 "login succeeded, here\u2019s the session." The parent decides what to do with it. The child describes what happened; the parent decides the consequences.',
+        'The OutMessage pattern solves this. The child emits a semantic event \u2014 \u201Clogin succeeded, here\u2019s the session.\u201D The parent decides what to do with it. The child describes what happened; the parent decides the consequences.',
       ),
       callout(
         'Compare to React',
@@ -94,7 +94,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Option<OutMessage>'),
         '. Most Messages return ',
         inlineCode('Option.none()'),
-        ' \u2014 only the significant "I need to tell the parent something" moments return ',
+        ' \u2014 only the significant \u201CI need to tell the parent something\u201D moments return ',
         inlineCode('Option.some(...)'),
         ':',
       ),

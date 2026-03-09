@@ -34,11 +34,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'A Message is a fact about something that happened in your application \u2014 not an instruction to do something, just a record of what occurred.',
       ),
       para(
-        'In the restaurant analogy, "table 3 asked for the check" is a Message. It doesn\u2019t tell the waiter what to do \u2014 maybe they bring the check immediately, maybe they offer dessert first. The waiter (the update function) decides. The message stays the same either way.',
+        'In the restaurant analogy, \u201Ctable 3 asked for the check\u201D is a Message. It doesn\u2019t tell the waiter what to do \u2014 maybe they bring the check immediately, maybe they offer dessert first. The waiter (the update function) decides. The message stays the same either way.',
       ),
       para(
         inlineCode('ClickedIncrement'),
-        ' doesn\u2019t say "add one to the count" \u2014 it says "the user clicked the increment button." The update function decides what that means. Maybe today it adds one. Maybe tomorrow it fetches a new count from a server. The Message stays the same.',
+        ' doesn\u2019t say \u201Cadd one to the count\u201D \u2014 it says \u201Cthe user clicked the increment button.\u201D The update function decides what that means. Maybe today it adds one. Maybe tomorrow it fetches a new count from a server. The Message stays the same.',
       ),
       para('The counter has three Messages:'),
       highlightedCodeBlock(

@@ -46,7 +46,7 @@ const requestingValuesHeader: TableOfContentsEntry = {
 const dontComputeInUpdateHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'dont-compute-in-update',
-  text: "Don't Compute in Update",
+  text: 'Don\u2019t Compute in Update',
 }
 
 const requestViaCommandHeader: TableOfContentsEntry = {
@@ -142,7 +142,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           li(
             [],
             [
-              "Returns a new Model and a list of Commands — doesn't execute anything. Foldkit runs the provided commands.",
+              'Returns a new Model and a list of Commands \u2014 doesn\u2019t execute anything. Foldkit runs the provided commands.',
             ],
           ),
           li([], ['No mutations, no side effects']),
@@ -179,10 +179,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Commands',
         '. A Command is an Effect that describes a side effect — fetch this URL, wait 500ms, read from storage. Your ',
         inlineCode('update'),
-        " function doesn't execute anything; it just returns data describing what should happen. Foldkit's runtime takes those Commands, executes them, and feeds the results back as Messages.",
+        ' function doesn\u2019t execute anything; it just returns data describing what should happen. Foldkit\u2019s runtime takes those Commands, executes them, and feeds the results back as Messages.',
       ),
       para(
-        "This means side effects still happen — you're not avoiding them. But they happen in a contained environment managed by the runtime, not scattered throughout your code. Your business logic stays pure: given the same inputs, it always returns the same outputs. The impurity is pushed to the edges.",
+        'This means side effects still happen \u2014 you\u2019re not avoiding them. But they happen in a contained environment managed by the runtime, not scattered throughout your code. Your business logic stays pure: given the same inputs, it always returns the same outputs. The impurity is pushed to the edges.',
       ),
       para(
         'Unlike React where side effects can trigger during render (',
@@ -191,7 +191,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(testingUpdateHeader),
       para(
-        "Foldkit's pure update model makes testing painless because state transitions are just function calls — pass in a Model and Message, assert on the returned Model. And because Commands are Effects with explicit dependencies, you can swap in mocks without reaching for libraries like ",
+        'Foldkit\u2019s pure update model makes testing painless because state transitions are just function calls \u2014 pass in a Model and Message, assert on the returned Model. And because Commands are Effects with explicit dependencies, you can swap in mocks without reaching for libraries like ',
         link(Link.msw, 'msw'),
         ' or stubbing globals:',
       ),
@@ -242,7 +242,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        'This "request/response" pattern keeps ',
+        'This \u201Crequest/response\u201D pattern keeps ',
         inlineCode('update'),
         ' pure. The ',
         inlineCode('RequestedAppleSpawn'),
@@ -261,7 +261,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('evo'),
         " for immutable model updates. It wraps Effect's ",
         inlineCode('Struct.evolve'),
-        " with stricter type checking — if you remove or rename a key from your Model, you'll get type errors everywhere you try to update it.",
+        ' with stricter type checking \u2014 if you remove or rename a key from your Model, you\u2019ll get type errors everywhere you try to update it.',
       ),
       highlightedCodeBlock(
         div([Class('text-sm'), InnerHTML(Snippets.evoExampleHighlighted)], []),

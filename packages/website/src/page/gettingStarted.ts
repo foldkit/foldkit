@@ -57,9 +57,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       tableOfContentsEntryToHeader(quickStartHeader),
       para(
         link(Link.createFoldkitApp, 'Create Foldkit app'),
-        " is the recommended way to get started. You'll select an ",
+        ' is the recommended way to get started. You\u2019ll select an ',
         link(examplesRouter(), 'example'),
-        " to start with and the package manager you'd like to use.",
+        ' to start with and the package manager you\u2019d like to use.',
       ),
       codeBlock(
         CREATE_FOLDKIT_APP_COMMAND,
@@ -80,7 +80,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       callout(
         'Coming from React?',
-        "If you're familiar with React, check out the ",
+        'If you\u2019re familiar with React, check out the ',
         link(comingFromReactRouter(), 'Coming from React'),
         ' guide to understand how your existing knowledge applies.',
       ),

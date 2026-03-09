@@ -117,7 +117,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'The four states represent the complete lifecycle of a field: ',
         inlineCode('NotValidated'),
-        " for fields the user hasn't interacted with yet, ",
+        ' for fields the user hasn\u2019t interacted with yet, ',
         inlineCode('Validating'),
         ' for async checks in flight, ',
         inlineCode('Valid'),
@@ -219,7 +219,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
 
       tableOfContentsEntryToHeader(asyncValidationHeader),
       para(
-        'For server-side checks like "Is this email taken?", use the ',
+        'For server-side checks like \u201CIs this email taken?\u201D, use the ',
         inlineCode('Validating'),
         ' state as a bridge: run sync validation first, then transition to ',
         inlineCode('Validating'),
@@ -270,14 +270,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        "Custom validators compose with built-in ones in the same rules array — there's no registration step or special interface to implement.",
+        'Custom validators compose with built-in ones in the same rules array \u2014 there\u2019s no registration step or special interface to implement.',
       ),
 
       tableOfContentsEntryToHeader(crossFieldValidationHeader),
       para(
         'A ',
         inlineCode('Validation<T>'),
-        ' only sees a single value. For checks that compare fields against each other — like "confirm password must match password" — handle the logic directly in your update function where you have access to the full model.',
+        ' only sees a single value. For checks that compare fields against each other \u2014 like \u201Cconfirm password must match password\u201D \u2014 handle the logic directly in your update function where you have access to the full model.',
       ),
       highlightedCodeBlock(
         div(

@@ -43,7 +43,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       pageTitle('core/view', 'View'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'The update function produces a new Model. But the user doesn\u2019t see the Model \u2014 they see what the view function renders from it. In the restaurant analogy, the waiter\u2019s notebook says "table 3: salmon, ready." The view is what\u2019s actually on the table \u2014 the plate in front of the customer.',
+        'The update function produces a new Model. But the user doesn\u2019t see the Model \u2014 they see what the view function renders from it. In the restaurant analogy, the waiter\u2019s notebook says \u201Ctable 3: salmon, ready.\u201D The view is what\u2019s actually on the table \u2014 the plate in front of the customer.',
       ),
       para(
         'Given the same Model, view always produces the same HTML. It never modifies state directly \u2014 instead, it dispatches Messages through event handlers, feeding them back into the loop.',
@@ -61,7 +61,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(typedHtmlHelpersHeader),
       para(
-        "Foldkit's HTML functions are typed to your Message type. This ensures event handlers only accept valid Messages from your application. You create these helpers by calling ",
+        'Foldkit\u2019s HTML functions are typed to your Message type. This ensures event handlers only accept valid Messages from your application. You create these helpers by calling ',
         inlineCode('html<Message>()'),
         ' and destructuring the elements and attributes you need:',
       ),
@@ -97,7 +97,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'For simple events like clicks, you pass the Message directly. For events that carry data (like input changes), you pass a function that receives the event and returns a Message. This keeps your view declarative — it describes what Messages should be sent, not how to handle them.',
       ),
       para(
-        "So far everything has been synchronous — the user clicks a button, update produces a new Model, the view rerenders. But real apps need side effects: HTTP requests, timers, browser APIs. That's where Commands come in.",
+        'So far everything has been synchronous \u2014 the user clicks a button, update produces a new Model, the view rerenders. But real apps need side effects: HTTP requests, timers, browser APIs. That\u2019s where Commands come in.',
       ),
     ],
   )

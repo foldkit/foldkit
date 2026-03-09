@@ -214,7 +214,7 @@ export const view = (): Html =>
           ],
           ['Create Foldkit App'],
         ),
-        ". Pick one that matches what you're building, or start with Counter and work your way up. See ",
+        '. Pick one that matches what you\u2019re building, or start with Counter and work your way up. See ',
         a(
           [
             Href('/getting-started'),

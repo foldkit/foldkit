@@ -90,7 +90,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Arguments are compared by reference, not by value. This works naturally with ',
         link(`${bestPracticesRouter()}#immutable-updates`, 'evo'),
-        " — when a model field isn't updated, ",
+        ' \u2014 when a model field isn\u2019t updated, ',
         inlineCode('evo'),
         ' preserves its reference. Only fields that actually changed get new references, so unchanged arguments automatically pass the ',
         inlineCode('==='),
@@ -132,7 +132,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       callout(
         'How it works under the hood',
-        "Foldkit's virtual DOM library (",
+        'Foldkit\u2019s virtual DOM library (',
         link(Link.snabbdom, 'Snabbdom'),
         ') compares the old and new VNode by reference before diffing. When ',
         inlineCode('oldVnode === newVnode'),

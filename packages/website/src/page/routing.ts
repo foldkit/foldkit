@@ -85,7 +85,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Most routers make you define routes twice: once for matching URLs, and again for generating them. This leads to duplication and bugs when they get out of sync.',
       ),
       para(
-        "Foldkit's routing is based on biparsers — parsers that work in both directions. A single route definition handles:",
+        'Foldkit\u2019s routing is based on biparsers — parsers that work in both directions. A single route definition handles:',
       ),
       ul(
         [Class('list-disc mb-6 space-y-2')],
@@ -246,7 +246,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(buildingUrlsHeader),
       para(
-        "Here's where the biparser pays off. The same router that parses URLs can build them:",
+        'Here\u2019s where the biparser pays off. The same router that parses URLs can build them:',
       ),
       highlightedCodeBlock(
         div(
@@ -263,7 +263,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('personRouter'),
         ' expects ',
         inlineCode('{ personId: number }'),
-        ", you can't accidentally pass a string or forget the parameter.",
+        ', you can\u2019t accidentally pass a string or forget the parameter.',
       ),
       tableOfContentsEntryToHeader(queryParametersHeader),
       para(

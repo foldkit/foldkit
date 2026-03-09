@@ -56,7 +56,7 @@ const foldkitPanel = div(
     p(
       [Class('text-gray-500 dark:text-gray-400 text-sm')],
       [
-        'Composable "The Elm Architecture" modules, Schema-typed state, and controlled side effects via Effect.',
+        'Composable \u201CThe Elm Architecture\u201D modules, Schema-typed state, and controlled side effects via Effect.',
       ],
     ),
   ],

@@ -35,7 +35,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       pageTitle('core/init', 'Init'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        "The counter works, but every time the user refreshes the page, the count resets to zero. What if we want to remember the last count? That's where Init comes in — and where flags let you pass data into your app at startup.",
+        'The counter works, but every time the user refreshes the page, the count resets to zero. What if we want to remember the last count? That\u2019s where Init comes in \u2014 and where flags let you pass data into your app at startup.',
       ),
       para(
         'In the restaurant analogy, init is the waiter\u2019s notebook at the start of the shift \u2014 the state of every table before the first customer walks in.',
@@ -59,7 +59,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(flagsHeader),
       para(
-        'In the restaurant analogy, flags are what the manager tells the waiter before the shift: "table 5 has a reservation at 7, and we\u2019re out of the salmon." Information from outside the app that shapes the initial state.',
+        'In the restaurant analogy, flags are what the manager tells the waiter before the shift: \u201Ctable 5 has a reservation at 7, and we\u2019re out of the salmon.\u201D Information from outside the app that shapes the initial state.',
       ),
       para(
         'Flags let you pass initialization data into your application \u2014 things like persisted state from localStorage or configuration values. Define a Flags schema and provide an Effect that loads the flags.',
@@ -88,7 +88,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        "You've now seen the full Foldkit architecture: the Model holds your state, Messages describe events, update transitions state, the view renders it, Commands handle one-off side effects, Subscriptions manage ongoing streams, and init bootstraps everything. The remaining pages cover utilities, runtime configuration, and advanced topics you'll reach for as your app grows.",
+        'You\u2019ve now seen the full Foldkit architecture: the Model holds your state, Messages describe events, update transitions state, the view renders it, Commands handle one-off side effects, Subscriptions manage ongoing streams, and init bootstraps everything. The remaining pages cover utilities, runtime configuration, and advanced topics you\u2019ll reach for as your app grows.',
       ),
     ],
   )
