@@ -19,6 +19,9 @@ export const GettingStartedRoute = r('GettingStarted')
 export const RoutingAndNavigationRoute = r('RoutingAndNavigation')
 export const FieldValidationRoute = r('FieldValidation')
 export const ExamplesRoute = r('Examples')
+export const ExampleDetailRoute = r('ExampleDetail', {
+  exampleSlug: S.String,
+})
 export const BestPracticesRoute = r('BestPractices')
 export const ProjectOrganizationRoute = r('ProjectOrganization')
 export const ApiModuleRoute = r('ApiModule', { moduleSlug: S.String })
@@ -69,6 +72,7 @@ export const DocsRoute = S.Union(
   RoutingAndNavigationRoute,
   FieldValidationRoute,
   ExamplesRoute,
+  ExampleDetailRoute,
   BestPracticesRoute,
   ProjectOrganizationRoute,
   ApiModuleRoute,
@@ -119,6 +123,7 @@ export type GettingStartedRoute = typeof GettingStartedRoute.Type
 export type RoutingAndNavigationRoute = typeof RoutingAndNavigationRoute.Type
 export type FieldValidationRoute = typeof FieldValidationRoute.Type
 export type ExamplesRoute = typeof ExamplesRoute.Type
+export type ExampleDetailRoute = typeof ExampleDetailRoute.Type
 export type BestPracticesRoute = typeof BestPracticesRoute.Type
 export type ProjectOrganizationRoute = typeof ProjectOrganizationRoute.Type
 export type ApiModuleRoute = typeof ApiModuleRoute.Type
@@ -178,6 +183,11 @@ export const routingAndNavigationRouter = pipe(
 export const fieldValidationRouter = pipe(
   literal('field-validation'),
   mapTo(FieldValidationRoute),
+)
+export const exampleDetailRouter = pipe(
+  literal('example-apps'),
+  slash(string('exampleSlug')),
+  mapTo(ExampleDetailRoute),
 )
 export const examplesRouter = pipe(
   literal('example-apps'),
@@ -376,6 +386,7 @@ const legacyDocsParser = oneOf(
   gettingStartedRouter,
   routingAndNavigationRouter,
   fieldValidationRouter,
+  exampleDetailRouter,
   examplesRouter,
   bestPracticesRouter,
   projectOrganizationRouter,

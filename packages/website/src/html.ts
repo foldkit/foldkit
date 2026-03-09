@@ -20,6 +20,7 @@ export const {
   h4,
   header,
   hr,
+  iframe,
   img,
   input,
   keyed,

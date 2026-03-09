@@ -163,6 +163,7 @@ export const Model = S.Struct({
   uiPages: Page.UiPages.Model,
   comingFromReact: Page.ComingFromReact.Model,
   apiReference: Page.ApiReference.Model,
+  exampleDetail: Page.Example.ExampleDetail.Model,
 })
 
 export type Model = typeof Model.Type
@@ -247,6 +248,9 @@ const GotExamplesGroupMessage = m('GotExamplesGroupMessage', {
 const GotApiReferenceGroupMessage = m('GotApiReferenceGroupMessage', {
   message: Ui.Disclosure.Message,
 })
+const GotExampleDetailMessage = m('GotExampleDetailMessage', {
+  message: Page.Example.ExampleDetail.Message,
+})
 
 const Message = S.Union(
   NoOp,
@@ -277,6 +281,7 @@ const Message = S.Union(
   GotFoldkitUiGroupMessage,
   GotExamplesGroupMessage,
   GotApiReferenceGroupMessage,
+  GotExampleDetailMessage,
 )
 export type Message = typeof Message.Type
 
@@ -380,6 +385,7 @@ const init: Runtime.ApplicationInit<
       uiPages,
       comingFromReact,
       apiReference,
+      exampleDetail: Page.Example.ExampleDetail.init('src/main.ts')[0],
     },
     [
       injectAnalytics,
@@ -749,6 +755,20 @@ const update = (
           }),
           apiReferenceGroupCommands.map(
             Effect.map(message => GotApiReferenceGroupMessage({ message })),
+          ),
+        ]
+      },
+
+      GotExampleDetailMessage: ({ message }) => {
+        const [nextExampleDetail, exampleDetailCommands] =
+          Page.Example.ExampleDetail.update(model.exampleDetail, message)
+
+        return [
+          evo(model, {
+            exampleDetail: () => nextExampleDetail,
+          }),
+          exampleDetailCommands.map(
+            Effect.map(message => GotExampleDetailMessage({ message })),
           ),
         ]
       },
@@ -1681,6 +1701,16 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
           Page.FieldValidation.tableOfContents,
         ),
       Examples: () => withoutTableOfContents(Page.Examples.view()),
+      ExampleDetail: ({ exampleSlug }) =>
+        withoutTableOfContents(
+          Page.Example.ExampleDetail.view(
+            model.exampleDetail,
+            exampleSlug,
+            Page.Example.getSourcesForSlug(exampleSlug),
+            model.copiedSnippets,
+            message => GotExampleDetailMessage({ message }),
+          ),
+        ),
       BestPractices: () =>
         withTableOfContents(
           lazyDocsContent(Page.BestPractices.view, [model.copiedSnippets]),
