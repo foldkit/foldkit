@@ -65,14 +65,14 @@ export const view = (): Html =>
         'State lives in the Model. Events are Messages. Every state change flows through update. Side effects are managed by Commands. Ongoing streams are Subscriptions. These aren\u2019t conventions. This is the only path. You can\u2019t scatter state across components because there are no component-local state hooks. You can\u2019t hide side effects in the view because the view is a pure function.',
       ),
       para(
-        'This might sound limiting. It\u2019s the opposite. When architectural decisions are off the table, development gets more interesting. The questions shift from implementation to behavior. Not \u201cHow should we manage side effects in this component?\u201d but \u201cHow should this feature behave?\u201d Not \u201cWhat tool should we use for streams and should we wire them up to our components?\u201d but \u201cWhat Model state should turn this Subscription on and off?\u201d',
+        'This might sound limiting. It\u2019s the opposite. When architectural decisions are off the table, development gets more interesting. The questions shift from implementation to behavior. Not \u201cHow should we manage side effects in this component?\u201d but \u201cHow should this feature behave?\u201d Not \u201cWhat tool should we use for streams and how should we wire them up to our components?\u201d but \u201cWhat Model state does this Subscription depend on?\u201d',
       ),
       para(
         'Your focus elevates from implementation to behavior: the stuff that actually makes your application unique.',
       ),
       tableOfContentsEntryToHeader(readableByDesignHeader),
       para(
-        'Any developer can walk into any Foldkit app and immediately know where to look. All state is in the Model. All events are Messages. All transitions are in update. All side effects are managed by Commands. This isn\u2019t a claim about team discipline or code review. It\u2019s a structural guarantee. The architecture makes it impossible to organize your app in a way that\u2019s opaque to a new reader.',
+        'Any developer can walk into any Foldkit app and immediately know where to look. All state is in the Model. All events are Messages. All transitions are in update. All side effects are managed by Commands. This isn\u2019t a claim about team discipline or code review. It\u2019s a structural guarantee. The architecture makes it impossible to organize your app in a way that is opaque to a new reader.',
       ),
       para(
         'No other TypeScript framework can make this claim. Most frameworks are readable if the team is disciplined. Foldkit apps are readable by construction.',
