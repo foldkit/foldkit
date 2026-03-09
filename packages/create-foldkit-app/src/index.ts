@@ -57,6 +57,7 @@ const example = Options.choice('example', [
   'shopping-cart',
   'websocket-chat',
   'auth',
+  'ui-showcase',
 ]).pipe(
   Options.withAlias('e'),
   Options.withDescription(
@@ -72,7 +73,8 @@ const example = Options.choice('example', [
       '  query-sync - URL-driven filtering, sorting, and search with query parameters\n' +
       '  shopping-cart - Complex state management with nested models and routing\n' +
       '  websocket-chat - Managed resources with WebSocket integration\n' +
-      '  auth - Authentication with Submodels, OutMessage, and protected routes',
+      '  auth - Authentication with Submodels, OutMessage, and protected routes\n' +
+      '  ui-showcase - Every Foldkit UI component with routing and Submodels',
   ),
 )
 

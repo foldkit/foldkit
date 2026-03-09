@@ -73,11 +73,15 @@ export const anchorHooks = (config: {
           flip({ padding: padding ?? 0 }),
           shift({ padding: padding ?? 0 }),
           size({
-            apply({ rects }) {
+            padding: padding ?? 0,
+            apply({ rects, availableHeight }) {
               items.style.setProperty(
                 '--button-width',
                 `${rects.reference.width}px`,
               )
+              items.style.maxHeight = `${availableHeight}px`
+              items.style.overflowY = 'auto'
+              items.style.overscrollBehavior = 'none'
             },
           }),
         ],

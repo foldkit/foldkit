@@ -30,6 +30,7 @@
     "dev:example:websocket-chat": "pnpm --filter websocket-chat-example dev",
     "dev:example:auth": "pnpm --filter auth-example dev",
     "dev:example:error-view": "pnpm --filter error-view-example dev",
+    "dev:example:ui-showcase": "pnpm --filter ui-showcase dev",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "pnpm -r build && changeset publish"

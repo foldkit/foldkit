@@ -1,6 +1,7 @@
 import classNames from 'classnames'
 import { Array } from 'effect'
 import { Ui } from 'foldkit'
+import type { AnchorConfig } from 'foldkit/ui/combobox'
 
 import { Class, div, span } from '../../html'
 import { Icon } from '../../icon'
@@ -49,21 +50,23 @@ export const multiHeader: TableOfContentsEntry = {
 
 // DEMO CONTENT
 
-type Shape =
-  | 'Tesseract'
-  | 'Pentatope'
-  | 'Icositetrachoron'
-  | 'Hecatonicosachoron'
-  | 'Hexacosichoron'
-  | 'Dodecaplex'
+type City =
+  | 'Johannesburg'
+  | 'Kyiv'
+  | 'Oxford'
+  | 'Plymouth'
+  | 'Quito'
+  | 'Wellington'
+  | 'Zurich'
 
-const SHAPES: ReadonlyArray<Shape> = [
-  'Tesseract',
-  'Pentatope',
-  'Icositetrachoron',
-  'Hecatonicosachoron',
-  'Hexacosichoron',
-  'Dodecaplex',
+const CITIES: ReadonlyArray<City> = [
+  'Johannesburg',
+  'Kyiv',
+  'Oxford',
+  'Plymouth',
+  'Quito',
+  'Wellington',
+  'Zurich',
 ]
 
 const inputClassName =
@@ -73,7 +76,13 @@ const buttonClassName =
   'absolute inset-y-0 right-0 flex items-center px-4 cursor-pointer text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors'
 
 const itemsClassName =
-  'absolute mt-2 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-cream dark:bg-gray-800 shadow-lg overflow-hidden z-10 outline-none'
+  'w-(--button-width) rounded-lg border border-gray-200 dark:border-gray-700 bg-cream dark:bg-gray-800 shadow-lg overflow-hidden z-10 outline-none'
+
+const COMBOBOX_ANCHOR: AnchorConfig = {
+  placement: 'bottom-start',
+  gap: 8,
+  padding: 8,
+}
 
 const itemClassName =
   'px-3 py-2 text-base text-gray-700 dark:text-gray-200 cursor-pointer data-[active]:bg-gray-100 dark:data-[active]:bg-gray-700/50 data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed'
@@ -82,11 +91,11 @@ const backdropClassName = 'fixed inset-0 z-0'
 
 const wrapperClassName = 'relative w-72'
 
-const filterShapes = (inputValue: string): ReadonlyArray<Shape> =>
+const filterCities = (inputValue: string): ReadonlyArray<City> =>
   inputValue === ''
-    ? SHAPES
-    : Array.filter(SHAPES, shape =>
-        shape.toLowerCase().includes(inputValue.toLowerCase()),
+    ? CITIES
+    : Array.filter(CITIES, city =>
+        city.toLowerCase().includes(inputValue.toLowerCase()),
       )
 
 // VIEW
@@ -95,7 +104,7 @@ export const comboboxDemo = (
   comboboxModel: Ui.Combobox.Model,
   toMessage: (message: Message) => ParentMessage,
 ) => {
-  const filteredShapes = filterShapes(comboboxModel.inputValue)
+  const filteredCities = filterCities(comboboxModel.inputValue)
 
   return [
     heading('h3', singleSelectHeader.id, singleSelectHeader.text),
@@ -105,8 +114,8 @@ export const comboboxDemo = (
         Ui.Combobox.view({
           model: comboboxModel,
           toMessage: message => toMessage(GotComboboxDemoMessage({ message })),
-          items: filteredShapes,
-          itemToConfig: (shape, context) => ({
+          items: filteredCities,
+          itemToConfig: (city, context) => ({
             className: itemClassName,
             content: div(
               [Class('flex items-center gap-2')],
@@ -117,20 +126,21 @@ export const comboboxDemo = (
                     invisible: !context.isSelected,
                   }),
                 ),
-                span([], [shape]),
+                span([], [city]),
               ],
             ),
           }),
-          itemToValue: shape => shape,
-          itemToDisplayText: shape => shape,
+          itemToValue: city => city,
+          itemToDisplayText: city => city,
           inputClassName,
-          inputPlaceholder: 'Search polytopes...',
+          inputPlaceholder: 'Search cities...',
           itemsClassName,
           backdropClassName,
           className: wrapperClassName,
           inputWrapperClassName: 'relative',
           buttonContent: Icon.chevronDown('w-4 h-4'),
           buttonClassName,
+          anchor: COMBOBOX_ANCHOR,
         }),
       ],
     ),
@@ -141,7 +151,7 @@ export const nullableDemo = (
   comboboxNullableModel: Ui.Combobox.Model,
   toMessage: (message: Message) => ParentMessage,
 ) => {
-  const filteredShapes = filterShapes(comboboxNullableModel.inputValue)
+  const filteredCities = filterCities(comboboxNullableModel.inputValue)
 
   return [
     heading('h3', nullableHeader.id, nullableHeader.text),
@@ -152,8 +162,8 @@ export const nullableDemo = (
           model: comboboxNullableModel,
           toMessage: message =>
             toMessage(GotComboboxNullableDemoMessage({ message })),
-          items: filteredShapes,
-          itemToConfig: (shape, context) => ({
+          items: filteredCities,
+          itemToConfig: (city, context) => ({
             className: itemClassName,
             content: div(
               [Class('flex items-center gap-2')],
@@ -164,20 +174,21 @@ export const nullableDemo = (
                     invisible: !context.isSelected,
                   }),
                 ),
-                span([], [shape]),
+                span([], [city]),
               ],
             ),
           }),
-          itemToValue: shape => shape,
-          itemToDisplayText: shape => shape,
+          itemToValue: city => city,
+          itemToDisplayText: city => city,
           inputClassName,
-          inputPlaceholder: 'Search polytopes...',
+          inputPlaceholder: 'Search cities...',
           itemsClassName,
           backdropClassName,
           className: wrapperClassName,
           inputWrapperClassName: 'relative',
           buttonContent: Icon.chevronDown('w-4 h-4'),
           buttonClassName,
+          anchor: COMBOBOX_ANCHOR,
         }),
       ],
     ),
@@ -188,7 +199,7 @@ export const selectOnFocusDemo = (
   comboboxSelectOnFocusModel: Ui.Combobox.Model,
   toMessage: (message: Message) => ParentMessage,
 ) => {
-  const filteredShapes = filterShapes(comboboxSelectOnFocusModel.inputValue)
+  const filteredCities = filterCities(comboboxSelectOnFocusModel.inputValue)
 
   return [
     heading('h3', selectOnFocusHeader.id, selectOnFocusHeader.text),
@@ -204,8 +215,8 @@ export const selectOnFocusDemo = (
           model: comboboxSelectOnFocusModel,
           toMessage: message =>
             toMessage(GotComboboxSelectOnFocusDemoMessage({ message })),
-          items: filteredShapes,
-          itemToConfig: (shape, context) => ({
+          items: filteredCities,
+          itemToConfig: (city, context) => ({
             className: itemClassName,
             content: div(
               [Class('flex items-center gap-2')],
@@ -216,20 +227,21 @@ export const selectOnFocusDemo = (
                     invisible: !context.isSelected,
                   }),
                 ),
-                span([], [shape]),
+                span([], [city]),
               ],
             ),
           }),
-          itemToValue: shape => shape,
-          itemToDisplayText: shape => shape,
+          itemToValue: city => city,
+          itemToDisplayText: city => city,
           inputClassName,
-          inputPlaceholder: 'Search polytopes...',
+          inputPlaceholder: 'Search cities...',
           itemsClassName,
           backdropClassName,
           className: wrapperClassName,
           inputWrapperClassName: 'relative',
           buttonContent: Icon.chevronDown('w-4 h-4'),
           buttonClassName,
+          anchor: COMBOBOX_ANCHOR,
         }),
       ],
     ),
@@ -245,7 +257,7 @@ export const multiDemo = (
   comboboxMultiModel: Ui.Combobox.Multi.Model,
   toMessage: (message: Message) => ParentMessage,
 ) => {
-  const filteredShapes = filterShapes(comboboxMultiModel.inputValue)
+  const filteredCities = filterCities(comboboxMultiModel.inputValue)
 
   return [
     heading('h3', multiHeader.id, multiHeader.text),
@@ -264,8 +276,8 @@ export const multiDemo = (
           model: comboboxMultiModel,
           toMessage: message =>
             toMessage(GotComboboxMultiDemoMessage({ message })),
-          items: filteredShapes,
-          itemToConfig: (shape, context) => ({
+          items: filteredCities,
+          itemToConfig: (city, context) => ({
             className: itemClassName,
             content: div(
               [Class('flex items-center gap-2')],
@@ -276,20 +288,21 @@ export const multiDemo = (
                     invisible: !context.isSelected,
                   }),
                 ),
-                span([], [shape]),
+                span([], [city]),
               ],
             ),
           }),
-          itemToValue: shape => shape,
-          itemToDisplayText: shape => shape,
+          itemToValue: city => city,
+          itemToDisplayText: city => city,
           inputClassName,
-          inputPlaceholder: 'Search polytopes...',
+          inputPlaceholder: 'Search cities...',
           itemsClassName,
           backdropClassName,
           className: wrapperClassName,
           inputWrapperClassName: 'relative',
           buttonContent: Icon.chevronDown('w-4 h-4'),
           buttonClassName,
+          anchor: COMBOBOX_ANCHOR,
         }),
       ],
     ),

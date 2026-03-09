@@ -18,6 +18,7 @@ type Example =
   | 'weather'
   | 'websocket-chat'
   | 'auth'
+  | 'ui-showcase'
 
 type CreateOptions = {
   name: string
