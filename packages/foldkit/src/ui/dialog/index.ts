@@ -87,7 +87,8 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     M.tagsExhaustive({
       Opened: () => {
         const maybeShow = Option.liftPredicate(
-          Task.showModal(dialogSelector(model.id)).pipe(
+          Task.lockScroll.pipe(
+            Effect.andThen(() => Task.showModal(dialogSelector(model.id))),
             Effect.ignore,
             Effect.as(NoOp()),
           ),
@@ -124,6 +125,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
 
         const maybeClose = Option.liftPredicate(
           Task.closeModal(dialogSelector(model.id)).pipe(
+            Effect.andThen(() => Task.unlockScroll),
             Effect.ignore,
             Effect.as(NoOp()),
           ),
@@ -166,6 +168,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             evo(model, { transitionState: () => 'Idle' }),
             [
               Task.closeModal(dialogSelector(model.id)).pipe(
+                Effect.andThen(() => Task.unlockScroll),
                 Effect.ignore,
                 Effect.as(NoOp()),
               ),
@@ -207,6 +210,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     Id,
     OnCancel,
     OnClick,
+    Style,
     keyed,
   } = html<Message>()
 
@@ -251,6 +255,14 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     AriaLabelledBy(`${id}-title`),
     AriaDescribedBy(`${id}-description`),
     OnCancel(toMessage(Closed())),
+    Style({
+      overflow: 'hidden',
+      maxWidth: '100%',
+      maxHeight: '100%',
+      padding: '0',
+      border: 'none',
+      background: 'transparent',
+    }),
     ...(isVisible ? [DataAttribute('open', '')] : []),
     ...(className ? [Class(className)] : []),
   ]
