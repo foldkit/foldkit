@@ -24,21 +24,21 @@
 
 - [ ] Add a docs example showing `makeField` with non-primitive Schema types (e.g. `S.DateFromString`, branded types, `S.Literal` unions) to illustrate when and why the schema factory matters beyond `S.String` / `S.Number`
 
-- [ ] Why does the html function not require a generic arg?
+- [ ] Why does the html function not require a generic arg? (important)
 
-- [ ] Route.oneOf has overloads up to 10 args — consider making it truly variadic or documenting that users should chain oneOfs for more
+- [x] Route.oneOf has overloads up to 10 args — consider making it truly variadic or documenting that users should chain oneOfs for more
 
 - [ ] Foldkit UI — a port of Headless UI to Foldkit
   - Accessible, unstyled UI components as Model/Message/Update modules
   - Components: Dialog, Combobox, Listbox, Menu, Popover, Disclosure, Tabs, etc.
   - Each component exposes its own Model, Message, update, and view
   - Consumers compose them into their app's model and wire messages through update
-  - [ ] Data attributes convention — every foldkit-ui component should emit `data-*` attributes reflecting its interactive state (e.g. `data-selected`, `data-disabled`, `data-active`, `data-checked`, `data-open`). Consumers style against these with CSS selectors or Tailwind's `data-[selected]:` modifiers instead of computing classNames from state. Design and implement this pattern on Tabs first (retrofitting `data-selected`, `data-disabled`), then apply consistently to all subsequent components.
+  - [x] Data attributes convention — every foldkit-ui component should emit `data-*` attributes reflecting its interactive state (e.g. `data-selected`, `data-disabled`, `data-active`, `data-checked`, `data-open`). Consumers style against these with CSS selectors or Tailwind's `data-[selected]:` modifiers instead of computing classNames from state. Design and implement this pattern on Tabs first (retrofitting `data-selected`, `data-disabled`), then apply consistently to all subsequent components.
   - [ ] Virtual scrolling for Listbox, Menu, and Combobox — needed when item counts are large enough that rendering every DOM node hurts performance. Listbox and Menu are the most likely to hit this in practice (long option lists, command palettes). Combobox less so since filtering reduces the visible set, but still relevant for unfiltered/initial state.
   - [ ] `OnKeyDown` modifier keys (`shiftKey`, `ctrlKey`, `altKey`, `metaKey`) — useful for keyboard shortcuts, complex keyboard interactions, and potential future focus trap alternatives
   - [ ] General portal support for components that need to escape stacking contexts without native `<dialog>`
 
-- [ ] Are we using Effect.Clock everywhere we should be in the examples, instead of Date.now()?
+- [x] Are we using Effect.Clock everywhere we should be in the examples, instead of Date.now()?
 
 - [ ] Create `examples/foldkit-ui` example app — a standalone app with a page per UI component showing real integration patterns (model, message, init, update, view). To be done after all foldkit-ui components are built. Website links to this as the canonical usage reference.
 
@@ -54,9 +54,9 @@
 
 - [x] Write a manifesto page for the website
 
-- [ ] Elevate "Foldkit models the frontend" as a core messaging concept — consider using it as the landing page subtitle, meta description, or Getting Started opener. The full line: "Foldkit models the frontend so you can model your domain."
+- [ ] Elevate "Foldkit models the frontend so you can model everything else." as a core messaging concept — consider using it as the landing page subtitle, meta description, or Getting Started opener. The full line: "Foldkit models the frontend so you can model your domain."
 
-- [ ] Copy button not centered in single line code blocks
+- [ ] Copy button not centered in single line code blocks (easy win)
 
 - [ ] Highlighting not visible on live demo in "See it work" section on landing page in dark mode
 
