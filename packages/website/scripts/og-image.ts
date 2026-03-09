@@ -123,7 +123,7 @@ const ogTemplate = (metadata: PageMetadata): SatoriNode =>
             el(
               'div',
               {
-                fontSize: '24px',
+                fontSize: '28px',
                 fontWeight: 400,
                 color: '#a1a1aa',
                 lineHeight: '1.4',
