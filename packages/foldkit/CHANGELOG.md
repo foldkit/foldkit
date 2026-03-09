@@ -1,5 +1,11 @@
 # foldkit
 
+## 0.31.0
+
+### Minor Changes
+
+- 3ae1c8b: Add TransitionState support to Dialog component for coordinated CSS enter/leave transitions
+
 ## 0.30.0
 
 ### Minor Changes
