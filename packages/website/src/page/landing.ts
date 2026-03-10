@@ -23,6 +23,13 @@ import {
 } from '../html'
 import { Icon } from '../icon'
 import { Link } from '../link'
+import {
+  comingFromReactRouter,
+  coreCounterExampleRouter,
+  examplesRouter,
+  gettingStartedRouter,
+  uiOverviewRouter,
+} from '../route'
 import { type CopiedSnippets, codeBlock } from '../view/codeBlock'
 import { exampleAppCount } from './examples'
 
@@ -160,7 +167,7 @@ const heroSection = (copiedSnippets: CopiedSnippets): Html =>
             ],
             [
               a(
-                [Href(Link.gettingStarted), Class('cta-primary')],
+                [Href(gettingStartedRouter()), Class('cta-primary')],
                 ['Dive In', Icon.arrowRight('w-5 h-5')],
               ),
               a(
@@ -406,17 +413,7 @@ const includedSection = (): Html =>
                         'flex items-center text-xl font-normal text-gray-900 dark:text-white mb-2',
                       ),
                     ],
-                    [
-                      'UI Components',
-                      span(
-                        [
-                          Class(
-                            'ml-2 px-2 py-0.5 text-xs font-sans font-normal rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400',
-                          ),
-                        ],
-                        ['In Development'],
-                      ),
-                    ],
+                    ['UI Components'],
                   ),
                   p(
                     [
@@ -430,7 +427,7 @@ const includedSection = (): Html =>
                   ),
                   a(
                     [
-                      Href('/ui/tabs'),
+                      Href(uiOverviewRouter()),
                       Class(
                         'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500 font-normal',
                       ),
@@ -528,7 +525,7 @@ const tradeOffsSection = (): Html =>
                     ],
                   ),
                   a(
-                    [Href(Link.coreCounterExample), Class('cta-secondary')],
+                    [Href(coreCounterExampleRouter()), Class('cta-secondary')],
                     ['See how it works', Icon.arrowRight('w-5 h-5')],
                   ),
                 ],
@@ -551,7 +548,7 @@ const tradeOffsSection = (): Html =>
                     ],
                   ),
                   a(
-                    [Href('/coming-from-react'), Class('cta-secondary')],
+                    [Href(comingFromReactRouter()), Class('cta-secondary')],
                     ['Read the full comparison', Icon.arrowRight('w-5 h-5')],
                   ),
                 ],
@@ -717,7 +714,7 @@ const trustSection = (): Html =>
               trustItemWithLink(
                 'Example apps',
                 String(exampleAppCount),
-                Link.exampleApps,
+                examplesRouter(),
               ),
               trustItemWithLink(
                 'Production app',
@@ -813,7 +810,10 @@ const aiSection = (): Html =>
             ],
           ),
           a(
-            [Href('/getting-started#ai-assisted'), Class('cta-secondary')],
+            [
+              Href(`${gettingStartedRouter()}#ai-assisted`),
+              Class('cta-secondary'),
+            ],
             ['Set up AI-assisted development', Icon.arrowRight('w-5 h-5')],
           ),
         ],
@@ -850,7 +850,7 @@ const finalCtaSection = (): Html =>
             ],
             [
               a(
-                [Href(Link.gettingStarted), Class('cta-primary')],
+                [Href(gettingStartedRouter()), Class('cta-primary')],
                 ['Dive In', Icon.arrowRight('w-5 h-5')],
               ),
               a(

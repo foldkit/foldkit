@@ -4,7 +4,7 @@ import type { Html } from 'foldkit/html'
 import { Class, Href, a, div, table, tbody, td, th, thead, tr } from '../html'
 import { Link } from '../link'
 import { pageTitle, para } from '../prose'
-import { exampleDetailRouter } from '../route'
+import { exampleDetailRouter, gettingStartedRouter } from '../route'
 import { type ExampleMeta, examples as exampleMetas } from './example/meta'
 
 export const exampleAppCount = exampleMetas.length + 1
@@ -116,7 +116,7 @@ export const view = (): Html =>
         '. Pick one that matches what you\u2019re building, or start with Counter and work your way up. See ',
         a(
           [
-            Href('/getting-started'),
+            Href(gettingStartedRouter()),
             Class(
               'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500',
             ),
