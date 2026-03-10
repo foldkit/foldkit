@@ -9,7 +9,7 @@ export type PageMetadata = Readonly<{
 }>
 
 const SITE_DESCRIPTION =
-  'The frontend framework for correctness. Powered by Effect and The Elm Architecture. Predictable state, explicit effects, and a principled architecture designed to scale.'
+  'The frontend framework for correctness. Built on Effect and The Elm Architecture. Predictable state, explicit effects, and a principled architecture designed to scale.'
 
 const docs = (
   title: string,
@@ -149,7 +149,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   UiOverview: ui(
     'Foldkit UI',
-    'Headless, accessible UI components built for the Elm Architecture.',
+    'Headless, accessible UI components built for The Elm Architecture.',
   ),
   UiButton: ui(
     'Button',

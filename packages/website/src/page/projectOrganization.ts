@@ -83,7 +83,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        'Each page folder mirrors the Elm Architecture: Model defines state, Message defines events, update handles transitions, view renders HTML, and init sets up initial state.',
+        'Each page folder mirrors The Elm Architecture: Model defines state, Message defines events, update handles transitions, view renders HTML, and init sets up initial state.',
       ),
       para(
         'As pages grow, you can further split into subfolders. For example, the ',

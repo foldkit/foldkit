@@ -55,7 +55,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       tableOfContentsEntryToHeader(overviewHeader),
       para(
         'In ',
-        link(Link.elmArchitecture, 'the Elm Architecture'),
+        link(Link.elmArchitecture, 'The Elm Architecture'),
         ', every model change triggers a full call to ',
         inlineCode('view(model)'),
         '. The entire virtual DOM tree is rebuilt from scratch, then diffed against the previous tree to compute minimal DOM updates. For most apps this is fast enough, but when a view contains a large subtree that rarely changes, the cost of rebuilding and diffing that subtree on every render adds up.',

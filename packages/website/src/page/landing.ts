@@ -202,7 +202,7 @@ const poweredBySection = (): Html =>
               ),
             ],
             [
-              'Powered by ',
+              'Built on ',
               a(
                 [
                   Href(Link.effect),
@@ -425,7 +425,7 @@ const includedSection = (): Html =>
                       ),
                     ],
                     [
-                      'Accessible primitives — dialog, menu, tabs, listbox, disclosure, and more — built for the Elm Architecture. Easy to style and customize.',
+                      'Accessible primitives — dialog, menu, tabs, listbox, disclosure, and more — built for The Elm Architecture. Easy to style and customize.',
                     ],
                   ),
                   a(
