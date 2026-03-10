@@ -6,11 +6,10 @@ import {
   Effect,
   Match as M,
   Option,
-  Random,
   Schema as S,
   String,
 } from 'effect'
-import { Runtime } from 'foldkit'
+import { Runtime, Task } from 'foldkit'
 import { Command } from 'foldkit/command'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -63,7 +62,7 @@ const NoOp = m('NoOp')
 const UpdatedNewTodo = m('UpdatedNewTodo', { text: S.String })
 const UpdatedEditingTodo = m('UpdatedEditingTodo', { text: S.String })
 const AddedTodo = m('AddedTodo')
-const GotNewTodoData = m('GotNewTodoData', {
+const GeneratedTodo = m('GeneratedTodo', {
   id: S.String,
   timestamp: S.Number,
   text: S.String,
@@ -83,7 +82,7 @@ export const Message = S.Union(
   UpdatedNewTodo,
   UpdatedEditingTodo,
   AddedTodo,
-  GotNewTodoData,
+  GeneratedTodo,
   DeletedTodo,
   ToggledTodo,
   StartedEditing,
@@ -151,10 +150,10 @@ const update = (
           return [model, []]
         }
 
-        return [model, [generateTodoData(String.trim(model.newTodoText))]]
+        return [model, [generateTodo(String.trim(model.newTodoText))]]
       },
 
-      GotNewTodoData: ({ id, timestamp, text }) => {
+      GeneratedTodo: ({ id, timestamp, text }) => {
         const newTodo: Todo = {
           id,
           text,
@@ -301,19 +300,14 @@ const update = (
 
 // COMMAND
 
-const randomId = Effect.gen(function* () {
-  const randomValue = yield* Random.next
-  return randomValue.toString(36).substring(2, 15)
-})
-
-const generateTodoData = (text: string): Command<typeof GotNewTodoData> =>
+const generateTodo = (text: string): Command<typeof GeneratedTodo> =>
   Effect.gen(function* () {
-    const id = yield* randomId
+    const id = yield* Task.randomInt(0, Number.MAX_SAFE_INTEGER).pipe(
+      Effect.map(value => value.toString(36)),
+    )
     const timestamp = yield* Clock.currentTimeMillis
-    return GotNewTodoData({ id, timestamp, text })
+    return GeneratedTodo({ id, timestamp, text })
   })
-
-// COMMAND
 
 const saveTodos = (todos: Todos): Command<typeof SavedTodos> =>
   Effect.gen(function* () {
