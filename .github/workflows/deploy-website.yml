@@ -35,6 +35,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build core packages
+        run: pnpm --filter @foldkit/vite-plugin... build
+
       - name: Build examples
         run: bash scripts/build-examples.sh
 
