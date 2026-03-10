@@ -70,7 +70,7 @@ import {
   DocsRoute,
   ExampleDetailRoute,
   apiModuleRouter,
-  gettingStartedRouter,
+  coreArchitectureRouter,
   homeRouter,
   urlToAppRoute,
 } from './route'
@@ -1424,7 +1424,7 @@ const landingHeaderView = (model: Model) =>
           ),
           a(
             [
-              Href(gettingStartedRouter()),
+              Href(coreArchitectureRouter()),
               Class(
                 'inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 text-sm font-normal transition hover:bg-accent-700 dark:hover:bg-accent-600',
               ),
