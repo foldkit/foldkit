@@ -261,6 +261,10 @@ export const injectMetaTags = (
   return html
     .replace(/<title>[^<]*<\/title>/, `<title>${fullTitle}</title>`)
     .replace(
+      /rel="canonical" href="[^"]*"/,
+      `rel="canonical" href="${pageUrl}"`,
+    )
+    .replace(
       /name="description" content="[^"]*"/,
       `name="description" content="${metadata.description}"`,
     )
@@ -279,6 +283,10 @@ export const injectMetaTags = (
     .replace(
       /property="og:image" content="[^"]*"/,
       `property="og:image" content="${ogImageUrl}"`,
+    )
+    .replace(
+      /property="og:image:alt" content="[^"]*"/,
+      `property="og:image:alt" content="${fullTitle}"`,
     )
     .replace(
       /name="twitter:title" content="[^"]*"/,

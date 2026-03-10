@@ -2,6 +2,18 @@
   "installCommand": "echo 'Dependencies already installed in CI'",
   "buildCommand": "echo 'Build already completed in CI'",
   "outputDirectory": "packages/website/dist",
+  "headers": [
+    {
+      "source": "/og/(.*).png",
+      "headers": [
+        { "key": "Content-Type", "value": "image/png" },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/",
