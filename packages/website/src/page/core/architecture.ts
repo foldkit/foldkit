@@ -69,11 +69,7 @@ export const view = (): Html =>
         'Commands are descriptions of side effects \u2014 HTTP requests, timers, browser API calls. The Foldkit runtime executes them and sends their results back as new Messages, feeding them into the same loop.',
       ),
       para(
-        'That\u2019s it. ',
-        inlineCode(
-          'Message \u2192 update \u2192 Model + Commands \u2192 view \u2192 Message',
-        ),
-        '. Every state transition in your app flows through this single loop. There\u2019s no action-at-a-distance, no hidden state mutation, no effect that runs outside the cycle. If you want to know how the app got into its current state, you follow the Messages.',
+        'That\u2019s it. Every state transition in your app flows through a single loop. There\u2019s no action-at-a-distance, no hidden state mutation, no effect that runs outside the cycle. If you want to know how the app got into its current state, you follow the Messages.',
       ),
       para(
         'The complete cycle, including Subscriptions and ManagedResources, looks like this:',
