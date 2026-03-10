@@ -26,7 +26,6 @@ import { Link } from '../link'
 import {
   comingFromReactRouter,
   coreArchitectureRouter,
-  coreCounterExampleRouter,
   examplesRouter,
   gettingStartedRouter,
   uiOverviewRouter,
@@ -526,7 +525,7 @@ const tradeOffsSection = (): Html =>
                     ],
                   ),
                   a(
-                    [Href(coreCounterExampleRouter()), Class('cta-secondary')],
+                    [Href(coreArchitectureRouter()), Class('cta-secondary')],
                     ['See how it works', Icon.arrowRight('w-5 h-5')],
                   ),
                 ],
