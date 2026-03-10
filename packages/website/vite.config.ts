@@ -551,6 +551,7 @@ const EXAMPLE_SLUGS = [
   'snake',
   'error-view',
   'websocket-chat',
+  'ui-showcase',
 ]
 
 const EXAMPLE_FILE_EXTENSIONS = new Set(['.ts', '.tsx', '.css'])
@@ -578,7 +579,8 @@ const collectSourceFiles = async (
       entry =>
         entry.isFile() &&
         EXAMPLE_FILE_EXTENSIONS.has(extname(entry.name)) &&
-        !entry.parentPath.includes('node_modules'),
+        !entry.parentPath.includes('node_modules') &&
+        !entry.name.includes('.test.'),
     )
     .map(entry => join(entry.parentPath, entry.name))
 }

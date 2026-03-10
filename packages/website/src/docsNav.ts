@@ -1,5 +1,6 @@
-import { Array, Number, Option, pipe } from 'effect'
+import { Array, Number, Option, String, pipe } from 'effect'
 
+import { examples } from './page/example/meta'
 import {
   bestPracticesRouter,
   comingFromReactRouter,
@@ -7,7 +8,7 @@ import {
   coreCommandsRouter,
   coreCounterExampleRouter,
   coreErrorViewRouter,
-  coreInitRouter,
+  coreInitAndFlagsRouter,
   coreManagedResourcesRouter,
   coreMessagesRouter,
   coreModelRouter,
@@ -19,6 +20,7 @@ import {
   coreUpdateRouter,
   coreViewMemoizationRouter,
   coreViewRouter,
+  exampleDetailRouter,
   examplesRouter,
   fieldValidationRouter,
   gettingStartedRouter,
@@ -53,252 +55,306 @@ export type NavPage = Readonly<{
   label: string
 }>
 
+const EXAMPLE_DETAIL_TAG_PREFIX = 'ExampleDetail:'
+
+const exampleDetailTag = (slug: string): string =>
+  EXAMPLE_DETAIL_TAG_PREFIX + slug
+
+/** Determines whether a nav page should be highlighted as active. Handles
+ *  example detail pages whose `_tag` encodes the slug (e.g. `ExampleDetail:counter`). */
+export const isNavPageActive = (
+  routeTag: string,
+  maybeExampleSlug: Option.Option<string>,
+  pageTag: string,
+): boolean =>
+  pipe(
+    maybeExampleSlug,
+    Option.filter(() =>
+      pipe(pageTag, String.startsWith(EXAMPLE_DETAIL_TAG_PREFIX)),
+    ),
+    Option.match({
+      onNone: () => routeTag === pageTag,
+      onSome: slug => pageTag === exampleDetailTag(slug),
+    }),
+  )
+
 // DOCS SECTIONS
 
 export type DocsSection = Readonly<{
   label: string
-  pages: ReadonlyArray<NavPage>
+  pageGroups: ReadonlyArray<ReadonlyArray<NavPage>>
 }>
 
 export const docsSections: ReadonlyArray<DocsSection> = [
   {
     label: 'Get Started',
-    pages: [
-      {
-        _tag: 'Manifesto',
-        href: manifestoRouter(),
-        label: 'Manifesto',
-      },
-      {
-        _tag: 'GettingStarted',
-        href: gettingStartedRouter(),
-        label: 'Getting Started',
-      },
+    pageGroups: [
+      [
+        {
+          _tag: 'Manifesto',
+          href: manifestoRouter(),
+          label: 'Manifesto',
+        },
+        {
+          _tag: 'GettingStarted',
+          href: gettingStartedRouter(),
+          label: 'Getting Started',
+        },
+      ],
     ],
   },
   {
     label: 'Core Concepts',
-    pages: [
-      {
-        _tag: 'CoreArchitecture',
-        href: coreArchitectureRouter(),
-        label: 'Architecture',
-      },
-      {
-        _tag: 'CoreCounterExample',
-        href: coreCounterExampleRouter(),
-        label: 'Counter Example',
-      },
-      {
-        _tag: 'CoreModel',
-        href: coreModelRouter(),
-        label: 'Model',
-      },
-      {
-        _tag: 'CoreMessages',
-        href: coreMessagesRouter(),
-        label: 'Messages',
-      },
-      {
-        _tag: 'CoreUpdate',
-        href: coreUpdateRouter(),
-        label: 'Update',
-      },
-      {
-        _tag: 'CoreView',
-        href: coreViewRouter(),
-        label: 'View',
-      },
-      {
-        _tag: 'CoreCommands',
-        href: coreCommandsRouter(),
-        label: 'Commands',
-      },
-      {
-        _tag: 'CoreSubscriptions',
-        href: coreSubscriptionsRouter(),
-        label: 'Subscriptions',
-      },
-      {
-        _tag: 'CoreInit',
-        href: coreInitRouter(),
-        label: 'Init',
-      },
-      {
-        _tag: 'CoreTask',
-        href: coreTaskRouter(),
-        label: 'Task',
-      },
-      {
-        _tag: 'CoreRunningYourApp',
-        href: coreRunningYourAppRouter(),
-        label: 'Running Your App',
-      },
-      {
-        _tag: 'CoreResources',
-        href: coreResourcesRouter(),
-        label: 'Resources',
-      },
-      {
-        _tag: 'CoreManagedResources',
-        href: coreManagedResourcesRouter(),
-        label: 'Managed Resources',
-      },
-      {
-        _tag: 'CoreErrorView',
-        href: coreErrorViewRouter(),
-        label: 'Error View',
-      },
-      {
-        _tag: 'CoreSlowViewWarning',
-        href: coreSlowViewWarningRouter(),
-        label: 'Slow View Warning',
-      },
-      {
-        _tag: 'CoreViewMemoization',
-        href: coreViewMemoizationRouter(),
-        label: 'View Memoization',
-      },
+    pageGroups: [
+      [
+        {
+          _tag: 'CoreArchitecture',
+          href: coreArchitectureRouter(),
+          label: 'Architecture',
+        },
+        {
+          _tag: 'CoreCounterExample',
+          href: coreCounterExampleRouter(),
+          label: 'Counter Example',
+        },
+      ],
+      [
+        {
+          _tag: 'CoreModel',
+          href: coreModelRouter(),
+          label: 'Model',
+        },
+        {
+          _tag: 'CoreMessages',
+          href: coreMessagesRouter(),
+          label: 'Messages',
+        },
+        {
+          _tag: 'CoreUpdate',
+          href: coreUpdateRouter(),
+          label: 'Update',
+        },
+        {
+          _tag: 'CoreView',
+          href: coreViewRouter(),
+          label: 'View',
+        },
+      ],
+      [
+        {
+          _tag: 'CoreCommands',
+          href: coreCommandsRouter(),
+          label: 'Commands',
+        },
+        {
+          _tag: 'CoreSubscriptions',
+          href: coreSubscriptionsRouter(),
+          label: 'Subscriptions',
+        },
+        {
+          _tag: 'CoreInitAndFlags',
+          href: coreInitAndFlagsRouter(),
+          label: 'Init & Flags',
+        },
+        {
+          _tag: 'CoreTask',
+          href: coreTaskRouter(),
+          label: 'Task',
+        },
+      ],
+      [
+        {
+          _tag: 'CoreRunningYourApp',
+          href: coreRunningYourAppRouter(),
+          label: 'Running Your App',
+        },
+        {
+          _tag: 'CoreResources',
+          href: coreResourcesRouter(),
+          label: 'Resources',
+        },
+        {
+          _tag: 'CoreManagedResources',
+          href: coreManagedResourcesRouter(),
+          label: 'Managed Resources',
+        },
+      ],
+      [
+        {
+          _tag: 'CoreErrorView',
+          href: coreErrorViewRouter(),
+          label: 'Error View',
+        },
+        {
+          _tag: 'CoreSlowViewWarning',
+          href: coreSlowViewWarningRouter(),
+          label: 'Slow View Warning',
+        },
+        {
+          _tag: 'CoreViewMemoization',
+          href: coreViewMemoizationRouter(),
+          label: 'View Memoization',
+        },
+      ],
     ],
   },
   {
     label: 'Guides',
-    pages: [
-      {
-        _tag: 'ComingFromReact',
-        href: comingFromReactRouter(),
-        label: 'Coming from React',
-      },
-      {
-        _tag: 'RoutingAndNavigation',
-        href: routingAndNavigationRouter(),
-        label: 'Routing & Navigation',
-      },
-      {
-        _tag: 'FieldValidation',
-        href: fieldValidationRouter(),
-        label: 'Field Validation',
-      },
-      {
-        _tag: 'ProjectOrganization',
-        href: projectOrganizationRouter(),
-        label: 'Project Organization',
-      },
-      {
-        _tag: 'BestPractices',
-        href: bestPracticesRouter(),
-        label: 'Best Practices',
-      },
+    pageGroups: [
+      [
+        {
+          _tag: 'ComingFromReact',
+          href: comingFromReactRouter(),
+          label: 'Coming from React',
+        },
+        {
+          _tag: 'RoutingAndNavigation',
+          href: routingAndNavigationRouter(),
+          label: 'Routing & Navigation',
+        },
+        {
+          _tag: 'FieldValidation',
+          href: fieldValidationRouter(),
+          label: 'Field Validation',
+        },
+        {
+          _tag: 'ProjectOrganization',
+          href: projectOrganizationRouter(),
+          label: 'Project Organization',
+        },
+        {
+          _tag: 'BestPractices',
+          href: bestPracticesRouter(),
+          label: 'Best Practices',
+        },
+      ],
     ],
   },
   {
     label: 'Patterns',
-    pages: [
-      {
-        _tag: 'PatternsSubmodels',
-        href: patternsSubmodelsRouter(),
-        label: 'Submodels',
-      },
-      {
-        _tag: 'PatternsOutMessage',
-        href: patternsOutMessageRouter(),
-        label: 'OutMessage',
-      },
+    pageGroups: [
+      [
+        {
+          _tag: 'PatternsSubmodels',
+          href: patternsSubmodelsRouter(),
+          label: 'Submodels',
+        },
+        {
+          _tag: 'PatternsOutMessage',
+          href: patternsOutMessageRouter(),
+          label: 'OutMessage',
+        },
+      ],
     ],
   },
   {
     label: 'Examples',
-    pages: [
-      {
-        _tag: 'Examples',
-        href: examplesRouter(),
-        label: 'Example Apps',
-      },
+    pageGroups: [
+      [
+        {
+          _tag: 'Examples',
+          href: examplesRouter(),
+          label: 'Overview',
+        },
+        ...Array.map(examples, example => ({
+          _tag: exampleDetailTag(example.slug),
+          href: exampleDetailRouter({ exampleSlug: example.slug }),
+          label: example.title,
+        })),
+      ],
     ],
   },
   {
     label: 'Foldkit UI',
-    pages: [
-      {
-        _tag: 'UiOverview',
-        href: uiOverviewRouter(),
-        label: 'Overview',
-      },
-      {
-        _tag: 'UiButton',
-        href: uiButtonRouter(),
-        label: 'Button',
-      },
-      {
-        _tag: 'UiInput',
-        href: uiInputRouter(),
-        label: 'Input',
-      },
-      {
-        _tag: 'UiTextarea',
-        href: uiTextareaRouter(),
-        label: 'Textarea',
-      },
-      {
-        _tag: 'UiCheckbox',
-        href: uiCheckboxRouter(),
-        label: 'Checkbox',
-      },
-      {
-        _tag: 'UiFieldset',
-        href: uiFieldsetRouter(),
-        label: 'Fieldset',
-      },
-      {
-        _tag: 'UiRadioGroup',
-        href: uiRadioGroupRouter(),
-        label: 'Radio Group',
-      },
-      {
-        _tag: 'UiSwitch',
-        href: uiSwitchRouter(),
-        label: 'Switch',
-      },
-      {
-        _tag: 'UiSelect',
-        href: uiSelectRouter(),
-        label: 'Select',
-      },
-      {
-        _tag: 'UiListbox',
-        href: uiListboxRouter(),
-        label: 'Listbox',
-      },
-      {
-        _tag: 'UiCombobox',
-        href: uiComboboxRouter(),
-        label: 'Combobox',
-      },
-      {
-        _tag: 'UiDialog',
-        href: uiDialogRouter(),
-        label: 'Dialog',
-      },
-      {
-        _tag: 'UiMenu',
-        href: uiMenuRouter(),
-        label: 'Menu',
-      },
-      {
-        _tag: 'UiPopover',
-        href: uiPopoverRouter(),
-        label: 'Popover',
-      },
-      {
-        _tag: 'UiDisclosure',
-        href: uiDisclosureRouter(),
-        label: 'Disclosure',
-      },
-      {
-        _tag: 'UiTabs',
-        href: uiTabsRouter(),
-        label: 'Tabs',
-      },
+    pageGroups: [
+      [
+        {
+          _tag: 'UiOverview',
+          href: uiOverviewRouter(),
+          label: 'Overview',
+        },
+      ],
+      [
+        {
+          _tag: 'UiButton',
+          href: uiButtonRouter(),
+          label: 'Button',
+        },
+        {
+          _tag: 'UiInput',
+          href: uiInputRouter(),
+          label: 'Input',
+        },
+        {
+          _tag: 'UiTextarea',
+          href: uiTextareaRouter(),
+          label: 'Textarea',
+        },
+        {
+          _tag: 'UiCheckbox',
+          href: uiCheckboxRouter(),
+          label: 'Checkbox',
+        },
+        {
+          _tag: 'UiFieldset',
+          href: uiFieldsetRouter(),
+          label: 'Fieldset',
+        },
+      ],
+      [
+        {
+          _tag: 'UiRadioGroup',
+          href: uiRadioGroupRouter(),
+          label: 'Radio Group',
+        },
+        {
+          _tag: 'UiSwitch',
+          href: uiSwitchRouter(),
+          label: 'Switch',
+        },
+        {
+          _tag: 'UiSelect',
+          href: uiSelectRouter(),
+          label: 'Select',
+        },
+        {
+          _tag: 'UiListbox',
+          href: uiListboxRouter(),
+          label: 'Listbox',
+        },
+        {
+          _tag: 'UiCombobox',
+          href: uiComboboxRouter(),
+          label: 'Combobox',
+        },
+      ],
+      [
+        {
+          _tag: 'UiDialog',
+          href: uiDialogRouter(),
+          label: 'Dialog',
+        },
+        {
+          _tag: 'UiMenu',
+          href: uiMenuRouter(),
+          label: 'Menu',
+        },
+        {
+          _tag: 'UiPopover',
+          href: uiPopoverRouter(),
+          label: 'Popover',
+        },
+        {
+          _tag: 'UiDisclosure',
+          href: uiDisclosureRouter(),
+          label: 'Disclosure',
+        },
+        {
+          _tag: 'UiTabs',
+          href: uiTabsRouter(),
+          label: 'Tabs',
+        },
+      ],
     ],
   },
 ]
@@ -307,7 +363,7 @@ export const docsSections: ReadonlyArray<DocsSection> = [
 
 export const allPages: ReadonlyArray<NavPage> = Array.flatMap(
   docsSections,
-  ({ pages }) => pages,
+  ({ pageGroups }) => Array.flatten(pageGroups),
 )
 
 // NEXT / PREV LOOKUP

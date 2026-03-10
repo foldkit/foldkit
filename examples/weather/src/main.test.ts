@@ -1,5 +1,5 @@
 import { HttpClient, HttpClientResponse } from '@effect/platform'
-import { Effect, Layer } from 'effect'
+import { Effect, Layer, Match as M, String } from 'effect'
 import { expect, test } from 'vitest'
 
 import {
@@ -31,10 +31,10 @@ test('SucceededWeatherFetch updates model with weather data', () => {
   const weatherData: WeatherData = {
     zipCode: '90210',
     temperature: 72,
-    description: 'Sunny',
+    description: 'Clear sky',
     humidity: 45,
     windSpeed: 10,
-    areaName: 'Beverly Hills',
+    locationName: 'Beverly Hills',
     region: 'California',
   }
 
@@ -46,36 +46,49 @@ test('SucceededWeatherFetch updates model with weather data', () => {
   expect(newModel.weather._tag).toBe('WeatherSuccess')
   if (newModel.weather._tag === 'WeatherSuccess') {
     expect(newModel.weather.data.temperature).toBe(72)
-    expect(newModel.weather.data.areaName).toBe('Beverly Hills')
+    expect(newModel.weather.data.locationName).toBe('Beverly Hills')
   }
   expect(commands).toHaveLength(0)
 })
 
-test('fetchWeather returns SucceededWeatherFetch with data on success', async () => {
-  const mockResponseData = {
-    current_condition: [
-      {
-        temp_F: '72',
-        humidity: '45',
-        windspeedKmph: '10',
-        weatherDesc: [{ value: 'Sunny' }],
-      },
-    ],
-    nearest_area: [
-      {
-        areaName: [{ value: 'Beverly Hills' }],
-        region: [{ value: 'California' }],
-      },
-    ],
-  }
+const mockGeocodingResponse = {
+  results: [
+    {
+      name: 'Beverly Hills',
+      latitude: 34.07362,
+      longitude: -118.40036,
+      admin1: 'California',
+    },
+  ],
+  generationtime_ms: 0.5,
+}
 
-  const mockClient = HttpClient.make(req =>
-    Effect.succeed(
-      HttpClientResponse.fromWeb(
-        req,
-        new Response(JSON.stringify(mockResponseData), { status: 200 }),
-      ),
-    ),
+const mockWeatherResponse = {
+  current: {
+    time: '2026-03-10T01:30',
+    interval: 900,
+    temperature_2m: 72.4,
+    relative_humidity_2m: 45,
+    wind_speed_10m: 9.8,
+    weather_code: 0,
+  },
+}
+
+test('fetchWeather returns SucceededWeatherFetch with data on success', async () => {
+  const mockClient = HttpClient.make(request =>
+    Effect.sync(() => {
+      const responseData = M.value(request.url).pipe(
+        M.when(String.includes('geocoding'), () => mockGeocodingResponse),
+        M.when(String.includes('forecast'), () => mockWeatherResponse),
+        M.orElse(url => {
+          throw new Error(`Unexpected request URL: ${url}`)
+        }),
+      )
+      return HttpClientResponse.fromWeb(
+        request,
+        new Response(JSON.stringify(responseData), { status: 200 }),
+      )
+    }),
   )
 
   const HttpClientTest = Layer.succeed(HttpClient.HttpClient, mockClient)
@@ -88,14 +101,16 @@ test('fetchWeather returns SucceededWeatherFetch with data on success', async ()
   expect(message._tag).toBe('SucceededWeatherFetch')
   if (message._tag === 'SucceededWeatherFetch') {
     expect(message.weather.temperature).toBe(72)
-    expect(message.weather.areaName).toBe('Beverly Hills')
+    expect(message.weather.locationName).toBe('Beverly Hills')
+    expect(message.weather.description).toBe('Clear sky')
+    expect(message.weather.windSpeed).toBe(10)
   }
 })
 
 test('fetchWeather returns FailedWeatherFetch on HTTP failure', async () => {
-  const mockClient = HttpClient.make(req =>
+  const mockClient = HttpClient.make(request =>
     Effect.succeed(
-      HttpClientResponse.fromWeb(req, new Response(null, { status: 404 })),
+      HttpClientResponse.fromWeb(request, new Response(null, { status: 404 })),
     ),
   )
 
@@ -107,4 +122,27 @@ test('fetchWeather returns FailedWeatherFetch on HTTP failure', async () => {
   )
 
   expect(message._tag).toBe('FailedWeatherFetch')
+})
+
+test('fetchWeather returns FailedWeatherFetch when no results found', async () => {
+  const mockClient = HttpClient.make(request =>
+    Effect.succeed(
+      HttpClientResponse.fromWeb(
+        request,
+        new Response(JSON.stringify({ results: [] }), { status: 200 }),
+      ),
+    ),
+  )
+
+  const HttpClientTest = Layer.succeed(HttpClient.HttpClient, mockClient)
+
+  const message = await fetchWeather('00000').pipe(
+    Effect.provide(HttpClientTest),
+    Effect.runPromise,
+  )
+
+  expect(message._tag).toBe('FailedWeatherFetch')
+  if (message._tag === 'FailedWeatherFetch') {
+    expect(message.error).toBe('Location not found')
+  }
 })

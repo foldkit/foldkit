@@ -41,6 +41,7 @@ export default [
     ignores: [
       'dist/',
       'node_modules/',
+      'public/example-apps-embed/',
       '**/*.d.ts',
       'eslint.config.mjs',
       'vite.config.ts',

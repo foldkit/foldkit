@@ -95,6 +95,6 @@ export const highlightedCodeBlock = (
   className?: string,
 ) =>
   div(
-    [Class(classNames('relative min-w-0', className))],
+    [Class(classNames('relative min-w-0 mt-8', className))],
     [content, copyButtonWithIndicator(rawCode, ariaLabel, copiedSnippets)],
   )

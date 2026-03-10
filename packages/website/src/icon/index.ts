@@ -6,6 +6,7 @@ import { chatBubble } from './chatBubble'
 import { check } from './check'
 import { checkBadge } from './checkBadge'
 import { chevronDown } from './chevronDown'
+import { chevronLeft } from './chevronLeft'
 import { circleStack } from './circleStack'
 import { close } from './close'
 import { codeBracket } from './codeBracket'
@@ -40,6 +41,7 @@ export const Icon = {
   check,
   checkBadge,
   chevronDown,
+  chevronLeft,
   circleStack,
   close,
   codeBracket,

@@ -32,7 +32,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
     [],
     [
-      pageTitle('core/init', 'Init'),
+      pageTitle('core/init', 'Init & Flags'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
         'The counter works, but every time the user refreshes the page, the count resets to zero. What if we want to remember the last count? That\u2019s where Init comes in \u2014 and where flags let you pass data into your app at startup.',

@@ -12,8 +12,6 @@ import { ChangedUrl, ClickedLink, Message, NoOp } from './message'
 import { LoggedIn, LoggedOut, Model } from './model'
 import {
   DashboardRoute,
-  LoggedInRoute,
-  LoggedOutRoute,
   LoginRoute,
   dashboardRouter,
   loginRouter,
@@ -59,7 +57,10 @@ const init: Runtime.ApplicationInit<Model, Message, Flags> = (
     onNone: () =>
       M.value(route).pipe(
         withInitReturn,
-        M.when(S.is(LoggedOutRoute), route => [LoggedOut.init(route), []]),
+        M.tag('Home', 'Login', 'NotFound', route => [
+          LoggedOut.init(route),
+          [],
+        ]),
         M.orElse(() => [
           LoggedOut.init(LoginRoute()),
           [replaceUrl(loginRouter()).pipe(Effect.as(NoOp()))],
@@ -69,7 +70,7 @@ const init: Runtime.ApplicationInit<Model, Message, Flags> = (
     onSome: session =>
       M.value(route).pipe(
         withInitReturn,
-        M.when(S.is(LoggedInRoute), route => [
+        M.tag('Dashboard', 'Settings', 'NotFound', route => [
           LoggedIn.init(route, session),
           [],
         ]),

@@ -50,6 +50,17 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     entryFile: 'src/main.ts',
   },
   {
+    slug: 'error-view',
+    title: 'Error View',
+    description:
+      'Custom error fallback UI. Demonstrates errorView with a crash button and reload.',
+    difficulty: 'Beginner',
+    tags: ['Fallback UI'],
+    sourceHref: Link.exampleErrorView,
+    hasRouting: false,
+    entryFile: 'src/main.ts',
+  },
+  {
     slug: 'form',
     title: 'Form',
     description:
@@ -94,6 +105,17 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     entryFile: 'src/main.ts',
   },
   {
+    slug: 'snake',
+    title: 'Snake',
+    description:
+      'The classic snake game. Keyboard input, game loop, and collision detection.',
+    difficulty: 'Advanced',
+    tags: ['Game'],
+    sourceHref: Link.exampleSnake,
+    hasRouting: false,
+    entryFile: 'src/main.ts',
+  },
+  {
     slug: 'auth',
     title: 'Auth',
     description:
@@ -113,28 +135,6 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     tags: ['Routing'],
     sourceHref: Link.exampleShoppingCart,
     hasRouting: true,
-    entryFile: 'src/main.ts',
-  },
-  {
-    slug: 'snake',
-    title: 'Snake',
-    description:
-      'The classic snake game. Keyboard input, game loop, and collision detection.',
-    difficulty: 'Advanced',
-    tags: ['Game'],
-    sourceHref: Link.exampleSnake,
-    hasRouting: false,
-    entryFile: 'src/main.ts',
-  },
-  {
-    slug: 'error-view',
-    title: 'Error View',
-    description:
-      'Custom error fallback UI. Demonstrates errorView with a crash button and reload.',
-    difficulty: 'Beginner',
-    tags: ['Fallback UI'],
-    sourceHref: Link.exampleErrorView,
-    hasRouting: false,
     entryFile: 'src/main.ts',
   },
   {

@@ -34,7 +34,7 @@ export const CoreUpdateRoute = r('CoreUpdate')
 export const CoreViewRoute = r('CoreView')
 export const CoreCommandsRoute = r('CoreCommands')
 export const CoreSubscriptionsRoute = r('CoreSubscriptions')
-export const CoreInitRoute = r('CoreInit')
+export const CoreInitAndFlagsRoute = r('CoreInitAndFlags')
 export const CoreTaskRoute = r('CoreTask')
 export const CoreRunningYourAppRoute = r('CoreRunningYourApp')
 export const CoreResourcesRoute = r('CoreResources')
@@ -84,7 +84,7 @@ export const DocsRoute = S.Union(
   CoreViewRoute,
   CoreCommandsRoute,
   CoreSubscriptionsRoute,
-  CoreInitRoute,
+  CoreInitAndFlagsRoute,
   CoreTaskRoute,
   CoreRunningYourAppRoute,
   CoreResourcesRoute,
@@ -115,53 +115,6 @@ export const DocsRoute = S.Union(
 export type DocsRoute = typeof DocsRoute.Type
 
 export const AppRoute = S.Union(HomeRoute, DocsRoute)
-
-export type HomeRoute = typeof HomeRoute.Type
-export type ManifestoRoute = typeof ManifestoRoute.Type
-export type ComingFromReactRoute = typeof ComingFromReactRoute.Type
-export type GettingStartedRoute = typeof GettingStartedRoute.Type
-export type RoutingAndNavigationRoute = typeof RoutingAndNavigationRoute.Type
-export type FieldValidationRoute = typeof FieldValidationRoute.Type
-export type ExamplesRoute = typeof ExamplesRoute.Type
-export type ExampleDetailRoute = typeof ExampleDetailRoute.Type
-export type BestPracticesRoute = typeof BestPracticesRoute.Type
-export type ProjectOrganizationRoute = typeof ProjectOrganizationRoute.Type
-export type ApiModuleRoute = typeof ApiModuleRoute.Type
-export type CoreArchitectureRoute = typeof CoreArchitectureRoute.Type
-export type CoreCounterExampleRoute = typeof CoreCounterExampleRoute.Type
-export type CoreModelRoute = typeof CoreModelRoute.Type
-export type CoreMessagesRoute = typeof CoreMessagesRoute.Type
-export type CoreUpdateRoute = typeof CoreUpdateRoute.Type
-export type CoreViewRoute = typeof CoreViewRoute.Type
-export type CoreCommandsRoute = typeof CoreCommandsRoute.Type
-export type CoreSubscriptionsRoute = typeof CoreSubscriptionsRoute.Type
-export type CoreInitRoute = typeof CoreInitRoute.Type
-export type CoreTaskRoute = typeof CoreTaskRoute.Type
-export type CoreRunningYourAppRoute = typeof CoreRunningYourAppRoute.Type
-export type CoreResourcesRoute = typeof CoreResourcesRoute.Type
-export type CoreManagedResourcesRoute = typeof CoreManagedResourcesRoute.Type
-export type CoreErrorViewRoute = typeof CoreErrorViewRoute.Type
-export type CoreSlowViewWarningRoute = typeof CoreSlowViewWarningRoute.Type
-export type PatternsSubmodelsRoute = typeof PatternsSubmodelsRoute.Type
-export type PatternsOutMessageRoute = typeof PatternsOutMessageRoute.Type
-export type CoreViewMemoizationRoute = typeof CoreViewMemoizationRoute.Type
-export type UiOverviewRoute = typeof UiOverviewRoute.Type
-export type UiButtonRoute = typeof UiButtonRoute.Type
-export type UiCheckboxRoute = typeof UiCheckboxRoute.Type
-export type UiTabsRoute = typeof UiTabsRoute.Type
-export type UiDisclosureRoute = typeof UiDisclosureRoute.Type
-export type UiDialogRoute = typeof UiDialogRoute.Type
-export type UiMenuRoute = typeof UiMenuRoute.Type
-export type UiPopoverRoute = typeof UiPopoverRoute.Type
-export type UiListboxRoute = typeof UiListboxRoute.Type
-export type UiRadioGroupRoute = typeof UiRadioGroupRoute.Type
-export type UiSelectRoute = typeof UiSelectRoute.Type
-export type UiSwitchRoute = typeof UiSwitchRoute.Type
-export type UiComboboxRoute = typeof UiComboboxRoute.Type
-export type UiInputRoute = typeof UiInputRoute.Type
-export type UiTextareaRoute = typeof UiTextareaRoute.Type
-export type UiFieldsetRoute = typeof UiFieldsetRoute.Type
-export type NotFoundRoute = typeof NotFoundRoute.Type
 export type AppRoute = typeof AppRoute.Type
 
 // ROUTERS
@@ -184,14 +137,14 @@ export const fieldValidationRouter = pipe(
   literal('field-validation'),
   mapTo(FieldValidationRoute),
 )
+export const examplesRouter = pipe(
+  literal('example-apps'),
+  mapTo(ExamplesRoute),
+)
 export const exampleDetailRouter = pipe(
   literal('example-apps'),
   slash(string('exampleSlug')),
   mapTo(ExampleDetailRoute),
-)
-export const examplesRouter = pipe(
-  literal('example-apps'),
-  mapTo(ExamplesRoute),
 )
 export const bestPracticesRouter = pipe(
   literal('best-practices'),
@@ -206,6 +159,7 @@ export const apiModuleRouter = pipe(
   slash(string('moduleSlug')),
   mapTo(ApiModuleRoute),
 )
+
 export const coreArchitectureRouter = pipe(
   literal('core'),
   slash(literal('architecture')),
@@ -246,10 +200,10 @@ export const coreSubscriptionsRouter = pipe(
   slash(literal('subscriptions')),
   mapTo(CoreSubscriptionsRoute),
 )
-export const coreInitRouter = pipe(
+export const coreInitAndFlagsRouter = pipe(
   literal('core'),
-  slash(literal('init')),
-  mapTo(CoreInitRoute),
+  slash(literal('init-and-flags')),
+  mapTo(CoreInitAndFlagsRoute),
 )
 export const coreTaskRouter = pipe(
   literal('core'),
@@ -297,10 +251,21 @@ export const patternsOutMessageRouter = pipe(
   slash(literal('out-message')),
   mapTo(PatternsOutMessageRoute),
 )
+
 export const uiOverviewRouter = pipe(
   literal('ui'),
   slash(literal('overview')),
   mapTo(UiOverviewRoute),
+)
+export const uiButtonRouter = pipe(
+  literal('ui'),
+  slash(literal('button')),
+  mapTo(UiButtonRoute),
+)
+export const uiCheckboxRouter = pipe(
+  literal('ui'),
+  slash(literal('checkbox')),
+  mapTo(UiCheckboxRoute),
 )
 export const uiTabsRouter = pipe(
   literal('ui'),
@@ -347,16 +312,6 @@ export const uiSwitchRouter = pipe(
   slash(literal('switch')),
   mapTo(UiSwitchRoute),
 )
-export const uiButtonRouter = pipe(
-  literal('ui'),
-  slash(literal('button')),
-  mapTo(UiButtonRoute),
-)
-export const uiCheckboxRouter = pipe(
-  literal('ui'),
-  slash(literal('checkbox')),
-  mapTo(UiCheckboxRoute),
-)
 export const uiComboboxRouter = pipe(
   literal('ui'),
   slash(literal('combobox')),
@@ -380,7 +335,7 @@ export const uiFieldsetRouter = pipe(
 
 // PARSER
 
-const legacyDocsParser = oneOf(
+const topLevelDocsParser = oneOf(
   manifestoRouter,
   comingFromReactRouter,
   gettingStartedRouter,
@@ -401,12 +356,9 @@ const coreParser = oneOf(
   coreViewRouter,
   coreCommandsRouter,
   coreSubscriptionsRouter,
-  coreInitRouter,
+  coreInitAndFlagsRouter,
   coreTaskRouter,
   coreRunningYourAppRouter,
-)
-
-const coreExtendedParser = oneOf(
   coreResourcesRouter,
   coreManagedResourcesRouter,
   coreErrorViewRouter,
@@ -436,9 +388,8 @@ const uiParser = oneOf(
 )
 
 const docsParser = oneOf(
-  legacyDocsParser,
+  topLevelDocsParser,
   coreParser,
-  coreExtendedParser,
   patternsParser,
   uiParser,
 )

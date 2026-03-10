@@ -153,17 +153,17 @@ This is what makes Foldkit unusually AI-friendly. The same property that makes t
 ## Examples
 
 - **[Counter](examples/counter/src/main.ts)** — Increment/decrement with reset
-- **[Stopwatch](examples/stopwatch/src/main.ts)** — Timer with start/stop/reset
-- **[Weather](examples/weather/src/main.ts)** — HTTP requests with async state handling
 - **[Todo](examples/todo/src/main.ts)** — CRUD operations with localStorage persistence
-- **[Form](examples/form/src/main.ts)** — Form validation with async email checking
-- **[Routing](examples/routing/src/main.ts)** — URL routing with parser combinators
-- **[Shopping Cart](examples/shopping-cart/src/main.ts)** — Nested models and complex state
-- **[Snake](examples/snake/src/main.ts)** — Classic game built with Subscriptions
-- **[WebSocket Chat](examples/websocket-chat/src/main.ts)** — Managed Resources with WebSocket integration
-- **[Auth](examples/auth/src/main.ts)** — Authentication flow with Submodels and OutMessage
-- **[Query Sync](examples/query-sync/src/main.ts)** — URL query parameter sync with filtering and sorting
+- **[Stopwatch](examples/stopwatch/src/main.ts)** — Timer with start/stop/reset
 - **[Error View](examples/error-view/src/main.ts)** — Custom error fallback UI
+- **[Form](examples/form/src/main.ts)** — Form validation with async email checking
+- **[Weather](examples/weather/src/main.ts)** — HTTP requests with async state handling
+- **[Routing](examples/routing/src/main.ts)** — URL routing with parser combinators
+- **[Query Sync](examples/query-sync/src/main.ts)** — URL query parameter sync with filtering and sorting
+- **[Snake](examples/snake/src/main.ts)** — Classic game built with Subscriptions
+- **[Auth](examples/auth/src/main.ts)** — Authentication flow with Submodels and OutMessage
+- **[Shopping Cart](examples/shopping-cart/src/main.ts)** — Nested models and complex state
+- **[WebSocket Chat](examples/websocket-chat/src/main.ts)** — Managed Resources with WebSocket integration
 - **[UI Showcase](examples/ui-showcase/src/main.ts)** — Interactive showcase of every Foldkit UI component
 - **[Typing Game](packages/typing-game)** — Multiplayer typing game with Effect RPC backend
 

@@ -182,19 +182,11 @@ const componentNameClassName =
 
 const componentRow = (entry: ComponentEntry): Html =>
   tr(
-    [Class('border-b border-gray-200 dark:border-gray-700/50 last:border-b-0')],
+    [Class('border-b border-gray-200 dark:border-gray-700/50')],
     [
       td(
-        [Class('py-2.5 pr-4 whitespace-nowrap')],
+        [Class('py-2.5 pr-4 whitespace-nowrap align-top')],
         [a([Href(entry.href), Class(componentNameClassName)], [entry.name])],
-      ),
-      td(
-        [
-          Class(
-            'py-2.5 pr-4 whitespace-nowrap text-gray-500 dark:text-gray-400 hidden sm:table-cell',
-          ),
-        ],
-        [entry.category],
       ),
       td(
         [Class('py-2.5 text-gray-600 dark:text-gray-400')],
@@ -204,7 +196,7 @@ const componentRow = (entry: ComponentEntry): Html =>
   )
 
 const headerCellClassName =
-  'py-2 pr-4 text-left font-medium text-gray-900 dark:text-gray-200 border-b border-gray-300 dark:border-gray-600'
+  'py-2 pr-4 text-left font-medium text-gray-900 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700/50'
 
 const componentTable: Html = div(
   [Class('mb-8')],
@@ -219,10 +211,6 @@ const componentTable: Html = div(
               [],
               [
                 th([Class(headerCellClassName)], ['Component']),
-                th(
-                  [Class(`${headerCellClassName} hidden sm:table-cell`)],
-                  ['Category'],
-                ),
                 th([Class(headerCellClassName)], ['Description']),
               ],
             ),
