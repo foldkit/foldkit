@@ -4,6 +4,11 @@
   "outputDirectory": "packages/website/dist",
   "rewrites": [
     {
+      "source": "/",
+      "has": [{ "type": "query", "key": "embedded" }],
+      "destination": "/example-apps-embed/:embedded/index.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
