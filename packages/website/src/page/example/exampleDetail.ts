@@ -1,12 +1,4 @@
-import {
-  Array,
-  Effect,
-  Match as M,
-  Option,
-  Schema as S,
-  String,
-  pipe,
-} from 'effect'
+import { Array, Effect, Match as M, Option, Schema as S, pipe } from 'effect'
 import { Ui } from 'foldkit'
 import { Command } from 'foldkit/command'
 import { Html } from 'foldkit/html'
@@ -21,7 +13,6 @@ import {
   InnerHTML,
   OnClick,
   Src,
-  Style,
   Type,
   a,
   button,
@@ -164,37 +155,11 @@ const headerView = (meta: ExampleMeta): Html =>
     ],
   )
 
-const EMBED_BASE_PATH_PREFIX = '/example-apps-embed/'
-
-const extractDisplayPath = (fullUrl: string, slug: string): string => {
-  const basePath = EMBED_BASE_PATH_PREFIX + slug + '/'
-  return pipe(
-    fullUrl,
-    String.indexOf(basePath),
-    Option.map(index => String.slice(index + String.length(basePath))(fullUrl)),
-    Option.map(String.replaceAll('?embedded', '')),
-    Option.map(String.replaceAll('&embedded', '')),
-    Option.map(afterBase =>
-      pipe(afterBase, String.startsWith('?'))
-        ? String.slice(1)(afterBase)
-        : afterBase,
-    ),
-    Option.map(path => '/' + path),
-    Option.getOrElse(() => '/'),
-  )
-}
-
 const urlBarContent = (
   meta: ExampleMeta,
-  slug: string,
   maybeExampleUrl: Option.Option<string>,
 ): string =>
-  meta.hasRouting
-    ? Option.match(maybeExampleUrl, {
-        onNone: () => '/',
-        onSome: url => extractDisplayPath(url, slug),
-      })
-    : '/'
+  meta.hasRouting ? Option.getOrElse(maybeExampleUrl, () => '/') : '/'
 
 const trafficLightDots: Html = div(
   [Class('flex gap-1.5')],
@@ -209,7 +174,7 @@ const trafficLightDots: Html = div(
 )
 
 const DISCLOSURE_BUTTON_CLASS =
-  'w-full flex items-center justify-between px-4 py-3 text-left text-sm font-medium cursor-pointer transition border border-gray-200 dark:border-gray-700/50 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl data-[open]:rounded-b-none select-none'
+  'w-full flex items-center justify-between px-4 py-3 text-left text-sm font-medium cursor-pointer transition border border-gray-200 dark:border-gray-700/50 text-gray-700 dark:text-gray-300 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 rounded-xl data-[open]:rounded-b-none select-none'
 
 const DISCLOSURE_PANEL_CLASS =
   'rounded-b-xl overflow-hidden border-x border-b border-gray-200 dark:border-gray-700/50 shadow-sm'
@@ -258,15 +223,14 @@ const livePreviewDisclosureView = (
                   'flex-1 text-xs font-mono text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 rounded px-3 py-1 text-center truncate',
                 ),
               ],
-              [urlBarContent(meta, slug, maybeExampleUrl)],
+              [urlBarContent(meta, maybeExampleUrl)],
             ),
           ],
         ),
         iframe(
           [
             Src(`/example-apps-embed/${slug}/index.html?embedded`),
-            Class('w-full bg-white'),
-            Style({ height: '60vh' }),
+            Class('w-full bg-white h-[40rem]'),
             AriaLabel(`${meta.title} example running live`),
           ],
           [],
@@ -276,11 +240,42 @@ const livePreviewDisclosureView = (
     persistPanel: true,
   })
 
-const SELECT_CLASS =
-  'appearance-none w-full pl-3 pr-10 py-2 text-sm font-mono bg-transparent text-gray-700 dark:text-gray-300 cursor-pointer transition hover:bg-gray-100/50 dark:hover:bg-gray-800/50 focus:outline-none'
+const FILE_BUTTON_BASE =
+  'w-full text-left px-3 py-1.5 text-xs font-mono transition cursor-pointer'
 
-const CHEVRON_CLASS =
-  'pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500'
+const FILE_BUTTON_ACTIVE =
+  FILE_BUTTON_BASE +
+  ' bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium'
+
+const FILE_BUTTON_INACTIVE =
+  FILE_BUTTON_BASE +
+  ' text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/50 dark:hover:bg-gray-800/50'
+
+const fileSidebarView = (
+  files: ReadonlyArray<ExampleSourceFile>,
+  selectedFile: string,
+  toMessage: (message: Message) => ParentMessage,
+): Html =>
+  nav(
+    [
+      Class(
+        'flex-shrink-0 w-44 border-r border-gray-200 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-900/50 overflow-y-auto',
+      ),
+      AriaLabel('Source files'),
+    ],
+    Array.map(files, file => {
+      const isActive = file.path === selectedFile
+      return button(
+        [
+          Type('button'),
+          Class(isActive ? FILE_BUTTON_ACTIVE : FILE_BUTTON_INACTIVE),
+          OnClick(toMessage(SelectedFile({ path: file.path }))),
+          ...(isActive ? [AriaCurrent('page')] : []),
+        ],
+        [file.path.replaceAll('/', '/\u200B')],
+      )
+    }),
+  )
 
 const sourceCodeView = (
   files: ReadonlyArray<ExampleSourceFile>,
@@ -297,62 +292,28 @@ const sourceCodeView = (
         div(
           [
             Class(
-              'rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700/50',
+              'flex overflow-hidden border border-gray-200 dark:border-gray-700/50',
             ),
           ],
           [
+            fileSidebarView(files, selectedFile, toMessage),
             div(
+              [Class('code-embed-panel')],
               [
-                Class(
-                  'relative border-b border-gray-200 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-900/50',
-                ),
-              ],
-              [
-                Ui.Select.view({
-                  id: 'example-file-selector',
-                  value: selectedFile,
-                  onChange: path => toMessage(SelectedFile({ path })),
-                  toView: attributes =>
-                    div(
-                      [Class('relative')],
-                      [
-                        label(
-                          [...attributes.label, Class('sr-only')],
-                          ['Select source file'],
-                        ),
-                        select(
-                          [...attributes.select, Class(SELECT_CLASS)],
-                          Array.map(files, file =>
-                            option([Value(file.path)], [file.path]),
-                          ),
-                        ),
-                        span(
-                          [Class(CHEVRON_CLASS)],
-                          [Icon.chevronDown('w-4 h-4')],
-                        ),
-                      ],
+                div(
+                  [Class('code-embed-scroll')],
+                  [
+                    highlightedCodeBlock(
+                      div(
+                        [Class('code-embed'), InnerHTML(file.highlightedHtml)],
+                        [],
+                      ),
+                      file.rawCode,
+                      `Copy ${file.path} to clipboard`,
+                      copiedSnippets,
+                      '!mt-0',
                     ),
-                }),
-              ],
-            ),
-            div(
-              [
-                Class('max-h-[80vh] overflow-y-auto'),
-                Style({ scrollbarGutter: 'stable' }),
-              ],
-              [
-                highlightedCodeBlock(
-                  div(
-                    [
-                      Class('text-sm [&_pre]:rounded-none [&_pre]:border-0'),
-                      InnerHTML(file.highlightedHtml),
-                    ],
-                    [],
-                  ),
-                  file.rawCode,
-                  `Copy ${file.path} to clipboard`,
-                  copiedSnippets,
-                  '!mt-0',
+                  ],
                 ),
               ],
             ),

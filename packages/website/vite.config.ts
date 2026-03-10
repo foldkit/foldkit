@@ -673,10 +673,37 @@ const highlightExampleSourcesPlugin = (): Plugin => ({
   },
 })
 
+const EXAMPLE_SLUG_SET = new Set(EXAMPLE_SLUGS)
+
+const embeddedExampleRedirectPlugin = (): Plugin => ({
+  name: 'embedded-example-redirect',
+  configureServer(server) {
+    server.middlewares.use((req, res, next) => {
+      if (!req.url) {
+        return next()
+      }
+      const url = new URL(req.url, 'http://localhost')
+      const slug = url.searchParams.get('embedded')
+      if (
+        slug &&
+        EXAMPLE_SLUG_SET.has(slug) &&
+        !url.pathname.startsWith('/example-apps-embed/')
+      ) {
+        const target = `/example-apps-embed/${slug}/index.html${url.search}`
+        res.writeHead(302, { Location: target })
+        res.end()
+        return
+      }
+      next()
+    })
+  },
+})
+
 export default defineConfig({
   plugins: [
     tailwindcss(),
     foldkit(),
+    embeddedExampleRedirectPlugin(),
     highlightCodePlugin(),
     highlightApiSignaturesPlugin(),
     landingDataPlugin(),

@@ -144,6 +144,30 @@
   pre[data-line-digits='3'] code .line[data-line]::before {
     @apply w-12;
   }
+
+  .code-embed pre {
+    @apply rounded-none border-0 text-xs;
+  }
+
+  .code-embed pre code .line {
+    @apply leading-5;
+  }
+
+  .code-embed-panel {
+    @apply flex-1 min-w-0 relative;
+  }
+
+  .code-embed-panel .absolute {
+    @apply !right-6;
+  }
+
+  .code-embed-scroll {
+    @apply max-h-[80vh] overflow-y-auto;
+  }
+
+  .code-embed-scroll > div {
+    position: static !important;
+  }
 }
 
 @layer components {
