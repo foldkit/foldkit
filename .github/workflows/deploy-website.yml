@@ -8,6 +8,8 @@ on:
       - 'packages/website/**'
       - 'packages/foldkit/**'
       - 'packages/vite-plugin-foldkit/**'
+      - 'examples/**'
+      - 'scripts/**'
       - 'pnpm-lock.yaml'
       - '.github/workflows/deploy-website.yml'
 
@@ -33,6 +35,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build examples
+        run: bash scripts/build-examples.sh
+
       - name: Build website
         run: pnpm build:website
 
@@ -51,6 +56,11 @@ jobs:
             "version": 3,
             "routes": [
               { "handle": "filesystem" },
+              {
+                "src": "/",
+                "has": [{ "type": "query", "key": "embedded", "value": "(?<slug>[^&]+)" }],
+                "dest": "/example-apps-embed/$slug/index.html"
+              },
               { "src": "/(.*)", "dest": "/index.html" }
             ]
           }

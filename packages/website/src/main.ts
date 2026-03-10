@@ -380,7 +380,7 @@ const init: Runtime.ApplicationInit<
       },
       apiReferenceGroup: {
         ...Ui.Disclosure.init({ id: 'api-reference-group' }),
-        isOpen: initialRoute._tag === 'ApiModule',
+        isOpen: true,
       },
       themePreference,
       systemTheme,
@@ -898,8 +898,8 @@ const sidebarGroup = (config: {
           'px-4 py-2.5 md:py-2',
           'text-xs font-semibold uppercase tracking-wider',
           'text-gray-600 dark:text-gray-400',
-          'bg-gray-100/60 dark:bg-gray-800/40',
-          'hover:bg-gray-200/60 dark:hover:bg-gray-800/60',
+          'bg-gray-200 dark:bg-gray-800',
+          'hover:bg-gray-300/60 dark:hover:bg-gray-700/60',
           'hover:text-gray-700 dark:hover:text-gray-300',
         ),
         buttonContent: div(
@@ -918,7 +918,7 @@ const sidebarGroup = (config: {
             ),
           ],
         ),
-        panelClassName: 'px-4 mt-1 pb-2',
+        panelClassName: 'px-4 py-2',
         panelContent: config.children,
       }),
     ],
@@ -1108,7 +1108,7 @@ const sidebarViewInner = (
       nav(
         [
           AriaLabel('Documentation'),
-          Class('flex-1 overflow-y-auto py-2'),
+          Class('flex-1 overflow-y-auto'),
           Tabindex(-1),
           Autofocus(true),
         ],
