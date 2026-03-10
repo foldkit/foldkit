@@ -4,6 +4,7 @@ node_modules/
 # Build outputs
 dist/
 build/
+public/example-apps-embed/
 
 # Environment variables
 .env

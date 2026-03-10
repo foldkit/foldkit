@@ -38,3 +38,14 @@ declare module 'virtual:note-player-demo-code' {
   const html: string
   export default html
 }
+
+declare module 'virtual:example-sources/*' {
+  const data: {
+    files: ReadonlyArray<{
+      path: string
+      highlightedHtml: string
+      rawCode: string
+    }>
+  }
+  export default data
+}

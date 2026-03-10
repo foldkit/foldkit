@@ -29,19 +29,19 @@ type Model = typeof Model.Type
 // UPDATE
 
 const RequestedStart = m('RequestedStart')
-const GotStartTime = m('GotStartTime', { startTime: S.Number })
+const Started = m('Started', { startTime: S.Number })
 const ClickedStop = m('ClickedStop')
 const ClickedReset = m('ClickedReset')
 const RequestedTick = m('RequestedTick')
-const GotTick = m('GotTick', { elapsedMs: S.Number })
+const Ticked = m('Ticked', { elapsedMs: S.Number })
 
 export const Message = S.Union(
   RequestedStart,
-  GotStartTime,
+  Started,
   ClickedStop,
   ClickedReset,
   RequestedTick,
-  GotTick,
+  Ticked,
 )
 export type Message = typeof Message.Type
 
@@ -57,12 +57,12 @@ const update = (
         [
           Effect.gen(function* () {
             const now = yield* Clock.currentTimeMillis
-            return GotStartTime({ startTime: now - model.elapsedMs })
+            return Started({ startTime: now - model.elapsedMs })
           }),
         ],
       ],
 
-      GotStartTime: ({ startTime }) => [
+      Started: ({ startTime }) => [
         evo(model, {
           isRunning: () => true,
           startTime: () => startTime,
@@ -91,12 +91,12 @@ const update = (
         [
           Effect.gen(function* () {
             const now = yield* Clock.currentTimeMillis
-            return GotTick({ elapsedMs: now - model.startTime })
+            return Ticked({ elapsedMs: now - model.startTime })
           }),
         ],
       ],
 
-      GotTick: ({ elapsedMs }) => [
+      Ticked: ({ elapsedMs }) => [
         evo(model, {
           elapsedMs: () => elapsedMs,
         }),

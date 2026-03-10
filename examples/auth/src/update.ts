@@ -1,4 +1,4 @@
-import { Array, Effect, Match as M, Option, Schema as S } from 'effect'
+import { Array, Effect, Match as M, Option } from 'effect'
 import { Command } from 'foldkit/command'
 import { load, pushUrl, replaceUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
@@ -15,8 +15,6 @@ import { LoggedIn, LoggedOut, Model } from './model'
 import {
   DashboardRoute,
   HomeRoute,
-  LoggedInRoute,
-  LoggedOutRoute,
   dashboardRouter,
   homeRouter,
   loginRouter,
@@ -56,7 +54,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             LoggedOut: loggedOutModel =>
               M.value(route).pipe(
                 withUpdateReturn,
-                M.when(S.is(LoggedOutRoute), route => [
+                M.tag('Home', 'Login', 'NotFound', route => [
                   evo(loggedOutModel, { route: () => route }),
                   [],
                 ]),
@@ -69,7 +67,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             LoggedIn: loggedInModel =>
               M.value(route).pipe(
                 withUpdateReturn,
-                M.when(S.is(LoggedInRoute), route => [
+                M.tag('Dashboard', 'Settings', 'NotFound', route => [
                   evo(loggedInModel, { route: () => route }),
                   [],
                 ]),

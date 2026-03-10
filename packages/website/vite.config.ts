@@ -1,8 +1,8 @@
 import { foldkit } from '@foldkit/vite-plugin'
 import tailwindcss from '@tailwindcss/vite'
 import { Array, Match as M, Option, Schema as S, pipe } from 'effect'
-import { readFile } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { readFile, readdir } from 'node:fs/promises'
+import { basename, extname, join, relative, resolve } from 'node:path'
 import { codeToHtml } from 'shiki'
 import { type Plugin, defineConfig } from 'vite'
 
@@ -535,14 +535,180 @@ const landingDataPlugin = (): Plugin => ({
   },
 })
 
+const EXAMPLE_SOURCES_PREFIX = 'virtual:example-sources/'
+const RESOLVED_EXAMPLE_SOURCES_PREFIX = '\0' + EXAMPLE_SOURCES_PREFIX
+
+const EXAMPLE_SLUGS = [
+  'counter',
+  'todo',
+  'stopwatch',
+  'form',
+  'weather',
+  'routing',
+  'query-sync',
+  'shopping-cart',
+  'auth',
+  'snake',
+  'error-view',
+  'websocket-chat',
+  'ui-showcase',
+]
+
+const EXAMPLE_FILE_EXTENSIONS = new Set(['.ts', '.tsx', '.css'])
+
+const langFromExtension = (filePath: string): string => {
+  const extension = extname(filePath)
+  if (extension === '.tsx') {
+    return 'tsx'
+  }
+  if (extension === '.css') {
+    return 'css'
+  }
+  return 'typescript'
+}
+
+const collectSourceFiles = async (
+  directory: string,
+): Promise<ReadonlyArray<string>> => {
+  const entries = await readdir(directory, {
+    recursive: true,
+    withFileTypes: true,
+  })
+  return entries
+    .filter(
+      entry =>
+        entry.isFile() &&
+        EXAMPLE_FILE_EXTENSIONS.has(extname(entry.name)) &&
+        !entry.parentPath.includes('node_modules') &&
+        !entry.name.includes('.test.'),
+    )
+    .map(entry => join(entry.parentPath, entry.name))
+}
+
+const sortExampleFiles = (
+  files: ReadonlyArray<string>,
+  baseDirectory: string,
+): ReadonlyArray<string> =>
+  [...files].sort((fileA, fileB) => {
+    const relativeA = relative(baseDirectory, fileA)
+    const relativeB = relative(baseDirectory, fileB)
+    const isMainA = basename(fileA) === 'main.ts'
+    const isMainB = basename(fileB) === 'main.ts'
+    if (isMainA && !isMainB) {
+      return -1
+    }
+    if (!isMainA && isMainB) {
+      return 1
+    }
+    const depthA = relativeA.split('/').length
+    const depthB = relativeB.split('/').length
+    if (depthA !== depthB) {
+      return depthA - depthB
+    }
+    return relativeA.localeCompare(relativeB)
+  })
+
+const highlightExampleFile = async (
+  filePath: string,
+  baseDirectory: string,
+) => {
+  const rawCode = await readFile(filePath, 'utf-8')
+  const code = rawCode.trimEnd()
+  const lines = code.split('\n')
+  const lineCount = lines.length
+  const lineDigits = String(lineCount).length
+  const lang = langFromExtension(filePath)
+
+  const html = await codeToHtml(code, {
+    lang,
+    themes: shikiThemes,
+    decorations: lines.map((line, i) => ({
+      start: { line: i, character: 0 },
+      end: { line: i, character: line.length },
+      properties: { 'data-line': i + 1 },
+    })),
+  })
+
+  const htmlWithDigits = html.replace(
+    '<pre ',
+    `<pre data-line-digits="${lineDigits}" `,
+  )
+
+  return {
+    path: relative(baseDirectory, filePath),
+    highlightedHtml: htmlWithDigits,
+    rawCode: code,
+  }
+}
+
+const highlightExampleSourcesPlugin = (): Plugin => ({
+  name: 'highlight-example-sources',
+  resolveId(id) {
+    if (id.startsWith(EXAMPLE_SOURCES_PREFIX)) {
+      return '\0' + id
+    }
+  },
+  async load(id) {
+    if (!id.startsWith(RESOLVED_EXAMPLE_SOURCES_PREFIX)) {
+      return
+    }
+
+    const slug = id.slice(RESOLVED_EXAMPLE_SOURCES_PREFIX.length)
+    if (!EXAMPLE_SLUGS.includes(slug)) {
+      return
+    }
+
+    const exampleDirectory = resolve(__dirname, `../../examples/${slug}`)
+    const sourceDirectory = join(exampleDirectory, 'src')
+    const allFiles = await collectSourceFiles(sourceDirectory)
+    const sortedFiles = sortExampleFiles(allFiles, exampleDirectory)
+
+    const files = await Promise.all(
+      sortedFiles.map(filePath =>
+        highlightExampleFile(filePath, exampleDirectory),
+      ),
+    )
+
+    return `export default ${JSON.stringify({ files })}`
+  },
+})
+
+const EXAMPLE_SLUG_SET = new Set(EXAMPLE_SLUGS)
+
+const embeddedExampleRedirectPlugin = (): Plugin => ({
+  name: 'embedded-example-redirect',
+  configureServer(server) {
+    server.middlewares.use((req, res, next) => {
+      if (!req.url) {
+        return next()
+      }
+      const url = new URL(req.url, 'http://localhost')
+      const slug = url.searchParams.get('embedded')
+      if (
+        slug &&
+        EXAMPLE_SLUG_SET.has(slug) &&
+        !url.pathname.startsWith('/example-apps-embed/')
+      ) {
+        const target = `/example-apps-embed/${slug}/index.html${url.search}`
+        res.writeHead(302, { Location: target })
+        res.end()
+        return
+      }
+      next()
+    })
+  },
+})
+
 export default defineConfig({
   plugins: [
     tailwindcss(),
     foldkit(),
+    embeddedExampleRedirectPlugin(),
     highlightCodePlugin(),
     highlightApiSignaturesPlugin(),
     landingDataPlugin(),
     counterDemoCodePlugin(),
     notePlayerDemoCodePlugin(),
+    highlightExampleSourcesPlugin(),
   ],
 })

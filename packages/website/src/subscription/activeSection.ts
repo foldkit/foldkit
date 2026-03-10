@@ -56,7 +56,7 @@ export const activeSection: Subscription<
           'CoreSubscriptions',
           () => Page.Core.Subscriptions.tableOfContents,
         ),
-        M.tag('CoreInit', () => Page.Core.Init.tableOfContents),
+        M.tag('CoreInitAndFlags', () => Page.Core.InitAndFlags.tableOfContents),
         M.tag('CoreTask', () => Page.Core.CoreTask.tableOfContents),
         M.tag(
           'CoreRunningYourApp',

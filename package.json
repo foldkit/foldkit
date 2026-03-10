@@ -13,6 +13,7 @@
     "format": "prettier -w .",
     "dev:core": "pnpm --filter foldkit watch",
     "dev:website": "pnpm --filter website dev",
+    "build:examples": "bash scripts/build-examples.sh",
     "build:website": "pnpm --filter website... build",
     "dev:typing-game:client": "pnpm --filter @typing-game/client dev",
     "build:typing-game:client": "pnpm --filter @typing-game/client... build",

@@ -1,3 +1,6 @@
+import { Option, pipe } from 'effect'
+
+import { findBySlug } from '../src/page/example/meta'
 import { type AppRoute } from '../src/route'
 
 // PAGE METADATA
@@ -30,7 +33,7 @@ const ui = (title: string, description: string): PageMetadata =>
 const pattern = (title: string, description: string): PageMetadata =>
   docs(title, description, 'Patterns')
 
-type StaticRouteTag = Exclude<AppRoute['_tag'], 'ApiModule'>
+type StaticRouteTag = Exclude<AppRoute['_tag'], 'ApiModule' | 'ExampleDetail'>
 
 const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   Home: {
@@ -107,9 +110,9 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Subscriptions',
     'Long-running streams with automatic lifecycle management based on Model state.',
   ),
-  CoreInit: core(
-    'Init',
-    'Initialize your application with flags and startup Commands.',
+  CoreInitAndFlags: core(
+    'Init & Flags',
+    'Set up the initial Model, pass external data via flags, and run startup Commands.',
   ),
   CoreTask: core(
     'Task',
@@ -215,6 +218,17 @@ export const routeToMetadata = (route: AppRoute): PageMetadata => {
       route.moduleSlug,
       `API documentation for the ${route.moduleSlug} module.`,
       'API Reference',
+    )
+  }
+
+  if (route._tag === 'ExampleDetail') {
+    return pipe(
+      findBySlug(route.exampleSlug),
+      Option.match({
+        onNone: () =>
+          docs('Example', 'A Foldkit example application.', 'Examples'),
+        onSome: example => docs(example.title, example.description, 'Examples'),
+      }),
     )
   }
 

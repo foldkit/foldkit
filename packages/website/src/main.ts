@@ -22,7 +22,12 @@ import { evo } from 'foldkit/struct'
 import { makeSubscriptions } from 'foldkit/subscription'
 import { Url, toString as urlToString } from 'foldkit/url'
 
-import { type NavPage, docsSections, pageNeighbors } from './docsNav'
+import {
+  type NavPage,
+  docsSections,
+  isNavPageActive,
+  pageNeighbors,
+} from './docsNav'
 import {
   Alt,
   AriaCurrent,
@@ -63,6 +68,7 @@ import * as Page from './page'
 import {
   AppRoute,
   DocsRoute,
+  ExampleDetailRoute,
   apiModuleRouter,
   homeRouter,
   urlToAppRoute,
@@ -163,6 +169,7 @@ export const Model = S.Struct({
   uiPages: Page.UiPages.Model,
   comingFromReact: Page.ComingFromReact.Model,
   apiReference: Page.ApiReference.Model,
+  exampleDetail: Page.Example.ExampleDetail.Model,
 })
 
 export type Model = typeof Model.Type
@@ -247,6 +254,9 @@ const GotExamplesGroupMessage = m('GotExamplesGroupMessage', {
 const GotApiReferenceGroupMessage = m('GotApiReferenceGroupMessage', {
   message: Ui.Disclosure.Message,
 })
+export const GotExampleDetailMessage = m('GotExampleDetailMessage', {
+  message: Page.Example.ExampleDetail.Message,
+})
 
 const Message = S.Union(
   NoOp,
@@ -277,6 +287,7 @@ const Message = S.Union(
   GotFoldkitUiGroupMessage,
   GotExamplesGroupMessage,
   GotApiReferenceGroupMessage,
+  GotExampleDetailMessage,
 )
 export type Message = typeof Message.Type
 
@@ -380,6 +391,7 @@ const init: Runtime.ApplicationInit<
       uiPages,
       comingFromReact,
       apiReference,
+      exampleDetail: Page.Example.ExampleDetail.init('src/main.ts')[0],
     },
     [
       injectAnalytics,
@@ -455,6 +467,12 @@ const update = (
               nextRoute._tag === 'ApiModule'
                 ? { ...apiReferenceGroup, isOpen: true }
                 : apiReferenceGroup,
+            exampleDetail: exampleDetail =>
+              nextRoute._tag === 'ExampleDetail' &&
+              model.route._tag === 'ExampleDetail' &&
+              nextRoute.exampleSlug !== model.route.exampleSlug
+                ? { ...exampleDetail, maybeExampleUrl: Option.none() }
+                : exampleDetail,
           }),
           [
             ...closeDialogCommands.map(
@@ -752,6 +770,20 @@ const update = (
           ),
         ]
       },
+
+      GotExampleDetailMessage: ({ message }) => {
+        const [nextExampleDetail, exampleDetailCommands] =
+          Page.Example.ExampleDetail.update(model.exampleDetail, message)
+
+        return [
+          evo(model, {
+            exampleDetail: () => nextExampleDetail,
+          }),
+          exampleDetailCommands.map(
+            Effect.map(message => GotExampleDetailMessage({ message })),
+          ),
+        ]
+      },
     }),
   )
 
@@ -862,10 +894,12 @@ const sidebarGroup = (config: {
         model: config.model,
         toMessage: config.toMessage,
         buttonClassName: classNames(
-          'w-full flex items-center justify-between cursor-pointer',
-          'px-4 py-2 md:px-2.5 md:py-1.5',
+          'w-full flex items-center justify-between cursor-pointer transition',
+          'px-4 py-2.5 md:py-2',
           'text-xs font-semibold uppercase tracking-wider',
-          'text-gray-500 dark:text-gray-400',
+          'text-gray-600 dark:text-gray-400',
+          'bg-gray-100/60 dark:bg-gray-800/40',
+          'hover:bg-gray-200/60 dark:hover:bg-gray-800/60',
           'hover:text-gray-700 dark:hover:text-gray-300',
         ),
         buttonContent: div(
@@ -884,7 +918,7 @@ const sidebarGroup = (config: {
             ),
           ],
         ),
-        panelClassName: 'pl-1 space-y-1 mt-0.5',
+        panelClassName: 'px-4 mt-1 pb-2',
         panelContent: config.children,
       }),
     ],
@@ -902,6 +936,14 @@ const sidebarViewInner = (
   mobileMenuDialog: Ui.Dialog.Model,
 ): Html => {
   const isOnApiModulePage = route._tag === 'ApiModule'
+  const maybeExampleSlug = pipe(
+    route,
+    Option.liftPredicate(
+      (route): route is typeof ExampleDetailRoute.Type =>
+        route._tag === 'ExampleDetail',
+    ),
+    Option.map(route => route.exampleSlug),
+  )
 
   const linkClass = (isActive: boolean) =>
     classNames(
@@ -961,8 +1003,20 @@ const sidebarViewInner = (
     },
   ]
 
+  const pageGroupList = (pages: ReadonlyArray<NavPage>): Html =>
+    ul(
+      [Class('space-y-0.5')],
+      Array.map(pages, page =>
+        navLink(
+          page.href,
+          isNavPageActive(route._tag, maybeExampleSlug, page._tag),
+          page.label,
+        ),
+      ),
+    )
+
   const navLinks = ul(
-    [Class('space-y-2')],
+    [Class('space-y-0.5')],
     [
       ...Array.zipWith(
         docsSections,
@@ -972,10 +1026,13 @@ const sidebarViewInner = (
             label: section.label,
             model: disclosure.model,
             toMessage: disclosure.toMessage,
-            children: ul(
-              [Class('space-y-1')],
-              Array.map(section.pages, page =>
-                navLink(page.href, route._tag === page._tag, page.label),
+            children: div(
+              [Class('divide-y divide-gray-200 dark:divide-gray-800')],
+              Array.map(section.pageGroups, group =>
+                div(
+                  [Class('py-2 first:pt-0 last:pb-0')],
+                  [pageGroupList(group)],
+                ),
               ),
             ),
           }),
@@ -985,7 +1042,7 @@ const sidebarViewInner = (
         model: apiReferenceGroup,
         toMessage: message => GotApiReferenceGroupMessage({ message }),
         children: ul(
-          [Class('space-y-1')],
+          [Class('space-y-0.5')],
           Array.map(Page.ApiReference.moduleSlugs, ({ slug, name }) =>
             navLink(
               apiModuleRouter({
@@ -1009,7 +1066,7 @@ const sidebarViewInner = (
     ],
     [
       nav(
-        [AriaLabel('Documentation'), Class('flex-1 overflow-y-auto p-4')],
+        [AriaLabel('Documentation'), Class('flex-1 overflow-y-auto pb-4')],
         [navLinks],
       ),
     ],
@@ -1051,7 +1108,7 @@ const sidebarViewInner = (
       nav(
         [
           AriaLabel('Documentation'),
-          Class('flex-1 overflow-y-auto p-2'),
+          Class('flex-1 overflow-y-auto py-2'),
           Tabindex(-1),
           Autofocus(true),
         ],
@@ -1681,6 +1738,16 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
           Page.FieldValidation.tableOfContents,
         ),
       Examples: () => withoutTableOfContents(Page.Examples.view()),
+      ExampleDetail: ({ exampleSlug }) =>
+        withoutTableOfContents(
+          Page.Example.ExampleDetail.view(
+            model.exampleDetail,
+            exampleSlug,
+            Page.Example.getSourcesForSlug(exampleSlug),
+            model.copiedSnippets,
+            message => GotExampleDetailMessage({ message }),
+          ),
+        ),
       BestPractices: () =>
         withTableOfContents(
           lazyDocsContent(Page.BestPractices.view, [model.copiedSnippets]),
@@ -1755,10 +1822,10 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
           lazyDocsContent(Page.Core.Subscriptions.view, [model.copiedSnippets]),
           Page.Core.Subscriptions.tableOfContents,
         ),
-      CoreInit: () =>
+      CoreInitAndFlags: () =>
         withTableOfContents(
-          lazyDocsContent(Page.Core.Init.view, [model.copiedSnippets]),
-          Page.Core.Init.tableOfContents,
+          lazyDocsContent(Page.Core.InitAndFlags.view, [model.copiedSnippets]),
+          Page.Core.InitAndFlags.tableOfContents,
         ),
       CoreTask: () =>
         withTableOfContents(
@@ -1966,6 +2033,7 @@ const SubscriptionDeps = S.Struct({
     pageId: S.String,
     sections: S.Array(S.String),
   }),
+  exampleUrl: S.OptionFromSelf(S.String),
   heroVisibility: S.Struct({
     isLandingPage: S.Boolean,
   }),
@@ -1979,6 +2047,7 @@ export type SubscriptionDeps = typeof SubscriptionDeps.Type
 
 const subscriptions = makeSubscriptions(SubscriptionDeps)<Model, Message>({
   activeSection: Subscription.activeSection,
+  exampleUrl: Subscription.exampleUrl,
   heroVisibility: Subscription.heroVisibility,
   systemTheme: Subscription.systemTheme,
   viewportWidth: Subscription.viewportWidth,

@@ -11,10 +11,10 @@ import {
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
-const overviewHeader: TableOfContentsEntry = {
+const initHeader: TableOfContentsEntry = {
   level: 'h2',
-  id: 'overview',
-  text: 'Overview',
+  id: 'init',
+  text: 'Init',
 }
 
 const flagsHeader: TableOfContentsEntry = {
@@ -24,7 +24,7 @@ const flagsHeader: TableOfContentsEntry = {
 }
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
-  overviewHeader,
+  initHeader,
   flagsHeader,
 ]
 
@@ -32,8 +32,8 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
     [],
     [
-      pageTitle('core/init', 'Init'),
-      tableOfContentsEntryToHeader(overviewHeader),
+      pageTitle('core/init', 'Init & Flags'),
+      tableOfContentsEntryToHeader(initHeader),
       para(
         'The counter works, but every time the user refreshes the page, the count resets to zero. What if we want to remember the last count? That\u2019s where Init comes in \u2014 and where flags let you pass data into your app at startup.',
       ),

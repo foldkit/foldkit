@@ -1,4 +1,5 @@
 node_modules
 dist
+**/public/example-apps-embed
 *.tsbuildinfo
 pnpm-lock.yaml

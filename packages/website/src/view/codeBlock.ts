@@ -54,7 +54,7 @@ const copyButtonWithIndicator = (
   )
 
   return div(
-    [Class('absolute top-2 right-2')],
+    [Class('code-embed-copy absolute top-2 right-2')],
     [copiedIndicator, liveAnnouncement, copyButton],
   )
 }
@@ -95,6 +95,6 @@ export const highlightedCodeBlock = (
   className?: string,
 ) =>
   div(
-    [Class(classNames('relative min-w-0', className))],
+    [Class(classNames('relative min-w-0 mt-8', className))],
     [content, copyButtonWithIndicator(rawCode, ariaLabel, copiedSnippets)],
   )

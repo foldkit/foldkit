@@ -1,202 +1,101 @@
-import { Array, Match } from 'effect'
-import { Html } from 'foldkit/html'
+import { Array } from 'effect'
+import type { Html } from 'foldkit/html'
 
-import { Class, Href, a, div, h3, p } from '../html'
+import { Class, Href, a, div, table, tbody, td, th, thead, tr } from '../html'
 import { Link } from '../link'
 import { pageTitle, para } from '../prose'
+import { exampleDetailRouter } from '../route'
+import { type ExampleMeta, examples as exampleMetas } from './example/meta'
 
-type Difficulty = 'Beginner' | 'Intermediate' | 'Advanced'
+export const exampleAppCount = exampleMetas.length + 1
 
-type Example = {
-  title: string
-  description: string
-  href: string
-  difficulty: Difficulty
-  tags: ReadonlyArray<string>
-  liveUrl?: string
-}
+const nameClassName =
+  'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500 font-medium'
 
-const examples: ReadonlyArray<Example> = [
-  {
-    title: 'Counter',
-    description:
-      'The classic counter example. Increment, decrement, and reset a number.',
-    href: Link.exampleCounter,
-    difficulty: 'Beginner',
-    tags: ['State'],
-  },
-  {
-    title: 'Todo',
-    description:
-      'A todo list with local storage persistence. Add, complete, and delete tasks.',
-    href: Link.exampleTodo,
-    difficulty: 'Beginner',
-    tags: ['Storage'],
-  },
-  {
-    title: 'Stopwatch',
-    description:
-      'A stopwatch with start, stop, and reset. Demonstrates time-based subscriptions.',
-    href: Link.exampleStopwatch,
-    difficulty: 'Beginner',
-    tags: ['Subscriptions'],
-  },
-  {
-    title: 'Form',
-    description:
-      'Form handling with field validation, error states, and async submission.',
-    href: Link.exampleForm,
-    difficulty: 'Intermediate',
-    tags: ['Validation'],
-  },
-  {
-    title: 'Weather',
-    description:
-      'Look up weather by zip code. Demonstrates HTTP requests and loading states.',
-    href: Link.exampleWeather,
-    difficulty: 'Intermediate',
-    tags: ['HTTP'],
-  },
-  {
-    title: 'Routing',
-    description:
-      'Client-side routing with URL parameters, nested routes, and navigation.',
-    href: Link.exampleRouting,
-    difficulty: 'Intermediate',
-    tags: ['Routing'],
-  },
-  {
-    title: 'Query Sync',
-    description:
-      'Filterable dinosaur table where every control syncs to URL query parameters. Schema transforms enforce valid states — invalid params gracefully fall back.',
-    href: Link.exampleQuerySync,
-    difficulty: 'Intermediate',
-    tags: ['Routing', 'Query Params'],
-  },
-  {
-    title: 'Auth',
-    description:
-      'Authentication flow with Submodels, OutMessage, protected routes, and session management.',
-    href: Link.exampleAuth,
-    difficulty: 'Advanced',
-    tags: ['Auth', 'Routing', 'Submodels', 'OutMessage'],
-  },
-  {
-    title: 'Shopping Cart',
-    description:
-      'E-commerce app with product listing, cart management, and checkout flow.',
-    href: Link.exampleShoppingCart,
-    difficulty: 'Advanced',
-    tags: ['Routing'],
-  },
-  {
-    title: 'Snake',
-    description:
-      'The classic snake game. Keyboard input, game loop, and collision detection.',
-    href: Link.exampleSnake,
-    difficulty: 'Advanced',
-    tags: ['Game'],
-  },
-  {
-    title: 'Error View',
-    description:
-      'Custom error fallback UI. Demonstrates errorView with a crash button and reload.',
-    href: Link.exampleErrorView,
-    difficulty: 'Beginner',
-    tags: ['Fallback UI'],
-  },
-  {
-    title: 'WebSocket Chat',
-    description:
-      'Managed resources with WebSocket integration. Connection lifecycle, reconnection, and message streaming.',
-    href: Link.exampleWebsocketChat,
-    difficulty: 'Advanced',
-    tags: ['Managed Resources', 'WebSocket'],
-  },
-  {
-    title: 'Typing Terminal',
-    description:
-      'A production real-time multiplayer typing speed game. Full stack Effect app with RPC backend and Foldkit frontend.',
-    href: Link.typingTerminalSource,
-    difficulty: 'Advanced',
-    tags: ['Full Stack', 'RPC', 'Production'],
-    liveUrl: Link.typingTerminal,
-  },
-]
-
-export const exampleAppCount = examples.length
-
-const difficultyToTag = (difficulty: Difficulty): Html => {
-  const { label, colors } = Match.value(difficulty).pipe(
-    Match.when('Beginner', () => ({
-      label: 'Beginner',
-      colors:
-        'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400',
-    })),
-    Match.when('Intermediate', () => ({
-      label: 'Intermediate',
-      colors:
-        'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400',
-    })),
-    Match.when('Advanced', () => ({
-      label: 'Advanced',
-      colors:
-        'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400',
-    })),
-    Match.exhaustive,
-  )
-  return div([Class(`text-xs px-2 py-0.5 rounded-full ${colors}`)], [label])
-}
-
-const featureTag = (text: string): Html =>
-  div(
+const exampleRow = (example: ExampleMeta): Html =>
+  tr(
+    [Class('border-b border-gray-200 dark:border-gray-700/50')],
     [
-      Class(
-        'text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300',
-      ),
-    ],
-    [text],
-  )
-
-const exampleCard = (example: Example): Html =>
-  a(
-    [
-      Href(example.href),
-      Class(
-        'block p-5 rounded-lg bg-gray-100 dark:bg-gray-850 border border-gray-300 dark:border-gray-700 hover:bg-gray-200/60 dark:hover:bg-gray-800 hover:border-gray-400 dark:hover:border-gray-600 transition-colors',
-      ),
-    ],
-    [
-      h3(
-        [Class('text-lg font-semibold text-gray-900 dark:text-white mb-2')],
-        [example.title],
-      ),
-      p(
-        [Class('text-sm text-gray-600 dark:text-gray-400 mb-3')],
-        [example.description],
-      ),
-      div(
-        [Class('flex gap-2 flex-wrap')],
+      td(
+        [Class('py-2.5 pr-4 whitespace-nowrap align-top')],
         [
-          difficultyToTag(example.difficulty),
-          ...Array.map(example.tags, featureTag),
+          a(
+            [
+              Href(exampleDetailRouter({ exampleSlug: example.slug })),
+              Class(nameClassName),
+            ],
+            [example.title],
+          ),
         ],
       ),
-      ...(example.liveUrl
-        ? [
-            a(
-              [
-                Href(example.liveUrl),
-                Class(
-                  'text-xs text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500 mt-5 inline-block',
-                ),
-              ],
-              ['Live →'],
-            ),
-          ]
-        : []),
+      td(
+        [Class('py-2.5 text-gray-600 dark:text-gray-400')],
+        [example.description],
+      ),
     ],
   )
+
+const typingTerminalRow: Html = tr(
+  [Class('border-b border-gray-200 dark:border-gray-700/50')],
+  [
+    td(
+      [Class('py-2.5 pr-4 whitespace-nowrap align-top')],
+      [
+        a(
+          [Href(Link.typingTerminalSource), Class(nameClassName)],
+          ['Typing Terminal'],
+        ),
+      ],
+    ),
+    td(
+      [Class('py-2.5 text-gray-600 dark:text-gray-400')],
+      [
+        div(
+          [],
+          [
+            'A production real-time multiplayer typing speed game. Full stack Effect app with RPC backend and Foldkit frontend.',
+          ],
+        ),
+        a(
+          [
+            Href(Link.typingTerminal),
+            Class(
+              'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500 mt-1 inline-block',
+            ),
+          ],
+          ['Race your friends →'],
+        ),
+      ],
+    ),
+  ],
+)
+
+const headerCellClassName =
+  'py-2 pr-4 text-left font-medium text-gray-900 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700/50'
+
+const examplesTable: Html = div(
+  [Class('mb-8')],
+  [
+    table(
+      [Class('w-full text-sm')],
+      [
+        thead(
+          [],
+          [
+            tr(
+              [],
+              [
+                th([Class(headerCellClassName)], ['Example']),
+                th([Class(headerCellClassName)], ['Description']),
+              ],
+            ),
+          ],
+        ),
+        tbody([], [...Array.map(exampleMetas, exampleRow), typingTerminalRow]),
+      ],
+    ),
+  ],
+)
 
 export const view = (): Html =>
   div(
@@ -226,9 +125,6 @@ export const view = (): Html =>
         ),
         ' to get up and running.',
       ),
-      div(
-        [Class('grid gap-4 sm:grid-cols-2 lg:grid-cols-3 items-start')],
-        examples.map(exampleCard),
-      ),
+      examplesTable,
     ],
   )

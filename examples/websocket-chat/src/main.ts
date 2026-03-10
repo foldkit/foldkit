@@ -63,13 +63,10 @@ const UpdatedMessageInput = m('UpdatedMessageInput', { value: S.String })
 const RequestedMessageSend = m('RequestedMessageSend')
 const SentMessage = m('SentMessage', { text: S.String })
 const ReceivedMessage = m('ReceivedMessage', { text: S.String })
-const GotReceivedMessageTime = m('GotReceivedMessageTime', {
+const TimestampedMessage = m('TimestampedMessage', {
   text: S.String,
   zoned: S.DateTimeZonedFromSelf,
-})
-const GotSentMessageTime = m('GotSentMessageTime', {
-  text: S.String,
-  zoned: S.DateTimeZonedFromSelf,
+  isSent: S.Boolean,
 })
 
 const Message = S.Union(
@@ -81,8 +78,7 @@ const Message = S.Union(
   RequestedMessageSend,
   SentMessage,
   ReceivedMessage,
-  GotReceivedMessageTime,
-  GotSentMessageTime,
+  TimestampedMessage,
 )
 type Message = typeof Message.Type
 
@@ -158,41 +154,26 @@ const update = (
         model,
         [
           Task.getZonedTime.pipe(
-            Effect.map(zoned => GotSentMessageTime({ text, zoned })),
+            Effect.map(zoned =>
+              TimestampedMessage({ text, zoned, isSent: true }),
+            ),
           ),
         ],
       ],
-
-      GotSentMessageTime: ({ text, zoned }) => {
-        const newMessage = ChatMessage.make({
-          text,
-          zoned,
-          isSent: true,
-        })
-
-        return [
-          evo(model, {
-            messages: messages => [...messages, newMessage],
-          }),
-          [],
-        ]
-      },
 
       ReceivedMessage: ({ text }) => [
         model,
         [
           Task.getZonedTime.pipe(
-            Effect.map(zoned => GotReceivedMessageTime({ text, zoned })),
+            Effect.map(zoned =>
+              TimestampedMessage({ text, zoned, isSent: false }),
+            ),
           ),
         ],
       ],
 
-      GotReceivedMessageTime: ({ text, zoned }) => {
-        const newMessage = ChatMessage.make({
-          text,
-          zoned,
-          isSent: false,
-        })
+      TimestampedMessage: ({ text, zoned, isSent }) => {
+        const newMessage = ChatMessage.make({ text, zoned, isSent })
 
         return [
           evo(model, {

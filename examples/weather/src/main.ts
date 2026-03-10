@@ -1,5 +1,17 @@
-import { FetchHttpClient, HttpClient } from '@effect/platform'
-import { Array, Effect, Match as M, Schema as S, String, flow } from 'effect'
+import {
+  FetchHttpClient,
+  HttpClient,
+  HttpClientRequest,
+} from '@effect/platform'
+import {
+  Array,
+  Effect,
+  Match as M,
+  Option,
+  Schema as S,
+  String,
+  flow,
+} from 'effect'
 import { Runtime } from 'foldkit'
 import { Command } from 'foldkit/command'
 import { Html, html } from 'foldkit/html'
@@ -15,7 +27,7 @@ export const WeatherData = S.Struct({
   description: S.String,
   humidity: S.Number,
   windSpeed: S.Number,
-  areaName: S.String,
+  locationName: S.String,
   region: S.String,
 })
 export type WeatherData = typeof WeatherData.Type
@@ -107,18 +119,43 @@ const init: Runtime.ElementInit<Model, Message> = () => [
 
 // COMMAND
 
-type WeatherResponseData = {
-  current_condition: Array.NonEmptyReadonlyArray<{
-    temp_F: string
-    humidity: string
-    windspeedKmph: string
-    weatherDesc: Array.NonEmptyReadonlyArray<{ value: string }>
-  }>
-  nearest_area: Array.NonEmptyReadonlyArray<{
-    areaName: Array.NonEmptyReadonlyArray<{ value: string }>
-    region: Array.NonEmptyReadonlyArray<{ value: string }>
-  }>
-}
+const GEOCODING_API = 'https://geocoding-api.open-meteo.com/v1/search'
+const WEATHER_API = 'https://api.open-meteo.com/v1/forecast'
+
+const GeocodingResult = S.Struct({
+  name: S.String,
+  latitude: S.Number,
+  longitude: S.Number,
+  admin1: S.OptionFromUndefinedOr(S.String),
+})
+
+const GeocodingResponse = S.Struct({
+  results: S.OptionFromUndefinedOr(S.Array(GeocodingResult)),
+})
+
+const WeatherResponse = S.Struct({
+  current: S.Struct({
+    temperature_2m: S.Number,
+    relative_humidity_2m: S.Number,
+    wind_speed_10m: S.Number,
+    weather_code: S.Number,
+  }),
+})
+
+const weatherCodeToDescription = (code: number): string =>
+  M.value(code).pipe(
+    M.when(0, () => 'Clear sky'),
+    M.whenOr(1, 2, 3, () => 'Partly cloudy'),
+    M.whenOr(45, 48, () => 'Foggy'),
+    M.whenOr(51, 53, 55, () => 'Drizzle'),
+    M.whenOr(61, 63, 65, () => 'Rain'),
+    M.whenOr(66, 67, () => 'Freezing rain'),
+    M.whenOr(71, 73, 75, 77, () => 'Snow'),
+    M.whenOr(80, 81, 82, () => 'Rain showers'),
+    M.whenOr(85, 86, () => 'Snow showers'),
+    M.whenOr(95, 96, 99, () => 'Thunderstorm'),
+    M.orElse(() => 'Unknown'),
+  )
 
 export const fetchWeather = (
   zipCode: string,
@@ -129,40 +166,78 @@ export const fetchWeather = (
 > =>
   Effect.gen(function* () {
     if (String.isEmpty(zipCode.trim())) {
-      return FailedWeatherFetch({ error: 'Zip code required' })
+      return yield* Effect.fail(
+        FailedWeatherFetch({ error: 'Zip code required' }),
+      )
     }
 
     const client = yield* HttpClient.HttpClient
-    const response = yield* client.get(
-      `https://wttr.in/${encodeURIComponent(zipCode)},US?format=j1`,
-    )
 
-    if (response.status !== 200) {
-      return FailedWeatherFetch({ error: 'Location not found' })
+    const geocodeRequest = HttpClientRequest.get(GEOCODING_API).pipe(
+      HttpClientRequest.setUrlParams({
+        name: zipCode,
+        count: '1',
+        language: 'en',
+        format: 'json',
+      }),
+    )
+    const geocodeResponse = yield* client.execute(geocodeRequest)
+
+    if (geocodeResponse.status !== 200) {
+      return yield* Effect.fail(
+        FailedWeatherFetch({ error: 'Location not found' }),
+      )
     }
 
-    // In a real app, you'd define a Schema for WeatherResponseData and use
-    // Schema.decodeUnknown to validate the response. We use a type assertion
-    // here for brevity.
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    const data = (yield* response.json) as WeatherResponseData
-    const currentCondition = data.current_condition[0]
-    const areaName = data.nearest_area[0].areaName[0].value
-    const region = data.nearest_area[0].region[0].value
+    const geocodeData = yield* S.decodeUnknown(GeocodingResponse)(
+      yield* geocodeResponse.json,
+    )
+
+    const geoResult = yield* geocodeData.results.pipe(
+      Option.flatMap(Array.head),
+      Option.match({
+        onNone: () =>
+          Effect.fail(FailedWeatherFetch({ error: 'Location not found' })),
+        onSome: Effect.succeed,
+      }),
+    )
+
+    const weatherRequest = HttpClientRequest.get(WEATHER_API).pipe(
+      HttpClientRequest.setUrlParams({
+        latitude: geoResult.latitude.toString(),
+        longitude: geoResult.longitude.toString(),
+        current:
+          'temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code',
+        temperature_unit: 'fahrenheit',
+        wind_speed_unit: 'mph',
+      }),
+    )
+    const weatherResponse = yield* client.execute(weatherRequest)
+
+    if (weatherResponse.status !== 200) {
+      return yield* Effect.fail(
+        FailedWeatherFetch({ error: 'Failed to fetch weather data' }),
+      )
+    }
+
+    const weatherData = yield* S.decodeUnknown(WeatherResponse)(
+      yield* weatherResponse.json,
+    )
 
     const weather = WeatherData.make({
       zipCode,
-      temperature: parseInt(currentCondition.temp_F),
-      description: currentCondition.weatherDesc[0].value,
-      humidity: parseInt(currentCondition.humidity),
-      windSpeed: parseFloat(currentCondition.windspeedKmph),
-      areaName,
-      region,
+      temperature: Math.round(weatherData.current.temperature_2m),
+      description: weatherCodeToDescription(weatherData.current.weather_code),
+      humidity: weatherData.current.relative_humidity_2m,
+      windSpeed: Math.round(weatherData.current.wind_speed_10m),
+      locationName: geoResult.name,
+      region: Option.getOrElse(geoResult.admin1, () => ''),
     })
 
     return SucceededWeatherFetch({ weather })
   }).pipe(
     Effect.scoped,
+    Effect.catchTag('FailedWeatherFetch', error => Effect.succeed(error)),
     Effect.catchAll(() =>
       Effect.succeed(
         FailedWeatherFetch({ error: 'Failed to fetch weather data' }),
@@ -195,6 +270,7 @@ const {
   Id,
   OnInput,
   OnSubmit,
+  Autocomplete,
   Placeholder,
   Type,
 } = html<Message>()
@@ -221,6 +297,7 @@ const view = (model: Model): Html =>
             Class(
               'w-full px-4 py-2 rounded-lg border-2 border-blue-300 focus:border-blue-500 outline-none',
             ),
+            Autocomplete('off'),
             Placeholder('Enter a zip code'),
             OnInput(value => UpdatedZipCodeInput({ value })),
           ]),
@@ -246,7 +323,7 @@ const view = (model: Model): Html =>
           WeatherInit: () => empty,
           WeatherLoading: () =>
             div(
-              [Class('text-blue-600 font-semibold')],
+              [Class('text-blue-600 font-semibold text-center')],
               ['Fetching weather...'],
             ),
           WeatherFailure: ({ error }) =>
@@ -274,7 +351,7 @@ const weatherView = (weather: WeatherData): Html =>
       ),
       p(
         [Class('text-center text-gray-600 mb-6')],
-        [weather.areaName + ', ' + weather.region],
+        [weather.locationName + ', ' + weather.region],
       ),
 
       div(
@@ -304,7 +381,7 @@ const weatherView = (weather: WeatherData): Html =>
               div([Class('text-sm text-gray-600')], ['Wind Speed']),
               div(
                 [Class('text-lg font-semibold')],
-                [`${weather.windSpeed} km/h`],
+                [`${weather.windSpeed} mph`],
               ),
             ],
           ),

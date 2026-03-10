@@ -47,7 +47,6 @@ import { homeRouter } from '../../../route'
 const StringField = makeField(S.String)
 type StringField = typeof StringField.Union.Type
 
-const StringFieldValid = StringField.Valid
 const StringFieldInvalid = StringField.Invalid
 
 // MODEL
@@ -104,7 +103,7 @@ const validateEmail = StringField.validate(emailValidations)
 const validatePassword = StringField.validate(passwordValidations)
 
 const isFormValid = (model: Model): boolean =>
-  Array.every([model.email, model.password], S.is(StringFieldValid))
+  Array.every([model.email, model.password], field => field._tag === 'Valid')
 
 // UPDATE
 
