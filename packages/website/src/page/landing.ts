@@ -25,6 +25,7 @@ import { Icon } from '../icon'
 import { Link } from '../link'
 import {
   comingFromReactRouter,
+  coreArchitectureRouter,
   coreCounterExampleRouter,
   examplesRouter,
   gettingStartedRouter,
@@ -167,7 +168,7 @@ const heroSection = (copiedSnippets: CopiedSnippets): Html =>
             ],
             [
               a(
-                [Href(gettingStartedRouter()), Class('cta-primary')],
+                [Href(coreArchitectureRouter()), Class('cta-primary')],
                 ['Dive In', Icon.arrowRight('w-5 h-5')],
               ),
               a(
@@ -850,7 +851,7 @@ const finalCtaSection = (): Html =>
             ],
             [
               a(
-                [Href(gettingStartedRouter()), Class('cta-primary')],
+                [Href(coreArchitectureRouter()), Class('cta-primary')],
                 ['Dive In', Icon.arrowRight('w-5 h-5')],
               ),
               a(
