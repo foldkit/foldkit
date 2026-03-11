@@ -1,4 +1,4 @@
-import classNames from 'classnames'
+import { clsx } from 'clsx'
 import { Html } from 'foldkit/html'
 
 import {
@@ -56,7 +56,7 @@ const themeSelectorButton = (
     [
       AriaPressed(isActive.toString()),
       Class(
-        classNames(
+        clsx(
           'p-2 rounded-md transition cursor-pointer',
           isActive
             ? 'bg-gray-300 dark:bg-gray-600 text-gray-900 dark:text-white'

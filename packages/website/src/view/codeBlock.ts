@@ -1,4 +1,4 @@
-import classNames from 'classnames'
+import { clsx } from 'clsx'
 import { HashSet } from 'effect'
 import { Html } from 'foldkit/html'
 
@@ -23,6 +23,7 @@ const copyButtonWithIndicator = (
   textToCopy: string,
   ariaLabel: string,
   copiedSnippets: CopiedSnippets,
+  positionClass = 'top-2 right-2',
 ) => {
   const isCopied = HashSet.has(copiedSnippets, textToCopy)
 
@@ -54,7 +55,7 @@ const copyButtonWithIndicator = (
   )
 
   return div(
-    [Class('code-embed-copy absolute top-2 right-2')],
+    [Class(clsx('code-embed-copy absolute', positionClass))],
     [copiedIndicator, liveAnnouncement, copyButton],
   )
 }
@@ -77,13 +78,21 @@ export const codeBlock = (
   return div(
     [
       Class(
-        classNames(
+        clsx(
           'relative min-w-0 rounded-lg bg-gray-100 dark:bg-[#1c1a20] overflow-hidden border border-gray-200 dark:border-gray-700/50',
           className,
         ),
       ),
     ],
-    [content, copyButtonWithIndicator(code, ariaLabel, copiedSnippets)],
+    [
+      content,
+      copyButtonWithIndicator(
+        code,
+        ariaLabel,
+        copiedSnippets,
+        'top-1/2 -translate-y-1/2 right-2',
+      ),
+    ],
   )
 }
 
@@ -95,6 +104,6 @@ export const highlightedCodeBlock = (
   className?: string,
 ) =>
   div(
-    [Class(classNames('relative min-w-0 mt-8', className))],
+    [Class(clsx('relative min-w-0 mt-8', className))],
     [content, copyButtonWithIndicator(rawCode, ariaLabel, copiedSnippets)],
   )

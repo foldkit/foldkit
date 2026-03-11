@@ -1,4 +1,4 @@
-import classNames from 'classnames'
+import { clsx } from 'clsx'
 import {
   Array,
   Duration,
@@ -490,7 +490,7 @@ const durationButtonClass = (
   isSelected: boolean,
   isInputLocked: boolean,
 ): string =>
-  classNames('flex-1 px-3 py-1.5 text-sm font-normal transition text-center', {
+  clsx('flex-1 px-3 py-1.5 text-sm font-normal transition text-center', {
     'bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900': isSelected,
     'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 cursor-pointer':
       !isSelected && !isInputLocked,
@@ -561,7 +561,7 @@ const noteInputView = (
   div(
     [
       Class(
-        classNames('flex flex-col gap-1.5 transition-opacity', {
+        clsx('flex flex-col gap-1.5 transition-opacity', {
           'opacity-50': isInputLocked,
         }),
       ),
@@ -574,7 +574,7 @@ const noteInputView = (
       input([
         Id('note-input'),
         Class(
-          classNames(
+          clsx(
             'w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border text-sm text-gray-800 dark:text-gray-200 font-mono tracking-widest uppercase transition',
             inputBorderClass(model.noteInput),
           ),
@@ -672,7 +672,7 @@ const playbackControlView = (
         : button(
             [
               Class(
-                classNames(
+                clsx(
                   'flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-normal transition',
                   {
                     'bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 hover:bg-accent-700 dark:hover:bg-accent-600 active:bg-accent-800 dark:active:bg-accent-700 cursor-pointer':
@@ -691,7 +691,7 @@ const playbackControlView = (
       button(
         [
           Class(
-            classNames(
+            clsx(
               'flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-normal transition',
               {
                 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-pointer':
@@ -766,7 +766,7 @@ const noteVisualizerView = (model: Model, notes: ReadonlyArray<Note>): Html => {
         key,
         [
           Class(
-            classNames(
+            clsx(
               'flex-1 h-10 rounded-lg flex items-center justify-center text-sm font-bold transition-colors duration-150',
               {
                 'bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900':

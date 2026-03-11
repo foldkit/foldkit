@@ -1,4 +1,4 @@
-import classNames from 'classnames'
+import { clsx } from 'clsx'
 import { Array, Number, Option, Order, String as Str, pipe } from 'effect'
 import { Html } from 'foldkit/html'
 
@@ -81,7 +81,7 @@ const char =
 
     const isNextNewline = isNext && char === '\n'
 
-    const charClassName = classNames({
+    const charClassName = clsx({
       'text-terminal-green-dark': isUntyped,
       'text-terminal-green': isCorrect,
       'text-terminal-red bg-terminal-red/20': isWrong,

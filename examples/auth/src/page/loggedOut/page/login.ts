@@ -1,4 +1,4 @@
-import classNames from 'classnames'
+import { clsx } from 'clsx'
 import {
   Array,
   Duration,
@@ -206,7 +206,7 @@ const fieldView = (
   type: 'text' | 'email' | 'password' = 'text',
   placeholder = '',
 ): Html => {
-  const inputClass = classNames(
+  const inputClass = clsx(
     'w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
     fieldToBorderClass(field),
   )
@@ -304,7 +304,7 @@ export const view = (
                   Type('submit'),
                   Disabled(!canSubmit),
                   Class(
-                    classNames(
+                    clsx(
                       'w-full py-3 font-medium rounded-lg transition',
                       canSubmit
                         ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer'

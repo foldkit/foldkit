@@ -1,4 +1,4 @@
-import classNames from 'classnames'
+import { clsx } from 'clsx'
 import { Array } from 'effect'
 import { Html } from 'foldkit/html'
 
@@ -10,7 +10,7 @@ const headerCell = (text: string, isLastColumn: boolean): Html =>
   th(
     [
       Class(
-        classNames(
+        clsx(
           'px-4 py-3 text-left text-base font-semibold text-gray-900 dark:text-white',
           { [columnBorder]: !isLastColumn },
         ),
@@ -27,7 +27,7 @@ const cell = (
   td(
     [
       Class(
-        classNames(
+        clsx(
           'px-4 py-3 text-base',
           isFirstColumn
             ? 'font-normal text-gray-900 dark:text-white'

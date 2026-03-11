@@ -2111,7 +2111,7 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
  * attribute constructors, a `keyed` helper for keyed elements, and `empty`
  * for rendering nothing.
  */
-export const html = <Message>() => {
+export const html = <Message = never>() => {
   return {
     ...htmlElements<Message>(),
     ...htmlAttributes<Message>(),

@@ -1,5 +1,5 @@
 import * as Shared from '@typing-game/shared'
-import classNames from 'classnames'
+import { clsx } from 'clsx'
 import { Array, Number, Option, Order, pipe } from 'effect'
 import { Html } from 'foldkit/html'
 
@@ -84,7 +84,7 @@ const scoreboardView = (scoreboard: Shared.Scoreboard, hostId: string) => {
               td(
                 [
                   Class(
-                    classNames('p-4', {
+                    clsx('p-4', {
                       'border-b-2 border-terminal-green':
                         index < Number.decrement(sortedScoreboard.length),
                     }),
@@ -99,7 +99,7 @@ const scoreboardView = (scoreboard: Shared.Scoreboard, hostId: string) => {
               td(
                 [
                   Class(
-                    classNames('p-4 text-right', {
+                    clsx('p-4 text-right', {
                       'border-b-2 border-terminal-green':
                         index < Number.decrement(sortedScoreboard.length),
                     }),
@@ -110,7 +110,7 @@ const scoreboardView = (scoreboard: Shared.Scoreboard, hostId: string) => {
               td(
                 [
                   Class(
-                    classNames('p-4 text-right', {
+                    clsx('p-4 text-right', {
                       'border-b-2 border-terminal-green':
                         index < Number.decrement(sortedScoreboard.length),
                     }),
@@ -121,7 +121,7 @@ const scoreboardView = (scoreboard: Shared.Scoreboard, hostId: string) => {
               td(
                 [
                   Class(
-                    classNames('p-4 text-right', {
+                    clsx('p-4 text-right', {
                       'border-b-2 border-terminal-green':
                         index < Number.decrement(sortedScoreboard.length),
                     }),

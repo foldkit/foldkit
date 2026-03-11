@@ -1,4 +1,4 @@
-import classNames from 'classnames'
+import { clsx } from 'clsx'
 import { Array } from 'effect'
 import { Ui } from 'foldkit'
 import type { AnchorConfig } from 'foldkit/ui/combobox'
@@ -121,7 +121,7 @@ export const comboboxDemo = (
               [Class('flex items-center gap-2')],
               [
                 Icon.check(
-                  classNames('w-4 h-4 shrink-0 text-gray-900 dark:text-white', {
+                  clsx('w-4 h-4 shrink-0 text-gray-900 dark:text-white', {
                     visible: context.isSelected,
                     invisible: !context.isSelected,
                   }),
@@ -169,7 +169,7 @@ export const nullableDemo = (
               [Class('flex items-center gap-2')],
               [
                 Icon.check(
-                  classNames('w-4 h-4 shrink-0 text-gray-900 dark:text-white', {
+                  clsx('w-4 h-4 shrink-0 text-gray-900 dark:text-white', {
                     visible: context.isSelected,
                     invisible: !context.isSelected,
                   }),
@@ -222,7 +222,7 @@ export const selectOnFocusDemo = (
               [Class('flex items-center gap-2')],
               [
                 Icon.check(
-                  classNames('w-4 h-4 shrink-0 text-gray-900 dark:text-white', {
+                  clsx('w-4 h-4 shrink-0 text-gray-900 dark:text-white', {
                     visible: context.isSelected,
                     invisible: !context.isSelected,
                   }),
@@ -283,7 +283,7 @@ export const multiDemo = (
               [Class('flex items-center gap-2')],
               [
                 Icon.check(
-                  classNames('w-4 h-4 shrink-0 text-gray-900 dark:text-white', {
+                  clsx('w-4 h-4 shrink-0 text-gray-900 dark:text-white', {
                     visible: context.isSelected,
                     invisible: !context.isSelected,
                   }),

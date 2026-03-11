@@ -16,7 +16,7 @@
 
 - [ ] Search for the doc site (Cmd+K or similar)
 
-- [ ] Document FieldValidation module on the website
+- [x] Document FieldValidation module on the website
 
 ## Foldkit
 
@@ -24,11 +24,11 @@
 
 - [ ] Add a docs example showing `makeField` with non-primitive Schema types (e.g. `S.DateFromString`, branded types, `S.Literal` unions) to illustrate when and why the schema factory matters beyond `S.String` / `S.Number`
 
-- [ ] Why does the html function not require a generic arg? (important)
+- [x] Why does the html function not require a generic arg? (important)
 
 - [x] Route.oneOf has overloads up to 10 args — consider making it truly variadic or documenting that users should chain oneOfs for more
 
-- [ ] Foldkit UI — a port of Headless UI to Foldkit
+- [x] Foldkit UI — a port of Headless UI to Foldkit
   - Accessible, unstyled UI components as Model/Message/Update modules
   - Components: Dialog, Combobox, Listbox, Menu, Popover, Disclosure, Tabs, etc.
   - Each component exposes its own Model, Message, update, and view
@@ -40,7 +40,7 @@
 
 - [x] Are we using Effect.Clock everywhere we should be in the examples, instead of Date.now()?
 
-- [ ] Create `examples/foldkit-ui` example app — a standalone app with a page per UI component showing real integration patterns (model, message, init, update, view). To be done after all foldkit-ui components are built. Website links to this as the canonical usage reference.
+- [x] Create `examples/foldkit-ui` example app — a standalone app with a page per UI component showing real integration patterns (model, message, init, update, view). To be done after all foldkit-ui components are built. Website links to this as the canonical usage reference.
 
 - [ ] Example app with undo/redo, maybe a markdown previewer with undo/redo stack and WYSIWYG?
 
@@ -50,13 +50,13 @@
 
 - [ ] Communicating this idea somewhere on the website: "You can trust AI-written Foldkit code more that other frameworks, because the architecture makes correctness visible."
 
-- [ ] Swap classnames for clsx across entire repo
+- [x] Swap classnames for clsx across entire repo
 
 - [x] Write a manifesto page for the website
 
 - [ ] Elevate "Foldkit models the frontend so you can model everything else." as a core messaging concept — consider using it as the landing page subtitle, meta description, or Getting Started opener. The full line: "Foldkit models the frontend so you can model your domain."
 
-- [ ] Copy button not centered in single line code blocks (easy win)
+- [x] Copy button not centered in single line code blocks (easy win)
 
 - [ ] Highlighting not visible on live demo in "See it work" section on landing page in dark mode
 

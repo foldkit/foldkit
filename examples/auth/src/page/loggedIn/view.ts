@@ -1,4 +1,4 @@
-import classNames from 'classnames'
+import { clsx } from 'clsx'
 import { Match as M } from 'effect'
 import { Html } from 'foldkit/html'
 
@@ -13,7 +13,7 @@ import * as Dashboard from './page/dashboard'
 import * as Settings from './page/settings'
 
 const navLinkClassName = (isActive: boolean) =>
-  classNames(
+  clsx(
     'hover:bg-blue-600 font-medium px-3 py-1 rounded transition',
     isActive && 'bg-blue-700 bg-opacity-50',
   )

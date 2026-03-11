@@ -44,7 +44,7 @@ export const view = (): Html =>
       pageTitle('core/architecture', 'Architecture'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'In most TypeScript UI frameworks, each component manages its own state and effects. In Foldkit, there\u2019s a single state tree; every change flows in one direction through the same loop.',
+        'In most TypeScript UI frameworks, each component manages its own state and effects. In Foldkit, there\u2019s a single state tree. Every change flows in one direction through the same loop.',
       ),
       para(
         'This pattern is called ',

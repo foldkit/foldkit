@@ -2,7 +2,7 @@ import { KeyValueStore } from '@effect/platform'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { inject } from '@vercel/analytics'
 import * as SpeedInsights from '@vercel/speed-insights'
-import classNames from 'classnames'
+import { clsx } from 'clsx'
 import {
   Array,
   Effect,
@@ -894,7 +894,7 @@ const sidebarGroup = (config: {
       Ui.Disclosure.view({
         model: config.model,
         toMessage: config.toMessage,
-        buttonClassName: classNames(
+        buttonClassName: clsx(
           'w-full flex items-center justify-between cursor-pointer transition',
           'px-4 py-2.5 md:py-2',
           'text-xs font-semibold uppercase tracking-wider',
@@ -910,7 +910,7 @@ const sidebarGroup = (config: {
             span(
               [
                 Class(
-                  classNames({
+                  clsx({
                     'rotate-180': config.model.isOpen,
                   }),
                 ),
@@ -947,7 +947,7 @@ const sidebarViewInner = (
   )
 
   const linkClass = (isActive: boolean) =>
-    classNames(
+    clsx(
       'block px-4 py-2.5 md:px-2.5 md:py-1 rounded-md transition text-sm font-normal',
       {
         'bg-accent-100 dark:bg-accent-900/50 text-accent-700 dark:text-accent-400':
@@ -1188,7 +1188,7 @@ const tableOfContentsEntryView = (
     id,
     [
       Class(
-        classNames({
+        clsx({
           'ml-3': level === 'h3',
           'ml-6': level === 'h4',
         }),
@@ -1200,7 +1200,7 @@ const tableOfContentsEntryView = (
           Href(`#${id}`),
           OnClick(ChangedActiveSection({ sectionId: id })),
           Class(
-            classNames('transition block', {
+            clsx('transition block', {
               'text-accent-600 dark:text-accent-400 underline': isActive,
               'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white':
                 !isActive,
@@ -1352,7 +1352,7 @@ const mobileTableOfContentsView = (
                         }),
                       ),
                       Class(
-                        classNames(
+                        clsx(
                           'transition flex items-center justify-between py-3 px-4',
                           {
                             'pl-8': level === 'h3',
@@ -1394,7 +1394,7 @@ const landingHeaderView = (model: Model) =>
   header(
     [
       Class(
-        classNames(
+        clsx(
           'fixed top-0 inset-x-0 z-50 h-[var(--header-height)] pt-[env(safe-area-inset-top,0px)] bg-cream/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-4 md:px-8 flex items-center justify-between transition-transform duration-300',
           {
             '-translate-y-full': !model.isLandingHeaderVisible,
@@ -1624,7 +1624,7 @@ const neighborLink = (
     [
       Href(config.page.href),
       Class(
-        classNames('group flex flex-col gap-1', {
+        clsx('group flex flex-col gap-1', {
           'items-start text-left': config.direction === 'Previous',
           'items-end text-right ml-auto': config.direction === 'Next',
         }),
@@ -1982,7 +1982,7 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
             [
               Id('main-content'),
               Class(
-                classNames('flex-1 min-w-0 bg-cream dark:bg-gray-900', {
+                clsx('flex-1 min-w-0 bg-cream dark:bg-gray-900', {
                   'pt-[var(--mobile-toc-height)]': Option.isSome(
                     currentPageTableOfContents,
                   ),

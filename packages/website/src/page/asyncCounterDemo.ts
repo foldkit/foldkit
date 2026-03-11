@@ -1,4 +1,4 @@
-import classNames from 'classnames'
+import { clsx } from 'clsx'
 import {
   Array,
   Duration,
@@ -313,7 +313,7 @@ const MIN_RESET_DURATION = 1
 const MAX_RESET_DURATION = 5
 
 const stepperButtonClass = (isDisabled: boolean): string =>
-  classNames('px-2.5 rounded-lg border text-sm font-normal transition', {
+  clsx('px-2.5 rounded-lg border text-sm font-normal transition', {
     'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-300 dark:text-gray-600 cursor-not-allowed':
       isDisabled,
     'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer':
@@ -442,7 +442,7 @@ const viewAndControlsView = (
       button(
         [
           Class(
-            classNames('px-4 py-2 rounded-lg text-sm font-normal transition', {
+            clsx('px-4 py-2 rounded-lg text-sm font-normal transition', {
               'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed':
                 model.isResetting,
               'bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 hover:bg-accent-700 dark:hover:bg-accent-600 active:bg-accent-800 dark:active:bg-accent-700 cursor-pointer':
@@ -476,7 +476,7 @@ const progressBarView = (model: Model, isCommand: boolean): Html =>
     [
       AriaHidden(true),
       Class(
-        classNames(
+        clsx(
           'flex-1 h-2 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden transition-opacity duration-200',
           {
             'opacity-100': isCommand,
@@ -489,7 +489,7 @@ const progressBarView = (model: Model, isCommand: boolean): Html =>
       div(
         [
           Class(
-            classNames(
+            clsx(
               'demo-progress-bar h-full rounded-full bg-violet-600 dark:bg-violet-400',
               {
                 'demo-progress-bar-active': isCommand,

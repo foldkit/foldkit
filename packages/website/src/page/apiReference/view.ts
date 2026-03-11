@@ -1,4 +1,4 @@
-import classNames from 'classnames'
+import { clsx } from 'clsx'
 import { Array, Option, Record, pipe } from 'effect'
 import { Ui } from 'foldkit'
 import { Html, createKeyedLazy } from 'foldkit/html'
@@ -144,7 +144,7 @@ const chevron = (isOpen: boolean) =>
   span(
     [
       Class(
-        classNames('text-gray-500 dark:text-gray-400', {
+        clsx('text-gray-500 dark:text-gray-400', {
           'rotate-180': isOpen,
         }),
       ),
@@ -168,7 +168,7 @@ const signaturesView = (
 
   const { wrapperClass, content } = Option.match(maybeHighlighted, {
     onSome: highlighted => ({
-      wrapperClass: classNames(
+      wrapperClass: clsx(
         'text-sm [&_pre]:!py-4 [&_pre]:!pl-4 [&_pre]:!pr-0 [&_code]:block [&_code]:w-fit [&_code]:min-w-full [&_code]:pr-4',
         {
           'rounded [&_pre]:!rounded': !isInDisclosure,
@@ -182,13 +182,10 @@ const signaturesView = (
       ],
     }),
     onNone: () => ({
-      wrapperClass: classNames(
-        'bg-cream dark:bg-gray-800 p-4 font-mono text-sm',
-        {
-          rounded: !isInDisclosure,
-          'rounded-b-lg rounded-t-none': isInDisclosure,
-        },
-      ),
+      wrapperClass: clsx('bg-cream dark:bg-gray-800 p-4 font-mono text-sm', {
+        rounded: !isInDisclosure,
+        'rounded-b-lg rounded-t-none': isInDisclosure,
+      }),
       content: [
         ...descriptionCommentFallback(apiFunction.description),
         ...Array.flatMap(apiFunction.signatures, signature =>
