@@ -16,11 +16,13 @@ import {
   Schema,
   Stream,
   SubscriptionRef,
+  Tuple,
   pipe,
 } from 'effect'
 import { h } from 'snabbdom'
 
 import type { Command } from '../command'
+import { type DevtoolsStore, createDevtoolsStore } from '../devtools/store'
 import { Html } from '../html'
 import { Url, fromString as urlFromString } from '../url'
 import { VNode, patch, toVNode } from '../vdom'
@@ -106,6 +108,7 @@ type RuntimeConfig<
    * `makeManagedResources`.
    */
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
+  devtools?: boolean
 }>
 
 type BaseElementConfig<
@@ -135,6 +138,7 @@ type BaseElementConfig<
   slowViewThresholdMs?: number | false
   resources?: Layer.Layer<Resources>
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
+  devtools?: boolean
 }>
 
 /** Configuration for `makeElement` when the element receives initial data via flags. */
@@ -216,6 +220,7 @@ type BaseApplicationConfig<
   slowViewThresholdMs?: number | false
   resources?: Layer.Layer<Resources>
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
+  devtools?: boolean
 }>
 
 /** Configuration for `makeApplication` when the application receives initial data via flags. */
@@ -346,6 +351,7 @@ const makeRuntime =
     slowViewThresholdMs = SLOW_VIEW_THRESHOLD_MS,
     resources,
     managedResources,
+    devtools,
   }: RuntimeConfig<
     Model,
     Message,
@@ -466,6 +472,8 @@ const makeRuntime =
           Option.Option<Runtime.Runtime<never>>
         >(Option.none())
 
+        let devtoolsStore: DevtoolsStore | undefined
+
         const processMessage = (message: Message): Effect.Effect<void> =>
           Effect.gen(function* () {
             const currentModel = yield* Ref.get(modelRef)
@@ -474,7 +482,18 @@ const makeRuntime =
 
             if (currentModel !== nextModel) {
               yield* Ref.set(modelRef, nextModel)
-              yield* render(nextModel)
+
+              const isPaused = devtoolsStore
+                ? yield* pipe(
+                    devtoolsStore.stateRef,
+                    SubscriptionRef.get,
+                    Effect.map(state => state.isPaused),
+                  )
+                : false
+
+              if (!isPaused) {
+                yield* render(nextModel)
+              }
 
               if (!modelEquivalence(currentModel, nextModel)) {
                 yield* SubscriptionRef.set(modelSubscriptionRef, nextModel)
@@ -490,6 +509,15 @@ const makeRuntime =
                 ),
               ),
             )
+
+            if (devtoolsStore) {
+              yield* devtoolsStore.recordMessage(
+                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                message as Message & { _tag: string },
+                nextModel,
+                commands.length,
+              )
+            }
           })
 
         const runProcessMessage =
@@ -561,6 +589,19 @@ const makeRuntime =
 
         const runtime = yield* Effect.runtime()
         yield* Ref.set(maybeRuntimeRef, Option.some(runtime))
+
+        if (import.meta.hot && devtools !== false) {
+          devtoolsStore = yield* createDevtoolsStore({
+            replay: (model, message) =>
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              Tuple.getFirst(update(model as Model, message as Message)),
+            render: model =>
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              render(model as Model),
+            getCurrentModel: Ref.get(modelRef),
+          })
+          yield* devtoolsStore.recordInit(initModel)
+        }
 
         yield* render(initModel)
 
@@ -835,6 +876,9 @@ export function makeElement<
     ...(config.managedResources && {
       managedResources: config.managedResources,
     }),
+    ...(Predicate.isNotUndefined(config.devtools) && {
+      devtools: config.devtools,
+    }),
   }
 
   if ('Flags' in config) {
@@ -948,6 +992,9 @@ export function makeApplication<
     ...(config.resources && { resources: config.resources }),
     ...(config.managedResources && {
       managedResources: config.managedResources,
+    }),
+    ...(Predicate.isNotUndefined(config.devtools) && {
+      devtools: config.devtools,
     }),
   }
 
