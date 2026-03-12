@@ -10,7 +10,7 @@
   <a href="https://www.npmjs.com/package/foldkit"><img src="https://img.shields.io/npm/v/foldkit" alt="npm version"></a>
 </p>
 
-<h3 align="center">Beautifully boring frontend applications.</h3>
+<h3 align="center">The frontend framework for correctness.</h3>
 
 <p align="center">
   <a href="https://foldkit.dev"><strong>Documentation</strong></a> · <a href="https://github.com/devinjameson/foldkit#examples"><strong>Examples</strong></a> · <a href="https://foldkit.dev/getting-started"><strong>Getting Started</strong></a>
