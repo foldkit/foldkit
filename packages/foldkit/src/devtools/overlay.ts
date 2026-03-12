@@ -1,9 +1,11 @@
 import { clsx } from 'clsx'
 import {
-  Array,
+  Array as Array_,
   Effect,
+  HashSet,
   Match,
   Option,
+  Predicate,
   Schema,
   Stream,
   SubscriptionRef,
@@ -34,6 +36,8 @@ const Model = Schema.Struct({
   startIndex: Schema.Number,
   isPaused: Schema.Boolean,
   pausedAtIndex: Schema.Number,
+  maybeInspectedModel: Schema.OptionFromSelf(Schema.Unknown),
+  expandedPaths: Schema.HashSetFromSelf(Schema.String),
 })
 type Model = typeof Model.Type
 
@@ -44,6 +48,10 @@ const ClickedRow = m('ClickedRow', { index: Schema.Number })
 const ClickedResume = m('ClickedResume')
 const ClickedClear = m('ClickedClear')
 const CompletedSideEffect = m('CompletedSideEffect')
+const ReceivedInspectedModel = m('ReceivedInspectedModel', {
+  model: Schema.Unknown,
+})
+const ToggledTreeNode = m('ToggledTreeNode', { path: Schema.String })
 const ReceivedStoreUpdate = m('ReceivedStoreUpdate', {
   entries: Schema.Array(DisplayEntry),
   startIndex: Schema.Number,
@@ -57,6 +65,8 @@ const Message = Schema.Union(
   ClickedResume,
   ClickedClear,
   CompletedSideEffect,
+  ReceivedInspectedModel,
+  ToggledTreeNode,
   ReceivedStoreUpdate,
 )
 type Message = typeof Message.Type
@@ -64,6 +74,8 @@ type Message = typeof Message.Type
 // HELPERS
 
 const MILLIS_PER_SECOND = 1000
+const TREE_INDENT_PX = 14
+const MAX_PREVIEW_KEYS = 3
 
 const formatTimeDelta = (deltaMs: number): string =>
   deltaMs < MILLIS_PER_SECOND
@@ -73,7 +85,7 @@ const formatTimeDelta = (deltaMs: number): string =>
 const MESSAGE_LIST_SELECTOR = '.message-list'
 
 const toDisplayEntries = ({ entries }: StoreState) =>
-  Array.map(entries, ({ tag, commandCount, timestamp }) => ({
+  Array_.map(entries, ({ tag, commandCount, timestamp }) => ({
     tag,
     commandCount,
     timestamp,
@@ -86,6 +98,31 @@ const toDisplayState = (state: StoreState) => ({
   pausedAtIndex: state.pausedAtIndex,
 })
 
+const isExpandable = (value: unknown): boolean =>
+  value !== null && typeof value === 'object'
+
+const Tagged = Schema.Struct({ _tag: Schema.String })
+const isTagged = Schema.is(Tagged)
+
+const objectPreview = (value: Record<string, unknown>): string => {
+  const keys = Object.keys(value).filter(key => key !== '_tag')
+  if (Array_.isEmptyArray(keys)) {
+    return '{}'
+  }
+  const preview = keys.slice(0, MAX_PREVIEW_KEYS).join(', ')
+  return keys.length > MAX_PREVIEW_KEYS ? `{ ${preview}, … }` : `{ ${preview} }`
+}
+
+const collapsedPreview = (value: unknown): string => {
+  if (Array.isArray(value)) {
+    return `(${value.length})`
+  }
+  if (typeof value === 'object' && value !== null) {
+    return objectPreview(value as Record<string, unknown>)
+  }
+  return ''
+}
+
 // UPDATE
 
 const makeUpdate = (store: DevtoolsStore, shadow: ShadowRoot) => {
@@ -93,6 +130,14 @@ const makeUpdate = (store: DevtoolsStore, shadow: ShadowRoot) => {
     Effect.gen(function* () {
       yield* store.jumpTo(index)
       return CompletedSideEffect()
+    })
+
+  const inspectModel = (
+    index: number,
+  ): Command<typeof ReceivedInspectedModel> =>
+    Effect.gen(function* () {
+      const model = yield* store.getModelAtIndex(index)
+      return ReceivedInspectedModel({ model })
     })
 
   const resume = Effect.gen(function* () {
@@ -126,10 +171,37 @@ const makeUpdate = (store: DevtoolsStore, shadow: ShadowRoot) => {
           }),
           [],
         ],
-        ClickedRow: ({ index }) => [model, [jumpTo(index)]],
-        ClickedResume: () => [model, [resume]],
-        ClickedClear: () => [model, [clear]],
+        ClickedRow: ({ index }) => [
+          model,
+          [jumpTo(index), inspectModel(index)],
+        ],
+        ClickedResume: () => [
+          evo(model, {
+            maybeInspectedModel: () => Option.none(),
+            expandedPaths: () => HashSet.empty<string>(),
+          }),
+          [resume],
+        ],
+        ClickedClear: () => [
+          evo(model, {
+            maybeInspectedModel: () => Option.none(),
+            expandedPaths: () => HashSet.empty<string>(),
+          }),
+          [clear],
+        ],
         CompletedSideEffect: () => [model, []],
+        ReceivedInspectedModel: ({ model: inspectedModel }) => [
+          evo(model, {
+            maybeInspectedModel: () => Option.some(inspectedModel),
+          }),
+          [],
+        ],
+        ToggledTreeNode: ({ path }) => [
+          evo(model, {
+            expandedPaths: paths => HashSet.toggle(paths, path),
+          }),
+          [],
+        ],
         ReceivedStoreUpdate: ({
           entries,
           startIndex,
@@ -191,7 +263,239 @@ const ROW_BASE =
   'flex items-center py-1 px-3 cursor-pointer gap-2 transition-colors border-l-3'
 
 const makeView = (): ((model: Model) => Html) => {
-  const { div, span, button, Class, OnClick } = html<Message>()
+  const {
+    div,
+    span,
+    button,
+    svg,
+    path,
+    Class,
+    Style,
+    OnClick,
+    AriaHidden,
+    Xmlns,
+    Fill,
+    ViewBox,
+    StrokeWidth,
+    Stroke,
+    StrokeLinecap,
+    StrokeLinejoin,
+    D,
+  } = html<Message>()
+
+  // JSON TREE
+
+  const leafValueView = (value: unknown): Html =>
+    Match.value(value).pipe(
+      Match.when(Predicate.isNull, () =>
+        span([Class('json-null italic')], ['null']),
+      ),
+      Match.when(Predicate.isUndefined, () =>
+        span([Class('json-null italic')], ['undefined']),
+      ),
+      Match.when(Predicate.isString, stringValue =>
+        span([Class('json-string')], [`"${stringValue}"`]),
+      ),
+      Match.when(Predicate.isNumber, numberValue =>
+        span([Class('json-number')], [String(numberValue)]),
+      ),
+      Match.when(Predicate.isBoolean, booleanValue =>
+        span([Class('json-boolean')], [String(booleanValue)]),
+      ),
+      Match.orElse(unknownValue =>
+        span([Class('json-null')], [String(unknownValue)]),
+      ),
+    )
+
+  const keyView = (key: string): Html => span([Class('json-key')], [`${key}: `])
+
+  const CHEVRON_RIGHT = 'M8.25 4.5l7.5 7.5-7.5 7.5'
+  const CHEVRON_DOWN = 'M19.5 8.25l-7.5 7.5-7.5-7.5'
+
+  const arrowView = (isExpanded: boolean): Html =>
+    svg(
+      [
+        AriaHidden(true),
+        Class('json-arrow shrink-0'),
+        Xmlns('http://www.w3.org/2000/svg'),
+        Fill('none'),
+        ViewBox('0 0 24 24'),
+        StrokeWidth('2'),
+        Stroke('currentColor'),
+      ],
+      [
+        path(
+          [
+            StrokeLinecap('round'),
+            StrokeLinejoin('round'),
+            D(isExpanded ? CHEVRON_DOWN : CHEVRON_RIGHT),
+          ],
+          [],
+        ),
+      ],
+    )
+
+  const tagLabelView = (tag: string): Html => span([Class('json-tag')], [tag])
+
+  const treeNodeView = (
+    value: unknown,
+    path: string,
+    expandedPaths: HashSet.HashSet<string>,
+    depth: number,
+    maybeKey: Option.Option<string>,
+  ): Html => {
+    const indent = Style({ paddingLeft: `${depth * TREE_INDENT_PX}px` })
+
+    if (!isExpandable(value)) {
+      return div(
+        [Class('tree-row flex items-center gap-px font-mono text-2xs'), indent],
+        [
+          ...Option.toArray(Option.map(maybeKey, keyView)),
+          leafValueView(value),
+        ],
+      )
+    }
+
+    const isExpanded = HashSet.has(expandedPaths, path)
+    const isArray = Array.isArray(value)
+    const maybeTag = pipe(
+      Option.liftPredicate(value, isTagged),
+      Option.map(tagged => tagged._tag),
+    )
+
+    if (!isExpanded) {
+      return div(
+        [
+          Class(
+            'tree-row tree-row-expandable flex items-center gap-px font-mono text-2xs cursor-pointer',
+          ),
+          indent,
+          OnClick(ToggledTreeNode({ path })),
+        ],
+        [
+          arrowView(false),
+          ...Option.toArray(Option.map(maybeKey, keyView)),
+          ...Option.toArray(Option.map(maybeTag, tagLabelView)),
+          span([Class('json-preview')], [collapsedPreview(value)]),
+        ],
+      )
+    }
+
+    const children: ReadonlyArray<Html> = isArray
+      ? (value as ReadonlyArray<unknown>).map((item, arrayIndex) =>
+          treeNodeView(
+            item,
+            `${path}.${arrayIndex}`,
+            expandedPaths,
+            depth + 1,
+            Option.some(String(arrayIndex)),
+          ),
+        )
+      : Object.entries(value as Record<string, unknown>)
+          .filter(([key]) => key !== '_tag')
+          .map(([key, childValue]) =>
+            treeNodeView(
+              childValue,
+              `${path}.${key}`,
+              expandedPaths,
+              depth + 1,
+              Option.some(key),
+            ),
+          )
+
+    return div(
+      [],
+      [
+        div(
+          [
+            Class(
+              'tree-row tree-row-expandable flex items-center gap-px font-mono text-2xs cursor-pointer',
+            ),
+            indent,
+            OnClick(ToggledTreeNode({ path })),
+          ],
+          [
+            arrowView(true),
+            ...Option.toArray(Option.map(maybeKey, keyView)),
+            ...Option.toArray(Option.map(maybeTag, tagLabelView)),
+            span(
+              [Class('json-preview')],
+              [isArray ? `(${(value as ReadonlyArray<unknown>).length})` : ''],
+            ),
+          ],
+        ),
+        ...children,
+      ],
+    )
+  }
+
+  const inspectorView = (model: Model): Html =>
+    Option.match(model.maybeInspectedModel, {
+      onNone: () =>
+        div(
+          [
+            Class(
+              'flex-1 flex items-center justify-center text-dt-muted text-2xs font-sans italic min-w-0',
+            ),
+          ],
+          ['Click a message to inspect the model'],
+        ),
+      onSome: inspectedModel =>
+        div(
+          [
+            Class(
+              'inspector-tree flex-1 overflow-y-auto min-h-0 min-w-0 py-1 px-1',
+            ),
+          ],
+          [
+            treeNodeView(
+              inspectedModel,
+              'root',
+              model.expandedPaths,
+              0,
+              Option.none(),
+            ),
+          ],
+        ),
+    })
+
+  const inspectorPaneView = (model: Model): Html =>
+    div(
+      [Class('flex flex-col border-l min-w-0 flex-1')],
+      [
+        div(
+          [
+            Class(
+              'flex items-center justify-between px-3 py-2 border-b shrink-0',
+            ),
+          ],
+          [
+            span(
+              [
+                Class(
+                  'text-xs font-semibold text-dt-muted font-sans tracking-wide',
+                ),
+              ],
+              [
+                pipe(
+                  model.maybeInspectedModel,
+                  Option.flatMap(inspectedModel =>
+                    Option.liftPredicate(inspectedModel, isTagged),
+                  ),
+                  Option.match({
+                    onNone: () => 'Model',
+                    onSome: tagged => `Model — ${tagged._tag}`,
+                  }),
+                ),
+              ],
+            ),
+          ],
+        ),
+        inspectorView(model),
+      ],
+    )
+
+  // MESSAGE LIST
 
   const badgeView = (model: Model): Html =>
     button(
@@ -261,14 +565,14 @@ const makeView = (): ((model: Model) => Html) => {
     )
 
   const messageListView = (model: Model): Html => {
-    const baseTimestamp = Option.match(Array.head(model.entries), {
+    const baseTimestamp = Option.match(Array_.head(model.entries), {
       onNone: () => 0,
       onSome: first => first.timestamp,
     })
 
     const isInitSelected = model.isPaused && model.pausedAtIndex === INIT_INDEX
 
-    const messageRows = Array.map(model.entries, (entry, arrayIndex) => {
+    const messageRows = Array_.map(model.entries, (entry, arrayIndex) => {
       const absoluteIndex = model.startIndex + arrayIndex
       const isSelected = model.isPaused && model.pausedAtIndex === absoluteIndex
 
@@ -287,7 +591,7 @@ const makeView = (): ((model: Model) => Html) => {
   }
 
   const statusBarView = (model: Model): Html => {
-    const totalEntries = Array.length(model.entries)
+    const totalEntries = Array_.length(model.entries)
     const pausedLabel =
       model.pausedAtIndex === INIT_INDEX
         ? 'Paused at init'
@@ -328,14 +632,42 @@ const makeView = (): ((model: Model) => Html) => {
     )
   }
 
+  // PANEL
+
+  const isInspecting = (model: Model): boolean =>
+    model.isPaused && Option.isSome(model.maybeInspectedModel)
+
   const panelView = (model: Model): Html =>
     div(
       [
         Class(
-          'fixed right-4 dt-panel bg-dt-bg border rounded-lg flex flex-col overflow-hidden font-sans text-dt',
+          clsx(
+            'fixed right-4 dt-panel bg-dt-bg border rounded-lg flex flex-col overflow-hidden font-sans text-dt',
+            isInspecting(model) && 'dt-panel-wide',
+          ),
         ),
       ],
-      [headerView, messageListView(model), statusBarView(model)],
+      [
+        headerView,
+        div(
+          [Class('flex flex-1 min-h-0')],
+          [
+            div(
+              [
+                Class(
+                  clsx(
+                    'flex flex-col min-h-0',
+                    isInspecting(model) ? 'dt-message-pane' : 'flex-1',
+                  ),
+                ),
+              ],
+              [messageListView(model)],
+            ),
+            ...(isInspecting(model) ? [inspectorPaneView(model)] : []),
+          ],
+        ),
+        statusBarView(model),
+      ],
     )
 
   return (model: Model): Html =>
@@ -369,6 +701,8 @@ export const createOverlay = (store: DevtoolsStore) =>
     const init = (): [Model, ReadonlyArray<Command<Message>>] => [
       {
         isOpen: false,
+        maybeInspectedModel: Option.none(),
+        expandedPaths: HashSet.empty(),
         ...toDisplayState(currentState),
       },
       [],
