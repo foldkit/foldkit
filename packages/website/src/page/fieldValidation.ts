@@ -11,7 +11,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../prose'
-import { apiModuleRouter } from '../route'
+import { apiModuleRouter, exampleDetailRouter } from '../route'
 import * as Snippets from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 import { comparisonTable } from '../view/table'
@@ -370,7 +370,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           'API reference',
         ),
         ' for details on every export. For a complete working example with sync validation, async server checks, and form submission gating, see the ',
-        link(Link.exampleForm, 'Form example'),
+        link(exampleDetailRouter({ exampleSlug: 'form' }), 'Form example'),
         '. For sync-only validation with OutMessage context, see the ',
         link(Link.exampleAuthLogin, 'Auth example'),
         '.',

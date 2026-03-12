@@ -10,6 +10,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
+import { exampleDetailRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
@@ -98,7 +99,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'For a more complex example using ',
         inlineCode('WebSocket'),
         ' connections, see the ',
-        link(Link.exampleWebsocketChat, 'websocket-chat example'),
+        link(
+          exampleDetailRouter({ exampleSlug: 'websocket-chat' }),
+          'websocket-chat example',
+        ),
         '. For a full real-world application, check out ',
         link(Link.typingTerminal, 'Typing Terminal'),
         ' (',

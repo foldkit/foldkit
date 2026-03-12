@@ -1,7 +1,6 @@
 import type { Html } from 'foldkit/html'
 
 import { Class, InnerHTML, div } from '../../html'
-import { Link } from '../../link'
 import type { TableOfContentsEntry } from '../../main'
 import {
   callout,
@@ -11,7 +10,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
-import { patternsOutMessageRouter } from '../../route'
+import { exampleDetailRouter, patternsOutMessageRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
@@ -175,7 +174,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para(
         'See the ',
-        link(Link.exampleShoppingCart, 'Shopping Cart example'),
+        link(
+          exampleDetailRouter({ exampleSlug: 'shopping-cart' }),
+          'Shopping Cart example',
+        ),
         ' for a complete Submodels implementation. But what happens when a Message in the child should trigger a change in the parent\u2019s Model \u2014 like a switch from logged-out to logged-in in the root Model, or an item added to a cart in a sibling Submodel? The child can\u2019t update parent state and shouldn\u2019t know about it. That\u2019s what ',
         link(patternsOutMessageRouter(), 'OutMessage'),
         ' solves.',

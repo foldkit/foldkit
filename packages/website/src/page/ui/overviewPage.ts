@@ -13,10 +13,10 @@ import {
   thead,
   tr,
 } from '../../html'
-import { Link } from '../../link'
 import type { TableOfContentsEntry } from '../../main'
 import { heading, link, pageTitle, para } from '../../prose'
 import {
+  exampleDetailRouter,
   uiButtonRouter,
   uiCheckboxRouter,
   uiComboboxRouter,
@@ -251,7 +251,10 @@ export const view = (): Html =>
       heading(showcaseHeader.level, showcaseHeader.id, showcaseHeader.text),
       para(
         'The ',
-        link(Link.exampleUiShowcase, 'UI Showcase'),
+        link(
+          exampleDetailRouter({ exampleSlug: 'ui-showcase' }),
+          'UI Showcase',
+        ),
         ' example demonstrates every component with styled, interactive examples. It\u2019s a good reference for how to wire up component state, handle Messages, and compose views.',
       ),
     ],

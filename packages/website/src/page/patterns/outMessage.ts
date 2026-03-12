@@ -1,7 +1,6 @@
 import type { Html } from 'foldkit/html'
 
 import { Class, InnerHTML, div } from '../../html'
-import { Link } from '../../link'
 import type { TableOfContentsEntry } from '../../main'
 import {
   callout,
@@ -11,6 +10,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
+import { exampleDetailRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
@@ -152,7 +152,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para(
         'See the ',
-        link(Link.exampleAuth, 'Auth example'),
+        link(exampleDetailRouter({ exampleSlug: 'auth' }), 'Auth example'),
         ' for a complete implementation: a login module emits ',
         inlineCode('SucceededLogin'),
         ' when authentication completes, and the parent transitions to the logged-in state, saves the session, and updates the URL \u2014 all triggered by a single OutMessage.',

@@ -10,6 +10,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../prose'
+import { exampleDetailRouter } from '../route'
 import * as Snippets from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 
@@ -291,9 +292,15 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para(
         'For a complete routing example, see the ',
-        link(Link.exampleRouting, 'Routing example'),
+        link(
+          exampleDetailRouter({ exampleSlug: 'routing' }),
+          'Routing example',
+        ),
         '. For a deeper look at query parameters — custom schema transforms, lenient parsing, and bidirectional URL sync — see the ',
-        link(Link.exampleQuerySync, 'Query Sync example'),
+        link(
+          exampleDetailRouter({ exampleSlug: 'query-sync' }),
+          'Query Sync example',
+        ),
         '.',
       ),
       tableOfContentsEntryToHeader(keyingRouteViewsHeader),

@@ -1,7 +1,6 @@
 import type { Html } from 'foldkit/html'
 
 import { Class, InnerHTML, div } from '../../html'
-import { Link } from '../../link'
 import type { TableOfContentsEntry } from '../../main'
 import {
   callout,
@@ -11,6 +10,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
+import { exampleDetailRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
@@ -95,7 +95,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para(
         'See the ',
-        link(Link.exampleErrorView, 'error-view example'),
+        link(
+          exampleDetailRouter({ exampleSlug: 'error-view' }),
+          'error-view example',
+        ),
         ' for a working demonstration.',
       ),
       para(

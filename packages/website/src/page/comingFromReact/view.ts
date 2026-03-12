@@ -17,6 +17,7 @@ import {
 import {
   bestPracticesRouter,
   coreCounterExampleRouter,
+  exampleDetailRouter,
   gettingStartedRouter,
   patternsSubmodelsRouter,
   routingAndNavigationRouter,
@@ -352,7 +353,10 @@ export const view = (
             'Each ',
             inlineCode('Accordion.Model'),
             ' is a Submodel \u2014 a self-contained piece of state with its own Messages, update, and view. This is similar to what React developers end up doing anyway \u2014 lifting state into a parent \u2014 but Foldkit enforces it from the start. See the ',
-            link(Link.exampleShoppingCart, 'Shopping Cart example'),
+            link(
+              exampleDetailRouter({ exampleSlug: 'shopping-cart' }),
+              'Shopping Cart example',
+            ),
             ' for a concrete implementation.',
           ),
         ],
@@ -388,7 +392,7 @@ export const view = (
             '), and ',
             link(uiOverviewRouter(), 'Foldkit UI'),
             ' provides headless components like Combobox and Listbox for richer form controls. See the ',
-            link(Link.exampleForm, 'Form example'),
+            link(exampleDetailRouter({ exampleSlug: 'form' }), 'Form example'),
             '.',
           ),
         ],

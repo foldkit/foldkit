@@ -10,7 +10,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../prose'
-import { patternsSubmodelsRouter } from '../route'
+import { exampleDetailRouter, patternsSubmodelsRouter } from '../route'
 import * as Snippets from '../snippet'
 import {
   type CopiedSnippets,
@@ -64,7 +64,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'The simplest Foldkit apps keep everything in ',
         inlineCode('main.ts'),
         ': Model, Messages, init, update, and view. The ',
-        link(Link.exampleCounter, 'Counter example'),
+        link(
+          exampleDetailRouter({ exampleSlug: 'counter' }),
+          'Counter example',
+        ),
         ' is a good reference.',
       ),
       para(
