@@ -19,7 +19,7 @@ import { m } from '../message'
 import { makeElement } from '../runtime/runtime'
 import { makeSubscriptions } from '../runtime/subscription'
 import { evo } from '../struct'
-import overlayStyles from './overlay.css?inline'
+import { overlayStyles } from './overlay-styles'
 import { type DevtoolsStore, INIT_INDEX, type StoreState } from './store'
 
 // MODEL
@@ -38,6 +38,8 @@ const Model = Schema.Struct({
   pausedAtIndex: Schema.Number,
   maybeInspectedModel: Schema.OptionFromSelf(Schema.Unknown),
   expandedPaths: Schema.HashSetFromSelf(Schema.String),
+  changedPaths: Schema.HashSetFromSelf(Schema.String),
+  affectedPaths: Schema.HashSetFromSelf(Schema.String),
 })
 type Model = typeof Model.Type
 
@@ -50,6 +52,8 @@ const ClickedClear = m('ClickedClear')
 const CompletedSideEffect = m('CompletedSideEffect')
 const ReceivedInspectedModel = m('ReceivedInspectedModel', {
   model: Schema.Unknown,
+  changedPaths: Schema.HashSetFromSelf(Schema.String),
+  affectedPaths: Schema.HashSetFromSelf(Schema.String),
 })
 const ToggledTreeNode = m('ToggledTreeNode', { path: Schema.String })
 const ReceivedStoreUpdate = m('ReceivedStoreUpdate', {
@@ -118,9 +122,115 @@ const collapsedPreview = (value: unknown): string => {
     return `(${value.length})`
   }
   if (typeof value === 'object' && value !== null) {
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     return objectPreview(value as Record<string, unknown>)
   }
   return ''
+}
+
+// DIFF
+
+type DiffResult = Readonly<{
+  changedPaths: HashSet.HashSet<string>
+  affectedPaths: HashSet.HashSet<string>
+}>
+
+const emptyDiff: DiffResult = {
+  changedPaths: HashSet.empty(),
+  affectedPaths: HashSet.empty(),
+}
+
+const computeDiff = (previous: unknown, current: unknown): DiffResult => {
+  const changed = new Set<string>()
+
+  const walk = (prev: unknown, curr: unknown, path: string): void => {
+    if (prev === curr) {
+      return
+    }
+
+    if (!isExpandable(curr) || !isExpandable(prev)) {
+      changed.add(path)
+      return
+    }
+
+    const currIsArray = Array.isArray(curr)
+    const prevIsArray = Array.isArray(prev)
+
+    if (currIsArray !== prevIsArray) {
+      changed.add(path)
+      return
+    }
+
+    if (currIsArray) {
+      /* eslint-disable @typescript-eslint/consistent-type-assertions */
+      walkArray(
+        prev as ReadonlyArray<unknown>,
+        curr as ReadonlyArray<unknown>,
+        path,
+      )
+    } else {
+      walkObject(
+        prev as Record<string, unknown>,
+        curr as Record<string, unknown>,
+        path,
+      )
+      /* eslint-enable @typescript-eslint/consistent-type-assertions */
+    }
+  }
+
+  const walkObject = (
+    prev: Record<string, unknown>,
+    curr: Record<string, unknown>,
+    path: string,
+  ): void => {
+    Object.keys(curr).forEach(key => {
+      const childPath = `${path}.${key}`
+      if (key in prev) {
+        walk(prev[key], curr[key], childPath)
+      } else {
+        changed.add(childPath)
+      }
+    })
+  }
+
+  const walkArray = (
+    prev: ReadonlyArray<unknown>,
+    curr: ReadonlyArray<unknown>,
+    path: string,
+  ): void => {
+    const prevRefToIndex = new Map(
+      prev.map((item, index) => [item, index] as const),
+    )
+
+    curr.forEach((item, index) => {
+      const childPath = `${path}.${index}`
+      const prevIndex = prevRefToIndex.get(item)
+
+      if (prevIndex === undefined || prevIndex !== index) {
+        changed.add(childPath)
+      }
+    })
+  }
+
+  walk(previous, current, 'root')
+
+  const affected = new Set(changed)
+  const addAncestors = (path: string): void => {
+    const lastDot = path.lastIndexOf('.')
+    if (lastDot !== -1) {
+      const parent = path.substring(0, lastDot)
+      if (!affected.has(parent)) {
+        affected.add(parent)
+        addAncestors(parent)
+      }
+    }
+  }
+  changed.forEach(addAncestors)
+
+  return {
+    changedPaths: HashSet.fromIterable(changed),
+    affectedPaths: HashSet.fromIterable(affected),
+  }
 }
 
 // UPDATE
@@ -137,7 +247,17 @@ const makeUpdate = (store: DevtoolsStore, shadow: ShadowRoot) => {
   ): Command<typeof ReceivedInspectedModel> =>
     Effect.gen(function* () {
       const model = yield* store.getModelAtIndex(index)
-      return ReceivedInspectedModel({ model })
+
+      const diff =
+        index === INIT_INDEX
+          ? emptyDiff
+          : yield* pipe(
+              store.getModelAtIndex(index - 1),
+              Effect.map(previousModel => computeDiff(previousModel, model)),
+              Effect.catchAll(() => Effect.succeed(emptyDiff)),
+            )
+
+      return ReceivedInspectedModel({ model, ...diff })
     })
 
   const resume = Effect.gen(function* () {
@@ -179,6 +299,8 @@ const makeUpdate = (store: DevtoolsStore, shadow: ShadowRoot) => {
           evo(model, {
             maybeInspectedModel: () => Option.none(),
             expandedPaths: () => HashSet.empty<string>(),
+            changedPaths: () => HashSet.empty<string>(),
+            affectedPaths: () => HashSet.empty<string>(),
           }),
           [resume],
         ],
@@ -186,13 +308,21 @@ const makeUpdate = (store: DevtoolsStore, shadow: ShadowRoot) => {
           evo(model, {
             maybeInspectedModel: () => Option.none(),
             expandedPaths: () => HashSet.empty<string>(),
+            changedPaths: () => HashSet.empty<string>(),
+            affectedPaths: () => HashSet.empty<string>(),
           }),
           [clear],
         ],
         CompletedSideEffect: () => [model, []],
-        ReceivedInspectedModel: ({ model: inspectedModel }) => [
+        ReceivedInspectedModel: ({
+          model: inspectedModel,
+          changedPaths,
+          affectedPaths,
+        }) => [
           evo(model, {
             maybeInspectedModel: () => Option.some(inspectedModel),
+            changedPaths: () => changedPaths,
+            affectedPaths: () => affectedPaths,
           }),
           [],
         ],
@@ -254,13 +384,13 @@ const makeOverlaySubscriptions = (store: DevtoolsStore) =>
 
 // VIEW
 
-const indexClass = 'text-2xs text-dt-muted font-mono min-w-7 text-right'
+const indexClass = 'text-2xs text-dt-muted font-mono'
 
 const headerButtonClass =
-  'bg-transparent border-none text-dt-muted cursor-pointer text-xs font-sans px-2 py-1 rounded'
+  'dt-header-button bg-transparent border-none text-dt-muted cursor-pointer text-xs font-sans px-2 py-1 rounded transition-colors'
 
 const ROW_BASE =
-  'flex items-center py-1 px-3 cursor-pointer gap-2 transition-colors border-l-3'
+  'dt-row flex items-center py-1 px-1 cursor-pointer gap-1.5 transition-colors border-l-3'
 
 const makeView = (): ((model: Model) => Html) => {
   const {
@@ -307,7 +437,8 @@ const makeView = (): ((model: Model) => Html) => {
       ),
     )
 
-  const keyView = (key: string): Html => span([Class('json-key')], [`${key}: `])
+  const keyView = (key: string): Html =>
+    span([Class('json-key')], [`${key}:\u00a0`])
 
   const CHEVRON_RIGHT = 'M8.25 4.5l7.5 7.5-7.5 7.5'
   const CHEVRON_DOWN = 'M19.5 8.25l-7.5 7.5-7.5-7.5'
@@ -337,94 +468,142 @@ const makeView = (): ((model: Model) => Html) => {
 
   const tagLabelView = (tag: string): Html => span([Class('json-tag')], [tag])
 
-  const treeNodeView = (
+  const diffDotView: Html = span([Class('diff-dot')], [])
+
+  type FlatNode = Readonly<{
+    value: unknown
+    treePath: string
+    depth: number
+    maybeKey: Option.Option<string>
+    isExpandable: boolean
+    isExpanded: boolean
+    isChanged: boolean
+    isAffected: boolean
+    maybeTag: Option.Option<string>
+  }>
+
+  const flattenTree = (
     value: unknown,
-    path: string,
+    treePath: string,
     expandedPaths: HashSet.HashSet<string>,
+    changedPaths: HashSet.HashSet<string>,
+    affectedPaths: HashSet.HashSet<string>,
     depth: number,
     maybeKey: Option.Option<string>,
-  ): Html => {
-    const indent = Style({ paddingLeft: `${depth * TREE_INDENT_PX}px` })
+    accumulator: Array<FlatNode>,
+  ): void => {
+    const isRoot = treePath === 'root'
+    const nodeIsExpandable = isExpandable(value)
+    const isExpanded =
+      nodeIsExpandable && (isRoot || HashSet.has(expandedPaths, treePath))
+    const maybeTag = nodeIsExpandable
+      ? pipe(
+          Option.liftPredicate(value, isTagged),
+          Option.map(tagged => tagged._tag),
+        )
+      : Option.none()
 
-    if (!isExpandable(value)) {
-      return div(
-        [Class('tree-row flex items-center gap-px font-mono text-2xs'), indent],
-        [
-          ...Option.toArray(Option.map(maybeKey, keyView)),
-          leafValueView(value),
-        ],
-      )
-    }
-
-    const isExpanded = HashSet.has(expandedPaths, path)
-    const isArray = Array.isArray(value)
-    const maybeTag = pipe(
-      Option.liftPredicate(value, isTagged),
-      Option.map(tagged => tagged._tag),
-    )
+    accumulator.push({
+      value,
+      treePath,
+      depth,
+      maybeKey,
+      isExpandable: nodeIsExpandable,
+      isExpanded,
+      isChanged: HashSet.has(changedPaths, treePath),
+      isAffected: HashSet.has(affectedPaths, treePath),
+      maybeTag,
+    })
 
     if (!isExpanded) {
+      return
+    }
+
+    if (Array.isArray(value)) {
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      ;(value as ReadonlyArray<unknown>).forEach((item, arrayIndex) =>
+        flattenTree(
+          item,
+          `${treePath}.${arrayIndex}`,
+          expandedPaths,
+          changedPaths,
+          affectedPaths,
+          depth + 1,
+          Option.some(String(arrayIndex)),
+          accumulator,
+        ),
+      )
+    } else {
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      Object.entries(value as Record<string, unknown>)
+        .filter(([key]) => key !== '_tag')
+        .forEach(([key, childValue]) =>
+          flattenTree(
+            childValue,
+            `${treePath}.${key}`,
+            expandedPaths,
+            changedPaths,
+            affectedPaths,
+            depth + 1,
+            Option.some(key),
+            accumulator,
+          ),
+        )
+    }
+  }
+
+  const flatNodeView = (node: FlatNode): Html => {
+    const indent = Style({ paddingLeft: `${node.depth * TREE_INDENT_PX}px` })
+    const hasDiffDot = node.isChanged || node.isAffected
+
+    if (!node.isExpandable) {
       return div(
         [
           Class(
-            'tree-row tree-row-expandable flex items-center gap-px font-mono text-2xs cursor-pointer',
+            clsx(
+              'tree-row flex items-center gap-px font-mono text-2xs',
+              node.isChanged && 'diff-changed',
+            ),
           ),
           indent,
-          OnClick(ToggledTreeNode({ path })),
         ],
         [
-          arrowView(false),
-          ...Option.toArray(Option.map(maybeKey, keyView)),
-          ...Option.toArray(Option.map(maybeTag, tagLabelView)),
-          span([Class('json-preview')], [collapsedPreview(value)]),
+          ...(hasDiffDot ? [diffDotView] : []),
+          ...Option.toArray(Option.map(node.maybeKey, keyView)),
+          leafValueView(node.value),
         ],
       )
     }
 
-    const children: ReadonlyArray<Html> = isArray
-      ? (value as ReadonlyArray<unknown>).map((item, arrayIndex) =>
-          treeNodeView(
-            item,
-            `${path}.${arrayIndex}`,
-            expandedPaths,
-            depth + 1,
-            Option.some(String(arrayIndex)),
-          ),
-        )
-      : Object.entries(value as Record<string, unknown>)
-          .filter(([key]) => key !== '_tag')
-          .map(([key, childValue]) =>
-            treeNodeView(
-              childValue,
-              `${path}.${key}`,
-              expandedPaths,
-              depth + 1,
-              Option.some(key),
-            ),
-          )
+    const nodeIsArray = Array.isArray(node.value)
 
     return div(
-      [],
       [
-        div(
+        Class(
+          clsx(
+            'tree-row tree-row-expandable flex items-center gap-px font-mono text-2xs cursor-pointer',
+            node.isChanged && 'diff-changed',
+          ),
+        ),
+        indent,
+        OnClick(ToggledTreeNode({ path: node.treePath })),
+      ],
+      [
+        arrowView(node.isExpanded),
+        ...(hasDiffDot ? [diffDotView] : []),
+        ...Option.toArray(Option.map(node.maybeKey, keyView)),
+        ...Option.toArray(Option.map(node.maybeTag, tagLabelView)),
+        span(
+          [Class('json-preview')],
           [
-            Class(
-              'tree-row tree-row-expandable flex items-center gap-px font-mono text-2xs cursor-pointer',
-            ),
-            indent,
-            OnClick(ToggledTreeNode({ path })),
-          ],
-          [
-            arrowView(true),
-            ...Option.toArray(Option.map(maybeKey, keyView)),
-            ...Option.toArray(Option.map(maybeTag, tagLabelView)),
-            span(
-              [Class('json-preview')],
-              [isArray ? `(${(value as ReadonlyArray<unknown>).length})` : ''],
-            ),
+            node.isExpanded
+              ? nodeIsArray
+                ? /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                  `(${(node.value as ReadonlyArray<unknown>).length})`
+                : ''
+              : collapsedPreview(node.value),
           ],
         ),
-        ...children,
       ],
     )
   }
@@ -440,23 +619,28 @@ const makeView = (): ((model: Model) => Html) => {
           ],
           ['Click a message to inspect the model'],
         ),
-      onSome: inspectedModel =>
-        div(
+      onSome: inspectedModel => {
+        const nodes: Array<FlatNode> = []
+        flattenTree(
+          inspectedModel,
+          'root',
+          model.expandedPaths,
+          model.changedPaths,
+          model.affectedPaths,
+          0,
+          Option.none(),
+          nodes,
+        )
+
+        return div(
           [
             Class(
               'inspector-tree flex-1 overflow-y-auto min-h-0 min-w-0 py-1 px-1',
             ),
           ],
-          [
-            treeNodeView(
-              inspectedModel,
-              'root',
-              model.expandedPaths,
-              0,
-              Option.none(),
-            ),
-          ],
-        ),
+          nodes.map(flatNodeView),
+        )
+      },
     })
 
   const inspectorPaneView = (model: Model): Html =>
@@ -508,38 +692,78 @@ const makeView = (): ((model: Model) => Html) => {
         ),
         OnClick(ClickedToggle()),
       ],
-      [String(model.entries.length)],
+      [model.isOpen ? '✕' : String(model.entries.length)],
     )
 
-  const headerView: Html = div(
-    [Class('flex items-center justify-between px-3 py-2 border-b shrink-0')],
-    [
-      span(
-        [Class('text-xs font-semibold text-dt-accent font-sans tracking-wide')],
-        ['Foldkit'],
-      ),
-      div(
-        [Class('flex gap-0.5')],
-        [
-          button(
-            [Class(headerButtonClass), OnClick(ClickedClear())],
-            ['Clear'],
-          ),
-          button([Class(headerButtonClass), OnClick(ClickedToggle())], ['✕']),
-        ],
-      ),
-    ],
-  )
+  const headerView = (model: Model): Html => {
+    const totalEntries = Array_.length(model.entries)
+
+    const statusView: Html = model.isPaused
+      ? div(
+          [Class('flex items-center gap-2')],
+          [
+            span(
+              [Class('text-xs text-dt-paused font-medium font-sans')],
+              [
+                model.pausedAtIndex === INIT_INDEX
+                  ? 'Paused at init'
+                  : `Paused at ${model.pausedAtIndex}`,
+              ],
+            ),
+            button(
+              [
+                Class(
+                  'bg-transparent border border-dt-live text-dt-live cursor-pointer text-2xs font-sans px-1 py-px rounded font-medium',
+                ),
+                OnClick(ClickedResume()),
+              ],
+              ['Resume'],
+            ),
+          ],
+        )
+      : div(
+          [Class('flex items-center gap-1.5')],
+          [
+            span(
+              [Class('w-1.5 h-1.5 rounded-full bg-dt-live inline-block')],
+              [],
+            ),
+            span(
+              [Class('text-xs text-dt-live font-medium font-sans')],
+              ['Live'],
+            ),
+            span(
+              [Class('text-2xs text-dt-muted font-sans')],
+              [`· ${totalEntries}`],
+            ),
+          ],
+        )
+
+    return div(
+      [
+        Class(
+          'flex items-center justify-between px-2 py-1.5 border-b shrink-0',
+        ),
+      ],
+      [
+        statusView,
+        button(
+          [Class(headerButtonClass), OnClick(ClickedClear())],
+          ['Clear history'],
+        ),
+      ],
+    )
+  }
 
   const initRowView = (isSelected: boolean): Html =>
     div(
       [
-        Class(clsx(ROW_BASE, 'border-b', isSelected && 'selected')),
+        Class(clsx(ROW_BASE, isSelected && 'selected')),
         OnClick(ClickedRow({ index: INIT_INDEX })),
       ],
       [
         span([Class(indexClass)], ['●']),
-        span([Class('text-xs text-dt-muted font-mono italic')], ['Init']),
+        span([Class('text-sm text-dt-muted font-mono italic')], ['Init']),
       ],
     )
 
@@ -556,7 +780,7 @@ const makeView = (): ((model: Model) => Html) => {
       ],
       [
         span([Class(indexClass)], [String(absoluteIndex)]),
-        span([Class('text-xs text-dt font-mono flex-1 truncate')], [tag]),
+        span([Class('text-sm text-dt font-mono flex-1 truncate')], [tag]),
         span(
           [Class('text-2xs text-dt-muted font-mono shrink-0')],
           [formatTimeDelta(timeDelta)],
@@ -590,48 +814,6 @@ const makeView = (): ((model: Model) => Html) => {
     )
   }
 
-  const statusBarView = (model: Model): Html => {
-    const totalEntries = Array_.length(model.entries)
-    const pausedLabel =
-      model.pausedAtIndex === INIT_INDEX
-        ? 'Paused at init'
-        : `Paused at ${model.pausedAtIndex}/${model.startIndex + totalEntries - 1}`
-
-    return div(
-      [
-        Class(
-          'flex items-center justify-between px-3 py-1.5 border-t shrink-0 text-sm font-sans',
-        ),
-      ],
-      model.isPaused
-        ? [
-            span([Class('text-dt-paused font-medium')], [pausedLabel]),
-            button(
-              [
-                Class(
-                  'bg-transparent border border-dt-live text-dt-live cursor-pointer text-sm font-sans px-2.5 py-0.5 rounded font-medium',
-                ),
-                OnClick(ClickedResume()),
-              ],
-              ['Resume'],
-            ),
-          ]
-        : [
-            span(
-              [Class('flex items-center gap-1.5')],
-              [
-                span(
-                  [Class('w-1.5 h-1.5 rounded-full bg-dt-live inline-block')],
-                  [],
-                ),
-                span([Class('text-dt-live font-medium')], ['Live']),
-              ],
-            ),
-            span([Class('text-dt-muted')], [`${totalEntries} messages`]),
-          ],
-    )
-  }
-
   // PANEL
 
   const isInspecting = (model: Model): boolean =>
@@ -648,7 +830,7 @@ const makeView = (): ((model: Model) => Html) => {
         ),
       ],
       [
-        headerView,
+        headerView(model),
         div(
           [Class('flex flex-1 min-h-0')],
           [
@@ -666,7 +848,6 @@ const makeView = (): ((model: Model) => Html) => {
             ...(isInspecting(model) ? [inspectorPaneView(model)] : []),
           ],
         ),
-        statusBarView(model),
       ],
     )
 
@@ -703,6 +884,8 @@ export const createOverlay = (store: DevtoolsStore) =>
         isOpen: false,
         maybeInspectedModel: Option.none(),
         expandedPaths: HashSet.empty(),
+        changedPaths: HashSet.empty(),
+        affectedPaths: HashSet.empty(),
         ...toDisplayState(currentState),
       },
       [],

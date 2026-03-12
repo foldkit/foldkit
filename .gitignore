@@ -4,5 +4,6 @@ dist
 .vercel
 **/.claude/*
 !/.claude/commands/
+packages/foldkit/src/devtools/overlay-styles.ts
 packages/website/src/generated/
 .playwright-mcp/

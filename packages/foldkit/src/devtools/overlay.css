@@ -1,6 +1,6 @@
 :host {
   --dt-bg: #1e1e2e;
-  --dt-surface-selected: #585b70;
+  --dt-surface-selected: #313244;
   --dt-border: #45475a;
   --dt-text: #cdd6f4;
   --dt-text-muted: #6c7086;
@@ -16,6 +16,7 @@
   --dt-json-preview: #6c7086;
   --dt-json-arrow: #6c7086;
   --dt-tree-hover: #313244;
+  --dt-diff-changed: #f9e2af;
 }
 
 *,
@@ -123,8 +124,8 @@ button {
 .min-w-0 {
   min-width: 0;
 }
-.min-w-7 {
-  min-width: 28px;
+.min-w-5 {
+  min-width: 20px;
 }
 .min-h-0 {
   min-height: 0;
@@ -181,6 +182,13 @@ button {
 .selected {
   background-color: var(--dt-surface-selected);
   border-left-color: var(--dt-accent);
+}
+.dt-row:hover:not(.selected) {
+  background-color: var(--dt-tree-hover);
+}
+.dt-header-button:hover {
+  color: var(--dt-text);
+  background-color: var(--dt-tree-hover);
 }
 .font-sans {
   font-family:
@@ -259,7 +267,6 @@ button {
 }
 
 /* Panel */
-
 .dt-panel {
   bottom: 72px;
   width: 360px;
@@ -285,12 +292,15 @@ button {
 .dt-badge-paused {
   border: 2px solid var(--dt-paused);
 }
+.dt-badge:hover {
+  opacity: 0.85;
+}
 
 /* JSON tree */
-
 .tree-row {
+  position: relative;
   white-space: nowrap;
-  line-height: 1.6;
+  line-height: 1.5;
   padding-right: 8px;
 }
 .tree-row-expandable:hover {
@@ -324,7 +334,20 @@ button {
 }
 .json-arrow {
   color: var(--dt-json-arrow);
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   user-select: none;
+}
+
+/* Diff */
+.diff-changed {
+  background-color: rgba(249, 226, 175, 0.06);
+}
+.diff-dot {
+  position: absolute;
+  left: 3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background-color: var(--dt-diff-changed);
 }
