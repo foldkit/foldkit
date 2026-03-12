@@ -131,11 +131,12 @@ const heroSection = (copiedSnippets: CopiedSnippets): Html =>
               ),
             ],
             [
+              'The frontend framework for ',
               span(
                 [Class('text-accent-600 dark:text-accent-500')],
-                ['Beautifully'],
+                ['correctness'],
               ),
-              ' boring frontend applications.',
+              '.',
             ],
           ),
           p(
@@ -836,7 +837,7 @@ const finalCtaSection = (): Html =>
                 'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-4 text-balance',
               ),
             ],
-            ['Ready to be bored?'],
+            ['Make something correct.'],
           ),
           p(
             [Class('text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-xl')],
