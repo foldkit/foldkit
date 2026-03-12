@@ -396,7 +396,7 @@ export const view = (
         'How do I fetch data?',
         [
           para(
-            'Return a Command from your update function. The Command runs an Effect (an HTTP request, a database call, whatever you need), and the result comes back as a Message. No ',
+            'Return a Command from your update function. The runtime runs the Command \u2014 an HTTP request, a localStorage read, a DOM focus call, whatever side effect you need \u2014 and feeds the resulting Message back into update. No ',
             inlineCode('useEffect'),
             ', no cleanup functions, no race conditions. See the ',
             link(Link.exampleWeatherFetch, 'Weather example'),
