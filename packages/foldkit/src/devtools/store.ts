@@ -1,5 +1,6 @@
 import { Array, Effect, HashMap, Option, SubscriptionRef, pipe } from 'effect'
 
+const INIT_INDEX = -1
 const KEYFRAME_INTERVAL = 31
 const DEFAULT_MAX_ENTRIES = 500
 
@@ -13,6 +14,7 @@ type HistoryEntry = Readonly<{
 type StoreState = Readonly<{
   entries: ReadonlyArray<HistoryEntry>
   keyframes: HashMap.HashMap<number, unknown>
+  maybeInitModel: Option.Option<unknown>
   startIndex: number
   isPaused: boolean
   pausedAtIndex: number
@@ -27,6 +29,7 @@ type Bridge = Readonly<{
 const emptyState: StoreState = {
   entries: [],
   keyframes: HashMap.empty(),
+  maybeInitModel: Option.none(),
   startIndex: 0,
   isPaused: false,
   pausedAtIndex: 0,
@@ -76,17 +79,21 @@ const createDevtoolsStore = (
       const nextStartIndex = state.startIndex + KEYFRAME_INTERVAL
 
       return {
+        ...state,
         entries: Array.drop(state.entries, KEYFRAME_INTERVAL),
         keyframes: HashMap.remove(state.keyframes, state.startIndex),
         startIndex: nextStartIndex,
-        isPaused: state.isPaused && state.pausedAtIndex >= nextStartIndex,
-        pausedAtIndex: state.pausedAtIndex,
+        isPaused:
+          state.isPaused &&
+          (state.pausedAtIndex >= nextStartIndex ||
+            state.pausedAtIndex === INIT_INDEX),
       }
     }
 
     const recordInit = (model: unknown) =>
       SubscriptionRef.update(stateRef, state => ({
         ...state,
+        maybeInitModel: Option.some(model),
         keyframes: HashMap.set(state.keyframes, 0, model),
       }))
 
@@ -118,17 +125,22 @@ const createDevtoolsStore = (
           : nextState
       })
 
+    const resolveModel = (state: StoreState, index: number): unknown =>
+      index === INIT_INDEX
+        ? Option.getOrThrow(state.maybeInitModel)
+        : replayToIndex(state, index)
+
     const getModelAtIndex = (index: number) =>
       pipe(
         stateRef,
         SubscriptionRef.get,
-        Effect.map(state => replayToIndex(state, index)),
+        Effect.map(state => resolveModel(state, index)),
       )
 
     const jumpTo = (index: number) =>
       Effect.gen(function* () {
         const state = yield* SubscriptionRef.get(stateRef)
-        yield* bridge.render(replayToIndex(state, index))
+        yield* bridge.render(resolveModel(state, index))
         yield* SubscriptionRef.set(stateRef, {
           ...state,
           isPaused: true,
@@ -163,6 +175,7 @@ type DevtoolsStore = Effect.Effect.Success<
 >
 
 export {
+  INIT_INDEX,
   createDevtoolsStore,
   type Bridge,
   type DevtoolsStore,

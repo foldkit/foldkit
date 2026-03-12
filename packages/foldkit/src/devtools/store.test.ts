@@ -170,6 +170,33 @@ describe('DevtoolsStore', () => {
   })
 
   describe('time travel', () => {
+    it('renders the initial model when jumping to init', () => {
+      const { store, rendered } = makeStore()
+
+      run(store.recordMessage(clickedIncrement, { count: 1 }, 0))
+      run(store.recordMessage(clickedIncrement, { count: 2 }, 0))
+
+      run(store.jumpTo(-1))
+
+      const state = getState(store)
+      expect(state.isPaused).toBe(true)
+      expect(state.pausedAtIndex).toBe(-1)
+      expect(rendered[rendered.length - 1]).toEqual(initialModel)
+    })
+
+    it('preserves init pause through eviction', () => {
+      const { store } = makeStore(undefined, 50)
+
+      run(store.jumpTo(-1))
+      expect(getState(store).isPaused).toBe(true)
+
+      recordIncrements(store, 55)
+
+      const state = getState(store)
+      expect(state.isPaused).toBe(true)
+      expect(state.pausedAtIndex).toBe(-1)
+    })
+
     it('renders the historical model when jumping', () => {
       const { store, rendered } = makeStore()
 

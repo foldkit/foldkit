@@ -22,6 +22,7 @@ import {
 import { h } from 'snabbdom'
 
 import type { Command } from '../command'
+import { createOverlay } from '../devtools/overlay'
 import { type DevtoolsStore, createDevtoolsStore } from '../devtools/store'
 import { Html } from '../html'
 import { Url, fromString as urlFromString } from '../url'
@@ -472,7 +473,9 @@ const makeRuntime =
           Option.Option<Runtime.Runtime<never>>
         >(Option.none())
 
-        let devtoolsStore: DevtoolsStore | undefined
+        const maybeDevtoolsStoreRef = yield* Ref.make<
+          Option.Option<DevtoolsStore>
+        >(Option.none())
 
         const processMessage = (message: Message): Effect.Effect<void> =>
           Effect.gen(function* () {
@@ -483,13 +486,21 @@ const makeRuntime =
             if (currentModel !== nextModel) {
               yield* Ref.set(modelRef, nextModel)
 
-              const isPaused = devtoolsStore
-                ? yield* pipe(
-                    devtoolsStore.stateRef,
-                    SubscriptionRef.get,
-                    Effect.map(state => state.isPaused),
-                  )
-                : false
+              const isPaused = yield* pipe(
+                maybeDevtoolsStoreRef,
+                Ref.get,
+                Effect.flatMap(
+                  Option.match({
+                    onNone: () => Effect.succeed(false),
+                    onSome: ({ stateRef }) =>
+                      pipe(
+                        stateRef,
+                        SubscriptionRef.get,
+                        Effect.map(({ isPaused }) => isPaused),
+                      ),
+                  }),
+                ),
+              )
 
               if (!isPaused) {
                 yield* render(nextModel)
@@ -510,14 +521,17 @@ const makeRuntime =
               ),
             )
 
-            if (devtoolsStore) {
-              yield* devtoolsStore.recordMessage(
-                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                message as Message & { _tag: string },
-                nextModel,
-                commands.length,
-              )
-            }
+            const maybeDevtoolsStore = yield* Ref.get(maybeDevtoolsStoreRef)
+            yield* Option.match(maybeDevtoolsStore, {
+              onNone: () => Effect.void,
+              onSome: store =>
+                store.recordMessage(
+                  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                  message as Message & { _tag: string },
+                  nextModel,
+                  commands.length,
+                ),
+            })
           })
 
         const runProcessMessage =
@@ -591,7 +605,7 @@ const makeRuntime =
         yield* Ref.set(maybeRuntimeRef, Option.some(runtime))
 
         if (import.meta.hot && devtools !== false) {
-          devtoolsStore = yield* createDevtoolsStore({
+          const devtoolsStore = yield* createDevtoolsStore({
             replay: (model, message) =>
               /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
               Tuple.getFirst(update(model as Model, message as Message)),
@@ -600,7 +614,9 @@ const makeRuntime =
               render(model as Model),
             getCurrentModel: Ref.get(modelRef),
           })
+          yield* Ref.set(maybeDevtoolsStoreRef, Option.some(devtoolsStore))
           yield* devtoolsStore.recordInit(initModel)
+          yield* createOverlay(devtoolsStore)
         }
 
         yield* render(initModel)
