@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
+    "clsx": "^2.1.1",
     "effect": "^3.19.19",
     "foldkit": "workspace:*",
     "tailwindcss": "^4.1.18"

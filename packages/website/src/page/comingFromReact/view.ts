@@ -20,6 +20,7 @@ import {
   gettingStartedRouter,
   patternsSubmodelsRouter,
   routingAndNavigationRouter,
+  uiOverviewRouter,
 } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
@@ -33,6 +34,7 @@ const [
   faqMultipleInstances,
   faqRouting,
   faqForms,
+  faqUiComponents,
   faqDataFetching,
   faqTesting,
   faqWhereToStart,
@@ -383,9 +385,23 @@ export const view = (
             inlineCode('Valid'),
             ', ',
             inlineCode('Invalid'),
-            '). See the ',
+            '), and ',
+            link(uiOverviewRouter(), 'Foldkit UI'),
+            ' provides headless components like Combobox and Listbox for richer form controls. See the ',
             link(Link.exampleForm, 'Form example'),
             '.',
+          ),
+        ],
+        model,
+        toMessage,
+      ),
+      faqItem(
+        faqUiComponents,
+        'What about Headless UI, Radix, or Shadcn?',
+        [
+          para(
+            link(uiOverviewRouter(), 'Foldkit UI'),
+            ' is a built-in set of headless, accessible components \u2014 Disclosure, Combobox, Listbox, Menu, Popover, and more. Each one follows The Elm Architecture with its own Model, Message, and update, and integrates into your app via the Submodels pattern. You provide the markup and styling; Foldkit UI provides the accessibility attributes, keyboard navigation, and state management.',
           ),
         ],
         model,

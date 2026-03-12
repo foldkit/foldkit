@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import {
   Array,
   Duration,
@@ -7,10 +8,10 @@ import {
   Random,
   Schema as S,
 } from 'effect'
-import { FieldValidation, Runtime } from 'foldkit'
+import { FieldValidation, Runtime, Ui } from 'foldkit'
 import { Command } from 'foldkit/command'
 import { type Validation, makeField } from 'foldkit/fieldValidation'
-import { Html, html } from 'foldkit/html'
+import { type Attribute, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
@@ -267,85 +268,124 @@ const {
   textarea,
   Class,
   Disabled,
-  For,
-  Id,
-  OnInput,
   OnSubmit,
   Type,
-  Value,
 } = html<Message>()
 
-const fieldView = (
+const LABEL_CLASS = 'text-sm font-medium text-gray-700'
+const DESCRIPTION_CLASS = 'text-sm mt-1'
+
+const borderClass = (field: StringField): string =>
+  M.value(field).pipe(
+    M.tagsExhaustive({
+      NotValidated: () => 'border-gray-300',
+      Validating: () => 'border-blue-300',
+      Valid: () => 'border-green-500',
+      Invalid: () => 'border-red-500',
+    }),
+  )
+
+const inputClassName = (field: StringField): string =>
+  clsx(
+    'w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500',
+    borderClass(field),
+  )
+
+const statusIndicator = (field: StringField): Html =>
+  M.value(field).pipe(
+    M.tagsExhaustive({
+      NotValidated: () => empty,
+      Validating: () =>
+        span([Class('text-blue-600 text-sm animate-spin')], ['◐']),
+      Valid: () => span([Class('text-green-600 text-sm')], ['✓']),
+      Invalid: () => empty,
+    }),
+  )
+
+const descriptionView = (
+  field: StringField,
+  descriptionAttributes: ReadonlyArray<Attribute<Message>>,
+): Html =>
+  M.value(field).pipe(
+    M.tagsExhaustive({
+      NotValidated: () => empty,
+      Validating: () =>
+        span(
+          [
+            ...descriptionAttributes,
+            Class(clsx(DESCRIPTION_CLASS, 'text-blue-600')),
+          ],
+          ['Checking...'],
+        ),
+      Valid: () => empty,
+      Invalid: ({ errors }) =>
+        span(
+          [
+            ...descriptionAttributes,
+            Class(clsx(DESCRIPTION_CLASS, 'text-red-600')),
+          ],
+          [Array.headNonEmpty(errors)],
+        ),
+    }),
+  )
+
+const inputFieldView = (
   id: string,
   labelText: string,
   field: StringField,
   onUpdate: (value: string) => Message,
-  type: 'text' | 'email' | 'textarea' = 'text',
-): Html => {
-  const { value } = field
-
-  const getBorderClass = () =>
-    M.value(field).pipe(
-      M.tagsExhaustive({
-        NotValidated: () => 'border-gray-300',
-        Validating: () => 'border-blue-300',
-        Valid: () => 'border-green-500',
-        Invalid: () => 'border-red-500',
-      }),
-    )
-
-  const inputClass = `w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${getBorderClass()}`
-
-  return div(
-    [Class('mb-4')],
-    [
+  type: string = 'text',
+): Html =>
+  Ui.Input.view({
+    id,
+    value: field.value,
+    onInput: onUpdate,
+    isInvalid: field._tag === 'Invalid',
+    type,
+    toView: attributes =>
       div(
-        [Class('flex items-center gap-2 mb-2')],
+        [Class('mb-4')],
         [
-          label(
-            [For(id), Class('text-sm font-medium text-gray-700')],
-            [labelText],
+          div(
+            [Class('flex items-center gap-2 mb-2')],
+            [
+              label([...attributes.label, Class(LABEL_CLASS)], [labelText]),
+              statusIndicator(field),
+            ],
           ),
-          M.value(field).pipe(
-            M.tagsExhaustive({
-              NotValidated: () => empty,
-              Validating: () =>
-                span([Class('text-blue-600 text-sm animate-spin')], ['◐']),
-              Valid: () => span([Class('text-green-600 text-sm')], ['✓']),
-              Invalid: () => empty,
-            }),
-          ),
+          input([...attributes.input, Class(inputClassName(field))]),
+          descriptionView(field, attributes.description),
         ],
       ),
-      type === 'textarea'
-        ? textarea(
-            [Id(id), Value(value), Class(inputClass), OnInput(onUpdate)],
-            [],
-          )
-        : input([
-            Id(id),
-            Type(type),
-            Value(value),
-            Class(inputClass),
-            OnInput(onUpdate),
-          ]),
+  })
 
-      M.value(field).pipe(
-        M.tagsExhaustive({
-          NotValidated: () => empty,
-          Validating: () =>
-            div([Class('text-blue-600 text-sm mt-1')], ['Checking...']),
-          Valid: () => empty,
-          Invalid: ({ errors }) =>
-            div(
-              [Class('text-red-600 text-sm mt-1')],
-              [Array.headNonEmpty(errors)],
-            ),
-        }),
+const textareaFieldView = (
+  id: string,
+  labelText: string,
+  field: StringField,
+  onUpdate: (value: string) => Message,
+): Html =>
+  Ui.Textarea.view({
+    id,
+    value: field.value,
+    onInput: onUpdate,
+    isInvalid: field._tag === 'Invalid',
+    toView: attributes =>
+      div(
+        [Class('mb-4')],
+        [
+          div(
+            [Class('flex items-center gap-2 mb-2')],
+            [
+              label([...attributes.label, Class(LABEL_CLASS)], [labelText]),
+              statusIndicator(field),
+            ],
+          ),
+          textarea([...attributes.textarea, Class(inputClassName(field))], []),
+          descriptionView(field, attributes.description),
+        ],
       ),
-    ],
-  )
-}
+  })
 
 const view = (model: Model): Html => {
   const canSubmit = isFormValid(model) && model.submission._tag !== 'Submitting'
@@ -364,22 +404,21 @@ const view = (model: Model): Html => {
           form(
             [Class('space-y-4'), OnSubmit(ClickedFormSubmit())],
             [
-              fieldView('name', 'Name', model.name, value =>
+              inputFieldView('name', 'Name', model.name, value =>
                 UpdatedName({ value }),
               ),
-              fieldView(
+              inputFieldView(
                 'email',
                 'Email',
                 model.email,
                 value => UpdatedEmail({ value }),
                 'email',
               ),
-              fieldView(
+              textareaFieldView(
                 'message',
                 "Anything you'd like to share with us?",
                 model.message,
                 value => UpdatedMessage({ value }),
-                'textarea',
               ),
 
               button(
@@ -387,11 +426,12 @@ const view = (model: Model): Html => {
                   Type('submit'),
                   Disabled(!canSubmit),
                   Class(
-                    `w-full py-2 px-4 rounded-md transition ${
+                    clsx(
+                      'w-full py-2 px-4 rounded-md transition',
                       canSubmit
                         ? 'bg-blue-500 text-white hover:bg-blue-600'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    }`,
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed',
+                    ),
                   ),
                 ],
                 [
