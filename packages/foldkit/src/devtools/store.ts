@@ -9,6 +9,7 @@ type HistoryEntry = Readonly<{
   message: unknown
   commandCount: number
   timestamp: number
+  isModelChanged: boolean
 }>
 
 type StoreState = Readonly<{
@@ -101,6 +102,7 @@ const createDevtoolsStore = (
       message: Readonly<{ _tag: string }>,
       modelAfterUpdate: unknown,
       commandCount: number,
+      isModelChanged: boolean,
     ) =>
       SubscriptionRef.update(stateRef, state => {
         const absoluteIndex = state.startIndex + state.entries.length
@@ -112,6 +114,7 @@ const createDevtoolsStore = (
             message,
             commandCount,
             timestamp: performance.now(),
+            isModelChanged,
           }),
           keyframes: addKeyframeIfNeeded(
             state.keyframes,
@@ -135,6 +138,19 @@ const createDevtoolsStore = (
         stateRef,
         SubscriptionRef.get,
         Effect.map(state => resolveModel(state, index)),
+      )
+
+    const getMessageAtIndex = (index: number) =>
+      pipe(
+        SubscriptionRef.get(stateRef),
+        Effect.map(state =>
+          index === INIT_INDEX
+            ? Option.none<unknown>()
+            : pipe(
+                Array.get(state.entries, index - state.startIndex),
+                Option.map(entry => entry.message),
+              ),
+        ),
       )
 
     const jumpTo = (index: number) =>
@@ -163,6 +179,7 @@ const createDevtoolsStore = (
       recordInit,
       recordMessage,
       getModelAtIndex,
+      getMessageAtIndex,
       jumpTo,
       resume,
       clear,

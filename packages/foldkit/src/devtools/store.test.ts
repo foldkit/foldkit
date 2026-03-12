@@ -64,7 +64,7 @@ const recordIncrements = (store: DevtoolsStore, count: number) =>
   pipe(
     Array.range(1, count),
     Effect.forEach(index =>
-      store.recordMessage(clickedIncrement, { count: index }, 0),
+      store.recordMessage(clickedIncrement, { count: index }, 0, true),
     ),
     run,
   )
@@ -84,9 +84,9 @@ describe('DevtoolsStore', () => {
     it('records messages and replays to compute models', () => {
       const { store } = makeStore()
 
-      run(store.recordMessage(clickedIncrement, { count: 1 }, 0))
-      run(store.recordMessage(clickedIncrement, { count: 2 }, 0))
-      run(store.recordMessage(clickedDecrement, { count: 1 }, 0))
+      run(store.recordMessage(clickedIncrement, { count: 1 }, 0, true))
+      run(store.recordMessage(clickedIncrement, { count: 2 }, 0, true))
+      run(store.recordMessage(clickedDecrement, { count: 1 }, 0, true))
 
       const state = getState(store)
       expect(state.entries.length).toBe(3)
@@ -98,7 +98,7 @@ describe('DevtoolsStore', () => {
     it('records command counts', () => {
       const { store } = makeStore()
 
-      run(store.recordMessage(clickedIncrement, { count: 1 }, 3))
+      run(store.recordMessage(clickedIncrement, { count: 1 }, 3, true))
 
       const state = getState(store)
       expect(state.entries[0]?.commandCount).toBe(3)
@@ -107,8 +107,8 @@ describe('DevtoolsStore', () => {
     it('stores message tags', () => {
       const { store } = makeStore()
 
-      run(store.recordMessage(clickedIncrement, { count: 1 }, 0))
-      run(store.recordMessage(clickedDecrement, { count: 0 }, 0))
+      run(store.recordMessage(clickedIncrement, { count: 1 }, 0, true))
+      run(store.recordMessage(clickedDecrement, { count: 0 }, 0, true))
 
       const state = getState(store)
       expect(state.entries[0]?.tag).toBe('ClickedIncrement')
@@ -173,8 +173,8 @@ describe('DevtoolsStore', () => {
     it('renders the initial model when jumping to init', () => {
       const { store, rendered } = makeStore()
 
-      run(store.recordMessage(clickedIncrement, { count: 1 }, 0))
-      run(store.recordMessage(clickedIncrement, { count: 2 }, 0))
+      run(store.recordMessage(clickedIncrement, { count: 1 }, 0, true))
+      run(store.recordMessage(clickedIncrement, { count: 2 }, 0, true))
 
       run(store.jumpTo(-1))
 
@@ -200,9 +200,9 @@ describe('DevtoolsStore', () => {
     it('renders the historical model when jumping', () => {
       const { store, rendered } = makeStore()
 
-      run(store.recordMessage(clickedIncrement, { count: 1 }, 0))
-      run(store.recordMessage(clickedIncrement, { count: 2 }, 0))
-      run(store.recordMessage(clickedIncrement, { count: 3 }, 0))
+      run(store.recordMessage(clickedIncrement, { count: 1 }, 0, true))
+      run(store.recordMessage(clickedIncrement, { count: 2 }, 0, true))
+      run(store.recordMessage(clickedIncrement, { count: 3 }, 0, true))
 
       run(store.jumpTo(1))
 
@@ -218,7 +218,7 @@ describe('DevtoolsStore', () => {
         getCurrentModel: Effect.succeed(currentModel),
       })
 
-      run(store.recordMessage(clickedIncrement, { count: 1 }, 0))
+      run(store.recordMessage(clickedIncrement, { count: 1 }, 0, true))
 
       run(store.jumpTo(0))
       run(store.resume)
@@ -232,8 +232,8 @@ describe('DevtoolsStore', () => {
     it('resets all state', () => {
       const { store } = makeStore()
 
-      run(store.recordMessage(clickedIncrement, { count: 1 }, 0))
-      run(store.recordMessage(clickedIncrement, { count: 2 }, 0))
+      run(store.recordMessage(clickedIncrement, { count: 1 }, 0, true))
+      run(store.recordMessage(clickedIncrement, { count: 2 }, 0, true))
       run(store.jumpTo(0))
 
       run(store.clear)

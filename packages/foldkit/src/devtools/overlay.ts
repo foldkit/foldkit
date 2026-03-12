@@ -13,12 +13,12 @@ import {
 } from 'effect'
 
 import type { Command } from '../command'
-import { OptionExt } from '../effectExtensions'
 import { type Html, html } from '../html'
 import { m } from '../message'
 import { makeElement } from '../runtime/runtime'
 import { makeSubscriptions } from '../runtime/subscription'
 import { evo } from '../struct'
+import * as Tabs from '../ui/tabs'
 import { overlayStyles } from './overlay-styles'
 import { type DevtoolsStore, INIT_INDEX, type StoreState } from './store'
 
@@ -28,6 +28,16 @@ const DisplayEntry = Schema.Struct({
   tag: Schema.String,
   commandCount: Schema.Number,
   timestamp: Schema.Number,
+  isModelChanged: Schema.Boolean,
+})
+
+const INSPECTOR_TABS_ID = 'dt-inspector'
+
+const InspectorTabsModel = Schema.Struct({
+  id: Schema.String,
+  activeIndex: Schema.Number,
+  focusedIndex: Schema.Number,
+  activationMode: Schema.Literal('Automatic', 'Manual'),
 })
 
 const Model = Schema.Struct({
@@ -37,9 +47,11 @@ const Model = Schema.Struct({
   isPaused: Schema.Boolean,
   pausedAtIndex: Schema.Number,
   maybeInspectedModel: Schema.OptionFromSelf(Schema.Unknown),
+  maybeInspectedMessage: Schema.OptionFromSelf(Schema.Unknown),
   expandedPaths: Schema.HashSetFromSelf(Schema.String),
   changedPaths: Schema.HashSetFromSelf(Schema.String),
   affectedPaths: Schema.HashSetFromSelf(Schema.String),
+  inspectorTabs: InspectorTabsModel,
 })
 type Model = typeof Model.Type
 
@@ -50,12 +62,16 @@ const ClickedRow = m('ClickedRow', { index: Schema.Number })
 const ClickedResume = m('ClickedResume')
 const ClickedClear = m('ClickedClear')
 const CompletedSideEffect = m('CompletedSideEffect')
-const ReceivedInspectedModel = m('ReceivedInspectedModel', {
+const ReceivedInspectedState = m('ReceivedInspectedState', {
   model: Schema.Unknown,
+  maybeMessage: Schema.OptionFromSelf(Schema.Unknown),
   changedPaths: Schema.HashSetFromSelf(Schema.String),
   affectedPaths: Schema.HashSetFromSelf(Schema.String),
 })
 const ToggledTreeNode = m('ToggledTreeNode', { path: Schema.String })
+const GotInspectorTabsMessage = m('GotInspectorTabsMessage', {
+  message: Schema.Unknown,
+})
 const ReceivedStoreUpdate = m('ReceivedStoreUpdate', {
   entries: Schema.Array(DisplayEntry),
   startIndex: Schema.Number,
@@ -69,8 +85,9 @@ const Message = Schema.Union(
   ClickedResume,
   ClickedClear,
   CompletedSideEffect,
-  ReceivedInspectedModel,
+  ReceivedInspectedState,
   ToggledTreeNode,
+  GotInspectorTabsMessage,
   ReceivedStoreUpdate,
 )
 type Message = typeof Message.Type
@@ -78,21 +95,24 @@ type Message = typeof Message.Type
 // HELPERS
 
 const MILLIS_PER_SECOND = 1000
-const TREE_INDENT_PX = 14
+const TREE_INDENT_PX = 10
 const MAX_PREVIEW_KEYS = 3
 
 const formatTimeDelta = (deltaMs: number): string =>
-  deltaMs < MILLIS_PER_SECOND
-    ? `+${Math.round(deltaMs)}ms`
-    : `+${(deltaMs / MILLIS_PER_SECOND).toFixed(1)}s`
+  deltaMs === 0
+    ? '0ms'
+    : deltaMs < MILLIS_PER_SECOND
+      ? `+${Math.round(deltaMs)}ms`
+      : `+${(deltaMs / MILLIS_PER_SECOND).toFixed(1)}s`
 
 const MESSAGE_LIST_SELECTOR = '.message-list'
 
 const toDisplayEntries = ({ entries }: StoreState) =>
-  Array_.map(entries, ({ tag, commandCount, timestamp }) => ({
+  Array_.map(entries, ({ tag, commandCount, timestamp, isModelChanged }) => ({
     tag,
     commandCount,
     timestamp,
+    isModelChanged,
   }))
 
 const toDisplayState = (state: StoreState) => ({
@@ -242,11 +262,12 @@ const makeUpdate = (store: DevtoolsStore, shadow: ShadowRoot) => {
       return CompletedSideEffect()
     })
 
-  const inspectModel = (
+  const inspectState = (
     index: number,
-  ): Command<typeof ReceivedInspectedModel> =>
+  ): Command<typeof ReceivedInspectedState> =>
     Effect.gen(function* () {
       const model = yield* store.getModelAtIndex(index)
+      const maybeMessage = yield* store.getMessageAtIndex(index)
 
       const diff =
         index === INIT_INDEX
@@ -257,8 +278,20 @@ const makeUpdate = (store: DevtoolsStore, shadow: ShadowRoot) => {
               Effect.catchAll(() => Effect.succeed(emptyDiff)),
             )
 
-      return ReceivedInspectedModel({ model, ...diff })
+      return ReceivedInspectedState({ model, maybeMessage, ...diff })
     })
+
+  const inspectLatest: Command<typeof ReceivedInspectedState> = Effect.gen(
+    function* () {
+      const state = yield* SubscriptionRef.get(store.stateRef)
+      const latestIndex =
+        state.entries.length === 0
+          ? INIT_INDEX
+          : state.startIndex + state.entries.length - 1
+
+      return yield* inspectState(latestIndex)
+    },
+  )
 
   const resume = Effect.gen(function* () {
     yield* store.resume
@@ -293,20 +326,20 @@ const makeUpdate = (store: DevtoolsStore, shadow: ShadowRoot) => {
         ],
         ClickedRow: ({ index }) => [
           model,
-          [jumpTo(index), inspectModel(index)],
+          [jumpTo(index), inspectState(index)],
         ],
         ClickedResume: () => [
           evo(model, {
-            maybeInspectedModel: () => Option.none(),
             expandedPaths: () => HashSet.empty<string>(),
             changedPaths: () => HashSet.empty<string>(),
             affectedPaths: () => HashSet.empty<string>(),
           }),
-          [resume],
+          [resume, inspectLatest],
         ],
         ClickedClear: () => [
           evo(model, {
             maybeInspectedModel: () => Option.none(),
+            maybeInspectedMessage: () => Option.none(),
             expandedPaths: () => HashSet.empty<string>(),
             changedPaths: () => HashSet.empty<string>(),
             affectedPaths: () => HashSet.empty<string>(),
@@ -314,18 +347,38 @@ const makeUpdate = (store: DevtoolsStore, shadow: ShadowRoot) => {
           [clear],
         ],
         CompletedSideEffect: () => [model, []],
-        ReceivedInspectedModel: ({
+        ReceivedInspectedState: ({
           model: inspectedModel,
+          maybeMessage,
           changedPaths,
           affectedPaths,
         }) => [
           evo(model, {
             maybeInspectedModel: () => Option.some(inspectedModel),
+            maybeInspectedMessage: () => maybeMessage,
             changedPaths: () => changedPaths,
             affectedPaths: () => affectedPaths,
           }),
           [],
         ],
+        GotInspectorTabsMessage: ({ message: tabsMessage }) => {
+          const [nextTabsModel, tabsCommands] = Tabs.update(
+            model.inspectorTabs,
+            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+            tabsMessage as Tabs.Message,
+          )
+
+          return [
+            evo(model, {
+              inspectorTabs: () => nextTabsModel,
+            }),
+            tabsCommands.map(
+              Effect.map(innerMessage =>
+                GotInspectorTabsMessage({ message: innerMessage }),
+              ),
+            ),
+          ]
+        },
         ToggledTreeNode: ({ path }) => [
           evo(model, {
             expandedPaths: paths => HashSet.toggle(paths, path),
@@ -338,7 +391,7 @@ const makeUpdate = (store: DevtoolsStore, shadow: ShadowRoot) => {
           isPaused,
           pausedAtIndex,
         }) => {
-          const maybeScrollToBottom = OptionExt.when(!isPaused, scrollToBottom)
+          const liveCommands = isPaused ? [] : [scrollToBottom, inspectLatest]
 
           return [
             evo(model, {
@@ -347,7 +400,7 @@ const makeUpdate = (store: DevtoolsStore, shadow: ShadowRoot) => {
               isPaused: () => isPaused,
               pausedAtIndex: () => pausedAtIndex,
             }),
-            Option.toArray(maybeScrollToBottom),
+            liveCommands,
           ]
         },
       }),
@@ -384,13 +437,13 @@ const makeOverlaySubscriptions = (store: DevtoolsStore) =>
 
 // VIEW
 
-const indexClass = 'text-2xs text-dt-muted font-mono'
+const indexClass = 'text-2xs text-dt-muted font-mono min-w-5'
 
 const headerButtonClass =
-  'dt-header-button bg-transparent border-none text-dt-muted cursor-pointer text-xs font-sans px-2 py-1 rounded transition-colors'
+  'dt-header-button bg-transparent border-none text-dt-muted cursor-pointer text-base font-mono transition-colors'
 
 const ROW_BASE =
-  'dt-row flex items-center py-1 px-1 cursor-pointer gap-1.5 transition-colors border-l-3'
+  'dt-row flex items-center py-1 px-1 cursor-pointer gap-1.5 transition-colors border-l-3 border-b'
 
 const makeView = (): ((model: Model) => Html) => {
   const {
@@ -469,6 +522,7 @@ const makeView = (): ((model: Model) => Html) => {
   const tagLabelView = (tag: string): Html => span([Class('json-tag')], [tag])
 
   const diffDotView: Html = span([Class('diff-dot')], [])
+  const inlineDiffDotView: Html = span([Class('diff-dot-inline')], [])
 
   type FlatNode = Readonly<{
     value: unknown
@@ -576,21 +630,23 @@ const makeView = (): ((model: Model) => Html) => {
     }
 
     const nodeIsArray = Array.isArray(node.value)
+    const isRoot = node.treePath === 'root'
 
     return div(
       [
         Class(
           clsx(
-            'tree-row tree-row-expandable flex items-center gap-px font-mono text-2xs cursor-pointer',
+            'tree-row flex items-center gap-px font-mono text-2xs',
+            !isRoot && 'tree-row-expandable cursor-pointer',
             node.isChanged && 'diff-changed',
           ),
         ),
         indent,
-        OnClick(ToggledTreeNode({ path: node.treePath })),
+        ...(isRoot ? [] : [OnClick(ToggledTreeNode({ path: node.treePath }))]),
       ],
       [
-        arrowView(node.isExpanded),
-        ...(hasDiffDot ? [diffDotView] : []),
+        ...(isRoot ? [] : [arrowView(node.isExpanded)]),
+        ...(!isRoot && hasDiffDot ? [diffDotView] : []),
         ...Option.toArray(Option.map(node.maybeKey, keyView)),
         ...Option.toArray(Option.map(node.maybeTag, tagLabelView)),
         span(
@@ -608,74 +664,142 @@ const makeView = (): ((model: Model) => Html) => {
     )
   }
 
-  const inspectorView = (model: Model): Html =>
-    Option.match(model.maybeInspectedModel, {
-      onNone: () =>
-        div(
-          [
-            Class(
-              'flex-1 flex items-center justify-center text-dt-muted text-2xs font-sans italic min-w-0',
-            ),
-          ],
-          ['Click a message to inspect the model'],
-        ),
-      onSome: inspectedModel => {
-        const nodes: Array<FlatNode> = []
-        flattenTree(
-          inspectedModel,
-          'root',
-          model.expandedPaths,
-          model.changedPaths,
-          model.affectedPaths,
-          0,
-          Option.none(),
-          nodes,
-        )
+  const treeView = (
+    value: unknown,
+    rootPath: string,
+    expandedPaths: HashSet.HashSet<string>,
+    changedPaths: HashSet.HashSet<string>,
+    affectedPaths: HashSet.HashSet<string>,
+    maybeRootLabel: Option.Option<string>,
+  ): Html => {
+    const nodes: Array<FlatNode> = []
+    flattenTree(
+      value,
+      rootPath,
+      expandedPaths,
+      changedPaths,
+      affectedPaths,
+      0,
+      maybeRootLabel,
+      nodes,
+    )
 
-        return div(
-          [
-            Class(
-              'inspector-tree flex-1 overflow-y-auto min-h-0 min-w-0 py-1 px-1',
-            ),
-          ],
-          nodes.map(flatNodeView),
-        )
-      },
+    return div(
+      [Class('inspector-tree flex-1 overflow-y-auto min-h-0 min-w-0')],
+      nodes.map(flatNodeView),
+    )
+  }
+
+  const inspectedTimestamp = (model: Model): string => {
+    const selectedIndex = model.isPaused
+      ? model.pausedAtIndex
+      : model.entries.length === 0
+        ? INIT_INDEX
+        : model.startIndex + model.entries.length - 1
+
+    if (selectedIndex === INIT_INDEX) {
+      return '0ms'
+    }
+
+    const baseTimestamp = Option.match(Array_.head(model.entries), {
+      onNone: () => 0,
+      onSome: first => first.timestamp,
     })
+
+    return pipe(
+      Array_.get(model.entries, selectedIndex - model.startIndex),
+      Option.map(entry => {
+        const delta = entry.timestamp - baseTimestamp
+        return delta < MILLIS_PER_SECOND
+          ? `+${delta.toFixed(2)}ms`
+          : `+${(delta / MILLIS_PER_SECOND).toFixed(3)}s`
+      }),
+      Option.getOrElse(() => ''),
+    )
+  }
+
+  const emptyInspectorView: Html = div(
+    [
+      Class(
+        'flex-1 flex items-center justify-center text-dt-muted text-2xs font-mono italic min-w-0',
+      ),
+    ],
+    ['Click a message to inspect'],
+  )
+
+  const INSPECTOR_TABS = ['Model', 'Message'] as const
 
   const inspectorPaneView = (model: Model): Html =>
     div(
       [Class('flex flex-col border-l min-w-0 flex-1')],
       [
-        div(
-          [
-            Class(
-              'flex items-center justify-between px-3 py-2 border-b shrink-0',
+        Tabs.view<Message, (typeof INSPECTOR_TABS)[number]>({
+          model: model.inspectorTabs,
+          toMessage: tabsMessage =>
+            GotInspectorTabsMessage({ message: tabsMessage }),
+          tabs: INSPECTOR_TABS,
+          className: 'flex flex-col flex-1 min-h-0',
+          tabListClassName: 'flex border-b shrink-0',
+          tabToConfig: (tab, { isActive }) => ({
+            buttonClassName: clsx(
+              'dt-tab-button cursor-pointer text-base font-mono px-3 py-1',
+              isActive ? 'text-dt-accent' : 'text-dt-muted',
             ),
-          ],
-          [
-            span(
-              [
-                Class(
-                  'text-xs font-semibold text-dt-muted font-sans tracking-wide',
-                ),
-              ],
-              [
-                pipe(
-                  model.maybeInspectedModel,
-                  Option.flatMap(inspectedModel =>
-                    Option.liftPredicate(inspectedModel, isTagged),
-                  ),
-                  Option.match({
-                    onNone: () => 'Model',
-                    onSome: tagged => `Model — ${tagged._tag}`,
-                  }),
-                ),
-              ],
-            ),
-          ],
-        ),
-        inspectorView(model),
+            buttonContent: span([], [tab]),
+            panelClassName: 'flex flex-col flex-1 min-h-0',
+            panelContent: Option.match(model.maybeInspectedModel, {
+              onNone: () => emptyInspectorView,
+              onSome: inspectedModel =>
+                tab === 'Model'
+                  ? treeView(
+                      inspectedModel,
+                      'root',
+                      model.expandedPaths,
+                      model.changedPaths,
+                      model.affectedPaths,
+                      Option.none(),
+                    )
+                  : Option.match(model.maybeInspectedMessage, {
+                      onNone: () =>
+                        div(
+                          [
+                            Class(
+                              'flex-1 flex items-center justify-center text-dt-muted text-2xs font-mono italic min-w-0',
+                            ),
+                          ],
+                          ['Init — no message'],
+                        ),
+                      onSome: message =>
+                        div(
+                          [Class('flex flex-col flex-1 min-h-0')],
+                          [
+                            div(
+                              [
+                                Class(
+                                  'px-2 py-1 border-b text-2xs text-dt-muted font-mono shrink-0',
+                                ),
+                              ],
+                              [inspectedTimestamp(model)],
+                            ),
+                            div(
+                              [Class('flex-1 min-h-0 pt-1 pl-1')],
+                              [
+                                treeView(
+                                  message,
+                                  'root',
+                                  model.expandedPaths,
+                                  HashSet.empty(),
+                                  HashSet.empty(),
+                                  Option.none(),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                    }),
+            }),
+          }),
+        }),
       ],
     )
 
@@ -686,92 +810,132 @@ const makeView = (): ((model: Model) => Html) => {
       [
         Class(
           clsx(
-            'fixed bottom-4 right-4 w-11 h-11 rounded-full bg-dt-bg text-dt cursor-pointer flex items-center justify-center font-mono text-base font-semibold outline-none dt-badge',
+            'fixed bottom-4 right-4 w-14 h-14 rounded-full bg-dt-bg text-dt cursor-pointer flex items-center justify-center font-mono font-semibold outline-none dt-badge',
             model.isPaused ? 'dt-badge-paused' : 'dt-badge-accent',
           ),
         ),
         OnClick(ClickedToggle()),
       ],
-      [model.isOpen ? '✕' : String(model.entries.length)],
+      [
+        model.isOpen
+          ? svg(
+              [
+                AriaHidden(true),
+                Class('w-5 h-5'),
+                Xmlns('http://www.w3.org/2000/svg'),
+                Fill('none'),
+                ViewBox('0 0 24 24'),
+                StrokeWidth('1.5'),
+                Stroke('currentColor'),
+              ],
+              [
+                path(
+                  [
+                    StrokeLinecap('round'),
+                    StrokeLinejoin('round'),
+                    D('M6 18L18 6M6 6l12 12'),
+                  ],
+                  [],
+                ),
+              ],
+            )
+          : span([Class('text-base')], [String(model.entries.length)]),
+      ],
     )
 
-  const headerView = (model: Model): Html => {
-    const totalEntries = Array_.length(model.entries)
-
-    const statusView: Html = model.isPaused
+  const headerView = (model: Model): Html =>
+    model.isPaused
       ? div(
-          [Class('flex items-center gap-2')],
           [
-            span(
-              [Class('text-xs text-dt-paused font-medium font-sans')],
-              [
-                model.pausedAtIndex === INIT_INDEX
-                  ? 'Paused at init'
-                  : `Paused at ${model.pausedAtIndex}`,
-              ],
+            Class(
+              'flex items-center justify-between px-3 py-1.5 border-b shrink-0',
             ),
+          ],
+          [
             button(
               [
                 Class(
-                  'bg-transparent border border-dt-live text-dt-live cursor-pointer text-2xs font-sans px-1 py-px rounded font-medium',
+                  'dt-resume-button bg-transparent border-none text-dt-live cursor-pointer text-base font-mono font-medium',
                 ),
                 OnClick(ClickedResume()),
               ],
-              ['Resume'],
+              ['Resume →'],
+            ),
+            span(
+              [Class('text-base text-dt-paused font-mono')],
+              [
+                model.pausedAtIndex === INIT_INDEX
+                  ? 'Paused at init'
+                  : `Paused at message ${model.pausedAtIndex + 1}`,
+              ],
+            ),
+            button(
+              [Class(headerButtonClass), OnClick(ClickedClear())],
+              ['Clear history'],
             ),
           ],
         )
       : div(
-          [Class('flex items-center gap-1.5')],
+          [
+            Class(
+              'flex items-center justify-between px-3 py-1.5 border-b shrink-0',
+            ),
+          ],
           [
             span(
-              [Class('w-1.5 h-1.5 rounded-full bg-dt-live inline-block')],
-              [],
-            ),
-            span(
-              [Class('text-xs text-dt-live font-medium font-sans')],
+              [Class('text-base text-dt-live font-medium font-mono')],
               ['Live'],
             ),
-            span(
-              [Class('text-2xs text-dt-muted font-sans')],
-              [`· ${totalEntries}`],
+            button(
+              [Class(headerButtonClass), OnClick(ClickedClear())],
+              ['Clear history'],
             ),
           ],
         )
 
-    return div(
-      [
-        Class(
-          'flex items-center justify-between px-2 py-1.5 border-b shrink-0',
-        ),
-      ],
-      [
-        statusView,
-        button(
-          [Class(headerButtonClass), OnClick(ClickedClear())],
-          ['Clear history'],
-        ),
-      ],
-    )
-  }
-
-  const initRowView = (isSelected: boolean): Html =>
+  const initRowView = (isSelected: boolean, isPausedHere: boolean): Html =>
     div(
       [
         Class(clsx(ROW_BASE, isSelected && 'selected')),
         OnClick(ClickedRow({ index: INIT_INDEX })),
       ],
       [
-        span([Class(indexClass)], ['●']),
-        span([Class('text-sm text-dt-muted font-mono italic')], ['Init']),
+        span([Class('pause-column')], isPausedHere ? [pauseIconView] : []),
+        span([Class('dot-column')], []),
+        span([Class(indexClass)], []),
+        span([Class('text-base text-dt-muted font-mono')], ['Init']),
       ],
     )
+
+  const pauseIconView: Html = svg(
+    [
+      AriaHidden(true),
+      Class('dt-pause-icon'),
+      Xmlns('http://www.w3.org/2000/svg'),
+      Fill('none'),
+      ViewBox('0 0 24 24'),
+      StrokeWidth('2.5'),
+      Stroke('currentColor'),
+    ],
+    [
+      path(
+        [
+          StrokeLinecap('round'),
+          StrokeLinejoin('round'),
+          D('M5.75 3v18M18.25 3v18'),
+        ],
+        [],
+      ),
+    ],
+  )
 
   const messageRowView = (
     tag: string,
     absoluteIndex: number,
     isSelected: boolean,
+    isPausedHere: boolean,
     timeDelta: number,
+    isModelChanged: boolean,
   ): Html =>
     div(
       [
@@ -779,10 +943,16 @@ const makeView = (): ((model: Model) => Html) => {
         OnClick(ClickedRow({ index: absoluteIndex })),
       ],
       [
-        span([Class(indexClass)], [String(absoluteIndex)]),
-        span([Class('text-sm text-dt font-mono flex-1 truncate')], [tag]),
+        span([Class('pause-column')], isPausedHere ? [pauseIconView] : []),
+        span([Class('dot-column')], isModelChanged ? [inlineDiffDotView] : []),
+        span([Class(indexClass)], [String(absoluteIndex + 1)]),
+        span([Class('text-base text-dt font-mono flex-1 truncate')], [tag]),
         span(
-          [Class('text-2xs text-dt-muted font-mono shrink-0')],
+          [
+            Class(
+              'text-2xs text-dt-muted font-mono shrink-0 text-right min-w-5',
+            ),
+          ],
           [formatTimeDelta(timeDelta)],
         ),
       ],
@@ -794,39 +964,49 @@ const makeView = (): ((model: Model) => Html) => {
       onSome: first => first.timestamp,
     })
 
-    const isInitSelected = model.isPaused && model.pausedAtIndex === INIT_INDEX
+    const lastIndex =
+      model.entries.length === 0
+        ? INIT_INDEX
+        : model.startIndex + model.entries.length - 1
+
+    const selectedIndex = model.isPaused ? model.pausedAtIndex : lastIndex
+    const isInitSelected = selectedIndex === INIT_INDEX
 
     const messageRows = Array_.map(model.entries, (entry, arrayIndex) => {
       const absoluteIndex = model.startIndex + arrayIndex
-      const isSelected = model.isPaused && model.pausedAtIndex === absoluteIndex
+      const isSelected = selectedIndex === absoluteIndex
+      const isPausedHere =
+        model.isPaused && model.pausedAtIndex === absoluteIndex
 
       return messageRowView(
         entry.tag,
         absoluteIndex,
         isSelected,
+        isPausedHere,
         entry.timestamp - baseTimestamp,
+        entry.isModelChanged,
       )
     })
 
     return div(
       [Class('message-list flex-1 overflow-y-auto min-h-0')],
-      [initRowView(isInitSelected), ...messageRows],
+      [
+        initRowView(
+          isInitSelected,
+          model.isPaused && model.pausedAtIndex === INIT_INDEX,
+        ),
+        ...messageRows,
+      ],
     )
   }
 
   // PANEL
 
-  const isInspecting = (model: Model): boolean =>
-    model.isPaused && Option.isSome(model.maybeInspectedModel)
-
   const panelView = (model: Model): Html =>
     div(
       [
         Class(
-          clsx(
-            'fixed right-4 dt-panel bg-dt-bg border rounded-lg flex flex-col overflow-hidden font-sans text-dt',
-            isInspecting(model) && 'dt-panel-wide',
-          ),
+          'fixed right-4 dt-panel dt-panel-wide bg-dt-bg border rounded-lg flex flex-col overflow-hidden font-mono text-dt',
         ),
       ],
       [
@@ -835,17 +1015,10 @@ const makeView = (): ((model: Model) => Html) => {
           [Class('flex flex-1 min-h-0')],
           [
             div(
-              [
-                Class(
-                  clsx(
-                    'flex flex-col min-h-0',
-                    isInspecting(model) ? 'dt-message-pane' : 'flex-1',
-                  ),
-                ),
-              ],
+              [Class('flex flex-col min-h-0 dt-message-pane')],
               [messageListView(model)],
             ),
-            ...(isInspecting(model) ? [inspectorPaneView(model)] : []),
+            inspectorPaneView(model),
           ],
         ),
       ],
@@ -883,9 +1056,11 @@ export const createOverlay = (store: DevtoolsStore) =>
       {
         isOpen: false,
         maybeInspectedModel: Option.none(),
+        maybeInspectedMessage: Option.none(),
         expandedPaths: HashSet.empty(),
         changedPaths: HashSet.empty(),
         affectedPaths: HashSet.empty(),
+        inspectorTabs: Tabs.init({ id: INSPECTOR_TABS_ID }),
         ...toDisplayState(currentState),
       },
       [],

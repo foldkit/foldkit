@@ -530,6 +530,7 @@ const makeRuntime =
                   message as Message & { _tag: string },
                   nextModel,
                   commands.length,
+                  !modelEquivalence(currentModel, nextModel),
                 ),
             })
           })
@@ -604,7 +605,8 @@ const makeRuntime =
         const runtime = yield* Effect.runtime()
         yield* Ref.set(maybeRuntimeRef, Option.some(runtime))
 
-        if (import.meta.hot && devtools !== false) {
+        const isInIframe = window.self !== window.top
+        if (import.meta.hot && devtools !== false && !isInIframe) {
           const devtoolsStore = yield* createDevtoolsStore({
             replay: (model, message) =>
               /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
