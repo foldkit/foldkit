@@ -239,6 +239,9 @@ ul {
   outline: none;
   flex: 1;
 }
+.dt-tab-button:last-child {
+  border-right: none;
+}
 .dt-tab-active {
   background-color: var(--dt-surface-selected);
 }
