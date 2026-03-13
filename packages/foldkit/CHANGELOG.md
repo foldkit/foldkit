@@ -1,5 +1,11 @@
 # foldkit
 
+## 0.33.0
+
+### Minor Changes
+
+- a9f2b8d: Add built-in devtools overlay for inspecting Messages and Model state, with TimeTravel mode (pause and jump to historical states) and Inspect mode (browse snapshots without pausing). Also default the `html()` generic to `never` so omitting the Message type argument produces a compile error on event handlers, and replace classnames with clsx.
+
 ## 0.32.0
 
 ### Minor Changes
