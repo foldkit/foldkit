@@ -95,7 +95,7 @@ type Message = typeof Message.Type
 // HELPERS
 
 const MILLIS_PER_SECOND = 1000
-const TREE_INDENT_PX = 10
+const TREE_INDENT_PX = 12
 const MAX_PREVIEW_KEYS = 3
 
 const formatTimeDelta = (deltaMs: number): string =>
@@ -743,7 +743,7 @@ const makeView = (): ((model: Model) => Html) => {
           tabToConfig: (tab, { isActive }) => ({
             buttonClassName: clsx(
               'dt-tab-button cursor-pointer text-base font-mono px-3 py-1',
-              isActive ? 'text-dt-accent' : 'text-dt-muted',
+              isActive ? 'text-dt' : 'text-dt-muted',
             ),
             buttonContent: span([], [tab]),
             panelClassName: 'flex flex-col flex-1 min-h-0',
