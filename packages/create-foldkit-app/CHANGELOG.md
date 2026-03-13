@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.5.1
+
+### Patch Changes
+
+- 7c0a3b7: Sync AGENTS.md template conventions with CLAUDE.md to keep scaffolded projects aligned with current Foldkit coding standards.
+
 ## 0.5.0
 
 ### Minor Changes
