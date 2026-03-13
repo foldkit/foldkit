@@ -1,5 +1,11 @@
 # foldkit
 
+## 0.33.1
+
+### Patch Changes
+
+- 7c0a3b7: Fix devtools overlay scroll locking on mobile with viewport-reactive lock, fix clear history breaking inspection, add keyed elements and semantic HTML to prevent stale DOM during panel transitions, and add overscroll containment.
+
 ## 0.33.0
 
 ### Minor Changes
