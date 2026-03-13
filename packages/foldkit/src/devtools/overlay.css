@@ -375,9 +375,7 @@ ul {
   z-index: 99999;
   box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
   transition: background-color 150ms ease;
-}
-.dt-badge-accent {
-  border: none;
+  border: 1px solid var(--dt-border);
 }
 .dt-badge-accent:hover {
   background-color: #252538;
@@ -385,13 +383,17 @@ ul {
 .dt-badge-paused {
   background-color: var(--dt-paused);
   color: var(--dt-bg);
-  border: none;
 }
 .dt-badge-paused:hover {
   background-color: #e0a070;
 }
-.message-list > :last-child {
-  border-bottom: none;
+.dt-badge.dt-pos-br,
+.dt-badge.dt-pos-tr {
+  border-right: none;
+}
+.dt-badge.dt-pos-bl,
+.dt-badge.dt-pos-tl {
+  border-left: none;
 }
 
 /* JSON tree */

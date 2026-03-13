@@ -899,7 +899,7 @@ const makeView = (
         'flex-1 flex items-center justify-center text-dt-muted text-2xs font-mono min-w-0',
       ),
     ],
-    ['Init — no Message'],
+    ['init — no Message'],
   )
 
   const modelTabContent = (model: Model, inspectedModel: unknown): Html =>
@@ -1110,7 +1110,7 @@ const makeView = (
         ).pipe(Option.toArray),
         span([Class('dot-column')], []),
         span([Class(indexClass)], []),
-        span([Class('text-base text-dt-muted font-mono')], ['Init']),
+        span([Class('text-base text-dt-muted font-mono')], ['init']),
       ],
     )
 
