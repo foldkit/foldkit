@@ -31,8 +31,14 @@ const findScrollableParent = (target: Element): Element | null => {
   return null
 }
 
+const touchTarget = (event: TouchEvent): Element | null => {
+  const composed = event.composedPath()[0]
+  return composed instanceof Element ? composed : null
+}
+
 const handleTouchMove = (event: TouchEvent): void => {
-  if (event.target instanceof Element && !findScrollableParent(event.target)) {
+  const target = touchTarget(event)
+  if (target && !findScrollableParent(target)) {
     event.preventDefault()
   }
 }
