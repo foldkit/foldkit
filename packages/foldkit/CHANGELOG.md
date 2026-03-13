@@ -1,5 +1,11 @@
 # foldkit
 
+## 0.33.4
+
+### Patch Changes
+
+- ba4d3ec: Add border to devtools badge matching the panel border. Remove bottom border from flush edge. Lowercase "init" in display text.
+
 ## 0.33.3
 
 ### Patch Changes
