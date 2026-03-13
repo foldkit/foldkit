@@ -959,7 +959,11 @@ const makeView = (
 
   const inspectorPaneView = (model: Model): Html =>
     div(
-      [Class('flex flex-col border-l min-w-0 flex-1 dt-inspector-pane')],
+      [
+        Class(
+          'flex flex-col border-l min-w-0 min-h-0 flex-1 dt-inspector-pane',
+        ),
+      ],
       [
         Tabs.view<Message, InspectorTab>({
           model: model.inspectorTabs,
@@ -1026,7 +1030,10 @@ const makeView = (
           : div(
               [
                 Class(
-                  'flex flex-col items-center gap-0.5 text-dt-muted font-semibold tracking-wider leading-none',
+                  clsx(
+                    'flex flex-col items-center gap-0.5 font-semibold tracking-wider leading-none',
+                    model.isPaused ? 'text-dt-bg' : 'text-dt-muted',
+                  ),
                 ),
               ],
               [span([], ['D']), span([], ['E']), span([], ['V'])],

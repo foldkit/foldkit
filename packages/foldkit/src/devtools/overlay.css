@@ -1,7 +1,7 @@
 :host {
   --dt-bg: #1e1e2e;
   --dt-surface-selected: #282839;
-  --dt-border: #585b70;
+  --dt-border: #45475a;
   --dt-text: #cdd6f4;
   --dt-text-muted: #9399b2;
   --dt-accent: #cba6f7;
@@ -316,6 +316,9 @@ ul {
 .text-dt {
   color: var(--dt-text);
 }
+.text-dt-bg {
+  color: var(--dt-bg);
+}
 .text-dt-muted {
   color: var(--dt-text-muted);
 }
@@ -383,6 +386,7 @@ ul {
 .dt-badge-paused {
   background-color: var(--dt-paused);
   color: var(--dt-bg);
+  border: none;
 }
 .dt-badge-paused:hover {
   background-color: #e0a070;
@@ -508,6 +512,9 @@ ul {
     width: 100%;
     max-height: 40%;
     border-bottom: 1px solid var(--dt-border);
+  }
+  .message-list > :last-child {
+    border-bottom: none;
   }
   .dt-inspector-pane {
     border-left: none;
