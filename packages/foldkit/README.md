@@ -64,7 +64,7 @@ const ClickedIncrement = m('ClickedIncrement')
 const ClickedReset = m('ClickedReset')
 
 const Message = S.Union(ClickedDecrement, ClickedIncrement, ClickedReset)
-export type Message = typeof Message.Type
+type Message = typeof Message.Type
 
 // UPDATE
 
