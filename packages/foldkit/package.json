@@ -1,6 +1,6 @@
 {
   "name": "foldkit",
-  "version": "0.33.2",
+  "version": "0.33.3",
   "description": "Elm-inspired UI framework powered by Effect",
   "type": "module",
   "main": "./dist/index.js",
