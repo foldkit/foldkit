@@ -2070,6 +2070,7 @@ const application = Runtime.makeApplication({
     onUrlChange: url => ChangedUrl({ url }),
   },
   resources: Page.NotePlayerDemo.AudioContextService.Default,
+  devtools: true,
 })
 
 Runtime.run(application)

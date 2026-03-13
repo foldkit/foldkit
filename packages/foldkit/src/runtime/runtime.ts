@@ -606,7 +606,7 @@ const makeRuntime =
         yield* Ref.set(maybeRuntimeRef, Option.some(runtime))
 
         const isInIframe = window.self !== window.top
-        if (import.meta.hot && devtools !== false && !isInIframe) {
+        if ((import.meta.hot || devtools === true) && !isInIframe) {
           const devtoolsStore = yield* createDevtoolsStore({
             replay: (model, message) =>
               /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
