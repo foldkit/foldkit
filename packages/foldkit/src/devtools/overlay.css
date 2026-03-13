@@ -178,9 +178,7 @@ ul {
 .overflow-y-auto {
   overflow-y: auto;
 }
-.overscroll-contain {
-  overscroll-behavior: contain;
-}
+
 .truncate {
   overflow: hidden;
   text-overflow: ellipsis;

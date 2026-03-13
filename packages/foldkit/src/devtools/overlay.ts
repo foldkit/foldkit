@@ -53,7 +53,8 @@ const Model = S.Struct({
   startIndex: S.Number,
   isPaused: S.Boolean,
   pausedAtIndex: S.Number,
-  maybeSelectedIndex: S.OptionFromSelf(S.Number),
+  selectedIndex: S.Number,
+  isFollowingLatest: S.Boolean,
   maybeInspectedModel: S.OptionFromSelf(S.Unknown),
   maybeInspectedMessage: S.OptionFromSelf(S.Unknown),
   expandedPaths: S.HashSetFromSelf(S.String),
@@ -386,7 +387,8 @@ const makeUpdate = (
             ]),
             M.when('Inspect', () => [
               evo(model, {
-                maybeSelectedIndex: () => Option.some(index),
+                selectedIndex: () => index,
+                isFollowingLatest: () => false,
               }),
               [inspectState(index)],
             ]),
@@ -402,22 +404,31 @@ const makeUpdate = (
         ],
         ClickedClear: () => [
           evo(model, {
-            maybeSelectedIndex: () => Option.none<number>(),
+            selectedIndex: () => INIT_INDEX,
+            isFollowingLatest: () => true,
             expandedPaths: () => HashSet.empty<string>(),
             changedPaths: () => HashSet.empty<string>(),
             affectedPaths: () => HashSet.empty<string>(),
           }),
           [clear, inspectLatest],
         ],
-        ClickedFollowLatest: () => [
-          evo(model, {
-            maybeSelectedIndex: () => Option.none<number>(),
-            expandedPaths: () => HashSet.empty<string>(),
-            changedPaths: () => HashSet.empty<string>(),
-            affectedPaths: () => HashSet.empty<string>(),
-          }),
-          [inspectLatest, scrollToTop],
-        ],
+        ClickedFollowLatest: () => {
+          const latestIndex = Array_.match(model.entries, {
+            onEmpty: () => INIT_INDEX,
+            onNonEmpty: () => model.startIndex + model.entries.length - 1,
+          })
+
+          return [
+            evo(model, {
+              selectedIndex: () => latestIndex,
+              isFollowingLatest: () => true,
+              expandedPaths: () => HashSet.empty<string>(),
+              changedPaths: () => HashSet.empty<string>(),
+              affectedPaths: () => HashSet.empty<string>(),
+            }),
+            [inspectLatest, scrollToTop],
+          ]
+        },
         ReceivedInspectedState: ({
           model: inspectedModel,
           maybeMessage,
@@ -464,9 +475,14 @@ const makeUpdate = (
         }) => {
           const shouldFollowLatest = M.value(mode).pipe(
             M.when('TimeTravel', () => !isPaused),
-            M.when('Inspect', () => Option.isNone(model.maybeSelectedIndex)),
+            M.when('Inspect', () => model.isFollowingLatest),
             M.exhaustive,
           )
+
+          const latestIndex = Array_.match(entries, {
+            onEmpty: () => INIT_INDEX,
+            onNonEmpty: () => startIndex + entries.length - 1,
+          })
 
           return [
             evo(model, {
@@ -474,6 +490,8 @@ const makeUpdate = (
               startIndex: () => startIndex,
               isPaused: () => isPaused,
               pausedAtIndex: () => pausedAtIndex,
+              selectedIndex: current =>
+                shouldFollowLatest ? latestIndex : current,
             }),
             shouldFollowLatest ? [scrollToTop, inspectLatest] : [],
           ]
@@ -592,7 +610,6 @@ const makeView = (
     StrokeLinecap,
     StrokeLinejoin,
     D,
-    empty,
   } = html<Message>()
 
   // JSON TREE
@@ -818,11 +835,7 @@ const makeView = (
     )
 
     return div(
-      [
-        Class(
-          'inspector-tree flex-1 overflow-auto overscroll-contain min-h-0 min-w-0',
-        ),
-      ],
+      [Class('inspector-tree flex-1 overflow-auto min-h-0 min-w-0')],
       nodes.map(flatNodeView),
     )
   }
@@ -836,9 +849,7 @@ const makeView = (
       M.when('TimeTravel', () =>
         model.isPaused ? model.pausedAtIndex : lastIndex,
       ),
-      M.when('Inspect', () =>
-        Option.getOrElse(model.maybeSelectedIndex, () => lastIndex),
-      ),
+      M.when('Inspect', () => model.selectedIndex),
       M.exhaustive,
     )
 
@@ -1060,31 +1071,25 @@ const makeView = (
                 [Class(`${statusClass} text-dt-live font-medium`)],
                 ['Live'],
               ),
-              action: empty,
+              action: div([], []),
             },
       ),
-      M.when('Inspect', () =>
-        Option.match(model.maybeSelectedIndex, {
-          onNone: () => ({
-            status: empty,
-            action: empty,
-          }),
-          onSome: selectedIndex => ({
-            status: span(
-              [Class(`${statusClass} text-dt-accent`)],
-              [
-                selectedIndex === INIT_INDEX
-                  ? 'Inspecting (init)'
-                  : `Inspecting (${selectedIndex + 1})`,
-              ],
-            ),
-            action: button(
+      M.when('Inspect', () => ({
+        status: span(
+          [Class(`${statusClass} text-dt-accent`)],
+          [
+            model.selectedIndex === INIT_INDEX
+              ? 'Inspecting (init)'
+              : `Inspecting (${model.selectedIndex + 1})`,
+          ],
+        ),
+        action: model.isFollowingLatest
+          ? div([], [])
+          : button(
               [Class(actionButtonClass), OnClick(ClickedFollowLatest())],
               ['Follow Latest →'],
             ),
-          }),
-        }),
-      ),
+      })),
       M.exhaustive,
     )
 
@@ -1182,9 +1187,7 @@ const makeView = (
       M.when('TimeTravel', () =>
         model.isPaused ? model.pausedAtIndex : lastIndex,
       ),
-      M.when('Inspect', () =>
-        Option.getOrElse(model.maybeSelectedIndex, () => lastIndex),
-      ),
+      M.when('Inspect', () => model.selectedIndex),
       M.exhaustive,
     )
     const isInitSelected = selectedIndex === INIT_INDEX
@@ -1210,7 +1213,7 @@ const makeView = (
     )
 
     return ul(
-      [Class('message-list flex-1 overflow-y-auto overscroll-contain min-h-0')],
+      [Class('message-list flex-1 overflow-y-auto min-h-0')],
       [
         ...messageRows,
         initRowView(
@@ -1327,7 +1330,8 @@ export const createOverlay = (
       {
         isOpen: false,
         ...flags,
-        maybeSelectedIndex: Option.none(),
+        selectedIndex: INIT_INDEX,
+        isFollowingLatest: true,
         maybeInspectedModel: Option.none(),
         maybeInspectedMessage: Option.none(),
         expandedPaths: HashSet.empty(),
