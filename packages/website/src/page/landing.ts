@@ -83,6 +83,8 @@ export const view = (
       glyph('[ ]'),
       includedSection(),
       glyph('::'),
+      devtoolsSection(),
+      glyph('~~'),
       aiSection(),
       glyph('< >'),
       tradeOffsSection(),
@@ -464,6 +466,67 @@ const includedSection = (): Html =>
               ]),
               includedFeature(Icon.cog('w-6 h-6'), 'Commands', [
                 'Commands are Effects that return Messages — you write the Effect with whatever combinators you want. The runtime runs it.',
+              ]),
+            ],
+          ),
+        ],
+      ),
+    ],
+  )
+
+// DEVTOOLS
+
+const devtoolsSection = (): Html =>
+  section(
+    [Id('devtools'), Class('landing-section')],
+    [
+      div(
+        [Class('landing-section-narrow')],
+        [
+          h2(
+            [
+              Class(
+                'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-3 text-balance',
+              ),
+            ],
+            [
+              'Watch your app ',
+              span([Class('text-accent-600 dark:text-accent-500')], ['think.']),
+            ],
+          ),
+          p(
+            [
+              Class(
+                'text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-4 max-w-3xl',
+              ),
+            ],
+            [
+              'When every state change flows through Messages and a single Model, you get DevTools that would be impossible in a mutable-state framework. Every Message is logged. Every Model state is inspectable. Click any row to see exactly what changed.',
+            ],
+          ),
+          p(
+            [
+              Class(
+                'text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl',
+              ),
+            ],
+            [
+              'This site runs on Foldkit — look for the tab on the bottom right edge of this page to try it live.',
+            ],
+          ),
+          div(
+            [
+              Class(
+                'rounded-lg overflow-hidden shadow-xl ring-1 ring-gray-200 dark:ring-gray-700',
+              ),
+            ],
+            [
+              img([
+                Src('/devtools-overlay.png'),
+                Alt(
+                  'Foldkit DevTools overlay inspecting the Foldkit website — a numbered Message timeline on the left with entries like ClickedLink, ChangedUrl, and CompletedScroll, and an expandable Model state tree on the right showing route, url, and theme fields',
+                ),
+                Class('w-full h-auto'),
               ]),
             ],
           ),
