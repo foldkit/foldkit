@@ -16,6 +16,8 @@
 
 - [ ] Search for the doc site (Cmd+K or similar)
 
+- [ ] Migrate mobile "On this page" dropdown from raw `<details>`/`<summary>` to Foldkit Disclosure — currently uses manual `isMobileTableOfContentsOpen` state instead of a Disclosure submodel, so toggle events aren't tracked in the message system
+
 - [x] Document FieldValidation module on the website
 
 ## CI
