@@ -62,13 +62,13 @@ export type DevtoolsMode = 'Inspect' | 'TimeTravel'
  * - `show`: `'Never'` disables devtools entirely, `'Development'` (default) enables in dev mode only, `'Always'` enables in all environments including production.
  * - `position`: Where the badge and panel appear. Defaults to `'BottomRight'`.
  * - `mode`: `'TimeTravel'` (default) enables full time-travel debugging. `'Inspect'` allows browsing state snapshots without pausing the app.
- * - `message`: Optional text shown as a banner at the top of the panel.
+ * - `banner`: Optional text shown as a banner at the top of the panel.
  */
 export type DevtoolsConfig = Readonly<{
   show?: DevtoolsShow
   position?: DevtoolsPosition
   mode?: DevtoolsMode
-  message?: string
+  banner?: string
 }>
 
 const DEFAULT_DEVTOOLS_SHOW: DevtoolsShow = 'Development'
@@ -643,7 +643,7 @@ const makeRuntime =
         const show = devtools?.show ?? DEFAULT_DEVTOOLS_SHOW
         const devtoolsPosition = devtools?.position ?? DEFAULT_DEVTOOLS_POSITION
         const devtoolsMode = devtools?.mode ?? DEFAULT_DEVTOOLS_MODE
-        const maybeDevtoolsMessage = Option.fromNullable(devtools?.message)
+        const maybeDevtoolsBanner = Option.fromNullable(devtools?.banner)
         const isInIframe = window.self !== window.top
         const isDevtoolsEnabled = Match.value(show).pipe(
           Match.when('Never', () => false),
@@ -668,7 +668,7 @@ const makeRuntime =
             devtoolsStore,
             devtoolsPosition,
             devtoolsMode,
-            maybeDevtoolsMessage,
+            maybeDevtoolsBanner,
           )
         }
 

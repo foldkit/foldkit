@@ -174,7 +174,15 @@ export const createDevtoolsStore = (
       }))
     })
 
-    const clear = SubscriptionRef.set(stateRef, emptyState)
+    const clear = SubscriptionRef.update(stateRef, state => ({
+      ...emptyState,
+      maybeInitModel: state.maybeInitModel,
+      keyframes: Option.match(state.maybeInitModel, {
+        onNone: () => HashMap.empty(),
+        onSome: model =>
+          HashMap.set(HashMap.empty<number, unknown>(), 0, model),
+      }),
+    }))
 
     return {
       recordInit,

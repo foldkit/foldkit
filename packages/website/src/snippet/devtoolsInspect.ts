@@ -9,7 +9,7 @@ const element = Runtime.makeElement({
   devtools: {
     show: 'Always',
     mode: 'Inspect',
-    message: 'Welcome to our app! Browse the state tree to see how it works.',
+    banner: 'Welcome to our app! Browse the state tree to see how it works.',
   },
 })
 

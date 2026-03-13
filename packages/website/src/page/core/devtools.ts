@@ -41,10 +41,10 @@ const modeHeader: TableOfContentsEntry = {
   text: 'mode',
 }
 
-const messageHeader: TableOfContentsEntry = {
+const bannerHeader: TableOfContentsEntry = {
   level: 'h3',
-  id: 'message',
-  text: 'message',
+  id: 'banner',
+  text: 'banner',
 }
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
@@ -53,7 +53,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   showHeader,
   positionHeader,
   modeHeader,
-  messageHeader,
+  bannerHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
@@ -133,7 +133,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         copiedSnippets,
         'mb-8',
       ),
-      tableOfContentsEntryToHeader(messageHeader),
+      tableOfContentsEntryToHeader(bannerHeader),
       para(
         'An optional string displayed as a banner at the top of the panel. Useful for welcoming visitors or leaving a note for your team.',
       ),

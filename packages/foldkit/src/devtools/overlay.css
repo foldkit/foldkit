@@ -82,6 +82,9 @@ button {
   padding-left: 10px;
   padding-right: 10px;
 }
+.p-3 {
+  padding: 12px;
+}
 .px-3 {
   padding-left: 12px;
   padding-right: 12px;
@@ -222,7 +225,7 @@ button {
   color: var(--dt-text);
 }
 .dt-resume-button:hover {
-  color: var(--dt-text);
+  opacity: 0.7;
 }
 .dt-tab-button {
   position: relative;
@@ -232,17 +235,8 @@ button {
   outline: none;
   flex: 1;
 }
-.dt-tab-label {
-  position: relative;
-}
-.dt-tab-arrow {
-  position: absolute;
-  right: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  margin-right: 5px;
-  font-size: 15px;
-  color: var(--dt-accent);
+.dt-tab-active {
+  background-color: var(--dt-surface-selected);
 }
 .dt-tab-button:not(.dt-tab-active):hover {
   color: var(--dt-text);
@@ -299,6 +293,9 @@ button {
 }
 .tracking-wider {
   letter-spacing: 0.05em;
+}
+.leading-none {
+  line-height: 1;
 }
 .leading-snug {
   line-height: 1.35;
@@ -397,7 +394,7 @@ button {
 .tree-row {
   position: relative;
   white-space: nowrap;
-  line-height: 1.5;
+  line-height: 18px;
   padding-right: 8px;
 }
 .tree-row-expandable:hover {

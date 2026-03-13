@@ -2121,8 +2121,8 @@ const application = Runtime.makeApplication({
   devtools: {
     show: 'Always',
     mode: 'Inspect',
-    message:
-      "Welcome to Foldkit DevTools — a live view of this app's architecture. Every state change flows through a Message, and every Message produces a new Model. Click any row to inspect the app state at that moment.",
+    banner:
+      'Welcome to Foldkit DevTools. This site runs on Foldkit — navigate around or interact with the page and every action appears here as a Message. Click any row to see the Model state it produced.',
   },
 })
 

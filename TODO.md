@@ -18,6 +18,10 @@
 
 - [x] Document FieldValidation module on the website
 
+## CI
+
+- [ ] Cache Playwright browsers in deploy-website workflow to avoid re-downloading Chromium on every run
+
 ## Devtools
 
 - [ ] Store test: "init model survives eviction" — verify the init Model is preserved after the history buffer evicts old keyframes

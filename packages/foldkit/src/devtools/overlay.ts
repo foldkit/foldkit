@@ -23,6 +23,7 @@ import { makeElement } from '../runtime/runtime'
 import type { DevtoolsMode, DevtoolsPosition } from '../runtime/runtime'
 import { makeSubscriptions } from '../runtime/subscription'
 import { evo } from '../struct'
+import { lockScroll, unlockScroll } from '../task/scrollLock'
 import * as Tabs from '../ui/tabs'
 import { overlayStyles } from './overlay-styles'
 import { type DevtoolsStore, INIT_INDEX, type StoreState } from './store'
@@ -47,6 +48,7 @@ const InspectorTabsModel = S.Struct({
 
 const Model = S.Struct({
   isOpen: S.Boolean,
+  isMobile: S.Boolean,
   entries: S.Array(DisplayEntry),
   startIndex: S.Number,
   isPaused: S.Boolean,
@@ -61,6 +63,14 @@ const Model = S.Struct({
 })
 type Model = typeof Model.Type
 
+const Flags = S.Struct({
+  isMobile: S.Boolean,
+  entries: S.Array(DisplayEntry),
+  startIndex: S.Number,
+  isPaused: S.Boolean,
+  pausedAtIndex: S.Number,
+})
+
 // MESSAGE
 
 const ClickedToggle = m('ClickedToggle')
@@ -71,7 +81,12 @@ const CompletedJump = m('CompletedJump')
 const CompletedResume = m('CompletedResume')
 const ClickedFollowLatest = m('ClickedFollowLatest')
 const CompletedClear = m('CompletedClear')
-const CompletedScroll = m('CompletedScroll')
+const LockedScroll = m('LockedScroll')
+const UnlockedScroll = m('UnlockedScroll')
+const ScrolledToTop = m('ScrolledToTop')
+const CrossedMobileBreakpoint = m('CrossedMobileBreakpoint', {
+  isMobile: S.Boolean,
+})
 const ReceivedInspectedState = m('ReceivedInspectedState', {
   model: S.Unknown,
   maybeMessage: S.OptionFromSelf(S.Unknown),
@@ -98,7 +113,10 @@ const Message = S.Union(
   CompletedJump,
   CompletedResume,
   CompletedClear,
-  CompletedScroll,
+  LockedScroll,
+  UnlockedScroll,
+  ScrolledToTop,
+  CrossedMobileBreakpoint,
   ReceivedInspectedState,
   ToggledTreeNode,
   GotInspectorTabsMessage,
@@ -109,6 +127,8 @@ type Message = typeof Message.Type
 // HELPERS
 
 const MILLIS_PER_SECOND = 1000
+const MOBILE_BREAKPOINT = 767
+const MOBILE_BREAKPOINT_QUERY = `(max-width: ${MOBILE_BREAKPOINT}px)`
 const TREE_INDENT_PX = 12
 const MAX_PREVIEW_KEYS = 3
 
@@ -320,12 +340,19 @@ const makeUpdate = (
     return CompletedClear()
   })
 
+  const toggleScrollLock = (
+    shouldLock: boolean,
+  ): Command<typeof LockedScroll | typeof UnlockedScroll> =>
+    shouldLock
+      ? lockScroll.pipe(Effect.as(LockedScroll()))
+      : unlockScroll.pipe(Effect.as(UnlockedScroll()))
+
   const scrollToTop = Effect.sync(() => {
     const messageList = shadow.querySelector(MESSAGE_LIST_SELECTOR)
     if (messageList instanceof HTMLElement) {
       messageList.scrollTop = 0
     }
-    return CompletedScroll()
+    return ScrolledToTop()
   })
 
   return (
@@ -335,11 +362,20 @@ const makeUpdate = (
     M.value(message).pipe(
       M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
       M.tags({
-        ClickedToggle: () => [
-          evo(model, {
-            isOpen: isOpen => !isOpen,
-          }),
-          [],
+        ClickedToggle: () => {
+          const nextIsOpen = !model.isOpen
+          return [
+            evo(model, { isOpen: () => nextIsOpen }),
+            OptionExt.when(model.isMobile, toggleScrollLock(nextIsOpen)).pipe(
+              Option.toArray,
+            ),
+          ]
+        },
+        CrossedMobileBreakpoint: ({ isMobile }) => [
+          evo(model, { isMobile: () => isMobile }),
+          OptionExt.when(model.isOpen, toggleScrollLock(isMobile)).pipe(
+            Option.toArray,
+          ),
         ],
         ClickedRow: ({ index }) =>
           M.value(mode).pipe(
@@ -367,13 +403,11 @@ const makeUpdate = (
         ClickedClear: () => [
           evo(model, {
             maybeSelectedIndex: () => Option.none<number>(),
-            maybeInspectedModel: () => Option.none(),
-            maybeInspectedMessage: () => Option.none(),
             expandedPaths: () => HashSet.empty<string>(),
             changedPaths: () => HashSet.empty<string>(),
             affectedPaths: () => HashSet.empty<string>(),
           }),
-          [clear],
+          [clear, inspectLatest],
         ],
         ClickedFollowLatest: () => [
           evo(model, {
@@ -449,7 +483,9 @@ const makeUpdate = (
         'CompletedJump',
         'CompletedResume',
         'CompletedClear',
-        'CompletedScroll',
+        'LockedScroll',
+        'UnlockedScroll',
+        'ScrolledToTop',
         () => [model, []],
       ),
       M.exhaustive,
@@ -460,6 +496,7 @@ const makeUpdate = (
 
 const SubscriptionDeps = S.Struct({
   storeUpdates: S.Null,
+  mobileBreakpoint: S.Null,
 })
 
 const makeOverlaySubscriptions = (store: DevtoolsStore) =>
@@ -481,6 +518,27 @@ const makeOverlaySubscriptions = (store: DevtoolsStore) =>
             ),
           ),
         ),
+    },
+    mobileBreakpoint: {
+      modelToDependencies: () => null,
+      depsToStream: () =>
+        Stream.async<Command<Message>>(emit => {
+          const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT_QUERY)
+
+          const handler = (event: MediaQueryListEvent) => {
+            emit.single(
+              Effect.succeed(
+                CrossedMobileBreakpoint({ isMobile: event.matches }),
+              ),
+            )
+          }
+
+          mediaQuery.addEventListener('change', handler)
+
+          return Effect.sync(() =>
+            mediaQuery.removeEventListener('change', handler),
+          )
+        }),
     },
   })
 
@@ -511,7 +569,7 @@ const PANEL_POSITION_CLASS: Record<DevtoolsPosition, string> = {
 const makeView = (
   position: DevtoolsPosition,
   mode: DevtoolsMode,
-  maybeMessage: Option.Option<string>,
+  maybeBanner: Option.Option<string>,
 ): ((model: Model) => Html) => {
   const {
     div,
@@ -531,6 +589,7 @@ const makeView = (
     StrokeLinecap,
     StrokeLinejoin,
     D,
+    empty,
   } = html<Message>()
 
   // JSON TREE
@@ -896,13 +955,7 @@ const makeView = (
               'dt-tab-button cursor-pointer text-base font-mono px-3 py-1',
               isActive ? 'text-dt dt-tab-active' : 'text-dt-muted',
             ),
-            buttonContent: span(
-              [Class('dt-tab-label')],
-              [
-                ...(isActive ? [span([Class('dt-tab-arrow')], ['→'])] : []),
-                tab,
-              ],
-            ),
+            buttonContent: span([], [tab]),
             panelClassName: 'flex flex-col flex-1 min-h-0 min-w-0',
             panelContent: Option.match(model.maybeInspectedModel, {
               onNone: () => emptyInspectorView,
@@ -955,7 +1008,7 @@ const makeView = (
           : div(
               [
                 Class(
-                  'flex flex-col items-center gap-0.5 text-dt-muted font-semibold tracking-wider',
+                  'flex flex-col items-center gap-0.5 text-dt-muted font-semibold tracking-wider leading-none',
                 ),
               ],
               [span([], ['D']), span([], ['E']), span([], ['V'])],
@@ -966,86 +1019,70 @@ const makeView = (
   const headerClass =
     'flex items-center justify-between px-3 py-1.5 border-b shrink-0'
 
-  const liveHeaderView: Html = div(
-    [Class(headerClass)],
-    [
-      span([Class('text-base text-dt-live font-medium font-mono')], ['Live']),
-      button(
-        [Class(headerButtonClass), OnClick(ClickedClear())],
-        ['Clear history'],
-      ),
-    ],
+  const actionButtonClass =
+    'dt-resume-button bg-transparent border-none text-dt-live cursor-pointer text-base font-mono font-medium'
+
+  const statusClass = 'text-base font-mono'
+
+  const clearHistoryButton: Html = button(
+    [Class(headerButtonClass), OnClick(ClickedClear())],
+    ['Clear history'],
   )
 
-  const pausedHeaderView = (model: Model): Html =>
-    div(
-      [Class(headerClass)],
-      [
-        button(
-          [
-            Class(
-              'dt-resume-button bg-transparent border-none text-dt-live cursor-pointer text-base font-mono font-medium',
-            ),
-            OnClick(ClickedResume()),
-          ],
-          ['Resume →'],
-        ),
-        span(
-          [Class('text-base text-dt-paused font-mono')],
-          [
-            model.pausedAtIndex === INIT_INDEX
-              ? 'Paused (init)'
-              : `Paused (${model.pausedAtIndex + 1})`,
-          ],
-        ),
-        button(
-          [Class(headerButtonClass), OnClick(ClickedClear())],
-          ['Clear history'],
-        ),
-      ],
-    )
-
-  const inspectingHeaderView = (selectedIndex: number): Html =>
-    div(
-      [Class(headerClass)],
-      [
-        button(
-          [
-            Class(
-              'dt-resume-button bg-transparent border-none text-dt-live cursor-pointer text-base font-mono font-medium',
-            ),
-            OnClick(ClickedFollowLatest()),
-          ],
-          ['Follow latest →'],
-        ),
-        span(
-          [Class('text-base text-dt-accent font-mono')],
-          [
-            selectedIndex === INIT_INDEX
-              ? 'Inspecting (init)'
-              : `Inspecting (${selectedIndex + 1})`,
-          ],
-        ),
-        button(
-          [Class(headerButtonClass), OnClick(ClickedClear())],
-          ['Clear history'],
-        ),
-      ],
-    )
-
-  const headerView = (model: Model): Html =>
-    M.value(mode).pipe(
+  const headerView = (model: Model): Html => {
+    const { status, action } = M.value(mode).pipe(
+      M.withReturnType<Readonly<{ status: Html; action: Html }>>(),
+      M.when('TimeTravel', () =>
+        model.isPaused
+          ? {
+              status: span(
+                [Class(`${statusClass} text-dt-paused`)],
+                [
+                  model.pausedAtIndex === INIT_INDEX
+                    ? 'Paused (init)'
+                    : `Paused (${model.pausedAtIndex + 1})`,
+                ],
+              ),
+              action: button(
+                [Class(actionButtonClass), OnClick(ClickedResume())],
+                ['Resume →'],
+              ),
+            }
+          : {
+              status: span(
+                [Class(`${statusClass} text-dt-live font-medium`)],
+                ['Live'],
+              ),
+              action: empty,
+            },
+      ),
       M.when('Inspect', () =>
         Option.match(model.maybeSelectedIndex, {
-          onNone: () => liveHeaderView,
-          onSome: inspectingHeaderView,
+          onNone: () => ({
+            status: empty,
+            action: empty,
+          }),
+          onSome: selectedIndex => ({
+            status: span(
+              [Class(`${statusClass} text-dt-accent`)],
+              [
+                selectedIndex === INIT_INDEX
+                  ? 'Inspecting (init)'
+                  : `Inspecting (${selectedIndex + 1})`,
+              ],
+            ),
+            action: button(
+              [Class(actionButtonClass), OnClick(ClickedFollowLatest())],
+              ['Follow Latest →'],
+            ),
+          }),
         }),
-      ),
-      M.when('TimeTravel', () =>
-        model.isPaused ? pausedHeaderView(model) : liveHeaderView,
       ),
       M.exhaustive,
     )
+
+    return div([Class(headerClass)], [status, action, clearHistoryButton])
+  }
 
   const initRowView = (isSelected: boolean, isPausedHere: boolean): Html =>
     div(
@@ -1054,7 +1091,10 @@ const makeView = (
         OnClick(ClickedRow({ index: INIT_INDEX })),
       ],
       [
-        span([Class('pause-column')], isPausedHere ? [pauseIconView] : []),
+        ...OptionExt.when(
+          mode === 'TimeTravel',
+          span([Class('pause-column')], isPausedHere ? [pauseIconView] : []),
+        ).pipe(Option.toArray),
         span([Class('dot-column')], []),
         span([Class(indexClass)], []),
         span([Class('text-base text-dt-muted font-mono')], ['Init']),
@@ -1097,7 +1137,10 @@ const makeView = (
         OnClick(ClickedRow({ index: absoluteIndex })),
       ],
       [
-        span([Class('pause-column')], isPausedHere ? [pauseIconView] : []),
+        ...OptionExt.when(
+          mode === 'TimeTravel',
+          span([Class('pause-column')], isPausedHere ? [pauseIconView] : []),
+        ).pipe(Option.toArray),
         span([Class('dot-column')], isModelChanged ? [inlineDiffDotView] : []),
         span([Class(indexClass)], [String(absoluteIndex + 1)]),
         span([Class('text-base text-dt font-mono flex-1 truncate')], [tag]),
@@ -1182,20 +1225,16 @@ const makeView = (
         ),
       ],
       [
-        ...pipe(
-          maybeMessage,
-          Option.map(message =>
-            div(
-              [
-                Class(
-                  'px-3 py-1.5 border-b text-sm text-dt-muted font-mono shrink-0 leading-snug',
-                ),
-              ],
-              [message],
-            ),
+        ...Option.map(maybeBanner, banner =>
+          div(
+            [
+              Class(
+                'px-3 py-2 border-b text-sm text-dt-muted font-mono shrink-0 leading-snug',
+              ),
+            ],
+            [banner],
           ),
-          Option.toArray,
-        ),
+        ).pipe(Option.toArray),
         headerView(model),
         div(
           [Class('flex flex-1 min-h-0 dt-content')],
@@ -1216,14 +1255,11 @@ const makeView = (
     div(
       [],
       [
-        ...pipe(
-          OptionExt.when(
-            model.isPaused && mode === 'TimeTravel',
-            interactionBlocker,
-          ),
-          Option.toArray,
-        ),
-        ...pipe(OptionExt.when(model.isOpen, panelView(model)), Option.toArray),
+        ...OptionExt.when(
+          model.isPaused && mode === 'TimeTravel',
+          interactionBlocker,
+        ).pipe(Option.toArray),
+        ...OptionExt.when(model.isOpen, panelView(model)).pipe(Option.toArray),
         badgeView(model),
       ],
     )
@@ -1231,36 +1267,56 @@ const makeView = (
 
 // CREATE
 
+const DEVTOOLS_HOST_ID = 'foldkit-devtools'
+
+const createShadowContainer = (): Readonly<{
+  container: HTMLElement
+  shadow: ShadowRoot
+}> => {
+  const existingHost = document.getElementById(DEVTOOLS_HOST_ID)
+  if (existingHost) {
+    existingHost.remove()
+  }
+
+  const host = document.createElement('div')
+  host.id = DEVTOOLS_HOST_ID
+  document.body.appendChild(host)
+
+  const shadow = host.attachShadow({ mode: 'open' })
+
+  const styleElement = document.createElement('style')
+  styleElement.textContent = overlayStyles
+  shadow.appendChild(styleElement)
+
+  const container = document.createElement('div')
+  shadow.appendChild(container)
+
+  return { container, shadow }
+}
+
 export const createOverlay = (
   store: DevtoolsStore,
   position: DevtoolsPosition,
   mode: DevtoolsMode,
-  maybeMessage: Option.Option<string>,
+  maybeBanner: Option.Option<string>,
 ) =>
   Effect.gen(function* () {
-    const existingHost = document.getElementById('foldkit-devtools')
-    if (existingHost) {
-      existingHost.remove()
-    }
+    const { container, shadow } = createShadowContainer()
 
-    const host = document.createElement('div')
-    host.id = 'foldkit-devtools'
-    document.body.appendChild(host)
+    const flags: Effect.Effect<typeof Flags.Type> = Effect.gen(function* () {
+      const storeState = yield* SubscriptionRef.get(store.stateRef)
+      return {
+        isMobile: window.matchMedia(MOBILE_BREAKPOINT_QUERY).matches,
+        ...toDisplayState(storeState),
+      }
+    })
 
-    const shadow = host.attachShadow({ mode: 'open' })
-
-    const styleElement = document.createElement('style')
-    styleElement.textContent = overlayStyles
-    shadow.appendChild(styleElement)
-
-    const container = document.createElement('div')
-    shadow.appendChild(container)
-
-    const currentState = yield* SubscriptionRef.get(store.stateRef)
-
-    const init = (): [Model, ReadonlyArray<Command<Message>>] => [
+    const init = (
+      flags: typeof Flags.Type,
+    ): [Model, ReadonlyArray<Command<Message>>] => [
       {
         isOpen: false,
+        ...flags,
         maybeSelectedIndex: Option.none(),
         maybeInspectedModel: Option.none(),
         maybeInspectedMessage: Option.none(),
@@ -1268,16 +1324,17 @@ export const createOverlay = (
         changedPaths: HashSet.empty(),
         affectedPaths: HashSet.empty(),
         inspectorTabs: Tabs.init({ id: INSPECTOR_TABS_ID }),
-        ...toDisplayState(currentState),
       },
       [],
     ]
 
     const overlayRuntime = makeElement({
       Model,
+      Flags,
+      flags,
       init,
       update: makeUpdate(store, shadow, mode),
-      view: makeView(position, mode, maybeMessage),
+      view: makeView(position, mode, maybeBanner),
       container,
       subscriptions: makeOverlaySubscriptions(store),
       devtools: { show: 'Never' },
