@@ -130,6 +130,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Managed Resources',
     'Resources that activate and release based on Model state.',
   ),
+  CoreDevtools: core(
+    'DevTools',
+    'A built-in overlay for inspecting Messages and Model state.',
+  ),
   CoreErrorView: core(
     'Error View',
     'A fallback UI for unrecoverable runtime errors.',

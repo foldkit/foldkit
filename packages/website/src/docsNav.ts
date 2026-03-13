@@ -7,6 +7,7 @@ import {
   coreArchitectureRouter,
   coreCommandsRouter,
   coreCounterExampleRouter,
+  coreDevtoolsRouter,
   coreErrorViewRouter,
   coreInitAndFlagsRouter,
   coreManagedResourcesRouter,
@@ -178,6 +179,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
         },
       ],
       [
+        {
+          _tag: 'CoreDevtools',
+          href: coreDevtoolsRouter(),
+          label: 'DevTools',
+        },
         {
           _tag: 'CoreErrorView',
           href: coreErrorViewRouter(),

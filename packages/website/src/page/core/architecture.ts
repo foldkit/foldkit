@@ -119,7 +119,7 @@ export const view = (): Html =>
         'This analogy maps to every concept you\u2019ll encounter in Core Concepts. The table below is a reference you can come back to as you read.',
       ),
       comparisonTable(
-        ['Your App', 'The Restaurant'],
+        ['Foldkit', 'Restaurant'],
         [
           [
             ['Model'],

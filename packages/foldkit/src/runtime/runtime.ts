@@ -7,6 +7,7 @@ import {
   Either,
   Function,
   Layer,
+  Match,
   Option,
   Predicate,
   Queue,
@@ -16,11 +17,14 @@ import {
   Schema,
   Stream,
   SubscriptionRef,
+  Tuple,
   pipe,
 } from 'effect'
 import { h } from 'snabbdom'
 
 import type { Command } from '../command'
+import { createOverlay } from '../devtools/overlay'
+import { type DevtoolsStore, createDevtoolsStore } from '../devtools/store'
 import { Html } from '../html'
 import { Url, fromString as urlFromString } from '../url'
 import { VNode, patch, toVNode } from '../vdom'
@@ -34,6 +38,42 @@ import type { Subscriptions } from './subscription'
 import { UrlRequest } from './urlRequest'
 
 const SLOW_VIEW_THRESHOLD_MS = 16
+
+/** Position of the devtools badge and panel on screen. */
+export type DevtoolsPosition =
+  | 'BottomRight'
+  | 'BottomLeft'
+  | 'TopRight'
+  | 'TopLeft'
+
+/** Controls when devtools are shown. */
+export type DevtoolsShow = 'Never' | 'Development' | 'Always'
+
+/** Controls devtools interaction mode.
+ *
+ * - `'Inspect'`: Messages stream in and clicking a row shows its state snapshot without pausing the app.
+ * - `'TimeTravel'`: Clicking a row pauses the app at that historical state. Resume to continue.
+ */
+export type DevtoolsMode = 'Inspect' | 'TimeTravel'
+
+/**
+ * Devtools configuration.
+ *
+ * - `show`: `'Never'` disables devtools entirely, `'Development'` (default) enables in dev mode only, `'Always'` enables in all environments including production.
+ * - `position`: Where the badge and panel appear. Defaults to `'BottomRight'`.
+ * - `mode`: `'TimeTravel'` (default) enables full time-travel debugging. `'Inspect'` allows browsing state snapshots without pausing the app.
+ * - `message`: Optional text shown as a banner at the top of the panel.
+ */
+export type DevtoolsConfig = Readonly<{
+  show?: DevtoolsShow
+  position?: DevtoolsPosition
+  mode?: DevtoolsMode
+  message?: string
+}>
+
+const DEFAULT_DEVTOOLS_SHOW: DevtoolsShow = 'Development'
+const DEFAULT_DEVTOOLS_POSITION: DevtoolsPosition = 'BottomRight'
+const DEFAULT_DEVTOOLS_MODE: DevtoolsMode = 'TimeTravel'
 
 /** Effect service tag that provides message dispatching to the view layer. */
 export class Dispatch extends Context.Tag('@foldkit/Dispatch')<
@@ -106,6 +146,7 @@ type RuntimeConfig<
    * `makeManagedResources`.
    */
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
+  devtools?: DevtoolsConfig
 }>
 
 type BaseElementConfig<
@@ -135,6 +176,7 @@ type BaseElementConfig<
   slowViewThresholdMs?: number | false
   resources?: Layer.Layer<Resources>
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
+  devtools?: DevtoolsConfig
 }>
 
 /** Configuration for `makeElement` when the element receives initial data via flags. */
@@ -216,6 +258,7 @@ type BaseApplicationConfig<
   slowViewThresholdMs?: number | false
   resources?: Layer.Layer<Resources>
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
+  devtools?: DevtoolsConfig
 }>
 
 /** Configuration for `makeApplication` when the application receives initial data via flags. */
@@ -346,6 +389,7 @@ const makeRuntime =
     slowViewThresholdMs = SLOW_VIEW_THRESHOLD_MS,
     resources,
     managedResources,
+    devtools,
   }: RuntimeConfig<
     Model,
     Message,
@@ -466,6 +510,10 @@ const makeRuntime =
           Option.Option<Runtime.Runtime<never>>
         >(Option.none())
 
+        const maybeDevtoolsStoreRef = yield* Ref.make<
+          Option.Option<DevtoolsStore>
+        >(Option.none())
+
         const processMessage = (message: Message): Effect.Effect<void> =>
           Effect.gen(function* () {
             const currentModel = yield* Ref.get(modelRef)
@@ -474,7 +522,24 @@ const makeRuntime =
 
             if (currentModel !== nextModel) {
               yield* Ref.set(modelRef, nextModel)
-              yield* render(nextModel)
+
+              const isPaused = yield* pipe(
+                maybeDevtoolsStoreRef,
+                Ref.get,
+                Effect.flatMap(
+                  Option.match({
+                    onNone: () => Effect.succeed(false),
+                    onSome: ({ stateRef }) =>
+                      SubscriptionRef.get(stateRef).pipe(
+                        Effect.map(({ isPaused }) => isPaused),
+                      ),
+                  }),
+                ),
+              )
+
+              if (!isPaused) {
+                yield* render(nextModel)
+              }
 
               if (!modelEquivalence(currentModel, nextModel)) {
                 yield* SubscriptionRef.set(modelSubscriptionRef, nextModel)
@@ -490,6 +555,19 @@ const makeRuntime =
                 ),
               ),
             )
+
+            const maybeDevtoolsStore = yield* Ref.get(maybeDevtoolsStoreRef)
+            yield* Option.match(maybeDevtoolsStore, {
+              onNone: () => Effect.void,
+              onSome: store =>
+                store.recordMessage(
+                  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                  message as Message & { _tag: string },
+                  nextModel,
+                  commands.length,
+                  !modelEquivalence(currentModel, nextModel),
+                ),
+            })
           })
 
         const runProcessMessage =
@@ -561,6 +639,38 @@ const makeRuntime =
 
         const runtime = yield* Effect.runtime()
         yield* Ref.set(maybeRuntimeRef, Option.some(runtime))
+
+        const show = devtools?.show ?? DEFAULT_DEVTOOLS_SHOW
+        const devtoolsPosition = devtools?.position ?? DEFAULT_DEVTOOLS_POSITION
+        const devtoolsMode = devtools?.mode ?? DEFAULT_DEVTOOLS_MODE
+        const maybeDevtoolsMessage = Option.fromNullable(devtools?.message)
+        const isInIframe = window.self !== window.top
+        const isDevtoolsEnabled = Match.value(show).pipe(
+          Match.when('Never', () => false),
+          Match.when('Always', () => true),
+          Match.when('Development', () => !!import.meta.hot && !isInIframe),
+          Match.exhaustive,
+        )
+
+        if (isDevtoolsEnabled) {
+          const devtoolsStore = yield* createDevtoolsStore({
+            replay: (model, message) =>
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              Tuple.getFirst(update(model as Model, message as Message)),
+            render: model =>
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              render(model as Model),
+            getCurrentModel: Ref.get(modelRef),
+          })
+          yield* Ref.set(maybeDevtoolsStoreRef, Option.some(devtoolsStore))
+          yield* devtoolsStore.recordInit(initModel)
+          yield* createOverlay(
+            devtoolsStore,
+            devtoolsPosition,
+            devtoolsMode,
+            maybeDevtoolsMessage,
+          )
+        }
 
         yield* render(initModel)
 
@@ -835,6 +945,9 @@ export function makeElement<
     ...(config.managedResources && {
       managedResources: config.managedResources,
     }),
+    ...(Predicate.isNotUndefined(config.devtools) && {
+      devtools: config.devtools,
+    }),
   }
 
   if ('Flags' in config) {
@@ -948,6 +1061,9 @@ export function makeApplication<
     ...(config.resources && { resources: config.resources }),
     ...(config.managedResources && {
       managedResources: config.managedResources,
+    }),
+    ...(Predicate.isNotUndefined(config.devtools) && {
+      devtools: config.devtools,
     }),
   }
 

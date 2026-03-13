@@ -693,6 +693,9 @@ importers:
       '@floating-ui/dom':
         specifier: ^1.7.5
         version: 1.7.5
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
       snabbdom:
         specifier: ^3.6.3
         version: 3.6.3

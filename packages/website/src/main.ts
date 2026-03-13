@@ -177,7 +177,15 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-const NoOp = m('NoOp')
+const CompletedInternalNavigation = m('CompletedInternalNavigation')
+const CompletedExternalNavigation = m('CompletedExternalNavigation')
+const CompletedAnalyticsInjection = m('CompletedAnalyticsInjection')
+const CompletedSpeedInsightsInjection = m('CompletedSpeedInsightsInjection')
+const CompletedScroll = m('CompletedScroll')
+const CompletedApplyTheme = m('CompletedApplyTheme')
+const CompletedSaveThemePreference = m('CompletedSaveThemePreference')
+const CompletedCopyLink = m('CompletedCopyLink')
+const FailedCopy = m('FailedCopy')
 const ClickedLink = m('ClickedLink', {
   request: UrlRequest,
 })
@@ -260,7 +268,15 @@ export const GotExampleDetailMessage = m('GotExampleDetailMessage', {
 })
 
 const Message = S.Union(
-  NoOp,
+  CompletedInternalNavigation,
+  CompletedExternalNavigation,
+  CompletedAnalyticsInjection,
+  CompletedSpeedInsightsInjection,
+  CompletedScroll,
+  CompletedApplyTheme,
+  CompletedSaveThemePreference,
+  CompletedCopyLink,
+  FailedCopy,
   ClickedLink,
   ChangedUrl,
   ClickedCopySnippet,
@@ -431,23 +447,31 @@ const update = (
         >,
       ]
     >(),
-    M.tagsExhaustive({
-      NoOp: () => [model, []],
-
+    M.tags({
       ClickedLink: ({ request }) =>
         M.value(request).pipe(
           M.tagsExhaustive({
             Internal: ({
               url,
-            }): [Model, ReadonlyArray<Command<typeof NoOp>>] => [
+            }): [
+              Model,
+              ReadonlyArray<Command<typeof CompletedInternalNavigation>>,
+            ] => [
               model,
-              [pushUrl(urlToString(url)).pipe(Effect.as(NoOp()))],
+              [
+                pushUrl(urlToString(url)).pipe(
+                  Effect.as(CompletedInternalNavigation()),
+                ),
+              ],
             ],
             External: ({
               href,
-            }): [Model, ReadonlyArray<Command<typeof NoOp>>] => [
+            }): [
+              Model,
+              ReadonlyArray<Command<typeof CompletedExternalNavigation>>,
+            ] => [
               model,
-              [load(href).pipe(Effect.as(NoOp()))],
+              [load(href).pipe(Effect.as(CompletedExternalNavigation()))],
             ],
           }),
         ),
@@ -786,36 +810,51 @@ const update = (
         ]
       },
     }),
+    M.tag(
+      'CompletedInternalNavigation',
+      'CompletedExternalNavigation',
+      'CompletedAnalyticsInjection',
+      'CompletedSpeedInsightsInjection',
+      'CompletedScroll',
+      'CompletedApplyTheme',
+      'CompletedSaveThemePreference',
+      'CompletedCopyLink',
+      'FailedCopy',
+      () => [model, []],
+    ),
+    M.exhaustive,
   )
 
 // COMMAND
 
-const injectAnalytics: Command<typeof NoOp> = Effect.sync(() => inject()).pipe(
-  Effect.as(NoOp()),
-)
+const injectAnalytics: Command<typeof CompletedAnalyticsInjection> =
+  Effect.sync(() => inject()).pipe(Effect.as(CompletedAnalyticsInjection()))
 
-const injectSpeedInsights: Command<typeof NoOp> = Effect.sync(() =>
-  SpeedInsights.injectSpeedInsights(),
-).pipe(Effect.as(NoOp()))
+const injectSpeedInsights: Command<typeof CompletedSpeedInsightsInjection> =
+  Effect.sync(() => SpeedInsights.injectSpeedInsights()).pipe(
+    Effect.as(CompletedSpeedInsightsInjection()),
+  )
 
 const copySnippetToClipboard = (
   text: string,
-): Command<typeof SucceededCopy | typeof NoOp> =>
+): Command<typeof SucceededCopy | typeof FailedCopy> =>
   Effect.tryPromise({
     try: () => navigator.clipboard.writeText(text),
     catch: () => new Error('Failed to copy to clipboard'),
   }).pipe(
     Effect.as(SucceededCopy({ text })),
-    Effect.catchAll(() => Effect.succeed(NoOp())),
+    Effect.catchAll(() => Effect.succeed(FailedCopy())),
   )
 
-const copyLinkToClipboard = (url: string): Command<typeof NoOp> =>
+const copyLinkToClipboard = (
+  url: string,
+): Command<typeof CompletedCopyLink | typeof FailedCopy> =>
   Effect.tryPromise({
     try: () => navigator.clipboard.writeText(url),
     catch: () => new Error('Failed to copy link to clipboard'),
   }).pipe(
-    Effect.as(NoOp()),
-    Effect.catchAll(() => Effect.succeed(NoOp())),
+    Effect.as(CompletedCopyLink()),
+    Effect.catchAll(() => Effect.succeed(FailedCopy())),
   )
 
 const COPY_INDICATOR_DURATION = '2 seconds'
@@ -825,9 +864,9 @@ const hideIndicator = (text: string): Command<typeof HiddenCopiedIndicator> =>
     Effect.as(HiddenCopiedIndicator({ text })),
   )
 
-const scrollToTop: Command<typeof NoOp> = Effect.sync(() => {
+const scrollToTop: Command<typeof CompletedScroll> = Effect.sync(() => {
   window.scrollTo({ top: 0, behavior: 'instant' })
-  return NoOp()
+  return CompletedScroll()
 })
 
 const focusAndScrollToHash = (hash: string): void => {
@@ -844,39 +883,43 @@ const focusAndScrollToHash = (hash: string): void => {
   }
 }
 
-const scrollToHash = (hash: string): Command<typeof NoOp> =>
+const scrollToHash = (hash: string): Command<typeof CompletedScroll> =>
   Effect.sync(() => {
     focusAndScrollToHash(hash)
-    return NoOp()
+    return CompletedScroll()
   })
 
-const scrollToHashAfterRender = (hash: string): Command<typeof NoOp> =>
+const scrollToHashAfterRender = (
+  hash: string,
+): Command<typeof CompletedScroll> =>
   Effect.async(resume => {
     requestAnimationFrame(() => {
       focusAndScrollToHash(hash)
-      resume(Effect.succeed(NoOp()))
+      resume(Effect.succeed(CompletedScroll()))
     })
   })
 
-const applyThemeToDocument = (theme: ResolvedTheme): Command<typeof NoOp> =>
+const applyThemeToDocument = (
+  theme: ResolvedTheme,
+): Command<typeof CompletedApplyTheme> =>
   Effect.sync(() => {
     M.value(theme).pipe(
       M.when('Dark', () => document.documentElement.classList.add('dark')),
       M.when('Light', () => document.documentElement.classList.remove('dark')),
       M.exhaustive,
     )
-    return NoOp()
+    return CompletedApplyTheme()
   })
 
 const saveThemePreference = (
   preference: ThemePreference,
-): Command<typeof NoOp> =>
+): Command<typeof CompletedSaveThemePreference> =>
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
     yield* store.set(THEME_STORAGE_KEY, JSON.stringify(preference))
-    return NoOp()
+    return CompletedSaveThemePreference()
   }).pipe(
-    Effect.catchAll(() => Effect.succeed(NoOp())),
+    Effect.catchAll(() => Effect.succeed(CompletedSaveThemePreference())),
     Effect.provide(BrowserKeyValueStore.layerLocalStorage),
   )
 
@@ -1852,6 +1895,11 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
           ]),
           Page.Core.ManagedResources.tableOfContents,
         ),
+      CoreDevtools: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.Core.DevTools.view, [model.copiedSnippets]),
+          Page.Core.DevTools.tableOfContents,
+        ),
       CoreErrorView: () =>
         withTableOfContents(
           lazyDocsContent(Page.Core.ErrorView.view, [model.copiedSnippets]),
@@ -2070,6 +2118,12 @@ const application = Runtime.makeApplication({
     onUrlChange: url => ChangedUrl({ url }),
   },
   resources: Page.NotePlayerDemo.AudioContextService.Default,
+  devtools: {
+    show: 'Always',
+    mode: 'Inspect',
+    message:
+      "Welcome to Foldkit DevTools — a live view of this app's architecture. Every state change flows through a Message, and every Message produces a new Model. Click any row to inspect the app state at that moment.",
+  },
 })
 
 Runtime.run(application)

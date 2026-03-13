@@ -18,6 +18,17 @@
 
 - [x] Document FieldValidation module on the website
 
+## Devtools
+
+- [ ] Store test: "init model survives eviction" — verify the init Model is preserved after the history buffer evicts old keyframes
+
+- [ ] Accessibility — make the devtools overlay fully keyboard-navigable and screen reader-friendly
+  - Badge button: `aria-label` describing current state (message count, paused)
+  - Panel: Escape to close, focus on open, return focus to badge on close
+  - Visual-only indicators: screen reader text for diff dots and pause icons
+  - Message list: `role="listbox"` / `role="option"`, `aria-selected`, arrow key navigation, `aria-live` for new messages in live mode
+  - JSON tree: `role="tree"` / `role="treeitem"`, `aria-expanded`, arrow key navigation (up/down between visible nodes, right to expand, left to collapse/go to parent, Home/End)
+
 ## Foldkit
 
 - [ ] Consider exporting pre-built `StringField` and `NumberField` from `foldkit/fieldValidation` as convenience aliases, so most users don't need to call `makeField` directly
@@ -61,3 +72,5 @@
 - [ ] Highlighting not visible on live demo in "See it work" section on landing page in dark mode
 
 - [ ] Web component interop — consume custom elements in views (property setting, custom events to Messages) and wrap Foldkit apps as custom elements for embedding. See `docs/plans/web-component-interop.md`
+
+- [ ] Consider switching website code block syntax highlighting to Catppuccin Mocha — may be more readable for visitors

@@ -1,0 +1,512 @@
+:host {
+  --dt-bg: #1e1e2e;
+  --dt-surface-selected: #282839;
+  --dt-border: #585b70;
+  --dt-text: #cdd6f4;
+  --dt-text-muted: #9399b2;
+  --dt-accent: #cba6f7;
+  --dt-live: #a6e3a1;
+  --dt-paused: #fab387;
+  --dt-json-string: #a6e3a1;
+  --dt-json-number: #89b4fa;
+  --dt-json-boolean: #fab387;
+  --dt-json-null: #9399b2;
+  --dt-json-key: #89dceb;
+  --dt-json-tag: #cba6f7;
+  --dt-json-preview: #9399b2;
+  --dt-json-arrow: #9399b2;
+  --dt-tree-hover: #313244;
+  --dt-diff-changed: #74c7ec;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+button {
+  font: inherit;
+  color: inherit;
+}
+
+.fixed {
+  position: fixed;
+}
+.flex {
+  display: flex;
+}
+.flex-col {
+  flex-direction: column;
+}
+.flex-1 {
+  flex: 1 1 0%;
+}
+.items-center {
+  align-items: center;
+}
+.justify-center {
+  justify-content: center;
+}
+.justify-between {
+  justify-content: space-between;
+}
+.shrink-0 {
+  flex-shrink: 0;
+}
+.inline-block {
+  display: inline-block;
+}
+.gap-0\.5 {
+  gap: 2px;
+}
+.gap-1\.5 {
+  gap: 6px;
+}
+.gap-2 {
+  gap: 8px;
+}
+.gap-px {
+  gap: 1px;
+}
+.px-1 {
+  padding-left: 4px;
+  padding-right: 4px;
+}
+.px-2 {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+.px-2\.5 {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+.px-3 {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+.py-0\.5 {
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+.pt-1 {
+  padding-top: 4px;
+}
+.pl-1 {
+  padding-left: 4px;
+}
+.py-1 {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+.py-1\.5 {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.py-2 {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.py-px {
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+.w-1\.5 {
+  width: 6px;
+}
+.h-1\.5 {
+  height: 6px;
+}
+.w-3 {
+  width: 12px;
+}
+.w-5 {
+  width: 20px;
+}
+.h-5 {
+  height: 20px;
+}
+.w-14 {
+  width: 56px;
+}
+.h-14 {
+  height: 56px;
+}
+.min-w-0 {
+  min-width: 0;
+}
+.min-w-5 {
+  min-width: 20px;
+}
+.min-h-0 {
+  min-height: 0;
+}
+/* Badge positions — flush against side edge */
+.dt-pos-br {
+  bottom: 16px;
+  right: 0;
+  border-radius: 6px 0 0 6px;
+}
+.dt-pos-bl {
+  bottom: 16px;
+  left: 0;
+  border-radius: 0 6px 6px 0;
+}
+.dt-pos-tr {
+  top: 16px;
+  right: 0;
+  border-radius: 6px 0 0 6px;
+}
+.dt-pos-tl {
+  top: 16px;
+  left: 0;
+  border-radius: 0 6px 6px 0;
+}
+.overflow-hidden {
+  overflow: hidden;
+}
+.overflow-auto {
+  overflow: auto;
+}
+.overflow-y-auto {
+  overflow-y: auto;
+}
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rounded {
+  border-radius: 4px;
+}
+.rounded-lg {
+  border-radius: 8px;
+}
+.rounded-full {
+  border-radius: 9999px;
+}
+.border {
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--dt-border);
+}
+.border-b {
+  border-bottom: 1px solid var(--dt-border);
+}
+.border-t {
+  border-top: 1px solid var(--dt-border);
+}
+.border-r {
+  border-right: 1px solid var(--dt-border);
+}
+.border-l {
+  border-left: 1px solid var(--dt-border);
+}
+.border-none {
+  border: none;
+}
+.border-l-3 {
+  border-left: 3px solid transparent;
+}
+.border-dt-live {
+  border-color: var(--dt-live);
+}
+.selected {
+  background-color: var(--dt-surface-selected);
+}
+.dt-row:hover:not(.selected) {
+  background-color: var(--dt-tree-hover);
+}
+.dt-header-button:hover {
+  color: var(--dt-text);
+}
+.dt-resume-button:hover {
+  color: var(--dt-text);
+}
+.dt-tab-button {
+  position: relative;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--dt-border);
+  outline: none;
+  flex: 1;
+}
+.dt-tab-label {
+  position: relative;
+}
+.dt-tab-arrow {
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-right: 5px;
+  font-size: 15px;
+  color: var(--dt-accent);
+}
+.dt-tab-button:not(.dt-tab-active):hover {
+  color: var(--dt-text);
+  background-color: rgba(49, 50, 68, 0.3);
+}
+.font-sans {
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+}
+.font-mono {
+  font-family:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+}
+.font-medium {
+  font-weight: 500;
+}
+.font-semibold {
+  font-weight: 600;
+}
+.text-xs {
+  font-size: 12px;
+}
+.text-2xs {
+  font-size: 10px;
+}
+.text-sm {
+  font-size: 11px;
+}
+.text-base {
+  font-size: 13px;
+}
+.text-md {
+  font-size: 15px;
+}
+.text-lg {
+  font-size: 20px;
+}
+.text-xl {
+  font-size: 26px;
+}
+.italic {
+  font-style: italic;
+}
+.text-right {
+  text-align: right;
+}
+.tracking-wide {
+  letter-spacing: 0.025em;
+}
+.tracking-wider {
+  letter-spacing: 0.05em;
+}
+.leading-snug {
+  line-height: 1.35;
+}
+.bg-dt-bg {
+  background-color: var(--dt-bg);
+}
+.bg-dt-live {
+  background-color: var(--dt-live);
+}
+.bg-transparent {
+  background-color: transparent;
+}
+.text-dt {
+  color: var(--dt-text);
+}
+.text-dt-muted {
+  color: var(--dt-text-muted);
+}
+.text-dt-accent {
+  color: var(--dt-accent);
+}
+.text-dt-live {
+  color: var(--dt-live);
+}
+.text-dt-paused {
+  color: var(--dt-paused);
+}
+.cursor-pointer {
+  cursor: pointer;
+}
+.outline-none {
+  outline: none;
+}
+.transition-colors {
+  transition-property: color, background-color, border-color;
+  transition-duration: 100ms;
+  transition-timing-function: ease;
+}
+
+/* Panel */
+.dt-panel {
+  width: 360px;
+  height: 480px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  z-index: 99998;
+}
+/* Panel positions */
+.dt-panel-br {
+  bottom: 16px;
+  right: 28px;
+}
+.dt-panel-bl {
+  bottom: 16px;
+  left: 28px;
+}
+.dt-panel-tr {
+  top: 16px;
+  right: 28px;
+}
+.dt-panel-tl {
+  top: 16px;
+  left: 28px;
+}
+.dt-panel-wide {
+  width: 720px;
+}
+.dt-message-pane {
+  width: 320px;
+  flex-shrink: 0;
+}
+.dt-badge {
+  z-index: 99999;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
+  transition: background-color 150ms ease;
+}
+.dt-badge-accent {
+  border: none;
+}
+.dt-badge-accent:hover {
+  background-color: #252538;
+}
+.dt-badge-paused {
+  background-color: var(--dt-paused);
+  color: var(--dt-bg);
+  border: none;
+}
+.dt-badge-paused:hover {
+  background-color: #e0a070;
+}
+.message-list > :last-child {
+  border-bottom: none;
+}
+
+/* JSON tree */
+.tree-row {
+  position: relative;
+  white-space: nowrap;
+  line-height: 1.5;
+  padding-right: 8px;
+}
+.tree-row-expandable:hover {
+  background-color: var(--dt-tree-hover);
+}
+.inspector-tree {
+  font-family:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+}
+.json-key {
+  color: var(--dt-json-key);
+}
+.json-string {
+  color: var(--dt-json-string);
+}
+.json-number {
+  color: var(--dt-json-number);
+}
+.json-boolean {
+  color: var(--dt-json-boolean);
+}
+.json-null {
+  color: var(--dt-json-null);
+}
+.json-tag {
+  color: var(--dt-json-tag);
+  margin-right: 4px;
+}
+.json-preview {
+  color: var(--dt-json-preview);
+}
+.json-arrow {
+  color: var(--dt-json-arrow);
+  width: 10px;
+  height: 10px;
+  user-select: none;
+}
+
+/* Diff */
+.diff-changed {
+  background-color: rgba(116, 199, 236, 0.06);
+}
+.diff-dot {
+  position: absolute;
+  left: 3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background-color: var(--dt-diff-changed);
+}
+.diff-dot-inline {
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background-color: var(--dt-diff-changed);
+  flex-shrink: 0;
+}
+.dot-column {
+  width: 5px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pause-column {
+  width: 8px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dt-pause-icon {
+  width: 8px;
+  height: 8px;
+  color: var(--dt-paused);
+}
+
+/* Interaction blocker — covers the app while time-travelling */
+.dt-interaction-blocker {
+  position: fixed;
+  inset: 0;
+  z-index: 99997;
+  cursor: not-allowed;
+}
+
+/* Mobile */
+@media (max-width: 767px) {
+  .dt-panel {
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+    border: none;
+  }
+  .dt-panel-wide {
+    width: 100%;
+  }
+  .dt-content {
+    flex-direction: column;
+  }
+  .dt-message-pane {
+    width: 100%;
+    max-height: 40%;
+    border-bottom: 1px solid var(--dt-border);
+  }
+  .dt-inspector-pane {
+    border-left: none;
+  }
+}

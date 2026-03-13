@@ -133,10 +133,10 @@
   ],
   "scripts": {
     "clean": "rimraf dist *.tsbuildinfo",
-    "build": "pnpm run clean && tsc -b",
-    "watch": "tsc -b --watch",
+    "build": "pnpm run clean && node scripts/inline-css.js && tsc -b",
+    "watch": "node scripts/inline-css.js && tsc -b --watch",
     "lint": "eslint src --ignore-pattern '**/*.test.ts'",
-    "typecheck": "tsc -b --noEmit",
+    "typecheck": "node scripts/inline-css.js && tsc -b --noEmit",
     "test": "vitest run",
     "docs": "typedoc"
   },
@@ -168,6 +168,7 @@
   },
   "dependencies": {
     "@floating-ui/dom": "^1.7.5",
+    "clsx": "^2.1.1",
     "snabbdom": "^3.6.3"
   },
   "publishConfig": {
