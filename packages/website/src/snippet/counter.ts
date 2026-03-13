@@ -1,9 +1,8 @@
 import { Match as M, Schema as S } from 'effect'
 import { Runtime } from 'foldkit'
 import { Command } from 'foldkit/command'
+import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
-
-import { Class, Html, OnClick, button, div } from '../html'
 
 // MODEL
 
@@ -30,24 +29,27 @@ const update = (
   M.value(message).pipe(
     M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
     M.tagsExhaustive({
-      ClickedDecrement: () => [Model({ count: model.count - 1 }), []],
-      ClickedIncrement: () => [Model({ count: model.count + 1 }), []],
-      ClickedReset: () => [Model({ count: 0 }), []],
+      ClickedDecrement: () => [{ count: model.count - 1 }, []],
+      ClickedIncrement: () => [{ count: model.count + 1 }, []],
+      ClickedReset: () => [{ count: 0 }, []],
     }),
   )
 
 // INIT
 
-const init: Runtime.ElementInit<Model, Message> = () => [
-  Model({ count: 0 }),
-  [],
-]
+const init: Runtime.ElementInit<Model, Message> = () => [{ count: 0 }, []]
 
 // VIEW
 
+const { div, button, Class, OnClick } = html<Message>()
+
 const view = (model: Model): Html =>
   div(
-    [Class(containerStyle)],
+    [
+      Class(
+        'min-h-screen bg-white flex flex-col items-center justify-center gap-6 p-6',
+      ),
+    ],
     [
       div(
         [Class('text-6xl font-bold text-gray-800')],
@@ -65,9 +67,6 @@ const view = (model: Model): Html =>
   )
 
 // STYLE
-
-const containerStyle =
-  'min-h-screen bg-cream flex flex-col items-center justify-center gap-6 p-6'
 
 const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
 
