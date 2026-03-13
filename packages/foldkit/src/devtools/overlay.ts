@@ -573,10 +573,13 @@ const makeView = (
 ): ((model: Model) => Html) => {
   const {
     div,
+    header,
     span,
+    ul,
     button,
     svg,
     path,
+    keyed,
     Class,
     Style,
     OnClick,
@@ -815,7 +818,11 @@ const makeView = (
     )
 
     return div(
-      [Class('inspector-tree flex-1 overflow-auto min-h-0 min-w-0')],
+      [
+        Class(
+          'inspector-tree flex-1 overflow-auto overscroll-contain min-h-0 min-w-0',
+        ),
+      ],
       nodes.map(flatNodeView),
     )
   }
@@ -1081,11 +1088,12 @@ const makeView = (
       M.exhaustive,
     )
 
-    return div([Class(headerClass)], [status, action, clearHistoryButton])
+    return header([Class(headerClass)], [status, action, clearHistoryButton])
   }
 
   const initRowView = (isSelected: boolean, isPausedHere: boolean): Html =>
-    div(
+    keyed('li')(
+      'init',
       [
         Class(clsx(ROW_BASE, isSelected && 'selected')),
         OnClick(ClickedRow({ index: INIT_INDEX })),
@@ -1131,7 +1139,8 @@ const makeView = (
     timeDelta: number,
     isModelChanged: boolean,
   ): Html =>
-    div(
+    keyed('li')(
+      String(absoluteIndex),
       [
         Class(clsx(ROW_BASE, isSelected && 'selected')),
         OnClick(ClickedRow({ index: absoluteIndex })),
@@ -1200,8 +1209,8 @@ const makeView = (
       Array_.reverse,
     )
 
-    return div(
-      [Class('message-list flex-1 overflow-y-auto min-h-0')],
+    return ul(
+      [Class('message-list flex-1 overflow-y-auto overscroll-contain min-h-0')],
       [
         ...messageRows,
         initRowView(
@@ -1215,7 +1224,8 @@ const makeView = (
   // PANEL
 
   const panelView = (model: Model): Html =>
-    div(
+    keyed('div')(
+      'dt-panel',
       [
         Class(
           clsx(

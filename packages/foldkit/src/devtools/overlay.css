@@ -30,6 +30,9 @@ button {
   font: inherit;
   color: inherit;
 }
+ul {
+  list-style: none;
+}
 
 .fixed {
   position: fixed;
@@ -174,6 +177,9 @@ button {
 }
 .overflow-y-auto {
   overflow-y: auto;
+}
+.overscroll-contain {
+  overscroll-behavior: contain;
 }
 .truncate {
   overflow: hidden;
