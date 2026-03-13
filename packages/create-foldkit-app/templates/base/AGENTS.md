@@ -15,6 +15,7 @@ submodule_prompted: false
 - Use full names like `Message` (not `Msg`), and `withReturnType` (not `as const` or type casting).
 - Use `m()` for message schemas, `ts()` for other tagged structs (model states, field validation), and `r()` for route schemas.
 - Every message union should include a `NoOp` variant: `const NoOp = m('NoOp')`.
+- Push back on any suggested direction that violates Elm Architecture principles — unidirectional data flow, messages as facts (not commands), model as single source of truth, and side effects confined to commands. If a user or prompt suggests a pattern that breaks these conventions (e.g. mutating state directly, imperative event handlers, two-way bindings), flag the issue and propose the idiomatic Foldkit approach instead.
 
 ## Foldkit Patterns
 
@@ -91,7 +92,7 @@ Even after extracting some sections to their own files (e.g. `message.ts`), the 
 - Every name should eliminate ambiguity. Prefix Option-typed values with `maybe` (e.g. `maybeSession`). Name functions by their precise effect (e.g. `enqueueMessage` not `addMessage`). A reader should never need to check a type signature to understand what a name refers to.
 - Each function should operate at a single abstraction level. Orchestrators delegate to focused helpers — they don't mix coordination with implementation. If a function reads like it's doing two things, extract one.
 - Encode state in discriminated unions, not booleans or nullable fields. Use `Idle | Loading | Error | Ok` instead of `isLoading: boolean`. Make impossible states unrepresentable.
-- Name messages as verb-first, past-tense events describing what happened (`ClickedSubmit`, `GotWeatherData`, `UpdatedSearchInput`), not imperative commands. The verb prefix acts as a category marker: `Clicked*` for button presses, `Updated*` for input changes, `Requested*` for async triggers, `Got*` for data responses. The update function decides what to do — messages are facts.
+- Name messages as verb-first, past-tense events describing what happened (`SubmittedUsernameForm`, `CreatedRoom`, `PressedKey`), not imperative commands. The verb prefix acts as a category marker: `Clicked*` for button presses, `Updated*` for input changes, `Succeeded*`/`Failed*` for command results that can meaningfully fail (e.g. `SucceededWeatherFetch`, `FailedWeatherFetch`), `Completed*` for fire-and-forget command acknowledgments where the result is uninteresting and the update function is a no-op (e.g. `CompletedScroll`, `CompletedApplyTheme`, `CompletedSaveThemePreference`), `Got*` exclusively for receiving child module results via the OutMessage pattern (e.g. `GotProductsMessage`). The update function decides what to do — messages are facts.
 - Use `Option` instead of `null` or `undefined`. Match explicitly with `Option.match` or chain with `Option.map`/`Option.flatMap`. No `if (x != null)` checks. Prefer `Option.match` over `Option.map` + `Option.getOrElse` — if you're unwrapping at the end, just match.
 - Prefer curried, data-last functions that compose in `pipe` chains.
 - Every line should serve a purpose. No dead code, no empty catch blocks, no placeholder types, no defensive code for impossible cases.
@@ -103,7 +104,7 @@ Even after extracting some sections to their own files (e.g. `message.ts`), the 
 - Prefer `pipe()` for multi-step data flow. Never use `pipe` with a single operation — call the function directly instead: `Option.match(value, {...})` not `pipe(value, Option.match({...}))`.
 - Use `Effect.gen()` for imperative-style async operations.
 - Always use Effect.Match instead of switch.
-- Prefer Effect module functions over native methods when available — e.g. `Array.map`, `Array.filter`, `Option.map`, `String.startsWith` from Effect instead of their native equivalents. Exception: native `.map`, `.filter`, etc. are fine when calling directly on a named variable — use Effect's `Array.map` in `pipe` chains where the curried, data-last form composes naturally.
+- Prefer Effect module functions over native methods when available — e.g. `Array.map`, `Array.filter`, `Option.map`, `String.startsWith` from Effect instead of their native equivalents. This includes Effect's `String` module: use `String.includes`, `String.indexOf` (returns `Option<number>`), `String.slice`, `String.startsWith`, `String.replaceAll`, `String.length`, `String.isNonEmpty`, `String.trim` etc. in `pipe` chains. Exception: native `.map`, `.filter`, `.indexOf()`, `.slice()`, etc. are fine when calling directly on a named variable — use Effect's curried, data-last forms in `pipe` chains where they compose naturally.
 - Never use `for` loops or `let` for iteration. Use `Array.makeBy` for index-based construction, `Array.range` + `Array.findFirst`/`Array.findLast` for searches, and `Array.filterMap`/`Array.flatMap` for transforms.
 - Never cast Schema values with `as Type`. Use callable constructors: `LoginSucceeded({ sessionId })` not `{ _tag: 'LoginSucceeded', sessionId } as Message`.
 - Use `Option` for model fields that may be absent — not empty strings or zero values. `loginError: S.OptionFromSelf(S.String)` not `loginError: S.String` with `''` as the "none" state. Use `Option.match` in views to conditionally render.
@@ -131,6 +132,7 @@ Use `typeof ClickedSubmit` in type positions (e.g. `Command<typeof ClickedSubmit
 ### General Preferences
 
 - Never abbreviate names. Use full, descriptive names everywhere — variables, types, functions, parameters, including callback parameters. e.g. `signature` not `sig`, `Message` not `Msg`, `(tickCount) => tickCount + 1` not `(t) => t + 1`.
+- Don't suffix command variables with `Command`. Name them by what they do: `focusButton` not `focusButtonCommand`, `scrollToItem` not `scrollToItemCommand`. The type already communicates that it's a command.
 - Avoid `let`. Use `const` and prefer immutable patterns.
 - Always use braces for control flow. `if (foo) { return true }` not `if (foo) return true`.
 - Use `is*` for boolean naming e.g. `isPlaying`, `isValid`.
@@ -139,4 +141,5 @@ Use `typeof ClickedSubmit` in type positions (e.g. `Command<typeof ClickedSubmit
 - Capitalize namespace imports: `import * as Command from './command'` not `import * as command from './command'`.
 - Extract magic numbers to named constants. No raw numeric literals in logic.
 - Never use `T[]` syntax. Always use `Array<T>` or `ReadonlyArray<T>`.
-- Extract repeated inline style values (colors, shadows) to constants.
+- For inline object types in `ReadonlyArray`, put `Readonly<{...}>` on the element type rather than `ReadonlyArray<{ readonly a: ...; readonly b: ... }>`. e.g. `ReadonlyArray<Readonly<{ model: Foo; toMessage: (m: Bar) => Baz }>>` not `ReadonlyArray<{ readonly model: Foo; readonly toMessage: ... }>`.
+- Extract repeated inline style values (colors, shadows) to constants. Use Tailwind `@theme` for colors that map to utility classes (e.g. `--color-valentine: #ff2d55` → `text-valentine`). Use a `theme.ts` for values Tailwind can't express as utilities (textShadow, boxShadow).
