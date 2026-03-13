@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.5.2
+
+### Patch Changes
+
+- 1369d6a: Use `repos/` convention for submodule path. Submodules now clone into `repos/foldkit` instead of `./foldkit`. Updated Prettier, ESLint, and editor ignore configs.
+
 ## 0.5.1
 
 ### Patch Changes

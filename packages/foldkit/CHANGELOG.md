@@ -1,5 +1,11 @@
 # foldkit
 
+## 0.33.2
+
+### Patch Changes
+
+- 1369d6a: Fix iOS Safari scroll lock blocking touch scrolling inside devtools shadow DOM. Use `composedPath()` to resolve the real touch target across shadow boundaries.
+
 ## 0.33.1
 
 ### Patch Changes
