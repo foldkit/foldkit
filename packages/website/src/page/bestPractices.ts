@@ -10,6 +10,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../prose'
+import { patternsOutMessageRouter } from '../route'
 import * as Snippets from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 
@@ -79,6 +80,12 @@ const avoidTheseHeader: TableOfContentsEntry = {
   text: 'Avoid These',
 }
 
+const everyMessageCarriesMeaningHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'every-message-carries-meaning',
+  text: 'Every Message Carries Meaning',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   pureFunctionsHeader,
   viewIsPureHeader,
@@ -91,6 +98,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   messagesAsEventsHeader,
   goodMessageNamesHeader,
   avoidTheseHeader,
+  everyMessageCarriesMeaningHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
@@ -284,10 +292,16 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' for button presses, ',
         inlineCode('Updated*'),
         ' for input changes, ',
-        inlineCode('Requested*'),
-        ' for async triggers, ',
+        inlineCode('Succeeded*'),
+        '/',
+        inlineCode('Failed*'),
+        ' for command results that can meaningfully fail, ',
+        inlineCode('Completed*'),
+        ' for fire-and-forget Command acknowledgments, ',
         inlineCode('Got*'),
-        ' for data responses. For example, ',
+        ' for child module results via the ',
+        link(patternsOutMessageRouter(), 'OutMessage'),
+        ' pattern. For example, ',
         inlineCode('ClickedFormSubmit'),
         ' and ',
         inlineCode('RemovedCartItem'),
@@ -319,6 +333,50 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'The ',
         inlineCode('update'),
         ' function decides how to handle a Message. The Message itself is just a fact about what occurred.',
+      ),
+      tableOfContentsEntryToHeader(everyMessageCarriesMeaningHeader),
+      para(
+        'Never use a generic ',
+        inlineCode('NoOp'),
+        ' Message. Every Message should describe what happened, even for fire-and-forget Commands where the update function is a no-op. For example, when a focus Command completes, use ',
+        inlineCode('CompletedButtonFocus'),
+        '. When scroll is locked, use ',
+        inlineCode('CompletedScrollLock'),
+        '. When an internal navigation finishes, use ',
+        inlineCode('CompletedInternalNavigation'),
+        '.',
+      ),
+      para(
+        'Notice that this is the opposite of how you name Commands. ',
+        inlineCode('lockScroll'),
+        ' reads as an instruction because it is one \u2014 Commands are imperative, verb-first: ',
+        inlineCode('lockScroll'),
+        ', ',
+        inlineCode('focusButton'),
+        ', ',
+        inlineCode('showModal'),
+        '. The resulting Message flips the order because it\u2019s a fact, not an instruction: ',
+        inlineCode('CompletedScrollLock'),
+        ', ',
+        inlineCode('CompletedButtonFocus'),
+        ', ',
+        inlineCode('CompletedDialogShow'),
+        '. Object-first naming also means related operations cluster in the DevTools timeline \u2014 when debugging why a button is broken, scan for ',
+        inlineCode('Button*'),
+        ' Messages.',
+      ),
+      para(
+        'This turns the DevTools timeline from a wall of identical ',
+        inlineCode('NoOp'),
+        ' entries into a readable narrative: ',
+        inlineCode('Opened'),
+        ' \u2192 ',
+        inlineCode('CompletedItemsFocus'),
+        ', ',
+        inlineCode('CompletedScrollLock'),
+        ', ',
+        inlineCode('CompletedInertSetup'),
+        '. Every line tells you what happened in your application.',
       ),
     ],
   )
