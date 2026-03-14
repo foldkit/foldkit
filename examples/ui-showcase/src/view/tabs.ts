@@ -22,10 +22,10 @@ const horizontalPanelClassName =
   'p-6 bg-white rounded-b-lg rounded-tr-lg border border-gray-200'
 
 const verticalButtonClassName =
-  'px-4 py-2 text-base font-normal text-left cursor-pointer transition rounded-t-lg sm:rounded-t-none sm:rounded-l-lg border border-gray-200 bg-gray-100 text-gray-500 hover:text-gray-700 hover:bg-gray-50 mb-[-1px] sm:mb-0 sm:mr-[-1px] data-[selected]:relative data-[selected]:z-10 data-[selected]:bg-white data-[selected]:text-gray-900 data-[selected]:border-b-0 sm:data-[selected]:border-b sm:data-[selected]:border-r-0'
+  'px-4 py-2 text-base font-normal text-left cursor-pointer transition rounded-l-lg border border-gray-200 bg-gray-100 text-gray-500 hover:text-gray-700 hover:bg-gray-50 mr-[-1px] data-[selected]:relative data-[selected]:z-10 data-[selected]:bg-white data-[selected]:text-gray-900 data-[selected]:border-r-0'
 
 const verticalPanelClassName =
-  'flex-1 p-6 bg-white rounded-b-lg sm:rounded-b-none sm:rounded-r-lg sm:rounded-bl-lg border border-gray-200'
+  'flex-1 p-6 bg-white rounded-r-lg rounded-bl-lg border border-gray-200'
 
 const foldkitPanel = div(
   [],
@@ -147,7 +147,7 @@ export const view = (
         tabs: demoTabs,
         tabToConfig: verticalTabToConfig,
         orientation: 'Vertical',
-        className: 'flex flex-col sm:flex-row',
+        className: 'flex',
         tabListClassName: 'flex flex-col',
       }),
     ],
