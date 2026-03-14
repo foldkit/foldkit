@@ -119,8 +119,17 @@ const urlToAppRoute = Route.parseUrlWithFallback(routeParser, NotFoundRoute)
 
 export const NARROW_VIEWPORT_QUERY = '(max-width: 767px)'
 
-const getIsNarrowViewport = (): boolean =>
-  window.matchMedia(NARROW_VIEWPORT_QUERY).matches
+// FLAGS
+
+const Flags = S.Struct({
+  isNarrowViewport: S.Boolean,
+})
+
+type Flags = typeof Flags.Type
+
+const flags: Effect.Effect<Flags> = Effect.succeed({
+  isNarrowViewport: window.matchMedia(NARROW_VIEWPORT_QUERY).matches,
+})
 
 // MODEL
 
@@ -157,13 +166,16 @@ export type Message = typeof Message.Type
 
 // INIT
 
-const init: Runtime.ApplicationInit<Model, Message> = (url: Url) => {
+const init: Runtime.ApplicationInit<Model, Message, Flags> = (
+  loadedFlags: Flags,
+  url: Url,
+) => {
   const [initialUiModel, uiCommands] = uiInit()
 
   return [
     {
       route: urlToAppRoute(url),
-      isNarrowViewport: getIsNarrowViewport(),
+      isNarrowViewport: loadedFlags.isNarrowViewport,
       uiModel: initialUiModel,
     },
     uiCommands.map(Effect.map(message => GotUiMessage({ message }))),
@@ -535,6 +547,8 @@ const subscriptions = makeSubscriptions(SubscriptionDeps)<Model, Message>({
 
 const app = Runtime.makeApplication({
   Model,
+  Flags,
+  flags,
   init,
   update,
   view,
