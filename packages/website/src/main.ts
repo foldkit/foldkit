@@ -76,7 +76,6 @@ import {
   main,
   nav,
   p,
-  section,
   span,
   summary,
   ul,
@@ -1622,31 +1621,33 @@ const skipNavLink: Html = a(
   ['Skip to main content'],
 )
 
-const landingFooter: Html = footer(
-  [
-    Class(
-      'px-6 py-8 md:px-12 lg:px-20 text-center text-base text-gray-500 dark:text-gray-400',
-    ),
-  ],
-  [
-    p(
-      [],
-      [
-        'Built with ',
-        a(
-          [
-            Href(`${Link.websiteSource}/src/main.ts`),
-            Class(
-              'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500',
-            ),
-          ],
-          ['Foldkit'],
-        ),
-        '.',
-      ],
-    ),
-  ],
-)
+const landingFooter = (currentYear: number): Html =>
+  footer(
+    [
+      Class(
+        'px-6 py-8 md:px-12 lg:px-20 border-t border-gray-300 dark:border-gray-800 text-sm text-gray-500 dark:text-gray-400',
+      ),
+    ],
+    [
+      p(
+        [],
+        [
+          'Built with ',
+          a(
+            [
+              Href(`${Link.websiteSource}/src/main.ts`),
+              Class(
+                'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500',
+              ),
+            ],
+            ['Foldkit'],
+          ),
+          '.',
+        ],
+      ),
+      p([Class('mt-1')], [`\u00A9 ${currentYear} Devin Jameson`]),
+    ],
+  )
 
 const emailFormView = (
   emailField: StringField,
@@ -1716,48 +1717,43 @@ const emailFormView = (
   )
 }
 
-const emailSignupSectionView = (
+const emailSignupContentView = (
   emailField: StringField,
   emailSubscriptionStatus: EmailSubscriptionStatus,
 ): Html =>
-  section(
-    [Id('newsletter'), Class('landing-section py-10 md:py-14')],
+  div(
+    [Id('newsletter')],
     [
-      div(
-        [Class('landing-section-narrow')],
+      h2(
         [
-          h2(
-            [
-              Class(
-                'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-3 text-balance',
-              ),
-            ],
-            ['Stay in the loop.'],
-          ),
-          p(
-            [Class('text-gray-600 dark:text-gray-300 mb-6 max-w-md')],
-            ['New releases, patterns, and the occasional deep dive.'],
-          ),
-          M.value(emailSubscriptionStatus).pipe(
-            M.withReturnType<Html>(),
-            M.when('Succeeded', () =>
-              p(
-                [
-                  AriaLive('polite'),
-                  Class('text-accent-600 dark:text-accent-400 font-normal'),
-                ],
-                ['You\u2019re in! Check your email for confirmation.'],
-              ),
-            ),
-            M.orElse(status =>
-              emailFormView(
-                emailField,
-                status,
-                'flex flex-col sm:flex-row gap-3 max-w-md',
-              ),
-            ),
+          Class(
+            'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-4 text-balance',
           ),
         ],
+        ['Stay in the loop.'],
+      ),
+      p(
+        [Class('text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-xl')],
+        ['New releases, patterns, and the occasional deep dive.'],
+      ),
+      M.value(emailSubscriptionStatus).pipe(
+        M.withReturnType<Html>(),
+        M.when('Succeeded', () =>
+          p(
+            [
+              AriaLive('polite'),
+              Class('text-accent-600 dark:text-accent-400 font-normal'),
+            ],
+            ['You\u2019re in! Check your email for confirmation.'],
+          ),
+        ),
+        M.orElse(status =>
+          emailFormView(
+            emailField,
+            status,
+            'flex flex-col sm:flex-row gap-3 max-w-md',
+          ),
+        ),
       ),
     ],
   )
@@ -1852,7 +1848,7 @@ const landingView = (model: Model) => {
     toNotePlayerDemoMessage,
   ])
 
-  const emailSignupView = emailSignupSectionView(
+  const emailSignupView = emailSignupContentView(
     model.emailField,
     model.emailSubscriptionStatus,
   )
@@ -1898,7 +1894,7 @@ const landingView = (model: Model) => {
           ),
         ],
       ),
-      landingFooter,
+      landingFooter(model.currentYear),
     ],
   )
 }

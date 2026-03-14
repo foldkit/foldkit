@@ -94,8 +94,7 @@ export const view = (
       glyph('...', '-translate-y-1/3'),
       trustSection(),
       glyph('->'),
-      finalCtaSection(),
-      emailSignupView,
+      finalCtaSection(emailSignupView),
     ],
   )
 
@@ -644,7 +643,7 @@ const audienceSection = (): Html =>
                   h2(
                     [
                       Class(
-                        'text-3xl font-normal text-gray-900 dark:text-white mb-6 text-balance',
+                        'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-6 text-balance',
                       ),
                     ],
                     ['Who it\u2019s for'],
@@ -674,7 +673,7 @@ const audienceSection = (): Html =>
                   h2(
                     [
                       Class(
-                        'text-3xl font-normal text-gray-900 dark:text-white mb-6 text-balance',
+                        'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-6 text-balance',
                       ),
                     ],
                     ['Who it\u2019s not for'],
@@ -889,40 +888,55 @@ const aiSection = (): Html =>
 
 // FINAL CTA
 
-const finalCtaSection = (): Html =>
+const finalCtaSection = (emailSignupView: Html): Html =>
   section(
     [Id('get-started'), Class('landing-section')],
     [
       div(
         [Class('landing-section-narrow')],
         [
-          h2(
-            [
-              Class(
-                'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-4 text-balance',
-              ),
-            ],
-            ['Make something correct.'],
-          ),
-          p(
-            [Class('text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-xl')],
-            ['Describe your app. Let the runtime handle the rest.'],
-          ),
           div(
+            [Class('grid gap-10 lg:grid-cols-2')],
             [
-              Class(
-                'flex flex-col sm:flex-row items-start sm:items-center gap-4',
+              div(
+                [],
+                [
+                  h2(
+                    [
+                      Class(
+                        'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-4 text-balance',
+                      ),
+                    ],
+                    ['Make something correct.'],
+                  ),
+                  p(
+                    [
+                      Class(
+                        'text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-xl',
+                      ),
+                    ],
+                    ['Describe your app. Let the runtime handle the rest.'],
+                  ),
+                  div(
+                    [
+                      Class(
+                        'flex flex-col sm:flex-row items-start sm:items-center gap-4',
+                      ),
+                    ],
+                    [
+                      a(
+                        [Href(coreArchitectureRouter()), Class('cta-primary')],
+                        ['Dive In', Icon.arrowRight('w-5 h-5')],
+                      ),
+                      a(
+                        [Href(Link.github), Class('cta-secondary')],
+                        [Icon.github('w-5 h-5'), 'View on GitHub'],
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
-            [
-              a(
-                [Href(coreArchitectureRouter()), Class('cta-primary')],
-                ['Dive In', Icon.arrowRight('w-5 h-5')],
-              ),
-              a(
-                [Href(Link.github), Class('cta-secondary')],
-                [Icon.github('w-5 h-5'), 'View on GitHub'],
-              ),
+              emailSignupView,
             ],
           ),
         ],
