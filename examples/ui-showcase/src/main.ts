@@ -11,10 +11,7 @@ import { Url, toString as urlToString } from 'foldkit/url'
 
 import * as Icon from './icon'
 import { uiInit } from './init'
-import {
-  GotMobileMenuDialogMessage as GotUiMobileMenuDialogMessage,
-  UiMessage,
-} from './message'
+import { GotMobileMenuDialogMessage, UiMessage } from './message'
 import { UiModel } from './model'
 import * as ViewportWidth from './subscription/viewportWidth'
 import { uiUpdate } from './update'
@@ -179,7 +176,7 @@ const toUiMessage = (message: typeof UiMessage.Type): Message =>
   GotUiMessage({ message })
 
 const toMobileMenuDialogMessage = (message: Ui.Dialog.Message): Message =>
-  GotUiMessage({ message: GotUiMobileMenuDialogMessage({ message }) })
+  GotUiMessage({ message: GotMobileMenuDialogMessage({ message }) })
 
 const update = (
   model: Model,
