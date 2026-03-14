@@ -223,7 +223,8 @@ const update = (
 const { a, button, div, h1, header, keyed, li, main, nav, p, span, ul } =
   html<Message>()
 
-const { AriaExpanded, AriaLabel, Class, Href, OnClick } = html<Message>()
+const { AriaExpanded, AriaLabel, Autofocus, Class, Href, OnClick, Tabindex } =
+  html<Message>()
 
 type NavItem = Readonly<{
   label: string
@@ -345,7 +346,11 @@ const mobileMenuContent = (currentRoute: AppRoute): Html =>
         ],
       ),
       nav(
-        [Class('flex-1 overflow-y-auto p-4')],
+        [
+          Class('flex-1 overflow-y-auto min-h-0 p-4'),
+          Tabindex(-1),
+          Autofocus(true),
+        ],
         [
           ul(
             [Class('flex flex-col gap-0.5')],
