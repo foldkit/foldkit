@@ -3,7 +3,7 @@ import { Task } from 'foldkit'
 import { Command } from 'foldkit/command'
 
 import { USERNAME_INPUT_ID } from '../../constant'
-import { Message, NoOp } from './message'
+import { CompletedUsernameInputFocus, Message } from './message'
 import { EnterUsername, Model } from './model'
 
 export type InitReturn = [Model, ReadonlyArray<Command<Message>>]
@@ -13,5 +13,10 @@ export const init = (): InitReturn => [
     homeStep: EnterUsername({ username: '' }),
     formError: Option.none(),
   },
-  [Task.focus(`#${USERNAME_INPUT_ID}`).pipe(Effect.ignore, Effect.as(NoOp()))],
+  [
+    Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
+      Effect.ignore,
+      Effect.as(CompletedUsernameInputFocus()),
+    ),
+  ],
 ]

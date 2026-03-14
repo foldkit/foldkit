@@ -43,15 +43,14 @@ export type Model = typeof Model.Type
 export const TabSelected = m('TabSelected', { index: S.Number })
 /** Sent when a tab receives keyboard focus in `Manual` mode without being activated. */
 export const TabFocused = m('TabFocused', { index: S.Number })
-/** Placeholder message used when no action is needed, such as after a focus command completes. */
-export const NoOp = m('NoOp')
+/** Sent when the focus-tab command completes. */
+export const CompletedTabFocus = m('CompletedTabFocus')
 
 /** Union of all messages the tabs component can produce. */
-export const Message = S.Union(TabSelected, TabFocused, NoOp)
+export const Message = S.Union(TabSelected, TabFocused, CompletedTabFocus)
 
 export type TabSelected = typeof TabSelected.Type
 export type TabFocused = typeof TabFocused.Type
-export type NoOp = typeof NoOp.Type
 
 export type Message = typeof Message.Type
 
@@ -94,7 +93,12 @@ export const update = (
             activeIndex: () => index,
             focusedIndex: () => index,
           }),
-          [Task.focus(tabSelector).pipe(Effect.ignore, Effect.as(NoOp()))],
+          [
+            Task.focus(tabSelector).pipe(
+              Effect.ignore,
+              Effect.as(CompletedTabFocus()),
+            ),
+          ],
         ]
       },
       TabFocused: ({ index }) => {
@@ -102,10 +106,15 @@ export const update = (
 
         return [
           evo(model, { focusedIndex: () => index }),
-          [Task.focus(tabSelector).pipe(Effect.ignore, Effect.as(NoOp()))],
+          [
+            Task.focus(tabSelector).pipe(
+              Effect.ignore,
+              Effect.as(CompletedTabFocus()),
+            ),
+          ],
         ]
       },
-      NoOp: () => [model, []],
+      CompletedTabFocus: () => [model, []],
     }),
   )
 

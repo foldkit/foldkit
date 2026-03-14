@@ -113,7 +113,8 @@ type Model = typeof Model.Type
 
 // MESSAGE
 
-const NoOp = m('NoOp')
+const CompletedInternalNavigation = m('CompletedInternalNavigation')
+const CompletedExternalNavigation = m('CompletedExternalNavigation')
 const ClickedLink = m('ClickedLink', {
   request: Runtime.UrlRequest,
 })
@@ -122,7 +123,13 @@ const GotUiMessage = m('GotUiMessage', {
   message: UiMessage,
 })
 
-export const Message = S.Union(NoOp, ClickedLink, ChangedUrl, GotUiMessage)
+export const Message = S.Union(
+  CompletedInternalNavigation,
+  CompletedExternalNavigation,
+  ClickedLink,
+  ChangedUrl,
+  GotUiMessage,
+)
 export type Message = typeof Message.Type
 
 // INIT
@@ -154,22 +161,33 @@ const update = (
   M.value(message).pipe(
     M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
     M.tagsExhaustive({
-      NoOp: () => [model, []],
+      CompletedInternalNavigation: () => [model, []],
+      CompletedExternalNavigation: () => [model, []],
 
       ClickedLink: ({ request }) =>
         M.value(request).pipe(
           M.tagsExhaustive({
             Internal: ({
               url,
-            }): [Model, ReadonlyArray<Command<typeof NoOp>>] => [
+            }): [
+              Model,
+              ReadonlyArray<Command<typeof CompletedInternalNavigation>>,
+            ] => [
               model,
-              [pushUrl(urlToString(url)).pipe(Effect.as(NoOp()))],
+              [
+                pushUrl(urlToString(url)).pipe(
+                  Effect.as(CompletedInternalNavigation()),
+                ),
+              ],
             ],
             External: ({
               href,
-            }): [Model, ReadonlyArray<Command<typeof NoOp>>] => [
+            }): [
+              Model,
+              ReadonlyArray<Command<typeof CompletedExternalNavigation>>,
+            ] => [
               model,
-              [load(href).pipe(Effect.as(NoOp()))],
+              [load(href).pipe(Effect.as(CompletedExternalNavigation()))],
             ],
           }),
         ),

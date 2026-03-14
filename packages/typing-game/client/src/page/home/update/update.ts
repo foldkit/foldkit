@@ -8,8 +8,9 @@ import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../../constant'
 import { optionWhen } from '../../../optionWhen'
 import { createRoom } from '../command'
 import {
+  CompletedRoomIdInputFocus,
+  CompletedUsernameInputFocus,
   Message,
-  NoOp,
   type OutMessage,
   SucceededRoomCreation,
   SucceededRoomJoin,
@@ -28,7 +29,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      NoOp: () => [model, [], Option.none()],
+      CompletedUsernameInputFocus: () => [model, [], Option.none()],
+
+      CompletedRoomIdInputFocus: () => [model, [], Option.none()],
 
       SubmittedUsernameForm: () =>
         M.value(model.homeStep).pipe(
@@ -70,7 +73,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [
           Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
             Effect.ignore,
-            Effect.as(NoOp()),
+            Effect.as(CompletedUsernameInputFocus()),
           ),
         ],
         Option.none(),
@@ -81,7 +84,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [
           Task.focus(`#${ROOM_ID_INPUT_ID}`).pipe(
             Effect.ignore,
-            Effect.as(NoOp()),
+            Effect.as(CompletedRoomIdInputFocus()),
           ),
         ],
         Option.none(),

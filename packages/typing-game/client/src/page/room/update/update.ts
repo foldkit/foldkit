@@ -25,7 +25,11 @@ import {
   startGame,
   updatePlayerProgress,
 } from '../command'
-import { Message, NoOp } from '../message'
+import {
+  CompletedHomeNavigation,
+  CompletedRoomPageUsernameInputFocus,
+  Message,
+} from '../message'
 import { Model, RoomRemoteData } from '../model'
 import { validateUserTextInput } from '../userGameText'
 import { handleRoomUpdated } from './handleRoomUpdates'
@@ -37,7 +41,23 @@ export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      NoOp: () => [model, []],
+      CompletedRoomPageUsernameInputFocus: () => [model, []],
+
+      CompletedUserGameTextInputFocus: () => [model, []],
+
+      CompletedHomeNavigation: () => [model, []],
+
+      CompletedGameStartRequest: () => [model, []],
+
+      CompletedPlayerProgressUpdate: () => [model, []],
+
+      CompletedSessionSave: () => [model, []],
+
+      CompletedSessionClear: () => [model, []],
+
+      FailedRoomJoin: () => [model, []],
+
+      FailedClipboardCopy: () => [model, []],
 
       PressedKey: handleKeyPressed(model),
 
@@ -90,7 +110,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [
           Task.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(
             Effect.ignore,
-            Effect.as(NoOp()),
+            Effect.as(CompletedRoomPageUsernameInputFocus()),
           ),
         ],
       ],
@@ -134,7 +154,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             Option.some(
               Task.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(
                 Effect.ignore,
-                Effect.as(NoOp()),
+                Effect.as(CompletedRoomPageUsernameInputFocus()),
               ),
             ),
           onSome: () => Option.none(),
@@ -252,7 +272,10 @@ const leaveRoom = (model: Model): UpdateReturn => [
     maybeSession: () => Option.none(),
     roomRemoteData: () => RoomRemoteData.Loading(),
   }),
-  [clearSession(), pushUrl(homeRouter()).pipe(Effect.as(NoOp()))],
+  [
+    clearSession(),
+    pushUrl(homeRouter()).pipe(Effect.as(CompletedHomeNavigation())),
+  ],
 ]
 
 const handleStartGame = (model: Model, room: Shared.Room) => (): UpdateReturn =>

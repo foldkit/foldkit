@@ -7,9 +7,9 @@ import { SESSION_STORAGE_KEY } from './constant'
 import { Session } from './domain/session'
 import {
   ClearedSession,
+  CompletedErrorLog,
   FailedSessionClear,
   FailedSessionSave,
-  NoOp,
   SavedSession,
 } from './message'
 
@@ -46,4 +46,5 @@ export const clearSession = (): Command<
 
 export const logError = (
   ...args: ReadonlyArray<unknown>
-): Command<typeof NoOp> => Console.error(...args).pipe(Effect.as(NoOp()))
+): Command<typeof CompletedErrorLog> =>
+  Console.error(...args).pipe(Effect.as(CompletedErrorLog()))

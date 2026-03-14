@@ -5,7 +5,6 @@ export type {
   ActivationMode,
   TabSelected,
   TabFocused,
-  NoOp,
   InitConfig,
   ViewConfig,
   TabConfig,

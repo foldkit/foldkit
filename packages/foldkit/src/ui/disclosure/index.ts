@@ -22,15 +22,15 @@ export type Model = typeof Model.Type
 export const Toggled = m('Toggled')
 /** Sent to explicitly close the disclosure, regardless of its current state. */
 export const Closed = m('Closed')
-/** Placeholder message used when no action is needed, such as after a focus command completes. */
-export const NoOp = m('NoOp')
+/** Sent when the focus-button command completes after closing. */
+export const CompletedButtonFocus = m('CompletedButtonFocus')
 
 /** Union of all messages the disclosure component can produce. */
-export const Message = S.Union(Toggled, Closed, NoOp)
+export const Message = S.Union(Toggled, Closed, CompletedButtonFocus)
 
 export type Toggled = typeof Toggled.Type
 export type Closed = typeof Closed.Type
-export type NoOp = typeof NoOp.Type
+export type CompletedButtonFocus = typeof CompletedButtonFocus.Type
 
 export type Message = typeof Message.Type
 
@@ -68,7 +68,7 @@ export const update = (
         const maybeFocus = Option.liftPredicate(
           Task.focus(buttonSelector(model.id)).pipe(
             Effect.ignore,
-            Effect.as(NoOp()),
+            Effect.as(CompletedButtonFocus()),
           ),
           () => model.isOpen,
         )
@@ -82,14 +82,14 @@ export const update = (
         const maybeFocus = Option.liftPredicate(
           Task.focus(buttonSelector(model.id)).pipe(
             Effect.ignore,
-            Effect.as(NoOp()),
+            Effect.as(CompletedButtonFocus()),
           ),
           () => model.isOpen,
         )
 
         return [evo(model, { isOpen: () => false }), Option.toArray(maybeFocus)]
       },
-      NoOp: () => [model, []],
+      CompletedButtonFocus: () => [model, []],
     }),
   )
 
@@ -98,7 +98,7 @@ export const update = (
 /** Configuration for rendering a disclosure with `view`. */
 export type ViewConfig<Message> = Readonly<{
   model: Model
-  toMessage: (message: Toggled | Closed | NoOp) => Message
+  toMessage: (message: Toggled | Closed | CompletedButtonFocus) => Message
   buttonClassName: string
   buttonContent: Html
   panelClassName: string

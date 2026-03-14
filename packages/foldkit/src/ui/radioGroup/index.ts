@@ -38,14 +38,14 @@ export const SelectedOption = m('SelectedOption', {
   value: S.String,
   index: S.Number,
 })
-/** Placeholder message used when no action is needed. */
-export const NoOp = m('NoOp')
+/** Sent when the focus-option command completes. */
+export const CompletedOptionFocus = m('CompletedOptionFocus')
 
 /** Union of all messages the radio group component can produce. */
-export const Message = S.Union(SelectedOption, NoOp)
+export const Message = S.Union(SelectedOption, CompletedOptionFocus)
 
 export type SelectedOption = typeof SelectedOption.Type
-export type NoOp = typeof NoOp.Type
+export type CompletedOptionFocus = typeof CompletedOptionFocus.Type
 
 export type Message = typeof Message.Type
 
@@ -82,10 +82,15 @@ export const update = (
 
         return [
           evo(model, { selectedValue: () => Option.some(value) }),
-          [Task.focus(selector).pipe(Effect.ignore, Effect.as(NoOp()))],
+          [
+            Task.focus(selector).pipe(
+              Effect.ignore,
+              Effect.as(CompletedOptionFocus()),
+            ),
+          ],
         ]
       },
-      NoOp: () => [model, []],
+      CompletedOptionFocus: () => [model, []],
     }),
   )
 
@@ -107,7 +112,7 @@ export type OptionConfig<Message> = Readonly<{
 /** Configuration for rendering a radio group with `view`. */
 export type ViewConfig<Message, Option extends string> = Readonly<{
   model: Model
-  toMessage: (message: SelectedOption | NoOp) => Message
+  toMessage: (message: SelectedOption | CompletedOptionFocus) => Message
   options: ReadonlyArray<Option>
   optionToConfig: (
     option: Option,

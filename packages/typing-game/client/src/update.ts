@@ -7,7 +7,14 @@ import { evo } from 'foldkit/struct'
 
 import { navigateToRoom, savePlayerToSessionStorage } from './command'
 import { USERNAME_INPUT_ID } from './constant'
-import { GotHomeMessage, GotRoomMessage, Message, NoOp } from './message'
+import {
+  CompletedExternalNavigation,
+  CompletedInternalNavigation,
+  CompletedUsernameInputFocus,
+  GotHomeMessage,
+  GotRoomMessage,
+  Message,
+} from './message'
 import { Model } from './model'
 import { Home, Room } from './page'
 import { urlToAppRoute } from './route'
@@ -25,7 +32,19 @@ export const update = (
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      NoOp: () => [model, []],
+      CompletedInternalNavigation: () => [model, []],
+
+      CompletedExternalNavigation: () => [model, []],
+
+      CompletedUsernameInputFocus: () => [model, []],
+
+      CompletedRoomNavigation: () => [model, []],
+
+      CompletedSessionSave: () => [model, []],
+
+      CompletedSessionClear: () => [model, []],
+
+      IgnoredKeyPress: () => [model, []],
 
       ClickedLink: ({ request }) =>
         M.value(request).pipe(
@@ -33,11 +52,15 @@ export const update = (
           M.tagsExhaustive({
             Internal: ({ url }) => [
               model,
-              [pushUrl(Url.toString(url)).pipe(Effect.as(NoOp()))],
+              [
+                pushUrl(Url.toString(url)).pipe(
+                  Effect.as(CompletedInternalNavigation()),
+                ),
+              ],
             ],
             External: ({ href }) => [
               model,
-              [load(href).pipe(Effect.as(NoOp()))],
+              [load(href).pipe(Effect.as(CompletedExternalNavigation()))],
             ],
           }),
         ),
@@ -48,7 +71,7 @@ export const update = (
           M.tag('Home', () =>
             Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
               Effect.ignore,
-              Effect.as(NoOp()),
+              Effect.as(CompletedUsernameInputFocus()),
             ),
           ),
           M.option,

@@ -5,7 +5,11 @@ import { Command } from 'foldkit/command'
 import { pushUrl } from 'foldkit/navigation'
 
 import { ROOM_PLAYER_SESSION_KEY } from './constant'
-import { NoOp } from './message'
+import {
+  CompletedRoomNavigation,
+  CompletedSessionClear,
+  CompletedSessionSave,
+} from './message'
 import { Home, Room } from './page'
 import { roomRouter } from './route'
 import { RoomsClient } from './rpc'
@@ -25,29 +29,31 @@ export const joinRoom = (
     Effect.provide(RoomsClient.Default),
   )
 
-export const navigateToRoom = (roomId: string): Command<typeof NoOp> =>
-  pushUrl(roomRouter({ roomId })).pipe(Effect.as(NoOp()))
+export const navigateToRoom = (
+  roomId: string,
+): Command<typeof CompletedRoomNavigation> =>
+  pushUrl(roomRouter({ roomId })).pipe(Effect.as(CompletedRoomNavigation()))
 
 export const savePlayerToSessionStorage = (
   session: Room.Model.RoomPlayerSession,
-): Command<typeof NoOp> =>
+): Command<typeof CompletedSessionSave> =>
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
     const encodeSession = S.encode(S.parseJson(Room.Model.RoomPlayerSession))
     const sessionJson = yield* encodeSession(session)
     yield* store.set(ROOM_PLAYER_SESSION_KEY, sessionJson)
-    return NoOp()
+    return CompletedSessionSave()
   }).pipe(
-    Effect.catchAll(() => Effect.succeed(NoOp())),
+    Effect.catchAll(() => Effect.succeed(CompletedSessionSave())),
     Effect.provide(BrowserKeyValueStore.layerSessionStorage),
   )
 
-export const clearSession = (): Command<typeof NoOp> =>
+export const clearSession = (): Command<typeof CompletedSessionClear> =>
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
     yield* store.remove(ROOM_PLAYER_SESSION_KEY)
-    return NoOp()
+    return CompletedSessionClear()
   }).pipe(
-    Effect.catchAll(() => Effect.succeed(NoOp())),
+    Effect.catchAll(() => Effect.succeed(CompletedSessionClear())),
     Effect.provide(BrowserKeyValueStore.layerSessionStorage),
   )

@@ -21,7 +21,7 @@ const FOCUSABLE_SELECTOR = Array.join(
  *
  * @example
  * ```typescript
- * Task.focus('#email-input').pipe(Effect.ignore, Effect.as(NoOp()))
+ * Task.focus('#email-input').pipe(Effect.ignore, Effect.as(CompletedInputFocus()))
  * ```
  */
 export const focus = (selector: string): Effect.Effect<void, ElementNotFound> =>
@@ -44,7 +44,7 @@ export const focus = (selector: string): Effect.Effect<void, ElementNotFound> =>
  *
  * @example
  * ```typescript
- * Task.showModal('#my-dialog').pipe(Effect.ignore, Effect.as(NoOp()))
+ * Task.showModal('#my-dialog').pipe(Effect.ignore, Effect.as(CompletedDialogShow()))
  * ```
  */
 export const showModal = (
@@ -69,7 +69,7 @@ export const showModal = (
  *
  * @example
  * ```typescript
- * Task.closeModal('#my-dialog').pipe(Effect.ignore, Effect.as(NoOp()))
+ * Task.closeModal('#my-dialog').pipe(Effect.ignore, Effect.as(CompletedDialogClose()))
  * ```
  */
 export const closeModal = (
@@ -94,7 +94,7 @@ export const closeModal = (
  *
  * @example
  * ```typescript
- * Task.clickElement('#menu-item-2').pipe(Effect.ignore, Effect.as(NoOp()))
+ * Task.clickElement('#menu-item-2').pipe(Effect.ignore, Effect.as(CompletedItemClick()))
  * ```
  */
 export const clickElement = (
@@ -119,7 +119,7 @@ export const clickElement = (
  *
  * @example
  * ```typescript
- * Task.scrollIntoView('#active-item').pipe(Effect.ignore, Effect.as(NoOp()))
+ * Task.scrollIntoView('#active-item').pipe(Effect.ignore, Effect.as(CompletedScrollIntoView()))
  * ```
  */
 export const scrollIntoView = (
@@ -148,7 +148,7 @@ export type FocusDirection = 'Next' | 'Previous'
  *
  * @example
  * ```typescript
- * Task.advanceFocus('#menu-button', 'Next').pipe(Effect.ignore, Effect.as(NoOp()))
+ * Task.advanceFocus('#menu-button', 'Next').pipe(Effect.ignore, Effect.as(CompletedFocusAdvance()))
  * ```
  */
 export const advanceFocus = (

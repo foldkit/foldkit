@@ -8,7 +8,12 @@ import { Url } from 'foldkit/url'
 
 import { SESSION_STORAGE_KEY } from './constant'
 import { Session } from './domain/session'
-import { ChangedUrl, ClickedLink, Message, NoOp } from './message'
+import {
+  ChangedUrl,
+  ClickedLink,
+  CompletedInternalNavigation,
+  Message,
+} from './message'
 import { LoggedIn, LoggedOut, Model } from './model'
 import {
   DashboardRoute,
@@ -63,7 +68,11 @@ const init: Runtime.ApplicationInit<Model, Message, Flags> = (
         ]),
         M.orElse(() => [
           LoggedOut.init(LoginRoute()),
-          [replaceUrl(loginRouter()).pipe(Effect.as(NoOp()))],
+          [
+            replaceUrl(loginRouter()).pipe(
+              Effect.as(CompletedInternalNavigation()),
+            ),
+          ],
         ]),
       ),
 
@@ -76,7 +85,11 @@ const init: Runtime.ApplicationInit<Model, Message, Flags> = (
         ]),
         M.orElse(() => [
           LoggedIn.init(DashboardRoute(), session),
-          [replaceUrl(dashboardRouter()).pipe(Effect.as(NoOp()))],
+          [
+            replaceUrl(dashboardRouter()).pipe(
+              Effect.as(CompletedInternalNavigation()),
+            ),
+          ],
         ]),
       ),
   })

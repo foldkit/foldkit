@@ -26,8 +26,10 @@ export type Model = typeof Model.Type
 export const Opened = m('Opened')
 /** Sent when the dialog should close (Escape key, backdrop click, or programmatic). Triggers the closeModal command. */
 export const Closed = m('Closed')
-/** Placeholder message used when no action is needed, such as after a showModal or closeModal command completes. */
-export const NoOp = m('NoOp')
+/** Sent when the show-dialog command completes (scroll lock + showModal). */
+export const CompletedDialogShow = m('CompletedDialogShow')
+/** Sent when the close-dialog command completes (closeModal + scroll unlock). */
+export const CompletedDialogClose = m('CompletedDialogClose')
 /** Sent internally when a double-rAF completes, advancing the transition to its animating phase. */
 export const AdvancedTransitionFrame = m('AdvancedTransitionFrame')
 /** Sent internally when all CSS transitions on the dialog panel have completed. */
@@ -37,14 +39,16 @@ export const EndedTransition = m('EndedTransition')
 export const Message = S.Union(
   Opened,
   Closed,
-  NoOp,
+  CompletedDialogShow,
+  CompletedDialogClose,
   AdvancedTransitionFrame,
   EndedTransition,
 )
 
 export type Opened = typeof Opened.Type
 export type Closed = typeof Closed.Type
-export type NoOp = typeof NoOp.Type
+export type CompletedDialogShow = typeof CompletedDialogShow.Type
+export type CompletedDialogClose = typeof CompletedDialogClose.Type
 
 export type Message = typeof Message.Type
 
@@ -88,7 +92,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           Task.lockScroll.pipe(
             Effect.andThen(() => Task.showModal(dialogSelector(model.id))),
             Effect.ignore,
-            Effect.as(NoOp()),
+            Effect.as(CompletedDialogShow()),
           ),
           () => !model.isOpen,
         )
@@ -125,7 +129,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           Task.closeModal(dialogSelector(model.id)).pipe(
             Effect.andThen(() => Task.unlockScroll),
             Effect.ignore,
-            Effect.as(NoOp()),
+            Effect.as(CompletedDialogClose()),
           ),
           () => model.isOpen,
         )
@@ -168,14 +172,15 @@ export const update = (model: Model, message: Message): UpdateReturn => {
               Task.closeModal(dialogSelector(model.id)).pipe(
                 Effect.andThen(() => Task.unlockScroll),
                 Effect.ignore,
-                Effect.as(NoOp()),
+                Effect.as(CompletedDialogClose()),
               ),
             ],
           ]),
           M.orElse(() => [model, []]),
         ),
 
-      NoOp: () => [model, []],
+      CompletedDialogShow: () => [model, []],
+      CompletedDialogClose: () => [model, []],
     }),
   )
 }
@@ -191,7 +196,9 @@ export const descriptionId = (model: Model): string => `${model.id}-description`
 /** Configuration for rendering a dialog with `view`. */
 export type ViewConfig<Message> = Readonly<{
   model: Model
-  toMessage: (message: Closed | NoOp) => Message
+  toMessage: (
+    message: Closed | CompletedDialogShow | CompletedDialogClose,
+  ) => Message
   panelContent: Html
   panelClassName: string
   backdropClassName: string

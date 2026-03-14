@@ -1,7 +1,12 @@
 import { Effect, Match as M, Option, Schema as S, Stream } from 'effect'
 import { Subscription } from 'foldkit'
 
-import { GotHomeMessage, GotRoomMessage, Message, NoOp } from './message'
+import {
+  GotHomeMessage,
+  GotRoomMessage,
+  IgnoredKeyPress,
+  Message,
+} from './message'
 import { Model } from './model'
 import { Home, Room } from './page'
 import { AppRoute } from './route'
@@ -114,7 +119,7 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
                     GotRoomMessage({
                       message: Room.Message.PressedKey({ key }),
                     }),
-                  NotFound: () => NoOp(),
+                  NotFound: () => IgnoredKeyPress(),
                 }),
               )
             }),

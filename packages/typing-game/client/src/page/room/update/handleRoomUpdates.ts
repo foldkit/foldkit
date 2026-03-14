@@ -6,7 +6,7 @@ import { evo } from 'foldkit/struct'
 import { USER_GAME_TEXT_INPUT_ID } from '../../../constant'
 import { optionWhen } from '../../../optionWhen'
 import { exitCountdownTick } from '../command'
-import { NoOp } from '../message'
+import { CompletedUserGameTextInputFocus } from '../message'
 import { Model, RoomRemoteData } from '../model'
 import type { UpdateReturn } from './update'
 
@@ -71,7 +71,7 @@ export const handleRoomUpdated =
     const mabyeFocusUserGameTextInput = optionWhen(shouldFocus, () =>
       Task.focus(`#${USER_GAME_TEXT_INPUT_ID}`).pipe(
         Effect.ignore,
-        Effect.as(NoOp()),
+        Effect.as(CompletedUserGameTextInputFocus()),
       ),
     )
 

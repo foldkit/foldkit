@@ -45,7 +45,6 @@ type Model = typeof Model.Type
 
 // MESSAGE
 
-const NoOp = m('NoOp')
 const UpdatedName = m('UpdatedName', { value: S.String })
 const UpdatedEmail = m('UpdatedEmail', { value: S.String })
 const ValidatedEmail = m('ValidatedEmail', {
@@ -62,7 +61,6 @@ const SubmittedForm = m('SubmittedForm', {
 })
 
 const Message = S.Union(
-  NoOp,
   UpdatedName,
   UpdatedEmail,
   ValidatedEmail,
@@ -144,8 +142,6 @@ const update = (
   M.value(message).pipe(
     M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
     M.tagsExhaustive({
-      NoOp: () => [model, []],
-
       UpdatedName: ({ value }) => [
         evo(model, {
           name: () => validateName(value),

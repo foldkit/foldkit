@@ -90,8 +90,28 @@ export const MovedPointerOverItem = m('MovedPointerOverItem', {
   screenX: S.Number,
   screenY: S.Number,
 })
-/** Placeholder message used when no action is needed. */
-export const NoOp = m('NoOp')
+/** Sent when the focus-items command completes after opening the menu. */
+export const CompletedItemsFocus = m('CompletedItemsFocus')
+/** Sent when the focus-button command completes after closing or selecting. */
+export const CompletedButtonFocus = m('CompletedButtonFocus')
+/** Sent when the scroll lock command completes. */
+export const CompletedScrollLock = m('CompletedScrollLock')
+/** Sent when the scroll unlock command completes. */
+export const CompletedScrollUnlock = m('CompletedScrollUnlock')
+/** Sent when the inert-others command completes. */
+export const CompletedInertSetup = m('CompletedInertSetup')
+/** Sent when the restore-inert command completes. */
+export const CompletedInertTeardown = m('CompletedInertTeardown')
+/** Sent when the scroll-into-view command completes after keyboard activation. */
+export const CompletedScrollIntoView = m('CompletedScrollIntoView')
+/** Sent when the programmatic click command completes. */
+export const CompletedItemClick = m('CompletedItemClick')
+/** Sent when the advance-focus command completes. */
+export const CompletedFocusAdvance = m('CompletedFocusAdvance')
+/** Sent when a mouse click on the button is ignored because pointer-down already handled the toggle. */
+export const IgnoredMouseClick = m('IgnoredMouseClick')
+/** Sent when a Space key-up is captured to prevent page scrolling. */
+export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
 /** Sent internally when a double-rAF completes, advancing the transition to its animating phase. */
 export const AdvancedTransitionFrame = m('AdvancedTransitionFrame')
 /** Sent internally when all CSS transitions on the menu items container have completed. */
@@ -125,7 +145,17 @@ export const Message = S.Union(
   RequestedItemClick,
   Searched,
   ClearedSearch,
-  NoOp,
+  CompletedItemsFocus,
+  CompletedButtonFocus,
+  CompletedScrollLock,
+  CompletedScrollUnlock,
+  CompletedInertSetup,
+  CompletedInertTeardown,
+  CompletedScrollIntoView,
+  CompletedItemClick,
+  CompletedFocusAdvance,
+  IgnoredMouseClick,
+  SuppressedSpaceScroll,
   AdvancedTransitionFrame,
   EndedTransition,
   DetectedButtonMovement,
@@ -143,7 +173,8 @@ export type MovedPointerOverItem = typeof MovedPointerOverItem.Type
 export type RequestedItemClick = typeof RequestedItemClick.Type
 export type Searched = typeof Searched.Type
 export type ClearedSearch = typeof ClearedSearch.Type
-export type NoOp = typeof NoOp.Type
+export type IgnoredMouseClick = typeof IgnoredMouseClick.Type
+export type SuppressedSpaceScroll = typeof SuppressedSpaceScroll.Type
 export type AdvancedTransitionFrame = typeof AdvancedTransitionFrame.Type
 export type EndedTransition = typeof EndedTransition.Type
 export type DetectedButtonMovement = typeof DetectedButtonMovement.Type
@@ -214,12 +245,12 @@ export const update = (model: Model, message: Message): UpdateReturn => {
 
   const maybeLockScroll = OptionExt.when(
     model.isModal,
-    Task.lockScroll.pipe(Effect.as(NoOp())),
+    Task.lockScroll.pipe(Effect.as(CompletedScrollLock())),
   )
 
   const maybeUnlockScroll = OptionExt.when(
     model.isModal,
-    Task.unlockScroll.pipe(Effect.as(NoOp())),
+    Task.unlockScroll.pipe(Effect.as(CompletedScrollUnlock())),
   )
 
   const maybeInertOthers = OptionExt.when(
@@ -227,12 +258,12 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     Task.inertOthers(model.id, [
       buttonSelector(model.id),
       itemsSelector(model.id),
-    ]).pipe(Effect.as(NoOp())),
+    ]).pipe(Effect.as(CompletedInertSetup())),
   )
 
   const maybeRestoreInert = OptionExt.when(
     model.isModal,
-    Task.restoreInert(model.id).pipe(Effect.as(NoOp())),
+    Task.restoreInert(model.id).pipe(Effect.as(CompletedInertTeardown())),
   )
 
   return M.value(message).pipe(
@@ -260,7 +291,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             Array.prepend(
               Task.focus(itemsSelector(model.id)).pipe(
                 Effect.ignore,
-                Effect.as(NoOp()),
+                Effect.as(CompletedItemsFocus()),
               ),
             ),
           ),
@@ -278,7 +309,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           Array.prepend(
             Task.focus(buttonSelector(model.id)).pipe(
               Effect.ignore,
-              Effect.as(NoOp()),
+              Effect.as(CompletedButtonFocus()),
             ),
           ),
         ),
@@ -298,7 +329,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           ? [
               Task.scrollIntoView(itemSelector(model.id, index)).pipe(
                 Effect.ignore,
-                Effect.as(NoOp()),
+                Effect.as(CompletedScrollIntoView()),
               ),
             ]
           : [],
@@ -341,7 +372,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           Array.prepend(
             Task.focus(buttonSelector(model.id)).pipe(
               Effect.ignore,
-              Effect.as(NoOp()),
+              Effect.as(CompletedButtonFocus()),
             ),
           ),
         ),
@@ -352,7 +383,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         [
           Task.clickElement(itemSelector(model.id, index)).pipe(
             Effect.ignore,
-            Effect.as(NoOp()),
+            Effect.as(CompletedItemClick()),
           ),
         ],
       ],
@@ -458,7 +489,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
               Array.prepend(
                 Task.focus(buttonSelector(model.id)).pipe(
                   Effect.ignore,
-                  Effect.as(NoOp()),
+                  Effect.as(CompletedButtonFocus()),
                 ),
               ),
             ),
@@ -484,7 +515,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             Array.prepend(
               Task.focus(itemsSelector(model.id)).pipe(
                 Effect.ignore,
-                Effect.as(NoOp()),
+                Effect.as(CompletedItemsFocus()),
               ),
             ),
           ),
@@ -525,12 +556,22 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           [
             Task.clickElement(
               itemSelector(model.id, model.maybeActiveItemIndex.value),
-            ).pipe(Effect.ignore, Effect.as(NoOp())),
+            ).pipe(Effect.ignore, Effect.as(CompletedItemClick())),
           ],
         ]
       },
 
-      NoOp: () => [model, []],
+      CompletedItemsFocus: () => [model, []],
+      CompletedButtonFocus: () => [model, []],
+      CompletedScrollLock: () => [model, []],
+      CompletedScrollUnlock: () => [model, []],
+      CompletedInertSetup: () => [model, []],
+      CompletedInertTeardown: () => [model, []],
+      CompletedScrollIntoView: () => [model, []],
+      CompletedItemClick: () => [model, []],
+      CompletedFocusAdvance: () => [model, []],
+      IgnoredMouseClick: () => [model, []],
+      SuppressedSpaceScroll: () => [model, []],
     }),
   )
 }
@@ -565,7 +606,8 @@ export type ViewConfig<Message, Item extends string> = Readonly<{
       | Searched
       | PressedPointerOnButton
       | ReleasedPointerOnItems
-      | NoOp,
+      | IgnoredMouseClick
+      | SuppressedSpaceScroll,
   ) => Message
   items: ReadonlyArray<Item>
   itemToConfig: (
@@ -748,7 +790,7 @@ export const view = <Message, Item extends string>(
     )
 
     if (isMouse) {
-      return toMessage(NoOp())
+      return toMessage(IgnoredMouseClick())
     } else if (isOpen) {
       return toMessage(Closed())
     } else {
@@ -757,7 +799,7 @@ export const view = <Message, Item extends string>(
   }
 
   const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
-    OptionExt.when(key === ' ', toMessage(NoOp()))
+    OptionExt.when(key === ' ', toMessage(SuppressedSpaceScroll()))
 
   const resolveActiveIndex = keyToIndex(
     'ArrowDown',

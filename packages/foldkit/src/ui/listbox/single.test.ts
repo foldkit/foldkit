@@ -11,16 +11,18 @@ import {
   ClearedSearch,
   Closed,
   ClosedByTab,
+  CompletedScrollLock,
   DeactivatedItem,
   DetectedButtonMovement,
   EndedTransition,
+  IgnoredMouseClick,
   MovedPointerOverItem,
-  NoOp,
   Opened,
   PressedPointerOnButton,
   RequestedItemClick,
   Searched,
   SelectedItem,
+  SuppressedSpaceScroll,
 } from './shared'
 import { init, update, view } from './single'
 import type { Model, ViewConfig } from './single'
@@ -621,10 +623,24 @@ describe('Listbox', () => {
       })
     })
 
-    describe('NoOp', () => {
-      it('returns model unchanged', () => {
+    describe('completed and view-dispatched messages', () => {
+      it('returns model unchanged for CompletedScrollLock', () => {
         const model = openModel()
-        const [result, commands] = update(model, NoOp())
+        const [result, commands] = update(model, CompletedScrollLock())
+        expect(result).toBe(model)
+        expect(commands).toHaveLength(0)
+      })
+
+      it('returns model unchanged for IgnoredMouseClick', () => {
+        const model = openModel()
+        const [result, commands] = update(model, IgnoredMouseClick())
+        expect(result).toBe(model)
+        expect(commands).toHaveLength(0)
+      })
+
+      it('returns model unchanged for SuppressedSpaceScroll', () => {
+        const model = openModel()
+        const [result, commands] = update(model, SuppressedSpaceScroll())
         expect(result).toBe(model)
         expect(commands).toHaveLength(0)
       })

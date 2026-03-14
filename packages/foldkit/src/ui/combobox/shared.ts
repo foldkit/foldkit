@@ -108,8 +108,20 @@ export const MovedPointerOverItem = m('MovedPointerOverItem', {
 export const RequestedItemClick = m('RequestedItemClick', {
   index: S.Number,
 })
-/** Placeholder message used when no action is needed. */
-export const NoOp = m('NoOp')
+/** Sent when the scroll lock command completes. */
+export const CompletedScrollLock = m('CompletedScrollLock')
+/** Sent when the scroll unlock command completes. */
+export const CompletedScrollUnlock = m('CompletedScrollUnlock')
+/** Sent when the inert-others command completes. */
+export const CompletedInertSetup = m('CompletedInertSetup')
+/** Sent when the restore-inert command completes. */
+export const CompletedInertTeardown = m('CompletedInertTeardown')
+/** Sent when the focus-input command completes. */
+export const CompletedInputFocus = m('CompletedInputFocus')
+/** Sent when the scroll-into-view command completes after keyboard activation. */
+export const CompletedScrollIntoView = m('CompletedScrollIntoView')
+/** Sent when the programmatic item click command completes. */
+export const CompletedItemClick = m('CompletedItemClick')
 /** Sent internally when a double-rAF completes, advancing the transition to its animating phase. */
 export const AdvancedTransitionFrame = m('AdvancedTransitionFrame')
 /** Sent internally when all CSS transitions on the items container have completed. */
@@ -133,7 +145,13 @@ export const Message = S.Union(
   SelectedItem,
   MovedPointerOverItem,
   RequestedItemClick,
-  NoOp,
+  CompletedScrollLock,
+  CompletedScrollUnlock,
+  CompletedInertSetup,
+  CompletedInertTeardown,
+  CompletedInputFocus,
+  CompletedScrollIntoView,
+  CompletedItemClick,
   AdvancedTransitionFrame,
   EndedTransition,
   DetectedInputMovement,
@@ -149,7 +167,13 @@ export type DeactivatedItem = typeof DeactivatedItem.Type
 export type SelectedItem = typeof SelectedItem.Type
 export type MovedPointerOverItem = typeof MovedPointerOverItem.Type
 export type RequestedItemClick = typeof RequestedItemClick.Type
-export type NoOp = typeof NoOp.Type
+export type CompletedScrollLock = typeof CompletedScrollLock.Type
+export type CompletedScrollUnlock = typeof CompletedScrollUnlock.Type
+export type CompletedInertSetup = typeof CompletedInertSetup.Type
+export type CompletedInertTeardown = typeof CompletedInertTeardown.Type
+export type CompletedInputFocus = typeof CompletedInputFocus.Type
+export type CompletedScrollIntoView = typeof CompletedScrollIntoView.Type
+export type CompletedItemClick = typeof CompletedItemClick.Type
 export type AdvancedTransitionFrame = typeof AdvancedTransitionFrame.Type
 export type EndedTransition = typeof EndedTransition.Type
 export type DetectedInputMovement = typeof DetectedInputMovement.Type
@@ -222,12 +246,12 @@ export const makeUpdate = <Model extends BaseModel>(
 
     const maybeLockScroll = OptionExt.when(
       model.isModal,
-      Task.lockScroll.pipe(Effect.as(NoOp())),
+      Task.lockScroll.pipe(Effect.as(CompletedScrollLock())),
     )
 
     const maybeUnlockScroll = OptionExt.when(
       model.isModal,
-      Task.unlockScroll.pipe(Effect.as(NoOp())),
+      Task.unlockScroll.pipe(Effect.as(CompletedScrollUnlock())),
     )
 
     const maybeInertOthers = OptionExt.when(
@@ -235,17 +259,17 @@ export const makeUpdate = <Model extends BaseModel>(
       Task.inertOthers(model.id, [
         inputWrapperSelector(model.id),
         itemsSelector(model.id),
-      ]).pipe(Effect.as(NoOp())),
+      ]).pipe(Effect.as(CompletedInertSetup())),
     )
 
     const maybeRestoreInert = OptionExt.when(
       model.isModal,
-      Task.restoreInert(model.id).pipe(Effect.as(NoOp())),
+      Task.restoreInert(model.id).pipe(Effect.as(CompletedInertTeardown())),
     )
 
     const focusInput = Task.focus(inputSelector(model.id)).pipe(
       Effect.ignore,
-      Effect.as(NoOp()),
+      Effect.as(CompletedInputFocus()),
     )
 
     return M.value(message).pipe(
@@ -318,7 +342,7 @@ export const makeUpdate = <Model extends BaseModel>(
               ? [
                   Task.scrollIntoView(itemSelector(model.id, index)).pipe(
                     Effect.ignore,
-                    Effect.as(NoOp()),
+                    Effect.as(CompletedScrollIntoView()),
                   ),
                 ]
               : [],
@@ -369,7 +393,7 @@ export const makeUpdate = <Model extends BaseModel>(
           [
             Task.clickElement(itemSelector(model.id, index)).pipe(
               Effect.ignore,
-              Effect.as(NoOp()),
+              Effect.as(CompletedItemClick()),
             ),
           ],
         ],
@@ -494,7 +518,13 @@ export const makeUpdate = <Model extends BaseModel>(
             M.orElse(() => [model, []]),
           ),
 
-        NoOp: () => [model, []],
+        CompletedScrollLock: () => [model, []],
+        CompletedScrollUnlock: () => [model, []],
+        CompletedInertSetup: () => [model, []],
+        CompletedInertTeardown: () => [model, []],
+        CompletedInputFocus: () => [model, []],
+        CompletedScrollIntoView: () => [model, []],
+        CompletedItemClick: () => [model, []],
       }),
     )
   }
@@ -533,7 +563,13 @@ export type BaseViewConfig<
       | RequestedItemClick
       | UpdatedInputValue
       | PressedToggleButton
-      | NoOp,
+      | CompletedScrollLock
+      | CompletedScrollUnlock
+      | CompletedInertSetup
+      | CompletedInertTeardown
+      | CompletedInputFocus
+      | CompletedScrollIntoView
+      | CompletedItemClick,
   ) => Message
   items: ReadonlyArray<Item>
   itemToConfig: (

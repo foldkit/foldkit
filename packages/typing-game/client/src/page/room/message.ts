@@ -4,7 +4,19 @@ import { m } from 'foldkit/message'
 
 import { RoomPlayerSession } from './model'
 
-export const NoOp = m('NoOp')
+export const CompletedRoomPageUsernameInputFocus = m(
+  'CompletedRoomPageUsernameInputFocus',
+)
+export const CompletedUserGameTextInputFocus = m(
+  'CompletedUserGameTextInputFocus',
+)
+export const CompletedHomeNavigation = m('CompletedHomeNavigation')
+export const CompletedGameStartRequest = m('CompletedGameStartRequest')
+export const CompletedPlayerProgressUpdate = m('CompletedPlayerProgressUpdate')
+export const CompletedSessionSave = m('CompletedSessionSave')
+export const CompletedSessionClear = m('CompletedSessionClear')
+export const FailedRoomJoin = m('FailedRoomJoin')
+export const FailedClipboardCopy = m('FailedClipboardCopy')
 export const PressedKey = m('PressedKey', { key: S.String })
 export const ChangedUserText = m('ChangedUserText', { value: S.String })
 export const BlurredRoomPageUsernameInput = m('BlurredRoomPageUsernameInput')
@@ -38,7 +50,15 @@ export const JoinedRoom = m('JoinedRoom', {
 })
 
 export const Message = S.Union(
-  NoOp,
+  CompletedRoomPageUsernameInputFocus,
+  CompletedUserGameTextInputFocus,
+  CompletedHomeNavigation,
+  CompletedGameStartRequest,
+  CompletedPlayerProgressUpdate,
+  CompletedSessionSave,
+  CompletedSessionClear,
+  FailedRoomJoin,
+  FailedClipboardCopy,
   PressedKey,
   ChangedUserText,
   BlurredRoomPageUsernameInput,

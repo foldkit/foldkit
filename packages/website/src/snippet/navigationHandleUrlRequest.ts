@@ -30,10 +30,17 @@ type Model = typeof Model.Type
 // MESSAGE
 
 // ClickedLink and ChangedUrl are required for routing
-const NoOp = m('NoOp')
+const CompletedInternalNavigation = m('CompletedInternalNavigation')
+const CompletedExternalNavigation = m('CompletedExternalNavigation')
 const ClickedLink = m('ClickedLink', { request: Runtime.UrlRequest })
 const ChangedUrl = m('ChangedUrl', { url: Url.Url })
-const Message = S.Union(NoOp, ClickedLink, ChangedUrl)
+
+const Message = S.Union(
+  CompletedInternalNavigation,
+  CompletedExternalNavigation,
+  ClickedLink,
+  ChangedUrl,
+)
 type Message = typeof Message.Type
 
 // UPDATE
@@ -42,7 +49,8 @@ const update = (model: Model, message: Message) =>
   M.value(message).pipe(
     M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
     M.tagsExhaustive({
-      NoOp: () => [model, []],
+      CompletedInternalNavigation: () => [model, []],
+      CompletedExternalNavigation: () => [model, []],
 
       // Handle link clicks - decide whether to navigate or do a full page load
       ClickedLink: ({ request }) =>
@@ -51,12 +59,20 @@ const update = (model: Model, message: Message) =>
             // Same-origin link - push to history
             Internal: ({ url }): [Model, ReadonlyArray<Command<Message>>] => [
               model,
-              [Navigation.pushUrl(Url.toString(url)).pipe(Effect.as(NoOp()))],
+              [
+                Navigation.pushUrl(Url.toString(url)).pipe(
+                  Effect.as(CompletedInternalNavigation()),
+                ),
+              ],
             ],
             // Different-origin link - full page load
             External: ({ href }): [Model, ReadonlyArray<Command<Message>>] => [
               model,
-              [Navigation.load(href).pipe(Effect.as(NoOp()))],
+              [
+                Navigation.load(href).pipe(
+                  Effect.as(CompletedExternalNavigation()),
+                ),
+              ],
             ],
           }),
         ),

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { NoOp, Toggled, init, update } from './index'
+import { Toggled, init, update } from './index'
 
 describe('Switch', () => {
   describe('init', () => {
@@ -31,13 +31,6 @@ describe('Switch', () => {
       const model = init({ id: 'test', isChecked: true })
       const [result, commands] = update(model, Toggled())
       expect(result.isChecked).toBe(false)
-      expect(commands).toHaveLength(0)
-    })
-
-    it('returns same model reference on NoOp', () => {
-      const model = init({ id: 'test' })
-      const [result, commands] = update(model, NoOp())
-      expect(result).toBe(model)
       expect(commands).toHaveLength(0)
     })
   })

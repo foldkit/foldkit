@@ -58,7 +58,6 @@ type Model = typeof Model.Type
 
 // MESSAGE
 
-const NoOp = m('NoOp')
 const UpdatedNewTodo = m('UpdatedNewTodo', { text: S.String })
 const UpdatedEditingTodo = m('UpdatedEditingTodo', { text: S.String })
 const AddedTodo = m('AddedTodo')
@@ -78,7 +77,6 @@ const SetFilter = m('SetFilter', { filter: Filter })
 const SavedTodos = m('SavedTodos', { todos: Todos })
 
 export const Message = S.Union(
-  NoOp,
   UpdatedNewTodo,
   UpdatedEditingTodo,
   AddedTodo,
@@ -123,8 +121,6 @@ const update = (
   M.value(message).pipe(
     M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
     M.tagsExhaustive({
-      NoOp: () => [model, []],
-
       UpdatedNewTodo: ({ text }) => [
         evo(model, {
           newTodoText: () => text,

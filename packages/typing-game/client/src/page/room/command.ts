@@ -7,11 +7,14 @@ import { Command } from 'foldkit/command'
 import { ROOM_PLAYER_SESSION_KEY } from '../../constant'
 import { RoomsClient } from '../../rpc'
 import {
+  CompletedGameStartRequest,
+  CompletedPlayerProgressUpdate,
+  FailedClipboardCopy,
   FailedRoomFetch,
+  FailedRoomJoin,
   HiddenRoomIdCopiedIndicator,
   JoinedRoom,
   LoadedSession,
-  NoOp,
   SucceededCopyRoomId,
   SucceededRoomFetch,
   TickedExitCountdown,
@@ -60,26 +63,26 @@ export const loadSessionFromStorage = (
 export const joinRoom = (
   username: string,
   roomId: string,
-): Command<typeof JoinedRoom | typeof NoOp> =>
+): Command<typeof JoinedRoom | typeof FailedRoomJoin> =>
   Effect.gen(function* () {
     const client = yield* RoomsClient
     const { player, room } = yield* client.joinRoom({ username, roomId })
     return JoinedRoom({ roomId: room.id, player })
   }).pipe(
-    Effect.catchAll(() => Effect.succeed(NoOp())),
+    Effect.catchAll(() => Effect.succeed(FailedRoomJoin())),
     Effect.provide(RoomsClient.Default),
   )
 
 export const startGame = (
   roomId: string,
   playerId: string,
-): Command<typeof NoOp> =>
+): Command<typeof CompletedGameStartRequest> =>
   Effect.gen(function* () {
     const client = yield* RoomsClient
     yield* client.startGame({ roomId, playerId })
-    return NoOp()
+    return CompletedGameStartRequest()
   }).pipe(
-    Effect.catchAll(() => Effect.succeed(NoOp())),
+    Effect.catchAll(() => Effect.succeed(CompletedGameStartRequest())),
     Effect.provide(RoomsClient.Default),
   )
 
@@ -88,7 +91,7 @@ export const updatePlayerProgress = (
   gameId: string,
   userGameText: string,
   charsTyped: number,
-): Command<typeof NoOp> =>
+): Command<typeof CompletedPlayerProgressUpdate> =>
   Effect.gen(function* () {
     const client = yield* RoomsClient
     yield* client.updatePlayerProgress({
@@ -97,21 +100,21 @@ export const updatePlayerProgress = (
       userText: userGameText,
       charsTyped,
     })
-    return NoOp()
+    return CompletedPlayerProgressUpdate()
   }).pipe(
-    Effect.catchAll(() => Effect.succeed(NoOp())),
+    Effect.catchAll(() => Effect.succeed(CompletedPlayerProgressUpdate())),
     Effect.provide(RoomsClient.Default),
   )
 
 export const copyRoomIdToClipboard = (
   roomId: string,
-): Command<typeof SucceededCopyRoomId | typeof NoOp> =>
+): Command<typeof SucceededCopyRoomId | typeof FailedClipboardCopy> =>
   Effect.tryPromise({
     try: () => navigator.clipboard.writeText(roomId),
     catch: () => new Error('Failed to copy to clipboard'),
   }).pipe(
     Effect.as(SucceededCopyRoomId()),
-    Effect.catchAll(() => Effect.succeed(NoOp())),
+    Effect.catchAll(() => Effect.succeed(FailedClipboardCopy())),
   )
 
 export const exitCountdownTick: Command<typeof TickedExitCountdown> =

@@ -2,7 +2,8 @@ import * as Shared from '@typing-game/shared'
 import { Schema as S } from 'effect'
 import { m } from 'foldkit/message'
 
-export const NoOp = m('NoOp')
+export const CompletedUsernameInputFocus = m('CompletedUsernameInputFocus')
+export const CompletedRoomIdInputFocus = m('CompletedRoomIdInputFocus')
 export const SubmittedUsernameForm = m('SubmittedUsernameForm')
 export const ChangedUsername = m('ChangedUsername', { value: S.String })
 export const BlurredUsernameInput = m('BlurredUsernameInput')
@@ -22,7 +23,8 @@ export const FailedRoom = m('FailedRoom', { error: S.String })
 export const PressedKey = m('PressedKey', { key: S.String })
 
 export const Message = S.Union(
-  NoOp,
+  CompletedUsernameInputFocus,
+  CompletedRoomIdInputFocus,
   SubmittedUsernameForm,
   ChangedUsername,
   BlurredUsernameInput,

@@ -53,7 +53,7 @@ const handleTouchMove = (event: TouchEvent): void => {
  *
  * @example
  * ```typescript
- * Task.lockScroll.pipe(Effect.as(NoOp()))
+ * Task.lockScroll.pipe(Effect.as(CompletedScrollLock()))
  * ```
  */
 export const lockScroll: Effect.Effect<void> = Effect.sync(() => {
@@ -89,7 +89,7 @@ export const lockScroll: Effect.Effect<void> = Effect.sync(() => {
  *
  * @example
  * ```typescript
- * Task.unlockScroll.pipe(Effect.as(NoOp()))
+ * Task.unlockScroll.pipe(Effect.as(CompletedScrollUnlock()))
  * ```
  */
 export const unlockScroll: Effect.Effect<void> = Effect.sync(() => {

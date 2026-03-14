@@ -19,14 +19,11 @@ export type Model = typeof Model.Type
 
 /** Sent when the user toggles the switch via click or Space key. */
 export const Toggled = m('Toggled')
-/** Placeholder message used when no action is needed. */
-export const NoOp = m('NoOp')
 
-/** Union of all messages the switch component can produce. */
-export const Message = S.Union(Toggled, NoOp)
+/** Schema for all messages the switch component can produce. */
+export const Message = Toggled
 
 export type Toggled = typeof Toggled.Type
-export type NoOp = typeof NoOp.Type
 
 export type Message = typeof Message.Type
 
@@ -49,15 +46,11 @@ export const init = (config: InitConfig): Model => ({
 /** Processes a switch message and returns the next model and commands. */
 export const update = (
   model: Model,
-  message: Message,
-): [Model, ReadonlyArray<Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
-    M.tagsExhaustive({
-      Toggled: () => [evo(model, { isChecked: isChecked => !isChecked }), []],
-      NoOp: () => [model, []],
-    }),
-  )
+  _message: Message,
+): [Model, ReadonlyArray<Command<Message>>] => [
+  evo(model, { isChecked: isChecked => !isChecked }),
+  [],
+]
 
 // VIEW
 
@@ -72,7 +65,7 @@ export type SwitchAttributes<Message> = Readonly<{
 /** Configuration for rendering a switch with `view`. */
 export type ViewConfig<Message> = Readonly<{
   model: Model
-  toMessage: (message: Toggled | NoOp) => Message
+  toMessage: (message: Toggled) => Message
   toView: (attributes: SwitchAttributes<Message>) => Html
   isDisabled?: boolean
   name?: string

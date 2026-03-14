@@ -89,7 +89,8 @@ type Model = typeof Model.Type
 
 // MESSAGE
 
-const NoOp = m('NoOp')
+const CompletedInternalNavigation = m('CompletedInternalNavigation')
+const CompletedExternalNavigation = m('CompletedExternalNavigation')
 const ClickedLink = m('ClickedLink', {
   request: Runtime.UrlRequest,
 })
@@ -97,7 +98,8 @@ const ChangedUrl = m('ChangedUrl', { url: Url })
 const ChangedSearchInput = m('ChangedSearchInput', { value: S.String })
 
 export const Message = S.Union(
-  NoOp,
+  CompletedInternalNavigation,
+  CompletedExternalNavigation,
   ClickedLink,
   ChangedUrl,
   ChangedSearchInput,
@@ -119,22 +121,33 @@ const update = (
   M.value(message).pipe(
     M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
     M.tagsExhaustive({
-      NoOp: () => [model, []],
+      CompletedInternalNavigation: () => [model, []],
+      CompletedExternalNavigation: () => [model, []],
 
       ClickedLink: ({ request }) =>
         M.value(request).pipe(
           M.tagsExhaustive({
             Internal: ({
               url,
-            }): [Model, ReadonlyArray<Command<typeof NoOp>>] => [
+            }): [
+              Model,
+              ReadonlyArray<Command<typeof CompletedInternalNavigation>>,
+            ] => [
               model,
-              [pushUrl(urlToString(url)).pipe(Effect.as(NoOp()))],
+              [
+                pushUrl(urlToString(url)).pipe(
+                  Effect.as(CompletedInternalNavigation()),
+                ),
+              ],
             ],
             External: ({
               href,
-            }): [Model, ReadonlyArray<Command<typeof NoOp>>] => [
+            }): [
+              Model,
+              ReadonlyArray<Command<typeof CompletedExternalNavigation>>,
+            ] => [
               model,
-              [load(href).pipe(Effect.as(NoOp()))],
+              [load(href).pipe(Effect.as(CompletedExternalNavigation()))],
             ],
           }),
         ),
@@ -153,7 +166,7 @@ const update = (
             peopleRouter({
               searchText: Option.fromNullable(value || null),
             }),
-          ).pipe(Effect.as(NoOp())),
+          ).pipe(Effect.as(CompletedInternalNavigation())),
         ],
       ],
     }),

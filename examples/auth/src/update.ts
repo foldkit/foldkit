@@ -6,10 +6,13 @@ import { toString as urlToString } from 'foldkit/url'
 
 import { clearSession, logError, saveSession } from './command'
 import {
+  CompletedExternalNavigation,
+  CompletedInternalNavigation,
+  CompletedSessionClear,
+  CompletedSessionSave,
   GotLoggedInMessage,
   GotLoggedOutMessage,
   Message,
-  NoOp,
 } from './message'
 import { LoggedIn, LoggedOut, Model } from './model'
 import {
@@ -28,7 +31,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      NoOp: () => [model, []],
+      CompletedInternalNavigation: () => [model, []],
+      CompletedExternalNavigation: () => [model, []],
+      CompletedSessionSave: () => [model, []],
+      CompletedSessionClear: () => [model, []],
+      CompletedErrorLog: () => [model, []],
 
       ClickedLink: ({ request }) =>
         M.value(request).pipe(
@@ -36,11 +43,15 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           M.tagsExhaustive({
             Internal: ({ url }) => [
               model,
-              [pushUrl(urlToString(url)).pipe(Effect.as(NoOp()))],
+              [
+                pushUrl(urlToString(url)).pipe(
+                  Effect.as(CompletedInternalNavigation()),
+                ),
+              ],
             ],
             External: ({ href }) => [
               model,
-              [load(href).pipe(Effect.as(NoOp()))],
+              [load(href).pipe(Effect.as(CompletedExternalNavigation()))],
             ],
           }),
         ),
@@ -60,7 +71,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                 ]),
                 M.orElse(() => [
                   model,
-                  [replaceUrl(loginRouter()).pipe(Effect.as(NoOp()))],
+                  [
+                    replaceUrl(loginRouter()).pipe(
+                      Effect.as(CompletedInternalNavigation()),
+                    ),
+                  ],
                 ]),
               ),
 
@@ -73,7 +88,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                 ]),
                 M.orElse(() => [
                   model,
-                  [replaceUrl(dashboardRouter()).pipe(Effect.as(NoOp()))],
+                  [
+                    replaceUrl(dashboardRouter()).pipe(
+                      Effect.as(CompletedInternalNavigation()),
+                    ),
+                  ],
                 ]),
               ),
           }),
@@ -138,8 +157,10 @@ const handleGotLoggedOutMessage = (
             LoggedIn.init(DashboardRoute(), session),
             [
               ...mappedCommands,
-              saveSession(session).pipe(Effect.as(NoOp())),
-              replaceUrl(dashboardRouter()).pipe(Effect.as(NoOp())),
+              saveSession(session).pipe(Effect.as(CompletedSessionSave())),
+              replaceUrl(dashboardRouter()).pipe(
+                Effect.as(CompletedInternalNavigation()),
+              ),
             ],
           ],
         }),
@@ -171,8 +192,10 @@ const handleGotLoggedInMessage = (
             LoggedOut.init(HomeRoute()),
             [
               ...mappedCommands,
-              clearSession().pipe(Effect.as(NoOp())),
-              replaceUrl(homeRouter()).pipe(Effect.as(NoOp())),
+              clearSession().pipe(Effect.as(CompletedSessionClear())),
+              replaceUrl(homeRouter()).pipe(
+                Effect.as(CompletedInternalNavigation()),
+              ),
             ],
           ],
         }),

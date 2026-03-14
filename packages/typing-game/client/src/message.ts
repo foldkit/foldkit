@@ -4,7 +4,13 @@ import { m } from 'foldkit/message'
 
 import { Home, Room } from './page'
 
-export const NoOp = m('NoOp')
+export const CompletedInternalNavigation = m('CompletedInternalNavigation')
+export const CompletedExternalNavigation = m('CompletedExternalNavigation')
+export const CompletedUsernameInputFocus = m('CompletedUsernameInputFocus')
+export const CompletedRoomNavigation = m('CompletedRoomNavigation')
+export const CompletedSessionSave = m('CompletedSessionSave')
+export const CompletedSessionClear = m('CompletedSessionClear')
+export const IgnoredKeyPress = m('IgnoredKeyPress')
 export const ClickedLink = m('ClickedLink', {
   request: Runtime.UrlRequest,
 })
@@ -17,7 +23,13 @@ export const GotRoomMessage = m('GotRoomMessage', {
 })
 
 export const Message = S.Union(
-  NoOp,
+  CompletedInternalNavigation,
+  CompletedExternalNavigation,
+  CompletedUsernameInputFocus,
+  CompletedRoomNavigation,
+  CompletedSessionSave,
+  CompletedSessionClear,
+  IgnoredKeyPress,
   ClickedLink,
   ChangedUrl,
   GotHomeMessage,

@@ -135,7 +135,9 @@ type Model = typeof Model.Type
 
 // MESSAGE
 
-const NoOp = m('NoOp')
+const CompletedInternalNavigation = m('CompletedInternalNavigation')
+const CompletedExternalNavigation = m('CompletedExternalNavigation')
+const CompletedUrlReplace = m('CompletedUrlReplace')
 const ClickedLink = m('ClickedLink', { request: Runtime.UrlRequest })
 const ChangedUrl = m('ChangedUrl', { url: Url })
 const ChangedSearchInput = m('ChangedSearchInput', { value: S.String })
@@ -148,7 +150,9 @@ const GotPeriodListboxMessage = m('GotPeriodListboxMessage', {
 })
 
 const Message = S.Union(
-  NoOp,
+  CompletedInternalNavigation,
+  CompletedExternalNavigation,
+  CompletedUrlReplace,
   ClickedLink,
   ChangedUrl,
   ChangedSearchInput,
@@ -234,8 +238,10 @@ const selectionToParam = <A extends string>(
   )
 }
 
-const replaceFilters = (fields: BrowseFields): Command<typeof NoOp> =>
-  replaceUrl(browseRouter(fields)).pipe(Effect.as(NoOp()))
+const replaceFilters = (
+  fields: BrowseFields,
+): Command<typeof CompletedUrlReplace> =>
+  replaceUrl(browseRouter(fields)).pipe(Effect.as(CompletedUrlReplace()))
 
 type UpdateReturn = [Model, ReadonlyArray<Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
@@ -244,7 +250,9 @@ const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      NoOp: () => [model, []],
+      CompletedInternalNavigation: () => [model, []],
+      CompletedExternalNavigation: () => [model, []],
+      CompletedUrlReplace: () => [model, []],
 
       ClickedLink: ({ request }) =>
         M.value(request).pipe(
@@ -252,11 +260,15 @@ const update = (model: Model, message: Message): UpdateReturn =>
           M.tagsExhaustive({
             Internal: ({ url }) => [
               model,
-              [pushUrl(urlToString(url)).pipe(Effect.as(NoOp()))],
+              [
+                pushUrl(urlToString(url)).pipe(
+                  Effect.as(CompletedInternalNavigation()),
+                ),
+              ],
             ],
             External: ({ href }) => [
               model,
-              [load(href).pipe(Effect.as(NoOp()))],
+              [load(href).pipe(Effect.as(CompletedExternalNavigation()))],
             ],
           }),
         ),

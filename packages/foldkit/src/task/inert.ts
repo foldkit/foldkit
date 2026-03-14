@@ -91,7 +91,7 @@ const inertableSiblings = (
  * @example
  * ```typescript
  * Task.inertOthers('my-menu', ['#menu-button', '#menu-items']).pipe(
- *   Effect.as(NoOp()),
+ *   Effect.as(CompletedInertSetup()),
  * )
  * ```
  */
@@ -119,7 +119,7 @@ export const inertOthers = (
  *
  * @example
  * ```typescript
- * Task.restoreInert('my-menu').pipe(Effect.as(NoOp()))
+ * Task.restoreInert('my-menu').pipe(Effect.as(CompletedInertTeardown()))
  * ```
  */
 export const restoreInert = (id: string): Effect.Effect<void> =>

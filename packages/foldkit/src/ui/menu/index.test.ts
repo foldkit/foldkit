@@ -11,11 +11,11 @@ import {
   ClearedSearch,
   Closed,
   ClosedByTab,
+  CompletedItemsFocus,
   DeactivatedItem,
   DetectedButtonMovement,
   EndedTransition,
   MovedPointerOverItem,
-  NoOp,
   Opened,
   PressedPointerOnButton,
   ReleasedPointerOnItems,
@@ -674,10 +674,10 @@ describe('Menu', () => {
       })
     })
 
-    describe('NoOp', () => {
+    describe('CompletedItemsFocus', () => {
       it('returns model unchanged', () => {
         const model = openModel()
-        const [result, commands] = update(model, NoOp())
+        const [result, commands] = update(model, CompletedItemsFocus())
         expect(result).toBe(model)
         expect(commands).toHaveLength(0)
       })

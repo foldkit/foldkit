@@ -3,7 +3,7 @@ import { expect } from 'vitest'
 
 import {
   Closed,
-  NoOp,
+  CompletedDialogShow,
   Opened,
   descriptionId,
   init,
@@ -61,9 +61,9 @@ describe('Dialog', () => {
       expect(commands).toHaveLength(0)
     })
 
-    it('returns model unchanged on NoOp', () => {
+    it('returns model unchanged on CompletedDialogShow', () => {
       const model = init({ id: 'test' })
-      const [result, commands] = update(model, NoOp())
+      const [result, commands] = update(model, CompletedDialogShow())
       expect(result).toBe(model)
       expect(commands).toHaveLength(0)
     })

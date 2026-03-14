@@ -40,10 +40,10 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-const NoOp = m('NoOp')
+const CompletedUrlReplace = m('CompletedUrlReplace')
 const ChangedSearchInput = m('ChangedSearchInput', { value: S.String })
 
-export const Message = S.Union(NoOp, ChangedSearchInput)
+export const Message = S.Union(CompletedUrlReplace, ChangedSearchInput)
 export type Message = typeof Message.Type
 
 // INIT
@@ -61,7 +61,7 @@ export const update =
     M.value(message).pipe(
       M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
       M.tagsExhaustive({
-        NoOp: () => [model, []],
+        CompletedUrlReplace: () => [model, []],
 
         ChangedSearchInput: ({ value }) => [
           evo(model, {
@@ -72,7 +72,7 @@ export const update =
               productsRouter({
                 searchText: Option.fromNullable(value || null),
               }),
-            ).pipe(Effect.as(NoOp())),
+            ).pipe(Effect.as(CompletedUrlReplace())),
           ],
         ],
       }),

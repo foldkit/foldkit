@@ -7,10 +7,8 @@ export type {
   Closed,
   ClosedByTab,
   PressedPointerOnButton,
-  NoOp,
-  AdvancedTransitionFrame,
-  EndedTransition,
-  DetectedButtonMovement,
+  IgnoredMouseClick,
+  SuppressedSpaceScroll,
   InitConfig,
   ViewConfig,
 } from './index'

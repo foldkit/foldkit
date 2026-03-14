@@ -37,8 +37,22 @@ export const PressedPointerOnButton = m('PressedPointerOnButton', {
   pointerType: S.String,
   button: S.Number,
 })
-/** Placeholder message used when no action is needed. */
-export const NoOp = m('NoOp')
+/** Sent when the focus-panel command completes after opening the popover. */
+export const CompletedPanelFocus = m('CompletedPanelFocus')
+/** Sent when the focus-button command completes after closing. */
+export const CompletedButtonFocus = m('CompletedButtonFocus')
+/** Sent when the scroll lock command completes. */
+export const CompletedScrollLock = m('CompletedScrollLock')
+/** Sent when the scroll unlock command completes. */
+export const CompletedScrollUnlock = m('CompletedScrollUnlock')
+/** Sent when the inert-others command completes. */
+export const CompletedInertSetup = m('CompletedInertSetup')
+/** Sent when the restore-inert command completes. */
+export const CompletedInertTeardown = m('CompletedInertTeardown')
+/** Sent when a mouse click on the button is ignored because pointer-down already handled the toggle. */
+export const IgnoredMouseClick = m('IgnoredMouseClick')
+/** Sent when a Space key-up is captured to prevent page scrolling. */
+export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
 /** Sent internally when a double-rAF completes, advancing the transition to its animating phase. */
 export const AdvancedTransitionFrame = m('AdvancedTransitionFrame')
 /** Sent internally when all CSS transitions on the popover panel have completed. */
@@ -52,7 +66,14 @@ export const Message = S.Union(
   Closed,
   ClosedByTab,
   PressedPointerOnButton,
-  NoOp,
+  CompletedPanelFocus,
+  CompletedButtonFocus,
+  CompletedScrollLock,
+  CompletedScrollUnlock,
+  CompletedInertSetup,
+  CompletedInertTeardown,
+  IgnoredMouseClick,
+  SuppressedSpaceScroll,
   AdvancedTransitionFrame,
   EndedTransition,
   DetectedButtonMovement,
@@ -62,10 +83,8 @@ export type Opened = typeof Opened.Type
 export type Closed = typeof Closed.Type
 export type ClosedByTab = typeof ClosedByTab.Type
 export type PressedPointerOnButton = typeof PressedPointerOnButton.Type
-export type NoOp = typeof NoOp.Type
-export type AdvancedTransitionFrame = typeof AdvancedTransitionFrame.Type
-export type EndedTransition = typeof EndedTransition.Type
-export type DetectedButtonMovement = typeof DetectedButtonMovement.Type
+export type IgnoredMouseClick = typeof IgnoredMouseClick.Type
+export type SuppressedSpaceScroll = typeof SuppressedSpaceScroll.Type
 
 export type Message = typeof Message.Type
 
@@ -114,12 +133,12 @@ export const update = (model: Model, message: Message): UpdateReturn => {
 
   const maybeLockScroll = OptionExt.when(
     model.isModal,
-    Task.lockScroll.pipe(Effect.as(NoOp())),
+    Task.lockScroll.pipe(Effect.as(CompletedScrollLock())),
   )
 
   const maybeUnlockScroll = OptionExt.when(
     model.isModal,
-    Task.unlockScroll.pipe(Effect.as(NoOp())),
+    Task.unlockScroll.pipe(Effect.as(CompletedScrollUnlock())),
   )
 
   const maybeInertOthers = OptionExt.when(
@@ -127,12 +146,12 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     Task.inertOthers(model.id, [
       buttonSelector(model.id),
       panelSelector(model.id),
-    ]).pipe(Effect.as(NoOp())),
+    ]).pipe(Effect.as(CompletedInertSetup())),
   )
 
   const maybeRestoreInert = OptionExt.when(
     model.isModal,
-    Task.restoreInert(model.id).pipe(Effect.as(NoOp())),
+    Task.restoreInert(model.id).pipe(Effect.as(CompletedInertTeardown())),
   )
 
   return M.value(message).pipe(
@@ -151,7 +170,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             Array.prepend(
               Task.focus(panelSelector(model.id)).pipe(
                 Effect.ignore,
-                Effect.as(NoOp()),
+                Effect.as(CompletedPanelFocus()),
               ),
             ),
           ),
@@ -169,7 +188,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           Array.prepend(
             Task.focus(buttonSelector(model.id)).pipe(
               Effect.ignore,
-              Effect.as(NoOp()),
+              Effect.as(CompletedButtonFocus()),
             ),
           ),
         ),
@@ -201,7 +220,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
               Array.prepend(
                 Task.focus(buttonSelector(model.id)).pipe(
                   Effect.ignore,
-                  Effect.as(NoOp()),
+                  Effect.as(CompletedButtonFocus()),
                 ),
               ),
             ),
@@ -220,7 +239,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             Array.prepend(
               Task.focus(panelSelector(model.id)).pipe(
                 Effect.ignore,
-                Effect.as(NoOp()),
+                Effect.as(CompletedPanelFocus()),
               ),
             ),
           ),
@@ -274,7 +293,14 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           M.orElse(() => [model, []]),
         ),
 
-      NoOp: () => [model, []],
+      CompletedPanelFocus: () => [model, []],
+      CompletedButtonFocus: () => [model, []],
+      CompletedScrollLock: () => [model, []],
+      CompletedScrollUnlock: () => [model, []],
+      CompletedInertSetup: () => [model, []],
+      CompletedInertTeardown: () => [model, []],
+      IgnoredMouseClick: () => [model, []],
+      SuppressedSpaceScroll: () => [model, []],
     }),
   )
 }
@@ -285,7 +311,13 @@ export const update = (model: Model, message: Message): UpdateReturn => {
 export type ViewConfig<Message> = Readonly<{
   model: Model
   toMessage: (
-    message: Opened | Closed | ClosedByTab | PressedPointerOnButton | NoOp,
+    message:
+      | Opened
+      | Closed
+      | ClosedByTab
+      | PressedPointerOnButton
+      | IgnoredMouseClick
+      | SuppressedSpaceScroll,
   ) => Message
   anchor: AnchorConfig
   buttonContent: Html
@@ -388,7 +420,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     )
 
     if (isMouse) {
-      return toMessage(NoOp())
+      return toMessage(IgnoredMouseClick())
     } else if (isOpen) {
       return toMessage(Closed())
     } else {
@@ -397,7 +429,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
   }
 
   const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
-    OptionExt.when(key === ' ', toMessage(NoOp()))
+    OptionExt.when(key === ' ', toMessage(SuppressedSpaceScroll()))
 
   const handlePanelKeyDown = (key: string): Option.Option<Message> =>
     M.value(key).pipe(

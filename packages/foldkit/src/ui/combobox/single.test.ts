@@ -10,11 +10,11 @@ import {
   AdvancedTransitionFrame,
   Closed,
   ClosedByTab,
+  CompletedInputFocus,
   DeactivatedItem,
   DetectedInputMovement,
   EndedTransition,
   MovedPointerOverItem,
-  NoOp,
   Opened,
   PressedToggleButton,
   RequestedItemClick,
@@ -531,10 +531,10 @@ describe('Combobox', () => {
       })
     })
 
-    describe('NoOp', () => {
+    describe('CompletedInputFocus', () => {
       it('returns model unchanged', () => {
         const model = openModel()
-        const [result, commands] = update(model, NoOp())
+        const [result, commands] = update(model, CompletedInputFocus())
         expect(result).toBe(model)
         expect(commands).toHaveLength(0)
       })
