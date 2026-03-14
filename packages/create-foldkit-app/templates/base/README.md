@@ -11,5 +11,5 @@ pnpm dev
 
 ## Learn More
 
-- [Foldkit Documentation](https://github.com/devinjameson/foldkit)
+- [Foldkit Documentation](https://github.com/foldkit/foldkit)
 - [Effect Documentation](https://effect.website)

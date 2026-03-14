@@ -4,7 +4,7 @@ import { Array, Effect, Match, Record, Schema, pipe } from 'effect'
 type PackageManager = 'pnpm' | 'npm' | 'yarn'
 
 const GITHUB_RAW_BASE_URL =
-  'https://raw.githubusercontent.com/devinjameson/foldkit/main/examples'
+  'https://raw.githubusercontent.com/foldkit/foldkit/main/examples'
 
 const getInstallArgs = (
   packageManager: PackageManager,

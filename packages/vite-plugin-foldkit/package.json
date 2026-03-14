@@ -39,7 +39,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/devinjameson/foldkit.git",
+    "url": "https://github.com/foldkit/foldkit.git",
     "directory": "packages/vite-plugin-foldkit"
   },
   "publishConfig": {

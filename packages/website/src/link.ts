@@ -1,4 +1,4 @@
-const exampleBase = 'https://github.com/devinjameson/foldkit/tree/main/examples'
+const exampleBase = 'https://github.com/foldkit/foldkit/tree/main/examples'
 
 export const Link = {
   elm: 'https://elm-lang.org',
@@ -15,7 +15,7 @@ export const Link = {
   solid: 'https://solidjs.com',
   snabbdom: 'https://github.com/snabbdom/snabbdom',
   foldkitVdom:
-    'https://github.com/devinjameson/foldkit/blob/main/packages/foldkit/src/vdom.ts',
+    'https://github.com/foldkit/foldkit/blob/main/packages/foldkit/src/vdom.ts',
   foldkitExamples: exampleBase,
   exampleAuth: `${exampleBase}/auth/src/main.ts`,
   exampleAuthLogin: `${exampleBase}/auth/src/page/loggedOut/page/login.ts`,
@@ -26,33 +26,33 @@ export const Link = {
   exampleRouting: `${exampleBase}/routing/src/main.ts`,
   exampleShoppingCart: `${exampleBase}/shopping-cart/src/main.ts`,
   exampleShoppingCartSubmodel:
-    'https://github.com/devinjameson/foldkit/blob/main/examples/shopping-cart/src/main.ts#L163-L175',
+    'https://github.com/foldkit/foldkit/blob/main/examples/shopping-cart/src/main.ts#L163-L175',
   exampleSnake: `${exampleBase}/snake/src/main.ts`,
   exampleSnakeRequestPattern:
-    'https://github.com/devinjameson/foldkit/blob/main/examples/snake/src/main.ts#L220-L234',
+    'https://github.com/foldkit/foldkit/blob/main/examples/snake/src/main.ts#L220-L234',
   exampleStopwatch: `${exampleBase}/stopwatch/src/main.ts`,
   exampleTodo: `${exampleBase}/todo/src/main.ts`,
   exampleWeather: `${exampleBase}/weather/src/main.ts`,
   exampleWeatherFetch:
-    'https://github.com/devinjameson/foldkit/blob/main/examples/weather/src/main.ts#L123-L177',
+    'https://github.com/foldkit/foldkit/blob/main/examples/weather/src/main.ts#L123-L177',
   exampleWeatherTests:
-    'https://github.com/devinjameson/foldkit/blob/main/examples/weather/src/main.test.ts',
+    'https://github.com/foldkit/foldkit/blob/main/examples/weather/src/main.test.ts',
   exampleUiShowcase: `${exampleBase}/ui-showcase/src/main.ts`,
   exampleWebsocketChat: `${exampleBase}/websocket-chat/src/main.ts`,
   typingTerminal: 'https://typingterminal.com',
   typingTerminalSource:
-    'https://github.com/devinjameson/foldkit/tree/main/packages/typing-game',
+    'https://github.com/foldkit/foldkit/tree/main/packages/typing-game',
   typingTerminalRoomSource:
-    'https://github.com/devinjameson/foldkit/tree/main/packages/typing-game/client/src/page/room',
+    'https://github.com/foldkit/foldkit/tree/main/packages/typing-game/client/src/page/room',
   createFoldkitApp:
-    'https://github.com/devinjameson/foldkit/tree/main/packages/create-foldkit-app',
+    'https://github.com/foldkit/foldkit/tree/main/packages/create-foldkit-app',
   msw: 'https://mswjs.io',
-  github: 'https://github.com/devinjameson/foldkit',
+  github: 'https://github.com/foldkit/foldkit',
   foldkitSource:
-    'https://github.com/devinjameson/foldkit/tree/main/packages/foldkit',
+    'https://github.com/foldkit/foldkit/tree/main/packages/foldkit',
   npm: 'https://www.npmjs.com/package/foldkit',
   websiteSource:
-    'https://github.com/devinjameson/foldkit/tree/main/packages/website',
+    'https://github.com/foldkit/foldkit/tree/main/packages/website',
   changelog:
-    'https://github.com/devinjameson/foldkit/blob/main/packages/foldkit/CHANGELOG.md',
+    'https://github.com/foldkit/foldkit/blob/main/packages/foldkit/CHANGELOG.md',
 }

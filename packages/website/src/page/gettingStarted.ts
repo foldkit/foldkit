@@ -121,7 +121,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' as a git submodule in your project:',
       ),
       codeBlock(
-        'git submodule add https://github.com/devinjameson/foldkit.git repos/foldkit',
+        'git submodule add https://github.com/foldkit/foldkit.git repos/foldkit',
         'Copy submodule command',
         copiedSnippets,
         'mb-4',

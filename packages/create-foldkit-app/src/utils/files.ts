@@ -21,7 +21,7 @@ import { ParseError } from 'effect/ParseResult'
 import { fileURLToPath } from 'node:url'
 
 const GITHUB_API_BASE_URL =
-  'https://api.github.com/repos/devinjameson/foldkit/contents/examples'
+  'https://api.github.com/repos/foldkit/foldkit/contents/examples'
 
 const getBaseFiles = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem

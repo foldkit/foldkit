@@ -1,8 +1,8 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/devinjameson/foldkit/main/packages/website/public/logo-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/devinjameson/foldkit/main/packages/website/public/logo.svg">
-    <img src="https://raw.githubusercontent.com/devinjameson/foldkit/main/packages/website/public/logo.svg" alt="Foldkit" width="350">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/foldkit/foldkit/main/packages/website/public/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/foldkit/foldkit/main/packages/website/public/logo.svg">
+    <img src="https://raw.githubusercontent.com/foldkit/foldkit/main/packages/website/public/logo.svg" alt="Foldkit" width="350">
   </picture>
 </p>
 
@@ -13,7 +13,7 @@
 <h3 align="center">The frontend framework for correctness.</h3>
 
 <p align="center">
-  <a href="https://foldkit.dev"><strong>Documentation</strong></a> · <a href="https://github.com/devinjameson/foldkit#examples"><strong>Examples</strong></a> · <a href="https://foldkit.dev/getting-started"><strong>Getting Started</strong></a>
+  <a href="https://foldkit.dev"><strong>Documentation</strong></a> · <a href="https://github.com/foldkit/foldkit#examples"><strong>Examples</strong></a> · <a href="https://foldkit.dev/getting-started"><strong>Getting Started</strong></a>
 </p>
 
 ---
@@ -129,7 +129,7 @@ const element = Runtime.makeElement({
 Runtime.run(element)
 ```
 
-Source: [examples/counter/src/main.ts](https://github.com/devinjameson/foldkit/blob/main/examples/counter/src/main.ts)
+Source: [examples/counter/src/main.ts](https://github.com/foldkit/foldkit/blob/main/examples/counter/src/main.ts)
 
 ## What Ships With Foldkit
 
@@ -153,19 +153,19 @@ This is what makes Foldkit unusually AI-friendly. The same property that makes t
 
 ## Examples
 
-- **[Counter](https://github.com/devinjameson/foldkit/blob/main/examples/counter/src/main.ts)** — Increment/decrement with reset
-- **[Todo](https://github.com/devinjameson/foldkit/blob/main/examples/todo/src/main.ts)** — CRUD operations with localStorage persistence
-- **[Stopwatch](https://github.com/devinjameson/foldkit/blob/main/examples/stopwatch/src/main.ts)** — Timer with start/stop/reset
-- **[Error View](https://github.com/devinjameson/foldkit/blob/main/examples/error-view/src/main.ts)** — Custom error fallback UI
-- **[Form](https://github.com/devinjameson/foldkit/blob/main/examples/form/src/main.ts)** — Form validation with async email checking
-- **[Weather](https://github.com/devinjameson/foldkit/blob/main/examples/weather/src/main.ts)** — HTTP requests with async state handling
-- **[Routing](https://github.com/devinjameson/foldkit/blob/main/examples/routing/src/main.ts)** — URL routing with parser combinators
-- **[Query Sync](https://github.com/devinjameson/foldkit/blob/main/examples/query-sync/src/main.ts)** — URL query parameter sync with filtering and sorting
-- **[Snake](https://github.com/devinjameson/foldkit/blob/main/examples/snake/src/main.ts)** — Classic game built with Subscriptions
-- **[Auth](https://github.com/devinjameson/foldkit/blob/main/examples/auth/src/main.ts)** — Authentication flow with Submodels and OutMessage
-- **[Shopping Cart](https://github.com/devinjameson/foldkit/blob/main/examples/shopping-cart/src/main.ts)** — Nested models and complex state
-- **[WebSocket Chat](https://github.com/devinjameson/foldkit/blob/main/examples/websocket-chat/src/main.ts)** — Managed Resources with WebSocket integration
-- **[Typing Game](https://github.com/devinjameson/foldkit/tree/main/packages/typing-game)** — Multiplayer typing game with Effect RPC backend
+- **[Counter](https://github.com/foldkit/foldkit/blob/main/examples/counter/src/main.ts)** — Increment/decrement with reset
+- **[Todo](https://github.com/foldkit/foldkit/blob/main/examples/todo/src/main.ts)** — CRUD operations with localStorage persistence
+- **[Stopwatch](https://github.com/foldkit/foldkit/blob/main/examples/stopwatch/src/main.ts)** — Timer with start/stop/reset
+- **[Error View](https://github.com/foldkit/foldkit/blob/main/examples/error-view/src/main.ts)** — Custom error fallback UI
+- **[Form](https://github.com/foldkit/foldkit/blob/main/examples/form/src/main.ts)** — Form validation with async email checking
+- **[Weather](https://github.com/foldkit/foldkit/blob/main/examples/weather/src/main.ts)** — HTTP requests with async state handling
+- **[Routing](https://github.com/foldkit/foldkit/blob/main/examples/routing/src/main.ts)** — URL routing with parser combinators
+- **[Query Sync](https://github.com/foldkit/foldkit/blob/main/examples/query-sync/src/main.ts)** — URL query parameter sync with filtering and sorting
+- **[Snake](https://github.com/foldkit/foldkit/blob/main/examples/snake/src/main.ts)** — Classic game built with Subscriptions
+- **[Auth](https://github.com/foldkit/foldkit/blob/main/examples/auth/src/main.ts)** — Authentication flow with Submodels and OutMessage
+- **[Shopping Cart](https://github.com/foldkit/foldkit/blob/main/examples/shopping-cart/src/main.ts)** — Nested models and complex state
+- **[WebSocket Chat](https://github.com/foldkit/foldkit/blob/main/examples/websocket-chat/src/main.ts)** — Managed Resources with WebSocket integration
+- **[Typing Game](https://github.com/foldkit/foldkit/tree/main/packages/typing-game)** — Multiplayer typing game with Effect RPC backend
 
 ## License
 

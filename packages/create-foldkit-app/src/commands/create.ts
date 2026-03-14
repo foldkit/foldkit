@@ -104,7 +104,7 @@ const displaySuccessMessage = (name: string, packageManager: PackageManager) =>
     )
     yield* Console.log('')
     yield* Console.log(
-      `  Bugs / ideas: ${chalk.cyan('github.com/devinjameson/foldkit/issues')}`,
+      `  Bugs / ideas: ${chalk.cyan('github.com/foldkit/foldkit/issues')}`,
     )
     yield* Console.log(`  Say hi:       ${chalk.cyan('x.com/devinjameson')}`)
   })

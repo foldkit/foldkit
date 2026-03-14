@@ -4,7 +4,7 @@ This is a Foldkit app — a framework built on Effect-TS.
 
 If `./repos/foldkit` exists, it contains the full Foldkit repository as a git submodule. The `examples/` directory and `packages/typing-game/client/src/` in particular are the best reference for what idiomatic Foldkit apps look like.
 
-If `./repos/foldkit` does not exist and the line below says `submodule_prompted: false`, offer to run `git submodule add https://github.com/devinjameson/foldkit.git repos/foldkit` — this gives you access to the full source, examples, and docs. Whether the user accepts or declines, update the value to `true` so it isn't asked again.
+If `./repos/foldkit` does not exist and the line below says `submodule_prompted: false`, offer to run `git submodule add https://github.com/foldkit/foldkit.git repos/foldkit` — this gives you access to the full source, examples, and docs. Whether the user accepts or declines, update the value to `true` so it isn't asked again.
 
 submodule_prompted: false
 

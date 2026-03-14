@@ -129,7 +129,7 @@ const element = Runtime.makeElement({
 Runtime.run(element)
 ```
 
-Source: [examples/counter/src/main.ts](https://github.com/devinjameson/foldkit/blob/main/examples/counter/src/main.ts)
+Source: [examples/counter/src/main.ts](https://github.com/foldkit/foldkit/blob/main/examples/counter/src/main.ts)
 
 ## What Ships With Foldkit
 
@@ -171,7 +171,7 @@ This is what makes Foldkit unusually AI-friendly. The same property that makes t
 ## Development
 
 ```bash
-git clone https://github.com/devinjameson/foldkit.git
+git clone https://github.com/foldkit/foldkit.git
 cd foldkit
 pnpm install
 
