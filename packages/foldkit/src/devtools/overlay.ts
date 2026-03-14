@@ -835,7 +835,11 @@ const makeView = (
     )
 
     return div(
-      [Class('inspector-tree flex-1 overflow-auto min-h-0 min-w-0 overscroll-none')],
+      [
+        Class(
+          'inspector-tree flex-1 overflow-auto min-h-0 min-w-0 overscroll-none',
+        ),
+      ],
       nodes.map(flatNodeView),
     )
   }
