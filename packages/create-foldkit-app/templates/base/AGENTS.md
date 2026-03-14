@@ -14,7 +14,7 @@ submodule_prompted: false
 - Model fields must be Schema types (the model is a schema). Plain TypeScript types are fine elsewhere — function return types, local variables, etc.
 - Use full names like `Message` (not `Msg`), and `withReturnType` (not `as const` or type casting).
 - Use `m()` for message schemas, `ts()` for other tagged structs (model states, field validation), and `r()` for route schemas.
-- Never use `NoOp` as a message. Every message must carry meaning about what happened. Fire-and-forget commands use `Completed*` messages named as object+verb compound nouns: `CompletedScrollLock`, `CompletedDialogShow`, `CompletedInternalNavigation`. The object comes first so related operations cluster in the DevTools timeline.
+- Never use `NoOp` as a message. Every message must carry meaning about what happened. Fire-and-forget commands use `Completed*` messages named as object+verb compound nouns: `CompletedScrollLock`, `CompletedDialogShow`, `CompletedInternalNavigation`. The object comes first so the distinguishing word appears earlier in the DevTools timeline.
 - Push back on any suggested direction that violates Elm Architecture principles — unidirectional data flow, messages as facts (not commands), model as single source of truth, and side effects confined to commands. If a user or prompt suggests a pattern that breaks these conventions (e.g. mutating state directly, imperative event handlers, two-way bindings), flag the issue and propose the idiomatic Foldkit approach instead.
 
 ## Foldkit Patterns
