@@ -22,6 +22,7 @@ import {
   GotListboxMultiDemoMessage,
   GotMenuAnimatedDemoMessage,
   GotMenuBasicDemoMessage,
+  GotMobileMenuDialogMessage,
   GotPopoverAnimatedDemoMessage,
   GotPopoverBasicDemoMessage,
   GotSwitchDemoMessage,
@@ -38,6 +39,20 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
+      GotMobileMenuDialogMessage: ({ message }) => {
+        const [nextMobileMenuDialog, mobileMenuDialogCommands] =
+          Ui.Dialog.update(model.mobileMenuDialog, message)
+
+        return [
+          evo(model, {
+            mobileMenuDialog: () => nextMobileMenuDialog,
+          }),
+          mobileMenuDialogCommands.map(
+            Effect.map(message => GotMobileMenuDialogMessage({ message })),
+          ),
+        ]
+      },
+
       UpdatedInputDemoValue: ({ value }) => [
         evo(model, { inputDemoValue: () => value }),
         [],

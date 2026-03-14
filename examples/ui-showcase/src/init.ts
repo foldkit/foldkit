@@ -6,6 +6,7 @@ import type { UiModel } from './model'
 
 export const uiInit = (): [UiModel, ReadonlyArray<Command<UiMessage>>] => [
   {
+    mobileMenuDialog: Ui.Dialog.init({ id: 'mobile-menu' }),
     buttonClickCount: 0,
     inputDemoValue: '',
     textareaDemoValue: '',

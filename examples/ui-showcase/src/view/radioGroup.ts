@@ -47,7 +47,7 @@ const verticalGroupClassName = 'flex flex-col gap-3 w-full'
 const verticalOptionClassName =
   'relative flex cursor-pointer rounded-lg border border-gray-200 p-4 transition-colors hover:bg-gray-50 data-[checked]:border-accent-600 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2'
 
-const horizontalGroupClassName = 'flex flex-row gap-3 w-full'
+const horizontalGroupClassName = 'flex flex-col sm:flex-row gap-3 w-full'
 
 const horizontalOptionClassName =
   'relative flex flex-1 cursor-pointer rounded-lg border border-gray-200 p-4 transition-colors hover:bg-gray-50 data-[checked]:border-accent-600 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2'

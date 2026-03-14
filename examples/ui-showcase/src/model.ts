@@ -13,6 +13,7 @@ import {
 } from 'foldkit/ui'
 
 export const UiModel = S.Struct({
+  mobileMenuDialog: Dialog.Model,
   buttonClickCount: S.Number,
   inputDemoValue: S.String,
   textareaDemoValue: S.String,
