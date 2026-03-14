@@ -2,6 +2,9 @@ import { Schema as S } from 'effect'
 import { Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 
+export const GotMobileMenuDialogMessage = m('GotMobileMenuDialogMessage', {
+  message: Ui.Dialog.Message,
+})
 export const ClickedButtonDemo = m('ClickedButtonDemo')
 export const UpdatedInputDemoValue = m('UpdatedInputDemoValue', {
   value: S.String,
@@ -116,6 +119,7 @@ export const GotVerticalTabsDemoMessage = m('GotVerticalTabsDemoMessage', {
 })
 
 export const UiMessage = S.Union(
+  GotMobileMenuDialogMessage,
   ClickedButtonDemo,
   UpdatedInputDemoValue,
   UpdatedTextareaDemoValue,

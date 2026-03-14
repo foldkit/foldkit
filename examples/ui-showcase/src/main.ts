@@ -1,16 +1,22 @@
 import { Effect, Match as M, Schema as S, pipe } from 'effect'
-import { Route, Runtime } from 'foldkit'
+import { Route, Runtime, Ui } from 'foldkit'
 import { Command } from 'foldkit/command'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { load, pushUrl } from 'foldkit/navigation'
 import { literal, r } from 'foldkit/route'
 import { evo } from 'foldkit/struct'
+import { makeSubscriptions } from 'foldkit/subscription'
 import { Url, toString as urlToString } from 'foldkit/url'
 
+import * as Icon from './icon'
 import { uiInit } from './init'
-import { UiMessage } from './message'
+import {
+  GotMobileMenuDialogMessage as GotUiMobileMenuDialogMessage,
+  UiMessage,
+} from './message'
 import { UiModel } from './model'
+import * as ViewportWidth from './subscription/viewportWidth'
 import { uiUpdate } from './update'
 import * as ButtonView from './view/button'
 import * as CheckboxView from './view/checkbox'
@@ -114,14 +120,20 @@ const routeParser = Route.oneOf(
 
 const urlToAppRoute = Route.parseUrlWithFallback(routeParser, NotFoundRoute)
 
+export const NARROW_VIEWPORT_QUERY = '(max-width: 767px)'
+
+const getIsNarrowViewport = (): boolean =>
+  window.matchMedia(NARROW_VIEWPORT_QUERY).matches
+
 // MODEL
 
-const Model = S.Struct({
+export const Model = S.Struct({
   route: AppRoute,
+  isNarrowViewport: S.Boolean,
   uiModel: UiModel,
 })
 
-type Model = typeof Model.Type
+export type Model = typeof Model.Type
 
 // MESSAGE
 
@@ -130,11 +142,20 @@ const ClickedLink = m('ClickedLink', {
   request: Runtime.UrlRequest,
 })
 const ChangedUrl = m('ChangedUrl', { url: Url })
+export const ChangedViewportWidth = m('ChangedViewportWidth', {
+  isNarrow: S.Boolean,
+})
 const GotUiMessage = m('GotUiMessage', {
   message: UiMessage,
 })
 
-export const Message = S.Union(NoOp, ClickedLink, ChangedUrl, GotUiMessage)
+export const Message = S.Union(
+  NoOp,
+  ClickedLink,
+  ChangedUrl,
+  ChangedViewportWidth,
+  GotUiMessage,
+)
 export type Message = typeof Message.Type
 
 // INIT
@@ -145,6 +166,7 @@ const init: Runtime.ApplicationInit<Model, Message> = (url: Url) => {
   return [
     {
       route: urlToAppRoute(url),
+      isNarrowViewport: getIsNarrowViewport(),
       uiModel: initialUiModel,
     },
     uiCommands.map(Effect.map(message => GotUiMessage({ message }))),
@@ -155,6 +177,9 @@ const init: Runtime.ApplicationInit<Model, Message> = (url: Url) => {
 
 const toUiMessage = (message: typeof UiMessage.Type): Message =>
   GotUiMessage({ message })
+
+const toMobileMenuDialogMessage = (message: Ui.Dialog.Message): Message =>
+  GotUiMessage({ message: GotUiMobileMenuDialogMessage({ message }) })
 
 const update = (
   model: Model,
@@ -183,10 +208,28 @@ const update = (
           }),
         ),
 
-      ChangedUrl: ({ url }) => [
-        evo(model, {
-          route: () => urlToAppRoute(url),
-        }),
+      ChangedUrl: ({ url }) => {
+        const [closedDialog, closeDialogCommands] = Ui.Dialog.update(
+          model.uiModel.mobileMenuDialog,
+          Ui.Dialog.Closed(),
+        )
+
+        return [
+          evo(model, {
+            route: () => urlToAppRoute(url),
+            uiModel: uiModel =>
+              evo(uiModel, {
+                mobileMenuDialog: () => closedDialog,
+              }),
+          }),
+          closeDialogCommands.map(
+            Effect.map(message => toMobileMenuDialogMessage(message)),
+          ),
+        ]
+      },
+
+      ChangedViewportWidth: ({ isNarrow }) => [
+        evo(model, { isNarrowViewport: () => isNarrow }),
         [],
       ],
 
@@ -203,8 +246,10 @@ const update = (
 
 // VIEW
 
-const { a, div, h1, keyed, li, main, nav, p, span, ul, Class, Href } =
+const { a, button, div, h1, header, keyed, li, main, nav, p, span, ul } =
   html<Message>()
+
+const { AriaExpanded, AriaLabel, Class, Href, OnClick } = html<Message>()
 
 type NavItem = Readonly<{
   label: string
@@ -230,9 +275,27 @@ const NAV_ITEMS: ReadonlyArray<NavItem> = [
   { label: 'Textarea', routeTag: 'Textarea', href: textareaRouter() },
 ]
 
+const navLinkClassName = (isActive: boolean): string =>
+  `block px-3 py-1.5 rounded-md text-sm transition-colors ${
+    isActive
+      ? 'bg-accent-100 text-accent-700'
+      : 'text-gray-700 hover:bg-gray-200'
+  }`
+
+const mobileNavLinkClassName = (isActive: boolean): string =>
+  `block px-4 py-2.5 rounded-md text-base transition-colors ${
+    isActive
+      ? 'bg-accent-100 text-accent-700'
+      : 'text-gray-700 hover:bg-gray-200'
+  }`
+
 const sidebarView = (currentRoute: AppRoute): Html =>
   nav(
-    [Class('w-56 shrink-0 border-r border-gray-200 bg-gray-50 p-4')],
+    [
+      Class(
+        'hidden md:flex w-56 shrink-0 border-r border-gray-200 bg-gray-50 p-4 flex-col',
+      ),
+    ],
     [
       div(
         [Class('mb-6')],
@@ -253,13 +316,7 @@ const sidebarView = (currentRoute: AppRoute): Html =>
               a(
                 [
                   Href(navItem.href),
-                  Class(
-                    `block px-3 py-1.5 rounded-md text-sm transition-colors ${
-                      currentRoute._tag === navItem.routeTag
-                        ? 'bg-accent-100 text-accent-700'
-                        : 'text-gray-700 hover:bg-gray-200'
-                    }`,
-                  ),
+                  Class(navLinkClassName(currentRoute._tag === navItem.routeTag)),
                 ],
                 [navItem.label],
               ),
@@ -270,12 +327,128 @@ const sidebarView = (currentRoute: AppRoute): Html =>
     ],
   )
 
+const mobileMenuContent = (currentRoute: AppRoute): Html =>
+  div(
+    [Class('flex flex-col h-full')],
+    [
+      div(
+        [Class('flex items-center justify-between border-b border-gray-200 px-4 py-3')],
+        [
+          a(
+            [Href(homeRouter()), Class('block')],
+            [
+              div(
+                [Class('flex flex-col')],
+                [
+                  span(
+                    [Class('text-base font-bold text-gray-900')],
+                    ['Foldkit UI'],
+                  ),
+                  span(
+                    [Class('text-xs text-gray-500')],
+                    ['Component Showcase'],
+                  ),
+                ],
+              ),
+            ],
+          ),
+          button(
+            [
+              Class(
+                'p-2 rounded-md hover:bg-gray-200 transition text-gray-700 cursor-pointer',
+              ),
+              AriaLabel('Close menu'),
+              OnClick(toMobileMenuDialogMessage(Ui.Dialog.Closed())),
+            ],
+            [Icon.xMark('w-6 h-6')],
+          ),
+        ],
+      ),
+      nav(
+        [Class('flex-1 overflow-y-auto p-4')],
+        [
+          ul(
+            [Class('flex flex-col gap-0.5')],
+            NAV_ITEMS.map(navItem =>
+              li(
+                [],
+                [
+                  a(
+                    [
+                      Href(navItem.href),
+                      Class(
+                        mobileNavLinkClassName(
+                          currentRoute._tag === navItem.routeTag,
+                        ),
+                      ),
+                    ],
+                    [navItem.label],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ],
+  )
+
+const mobileHeaderView = (model: Model): Html =>
+  header(
+    [
+      Class(
+        'md:hidden flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3',
+      ),
+    ],
+    [
+      a(
+        [Href(homeRouter()), Class('block')],
+        [
+          div(
+            [Class('flex flex-col')],
+            [
+              span(
+                [Class('text-base font-bold text-gray-900')],
+                ['Foldkit UI'],
+              ),
+              span(
+                [Class('text-xs text-gray-500')],
+                ['Component Showcase'],
+              ),
+            ],
+          ),
+        ],
+      ),
+      button(
+        [
+          Class(
+            'p-2 rounded-md hover:bg-gray-200 transition text-gray-700 cursor-pointer',
+          ),
+          AriaExpanded(model.uiModel.mobileMenuDialog.isOpen),
+          AriaLabel('Toggle menu'),
+          OnClick(toMobileMenuDialogMessage(Ui.Dialog.Opened())),
+        ],
+        [Icon.menu('w-6 h-6')],
+      ),
+    ],
+  )
+
+const mobileMenuView = (model: Model): Html =>
+  Ui.Dialog.view({
+    model: model.uiModel.mobileMenuDialog,
+    toMessage: message => toMobileMenuDialogMessage(message),
+    panelContent: mobileMenuContent(model.route),
+    panelClassName: 'fixed inset-0 z-[60] bg-white flex flex-col',
+    backdropClassName: 'fixed inset-0 z-[59]',
+    className: 'md:hidden',
+  })
+
 const homeView = (): Html =>
   div(
     [Class('max-w-2xl')],
     [
       h1(
-        [Class('text-3xl font-bold text-gray-900 mb-4')],
+        [Class('text-2xl md:text-3xl font-bold text-gray-900 mb-4')],
         ['Foldkit UI Showcase'],
       ),
       p(
@@ -298,7 +471,7 @@ const notFoundView = (path: string): Html =>
     [Class('max-w-2xl')],
     [
       h1(
-        [Class('text-3xl font-bold text-red-600 mb-4')],
+        [Class('text-2xl md:text-3xl font-bold text-red-600 mb-4')],
         ['404 — Page Not Found'],
       ),
       p([Class('text-gray-600 mb-4')], [`The path "${path}" was not found.`]),
@@ -334,15 +507,29 @@ const contentView = (model: Model): Html =>
 
 const view = (model: Model): Html =>
   div(
-    [Class('flex min-h-screen bg-white')],
+    [Class('flex flex-col md:flex-row min-h-screen bg-white')],
     [
+      mobileHeaderView(model),
+      mobileMenuView(model),
       sidebarView(model.route),
       main(
-        [Class('flex-1 p-8 overflow-auto')],
+        [Class('flex-1 p-4 md:p-8 overflow-auto')],
         [keyed('div')(model.route._tag, [], [contentView(model)])],
       ),
     ],
   )
+
+// SUBSCRIPTION
+
+const SubscriptionDeps = S.Struct({
+  viewportWidth: S.Null,
+})
+
+export type SubscriptionDeps = typeof SubscriptionDeps.Type
+
+const subscriptions = makeSubscriptions(SubscriptionDeps)<Model, Message>({
+  viewportWidth: ViewportWidth.viewportWidth,
+})
 
 // RUN
 
@@ -351,6 +538,7 @@ const app = Runtime.makeApplication({
   init,
   update,
   view,
+  subscriptions,
   container: document.getElementById('root')!,
   browser: {
     onUrlRequest: request => ClickedLink({ request }),

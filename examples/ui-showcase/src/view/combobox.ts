@@ -53,7 +53,7 @@ const itemClassName =
 
 const backdropClassName = 'fixed inset-0 z-0'
 
-const wrapperClassName = 'relative w-72'
+const wrapperClassName = 'relative w-full max-w-72'
 
 const tagClassName =
   'inline-flex items-center gap-1 px-2 py-0.5 text-sm rounded-md bg-gray-200 text-gray-700'
