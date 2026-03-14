@@ -9,9 +9,7 @@ import {
 } from 'effect'
 
 import type { Command } from '../../command'
-import { html } from '../../html'
-import type { Html, TagName } from '../../html'
-import { createLazy } from '../../html/lazy'
+import { type Html, type TagName, createLazy, html } from '../../html'
 import { m } from '../../message'
 import { evo } from '../../struct'
 import * as Task from '../../task'

@@ -11,8 +11,7 @@ import {
 
 import type { Command } from '../../command'
 import { OptionExt } from '../../effectExtensions'
-import { type Html, html } from '../../html'
-import { createLazy } from '../../html/lazy'
+import { type Html, createLazy, html } from '../../html'
 import { m } from '../../message'
 import { evo } from '../../struct'
 import * as Task from '../../task'

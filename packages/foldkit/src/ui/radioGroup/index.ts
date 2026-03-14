@@ -10,10 +10,7 @@ import {
 } from 'effect'
 
 import type { Command } from '../../command'
-import type { Attribute } from '../../html'
-import { html } from '../../html'
-import type { Html } from '../../html'
-import { createLazy } from '../../html/lazy'
+import { type Attribute, type Html, createLazy, html } from '../../html'
 import { m } from '../../message'
 import { evo } from '../../struct'
 import * as Task from '../../task'

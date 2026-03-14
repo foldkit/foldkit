@@ -1,7 +1,6 @@
 import { Array, Option, Schema as S, pipe } from 'effect'
 
-import type { Html } from '../../html'
-import { createLazy } from '../../html/lazy'
+import { type Html, createLazy } from '../../html'
 import { evo } from '../../struct'
 import {
   type BaseInitConfig,

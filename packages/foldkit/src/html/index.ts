@@ -16,6 +16,8 @@ import type { Attrs, On, Props, VNodeData } from 'snabbdom'
 import { Dispatch } from '../runtime'
 import { VNode } from '../vdom'
 
+export { createKeyedLazy, createLazy } from './lazy'
+
 /** Modifier key state extracted from a `KeyboardEvent`. */
 export type KeyboardModifiers = Readonly<{
   shiftKey: boolean
