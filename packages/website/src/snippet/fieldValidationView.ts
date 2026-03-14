@@ -5,7 +5,7 @@ const borderClass = (field: StringField) =>
     M.tagsExhaustive({
       NotValidated: () => 'border-gray-300',
       Validating: () => 'border-accent-300',
-      Valid: () => 'border-green-500',
+      Valid: () => 'border-accent-500',
       Invalid: () => 'border-red-500',
     }),
   )

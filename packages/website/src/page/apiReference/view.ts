@@ -287,7 +287,7 @@ const returnTypeView = (returnType: string): Html =>
     [Class('whitespace-pre-wrap')],
     [
       punctuation('→ '),
-      span([Class('text-green-600 dark:text-green-400')], [returnType]),
+      span([Class('text-accent-600 dark:text-accent-400')], [returnType]),
     ],
   )
 

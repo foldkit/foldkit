@@ -1,4 +1,9 @@
-import { KeyValueStore } from '@effect/platform'
+import {
+  FetchHttpClient,
+  HttpClient,
+  HttpClientRequest,
+  KeyValueStore,
+} from '@effect/platform'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { inject } from '@vercel/analytics'
 import * as SpeedInsights from '@vercel/speed-insights'
@@ -10,9 +15,10 @@ import {
   Match as M,
   Option,
   Schema as S,
+  flow,
   pipe,
 } from 'effect'
-import { Runtime, Ui } from 'foldkit'
+import { FieldValidation, Runtime, Ui } from 'foldkit'
 import { Command } from 'foldkit/command'
 import { Html, createKeyedLazy, createLazy } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -34,15 +40,22 @@ import {
   AriaExpanded,
   AriaHidden,
   AriaLabel,
+  AriaLive,
   Autofocus,
   Class,
+  Disabled,
   Href,
   Id,
   OnClick,
+  OnInput,
+  OnSubmit,
   OnToggle,
   Open,
+  Placeholder,
   Src,
   Tabindex,
+  Type,
+  Value,
   a,
   aside,
   button,
@@ -50,14 +63,18 @@ import {
   div,
   empty,
   footer,
+  form,
+  h2,
   h3,
   header,
   img,
+  input,
   keyed,
   li,
   main,
   nav,
   p,
+  section,
   span,
   summary,
   ul,
@@ -104,6 +121,17 @@ const resolveTheme = (
     M.exhaustive,
   )
 
+const StringField = FieldValidation.makeField(S.String)
+type StringField = typeof StringField.Union.Type
+
+const EmailSubscriptionStatus = S.Literal(
+  'Idle',
+  'Submitting',
+  'Succeeded',
+  'Failed',
+)
+type EmailSubscriptionStatus = typeof EmailSubscriptionStatus.Type
+
 // FLAGS
 
 const Flags = S.Struct({
@@ -149,6 +177,8 @@ export const Model = S.Struct({
   route: AppRoute,
   url: Url,
   copiedSnippets: S.HashSet(S.String),
+  emailField: StringField.Union,
+  emailSubscriptionStatus: EmailSubscriptionStatus,
   mobileMenuDialog: Ui.Dialog.Model,
   isMobileTableOfContentsOpen: S.Boolean,
   activeSection: S.Option(S.String),
@@ -200,6 +230,10 @@ const SucceededCopy = m('SucceededCopy', { text: S.String })
 const HiddenCopiedIndicator = m('HiddenCopiedIndicator', {
   text: S.String,
 })
+const UpdatedEmailField = m('UpdatedEmailField', { value: S.String })
+const SubmittedEmailForm = m('SubmittedEmailForm')
+const SucceededEmailSubscription = m('SucceededEmailSubscription')
+const FailedEmailSubscription = m('FailedEmailSubscription')
 const GotMobileMenuDialogMessage = m('GotMobileMenuDialogMessage', {
   message: Ui.Dialog.Message,
 })
@@ -283,6 +317,10 @@ const Message = S.Union(
   ClickedCopyLink,
   SucceededCopy,
   HiddenCopiedIndicator,
+  UpdatedEmailField,
+  SubmittedEmailForm,
+  SucceededEmailSubscription,
+  FailedEmailSubscription,
   GotMobileMenuDialogMessage,
   ToggledMobileTableOfContents,
   ClickedMobileTableOfContentsLink,
@@ -366,6 +404,8 @@ const init: Runtime.ApplicationInit<
       route: initialRoute,
       url,
       copiedSnippets: HashSet.empty(),
+      emailField: StringField.NotValidated({ value: '' }),
+      emailSubscriptionStatus: 'Idle',
       mobileMenuDialog: Ui.Dialog.init({ id: 'mobile-menu' }),
       isMobileTableOfContentsOpen: false,
       activeSection: Option.none(),
@@ -408,7 +448,7 @@ const init: Runtime.ApplicationInit<
       uiPages,
       comingFromReact,
       apiReference,
-      exampleDetail: Page.Example.ExampleDetail.init('src/main.ts')[0],
+      exampleDetail: Page.Example.ExampleDetail.init()[0],
     },
     [
       injectAnalytics,
@@ -496,7 +536,13 @@ const update = (
               nextRoute._tag === 'ExampleDetail' &&
               model.route._tag === 'ExampleDetail' &&
               nextRoute.exampleSlug !== model.route.exampleSlug
-                ? { ...exampleDetail, maybeExampleUrl: Option.none() }
+                ? {
+                    ...exampleDetail,
+                    sourceFileTabs: Ui.Tabs.init({
+                      id: 'source-file-tabs',
+                    }),
+                    maybeExampleUrl: Option.none(),
+                  }
                 : exampleDetail,
           }),
           [
@@ -535,6 +581,43 @@ const update = (
       HiddenCopiedIndicator: ({ text }) => [
         evo(model, {
           copiedSnippets: HashSet.remove(text),
+        }),
+        [],
+      ],
+
+      UpdatedEmailField: ({ value }) => [
+        evo(model, {
+          emailField: () => StringField.NotValidated({ value }),
+          emailSubscriptionStatus: () => 'Idle',
+        }),
+        [],
+      ],
+
+      SubmittedEmailForm: () => {
+        const result = validateEmail(model.emailField.value)
+
+        return result._tag === 'Valid'
+          ? [
+              evo(model, {
+                emailField: () => result,
+                emailSubscriptionStatus: () => 'Submitting',
+              }),
+              [subscribeToNewsletterLive(model.emailField.value)],
+            ]
+          : [evo(model, { emailField: () => result }), []]
+      },
+
+      SucceededEmailSubscription: () => [
+        evo(model, {
+          emailField: () => StringField.NotValidated({ value: '' }),
+          emailSubscriptionStatus: () => 'Succeeded',
+        }),
+        [],
+      ],
+
+      FailedEmailSubscription: () => [
+        evo(model, {
+          emailSubscriptionStatus: () => 'Failed',
         }),
         [],
       ],
@@ -910,6 +993,44 @@ const applyThemeToDocument = (
     )
     return CompletedApplyTheme()
   })
+
+const BUTTONDOWN_SUBSCRIBE_URL =
+  'https://buttondown.com/api/emails/embed-subscribe/foldkit'
+
+const validateEmail = StringField.validate([
+  FieldValidation.required('Email is required'),
+  FieldValidation.email('Please enter a valid email address'),
+])
+
+const subscribeToNewsletter = (
+  email: string,
+): Command<
+  typeof SucceededEmailSubscription | typeof FailedEmailSubscription,
+  never,
+  HttpClient.HttpClient
+> =>
+  Effect.gen(function* () {
+    const client = yield* HttpClient.HttpClient
+    const request = HttpClientRequest.post(BUTTONDOWN_SUBSCRIBE_URL).pipe(
+      HttpClientRequest.bodyUrlParams({ email }),
+    )
+    const response = yield* client.execute(request)
+
+    if (response.status >= 400) {
+      return yield* Effect.fail('Subscription failed')
+    }
+
+    return SucceededEmailSubscription()
+  }).pipe(
+    Effect.scoped,
+    Effect.catchAll(() => Effect.succeed(FailedEmailSubscription())),
+  )
+
+const subscribeToNewsletterLive = flow(
+  subscribeToNewsletter,
+  Effect.locally(HttpClient.currentTracerPropagation, false),
+  Effect.provide(FetchHttpClient.layer),
+)
 
 const saveThemePreference = (
   preference: ThemePreference,
@@ -1515,6 +1636,116 @@ const landingFooter: Html = footer(
   ],
 )
 
+const emailFormView = (
+  emailField: StringField,
+  status: 'Idle' | 'Submitting' | 'Failed',
+): Html => {
+  const isSubmitting = status === 'Submitting'
+
+  return div(
+    [],
+    [
+      form(
+        [
+          OnSubmit(SubmittedEmailForm()),
+          Class('flex flex-col sm:flex-row gap-3 max-w-md'),
+        ],
+        [
+          div(
+            [Class('flex-1')],
+            [
+              input([
+                Type('email'),
+                AriaLabel('Email address'),
+                Placeholder('you@example.com'),
+                Value(emailField.value),
+                OnInput(value => UpdatedEmailField({ value })),
+                Disabled(isSubmitting),
+                Class(
+                  clsx(
+                    'w-full px-4 py-2.5 rounded-lg border bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent-500 dark:focus:ring-accent-400 disabled:opacity-60',
+                    emailField._tag === 'Invalid'
+                      ? 'border-red-500 dark:border-red-400'
+                      : 'border-gray-300 dark:border-gray-700',
+                  ),
+                ),
+              ]),
+              emailField._tag === 'Invalid'
+                ? p(
+                    [
+                      AriaLive('polite'),
+                      Class('mt-1.5 text-sm text-red-600 dark:text-red-400'),
+                    ],
+                    [Array.headNonEmpty(emailField.errors)],
+                  )
+                : empty,
+            ],
+          ),
+          button(
+            [
+              Type('submit'),
+              Disabled(isSubmitting),
+              Class(
+                'px-6 py-2.5 rounded-lg bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 font-normal transition hover:bg-accent-700 dark:hover:bg-accent-600 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer',
+              ),
+            ],
+            [isSubmitting ? 'Subscribing...' : 'Subscribe'],
+          ),
+        ],
+      ),
+      status === 'Failed'
+        ? p(
+            [
+              AriaLive('polite'),
+              Class('mt-3 text-sm text-red-600 dark:text-red-400'),
+            ],
+            ['Something went wrong. Please try again.'],
+          )
+        : empty,
+    ],
+  )
+}
+
+const emailSignupSectionView = (
+  emailField: StringField,
+  emailSubscriptionStatus: EmailSubscriptionStatus,
+): Html =>
+  section(
+    [Id('newsletter'), Class('landing-section py-10 md:py-14')],
+    [
+      div(
+        [Class('landing-section-narrow')],
+        [
+          h2(
+            [
+              Class(
+                'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-3 text-balance',
+              ),
+            ],
+            ['Stay in the loop.'],
+          ),
+          p(
+            [Class('text-gray-600 dark:text-gray-300 mb-6 max-w-md')],
+            ['New releases, patterns, and the occasional deep dive.'],
+          ),
+          M.value(emailSubscriptionStatus).pipe(
+            M.withReturnType<Html>(),
+            M.when('Succeeded', () =>
+              p(
+                [
+                  AriaLive('polite'),
+                  Class('text-accent-600 dark:text-accent-400 font-normal'),
+                ],
+                ['You\u2019re in! Check your email for confirmation.'],
+              ),
+            ),
+            M.orElse(status => emailFormView(emailField, status)),
+          ),
+        ],
+      ),
+    ],
+  )
+
 type DemoTab = 'Architecture' | 'Note Player'
 
 const demoTabs: ReadonlyArray<DemoTab> = ['Architecture', 'Note Player']
@@ -1535,6 +1766,11 @@ const landingView = (model: Model) => {
     model.notePlayerDemo,
     toNotePlayerDemoMessage,
   ])
+
+  const emailSignupView = emailSignupSectionView(
+    model.emailField,
+    model.emailSubscriptionStatus,
+  )
 
   const demoTabsView = Ui.Tabs.view<Message, DemoTab>({
     model: model.demoTabs,
@@ -1569,7 +1805,13 @@ const landingView = (model: Model) => {
       landingHeaderView(model),
       main(
         [Id('main-content'), Class('flex-1')],
-        [Page.Landing.view(model.copiedSnippets, demoTabsView)],
+        [
+          Page.Landing.view(
+            model.copiedSnippets,
+            demoTabsView,
+            emailSignupView,
+          ),
+        ],
       ),
       landingFooter,
     ],
@@ -1789,6 +2031,7 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
             exampleSlug,
             Page.Example.getSourcesForSlug(exampleSlug),
             model.copiedSnippets,
+            model.isNarrowViewport,
             message => GotExampleDetailMessage({ message }),
           ),
         ),

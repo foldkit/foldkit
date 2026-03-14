@@ -69,6 +69,7 @@ const glyph = (symbol: string, offsetY?: string): Html =>
 export const view = (
   copiedSnippets: CopiedSnippets,
   demoTabsView: Html,
+  emailSignupView: Html,
 ): Html =>
   div(
     [Class('isolate overflow-x-hidden')],
@@ -94,6 +95,7 @@ export const view = (
       trustSection(),
       glyph('->'),
       finalCtaSection(),
+      emailSignupView,
     ],
   )
 
@@ -708,7 +710,7 @@ const audienceForItem = (title: string, description: string): Html =>
     [Class('mb-5 flex gap-3')],
     [
       div(
-        [Class('shrink-0 mt-0.5 text-green-600 dark:text-green-400')],
+        [Class('shrink-0 mt-0.5 text-accent-600 dark:text-accent-400')],
         [Icon.check('w-5 h-5')],
       ),
       div(
