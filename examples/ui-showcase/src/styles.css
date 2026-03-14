@@ -1,5 +1,11 @@
 @import 'tailwindcss';
 
+@layer base {
+  [tabindex='-1']:focus {
+    outline: none;
+  }
+}
+
 @theme {
   --color-accent-50: #eef2ff;
   --color-accent-100: #e0e7ff;
