@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { Ui } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
@@ -20,7 +21,10 @@ const knob = (isChecked: boolean) =>
   span(
     [
       Class(
-        `pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${isChecked ? 'translate-x-6' : 'translate-x-1'}`,
+        clsx(
+          'pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transition-transform',
+          isChecked ? 'translate-x-6' : 'translate-x-1',
+        ),
       ),
     ],
     [],

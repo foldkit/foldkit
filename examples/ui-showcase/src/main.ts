@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { Effect, Match as M, Schema as S, pipe } from 'effect'
 import { Route, Runtime, Ui } from 'foldkit'
 import { Command } from 'foldkit/command'
@@ -13,21 +14,7 @@ import { uiInit } from './init'
 import { GotMobileMenuDialogMessage, UiMessage } from './message'
 import { UiModel } from './model'
 import { uiUpdate } from './update'
-import * as ButtonView from './view/button'
-import * as CheckboxView from './view/checkbox'
-import * as ComboboxView from './view/combobox'
-import * as DialogView from './view/dialog'
-import * as DisclosureView from './view/disclosure'
-import * as FieldsetView from './view/fieldset'
-import * as InputView from './view/input'
-import * as ListboxView from './view/listbox'
-import * as MenuView from './view/menu'
-import * as PopoverView from './view/popover'
-import * as RadioGroupView from './view/radioGroup'
-import * as SelectView from './view/select'
-import * as SwitchView from './view/switch'
-import * as TabsView from './view/tabs'
-import * as TextareaView from './view/textarea'
+import * as View from './view'
 
 // ROUTE
 
@@ -220,11 +207,27 @@ const update = (
 
 // VIEW
 
-const { a, button, div, h1, header, keyed, li, main, nav, p, span, ul } =
-  html<Message>()
-
-const { AriaExpanded, AriaLabel, Autofocus, Class, Href, OnClick, Tabindex } =
-  html<Message>()
+const {
+  a,
+  button,
+  div,
+  h1,
+  header,
+  keyed,
+  li,
+  main,
+  nav,
+  p,
+  span,
+  ul,
+  AriaExpanded,
+  AriaLabel,
+  Autofocus,
+  Class,
+  Href,
+  OnClick,
+  Tabindex,
+} = html<Message>()
 
 type NavItem = Readonly<{
   label: string
@@ -251,18 +254,20 @@ const NAV_ITEMS: ReadonlyArray<NavItem> = [
 ]
 
 const navLinkClassName = (isActive: boolean): string =>
-  `block px-3 py-1.5 rounded-md text-sm transition-colors ${
+  clsx(
+    'block px-3 py-1.5 rounded-md text-sm transition-colors',
     isActive
       ? 'bg-accent-100 text-accent-700'
-      : 'text-gray-700 hover:bg-gray-200'
-  }`
+      : 'text-gray-700 hover:bg-gray-200',
+  )
 
 const mobileNavLinkClassName = (isActive: boolean): string =>
-  `block px-4 py-2.5 rounded-md text-base transition-colors ${
+  clsx(
+    'block px-4 py-2.5 rounded-md text-base transition-colors',
     isActive
       ? 'bg-accent-100 text-accent-700'
-      : 'text-gray-700 hover:bg-gray-200'
-  }`
+      : 'text-gray-700 hover:bg-gray-200',
+  )
 
 const sidebarView = (currentRoute: AppRoute): Html =>
   nav(
@@ -418,7 +423,7 @@ const mobileHeaderView = (model: Model): Html =>
 const mobileMenuView = (model: Model): Html =>
   Ui.Dialog.view({
     model: model.uiModel.mobileMenuDialog,
-    toMessage: message => toMobileMenuDialogMessage(message),
+    toMessage: toMobileMenuDialogMessage,
     panelContent: mobileMenuContent(model.route),
     panelClassName: 'fixed inset-0 z-[60] bg-white flex flex-col',
     backdropClassName: 'fixed inset-0 z-[59]',
@@ -468,21 +473,21 @@ const contentView = (model: Model): Html =>
   M.value(model.route).pipe(
     M.tagsExhaustive({
       Home: homeView,
-      Button: () => ButtonView.view(model.uiModel, toUiMessage),
-      Checkbox: () => CheckboxView.view(model.uiModel, toUiMessage),
-      Combobox: () => ComboboxView.view(model.uiModel, toUiMessage),
-      Dialog: () => DialogView.view(model.uiModel, toUiMessage),
-      Disclosure: () => DisclosureView.view(model.uiModel, toUiMessage),
-      Fieldset: () => FieldsetView.view(model.uiModel, toUiMessage),
-      Input: () => InputView.view(model.uiModel, toUiMessage),
-      Listbox: () => ListboxView.view(model.uiModel, toUiMessage),
-      Menu: () => MenuView.view(model.uiModel, toUiMessage),
-      Popover: () => PopoverView.view(model.uiModel, toUiMessage),
-      RadioGroup: () => RadioGroupView.view(model.uiModel, toUiMessage),
-      Select: () => SelectView.view(model.uiModel, toUiMessage),
-      Switch: () => SwitchView.view(model.uiModel, toUiMessage),
-      Tabs: () => TabsView.view(model.uiModel, toUiMessage),
-      Textarea: () => TextareaView.view(model.uiModel, toUiMessage),
+      Button: () => View.button(model.uiModel, toUiMessage),
+      Checkbox: () => View.checkbox(model.uiModel, toUiMessage),
+      Combobox: () => View.combobox(model.uiModel, toUiMessage),
+      Dialog: () => View.dialog(model.uiModel, toUiMessage),
+      Disclosure: () => View.disclosure(model.uiModel, toUiMessage),
+      Fieldset: () => View.fieldset(model.uiModel, toUiMessage),
+      Input: () => View.input(model.uiModel, toUiMessage),
+      Listbox: () => View.listbox(model.uiModel, toUiMessage),
+      Menu: () => View.menu(model.uiModel, toUiMessage),
+      Popover: () => View.popover(model.uiModel, toUiMessage),
+      RadioGroup: () => View.radioGroup(model.uiModel, toUiMessage),
+      Select: () => View.select(model.uiModel, toUiMessage),
+      Switch: () => View.switch_(model.uiModel, toUiMessage),
+      Tabs: () => View.tabs(model.uiModel, toUiMessage),
+      Textarea: () => View.textarea(model.uiModel, toUiMessage),
       NotFound: ({ path }) => notFoundView(path),
     }),
   )

@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { Ui } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
@@ -15,7 +16,7 @@ const panelClassName =
 
 const chevron = (isOpen: boolean) =>
   span(
-    [Class(`text-gray-600 ${isOpen ? 'rotate-180' : ''}`)],
+    [Class(clsx('text-gray-600', isOpen && 'rotate-180'))],
     [Icon.chevronDown('w-4 h-4')],
   )
 

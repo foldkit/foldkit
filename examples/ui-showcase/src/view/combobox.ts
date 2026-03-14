@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { Array } from 'effect'
 import { Ui } from 'foldkit'
 import type { Html } from 'foldkit/html'
@@ -83,7 +84,10 @@ const comboboxConfig = (
         [Class('flex items-center gap-2')],
         [
           Icon.check(
-            `w-4 h-4 shrink-0 text-gray-900 ${context.isSelected ? 'visible' : 'invisible'}`,
+            clsx(
+              'w-4 h-4 shrink-0 text-gray-900',
+              context.isSelected ? 'visible' : 'invisible',
+            ),
           ),
           span([], [city]),
         ],
@@ -185,7 +189,10 @@ export const view = (
                 [Class('flex items-center gap-2')],
                 [
                   Icon.check(
-                    `w-4 h-4 shrink-0 text-gray-900 ${context.isSelected ? 'visible' : 'invisible'}`,
+                    clsx(
+                      'w-4 h-4 shrink-0 text-gray-900',
+                      context.isSelected ? 'visible' : 'invisible',
+                    ),
                   ),
                   span([], [city]),
                 ],
