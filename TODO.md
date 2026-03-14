@@ -81,6 +81,17 @@
 
 - [ ] Consider switching website code block syntax highlighting to Catppuccin Mocha — may be more readable for visitors
 
+- [ ] Advanced Form Example
+- Add a second, more advanced form example that showcases richer Foldkit UI interactions:
+  - **Dynamic fields** — adding and removing inputs (e.g. "add another phone number")
+  - **Listbox** — e.g. country or role selection
+  - **Combobox** — e.g. searchable city picker with filtering
+  - **RadioGroup** — e.g. subscription tier or notification preference
+  - **Checkbox / Switch** — e.g. terms acceptance, marketing opt-in
+  - **Fieldset** — grouping related fields (e.g. "Contact Info", "Preferences")
+  - **Cross-field validation** — e.g. "confirm email" must match "email"
+  - **Submodels pattern** — each complex field as its own submodel with OutMessage
+
 ## v1 Readiness
 
 - [ ] Animation primitives — generalize Dialog's transition state machine (`EnterStart → EnterAnimating → LeaveStart → LeaveAnimating` with `nextFrame` + `waitForTransitions`) into a first-class `Transition` module. Eliminates per-component boilerplate and enables route change animations, list enter/exit, and conditional view transitions without reimplementing the rAF dance each time. Architectural — touches the vdom layer, so better to do before 1.0 than after.
