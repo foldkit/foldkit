@@ -4,7 +4,6 @@ import { Command } from 'foldkit/command'
 import { evo } from 'foldkit/struct'
 
 import {
-  GotMobileMenuDialogMessage,
   GotCheckboxBasicDemoMessage,
   GotCheckboxOptionADemoMessage,
   GotCheckboxOptionBDemoMessage,
@@ -23,6 +22,7 @@ import {
   GotListboxMultiDemoMessage,
   GotMenuAnimatedDemoMessage,
   GotMenuBasicDemoMessage,
+  GotMobileMenuDialogMessage,
   GotPopoverAnimatedDemoMessage,
   GotPopoverBasicDemoMessage,
   GotSwitchDemoMessage,

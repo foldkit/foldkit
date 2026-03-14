@@ -316,7 +316,9 @@ const sidebarView = (currentRoute: AppRoute): Html =>
               a(
                 [
                   Href(navItem.href),
-                  Class(navLinkClassName(currentRoute._tag === navItem.routeTag)),
+                  Class(
+                    navLinkClassName(currentRoute._tag === navItem.routeTag),
+                  ),
                 ],
                 [navItem.label],
               ),
@@ -332,7 +334,11 @@ const mobileMenuContent = (currentRoute: AppRoute): Html =>
     [Class('flex flex-col h-full')],
     [
       div(
-        [Class('flex items-center justify-between border-b border-gray-200 px-4 py-3')],
+        [
+          Class(
+            'flex items-center justify-between border-b border-gray-200 px-4 py-3',
+          ),
+        ],
         [
           a(
             [Href(homeRouter()), Class('block')],
@@ -411,10 +417,7 @@ const mobileHeaderView = (model: Model): Html =>
                 [Class('text-base font-bold text-gray-900')],
                 ['Foldkit UI'],
               ),
-              span(
-                [Class('text-xs text-gray-500')],
-                ['Component Showcase'],
-              ),
+              span([Class('text-xs text-gray-500')], ['Component Showcase']),
             ],
           ),
         ],
