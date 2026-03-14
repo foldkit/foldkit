@@ -6,21 +6,16 @@ import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import {
-  AriaCurrent,
   AriaLabel,
   Class,
   Href,
   InnerHTML,
-  OnClick,
   Src,
-  Type,
   a,
-  button,
   div,
   empty,
   iframe,
   keyed,
-  nav,
   span,
 } from '../../html'
 import { Icon } from '../../icon'
@@ -34,7 +29,7 @@ import type { ExampleSourceFile, ExampleSources } from './sources'
 // MODEL
 
 export const Model = S.Struct({
-  selectedFile: S.String,
+  sourceFileTabs: Ui.Tabs.Model,
   maybeExampleUrl: S.OptionFromSelf(S.String),
   livePreviewDisclosure: Ui.Disclosure.Model,
 })
@@ -42,14 +37,16 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-const SelectedFile = m('SelectedFile', { path: S.String })
+const GotSourceFileTabsMessage = m('GotSourceFileTabsMessage', {
+  message: Ui.Tabs.Message,
+})
 export const ChangedExampleUrl = m('ChangedExampleUrl', { url: S.String })
 const GotLivePreviewDisclosureMessage = m('GotLivePreviewDisclosureMessage', {
   message: Ui.Disclosure.Message,
 })
 
 export const Message = S.Union(
-  SelectedFile,
+  GotSourceFileTabsMessage,
   ChangedExampleUrl,
   GotLivePreviewDisclosureMessage,
 )
@@ -57,11 +54,9 @@ export type Message = typeof Message.Type
 
 // INIT
 
-export const init = (
-  entryFile: string,
-): [Model, ReadonlyArray<Command<Message>>] => [
+export const init = (): [Model, ReadonlyArray<Command<Message>>] => [
   {
-    selectedFile: entryFile,
+    sourceFileTabs: Ui.Tabs.init({ id: 'source-file-tabs' }),
     maybeExampleUrl: Option.none(),
     livePreviewDisclosure: Ui.Disclosure.init({
       id: 'live-preview',
@@ -80,10 +75,18 @@ export const update = (
   M.value(message).pipe(
     M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
     M.tagsExhaustive({
-      SelectedFile: ({ path }) => [
-        evo(model, { selectedFile: () => path }),
-        [],
-      ],
+      GotSourceFileTabsMessage: ({ message }) => {
+        const [nextTabs, tabsCommands] = Ui.Tabs.update(
+          model.sourceFileTabs,
+          message,
+        )
+        return [
+          evo(model, { sourceFileTabs: () => nextTabs }),
+          tabsCommands.map(
+            Effect.map(message => GotSourceFileTabsMessage({ message })),
+          ),
+        ]
+      },
       ChangedExampleUrl: ({ url }) => [
         evo(model, { maybeExampleUrl: () => Option.some(url) }),
         [],
@@ -231,93 +234,73 @@ const livePreviewDisclosureView = (
     persistPanel: true,
   })
 
-const FILE_BUTTON_BASE =
-  'w-full text-left px-3 py-1.5 text-xs font-mono transition cursor-pointer'
+const TAB_BUTTON_BASE =
+  'px-3 py-2 lg:py-1.5 whitespace-nowrap lg:whitespace-normal lg:w-full lg:text-left text-xs font-mono transition cursor-pointer'
 
-const FILE_BUTTON_ACTIVE =
-  FILE_BUTTON_BASE +
+const TAB_BUTTON_ACTIVE =
+  TAB_BUTTON_BASE +
   ' bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium'
 
-const FILE_BUTTON_INACTIVE =
-  FILE_BUTTON_BASE +
+const TAB_BUTTON_INACTIVE =
+  TAB_BUTTON_BASE +
   ' text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/50 dark:hover:bg-gray-800/50'
-
-const fileSidebarView = (
-  files: ReadonlyArray<ExampleSourceFile>,
-  selectedFile: string,
-  toMessage: (message: Message) => ParentMessage,
-): Html =>
-  nav(
-    [
-      Class(
-        'flex-shrink-0 w-44 border-r border-gray-200 dark:border-gray-700/50 bg-gray-200 dark:bg-gray-800/50 overflow-y-auto',
-      ),
-      AriaLabel('Source files'),
-    ],
-    Array.map(files, file => {
-      const isActive = file.path === selectedFile
-      return button(
-        [
-          Type('button'),
-          Class(isActive ? FILE_BUTTON_ACTIVE : FILE_BUTTON_INACTIVE),
-          OnClick(toMessage(SelectedFile({ path: file.path }))),
-          ...(isActive ? [AriaCurrent('page')] : []),
-        ],
-        [file.path.replaceAll('/', '/\u200B')],
-      )
-    }),
-  )
 
 const sourceCodeView = (
   files: ReadonlyArray<ExampleSourceFile>,
-  selectedFile: string,
+  tabsModel: Ui.Tabs.Model,
   copiedSnippets: CopiedSnippets,
+  isNarrowViewport: boolean,
   toMessage: (message: Message) => ParentMessage,
-): Html =>
-  pipe(
-    files,
-    Array.findFirst(file => file.path === selectedFile),
-    Option.match({
-      onNone: () => empty,
-      onSome: file =>
-        div(
-          [
-            Class(
-              'flex overflow-hidden border border-gray-200 dark:border-gray-700/50',
-            ),
-          ],
-          [
-            fileSidebarView(files, selectedFile, toMessage),
+): Html => {
+  const filePaths = Array.map(files, file => file.path)
+
+  return Ui.Tabs.view({
+    model: tabsModel,
+    toMessage: message => toMessage(GotSourceFileTabsMessage({ message })),
+    tabs: filePaths,
+    tabToConfig: (filePath, { isActive }) => {
+      const maybeFile = Array.findFirst(files, file => file.path === filePath)
+
+      return {
+        buttonClassName: isActive ? TAB_BUTTON_ACTIVE : TAB_BUTTON_INACTIVE,
+        buttonContent: span([], [filePath.replaceAll('/', '/\u200B')]),
+        panelClassName: 'code-embed-panel',
+        panelContent: Option.match(maybeFile, {
+          onNone: () => empty,
+          onSome: file =>
             div(
-              [Class('code-embed-panel')],
+              [Class('code-embed-scroll')],
               [
-                div(
-                  [Class('code-embed-scroll')],
-                  [
-                    highlightedCodeBlock(
-                      div(
-                        [Class('code-embed'), InnerHTML(file.highlightedHtml)],
-                        [],
-                      ),
-                      file.rawCode,
-                      `Copy ${file.path} to clipboard`,
-                      copiedSnippets,
-                      '!mt-0',
-                    ),
-                  ],
+                highlightedCodeBlock(
+                  div(
+                    [Class('code-embed'), InnerHTML(file.highlightedHtml)],
+                    [],
+                  ),
+                  file.rawCode,
+                  `Copy ${file.path} to clipboard`,
+                  copiedSnippets,
+                  '!mt-0',
                 ),
               ],
             ),
-          ],
-        ),
-    }),
-  )
+        }),
+      }
+    },
+    orientation: isNarrowViewport ? 'Horizontal' : 'Vertical',
+    className:
+      'flex flex-col lg:flex-row overflow-hidden max-h-[80vh] border border-gray-200 dark:border-gray-700/50',
+    tabListAriaLabel: 'Source files',
+    tabListClassName:
+      'flex flex-shrink-0 overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto lg:w-44 lg:flex-col border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700/50 bg-gray-200 dark:bg-gray-800/50 divide-x lg:divide-x-0 lg:divide-y divide-gray-200 dark:divide-gray-700/50',
+  })
+}
 
 export const view = (
   model: Model,
   slug: string,
   sources: ExampleSources,
   copiedSnippets: CopiedSnippets,
+  isNarrowViewport: boolean,
   toMessage: (message: Message) => ParentMessage,
 ): Html =>
   pipe(
@@ -342,8 +325,9 @@ export const view = (
               [
                 sourceCodeView(
                   sources.files,
-                  model.selectedFile,
+                  model.sourceFileTabs,
                   copiedSnippets,
+                  isNarrowViewport,
                   toMessage,
                 ),
               ],
