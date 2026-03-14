@@ -178,6 +178,9 @@ ul {
 .overflow-y-auto {
   overflow-y: auto;
 }
+.overscroll-none {
+  overscroll-behavior: none;
+}
 
 .truncate {
   overflow: hidden;
