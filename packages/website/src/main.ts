@@ -1340,7 +1340,7 @@ const mobileTableOfContentsView = (
       summary(
         [
           Class(
-            'flex items-center justify-between px-4 py-3 cursor-pointer list-none [&::-webkit-details-marker]:hidden group-open:border-b group-open:border-gray-300 dark:group-open:border-gray-700',
+            'flex items-center justify-between px-4 py-3 cursor-pointer list-none [&::-webkit-details-marker]:hidden group-open:border-b group-open:border-gray-300 dark:group-open:border-gray-800',
           ),
         ],
         [
@@ -1375,7 +1375,7 @@ const mobileTableOfContentsView = (
         [AriaLabel('Table of contents'), Class('max-h-[50vh] overflow-y-auto')],
         [
           ul(
-            [Class('text-sm divide-y divide-gray-300 dark:divide-gray-700')],
+            [Class('text-sm divide-y divide-gray-300 dark:divide-gray-800')],
             Array.map(entries, ({ level, id, text }) => {
               const isActive = Option.match(maybeActiveSectionId, {
                 onNone: () => false,

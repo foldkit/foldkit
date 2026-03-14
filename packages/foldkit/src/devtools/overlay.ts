@@ -835,7 +835,7 @@ const makeView = (
     )
 
     return div(
-      [Class('inspector-tree flex-1 overflow-auto min-h-0 min-w-0')],
+      [Class('inspector-tree flex-1 overflow-auto min-h-0 min-w-0 overscroll-none')],
       nodes.map(flatNodeView),
     )
   }
@@ -1220,7 +1220,7 @@ const makeView = (
     )
 
     return ul(
-      [Class('message-list flex-1 overflow-y-auto min-h-0')],
+      [Class('message-list flex-1 overflow-y-auto min-h-0 overscroll-none')],
       [
         ...messageRows,
         initRowView(
