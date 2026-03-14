@@ -90,13 +90,23 @@ const runDevServerCommand = (packageManager: PackageManager) =>
 
 const displaySuccessMessage = (name: string, packageManager: PackageManager) =>
   Effect.gen(function* () {
-    yield* Console.log(chalk.bold('🎉 Success! Your Foldkit app is ready.'))
+    yield* Console.log(chalk.bold('🎉 Your Foldkit app is ready!'))
     yield* Console.log('')
-    yield* Console.log('Next steps:')
     yield* Console.log(`  ${chalk.cyan('cd')} ${name}`)
     yield* Console.log(`  ${chalk.cyan(runDevServerCommand(packageManager))}`)
     yield* Console.log('')
-    yield* Console.log('Happy coding! 🎨')
+    yield* Console.log(
+      chalk.dim(
+        'Note: Foldkit is a one-person nights-and-weekends project.\n' +
+          'If you try it and have thoughts — good, bad, or confused —\n' +
+          "I'd genuinely love to hear them.",
+      ),
+    )
+    yield* Console.log('')
+    yield* Console.log(
+      `  Bugs / ideas: ${chalk.cyan('github.com/devinjameson/foldkit/issues')}`,
+    )
+    yield* Console.log(`  Say hi:       ${chalk.cyan('x.com/devinjameson')}`)
   })
 
 export const create = ({ name, example, packageManager }: CreateOptions) =>
