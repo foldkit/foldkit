@@ -142,6 +142,7 @@ export type ViewConfig<Message, Tab extends string> = Readonly<{
   panelElement?: TagName
   className?: string
   tabListClassName?: string
+  tabListAriaLabel?: string
 }>
 
 const tabPanelId = (id: string, index: number): string => `${id}-panel-${index}`
@@ -157,6 +158,7 @@ export const view = <Message, Tab extends string>(
     empty,
     AriaControls,
     AriaDisabled,
+    AriaLabel,
     AriaLabelledBy,
     AriaOrientation,
     AriaSelected,
@@ -187,6 +189,7 @@ export const view = <Message, Tab extends string>(
     panelElement = 'div',
     className,
     tabListClassName,
+    tabListAriaLabel,
   } = config
 
   const isDisabled = (index: number): boolean =>
@@ -321,6 +324,7 @@ export const view = <Message, Tab extends string>(
     Role('tablist'),
     AriaOrientation(String.toLowerCase(orientation)),
     ...(tabListClassName ? [Class(tabListClassName)] : []),
+    ...(tabListAriaLabel ? [AriaLabel(tabListAriaLabel)] : []),
   ]
 
   const wrapperAttributes = className ? [Class(className)] : []
