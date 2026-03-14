@@ -1,11 +1,5 @@
-<svg width="180" height="180" viewBox="-25 -25 230 230" fill="none" xmlns="http://www.w3.org/2000/svg">
-<style>
-  rect { fill: black; }
-  @media (prefers-color-scheme: dark) {
-    rect { fill: white; }
-  }
-</style>
-<rect x="15" y="15" width="69.2308" height="150"/>
-<rect x="95.7693" y="15" width="69.2308" height="28.8462"/>
-<rect x="95.7693" y="55.3846" width="69.2308" height="28.8462"/>
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect x="30" y="30" width="55" height="120" fill="black"/>
+<rect x="95" y="30" width="55" height="23" fill="black"/>
+<rect x="95" y="62" width="55" height="23" fill="black"/>
 </svg>

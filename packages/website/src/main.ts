@@ -10,6 +10,7 @@ import * as SpeedInsights from '@vercel/speed-insights'
 import { clsx } from 'clsx'
 import {
   Array,
+  DateTime,
   Effect,
   HashSet,
   Match as M,
@@ -67,6 +68,7 @@ import {
   h2,
   h3,
   header,
+  hr,
   img,
   input,
   keyed,
@@ -138,38 +140,46 @@ const Flags = S.Struct({
   themePreference: S.Option(ThemePreference),
   systemTheme: ResolvedTheme,
   isNarrowViewport: S.Boolean,
+  currentYear: S.Number,
 })
 
 type Flags = typeof Flags.Type
 
-const getSystemTheme = (): ResolvedTheme =>
-  window.matchMedia('(prefers-color-scheme: dark)').matches ? 'Dark' : 'Light'
-
 export const NARROW_VIEWPORT_QUERY = '(max-width: 1023px)'
 
-const getIsNarrowViewport = (): boolean =>
-  window.matchMedia(NARROW_VIEWPORT_QUERY).matches
-
 const flags: Effect.Effect<Flags> = Effect.gen(function* () {
-  const store = yield* KeyValueStore.KeyValueStore
-  const maybeJson = yield* store.get(THEME_STORAGE_KEY)
-  const json = yield* maybeJson
-  const theme = yield* S.decode(S.parseJson(ThemePreference))(json)
+  const themePreference = yield* Effect.gen(function* () {
+    const store = yield* KeyValueStore.KeyValueStore
+    const maybeJson = yield* store.get(THEME_STORAGE_KEY)
+    const json = yield* maybeJson
+    const theme = yield* S.decode(S.parseJson(ThemePreference))(json)
+    return Option.some(theme)
+  }).pipe(
+    Effect.catchAll(() => Effect.succeed(Option.none())),
+    Effect.provide(BrowserKeyValueStore.layerLocalStorage),
+  )
+
+  const systemTheme: ResolvedTheme = yield* Effect.sync(() =>
+    window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'Dark'
+      : 'Light',
+  )
+
+  const isNarrowViewport = yield* Effect.sync(
+    () => window.matchMedia(NARROW_VIEWPORT_QUERY).matches,
+  )
+
+  const currentYear = yield* DateTime.now.pipe(
+    Effect.map(DateTime.getPartUtc('year')),
+  )
+
   return {
-    themePreference: Option.some(theme),
-    systemTheme: getSystemTheme(),
-    isNarrowViewport: getIsNarrowViewport(),
+    themePreference,
+    systemTheme,
+    isNarrowViewport,
+    currentYear,
   }
-}).pipe(
-  Effect.catchAll(() =>
-    Effect.succeed({
-      themePreference: Option.none(),
-      systemTheme: getSystemTheme(),
-      isNarrowViewport: getIsNarrowViewport(),
-    }),
-  ),
-  Effect.provide(BrowserKeyValueStore.layerLocalStorage),
-)
+})
 
 // MODEL
 
@@ -179,6 +189,7 @@ export const Model = S.Struct({
   copiedSnippets: S.HashSet(S.String),
   emailField: StringField.Union,
   emailSubscriptionStatus: EmailSubscriptionStatus,
+  currentYear: S.Number,
   mobileMenuDialog: Ui.Dialog.Model,
   isMobileTableOfContentsOpen: S.Boolean,
   activeSection: S.Option(S.String),
@@ -356,12 +367,12 @@ const init: Runtime.ApplicationInit<
   Message,
   Flags,
   Page.NotePlayerDemo.AudioContextService
-> = (loadedFlags: Flags, url: Url) => {
+> = (flags: Flags, url: Url) => {
   const themePreference = Option.getOrElse(
-    loadedFlags.themePreference,
+    flags.themePreference,
     () => 'System' as const,
   )
-  const { systemTheme } = loadedFlags
+  const { systemTheme } = flags
   const resolvedTheme = resolveTheme(themePreference, systemTheme)
 
   const demoTabs = Ui.Tabs.init({
@@ -406,11 +417,12 @@ const init: Runtime.ApplicationInit<
       copiedSnippets: HashSet.empty(),
       emailField: StringField.NotValidated({ value: '' }),
       emailSubscriptionStatus: 'Idle',
+      currentYear: flags.currentYear,
       mobileMenuDialog: Ui.Dialog.init({ id: 'mobile-menu' }),
       isMobileTableOfContentsOpen: false,
       activeSection: Option.none(),
       isLandingHeaderVisible: false,
-      isNarrowViewport: loadedFlags.isNarrowViewport,
+      isNarrowViewport: flags.isNarrowViewport,
       getStartedGroup: {
         ...Ui.Disclosure.init({ id: 'get-started-group' }),
         isOpen: true,
@@ -1639,6 +1651,7 @@ const landingFooter: Html = footer(
 const emailFormView = (
   emailField: StringField,
   status: 'Idle' | 'Submitting' | 'Failed',
+  formClassName: string,
 ): Html => {
   const isSubmitting = status === 'Submitting'
 
@@ -1646,10 +1659,7 @@ const emailFormView = (
     [],
     [
       form(
-        [
-          OnSubmit(SubmittedEmailForm()),
-          Class('flex flex-col sm:flex-row gap-3 max-w-md'),
-        ],
+        [OnSubmit(SubmittedEmailForm()), Class(formClassName)],
         [
           div(
             [Class('flex-1')],
@@ -1666,7 +1676,7 @@ const emailFormView = (
                     'w-full px-4 py-2.5 rounded-lg border bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent-500 dark:focus:ring-accent-400 disabled:opacity-60',
                     emailField._tag === 'Invalid'
                       ? 'border-red-500 dark:border-red-400'
-                      : 'border-gray-300 dark:border-gray-700',
+                      : 'border-gray-300 dark:border-gray-800',
                   ),
                 ),
               ]),
@@ -1739,8 +1749,83 @@ const emailSignupSectionView = (
                 ['You\u2019re in! Check your email for confirmation.'],
               ),
             ),
-            M.orElse(status => emailFormView(emailField, status)),
+            M.orElse(status =>
+              emailFormView(
+                emailField,
+                status,
+                'flex flex-col sm:flex-row gap-3 max-w-md',
+              ),
+            ),
           ),
+        ],
+      ),
+    ],
+  )
+
+const docsFooterView = (
+  emailField: StringField,
+  emailSubscriptionStatus: EmailSubscriptionStatus,
+  currentYear: number,
+): Html =>
+  footer(
+    [
+      Class(
+        'px-4 py-6 md:px-6 mt-6 border-t border-gray-300 dark:border-gray-800',
+      ),
+    ],
+    [
+      p(
+        [Class('text-base font-normal text-gray-900 dark:text-white mb-1')],
+        ['Stay in the loop.'],
+      ),
+      p(
+        [Class('text-sm text-gray-600 dark:text-gray-300 mb-4')],
+        ['New releases, patterns, and the occasional deep dive.'],
+      ),
+      M.value(emailSubscriptionStatus).pipe(
+        M.withReturnType<Html>(),
+        M.when('Succeeded', () =>
+          p(
+            [
+              AriaLive('polite'),
+              Class('text-accent-600 dark:text-accent-400 font-normal'),
+            ],
+            ['You\u2019re in! Check your email for confirmation.'],
+          ),
+        ),
+        M.orElse(status =>
+          emailFormView(
+            emailField,
+            status,
+            'flex flex-col sm:flex-row gap-3 max-w-md',
+          ),
+        ),
+      ),
+      hr([
+        Class(
+          'my-6 -mx-4 md:-mx-6 border-t border-gray-300 dark:border-gray-800',
+        ),
+      ]),
+      div(
+        [Class('text-sm text-gray-500 dark:text-gray-400')],
+        [
+          p(
+            [],
+            [
+              'Built with ',
+              a(
+                [
+                  Href(`${Link.websiteSource}/src/main.ts`),
+                  Class(
+                    'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500',
+                  ),
+                ],
+                ['Foldkit'],
+              ),
+              '.',
+            ],
+          ),
+          p([Class('mt-1')], [`\u00A9 ${currentYear} Devin Jameson`]),
         ],
       ),
     ],
@@ -1954,7 +2039,7 @@ const pageNavigationView = (tag: string) => {
     [
       AriaLabel('Page navigation'),
       Class(
-        'flex items-stretch justify-between gap-4 mt-12 pt-6 border-t border-gray-300 dark:border-gray-700',
+        'flex items-stretch justify-between gap-4 mt-12 pt-6 border-t border-gray-300 dark:border-gray-800',
       ),
     ],
     [
@@ -2304,6 +2389,11 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
                   ),
                 ],
                 [content, pageNavigationView(docsRoute._tag)],
+              ),
+              docsFooterView(
+                model.emailField,
+                model.emailSubscriptionStatus,
+                model.currentYear,
               ),
             ],
           ),

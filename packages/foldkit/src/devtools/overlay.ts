@@ -704,7 +704,13 @@ const makeView = (
     key,
     ...shared
   }: FlattenConfig): void => {
-    const { expandedPaths, changedPaths, affectedPaths, accumulator, indentRootChildren } = shared
+    const {
+      expandedPaths,
+      changedPaths,
+      affectedPaths,
+      accumulator,
+      indentRootChildren,
+    } = shared
     const isRoot = treePath === 'root'
     const nodeIsExpandable = isExpandable(value)
     const isExpanded =
