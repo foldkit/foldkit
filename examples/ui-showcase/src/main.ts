@@ -6,14 +6,12 @@ import { m } from 'foldkit/message'
 import { load, pushUrl } from 'foldkit/navigation'
 import { literal, r } from 'foldkit/route'
 import { evo } from 'foldkit/struct'
-import { makeSubscriptions } from 'foldkit/subscription'
 import { Url, toString as urlToString } from 'foldkit/url'
 
 import * as Icon from './icon'
 import { uiInit } from './init'
 import { GotMobileMenuDialogMessage, UiMessage } from './message'
 import { UiModel } from './model'
-import * as ViewportWidth from './subscription/viewportWidth'
 import { uiUpdate } from './update'
 import * as ButtonView from './view/button'
 import * as CheckboxView from './view/checkbox'
@@ -117,29 +115,14 @@ const routeParser = Route.oneOf(
 
 const urlToAppRoute = Route.parseUrlWithFallback(routeParser, NotFoundRoute)
 
-export const NARROW_VIEWPORT_QUERY = '(max-width: 767px)'
-
-// FLAGS
-
-const Flags = S.Struct({
-  isNarrowViewport: S.Boolean,
-})
-
-type Flags = typeof Flags.Type
-
-const flags: Effect.Effect<Flags> = Effect.succeed({
-  isNarrowViewport: window.matchMedia(NARROW_VIEWPORT_QUERY).matches,
-})
-
 // MODEL
 
-export const Model = S.Struct({
+const Model = S.Struct({
   route: AppRoute,
-  isNarrowViewport: S.Boolean,
   uiModel: UiModel,
 })
 
-export type Model = typeof Model.Type
+type Model = typeof Model.Type
 
 // MESSAGE
 
@@ -148,34 +131,21 @@ const ClickedLink = m('ClickedLink', {
   request: Runtime.UrlRequest,
 })
 const ChangedUrl = m('ChangedUrl', { url: Url })
-export const ChangedViewportWidth = m('ChangedViewportWidth', {
-  isNarrow: S.Boolean,
-})
 const GotUiMessage = m('GotUiMessage', {
   message: UiMessage,
 })
 
-export const Message = S.Union(
-  NoOp,
-  ClickedLink,
-  ChangedUrl,
-  ChangedViewportWidth,
-  GotUiMessage,
-)
+export const Message = S.Union(NoOp, ClickedLink, ChangedUrl, GotUiMessage)
 export type Message = typeof Message.Type
 
 // INIT
 
-const init: Runtime.ApplicationInit<Model, Message, Flags> = (
-  flags: Flags,
-  url: Url,
-) => {
+const init: Runtime.ApplicationInit<Model, Message> = (url: Url) => {
   const [initialUiModel, uiCommands] = uiInit()
 
   return [
     {
       route: urlToAppRoute(url),
-      isNarrowViewport: flags.isNarrowViewport,
       uiModel: initialUiModel,
     },
     uiCommands.map(Effect.map(message => GotUiMessage({ message }))),
@@ -236,11 +206,6 @@ const update = (
           ),
         ]
       },
-
-      ChangedViewportWidth: ({ isNarrow }) => [
-        evo(model, { isNarrowViewport: () => isNarrow }),
-        [],
-      ],
 
       GotUiMessage: ({ message }) => {
         const [nextUiModel, uiCommands] = uiUpdate(model.uiModel, message)
@@ -531,28 +496,13 @@ const view = (model: Model): Html =>
     ],
   )
 
-// SUBSCRIPTION
-
-const SubscriptionDeps = S.Struct({
-  viewportWidth: S.Null,
-})
-
-export type SubscriptionDeps = typeof SubscriptionDeps.Type
-
-const subscriptions = makeSubscriptions(SubscriptionDeps)<Model, Message>({
-  viewportWidth: ViewportWidth.viewportWidth,
-})
-
 // RUN
 
 const app = Runtime.makeApplication({
   Model,
-  Flags,
-  flags,
   init,
   update,
   view,
-  subscriptions,
   container: document.getElementById('root')!,
   browser: {
     onUrlRequest: request => ClickedLink({ request }),
