@@ -17,7 +17,7 @@ import {
 
 import type { Command } from '../command'
 import { OptionExt } from '../effectExtensions'
-import { type Html, html } from '../html'
+import { type Html, createKeyedLazy, html } from '../html'
 import { m } from '../message'
 import { makeElement } from '../runtime/runtime'
 import type { DevtoolsMode, DevtoolsPosition } from '../runtime/runtime'
@@ -612,6 +612,9 @@ const makeView = (
     D,
   } = html<Message>()
 
+  const lazyTreeNode = createKeyedLazy()
+  const lazyMessageRow = createKeyedLazy()
+
   // JSON TREE
 
   const leafValueView = (value: unknown): Html =>
@@ -674,45 +677,50 @@ const makeView = (
     value: unknown
     treePath: string
     depth: number
-    maybeKey: Option.Option<string>
+    key: string
     isExpandable: boolean
     isExpanded: boolean
     isChanged: boolean
     isAffected: boolean
-    maybeTag: Option.Option<string>
+    tag: string
   }>
 
-  const flattenTree = (
-    value: unknown,
-    treePath: string,
-    expandedPaths: HashSet.HashSet<string>,
-    changedPaths: HashSet.HashSet<string>,
-    affectedPaths: HashSet.HashSet<string>,
-    depth: number,
-    maybeKey: Option.Option<string>,
-    accumulator: Array<FlatNode>,
-    indentRootChildren: boolean,
-  ): void => {
+  type FlattenConfig = Readonly<{
+    value: unknown
+    treePath: string
+    expandedPaths: HashSet.HashSet<string>
+    changedPaths: HashSet.HashSet<string>
+    affectedPaths: HashSet.HashSet<string>
+    depth: number
+    key: string
+    accumulator: Array<FlatNode>
+    indentRootChildren: boolean
+  }>
+
+  const flattenTree = ({
+    value,
+    treePath,
+    depth,
+    key,
+    ...shared
+  }: FlattenConfig): void => {
+    const { expandedPaths, changedPaths, affectedPaths, accumulator, indentRootChildren } = shared
     const isRoot = treePath === 'root'
     const nodeIsExpandable = isExpandable(value)
     const isExpanded =
       nodeIsExpandable && (isRoot || HashSet.has(expandedPaths, treePath))
-    const maybeTag = pipe(
-      value,
-      Option.liftPredicate(isTagged),
-      Option.map(({ _tag }) => _tag),
-    )
+    const tag = isTagged(value) ? value._tag : ''
 
     accumulator.push({
       value,
       treePath,
       depth,
-      maybeKey,
+      key,
       isExpandable: nodeIsExpandable,
       isExpanded,
       isChanged: HashSet.has(changedPaths, treePath),
       isAffected: HashSet.has(affectedPaths, treePath),
-      maybeTag,
+      tag,
     })
 
     if (!isExpanded) {
@@ -723,70 +731,72 @@ const makeView = (
 
     if (Array.isArray(value)) {
       value.forEach((item, arrayIndex) =>
-        flattenTree(
-          item,
-          `${treePath}.${arrayIndex}`,
-          expandedPaths,
-          changedPaths,
-          affectedPaths,
-          childDepth,
-          Option.some(String(arrayIndex)),
-          accumulator,
-          indentRootChildren,
-        ),
+        flattenTree({
+          ...shared,
+          value: item,
+          treePath: `${treePath}.${arrayIndex}`,
+          depth: childDepth,
+          key: String(arrayIndex),
+        }),
       )
     } else if (Predicate.isReadonlyRecord(value)) {
       pipe(
         value,
         Record.toEntries,
-        Array_.filter(([key]) => key !== '_tag'),
-        Array_.forEach(([key, childValue]) =>
-          flattenTree(
-            childValue,
-            `${treePath}.${key}`,
-            expandedPaths,
-            changedPaths,
-            affectedPaths,
-            childDepth,
-            Option.some(key),
-            accumulator,
-            indentRootChildren,
-          ),
+        Array_.filter(([entryKey]) => entryKey !== '_tag'),
+        Array_.forEach(([entryKey, childValue]) =>
+          flattenTree({
+            ...shared,
+            value: childValue,
+            treePath: `${treePath}.${entryKey}`,
+            depth: childDepth,
+            key: entryKey,
+          }),
         ),
       )
     }
   }
 
-  const flatNodeView = (node: FlatNode): Html => {
-    const indent = Style({ paddingLeft: `${node.depth * TREE_INDENT_PX}px` })
-    const hasDiffDot = node.isChanged || node.isAffected
+  const flatNodeView = (
+    value: unknown,
+    treePath: string,
+    depth: number,
+    key: string,
+    nodeIsExpandable: boolean,
+    isExpanded: boolean,
+    isChanged: boolean,
+    isAffected: boolean,
+    tag: string,
+  ): Html => {
+    const indent = Style({ paddingLeft: `${depth * TREE_INDENT_PX}px` })
+    const hasDiffDot = isChanged || isAffected
 
-    if (!node.isExpandable) {
+    if (!nodeIsExpandable) {
       return div(
         [
           Class(
             clsx(
               'tree-row flex items-center gap-px font-mono text-2xs',
-              node.isChanged && 'diff-changed',
+              isChanged && 'diff-changed',
             ),
           ),
           indent,
         ],
         [
           ...(hasDiffDot ? [diffDotView] : []),
-          ...Array_.getSomes([Option.map(node.maybeKey, keyView)]),
-          leafValueView(node.value),
+          ...(String_.isNonEmpty(key) ? [keyView(key)] : []),
+          leafValueView(value),
         ],
       )
     }
 
-    const isRoot = node.treePath === 'root'
+    const isRoot = treePath === 'root'
 
-    const preview = node.isExpanded
-      ? Array.isArray(node.value)
-        ? `(${node.value.length})`
+    const preview = isExpanded
+      ? Array.isArray(value)
+        ? `(${value.length})`
         : ''
-      : collapsedPreview(node.value)
+      : collapsedPreview(value)
 
     return div(
       [
@@ -794,19 +804,17 @@ const makeView = (
           clsx(
             'tree-row flex items-center gap-px font-mono text-2xs',
             !isRoot && 'tree-row-expandable cursor-pointer',
-            node.isChanged && 'diff-changed',
+            isChanged && 'diff-changed',
           ),
         ),
         indent,
-        ...(isRoot ? [] : [OnClick(ToggledTreeNode({ path: node.treePath }))]),
+        ...(isRoot ? [] : [OnClick(ToggledTreeNode({ path: treePath }))]),
       ],
       [
-        ...(isRoot ? [] : [arrowView(node.isExpanded)]),
+        ...(isRoot ? [] : [arrowView(isExpanded)]),
         ...(!isRoot && hasDiffDot ? [diffDotView] : []),
-        ...Array_.getSomes([
-          Option.map(node.maybeKey, keyView),
-          Option.map(node.maybeTag, tagLabelView),
-        ]),
+        ...(String_.isNonEmpty(key) ? [keyView(key)] : []),
+        ...(String_.isNonEmpty(tag) ? [tagLabelView(tag)] : []),
         span([Class('json-preview')], [preview]),
       ],
     )
@@ -822,17 +830,17 @@ const makeView = (
     indentRootChildren: boolean,
   ): Html => {
     const nodes: Array<FlatNode> = []
-    flattenTree(
+    flattenTree({
       value,
-      rootPath,
+      treePath: rootPath,
       expandedPaths,
       changedPaths,
       affectedPaths,
-      0,
-      maybeRootLabel,
-      nodes,
+      depth: 0,
+      key: Option.getOrElse(maybeRootLabel, () => ''),
+      accumulator: nodes,
       indentRootChildren,
-    )
+    })
 
     return div(
       [
@@ -840,7 +848,19 @@ const makeView = (
           'inspector-tree flex-1 overflow-auto min-h-0 min-w-0 overscroll-none',
         ),
       ],
-      nodes.map(flatNodeView),
+      nodes.map(node =>
+        lazyTreeNode(node.treePath, flatNodeView, [
+          node.value,
+          node.treePath,
+          node.depth,
+          node.key,
+          node.isExpandable,
+          node.isExpanded,
+          node.isChanged,
+          node.isAffected,
+          node.tag,
+        ]),
+      ),
     )
   }
 
@@ -1211,14 +1231,14 @@ const makeView = (
         const isPausedHere =
           model.isPaused && model.pausedAtIndex === absoluteIndex
 
-        return messageRowView(
+        return lazyMessageRow(String(absoluteIndex), messageRowView, [
           entry.tag,
           absoluteIndex,
           isSelected,
           isPausedHere,
           entry.timestamp - baseTimestamp,
           entry.isModelChanged,
-        )
+        ])
       }),
       Array_.reverse,
     )
