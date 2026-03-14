@@ -80,3 +80,15 @@
 - [ ] Web component interop — consume custom elements in views (property setting, custom events to Messages) and wrap Foldkit apps as custom elements for embedding. See `docs/plans/web-component-interop.md`
 
 - [ ] Consider switching website code block syntax highlighting to Catppuccin Mocha — may be more readable for visitors
+
+## v1 Readiness
+
+- [ ] Animation primitives — generalize Dialog's transition state machine (`EnterStart → EnterAnimating → LeaveStart → LeaveAnimating` with `nextFrame` + `waitForTransitions`) into a first-class `Transition` module. Eliminates per-component boilerplate and enables route change animations, list enter/exit, and conditional view transitions without reimplementing the rAF dance each time. Architectural — touches the vdom layer, so better to do before 1.0 than after.
+
+- [ ] Testing utilities (`foldkit/test`) — the architecture is extremely testable (pure `update`, Effect-based views) but there's no packaged way to assert on view output or simulate message sequences. Reference: Elm's `Test.Html` module. Key capabilities: send a sequence of Messages through `update` and assert on resulting Model + Commands; render a view and query the VNode tree by selector/attribute; simulate events on rendered VNodes.
+
+- [ ] Define the 1.0 API surface — audit every public export and decide what's committed vs experimental. The "breaking changes may occur in minor releases" disclaimer covers the current 0.x series, but 1.0 signals stability. This includes deciding which UI components, Task primitives, and Schema helpers are part of the stable contract.
+
+- [ ] Virtualized list rendering — `createLazy`/`createKeyedLazy` handle normal cases, but there's no virtualization primitive for 10k+ row lists. Common production need for data tables, log viewers, and long option lists. Related to the existing TODO for virtual scrolling in Listbox/Menu/Combobox but broader — apps need this too.
+
+- [ ] Toast/notification system — app-level, time-based, stackable UI pattern that doesn't fit cleanly into a single Submodel. Needs enter/exit animations (depends on animation primitives above). One of the few missing "every real app needs this" patterns.
