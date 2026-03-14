@@ -1,5 +1,11 @@
 # foldkit
 
+## 0.33.6
+
+### Patch Changes
+
+- 8b27c43: Add `overscroll-behavior: none` to devtools message list and inspector tree to suppress rubber-band overscroll effects
+
 ## 0.33.5
 
 ### Patch Changes

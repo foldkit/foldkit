@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.5.3
+
+### Patch Changes
+
+- 8b27c43: Update scaffolding success message with personal note and links to GitHub issues and social
+
 ## 0.5.2
 
 ### Patch Changes
