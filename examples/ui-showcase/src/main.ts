@@ -403,7 +403,7 @@ const mobileHeaderView = (model: Model): Html =>
   header(
     [
       Class(
-        'md:hidden flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3',
+        'md:hidden sticky top-0 z-40 flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3',
       ),
     ],
     [
@@ -457,7 +457,7 @@ const homeView = (): Html =>
       p(
         [Class('text-gray-600 mb-4')],
         [
-          'This is a showcase of every Foldkit UI component. Select a component from the sidebar to see it in action.',
+          'This is a showcase of every Foldkit UI component. Select a component from the menu to see it in action.',
         ],
       ),
       p(
