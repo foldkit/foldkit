@@ -167,7 +167,7 @@ export type Message = typeof Message.Type
 // INIT
 
 const init: Runtime.ApplicationInit<Model, Message, Flags> = (
-  loadedFlags: Flags,
+  flags: Flags,
   url: Url,
 ) => {
   const [initialUiModel, uiCommands] = uiInit()
@@ -175,7 +175,7 @@ const init: Runtime.ApplicationInit<Model, Message, Flags> = (
   return [
     {
       route: urlToAppRoute(url),
-      isNarrowViewport: loadedFlags.isNarrowViewport,
+      isNarrowViewport: flags.isNarrowViewport,
       uiModel: initialUiModel,
     },
     uiCommands.map(Effect.map(message => GotUiMessage({ message }))),
