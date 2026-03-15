@@ -4,9 +4,9 @@ import type { VNode } from 'snabbdom'
 import { expect } from 'vitest'
 
 import { html } from '../../html'
-import type { ViewConfig } from './index'
 import { Dispatch } from '../../runtime'
 import { noOpDispatch } from '../../runtime/errorUI'
+import type { ViewConfig } from './index'
 import {
   TabFocused,
   TabSelected,
