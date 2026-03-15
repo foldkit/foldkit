@@ -38,7 +38,7 @@ jobs:
         run: pnpm format:check
 
       - name: Build packages
-        run: pnpm -r --filter './packages/*' build
+        run: pnpm -r --filter './packages/**' build
 
       - name: Typecheck
         run: pnpm -r typecheck
