@@ -3,7 +3,7 @@ import { Array } from 'effect'
 import { Ui } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
-import { Class, div, h2, h3, span } from '../html'
+import { Class, Placeholder, div, h2, h3, span } from '../html'
 import * as Icon from '../icon'
 import type { Message as ParentMessage } from '../main'
 import {
@@ -95,14 +95,13 @@ const comboboxConfig = (
     }),
     itemToValue: (city: City) => city,
     itemToDisplayText: (city: City) => city,
-    inputClassName,
-    inputPlaceholder: 'Search cities...',
-    itemsClassName,
-    backdropClassName,
-    className: wrapperClassName,
-    inputWrapperClassName: 'relative',
+    inputAttributes: [Class(inputClassName), Placeholder('Search cities...')],
+    itemsAttributes: [Class(itemsClassName)],
+    backdropAttributes: [Class(backdropClassName)],
+    attributes: [Class(wrapperClassName)],
+    inputWrapperAttributes: [Class('relative')],
     buttonContent: Icon.chevronDown('w-4 h-4'),
-    buttonClassName,
+    buttonAttributes: [Class(buttonClassName)],
     anchor: COMBOBOX_ANCHOR,
   }
 }
@@ -200,14 +199,16 @@ export const view = (
             }),
             itemToValue: (city: City) => city,
             itemToDisplayText: (city: City) => city,
-            inputClassName,
-            inputPlaceholder: 'Search cities...',
-            itemsClassName,
-            backdropClassName,
-            className: wrapperClassName,
-            inputWrapperClassName: 'relative',
+            inputAttributes: [
+              Class(inputClassName),
+              Placeholder('Search cities...'),
+            ],
+            itemsAttributes: [Class(itemsClassName)],
+            backdropAttributes: [Class(backdropClassName)],
+            attributes: [Class(wrapperClassName)],
+            inputWrapperAttributes: [Class('relative')],
             buttonContent: Icon.chevronDown('w-4 h-4'),
-            buttonClassName,
+            buttonAttributes: [Class(buttonClassName)],
             anchor: COMBOBOX_ANCHOR,
           }),
         ],

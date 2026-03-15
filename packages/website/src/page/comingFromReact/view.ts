@@ -148,14 +148,14 @@ const faqItem = (
         model: disclosure,
         toMessage: message =>
           toMessage(GotFaqDisclosureMessage({ id, message })),
-        buttonClassName: faqButtonClassName,
+        buttonAttributes: [Class(faqButtonClassName)],
         buttonContent: div(
           [Class('flex items-center justify-between w-full')],
           [span([], [question]), chevron(disclosure.isOpen)],
         ),
-        panelClassName: faqPanelClassName,
+        panelAttributes: [Class(faqPanelClassName)],
         panelContent: div([], answerContent),
-        className: 'mb-2',
+        attributes: [Class('mb-2')],
       }),
     onNone: () =>
       div([], [p([Class('font-bold')], [question]), ...answerContent]),

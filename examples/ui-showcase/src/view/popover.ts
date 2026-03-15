@@ -40,14 +40,14 @@ const panelContent = div(
   ],
 )
 
-const popoverViewConfig = (panelClassName: string) => ({
+const popoverViewConfig = (panelClassNameValue: string) => ({
   anchor: POPOVER_ANCHOR,
   buttonContent: span([], ['Solutions']),
-  buttonClassName: triggerClassName,
+  buttonAttributes: [Class(triggerClassName)],
   panelContent,
-  panelClassName,
-  backdropClassName,
-  className: wrapperClassName,
+  panelAttributes: [Class(panelClassNameValue)],
+  backdropAttributes: [Class(backdropClassName)],
+  attributes: [Class(wrapperClassName)],
 })
 
 export const view = (

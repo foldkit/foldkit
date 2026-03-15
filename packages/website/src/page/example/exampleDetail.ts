@@ -194,12 +194,12 @@ const livePreviewDisclosureView = (
     model: disclosureModel,
     toMessage: message =>
       toMessage(GotLivePreviewDisclosureMessage({ message })),
-    buttonClassName: DISCLOSURE_BUTTON_CLASS,
+    buttonAttributes: [Class(DISCLOSURE_BUTTON_CLASS)],
     buttonContent: div(
       [Class('flex items-center justify-between w-full')],
       [span([], ['Live Preview']), disclosureChevron(disclosureModel.isOpen)],
     ),
-    panelClassName: DISCLOSURE_PANEL_CLASS,
+    panelAttributes: [Class(DISCLOSURE_PANEL_CLASS)],
     panelContent: div(
       [],
       [
@@ -287,11 +287,17 @@ const sourceCodeView = (
       }
     },
     orientation: isNarrowViewport ? 'Horizontal' : 'Vertical',
-    className:
-      'flex flex-col lg:flex-row overflow-hidden max-h-[80vh] border border-gray-200 dark:border-gray-700/50',
+    attributes: [
+      Class(
+        'flex flex-col lg:flex-row overflow-hidden max-h-[80vh] border border-gray-200 dark:border-gray-700/50',
+      ),
+    ],
     tabListAriaLabel: 'Source files',
-    tabListClassName:
-      'flex flex-shrink-0 overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto lg:w-44 lg:flex-col border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700/50 bg-gray-200 dark:bg-gray-800/50 divide-x lg:divide-x-0 lg:divide-y divide-gray-200 dark:divide-gray-700/50',
+    tabListAttributes: [
+      Class(
+        'flex flex-shrink-0 overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto lg:w-44 lg:flex-col border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700/50 bg-gray-200 dark:bg-gray-800/50 divide-x lg:divide-x-0 lg:divide-y divide-gray-200 dark:divide-gray-700/50',
+      ),
+    ],
   })
 }
 

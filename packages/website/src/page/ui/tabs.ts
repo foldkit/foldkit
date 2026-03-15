@@ -109,10 +109,7 @@ const verticalButtonClassName =
 const verticalPanelClassName =
   'flex-1 p-6 bg-cream dark:bg-gray-900 rounded-r-lg rounded-bl-lg border border-gray-200 dark:border-gray-700'
 
-const tabToConfig = (
-  tab: DemoTab,
-  _context: { isActive: boolean },
-): Ui.Tabs.TabConfig => ({
+const tabToConfig = (tab: DemoTab, _context: { isActive: boolean }) => ({
   buttonClassName,
   buttonContent: span([], [tab]),
   panelClassName,
@@ -127,7 +124,7 @@ const tabToConfig = (
 const verticalTabToConfig = (
   tab: DemoTab,
   _context: { isActive: boolean },
-): Ui.Tabs.TabConfig => ({
+) => ({
   buttonClassName: verticalButtonClassName,
   buttonContent: span([], [tab]),
   panelClassName: verticalPanelClassName,
@@ -151,7 +148,8 @@ export const horizontalDemo = (
     toMessage: message => toMessage(GotHorizontalTabsDemoMessage({ message })),
     tabs: demoTabs,
     tabToConfig,
-    tabListClassName: 'flex',
+    tabListAttributes: [Class('flex')],
+    tabListAriaLabel: 'Framework comparison tabs',
   }),
 ]
 
@@ -166,7 +164,8 @@ export const verticalDemo = (
     tabs: demoTabs,
     tabToConfig: verticalTabToConfig,
     orientation: 'Vertical',
-    className: 'flex',
-    tabListClassName: 'flex flex-col',
+    attributes: [Class('flex')],
+    tabListAttributes: [Class('flex flex-col')],
+    tabListAriaLabel: 'Framework comparison tabs',
   }),
 ]

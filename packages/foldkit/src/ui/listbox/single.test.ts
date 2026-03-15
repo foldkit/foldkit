@@ -892,13 +892,9 @@ describe('Listbox', () => {
       toMessage: message => message._tag,
       items: ['Apple', 'Banana'],
       itemToConfig: () => ({
-        className: 'item',
         content: Effect.succeed(null),
       }),
       buttonContent: Effect.succeed(null),
-      buttonClassName: 'button',
-      itemsClassName: 'items',
-      backdropClassName: 'backdrop',
     })
 
     const renderView = <Item>(config: ViewConfig<TestMessage, Item>): VNode => {
@@ -1103,7 +1099,6 @@ describe('Listbox', () => {
           ) => {
             contexts.push(context)
             return {
-              className: 'item',
               content: Effect.succeed(null),
             }
           },
@@ -1135,7 +1130,6 @@ describe('Listbox', () => {
           ) => {
             contexts.push(context)
             return {
-              className: 'item',
               content: Effect.succeed(null),
             }
           },
@@ -1334,13 +1328,9 @@ describe('Listbox', () => {
         items: people,
         itemToValue: person => person.id,
         itemToConfig: () => ({
-          className: 'item',
           content: Effect.succeed(null),
         }),
         buttonContent: Effect.succeed(null),
-        buttonClassName: 'button',
-        itemsClassName: 'items',
-        backdropClassName: 'backdrop',
       })
 
       it('items have click handlers with object items', () => {

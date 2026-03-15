@@ -37,12 +37,12 @@ export const disclosureDemo = (
   Ui.Disclosure.view({
     model: disclosureModel,
     toMessage: message => toMessage(GotDisclosureDemoMessage({ message })),
-    buttonClassName,
+    buttonAttributes: [Class(buttonClassName)],
     buttonContent: div(
       [Class('flex items-center justify-between w-full')],
       [span([], ['What is Foldkit?']), chevron(disclosureModel.isOpen)],
     ),
-    panelClassName,
+    panelAttributes: [Class(panelClassName)],
     panelContent: p(
       [Class('text-gray-800 dark:text-gray-200')],
       [

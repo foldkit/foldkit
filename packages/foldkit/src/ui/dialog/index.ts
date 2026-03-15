@@ -2,7 +2,7 @@ import { Array, Effect, Match as M, Option, Schema as S } from 'effect'
 
 import type { Command } from '../../command'
 import { OptionExt } from '../../effectExtensions'
-import { type Html, createLazy, html } from '../../html'
+import { type Attribute, type Html, createLazy, html } from '../../html'
 import { m } from '../../message'
 import { evo } from '../../struct'
 import * as Task from '../../task'
@@ -200,9 +200,12 @@ export type ViewConfig<Message> = Readonly<{
     message: Closed | CompletedDialogShow | CompletedDialogClose,
   ) => Message
   panelContent: Html
-  panelClassName: string
-  backdropClassName: string
+  panelClassName?: string
+  panelAttributes?: ReadonlyArray<Attribute<Message>>
+  backdropClassName?: string
+  backdropAttributes?: ReadonlyArray<Attribute<Message>>
   className?: string
+  attributes?: ReadonlyArray<Attribute<Message>>
 }>
 
 /** Renders a headless dialog component backed by the native `<dialog>` element with `showModal()`. */
@@ -224,8 +227,11 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     toMessage,
     panelContent,
     panelClassName,
+    panelAttributes = [],
     backdropClassName,
+    backdropAttributes = [],
     className,
+    attributes = [],
   } = config
 
   const isLeaving =
@@ -270,21 +276,28 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     }),
     ...(isVisible ? [DataAttribute('open', '')] : []),
     ...(className ? [Class(className)] : []),
+    ...attributes,
   ]
 
   const backdrop = keyed('div')(
     `${id}-backdrop`,
     [
-      Class(backdropClassName),
       ...transitionAttributes,
       ...(isLeaving ? [] : [OnClick(toMessage(Closed()))]),
+      ...(backdropClassName ? [Class(backdropClassName)] : []),
+      ...backdropAttributes,
     ],
     [],
   )
 
   const panel = keyed('div')(
     `${id}-panel`,
-    [Id(`${id}-panel`), Class(panelClassName), ...transitionAttributes],
+    [
+      Id(`${id}-panel`),
+      ...transitionAttributes,
+      ...(panelClassName ? [Class(panelClassName)] : []),
+      ...panelAttributes,
+    ],
     [panelContent],
   )
 

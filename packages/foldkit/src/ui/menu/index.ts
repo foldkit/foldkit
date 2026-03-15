@@ -11,7 +11,7 @@ import {
 
 import type { Command } from '../../command'
 import { OptionExt } from '../../effectExtensions'
-import { type Html, createLazy, html } from '../../html'
+import { type Attribute, type Html, createLazy, html } from '../../html'
 import { m } from '../../message'
 import { evo } from '../../struct'
 import * as Task from '../../task'
@@ -580,14 +580,14 @@ export const update = (model: Model, message: Message): UpdateReturn => {
 
 /** Configuration for an individual menu item's appearance. */
 export type ItemConfig = Readonly<{
-  className: string
+  className?: string
   content: Html
 }>
 
 /** Configuration for a group heading rendered above a group of items. */
 export type GroupHeading = Readonly<{
   content: Html
-  className: string
+  className?: string
 }>
 
 /** Configuration for rendering a menu with `view`. */
@@ -618,15 +618,22 @@ export type ViewConfig<Message, Item extends string> = Readonly<{
   itemToSearchText?: (item: Item, index: number) => string
   isButtonDisabled?: boolean
   buttonContent: Html
-  buttonClassName: string
-  itemsClassName: string
+  buttonClassName?: string
+  buttonAttributes?: ReadonlyArray<Attribute<Message>>
+  itemsClassName?: string
+  itemsAttributes?: ReadonlyArray<Attribute<Message>>
   itemsScrollClassName?: string
-  backdropClassName: string
+  itemsScrollAttributes?: ReadonlyArray<Attribute<Message>>
+  backdropClassName?: string
+  backdropAttributes?: ReadonlyArray<Attribute<Message>>
   className?: string
+  attributes?: ReadonlyArray<Attribute<Message>>
   itemGroupKey?: (item: Item, index: number) => string
   groupToHeading?: (groupKey: string) => GroupHeading | undefined
   groupClassName?: string
+  groupAttributes?: ReadonlyArray<Attribute<Message>>
   separatorClassName?: string
+  separatorAttributes?: ReadonlyArray<Attribute<Message>>
   anchor?: AnchorConfig
 }>
 
@@ -683,14 +690,21 @@ export const view = <Message, Item extends string>(
     isButtonDisabled,
     buttonContent,
     buttonClassName,
+    buttonAttributes = [],
     itemsClassName,
+    itemsAttributes = [],
     itemsScrollClassName,
+    itemsScrollAttributes = [],
     backdropClassName,
+    backdropAttributes = [],
     className,
+    attributes = [],
     itemGroupKey,
     groupToHeading,
     groupClassName,
+    groupAttributes = [],
     separatorClassName,
+    separatorAttributes = [],
     anchor,
   } = config
 
@@ -869,10 +883,9 @@ export const view = <Message, Item extends string>(
       toMessage(ReleasedPointerOnItems({ screenX, screenY, timeStamp })),
     )
 
-  const buttonAttributes = [
+  const resolvedButtonAttributes = [
     Id(`${id}-button`),
     Type('button'),
-    Class(buttonClassName),
     AriaHasPopup('menu'),
     AriaExpanded(isVisible),
     AriaControls(`${id}-items`),
@@ -885,6 +898,8 @@ export const view = <Message, Item extends string>(
           OnClick(handleButtonClick()),
         ]),
     ...(isVisible ? [DataAttribute('open', '')] : []),
+    ...(buttonClassName ? [Class(buttonClassName)] : []),
+    ...buttonAttributes,
   ]
 
   const maybeActiveDescendant = Option.match(maybeActiveItemIndex, {
@@ -910,7 +925,6 @@ export const view = <Message, Item extends string>(
     AriaLabelledBy(`${id}-button`),
     ...maybeActiveDescendant,
     Tabindex(0),
-    Class(itemsClassName),
     ...anchorAttributes,
     ...transitionAttributes,
     ...(isLeaving
@@ -921,6 +935,8 @@ export const view = <Message, Item extends string>(
           OnPointerUp(handleItemsPointerUp),
           OnBlur(toMessage(ClosedByTab())),
         ]),
+    ...(itemsClassName ? [Class(itemsClassName)] : []),
+    ...itemsAttributes,
   ]
 
   const menuItems = Array.map(items, (item, index) => {
@@ -941,7 +957,6 @@ export const view = <Message, Item extends string>(
       [
         Id(itemId(id, index)),
         Role('menuitem'),
-        Class(itemConfig.className),
         ...(isActiveItem ? [DataAttribute('active', '')] : []),
         ...(isDisabledItem
           ? [AriaDisabled(true), DataAttribute('disabled', '')]
@@ -969,6 +984,7 @@ export const view = <Message, Item extends string>(
               ),
             ]
           : []),
+        ...(itemConfig.className ? [Class(itemConfig.className)] : []),
       ],
       [itemConfig.content],
     )
@@ -1000,7 +1016,11 @@ export const view = <Message, Item extends string>(
         onSome: heading => [
           keyed('div')(
             headingId,
-            [Id(headingId), Role('presentation'), Class(heading.className)],
+            [
+              Id(headingId),
+              Role('presentation'),
+              ...(heading.className ? [Class(heading.className)] : []),
+            ],
             [heading.content],
           ),
         ],
@@ -1014,16 +1034,23 @@ export const view = <Message, Item extends string>(
           Role('group'),
           ...(Option.isSome(maybeHeading) ? [AriaLabelledBy(headingId)] : []),
           ...(groupClassName ? [Class(groupClassName)] : []),
+          ...groupAttributes,
         ],
         groupContent,
       )
 
       const separator =
-        segmentIndex > 0 && separatorClassName
+        segmentIndex > 0 &&
+        (separatorClassName ||
+          Array.isNonEmptyReadonlyArray(separatorAttributes))
           ? [
               keyed('div')(
                 `${id}-separator-${segmentIndex}`,
-                [Role('separator'), Class(separatorClassName)],
+                [
+                  Role('separator'),
+                  ...(separatorClassName ? [Class(separatorClassName)] : []),
+                  ...separatorAttributes,
+                ],
                 [],
               ),
             ]
@@ -1036,17 +1063,27 @@ export const view = <Message, Item extends string>(
   const backdrop = keyed('div')(
     `${id}-backdrop`,
     [
-      Class(backdropClassName),
       ...(isLeaving ? [] : [OnClick(toMessage(Closed()))]),
+      ...(backdropClassName ? [Class(backdropClassName)] : []),
+      ...backdropAttributes,
     ],
     [],
   )
 
   const renderedItems = renderGroupedItems()
 
-  const scrollableItems = itemsScrollClassName
-    ? [div([Class(itemsScrollClassName)], renderedItems)]
-    : renderedItems
+  const scrollableItems =
+    itemsScrollClassName || Array.isNonEmptyReadonlyArray(itemsScrollAttributes)
+      ? [
+          div(
+            [
+              ...(itemsScrollClassName ? [Class(itemsScrollClassName)] : []),
+              ...itemsScrollAttributes,
+            ],
+            renderedItems,
+          ),
+        ]
+      : renderedItems
 
   const visibleContent = [
     backdrop,
@@ -1059,11 +1096,12 @@ export const view = <Message, Item extends string>(
 
   const wrapperAttributes = [
     ...(className ? [Class(className)] : []),
+    ...attributes,
     ...(isVisible ? [DataAttribute('open', '')] : []),
   ]
 
   return div(wrapperAttributes, [
-    keyed('button')(`${id}-button`, buttonAttributes, [buttonContent]),
+    keyed('button')(`${id}-button`, resolvedButtonAttributes, [buttonContent]),
     ...(isVisible ? visibleContent : []),
   ])
 }

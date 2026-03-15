@@ -133,7 +133,8 @@ export const view = (
           toMessage(GotHorizontalTabsDemoMessage({ message })),
         tabs: demoTabs,
         tabToConfig: horizontalTabToConfig,
-        tabListClassName: 'flex',
+        tabListAttributes: [Class('flex')],
+        tabListAriaLabel: 'Framework comparison tabs',
       }),
 
       h3(
@@ -147,8 +148,9 @@ export const view = (
         tabs: demoTabs,
         tabToConfig: verticalTabToConfig,
         orientation: 'Vertical',
-        className: 'flex',
-        tabListClassName: 'flex flex-col',
+        attributes: [Class('flex')],
+        tabListAttributes: [Class('flex flex-col')],
+        tabListAriaLabel: 'Framework comparison tabs',
       }),
     ],
   )

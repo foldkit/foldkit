@@ -85,7 +85,7 @@ const itemGroupKey = (item: MenuItem): string =>
     M.orElse(() => 'Actions'),
   )
 
-const groupToHeading = (groupKey: string): Ui.Menu.GroupHeading | undefined =>
+const groupToHeading = (groupKey: string) =>
   M.value(groupKey).pipe(
     M.when('Danger', () => ({
       content: span([], ['Danger Zone']),
@@ -117,10 +117,10 @@ const menuViewConfig = (itemsClassName: string) => ({
     [Class('flex items-center gap-4')],
     [span([], ['Actions']), Icon.chevronDown('w-4 h-4')],
   ),
-  buttonClassName: triggerClassName,
-  itemsClassName,
-  backdropClassName,
-  className: wrapperClassName,
+  buttonAttributes: [Class(triggerClassName)],
+  itemsAttributes: [Class(itemsClassName)],
+  backdropAttributes: [Class(backdropClassName)],
+  attributes: [Class(wrapperClassName)],
   itemGroupKey,
   groupToHeading,
 })

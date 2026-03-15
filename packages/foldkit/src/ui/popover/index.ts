@@ -2,7 +2,7 @@ import { Array, Effect, Match as M, Option, Schema as S, pipe } from 'effect'
 
 import type { Command } from '../../command'
 import { OptionExt } from '../../effectExtensions'
-import { type Html, createLazy, html } from '../../html'
+import { type Attribute, type Html, createLazy, html } from '../../html'
 import { m } from '../../message'
 import { evo } from '../../struct'
 import * as Task from '../../task'
@@ -321,12 +321,16 @@ export type ViewConfig<Message> = Readonly<{
   ) => Message
   anchor: AnchorConfig
   buttonContent: Html
-  buttonClassName: string
+  buttonClassName?: string
+  buttonAttributes?: ReadonlyArray<Attribute<Message>>
   panelContent: Html
-  panelClassName: string
-  backdropClassName: string
+  panelClassName?: string
+  panelAttributes?: ReadonlyArray<Attribute<Message>>
+  backdropClassName?: string
+  backdropAttributes?: ReadonlyArray<Attribute<Message>>
   isDisabled?: boolean
   className?: string
+  attributes?: ReadonlyArray<Attribute<Message>>
 }>
 
 /** Renders a headless popover with a trigger button and a floating panel. Uses the disclosure ARIA pattern (aria-expanded + aria-controls) with no role on the panel. */
@@ -358,11 +362,15 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     anchor,
     buttonContent,
     buttonClassName,
+    buttonAttributes = [],
     panelContent,
     panelClassName,
+    panelAttributes = [],
     backdropClassName,
+    backdropAttributes = [],
     isDisabled,
     className,
+    attributes = [],
   } = config
 
   const isLeaving =
@@ -437,10 +445,9 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
       M.orElse(() => Option.none()),
     )
 
-  const buttonAttributes = [
+  const resolvedButtonAttributes = [
     Id(`${id}-button`),
     Type('button'),
-    Class(buttonClassName),
     AriaExpanded(isVisible),
     AriaControls(`${id}-panel`),
     ...(isDisabled
@@ -452,6 +459,8 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
           OnClick(handleButtonClick()),
         ]),
     ...(isVisible ? [DataAttribute('open', '')] : []),
+    ...(buttonClassName ? [Class(buttonClassName)] : []),
+    ...buttonAttributes,
   ]
 
   const hooks = anchorHooks({
@@ -466,10 +475,9 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     OnDestroy(hooks.onDestroy),
   ]
 
-  const panelAttributes = [
+  const resolvedPanelAttributes = [
     Id(`${id}-panel`),
     Tabindex(0),
-    Class(panelClassName),
     ...anchorAttributes,
     ...transitionAttributes,
     ...(isLeaving
@@ -478,29 +486,35 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
           OnKeyDownPreventDefault(handlePanelKeyDown),
           OnBlur(toMessage(ClosedByTab())),
         ]),
+    ...(panelClassName ? [Class(panelClassName)] : []),
+    ...panelAttributes,
   ]
 
   const backdrop = keyed('div')(
     `${id}-backdrop`,
     [
-      Class(backdropClassName),
       ...(isLeaving ? [] : [OnClick(toMessage(Closed()))]),
+      ...(backdropClassName ? [Class(backdropClassName)] : []),
+      ...backdropAttributes,
     ],
     [],
   )
 
   const visibleContent = [
     backdrop,
-    keyed('div')(`${id}-panel-container`, panelAttributes, [panelContent]),
+    keyed('div')(`${id}-panel-container`, resolvedPanelAttributes, [
+      panelContent,
+    ]),
   ]
 
   const wrapperAttributes = [
     ...(className ? [Class(className)] : []),
+    ...attributes,
     ...(isVisible ? [DataAttribute('open', '')] : []),
   ]
 
   return div(wrapperAttributes, [
-    keyed('button')(`${id}-button`, buttonAttributes, [buttonContent]),
+    keyed('button')(`${id}-button`, resolvedButtonAttributes, [buttonContent]),
     ...(isVisible ? visibleContent : []),
   ])
 }

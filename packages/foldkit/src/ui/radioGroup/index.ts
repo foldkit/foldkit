@@ -124,7 +124,9 @@ export type ViewConfig<Message, Option extends string> = Readonly<{
   ) => OptionConfig<Message>
   isOptionDisabled?: (option: Option, index: number) => boolean
   orientation?: Orientation
+  ariaLabel: string
   className?: string
+  attributes?: ReadonlyArray<Attribute<Message>>
   name?: string
   isDisabled?: boolean
 }>
@@ -145,6 +147,7 @@ export const view = <Message, RadioOption extends string>(
     AriaChecked,
     AriaDescribedBy,
     AriaDisabled,
+    AriaLabel,
     AriaLabelledBy,
     AriaOrientation,
     Class,
@@ -167,7 +170,9 @@ export const view = <Message, RadioOption extends string>(
     optionToConfig,
     isOptionDisabled: isOptionDisabledFn,
     orientation = model.orientation,
+    ariaLabel,
     className,
+    attributes = [],
     name,
     isDisabled: isGroupDisabled = false,
   } = config
@@ -354,7 +359,9 @@ export const view = <Message, RadioOption extends string>(
   const groupAttributes = [
     Role('radiogroup'),
     AriaOrientation(String.toLowerCase(orientation)),
+    AriaLabel(ariaLabel),
     ...(className ? [Class(className)] : []),
+    ...attributes,
   ]
 
   return div(groupAttributes, [...renderedOptions, ...hiddenInputs])

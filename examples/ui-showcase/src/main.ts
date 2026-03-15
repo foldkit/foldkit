@@ -443,9 +443,9 @@ const mobileMenuView = (model: Model): Html =>
     model: model.uiModel.mobileMenuDialog,
     toMessage: toMobileMenuDialogMessage,
     panelContent: mobileMenuContent(model.route),
-    panelClassName: 'fixed inset-0 z-[60] bg-white flex flex-col',
-    backdropClassName: 'fixed inset-0 z-[59]',
-    className: 'md:hidden',
+    panelAttributes: [Class('fixed inset-0 z-[60] bg-white flex flex-col')],
+    backdropAttributes: [Class('fixed inset-0 z-[59]')],
+    attributes: [Class('md:hidden')],
   })
 
 const homeView = (): Html =>

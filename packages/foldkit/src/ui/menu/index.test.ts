@@ -1226,13 +1226,9 @@ describe('Menu', () => {
       toMessage: message => message._tag,
       items: ['Edit', 'Delete'],
       itemToConfig: () => ({
-        className: 'item',
         content: Effect.succeed(null),
       }),
       buttonContent: Effect.succeed(null),
-      buttonClassName: 'button',
-      itemsClassName: 'items',
-      backdropClassName: 'backdrop',
     })
 
     const renderView = (config: ViewConfig<TestMessage, string>): VNode => {

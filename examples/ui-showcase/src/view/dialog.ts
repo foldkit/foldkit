@@ -105,9 +105,9 @@ export const view = (
         model: model.dialogDemo,
         toMessage: toDialogMessage,
         panelContent: dialogPanel(model.dialogDemo, toDialogMessage),
-        panelClassName,
-        backdropClassName,
-        className: dialogClassName,
+        panelAttributes: [Class(panelClassName)],
+        backdropAttributes: [Class(backdropClassName)],
+        attributes: [Class(dialogClassName)],
       }),
 
       h3(
@@ -133,9 +133,9 @@ export const view = (
           model.dialogAnimatedDemo,
           toAnimatedDialogMessage,
         ),
-        panelClassName: animatedPanelClassName,
-        backdropClassName: animatedBackdropClassName,
-        className: dialogClassName,
+        panelAttributes: [Class(animatedPanelClassName)],
+        backdropAttributes: [Class(animatedBackdropClassName)],
+        attributes: [Class(dialogClassName)],
       }),
     ],
   )

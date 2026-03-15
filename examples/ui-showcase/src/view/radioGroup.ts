@@ -94,6 +94,7 @@ export const view = (
         toMessage: message =>
           toMessage(GotVerticalRadioGroupDemoMessage({ message })),
         options: plans,
+        ariaLabel: 'Server plan',
         optionToConfig: (plan, { isSelected }) => ({
           value: plan,
           content: attributes =>
@@ -131,7 +132,7 @@ export const view = (
               ],
             ),
         }),
-        className: verticalGroupClassName,
+        attributes: [Class(verticalGroupClassName)],
       }),
 
       h3(
@@ -143,6 +144,7 @@ export const view = (
         toMessage: message =>
           toMessage(GotHorizontalRadioGroupDemoMessage({ message })),
         options: plans,
+        ariaLabel: 'Server plan',
         optionToConfig: (plan, { isSelected }) => ({
           value: plan,
           content: attributes =>
@@ -176,7 +178,7 @@ export const view = (
             ),
         }),
         orientation: 'Horizontal',
-        className: horizontalGroupClassName,
+        attributes: [Class(horizontalGroupClassName)],
       }),
     ],
   )

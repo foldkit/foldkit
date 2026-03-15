@@ -71,11 +71,11 @@ const panelContent = div(
 const popoverViewConfig = (panelClassName: string) => ({
   anchor: POPOVER_ANCHOR,
   buttonContent: span([], ['Solutions']),
-  buttonClassName: triggerClassName,
+  buttonAttributes: [Class(triggerClassName)],
   panelContent,
-  panelClassName,
-  backdropClassName,
-  className: wrapperClassName,
+  panelAttributes: [Class(panelClassName)],
+  backdropAttributes: [Class(backdropClassName)],
+  attributes: [Class(wrapperClassName)],
 })
 
 export const basicDemo = (

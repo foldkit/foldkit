@@ -1,7 +1,13 @@
 import { Effect, Match as M, Option, Schema as S } from 'effect'
 
 import type { Command } from '../../command'
-import { type Html, type TagName, createLazy, html } from '../../html'
+import {
+  type Attribute,
+  type Html,
+  type TagName,
+  createLazy,
+  html,
+} from '../../html'
 import { m } from '../../message'
 import { evo } from '../../struct'
 import * as Task from '../../task'
@@ -99,15 +105,18 @@ export const update = (
 export type ViewConfig<Message> = Readonly<{
   model: Model
   toMessage: (message: Toggled | Closed | CompletedButtonFocus) => Message
-  buttonClassName: string
+  buttonClassName?: string
+  buttonAttributes?: ReadonlyArray<Attribute<Message>>
   buttonContent: Html
-  panelClassName: string
+  panelClassName?: string
+  panelAttributes?: ReadonlyArray<Attribute<Message>>
   panelContent: Html
   isDisabled?: boolean
   persistPanel?: boolean
   buttonElement?: TagName
   panelElement?: TagName
   className?: string
+  attributes?: ReadonlyArray<Attribute<Message>>
 }>
 
 /** Renders a headless disclosure component with accessible ARIA attributes and keyboard support. */
@@ -134,14 +143,17 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     model: { id, isOpen },
     toMessage,
     buttonClassName,
+    buttonAttributes = [],
     buttonContent,
     panelClassName,
+    panelAttributes = [],
     panelContent,
     isDisabled,
     persistPanel,
     buttonElement = 'button',
     panelElement = 'div',
     className,
+    attributes = [],
   } = config
 
   const isNativeButton = buttonElement === 'button'
@@ -165,40 +177,45 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
         ...(!isNativeButton ? [OnKeyDownPreventDefault(handleKeyDown)] : []),
       ]
 
-  const buttonAttributes = [
-    Class(buttonClassName),
+  const resolvedButtonAttributes = [
     Id(buttonId(id)),
     AriaExpanded(isOpen),
     AriaControls(panelId(id)),
     ...(isNativeButton ? [Type('button')] : [Tabindex(0)]),
     ...(isOpen ? [DataAttribute('open', '')] : []),
     ...interactionAttributes,
+    ...(buttonClassName ? [Class(buttonClassName)] : []),
+    ...buttonAttributes,
   ]
 
-  const panelAttributes = [
-    Class(panelClassName),
+  const resolvedPanelAttributes = [
     Id(panelId(id)),
     ...(isOpen ? [DataAttribute('open', '')] : []),
+    ...(panelClassName ? [Class(panelClassName)] : []),
+    ...panelAttributes,
   ]
 
   const persistedPanel = keyed(panelElement)(
     panelId(id),
-    [...panelAttributes, Hidden(!isOpen)],
+    [...resolvedPanelAttributes, Hidden(!isOpen)],
     [panelContent],
   )
 
   const activePanel = isOpen
-    ? keyed(panelElement)(panelId(id), panelAttributes, [panelContent])
+    ? keyed(panelElement)(panelId(id), resolvedPanelAttributes, [panelContent])
     : empty
 
   const panel = persistPanel ? persistedPanel : activePanel
 
-  const wrapperAttributes = className ? [Class(className)] : []
-
-  return div(wrapperAttributes, [
-    keyed(buttonElement)(buttonId(id), buttonAttributes, [buttonContent]),
-    panel,
-  ])
+  return div(
+    [...(className ? [Class(className)] : []), ...attributes],
+    [
+      keyed(buttonElement)(buttonId(id), resolvedButtonAttributes, [
+        buttonContent,
+      ]),
+      panel,
+    ],
+  )
 }
 
 /** Creates a memoized disclosure view. Static config is captured in a closure;

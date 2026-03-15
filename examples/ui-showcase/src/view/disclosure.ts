@@ -31,7 +31,7 @@ export const view = (
       Ui.Disclosure.view({
         model: model.disclosureDemo,
         toMessage: message => toMessage(GotDisclosureDemoMessage({ message })),
-        buttonClassName,
+        buttonAttributes: [Class(buttonClassName)],
         buttonContent: div(
           [Class('flex items-center justify-between w-full')],
           [
@@ -39,7 +39,7 @@ export const view = (
             chevron(model.disclosureDemo.isOpen),
           ],
         ),
-        panelClassName,
+        panelAttributes: [Class(panelClassName)],
         panelContent: p(
           [Class('text-gray-800')],
           [

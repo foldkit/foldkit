@@ -790,14 +790,10 @@ describe('Combobox', () => {
       toMessage: message => message._tag,
       items: ['Apple', 'Banana'],
       itemToConfig: () => ({
-        className: 'item',
         content: Effect.succeed(null),
       }),
       itemToValue: item => item,
       itemToDisplayText: item => item,
-      inputClassName: 'input',
-      itemsClassName: 'items',
-      backdropClassName: 'backdrop',
     })
 
     const renderView = (config: ViewConfig<TestMessage, string>): VNode => {
@@ -1112,7 +1108,6 @@ describe('Combobox', () => {
           ) => {
             contexts.push(context)
             return {
-              className: 'item',
               content: Effect.succeed(null),
             }
           },
@@ -1144,7 +1139,6 @@ describe('Combobox', () => {
           ) => {
             contexts.push(context)
             return {
-              className: 'item',
               content: Effect.succeed(null),
             }
           },

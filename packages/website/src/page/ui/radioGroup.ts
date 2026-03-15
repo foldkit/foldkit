@@ -107,6 +107,7 @@ export const verticalDemo = (
     toMessage: message =>
       toMessage(GotVerticalRadioGroupDemoMessage({ message })),
     options: plans,
+    ariaLabel: 'Server plan',
     optionToConfig: (plan, { isSelected }) => ({
       value: plan,
       content: attributes =>
@@ -138,7 +139,7 @@ export const verticalDemo = (
           ],
         ),
     }),
-    className: verticalGroupClassName,
+    attributes: [Class(verticalGroupClassName)],
   }),
 ]
 
@@ -152,6 +153,7 @@ export const horizontalDemo = (
     toMessage: message =>
       toMessage(GotHorizontalRadioGroupDemoMessage({ message })),
     options: plans,
+    ariaLabel: 'Server plan',
     optionToConfig: (plan, { isSelected }) => ({
       value: plan,
       content: attributes =>
@@ -179,6 +181,6 @@ export const horizontalDemo = (
         ),
     }),
     orientation: 'Horizontal',
-    className: horizontalGroupClassName,
+    attributes: [Class(horizontalGroupClassName)],
   }),
 ]

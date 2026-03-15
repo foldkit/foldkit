@@ -189,14 +189,10 @@ describe('Combobox.Multi', () => {
       toMessage: message => message._tag,
       items: ['Apple', 'Banana'],
       itemToConfig: () => ({
-        className: 'item',
         content: Effect.succeed(null),
       }),
       itemToValue: item => item,
       itemToDisplayText: item => item,
-      inputClassName: 'input',
-      itemsClassName: 'items',
-      backdropClassName: 'backdrop',
     })
 
     const renderView = <Item extends string>(

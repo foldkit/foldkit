@@ -407,10 +407,7 @@ describe('Popover', () => {
       toMessage: message => message._tag,
       anchor: { placement: 'bottom-start' },
       buttonContent: Effect.succeed(null),
-      buttonClassName: 'button',
       panelContent: Effect.succeed(null),
-      panelClassName: 'panel',
-      backdropClassName: 'backdrop',
     })
 
     const renderView = (config: ViewConfig<TestMessage>): VNode => {

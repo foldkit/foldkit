@@ -117,13 +117,9 @@ describe('Listbox.Multi', () => {
       toMessage: message => message._tag,
       items: ['Apple', 'Banana'],
       itemToConfig: () => ({
-        className: 'item',
         content: Effect.succeed(null),
       }),
       buttonContent: Effect.succeed(null),
-      buttonClassName: 'button',
-      itemsClassName: 'items',
-      backdropClassName: 'backdrop',
     })
 
     const renderView = <Item>(config: ViewConfig<TestMessage, Item>): VNode => {

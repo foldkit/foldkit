@@ -200,12 +200,12 @@ const signaturesView = (
         model: maybeDisclosure,
         toMessage: message =>
           toMessage(GotDisclosureMessage({ id: key, message })),
-        buttonClassName: disclosureButtonClassName,
+        buttonAttributes: [Class(disclosureButtonClassName)],
         buttonContent: div(
           [Class('flex items-center justify-between w-full')],
           [span([], ['Show signature']), chevron(maybeDisclosure.isOpen)],
         ),
-        panelClassName: disclosurePanelClassName,
+        panelAttributes: [Class(disclosurePanelClassName)],
         panelContent: div([Class(wrapperClass)], content),
       })
     : div([Class(wrapperClass)], content)

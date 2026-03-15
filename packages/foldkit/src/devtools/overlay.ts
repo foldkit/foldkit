@@ -1000,15 +1000,20 @@ const makeView = (
           toMessage: tabsMessage =>
             GotInspectorTabsMessage({ message: tabsMessage }),
           tabs: INSPECTOR_TABS,
-          className: 'flex flex-col flex-1 min-h-0',
-          tabListClassName: 'flex border-b shrink-0',
+          tabListAriaLabel: 'Inspector tabs',
+          attributes: [Class('flex flex-col flex-1 min-h-0')],
+          tabListAttributes: [Class('flex border-b shrink-0')],
           tabToConfig: (tab, { isActive }) => ({
-            buttonClassName: clsx(
-              'dt-tab-button cursor-pointer text-base font-mono px-3 py-1',
-              isActive ? 'text-dt dt-tab-active' : 'text-dt-muted',
-            ),
+            buttonAttributes: [
+              Class(
+                clsx(
+                  'dt-tab-button cursor-pointer text-base font-mono px-3 py-1',
+                  isActive ? 'text-dt dt-tab-active' : 'text-dt-muted',
+                ),
+              ),
+            ],
             buttonContent: span([], [tab]),
-            panelClassName: 'flex flex-col flex-1 min-h-0 min-w-0',
+            panelAttributes: [Class('flex flex-col flex-1 min-h-0 min-w-0')],
             panelContent: Option.match(model.maybeInspectedModel, {
               onNone: () => emptyInspectorView,
               onSome: inspectedModel =>

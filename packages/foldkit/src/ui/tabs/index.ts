@@ -9,7 +9,13 @@ import {
 } from 'effect'
 
 import type { Command } from '../../command'
-import { type Html, type TagName, createLazy, html } from '../../html'
+import {
+  type Attribute,
+  type Html,
+  type TagName,
+  createLazy,
+  html,
+} from '../../html'
 import { m } from '../../message'
 import { evo } from '../../struct'
 import * as Task from '../../task'
@@ -122,9 +128,9 @@ export const update = (
 
 /** Configuration for an individual tab's button and panel content. */
 export type TabConfig = Readonly<{
-  buttonClassName: string
+  buttonClassName?: string
   buttonContent: Html
-  panelClassName: string
+  panelClassName?: string
   panelContent: Html
 }>
 
@@ -141,8 +147,10 @@ export type ViewConfig<Message, Tab extends string> = Readonly<{
   tabElement?: TagName
   panelElement?: TagName
   className?: string
+  attributes?: ReadonlyArray<Attribute<Message>>
   tabListClassName?: string
-  tabListAriaLabel?: string
+  tabListAttributes?: ReadonlyArray<Attribute<Message>>
+  tabListAriaLabel: string
 }>
 
 const tabPanelId = (id: string, index: number): string => `${id}-panel-${index}`
@@ -188,7 +196,9 @@ export const view = <Message, Tab extends string>(
     tabElement = 'button',
     panelElement = 'div',
     className,
+    attributes = [],
     tabListClassName,
+    tabListAttributes = [],
     tabListAriaLabel,
   } = config
 
@@ -258,7 +268,6 @@ export const view = <Message, Tab extends string>(
     return keyed(tabElement)(
       tabId(id, index),
       [
-        Class(tabConfig.buttonClassName),
         Id(tabId(id, index)),
         Role('tab'),
         Type('button'),
@@ -270,6 +279,9 @@ export const view = <Message, Tab extends string>(
           ? [Disabled(true), AriaDisabled(true), DataAttribute('disabled', '')]
           : [OnClick(toMessage(TabSelected({ index })))]),
         OnKeyDownPreventDefault(handleKeyDown),
+        ...(tabConfig.buttonClassName
+          ? [Class(tabConfig.buttonClassName)]
+          : []),
       ],
       [tabConfig.buttonContent],
     )
@@ -282,13 +294,15 @@ export const view = <Message, Tab extends string>(
     return keyed(panelElement)(
       tabPanelId(id, index),
       [
-        Class(panelConfig.panelClassName),
         Id(tabPanelId(id, index)),
         Role('tabpanel'),
         AriaLabelledBy(tabId(id, index)),
         Tabindex(isActive ? 0 : -1),
         Hidden(!isActive),
         ...(isActive ? [DataAttribute('selected', '')] : []),
+        ...(panelConfig.panelClassName
+          ? [Class(panelConfig.panelClassName)]
+          : []),
       ],
       [panelConfig.panelContent],
     )
@@ -305,12 +319,14 @@ export const view = <Message, Tab extends string>(
         return keyed(panelElement)(
           tabPanelId(id, model.activeIndex),
           [
-            Class(activeConfig.panelClassName),
             Id(tabPanelId(id, model.activeIndex)),
             Role('tabpanel'),
             AriaLabelledBy(tabId(id, model.activeIndex)),
             Tabindex(0),
             DataAttribute('selected', ''),
+            ...(activeConfig.panelClassName
+              ? [Class(activeConfig.panelClassName)]
+              : []),
           ],
           [activeConfig.panelContent],
         )
@@ -320,19 +336,25 @@ export const view = <Message, Tab extends string>(
 
   const tabPanels = persistPanels ? allPanels : [activePanelOnly]
 
-  const tabListAttributes = [
+  const resolvedTabListAttributes = [
     Role('tablist'),
     AriaOrientation(String.toLowerCase(orientation)),
+    AriaLabel(tabListAriaLabel),
     ...(tabListClassName ? [Class(tabListClassName)] : []),
-    ...(tabListAriaLabel ? [AriaLabel(tabListAriaLabel)] : []),
+    ...tabListAttributes,
   ]
 
-  const wrapperAttributes = className ? [Class(className)] : []
-
-  return div(wrapperAttributes, [
-    keyed(tabListElement)(`${id}-tablist`, tabListAttributes, tabButtons),
-    ...tabPanels,
-  ])
+  return div(
+    [...(className ? [Class(className)] : []), ...attributes],
+    [
+      keyed(tabListElement)(
+        `${id}-tablist`,
+        resolvedTabListAttributes,
+        tabButtons,
+      ),
+      ...tabPanels,
+    ],
+  )
 }
 
 /** Creates a memoized tabs view. Static config is captured in a closure;

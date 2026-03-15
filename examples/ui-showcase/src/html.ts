@@ -37,6 +37,7 @@ export const {
   Id,
   OnClick,
   OnInput,
+  Placeholder,
   Stroke,
   StrokeLinecap,
   StrokeLinejoin,

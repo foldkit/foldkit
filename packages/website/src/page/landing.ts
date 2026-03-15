@@ -525,7 +525,7 @@ const devtoolsSection = (): Html =>
               img([
                 Src('/devtools-overlay.png'),
                 Alt(
-                  'Foldkit DevTools overlay inspecting the Foldkit website — a numbered Message timeline on the left with entries like ClickedLink, ChangedUrl, and CompletedScroll, and an expandable Model state tree on the right showing route, url, and theme fields',
+                  'Foldkit DevTools overlay inspecting the Foldkit website — a numbered Message timeline on the left with entries like ClickedLink, ChangedUrl, and CompletedScroll, and an expandable Model state tree on the right showing route, url, and theme fields.',
                 ),
                 Class('w-full h-auto'),
               ]),

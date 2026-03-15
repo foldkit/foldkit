@@ -116,9 +116,9 @@ export const dialogDemo = (
           ),
         ],
       ),
-      panelClassName,
-      backdropClassName,
-      className: dialogClassName,
+      panelAttributes: [Class(panelClassName)],
+      backdropAttributes: [Class(backdropClassName)],
+      attributes: [Class(dialogClassName)],
     }),
   ]
 }
@@ -181,9 +181,9 @@ export const dialogAnimatedDemo = (
           ),
         ],
       ),
-      panelClassName: animatedPanelClassName,
-      backdropClassName: animatedBackdropClassName,
-      className: dialogClassName,
+      panelAttributes: [Class(animatedPanelClassName)],
+      backdropAttributes: [Class(animatedBackdropClassName)],
+      attributes: [Class(dialogClassName)],
     }),
   ]
 }

@@ -76,7 +76,7 @@ const MENU_ANCHOR = {
   padding: 8,
 }
 
-const menuViewConfig = (itemsClassName: string) => ({
+const menuViewConfig = (itemsClassNameValue: string) => ({
   anchor: MENU_ANCHOR,
   items: MENU_ITEMS,
   itemToConfig: (item: MenuItem) => ({
@@ -91,10 +91,10 @@ const menuViewConfig = (itemsClassName: string) => ({
     [Class('flex items-center gap-4')],
     [span([], ['Actions']), Icon.chevronDown('w-4 h-4')],
   ),
-  buttonClassName: triggerClassName,
-  itemsClassName,
-  backdropClassName,
-  className: wrapperClassName,
+  buttonAttributes: [Class(triggerClassName)],
+  itemsAttributes: [Class(itemsClassNameValue)],
+  backdropAttributes: [Class(backdropClassName)],
+  attributes: [Class(wrapperClassName)],
   itemGroupKey,
   groupToHeading,
 })

@@ -1069,15 +1069,19 @@ const sidebarGroup = (config: {
       Ui.Disclosure.view({
         model: config.model,
         toMessage: config.toMessage,
-        buttonClassName: clsx(
-          'w-full flex items-center justify-between cursor-pointer transition',
-          'px-4 py-2.5 md:py-2',
-          'text-xs font-semibold uppercase tracking-wider',
-          'text-gray-600 dark:text-gray-400',
-          'bg-gray-200 dark:bg-gray-800',
-          'hover:bg-gray-300/60 dark:hover:bg-gray-700/60',
-          'hover:text-gray-700 dark:hover:text-gray-300',
-        ),
+        buttonAttributes: [
+          Class(
+            clsx(
+              'w-full flex items-center justify-between cursor-pointer transition',
+              'px-4 py-2.5 md:py-2',
+              'text-xs font-semibold uppercase tracking-wider',
+              'text-gray-600 dark:text-gray-400',
+              'bg-gray-200 dark:bg-gray-800',
+              'hover:bg-gray-300/60 dark:hover:bg-gray-700/60',
+              'hover:text-gray-700 dark:hover:text-gray-300',
+            ),
+          ),
+        ],
         buttonContent: div(
           [Class('flex items-center justify-between w-full')],
           [
@@ -1094,7 +1098,7 @@ const sidebarGroup = (config: {
             ),
           ],
         ),
-        panelClassName: 'px-4 py-2',
+        panelAttributes: [Class('px-4 py-2')],
         panelContent: config.children,
       }),
     ],
@@ -1309,10 +1313,11 @@ const sidebarViewInner = (
     model: mobileMenuDialog,
     toMessage: message => GotMobileMenuDialogMessage({ message }),
     panelContent: mobileMenuContent,
-    panelClassName:
-      'fixed inset-0 z-[60] bg-cream dark:bg-gray-900 flex flex-col',
-    backdropClassName: 'fixed inset-0 z-[59]',
-    className: 'md:hidden',
+    panelAttributes: [
+      Class('fixed inset-0 z-[60] bg-cream dark:bg-gray-900 flex flex-col'),
+    ],
+    backdropAttributes: [Class('fixed inset-0 z-[59]')],
+    attributes: [Class('md:hidden')],
   })
 
   return div([], [desktopSidebar, mobileMenu])
@@ -1874,8 +1879,9 @@ const landingView = (model: Model) => {
         M.exhaustive,
       ),
     orientation: model.isNarrowViewport ? 'Horizontal' : 'Vertical',
-    className: 'lg:flex',
-    tabListClassName: 'flex lg:flex-col gap-1',
+    attributes: [Class('lg:flex')],
+    tabListAttributes: [Class('flex lg:flex-col gap-1')],
+    tabListAriaLabel: 'Demo tabs',
   })
 
   return keyed('div')(

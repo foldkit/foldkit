@@ -1012,14 +1012,12 @@ const voidElement =
   (attributes: ReadonlyArray<Attribute<Message>> = []): Html =>
     createElement(tagName, attributes, [])
 
-type AttributeWithoutKey<Message> = Exclude<Attribute<Message>, { _tag: 'Key' }>
-
 const keyed =
   <Message>() =>
   (tagName: TagName) =>
   (
     key: string,
-    attributes: ReadonlyArray<AttributeWithoutKey<Message>> = [],
+    attributes: ReadonlyArray<Attribute<Message>> = [],
     children: ReadonlyArray<Child> = [],
   ): Html =>
     element<Message>()(tagName)([...attributes, Key({ value: key })], children)
