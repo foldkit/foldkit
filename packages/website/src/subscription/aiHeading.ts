@@ -3,7 +3,7 @@ import { Subscription } from 'foldkit/subscription'
 
 import { type Model, type SubscriptionDeps, ToggledAiHeading } from '../main'
 
-const TOGGLE_INTERVAL_MS = 4000
+const TOGGLE_INTERVAL_MS = 3000
 
 export const aiHeading: Subscription<
   Model,
