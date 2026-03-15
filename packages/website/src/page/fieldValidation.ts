@@ -4,7 +4,7 @@ import { Class, InnerHTML, code, div } from '../html'
 import { Link } from '../link'
 import type { TableOfContentsEntry } from '../main'
 import {
-  callout,
+  infoCallout,
   inlineCode,
   link,
   pageTitle,
@@ -243,7 +243,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('validationId'),
         ' pattern prevents race conditions. Each keystroke increments the ID, and the result handler only applies if the ID still matches. Stale responses from slow requests are silently discarded.',
       ),
-      callout(
+      infoCallout(
         'Sync First',
         'Run sync validation first. Only fire async commands when the sync rules pass. This avoids unnecessary API calls for obviously invalid input.',
       ),

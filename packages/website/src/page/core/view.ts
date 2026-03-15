@@ -3,7 +3,7 @@ import type { Html } from 'foldkit/html'
 import { Class, InnerHTML, div } from '../../html'
 import type { TableOfContentsEntry } from '../../main'
 import {
-  callout,
+  infoCallout,
   inlineCode,
   pageTitle,
   para,
@@ -55,7 +55,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         copiedSnippets,
         'mb-8',
       ),
-      callout(
+      infoCallout(
         'No hook rules',
         'In React, functional components can hold local state and run effects via hooks, which come with ordering rules you have to follow. In Foldkit, view is guaranteed pure \u2014 no hooks, no effects, no local state. It\u2019s a function from Model to Html.',
       ),

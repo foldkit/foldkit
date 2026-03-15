@@ -4,7 +4,7 @@ import { Class, div } from '../html'
 import { Link } from '../link'
 import type { TableOfContentsEntry } from '../main'
 import {
-  callout,
+  infoCallout,
   inlineCode,
   link,
   pageTitle,
@@ -78,7 +78,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           codeBlock(DEV_YARN, 'Copy yarn command', copiedSnippets),
         ],
       ),
-      callout(
+      infoCallout(
         'Coming from React?',
         'If you\u2019re familiar with React, check out the ',
         link(comingFromReactRouter(), 'Coming from React'),

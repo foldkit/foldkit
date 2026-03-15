@@ -3,7 +3,7 @@ import type { Html } from 'foldkit/html'
 import { Class, InnerHTML, div } from '../../html'
 import type { TableOfContentsEntry } from '../../main'
 import {
-  callout,
+  infoCallout,
   inlineCode,
   pageTitle,
   para,
@@ -44,7 +44,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'When update runs, no HTTP request fires, no timer starts, no DOM changes. It returns data \u2014 a new Model and a list of Commands that describe what should happen. The Foldkit runtime reads those descriptions and executes them.',
       ),
-      callout(
+      infoCallout(
         'A different model for side effects',
         'In React, event handlers do things directly \u2014 call ',
         inlineCode('fetch()'),
@@ -129,7 +129,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         copiedSnippets,
         'mb-8',
       ),
-      callout(
+      infoCallout(
         'Errors are tracked, not hidden',
         'Commands use Effect\u2019s typed error channel \u2014 if a Command can fail, the type signature tells you. ',
         inlineCode('Effect.catchAll'),

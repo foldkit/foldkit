@@ -14,7 +14,9 @@ import { cog } from './cog'
 import { computer } from './computer'
 import { copy } from './copy'
 import { documentDuplicate } from './documentDuplicate'
+import { exclamationTriangle } from './exclamationTriangle'
 import { github } from './github'
+import { informationCircle } from './informationCircle'
 import { link } from './link'
 import { lockClosed } from './lockClosed'
 import { menu } from './menu'
@@ -49,7 +51,9 @@ export const Icon = {
   computer,
   copy,
   documentDuplicate,
+  exclamationTriangle,
   github,
+  informationCircle,
   link,
   lockClosed,
   menu,

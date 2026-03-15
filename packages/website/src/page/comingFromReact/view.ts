@@ -7,7 +7,7 @@ import { Icon } from '../../icon'
 import { Link } from '../../link'
 import type { Message as ParentMessage, TableOfContentsEntry } from '../../main'
 import {
-  callout,
+  infoCallout,
   inlineCode,
   link,
   pageTitle,
@@ -296,7 +296,7 @@ export const view = (
       para(
         'Read the update function top to bottom. Every behavior in the app is right there. Each case is independent \u2014 they don\u2019t interact through shared mutable state or overlapping effect dependencies. Adding a feature meant adding cases, not restructuring existing ones.',
       ),
-      callout(
+      infoCallout(
         'The pattern',
         'In React, complexity compounds. Each feature interacts with existing effects, refs, and closures. In Foldkit, complexity scales linearly. Each feature adds Messages, update cases, and possibly Commands or Subscriptions \u2014 but they don\u2019t interact with each other through shared mutable state.',
       ),
@@ -311,7 +311,7 @@ export const view = (
       tableOfContentsEntryToHeader(translatingConceptsHeader),
       para('Here\u2019s how React patterns map to Foldkit:'),
       patternMappingTable(),
-      callout(
+      infoCallout(
         'If you know Redux...',
         'The Model-View-Update pattern will feel familiar. Think of the Model as your Redux store, Messages as actions, and update as your reducer \u2014 but without action creators, selectors, or middleware.',
       ),

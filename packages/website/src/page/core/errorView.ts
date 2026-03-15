@@ -3,7 +3,7 @@ import type { Html } from 'foldkit/html'
 import { Class, InnerHTML, div } from '../../html'
 import type { TableOfContentsEntry } from '../../main'
 import {
-  callout,
+  infoCallout,
   inlineCode,
   link,
   pageTitle,
@@ -78,7 +78,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode("Attribute('onclick', 'location.reload()')"),
         '. This sets a raw DOM event handler directly on the element, bypassing Foldkit\u2019s dispatch system entirely.',
       ),
-      callout(
+      infoCallout(
         'Only in errorView',
         'In a normal Foldkit app, always use ',
         inlineCode('OnClick'),

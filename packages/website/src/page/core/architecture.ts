@@ -4,7 +4,7 @@ import { Class, div, pre } from '../../html'
 import { Link } from '../../link'
 import type { TableOfContentsEntry } from '../../main'
 import {
-  callout,
+  infoCallout,
   inlineCode,
   link,
   pageTitle,
@@ -114,7 +114,7 @@ export const view = (): Html =>
       para(
         'Messages work the same way. \u201CTable 3 asked for the check\u201D is a fact given to the waiter, not an instruction. The waiter decides what to do \u2014 maybe bring the check immediately, maybe offer dessert first. The message stays the same either way.',
       ),
-      callout(
+      infoCallout(
         'The restaurant analogy',
         'This analogy maps to every concept you\u2019ll encounter in Core Concepts. The table below is a reference you can come back to as you read.',
       ),

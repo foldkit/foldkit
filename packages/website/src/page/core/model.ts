@@ -4,7 +4,7 @@ import { Class, InnerHTML, div } from '../../html'
 import { Link } from '../../link'
 import type { TableOfContentsEntry } from '../../main'
 import {
-  callout,
+  infoCallout,
   link,
   pageTitle,
   para,
@@ -66,7 +66,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         copiedSnippets,
         'mb-8',
       ),
-      callout(
+      infoCallout(
         'One state tree, not many',
         'Think of the Model as combining useState, useContext, and your Redux store into one typed structure. Instead of state scattered across components, everything lives here.',
       ),

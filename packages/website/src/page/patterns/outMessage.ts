@@ -3,7 +3,7 @@ import type { Html } from 'foldkit/html'
 import { Class, InnerHTML, div } from '../../html'
 import type { TableOfContentsEntry } from '../../main'
 import {
-  callout,
+  infoCallout,
   inlineCode,
   link,
   pageTitle,
@@ -57,7 +57,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'The OutMessage pattern solves this. The child emits a semantic event \u2014 \u201Clogin succeeded, here\u2019s the session.\u201D The parent decides what to do with it. The child describes what happened; the parent decides the consequences.',
       ),
-      callout(
+      infoCallout(
         'Compare to React',
         'In React, you\u2019d pass an ',
         inlineCode('onLoginSuccess'),

@@ -3,7 +3,7 @@ import type { Html } from 'foldkit/html'
 import { Class, InnerHTML, div } from '../../html'
 import type { TableOfContentsEntry } from '../../main'
 import {
-  callout,
+  infoCallout,
   inlineCode,
   link,
   pageTitle,
@@ -74,7 +74,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'In the restaurant analogy, think of a large restaurant with multiple stations \u2014 a sushi bar, a grill, a pastry counter. Each station has its own chef, its own order flow, its own plating. But the head waiter still coordinates: taking the order, routing it to the right station, and combining everything onto the table.',
       ),
-      callout(
+      infoCallout(
         'Compare to React',
         'In React, components naturally nest and communicate through props and callbacks. In Foldkit, composition is explicit \u2014 the parent embeds the child\u2019s Model, wraps its Messages, and delegates in update. Every interaction between parent and child is visible in the update function.',
       ),
@@ -168,7 +168,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('GotSettingsMessage'),
         ', translating child Messages back into the parent\u2019s Message type.',
       ),
-      callout(
+      infoCallout(
         'Multiple instances',
         'If you need several instances of the same child (e.g. three accordions), embed each as a separate field. For a dynamic number, use an array and include an ID in the wrapper Message to route updates to the correct instance.',
       ),

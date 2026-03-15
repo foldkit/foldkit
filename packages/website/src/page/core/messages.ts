@@ -3,7 +3,7 @@ import type { Html } from 'foldkit/html'
 import { Class, InnerHTML, div } from '../../html'
 import type { TableOfContentsEntry } from '../../main'
 import {
-  callout,
+  infoCallout,
   inlineCode,
   link,
   pageTitle,
@@ -83,7 +83,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('ClickedIncrement()'),
         '.',
       ),
-      callout(
+      infoCallout(
         'Actions without the boilerplate',
         'Messages are similar to Redux action types, but more ergonomic with Effect Schema. Instead of string constants and action creators, you get type inference and pattern matching for free.',
       ),

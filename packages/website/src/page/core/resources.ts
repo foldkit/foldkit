@@ -4,7 +4,7 @@ import { Class, InnerHTML, div } from '../../html'
 import { Link } from '../../link'
 import type { TableOfContentsEntry } from '../../main'
 import {
-  callout,
+  infoCallout,
   inlineCode,
   link,
   pageTitle,
@@ -73,7 +73,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('resources'),
         ', you\u2019ll get a compile error.',
       ),
-      callout(
+      infoCallout(
         'When not to use resources',
         'Resources are for mutable browser singletons with lifecycle — things that must be created once and reused. Stateless services like ',
         inlineCode('HttpClient'),

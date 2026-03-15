@@ -5,7 +5,7 @@ import { Link } from '../../link'
 import type { TableOfContentsEntry } from '../../main'
 import {
   bullets,
-  callout,
+  infoCallout,
   inlineCode,
   link,
   pageTitle,
@@ -130,7 +130,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Lazy views are unnecessary for small views, views that change on every model update, or leaf nodes with minimal children. The memoization check itself has a small cost, so applying it everywhere would add overhead without benefit.',
       ),
-      callout(
+      infoCallout(
         'How it works under the hood',
         'Foldkit\u2019s virtual DOM library (',
         link(Link.snabbdom, 'Snabbdom'),

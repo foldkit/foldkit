@@ -9,6 +9,7 @@ import {
   pageTitle,
   para,
   tableOfContentsEntryToHeader,
+  warningCallout,
 } from '../prose'
 import { exampleDetailRouter } from '../route'
 import * as Snippets from '../snippet'
@@ -304,12 +305,18 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         '.',
       ),
       tableOfContentsEntryToHeader(keyingRouteViewsHeader),
+      warningCallout(
+        'Always key your route content.',
+        'Without a key, the virtual DOM will try to patch one route\u2019s DOM into another instead of replacing it. This causes stale input state, mismatched event handlers, and bugs that are extremely hard to track down.',
+      ),
       para(
-        'When rendering different routes in the same DOM position, you should key the content by the route tag. This tells ',
+        'Wrap your route content in a ',
+        inlineCode('keyed'),
+        ' element using ',
+        inlineCode('model.route._tag'),
+        ' as the key. This tells ',
         link(Link.snabbdom, 'Snabbdom'),
-        ' (which Foldkit uses for ',
-        link(Link.foldkitVdom, 'virtual DOM diffing'),
-        ') that different routes are distinct trees that should be fully replaced rather than patched.',
+        ' that each route is a distinct tree that should be fully replaced on navigation.',
       ),
       highlightedCodeBlock(
         div(
@@ -322,12 +329,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        'Without the key, Snabbdom tries to diff the old and new route views as if they were the same tree. This can cause unexpected behavior when routes have different structures.',
-      ),
-      para(
-        'In React, this happens automatically — different component types in the same position cause a full remount. In Foldkit, you achieve the same behavior by explicitly keying with ',
-        inlineCode('model.route._tag'),
-        '.',
+        'In React, different component types in the same position cause a full remount automatically. In Foldkit, you opt into this by keying explicitly \u2014 one line that prevents an entire class of bugs.',
       ),
       tableOfContentsEntryToHeader(navigationHeader),
       para(

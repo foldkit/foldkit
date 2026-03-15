@@ -17,6 +17,7 @@ import {
   h4,
   li,
   p,
+  span,
   strong,
   ul,
 } from './html'
@@ -126,7 +127,7 @@ const inlineCodeClassName =
 export const inlineCode = (text: string, className?: string): Html =>
   code([Class(twMerge(inlineCodeClassName, className))], [text])
 
-export const callout = (
+export const infoCallout = (
   label: string,
   ...content: ReadonlyArray<string | Html>
 ): Html =>
@@ -138,9 +139,36 @@ export const callout = (
     ],
     [
       p(
-        [Class('font-semibold text-gray-800 dark:text-gray-200 mb-1')],
-        [label],
+        [
+          Class(
+            'flex items-center gap-1.5 font-semibold text-gray-800 dark:text-gray-200 mb-1',
+          ),
+        ],
+        [Icon.informationCircle('w-5 h-5 shrink-0'), span([], [label])],
       ),
       p([Class('text-gray-700 dark:text-gray-300 leading-7')], content),
+    ],
+  )
+
+export const warningCallout = (
+  label: string,
+  ...content: ReadonlyArray<string | Html>
+): Html =>
+  div(
+    [
+      Class(
+        'border border-amber-400 dark:border-amber-500/50 bg-amber-50 dark:bg-amber-950/30 py-3.5 px-5 mb-6 rounded-lg',
+      ),
+    ],
+    [
+      p(
+        [
+          Class(
+            'flex items-center gap-1.5 font-semibold text-amber-900 dark:text-amber-200 mb-1',
+          ),
+        ],
+        [Icon.exclamationTriangle('w-5 h-5 shrink-0'), span([], [label])],
+      ),
+      p([Class('text-amber-800 dark:text-amber-300/90 leading-7')], content),
     ],
   )

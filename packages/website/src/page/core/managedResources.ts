@@ -3,7 +3,7 @@ import type { Html } from 'foldkit/html'
 import { Class, InnerHTML, div } from '../../html'
 import type { TableOfContentsEntry } from '../../main'
 import {
-  callout,
+  infoCallout,
   inlineCode,
   pageTitle,
   para,
@@ -118,7 +118,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('catchTag'),
         ' is a safety net that never fires. But if your model logic has a bug, you get a graceful error message instead of a crash.',
       ),
-      callout(
+      infoCallout(
         'Resources vs Managed Resources',
         'Use ',
         inlineCode('resources'),
