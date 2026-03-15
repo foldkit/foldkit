@@ -2,11 +2,8 @@ import { Effect, Stream } from 'effect'
 import { Command } from 'foldkit/command'
 import { Subscription } from 'foldkit/subscription'
 
-import {
-  ChangedHeroVisibility,
-  type Model,
-  type SubscriptionDeps,
-} from '../main'
+import { type Model, type SubscriptionDeps } from '../main'
+import { ChangedHeroVisibility } from '../message'
 import { HERO_SECTION_ID } from '../page/landing'
 
 export const heroVisibility: Subscription<

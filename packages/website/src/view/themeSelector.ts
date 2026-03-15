@@ -11,7 +11,7 @@ import {
   div,
 } from '../html'
 import { Icon } from '../icon'
-import { SelectedThemePreference, type ThemePreference } from '../main'
+import { SelectedThemePreference, type ThemePreference } from '../message'
 
 export const themeSelector = (activePreference: ThemePreference): Html =>
   div(

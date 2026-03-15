@@ -3,11 +3,11 @@ import { Command } from 'foldkit/command'
 import { Subscription } from 'foldkit/subscription'
 
 import {
-  ChangedViewportWidth,
   type Model,
   NARROW_VIEWPORT_QUERY,
   type SubscriptionDeps,
 } from '../main'
+import { ChangedViewportWidth } from '../message'
 
 export const viewportWidth: Subscription<
   Model,

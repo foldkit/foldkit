@@ -12,7 +12,8 @@ import {
 import { Command } from 'foldkit/command'
 import { Subscription } from 'foldkit/subscription'
 
-import { ChangedActiveSection, Model, SubscriptionDeps } from '../main'
+import { Model, SubscriptionDeps } from '../main'
+import { ChangedActiveSection } from '../message'
 import * as Page from '../page'
 
 export const activeSection: Subscription<

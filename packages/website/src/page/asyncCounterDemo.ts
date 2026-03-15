@@ -29,7 +29,7 @@ import {
   label,
   p,
 } from '../html'
-import type { Message as ParentMessage } from '../main'
+import type { Message as ParentMessage } from '../message'
 import * as DemoView from './demoView'
 
 // CONSTANTS

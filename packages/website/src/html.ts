@@ -1,6 +1,6 @@
 import { html } from 'foldkit/html'
 
-import type { Message } from './main'
+import type { Message } from './message'
 
 export const {
   a,

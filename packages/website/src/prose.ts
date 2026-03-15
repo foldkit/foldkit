@@ -22,7 +22,8 @@ import {
   ul,
 } from './html'
 import { Icon } from './icon'
-import { ClickedCopyLink, TableOfContentsEntry } from './main'
+import { type TableOfContentsEntry } from './main'
+import { ClickedCopyLink } from './message'
 
 export const headingLinkButton = (id: string, text: string): Html =>
   a(

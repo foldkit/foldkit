@@ -34,7 +34,7 @@ import {
   span,
 } from '../html'
 import { Icon } from '../icon'
-import type { Message as ParentMessage } from '../main'
+import type { Message as ParentMessage } from '../message'
 import * as DemoView from './demoView'
 
 // CONSTANTS

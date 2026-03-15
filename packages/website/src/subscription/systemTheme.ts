@@ -2,7 +2,8 @@ import { Effect, Stream } from 'effect'
 import { Command } from 'foldkit/command'
 import { Subscription } from 'foldkit/subscription'
 
-import { ChangedSystemTheme, type Model, type SubscriptionDeps } from '../main'
+import { type Model, type SubscriptionDeps } from '../main'
+import { ChangedSystemTheme } from '../message'
 
 export const systemTheme: Subscription<
   Model,

@@ -2,11 +2,8 @@ import { Effect, Option, Stream, pipe } from 'effect'
 import { Command } from 'foldkit/command'
 import { Subscription } from 'foldkit/subscription'
 
-import {
-  GotExampleDetailMessage,
-  type Model,
-  type SubscriptionDeps,
-} from '../main'
+import { type Model, type SubscriptionDeps } from '../main'
+import { GotExampleDetailMessage } from '../message'
 import { ChangedExampleUrl } from '../page/example/exampleDetail'
 import { ExampleDetailRoute } from '../route'
 

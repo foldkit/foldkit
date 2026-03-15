@@ -1,0 +1,167 @@
+import { Schema as S } from 'effect'
+import { Ui } from 'foldkit'
+import { m } from 'foldkit/message'
+import { UrlRequest } from 'foldkit/runtime'
+import { Url } from 'foldkit/url'
+
+import * as Page from './page'
+
+// THEME
+
+export const ThemePreference = S.Literal('Dark', 'Light', 'System')
+export type ThemePreference = typeof ThemePreference.Type
+
+export const ResolvedTheme = S.Literal('Dark', 'Light')
+export type ResolvedTheme = typeof ResolvedTheme.Type
+
+// MESSAGE
+
+export const CompletedInternalNavigation = m('CompletedInternalNavigation')
+export const CompletedExternalNavigation = m('CompletedExternalNavigation')
+export const CompletedAnalyticsInjection = m('CompletedAnalyticsInjection')
+export const CompletedSpeedInsightsInjection = m(
+  'CompletedSpeedInsightsInjection',
+)
+export const CompletedScroll = m('CompletedScroll')
+export const CompletedApplyTheme = m('CompletedApplyTheme')
+export const CompletedSaveThemePreference = m('CompletedSaveThemePreference')
+export const CompletedCopyLink = m('CompletedCopyLink')
+export const FailedCopy = m('FailedCopy')
+export const ClickedLink = m('ClickedLink', {
+  request: UrlRequest,
+})
+export const ChangedUrl = m('ChangedUrl', { url: Url })
+export const ClickedCopySnippet = m('ClickedCopySnippet', {
+  text: S.String,
+})
+export const ClickedCopyLink = m('ClickedCopyLink', {
+  hash: S.String,
+})
+export const SucceededCopy = m('SucceededCopy', { text: S.String })
+export const HiddenCopiedIndicator = m('HiddenCopiedIndicator', {
+  text: S.String,
+})
+export const UpdatedEmailField = m('UpdatedEmailField', { value: S.String })
+export const SubmittedEmailForm = m('SubmittedEmailForm')
+export const SucceededEmailSubscription = m('SucceededEmailSubscription')
+export const FailedEmailSubscription = m('FailedEmailSubscription')
+export const GotMobileMenuDialogMessage = m('GotMobileMenuDialogMessage', {
+  message: Ui.Dialog.Message,
+})
+export const ToggledMobileTableOfContents = m('ToggledMobileTableOfContents', {
+  isOpen: S.Boolean,
+})
+export const ClickedMobileTableOfContentsLink = m(
+  'ClickedMobileTableOfContentsLink',
+  {
+    sectionId: S.String,
+  },
+)
+export const ChangedActiveSection = m('ChangedActiveSection', {
+  sectionId: S.String,
+})
+export const SelectedThemePreference = m('SelectedThemePreference', {
+  preference: ThemePreference,
+})
+export const ChangedSystemTheme = m('ChangedSystemTheme', {
+  theme: ResolvedTheme,
+})
+export const ChangedHeroVisibility = m('ChangedHeroVisibility', {
+  isVisible: S.Boolean,
+})
+export const ChangedViewportWidth = m('ChangedViewportWidth', {
+  isNarrow: S.Boolean,
+})
+export const ToggledAiHeading = m('ToggledAiHeading')
+export const GotDemoTabsMessage = m('GotDemoTabsMessage', {
+  message: Ui.Tabs.Message,
+})
+export const GotAsyncCounterDemoMessage = m('GotAsyncCounterDemoMessage', {
+  message: Page.AsyncCounterDemo.Message,
+})
+export const GotNotePlayerDemoMessage = m('GotNotePlayerDemoMessage', {
+  message: Page.NotePlayerDemo.Message,
+})
+export const GotComingFromReactMessage = m('GotComingFromReactMessage', {
+  message: Page.ComingFromReact.Message,
+})
+export const GotApiReferenceMessage = m('GotApiReferenceMessage', {
+  message: Page.ApiReference.Message,
+})
+export const GotUiPageMessage = m('GotUiPageMessage', {
+  message: Page.UiPages.Message,
+})
+export const GotGetStartedGroupMessage = m('GotGetStartedGroupMessage', {
+  message: Ui.Disclosure.Message,
+})
+export const GotCoreConceptsGroupMessage = m('GotCoreConceptsGroupMessage', {
+  message: Ui.Disclosure.Message,
+})
+export const GotGuidesGroupMessage = m('GotGuidesGroupMessage', {
+  message: Ui.Disclosure.Message,
+})
+export const GotBestPracticesGroupMessage = m('GotBestPracticesGroupMessage', {
+  message: Ui.Disclosure.Message,
+})
+export const GotPatternsGroupMessage = m('GotPatternsGroupMessage', {
+  message: Ui.Disclosure.Message,
+})
+export const GotFoldkitUiGroupMessage = m('GotFoldkitUiGroupMessage', {
+  message: Ui.Disclosure.Message,
+})
+export const GotExamplesGroupMessage = m('GotExamplesGroupMessage', {
+  message: Ui.Disclosure.Message,
+})
+export const GotApiReferenceGroupMessage = m('GotApiReferenceGroupMessage', {
+  message: Ui.Disclosure.Message,
+})
+export const GotExampleDetailMessage = m('GotExampleDetailMessage', {
+  message: Page.Example.ExampleDetail.Message,
+})
+
+export const Message = S.Union(
+  CompletedInternalNavigation,
+  CompletedExternalNavigation,
+  CompletedAnalyticsInjection,
+  CompletedSpeedInsightsInjection,
+  CompletedScroll,
+  CompletedApplyTheme,
+  CompletedSaveThemePreference,
+  CompletedCopyLink,
+  FailedCopy,
+  ClickedLink,
+  ChangedUrl,
+  ClickedCopySnippet,
+  ClickedCopyLink,
+  SucceededCopy,
+  HiddenCopiedIndicator,
+  UpdatedEmailField,
+  SubmittedEmailForm,
+  SucceededEmailSubscription,
+  FailedEmailSubscription,
+  GotMobileMenuDialogMessage,
+  ToggledMobileTableOfContents,
+  ClickedMobileTableOfContentsLink,
+  ChangedActiveSection,
+  SelectedThemePreference,
+  ChangedSystemTheme,
+  ChangedHeroVisibility,
+  ChangedViewportWidth,
+  ToggledAiHeading,
+  GotDemoTabsMessage,
+  GotAsyncCounterDemoMessage,
+  GotNotePlayerDemoMessage,
+  GotUiPageMessage,
+  GotComingFromReactMessage,
+  GotApiReferenceMessage,
+  GotGetStartedGroupMessage,
+  GotCoreConceptsGroupMessage,
+  GotGuidesGroupMessage,
+  GotBestPracticesGroupMessage,
+  GotPatternsGroupMessage,
+  GotFoldkitUiGroupMessage,
+  GotExamplesGroupMessage,
+  GotApiReferenceGroupMessage,
+  GotExampleDetailMessage,
+)
+export type Message = typeof Message.Type

@@ -1,7 +1,8 @@
 import { Duration, Effect, Stream } from 'effect'
 import { Subscription } from 'foldkit/subscription'
 
-import { type Model, type SubscriptionDeps, ToggledAiHeading } from '../main'
+import { type Model, type SubscriptionDeps } from '../main'
+import { ToggledAiHeading } from '../message'
 
 const TOGGLE_INTERVAL_MS = 3000
 

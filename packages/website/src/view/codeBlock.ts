@@ -15,7 +15,7 @@ import {
   span,
 } from '../html'
 import { Icon } from '../icon'
-import { ClickedCopySnippet } from '../main'
+import { ClickedCopySnippet } from '../message'
 
 export type CopiedSnippets = HashSet.HashSet<string>
 
