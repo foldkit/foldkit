@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.5.6
+
+### Patch Changes
+
+- 9f3cde2: Add newsletter signup link to success message
+
 ## 0.5.5
 
 ### Patch Changes
