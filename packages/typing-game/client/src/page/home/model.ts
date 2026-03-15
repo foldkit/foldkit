@@ -27,7 +27,6 @@ export const SelectAction = ts('SelectAction', {
 export const EnterRoomId = ts('EnterRoomId', {
   username: S.String,
   roomId: S.String,
-  roomIdValidationId: S.Number,
 })
 
 export const HomeStep = S.Union(EnterUsername, SelectAction, EnterRoomId)

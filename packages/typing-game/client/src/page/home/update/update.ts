@@ -93,13 +93,12 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ChangedRoomId: ({ value }) =>
         M.value(model.homeStep).pipe(
           withUpdateReturn,
-          M.tag('EnterRoomId', ({ username, roomIdValidationId }) => [
+          M.tag('EnterRoomId', ({ username }) => [
             evo(model, {
               homeStep: () =>
                 EnterRoomId({
                   username,
                   roomId: value,
-                  roomIdValidationId,
                 }),
               formError: () => Option.none(),
             }),

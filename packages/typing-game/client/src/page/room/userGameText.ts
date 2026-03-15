@@ -1,12 +1,4 @@
-import {
-  Array,
-  Effect,
-  Equal,
-  Option,
-  Predicate,
-  String as Str,
-  pipe,
-} from 'effect'
+import { Array, Equal, Option, Predicate, String as Str, pipe } from 'effect'
 
 import { MAX_WRONG_CHARS } from '../../constant'
 
@@ -16,21 +8,17 @@ export const validateUserTextInput = (
   newUserText: string,
   maybeGameText: Option.Option<string>,
 ): string =>
-  Effect.gen(function* () {
-    yield* toNonEmptyStringOption(newUserText)
-    const gameText = yield* maybeGameText
-    const firstWrongIndex =
-      yield* findFirstWrongCharIndex(newUserText)(gameText)
-
-    const wrongCharCount = Str.length(newUserText) - firstWrongIndex
-    const exceedsMaxWrongChars = wrongCharCount > MAX_WRONG_CHARS
-
-    return exceedsMaxWrongChars
-      ? Str.slice(0, firstWrongIndex + MAX_WRONG_CHARS)(newUserText)
-      : newUserText
-  }).pipe(
-    Effect.catchAll(() => Effect.succeed(newUserText)),
-    Effect.runSync,
+  pipe(
+    toNonEmptyStringOption(newUserText),
+    Option.flatMap(() => maybeGameText),
+    Option.flatMap(findFirstWrongCharIndex(newUserText)),
+    Option.map(firstWrongIndex => {
+      const wrongCharCount = Str.length(newUserText) - firstWrongIndex
+      return wrongCharCount > MAX_WRONG_CHARS
+        ? Str.slice(0, firstWrongIndex + MAX_WRONG_CHARS)(newUserText)
+        : newUserText
+    }),
+    Option.getOrElse(() => newUserText),
   )
 
 export const findFirstWrongCharIndex =

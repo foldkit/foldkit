@@ -75,7 +75,7 @@ const cycleAction =
           nextIndex => Array.unsafeGet(HOME_ACTIONS, nextIndex),
         ),
       ),
-      Option.getOrThrow,
+      Option.getOrElse(() => selectedAction),
     )
   }
 
@@ -91,7 +91,6 @@ const confirmSelection =
             EnterRoomId({
               username: selectAction.username,
               roomId: '',
-              roomIdValidationId: Date.now(),
             }),
         }),
         [
