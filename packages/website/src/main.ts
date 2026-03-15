@@ -2452,7 +2452,7 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
             [
               Id('main-content'),
               Class(
-                clsx('flex-1 min-w-0 bg-cream dark:bg-gray-900', {
+                clsx('flex-1 min-w-0 flex flex-col bg-cream dark:bg-gray-900', {
                   'pt-[var(--mobile-toc-height)]': Option.isSome(
                     currentPageTableOfContents,
                   ),
@@ -2479,7 +2479,7 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
                 ),
                 [
                   Class(
-                    'px-4 py-6 md:px-6 2xl:py-10 max-w-4xl mx-auto min-w-0',
+                    'flex-1 px-4 py-6 md:px-6 2xl:py-10 max-w-4xl mx-auto min-w-0',
                   ),
                 ],
                 [content, pageNavigationView(docsRoute._tag)],
