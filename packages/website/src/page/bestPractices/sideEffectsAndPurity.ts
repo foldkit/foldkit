@@ -222,8 +222,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
               ' \u2014 calling ',
               inlineCode('Date.now()'),
               ' breaks purity because the same Model and Message produce different results depending on when they run. Request the current time via a Command using ',
-              inlineCode('Clock.currentTimeMillis'),
-              ' from Effect and return it as a Message.',
+              inlineCode('Task.getTime'),
+              ' or ',
+              inlineCode('Task.getZonedTime'),
+              ' and return it as a Message.',
             ],
           ),
           li(
