@@ -11,7 +11,7 @@ import {
   tableOfContentsEntryToHeader,
   warningCallout,
 } from '../prose'
-import { exampleDetailRouter } from '../route'
+import { bestPracticesRouter, exampleDetailRouter } from '../route'
 import * as Snippets from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 
@@ -314,9 +314,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('keyed'),
         ' element using ',
         inlineCode('model.route._tag'),
-        ' as the key. This tells ',
-        link(Link.snabbdom, 'Snabbdom'),
-        ' that each route is a distinct tree that should be fully replaced on navigation.',
+        ' as the key. This tells Snabbdom that each route is a distinct tree that should be fully replaced on navigation.',
       ),
       highlightedCodeBlock(
         div(
@@ -329,7 +327,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        'In React, different component types in the same position cause a full remount automatically. In Foldkit, you opt into this by keying explicitly \u2014 one line that prevents an entire class of bugs.',
+        'Route views are the most common case, but keying applies anywhere the view branches into structurally different trees. See ',
+        link(`${bestPracticesRouter()}#keying`, 'Keying'),
+        ' in Best Practices for layout branches, model state branches, and what happens under the hood.',
       ),
       tableOfContentsEntryToHeader(navigationHeader),
       para(
