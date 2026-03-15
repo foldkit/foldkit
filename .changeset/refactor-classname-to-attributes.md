@@ -1,5 +1,5 @@
 ---
-'foldkit': major
+'foldkit': minor
 ---
 
 Add `attributes` escape hatch to component-rendered UI components alongside existing `className` props.
