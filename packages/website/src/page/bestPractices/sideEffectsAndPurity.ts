@@ -16,6 +16,7 @@ import {
   coreManagedResourcesRouter,
   coreResourcesRouter,
   coreSubscriptionsRouter,
+  coreTaskRouter,
 } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
@@ -222,9 +223,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
               ' \u2014 calling ',
               inlineCode('Date.now()'),
               ' breaks purity because the same Model and Message produce different results depending on when they run. Request the current time via a Command using ',
-              inlineCode('Task.getTime'),
-              ' or ',
-              inlineCode('Task.getZonedTime'),
+              link(`${coreTaskRouter()}#overview`, 'Task.getTime or Task.getZonedTime'),
               ' and return it as a Message.',
             ],
           ),
