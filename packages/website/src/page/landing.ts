@@ -1,15 +1,19 @@
 import { clsx } from 'clsx'
+import { Array, Function, String as String_, pipe } from 'effect'
 import { Html } from 'foldkit/html'
 import { foldkitVersion } from 'virtual:landing-data'
 
 import {
   Alt,
+  AriaHidden,
+  AriaLabel,
   Class,
   Href,
   Id,
   Role,
   Src,
   a,
+  br,
   div,
   h1,
   h2,
@@ -70,23 +74,24 @@ export const view = (
   copiedSnippets: CopiedSnippets,
   demoTabsView: Html,
   emailSignupView: Html,
+  aiHeadingToggleCount: number,
 ): Html =>
   div(
     [Class('isolate overflow-x-hidden')],
     [
       heroSection(copiedSnippets),
       glyph('{ }'),
-      promiseSection(),
-      glyph('=>'),
-      demoSection(demoTabsView),
-      glyph('|>', '-translate-y-1/4'),
       poweredBySection(),
+      glyph('=>'),
+      promiseSection(),
+      glyph('|>', '-translate-y-1/4'),
+      demoSection(demoTabsView),
       glyph('[ ]'),
       includedSection(),
       glyph('::'),
       devtoolsSection(),
       glyph('~~'),
-      aiSection(),
+      aiSection(aiHeadingToggleCount),
       glyph('< >'),
       tradeOffsSection(),
       glyph('( )'),
@@ -145,11 +150,11 @@ const heroSection = (copiedSnippets: CopiedSnippets): Html =>
           p(
             [
               Class(
-                'mt-6 text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-2xl leading-relaxed',
+                'mt-6 text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-3xl leading-relaxed',
               ),
             ],
             [
-              'No surprises. No magic. Just a framework that does exactly what you describe.',
+              'A frontend framework for TypeScript, built on Effect, using The Elm Architecture.',
             ],
           ),
           div(
@@ -195,7 +200,7 @@ const poweredByItem = (text: string): Html =>
         [Class('shrink-0 mt-0.5 text-accent-600 dark:text-accent-500')],
         [Icon.check('w-5 h-5')],
       ),
-      span([Class('font-normal')], [text]),
+      span([Class('font-normal text-gray-600 dark:text-gray-300')], [text]),
     ],
   )
 
@@ -226,11 +231,21 @@ const poweredBySection = (): Html =>
               '. Inside and out.',
             ],
           ),
+          p(
+            [
+              Class(
+                'mt-4 text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-6 max-w-3xl',
+              ),
+            ],
+            [
+              'If you already know Effect, Foldkit feels natural. If you\u2019re new to Effect, Foldkit is a great way to learn it.',
+            ],
+          ),
           ul(
             [
               Role('list'),
               Class(
-                'mt-4 flex flex-col gap-2 text-lg text-gray-600 dark:text-gray-300 list-none',
+                'flex flex-col gap-2 text-lg text-gray-600 dark:text-gray-300 list-none',
               ),
             ],
             [
@@ -240,10 +255,6 @@ const poweredBySection = (): Html =>
                 'Side effects are modeled as Effects that never fail',
               ),
             ],
-          ),
-          p(
-            [Class('mt-3 text-gray-500 dark:text-gray-300')],
-            ['(Yeah. We like Effect.)'],
           ),
         ],
       ),
@@ -290,7 +301,7 @@ const promiseSection = (): Html =>
               ),
             ],
             [
-              'Most frameworks ask you to make architectural decisions instead of empowering you to build great applications. Foldkit gives you a principled, cohesive architecture so you can focus on shipping.',
+              'React, Vue, Svelte, and Solid solve rendering and leave the architecture to you. Foldkit gives you the architecture, so you can focus on your domain.',
             ],
           ),
           div(
@@ -512,7 +523,7 @@ const devtoolsSection = (): Html =>
               ),
             ],
             [
-              'This site runs on Foldkit — look for the tab on the bottom right edge of this page to try it live.',
+              'This site runs on Foldkit. Look for the tab on the bottom right of this page to try it live.',
             ],
           ),
           div(
@@ -604,17 +615,17 @@ const tradeOffsSection = (): Html =>
                         'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-4 text-balance',
                       ),
                     ],
-                    ['How does it compare to React?'],
+                    ['How does it compare?'],
                   ),
                   p(
                     [Class('text-lg text-gray-600 dark:text-gray-300 mb-8')],
                     [
-                      'It\u2019s a different architecture. See where the approaches diverge and where they don\u2019t.',
+                      'Foldkit is a different kind of frontend framework. If you\u2019re weighing it against React, Vue, Svelte, or Solid, the key difference isn\u2019t syntax or performance \u2014 it\u2019s that Foldkit prescribes the architecture instead of leaving it to you.',
                     ],
                   ),
                   a(
                     [Href(comingFromReactRouter()), Class('cta-secondary')],
-                    ['Read the full comparison', Icon.arrowRight('w-5 h-5')],
+                    ['Compare to React', Icon.arrowRight('w-5 h-5')],
                   ),
                 ],
               ),
@@ -651,6 +662,10 @@ const audienceSection = (): Html =>
                   ul(
                     [Role('list'), Class('list-none')],
                     [
+                      audienceForItem(
+                        'Effect developers who need a frontend',
+                        'Your backend already uses Effect. Foldkit is the missing frontend piece \u2014 same ecosystem, same patterns, no context switching.',
+                      ),
                       audienceForItem(
                         'Developers who value correctness',
                         'You want your architecture to prevent bugs, not just catch them.',
@@ -692,6 +707,10 @@ const audienceSection = (): Html =>
                       audienceNotItem(
                         'Projects that need the React ecosystem',
                         'No React component libraries, no Next.js, no existing middleware. You\u2019re building on different foundations.',
+                      ),
+                      audienceNotItem(
+                        'Teams that need server-side rendering',
+                        'Foldkit is a client-side SPA framework. Static generation is possible, but you\u2019ll roll your own (like we do for this website).',
                       ),
                     ],
                   ),
@@ -846,28 +865,94 @@ const trustItemWithLink = (
 
 // AI
 
-const aiSection = (): Html =>
-  section(
+const AI_HEADING_A = 'Built for humans. Readable by AI.'
+const AI_HEADING_B = 'Built for AI. Readable by humans.'
+const STATIC_PREFIX_LENGTH = 10
+
+const solariHeading = (toggleCount: number): Html => {
+  const isSwapped = toggleCount % 2 === 1
+
+  return h2(
     [
-      Id('ai'),
-      Class('landing-section py-10 md:py-14 relative overflow-hidden'),
+      Class(
+        'text-[1.25rem] sm:text-2xl md:text-[2rem] font-normal text-amber-500 dark:text-amber-400 mb-4 font-mono',
+      ),
+      AriaLabel(isSwapped ? AI_HEADING_B : AI_HEADING_A),
     ],
+    pipe(
+      AI_HEADING_A,
+      String_.length,
+      Array.makeBy(Function.identity),
+      Array.flatMap((characterIndex): ReadonlyArray<Html | string> => {
+        const characterA = AI_HEADING_A[characterIndex]!
+        const characterB = AI_HEADING_B[characterIndex]!
+        const lastCharacterIndex = AI_HEADING_A.length - 1
+        const isStatic =
+          characterIndex < STATIC_PREFIX_LENGTH ||
+          characterIndex === lastCharacterIndex
+        const isFlipping = !isStatic && characterA !== characterB
+        const isLineBreakPosition = characterIndex === STATIC_PREFIX_LENGTH - 1
+
+        if (isStatic && characterA === ' ') {
+          return isLineBreakPosition
+            ? [' ', br([Class('solari-break')])]
+            : [' ']
+        }
+
+        if (!isFlipping) {
+          return [
+            span(
+              [
+                Class(
+                  clsx(
+                    'solari-character-static',
+                    isStatic
+                      ? 'text-gray-900 dark:text-white'
+                      : 'text-amber-500 dark:text-amber-400',
+                  ),
+                ),
+              ],
+              [characterA],
+            ),
+          ]
+        }
+
+        return [
+          span(
+            [
+              Class(
+                clsx(
+                  'solari-character',
+                  isSwapped && 'solari-character-flipped',
+                ),
+              ),
+              AriaHidden(true),
+            ],
+            [
+              span(
+                [Class('solari-face solari-face-front')],
+                [characterA === ' ' ? '\u00A0' : characterA],
+              ),
+              span(
+                [Class('solari-face solari-face-back')],
+                [characterB === ' ' ? '\u00A0' : characterB],
+              ),
+            ],
+          ),
+        ]
+      }),
+    ),
+  )
+}
+
+const aiSection = (aiHeadingToggleCount: number): Html =>
+  section(
+    [Id('ai'), Class('landing-section py-10 md:py-14 relative')],
     [
       div(
         [Class('landing-section-narrow relative')],
         [
-          h2(
-            [
-              Class(
-                'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-4 text-balance',
-              ),
-            ],
-            [
-              'Your favorite ',
-              span([Class('text-accent-600 dark:text-accent-500')], ['LLM']),
-              ' has a crush on Foldkit.',
-            ],
-          ),
+          solariHeading(aiHeadingToggleCount),
           p(
             [Class('text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-2xl')],
             [

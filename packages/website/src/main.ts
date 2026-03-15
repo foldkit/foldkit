@@ -14,6 +14,7 @@ import {
   Effect,
   HashSet,
   Match as M,
+  Number,
   Option,
   Schema as S,
   flow,
@@ -201,6 +202,7 @@ export const Model = S.Struct({
   foldkitUiGroup: Ui.Disclosure.Model,
   examplesGroup: Ui.Disclosure.Model,
   apiReferenceGroup: Ui.Disclosure.Model,
+  aiHeadingToggleCount: S.Number,
   themePreference: ThemePreference,
   systemTheme: ResolvedTheme,
   resolvedTheme: ResolvedTheme,
@@ -268,6 +270,7 @@ export const ChangedHeroVisibility = m('ChangedHeroVisibility', {
 export const ChangedViewportWidth = m('ChangedViewportWidth', {
   isNarrow: S.Boolean,
 })
+export const ToggledAiHeading = m('ToggledAiHeading')
 const GotDemoTabsMessage = m('GotDemoTabsMessage', {
   message: Ui.Tabs.Message,
 })
@@ -339,6 +342,7 @@ const Message = S.Union(
   ChangedSystemTheme,
   ChangedHeroVisibility,
   ChangedViewportWidth,
+  ToggledAiHeading,
   GotDemoTabsMessage,
   GotAsyncCounterDemoMessage,
   GotNotePlayerDemoMessage,
@@ -420,6 +424,7 @@ const init: Runtime.ApplicationInit<
       mobileMenuDialog: Ui.Dialog.init({ id: 'mobile-menu' }),
       isMobileTableOfContentsOpen: false,
       activeSection: Option.none(),
+      aiHeadingToggleCount: 0,
       isLandingHeaderVisible: false,
       isNarrowViewport: flags.isNarrowViewport,
       getStartedGroup: {
@@ -674,6 +679,13 @@ const update = (
 
       ChangedViewportWidth: ({ isNarrow }) => [
         evo(model, { isNarrowViewport: () => isNarrow }),
+        [],
+      ],
+
+      ToggledAiHeading: () => [
+        evo(model, {
+          aiHeadingToggleCount: Number.increment,
+        }),
         [],
       ],
 
@@ -1735,7 +1747,7 @@ const emailSignupContentView = (
             'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-4 text-balance',
           ),
         ],
-        ['Stay in the loop.'],
+        ['Stay in the update loop.'],
       ),
       p(
         [Class('text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-xl')],
@@ -1777,7 +1789,7 @@ const docsFooterView = (
     [
       p(
         [Class('text-base font-normal text-gray-900 dark:text-white mb-1')],
-        ['Stay in the loop.'],
+        ['Stay in the update loop.'],
       ),
       p(
         [Class('text-sm text-gray-600 dark:text-gray-300 mb-4')],
@@ -1897,6 +1909,7 @@ const landingView = (model: Model) => {
             model.copiedSnippets,
             demoTabsView,
             emailSignupView,
+            model.aiHeadingToggleCount,
           ),
         ],
       ),
@@ -2413,6 +2426,9 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
 // SUBSCRIPTION
 
 const SubscriptionDeps = S.Struct({
+  aiHeading: S.Struct({
+    isLandingPage: S.Boolean,
+  }),
   activeSection: S.Struct({
     pageId: S.String,
     sections: S.Array(S.String),
@@ -2430,6 +2446,7 @@ const SubscriptionDeps = S.Struct({
 export type SubscriptionDeps = typeof SubscriptionDeps.Type
 
 const subscriptions = makeSubscriptions(SubscriptionDeps)<Model, Message>({
+  aiHeading: Subscription.aiHeading,
   activeSection: Subscription.activeSection,
   exampleUrl: Subscription.exampleUrl,
   heroVisibility: Subscription.heroVisibility,

@@ -12,7 +12,7 @@ export type PageMetadata = Readonly<{
 }>
 
 const SITE_DESCRIPTION =
-  'The frontend framework for correctness. Built on Effect and The Elm Architecture. Predictable state, explicit effects, and a principled architecture designed to scale.'
+  'A frontend framework for TypeScript, built on Effect, using The Elm Architecture. One Model, one update loop, predictable state, and explicit effects.'
 
 const docs = (
   title: string,

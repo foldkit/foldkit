@@ -53,7 +53,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
     [],
     [
       pageTitle('getting-started', 'Getting Started'),
-      para('Let\u2019s get your Foldkit application running.'),
+      para(
+        'Foldkit is a frontend framework for TypeScript, built on Effect, using The Elm Architecture. Let\u2019s get your first application running.',
+      ),
       tableOfContentsEntryToHeader(quickStartHeader),
       para(
         link(Link.createFoldkitApp, 'Create Foldkit app'),

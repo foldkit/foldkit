@@ -18,7 +18,7 @@
 
 ---
 
-Foldkit is an [Elm Architecture](https://guide.elm-lang.org/architecture/) framework for TypeScript, powered by [Effect](https://effect.website/). One Model, one update function, one way to do things. No hooks, no local state, no hidden mutations.
+Foldkit is a frontend framework for TypeScript, built on [Effect](https://effect.website/), using [The Elm Architecture](https://guide.elm-lang.org/architecture/). One Model, one update function, one way to do things. No hooks, no local state, no hidden mutations.
 
 > [!NOTE]
 > Foldkit is pre-1.0. The core API is stable, but breaking changes may occur in minor releases. See the [changelog](./CHANGELOG.md) for details.

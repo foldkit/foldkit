@@ -454,7 +454,52 @@
   }
 }
 
+.solari-break {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .solari-break {
+    display: block;
+  }
+}
+
+.solari-character-static {
+  display: inline-block;
+}
+
+.solari-character {
+  display: inline-block;
+  position: relative;
+  transform: perspective(600px) rotateX(0deg);
+  transition: transform 0.3s ease-in-out;
+  transform-style: preserve-3d;
+}
+
+.solari-character-flipped {
+  transform: perspective(600px) rotateX(180deg);
+}
+
+.solari-face {
+  display: block;
+  backface-visibility: hidden;
+}
+
+.solari-face-front {
+  position: relative;
+}
+
+.solari-face-back {
+  position: absolute;
+  inset: 0;
+  transform: rotateX(180deg);
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .solari-character {
+    transition: none;
+  }
+
   .demo-code-panel [data-line],
   .note-demo-code-panel [data-line] {
     transition: none;

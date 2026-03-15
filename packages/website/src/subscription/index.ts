@@ -1,3 +1,4 @@
+export { aiHeading } from './aiHeading'
 export { activeSection } from './activeSection'
 export { exampleUrl } from './exampleUrl'
 export { heroVisibility } from './heroVisibility'
