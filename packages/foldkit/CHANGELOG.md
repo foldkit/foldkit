@@ -1,5 +1,11 @@
 # foldkit
 
+## 0.34.1
+
+### Patch Changes
+
+- 190a475: Add `buttonAttributes` and `panelAttributes` to `TabConfig`, fixing devtools overlay tabs that lost styling after the attributes escape hatch refactor.
+
 ## 0.34.0
 
 ### Minor Changes
