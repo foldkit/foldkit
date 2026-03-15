@@ -216,12 +216,6 @@ ul {
 .border-none {
   border: none;
 }
-.border-l-3 {
-  border-left: 3px solid transparent;
-}
-.border-dt-live {
-  border-color: var(--dt-live);
-}
 .selected {
   background-color: var(--dt-surface-selected);
 }

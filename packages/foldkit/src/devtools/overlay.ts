@@ -568,7 +568,7 @@ const headerButtonClass =
   'dt-header-button bg-transparent border-none text-dt-muted cursor-pointer text-base font-mono transition-colors'
 
 const ROW_BASE =
-  'dt-row flex items-center py-1 px-1 cursor-pointer gap-1.5 transition-colors border-l-3 border-b'
+  'dt-row flex items-center py-1 px-1 cursor-pointer gap-1.5 transition-colors border-b'
 
 const BADGE_POSITION_CLASS: Record<DevtoolsPosition, string> = {
   BottomRight: 'dt-pos-br',
