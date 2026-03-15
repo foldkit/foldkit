@@ -1,0 +1,36 @@
+# create-foldkit-app
+
+Scaffolding CLI for new Foldkit applications. Creates a ready-to-run project with Vite, Tailwind CSS, TypeScript, [`@foldkit/vite-plugin`](https://www.npmjs.com/package/@foldkit/vite-plugin) for hot reloading with Model preservation, and your choice of starter example.
+
+## Usage
+
+```bash
+npx create-foldkit-app --wizard
+# or
+pnpm create foldkit-app --wizard
+# or
+yarn create foldkit-app --wizard
+```
+
+The CLI will prompt you for a project name, starter example, and package manager.
+
+## Examples
+
+| Example          | Description                                                     |
+| ---------------- | --------------------------------------------------------------- |
+| `counter`        | Simple increment/decrement with reset                           |
+| `stopwatch`      | Timer with start/stop/reset                                     |
+| `weather`        | HTTP requests with async state handling                         |
+| `todo`           | CRUD operations with localStorage persistence                   |
+| `form`           | Form validation with async email checking                       |
+| `snake`          | Classic game built with Subscriptions                           |
+| `routing`        | URL routing with parser combinators and route parameters        |
+| `query-sync`     | URL-driven filtering, sorting, and search                       |
+| `shopping-cart`  | Complex state management with nested Models                     |
+| `websocket-chat` | Managed resources with WebSocket                                |
+| `auth`           | Authentication with Submodels, OutMessage, and protected routes |
+| `ui-showcase`    | Every Foldkit UI component with routing                         |
+
+## License
+
+MIT
