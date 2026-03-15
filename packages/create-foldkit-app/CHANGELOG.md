@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.5.5
+
+### Patch Changes
+
+- 964e13f: Rewrite scaffolding success message with personality. Fix object-first naming rationale in AGENTS.md template.
+
 ## 0.5.4
 
 ### Patch Changes
