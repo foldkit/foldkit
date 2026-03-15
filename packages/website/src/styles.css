@@ -110,10 +110,13 @@
     @apply pr-14 pl-[11px] py-4 rounded-lg overflow-x-auto border border-gray-200 dark:border-gray-700/50 font-code text-sm;
   }
 
+  .dark .shiki {
+    background-color: var(--shiki-dark-bg) !important;
+  }
+
   .dark .shiki,
   .dark .shiki span {
     color: var(--shiki-dark) !important;
-    background-color: var(--shiki-dark-bg) !important;
   }
 
   pre code {
