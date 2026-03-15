@@ -91,6 +91,7 @@ import {
   apiModuleRouter,
   coreArchitectureRouter,
   homeRouter,
+  isLandingHeaderAlwaysVisible,
   urlToAppRoute,
 } from './route'
 import * as Subscription from './subscription'
@@ -430,7 +431,7 @@ const init: Runtime.ApplicationInit<
       isMobileTableOfContentsOpen: false,
       activeSection: Option.none(),
       aiHeadingToggleCount: 0,
-      isLandingHeaderVisible: false,
+      isLandingHeaderVisible: isLandingHeaderAlwaysVisible(initialRoute),
       isNarrowViewport: flags.isNarrowViewport,
       getStartedGroup: {
         ...Ui.Disclosure.init({ id: 'get-started-group' }),
@@ -553,6 +554,8 @@ const update = (
             route: () => nextRoute,
             url: () => url,
             mobileMenuDialog: () => closedDialog,
+            isLandingHeaderVisible: () =>
+              isLandingHeaderAlwaysVisible(nextRoute),
             apiReferenceGroup: apiReferenceGroup =>
               nextRoute._tag === 'ApiModule'
                 ? { ...apiReferenceGroup, isOpen: true }
@@ -1608,6 +1611,7 @@ const mobileTableOfContentsView = (
 const view = (model: Model) =>
   M.value(model.route).pipe(
     M.tag('Home', () => landingView(model)),
+    M.tag('Newsletter', () => newsletterView(model)),
     M.orElse(route => docsView(model, route)),
   )
 
@@ -1946,6 +1950,31 @@ const landingView = (model: Model) => {
     ],
   )
 }
+
+const newsletterView = (model: Model) =>
+  keyed('div')(
+    'newsletter',
+    [Class('flex flex-col min-h-screen')],
+    [
+      skipNavLink,
+      landingHeaderView(model),
+      main(
+        [
+          Id('main-content'),
+          Class(
+            'flex-1 flex items-center justify-center px-6 py-20 md:px-12 lg:px-20',
+          ),
+        ],
+        [
+          emailSignupContentView(
+            model.emailField,
+            model.emailSubscriptionStatus,
+          ),
+        ],
+      ),
+      landingFooter(model.currentYear),
+    ],
+  )
 
 const docsHeaderView = (model: Model) =>
   header(

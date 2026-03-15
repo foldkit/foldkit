@@ -48,6 +48,7 @@ import {
   GettingStartedRoute,
   HomeRoute,
   ManifestoRoute,
+  NewsletterRoute,
   PatternsOutMessageRoute,
   PatternsSubmodelsRoute,
   ProjectOrganizationRoute,
@@ -97,6 +98,7 @@ import {
   gettingStartedRouter,
   homeRouter,
   manifestoRouter,
+  newsletterRouter,
   patternsOutMessageRouter,
   patternsSubmodelsRouter,
   projectOrganizationRouter,
@@ -124,6 +126,7 @@ import { generateOgImages, injectMetaTags } from './og-image'
 
 export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   HomeRoute(),
+  NewsletterRoute(),
   ManifestoRoute(),
   GettingStartedRoute(),
   ComingFromReactRoute(),
@@ -238,6 +241,7 @@ export const routeToUrlPath = (route: AppRoute): string =>
       UiTextarea: () => uiTextareaRouter(),
       UiFieldset: () => uiFieldsetRouter(),
       ApiModule: ({ moduleSlug }) => apiModuleRouter({ moduleSlug }),
+      Newsletter: () => newsletterRouter(),
       NotFound: () => '/',
     }),
   )

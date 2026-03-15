@@ -67,6 +67,8 @@ export const UiInputRoute = r('UiInput')
 export const UiTextareaRoute = r('UiTextarea')
 export const UiFieldsetRoute = r('UiFieldset')
 
+export const NewsletterRoute = r('Newsletter')
+
 export const NotFoundRoute = r('NotFound', { path: S.String })
 
 export const DocsRoute = S.Union(
@@ -122,7 +124,7 @@ export const DocsRoute = S.Union(
 )
 export type DocsRoute = typeof DocsRoute.Type
 
-export const AppRoute = S.Union(HomeRoute, DocsRoute)
+export const AppRoute = S.Union(HomeRoute, NewsletterRoute, DocsRoute)
 export type AppRoute = typeof AppRoute.Type
 
 // ROUTERS
@@ -431,6 +433,19 @@ const docsParser = oneOf(
   uiParser,
 )
 
-export const routeParser = oneOf(docsParser, apiModuleRouter, homeRouter)
+export const newsletterRouter = pipe(
+  literal('newsletter'),
+  mapTo(NewsletterRoute),
+)
+
+export const routeParser = oneOf(
+  docsParser,
+  apiModuleRouter,
+  newsletterRouter,
+  homeRouter,
+)
 
 export const urlToAppRoute = parseUrlWithFallback(routeParser, NotFoundRoute)
+
+export const isLandingHeaderAlwaysVisible = (route: AppRoute) =>
+  route._tag === 'Newsletter'
