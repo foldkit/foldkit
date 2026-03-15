@@ -11,6 +11,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import {
+  apiModuleRouter,
   coreCommandsRouter,
   coreInitAndFlagsRouter,
   coreManagedResourcesRouter,
@@ -92,6 +93,9 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   dontComputeInUpdateHeader,
   requestViaCommandHeader,
 ]
+
+const taskLink = (hash: string, label: string) =>
+  link(`${apiModuleRouter({ moduleSlug: 'task' })}#${hash}`, label)
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
@@ -221,7 +225,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
               inlineCode('update'),
               ' \u2014 calling ',
               inlineCode('Date.now()'),
-              ' breaks purity because the same Model and Message produce different results depending on when they run. Request the current time via a Command and return it as a Message.',
+              ' breaks purity because the same Model and Message produce different results depending on when they run. Request the current time via a Command using ',
+              taskLink('const-Task/getTime', 'Task.getTime'),
+              ', ',
+              taskLink('const-Task/getZonedTime', 'Task.getZonedTime'),
+              ', or ',
+              taskLink('function-Task/getZonedTimeIn', 'Task.getZonedTimeIn'),
+              ' and return it as a Message.',
             ],
           ),
           li(
