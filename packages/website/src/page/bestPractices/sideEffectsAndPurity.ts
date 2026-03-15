@@ -221,7 +221,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
               inlineCode('update'),
               ' \u2014 calling ',
               inlineCode('Date.now()'),
-              ' breaks purity because the same Model and Message produce different results depending on when they run. Request the current time via a Command and return it as a Message.',
+              ' breaks purity because the same Model and Message produce different results depending on when they run. Request the current time via a Command using ',
+              inlineCode('Clock.currentTimeMillis'),
+              ' from Effect and return it as a Message.',
             ],
           ),
           li(
