@@ -16,20 +16,20 @@ The CLI will prompt you for a project name, starter example, and package manager
 
 ## Examples
 
-| Example | Description |
-| --- | --- |
-| `counter` | Simple increment/decrement with reset |
-| `stopwatch` | Timer with start/stop/reset |
-| `weather` | HTTP requests with async state handling |
-| `todo` | CRUD operations with localStorage persistence |
-| `form` | Form validation with async email checking |
-| `snake` | Classic game built with Subscriptions |
-| `routing` | URL routing with parser combinators and route parameters |
-| `query-sync` | URL-driven filtering, sorting, and search |
-| `shopping-cart` | Complex state management with nested Models |
-| `websocket-chat` | Managed resources with WebSocket |
-| `auth` | Authentication with Submodels, OutMessage, and protected routes |
-| `ui-showcase` | Every Foldkit UI component with routing |
+| Example          | Description                                                     |
+| ---------------- | --------------------------------------------------------------- |
+| `counter`        | Simple increment/decrement with reset                           |
+| `stopwatch`      | Timer with start/stop/reset                                     |
+| `weather`        | HTTP requests with async state handling                         |
+| `todo`           | CRUD operations with localStorage persistence                   |
+| `form`           | Form validation with async email checking                       |
+| `snake`          | Classic game built with Subscriptions                           |
+| `routing`        | URL routing with parser combinators and route parameters        |
+| `query-sync`     | URL-driven filtering, sorting, and search                       |
+| `shopping-cart`  | Complex state management with nested Models                     |
+| `websocket-chat` | Managed resources with WebSocket                                |
+| `auth`           | Authentication with Submodels, OutMessage, and protected routes |
+| `ui-showcase`    | Every Foldkit UI component with routing                         |
 
 ## License
 
