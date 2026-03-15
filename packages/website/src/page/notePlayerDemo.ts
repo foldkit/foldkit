@@ -112,6 +112,10 @@ export type Model = typeof Model.Type
 // MESSAGE
 
 const ChangedNoteInput = m('ChangedNoteInput', { value: S.String })
+const SelectedNoteDuration = m('SelectedNoteDuration', {
+  duration: NoteDuration,
+  radioGroupMessage: Ui.RadioGroup.Message,
+})
 const GotDurationRadioGroupMessage = m('GotDurationRadioGroupMessage', {
   message: Ui.RadioGroup.Message,
 })
@@ -125,6 +129,7 @@ const AdvancedNotePhase = m('AdvancedNotePhase', {
 
 export const Message = S.Union(
   ChangedNoteInput,
+  SelectedNoteDuration,
   GotDurationRadioGroupMessage,
   ClickedPlay,
   ClickedPause,
@@ -235,28 +240,32 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ]
       },
 
+      SelectedNoteDuration: ({ duration, radioGroupMessage }) => {
+        const [nextRadioGroup, radioGroupCommands] = Ui.RadioGroup.update(
+          model.durationRadioGroup,
+          radioGroupMessage,
+        )
+
+        return [
+          evo(model, {
+            durationRadioGroup: () => nextRadioGroup,
+            noteDuration: () => duration,
+            messageLog: prependToLog(`SelectedNoteDuration(${duration})`),
+          }),
+          radioGroupCommands.map(
+            Effect.map(message => GotDurationRadioGroupMessage({ message })),
+          ),
+        ]
+      },
+
       GotDurationRadioGroupMessage: ({ message: radioGroupMessage }) => {
         const [nextRadioGroup, radioGroupCommands] = Ui.RadioGroup.update(
           model.durationRadioGroup,
           radioGroupMessage,
         )
 
-        const nextModel = M.value(radioGroupMessage).pipe(
-          M.tag('SelectedOption', ({ value }) =>
-            evo(model, {
-              durationRadioGroup: () => nextRadioGroup,
-              noteDuration: () => S.decodeUnknownSync(NoteDuration)(value),
-              messageLog: prependToLog(`SelectedNoteDuration(${value})`),
-            }),
-          ),
-          M.tag('CompletedOptionFocus', () =>
-            evo(model, { durationRadioGroup: () => nextRadioGroup }),
-          ),
-          M.exhaustive,
-        )
-
         return [
-          nextModel,
+          evo(model, { durationRadioGroup: () => nextRadioGroup }),
           radioGroupCommands.map(
             Effect.map(message => GotDurationRadioGroupMessage({ message })),
           ),
@@ -653,8 +662,17 @@ const durationSelectorView = (
       ),
       Ui.RadioGroup.view<ParentMessage, NoteDuration>({
         model: model.durationRadioGroup,
-        toMessage: message =>
-          toMessage(GotDurationRadioGroupMessage({ message })),
+        toMessage: radioGroupMessage =>
+          radioGroupMessage._tag === 'SelectedOption'
+            ? toMessage(
+                SelectedNoteDuration({
+                  duration: radioGroupMessage.value,
+                  radioGroupMessage,
+                }),
+              )
+            : toMessage(
+                GotDurationRadioGroupMessage({ message: radioGroupMessage }),
+              ),
         options: noteDurations,
         ariaLabel: 'Note length',
         className:

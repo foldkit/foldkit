@@ -103,26 +103,40 @@ export type OptionAttributes<Message> = Readonly<{
   description: ReadonlyArray<Attribute<Message>>
 }>
 
-/** Configuration for an individual radio option. */
-export type OptionConfig<Message> = Readonly<{
-  value: string
+/** Configuration for an individual radio option. The `value` field carries the generic `RadioOption` type
+ *  so it flows through to `toMessage` callbacks without widening to `string`. */
+export type OptionConfig<
+  Message,
+  RadioOption extends string = string,
+> = Readonly<{
+  value: RadioOption
   content: (attributes: OptionAttributes<Message>) => Html
 }>
 
+/** The `SelectedOption` message as seen by `toMessage` callbacks, with `value` narrowed
+ *  to the generic `RadioOption` type instead of `string`. */
+export type NarrowedSelectedOption<RadioOption extends string> = Readonly<{
+  readonly _tag: 'SelectedOption'
+  readonly value: RadioOption
+  readonly index: number
+}>
+
 /** Configuration for rendering a radio group with `view`. */
-export type ViewConfig<Message, Option extends string> = Readonly<{
+export type ViewConfig<Message, RadioOption extends string> = Readonly<{
   model: Model
-  toMessage: (message: SelectedOption | CompletedOptionFocus) => Message
-  options: ReadonlyArray<Option>
+  toMessage: (
+    message: NarrowedSelectedOption<RadioOption> | CompletedOptionFocus,
+  ) => Message
+  options: ReadonlyArray<RadioOption>
   optionToConfig: (
-    option: Option,
+    option: RadioOption,
     context: Readonly<{
       isSelected: boolean
       isActive: boolean
       isDisabled: boolean
     }>,
-  ) => OptionConfig<Message>
-  isOptionDisabled?: (option: Option, index: number) => boolean
+  ) => OptionConfig<Message, RadioOption>
+  isOptionDisabled?: (option: RadioOption, index: number) => boolean
   orientation?: Orientation
   ariaLabel: string
   className?: string
@@ -267,7 +281,11 @@ export const view = <Message, RadioOption extends string>(
               optionValues,
               Array.get(nextIndex),
               Option.map(value =>
-                toMessage(SelectedOption({ value, index: nextIndex })),
+                toMessage({
+                  _tag: 'SelectedOption',
+                  value,
+                  index: nextIndex,
+                }),
               ),
             )
           },
@@ -277,7 +295,11 @@ export const view = <Message, RadioOption extends string>(
             optionValues,
             Array.get(currentIndex),
             Option.map(value =>
-              toMessage(SelectedOption({ value, index: currentIndex })),
+              toMessage({
+                _tag: 'SelectedOption',
+                value,
+                index: currentIndex,
+              }),
             ),
           ),
         ),
@@ -318,7 +340,11 @@ export const view = <Message, RadioOption extends string>(
         ? []
         : [
             OnClick(
-              toMessage(SelectedOption({ value: optionConfig.value, index })),
+              toMessage({
+                _tag: 'SelectedOption',
+                value: optionConfig.value,
+                index,
+              }),
             ),
             OnKeyDownPreventDefault(handleKeyDown(index)),
           ]),
