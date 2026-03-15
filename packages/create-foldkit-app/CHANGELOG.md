@@ -1,5 +1,13 @@
 # create-foldkit-app
 
+## 0.5.4
+
+### Patch Changes
+
+- 4b81a10: Update GitHub URLs from `devinjameson/foldkit` to `foldkit/foldkit` following org transfer.
+
+  Update AGENTS.md template to replace `NoOp` guidance with `Completed*` message conventions.
+
 ## 0.5.3
 
 ### Patch Changes
