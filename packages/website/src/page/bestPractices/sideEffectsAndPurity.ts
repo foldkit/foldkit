@@ -11,12 +11,12 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import {
+  apiModuleRouter,
   coreCommandsRouter,
   coreInitAndFlagsRouter,
   coreManagedResourcesRouter,
   coreResourcesRouter,
   coreSubscriptionsRouter,
-  coreTaskRouter,
 } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
@@ -222,8 +222,12 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
               inlineCode('update'),
               ' \u2014 calling ',
               inlineCode('Date.now()'),
-              ' breaks purity because the same Model and Message produce different results depending on when they run. Request the current time via a Command using a ',
-              link(`${coreTaskRouter()}#overview`, 'Task time function'),
+              ' breaks purity because the same Model and Message produce different results depending on when they run. Request the current time via a Command using ',
+              link(`${apiModuleRouter({ moduleSlug: 'task' })}#const-Task/getTime`, 'Task.getTime'),
+              ', ',
+              link(`${apiModuleRouter({ moduleSlug: 'task' })}#const-Task/getZonedTime`, 'Task.getZonedTime'),
+              ', or ',
+              link(`${apiModuleRouter({ moduleSlug: 'task' })}#function-Task/getZonedTimeIn`, 'Task.getZonedTimeIn'),
               ' and return it as a Message.',
             ],
           ),
