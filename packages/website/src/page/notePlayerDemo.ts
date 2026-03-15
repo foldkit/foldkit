@@ -245,7 +245,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           M.tag('SelectedOption', ({ value }) =>
             evo(model, {
               durationRadioGroup: () => nextRadioGroup,
-              noteDuration: () => S.decodeSync(NoteDuration)(value),
+              noteDuration: () => S.decodeUnknownSync(NoteDuration)(value),
               messageLog: prependToLog(`SelectedNoteDuration(${value})`),
             }),
           ),
