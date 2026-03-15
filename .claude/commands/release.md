@@ -2,29 +2,59 @@
 
 This project uses [changesets](https://github.com/changesets/changesets) for versioning and releases.
 
-## Adding a Changeset
+## Step 1: Audit commits since last release
 
-When you make a change that should be released, run:
+Find the most recent "Version Packages" commit and list every commit since then:
 
 ```bash
-pnpm changeset
+git log --oneline --all --grep="Version Packages" | head -1
 ```
 
-This will prompt you to:
+Then for each commit, check whether it touches files in any published package (`packages/foldkit/`, `packages/create-foldkit-app/`, `packages/vite-plugin-foldkit/`). Categorize each:
 
-1. Select which packages are affected (foldkit, create-foldkit-app, @foldkit/vite-plugin)
-2. Choose the bump type (patch/minor/major)
-3. Write a summary of the change
+- **Breaking change** — needs a major changeset
+- **New feature** — needs a minor changeset
+- **Bug fix / internal refactor / metadata update** — needs a patch changeset
+- **Website, examples, docs only** — no changeset needed (these are in the changesets ignore list)
 
-Commit the generated changeset file with your changes.
+Present the full audit table to the user before proceeding.
 
-**Note:** The project formatter converts double quotes to single quotes in changeset YAML frontmatter. Use single quotes when writing changesets: `'foldkit': minor`.
+## Step 2: Review existing changesets
+
+Read all `.changeset/*.md` files (excluding `config.json` and `README.md`). Check whether the existing changesets already cover every releasable change found in Step 1. Identify any gaps.
+
+## Step 3: Create or update changesets
+
+For any unreleased changes not covered by existing changesets, either:
+
+- **Update** an existing changeset if the change belongs to the same package and release
+- **Create** a new changeset file in `.changeset/` with the format:
+
+```markdown
+---
+'package-name': patch|minor|major
+---
+
+Description of the change.
+```
+
+**Note:** The project formatter converts double quotes to single quotes in changeset YAML frontmatter. Always use single quotes: `'foldkit': minor`.
 
 ## Version Guidelines
 
-- **patch** - Bug fixes, documentation updates, internal refactors
+- **patch** - Bug fixes, documentation updates, internal refactors, metadata changes
 - **minor** - New features, non-breaking API additions
 - **major** - Breaking changes to public APIs
+
+## Step 4: Present summary
+
+Show the user the final release plan:
+
+- Which packages will be released and at what bump level
+- What the new version numbers will be
+- A summary of all changes included
+
+Ask the user to confirm before committing.
 
 ## Release Process
 
