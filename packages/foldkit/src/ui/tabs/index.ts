@@ -127,10 +127,12 @@ export const update = (
 // VIEW
 
 /** Configuration for an individual tab's button and panel content. */
-export type TabConfig = Readonly<{
+export type TabConfig<Message = unknown> = Readonly<{
   buttonClassName?: string
+  buttonAttributes?: ReadonlyArray<Attribute<Message>>
   buttonContent: Html
   panelClassName?: string
+  panelAttributes?: ReadonlyArray<Attribute<Message>>
   panelContent: Html
 }>
 
@@ -139,7 +141,7 @@ export type ViewConfig<Message, Tab extends string> = Readonly<{
   model: Model
   toMessage: (message: TabSelected | TabFocused) => Message
   tabs: ReadonlyArray<Tab>
-  tabToConfig: (tab: Tab, context: { isActive: boolean }) => TabConfig
+  tabToConfig: (tab: Tab, context: { isActive: boolean }) => TabConfig<Message>
   isTabDisabled?: (tab: Tab, index: number) => boolean
   persistPanels?: boolean
   orientation?: Orientation
@@ -282,6 +284,7 @@ export const view = <Message, Tab extends string>(
         ...(tabConfig.buttonClassName
           ? [Class(tabConfig.buttonClassName)]
           : []),
+        ...(tabConfig.buttonAttributes ?? []),
       ],
       [tabConfig.buttonContent],
     )
@@ -303,6 +306,7 @@ export const view = <Message, Tab extends string>(
         ...(panelConfig.panelClassName
           ? [Class(panelConfig.panelClassName)]
           : []),
+        ...(panelConfig.panelAttributes ?? []),
       ],
       [panelConfig.panelContent],
     )
@@ -327,6 +331,7 @@ export const view = <Message, Tab extends string>(
             ...(activeConfig.panelClassName
               ? [Class(activeConfig.panelClassName)]
               : []),
+            ...(activeConfig.panelAttributes ?? []),
           ],
           [activeConfig.panelContent],
         )
