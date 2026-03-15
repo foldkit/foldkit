@@ -502,7 +502,7 @@ const devtoolsSection = (): Html =>
               ),
             ],
             [
-              'Watch your app ',
+              'Watch your program ',
               span([Class('text-accent-600 dark:text-accent-500')], ['think.']),
             ],
           ),
