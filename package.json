@@ -4,7 +4,7 @@
   "private": true,
   "description": "foldkit: Elm-inspired UI framework powered by Effect-TS",
   "scripts": {
-    "prepare": "simple-git-hooks",
+    "prepare": "test -z \"$CI\" && simple-git-hooks || true",
     "check": "pnpm -r typecheck && pnpm lint",
     "lint": "pnpm -r --if-present lint",
     "check:changeset-ignore": "tsx scripts/check-changeset-ignore.ts",
