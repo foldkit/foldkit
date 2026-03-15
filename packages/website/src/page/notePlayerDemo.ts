@@ -258,9 +258,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         return [
           nextModel,
           radioGroupCommands.map(
-            Effect.map(message =>
-              GotDurationRadioGroupMessage({ message }),
-            ),
+            Effect.map(message => GotDurationRadioGroupMessage({ message })),
           ),
         ]
       },
@@ -622,10 +620,7 @@ const noteInputView = (
                   [`${MIN_NOTES}\u2013${MAX_NOTES} notes, A through G`],
                 ),
               Validating: () =>
-                p(
-                  [Class('text-xs text-gray-400 dark:text-gray-500')],
-                  [''],
-                ),
+                p([Class('text-xs text-gray-400 dark:text-gray-500')], ['']),
               Valid: () =>
                 p(
                   [Class('text-xs text-gray-500 dark:text-gray-400')],
