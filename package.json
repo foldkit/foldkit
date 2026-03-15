@@ -60,6 +60,12 @@
     "pre-push": "trap 'exit 130' INT TERM\npnpm pre-push"
   },
   "pnpm": {
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "esbuild",
+      "msgpackr-extract",
+      "simple-git-hooks"
+    ],
     "overrides": {
       "effect": "^3.19.19",
       "@effect/platform": "^0.94.5",
