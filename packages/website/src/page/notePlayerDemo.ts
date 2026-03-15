@@ -10,7 +10,7 @@ import {
   String as Str,
   pipe,
 } from 'effect'
-import { FieldValidation, Task } from 'foldkit'
+import { FieldValidation, Task, Ui } from 'foldkit'
 import { Command } from 'foldkit/command'
 import { makeField } from 'foldkit/fieldValidation'
 import { Html } from 'foldkit/html'
@@ -20,19 +20,11 @@ import { evo } from 'foldkit/struct'
 import notePlayerDemoCodeHtml from 'virtual:note-player-demo-code'
 
 import {
-  AriaChecked,
   AriaLabel,
   Autocomplete,
   Class,
-  Disabled,
   For,
-  Id,
   Maxlength,
-  OnClick,
-  OnInput,
-  Placeholder,
-  Role,
-  Value,
   button,
   div,
   input,
@@ -108,6 +100,7 @@ type NoteHighlightPhase = typeof NoteHighlightPhase.Type
 export const Model = S.Struct({
   noteInput: NoteInputField.Union,
   noteDuration: NoteDuration,
+  durationRadioGroup: Ui.RadioGroup.Model,
   playbackState: PlaybackState,
   highlightPhase: NoteHighlightPhase,
   generation: S.Number,
@@ -119,8 +112,8 @@ export type Model = typeof Model.Type
 // MESSAGE
 
 const ChangedNoteInput = m('ChangedNoteInput', { value: S.String })
-const SelectedNoteDuration = m('SelectedNoteDuration', {
-  duration: NoteDuration,
+const GotDurationRadioGroupMessage = m('GotDurationRadioGroupMessage', {
+  message: Ui.RadioGroup.Message,
 })
 const ClickedPlay = m('ClickedPlay')
 const ClickedPause = m('ClickedPause')
@@ -132,7 +125,7 @@ const AdvancedNotePhase = m('AdvancedNotePhase', {
 
 export const Message = S.Union(
   ChangedNoteInput,
-  SelectedNoteDuration,
+  GotDurationRadioGroupMessage,
   ClickedPlay,
   ClickedPause,
   ClickedStop,
@@ -169,6 +162,11 @@ export const init = (): [
   {
     noteInput: validateNoteInput(INITIAL_NOTE_SEQUENCE),
     noteDuration: 'Medium',
+    durationRadioGroup: Ui.RadioGroup.init({
+      id: 'note-duration',
+      selectedValue: 'Medium',
+      orientation: 'Horizontal',
+    }),
     playbackState: Idle(),
     highlightPhase: 'Idle',
     generation: 0,
@@ -237,13 +235,33 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ]
       },
 
-      SelectedNoteDuration: ({ duration }) => [
-        evo(model, {
-          noteDuration: () => duration,
-          messageLog: prependToLog(`SelectedNoteDuration(${duration})`),
-        }),
-        [],
-      ],
+      GotDurationRadioGroupMessage: ({ message: radioGroupMessage }) => {
+        const [nextRadioGroup, radioGroupCommands] = Ui.RadioGroup.update(
+          model.durationRadioGroup,
+          radioGroupMessage,
+        )
+
+        const nextModel = M.value(radioGroupMessage).pipe(
+          M.tag('SelectedOption', ({ value }) =>
+            evo(model, {
+              durationRadioGroup: () => nextRadioGroup,
+              noteDuration: () => S.decodeUnknownSync(NoteDuration)(value),
+              messageLog: prependToLog(`SelectedNoteDuration(${value})`),
+            }),
+          ),
+          M.tag('CompletedOptionFocus', () =>
+            evo(model, { durationRadioGroup: () => nextRadioGroup }),
+          ),
+          M.exhaustive,
+        )
+
+        return [
+          nextModel,
+          radioGroupCommands.map(
+            Effect.map(message => GotDurationRadioGroupMessage({ message })),
+          ),
+        ]
+      },
 
       ClickedPlay: () =>
         M.value(model.playbackState).pipe(
@@ -488,14 +506,14 @@ const inputBorderClass = (field: typeof NoteInputField.Union.Type): string =>
 
 const durationButtonClass = (
   isSelected: boolean,
-  isInputLocked: boolean,
+  isDisabled: boolean,
 ): string =>
   clsx('flex-1 px-3 py-1.5 text-sm font-normal transition text-center', {
     'bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900': isSelected,
     'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 cursor-pointer':
-      !isSelected && !isInputLocked,
+      !isSelected && !isDisabled,
     'text-gray-300 dark:text-gray-600 cursor-not-allowed':
-      !isSelected && isInputLocked,
+      !isSelected && isDisabled,
   })
 
 export const view = (
@@ -558,58 +576,68 @@ const noteInputView = (
   isInputLocked: boolean,
   toMessage: (message: Message) => ParentMessage,
 ): Html =>
-  div(
-    [
-      Class(
-        clsx('flex flex-col gap-1.5 transition-opacity', {
-          'opacity-50': isInputLocked,
-        }),
-      ),
-    ],
-    [
-      label(
-        [For('note-input'), Class('text-xs text-gray-500 dark:text-gray-400')],
-        ['Note Sequence'],
-      ),
-      input([
-        Id('note-input'),
-        Class(
-          clsx(
-            'w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border text-sm text-gray-800 dark:text-gray-200 font-mono tracking-widest uppercase transition',
-            inputBorderClass(model.noteInput),
+  Ui.Input.view<ParentMessage>({
+    id: 'note-input',
+    value: model.noteInput.value,
+    onInput: value => toMessage(ChangedNoteInput({ value })),
+    isDisabled: isInputLocked,
+    isInvalid: model.noteInput._tag === 'Invalid',
+    placeholder: 'CDEFGAB',
+    toView: attributes =>
+      div(
+        [
+          Class(
+            clsx('flex flex-col gap-1.5 transition-opacity', {
+              'opacity-50': isInputLocked,
+            }),
           ),
-        ),
-        Placeholder('CDEFGAB'),
-        Value(model.noteInput.value),
-        Maxlength(MAX_NOTES),
-        Autocomplete('off'),
-        Disabled(isInputLocked),
-        AriaLabel('Note sequence'),
-        OnInput(value => toMessage(ChangedNoteInput({ value }))),
-      ]),
-      M.value(model.noteInput).pipe(
-        M.tagsExhaustive({
-          NotValidated: () =>
-            p(
-              [Class('text-xs text-gray-400 dark:text-gray-500')],
-              [`${MIN_NOTES}\u2013${MAX_NOTES} notes, A through G`],
+        ],
+        [
+          label(
+            [
+              ...attributes.label,
+              For('note-input'),
+              Class('text-xs text-gray-500 dark:text-gray-400'),
+            ],
+            ['Note Sequence'],
+          ),
+          input([
+            ...attributes.input,
+            Class(
+              clsx(
+                'w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border text-sm text-gray-800 dark:text-gray-200 font-mono tracking-widest uppercase transition',
+                inputBorderClass(model.noteInput),
+              ),
             ),
-          Validating: () =>
-            p([Class('text-xs text-gray-400 dark:text-gray-500')], ['']),
-          Valid: () =>
-            p(
-              [Class('text-xs text-gray-500 dark:text-gray-400')],
-              [`${parseNotes(model.noteInput.value).length} notes`],
-            ),
-          Invalid: ({ errors }) =>
-            p(
-              [Class('text-xs text-red-600 dark:text-red-400')],
-              [Array.headNonEmpty(errors)],
-            ),
-        }),
+            Maxlength(MAX_NOTES),
+            Autocomplete('off'),
+          ]),
+          M.value(model.noteInput).pipe(
+            M.tagsExhaustive({
+              NotValidated: () =>
+                p(
+                  [Class('text-xs text-gray-400 dark:text-gray-500')],
+                  [`${MIN_NOTES}\u2013${MAX_NOTES} notes, A through G`],
+                ),
+              Validating: () =>
+                p([Class('text-xs text-gray-400 dark:text-gray-500')], ['']),
+              Valid: () =>
+                p(
+                  [Class('text-xs text-gray-500 dark:text-gray-400')],
+                  [`${parseNotes(model.noteInput.value).length} notes`],
+                ),
+              Invalid: ({ errors }) =>
+                p(
+                  [Class('text-xs text-red-600 dark:text-red-400')],
+                  [Array.headNonEmpty(errors)],
+                ),
+            }),
+          ),
+        ],
       ),
-    ],
-  )
+  })
+
+const noteDurations: ReadonlyArray<NoteDuration> = ['Short', 'Medium', 'Long']
 
 const durationSelectorView = (
   model: Model,
@@ -623,27 +651,27 @@ const durationSelectorView = (
         [Class('text-xs text-gray-500 dark:text-gray-400')],
         ['Note Length'],
       ),
-      div(
-        [
-          Class('flex rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden'),
-          Role('radiogroup'),
-          AriaLabel('Note length'),
-        ],
-        Array.map(['Short', 'Medium', 'Long'] as const, duration => {
-          const isSelected = model.noteDuration === duration
-
-          return button(
-            [
-              Class(durationButtonClass(isSelected, isInputLocked)),
-              Role('radio'),
-              AriaChecked(isSelected),
-              Disabled(isInputLocked),
-              OnClick(toMessage(SelectedNoteDuration({ duration }))),
-            ],
-            [duration],
-          )
+      Ui.RadioGroup.view<ParentMessage, NoteDuration>({
+        model: model.durationRadioGroup,
+        toMessage: message =>
+          toMessage(GotDurationRadioGroupMessage({ message })),
+        options: noteDurations,
+        ariaLabel: 'Note length',
+        className:
+          'flex rounded-lg bg-gray-200 dark:bg-gray-800 overflow-hidden',
+        isDisabled: isInputLocked,
+        optionToConfig: (duration, { isSelected, isDisabled }) => ({
+          value: duration,
+          content: attributes =>
+            div(
+              [
+                ...attributes.option,
+                Class(durationButtonClass(isSelected, isDisabled)),
+              ],
+              [duration],
+            ),
         }),
-      ),
+      }),
     ],
   )
 
@@ -659,54 +687,66 @@ const playbackControlView = (
     [Class('flex gap-2')],
     [
       isPlaying
-        ? button(
-            [
-              Class(
-                'flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-normal transition bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 hover:bg-accent-700 dark:hover:bg-accent-600 active:bg-accent-800 dark:active:bg-accent-700 cursor-pointer',
+        ? Ui.Button.view<ParentMessage>({
+            onClick: toMessage(ClickedPause()),
+            toView: attributes =>
+              button(
+                [
+                  ...attributes.button,
+                  Class(
+                    'flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-normal transition bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 hover:bg-accent-700 dark:hover:bg-accent-600 active:bg-accent-800 dark:active:bg-accent-700 cursor-pointer',
+                  ),
+                  AriaLabel('Pause'),
+                ],
+                [Icon.pause('w-4 h-4'), 'Pause'],
               ),
-              AriaLabel('Pause'),
-              OnClick(toMessage(ClickedPause())),
-            ],
-            [Icon.pause('w-4 h-4'), 'Pause'],
-          )
-        : button(
+          })
+        : Ui.Button.view<ParentMessage>({
+            onClick: toMessage(ClickedPlay()),
+            isDisabled: !canPlay,
+            toView: attributes =>
+              button(
+                [
+                  ...attributes.button,
+                  Class(
+                    clsx(
+                      'flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-normal transition',
+                      {
+                        'bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 hover:bg-accent-700 dark:hover:bg-accent-600 active:bg-accent-800 dark:active:bg-accent-700 cursor-pointer':
+                          canPlay,
+                        'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed':
+                          !canPlay,
+                      },
+                    ),
+                  ),
+                  AriaLabel('Play'),
+                ],
+                [Icon.play('w-4 h-4'), 'Play'],
+              ),
+          }),
+      Ui.Button.view<ParentMessage>({
+        onClick: toMessage(ClickedStop()),
+        isDisabled: !isActive,
+        toView: attributes =>
+          button(
             [
+              ...attributes.button,
               Class(
                 clsx(
-                  'flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-normal transition',
+                  'flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-normal transition',
                   {
-                    'bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 hover:bg-accent-700 dark:hover:bg-accent-600 active:bg-accent-800 dark:active:bg-accent-700 cursor-pointer':
-                      canPlay,
+                    'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-pointer':
+                      isActive,
                     'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed':
-                      !canPlay,
+                      !isActive,
                   },
                 ),
               ),
-              Disabled(!canPlay),
-              AriaLabel('Play'),
-              OnClick(toMessage(ClickedPlay())),
+              AriaLabel('Stop'),
             ],
-            [Icon.play('w-4 h-4'), 'Play'],
+            [Icon.stop('w-4 h-4'), 'Stop'],
           ),
-      button(
-        [
-          Class(
-            clsx(
-              'flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-normal transition',
-              {
-                'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-pointer':
-                  isActive,
-                'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed':
-                  !isActive,
-              },
-            ),
-          ),
-          Disabled(!isActive),
-          AriaLabel('Stop'),
-          OnClick(toMessage(ClickedStop())),
-        ],
-        [Icon.stop('w-4 h-4'), 'Stop'],
-      ),
+      }),
     ],
   )
 }

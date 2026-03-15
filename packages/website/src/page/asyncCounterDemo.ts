@@ -8,7 +8,7 @@ import {
   Schema as S,
   pipe,
 } from 'effect'
-import { Task } from 'foldkit'
+import { Task, Ui } from 'foldkit'
 import { Command } from 'foldkit/command'
 import { Html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -19,16 +19,10 @@ import {
   AriaHidden,
   AriaLabel,
   Class,
-  Disabled,
   For,
-  Id,
   Max,
   Min,
-  OnClick,
-  OnInput,
   Style,
-  Type,
-  Value,
   button,
   div,
   input,
@@ -352,56 +346,54 @@ const viewAndControlsView = (
           ),
         ],
       ),
-      button(
-        [
-          Class(
-            'px-4 py-2 rounded-lg bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 text-sm font-normal transition hover:bg-accent-700 dark:hover:bg-accent-600 active:bg-accent-800 dark:active:bg-accent-700 cursor-pointer',
-          ),
-          OnClick(toMessage(ClickedDemoIncrement())),
-        ],
-        ['Add 1'],
-      ),
-      div(
-        [Class('flex flex-col gap-1')],
-        [
-          label(
+      Ui.Button.view<ParentMessage>({
+        onClick: toMessage(ClickedDemoIncrement()),
+        toView: attributes =>
+          button(
             [
-              For('demo-reset-duration'),
-              Class('text-xs text-gray-500 dark:text-gray-400'),
+              ...attributes.button,
+              Class(
+                'px-4 py-2 rounded-lg bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 text-sm font-normal transition hover:bg-accent-700 dark:hover:bg-accent-600 active:bg-accent-800 dark:active:bg-accent-700 cursor-pointer',
+              ),
             ],
-            ['Reset Delay (seconds)'],
+            ['Add 1'],
           ),
+      }),
+      Ui.Input.view<ParentMessage>({
+        id: 'demo-reset-duration',
+        value: String(model.resetDuration),
+        onInput: value =>
+          toMessage(
+            ChangedDemoResetDuration({
+              seconds: parseResetDuration(value),
+            }),
+          ),
+        type: 'number',
+        toView: attributes =>
           div(
-            [Class('flex gap-1')],
+            [Class('flex flex-col gap-1')],
             [
-              input([
-                Id('demo-reset-duration'),
-                Class(
-                  'flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-sm text-gray-800 dark:text-gray-200 font-mono',
-                ),
-                Type('number'),
-                Min(String(MIN_RESET_DURATION)),
-                Max(String(MAX_RESET_DURATION)),
-                Value(String(model.resetDuration)),
-                OnInput(value =>
-                  toMessage(
-                    ChangedDemoResetDuration({
-                      seconds: parseResetDuration(value),
-                    }),
-                  ),
-                ),
-              ]),
-              button(
+              label(
                 [
-                  Class(
-                    stepperButtonClass(
-                      model.resetDuration <= MIN_RESET_DURATION,
+                  ...attributes.label,
+                  For('demo-reset-duration'),
+                  Class('text-xs text-gray-500 dark:text-gray-400'),
+                ],
+                ['Reset Delay (seconds)'],
+              ),
+              div(
+                [Class('flex gap-1')],
+                [
+                  input([
+                    ...attributes.input,
+                    Class(
+                      'flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-sm text-gray-800 dark:text-gray-200 font-mono',
                     ),
-                  ),
-                  AriaLabel('Decrease reset delay'),
-                  Disabled(model.resetDuration <= MIN_RESET_DURATION),
-                  OnClick(
-                    toMessage(
+                    Min(String(MIN_RESET_DURATION)),
+                    Max(String(MAX_RESET_DURATION)),
+                  ]),
+                  Ui.Button.view<ParentMessage>({
+                    onClick: toMessage(
                       ChangedDemoResetDuration({
                         seconds: N.clamp(model.resetDuration - 1, {
                           minimum: MIN_RESET_DURATION,
@@ -409,21 +401,23 @@ const viewAndControlsView = (
                         }),
                       }),
                     ),
-                  ),
-                ],
-                ['\u2212'],
-              ),
-              button(
-                [
-                  Class(
-                    stepperButtonClass(
-                      model.resetDuration >= MAX_RESET_DURATION,
-                    ),
-                  ),
-                  AriaLabel('Increase reset delay'),
-                  Disabled(model.resetDuration >= MAX_RESET_DURATION),
-                  OnClick(
-                    toMessage(
+                    isDisabled: model.resetDuration <= MIN_RESET_DURATION,
+                    toView: buttonAttributes =>
+                      button(
+                        [
+                          ...buttonAttributes.button,
+                          Class(
+                            stepperButtonClass(
+                              model.resetDuration <= MIN_RESET_DURATION,
+                            ),
+                          ),
+                          AriaLabel('Decrease reset delay'),
+                        ],
+                        ['\u2212'],
+                      ),
+                  }),
+                  Ui.Button.view<ParentMessage>({
+                    onClick: toMessage(
                       ChangedDemoResetDuration({
                         seconds: N.clamp(model.resetDuration + 1, {
                           minimum: MIN_RESET_DURATION,
@@ -431,33 +425,49 @@ const viewAndControlsView = (
                         }),
                       }),
                     ),
-                  ),
+                    isDisabled: model.resetDuration >= MAX_RESET_DURATION,
+                    toView: buttonAttributes =>
+                      button(
+                        [
+                          ...buttonAttributes.button,
+                          Class(
+                            stepperButtonClass(
+                              model.resetDuration >= MAX_RESET_DURATION,
+                            ),
+                          ),
+                          AriaLabel('Increase reset delay'),
+                        ],
+                        ['+'],
+                      ),
+                  }),
                 ],
-                ['+'],
               ),
             ],
           ),
-        ],
-      ),
-      button(
-        [
-          Class(
-            clsx('px-4 py-2 rounded-lg text-sm font-normal transition', {
-              'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed':
-                model.isResetting,
-              'bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 hover:bg-accent-700 dark:hover:bg-accent-600 active:bg-accent-800 dark:active:bg-accent-700 cursor-pointer':
-                !model.isResetting,
-            }),
+      }),
+      Ui.Button.view<ParentMessage>({
+        onClick: toMessage(ClickedDemoReset()),
+        isDisabled: model.isResetting,
+        toView: attributes =>
+          button(
+            [
+              ...attributes.button,
+              Class(
+                clsx('px-4 py-2 rounded-lg text-sm font-normal transition', {
+                  'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed':
+                    model.isResetting,
+                  'bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 hover:bg-accent-700 dark:hover:bg-accent-600 active:bg-accent-800 dark:active:bg-accent-700 cursor-pointer':
+                    !model.isResetting,
+                }),
+              ),
+            ],
+            [
+              model.isResetting
+                ? 'Resetting...'
+                : `Reset after ${model.resetDuration} seconds`,
+            ],
           ),
-          Disabled(model.isResetting),
-          OnClick(toMessage(ClickedDemoReset())),
-        ],
-        [
-          model.isResetting
-            ? 'Resetting...'
-            : `Reset after ${model.resetDuration} seconds`,
-        ],
-      ),
+      }),
     ],
   )
 
