@@ -1,5 +1,15 @@
 # foldkit
 
+## 0.35.0
+
+### Minor Changes
+
+- 9220d0c: Narrow generic type parameters in RadioGroup `view` signatures so typed values flow through `toMessage` callbacks without requiring consumer-side decoding. `OptionConfig.value` and the `SelectedOption` message in `toMessage` now carry the `RadioOption` generic instead of widening to `string`.
+
+### Patch Changes
+
+- d06075e: Remove vestigial transparent left border from DevTools message rows that caused a visible gap at the left edge of row dividers.
+
 ## 0.34.1
 
 ### Patch Changes
