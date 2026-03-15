@@ -1579,6 +1579,7 @@ const mobileTableOfContentsView = (
 const view = (model: Model) =>
   M.value(model.route).pipe(
     M.tag('Home', () => landingView(model)),
+    M.tag('Newsletter', () => newsletterView(model)),
     M.orElse(route => docsView(model, route)),
   )
 
@@ -1917,6 +1918,31 @@ const landingView = (model: Model) => {
     ],
   )
 }
+
+const newsletterView = (model: Model) =>
+  keyed('div')(
+    'newsletter',
+    [Class('flex flex-col min-h-screen')],
+    [
+      skipNavLink,
+      landingHeaderView(model),
+      main(
+        [
+          Id('main-content'),
+          Class(
+            'flex-1 flex items-center justify-center px-6 py-20 md:px-12 lg:px-20',
+          ),
+        ],
+        [
+          emailSignupContentView(
+            model.emailField,
+            model.emailSubscriptionStatus,
+          ),
+        ],
+      ),
+      landingFooter(model.currentYear),
+    ],
+  )
 
 const docsHeaderView = (model: Model) =>
   header(
