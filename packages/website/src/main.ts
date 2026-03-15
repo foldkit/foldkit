@@ -91,6 +91,7 @@ import {
   apiModuleRouter,
   coreArchitectureRouter,
   homeRouter,
+  isLandingHeaderAlwaysVisible,
   urlToAppRoute,
 } from './route'
 import * as Subscription from './subscription'
@@ -425,7 +426,7 @@ const init: Runtime.ApplicationInit<
       isMobileTableOfContentsOpen: false,
       activeSection: Option.none(),
       aiHeadingToggleCount: 0,
-      isLandingHeaderVisible: false,
+      isLandingHeaderVisible: isLandingHeaderAlwaysVisible(initialRoute),
       isNarrowViewport: flags.isNarrowViewport,
       getStartedGroup: {
         ...Ui.Disclosure.init({ id: 'get-started-group' }),
@@ -544,6 +545,8 @@ const update = (
             route: () => nextRoute,
             url: () => url,
             mobileMenuDialog: () => closedDialog,
+            isLandingHeaderVisible: () =>
+              isLandingHeaderAlwaysVisible(nextRoute),
             apiReferenceGroup: apiReferenceGroup =>
               nextRoute._tag === 'ApiModule'
                 ? { ...apiReferenceGroup, isOpen: true }

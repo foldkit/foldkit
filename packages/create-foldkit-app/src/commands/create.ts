@@ -107,7 +107,9 @@ const displaySuccessMessage = (name: string, packageManager: PackageManager) =>
       `Incident report: ${chalk.cyan('github.com/foldkit/foldkit/issues')}`,
     )
     yield* Console.log('')
-    yield* Console.log(`Newsletter:      ${chalk.cyan('foldkit.dev/newsletter')}`)
+    yield* Console.log(
+      `Newsletter:      ${chalk.cyan('foldkit.dev/newsletter')}`,
+    )
     yield* Console.log(`X:               ${chalk.cyan('x.com/devinjameson')}`)
     yield* Console.log(
       `Bluesky:         ${chalk.cyan('bsky.app/profile/devinjameson.bsky.social')}`,

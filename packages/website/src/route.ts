@@ -417,3 +417,6 @@ export const routeParser = oneOf(
 )
 
 export const urlToAppRoute = parseUrlWithFallback(routeParser, NotFoundRoute)
+
+export const isLandingHeaderAlwaysVisible = (route: AppRoute) =>
+  route._tag === 'Newsletter'
