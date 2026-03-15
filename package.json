@@ -57,7 +57,7 @@
     "vite": "^7.3.1"
   },
   "simple-git-hooks": {
-    "pre-push": "pnpm pre-push"
+    "pre-push": "trap 'exit 130' INT TERM\npnpm pre-push"
   },
   "pnpm": {
     "overrides": {
