@@ -8,7 +8,7 @@
     "check": "pnpm -r typecheck && pnpm lint",
     "lint": "pnpm -r --if-present lint",
     "check:changeset-ignore": "tsx scripts/check-changeset-ignore.ts",
-    "pre-push": "prettier --check . && pnpm check && pnpm test && pnpm check:changeset-ignore",
+    "pre-push": "prettier --check . && pnpm check && pnpm test && pnpm check:changeset-ignore && pnpm changeset status --since=origin/main",
     "test": "pnpm -r --filter './examples/*' --filter './packages/*' run --if-present test",
     "format": "prettier -w .",
     "dev:core": "pnpm --filter foldkit watch",
