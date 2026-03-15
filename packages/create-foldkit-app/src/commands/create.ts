@@ -90,23 +90,33 @@ const runDevServerCommand = (packageManager: PackageManager) =>
 
 const displaySuccessMessage = (name: string, packageManager: PackageManager) =>
   Effect.gen(function* () {
-    yield* Console.log(chalk.bold('🎉 Your Foldkit app is ready!'))
+    yield* Console.log(chalk.bold('All systems nominal.'))
     yield* Console.log('')
     yield* Console.log(`  ${chalk.cyan('cd')} ${name}`)
     yield* Console.log(`  ${chalk.cyan(runDevServerCommand(packageManager))}`)
     yield* Console.log('')
     yield* Console.log(
-      chalk.dim(
-        'Note: Foldkit is a one-person nights-and-weekends project.\n' +
-          'If you try it and have thoughts — good, bad, or confused —\n' +
-          "I'd genuinely love to hear them.",
-      ),
+      'Foldkit is a one-astronaut nights-and-weekends project.\n' +
+        'If you have praise or criticism, do share.\n' +
+        "Please. It's lonely out here.\n\n" +
+        'Be careful. Make good decisions.',
     )
     yield* Console.log('')
+    yield* Console.log(`Training manual: ${chalk.cyan('foldkit.dev')}`)
     yield* Console.log(
-      `  Bugs / ideas: ${chalk.cyan('github.com/foldkit/foldkit/issues')}`,
+      `Incident report: ${chalk.cyan('github.com/foldkit/foldkit/issues')}`,
     )
-    yield* Console.log(`  Say hi:       ${chalk.cyan('x.com/devinjameson')}`)
+    yield* Console.log('')
+    yield* Console.log(`X:               ${chalk.cyan('x.com/devinjameson')}`)
+    yield* Console.log(
+      `Bluesky:         ${chalk.cyan('bsky.app/profile/devinjameson.bsky.social')}`,
+    )
+    yield* Console.log(
+      `Threads:         ${chalk.cyan('threads.com/@devinthedeveloper')}`,
+    )
+    yield* Console.log('')
+    yield* Console.log('Love you,')
+    yield* Console.log('Mission Control')
   })
 
 export const create = ({ name, example, packageManager }: CreateOptions) =>
