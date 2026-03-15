@@ -13,7 +13,7 @@ import {
 } from '../prose'
 import {
   comingFromReactRouter,
-  coreCounterExampleRouter,
+  coreArchitectureRouter,
   examplesRouter,
 } from '../route'
 import { type CopiedSnippets, codeBlock } from '../view/codeBlock'
@@ -55,6 +55,12 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       pageTitle('getting-started', 'Getting Started'),
       para(
         'Foldkit is a frontend framework for TypeScript, built on Effect, using The Elm Architecture. Let\u2019s get your first application running.',
+      ),
+      infoCallout(
+        'New to Foldkit?',
+        'If you\u2019d like to learn about Foldkit\u2019s architecture before starting a project, head to ',
+        link(coreArchitectureRouter(), 'Architecture and Concepts'),
+        '.',
       ),
       tableOfContentsEntryToHeader(quickStartHeader),
       para(
@@ -109,8 +115,8 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' is the entry point for your application. Some starter examples keep everything in one file, while others split the Model, Messages, update, and view into separate modules.',
       ),
       para(
-        'When you\u2019re ready to dig in, head to the ',
-        link(coreCounterExampleRouter(), 'Counter Example'),
+        'When you\u2019re ready to dig in, head to ',
+        link(coreArchitectureRouter(), 'Architecture and Concepts'),
         ' to understand how the pieces fit together.',
       ),
       tableOfContentsEntryToHeader(aiAssistedHeader),
