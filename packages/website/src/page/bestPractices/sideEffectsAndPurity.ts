@@ -94,6 +94,9 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   requestViaCommandHeader,
 ]
 
+const taskLink = (hash: string, label: string) =>
+  link(`${apiModuleRouter({ moduleSlug: 'task' })}#${hash}`, label)
+
 export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
     [],
@@ -223,11 +226,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
               ' \u2014 calling ',
               inlineCode('Date.now()'),
               ' breaks purity because the same Model and Message produce different results depending on when they run. Request the current time via a Command using ',
-              link(`${apiModuleRouter({ moduleSlug: 'task' })}#const-Task/getTime`, 'Task.getTime'),
+              taskLink('const-Task/getTime', 'Task.getTime'),
               ', ',
-              link(`${apiModuleRouter({ moduleSlug: 'task' })}#const-Task/getZonedTime`, 'Task.getZonedTime'),
+              taskLink('const-Task/getZonedTime', 'Task.getZonedTime'),
               ', or ',
-              link(`${apiModuleRouter({ moduleSlug: 'task' })}#function-Task/getZonedTimeIn`, 'Task.getZonedTimeIn'),
+              taskLink('function-Task/getZonedTimeIn', 'Task.getZonedTimeIn'),
               ' and return it as a Message.',
             ],
           ),
