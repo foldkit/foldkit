@@ -2,7 +2,10 @@ import { Array, Number, Option, pipe } from 'effect'
 
 import { examples } from './page/example/meta'
 import {
-  bestPracticesRouter,
+  bestPracticesImmutabilityRouter,
+  bestPracticesKeyingRouter,
+  bestPracticesMessagesRouter,
+  bestPracticesSideEffectsRouter,
   comingFromReactRouter,
   coreArchitectureRouter,
   coreCommandsRouter,
@@ -226,10 +229,32 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           href: projectOrganizationRouter(),
           label: 'Project Organization',
         },
+      ],
+    ],
+  },
+  {
+    label: 'Best Practices',
+    pageGroups: [
+      [
         {
-          _tag: 'BestPractices',
-          href: bestPracticesRouter(),
-          label: 'Best Practices',
+          _tag: 'BestPracticesSideEffects',
+          href: bestPracticesSideEffectsRouter(),
+          label: 'Side Effects & Purity',
+        },
+        {
+          _tag: 'BestPracticesMessages',
+          href: bestPracticesMessagesRouter(),
+          label: 'Messages',
+        },
+        {
+          _tag: 'BestPracticesKeying',
+          href: bestPracticesKeyingRouter(),
+          label: 'Keying',
+        },
+        {
+          _tag: 'BestPracticesImmutability',
+          href: bestPracticesImmutabilityRouter(),
+          label: 'Immutability',
         },
       ],
     ],

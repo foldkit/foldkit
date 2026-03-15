@@ -15,7 +15,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import {
-  bestPracticesRouter,
+  bestPracticesSideEffectsRouter,
   coreCounterExampleRouter,
   exampleDetailRouter,
   gettingStartedRouter,
@@ -432,7 +432,10 @@ export const view = (
         [
           para(
             'Your update function is pure \u2014 give it a Model and a Message, check the returned Model and Commands. No rendering, no mocking hooks, no test utilities. Commands are Effects with explicit dependencies, so you can swap in test layers without stubbing globals. See ',
-            link(`${bestPracticesRouter()}#testing-update`, 'Best Practices'),
+            link(
+              `${bestPracticesSideEffectsRouter()}#testing-update`,
+              'Best Practices',
+            ),
             ' for a complete testing example.',
           ),
         ],

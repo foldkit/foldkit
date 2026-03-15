@@ -22,7 +22,10 @@ export const ExamplesRoute = r('Examples')
 export const ExampleDetailRoute = r('ExampleDetail', {
   exampleSlug: S.String,
 })
-export const BestPracticesRoute = r('BestPractices')
+export const BestPracticesSideEffectsRoute = r('BestPracticesSideEffects')
+export const BestPracticesMessagesRoute = r('BestPracticesMessages')
+export const BestPracticesKeyingRoute = r('BestPracticesKeying')
+export const BestPracticesImmutabilityRoute = r('BestPracticesImmutability')
 export const ProjectOrganizationRoute = r('ProjectOrganization')
 export const ApiModuleRoute = r('ApiModule', { moduleSlug: S.String })
 
@@ -74,7 +77,10 @@ export const DocsRoute = S.Union(
   FieldValidationRoute,
   ExamplesRoute,
   ExampleDetailRoute,
-  BestPracticesRoute,
+  BestPracticesSideEffectsRoute,
+  BestPracticesMessagesRoute,
+  BestPracticesKeyingRoute,
+  BestPracticesImmutabilityRoute,
   ProjectOrganizationRoute,
   ApiModuleRoute,
   CoreArchitectureRoute,
@@ -148,9 +154,25 @@ export const exampleDetailRouter = pipe(
   slash(string('exampleSlug')),
   mapTo(ExampleDetailRoute),
 )
-export const bestPracticesRouter = pipe(
+export const bestPracticesSideEffectsRouter = pipe(
   literal('best-practices'),
-  mapTo(BestPracticesRoute),
+  slash(literal('side-effects-and-purity')),
+  mapTo(BestPracticesSideEffectsRoute),
+)
+export const bestPracticesMessagesRouter = pipe(
+  literal('best-practices'),
+  slash(literal('messages')),
+  mapTo(BestPracticesMessagesRoute),
+)
+export const bestPracticesKeyingRouter = pipe(
+  literal('best-practices'),
+  slash(literal('keying')),
+  mapTo(BestPracticesKeyingRoute),
+)
+export const bestPracticesImmutabilityRouter = pipe(
+  literal('best-practices'),
+  slash(literal('immutability')),
+  mapTo(BestPracticesImmutabilityRoute),
 )
 export const projectOrganizationRouter = pipe(
   literal('project-organization'),
@@ -350,8 +372,14 @@ const topLevelDocsParser = oneOf(
   fieldValidationRouter,
   exampleDetailRouter,
   examplesRouter,
-  bestPracticesRouter,
   projectOrganizationRouter,
+)
+
+const bestPracticesParser = oneOf(
+  bestPracticesSideEffectsRouter,
+  bestPracticesMessagesRouter,
+  bestPracticesKeyingRouter,
+  bestPracticesImmutabilityRouter,
 )
 
 const coreParser = oneOf(
@@ -398,6 +426,7 @@ const uiParser = oneOf(
 const docsParser = oneOf(
   topLevelDocsParser,
   coreParser,
+  bestPracticesParser,
   patternsParser,
   uiParser,
 )

@@ -11,7 +11,7 @@ import {
   tableOfContentsEntryToHeader,
   warningCallout,
 } from '../prose'
-import { bestPracticesRouter, exampleDetailRouter } from '../route'
+import { bestPracticesKeyingRouter, exampleDetailRouter } from '../route'
 import * as Snippets from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 
@@ -328,7 +328,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para(
         'Route views are the most common case, but keying applies anywhere the view branches into structurally different trees. See ',
-        link(`${bestPracticesRouter()}#keying`, 'Keying'),
+        link(bestPracticesKeyingRouter(), 'Keying'),
         ' in Best Practices for layout branches, model state branches, and what happens under the hood.',
       ),
       tableOfContentsEntryToHeader(navigationHeader),

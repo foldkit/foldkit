@@ -28,7 +28,22 @@ export const activeSection: Subscription<
         M.tag('ComingFromReact', () => Page.ComingFromReact.tableOfContents),
         M.tag('RoutingAndNavigation', () => Page.Routing.tableOfContents),
         M.tag('FieldValidation', () => Page.FieldValidation.tableOfContents),
-        M.tag('BestPractices', () => Page.BestPractices.tableOfContents),
+        M.tag(
+          'BestPracticesSideEffects',
+          () => Page.BestPractices.SideEffectsAndPurity.tableOfContents,
+        ),
+        M.tag(
+          'BestPracticesMessages',
+          () => Page.BestPractices.Messages.tableOfContents,
+        ),
+        M.tag(
+          'BestPracticesKeying',
+          () => Page.BestPractices.Keying.tableOfContents,
+        ),
+        M.tag(
+          'BestPracticesImmutability',
+          () => Page.BestPractices.Immutability.tableOfContents,
+        ),
         M.tag(
           'ProjectOrganization',
           () => Page.ProjectOrganization.tableOfContents,
@@ -58,12 +73,12 @@ export const activeSection: Subscription<
         ),
         M.tag('CoreInitAndFlags', () => Page.Core.InitAndFlags.tableOfContents),
         M.tag('CoreTask', () => Page.Core.CoreTask.tableOfContents),
+      )
+      .pipe(
         M.tag(
           'CoreRunningYourApp',
           () => Page.Core.RunningYourApp.tableOfContents,
         ),
-      )
-      .pipe(
         M.tag('CoreResources', () => Page.Core.Resources.tableOfContents),
         M.tag(
           'CoreManagedResources',

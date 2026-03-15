@@ -71,10 +71,25 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Starter templates for common patterns — counter, forms, routing, auth, and more.',
     'Docs',
   ),
-  BestPractices: docs(
+  BestPracticesSideEffects: docs(
+    'Side Effects & Purity',
+    'Why Foldkit programs should have zero side effects outside of Commands.',
     'Best Practices',
-    'Recommended patterns and conventions for Foldkit applications.',
-    'Docs',
+  ),
+  BestPracticesMessages: docs(
+    'Messages',
+    'Name messages as past-tense events, not imperative commands.',
+    'Best Practices',
+  ),
+  BestPracticesKeying: docs(
+    'Keying',
+    'Key branch points to prevent stale DOM when views switch between different trees.',
+    'Best Practices',
+  ),
+  BestPracticesImmutability: docs(
+    'Immutability',
+    'Immutable model updates with evo for predictable state transitions.',
+    'Best Practices',
   ),
   ProjectOrganization: docs(
     'Project Organization',

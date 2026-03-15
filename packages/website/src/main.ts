@@ -198,6 +198,7 @@ export const Model = S.Struct({
   getStartedGroup: Ui.Disclosure.Model,
   coreConceptsGroup: Ui.Disclosure.Model,
   guidesGroup: Ui.Disclosure.Model,
+  bestPracticesGroup: Ui.Disclosure.Model,
   patternsGroup: Ui.Disclosure.Model,
   foldkitUiGroup: Ui.Disclosure.Model,
   examplesGroup: Ui.Disclosure.Model,
@@ -298,6 +299,9 @@ const GotCoreConceptsGroupMessage = m('GotCoreConceptsGroupMessage', {
 const GotGuidesGroupMessage = m('GotGuidesGroupMessage', {
   message: Ui.Disclosure.Message,
 })
+const GotBestPracticesGroupMessage = m('GotBestPracticesGroupMessage', {
+  message: Ui.Disclosure.Message,
+})
 const GotPatternsGroupMessage = m('GotPatternsGroupMessage', {
   message: Ui.Disclosure.Message,
 })
@@ -352,6 +356,7 @@ const Message = S.Union(
   GotGetStartedGroupMessage,
   GotCoreConceptsGroupMessage,
   GotGuidesGroupMessage,
+  GotBestPracticesGroupMessage,
   GotPatternsGroupMessage,
   GotFoldkitUiGroupMessage,
   GotExamplesGroupMessage,
@@ -437,6 +442,10 @@ const init: Runtime.ApplicationInit<
       },
       guidesGroup: {
         ...Ui.Disclosure.init({ id: 'guides-group' }),
+        isOpen: true,
+      },
+      bestPracticesGroup: {
+        ...Ui.Disclosure.init({ id: 'best-practices-group' }),
         isOpen: true,
       },
       patternsGroup: {
@@ -842,6 +851,20 @@ const update = (
         ]
       },
 
+      GotBestPracticesGroupMessage: ({ message }) => {
+        const [nextBestPracticesGroup, bestPracticesGroupCommands] =
+          Ui.Disclosure.update(model.bestPracticesGroup, message)
+
+        return [
+          evo(model, {
+            bestPracticesGroup: () => nextBestPracticesGroup,
+          }),
+          bestPracticesGroupCommands.map(
+            Effect.map(message => GotBestPracticesGroupMessage({ message })),
+          ),
+        ]
+      },
+
       GotPatternsGroupMessage: ({ message }) => {
         const [nextPatternsGroup, patternsGroupCommands] = Ui.Disclosure.update(
           model.patternsGroup,
@@ -1121,6 +1144,7 @@ const sidebarViewInner = (
   getStartedGroup: Ui.Disclosure.Model,
   coreConceptsGroup: Ui.Disclosure.Model,
   guidesGroup: Ui.Disclosure.Model,
+  bestPracticesGroup: Ui.Disclosure.Model,
   patternsGroup: Ui.Disclosure.Model,
   examplesGroup: Ui.Disclosure.Model,
   foldkitUiGroup: Ui.Disclosure.Model,
@@ -1180,6 +1204,10 @@ const sidebarViewInner = (
     {
       model: guidesGroup,
       toMessage: message => GotGuidesGroupMessage({ message }),
+    },
+    {
+      model: bestPracticesGroup,
+      toMessage: message => GotBestPracticesGroupMessage({ message }),
     },
     {
       model: patternsGroup,
@@ -1341,6 +1369,7 @@ const sidebarView = (model: Model): Html =>
     model.getStartedGroup,
     model.coreConceptsGroup,
     model.guidesGroup,
+    model.bestPracticesGroup,
     model.patternsGroup,
     model.examplesGroup,
     model.foldkitUiGroup,
@@ -2135,10 +2164,31 @@ const docsView = (model: Model, docsRoute: DocsRoute) => {
             message => GotExampleDetailMessage({ message }),
           ),
         ),
-      BestPractices: () =>
+      BestPracticesSideEffects: () =>
         withTableOfContents(
-          lazyDocsContent(Page.BestPractices.view, [model.copiedSnippets]),
-          Page.BestPractices.tableOfContents,
+          lazyDocsContent(Page.BestPractices.SideEffectsAndPurity.view, [
+            model.copiedSnippets,
+          ]),
+          Page.BestPractices.SideEffectsAndPurity.tableOfContents,
+        ),
+      BestPracticesMessages: () =>
+        withTableOfContents(
+          Page.BestPractices.Messages.view(),
+          Page.BestPractices.Messages.tableOfContents,
+        ),
+      BestPracticesKeying: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.BestPractices.Keying.view, [
+            model.copiedSnippets,
+          ]),
+          Page.BestPractices.Keying.tableOfContents,
+        ),
+      BestPracticesImmutability: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.BestPractices.Immutability.view, [
+            model.copiedSnippets,
+          ]),
+          Page.BestPractices.Immutability.tableOfContents,
         ),
       ProjectOrganization: () =>
         withTableOfContents(

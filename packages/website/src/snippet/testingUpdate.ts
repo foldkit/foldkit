@@ -1,32 +1,62 @@
 import { HttpClient, HttpClientResponse } from '@effect/platform'
-import { Effect, Layer } from 'effect'
+import { Effect, Layer, Match as M, String } from 'effect'
 import { expect, test } from 'vitest'
 
-import { ClickedFetchWeather, fetchWeather, update } from './main'
+import {
+  Model,
+  SubmittedWeatherForm,
+  WeatherInit,
+  fetchWeather,
+  update,
+} from './main'
 
-test('ClickedFetchWeather sets loading state and returns fetch command', () => {
+const createModel = (): Model => ({
+  zipCodeInput: '90210',
+  weather: WeatherInit(),
+})
+
+test('SubmittedWeatherForm sets loading state and returns fetch Command', () => {
   const model = createModel()
 
-  const [newModel, commands] = update(model, ClickedFetchWeather())
+  const [newModel, commands] = update(model, SubmittedWeatherForm())
 
   expect(newModel.weather._tag).toBe('WeatherLoading')
   expect(commands).toHaveLength(1)
 })
 
 test('fetchWeather returns SucceededWeatherFetch with data on success', async () => {
-  const mockResponse = {
-    current_condition: [{ temp_F: '72', weatherDesc: [{ value: 'Sunny' }] }],
-    nearest_area: [{ areaName: [{ value: 'Beverly Hills' }] }],
-  }
-
-  // Provide a mock HttpClient - no msw or fetch mocking needed
-  const mockClient = HttpClient.make(req =>
-    Effect.succeed(
-      HttpClientResponse.fromWeb(
-        req,
-        new Response(JSON.stringify(mockResponse), { status: 200 }),
-      ),
-    ),
+  const mockClient = HttpClient.make(request =>
+    Effect.sync(() => {
+      const responseData = M.value(request.url).pipe(
+        M.when(String.includes('geocoding'), () => ({
+          results: [
+            {
+              name: 'Beverly Hills',
+              latitude: 34.07362,
+              longitude: -118.40036,
+              admin1: 'California',
+            },
+          ],
+        })),
+        M.when(String.includes('forecast'), () => ({
+          current: {
+            time: '2026-03-10T01:30',
+            interval: 900,
+            temperature_2m: 72.4,
+            relative_humidity_2m: 45,
+            wind_speed_10m: 9.8,
+            weather_code: 0,
+          },
+        })),
+        M.orElse(url => {
+          throw new Error(`Unexpected request URL: ${url}`)
+        }),
+      )
+      return HttpClientResponse.fromWeb(
+        request,
+        new Response(JSON.stringify(responseData), { status: 200 }),
+      )
+    }),
   )
 
   const message = await fetchWeather('90210').pipe(
