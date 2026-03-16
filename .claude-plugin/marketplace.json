@@ -1,0 +1,13 @@
+{
+  "name": "foldkit",
+  "owner": {
+    "name": "Foldkit"
+  },
+  "plugins": [
+    {
+      "name": "foldkit-skills",
+      "source": ".",
+      "description": "Skills for building Foldkit programs — generate complete apps from descriptions, with architecture conventions baked in."
+    }
+  ]
+}
