@@ -1,5 +1,11 @@
 # foldkit
 
+## 0.35.2
+
+### Patch Changes
+
+- 85303cc: Improve declaration file readability by adding explicit type annotations to component Message unions. `go to definition` now shows clean `typeof` references instead of expanded `CallableTaggedStruct` generics.
+
 ## 0.35.1
 
 ### Patch Changes
