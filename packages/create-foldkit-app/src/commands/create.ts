@@ -95,19 +95,19 @@ const displaySuccessMessage = (name: string, packageManager: PackageManager) =>
     yield* Console.log(`  ${chalk.cyan('cd')} ${name}`)
     yield* Console.log(`  ${chalk.cyan(runDevServerCommand(packageManager))}`)
     yield* Console.log('')
-    yield* Console.log(chalk.bold('AI-assisted development'))
+    yield* Console.log(chalk.bold('AI-Assisted Development'))
     yield* Console.log('')
     yield* Console.log(
-      'Clone Foldkit as a submodule so your AI assistant can\n' +
-        'reference the source, examples, and documentation:',
+      '  Clone Foldkit as a submodule so your AI assistant can\n' +
+        '  reference the source, examples, and documentation:',
     )
     yield* Console.log('')
-    yield* Console.log(`  ${chalk.cyan('cd')} ${name}`)
+    yield* Console.log(`    ${chalk.cyan('cd')} ${name}`)
     yield* Console.log(
-      `  ${chalk.cyan('git submodule add https://github.com/foldkit/foldkit.git repos/foldkit')}`,
+      `    ${chalk.cyan('git submodule add https://github.com/foldkit/foldkit.git repos/foldkit')}`,
     )
     yield* Console.log('')
-    yield* Console.log(`Details: ${chalk.cyan('foldkit.dev/ai/overview')}`)
+    yield* Console.log(`  Details: ${chalk.cyan('foldkit.dev/ai/overview')}`)
     yield* Console.log('')
     yield* Console.log(
       'Foldkit is a one-astronaut nights-and-weekends project.\n' +
