@@ -28,6 +28,8 @@ Read the architecture and conventions guides to internalize the rules:
 - [Architecture guide](architecture.md) — TEA structure, file organization, type patterns
 - [Conventions guide](conventions.md) — naming, Effect-TS patterns, anti-patterns
 
+If you have access to a context7 MCP tool, use it to look up Effect-TS documentation when you're unsure about an API. Effect is a large library — verify function signatures rather than guessing.
+
 Then read the example files that match the app's complexity. **Always read at least one example** — never generate from memory alone.
 
 ### Complexity tiers
