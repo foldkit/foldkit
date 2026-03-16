@@ -146,7 +146,34 @@ export const PressedPointerOnButton = m('PressedPointerOnButton', {
 })
 
 /** Union of all messages the listbox component can produce. */
-export const Message = S.Union(
+export const Message: S.Union<
+  [
+    typeof Opened,
+    typeof Closed,
+    typeof ClosedByTab,
+    typeof ActivatedItem,
+    typeof DeactivatedItem,
+    typeof SelectedItem,
+    typeof MovedPointerOverItem,
+    typeof RequestedItemClick,
+    typeof Searched,
+    typeof ClearedSearch,
+    typeof CompletedScrollLock,
+    typeof CompletedScrollUnlock,
+    typeof CompletedInertSetup,
+    typeof CompletedInertTeardown,
+    typeof CompletedButtonFocus,
+    typeof CompletedItemsFocus,
+    typeof CompletedScrollIntoView,
+    typeof CompletedItemClick,
+    typeof IgnoredMouseClick,
+    typeof SuppressedSpaceScroll,
+    typeof AdvancedTransitionFrame,
+    typeof EndedTransition,
+    typeof DetectedButtonMovement,
+    typeof PressedPointerOnButton,
+  ]
+> = S.Union(
   Opened,
   Closed,
   ClosedByTab,

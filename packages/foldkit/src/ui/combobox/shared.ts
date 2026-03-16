@@ -136,7 +136,30 @@ export const UpdatedInputValue = m('UpdatedInputValue', {
 export const PressedToggleButton = m('PressedToggleButton')
 
 /** Union of all messages the combobox component can produce. */
-export const Message = S.Union(
+export const Message: S.Union<
+  [
+    typeof Opened,
+    typeof Closed,
+    typeof ClosedByTab,
+    typeof ActivatedItem,
+    typeof DeactivatedItem,
+    typeof SelectedItem,
+    typeof MovedPointerOverItem,
+    typeof RequestedItemClick,
+    typeof CompletedScrollLock,
+    typeof CompletedScrollUnlock,
+    typeof CompletedInertSetup,
+    typeof CompletedInertTeardown,
+    typeof CompletedInputFocus,
+    typeof CompletedScrollIntoView,
+    typeof CompletedItemClick,
+    typeof AdvancedTransitionFrame,
+    typeof EndedTransition,
+    typeof DetectedInputMovement,
+    typeof UpdatedInputValue,
+    typeof PressedToggleButton,
+  ]
+> = S.Union(
   Opened,
   Closed,
   ClosedByTab,

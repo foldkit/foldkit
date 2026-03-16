@@ -134,7 +134,36 @@ export const ReleasedPointerOnItems = m('ReleasedPointerOnItems', {
 })
 
 /** Union of all messages the menu component can produce. */
-export const Message = S.Union(
+export const Message: S.Union<
+  [
+    typeof Opened,
+    typeof Closed,
+    typeof ClosedByTab,
+    typeof ActivatedItem,
+    typeof DeactivatedItem,
+    typeof SelectedItem,
+    typeof MovedPointerOverItem,
+    typeof RequestedItemClick,
+    typeof Searched,
+    typeof ClearedSearch,
+    typeof CompletedItemsFocus,
+    typeof CompletedButtonFocus,
+    typeof CompletedScrollLock,
+    typeof CompletedScrollUnlock,
+    typeof CompletedInertSetup,
+    typeof CompletedInertTeardown,
+    typeof CompletedScrollIntoView,
+    typeof CompletedItemClick,
+    typeof CompletedFocusAdvance,
+    typeof IgnoredMouseClick,
+    typeof SuppressedSpaceScroll,
+    typeof AdvancedTransitionFrame,
+    typeof EndedTransition,
+    typeof DetectedButtonMovement,
+    typeof PressedPointerOnButton,
+    typeof ReleasedPointerOnItems,
+  ]
+> = S.Union(
   Opened,
   Closed,
   ClosedByTab,

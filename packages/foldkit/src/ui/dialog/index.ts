@@ -36,7 +36,16 @@ export const AdvancedTransitionFrame = m('AdvancedTransitionFrame')
 export const EndedTransition = m('EndedTransition')
 
 /** Union of all messages the dialog component can produce. */
-export const Message = S.Union(
+export const Message: S.Union<
+  [
+    typeof Opened,
+    typeof Closed,
+    typeof CompletedDialogShow,
+    typeof CompletedDialogClose,
+    typeof AdvancedTransitionFrame,
+    typeof EndedTransition,
+  ]
+> = S.Union(
   Opened,
   Closed,
   CompletedDialogShow,

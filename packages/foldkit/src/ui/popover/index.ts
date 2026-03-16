@@ -61,7 +61,25 @@ export const EndedTransition = m('EndedTransition')
 export const DetectedButtonMovement = m('DetectedButtonMovement')
 
 /** Union of all messages the popover component can produce. */
-export const Message = S.Union(
+export const Message: S.Union<
+  [
+    typeof Opened,
+    typeof Closed,
+    typeof ClosedByTab,
+    typeof PressedPointerOnButton,
+    typeof CompletedPanelFocus,
+    typeof CompletedButtonFocus,
+    typeof CompletedScrollLock,
+    typeof CompletedScrollUnlock,
+    typeof CompletedInertSetup,
+    typeof CompletedInertTeardown,
+    typeof IgnoredMouseClick,
+    typeof SuppressedSpaceScroll,
+    typeof AdvancedTransitionFrame,
+    typeof EndedTransition,
+    typeof DetectedButtonMovement,
+  ]
+> = S.Union(
   Opened,
   Closed,
   ClosedByTab,

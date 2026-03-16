@@ -53,7 +53,9 @@ export const TabFocused = m('TabFocused', { index: S.Number })
 export const CompletedTabFocus = m('CompletedTabFocus')
 
 /** Union of all messages the tabs component can produce. */
-export const Message = S.Union(TabSelected, TabFocused, CompletedTabFocus)
+export const Message: S.Union<
+  [typeof TabSelected, typeof TabFocused, typeof CompletedTabFocus]
+> = S.Union(TabSelected, TabFocused, CompletedTabFocus)
 
 export type TabSelected = typeof TabSelected.Type
 export type TabFocused = typeof TabFocused.Type

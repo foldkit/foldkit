@@ -42,7 +42,9 @@ export const SelectedOption = m('SelectedOption', {
 export const CompletedOptionFocus = m('CompletedOptionFocus')
 
 /** Union of all messages the radio group component can produce. */
-export const Message = S.Union(SelectedOption, CompletedOptionFocus)
+export const Message: S.Union<
+  [typeof SelectedOption, typeof CompletedOptionFocus]
+> = S.Union(SelectedOption, CompletedOptionFocus)
 
 export type SelectedOption = typeof SelectedOption.Type
 export type CompletedOptionFocus = typeof CompletedOptionFocus.Type
