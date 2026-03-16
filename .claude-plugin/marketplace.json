@@ -6,7 +6,10 @@
   "plugins": [
     {
       "name": "foldkit-skills",
-      "source": ".",
+      "source": {
+        "source": "github",
+        "repo": "foldkit/foldkit"
+      },
       "description": "Skills for building Foldkit programs — generate complete apps from descriptions, with architecture conventions baked in."
     }
   ]
