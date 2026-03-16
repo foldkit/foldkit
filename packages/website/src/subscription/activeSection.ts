@@ -59,6 +59,7 @@ export const activeSection: Subscription<
             }),
           ),
         ),
+        M.tag('CoreArchitecture', () => Page.Core.Architecture.tableOfContents),
         M.tag(
           'CoreCounterExample',
           () => Page.Core.CounterExample.tableOfContents,
@@ -67,6 +68,8 @@ export const activeSection: Subscription<
         M.tag('CoreMessages', () => Page.Core.Messages.tableOfContents),
         M.tag('CoreUpdate', () => Page.Core.CoreUpdate.tableOfContents),
         M.tag('CoreView', () => Page.Core.CoreView.tableOfContents),
+      )
+      .pipe(
         M.tag('CoreCommands', () => Page.Core.Commands.tableOfContents),
         M.tag(
           'CoreSubscriptions',
@@ -74,8 +77,6 @@ export const activeSection: Subscription<
         ),
         M.tag('CoreInitAndFlags', () => Page.Core.InitAndFlags.tableOfContents),
         M.tag('CoreTask', () => Page.Core.CoreTask.tableOfContents),
-      )
-      .pipe(
         M.tag(
           'CoreRunningYourApp',
           () => Page.Core.RunningYourApp.tableOfContents,
@@ -90,6 +91,7 @@ export const activeSection: Subscription<
           'CoreSlowViewWarning',
           () => Page.Core.SlowViewWarning.tableOfContents,
         ),
+        M.tag('CoreDevtools', () => Page.Core.DevTools.tableOfContents),
         M.tag(
           'PatternsSubmodels',
           () => Page.Patterns.Submodels.tableOfContents,
@@ -102,6 +104,8 @@ export const activeSection: Subscription<
           'CoreViewMemoization',
           () => Page.Core.ViewMemoization.tableOfContents,
         ),
+      )
+      .pipe(
         M.tag('UiButton', () => Page.UiPages.ButtonPage.tableOfContents),
         M.tag('UiInput', () => Page.UiPages.InputPage.tableOfContents),
         M.tag('UiTextarea', () => Page.UiPages.TextareaPage.tableOfContents),
@@ -113,8 +117,6 @@ export const activeSection: Subscription<
         M.tag('UiSwitch', () => Page.UiPages.SwitchPage.tableOfContents),
         M.tag('UiListbox', () => Page.UiPages.ListboxPage.tableOfContents),
         M.tag('UiCombobox', () => Page.UiPages.ComboboxPage.tableOfContents),
-      )
-      .pipe(
         M.tag('UiDialog', () => Page.UiPages.DialogPage.tableOfContents),
         M.tag('UiMenu', () => Page.UiPages.MenuPage.tableOfContents),
         M.tag('UiPopover', () => Page.UiPages.PopoverPage.tableOfContents),
@@ -126,6 +128,8 @@ export const activeSection: Subscription<
         M.tag('UiFieldset', () => Page.UiPages.FieldsetPage.tableOfContents),
         M.tag('UiSelect', () => Page.UiPages.SelectPage.tableOfContents),
         M.tag('UiOverview', () => Page.UiPages.OverviewPage.tableOfContents),
+        M.tag('AiOverview', () => Page.AiOverview.tableOfContents),
+        M.tag('AiSkills', () => Page.AiSkills.tableOfContents),
         M.option,
       )
 
