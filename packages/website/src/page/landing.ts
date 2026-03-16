@@ -28,10 +28,10 @@ import {
 import { Icon } from '../icon'
 import { Link } from '../link'
 import {
+  aiOverviewRouter,
   comingFromReactRouter,
   coreArchitectureRouter,
   examplesRouter,
-  gettingStartedRouter,
   uiOverviewRouter,
 } from '../route'
 import { type CopiedSnippets, codeBlock } from '../view/codeBlock'
@@ -960,10 +960,7 @@ const aiSection = (aiHeadingToggleCount: number): Html =>
             ],
           ),
           a(
-            [
-              Href(`${gettingStartedRouter()}#ai-assisted`),
-              Class('cta-secondary'),
-            ],
+            [Href(aiOverviewRouter()), Class('cta-secondary')],
             ['Set up AI-assisted development', Icon.arrowRight('w-5 h-5')],
           ),
         ],
