@@ -1107,14 +1107,37 @@ const preserveModel = (model: unknown): void => {
   }
 }
 
+const PLUGIN_RESPONSE_TIMEOUT_MS = 500
+
 /** Starts a Foldkit runtime, with HMR support for development. */
 export const run = (foldkitRuntime: MakeRuntimeReturn): void => {
   if (import.meta.hot) {
-    import.meta.hot.on('foldkit:restore-model', model => {
-      BrowserRuntime.runMain(foldkitRuntime(model))
-    })
+    const hot = import.meta.hot
 
-    import.meta.hot.send('foldkit:request-model')
+    const requestPreservedModel = pipe(
+      Effect.async<unknown>(resume => {
+        hot.on('foldkit:restore-model', model => {
+          resume(Effect.succeed(model))
+        })
+        hot.send('foldkit:request-model')
+      }),
+      Effect.timeoutTo({
+        onTimeout: () => {
+          console.warn(
+            '[foldkit] No response from vite-plugin-foldkit. Add it to your vite.config.ts for HMR model preservation:\n\n' +
+              "  import foldkit from 'vite-plugin-foldkit'\n\n" +
+              '  export default defineConfig({ plugins: [foldkit()] })\n\n' +
+              'Starting without HMR support.',
+          )
+          return undefined
+        },
+        onSuccess: Function.identity,
+        duration: PLUGIN_RESPONSE_TIMEOUT_MS,
+      }),
+      Effect.flatMap(foldkitRuntime),
+    )
+
+    BrowserRuntime.runMain(requestPreservedModel)
   } else {
     BrowserRuntime.runMain(foldkitRuntime())
   }
