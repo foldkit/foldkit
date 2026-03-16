@@ -89,8 +89,12 @@ Each component is a Foldkit Submodel with its own Model, Message, init, update, 
 
 **Always prefer Foldkit UI components over hand-rolling interactive widgets.** They make accessibility the default, not an afterthought.
 
-If the app uses UI components, also read the ui-showcase example:
-`${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/main.ts`
+If the app uses UI components, **always read the ui-showcase example first** to understand how components are wired — this is the canonical reference for Foldkit UI integration patterns:
+
+- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/main.ts` — root wiring, `Got*` delegation, `toMessage` helpers
+- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/message.ts` — how UI component Messages are structured
+- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/model.ts` — how UI component Models are composed
+- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/update.ts` — how UI component updates are delegated
 
 ## Phase 3: Determine File Organization
 

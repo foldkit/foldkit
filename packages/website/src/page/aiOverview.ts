@@ -2,17 +2,30 @@ import type { Html } from 'foldkit/html'
 
 import { div } from '../html'
 import type { TableOfContentsEntry } from '../main'
-import { link, pageTitle, para, tableOfContentsEntryToHeader } from '../prose'
+import {
+  inlineCode,
+  link,
+  pageTitle,
+  para,
+  tableOfContentsEntryToHeader,
+} from '../prose'
 import {
   aiSkillsRouter,
   patternsOutMessageRouter,
   patternsSubmodelsRouter,
 } from '../route'
+import { type CopiedSnippets, codeBlock } from '../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'overview',
   text: 'Overview',
+}
+
+const submoduleHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'submodule-setup',
+  text: 'Submodule Setup',
 }
 
 const skillsPluginHeader: TableOfContentsEntry = {
@@ -23,10 +36,14 @@ const skillsPluginHeader: TableOfContentsEntry = {
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
+  submoduleHeader,
   skillsPluginHeader,
 ]
 
-export const view = (): Html =>
+const SUBMODULE_COMMAND =
+  'git submodule add https://github.com/foldkit/foldkit.git repos/foldkit'
+
+export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
     [],
     [
@@ -47,6 +64,23 @@ export const view = (): Html =>
       ),
       para(
         'This isn\u2019t a bolt-on. It\u2019s a consequence of the architecture.',
+      ),
+      tableOfContentsEntryToHeader(submoduleHeader),
+      para(
+        'For the best experience, clone the Foldkit repository as a git submodule in your project:',
+      ),
+      codeBlock(
+        SUBMODULE_COMMAND,
+        'Copy submodule command',
+        copiedSnippets,
+        'mb-4',
+      ),
+      para(
+        'This gives the AI access to the Foldkit source code, the examples, and this documentation site \u2014 real patterns it can learn from and apply to your code. The starter template includes an ',
+        inlineCode('AGENTS.md'),
+        ' with Foldkit conventions and a ',
+        inlineCode('.ignore'),
+        ' file that keeps the submodule out of your editor\u2019s file tree.',
       ),
       tableOfContentsEntryToHeader(skillsPluginHeader),
       para(

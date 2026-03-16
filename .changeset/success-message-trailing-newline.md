@@ -2,4 +2,4 @@
 'create-foldkit-app': patch
 ---
 
-Add trailing blank line after success message for cleaner terminal output.
+Add AI-assisted development section to success message with submodule setup instructions.

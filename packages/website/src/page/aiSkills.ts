@@ -17,13 +17,13 @@ const overviewHeader: TableOfContentsEntry = {
 }
 
 const availableSkillsHeader: TableOfContentsEntry = {
-  level: 'h3',
+  level: 'h2',
   id: 'available-skills',
   text: 'Available Skills',
 }
 
 const generateProgramHeader: TableOfContentsEntry = {
-  level: 'h4',
+  level: 'h3',
   id: 'generate-program',
   text: 'generate-program',
 }

@@ -584,7 +584,7 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       AiOverview: () =>
         withTableOfContents(
-          Page.AiOverview.view(),
+          lazyDocsContent(Page.AiOverview.view, [model.copiedSnippets]),
           Page.AiOverview.tableOfContents,
         ),
       AiSkills: () =>
