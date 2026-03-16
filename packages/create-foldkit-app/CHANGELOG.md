@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.5.9
+
+### Patch Changes
+
+- bdd444e: Add `git init` to CFA success message and use `>` prompt prefixes for shell commands
+
 ## 0.5.8
 
 ### Patch Changes
