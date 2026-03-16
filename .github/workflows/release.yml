@@ -49,3 +49,4 @@ jobs:
           publish: pnpm release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SKIP_SIMPLE_GIT_HOOKS: '1'
