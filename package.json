@@ -34,7 +34,7 @@
     "dev:example:error-view": "pnpm --filter error-view-example dev",
     "dev:example:ui-showcase": "pnpm --filter ui-showcase dev",
     "changeset": "changeset",
-    "version-packages": "changeset version",
+    "version-packages": "changeset version && pnpm install --no-frozen-lockfile",
     "release": "pnpm -r build && changeset publish"
   },
   "devDependencies": {
