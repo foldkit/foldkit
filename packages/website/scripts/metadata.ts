@@ -153,8 +153,8 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Crash View',
     'A fallback UI and crash reporting for unrecoverable runtime errors.',
   ),
-  CoreSlowViewWarning: core(
-    'Slow View Warning',
+  CoreSlowView: core(
+    'Slow View',
     'Performance monitoring for view render times.',
   ),
   CoreViewMemoization: core(

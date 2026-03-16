@@ -11,6 +11,10 @@ export type {
   ElementInit,
   ApplicationInit,
   MakeRuntimeReturn,
+  Visibility,
+  SlowViewContext,
+  SlowViewConfig,
+  DevtoolsConfig,
 } from './runtime'
 
 export { UrlRequest } from './urlRequest'

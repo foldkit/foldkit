@@ -87,10 +87,7 @@ export const activeSection: Subscription<
           () => Page.Core.ManagedResources.tableOfContents,
         ),
         M.tag('CoreCrashView', () => Page.Core.CrashView.tableOfContents),
-        M.tag(
-          'CoreSlowViewWarning',
-          () => Page.Core.SlowViewWarning.tableOfContents,
-        ),
+        M.tag('CoreSlowView', () => Page.Core.SlowView.tableOfContents),
         M.tag('CoreDevtools', () => Page.Core.DevTools.tableOfContents),
         M.tag(
           'PatternsSubmodels',

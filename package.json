@@ -5,10 +5,11 @@
   "description": "foldkit: Elm-inspired UI framework powered by Effect-TS",
   "scripts": {
     "prepare": "test -z \"$CI\" && simple-git-hooks || true",
+    "build": "pnpm -r --if-present build",
     "check": "pnpm -r typecheck && pnpm lint",
     "lint": "pnpm -r --if-present lint",
     "check:changeset-ignore": "tsx scripts/check-changeset-ignore.ts",
-    "pre-push": "pnpm format:check && pnpm check && pnpm test && pnpm check:changeset-ignore && pnpm changeset status --since=origin/main",
+    "pre-push": "pnpm build && pnpm format:check && pnpm check && pnpm test && pnpm check:changeset-ignore && pnpm changeset status --since=origin/main",
     "test": "pnpm -r --filter './examples/*' --filter './packages/*' run --if-present test",
     "format": "prettier -w .",
     "format:check": "prettier --check .",

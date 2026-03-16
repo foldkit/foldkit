@@ -91,14 +91,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'The ',
         inlineCode('devtools'),
-        ' field accepts an object with the following optional properties:',
+        ' field accepts an object with the following optional properties, or ',
+        inlineCode('false'),
+        ' to disable DevTools entirely.',
       ),
       tableOfContentsEntryToHeader(showHeader),
       para(
-        inlineCode("'Never'"),
-        ' disables DevTools entirely. ',
         inlineCode("'Development'"),
-        ' (the default) enables them only in development. ',
+        ' (the default) enables DevTools only in development. ',
         inlineCode("'Always'"),
         ' enables them in all environments, including production.',
       ),

@@ -37,8 +37,6 @@ import type { ManagedResourceConfig, ManagedResources } from './managedResource'
 import type { Subscriptions } from './subscription'
 import { UrlRequest } from './urlRequest'
 
-const SLOW_VIEW_THRESHOLD_MS = 16
-
 /** Position of the devtools badge and panel on screen. */
 export type DevtoolsPosition =
   | 'BottomRight'
@@ -46,8 +44,8 @@ export type DevtoolsPosition =
   | 'TopRight'
   | 'TopLeft'
 
-/** Controls when devtools are shown. */
-export type DevtoolsShow = 'Never' | 'Development' | 'Always'
+/** Controls when a feature is shown. */
+export type Visibility = 'Development' | 'Always'
 
 /** Controls devtools interaction mode.
  *
@@ -59,21 +57,73 @@ export type DevtoolsMode = 'Inspect' | 'TimeTravel'
 /**
  * Devtools configuration.
  *
- * - `show`: `'Never'` disables devtools entirely, `'Development'` (default) enables in dev mode only, `'Always'` enables in all environments including production.
+ * Pass `false` to disable devtools entirely.
+ *
+ * - `show`: `'Development'` (default) enables in dev mode only, `'Always'` enables in all environments including production.
  * - `position`: Where the badge and panel appear. Defaults to `'BottomRight'`.
  * - `mode`: `'TimeTravel'` (default) enables full time-travel debugging. `'Inspect'` allows browsing state snapshots without pausing the app.
  * - `banner`: Optional text shown as a banner at the top of the panel.
  */
-export type DevtoolsConfig = Readonly<{
-  show?: DevtoolsShow
-  position?: DevtoolsPosition
-  mode?: DevtoolsMode
-  banner?: string
-}>
+export type DevtoolsConfig =
+  | false
+  | Readonly<{
+      show?: Visibility
+      position?: DevtoolsPosition
+      mode?: DevtoolsMode
+      banner?: string
+    }>
 
-const DEFAULT_DEVTOOLS_SHOW: DevtoolsShow = 'Development'
+const DEFAULT_DEVTOOLS_SHOW: Visibility = 'Development'
 const DEFAULT_DEVTOOLS_POSITION: DevtoolsPosition = 'BottomRight'
 const DEFAULT_DEVTOOLS_MODE: DevtoolsMode = 'TimeTravel'
+
+/** Context provided to the slow view callback when a view exceeds the time budget. */
+export type SlowViewContext<Model, Message> = Readonly<{
+  model: Model
+  message: Option.Option<Message>
+  durationMs: number
+  thresholdMs: number
+}>
+
+/**
+ * Slow view warning configuration.
+ *
+ * Pass `false` to disable warnings entirely.
+ *
+ * - `show`: `'Development'` (default) enables in dev mode only, `'Always'` enables in all environments.
+ * - `thresholdMs`: Duration in ms above which a view is considered slow. Defaults to 16 (one frame at 60fps).
+ * - `onSlowView`: Custom callback invoked when a slow view is detected. Defaults to `console.warn`.
+ */
+export type SlowViewConfig<Model, Message> =
+  | false
+  | Readonly<{
+      show?: Visibility
+      thresholdMs?: number
+      onSlowView?: (context: SlowViewContext<Model, Message>) => void
+    }>
+
+const DEFAULT_SLOW_VIEW_SHOW: Visibility = 'Development'
+const DEFAULT_SLOW_VIEW_THRESHOLD_MS = 16
+
+const defaultSlowViewCallback = (
+  context: SlowViewContext<unknown, unknown>,
+): void => {
+  const trigger = Option.match(context.message, {
+    onNone: () => 'init',
+    onSome: message => {
+      const tag =
+        Predicate.isRecord(message) && '_tag' in message
+          ? String(message['_tag'])
+          : 'unknown'
+      return tag
+    },
+  })
+
+  console.warn(
+    `[foldkit] Slow view: ${context.durationMs.toFixed(1)}ms (budget: ${context.thresholdMs}ms), triggered by ${trigger}. Consider moving computation to update or memoizing with createLazy.`,
+    ...Option.toArray(context.message),
+  )
+}
 
 /** Effect service tag that provides message dispatching to the view layer. */
 export class Dispatch extends Context.Tag('@foldkit/Dispatch')<
@@ -141,7 +191,7 @@ type RuntimeConfig<
   container: HTMLElement
   browser?: BrowserConfig<Message>
   crash?: CrashConfig<Model, Message>
-  slowViewThresholdMs?: number | false
+  slowView?: SlowViewConfig<Model, Message>
   /**
    * An Effect Layer providing long-lived resources that persist across command
    * invocations. Use this for browser resources with lifecycle (AudioContext,
@@ -186,7 +236,7 @@ type BaseElementConfig<
   >
   container: HTMLElement
   crash?: CrashConfig<Model, Message>
-  slowViewThresholdMs?: number | false
+  slowView?: SlowViewConfig<Model, Message>
   resources?: Layer.Layer<Resources>
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
   devtools?: DevtoolsConfig
@@ -268,7 +318,7 @@ type BaseApplicationConfig<
   container: HTMLElement
   browser: BrowserConfig<Message>
   crash?: CrashConfig<Model, Message>
-  slowViewThresholdMs?: number | false
+  slowView?: SlowViewConfig<Model, Message>
   resources?: Layer.Layer<Resources>
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
   devtools?: DevtoolsConfig
@@ -380,37 +430,52 @@ export type ApplicationInit<
 /** A configured Foldkit runtime returned by `makeElement` or `makeApplication`, passed to `run` to start the application. */
 export type MakeRuntimeReturn = (hmrModel?: unknown) => Effect.Effect<void>
 
-const makeRuntime =
-  <
-    Model,
-    Message,
-    StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
-    Flags,
-    Resources,
-    ManagedResourceServices,
-  >({
-    Model,
-    flags: resolveFlags,
-    init,
-    update,
-    view,
-    subscriptions,
-    container,
-    browser: browserConfig,
-    crash,
-    slowViewThresholdMs = SLOW_VIEW_THRESHOLD_MS,
-    resources,
-    managedResources,
-    devtools,
-  }: RuntimeConfig<
-    Model,
-    Message,
-    StreamDepsMap,
-    Flags,
-    Resources,
-    ManagedResourceServices
-  >): MakeRuntimeReturn =>
-  (hmrModel?: unknown): Effect.Effect<void> =>
+const makeRuntime = <
+  Model,
+  Message,
+  StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
+  Flags,
+  Resources,
+  ManagedResourceServices,
+>({
+  Model,
+  flags: resolveFlags,
+  init,
+  update,
+  view,
+  subscriptions,
+  container,
+  browser: browserConfig,
+  crash,
+  slowView,
+  resources,
+  managedResources,
+  devtools,
+}: RuntimeConfig<
+  Model,
+  Message,
+  StreamDepsMap,
+  Flags,
+  Resources,
+  ManagedResourceServices
+>): MakeRuntimeReturn => {
+  const resolvedSlowView = pipe(
+    slowView ?? {},
+    Option.liftPredicate(config => config !== false),
+    Option.filter(config =>
+      Match.value(config.show ?? DEFAULT_SLOW_VIEW_SHOW).pipe(
+        Match.when('Always', () => true),
+        Match.when('Development', () => !!import.meta.hot),
+        Match.exhaustive,
+      ),
+    ),
+    Option.map(config => ({
+      thresholdMs: config.thresholdMs ?? DEFAULT_SLOW_VIEW_THRESHOLD_MS,
+      onSlowView: config.onSlowView ?? defaultSlowViewCallback,
+    })),
+  )
+
+  return (hmrModel?: unknown): Effect.Effect<void> =>
     Effect.scoped(
       Effect.gen(function* () {
         const maybeResourceLayer = resources
@@ -554,7 +619,7 @@ const makeRuntime =
               )
 
               if (!isPaused) {
-                yield* render(nextModel)
+                yield* render(nextModel, Option.some(message))
               }
 
               if (!modelEquivalence(currentModel, nextModel)) {
@@ -628,21 +693,25 @@ const makeRuntime =
           /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
           enqueueMessage(message as Message)
 
-        const render = (model: Model) =>
+        const render = (model: Model, message: Option.Option<Message>) =>
           Effect.gen(function* () {
             const viewStart = performance.now()
             const nextVNodeNullish = yield* view(model)
             const viewDuration = performance.now() - viewStart
 
-            if (
-              import.meta.hot &&
-              slowViewThresholdMs !== false &&
-              viewDuration > slowViewThresholdMs
-            ) {
-              console.warn(
-                `[foldkit] Slow view: ${viewDuration.toFixed(1)}ms (budget: ${slowViewThresholdMs}ms). Consider moving computation to update or memoizing with createLazy.`,
-              )
-            }
+            Option.match(resolvedSlowView, {
+              onNone: Function.constVoid,
+              onSome: ({ thresholdMs, onSlowView }) => {
+                if (viewDuration > thresholdMs) {
+                  onSlowView({
+                    model,
+                    message,
+                    durationMs: viewDuration,
+                    thresholdMs,
+                  })
+                }
+              },
+            })
 
             const maybeCurrentVNode = yield* Ref.get(maybeCurrentVNodeRef)
             const patchedVNode = yield* Effect.sync(() =>
@@ -659,39 +728,41 @@ const makeRuntime =
         const runtime = yield* Effect.runtime()
         yield* Ref.set(maybeRuntimeRef, Option.some(runtime))
 
-        const show = devtools?.show ?? DEFAULT_DEVTOOLS_SHOW
-        const devtoolsPosition = devtools?.position ?? DEFAULT_DEVTOOLS_POSITION
-        const devtoolsMode = devtools?.mode ?? DEFAULT_DEVTOOLS_MODE
-        const maybeDevtoolsBanner = Option.fromNullable(devtools?.banner)
         const isInIframe = window.self !== window.top
-        const isDevtoolsEnabled = Match.value(show).pipe(
-          Match.when('Never', () => false),
-          Match.when('Always', () => true),
-          Match.when('Development', () => !!import.meta.hot && !isInIframe),
-          Match.exhaustive,
+        const resolvedDevtools = pipe(
+          devtools ?? {},
+          Option.liftPredicate(config => config !== false),
+          Option.filter(config =>
+            Match.value(config.show ?? DEFAULT_DEVTOOLS_SHOW).pipe(
+              Match.when('Always', () => true),
+              Match.when('Development', () => !!import.meta.hot && !isInIframe),
+              Match.exhaustive,
+            ),
+          ),
+          Option.map(config => ({
+            position: config.position ?? DEFAULT_DEVTOOLS_POSITION,
+            mode: config.mode ?? DEFAULT_DEVTOOLS_MODE,
+            maybeBanner: Option.fromNullable(config.banner),
+          })),
         )
 
-        if (isDevtoolsEnabled) {
+        if (Option.isSome(resolvedDevtools)) {
+          const { position, mode, maybeBanner } = resolvedDevtools.value
           const devtoolsStore = yield* createDevtoolsStore({
             replay: (model, message) =>
               /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
               Tuple.getFirst(update(model as Model, message as Message)),
             render: model =>
               /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-              render(model as Model),
+              render(model as Model, Option.none()),
             getCurrentModel: Ref.get(modelRef),
           })
           yield* Ref.set(maybeDevtoolsStoreRef, Option.some(devtoolsStore))
           yield* devtoolsStore.recordInit(initModel)
-          yield* createOverlay(
-            devtoolsStore,
-            devtoolsPosition,
-            devtoolsMode,
-            maybeDevtoolsBanner,
-          )
+          yield* createOverlay(devtoolsStore, position, mode, maybeBanner)
         }
 
-        yield* render(initModel)
+        yield* render(initModel, Option.none())
 
         addBfcacheRestoreListener()
 
@@ -843,6 +914,7 @@ const makeRuntime =
         )
       }),
     )
+}
 
 const patchVNode = (
   maybeCurrentVNode: Option.Option<VNode>,
@@ -972,8 +1044,8 @@ export function makeElement<
     ...(config.subscriptions && { subscriptions: config.subscriptions }),
     container: config.container,
     ...(config.crash && { crash: config.crash }),
-    ...(Predicate.isNotUndefined(config.slowViewThresholdMs) && {
-      slowViewThresholdMs: config.slowViewThresholdMs,
+    ...(Predicate.isNotUndefined(config.slowView) && {
+      slowView: config.slowView,
     }),
     ...(config.resources && { resources: config.resources }),
     ...(config.managedResources && {
@@ -1089,8 +1161,8 @@ export function makeApplication<
     container: config.container,
     browser: config.browser,
     ...(config.crash && { crash: config.crash }),
-    ...(Predicate.isNotUndefined(config.slowViewThresholdMs) && {
-      slowViewThresholdMs: config.slowViewThresholdMs,
+    ...(Predicate.isNotUndefined(config.slowView) && {
+      slowView: config.slowView,
     }),
     ...(config.resources && { resources: config.resources }),
     ...(config.managedResources && {

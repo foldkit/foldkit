@@ -1393,7 +1393,7 @@ export const createOverlay = (
       view: makeView(position, mode, maybeBanner),
       container,
       subscriptions: makeOverlaySubscriptions(store),
-      devtools: { show: 'Never' },
+      devtools: false,
     })
 
     yield* Effect.forkDaemon(overlayRuntime())
