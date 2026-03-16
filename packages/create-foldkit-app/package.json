@@ -1,6 +1,6 @@
 {
   "name": "create-foldkit-app",
-  "version": "0.5.7",
+  "version": "0.5.8",
   "description": "Create Foldkit applications",
   "type": "module",
   "main": "./dist/index.js",

@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.5.8
+
+### Patch Changes
+
+- c416561: Indent the AI-Assisted Development section body in the success message and title-case the header
+
 ## 0.5.7
 
 ### Patch Changes
