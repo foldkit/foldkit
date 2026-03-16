@@ -1,5 +1,11 @@
 # foldkit
 
+## 0.35.1
+
+### Patch Changes
+
+- d6bf6c9: Remove unused Flags schema destructuring and rename internal flags binding for clarity in makeRuntime.
+
 ## 0.35.0
 
 ### Minor Changes

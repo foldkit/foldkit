@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.5.7
+
+### Patch Changes
+
+- 8817558: Add AI-assisted development section to success message with submodule setup instructions.
+
 ## 0.5.6
 
 ### Patch Changes
