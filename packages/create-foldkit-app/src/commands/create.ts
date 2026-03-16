@@ -120,6 +120,7 @@ const displaySuccessMessage = (name: string, packageManager: PackageManager) =>
     yield* Console.log('')
     yield* Console.log('Love you,')
     yield* Console.log('Mission Control')
+    yield* Console.log('')
   })
 
 export const create = ({ name, example, packageManager }: CreateOptions) =>
