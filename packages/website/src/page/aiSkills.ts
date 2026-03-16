@@ -34,7 +34,8 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   generateProgramHeader,
 ]
 
-const INSTALL_COMMAND = '/plugin install foldkit/foldkit'
+const ADD_MARKETPLACE_COMMAND = '/plugin marketplace add foldkit/foldkit'
+const INSTALL_COMMAND = '/plugin install foldkit-skills@foldkit'
 const GENERATE_PROGRAM_COMMAND = '/foldkit-skills:generate-program'
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
@@ -50,7 +51,15 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Claude Code'),
         ' that provides agent skills tailored to the Foldkit architecture. These skills encode the conventions, patterns, and quality standards that make Foldkit apps well-factored and maintainable.',
       ),
-      para('To install, run this command in the Claude Code prompt:'),
+      para(
+        'To install, first add the Foldkit marketplace, then install the plugin:',
+      ),
+      codeBlock(
+        ADD_MARKETPLACE_COMMAND,
+        'Copy marketplace command',
+        copiedSnippets,
+        'mb-4',
+      ),
       codeBlock(
         INSTALL_COMMAND,
         'Copy install command',
