@@ -92,8 +92,8 @@ const displaySuccessMessage = (name: string, packageManager: PackageManager) =>
   Effect.gen(function* () {
     yield* Console.log(chalk.bold('All systems nominal.'))
     yield* Console.log('')
-    yield* Console.log(`  ${chalk.cyan('cd')} ${name}`)
-    yield* Console.log(`  ${chalk.cyan(runDevServerCommand(packageManager))}`)
+    yield* Console.log(`  > ${chalk.cyan('cd')} ${name}`)
+    yield* Console.log(`  > ${chalk.cyan(runDevServerCommand(packageManager))}`)
     yield* Console.log('')
     yield* Console.log(chalk.bold('AI-Assisted Development'))
     yield* Console.log('')
@@ -102,9 +102,10 @@ const displaySuccessMessage = (name: string, packageManager: PackageManager) =>
         '  reference the source, examples, and documentation:',
     )
     yield* Console.log('')
-    yield* Console.log(`    ${chalk.cyan('cd')} ${name}`)
+    yield* Console.log(`  > ${chalk.cyan('cd')} ${name}`)
+    yield* Console.log(`  > ${chalk.cyan('git init')}`)
     yield* Console.log(
-      `    ${chalk.cyan('git submodule add https://github.com/foldkit/foldkit.git repos/foldkit')}`,
+      `  > ${chalk.cyan('git submodule add https://github.com/foldkit/foldkit.git repos/foldkit')}`,
     )
     yield* Console.log('')
     yield* Console.log(`  Details: ${chalk.cyan('foldkit.dev/ai/overview')}`)

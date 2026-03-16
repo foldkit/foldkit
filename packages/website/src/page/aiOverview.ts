@@ -43,6 +43,8 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 const SUBMODULE_COMMAND =
   'git submodule add https://github.com/foldkit/foldkit.git repos/foldkit'
 
+const UPDATE_COMMAND = 'git submodule update --remote repos/foldkit'
+
 export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
     [],
@@ -82,6 +84,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('.ignore'),
         ' file that keeps the submodule out of your editor\u2019s file tree.',
       ),
+      para(
+        'To update the submodule and pull the latest source, examples, and docs:',
+      ),
+      codeBlock(UPDATE_COMMAND, 'Copy update command', copiedSnippets, 'mb-4'),
       tableOfContentsEntryToHeader(skillsPluginHeader),
       para(
         'Foldkit ships a ',
