@@ -1,3 +1,5 @@
+export * as AiOverview from './aiOverview'
+export * as AiSkills from './aiSkills'
 export * as ApiReference from './apiReference'
 export * as AsyncCounterDemo from './asyncCounterDemo'
 export * as BestPractices from './bestPractices'

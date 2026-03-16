@@ -79,7 +79,7 @@ export const codeBlock = (
     [
       Class(
         clsx(
-          'relative min-w-0 rounded-lg bg-gray-100 dark:bg-[#1c1a20] overflow-hidden border border-gray-200 dark:border-gray-700/50',
+          'relative min-w-0 rounded-lg bg-gray-100 dark:bg-[#1c1a20] border border-gray-200 dark:border-gray-700/50',
           className,
         ),
       ),

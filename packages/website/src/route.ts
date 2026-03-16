@@ -67,6 +67,9 @@ export const UiInputRoute = r('UiInput')
 export const UiTextareaRoute = r('UiTextarea')
 export const UiFieldsetRoute = r('UiFieldset')
 
+export const AiOverviewRoute = r('AiOverview')
+export const AiSkillsRoute = r('AiSkills')
+
 export const NewsletterRoute = r('Newsletter')
 
 export const NotFoundRoute = r('NotFound', { path: S.String })
@@ -120,6 +123,8 @@ export const DocsRoute = S.Union(
   UiInputRoute,
   UiTextareaRoute,
   UiFieldsetRoute,
+  AiOverviewRoute,
+  AiSkillsRoute,
   NotFoundRoute,
 )
 export type DocsRoute = typeof DocsRoute.Type
@@ -364,6 +369,17 @@ export const uiFieldsetRouter = pipe(
   mapTo(UiFieldsetRoute),
 )
 
+export const aiOverviewRouter = pipe(
+  literal('ai'),
+  slash(literal('overview')),
+  mapTo(AiOverviewRoute),
+)
+export const aiSkillsRouter = pipe(
+  literal('ai'),
+  slash(literal('skills')),
+  mapTo(AiSkillsRoute),
+)
+
 // PARSER
 
 const topLevelDocsParser = oneOf(
@@ -425,12 +441,15 @@ const uiParser = oneOf(
   uiFieldsetRouter,
 )
 
+const aiParser = oneOf(aiOverviewRouter, aiSkillsRouter)
+
 const docsParser = oneOf(
   topLevelDocsParser,
   coreParser,
   bestPracticesParser,
   patternsParser,
   uiParser,
+  aiParser,
 )
 
 export const newsletterRouter = pipe(

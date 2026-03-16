@@ -2,6 +2,8 @@ import { Array, Number, Option, pipe } from 'effect'
 
 import { examples } from './page/example/meta'
 import {
+  aiOverviewRouter,
+  aiSkillsRouter,
   bestPracticesImmutabilityRouter,
   bestPracticesKeyingRouter,
   bestPracticesMessagesRouter,
@@ -290,6 +292,23 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           href: exampleDetailRouter({ exampleSlug: example.slug }),
           label: example.title,
         })),
+      ],
+    ],
+  },
+  {
+    label: 'AI',
+    pageGroups: [
+      [
+        {
+          _tag: 'AiOverview',
+          href: aiOverviewRouter(),
+          label: 'Overview',
+        },
+        {
+          _tag: 'AiSkills',
+          href: aiSkillsRouter(),
+          label: 'Skills',
+        },
       ],
     ],
   },

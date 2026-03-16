@@ -12,6 +12,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../prose'
 import {
+  aiOverviewRouter,
   comingFromReactRouter,
   coreArchitectureRouter,
   examplesRouter,
@@ -36,16 +37,9 @@ const projectStructureHeader: TableOfContentsEntry = {
   text: 'Project Structure',
 }
 
-const aiAssistedHeader: TableOfContentsEntry = {
-  level: 'h2',
-  id: 'ai-assisted',
-  text: 'AI-Assisted Development',
-}
-
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   quickStartHeader,
   projectStructureHeader,
-  aiAssistedHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
@@ -119,33 +113,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         link(coreArchitectureRouter(), 'Architecture and Concepts'),
         ' to understand how the pieces fit together.',
       ),
-      tableOfContentsEntryToHeader(aiAssistedHeader),
-      para(
-        'Foldkit\u2019s predictable architecture works well with AI coding assistants. Every app has the same structure, so the AI can follow and extend the patterns reliably.',
-      ),
-      para(
-        'For the best experience, clone the ',
-        link(Link.github, 'Foldkit repository'),
-        ' as a git submodule in your project:',
-      ),
-      codeBlock(
-        'git submodule add https://github.com/foldkit/foldkit.git repos/foldkit',
-        'Copy submodule command',
-        copiedSnippets,
-        'mb-4',
-      ),
-      para(
-        'This gives the AI access to the ',
-        link(Link.foldkitSource, 'Foldkit source code'),
-        ', the ',
-        link(Link.foldkitExamples, 'examples'),
-        ', and ',
-        link(Link.websiteSource, 'this documentation site'),
-        ' \u2014 real patterns it can learn from and apply to your code. The starter template includes an ',
-        inlineCode('AGENTS.md'),
-        ' with Foldkit conventions and a ',
-        inlineCode('.ignore'),
-        ' file that keeps the submodule out of your editor\u2019s file tree.',
+      infoCallout(
+        'Using AI?',
+        'Foldkit\u2019s architecture makes AI-assisted development uniquely effective. See ',
+        link(aiOverviewRouter(), 'AI'),
+        ' for setup.',
       ),
     ],
   )

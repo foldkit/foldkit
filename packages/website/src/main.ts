@@ -37,6 +37,7 @@ import {
   CompletedSpeedInsightsInjection,
   FailedCopy,
   FailedEmailSubscription,
+  GotAiGroupMessage,
   GotApiReferenceGroupMessage,
   GotApiReferenceMessage,
   GotAsyncCounterDemoMessage,
@@ -169,6 +170,7 @@ export const Model = S.Struct({
   bestPracticesGroup: Ui.Disclosure.Model,
   patternsGroup: Ui.Disclosure.Model,
   foldkitUiGroup: Ui.Disclosure.Model,
+  aiGroup: Ui.Disclosure.Model,
   examplesGroup: Ui.Disclosure.Model,
   apiReferenceGroup: Ui.Disclosure.Model,
   aiHeadingToggleCount: S.Number,
@@ -272,6 +274,10 @@ const init: Runtime.ApplicationInit<
       },
       foldkitUiGroup: {
         ...Ui.Disclosure.init({ id: 'foldkit-ui-group' }),
+        isOpen: true,
+      },
+      aiGroup: {
+        ...Ui.Disclosure.init({ id: 'ai-group' }),
         isOpen: true,
       },
       examplesGroup: {
@@ -711,6 +717,22 @@ const update = (
           }),
           foldkitUiGroupCommands.map(
             Effect.map(message => GotFoldkitUiGroupMessage({ message })),
+          ),
+        ]
+      },
+
+      GotAiGroupMessage: ({ message }) => {
+        const [nextAiGroup, aiGroupCommands] = Ui.Disclosure.update(
+          model.aiGroup,
+          message,
+        )
+
+        return [
+          evo(model, {
+            aiGroup: () => nextAiGroup,
+          }),
+          aiGroupCommands.map(
+            Effect.map(message => GotAiGroupMessage({ message })),
           ),
         ]
       },

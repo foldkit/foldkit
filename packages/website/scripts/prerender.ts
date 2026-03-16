@@ -18,6 +18,8 @@ import { type Browser, chromium } from 'playwright'
 
 import { moduleNameToSlug } from '../src/page/apiReference/domain'
 import {
+  AiOverviewRoute,
+  AiSkillsRoute,
   ApiModuleRoute,
   AppRoute,
   BestPracticesImmutabilityRoute,
@@ -69,6 +71,8 @@ import {
   UiSwitchRoute,
   UiTabsRoute,
   UiTextareaRoute,
+  aiOverviewRouter,
+  aiSkillsRouter,
   apiModuleRouter,
   bestPracticesImmutabilityRouter,
   bestPracticesKeyingRouter,
@@ -186,6 +190,8 @@ export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   UiInputRoute(),
   UiTextareaRoute(),
   UiFieldsetRoute(),
+  AiOverviewRoute(),
+  AiSkillsRoute(),
 ]
 
 export const routeToUrlPath = (route: AppRoute): string =>
@@ -240,6 +246,8 @@ export const routeToUrlPath = (route: AppRoute): string =>
       UiInput: () => uiInputRouter(),
       UiTextarea: () => uiTextareaRouter(),
       UiFieldset: () => uiFieldsetRouter(),
+      AiOverview: () => aiOverviewRouter(),
+      AiSkills: () => aiSkillsRouter(),
       ApiModule: ({ moduleSlug }) => apiModuleRouter({ moduleSlug }),
       Newsletter: () => newsletterRouter(),
       NotFound: () => '/',

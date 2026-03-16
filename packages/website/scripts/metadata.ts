@@ -224,6 +224,16 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Fieldset',
     'Group related form fields with accessible labeling.',
   ),
+  AiOverview: docs(
+    'AI',
+    'Why Foldkit\u2019s architecture makes AI-assisted development uniquely effective.',
+    'AI',
+  ),
+  AiSkills: docs(
+    'Skills',
+    'Agent skills for generating, scaffolding, and auditing Foldkit programs.',
+    'AI',
+  ),
   NotFound: {
     title: 'Page Not Found',
     description: SITE_DESCRIPTION,

@@ -582,6 +582,16 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           Page.UiPages.SelectPage.view(model.uiPages, toUiPageMessage),
           Page.UiPages.SelectPage.tableOfContents,
         ),
+      AiOverview: () =>
+        withTableOfContents(
+          Page.AiOverview.view(),
+          Page.AiOverview.tableOfContents,
+        ),
+      AiSkills: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.AiSkills.view, [model.copiedSnippets]),
+          Page.AiSkills.tableOfContents,
+        ),
       NotFound: ({ path }) =>
         withoutTableOfContents(Page.NotFound.view(path, homeRouter())),
     }),
