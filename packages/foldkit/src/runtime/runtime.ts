@@ -377,8 +377,7 @@ const makeRuntime =
     ManagedResourceServices,
   >({
     Model,
-    Flags: _Flags,
-    flags: flags_,
+    flags: resolveFlags,
     init,
     update,
     view,
@@ -465,7 +464,7 @@ const makeRuntime =
           })
         }
 
-        const flags = yield* flags_
+        const flags = yield* resolveFlags
 
         const modelEquivalence = Schema.equivalence(Model)
 
