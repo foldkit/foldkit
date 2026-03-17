@@ -63,7 +63,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   FieldValidation: docs(
     'Field Validation',
-    'Per-field form validation in Foldkit using a four-state discriminated union. Sync validation rules, Effect-TS powered, no impossible states.',
+    'Per-field form validation in Foldkit using a four-state discriminated union. Built-in validation rules, Effect-TS powered, no impossible states.',
     'Docs',
   ),
   Examples: docs(

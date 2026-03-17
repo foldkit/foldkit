@@ -240,9 +240,43 @@ export const generateOgImages = (
     yield* Console.log(`Generated ${Array.length(routes)} OG images.`)
   })
 
-// META TAG INJECTION
+// STRUCTURED DATA
 
 const SITE_URL = 'https://foldkit.dev'
+
+const SOFTWARE_APPLICATION_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Foldkit',
+  applicationCategory: 'DeveloperApplication',
+  operatingSystem: 'Web',
+  description:
+    'A TypeScript frontend framework built on Effect-TS, using The Elm Architecture. Predictable state, explicit effects, type-safe routing.',
+  url: SITE_URL,
+  author: { '@type': 'Organization', name: 'Foldkit' },
+  programmingLanguage: 'TypeScript',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  license: 'https://opensource.org/licenses/MIT',
+}
+
+const WEBSITE_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Foldkit',
+  url: SITE_URL,
+  description:
+    'A TypeScript frontend framework built on Effect-TS using The Elm Architecture',
+}
+
+const jsonLdTag = (schema: Record<string, unknown>): string =>
+  `<script type="application/ld+json">${JSON.stringify(schema)}</script>`
+
+const HOMEPAGE_JSON_LD = [
+  jsonLdTag(SOFTWARE_APPLICATION_SCHEMA),
+  jsonLdTag(WEBSITE_SCHEMA),
+].join('\n    ')
+
+// META TAG INJECTION
 
 export const injectMetaTags = (
   html: string,
@@ -258,13 +292,7 @@ export const injectMetaTags = (
       ? 'Foldkit - TypeScript Frontend Framework Built on Effect-TS | Elm Architecture'
       : `${metadata.title} - Foldkit | Effect-TS Frontend Framework`
 
-  const jsonLd =
-    metadata.title === 'Foldkit'
-      ? [
-          `<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Foldkit","applicationCategory":"DeveloperApplication","operatingSystem":"Web","description":"A TypeScript frontend framework built on Effect-TS, using The Elm Architecture. Predictable state, explicit effects, type-safe routing.","url":"https://foldkit.dev","author":{"@type":"Organization","name":"Foldkit"},"programmingLanguage":"TypeScript","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"license":"https://opensource.org/licenses/MIT"}</script>`,
-          `<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Foldkit","url":"https://foldkit.dev","description":"A TypeScript frontend framework built on Effect-TS using The Elm Architecture"}</script>`,
-        ].join('\n    ')
-      : ''
+  const jsonLd = metadata.title === 'Foldkit' ? HOMEPAGE_JSON_LD : ''
 
   return html
     .replace(/<title>[^<]*<\/title>/, `<title>${fullTitle}</title>`)
