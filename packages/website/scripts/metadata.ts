@@ -58,12 +58,12 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   RoutingAndNavigation: docs(
     'Routing and Navigation',
-    'Type-safe routing with bidirectional parsers in Foldkit. URLs parse into typed routes and build back — no string matching, powered by Effect-TS Schema.',
+    'Type-safe routing with bidirectional parser combinators in Foldkit. URLs parse into typed routes and build back — no string matching, built on Effect-TS.',
     'Docs',
   ),
   FieldValidation: docs(
     'Field Validation',
-    'Per-field form validation in Foldkit using a four-state discriminated union. Sync and async rules, Effect-TS powered, no impossible states.',
+    'Per-field form validation in Foldkit using a four-state discriminated union. Sync validation rules, Effect-TS powered, no impossible states.',
     'Docs',
   ),
   Examples: docs(
