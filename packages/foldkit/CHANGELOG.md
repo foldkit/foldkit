@@ -1,5 +1,44 @@
 # foldkit
 
+## 0.36.0
+
+### Minor Changes
+
+- ea72be3: Replace `errorView` with grouped `crash` config containing `view` and `report`
+
+  **Breaking changes:**
+  - `errorView` config field removed — use `crash: { view }` instead
+  - `crash.view` receives `CrashContext<Model, Message>` (with `error`, `model`, and `message` fields) instead of a bare `Error`
+
+  **New features:**
+  - `crash.report` callback for side effects (e.g. Sentry) — runs before `crash.view` renders, receives the same `CrashContext`
+  - `CrashContext` and `CrashConfig` types exported from `foldkit`
+
+  **Migration:**
+
+  ```ts
+  // Before
+  makeElement({
+    errorView: error => myErrorView(error),
+  })
+
+  // After
+  makeElement({
+    crash: {
+      view: ({ error }) => myErrorView(error),
+      report: ({ error, model, message }) => {
+        Sentry.captureException(error, { extra: { model, message } })
+      },
+    },
+  })
+  ```
+
+- 7795644: Replace `slowViewThresholdMs` with `slowView` config object supporting `show`, `thresholdMs`, and `onSlowView`. The `onSlowView` callback receives a `SlowViewContext` with the current model, triggering message, duration, and threshold — replacing the previous `SlowViewInfo` which only had timing data. Rename `VisibilityShow` to `Visibility`. Refactor `DevtoolsConfig` to use `false` instead of `show: 'Never'`, eliminating impossible states.
+
+### Patch Changes
+
+- c3efb50: Make vite-plugin-foldkit optional for local development. The runtime now falls back to a cold start with a helpful console warning if the plugin is missing, instead of silently showing a blank screen.
+
 ## 0.35.2
 
 ### Patch Changes
