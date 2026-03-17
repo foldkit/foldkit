@@ -1142,7 +1142,7 @@ const makeView = (
     keyed('li')(
       'init',
       [
-        Class(clsx(ROW_BASE, isSelected && 'selected')),
+        Class(clsx(ROW_BASE, { selected: isSelected })),
         OnClick(ClickedRow({ index: INIT_INDEX })),
       ],
       [
@@ -1189,7 +1189,7 @@ const makeView = (
     keyed('li')(
       String(absoluteIndex),
       [
-        Class(clsx(ROW_BASE, isSelected && 'selected')),
+        Class(clsx(ROW_BASE, { selected: isSelected })),
         OnClick(ClickedRow({ index: absoluteIndex })),
       ],
       [
