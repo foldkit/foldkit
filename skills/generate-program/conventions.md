@@ -258,11 +258,44 @@ const SignupStep = S.Union(EnterEmail, EnterPassword, Confirming)
 - Prefer curried, data-last functions that compose in `pipe` chains
 - No dead code, no empty catch blocks, no placeholder types
 
+## Conditional Styles with clsx
+
+Use `clsx` for conditional class composition — never string concatenation, template literals, or `&&` expressions. Use the object syntax `{ 'class-name': condition }` for conditional classes:
+
+```ts
+import clsx from 'clsx'
+
+// Conditional classes based on boolean state — use object syntax
+Class(clsx('px-4 py-2 rounded', { 'bg-blue-500 text-white': isActive }))
+
+// Multiple conditions in one object
+Class(
+  clsx('text-sm border', {
+    'border-red-500': field._tag === 'Invalid',
+    'border-green-500': field._tag === 'Valid',
+  }),
+)
+
+// Combining base classes with computed class strings
+const borderClass = (field: FieldState): string =>
+  M.value(field).pipe(
+    M.tagsExhaustive({
+      NotValidated: () => 'border-gray-300',
+      Valid: () => 'border-green-500',
+      Invalid: () => 'border-red-500',
+    }),
+  )
+Class(clsx('w-full px-3 py-2 border rounded-md', borderClass(field)))
+```
+
+`clsx` is a project dependency — add it to `package.json` when generating apps that use conditional styles.
+
 ## Imports
 
 Standard import block for a Foldkit app:
 
 ```ts
+import clsx from 'clsx'
 import {
   Array,
   Effect,
@@ -274,15 +307,13 @@ import {
   String as String_,
   pipe,
 } from 'effect'
-import { Runtime, Task, Ui } from 'foldkit'
+import { Runtime, Subscription, Task, Ui, Url } from 'foldkit'
 import { Command } from 'foldkit/command'
 import { Html, empty, html, keyed } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { r } from 'foldkit/route'
 import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
-import * as Subscription from 'foldkit/subscription'
-import * as Url from 'foldkit/url'
 ```
 
 Notes:

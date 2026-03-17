@@ -781,10 +781,9 @@ const makeView = (
       return div(
         [
           Class(
-            clsx(
-              'tree-row flex items-center gap-px font-mono text-2xs',
-              isChanged && 'diff-changed',
-            ),
+            clsx('tree-row flex items-center gap-px font-mono text-2xs', {
+              'diff-changed': isChanged,
+            }),
           ),
           indent,
         ],
@@ -807,11 +806,10 @@ const makeView = (
     return div(
       [
         Class(
-          clsx(
-            'tree-row flex items-center gap-px font-mono text-2xs',
-            !isRoot && 'tree-row-expandable cursor-pointer',
-            isChanged && 'diff-changed',
-          ),
+          clsx('tree-row flex items-center gap-px font-mono text-2xs', {
+            'tree-row-expandable cursor-pointer': !isRoot,
+            'diff-changed': isChanged,
+          }),
         ),
         indent,
         ...(isRoot ? [] : [OnClick(ToggledTreeNode({ path: treePath }))]),
@@ -1142,7 +1140,7 @@ const makeView = (
     keyed('li')(
       'init',
       [
-        Class(clsx(ROW_BASE, isSelected && 'selected')),
+        Class(clsx(ROW_BASE, { selected: isSelected })),
         OnClick(ClickedRow({ index: INIT_INDEX })),
       ],
       [
@@ -1189,7 +1187,7 @@ const makeView = (
     keyed('li')(
       String(absoluteIndex),
       [
-        Class(clsx(ROW_BASE, isSelected && 'selected')),
+        Class(clsx(ROW_BASE, { selected: isSelected })),
         OnClick(ClickedRow({ index: absoluteIndex })),
       ],
       [

@@ -921,10 +921,9 @@ const solariHeading = (toggleCount: number): Html => {
           span(
             [
               Class(
-                clsx(
-                  'solari-character',
-                  isSwapped && 'solari-character-flipped',
-                ),
+                clsx('solari-character', {
+                  'solari-character-flipped': isSwapped,
+                }),
               ),
               AriaHidden(true),
             ],

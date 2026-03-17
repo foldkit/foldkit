@@ -13,10 +13,9 @@ import * as Dashboard from './page/dashboard'
 import * as Settings from './page/settings'
 
 const navLinkClassName = (isActive: boolean) =>
-  clsx(
-    'hover:bg-blue-600 font-medium px-3 py-1 rounded transition',
-    isActive && 'bg-blue-700 bg-opacity-50',
-  )
+  clsx('hover:bg-blue-600 font-medium px-3 py-1 rounded transition', {
+    'bg-blue-700 bg-opacity-50': isActive,
+  })
 
 const navigationView = (session: Session, currentRouteTag: string): Html =>
   nav(

@@ -16,7 +16,7 @@ const panelClassName =
 
 const chevron = (isOpen: boolean) =>
   span(
-    [Class(clsx('text-gray-600', isOpen && 'rotate-180'))],
+    [Class(clsx('text-gray-600', { 'rotate-180': isOpen }))],
     [Icon.chevronDown('w-4 h-4')],
   )
 

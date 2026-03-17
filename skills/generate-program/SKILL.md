@@ -251,6 +251,7 @@ Every message must carry meaning. No `NoOp`.
 
 - Destructure html elements: `const { div, span, button, input } = html<Message>()`
 - Use `Class(...)` for Tailwind classes
+- Use `clsx` from the `clsx` package for conditional class composition: `Class(clsx('base-classes', { 'active-class': isActive, 'bg-blue-500': variant === 'Primary' }))`. Use `clsx` whenever classes depend on model state, boolean flags, or discriminated union tags — never string concatenation, template literals, or `&&` expressions
 - Pattern match on model state: `M.value(model.state).pipe(M.tagsExhaustive({...}))`
 - Use `Option.match` for conditional rendering based on Option fields
 - Use `keyed('div')(routeOrStateTag, attrs, children)` on layout branches
@@ -271,7 +272,7 @@ Every message must carry meaning. No `NoOp`.
 - Use bidirectional parser: `r()`, `param()`, `literal()`, `oneOf()`
 - Define route schemas with `r('RouteName', { param: S.String })`
 - Key view content on `model.route._tag`
-- Use `pushUrl` from `foldkit/url` in Commands for programmatic navigation
+- Use `pushUrl` from `foldkit/navigation` in Commands for programmatic navigation
 
 ### Subscriptions (if real-time)
 
