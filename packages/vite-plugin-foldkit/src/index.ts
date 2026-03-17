@@ -29,7 +29,17 @@ const configureServer = (server: ViteDevServer) => {
   })
 }
 
-const handleHotUpdate = ({ server }: { server: ViteDevServer }) => {
+const handleHotUpdate = ({
+  server,
+  modules,
+}: {
+  server: ViteDevServer
+  modules: ReadonlyArray<unknown>
+}) => {
+  if (modules.length === 0) {
+    return
+  }
+
   isHmrReload = true
   server.ws.send({ type: 'full-reload' })
   return []
