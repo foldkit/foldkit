@@ -255,8 +255,16 @@ export const injectMetaTags = (
   const pageUrl = `${SITE_URL}${urlPath}`
   const fullTitle =
     metadata.title === 'Foldkit'
-      ? 'Foldkit - The Frontend Framework for Correctness'
-      : `${metadata.title} - Foldkit`
+      ? 'Foldkit - TypeScript Frontend Framework Built on Effect-TS | Elm Architecture'
+      : `${metadata.title} - Foldkit | Effect-TS Frontend Framework`
+
+  const jsonLd =
+    metadata.title === 'Foldkit'
+      ? [
+          `<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Foldkit","applicationCategory":"DeveloperApplication","operatingSystem":"Web","description":"A TypeScript frontend framework built on Effect-TS, using The Elm Architecture. Predictable state, explicit effects, type-safe routing.","url":"https://foldkit.dev","author":{"@type":"Organization","name":"Foldkit"},"programmingLanguage":"TypeScript","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"license":"https://opensource.org/licenses/MIT"}</script>`,
+          `<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Foldkit","url":"https://foldkit.dev","description":"A TypeScript frontend framework built on Effect-TS using The Elm Architecture"}</script>`,
+        ].join('\n    ')
+      : ''
 
   return html
     .replace(/<title>[^<]*<\/title>/, `<title>${fullTitle}</title>`)
@@ -299,5 +307,9 @@ export const injectMetaTags = (
     .replace(
       /name="twitter:image" content="[^"]*"/,
       `name="twitter:image" content="${ogImageUrl}"`,
+    )
+    .replace(
+      '</head>',
+      jsonLd ? `${jsonLd}\n  </head>` : '</head>',
     )
 }

@@ -12,7 +12,7 @@ export type PageMetadata = Readonly<{
 }>
 
 const SITE_DESCRIPTION =
-  'A frontend framework for TypeScript, built on Effect, using The Elm Architecture. One Model, one update loop, predictable state, and explicit effects.'
+  'A TypeScript frontend framework built on Effect-TS, using The Elm Architecture (TEA). Single state tree, pure update functions, explicit side effects, and type-safe routing. An alternative to React for teams that value correctness.'
 
 const docs = (
   title: string,
@@ -48,27 +48,27 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   GettingStarted: docs(
     'Getting Started',
-    'Set up your first Foldkit application in minutes.',
+    'Set up your first Foldkit application in minutes. Install, scaffold with create-foldkit-app, and build a TypeScript frontend with Effect-TS.',
     'Docs',
   ),
   ComingFromReact: docs(
-    'Coming From React',
-    'A guide for React developers transitioning to Foldkit.',
+    'Coming from React',
+    'Moving from React to a principled architecture? Foldkit replaces hooks, useEffect, and component state with The Elm Architecture — one Model, one update function, explicit effects. Built on Effect-TS.',
     'Docs',
   ),
   RoutingAndNavigation: docs(
     'Routing and Navigation',
-    'Type-safe routing with bidirectional parsers in Foldkit.',
+    'Type-safe routing with bidirectional parsers in Foldkit. URLs parse into typed routes and build back — no string matching, powered by Effect-TS Schema.',
     'Docs',
   ),
   FieldValidation: docs(
     'Field Validation',
-    'Model validation state as a four-state discriminated union — no impossible states.',
+    'Per-field form validation in Foldkit using a four-state discriminated union. Sync and async rules, Effect-TS powered, no impossible states.',
     'Docs',
   ),
   Examples: docs(
     'Example Apps',
-    'Starter templates for common patterns — counter, forms, routing, auth, and more.',
+    'Working Foldkit example apps — counter, forms, routing, auth, websocket chat, and more. Each demonstrates Effect-TS and Elm Architecture patterns.',
     'Docs',
   ),
   BestPracticesSideEffects: docs(
@@ -98,7 +98,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreArchitecture: core(
     'Architecture',
-    'The Elm Architecture adapted for TypeScript and Effect.',
+    'How Foldkit implements The Elm Architecture (TEA) with Effect-TS — Model, update, view, Commands, and Subscriptions.',
   ),
   CoreCounterExample: core(
     'Counter Example',
@@ -106,24 +106,27 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreModel: core(
     'Model',
-    'The single source of truth for your application state.',
+    'Define your entire application state as a single Effect-TS Schema. Learn how Foldkit\'s Model replaces useState, Redux, and Zustand.',
   ),
   CoreMessages: core(
     'Messages',
-    'Events that describe what happened in your application.',
+    'Type-safe events that drive state changes in Foldkit. Messages replace React event handlers with a declarative, traceable pattern.',
   ),
   CoreUpdate: core(
     'Update',
-    'Pure functions that transform state in response to Messages.',
+    'Pure functions that transform the Model in response to Messages. Foldkit\'s update replaces useReducer with exhaustive pattern matching.',
   ),
-  CoreView: core('View', 'Declarative virtual DOM rendering from your Model.'),
+  CoreView: core(
+    'View',
+    'Render your UI as a pure function of the Model. Foldkit views are plain TypeScript functions — no JSX, no hooks, no component lifecycle.',
+  ),
   CoreCommands: core(
     'Commands',
-    'Side effects as data — HTTP requests, DOM operations, and more.',
+    'Model side effects as values returned from update. Commands replace useEffect with explicit, testable Effect-TS operations.',
   ),
   CoreSubscriptions: core(
     'Subscriptions',
-    'Long-running streams with automatic lifecycle management based on Model state.',
+    'Declarative streams that start and stop based on Model state. Foldkit Subscriptions replace useEffect cleanup patterns with automatic lifecycle management.',
   ),
   CoreInitAndFlags: core(
     'Init & Flags',
@@ -171,7 +174,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   UiOverview: ui(
     'Foldkit UI',
-    'Headless, accessible UI components built for The Elm Architecture.',
+    'Headless, accessible UI primitives for Foldkit — dialog, menu, tabs, listbox, and more. Built for The Elm Architecture with Effect-TS.',
   ),
   UiButton: ui(
     'Button',

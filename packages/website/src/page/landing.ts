@@ -183,6 +183,10 @@ const heroSection = (copiedSnippets: CopiedSnippets): Html =>
                 [Href(Link.github), Class('cta-secondary')],
                 [Icon.github('w-5 h-5'), 'View on GitHub'],
               ),
+              a(
+                [Href(comingFromReactRouter()), Class('cta-secondary')],
+                ['Coming from React?'],
+              ),
             ],
           ),
         ],
