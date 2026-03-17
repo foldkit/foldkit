@@ -114,7 +114,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreUpdate: core(
     'Update',
-    "Pure functions that transform the Model in response to Messages. Foldkit's update replaces useReducer with exhaustive pattern matching.",
+    "Pure functions that transform the Model and return Commands in response to Messages. Foldkit's update replaces useReducer and useEffect with a single, exhaustive pattern match.",
   ),
   CoreView: core(
     'View',
