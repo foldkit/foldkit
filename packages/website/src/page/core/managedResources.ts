@@ -133,7 +133,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' connections, media recorders).',
       ),
       para(
-        'With resources and managed resources, your app can work with any browser API. But what happens when something goes seriously wrong — an unrecoverable error in update, view, or a command? The next page covers error views.',
+        'With resources and managed resources, your app can work with any browser API. But what happens when something goes seriously wrong — an unrecoverable error in update, view, or a command? The next page covers crash views.',
       ),
     ],
   )

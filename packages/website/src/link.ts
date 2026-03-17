@@ -20,7 +20,7 @@ export const Link = {
   exampleAuth: `${exampleBase}/auth/src/main.ts`,
   exampleAuthLogin: `${exampleBase}/auth/src/page/loggedOut/page/login.ts`,
   exampleCounter: `${exampleBase}/counter/src/main.ts`,
-  exampleErrorView: `${exampleBase}/error-view/src/main.ts`,
+  exampleCrashView: `${exampleBase}/crash-view/src/main.ts`,
   exampleForm: `${exampleBase}/form/src/main.ts`,
   exampleQuerySync: `${exampleBase}/query-sync/src/main.ts`,
   exampleRouting: `${exampleBase}/routing/src/main.ts`,

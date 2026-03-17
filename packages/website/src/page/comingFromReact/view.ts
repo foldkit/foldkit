@@ -114,7 +114,7 @@ const patternMappingTable = (): Html =>
       [['Headless UI / Radix UI'], ['Foldkit UI (headless, typed components)']],
       [
         ['Error boundaries'],
-        ['Typed errors in Effects + ', inlineCode('errorView')],
+        ['Typed errors in Effects + ', inlineCode('crash.view')],
       ],
     ],
   )

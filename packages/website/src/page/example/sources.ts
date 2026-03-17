@@ -1,6 +1,6 @@
 import authSources from 'virtual:example-sources/auth'
 import counterSources from 'virtual:example-sources/counter'
-import errorViewSources from 'virtual:example-sources/error-view'
+import crashViewSources from 'virtual:example-sources/crash-view'
 import formSources from 'virtual:example-sources/form'
 import querySyncSources from 'virtual:example-sources/query-sync'
 import routingSources from 'virtual:example-sources/routing'
@@ -33,7 +33,7 @@ const sourcesBySlug: Record<string, ExampleSources> = {
   'shopping-cart': shoppingCartSources,
   auth: authSources,
   snake: snakeSources,
-  'error-view': errorViewSources,
+  'crash-view': crashViewSources,
   'websocket-chat': websocketChatSources,
   'ui-showcase': uiShowcaseSources,
 }

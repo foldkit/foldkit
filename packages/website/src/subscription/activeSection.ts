@@ -86,7 +86,7 @@ export const activeSection: Subscription<
           'CoreManagedResources',
           () => Page.Core.ManagedResources.tableOfContents,
         ),
-        M.tag('CoreErrorView', () => Page.Core.ErrorView.tableOfContents),
+        M.tag('CoreCrashView', () => Page.Core.CrashView.tableOfContents),
         M.tag(
           'CoreSlowViewWarning',
           () => Page.Core.SlowViewWarning.tableOfContents,

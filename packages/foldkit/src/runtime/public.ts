@@ -2,6 +2,8 @@ export { makeElement, makeApplication, run } from './runtime'
 
 export type {
   BrowserConfig,
+  CrashConfig,
+  CrashContext,
   ElementConfigWithFlags,
   ElementConfigWithoutFlags,
   ApplicationConfigWithFlags,

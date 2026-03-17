@@ -5,7 +5,7 @@ import { expect } from 'vitest'
 
 import { html } from '../../html'
 import { Dispatch } from '../../runtime'
-import { noOpDispatch } from '../../runtime/errorUI'
+import { noOpDispatch } from '../../runtime/crashUI'
 import type { ViewConfig } from './index'
 import {
   TabFocused,

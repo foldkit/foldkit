@@ -43,7 +43,7 @@ export const CoreRunningYourAppRoute = r('CoreRunningYourApp')
 export const CoreResourcesRoute = r('CoreResources')
 export const CoreManagedResourcesRoute = r('CoreManagedResources')
 export const CoreDevtoolsRoute = r('CoreDevtools')
-export const CoreErrorViewRoute = r('CoreErrorView')
+export const CoreCrashViewRoute = r('CoreCrashView')
 export const CoreSlowViewWarningRoute = r('CoreSlowViewWarning')
 export const CoreViewMemoizationRoute = r('CoreViewMemoization')
 
@@ -102,7 +102,7 @@ export const DocsRoute = S.Union(
   CoreResourcesRoute,
   CoreManagedResourcesRoute,
   CoreDevtoolsRoute,
-  CoreErrorViewRoute,
+  CoreCrashViewRoute,
   CoreSlowViewWarningRoute,
   CoreViewMemoizationRoute,
   PatternsSubmodelsRoute,
@@ -261,10 +261,10 @@ export const coreDevtoolsRouter = pipe(
   slash(literal('devtools')),
   mapTo(CoreDevtoolsRoute),
 )
-export const coreErrorViewRouter = pipe(
+export const coreCrashViewRouter = pipe(
   literal('core'),
-  slash(literal('error-view')),
-  mapTo(CoreErrorViewRoute),
+  slash(literal('crash-view')),
+  mapTo(CoreCrashViewRoute),
 )
 export const coreSlowViewWarningRouter = pipe(
   literal('core'),
@@ -415,7 +415,7 @@ const coreParser = oneOf(
   coreResourcesRouter,
   coreManagedResourcesRouter,
   coreDevtoolsRouter,
-  coreErrorViewRouter,
+  coreCrashViewRouter,
   coreSlowViewWarningRouter,
   coreViewMemoizationRouter,
 )

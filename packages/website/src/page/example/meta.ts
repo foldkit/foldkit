@@ -50,13 +50,13 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     entryFile: 'src/main.ts',
   },
   {
-    slug: 'error-view',
-    title: 'Error View',
+    slug: 'crash-view',
+    title: 'Crash View',
     description:
-      'Custom error fallback UI. Demonstrates errorView with a crash button and reload.',
+      'Custom crash fallback UI. Demonstrates crash.view and crash.report with a crash button and reload.',
     difficulty: 'Beginner',
     tags: ['Fallback UI'],
-    sourceHref: Link.exampleErrorView,
+    sourceHref: Link.exampleCrashView,
     hasRouting: false,
     entryFile: 'src/main.ts',
   },

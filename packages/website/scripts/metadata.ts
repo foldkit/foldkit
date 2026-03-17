@@ -149,9 +149,9 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'DevTools',
     'A built-in overlay for inspecting Messages and Model state.',
   ),
-  CoreErrorView: core(
-    'Error View',
-    'A fallback UI for unrecoverable runtime errors.',
+  CoreCrashView: core(
+    'Crash View',
+    'A fallback UI and crash reporting for unrecoverable runtime errors.',
   ),
   CoreSlowViewWarning: core(
     'Slow View Warning',

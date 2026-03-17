@@ -24,7 +24,10 @@ const fontStack =
 const monoStack =
   'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace'
 
-export const defaultErrorView = (error: Error, viewError?: unknown): Html => {
+export const defaultCrashView = (
+  context: Readonly<{ error: Error }>,
+  viewError?: unknown,
+): Html => {
   const { div, h1, p, span, button, Style, Attribute } = html()
 
   const codeBlockStyle = Style({
@@ -58,7 +61,7 @@ export const defaultErrorView = (error: Error, viewError?: unknown): Html => {
   const introText = viewError
     ? [
         'Your custom ',
-        span([inlineCodeStyle], ['errorView']),
+        span([inlineCodeStyle], ['crash.view']),
         ' threw an error while rendering.',
       ]
     : [
@@ -71,13 +74,13 @@ export const defaultErrorView = (error: Error, viewError?: unknown): Html => {
           [Style({ margin: '0 0 1rem 0' })],
           [
             p([labelStyle], ['Original error']),
-            p([codeBlockStyle], [error.message]),
+            p([codeBlockStyle], [context.error.message]),
           ],
         ),
         div(
           [Style({ margin: '0 0 1.25rem 0' })],
           [
-            p([labelStyle], ['errorView error']),
+            p([labelStyle], ['crash.view error']),
             p([codeBlockStyle], [viewErrorMessage]),
           ],
         ),
@@ -96,7 +99,7 @@ export const defaultErrorView = (error: Error, viewError?: unknown): Html => {
               borderRadius: '0.375rem',
             }),
           ],
-          [error.message],
+          [context.error.message],
         ),
       ]
 
@@ -115,8 +118,8 @@ export const defaultErrorView = (error: Error, viewError?: unknown): Html => {
             }),
           ],
           [
-            'This is the default error view. You can customize it by providing an ',
-            span([inlineCodeStyle], ['errorView']),
+            'This is the default crash view. You can customize it by providing a ',
+            span([inlineCodeStyle], ['crash.view']),
             ' function to ',
             span([inlineCodeStyle], ['makeElement']),
             ' or ',
@@ -163,7 +166,7 @@ export const defaultErrorView = (error: Error, viewError?: unknown): Html => {
                 lineHeight: '1.5',
               }),
             ],
-            ['Runtime Error'],
+            ['Application Crash'],
           ),
           p(
             [

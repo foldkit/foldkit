@@ -164,7 +164,7 @@ importers:
         specifier: ^7.3.1
         version: 7.3.1(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)
 
-  examples/error-view:
+  examples/crash-view:
     dependencies:
       '@tailwindcss/vite':
         specifier: ^4.1.18

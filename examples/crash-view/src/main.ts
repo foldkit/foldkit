@@ -49,9 +49,9 @@ const view = (_model: Model): Html =>
     ],
   )
 
-// ERROR VIEW
+// CRASH
 
-const errorView = (error: Error): Html => {
+const crashView = ({ error }: Runtime.CrashContext<Model, Message>): Html => {
   const { div, h1, p, button, Class, Attribute } = html<never>()
 
   return div(
@@ -91,8 +91,13 @@ const element = Runtime.makeElement({
   init,
   update,
   view,
-  // Remove me to see the default error view
-  errorView,
+  // Remove me to see the default crash view
+  crash: {
+    view: crashView,
+    report: ({ error, model, message }) => {
+      console.log('Crash report:', { error, model, message })
+    },
+  },
   container: document.getElementById('root')!,
 })
 

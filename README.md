@@ -156,7 +156,7 @@ This is what makes Foldkit unusually AI-friendly. The same property that makes t
 - **[Counter](examples/counter/src/main.ts)** — Increment/decrement with reset
 - **[Todo](examples/todo/src/main.ts)** — CRUD operations with localStorage persistence
 - **[Stopwatch](examples/stopwatch/src/main.ts)** — Timer with start/stop/reset
-- **[Error View](examples/error-view/src/main.ts)** — Custom error fallback UI
+- **[Crash View](examples/crash-view/src/main.ts)** — Custom crash fallback UI with crash reporting
 - **[Form](examples/form/src/main.ts)** — Form validation with async email checking
 - **[Weather](examples/weather/src/main.ts)** — HTTP requests with async state handling
 - **[Routing](examples/routing/src/main.ts)** — URL routing with parser combinators

@@ -1,7 +1,7 @@
 import { Runtime } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
-const errorView = (error: Error): Html => {
+const crashView = ({ error }: Runtime.CrashContext<Model, Message>): Html => {
   const { div, h1, p, button, Class, Attribute } = html<never>()
 
   return div(
@@ -39,7 +39,7 @@ const element = Runtime.makeElement({
   init,
   update,
   view,
-  errorView,
+  crash: { view: crashView },
   container: document.getElementById('root')!,
 })
 

@@ -32,7 +32,7 @@ import {
   addBfcacheRestoreListener,
   addNavigationEventListeners,
 } from './browserListeners'
-import { defaultErrorView, noOpDispatch } from './errorUI'
+import { defaultCrashView, noOpDispatch } from './crashUI'
 import type { ManagedResourceConfig, ManagedResources } from './managedResource'
 import type { Subscriptions } from './subscription'
 import { UrlRequest } from './urlRequest'
@@ -92,6 +92,19 @@ export type BrowserConfig<Message> = Readonly<{
   onUrlChange: (url: Url) => Message
 }>
 
+/** Context provided to crash.view and crash.report when the runtime encounters an unrecoverable error. */
+export type CrashContext<Model, Message> = Readonly<{
+  error: Error
+  model: Model
+  message: Message
+}>
+
+/** Configuration for crash handling — custom crash UI and/or crash reporting. */
+export type CrashConfig<Model, Message> = Readonly<{
+  view?: (context: CrashContext<Model, Message>) => Html
+  report?: (context: CrashContext<Model, Message>) => void
+}>
+
 /** Full runtime configuration including model schema, flags, init, update, view, and optional browser/stream config. */
 type RuntimeConfig<
   Model,
@@ -127,7 +140,7 @@ type RuntimeConfig<
   >
   container: HTMLElement
   browser?: BrowserConfig<Message>
-  errorView?: (error: Error) => Html
+  crash?: CrashConfig<Model, Message>
   slowViewThresholdMs?: number | false
   /**
    * An Effect Layer providing long-lived resources that persist across command
@@ -172,7 +185,7 @@ type BaseElementConfig<
     Resources | ManagedResourceServices
   >
   container: HTMLElement
-  errorView?: (error: Error) => Html
+  crash?: CrashConfig<Model, Message>
   slowViewThresholdMs?: number | false
   resources?: Layer.Layer<Resources>
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
@@ -254,7 +267,7 @@ type BaseApplicationConfig<
   >
   container: HTMLElement
   browser: BrowserConfig<Message>
-  errorView?: (error: Error) => Html
+  crash?: CrashConfig<Model, Message>
   slowViewThresholdMs?: number | false
   resources?: Layer.Layer<Resources>
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
@@ -384,7 +397,7 @@ const makeRuntime =
     subscriptions,
     container,
     browser: browserConfig,
-    errorView,
+    crash,
     slowViewThresholdMs = SLOW_VIEW_THRESHOLD_MS,
     resources,
     managedResources,
@@ -505,6 +518,10 @@ const makeRuntime =
           Option.none(),
         )
 
+        const currentMessageRef = yield* Ref.make<Option.Option<Message>>(
+          Option.none(),
+        )
+
         const maybeRuntimeRef = yield* Ref.make<
           Option.Option<Runtime.Runtime<never>>
         >(Option.none())
@@ -570,10 +587,10 @@ const makeRuntime =
           })
 
         const runProcessMessage =
-          (messageEffect: Effect.Effect<void>) =>
+          (message: Message, messageEffect: Effect.Effect<void>) =>
           (runtime: Runtime.Runtime<never>): void => {
             try {
-              Runtime.runSync(runtime)(messageEffect)
+              Runtime.runSync(runtime, messageEffect)
             } catch (error) {
               const squashed = Runtime.isFiberFailure(error)
                 ? Cause.squash(error[Runtime.FiberFailureCauseId])
@@ -583,9 +600,10 @@ const makeRuntime =
                 squashed instanceof Error
                   ? squashed
                   : new Error(String(squashed))
-              renderErrorView(
-                appError,
-                errorView,
+              const model = Ref.get(modelRef).pipe(Effect.runSync)
+              renderCrashView(
+                { error: appError, model, message },
+                crash,
                 container,
                 maybeCurrentVNodeRef,
               )
@@ -593,11 +611,13 @@ const makeRuntime =
           }
 
         const dispatchSync = (message: unknown): void => {
-          const maybeRuntime = Effect.runSync(Ref.get(maybeRuntimeRef))
+          const maybeRuntime = Ref.get(maybeRuntimeRef).pipe(Effect.runSync)
 
           Option.match(maybeRuntime, {
             onNone: Function.constVoid,
             onSome: runProcessMessage(
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              message as Message,
               /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
               processMessage(message as Message),
             ),
@@ -795,6 +815,7 @@ const makeRuntime =
           Effect.forever(
             Effect.gen(function* () {
               const message = yield* Queue.take(messageQueue)
+              yield* Ref.set(currentMessageRef, Option.some(message))
               yield* processMessage(message)
             }),
           ),
@@ -805,9 +826,15 @@ const makeRuntime =
                 squashed instanceof Error
                   ? squashed
                   : new Error(String(squashed))
-              renderErrorView(
-                appError,
-                errorView,
+
+              const model = Ref.get(modelRef).pipe(Effect.runSync)
+              const message = Ref.get(currentMessageRef).pipe(
+                Effect.runSync,
+                Option.getOrThrow,
+              )
+              renderCrashView(
+                { error: appError, model, message },
+                crash,
                 container,
                 maybeCurrentVNodeRef,
               )
@@ -832,36 +859,44 @@ const patchVNode = (
   })
 }
 
-const renderErrorView = (
-  appError: Error,
-  errorView: ((error: Error) => Html) | undefined,
+const renderCrashView = <Model, Message>(
+  context: CrashContext<Model, Message>,
+  crash: CrashConfig<Model, Message> | undefined,
   container: HTMLElement,
   maybeCurrentVNodeRef: Ref.Ref<Option.Option<VNode>>,
 ): void => {
-  console.error('[foldkit] Application error:', appError)
+  console.error('[foldkit] Application crash:', context.error)
+
+  if (crash?.report) {
+    try {
+      crash.report(context)
+    } catch (reportError) {
+      console.error('[foldkit] crash.report failed:', reportError)
+    }
+  }
 
   try {
-    const errorHtml = errorView
-      ? errorView(appError)
-      : defaultErrorView(appError)
+    const crashHtml = crash?.view
+      ? crash.view(context)
+      : defaultCrashView(context)
 
     const maybeCurrentVNode = Ref.get(maybeCurrentVNodeRef).pipe(Effect.runSync)
 
-    const vnode = errorHtml.pipe(
+    const vnode = crashHtml.pipe(
       Effect.provideService(Dispatch, noOpDispatch),
       Effect.runSync,
     )
 
     patchVNode(maybeCurrentVNode, vnode, container)
   } catch (viewError) {
-    console.error('[foldkit] Custom errorView failed:', viewError)
+    console.error('[foldkit] crash.view failed:', viewError)
 
     const maybeCurrentVNode = Ref.get(maybeCurrentVNodeRef).pipe(Effect.runSync)
 
     const fallbackViewError =
       viewError instanceof Error ? viewError : new Error(String(viewError))
 
-    const vnode = defaultErrorView(appError, fallbackViewError).pipe(
+    const vnode = defaultCrashView(context, fallbackViewError).pipe(
       Effect.provideService(Dispatch, noOpDispatch),
       Effect.runSync,
     )
@@ -936,7 +971,7 @@ export function makeElement<
     view: config.view,
     ...(config.subscriptions && { subscriptions: config.subscriptions }),
     container: config.container,
-    ...(config.errorView && { errorView: config.errorView }),
+    ...(config.crash && { crash: config.crash }),
     ...(Predicate.isNotUndefined(config.slowViewThresholdMs) && {
       slowViewThresholdMs: config.slowViewThresholdMs,
     }),
@@ -1053,7 +1088,7 @@ export function makeApplication<
     ...(config.subscriptions && { subscriptions: config.subscriptions }),
     container: config.container,
     browser: config.browser,
-    ...(config.errorView && { errorView: config.errorView }),
+    ...(config.crash && { crash: config.crash }),
     ...(Predicate.isNotUndefined(config.slowViewThresholdMs) && {
       slowViewThresholdMs: config.slowViewThresholdMs,
     }),

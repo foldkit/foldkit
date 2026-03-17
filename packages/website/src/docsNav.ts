@@ -12,8 +12,8 @@ import {
   coreArchitectureRouter,
   coreCommandsRouter,
   coreCounterExampleRouter,
+  coreCrashViewRouter,
   coreDevtoolsRouter,
-  coreErrorViewRouter,
   coreInitAndFlagsRouter,
   coreManagedResourcesRouter,
   coreMessagesRouter,
@@ -190,9 +190,9 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           label: 'DevTools',
         },
         {
-          _tag: 'CoreErrorView',
-          href: coreErrorViewRouter(),
-          label: 'Error View',
+          _tag: 'CoreCrashView',
+          href: coreCrashViewRouter(),
+          label: 'Crash View',
         },
         {
           _tag: 'CoreSlowViewWarning',

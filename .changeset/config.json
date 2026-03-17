@@ -22,7 +22,7 @@
     "counter-example",
     "websocket-chat-example",
     "snake-example",
-    "error-view-example",
+    "crash-view-example",
     "query-sync-example",
     "ui-showcase"
   ]

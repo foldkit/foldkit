@@ -31,7 +31,7 @@
     "dev:example:snake": "pnpm --filter snake-example dev",
     "dev:example:websocket-chat": "pnpm --filter websocket-chat-example dev",
     "dev:example:auth": "pnpm --filter auth-example dev",
-    "dev:example:error-view": "pnpm --filter error-view-example dev",
+    "dev:example:crash-view": "pnpm --filter crash-view-example dev",
     "dev:example:ui-showcase": "pnpm --filter ui-showcase dev",
     "changeset": "changeset",
     "version-packages": "changeset version && pnpm install --no-frozen-lockfile",

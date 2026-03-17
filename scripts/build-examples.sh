@@ -17,7 +17,7 @@ SLUGS=(
   shopping-cart
   auth
   snake
-  error-view
+  crash-view
   websocket-chat
   ui-showcase
 )

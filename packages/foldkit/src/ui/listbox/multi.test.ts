@@ -4,7 +4,7 @@ import type { VNode } from 'snabbdom'
 import { expect } from 'vitest'
 
 import { Dispatch } from '../../runtime'
-import { noOpDispatch } from '../../runtime/errorUI'
+import { noOpDispatch } from '../../runtime/crashUI'
 import { init, update, view } from './multi'
 import type { Model, ViewConfig } from './multi'
 import { ActivatedItem, Opened, SelectedItem } from './shared'
