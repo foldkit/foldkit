@@ -1,4 +1,7 @@
 :host {
+  position: relative;
+  z-index: 2147483647;
+
   --dt-bg: #1e1e2e;
   --dt-surface-selected: #282839;
   --dt-border: #45475a;
