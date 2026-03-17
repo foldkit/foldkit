@@ -308,8 +308,5 @@ export const injectMetaTags = (
       /name="twitter:image" content="[^"]*"/,
       `name="twitter:image" content="${ogImageUrl}"`,
     )
-    .replace(
-      '</head>',
-      jsonLd ? `${jsonLd}\n  </head>` : '</head>',
-    )
+    .replace('</head>', jsonLd ? `${jsonLd}\n  </head>` : '</head>')
 }

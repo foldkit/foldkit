@@ -106,7 +106,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreModel: core(
     'Model',
-    'Define your entire application state as a single Effect-TS Schema. Learn how Foldkit\'s Model replaces useState, Redux, and Zustand.',
+    "Define your entire application state as a single Effect-TS Schema. Learn how Foldkit's Model replaces useState, Redux, and Zustand.",
   ),
   CoreMessages: core(
     'Messages',
@@ -114,7 +114,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreUpdate: core(
     'Update',
-    'Pure functions that transform the Model in response to Messages. Foldkit\'s update replaces useReducer with exhaustive pattern matching.',
+    "Pure functions that transform the Model in response to Messages. Foldkit's update replaces useReducer with exhaustive pattern matching.",
   ),
   CoreView: core(
     'View',
