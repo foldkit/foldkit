@@ -1,5 +1,15 @@
 # foldkit
 
+## 0.36.1
+
+### Patch Changes
+
+- a589a5f: Fix DevTools staying interactive above showModal() dialogs by switching Task.showModal to use show() with focus trapping and Escape key handling
+- 214854a: Fix DevTools rendering behind search dialog backdrop by adding a z-index to the shadow DOM host element
+- 758f1a5: Skip dialog Escape handler when event is already handled by a child element
+- 6d41dca: Fix spurious input events triggered by unconditional value/checked/selected/open property patching during re-render
+- 5a56fa5: Fix focus trap selector to respect tabindex="-1" on natively-focusable elements
+
 ## 0.36.0
 
 ### Minor Changes
