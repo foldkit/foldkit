@@ -1,6 +1,6 @@
 # Agent Development Notes
 
-This is a Foldkit app — a framework built on Effect-TS.
+This is a Foldkit app — a framework built on Effect-TS. Think of it as an Elm application written in TypeScript. The update function is pure, Messages describe what happened (not what to do), the Model is the single source of truth, and all side effects are expressed as Commands. If you find yourself reaching for imperative patterns, mutable state, or direct DOM access — stop and translate the idea into this architecture.
 
 If `./repos/foldkit` exists, it contains the full Foldkit repository as a git submodule. The `examples/` directory and `packages/typing-game/client/src/` in particular are the best reference for what idiomatic Foldkit apps look like.
 
