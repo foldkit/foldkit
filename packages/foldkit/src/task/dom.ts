@@ -1,6 +1,18 @@
-import { Array, Effect, Equal, Match as M, Number, Option } from 'effect'
+import {
+  Array,
+  Effect,
+  Equal,
+  Function,
+  Match as M,
+  Number,
+  Option,
+} from 'effect'
 
 import { ElementNotFound } from './error'
+
+const DIALOG_Z_INDEX = '2147483646'
+
+const dialogCleanups = new WeakMap<HTMLDialogElement, () => void>()
 
 const FOCUSABLE_SELECTOR = Array.join(
   [
@@ -38,7 +50,10 @@ export const focus = (selector: string): Effect.Effect<void, ElementNotFound> =>
   })
 
 /**
- * Opens a dialog element as a modal using `showModal()`.
+ * Opens a dialog element using `show()` with high z-index, focus trapping,
+ * and Escape key handling. Uses `show()` instead of `showModal()` so that
+ * DevTools (and any other high-z-index overlay) remains interactive — the
+ * Dialog component provides its own backdrop, scroll locking, and transitions.
  * Uses requestAnimationFrame to ensure the DOM is updated before attempting to show.
  * Fails with `ElementNotFound` if the selector does not match an `HTMLDialogElement`.
  *
@@ -54,7 +69,33 @@ export const showModal = (
     requestAnimationFrame(() => {
       const element = document.querySelector(selector)
       if (element instanceof HTMLDialogElement) {
-        element.showModal()
+        element.style.position = 'fixed'
+        element.style.inset = '0'
+        element.style.zIndex = DIALOG_Z_INDEX
+        element.show()
+
+        const handleKeydown = (event: KeyboardEvent): void => {
+          if (!element.open) {
+            return
+          }
+
+          M.value(event.key).pipe(
+            M.when('Escape', () => {
+              event.preventDefault()
+              element.dispatchEvent(new Event('cancel', { cancelable: true }))
+            }),
+            M.when('Tab', () => {
+              trapFocusWithinDialog(event, element)
+            }),
+            M.orElse(Function.constVoid),
+          )
+        }
+
+        document.addEventListener('keydown', handleKeydown)
+        dialogCleanups.set(element, () =>
+          document.removeEventListener('keydown', handleKeydown),
+        )
+
         resume(Effect.void)
       } else {
         resume(Effect.fail(new ElementNotFound({ selector })))
@@ -62,8 +103,30 @@ export const showModal = (
     })
   })
 
+const trapFocusWithinDialog = (
+  event: KeyboardEvent,
+  dialog: HTMLDialogElement,
+): void => {
+  const focusable = Array.fromIterable(
+    dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+  )
+  if (Array.isNonEmptyArray(focusable)) {
+    const first = Array.headNonEmpty(focusable)
+    const last = Array.lastNonEmpty(focusable)
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first.focus()
+    }
+  }
+}
+
 /**
  * Closes a dialog element using `.close()`.
+ * Cleans up the keyboard handlers installed by `showModal`.
  * Uses requestAnimationFrame to ensure the DOM is updated before attempting to close.
  * Fails with `ElementNotFound` if the selector does not match an `HTMLDialogElement`.
  *
@@ -80,6 +143,11 @@ export const closeModal = (
       const element = document.querySelector(selector)
       if (element instanceof HTMLDialogElement) {
         element.close()
+        const cleanup = dialogCleanups.get(element)
+        if (cleanup) {
+          cleanup()
+          dialogCleanups.delete(element)
+        }
         resume(Effect.void)
       } else {
         resume(Effect.fail(new ElementNotFound({ selector })))
