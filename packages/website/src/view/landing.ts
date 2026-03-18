@@ -32,7 +32,12 @@ import {
 } from '../message'
 import * as Page from '../page'
 import { coreArchitectureRouter, homeRouter } from '../route'
-import { betaTag, emailSignupContentView, iconLink, skipNavLink } from './shared'
+import {
+  betaTag,
+  emailSignupContentView,
+  iconLink,
+  skipNavLink,
+} from './shared'
 import { themeSelector } from './themeSelector'
 
 // LANDING HEADER
