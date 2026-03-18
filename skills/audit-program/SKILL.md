@@ -16,12 +16,12 @@ Read every source file in the program — `main.ts`, `model.ts`, `message.ts`, `
 
 Determine the program's complexity tier:
 
-| Tier | Signals |
-|------|---------|
-| 1-2 | Single file, no async, no routing |
-| 3 | Has `command.ts` or async operations |
-| 4-5 | Has routing, multiple domain entities |
-| 6-7 | Has submodel directories, OutMessage, managed resources |
+| Tier | Signals                                                 |
+| ---- | ------------------------------------------------------- |
+| 1-2  | Single file, no async, no routing                       |
+| 3    | Has `command.ts` or async operations                    |
+| 4-5  | Has routing, multiple domain entities                   |
+| 6-7  | Has submodel directories, OutMessage, managed resources |
 
 Present a brief summary: files found, estimated tier, and what the program does. Then proceed to the audit.
 
