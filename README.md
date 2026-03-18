@@ -8,6 +8,7 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/foldkit"><img src="https://img.shields.io/npm/v/foldkit" alt="npm version"></a>
+  <a href="https://discord.gg/U3ZuyGjJ"><img src="https://img.shields.io/discord/1352035903744397334?label=Discord&logo=discord&logoColor=white" alt="Discord"></a>
 </p>
 
 <h3 align="center">The frontend framework for correctness.</h3>
@@ -181,6 +182,12 @@ pnpm dev:core
 # Run an example (in a separate terminal)
 pnpm dev:example:counter
 ```
+
+## Community
+
+- [Discord](https://discord.gg/U3ZuyGjJ) — Ask questions, share what you're building, and connect with other Foldkit developers.
+- [GitHub Issues](https://github.com/foldkit/foldkit/issues) — Bug reports and feature requests.
+- [Newsletter](https://foldkit.dev/newsletter) — New releases, patterns, and the occasional deep dive.
 
 ## License
 
