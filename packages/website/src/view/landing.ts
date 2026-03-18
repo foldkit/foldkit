@@ -9,6 +9,7 @@ import {
   Class,
   Href,
   Id,
+  PagefindBody,
   Src,
   a,
   div,
@@ -187,7 +188,7 @@ export const landingView = (model: Model) => {
       skipNavLink,
       landingHeaderView(model),
       main(
-        [Id('main-content'), Class('flex-1')],
+        [Id('main-content'), PagefindBody, Class('flex-1')],
         [
           Page.Landing.view(
             model.copiedSnippets,

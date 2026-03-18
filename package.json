@@ -17,6 +17,7 @@
     "dev:website": "pnpm --filter website dev",
     "build:examples": "bash scripts/build-examples.sh",
     "build:website": "pnpm --filter website... build",
+    "preview:website": "pnpm build:website && pnpm --filter website prerender && pnpm --filter website preview",
     "dev:typing-game:client": "pnpm --filter @typing-game/client dev",
     "build:typing-game:client": "pnpm --filter @typing-game/client... build",
     "dev:typing-game:server": "pnpm --filter @typing-game/server dev",

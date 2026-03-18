@@ -5,6 +5,7 @@ import { UrlRequest } from 'foldkit/runtime'
 import { Url } from 'foldkit/url'
 
 import * as Page from './page'
+import * as Search from './search'
 
 // THEME
 
@@ -121,6 +122,9 @@ export const GotApiReferenceGroupMessage = m('GotApiReferenceGroupMessage', {
 export const GotExampleDetailMessage = m('GotExampleDetailMessage', {
   message: Page.Example.ExampleDetail.Message,
 })
+export const GotSearchMessage = m('GotSearchMessage', {
+  message: Search.Message,
+})
 
 export const Message = S.Union(
   CompletedInternalNavigation,
@@ -167,5 +171,6 @@ export const Message = S.Union(
   GotExamplesGroupMessage,
   GotApiReferenceGroupMessage,
   GotExampleDetailMessage,
+  GotSearchMessage,
 )
 export type Message = typeof Message.Type

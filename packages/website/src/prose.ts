@@ -5,6 +5,7 @@ import { twMerge } from 'tailwind-merge'
 import {
   AriaLabel,
   Class,
+  DataAttribute,
   Href,
   Id,
   OnClick,
@@ -56,6 +57,7 @@ export const pageTitle = (id: string, text: string): Html =>
         'text-3xl md:text-[2.5rem] leading-normal font-normal text-gray-900 dark:text-white mb-4',
       ),
       Id(id),
+      DataAttribute('pagefind-meta', 'section'),
     ],
     [text],
   )

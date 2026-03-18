@@ -19,6 +19,7 @@ import { github } from './github'
 import { informationCircle } from './informationCircle'
 import { link } from './link'
 import { lockClosed } from './lockClosed'
+import { magnifyingGlass } from './magnifyingGlass'
 import { menu } from './menu'
 import { moon } from './moon'
 import { npm } from './npm'
@@ -56,6 +57,7 @@ export const Icon = {
   informationCircle,
   link,
   lockClosed,
+  magnifyingGlass,
   menu,
   moon,
   npm,
