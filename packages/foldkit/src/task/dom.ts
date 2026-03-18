@@ -83,6 +83,10 @@ export const showModal = (
 
           M.value(event.key).pipe(
             M.when('Escape', () => {
+              if (event.defaultPrevented) {
+                return
+              }
+
               event.preventDefault()
               element.dispatchEvent(new Event('cancel', { cancelable: true }))
             }),
