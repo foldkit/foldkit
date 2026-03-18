@@ -19,6 +19,7 @@ import {
   InnerHTML,
   OnClick,
   OnInput,
+  OnInsert,
   OnKeyDownPreventDefault,
   Placeholder,
   Role,
@@ -115,6 +116,11 @@ const searchInputView = (model: Model, toMessage: ToMessage): Html => {
         Class(
           'flex-1 bg-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none text-base',
         ),
+        OnInsert(element => {
+          if (element instanceof HTMLElement) {
+            element.focus()
+          }
+        }),
         OnInput(value => toMessage(UpdatedSearchQuery({ query: value }))),
         OnKeyDownPreventDefault(key =>
           handleSearchInputKeyDown(key, model, toMessage),

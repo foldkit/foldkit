@@ -1,5 +1,4 @@
 import { describe, it } from '@effect/vitest'
-import { Option } from 'effect'
 import { expect } from 'vitest'
 
 import {
@@ -20,7 +19,6 @@ describe('Dialog', () => {
         isOpen: false,
         isAnimated: false,
         transitionState: 'Idle',
-        maybeFocusSelector: Option.none(),
       })
     })
 
@@ -30,19 +28,6 @@ describe('Dialog', () => {
         isOpen: true,
         isAnimated: false,
         transitionState: 'Idle',
-        maybeFocusSelector: Option.none(),
-      })
-    })
-
-    it('accepts a focusSelector', () => {
-      expect(
-        init({ id: 'test', focusSelector: '#search-input' }),
-      ).toStrictEqual({
-        id: 'test',
-        isOpen: false,
-        isAnimated: false,
-        transitionState: 'Idle',
-        maybeFocusSelector: Option.some('#search-input'),
       })
     })
   })

@@ -16,7 +16,6 @@ export const Model = S.Struct({
   isOpen: S.Boolean,
   isAnimated: S.Boolean,
   transitionState: TransitionState,
-  maybeFocusSelector: S.OptionFromSelf(S.String),
 })
 
 export type Model = typeof Model.Type
@@ -69,7 +68,6 @@ export type InitConfig = Readonly<{
   id: string
   isOpen?: boolean
   isAnimated?: boolean
-  focusSelector?: string
 }>
 
 /** Creates an initial dialog model from a config. Defaults to closed and non-animated. */
@@ -78,7 +76,6 @@ export const init = (config: InitConfig): Model => ({
   isOpen: config.isOpen ?? false,
   isAnimated: config.isAnimated ?? false,
   transitionState: 'Idle',
-  maybeFocusSelector: Option.fromNullable(config.focusSelector),
 })
 
 // UPDATE
@@ -100,16 +97,9 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     withUpdateReturn,
     M.tagsExhaustive({
       Opened: () => {
-        const focusOptions = Option.match(model.maybeFocusSelector, {
-          onNone: () => undefined,
-          onSome: focusSelector => ({ focusSelector }),
-        })
-
         const maybeShow = Option.liftPredicate(
           Task.lockScroll.pipe(
-            Effect.andThen(() =>
-              Task.showModal(dialogSelector(model.id), focusOptions),
-            ),
+            Effect.andThen(() => Task.showModal(dialogSelector(model.id))),
             Effect.ignore,
             Effect.as(CompletedDialogShow()),
           ),
@@ -237,6 +227,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     Id,
     OnCancel,
     OnClick,
+    Open,
     Style,
     keyed,
   } = html<Message>()
@@ -282,10 +273,13 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
 
   const dialogAttributes = [
     Id(id),
+    Open(isVisible),
     AriaLabelledBy(`${id}-title`),
     AriaDescribedBy(`${id}-description`),
     OnCancel(toMessage(Closed())),
     Style({
+      position: 'fixed',
+      inset: '0',
       overflow: 'hidden',
       maxWidth: '100%',
       maxHeight: '100%',

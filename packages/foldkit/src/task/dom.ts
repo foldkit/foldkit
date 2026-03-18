@@ -51,36 +51,31 @@ export const focus = (selector: string): Effect.Effect<void, ElementNotFound> =>
   })
 
 /**
- * Opens a dialog element using `show()` with high z-index, focus trapping,
- * and Escape key handling. Uses `show()` instead of `showModal()` so that
- * DevTools (and any other high-z-index overlay) remains interactive — the
- * Dialog component provides its own backdrop, scroll locking, and transitions.
- * Uses requestAnimationFrame to ensure the DOM is updated before attempting to show.
+ * Sets up a dialog element with high z-index, focus trapping, and Escape key
+ * handling. Uses requestAnimationFrame to ensure the DOM is updated before
+ * installing handlers. The Dialog component's view sets the native `open`
+ * property synchronously during patch, so this command only manages z-index
+ * stacking and keyboard behavior.
  * Fails with `ElementNotFound` if the selector does not match an `HTMLDialogElement`.
- *
- * Pass `focusSelector` to focus an element inside the dialog in the same frame
- * as `show()` — required on mobile browsers where `focus()` is ignored outside
- * the original user-gesture call stack.
  *
  * @example
  * ```typescript
  * Task.showModal('#my-dialog').pipe(Effect.ignore, Effect.as(CompletedDialogShow()))
- * Task.showModal('#my-dialog', { focusSelector: '#search-input' }).pipe(Effect.ignore, Effect.as(CompletedDialogShow()))
  * ```
  */
 export const showModal = (
   selector: string,
-  options?: Readonly<{ focusSelector?: string }>,
 ): Effect.Effect<void, ElementNotFound> =>
   Effect.async<void, ElementNotFound>(resume => {
     requestAnimationFrame(() => {
       const element = document.querySelector(selector)
       if (element instanceof HTMLDialogElement) {
-        element.style.position = 'fixed'
-        element.style.inset = '0'
         openDialogCount++
         element.style.zIndex = String(BASE_DIALOG_Z_INDEX + openDialogCount)
-        element.show()
+
+        if (!element.open) {
+          element.show()
+        }
 
         const handleKeydown = (event: KeyboardEvent): void => {
           if (!element.open) {
@@ -107,13 +102,6 @@ export const showModal = (
         dialogCleanups.set(element, () =>
           document.removeEventListener('keydown', handleKeydown),
         )
-
-        if (options?.focusSelector) {
-          const focusTarget = element.querySelector(options.focusSelector)
-          if (focusTarget instanceof HTMLElement) {
-            focusTarget.focus()
-          }
-        }
 
         resume(Effect.void)
       } else {

@@ -80,6 +80,7 @@ export const {
   OnToggle,
   Open,
   OnInput,
+  OnInsert,
   OnSubmit,
   Placeholder,
   Role,
