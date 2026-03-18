@@ -594,26 +594,27 @@ const buildVNodeData = <Message>(
     const updateDataOn = (on: On) => updateData('on', on)
     const updateDataAttrs = (attrs: Attrs) => updateData('attrs', attrs)
 
+    const postpatchPropsRef = yield* Ref.make<
+      Array<Readonly<{ propName: string; value: unknown }>>
+    >([])
+
     const updatePropsWithPostpatch = <K extends string>(
       propName: K,
       value: unknown,
     ) =>
-      Ref.update(dataRef, data => ({
-        ...data,
-        props: {
-          ...data.props,
-          [propName]: value,
-        },
-        hook: {
-          ...data.hook,
-          postpatch: (_oldVnode, vnode) => {
-            if (vnode.elm) {
-              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-              ;(vnode.elm as any)[propName] = value
-            }
+      Effect.all([
+        Ref.update(dataRef, data => ({
+          ...data,
+          props: {
+            ...data.props,
+            [propName]: value,
           },
-        },
-      }))
+        })),
+        Ref.update(postpatchPropsRef, entries => [
+          ...entries,
+          { propName, value },
+        ]),
+      ])
 
     yield* Effect.forEach(attributes, attr =>
       Match.value(attr).pipe(
@@ -827,7 +828,7 @@ const buildVNodeData = <Message>(
           Value: ({ value }) => updatePropsWithPostpatch('value', value),
           Checked: ({ value }) => updatePropsWithPostpatch('checked', value),
           Selected: ({ value }) => updatePropsWithPostpatch('selected', value),
-          Open: ({ value }) => updateDataProps({ open: value }),
+          Open: ({ value }) => updatePropsWithPostpatch('open', value),
           Placeholder: ({ value }) => updateDataProps({ placeholder: value }),
           Name: ({ value }) => updateDataProps({ name: value }),
           Disabled: ({ value }) => updateDataProps({ disabled: value }),
@@ -972,6 +973,28 @@ const buildVNodeData = <Message>(
         }),
       ),
     )
+
+    const postpatchProps = yield* Ref.get(postpatchPropsRef)
+
+    if (Array.isNonEmptyArray(postpatchProps)) {
+      yield* Ref.update(dataRef, data => ({
+        ...data,
+        hook: {
+          ...data.hook,
+          postpatch: (_oldVnode, vnode) => {
+            if (vnode.elm) {
+              Array.forEach(postpatchProps, ({ propName, value }) => {
+                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                if ((vnode.elm as any)[propName] !== value) {
+                  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                  ;(vnode.elm as any)[propName] = value
+                }
+              })
+            }
+          },
+        },
+      }))
+    }
 
     return yield* Ref.get(dataRef)
   })
