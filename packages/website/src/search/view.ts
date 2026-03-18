@@ -220,7 +220,7 @@ const resultListView = (
           Id(RESULTS_LIST_ID),
           Role('listbox'),
           AriaLabel('Search results'),
-          Class('max-h-[60vh] overflow-y-auto'),
+          Class('max-h-[60dvh] overflow-y-auto'),
         ],
         Array.map(nonEmptyResults, (result, index) =>
           resultItemView(result, index, index === activeResultIndex, toMessage),

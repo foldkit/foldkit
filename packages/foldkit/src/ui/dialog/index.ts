@@ -286,7 +286,8 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     AriaDescribedBy(`${id}-description`),
     OnCancel(toMessage(Closed())),
     Style({
-      overflow: 'hidden',
+      width: '100%',
+      height: '100%',
       maxWidth: '100%',
       maxHeight: '100%',
       padding: '0',
@@ -301,6 +302,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
   const backdrop = keyed('div')(
     `${id}-backdrop`,
     [
+      Style({ minHeight: '100vh' }),
       ...transitionAttributes,
       ...(isLeaving ? [] : [OnClick(toMessage(Closed()))]),
       ...(backdropClassName ? [Class(backdropClassName)] : []),

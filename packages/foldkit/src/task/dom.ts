@@ -29,7 +29,6 @@ const FOCUSABLE_SELECTOR = Array.join(
 
 /**
  * Focuses an element matching the given selector.
- * Uses requestAnimationFrame to ensure the DOM is updated before attempting to focus.
  * Fails with `ElementNotFound` if the selector does not match an `HTMLElement`.
  *
  * @example
@@ -38,16 +37,13 @@ const FOCUSABLE_SELECTOR = Array.join(
  * ```
  */
 export const focus = (selector: string): Effect.Effect<void, ElementNotFound> =>
-  Effect.async<void, ElementNotFound>(resume => {
-    requestAnimationFrame(() => {
-      const element = document.querySelector(selector)
-      if (element instanceof HTMLElement) {
-        element.focus()
-        resume(Effect.void)
-      } else {
-        resume(Effect.fail(new ElementNotFound({ selector })))
-      }
-    })
+  Effect.suspend(() => {
+    const element = document.querySelector(selector)
+    if (element instanceof HTMLElement) {
+      element.focus()
+      return Effect.void
+    }
+    return Effect.fail(new ElementNotFound({ selector }))
   })
 
 /**
@@ -55,12 +51,9 @@ export const focus = (selector: string): Effect.Effect<void, ElementNotFound> =>
  * and Escape key handling. Uses `show()` instead of `showModal()` so that
  * DevTools (and any other high-z-index overlay) remains interactive — the
  * Dialog component provides its own backdrop, scroll locking, and transitions.
- * Uses requestAnimationFrame to ensure the DOM is updated before attempting to show.
  * Fails with `ElementNotFound` if the selector does not match an `HTMLDialogElement`.
  *
- * Pass `focusSelector` to focus an element inside the dialog in the same frame
- * as `show()` — required on mobile browsers where `focus()` is ignored outside
- * the original user-gesture call stack.
+ * Pass `focusSelector` to focus an element inside the dialog when it opens.
  *
  * @example
  * ```typescript
@@ -72,54 +65,53 @@ export const showModal = (
   selector: string,
   options?: Readonly<{ focusSelector?: string }>,
 ): Effect.Effect<void, ElementNotFound> =>
-  Effect.async<void, ElementNotFound>(resume => {
-    requestAnimationFrame(() => {
-      const element = document.querySelector(selector)
-      if (element instanceof HTMLDialogElement) {
-        element.style.position = 'fixed'
-        element.style.inset = '0'
-        openDialogCount++
-        element.style.zIndex = String(BASE_DIALOG_Z_INDEX + openDialogCount)
-        element.show()
+  Effect.suspend(() => {
+    const element = document.querySelector(selector)
 
-        const handleKeydown = (event: KeyboardEvent): void => {
-          if (!element.open) {
+    if (!(element instanceof HTMLDialogElement)) {
+      return Effect.fail(new ElementNotFound({ selector }))
+    }
+
+    element.style.position = 'fixed'
+    element.style.inset = '0'
+    openDialogCount++
+    element.style.zIndex = String(BASE_DIALOG_Z_INDEX + openDialogCount)
+    element.show()
+
+    const handleKeydown = (event: KeyboardEvent): void => {
+      if (!element.open) {
+        return
+      }
+
+      M.value(event.key).pipe(
+        M.when('Escape', () => {
+          if (event.defaultPrevented) {
             return
           }
 
-          M.value(event.key).pipe(
-            M.when('Escape', () => {
-              if (event.defaultPrevented) {
-                return
-              }
+          event.preventDefault()
+          element.dispatchEvent(new Event('cancel', { cancelable: true }))
+        }),
+        M.when('Tab', () => {
+          trapFocusWithinDialog(event, element)
+        }),
+        M.orElse(Function.constVoid),
+      )
+    }
 
-              event.preventDefault()
-              element.dispatchEvent(new Event('cancel', { cancelable: true }))
-            }),
-            M.when('Tab', () => {
-              trapFocusWithinDialog(event, element)
-            }),
-            M.orElse(Function.constVoid),
-          )
-        }
+    document.addEventListener('keydown', handleKeydown)
+    dialogCleanups.set(element, () =>
+      document.removeEventListener('keydown', handleKeydown),
+    )
 
-        document.addEventListener('keydown', handleKeydown)
-        dialogCleanups.set(element, () =>
-          document.removeEventListener('keydown', handleKeydown),
-        )
-
-        if (options?.focusSelector) {
-          const focusTarget = element.querySelector(options.focusSelector)
-          if (focusTarget instanceof HTMLElement) {
-            focusTarget.focus()
-          }
-        }
-
-        resume(Effect.void)
-      } else {
-        resume(Effect.fail(new ElementNotFound({ selector })))
+    if (options?.focusSelector) {
+      const focusTarget = element.querySelector(options.focusSelector)
+      if (focusTarget instanceof HTMLElement) {
+        focusTarget.focus()
       }
-    })
+    }
+
+    return Effect.void
   })
 
 const trapFocusWithinDialog = (
@@ -146,7 +138,6 @@ const trapFocusWithinDialog = (
 /**
  * Closes a dialog element using `.close()`.
  * Cleans up the keyboard handlers installed by `showModal`.
- * Uses requestAnimationFrame to ensure the DOM is updated before attempting to close.
  * Fails with `ElementNotFound` if the selector does not match an `HTMLDialogElement`.
  *
  * @example
@@ -157,27 +148,23 @@ const trapFocusWithinDialog = (
 export const closeModal = (
   selector: string,
 ): Effect.Effect<void, ElementNotFound> =>
-  Effect.async<void, ElementNotFound>(resume => {
-    requestAnimationFrame(() => {
-      const element = document.querySelector(selector)
-      if (element instanceof HTMLDialogElement) {
-        element.close()
-        openDialogCount = Math.max(0, openDialogCount - 1)
-        const cleanup = dialogCleanups.get(element)
-        if (cleanup) {
-          cleanup()
-          dialogCleanups.delete(element)
-        }
-        resume(Effect.void)
-      } else {
-        resume(Effect.fail(new ElementNotFound({ selector })))
+  Effect.suspend(() => {
+    const element = document.querySelector(selector)
+    if (element instanceof HTMLDialogElement) {
+      element.close()
+      openDialogCount = Math.max(0, openDialogCount - 1)
+      const cleanup = dialogCleanups.get(element)
+      if (cleanup) {
+        cleanup()
+        dialogCleanups.delete(element)
       }
-    })
+      return Effect.void
+    }
+    return Effect.fail(new ElementNotFound({ selector }))
   })
 
 /**
  * Programmatically clicks an element matching the given selector.
- * Uses requestAnimationFrame to ensure the DOM is updated before attempting to click.
  * Fails with `ElementNotFound` if the selector does not match an `HTMLElement`.
  *
  * @example
@@ -188,21 +175,17 @@ export const closeModal = (
 export const clickElement = (
   selector: string,
 ): Effect.Effect<void, ElementNotFound> =>
-  Effect.async<void, ElementNotFound>(resume => {
-    requestAnimationFrame(() => {
-      const element = document.querySelector(selector)
-      if (element instanceof HTMLElement) {
-        element.click()
-        resume(Effect.void)
-      } else {
-        resume(Effect.fail(new ElementNotFound({ selector })))
-      }
-    })
+  Effect.suspend(() => {
+    const element = document.querySelector(selector)
+    if (element instanceof HTMLElement) {
+      element.click()
+      return Effect.void
+    }
+    return Effect.fail(new ElementNotFound({ selector }))
   })
 
 /**
  * Scrolls an element into view by selector using `{ block: 'nearest' }`.
- * Uses requestAnimationFrame to ensure the DOM is updated before attempting to scroll.
  * Fails with `ElementNotFound` if the selector does not match an `HTMLElement`.
  *
  * @example
@@ -213,17 +196,13 @@ export const clickElement = (
 export const scrollIntoView = (
   selector: string,
 ): Effect.Effect<void, ElementNotFound> =>
-  Effect.async<void, ElementNotFound>(resume => {
-    requestAnimationFrame(() => {
-      const element = document.querySelector(selector)
-
-      if (element instanceof HTMLElement) {
-        element.scrollIntoView({ block: 'nearest' })
-        resume(Effect.void)
-      } else {
-        resume(Effect.fail(new ElementNotFound({ selector })))
-      }
-    })
+  Effect.suspend(() => {
+    const element = document.querySelector(selector)
+    if (element instanceof HTMLElement) {
+      element.scrollIntoView({ block: 'nearest' })
+      return Effect.void
+    }
+    return Effect.fail(new ElementNotFound({ selector }))
   })
 
 /** Direction for focus advancement — forward or backward in tab order. */
@@ -231,7 +210,6 @@ export type FocusDirection = 'Next' | 'Previous'
 
 /**
  * Focuses the next or previous focusable element in the document relative to the element matching the given selector.
- * Uses requestAnimationFrame to ensure the DOM is updated before querying focus order.
  * Fails with `ElementNotFound` if the selector does not match an `HTMLElement`.
  *
  * @example
@@ -243,42 +221,40 @@ export const advanceFocus = (
   selector: string,
   direction: FocusDirection,
 ): Effect.Effect<void, ElementNotFound> =>
-  Effect.async<void, ElementNotFound>(resume => {
-    requestAnimationFrame(() => {
-      const reference = document.querySelector(selector)
+  Effect.suspend(() => {
+    const reference = document.querySelector(selector)
 
-      if (!(reference instanceof HTMLElement)) {
-        return resume(Effect.fail(new ElementNotFound({ selector })))
-      }
+    if (!(reference instanceof HTMLElement)) {
+      return Effect.fail(new ElementNotFound({ selector }))
+    }
 
-      const focusableElements = Array.fromIterable(
-        document.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
-      )
+    const focusableElements = Array.fromIterable(
+      document.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+    )
 
-      const referenceElementIndex = Array.findFirstIndex(
-        focusableElements,
-        Equal.equals(reference),
-      )
+    const referenceElementIndex = Array.findFirstIndex(
+      focusableElements,
+      Equal.equals(reference),
+    )
 
-      if (Option.isNone(referenceElementIndex)) {
-        return resume(Effect.fail(new ElementNotFound({ selector })))
-      }
+    if (Option.isNone(referenceElementIndex)) {
+      return Effect.fail(new ElementNotFound({ selector }))
+    }
 
-      const offsetReferenceElementIndex = M.value(direction).pipe(
-        M.when('Next', () => Number.increment),
-        M.when('Previous', () => Number.decrement),
-        M.exhaustive,
-      )(referenceElementIndex.value)
+    const offsetReferenceElementIndex = M.value(direction).pipe(
+      M.when('Next', () => Number.increment),
+      M.when('Previous', () => Number.decrement),
+      M.exhaustive,
+    )(referenceElementIndex.value)
 
-      const nextElement = Array.get(
-        focusableElements,
-        offsetReferenceElementIndex,
-      )
+    const nextElement = Array.get(
+      focusableElements,
+      offsetReferenceElementIndex,
+    )
 
-      if (Option.isSome(nextElement)) {
-        nextElement.value.focus()
-      }
+    if (Option.isSome(nextElement)) {
+      nextElement.value.focus()
+    }
 
-      resume(Effect.void)
-    })
+    return Effect.void
   })
