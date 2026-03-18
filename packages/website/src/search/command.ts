@@ -5,7 +5,6 @@ import * as Task from 'foldkit/task'
 
 import {
   CompletedResultScroll,
-  CompletedSearchInputFocus,
   CompletedSearchNavigation,
   ReceivedSearchResults,
   SearchResult,
@@ -84,12 +83,6 @@ export const searchPagefind = (
     Effect.catchAll(() =>
       Effect.succeed(ReceivedSearchResults({ results: [], query })),
     ),
-  )
-
-export const focusSearchInput: Command<typeof CompletedSearchInputFocus> =
-  Task.focus(`#${SEARCH_INPUT_ID}`).pipe(
-    Effect.ignore,
-    Effect.as(CompletedSearchInputFocus()),
   )
 
 export const scrollActiveResultIntoView = (
