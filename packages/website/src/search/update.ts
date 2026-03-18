@@ -1,11 +1,10 @@
-import { Effect, Match as M, Number, Option, String } from 'effect'
+import { Effect, Match as M, Number, String } from 'effect'
 import { Ui } from 'foldkit'
 import { Command } from 'foldkit/command'
 import { evo } from 'foldkit/struct'
 
 import {
   type PagefindService,
-  focusSearchInput,
   navigateToResult,
   scrollActiveResultIntoView,
   searchPagefind,
@@ -94,14 +93,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           Effect.map((message): Message => GotSearchDialogMessage({ message })),
         )
 
-        const maybeFocusInput = Option.liftPredicate(
-          focusSearchInput,
-          () => message._tag === 'CompletedDialogShow',
-        )
-
         return [
           evo(model, { dialog: () => nextDialog, ...resetOnClose }),
-          [...mappedDialogCommands, ...Option.toArray(maybeFocusInput)],
+          mappedDialogCommands,
         ]
       },
 
@@ -138,7 +132,6 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ]
       },
 
-      CompletedSearchInputFocus: () => [model, []],
       CompletedSearchNavigation: () => [model, []],
       CompletedResultScroll: () => [model, []],
     }),

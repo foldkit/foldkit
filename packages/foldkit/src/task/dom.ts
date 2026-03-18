@@ -58,13 +58,19 @@ export const focus = (selector: string): Effect.Effect<void, ElementNotFound> =>
  * Uses requestAnimationFrame to ensure the DOM is updated before attempting to show.
  * Fails with `ElementNotFound` if the selector does not match an `HTMLDialogElement`.
  *
+ * Pass `focusSelector` to focus an element inside the dialog in the same frame
+ * as `show()` — required on mobile browsers where `focus()` is ignored outside
+ * the original user-gesture call stack.
+ *
  * @example
  * ```typescript
  * Task.showModal('#my-dialog').pipe(Effect.ignore, Effect.as(CompletedDialogShow()))
+ * Task.showModal('#my-dialog', { focusSelector: '#search-input' }).pipe(Effect.ignore, Effect.as(CompletedDialogShow()))
  * ```
  */
 export const showModal = (
   selector: string,
+  options?: Readonly<{ focusSelector?: string }>,
 ): Effect.Effect<void, ElementNotFound> =>
   Effect.async<void, ElementNotFound>(resume => {
     requestAnimationFrame(() => {
@@ -101,6 +107,13 @@ export const showModal = (
         dialogCleanups.set(element, () =>
           document.removeEventListener('keydown', handleKeydown),
         )
+
+        if (options?.focusSelector) {
+          const focusTarget = element.querySelector(options.focusSelector)
+          if (focusTarget instanceof HTMLElement) {
+            focusTarget.focus()
+          }
+        }
 
         resume(Effect.void)
       } else {

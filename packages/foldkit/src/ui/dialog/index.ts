@@ -16,6 +16,7 @@ export const Model = S.Struct({
   isOpen: S.Boolean,
   isAnimated: S.Boolean,
   transitionState: TransitionState,
+  maybeFocusSelector: S.OptionFromSelf(S.String),
 })
 
 export type Model = typeof Model.Type
@@ -68,6 +69,7 @@ export type InitConfig = Readonly<{
   id: string
   isOpen?: boolean
   isAnimated?: boolean
+  focusSelector?: string
 }>
 
 /** Creates an initial dialog model from a config. Defaults to closed and non-animated. */
@@ -76,6 +78,7 @@ export const init = (config: InitConfig): Model => ({
   isOpen: config.isOpen ?? false,
   isAnimated: config.isAnimated ?? false,
   transitionState: 'Idle',
+  maybeFocusSelector: Option.fromNullable(config.focusSelector),
 })
 
 // UPDATE
@@ -97,9 +100,16 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     withUpdateReturn,
     M.tagsExhaustive({
       Opened: () => {
+        const focusOptions = Option.match(model.maybeFocusSelector, {
+          onNone: () => undefined,
+          onSome: (focusSelector) => ({ focusSelector }),
+        })
+
         const maybeShow = Option.liftPredicate(
           Task.lockScroll.pipe(
-            Effect.andThen(() => Task.showModal(dialogSelector(model.id))),
+            Effect.andThen(() =>
+              Task.showModal(dialogSelector(model.id), focusOptions),
+            ),
             Effect.ignore,
             Effect.as(CompletedDialogShow()),
           ),
