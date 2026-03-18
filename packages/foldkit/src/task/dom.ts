@@ -10,17 +10,18 @@ import {
 
 import { ElementNotFound } from './error'
 
-const DIALOG_Z_INDEX = '2147483646'
+const BASE_DIALOG_Z_INDEX = 2147483600
+let openDialogCount = 0
 
 const dialogCleanups = new WeakMap<HTMLDialogElement, () => void>()
 
 const FOCUSABLE_SELECTOR = Array.join(
   [
-    'a[href]',
-    'button:not([disabled])',
-    'input:not([disabled])',
-    'select:not([disabled])',
-    'textarea:not([disabled])',
+    'a[href]:not([tabindex="-1"])',
+    'button:not([disabled]):not([tabindex="-1"])',
+    'input:not([disabled]):not([tabindex="-1"])',
+    'select:not([disabled]):not([tabindex="-1"])',
+    'textarea:not([disabled]):not([tabindex="-1"])',
     '[tabindex]:not([tabindex="-1"])',
   ],
   ', ',
@@ -71,7 +72,8 @@ export const showModal = (
       if (element instanceof HTMLDialogElement) {
         element.style.position = 'fixed'
         element.style.inset = '0'
-        element.style.zIndex = DIALOG_Z_INDEX
+        openDialogCount++
+        element.style.zIndex = String(BASE_DIALOG_Z_INDEX + openDialogCount)
         element.show()
 
         const handleKeydown = (event: KeyboardEvent): void => {
@@ -143,6 +145,7 @@ export const closeModal = (
       const element = document.querySelector(selector)
       if (element instanceof HTMLDialogElement) {
         element.close()
+        openDialogCount = Math.max(0, openDialogCount - 1)
         const cleanup = dialogCleanups.get(element)
         if (cleanup) {
           cleanup()

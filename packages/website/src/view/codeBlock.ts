@@ -7,6 +7,7 @@ import {
   AriaLive,
   Class,
   OnClick,
+  PagefindIgnore,
   Role,
   button,
   div,
@@ -77,6 +78,7 @@ export const codeBlock = (
 
   return div(
     [
+      PagefindIgnore,
       Class(
         clsx(
           'relative min-w-0 rounded-lg bg-gray-100 dark:bg-[#1c1a20] border border-gray-200 dark:border-gray-700/50',
@@ -104,6 +106,6 @@ export const highlightedCodeBlock = (
   className?: string,
 ) =>
   div(
-    [Class(clsx('relative min-w-0 mt-8', className))],
+    [PagefindIgnore, Class(clsx('relative min-w-0 mt-8', className))],
     [content, copyButtonWithIndicator(rawCode, ariaLabel, copiedSnippets)],
   )

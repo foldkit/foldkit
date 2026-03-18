@@ -51,13 +51,17 @@ export const {
   Alt,
   Autocomplete,
   Autofocus,
+  AriaActiveDescendant,
+  AriaControls,
   AriaCurrent,
   AriaChecked,
   AriaExpanded,
+  AriaHasPopup,
   AriaHidden,
   AriaLabel,
   AriaLive,
   AriaPressed,
+  AriaSelected,
   Class,
   D,
   DataAttribute,
@@ -72,6 +76,7 @@ export const {
   Min,
   OnChange,
   OnClick,
+  OnKeyDownPreventDefault,
   OnToggle,
   Open,
   OnInput,
@@ -91,3 +96,6 @@ export const {
   ViewBox,
   Xmlns,
 } = html<Message>()
+
+export const PagefindBody = DataAttribute('pagefind-body', '')
+export const PagefindIgnore = DataAttribute('pagefind-ignore', '')

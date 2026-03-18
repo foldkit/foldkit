@@ -30,7 +30,7 @@ import { SubmittedEmailForm, UpdatedEmailField } from '../message'
 export const betaTag: Html = span(
   [
     Class(
-      'inline-block -rotate-6 rounded bg-accent-700 dark:bg-accent-500 px-1.5 py-0.5 text-[10px] font-extrabold uppercase leading-none tracking-wider text-white dark:text-accent-900 select-none',
+      'hidden sm:inline-block -rotate-6 rounded bg-accent-700 dark:bg-accent-500 px-1.5 py-0.5 text-[10px] font-extrabold uppercase leading-none tracking-wider text-white dark:text-accent-900 select-none',
     ),
     AriaLabel('Beta'),
   ],

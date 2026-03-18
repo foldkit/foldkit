@@ -11,6 +11,7 @@ import {
   DateTime,
   Effect,
   HashSet,
+  Layer,
   Match as M,
   Number,
   Option,
@@ -53,6 +54,7 @@ import {
   GotMobileMenuDialogMessage,
   GotNotePlayerDemoMessage,
   GotPatternsGroupMessage,
+  GotSearchMessage,
   GotUiPageMessage,
   HiddenCopiedIndicator,
   type Message,
@@ -63,6 +65,7 @@ import {
 } from './message'
 import * as Page from './page'
 import { AppRoute, isLandingHeaderAlwaysVisible, urlToAppRoute } from './route'
+import * as Search from './search'
 import * as Subscription from './subscription'
 import { docsView, landingView, newsletterView } from './view'
 
@@ -184,18 +187,21 @@ export const Model = S.Struct({
   comingFromReact: Page.ComingFromReact.Model,
   apiReference: Page.ApiReference.Model,
   exampleDetail: Page.Example.ExampleDetail.Model,
+  search: Search.Model,
 })
 
 export type Model = typeof Model.Type
 
 // INIT
 
-const init: Runtime.ApplicationInit<
-  Model,
-  Message,
-  Flags,
-  Page.NotePlayerDemo.AudioContextService
-> = (flags: Flags, url: Url) => {
+type AppResources =
+  | Page.NotePlayerDemo.AudioContextService
+  | Search.PagefindService
+
+const init: Runtime.ApplicationInit<Model, Message, Flags, AppResources> = (
+  flags: Flags,
+  url: Url,
+) => {
   const themePreference = Option.getOrElse(
     flags.themePreference,
     () => 'System' as const,
@@ -298,6 +304,7 @@ const init: Runtime.ApplicationInit<
       comingFromReact,
       apiReference,
       exampleDetail: Page.Example.ExampleDetail.init()[0],
+      search: Search.init()[0],
     },
     [
       injectAnalytics,
@@ -321,20 +328,10 @@ const init: Runtime.ApplicationInit<
 const update = (
   model: Model,
   message: Message,
-): [
-  Model,
-  ReadonlyArray<
-    Command<Message, never, Page.NotePlayerDemo.AudioContextService>
-  >,
-] =>
+): [Model, ReadonlyArray<Command<Message, never, AppResources>>] =>
   M.value(message).pipe(
     M.withReturnType<
-      [
-        Model,
-        ReadonlyArray<
-          Command<Message, never, Page.NotePlayerDemo.AudioContextService>
-        >,
-      ]
+      [Model, ReadonlyArray<Command<Message, never, AppResources>>]
     >(),
     M.tags({
       ClickedLink: ({ request }) =>
@@ -367,16 +364,25 @@ const update = (
 
       ChangedUrl: ({ url }) => {
         const nextRoute = urlToAppRoute(url)
-        const [closedDialog, closeDialogCommands] = Ui.Dialog.update(
+        const [closedMobileMenu, closeMobileMenuCommands] = Ui.Dialog.update(
           model.mobileMenuDialog,
           Ui.Dialog.Closed(),
         )
+        const [closedSearchDialog, closeSearchDialogCommands] =
+          Ui.Dialog.update(model.search.dialog, Ui.Dialog.Closed())
 
         return [
           evo(model, {
             route: () => nextRoute,
             url: () => url,
-            mobileMenuDialog: () => closedDialog,
+            mobileMenuDialog: () => closedMobileMenu,
+            search: search => ({
+              ...search,
+              dialog: closedSearchDialog,
+              query: '',
+              searchState: Search.Idle(),
+              activeResultIndex: -1,
+            }),
             isLandingHeaderVisible: () =>
               isLandingHeaderAlwaysVisible(nextRoute),
             apiReferenceGroup: apiReferenceGroup =>
@@ -397,8 +403,15 @@ const update = (
                 : exampleDetail,
           }),
           [
-            ...closeDialogCommands.map(
+            ...closeMobileMenuCommands.map(
               Effect.map(message => GotMobileMenuDialogMessage({ message })),
+            ),
+            ...closeSearchDialogCommands.map(
+              Effect.map(message =>
+                GotSearchMessage({
+                  message: Search.GotSearchDialogMessage({ message }),
+                }),
+              ),
             ),
             ...Option.match(url.hash, {
               onNone: () => [scrollToTop],
@@ -780,6 +793,20 @@ const update = (
           ),
         ]
       },
+
+      GotSearchMessage: ({ message }) => {
+        const [nextSearch, searchCommands] = Search.update(
+          model.search,
+          message,
+        )
+
+        return [
+          evo(model, { search: () => nextSearch }),
+          searchCommands.map(
+            Effect.map(message => GotSearchMessage({ message })),
+          ),
+        ]
+      },
     }),
     M.tag(
       'CompletedInternalNavigation',
@@ -955,6 +982,9 @@ const SubscriptionDeps = S.Struct({
   heroVisibility: S.Struct({
     isLandingPage: S.Boolean,
   }),
+  searchShortcut: S.Struct({
+    isDocsPage: S.Boolean,
+  }),
   systemTheme: S.Struct({
     isSystemPreference: S.Boolean,
   }),
@@ -968,6 +998,7 @@ const subscriptions = makeSubscriptions(SubscriptionDeps)<Model, Message>({
   activeSection: Subscription.activeSection,
   exampleUrl: Subscription.exampleUrl,
   heroVisibility: Subscription.heroVisibility,
+  searchShortcut: Subscription.searchShortcut,
   systemTheme: Subscription.systemTheme,
   viewportWidth: Subscription.viewportWidth,
 })
@@ -987,7 +1018,10 @@ const application = Runtime.makeApplication({
     onUrlRequest: request => ClickedLink({ request }),
     onUrlChange: url => ChangedUrl({ url }),
   },
-  resources: Page.NotePlayerDemo.AudioContextService.Default,
+  resources: Layer.merge(
+    Page.NotePlayerDemo.AudioContextService.Default,
+    Search.PagefindService.Default,
+  ),
   devtools: {
     show: 'Always',
     mode: 'Inspect',

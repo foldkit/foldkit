@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { Match as M, Option } from 'effect'
+import { Match as M, Option, String as S } from 'effect'
 import { Ui } from 'foldkit'
 import { Html, createLazy } from 'foldkit/html'
 
@@ -11,9 +11,12 @@ import {
   AriaLabel,
   AriaLive,
   Class,
+  DataAttribute,
   Href,
   Id,
   OnClick,
+  PagefindBody,
+  PagefindIgnore,
   Src,
   a,
   button,
@@ -42,11 +45,13 @@ import {
   GotComingFromReactMessage,
   GotExampleDetailMessage,
   GotMobileMenuDialogMessage,
+  GotSearchMessage,
   GotUiPageMessage,
   type Message,
 } from '../message'
 import * as Page from '../page'
 import { type DocsRoute, homeRouter } from '../route'
+import * as Search from '../search'
 import { betaTag, emailFormView, iconLink, skipNavLink } from './shared'
 import { sidebarView } from './sidebar'
 import {
@@ -84,6 +89,34 @@ const docsHeaderView = (model: Model) =>
       div(
         [Class('flex items-center gap-3 md:gap-8')],
         [
+          button(
+            [
+              Class(
+                'hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-sm hover:border-gray-400 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-300 transition cursor-pointer',
+              ),
+              AriaLabel('Search documentation'),
+              OnClick(
+                GotSearchMessage({
+                  message: Search.GotSearchDialogMessage({
+                    message: Ui.Dialog.Opened(),
+                  }),
+                }),
+              ),
+            ],
+            [
+              Icon.magnifyingGlass('w-4 h-4'),
+              span([Class('mr-4')], ['Search...']),
+              span(
+                [
+                  AriaHidden(true),
+                  Class(
+                    'text-xs text-gray-400 dark:text-gray-500 border border-gray-300 dark:border-gray-700 rounded px-1.5 py-px font-mono',
+                  ),
+                ],
+                ['\u2318K'],
+              ),
+            ],
+          ),
           themeSelector(model.themePreference),
           div(
             [Class('hidden md:flex items-center gap-3 md:gap-4')],
@@ -95,6 +128,22 @@ const docsHeaderView = (model: Model) =>
               ),
               iconLink(Link.npm, 'npm', Icon.npm('w-6 h-6 md:w-8 md:h-8')),
             ],
+          ),
+          button(
+            [
+              Class(
+                'md:hidden p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 cursor-pointer',
+              ),
+              AriaLabel('Search documentation'),
+              OnClick(
+                GotSearchMessage({
+                  message: Search.GotSearchDialogMessage({
+                    message: Ui.Dialog.Opened(),
+                  }),
+                }),
+              ),
+            ],
+            [Icon.magnifyingGlass('w-5 h-5')],
           ),
           button(
             [
@@ -261,6 +310,30 @@ const pageNavigationView = (tag: string) => {
     ],
   )
 }
+
+// SEARCH WEIGHT
+
+const searchWeight = (tag: string): string =>
+  M.value(tag).pipe(
+    M.when(S.startsWith('Core'), () => '10'),
+    M.whenOr('GettingStarted', 'Manifesto', () => '8'),
+    M.whenOr(
+      S.startsWith('Patterns'),
+      S.startsWith('BestPractices'),
+      () => '7',
+    ),
+    M.whenOr(
+      'RoutingAndNavigation',
+      'FieldValidation',
+      'ProjectOrganization',
+      'ComingFromReact',
+      () => '6',
+    ),
+    M.whenOr(S.startsWith('Ui'), S.startsWith('Ai'), () => '5'),
+    M.when('ApiModule', () => '3'),
+    M.whenOr('Examples', 'ExampleDetail', () => '2'),
+    M.orElse(() => '4'),
+  )
 
 // CONTENT ROUTING
 
@@ -595,12 +668,16 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
     }),
   )
 
+  const toParentMessage = (message: Search.Message): Message =>
+    GotSearchMessage({ message })
+
   return keyed('div')(
     'docs',
     [Class('flex flex-col min-h-screen')],
     [
       skipNavLink,
       docsHeaderView(model),
+      Search.view(model.search, toParentMessage),
       div(
         [Class('flex flex-1 pt-[var(--header-height)] md:pl-64')],
         [
@@ -635,16 +712,29 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
                   M.orElse(({ _tag }) => _tag),
                 ),
                 [
+                  PagefindBody,
+                  DataAttribute(
+                    'pagefind-weight',
+                    searchWeight(docsRoute._tag),
+                  ),
                   Class(
                     'flex-1 w-full px-4 py-6 md:px-6 2xl:py-10 max-w-4xl mx-auto min-w-0',
                   ),
                 ],
-                [content, pageNavigationView(docsRoute._tag)],
+                [
+                  content,
+                  div([PagefindIgnore], [pageNavigationView(docsRoute._tag)]),
+                ],
               ),
-              docsFooterView(
-                model.emailField,
-                model.emailSubscriptionStatus,
-                model.currentYear,
+              div(
+                [PagefindIgnore],
+                [
+                  docsFooterView(
+                    model.emailField,
+                    model.emailSubscriptionStatus,
+                    model.currentYear,
+                  ),
+                ],
               ),
             ],
           ),

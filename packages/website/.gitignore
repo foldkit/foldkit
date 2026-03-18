@@ -25,3 +25,4 @@ Thumbs.db
 # TypeScript
 *.tsbuildinfo
 .vercel
+public/pagefind
