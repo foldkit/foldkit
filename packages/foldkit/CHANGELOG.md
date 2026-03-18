@@ -1,5 +1,11 @@
 # foldkit
 
+## 0.36.2
+
+### Patch Changes
+
+- 99320f2: Add `focusSelector` option to `Task.showModal` and thread it through `Ui.Dialog` so dialogs can focus an element in the same animation frame as `show()`, fixing focus on mobile browsers that ignore `focus()` outside the user-gesture call stack.
+
 ## 0.36.1
 
 ### Patch Changes
