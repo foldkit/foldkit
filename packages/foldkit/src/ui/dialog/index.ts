@@ -102,7 +102,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
       Opened: () => {
         const focusOptions = Option.match(model.maybeFocusSelector, {
           onNone: () => undefined,
-          onSome: (focusSelector) => ({ focusSelector }),
+          onSome: focusSelector => ({ focusSelector }),
         })
 
         const maybeShow = Option.liftPredicate(
