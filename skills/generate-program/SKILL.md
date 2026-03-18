@@ -19,7 +19,15 @@ Before writing any code, analyze the description to identify:
 5. **Pages/navigation** — URL structure that becomes routes (e.g., "home page", "detail page")
 6. **UI component needs** — interactive widgets that map to Foldkit UI components (e.g., "dropdown" → Menu, "modal" → Dialog, "tabs" → Tabs, "autocomplete" → Combobox)
 
-Present this analysis to the user before proceeding. This is their chance to correct course.
+Present this analysis to the user before proceeding.
+
+If the description is detailed and unambiguous, summarize the analysis and confirm before moving on. But if there are gaps — unclear state transitions, vague UI requirements, unspecified error handling, missing edge cases, ambiguous domain boundaries — ask targeted clarifying questions before proceeding. Don't ask open-ended questions like "anything else?" — ask specific questions about the gaps you found. For example:
+
+- "Should the todo list persist across page reloads (localStorage), or start fresh each session?"
+- "When the API call fails, should the app show an inline error or a dialog?"
+- "You mentioned 'users can edit items' — is that inline editing or a separate edit page?"
+
+The goal is to resolve ambiguity early so the generated code matches what the user actually wants, not what you assumed.
 
 ## Phase 2: Study Reference Examples
 
