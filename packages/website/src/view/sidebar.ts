@@ -31,6 +31,7 @@ import {
   GotAiGroupMessage,
   GotApiReferenceGroupMessage,
   GotBestPracticesGroupMessage,
+  GotCommunityGroupMessage,
   GotCoreConceptsGroupMessage,
   GotExamplesGroupMessage,
   GotFoldkitUiGroupMessage,
@@ -101,6 +102,7 @@ const sidebarViewInner = (
   examplesGroup: Ui.Disclosure.Model,
   foldkitUiGroup: Ui.Disclosure.Model,
   aiGroup: Ui.Disclosure.Model,
+  communityGroup: Ui.Disclosure.Model,
   apiReferenceGroup: Ui.Disclosure.Model,
   mobileMenuDialog: Ui.Dialog.Model,
 ): Html => {
@@ -177,6 +179,10 @@ const sidebarViewInner = (
     {
       model: aiGroup,
       toMessage: message => GotAiGroupMessage({ message }),
+    },
+    {
+      model: communityGroup,
+      toMessage: message => GotCommunityGroupMessage({ message }),
     },
   ]
 
@@ -333,6 +339,7 @@ export const sidebarView = (model: Model): Html =>
     model.examplesGroup,
     model.foldkitUiGroup,
     model.aiGroup,
+    model.communityGroup,
     model.apiReferenceGroup,
     model.mobileMenuDialog,
   ])

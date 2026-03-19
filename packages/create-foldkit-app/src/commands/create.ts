@@ -125,13 +125,8 @@ const displaySuccessMessage = (name: string, packageManager: PackageManager) =>
     yield* Console.log(
       `Transmissions:   ${chalk.cyan('foldkit.dev/newsletter')}`,
     )
-    yield* Console.log(`X:               ${chalk.cyan('x.com/devinjameson')}`)
-    yield* Console.log(
-      `Bluesky:         ${chalk.cyan('bsky.app/profile/devinjameson.bsky.social')}`,
-    )
-    yield* Console.log(
-      `Threads:         ${chalk.cyan('threads.com/@devinthedeveloper')}`,
-    )
+    yield* Console.log(`Social:          ${chalk.cyan('foldkit.dev/social')}`)
+    yield* Console.log(`Discord:         ${chalk.cyan('discord.gg/U3ZuyGjJ')}`)
     yield* Console.log('')
     yield* Console.log('Love you,')
     yield* Console.log('Mission Control')

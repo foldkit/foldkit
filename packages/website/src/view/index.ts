@@ -4,5 +4,5 @@ export {
   type CopiedSnippets,
 } from './codeBlock'
 export { docsView } from './docs'
-export { landingView, newsletterView } from './landing'
+export { landingView } from './landing'
 export { comparisonTable } from './table'

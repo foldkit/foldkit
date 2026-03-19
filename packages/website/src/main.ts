@@ -44,6 +44,7 @@ import {
   GotAsyncCounterDemoMessage,
   GotBestPracticesGroupMessage,
   GotComingFromReactMessage,
+  GotCommunityGroupMessage,
   GotCoreConceptsGroupMessage,
   GotDemoTabsMessage,
   GotExampleDetailMessage,
@@ -64,10 +65,10 @@ import {
   ThemePreference,
 } from './message'
 import * as Page from './page'
-import { AppRoute, isLandingHeaderAlwaysVisible, urlToAppRoute } from './route'
+import { AppRoute, urlToAppRoute } from './route'
 import * as Search from './search'
 import * as Subscription from './subscription'
-import { docsView, landingView, newsletterView } from './view'
+import { docsView, landingView } from './view'
 
 export type { Message } from './message'
 
@@ -175,6 +176,7 @@ export const Model = S.Struct({
   foldkitUiGroup: Ui.Disclosure.Model,
   aiGroup: Ui.Disclosure.Model,
   examplesGroup: Ui.Disclosure.Model,
+  communityGroup: Ui.Disclosure.Model,
   apiReferenceGroup: Ui.Disclosure.Model,
   aiHeadingToggleCount: S.Number,
   themePreference: ThemePreference,
@@ -256,7 +258,7 @@ const init: Runtime.ApplicationInit<Model, Message, Flags, AppResources> = (
       isMobileTableOfContentsOpen: false,
       activeSection: Option.none(),
       aiHeadingToggleCount: 0,
-      isLandingHeaderVisible: isLandingHeaderAlwaysVisible(initialRoute),
+      isLandingHeaderVisible: false,
       isNarrowViewport: flags.isNarrowViewport,
       getStartedGroup: {
         ...Ui.Disclosure.init({ id: 'get-started-group' }),
@@ -288,6 +290,10 @@ const init: Runtime.ApplicationInit<Model, Message, Flags, AppResources> = (
       },
       examplesGroup: {
         ...Ui.Disclosure.init({ id: 'examples-group' }),
+        isOpen: true,
+      },
+      communityGroup: {
+        ...Ui.Disclosure.init({ id: 'community-group' }),
         isOpen: true,
       },
       apiReferenceGroup: {
@@ -383,8 +389,7 @@ const update = (
               searchState: Search.Idle(),
               activeResultIndex: -1,
             }),
-            isLandingHeaderVisible: () =>
-              isLandingHeaderAlwaysVisible(nextRoute),
+            isLandingHeaderVisible: () => false,
             apiReferenceGroup: apiReferenceGroup =>
               nextRoute._tag === 'ApiModule'
                 ? { ...apiReferenceGroup, isOpen: true }
@@ -766,6 +771,20 @@ const update = (
         ]
       },
 
+      GotCommunityGroupMessage: ({ message }) => {
+        const [nextCommunityGroup, communityGroupCommands] =
+          Ui.Disclosure.update(model.communityGroup, message)
+
+        return [
+          evo(model, {
+            communityGroup: () => nextCommunityGroup,
+          }),
+          communityGroupCommands.map(
+            Effect.map(message => GotCommunityGroupMessage({ message })),
+          ),
+        ]
+      },
+
       GotApiReferenceGroupMessage: ({ message }) => {
         const [nextApiReferenceGroup, apiReferenceGroupCommands] =
           Ui.Disclosure.update(model.apiReferenceGroup, message)
@@ -964,7 +983,6 @@ const saveThemePreference = (
 const view = (model: Model) =>
   M.value(model.route).pipe(
     M.tag('Home', () => landingView(model)),
-    M.tag('Newsletter', () => newsletterView(model)),
     M.orElse(route => docsView(model, route)),
   )
 

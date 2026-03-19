@@ -44,6 +44,7 @@ import {
   CoreUpdateRoute,
   CoreViewMemoizationRoute,
   CoreViewRoute,
+  DiscordRoute,
   ExampleDetailRoute,
   ExamplesRoute,
   FieldValidationRoute,
@@ -55,6 +56,7 @@ import {
   PatternsSubmodelsRoute,
   ProjectOrganizationRoute,
   RoutingAndNavigationRoute,
+  SocialRoute,
   UiButtonRoute,
   UiCheckboxRoute,
   UiComboboxRoute,
@@ -96,6 +98,7 @@ import {
   coreUpdateRouter,
   coreViewMemoizationRouter,
   coreViewRouter,
+  discordRouter,
   exampleDetailRouter,
   examplesRouter,
   fieldValidationRouter,
@@ -107,6 +110,7 @@ import {
   patternsSubmodelsRouter,
   projectOrganizationRouter,
   routingAndNavigationRouter,
+  socialRouter,
   uiButtonRouter,
   uiCheckboxRouter,
   uiComboboxRouter,
@@ -192,6 +196,8 @@ export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   UiFieldsetRoute(),
   AiOverviewRoute(),
   AiSkillsRoute(),
+  SocialRoute(),
+  DiscordRoute(),
 ]
 
 export const routeToUrlPath = (route: AppRoute): string =>
@@ -248,8 +254,10 @@ export const routeToUrlPath = (route: AppRoute): string =>
       UiFieldset: () => uiFieldsetRouter(),
       AiOverview: () => aiOverviewRouter(),
       AiSkills: () => aiSkillsRouter(),
-      ApiModule: ({ moduleSlug }) => apiModuleRouter({ moduleSlug }),
       Newsletter: () => newsletterRouter(),
+      Social: () => socialRouter(),
+      Discord: () => discordRouter(),
+      ApiModule: ({ moduleSlug }) => apiModuleRouter({ moduleSlug }),
       NotFound: () => '/',
     }),
   )

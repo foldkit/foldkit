@@ -71,6 +71,8 @@ export const AiOverviewRoute = r('AiOverview')
 export const AiSkillsRoute = r('AiSkills')
 
 export const NewsletterRoute = r('Newsletter')
+export const SocialRoute = r('Social')
+export const DiscordRoute = r('Discord')
 
 export const NotFoundRoute = r('NotFound', { path: S.String })
 
@@ -125,11 +127,14 @@ export const DocsRoute = S.Union(
   UiFieldsetRoute,
   AiOverviewRoute,
   AiSkillsRoute,
+  NewsletterRoute,
+  SocialRoute,
+  DiscordRoute,
   NotFoundRoute,
 )
 export type DocsRoute = typeof DocsRoute.Type
 
-export const AppRoute = S.Union(HomeRoute, NewsletterRoute, DocsRoute)
+export const AppRoute = S.Union(HomeRoute, DocsRoute)
 export type AppRoute = typeof AppRoute.Type
 
 // ROUTERS
@@ -380,6 +385,9 @@ export const aiSkillsRouter = pipe(
   mapTo(AiSkillsRoute),
 )
 
+export const socialRouter = pipe(literal('social'), mapTo(SocialRoute))
+export const discordRouter = pipe(literal('discord'), mapTo(DiscordRoute))
+
 // PARSER
 
 const topLevelDocsParser = oneOf(
@@ -443,6 +451,13 @@ const uiParser = oneOf(
 
 const aiParser = oneOf(aiOverviewRouter, aiSkillsRouter)
 
+export const newsletterRouter = pipe(
+  literal('newsletter'),
+  mapTo(NewsletterRoute),
+)
+
+const communityParser = oneOf(newsletterRouter, socialRouter, discordRouter)
+
 const docsParser = oneOf(
   topLevelDocsParser,
   coreParser,
@@ -450,21 +465,9 @@ const docsParser = oneOf(
   patternsParser,
   uiParser,
   aiParser,
+  communityParser,
 )
 
-export const newsletterRouter = pipe(
-  literal('newsletter'),
-  mapTo(NewsletterRoute),
-)
-
-export const routeParser = oneOf(
-  docsParser,
-  apiModuleRouter,
-  newsletterRouter,
-  homeRouter,
-)
+export const routeParser = oneOf(docsParser, apiModuleRouter, homeRouter)
 
 export const urlToAppRoute = parseUrlWithFallback(routeParser, NotFoundRoute)
-
-export const isLandingHeaderAlwaysVisible = (route: AppRoute) =>
-  route._tag === 'Newsletter'

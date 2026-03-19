@@ -242,12 +242,21 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     description: SITE_DESCRIPTION,
     section: '',
   },
-  Newsletter: {
-    title: 'Newsletter',
-    description:
-      'Subscribe to the Foldkit newsletter for new releases, patterns, and the occasional deep dive.',
-    section: '',
-  },
+  Newsletter: docs(
+    'Newsletter',
+    'Subscribe to the Foldkit newsletter for new releases, patterns, and the occasional deep dive.',
+    'Community',
+  ),
+  Social: docs(
+    'Social',
+    'Follow Foldkit on X, Bluesky, and Threads for updates and releases.',
+    'Community',
+  ),
+  Discord: docs(
+    'Discord',
+    'Join the Foldkit Discord to ask questions and connect with other developers.',
+    'Community',
+  ),
 }
 
 export const routeToMetadata = (route: AppRoute): PageMetadata => {

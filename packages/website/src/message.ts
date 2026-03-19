@@ -116,6 +116,9 @@ export const GotAiGroupMessage = m('GotAiGroupMessage', {
 export const GotExamplesGroupMessage = m('GotExamplesGroupMessage', {
   message: Ui.Disclosure.Message,
 })
+export const GotCommunityGroupMessage = m('GotCommunityGroupMessage', {
+  message: Ui.Disclosure.Message,
+})
 export const GotApiReferenceGroupMessage = m('GotApiReferenceGroupMessage', {
   message: Ui.Disclosure.Message,
 })
@@ -169,6 +172,7 @@ export const Message = S.Union(
   GotFoldkitUiGroupMessage,
   GotAiGroupMessage,
   GotExamplesGroupMessage,
+  GotCommunityGroupMessage,
   GotApiReferenceGroupMessage,
   GotExampleDetailMessage,
   GotSearchMessage,

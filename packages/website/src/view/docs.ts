@@ -663,6 +663,12 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           lazyDocsContent(Page.AiSkills.view, [model.copiedSnippets]),
           Page.AiSkills.tableOfContents,
         ),
+      Newsletter: () =>
+        withoutTableOfContents(
+          Page.Newsletter.view(model.emailField, model.emailSubscriptionStatus),
+        ),
+      Social: () => withoutTableOfContents(Page.Social.view()),
+      Discord: () => withoutTableOfContents(Page.Discord.view()),
       NotFound: ({ path }) =>
         withoutTableOfContents(Page.NotFound.view(path, homeRouter())),
     }),

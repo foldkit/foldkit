@@ -55,4 +55,8 @@ export const Link = {
     'https://github.com/foldkit/foldkit/tree/main/packages/website',
   changelog:
     'https://github.com/foldkit/foldkit/blob/main/packages/foldkit/CHANGELOG.md',
+  discord: 'https://discord.gg/U3ZuyGjJ',
+  x: 'https://x.com/devinjameson',
+  bluesky: 'https://bsky.app/profile/devinjameson.bsky.social',
+  threads: 'https://threads.com/@devinthedeveloper',
 }
