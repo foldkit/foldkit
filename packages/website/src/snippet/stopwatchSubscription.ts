@@ -31,7 +31,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
 >({
   tick: {
     modelToDependencies: model => ({ isRunning: model.isRunning }),
-    depsToStream: ({ isRunning }) =>
+    dependenciesToStream: ({ isRunning }) =>
       Stream.when(
         Stream.tick(Duration.millis(100)).pipe(Stream.map(Ticked)),
         () => isRunning,

@@ -15,7 +15,7 @@ export const searchShortcut: Subscription<
     isDocsPage:
       model.route._tag !== 'Home' && model.route._tag !== 'Newsletter',
   }),
-  depsToStream: ({ isDocsPage }) =>
+  dependenciesToStream: ({ isDocsPage }) =>
     Stream.when(
       Stream.async<typeof GotSearchMessage.Type>(emit => {
         const handler = (event: KeyboardEvent) => {

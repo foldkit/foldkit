@@ -522,7 +522,7 @@ const makeOverlaySubscriptions = (store: DevtoolsStore) =>
   makeSubscriptions(SubscriptionDeps)<Model, Message>({
     storeUpdates: {
       modelToDependencies: () => null,
-      depsToStream: () =>
+      dependenciesToStream: () =>
         Stream.concat(
           Stream.fromEffect(
             pipe(
@@ -538,7 +538,7 @@ const makeOverlaySubscriptions = (store: DevtoolsStore) =>
     },
     mobileBreakpoint: {
       modelToDependencies: () => null,
-      depsToStream: () =>
+      dependenciesToStream: () =>
         Stream.async<Message>(emit => {
           const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT_QUERY)
 

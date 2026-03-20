@@ -286,7 +286,7 @@ Every message must carry meaning. No `NoOp`.
 
 - Define with `Subscription.makeSubscriptions(Deps)<Model, Message>`
 - `modelToDependencies` extracts Subscription parameters from Model
-- `depsToStream` builds `Stream<Effect<Message>>` from dependencies
+- `dependenciesToStream` builds `Stream<Message>` from dependencies
 - Subscriptions auto-start/stop based on Model state — never manually managed
 - For Subscriptions with no Model dependencies (always active), use `S.Null` as the dependency type and return `null` from `modelToDependencies`
 

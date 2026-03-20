@@ -22,7 +22,7 @@ export const exampleUrl: Subscription<
       ),
       Option.map(route => route.exampleSlug),
     ),
-  depsToStream: maybeSlug =>
+  dependenciesToStream: maybeSlug =>
     Stream.when(
       Stream.async<typeof GotExampleDetailMessage.Type>(emit => {
         const handler = (event: MessageEvent) => {

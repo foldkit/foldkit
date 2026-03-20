@@ -137,7 +137,7 @@ export const activeSection: Subscription<
       }),
     }
   },
-  depsToStream: ({ sections }) =>
+  dependenciesToStream: ({ sections }) =>
     Stream.async<typeof ChangedActiveSection.Type>(emit => {
       if (!Array.isNonEmptyReadonlyArray(sections)) {
         return Effect.void

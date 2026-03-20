@@ -262,7 +262,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
         GAME_SPEED.BASE_INTERVAL - model.points,
       ),
     }),
-    depsToStream: (deps: { isPlaying: boolean; interval: number }) =>
+    dependenciesToStream: (deps: { isPlaying: boolean; interval: number }) =>
       Stream.when(
         Stream.tick(Duration.millis(deps.interval)).pipe(
           Stream.map(TickedClock),
@@ -273,7 +273,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
 
   keyboard: {
     modelToDependencies: () => null,
-    depsToStream: () =>
+    dependenciesToStream: () =>
       Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
         Stream.mapEffect(keyboardEvent =>
           Effect.sync(() => keyboardEvent.preventDefault()).pipe(

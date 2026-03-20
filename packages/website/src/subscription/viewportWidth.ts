@@ -14,7 +14,7 @@ export const viewportWidth: Subscription<
   SubscriptionDeps['viewportWidth']
 > = {
   modelToDependencies: () => null,
-  depsToStream: () =>
+  dependenciesToStream: () =>
     Stream.async<typeof ChangedViewportWidth.Type>(emit => {
       const mediaQuery = window.matchMedia(NARROW_VIEWPORT_QUERY)
 
