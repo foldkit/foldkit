@@ -46,8 +46,11 @@ export const makeSubscriptions =
       ) => Stream.Stream<ResolveMessage<Message>, never, Resources>
     }
   }) =>
-    Record.map(configs, ({ modelToDependencies, dependenciesToStream }, key) => ({
-      schema: SubscriptionDeps.fields[key],
-      modelToDependencies,
-      dependenciesToStream,
-    }))
+    Record.map(
+      configs,
+      ({ modelToDependencies, dependenciesToStream }, key) => ({
+        schema: SubscriptionDeps.fields[key],
+        modelToDependencies,
+        dependenciesToStream,
+      }),
+    )

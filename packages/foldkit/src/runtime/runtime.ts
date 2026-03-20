@@ -795,7 +795,10 @@ const makeRuntime = <
             subscriptions,
             Record.toEntries,
             Effect.forEach(
-              ([_key, { schema, modelToDependencies, dependenciesToStream }]) => {
+              ([
+                _key,
+                { schema, modelToDependencies, dependenciesToStream },
+              ]) => {
                 const modelStream = Stream.concat(
                   Stream.make(initModel),
                   modelSubscriptionRef.changes,

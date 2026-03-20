@@ -97,7 +97,10 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
 
       return { shouldCaptureKeyboard, route }
     },
-    dependenciesToStream: (deps: { shouldCaptureKeyboard: boolean; route: AppRoute }) =>
+    dependenciesToStream: (deps: {
+      shouldCaptureKeyboard: boolean
+      route: AppRoute
+    }) =>
       Stream.when(
         Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
           Stream.mapEffect(keyboardEvent =>
