@@ -38,17 +38,17 @@ export const PressedPointerOnButton = m('PressedPointerOnButton', {
   button: S.Number,
 })
 /** Sent when the focus-panel command completes after opening the popover. */
-export const CompletedPanelFocus = m('CompletedPanelFocus')
+export const CompletedFocusPanel = m('CompletedFocusPanel')
 /** Sent when the focus-button command completes after closing. */
-export const CompletedButtonFocus = m('CompletedButtonFocus')
+export const CompletedFocusButton = m('CompletedFocusButton')
 /** Sent when the scroll lock command completes. */
-export const CompletedScrollLock = m('CompletedScrollLock')
+export const CompletedLockScroll = m('CompletedLockScroll')
 /** Sent when the scroll unlock command completes. */
-export const CompletedScrollUnlock = m('CompletedScrollUnlock')
+export const CompletedUnlockScroll = m('CompletedUnlockScroll')
 /** Sent when the inert-others command completes. */
-export const CompletedInertSetup = m('CompletedInertSetup')
+export const CompletedSetupInert = m('CompletedSetupInert')
 /** Sent when the restore-inert command completes. */
-export const CompletedInertTeardown = m('CompletedInertTeardown')
+export const CompletedTeardownInert = m('CompletedTeardownInert')
 /** Sent when a mouse click on the button is ignored because pointer-down already handled the toggle. */
 export const IgnoredMouseClick = m('IgnoredMouseClick')
 /** Sent when a Space key-up is captured to prevent page scrolling. */
@@ -67,12 +67,12 @@ export const Message: S.Union<
     typeof Closed,
     typeof ClosedByTab,
     typeof PressedPointerOnButton,
-    typeof CompletedPanelFocus,
-    typeof CompletedButtonFocus,
-    typeof CompletedScrollLock,
-    typeof CompletedScrollUnlock,
-    typeof CompletedInertSetup,
-    typeof CompletedInertTeardown,
+    typeof CompletedFocusPanel,
+    typeof CompletedFocusButton,
+    typeof CompletedLockScroll,
+    typeof CompletedUnlockScroll,
+    typeof CompletedSetupInert,
+    typeof CompletedTeardownInert,
     typeof IgnoredMouseClick,
     typeof SuppressedSpaceScroll,
     typeof AdvancedTransitionFrame,
@@ -84,12 +84,12 @@ export const Message: S.Union<
   Closed,
   ClosedByTab,
   PressedPointerOnButton,
-  CompletedPanelFocus,
-  CompletedButtonFocus,
-  CompletedScrollLock,
-  CompletedScrollUnlock,
-  CompletedInertSetup,
-  CompletedInertTeardown,
+  CompletedFocusPanel,
+  CompletedFocusButton,
+  CompletedLockScroll,
+  CompletedUnlockScroll,
+  CompletedSetupInert,
+  CompletedTeardownInert,
   IgnoredMouseClick,
   SuppressedSpaceScroll,
   AdvancedTransitionFrame,
@@ -155,7 +155,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
   const maybeLockScroll = OptionExt.when(
     model.isModal,
     Task.lockScroll.pipe(
-      Effect.as(CompletedScrollLock()),
+      Effect.as(CompletedLockScroll()),
       Command.make('LockScroll'),
     ),
   )
@@ -163,7 +163,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
   const maybeUnlockScroll = OptionExt.when(
     model.isModal,
     Task.unlockScroll.pipe(
-      Effect.as(CompletedScrollUnlock()),
+      Effect.as(CompletedUnlockScroll()),
       Command.make('UnlockScroll'),
     ),
   )
@@ -173,13 +173,13 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     Task.inertOthers(model.id, [
       buttonSelector(model.id),
       panelSelector(model.id),
-    ]).pipe(Effect.as(CompletedInertSetup()), Command.make('InertOthers')),
+    ]).pipe(Effect.as(CompletedSetupInert()), Command.make('InertOthers')),
   )
 
   const maybeRestoreInert = OptionExt.when(
     model.isModal,
     Task.restoreInert(model.id).pipe(
-      Effect.as(CompletedInertTeardown()),
+      Effect.as(CompletedTeardownInert()),
       Command.make('RestoreInert'),
     ),
   )
@@ -200,7 +200,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             Array.prepend(
               Task.focus(panelSelector(model.id)).pipe(
                 Effect.ignore,
-                Effect.as(CompletedPanelFocus()),
+                Effect.as(CompletedFocusPanel()),
                 Command.make('FocusPanel'),
               ),
             ),
@@ -219,7 +219,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           Array.prepend(
             Task.focus(buttonSelector(model.id)).pipe(
               Effect.ignore,
-              Effect.as(CompletedButtonFocus()),
+              Effect.as(CompletedFocusButton()),
               Command.make('FocusButton'),
             ),
           ),
@@ -252,7 +252,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
               Array.prepend(
                 Task.focus(buttonSelector(model.id)).pipe(
                   Effect.ignore,
-                  Effect.as(CompletedButtonFocus()),
+                  Effect.as(CompletedFocusButton()),
                   Command.make('FocusButton'),
                 ),
               ),
@@ -272,7 +272,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             Array.prepend(
               Task.focus(panelSelector(model.id)).pipe(
                 Effect.ignore,
-                Effect.as(CompletedPanelFocus()),
+                Effect.as(CompletedFocusPanel()),
                 Command.make('FocusPanel'),
               ),
             ),
@@ -328,12 +328,12 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           M.orElse(() => [model, []]),
         ),
 
-      CompletedPanelFocus: () => [model, []],
-      CompletedButtonFocus: () => [model, []],
-      CompletedScrollLock: () => [model, []],
-      CompletedScrollUnlock: () => [model, []],
-      CompletedInertSetup: () => [model, []],
-      CompletedInertTeardown: () => [model, []],
+      CompletedFocusPanel: () => [model, []],
+      CompletedFocusButton: () => [model, []],
+      CompletedLockScroll: () => [model, []],
+      CompletedUnlockScroll: () => [model, []],
+      CompletedSetupInert: () => [model, []],
+      CompletedTeardownInert: () => [model, []],
       IgnoredMouseClick: () => [model, []],
       SuppressedSpaceScroll: () => [model, []],
     }),

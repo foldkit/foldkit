@@ -27,16 +27,16 @@ import { Url, toString as urlToString } from 'foldkit/url'
 import {
   ChangedUrl,
   ClickedLink,
-  CompletedAnalyticsInjection,
   CompletedApplyTheme,
   CompletedCopyLink,
-  CompletedExternalNavigation,
-  CompletedInternalNavigation,
+  CompletedInjectAnalytics,
+  CompletedInjectSpeedInsights,
+  CompletedNavigateExternal,
+  CompletedNavigateInternal,
   CompletedSaveThemePreference,
   CompletedScroll,
-  CompletedSpeedInsightsInjection,
   FailedCopy,
-  FailedEmailSubscription,
+  FailedSubscribeEmail,
   GotAiGroupMessage,
   GotApiReferenceGroupMessage,
   GotApiReferenceMessage,
@@ -59,7 +59,7 @@ import {
   type Message,
   ResolvedTheme,
   SucceededCopy,
-  SucceededEmailSubscription,
+  SucceededSubscribeEmail,
   ThemePreference,
 } from './message'
 import * as Page from './page'
@@ -348,14 +348,12 @@ const update = (
               url,
             }): [
               Model,
-              ReadonlyArray<
-                Command.Command<typeof CompletedInternalNavigation>
-              >,
+              ReadonlyArray<Command.Command<typeof CompletedNavigateInternal>>,
             ] => [
               model,
               [
                 pushUrl(urlToString(url)).pipe(
-                  Effect.as(CompletedInternalNavigation()),
+                  Effect.as(CompletedNavigateInternal()),
                   Command.make('NavigateInternal'),
                 ),
               ],
@@ -364,14 +362,12 @@ const update = (
               href,
             }): [
               Model,
-              ReadonlyArray<
-                Command.Command<typeof CompletedExternalNavigation>
-              >,
+              ReadonlyArray<Command.Command<typeof CompletedNavigateExternal>>,
             ] => [
               model,
               [
                 load(href).pipe(
-                  Effect.as(CompletedExternalNavigation()),
+                  Effect.as(CompletedNavigateExternal()),
                   Command.make('LoadExternal'),
                 ),
               ],
@@ -492,7 +488,7 @@ const update = (
           : [evo(model, { emailField: () => result }), []]
       },
 
-      SucceededEmailSubscription: () => [
+      SucceededSubscribeEmail: () => [
         evo(model, {
           emailField: () => StringField.NotValidated({ value: '' }),
           emailSubscriptionStatus: () => 'Succeeded',
@@ -500,7 +496,7 @@ const update = (
         [],
       ],
 
-      FailedEmailSubscription: () => [
+      FailedSubscribeEmail: () => [
         evo(model, {
           emailSubscriptionStatus: () => 'Failed',
         }),
@@ -866,10 +862,10 @@ const update = (
       },
     }),
     M.tag(
-      'CompletedInternalNavigation',
-      'CompletedExternalNavigation',
-      'CompletedAnalyticsInjection',
-      'CompletedSpeedInsightsInjection',
+      'CompletedNavigateInternal',
+      'CompletedNavigateExternal',
+      'CompletedInjectAnalytics',
+      'CompletedInjectSpeedInsights',
       'CompletedScroll',
       'CompletedApplyTheme',
       'CompletedSaveThemePreference',
@@ -882,16 +878,16 @@ const update = (
 
 // COMMAND
 
-const injectAnalytics: Command.Command<typeof CompletedAnalyticsInjection> =
+const injectAnalytics: Command.Command<typeof CompletedInjectAnalytics> =
   Effect.sync(() => inject()).pipe(
-    Effect.as(CompletedAnalyticsInjection()),
+    Effect.as(CompletedInjectAnalytics()),
     Command.make('InjectAnalytics'),
   )
 
 const injectSpeedInsights: Command.Command<
-  typeof CompletedSpeedInsightsInjection
+  typeof CompletedInjectSpeedInsights
 > = Effect.sync(() => SpeedInsights.injectSpeedInsights()).pipe(
-  Effect.as(CompletedSpeedInsightsInjection()),
+  Effect.as(CompletedInjectSpeedInsights()),
   Command.make('InjectSpeedInsights'),
 )
 
@@ -987,7 +983,7 @@ const validateEmail = StringField.validate([
 const subscribeToNewsletter = (
   email: string,
 ): Command.Command<
-  typeof SucceededEmailSubscription | typeof FailedEmailSubscription
+  typeof SucceededSubscribeEmail | typeof FailedSubscribeEmail
 > =>
   Effect.gen(function* () {
     const client = yield* HttpClient.HttpClient
@@ -1000,10 +996,10 @@ const subscribeToNewsletter = (
       return yield* Effect.fail('Subscription failed')
     }
 
-    return SucceededEmailSubscription()
+    return SucceededSubscribeEmail()
   }).pipe(
     Effect.scoped,
-    Effect.catchAll(() => Effect.succeed(FailedEmailSubscription())),
+    Effect.catchAll(() => Effect.succeed(FailedSubscribeEmail())),
     Effect.locally(HttpClient.currentTracerPropagation, false),
     Effect.provide(FetchHttpClient.layer),
     Command.make('SubscribeToNewsletter'),

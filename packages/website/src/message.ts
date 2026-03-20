@@ -17,12 +17,10 @@ export type ResolvedTheme = typeof ResolvedTheme.Type
 
 // MESSAGE
 
-export const CompletedInternalNavigation = m('CompletedInternalNavigation')
-export const CompletedExternalNavigation = m('CompletedExternalNavigation')
-export const CompletedAnalyticsInjection = m('CompletedAnalyticsInjection')
-export const CompletedSpeedInsightsInjection = m(
-  'CompletedSpeedInsightsInjection',
-)
+export const CompletedNavigateInternal = m('CompletedNavigateInternal')
+export const CompletedNavigateExternal = m('CompletedNavigateExternal')
+export const CompletedInjectAnalytics = m('CompletedInjectAnalytics')
+export const CompletedInjectSpeedInsights = m('CompletedInjectSpeedInsights')
 export const CompletedScroll = m('CompletedScroll')
 export const CompletedApplyTheme = m('CompletedApplyTheme')
 export const CompletedSaveThemePreference = m('CompletedSaveThemePreference')
@@ -44,8 +42,8 @@ export const HiddenCopiedIndicator = m('HiddenCopiedIndicator', {
 })
 export const UpdatedEmailField = m('UpdatedEmailField', { value: S.String })
 export const SubmittedEmailForm = m('SubmittedEmailForm')
-export const SucceededEmailSubscription = m('SucceededEmailSubscription')
-export const FailedEmailSubscription = m('FailedEmailSubscription')
+export const SucceededSubscribeEmail = m('SucceededSubscribeEmail')
+export const FailedSubscribeEmail = m('FailedSubscribeEmail')
 export const GotMobileMenuDialogMessage = m('GotMobileMenuDialogMessage', {
   message: Ui.Dialog.Message,
 })
@@ -127,10 +125,10 @@ export const GotSearchMessage = m('GotSearchMessage', {
 })
 
 export const Message = S.Union(
-  CompletedInternalNavigation,
-  CompletedExternalNavigation,
-  CompletedAnalyticsInjection,
-  CompletedSpeedInsightsInjection,
+  CompletedNavigateInternal,
+  CompletedNavigateExternal,
+  CompletedInjectAnalytics,
+  CompletedInjectSpeedInsights,
   CompletedScroll,
   CompletedApplyTheme,
   CompletedSaveThemePreference,
@@ -144,8 +142,8 @@ export const Message = S.Union(
   HiddenCopiedIndicator,
   UpdatedEmailField,
   SubmittedEmailForm,
-  SucceededEmailSubscription,
-  FailedEmailSubscription,
+  SucceededSubscribeEmail,
+  FailedSubscribeEmail,
   GotMobileMenuDialogMessage,
   ToggledMobileTableOfContents,
   ClickedMobileTableOfContentsLink,

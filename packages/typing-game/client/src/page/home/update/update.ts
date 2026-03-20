@@ -7,12 +7,12 @@ import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../../constant'
 import { optionWhen } from '../../../optionWhen'
 import { createRoom } from '../command'
 import {
-  CompletedRoomIdInputFocus,
-  CompletedUsernameInputFocus,
+  CompletedFocusRoomIdInput,
+  CompletedFocusUsernameInput,
   Message,
   type OutMessage,
-  SucceededRoomCreation,
-  SucceededRoomJoin,
+  SucceededCreateRoom,
+  SucceededJoinRoom,
 } from '../message'
 import { EnterRoomId, EnterUsername, Model, SelectAction } from '../model'
 import { handleKeyPressed } from './handleKeyPressed'
@@ -28,9 +28,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      CompletedUsernameInputFocus: () => [model, [], Option.none()],
+      CompletedFocusUsernameInput: () => [model, [], Option.none()],
 
-      CompletedRoomIdInputFocus: () => [model, [], Option.none()],
+      CompletedFocusRoomIdInput: () => [model, [], Option.none()],
 
       SubmittedUsernameForm: () =>
         M.value(model.homeStep).pipe(
@@ -72,7 +72,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [
           Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
             Effect.ignore,
-            Effect.as(CompletedUsernameInputFocus()),
+            Effect.as(CompletedFocusUsernameInput()),
             Command.make('FocusUsernameInput'),
           ),
         ],
@@ -84,7 +84,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [
           Task.focus(`#${ROOM_ID_INPUT_ID}`).pipe(
             Effect.ignore,
-            Effect.as(CompletedRoomIdInputFocus()),
+            Effect.as(CompletedFocusRoomIdInput()),
             Command.make('FocusRoomIdInput'),
           ),
         ],
@@ -147,16 +147,16 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       CreatedRoom: ({ roomId, player }) => [
         model,
         [],
-        Option.some(SucceededRoomCreation({ roomId, player })),
+        Option.some(SucceededCreateRoom({ roomId, player })),
       ],
 
       JoinedRoom: ({ roomId, player }) => [
         model,
         [],
-        Option.some(SucceededRoomJoin({ roomId, player })),
+        Option.some(SucceededJoinRoom({ roomId, player })),
       ],
 
-      FailedRoom: ({ error }) => [
+      FailedEnterRoom: ({ error }) => [
         evo(model, {
           formError: () => Option.some(error),
         }),

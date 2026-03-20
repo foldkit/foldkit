@@ -15,9 +15,9 @@ Messages use past-tense, verb-first naming. The verb prefix acts as a category m
 | `Blurred*`   | Focus loss                   | `BlurredEmailInput`, `BlurredPasswordInput`  |
 | `Selected*`  | Choice made                  | `SelectedFilter`, `SelectedTab`              |
 | `Toggled*`   | Binary state flip            | `ToggledDarkMode`, `ToggledSidebar`          |
-| `Succeeded*` | Async success (fallible)     | `SucceededWeatherFetch`, `SucceededLogin`    |
-| `Failed*`    | Async failure (fallible)     | `FailedWeatherFetch`, `FailedLogin`          |
-| `Completed*` | Fire-and-forget acknowledged | `CompletedInputFocus`, `CompletedScrollLock` |
+| `Succeeded*` | Async success (fallible)     | `SucceededFetchWeather`, `SucceededLogin`    |
+| `Failed*`    | Async failure (fallible)     | `FailedFetchWeather`, `FailedLogin`          |
+| `Completed*` | Fire-and-forget acknowledged | `CompletedFocusInput`, `CompletedLockScroll` |
 | `Got*`       | Child module OutMessage      | `GotHomeMessage`, `GotRoomMessage`           |
 | `Updated*`   | External state change        | `UpdatedRoom`, `UpdatedPlayerProgress`       |
 | `Loaded*`    | Data restored                | `LoadedSession`, `LoadedPreferences`         |
@@ -26,20 +26,20 @@ Messages use past-tense, verb-first naming. The verb prefix acts as a category m
 
 #### Completed\* naming
 
-Use object+verb compound nouns: the object comes first so the distinguishing word appears earlier.
+Use verb-first naming that mirrors the Command name: Command `LockScroll` → Message `CompletedLockScroll`.
 
 ```ts
-// RIGHT: object first, then verb
-CompletedInputFocus // (input) + (focus)
-CompletedScrollLock // (scroll) + (lock)
-CompletedDialogShow // (dialog) + (show)
-CompletedItemsFocus // (items) + (focus)
+// RIGHT: verb first, matching the Command name
+CompletedFocusInput // Command: FocusInput
+CompletedLockScroll // Command: LockScroll
+CompletedShowDialog // Command: ShowDialog
+CompletedFocusItems // Command: FocusItems
 
-// WRONG: verb first
-CompletedFocusInput
-CompletedLockScroll
-CompletedShowDialog
-CompletedFocusItems
+// WRONG: object first
+CompletedInputFocus
+CompletedScrollLock
+CompletedDialogShow
+CompletedItemsFocus
 ```
 
 #### Succeeded/Failed pairing
@@ -47,8 +47,8 @@ CompletedFocusItems
 Every `Succeeded*` must have a corresponding `Failed*`:
 
 ```ts
-const SucceededWeatherFetch = m('SucceededWeatherFetch', { weather: Weather })
-const FailedWeatherFetch = m('FailedWeatherFetch', { error: S.String })
+const SucceededFetchWeather = m('SucceededFetchWeather', { weather: Weather })
+const FailedFetchWeather = m('FailedFetchWeather', { error: S.String })
 ```
 
 ### Variables and Functions

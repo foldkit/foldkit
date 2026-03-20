@@ -48,16 +48,16 @@ export const UpdatedZipCodeInput = m('UpdatedZipCodeInput', {
   value: S.String,
 })
 export const SubmittedWeatherForm = m('SubmittedWeatherForm')
-export const SucceededWeatherFetch = m('SucceededWeatherFetch', {
+export const SucceededFetchWeather = m('SucceededFetchWeather', {
   weather: WeatherData,
 })
-export const FailedWeatherFetch = m('FailedWeatherFetch', { error: S.String })
+export const FailedFetchWeather = m('FailedFetchWeather', { error: S.String })
 
 const Message = S.Union(
   UpdatedZipCodeInput,
   SubmittedWeatherForm,
-  SucceededWeatherFetch,
-  FailedWeatherFetch,
+  SucceededFetchWeather,
+  FailedFetchWeather,
 )
 type Message = typeof Message.Type
 
@@ -82,14 +82,14 @@ export const update = (
         [fetchWeatherLive(model.zipCodeInput)],
       ],
 
-      SucceededWeatherFetch: ({ weather }) => [
+      SucceededFetchWeather: ({ weather }) => [
         evo(model, {
           weather: () => WeatherSuccess({ data: weather }),
         }),
         [],
       ],
 
-      FailedWeatherFetch: ({ error }) => [
+      FailedFetchWeather: ({ error }) => [
         evo(model, {
           weather: () => WeatherFailure({ error }),
         }),
@@ -151,14 +151,14 @@ const weatherCodeToDescription = (code: number): string =>
 export const fetchWeather = (
   zipCode: string,
 ): Command.Command<
-  typeof SucceededWeatherFetch | typeof FailedWeatherFetch,
+  typeof SucceededFetchWeather | typeof FailedFetchWeather,
   never,
   HttpClient.HttpClient
 > =>
   Effect.gen(function* () {
     if (String.isEmpty(zipCode.trim())) {
       return yield* Effect.fail(
-        FailedWeatherFetch({ error: 'Zip code required' }),
+        FailedFetchWeather({ error: 'Zip code required' }),
       )
     }
 
@@ -176,7 +176,7 @@ export const fetchWeather = (
 
     if (geocodeResponse.status !== 200) {
       return yield* Effect.fail(
-        FailedWeatherFetch({ error: 'Location not found' }),
+        FailedFetchWeather({ error: 'Location not found' }),
       )
     }
 
@@ -188,7 +188,7 @@ export const fetchWeather = (
       Option.flatMap(Array.head),
       Option.match({
         onNone: () =>
-          Effect.fail(FailedWeatherFetch({ error: 'Location not found' })),
+          Effect.fail(FailedFetchWeather({ error: 'Location not found' })),
         onSome: Effect.succeed,
       }),
     )
@@ -207,7 +207,7 @@ export const fetchWeather = (
 
     if (weatherResponse.status !== 200) {
       return yield* Effect.fail(
-        FailedWeatherFetch({ error: 'Failed to fetch weather data' }),
+        FailedFetchWeather({ error: 'Failed to fetch weather data' }),
       )
     }
 
@@ -225,13 +225,13 @@ export const fetchWeather = (
       region: Option.getOrElse(geoResult.admin1, () => ''),
     })
 
-    return SucceededWeatherFetch({ weather })
+    return SucceededFetchWeather({ weather })
   }).pipe(
     Effect.scoped,
-    Effect.catchTag('FailedWeatherFetch', error => Effect.succeed(error)),
+    Effect.catchTag('FailedFetchWeather', error => Effect.succeed(error)),
     Effect.catchAll(() =>
       Effect.succeed(
-        FailedWeatherFetch({ error: 'Failed to fetch weather data' }),
+        FailedFetchWeather({ error: 'Failed to fetch weather data' }),
       ),
     ),
     Command.make('FetchWeather'),
@@ -239,7 +239,7 @@ export const fetchWeather = (
 
 const fetchWeatherLive = (
   zipCode: string,
-): Command.Command<typeof SucceededWeatherFetch | typeof FailedWeatherFetch> =>
+): Command.Command<typeof SucceededFetchWeather | typeof FailedFetchWeather> =>
   Command.mapEffect(fetchWeather(zipCode), effect =>
     effect.pipe(
       Effect.locally(HttpClient.currentTracerPropagation, false),

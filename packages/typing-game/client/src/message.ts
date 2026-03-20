@@ -4,12 +4,12 @@ import { m } from 'foldkit/message'
 
 import { Home, Room } from './page'
 
-export const CompletedInternalNavigation = m('CompletedInternalNavigation')
-export const CompletedExternalNavigation = m('CompletedExternalNavigation')
-export const CompletedUsernameInputFocus = m('CompletedUsernameInputFocus')
-export const CompletedRoomNavigation = m('CompletedRoomNavigation')
-export const CompletedSessionSave = m('CompletedSessionSave')
-export const CompletedSessionClear = m('CompletedSessionClear')
+export const CompletedNavigateInternal = m('CompletedNavigateInternal')
+export const CompletedNavigateExternal = m('CompletedNavigateExternal')
+export const CompletedFocusUsernameInput = m('CompletedFocusUsernameInput')
+export const CompletedNavigateRoom = m('CompletedNavigateRoom')
+export const CompletedSaveSession = m('CompletedSaveSession')
+export const CompletedClearSession = m('CompletedClearSession')
 export const IgnoredKeyPress = m('IgnoredKeyPress')
 export const ClickedLink = m('ClickedLink', {
   request: Runtime.UrlRequest,
@@ -23,12 +23,12 @@ export const GotRoomMessage = m('GotRoomMessage', {
 })
 
 export const Message = S.Union(
-  CompletedInternalNavigation,
-  CompletedExternalNavigation,
-  CompletedUsernameInputFocus,
-  CompletedRoomNavigation,
-  CompletedSessionSave,
-  CompletedSessionClear,
+  CompletedNavigateInternal,
+  CompletedNavigateExternal,
+  CompletedFocusUsernameInput,
+  CompletedNavigateRoom,
+  CompletedSaveSession,
+  CompletedClearSession,
   IgnoredKeyPress,
   ClickedLink,
   ChangedUrl,

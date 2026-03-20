@@ -24,7 +24,7 @@ test('SubmittedWeatherForm sets loading state and returns fetch Command', () => 
   expect(commands).toHaveLength(1)
 })
 
-test('fetchWeather returns SucceededWeatherFetch with data on success', async () => {
+test('fetchWeather returns SucceededFetchWeather with data on success', async () => {
   const mockClient = HttpClient.make(request =>
     Effect.sync(() => {
       const responseData = M.value(request.url).pipe(
@@ -64,5 +64,5 @@ test('fetchWeather returns SucceededWeatherFetch with data on success', async ()
     Effect.runPromise,
   )
 
-  expect(message._tag).toBe('SucceededWeatherFetch')
+  expect(message._tag).toBe('SucceededFetchWeather')
 })

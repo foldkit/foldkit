@@ -175,7 +175,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Commands use Effect\u2019s typed error channel \u2014 if a Command can fail, the type signature tells you. ',
         inlineCode('Effect.catchAll'),
         ' turns failures into Messages like ',
-        inlineCode('FailedCountFetch'),
+        inlineCode('FailedFetchCount'),
         ', and once all errors are handled, the type confirms it. The update function handles errors the same way it handles success: as facts about what happened.',
       ),
       para(

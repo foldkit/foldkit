@@ -3,7 +3,7 @@ export { init, update, view, lazy, Model, Message } from './index'
 export type {
   Toggled,
   Closed,
-  CompletedButtonFocus,
+  CompletedFocusButton,
   InitConfig,
   ViewConfig,
 } from './index'

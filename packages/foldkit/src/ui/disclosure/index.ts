@@ -29,16 +29,16 @@ export const Toggled = m('Toggled')
 /** Sent to explicitly close the disclosure, regardless of its current state. */
 export const Closed = m('Closed')
 /** Sent when the focus-button command completes after closing. */
-export const CompletedButtonFocus = m('CompletedButtonFocus')
+export const CompletedFocusButton = m('CompletedFocusButton')
 
 /** Union of all messages the disclosure component can produce. */
 export const Message: S.Union<
-  [typeof Toggled, typeof Closed, typeof CompletedButtonFocus]
-> = S.Union(Toggled, Closed, CompletedButtonFocus)
+  [typeof Toggled, typeof Closed, typeof CompletedFocusButton]
+> = S.Union(Toggled, Closed, CompletedFocusButton)
 
 export type Toggled = typeof Toggled.Type
 export type Closed = typeof Closed.Type
-export type CompletedButtonFocus = typeof CompletedButtonFocus.Type
+export type CompletedFocusButton = typeof CompletedFocusButton.Type
 
 export type Message = typeof Message.Type
 
@@ -76,7 +76,7 @@ export const update = (
         const maybeFocus = Option.liftPredicate(
           Task.focus(buttonSelector(model.id)).pipe(
             Effect.ignore,
-            Effect.as(CompletedButtonFocus()),
+            Effect.as(CompletedFocusButton()),
             Command.make('FocusButton'),
           ),
           () => model.isOpen,
@@ -91,7 +91,7 @@ export const update = (
         const maybeFocus = Option.liftPredicate(
           Task.focus(buttonSelector(model.id)).pipe(
             Effect.ignore,
-            Effect.as(CompletedButtonFocus()),
+            Effect.as(CompletedFocusButton()),
             Command.make('FocusButton'),
           ),
           () => model.isOpen,
@@ -99,7 +99,7 @@ export const update = (
 
         return [evo(model, { isOpen: () => false }), Option.toArray(maybeFocus)]
       },
-      CompletedButtonFocus: () => [model, []],
+      CompletedFocusButton: () => [model, []],
     }),
   )
 
@@ -108,7 +108,7 @@ export const update = (
 /** Configuration for rendering a disclosure with `view`. */
 export type ViewConfig<Message> = Readonly<{
   model: Model
-  toMessage: (message: Toggled | Closed | CompletedButtonFocus) => Message
+  toMessage: (message: Toggled | Closed | CompletedFocusButton) => Message
   buttonClassName?: string
   buttonAttributes?: ReadonlyArray<Attribute<Message>>
   buttonContent: Html

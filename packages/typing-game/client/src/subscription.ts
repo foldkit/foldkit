@@ -60,7 +60,7 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
               Stream.catchAll(error =>
                 Stream.make(
                   GotRoomMessage({
-                    message: Room.Message.FailedRoomStream({
+                    message: Room.Message.FailedStreamRoom({
                       error: String(error),
                     }),
                   }),

@@ -2,7 +2,7 @@ import { Effect, Option } from 'effect'
 import { Command, Task } from 'foldkit'
 
 import { USERNAME_INPUT_ID } from '../../constant'
-import { CompletedUsernameInputFocus, Message } from './message'
+import { CompletedFocusUsernameInput, Message } from './message'
 import { EnterUsername, Model } from './model'
 
 export type InitReturn = [Model, ReadonlyArray<Command.Command<Message>>]
@@ -15,7 +15,7 @@ export const init = (): InitReturn => [
   [
     Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
       Effect.ignore,
-      Effect.as(CompletedUsernameInputFocus()),
+      Effect.as(CompletedFocusUsernameInput()),
       Command.make('FocusUsernameInput'),
     ),
   ],

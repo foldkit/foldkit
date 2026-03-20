@@ -4,8 +4,8 @@ import { pushUrl } from 'foldkit/navigation'
 import * as Task from 'foldkit/task'
 
 import {
-  CompletedResultScroll,
-  CompletedSearchNavigation,
+  CompletedNavigateSearch,
+  CompletedScrollResult,
   ReceivedSearchResults,
   SearchResult,
 } from './message'
@@ -87,18 +87,18 @@ export const searchPagefind = (
 
 export const scrollActiveResultIntoView = (
   index: number,
-): Command.Command<typeof CompletedResultScroll> =>
+): Command.Command<typeof CompletedScrollResult> =>
   Task.scrollIntoView(`${SEARCH_RESULT_SELECTOR}"${index}"]`).pipe(
     Effect.ignore,
-    Effect.as(CompletedResultScroll()),
+    Effect.as(CompletedScrollResult()),
     Command.make('ScrollToResult'),
   )
 
 export const navigateToResult = (
   url: string,
-): Command.Command<typeof CompletedSearchNavigation> =>
+): Command.Command<typeof CompletedNavigateSearch> =>
   pushUrl(url).pipe(
-    Effect.as(CompletedSearchNavigation()),
+    Effect.as(CompletedNavigateSearch()),
     Command.make('NavigateToResult'),
   )
 

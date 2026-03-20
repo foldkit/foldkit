@@ -2,8 +2,8 @@ import * as Shared from '@typing-game/shared'
 import { Schema as S } from 'effect'
 import { m } from 'foldkit/message'
 
-export const CompletedUsernameInputFocus = m('CompletedUsernameInputFocus')
-export const CompletedRoomIdInputFocus = m('CompletedRoomIdInputFocus')
+export const CompletedFocusUsernameInput = m('CompletedFocusUsernameInput')
+export const CompletedFocusRoomIdInput = m('CompletedFocusRoomIdInput')
 export const SubmittedUsernameForm = m('SubmittedUsernameForm')
 export const ChangedUsername = m('ChangedUsername', { value: S.String })
 export const BlurredUsernameInput = m('BlurredUsernameInput')
@@ -19,12 +19,12 @@ export const JoinedRoom = m('JoinedRoom', {
   roomId: S.String,
   player: Shared.Player,
 })
-export const FailedRoom = m('FailedRoom', { error: S.String })
+export const FailedEnterRoom = m('FailedEnterRoom', { error: S.String })
 export const PressedKey = m('PressedKey', { key: S.String })
 
 export const Message = S.Union(
-  CompletedUsernameInputFocus,
-  CompletedRoomIdInputFocus,
+  CompletedFocusUsernameInput,
+  CompletedFocusRoomIdInput,
   SubmittedUsernameForm,
   ChangedUsername,
   BlurredUsernameInput,
@@ -34,21 +34,21 @@ export const Message = S.Union(
   ClickedJoinRoom,
   CreatedRoom,
   JoinedRoom,
-  FailedRoom,
+  FailedEnterRoom,
   PressedKey,
 )
 export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
-export const SucceededRoomCreation = m('SucceededRoomCreation', {
+export const SucceededCreateRoom = m('SucceededCreateRoom', {
   roomId: S.String,
   player: Shared.Player,
 })
-export const SucceededRoomJoin = m('SucceededRoomJoin', {
+export const SucceededJoinRoom = m('SucceededJoinRoom', {
   roomId: S.String,
   player: Shared.Player,
 })
 
-export const OutMessage = S.Union(SucceededRoomCreation, SucceededRoomJoin)
+export const OutMessage = S.Union(SucceededCreateRoom, SucceededJoinRoom)
 export type OutMessage = typeof OutMessage.Type

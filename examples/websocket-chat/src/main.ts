@@ -57,7 +57,7 @@ type Model = typeof Model.Type
 const RequestedConnection = m('RequestedConnection')
 const Connected = m('Connected')
 const Disconnected = m('Disconnected')
-const FailedConnection = m('FailedConnection', { error: S.String })
+const FailedConnect = m('FailedConnect', { error: S.String })
 const UpdatedMessageInput = m('UpdatedMessageInput', { value: S.String })
 const RequestedMessageSend = m('RequestedMessageSend')
 const SentMessage = m('SentMessage', { text: S.String })
@@ -72,7 +72,7 @@ const Message = S.Union(
   RequestedConnection,
   Connected,
   Disconnected,
-  FailedConnection,
+  FailedConnect,
   UpdatedMessageInput,
   RequestedMessageSend,
   SentMessage,
@@ -114,7 +114,7 @@ const update = (
         [],
       ],
 
-      FailedConnection: ({ error }) => [
+      FailedConnect: ({ error }) => [
         evo(model, {
           connection: () => ConnectionError({ error }),
         }),
@@ -205,7 +205,7 @@ const init: Runtime.ElementInit<Model, Message> = () => [
 const sendMessage = (
   text: string,
 ): Command.Command<
-  typeof SentMessage | typeof FailedConnection,
+  typeof SentMessage | typeof FailedConnect,
   never,
   ChatSocketService
 > =>
@@ -217,7 +217,7 @@ const sendMessage = (
       }),
     ),
     Effect.catchTag('ResourceNotAvailable', () =>
-      Effect.succeed(FailedConnection({ error: 'Socket unavailable' })),
+      Effect.succeed(FailedConnect({ error: 'Socket unavailable' })),
     ),
     Command.make('SendMessage'),
   )
@@ -273,7 +273,7 @@ const managedResources = ManagedResource.makeManagedResources(
     onAcquired: () => Connected(),
     onReleased: () => Disconnected(),
     onAcquireError: error =>
-      FailedConnection({
+      FailedConnect({
         error: error instanceof Error ? error.message : 'Unknown error',
       }),
   },
@@ -304,7 +304,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
             Stream.async<
               | typeof ReceivedMessage.Type
               | typeof Disconnected.Type
-              | typeof FailedConnection.Type
+              | typeof FailedConnect.Type
             >(emit => {
               const handleMessage = (event: MessageEvent) => {
                 emit.single(ReceivedMessage({ text: event.data }))
@@ -316,7 +316,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
               }
 
               const handleError = () => {
-                emit.single(FailedConnection({ error: 'Connection error' }))
+                emit.single(FailedConnect({ error: 'Connection error' }))
                 emit.end()
               }
 

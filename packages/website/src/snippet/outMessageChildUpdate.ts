@@ -16,7 +16,7 @@ export const update = (
         [login(model.email, model.password)],
         Option.none(),
       ],
-      SucceededLoginRequest: ({ sessionId }) => [
+      SucceededRequestLogin: ({ sessionId }) => [
         model,
         [],
         Option.some(SucceededLogin({ sessionId })),

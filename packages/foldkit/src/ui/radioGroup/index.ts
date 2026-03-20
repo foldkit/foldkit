@@ -39,15 +39,15 @@ export const SelectedOption = m('SelectedOption', {
   index: S.Number,
 })
 /** Sent when the focus-option command completes. */
-export const CompletedOptionFocus = m('CompletedOptionFocus')
+export const CompletedFocusOption = m('CompletedFocusOption')
 
 /** Union of all messages the radio group component can produce. */
 export const Message: S.Union<
-  [typeof SelectedOption, typeof CompletedOptionFocus]
-> = S.Union(SelectedOption, CompletedOptionFocus)
+  [typeof SelectedOption, typeof CompletedFocusOption]
+> = S.Union(SelectedOption, CompletedFocusOption)
 
 export type SelectedOption = typeof SelectedOption.Type
-export type CompletedOptionFocus = typeof CompletedOptionFocus.Type
+export type CompletedFocusOption = typeof CompletedFocusOption.Type
 
 export type Message = typeof Message.Type
 
@@ -87,13 +87,13 @@ export const update = (
           [
             Task.focus(selector).pipe(
               Effect.ignore,
-              Effect.as(CompletedOptionFocus()),
+              Effect.as(CompletedFocusOption()),
               Command.make('FocusOption'),
             ),
           ],
         ]
       },
-      CompletedOptionFocus: () => [model, []],
+      CompletedFocusOption: () => [model, []],
     }),
   )
 
@@ -128,7 +128,7 @@ export type NarrowedSelectedOption<RadioOption extends string> = Readonly<{
 export type ViewConfig<Message, RadioOption extends string> = Readonly<{
   model: Model
   toMessage: (
-    message: NarrowedSelectedOption<RadioOption> | CompletedOptionFocus,
+    message: NarrowedSelectedOption<RadioOption> | CompletedFocusOption,
   ) => Message
   options: ReadonlyArray<RadioOption>
   optionToConfig: (

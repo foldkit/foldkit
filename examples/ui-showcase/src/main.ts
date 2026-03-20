@@ -112,8 +112,8 @@ type Model = typeof Model.Type
 
 // MESSAGE
 
-const CompletedInternalNavigation = m('CompletedInternalNavigation')
-const CompletedExternalNavigation = m('CompletedExternalNavigation')
+const CompletedNavigateInternal = m('CompletedNavigateInternal')
+const CompletedNavigateExternal = m('CompletedNavigateExternal')
 const ClickedLink = m('ClickedLink', {
   request: Runtime.UrlRequest,
 })
@@ -123,8 +123,8 @@ const GotUiMessage = m('GotUiMessage', {
 })
 
 export const Message = S.Union(
-  CompletedInternalNavigation,
-  CompletedExternalNavigation,
+  CompletedNavigateInternal,
+  CompletedNavigateExternal,
   ClickedLink,
   ChangedUrl,
   GotUiMessage,
@@ -162,8 +162,8 @@ const update = (
   M.value(message).pipe(
     M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
     M.tagsExhaustive({
-      CompletedInternalNavigation: () => [model, []],
-      CompletedExternalNavigation: () => [model, []],
+      CompletedNavigateInternal: () => [model, []],
+      CompletedNavigateExternal: () => [model, []],
 
       ClickedLink: ({ request }) =>
         M.value(request).pipe(
@@ -172,14 +172,12 @@ const update = (
               url,
             }): [
               Model,
-              ReadonlyArray<
-                Command.Command<typeof CompletedInternalNavigation>
-              >,
+              ReadonlyArray<Command.Command<typeof CompletedNavigateInternal>>,
             ] => [
               model,
               [
                 pushUrl(urlToString(url)).pipe(
-                  Effect.as(CompletedInternalNavigation()),
+                  Effect.as(CompletedNavigateInternal()),
                   Command.make('NavigateInternal'),
                 ),
               ],
@@ -188,14 +186,12 @@ const update = (
               href,
             }): [
               Model,
-              ReadonlyArray<
-                Command.Command<typeof CompletedExternalNavigation>
-              >,
+              ReadonlyArray<Command.Command<typeof CompletedNavigateExternal>>,
             ] => [
               model,
               [
                 load(href).pipe(
-                  Effect.as(CompletedExternalNavigation()),
+                  Effect.as(CompletedNavigateExternal()),
                   Command.make('LoadExternal'),
                 ),
               ],

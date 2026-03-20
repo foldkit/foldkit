@@ -7,15 +7,15 @@ import { SESSION_STORAGE_KEY } from './constant'
 import { Session } from './domain/session'
 import {
   ClearedSession,
-  CompletedErrorLog,
-  FailedSessionClear,
-  FailedSessionSave,
+  CompletedLogError,
+  FailedClearSession,
+  FailedSaveSession,
   SavedSession,
 } from './message'
 
 export const saveSession = (
   session: Session,
-): Command.Command<typeof SavedSession | typeof FailedSessionSave> =>
+): Command.Command<typeof SavedSession | typeof FailedSaveSession> =>
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
     yield* store.set(
@@ -25,14 +25,14 @@ export const saveSession = (
     return SavedSession()
   }).pipe(
     Effect.catchAll(error =>
-      Effect.succeed(FailedSessionSave({ error: String(error) })),
+      Effect.succeed(FailedSaveSession({ error: String(error) })),
     ),
     Effect.provide(BrowserKeyValueStore.layerLocalStorage),
     Command.make('SaveSession'),
   )
 
 export const clearSession = (): Command.Command<
-  typeof ClearedSession | typeof FailedSessionClear
+  typeof ClearedSession | typeof FailedClearSession
 > =>
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
@@ -40,7 +40,7 @@ export const clearSession = (): Command.Command<
     return ClearedSession()
   }).pipe(
     Effect.catchAll(error =>
-      Effect.succeed(FailedSessionClear({ error: String(error) })),
+      Effect.succeed(FailedClearSession({ error: String(error) })),
     ),
     Effect.provide(BrowserKeyValueStore.layerLocalStorage),
     Command.make('ClearSession'),
@@ -48,8 +48,8 @@ export const clearSession = (): Command.Command<
 
 export const logError = (
   ...args: ReadonlyArray<unknown>
-): Command.Command<typeof CompletedErrorLog> =>
+): Command.Command<typeof CompletedLogError> =>
   Console.error(...args).pipe(
-    Effect.as(CompletedErrorLog()),
+    Effect.as(CompletedLogError()),
     Command.make('LogError'),
   )

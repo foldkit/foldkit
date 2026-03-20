@@ -6,8 +6,8 @@ import { toString as urlToString } from 'foldkit/url'
 
 import { clearSession, logError, saveSession } from './command'
 import {
-  CompletedExternalNavigation,
-  CompletedInternalNavigation,
+  CompletedNavigateExternal,
+  CompletedNavigateInternal,
   GotLoggedInMessage,
   GotLoggedOutMessage,
   Message,
@@ -37,7 +37,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               model,
               [
                 pushUrl(urlToString(url)).pipe(
-                  Effect.as(CompletedInternalNavigation()),
+                  Effect.as(CompletedNavigateInternal()),
                   Command.make('NavigateInternal'),
                 ),
               ],
@@ -46,7 +46,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               model,
               [
                 load(href).pipe(
-                  Effect.as(CompletedExternalNavigation()),
+                  Effect.as(CompletedNavigateExternal()),
                   Command.make('LoadExternal'),
                 ),
               ],
@@ -71,7 +71,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                   model,
                   [
                     replaceUrl(loginRouter()).pipe(
-                      Effect.as(CompletedInternalNavigation()),
+                      Effect.as(CompletedNavigateInternal()),
                       Command.make('RedirectToLogin'),
                     ),
                   ],
@@ -89,7 +89,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                   model,
                   [
                     replaceUrl(dashboardRouter()).pipe(
-                      Effect.as(CompletedInternalNavigation()),
+                      Effect.as(CompletedNavigateInternal()),
                       Command.make('RedirectToDashboard'),
                     ),
                   ],
@@ -108,12 +108,12 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           }),
         ),
 
-      FailedSessionSave: ({ error }) => [
+      FailedSaveSession: ({ error }) => [
         model,
         [logError('Failed to save session:', error)],
       ],
 
-      FailedSessionClear: ({ error }) => [
+      FailedClearSession: ({ error }) => [
         model,
         [logError('Failed to clear session:', error)],
       ],
@@ -125,9 +125,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         handleGotLoggedInMessage(model, message),
     }),
     M.tag(
-      'CompletedInternalNavigation',
-      'CompletedExternalNavigation',
-      'CompletedErrorLog',
+      'CompletedNavigateInternal',
+      'CompletedNavigateExternal',
+      'CompletedLogError',
       'SavedSession',
       'ClearedSession',
       () => [model, []],
@@ -165,7 +165,7 @@ const handleGotLoggedOutMessage = (
               ...mappedCommands,
               saveSession(session),
               replaceUrl(dashboardRouter()).pipe(
-                Effect.as(CompletedInternalNavigation()),
+                Effect.as(CompletedNavigateInternal()),
                 Command.make('RedirectToDashboard'),
               ),
             ],
@@ -202,7 +202,7 @@ const handleGotLoggedInMessage = (
               ...mappedCommands,
               clearSession(),
               replaceUrl(homeRouter()).pipe(
-                Effect.as(CompletedInternalNavigation()),
+                Effect.as(CompletedNavigateInternal()),
                 Command.make('RedirectToHome'),
               ),
             ],

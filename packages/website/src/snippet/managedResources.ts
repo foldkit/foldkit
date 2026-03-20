@@ -36,7 +36,7 @@ const managedResources = ManagedResource.makeManagedResources(
       Effect.sync(() => stream.getTracks().forEach(track => track.stop())),
     onAcquired: () => AcquiredCamera(),
     onReleased: () => ReleasedCamera(),
-    onAcquireError: error => FailedToAcquireCamera({ error: String(error) }),
+    onAcquireError: error => FailedAcquireCamera({ error: String(error) }),
   },
 })
 

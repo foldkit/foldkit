@@ -4,19 +4,19 @@ import { m } from 'foldkit/message'
 
 import { RoomPlayerSession } from './model'
 
-export const CompletedRoomPageUsernameInputFocus = m(
-  'CompletedRoomPageUsernameInputFocus',
+export const CompletedFocusRoomPageUsernameInput = m(
+  'CompletedFocusRoomPageUsernameInput',
 )
-export const CompletedUserGameTextInputFocus = m(
-  'CompletedUserGameTextInputFocus',
+export const CompletedFocusUserGameTextInput = m(
+  'CompletedFocusUserGameTextInput',
 )
-export const CompletedHomeNavigation = m('CompletedHomeNavigation')
-export const CompletedGameStartRequest = m('CompletedGameStartRequest')
-export const CompletedPlayerProgressUpdate = m('CompletedPlayerProgressUpdate')
-export const CompletedSessionSave = m('CompletedSessionSave')
-export const CompletedSessionClear = m('CompletedSessionClear')
-export const FailedRoomJoin = m('FailedRoomJoin')
-export const FailedClipboardCopy = m('FailedClipboardCopy')
+export const CompletedNavigateHome = m('CompletedNavigateHome')
+export const CompletedRequestGameStart = m('CompletedRequestGameStart')
+export const CompletedUpdatePlayerProgress = m('CompletedUpdatePlayerProgress')
+export const CompletedSaveSession = m('CompletedSaveSession')
+export const CompletedClearSession = m('CompletedClearSession')
+export const FailedJoinRoom = m('FailedJoinRoom')
+export const FailedCopyClipboard = m('FailedCopyClipboard')
 export const PressedKey = m('PressedKey', { key: S.String })
 export const ChangedUserText = m('ChangedUserText', { value: S.String })
 export const BlurredRoomPageUsernameInput = m('BlurredRoomPageUsernameInput')
@@ -30,7 +30,7 @@ export const UpdatedRoom = m('UpdatedRoom', {
   room: Shared.Room,
   maybePlayerProgress: S.Option(Shared.PlayerProgress),
 })
-export const FailedRoomStream = m('FailedRoomStream', { error: S.String })
+export const FailedStreamRoom = m('FailedStreamRoom', { error: S.String })
 export const RequestedStartGame = m('RequestedStartGame', {
   roomId: S.String,
   playerId: S.String,
@@ -38,8 +38,8 @@ export const RequestedStartGame = m('RequestedStartGame', {
 export const LoadedSession = m('LoadedSession', {
   maybeSession: S.Option(RoomPlayerSession),
 })
-export const SucceededRoomFetch = m('SucceededRoomFetch', { room: Shared.Room })
-export const FailedRoomFetch = m('FailedRoomFetch', { roomId: S.String })
+export const SucceededFetchRoom = m('SucceededFetchRoom', { room: Shared.Room })
+export const FailedFetchRoom = m('FailedFetchRoom', { roomId: S.String })
 export const ClickedCopyRoomId = m('ClickedCopyRoomId', { roomId: S.String })
 export const SucceededCopyRoomId = m('SucceededCopyRoomId')
 export const HiddenRoomIdCopiedIndicator = m('HiddenRoomIdCopiedIndicator')
@@ -50,26 +50,26 @@ export const JoinedRoom = m('JoinedRoom', {
 })
 
 export const Message = S.Union(
-  CompletedRoomPageUsernameInputFocus,
-  CompletedUserGameTextInputFocus,
-  CompletedHomeNavigation,
-  CompletedGameStartRequest,
-  CompletedPlayerProgressUpdate,
-  CompletedSessionSave,
-  CompletedSessionClear,
-  FailedRoomJoin,
-  FailedClipboardCopy,
+  CompletedFocusRoomPageUsernameInput,
+  CompletedFocusUserGameTextInput,
+  CompletedNavigateHome,
+  CompletedRequestGameStart,
+  CompletedUpdatePlayerProgress,
+  CompletedSaveSession,
+  CompletedClearSession,
+  FailedJoinRoom,
+  FailedCopyClipboard,
   PressedKey,
   ChangedUserText,
   BlurredRoomPageUsernameInput,
   ChangedRoomPageUsername,
   SubmittedJoinRoomFromPage,
   UpdatedRoom,
-  FailedRoomStream,
+  FailedStreamRoom,
   RequestedStartGame,
   LoadedSession,
-  SucceededRoomFetch,
-  FailedRoomFetch,
+  SucceededFetchRoom,
+  FailedFetchRoom,
   ClickedCopyRoomId,
   SucceededCopyRoomId,
   HiddenRoomIdCopiedIndicator,

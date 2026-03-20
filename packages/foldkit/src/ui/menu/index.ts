@@ -91,23 +91,23 @@ export const MovedPointerOverItem = m('MovedPointerOverItem', {
   screenY: S.Number,
 })
 /** Sent when the focus-items command completes after opening the menu. */
-export const CompletedItemsFocus = m('CompletedItemsFocus')
+export const CompletedFocusItems = m('CompletedFocusItems')
 /** Sent when the focus-button command completes after closing or selecting. */
-export const CompletedButtonFocus = m('CompletedButtonFocus')
+export const CompletedFocusButton = m('CompletedFocusButton')
 /** Sent when the scroll lock command completes. */
-export const CompletedScrollLock = m('CompletedScrollLock')
+export const CompletedLockScroll = m('CompletedLockScroll')
 /** Sent when the scroll unlock command completes. */
-export const CompletedScrollUnlock = m('CompletedScrollUnlock')
+export const CompletedUnlockScroll = m('CompletedUnlockScroll')
 /** Sent when the inert-others command completes. */
-export const CompletedInertSetup = m('CompletedInertSetup')
+export const CompletedSetupInert = m('CompletedSetupInert')
 /** Sent when the restore-inert command completes. */
-export const CompletedInertTeardown = m('CompletedInertTeardown')
+export const CompletedTeardownInert = m('CompletedTeardownInert')
 /** Sent when the scroll-into-view command completes after keyboard activation. */
 export const CompletedScrollIntoView = m('CompletedScrollIntoView')
 /** Sent when the programmatic click command completes. */
-export const CompletedItemClick = m('CompletedItemClick')
+export const CompletedClickItem = m('CompletedClickItem')
 /** Sent when the advance-focus command completes. */
-export const CompletedFocusAdvance = m('CompletedFocusAdvance')
+export const CompletedAdvanceFocus = m('CompletedAdvanceFocus')
 /** Sent when a mouse click on the button is ignored because pointer-down already handled the toggle. */
 export const IgnoredMouseClick = m('IgnoredMouseClick')
 /** Sent when a Space key-up is captured to prevent page scrolling. */
@@ -146,15 +146,15 @@ export const Message: S.Union<
     typeof RequestedItemClick,
     typeof Searched,
     typeof ClearedSearch,
-    typeof CompletedItemsFocus,
-    typeof CompletedButtonFocus,
-    typeof CompletedScrollLock,
-    typeof CompletedScrollUnlock,
-    typeof CompletedInertSetup,
-    typeof CompletedInertTeardown,
+    typeof CompletedFocusItems,
+    typeof CompletedFocusButton,
+    typeof CompletedLockScroll,
+    typeof CompletedUnlockScroll,
+    typeof CompletedSetupInert,
+    typeof CompletedTeardownInert,
     typeof CompletedScrollIntoView,
-    typeof CompletedItemClick,
-    typeof CompletedFocusAdvance,
+    typeof CompletedClickItem,
+    typeof CompletedAdvanceFocus,
     typeof IgnoredMouseClick,
     typeof SuppressedSpaceScroll,
     typeof AdvancedTransitionFrame,
@@ -174,15 +174,15 @@ export const Message: S.Union<
   RequestedItemClick,
   Searched,
   ClearedSearch,
-  CompletedItemsFocus,
-  CompletedButtonFocus,
-  CompletedScrollLock,
-  CompletedScrollUnlock,
-  CompletedInertSetup,
-  CompletedInertTeardown,
+  CompletedFocusItems,
+  CompletedFocusButton,
+  CompletedLockScroll,
+  CompletedUnlockScroll,
+  CompletedSetupInert,
+  CompletedTeardownInert,
   CompletedScrollIntoView,
-  CompletedItemClick,
-  CompletedFocusAdvance,
+  CompletedClickItem,
+  CompletedAdvanceFocus,
   IgnoredMouseClick,
   SuppressedSpaceScroll,
   AdvancedTransitionFrame,
@@ -278,7 +278,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
   const maybeLockScroll = OptionExt.when(
     model.isModal,
     Task.lockScroll.pipe(
-      Effect.as(CompletedScrollLock()),
+      Effect.as(CompletedLockScroll()),
       Command.make('LockScroll'),
     ),
   )
@@ -286,7 +286,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
   const maybeUnlockScroll = OptionExt.when(
     model.isModal,
     Task.unlockScroll.pipe(
-      Effect.as(CompletedScrollUnlock()),
+      Effect.as(CompletedUnlockScroll()),
       Command.make('UnlockScroll'),
     ),
   )
@@ -296,13 +296,13 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     Task.inertOthers(model.id, [
       buttonSelector(model.id),
       itemsSelector(model.id),
-    ]).pipe(Effect.as(CompletedInertSetup()), Command.make('InertOthers')),
+    ]).pipe(Effect.as(CompletedSetupInert()), Command.make('InertOthers')),
   )
 
   const maybeRestoreInert = OptionExt.when(
     model.isModal,
     Task.restoreInert(model.id).pipe(
-      Effect.as(CompletedInertTeardown()),
+      Effect.as(CompletedTeardownInert()),
       Command.make('RestoreInert'),
     ),
   )
@@ -332,7 +332,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             Array.prepend(
               Task.focus(itemsSelector(model.id)).pipe(
                 Effect.ignore,
-                Effect.as(CompletedItemsFocus()),
+                Effect.as(CompletedFocusItems()),
                 Command.make('FocusItems'),
               ),
             ),
@@ -351,7 +351,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           Array.prepend(
             Task.focus(buttonSelector(model.id)).pipe(
               Effect.ignore,
-              Effect.as(CompletedButtonFocus()),
+              Effect.as(CompletedFocusButton()),
               Command.make('FocusButton'),
             ),
           ),
@@ -416,7 +416,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           Array.prepend(
             Task.focus(buttonSelector(model.id)).pipe(
               Effect.ignore,
-              Effect.as(CompletedButtonFocus()),
+              Effect.as(CompletedFocusButton()),
               Command.make('FocusButton'),
             ),
           ),
@@ -428,7 +428,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         [
           Task.clickElement(itemSelector(model.id, index)).pipe(
             Effect.ignore,
-            Effect.as(CompletedItemClick()),
+            Effect.as(CompletedClickItem()),
             Command.make('ClickItem'),
           ),
         ],
@@ -537,7 +537,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
               Array.prepend(
                 Task.focus(buttonSelector(model.id)).pipe(
                   Effect.ignore,
-                  Effect.as(CompletedButtonFocus()),
+                  Effect.as(CompletedFocusButton()),
                   Command.make('FocusButton'),
                 ),
               ),
@@ -564,7 +564,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             Array.prepend(
               Task.focus(itemsSelector(model.id)).pipe(
                 Effect.ignore,
-                Effect.as(CompletedItemsFocus()),
+                Effect.as(CompletedFocusItems()),
                 Command.make('FocusItems'),
               ),
             ),
@@ -608,22 +608,22 @@ export const update = (model: Model, message: Message): UpdateReturn => {
               itemSelector(model.id, model.maybeActiveItemIndex.value),
             ).pipe(
               Effect.ignore,
-              Effect.as(CompletedItemClick()),
+              Effect.as(CompletedClickItem()),
               Command.make('ClickItem'),
             ),
           ],
         ]
       },
 
-      CompletedItemsFocus: () => [model, []],
-      CompletedButtonFocus: () => [model, []],
-      CompletedScrollLock: () => [model, []],
-      CompletedScrollUnlock: () => [model, []],
-      CompletedInertSetup: () => [model, []],
-      CompletedInertTeardown: () => [model, []],
+      CompletedFocusItems: () => [model, []],
+      CompletedFocusButton: () => [model, []],
+      CompletedLockScroll: () => [model, []],
+      CompletedUnlockScroll: () => [model, []],
+      CompletedSetupInert: () => [model, []],
+      CompletedTeardownInert: () => [model, []],
       CompletedScrollIntoView: () => [model, []],
-      CompletedItemClick: () => [model, []],
-      CompletedFocusAdvance: () => [model, []],
+      CompletedClickItem: () => [model, []],
+      CompletedAdvanceFocus: () => [model, []],
       IgnoredMouseClick: () => [model, []],
       SuppressedSpaceScroll: () => [model, []],
     }),

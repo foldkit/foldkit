@@ -99,7 +99,7 @@ export type ManagedResourceServicesOf<MR> =
  *     release: stream =>
  *       Effect.sync(() => stream.getTracks().forEach(track => track.stop())),
  *     onAcquired: () => AcquiredCamera(),
- *     onAcquireError: error => FailedToAcquireCamera({ error: String(error) }),
+ *     onAcquireError: error => FailedAcquireCamera({ error: String(error) }),
  *     onReleased: () => ReleasedCamera(),
  *   },
  * })

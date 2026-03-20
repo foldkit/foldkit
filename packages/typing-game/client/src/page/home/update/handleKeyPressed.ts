@@ -5,8 +5,8 @@ import { evo } from 'foldkit/struct'
 import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../../constant'
 import { createRoom } from '../command'
 import {
-  CompletedRoomIdInputFocus,
-  CompletedUsernameInputFocus,
+  CompletedFocusRoomIdInput,
+  CompletedFocusUsernameInput,
   Message,
 } from '../message'
 import {
@@ -95,7 +95,7 @@ const confirmSelection =
         [
           Task.focus(`#${ROOM_ID_INPUT_ID}`).pipe(
             Effect.ignore,
-            Effect.as(CompletedRoomIdInputFocus()),
+            Effect.as(CompletedFocusRoomIdInput()),
             Command.make('FocusRoomIdInput'),
           ),
         ],
@@ -107,7 +107,7 @@ const confirmSelection =
         [
           Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
             Effect.ignore,
-            Effect.as(CompletedUsernameInputFocus()),
+            Effect.as(CompletedFocusUsernameInput()),
             Command.make('FocusUsernameInput'),
           ),
         ],

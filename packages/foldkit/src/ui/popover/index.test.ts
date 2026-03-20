@@ -9,7 +9,7 @@ import {
   AdvancedTransitionFrame,
   Closed,
   ClosedByTab,
-  CompletedPanelFocus,
+  CompletedFocusPanel,
   DetectedButtonMovement,
   EndedTransition,
   Opened,
@@ -187,10 +187,10 @@ describe('Popover', () => {
       })
     })
 
-    describe('CompletedPanelFocus', () => {
+    describe('CompletedFocusPanel', () => {
       it('returns model unchanged', () => {
         const model = openModel()
-        const [result, commands] = update(model, CompletedPanelFocus())
+        const [result, commands] = update(model, CompletedFocusPanel())
         expect(result).toBe(model)
         expect(commands).toHaveLength(0)
       })

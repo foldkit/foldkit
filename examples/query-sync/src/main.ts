@@ -134,9 +134,9 @@ type Model = typeof Model.Type
 
 // MESSAGE
 
-const CompletedInternalNavigation = m('CompletedInternalNavigation')
-const CompletedExternalNavigation = m('CompletedExternalNavigation')
-const CompletedUrlReplace = m('CompletedUrlReplace')
+const CompletedNavigateInternal = m('CompletedNavigateInternal')
+const CompletedNavigateExternal = m('CompletedNavigateExternal')
+const CompletedReplaceUrl = m('CompletedReplaceUrl')
 const ClickedLink = m('ClickedLink', { request: Runtime.UrlRequest })
 const ChangedUrl = m('ChangedUrl', { url: Url })
 const ChangedSearchInput = m('ChangedSearchInput', { value: S.String })
@@ -149,9 +149,9 @@ const GotPeriodListboxMessage = m('GotPeriodListboxMessage', {
 })
 
 const Message = S.Union(
-  CompletedInternalNavigation,
-  CompletedExternalNavigation,
-  CompletedUrlReplace,
+  CompletedNavigateInternal,
+  CompletedNavigateExternal,
+  CompletedReplaceUrl,
   ClickedLink,
   ChangedUrl,
   ChangedSearchInput,
@@ -239,9 +239,9 @@ const selectionToParam = <A extends string>(
 
 const replaceFilters = (
   fields: BrowseFields,
-): Command.Command<typeof CompletedUrlReplace> =>
+): Command.Command<typeof CompletedReplaceUrl> =>
   replaceUrl(browseRouter(fields)).pipe(
-    Effect.as(CompletedUrlReplace()),
+    Effect.as(CompletedReplaceUrl()),
     Command.make('ReplaceFilters'),
   )
 
@@ -252,9 +252,9 @@ const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      CompletedInternalNavigation: () => [model, []],
-      CompletedExternalNavigation: () => [model, []],
-      CompletedUrlReplace: () => [model, []],
+      CompletedNavigateInternal: () => [model, []],
+      CompletedNavigateExternal: () => [model, []],
+      CompletedReplaceUrl: () => [model, []],
 
       ClickedLink: ({ request }) =>
         M.value(request).pipe(
@@ -264,7 +264,7 @@ const update = (model: Model, message: Message): UpdateReturn =>
               model,
               [
                 pushUrl(urlToString(url)).pipe(
-                  Effect.as(CompletedInternalNavigation()),
+                  Effect.as(CompletedNavigateInternal()),
                   Command.make('NavigateInternal'),
                 ),
               ],
@@ -273,7 +273,7 @@ const update = (model: Model, message: Message): UpdateReturn =>
               model,
               [
                 load(href).pipe(
-                  Effect.as(CompletedExternalNavigation()),
+                  Effect.as(CompletedNavigateExternal()),
                   Command.make('LoadExternal'),
                 ),
               ],

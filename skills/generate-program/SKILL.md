@@ -193,7 +193,7 @@ const ClickedSubmit = m('ClickedSubmit')
 const ChangedEmail = m('ChangedEmail', { value: S.String })
 const SucceededLogin = m('SucceededLogin', { user: User })
 const FailedLogin = m('FailedLogin', { error: S.String })
-const CompletedInputFocus = m('CompletedInputFocus')
+const CompletedFocusInput = m('CompletedFocusInput')
 
 // Group 2: Union + type (no blank line between them)
 const Message = S.Union(
@@ -201,7 +201,7 @@ const Message = S.Union(
   ChangedEmail,
   SucceededLogin,
   FailedLogin,
-  CompletedInputFocus,
+  CompletedFocusInput,
 )
 type Message = typeof Message.Type
 ```
@@ -212,7 +212,7 @@ Name messages by category:
 - `Changed*` — input value changes, with `{ value: S.String }`
 - `Submitted*` — form submissions
 - `Succeeded*` / `Failed*` — paired, for commands that can meaningfully fail
-- `Completed*` — fire-and-forget (object+verb: `CompletedInputFocus`, not `CompletedFocusInput`)
+- `Completed*` — fire-and-forget (verb+object: `CompletedFocusInput`)
 - `Got*` — child module results via OutMessage pattern
 - `Updated*` — external state changes (WebSocket, subscription data)
 - `Loaded*` — data restored from storage

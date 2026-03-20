@@ -14,7 +14,7 @@ const update = (model: Model, message: Message) =>
         [fetchUser(model.userId)], // Command handles the side effect
       ],
 
-      SucceededUserFetch: ({ user }) => [
+      SucceededFetchUser: ({ user }) => [
         evo(model, { isLoading: () => false, user: () => user }),
         [], // Result received, no more commands needed
       ],

@@ -194,7 +194,7 @@ type UpdateReturn = [
 CreatedRoom: ({ roomId, player }) => [
   model,
   [],
-  Option.some(SucceededRoomCreation({ roomId, player })),
+  Option.some(SucceededCreateRoom({ roomId, player })),
 ]
 
 // Parent handles OutMessage
@@ -214,7 +214,7 @@ GotChildMessage: ({ message }) => {
       M.value(outMessage).pipe(
         withUpdateReturn,
         M.tagsExhaustive({
-          SucceededRoomCreation: ({ roomId }) => [
+          SucceededCreateRoom: ({ roomId }) => [
             evo(model, { child: () => nextChildModel }),
             [...mappedCommands, navigateToRoom(roomId)],
           ],
@@ -338,13 +338,13 @@ Commands that interact with the DOM or browser APIs should use `Task` helpers â€
 Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, or `Math.random()`. They return Effects that compose naturally in Commands:
 
 ```ts
-const focusInput: Command<typeof CompletedInputFocus> = Task.focus(
+const focusInput: Command<typeof CompletedFocusInput> = Task.focus(
   `#${EMAIL_INPUT_ID}`,
-).pipe(Effect.ignore, Effect.as(CompletedInputFocus()))
+).pipe(Effect.ignore, Effect.as(CompletedFocusInput()))
 
-const showConfirmation: Command<typeof CompletedDialogShow> = Task.showModal(
+const showConfirmation: Command<typeof CompletedShowDialog> = Task.showModal(
   `#${CONFIRM_DIALOG_ID}`,
-).pipe(Effect.ignore, Effect.as(CompletedDialogShow()))
+).pipe(Effect.ignore, Effect.as(CompletedShowDialog()))
 ```
 
 ## Element vs Application

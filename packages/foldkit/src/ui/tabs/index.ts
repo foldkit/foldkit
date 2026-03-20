@@ -50,12 +50,12 @@ export const TabSelected = m('TabSelected', { index: S.Number })
 /** Sent when a tab receives keyboard focus in `Manual` mode without being activated. */
 export const TabFocused = m('TabFocused', { index: S.Number })
 /** Sent when the focus-tab command completes. */
-export const CompletedTabFocus = m('CompletedTabFocus')
+export const CompletedFocusTab = m('CompletedFocusTab')
 
 /** Union of all messages the tabs component can produce. */
 export const Message: S.Union<
-  [typeof TabSelected, typeof TabFocused, typeof CompletedTabFocus]
-> = S.Union(TabSelected, TabFocused, CompletedTabFocus)
+  [typeof TabSelected, typeof TabFocused, typeof CompletedFocusTab]
+> = S.Union(TabSelected, TabFocused, CompletedFocusTab)
 
 export type TabSelected = typeof TabSelected.Type
 export type TabFocused = typeof TabFocused.Type
@@ -104,7 +104,7 @@ export const update = (
           [
             Task.focus(tabSelector).pipe(
               Effect.ignore,
-              Effect.as(CompletedTabFocus()),
+              Effect.as(CompletedFocusTab()),
               Command.make('FocusTab'),
             ),
           ],
@@ -118,13 +118,13 @@ export const update = (
           [
             Task.focus(tabSelector).pipe(
               Effect.ignore,
-              Effect.as(CompletedTabFocus()),
+              Effect.as(CompletedFocusTab()),
               Command.make('FocusTab'),
             ),
           ],
         ]
       },
-      CompletedTabFocus: () => [model, []],
+      CompletedFocusTab: () => [model, []],
     }),
   )
 

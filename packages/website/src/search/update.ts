@@ -80,7 +80,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         )
 
         const resetOnClose =
-          message._tag === 'CompletedDialogClose'
+          message._tag === 'CompletedCloseDialog'
             ? {
                 query: () => '',
                 searchState: () => Idle(),
@@ -135,7 +135,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ]
       },
 
-      CompletedSearchNavigation: () => [model, []],
-      CompletedResultScroll: () => [model, []],
+      CompletedNavigateSearch: () => [model, []],
+      CompletedScrollResult: () => [model, []],
     }),
   )

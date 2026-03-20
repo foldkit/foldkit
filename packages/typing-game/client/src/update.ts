@@ -7,9 +7,9 @@ import { evo } from 'foldkit/struct'
 import { navigateToRoom, savePlayerSession } from './command'
 import { USERNAME_INPUT_ID } from './constant'
 import {
-  CompletedExternalNavigation,
-  CompletedInternalNavigation,
-  CompletedUsernameInputFocus,
+  CompletedFocusUsernameInput,
+  CompletedNavigateExternal,
+  CompletedNavigateInternal,
   GotHomeMessage,
   GotRoomMessage,
   Message,
@@ -39,7 +39,7 @@ export const update = (
               model,
               [
                 pushUrl(Url.toString(url)).pipe(
-                  Effect.as(CompletedInternalNavigation()),
+                  Effect.as(CompletedNavigateInternal()),
                   Command.make('NavigateInternal'),
                 ),
               ],
@@ -48,7 +48,7 @@ export const update = (
               model,
               [
                 load(href).pipe(
-                  Effect.as(CompletedExternalNavigation()),
+                  Effect.as(CompletedNavigateExternal()),
                   Command.make('LoadExternal'),
                 ),
               ],
@@ -62,7 +62,7 @@ export const update = (
           M.tag('Home', () =>
             Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
               Effect.ignore,
-              Effect.as(CompletedUsernameInputFocus()),
+              Effect.as(CompletedFocusUsernameInput()),
               Command.make('FocusUsernameInput'),
             ),
           ),
@@ -97,8 +97,8 @@ export const update = (
             M.value(outMessage).pipe(
               withUpdateReturn,
               M.tag(
-                'SucceededRoomCreation',
-                'SucceededRoomJoin',
+                'SucceededCreateRoom',
+                'SucceededJoinRoom',
                 ({ roomId, player }) => {
                   const [nextModel, roomCommands] = handleRoomJoined(
                     model,
@@ -132,12 +132,12 @@ export const update = (
       },
     }),
     M.tag(
-      'CompletedInternalNavigation',
-      'CompletedExternalNavigation',
-      'CompletedUsernameInputFocus',
-      'CompletedRoomNavigation',
-      'CompletedSessionSave',
-      'CompletedSessionClear',
+      'CompletedNavigateInternal',
+      'CompletedNavigateExternal',
+      'CompletedFocusUsernameInput',
+      'CompletedNavigateRoom',
+      'CompletedSaveSession',
+      'CompletedClearSession',
       'IgnoredKeyPress',
       () => [model, []],
     ),

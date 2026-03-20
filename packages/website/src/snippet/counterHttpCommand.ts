@@ -3,10 +3,10 @@ import { Command } from 'foldkit'
 import { m } from 'foldkit/message'
 
 const ClickedFetchCount = m('ClickedFetchCount')
-const SucceededCountFetch = m('SucceededCountFetch', {
+const SucceededFetchCount = m('SucceededFetchCount', {
   count: S.Number,
 })
-const FailedCountFetch = m('FailedCountFetch', {
+const FailedFetchCount = m('FailedFetchCount', {
   error: S.String,
 })
 
@@ -18,13 +18,13 @@ const update = (
     M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
     M.tagsExhaustive({
       ClickedFetchCount: () => [model, [fetchCount]],
-      SucceededCountFetch: ({ count }) => [Model({ count }), []],
-      FailedCountFetch: () => [model, []],
+      SucceededFetchCount: ({ count }) => [Model({ count }), []],
+      FailedFetchCount: () => [model, []],
     }),
   )
 
 const fetchCount: Command.Command<
-  typeof SucceededCountFetch | typeof FailedCountFetch
+  typeof SucceededFetchCount | typeof FailedFetchCount
 > = Effect.gen(function* () {
   const result = yield* Effect.tryPromise(() =>
     fetch('/api/count').then(res => {
@@ -32,10 +32,10 @@ const fetchCount: Command.Command<
       return res.json() as unknown as { count: number }
     }),
   )
-  return SucceededCountFetch({ count: result.count })
+  return SucceededFetchCount({ count: result.count })
 }).pipe(
   Effect.catchAll(error =>
-    Effect.succeed(FailedCountFetch({ error: error.message })),
+    Effect.succeed(FailedFetchCount({ error: error.message })),
   ),
   Command.make('FetchCount'),
 )

@@ -39,10 +39,10 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-const CompletedUrlReplace = m('CompletedUrlReplace')
+const CompletedReplaceUrl = m('CompletedReplaceUrl')
 const ChangedSearchInput = m('ChangedSearchInput', { value: S.String })
 
-export const Message = S.Union(CompletedUrlReplace, ChangedSearchInput)
+export const Message = S.Union(CompletedReplaceUrl, ChangedSearchInput)
 export type Message = typeof Message.Type
 
 // INIT
@@ -63,7 +63,7 @@ export const update =
     M.value(message).pipe(
       M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
       M.tagsExhaustive({
-        CompletedUrlReplace: () => [model, []],
+        CompletedReplaceUrl: () => [model, []],
 
         ChangedSearchInput: ({ value }) => [
           evo(model, {
@@ -75,7 +75,7 @@ export const update =
                 searchText: Option.fromNullable(value || null),
               }),
             ).pipe(
-              Effect.as(CompletedUrlReplace()),
+              Effect.as(CompletedReplaceUrl()),
               Command.make('ReplaceSearchUrl'),
             ),
           ],

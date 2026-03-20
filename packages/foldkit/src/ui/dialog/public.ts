@@ -9,8 +9,8 @@ export {
   Message,
   Opened,
   Closed,
-  CompletedDialogShow,
-  CompletedDialogClose,
+  CompletedShowDialog,
+  CompletedCloseDialog,
   AdvancedTransitionFrame,
   EndedTransition,
 } from './index'

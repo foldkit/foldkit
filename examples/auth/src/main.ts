@@ -10,7 +10,7 @@ import { Session } from './domain/session'
 import {
   ChangedUrl,
   ClickedLink,
-  CompletedInternalNavigation,
+  CompletedNavigateInternal,
   Message,
 } from './message'
 import { LoggedIn, LoggedOut, Model } from './model'
@@ -69,7 +69,7 @@ const init: Runtime.ApplicationInit<Model, Message, Flags> = (
           LoggedOut.init(LoginRoute()),
           [
             replaceUrl(loginRouter()).pipe(
-              Effect.as(CompletedInternalNavigation()),
+              Effect.as(CompletedNavigateInternal()),
               Command.make('RedirectToLogin'),
             ),
           ],
@@ -87,7 +87,7 @@ const init: Runtime.ApplicationInit<Model, Message, Flags> = (
           LoggedIn.init(DashboardRoute(), session),
           [
             replaceUrl(dashboardRouter()).pipe(
-              Effect.as(CompletedInternalNavigation()),
+              Effect.as(CompletedNavigateInternal()),
               Command.make('RedirectToDashboard'),
             ),
           ],

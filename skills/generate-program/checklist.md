@@ -29,7 +29,7 @@ Run through each category after generating an app. Fix any issues before present
 ## Naming
 
 - [ ] Messages are past-tense, verb-first
-- [ ] `Completed*` uses object+verb order: `CompletedInputFocus` not `CompletedFocusInput`
+- [ ] `Completed*` uses verb+object order: `CompletedFocusInput` not `CompletedInputFocus`
 - [ ] Option fields prefixed with `maybe`
 - [ ] Boolean fields prefixed with `is`
 - [ ] No abbreviations anywhere

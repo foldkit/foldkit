@@ -25,8 +25,8 @@ import {
   updatePlayerProgress,
 } from '../command'
 import {
-  CompletedHomeNavigation,
-  CompletedRoomPageUsernameInputFocus,
+  CompletedFocusRoomPageUsernameInput,
+  CompletedNavigateHome,
   Message,
 } from '../message'
 import { Model, RoomRemoteData } from '../model'
@@ -40,23 +40,23 @@ export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      CompletedRoomPageUsernameInputFocus: () => [model, []],
+      CompletedFocusRoomPageUsernameInput: () => [model, []],
 
-      CompletedUserGameTextInputFocus: () => [model, []],
+      CompletedFocusUserGameTextInput: () => [model, []],
 
-      CompletedHomeNavigation: () => [model, []],
+      CompletedNavigateHome: () => [model, []],
 
-      CompletedGameStartRequest: () => [model, []],
+      CompletedRequestGameStart: () => [model, []],
 
-      CompletedPlayerProgressUpdate: () => [model, []],
+      CompletedUpdatePlayerProgress: () => [model, []],
 
-      CompletedSessionSave: () => [model, []],
+      CompletedSaveSession: () => [model, []],
 
-      CompletedSessionClear: () => [model, []],
+      CompletedClearSession: () => [model, []],
 
-      FailedRoomJoin: () => [model, []],
+      FailedJoinRoom: () => [model, []],
 
-      FailedClipboardCopy: () => [model, []],
+      FailedCopyClipboard: () => [model, []],
 
       PressedKey: handleKeyPressed(model),
 
@@ -109,7 +109,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [
           Task.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(
             Effect.ignore,
-            Effect.as(CompletedRoomPageUsernameInputFocus()),
+            Effect.as(CompletedFocusRoomPageUsernameInput()),
             Command.make('FocusRoomUsernameInput'),
           ),
         ],
@@ -132,7 +132,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       UpdatedRoom: handleRoomUpdated(model),
 
-      FailedRoomStream: ({ error: _error }) => {
+      FailedStreamRoom: ({ error: _error }) => {
         return [model, []]
       },
 
@@ -148,13 +148,13 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [],
       ],
 
-      SucceededRoomFetch: ({ room }) => {
+      SucceededFetchRoom: ({ room }) => {
         const maybeFocusRoomUsernameInput = Option.match(model.maybeSession, {
           onNone: () =>
             Option.some(
               Task.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(
                 Effect.ignore,
-                Effect.as(CompletedRoomPageUsernameInputFocus()),
+                Effect.as(CompletedFocusRoomPageUsernameInput()),
                 Command.make('FocusRoomUsernameInput'),
               ),
             ),
@@ -169,7 +169,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ]
       },
 
-      FailedRoomFetch: () => [
+      FailedFetchRoom: () => [
         evo(model, {
           roomRemoteData: () =>
             RoomRemoteData.Error({ error: 'Room not found' }),
@@ -276,7 +276,7 @@ const leaveRoom = (model: Model): UpdateReturn => [
   [
     clearSession(),
     pushUrl(homeRouter()).pipe(
-      Effect.as(CompletedHomeNavigation()),
+      Effect.as(CompletedNavigateHome()),
       Command.make('NavigateHome'),
     ),
   ],

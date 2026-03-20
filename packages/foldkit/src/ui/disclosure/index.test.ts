@@ -1,7 +1,7 @@
 import { describe, it } from '@effect/vitest'
 import { expect } from 'vitest'
 
-import { Closed, CompletedButtonFocus, Toggled, init, update } from './index'
+import { Closed, CompletedFocusButton, Toggled, init, update } from './index'
 
 describe('Disclosure', () => {
   describe('init', () => {
@@ -49,9 +49,9 @@ describe('Disclosure', () => {
       expect(commands).toHaveLength(0)
     })
 
-    it('returns model unchanged on CompletedButtonFocus', () => {
+    it('returns model unchanged on CompletedFocusButton', () => {
       const model = init({ id: 'test' })
-      const [result, commands] = update(model, CompletedButtonFocus())
+      const [result, commands] = update(model, CompletedFocusButton())
       expect(result).toBe(model)
       expect(commands).toHaveLength(0)
     })

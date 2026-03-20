@@ -11,7 +11,7 @@ import {
   ClearedSearch,
   Closed,
   ClosedByTab,
-  CompletedScrollLock,
+  CompletedLockScroll,
   DeactivatedItem,
   DetectedButtonMovement,
   EndedTransition,
@@ -624,9 +624,9 @@ describe('Listbox', () => {
     })
 
     describe('completed and view-dispatched messages', () => {
-      it('returns model unchanged for CompletedScrollLock', () => {
+      it('returns model unchanged for CompletedLockScroll', () => {
         const model = openModel()
-        const [result, commands] = update(model, CompletedScrollLock())
+        const [result, commands] = update(model, CompletedLockScroll())
         expect(result).toBe(model)
         expect(commands).toHaveLength(0)
       })

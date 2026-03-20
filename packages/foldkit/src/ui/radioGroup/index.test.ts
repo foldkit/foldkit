@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 import { describe, expect, it } from 'vitest'
 
-import { CompletedOptionFocus, SelectedOption, init, update } from './index'
+import { CompletedFocusOption, SelectedOption, init, update } from './index'
 
 describe('RadioGroup', () => {
   describe('init', () => {
@@ -71,9 +71,9 @@ describe('RadioGroup', () => {
       expect(commands).toHaveLength(1)
     })
 
-    it('returns same model reference on CompletedOptionFocus', () => {
+    it('returns same model reference on CompletedFocusOption', () => {
       const model = init({ id: 'test' })
-      const [result, commands] = update(model, CompletedOptionFocus())
+      const [result, commands] = update(model, CompletedFocusOption())
       expect(result).toBe(model)
       expect(commands).toHaveLength(0)
     })

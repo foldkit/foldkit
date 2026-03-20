@@ -5,7 +5,7 @@ import { expect, test } from 'vitest'
 import {
   Model,
   SubmittedWeatherForm,
-  SucceededWeatherFetch,
+  SucceededFetchWeather,
   WeatherData,
   WeatherInit,
   fetchWeather,
@@ -27,7 +27,7 @@ test('SubmittedWeatherForm sets loading state and returns fetch command', () => 
   expect(commands[0]?.name).toBe('FetchWeather')
 })
 
-test('SucceededWeatherFetch updates model with weather data', () => {
+test('SucceededFetchWeather updates model with weather data', () => {
   const model = createModel()
   const weatherData: WeatherData = {
     zipCode: '90210',
@@ -41,7 +41,7 @@ test('SucceededWeatherFetch updates model with weather data', () => {
 
   const [newModel, commands] = update(
     model,
-    SucceededWeatherFetch({ weather: weatherData }),
+    SucceededFetchWeather({ weather: weatherData }),
   )
 
   expect(newModel.weather._tag).toBe('WeatherSuccess')
@@ -75,7 +75,7 @@ const mockWeatherResponse = {
   },
 }
 
-test('fetchWeather returns SucceededWeatherFetch with data on success', async () => {
+test('fetchWeather returns SucceededFetchWeather with data on success', async () => {
   const mockClient = HttpClient.make(request =>
     Effect.sync(() => {
       const responseData = M.value(request.url).pipe(
@@ -99,8 +99,8 @@ test('fetchWeather returns SucceededWeatherFetch with data on success', async ()
     Effect.runPromise,
   )
 
-  expect(message._tag).toBe('SucceededWeatherFetch')
-  if (message._tag === 'SucceededWeatherFetch') {
+  expect(message._tag).toBe('SucceededFetchWeather')
+  if (message._tag === 'SucceededFetchWeather') {
     expect(message.weather.temperature).toBe(72)
     expect(message.weather.locationName).toBe('Beverly Hills')
     expect(message.weather.description).toBe('Clear sky')
@@ -108,7 +108,7 @@ test('fetchWeather returns SucceededWeatherFetch with data on success', async ()
   }
 })
 
-test('fetchWeather returns FailedWeatherFetch on HTTP failure', async () => {
+test('fetchWeather returns FailedFetchWeather on HTTP failure', async () => {
   const mockClient = HttpClient.make(request =>
     Effect.succeed(
       HttpClientResponse.fromWeb(request, new Response(null, { status: 404 })),
@@ -122,10 +122,10 @@ test('fetchWeather returns FailedWeatherFetch on HTTP failure', async () => {
     Effect.runPromise,
   )
 
-  expect(message._tag).toBe('FailedWeatherFetch')
+  expect(message._tag).toBe('FailedFetchWeather')
 })
 
-test('fetchWeather returns FailedWeatherFetch when no results found', async () => {
+test('fetchWeather returns FailedFetchWeather when no results found', async () => {
   const mockClient = HttpClient.make(request =>
     Effect.succeed(
       HttpClientResponse.fromWeb(
@@ -142,8 +142,8 @@ test('fetchWeather returns FailedWeatherFetch when no results found', async () =
     Effect.runPromise,
   )
 
-  expect(message._tag).toBe('FailedWeatherFetch')
-  if (message._tag === 'FailedWeatherFetch') {
+  expect(message._tag).toBe('FailedFetchWeather')
+  if (message._tag === 'FailedFetchWeather') {
     expect(message.error).toBe('Location not found')
   }
 })

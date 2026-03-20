@@ -22,30 +22,30 @@ type Model = typeof Model.Type
 // MESSAGE - Events that can happen in your app
 
 const ClickedFetchUser = m('ClickedFetchUser', { userId: S.String })
-const SucceededUserFetch = m('SucceededUserFetch', {
+const SucceededFetchUser = m('SucceededFetchUser', {
   data: UserSchema,
 })
-const FailedUserFetch = m('FailedUserFetch', { error: S.String })
+const FailedFetchUser = m('FailedFetchUser', { error: S.String })
 
-const Message = S.Union(ClickedFetchUser, SucceededUserFetch, FailedUserFetch)
+const Message = S.Union(ClickedFetchUser, SucceededFetchUser, FailedFetchUser)
 type Message = typeof Message.Type
 
 // COMMAND - Descriptions of side effects that resolve to Messages
 
 const fetchUser = (
   userId: string,
-): Command.Command<typeof SucceededUserFetch | typeof FailedUserFetch> =>
+): Command.Command<typeof SucceededFetchUser | typeof FailedFetchUser> =>
   Effect.gen(function* () {
     const response = yield* Effect.tryPromise(() =>
       fetch(`/api/users/${userId}`).then(response => response.json()),
     )
     // Validate the response against UserSchema at runtime
     const data = yield* S.decodeUnknown(UserSchema)(response)
-    return SucceededUserFetch({ data })
+    return SucceededFetchUser({ data })
   }).pipe(
     // Every Command must return a Message — no errors bubble up
     Effect.catchAll(error =>
-      Effect.succeed(FailedUserFetch({ error: String(error) })),
+      Effect.succeed(FailedFetchUser({ error: String(error) })),
     ),
     Command.make('FetchUser'),
   )
@@ -65,11 +65,11 @@ const update = (
         evo(model, { user: () => UserLoading() }),
         [fetchUser(userId)],
       ],
-      SucceededUserFetch: ({ data }) => [
+      SucceededFetchUser: ({ data }) => [
         evo(model, { user: () => UserSuccess({ data }) }),
         [],
       ],
-      FailedUserFetch: ({ error }) => [
+      FailedFetchUser: ({ error }) => [
         evo(model, { user: () => UserFailure({ error }) }),
         [],
       ],

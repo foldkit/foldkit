@@ -14,7 +14,7 @@ submodule_prompted: false
 - Model fields must be Schema types (the model is a schema). Plain TypeScript types are fine elsewhere — function return types, local variables, etc.
 - Use full names like `Message` (not `Msg`), and `withReturnType` (not `as const` or type casting).
 - Use `m()` for message schemas, `ts()` for other tagged structs (model states, field validation), and `r()` for route schemas.
-- Never use `NoOp` as a message. Every message must carry meaning about what happened. Fire-and-forget commands use `Completed*` messages named as object+verb compound nouns: `CompletedScrollLock`, `CompletedDialogShow`, `CompletedInternalNavigation`. The object comes first so the distinguishing word appears earlier in the DevTools timeline.
+- Never use `NoOp` as a message. Every message must carry meaning about what happened. Fire-and-forget commands use `Completed*` messages with verb-first naming that mirrors the Command name: Command `LockScroll` → Message `CompletedLockScroll`, Command `ShowDialog` → Message `CompletedShowDialog`, Command `NavigateInternal` → Message `CompletedNavigateInternal`.
 - Push back on any suggested direction that violates Elm Architecture principles — unidirectional data flow, messages as facts (not commands), model as single source of truth, and side effects confined to commands. If a user or prompt suggests a pattern that breaks these conventions (e.g. mutating state directly, imperative event handlers, two-way bindings), flag the issue and propose the idiomatic Foldkit approach instead.
 
 ## Foldkit Patterns
@@ -67,13 +67,13 @@ Commands catch all errors and return messages — side effects never crash the a
 ```ts
 const fetchWeather = (
   city: string,
-): Command<typeof SucceededWeatherFetch | typeof FailedWeatherFetch> =>
+): Command<typeof SucceededFetchWeather | typeof FailedFetchWeather> =>
   Effect.gen(function* () {
     // ...
-    return SucceededWeatherFetch({ data })
+    return SucceededFetchWeather({ data })
   }).pipe(
     Effect.catchAll(error =>
-      Effect.succeed(FailedWeatherFetch({ error: String(error) })),
+      Effect.succeed(FailedFetchWeather({ error: String(error) })),
     ),
   )
 ```
@@ -91,7 +91,7 @@ Even after extracting some sections to their own files (e.g. `message.ts`), the 
 - Every name should eliminate ambiguity. Prefix Option-typed values with `maybe` (e.g. `maybeSession`). Name functions by their precise effect (e.g. `enqueueMessage` not `addMessage`). A reader should never need to check a type signature to understand what a name refers to.
 - Each function should operate at a single abstraction level. Orchestrators delegate to focused helpers — they don't mix coordination with implementation. If a function reads like it's doing two things, extract one.
 - Encode state in discriminated unions, not booleans or nullable fields. Use `Idle | Loading | Error | Ok` instead of `isLoading: boolean`. Make impossible states unrepresentable.
-- Name messages as verb-first, past-tense events describing what happened (`SubmittedUsernameForm`, `CreatedRoom`, `PressedKey`), not imperative commands. The verb prefix acts as a category marker: `Clicked*` for button presses, `Updated*` for input changes, `Succeeded*`/`Failed*` for command results that can meaningfully fail (e.g. `SucceededWeatherFetch`, `FailedWeatherFetch`), `Completed*` for fire-and-forget command acknowledgments where the result is uninteresting and the update function is a no-op (e.g. `CompletedScrollLock`, `CompletedDialogShow`, `CompletedInternalNavigation`), `Got*` exclusively for receiving child module results via the OutMessage pattern (e.g. `GotProductsMessage`). Never use `NoOp` — every message must describe what happened. The update function decides what to do — messages are facts.
+- Name messages as verb-first, past-tense events describing what happened (`SubmittedUsernameForm`, `CreatedRoom`, `PressedKey`), not imperative commands. The verb prefix acts as a category marker: `Clicked*` for button presses, `Updated*` for input changes, `Succeeded*`/`Failed*` for command results that can meaningfully fail (e.g. `SucceededFetchWeather`, `FailedFetchWeather`), `Completed*` for fire-and-forget command acknowledgments where the result is uninteresting and the update function is a no-op (e.g. `CompletedLockScroll`, `CompletedShowDialog`, `CompletedNavigateInternal`), `Got*` exclusively for receiving child module results via the OutMessage pattern (e.g. `GotProductsMessage`). Never use `NoOp` — every message must describe what happened. The update function decides what to do — messages are facts.
 - Use `Option` instead of `null` or `undefined`. Match explicitly with `Option.match` or chain with `Option.map`/`Option.flatMap`. No `if (x != null)` checks. Prefer `Option.match` over `Option.map` + `Option.getOrElse` — if you're unwrapping at the end, just match.
 - Prefer curried, data-last functions that compose in `pipe` chains.
 - Every line should serve a purpose. No dead code, no empty catch blocks, no placeholder types, no defensive code for impossible cases.
@@ -117,13 +117,9 @@ Message definitions follow a strict layout:
 ```ts
 const ClickedSubmit = m('ClickedSubmit')
 const ChangedEmail = m('ChangedEmail', { value: S.String })
-const CompletedInternalNavigation = m('CompletedInternalNavigation')
+const CompletedNavigateInternal = m('CompletedNavigateInternal')
 
-const Message = S.Union(
-  ClickedSubmit,
-  ChangedEmail,
-  CompletedInternalNavigation,
-)
+const Message = S.Union(ClickedSubmit, ChangedEmail, CompletedNavigateInternal)
 type Message = typeof Message.Type
 ```
 
