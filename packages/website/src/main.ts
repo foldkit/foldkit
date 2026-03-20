@@ -13,13 +13,12 @@ import {
   HashSet,
   Layer,
   Match as M,
-  Number,
+  Number as Number_,
   Option,
   Schema as S,
-  flow,
+  Tracer,
 } from 'effect'
-import { FieldValidation, Runtime, Ui } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, FieldValidation, Runtime, Ui } from 'foldkit'
 import { load, pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 import { makeSubscriptions } from 'foldkit/subscription'
@@ -223,23 +222,31 @@ const init: Runtime.ApplicationInit<Model, Message, Flags, AppResources> = (
   )
 
   const mappedAsyncCounterDemoCommands = asyncCounterDemoCommands.map(
-    Effect.map(message => GotAsyncCounterDemoMessage({ message })),
+    Command.mapEffect(
+      Effect.map(message => GotAsyncCounterDemoMessage({ message })),
+    ),
   )
 
   const mappedNotePlayerDemoCommands = notePlayerDemoCommands.map(
-    Effect.map(message => GotNotePlayerDemoMessage({ message })),
+    Command.mapEffect(
+      Effect.map(message => GotNotePlayerDemoMessage({ message })),
+    ),
   )
 
   const mappedUiPagesCommands = uiPagesCommands.map(
-    Effect.map(message => GotUiPageMessage({ message })),
+    Command.mapEffect(Effect.map(message => GotUiPageMessage({ message }))),
   )
 
   const mappedComingFromReactCommands = comingFromReactCommands.map(
-    Effect.map(message => GotComingFromReactMessage({ message })),
+    Command.mapEffect(
+      Effect.map(message => GotComingFromReactMessage({ message })),
+    ),
   )
 
   const mappedApiReferenceCommands = apiReferenceCommands.map(
-    Effect.map(message => GotApiReferenceMessage({ message })),
+    Command.mapEffect(
+      Effect.map(message => GotApiReferenceMessage({ message })),
+    ),
   )
 
   const initialRoute = urlToAppRoute(url)
@@ -328,10 +335,10 @@ const init: Runtime.ApplicationInit<Model, Message, Flags, AppResources> = (
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command<Message, never, AppResources>>] =>
+): [Model, ReadonlyArray<Command.Command<Message, never, AppResources>>] =>
   M.value(message).pipe(
     M.withReturnType<
-      [Model, ReadonlyArray<Command<Message, never, AppResources>>]
+      [Model, ReadonlyArray<Command.Command<Message, never, AppResources>>]
     >(),
     M.tags({
       ClickedLink: ({ request }) =>
@@ -341,12 +348,15 @@ const update = (
               url,
             }): [
               Model,
-              ReadonlyArray<Command<typeof CompletedInternalNavigation>>,
+              ReadonlyArray<
+                Command.Command<typeof CompletedInternalNavigation>
+              >,
             ] => [
               model,
               [
                 pushUrl(urlToString(url)).pipe(
                   Effect.as(CompletedInternalNavigation()),
+                  Command.make('NavigateInternal'),
                 ),
               ],
             ],
@@ -354,10 +364,17 @@ const update = (
               href,
             }): [
               Model,
-              ReadonlyArray<Command<typeof CompletedExternalNavigation>>,
+              ReadonlyArray<
+                Command.Command<typeof CompletedExternalNavigation>
+              >,
             ] => [
               model,
-              [load(href).pipe(Effect.as(CompletedExternalNavigation()))],
+              [
+                load(href).pipe(
+                  Effect.as(CompletedExternalNavigation()),
+                  Command.make('LoadExternal'),
+                ),
+              ],
             ],
           }),
         ),
@@ -404,13 +421,17 @@ const update = (
           }),
           [
             ...closeMobileMenuCommands.map(
-              Effect.map(message => GotMobileMenuDialogMessage({ message })),
+              Command.mapEffect(
+                Effect.map(message => GotMobileMenuDialogMessage({ message })),
+              ),
             ),
             ...closeSearchDialogCommands.map(
-              Effect.map(message =>
-                GotSearchMessage({
-                  message: Search.GotSearchDialogMessage({ message }),
-                }),
+              Command.mapEffect(
+                Effect.map(message =>
+                  GotSearchMessage({
+                    message: Search.GotSearchDialogMessage({ message }),
+                  }),
+                ),
               ),
             ),
             ...Option.match(url.hash, {
@@ -466,7 +487,7 @@ const update = (
                 emailField: () => result,
                 emailSubscriptionStatus: () => 'Submitting',
               }),
-              [subscribeToNewsletterLive(model.emailField.value)],
+              [subscribeToNewsletter(model.emailField.value)],
             ]
           : [evo(model, { emailField: () => result }), []]
       },
@@ -495,7 +516,9 @@ const update = (
             mobileMenuDialog: () => nextMobileMenuDialog,
           }),
           mobileMenuDialogCommands.map(
-            Effect.map(message => GotMobileMenuDialogMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotMobileMenuDialogMessage({ message })),
+            ),
           ),
         ]
       },
@@ -532,7 +555,7 @@ const update = (
 
       ToggledAiHeading: () => [
         evo(model, {
-          aiHeadingToggleCount: Number.increment,
+          aiHeadingToggleCount: Number_.increment,
         }),
         [],
       ],
@@ -561,7 +584,9 @@ const update = (
         return [
           evo(model, { demoTabs: () => nextDemoTabs }),
           demoTabsCommands.map(
-            Effect.map(message => GotDemoTabsMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotDemoTabsMessage({ message })),
+            ),
           ),
         ]
       },
@@ -575,7 +600,9 @@ const update = (
             asyncCounterDemo: () => nextAsyncCounterDemo,
           }),
           asyncCounterDemoCommands.map(
-            Effect.map(message => GotAsyncCounterDemoMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotAsyncCounterDemoMessage({ message })),
+            ),
           ),
         ]
       },
@@ -589,7 +616,9 @@ const update = (
             notePlayerDemo: () => nextNotePlayerDemo,
           }),
           notePlayerDemoCommands.map(
-            Effect.map(message => GotNotePlayerDemoMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotNotePlayerDemoMessage({ message })),
+            ),
           ),
         ]
       },
@@ -615,7 +644,9 @@ const update = (
             comingFromReact: () => nextComingFromReact,
           }),
           comingFromReactCommands.map(
-            Effect.map(message => GotComingFromReactMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotComingFromReactMessage({ message })),
+            ),
           ),
         ]
       },
@@ -627,7 +658,9 @@ const update = (
         return [
           evo(model, { apiReference: () => nextApiReference }),
           apiReferenceCommands.map(
-            Effect.map(message => GotApiReferenceMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotApiReferenceMessage({ message })),
+            ),
           ),
         ]
       },
@@ -641,7 +674,9 @@ const update = (
         return [
           evo(model, { uiPages: () => nextUiPages }),
           uiPagesCommands.map(
-            Effect.map(message => GotUiPageMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotUiPageMessage({ message })),
+            ),
           ),
         ]
       },
@@ -655,7 +690,9 @@ const update = (
             getStartedGroup: () => nextGetStartedGroup,
           }),
           getStartedGroupCommands.map(
-            Effect.map(message => GotGetStartedGroupMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotGetStartedGroupMessage({ message })),
+            ),
           ),
         ]
       },
@@ -669,7 +706,9 @@ const update = (
             coreConceptsGroup: () => nextCoreConceptsGroup,
           }),
           coreConceptsGroupCommands.map(
-            Effect.map(message => GotCoreConceptsGroupMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotCoreConceptsGroupMessage({ message })),
+            ),
           ),
         ]
       },
@@ -685,7 +724,9 @@ const update = (
             guidesGroup: () => nextGuidesGroup,
           }),
           guidesGroupCommands.map(
-            Effect.map(message => GotGuidesGroupMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotGuidesGroupMessage({ message })),
+            ),
           ),
         ]
       },
@@ -699,7 +740,9 @@ const update = (
             bestPracticesGroup: () => nextBestPracticesGroup,
           }),
           bestPracticesGroupCommands.map(
-            Effect.map(message => GotBestPracticesGroupMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotBestPracticesGroupMessage({ message })),
+            ),
           ),
         ]
       },
@@ -715,7 +758,9 @@ const update = (
             patternsGroup: () => nextPatternsGroup,
           }),
           patternsGroupCommands.map(
-            Effect.map(message => GotPatternsGroupMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotPatternsGroupMessage({ message })),
+            ),
           ),
         ]
       },
@@ -729,7 +774,9 @@ const update = (
             foldkitUiGroup: () => nextFoldkitUiGroup,
           }),
           foldkitUiGroupCommands.map(
-            Effect.map(message => GotFoldkitUiGroupMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotFoldkitUiGroupMessage({ message })),
+            ),
           ),
         ]
       },
@@ -745,7 +792,9 @@ const update = (
             aiGroup: () => nextAiGroup,
           }),
           aiGroupCommands.map(
-            Effect.map(message => GotAiGroupMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotAiGroupMessage({ message })),
+            ),
           ),
         ]
       },
@@ -761,7 +810,9 @@ const update = (
             examplesGroup: () => nextExamplesGroup,
           }),
           examplesGroupCommands.map(
-            Effect.map(message => GotExamplesGroupMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotExamplesGroupMessage({ message })),
+            ),
           ),
         ]
       },
@@ -775,7 +826,9 @@ const update = (
             apiReferenceGroup: () => nextApiReferenceGroup,
           }),
           apiReferenceGroupCommands.map(
-            Effect.map(message => GotApiReferenceGroupMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotApiReferenceGroupMessage({ message })),
+            ),
           ),
         ]
       },
@@ -789,7 +842,9 @@ const update = (
             exampleDetail: () => nextExampleDetail,
           }),
           exampleDetailCommands.map(
-            Effect.map(message => GotExampleDetailMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotExampleDetailMessage({ message })),
+            ),
           ),
         ]
       },
@@ -803,7 +858,9 @@ const update = (
         return [
           evo(model, { search: () => nextSearch }),
           searchCommands.map(
-            Effect.map(message => GotSearchMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotSearchMessage({ message })),
+            ),
           ),
         ]
       },
@@ -825,47 +882,57 @@ const update = (
 
 // COMMAND
 
-const injectAnalytics: Command<typeof CompletedAnalyticsInjection> =
-  Effect.sync(() => inject()).pipe(Effect.as(CompletedAnalyticsInjection()))
-
-const injectSpeedInsights: Command<typeof CompletedSpeedInsightsInjection> =
-  Effect.sync(() => SpeedInsights.injectSpeedInsights()).pipe(
-    Effect.as(CompletedSpeedInsightsInjection()),
+const injectAnalytics: Command.Command<typeof CompletedAnalyticsInjection> =
+  Effect.sync(() => inject()).pipe(
+    Effect.as(CompletedAnalyticsInjection()),
+    Command.make('InjectAnalytics'),
   )
+
+const injectSpeedInsights: Command.Command<
+  typeof CompletedSpeedInsightsInjection
+> = Effect.sync(() => SpeedInsights.injectSpeedInsights()).pipe(
+  Effect.as(CompletedSpeedInsightsInjection()),
+  Command.make('InjectSpeedInsights'),
+)
 
 const copySnippetToClipboard = (
   text: string,
-): Command<typeof SucceededCopy | typeof FailedCopy> =>
+): Command.Command<typeof SucceededCopy | typeof FailedCopy> =>
   Effect.tryPromise({
     try: () => navigator.clipboard.writeText(text),
     catch: () => new Error('Failed to copy to clipboard'),
   }).pipe(
     Effect.as(SucceededCopy({ text })),
     Effect.catchAll(() => Effect.succeed(FailedCopy())),
+    Command.make('CopySnippet'),
   )
 
 const copyLinkToClipboard = (
   url: string,
-): Command<typeof CompletedCopyLink | typeof FailedCopy> =>
+): Command.Command<typeof CompletedCopyLink | typeof FailedCopy> =>
   Effect.tryPromise({
     try: () => navigator.clipboard.writeText(url),
     catch: () => new Error('Failed to copy link to clipboard'),
   }).pipe(
     Effect.as(CompletedCopyLink()),
     Effect.catchAll(() => Effect.succeed(FailedCopy())),
+    Command.make('CopyLink'),
   )
 
 const COPY_INDICATOR_DURATION = '2 seconds'
 
-const hideIndicator = (text: string): Command<typeof HiddenCopiedIndicator> =>
+const hideIndicator = (
+  text: string,
+): Command.Command<typeof HiddenCopiedIndicator> =>
   Effect.sleep(COPY_INDICATOR_DURATION).pipe(
     Effect.as(HiddenCopiedIndicator({ text })),
+    Command.make('HideCopiedIndicator'),
   )
 
-const scrollToTop: Command<typeof CompletedScroll> = Effect.sync(() => {
+const scrollToTop: Command.Command<typeof CompletedScroll> = Effect.sync(() => {
   window.scrollTo({ top: 0, behavior: 'instant' })
   return CompletedScroll()
-})
+}).pipe(Command.make('ScrollToTop'))
 
 const focusAndScrollToHash = (hash: string): void => {
   const element = document.getElementById(hash)
@@ -881,25 +948,25 @@ const focusAndScrollToHash = (hash: string): void => {
   }
 }
 
-const scrollToHash = (hash: string): Command<typeof CompletedScroll> =>
+const scrollToHash = (hash: string): Command.Command<typeof CompletedScroll> =>
   Effect.sync(() => {
     focusAndScrollToHash(hash)
     return CompletedScroll()
-  })
+  }).pipe(Command.make('ScrollToAnchor'))
 
 const scrollToHashAfterRender = (
   hash: string,
-): Command<typeof CompletedScroll> =>
-  Effect.async(resume => {
+): Command.Command<typeof CompletedScroll> =>
+  Effect.async<typeof CompletedScroll.Type>(resume => {
     requestAnimationFrame(() => {
       focusAndScrollToHash(hash)
       resume(Effect.succeed(CompletedScroll()))
     })
-  })
+  }).pipe(Command.make('ScrollToAnchor'))
 
 const applyThemeToDocument = (
   theme: typeof ResolvedTheme.Type,
-): Command<typeof CompletedApplyTheme> =>
+): Command.Command<typeof CompletedApplyTheme> =>
   Effect.sync(() => {
     M.value(theme).pipe(
       M.when('Dark', () => document.documentElement.classList.add('dark')),
@@ -907,7 +974,7 @@ const applyThemeToDocument = (
       M.exhaustive,
     )
     return CompletedApplyTheme()
-  })
+  }).pipe(Command.make('ApplyTheme'))
 
 const BUTTONDOWN_SUBSCRIBE_URL =
   'https://buttondown.com/api/emails/embed-subscribe/foldkit'
@@ -919,10 +986,8 @@ const validateEmail = StringField.validate([
 
 const subscribeToNewsletter = (
   email: string,
-): Command<
-  typeof SucceededEmailSubscription | typeof FailedEmailSubscription,
-  never,
-  HttpClient.HttpClient
+): Command.Command<
+  typeof SucceededEmailSubscription | typeof FailedEmailSubscription
 > =>
   Effect.gen(function* () {
     const client = yield* HttpClient.HttpClient
@@ -939,17 +1004,14 @@ const subscribeToNewsletter = (
   }).pipe(
     Effect.scoped,
     Effect.catchAll(() => Effect.succeed(FailedEmailSubscription())),
+    Effect.locally(HttpClient.currentTracerPropagation, false),
+    Effect.provide(FetchHttpClient.layer),
+    Command.make('SubscribeToNewsletter'),
   )
-
-const subscribeToNewsletterLive = flow(
-  subscribeToNewsletter,
-  Effect.locally(HttpClient.currentTracerPropagation, false),
-  Effect.provide(FetchHttpClient.layer),
-)
 
 const saveThemePreference = (
   preference: typeof ThemePreference.Type,
-): Command<typeof CompletedSaveThemePreference> =>
+): Command.Command<typeof CompletedSaveThemePreference> =>
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
     yield* store.set(THEME_STORAGE_KEY, JSON.stringify(preference))
@@ -957,6 +1019,7 @@ const saveThemePreference = (
   }).pipe(
     Effect.catchAll(() => Effect.succeed(CompletedSaveThemePreference())),
     Effect.provide(BrowserKeyValueStore.layerLocalStorage),
+    Command.make('SaveThemePreference'),
   )
 
 // VIEW
@@ -1003,6 +1066,41 @@ const subscriptions = makeSubscriptions(SubscriptionDeps)<Model, Message>({
   viewportWidth: Subscription.viewportWidth,
 })
 
+// TRACER
+
+const devTracerLayer: Layer.Layer<never> = import.meta.hot
+  ? Layer.setTracer(
+      Tracer.make({
+        context: f => f(),
+        span: (name, _parent, _context, _links, startTime, kind) => {
+          const attributes = new Map<string, unknown>()
+          return {
+            _tag: 'Span' as const,
+            name,
+            spanId: `${name}-${Date.now()}`,
+            traceId: 'dev',
+            sampled: true,
+            parent: Option.none(),
+            context: _context,
+            links: [],
+            kind,
+            status: { _tag: 'Started' as const, startTime },
+            attributes,
+            end: (endTime: bigint) => {
+              const durationMs = Number(endTime - startTime) / 1_000_000
+              console.log(`[Command] ${name} ${durationMs.toFixed(1)}ms`)
+            },
+            attribute: (key: string, value: unknown) => {
+              attributes.set(key, value)
+            },
+            event: () => {},
+            addLinks: () => {},
+          }
+        },
+      }),
+    )
+  : Layer.empty
+
 // RUN
 
 const application = Runtime.makeApplication({
@@ -1018,9 +1116,10 @@ const application = Runtime.makeApplication({
     onUrlRequest: request => ClickedLink({ request }),
     onUrlChange: url => ChangedUrl({ url }),
   },
-  resources: Layer.merge(
+  resources: Layer.mergeAll(
     Page.NotePlayerDemo.AudioContextService.Default,
     Search.PagefindService.Default,
+    devTracerLayer,
   ),
   devtools: {
     show: 'Always',

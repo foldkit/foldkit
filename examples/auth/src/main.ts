@@ -1,8 +1,7 @@
 import { KeyValueStore } from '@effect/platform'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Effect, Match as M, Option, Schema as S } from 'effect'
-import { Runtime } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Runtime } from 'foldkit'
 import { replaceUrl } from 'foldkit/navigation'
 import { Url } from 'foldkit/url'
 
@@ -49,7 +48,7 @@ type Flags = typeof Flags.Type
 
 // INIT
 
-type InitReturn = [Model, ReadonlyArray<Command<Message>>]
+type InitReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 const withInitReturn = M.withReturnType<InitReturn>()
 
 const init: Runtime.ApplicationInit<Model, Message, Flags> = (
@@ -71,6 +70,7 @@ const init: Runtime.ApplicationInit<Model, Message, Flags> = (
           [
             replaceUrl(loginRouter()).pipe(
               Effect.as(CompletedInternalNavigation()),
+              Command.make('RedirectToLogin'),
             ),
           ],
         ]),
@@ -88,6 +88,7 @@ const init: Runtime.ApplicationInit<Model, Message, Flags> = (
           [
             replaceUrl(dashboardRouter()).pipe(
               Effect.as(CompletedInternalNavigation()),
+              Command.make('RedirectToDashboard'),
             ),
           ],
         ]),

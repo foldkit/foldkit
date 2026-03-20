@@ -1,6 +1,5 @@
 import { Effect, Match as M, Number } from 'effect'
-import { Ui } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Ui } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import {
@@ -32,7 +31,10 @@ import {
 } from './message'
 import type { UiModel } from './model'
 
-export type UiUpdateReturn = [UiModel, ReadonlyArray<Command<UiMessage>>]
+export type UiUpdateReturn = [
+  UiModel,
+  ReadonlyArray<Command.Command<UiMessage>>,
+]
 const withUpdateReturn = M.withReturnType<UiUpdateReturn>()
 
 export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
@@ -48,7 +50,9 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             mobileMenuDialog: () => nextMobileMenuDialog,
           }),
           mobileMenuDialogCommands.map(
-            Effect.map(message => GotMobileMenuDialogMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotMobileMenuDialogMessage({ message })),
+            ),
           ),
         ]
       },
@@ -87,7 +91,11 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             fieldsetCheckboxDemo: () => nextFieldsetCheckboxDemo,
           }),
           fieldsetCheckboxCommands.map(
-            Effect.map(message => GotFieldsetCheckboxDemoMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message =>
+                GotFieldsetCheckboxDemoMessage({ message }),
+              ),
+            ),
           ),
         ]
       },
@@ -108,7 +116,9 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             checkboxBasicDemo: () => nextCheckboxBasicDemo,
           }),
           checkboxBasicCommands.map(
-            Effect.map(message => GotCheckboxBasicDemoMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotCheckboxBasicDemoMessage({ message })),
+            ),
           ),
         ]
       },
@@ -145,7 +155,9 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             checkboxOptionADemo: () => nextOptionA,
           }),
           optionACommands.map(
-            Effect.map(message => GotCheckboxOptionADemoMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotCheckboxOptionADemoMessage({ message })),
+            ),
           ),
         ]
       },
@@ -161,7 +173,9 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             checkboxOptionBDemo: () => nextOptionB,
           }),
           optionBCommands.map(
-            Effect.map(message => GotCheckboxOptionBDemoMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotCheckboxOptionBDemoMessage({ message })),
+            ),
           ),
         ]
       },
@@ -177,7 +191,9 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             comboboxDemo: () => nextComboboxDemo,
           }),
           comboboxCommands.map(
-            Effect.map(message => GotComboboxDemoMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotComboboxDemoMessage({ message })),
+            ),
           ),
         ]
       },
@@ -191,7 +207,11 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             comboboxNullableDemo: () => nextComboboxNullableDemo,
           }),
           comboboxNullableCommands.map(
-            Effect.map(message => GotComboboxNullableDemoMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message =>
+                GotComboboxNullableDemoMessage({ message }),
+              ),
+            ),
           ),
         ]
       },
@@ -205,7 +225,9 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             comboboxMultiDemo: () => nextComboboxMultiDemo,
           }),
           comboboxMultiCommands.map(
-            Effect.map(message => GotComboboxMultiDemoMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotComboboxMultiDemoMessage({ message })),
+            ),
           ),
         ]
       },
@@ -219,8 +241,10 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             comboboxSelectOnFocusDemo: () => nextComboboxSelectOnFocusDemo,
           }),
           comboboxSelectOnFocusCommands.map(
-            Effect.map(message =>
-              GotComboboxSelectOnFocusDemoMessage({ message }),
+            Command.mapEffect(
+              Effect.map(message =>
+                GotComboboxSelectOnFocusDemoMessage({ message }),
+              ),
             ),
           ),
         ]
@@ -237,7 +261,9 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             dialogDemo: () => nextDialogDemo,
           }),
           dialogCommands.map(
-            Effect.map(message => GotDialogDemoMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotDialogDemoMessage({ message })),
+            ),
           ),
         ]
       },
@@ -251,7 +277,9 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             dialogAnimatedDemo: () => nextDialogAnimatedDemo,
           }),
           dialogAnimatedCommands.map(
-            Effect.map(message => GotDialogAnimatedDemoMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotDialogAnimatedDemoMessage({ message })),
+            ),
           ),
         ]
       },
@@ -267,7 +295,9 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             disclosureDemo: () => nextDisclosureDemo,
           }),
           disclosureCommands.map(
-            Effect.map(message => GotDisclosureDemoMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotDisclosureDemoMessage({ message })),
+            ),
           ),
         ]
       },
@@ -283,7 +313,9 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             listboxDemo: () => nextListboxDemo,
           }),
           listboxCommands.map(
-            Effect.map(message => GotListboxDemoMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotListboxDemoMessage({ message })),
+            ),
           ),
         ]
       },
@@ -297,7 +329,9 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             listboxMultiDemo: () => nextListboxMultiDemo,
           }),
           listboxMultiCommands.map(
-            Effect.map(message => GotListboxMultiDemoMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotListboxMultiDemoMessage({ message })),
+            ),
           ),
         ]
       },
@@ -311,7 +345,9 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             listboxGroupedDemo: () => nextListboxGroupedDemo,
           }),
           listboxGroupedCommands.map(
-            Effect.map(message => GotListboxGroupedDemoMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotListboxGroupedDemoMessage({ message })),
+            ),
           ),
         ]
       },
@@ -327,7 +363,9 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             menuBasicDemo: () => nextMenuBasicDemo,
           }),
           menuBasicCommands.map(
-            Effect.map(message => GotMenuBasicDemoMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotMenuBasicDemoMessage({ message })),
+            ),
           ),
         ]
       },
@@ -343,7 +381,9 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             menuAnimatedDemo: () => nextMenuAnimatedDemo,
           }),
           menuAnimatedCommands.map(
-            Effect.map(message => GotMenuAnimatedDemoMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotMenuAnimatedDemoMessage({ message })),
+            ),
           ),
         ]
       },
@@ -359,7 +399,9 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             popoverBasicDemo: () => nextPopoverBasicDemo,
           }),
           popoverBasicCommands.map(
-            Effect.map(message => GotPopoverBasicDemoMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotPopoverBasicDemoMessage({ message })),
+            ),
           ),
         ]
       },
@@ -373,7 +415,9 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             popoverAnimatedDemo: () => nextPopoverAnimatedDemo,
           }),
           popoverAnimatedCommands.map(
-            Effect.map(message => GotPopoverAnimatedDemoMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotPopoverAnimatedDemoMessage({ message })),
+            ),
           ),
         ]
       },
@@ -387,8 +431,10 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             verticalRadioGroupDemo: () => nextVerticalRadioGroupDemo,
           }),
           verticalRadioGroupCommands.map(
-            Effect.map(message =>
-              GotVerticalRadioGroupDemoMessage({ message }),
+            Command.mapEffect(
+              Effect.map(message =>
+                GotVerticalRadioGroupDemoMessage({ message }),
+              ),
             ),
           ),
         ]
@@ -403,8 +449,10 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             horizontalRadioGroupDemo: () => nextHorizontalRadioGroupDemo,
           }),
           horizontalRadioGroupCommands.map(
-            Effect.map(message =>
-              GotHorizontalRadioGroupDemoMessage({ message }),
+            Command.mapEffect(
+              Effect.map(message =>
+                GotHorizontalRadioGroupDemoMessage({ message }),
+              ),
             ),
           ),
         ]
@@ -421,7 +469,9 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             switchDemo: () => nextSwitchDemo,
           }),
           switchCommands.map(
-            Effect.map(message => GotSwitchDemoMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotSwitchDemoMessage({ message })),
+            ),
           ),
         ]
       },
@@ -437,7 +487,9 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             horizontalTabsDemo: () => nextHorizontalTabsDemo,
           }),
           horizontalTabsCommands.map(
-            Effect.map(message => GotHorizontalTabsDemoMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotHorizontalTabsDemoMessage({ message })),
+            ),
           ),
         ]
       },
@@ -453,7 +505,9 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             verticalTabsDemo: () => nextVerticalTabsDemo,
           }),
           verticalTabsCommands.map(
-            Effect.map(message => GotVerticalTabsDemoMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotVerticalTabsDemoMessage({ message })),
+            ),
           ),
         ]
       },

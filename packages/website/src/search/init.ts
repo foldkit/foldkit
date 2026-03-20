@@ -1,12 +1,11 @@
-import { Ui } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Ui } from 'foldkit'
 
 import { SEARCH_INPUT_ID } from './command'
 import type { Message } from './message'
 import type { Model } from './model'
 import { Idle } from './model'
 
-export type InitReturn = [Model, ReadonlyArray<Command<Message>>]
+export type InitReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 
 export const init = (): InitReturn => [
   {

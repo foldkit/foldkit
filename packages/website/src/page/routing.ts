@@ -333,7 +333,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(navigationHeader),
       para(
-        'Foldkit provides navigation commands for programmatically changing the URL. These are returned from your update function like any other command.',
+        'Foldkit provides navigation Commands for programmatically changing the URL. These are returned from your update function like any other Command.',
       ),
       highlightedCodeBlock(
         div(

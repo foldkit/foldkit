@@ -7,8 +7,7 @@ import {
   Stream,
   pipe,
 } from 'effect'
-import { Runtime, Subscription } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Runtime, Subscription } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -80,13 +79,13 @@ const init: Runtime.ElementInit<Model, Message> = () => {
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command<Message>>] =>
+): [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
+    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
     M.tagsExhaustive({
       PressedKey: ({ key }) =>
         M.value(key).pipe(
-          M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
+          M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
           M.whenOr(
             'ArrowUp',
             'ArrowDown',
@@ -222,6 +221,7 @@ const update = (
         [
           Apple.generatePosition(snake).pipe(
             Effect.map(position => GotApple({ position })),
+            Command.make('GenerateApplePosition'),
           ),
         ],
       ],
@@ -237,8 +237,8 @@ const update = (
 
 // COMMAND
 
-const requestApple = (snake: Snake.Snake): Command<Message> =>
-  Effect.succeed(RequestedApple({ snake }))
+const requestApple = (snake: Snake.Snake): Command.Command<Message> =>
+  Effect.succeed(RequestedApple({ snake })).pipe(Command.make('RequestApple'))
 
 // SUBSCRIPTION
 
@@ -265,7 +265,9 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
     depsToStream: (deps: { isPlaying: boolean; interval: number }) =>
       Stream.when(
         Stream.tick(Duration.millis(deps.interval)).pipe(
-          Stream.map(() => Effect.succeed(TickedClock())),
+          Stream.map(() =>
+            Effect.succeed(TickedClock()).pipe(Command.make('TickClock')),
+          ),
         ),
         () => deps.isPlaying,
       ),
@@ -279,7 +281,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
           Effect.sync(() => {
             keyboardEvent.preventDefault()
             return PressedKey({ key: keyboardEvent.key })
-          }),
+          }).pipe(Command.make('HandleKeydown')),
         ),
       ),
   },

@@ -1,6 +1,6 @@
 // page/settings.ts
 import { Match as M, Schema as S } from 'effect'
-import { Command } from 'foldkit/command'
+import { Command } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
@@ -24,9 +24,9 @@ export type Message = typeof Message.Type
 export const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command<Message>>] =>
+): [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
+    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
     M.tagsExhaustive({
       ChangedTheme: ({ theme }) => [evo(model, { theme: () => theme }), []],
     }),

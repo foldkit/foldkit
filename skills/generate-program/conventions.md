@@ -58,13 +58,14 @@ const FailedWeatherFetch = m('FailedWeatherFetch', { error: S.String })
 - Prefix Option values with `maybe`: `maybeCurrentUser`, `maybeSession`, `maybeError`
 - Boolean fields use `is*`: `isPlaying`, `isVisible`, `isMenuOpen`
 - Command variables named by action: `fetchWeather`, not `fetchWeatherCommand`
+- Command names are verb-first, present-tense: `FetchWeather`, `FocusButton`, `LockScroll`, `Tick`
 - Callback parameters use full names: `(tickCount) => tickCount + 1` not `(t) => t + 1`
 - Constants for magic numbers: `FINAL_PHOTO_INDEX` not `15`, `EXIT_COUNTDOWN_SECONDS` not `5`
 
 ### Schemas
 
 - Capitalized string literals: `S.Literal('Horizontal', 'Vertical')` not `S.Literal('horizontal', 'vertical')`
-- Capitalized namespace imports: `import * as Command from './command'`
+- Capitalized namespace imports: `import * as ShoppingCart from './shoppingCart'`
 - `Array<T>` or `ReadonlyArray<T>`, never `T[]`
 
 ## Effect-TS Patterns
@@ -307,8 +308,7 @@ import {
   String as String_,
   pipe,
 } from 'effect'
-import { Runtime, Subscription, Task, Ui, Url } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Runtime, Subscription, Task, Ui, Url } from 'foldkit'
 import { Html, empty, html, keyed } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { r } from 'foldkit/route'

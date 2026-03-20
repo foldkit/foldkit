@@ -8,7 +8,7 @@ import {
   pipe,
 } from 'effect'
 
-import type { Command } from '../../command'
+import * as Command from '../../command'
 import {
   type Attribute,
   type Html,
@@ -89,9 +89,9 @@ export const init = (config: InitConfig): Model => {
 export const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command<Message>>] =>
+): [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
+    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
     M.tagsExhaustive({
       TabSelected: ({ index }) => {
         const tabSelector = `#${tabId(model.id, index)}`
@@ -105,6 +105,7 @@ export const update = (
             Task.focus(tabSelector).pipe(
               Effect.ignore,
               Effect.as(CompletedTabFocus()),
+              Command.make('FocusTab'),
             ),
           ],
         ]
@@ -118,6 +119,7 @@ export const update = (
             Task.focus(tabSelector).pipe(
               Effect.ignore,
               Effect.as(CompletedTabFocus()),
+              Command.make('FocusTab'),
             ),
           ],
         ]

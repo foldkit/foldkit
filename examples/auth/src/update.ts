@@ -1,5 +1,5 @@
 import { Array, Effect, Match as M, Option } from 'effect'
-import { Command } from 'foldkit/command'
+import { Command } from 'foldkit'
 import { load, pushUrl, replaceUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 import { toString as urlToString } from 'foldkit/url'
@@ -8,8 +8,6 @@ import { clearSession, logError, saveSession } from './command'
 import {
   CompletedExternalNavigation,
   CompletedInternalNavigation,
-  CompletedSessionClear,
-  CompletedSessionSave,
   GotLoggedInMessage,
   GotLoggedOutMessage,
   Message,
@@ -24,19 +22,13 @@ import {
   urlToAppRoute,
 } from './route'
 
-type UpdateReturn = [Model, ReadonlyArray<Command<Message>>]
+type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
-    M.tagsExhaustive({
-      CompletedInternalNavigation: () => [model, []],
-      CompletedExternalNavigation: () => [model, []],
-      CompletedSessionSave: () => [model, []],
-      CompletedSessionClear: () => [model, []],
-      CompletedErrorLog: () => [model, []],
-
+    M.tags({
       ClickedLink: ({ request }) =>
         M.value(request).pipe(
           withUpdateReturn,
@@ -46,12 +38,18 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               [
                 pushUrl(urlToString(url)).pipe(
                   Effect.as(CompletedInternalNavigation()),
+                  Command.make('NavigateInternal'),
                 ),
               ],
             ],
             External: ({ href }) => [
               model,
-              [load(href).pipe(Effect.as(CompletedExternalNavigation()))],
+              [
+                load(href).pipe(
+                  Effect.as(CompletedExternalNavigation()),
+                  Command.make('LoadExternal'),
+                ),
+              ],
             ],
           }),
         ),
@@ -74,6 +72,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                   [
                     replaceUrl(loginRouter()).pipe(
                       Effect.as(CompletedInternalNavigation()),
+                      Command.make('RedirectToLogin'),
                     ),
                   ],
                 ]),
@@ -91,6 +90,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                   [
                     replaceUrl(dashboardRouter()).pipe(
                       Effect.as(CompletedInternalNavigation()),
+                      Command.make('RedirectToDashboard'),
                     ),
                   ],
                 ]),
@@ -108,14 +108,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           }),
         ),
 
-      SavedSession: () => [model, []],
-
       FailedSessionSave: ({ error }) => [
         model,
         [logError('Failed to save session:', error)],
       ],
-
-      ClearedSession: () => [model, []],
 
       FailedSessionClear: ({ error }) => [
         model,
@@ -128,6 +124,15 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       GotLoggedInMessage: ({ message }) =>
         handleGotLoggedInMessage(model, message),
     }),
+    M.tag(
+      'CompletedInternalNavigation',
+      'CompletedExternalNavigation',
+      'CompletedErrorLog',
+      'SavedSession',
+      'ClearedSession',
+      () => [model, []],
+    ),
+    M.exhaustive,
   )
 
 const handleGotLoggedOutMessage = (
@@ -143,8 +148,9 @@ const handleGotLoggedOutMessage = (
     message,
   )
 
-  const mappedCommands = Array.map(commands, command =>
-    Effect.map(command, message => GotLoggedOutMessage({ message })),
+  const mappedCommands = Array.map(
+    commands,
+    Command.mapEffect(Effect.map(message => GotLoggedOutMessage({ message }))),
   )
 
   return Option.match(maybeOutMessage, {
@@ -157,9 +163,10 @@ const handleGotLoggedOutMessage = (
             LoggedIn.init(DashboardRoute(), session),
             [
               ...mappedCommands,
-              saveSession(session).pipe(Effect.as(CompletedSessionSave())),
+              saveSession(session),
               replaceUrl(dashboardRouter()).pipe(
                 Effect.as(CompletedInternalNavigation()),
+                Command.make('RedirectToDashboard'),
               ),
             ],
           ],
@@ -178,8 +185,9 @@ const handleGotLoggedInMessage = (
 
   const [nextModel, commands, maybeOutMessage] = LoggedIn.update(model, message)
 
-  const mappedCommands = Array.map(commands, command =>
-    Effect.map(command, message => GotLoggedInMessage({ message })),
+  const mappedCommands = Array.map(
+    commands,
+    Command.mapEffect(Effect.map(message => GotLoggedInMessage({ message }))),
   )
 
   return Option.match(maybeOutMessage, {
@@ -192,9 +200,10 @@ const handleGotLoggedInMessage = (
             LoggedOut.init(HomeRoute()),
             [
               ...mappedCommands,
-              clearSession().pipe(Effect.as(CompletedSessionClear())),
+              clearSession(),
               replaceUrl(homeRouter()).pipe(
                 Effect.as(CompletedInternalNavigation()),
+                Command.make('RedirectToHome'),
               ),
             ],
           ],

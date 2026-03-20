@@ -1,6 +1,6 @@
 import { Array, Effect, Match as M, Option, Schema as S, pipe } from 'effect'
 
-import type { Command } from '../../command'
+import * as Command from '../../command'
 import { OptionExt } from '../../effectExtensions'
 import { type Attribute, type Html, createLazy, html } from '../../html'
 import { m } from '../../message'
@@ -139,24 +139,33 @@ const closedModel = (model: Model): Model =>
 const buttonSelector = (id: string): string => `#${id}-button`
 const panelSelector = (id: string): string => `#${id}-panel`
 
-type UpdateReturn = [Model, ReadonlyArray<Command<Message>>]
+type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 /** Processes a popover message and returns the next model and commands. */
 export const update = (model: Model, message: Message): UpdateReturn => {
   const maybeNextFrame = OptionExt.when(
     model.isAnimated,
-    Task.nextFrame.pipe(Effect.as(AdvancedTransitionFrame())),
+    Task.nextFrame.pipe(
+      Effect.as(AdvancedTransitionFrame()),
+      Command.make('RequestFrame'),
+    ),
   )
 
   const maybeLockScroll = OptionExt.when(
     model.isModal,
-    Task.lockScroll.pipe(Effect.as(CompletedScrollLock())),
+    Task.lockScroll.pipe(
+      Effect.as(CompletedScrollLock()),
+      Command.make('LockScroll'),
+    ),
   )
 
   const maybeUnlockScroll = OptionExt.when(
     model.isModal,
-    Task.unlockScroll.pipe(Effect.as(CompletedScrollUnlock())),
+    Task.unlockScroll.pipe(
+      Effect.as(CompletedScrollUnlock()),
+      Command.make('UnlockScroll'),
+    ),
   )
 
   const maybeInertOthers = OptionExt.when(
@@ -164,12 +173,15 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     Task.inertOthers(model.id, [
       buttonSelector(model.id),
       panelSelector(model.id),
-    ]).pipe(Effect.as(CompletedInertSetup())),
+    ]).pipe(Effect.as(CompletedInertSetup()), Command.make('InertOthers')),
   )
 
   const maybeRestoreInert = OptionExt.when(
     model.isModal,
-    Task.restoreInert(model.id).pipe(Effect.as(CompletedInertTeardown())),
+    Task.restoreInert(model.id).pipe(
+      Effect.as(CompletedInertTeardown()),
+      Command.make('RestoreInert'),
+    ),
   )
 
   return M.value(message).pipe(
@@ -189,6 +201,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
               Task.focus(panelSelector(model.id)).pipe(
                 Effect.ignore,
                 Effect.as(CompletedPanelFocus()),
+                Command.make('FocusPanel'),
               ),
             ),
           ),
@@ -207,6 +220,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             Task.focus(buttonSelector(model.id)).pipe(
               Effect.ignore,
               Effect.as(CompletedButtonFocus()),
+              Command.make('FocusButton'),
             ),
           ),
         ),
@@ -239,6 +253,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
                 Task.focus(buttonSelector(model.id)).pipe(
                   Effect.ignore,
                   Effect.as(CompletedButtonFocus()),
+                  Command.make('FocusButton'),
                 ),
               ),
             ),
@@ -258,6 +273,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
               Task.focus(panelSelector(model.id)).pipe(
                 Effect.ignore,
                 Effect.as(CompletedPanelFocus()),
+                Command.make('FocusPanel'),
               ),
             ),
           ),
@@ -272,6 +288,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             [
               Task.waitForTransitions(panelSelector(model.id)).pipe(
                 Effect.as(EndedTransition()),
+                Command.make('WaitForTransitions'),
               ),
             ],
           ]),
@@ -285,7 +302,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
                 Task.waitForTransitions(panelSelector(model.id)).pipe(
                   Effect.as(EndedTransition()),
                 ),
-              ),
+              ).pipe(Command.make('DetectMovementOrTransitionEnd')),
             ],
           ]),
           M.orElse(() => [model, []]),

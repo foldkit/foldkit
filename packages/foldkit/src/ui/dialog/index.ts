@@ -1,6 +1,6 @@
 import { Array, Effect, Match as M, Option, Schema as S } from 'effect'
 
-import type { Command } from '../../command'
+import * as Command from '../../command'
 import { OptionExt } from '../../effectExtensions'
 import { type Attribute, type Html, createLazy, html } from '../../html'
 import { m } from '../../message'
@@ -86,14 +86,17 @@ export const init = (config: InitConfig): Model => ({
 const dialogSelector = (id: string): string => `#${id}`
 const panelSelector = (id: string): string => `#${id}-panel`
 
-type UpdateReturn = [Model, ReadonlyArray<Command<Message>>]
+type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 /** Processes a dialog message and returns the next model and commands. */
 export const update = (model: Model, message: Message): UpdateReturn => {
   const maybeNextFrame = OptionExt.when(
     model.isAnimated,
-    Task.nextFrame.pipe(Effect.as(AdvancedTransitionFrame())),
+    Task.nextFrame.pipe(
+      Effect.as(AdvancedTransitionFrame()),
+      Command.make('RequestFrame'),
+    ),
   )
 
   return M.value(message).pipe(
@@ -112,6 +115,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             ),
             Effect.ignore,
             Effect.as(CompletedDialogShow()),
+            Command.make('ShowDialog'),
           ),
           () => !model.isOpen,
         )
@@ -149,6 +153,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             Effect.andThen(() => Task.unlockScroll),
             Effect.ignore,
             Effect.as(CompletedDialogClose()),
+            Command.make('CloseDialog'),
           ),
           () => model.isOpen,
         )
@@ -164,6 +169,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             [
               Task.waitForTransitions(panelSelector(model.id)).pipe(
                 Effect.as(EndedTransition()),
+                Command.make('WaitForTransitions'),
               ),
             ],
           ]),
@@ -172,6 +178,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             [
               Task.waitForTransitions(panelSelector(model.id)).pipe(
                 Effect.as(EndedTransition()),
+                Command.make('WaitForTransitions'),
               ),
             ],
           ]),
@@ -192,6 +199,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
                 Effect.andThen(() => Task.unlockScroll),
                 Effect.ignore,
                 Effect.as(CompletedDialogClose()),
+                Command.make('CloseDialog'),
               ),
             ],
           ]),

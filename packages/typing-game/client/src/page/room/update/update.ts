@@ -8,21 +8,20 @@ import {
   String as Str,
   pipe,
 } from 'effect'
-import { Task } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Task } from 'foldkit'
 import { pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 
-import { clearSession, savePlayerToSessionStorage } from '../../../command'
+import { clearSession, savePlayerSession } from '../../../command'
 import { ROOM_PAGE_USERNAME_INPUT_ID } from '../../../constant'
 import { optionWhen } from '../../../optionWhen'
 import { homeRouter } from '../../../route'
 import {
   copyRoomIdToClipboard,
-  exitCountdownTick,
   hideRoomIdCopiedIndicator,
   joinRoom,
   startGame,
+  tickExitCountdown,
   updatePlayerProgress,
 } from '../command'
 import {
@@ -34,7 +33,7 @@ import { Model, RoomRemoteData } from '../model'
 import { validateUserTextInput } from '../userGameText'
 import { handleRoomUpdated } from './handleRoomUpdates'
 
-export type UpdateReturn = [Model, ReadonlyArray<Command<Message>>]
+export type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 export const update = (model: Model, message: Message): UpdateReturn =>
@@ -111,6 +110,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           Task.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(
             Effect.ignore,
             Effect.as(CompletedRoomPageUsernameInputFocus()),
+            Command.make('FocusRoomUsernameInput'),
           ),
         ],
       ],
@@ -155,6 +155,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               Task.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(
                 Effect.ignore,
                 Effect.as(CompletedRoomPageUsernameInputFocus()),
+                Command.make('FocusRoomUsernameInput'),
               ),
             ),
           onSome: () => Option.none(),
@@ -202,7 +203,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         const nextSecondsLeft = Number.decrement(model.exitCountdownSecondsLeft)
         const maybeTick = optionWhen(
           nextSecondsLeft > 0,
-          () => exitCountdownTick,
+          () => tickExitCountdown,
         )
 
         return [
@@ -219,7 +220,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           evo(model, {
             maybeSession: () => Option.some(session),
           }),
-          [savePlayerToSessionStorage(session)],
+          [savePlayerSession(session)],
         ]
       },
     }),
@@ -274,7 +275,10 @@ const leaveRoom = (model: Model): UpdateReturn => [
   }),
   [
     clearSession(),
-    pushUrl(homeRouter()).pipe(Effect.as(CompletedHomeNavigation())),
+    pushUrl(homeRouter()).pipe(
+      Effect.as(CompletedHomeNavigation()),
+      Command.make('NavigateHome'),
+    ),
   ],
 ]
 

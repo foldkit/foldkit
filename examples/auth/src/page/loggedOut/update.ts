@@ -1,5 +1,5 @@
 import { Array, Effect, Match as M, Option } from 'effect'
-import { Command } from 'foldkit/command'
+import { Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import {
@@ -13,7 +13,7 @@ import * as Login from './page/login'
 
 type UpdateReturn = [
   Model,
-  ReadonlyArray<Command<Message>>,
+  ReadonlyArray<Command.Command<Message>>,
   Option.Option<OutMessage>,
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
@@ -28,8 +28,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           message,
         )
 
-        const mappedCommands = Array.map(commands, command =>
-          Effect.map(command, message => GotLoginMessage({ message })),
+        const mappedCommands = Array.map(
+          commands,
+          Command.mapEffect(
+            Effect.map(message => GotLoginMessage({ message })),
+          ),
         )
 
         return [

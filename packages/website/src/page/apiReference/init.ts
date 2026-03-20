@@ -1,6 +1,5 @@
 import { Array, Record, pipe } from 'effect'
-import { Ui } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Ui } from 'foldkit'
 
 import {
   type ApiModule,
@@ -11,7 +10,7 @@ import {
 import type { Message } from './message'
 import type { Model } from './model'
 
-export type InitReturn = [Model, ReadonlyArray<Command<Message>>]
+export type InitReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 
 export const init = (modules: ReadonlyArray<ApiModule>): InitReturn => {
   const disclosures: Model = pipe(

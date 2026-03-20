@@ -1,4 +1,5 @@
 import { Duration, Effect, Stream } from 'effect'
+import { Command } from 'foldkit'
 import { Subscription } from 'foldkit/subscription'
 
 import { type Model, type SubscriptionDeps } from '../main'
@@ -17,7 +18,11 @@ export const aiHeading: Subscription<
   depsToStream: ({ isLandingPage }) =>
     Stream.when(
       Stream.tick(Duration.millis(TOGGLE_INTERVAL_MS)).pipe(
-        Stream.map(() => Effect.succeed(ToggledAiHeading())),
+        Stream.map(() =>
+          Effect.succeed(ToggledAiHeading()).pipe(
+            Command.make('ToggleAiHeading'),
+          ),
+        ),
       ),
       () => isLandingPage,
     ),

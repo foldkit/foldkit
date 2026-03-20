@@ -9,8 +9,7 @@ import {
   Stream,
   String,
 } from 'effect'
-import { ManagedResource, Runtime, Subscription, Task } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, ManagedResource, Runtime, Subscription, Task } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
@@ -87,10 +86,10 @@ type Message = typeof Message.Type
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command<Message, never, ChatSocketService>>] =>
+): [Model, ReadonlyArray<Command.Command<Message, never, ChatSocketService>>] =>
   M.value(message).pipe(
     M.withReturnType<
-      [Model, ReadonlyArray<Command<Message, never, ChatSocketService>>]
+      [Model, ReadonlyArray<Command.Command<Message, never, ChatSocketService>>]
     >(),
     M.tagsExhaustive({
       RequestedConnection: () => [
@@ -138,7 +137,10 @@ const update = (
 
         return M.value(model.connection).pipe(
           M.withReturnType<
-            [Model, ReadonlyArray<Command<Message, never, ChatSocketService>>]
+            [
+              Model,
+              ReadonlyArray<Command.Command<Message, never, ChatSocketService>>,
+            ]
           >(),
           M.tag('ConnectionConnected', () => [
             evo(model, {
@@ -157,6 +159,7 @@ const update = (
             Effect.map(zoned =>
               TimestampedMessage({ text, zoned, isSent: true }),
             ),
+            Command.make('TimestampSentMessage'),
           ),
         ],
       ],
@@ -168,6 +171,7 @@ const update = (
             Effect.map(zoned =>
               TimestampedMessage({ text, zoned, isSent: false }),
             ),
+            Command.make('TimestampReceivedMessage'),
           ),
         ],
       ],
@@ -200,7 +204,7 @@ const init: Runtime.ElementInit<Model, Message> = () => [
 
 const sendMessage = (
   text: string,
-): Command<
+): Command.Command<
   typeof SentMessage | typeof FailedConnection,
   never,
   ChatSocketService
@@ -215,6 +219,7 @@ const sendMessage = (
     Effect.catchTag('ResourceNotAvailable', () =>
       Effect.succeed(FailedConnection({ error: 'Socket unavailable' })),
     ),
+    Command.make('SendMessage'),
   )
 
 // MANAGED RESOURCE
@@ -297,7 +302,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
         ChatSocket.get.pipe(
           Effect.map(socket =>
             Stream.async<
-              Command<
+              Command.Command<
                 | typeof ReceivedMessage
                 | typeof Disconnected
                 | typeof FailedConnection
@@ -305,12 +310,18 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
             >(emit => {
               const handleMessage = (event: MessageEvent) => {
                 emit.single(
-                  Effect.succeed(ReceivedMessage({ text: event.data })),
+                  Effect.succeed(ReceivedMessage({ text: event.data })).pipe(
+                    Command.make('ReceiveMessage'),
+                  ),
                 )
               }
 
               const handleClose = () => {
-                emit.single(Effect.succeed(Disconnected()))
+                emit.single(
+                  Effect.succeed(Disconnected()).pipe(
+                    Command.make('Disconnect'),
+                  ),
+                )
                 emit.end()
               }
 
@@ -318,7 +329,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
                 emit.single(
                   Effect.succeed(
                     FailedConnection({ error: 'Connection error' }),
-                  ),
+                  ).pipe(Command.make('FailConnection')),
                 )
                 emit.end()
               }

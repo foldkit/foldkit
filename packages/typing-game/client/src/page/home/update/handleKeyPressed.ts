@@ -1,6 +1,5 @@
 import { Array, Effect, Match as M, Number, Option, flow, pipe } from 'effect'
-import { Task } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Task } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../../constant'
@@ -19,7 +18,7 @@ import {
   SelectAction,
 } from '../model'
 
-type UpdateReturn = [Model, ReadonlyArray<Command<Message>>]
+type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 export const handleKeyPressed =
@@ -97,6 +96,7 @@ const confirmSelection =
           Task.focus(`#${ROOM_ID_INPUT_ID}`).pipe(
             Effect.ignore,
             Effect.as(CompletedRoomIdInputFocus()),
+            Command.make('FocusRoomIdInput'),
           ),
         ],
       ]),
@@ -108,6 +108,7 @@ const confirmSelection =
           Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
             Effect.ignore,
             Effect.as(CompletedUsernameInputFocus()),
+            Command.make('FocusUsernameInput'),
           ),
         ],
       ]),

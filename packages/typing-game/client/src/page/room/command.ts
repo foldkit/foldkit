@@ -1,8 +1,7 @@
 import { KeyValueStore } from '@effect/platform'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Effect, Option, Schema as S } from 'effect'
-import { Task } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Task } from 'foldkit'
 
 import { ROOM_PLAYER_SESSION_KEY } from '../../constant'
 import { RoomsClient } from '../../rpc'
@@ -23,7 +22,7 @@ import { RoomPlayerSession } from './model'
 
 export const getRoomById = (
   roomId: string,
-): Command<typeof SucceededRoomFetch | typeof FailedRoomFetch> =>
+): Command.Command<typeof SucceededRoomFetch | typeof FailedRoomFetch> =>
   Effect.gen(function* () {
     const client = yield* RoomsClient
     const room = yield* client.getRoomById({ roomId })
@@ -31,11 +30,12 @@ export const getRoomById = (
   }).pipe(
     Effect.catchAll(() => Effect.succeed(FailedRoomFetch({ roomId }))),
     Effect.provide(RoomsClient.Default),
+    Command.make('FetchRoom'),
   )
 
 export const loadSessionFromStorage = (
   roomId: string,
-): Command<typeof LoadedSession> =>
+): Command.Command<typeof LoadedSession> =>
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
     const maybeSessionJson = yield* store.get(ROOM_PLAYER_SESSION_KEY)
@@ -58,12 +58,13 @@ export const loadSessionFromStorage = (
       Effect.succeed(LoadedSession({ maybeSession: Option.none() })),
     ),
     Effect.provide(BrowserKeyValueStore.layerSessionStorage),
+    Command.make('LoadSession'),
   )
 
 export const joinRoom = (
   username: string,
   roomId: string,
-): Command<typeof JoinedRoom | typeof FailedRoomJoin> =>
+): Command.Command<typeof JoinedRoom | typeof FailedRoomJoin> =>
   Effect.gen(function* () {
     const client = yield* RoomsClient
     const { player, room } = yield* client.joinRoom({ username, roomId })
@@ -71,12 +72,13 @@ export const joinRoom = (
   }).pipe(
     Effect.catchAll(() => Effect.succeed(FailedRoomJoin())),
     Effect.provide(RoomsClient.Default),
+    Command.make('JoinRoom'),
   )
 
 export const startGame = (
   roomId: string,
   playerId: string,
-): Command<typeof CompletedGameStartRequest> =>
+): Command.Command<typeof CompletedGameStartRequest> =>
   Effect.gen(function* () {
     const client = yield* RoomsClient
     yield* client.startGame({ roomId, playerId })
@@ -84,6 +86,7 @@ export const startGame = (
   }).pipe(
     Effect.catchAll(() => Effect.succeed(CompletedGameStartRequest())),
     Effect.provide(RoomsClient.Default),
+    Command.make('StartGame'),
   )
 
 export const updatePlayerProgress = (
@@ -91,7 +94,7 @@ export const updatePlayerProgress = (
   gameId: string,
   userGameText: string,
   charsTyped: number,
-): Command<typeof CompletedPlayerProgressUpdate> =>
+): Command.Command<typeof CompletedPlayerProgressUpdate> =>
   Effect.gen(function* () {
     const client = yield* RoomsClient
     yield* client.updatePlayerProgress({
@@ -104,27 +107,33 @@ export const updatePlayerProgress = (
   }).pipe(
     Effect.catchAll(() => Effect.succeed(CompletedPlayerProgressUpdate())),
     Effect.provide(RoomsClient.Default),
+    Command.make('UpdatePlayerProgress'),
   )
 
 export const copyRoomIdToClipboard = (
   roomId: string,
-): Command<typeof SucceededCopyRoomId | typeof FailedClipboardCopy> =>
+): Command.Command<typeof SucceededCopyRoomId | typeof FailedClipboardCopy> =>
   Effect.tryPromise({
     try: () => navigator.clipboard.writeText(roomId),
     catch: () => new Error('Failed to copy to clipboard'),
   }).pipe(
     Effect.as(SucceededCopyRoomId()),
     Effect.catchAll(() => Effect.succeed(FailedClipboardCopy())),
+    Command.make('CopyRoomId'),
   )
 
-export const exitCountdownTick: Command<typeof TickedExitCountdown> =
-  Task.delay('1 second').pipe(Effect.as(TickedExitCountdown()))
+export const tickExitCountdown: Command.Command<typeof TickedExitCountdown> =
+  Task.delay('1 second').pipe(
+    Effect.as(TickedExitCountdown()),
+    Command.make('TickExitCountdown'),
+  )
 
 const COPY_INDICATOR_DURATION = '2 seconds'
 
-export const hideRoomIdCopiedIndicator = (): Command<
+export const hideRoomIdCopiedIndicator = (): Command.Command<
   typeof HiddenRoomIdCopiedIndicator
 > =>
   Effect.sleep(COPY_INDICATOR_DURATION).pipe(
     Effect.as(HiddenRoomIdCopiedIndicator()),
+    Command.make('HideRoomIdCopiedIndicator'),
   )

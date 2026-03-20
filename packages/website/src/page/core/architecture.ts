@@ -105,7 +105,7 @@ export const view = (): Html =>
       para(
         'Every path on the right side produces a Message that feeds back into ',
         inlineCode('update'),
-        '. Commands are one-shot effects. Subscriptions emit a continuous stream of Commands. ManagedResources dispatch Messages when they\u2019re acquired, released, or fail to acquire. The Browser sends Messages when the user interacts with the DOM. Four sources, one loop.',
+        '. Commands are named, one-shot effects \u2014 each carries a name for identification in tracing and tests. Subscriptions emit a continuous stream of Commands. ManagedResources dispatch Messages when they\u2019re acquired, released, or fail to acquire. The Browser sends Messages when the user interacts with the DOM. Four sources, one loop.',
       ),
       tableOfContentsEntryToHeader(theRestaurantAnalogyHeader),
       para(

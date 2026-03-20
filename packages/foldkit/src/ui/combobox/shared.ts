@@ -8,7 +8,7 @@ import {
   pipe,
 } from 'effect'
 
-import type { Command } from '../../command'
+import * as Command from '../../command'
 import { OptionExt } from '../../effectExtensions'
 import { type Attribute, type Html, html } from '../../html'
 import { m } from '../../message'
@@ -235,10 +235,10 @@ export const closedBaseModel = <Model extends BaseModel>(model: Model): Model =>
 
 /** Context passed to the `handleSelectedItem` handler with commands for focus management and modal cleanup. */
 export type SelectedItemContext = Readonly<{
-  focusInput: Command<Message>
-  maybeNextFrame: Option.Option<Command<Message>>
-  maybeUnlockScroll: Option.Option<Command<Message>>
-  maybeRestoreInert: Option.Option<Command<Message>>
+  focusInput: Command.Command<Message>
+  maybeNextFrame: Option.Option<Command.Command<Message>>
+  maybeUnlockScroll: Option.Option<Command.Command<Message>>
+  maybeRestoreInert: Option.Option<Command.Command<Message>>
 }>
 
 /** Creates a combobox update function from variant-specific handlers. Shared logic (open, close, activate, transition) is handled internally; only close, selection, and immediate-activation behavior varies by variant. */
@@ -250,7 +250,7 @@ export const makeUpdate = <Model extends BaseModel>(
       item: string,
       displayText: string,
       context: SelectedItemContext,
-    ) => [Model, ReadonlyArray<Command<Message>>]
+    ) => [Model, ReadonlyArray<Command.Command<Message>>]
     handleImmediateActivation: (
       model: Model,
       item: string,
@@ -258,23 +258,32 @@ export const makeUpdate = <Model extends BaseModel>(
     ) => Model
   }>,
 ) => {
-  type UpdateReturn = [Model, ReadonlyArray<Command<Message>>]
+  type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
   const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
   return (model: Model, message: Message): UpdateReturn => {
     const maybeNextFrame = OptionExt.when(
       model.isAnimated,
-      Task.nextFrame.pipe(Effect.as(AdvancedTransitionFrame())),
+      Task.nextFrame.pipe(
+        Effect.as(AdvancedTransitionFrame()),
+        Command.make('RequestFrame'),
+      ),
     )
 
     const maybeLockScroll = OptionExt.when(
       model.isModal,
-      Task.lockScroll.pipe(Effect.as(CompletedScrollLock())),
+      Task.lockScroll.pipe(
+        Effect.as(CompletedScrollLock()),
+        Command.make('LockScroll'),
+      ),
     )
 
     const maybeUnlockScroll = OptionExt.when(
       model.isModal,
-      Task.unlockScroll.pipe(Effect.as(CompletedScrollUnlock())),
+      Task.unlockScroll.pipe(
+        Effect.as(CompletedScrollUnlock()),
+        Command.make('UnlockScroll'),
+      ),
     )
 
     const maybeInertOthers = OptionExt.when(
@@ -282,17 +291,21 @@ export const makeUpdate = <Model extends BaseModel>(
       Task.inertOthers(model.id, [
         inputWrapperSelector(model.id),
         itemsSelector(model.id),
-      ]).pipe(Effect.as(CompletedInertSetup())),
+      ]).pipe(Effect.as(CompletedInertSetup()), Command.make('InertOthers')),
     )
 
     const maybeRestoreInert = OptionExt.when(
       model.isModal,
-      Task.restoreInert(model.id).pipe(Effect.as(CompletedInertTeardown())),
+      Task.restoreInert(model.id).pipe(
+        Effect.as(CompletedInertTeardown()),
+        Command.make('RestoreInert'),
+      ),
     )
 
     const focusInput = Task.focus(inputSelector(model.id)).pipe(
       Effect.ignore,
       Effect.as(CompletedInputFocus()),
+      Command.make('FocusInput'),
     )
 
     return M.value(message).pipe(
@@ -366,6 +379,7 @@ export const makeUpdate = <Model extends BaseModel>(
                   Task.scrollIntoView(itemSelector(model.id, index)).pipe(
                     Effect.ignore,
                     Effect.as(CompletedScrollIntoView()),
+                    Command.make('ScrollIntoView'),
                   ),
                 ]
               : [],
@@ -417,6 +431,7 @@ export const makeUpdate = <Model extends BaseModel>(
             Task.clickElement(itemSelector(model.id, index)).pipe(
               Effect.ignore,
               Effect.as(CompletedItemClick()),
+              Command.make('ClickItem'),
             ),
           ],
         ],
@@ -496,6 +511,7 @@ export const makeUpdate = <Model extends BaseModel>(
               [
                 Task.waitForTransitions(itemsSelector(model.id)).pipe(
                   Effect.as(EndedTransition()),
+                  Command.make('WaitForTransitions'),
                 ),
               ],
             ]),
@@ -511,7 +527,7 @@ export const makeUpdate = <Model extends BaseModel>(
                   Task.waitForTransitions(itemsSelector(model.id)).pipe(
                     Effect.as(EndedTransition()),
                   ),
-                ),
+                ).pipe(Command.make('DetectMovementOrTransitionEnd')),
               ],
             ]),
             M.orElse(() => [model, []]),

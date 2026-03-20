@@ -1,10 +1,11 @@
 import { Array, Effect, Match as M, Option } from 'effect'
+import { Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 export const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command<Message>>] =>
+): [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
     M.tagsExhaustive({
       GotLoginMessage: ({ message }) => {
@@ -15,7 +16,9 @@ export const update = (
 
         const mappedCommands = Array.map(
           commands,
-          Effect.map(message => GotLoginMessage({ message })),
+          Command.mapEffect(
+            Effect.map(message => GotLoginMessage({ message })),
+          ),
         )
 
         return Option.match(maybeOutMessage, {

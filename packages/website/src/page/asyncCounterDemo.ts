@@ -8,8 +8,7 @@ import {
   Schema as S,
   pipe,
 } from 'effect'
-import { Task, Ui } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Task, Ui } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -86,7 +85,7 @@ export type Message = typeof Message.Type
 
 // INIT
 
-export const init = (): [Model, ReadonlyArray<Command<Message>>] => [
+export const init = (): [Model, ReadonlyArray<Command.Command<Message>>] => [
   {
     count: 0,
     isResetting: false,
@@ -100,14 +99,17 @@ export const init = (): [Model, ReadonlyArray<Command<Message>>] => [
 
 // UPDATE
 
-type UpdateReturn = [Model, ReadonlyArray<Command<Message>>]
+type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-const sleepThenAdvance = (
+const delayAdvancePhase = (
   generation: number,
   duration: Duration.DurationInput,
-): Command<typeof AdvancedDemoPhase> =>
-  Task.delay(duration).pipe(Effect.as(AdvancedDemoPhase({ generation })))
+): Command.Command<typeof AdvancedDemoPhase> =>
+  Task.delay(duration).pipe(
+    Effect.as(AdvancedDemoPhase({ generation })),
+    Command.make('DelayAdvancePhase'),
+  )
 
 const prependToLog =
   (entry: string) =>
@@ -128,7 +130,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             generation: () => nextGeneration,
             messageLog: prependToLog('ClickedIncrement'),
           }),
-          [sleepThenAdvance(nextGeneration, PHASE_DURATION)],
+          [delayAdvancePhase(nextGeneration, PHASE_DURATION)],
         ]
       },
 
@@ -151,7 +153,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             generation: () => nextGeneration,
             messageLog: prependToLog('ClickedReset'),
           }),
-          [sleepThenAdvance(nextGeneration, PHASE_DURATION)],
+          [delayAdvancePhase(nextGeneration, PHASE_DURATION)],
         ]
       },
 
@@ -163,11 +165,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             withUpdateReturn,
             M.when('IncrementMessage', () => [
               evo(model, { phase: () => 'IncrementUpdate' }),
-              [sleepThenAdvance(generation, PHASE_DURATION)],
+              [delayAdvancePhase(generation, PHASE_DURATION)],
             ]),
             M.when('IncrementUpdate', () => [
               evo(model, { phase: () => 'IncrementModel' }),
-              [sleepThenAdvance(generation, PHASE_DURATION)],
+              [delayAdvancePhase(generation, PHASE_DURATION)],
             ]),
             M.when('IncrementModel', () => [
               evo(model, { phase: () => 'Idle' }),
@@ -175,12 +177,12 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             ]),
             M.when('ResetMessage', () => [
               evo(model, { phase: () => 'ResetUpdate' }),
-              [sleepThenAdvance(generation, PHASE_DURATION)],
+              [delayAdvancePhase(generation, PHASE_DURATION)],
             ]),
             M.when('ResetUpdate', () => [
               evo(model, { phase: () => 'ResetCommand' }),
               [
-                sleepThenAdvance(
+                delayAdvancePhase(
                   generation,
                   `${N.clamp(model.resetDuration, { minimum: MIN_RESET_DURATION, maximum: MAX_RESET_DURATION })} seconds`,
                 ),
@@ -188,14 +190,14 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             ]),
             M.when('ResetCommand', () => [
               evo(model, { phase: () => 'ResetCommandMessage' }),
-              [sleepThenAdvance(generation, PHASE_DURATION)],
+              [delayAdvancePhase(generation, PHASE_DURATION)],
             ]),
             M.when('ResetCommandMessage', () => [
               evo(model, {
                 phase: () => 'ResetCommandUpdate',
                 messageLog: prependToLog('CompletedReset'),
               }),
-              [sleepThenAdvance(generation, PHASE_DURATION)],
+              [delayAdvancePhase(generation, PHASE_DURATION)],
             ]),
             M.when('ResetCommandUpdate', () => [
               evo(model, {
@@ -203,7 +205,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                 isResetting: () => false,
                 phase: () => 'ResetModel',
               }),
-              [sleepThenAdvance(generation, PHASE_DURATION)],
+              [delayAdvancePhase(generation, PHASE_DURATION)],
             ]),
             M.when('ResetModel', () => [
               evo(model, { phase: () => 'Idle' }),

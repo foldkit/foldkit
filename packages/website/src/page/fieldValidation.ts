@@ -223,7 +223,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Validating'),
         ' state as a bridge: run sync validation first, then transition to ',
         inlineCode('Validating'),
-        ', fire a command, and handle the result message.',
+        ', fire a Command, and handle the result message.',
       ),
       highlightedCodeBlock(
         div(
@@ -245,7 +245,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       infoCallout(
         'Sync First',
-        'Run sync validation first. Only fire async commands when the sync rules pass. This avoids unnecessary API calls for obviously invalid input.',
+        'Run sync validation first. Only fire async Commands when the sync rules pass. This avoids unnecessary API calls for obviously invalid input.',
       ),
 
       tableOfContentsEntryToHeader(customValidatorsHeader),

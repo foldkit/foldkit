@@ -9,7 +9,7 @@ import {
   pipe,
 } from 'effect'
 
-import type { Command } from '../../command'
+import * as Command from '../../command'
 import { OptionExt } from '../../effectExtensions'
 import { type Attribute, type Html, createLazy, html } from '../../html'
 import { m } from '../../message'
@@ -262,24 +262,33 @@ const itemsSelector = (id: string): string => `#${id}-items`
 const itemSelector = (id: string, index: number): string =>
   `#${id}-item-${index}`
 
-type UpdateReturn = [Model, ReadonlyArray<Command<Message>>]
+type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 /** Processes a menu message and returns the next model and commands. */
 export const update = (model: Model, message: Message): UpdateReturn => {
   const maybeNextFrame = OptionExt.when(
     model.isAnimated,
-    Task.nextFrame.pipe(Effect.as(AdvancedTransitionFrame())),
+    Task.nextFrame.pipe(
+      Effect.as(AdvancedTransitionFrame()),
+      Command.make('RequestFrame'),
+    ),
   )
 
   const maybeLockScroll = OptionExt.when(
     model.isModal,
-    Task.lockScroll.pipe(Effect.as(CompletedScrollLock())),
+    Task.lockScroll.pipe(
+      Effect.as(CompletedScrollLock()),
+      Command.make('LockScroll'),
+    ),
   )
 
   const maybeUnlockScroll = OptionExt.when(
     model.isModal,
-    Task.unlockScroll.pipe(Effect.as(CompletedScrollUnlock())),
+    Task.unlockScroll.pipe(
+      Effect.as(CompletedScrollUnlock()),
+      Command.make('UnlockScroll'),
+    ),
   )
 
   const maybeInertOthers = OptionExt.when(
@@ -287,12 +296,15 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     Task.inertOthers(model.id, [
       buttonSelector(model.id),
       itemsSelector(model.id),
-    ]).pipe(Effect.as(CompletedInertSetup())),
+    ]).pipe(Effect.as(CompletedInertSetup()), Command.make('InertOthers')),
   )
 
   const maybeRestoreInert = OptionExt.when(
     model.isModal,
-    Task.restoreInert(model.id).pipe(Effect.as(CompletedInertTeardown())),
+    Task.restoreInert(model.id).pipe(
+      Effect.as(CompletedInertTeardown()),
+      Command.make('RestoreInert'),
+    ),
   )
 
   return M.value(message).pipe(
@@ -321,6 +333,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
               Task.focus(itemsSelector(model.id)).pipe(
                 Effect.ignore,
                 Effect.as(CompletedItemsFocus()),
+                Command.make('FocusItems'),
               ),
             ),
           ),
@@ -339,6 +352,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             Task.focus(buttonSelector(model.id)).pipe(
               Effect.ignore,
               Effect.as(CompletedButtonFocus()),
+              Command.make('FocusButton'),
             ),
           ),
         ),
@@ -359,6 +373,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
               Task.scrollIntoView(itemSelector(model.id, index)).pipe(
                 Effect.ignore,
                 Effect.as(CompletedScrollIntoView()),
+                Command.make('ScrollIntoView'),
               ),
             ]
           : [],
@@ -402,6 +417,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             Task.focus(buttonSelector(model.id)).pipe(
               Effect.ignore,
               Effect.as(CompletedButtonFocus()),
+              Command.make('FocusButton'),
             ),
           ),
         ),
@@ -413,6 +429,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           Task.clickElement(itemSelector(model.id, index)).pipe(
             Effect.ignore,
             Effect.as(CompletedItemClick()),
+            Command.make('ClickItem'),
           ),
         ],
       ],
@@ -431,6 +448,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           [
             Task.delay(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
               Effect.as(ClearedSearch({ version: nextSearchVersion })),
+              Command.make('DelayClearSearch'),
             ),
           ],
         ]
@@ -452,6 +470,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             [
               Task.waitForTransitions(itemsSelector(model.id)).pipe(
                 Effect.as(EndedTransition()),
+                Command.make('WaitForTransitions'),
               ),
             ],
           ]),
@@ -465,7 +484,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
                 Task.waitForTransitions(itemsSelector(model.id)).pipe(
                   Effect.as(EndedTransition()),
                 ),
-              ),
+              ).pipe(Command.make('DetectMovementOrTransitionEnd')),
             ],
           ]),
           M.orElse(() => [model, []]),
@@ -519,6 +538,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
                 Task.focus(buttonSelector(model.id)).pipe(
                   Effect.ignore,
                   Effect.as(CompletedButtonFocus()),
+                  Command.make('FocusButton'),
                 ),
               ),
             ),
@@ -545,6 +565,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
               Task.focus(itemsSelector(model.id)).pipe(
                 Effect.ignore,
                 Effect.as(CompletedItemsFocus()),
+                Command.make('FocusItems'),
               ),
             ),
           ),
@@ -585,7 +606,11 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           [
             Task.clickElement(
               itemSelector(model.id, model.maybeActiveItemIndex.value),
-            ).pipe(Effect.ignore, Effect.as(CompletedItemClick())),
+            ).pipe(
+              Effect.ignore,
+              Effect.as(CompletedItemClick()),
+              Command.make('ClickItem'),
+            ),
           ],
         ]
       },

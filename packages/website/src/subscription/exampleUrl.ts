@@ -1,5 +1,5 @@
 import { Effect, Option, Stream, pipe } from 'effect'
-import { Command } from 'foldkit/command'
+import { Command } from 'foldkit'
 import { Subscription } from 'foldkit/subscription'
 
 import { type Model, type SubscriptionDeps } from '../main'
@@ -25,7 +25,7 @@ export const exampleUrl: Subscription<
     ),
   depsToStream: maybeSlug =>
     Stream.when(
-      Stream.async<Command<typeof GotExampleDetailMessage>>(emit => {
+      Stream.async<Command.Command<typeof GotExampleDetailMessage>>(emit => {
         const handler = (event: MessageEvent) => {
           if (
             event.origin === window.location.origin &&
@@ -38,7 +38,7 @@ export const exampleUrl: Subscription<
                 GotExampleDetailMessage({
                   message: ChangedExampleUrl({ url: event.data.url }),
                 }),
-              ),
+              ).pipe(Command.make('GetExampleDetail')),
             )
           }
         }

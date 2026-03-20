@@ -8,8 +8,8 @@ test('delayed reset: count stays, then resets when the delay fires', () => {
   )
   expect(afterClick.count).toBe(5)
   expect(commands).toHaveLength(1)
+  expect(commands[0].name).toBe('DelayReset')
 
-  // The runtime executes the delay and sends ElapsedResetDelay
-  const [afterDelay] = update(afterClick, ElapsedResetDelay())
+  const [afterDelay] = update(afterClick, DelayedReset())
   expect(afterDelay.count).toBe(0)
 })

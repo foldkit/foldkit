@@ -50,7 +50,7 @@ const foldkitPanel = div(
       [Class('text-gray-700 dark:text-gray-300 mb-3')],
       [
         span([Class('text-gray-900 dark:text-white')], ['Model-View-Update']),
-        ' with Effect. A single immutable model holds all state, messages describe what happened, and a pure update function produces the next state. Side effects are explicit commands — never hidden in the view layer.',
+        ' with Effect. A single immutable model holds all state, messages describe what happened, and a pure update function produces the next state. Side effects are explicit Commands — never hidden in the view layer.',
       ],
     ),
     p(

@@ -1,6 +1,5 @@
 import { Duration, Effect, Match as M, Schema as S, Stream } from 'effect'
-import { Subscription } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Subscription } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -41,7 +40,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
     depsToStream: ({ isAutoCounting }) =>
       Stream.when(
         Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
-          Stream.map(() => Effect.succeed(Ticked())),
+          Stream.map(() => Effect.succeed(Ticked()).pipe(Command.make('Tick'))),
         ),
         () => isAutoCounting,
       ),
@@ -50,7 +49,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
 
 // UPDATE
 
-type UpdateReturn = [Model, ReadonlyArray<Command<Message>>]
+type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 const update = (model: Model, message: Message): UpdateReturn =>

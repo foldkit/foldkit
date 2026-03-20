@@ -1,7 +1,7 @@
 import { KeyValueStore } from '@effect/platform'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Effect, Schema as S } from 'effect'
-import { Command } from 'foldkit/command'
+import { Command } from 'foldkit'
 import { pushUrl } from 'foldkit/navigation'
 
 import { ROOM_PLAYER_SESSION_KEY } from './constant'
@@ -17,7 +17,9 @@ import { RoomsClient } from './rpc'
 export const joinRoom = (
   username: string,
   roomId: string,
-): Command<typeof Home.Message.JoinedRoom | typeof Home.Message.FailedRoom> =>
+): Command.Command<
+  typeof Home.Message.JoinedRoom | typeof Home.Message.FailedRoom
+> =>
   Effect.gen(function* () {
     const client = yield* RoomsClient
     const { player, room } = yield* client.joinRoom({ username, roomId })
@@ -27,16 +29,20 @@ export const joinRoom = (
       Effect.succeed(Home.Message.FailedRoom({ error: String(error) })),
     ),
     Effect.provide(RoomsClient.Default),
+    Command.make('JoinRoom'),
   )
 
 export const navigateToRoom = (
   roomId: string,
-): Command<typeof CompletedRoomNavigation> =>
-  pushUrl(roomRouter({ roomId })).pipe(Effect.as(CompletedRoomNavigation()))
+): Command.Command<typeof CompletedRoomNavigation> =>
+  pushUrl(roomRouter({ roomId })).pipe(
+    Effect.as(CompletedRoomNavigation()),
+    Command.make('NavigateToRoom'),
+  )
 
-export const savePlayerToSessionStorage = (
+export const savePlayerSession = (
   session: Room.Model.RoomPlayerSession,
-): Command<typeof CompletedSessionSave> =>
+): Command.Command<typeof CompletedSessionSave> =>
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
     const encodeSession = S.encode(S.parseJson(Room.Model.RoomPlayerSession))
@@ -46,9 +52,10 @@ export const savePlayerToSessionStorage = (
   }).pipe(
     Effect.catchAll(() => Effect.succeed(CompletedSessionSave())),
     Effect.provide(BrowserKeyValueStore.layerSessionStorage),
+    Command.make('SavePlayerSession'),
   )
 
-export const clearSession = (): Command<typeof CompletedSessionClear> =>
+export const clearSession = (): Command.Command<typeof CompletedSessionClear> =>
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
     yield* store.remove(ROOM_PLAYER_SESSION_KEY)
@@ -56,4 +63,5 @@ export const clearSession = (): Command<typeof CompletedSessionClear> =>
   }).pipe(
     Effect.catchAll(() => Effect.succeed(CompletedSessionClear())),
     Effect.provide(BrowserKeyValueStore.layerSessionStorage),
+    Command.make('ClearSession'),
   )

@@ -291,7 +291,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           li(
             [],
             [
-              'Returns a new Model and a list of Commands \u2014 doesn\u2019t execute anything. Foldkit runs the provided commands.',
+              'Returns a new Model and a list of Commands \u2014 doesn\u2019t execute anything. Each Command carries a name for tracing and testing. Foldkit runs the provided Commands.',
             ],
           ),
           li([], ['No mutations, no side effects']),
@@ -325,7 +325,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(testingUpdateHeader),
       para(
-        'Foldkit\u2019s pure update model makes testing painless because state transitions are just function calls \u2014 pass in a Model and Message, assert on the returned Model. And because Commands are Effects with explicit dependencies, you can swap in mocks without reaching for libraries like ',
+        'Foldkit\u2019s pure update model makes testing painless because state transitions are just function calls \u2014 pass in a Model and Message, assert on the returned Model. Commands carry names, so you can assert which ones were produced: ',
+        inlineCode("expect(commands[0].name).toBe('FetchWeather')"),
+        '. And because Commands are Effects with explicit dependencies, you can swap in mocks without reaching for libraries like ',
         link(Link.msw, 'msw'),
         ' or stubbing globals:',
       ),

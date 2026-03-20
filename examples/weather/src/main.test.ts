@@ -24,6 +24,7 @@ test('SubmittedWeatherForm sets loading state and returns fetch command', () => 
 
   expect(newModel.weather._tag).toBe('WeatherLoading')
   expect(commands).toHaveLength(1)
+  expect(commands[0]?.name).toBe('FetchWeather')
 })
 
 test('SucceededWeatherFetch updates model with weather data', () => {
@@ -93,7 +94,7 @@ test('fetchWeather returns SucceededWeatherFetch with data on success', async ()
 
   const HttpClientTest = Layer.succeed(HttpClient.HttpClient, mockClient)
 
-  const message = await fetchWeather('90210').pipe(
+  const message = await fetchWeather('90210').effect.pipe(
     Effect.provide(HttpClientTest),
     Effect.runPromise,
   )
@@ -116,7 +117,7 @@ test('fetchWeather returns FailedWeatherFetch on HTTP failure', async () => {
 
   const HttpClientTest = Layer.succeed(HttpClient.HttpClient, mockClient)
 
-  const message = await fetchWeather('invalid').pipe(
+  const message = await fetchWeather('invalid').effect.pipe(
     Effect.provide(HttpClientTest),
     Effect.runPromise,
   )
@@ -136,7 +137,7 @@ test('fetchWeather returns FailedWeatherFetch when no results found', async () =
 
   const HttpClientTest = Layer.succeed(HttpClient.HttpClient, mockClient)
 
-  const message = await fetchWeather('00000').pipe(
+  const message = await fetchWeather('00000').effect.pipe(
     Effect.provide(HttpClientTest),
     Effect.runPromise,
   )

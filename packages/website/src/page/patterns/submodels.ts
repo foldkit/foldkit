@@ -163,10 +163,12 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para(
         'The Command mapping deserves attention. The child\u2019s Commands produce child Messages when they complete \u2014 but the Foldkit runtime expects top-level Messages. The child doesn\u2019t wrap its own Commands because it could be used across many parents. So the parent uses ',
-        inlineCode('Effect.map'),
+        inlineCode('Command.mapEffect'),
         ' to wrap each result in ',
         inlineCode('GotSettingsMessage'),
-        ', translating child Messages back into the parent\u2019s Message type.',
+        ', translating child Messages back into the parent\u2019s Message type. ',
+        inlineCode('Command.mapEffect'),
+        ' transforms the inner Effect while preserving the Command\u2019s name \u2014 so traces still show the original name from the child module.',
       ),
       infoCallout(
         'Multiple instances',

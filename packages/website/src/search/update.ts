@@ -1,6 +1,5 @@
 import { Effect, Match as M, Number, String } from 'effect'
-import { Ui } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Ui } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import {
@@ -15,7 +14,7 @@ import { Idle, Loading, Ok, resultsFromState } from './model'
 
 export type UpdateReturn = [
   Model,
-  ReadonlyArray<Command<Message, never, PagefindService>>,
+  ReadonlyArray<Command.Command<Message, never, PagefindService>>,
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
@@ -90,7 +89,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             : {}
 
         const mappedDialogCommands = dialogCommands.map(
-          Effect.map((message): Message => GotSearchDialogMessage({ message })),
+          Command.mapEffect(
+            Effect.map(
+              (message): Message => GotSearchDialogMessage({ message }),
+            ),
+          ),
         )
 
         return [

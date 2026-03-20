@@ -75,10 +75,11 @@ describe('Tabs', () => {
       expect(result.focusedIndex).toBe(0)
     })
 
-    it('returns a focus command on TabSelected', () => {
+    it('returns a FocusTab command on TabSelected', () => {
       const model = init({ id: 'test' })
       const [, commands] = update(model, TabSelected({ index: 2 }))
       expect(commands).toHaveLength(1)
+      expect(commands[0]?.name).toBe('FocusTab')
     })
 
     it('updates only focusedIndex on TabFocused', () => {
@@ -88,10 +89,11 @@ describe('Tabs', () => {
       expect(result.focusedIndex).toBe(2)
     })
 
-    it('returns a focus command on TabFocused', () => {
+    it('returns a FocusTab command on TabFocused', () => {
       const model = init({ id: 'test', activationMode: 'Manual' })
       const [, commands] = update(model, TabFocused({ index: 2 }))
       expect(commands).toHaveLength(1)
+      expect(commands[0]?.name).toBe('FocusTab')
     })
 
     it('does not change activeIndex on TabFocused', () => {

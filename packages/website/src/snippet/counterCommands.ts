@@ -1,22 +1,26 @@
 import { Effect, Match as M } from 'effect'
-import { Task } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Task } from 'foldkit'
 import { m } from 'foldkit/message'
 
 const ClickedResetAfterDelay = m('ClickedResetAfterDelay')
-const ElapsedResetDelay = m('ElapsedResetDelay')
+const DelayedReset = m('DelayedReset')
 
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command<Message>>] =>
+): [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
+    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
     M.tagsExhaustive({
       ClickedResetAfterDelay: () => [
         model,
-        [Task.delay('1 second').pipe(Effect.as(ElapsedResetDelay()))],
+        [
+          Task.delay('1 second').pipe(
+            Effect.as(DelayedReset()),
+            Command.make('DelayReset'),
+          ),
+        ],
       ],
-      ElapsedResetDelay: () => [Model({ count: 0 }), []],
+      DelayedReset: () => [Model({ count: 0 }), []],
     }),
   )

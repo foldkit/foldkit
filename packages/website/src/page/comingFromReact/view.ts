@@ -431,7 +431,9 @@ export const view = (
         'How do I test my app?',
         [
           para(
-            'Your update function is pure \u2014 give it a Model and a Message, check the returned Model and Commands. No rendering, no mocking hooks, no test utilities. Commands are Effects with explicit dependencies, so you can swap in test layers without stubbing globals. See ',
+            'Your update function is pure \u2014 give it a Model and a Message, check the returned Model and Commands. Commands carry names, so you can assert which ones were produced: ',
+            inlineCode("expect(commands[0].name).toBe('FetchWeather')"),
+            '. No rendering, no mocking hooks, no test utilities. Commands are Effects with explicit dependencies, so you can swap in test layers without stubbing globals. See ',
             link(
               `${bestPracticesSideEffectsRouter()}#testing-update`,
               'Best Practices',

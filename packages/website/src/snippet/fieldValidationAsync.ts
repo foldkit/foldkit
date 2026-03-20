@@ -1,5 +1,5 @@
 import { Effect, Match as M, Number, Schema as S } from 'effect'
-import { Command } from 'foldkit/command'
+import { Command } from 'foldkit'
 import { makeField } from 'foldkit/fieldValidation'
 import { evo } from 'foldkit/struct'
 
@@ -10,7 +10,7 @@ const validateEmail = StringField.validate(emailValidations)
 const checkEmailAvailable = (
   email: string,
   validationId: number,
-): Command<typeof ValidatedEmail> =>
+): Command.Command<typeof ValidatedEmail> =>
   Effect.gen(function* () {
     const isAvailable = yield* apiCheckEmail(email)
     return ValidatedEmail({
@@ -22,7 +22,7 @@ const checkEmailAvailable = (
             errors: ['This email is already taken'],
           }),
     })
-  })
+  }).pipe(Command.make('CheckEmailAvailable'))
 
 const update = (model: Model, message: Message) =>
   M.value(message).pipe(

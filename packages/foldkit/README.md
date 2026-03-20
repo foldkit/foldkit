@@ -47,8 +47,7 @@ This is a complete Foldkit program. State lives in a single Model. Events become
 
 ```ts
 import { Match as M, Schema as S } from 'effect'
-import { Runtime } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Runtime } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 
@@ -71,9 +70,9 @@ type Message = typeof Message.Type
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command<Message>>] =>
+): [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
+    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
     M.tagsExhaustive({
       ClickedDecrement: () => [{ count: model.count - 1 }, []],
       ClickedIncrement: () => [{ count: model.count + 1 }, []],
@@ -135,7 +134,7 @@ Source: [examples/counter/src/main.ts](https://github.com/foldkit/foldkit/blob/m
 
 Foldkit is a complete system, not a collection of libraries you stitch together.
 
-- **Commands** — Side effects are described as Effects that return Messages and are executed by the runtime. Use any Effect combinator you want — retry, timeout, race, parallel. You write the Effect, the runtime runs it.
+- **Commands** — Side effects are named Effects that return Messages and are executed by the runtime. Each Command has a `name` for identification in tracing and testing, and an `effect` that the runtime runs. Use any Effect combinator you want — retry, timeout, race, parallel.
 - **Routing** — Type-safe bidirectional routing. URLs parse into typed routes and routes build back into URLs. No string matching, no mismatches between parsing and building.
 - **Subscriptions** — Declare which streams your app needs as a function of the Model. The runtime diffs and switches them when the Model changes.
 - **Managed Resources** — Model-driven lifecycle for long-lived browser resources like WebSockets, AudioContext, and RTCPeerConnection. Acquire on state change, release on cleanup.

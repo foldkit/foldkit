@@ -1,12 +1,11 @@
 import { Array, Effect, Option } from 'effect'
-import { ManagedResource } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, ManagedResource } from 'foldkit'
 
 const CameraStream = ManagedResource.tag<MediaStream>()('CameraStream')
 
 // .get carries the resource identity in the R channel,
 // so TypeScript verifies the resource is registered at compile time
-const takePhoto = (): Command<
+const takePhoto = (): Command.Command<
   typeof TookPhoto | typeof CameraUnavailable,
   never,
   ManagedResource.ServiceOf<typeof CameraStream>
@@ -28,4 +27,5 @@ const takePhoto = (): Command<
     Effect.catchTag('ResourceNotAvailable', () =>
       Effect.succeed(CameraUnavailable()),
     ),
+    Command.make('TakePhoto'),
   )

@@ -8,8 +8,7 @@ import {
   Random,
   Schema as S,
 } from 'effect'
-import { FieldValidation, Runtime, Ui } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, FieldValidation, Runtime, Ui } from 'foldkit'
 import { type Validation, makeField } from 'foldkit/fieldValidation'
 import { type Attribute, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -109,7 +108,7 @@ const isEmailOnWaitlist = (email: string): Effect.Effect<boolean> =>
 const validateEmailNotOnWaitlist = (
   email: string,
   validationId: number,
-): Command<typeof ValidatedEmail> =>
+): Command.Command<typeof ValidatedEmail> =>
   Effect.gen(function* () {
     if (yield* isEmailOnWaitlist(email)) {
       return ValidatedEmail({
@@ -125,7 +124,7 @@ const validateEmailNotOnWaitlist = (
         field: StringField.Valid({ value: email }),
       })
     }
-  })
+  }).pipe(Command.make('ValidateEmailNotOnWaitlist'))
 
 const validateName = StringField.validate(nameValidations)
 const validateEmail = StringField.validate(emailValidations)
@@ -138,9 +137,9 @@ const isFormValid = (model: Model): boolean =>
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command<Message>>] =>
+): [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
+    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
     M.tagsExhaustive({
       UpdatedName: ({ value }) => [
         evo(model, {
@@ -236,7 +235,7 @@ const update = (
 
 const FAKE_API_DELAY_MS = 500
 
-const submitForm = (model: Model): Command<typeof SubmittedForm> =>
+const submitForm = (model: Model): Command.Command<typeof SubmittedForm> =>
   Effect.gen(function* () {
     yield* Effect.sleep(`${FAKE_API_DELAY_MS} millis`)
 
@@ -248,7 +247,7 @@ const submitForm = (model: Model): Command<typeof SubmittedForm> =>
       email: model.name.value,
       message: model.message.value,
     })
-  })
+  }).pipe(Command.make('SubmitForm'))
 
 // VIEW
 

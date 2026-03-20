@@ -1,7 +1,6 @@
 import { Array, Effect, Match as M, Option, Schema as S } from 'effect'
 import { ExtractTag } from 'effect/Types'
-import { Route } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Route } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { replaceUrl } from 'foldkit/navigation'
@@ -57,9 +56,12 @@ export const init = (products: ReadonlyArray<Item.Item>): Model => ({
 
 export const update =
   (productsRouter: Route.Router<ExtractTag<AppRoute, 'Products'>>) =>
-  (model: Model, message: Message): [Model, ReadonlyArray<Command<Message>>] =>
+  (
+    model: Model,
+    message: Message,
+  ): [Model, ReadonlyArray<Command.Command<Message>>] =>
     M.value(message).pipe(
-      M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
+      M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
       M.tagsExhaustive({
         CompletedUrlReplace: () => [model, []],
 
@@ -72,7 +74,10 @@ export const update =
               productsRouter({
                 searchText: Option.fromNullable(value || null),
               }),
-            ).pipe(Effect.as(CompletedUrlReplace())),
+            ).pipe(
+              Effect.as(CompletedUrlReplace()),
+              Command.make('ReplaceSearchUrl'),
+            ),
           ],
         ],
       }),

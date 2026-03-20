@@ -1,6 +1,5 @@
 import { Match as M, Schema as S } from 'effect'
-import { Runtime } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Runtime } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 
@@ -25,9 +24,9 @@ type Message = typeof Message.Type
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command<Message>>] =>
+): [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
+    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
     M.tagsExhaustive({
       ClickedDecrement: () => [{ count: model.count - 1 }, []],
       ClickedIncrement: () => [{ count: model.count + 1 }, []],

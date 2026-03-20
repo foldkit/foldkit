@@ -1,5 +1,5 @@
 import { Array, Effect } from 'effect'
-import { Command } from 'foldkit/command'
+import { Command } from 'foldkit'
 import { pushUrl } from 'foldkit/navigation'
 import * as Task from 'foldkit/task'
 
@@ -44,7 +44,6 @@ export class PagefindService extends Effect.Service<PagefindService>()(
   {
     effect: Effect.tryPromise({
       try: (): Promise<PagefindModule> =>
-        // Dynamic import hidden from Vite's static analysis (module only exists after build)
         new Function('path', 'return import(path)')(PAGEFIND_PATH),
       catch: () => new Error('Pagefind not available'),
     }).pipe(Effect.catchAll(() => Effect.succeed(NOOP_PAGEFIND))),
@@ -53,7 +52,7 @@ export class PagefindService extends Effect.Service<PagefindService>()(
 
 export const searchPagefind = (
   query: string,
-): Command<typeof ReceivedSearchResults, never, PagefindService> =>
+): Command.Command<typeof ReceivedSearchResults, never, PagefindService> =>
   Effect.gen(function* () {
     const pagefind = yield* PagefindService
 
@@ -83,19 +82,24 @@ export const searchPagefind = (
     Effect.catchAll(() =>
       Effect.succeed(ReceivedSearchResults({ results: [], query })),
     ),
+    Command.make('FetchSearchIndex'),
   )
 
 export const scrollActiveResultIntoView = (
   index: number,
-): Command<typeof CompletedResultScroll> =>
+): Command.Command<typeof CompletedResultScroll> =>
   Task.scrollIntoView(`${SEARCH_RESULT_SELECTOR}"${index}"]`).pipe(
     Effect.ignore,
     Effect.as(CompletedResultScroll()),
+    Command.make('ScrollToResult'),
   )
 
 export const navigateToResult = (
   url: string,
-): Command<typeof CompletedSearchNavigation> =>
-  pushUrl(url).pipe(Effect.as(CompletedSearchNavigation()))
+): Command.Command<typeof CompletedSearchNavigation> =>
+  pushUrl(url).pipe(
+    Effect.as(CompletedSearchNavigation()),
+    Command.make('NavigateToResult'),
+  )
 
 export { SEARCH_INPUT_ID }

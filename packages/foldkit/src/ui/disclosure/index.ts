@@ -1,6 +1,6 @@
 import { Effect, Match as M, Option, Schema as S } from 'effect'
 
-import type { Command } from '../../command'
+import * as Command from '../../command'
 import {
   type Attribute,
   type Html,
@@ -68,15 +68,16 @@ const panelId = (id: string): string => `${id}-panel`
 export const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command<Message>>] =>
+): [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
+    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
     M.tagsExhaustive({
       Toggled: () => {
         const maybeFocus = Option.liftPredicate(
           Task.focus(buttonSelector(model.id)).pipe(
             Effect.ignore,
             Effect.as(CompletedButtonFocus()),
+            Command.make('FocusButton'),
           ),
           () => model.isOpen,
         )
@@ -91,6 +92,7 @@ export const update = (
           Task.focus(buttonSelector(model.id)).pipe(
             Effect.ignore,
             Effect.as(CompletedButtonFocus()),
+            Command.make('FocusButton'),
           ),
           () => model.isOpen,
         )

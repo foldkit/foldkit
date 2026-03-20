@@ -116,9 +116,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Message'),
         '. In most cases you\u2019ll just wrap a message in ',
         inlineCode('Effect.succeed'),
-        ', but the Command wrapper lets a stream item do its own async work — like decoding a ',
+        ', but the Command wrapper lets a stream item do its own async work \u2014 like decoding a ',
         inlineCode('WebSocket'),
-        ' frame — before producing the Message that update sees.',
+        ' frame \u2014 before producing the Message that update sees.',
       ),
       para(
         'You\u2019ve now seen how state changes flow through update, how one-off side effects work as Commands, and how ongoing streams are managed with Subscriptions. But where do the first Model and Commands come from? That\u2019s init.',

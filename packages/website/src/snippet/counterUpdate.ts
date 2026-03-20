@@ -1,5 +1,5 @@
 import { Match as M } from 'effect'
-import { Command } from 'foldkit/command'
+import { Command } from 'foldkit'
 
 // UPDATE
 
@@ -8,9 +8,9 @@ import { Command } from 'foldkit/command'
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command<Message>>] =>
+): [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
+    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
     M.tagsExhaustive({
       ClickedDecrement: () => [Model({ count: model.count - 1 }), []],
       ClickedIncrement: () => [Model({ count: model.count + 1 }), []],

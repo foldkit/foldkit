@@ -1,5 +1,5 @@
 import { Effect, Stream } from 'effect'
-import { Command } from 'foldkit/command'
+import { Command } from 'foldkit'
 import { Subscription } from 'foldkit/subscription'
 
 import {
@@ -16,12 +16,14 @@ export const viewportWidth: Subscription<
 > = {
   modelToDependencies: () => null,
   depsToStream: () =>
-    Stream.async<Command<typeof ChangedViewportWidth>>(emit => {
+    Stream.async<Command.Command<typeof ChangedViewportWidth>>(emit => {
       const mediaQuery = window.matchMedia(NARROW_VIEWPORT_QUERY)
 
       const handler = (event: MediaQueryListEvent) => {
         emit.single(
-          Effect.succeed(ChangedViewportWidth({ isNarrow: event.matches })),
+          Effect.succeed(
+            ChangedViewportWidth({ isNarrow: event.matches }),
+          ).pipe(Command.make('ChangeViewportWidth')),
         )
       }
 

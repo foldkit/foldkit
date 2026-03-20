@@ -1,5 +1,5 @@
 import { Effect, Match as M, Schema as S } from 'effect'
-import { Command } from 'foldkit/command'
+import { Command } from 'foldkit'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
@@ -34,7 +34,7 @@ type Message = typeof Message.Type
 
 const fetchUser = (
   userId: string,
-): Command<typeof SucceededUserFetch | typeof FailedUserFetch> =>
+): Command.Command<typeof SucceededUserFetch | typeof FailedUserFetch> =>
   Effect.gen(function* () {
     const response = yield* Effect.tryPromise(() =>
       fetch(`/api/users/${userId}`).then(response => response.json()),
@@ -47,6 +47,7 @@ const fetchUser = (
     Effect.catchAll(error =>
       Effect.succeed(FailedUserFetch({ error: String(error) })),
     ),
+    Command.make('FetchUser'),
   )
 
 // UPDATE - How Messages change the Model
@@ -54,9 +55,9 @@ const fetchUser = (
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command<Message>>] =>
+): [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
+    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
     // Handle every Message — the type system ensures all cases are covered
     M.tagsExhaustive({
       ClickedFetchUser: ({ userId }) => [

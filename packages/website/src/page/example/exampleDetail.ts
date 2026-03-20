@@ -1,6 +1,5 @@
 import { Array, Effect, Match as M, Option, Schema as S, pipe } from 'effect'
-import { Ui } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Ui } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -54,7 +53,7 @@ export type Message = typeof Message.Type
 
 // INIT
 
-export const init = (): [Model, ReadonlyArray<Command<Message>>] => [
+export const init = (): [Model, ReadonlyArray<Command.Command<Message>>] => [
   {
     sourceFileTabs: Ui.Tabs.init({ id: 'source-file-tabs' }),
     maybeExampleUrl: Option.none(),
@@ -71,9 +70,9 @@ export const init = (): [Model, ReadonlyArray<Command<Message>>] => [
 export const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command<Message>>] =>
+): [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
+    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
     M.tagsExhaustive({
       GotSourceFileTabsMessage: ({ message }) => {
         const [nextTabs, tabsCommands] = Ui.Tabs.update(
@@ -83,7 +82,9 @@ export const update = (
         return [
           evo(model, { sourceFileTabs: () => nextTabs }),
           tabsCommands.map(
-            Effect.map(message => GotSourceFileTabsMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotSourceFileTabsMessage({ message })),
+            ),
           ),
         ]
       },
@@ -99,7 +100,11 @@ export const update = (
         return [
           evo(model, { livePreviewDisclosure: () => nextDisclosure }),
           disclosureCommands.map(
-            Effect.map(message => GotLivePreviewDisclosureMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message =>
+                GotLivePreviewDisclosureMessage({ message }),
+              ),
+            ),
           ),
         ]
       },

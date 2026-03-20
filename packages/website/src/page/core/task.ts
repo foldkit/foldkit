@@ -28,7 +28,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       pageTitle('core/task', 'Task'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'Foldkit provides utility functions for common side effects that return commands you can use in your update function.',
+        'Foldkit provides utility functions for common side effects that return Commands you can use in your update function.',
       ),
       para(
         inlineCode('Task.getTime'),
@@ -59,7 +59,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        'Now that you know how to write commands and use built-in tasks, the next step is wiring everything together into a running application.',
+        'Now that you know how to write Commands and use built-in tasks, the next step is wiring everything together into a running application.',
       ),
     ],
   )

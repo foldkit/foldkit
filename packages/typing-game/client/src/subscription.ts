@@ -1,5 +1,5 @@
 import { Effect, Match as M, Option, Schema as S, Stream } from 'effect'
-import { Subscription } from 'foldkit'
+import { Command, Subscription } from 'foldkit'
 
 import {
   GotHomeMessage,
@@ -57,7 +57,7 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
                       maybePlayerProgress,
                     }),
                   }),
-                ),
+                ).pipe(Command.make('RoomUpdate')),
               ),
               Stream.catchAll(error =>
                 Stream.make(
@@ -67,7 +67,7 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
                         error: String(error),
                       }),
                     }),
-                  ),
+                  ).pipe(Command.make('RoomStreamError')),
                 ),
               ),
             )
@@ -122,7 +122,7 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
                   NotFound: () => IgnoredKeyPress(),
                 }),
               )
-            }),
+            }).pipe(Command.make('KeyPress')),
           ),
         ),
         () => deps.shouldCaptureKeyboard,

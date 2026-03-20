@@ -9,7 +9,7 @@ import {
   pipe,
 } from 'effect'
 
-import type { Command } from '../../command'
+import * as Command from '../../command'
 import { type Attribute, type Html, createLazy, html } from '../../html'
 import { m } from '../../message'
 import { evo } from '../../struct'
@@ -75,9 +75,9 @@ const optionId = (id: string, index: number): string => `${id}-option-${index}`
 export const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command<Message>>] =>
+): [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
+    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
     M.tagsExhaustive({
       SelectedOption: ({ value, index }) => {
         const selector = `#${optionId(model.id, index)}`
@@ -88,6 +88,7 @@ export const update = (
             Task.focus(selector).pipe(
               Effect.ignore,
               Effect.as(CompletedOptionFocus()),
+              Command.make('FocusOption'),
             ),
           ],
         ]
