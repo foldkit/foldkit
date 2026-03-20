@@ -293,7 +293,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
   isConnected: {
     modelToDependencies: model =>
       model.connection._tag === 'ConnectionConnected',
-    depsToStream: isConnected => {
+    dependenciesToStream: isConnected => {
       if (!isConnected) {
         return Stream.empty
       }

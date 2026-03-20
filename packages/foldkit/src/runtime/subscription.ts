@@ -7,7 +7,7 @@ type ResolveMessage<T> = [T] extends [Schema.Schema.Any]
 /** A reactive binding between Model state and a long-running stream of Messages. */
 export type Subscription<Model, Message, StreamDeps, Resources = never> = {
   readonly modelToDependencies: (model: Model) => StreamDeps
-  readonly depsToStream: (
+  readonly dependenciesToStream: (
     deps: StreamDeps,
   ) => Stream.Stream<ResolveMessage<Message>, never, Resources>
 }
@@ -41,13 +41,13 @@ export const makeSubscriptions =
       modelToDependencies: (
         model: Model,
       ) => Schema.Schema.Type<SubscriptionDeps>[K]
-      depsToStream: (
+      dependenciesToStream: (
         deps: Schema.Schema.Type<SubscriptionDeps>[K],
       ) => Stream.Stream<ResolveMessage<Message>, never, Resources>
     }
   }) =>
-    Record.map(configs, ({ modelToDependencies, depsToStream }, key) => ({
+    Record.map(configs, ({ modelToDependencies, dependenciesToStream }, key) => ({
       schema: SubscriptionDeps.fields[key],
       modelToDependencies,
-      depsToStream,
+      dependenciesToStream,
     }))

@@ -9,7 +9,7 @@
   Subscription streams now emit Messages directly. For subscription callbacks with side effects (like `event.preventDefault`), use `Stream.mapEffect`.
 
   **Breaking changes:**
-  - `depsToStream` returns `Stream<Message>` instead of `Stream<Command<Message>>`
+  - `dependenciesToStream` returns `Stream<Message>` instead of `Stream<Command<Message>>`
   - Remove Effect wrappers from subscription stream emissions
 
   **Migration:**

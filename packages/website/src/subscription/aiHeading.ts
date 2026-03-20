@@ -14,7 +14,7 @@ export const aiHeading: Subscription<
   modelToDependencies: (model: Model) => ({
     isLandingPage: model.route._tag === 'Home',
   }),
-  depsToStream: ({ isLandingPage }) =>
+  dependenciesToStream: ({ isLandingPage }) =>
     Stream.when(
       Stream.tick(Duration.millis(TOGGLE_INTERVAL_MS)).pipe(
         Stream.map(ToggledAiHeading),

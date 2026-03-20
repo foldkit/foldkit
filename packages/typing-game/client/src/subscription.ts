@@ -37,7 +37,7 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
         ),
         M.orElse(() => Option.none()),
       ),
-    depsToStream: (
+    dependenciesToStream: (
       maybeRoomSubscription: Option.Option<{
         roomId: string
         playerId: string
@@ -97,7 +97,7 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
 
       return { shouldCaptureKeyboard, route }
     },
-    depsToStream: (deps: { shouldCaptureKeyboard: boolean; route: AppRoute }) =>
+    dependenciesToStream: (deps: { shouldCaptureKeyboard: boolean; route: AppRoute }) =>
       Stream.when(
         Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
           Stream.mapEffect(keyboardEvent =>

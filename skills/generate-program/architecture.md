@@ -259,7 +259,7 @@ const subscriptions = Subscription.makeSubscriptions(Deps)<Model, Message>({
       })),
 
     // Build stream from dependencies
-    depsToStream: maybeDeps =>
+    dependenciesToStream: maybeDeps =>
       Option.match(maybeDeps, {
         onNone: () => Stream.empty,
         onSome: ({ userId }) =>
@@ -293,7 +293,7 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
 >({
   keyboard: {
     modelToDependencies: () => null,
-    depsToStream: () =>
+    dependenciesToStream: () =>
       Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
         Stream.map(event => Effect.succeed(PressedKey({ key: event.key }))),
       ),

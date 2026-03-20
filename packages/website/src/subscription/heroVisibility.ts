@@ -13,7 +13,7 @@ export const heroVisibility: Subscription<
   modelToDependencies: (model: Model) => ({
     isLandingPage: model.route._tag === 'Home',
   }),
-  depsToStream: ({ isLandingPage }) =>
+  dependenciesToStream: ({ isLandingPage }) =>
     Stream.when(
       Stream.async<typeof ChangedHeroVisibility.Type>(emit => {
         const heroElement = document.getElementById(HERO_SECTION_ID)

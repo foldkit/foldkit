@@ -75,7 +75,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           li(
             [],
             [
-              inlineCode('depsToStream'),
+              inlineCode('dependenciesToStream'),
               ' creates a stream based on those dependencies.',
             ],
           ),
@@ -113,7 +113,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Subscriptions produce a ',
         inlineCode('Stream<Message>'),
         '. Your ',
-        inlineCode('depsToStream'),
+        inlineCode('dependenciesToStream'),
         ' function returns what happened, and the runtime feeds each Message into update. If a stream callback needs to perform a side effect before producing a Message \u2014 like calling ',
         inlineCode('event.preventDefault()'),
         ' \u2014 use ',

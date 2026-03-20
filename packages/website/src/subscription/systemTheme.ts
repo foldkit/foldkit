@@ -12,7 +12,7 @@ export const systemTheme: Subscription<
   modelToDependencies: (model: Model) => ({
     isSystemPreference: model.themePreference === 'System',
   }),
-  depsToStream: ({ isSystemPreference }) =>
+  dependenciesToStream: ({ isSystemPreference }) =>
     Stream.when(
       Stream.async<typeof ChangedSystemTheme.Type>(emit => {
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
