@@ -12,7 +12,6 @@
     "Dispatch",
     "ElementFunction",
     "VoidElementFunction",
-    "AttributeWithoutKey",
     "Child",
     "PrintState",
     "Evolved",
@@ -26,6 +25,24 @@
     "EvolveTransform",
     "BuildFn",
     "InferParsed",
-    "ParserInput"
+    "ParserInput",
+    "CompletedFocusItems",
+    "CompletedFocusButton",
+    "CompletedLockScroll",
+    "CompletedUnlockScroll",
+    "CompletedSetupInert",
+    "CompletedTeardownInert",
+    "CompletedScrollIntoView",
+    "CompletedClickItem",
+    "CompletedAdvanceFocus",
+    "CompletedFocusPanel",
+    "AdvancedTransitionFrame",
+    "EndedTransition",
+    "DetectedButtonMovement",
+    "CompletedFocusOption",
+    "CompletedFocusTab",
+    "DevtoolsMode",
+    "DevtoolsPosition",
+    "ResolveMessage"
   ]
 }
