@@ -1,5 +1,27 @@
 # foldkit
 
+## 0.38.0
+
+### Minor Changes
+
+- f07aea6: Subscriptions emit Stream<Message> instead of Stream<Command<Message>>
+
+  Subscription streams now emit Messages directly. For subscription callbacks with side effects (like `event.preventDefault`), use `Stream.mapEffect`.
+
+  **Breaking changes:**
+  - `depsToStream` returns `Stream<Message>` instead of `Stream<Command<Message>>`
+  - Remove Effect wrappers from subscription stream emissions
+
+  **Migration:**
+
+  ```ts
+  // Before:
+  Stream.map(() => Effect.succeed(Ticked()))
+
+  // After:
+  Stream.map(Ticked)
+  ```
+
 ## 0.37.0
 
 ### Minor Changes
