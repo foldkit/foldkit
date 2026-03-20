@@ -1,5 +1,42 @@
 # foldkit
 
+## 1.0.0
+
+### Major Changes
+
+- a0fed13: Renamed `depsToStream` to `dependenciesToStream` in the Subscription type and `makeSubscriptions` API to follow the project convention of using full, unabbreviated names.
+
+  ### Migration
+
+  ```diff
+  - depsToStream: (dependencies) => ...
+  + dependenciesToStream: (dependencies) => ...
+  ```
+
+### Minor Changes
+
+- 88f7b7a: Rename all Completed/Succeeded/Failed Messages to verb-first order
+
+  All Message prefixes now use verb-first naming that mirrors the corresponding Command name. This makes Command-to-Message pairs instantly recognizable: Command `LockScroll` → Message `CompletedLockScroll`.
+
+  **Breaking changes — UI component Messages:**
+  - `CompletedDialogShow` → `CompletedShowDialog`
+  - `CompletedDialogClose` → `CompletedCloseDialog`
+  - `CompletedItemsFocus` → `CompletedFocusItems`
+  - `CompletedButtonFocus` → `CompletedFocusButton`
+  - `CompletedScrollLock` → `CompletedLockScroll`
+  - `CompletedScrollUnlock` → `CompletedUnlockScroll`
+  - `CompletedInertSetup` → `CompletedSetupInert`
+  - `CompletedInertTeardown` → `CompletedTeardownInert`
+  - `CompletedItemClick` → `CompletedClickItem`
+  - `CompletedFocusAdvance` → `CompletedAdvanceFocus`
+  - `CompletedPanelFocus` → `CompletedFocusPanel`
+  - `CompletedInputFocus` → `CompletedFocusInput`
+  - `CompletedTabFocus` → `CompletedFocusTab`
+  - `CompletedOptionFocus` → `CompletedFocusOption`
+
+  **Migration:** Update all references to the old names.
+
 ## 0.38.0
 
 ### Minor Changes
