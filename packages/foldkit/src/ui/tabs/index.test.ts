@@ -238,7 +238,7 @@ describe('Tabs', () => {
   describe('view', () => {
     type TestMessage = string
 
-    const { DataAttribute, Class } = html<TestMessage>()
+    const { DataAttribute } = html<TestMessage>()
 
     const tabs = ['Alpha', 'Beta', 'Gamma'] as const
     type Tab = (typeof tabs)[number]

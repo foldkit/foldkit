@@ -5,7 +5,7 @@ import { m } from 'foldkit/message'
 import { Home, Room } from './page'
 
 export const CompletedNavigateInternal = m('CompletedNavigateInternal')
-export const CompletedNavigateExternal = m('CompletedNavigateExternal')
+export const CompletedLoadExternal = m('CompletedLoadExternal')
 export const CompletedFocusUsernameInput = m('CompletedFocusUsernameInput')
 export const CompletedNavigateRoom = m('CompletedNavigateRoom')
 export const CompletedSaveSession = m('CompletedSaveSession')
@@ -24,7 +24,7 @@ export const GotRoomMessage = m('GotRoomMessage', {
 
 export const Message = S.Union(
   CompletedNavigateInternal,
-  CompletedNavigateExternal,
+  CompletedLoadExternal,
   CompletedFocusUsernameInput,
   CompletedNavigateRoom,
   CompletedSaveSession,

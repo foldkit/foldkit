@@ -3,12 +3,12 @@ import { Command, Navigation } from 'foldkit'
 import { m } from 'foldkit/message'
 
 const CompletedNavigateInternal = m('CompletedNavigateInternal')
-const CompletedNavigateExternal = m('CompletedNavigateExternal')
+const CompletedLoadExternal = m('CompletedLoadExternal')
 const CompletedNavigateHistory = m('CompletedNavigateHistory')
 
 const Message = S.Union(
   CompletedNavigateInternal,
-  CompletedNavigateExternal,
+  CompletedLoadExternal,
   CompletedNavigateHistory,
 )
 type Message = typeof Message.Type
@@ -34,6 +34,6 @@ const goForward = Navigation.forward().pipe(
 )
 
 const loadUrl = Navigation.load('https://example.com').pipe(
-  Effect.as(CompletedNavigateExternal()),
+  Effect.as(CompletedLoadExternal()),
   Command.make('LoadExternal'),
 )

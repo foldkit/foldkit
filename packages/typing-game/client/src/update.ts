@@ -8,7 +8,7 @@ import { navigateToRoom, savePlayerSession } from './command'
 import { USERNAME_INPUT_ID } from './constant'
 import {
   CompletedFocusUsernameInput,
-  CompletedNavigateExternal,
+  CompletedLoadExternal,
   CompletedNavigateInternal,
   GotHomeMessage,
   GotRoomMessage,
@@ -48,7 +48,7 @@ export const update = (
               model,
               [
                 load(href).pipe(
-                  Effect.as(CompletedNavigateExternal()),
+                  Effect.as(CompletedLoadExternal()),
                   Command.make('LoadExternal'),
                 ),
               ],
@@ -133,7 +133,7 @@ export const update = (
     }),
     M.tag(
       'CompletedNavigateInternal',
-      'CompletedNavigateExternal',
+      'CompletedLoadExternal',
       'CompletedFocusUsernameInput',
       'CompletedNavigateRoom',
       'CompletedSaveSession',

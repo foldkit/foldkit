@@ -18,7 +18,7 @@ export type ResolvedTheme = typeof ResolvedTheme.Type
 // MESSAGE
 
 export const CompletedNavigateInternal = m('CompletedNavigateInternal')
-export const CompletedNavigateExternal = m('CompletedNavigateExternal')
+export const CompletedLoadExternal = m('CompletedLoadExternal')
 export const CompletedInjectAnalytics = m('CompletedInjectAnalytics')
 export const CompletedInjectSpeedInsights = m('CompletedInjectSpeedInsights')
 export const CompletedScroll = m('CompletedScroll')
@@ -126,7 +126,7 @@ export const GotSearchMessage = m('GotSearchMessage', {
 
 export const Message = S.Union(
   CompletedNavigateInternal,
-  CompletedNavigateExternal,
+  CompletedLoadExternal,
   CompletedInjectAnalytics,
   CompletedInjectSpeedInsights,
   CompletedScroll,

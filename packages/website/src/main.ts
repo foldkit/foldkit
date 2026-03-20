@@ -31,7 +31,7 @@ import {
   CompletedCopyLink,
   CompletedInjectAnalytics,
   CompletedInjectSpeedInsights,
-  CompletedNavigateExternal,
+  CompletedLoadExternal,
   CompletedNavigateInternal,
   CompletedSaveThemePreference,
   CompletedScroll,
@@ -362,12 +362,12 @@ const update = (
               href,
             }): [
               Model,
-              ReadonlyArray<Command.Command<typeof CompletedNavigateExternal>>,
+              ReadonlyArray<Command.Command<typeof CompletedLoadExternal>>,
             ] => [
               model,
               [
                 load(href).pipe(
-                  Effect.as(CompletedNavigateExternal()),
+                  Effect.as(CompletedLoadExternal()),
                   Command.make('LoadExternal'),
                 ),
               ],
@@ -863,7 +863,7 @@ const update = (
     }),
     M.tag(
       'CompletedNavigateInternal',
-      'CompletedNavigateExternal',
+      'CompletedLoadExternal',
       'CompletedInjectAnalytics',
       'CompletedInjectSpeedInsights',
       'CompletedScroll',

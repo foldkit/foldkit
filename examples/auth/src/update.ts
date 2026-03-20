@@ -6,7 +6,7 @@ import { toString as urlToString } from 'foldkit/url'
 
 import { clearSession, logError, saveSession } from './command'
 import {
-  CompletedNavigateExternal,
+  CompletedLoadExternal,
   CompletedNavigateInternal,
   GotLoggedInMessage,
   GotLoggedOutMessage,
@@ -46,7 +46,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               model,
               [
                 load(href).pipe(
-                  Effect.as(CompletedNavigateExternal()),
+                  Effect.as(CompletedLoadExternal()),
                   Command.make('LoadExternal'),
                 ),
               ],
@@ -126,7 +126,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     }),
     M.tag(
       'CompletedNavigateInternal',
-      'CompletedNavigateExternal',
+      'CompletedLoadExternal',
       'CompletedLogError',
       'SavedSession',
       'ClearedSession',

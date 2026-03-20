@@ -7,7 +7,7 @@ import { Session } from './domain/session'
 import { LoggedIn, LoggedOut } from './page'
 
 export const CompletedNavigateInternal = m('CompletedNavigateInternal')
-export const CompletedNavigateExternal = m('CompletedNavigateExternal')
+export const CompletedLoadExternal = m('CompletedLoadExternal')
 export const CompletedLogError = m('CompletedLogError')
 export const ClickedLink = m('ClickedLink', { request: Runtime.UrlRequest })
 export const ChangedUrl = m('ChangedUrl', { url: Url })
@@ -25,7 +25,7 @@ export const GotLoggedInMessage = m('GotLoggedInMessage', {
 
 export const Message = S.Union(
   CompletedNavigateInternal,
-  CompletedNavigateExternal,
+  CompletedLoadExternal,
   CompletedLogError,
   ClickedLink,
   ChangedUrl,

@@ -72,7 +72,7 @@ const SavedEdit = m('SavedEdit')
 const CancelledEdit = m('CancelledEdit')
 const ToggledAll = m('ToggledAll')
 const ClearedCompleted = m('ClearedCompleted')
-const SetFilter = m('SetFilter', { filter: Filter })
+const SelectedFilter = m('SelectedFilter', { filter: Filter })
 const SavedTodos = m('SavedTodos', { todos: Todos })
 
 export const Message = S.Union(
@@ -87,7 +87,7 @@ export const Message = S.Union(
   CancelledEdit,
   ToggledAll,
   ClearedCompleted,
-  SetFilter,
+  SelectedFilter,
   SavedTodos,
 )
 export type Message = typeof Message.Type
@@ -277,7 +277,7 @@ const update = (
         ]
       },
 
-      SetFilter: ({ filter }) => [
+      SelectedFilter: ({ filter }) => [
         evo(model, {
           filter: () => filter,
         }),
@@ -419,7 +419,7 @@ const filterButtonView =
   (filter: Filter, label: string): Html =>
     button(
       [
-        OnClick(SetFilter({ filter })),
+        OnClick(SelectedFilter({ filter })),
         Class(
           `px-3 py-1 rounded ${
             model.filter === filter

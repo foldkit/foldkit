@@ -122,7 +122,7 @@ const ClickedPlay = m('ClickedPlay')
 const ClickedPause = m('ClickedPause')
 const ClickedStop = m('ClickedStop')
 const PlayedNote = m('PlayedNote', { noteIndex: S.Number })
-const AdvancedNotePhase = m('AdvancedNotePhase', {
+const ProgressedNotePhase = m('ProgressedNotePhase', {
   generation: S.Number,
 })
 
@@ -134,7 +134,7 @@ export const Message = S.Union(
   ClickedPause,
   ClickedStop,
   PlayedNote,
-  AdvancedNotePhase,
+  ProgressedNotePhase,
 )
 export type Message = typeof Message.Type
 
@@ -194,9 +194,9 @@ const prependToLog =
 
 const delayAdvancePhase = (
   generation: number,
-): Command.Command<typeof AdvancedNotePhase> =>
+): Command.Command<typeof ProgressedNotePhase> =>
   Task.delay(PHASE_DURATION).pipe(
-    Effect.as(AdvancedNotePhase({ generation })),
+    Effect.as(ProgressedNotePhase({ generation })),
     Command.make('DelayAdvancePhase'),
   )
 
@@ -393,7 +393,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ]
       },
 
-      AdvancedNotePhase: ({ generation }) => {
+      ProgressedNotePhase: ({ generation }) => {
         if (generation !== model.generation) {
           return [model, []]
         }

@@ -135,7 +135,7 @@ type Model = typeof Model.Type
 // MESSAGE
 
 const CompletedNavigateInternal = m('CompletedNavigateInternal')
-const CompletedNavigateExternal = m('CompletedNavigateExternal')
+const CompletedLoadExternal = m('CompletedLoadExternal')
 const CompletedReplaceUrl = m('CompletedReplaceUrl')
 const ClickedLink = m('ClickedLink', { request: Runtime.UrlRequest })
 const ChangedUrl = m('ChangedUrl', { url: Url })
@@ -150,7 +150,7 @@ const GotPeriodListboxMessage = m('GotPeriodListboxMessage', {
 
 const Message = S.Union(
   CompletedNavigateInternal,
-  CompletedNavigateExternal,
+  CompletedLoadExternal,
   CompletedReplaceUrl,
   ClickedLink,
   ChangedUrl,
@@ -253,7 +253,7 @@ const update = (model: Model, message: Message): UpdateReturn =>
     withUpdateReturn,
     M.tagsExhaustive({
       CompletedNavigateInternal: () => [model, []],
-      CompletedNavigateExternal: () => [model, []],
+      CompletedLoadExternal: () => [model, []],
       CompletedReplaceUrl: () => [model, []],
 
       ClickedLink: ({ request }) =>
@@ -273,7 +273,7 @@ const update = (model: Model, message: Message): UpdateReturn =>
               model,
               [
                 load(href).pipe(
-                  Effect.as(CompletedNavigateExternal()),
+                  Effect.as(CompletedLoadExternal()),
                   Command.make('LoadExternal'),
                 ),
               ],

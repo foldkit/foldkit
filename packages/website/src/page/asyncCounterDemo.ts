@@ -71,7 +71,7 @@ const ChangedDemoResetDuration = m('ChangedDemoResetDuration', {
   seconds: S.Number,
 })
 const ClickedDemoReset = m('ClickedDemoReset')
-const AdvancedDemoPhase = m('AdvancedDemoPhase', {
+const ProgressedDemoPhase = m('ProgressedDemoPhase', {
   generation: S.Number,
 })
 
@@ -79,7 +79,7 @@ export const Message = S.Union(
   ClickedDemoIncrement,
   ChangedDemoResetDuration,
   ClickedDemoReset,
-  AdvancedDemoPhase,
+  ProgressedDemoPhase,
 )
 export type Message = typeof Message.Type
 
@@ -105,9 +105,9 @@ const withUpdateReturn = M.withReturnType<UpdateReturn>()
 const delayAdvancePhase = (
   generation: number,
   duration: Duration.DurationInput,
-): Command.Command<typeof AdvancedDemoPhase> =>
+): Command.Command<typeof ProgressedDemoPhase> =>
   Task.delay(duration).pipe(
-    Effect.as(AdvancedDemoPhase({ generation })),
+    Effect.as(ProgressedDemoPhase({ generation })),
     Command.make('DelayAdvancePhase'),
   )
 
@@ -157,7 +157,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ]
       },
 
-      AdvancedDemoPhase: ({ generation }) => {
+      ProgressedDemoPhase: ({ generation }) => {
         if (generation !== model.generation) {
           return [model, []]
         } else {

@@ -70,7 +70,7 @@ type Model = typeof Model.Type
 // MESSAGE
 
 const CompletedNavigateInternal = m('CompletedNavigateInternal')
-const CompletedNavigateExternal = m('CompletedNavigateExternal')
+const CompletedLoadExternal = m('CompletedLoadExternal')
 const ClickedLink = m('ClickedLink', {
   request: Runtime.UrlRequest,
 })
@@ -98,7 +98,7 @@ export const ClickedPlaceOrder = m('ClickedPlaceOrder')
 
 export const Message = S.Union(
   CompletedNavigateInternal,
-  CompletedNavigateExternal,
+  CompletedLoadExternal,
   ClickedLink,
   ChangedUrl,
   GotProductsMessage,
@@ -137,7 +137,7 @@ const update = (
     M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
     M.tagsExhaustive({
       CompletedNavigateInternal: () => [model, []],
-      CompletedNavigateExternal: () => [model, []],
+      CompletedLoadExternal: () => [model, []],
 
       ClickedLink: ({ request }) =>
         M.value(request).pipe(
@@ -147,7 +147,7 @@ const update = (
               ReadonlyArray<
                 Command.Command<
                   | typeof CompletedNavigateInternal
-                  | typeof CompletedNavigateExternal
+                  | typeof CompletedLoadExternal
                 >
               >,
             ]
@@ -167,7 +167,7 @@ const update = (
               model,
               [
                 load(href).pipe(
-                  Effect.as(CompletedNavigateExternal()),
+                  Effect.as(CompletedLoadExternal()),
                   Command.make('LoadExternal'),
                 ),
               ],

@@ -30,13 +30,13 @@ type Model = typeof Model.Type
 
 // ClickedLink and ChangedUrl are required for routing
 const CompletedNavigateInternal = m('CompletedNavigateInternal')
-const CompletedNavigateExternal = m('CompletedNavigateExternal')
+const CompletedLoadExternal = m('CompletedLoadExternal')
 const ClickedLink = m('ClickedLink', { request: Runtime.UrlRequest })
 const ChangedUrl = m('ChangedUrl', { url: Url.Url })
 
 const Message = S.Union(
   CompletedNavigateInternal,
-  CompletedNavigateExternal,
+  CompletedLoadExternal,
   ClickedLink,
   ChangedUrl,
 )
@@ -49,7 +49,7 @@ const update = (model: Model, message: Message) =>
     M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
     M.tagsExhaustive({
       CompletedNavigateInternal: () => [model, []],
-      CompletedNavigateExternal: () => [model, []],
+      CompletedLoadExternal: () => [model, []],
 
       // Handle link clicks - decide whether to navigate or do a full page load
       ClickedLink: ({ request }) =>
@@ -74,7 +74,7 @@ const update = (model: Model, message: Message) =>
               model,
               [
                 Navigation.load(href).pipe(
-                  Effect.as(CompletedNavigateExternal()),
+                  Effect.as(CompletedLoadExternal()),
                   Command.make('LoadExternal'),
                 ),
               ],

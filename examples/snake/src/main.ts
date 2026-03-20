@@ -42,16 +42,16 @@ const TickedClock = m('TickedClock')
 const PressedKey = m('PressedKey', { key: S.String })
 const PausedGame = m('PausedGame')
 const RestartedGame = m('RestartedGame')
-const RequestedApple = m('RequestedApple', { snake: Snake.Snake })
-const GotApple = m('GotApple', { position: Position.Position })
+const GeneratedApplePosition = m('GeneratedApplePosition', {
+  position: Position.Position,
+})
 
 export const Message = S.Union(
   TickedClock,
   PressedKey,
   PausedGame,
   RestartedGame,
-  RequestedApple,
-  GotApple,
+  GeneratedApplePosition,
 )
 export type Message = typeof Message.Type
 
@@ -70,7 +70,7 @@ const init: Runtime.ElementInit<Model, Message> = () => {
       points: 0,
       highScore: 0,
     },
-    [requestApple(snake)],
+    [generateApplePosition(snake)],
   ]
 }
 
@@ -144,7 +144,7 @@ const update = (
                 gameState: () => 'NotStarted',
                 points: () => 0,
               }),
-              [requestApple(nextSnake)],
+              [generateApplePosition(nextSnake)],
             ]
           }),
           M.orElse(() => [model, []]),
@@ -179,7 +179,7 @@ const update = (
           ]
         }
 
-        const commands = willEatApple ? [requestApple(nextSnake)] : []
+        const commands = willEatApple ? [generateApplePosition(nextSnake)] : []
 
         return [
           evo(model, {
@@ -212,21 +212,11 @@ const update = (
             gameState: () => 'NotStarted',
             points: () => 0,
           }),
-          [requestApple(nextSnake)],
+          [generateApplePosition(nextSnake)],
         ]
       },
 
-      RequestedApple: ({ snake }) => [
-        model,
-        [
-          Apple.generatePosition(snake).pipe(
-            Effect.map(position => GotApple({ position })),
-            Command.make('GenerateApplePosition'),
-          ),
-        ],
-      ],
-
-      GotApple: ({ position }) => [
+      GeneratedApplePosition: ({ position }) => [
         evo(model, {
           apple: () => position,
         }),
@@ -237,8 +227,13 @@ const update = (
 
 // COMMAND
 
-const requestApple = (snake: Snake.Snake): Command.Command<Message> =>
-  Effect.succeed(RequestedApple({ snake })).pipe(Command.make('RequestApple'))
+const generateApplePosition = (
+  snake: Snake.Snake,
+): Command.Command<typeof GeneratedApplePosition> =>
+  Apple.generatePosition(snake).pipe(
+    Effect.map(position => GeneratedApplePosition({ position })),
+    Command.make('GenerateApplePosition'),
+  )
 
 // SUBSCRIPTION
 
