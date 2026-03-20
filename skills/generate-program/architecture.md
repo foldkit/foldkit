@@ -23,12 +23,12 @@ Model    Command<Message>[]                                      |
   |                                                              |
   +-> view -> Browser -> user events ----------------------------+
   |                                                              |
-  +-> Subscriptions -> Stream<Command<Message>> -> Runtime ------+
+  +-> Subscriptions -> Stream<Message> -> Runtime ----------------+
   |                                                              |
   +-> ManagedResources -> lifecycle -----------------------------+
 ```
 
-Every path on the right side produces a Message that feeds back into update. Commands are one-shot effects. Subscriptions emit a continuous stream of Commands. ManagedResources dispatch Messages when they're acquired, released, or fail to acquire. The Browser sends Messages when the user interacts with the DOM. Four sources, one loop.
+Every path on the right side produces a Message that feeds back into update. Commands are one-shot effects. Subscriptions emit a continuous stream of Messages. ManagedResources dispatch Messages when they're acquired, released, or fail to acquire. The Browser sends Messages when the user interacts with the DOM. Four sources, one loop.
 
 There are no escape hatches:
 
