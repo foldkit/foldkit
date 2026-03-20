@@ -265,9 +265,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
     depsToStream: (deps: { isPlaying: boolean; interval: number }) =>
       Stream.when(
         Stream.tick(Duration.millis(deps.interval)).pipe(
-          Stream.map(() =>
-            Effect.succeed(TickedClock()).pipe(Command.make('TickClock')),
-          ),
+          Stream.map(TickedClock),
         ),
         () => deps.isPlaying,
       ),
@@ -277,11 +275,10 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
     modelToDependencies: () => null,
     depsToStream: () =>
       Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
-        Stream.map(keyboardEvent =>
-          Effect.sync(() => {
-            keyboardEvent.preventDefault()
-            return PressedKey({ key: keyboardEvent.key })
-          }).pipe(Command.make('HandleKeydown')),
+        Stream.mapEffect(keyboardEvent =>
+          Effect.sync(() => keyboardEvent.preventDefault()).pipe(
+            Effect.as(PressedKey({ key: keyboardEvent.key })),
+          ),
         ),
       ),
   },

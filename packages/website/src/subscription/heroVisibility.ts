@@ -1,5 +1,4 @@
 import { Effect, Stream } from 'effect'
-import { Command } from 'foldkit'
 import { Subscription } from 'foldkit/subscription'
 
 import { type Model, type SubscriptionDeps } from '../main'
@@ -16,7 +15,7 @@ export const heroVisibility: Subscription<
   }),
   depsToStream: ({ isLandingPage }) =>
     Stream.when(
-      Stream.async<Command.Command<typeof ChangedHeroVisibility>>(emit => {
+      Stream.async<typeof ChangedHeroVisibility.Type>(emit => {
         const heroElement = document.getElementById(HERO_SECTION_ID)
 
         if (!heroElement) {
@@ -28,11 +27,9 @@ export const heroVisibility: Subscription<
             const entry = entries[0]
             if (entry) {
               emit.single(
-                Effect.succeed(
-                  ChangedHeroVisibility({
-                    isVisible: entry.isIntersecting,
-                  }),
-                ).pipe(Command.make('ChangeHeroVisibility')),
+                ChangedHeroVisibility({
+                  isVisible: entry.isIntersecting,
+                }),
               )
             }
           },

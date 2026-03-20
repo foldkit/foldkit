@@ -81,31 +81,31 @@ export const view = (): Html =>
           ),
         ],
         [
-          '          +------------------------------------------------------+\n' +
-            '          |                                                      |\n' +
-            '          \u2193                                                      |\n' +
-            '       Message                                                   |\n' +
-            '          |                                                      |\n' +
-            '          \u2193                                                      |\n' +
-            '  +---------------+                                              |\n' +
-            '  |    update     |                                              |\n' +
-            '  +-------+-------+                                              |\n' +
-            '  \u2193               \u2193                                              |\n' +
-            'Model    Command<Message>[]                                      |\n' +
-            '  |               |                                              |\n' +
-            '  |               +-> Runtime -----------------------------------+\n' +
-            '  |                                                              |\n' +
-            '  +-> view -> Browser -> user events ----------------------------+\n' +
-            '  |                                                              |\n' +
-            '  +-> Subscriptions -> Stream<Command<Message>> -> Runtime ------+\n' +
-            '  |                                                              |\n' +
-            '  +-> ManagedResources -> lifecycle -----------------------------+',
+          '          +------------------------------------------+\n' +
+            '          |                                          |\n' +
+            '          \u2193                                          |\n' +
+            '       Message                                       |\n' +
+            '          |                                          |\n' +
+            '          \u2193                                          |\n' +
+            '  +---------------+                                  |\n' +
+            '  |    update     |                                  |\n' +
+            '  +-------+-------+                                  |\n' +
+            '  \u2193               \u2193                                  |\n' +
+            'Model    Command<Message>[]                          |\n' +
+            '  |               |                                  |\n' +
+            '  |               +-> Runtime -----------------------+\n' +
+            '  |                                                  |\n' +
+            '  +-> view -> Browser -> user events ----------------+\n' +
+            '  |                                                  |\n' +
+            '  +-> Subscriptions -> Stream<Message> -> Runtime ---+\n' +
+            '  |                                                  |\n' +
+            '  +-> ManagedResources -> lifecycle -----------------+',
         ],
       ),
       para(
         'Every path on the right side produces a Message that feeds back into ',
         inlineCode('update'),
-        '. Commands are named, one-shot effects \u2014 each carries a name for identification in tracing and tests. Subscriptions emit a continuous stream of Commands. ManagedResources dispatch Messages when they\u2019re acquired, released, or fail to acquire. The Browser sends Messages when the user interacts with the DOM. Four sources, one loop.',
+        '. Commands are named, one-shot effects \u2014 each carries a name for identification in tracing and tests. Subscriptions emit a continuous stream of Messages. ManagedResources dispatch Messages when they\u2019re acquired, released, or fail to acquire. The Browser sends Messages when the user interacts with the DOM. Four sources, one loop.',
       ),
       tableOfContentsEntryToHeader(theRestaurantAnalogyHeader),
       para(

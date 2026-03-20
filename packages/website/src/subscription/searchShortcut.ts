@@ -1,5 +1,5 @@
 import { Effect, Stream } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Ui } from 'foldkit'
 import { Subscription } from 'foldkit/subscription'
 
 import type { Model, SubscriptionDeps } from '../main'
@@ -17,18 +17,16 @@ export const searchShortcut: Subscription<
   }),
   depsToStream: ({ isDocsPage }) =>
     Stream.when(
-      Stream.async<Command.Command<typeof GotSearchMessage>>(emit => {
+      Stream.async<typeof GotSearchMessage.Type>(emit => {
         const handler = (event: KeyboardEvent) => {
           if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
             event.preventDefault()
             emit.single(
-              Effect.succeed(
-                GotSearchMessage({
-                  message: GotSearchDialogMessage({
-                    message: Ui.Dialog.Opened(),
-                  }),
+              GotSearchMessage({
+                message: GotSearchDialogMessage({
+                  message: Ui.Dialog.Opened(),
                 }),
-              ).pipe(Command.make('GetSearchShortcut')),
+              }),
             )
           }
         }

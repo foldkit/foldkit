@@ -1,5 +1,5 @@
-import { Duration, Effect, Schema as S, Stream } from 'effect'
-import { Command, Subscription } from 'foldkit'
+import { Duration, Schema as S, Stream } from 'effect'
+import { Subscription } from 'foldkit'
 import { m } from 'foldkit/message'
 
 // MESSAGE
@@ -38,9 +38,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
     }),
     depsToStream: ({ isAutoCounting }) =>
       Stream.when(
-        Stream.tick(Duration.seconds(1)).pipe(
-          Stream.map(() => Effect.succeed(Ticked()).pipe(Command.make('Tick'))),
-        ),
+        Stream.tick(Duration.seconds(1)).pipe(Stream.map(Ticked)),
         () => isAutoCounting,
       ),
   },

@@ -524,35 +524,26 @@ const makeOverlaySubscriptions = (store: DevtoolsStore) =>
       modelToDependencies: () => null,
       depsToStream: () =>
         Stream.concat(
-          Stream.make(
+          Stream.fromEffect(
             pipe(
               SubscriptionRef.get(store.stateRef),
               Effect.map(state => ReceivedStoreUpdate(toDisplayState(state))),
-              Command.make('LoadStoreState'),
             ),
           ),
           pipe(
             store.stateRef.changes,
-            Stream.map(state =>
-              Effect.succeed(ReceivedStoreUpdate(toDisplayState(state))).pipe(
-                Command.make('ReceiveStoreUpdate'),
-              ),
-            ),
+            Stream.map(state => ReceivedStoreUpdate(toDisplayState(state))),
           ),
         ),
     },
     mobileBreakpoint: {
       modelToDependencies: () => null,
       depsToStream: () =>
-        Stream.async<Command.Command<Message>>(emit => {
+        Stream.async<Message>(emit => {
           const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT_QUERY)
 
           const handler = (event: MediaQueryListEvent) => {
-            emit.single(
-              Effect.succeed(
-                CrossedMobileBreakpoint({ isMobile: event.matches }),
-              ).pipe(Command.make('CrossMobileBreakpoint')),
-            )
+            emit.single(CrossedMobileBreakpoint({ isMobile: event.matches }))
           }
 
           mediaQuery.addEventListener('change', handler)

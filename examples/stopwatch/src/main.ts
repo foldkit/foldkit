@@ -132,9 +132,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
     depsToStream: ({ isRunning }) =>
       Stream.when(
         Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
-          Stream.map(() =>
-            Effect.succeed(RequestedTick()).pipe(Command.make('RequestTick')),
-          ),
+          Stream.map(RequestedTick),
         ),
         () => isRunning,
       ),

@@ -1,13 +1,15 @@
 import { Record, type Schema, type Stream } from 'effect'
 
-import type { Command } from '../command'
+type ResolveMessage<T> = [T] extends [Schema.Schema.Any]
+  ? Schema.Schema.Type<T>
+  : T
 
-/** A reactive binding between model state and a long-running stream of commands. */
+/** A reactive binding between Model state and a long-running stream of Messages. */
 export type Subscription<Model, Message, StreamDeps, Resources = never> = {
   readonly modelToDependencies: (model: Model) => StreamDeps
   readonly depsToStream: (
     deps: StreamDeps,
-  ) => Stream.Stream<Command<Message, never, Resources>, never, Resources>
+  ) => Stream.Stream<ResolveMessage<Message>, never, Resources>
 }
 
 type SubscriptionConfig<Model, Message, StreamDeps, Resources = never> = {
@@ -41,7 +43,7 @@ export const makeSubscriptions =
       ) => Schema.Schema.Type<SubscriptionDeps>[K]
       depsToStream: (
         deps: Schema.Schema.Type<SubscriptionDeps>[K],
-      ) => Stream.Stream<Command<Message, never, Resources>, never, Resources>
+      ) => Stream.Stream<ResolveMessage<Message>, never, Resources>
     }
   }) =>
     Record.map(configs, ({ modelToDependencies, depsToStream }, key) => ({

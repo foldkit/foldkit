@@ -806,19 +806,7 @@ const makeRuntime = <
                     Stream.map(modelToDependencies),
                     Stream.changesWith(Schema.equivalence(schema)),
                     Stream.flatMap(depsToStream, { switch: true }),
-                    Stream.runForEach(
-                      (
-                        command: AnyCommand<
-                          Message,
-                          never,
-                          Resources | ManagedResourceServices
-                        >,
-                      ) =>
-                        command.effect.pipe(
-                          Effect.withSpan(command.name),
-                          Effect.flatMap(enqueueMessage),
-                        ),
-                    ),
+                    Stream.runForEach(enqueueMessage),
                     provideAllResources,
                   ),
                 )

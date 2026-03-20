@@ -1,5 +1,5 @@
 import { Effect, Match as M, Option, Schema as S, Stream } from 'effect'
-import { Command, Subscription } from 'foldkit'
+import { Subscription } from 'foldkit'
 
 import {
   GotHomeMessage,
@@ -50,24 +50,20 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
             const client = yield* RoomsClient
             return client.subscribeToRoom({ roomId, playerId }).pipe(
               Stream.map(({ room, maybePlayerProgress }) =>
-                Effect.succeed(
-                  GotRoomMessage({
-                    message: Room.Message.UpdatedRoom({
-                      room,
-                      maybePlayerProgress,
-                    }),
+                GotRoomMessage({
+                  message: Room.Message.UpdatedRoom({
+                    room,
+                    maybePlayerProgress,
                   }),
-                ).pipe(Command.make('RoomUpdate')),
+                }),
               ),
               Stream.catchAll(error =>
                 Stream.make(
-                  Effect.succeed(
-                    GotRoomMessage({
-                      message: Room.Message.FailedRoomStream({
-                        error: String(error),
-                      }),
+                  GotRoomMessage({
+                    message: Room.Message.FailedRoomStream({
+                      error: String(error),
                     }),
-                  ).pipe(Command.make('RoomStreamError')),
+                  }),
                 ),
               ),
             )
@@ -104,7 +100,7 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
     depsToStream: (deps: { shouldCaptureKeyboard: boolean; route: AppRoute }) =>
       Stream.when(
         Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
-          Stream.map(keyboardEvent =>
+          Stream.mapEffect(keyboardEvent =>
             Effect.sync(() => {
               keyboardEvent.preventDefault()
               const { key } = keyboardEvent
@@ -122,7 +118,7 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
                   NotFound: () => IgnoredKeyPress(),
                 }),
               )
-            }).pipe(Command.make('KeyPress')),
+            }),
           ),
         ),
         () => deps.shouldCaptureKeyboard,

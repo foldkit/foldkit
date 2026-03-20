@@ -9,7 +9,6 @@ import {
   Stream,
   pipe,
 } from 'effect'
-import { Command } from 'foldkit'
 import { Subscription } from 'foldkit/subscription'
 
 import { Model, SubscriptionDeps } from '../main'
@@ -139,7 +138,7 @@ export const activeSection: Subscription<
     }
   },
   depsToStream: ({ sections }) =>
-    Stream.async<Command.Command<typeof ChangedActiveSection>>(emit => {
+    Stream.async<typeof ChangedActiveSection.Type>(emit => {
       if (!Array.isNonEmptyReadonlyArray(sections)) {
         return Effect.void
       }
@@ -163,11 +162,7 @@ export const activeSection: Subscription<
           Option.match(activeSectionId, {
             onNone: Function.constVoid,
             onSome: sectionId => {
-              emit.single(
-                Effect.succeed(ChangedActiveSection({ sectionId })).pipe(
-                  Command.make('ChangeActiveSection'),
-                ),
-              )
+              emit.single(ChangedActiveSection({ sectionId }))
             },
           })
         },

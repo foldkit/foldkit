@@ -141,11 +141,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
             [],
             [
               link(coreSubscriptionsRouter(), 'Subscription'),
-              ' streams \u2014 a Stream of Commands. Subscriptions model ongoing processes like keyboard events, window resizing, or intersection observers. Side effects in streams are wrapped in Effect primitives like ',
-              inlineCode('Stream.async'),
-              ' and ',
-              inlineCode('Stream.tap'),
-              ' \u2014 the runtime controls when streams subscribe and unsubscribe based on your Model.',
+              ' streams \u2014 a ',
+              inlineCode('Stream<Message>'),
+              '. Subscriptions model ongoing processes like keyboard events, window resizing, or intersection observers. When a stream callback needs to perform a side effect before producing a Message \u2014 like calling ',
+              inlineCode('event.preventDefault()'),
+              ' \u2014 use ',
+              inlineCode('Stream.mapEffect'),
+              '. The runtime controls when streams subscribe and unsubscribe based on your Model.',
             ],
           ),
           li(

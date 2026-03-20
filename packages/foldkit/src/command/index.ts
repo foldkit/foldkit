@@ -2,14 +2,14 @@ import { Effect, Schema } from 'effect'
 
 /** A named Effect that produces a message. */
 export type Command<T, E = never, R = never> = [T] extends [Schema.Schema.Any]
-  ? {
-      readonly name: string
-      readonly effect: Effect.Effect<Schema.Schema.Type<T>, E, R>
-    }
-  : {
-      readonly name: string
-      readonly effect: Effect.Effect<T, E, R>
-    }
+  ? Readonly<{
+      name: string
+      effect: Effect.Effect<Schema.Schema.Type<T>, E, R>
+    }>
+  : Readonly<{
+      name: string
+      effect: Effect.Effect<T, E, R>
+    }>
 
 /** Creates a named Command from an Effect. */
 export const make: {

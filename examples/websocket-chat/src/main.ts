@@ -302,35 +302,21 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
         ChatSocket.get.pipe(
           Effect.map(socket =>
             Stream.async<
-              Command.Command<
-                | typeof ReceivedMessage
-                | typeof Disconnected
-                | typeof FailedConnection
-              >
+              | typeof ReceivedMessage.Type
+              | typeof Disconnected.Type
+              | typeof FailedConnection.Type
             >(emit => {
               const handleMessage = (event: MessageEvent) => {
-                emit.single(
-                  Effect.succeed(ReceivedMessage({ text: event.data })).pipe(
-                    Command.make('ReceiveMessage'),
-                  ),
-                )
+                emit.single(ReceivedMessage({ text: event.data }))
               }
 
               const handleClose = () => {
-                emit.single(
-                  Effect.succeed(Disconnected()).pipe(
-                    Command.make('Disconnect'),
-                  ),
-                )
+                emit.single(Disconnected())
                 emit.end()
               }
 
               const handleError = () => {
-                emit.single(
-                  Effect.succeed(
-                    FailedConnection({ error: 'Connection error' }),
-                  ).pipe(Command.make('FailConnection')),
-                )
+                emit.single(FailedConnection({ error: 'Connection error' }))
                 emit.end()
               }
 

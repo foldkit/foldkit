@@ -1,5 +1,4 @@
 import { Effect, Stream } from 'effect'
-import { Command } from 'foldkit'
 import { Subscription } from 'foldkit/subscription'
 
 import { type Model, type SubscriptionDeps } from '../main'
@@ -15,16 +14,14 @@ export const systemTheme: Subscription<
   }),
   depsToStream: ({ isSystemPreference }) =>
     Stream.when(
-      Stream.async<Command.Command<typeof ChangedSystemTheme>>(emit => {
+      Stream.async<typeof ChangedSystemTheme.Type>(emit => {
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
         const handler = (event: MediaQueryListEvent) => {
           emit.single(
-            Effect.succeed(
-              ChangedSystemTheme({
-                theme: event.matches ? 'Dark' : 'Light',
-              }),
-            ).pipe(Command.make('ChangeSystemTheme')),
+            ChangedSystemTheme({
+              theme: event.matches ? 'Dark' : 'Light',
+            }),
           )
         }
 
