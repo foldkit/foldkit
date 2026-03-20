@@ -18,6 +18,12 @@ const overviewHeader: TableOfContentsEntry = {
   text: 'Overview',
 }
 
+const anatomyHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'anatomy-of-a-command',
+  text: 'Anatomy of a Command',
+}
+
 const httpRequestsHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'http-requests',
@@ -26,6 +32,7 @@ const httpRequestsHeader: TableOfContentsEntry = {
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
+  anatomyHeader,
   httpRequestsHeader,
 ]
 
@@ -65,14 +72,43 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         copiedSnippets,
         'mb-8',
       ),
+      tableOfContentsEntryToHeader(anatomyHeader),
+      para(
+        'A Command is a struct with two fields: ',
+        inlineCode('name'),
+        ', a string identifying what the Command does, and ',
+        inlineCode('effect'),
+        ', the Effect that the runtime executes. You create a Command with ',
+        inlineCode('Command.make'),
+        ' at the end of a pipe chain: ',
+        inlineCode(
+          "Task.delay('1 second').pipe(Effect.as(DelayedReset()), Command.make('DelayReset'))",
+        ),
+        '.',
+      ),
+      para(
+        'Names are present-tense and verb-first: ',
+        inlineCode('FetchWeather'),
+        ', ',
+        inlineCode('FocusButton'),
+        ', ',
+        inlineCode('LockScroll'),
+        '. Messages describe what happened (past tense), names describe what is being done (present tense).',
+      ),
+      infoCallout(
+        'Names give you visibility',
+        'DevTools shows which Commands fired \u2014 not just how many. Tests can assert which Commands were produced. And the runtime traces each Command\u2019s execution time via ',
+        inlineCode('Effect.withSpan'),
+        ', so you get per-Command observability out of the box.',
+      ),
       para(
         'Look at what update does when ',
         inlineCode('ClickedResetAfterDelay'),
         ' arrives: it returns the Model unchanged, along with a Command that describes a one-second delay. The update function didn\u2019t start a timer \u2014 it handed the runtime a description that says ',
         '\u201Cwait one second, then send me ',
-        inlineCode('ElapsedResetDelay'),
+        inlineCode('DelayedReset'),
         '.\u201D The runtime does the waiting. When the delay fires, ',
-        inlineCode('ElapsedResetDelay'),
+        inlineCode('DelayedReset'),
         ' arrives as a new Message, and update resets the count to zero.',
       ),
       para(
@@ -93,6 +129,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para(
         'No fake timers. No test utilities. No setup or teardown. You call update with a Model and a Message, and you check what comes out. The first assertion proves that update described work without doing it \u2014 the count is still 5. The second proves that when the result arrives, the state transitions correctly.',
+      ),
+      para(
+        'Because Commands carry names, you can assert not just that a Command was produced, but which one: ',
+        inlineCode("expect(commands[0].name).toBe('DelayReset')"),
+        '.',
       ),
       para(
         'This tests the state machine in isolation. In the future, Foldkit may provide a program-level test runner that simulates the full runtime loop \u2014 executing Commands, feeding results back through update, and asserting on the rendered view \u2014 all without a browser.',

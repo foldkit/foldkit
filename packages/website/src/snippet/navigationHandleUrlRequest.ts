@@ -1,6 +1,5 @@
 import { Effect, Match as M, Schema as S, pipe } from 'effect'
-import { Navigation, Route, Runtime, Url } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Navigation, Route, Runtime, Url } from 'foldkit'
 import { m } from 'foldkit/message'
 import { int, literal, r, slash } from 'foldkit/route'
 import { evo } from 'foldkit/struct'
@@ -47,7 +46,7 @@ type Message = typeof Message.Type
 
 const update = (model: Model, message: Message) =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
+    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
     M.tagsExhaustive({
       CompletedInternalNavigation: () => [model, []],
       CompletedExternalNavigation: () => [model, []],
@@ -57,20 +56,26 @@ const update = (model: Model, message: Message) =>
         M.value(request).pipe(
           M.tagsExhaustive({
             // Same-origin link - push to history
-            Internal: ({ url }): [Model, ReadonlyArray<Command<Message>>] => [
+            Internal: ({
+              url,
+            }): [Model, ReadonlyArray<Command.Command<Message>>] => [
               model,
               [
                 Navigation.pushUrl(Url.toString(url)).pipe(
                   Effect.as(CompletedInternalNavigation()),
+                  Command.make('NavigateInternal'),
                 ),
               ],
             ],
             // Different-origin link - full page load
-            External: ({ href }): [Model, ReadonlyArray<Command<Message>>] => [
+            External: ({
+              href,
+            }): [Model, ReadonlyArray<Command.Command<Message>>] => [
               model,
               [
                 Navigation.load(href).pipe(
                   Effect.as(CompletedExternalNavigation()),
+                  Command.make('LoadExternal'),
                 ),
               ],
             ],

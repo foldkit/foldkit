@@ -1,11 +1,10 @@
 import { Effect, Match as M, Option, Record } from 'effect'
-import { Ui } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Ui } from 'foldkit'
 
 import { GotFaqDisclosureMessage, type Message } from './message'
 import type { Model } from './model'
 
-export type UpdateReturn = [Model, ReadonlyArray<Command<Message>>]
+export type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 export const update = (model: Model, message: Message): UpdateReturn =>
@@ -24,7 +23,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             return [
               Record.set(model, id, nextDisclosure),
               commands.map(
-                Effect.map(message => GotFaqDisclosureMessage({ id, message })),
+                Command.mapEffect(
+                  Effect.map(message =>
+                    GotFaqDisclosureMessage({ id, message }),
+                  ),
+                ),
               ),
             ]
           },

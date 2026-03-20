@@ -3,17 +3,8 @@ import {
   HttpClient,
   HttpClientRequest,
 } from '@effect/platform'
-import {
-  Array,
-  Effect,
-  Match as M,
-  Option,
-  Schema as S,
-  String,
-  flow,
-} from 'effect'
-import { Runtime } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Array, Effect, Match as M, Option, Schema as S, String } from 'effect'
+import { Command, Runtime } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
@@ -73,9 +64,9 @@ type Message = typeof Message.Type
 export const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command<Message>>] =>
+): [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
+    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
     M.tagsExhaustive({
       UpdatedZipCodeInput: ({ value }) => [
         evo(model, {
@@ -159,7 +150,7 @@ const weatherCodeToDescription = (code: number): string =>
 
 export const fetchWeather = (
   zipCode: string,
-): Command<
+): Command.Command<
   typeof SucceededWeatherFetch | typeof FailedWeatherFetch,
   never,
   HttpClient.HttpClient
@@ -243,13 +234,18 @@ export const fetchWeather = (
         FailedWeatherFetch({ error: 'Failed to fetch weather data' }),
       ),
     ),
+    Command.make('FetchWeather'),
   )
 
-const fetchWeatherLive = flow(
-  fetchWeather,
-  Effect.locally(HttpClient.currentTracerPropagation, false),
-  Effect.provide(FetchHttpClient.layer),
-)
+const fetchWeatherLive = (
+  zipCode: string,
+): Command.Command<typeof SucceededWeatherFetch | typeof FailedWeatherFetch> =>
+  Command.mapEffect(fetchWeather(zipCode), effect =>
+    effect.pipe(
+      Effect.locally(HttpClient.currentTracerPropagation, false),
+      Effect.provide(FetchHttpClient.layer),
+    ),
+  )
 
 // VIEW
 

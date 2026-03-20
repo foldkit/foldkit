@@ -1,5 +1,5 @@
 import { Match as M, Schema as S } from 'effect'
-import { Command } from 'foldkit/command'
+import { Command } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 
@@ -17,7 +17,7 @@ type Message = typeof Message.Type
 
 // UPDATE - How Messages change the Model
 
-type UpdateReturn = [Model, ReadonlyArray<Command<Message>>]
+type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 const update = (model: Model, message: Message): UpdateReturn =>

@@ -1,11 +1,11 @@
 import * as Shared from '@typing-game/shared'
 import { Array, Data, Effect, Match as M, Option, String as Str } from 'effect'
-import { Task } from 'foldkit'
+import { Command, Task } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { USER_GAME_TEXT_INPUT_ID } from '../../../constant'
 import { optionWhen } from '../../../optionWhen'
-import { exitCountdownTick } from '../command'
+import { tickExitCountdown } from '../command'
 import { CompletedUserGameTextInputFocus } from '../message'
 import { Model, RoomRemoteData } from '../model'
 import type { UpdateReturn } from './update'
@@ -72,12 +72,13 @@ export const handleRoomUpdated =
       Task.focus(`#${USER_GAME_TEXT_INPUT_ID}`).pipe(
         Effect.ignore,
         Effect.as(CompletedUserGameTextInputFocus()),
+        Command.make('FocusUserGameTextInput'),
       ),
     )
 
     const maybeExitCountdown = optionWhen(
       gameJustFinished,
-      () => exitCountdownTick,
+      () => tickExitCountdown,
     )
 
     return [

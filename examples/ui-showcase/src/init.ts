@@ -1,10 +1,12 @@
-import { Ui } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Ui } from 'foldkit'
 
 import type { UiMessage } from './message'
 import type { UiModel } from './model'
 
-export const uiInit = (): [UiModel, ReadonlyArray<Command<UiMessage>>] => [
+export const uiInit = (): [
+  UiModel,
+  ReadonlyArray<Command.Command<UiMessage>>,
+] => [
   {
     mobileMenuDialog: Ui.Dialog.init({ id: 'mobile-menu' }),
     buttonClickCount: 0,

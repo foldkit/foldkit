@@ -1,5 +1,5 @@
 import { Effect, Match, Random } from 'effect'
-import { Command } from 'foldkit/command'
+import { Command } from 'foldkit'
 
 import { GRID_SIZE } from './constants'
 import { GeneratedApple, Message, RequestedApple } from './message'
@@ -15,11 +15,13 @@ const update = (model: Model, message: Message) =>
   )
 
 // The Command that performs the side effect
-const generateApplePosition: Command<Message> = Effect.gen(function* () {
-  const x = yield* Random.nextIntBetween(0, GRID_SIZE)
-  const y = yield* Random.nextIntBetween(0, GRID_SIZE)
-  return GeneratedApple({ position: { x, y } })
-})
+const generateApplePosition: Command.Command<Message> = Effect.gen(
+  function* () {
+    const x = yield* Random.nextIntBetween(0, GRID_SIZE)
+    const y = yield* Random.nextIntBetween(0, GRID_SIZE)
+    return GeneratedApple({ position: { x, y } })
+  },
+).pipe(Command.make('GenerateApplePosition'))
 
 // Same inputs always produce the same outputs - purity preserved!
 const model = { snake: [{ x: 0, y: 0 }], apple: { x: 5, y: 5 } }

@@ -1,6 +1,5 @@
 import { Schema } from 'effect'
-import { Runtime } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Runtime } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 
@@ -21,7 +20,7 @@ export type Message = typeof Message.Type
 const update = (
   _model: Model,
   _message: Message,
-): [Model, ReadonlyArray<Command<Message>>] => {
+): [Model, ReadonlyArray<Command.Command<Message>>] => {
   throw new Error('This is a simulated crash!')
 }
 

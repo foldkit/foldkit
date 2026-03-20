@@ -11,8 +11,7 @@ import {
   Types,
   pipe,
 } from 'effect'
-import { Route, Runtime, Ui } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Route, Runtime, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { load, pushUrl, replaceUrl } from 'foldkit/navigation'
@@ -240,10 +239,13 @@ const selectionToParam = <A extends string>(
 
 const replaceFilters = (
   fields: BrowseFields,
-): Command<typeof CompletedUrlReplace> =>
-  replaceUrl(browseRouter(fields)).pipe(Effect.as(CompletedUrlReplace()))
+): Command.Command<typeof CompletedUrlReplace> =>
+  replaceUrl(browseRouter(fields)).pipe(
+    Effect.as(CompletedUrlReplace()),
+    Command.make('ReplaceFilters'),
+  )
 
-type UpdateReturn = [Model, ReadonlyArray<Command<Message>>]
+type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 const update = (model: Model, message: Message): UpdateReturn =>
@@ -263,12 +265,18 @@ const update = (model: Model, message: Message): UpdateReturn =>
               [
                 pushUrl(urlToString(url)).pipe(
                   Effect.as(CompletedInternalNavigation()),
+                  Command.make('NavigateInternal'),
                 ),
               ],
             ],
             External: ({ href }) => [
               model,
-              [load(href).pipe(Effect.as(CompletedExternalNavigation()))],
+              [
+                load(href).pipe(
+                  Effect.as(CompletedExternalNavigation()),
+                  Command.make('LoadExternal'),
+                ),
+              ],
             ],
           }),
         ),
@@ -329,7 +337,9 @@ const update = (model: Model, message: Message): UpdateReturn =>
           message,
         )
         const commands = listboxCommands.map(
-          Effect.map(message => GotDietListboxMessage({ message })),
+          Command.mapEffect(
+            Effect.map(message => GotDietListboxMessage({ message })),
+          ),
         )
 
         return M.value(message).pipe(
@@ -364,7 +374,9 @@ const update = (model: Model, message: Message): UpdateReturn =>
           message,
         )
         const commands = listboxCommands.map(
-          Effect.map(message => GotPeriodListboxMessage({ message })),
+          Command.mapEffect(
+            Effect.map(message => GotPeriodListboxMessage({ message })),
+          ),
         )
 
         return M.value(message).pipe(

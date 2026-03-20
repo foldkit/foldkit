@@ -10,8 +10,7 @@ import {
   String as Str,
   pipe,
 } from 'effect'
-import { FieldValidation, Task, Ui } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, FieldValidation, Task, Ui } from 'foldkit'
 import { makeField } from 'foldkit/fieldValidation'
 import { Html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -162,7 +161,7 @@ const INITIAL_NOTE_SEQUENCE = 'CDEFGABC'
 
 export const init = (): [
   Model,
-  ReadonlyArray<Command<Message, never, AudioContextService>>,
+  ReadonlyArray<Command.Command<Message, never, AudioContextService>>,
 ] => [
   {
     noteInput: validateNoteInput(INITIAL_NOTE_SEQUENCE),
@@ -184,7 +183,7 @@ export const init = (): [
 
 type UpdateReturn = [
   Model,
-  ReadonlyArray<Command<Message, never, AudioContextService>>,
+  ReadonlyArray<Command.Command<Message, never, AudioContextService>>,
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
@@ -193,10 +192,13 @@ const prependToLog =
   (messageLog: ReadonlyArray<string>): ReadonlyArray<string> =>
     Array.take([entry, ...messageLog], MAX_LOG_ENTRIES)
 
-const sleepThenAdvance = (
+const delayAdvancePhase = (
   generation: number,
-): Command<typeof AdvancedNotePhase> =>
-  Task.delay(PHASE_DURATION).pipe(Effect.as(AdvancedNotePhase({ generation })))
+): Command.Command<typeof AdvancedNotePhase> =>
+  Task.delay(PHASE_DURATION).pipe(
+    Effect.as(AdvancedNotePhase({ generation })),
+    Command.make('DelayAdvancePhase'),
+  )
 
 const enterNoteCommandPhase = (
   model: Model,
@@ -253,7 +255,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             messageLog: prependToLog(`SelectedNoteDuration(${duration})`),
           }),
           radioGroupCommands.map(
-            Effect.map(message => GotDurationRadioGroupMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotDurationRadioGroupMessage({ message })),
+            ),
           ),
         ]
       },
@@ -267,7 +271,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         return [
           evo(model, { durationRadioGroup: () => nextRadioGroup }),
           radioGroupCommands.map(
-            Effect.map(message => GotDurationRadioGroupMessage({ message })),
+            Command.mapEffect(
+              Effect.map(message => GotDurationRadioGroupMessage({ message })),
+            ),
           ),
         ]
       },
@@ -303,7 +309,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                 generation: () => nextGeneration,
                 messageLog: prependToLog('ClickedPlay'),
               }),
-              [sleepThenAdvance(nextGeneration)],
+              [delayAdvancePhase(nextGeneration)],
             ]
           }),
           M.tag('Idle', () => {
@@ -329,7 +335,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                 generation: () => nextGeneration,
                 messageLog: prependToLog('ClickedPlay'),
               }),
-              [sleepThenAdvance(nextGeneration)],
+              [delayAdvancePhase(nextGeneration)],
             ]
           }),
           M.exhaustive,
@@ -352,7 +358,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                 generation: () => nextGeneration,
                 messageLog: prependToLog('ClickedPause'),
               }),
-              [sleepThenAdvance(nextGeneration)],
+              [delayAdvancePhase(nextGeneration)],
             ]
           }),
           M.orElse(() => [model, []]),
@@ -383,7 +389,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             generation: () => nextGeneration,
             messageLog: prependToLog(`PlayedNote(${noteIndex})`),
           }),
-          [sleepThenAdvance(nextGeneration)],
+          [delayAdvancePhase(nextGeneration)],
         ]
       },
 
@@ -396,7 +402,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           withUpdateReturn,
           M.when('PlayMessage', () => [
             evo(model, { highlightPhase: () => 'PlayUpdate' }),
-            [sleepThenAdvance(generation)],
+            [delayAdvancePhase(generation)],
           ]),
           M.when('PauseMessage', () => [
             evo(model, { highlightPhase: () => 'Idle' }),
@@ -404,7 +410,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           ]),
           M.when('PlayUpdate', () => [
             evo(model, { highlightPhase: () => 'PlayModel' }),
-            [sleepThenAdvance(generation)],
+            [delayAdvancePhase(generation)],
           ]),
           M.when('PlayModel', () => {
             if (model.playbackState._tag !== 'Playing') {
@@ -417,11 +423,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           }),
           M.when('NoteMessage', () => [
             evo(model, { highlightPhase: () => 'NoteUpdate' }),
-            [sleepThenAdvance(generation)],
+            [delayAdvancePhase(generation)],
           ]),
           M.when('NoteUpdate', () => [
             evo(model, { highlightPhase: () => 'NoteModel' }),
-            [sleepThenAdvance(generation)],
+            [delayAdvancePhase(generation)],
           ]),
           M.when('NoteModel', () => {
             if (model.playbackState._tag !== 'Playing') {
@@ -463,7 +469,7 @@ const playNote = (
   note: Note,
   duration: NoteDuration,
   noteIndex: number,
-): Command<typeof PlayedNote, never, AudioContextService> =>
+): Command.Command<typeof PlayedNote, never, AudioContextService> =>
   Effect.gen(function* () {
     const audioContext = yield* AudioContextService
 
@@ -499,7 +505,7 @@ const playNote = (
         resume(Effect.succeed(PlayedNote({ noteIndex })))
       }
     })
-  })
+  }).pipe(Command.make('PlayNote'))
 
 // VIEW
 

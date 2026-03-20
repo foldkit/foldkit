@@ -37,6 +37,11 @@ import type { ManagedResourceConfig, ManagedResources } from './managedResource'
 import type { Subscriptions } from './subscription'
 import { UrlRequest } from './urlRequest'
 
+type AnyCommand<T, E = never, R = never> = {
+  readonly name: string
+  readonly effect: Effect.Effect<T, E, R>
+}
+
 /** Position of the devtools badge and panel on screen. */
 export type DevtoolsPosition =
   | 'BottomRight'
@@ -567,10 +572,19 @@ const makeRuntime = <
 
         const modelSubscriptionRef = yield* SubscriptionRef.make(initModel)
 
-        yield* Effect.forEach(initCommands, command =>
-          Effect.forkDaemon(
-            command.pipe(provideAllResources, Effect.flatMap(enqueueMessage)),
-          ),
+        yield* Effect.forEach(
+          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+          initCommands as ReadonlyArray<
+            AnyCommand<Message, never, Resources | ManagedResourceServices>
+          >,
+          command =>
+            Effect.forkDaemon(
+              command.effect.pipe(
+                Effect.withSpan(command.name),
+                provideAllResources,
+                Effect.flatMap(enqueueMessage),
+              ),
+            ),
         )
 
         if (browserConfig) {
@@ -628,13 +642,19 @@ const makeRuntime = <
               }
             }
 
-            yield* Effect.forEach(commands, command =>
-              Effect.forkDaemon(
-                command.pipe(
-                  provideAllResources,
-                  Effect.flatMap(enqueueMessage),
+            yield* Effect.forEach(
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              commands as ReadonlyArray<
+                AnyCommand<Message, never, Resources | ManagedResourceServices>
+              >,
+              command =>
+                Effect.forkDaemon(
+                  command.effect.pipe(
+                    Effect.withSpan(command.name),
+                    provideAllResources,
+                    Effect.flatMap(enqueueMessage),
+                  ),
                 ),
-              ),
             )
 
             const maybeDevtoolsStore = yield* Ref.get(maybeDevtoolsStoreRef)
@@ -645,7 +665,11 @@ const makeRuntime = <
                   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
                   message as Message & { _tag: string },
                   nextModel,
-                  commands.length,
+                  Array.map(
+                    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                    commands as ReadonlyArray<AnyCommand<Message>>,
+                    command => command.name,
+                  ),
                   !modelEquivalence(currentModel, nextModel),
                 ),
             })
@@ -782,8 +806,18 @@ const makeRuntime = <
                     Stream.map(modelToDependencies),
                     Stream.changesWith(Schema.equivalence(schema)),
                     Stream.flatMap(depsToStream, { switch: true }),
-                    Stream.runForEach(command =>
-                      command.pipe(Effect.flatMap(enqueueMessage)),
+                    Stream.runForEach(
+                      (
+                        command: AnyCommand<
+                          Message,
+                          never,
+                          Resources | ManagedResourceServices
+                        >,
+                      ) =>
+                        command.effect.pipe(
+                          Effect.withSpan(command.name),
+                          Effect.flatMap(enqueueMessage),
+                        ),
                     ),
                     provideAllResources,
                   ),

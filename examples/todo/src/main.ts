@@ -9,8 +9,7 @@ import {
   Schema as S,
   String,
 } from 'effect'
-import { Runtime, Task } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Runtime, Task } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
@@ -117,9 +116,9 @@ const init: Runtime.ElementInit<Model, Message, Flags> = flags => [
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command<Message>>] =>
+): [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
+    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
     M.tagsExhaustive({
       UpdatedNewTodo: ({ text }) => [
         evo(model, {
@@ -213,7 +212,7 @@ const update = (
 
       SavedEdit: () =>
         M.value(model.editing).pipe(
-          M.withReturnType<[Model, Command<typeof SavedTodos>[]]>(),
+          M.withReturnType<[Model, Command.Command<typeof SavedTodos>[]]>(),
           M.tagsExhaustive({
             NotEditing: () => [model, []],
 
@@ -296,16 +295,16 @@ const update = (
 
 // COMMAND
 
-const generateTodo = (text: string): Command<typeof GeneratedTodo> =>
+const generateTodo = (text: string): Command.Command<typeof GeneratedTodo> =>
   Effect.gen(function* () {
     const id = yield* Task.randomInt(0, Number.MAX_SAFE_INTEGER).pipe(
       Effect.map(value => value.toString(36)),
     )
     const timestamp = yield* Clock.currentTimeMillis
     return GeneratedTodo({ id, timestamp, text })
-  })
+  }).pipe(Command.make('GenerateTodo'))
 
-const saveTodos = (todos: Todos): Command<typeof SavedTodos> =>
+const saveTodos = (todos: Todos): Command.Command<typeof SavedTodos> =>
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
     yield* store.set(TODOS_STORAGE_KEY, S.encodeSync(S.parseJson(Todos))(todos))
@@ -313,6 +312,7 @@ const saveTodos = (todos: Todos): Command<typeof SavedTodos> =>
   }).pipe(
     Effect.catchAll(() => Effect.succeed(SavedTodos({ todos }))),
     Effect.provide(BrowserKeyValueStore.layerLocalStorage),
+    Command.make('SaveTodos'),
   )
 
 // VIEW

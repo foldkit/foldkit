@@ -1,11 +1,10 @@
 import * as Shared from '@typing-game/shared'
 import { Array, Effect, Match as M, Option } from 'effect'
-import { Task, Url } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Task, Url } from 'foldkit'
 import { load, pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 
-import { navigateToRoom, savePlayerToSessionStorage } from './command'
+import { navigateToRoom, savePlayerSession } from './command'
 import { USERNAME_INPUT_ID } from './constant'
 import {
   CompletedExternalNavigation,
@@ -21,7 +20,7 @@ import { urlToAppRoute } from './route'
 
 export type UpdateReturn<Model, Message> = [
   Model,
-  ReadonlyArray<Command<Message>>,
+  ReadonlyArray<Command.Command<Message>>,
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn<Model, Message>>()
 
@@ -31,21 +30,7 @@ export const update = (
 ): UpdateReturn<Model, Message> =>
   M.value(message).pipe(
     withUpdateReturn,
-    M.tagsExhaustive({
-      CompletedInternalNavigation: () => [model, []],
-
-      CompletedExternalNavigation: () => [model, []],
-
-      CompletedUsernameInputFocus: () => [model, []],
-
-      CompletedRoomNavigation: () => [model, []],
-
-      CompletedSessionSave: () => [model, []],
-
-      CompletedSessionClear: () => [model, []],
-
-      IgnoredKeyPress: () => [model, []],
-
+    M.tags({
       ClickedLink: ({ request }) =>
         M.value(request).pipe(
           withUpdateReturn,
@@ -55,12 +40,18 @@ export const update = (
               [
                 pushUrl(Url.toString(url)).pipe(
                   Effect.as(CompletedInternalNavigation()),
+                  Command.make('NavigateInternal'),
                 ),
               ],
             ],
             External: ({ href }) => [
               model,
-              [load(href).pipe(Effect.as(CompletedExternalNavigation()))],
+              [
+                load(href).pipe(
+                  Effect.as(CompletedExternalNavigation()),
+                  Command.make('LoadExternal'),
+                ),
+              ],
             ],
           }),
         ),
@@ -72,6 +63,7 @@ export const update = (
             Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
               Effect.ignore,
               Effect.as(CompletedUsernameInputFocus()),
+              Command.make('FocusUsernameInput'),
             ),
           ),
           M.option,
@@ -91,7 +83,7 @@ export const update = (
         )
 
         const mappedCommands = homeCommands.map(
-          Effect.map(message => GotHomeMessage({ message })),
+          Command.mapEffect(Effect.map(message => GotHomeMessage({ message }))),
         )
 
         return Option.match(maybeOutMessage, {
@@ -104,20 +96,22 @@ export const update = (
           onSome: outMessage =>
             M.value(outMessage).pipe(
               withUpdateReturn,
-              M.tagsExhaustive({
-                SucceededRoomCreation: ({ roomId, player }) => [
-                  evo(model, {
-                    home: () => nextHomeModel,
-                  }),
-                  [...mappedCommands, ...handleRoomJoined(roomId, player)],
-                ],
-                SucceededRoomJoin: ({ roomId, player }) => [
-                  evo(model, {
-                    home: () => nextHomeModel,
-                  }),
-                  [...mappedCommands, ...handleRoomJoined(roomId, player)],
-                ],
-              }),
+              M.tag(
+                'SucceededRoomCreation',
+                'SucceededRoomJoin',
+                ({ roomId, player }) => {
+                  const [nextModel, roomCommands] = handleRoomJoined(
+                    model,
+                    roomId,
+                    player,
+                  )
+                  return [
+                    evo(nextModel, { home: () => nextHomeModel }),
+                    [...mappedCommands, ...roomCommands],
+                  ]
+                },
+              ),
+              M.exhaustive,
             ),
         })
       },
@@ -129,19 +123,46 @@ export const update = (
           evo(model, {
             room: () => nextRoomModel,
           }),
-          roomCommands.map(Effect.map(message => GotRoomMessage({ message }))),
+          roomCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotRoomMessage({ message })),
+            ),
+          ),
         ]
       },
     }),
+    M.tag(
+      'CompletedInternalNavigation',
+      'CompletedExternalNavigation',
+      'CompletedUsernameInputFocus',
+      'CompletedRoomNavigation',
+      'CompletedSessionSave',
+      'CompletedSessionClear',
+      'IgnoredKeyPress',
+      () => [model, []],
+    ),
+    M.exhaustive,
   )
 
-const handleRoomJoined = (roomId: string, player: Shared.Player) => {
+const handleRoomJoined = (
+  model: Model,
+  roomId: string,
+  player: Shared.Player,
+): UpdateReturn<Model, Message> => {
   const session = { roomId, player }
+  const [nextRoomModel, roomCommands] = Room.update(
+    model.room,
+    Room.Message.JoinedRoom({ roomId, player }),
+  )
+
   return [
-    navigateToRoom(roomId),
-    savePlayerToSessionStorage(session),
-    Effect.succeed(
-      GotRoomMessage({ message: Room.Message.JoinedRoom({ roomId, player }) }),
-    ),
+    evo(model, { room: () => nextRoomModel }),
+    [
+      navigateToRoom(roomId),
+      savePlayerSession(session),
+      ...roomCommands.map(
+        Command.mapEffect(Effect.map(message => GotRoomMessage({ message }))),
+      ),
+    ],
   ]
 }

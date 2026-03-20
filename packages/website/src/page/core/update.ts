@@ -56,7 +56,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        'Notice that update returns a tuple: the new Model and an array of Commands. Commands represent side effects — HTTP requests, timers, browser API calls. For the counter, the Commands array is always empty. But when we add a delayed reset on the Commands page, that will change.',
+        'Notice that update returns a tuple: the new Model and an array of Commands. Commands represent side effects \u2014 HTTP requests, timers, browser API calls. Each Command carries a name for tracing and testing. For the counter, the Commands array is always empty. But when we add a delayed reset on the Commands page, that will change.',
       ),
       para(
         'Before we get to side effects, there\u2019s one more piece of the counter to understand: the view function, which turns your Model into what the user sees on screen.',

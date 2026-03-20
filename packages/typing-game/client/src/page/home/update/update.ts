@@ -1,6 +1,5 @@
 import { Array, Effect, Match as M, Option, String as Str } from 'effect'
-import { Task } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Task } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { joinRoom } from '../../../command'
@@ -20,7 +19,7 @@ import { handleKeyPressed } from './handleKeyPressed'
 
 export type UpdateReturn = [
   Model,
-  ReadonlyArray<Command<Message>>,
+  ReadonlyArray<Command.Command<Message>>,
   Option.Option<OutMessage>,
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
@@ -74,6 +73,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
             Effect.ignore,
             Effect.as(CompletedUsernameInputFocus()),
+            Command.make('FocusUsernameInput'),
           ),
         ],
         Option.none(),
@@ -85,6 +85,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           Task.focus(`#${ROOM_ID_INPUT_ID}`).pipe(
             Effect.ignore,
             Effect.as(CompletedRoomIdInputFocus()),
+            Command.make('FocusRoomIdInput'),
           ),
         ],
         Option.none(),

@@ -477,7 +477,7 @@ const includedSection = (): Html =>
                 'Per-field validation with sync and async support. Define rules as predicates, apply them in update, and the Model tracks every field state.',
               ]),
               includedFeature(Icon.cog('w-6 h-6'), 'Commands', [
-                'Commands are Effects that return Messages — you write the Effect with whatever combinators you want. The runtime runs it.',
+                'Commands are named Effects that return Messages. Each carries a name for identification in tests and tracing \u2014 you write the Effect, the runtime runs and instruments it.',
               ]),
             ],
           ),

@@ -1,5 +1,5 @@
 import { Effect, Match as M, Schema as S } from 'effect'
-import { Command } from 'foldkit/command'
+import { Command } from 'foldkit'
 import { m } from 'foldkit/message'
 
 const ClickedFetchCount = m('ClickedFetchCount')
@@ -13,9 +13,9 @@ const FailedCountFetch = m('FailedCountFetch', {
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command<Message>>] =>
+): [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
+    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
     M.tagsExhaustive({
       ClickedFetchCount: () => [model, [fetchCount]],
       SucceededCountFetch: ({ count }) => [Model({ count }), []],
@@ -23,7 +23,7 @@ const update = (
     }),
   )
 
-const fetchCount: Command<
+const fetchCount: Command.Command<
   typeof SucceededCountFetch | typeof FailedCountFetch
 > = Effect.gen(function* () {
   const result = yield* Effect.tryPromise(() =>
@@ -37,4 +37,5 @@ const fetchCount: Command<
   Effect.catchAll(error =>
     Effect.succeed(FailedCountFetch({ error: error.message })),
   ),
+  Command.make('FetchCount'),
 )

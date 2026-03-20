@@ -59,7 +59,7 @@ test('fetchWeather returns SucceededWeatherFetch with data on success', async ()
     }),
   )
 
-  const message = await fetchWeather('90210').pipe(
+  const message = await fetchWeather('90210').effect.pipe(
     Effect.provide(Layer.succeed(HttpClient.HttpClient, mockClient)),
     Effect.runPromise,
   )

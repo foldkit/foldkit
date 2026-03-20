@@ -15,7 +15,7 @@ import {
   pipe,
 } from 'effect'
 
-import type { Command } from '../command'
+import * as Command from '../command'
 import { OptionExt } from '../effectExtensions'
 import { type Html, createKeyedLazy, html } from '../html'
 import { m } from '../message'
@@ -32,7 +32,7 @@ import { type DevtoolsStore, INIT_INDEX, type StoreState } from './store'
 
 const DisplayEntry = S.Struct({
   tag: S.String,
-  commandCount: S.Number,
+  commandNames: S.Array(S.String),
   timestamp: S.Number,
   isModelChanged: S.Boolean,
 })
@@ -143,9 +143,9 @@ const formatTimeDelta = (deltaMs: number): string =>
 const MESSAGE_LIST_SELECTOR = '.message-list'
 
 const toDisplayEntries = ({ entries }: StoreState) =>
-  Array_.map(entries, ({ tag, commandCount, timestamp, isModelChanged }) => ({
+  Array_.map(entries, ({ tag, commandNames, timestamp, isModelChanged }) => ({
     tag,
-    commandCount,
+    commandNames,
     timestamp,
     isModelChanged,
   }))
@@ -295,15 +295,13 @@ const makeUpdate = (
   shadow: ShadowRoot,
   mode: DevtoolsMode,
 ) => {
-  const jumpTo = (index: number): Command<typeof CompletedJump> =>
+  const jumpTo = (index: number) =>
     Effect.gen(function* () {
       yield* store.jumpTo(index)
       return CompletedJump()
-    })
+    }).pipe(Command.make('JumpTo'))
 
-  const inspectState = (
-    index: number,
-  ): Command<typeof ReceivedInspectedState> =>
+  const inspectState = (index: number) =>
     Effect.gen(function* () {
       const model = yield* store.getModelAtIndex(index)
       const maybeMessage = yield* store.getMessageAtIndex(index)
@@ -318,35 +316,34 @@ const makeUpdate = (
             )
 
       return ReceivedInspectedState({ model, maybeMessage, ...diff })
-    })
+    }).pipe(Command.make('InspectState'))
 
-  const inspectLatest: Command<typeof ReceivedInspectedState> = Effect.gen(
-    function* () {
-      const state = yield* SubscriptionRef.get(store.stateRef)
-      const latestIndex = Array_.isEmptyReadonlyArray(state.entries)
-        ? INIT_INDEX
-        : state.startIndex + state.entries.length - 1
+  const inspectLatest = Effect.gen(function* () {
+    const state = yield* SubscriptionRef.get(store.stateRef)
+    const latestIndex = Array_.isEmptyReadonlyArray(state.entries)
+      ? INIT_INDEX
+      : state.startIndex + state.entries.length - 1
 
-      return yield* inspectState(latestIndex)
-    },
-  )
+    return yield* inspectState(latestIndex).effect
+  }).pipe(Command.make('InspectLatest'))
 
   const resume = Effect.gen(function* () {
     yield* store.resume
     return CompletedResume()
-  })
+  }).pipe(Command.make('Resume'))
 
   const clear = Effect.gen(function* () {
     yield* store.clear
     return CompletedClear()
-  })
+  }).pipe(Command.make('Clear'))
 
-  const toggleScrollLock = (
-    shouldLock: boolean,
-  ): Command<typeof LockedScroll | typeof UnlockedScroll> =>
+  const toggleScrollLock = (shouldLock: boolean) =>
     shouldLock
-      ? lockScroll.pipe(Effect.as(LockedScroll()))
-      : unlockScroll.pipe(Effect.as(UnlockedScroll()))
+      ? lockScroll.pipe(Effect.as(LockedScroll()), Command.make('LockScroll'))
+      : unlockScroll.pipe(
+          Effect.as(UnlockedScroll()),
+          Command.make('UnlockScroll'),
+        )
 
   const scrollToTop = Effect.sync(() => {
     const messageList = shadow.querySelector(MESSAGE_LIST_SELECTOR)
@@ -354,14 +351,14 @@ const makeUpdate = (
       messageList.scrollTop = 0
     }
     return ScrolledToTop()
-  })
+  }).pipe(Command.make('ScrollToTop'))
 
   return (
     model: Model,
     message: Message,
-  ): [Model, ReadonlyArray<Command<Message>>] =>
+  ): [Model, ReadonlyArray<Command.Command<Message>>] =>
     M.value(message).pipe(
-      M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
+      M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
       M.tags({
         ClickedToggle: () => {
           const nextIsOpen = !model.isOpen
@@ -380,7 +377,9 @@ const makeUpdate = (
         ],
         ClickedRow: ({ index }) =>
           M.value(mode).pipe(
-            M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
+            M.withReturnType<
+              [Model, ReadonlyArray<Command.Command<Message>>]
+            >(),
             M.when('TimeTravel', () => [
               model,
               [jumpTo(index), inspectState(index)],
@@ -455,8 +454,10 @@ const makeUpdate = (
               inspectorTabs: () => nextTabsModel,
             }),
             tabsCommands.map(
-              Effect.map(innerMessage =>
-                GotInspectorTabsMessage({ message: innerMessage }),
+              Command.mapEffect(
+                Effect.map(innerMessage =>
+                  GotInspectorTabsMessage({ message: innerMessage }),
+                ),
               ),
             ),
           ]
@@ -527,12 +528,15 @@ const makeOverlaySubscriptions = (store: DevtoolsStore) =>
             pipe(
               SubscriptionRef.get(store.stateRef),
               Effect.map(state => ReceivedStoreUpdate(toDisplayState(state))),
+              Command.make('LoadStoreState'),
             ),
           ),
           pipe(
             store.stateRef.changes,
             Stream.map(state =>
-              Effect.succeed(ReceivedStoreUpdate(toDisplayState(state))),
+              Effect.succeed(ReceivedStoreUpdate(toDisplayState(state))).pipe(
+                Command.make('ReceiveStoreUpdate'),
+              ),
             ),
           ),
         ),
@@ -540,14 +544,14 @@ const makeOverlaySubscriptions = (store: DevtoolsStore) =>
     mobileBreakpoint: {
       modelToDependencies: () => null,
       depsToStream: () =>
-        Stream.async<Command<Message>>(emit => {
+        Stream.async<Command.Command<Message>>(emit => {
           const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT_QUERY)
 
           const handler = (event: MediaQueryListEvent) => {
             emit.single(
               Effect.succeed(
                 CrossedMobileBreakpoint({ isMobile: event.matches }),
-              ),
+              ).pipe(Command.make('CrossMobileBreakpoint')),
             )
           }
 
@@ -1366,7 +1370,7 @@ export const createOverlay = (
 
     const init = (
       flags: typeof Flags.Type,
-    ): [Model, ReadonlyArray<Command<Message>>] => [
+    ): [Model, ReadonlyArray<Command.Command<Message>>] => [
       {
         isOpen: false,
         ...flags,

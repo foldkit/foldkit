@@ -7,7 +7,7 @@ const DEFAULT_MAX_ENTRIES = 500
 export type HistoryEntry = Readonly<{
   tag: string
   message: unknown
-  commandCount: number
+  commandNames: ReadonlyArray<string>
   timestamp: number
   isModelChanged: boolean
 }>
@@ -102,7 +102,7 @@ export const createDevtoolsStore = (
     const recordMessage = (
       message: Readonly<{ _tag: string }>,
       modelAfterUpdate: unknown,
-      commandCount: number,
+      commandNames: ReadonlyArray<string>,
       isModelChanged: boolean,
     ) =>
       SubscriptionRef.update(stateRef, state => {
@@ -113,7 +113,7 @@ export const createDevtoolsStore = (
           entries: Array.append(state.entries, {
             tag: message._tag,
             message,
-            commandCount,
+            commandNames,
             timestamp: performance.now(),
             isModelChanged,
           }),
@@ -201,7 +201,7 @@ export type DevtoolsStore = Readonly<{
   recordMessage: (
     message: Readonly<{ _tag: string }>,
     modelAfterUpdate: unknown,
-    commandCount: number,
+    commandNames: ReadonlyArray<string>,
     isModelChanged: boolean,
   ) => Effect.Effect<void>
   getModelAtIndex: (index: number) => Effect.Effect<unknown>

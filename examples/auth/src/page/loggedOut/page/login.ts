@@ -9,8 +9,7 @@ import {
   String,
   pipe,
 } from 'effect'
-import { FieldValidation } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, FieldValidation } from 'foldkit'
 import { type Validation, makeField } from 'foldkit/fieldValidation'
 import { Html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -109,7 +108,7 @@ const isFormValid = (model: Model): boolean =>
 
 type UpdateReturn = [
   Model,
-  ReadonlyArray<Command<Message>>,
+  ReadonlyArray<Command.Command<Message>>,
   Option.Option<OutMessage>,
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
@@ -117,7 +116,7 @@ const withUpdateReturn = M.withReturnType<UpdateReturn>()
 const simulateAuthRequest = (
   email: string,
   password: string,
-): Command<Message> =>
+): Command.Command<Message> =>
   Effect.gen(function* () {
     yield* Effect.sleep(Duration.seconds(1))
 
@@ -135,7 +134,7 @@ const simulateAuthRequest = (
     const session: Session = { userId: '1', email, name }
 
     return SucceededAuth({ session })
-  })
+  }).pipe(Command.make('SimulateAuthRequest'))
 
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(

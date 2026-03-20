@@ -1,7 +1,7 @@
 import { Effect } from 'effect'
-import { Command } from 'foldkit/command'
+import { Command } from 'foldkit'
 
-const fetchCount: Command<
+const fetchCount: Command.Command<
   typeof SucceededCountFetch | typeof FailedCountFetch
 > = Effect.gen(function* () {
   const result = yield* Effect.tryPromise(() =>
@@ -14,9 +14,10 @@ const fetchCount: Command<
 
   return SucceededCountFetch({ count: result.count })
 }).pipe(
-  // Commands must always return a Message — they cannot fail.
+  // Commands must always return a Message. They should never fail.
   // catchAll recovers from errors by returning a FailedCountFetch Message.
   Effect.catchAll(error =>
     Effect.succeed(FailedCountFetch({ error: error.message })),
   ),
+  Command.make('FetchCount'),
 )

@@ -9,8 +9,7 @@ import {
   flow,
   pipe,
 } from 'effect'
-import { Runtime, Subscription } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Runtime, Subscription } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -48,9 +47,9 @@ export type Message = typeof Message.Type
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command<Message>>] =>
+): [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
+    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
     M.tagsExhaustive({
       RequestedStart: () => [
         model,
@@ -58,7 +57,7 @@ const update = (
           Effect.gen(function* () {
             const now = yield* Clock.currentTimeMillis
             return Started({ startTime: now - model.elapsedMs })
-          }),
+          }).pipe(Command.make('GetStartTime')),
         ],
       ],
 
@@ -92,7 +91,7 @@ const update = (
           Effect.gen(function* () {
             const now = yield* Clock.currentTimeMillis
             return Ticked({ elapsedMs: now - model.startTime })
-          }),
+          }).pipe(Command.make('GetTickTime')),
         ],
       ],
 
@@ -133,7 +132,9 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
     depsToStream: ({ isRunning }) =>
       Stream.when(
         Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
-          Stream.map(() => Effect.succeed(RequestedTick())),
+          Stream.map(() =>
+            Effect.succeed(RequestedTick()).pipe(Command.make('RequestTick')),
+          ),
         ),
         () => isRunning,
       ),

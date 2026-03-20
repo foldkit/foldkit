@@ -1,6 +1,5 @@
 import { Array, Effect, Match as M, Option, Schema as S, pipe } from 'effect'
-import { Route, Runtime } from 'foldkit'
-import { Command } from 'foldkit/command'
+import { Command, Route, Runtime } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { load, pushUrl, replaceUrl } from 'foldkit/navigation'
@@ -117,9 +116,9 @@ const init: Runtime.ApplicationInit<Model, Message> = (url: Url) => {
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command<Message>>] =>
+): [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>(),
+    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
     M.tagsExhaustive({
       CompletedInternalNavigation: () => [model, []],
       CompletedExternalNavigation: () => [model, []],
@@ -131,12 +130,15 @@ const update = (
               url,
             }): [
               Model,
-              ReadonlyArray<Command<typeof CompletedInternalNavigation>>,
+              ReadonlyArray<
+                Command.Command<typeof CompletedInternalNavigation>
+              >,
             ] => [
               model,
               [
                 pushUrl(urlToString(url)).pipe(
                   Effect.as(CompletedInternalNavigation()),
+                  Command.make('NavigateInternal'),
                 ),
               ],
             ],
@@ -144,10 +146,17 @@ const update = (
               href,
             }): [
               Model,
-              ReadonlyArray<Command<typeof CompletedExternalNavigation>>,
+              ReadonlyArray<
+                Command.Command<typeof CompletedExternalNavigation>
+              >,
             ] => [
               model,
-              [load(href).pipe(Effect.as(CompletedExternalNavigation()))],
+              [
+                load(href).pipe(
+                  Effect.as(CompletedExternalNavigation()),
+                  Command.make('LoadExternal'),
+                ),
+              ],
             ],
           }),
         ),
@@ -166,7 +175,10 @@ const update = (
             peopleRouter({
               searchText: Option.fromNullable(value || null),
             }),
-          ).pipe(Effect.as(CompletedInternalNavigation())),
+          ).pipe(
+            Effect.as(CompletedInternalNavigation()),
+            Command.make('ReplaceSearchUrl'),
+          ),
         ],
       ],
     }),
