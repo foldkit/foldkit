@@ -354,7 +354,7 @@ const update = (
               [
                 pushUrl(urlToString(url)).pipe(
                   Effect.as(CompletedNavigateInternal()),
-                  Command.make('NavigateInternal'),
+                  NavigateInternal,
                 ),
               ],
             ],
@@ -368,7 +368,7 @@ const update = (
               [
                 load(href).pipe(
                   Effect.as(CompletedLoadExternal()),
-                  Command.make('LoadExternal'),
+                  LoadExternal,
                 ),
               ],
             ],
@@ -878,57 +878,66 @@ const update = (
 
 // COMMAND
 
-const injectAnalytics: Command.Command<typeof CompletedInjectAnalytics> =
-  Effect.sync(() => inject()).pipe(
-    Effect.as(CompletedInjectAnalytics()),
-    Command.make('InjectAnalytics'),
-  )
+const InjectAnalytics = Command.define('InjectAnalytics')
+const InjectSpeedInsights = Command.define('InjectSpeedInsights')
+const CopySnippet = Command.define('CopySnippet')
+const CopyLink = Command.define('CopyLink')
+const HideCopiedIndicator = Command.define('HideCopiedIndicator')
+const ScrollToTop = Command.define('ScrollToTop')
+const ScrollToAnchor = Command.define('ScrollToAnchor')
+const ApplyTheme = Command.define('ApplyTheme')
+const SubscribeToNewsletter = Command.define('SubscribeToNewsletter')
+const SaveThemePreference = Command.define('SaveThemePreference')
+const NavigateInternal = Command.define('NavigateInternal')
+const LoadExternal = Command.define('LoadExternal')
 
-const injectSpeedInsights: Command.Command<
-  typeof CompletedInjectSpeedInsights
-> = Effect.sync(() => SpeedInsights.injectSpeedInsights()).pipe(
-  Effect.as(CompletedInjectSpeedInsights()),
-  Command.make('InjectSpeedInsights'),
+const injectAnalytics = InjectAnalytics(
+  Effect.sync(() => inject()).pipe(Effect.as(CompletedInjectAnalytics())),
 )
 
-const copySnippetToClipboard = (
-  text: string,
-): Command.Command<typeof SucceededCopy | typeof FailedCopy> =>
-  Effect.tryPromise({
-    try: () => navigator.clipboard.writeText(text),
-    catch: () => new Error('Failed to copy to clipboard'),
-  }).pipe(
-    Effect.as(SucceededCopy({ text })),
-    Effect.catchAll(() => Effect.succeed(FailedCopy())),
-    Command.make('CopySnippet'),
+const injectSpeedInsights = InjectSpeedInsights(
+  Effect.sync(() => SpeedInsights.injectSpeedInsights()).pipe(
+    Effect.as(CompletedInjectSpeedInsights()),
+  ),
+)
+
+const copySnippetToClipboard = (text: string) =>
+  CopySnippet(
+    Effect.tryPromise({
+      try: () => navigator.clipboard.writeText(text),
+      catch: () => new Error('Failed to copy to clipboard'),
+    }).pipe(
+      Effect.as(SucceededCopy({ text })),
+      Effect.catchAll(() => Effect.succeed(FailedCopy())),
+    ),
   )
 
-const copyLinkToClipboard = (
-  url: string,
-): Command.Command<typeof CompletedCopyLink | typeof FailedCopy> =>
-  Effect.tryPromise({
-    try: () => navigator.clipboard.writeText(url),
-    catch: () => new Error('Failed to copy link to clipboard'),
-  }).pipe(
-    Effect.as(CompletedCopyLink()),
-    Effect.catchAll(() => Effect.succeed(FailedCopy())),
-    Command.make('CopyLink'),
+const copyLinkToClipboard = (url: string) =>
+  CopyLink(
+    Effect.tryPromise({
+      try: () => navigator.clipboard.writeText(url),
+      catch: () => new Error('Failed to copy link to clipboard'),
+    }).pipe(
+      Effect.as(CompletedCopyLink()),
+      Effect.catchAll(() => Effect.succeed(FailedCopy())),
+    ),
   )
 
 const COPY_INDICATOR_DURATION = '2 seconds'
 
-const hideIndicator = (
-  text: string,
-): Command.Command<typeof HiddenCopiedIndicator> =>
-  Effect.sleep(COPY_INDICATOR_DURATION).pipe(
-    Effect.as(HiddenCopiedIndicator({ text })),
-    Command.make('HideCopiedIndicator'),
+const hideIndicator = (text: string) =>
+  HideCopiedIndicator(
+    Effect.sleep(COPY_INDICATOR_DURATION).pipe(
+      Effect.as(HiddenCopiedIndicator({ text })),
+    ),
   )
 
-const scrollToTop: Command.Command<typeof CompletedScroll> = Effect.sync(() => {
-  window.scrollTo({ top: 0, behavior: 'instant' })
-  return CompletedScroll()
-}).pipe(Command.make('ScrollToTop'))
+const scrollToTop = ScrollToTop(
+  Effect.sync(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' })
+    return CompletedScroll()
+  }),
+)
 
 const focusAndScrollToHash = (hash: string): void => {
   const element = document.getElementById(hash)
@@ -944,33 +953,37 @@ const focusAndScrollToHash = (hash: string): void => {
   }
 }
 
-const scrollToHash = (hash: string): Command.Command<typeof CompletedScroll> =>
-  Effect.sync(() => {
-    focusAndScrollToHash(hash)
-    return CompletedScroll()
-  }).pipe(Command.make('ScrollToAnchor'))
-
-const scrollToHashAfterRender = (
-  hash: string,
-): Command.Command<typeof CompletedScroll> =>
-  Effect.async<typeof CompletedScroll.Type>(resume => {
-    requestAnimationFrame(() => {
+const scrollToHash = (hash: string) =>
+  ScrollToAnchor(
+    Effect.sync(() => {
       focusAndScrollToHash(hash)
-      resume(Effect.succeed(CompletedScroll()))
-    })
-  }).pipe(Command.make('ScrollToAnchor'))
+      return CompletedScroll()
+    }),
+  )
 
-const applyThemeToDocument = (
-  theme: typeof ResolvedTheme.Type,
-): Command.Command<typeof CompletedApplyTheme> =>
-  Effect.sync(() => {
-    M.value(theme).pipe(
-      M.when('Dark', () => document.documentElement.classList.add('dark')),
-      M.when('Light', () => document.documentElement.classList.remove('dark')),
-      M.exhaustive,
-    )
-    return CompletedApplyTheme()
-  }).pipe(Command.make('ApplyTheme'))
+const scrollToHashAfterRender = (hash: string) =>
+  ScrollToAnchor(
+    Effect.async<typeof CompletedScroll.Type>(resume => {
+      requestAnimationFrame(() => {
+        focusAndScrollToHash(hash)
+        resume(Effect.succeed(CompletedScroll()))
+      })
+    }),
+  )
+
+const applyThemeToDocument = (theme: typeof ResolvedTheme.Type) =>
+  ApplyTheme(
+    Effect.sync(() => {
+      M.value(theme).pipe(
+        M.when('Dark', () => document.documentElement.classList.add('dark')),
+        M.when('Light', () =>
+          document.documentElement.classList.remove('dark'),
+        ),
+        M.exhaustive,
+      )
+      return CompletedApplyTheme()
+    }),
+  )
 
 const BUTTONDOWN_SUBSCRIBE_URL =
   'https://buttondown.com/api/emails/embed-subscribe/foldkit'
@@ -980,42 +993,38 @@ const validateEmail = StringField.validate([
   FieldValidation.email('Please enter a valid email address'),
 ])
 
-const subscribeToNewsletter = (
-  email: string,
-): Command.Command<
-  typeof SucceededSubscribeEmail | typeof FailedSubscribeEmail
-> =>
-  Effect.gen(function* () {
-    const client = yield* HttpClient.HttpClient
-    const request = HttpClientRequest.post(BUTTONDOWN_SUBSCRIBE_URL).pipe(
-      HttpClientRequest.bodyUrlParams({ email }),
-    )
-    const response = yield* client.execute(request)
+const subscribeToNewsletter = (email: string) =>
+  SubscribeToNewsletter(
+    Effect.gen(function* () {
+      const client = yield* HttpClient.HttpClient
+      const request = HttpClientRequest.post(BUTTONDOWN_SUBSCRIBE_URL).pipe(
+        HttpClientRequest.bodyUrlParams({ email }),
+      )
+      const response = yield* client.execute(request)
 
-    if (response.status >= 400) {
-      return yield* Effect.fail('Subscription failed')
-    }
+      if (response.status >= 400) {
+        return yield* Effect.fail('Subscription failed')
+      }
 
-    return SucceededSubscribeEmail()
-  }).pipe(
-    Effect.scoped,
-    Effect.catchAll(() => Effect.succeed(FailedSubscribeEmail())),
-    Effect.locally(HttpClient.currentTracerPropagation, false),
-    Effect.provide(FetchHttpClient.layer),
-    Command.make('SubscribeToNewsletter'),
+      return SucceededSubscribeEmail()
+    }).pipe(
+      Effect.scoped,
+      Effect.catchAll(() => Effect.succeed(FailedSubscribeEmail())),
+      Effect.locally(HttpClient.currentTracerPropagation, false),
+      Effect.provide(FetchHttpClient.layer),
+    ),
   )
 
-const saveThemePreference = (
-  preference: typeof ThemePreference.Type,
-): Command.Command<typeof CompletedSaveThemePreference> =>
-  Effect.gen(function* () {
-    const store = yield* KeyValueStore.KeyValueStore
-    yield* store.set(THEME_STORAGE_KEY, JSON.stringify(preference))
-    return CompletedSaveThemePreference()
-  }).pipe(
-    Effect.catchAll(() => Effect.succeed(CompletedSaveThemePreference())),
-    Effect.provide(BrowserKeyValueStore.layerLocalStorage),
-    Command.make('SaveThemePreference'),
+const saveThemePreference = (preference: typeof ThemePreference.Type) =>
+  SaveThemePreference(
+    Effect.gen(function* () {
+      const store = yield* KeyValueStore.KeyValueStore
+      yield* store.set(THEME_STORAGE_KEY, JSON.stringify(preference))
+      return CompletedSaveThemePreference()
+    }).pipe(
+      Effect.catchAll(() => Effect.succeed(CompletedSaveThemePreference())),
+      Effect.provide(BrowserKeyValueStore.layerLocalStorage),
+    ),
   )
 
 // VIEW

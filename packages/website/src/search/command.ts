@@ -50,56 +50,53 @@ export class PagefindService extends Effect.Service<PagefindService>()(
   },
 ) {}
 
-export const searchPagefind = (
-  query: string,
-): Command.Command<typeof ReceivedSearchResults, never, PagefindService> =>
-  Effect.gen(function* () {
-    const pagefind = yield* PagefindService
+const FetchSearchIndex = Command.define('FetchSearchIndex')
+const ScrollToResult = Command.define('ScrollToResult')
+const NavigateToResult = Command.define('NavigateToResult')
 
-    const searchResponse = yield* Effect.tryPromise({
-      try: () => pagefind.search(query),
-      catch: () => new Error('Pagefind search failed'),
-    })
+export const searchPagefind = (query: string) =>
+  FetchSearchIndex(
+    Effect.gen(function* () {
+      const pagefind = yield* PagefindService
 
-    const topResults = Array.take(searchResponse.results, MAX_RESULTS)
+      const searchResponse = yield* Effect.tryPromise({
+        try: () => pagefind.search(query),
+        catch: () => new Error('Pagefind search failed'),
+      })
 
-    const loadedResults = yield* Effect.tryPromise({
-      try: () => Promise.all(topResults.map(result => result.data())),
-      catch: () => new Error('Failed to load result data'),
-    })
+      const topResults = Array.take(searchResponse.results, MAX_RESULTS)
 
-    const results = Array.map(loadedResults, data =>
-      SearchResult.make({
-        url: data.url,
-        title: data.meta?.title ?? 'Untitled',
-        excerpt: data.excerpt,
-        section: data.meta?.section ?? '',
-      }),
-    )
+      const loadedResults = yield* Effect.tryPromise({
+        try: () => Promise.all(topResults.map(result => result.data())),
+        catch: () => new Error('Failed to load result data'),
+      })
 
-    return ReceivedSearchResults({ results, query })
-  }).pipe(
-    Effect.catchAll(() =>
-      Effect.succeed(ReceivedSearchResults({ results: [], query })),
+      const results = Array.map(loadedResults, data =>
+        SearchResult.make({
+          url: data.url,
+          title: data.meta?.title ?? 'Untitled',
+          excerpt: data.excerpt,
+          section: data.meta?.section ?? '',
+        }),
+      )
+
+      return ReceivedSearchResults({ results, query })
+    }).pipe(
+      Effect.catchAll(() =>
+        Effect.succeed(ReceivedSearchResults({ results: [], query })),
+      ),
     ),
-    Command.make('FetchSearchIndex'),
   )
 
-export const scrollActiveResultIntoView = (
-  index: number,
-): Command.Command<typeof CompletedScrollResult> =>
-  Task.scrollIntoView(`${SEARCH_RESULT_SELECTOR}"${index}"]`).pipe(
-    Effect.ignore,
-    Effect.as(CompletedScrollResult()),
-    Command.make('ScrollToResult'),
+export const scrollActiveResultIntoView = (index: number) =>
+  ScrollToResult(
+    Task.scrollIntoView(`${SEARCH_RESULT_SELECTOR}"${index}"]`).pipe(
+      Effect.ignore,
+      Effect.as(CompletedScrollResult()),
+    ),
   )
 
-export const navigateToResult = (
-  url: string,
-): Command.Command<typeof CompletedNavigateSearch> =>
-  pushUrl(url).pipe(
-    Effect.as(CompletedNavigateSearch()),
-    Command.make('NavigateToResult'),
-  )
+export const navigateToResult = (url: string) =>
+  NavigateToResult(pushUrl(url).pipe(Effect.as(CompletedNavigateSearch())))
 
 export { SEARCH_INPUT_ID }

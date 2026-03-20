@@ -5,6 +5,8 @@ import { USERNAME_INPUT_ID } from '../../constant'
 import { CompletedFocusUsernameInput, Message } from './message'
 import { EnterUsername, Model } from './model'
 
+const FocusUsernameInput = Command.define('FocusUsernameInput')
+
 export type InitReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 
 export const init = (): InitReturn => [
@@ -13,10 +15,11 @@ export const init = (): InitReturn => [
     formError: Option.none(),
   },
   [
-    Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
-      Effect.ignore,
-      Effect.as(CompletedFocusUsernameInput()),
-      Command.make('FocusUsernameInput'),
+    FocusUsernameInput(
+      Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
+        Effect.ignore,
+        Effect.as(CompletedFocusUsernameInput()),
+      ),
     ),
   ],
 ]

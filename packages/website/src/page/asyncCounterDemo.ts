@@ -102,13 +102,14 @@ export const init = (): [Model, ReadonlyArray<Command.Command<Message>>] => [
 type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
+const DelayAdvancePhase = Command.define('DelayAdvancePhase')
+
 const delayAdvancePhase = (
   generation: number,
   duration: Duration.DurationInput,
-): Command.Command<typeof ProgressedDemoPhase> =>
-  Task.delay(duration).pipe(
-    Effect.as(ProgressedDemoPhase({ generation })),
-    Command.make('DelayAdvancePhase'),
+) =>
+  DelayAdvancePhase(
+    Task.delay(duration).pipe(Effect.as(ProgressedDemoPhase({ generation }))),
   )
 
 const prependToLog =

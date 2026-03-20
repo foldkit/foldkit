@@ -85,6 +85,8 @@ export const init = (config: InitConfig): Model => {
 
 // UPDATE
 
+const FocusTab = Command.define('FocusTab')
+
 /** Processes a tabs message and returns the next model and commands. */
 export const update = (
   model: Model,
@@ -102,10 +104,11 @@ export const update = (
             focusedIndex: () => index,
           }),
           [
-            Task.focus(tabSelector).pipe(
-              Effect.ignore,
-              Effect.as(CompletedFocusTab()),
-              Command.make('FocusTab'),
+            FocusTab(
+              Task.focus(tabSelector).pipe(
+                Effect.ignore,
+                Effect.as(CompletedFocusTab()),
+              ),
             ),
           ],
         ]
@@ -116,10 +119,11 @@ export const update = (
         return [
           evo(model, { focusedIndex: () => index }),
           [
-            Task.focus(tabSelector).pipe(
-              Effect.ignore,
-              Effect.as(CompletedFocusTab()),
-              Command.make('FocusTab'),
+            FocusTab(
+              Task.focus(tabSelector).pipe(
+                Effect.ignore,
+                Effect.as(CompletedFocusTab()),
+              ),
             ),
           ],
         ]

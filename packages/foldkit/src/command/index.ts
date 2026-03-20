@@ -1,5 +1,14 @@
 import { Effect, Schema } from 'effect'
 
+/** Type-level brand for CommandDefinition values. */
+/* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+export const CommandDefinitionTypeId: unique symbol = Symbol.for(
+  'foldkit/CommandDefinition',
+) as unknown as CommandDefinitionTypeId
+
+/** Type-level brand for CommandDefinition values. */
+export type CommandDefinitionTypeId = typeof CommandDefinitionTypeId
+
 /** A named Effect that produces a message. */
 export type Command<T, E = never, R = never> = [T] extends [Schema.Schema.Any]
   ? Readonly<{
@@ -11,22 +20,34 @@ export type Command<T, E = never, R = never> = [T] extends [Schema.Schema.Any]
       effect: Effect.Effect<T, E, R>
     }>
 
-/** Creates a named Command from an Effect. */
-export const make: {
-  (
-    name: string,
-  ): <A, E, R>(
+/** A Command identity created with `Command.define`. Call with an Effect to create a Command. */
+export interface CommandDefinition<out Name extends string> {
+  readonly [CommandDefinitionTypeId]: CommandDefinitionTypeId
+  readonly name: Name;
+  <A, E, R>(
     effect: Effect.Effect<A, E, R>,
-  ) => Readonly<{ name: string; effect: Effect.Effect<A, E, R> }>
-  <A, E = never, R = never>(
-    name: string,
+  ): Readonly<{ name: Name; effect: Effect.Effect<A, E, R> }>
+}
+
+/** Defines a named Command identity. */
+export const define = <const Name extends string>(
+  name: Name,
+): CommandDefinition<Name> => {
+  const create = <A, E, R>(
     effect: Effect.Effect<A, E, R>,
-  ): Readonly<{ name: string; effect: Effect.Effect<A, E, R> }>
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-} = ((...args: ReadonlyArray<any>) =>
-  args.length === 1
-    ? (effect: any) => ({ name: args[0], effect })
-    : { name: args[0], effect: args[1] }) as any
+  ): Readonly<{ name: Name; effect: Effect.Effect<A, E, R> }> => ({
+    name,
+    effect,
+  })
+
+  Object.defineProperty(create, 'name', { value: name, configurable: true })
+  Object.defineProperty(create, CommandDefinitionTypeId, {
+    value: CommandDefinitionTypeId,
+  })
+
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  return create as CommandDefinition<Name>
+}
 
 /** Transforms the Effect inside a Command while preserving its name. */
 export const mapEffect: {

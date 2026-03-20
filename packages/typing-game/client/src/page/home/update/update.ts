@@ -17,6 +17,9 @@ import {
 import { EnterRoomId, EnterUsername, Model, SelectAction } from '../model'
 import { handleKeyPressed } from './handleKeyPressed'
 
+const FocusUsernameInput = Command.define('FocusUsernameInput')
+const FocusRoomIdInput = Command.define('FocusRoomIdInput')
+
 export type UpdateReturn = [
   Model,
   ReadonlyArray<Command.Command<Message>>,
@@ -70,10 +73,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       BlurredUsernameInput: () => [
         model,
         [
-          Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
-            Effect.ignore,
-            Effect.as(CompletedFocusUsernameInput()),
-            Command.make('FocusUsernameInput'),
+          FocusUsernameInput(
+            Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
+              Effect.ignore,
+              Effect.as(CompletedFocusUsernameInput()),
+            ),
           ),
         ],
         Option.none(),
@@ -82,10 +86,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       BlurredRoomIdInput: () => [
         model,
         [
-          Task.focus(`#${ROOM_ID_INPUT_ID}`).pipe(
-            Effect.ignore,
-            Effect.as(CompletedFocusRoomIdInput()),
-            Command.make('FocusRoomIdInput'),
+          FocusRoomIdInput(
+            Task.focus(`#${ROOM_ID_INPUT_ID}`).pipe(
+              Effect.ignore,
+              Effect.as(CompletedFocusRoomIdInput()),
+            ),
           ),
         ],
         Option.none(),

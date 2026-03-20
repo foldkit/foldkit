@@ -25,7 +25,7 @@ const Model = S.Struct({
 })
 type Model = typeof Model.Type
 
-// UPDATE
+// MESSAGE
 
 const RequestedStart = m('RequestedStart')
 const Started = m('Started', { startTime: S.Number })
@@ -44,6 +44,13 @@ export const Message = S.Union(
 )
 export type Message = typeof Message.Type
 
+// COMMAND
+
+const GetStartTime = Command.define('GetStartTime')
+const GetTickTime = Command.define('GetTickTime')
+
+// UPDATE
+
 const update = (
   model: Model,
   message: Message,
@@ -54,10 +61,12 @@ const update = (
       RequestedStart: () => [
         model,
         [
-          Effect.gen(function* () {
-            const now = yield* Clock.currentTimeMillis
-            return Started({ startTime: now - model.elapsedMs })
-          }).pipe(Command.make('GetStartTime')),
+          GetStartTime(
+            Effect.gen(function* () {
+              const now = yield* Clock.currentTimeMillis
+              return Started({ startTime: now - model.elapsedMs })
+            }),
+          ),
         ],
       ],
 
@@ -88,10 +97,12 @@ const update = (
       RequestedTick: () => [
         model,
         [
-          Effect.gen(function* () {
-            const now = yield* Clock.currentTimeMillis
-            return Ticked({ elapsedMs: now - model.startTime })
-          }).pipe(Command.make('GetTickTime')),
+          GetTickTime(
+            Effect.gen(function* () {
+              const now = yield* Clock.currentTimeMillis
+              return Ticked({ elapsedMs: now - model.startTime })
+            }),
+          ),
         ],
       ],
 

@@ -105,26 +105,27 @@ const isEmailOnWaitlist = (email: string): Effect.Effect<boolean> =>
     return Array.contains(EMAILS_ON_WAITLIST, email.toLowerCase())
   })
 
-const validateEmailNotOnWaitlist = (
-  email: string,
-  validationId: number,
-): Command.Command<typeof ValidatedEmail> =>
-  Effect.gen(function* () {
-    if (yield* isEmailOnWaitlist(email)) {
-      return ValidatedEmail({
-        validationId,
-        field: StringField.Invalid({
-          value: email,
-          errors: ['This email is already on our waitlist'],
-        }),
-      })
-    } else {
-      return ValidatedEmail({
-        validationId,
-        field: StringField.Valid({ value: email }),
-      })
-    }
-  }).pipe(Command.make('ValidateEmailNotOnWaitlist'))
+const ValidateEmailNotOnWaitlist = Command.define('ValidateEmailNotOnWaitlist')
+
+const validateEmailNotOnWaitlist = (email: string, validationId: number) =>
+  ValidateEmailNotOnWaitlist(
+    Effect.gen(function* () {
+      if (yield* isEmailOnWaitlist(email)) {
+        return ValidatedEmail({
+          validationId,
+          field: StringField.Invalid({
+            value: email,
+            errors: ['This email is already on our waitlist'],
+          }),
+        })
+      } else {
+        return ValidatedEmail({
+          validationId,
+          field: StringField.Valid({ value: email }),
+        })
+      }
+    }),
+  )
 
 const validateName = StringField.validate(nameValidations)
 const validateEmail = StringField.validate(emailValidations)
@@ -235,19 +236,23 @@ const update = (
 
 const FAKE_API_DELAY_MS = 500
 
-const submitForm = (model: Model): Command.Command<typeof SubmittedForm> =>
-  Effect.gen(function* () {
-    yield* Effect.sleep(`${FAKE_API_DELAY_MS} millis`)
+const SubmitForm = Command.define('SubmitForm')
 
-    const success = yield* Random.nextBoolean
+const submitForm = (model: Model) =>
+  SubmitForm(
+    Effect.gen(function* () {
+      yield* Effect.sleep(`${FAKE_API_DELAY_MS} millis`)
 
-    return SubmittedForm({
-      success,
-      name: model.name.value,
-      email: model.name.value,
-      message: model.message.value,
-    })
-  }).pipe(Command.make('SubmitForm'))
+      const success = yield* Random.nextBoolean
+
+      return SubmittedForm({
+        success,
+        name: model.name.value,
+        email: model.name.value,
+        message: model.message.value,
+      })
+    }),
+  )
 
 // VIEW
 

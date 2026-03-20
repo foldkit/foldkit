@@ -127,6 +127,11 @@ const init: Runtime.ApplicationInit<Model, Message> = (url: Url) => {
   ]
 }
 
+// COMMAND
+
+const NavigateInternal = Command.define('NavigateInternal')
+const LoadExternal = Command.define('LoadExternal')
+
 // UPDATE
 
 const update = (
@@ -156,9 +161,10 @@ const update = (
             Internal: ({ url }) => [
               model,
               [
-                pushUrl(urlToString(url)).pipe(
-                  Effect.as(CompletedNavigateInternal()),
-                  Command.make('NavigateInternal'),
+                NavigateInternal(
+                  pushUrl(urlToString(url)).pipe(
+                    Effect.as(CompletedNavigateInternal()),
+                  ),
                 ),
               ],
             ],
@@ -166,9 +172,8 @@ const update = (
             External: ({ href }) => [
               model,
               [
-                load(href).pipe(
-                  Effect.as(CompletedLoadExternal()),
-                  Command.make('LoadExternal'),
+                LoadExternal(
+                  load(href).pipe(Effect.as(CompletedLoadExternal())),
                 ),
               ],
             ],

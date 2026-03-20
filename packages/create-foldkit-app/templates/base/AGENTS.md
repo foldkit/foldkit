@@ -62,12 +62,12 @@ Use `keyed` wrappers whenever the view branches into structurally different layo
 
 ### Commands
 
-Commands catch all errors and return messages — side effects never crash the app:
+Define Command identities with `Command.define`, then use them to wrap Effects. Always assign definitions to PascalCase constants — never use `Command.define` inline in a pipe chain:
 
 ```ts
-const fetchWeather = (
-  city: string,
-): Command<typeof SucceededFetchWeather | typeof FailedFetchWeather> =>
+const FetchWeather = Command.define('FetchWeather')
+
+const fetchWeather = (city: string) =>
   Effect.gen(function* () {
     // ...
     return SucceededFetchWeather({ data })
@@ -75,10 +75,13 @@ const fetchWeather = (
     Effect.catchAll(error =>
       Effect.succeed(FailedFetchWeather({ error: String(error) })),
     ),
+    FetchWeather,
   )
 ```
 
-Commands return specific schema types (e.g. `Command<typeof SucceededMsg | typeof FailedMsg>`) rather than the full Message type.
+Commands catch all errors and return Messages — side effects never crash the app. Let TypeScript infer Command return types from the Effect — explicit type annotations are unnecessary.
+
+Command definitions live where they're produced — colocated with the update function that returns them. Don't centralize all definitions in one file.
 
 ### File Organization
 
@@ -126,12 +129,12 @@ type Message = typeof Message.Type
 1. **Values** — all `m()` declarations, no blank lines between them
 2. **Union + type** — `S.Union(...)` followed by `type Message = typeof Message.Type` on adjacent lines (no blank line between them)
 
-Use `typeof ClickedSubmit` in type positions (e.g. `Command<typeof ClickedSubmit>`) to reference a schema value's type.
+Use `typeof ClickedSubmit` in type positions to reference a schema value's type.
 
 ### General Preferences
 
 - Never abbreviate names. Use full, descriptive names everywhere — variables, types, functions, parameters, including callback parameters. e.g. `signature` not `sig`, `Message` not `Msg`, `(tickCount) => tickCount + 1` not `(t) => t + 1`.
-- Don't suffix command variables with `Command`. Name them by what they do: `focusButton` not `focusButtonCommand`, `scrollToItem` not `scrollToItemCommand`. The type already communicates that it's a command.
+- Don't suffix Command variables with `Command`. Name them by what they do: `focusButton` not `focusButtonCommand`, `scrollToItem` not `scrollToItemCommand`. The type already communicates that it's a Command. Command definitions are PascalCase (`FocusButton`, `ScrollToItem`); Command instances and factory functions are camelCase (`focusButton`, `scrollToItem`).
 - Avoid `let`. Use `const` and prefer immutable patterns.
 - Always use braces for control flow. `if (foo) { return true }` not `if (foo) return true`.
 - Use `is*` for boolean naming e.g. `isPlaying`, `isValid`.

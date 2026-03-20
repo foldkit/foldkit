@@ -290,68 +290,86 @@ const computeDiff = (previous: unknown, current: unknown): DiffResult => {
 
 // UPDATE
 
+const JumpTo = Command.define('JumpTo')
+const InspectState = Command.define('InspectState')
+const InspectLatest = Command.define('InspectLatest')
+const Resume = Command.define('Resume')
+const Clear = Command.define('Clear')
+const LockScroll = Command.define('LockScroll')
+const UnlockScroll = Command.define('UnlockScroll')
+const ScrollToTop = Command.define('ScrollToTop')
+
 const makeUpdate = (
   store: DevtoolsStore,
   shadow: ShadowRoot,
   mode: DevtoolsMode,
 ) => {
   const jumpTo = (index: number) =>
-    Effect.gen(function* () {
-      yield* store.jumpTo(index)
-      return CompletedJump()
-    }).pipe(Command.make('JumpTo'))
+    JumpTo(
+      Effect.gen(function* () {
+        yield* store.jumpTo(index)
+        return CompletedJump()
+      }),
+    )
 
   const inspectState = (index: number) =>
+    InspectState(
+      Effect.gen(function* () {
+        const model = yield* store.getModelAtIndex(index)
+        const maybeMessage = yield* store.getMessageAtIndex(index)
+
+        const diff =
+          index === INIT_INDEX
+            ? emptyDiff
+            : yield* pipe(
+                store.getModelAtIndex(index - 1),
+                Effect.map(previousModel => computeDiff(previousModel, model)),
+                Effect.catchAll(() => Effect.succeed(emptyDiff)),
+              )
+
+        return ReceivedInspectedState({ model, maybeMessage, ...diff })
+      }),
+    )
+
+  const inspectLatest = InspectLatest(
     Effect.gen(function* () {
-      const model = yield* store.getModelAtIndex(index)
-      const maybeMessage = yield* store.getMessageAtIndex(index)
+      const state = yield* SubscriptionRef.get(store.stateRef)
+      const latestIndex = Array_.isEmptyReadonlyArray(state.entries)
+        ? INIT_INDEX
+        : state.startIndex + state.entries.length - 1
 
-      const diff =
-        index === INIT_INDEX
-          ? emptyDiff
-          : yield* pipe(
-              store.getModelAtIndex(index - 1),
-              Effect.map(previousModel => computeDiff(previousModel, model)),
-              Effect.catchAll(() => Effect.succeed(emptyDiff)),
-            )
+      return yield* inspectState(latestIndex).effect
+    }),
+  )
 
-      return ReceivedInspectedState({ model, maybeMessage, ...diff })
-    }).pipe(Command.make('InspectState'))
+  const resume = Resume(
+    Effect.gen(function* () {
+      yield* store.resume
+      return CompletedResume()
+    }),
+  )
 
-  const inspectLatest = Effect.gen(function* () {
-    const state = yield* SubscriptionRef.get(store.stateRef)
-    const latestIndex = Array_.isEmptyReadonlyArray(state.entries)
-      ? INIT_INDEX
-      : state.startIndex + state.entries.length - 1
-
-    return yield* inspectState(latestIndex).effect
-  }).pipe(Command.make('InspectLatest'))
-
-  const resume = Effect.gen(function* () {
-    yield* store.resume
-    return CompletedResume()
-  }).pipe(Command.make('Resume'))
-
-  const clear = Effect.gen(function* () {
-    yield* store.clear
-    return CompletedClear()
-  }).pipe(Command.make('Clear'))
+  const clear = Clear(
+    Effect.gen(function* () {
+      yield* store.clear
+      return CompletedClear()
+    }),
+  )
 
   const toggleScrollLock = (shouldLock: boolean) =>
     shouldLock
-      ? lockScroll.pipe(Effect.as(LockedScroll()), Command.make('LockScroll'))
-      : unlockScroll.pipe(
-          Effect.as(UnlockedScroll()),
-          Command.make('UnlockScroll'),
-        )
+      ? LockScroll(lockScroll.pipe(Effect.as(LockedScroll())))
+      : UnlockScroll(unlockScroll.pipe(Effect.as(UnlockedScroll())))
 
-  const scrollToTop = Effect.sync(() => {
-    const messageList = shadow.querySelector(MESSAGE_LIST_SELECTOR)
-    if (messageList instanceof HTMLElement) {
-      messageList.scrollTop = 0
-    }
-    return ScrolledToTop()
-  }).pipe(Command.make('ScrollToTop'))
+  const scrollToTop = ScrollToTop(
+    Effect.sync(() => {
+      const messageList = shadow.querySelector(MESSAGE_LIST_SELECTOR)
+      if (messageList instanceof HTMLElement) {
+        messageList.scrollTop = 0
+      }
+      return ScrolledToTop()
+    }),
+  )
 
   return (
     model: Model,

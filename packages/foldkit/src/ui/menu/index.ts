@@ -265,45 +265,52 @@ const itemSelector = (id: string, index: number): string =>
 type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
+const RequestFrame = Command.define('RequestFrame')
+const LockScroll = Command.define('LockScroll')
+const UnlockScroll = Command.define('UnlockScroll')
+const InertOthers = Command.define('InertOthers')
+const RestoreInert = Command.define('RestoreInert')
+const FocusItems = Command.define('FocusItems')
+const FocusButton = Command.define('FocusButton')
+const ScrollIntoView = Command.define('ScrollIntoView')
+const ClickItem = Command.define('ClickItem')
+const DelayClearSearch = Command.define('DelayClearSearch')
+const WaitForTransitions = Command.define('WaitForTransitions')
+const DetectMovementOrTransitionEnd = Command.define(
+  'DetectMovementOrTransitionEnd',
+)
+
 /** Processes a menu message and returns the next model and commands. */
 export const update = (model: Model, message: Message): UpdateReturn => {
   const maybeNextFrame = OptionExt.when(
     model.isAnimated,
-    Task.nextFrame.pipe(
-      Effect.as(AdvancedTransitionFrame()),
-      Command.make('RequestFrame'),
-    ),
+    RequestFrame(Task.nextFrame.pipe(Effect.as(AdvancedTransitionFrame()))),
   )
 
   const maybeLockScroll = OptionExt.when(
     model.isModal,
-    Task.lockScroll.pipe(
-      Effect.as(CompletedLockScroll()),
-      Command.make('LockScroll'),
-    ),
+    LockScroll(Task.lockScroll.pipe(Effect.as(CompletedLockScroll()))),
   )
 
   const maybeUnlockScroll = OptionExt.when(
     model.isModal,
-    Task.unlockScroll.pipe(
-      Effect.as(CompletedUnlockScroll()),
-      Command.make('UnlockScroll'),
-    ),
+    UnlockScroll(Task.unlockScroll.pipe(Effect.as(CompletedUnlockScroll()))),
   )
 
   const maybeInertOthers = OptionExt.when(
     model.isModal,
-    Task.inertOthers(model.id, [
-      buttonSelector(model.id),
-      itemsSelector(model.id),
-    ]).pipe(Effect.as(CompletedSetupInert()), Command.make('InertOthers')),
+    InertOthers(
+      Task.inertOthers(model.id, [
+        buttonSelector(model.id),
+        itemsSelector(model.id),
+      ]).pipe(Effect.as(CompletedSetupInert())),
+    ),
   )
 
   const maybeRestoreInert = OptionExt.when(
     model.isModal,
-    Task.restoreInert(model.id).pipe(
-      Effect.as(CompletedTeardownInert()),
-      Command.make('RestoreInert'),
+    RestoreInert(
+      Task.restoreInert(model.id).pipe(Effect.as(CompletedTeardownInert())),
     ),
   )
 
@@ -330,10 +337,11 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           pipe(
             Array.getSomes([maybeNextFrame, maybeLockScroll, maybeInertOthers]),
             Array.prepend(
-              Task.focus(itemsSelector(model.id)).pipe(
-                Effect.ignore,
-                Effect.as(CompletedFocusItems()),
-                Command.make('FocusItems'),
+              FocusItems(
+                Task.focus(itemsSelector(model.id)).pipe(
+                  Effect.ignore,
+                  Effect.as(CompletedFocusItems()),
+                ),
               ),
             ),
           ),
@@ -349,10 +357,11 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             maybeRestoreInert,
           ]),
           Array.prepend(
-            Task.focus(buttonSelector(model.id)).pipe(
-              Effect.ignore,
-              Effect.as(CompletedFocusButton()),
-              Command.make('FocusButton'),
+            FocusButton(
+              Task.focus(buttonSelector(model.id)).pipe(
+                Effect.ignore,
+                Effect.as(CompletedFocusButton()),
+              ),
             ),
           ),
         ),
@@ -370,10 +379,11 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         }),
         activationTrigger === 'Keyboard'
           ? [
-              Task.scrollIntoView(itemSelector(model.id, index)).pipe(
-                Effect.ignore,
-                Effect.as(CompletedScrollIntoView()),
-                Command.make('ScrollIntoView'),
+              ScrollIntoView(
+                Task.scrollIntoView(itemSelector(model.id, index)).pipe(
+                  Effect.ignore,
+                  Effect.as(CompletedScrollIntoView()),
+                ),
               ),
             ]
           : [],
@@ -414,10 +424,11 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             maybeRestoreInert,
           ]),
           Array.prepend(
-            Task.focus(buttonSelector(model.id)).pipe(
-              Effect.ignore,
-              Effect.as(CompletedFocusButton()),
-              Command.make('FocusButton'),
+            FocusButton(
+              Task.focus(buttonSelector(model.id)).pipe(
+                Effect.ignore,
+                Effect.as(CompletedFocusButton()),
+              ),
             ),
           ),
         ),
@@ -426,10 +437,11 @@ export const update = (model: Model, message: Message): UpdateReturn => {
       RequestedItemClick: ({ index }) => [
         model,
         [
-          Task.clickElement(itemSelector(model.id, index)).pipe(
-            Effect.ignore,
-            Effect.as(CompletedClickItem()),
-            Command.make('ClickItem'),
+          ClickItem(
+            Task.clickElement(itemSelector(model.id, index)).pipe(
+              Effect.ignore,
+              Effect.as(CompletedClickItem()),
+            ),
           ),
         ],
       ],
@@ -446,9 +458,10 @@ export const update = (model: Model, message: Message): UpdateReturn => {
               Option.orElse(maybeTargetIndex, () => model.maybeActiveItemIndex),
           }),
           [
-            Task.delay(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
-              Effect.as(ClearedSearch({ version: nextSearchVersion })),
-              Command.make('DelayClearSearch'),
+            DelayClearSearch(
+              Task.delay(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
+                Effect.as(ClearedSearch({ version: nextSearchVersion })),
+              ),
             ),
           ],
         ]
@@ -468,23 +481,26 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           M.when('EnterStart', () => [
             evo(model, { transitionState: () => 'EnterAnimating' }),
             [
-              Task.waitForTransitions(itemsSelector(model.id)).pipe(
-                Effect.as(EndedTransition()),
-                Command.make('WaitForTransitions'),
+              WaitForTransitions(
+                Task.waitForTransitions(itemsSelector(model.id)).pipe(
+                  Effect.as(EndedTransition()),
+                ),
               ),
             ],
           ]),
           M.when('LeaveStart', () => [
             evo(model, { transitionState: () => 'LeaveAnimating' }),
             [
-              Effect.raceFirst(
-                Task.detectElementMovement(buttonSelector(model.id)).pipe(
-                  Effect.as(DetectedButtonMovement()),
+              DetectMovementOrTransitionEnd(
+                Effect.raceFirst(
+                  Task.detectElementMovement(buttonSelector(model.id)).pipe(
+                    Effect.as(DetectedButtonMovement()),
+                  ),
+                  Task.waitForTransitions(itemsSelector(model.id)).pipe(
+                    Effect.as(EndedTransition()),
+                  ),
                 ),
-                Task.waitForTransitions(itemsSelector(model.id)).pipe(
-                  Effect.as(EndedTransition()),
-                ),
-              ).pipe(Command.make('DetectMovementOrTransitionEnd')),
+              ),
             ],
           ]),
           M.orElse(() => [model, []]),
@@ -535,10 +551,11 @@ export const update = (model: Model, message: Message): UpdateReturn => {
                 maybeRestoreInert,
               ]),
               Array.prepend(
-                Task.focus(buttonSelector(model.id)).pipe(
-                  Effect.ignore,
-                  Effect.as(CompletedFocusButton()),
-                  Command.make('FocusButton'),
+                FocusButton(
+                  Task.focus(buttonSelector(model.id)).pipe(
+                    Effect.ignore,
+                    Effect.as(CompletedFocusButton()),
+                  ),
                 ),
               ),
             ),
@@ -562,10 +579,11 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           pipe(
             Array.getSomes([maybeNextFrame, maybeLockScroll, maybeInertOthers]),
             Array.prepend(
-              Task.focus(itemsSelector(model.id)).pipe(
-                Effect.ignore,
-                Effect.as(CompletedFocusItems()),
-                Command.make('FocusItems'),
+              FocusItems(
+                Task.focus(itemsSelector(model.id)).pipe(
+                  Effect.ignore,
+                  Effect.as(CompletedFocusItems()),
+                ),
               ),
             ),
           ),
@@ -604,12 +622,10 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         return [
           model,
           [
-            Task.clickElement(
-              itemSelector(model.id, model.maybeActiveItemIndex.value),
-            ).pipe(
-              Effect.ignore,
-              Effect.as(CompletedClickItem()),
-              Command.make('ClickItem'),
+            ClickItem(
+              Task.clickElement(
+                itemSelector(model.id, model.maybeActiveItemIndex.value),
+              ).pipe(Effect.ignore, Effect.as(CompletedClickItem())),
             ),
           ],
         ]

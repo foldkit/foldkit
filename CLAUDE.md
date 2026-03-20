@@ -53,7 +53,7 @@ Match the quality and thoughtfulness of these files. The principles below apply 
 - Always use Effect.Match instead of switch
 - Prefer Effect module functions over native methods when available — e.g. `Array.map`, `Array.filter`, `Option.map`, `String.startsWith` from Effect instead of their native equivalents. This includes Effect's `String` module: use `String.includes`, `String.indexOf` (returns `Option<number>`), `String.slice`, `String.startsWith`, `String.replaceAll`, `String.length`, `String.isNonEmpty`, `String.trim` etc. in `pipe` chains. Exception: native `.map`, `.filter`, `.indexOf()`, `.slice()`, etc. are fine when calling directly on a named variable (e.g. `commands.map(Effect.map(...))`, `fullUrl.indexOf(prefix)`) — use Effect's curried, data-last forms in `pipe` chains where they compose naturally.
 - Never use `for` loops or `let` for iteration. Use `Array.makeBy` for index-based construction, `Array.range` + `Array.findFirst`/`Array.findLast` for searches, and `Array.filterMap`/`Array.flatMap` for transforms.
-- Never cast Schema values with `as Type`. Use callable constructors: `LoginSucceeded({ sessionId })` not `{ _tag: 'LoginSucceeded', sessionId } as Message`. Commands should return specific schema types (e.g. `Command<typeof LoginSucceeded | typeof LoginFailed>`) rather than the full Message type.
+- Never cast Schema values with `as Type`. Use callable constructors: `LoginSucceeded({ sessionId })` not `{ _tag: 'LoginSucceeded', sessionId } as Message`. Let TypeScript infer Command return types from the Effect — explicit `Command.Command<typeof Foo>` annotations are unnecessary when using `Command.define`.
 - Use `Option` for model fields that may be absent — not empty strings or zero values. `loginError: S.OptionFromSelf(S.String)` not `loginError: S.String` with `''` as the "none" state. Use `Option.match` in views to conditionally render.
 - Use `Array.take` instead of `.slice(0, n)` — especially avoid casting Schema arrays with `as readonly T[]` just to call `.slice`.
 
@@ -74,10 +74,41 @@ type Message = typeof Message.Type
 
 Individual `type A = typeof A.Type` declarations are not needed — use `typeof A` in type positions (e.g. `Command<typeof A>`) to reference a schema value's type. Only create individual type aliases in library components where the type is part of a public API (e.g. `ViewConfig` callback parameters).
 
+### Command Definitions
+
+Create Commands with `Command.define`, which returns a `CommandDefinition` — the only way to construct a Command. Always assign definitions to PascalCase constants; never use `Command.define` inline in a pipe chain.
+
+```ts
+// Good — definition wraps the Effect (direct call, name leads)
+const FetchWeather = Command.define('FetchWeather')
+const scrollToTop = ScrollToTop(
+  Effect.sync(() => { ... return CompletedScroll() }),
+)
+
+// Also fine — pipe-last when composing with an existing Effect pipeline
+const fetchWeather = (city: string) =>
+  Effect.gen(function* () { ... }).pipe(
+    Effect.catchAll(() => Effect.succeed(FailedFetchWeather())),
+    FetchWeather,
+  )
+
+// Bad — definition created and discarded (same as the old Command.make)
+someEffect.pipe(Command.define('FetchWeather'))
+```
+
+Prefer the direct-call style (`Definition(effect)`) over pipe-last (`effect.pipe(Definition)`). The definition wraps the Effect — it's a type boundary (Effect → Command), not a pipeline step. The name leading makes Commands scannable in the COMMAND section.
+
+Command definitions live where they're produced — colocated with the update function that returns them:
+
+- **Single-module app** — define Commands in the `// COMMAND` section of `main.ts`, above the implementations
+- **Multi-module app** — each module defines its own Commands (e.g. `search/command.ts` for search Commands, `main.ts` for app-level Commands)
+- **Shared Commands** — define in the module that owns the concept, import from there
+- **Never centralize** all Command definitions in a single file
+
 ### General Preferences
 
 - Never abbreviate names. Use full, descriptive names everywhere — variables, types, functions, parameters, including callback parameters. e.g. `signature` not `sig`, `cart` not `c`, `Message` not `Msg`, `(tickCount) => tickCount + 1` not `(t) => t + 1`.
-- Don't suffix Command variables with `Command`. Name them by what they do: `focusButton` not `focusButtonCommand`, `scrollToItem` not `scrollToItemCommand`. The type already communicates that it's a command.
+- Don't suffix Command variables with `Command`. Name them by what they do: `focusButton` not `focusButtonCommand`, `scrollToItem` not `scrollToItemCommand`. The type already communicates that it's a Command. Command definitions are PascalCase (`FocusButton`, `ScrollToItem`); Command instances and factory functions are camelCase (`focusButton`, `scrollToItem`).
 - Avoid `let`. Use `const` and prefer immutable patterns. Only use `let` when mutation is truly unavoidable.
 - Always use braces for control flow. `if (foo) { return true }` not `if (foo) return true`.
 - Use `is*` for boolean naming e.g. `isPlaying`, `isValid`

@@ -89,14 +89,16 @@ const panelSelector = (id: string): string => `#${id}-panel`
 type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
+const RequestFrame = Command.define('RequestFrame')
+const ShowDialog = Command.define('ShowDialog')
+const CloseDialog = Command.define('CloseDialog')
+const WaitForTransitions = Command.define('WaitForTransitions')
+
 /** Processes a dialog message and returns the next model and commands. */
 export const update = (model: Model, message: Message): UpdateReturn => {
   const maybeNextFrame = OptionExt.when(
     model.isAnimated,
-    Task.nextFrame.pipe(
-      Effect.as(AdvancedTransitionFrame()),
-      Command.make('RequestFrame'),
-    ),
+    RequestFrame(Task.nextFrame.pipe(Effect.as(AdvancedTransitionFrame()))),
   )
 
   return M.value(message).pipe(
@@ -109,13 +111,14 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         })
 
         const maybeShow = Option.liftPredicate(
-          Task.lockScroll.pipe(
-            Effect.andThen(() =>
-              Task.showModal(dialogSelector(model.id), focusOptions),
+          ShowDialog(
+            Task.lockScroll.pipe(
+              Effect.andThen(() =>
+                Task.showModal(dialogSelector(model.id), focusOptions),
+              ),
+              Effect.ignore,
+              Effect.as(CompletedShowDialog()),
             ),
-            Effect.ignore,
-            Effect.as(CompletedShowDialog()),
-            Command.make('ShowDialog'),
           ),
           () => !model.isOpen,
         )
@@ -149,11 +152,12 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         }
 
         const maybeClose = Option.liftPredicate(
-          Task.closeModal(dialogSelector(model.id)).pipe(
-            Effect.andThen(() => Task.unlockScroll),
-            Effect.ignore,
-            Effect.as(CompletedCloseDialog()),
-            Command.make('CloseDialog'),
+          CloseDialog(
+            Task.closeModal(dialogSelector(model.id)).pipe(
+              Effect.andThen(() => Task.unlockScroll),
+              Effect.ignore,
+              Effect.as(CompletedCloseDialog()),
+            ),
           ),
           () => model.isOpen,
         )
@@ -167,18 +171,20 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           M.when('EnterStart', () => [
             evo(model, { transitionState: () => 'EnterAnimating' }),
             [
-              Task.waitForTransitions(panelSelector(model.id)).pipe(
-                Effect.as(EndedTransition()),
-                Command.make('WaitForTransitions'),
+              WaitForTransitions(
+                Task.waitForTransitions(panelSelector(model.id)).pipe(
+                  Effect.as(EndedTransition()),
+                ),
               ),
             ],
           ]),
           M.when('LeaveStart', () => [
             evo(model, { transitionState: () => 'LeaveAnimating' }),
             [
-              Task.waitForTransitions(panelSelector(model.id)).pipe(
-                Effect.as(EndedTransition()),
-                Command.make('WaitForTransitions'),
+              WaitForTransitions(
+                Task.waitForTransitions(panelSelector(model.id)).pipe(
+                  Effect.as(EndedTransition()),
+                ),
               ),
             ],
           ]),
@@ -195,11 +201,12 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           M.when('LeaveAnimating', () => [
             evo(model, { transitionState: () => 'Idle' }),
             [
-              Task.closeModal(dialogSelector(model.id)).pipe(
-                Effect.andThen(() => Task.unlockScroll),
-                Effect.ignore,
-                Effect.as(CompletedCloseDialog()),
-                Command.make('CloseDialog'),
+              CloseDialog(
+                Task.closeModal(dialogSelector(model.id)).pipe(
+                  Effect.andThen(() => Task.unlockScroll),
+                  Effect.ignore,
+                  Effect.as(CompletedCloseDialog()),
+                ),
               ),
             ],
           ]),

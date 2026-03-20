@@ -13,27 +13,32 @@ const Message = S.Union(
 )
 type Message = typeof Message.Type
 
-const pushUrl = Navigation.pushUrl('/people/42').pipe(
-  Effect.as(CompletedNavigateInternal()),
-  Command.make('NavigateInternal'),
+const NavigateInternal = Command.define('NavigateInternal')
+const ReplaceUrl = Command.define('ReplaceUrl')
+const GoBack = Command.define('GoBack')
+const GoForward = Command.define('GoForward')
+const LoadExternal = Command.define('LoadExternal')
+
+const pushUrl = NavigateInternal(
+  Navigation.pushUrl('/people/42').pipe(Effect.as(CompletedNavigateInternal())),
 )
 
-const replaceUrl = Navigation.replaceUrl('/people/42').pipe(
-  Effect.as(CompletedNavigateInternal()),
-  Command.make('ReplaceUrl'),
+const replaceUrl = ReplaceUrl(
+  Navigation.replaceUrl('/people/42').pipe(
+    Effect.as(CompletedNavigateInternal()),
+  ),
 )
 
-const goBack = Navigation.back().pipe(
-  Effect.as(CompletedNavigateHistory()),
-  Command.make('GoBack'),
+const goBack = GoBack(
+  Navigation.back().pipe(Effect.as(CompletedNavigateHistory())),
 )
 
-const goForward = Navigation.forward().pipe(
-  Effect.as(CompletedNavigateHistory()),
-  Command.make('GoForward'),
+const goForward = GoForward(
+  Navigation.forward().pipe(Effect.as(CompletedNavigateHistory())),
 )
 
-const loadUrl = Navigation.load('https://example.com').pipe(
-  Effect.as(CompletedLoadExternal()),
-  Command.make('LoadExternal'),
+const loadUrl = LoadExternal(
+  Navigation.load('https://example.com').pipe(
+    Effect.as(CompletedLoadExternal()),
+  ),
 )

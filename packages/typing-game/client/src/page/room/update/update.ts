@@ -33,6 +33,9 @@ import { Model, RoomRemoteData } from '../model'
 import { validateUserTextInput } from '../userGameText'
 import { handleRoomUpdated } from './handleRoomUpdates'
 
+const FocusRoomUsernameInput = Command.define('FocusRoomUsernameInput')
+const NavigateHome = Command.define('NavigateHome')
+
 export type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
@@ -107,10 +110,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       BlurredRoomPageUsernameInput: () => [
         model,
         [
-          Task.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(
-            Effect.ignore,
-            Effect.as(CompletedFocusRoomPageUsernameInput()),
-            Command.make('FocusRoomUsernameInput'),
+          FocusRoomUsernameInput(
+            Task.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(
+              Effect.ignore,
+              Effect.as(CompletedFocusRoomPageUsernameInput()),
+            ),
           ),
         ],
       ],
@@ -152,10 +156,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         const maybeFocusRoomUsernameInput = Option.match(model.maybeSession, {
           onNone: () =>
             Option.some(
-              Task.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(
-                Effect.ignore,
-                Effect.as(CompletedFocusRoomPageUsernameInput()),
-                Command.make('FocusRoomUsernameInput'),
+              FocusRoomUsernameInput(
+                Task.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(
+                  Effect.ignore,
+                  Effect.as(CompletedFocusRoomPageUsernameInput()),
+                ),
               ),
             ),
           onSome: () => Option.none(),
@@ -275,9 +280,8 @@ const leaveRoom = (model: Model): UpdateReturn => [
   }),
   [
     clearSession(),
-    pushUrl(homeRouter()).pipe(
-      Effect.as(CompletedNavigateHome()),
-      Command.make('NavigateHome'),
+    NavigateHome(
+      pushUrl(homeRouter()).pipe(Effect.as(CompletedNavigateHome())),
     ),
   ],
 ]

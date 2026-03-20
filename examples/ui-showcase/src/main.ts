@@ -131,6 +131,11 @@ export const Message = S.Union(
 )
 export type Message = typeof Message.Type
 
+// COMMAND
+
+const NavigateInternal = Command.define('NavigateInternal')
+const LoadExternal = Command.define('LoadExternal')
+
 // INIT
 
 const init: Runtime.ApplicationInit<Model, Message> = (url: Url) => {
@@ -176,9 +181,10 @@ const update = (
             ] => [
               model,
               [
-                pushUrl(urlToString(url)).pipe(
-                  Effect.as(CompletedNavigateInternal()),
-                  Command.make('NavigateInternal'),
+                NavigateInternal(
+                  pushUrl(urlToString(url)).pipe(
+                    Effect.as(CompletedNavigateInternal()),
+                  ),
                 ),
               ],
             ],
@@ -190,9 +196,8 @@ const update = (
             ] => [
               model,
               [
-                load(href).pipe(
-                  Effect.as(CompletedLoadExternal()),
-                  Command.make('LoadExternal'),
+                LoadExternal(
+                  load(href).pipe(Effect.as(CompletedLoadExternal())),
                 ),
               ],
             ],

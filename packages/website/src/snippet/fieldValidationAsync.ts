@@ -7,22 +7,23 @@ const StringField = makeField(S.String)
 
 const validateEmail = StringField.validate(emailValidations)
 
-const checkEmailAvailable = (
-  email: string,
-  validationId: number,
-): Command.Command<typeof ValidatedEmail> =>
-  Effect.gen(function* () {
-    const isAvailable = yield* apiCheckEmail(email)
-    return ValidatedEmail({
-      validationId,
-      field: isAvailable
-        ? StringField.Valid({ value: email })
-        : StringField.Invalid({
-            value: email,
-            errors: ['This email is already taken'],
-          }),
-    })
-  }).pipe(Command.make('CheckEmailAvailable'))
+const CheckEmailAvailable = Command.define('CheckEmailAvailable')
+
+const checkEmailAvailable = (email: string, validationId: number) =>
+  CheckEmailAvailable(
+    Effect.gen(function* () {
+      const isAvailable = yield* apiCheckEmail(email)
+      return ValidatedEmail({
+        validationId,
+        field: isAvailable
+          ? StringField.Valid({ value: email })
+          : StringField.Invalid({
+              value: email,
+              errors: ['This email is already taken'],
+            }),
+      })
+    }),
+  )
 
 const update = (model: Model, message: Message) =>
   M.value(message).pipe(

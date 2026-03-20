@@ -242,6 +242,19 @@ export type SelectedItemContext = Readonly<{
 }>
 
 /** Creates a combobox update function from variant-specific handlers. Shared logic (open, close, activate, transition) is handled internally; only close, selection, and immediate-activation behavior varies by variant. */
+const RequestFrame = Command.define('RequestFrame')
+const LockScroll = Command.define('LockScroll')
+const UnlockScroll = Command.define('UnlockScroll')
+const InertOthers = Command.define('InertOthers')
+const RestoreInert = Command.define('RestoreInert')
+const FocusInput = Command.define('FocusInput')
+const ScrollIntoView = Command.define('ScrollIntoView')
+const ClickItem = Command.define('ClickItem')
+const WaitForTransitions = Command.define('WaitForTransitions')
+const DetectMovementOrTransitionEnd = Command.define(
+  'DetectMovementOrTransitionEnd',
+)
+
 export const makeUpdate = <Model extends BaseModel>(
   handlers: Readonly<{
     handleClose: (model: Model) => Model
@@ -264,48 +277,41 @@ export const makeUpdate = <Model extends BaseModel>(
   return (model: Model, message: Message): UpdateReturn => {
     const maybeNextFrame = OptionExt.when(
       model.isAnimated,
-      Task.nextFrame.pipe(
-        Effect.as(AdvancedTransitionFrame()),
-        Command.make('RequestFrame'),
-      ),
+      RequestFrame(Task.nextFrame.pipe(Effect.as(AdvancedTransitionFrame()))),
     )
 
     const maybeLockScroll = OptionExt.when(
       model.isModal,
-      Task.lockScroll.pipe(
-        Effect.as(CompletedLockScroll()),
-        Command.make('LockScroll'),
-      ),
+      LockScroll(Task.lockScroll.pipe(Effect.as(CompletedLockScroll()))),
     )
 
     const maybeUnlockScroll = OptionExt.when(
       model.isModal,
-      Task.unlockScroll.pipe(
-        Effect.as(CompletedUnlockScroll()),
-        Command.make('UnlockScroll'),
-      ),
+      UnlockScroll(Task.unlockScroll.pipe(Effect.as(CompletedUnlockScroll()))),
     )
 
     const maybeInertOthers = OptionExt.when(
       model.isModal,
-      Task.inertOthers(model.id, [
-        inputWrapperSelector(model.id),
-        itemsSelector(model.id),
-      ]).pipe(Effect.as(CompletedSetupInert()), Command.make('InertOthers')),
+      InertOthers(
+        Task.inertOthers(model.id, [
+          inputWrapperSelector(model.id),
+          itemsSelector(model.id),
+        ]).pipe(Effect.as(CompletedSetupInert())),
+      ),
     )
 
     const maybeRestoreInert = OptionExt.when(
       model.isModal,
-      Task.restoreInert(model.id).pipe(
-        Effect.as(CompletedTeardownInert()),
-        Command.make('RestoreInert'),
+      RestoreInert(
+        Task.restoreInert(model.id).pipe(Effect.as(CompletedTeardownInert())),
       ),
     )
 
-    const focusInput = Task.focus(inputSelector(model.id)).pipe(
-      Effect.ignore,
-      Effect.as(CompletedFocusInput()),
-      Command.make('FocusInput'),
+    const focusInput = FocusInput(
+      Task.focus(inputSelector(model.id)).pipe(
+        Effect.ignore,
+        Effect.as(CompletedFocusInput()),
+      ),
     )
 
     return M.value(message).pipe(
@@ -376,10 +382,11 @@ export const makeUpdate = <Model extends BaseModel>(
             nextModel,
             activationTrigger === 'Keyboard'
               ? [
-                  Task.scrollIntoView(itemSelector(model.id, index)).pipe(
-                    Effect.ignore,
-                    Effect.as(CompletedScrollIntoView()),
-                    Command.make('ScrollIntoView'),
+                  ScrollIntoView(
+                    Task.scrollIntoView(itemSelector(model.id, index)).pipe(
+                      Effect.ignore,
+                      Effect.as(CompletedScrollIntoView()),
+                    ),
                   ),
                 ]
               : [],
@@ -428,10 +435,11 @@ export const makeUpdate = <Model extends BaseModel>(
         RequestedItemClick: ({ index }) => [
           model,
           [
-            Task.clickElement(itemSelector(model.id, index)).pipe(
-              Effect.ignore,
-              Effect.as(CompletedClickItem()),
-              Command.make('ClickItem'),
+            ClickItem(
+              Task.clickElement(itemSelector(model.id, index)).pipe(
+                Effect.ignore,
+                Effect.as(CompletedClickItem()),
+              ),
             ),
           ],
         ],
@@ -509,9 +517,10 @@ export const makeUpdate = <Model extends BaseModel>(
                 transitionState: () => 'EnterAnimating' as const,
               }),
               [
-                Task.waitForTransitions(itemsSelector(model.id)).pipe(
-                  Effect.as(EndedTransition()),
-                  Command.make('WaitForTransitions'),
+                WaitForTransitions(
+                  Task.waitForTransitions(itemsSelector(model.id)).pipe(
+                    Effect.as(EndedTransition()),
+                  ),
                 ),
               ],
             ]),
@@ -520,14 +529,16 @@ export const makeUpdate = <Model extends BaseModel>(
                 transitionState: () => 'LeaveAnimating' as const,
               }),
               [
-                Effect.raceFirst(
-                  Task.detectElementMovement(
-                    inputWrapperSelector(model.id),
-                  ).pipe(Effect.as(DetectedInputMovement())),
-                  Task.waitForTransitions(itemsSelector(model.id)).pipe(
-                    Effect.as(EndedTransition()),
+                DetectMovementOrTransitionEnd(
+                  Effect.raceFirst(
+                    Task.detectElementMovement(
+                      inputWrapperSelector(model.id),
+                    ).pipe(Effect.as(DetectedInputMovement())),
+                    Task.waitForTransitions(itemsSelector(model.id)).pipe(
+                      Effect.as(EndedTransition()),
+                    ),
                   ),
-                ).pipe(Command.make('DetectMovementOrTransitionEnd')),
+                ),
               ],
             ]),
             M.orElse(() => [model, []]),

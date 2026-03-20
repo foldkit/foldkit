@@ -142,45 +142,49 @@ const panelSelector = (id: string): string => `#${id}-panel`
 type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
+const RequestFrame = Command.define('RequestFrame')
+const LockScroll = Command.define('LockScroll')
+const UnlockScroll = Command.define('UnlockScroll')
+const InertOthers = Command.define('InertOthers')
+const RestoreInert = Command.define('RestoreInert')
+const FocusPanel = Command.define('FocusPanel')
+const FocusButton = Command.define('FocusButton')
+const WaitForTransitions = Command.define('WaitForTransitions')
+const DetectMovementOrTransitionEnd = Command.define(
+  'DetectMovementOrTransitionEnd',
+)
+
 /** Processes a popover message and returns the next model and commands. */
 export const update = (model: Model, message: Message): UpdateReturn => {
   const maybeNextFrame = OptionExt.when(
     model.isAnimated,
-    Task.nextFrame.pipe(
-      Effect.as(AdvancedTransitionFrame()),
-      Command.make('RequestFrame'),
-    ),
+    RequestFrame(Task.nextFrame.pipe(Effect.as(AdvancedTransitionFrame()))),
   )
 
   const maybeLockScroll = OptionExt.when(
     model.isModal,
-    Task.lockScroll.pipe(
-      Effect.as(CompletedLockScroll()),
-      Command.make('LockScroll'),
-    ),
+    LockScroll(Task.lockScroll.pipe(Effect.as(CompletedLockScroll()))),
   )
 
   const maybeUnlockScroll = OptionExt.when(
     model.isModal,
-    Task.unlockScroll.pipe(
-      Effect.as(CompletedUnlockScroll()),
-      Command.make('UnlockScroll'),
-    ),
+    UnlockScroll(Task.unlockScroll.pipe(Effect.as(CompletedUnlockScroll()))),
   )
 
   const maybeInertOthers = OptionExt.when(
     model.isModal,
-    Task.inertOthers(model.id, [
-      buttonSelector(model.id),
-      panelSelector(model.id),
-    ]).pipe(Effect.as(CompletedSetupInert()), Command.make('InertOthers')),
+    InertOthers(
+      Task.inertOthers(model.id, [
+        buttonSelector(model.id),
+        panelSelector(model.id),
+      ]).pipe(Effect.as(CompletedSetupInert())),
+    ),
   )
 
   const maybeRestoreInert = OptionExt.when(
     model.isModal,
-    Task.restoreInert(model.id).pipe(
-      Effect.as(CompletedTeardownInert()),
-      Command.make('RestoreInert'),
+    RestoreInert(
+      Task.restoreInert(model.id).pipe(Effect.as(CompletedTeardownInert())),
     ),
   )
 
@@ -198,10 +202,11 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           pipe(
             Array.getSomes([maybeNextFrame, maybeLockScroll, maybeInertOthers]),
             Array.prepend(
-              Task.focus(panelSelector(model.id)).pipe(
-                Effect.ignore,
-                Effect.as(CompletedFocusPanel()),
-                Command.make('FocusPanel'),
+              FocusPanel(
+                Task.focus(panelSelector(model.id)).pipe(
+                  Effect.ignore,
+                  Effect.as(CompletedFocusPanel()),
+                ),
               ),
             ),
           ),
@@ -217,10 +222,11 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             maybeRestoreInert,
           ]),
           Array.prepend(
-            Task.focus(buttonSelector(model.id)).pipe(
-              Effect.ignore,
-              Effect.as(CompletedFocusButton()),
-              Command.make('FocusButton'),
+            FocusButton(
+              Task.focus(buttonSelector(model.id)).pipe(
+                Effect.ignore,
+                Effect.as(CompletedFocusButton()),
+              ),
             ),
           ),
         ),
@@ -250,10 +256,11 @@ export const update = (model: Model, message: Message): UpdateReturn => {
                 maybeRestoreInert,
               ]),
               Array.prepend(
-                Task.focus(buttonSelector(model.id)).pipe(
-                  Effect.ignore,
-                  Effect.as(CompletedFocusButton()),
-                  Command.make('FocusButton'),
+                FocusButton(
+                  Task.focus(buttonSelector(model.id)).pipe(
+                    Effect.ignore,
+                    Effect.as(CompletedFocusButton()),
+                  ),
                 ),
               ),
             ),
@@ -270,10 +277,11 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           pipe(
             Array.getSomes([maybeNextFrame, maybeLockScroll, maybeInertOthers]),
             Array.prepend(
-              Task.focus(panelSelector(model.id)).pipe(
-                Effect.ignore,
-                Effect.as(CompletedFocusPanel()),
-                Command.make('FocusPanel'),
+              FocusPanel(
+                Task.focus(panelSelector(model.id)).pipe(
+                  Effect.ignore,
+                  Effect.as(CompletedFocusPanel()),
+                ),
               ),
             ),
           ),
@@ -286,23 +294,26 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           M.when('EnterStart', () => [
             evo(model, { transitionState: () => 'EnterAnimating' }),
             [
-              Task.waitForTransitions(panelSelector(model.id)).pipe(
-                Effect.as(EndedTransition()),
-                Command.make('WaitForTransitions'),
+              WaitForTransitions(
+                Task.waitForTransitions(panelSelector(model.id)).pipe(
+                  Effect.as(EndedTransition()),
+                ),
               ),
             ],
           ]),
           M.when('LeaveStart', () => [
             evo(model, { transitionState: () => 'LeaveAnimating' }),
             [
-              Effect.raceFirst(
-                Task.detectElementMovement(buttonSelector(model.id)).pipe(
-                  Effect.as(DetectedButtonMovement()),
+              DetectMovementOrTransitionEnd(
+                Effect.raceFirst(
+                  Task.detectElementMovement(buttonSelector(model.id)).pipe(
+                    Effect.as(DetectedButtonMovement()),
+                  ),
+                  Task.waitForTransitions(panelSelector(model.id)).pipe(
+                    Effect.as(EndedTransition()),
+                  ),
                 ),
-                Task.waitForTransitions(panelSelector(model.id)).pipe(
-                  Effect.as(EndedTransition()),
-                ),
-              ).pipe(Command.make('DetectMovementOrTransitionEnd')),
+              ),
             ],
           ]),
           M.orElse(() => [model, []]),

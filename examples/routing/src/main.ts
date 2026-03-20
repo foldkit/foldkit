@@ -111,6 +111,12 @@ const init: Runtime.ApplicationInit<Model, Message> = (url: Url) => {
   return [{ route: urlToAppRoute(url) }, []]
 }
 
+// COMMAND
+
+const NavigateInternal = Command.define('NavigateInternal')
+const LoadExternal = Command.define('LoadExternal')
+const ReplaceSearchUrl = Command.define('ReplaceSearchUrl')
+
 // UPDATE
 
 const update = (
@@ -134,9 +140,10 @@ const update = (
             ] => [
               model,
               [
-                pushUrl(urlToString(url)).pipe(
-                  Effect.as(CompletedNavigateInternal()),
-                  Command.make('NavigateInternal'),
+                NavigateInternal(
+                  pushUrl(urlToString(url)).pipe(
+                    Effect.as(CompletedNavigateInternal()),
+                  ),
                 ),
               ],
             ],
@@ -148,9 +155,8 @@ const update = (
             ] => [
               model,
               [
-                load(href).pipe(
-                  Effect.as(CompletedLoadExternal()),
-                  Command.make('LoadExternal'),
+                LoadExternal(
+                  load(href).pipe(Effect.as(CompletedLoadExternal())),
                 ),
               ],
             ],
@@ -167,13 +173,12 @@ const update = (
       ChangedSearchInput: ({ value }) => [
         model,
         [
-          replaceUrl(
-            peopleRouter({
-              searchText: Option.fromNullable(value || null),
-            }),
-          ).pipe(
-            Effect.as(CompletedNavigateInternal()),
-            Command.make('ReplaceSearchUrl'),
+          ReplaceSearchUrl(
+            replaceUrl(
+              peopleRouter({
+                searchText: Option.fromNullable(value || null),
+              }),
+            ).pipe(Effect.as(CompletedNavigateInternal())),
           ),
         ],
       ],

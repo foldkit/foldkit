@@ -1,23 +1,21 @@
 import { Effect } from 'effect'
 import { Command } from 'foldkit'
 
-const fetchCount: Command.Command<
-  typeof SucceededFetchCount | typeof FailedFetchCount
-> = Effect.gen(function* () {
-  const result = yield* Effect.tryPromise(() =>
-    fetch('/api/count').then(res => {
-      if (!res.ok) throw new Error('API request failed')
-      // In a real app, decode with Effect Schema instead of casting
-      return res.json() as unknown as { count: number }
-    }),
-  )
+const FetchCount = Command.define('FetchCount')
 
-  return SucceededFetchCount({ count: result.count })
-}).pipe(
-  // Commands must always return a Message. They should never fail.
-  // catchAll recovers from errors by returning a FailedFetchCount Message.
-  Effect.catchAll(error =>
-    Effect.succeed(FailedFetchCount({ error: error.message })),
+const fetchCount = FetchCount(
+  Effect.gen(function* () {
+    const result = yield* Effect.tryPromise(() =>
+      fetch('/api/count').then(res => {
+        if (!res.ok) throw new Error('API request failed')
+        return res.json() as unknown as { count: number }
+      }),
+    )
+
+    return SucceededFetchCount({ count: result.count })
+  }).pipe(
+    Effect.catchAll(error =>
+      Effect.succeed(FailedFetchCount({ error: error.message })),
+    ),
   ),
-  Command.make('FetchCount'),
 )

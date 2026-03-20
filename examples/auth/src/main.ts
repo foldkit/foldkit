@@ -46,6 +46,11 @@ const flags: Effect.Effect<Flags> = Effect.gen(function* () {
 
 type Flags = typeof Flags.Type
 
+// COMMAND
+
+const RedirectToLogin = Command.define('RedirectToLogin')
+const RedirectToDashboard = Command.define('RedirectToDashboard')
+
 // INIT
 
 type InitReturn = [Model, ReadonlyArray<Command.Command<Message>>]
@@ -68,9 +73,10 @@ const init: Runtime.ApplicationInit<Model, Message, Flags> = (
         M.orElse(() => [
           LoggedOut.init(LoginRoute()),
           [
-            replaceUrl(loginRouter()).pipe(
-              Effect.as(CompletedNavigateInternal()),
-              Command.make('RedirectToLogin'),
+            RedirectToLogin(
+              replaceUrl(loginRouter()).pipe(
+                Effect.as(CompletedNavigateInternal()),
+              ),
             ),
           ],
         ]),
@@ -86,9 +92,10 @@ const init: Runtime.ApplicationInit<Model, Message, Flags> = (
         M.orElse(() => [
           LoggedIn.init(DashboardRoute(), session),
           [
-            replaceUrl(dashboardRouter()).pipe(
-              Effect.as(CompletedNavigateInternal()),
-              Command.make('RedirectToDashboard'),
+            RedirectToDashboard(
+              replaceUrl(dashboardRouter()).pipe(
+                Effect.as(CompletedNavigateInternal()),
+              ),
             ),
           ],
         ]),

@@ -295,24 +295,33 @@ const update = (
 
 // COMMAND
 
-const generateTodo = (text: string): Command.Command<typeof GeneratedTodo> =>
-  Effect.gen(function* () {
-    const id = yield* Task.randomInt(0, Number.MAX_SAFE_INTEGER).pipe(
-      Effect.map(value => value.toString(36)),
-    )
-    const timestamp = yield* Clock.currentTimeMillis
-    return GeneratedTodo({ id, timestamp, text })
-  }).pipe(Command.make('GenerateTodo'))
+const GenerateTodo = Command.define('GenerateTodo')
+const SaveTodos = Command.define('SaveTodos')
 
-const saveTodos = (todos: Todos): Command.Command<typeof SavedTodos> =>
-  Effect.gen(function* () {
-    const store = yield* KeyValueStore.KeyValueStore
-    yield* store.set(TODOS_STORAGE_KEY, S.encodeSync(S.parseJson(Todos))(todos))
-    return SavedTodos({ todos })
-  }).pipe(
-    Effect.catchAll(() => Effect.succeed(SavedTodos({ todos }))),
-    Effect.provide(BrowserKeyValueStore.layerLocalStorage),
-    Command.make('SaveTodos'),
+const generateTodo = (text: string) =>
+  GenerateTodo(
+    Effect.gen(function* () {
+      const id = yield* Task.randomInt(0, Number.MAX_SAFE_INTEGER).pipe(
+        Effect.map(value => value.toString(36)),
+      )
+      const timestamp = yield* Clock.currentTimeMillis
+      return GeneratedTodo({ id, timestamp, text })
+    }),
+  )
+
+const saveTodos = (todos: Todos) =>
+  SaveTodos(
+    Effect.gen(function* () {
+      const store = yield* KeyValueStore.KeyValueStore
+      yield* store.set(
+        TODOS_STORAGE_KEY,
+        S.encodeSync(S.parseJson(Todos))(todos),
+      )
+      return SavedTodos({ todos })
+    }).pipe(
+      Effect.catchAll(() => Effect.succeed(SavedTodos({ todos }))),
+      Effect.provide(BrowserKeyValueStore.layerLocalStorage),
+    ),
   )
 
 // VIEW

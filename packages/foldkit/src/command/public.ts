@@ -1,2 +1,2 @@
-export type { Command } from './index'
-export { make, mapEffect } from './index'
+export type { Command, CommandDefinition } from './index'
+export { CommandDefinitionTypeId, define, mapEffect } from './index'

@@ -18,6 +18,10 @@ import { Model } from './model'
 import { Home, Room } from './page'
 import { urlToAppRoute } from './route'
 
+const NavigateInternal = Command.define('NavigateInternal')
+const LoadExternal = Command.define('LoadExternal')
+const FocusUsernameInput = Command.define('FocusUsernameInput')
+
 export type UpdateReturn<Model, Message> = [
   Model,
   ReadonlyArray<Command.Command<Message>>,
@@ -38,18 +42,18 @@ export const update = (
             Internal: ({ url }) => [
               model,
               [
-                pushUrl(Url.toString(url)).pipe(
-                  Effect.as(CompletedNavigateInternal()),
-                  Command.make('NavigateInternal'),
+                NavigateInternal(
+                  pushUrl(Url.toString(url)).pipe(
+                    Effect.as(CompletedNavigateInternal()),
+                  ),
                 ),
               ],
             ],
             External: ({ href }) => [
               model,
               [
-                load(href).pipe(
-                  Effect.as(CompletedLoadExternal()),
-                  Command.make('LoadExternal'),
+                LoadExternal(
+                  load(href).pipe(Effect.as(CompletedLoadExternal())),
                 ),
               ],
             ],
@@ -60,10 +64,11 @@ export const update = (
         const nextRoute = urlToAppRoute(url)
         const maybeFocusUsernameInput = M.value(nextRoute).pipe(
           M.tag('Home', () =>
-            Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
-              Effect.ignore,
-              Effect.as(CompletedFocusUsernameInput()),
-              Command.make('FocusUsernameInput'),
+            FocusUsernameInput(
+              Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
+                Effect.ignore,
+                Effect.as(CompletedFocusUsernameInput()),
+              ),
             ),
           ),
           M.option,

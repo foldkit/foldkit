@@ -155,11 +155,12 @@ const update = (
       SentMessage: ({ text }) => [
         model,
         [
-          Task.getZonedTime.pipe(
-            Effect.map(zoned =>
-              TimestampedMessage({ text, zoned, isSent: true }),
+          TimestampSentMessage(
+            Task.getZonedTime.pipe(
+              Effect.map(zoned =>
+                TimestampedMessage({ text, zoned, isSent: true }),
+              ),
             ),
-            Command.make('TimestampSentMessage'),
           ),
         ],
       ],
@@ -167,11 +168,12 @@ const update = (
       ReceivedMessage: ({ text }) => [
         model,
         [
-          Task.getZonedTime.pipe(
-            Effect.map(zoned =>
-              TimestampedMessage({ text, zoned, isSent: false }),
+          TimestampReceivedMessage(
+            Task.getZonedTime.pipe(
+              Effect.map(zoned =>
+                TimestampedMessage({ text, zoned, isSent: false }),
+              ),
             ),
-            Command.make('TimestampReceivedMessage'),
           ),
         ],
       ],
@@ -202,24 +204,23 @@ const init: Runtime.ElementInit<Model, Message> = () => [
 
 // COMMAND
 
-const sendMessage = (
-  text: string,
-): Command.Command<
-  typeof SentMessage | typeof FailedConnect,
-  never,
-  ChatSocketService
-> =>
-  ChatSocket.get.pipe(
-    Effect.flatMap(socket =>
-      Effect.sync(() => {
-        socket.send(text)
-        return SentMessage({ text })
-      }),
+const TimestampSentMessage = Command.define('TimestampSentMessage')
+const TimestampReceivedMessage = Command.define('TimestampReceivedMessage')
+const SendMessage = Command.define('SendMessage')
+
+const sendMessage = (text: string) =>
+  SendMessage(
+    ChatSocket.get.pipe(
+      Effect.flatMap(socket =>
+        Effect.sync(() => {
+          socket.send(text)
+          return SentMessage({ text })
+        }),
+      ),
+      Effect.catchTag('ResourceNotAvailable', () =>
+        Effect.succeed(FailedConnect({ error: 'Socket unavailable' })),
+      ),
     ),
-    Effect.catchTag('ResourceNotAvailable', () =>
-      Effect.succeed(FailedConnect({ error: 'Socket unavailable' })),
-    ),
-    Command.make('SendMessage'),
   )
 
 // MANAGED RESOURCE

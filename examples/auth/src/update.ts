@@ -22,6 +22,12 @@ import {
   urlToAppRoute,
 } from './route'
 
+const NavigateInternal = Command.define('NavigateInternal')
+const LoadExternal = Command.define('LoadExternal')
+const RedirectToLogin = Command.define('RedirectToLogin')
+const RedirectToDashboard = Command.define('RedirectToDashboard')
+const RedirectToHome = Command.define('RedirectToHome')
+
 type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
@@ -36,18 +42,18 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             Internal: ({ url }) => [
               model,
               [
-                pushUrl(urlToString(url)).pipe(
-                  Effect.as(CompletedNavigateInternal()),
-                  Command.make('NavigateInternal'),
+                NavigateInternal(
+                  pushUrl(urlToString(url)).pipe(
+                    Effect.as(CompletedNavigateInternal()),
+                  ),
                 ),
               ],
             ],
             External: ({ href }) => [
               model,
               [
-                load(href).pipe(
-                  Effect.as(CompletedLoadExternal()),
-                  Command.make('LoadExternal'),
+                LoadExternal(
+                  load(href).pipe(Effect.as(CompletedLoadExternal())),
                 ),
               ],
             ],
@@ -70,9 +76,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                 M.orElse(() => [
                   model,
                   [
-                    replaceUrl(loginRouter()).pipe(
-                      Effect.as(CompletedNavigateInternal()),
-                      Command.make('RedirectToLogin'),
+                    RedirectToLogin(
+                      replaceUrl(loginRouter()).pipe(
+                        Effect.as(CompletedNavigateInternal()),
+                      ),
                     ),
                   ],
                 ]),
@@ -88,9 +95,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                 M.orElse(() => [
                   model,
                   [
-                    replaceUrl(dashboardRouter()).pipe(
-                      Effect.as(CompletedNavigateInternal()),
-                      Command.make('RedirectToDashboard'),
+                    RedirectToDashboard(
+                      replaceUrl(dashboardRouter()).pipe(
+                        Effect.as(CompletedNavigateInternal()),
+                      ),
                     ),
                   ],
                 ]),
@@ -164,9 +172,10 @@ const handleGotLoggedOutMessage = (
             [
               ...mappedCommands,
               saveSession(session),
-              replaceUrl(dashboardRouter()).pipe(
-                Effect.as(CompletedNavigateInternal()),
-                Command.make('RedirectToDashboard'),
+              RedirectToDashboard(
+                replaceUrl(dashboardRouter()).pipe(
+                  Effect.as(CompletedNavigateInternal()),
+                ),
               ),
             ],
           ],
@@ -201,9 +210,10 @@ const handleGotLoggedInMessage = (
             [
               ...mappedCommands,
               clearSession(),
-              replaceUrl(homeRouter()).pipe(
-                Effect.as(CompletedNavigateInternal()),
-                Command.make('RedirectToHome'),
+              RedirectToHome(
+                replaceUrl(homeRouter()).pipe(
+                  Effect.as(CompletedNavigateInternal()),
+                ),
               ),
             ],
           ],

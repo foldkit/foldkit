@@ -28,7 +28,6 @@ type Model = typeof Model.Type
 
 // MESSAGE
 
-// ClickedLink and ChangedUrl are required for routing
 const CompletedNavigateInternal = m('CompletedNavigateInternal')
 const CompletedLoadExternal = m('CompletedLoadExternal')
 const ClickedLink = m('ClickedLink', { request: Runtime.UrlRequest })
@@ -42,6 +41,11 @@ const Message = S.Union(
 )
 type Message = typeof Message.Type
 
+// COMMAND
+
+const NavigateInternal = Command.define('NavigateInternal')
+const LoadExternal = Command.define('LoadExternal')
+
 // UPDATE
 
 const update = (model: Model, message: Message) =>
@@ -51,38 +55,36 @@ const update = (model: Model, message: Message) =>
       CompletedNavigateInternal: () => [model, []],
       CompletedLoadExternal: () => [model, []],
 
-      // Handle link clicks - decide whether to navigate or do a full page load
       ClickedLink: ({ request }) =>
         M.value(request).pipe(
           M.tagsExhaustive({
-            // Same-origin link - push to history
             Internal: ({
               url,
             }): [Model, ReadonlyArray<Command.Command<Message>>] => [
               model,
               [
-                Navigation.pushUrl(Url.toString(url)).pipe(
-                  Effect.as(CompletedNavigateInternal()),
-                  Command.make('NavigateInternal'),
+                NavigateInternal(
+                  Navigation.pushUrl(Url.toString(url)).pipe(
+                    Effect.as(CompletedNavigateInternal()),
+                  ),
                 ),
               ],
             ],
-            // Different-origin link - full page load
             External: ({
               href,
             }): [Model, ReadonlyArray<Command.Command<Message>>] => [
               model,
               [
-                Navigation.load(href).pipe(
-                  Effect.as(CompletedLoadExternal()),
-                  Command.make('LoadExternal'),
+                LoadExternal(
+                  Navigation.load(href).pipe(
+                    Effect.as(CompletedLoadExternal()),
+                  ),
                 ),
               ],
             ],
           }),
         ),
 
-      // URL changed - parse it and update the route
       ChangedUrl: ({ url }) => [
         evo(model, {
           route: () => urlToAppRoute(url),

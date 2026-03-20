@@ -66,12 +66,12 @@ Event handlers in the view dispatch Messages — they don't perform actions dire
 
 ### 3. Commands Catch All Errors
 
-Every Command must handle its own errors and convert them to Messages:
+Define Command identities with `Command.define`, then use them to wrap Effects. Every Command must handle its own errors and convert them to Messages:
 
 ```ts
-const fetchData = (
-  id: string,
-): Command<typeof SucceededFetch | typeof FailedFetch> =>
+const FetchData = Command.define('FetchData')
+
+const fetchData = (id: string) =>
   Effect.gen(function* () {
     const response = yield* httpClient.get(`/api/data/${id}`)
     return SucceededFetch({ data: response })
@@ -79,8 +79,11 @@ const fetchData = (
     Effect.catchAll(error =>
       Effect.succeed(FailedFetch({ error: String(error) })),
     ),
+    FetchData,
   )
 ```
+
+Always assign definitions to PascalCase constants — never use `Command.define` inline in a pipe chain. Definitions live where they're produced, colocated with the update function. Let TypeScript infer Command return types.
 
 Commands never throw. The app never crashes from an unhandled side effect.
 
@@ -338,13 +341,20 @@ Commands that interact with the DOM or browser APIs should use `Task` helpers �
 Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, or `Math.random()`. They return Effects that compose naturally in Commands:
 
 ```ts
-const focusInput: Command<typeof CompletedFocusInput> = Task.focus(
-  `#${EMAIL_INPUT_ID}`,
-).pipe(Effect.ignore, Effect.as(CompletedFocusInput()))
+const FocusInput = Command.define('FocusInput')
+const ShowConfirmation = Command.define('ShowConfirmation')
 
-const showConfirmation: Command<typeof CompletedShowDialog> = Task.showModal(
-  `#${CONFIRM_DIALOG_ID}`,
-).pipe(Effect.ignore, Effect.as(CompletedShowDialog()))
+const focusInput = Task.focus(`#${EMAIL_INPUT_ID}`).pipe(
+  Effect.ignore,
+  Effect.as(CompletedFocusInput()),
+  FocusInput,
+)
+
+const showConfirmation = Task.showModal(`#${CONFIRM_DIALOG_ID}`).pipe(
+  Effect.ignore,
+  Effect.as(CompletedShowDialog()),
+  ShowConfirmation,
+)
 ```
 
 ## Element vs Application

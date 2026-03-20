@@ -237,12 +237,13 @@ const selectionToParam = <A extends string>(
   )
 }
 
-const replaceFilters = (
-  fields: BrowseFields,
-): Command.Command<typeof CompletedReplaceUrl> =>
-  replaceUrl(browseRouter(fields)).pipe(
-    Effect.as(CompletedReplaceUrl()),
-    Command.make('ReplaceFilters'),
+const ReplaceFilters = Command.define('ReplaceFilters')
+const NavigateInternal = Command.define('NavigateInternal')
+const LoadExternal = Command.define('LoadExternal')
+
+const replaceFilters = (fields: BrowseFields) =>
+  ReplaceFilters(
+    replaceUrl(browseRouter(fields)).pipe(Effect.as(CompletedReplaceUrl())),
   )
 
 type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
@@ -263,18 +264,18 @@ const update = (model: Model, message: Message): UpdateReturn =>
             Internal: ({ url }) => [
               model,
               [
-                pushUrl(urlToString(url)).pipe(
-                  Effect.as(CompletedNavigateInternal()),
-                  Command.make('NavigateInternal'),
+                NavigateInternal(
+                  pushUrl(urlToString(url)).pipe(
+                    Effect.as(CompletedNavigateInternal()),
+                  ),
                 ),
               ],
             ],
             External: ({ href }) => [
               model,
               [
-                load(href).pipe(
-                  Effect.as(CompletedLoadExternal()),
-                  Command.make('LoadExternal'),
+                LoadExternal(
+                  load(href).pipe(Effect.as(CompletedLoadExternal())),
                 ),
               ],
             ],

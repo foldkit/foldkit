@@ -52,6 +52,10 @@ export const init = (products: ReadonlyArray<Item.Item>): Model => ({
   searchText: '',
 })
 
+// COMMAND
+
+const ReplaceSearchUrl = Command.define('ReplaceSearchUrl')
+
 // UPDATE
 
 export const update =
@@ -70,13 +74,12 @@ export const update =
             searchText: () => value,
           }),
           [
-            replaceUrl(
-              productsRouter({
-                searchText: Option.fromNullable(value || null),
-              }),
-            ).pipe(
-              Effect.as(CompletedReplaceUrl()),
-              Command.make('ReplaceSearchUrl'),
+            ReplaceSearchUrl(
+              replaceUrl(
+                productsRouter({
+                  searchText: Option.fromNullable(value || null),
+                }),
+              ).pipe(Effect.as(CompletedReplaceUrl())),
             ),
           ],
         ],

@@ -113,28 +113,29 @@ type UpdateReturn = [
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-const simulateAuthRequest = (
-  email: string,
-  password: string,
-): Command.Command<Message> =>
-  Effect.gen(function* () {
-    yield* Effect.sleep(Duration.seconds(1))
+const SimulateAuthRequest = Command.define('SimulateAuthRequest')
 
-    if (password !== 'password') {
-      return FailedAuth({ error: 'Invalid credentials' })
-    }
+const simulateAuthRequest = (email: string, password: string) =>
+  SimulateAuthRequest(
+    Effect.gen(function* () {
+      yield* Effect.sleep(Duration.seconds(1))
 
-    const name = pipe(
-      email,
-      String.split('@'),
-      Array.head,
-      Option.getOrElse(() => email),
-    )
+      if (password !== 'password') {
+        return FailedAuth({ error: 'Invalid credentials' })
+      }
 
-    const session: Session = { userId: '1', email, name }
+      const name = pipe(
+        email,
+        String.split('@'),
+        Array.head,
+        Option.getOrElse(() => email),
+      )
 
-    return SucceededAuth({ session })
-  }).pipe(Command.make('SimulateAuthRequest'))
+      const session: Session = { userId: '1', email, name }
+
+      return SucceededAuth({ session })
+    }),
+  )
 
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(

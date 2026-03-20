@@ -10,6 +10,8 @@ import { CompletedFocusUserGameTextInput } from '../message'
 import { Model, RoomRemoteData } from '../model'
 import type { UpdateReturn } from './update'
 
+const FocusUserGameTextInput = Command.define('FocusUserGameTextInput')
+
 const EXIT_COUNTDOWN_SECONDS = 3
 
 export const handleRoomUpdated =
@@ -69,10 +71,11 @@ export const handleRoomUpdated =
     const shouldFocus = (gameJustStarted || isFirstRoomUpdate) && hasGame
 
     const mabyeFocusUserGameTextInput = optionWhen(shouldFocus, () =>
-      Task.focus(`#${USER_GAME_TEXT_INPUT_ID}`).pipe(
-        Effect.ignore,
-        Effect.as(CompletedFocusUserGameTextInput()),
-        Command.make('FocusUserGameTextInput'),
+      FocusUserGameTextInput(
+        Task.focus(`#${USER_GAME_TEXT_INPUT_ID}`).pipe(
+          Effect.ignore,
+          Effect.as(CompletedFocusUserGameTextInput()),
+        ),
       ),
     )
 

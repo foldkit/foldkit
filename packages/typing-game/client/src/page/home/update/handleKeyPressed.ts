@@ -18,6 +18,9 @@ import {
   SelectAction,
 } from '../model'
 
+const FocusRoomIdInput = Command.define('FocusRoomIdInput')
+const FocusUsernameInput = Command.define('FocusUsernameInput')
+
 type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
@@ -93,10 +96,11 @@ const confirmSelection =
             }),
         }),
         [
-          Task.focus(`#${ROOM_ID_INPUT_ID}`).pipe(
-            Effect.ignore,
-            Effect.as(CompletedFocusRoomIdInput()),
-            Command.make('FocusRoomIdInput'),
+          FocusRoomIdInput(
+            Task.focus(`#${ROOM_ID_INPUT_ID}`).pipe(
+              Effect.ignore,
+              Effect.as(CompletedFocusRoomIdInput()),
+            ),
           ),
         ],
       ]),
@@ -105,10 +109,11 @@ const confirmSelection =
           homeStep: () => EnterUsername({ username: '' }),
         }),
         [
-          Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
-            Effect.ignore,
-            Effect.as(CompletedFocusUsernameInput()),
-            Command.make('FocusUsernameInput'),
+          FocusUsernameInput(
+            Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
+              Effect.ignore,
+              Effect.as(CompletedFocusUsernameInput()),
+            ),
           ),
         ],
       ]),

@@ -259,6 +259,21 @@ type SelectedItemContext = Readonly<{
   maybeRestoreInert: Option.Option<Command.Command<Message>>
 }>
 
+const RequestFrame = Command.define('RequestFrame')
+const LockScroll = Command.define('LockScroll')
+const UnlockScroll = Command.define('UnlockScroll')
+const InertOthers = Command.define('InertOthers')
+const RestoreInert = Command.define('RestoreInert')
+const FocusButton = Command.define('FocusButton')
+const FocusItems = Command.define('FocusItems')
+const ScrollIntoView = Command.define('ScrollIntoView')
+const ClickItem = Command.define('ClickItem')
+const DelayClearSearch = Command.define('DelayClearSearch')
+const WaitForTransitions = Command.define('WaitForTransitions')
+const DetectMovementOrTransitionEnd = Command.define(
+  'DetectMovementOrTransitionEnd',
+)
+
 export const makeUpdate = <Model extends BaseModel>(
   handleSelectedItem: (
     model: Model,
@@ -272,48 +287,41 @@ export const makeUpdate = <Model extends BaseModel>(
   return (model: Model, message: Message): UpdateReturn => {
     const maybeNextFrame = OptionExt.when(
       model.isAnimated,
-      Task.nextFrame.pipe(
-        Effect.as(AdvancedTransitionFrame()),
-        Command.make('RequestFrame'),
-      ),
+      RequestFrame(Task.nextFrame.pipe(Effect.as(AdvancedTransitionFrame()))),
     )
 
     const maybeLockScroll = OptionExt.when(
       model.isModal,
-      Task.lockScroll.pipe(
-        Effect.as(CompletedLockScroll()),
-        Command.make('LockScroll'),
-      ),
+      LockScroll(Task.lockScroll.pipe(Effect.as(CompletedLockScroll()))),
     )
 
     const maybeUnlockScroll = OptionExt.when(
       model.isModal,
-      Task.unlockScroll.pipe(
-        Effect.as(CompletedUnlockScroll()),
-        Command.make('UnlockScroll'),
-      ),
+      UnlockScroll(Task.unlockScroll.pipe(Effect.as(CompletedUnlockScroll()))),
     )
 
     const maybeInertOthers = OptionExt.when(
       model.isModal,
-      Task.inertOthers(model.id, [
-        buttonSelector(model.id),
-        itemsSelector(model.id),
-      ]).pipe(Effect.as(CompletedSetupInert()), Command.make('InertOthers')),
+      InertOthers(
+        Task.inertOthers(model.id, [
+          buttonSelector(model.id),
+          itemsSelector(model.id),
+        ]).pipe(Effect.as(CompletedSetupInert())),
+      ),
     )
 
     const maybeRestoreInert = OptionExt.when(
       model.isModal,
-      Task.restoreInert(model.id).pipe(
-        Effect.as(CompletedTeardownInert()),
-        Command.make('RestoreInert'),
+      RestoreInert(
+        Task.restoreInert(model.id).pipe(Effect.as(CompletedTeardownInert())),
       ),
     )
 
-    const focusButton = Task.focus(buttonSelector(model.id)).pipe(
-      Effect.ignore,
-      Effect.as(CompletedFocusButton()),
-      Command.make('FocusButton'),
+    const focusButton = FocusButton(
+      Task.focus(buttonSelector(model.id)).pipe(
+        Effect.ignore,
+        Effect.as(CompletedFocusButton()),
+      ),
     )
 
     return M.value(message).pipe(
@@ -344,10 +352,11 @@ export const makeUpdate = <Model extends BaseModel>(
                 maybeInertOthers,
               ]),
               Array.prepend(
-                Task.focus(itemsSelector(model.id)).pipe(
-                  Effect.ignore,
-                  Effect.as(CompletedFocusItems()),
-                  Command.make('FocusItems'),
+                FocusItems(
+                  Task.focus(itemsSelector(model.id)).pipe(
+                    Effect.ignore,
+                    Effect.as(CompletedFocusItems()),
+                  ),
                 ),
               ),
             ),
@@ -382,10 +391,11 @@ export const makeUpdate = <Model extends BaseModel>(
           }),
           activationTrigger === 'Keyboard'
             ? [
-                Task.scrollIntoView(itemSelector(model.id, index)).pipe(
-                  Effect.ignore,
-                  Effect.as(CompletedScrollIntoView()),
-                  Command.make('ScrollIntoView'),
+                ScrollIntoView(
+                  Task.scrollIntoView(itemSelector(model.id, index)).pipe(
+                    Effect.ignore,
+                    Effect.as(CompletedScrollIntoView()),
+                  ),
                 ),
               ]
             : [],
@@ -433,10 +443,11 @@ export const makeUpdate = <Model extends BaseModel>(
         RequestedItemClick: ({ index }) => [
           model,
           [
-            Task.clickElement(itemSelector(model.id, index)).pipe(
-              Effect.ignore,
-              Effect.as(CompletedClickItem()),
-              Command.make('ClickItem'),
+            ClickItem(
+              Task.clickElement(itemSelector(model.id, index)).pipe(
+                Effect.ignore,
+                Effect.as(CompletedClickItem()),
+              ),
             ),
           ],
         ],
@@ -456,9 +467,10 @@ export const makeUpdate = <Model extends BaseModel>(
                 ),
             }),
             [
-              Task.delay(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
-                Effect.as(ClearedSearch({ version: nextSearchVersion })),
-                Command.make('DelayClearSearch'),
+              DelayClearSearch(
+                Task.delay(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
+                  Effect.as(ClearedSearch({ version: nextSearchVersion })),
+                ),
               ),
             ],
           ]
@@ -480,9 +492,10 @@ export const makeUpdate = <Model extends BaseModel>(
                 transitionState: () => 'EnterAnimating' as const,
               }),
               [
-                Task.waitForTransitions(itemsSelector(model.id)).pipe(
-                  Effect.as(EndedTransition()),
-                  Command.make('WaitForTransitions'),
+                WaitForTransitions(
+                  Task.waitForTransitions(itemsSelector(model.id)).pipe(
+                    Effect.as(EndedTransition()),
+                  ),
                 ),
               ],
             ]),
@@ -491,14 +504,16 @@ export const makeUpdate = <Model extends BaseModel>(
                 transitionState: () => 'LeaveAnimating' as const,
               }),
               [
-                Effect.raceFirst(
-                  Task.detectElementMovement(buttonSelector(model.id)).pipe(
-                    Effect.as(DetectedButtonMovement()),
+                DetectMovementOrTransitionEnd(
+                  Effect.raceFirst(
+                    Task.detectElementMovement(buttonSelector(model.id)).pipe(
+                      Effect.as(DetectedButtonMovement()),
+                    ),
+                    Task.waitForTransitions(itemsSelector(model.id)).pipe(
+                      Effect.as(EndedTransition()),
+                    ),
                   ),
-                  Task.waitForTransitions(itemsSelector(model.id)).pipe(
-                    Effect.as(EndedTransition()),
-                  ),
-                ).pipe(Command.make('DetectMovementOrTransitionEnd')),
+                ),
               ],
             ]),
             M.orElse(() => [model, []]),
@@ -567,10 +582,11 @@ export const makeUpdate = <Model extends BaseModel>(
                 maybeInertOthers,
               ]),
               Array.prepend(
-                Task.focus(itemsSelector(model.id)).pipe(
-                  Effect.ignore,
-                  Effect.as(CompletedFocusItems()),
-                  Command.make('FocusItems'),
+                FocusItems(
+                  Task.focus(itemsSelector(model.id)).pipe(
+                    Effect.ignore,
+                    Effect.as(CompletedFocusItems()),
+                  ),
                 ),
               ),
             ),

@@ -21,9 +21,12 @@ Run through each category after generating an app. Fix any issues before present
 
 ## Commands
 
+- [ ] Every Command identity defined with `Command.define` and assigned to a PascalCase constant
+- [ ] No inline `Command.define` in pipe chains — always stored as a constant
+- [ ] Definitions colocated with the update that produces them
 - [ ] Every Command catches all errors: `Effect.catchAll(() => Effect.succeed(FailedX(...)))`
-- [ ] Return types are narrow: `Command<typeof A | typeof B>`, not `Command<Message>`
-- [ ] Variables named by action: `fetchWeather`, not `fetchWeatherCommand`
+- [ ] Return types inferred — no explicit `Command<typeof A>` annotations
+- [ ] Factory functions named by action: `fetchWeather`, not `fetchWeatherCommand`
 - [ ] Fire-and-forget Commands return `Completed*` Messages
 
 ## Naming

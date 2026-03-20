@@ -71,6 +71,8 @@ export const init = (config: InitConfig): Model => ({
 
 const optionId = (id: string, index: number): string => `${id}-option-${index}`
 
+const FocusOption = Command.define('FocusOption')
+
 /** Processes a radio group message and returns the next model and commands. */
 export const update = (
   model: Model,
@@ -85,10 +87,11 @@ export const update = (
         return [
           evo(model, { selectedValue: () => Option.some(value) }),
           [
-            Task.focus(selector).pipe(
-              Effect.ignore,
-              Effect.as(CompletedFocusOption()),
-              Command.make('FocusOption'),
+            FocusOption(
+              Task.focus(selector).pipe(
+                Effect.ignore,
+                Effect.as(CompletedFocusOption()),
+              ),
             ),
           ],
         ]

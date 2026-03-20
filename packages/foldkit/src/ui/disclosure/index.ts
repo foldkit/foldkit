@@ -64,6 +64,8 @@ const buttonSelector = (id: string): string => `#${CSS.escape(buttonId(id))}`
 
 const panelId = (id: string): string => `${id}-panel`
 
+const FocusButton = Command.define('FocusButton')
+
 /** Processes a disclosure message and returns the next model and commands. */
 export const update = (
   model: Model,
@@ -74,10 +76,11 @@ export const update = (
     M.tagsExhaustive({
       Toggled: () => {
         const maybeFocus = Option.liftPredicate(
-          Task.focus(buttonSelector(model.id)).pipe(
-            Effect.ignore,
-            Effect.as(CompletedFocusButton()),
-            Command.make('FocusButton'),
+          FocusButton(
+            Task.focus(buttonSelector(model.id)).pipe(
+              Effect.ignore,
+              Effect.as(CompletedFocusButton()),
+            ),
           ),
           () => model.isOpen,
         )
@@ -89,10 +92,11 @@ export const update = (
       },
       Closed: () => {
         const maybeFocus = Option.liftPredicate(
-          Task.focus(buttonSelector(model.id)).pipe(
-            Effect.ignore,
-            Effect.as(CompletedFocusButton()),
-            Command.make('FocusButton'),
+          FocusButton(
+            Task.focus(buttonSelector(model.id)).pipe(
+              Effect.ignore,
+              Effect.as(CompletedFocusButton()),
+            ),
           ),
           () => model.isOpen,
         )

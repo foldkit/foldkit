@@ -246,11 +246,13 @@ Every message must carry meaning. No `NoOp`.
 
 ### Commands
 
-- Return narrow types: `Command<typeof SucceededFetch | typeof FailedFetch>`, not `Command<Message>`
+- Define Command identities with `Command.define`, always assigned to PascalCase constants — never inline in pipe chains
+- Definitions live where they're produced, colocated with the update function
+- Let TypeScript infer return types — no explicit `Command<typeof A>` annotations
 - Use `Effect.gen` for multi-step async
 - Always `Effect.catchAll(() => Effect.succeed(FailedX(...)))` — Commands never throw
 - Use `Effect.provide` for services
-- Name by what they do: `fetchWeather`, not `fetchWeatherCommand`
+- Factory functions named by action: `fetchWeather`, not `fetchWeatherCommand`
 - Fire-and-forget Commands return `Completed*` Messages
 - Use `Task` helpers for DOM operations (`Task.focus`, `Task.scrollIntoView`, `Task.showModal`, `Task.delay`, etc.) — see Task Helpers in [architecture.md](architecture.md)
 - For HTTP requests, use `HttpClient` from `@effect/platform` — see the weather example for the pattern

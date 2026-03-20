@@ -227,12 +227,13 @@ const update = (
 
 // COMMAND
 
-const generateApplePosition = (
-  snake: Snake.Snake,
-): Command.Command<typeof GeneratedApplePosition> =>
-  Apple.generatePosition(snake).pipe(
-    Effect.map(position => GeneratedApplePosition({ position })),
-    Command.make('GenerateApplePosition'),
+const GenerateApplePosition = Command.define('GenerateApplePosition')
+
+const generateApplePosition = (snake: Snake.Snake) =>
+  GenerateApplePosition(
+    Apple.generatePosition(snake).pipe(
+      Effect.map(position => GeneratedApplePosition({ position })),
+    ),
   )
 
 // SUBSCRIPTION
