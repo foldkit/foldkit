@@ -23,3 +23,6 @@ Thumbs.db
 
 # TypeScript
 *.tsbuildinfo
+
+# Foldkit
+repos/
