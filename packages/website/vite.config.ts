@@ -336,6 +336,10 @@ const ChangedResetDuration = m('ChangedResetDuration', {
 const ClickedReset = m('ClickedReset')
 const CompletedReset = m('CompletedReset')
 
+// COMMAND
+
+const DelayReset = Command.define('DelayReset')
+
 // UPDATE
 
 M.tagsExhaustive({
@@ -349,8 +353,10 @@ M.tagsExhaustive({
   ],
   ClickedReset: () => [
     evo(model, { isResetting: () => true }),
-    [Task.delay(\`\${model.resetDuration} seconds\`).pipe(
-      Effect.as(CompletedReset()),
+    [DelayReset(
+      Task.delay(\`\${model.resetDuration} seconds\`).pipe(
+        Effect.as(CompletedReset()),
+      ),
     )],
   ],
   CompletedReset: () => [
@@ -461,20 +467,24 @@ class AudioContextService extends Effect.Service<AudioContextService>()(
 
 // COMMAND
 
-const playNote = (note, duration, noteIndex) =>
-  Effect.gen(function* () {
-    const audioContext = yield* AudioContextService
+const PlayNote = Command.define('PlayNote')
 
-    return yield* Effect.async(resume => {
-      const oscillator = audioContext.createOscillator()
-      oscillator.frequency.setValueAtTime(NOTE_FREQUENCIES[note])
-      oscillator.connect(audioContext.destination)
-      oscillator.start()
-      oscillator.stop(audioContext.currentTime + duration)
-      oscillator.onended = () =>
-        resume(Effect.succeed(PlayedNote({ noteIndex })))
-    })
-  })`
+const playNote = (note, duration, noteIndex) =>
+  PlayNote(
+    Effect.gen(function* () {
+      const audioContext = yield* AudioContextService
+
+      return yield* Effect.async(resume => {
+        const oscillator = audioContext.createOscillator()
+        oscillator.frequency.setValueAtTime(NOTE_FREQUENCIES[note])
+        oscillator.connect(audioContext.destination)
+        oscillator.start()
+        oscillator.stop(audioContext.currentTime + duration)
+        oscillator.onended = () =>
+          resume(Effect.succeed(PlayedNote({ noteIndex })))
+      })
+    }),
+  )`
 
 const notePlayerDemoCodePlugin = (): Plugin => ({
   name: 'note-player-demo-code',

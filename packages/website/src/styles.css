@@ -285,10 +285,10 @@
     border-left-color: theme(--color-emerald-400);
   }
 
-  .demo-code-panel[data-demo-phase='IncrementUpdate'] [data-line='21'],
-  .demo-code-panel[data-demo-phase='IncrementUpdate'] [data-line='22'],
-  .demo-code-panel[data-demo-phase='IncrementUpdate'] [data-line='23'],
-  .demo-code-panel[data-demo-phase='IncrementUpdate'] [data-line='24'] {
+  .demo-code-panel[data-demo-phase='IncrementUpdate'] [data-line='25'],
+  .demo-code-panel[data-demo-phase='IncrementUpdate'] [data-line='26'],
+  .demo-code-panel[data-demo-phase='IncrementUpdate'] [data-line='27'],
+  .demo-code-panel[data-demo-phase='IncrementUpdate'] [data-line='28'] {
     @apply bg-amber-500/15;
     border-left-color: theme(--color-amber-400);
   }
@@ -307,19 +307,24 @@
     border-left-color: theme(--color-emerald-400);
   }
 
-  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='29'],
-  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='30'],
-  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='31'],
-  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='32'],
   .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='33'],
-  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='34'] {
+  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='34'],
+  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='35'],
+  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='36'],
+  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='37'],
+  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='38'],
+  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='39'],
+  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='40'] {
     @apply bg-amber-500/15;
     border-left-color: theme(--color-amber-400);
   }
 
-  .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='31'],
-  .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='32'],
-  .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='33'] {
+  .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='20'],
+  .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='35'],
+  .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='36'],
+  .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='37'],
+  .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='38'],
+  .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='39'] {
     @apply bg-violet-500/15;
     border-left-color: theme(--color-violet-400);
     animation: demo-pulse 1s ease-in-out infinite;
@@ -330,10 +335,10 @@
     border-left-color: theme(--color-emerald-400);
   }
 
-  .demo-code-panel[data-demo-phase='ResetCommandUpdate'] [data-line='35'],
-  .demo-code-panel[data-demo-phase='ResetCommandUpdate'] [data-line='36'],
-  .demo-code-panel[data-demo-phase='ResetCommandUpdate'] [data-line='37'],
-  .demo-code-panel[data-demo-phase='ResetCommandUpdate'] [data-line='38'] {
+  .demo-code-panel[data-demo-phase='ResetCommandUpdate'] [data-line='41'],
+  .demo-code-panel[data-demo-phase='ResetCommandUpdate'] [data-line='42'],
+  .demo-code-panel[data-demo-phase='ResetCommandUpdate'] [data-line='43'],
+  .demo-code-panel[data-demo-phase='ResetCommandUpdate'] [data-line='44'] {
     @apply bg-amber-500/15;
     border-left-color: theme(--color-amber-400);
   }
@@ -429,7 +434,6 @@
   }
 
   .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='64'],
-  .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='65'],
   .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='66'],
   .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='67'],
   .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='68'],
@@ -441,7 +445,11 @@
   .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='74'],
   .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='75'],
   .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='76'],
-  .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='77'] {
+  .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='77'],
+  .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='78'],
+  .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='79'],
+  .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='80'],
+  .note-demo-code-panel[data-note-demo-phase='NoteCommand'] [data-line='81'] {
     @apply bg-violet-500/15;
     border-left-color: theme(--color-violet-400);
   }
