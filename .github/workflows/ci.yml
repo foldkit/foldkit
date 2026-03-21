@@ -36,6 +36,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Block unresolved Claude comments
+        run: pnpm check:no-claude-comments
+
       - name: Check formatting
         run: pnpm format:check
 
