@@ -1,6 +1,6 @@
 # foldkit
 
-## 1.1.0
+## 0.39.0
 
 ### Minor Changes
 
@@ -27,24 +27,14 @@
     )
   ```
 
-### Patch Changes
-
-- 2f72c9a: Remove unused `Class` import in tabs test file.
-
-## 1.0.0
-
-### Major Changes
-
 - a0fed13: Renamed `depsToStream` to `dependenciesToStream` in the Subscription type and `makeSubscriptions` API to follow the project convention of using full, unabbreviated names.
 
-  ### Migration
+  **Migration:**
 
   ```diff
   - depsToStream: (dependencies) => ...
   + dependenciesToStream: (dependencies) => ...
   ```
-
-### Minor Changes
 
 - 88f7b7a: Rename all Completed/Succeeded/Failed Messages to verb-first order
 
@@ -67,6 +57,10 @@
   - `CompletedOptionFocus` → `CompletedFocusOption`
 
   **Migration:** Update all references to the old names.
+
+### Patch Changes
+
+- 2f72c9a: Remove unused `Class` import in tabs test file.
 
 ## 0.38.0
 
