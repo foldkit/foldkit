@@ -58,6 +58,10 @@ jobs:
         if: github.event_name == 'pull_request'
         run: pnpm check:skill-version
 
+      - name: Block major changesets (pre-1.0)
+        if: github.event_name == 'pull_request'
+        run: pnpm check:no-major-changesets
+
       - name: Check changeset status
         if: github.event_name == 'pull_request'
         run: pnpm changeset status --since=origin/main
