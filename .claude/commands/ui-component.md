@@ -50,6 +50,7 @@ Enter plan mode and design the component following these integration touchpoints
 - Disabled items: no event handlers, `AriaDisabled(true)`, `DataAttribute('disabled', '')`
 - Extract keyboard handlers into named functions at the view level
 - Use `keyed` for all elements that need stable identity across renders
+- Never use `as` type casting. If there's a type error, fix the root cause.
 
 ## Verification
 
