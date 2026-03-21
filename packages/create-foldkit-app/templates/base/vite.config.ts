@@ -4,4 +4,7 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [tailwindcss(), foldkit()],
+  optimizeDeps: {
+    entries: ['src/main.ts', '!**/repos/**'],
+  },
 })
