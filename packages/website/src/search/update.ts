@@ -12,7 +12,7 @@ import { GotSearchDialogMessage, type Message } from './message'
 import type { Model } from './model'
 import { Idle, Loading, Ok, resultsFromState } from './model'
 
-export type UpdateReturn = [
+export type UpdateReturn = readonly [
   Model,
   ReadonlyArray<Command.Command<Message, never, PagefindService>>,
 ]
@@ -136,6 +136,6 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       CompletedNavigateSearch: () => [model, []],
-      CompletedScrollResult: () => [model, []],
+      CompletedScrollToResult: () => [model, []],
     }),
   )

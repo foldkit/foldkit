@@ -242,17 +242,34 @@ export type SelectedItemContext = Readonly<{
 }>
 
 /** Creates a combobox update function from variant-specific handlers. Shared logic (open, close, activate, transition) is handled internally; only close, selection, and immediate-activation behavior varies by variant. */
-const RequestFrame = Command.define('RequestFrame')
-const LockScroll = Command.define('LockScroll')
-const UnlockScroll = Command.define('UnlockScroll')
-const InertOthers = Command.define('InertOthers')
-const RestoreInert = Command.define('RestoreInert')
-const FocusInput = Command.define('FocusInput')
-const ScrollIntoView = Command.define('ScrollIntoView')
-const ClickItem = Command.define('ClickItem')
-const WaitForTransitions = Command.define('WaitForTransitions')
-const DetectMovementOrTransitionEnd = Command.define(
+export const RequestFrame = Command.define(
+  'RequestFrame',
+  AdvancedTransitionFrame,
+)
+export const LockScroll = Command.define('LockScroll', CompletedLockScroll)
+export const UnlockScroll = Command.define(
+  'UnlockScroll',
+  CompletedUnlockScroll,
+)
+export const InertOthers = Command.define('InertOthers', CompletedSetupInert)
+export const RestoreInert = Command.define(
+  'RestoreInert',
+  CompletedTeardownInert,
+)
+export const FocusInput = Command.define('FocusInput', CompletedFocusInput)
+export const ScrollIntoView = Command.define(
+  'ScrollIntoView',
+  CompletedScrollIntoView,
+)
+export const ClickItem = Command.define('ClickItem', CompletedClickItem)
+export const WaitForTransitions = Command.define(
+  'WaitForTransitions',
+  EndedTransition,
+)
+export const DetectMovementOrTransitionEnd = Command.define(
   'DetectMovementOrTransitionEnd',
+  DetectedInputMovement,
+  EndedTransition,
 )
 
 export const makeUpdate = <Model extends BaseModel>(
@@ -271,7 +288,7 @@ export const makeUpdate = <Model extends BaseModel>(
     ) => Model
   }>,
 ) => {
-  type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
+  type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
   const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
   return (model: Model, message: Message): UpdateReturn => {

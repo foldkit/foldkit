@@ -79,13 +79,17 @@ const init: Runtime.ElementInit<Model, Message> = () => {
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command.Command<Message>>] =>
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
+    M.withReturnType<
+      readonly [Model, ReadonlyArray<Command.Command<Message>>]
+    >(),
     M.tagsExhaustive({
       PressedKey: ({ key }) =>
         M.value(key).pipe(
-          M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
+          M.withReturnType<
+            readonly [Model, ReadonlyArray<Command.Command<Message>>]
+          >(),
           M.whenOr(
             'ArrowUp',
             'ArrowDown',
@@ -227,7 +231,10 @@ const update = (
 
 // COMMAND
 
-const GenerateApplePosition = Command.define('GenerateApplePosition')
+const GenerateApplePosition = Command.define(
+  'GenerateApplePosition',
+  GeneratedApplePosition,
+)
 
 const generateApplePosition = (snake: Snake.Snake) =>
   GenerateApplePosition(

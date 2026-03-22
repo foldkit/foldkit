@@ -1,9 +1,13 @@
 import { Effect } from 'effect'
 import { Command, Task } from 'foldkit'
 
-const GetTime = Command.define('GetTime')
-const GetZonedTime = Command.define('GetZonedTime')
-const GetNyTime = Command.define('GetNyTime')
+const GetTime = Command.define('GetTime', GotTime)
+const GetZonedTime = Command.define('GetZonedTime', GotZonedTime)
+const GetNyTime = Command.define(
+  'GetNyTime',
+  SucceededGetNyTime,
+  FailedGetTimeZone,
+)
 
 const getTime = GetTime(Task.getTime.pipe(Effect.map(utc => GotTime({ utc }))))
 
@@ -13,7 +17,7 @@ const getZonedTime = GetZonedTime(
 
 const getNyTime = GetNyTime(
   Task.getZonedTimeIn('America/New_York').pipe(
-    Effect.map(zoned => GotNyTime({ zoned })),
+    Effect.map(zoned => SucceededGetNyTime({ zoned })),
     Effect.catchAll(() => Effect.succeed(FailedGetTimeZone())),
   ),
 )

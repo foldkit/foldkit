@@ -86,13 +86,19 @@ export const init = (config: InitConfig): Model => ({
 const dialogSelector = (id: string): string => `#${id}`
 const panelSelector = (id: string): string => `#${id}-panel`
 
-type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-const RequestFrame = Command.define('RequestFrame')
-const ShowDialog = Command.define('ShowDialog')
-const CloseDialog = Command.define('CloseDialog')
-const WaitForTransitions = Command.define('WaitForTransitions')
+export const RequestFrame = Command.define(
+  'RequestFrame',
+  AdvancedTransitionFrame,
+)
+export const ShowDialog = Command.define('ShowDialog', CompletedShowDialog)
+export const CloseDialog = Command.define('CloseDialog', CompletedCloseDialog)
+export const WaitForTransitions = Command.define(
+  'WaitForTransitions',
+  EndedTransition,
+)
 
 /** Processes a dialog message and returns the next model and commands. */
 export const update = (model: Model, message: Message): UpdateReturn => {

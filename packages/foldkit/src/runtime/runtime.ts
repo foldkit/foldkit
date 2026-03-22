@@ -175,14 +175,14 @@ type RuntimeConfig<
   init: (
     flags: Flags,
     url?: Url,
-  ) => [
+  ) => readonly [
     Model,
     ReadonlyArray<Command<Message, never, Resources | ManagedResourceServices>>,
   ]
   update: (
     model: Model,
     message: Message,
-  ) => [
+  ) => readonly [
     Model,
     ReadonlyArray<Command<Message, never, Resources | ManagedResourceServices>>,
   ]
@@ -228,7 +228,7 @@ type BaseElementConfig<
   update: (
     model: Model,
     message: Message,
-  ) => [
+  ) => readonly [
     Model,
     ReadonlyArray<Command<Message, never, Resources | ManagedResourceServices>>,
   ]
@@ -267,7 +267,7 @@ export type ElementConfigWithFlags<
     flags: Effect.Effect<Flags>
     init: (
       flags: Flags,
-    ) => [
+    ) => readonly [
       Model,
       ReadonlyArray<
         Command<Message, never, Resources | ManagedResourceServices>
@@ -290,7 +290,7 @@ export type ElementConfigWithoutFlags<
   ManagedResourceServices
 > &
   Readonly<{
-    init: () => [
+    init: () => readonly [
       Model,
       ReadonlyArray<
         Command<Message, never, Resources | ManagedResourceServices>
@@ -309,7 +309,7 @@ type BaseApplicationConfig<
   update: (
     model: Model,
     message: Message,
-  ) => [
+  ) => readonly [
     Model,
     ReadonlyArray<Command<Message, never, Resources | ManagedResourceServices>>,
   ]
@@ -350,7 +350,7 @@ export type ApplicationConfigWithFlags<
     init: (
       flags: Flags,
       url: Url,
-    ) => [
+    ) => readonly [
       Model,
       ReadonlyArray<
         Command<Message, never, Resources | ManagedResourceServices>
@@ -375,7 +375,7 @@ export type ApplicationConfigWithoutFlags<
   Readonly<{
     init: (
       url: Url,
-    ) => [
+    ) => readonly [
       Model,
       ReadonlyArray<
         Command<Message, never, Resources | ManagedResourceServices>
@@ -391,7 +391,7 @@ export type ElementInit<
   Resources = never,
   ManagedResourceServices = never,
 > = Flags extends void
-  ? () => [
+  ? () => readonly [
       Model,
       ReadonlyArray<
         Command<Message, never, Resources | ManagedResourceServices>
@@ -399,7 +399,7 @@ export type ElementInit<
     ]
   : (
       flags: Flags,
-    ) => [
+    ) => readonly [
       Model,
       ReadonlyArray<
         Command<Message, never, Resources | ManagedResourceServices>
@@ -416,7 +416,7 @@ export type ApplicationInit<
 > = Flags extends void
   ? (
       url: Url,
-    ) => [
+    ) => readonly [
       Model,
       ReadonlyArray<
         Command<Message, never, Resources | ManagedResourceServices>
@@ -425,7 +425,7 @@ export type ApplicationInit<
   : (
       flags: Flags,
       url: Url,
-    ) => [
+    ) => readonly [
       Model,
       ReadonlyArray<
         Command<Message, never, Resources | ManagedResourceServices>

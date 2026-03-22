@@ -32,7 +32,7 @@ import {
   BlurredUsernameInput,
   ChangedRoomId,
   ChangedUsername,
-  ClickedJoinRoom,
+  SubmittedJoinRoomForm,
   SubmittedUsernameForm,
 } from './message'
 import type { Message } from './message'
@@ -144,7 +144,7 @@ const enterRoomId =
   (toMessage: (message: Message) => ParentMessage) =>
   ({ roomId }: EnterRoomId): Html =>
     form(
-      [OnSubmit(toMessage(ClickedJoinRoom()))],
+      [OnSubmit(toMessage(SubmittedJoinRoomForm()))],
       [
         div(
           [Class('flex items-center gap-2')],

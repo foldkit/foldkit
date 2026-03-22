@@ -10,14 +10,20 @@ const FailedFetchCount = m('FailedFetchCount', {
   error: S.String,
 })
 
-const FetchCount = Command.define('FetchCount')
+const FetchCount = Command.define(
+  'FetchCount',
+  SucceededFetchCount,
+  FailedFetchCount,
+)
 
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command.Command<Message>>] =>
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
+    M.withReturnType<
+      readonly [Model, ReadonlyArray<Command.Command<Message>>]
+    >(),
     M.tagsExhaustive({
       ClickedFetchCount: () => [model, [fetchCount]],
       SucceededFetchCount: ({ count }) => [Model({ count }), []],

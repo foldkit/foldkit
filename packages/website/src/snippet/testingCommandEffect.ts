@@ -2,29 +2,7 @@ import { HttpClient, HttpClientResponse } from '@effect/platform'
 import { Effect, Layer, Match as M, String } from 'effect'
 import { expect, test } from 'vitest'
 
-import {
-  Model,
-  SubmittedWeatherForm,
-  WeatherInit,
-  fetchWeather,
-  update,
-} from './main'
-
-const createModel = (): Model => ({
-  zipCodeInput: '90210',
-  weather: WeatherInit(),
-})
-
-test('SubmittedWeatherForm sets loading state and returns fetch Command', () => {
-  const model = createModel()
-
-  const [newModel, commands] = update(model, SubmittedWeatherForm())
-
-  expect(newModel.weather._tag).toBe('WeatherLoading')
-  expect(commands).toHaveLength(1)
-})
-
-test('fetchWeather returns SucceededFetchWeather with data on success', async () => {
+test('fetchWeather returns SucceededFetchWeather on success', async () => {
   const mockClient = HttpClient.make(request =>
     Effect.sync(() => {
       const responseData = M.value(request.url).pipe(

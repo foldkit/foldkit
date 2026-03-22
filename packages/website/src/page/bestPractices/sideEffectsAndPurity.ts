@@ -17,6 +17,7 @@ import {
   coreManagedResourcesRouter,
   coreResourcesRouter,
   coreSubscriptionsRouter,
+  testingRouter,
 } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
@@ -57,12 +58,6 @@ const updateIsPureHeader: TableOfContentsEntry = {
   text: 'Update is Pure',
 }
 
-const testingUpdateHeader: TableOfContentsEntry = {
-  level: 'h3',
-  id: 'testing-update',
-  text: 'Testing Update Functions',
-}
-
 const requestingValuesHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'requesting-values',
@@ -88,7 +83,6 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   pureFunctionsHeader,
   viewIsPureHeader,
   updateIsPureHeader,
-  testingUpdateHeader,
   requestingValuesHeader,
   dontComputeInUpdateHeader,
   requestViaCommandHeader,
@@ -325,28 +319,12 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         copiedSnippets,
         'mb-8',
       ),
-      tableOfContentsEntryToHeader(testingUpdateHeader),
       para(
-        'Foldkit\u2019s pure update model makes testing painless because state transitions are just function calls \u2014 pass in a Model and Message, assert on the returned Model. Commands carry names, so you can assert which ones were produced: ',
-        inlineCode("expect(commands[0].name).toBe('FetchWeather')"),
-        '. And because Commands are Effects with explicit dependencies, you can swap in mocks without reaching for libraries like ',
-        link(Link.msw, 'msw'),
-        ' or stubbing globals:',
-      ),
-      highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.testingUpdateHighlighted)],
-          [],
-        ),
-        Snippets.testingUpdateRaw,
-        'Copy testing example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      para(
-        'See the ',
-        link(Link.exampleWeatherTests, 'Weather example tests'),
-        ' for a complete implementation.',
+        'This purity has a practical payoff: testing is trivial. Foldkit ships ',
+        inlineCode('foldkit/test'),
+        ' \u2014 a simulation module that lets you send Messages, declare Command resolvers, and assert on the Model in a single pipe chain. See the ',
+        link(testingRouter(), 'Testing'),
+        ' guide for the full API.',
       ),
       tableOfContentsEntryToHeader(requestingValuesHeader),
       para(

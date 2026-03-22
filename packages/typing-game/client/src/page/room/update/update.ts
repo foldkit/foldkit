@@ -33,10 +33,16 @@ import { Model, RoomRemoteData } from '../model'
 import { validateUserTextInput } from '../userGameText'
 import { handleRoomUpdated } from './handleRoomUpdates'
 
-const FocusRoomUsernameInput = Command.define('FocusRoomUsernameInput')
-const NavigateHome = Command.define('NavigateHome')
+const FocusRoomUsernameInput = Command.define(
+  'FocusRoomUsernameInput',
+  CompletedFocusRoomPageUsernameInput,
+)
+const NavigateHome = Command.define('NavigateHome', CompletedNavigateHome)
 
-export type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
+export type UpdateReturn = readonly [
+  Model,
+  ReadonlyArray<Command.Command<Message>>,
+]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 export const update = (model: Model, message: Message): UpdateReturn =>
@@ -219,7 +225,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ]
       },
 
-      JoinedRoom: ({ roomId, player }) => {
+      SucceededJoinRoom: ({ roomId, player }) => {
         const session = { roomId, player }
         return [
           evo(model, {

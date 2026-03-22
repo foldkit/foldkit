@@ -64,9 +64,11 @@ type Message = typeof Message.Type
 export const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command.Command<Message>>] =>
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
+    M.withReturnType<
+      readonly [Model, ReadonlyArray<Command.Command<Message>>]
+    >(),
     M.tagsExhaustive({
       UpdatedZipCodeInput: ({ value }) => [
         evo(model, {
@@ -110,7 +112,11 @@ const init: Runtime.ElementInit<Model, Message> = () => [
 
 // COMMAND
 
-const FetchWeather = Command.define('FetchWeather')
+export const FetchWeather = Command.define(
+  'FetchWeather',
+  SucceededFetchWeather,
+  FailedFetchWeather,
+)
 
 const GEOCODING_API = 'https://geocoding-api.open-meteo.com/v1/search'
 const WEATHER_API = 'https://api.open-meteo.com/v1/forecast'

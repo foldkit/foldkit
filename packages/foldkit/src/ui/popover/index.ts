@@ -139,19 +139,33 @@ const closedModel = (model: Model): Model =>
 const buttonSelector = (id: string): string => `#${id}-button`
 const panelSelector = (id: string): string => `#${id}-panel`
 
-type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-const RequestFrame = Command.define('RequestFrame')
-const LockScroll = Command.define('LockScroll')
-const UnlockScroll = Command.define('UnlockScroll')
-const InertOthers = Command.define('InertOthers')
-const RestoreInert = Command.define('RestoreInert')
-const FocusPanel = Command.define('FocusPanel')
-const FocusButton = Command.define('FocusButton')
-const WaitForTransitions = Command.define('WaitForTransitions')
-const DetectMovementOrTransitionEnd = Command.define(
+export const RequestFrame = Command.define(
+  'RequestFrame',
+  AdvancedTransitionFrame,
+)
+export const LockScroll = Command.define('LockScroll', CompletedLockScroll)
+export const UnlockScroll = Command.define(
+  'UnlockScroll',
+  CompletedUnlockScroll,
+)
+export const InertOthers = Command.define('InertOthers', CompletedSetupInert)
+export const RestoreInert = Command.define(
+  'RestoreInert',
+  CompletedTeardownInert,
+)
+export const FocusPanel = Command.define('FocusPanel', CompletedFocusPanel)
+export const FocusButton = Command.define('FocusButton', CompletedFocusButton)
+export const WaitForTransitions = Command.define(
+  'WaitForTransitions',
+  EndedTransition,
+)
+export const DetectMovementOrTransitionEnd = Command.define(
   'DetectMovementOrTransitionEnd',
+  DetectedButtonMovement,
+  EndedTransition,
 )
 
 /** Processes a popover message and returns the next model and commands. */

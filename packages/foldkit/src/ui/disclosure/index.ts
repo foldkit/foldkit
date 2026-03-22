@@ -64,15 +64,17 @@ const buttonSelector = (id: string): string => `#${CSS.escape(buttonId(id))}`
 
 const panelId = (id: string): string => `${id}-panel`
 
-const FocusButton = Command.define('FocusButton')
+export const FocusButton = Command.define('FocusButton', CompletedFocusButton)
 
 /** Processes a disclosure message and returns the next model and commands. */
 export const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command.Command<Message>>] =>
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
+    M.withReturnType<
+      readonly [Model, ReadonlyArray<Command.Command<Message>>]
+    >(),
     M.tagsExhaustive({
       Toggled: () => {
         const maybeFocus = Option.liftPredicate(

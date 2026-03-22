@@ -7,7 +7,10 @@ const StringField = makeField(S.String)
 
 const validateEmail = StringField.validate(emailValidations)
 
-const CheckEmailAvailable = Command.define('CheckEmailAvailable')
+const CheckEmailAvailable = Command.define(
+  'CheckEmailAvailable',
+  ValidatedEmail,
+)
 
 const checkEmailAvailable = (email: string, validationId: number) =>
   CheckEmailAvailable(

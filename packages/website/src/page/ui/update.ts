@@ -30,7 +30,10 @@ import {
 } from './message'
 import type { Model } from './model'
 
-export type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
+export type UpdateReturn = readonly [
+  Model,
+  ReadonlyArray<Command.Command<Message>>,
+]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 export const update = (model: Model, message: Message): UpdateReturn =>

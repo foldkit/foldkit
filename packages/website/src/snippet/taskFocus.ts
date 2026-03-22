@@ -1,8 +1,8 @@
 import { Effect } from 'effect'
 import { Command, Task } from 'foldkit'
 
-const FocusEmailInput = Command.define('FocusEmailInput')
-const RollDice = Command.define('RollDice')
+const FocusEmailInput = Command.define('FocusEmailInput', Focused)
+const RollDice = Command.define('RollDice', RolledDice)
 
 const focusEmailInput = FocusEmailInput(
   Task.focus('#email-input').pipe(Effect.ignore, Effect.as(Focused())),

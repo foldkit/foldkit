@@ -71,15 +71,17 @@ export const init = (config: InitConfig): Model => ({
 
 const optionId = (id: string, index: number): string => `${id}-option-${index}`
 
-const FocusOption = Command.define('FocusOption')
+export const FocusOption = Command.define('FocusOption', CompletedFocusOption)
 
 /** Processes a radio group message and returns the next model and commands. */
 export const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command.Command<Message>>] =>
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
+    M.withReturnType<
+      readonly [Model, ReadonlyArray<Command.Command<Message>>]
+    >(),
     M.tagsExhaustive({
       SelectedOption: ({ value, index }) => {
         const selector = `#${optionId(model.id, index)}`

@@ -22,6 +22,7 @@ Run through each category after generating an app. Fix any issues before present
 ## Commands
 
 - [ ] Every Command identity defined with `Command.define` and assigned to a PascalCase constant
+- [ ] Every `Command.define` includes result Message schemas after the name
 - [ ] No inline `Command.define` in pipe chains — always stored as a constant
 - [ ] Definitions colocated with the update that produces them
 - [ ] Every Command catches all errors: `Effect.catchAll(() => Effect.succeed(FailedX(...)))`

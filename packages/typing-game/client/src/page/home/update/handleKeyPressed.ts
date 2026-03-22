@@ -18,10 +18,16 @@ import {
   SelectAction,
 } from '../model'
 
-const FocusRoomIdInput = Command.define('FocusRoomIdInput')
-const FocusUsernameInput = Command.define('FocusUsernameInput')
+export const FocusRoomIdInput = Command.define(
+  'FocusRoomIdInput',
+  CompletedFocusRoomIdInput,
+)
+export const FocusUsernameInput = Command.define(
+  'FocusUsernameInput',
+  CompletedFocusUsernameInput,
+)
 
-type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 export const handleKeyPressed =

@@ -66,11 +66,11 @@ export const initModel = (): Model => ({
 
 // MESSAGE
 
-const ChangedEmail = m('ChangedEmail', { value: S.String })
-const ChangedPassword = m('ChangedPassword', { value: S.String })
-const ClickedSubmit = m('ClickedSubmit')
-const SucceededAuth = m('SucceededAuth', { session: Session })
-const FailedAuth = m('FailedAuth', { error: S.String })
+export const ChangedEmail = m('ChangedEmail', { value: S.String })
+export const ChangedPassword = m('ChangedPassword', { value: S.String })
+export const ClickedSubmit = m('ClickedSubmit')
+export const SucceededAuth = m('SucceededAuth', { session: Session })
+export const FailedAuth = m('FailedAuth', { error: S.String })
 
 export const Message = S.Union(
   ChangedEmail,
@@ -106,14 +106,18 @@ const isFormValid = (model: Model): boolean =>
 
 // UPDATE
 
-type UpdateReturn = [
+type UpdateReturn = readonly [
   Model,
   ReadonlyArray<Command.Command<Message>>,
   Option.Option<OutMessage>,
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-const SimulateAuthRequest = Command.define('SimulateAuthRequest')
+export const SimulateAuthRequest = Command.define(
+  'SimulateAuthRequest',
+  SucceededAuth,
+  FailedAuth,
+)
 
 const simulateAuthRequest = (email: string, password: string) =>
   SimulateAuthRequest(

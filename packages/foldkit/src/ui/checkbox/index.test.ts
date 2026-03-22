@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import * as Test from '../../test'
 import { Toggled, init, update } from './index'
 
 describe('Checkbox', () => {
@@ -21,17 +22,25 @@ describe('Checkbox', () => {
 
   describe('update', () => {
     it('toggles from unchecked to checked on Toggled', () => {
-      const model = init({ id: 'test' })
-      const [result, commands] = update(model, Toggled())
-      expect(result.isChecked).toBe(true)
-      expect(commands).toHaveLength(0)
+      Test.story(
+        update,
+        Test.with(init({ id: 'test' })),
+        Test.message(Toggled()),
+        Test.tap(({ model }) => {
+          expect(model.isChecked).toBe(true)
+        }),
+      )
     })
 
     it('toggles from checked to unchecked on Toggled', () => {
-      const model = init({ id: 'test', isChecked: true })
-      const [result, commands] = update(model, Toggled())
-      expect(result.isChecked).toBe(false)
-      expect(commands).toHaveLength(0)
+      Test.story(
+        update,
+        Test.with(init({ id: 'test', isChecked: true })),
+        Test.message(Toggled()),
+        Test.tap(({ model }) => {
+          expect(model.isChecked).toBe(false)
+        }),
+      )
     })
   })
 })

@@ -1,7 +1,14 @@
 import { Option } from 'effect'
 import { describe, expect, it } from 'vitest'
 
-import { CompletedFocusOption, SelectedOption, init, update } from './index'
+import * as Test from '../../test'
+import {
+  CompletedFocusOption,
+  FocusOption,
+  SelectedOption,
+  init,
+  update,
+} from './index'
 
 describe('RadioGroup', () => {
   describe('init', () => {
@@ -32,50 +39,57 @@ describe('RadioGroup', () => {
 
   describe('update', () => {
     it('sets selectedValue on SelectedOption', () => {
-      const model = init({ id: 'test' })
-      const [result] = update(
-        model,
-        SelectedOption({ value: 'startup', index: 0 }),
+      Test.story(
+        update,
+        Test.with(init({ id: 'test' })),
+        Test.message(SelectedOption({ value: 'startup', index: 0 })),
+        Test.resolve(FocusOption, CompletedFocusOption()),
+        Test.tap(({ model }) => {
+          expect(model.selectedValue).toStrictEqual(Option.some('startup'))
+        }),
       )
-      expect(result.selectedValue).toStrictEqual(Option.some('startup'))
     })
 
     it('replaces selectedValue on subsequent SelectedOption', () => {
-      const model = init({ id: 'test', selectedValue: 'startup' })
-      const [result] = update(
-        model,
-        SelectedOption({ value: 'enterprise', index: 2 }),
+      Test.story(
+        update,
+        Test.with(init({ id: 'test', selectedValue: 'startup' })),
+        Test.message(SelectedOption({ value: 'enterprise', index: 2 })),
+        Test.resolve(FocusOption, CompletedFocusOption()),
+        Test.tap(({ model }) => {
+          expect(model.selectedValue).toStrictEqual(Option.some('enterprise'))
+        }),
       )
-      expect(result.selectedValue).toStrictEqual(Option.some('enterprise'))
     })
 
     it('preserves other model fields on SelectedOption', () => {
-      const model = init({
-        id: 'test',
-        orientation: 'Horizontal',
-      })
-      const [result] = update(
-        model,
-        SelectedOption({ value: 'startup', index: 0 }),
+      Test.story(
+        update,
+        Test.with(
+          init({
+            id: 'test',
+            orientation: 'Horizontal',
+          }),
+        ),
+        Test.message(SelectedOption({ value: 'startup', index: 0 })),
+        Test.resolve(FocusOption, CompletedFocusOption()),
+        Test.tap(({ model }) => {
+          expect(model.id).toBe('test')
+          expect(model.orientation).toBe('Horizontal')
+        }),
       )
-      expect(result.id).toBe('test')
-      expect(result.orientation).toBe('Horizontal')
-    })
-
-    it('returns a focus command on SelectedOption', () => {
-      const model = init({ id: 'test' })
-      const [, commands] = update(
-        model,
-        SelectedOption({ value: 'startup', index: 0 }),
-      )
-      expect(commands).toHaveLength(1)
     })
 
     it('returns same model reference on CompletedFocusOption', () => {
-      const model = init({ id: 'test' })
-      const [result, commands] = update(model, CompletedFocusOption())
-      expect(result).toBe(model)
-      expect(commands).toHaveLength(0)
+      const originalModel = init({ id: 'test' })
+      Test.story(
+        update,
+        Test.with(originalModel),
+        Test.message(CompletedFocusOption()),
+        Test.tap(({ model }) => {
+          expect(model).toBe(originalModel)
+        }),
+      )
     })
   })
 })

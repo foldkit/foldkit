@@ -11,16 +11,20 @@ import {
   CompletedFocusUsernameInput,
   Message,
   type OutMessage,
-  SucceededCreateRoom,
-  SucceededJoinRoom,
 } from '../message'
 import { EnterRoomId, EnterUsername, Model, SelectAction } from '../model'
 import { handleKeyPressed } from './handleKeyPressed'
 
-const FocusUsernameInput = Command.define('FocusUsernameInput')
-const FocusRoomIdInput = Command.define('FocusRoomIdInput')
+const FocusUsernameInput = Command.define(
+  'FocusUsernameInput',
+  CompletedFocusUsernameInput,
+)
+const FocusRoomIdInput = Command.define(
+  'FocusRoomIdInput',
+  CompletedFocusRoomIdInput,
+)
 
-export type UpdateReturn = [
+export type UpdateReturn = readonly [
   Model,
   ReadonlyArray<Command.Command<Message>>,
   Option.Option<OutMessage>,
@@ -125,7 +129,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           M.orElse(() => [model, [], Option.none()]),
         ),
 
-      ClickedJoinRoom: () =>
+      SubmittedJoinRoomForm: () =>
         M.value(model.homeStep).pipe(
           withUpdateReturn,
           M.tag('EnterRoomId', ({ username, roomId }) => {
@@ -149,19 +153,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           M.orElse(() => [model, [], Option.none()]),
         ),
 
-      CreatedRoom: ({ roomId, player }) => [
-        model,
-        [],
-        Option.some(SucceededCreateRoom({ roomId, player })),
-      ],
+      SucceededCreateRoom: outMessage => [model, [], Option.some(outMessage)],
 
-      JoinedRoom: ({ roomId, player }) => [
-        model,
-        [],
-        Option.some(SucceededJoinRoom({ roomId, player })),
-      ],
+      SucceededJoinRoom: outMessage => [model, [], Option.some(outMessage)],
 
-      FailedEnterRoom: ({ error }) => [
+      FailedJoinRoom: ({ error }) => [
         evo(model, {
           formError: () => Option.some(error),
         }),

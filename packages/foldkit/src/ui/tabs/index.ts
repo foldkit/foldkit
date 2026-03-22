@@ -85,15 +85,17 @@ export const init = (config: InitConfig): Model => {
 
 // UPDATE
 
-const FocusTab = Command.define('FocusTab')
+export const FocusTab = Command.define('FocusTab', CompletedFocusTab)
 
 /** Processes a tabs message and returns the next model and commands. */
 export const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command.Command<Message>>] =>
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
+    M.withReturnType<
+      readonly [Model, ReadonlyArray<Command.Command<Message>>]
+    >(),
     M.tagsExhaustive({
       TabSelected: ({ index }) => {
         const tabSelector = `#${tabId(model.id, index)}`

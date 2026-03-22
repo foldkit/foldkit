@@ -10,16 +10,16 @@ export const BlurredUsernameInput = m('BlurredUsernameInput')
 export const ChangedRoomId = m('ChangedRoomId', { value: S.String })
 export const BlurredRoomIdInput = m('BlurredRoomIdInput')
 export const ClickedCreateRoom = m('ClickedCreateRoom')
-export const ClickedJoinRoom = m('ClickedJoinRoom')
-export const CreatedRoom = m('CreatedRoom', {
+export const SubmittedJoinRoomForm = m('SubmittedJoinRoomForm')
+export const SucceededCreateRoom = m('SucceededCreateRoom', {
   roomId: S.String,
   player: Shared.Player,
 })
-export const JoinedRoom = m('JoinedRoom', {
+export const SucceededJoinRoom = m('SucceededJoinRoom', {
   roomId: S.String,
   player: Shared.Player,
 })
-export const FailedEnterRoom = m('FailedEnterRoom', { error: S.String })
+export const FailedJoinRoom = m('FailedJoinRoom', { error: S.String })
 export const PressedKey = m('PressedKey', { key: S.String })
 
 export const Message = S.Union(
@@ -31,24 +31,15 @@ export const Message = S.Union(
   ChangedRoomId,
   BlurredRoomIdInput,
   ClickedCreateRoom,
-  ClickedJoinRoom,
-  CreatedRoom,
-  JoinedRoom,
-  FailedEnterRoom,
+  SubmittedJoinRoomForm,
+  SucceededCreateRoom,
+  SucceededJoinRoom,
+  FailedJoinRoom,
   PressedKey,
 )
 export type Message = typeof Message.Type
 
 // OUT MESSAGE
-
-export const SucceededCreateRoom = m('SucceededCreateRoom', {
-  roomId: S.String,
-  player: Shared.Player,
-})
-export const SucceededJoinRoom = m('SucceededJoinRoom', {
-  roomId: S.String,
-  player: Shared.Player,
-})
 
 export const OutMessage = S.Union(SucceededCreateRoom, SucceededJoinRoom)
 export type OutMessage = typeof OutMessage.Type

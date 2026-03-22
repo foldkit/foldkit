@@ -24,7 +24,7 @@ export const GotSearchDialogMessage = m('GotSearchDialogMessage', {
 })
 export const ClearedSearchQuery = m('ClearedSearchQuery')
 export const CompletedNavigateSearch = m('CompletedNavigateSearch')
-export const CompletedScrollResult = m('CompletedScrollResult')
+export const CompletedScrollToResult = m('CompletedScrollToResult')
 export const PressedArrowKey = m('PressedArrowKey', {
   direction: S.Literal('Up', 'Down'),
 })
@@ -36,7 +36,7 @@ export const Message = S.Union(
   GotSearchDialogMessage,
   ClearedSearchQuery,
   CompletedNavigateSearch,
-  CompletedScrollResult,
+  CompletedScrollToResult,
   PressedArrowKey,
 )
 export type Message = typeof Message.Type

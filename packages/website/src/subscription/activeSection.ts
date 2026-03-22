@@ -28,6 +28,7 @@ export const activeSection: Subscription<
         M.tag('ComingFromReact', () => Page.ComingFromReact.tableOfContents),
         M.tag('RoutingAndNavigation', () => Page.Routing.tableOfContents),
         M.tag('FieldValidation', () => Page.FieldValidation.tableOfContents),
+        M.tag('Testing', () => Page.Testing.tableOfContents),
         M.tag(
           'BestPracticesSideEffects',
           () => Page.BestPractices.SideEffectsAndPurity.tableOfContents,

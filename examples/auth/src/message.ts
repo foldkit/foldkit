@@ -12,9 +12,9 @@ export const CompletedLogError = m('CompletedLogError')
 export const ClickedLink = m('ClickedLink', { request: Runtime.UrlRequest })
 export const ChangedUrl = m('ChangedUrl', { url: Url })
 export const LoadedSession = m('LoadedSession', { session: S.Option(Session) })
-export const SavedSession = m('SavedSession')
+export const SucceededSaveSession = m('SucceededSaveSession')
 export const FailedSaveSession = m('FailedSaveSession', { error: S.String })
-export const ClearedSession = m('ClearedSession')
+export const SucceededClearSession = m('SucceededClearSession')
 export const FailedClearSession = m('FailedClearSession', { error: S.String })
 export const GotLoggedOutMessage = m('GotLoggedOutMessage', {
   message: LoggedOut.Message,
@@ -30,9 +30,9 @@ export const Message = S.Union(
   ClickedLink,
   ChangedUrl,
   LoadedSession,
-  SavedSession,
+  SucceededSaveSession,
   FailedSaveSession,
-  ClearedSession,
+  SucceededClearSession,
   FailedClearSession,
   GotLoggedOutMessage,
   GotLoggedInMessage,

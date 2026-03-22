@@ -1,50 +1,64 @@
 import { describe, it } from '@effect/vitest'
-import { Effect, Option, Predicate } from 'effect'
+import { Effect, Option, Predicate, flow } from 'effect'
 import type { VNode } from 'snabbdom'
 import { expect } from 'vitest'
 
 import { Dispatch } from '../../runtime'
 import { noOpDispatch } from '../../runtime/crashUI'
+import * as Test from '../../test'
 import {
   ActivatedItem,
   AdvancedTransitionFrame,
+  ClickItem,
   Closed,
   ClosedByTab,
+  CompletedClickItem,
   CompletedFocusInput,
+  CompletedLockScroll,
+  CompletedScrollIntoView,
+  CompletedSetupInert,
+  CompletedTeardownInert,
+  CompletedUnlockScroll,
   DeactivatedItem,
+  DetectMovementOrTransitionEnd,
   DetectedInputMovement,
   EndedTransition,
+  FocusInput,
+  InertOthers,
+  LockScroll,
   MovedPointerOverItem,
   Opened,
   PressedToggleButton,
+  RequestFrame,
   RequestedItemClick,
+  RestoreInert,
+  ScrollIntoView,
   SelectedItem,
+  UnlockScroll,
   UpdatedInputValue,
+  WaitForTransitions,
 } from './shared'
 import { init, update, view } from './single'
 import type { Model, ViewConfig } from './single'
 
-const closedModel = () => init({ id: 'test' })
+const withClosed = Test.with(init({ id: 'test' }))
 
-const openModel = () => {
-  const model = init({ id: 'test' })
-  const [result] = update(
-    model,
-    Opened({ maybeActiveItemIndex: Option.some(0) }),
-  )
-  return result
-}
+const withOpen = flow(
+  withClosed,
+  Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+)
 
-const closedAnimatedModel = () => init({ id: 'test', isAnimated: true })
+const withClosedAnimated = Test.with(init({ id: 'test', isAnimated: true }))
 
-const openAnimatedModel = () => {
-  const model = closedAnimatedModel()
-  const [result] = update(
-    model,
-    Opened({ maybeActiveItemIndex: Option.some(0) }),
-  )
-  return result
-}
+const withOpenAnimated = flow(
+  withClosedAnimated,
+  Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+  Test.resolveAll([
+    [RequestFrame, AdvancedTransitionFrame()],
+    [WaitForTransitions, EndedTransition()],
+    [DetectMovementOrTransitionEnd, EndedTransition()],
+  ]),
+)
 
 describe('Combobox', () => {
   describe('init', () => {
@@ -74,13 +88,11 @@ describe('Combobox', () => {
     })
 
     it('defaults isModal to false', () => {
-      const model = init({ id: 'test' })
-      expect(model.isModal).toBe(false)
+      expect(init({ id: 'test' }).isModal).toBe(false)
     })
 
     it('accepts isModal option', () => {
-      const model = init({ id: 'test', isModal: true })
-      expect(model.isModal).toBe(true)
+      expect(init({ id: 'test', isModal: true }).isModal).toBe(true)
     })
 
     it('accepts selectedItem option', () => {
@@ -94,8 +106,9 @@ describe('Combobox', () => {
     })
 
     it('defaults maybeSelectedItem to none', () => {
-      const model = init({ id: 'test' })
-      expect(model.maybeSelectedItem).toStrictEqual(Option.none())
+      expect(init({ id: 'test' }).maybeSelectedItem).toStrictEqual(
+        Option.none(),
+      )
     })
 
     it('uses selectedItem as selectedDisplayText when selectedDisplayText is omitted', () => {
@@ -105,693 +118,912 @@ describe('Combobox', () => {
     })
 
     it('accepts nullable option', () => {
-      const model = init({ id: 'test', nullable: true })
-      expect(model.nullable).toBe(true)
+      expect(init({ id: 'test', nullable: true }).nullable).toBe(true)
     })
 
     it('defaults nullable to false', () => {
-      const model = init({ id: 'test' })
-      expect(model.nullable).toBe(false)
+      expect(init({ id: 'test' }).nullable).toBe(false)
     })
 
     it('accepts immediate option', () => {
-      const model = init({ id: 'test', immediate: true })
-      expect(model.immediate).toBe(true)
+      expect(init({ id: 'test', immediate: true }).immediate).toBe(true)
     })
 
     it('defaults immediate to false', () => {
-      const model = init({ id: 'test' })
-      expect(model.immediate).toBe(false)
+      expect(init({ id: 'test' }).immediate).toBe(false)
     })
 
     it('accepts selectInputOnFocus option', () => {
-      const model = init({ id: 'test', selectInputOnFocus: true })
-      expect(model.selectInputOnFocus).toBe(true)
+      expect(
+        init({ id: 'test', selectInputOnFocus: true }).selectInputOnFocus,
+      ).toBe(true)
     })
 
     it('defaults selectInputOnFocus to false', () => {
-      const model = init({ id: 'test' })
-      expect(model.selectInputOnFocus).toBe(false)
+      expect(init({ id: 'test' }).selectInputOnFocus).toBe(false)
     })
   })
 
   describe('update', () => {
     describe('Opened', () => {
       it('opens with given active item', () => {
-        const model = closedModel()
-        const [result] = update(
-          model,
-          Opened({ maybeActiveItemIndex: Option.some(2) }),
+        Test.story(
+          update,
+          withClosed,
+          Test.message(Opened({ maybeActiveItemIndex: Option.some(2) })),
+          Test.tap(({ model }) => {
+            expect(model.isOpen).toBe(true)
+            expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
+          }),
         )
-        expect(result.isOpen).toBe(true)
-        expect(result.maybeActiveItemIndex).toStrictEqual(Option.some(2))
       })
 
       it('resets pointer position on open', () => {
-        const model = {
-          ...closedModel(),
-          maybeLastPointerPosition: Option.some({
-            screenX: 100,
-            screenY: 200,
+        Test.story(
+          update,
+          Test.with({
+            ...init({ id: 'test' }),
+            maybeLastPointerPosition: Option.some({
+              screenX: 100,
+              screenY: 200,
+            }),
           }),
-        }
-        const [result] = update(
-          model,
-          Opened({ maybeActiveItemIndex: Option.some(0) }),
+          Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+          Test.tap(({ model }) => {
+            expect(model.maybeLastPointerPosition).toStrictEqual(Option.none())
+          }),
         )
-        expect(result.maybeLastPointerPosition).toStrictEqual(Option.none())
       })
 
       it('sets trigger to Keyboard when opened with active item', () => {
-        const model = closedModel()
-        const [result] = update(
-          model,
-          Opened({ maybeActiveItemIndex: Option.some(0) }),
+        Test.story(
+          update,
+          withClosed,
+          Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+          Test.tap(({ model }) => {
+            expect(model.activationTrigger).toBe('Keyboard')
+          }),
         )
-        expect(result.activationTrigger).toBe('Keyboard')
       })
 
       it('sets trigger to Pointer when opened without active item', () => {
-        const model = closedModel()
-        const [result] = update(
-          model,
-          Opened({ maybeActiveItemIndex: Option.none() }),
+        Test.story(
+          update,
+          withClosed,
+          Test.message(Opened({ maybeActiveItemIndex: Option.none() })),
+          Test.tap(({ model }) => {
+            expect(model.activationTrigger).toBe('Pointer')
+            expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
+          }),
         )
-        expect(result.activationTrigger).toBe('Pointer')
-        expect(result.maybeActiveItemIndex).toStrictEqual(Option.none())
       })
     })
 
     describe('Closed', () => {
       it('closes and restores input to selected display text', () => {
-        const model = {
-          ...openModel(),
-          inputValue: 'app',
-          maybeSelectedItem: Option.some('apple'),
-          maybeSelectedDisplayText: Option.some('Apple'),
-        }
-        const [result] = update(model, Closed())
-        expect(result.isOpen).toBe(false)
-        expect(result.inputValue).toBe('Apple')
-        expect(result.maybeActiveItemIndex).toStrictEqual(Option.none())
-        expect(result.maybeLastPointerPosition).toStrictEqual(Option.none())
+        Test.story(
+          update,
+          Test.with({
+            ...init({ id: 'test' }),
+            isOpen: true,
+            inputValue: 'app',
+            maybeSelectedItem: Option.some('apple'),
+            maybeSelectedDisplayText: Option.some('Apple'),
+          }),
+          Test.message(Closed()),
+          Test.resolve(FocusInput, CompletedFocusInput()),
+          Test.tap(({ model }) => {
+            expect(model.isOpen).toBe(false)
+            expect(model.inputValue).toBe('Apple')
+            expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
+            expect(model.maybeLastPointerPosition).toStrictEqual(Option.none())
+          }),
+        )
       })
 
       it('closes with nullable and empty input clears selection', () => {
-        const model = {
-          ...openModel(),
-          nullable: true,
-          inputValue: '',
-          maybeSelectedItem: Option.some('apple'),
-          maybeSelectedDisplayText: Option.some('Apple'),
-        }
-        const [result] = update(model, Closed())
-        expect(result.isOpen).toBe(false)
-        expect(result.inputValue).toBe('')
-        expect(result.maybeSelectedItem).toStrictEqual(Option.none())
-        expect(result.maybeSelectedDisplayText).toStrictEqual(Option.none())
+        Test.story(
+          update,
+          Test.with({
+            ...init({ id: 'test' }),
+            isOpen: true,
+            nullable: true,
+            inputValue: '',
+            maybeSelectedItem: Option.some('apple'),
+            maybeSelectedDisplayText: Option.some('Apple'),
+          }),
+          Test.message(Closed()),
+          Test.resolve(FocusInput, CompletedFocusInput()),
+          Test.tap(({ model }) => {
+            expect(model.isOpen).toBe(false)
+            expect(model.inputValue).toBe('')
+            expect(model.maybeSelectedItem).toStrictEqual(Option.none())
+            expect(model.maybeSelectedDisplayText).toStrictEqual(Option.none())
+          }),
+        )
       })
 
       it('returns focus-input and close commands', () => {
-        const model = openModel()
-        const [, commands] = update(model, Closed())
-        expect(commands).toHaveLength(1)
+        Test.story(
+          update,
+          withOpen,
+          Test.message(Closed()),
+          Test.resolve(FocusInput, CompletedFocusInput()),
+          Test.tap(({ model }) => {
+            expect(model.isOpen).toBe(false)
+          }),
+        )
       })
     })
 
     describe('ClosedByTab', () => {
       it('closes without focus command', () => {
-        const model = openModel()
-        const [result, commands] = update(model, ClosedByTab())
-        expect(result.isOpen).toBe(false)
-        expect(result.maybeActiveItemIndex).toStrictEqual(Option.none())
-        expect(result.maybeLastPointerPosition).toStrictEqual(Option.none())
-        expect(commands).toHaveLength(0)
+        Test.story(
+          update,
+          withOpen,
+          Test.message(ClosedByTab()),
+          Test.tap(({ model }) => {
+            expect(model.isOpen).toBe(false)
+            expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
+            expect(model.maybeLastPointerPosition).toStrictEqual(Option.none())
+          }),
+        )
       })
 
       it('restores input value', () => {
-        const model = {
-          ...openModel(),
-          inputValue: 'app',
-          maybeSelectedDisplayText: Option.some('Apple'),
-        }
-        const [result] = update(model, ClosedByTab())
-        expect(result.inputValue).toBe('Apple')
+        Test.story(
+          update,
+          Test.with({
+            ...init({ id: 'test' }),
+            isOpen: true,
+            inputValue: 'app',
+            maybeSelectedDisplayText: Option.some('Apple'),
+          }),
+          Test.message(ClosedByTab()),
+          Test.tap(({ model }) => {
+            expect(model.inputValue).toBe('Apple')
+          }),
+        )
       })
     })
 
     describe('ActivatedItem', () => {
       it('sets the active item index', () => {
-        const model = openModel()
-        const [result] = update(
-          model,
-          ActivatedItem({
-            index: 3,
-            activationTrigger: 'Keyboard',
-            maybeImmediateSelection: Option.none(),
+        Test.story(
+          update,
+          withOpen,
+          Test.message(
+            ActivatedItem({
+              index: 3,
+              activationTrigger: 'Keyboard',
+              maybeImmediateSelection: Option.none(),
+            }),
+          ),
+          Test.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Test.tap(({ model }) => {
+            expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(3))
           }),
         )
-        expect(result.maybeActiveItemIndex).toStrictEqual(Option.some(3))
       })
 
       it('replaces previous active item', () => {
-        const model = openModel()
-        const [intermediate] = update(
-          model,
-          ActivatedItem({
-            index: 1,
-            activationTrigger: 'Keyboard',
-            maybeImmediateSelection: Option.none(),
+        Test.story(
+          update,
+          withOpen,
+          Test.message(
+            ActivatedItem({
+              index: 1,
+              activationTrigger: 'Keyboard',
+              maybeImmediateSelection: Option.none(),
+            }),
+          ),
+          Test.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Test.message(
+            ActivatedItem({
+              index: 4,
+              activationTrigger: 'Keyboard',
+              maybeImmediateSelection: Option.none(),
+            }),
+          ),
+          Test.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Test.tap(({ model }) => {
+            expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(4))
           }),
         )
-        const [result] = update(
-          intermediate,
-          ActivatedItem({
-            index: 4,
-            activationTrigger: 'Keyboard',
-            maybeImmediateSelection: Option.none(),
-          }),
-        )
-        expect(result.maybeActiveItemIndex).toStrictEqual(Option.some(4))
       })
 
       it('stores activation trigger', () => {
-        const model = openModel()
-        const [result] = update(
-          model,
-          ActivatedItem({
-            index: 1,
-            activationTrigger: 'Pointer',
-            maybeImmediateSelection: Option.none(),
+        Test.story(
+          update,
+          withOpen,
+          Test.message(
+            ActivatedItem({
+              index: 1,
+              activationTrigger: 'Pointer',
+              maybeImmediateSelection: Option.none(),
+            }),
+          ),
+          Test.tap(({ model }) => {
+            expect(model.activationTrigger).toBe('Pointer')
           }),
         )
-        expect(result.activationTrigger).toBe('Pointer')
       })
 
       it('returns scroll command for keyboard activation', () => {
-        const model = openModel()
-        const [, commands] = update(
-          model,
-          ActivatedItem({
-            index: 2,
-            activationTrigger: 'Keyboard',
-            maybeImmediateSelection: Option.none(),
+        Test.story(
+          update,
+          withOpen,
+          Test.message(
+            ActivatedItem({
+              index: 2,
+              activationTrigger: 'Keyboard',
+              maybeImmediateSelection: Option.none(),
+            }),
+          ),
+          Test.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Test.tap(({ model }) => {
+            expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
           }),
         )
-        expect(commands).toHaveLength(1)
-      })
-
-      it('returns no commands for pointer activation', () => {
-        const model = openModel()
-        const [, commands] = update(
-          model,
-          ActivatedItem({
-            index: 2,
-            activationTrigger: 'Pointer',
-            maybeImmediateSelection: Option.none(),
-          }),
-        )
-        expect(commands).toHaveLength(0)
       })
 
       it('applies immediate selection when maybeImmediateSelection is Some', () => {
-        const model = openModel()
-        const [result] = update(
-          model,
-          ActivatedItem({
-            index: 1,
-            activationTrigger: 'Keyboard',
-            maybeImmediateSelection: Option.some({
-              item: 'banana',
-              displayText: 'Banana',
+        Test.story(
+          update,
+          withOpen,
+          Test.message(
+            ActivatedItem({
+              index: 1,
+              activationTrigger: 'Keyboard',
+              maybeImmediateSelection: Option.some({
+                item: 'banana',
+                displayText: 'Banana',
+              }),
             }),
+          ),
+          Test.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Test.tap(({ model }) => {
+            expect(model.maybeSelectedItem).toStrictEqual(Option.some('banana'))
+            expect(model.maybeSelectedDisplayText).toStrictEqual(
+              Option.some('Banana'),
+            )
+            expect(model.isOpen).toBe(true)
           }),
         )
-        expect(result.maybeSelectedItem).toStrictEqual(Option.some('banana'))
-        expect(result.maybeSelectedDisplayText).toStrictEqual(
-          Option.some('Banana'),
-        )
-        expect(result.isOpen).toBe(true)
       })
     })
 
     describe('DeactivatedItem', () => {
       it('clears active item when pointer-activated', () => {
-        const model = openModel()
-        const [afterPointer] = update(
-          model,
-          ActivatedItem({
-            index: 1,
-            activationTrigger: 'Pointer',
-            maybeImmediateSelection: Option.none(),
+        Test.story(
+          update,
+          withOpen,
+          Test.message(
+            ActivatedItem({
+              index: 1,
+              activationTrigger: 'Pointer',
+              maybeImmediateSelection: Option.none(),
+            }),
+          ),
+          Test.message(DeactivatedItem()),
+          Test.tap(({ model }) => {
+            expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
           }),
         )
-        const [result, commands] = update(afterPointer, DeactivatedItem())
-        expect(result.maybeActiveItemIndex).toStrictEqual(Option.none())
-        expect(commands).toHaveLength(0)
       })
 
       it('preserves active item when keyboard-activated', () => {
-        const model = openModel()
-        const [afterKeyboard] = update(
-          model,
-          ActivatedItem({
-            index: 2,
-            activationTrigger: 'Keyboard',
-            maybeImmediateSelection: Option.none(),
+        Test.story(
+          update,
+          withOpen,
+          Test.message(
+            ActivatedItem({
+              index: 2,
+              activationTrigger: 'Keyboard',
+              maybeImmediateSelection: Option.none(),
+            }),
+          ),
+          Test.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Test.message(DeactivatedItem()),
+          Test.tap(({ model }) => {
+            expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
           }),
         )
-        const [result, commands] = update(afterKeyboard, DeactivatedItem())
-        expect(result.maybeActiveItemIndex).toStrictEqual(Option.some(2))
-        expect(result).toBe(afterKeyboard)
-        expect(commands).toHaveLength(0)
       })
     })
 
     describe('MovedPointerOverItem', () => {
       it('activates item on first pointer move', () => {
-        const model = openModel()
-        const [result, commands] = update(
-          model,
-          MovedPointerOverItem({
-            index: 2,
-            screenX: 100,
-            screenY: 200,
+        Test.story(
+          update,
+          withOpen,
+          Test.message(
+            MovedPointerOverItem({ index: 2, screenX: 100, screenY: 200 }),
+          ),
+          Test.tap(({ model }) => {
+            expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
+            expect(model.activationTrigger).toBe('Pointer')
+            expect(model.maybeLastPointerPosition).toStrictEqual(
+              Option.some({ screenX: 100, screenY: 200 }),
+            )
           }),
         )
-        expect(result.maybeActiveItemIndex).toStrictEqual(Option.some(2))
-        expect(result.activationTrigger).toBe('Pointer')
-        expect(result.maybeLastPointerPosition).toStrictEqual(
-          Option.some({ screenX: 100, screenY: 200 }),
-        )
-        expect(commands).toHaveLength(0)
       })
 
       it('skips when position is same', () => {
-        const model = openModel()
-        const [afterFirst] = update(
-          model,
-          MovedPointerOverItem({
-            index: 1,
-            screenX: 100,
-            screenY: 200,
+        Test.story(
+          update,
+          withOpen,
+          Test.message(
+            MovedPointerOverItem({ index: 1, screenX: 100, screenY: 200 }),
+          ),
+          Test.message(
+            MovedPointerOverItem({ index: 2, screenX: 100, screenY: 200 }),
+          ),
+          Test.tap(({ model }) => {
+            expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(1))
           }),
         )
-        const [result, commands] = update(
-          afterFirst,
-          MovedPointerOverItem({
-            index: 2,
-            screenX: 100,
-            screenY: 200,
-          }),
-        )
-        expect(result).toBe(afterFirst)
-        expect(commands).toHaveLength(0)
       })
 
       it('updates position when different', () => {
-        const model = openModel()
-        const [afterFirst] = update(
-          model,
-          MovedPointerOverItem({
-            index: 1,
-            screenX: 100,
-            screenY: 200,
+        Test.story(
+          update,
+          withOpen,
+          Test.message(
+            MovedPointerOverItem({ index: 1, screenX: 100, screenY: 200 }),
+          ),
+          Test.message(
+            MovedPointerOverItem({ index: 3, screenX: 150, screenY: 250 }),
+          ),
+          Test.tap(({ model }) => {
+            expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(3))
+            expect(model.maybeLastPointerPosition).toStrictEqual(
+              Option.some({ screenX: 150, screenY: 250 }),
+            )
           }),
-        )
-        const [result] = update(
-          afterFirst,
-          MovedPointerOverItem({
-            index: 3,
-            screenX: 150,
-            screenY: 250,
-          }),
-        )
-        expect(result.maybeActiveItemIndex).toStrictEqual(Option.some(3))
-        expect(result.maybeLastPointerPosition).toStrictEqual(
-          Option.some({ screenX: 150, screenY: 250 }),
         )
       })
     })
 
     describe('SelectedItem', () => {
       it('sets selected item and display text, closes', () => {
-        const model = openModel()
-        const [result] = update(
-          model,
-          SelectedItem({ item: 'apple', displayText: 'Apple' }),
+        Test.story(
+          update,
+          withOpen,
+          Test.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Test.resolve(FocusInput, CompletedFocusInput()),
+          Test.tap(({ model }) => {
+            expect(model.maybeSelectedItem).toStrictEqual(Option.some('apple'))
+            expect(model.maybeSelectedDisplayText).toStrictEqual(
+              Option.some('Apple'),
+            )
+            expect(model.inputValue).toBe('Apple')
+            expect(model.isOpen).toBe(false)
+            expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
+          }),
         )
-        expect(result.maybeSelectedItem).toStrictEqual(Option.some('apple'))
-        expect(result.maybeSelectedDisplayText).toStrictEqual(
-          Option.some('Apple'),
-        )
-        expect(result.inputValue).toBe('Apple')
-        expect(result.isOpen).toBe(false)
-        expect(result.maybeActiveItemIndex).toStrictEqual(Option.none())
       })
 
       it('clears selection when nullable and already selected', () => {
-        const model = {
-          ...openModel(),
-          nullable: true,
-          maybeSelectedItem: Option.some('apple'),
-          maybeSelectedDisplayText: Option.some('Apple'),
-        }
-        const [result] = update(
-          model,
-          SelectedItem({ item: 'apple', displayText: 'Apple' }),
+        Test.story(
+          update,
+          Test.with({
+            ...init({ id: 'test' }),
+            isOpen: true,
+            nullable: true,
+            maybeSelectedItem: Option.some('apple'),
+            maybeSelectedDisplayText: Option.some('Apple'),
+          }),
+          Test.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Test.resolve(FocusInput, CompletedFocusInput()),
+          Test.tap(({ model }) => {
+            expect(model.maybeSelectedItem).toStrictEqual(Option.none())
+            expect(model.maybeSelectedDisplayText).toStrictEqual(Option.none())
+            expect(model.inputValue).toBe('')
+            expect(model.isOpen).toBe(false)
+          }),
         )
-        expect(result.maybeSelectedItem).toStrictEqual(Option.none())
-        expect(result.maybeSelectedDisplayText).toStrictEqual(Option.none())
-        expect(result.inputValue).toBe('')
-        expect(result.isOpen).toBe(false)
       })
 
       it('returns focus-input command', () => {
-        const model = openModel()
-        const [, commands] = update(
-          model,
-          SelectedItem({ item: 'apple', displayText: 'Apple' }),
+        Test.story(
+          update,
+          withOpen,
+          Test.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Test.resolve(FocusInput, CompletedFocusInput()),
+          Test.tap(({ model }) => {
+            expect(model.isOpen).toBe(false)
+          }),
         )
-        expect(commands).toHaveLength(1)
       })
     })
 
     describe('RequestedItemClick', () => {
       it('returns click element command', () => {
-        const model = openModel()
-        const [result, commands] = update(
-          model,
-          RequestedItemClick({ index: 2 }),
+        Test.story(
+          update,
+          withOpen,
+          Test.message(RequestedItemClick({ index: 2 })),
+          Test.resolve(ClickItem, CompletedClickItem()),
+          Test.tap(({ model }) => {
+            expect(model.isOpen).toBe(true)
+          }),
         )
-        expect(result).toBe(model)
-        expect(commands).toHaveLength(1)
       })
     })
 
     describe('UpdatedInputValue', () => {
       it('sets input value and activates first item when open', () => {
-        const model = openModel()
-        const [result, commands] = update(
-          model,
-          UpdatedInputValue({ value: 'app' }),
+        Test.story(
+          update,
+          withOpen,
+          Test.message(UpdatedInputValue({ value: 'app' })),
+          Test.tap(({ model }) => {
+            expect(model.inputValue).toBe('app')
+            expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(0))
+            expect(model.activationTrigger).toBe('Keyboard')
+            expect(model.isOpen).toBe(true)
+          }),
         )
-        expect(result.inputValue).toBe('app')
-        expect(result.maybeActiveItemIndex).toStrictEqual(Option.some(0))
-        expect(result.activationTrigger).toBe('Keyboard')
-        expect(result.isOpen).toBe(true)
-        expect(commands).toHaveLength(0)
       })
 
       it('opens combobox when closed and typing', () => {
-        const model = closedModel()
-        const [result] = update(model, UpdatedInputValue({ value: 'b' }))
-        expect(result.isOpen).toBe(true)
-        expect(result.inputValue).toBe('b')
-        expect(result.maybeActiveItemIndex).toStrictEqual(Option.some(0))
-        expect(result.activationTrigger).toBe('Keyboard')
+        Test.story(
+          update,
+          withClosed,
+          Test.message(UpdatedInputValue({ value: 'b' })),
+          Test.tap(({ model }) => {
+            expect(model.isOpen).toBe(true)
+            expect(model.inputValue).toBe('b')
+            expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(0))
+            expect(model.activationTrigger).toBe('Keyboard')
+          }),
+        )
       })
     })
 
     describe('PressedToggleButton', () => {
       it('opens when closed', () => {
-        const model = closedModel()
-        const [result, commands] = update(model, PressedToggleButton())
-        expect(result.isOpen).toBe(true)
-        expect(result.activationTrigger).toBe('Pointer')
-        expect(result.maybeActiveItemIndex).toStrictEqual(Option.none())
-        expect(commands).toHaveLength(1)
+        Test.story(
+          update,
+          withClosed,
+          Test.message(PressedToggleButton()),
+          Test.resolve(FocusInput, CompletedFocusInput()),
+          Test.tap(({ model }) => {
+            expect(model.isOpen).toBe(true)
+            expect(model.activationTrigger).toBe('Pointer')
+            expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
+          }),
+        )
       })
 
       it('closes when open', () => {
-        const model = openModel()
-        const [result, commands] = update(model, PressedToggleButton())
-        expect(result.isOpen).toBe(false)
-        expect(commands).toHaveLength(1)
+        Test.story(
+          update,
+          withOpen,
+          Test.message(PressedToggleButton()),
+          Test.resolve(FocusInput, CompletedFocusInput()),
+          Test.tap(({ model }) => {
+            expect(model.isOpen).toBe(false)
+          }),
+        )
       })
     })
 
     describe('CompletedFocusInput', () => {
       it('returns model unchanged', () => {
-        const model = openModel()
-        const [result, commands] = update(model, CompletedFocusInput())
-        expect(result).toBe(model)
-        expect(commands).toHaveLength(0)
+        Test.story(
+          update,
+          withOpen,
+          Test.message(CompletedFocusInput()),
+          Test.tap(({ model }) => {
+            expect(model.isOpen).toBe(true)
+          }),
+        )
       })
     })
 
     describe('transitions', () => {
       describe('enter flow', () => {
         it('sets EnterStart and emits nextFrame on Opened', () => {
-          const model = closedAnimatedModel()
-          const [result, commands] = update(
-            model,
-            Opened({ maybeActiveItemIndex: Option.some(0) }),
+          Test.story(
+            update,
+            withClosedAnimated,
+            Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+            Test.tap(({ model }) => {
+              expect(model.isOpen).toBe(true)
+              expect(model.transitionState).toBe('EnterStart')
+            }),
+            Test.resolveAll([
+              [RequestFrame, AdvancedTransitionFrame()],
+              [WaitForTransitions, EndedTransition()],
+              [DetectMovementOrTransitionEnd, EndedTransition()],
+            ]),
           )
-          expect(result.isOpen).toBe(true)
-          expect(result.transitionState).toBe('EnterStart')
-          expect(commands).toHaveLength(1)
         })
 
         it('advances EnterStart to EnterAnimating on AdvancedTransitionFrame', () => {
-          const model = openAnimatedModel()
-          expect(model.transitionState).toBe('EnterStart')
-
-          const [result, commands] = update(model, AdvancedTransitionFrame())
-          expect(result.transitionState).toBe('EnterAnimating')
-          expect(commands).toHaveLength(1)
+          Test.story(
+            update,
+            withClosedAnimated,
+            Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+            Test.resolve(RequestFrame, AdvancedTransitionFrame()),
+            Test.tap(({ model }) => {
+              expect(model.transitionState).toBe('EnterAnimating')
+            }),
+            Test.resolveAll([
+              [WaitForTransitions, EndedTransition()],
+              [DetectMovementOrTransitionEnd, EndedTransition()],
+            ]),
+          )
         })
 
         it('completes EnterAnimating to Idle on EndedTransition', () => {
-          const model = openAnimatedModel()
-          const [enterAnimating] = update(model, AdvancedTransitionFrame())
-          expect(enterAnimating.transitionState).toBe('EnterAnimating')
-
-          const [result, commands] = update(enterAnimating, EndedTransition())
-          expect(result.transitionState).toBe('Idle')
-          expect(commands).toHaveLength(0)
+          Test.story(
+            update,
+            withClosedAnimated,
+            Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+            Test.resolveAll([
+              [RequestFrame, AdvancedTransitionFrame()],
+              [WaitForTransitions, EndedTransition()],
+              [DetectMovementOrTransitionEnd, EndedTransition()],
+            ]),
+            Test.tap(({ model }) => {
+              expect(model.transitionState).toBe('Idle')
+            }),
+          )
         })
       })
 
       describe('leave flow', () => {
         it('sets LeaveStart on Closed', () => {
-          const model = openAnimatedModel()
-          const [result, commands] = update(model, Closed())
-          expect(result.isOpen).toBe(false)
-          expect(result.transitionState).toBe('LeaveStart')
-          expect(commands).toHaveLength(2)
+          Test.story(
+            update,
+            withOpenAnimated,
+            Test.message(Closed()),
+            Test.tap(({ model }) => {
+              expect(model.isOpen).toBe(false)
+              expect(model.transitionState).toBe('LeaveStart')
+            }),
+            Test.resolveAll([
+              [FocusInput, CompletedFocusInput()],
+              [RequestFrame, AdvancedTransitionFrame()],
+              [WaitForTransitions, EndedTransition()],
+              [DetectMovementOrTransitionEnd, EndedTransition()],
+            ]),
+          )
         })
 
         it('sets LeaveStart on ClosedByTab', () => {
-          const model = openAnimatedModel()
-          const [result, commands] = update(model, ClosedByTab())
-          expect(result.isOpen).toBe(false)
-          expect(result.transitionState).toBe('LeaveStart')
-          expect(commands).toHaveLength(1)
+          Test.story(
+            update,
+            withOpenAnimated,
+            Test.message(ClosedByTab()),
+            Test.tap(({ model }) => {
+              expect(model.isOpen).toBe(false)
+              expect(model.transitionState).toBe('LeaveStart')
+            }),
+            Test.resolveAll([
+              [RequestFrame, AdvancedTransitionFrame()],
+              [WaitForTransitions, EndedTransition()],
+              [DetectMovementOrTransitionEnd, EndedTransition()],
+            ]),
+          )
         })
 
         it('sets LeaveStart on SelectedItem', () => {
-          const model = openAnimatedModel()
-          const [result, commands] = update(
-            model,
-            SelectedItem({ item: 'apple', displayText: 'Apple' }),
+          Test.story(
+            update,
+            withOpenAnimated,
+            Test.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+            Test.tap(({ model }) => {
+              expect(model.isOpen).toBe(false)
+              expect(model.transitionState).toBe('LeaveStart')
+            }),
+            Test.resolveAll([
+              [FocusInput, CompletedFocusInput()],
+              [RequestFrame, AdvancedTransitionFrame()],
+              [WaitForTransitions, EndedTransition()],
+              [DetectMovementOrTransitionEnd, EndedTransition()],
+            ]),
           )
-          expect(result.isOpen).toBe(false)
-          expect(result.transitionState).toBe('LeaveStart')
-          expect(commands).toHaveLength(2)
         })
 
         it('advances LeaveStart to LeaveAnimating on AdvancedTransitionFrame', () => {
-          const model = openAnimatedModel()
-          const [closed] = update(model, Closed())
-          expect(closed.transitionState).toBe('LeaveStart')
-
-          const [result, commands] = update(closed, AdvancedTransitionFrame())
-          expect(result.transitionState).toBe('LeaveAnimating')
-          expect(commands).toHaveLength(1)
+          Test.story(
+            update,
+            withOpenAnimated,
+            Test.message(Closed()),
+            Test.resolve(RequestFrame, AdvancedTransitionFrame()),
+            Test.tap(({ model }) => {
+              expect(model.transitionState).toBe('LeaveAnimating')
+            }),
+            Test.resolveAll([
+              [FocusInput, CompletedFocusInput()],
+              [WaitForTransitions, EndedTransition()],
+              [DetectMovementOrTransitionEnd, EndedTransition()],
+            ]),
+          )
         })
 
         it('completes LeaveAnimating to Idle on EndedTransition', () => {
-          const model = openAnimatedModel()
-          const [closed] = update(model, Closed())
-          const [leaveAnimating] = update(closed, AdvancedTransitionFrame())
-          expect(leaveAnimating.transitionState).toBe('LeaveAnimating')
-
-          const [result, commands] = update(leaveAnimating, EndedTransition())
-          expect(result.transitionState).toBe('Idle')
-          expect(commands).toHaveLength(0)
+          Test.story(
+            update,
+            withOpenAnimated,
+            Test.message(Closed()),
+            Test.resolveAll([
+              [FocusInput, CompletedFocusInput()],
+              [RequestFrame, AdvancedTransitionFrame()],
+              [WaitForTransitions, EndedTransition()],
+              [DetectMovementOrTransitionEnd, EndedTransition()],
+            ]),
+            Test.tap(({ model }) => {
+              expect(model.transitionState).toBe('Idle')
+            }),
+          )
         })
       })
 
       describe('non-animated', () => {
         it('keeps transitionState Idle on Opened', () => {
-          const model = closedModel()
-          const [result] = update(
-            model,
-            Opened({ maybeActiveItemIndex: Option.some(0) }),
+          Test.story(
+            update,
+            withClosed,
+            Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+            Test.tap(({ model }) => {
+              expect(model.transitionState).toBe('Idle')
+            }),
           )
-          expect(result.transitionState).toBe('Idle')
         })
 
         it('keeps transitionState Idle on Closed', () => {
-          const model = openModel()
-          const [result] = update(model, Closed())
-          expect(result.transitionState).toBe('Idle')
+          Test.story(
+            update,
+            withOpen,
+            Test.message(Closed()),
+            Test.resolve(FocusInput, CompletedFocusInput()),
+            Test.tap(({ model }) => {
+              expect(model.transitionState).toBe('Idle')
+            }),
+          )
         })
       })
 
       describe('stale messages', () => {
         it('ignores AdvancedTransitionFrame when Idle', () => {
-          const model = openModel()
-          const [result, commands] = update(model, AdvancedTransitionFrame())
-          expect(result).toBe(model)
-          expect(commands).toHaveLength(0)
+          Test.story(
+            update,
+            withOpen,
+            Test.message(AdvancedTransitionFrame()),
+            Test.tap(({ model }) => {
+              expect(model.isOpen).toBe(true)
+              expect(model.transitionState).toBe('Idle')
+            }),
+          )
         })
 
         it('ignores EndedTransition when Idle', () => {
-          const model = openModel()
-          const [result, commands] = update(model, EndedTransition())
-          expect(result).toBe(model)
-          expect(commands).toHaveLength(0)
+          Test.story(
+            update,
+            withOpen,
+            Test.message(EndedTransition()),
+            Test.tap(({ model }) => {
+              expect(model.isOpen).toBe(true)
+              expect(model.transitionState).toBe('Idle')
+            }),
+          )
         })
       })
 
       describe('interruptions', () => {
         it('transitions to LeaveStart when Closed during EnterStart', () => {
-          const model = openAnimatedModel()
-          expect(model.transitionState).toBe('EnterStart')
-
-          const [result] = update(model, Closed())
-          expect(result.isOpen).toBe(false)
-          expect(result.transitionState).toBe('LeaveStart')
+          Test.story(
+            update,
+            withClosedAnimated,
+            Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+            Test.resolveAll([
+              [RequestFrame, AdvancedTransitionFrame()],
+              [WaitForTransitions, EndedTransition()],
+              [DetectMovementOrTransitionEnd, EndedTransition()],
+            ]),
+            Test.message(Closed()),
+            Test.tap(({ model }) => {
+              expect(model.isOpen).toBe(false)
+              expect(model.transitionState).toBe('LeaveStart')
+            }),
+            Test.resolveAll([
+              [FocusInput, CompletedFocusInput()],
+              [RequestFrame, AdvancedTransitionFrame()],
+              [WaitForTransitions, EndedTransition()],
+              [DetectMovementOrTransitionEnd, EndedTransition()],
+            ]),
+          )
         })
 
         it('transitions to LeaveStart when Closed during EnterAnimating', () => {
-          const model = openAnimatedModel()
-          const [enterAnimating] = update(model, AdvancedTransitionFrame())
-          expect(enterAnimating.transitionState).toBe('EnterAnimating')
-
-          const [result] = update(enterAnimating, Closed())
-          expect(result.isOpen).toBe(false)
-          expect(result.transitionState).toBe('LeaveStart')
+          Test.story(
+            update,
+            withClosedAnimated,
+            Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+            Test.resolveAll([
+              [RequestFrame, AdvancedTransitionFrame()],
+              [WaitForTransitions, EndedTransition()],
+              [DetectMovementOrTransitionEnd, EndedTransition()],
+            ]),
+            Test.message(Closed()),
+            Test.tap(({ model }) => {
+              expect(model.isOpen).toBe(false)
+              expect(model.transitionState).toBe('LeaveStart')
+            }),
+            Test.resolveAll([
+              [FocusInput, CompletedFocusInput()],
+              [RequestFrame, AdvancedTransitionFrame()],
+              [WaitForTransitions, EndedTransition()],
+              [DetectMovementOrTransitionEnd, EndedTransition()],
+            ]),
+          )
         })
       })
 
       describe('DetectedInputMovement', () => {
         it('cancels leave animation by setting transitionState to Idle', () => {
-          const model = openAnimatedModel()
-          const [closed] = update(model, Closed())
-          const [leaveAnimating] = update(closed, AdvancedTransitionFrame())
-          expect(leaveAnimating.transitionState).toBe('LeaveAnimating')
-
-          const [result, commands] = update(
-            leaveAnimating,
-            DetectedInputMovement(),
+          Test.story(
+            update,
+            Test.with({
+              ...init({ id: 'test', isAnimated: true }),
+              isOpen: false,
+              transitionState: 'LeaveAnimating' as const,
+            }),
+            Test.message(DetectedInputMovement()),
+            Test.tap(({ model }) => {
+              expect(model.transitionState).toBe('Idle')
+            }),
           )
-          expect(result.transitionState).toBe('Idle')
-          expect(commands).toHaveLength(0)
         })
 
         it('is a no-op during Idle', () => {
-          const model = openModel()
-          expect(model.transitionState).toBe('Idle')
-
-          const [result, commands] = update(model, DetectedInputMovement())
-          expect(result).toBe(model)
-          expect(commands).toHaveLength(0)
+          Test.story(
+            update,
+            withOpen,
+            Test.message(DetectedInputMovement()),
+            Test.tap(({ model }) => {
+              expect(model.isOpen).toBe(true)
+              expect(model.transitionState).toBe('Idle')
+            }),
+          )
         })
 
         it('is a no-op during EnterAnimating', () => {
-          const model = openAnimatedModel()
-          const [enterAnimating] = update(model, AdvancedTransitionFrame())
-          expect(enterAnimating.transitionState).toBe('EnterAnimating')
-
-          const [result, commands] = update(
-            enterAnimating,
-            DetectedInputMovement(),
+          Test.story(
+            update,
+            Test.with({
+              ...init({ id: 'test', isAnimated: true }),
+              isOpen: true,
+              transitionState: 'EnterAnimating' as const,
+            }),
+            Test.message(DetectedInputMovement()),
+            Test.tap(({ model }) => {
+              expect(model.transitionState).toBe('EnterAnimating')
+            }),
           )
-          expect(result).toBe(enterAnimating)
-          expect(commands).toHaveLength(0)
         })
       })
     })
   })
 
   describe('modal commands', () => {
-    const closedModalModel = () => init({ id: 'test', isModal: true })
+    const withClosedModal = Test.with(init({ id: 'test', isModal: true }))
 
-    const openModalModel = () => {
-      const model = closedModalModel()
-      const [result] = update(
-        model,
-        Opened({ maybeActiveItemIndex: Option.some(0) }),
-      )
-      return result
-    }
+    const withOpenModal = flow(
+      withClosedModal,
+      Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+      Test.resolveAll([
+        [LockScroll, CompletedLockScroll()],
+        [InertOthers, CompletedSetupInert()],
+      ]),
+    )
 
     it('emits lockScroll and inertOthers commands on Opened when isModal is true', () => {
-      const model = closedModalModel()
-      const [, commands] = update(
-        model,
-        Opened({ maybeActiveItemIndex: Option.some(0) }),
+      Test.story(
+        update,
+        withClosedModal,
+        Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+        Test.resolveAll([
+          [LockScroll, CompletedLockScroll()],
+          [InertOthers, CompletedSetupInert()],
+        ]),
+        Test.tap(({ model }) => {
+          expect(model.isOpen).toBe(true)
+        }),
       )
-      expect(commands).toHaveLength(2)
     })
 
     it('emits unlockScroll and restoreInert commands on Closed when isModal is true', () => {
-      const model = openModalModel()
-      const [, commands] = update(model, Closed())
-      expect(commands).toHaveLength(3)
+      Test.story(
+        update,
+        withOpenModal,
+        Test.message(Closed()),
+        Test.resolveAll([
+          [FocusInput, CompletedFocusInput()],
+          [UnlockScroll, CompletedUnlockScroll()],
+          [RestoreInert, CompletedTeardownInert()],
+        ]),
+        Test.tap(({ model }) => {
+          expect(model.isOpen).toBe(false)
+        }),
+      )
     })
 
     it('emits unlockScroll and restoreInert commands on ClosedByTab when isModal is true', () => {
-      const model = openModalModel()
-      const [, commands] = update(model, ClosedByTab())
-      expect(commands).toHaveLength(2)
+      Test.story(
+        update,
+        withOpenModal,
+        Test.message(ClosedByTab()),
+        Test.resolveAll([
+          [UnlockScroll, CompletedUnlockScroll()],
+          [RestoreInert, CompletedTeardownInert()],
+        ]),
+        Test.tap(({ model }) => {
+          expect(model.isOpen).toBe(false)
+        }),
+      )
     })
 
     it('emits unlockScroll and restoreInert commands on SelectedItem when isModal is true', () => {
-      const model = openModalModel()
-      const [, commands] = update(
-        model,
-        SelectedItem({ item: 'apple', displayText: 'Apple' }),
+      Test.story(
+        update,
+        withOpenModal,
+        Test.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+        Test.resolveAll([
+          [FocusInput, CompletedFocusInput()],
+          [UnlockScroll, CompletedUnlockScroll()],
+          [RestoreInert, CompletedTeardownInert()],
+        ]),
+        Test.tap(({ model }) => {
+          expect(model.isOpen).toBe(false)
+        }),
       )
-      expect(commands).toHaveLength(3)
     })
 
     it('does not emit modal commands when isModal is false', () => {
-      const model = closedModel()
-      const [, openCommands] = update(
-        model,
-        Opened({ maybeActiveItemIndex: Option.some(0) }),
+      Test.story(
+        update,
+        withClosed,
+        Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+        Test.tap(({ model }) => {
+          expect(model.isOpen).toBe(true)
+        }),
+        Test.message(Closed()),
+        Test.resolve(FocusInput, CompletedFocusInput()),
+        Test.tap(({ model }) => {
+          expect(model.isOpen).toBe(false)
+        }),
       )
-      expect(openCommands).toHaveLength(0)
-
-      const open = openModel()
-      const [, closeCommands] = update(open, Closed())
-      expect(closeCommands).toHaveLength(1)
-
-      const [, tabCommands] = update(open, ClosedByTab())
-      expect(tabCommands).toHaveLength(0)
-
-      const [, selectCommands] = update(
-        open,
-        SelectedItem({ item: 'apple', displayText: 'Apple' }),
-      )
-      expect(selectCommands).toHaveLength(1)
     })
   })
 
   describe('view', () => {
     type TestMessage = string
 
+    const closedModel = () => init({ id: 'test' })
+    const openModel = (): Model => {
+      let model!: Model
+      Test.story(
+        update,
+        withOpen,
+        Test.tap(simulation => {
+          model = simulation.model
+        }),
+      )
+      return model
+    }
+
     const baseViewConfig = (model: Model): ViewConfig<TestMessage, string> => ({
       model,
       toMessage: message => message._tag,
       items: ['Apple', 'Banana'],
-      itemToConfig: () => ({
-        content: Effect.succeed(null),
-      }),
+      itemToConfig: () => ({ content: Effect.succeed(null) }),
       itemToValue: item => item,
       itemToDisplayText: item => item,
     })
@@ -832,71 +1064,66 @@ describe('Combobox', () => {
     }
 
     it('renders input with role="combobox" when closed', () => {
-      const model = closedModel()
-      const config = baseViewConfig(model)
-      const vnode = renderView(config)
-      const inputElement = findInputElement(vnode)
-
+      const inputElement = findInputElement(
+        renderView(baseViewConfig(closedModel())),
+      )
       expect(inputElement?.data?.attrs?.['role']).toBe('combobox')
     })
 
     it('renders items container with role="listbox" when open', () => {
-      const model = openModel()
-      const config = baseViewConfig(model)
-      const vnode = renderView(config)
-      const itemsContainer = findChildByKey(vnode, 'test-items-container')
-
+      const itemsContainer = findChildByKey(
+        renderView(baseViewConfig(openModel())),
+        'test-items-container',
+      )
       expect(itemsContainer?.data?.attrs?.['role']).toBe('listbox')
     })
 
     it('shows items when open', () => {
-      const model = openModel()
-      const config = baseViewConfig(model)
-      const vnode = renderView(config)
+      const vnode = renderView(baseViewConfig(openModel()))
       const itemsContainer = findChildByKey(vnode, 'test-items-container')
-
       expect(itemsContainer).toBeDefined()
-      const items = findAllByKey(itemsContainer!, 'test-item-')
-      expect(items).toHaveLength(2)
+      expect(findAllByKey(itemsContainer!, 'test-item-')).toHaveLength(2)
     })
 
     it('hides items when closed', () => {
-      const model = closedModel()
-      const config = baseViewConfig(model)
-      const vnode = renderView(config)
-      const itemsContainer = findChildByKey(vnode, 'test-items-container')
-
-      expect(itemsContainer).toBeUndefined()
+      expect(
+        findChildByKey(
+          renderView(baseViewConfig(closedModel())),
+          'test-items-container',
+        ),
+      ).toBeUndefined()
     })
 
     it('marks selected item with data-selected', () => {
-      const model = {
-        ...openModel(),
-        maybeSelectedItem: Option.some('Banana'),
-      }
-      const config = baseViewConfig(model)
-      const vnode = renderView(config)
+      const model = { ...openModel(), maybeSelectedItem: Option.some('Banana') }
+      const vnode = renderView(baseViewConfig(model))
       const itemsContainer = findChildByKey(vnode, 'test-items-container')
-      const firstItem = findChildByKey(itemsContainer!, 'test-item-0')
-      const secondItem = findChildByKey(itemsContainer!, 'test-item-1')
-
-      expect(firstItem?.data?.attrs?.['data-selected']).toBeUndefined()
-      expect(secondItem?.data?.attrs?.['data-selected']).toBe('')
+      expect(
+        findChildByKey(itemsContainer!, 'test-item-0')?.data?.attrs?.[
+          'data-selected'
+        ],
+      ).toBeUndefined()
+      expect(
+        findChildByKey(itemsContainer!, 'test-item-1')?.data?.attrs?.[
+          'data-selected'
+        ],
+      ).toBe('')
     })
 
     it('marks active item with data-active', () => {
-      const model = {
-        ...openModel(),
-        maybeActiveItemIndex: Option.some(1),
-      }
-      const config = baseViewConfig(model)
-      const vnode = renderView(config)
+      const model = { ...openModel(), maybeActiveItemIndex: Option.some(1) }
+      const vnode = renderView(baseViewConfig(model))
       const itemsContainer = findChildByKey(vnode, 'test-items-container')
-      const firstItem = findChildByKey(itemsContainer!, 'test-item-0')
-      const secondItem = findChildByKey(itemsContainer!, 'test-item-1')
-
-      expect(firstItem?.data?.attrs?.['data-active']).toBeUndefined()
-      expect(secondItem?.data?.attrs?.['data-active']).toBe('')
+      expect(
+        findChildByKey(itemsContainer!, 'test-item-0')?.data?.attrs?.[
+          'data-active'
+        ],
+      ).toBeUndefined()
+      expect(
+        findChildByKey(itemsContainer!, 'test-item-1')?.data?.attrs?.[
+          'data-active'
+        ],
+      ).toBe('')
     })
 
     it('renders hidden inputs when formName set', () => {
@@ -904,17 +1131,13 @@ describe('Combobox', () => {
         ...closedModel(),
         maybeSelectedItem: Option.some('Apple'),
       }
-      const config = {
-        ...baseViewConfig(model),
-        formName: 'fruit',
-      }
+      const config = { ...baseViewConfig(model), formName: 'fruit' }
       const vnode = renderView(config)
       const children = vnode.children as ReadonlyArray<VNode>
       const hiddenInput = children.find(
         (child): child is VNode =>
           typeof child !== 'string' && child.sel === 'input',
       )
-
       expect(hiddenInput).toBeDefined()
       expect(hiddenInput?.data?.props?.['type']).toBe('hidden')
       expect(hiddenInput?.data?.props?.['name']).toBe('fruit')
@@ -922,18 +1145,13 @@ describe('Combobox', () => {
     })
 
     it('renders empty hidden input when no selection and formName set', () => {
-      const model = closedModel()
-      const config = {
-        ...baseViewConfig(model),
-        formName: 'fruit',
-      }
+      const config = { ...baseViewConfig(closedModel()), formName: 'fruit' }
       const vnode = renderView(config)
       const children = vnode.children as ReadonlyArray<VNode>
       const hiddenInput = children.find(
         (child): child is VNode =>
           typeof child !== 'string' && child.sel === 'input',
       )
-
       expect(hiddenInput).toBeDefined()
       expect(hiddenInput?.data?.props?.['type']).toBe('hidden')
       expect(hiddenInput?.data?.props?.['name']).toBe('fruit')
@@ -941,133 +1159,112 @@ describe('Combobox', () => {
     })
 
     it('items have role="option"', () => {
-      const model = openModel()
-      const config = baseViewConfig(model)
-      const vnode = renderView(config)
+      const vnode = renderView(baseViewConfig(openModel()))
       const itemsContainer = findChildByKey(vnode, 'test-items-container')
-      const items = findAllByKey(itemsContainer!, 'test-item-')
-
-      items.forEach(item => {
+      findAllByKey(itemsContainer!, 'test-item-').forEach(item => {
         expect(item.data?.attrs?.['role']).toBe('option')
       })
     })
 
     it('selected item has aria-selected="true"', () => {
-      const model = {
-        ...openModel(),
-        maybeSelectedItem: Option.some('Apple'),
-      }
-      const config = baseViewConfig(model)
-      const vnode = renderView(config)
-      const itemsContainer = findChildByKey(vnode, 'test-items-container')
-      const firstItem = findChildByKey(itemsContainer!, 'test-item-0')
-
-      expect(firstItem?.data?.attrs?.['aria-selected']).toBe('true')
+      const model = { ...openModel(), maybeSelectedItem: Option.some('Apple') }
+      const itemsContainer = findChildByKey(
+        renderView(baseViewConfig(model)),
+        'test-items-container',
+      )
+      expect(
+        findChildByKey(itemsContainer!, 'test-item-0')?.data?.attrs?.[
+          'aria-selected'
+        ],
+      ).toBe('true')
     })
 
     it('non-selected items have aria-selected="false"', () => {
-      const model = {
-        ...openModel(),
-        maybeSelectedItem: Option.some('Apple'),
-      }
-      const config = baseViewConfig(model)
-      const vnode = renderView(config)
-      const itemsContainer = findChildByKey(vnode, 'test-items-container')
-      const secondItem = findChildByKey(itemsContainer!, 'test-item-1')
-
-      expect(secondItem?.data?.attrs?.['aria-selected']).toBe('false')
+      const model = { ...openModel(), maybeSelectedItem: Option.some('Apple') }
+      const itemsContainer = findChildByKey(
+        renderView(baseViewConfig(model)),
+        'test-items-container',
+      )
+      expect(
+        findChildByKey(itemsContainer!, 'test-item-1')?.data?.attrs?.[
+          'aria-selected'
+        ],
+      ).toBe('false')
     })
 
     it('items container has no aria-multiselectable', () => {
-      const model = openModel()
-      const config = baseViewConfig(model)
-      const vnode = renderView(config)
-      const itemsContainer = findChildByKey(vnode, 'test-items-container')
-
+      const itemsContainer = findChildByKey(
+        renderView(baseViewConfig(openModel())),
+        'test-items-container',
+      )
       expect(
         itemsContainer?.data?.attrs?.['aria-multiselectable'],
       ).toBeUndefined()
     })
 
     it('input has aria-expanded when open', () => {
-      const model = openModel()
-      const config = baseViewConfig(model)
-      const vnode = renderView(config)
-      const inputElement = findInputElement(vnode)
-
-      expect(inputElement?.data?.attrs?.['aria-expanded']).toBe('true')
+      expect(
+        findInputElement(renderView(baseViewConfig(openModel())))?.data
+          ?.attrs?.['aria-expanded'],
+      ).toBe('true')
     })
 
     it('input has aria-expanded false when closed', () => {
-      const model = closedModel()
-      const config = baseViewConfig(model)
-      const vnode = renderView(config)
-      const inputElement = findInputElement(vnode)
-
-      expect(inputElement?.data?.attrs?.['aria-expanded']).toBe('false')
+      expect(
+        findInputElement(renderView(baseViewConfig(closedModel())))?.data
+          ?.attrs?.['aria-expanded'],
+      ).toBe('false')
     })
 
     it('wrapper has data-disabled when isDisabled is true', () => {
-      const model = closedModel()
-      const config = {
-        ...baseViewConfig(model),
-        isDisabled: true,
-      }
-      const vnode = renderView(config)
-
-      expect(vnode.data?.attrs?.['data-disabled']).toBe('')
+      expect(
+        renderView({ ...baseViewConfig(closedModel()), isDisabled: true }).data
+          ?.attrs?.['data-disabled'],
+      ).toBe('')
     })
 
     it('wrapper does not have data-disabled when isDisabled is false', () => {
-      const model = closedModel()
-      const config = baseViewConfig(model)
-      const vnode = renderView(config)
-
-      expect(vnode.data?.attrs?.['data-disabled']).toBeUndefined()
+      expect(
+        renderView(baseViewConfig(closedModel())).data?.attrs?.[
+          'data-disabled'
+        ],
+      ).toBeUndefined()
     })
 
     it('wrapper has data-invalid when isInvalid is true', () => {
-      const model = closedModel()
-      const config = {
-        ...baseViewConfig(model),
-        isInvalid: true,
-      }
-      const vnode = renderView(config)
-
-      expect(vnode.data?.attrs?.['data-invalid']).toBe('')
+      expect(
+        renderView({ ...baseViewConfig(closedModel()), isInvalid: true }).data
+          ?.attrs?.['data-invalid'],
+      ).toBe('')
     })
 
     it('wrapper does not have data-invalid when isInvalid is false', () => {
-      const model = closedModel()
-      const config = baseViewConfig(model)
-      const vnode = renderView(config)
-
-      expect(vnode.data?.attrs?.['data-invalid']).toBeUndefined()
+      expect(
+        renderView(baseViewConfig(closedModel())).data?.attrs?.['data-invalid'],
+      ).toBeUndefined()
     })
 
     it('no hidden input when formName is not provided', () => {
-      const model = closedModel()
-      const config = baseViewConfig(model)
-      const vnode = renderView(config)
-      const children = vnode.children as ReadonlyArray<VNode>
-      const hiddenInput = children.find(
-        (child): child is VNode =>
-          typeof child !== 'string' && child.sel === 'input',
-      )
-
-      expect(hiddenInput).toBeUndefined()
+      const children = renderView(baseViewConfig(closedModel()))
+        .children as ReadonlyArray<VNode>
+      expect(
+        children.find(
+          (child): child is VNode =>
+            typeof child !== 'string' && child.sel === 'input',
+        ),
+      ).toBeUndefined()
     })
 
     describe('anchor', () => {
       it('adds absolute positioning, initial visibility hidden, and hooks when anchor is provided', () => {
-        const model = openModel()
         const config = {
-          ...baseViewConfig(model),
+          ...baseViewConfig(openModel()),
           anchor: { placement: 'bottom-start' as const },
         }
-        const vnode = renderView(config)
-        const itemsContainer = findChildByKey(vnode, 'test-items-container')
-
+        const itemsContainer = findChildByKey(
+          renderView(config),
+          'test-items-container',
+        )
         expect(itemsContainer?.data?.style?.position).toBe('absolute')
         expect(itemsContainer?.data?.style?.margin).toBe('0')
         expect(itemsContainer?.data?.style?.visibility).toBe('hidden')
@@ -1076,11 +1273,10 @@ describe('Combobox', () => {
       })
 
       it('does not add positioning styles when anchor is absent', () => {
-        const model = openModel()
-        const config = baseViewConfig(model)
-        const vnode = renderView(config)
-        const itemsContainer = findChildByKey(vnode, 'test-items-container')
-
+        const itemsContainer = findChildByKey(
+          renderView(baseViewConfig(openModel())),
+          'test-items-container',
+        )
         expect(itemsContainer?.data?.style).toBeUndefined()
       })
     })
@@ -1096,7 +1292,7 @@ describe('Combobox', () => {
           isDisabled: boolean
           isSelected: boolean
         }> = []
-        const config = {
+        renderView({
           ...baseViewConfig(model),
           itemToConfig: (
             _item: string,
@@ -1107,13 +1303,9 @@ describe('Combobox', () => {
             },
           ) => {
             contexts.push(context)
-            return {
-              content: Effect.succeed(null),
-            }
+            return { content: Effect.succeed(null) }
           },
-        }
-        renderView(config)
-
+        })
         expect(contexts[0]?.isSelected).toBe(true)
       })
 
@@ -1127,7 +1319,7 @@ describe('Combobox', () => {
           isDisabled: boolean
           isSelected: boolean
         }> = []
-        const config = {
+        renderView({
           ...baseViewConfig(model),
           itemToConfig: (
             _item: string,
@@ -1138,13 +1330,9 @@ describe('Combobox', () => {
             },
           ) => {
             contexts.push(context)
-            return {
-              content: Effect.succeed(null),
-            }
+            return { content: Effect.succeed(null) }
           },
-        }
-        renderView(config)
-
+        })
         expect(contexts[1]?.isSelected).toBe(false)
       })
     })

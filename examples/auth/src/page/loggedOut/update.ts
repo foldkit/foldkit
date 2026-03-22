@@ -11,7 +11,7 @@ import {
 import { Model } from './model'
 import * as Login from './page/login'
 
-type UpdateReturn = [
+type UpdateReturn = readonly [
   Model,
   ReadonlyArray<Command.Command<Message>>,
   Option.Option<OutMessage>,

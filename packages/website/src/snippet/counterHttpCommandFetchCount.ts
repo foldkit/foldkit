@@ -1,7 +1,11 @@
 import { Effect } from 'effect'
 import { Command } from 'foldkit'
 
-const FetchCount = Command.define('FetchCount')
+const FetchCount = Command.define(
+  'FetchCount',
+  SucceededFetchCount,
+  FailedFetchCount,
+)
 
 const fetchCount = FetchCount(
   Effect.gen(function* () {

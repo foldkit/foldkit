@@ -28,49 +28,51 @@ type Model = typeof Model.Type
 // MESSAGE
 
 const RequestedStart = m('RequestedStart')
-const Started = m('Started', { startTime: S.Number })
+const RecordedStartTime = m('RecordedStartTime', { startTime: S.Number })
 const ClickedStop = m('ClickedStop')
 const ClickedReset = m('ClickedReset')
 const RequestedTick = m('RequestedTick')
-const Ticked = m('Ticked', { elapsedMs: S.Number })
+const RecordedTickTime = m('RecordedTickTime', { elapsedMs: S.Number })
 
 export const Message = S.Union(
   RequestedStart,
-  Started,
+  RecordedStartTime,
   ClickedStop,
   ClickedReset,
   RequestedTick,
-  Ticked,
+  RecordedTickTime,
 )
 export type Message = typeof Message.Type
 
 // COMMAND
 
-const GetStartTime = Command.define('GetStartTime')
-const GetTickTime = Command.define('GetTickTime')
+const RecordStartTime = Command.define('RecordStartTime', RecordedStartTime)
+const RecordTickTime = Command.define('RecordTickTime', RecordedTickTime)
 
 // UPDATE
 
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command.Command<Message>>] =>
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
+    M.withReturnType<
+      readonly [Model, ReadonlyArray<Command.Command<Message>>]
+    >(),
     M.tagsExhaustive({
       RequestedStart: () => [
         model,
         [
-          GetStartTime(
+          RecordStartTime(
             Effect.gen(function* () {
               const now = yield* Clock.currentTimeMillis
-              return Started({ startTime: now - model.elapsedMs })
+              return RecordedStartTime({ startTime: now - model.elapsedMs })
             }),
           ),
         ],
       ],
 
-      Started: ({ startTime }) => [
+      RecordedStartTime: ({ startTime }) => [
         evo(model, {
           isRunning: () => true,
           startTime: () => startTime,
@@ -97,16 +99,16 @@ const update = (
       RequestedTick: () => [
         model,
         [
-          GetTickTime(
+          RecordTickTime(
             Effect.gen(function* () {
               const now = yield* Clock.currentTimeMillis
-              return Ticked({ elapsedMs: now - model.startTime })
+              return RecordedTickTime({ elapsedMs: now - model.startTime })
             }),
           ),
         ],
       ],
 
-      Ticked: ({ elapsedMs }) => [
+      RecordedTickTime: ({ elapsedMs }) => [
         evo(model, {
           elapsedMs: () => elapsedMs,
         }),

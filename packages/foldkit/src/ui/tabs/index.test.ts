@@ -6,8 +6,11 @@ import { expect } from 'vitest'
 import { html } from '../../html'
 import { Dispatch } from '../../runtime'
 import { noOpDispatch } from '../../runtime/crashUI'
+import * as Test from '../../test'
 import type { ViewConfig } from './index'
 import {
+  CompletedFocusTab,
+  FocusTab,
   TabFocused,
   TabSelected,
   findFirstEnabledIndex,
@@ -62,59 +65,77 @@ describe('Tabs', () => {
 
   describe('update', () => {
     it('sets activeIndex and focusedIndex on TabSelected', () => {
-      const model = init({ id: 'test' })
-      const [result] = update(model, TabSelected({ index: 3 }))
-      expect(result.activeIndex).toBe(3)
-      expect(result.focusedIndex).toBe(3)
+      Test.story(
+        update,
+        Test.with(init({ id: 'test' })),
+        Test.message(TabSelected({ index: 3 })),
+        Test.resolve(FocusTab, CompletedFocusTab()),
+        Test.tap(({ model }) => {
+          expect(model.activeIndex).toBe(3)
+          expect(model.focusedIndex).toBe(3)
+        }),
+      )
     })
 
     it('replaces activeIndex on subsequent TabSelected', () => {
-      const model = init({ id: 'test', activeIndex: 1 })
-      const [result] = update(model, TabSelected({ index: 0 }))
-      expect(result.activeIndex).toBe(0)
-      expect(result.focusedIndex).toBe(0)
-    })
-
-    it('returns a FocusTab command on TabSelected', () => {
-      const model = init({ id: 'test' })
-      const [, commands] = update(model, TabSelected({ index: 2 }))
-      expect(commands).toHaveLength(1)
-      expect(commands[0]?.name).toBe('FocusTab')
+      Test.story(
+        update,
+        Test.with(init({ id: 'test', activeIndex: 1 })),
+        Test.message(TabSelected({ index: 0 })),
+        Test.resolve(FocusTab, CompletedFocusTab()),
+        Test.tap(({ model }) => {
+          expect(model.activeIndex).toBe(0)
+          expect(model.focusedIndex).toBe(0)
+        }),
+      )
     })
 
     it('updates only focusedIndex on TabFocused', () => {
-      const model = init({ id: 'test', activationMode: 'Manual' })
-      const [result] = update(model, TabFocused({ index: 2 }))
-      expect(result.activeIndex).toBe(0)
-      expect(result.focusedIndex).toBe(2)
-    })
-
-    it('returns a FocusTab command on TabFocused', () => {
-      const model = init({ id: 'test', activationMode: 'Manual' })
-      const [, commands] = update(model, TabFocused({ index: 2 }))
-      expect(commands).toHaveLength(1)
-      expect(commands[0]?.name).toBe('FocusTab')
+      Test.story(
+        update,
+        Test.with(init({ id: 'test', activationMode: 'Manual' })),
+        Test.message(TabFocused({ index: 2 })),
+        Test.resolve(FocusTab, CompletedFocusTab()),
+        Test.tap(({ model }) => {
+          expect(model.activeIndex).toBe(0)
+          expect(model.focusedIndex).toBe(2)
+        }),
+      )
     })
 
     it('does not change activeIndex on TabFocused', () => {
-      const model = init({
-        id: 'test',
-        activeIndex: 1,
-        activationMode: 'Manual',
-      })
-      const [result] = update(model, TabFocused({ index: 3 }))
-      expect(result.activeIndex).toBe(1)
-      expect(result.focusedIndex).toBe(3)
+      Test.story(
+        update,
+        Test.with(
+          init({
+            id: 'test',
+            activeIndex: 1,
+            activationMode: 'Manual',
+          }),
+        ),
+        Test.message(TabFocused({ index: 3 })),
+        Test.resolve(FocusTab, CompletedFocusTab()),
+        Test.tap(({ model }) => {
+          expect(model.activeIndex).toBe(1)
+          expect(model.focusedIndex).toBe(3)
+        }),
+      )
     })
 
     it('TabSelected updates both indices in manual mode', () => {
-      const model = {
-        ...init({ id: 'test', activationMode: 'Manual' }),
-        focusedIndex: 2,
-      }
-      const [result] = update(model, TabSelected({ index: 2 }))
-      expect(result.activeIndex).toBe(2)
-      expect(result.focusedIndex).toBe(2)
+      Test.story(
+        update,
+        Test.with({
+          ...init({ id: 'test', activationMode: 'Manual' }),
+          focusedIndex: 2,
+        }),
+        Test.message(TabSelected({ index: 2 })),
+        Test.resolve(FocusTab, CompletedFocusTab()),
+        Test.tap(({ model }) => {
+          expect(model.activeIndex).toBe(2)
+          expect(model.focusedIndex).toBe(2)
+        }),
+      )
     })
   })
 

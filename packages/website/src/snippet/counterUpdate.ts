@@ -8,9 +8,11 @@ import { Command } from 'foldkit'
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command.Command<Message>>] =>
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
+    M.withReturnType<
+      readonly [Model, ReadonlyArray<Command.Command<Message>>]
+    >(),
     M.tagsExhaustive({
       ClickedDecrement: () => [Model({ count: model.count - 1 }), []],
       ClickedIncrement: () => [Model({ count: model.count + 1 }), []],

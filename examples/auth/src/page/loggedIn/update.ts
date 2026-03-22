@@ -4,7 +4,7 @@ import { Command } from 'foldkit'
 import { Message, type OutMessage, RequestedLogout } from './message'
 import { Model } from './model'
 
-type UpdateReturn = [
+type UpdateReturn = readonly [
   Model,
   ReadonlyArray<Command.Command<Message>>,
   Option.Option<OutMessage>,

@@ -2,7 +2,13 @@ import type { Html } from 'foldkit/html'
 
 import { Class, InnerHTML, div } from '../../html'
 import type { TableOfContentsEntry } from '../../main'
-import { pageTitle, para, tableOfContentsEntryToHeader } from '../../prose'
+import {
+  link,
+  pageTitle,
+  para,
+  tableOfContentsEntryToHeader,
+} from '../../prose'
+import { coreArchitectureRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
@@ -23,7 +29,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       pageTitle('core/counter-example', 'A Simple Counter Example'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'Here\u2019s a complete counter application. It has all the pieces from the architecture page \u2014 a Model, Messages, update, init, and view \u2014 wired together and running.',
+        'Here\u2019s a complete counter application. It has all the pieces from the ',
+        link(coreArchitectureRouter(), 'Architecture'),
+        ' page \u2014 a Model, Messages, update, init, and view \u2014 wired together and running.',
       ),
       highlightedCodeBlock(
         div([Class('text-sm'), InnerHTML(Snippets.counterHighlighted)], []),

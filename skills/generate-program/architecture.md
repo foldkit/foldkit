@@ -66,10 +66,10 @@ Event handlers in the view dispatch Messages — they don't perform actions dire
 
 ### 3. Commands Catch All Errors
 
-Define Command identities with `Command.define`, then use them to wrap Effects. Every Command must handle its own errors and convert them to Messages:
+Define Command identities with `Command.define`, passing the result Message schemas after the name — result types are required. Every Command must handle its own errors and convert them to Messages:
 
 ```ts
-const FetchData = Command.define('FetchData')
+const FetchData = Command.define('FetchData', SucceededFetch, FailedFetch)
 
 const fetchData = (id: string) =>
   Effect.gen(function* () {
@@ -83,7 +83,7 @@ const fetchData = (id: string) =>
   )
 ```
 
-Always assign definitions to PascalCase constants — never use `Command.define` inline in a pipe chain. Definitions live where they're produced, colocated with the update function. Let TypeScript infer Command return types.
+Always assign definitions to PascalCase constants — never use `Command.define` inline in a pipe chain. Definitions live where they're produced, colocated with the update function. Let TypeScript infer Command return types — the result Message schemas constrain the Effect's return type at the type level.
 
 Commands never throw. The app never crashes from an unhandled side effect.
 
@@ -341,8 +341,8 @@ Commands that interact with the DOM or browser APIs should use `Task` helpers �
 Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, or `Math.random()`. They return Effects that compose naturally in Commands:
 
 ```ts
-const FocusInput = Command.define('FocusInput')
-const ShowConfirmation = Command.define('ShowConfirmation')
+const FocusInput = Command.define('FocusInput', CompletedFocusInput)
+const ShowConfirmation = Command.define('ShowConfirmation', CompletedShowDialog)
 
 const focusInput = Task.focus(`#${EMAIL_INPUT_ID}`).pipe(
   Effect.ignore,

@@ -18,6 +18,7 @@ export const ComingFromReactRoute = r('ComingFromReact')
 export const GettingStartedRoute = r('GettingStarted')
 export const RoutingAndNavigationRoute = r('RoutingAndNavigation')
 export const FieldValidationRoute = r('FieldValidation')
+export const TestingRoute = r('Testing')
 export const ExamplesRoute = r('Examples')
 export const ExampleDetailRoute = r('ExampleDetail', {
   exampleSlug: S.String,
@@ -80,6 +81,7 @@ export const DocsRoute = S.Union(
   GettingStartedRoute,
   RoutingAndNavigationRoute,
   FieldValidationRoute,
+  TestingRoute,
   ExamplesRoute,
   ExampleDetailRoute,
   BestPracticesSideEffectsRoute,
@@ -152,6 +154,7 @@ export const fieldValidationRouter = pipe(
   literal('field-validation'),
   mapTo(FieldValidationRoute),
 )
+export const testingRouter = pipe(literal('testing'), mapTo(TestingRoute))
 export const examplesRouter = pipe(
   literal('example-apps'),
   mapTo(ExamplesRoute),
@@ -388,6 +391,7 @@ const topLevelDocsParser = oneOf(
   gettingStartedRouter,
   routingAndNavigationRouter,
   fieldValidationRouter,
+  testingRouter,
   exampleDetailRouter,
   examplesRouter,
   projectOrganizationRouter,

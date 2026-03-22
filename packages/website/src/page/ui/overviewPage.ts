@@ -17,6 +17,7 @@ import type { TableOfContentsEntry } from '../../main'
 import { heading, link, pageTitle, para } from '../../prose'
 import {
   exampleDetailRouter,
+  patternsSubmodelsRouter,
   uiButtonRouter,
   uiCheckboxRouter,
   uiComboboxRouter,
@@ -236,7 +237,7 @@ export const view = (): Html =>
       ),
       para(
         'Foldkit UI is a set of headless, accessible UI components built for Foldkit. Each component manages its own state through The Elm Architecture — with a Model, Message, update, and view — and integrates into your app via the ',
-        link('/patterns/submodels', 'Submodels'),
+        link(patternsSubmodelsRouter(), 'Submodels'),
         ' pattern.',
       ),
       para(

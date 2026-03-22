@@ -237,16 +237,19 @@ const selectionToParam = <A extends string>(
   )
 }
 
-const ReplaceFilters = Command.define('ReplaceFilters')
-const NavigateInternal = Command.define('NavigateInternal')
-const LoadExternal = Command.define('LoadExternal')
+const ReplaceFilters = Command.define('ReplaceFilters', CompletedReplaceUrl)
+const NavigateInternal = Command.define(
+  'NavigateInternal',
+  CompletedNavigateInternal,
+)
+const LoadExternal = Command.define('LoadExternal', CompletedLoadExternal)
 
 const replaceFilters = (fields: BrowseFields) =>
   ReplaceFilters(
     replaceUrl(browseRouter(fields)).pipe(Effect.as(CompletedReplaceUrl())),
   )
 
-type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 const update = (model: Model, message: Message): UpdateReturn =>

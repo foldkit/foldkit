@@ -246,7 +246,8 @@ Every message must carry meaning. No `NoOp`.
 
 ### Commands
 
-- Define Command identities with `Command.define`, always assigned to PascalCase constants — never inline in pipe chains
+- Define Command identities with `Command.define`, passing result Message schemas after the name — result types are required
+- Always assign definitions to PascalCase constants — never inline in pipe chains
 - Definitions live where they're produced, colocated with the update function
 - Let TypeScript infer return types — no explicit `Command<typeof A>` annotations
 - Use `Effect.gen` for multi-step async

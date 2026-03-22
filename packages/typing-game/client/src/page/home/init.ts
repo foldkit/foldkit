@@ -5,7 +5,10 @@ import { USERNAME_INPUT_ID } from '../../constant'
 import { CompletedFocusUsernameInput, Message } from './message'
 import { EnterUsername, Model } from './model'
 
-const FocusUsernameInput = Command.define('FocusUsernameInput')
+const FocusUsernameInput = Command.define(
+  'FocusUsernameInput',
+  CompletedFocusUsernameInput,
+)
 
 export type InitReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 

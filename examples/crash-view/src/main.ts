@@ -20,7 +20,7 @@ export type Message = typeof Message.Type
 const update = (
   _model: Model,
   _message: Message,
-): [Model, ReadonlyArray<Command.Command<Message>>] => {
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
   throw new Error('This is a simulated crash!')
 }
 

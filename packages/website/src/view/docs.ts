@@ -407,6 +407,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           lazyDocsContent(Page.FieldValidation.view, [model.copiedSnippets]),
           Page.FieldValidation.tableOfContents,
         ),
+      Testing: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.Testing.view, [model.copiedSnippets]),
+          Page.Testing.tableOfContents,
+        ),
       Examples: () => withoutTableOfContents(Page.Examples.view()),
       ExampleDetail: ({ exampleSlug }) =>
         withoutTableOfContents(

@@ -259,19 +259,39 @@ type SelectedItemContext = Readonly<{
   maybeRestoreInert: Option.Option<Command.Command<Message>>
 }>
 
-const RequestFrame = Command.define('RequestFrame')
-const LockScroll = Command.define('LockScroll')
-const UnlockScroll = Command.define('UnlockScroll')
-const InertOthers = Command.define('InertOthers')
-const RestoreInert = Command.define('RestoreInert')
-const FocusButton = Command.define('FocusButton')
-const FocusItems = Command.define('FocusItems')
-const ScrollIntoView = Command.define('ScrollIntoView')
-const ClickItem = Command.define('ClickItem')
-const DelayClearSearch = Command.define('DelayClearSearch')
-const WaitForTransitions = Command.define('WaitForTransitions')
-const DetectMovementOrTransitionEnd = Command.define(
+export const RequestFrame = Command.define(
+  'RequestFrame',
+  AdvancedTransitionFrame,
+)
+export const LockScroll = Command.define('LockScroll', CompletedLockScroll)
+export const UnlockScroll = Command.define(
+  'UnlockScroll',
+  CompletedUnlockScroll,
+)
+export const InertOthers = Command.define('InertOthers', CompletedSetupInert)
+export const RestoreInert = Command.define(
+  'RestoreInert',
+  CompletedTeardownInert,
+)
+export const FocusButton = Command.define('FocusButton', CompletedFocusButton)
+export const FocusItems = Command.define('FocusItems', CompletedFocusItems)
+export const ScrollIntoView = Command.define(
+  'ScrollIntoView',
+  CompletedScrollIntoView,
+)
+export const ClickItem = Command.define('ClickItem', CompletedClickItem)
+export const DelayClearSearch = Command.define(
+  'DelayClearSearch',
+  ClearedSearch,
+)
+export const WaitForTransitions = Command.define(
+  'WaitForTransitions',
+  EndedTransition,
+)
+export const DetectMovementOrTransitionEnd = Command.define(
   'DetectMovementOrTransitionEnd',
+  DetectedButtonMovement,
+  EndedTransition,
 )
 
 export const makeUpdate = <Model extends BaseModel>(
@@ -281,7 +301,7 @@ export const makeUpdate = <Model extends BaseModel>(
     context: SelectedItemContext,
   ) => [Model, ReadonlyArray<Command.Command<Message>>],
 ) => {
-  type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
+  type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
   const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
   return (model: Model, message: Message): UpdateReturn => {

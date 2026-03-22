@@ -6,16 +6,24 @@ import { Command } from 'foldkit'
 import { SESSION_STORAGE_KEY } from './constant'
 import { Session } from './domain/session'
 import {
-  ClearedSession,
   CompletedLogError,
   FailedClearSession,
   FailedSaveSession,
-  SavedSession,
+  SucceededClearSession,
+  SucceededSaveSession,
 } from './message'
 
-const SaveSession = Command.define('SaveSession')
-const ClearSession = Command.define('ClearSession')
-const LogError = Command.define('LogError')
+const SaveSession = Command.define(
+  'SaveSession',
+  SucceededSaveSession,
+  FailedSaveSession,
+)
+const ClearSession = Command.define(
+  'ClearSession',
+  SucceededClearSession,
+  FailedClearSession,
+)
+const LogError = Command.define('LogError', CompletedLogError)
 
 export const saveSession = (session: Session) =>
   SaveSession(
@@ -25,7 +33,7 @@ export const saveSession = (session: Session) =>
         SESSION_STORAGE_KEY,
         S.encodeSync(S.parseJson(Session))(session),
       )
-      return SavedSession()
+      return SucceededSaveSession()
     }).pipe(
       Effect.catchAll(error =>
         Effect.succeed(FailedSaveSession({ error: String(error) })),
@@ -39,7 +47,7 @@ export const clearSession = () =>
     Effect.gen(function* () {
       const store = yield* KeyValueStore.KeyValueStore
       yield* store.remove(SESSION_STORAGE_KEY)
-      return ClearedSession()
+      return SucceededClearSession()
     }).pipe(
       Effect.catchAll(error =>
         Effect.succeed(FailedClearSession({ error: String(error) })),

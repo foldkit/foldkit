@@ -17,7 +17,7 @@ type Message = typeof Message.Type
 
 // UPDATE - How Messages change the Model
 
-type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 const update = (model: Model, message: Message): UpdateReturn =>

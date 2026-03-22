@@ -5,7 +5,7 @@ import * as Task from 'foldkit/task'
 
 import {
   CompletedNavigateSearch,
-  CompletedScrollResult,
+  CompletedScrollToResult,
   ReceivedSearchResults,
   SearchResult,
 } from './message'
@@ -50,12 +50,21 @@ export class PagefindService extends Effect.Service<PagefindService>()(
   },
 ) {}
 
-const FetchSearchIndex = Command.define('FetchSearchIndex')
-const ScrollToResult = Command.define('ScrollToResult')
-const NavigateToResult = Command.define('NavigateToResult')
+export const FetchSearchResults = Command.define(
+  'FetchSearchResults',
+  ReceivedSearchResults,
+)
+export const ScrollToResult = Command.define(
+  'ScrollToResult',
+  CompletedScrollToResult,
+)
+export const NavigateToResult = Command.define(
+  'NavigateToResult',
+  CompletedNavigateSearch,
+)
 
 export const searchPagefind = (query: string) =>
-  FetchSearchIndex(
+  FetchSearchResults(
     Effect.gen(function* () {
       const pagefind = yield* PagefindService
 
@@ -92,7 +101,7 @@ export const scrollActiveResultIntoView = (index: number) =>
   ScrollToResult(
     Task.scrollIntoView(`${SEARCH_RESULT_SELECTOR}"${index}"]`).pipe(
       Effect.ignore,
-      Effect.as(CompletedScrollResult()),
+      Effect.as(CompletedScrollToResult()),
     ),
   )
 

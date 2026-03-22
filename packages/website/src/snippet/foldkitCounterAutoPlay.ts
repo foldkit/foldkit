@@ -54,7 +54,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
 
 // UPDATE
 
-type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 const update = (model: Model, message: Message): UpdateReturn =>

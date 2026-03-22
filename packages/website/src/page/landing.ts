@@ -10,6 +10,7 @@ import {
   Class,
   Href,
   Id,
+  InnerHTML,
   Role,
   Src,
   a,
@@ -31,10 +32,17 @@ import {
   aiOverviewRouter,
   comingFromReactRouter,
   coreArchitectureRouter,
+  coreDevtoolsRouter,
   examplesRouter,
+  testingRouter,
   uiOverviewRouter,
 } from '../route'
-import { type CopiedSnippets, codeBlock } from '../view/codeBlock'
+import * as Snippets from '../snippet'
+import {
+  type CopiedSnippets,
+  codeBlock,
+  highlightedCodeBlock,
+} from '../view/codeBlock'
 import { exampleAppCount } from './examples'
 
 // CONSTANTS
@@ -89,6 +97,8 @@ export const view = (
       glyph('[ ]'),
       includedSection(),
       glyph('::'),
+      testingSection(copiedSnippets),
+      glyph('??'),
       devtoolsSection(),
       glyph('~~'),
       aiSection(aiHeadingToggleCount),
@@ -486,6 +496,58 @@ const includedSection = (): Html =>
     ],
   )
 
+// TESTING
+
+const testingSection = (copiedSnippets: CopiedSnippets): Html =>
+  section(
+    [Id('testing'), Class('landing-section')],
+    [
+      div(
+        [Class('landing-section-narrow')],
+        [
+          h2(
+            [
+              Class(
+                'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-3 text-balance',
+              ),
+            ],
+            [
+              'Tests that read like ',
+              span(
+                [Class('text-accent-600 dark:text-accent-500')],
+                ['stories.'],
+              ),
+            ],
+          ),
+          p(
+            [
+              Class(
+                'text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl',
+              ),
+            ],
+            [
+              'Pure update functions mean pure tests. No side effects means nothing to mock. Declare how Commands resolve, send Messages, and check the result. That\u2019s really it.',
+            ],
+          ),
+          a(
+            [Href(testingRouter()), Class('cta-secondary mb-8')],
+            ['Learn about testing', Icon.arrowRight('w-5 h-5')],
+          ),
+          highlightedCodeBlock(
+            div(
+              [Class('text-sm'), InnerHTML(Snippets.landingTestHighlighted)],
+              [],
+            ),
+            Snippets.landingTestRaw,
+            'Copy test example to clipboard',
+            copiedSnippets,
+            '',
+          ),
+        ],
+      ),
+    ],
+  )
+
 // DEVTOOLS
 
 const devtoolsSection = (): Html =>
@@ -525,6 +587,10 @@ const devtoolsSection = (): Html =>
             [
               'This site runs on Foldkit. Look for the tab on the bottom right of this page to try it live.',
             ],
+          ),
+          a(
+            [Href(coreDevtoolsRouter()), Class('cta-secondary mb-8')],
+            ['Learn about DevTools', Icon.arrowRight('w-5 h-5')],
           ),
           div(
             [

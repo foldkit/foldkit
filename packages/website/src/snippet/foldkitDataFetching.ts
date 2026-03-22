@@ -32,7 +32,11 @@ type Message = typeof Message.Type
 
 // COMMAND
 
-const FetchUser = Command.define('FetchUser')
+const FetchUser = Command.define(
+  'FetchUser',
+  SucceededFetchUser,
+  FailedFetchUser,
+)
 
 const fetchUser = (userId: string) =>
   FetchUser(
@@ -54,9 +58,11 @@ const fetchUser = (userId: string) =>
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command.Command<Message>>] =>
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
+    M.withReturnType<
+      readonly [Model, ReadonlyArray<Command.Command<Message>>]
+    >(),
     M.tagsExhaustive({
       ClickedFetchUser: ({ userId }) => [
         evo(model, { user: () => UserLoading() }),

@@ -28,7 +28,6 @@ import {
   ChangedUrl,
   ClickedLink,
   CompletedApplyTheme,
-  CompletedCopyLink,
   CompletedInjectAnalytics,
   CompletedInjectSpeedInsights,
   CompletedLoadExternal,
@@ -59,6 +58,7 @@ import {
   type Message,
   ResolvedTheme,
   SucceededCopy,
+  SucceededCopyLink,
   SucceededSubscribeEmail,
   ThemePreference,
 } from './message'
@@ -335,10 +335,16 @@ const init: Runtime.ApplicationInit<Model, Message, Flags, AppResources> = (
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command.Command<Message, never, AppResources>>] =>
+): readonly [
+  Model,
+  ReadonlyArray<Command.Command<Message, never, AppResources>>,
+] =>
   M.value(message).pipe(
     M.withReturnType<
-      [Model, ReadonlyArray<Command.Command<Message, never, AppResources>>]
+      readonly [
+        Model,
+        ReadonlyArray<Command.Command<Message, never, AppResources>>,
+      ]
     >(),
     M.tags({
       ClickedLink: ({ request }) =>
@@ -869,7 +875,7 @@ const update = (
       'CompletedScroll',
       'CompletedApplyTheme',
       'CompletedSaveThemePreference',
-      'CompletedCopyLink',
+      'SucceededCopyLink',
       'FailedCopy',
       () => [model, []],
     ),
@@ -878,18 +884,37 @@ const update = (
 
 // COMMAND
 
-const InjectAnalytics = Command.define('InjectAnalytics')
-const InjectSpeedInsights = Command.define('InjectSpeedInsights')
-const CopySnippet = Command.define('CopySnippet')
-const CopyLink = Command.define('CopyLink')
-const HideCopiedIndicator = Command.define('HideCopiedIndicator')
-const ScrollToTop = Command.define('ScrollToTop')
-const ScrollToAnchor = Command.define('ScrollToAnchor')
-const ApplyTheme = Command.define('ApplyTheme')
-const SubscribeToNewsletter = Command.define('SubscribeToNewsletter')
-const SaveThemePreference = Command.define('SaveThemePreference')
-const NavigateInternal = Command.define('NavigateInternal')
-const LoadExternal = Command.define('LoadExternal')
+const InjectAnalytics = Command.define(
+  'InjectAnalytics',
+  CompletedInjectAnalytics,
+)
+const InjectSpeedInsights = Command.define(
+  'InjectSpeedInsights',
+  CompletedInjectSpeedInsights,
+)
+const CopySnippet = Command.define('CopySnippet', SucceededCopy, FailedCopy)
+const CopyLink = Command.define('CopyLink', SucceededCopyLink, FailedCopy)
+const HideCopiedIndicator = Command.define(
+  'HideCopiedIndicator',
+  HiddenCopiedIndicator,
+)
+const ScrollToTop = Command.define('ScrollToTop', CompletedScroll)
+const ScrollToAnchor = Command.define('ScrollToAnchor', CompletedScroll)
+const ApplyTheme = Command.define('ApplyTheme', CompletedApplyTheme)
+const SubscribeToNewsletter = Command.define(
+  'SubscribeToNewsletter',
+  SucceededSubscribeEmail,
+  FailedSubscribeEmail,
+)
+const SaveThemePreference = Command.define(
+  'SaveThemePreference',
+  CompletedSaveThemePreference,
+)
+const NavigateInternal = Command.define(
+  'NavigateInternal',
+  CompletedNavigateInternal,
+)
+const LoadExternal = Command.define('LoadExternal', CompletedLoadExternal)
 
 const injectAnalytics = InjectAnalytics(
   Effect.sync(() => inject()).pipe(Effect.as(CompletedInjectAnalytics())),
@@ -918,7 +943,7 @@ const copyLinkToClipboard = (url: string) =>
       try: () => navigator.clipboard.writeText(url),
       catch: () => new Error('Failed to copy link to clipboard'),
     }).pipe(
-      Effect.as(CompletedCopyLink()),
+      Effect.as(SucceededCopyLink()),
       Effect.catchAll(() => Effect.succeed(FailedCopy())),
     ),
   )

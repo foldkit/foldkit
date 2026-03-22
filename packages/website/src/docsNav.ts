@@ -35,6 +35,7 @@ import {
   patternsSubmodelsRouter,
   projectOrganizationRouter,
   routingAndNavigationRouter,
+  testingRouter,
   uiButtonRouter,
   uiCheckboxRouter,
   uiComboboxRouter,
@@ -225,6 +226,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'FieldValidation',
           href: fieldValidationRouter(),
           label: 'Field Validation',
+        },
+        {
+          _tag: 'Testing',
+          href: testingRouter(),
+          label: 'Testing',
         },
         {
           _tag: 'ProjectOrganization',

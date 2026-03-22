@@ -105,10 +105,10 @@ const isEmailOnWaitlist = (email: string): Effect.Effect<boolean> =>
     return Array.contains(EMAILS_ON_WAITLIST, email.toLowerCase())
   })
 
-const ValidateEmailNotOnWaitlist = Command.define('ValidateEmailNotOnWaitlist')
+const ValidateEmail = Command.define('ValidateEmail', ValidatedEmail)
 
-const validateEmailNotOnWaitlist = (email: string, validationId: number) =>
-  ValidateEmailNotOnWaitlist(
+const validateEmailAsync = (email: string, validationId: number) =>
+  ValidateEmail(
     Effect.gen(function* () {
       if (yield* isEmailOnWaitlist(email)) {
         return ValidatedEmail({
@@ -138,9 +138,11 @@ const isFormValid = (model: Model): boolean =>
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command.Command<Message>>] =>
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
+    M.withReturnType<
+      readonly [Model, ReadonlyArray<Command.Command<Message>>]
+    >(),
     M.tagsExhaustive({
       UpdatedName: ({ value }) => [
         evo(model, {
@@ -159,7 +161,7 @@ const update = (
               email: () => StringField.Validating({ value }),
               emailValidationId: () => validationId,
             }),
-            [validateEmailNotOnWaitlist(value, validationId)],
+            [validateEmailAsync(value, validationId)],
           ]
         } else {
           return [
@@ -236,7 +238,7 @@ const update = (
 
 const FAKE_API_DELAY_MS = 500
 
-const SubmitForm = Command.define('SubmitForm')
+const SubmitForm = Command.define('SubmitForm', SubmittedForm)
 
 const submitForm = (model: Model) =>
   SubmitForm(

@@ -1,8 +1,11 @@
 import { HttpClient, HttpClientResponse } from '@effect/platform'
 import { Effect, Layer, Match as M, String } from 'effect'
+import { Test } from 'foldkit'
 import { expect, test } from 'vitest'
 
 import {
+  FailedFetchWeather,
+  FetchWeather,
   Model,
   SubmittedWeatherForm,
   SucceededFetchWeather,
@@ -12,23 +15,12 @@ import {
   update,
 } from './main'
 
-const createModel = (): Model => ({
+const weatherModel: Model = {
   zipCodeInput: '90210',
   weather: WeatherInit(),
-})
+}
 
-test('SubmittedWeatherForm sets loading state and returns fetch command', () => {
-  const model = createModel()
-
-  const [newModel, commands] = update(model, SubmittedWeatherForm())
-
-  expect(newModel.weather._tag).toBe('WeatherLoading')
-  expect(commands).toHaveLength(1)
-  expect(commands[0]?.name).toBe('FetchWeather')
-})
-
-test('SucceededFetchWeather updates model with weather data', () => {
-  const model = createModel()
+test('submitting the weather form fetches weather and shows result', () => {
   const weatherData: WeatherData = {
     zipCode: '90210',
     temperature: 72,
@@ -39,17 +31,37 @@ test('SucceededFetchWeather updates model with weather data', () => {
     region: 'California',
   }
 
-  const [newModel, commands] = update(
-    model,
-    SucceededFetchWeather({ weather: weatherData }),
+  Test.story(
+    update,
+    Test.with(weatherModel),
+    Test.message(SubmittedWeatherForm()),
+    Test.tap(({ model }) => {
+      expect(model.weather._tag).toBe('WeatherLoading')
+    }),
+    Test.resolve(FetchWeather, SucceededFetchWeather({ weather: weatherData })),
+    Test.tap(({ model }) => {
+      expect(model.weather._tag).toBe('WeatherSuccess')
+      if (model.weather._tag === 'WeatherSuccess') {
+        expect(model.weather.data.temperature).toBe(72)
+        expect(model.weather.data.locationName).toBe('Beverly Hills')
+      }
+    }),
   )
+})
 
-  expect(newModel.weather._tag).toBe('WeatherSuccess')
-  if (newModel.weather._tag === 'WeatherSuccess') {
-    expect(newModel.weather.data.temperature).toBe(72)
-    expect(newModel.weather.data.locationName).toBe('Beverly Hills')
-  }
-  expect(commands).toHaveLength(0)
+test('failed fetch shows failure state', () => {
+  Test.story(
+    update,
+    Test.with(weatherModel),
+    Test.message(SubmittedWeatherForm()),
+    Test.resolve(FetchWeather, FailedFetchWeather({ error: 'Network error' })),
+    Test.tap(({ model }) => {
+      expect(model.weather._tag).toBe('WeatherFailure')
+      if (model.weather._tag === 'WeatherFailure') {
+        expect(model.weather.error).toBe('Network error')
+      }
+    }),
+  )
 })
 
 const mockGeocodingResponse = {

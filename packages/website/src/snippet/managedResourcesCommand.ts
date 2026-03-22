@@ -3,7 +3,11 @@ import { Command, ManagedResource } from 'foldkit'
 
 const CameraStream = ManagedResource.tag<MediaStream>()('CameraStream')
 
-const TakePhoto = Command.define('TakePhoto')
+const TakePhoto = Command.define(
+  'TakePhoto',
+  SucceededTakePhoto,
+  CameraUnavailable,
+)
 
 const takePhoto = () =>
   TakePhoto(
@@ -19,7 +23,7 @@ const takePhoto = () =>
         },
       })
 
-      return TookPhoto({ width: bitmap.width, height: bitmap.height })
+      return SucceededTakePhoto({ width: bitmap.width, height: bitmap.height })
     }).pipe(
       Effect.catchTag('ResourceNotAvailable', () =>
         Effect.succeed(CameraUnavailable()),

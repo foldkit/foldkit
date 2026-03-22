@@ -12,22 +12,39 @@ import {
   FailedFetchRoom,
   FailedJoinRoom,
   HiddenRoomIdCopiedIndicator,
-  JoinedRoom,
   LoadedSession,
   SucceededCopyRoomId,
   SucceededFetchRoom,
+  SucceededJoinRoom,
   TickedExitCountdown,
 } from './message'
 import { RoomPlayerSession } from './model'
 
-const FetchRoom = Command.define('FetchRoom')
-const LoadSession = Command.define('LoadSession')
-const JoinRoom = Command.define('JoinRoom')
-const StartGame = Command.define('StartGame')
-const UpdatePlayerProgress = Command.define('UpdatePlayerProgress')
-const CopyRoomId = Command.define('CopyRoomId')
-const TickExitCountdown = Command.define('TickExitCountdown')
-const HideRoomIdCopiedIndicator = Command.define('HideRoomIdCopiedIndicator')
+const FetchRoom = Command.define(
+  'FetchRoom',
+  SucceededFetchRoom,
+  FailedFetchRoom,
+)
+const LoadSession = Command.define('LoadSession', LoadedSession)
+const JoinRoom = Command.define('JoinRoom', SucceededJoinRoom, FailedJoinRoom)
+const StartGame = Command.define('StartGame', CompletedRequestGameStart)
+const UpdatePlayerProgress = Command.define(
+  'UpdatePlayerProgress',
+  CompletedUpdatePlayerProgress,
+)
+const CopyRoomId = Command.define(
+  'CopyRoomId',
+  SucceededCopyRoomId,
+  FailedCopyClipboard,
+)
+const TickExitCountdown = Command.define(
+  'TickExitCountdown',
+  TickedExitCountdown,
+)
+const HideRoomIdCopiedIndicator = Command.define(
+  'HideRoomIdCopiedIndicator',
+  HiddenRoomIdCopiedIndicator,
+)
 
 export const getRoomById = (roomId: string) =>
   FetchRoom(
@@ -73,7 +90,7 @@ export const joinRoom = (username: string, roomId: string) =>
     Effect.gen(function* () {
       const client = yield* RoomsClient
       const { player, room } = yield* client.joinRoom({ username, roomId })
-      return JoinedRoom({ roomId: room.id, player })
+      return SucceededJoinRoom({ roomId: room.id, player })
     }).pipe(
       Effect.catchAll(() => Effect.succeed(FailedJoinRoom())),
       Effect.provide(RoomsClient.Default),

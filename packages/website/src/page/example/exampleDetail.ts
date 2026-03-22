@@ -53,7 +53,10 @@ export type Message = typeof Message.Type
 
 // INIT
 
-export const init = (): [Model, ReadonlyArray<Command.Command<Message>>] => [
+export const init = (): readonly [
+  Model,
+  ReadonlyArray<Command.Command<Message>>,
+] => [
   {
     sourceFileTabs: Ui.Tabs.init({ id: 'source-file-tabs' }),
     maybeExampleUrl: Option.none(),
@@ -70,9 +73,11 @@ export const init = (): [Model, ReadonlyArray<Command.Command<Message>>] => [
 export const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command.Command<Message>>] =>
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
+    M.withReturnType<
+      readonly [Model, ReadonlyArray<Command.Command<Message>>]
+    >(),
     M.tagsExhaustive({
       GotSourceFileTabsMessage: ({ message }) => {
         const [nextTabs, tabsCommands] = Ui.Tabs.update(

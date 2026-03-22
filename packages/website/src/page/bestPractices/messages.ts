@@ -127,7 +127,7 @@ export const view = (): Html =>
         inlineCode('FocusButton'),
         ', ',
         inlineCode('ShowDialog'),
-        '). Both read as present-tense, verb-first instructions because Commands are imperative. The resulting Message keeps the same verb-first order with a prefix: ',
+        '). Both are verb-first imperatives \u2014 instructions to the runtime. The resulting Message keeps the same verb-first order with a prefix: ',
         inlineCode('CompletedLockScroll'),
         ', ',
         inlineCode('CompletedFocusButton'),

@@ -113,18 +113,26 @@ const init: Runtime.ApplicationInit<Model, Message> = (url: Url) => {
 
 // COMMAND
 
-const NavigateInternal = Command.define('NavigateInternal')
-const LoadExternal = Command.define('LoadExternal')
-const ReplaceSearchUrl = Command.define('ReplaceSearchUrl')
+const NavigateInternal = Command.define(
+  'NavigateInternal',
+  CompletedNavigateInternal,
+)
+const LoadExternal = Command.define('LoadExternal', CompletedLoadExternal)
+const ReplaceSearchUrl = Command.define(
+  'ReplaceSearchUrl',
+  CompletedNavigateInternal,
+)
 
 // UPDATE
 
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command.Command<Message>>] =>
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
+    M.withReturnType<
+      readonly [Model, ReadonlyArray<Command.Command<Message>>]
+    >(),
     M.tagsExhaustive({
       CompletedNavigateInternal: () => [model, []],
       CompletedLoadExternal: () => [model, []],

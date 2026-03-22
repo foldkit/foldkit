@@ -133,8 +133,11 @@ export type Message = typeof Message.Type
 
 // COMMAND
 
-const NavigateInternal = Command.define('NavigateInternal')
-const LoadExternal = Command.define('LoadExternal')
+const NavigateInternal = Command.define(
+  'NavigateInternal',
+  CompletedNavigateInternal,
+)
+const LoadExternal = Command.define('LoadExternal', CompletedLoadExternal)
 
 // INIT
 
@@ -163,9 +166,11 @@ const toMobileMenuDialogMessage = (message: Ui.Dialog.Message): Message =>
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command.Command<Message>>] =>
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
+    M.withReturnType<
+      readonly [Model, ReadonlyArray<Command.Command<Message>>]
+    >(),
     M.tagsExhaustive({
       CompletedNavigateInternal: () => [model, []],
       CompletedLoadExternal: () => [model, []],

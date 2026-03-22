@@ -60,7 +60,7 @@ const Disconnected = m('Disconnected')
 const FailedConnect = m('FailedConnect', { error: S.String })
 const UpdatedMessageInput = m('UpdatedMessageInput', { value: S.String })
 const RequestedMessageSend = m('RequestedMessageSend')
-const SentMessage = m('SentMessage', { text: S.String })
+const SucceededSendMessage = m('SucceededSendMessage', { text: S.String })
 const ReceivedMessage = m('ReceivedMessage', { text: S.String })
 const TimestampedMessage = m('TimestampedMessage', {
   text: S.String,
@@ -75,7 +75,7 @@ const Message = S.Union(
   FailedConnect,
   UpdatedMessageInput,
   RequestedMessageSend,
-  SentMessage,
+  SucceededSendMessage,
   ReceivedMessage,
   TimestampedMessage,
 )
@@ -86,7 +86,10 @@ type Message = typeof Message.Type
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command.Command<Message, never, ChatSocketService>>] =>
+): readonly [
+  Model,
+  ReadonlyArray<Command.Command<Message, never, ChatSocketService>>,
+] =>
   M.value(message).pipe(
     M.withReturnType<
       [Model, ReadonlyArray<Command.Command<Message, never, ChatSocketService>>]
@@ -152,7 +155,7 @@ const update = (
         )
       },
 
-      SentMessage: ({ text }) => [
+      SucceededSendMessage: ({ text }) => [
         model,
         [
           TimestampSentMessage(
@@ -204,9 +207,19 @@ const init: Runtime.ElementInit<Model, Message> = () => [
 
 // COMMAND
 
-const TimestampSentMessage = Command.define('TimestampSentMessage')
-const TimestampReceivedMessage = Command.define('TimestampReceivedMessage')
-const SendMessage = Command.define('SendMessage')
+const TimestampSentMessage = Command.define(
+  'TimestampSentMessage',
+  TimestampedMessage,
+)
+const TimestampReceivedMessage = Command.define(
+  'TimestampReceivedMessage',
+  TimestampedMessage,
+)
+const SendMessage = Command.define(
+  'SendMessage',
+  SucceededSendMessage,
+  FailedConnect,
+)
 
 const sendMessage = (text: string) =>
   SendMessage(
@@ -214,7 +227,7 @@ const sendMessage = (text: string) =>
       Effect.flatMap(socket =>
         Effect.sync(() => {
           socket.send(text)
-          return SentMessage({ text })
+          return SucceededSendMessage({ text })
         }),
       ),
       Effect.catchTag('ResourceNotAvailable', () =>

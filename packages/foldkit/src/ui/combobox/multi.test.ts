@@ -1,24 +1,30 @@
 import { describe, it } from '@effect/vitest'
-import { Effect, Option, Predicate } from 'effect'
+import { Effect, Option, Predicate, flow } from 'effect'
 import type { VNode } from 'snabbdom'
 import { expect } from 'vitest'
 
 import { Dispatch } from '../../runtime'
 import { noOpDispatch } from '../../runtime/crashUI'
+import * as Test from '../../test'
 import { init, update, view } from './multi'
 import type { Model, ViewConfig } from './multi'
-import { ActivatedItem, Closed, Opened, SelectedItem } from './shared'
+import {
+  ActivatedItem,
+  Closed,
+  CompletedFocusInput,
+  CompletedScrollIntoView,
+  FocusInput,
+  Opened,
+  ScrollIntoView,
+  SelectedItem,
+} from './shared'
 
-const closedModel = () => init({ id: 'test' })
+const withClosed = Test.with(init({ id: 'test' }))
 
-const openMultiModel = () => {
-  const model = init({ id: 'test' })
-  const [result] = update(
-    model,
-    Opened({ maybeActiveItemIndex: Option.some(0) }),
-  )
-  return result
-}
+const withOpenMulti = flow(
+  withClosed,
+  Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+)
 
 describe('Combobox.Multi', () => {
   describe('init', () => {
@@ -57,132 +63,143 @@ describe('Combobox.Multi', () => {
   describe('update', () => {
     describe('SelectedItem (multiple)', () => {
       it('adds item to selectedItems', () => {
-        const model = openMultiModel()
-        const [result] = update(
-          model,
-          SelectedItem({ item: 'apple', displayText: 'Apple' }),
+        Test.story(
+          update,
+          withOpenMulti,
+          Test.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Test.tap(({ model }) => {
+            expect(model.selectedItems).toStrictEqual(['apple'])
+          }),
         )
-        expect(result.selectedItems).toStrictEqual(['apple'])
       })
 
       it('stays open after selection', () => {
-        const model = openMultiModel()
-        const [result] = update(
-          model,
-          SelectedItem({ item: 'apple', displayText: 'Apple' }),
+        Test.story(
+          update,
+          withOpenMulti,
+          Test.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Test.tap(({ model }) => {
+            expect(model.isOpen).toBe(true)
+          }),
         )
-        expect(result.isOpen).toBe(true)
-      })
-
-      it('returns no commands', () => {
-        const model = openMultiModel()
-        const [, commands] = update(
-          model,
-          SelectedItem({ item: 'apple', displayText: 'Apple' }),
-        )
-        expect(commands).toHaveLength(0)
       })
 
       it('toggles item off when already selected', () => {
-        const model = openMultiModel()
-        const [afterFirst] = update(
-          model,
-          SelectedItem({ item: 'apple', displayText: 'Apple' }),
+        Test.story(
+          update,
+          withOpenMulti,
+          Test.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Test.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Test.tap(({ model }) => {
+            expect(model.selectedItems).toStrictEqual([])
+          }),
         )
-        const [afterSecond] = update(
-          afterFirst,
-          SelectedItem({ item: 'apple', displayText: 'Apple' }),
-        )
-        expect(afterSecond.selectedItems).toStrictEqual([])
       })
 
       it('accumulates multiple selections', () => {
-        const model = openMultiModel()
-        const [afterFirst] = update(
-          model,
-          SelectedItem({ item: 'apple', displayText: 'Apple' }),
+        Test.story(
+          update,
+          withOpenMulti,
+          Test.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Test.message(SelectedItem({ item: 'banana', displayText: 'Banana' })),
+          Test.tap(({ model }) => {
+            expect(model.selectedItems).toStrictEqual(['apple', 'banana'])
+          }),
         )
-        const [afterSecond] = update(
-          afterFirst,
-          SelectedItem({ item: 'banana', displayText: 'Banana' }),
-        )
-        expect(afterSecond.selectedItems).toStrictEqual(['apple', 'banana'])
       })
 
       it('preserves active item after selection', () => {
-        const model = openMultiModel()
-        const [afterActivate] = update(
-          model,
-          ActivatedItem({
-            index: 2,
-            activationTrigger: 'Keyboard',
-            maybeImmediateSelection: Option.none(),
+        Test.story(
+          update,
+          withOpenMulti,
+          Test.message(
+            ActivatedItem({
+              index: 2,
+              activationTrigger: 'Keyboard',
+              maybeImmediateSelection: Option.none(),
+            }),
+          ),
+          Test.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Test.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Test.tap(({ model }) => {
+            expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
           }),
         )
-        const [afterSelect] = update(
-          afterActivate,
-          SelectedItem({ item: 'apple', displayText: 'Apple' }),
-        )
-        expect(afterSelect.maybeActiveItemIndex).toStrictEqual(Option.some(2))
       })
     })
 
     describe('handleClose with nullable', () => {
       it('clears selectedItems when nullable and input empty', () => {
-        const model = init({ id: 'test', nullable: true })
-        const [openModel] = update(
-          model,
-          Opened({ maybeActiveItemIndex: Option.some(0) }),
+        Test.story(
+          update,
+          Test.with(init({ id: 'test', nullable: true })),
+          Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+          Test.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Test.message(Closed()),
+          Test.resolve(FocusInput, CompletedFocusInput()),
+          Test.tap(({ model }) => {
+            expect(model.selectedItems).toStrictEqual([])
+            expect(model.isOpen).toBe(false)
+          }),
         )
-        const [withSelection] = update(
-          openModel,
-          SelectedItem({ item: 'apple', displayText: 'Apple' }),
-        )
-        const [result] = update(withSelection, Closed())
-        expect(result.selectedItems).toStrictEqual([])
-        expect(result.isOpen).toBe(false)
       })
     })
 
     describe('handleImmediateActivation', () => {
       it('toggles item in selectedItems', () => {
-        const model = init({ id: 'test', immediate: true })
-        const [openModel] = update(
-          model,
-          Opened({ maybeActiveItemIndex: Option.some(0) }),
-        )
-
-        const [afterActivate] = update(
-          openModel,
-          ActivatedItem({
-            index: 0,
-            activationTrigger: 'Keyboard',
-            maybeImmediateSelection: Option.some({
-              item: 'apple',
-              displayText: 'Apple',
+        Test.story(
+          update,
+          Test.with(init({ id: 'test', immediate: true })),
+          Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+          Test.message(
+            ActivatedItem({
+              index: 0,
+              activationTrigger: 'Keyboard',
+              maybeImmediateSelection: Option.some({
+                item: 'apple',
+                displayText: 'Apple',
+              }),
             }),
+          ),
+          Test.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Test.tap(({ model }) => {
+            expect(model.selectedItems).toStrictEqual(['apple'])
+          }),
+          Test.message(
+            ActivatedItem({
+              index: 0,
+              activationTrigger: 'Keyboard',
+              maybeImmediateSelection: Option.some({
+                item: 'apple',
+                displayText: 'Apple',
+              }),
+            }),
+          ),
+          Test.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Test.tap(({ model }) => {
+            expect(model.selectedItems).toStrictEqual([])
           }),
         )
-        expect(afterActivate.selectedItems).toStrictEqual(['apple'])
-
-        const [afterSecondActivate] = update(
-          afterActivate,
-          ActivatedItem({
-            index: 0,
-            activationTrigger: 'Keyboard',
-            maybeImmediateSelection: Option.some({
-              item: 'apple',
-              displayText: 'Apple',
-            }),
-          }),
-        )
-        expect(afterSecondActivate.selectedItems).toStrictEqual([])
       })
     })
   })
 
   describe('view', () => {
     type TestMessage = string
+
+    const closedModel = () => init({ id: 'test' })
+
+    const openMultiModel = (): Model => {
+      let model!: Model
+      Test.story(
+        update,
+        withOpenMulti,
+        Test.tap(simulation => {
+          model = simulation.model
+        }),
+      )
+      return model
+    }
 
     const baseViewConfig = (model: Model): ViewConfig<TestMessage, string> => ({
       model,
@@ -215,11 +232,8 @@ describe('Combobox.Multi', () => {
 
     describe('aria-multiselectable', () => {
       it('items container has aria-multiselectable', () => {
-        const model = openMultiModel()
-        const config = baseViewConfig(model)
-        const vnode = renderView(config)
+        const vnode = renderView(baseViewConfig(openMultiModel()))
         const itemsContainer = findChildByKey(vnode, 'test-items-container')
-
         expect(itemsContainer?.data?.attrs?.['aria-multiselectable']).toBe(
           'true',
         )
@@ -232,8 +246,7 @@ describe('Combobox.Multi', () => {
           ...openMultiModel(),
           selectedItems: ['Apple', 'Banana'],
         }
-        const config = baseViewConfig(model)
-        const vnode = renderView(config)
+        const vnode = renderView(baseViewConfig(model))
         const itemsContainer = findChildByKey(vnode, 'test-items-container')
         const firstItem = findChildByKey(itemsContainer!, 'test-item-0')
         const secondItem = findChildByKey(itemsContainer!, 'test-item-1')

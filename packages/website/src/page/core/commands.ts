@@ -5,10 +5,12 @@ import type { TableOfContentsEntry } from '../../main'
 import {
   infoCallout,
   inlineCode,
+  link,
   pageTitle,
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
+import { testingRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
@@ -24,6 +26,12 @@ const anatomyHeader: TableOfContentsEntry = {
   text: 'Anatomy of a Command',
 }
 
+const testableByDesignHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'testable-by-design',
+  text: 'Testable by Design',
+}
+
 const httpRequestsHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'http-requests',
@@ -33,6 +41,7 @@ const httpRequestsHeader: TableOfContentsEntry = {
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   anatomyHeader,
+  testableByDesignHeader,
   httpRequestsHeader,
 ]
 
@@ -100,25 +109,18 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Command.define'),
         ' gives a Command an identity that DevTools can display, tests can reference, and traces can track. The name isn\u2019t a debug string \u2014 it\u2019s a first-class value.',
       ),
-      infoCallout(
-        'Names give you visibility',
-        'DevTools shows which Commands fired \u2014 not just how many. Tests assert on the definition, not a string: ',
-        inlineCode('expect(commands[0].name).toBe(DelayReset.name)'),
-        '. And the runtime traces each Command\u2019s execution time via ',
-        inlineCode('Effect.withSpan'),
-        ', so you get per-Command observability out of the box.',
-      ),
       para(
-        'Names are present-tense and verb-first: ',
+        'Names are verb-first imperatives: ',
         inlineCode('FetchWeather'),
         ', ',
         inlineCode('FocusButton'),
         ', ',
         inlineCode('LockScroll'),
-        '. Messages describe what happened (past tense), Command names describe what is being done (present tense).',
+        '. Messages describe what happened (past tense), Command names are imperatives \u2014 instructions to the runtime.',
       ),
+      tableOfContentsEntryToHeader(testableByDesignHeader),
       para(
-        'This separation has a practical consequence: you can test your entire state machine without mocking anything.',
+        'Commands aren\u2019t just a fancy way to organize side effects. They\u2019re the reason Foldkit programs are easy to test. Because update is pure and Commands are data, you can simulate the entire update loop without running any Effects. Send a Message, check that the right Command was produced, resolve it with a result, and verify the Model.',
       ),
       highlightedCodeBlock(
         div(
@@ -134,10 +136,24 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        'No fake timers. No test utilities. No setup or teardown. You call update with a Model and a Message, and you check what comes out. The first assertion proves that update described work without doing it \u2014 the count is still 5. The second proves that when the result arrives, the state transitions correctly. And because the Command carries the definition\u2019s name, you can assert exactly which Command was produced.',
+        'The test reads as a story: start from a Model with count 5, send ',
+        inlineCode('ClickedResetAfterDelay()'),
+        ', verify that update returned a ',
+        inlineCode('DelayReset'),
+        ' Command, resolve it with ',
+        inlineCode('DelayedReset()'),
+        ', and verify the count is 0. Every step is visible. The simulation called update, resolved the Command with the Message you provided, fed that back through update, and arrived at the final state.',
       ),
       para(
-        'This tests the state machine in isolation. In the future, Foldkit may provide a program-level test runner that simulates the full runtime loop \u2014 executing Commands, feeding results back through update, and asserting on the rendered view \u2014 all without a browser.',
+        'Send Messages with ',
+        inlineCode('Test.message'),
+        ', resolve Commands inline with ',
+        inlineCode('Test.resolve'),
+        ', and assert with ',
+        inlineCode('Test.tap'),
+        '. See the ',
+        link(testingRouter(), 'Testing'),
+        ' guide for the full API.',
       ),
       tableOfContentsEntryToHeader(httpRequestsHeader),
       para(

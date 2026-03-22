@@ -5,7 +5,7 @@ import { evo } from 'foldkit/struct'
 export const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command.Command<Message>>] =>
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
     M.tagsExhaustive({
       GotLoginMessage: ({ message }) => {

@@ -6,7 +6,7 @@ class AudioContextService extends Effect.Service<AudioContextService>()(
   { sync: () => new AudioContext() },
 ) {}
 
-const PlayNote = Command.define('PlayNote')
+const PlayNote = Command.define('PlayNote', PlayedNote)
 
 const playNote = (frequency: number, duration: number) =>
   PlayNote(

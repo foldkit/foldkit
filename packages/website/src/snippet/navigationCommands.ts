@@ -13,11 +13,14 @@ const Message = S.Union(
 )
 type Message = typeof Message.Type
 
-const NavigateInternal = Command.define('NavigateInternal')
-const ReplaceUrl = Command.define('ReplaceUrl')
-const GoBack = Command.define('GoBack')
-const GoForward = Command.define('GoForward')
-const LoadExternal = Command.define('LoadExternal')
+const NavigateInternal = Command.define(
+  'NavigateInternal',
+  CompletedNavigateInternal,
+)
+const ReplaceUrl = Command.define('ReplaceUrl', CompletedNavigateInternal)
+const GoBack = Command.define('GoBack', CompletedNavigateHistory)
+const GoForward = Command.define('GoForward', CompletedNavigateHistory)
+const LoadExternal = Command.define('LoadExternal', CompletedLoadExternal)
 
 const pushUrl = NavigateInternal(
   Navigation.pushUrl('/people/42').pipe(Effect.as(CompletedNavigateInternal())),

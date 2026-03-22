@@ -159,7 +159,7 @@ const parseNotes = (value: string) =>
 
 const INITIAL_NOTE_SEQUENCE = 'CDEFGABC'
 
-export const init = (): [
+export const init = (): readonly [
   Model,
   ReadonlyArray<Command.Command<Message, never, AudioContextService>>,
 ] => [
@@ -181,7 +181,7 @@ export const init = (): [
 
 // UPDATE
 
-type UpdateReturn = [
+type UpdateReturn = readonly [
   Model,
   ReadonlyArray<Command.Command<Message, never, AudioContextService>>,
 ]
@@ -192,7 +192,10 @@ const prependToLog =
   (messageLog: ReadonlyArray<string>): ReadonlyArray<string> =>
     Array.take([entry, ...messageLog], MAX_LOG_ENTRIES)
 
-const DelayAdvancePhase = Command.define('DelayAdvancePhase')
+const DelayAdvancePhase = Command.define(
+  'DelayAdvancePhase',
+  ProgressedNotePhase,
+)
 
 const delayAdvancePhase = (generation: number) =>
   DelayAdvancePhase(
@@ -466,7 +469,7 @@ export class AudioContextService extends Effect.Service<AudioContextService>()(
   },
 ) {}
 
-const PlayNote = Command.define('PlayNote')
+const PlayNote = Command.define('PlayNote', PlayedNote)
 
 const playNote = (note: Note, duration: NoteDuration, noteIndex: number) =>
   PlayNote(

@@ -290,14 +290,20 @@ const computeDiff = (previous: unknown, current: unknown): DiffResult => {
 
 // UPDATE
 
-const JumpTo = Command.define('JumpTo')
-const InspectState = Command.define('InspectState')
-const InspectLatest = Command.define('InspectLatest')
-const Resume = Command.define('Resume')
-const Clear = Command.define('Clear')
-const LockScroll = Command.define('LockScroll')
-const UnlockScroll = Command.define('UnlockScroll')
-const ScrollToTop = Command.define('ScrollToTop')
+export const JumpTo = Command.define('JumpTo', CompletedJump)
+export const InspectState = Command.define(
+  'InspectState',
+  ReceivedInspectedState,
+)
+export const InspectLatest = Command.define(
+  'InspectLatest',
+  ReceivedInspectedState,
+)
+export const Resume = Command.define('Resume', CompletedResume)
+export const Clear = Command.define('Clear', CompletedClear)
+export const LockScroll = Command.define('LockScroll', LockedScroll)
+export const UnlockScroll = Command.define('UnlockScroll', UnlockedScroll)
+export const ScrollToTop = Command.define('ScrollToTop', ScrolledToTop)
 
 const makeUpdate = (
   store: DevtoolsStore,
@@ -374,9 +380,11 @@ const makeUpdate = (
   return (
     model: Model,
     message: Message,
-  ): [Model, ReadonlyArray<Command.Command<Message>>] =>
+  ): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
     M.value(message).pipe(
-      M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
+      M.withReturnType<
+        readonly [Model, ReadonlyArray<Command.Command<Message>>]
+      >(),
       M.tags({
         ClickedToggle: () => {
           const nextIsOpen = !model.isOpen
@@ -1379,7 +1387,7 @@ export const createOverlay = (
 
     const init = (
       flags: typeof Flags.Type,
-    ): [Model, ReadonlyArray<Command.Command<Message>>] => [
+    ): readonly [Model, ReadonlyArray<Command.Command<Message>>] => [
       {
         isOpen: false,
         ...flags,

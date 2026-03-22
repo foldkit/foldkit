@@ -24,7 +24,7 @@ export const CompletedInjectSpeedInsights = m('CompletedInjectSpeedInsights')
 export const CompletedScroll = m('CompletedScroll')
 export const CompletedApplyTheme = m('CompletedApplyTheme')
 export const CompletedSaveThemePreference = m('CompletedSaveThemePreference')
-export const CompletedCopyLink = m('CompletedCopyLink')
+export const SucceededCopyLink = m('SucceededCopyLink')
 export const FailedCopy = m('FailedCopy')
 export const ClickedLink = m('ClickedLink', {
   request: UrlRequest,
@@ -132,7 +132,7 @@ export const Message = S.Union(
   CompletedScroll,
   CompletedApplyTheme,
   CompletedSaveThemePreference,
-  CompletedCopyLink,
+  SucceededCopyLink,
   FailedCopy,
   ClickedLink,
   ChangedUrl,

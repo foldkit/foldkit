@@ -13,7 +13,10 @@ const update = (model: Model, message: Message) =>
     }),
   )
 
-const GenerateApplePosition = Command.define('GenerateApplePosition')
+const GenerateApplePosition = Command.define(
+  'GenerateApplePosition',
+  GeneratedApple,
+)
 
 const generateApplePosition = GenerateApplePosition(
   Effect.gen(function* () {

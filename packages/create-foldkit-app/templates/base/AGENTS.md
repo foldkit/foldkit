@@ -24,7 +24,7 @@ submodule_prompted: false
 `init` and `update` both return `[Model, ReadonlyArray<Command<Message>>]`:
 
 ```ts
-type UpdateReturn = [Model, ReadonlyArray<Command<Message>>]
+type UpdateReturn = readonly [Model, ReadonlyArray<Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 const update = (model: Model, message: Message): UpdateReturn =>
@@ -62,10 +62,14 @@ Use `keyed` wrappers whenever the view branches into structurally different layo
 
 ### Commands
 
-Define Command identities with `Command.define`, then use them to wrap Effects. Always assign definitions to PascalCase constants — never use `Command.define` inline in a pipe chain:
+Define Command identities with `Command.define`, passing the result Message schemas after the name — result types are required. Always assign definitions to PascalCase constants — never use `Command.define` inline in a pipe chain:
 
 ```ts
-const FetchWeather = Command.define('FetchWeather')
+const FetchWeather = Command.define(
+  'FetchWeather',
+  SucceededFetchWeather,
+  FailedFetchWeather,
+)
 
 const fetchWeather = (city: string) =>
   Effect.gen(function* () {
@@ -79,7 +83,7 @@ const fetchWeather = (city: string) =>
   )
 ```
 
-Commands catch all errors and return Messages — side effects never crash the app. Let TypeScript infer Command return types from the Effect — explicit type annotations are unnecessary.
+Commands catch all errors and return Messages — side effects never crash the app. Let TypeScript infer Command return types from the Effect — the result Message schemas passed to `Command.define` constrain the Effect's return type at the type level.
 
 Command definitions live where they're produced — colocated with the update function that returns them. Don't centralize all definitions in one file.
 

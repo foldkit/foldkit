@@ -48,8 +48,14 @@ type Flags = typeof Flags.Type
 
 // COMMAND
 
-const RedirectToLogin = Command.define('RedirectToLogin')
-const RedirectToDashboard = Command.define('RedirectToDashboard')
+const RedirectToLogin = Command.define(
+  'RedirectToLogin',
+  CompletedNavigateInternal,
+)
+const RedirectToDashboard = Command.define(
+  'RedirectToDashboard',
+  CompletedNavigateInternal,
+)
 
 // INIT
 

@@ -116,9 +116,11 @@ const init: Runtime.ElementInit<Model, Message, Flags> = flags => [
 const update = (
   model: Model,
   message: Message,
-): [Model, ReadonlyArray<Command.Command<Message>>] =>
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
+    M.withReturnType<
+      readonly [Model, ReadonlyArray<Command.Command<Message>>]
+    >(),
     M.tagsExhaustive({
       UpdatedNewTodo: ({ text }) => [
         evo(model, {
@@ -212,7 +214,9 @@ const update = (
 
       SavedEdit: () =>
         M.value(model.editing).pipe(
-          M.withReturnType<[Model, Command.Command<typeof SavedTodos>[]]>(),
+          M.withReturnType<
+            readonly [Model, Command.Command<typeof SavedTodos>[]]
+          >(),
           M.tagsExhaustive({
             NotEditing: () => [model, []],
 
@@ -295,8 +299,8 @@ const update = (
 
 // COMMAND
 
-const GenerateTodo = Command.define('GenerateTodo')
-const SaveTodos = Command.define('SaveTodos')
+const GenerateTodo = Command.define('GenerateTodo', GeneratedTodo)
+const SaveTodos = Command.define('SaveTodos', SavedTodos)
 
 const generateTodo = (text: string) =>
   GenerateTodo(

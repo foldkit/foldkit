@@ -1,24 +1,30 @@
 import { describe, it } from '@effect/vitest'
-import { Effect, Option, Predicate } from 'effect'
+import { Effect, Option, Predicate, flow } from 'effect'
 import type { VNode } from 'snabbdom'
 import { expect } from 'vitest'
 
 import { Dispatch } from '../../runtime'
 import { noOpDispatch } from '../../runtime/crashUI'
+import * as Test from '../../test'
 import { init, update, view } from './multi'
 import type { Model, ViewConfig } from './multi'
-import { ActivatedItem, Opened, SelectedItem } from './shared'
+import {
+  ActivatedItem,
+  CompletedFocusItems,
+  CompletedScrollIntoView,
+  FocusItems,
+  Opened,
+  ScrollIntoView,
+  SelectedItem,
+} from './shared'
 
-const closedModel = () => init({ id: 'test' })
+const withClosed = Test.with(init({ id: 'test' }))
 
-const openMultiModel = () => {
-  const model = init({ id: 'test' })
-  const [result] = update(
-    model,
-    Opened({ maybeActiveItemIndex: Option.some(0) }),
-  )
-  return result
-}
+const withOpenMulti = flow(
+  withClosed,
+  Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+  Test.resolve(FocusItems, CompletedFocusItems()),
+)
 
 describe('Listbox.Multi', () => {
   describe('init', () => {
@@ -57,60 +63,84 @@ describe('Listbox.Multi', () => {
   describe('update', () => {
     describe('SelectedItem (multiple)', () => {
       it('adds item to selectedItems', () => {
-        const model = openMultiModel()
-        const [result] = update(model, SelectedItem({ item: 'apple' }))
-        expect(result.selectedItems).toStrictEqual(['apple'])
+        Test.story(
+          update,
+          withOpenMulti,
+          Test.message(SelectedItem({ item: 'apple' })),
+          Test.tap(({ model }) => {
+            expect(model.selectedItems).toStrictEqual(['apple'])
+          }),
+        )
       })
 
       it('stays open after selection', () => {
-        const model = openMultiModel()
-        const [result] = update(model, SelectedItem({ item: 'apple' }))
-        expect(result.isOpen).toBe(true)
-      })
-
-      it('returns no commands', () => {
-        const model = openMultiModel()
-        const [, commands] = update(model, SelectedItem({ item: 'apple' }))
-        expect(commands).toHaveLength(0)
+        Test.story(
+          update,
+          withOpenMulti,
+          Test.message(SelectedItem({ item: 'apple' })),
+          Test.tap(({ model }) => {
+            expect(model.isOpen).toBe(true)
+          }),
+        )
       })
 
       it('toggles item off when already selected', () => {
-        const model = openMultiModel()
-        const [afterFirst] = update(model, SelectedItem({ item: 'apple' }))
-        const [afterSecond] = update(
-          afterFirst,
-          SelectedItem({ item: 'apple' }),
+        Test.story(
+          update,
+          withOpenMulti,
+          Test.message(SelectedItem({ item: 'apple' })),
+          Test.message(SelectedItem({ item: 'apple' })),
+          Test.tap(({ model }) => {
+            expect(model.selectedItems).toStrictEqual([])
+          }),
         )
-        expect(afterSecond.selectedItems).toStrictEqual([])
       })
 
       it('accumulates multiple selections', () => {
-        const model = openMultiModel()
-        const [afterFirst] = update(model, SelectedItem({ item: 'apple' }))
-        const [afterSecond] = update(
-          afterFirst,
-          SelectedItem({ item: 'banana' }),
+        Test.story(
+          update,
+          withOpenMulti,
+          Test.message(SelectedItem({ item: 'apple' })),
+          Test.message(SelectedItem({ item: 'banana' })),
+          Test.tap(({ model }) => {
+            expect(model.selectedItems).toStrictEqual(['apple', 'banana'])
+          }),
         )
-        expect(afterSecond.selectedItems).toStrictEqual(['apple', 'banana'])
       })
 
       it('preserves active item after selection', () => {
-        const model = openMultiModel()
-        const [afterActivate] = update(
-          model,
-          ActivatedItem({ index: 2, activationTrigger: 'Keyboard' }),
+        Test.story(
+          update,
+          withOpenMulti,
+          Test.message(
+            ActivatedItem({ index: 2, activationTrigger: 'Keyboard' }),
+          ),
+          Test.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Test.message(SelectedItem({ item: 'apple' })),
+          Test.tap(({ model }) => {
+            expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
+          }),
         )
-        const [afterSelect] = update(
-          afterActivate,
-          SelectedItem({ item: 'apple' }),
-        )
-        expect(afterSelect.maybeActiveItemIndex).toStrictEqual(Option.some(2))
       })
     })
   })
 
   describe('view', () => {
     type TestMessage = string
+
+    const closedModel = () => init({ id: 'test' })
+
+    const openMultiModel = (): Model => {
+      let model!: Model
+      Test.story(
+        update,
+        withOpenMulti,
+        Test.tap(simulation => {
+          model = simulation.model
+        }),
+      )
+      return model
+    }
 
     const baseViewConfig = (model: Model): ViewConfig<TestMessage, string> => ({
       model,
@@ -140,11 +170,8 @@ describe('Listbox.Multi', () => {
 
     describe('aria-multiselectable', () => {
       it('items container has aria-multiselectable', () => {
-        const model = openMultiModel()
-        const config = baseViewConfig(model)
-        const vnode = renderView(config)
+        const vnode = renderView(baseViewConfig(openMultiModel()))
         const itemsContainer = findChildByKey(vnode, 'test-items-container')
-
         expect(itemsContainer?.data?.attrs?.['aria-multiselectable']).toBe(
           'true',
         )
@@ -157,8 +184,7 @@ describe('Listbox.Multi', () => {
           ...openMultiModel(),
           selectedItems: ['Apple', 'Banana'],
         }
-        const config = baseViewConfig(model)
-        const vnode = renderView(config)
+        const vnode = renderView(baseViewConfig(model))
         const itemsContainer = findChildByKey(vnode, 'test-items-container')
         const firstItem = findChildByKey(itemsContainer!, 'test-item-0')
         const secondItem = findChildByKey(itemsContainer!, 'test-item-1')

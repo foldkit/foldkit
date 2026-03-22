@@ -2,10 +2,14 @@ import { describe, it } from '@effect/vitest'
 import { Option } from 'effect'
 import { expect } from 'vitest'
 
+import * as Test from '../../test'
 import {
+  CloseDialog,
   Closed,
+  CompletedCloseDialog,
   CompletedShowDialog,
   Opened,
+  ShowDialog,
   descriptionId,
   init,
   titleId,
@@ -49,38 +53,61 @@ describe('Dialog', () => {
 
   describe('update', () => {
     it('opens when closed on Opened', () => {
-      const model = init({ id: 'test' })
-      const [result, commands] = update(model, Opened())
-      expect(result.isOpen).toBe(true)
-      expect(commands).toHaveLength(1)
+      Test.story(
+        update,
+        Test.with(init({ id: 'test' })),
+        Test.message(Opened()),
+        Test.resolve(ShowDialog, CompletedShowDialog()),
+        Test.tap(({ model }) => {
+          expect(model.isOpen).toBe(true)
+        }),
+      )
     })
 
     it('opens without command when already open on Opened', () => {
-      const model = init({ id: 'test', isOpen: true })
-      const [result, commands] = update(model, Opened())
-      expect(result.isOpen).toBe(true)
-      expect(commands).toHaveLength(0)
+      Test.story(
+        update,
+        Test.with(init({ id: 'test', isOpen: true })),
+        Test.message(Opened()),
+        Test.tap(({ model }) => {
+          expect(model.isOpen).toBe(true)
+        }),
+      )
     })
 
     it('closes when open on Closed', () => {
-      const model = init({ id: 'test', isOpen: true })
-      const [result, commands] = update(model, Closed())
-      expect(result.isOpen).toBe(false)
-      expect(commands).toHaveLength(1)
+      Test.story(
+        update,
+        Test.with(init({ id: 'test', isOpen: true })),
+        Test.message(Closed()),
+        Test.resolve(CloseDialog, CompletedCloseDialog()),
+        Test.tap(({ model }) => {
+          expect(model.isOpen).toBe(false)
+        }),
+      )
     })
 
     it('closes without command when already closed on Closed', () => {
-      const model = init({ id: 'test' })
-      const [result, commands] = update(model, Closed())
-      expect(result.isOpen).toBe(false)
-      expect(commands).toHaveLength(0)
+      Test.story(
+        update,
+        Test.with(init({ id: 'test' })),
+        Test.message(Closed()),
+        Test.tap(({ model }) => {
+          expect(model.isOpen).toBe(false)
+        }),
+      )
     })
 
     it('returns model unchanged on CompletedShowDialog', () => {
-      const model = init({ id: 'test' })
-      const [result, commands] = update(model, CompletedShowDialog())
-      expect(result).toBe(model)
-      expect(commands).toHaveLength(0)
+      const originalModel = init({ id: 'test' })
+      Test.story(
+        update,
+        Test.with(originalModel),
+        Test.message(CompletedShowDialog()),
+        Test.tap(({ model }) => {
+          expect(model).toBe(originalModel)
+        }),
+      )
     })
   })
 

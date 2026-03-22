@@ -22,13 +22,25 @@ import {
   urlToAppRoute,
 } from './route'
 
-const NavigateInternal = Command.define('NavigateInternal')
-const LoadExternal = Command.define('LoadExternal')
-const RedirectToLogin = Command.define('RedirectToLogin')
-const RedirectToDashboard = Command.define('RedirectToDashboard')
-const RedirectToHome = Command.define('RedirectToHome')
+const NavigateInternal = Command.define(
+  'NavigateInternal',
+  CompletedNavigateInternal,
+)
+const LoadExternal = Command.define('LoadExternal', CompletedLoadExternal)
+const RedirectToLogin = Command.define(
+  'RedirectToLogin',
+  CompletedNavigateInternal,
+)
+const RedirectToDashboard = Command.define(
+  'RedirectToDashboard',
+  CompletedNavigateInternal,
+)
+const RedirectToHome = Command.define(
+  'RedirectToHome',
+  CompletedNavigateInternal,
+)
 
-type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 export const update = (model: Model, message: Message): UpdateReturn =>
@@ -136,8 +148,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       'CompletedNavigateInternal',
       'CompletedLoadExternal',
       'CompletedLogError',
-      'SavedSession',
-      'ClearedSession',
+      'SucceededSaveSession',
+      'SucceededClearSession',
       () => [model, []],
     ),
     M.exhaustive,

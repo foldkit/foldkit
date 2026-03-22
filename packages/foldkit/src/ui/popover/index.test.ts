@@ -1,40 +1,60 @@
 import { describe, it } from '@effect/vitest'
-import { Effect, Option, Predicate } from 'effect'
+import { Effect, Option, Predicate, flow } from 'effect'
 import type { VNode } from 'snabbdom'
 import { expect } from 'vitest'
 
 import { Dispatch } from '../../runtime'
 import { noOpDispatch } from '../../runtime/crashUI'
+import * as Test from '../../test'
 import {
   AdvancedTransitionFrame,
   Closed,
   ClosedByTab,
+  CompletedFocusButton,
   CompletedFocusPanel,
+  CompletedLockScroll,
+  CompletedSetupInert,
+  CompletedTeardownInert,
+  CompletedUnlockScroll,
+  DetectMovementOrTransitionEnd,
   DetectedButtonMovement,
   EndedTransition,
+  FocusButton,
+  FocusPanel,
+  InertOthers,
+  LockScroll,
   Opened,
   PressedPointerOnButton,
+  RequestFrame,
+  RestoreInert,
+  UnlockScroll,
+  WaitForTransitions,
   init,
   update,
   view,
 } from './index'
 import type { Model, ViewConfig } from './index'
 
-const closedModel = () => init({ id: 'test' })
+const withClosed = Test.with(init({ id: 'test' }))
 
-const openModel = () => {
-  const model = init({ id: 'test' })
-  const [result] = update(model, Opened())
-  return result
-}
+const withOpen = flow(
+  withClosed,
+  Test.message(Opened()),
+  Test.resolve(FocusPanel, CompletedFocusPanel()),
+)
 
-const closedAnimatedModel = () => init({ id: 'test', isAnimated: true })
+const withClosedAnimated = Test.with(init({ id: 'test', isAnimated: true }))
 
-const openAnimatedModel = () => {
-  const model = closedAnimatedModel()
-  const [result] = update(model, Opened())
-  return result
-}
+const withOpenAnimated = flow(
+  withClosedAnimated,
+  Test.message(Opened()),
+  Test.resolveAll([
+    [FocusPanel, CompletedFocusPanel()],
+    [RequestFrame, AdvancedTransitionFrame()],
+    [WaitForTransitions, EndedTransition()],
+    [DetectMovementOrTransitionEnd, EndedTransition()],
+  ]),
+)
 
 describe('Popover', () => {
   describe('init', () => {
@@ -69,333 +89,535 @@ describe('Popover', () => {
   describe('update', () => {
     describe('Opened', () => {
       it('opens the popover', () => {
-        const model = closedModel()
-        const [result, commands] = update(model, Opened())
-        expect(result.isOpen).toBe(true)
-        expect(commands).toHaveLength(1)
+        Test.story(
+          update,
+          withClosed,
+          Test.message(Opened()),
+          Test.resolve(FocusPanel, CompletedFocusPanel()),
+          Test.tap(({ model }) => {
+            expect(model.isOpen).toBe(true)
+          }),
+        )
       })
     })
 
     describe('Closed', () => {
       it('closes the popover and returns a focus command', () => {
-        const model = openModel()
-        const [result, commands] = update(model, Closed())
-        expect(result.isOpen).toBe(false)
-        expect(result.maybeLastButtonPointerType).toStrictEqual(Option.none())
-        expect(commands).toHaveLength(1)
+        Test.story(
+          update,
+          withOpen,
+          Test.message(Closed()),
+          Test.resolve(FocusButton, CompletedFocusButton()),
+          Test.tap(({ model }) => {
+            expect(model.isOpen).toBe(false)
+            expect(model.maybeLastButtonPointerType).toStrictEqual(
+              Option.none(),
+            )
+          }),
+        )
       })
 
       it('is idempotent when already closed', () => {
-        const model = closedModel()
-        const [result, commands] = update(model, Closed())
-        expect(result.isOpen).toBe(false)
-        expect(commands).toHaveLength(1)
+        Test.story(
+          update,
+          withClosed,
+          Test.message(Closed()),
+          Test.resolve(FocusButton, CompletedFocusButton()),
+          Test.tap(({ model }) => {
+            expect(model.isOpen).toBe(false)
+          }),
+        )
       })
     })
 
     describe('ClosedByTab', () => {
       it('closes the popover without a focus command', () => {
-        const model = openModel()
-        const [result, commands] = update(model, ClosedByTab())
-        expect(result.isOpen).toBe(false)
-        expect(result.maybeLastButtonPointerType).toStrictEqual(Option.none())
-        expect(commands).toHaveLength(0)
+        Test.story(
+          update,
+          withOpen,
+          Test.message(ClosedByTab()),
+          Test.tap(({ model }) => {
+            expect(model.isOpen).toBe(false)
+            expect(model.maybeLastButtonPointerType).toStrictEqual(
+              Option.none(),
+            )
+          }),
+        )
       })
     })
 
     describe('PressedPointerOnButton', () => {
       it('records pointer type for touch without toggling', () => {
-        const model = closedModel()
-        const [result, commands] = update(
-          model,
-          PressedPointerOnButton({ pointerType: 'touch', button: 0 }),
+        Test.story(
+          update,
+          withClosed,
+          Test.message(
+            PressedPointerOnButton({ pointerType: 'touch', button: 0 }),
+          ),
+          Test.tap(({ model }) => {
+            expect(model.isOpen).toBe(false)
+            expect(model.maybeLastButtonPointerType).toStrictEqual(
+              Option.some('touch'),
+            )
+          }),
         )
-        expect(result.isOpen).toBe(false)
-        expect(result.maybeLastButtonPointerType).toStrictEqual(
-          Option.some('touch'),
-        )
-        expect(commands).toHaveLength(0)
       })
 
       it('records pointer type for pen without toggling', () => {
-        const model = closedModel()
-        const [result, commands] = update(
-          model,
-          PressedPointerOnButton({ pointerType: 'pen', button: 0 }),
+        Test.story(
+          update,
+          withClosed,
+          Test.message(
+            PressedPointerOnButton({ pointerType: 'pen', button: 0 }),
+          ),
+          Test.tap(({ model }) => {
+            expect(model.isOpen).toBe(false)
+            expect(model.maybeLastButtonPointerType).toStrictEqual(
+              Option.some('pen'),
+            )
+          }),
         )
-        expect(result.isOpen).toBe(false)
-        expect(result.maybeLastButtonPointerType).toStrictEqual(
-          Option.some('pen'),
-        )
-        expect(commands).toHaveLength(0)
       })
 
       it('opens the popover on mouse left button when closed', () => {
-        const model = closedModel()
-        const [result, commands] = update(
-          model,
-          PressedPointerOnButton({ pointerType: 'mouse', button: 0 }),
+        Test.story(
+          update,
+          withClosed,
+          Test.message(
+            PressedPointerOnButton({ pointerType: 'mouse', button: 0 }),
+          ),
+          Test.resolve(FocusPanel, CompletedFocusPanel()),
+          Test.tap(({ model }) => {
+            expect(model.isOpen).toBe(true)
+            expect(model.maybeLastButtonPointerType).toStrictEqual(
+              Option.some('mouse'),
+            )
+          }),
         )
-        expect(result.isOpen).toBe(true)
-        expect(result.maybeLastButtonPointerType).toStrictEqual(
-          Option.some('mouse'),
-        )
-        expect(commands).toHaveLength(1)
       })
 
       it('closes the popover on mouse left button when open', () => {
-        const model = openModel()
-        const [result, commands] = update(
-          model,
-          PressedPointerOnButton({ pointerType: 'mouse', button: 0 }),
+        Test.story(
+          update,
+          withOpen,
+          Test.message(
+            PressedPointerOnButton({ pointerType: 'mouse', button: 0 }),
+          ),
+          Test.resolve(FocusButton, CompletedFocusButton()),
+          Test.tap(({ model }) => {
+            expect(model.isOpen).toBe(false)
+            expect(model.maybeLastButtonPointerType).toStrictEqual(
+              Option.none(),
+            )
+          }),
         )
-        expect(result.isOpen).toBe(false)
-        expect(result.maybeLastButtonPointerType).toStrictEqual(Option.none())
-        expect(commands).toHaveLength(1)
       })
 
       it('does not toggle on mouse right button', () => {
-        const model = closedModel()
-        const [result, commands] = update(
-          model,
-          PressedPointerOnButton({ pointerType: 'mouse', button: 2 }),
+        Test.story(
+          update,
+          withClosed,
+          Test.message(
+            PressedPointerOnButton({ pointerType: 'mouse', button: 2 }),
+          ),
+          Test.tap(({ model }) => {
+            expect(model.isOpen).toBe(false)
+            expect(model.maybeLastButtonPointerType).toStrictEqual(
+              Option.some('mouse'),
+            )
+          }),
         )
-        expect(result.isOpen).toBe(false)
-        expect(result.maybeLastButtonPointerType).toStrictEqual(
-          Option.some('mouse'),
-        )
-        expect(commands).toHaveLength(0)
       })
 
       it('always records maybeLastButtonPointerType', () => {
-        const model = closedModel()
-        const [afterTouch] = update(
-          model,
-          PressedPointerOnButton({ pointerType: 'touch', button: 0 }),
-        )
-        expect(afterTouch.maybeLastButtonPointerType).toStrictEqual(
-          Option.some('touch'),
-        )
-
-        const [afterMouse] = update(
-          afterTouch,
-          PressedPointerOnButton({ pointerType: 'mouse', button: 0 }),
-        )
-        expect(afterMouse.maybeLastButtonPointerType).toStrictEqual(
-          Option.some('mouse'),
+        Test.story(
+          update,
+          withClosed,
+          Test.message(
+            PressedPointerOnButton({ pointerType: 'touch', button: 0 }),
+          ),
+          Test.tap(({ model }) => {
+            expect(model.maybeLastButtonPointerType).toStrictEqual(
+              Option.some('touch'),
+            )
+          }),
+          Test.message(
+            PressedPointerOnButton({ pointerType: 'mouse', button: 0 }),
+          ),
+          Test.resolve(FocusPanel, CompletedFocusPanel()),
+          Test.tap(({ model }) => {
+            expect(model.maybeLastButtonPointerType).toStrictEqual(
+              Option.some('mouse'),
+            )
+          }),
         )
       })
     })
 
     describe('CompletedFocusPanel', () => {
       it('returns model unchanged', () => {
-        const model = openModel()
-        const [result, commands] = update(model, CompletedFocusPanel())
-        expect(result).toBe(model)
-        expect(commands).toHaveLength(0)
+        Test.story(
+          update,
+          withOpen,
+          Test.message(CompletedFocusPanel()),
+          Test.tap(({ model }) => {
+            expect(model.isOpen).toBe(true)
+          }),
+        )
       })
     })
 
     describe('transitions', () => {
       describe('enter flow', () => {
         it('sets EnterStart and emits focus + nextFrame on Opened', () => {
-          const model = closedAnimatedModel()
-          const [result, commands] = update(model, Opened())
-          expect(result.isOpen).toBe(true)
-          expect(result.transitionState).toBe('EnterStart')
-          expect(commands).toHaveLength(2)
+          Test.story(
+            update,
+            withClosedAnimated,
+            Test.message(Opened()),
+            Test.tap(({ model }) => {
+              expect(model.isOpen).toBe(true)
+              expect(model.transitionState).toBe('EnterStart')
+            }),
+            Test.resolveAll([
+              [FocusPanel, CompletedFocusPanel()],
+              [RequestFrame, AdvancedTransitionFrame()],
+              [WaitForTransitions, EndedTransition()],
+              [DetectMovementOrTransitionEnd, EndedTransition()],
+            ]),
+          )
         })
 
         it('advances EnterStart to EnterAnimating on AdvancedTransitionFrame', () => {
-          const model = openAnimatedModel()
-          expect(model.transitionState).toBe('EnterStart')
-
-          const [result, commands] = update(model, AdvancedTransitionFrame())
-          expect(result.transitionState).toBe('EnterAnimating')
-          expect(commands).toHaveLength(1)
+          Test.story(
+            update,
+            withClosedAnimated,
+            Test.message(Opened()),
+            Test.resolve(RequestFrame, AdvancedTransitionFrame()),
+            Test.tap(({ model }) => {
+              expect(model.transitionState).toBe('EnterAnimating')
+            }),
+            Test.resolveAll([
+              [FocusPanel, CompletedFocusPanel()],
+              [WaitForTransitions, EndedTransition()],
+              [DetectMovementOrTransitionEnd, EndedTransition()],
+            ]),
+          )
         })
 
         it('completes EnterAnimating to Idle on EndedTransition', () => {
-          const model = openAnimatedModel()
-          const [enterAnimating] = update(model, AdvancedTransitionFrame())
-          expect(enterAnimating.transitionState).toBe('EnterAnimating')
-
-          const [result, commands] = update(enterAnimating, EndedTransition())
-          expect(result.transitionState).toBe('Idle')
-          expect(commands).toHaveLength(0)
+          Test.story(
+            update,
+            withClosedAnimated,
+            Test.message(Opened()),
+            Test.resolveAll([
+              [FocusPanel, CompletedFocusPanel()],
+              [RequestFrame, AdvancedTransitionFrame()],
+              [WaitForTransitions, EndedTransition()],
+              [DetectMovementOrTransitionEnd, EndedTransition()],
+            ]),
+            Test.tap(({ model }) => {
+              expect(model.transitionState).toBe('Idle')
+            }),
+          )
         })
       })
 
       describe('leave flow', () => {
         it('sets LeaveStart on Closed', () => {
-          const model = openAnimatedModel()
-          const [result, commands] = update(model, Closed())
-          expect(result.isOpen).toBe(false)
-          expect(result.transitionState).toBe('LeaveStart')
-          expect(commands).toHaveLength(2)
+          Test.story(
+            update,
+            withOpenAnimated,
+            Test.message(Closed()),
+            Test.tap(({ model }) => {
+              expect(model.isOpen).toBe(false)
+              expect(model.transitionState).toBe('LeaveStart')
+            }),
+            Test.resolveAll([
+              [FocusButton, CompletedFocusButton()],
+              [RequestFrame, AdvancedTransitionFrame()],
+              [WaitForTransitions, EndedTransition()],
+              [DetectMovementOrTransitionEnd, EndedTransition()],
+            ]),
+          )
         })
 
         it('sets LeaveStart on ClosedByTab', () => {
-          const model = openAnimatedModel()
-          const [result, commands] = update(model, ClosedByTab())
-          expect(result.isOpen).toBe(false)
-          expect(result.transitionState).toBe('LeaveStart')
-          expect(commands).toHaveLength(1)
+          Test.story(
+            update,
+            withOpenAnimated,
+            Test.message(ClosedByTab()),
+            Test.tap(({ model }) => {
+              expect(model.isOpen).toBe(false)
+              expect(model.transitionState).toBe('LeaveStart')
+            }),
+            Test.resolveAll([
+              [RequestFrame, AdvancedTransitionFrame()],
+              [WaitForTransitions, EndedTransition()],
+              [DetectMovementOrTransitionEnd, EndedTransition()],
+            ]),
+          )
         })
 
         it('advances LeaveStart to LeaveAnimating on AdvancedTransitionFrame', () => {
-          const model = openAnimatedModel()
-          const [closed] = update(model, Closed())
-          expect(closed.transitionState).toBe('LeaveStart')
-
-          const [result, commands] = update(closed, AdvancedTransitionFrame())
-          expect(result.transitionState).toBe('LeaveAnimating')
-          expect(commands).toHaveLength(1)
+          Test.story(
+            update,
+            withOpenAnimated,
+            Test.message(Closed()),
+            Test.resolve(RequestFrame, AdvancedTransitionFrame()),
+            Test.tap(({ model }) => {
+              expect(model.transitionState).toBe('LeaveAnimating')
+            }),
+            Test.resolveAll([
+              [FocusButton, CompletedFocusButton()],
+              [WaitForTransitions, EndedTransition()],
+              [DetectMovementOrTransitionEnd, EndedTransition()],
+            ]),
+          )
         })
 
         it('completes LeaveAnimating to Idle on EndedTransition', () => {
-          const model = openAnimatedModel()
-          const [closed] = update(model, Closed())
-          const [leaveAnimating] = update(closed, AdvancedTransitionFrame())
-          expect(leaveAnimating.transitionState).toBe('LeaveAnimating')
-
-          const [result, commands] = update(leaveAnimating, EndedTransition())
-          expect(result.transitionState).toBe('Idle')
-          expect(commands).toHaveLength(0)
+          Test.story(
+            update,
+            withOpenAnimated,
+            Test.message(Closed()),
+            Test.resolveAll([
+              [FocusButton, CompletedFocusButton()],
+              [RequestFrame, AdvancedTransitionFrame()],
+              [WaitForTransitions, EndedTransition()],
+              [DetectMovementOrTransitionEnd, EndedTransition()],
+            ]),
+            Test.tap(({ model }) => {
+              expect(model.transitionState).toBe('Idle')
+            }),
+          )
         })
       })
 
       describe('non-animated', () => {
         it('keeps transitionState Idle on Opened', () => {
-          const model = closedModel()
-          const [result, commands] = update(model, Opened())
-          expect(result.transitionState).toBe('Idle')
-          expect(commands).toHaveLength(1)
+          Test.story(
+            update,
+            withClosed,
+            Test.message(Opened()),
+            Test.resolve(FocusPanel, CompletedFocusPanel()),
+            Test.tap(({ model }) => {
+              expect(model.transitionState).toBe('Idle')
+            }),
+          )
         })
 
         it('keeps transitionState Idle on Closed', () => {
-          const model = openModel()
-          const [result, commands] = update(model, Closed())
-          expect(result.transitionState).toBe('Idle')
-          expect(commands).toHaveLength(1)
+          Test.story(
+            update,
+            withOpen,
+            Test.message(Closed()),
+            Test.resolve(FocusButton, CompletedFocusButton()),
+            Test.tap(({ model }) => {
+              expect(model.transitionState).toBe('Idle')
+            }),
+          )
         })
       })
 
       describe('stale messages', () => {
         it('ignores AdvancedTransitionFrame when Idle', () => {
-          const model = openModel()
-          const [result, commands] = update(model, AdvancedTransitionFrame())
-          expect(result).toBe(model)
-          expect(commands).toHaveLength(0)
+          Test.story(
+            update,
+            withOpen,
+            Test.message(AdvancedTransitionFrame()),
+            Test.tap(({ model }) => {
+              expect(model.isOpen).toBe(true)
+              expect(model.transitionState).toBe('Idle')
+            }),
+          )
         })
 
         it('ignores EndedTransition when Idle', () => {
-          const model = openModel()
-          const [result, commands] = update(model, EndedTransition())
-          expect(result).toBe(model)
-          expect(commands).toHaveLength(0)
+          Test.story(
+            update,
+            withOpen,
+            Test.message(EndedTransition()),
+            Test.tap(({ model }) => {
+              expect(model.isOpen).toBe(true)
+              expect(model.transitionState).toBe('Idle')
+            }),
+          )
         })
       })
 
       describe('interruptions', () => {
         it('transitions to LeaveStart when Closed during EnterStart', () => {
-          const model = openAnimatedModel()
-          expect(model.transitionState).toBe('EnterStart')
-
-          const [result] = update(model, Closed())
-          expect(result.isOpen).toBe(false)
-          expect(result.transitionState).toBe('LeaveStart')
+          Test.story(
+            update,
+            withClosedAnimated,
+            Test.message(Opened()),
+            Test.resolveAll([
+              [FocusPanel, CompletedFocusPanel()],
+              [RequestFrame, AdvancedTransitionFrame()],
+              [WaitForTransitions, EndedTransition()],
+              [DetectMovementOrTransitionEnd, EndedTransition()],
+            ]),
+            Test.message(Closed()),
+            Test.tap(({ model }) => {
+              expect(model.isOpen).toBe(false)
+              expect(model.transitionState).toBe('LeaveStart')
+            }),
+            Test.resolveAll([
+              [FocusButton, CompletedFocusButton()],
+              [RequestFrame, AdvancedTransitionFrame()],
+              [WaitForTransitions, EndedTransition()],
+              [DetectMovementOrTransitionEnd, EndedTransition()],
+            ]),
+          )
         })
 
         it('transitions to LeaveStart when Closed during EnterAnimating', () => {
-          const model = openAnimatedModel()
-          const [enterAnimating] = update(model, AdvancedTransitionFrame())
-          expect(enterAnimating.transitionState).toBe('EnterAnimating')
-
-          const [result] = update(enterAnimating, Closed())
-          expect(result.isOpen).toBe(false)
-          expect(result.transitionState).toBe('LeaveStart')
+          Test.story(
+            update,
+            withClosedAnimated,
+            Test.message(Opened()),
+            Test.resolveAll([
+              [FocusPanel, CompletedFocusPanel()],
+              [RequestFrame, AdvancedTransitionFrame()],
+              [WaitForTransitions, EndedTransition()],
+              [DetectMovementOrTransitionEnd, EndedTransition()],
+            ]),
+            Test.message(Closed()),
+            Test.tap(({ model }) => {
+              expect(model.isOpen).toBe(false)
+              expect(model.transitionState).toBe('LeaveStart')
+            }),
+            Test.resolveAll([
+              [FocusButton, CompletedFocusButton()],
+              [RequestFrame, AdvancedTransitionFrame()],
+              [WaitForTransitions, EndedTransition()],
+              [DetectMovementOrTransitionEnd, EndedTransition()],
+            ]),
+          )
         })
       })
 
       describe('DetectedButtonMovement', () => {
         it('cancels leave animation by setting transitionState to Idle', () => {
-          const model = openAnimatedModel()
-          const [closed] = update(model, Closed())
-          const [leaveAnimating] = update(closed, AdvancedTransitionFrame())
-          expect(leaveAnimating.transitionState).toBe('LeaveAnimating')
-
-          const [result, commands] = update(
-            leaveAnimating,
-            DetectedButtonMovement(),
+          Test.story(
+            update,
+            Test.with({
+              ...init({ id: 'test', isAnimated: true }),
+              isOpen: false,
+              transitionState: 'LeaveAnimating' as const,
+            }),
+            Test.message(DetectedButtonMovement()),
+            Test.tap(({ model }) => {
+              expect(model.transitionState).toBe('Idle')
+            }),
           )
-          expect(result.transitionState).toBe('Idle')
-          expect(commands).toHaveLength(0)
         })
 
         it('is a no-op during Idle', () => {
-          const model = openModel()
-          expect(model.transitionState).toBe('Idle')
-
-          const [result, commands] = update(model, DetectedButtonMovement())
-          expect(result).toBe(model)
-          expect(commands).toHaveLength(0)
+          Test.story(
+            update,
+            withOpen,
+            Test.message(DetectedButtonMovement()),
+            Test.tap(({ model }) => {
+              expect(model.isOpen).toBe(true)
+              expect(model.transitionState).toBe('Idle')
+            }),
+          )
         })
 
         it('is a no-op during EnterAnimating', () => {
-          const model = openAnimatedModel()
-          const [enterAnimating] = update(model, AdvancedTransitionFrame())
-          expect(enterAnimating.transitionState).toBe('EnterAnimating')
-
-          const [result, commands] = update(
-            enterAnimating,
-            DetectedButtonMovement(),
+          Test.story(
+            update,
+            Test.with({
+              ...init({ id: 'test', isAnimated: true }),
+              isOpen: true,
+              transitionState: 'EnterAnimating' as const,
+            }),
+            Test.message(DetectedButtonMovement()),
+            Test.tap(({ model }) => {
+              expect(model.transitionState).toBe('EnterAnimating')
+            }),
           )
-          expect(result).toBe(enterAnimating)
-          expect(commands).toHaveLength(0)
         })
       })
     })
   })
 
   describe('modal commands', () => {
-    const closedModalModel = () => init({ id: 'test', isModal: true })
+    const withClosedModal = Test.with(init({ id: 'test', isModal: true }))
 
-    const openModalModel = () => {
-      const model = closedModalModel()
-      const [result] = update(model, Opened())
-      return result
-    }
+    const withOpenModal = flow(
+      withClosedModal,
+      Test.message(Opened()),
+      Test.resolveAll([
+        [FocusPanel, CompletedFocusPanel()],
+        [LockScroll, CompletedLockScroll()],
+        [InertOthers, CompletedSetupInert()],
+      ]),
+    )
 
     it('emits lockScroll and inertOthers commands on Opened when isModal is true', () => {
-      const model = closedModalModel()
-      const [, commands] = update(model, Opened())
-      expect(commands).toHaveLength(3)
+      Test.story(
+        update,
+        withClosedModal,
+        Test.message(Opened()),
+        Test.resolveAll([
+          [FocusPanel, CompletedFocusPanel()],
+          [LockScroll, CompletedLockScroll()],
+          [InertOthers, CompletedSetupInert()],
+        ]),
+        Test.tap(({ model }) => {
+          expect(model.isOpen).toBe(true)
+        }),
+      )
     })
 
     it('emits unlockScroll and restoreInert commands on Closed when isModal is true', () => {
-      const model = openModalModel()
-      const [, commands] = update(model, Closed())
-      expect(commands).toHaveLength(3)
+      Test.story(
+        update,
+        withOpenModal,
+        Test.message(Closed()),
+        Test.resolveAll([
+          [FocusButton, CompletedFocusButton()],
+          [UnlockScroll, CompletedUnlockScroll()],
+          [RestoreInert, CompletedTeardownInert()],
+        ]),
+        Test.tap(({ model }) => {
+          expect(model.isOpen).toBe(false)
+        }),
+      )
     })
 
     it('emits unlockScroll and restoreInert commands on ClosedByTab when isModal is true', () => {
-      const model = openModalModel()
-      const [, commands] = update(model, ClosedByTab())
-      expect(commands).toHaveLength(2)
+      Test.story(
+        update,
+        withOpenModal,
+        Test.message(ClosedByTab()),
+        Test.resolveAll([
+          [UnlockScroll, CompletedUnlockScroll()],
+          [RestoreInert, CompletedTeardownInert()],
+        ]),
+        Test.tap(({ model }) => {
+          expect(model.isOpen).toBe(false)
+        }),
+      )
     })
 
     it('does not emit modal commands when isModal is false', () => {
-      const model = closedModel()
-      const [, openCommands] = update(model, Opened())
-      expect(openCommands).toHaveLength(1)
-
-      const open = openModel()
-      const [, closeCommands] = update(open, Closed())
-      expect(closeCommands).toHaveLength(1)
-
-      const [, tabCommands] = update(open, ClosedByTab())
-      expect(tabCommands).toHaveLength(0)
+      Test.story(
+        update,
+        withClosed,
+        Test.message(Opened()),
+        Test.resolve(FocusPanel, CompletedFocusPanel()),
+        Test.tap(({ model }) => {
+          expect(model.isOpen).toBe(true)
+        }),
+        Test.message(Closed()),
+        Test.resolve(FocusButton, CompletedFocusButton()),
+        Test.tap(({ model }) => {
+          expect(model.isOpen).toBe(false)
+        }),
+      )
     })
   })
 
@@ -425,6 +647,20 @@ describe('Popover', () => {
         (child): child is VNode =>
           typeof child !== 'string' && child.key === key,
       )
+
+    const closedModel = () => init({ id: 'test' })
+
+    const openModel = (): Model => {
+      let model!: Model
+      Test.story(
+        update,
+        withOpen,
+        Test.tap(simulation => {
+          model = simulation.model
+        }),
+      )
+      return model
+    }
 
     it('renders button with aria-expanded false when closed', () => {
       const model = closedModel()

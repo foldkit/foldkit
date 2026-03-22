@@ -66,6 +66,11 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Per-field form validation in Foldkit using a four-state discriminated union. Built-in validation rules, Effect-TS powered, no impossible states.',
     'Docs',
   ),
+  Testing: docs(
+    'Testing',
+    'Test Foldkit programs with foldkit/test — simulate the update loop, declare Command resolvers, send Messages, and assert on the Model in a single pipe chain.',
+    'Docs',
+  ),
   Examples: docs(
     'Example Apps',
     'Working Foldkit example apps — counter, forms, routing, auth, websocket chat, and more. Each demonstrates Effect-TS and Elm Architecture patterns.',

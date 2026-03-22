@@ -1,7 +1,15 @@
 import { describe, it } from '@effect/vitest'
 import { expect } from 'vitest'
 
-import { Closed, CompletedFocusButton, Toggled, init, update } from './index'
+import * as Test from '../../test'
+import {
+  Closed,
+  CompletedFocusButton,
+  FocusButton,
+  Toggled,
+  init,
+  update,
+} from './index'
 
 describe('Disclosure', () => {
   describe('init', () => {
@@ -22,38 +30,62 @@ describe('Disclosure', () => {
 
   describe('update', () => {
     it('opens when closed on Toggled', () => {
-      const model = init({ id: 'test' })
-      const [result, commands] = update(model, Toggled())
-      expect(result.isOpen).toBe(true)
-      expect(commands).toHaveLength(0)
+      Test.story(
+        update,
+        Test.with(init({ id: 'test' })),
+        Test.message(Toggled()),
+        Test.tap(({ model }) => {
+          expect(model.isOpen).toBe(true)
+        }),
+      )
     })
 
     it('closes when open on Toggled', () => {
-      const model = init({ id: 'test', isOpen: true })
-      const [result, commands] = update(model, Toggled())
-      expect(result.isOpen).toBe(false)
-      expect(commands).toHaveLength(1)
+      Test.story(
+        update,
+        Test.with(init({ id: 'test', isOpen: true })),
+        Test.message(Toggled()),
+        Test.resolve(FocusButton, CompletedFocusButton()),
+        Test.tap(({ model }) => {
+          expect(model.isOpen).toBe(false)
+        }),
+      )
     })
 
     it('closes when open on Closed', () => {
-      const model = init({ id: 'test', isOpen: true })
-      const [result, commands] = update(model, Closed())
-      expect(result.isOpen).toBe(false)
-      expect(commands).toHaveLength(1)
+      Test.story(
+        update,
+        Test.with(init({ id: 'test', isOpen: true })),
+        Test.message(Closed()),
+        Test.resolve(FocusButton, CompletedFocusButton()),
+        Test.tap(({ model }) => {
+          expect(model.isOpen).toBe(false)
+        }),
+      )
     })
 
     it('is a no-op when already closed on Closed', () => {
-      const model = init({ id: 'test' })
-      const [result, commands] = update(model, Closed())
-      expect(result).toStrictEqual(model)
-      expect(commands).toHaveLength(0)
+      const originalModel = init({ id: 'test' })
+      Test.story(
+        update,
+        Test.with(originalModel),
+        Test.message(Closed()),
+        Test.tap(({ model }) => {
+          expect(model).toStrictEqual(originalModel)
+        }),
+      )
     })
 
     it('returns model unchanged on CompletedFocusButton', () => {
-      const model = init({ id: 'test' })
-      const [result, commands] = update(model, CompletedFocusButton())
-      expect(result).toBe(model)
-      expect(commands).toHaveLength(0)
+      const originalModel = init({ id: 'test' })
+      Test.story(
+        update,
+        Test.with(originalModel),
+        Test.message(CompletedFocusButton()),
+        Test.tap(({ model }) => {
+          expect(model).toBe(originalModel)
+        }),
+      )
     })
   })
 })

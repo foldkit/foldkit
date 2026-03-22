@@ -18,9 +18,15 @@ import { Model } from './model'
 import { Home, Room } from './page'
 import { urlToAppRoute } from './route'
 
-const NavigateInternal = Command.define('NavigateInternal')
-const LoadExternal = Command.define('LoadExternal')
-const FocusUsernameInput = Command.define('FocusUsernameInput')
+const NavigateInternal = Command.define(
+  'NavigateInternal',
+  CompletedNavigateInternal,
+)
+const LoadExternal = Command.define('LoadExternal', CompletedLoadExternal)
+const FocusUsernameInput = Command.define(
+  'FocusUsernameInput',
+  CompletedFocusUsernameInput,
+)
 
 export type UpdateReturn<Model, Message> = [
   Model,
@@ -157,7 +163,7 @@ const handleRoomJoined = (
   const session = { roomId, player }
   const [nextRoomModel, roomCommands] = Room.update(
     model.room,
-    Room.Message.JoinedRoom({ roomId, player }),
+    Room.Message.SucceededJoinRoom({ roomId, player }),
   )
 
   return [

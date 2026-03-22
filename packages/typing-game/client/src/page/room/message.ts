@@ -44,7 +44,7 @@ export const ClickedCopyRoomId = m('ClickedCopyRoomId', { roomId: S.String })
 export const SucceededCopyRoomId = m('SucceededCopyRoomId')
 export const HiddenRoomIdCopiedIndicator = m('HiddenRoomIdCopiedIndicator')
 export const TickedExitCountdown = m('TickedExitCountdown')
-export const JoinedRoom = m('JoinedRoom', {
+export const SucceededJoinRoom = m('SucceededJoinRoom', {
   roomId: S.String,
   player: Shared.Player,
 })
@@ -74,6 +74,6 @@ export const Message = S.Union(
   SucceededCopyRoomId,
   HiddenRoomIdCopiedIndicator,
   TickedExitCountdown,
-  JoinedRoom,
+  SucceededJoinRoom,
 )
 export type Message = typeof Message.Type

@@ -54,7 +54,7 @@ export const init = (products: ReadonlyArray<Item.Item>): Model => ({
 
 // COMMAND
 
-const ReplaceSearchUrl = Command.define('ReplaceSearchUrl')
+const ReplaceSearchUrl = Command.define('ReplaceSearchUrl', CompletedReplaceUrl)
 
 // UPDATE
 
@@ -63,9 +63,11 @@ export const update =
   (
     model: Model,
     message: Message,
-  ): [Model, ReadonlyArray<Command.Command<Message>>] =>
+  ): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
     M.value(message).pipe(
-      M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
+      M.withReturnType<
+        readonly [Model, ReadonlyArray<Command.Command<Message>>]
+      >(),
       M.tagsExhaustive({
         CompletedReplaceUrl: () => [model, []],
 

@@ -47,7 +47,7 @@ export const init = (config: InitConfig): Model => ({
 export const update = (
   model: Model,
   _message: Message,
-): [Model, ReadonlyArray<Command<Message>>] => [
+): readonly [Model, ReadonlyArray<Command<Message>>] => [
   evo(model, { isChecked: isChecked => !isChecked }),
   [],
 ]

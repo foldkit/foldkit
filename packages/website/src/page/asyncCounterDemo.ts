@@ -85,7 +85,10 @@ export type Message = typeof Message.Type
 
 // INIT
 
-export const init = (): [Model, ReadonlyArray<Command.Command<Message>>] => [
+export const init = (): readonly [
+  Model,
+  ReadonlyArray<Command.Command<Message>>,
+] => [
   {
     count: 0,
     isResetting: false,
@@ -99,10 +102,13 @@ export const init = (): [Model, ReadonlyArray<Command.Command<Message>>] => [
 
 // UPDATE
 
-type UpdateReturn = [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-const DelayAdvancePhase = Command.define('DelayAdvancePhase')
+const DelayAdvancePhase = Command.define(
+  'DelayAdvancePhase',
+  ProgressedDemoPhase,
+)
 
 const delayAdvancePhase = (
   generation: number,

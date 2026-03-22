@@ -31,7 +31,7 @@ Match the quality and thoughtfulness of these files. The principles below apply 
 - Name Messages as verb-first, past-tense events describing what happened (`SubmittedUsernameForm`, `CreatedRoom`, `PressedKey`), not imperative commands. The verb prefix acts as a category marker: `Clicked*` for button presses, `Updated*` for input changes, `Succeeded*`/`Failed*` for Command results that can meaningfully fail (e.g. `SucceededFetchWeather`, `FailedFetchWeather`), `Completed*` for fire-and-forget Command acknowledgments where the result is uninteresting and the update function is a no-op (e.g. `CompletedLockScroll`, `CompletedShowDialog`, `CompletedNavigateInternal`), `Got*` exclusively for receiving child module results via the OutMessage pattern (e.g. `GotProductsMessage`). The update function decides what to do — Messages are facts.
 - Never use `NoOp` as a Message. Every Message must carry meaning about what happened. Fire-and-forget Commands use `Completed*` Messages with verb-first naming that mirrors the Command name: Command `LockScroll` → Message `CompletedLockScroll`, Command `ShowDialog` → Message `CompletedShowDialog`, Command `FocusInput` → Message `CompletedFocusInput`. View-dispatched no-ops use descriptive facts: `IgnoredMouseClick`, `SuppressedSpaceScroll`.
 - Use `Option` instead of `null` or `undefined`. Match explicitly with `Option.match` or chain with `Option.map`/`Option.flatMap`. No `if (x != null)` checks. Prefer `Option.match` over `Option.map` + `Option.getOrElse` — if you're unwrapping at the end, just match. Use `OptionExt.when(condition, value)` instead of `condition ? Option.some(value) : Option.none()`.
-- Name Commands as verb-first, present-tense actions describing what is being done (`FetchWeather`, `FocusButton`, `LockScroll`), not what happened — Messages describe the past, Command names describe the present. UI component Commands use simple action names: `FocusButton`, `ScrollIntoView`, `NextFrame`, `WaitForTransitions`. App Commands use domain-specific names: `FetchWeather`, `ValidateEmail`, `SaveTodos`, `NavigateToRoom`. Composite Commands (e.g. lock scroll + show modal) are named by their primary action: `ShowDialog`, `CloseDialog`.
+- Name Commands as verb-first imperatives describing what to do (`FetchWeather`, `FocusButton`, `LockScroll`) — they're instructions to the runtime. Messages describe the past, Command names command the present. UI component Commands use simple action names: `FocusButton`, `ScrollIntoView`, `NextFrame`, `WaitForTransitions`. App Commands use domain-specific names: `FetchWeather`, `ValidateEmail`, `SaveTodos`, `NavigateToRoom`. Composite Commands (e.g. lock scroll + show modal) are named by their primary action: `ShowDialog`, `CloseDialog`.
 - Errors in Commands should become Messages via `Effect.catchAll(() => Effect.succeed(ErrorMessage(...)))`. Side effects should never crash the app.
 - Extract complex update handlers or view sections into their own files when they grow beyond a few cases. Don't let logic pile up.
 - Prefer curried, data-last functions that compose in `pipe` chains.
@@ -53,7 +53,7 @@ Match the quality and thoughtfulness of these files. The principles below apply 
 - Always use Effect.Match instead of switch
 - Prefer Effect module functions over native methods when available — e.g. `Array.map`, `Array.filter`, `Option.map`, `String.startsWith` from Effect instead of their native equivalents. This includes Effect's `String` module: use `String.includes`, `String.indexOf` (returns `Option<number>`), `String.slice`, `String.startsWith`, `String.replaceAll`, `String.length`, `String.isNonEmpty`, `String.trim` etc. in `pipe` chains. Exception: native `.map`, `.filter`, `.indexOf()`, `.slice()`, etc. are fine when calling directly on a named variable (e.g. `commands.map(Effect.map(...))`, `fullUrl.indexOf(prefix)`) — use Effect's curried, data-last forms in `pipe` chains where they compose naturally.
 - Never use `for` loops or `let` for iteration. Use `Array.makeBy` for index-based construction, `Array.range` + `Array.findFirst`/`Array.findLast` for searches, and `Array.filterMap`/`Array.flatMap` for transforms.
-- Never cast Schema values with `as Type`. Use callable constructors: `LoginSucceeded({ sessionId })` not `{ _tag: 'LoginSucceeded', sessionId } as Message`. Let TypeScript infer Command return types from the Effect — explicit `Command.Command<typeof Foo>` annotations are unnecessary when using `Command.define`.
+- Never cast Schema values with `as Type`. Use callable constructors: `LoginSucceeded({ sessionId })` not `{ _tag: 'LoginSucceeded', sessionId } as Message`. Let TypeScript infer Command return types from the Effect — explicit `Command.Command<typeof Foo>` annotations are unnecessary when using `Command.define`. The result Message schemas passed to `Command.define` constrain the Effect's return type at the type level.
 - Use `Option` for model fields that may be absent — not empty strings or zero values. `loginError: S.OptionFromSelf(S.String)` not `loginError: S.String` with `''` as the "none" state. Use `Option.match` in views to conditionally render.
 - Use `Array.take` instead of `.slice(0, n)` — especially avoid casting Schema arrays with `as readonly T[]` just to call `.slice`.
 
@@ -76,11 +76,12 @@ Individual `type A = typeof A.Type` declarations are not needed — use `typeof 
 
 ### Command Definitions
 
-Create Commands with `Command.define`, which returns a `CommandDefinition` — the only way to construct a Command. Always assign definitions to PascalCase constants; never use `Command.define` inline in a pipe chain.
+Create Commands with `Command.define`, which returns a `CommandDefinition` — the only way to construct a Command. Result Message schemas are required — pass every Message the Command can return after the name. Always assign definitions to PascalCase constants; never use `Command.define` inline in a pipe chain.
 
 ```ts
 // Good — definition wraps the Effect (direct call, name leads)
-const FetchWeather = Command.define('FetchWeather')
+const FetchWeather = Command.define('FetchWeather', SucceededFetchWeather, FailedFetchWeather)
+const ScrollToTop = Command.define('ScrollToTop', CompletedScroll)
 const scrollToTop = ScrollToTop(
   Effect.sync(() => { ... return CompletedScroll() }),
 )
@@ -93,7 +94,7 @@ const fetchWeather = (city: string) =>
   )
 
 // Bad — definition created and discarded (same as the old Command.make)
-someEffect.pipe(Command.define('FetchWeather'))
+someEffect.pipe(Command.define('FetchWeather', SucceededFetchWeather, FailedFetchWeather))
 ```
 
 Prefer the direct-call style (`Definition(effect)`) over pipe-last (`effect.pipe(Definition)`). The definition wraps the Effect — it's a type boundary (Effect → Command), not a pipeline step. The name leading makes Commands scannable in the COMMAND section.

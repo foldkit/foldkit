@@ -58,7 +58,7 @@ const FailedFetchWeather = m('FailedFetchWeather', { error: S.String })
 - Prefix Option values with `maybe`: `maybeCurrentUser`, `maybeSession`, `maybeError`
 - Boolean fields use `is*`: `isPlaying`, `isVisible`, `isMenuOpen`
 - Command variables named by action: `fetchWeather`, not `fetchWeatherCommand`
-- Command names are verb-first, present-tense: `FetchWeather`, `FocusButton`, `LockScroll`, `Tick`
+- Command names are verb-first imperatives: `FetchWeather`, `FocusButton`, `LockScroll`, `Tick`
 - Callback parameters use full names: `(tickCount) => tickCount + 1` not `(t) => t + 1`
 - Constants for magic numbers: `FINAL_PHOTO_INDEX` not `15`, `EXIT_COUNTDOWN_SECONDS` not `5`
 

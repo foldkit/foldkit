@@ -10,7 +10,10 @@ import { CompletedFocusUserGameTextInput } from '../message'
 import { Model, RoomRemoteData } from '../model'
 import type { UpdateReturn } from './update'
 
-const FocusUserGameTextInput = Command.define('FocusUserGameTextInput')
+const FocusUserGameTextInput = Command.define(
+  'FocusUserGameTextInput',
+  CompletedFocusUserGameTextInput,
+)
 
 const EXIT_COUNTDOWN_SECONDS = 3
 

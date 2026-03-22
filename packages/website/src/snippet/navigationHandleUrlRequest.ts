@@ -43,14 +43,19 @@ type Message = typeof Message.Type
 
 // COMMAND
 
-const NavigateInternal = Command.define('NavigateInternal')
-const LoadExternal = Command.define('LoadExternal')
+const NavigateInternal = Command.define(
+  'NavigateInternal',
+  CompletedNavigateInternal,
+)
+const LoadExternal = Command.define('LoadExternal', CompletedLoadExternal)
 
 // UPDATE
 
 const update = (model: Model, message: Message) =>
   M.value(message).pipe(
-    M.withReturnType<[Model, ReadonlyArray<Command.Command<Message>>]>(),
+    M.withReturnType<
+      readonly [Model, ReadonlyArray<Command.Command<Message>>]
+    >(),
     M.tagsExhaustive({
       CompletedNavigateInternal: () => [model, []],
       CompletedLoadExternal: () => [model, []],
@@ -60,7 +65,7 @@ const update = (model: Model, message: Message) =>
           M.tagsExhaustive({
             Internal: ({
               url,
-            }): [Model, ReadonlyArray<Command.Command<Message>>] => [
+            }): readonly [Model, ReadonlyArray<Command.Command<Message>>] => [
               model,
               [
                 NavigateInternal(
@@ -72,7 +77,7 @@ const update = (model: Model, message: Message) =>
             ],
             External: ({
               href,
-            }): [Model, ReadonlyArray<Command.Command<Message>>] => [
+            }): readonly [Model, ReadonlyArray<Command.Command<Message>>] => [
               model,
               [
                 LoadExternal(

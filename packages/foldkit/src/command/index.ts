@@ -21,21 +21,27 @@ export type Command<T, E = never, R = never> = [T] extends [Schema.Schema.Any]
     }>
 
 /** A Command identity created with `Command.define`. Call with an Effect to create a Command. */
-export interface CommandDefinition<out Name extends string> {
+export interface CommandDefinition<Name extends string, ResultMessage = any> {
   readonly [CommandDefinitionTypeId]: CommandDefinitionTypeId
   readonly name: Name;
-  <A, E, R>(
-    effect: Effect.Effect<A, E, R>,
-  ): Readonly<{ name: Name; effect: Effect.Effect<A, E, R> }>
+  <CommandEffect extends Effect.Effect<ResultMessage, any, any>>(
+    effect: CommandEffect,
+  ): Readonly<{ name: Name; effect: CommandEffect }>
 }
 
-/** Defines a named Command identity. */
-export const define = <const Name extends string>(
+/** Defines a named Command identity with the Messages it returns. */
+export const define: {
+  <const Name extends string, Results extends ReadonlyArray<Schema.Schema.Any>>(
+    name: Name,
+    ...results: Results
+  ): CommandDefinition<Name, Schema.Schema.Type<Results[number]>>
+} = <const Name extends string>(
   name: Name,
-): CommandDefinition<Name> => {
-  const create = <A, E, R>(
-    effect: Effect.Effect<A, E, R>,
-  ): Readonly<{ name: Name; effect: Effect.Effect<A, E, R> }> => ({
+  ..._results: ReadonlyArray<Schema.Schema.Any>
+): CommandDefinition<Name, any> => {
+  const create = (
+    effect: Effect.Effect<any, any, any>,
+  ): Readonly<{ name: Name; effect: Effect.Effect<any, any, any> }> => ({
     name,
     effect,
   })
@@ -46,7 +52,7 @@ export const define = <const Name extends string>(
   })
 
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  return create as CommandDefinition<Name>
+  return create as CommandDefinition<Name, any>
 }
 
 /** Transforms the Effect inside a Command while preserving its name. */
