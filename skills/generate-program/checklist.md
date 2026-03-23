@@ -75,3 +75,12 @@ Run through each category after generating an app. Fix any issues before present
 - [ ] Section headers used in single-file apps: `// MODEL`, `// MESSAGE`, etc.
 - [ ] Complex update handlers extracted to separate functions
 - [ ] view decomposed when branches exceed ~30 lines
+
+## Testing
+
+- [ ] `main.test.ts` (or `update.test.ts`) exists with `Test.story` pipelines
+- [ ] Every fallible Command (`Succeeded*`/`Failed*` pair) tested for both outcomes
+- [ ] At least one multi-step test that chains Messages and Command resolutions
+- [ ] Submodel tests assert `outMessage` when the child signals to parent
+- [ ] Tests use `Test.resolve(Definition, resultMessage)` — never run Command Effects directly in story tests
+- [ ] All tests pass with `npx vitest run`

@@ -93,6 +93,14 @@ Use uppercase section headers (`// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`,
 
 Even after extracting some sections to their own files (e.g. `message.ts`), the remaining file may still benefit from headers. Extract to separate files when it helps with organization.
 
+### Testing
+
+Test update functions with `foldkit/test`. Since update is pure — `(Model, Message) → [Model, Commands]` — tests run without a runtime, DOM, or side effects.
+
+Use `Test.story` to chain steps into a readable narrative: set initial Model → send Message → assert → resolve Command → assert again. Every `Command.define` must include result Message schemas so Commands can be resolved in tests.
+
+If the `repos/foldkit` submodule is available, study the `.test.ts` files in `repos/foldkit/examples/` for patterns — they cover simple Command resolution, multi-step interactions, and Submodel OutMessage assertions.
+
 ## Code Quality Standards
 
 - Every name should eliminate ambiguity. Prefix Option-typed values with `maybe` (e.g. `maybeSession`). Name functions by their precise effect (e.g. `enqueueMessage` not `addMessage`). A reader should never need to check a type signature to understand what a name refers to.

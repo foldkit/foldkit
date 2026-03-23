@@ -293,9 +293,24 @@ Every message must carry meaning. No `NoOp`.
 - Subscriptions auto-start/stop based on Model state — never manually managed
 - For Subscriptions with no Model dependencies (always active), use `S.Null` as the dependency type and return `null` from `modelToDependencies`
 
-## Phase 5: Verify
+## Phase 5: Verify and Test
 
 Run `npx tsc --noEmit` in the project directory. Fix any type errors — the type system is the source of truth for API correctness (especially for Foldkit UI component APIs).
+
+Then generate tests using `foldkit/test`. Study these exemplar test files first — read at least one that matches the app's complexity:
+
+- `${CLAUDE_SKILL_DIR}/../../examples/weather/src/main.test.ts` — simple Command resolution (happy path + error path)
+- `${CLAUDE_SKILL_DIR}/../../examples/auth/src/page/loggedOut/page/login.test.ts` — Submodel with OutMessage assertions, field validation
+- `${CLAUDE_SKILL_DIR}/../../packages/website/src/search/update.test.ts` — multi-step interactions (arrow key cycling, stale result handling)
+
+Write `Test.story` pipelines in `main.test.ts` (or `update.test.ts` for multi-file apps) covering:
+
+- **Happy path** — the primary user flow from start to finish
+- **Error path** — every fallible Command resolved with its `Failed*` Message
+- **Multi-step interaction** — at least one test that chains multiple Messages and Command resolutions
+- **Edge cases** — empty states, boundary conditions, ignored inputs (e.g. stale results, duplicate submissions)
+
+Run `npx vitest run` to verify tests pass.
 
 Then run through the [verification checklist](checklist.md) to catch structural gaps. Fix any remaining issues before presenting the result.
 
