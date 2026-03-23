@@ -753,7 +753,10 @@ const makeRuntime = <
             getCurrentModel: Ref.get(modelRef),
           })
           yield* Ref.set(maybeDevtoolsStoreRef, Option.some(devtoolsStore))
-          yield* devtoolsStore.recordInit(initModel)
+          yield* devtoolsStore.recordInit(
+            initModel,
+            Array.map(initCommands, ({ name }) => name),
+          )
           yield* createOverlay(devtoolsStore, position, mode, maybeBanner)
         }
 

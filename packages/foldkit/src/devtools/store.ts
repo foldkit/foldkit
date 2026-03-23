@@ -16,6 +16,7 @@ export type StoreState = Readonly<{
   entries: ReadonlyArray<HistoryEntry>
   keyframes: HashMap.HashMap<number, unknown>
   maybeInitModel: Option.Option<unknown>
+  initCommandNames: ReadonlyArray<string>
   startIndex: number
   isPaused: boolean
   pausedAtIndex: number
@@ -31,6 +32,7 @@ const emptyState: StoreState = {
   entries: [],
   keyframes: HashMap.empty(),
   maybeInitModel: Option.none(),
+  initCommandNames: [],
   startIndex: 0,
   isPaused: false,
   pausedAtIndex: 0,
@@ -92,10 +94,11 @@ export const createDevtoolsStore = (
       }
     }
 
-    const recordInit = (model: unknown) =>
+    const recordInit = (model: unknown, commandNames: ReadonlyArray<string>) =>
       SubscriptionRef.update(stateRef, state => ({
         ...state,
         maybeInitModel: Option.some(model),
+        initCommandNames: commandNames,
         keyframes: HashMap.set(state.keyframes, 0, model),
       }))
 
@@ -177,6 +180,7 @@ export const createDevtoolsStore = (
     const clear = SubscriptionRef.update(stateRef, state => ({
       ...emptyState,
       maybeInitModel: state.maybeInitModel,
+      initCommandNames: state.initCommandNames,
       keyframes: Option.match(state.maybeInitModel, {
         onNone: () => HashMap.empty(),
         onSome: model =>
@@ -197,7 +201,10 @@ export const createDevtoolsStore = (
   })
 
 export type DevtoolsStore = Readonly<{
-  recordInit: (model: unknown) => Effect.Effect<void>
+  recordInit: (
+    model: unknown,
+    commandNames: ReadonlyArray<string>,
+  ) => Effect.Effect<void>
   recordMessage: (
     message: Readonly<{ _tag: string }>,
     modelAfterUpdate: unknown,

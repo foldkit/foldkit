@@ -50,6 +50,7 @@ const Model = S.Struct({
   isOpen: S.Boolean,
   isMobile: S.Boolean,
   entries: S.Array(DisplayEntry),
+  initCommandNames: S.Array(S.String),
   startIndex: S.Number,
   isPaused: S.Boolean,
   pausedAtIndex: S.Number,
@@ -67,6 +68,7 @@ type Model = typeof Model.Type
 const Flags = S.Struct({
   isMobile: S.Boolean,
   entries: S.Array(DisplayEntry),
+  initCommandNames: S.Array(S.String),
   startIndex: S.Number,
   isPaused: S.Boolean,
   pausedAtIndex: S.Number,
@@ -100,6 +102,7 @@ const GotInspectorTabsMessage = m('GotInspectorTabsMessage', {
 })
 const ReceivedStoreUpdate = m('ReceivedStoreUpdate', {
   entries: S.Array(DisplayEntry),
+  initCommandNames: S.Array(S.String),
   startIndex: S.Number,
   isPaused: S.Boolean,
   pausedAtIndex: S.Number,
@@ -152,6 +155,7 @@ const toDisplayEntries = ({ entries }: StoreState) =>
 
 const toDisplayState = (state: StoreState) => ({
   entries: toDisplayEntries(state),
+  initCommandNames: state.initCommandNames,
   startIndex: state.startIndex,
   isPaused: state.isPaused,
   pausedAtIndex: state.pausedAtIndex,
@@ -496,6 +500,7 @@ const makeUpdate = (
         ],
         ReceivedStoreUpdate: ({
           entries,
+          initCommandNames,
           startIndex,
           isPaused,
           pausedAtIndex,
@@ -514,6 +519,7 @@ const makeUpdate = (
           return [
             evo(model, {
               entries: () => entries,
+              initCommandNames: () => initCommandNames,
               startIndex: () => startIndex,
               isPaused: () => isPaused,
               pausedAtIndex: () => pausedAtIndex,
@@ -939,8 +945,12 @@ const makeView = (
     ['Click a message to inspect'],
   )
 
-  type InspectorTab = 'Model' | 'Message'
-  const INSPECTOR_TABS: ReadonlyArray<InspectorTab> = ['Model', 'Message']
+  type InspectorTab = 'Model' | 'Message' | 'Commands'
+  const INSPECTOR_TABS: ReadonlyArray<InspectorTab> = [
+    'Model',
+    'Message',
+    'Commands',
+  ]
 
   const noMessageView: Html = div(
     [
@@ -995,6 +1005,60 @@ const makeView = (
         ),
     })
 
+  const selectedCommandNames = (model: Model): ReadonlyArray<string> => {
+    const selectedIndex = M.value(mode).pipe(
+      M.when('TimeTravel', () =>
+        model.isPaused ? model.pausedAtIndex : INIT_INDEX,
+      ),
+      M.when('Inspect', () => model.selectedIndex),
+      M.exhaustive,
+    )
+
+    if (selectedIndex === INIT_INDEX) {
+      return model.initCommandNames
+    }
+
+    return pipe(
+      Array_.get(model.entries, selectedIndex - model.startIndex),
+      Option.map(entry => entry.commandNames),
+      Option.getOrElse(() => []),
+    )
+  }
+
+  const commandsTabContent = (model: Model): Html =>
+    Array_.match(selectedCommandNames(model), {
+      onEmpty: () =>
+        div(
+          [
+            Class(
+              'flex-1 flex items-center justify-center text-dt-muted text-2xs font-mono min-w-0',
+            ),
+          ],
+          ['No Commands returned'],
+        ),
+      onNonEmpty: names =>
+        div(
+          [
+            Class(
+              'flex flex-col flex-1 min-h-0 min-w-0 overflow-auto overscroll-none',
+            ),
+          ],
+          Array_.map(names, (name, index) =>
+            div(
+              [
+                Class(
+                  'flex items-center px-2 py-1 text-base font-mono text-dt border-b gap-1.5',
+                ),
+              ],
+              [
+                span([Class(indexClass)], [String(index + 1)]),
+                span([Class('json-tag')], [name]),
+              ],
+            ),
+          ),
+        ),
+    })
+
   const inspectorTabContent = (
     model: Model,
     tab: InspectorTab,
@@ -1003,6 +1067,7 @@ const makeView = (
     M.value(tab).pipe(
       M.when('Model', () => modelTabContent(model, inspectedModel)),
       M.when('Message', () => messageTabContent(model)),
+      M.when('Commands', () => commandsTabContent(model)),
       M.exhaustive,
     )
 

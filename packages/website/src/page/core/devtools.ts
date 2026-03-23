@@ -63,7 +63,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       pageTitle('core/devtools', 'DevTools'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'Foldkit includes a built-in DevTools overlay that displays every Message flowing through your app and lets you inspect the Model at any point in time. It renders inside a shadow DOM so it won\u2019t interfere with your styles or layout.',
+        'Foldkit includes a built-in DevTools overlay that displays every Message flowing through your app and lets you inspect the Model, Message, and Commands at any point in time. It renders inside a shadow DOM so it won\u2019t interfere with your styles or layout.',
       ),
       para(
         'You can see it in action right now \u2014 look for the tab on the bottom right edge of this page.',

@@ -141,7 +141,7 @@ Foldkit is a complete system, not a collection of libraries you stitch together.
 - **UI Components** — Dialog, menu, tabs, listbox, disclosure — fully accessible primitives that are easy to style and customize.
 - **Field Validation** — Per-field validation state modeled as a discriminated union. Define rules as data, apply them in update, and the Model tracks the result.
 - **Virtual DOM** — Declarative Views powered by [Snabbdom](https://github.com/snabbdom/snabbdom). Fast, keyed diffing. Views are plain functions of your Model.
-- **DevTools** — Built-in overlay for inspecting Messages and Model state. Time-travel mode lets you jump to any point in your app's history.
+- **DevTools** — Built-in overlay for inspecting Messages, Model state, and Commands. Time-travel mode lets you jump to any point in your app's history.
 - **Testing** — Simulate the update loop in tests. Send Messages, resolve Commands inline, and assert on the Model. No mocking libraries, no fake timers, no setup or teardown.
 - **HMR** — Vite plugin with state-preserving hot module replacement. Change your view, keep your state.
 
