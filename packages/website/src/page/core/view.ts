@@ -5,10 +5,12 @@ import type { TableOfContentsEntry } from '../../main'
 import {
   infoCallout,
   inlineCode,
+  link,
   pageTitle,
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
+import { coreArchitectureRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
@@ -43,7 +45,12 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       pageTitle('core/view', 'View'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'The update function produces a new Model. But the user doesn\u2019t see the Model \u2014 they see what the view function renders from it. In the restaurant analogy, the waiter\u2019s notebook says \u201Ctable 3: salmon, ready.\u201D The view is what\u2019s actually on the table \u2014 the plate in front of the customer.',
+        'The update function produces a new Model. But the user doesn\u2019t see the Model \u2014 they see what the view function renders from it. In the ',
+        link(
+          `${coreArchitectureRouter()}#the-restaurant-analogy`,
+          'restaurant analogy',
+        ),
+        ', the waiter\u2019s notebook says \u201Ctable 3: salmon, ready.\u201D The view is what\u2019s actually on the table \u2014 the plate in front of the customer.',
       ),
       para(
         'Given the same Model, view always produces the same HTML. It never modifies state directly \u2014 instead, it dispatches Messages through event handlers, feeding them back into the loop.',

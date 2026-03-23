@@ -10,7 +10,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
-import { patternsSubmodelsRouter } from '../../route'
+import { coreArchitectureRouter, patternsSubmodelsRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
@@ -34,7 +34,12 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'A Message is a fact about something that happened in your application \u2014 not an instruction to do something, just a record of what occurred.',
       ),
       para(
-        'In the restaurant analogy, \u201Ctable 3 asked for the check\u201D is a Message. It doesn\u2019t tell the waiter what to do \u2014 maybe they bring the check immediately, maybe they offer dessert first. The waiter (the update function) decides. The message stays the same either way.',
+        'In the ',
+        link(
+          `${coreArchitectureRouter()}#the-restaurant-analogy`,
+          'restaurant analogy',
+        ),
+        ', \u201Ctable 3 asked for the check\u201D is a Message. It doesn\u2019t tell the waiter what to do \u2014 maybe they bring the check immediately, maybe they offer dessert first. The waiter (the update function) decides. The message stays the same either way.',
       ),
       para(
         inlineCode('ClickedIncrement'),

@@ -10,7 +10,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
-import { testingRouter } from '../../route'
+import { coreArchitectureRouter, testingRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
@@ -55,7 +55,12 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'So far, update has been returning an empty Commands array. It\u2019s time to put it to use. But before we write our first Command, there\u2019s a fundamental idea to understand: the update function doesn\u2019t actually do anything.',
       ),
       para(
-        'In the restaurant analogy, Commands are the slips the waiter hands to the kitchen. The waiter doesn\u2019t cook \u2014 they describe what\u2019s needed and hand it off. The kitchen does the work and reports back when it\u2019s done.',
+        'In the ',
+        link(
+          `${coreArchitectureRouter()}#the-restaurant-analogy`,
+          'restaurant analogy',
+        ),
+        ', Commands are the slips the waiter hands to the kitchen. The waiter doesn\u2019t cook \u2014 they describe what\u2019s needed and hand it off. The kitchen does the work and reports back when it\u2019s done.',
       ),
       para(
         'When update runs, no HTTP request fires, no timer starts, no DOM changes. It returns data \u2014 a new Model and a list of Commands that describe what should happen. The Foldkit runtime reads those descriptions and executes them.',

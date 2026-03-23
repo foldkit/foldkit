@@ -10,6 +10,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
+import { coreArchitectureRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
@@ -33,6 +34,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'The Model represents your entire application state in a single, immutable data structure defined with ',
         link(Link.effectSchema, 'Effect Schema'),
         '. Everything your app can be at any moment lives here \u2014 not scattered across components, not split between local and global state.',
+      ),
+      para(
+        'In the ',
+        link(
+          `${coreArchitectureRouter()}#the-restaurant-analogy`,
+          'restaurant analogy',
+        ),
+        ', the Model is the waiter\u2019s notebook \u2014 the running picture of everything happening right now. Orders in flight, tables seated, who\u2019s waiting for dessert. Every fact about the current state of the restaurant lives in one place.',
       ),
       para(
         'In the counter example, the Model is a Struct with a single field:',
