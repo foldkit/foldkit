@@ -68,6 +68,11 @@ interface TypeDocArrayType<Self> {
   readonly elementType: Self
 }
 
+interface TypeDocRestType<Self> {
+  readonly type: 'rest'
+  readonly elementType: Self
+}
+
 interface TypeDocTupleType<Self> {
   readonly type: 'tuple'
   readonly elements: ReadonlyArray<Self>
@@ -139,6 +144,7 @@ export type TypeDocType =
   | TypeDocLiteralType
   | TypeDocReferenceType<TypeDocType>
   | TypeDocArrayType<TypeDocType>
+  | TypeDocRestType<TypeDocType>
   | TypeDocTupleType<TypeDocType>
   | TypeDocUnionType<TypeDocType>
   | TypeDocIntersectionType<TypeDocType>
@@ -159,6 +165,7 @@ type TypeDocTypeEncoded =
   | TypeDocLiteralType
   | TypeDocReferenceType<TypeDocTypeEncoded>
   | TypeDocArrayType<TypeDocTypeEncoded>
+  | TypeDocRestType<TypeDocTypeEncoded>
   | TypeDocTupleType<TypeDocTypeEncoded>
   | TypeDocUnionType<TypeDocTypeEncoded>
   | TypeDocIntersectionType<TypeDocTypeEncoded>
@@ -185,6 +192,10 @@ export const TypeDocTypeSchema: S.Schema<TypeDocType, TypeDocTypeEncoded> =
       }),
       S.Struct({
         type: S.Literal('array'),
+        elementType: TypeDocTypeSchema,
+      }),
+      S.Struct({
+        type: S.Literal('rest'),
         elementType: TypeDocTypeSchema,
       }),
       S.Struct({

@@ -87,6 +87,10 @@ const formatType = (type: TypeDocType, depth: number): string =>
       'array',
       ({ elementType }) => `Array<${formatType(elementType, depth)}>`,
     ),
+    whenType(
+      'rest',
+      ({ elementType }) => `...${formatType(elementType, depth)}`,
+    ),
     whenType('tuple', ({ elements }) => {
       const formatted = Array.map(elements, element =>
         formatType(element, depth),
