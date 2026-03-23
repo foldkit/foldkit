@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.5.11
+
+### Patch Changes
+
+- c6a5404: Add testing section to AGENTS.md template pointing agents to `foldkit/test` and the submodule's exemplar test files
+
 ## 0.5.10
 
 ### Patch Changes
