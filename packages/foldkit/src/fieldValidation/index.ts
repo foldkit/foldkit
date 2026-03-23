@@ -9,10 +9,50 @@ import {
   pipe,
 } from 'effect'
 
-import { ts } from '../schema'
+import { CallableTaggedStruct, ts } from '../schema'
+
+/** A tagged union of field states for use with form validation. */
+export type Field<A, I> = Readonly<{
+  NotValidated: CallableTaggedStruct<'NotValidated', { value: S.Schema<A, I> }>
+  Validating: CallableTaggedStruct<'Validating', { value: S.Schema<A, I> }>
+  Valid: CallableTaggedStruct<'Valid', { value: S.Schema<A, I> }>
+  Invalid: CallableTaggedStruct<
+    'Invalid',
+    { value: S.Schema<A, I>; errors: S.NonEmptyArray<typeof S.String> }
+  >
+  Union: S.Union<
+    [
+      CallableTaggedStruct<'NotValidated', { value: S.Schema<A, I> }>,
+      CallableTaggedStruct<'Validating', { value: S.Schema<A, I> }>,
+      CallableTaggedStruct<'Valid', { value: S.Schema<A, I> }>,
+      CallableTaggedStruct<
+        'Invalid',
+        { value: S.Schema<A, I>; errors: S.NonEmptyArray<typeof S.String> }
+      >,
+    ]
+  >
+  validate: (fieldValidations: ReadonlyArray<Validation<A>>) => (
+    fieldValue: A,
+  ) =>
+    | Readonly<{ _tag: 'Valid'; value: A }>
+    | Readonly<{
+        _tag: 'Invalid'
+        value: A
+        errors: readonly [string, ...Array<string>]
+      }>
+  validateAll: (fieldValidations: ReadonlyArray<Validation<A>>) => (
+    fieldValue: A,
+  ) =>
+    | Readonly<{ _tag: 'Valid'; value: A }>
+    | Readonly<{
+        _tag: 'Invalid'
+        value: A
+        errors: readonly [string, ...Array<string>]
+      }>
+}>
 
 /** Creates a tagged union of field states (`NotValidated`, `Validating`, `Valid`, `Invalid`) for a given value schema. */
-export const makeField = <A, I>(value: S.Schema<A, I>) => {
+export const makeField = <A, I>(value: S.Schema<A, I>): Field<A, I> => {
   const NotValidated = ts('NotValidated', { value })
   const Validating = ts('Validating', { value })
   const Valid = ts('Valid', { value })

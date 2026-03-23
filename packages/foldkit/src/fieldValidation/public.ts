@@ -19,4 +19,4 @@ export {
   oneOf,
 } from './index'
 
-export type { Validation, ValidationMessage } from './index'
+export type { Field, Validation, ValidationMessage } from './index'
