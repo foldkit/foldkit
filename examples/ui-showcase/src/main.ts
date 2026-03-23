@@ -141,7 +141,7 @@ const LoadExternal = Command.define('LoadExternal', CompletedLoadExternal)
 
 // INIT
 
-const init: Runtime.ApplicationInit<Model, Message> = (url: Url) => {
+const init: Runtime.RoutingProgramInit<Model, Message> = (url: Url) => {
   const [initialUiModel, uiCommands] = uiInit()
 
   return [
@@ -547,16 +547,16 @@ const view = (model: Model): Html =>
 
 // RUN
 
-const app = Runtime.makeApplication({
+const program = Runtime.makeProgram({
   Model,
   init,
   update,
   view,
   container: document.getElementById('root')!,
-  browser: {
+  routing: {
     onUrlRequest: request => ClickedLink({ request }),
     onUrlChange: url => ChangedUrl({ url }),
   },
 })
 
-Runtime.run(app)
+Runtime.run(program)

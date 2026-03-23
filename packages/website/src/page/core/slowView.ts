@@ -63,9 +63,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'The default threshold is 16ms (one frame at 60fps). Pass a ',
         inlineCode('slowView'),
         ' config object to ',
-        inlineCode('makeElement'),
-        ' or ',
-        inlineCode('makeApplication'),
+        inlineCode('makeProgram'),
         ' to customize it:',
       ),
       highlightedCodeBlock(

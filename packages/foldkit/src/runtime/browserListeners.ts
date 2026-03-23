@@ -2,24 +2,24 @@ import { Option, Queue, String } from 'effect'
 
 import { OptionExt, StringExt } from '../effectExtensions'
 import { Url } from '../url'
-import { BrowserConfig } from './runtime'
+import { RoutingConfig } from './runtime'
 import { External, Internal } from './urlRequest'
 
 export const addNavigationEventListeners = <Message>(
   messageQueue: Queue.Queue<Message>,
-  browserConfig: BrowserConfig<Message>,
+  routingConfig: RoutingConfig<Message>,
 ) => {
-  addPopStateListener(messageQueue, browserConfig)
-  addLinkClickListener(messageQueue, browserConfig)
-  addProgrammaticNavigationListener(messageQueue, browserConfig)
+  addPopStateListener(messageQueue, routingConfig)
+  addLinkClickListener(messageQueue, routingConfig)
+  addProgrammaticNavigationListener(messageQueue, routingConfig)
 }
 
 const addPopStateListener = <Message>(
   messageQueue: Queue.Queue<Message>,
-  browserConfig: BrowserConfig<Message>,
+  routingConfig: RoutingConfig<Message>,
 ) => {
   const onPopState = () => {
-    Queue.unsafeOffer(messageQueue, browserConfig.onUrlChange(locationToUrl()))
+    Queue.unsafeOffer(messageQueue, routingConfig.onUrlChange(locationToUrl()))
   }
 
   window.addEventListener('popstate', onPopState)
@@ -27,7 +27,7 @@ const addPopStateListener = <Message>(
 
 const addLinkClickListener = <Message>(
   messageQueue: Queue.Queue<Message>,
-  browserConfig: BrowserConfig<Message>,
+  routingConfig: RoutingConfig<Message>,
 ) => {
   const onLinkClick = (event: Event) => {
     const target = event.target
@@ -54,14 +54,14 @@ const addLinkClickListener = <Message>(
     if (linkUrl.origin !== currentUrl.origin) {
       Queue.unsafeOffer(
         messageQueue,
-        browserConfig.onUrlRequest(External({ href })),
+        routingConfig.onUrlRequest(External({ href })),
       )
       return
     }
 
     Queue.unsafeOffer(
       messageQueue,
-      browserConfig.onUrlRequest(Internal({ url: urlToFoldkitUrl(linkUrl) })),
+      routingConfig.onUrlRequest(Internal({ url: urlToFoldkitUrl(linkUrl) })),
     )
   }
 
@@ -70,10 +70,10 @@ const addLinkClickListener = <Message>(
 
 const addProgrammaticNavigationListener = <Message>(
   messageQueue: Queue.Queue<Message>,
-  browserConfig: BrowserConfig<Message>,
+  routingConfig: RoutingConfig<Message>,
 ) => {
   const onProgrammaticNavigation = () => {
-    Queue.unsafeOffer(messageQueue, browserConfig.onUrlChange(locationToUrl()))
+    Queue.unsafeOffer(messageQueue, routingConfig.onUrlChange(locationToUrl()))
   }
 
   window.addEventListener('foldkit:urlchange', onProgrammaticNavigation)

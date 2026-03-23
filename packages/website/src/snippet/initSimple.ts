@@ -13,7 +13,7 @@ const ClickedDecrement = m('ClickedDecrement')
 const Message = S.Union(ClickedIncrement, ClickedDecrement)
 type Message = typeof Message.Type
 
-const init: Runtime.ElementInit<Model, Message> = () => [
+const init: Runtime.ProgramInit<Model, Message> = () => [
   Model({ count: 0 }),
   [],
 ]

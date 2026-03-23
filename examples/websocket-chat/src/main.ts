@@ -196,7 +196,7 @@ const update = (
 
 // INIT
 
-const init: Runtime.ElementInit<Model, Message> = () => [
+const init: Runtime.ProgramInit<Model, Message> = () => [
   {
     connection: ConnectionDisconnected(),
     messages: [],
@@ -606,7 +606,7 @@ const errorView = (error: string): Html =>
 
 // RUN
 
-const element = Runtime.makeElement({
+const program = Runtime.makeProgram({
   Model,
   init,
   update,
@@ -616,4 +616,4 @@ const element = Runtime.makeElement({
   container: document.getElementById('root')!,
 })
 
-Runtime.run(element)
+Runtime.run(program)

@@ -272,11 +272,10 @@ Every message must carry meaning. No `NoOp`.
 
 ### Runtime Wiring
 
-- Use `Runtime.makeElement` for apps without URL routing (no pages/navigation)
-- Use `Runtime.makeApplication` for apps with routing — requires `browser: { onUrlRequest, onUrlChange }` config
-- See the Element vs Application section in [architecture.md](architecture.md) for the full pattern
-- Include `ClickedLink` and `ChangedUrl` Messages for applications, with proper `InternalUrl`/`ExternalUrl` handling in update
-- Always end with `Runtime.run(element)` or `Runtime.run(app)`
+- Use `Runtime.makeProgram` — add `routing: { onUrlRequest, onUrlChange }` for apps with URL routing
+- See the With and Without URL Routing section in [architecture.md](architecture.md) for the full pattern
+- Include `ClickedLink` and `ChangedUrl` Messages for programs with routing, with proper `InternalUrl`/`ExternalUrl` handling in update
+- Always end with `Runtime.run(program)`
 
 ### Routes (if multi-page)
 

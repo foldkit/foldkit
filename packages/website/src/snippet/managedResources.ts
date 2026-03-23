@@ -40,8 +40,8 @@ const managedResources = ManagedResource.makeManagedResources(
   },
 })
 
-// 4. Pass to makeElement or makeApplication
-const element = Runtime.makeElement({
+// 4. Pass to makeProgram
+const program = Runtime.makeProgram({
   Model,
   init,
   update,

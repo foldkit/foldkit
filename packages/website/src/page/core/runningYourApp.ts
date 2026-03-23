@@ -19,22 +19,29 @@ const overviewHeader: TableOfContentsEntry = {
   text: 'Overview',
 }
 
-const makeElementHeader: TableOfContentsEntry = {
+const makeProgramHeader: TableOfContentsEntry = {
   level: 'h2',
-  id: 'make-element',
-  text: 'makeElement',
+  id: 'make-program',
+  text: 'makeProgram',
 }
 
-const makeApplicationHeader: TableOfContentsEntry = {
-  level: 'h2',
-  id: 'make-application',
-  text: 'makeApplication',
+const withoutRoutingHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'without-routing',
+  text: 'Without routing',
+}
+
+const withRoutingHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'with-routing',
+  text: 'With routing',
 }
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
-  makeElementHeader,
-  makeApplicationHeader,
+  makeProgramHeader,
+  withoutRoutingHeader,
+  withRoutingHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
@@ -45,17 +52,23 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       tableOfContentsEntryToHeader(overviewHeader),
       para(
         'To run a Foldkit application, create a runtime with ',
-        inlineCode('makeElement'),
-        ' or ',
-        inlineCode('makeApplication'),
+        inlineCode('makeProgram'),
         ', then call ',
         inlineCode('Runtime.run'),
         '.',
       ),
-      tableOfContentsEntryToHeader(makeElementHeader),
+      tableOfContentsEntryToHeader(makeProgramHeader),
       para(
-        inlineCode('makeElement'),
-        ' creates a component without URL handling. The init function takes no arguments. If you configure a Flags schema, init receives the flags as its argument. Use this for standalone widgets or components embedded in existing pages.',
+        inlineCode('makeProgram'),
+        ' creates a Foldkit runtime. It handles both standalone components and full applications with routing — the difference is whether you provide a ',
+        inlineCode('routing'),
+        ' config.',
+      ),
+      tableOfContentsEntryToHeader(withoutRoutingHeader),
+      para(
+        'Without a ',
+        inlineCode('routing'),
+        " config, the program doesn't manage the URL bar. This is the default for most programs.",
       ),
       highlightedCodeBlock(
         div(
@@ -63,16 +76,15 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           [],
         ),
         Snippets.runMakeElementRaw,
-        'Copy makeElement example to clipboard',
+        'Copy makeProgram without routing example to clipboard',
         copiedSnippets,
         'mb-8',
       ),
-      tableOfContentsEntryToHeader(makeApplicationHeader),
+      tableOfContentsEntryToHeader(withRoutingHeader),
       para(
-        inlineCode('makeApplication'),
-        ' creates a full-page application with routing. The init function receives the current URL (and flags, if configured). You must provide a ',
-        inlineCode('browser'),
-        ' config to handle URL changes.',
+        'With a ',
+        inlineCode('routing'),
+        ' config, the program manages the URL bar. The init function receives the current URL so it can set the initial route.',
       ),
       highlightedCodeBlock(
         div(
@@ -80,13 +92,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           [],
         ),
         Snippets.runMakeApplicationRaw,
-        'Copy makeApplication example to clipboard',
+        'Copy makeProgram with routing example to clipboard',
         copiedSnippets,
         'mb-8',
       ),
       para(
         'The ',
-        inlineCode('browser'),
+        inlineCode('routing'),
         ' config has two handlers: ',
         inlineCode('onUrlRequest'),
         ' is called when a link is clicked (giving you a chance to handle internal vs external links), and ',

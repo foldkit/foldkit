@@ -178,7 +178,7 @@ const routeToBrowseFields = (route: AppRoute): BrowseFields =>
     M.orElse(() => emptyBrowseFields),
   )
 
-const init: Runtime.ApplicationInit<Model, Message> = (url: Url) => {
+const init: Runtime.RoutingProgramInit<Model, Message> = (url: Url) => {
   const route = urlToAppRoute(url)
   const fields = routeToBrowseFields(route)
 
@@ -915,16 +915,16 @@ const view = (model: Model): Html => {
 
 // RUN
 
-const app = Runtime.makeApplication({
+const program = Runtime.makeProgram({
   Model,
   init,
   update,
   view,
   container: document.getElementById('root')!,
-  browser: {
+  routing: {
     onUrlRequest: request => ClickedLink({ request }),
     onUrlChange: url => ChangedUrl({ url }),
   },
 })
 
-Runtime.run(app)
+Runtime.run(program)

@@ -1,6 +1,6 @@
 import { Runtime } from 'foldkit'
 
-const element = Runtime.makeElement({
+const program = Runtime.makeProgram({
   Model,
   init,
   update,
@@ -15,4 +15,4 @@ const element = Runtime.makeElement({
   container: document.getElementById('root')!,
 })
 
-Runtime.run(element)
+Runtime.run(program)
