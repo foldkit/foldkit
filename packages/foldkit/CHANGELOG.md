@@ -1,5 +1,28 @@
 # foldkit
 
+## 0.41.0
+
+### Minor Changes
+
+- d3844f2: Add Commands tab to DevTools inspector. The third tab shows Command definition names returned by update for the selected Message. Init Command names are now recorded and displayed when inspecting the init entry.
+- 5331993: Consolidate `makeElement` and `makeApplication` into a single `makeProgram` function. The presence of a `routing` config determines whether the program has URL routing. Rename `BrowserConfig` to `RoutingConfig` and the `browser` config key to `routing`.
+
+  **Migration:**
+  - `Runtime.makeElement(config)` → `Runtime.makeProgram(config)`
+  - `Runtime.makeApplication(config)` → `Runtime.makeProgram(config)`
+  - `browser: { onUrlRequest, onUrlChange }` → `routing: { onUrlRequest, onUrlChange }`
+  - `Runtime.BrowserConfig` → `Runtime.RoutingConfig`
+  - `Runtime.ElementInit` → `Runtime.ProgramInit`
+  - `Runtime.ApplicationInit` → `Runtime.RoutingProgramInit`
+  - `Runtime.ElementConfigWithFlags` → `Runtime.ProgramConfigWithFlags`
+  - `Runtime.ElementConfigWithoutFlags` → `Runtime.ProgramConfig`
+  - `Runtime.ApplicationConfigWithFlags` → `Runtime.RoutingProgramConfigWithFlags`
+  - `Runtime.ApplicationConfigWithoutFlags` → `Runtime.RoutingProgramConfig`
+
+### Patch Changes
+
+- 7f57617: Update README example links to point to foldkit.dev website pages and add Testing to the "What Ships With Foldkit" section.
+
 ## 0.40.0
 
 ### Minor Changes
