@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.5.10
+
+### Patch Changes
+
+- f456720: Exclude submodule directory from Vite dependency scanner to prevent resolution errors
+
 ## 0.5.9
 
 ### Patch Changes
