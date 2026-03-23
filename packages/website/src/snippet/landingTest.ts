@@ -20,9 +20,10 @@ test('open the pod bay door', () => {
     }),
 
     Test.resolve(Depressurize, CompletedDepressurize()),
-    Test.tap(({ model, message }) => {
+    Test.tap(({ model, message, commands }) => {
       expect(message?._tag).toBe('CompletedDepressurize')
       expect(model.airlockC._tag).toBe('Opening')
+      expect(commands[0]?.name).toBe(OpenDoor.name)
     }),
 
     Test.resolve(OpenDoor, CompletedOpenDoor()),
