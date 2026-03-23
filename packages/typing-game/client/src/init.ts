@@ -7,7 +7,9 @@ import { Model } from './model'
 import { Home, Room } from './page'
 import { urlToAppRoute } from './route'
 
-export const init: Runtime.ApplicationInit<Model, Message> = (url: Url.Url) => {
+export const init: Runtime.RoutingProgramInit<Model, Message> = (
+  url: Url.Url,
+) => {
   const route = urlToAppRoute(url)
 
   const [home, homeCommands] = Home.init()

@@ -1,15 +1,15 @@
 import { Runtime } from 'foldkit'
 
-const app = Runtime.makeApplication({
+const program = Runtime.makeProgram({
   Model,
-  init, // receives (url: Url) => [Model, Commands]
+  init,
   update,
   view,
   container: document.getElementById('root')!,
-  browser: {
+  routing: {
     onUrlRequest: request => ClickedLink({ request }),
     onUrlChange: url => ChangedUrl({ url }),
   },
 })
 
-Runtime.run(app)
+Runtime.run(program)

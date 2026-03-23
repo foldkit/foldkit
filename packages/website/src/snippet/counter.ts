@@ -38,7 +38,7 @@ const update = (
 
 // INIT
 
-const init: Runtime.ElementInit<Model, Message> = () => [{ count: 0 }, []]
+const init: Runtime.ProgramInit<Model, Message> = () => [{ count: 0 }, []]
 
 // VIEW
 
@@ -73,7 +73,7 @@ const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
 
 // RUN
 
-const element = Runtime.makeElement({
+const program = Runtime.makeProgram({
   Model,
   init,
   update,
@@ -81,4 +81,4 @@ const element = Runtime.makeElement({
   container: document.getElementById('root')!,
 })
 
-Runtime.run(element)
+Runtime.run(program)

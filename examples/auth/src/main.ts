@@ -62,7 +62,7 @@ const RedirectToDashboard = Command.define(
 type InitReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 const withInitReturn = M.withReturnType<InitReturn>()
 
-const init: Runtime.ApplicationInit<Model, Message, Flags> = (
+const init: Runtime.RoutingProgramInit<Model, Message, Flags> = (
   flags: Flags,
   url: Url,
 ): InitReturn => {
@@ -111,7 +111,7 @@ const init: Runtime.ApplicationInit<Model, Message, Flags> = (
 
 // RUN
 
-const app = Runtime.makeApplication({
+const program = Runtime.makeProgram({
   Model,
   Flags,
   flags,
@@ -119,10 +119,10 @@ const app = Runtime.makeApplication({
   update,
   view,
   container: document.getElementById('root')!,
-  browser: {
+  routing: {
     onUrlRequest: request => ClickedLink({ request }),
     onUrlChange: url => ChangedUrl({ url }),
   },
 })
 
-Runtime.run(app)
+Runtime.run(program)

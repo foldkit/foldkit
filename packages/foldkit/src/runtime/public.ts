@@ -1,15 +1,15 @@
-export { makeElement, makeApplication, run } from './runtime'
+export { makeProgram, run } from './runtime'
 
 export type {
-  BrowserConfig,
+  RoutingConfig,
   CrashConfig,
   CrashContext,
-  ElementConfigWithFlags,
-  ElementConfigWithoutFlags,
-  ApplicationConfigWithFlags,
-  ApplicationConfigWithoutFlags,
-  ElementInit,
-  ApplicationInit,
+  RoutingProgramConfigWithFlags,
+  RoutingProgramConfig,
+  ProgramConfigWithFlags,
+  ProgramConfig,
+  ProgramInit,
+  RoutingProgramInit,
   MakeRuntimeReturn,
   Visibility,
   SlowViewContext,

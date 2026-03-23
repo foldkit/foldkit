@@ -19,7 +19,7 @@ import * as Command from '../command'
 import { OptionExt } from '../effectExtensions'
 import { type Html, createKeyedLazy, html } from '../html'
 import { m } from '../message'
-import { makeElement } from '../runtime/runtime'
+import { makeProgram } from '../runtime/runtime'
 import type { DevtoolsMode, DevtoolsPosition } from '../runtime/runtime'
 import { makeSubscriptions } from '../runtime/subscription'
 import { evo } from '../struct'
@@ -1403,7 +1403,7 @@ export const createOverlay = (
       [],
     ]
 
-    const overlayRuntime = makeElement({
+    const overlayRuntime = makeProgram({
       Model,
       Flags,
       flags,

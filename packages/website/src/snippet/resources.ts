@@ -21,7 +21,8 @@ const playNote = (frequency: number, duration: number) =>
     }),
   )
 
-const element = Runtime.makeElement({
+// 3. Pass the service's default layer to makeProgram
+const program = Runtime.makeProgram({
   Model,
   init,
   update,

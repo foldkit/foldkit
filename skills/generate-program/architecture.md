@@ -150,7 +150,7 @@ const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   return Flags({ createdAt: now })
 })
 
-const init: Runtime.ElementInit<Model, Message, Flags> = (flags) => [
+const init: Runtime.ProgramInit<Model, Message, Flags> = (flags) => [
   { createdAt: flags.createdAt },
   [],
 ]
@@ -163,10 +163,10 @@ Flags are an `Effect<Flags>` — the runtime executes them once before init, and
 - Reading browser capabilities (`navigator.language`, `matchMedia`)
 - Decoding data embedded in the HTML (`<script type="application/json">`)
 
-Pass `Flags` and `flags` to `Runtime.makeElement` or `Runtime.makeApplication`:
+Pass `Flags` and `flags` to `Runtime.makeProgram`:
 
 ```ts
-const app = Runtime.makeApplication({
+const program = Runtime.makeProgram({
   Model,
   Flags,
   flags,
@@ -357,16 +357,16 @@ const showConfirmation = Task.showModal(`#${CONFIRM_DIALOG_ID}`).pipe(
 )
 ```
 
-## Element vs Application
+## With and Without URL Routing
 
-Foldkit has two runtime modes. Choose based on whether the app needs URL routing:
+`Runtime.makeProgram` handles both cases. Add a `routing` config when the app needs URL routing.
 
-### `Runtime.makeElement` — No URL Routing
+### Without Routing
 
 For self-contained widgets, embedded components, or single-page apps without navigation. init receives only flags (if any):
 
 ```ts
-const element = Runtime.makeElement({
+const program = Runtime.makeProgram({
   Model,
   init,
   update,
@@ -374,27 +374,27 @@ const element = Runtime.makeElement({
   container: document.getElementById('root')!,
 })
 
-Runtime.run(element)
+Runtime.run(program)
 ```
 
-### `Runtime.makeApplication` — With URL Routing
+### With Routing
 
-For apps with pages, navigation, and URL-driven state. init receives flags (if any) and the current URL. Requires a `browser` config with two Message constructors:
+For apps with pages, navigation, and URL-driven state. init receives flags (if any) and the current URL. Add a `routing` config with two Message constructors:
 
 ```ts
-const app = Runtime.makeApplication({
+const program = Runtime.makeProgram({
   Model,
   init,
   update,
   view,
   container: document.getElementById('root')!,
-  browser: {
+  routing: {
     onUrlRequest: request => ClickedLink({ request }),
     onUrlChange: url => ChangedUrl({ url }),
   },
 })
 
-Runtime.run(app)
+Runtime.run(program)
 ```
 
 `onUrlRequest` fires when the user clicks a link. The Message receives a `UrlRequest` (either `InternalUrl` or `ExternalUrl`). Handle it in update:
@@ -424,5 +424,5 @@ ChangedUrl: ({ url }) => [
 
 ### How to Choose
 
-- Description mentions "pages", "navigation", "routes", URLs → `makeApplication`
-- Everything else → `makeElement`
+- Description mentions "pages", "navigation", "routes", URLs → add `routing` config
+- Everything else → omit `routing`

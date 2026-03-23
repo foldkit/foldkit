@@ -101,7 +101,7 @@ type Flags = typeof Flags.Type
 
 // INIT
 
-const init: Runtime.ElementInit<Model, Message, Flags> = flags => [
+const init: Runtime.ProgramInit<Model, Message, Flags> = flags => [
   {
     todos: Option.getOrElse(flags.todos, () => []),
     newTodoText: '',
@@ -608,7 +608,7 @@ const flags: Effect.Effect<Flags> = Effect.gen(function* () {
 
 // RUN
 
-const element = Runtime.makeElement({
+const program = Runtime.makeProgram({
   Model,
   Flags,
   flags,
@@ -618,4 +618,4 @@ const element = Runtime.makeElement({
   container: document.getElementById('root')!,
 })
 
-Runtime.run(element)
+Runtime.run(program)

@@ -34,7 +34,7 @@ const crashView = ({ error }: Runtime.CrashContext<Model, Message>): Html => {
   )
 }
 
-const element = Runtime.makeElement({
+const program = Runtime.makeProgram({
   Model,
   init,
   update,
@@ -43,4 +43,4 @@ const element = Runtime.makeElement({
   container: document.getElementById('root')!,
 })
 
-Runtime.run(element)
+Runtime.run(program)

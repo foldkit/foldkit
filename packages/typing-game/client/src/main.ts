@@ -7,17 +7,17 @@ import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-const application = Runtime.makeApplication({
+const program = Runtime.makeProgram({
   Model,
   init,
   update,
   view,
   subscriptions,
   container: document.getElementById('root')!,
-  browser: {
+  routing: {
     onUrlRequest: request => ClickedLink({ request }),
     onUrlChange: url => ChangedUrl({ url }),
   },
 })
 
-Runtime.run(application)
+Runtime.run(program)

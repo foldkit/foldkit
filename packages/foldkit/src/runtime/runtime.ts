@@ -141,8 +141,8 @@ export class Dispatch extends Context.Tag('@foldkit/Dispatch')<
 
 export type { Command } from '../command'
 
-/** Configuration for browser URL integration with handlers for URL requests and URL changes. */
-export type BrowserConfig<Message> = Readonly<{
+/** Configuration for URL routing with handlers for URL requests and URL changes. */
+export type RoutingConfig<Message> = Readonly<{
   onUrlRequest: (request: UrlRequest) => Message
   onUrlChange: (url: Url) => Message
 }>
@@ -160,7 +160,7 @@ export type CrashConfig<Model, Message> = Readonly<{
   report?: (context: CrashContext<Model, Message>) => void
 }>
 
-/** Full runtime configuration including model schema, flags, init, update, view, and optional browser/stream config. */
+/** Full runtime configuration including model schema, flags, init, update, view, and optional routing/stream config. */
 type RuntimeConfig<
   Model,
   Message,
@@ -194,7 +194,7 @@ type RuntimeConfig<
     Resources | ManagedResourceServices
   >
   container: HTMLElement
-  browser?: BrowserConfig<Message>
+  routing?: RoutingConfig<Message>
   crash?: CrashConfig<Model, Message>
   slowView?: SlowViewConfig<Model, Message>
   /**
@@ -217,7 +217,7 @@ type RuntimeConfig<
   devtools?: DevtoolsConfig
 }>
 
-type BaseElementConfig<
+type BaseProgramConfig<
   Model,
   Message,
   StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
@@ -247,15 +247,71 @@ type BaseElementConfig<
   devtools?: DevtoolsConfig
 }>
 
-/** Configuration for `makeElement` when the element receives initial data via flags. */
-export type ElementConfigWithFlags<
+/** Configuration for `makeProgram` with flags and URL routing. */
+export type RoutingProgramConfigWithFlags<
   Model,
   Message,
   StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
   Flags,
   Resources = never,
   ManagedResourceServices = never,
-> = BaseElementConfig<
+> = BaseProgramConfig<
+  Model,
+  Message,
+  StreamDepsMap,
+  Resources,
+  ManagedResourceServices
+> &
+  Readonly<{
+    Flags: Schema.Schema<Flags, any, never>
+    flags: Effect.Effect<Flags>
+    routing: RoutingConfig<Message>
+    init: (
+      flags: Flags,
+      url: Url,
+    ) => readonly [
+      Model,
+      ReadonlyArray<
+        Command<Message, never, Resources | ManagedResourceServices>
+      >,
+    ]
+  }>
+
+/** Configuration for `makeProgram` with URL routing but no flags. */
+export type RoutingProgramConfig<
+  Model,
+  Message,
+  StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
+  Resources = never,
+  ManagedResourceServices = never,
+> = BaseProgramConfig<
+  Model,
+  Message,
+  StreamDepsMap,
+  Resources,
+  ManagedResourceServices
+> &
+  Readonly<{
+    routing: RoutingConfig<Message>
+    init: (
+      url: Url,
+    ) => readonly [
+      Model,
+      ReadonlyArray<
+        Command<Message, never, Resources | ManagedResourceServices>
+      >,
+    ]
+  }>
+
+/** Configuration for `makeProgram` with flags but no URL routing. */
+export type ProgramConfigWithFlags<
+  Model,
+  Message,
+  StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
+  Flags,
+  Resources = never,
+  ManagedResourceServices = never,
+> = BaseProgramConfig<
   Model,
   Message,
   StreamDepsMap,
@@ -275,14 +331,14 @@ export type ElementConfigWithFlags<
     ]
   }>
 
-/** Configuration for `makeElement` without flags. */
-export type ElementConfigWithoutFlags<
+/** Configuration for `makeProgram` without flags or URL routing. */
+export type ProgramConfig<
   Model,
   Message,
   StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
   Resources = never,
   ManagedResourceServices = never,
-> = BaseElementConfig<
+> = BaseProgramConfig<
   Model,
   Message,
   StreamDepsMap,
@@ -298,93 +354,8 @@ export type ElementConfigWithoutFlags<
     ]
   }>
 
-type BaseApplicationConfig<
-  Model,
-  Message,
-  StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
-  Resources = never,
-  ManagedResourceServices = never,
-> = Readonly<{
-  Model: Schema.Schema<Model, any, never>
-  update: (
-    model: Model,
-    message: Message,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command<Message, never, Resources | ManagedResourceServices>>,
-  ]
-  view: (model: Model) => Html
-  subscriptions?: Subscriptions<
-    Model,
-    Message,
-    StreamDepsMap,
-    Resources | ManagedResourceServices
-  >
-  container: HTMLElement
-  browser: BrowserConfig<Message>
-  crash?: CrashConfig<Model, Message>
-  slowView?: SlowViewConfig<Model, Message>
-  resources?: Layer.Layer<Resources>
-  managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
-  devtools?: DevtoolsConfig
-}>
-
-/** Configuration for `makeApplication` when the application receives initial data via flags. */
-export type ApplicationConfigWithFlags<
-  Model,
-  Message,
-  StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
-  Flags,
-  Resources = never,
-  ManagedResourceServices = never,
-> = BaseApplicationConfig<
-  Model,
-  Message,
-  StreamDepsMap,
-  Resources,
-  ManagedResourceServices
-> &
-  Readonly<{
-    Flags: Schema.Schema<Flags, any, never>
-    flags: Effect.Effect<Flags>
-    init: (
-      flags: Flags,
-      url: Url,
-    ) => readonly [
-      Model,
-      ReadonlyArray<
-        Command<Message, never, Resources | ManagedResourceServices>
-      >,
-    ]
-  }>
-
-/** Configuration for `makeApplication` without flags. */
-export type ApplicationConfigWithoutFlags<
-  Model,
-  Message,
-  StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
-  Resources = never,
-  ManagedResourceServices = never,
-> = BaseApplicationConfig<
-  Model,
-  Message,
-  StreamDepsMap,
-  Resources,
-  ManagedResourceServices
-> &
-  Readonly<{
-    init: (
-      url: Url,
-    ) => readonly [
-      Model,
-      ReadonlyArray<
-        Command<Message, never, Resources | ManagedResourceServices>
-      >,
-    ]
-  }>
-
-/** The `init` function type for elements, with an optional `flags` parameter when `Flags` is not `void`. */
-export type ElementInit<
+/** The `init` function type for programs without URL routing. */
+export type ProgramInit<
   Model,
   Message,
   Flags = void,
@@ -406,8 +377,8 @@ export type ElementInit<
       >,
     ]
 
-/** The `init` function type for applications, receives the current URL and optional flags. */
-export type ApplicationInit<
+/** The `init` function type for programs with URL routing, receives the current URL and optional flags. */
+export type RoutingProgramInit<
   Model,
   Message,
   Flags = void,
@@ -432,7 +403,7 @@ export type ApplicationInit<
       >,
     ]
 
-/** A configured Foldkit runtime returned by `makeElement` or `makeApplication`, passed to `run` to start the application. */
+/** A configured Foldkit runtime returned by `makeProgram`, passed to `run` to start the application. */
 export type MakeRuntimeReturn = (hmrModel?: unknown) => Effect.Effect<void>
 
 const makeRuntime = <
@@ -450,7 +421,7 @@ const makeRuntime = <
   view,
   subscriptions,
   container,
-  browser: browserConfig,
+  routing: routingConfig,
   crash,
   slowView,
   resources,
@@ -556,7 +527,7 @@ const makeRuntime = <
           Queue.offer(messageQueue, message)
 
         const currentUrl: Option.Option<Url> = Option.fromNullable(
-          browserConfig,
+          routingConfig,
         ).pipe(Option.flatMap(() => urlFromString(window.location.href)))
 
         const [initModel, initCommands] = Predicate.isNotUndefined(hmrModel)
@@ -587,8 +558,8 @@ const makeRuntime = <
             ),
         )
 
-        if (browserConfig) {
-          addNavigationEventListeners(messageQueue, browserConfig)
+        if (routingConfig) {
+          addNavigationEventListeners(messageQueue, routingConfig)
         }
 
         const modelRef = yield* Ref.make<Model>(initModel)
@@ -1002,8 +973,8 @@ const renderCrashView = <Model, Message>(
   }
 }
 
-/** Creates a Foldkit element (no URL routing) and returns a runtime that can be passed to `run`. */
-export function makeElement<
+/** Creates a Foldkit program and returns a runtime that can be passed to `run`. Add a `routing` config for URL routing. */
+export function makeProgram<
   Model,
   Message extends { _tag: string },
   StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
@@ -1011,7 +982,7 @@ export function makeElement<
   Resources = never,
   ManagedResourceServices = never,
 >(
-  config: ElementConfigWithFlags<
+  config: RoutingProgramConfigWithFlags<
     Model,
     Message,
     StreamDepsMap,
@@ -1021,14 +992,14 @@ export function makeElement<
   >,
 ): MakeRuntimeReturn
 
-export function makeElement<
+export function makeProgram<
   Model,
   Message extends { _tag: string },
   StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
   Resources = never,
   ManagedResourceServices = never,
 >(
-  config: ElementConfigWithoutFlags<
+  config: RoutingProgramConfig<
     Model,
     Message,
     StreamDepsMap,
@@ -1037,7 +1008,41 @@ export function makeElement<
   >,
 ): MakeRuntimeReturn
 
-export function makeElement<
+export function makeProgram<
+  Model,
+  Message extends { _tag: string },
+  StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
+  Flags,
+  Resources = never,
+  ManagedResourceServices = never,
+>(
+  config: ProgramConfigWithFlags<
+    Model,
+    Message,
+    StreamDepsMap,
+    Flags,
+    Resources,
+    ManagedResourceServices
+  >,
+): MakeRuntimeReturn
+
+export function makeProgram<
+  Model,
+  Message extends { _tag: string },
+  StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
+  Resources = never,
+  ManagedResourceServices = never,
+>(
+  config: ProgramConfig<
+    Model,
+    Message,
+    StreamDepsMap,
+    Resources,
+    ManagedResourceServices
+  >,
+): MakeRuntimeReturn
+
+export function makeProgram<
   Model,
   Message extends { _tag: string },
   StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
@@ -1046,7 +1051,7 @@ export function makeElement<
   ManagedResourceServices = never,
 >(
   config:
-    | ElementConfigWithFlags<
+    | RoutingProgramConfigWithFlags<
         Model,
         Message,
         StreamDepsMap,
@@ -1054,7 +1059,22 @@ export function makeElement<
         Resources,
         ManagedResourceServices
       >
-    | ElementConfigWithoutFlags<
+    | RoutingProgramConfig<
+        Model,
+        Message,
+        StreamDepsMap,
+        Resources,
+        ManagedResourceServices
+      >
+    | ProgramConfigWithFlags<
+        Model,
+        Message,
+        StreamDepsMap,
+        Flags,
+        Resources,
+        ManagedResourceServices
+      >
+    | ProgramConfig<
         Model,
         Message,
         StreamDepsMap,
@@ -1062,12 +1082,20 @@ export function makeElement<
         ManagedResourceServices
       >,
 ): MakeRuntimeReturn {
+  const hasRouting = 'routing' in config
+  const hasFlags = 'Flags' in config
+
+  const currentUrl: Url | undefined = hasRouting
+    ? Option.getOrThrow(urlFromString(window.location.href))
+    : undefined
+
   const baseConfig = {
     Model: config.Model,
     update: config.update,
     view: config.view,
     ...(config.subscriptions && { subscriptions: config.subscriptions }),
     container: config.container,
+    ...(hasRouting && { routing: config.routing }),
     ...(config.crash && { crash: config.crash }),
     ...(Predicate.isNotUndefined(config.slowView) && {
       slowView: config.slowView,
@@ -1081,132 +1109,70 @@ export function makeElement<
     }),
   }
 
-  if ('Flags' in config) {
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    return makeRuntime({
-      ...baseConfig,
-      Flags: config.Flags,
-      flags: config.flags,
-      init: (flags: unknown) =>
-        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-        config.init(flags as Flags),
-    } as RuntimeConfig<
-      Model,
-      Message,
-      StreamDepsMap,
-      Flags,
-      Resources,
-      ManagedResourceServices
-    >)
-  } else {
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    return makeRuntime({
-      ...baseConfig,
-      Flags: Schema.Void,
-      flags: Effect.succeed(undefined),
-      init: () => config.init(),
-    } as RuntimeConfig<
-      Model,
-      Message,
-      StreamDepsMap,
-      void,
-      Resources,
-      ManagedResourceServices
-    >)
-  }
-}
-
-/** Creates a Foldkit application with URL routing and returns a runtime that can be passed to `run`. */
-export function makeApplication<
-  Model,
-  Message extends { _tag: string },
-  StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
-  Flags,
-  Resources = never,
-  ManagedResourceServices = never,
->(
-  config: ApplicationConfigWithFlags<
-    Model,
-    Message,
-    StreamDepsMap,
-    Flags,
-    Resources,
-    ManagedResourceServices
-  >,
-): MakeRuntimeReturn
-
-export function makeApplication<
-  Model,
-  Message extends { _tag: string },
-  StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
-  Resources = never,
-  ManagedResourceServices = never,
->(
-  config: ApplicationConfigWithoutFlags<
-    Model,
-    Message,
-    StreamDepsMap,
-    Resources,
-    ManagedResourceServices
-  >,
-): MakeRuntimeReturn
-
-export function makeApplication<
-  Model,
-  Message extends { _tag: string },
-  StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
-  Flags,
-  Resources = never,
-  ManagedResourceServices = never,
->(
-  config:
-    | ApplicationConfigWithFlags<
-        Model,
-        Message,
-        StreamDepsMap,
-        Flags,
-        Resources,
-        ManagedResourceServices
-      >
-    | ApplicationConfigWithoutFlags<
-        Model,
-        Message,
-        StreamDepsMap,
-        Resources,
-        ManagedResourceServices
-      >,
-): MakeRuntimeReturn {
-  const currentUrl: Url = Option.getOrThrow(urlFromString(window.location.href))
-
-  const baseConfig = {
-    Model: config.Model,
-    update: config.update,
-    view: config.view,
-    ...(config.subscriptions && { subscriptions: config.subscriptions }),
-    container: config.container,
-    browser: config.browser,
-    ...(config.crash && { crash: config.crash }),
-    ...(Predicate.isNotUndefined(config.slowView) && {
-      slowView: config.slowView,
-    }),
-    ...(config.resources && { resources: config.resources }),
-    ...(config.managedResources && {
-      managedResources: config.managedResources,
-    }),
-    ...(Predicate.isNotUndefined(config.devtools) && {
-      devtools: config.devtools,
-    }),
-  }
-
-  if ('Flags' in config) {
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  /* eslint-disable @typescript-eslint/consistent-type-assertions */
+  if (hasFlags && hasRouting) {
     return makeRuntime({
       ...baseConfig,
       Flags: config.Flags,
       flags: config.flags,
       init: (flags: unknown, url) =>
-        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-        config.init(flags as Flags, url ?? currentUrl),
+        (
+          config as RoutingProgramConfigWithFlags<
+            Model,
+            Message,
+            StreamDepsMap,
+            Flags,
+            Resources,
+            ManagedResourceServices
+          >
+        ).init(flags as Flags, url ?? currentUrl!),
+    } as RuntimeConfig<
+      Model,
+      Message,
+      StreamDepsMap,
+      Flags,
+      Resources,
+      ManagedResourceServices
+    >)
+  } else if (hasRouting) {
+    return makeRuntime({
+      ...baseConfig,
+      Flags: Schema.Void,
+      flags: Effect.succeed(undefined),
+      init: (_flags, url) =>
+        (
+          config as RoutingProgramConfig<
+            Model,
+            Message,
+            StreamDepsMap,
+            Resources,
+            ManagedResourceServices
+          >
+        ).init(url ?? currentUrl!),
+    } as RuntimeConfig<
+      Model,
+      Message,
+      StreamDepsMap,
+      void,
+      Resources,
+      ManagedResourceServices
+    >)
+  } else if (hasFlags) {
+    return makeRuntime({
+      ...baseConfig,
+      Flags: config.Flags,
+      flags: config.flags,
+      init: (flags: unknown) =>
+        (
+          config as ProgramConfigWithFlags<
+            Model,
+            Message,
+            StreamDepsMap,
+            Flags,
+            Resources,
+            ManagedResourceServices
+          >
+        ).init(flags as Flags),
     } as RuntimeConfig<
       Model,
       Message,
@@ -1216,12 +1182,20 @@ export function makeApplication<
       ManagedResourceServices
     >)
   } else {
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     return makeRuntime({
       ...baseConfig,
       Flags: Schema.Void,
       flags: Effect.succeed(undefined),
-      init: (_flags, url) => config.init(url ?? currentUrl),
+      init: () =>
+        (
+          config as ProgramConfig<
+            Model,
+            Message,
+            StreamDepsMap,
+            Resources,
+            ManagedResourceServices
+          >
+        ).init(),
     } as RuntimeConfig<
       Model,
       Message,
@@ -1231,6 +1205,7 @@ export function makeApplication<
       ManagedResourceServices
     >)
   }
+  /* eslint-enable @typescript-eslint/consistent-type-assertions */
 }
 
 const preserveModel = (model: unknown): void => {

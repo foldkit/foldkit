@@ -197,7 +197,7 @@ type AppResources =
   | Page.NotePlayerDemo.AudioContextService
   | Search.PagefindService
 
-const init: Runtime.ApplicationInit<Model, Message, Flags, AppResources> = (
+const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
   flags: Flags,
   url: Url,
 ) => {
@@ -1133,7 +1133,7 @@ const devTracerLayer: Layer.Layer<never> = import.meta.hot
 
 // RUN
 
-const application = Runtime.makeApplication({
+const program = Runtime.makeProgram({
   Model,
   Flags,
   flags,
@@ -1142,7 +1142,7 @@ const application = Runtime.makeApplication({
   view,
   subscriptions,
   container: document.getElementById('root')!,
-  browser: {
+  routing: {
     onUrlRequest: request => ClickedLink({ request }),
     onUrlChange: url => ChangedUrl({ url }),
   },
@@ -1159,4 +1159,4 @@ const application = Runtime.makeApplication({
   },
 })
 
-Runtime.run(application)
+Runtime.run(program)

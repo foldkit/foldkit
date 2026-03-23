@@ -13,7 +13,7 @@ const routeParser = Route.oneOf(
 const urlToAppRoute = Route.parseUrlWithFallback(routeParser, NotFoundRoute)
 
 // In your init function, parse the initial URL:
-const init: Runtime.ApplicationInit<Model, Message> = (url: Url) => {
+const init: Runtime.RoutingProgramInit<Model, Message> = (url: Url) => {
   return [{ route: urlToAppRoute(url) }, []]
 }
 
