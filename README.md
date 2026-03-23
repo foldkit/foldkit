@@ -13,7 +13,7 @@
 <h3 align="center">The frontend framework for correctness.</h3>
 
 <p align="center">
-  <a href="https://foldkit.dev"><strong>Documentation</strong></a> · <a href="#examples"><strong>Examples</strong></a> · <a href="https://foldkit.dev/getting-started"><strong>Getting Started</strong></a>
+  <a href="https://foldkit.dev"><strong>Documentation</strong></a> · <a href="https://foldkit.dev/example-apps"><strong>Examples</strong></a> · <a href="https://foldkit.dev/getting-started"><strong>Getting Started</strong></a>
 </p>
 
 ---
@@ -142,6 +142,7 @@ Foldkit is a complete system, not a collection of libraries you stitch together.
 - **Field Validation** — Per-field validation state modeled as a discriminated union. Define rules as data, apply them in update, and the Model tracks the result.
 - **Virtual DOM** — Declarative Views powered by [Snabbdom](https://github.com/snabbdom/snabbdom). Fast, keyed diffing. Views are plain functions of your Model.
 - **DevTools** — Built-in overlay for inspecting Messages and Model state. Time-travel mode lets you jump to any point in your app's history.
+- **Testing** — Simulate the update loop in tests. Send Messages, resolve Commands inline, and assert on the Model. No mocking libraries, no fake timers, no setup or teardown.
 - **HMR** — Vite plugin with state-preserving hot module replacement. Change your view, keep your state.
 
 ## Correctness You (And Your LLM) Can See
@@ -152,20 +153,20 @@ This is what makes Foldkit unusually AI-friendly. The same property that makes t
 
 ## Examples
 
-- **[Counter](examples/counter/src/main.ts)** — Increment/decrement with reset
-- **[Todo](examples/todo/src/main.ts)** — CRUD operations with localStorage persistence
-- **[Stopwatch](examples/stopwatch/src/main.ts)** — Timer with start/stop/reset
-- **[Crash View](examples/crash-view/src/main.ts)** — Custom crash fallback UI with crash reporting
-- **[Form](examples/form/src/main.ts)** — Form validation with async email checking
-- **[Weather](examples/weather/src/main.ts)** — HTTP requests with async state handling
-- **[Routing](examples/routing/src/main.ts)** — URL routing with parser combinators
-- **[Query Sync](examples/query-sync/src/main.ts)** — URL query parameter sync with filtering and sorting
-- **[Snake](examples/snake/src/main.ts)** — Classic game built with Subscriptions
-- **[Auth](examples/auth/src/main.ts)** — Authentication flow with Submodels and OutMessage
-- **[Shopping Cart](examples/shopping-cart/src/main.ts)** — Nested models and complex state
-- **[WebSocket Chat](examples/websocket-chat/src/main.ts)** — Managed Resources with WebSocket integration
-- **[UI Showcase](examples/ui-showcase/src/main.ts)** — Interactive showcase of every Foldkit UI component
-- **[Typing Game](packages/typing-game)** — Multiplayer typing game with Effect RPC backend
+- **[Counter](https://foldkit.dev/example-apps/counter)** — Increment/decrement with reset
+- **[Todo](https://foldkit.dev/example-apps/todo)** — CRUD operations with localStorage persistence
+- **[Stopwatch](https://foldkit.dev/example-apps/stopwatch)** — Timer with start/stop/reset
+- **[Crash View](https://foldkit.dev/example-apps/crash-view)** — Custom crash fallback UI with crash reporting
+- **[Form](https://foldkit.dev/example-apps/form)** — Form validation with async email checking
+- **[Weather](https://foldkit.dev/example-apps/weather)** — HTTP requests with async state handling
+- **[Routing](https://foldkit.dev/example-apps/routing)** — URL routing with parser combinators
+- **[Query Sync](https://foldkit.dev/example-apps/query-sync)** — URL query parameter sync with filtering and sorting
+- **[Snake](https://foldkit.dev/example-apps/snake)** — Classic game built with Subscriptions
+- **[Auth](https://foldkit.dev/example-apps/auth)** — Authentication flow with Submodels and OutMessage
+- **[Shopping Cart](https://foldkit.dev/example-apps/shopping-cart)** — Nested models and complex state
+- **[WebSocket Chat](https://foldkit.dev/example-apps/websocket-chat)** — Managed Resources with WebSocket integration
+- **[UI Showcase](https://foldkit.dev/example-apps/ui-showcase)** — Interactive showcase of every Foldkit UI component
+- **[Typing Game](packages/typing-game)** — Multiplayer typing game with Effect RPC backend ([play it live](https://typingterminal.com))
 
 ## Development
 
