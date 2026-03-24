@@ -26,7 +26,8 @@ const animatedPanelClassName =
 
 const titleClassName = 'text-lg font-normal text-gray-900 mb-2'
 
-const dialogClassName = 'backdrop:bg-transparent bg-transparent p-0 m-auto'
+const dialogClassName =
+  'backdrop:bg-transparent bg-transparent p-0 open:flex items-center justify-center'
 
 const cancelButtonClassName =
   'px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100'
