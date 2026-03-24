@@ -61,10 +61,10 @@ const confirmButtonClassName =
 
 export const dialogDemo = (
   dialogModel: Ui.Dialog.Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ) => {
   const toDialogMessage = (message: Ui.Dialog.Message) =>
-    toMessage(GotDialogDemoMessage({ message }))
+    toParentMessage(GotDialogDemoMessage({ message }))
 
   return [
     heading('h3', basicHeader.id, basicHeader.text),
@@ -82,7 +82,7 @@ export const dialogDemo = (
     ),
     Ui.Dialog.view({
       model: dialogModel,
-      toMessage: toDialogMessage,
+      toParentMessage: toDialogMessage,
       panelContent: div(
         [],
         [
@@ -126,10 +126,10 @@ export const dialogDemo = (
 
 export const dialogAnimatedDemo = (
   dialogModel: Ui.Dialog.Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ) => {
   const toDialogMessage = (message: Ui.Dialog.Message) =>
-    toMessage(GotDialogAnimatedDemoMessage({ message }))
+    toParentMessage(GotDialogAnimatedDemoMessage({ message }))
 
   return [
     heading('h3', animatedHeader.id, animatedHeader.text),
@@ -147,7 +147,7 @@ export const dialogAnimatedDemo = (
     ),
     Ui.Dialog.view({
       model: dialogModel,
-      toMessage: toDialogMessage,
+      toParentMessage: toDialogMessage,
       panelContent: div(
         [],
         [

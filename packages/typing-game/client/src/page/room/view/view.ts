@@ -49,7 +49,7 @@ import { playing } from './playing'
 import { waiting } from './waiting'
 
 export const view =
-  (model: Model, toMessage: (message: Message) => ParentMessage) =>
+  (model: Model, toParentMessage: (message: Message) => ParentMessage) =>
   ({ roomId }: RoomRoute): Html => {
     const maybeError = M.value(model.roomRemoteData).pipe(
       M.tag('Error', ({ error }) => error),
@@ -79,7 +79,7 @@ export const view =
           'p-2 rounded hover:bg-terminal-green-dim hover:text-terminal-bg transition text-terminal-green',
         ),
         AriaLabel('Copy room ID'),
-        OnClick(toMessage(ClickedCopyRoomId({ roomId }))),
+        OnClick(toParentMessage(ClickedCopyRoomId({ roomId }))),
       ],
       [Icon.copy()],
     )
@@ -116,7 +116,7 @@ export const view =
               [Class('mb-12 flex items-center gap-2')],
               [span([], [roomId]), copyButton, copiedIndicator],
             ),
-            content(model, roomId, toMessage),
+            content(model, roomId, toParentMessage),
             maybeErrorMessage(maybeError),
           ],
         ),
@@ -128,7 +128,7 @@ export const view =
 const content = (
   { roomRemoteData, maybeSession, userGameText, username }: Model,
   roomId: string,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   M.value(roomRemoteData).pipe(
     M.tagsExhaustive({
@@ -137,9 +137,9 @@ const content = (
       Error: () => empty,
       Ok: ({ data: room }) =>
         Option.match(maybeSession, {
-          onNone: () => joinForm(username, roomId, toMessage),
+          onNone: () => joinForm(username, roomId, toParentMessage),
           onSome: () =>
-            gameContent(room, maybeSession, userGameText, toMessage),
+            gameContent(room, maybeSession, userGameText, toParentMessage),
         }),
     }),
   )
@@ -148,7 +148,7 @@ const gameContent = (
   room: Shared.Room,
   maybeSession: Option.Option<RoomPlayerSession>,
   userGameText: string,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
   const maybeGameText = Option.map(room.maybeGame, ({ text }) => text)
   const maybeWrongCharIndex = Option.flatMap(
@@ -167,7 +167,7 @@ const gameContent = (
           maybeGameText,
           userGameText,
           maybeWrongCharIndex,
-          toMessage,
+          toParentMessage,
         ),
       Finished: () => finished(room.maybeScoreboard, room.hostId, maybeSession),
     }),
@@ -177,10 +177,10 @@ const gameContent = (
 const joinForm = (
   username: string,
   roomId: string,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   form(
-    [OnSubmit(toMessage(SubmittedJoinRoomFromPage({ roomId })))],
+    [OnSubmit(toParentMessage(SubmittedJoinRoomFromPage({ roomId })))],
     [
       div(
         [Class('flex items-center gap-2')],
@@ -196,8 +196,10 @@ const joinForm = (
                 Type('text'),
                 Value(username),
                 Class('bg-transparent px-0 py-2 outline-none w-full'),
-                OnInput(value => toMessage(ChangedRoomPageUsername({ value }))),
-                OnBlur(toMessage(BlurredRoomPageUsernameInput())),
+                OnInput(value =>
+                  toParentMessage(ChangedRoomPageUsername({ value })),
+                ),
+                OnBlur(toParentMessage(BlurredRoomPageUsernameInput())),
                 Autocapitalize('none'),
                 Spellcheck(false),
                 Autocorrect('off'),

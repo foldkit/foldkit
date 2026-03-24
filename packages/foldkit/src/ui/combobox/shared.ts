@@ -618,7 +618,7 @@ export type BaseViewConfig<
   Model extends BaseModel,
 > = Readonly<{
   model: Model
-  toMessage: (
+  toParentMessage: (
     message:
       | Opened
       | Closed
@@ -730,7 +730,7 @@ export const makeView =
 
     const {
       model: { id, isOpen, immediate, transitionState, maybeActiveItemIndex },
-      toMessage,
+      toParentMessage,
       items,
       itemToConfig,
       itemToValue,
@@ -844,7 +844,7 @@ export const makeView =
         M.when('ArrowDown', () => {
           if (!isOpen) {
             return Option.some(
-              toMessage(
+              toParentMessage(
                 Opened({
                   maybeActiveItemIndex: Option.some(firstEnabledIndex),
                 }),
@@ -853,7 +853,7 @@ export const makeView =
           }
           const targetIndex = resolveActiveIndex('ArrowDown')
           return Option.some(
-            toMessage(
+            toParentMessage(
               ActivatedItem({
                 index: targetIndex,
                 activationTrigger: 'Keyboard',
@@ -865,7 +865,7 @@ export const makeView =
         M.when('ArrowUp', () => {
           if (!isOpen) {
             return Option.some(
-              toMessage(
+              toParentMessage(
                 Opened({
                   maybeActiveItemIndex: Option.some(lastEnabledIndex),
                 }),
@@ -874,7 +874,7 @@ export const makeView =
           }
           const targetIndex = resolveActiveIndex('ArrowUp')
           return Option.some(
-            toMessage(
+            toParentMessage(
               ActivatedItem({
                 index: targetIndex,
                 activationTrigger: 'Keyboard',
@@ -888,14 +888,14 @@ export const makeView =
             return Option.none()
           }
           return Option.map(maybeActiveItemIndex, index =>
-            toMessage(RequestedItemClick({ index })),
+            toParentMessage(RequestedItemClick({ index })),
           )
         }),
         M.when('Escape', () => {
           if (!isOpen) {
             return Option.none()
           }
-          return Option.some(toMessage(Closed()))
+          return Option.some(toParentMessage(Closed()))
         }),
         M.whenOr('Home', 'End', () => {
           if (!isOpen) {
@@ -903,7 +903,7 @@ export const makeView =
           }
           const targetIndex = resolveActiveIndex(key)
           return Option.some(
-            toMessage(
+            toParentMessage(
               ActivatedItem({
                 index: targetIndex,
                 activationTrigger: 'Keyboard',
@@ -944,13 +944,15 @@ export const makeView =
       ...(isDisabled
         ? [AriaDisabled(true), DataAttribute('disabled', '')]
         : [
-            OnInput(value => toMessage(UpdatedInputValue({ value }))),
+            OnInput(value => toParentMessage(UpdatedInputValue({ value }))),
             OnKeyDownPreventDefault(handleInputKeyDown),
-            OnBlur(toMessage(ClosedByTab())),
+            OnBlur(toParentMessage(ClosedByTab())),
             ...(openOnFocus
               ? [
                   OnFocus(
-                    toMessage(Opened({ maybeActiveItemIndex: Option.none() })),
+                    toParentMessage(
+                      Opened({ maybeActiveItemIndex: Option.none() }),
+                    ),
                   ),
                 ]
               : []),
@@ -1035,7 +1037,7 @@ export const makeView =
           ...(isInteractive
             ? [
                 OnClick(
-                  toMessage(
+                  toParentMessage(
                     SelectedItem({
                       item: itemToValue(item, index),
                       displayText: itemToDisplayText(item, index),
@@ -1048,7 +1050,7 @@ export const makeView =
                       OnPointerMove((screenX, screenY, pointerType) =>
                         OptionExt.when(
                           pointerType !== 'touch',
-                          toMessage(
+                          toParentMessage(
                             MovedPointerOverItem({ index, screenX, screenY }),
                           ),
                         ),
@@ -1057,7 +1059,7 @@ export const makeView =
                 OnPointerLeave(pointerType =>
                   OptionExt.when(
                     pointerType !== 'touch',
-                    toMessage(DeactivatedItem()),
+                    toParentMessage(DeactivatedItem()),
                   ),
                 ),
               ]
@@ -1141,7 +1143,7 @@ export const makeView =
     const backdrop = keyed('div')(
       `${id}-backdrop`,
       [
-        ...(isLeaving ? [] : [OnClick(toMessage(Closed()))]),
+        ...(isLeaving ? [] : [OnClick(toParentMessage(Closed()))]),
         ...(backdropClassName ? [Class(backdropClassName)] : []),
         ...backdropAttributes,
       ],
@@ -1192,7 +1194,7 @@ export const makeView =
               Attribute('aria-haspopup', 'listbox'),
               ...(isDisabled
                 ? [AriaDisabled(true), DataAttribute('disabled', '')]
-                : [OnClick(toMessage(PressedToggleButton()))]),
+                : [OnClick(toParentMessage(PressedToggleButton()))]),
               OnInsert(preventBlurOnPointerDown),
               ...(buttonClassName ? [Class(buttonClassName)] : []),
               ...buttonAttributes,

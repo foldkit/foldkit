@@ -55,20 +55,22 @@ const resultItemId = (index: number): string => `search-result-${index}`
 const handleSearchInputKeyDown = (
   key: string,
   model: Model,
-  toMessage: ToMessage,
+  toParentMessage: ToMessage,
 ): Option.Option<ParentMessage> =>
   M.value(key).pipe(
     M.when('ArrowDown', () =>
-      Option.some(toMessage(PressedArrowKey({ direction: 'Down' }))),
+      Option.some(toParentMessage(PressedArrowKey({ direction: 'Down' }))),
     ),
     M.when('ArrowUp', () =>
-      Option.some(toMessage(PressedArrowKey({ direction: 'Up' }))),
+      Option.some(toParentMessage(PressedArrowKey({ direction: 'Up' }))),
     ),
     M.when('Escape', () =>
       String.isNonEmpty(model.query)
-        ? Option.some(toMessage(ClearedSearchQuery()))
+        ? Option.some(toParentMessage(ClearedSearchQuery()))
         : Option.some(
-            toMessage(GotSearchDialogMessage({ message: Ui.Dialog.Closed() })),
+            toParentMessage(
+              GotSearchDialogMessage({ message: Ui.Dialog.Closed() }),
+            ),
           ),
     ),
     M.when('Enter', () =>
@@ -78,7 +80,7 @@ const handleSearchInputKeyDown = (
             resultsFromState,
             Array.get(model.activeResultIndex),
             Option.map(result =>
-              toMessage(SelectedSearchResult({ url: result.url })),
+              toParentMessage(SelectedSearchResult({ url: result.url })),
             ),
           )
         : Option.none(),
@@ -86,7 +88,7 @@ const handleSearchInputKeyDown = (
     M.orElse(() => Option.none()),
   )
 
-const searchInputView = (model: Model, toMessage: ToMessage): Html => {
+const searchInputView = (model: Model, toParentMessage: ToMessage): Html => {
   const isListboxVisible =
     model.searchState._tag === 'Ok' || model.searchState._tag === 'Loading'
 
@@ -115,9 +117,9 @@ const searchInputView = (model: Model, toMessage: ToMessage): Html => {
         Class(
           'flex-1 bg-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none text-base',
         ),
-        OnInput(value => toMessage(UpdatedSearchQuery({ query: value }))),
+        OnInput(value => toParentMessage(UpdatedSearchQuery({ query: value }))),
         OnKeyDownPreventDefault(key =>
-          handleSearchInputKeyDown(key, model, toMessage),
+          handleSearchInputKeyDown(key, model, toParentMessage),
         ),
       ]),
     ],
@@ -128,7 +130,7 @@ const resultItemView = (
   result: typeof SearchResult.Type,
   index: number,
   isActive: boolean,
-  toMessage: ToMessage,
+  toParentMessage: ToMessage,
 ): Html =>
   a(
     [
@@ -144,7 +146,7 @@ const resultItemView = (
         ),
       ),
       DataAttribute('search-result-index', `${index}`),
-      OnClick(toMessage(SelectedSearchResult({ url: result.url }))),
+      OnClick(toParentMessage(SelectedSearchResult({ url: result.url }))),
     ],
     [
       div(
@@ -210,7 +212,7 @@ const noResultsView = (query: string): Html =>
 const resultListView = (
   results: ReadonlyArray<typeof SearchResult.Type>,
   activeResultIndex: number,
-  toMessage: ToMessage,
+  toParentMessage: ToMessage,
 ): Html =>
   Array.match(results, {
     onEmpty: () => empty,
@@ -223,12 +225,17 @@ const resultListView = (
           Class('max-h-[60dvh] overflow-y-auto'),
         ],
         Array.map(nonEmptyResults, (result, index) =>
-          resultItemView(result, index, index === activeResultIndex, toMessage),
+          resultItemView(
+            result,
+            index,
+            index === activeResultIndex,
+            toParentMessage,
+          ),
         ),
       ),
   })
 
-const resultsListView = (model: Model, toMessage: ToMessage): Html =>
+const resultsListView = (model: Model, toParentMessage: ToMessage): Html =>
   M.value(model.searchState).pipe(
     M.withReturnType<Html>(),
     M.tag('Idle', () => emptyPrompt),
@@ -236,14 +243,14 @@ const resultsListView = (model: Model, toMessage: ToMessage): Html =>
       Array.match(results, {
         onEmpty: () => searchingIndicator,
         onNonEmpty: () =>
-          resultListView(results, model.activeResultIndex, toMessage),
+          resultListView(results, model.activeResultIndex, toParentMessage),
       }),
     ),
     M.tag('Ok', ({ results }) =>
       Array.match(results, {
         onEmpty: () => noResultsView(model.query),
         onNonEmpty: () =>
-          resultListView(results, model.activeResultIndex, toMessage),
+          resultListView(results, model.activeResultIndex, toParentMessage),
       }),
     ),
     M.exhaustive,
@@ -259,10 +266,11 @@ const resultCountAnnouncement = (model: Model): Html => {
   )
 }
 
-export const view = (model: Model, toMessage: ToMessage): Html =>
+export const view = (model: Model, toParentMessage: ToMessage): Html =>
   Ui.Dialog.view({
     model: model.dialog,
-    toMessage: message => toMessage(GotSearchDialogMessage({ message })),
+    toParentMessage: message =>
+      toParentMessage(GotSearchDialogMessage({ message })),
     panelContent: div(
       [
         Class(
@@ -274,8 +282,8 @@ export const view = (model: Model, toMessage: ToMessage): Html =>
           [Id('search-dialog-title'), Class('sr-only')],
           ['Search documentation'],
         ),
-        searchInputView(model, toMessage),
-        resultsListView(model, toMessage),
+        searchInputView(model, toParentMessage),
+        resultsListView(model, toParentMessage),
         resultCountAnnouncement(model),
       ],
     ),

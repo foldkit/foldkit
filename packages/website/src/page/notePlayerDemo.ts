@@ -537,7 +537,7 @@ const durationButtonClass = (
 
 export const view = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   DemoView.demoViewShell(
     DemoView.codePanelView(
@@ -546,12 +546,12 @@ export const view = (
       model.highlightPhase,
       notePlayerDemoCodeHtml,
     ),
-    appPanel(model, toMessage),
+    appPanel(model, toParentMessage),
   )
 
 const appPanel = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
   const isPlaying = model.playbackState._tag === 'Playing'
   const isPaused = model.playbackState._tag === 'Paused'
@@ -569,9 +569,9 @@ const appPanel = (
             [Class('flex flex-col gap-3')],
             [
               noteSequenceView(model),
-              noteInputView(model, isInputLocked, toMessage),
-              durationSelectorView(model, isInputLocked, toMessage),
-              playbackControlView(model, canPlay, toMessage),
+              noteInputView(model, isInputLocked, toParentMessage),
+              durationSelectorView(model, isInputLocked, toParentMessage),
+              playbackControlView(model, canPlay, toParentMessage),
             ],
           ),
           DemoView.modelStateView([
@@ -593,12 +593,12 @@ const appPanel = (
 const noteInputView = (
   model: Model,
   isInputLocked: boolean,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   Ui.Input.view<ParentMessage>({
     id: 'note-input',
     value: model.noteInput.value,
-    onInput: value => toMessage(ChangedNoteInput({ value })),
+    onInput: value => toParentMessage(ChangedNoteInput({ value })),
     isDisabled: isInputLocked,
     isInvalid: model.noteInput._tag === 'Invalid',
     placeholder: 'CDEFGAB',
@@ -661,7 +661,7 @@ const noteDurations: ReadonlyArray<NoteDuration> = ['Short', 'Medium', 'Long']
 const durationSelectorView = (
   model: Model,
   isInputLocked: boolean,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
     [Class('flex flex-col gap-1.5')],
@@ -672,15 +672,15 @@ const durationSelectorView = (
       ),
       Ui.RadioGroup.view<ParentMessage, NoteDuration>({
         model: model.durationRadioGroup,
-        toMessage: radioGroupMessage =>
+        toParentMessage: radioGroupMessage =>
           radioGroupMessage._tag === 'SelectedOption'
-            ? toMessage(
+            ? toParentMessage(
                 SelectedNoteDuration({
                   duration: radioGroupMessage.value,
                   radioGroupMessage,
                 }),
               )
-            : toMessage(
+            : toParentMessage(
                 GotDurationRadioGroupMessage({ message: radioGroupMessage }),
               ),
         options: noteDurations,
@@ -706,7 +706,7 @@ const durationSelectorView = (
 const playbackControlView = (
   model: Model,
   canPlay: boolean,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
   const isPlaying = model.playbackState._tag === 'Playing'
   const isActive = isPlaying || model.playbackState._tag === 'Paused'
@@ -716,7 +716,7 @@ const playbackControlView = (
     [
       isPlaying
         ? Ui.Button.view<ParentMessage>({
-            onClick: toMessage(ClickedPause()),
+            onClick: toParentMessage(ClickedPause()),
             toView: attributes =>
               button(
                 [
@@ -730,7 +730,7 @@ const playbackControlView = (
               ),
           })
         : Ui.Button.view<ParentMessage>({
-            onClick: toMessage(ClickedPlay()),
+            onClick: toParentMessage(ClickedPlay()),
             isDisabled: !canPlay,
             toView: attributes =>
               button(
@@ -753,7 +753,7 @@ const playbackControlView = (
               ),
           }),
       Ui.Button.view<ParentMessage>({
-        onClick: toMessage(ClickedStop()),
+        onClick: toParentMessage(ClickedStop()),
         isDisabled: !isActive,
         toView: attributes =>
           button(

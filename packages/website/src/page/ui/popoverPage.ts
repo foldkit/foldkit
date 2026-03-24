@@ -22,7 +22,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 
 export const view = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -32,7 +32,7 @@ export const view = (
       para(
         'A floating panel that attaches to a trigger button with proper focus management. Unlike Menu (which has role="menu" and item navigation), Popover uses the disclosure pattern — the panel holds arbitrary content with natural Tab navigation.',
       ),
-      ...Popover.basicDemo(model.popoverBasicDemo, toMessage),
-      ...Popover.animatedDemo(model.popoverAnimatedDemo, toMessage),
+      ...Popover.basicDemo(model.popoverBasicDemo, toParentMessage),
+      ...Popover.animatedDemo(model.popoverAnimatedDemo, toParentMessage),
     ],
   )

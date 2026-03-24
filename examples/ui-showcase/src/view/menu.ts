@@ -101,7 +101,7 @@ const menuViewConfig = (itemsClassNameValue: string) => ({
 
 export const view = (
   model: UiModel,
-  toMessage: (message: UiMessage) => ParentMessage,
+  toParentMessage: (message: UiMessage) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -114,8 +114,8 @@ export const view = (
         [
           Ui.Menu.view({
             model: model.menuBasicDemo,
-            toMessage: message =>
-              toMessage(GotMenuBasicDemoMessage({ message })),
+            toParentMessage: message =>
+              toParentMessage(GotMenuBasicDemoMessage({ message })),
             ...menuViewConfig(basicItemsClassName),
           }),
         ],
@@ -130,8 +130,8 @@ export const view = (
         [
           Ui.Menu.view({
             model: model.menuAnimatedDemo,
-            toMessage: message =>
-              toMessage(GotMenuAnimatedDemoMessage({ message })),
+            toParentMessage: message =>
+              toParentMessage(GotMenuAnimatedDemoMessage({ message })),
             ...menuViewConfig(animatedItemsClassName),
           }),
         ],

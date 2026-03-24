@@ -11,7 +11,7 @@ const buttonClassName =
 
 export const view = (
   model: UiModel,
-  toMessage: (message: UiMessage) => ParentMessage,
+  toParentMessage: (message: UiMessage) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -23,7 +23,7 @@ export const view = (
         [Class('flex flex-col items-start gap-2')],
         [
           Ui.Button.view({
-            onClick: toMessage(ClickedButtonDemo()),
+            onClick: toParentMessage(ClickedButtonDemo()),
             toView: attributes =>
               button(
                 [...attributes.button, Class(buttonClassName)],

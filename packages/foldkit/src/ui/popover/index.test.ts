@@ -626,7 +626,7 @@ describe('Popover', () => {
 
     const baseViewConfig = (model: Model): ViewConfig<TestMessage> => ({
       model,
-      toMessage: message => message._tag,
+      toParentMessage: message => message._tag,
       anchor: { placement: 'bottom-start' },
       buttonContent: Effect.succeed(null),
       panelContent: Effect.succeed(null),

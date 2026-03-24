@@ -22,7 +22,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 
 export const view = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -32,7 +32,7 @@ export const view = (
       para(
         'A structural wrapper around the native fieldset element that groups related form controls with a legend and description, providing consistent ARIA linking and a disabled state that propagates to all child form elements.',
       ),
-      ...Fieldset.basicDemo(model, toMessage),
-      ...Fieldset.disabledDemo(model, toMessage),
+      ...Fieldset.basicDemo(model, toParentMessage),
+      ...Fieldset.disabledDemo(model, toParentMessage),
     ],
   )

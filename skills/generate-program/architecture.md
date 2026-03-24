@@ -229,7 +229,7 @@ GotChildMessage: ({ message }) => {
 
 ### View Delegation
 
-Child views accept a `toMessage` function to wrap their messages for the parent:
+Child views accept a `toParentMessage` function to wrap their messages for the parent:
 
 ```ts
 // Parent view
@@ -238,12 +238,12 @@ Child.view(model.child, message => GotChildMessage({ message }))
 // Child view signature
 const view = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
   const { div, button } = html<ParentMessage>()
   return div(
     [],
-    [button([OnClick(() => toMessage(ClickedSubmit()))], ['Submit'])],
+    [button([OnClick(() => toParentMessage(ClickedSubmit()))], ['Submit'])],
   )
 }
 ```

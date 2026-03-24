@@ -102,7 +102,7 @@ const filterCities = (inputValue: string): ReadonlyArray<City> =>
 
 export const comboboxDemo = (
   comboboxModel: Ui.Combobox.Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ) => {
   const filteredCities = filterCities(comboboxModel.inputValue)
 
@@ -113,7 +113,8 @@ export const comboboxDemo = (
       [
         Ui.Combobox.view({
           model: comboboxModel,
-          toMessage: message => toMessage(GotComboboxDemoMessage({ message })),
+          toParentMessage: message =>
+            toParentMessage(GotComboboxDemoMessage({ message })),
           items: filteredCities,
           itemToConfig: (city, context) => ({
             className: itemClassName,
@@ -151,7 +152,7 @@ export const comboboxDemo = (
 
 export const nullableDemo = (
   comboboxNullableModel: Ui.Combobox.Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ) => {
   const filteredCities = filterCities(comboboxNullableModel.inputValue)
 
@@ -162,8 +163,8 @@ export const nullableDemo = (
       [
         Ui.Combobox.view({
           model: comboboxNullableModel,
-          toMessage: message =>
-            toMessage(GotComboboxNullableDemoMessage({ message })),
+          toParentMessage: message =>
+            toParentMessage(GotComboboxNullableDemoMessage({ message })),
           items: filteredCities,
           itemToConfig: (city, context) => ({
             className: itemClassName,
@@ -201,7 +202,7 @@ export const nullableDemo = (
 
 export const selectOnFocusDemo = (
   comboboxSelectOnFocusModel: Ui.Combobox.Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ) => {
   const filteredCities = filterCities(comboboxSelectOnFocusModel.inputValue)
 
@@ -217,8 +218,8 @@ export const selectOnFocusDemo = (
       [
         Ui.Combobox.view({
           model: comboboxSelectOnFocusModel,
-          toMessage: message =>
-            toMessage(GotComboboxSelectOnFocusDemoMessage({ message })),
+          toParentMessage: message =>
+            toParentMessage(GotComboboxSelectOnFocusDemoMessage({ message })),
           items: filteredCities,
           itemToConfig: (city, context) => ({
             className: itemClassName,
@@ -261,7 +262,7 @@ const emptyTagClassName = 'text-sm py-0.5 text-gray-400 dark:text-gray-500'
 
 export const multiDemo = (
   comboboxMultiModel: Ui.Combobox.Multi.Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ) => {
   const filteredCities = filterCities(comboboxMultiModel.inputValue)
 
@@ -280,8 +281,8 @@ export const multiDemo = (
         ),
         Ui.Combobox.Multi.view({
           model: comboboxMultiModel,
-          toMessage: message =>
-            toMessage(GotComboboxMultiDemoMessage({ message })),
+          toParentMessage: message =>
+            toParentMessage(GotComboboxMultiDemoMessage({ message })),
           items: filteredCities,
           itemToConfig: (city, context) => ({
             className: itemClassName,

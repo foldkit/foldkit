@@ -35,7 +35,7 @@ const descriptionClassName = 'text-sm text-gray-500 dark:text-gray-400'
 
 export const basicDemo = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ) => [
   heading('h3', basicHeader.id, basicHeader.text),
   div(
@@ -44,7 +44,7 @@ export const basicDemo = (
       Ui.Textarea.view({
         id: 'textarea-basic-demo',
         value: model.textareaDemoValue,
-        onInput: value => toMessage(UpdatedTextareaDemoValue({ value })),
+        onInput: value => toParentMessage(UpdatedTextareaDemoValue({ value })),
         placeholder: 'Tell us about yourself...',
         rows: 4,
         toView: attributes =>
@@ -66,7 +66,7 @@ export const basicDemo = (
 
 export const disabledDemo = (
   _model: Model,
-  _toMessage: (message: Message) => ParentMessage,
+  _toParentMessage: (message: Message) => ParentMessage,
 ) => [
   heading('h3', disabledHeader.id, disabledHeader.text),
   Ui.Textarea.view<ParentMessage>({

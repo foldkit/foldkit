@@ -22,7 +22,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 
 export const view = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -32,7 +32,10 @@ export const view = (
       para(
         'A set of radio options with accessible labeling, roving tabindex keyboard navigation, and per-option label and description linking. Arrow keys simultaneously move focus and select.',
       ),
-      ...RadioGroup.verticalDemo(model.verticalRadioGroupDemo, toMessage),
-      ...RadioGroup.horizontalDemo(model.horizontalRadioGroupDemo, toMessage),
+      ...RadioGroup.verticalDemo(model.verticalRadioGroupDemo, toParentMessage),
+      ...RadioGroup.horizontalDemo(
+        model.horizontalRadioGroupDemo,
+        toParentMessage,
+      ),
     ],
   )

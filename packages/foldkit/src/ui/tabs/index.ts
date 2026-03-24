@@ -149,7 +149,7 @@ export type TabConfig<Message = unknown> = Readonly<{
 /** Configuration for rendering a tab group with `view`. */
 export type ViewConfig<Message, Tab extends string> = Readonly<{
   model: Model
-  toMessage: (message: TabSelected | TabFocused) => Message
+  toParentMessage: (message: TabSelected | TabFocused) => Message
   tabs: ReadonlyArray<Tab>
   tabToConfig: (tab: Tab, context: { isActive: boolean }) => TabConfig<Message>
   isTabDisabled?: (tab: Tab, index: number) => boolean
@@ -198,7 +198,7 @@ export const view = <Message, Tab extends string>(
   const {
     model,
     model: { id, activationMode, focusedIndex },
-    toMessage,
+    toParentMessage,
     tabs,
     tabToConfig,
     isTabDisabled,
@@ -245,10 +245,12 @@ export const view = <Message, Tab extends string>(
   const handleAutomaticKeyDown = (key: string): Option.Option<Message> =>
     M.value(key).pipe(
       M.whenOr(nextKey, previousKey, 'Home', 'End', 'PageUp', 'PageDown', () =>
-        Option.some(toMessage(TabSelected({ index: resolveKeyIndex(key) }))),
+        Option.some(
+          toParentMessage(TabSelected({ index: resolveKeyIndex(key) })),
+        ),
       ),
       M.whenOr('Enter', ' ', () =>
-        Option.some(toMessage(TabSelected({ index: focusedIndex }))),
+        Option.some(toParentMessage(TabSelected({ index: focusedIndex }))),
       ),
       M.orElse(() => Option.none()),
     )
@@ -256,10 +258,12 @@ export const view = <Message, Tab extends string>(
   const handleManualKeyDown = (key: string): Option.Option<Message> =>
     M.value(key).pipe(
       M.whenOr(nextKey, previousKey, 'Home', 'End', 'PageUp', 'PageDown', () =>
-        Option.some(toMessage(TabFocused({ index: resolveKeyIndex(key) }))),
+        Option.some(
+          toParentMessage(TabFocused({ index: resolveKeyIndex(key) })),
+        ),
       ),
       M.whenOr('Enter', ' ', () =>
-        Option.some(toMessage(TabSelected({ index: focusedIndex }))),
+        Option.some(toParentMessage(TabSelected({ index: focusedIndex }))),
       ),
       M.orElse(() => Option.none()),
     )
@@ -289,7 +293,7 @@ export const view = <Message, Tab extends string>(
         ...(isActive ? [DataAttribute('selected', '')] : []),
         ...(isTabDisabledAtIndex
           ? [Disabled(true), AriaDisabled(true), DataAttribute('disabled', '')]
-          : [OnClick(toMessage(TabSelected({ index })))]),
+          : [OnClick(toParentMessage(TabSelected({ index })))]),
         OnKeyDownPreventDefault(handleKeyDown),
         ...(tabConfig.buttonClassName
           ? [Class(tabConfig.buttonClassName)]
@@ -373,26 +377,26 @@ export const view = <Message, Tab extends string>(
 }
 
 /** Creates a memoized tabs view. Static config is captured in a closure;
- *  only `model` and `toMessage` are compared per render via `createLazy`. */
+ *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
 export const lazy = <Message, Tab extends string>(
-  staticConfig: Omit<ViewConfig<Message, Tab>, 'model' | 'toMessage'>,
+  staticConfig: Omit<ViewConfig<Message, Tab>, 'model' | 'toParentMessage'>,
 ): ((
   model: Model,
-  toMessage: ViewConfig<Message, Tab>['toMessage'],
+  toParentMessage: ViewConfig<Message, Tab>['toParentMessage'],
 ) => Html) => {
   const lazyView = createLazy()
 
-  return (model, toMessage) =>
+  return (model, toParentMessage) =>
     lazyView(
       (
         currentModel: Model,
-        currentToMessage: ViewConfig<Message, Tab>['toMessage'],
+        currentToMessage: ViewConfig<Message, Tab>['toParentMessage'],
       ) =>
         view({
           ...staticConfig,
           model: currentModel,
-          toMessage: currentToMessage,
+          toParentMessage: currentToMessage,
         }),
-      [model, toMessage],
+      [model, toParentMessage],
     )
 }

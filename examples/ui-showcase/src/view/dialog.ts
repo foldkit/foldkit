@@ -76,13 +76,13 @@ const dialogPanel = (
 
 export const view = (
   model: UiModel,
-  toMessage: (message: UiMessage) => ParentMessage,
+  toParentMessage: (message: UiMessage) => ParentMessage,
 ): Html => {
   const toDialogMessage = (message: Ui.Dialog.Message) =>
-    toMessage(GotDialogDemoMessage({ message }))
+    toParentMessage(GotDialogDemoMessage({ message }))
 
   const toAnimatedDialogMessage = (message: Ui.Dialog.Message) =>
-    toMessage(GotDialogAnimatedDemoMessage({ message }))
+    toParentMessage(GotDialogAnimatedDemoMessage({ message }))
 
   return div(
     [],
@@ -104,7 +104,7 @@ export const view = (
       ),
       Ui.Dialog.view({
         model: model.dialogDemo,
-        toMessage: toDialogMessage,
+        toParentMessage: toDialogMessage,
         panelContent: dialogPanel(model.dialogDemo, toDialogMessage),
         panelAttributes: [Class(panelClassName)],
         backdropAttributes: [Class(backdropClassName)],
@@ -129,7 +129,7 @@ export const view = (
       ),
       Ui.Dialog.view({
         model: model.dialogAnimatedDemo,
-        toMessage: toAnimatedDialogMessage,
+        toParentMessage: toAnimatedDialogMessage,
         panelContent: dialogPanel(
           model.dialogAnimatedDemo,
           toAnimatedDialogMessage,

@@ -370,7 +370,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
 /** Configuration for rendering a popover with `view`. */
 export type ViewConfig<Message> = Readonly<{
   model: Model
-  toMessage: (
+  toParentMessage: (
     message:
       | Opened
       | Closed
@@ -418,7 +418,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
 
   const {
     model: { id, isOpen, transitionState, maybeLastButtonPointerType },
-    toMessage,
+    toParentMessage,
     anchor,
     buttonContent,
     buttonClassName,
@@ -463,7 +463,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
   const handleButtonKeyDown = (key: string): Option.Option<Message> =>
     M.value(key).pipe(
       M.whenOr('Enter', ' ', 'ArrowDown', () =>
-        Option.some(toMessage(isOpen ? Closed() : Opened())),
+        Option.some(toParentMessage(isOpen ? Closed() : Opened())),
       ),
       M.orElse(() => Option.none()),
     )
@@ -473,7 +473,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     button: number,
   ): Option.Option<Message> =>
     Option.some(
-      toMessage(
+      toParentMessage(
         PressedPointerOnButton({
           pointerType,
           button,
@@ -488,20 +488,20 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     )
 
     if (isMouse) {
-      return toMessage(IgnoredMouseClick())
+      return toParentMessage(IgnoredMouseClick())
     } else if (isOpen) {
-      return toMessage(Closed())
+      return toParentMessage(Closed())
     } else {
-      return toMessage(Opened())
+      return toParentMessage(Opened())
     }
   }
 
   const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
-    OptionExt.when(key === ' ', toMessage(SuppressedSpaceScroll()))
+    OptionExt.when(key === ' ', toParentMessage(SuppressedSpaceScroll()))
 
   const handlePanelKeyDown = (key: string): Option.Option<Message> =>
     M.value(key).pipe(
-      M.when('Escape', () => Option.some(toMessage(Closed()))),
+      M.when('Escape', () => Option.some(toParentMessage(Closed()))),
       M.orElse(() => Option.none()),
     )
 
@@ -544,7 +544,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
       ? []
       : [
           OnKeyDownPreventDefault(handlePanelKeyDown),
-          OnBlur(toMessage(ClosedByTab())),
+          OnBlur(toParentMessage(ClosedByTab())),
         ]),
     ...(panelClassName ? [Class(panelClassName)] : []),
     ...panelAttributes,
@@ -553,7 +553,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
   const backdrop = keyed('div')(
     `${id}-backdrop`,
     [
-      ...(isLeaving ? [] : [OnClick(toMessage(Closed()))]),
+      ...(isLeaving ? [] : [OnClick(toParentMessage(Closed()))]),
       ...(backdropClassName ? [Class(backdropClassName)] : []),
       ...backdropAttributes,
     ],
@@ -580,23 +580,26 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
 }
 
 /** Creates a memoized popover view. Static config is captured in a closure;
- *  only `model` and `toMessage` are compared per render via `createLazy`. */
+ *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
 export const lazy = <Message>(
-  staticConfig: Omit<ViewConfig<Message>, 'model' | 'toMessage'>,
-): ((model: Model, toMessage: ViewConfig<Message>['toMessage']) => Html) => {
+  staticConfig: Omit<ViewConfig<Message>, 'model' | 'toParentMessage'>,
+): ((
+  model: Model,
+  toParentMessage: ViewConfig<Message>['toParentMessage'],
+) => Html) => {
   const lazyView = createLazy()
 
-  return (model, toMessage) =>
+  return (model, toParentMessage) =>
     lazyView(
       (
         currentModel: Model,
-        currentToMessage: ViewConfig<Message>['toMessage'],
+        currentToMessage: ViewConfig<Message>['toParentMessage'],
       ) =>
         view({
           ...staticConfig,
           model: currentModel,
-          toMessage: currentToMessage,
+          toParentMessage: currentToMessage,
         }),
-      [model, toMessage],
+      [model, toParentMessage],
     )
 }

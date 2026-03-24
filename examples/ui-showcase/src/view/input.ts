@@ -15,7 +15,7 @@ const descriptionClassName = 'text-sm text-gray-500'
 
 export const view = (
   model: UiModel,
-  toMessage: (message: UiMessage) => ParentMessage,
+  toParentMessage: (message: UiMessage) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -29,7 +29,7 @@ export const view = (
           Ui.Input.view({
             id: 'input-basic-demo',
             value: model.inputDemoValue,
-            onInput: value => toMessage(UpdatedInputDemoValue({ value })),
+            onInput: value => toParentMessage(UpdatedInputDemoValue({ value })),
             placeholder: 'Enter your full name',
             toView: attributes =>
               div(

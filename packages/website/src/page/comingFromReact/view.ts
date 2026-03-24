@@ -140,14 +140,14 @@ const faqItem = (
   question: string,
   answerContent: ReadonlyArray<Html>,
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   Option.match(Record.get(model, id), {
     onSome: disclosure =>
       Ui.Disclosure.view({
         model: disclosure,
-        toMessage: message =>
-          toMessage(GotFaqDisclosureMessage({ id, message })),
+        toParentMessage: message =>
+          toParentMessage(GotFaqDisclosureMessage({ id, message })),
         buttonAttributes: [Class(faqButtonClassName)],
         buttonContent: div(
           [Class('flex items-center justify-between w-full')],
@@ -164,7 +164,7 @@ const faqItem = (
 export const view = (
   copiedSnippets: CopiedSnippets,
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -327,7 +327,7 @@ export const view = (
           ),
         ],
         model,
-        toMessage,
+        toParentMessage,
       ),
       faqItem(
         faqMultipleInstances,
@@ -361,7 +361,7 @@ export const view = (
           ),
         ],
         model,
-        toMessage,
+        toParentMessage,
       ),
       faqItem(
         faqRouting,
@@ -374,7 +374,7 @@ export const view = (
           ),
         ],
         model,
-        toMessage,
+        toParentMessage,
       ),
       faqItem(
         faqForms,
@@ -397,7 +397,7 @@ export const view = (
           ),
         ],
         model,
-        toMessage,
+        toParentMessage,
       ),
       faqItem(
         faqUiComponents,
@@ -409,7 +409,7 @@ export const view = (
           ),
         ],
         model,
-        toMessage,
+        toParentMessage,
       ),
       faqItem(
         faqDataFetching,
@@ -424,7 +424,7 @@ export const view = (
           ),
         ],
         model,
-        toMessage,
+        toParentMessage,
       ),
       faqItem(
         faqTesting,
@@ -442,7 +442,7 @@ export const view = (
           ),
         ],
         model,
-        toMessage,
+        toParentMessage,
       ),
       faqItem(
         faqWhereToStart,
@@ -457,7 +457,7 @@ export const view = (
           ),
         ],
         model,
-        toMessage,
+        toParentMessage,
       ),
     ],
   )

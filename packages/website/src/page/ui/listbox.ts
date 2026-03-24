@@ -113,7 +113,7 @@ const LISTBOX_ANCHOR: AnchorConfig = {
 
 export const basicDemo = (
   listboxModel: Ui.Listbox.Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ) => {
   const buttonLabel = Option.getOrElse(
     listboxModel.maybeSelectedItem,
@@ -127,7 +127,8 @@ export const basicDemo = (
       [
         Ui.Listbox.view({
           model: listboxModel,
-          toMessage: message => toMessage(GotListboxDemoMessage({ message })),
+          toParentMessage: message =>
+            toParentMessage(GotListboxDemoMessage({ message })),
           anchor: LISTBOX_ANCHOR,
           items: LISTBOX_ITEMS,
           itemToConfig: item => ({
@@ -158,7 +159,7 @@ export const basicDemo = (
 
 export const multiSelectDemo = (
   listboxModel: Ui.Listbox.Multi.Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ) => {
   const { selectedItems } = listboxModel
   const buttonLabel = Array.match(selectedItems, {
@@ -174,8 +175,8 @@ export const multiSelectDemo = (
       [
         Ui.Listbox.Multi.view({
           model: listboxModel,
-          toMessage: message =>
-            toMessage(GotListboxMultiDemoMessage({ message })),
+          toParentMessage: message =>
+            toParentMessage(GotListboxMultiDemoMessage({ message })),
           anchor: LISTBOX_ANCHOR,
           items: LISTBOX_ITEMS,
           itemToConfig: item => ({
@@ -206,7 +207,7 @@ export const multiSelectDemo = (
 
 export const groupedDemo = (
   listboxModel: Ui.Listbox.Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ) => {
   const buttonLabel = Option.getOrElse(
     listboxModel.maybeSelectedItem,
@@ -220,8 +221,8 @@ export const groupedDemo = (
       [
         Ui.Listbox.view({
           model: listboxModel,
-          toMessage: message =>
-            toMessage(GotListboxGroupedDemoMessage({ message })),
+          toParentMessage: message =>
+            toParentMessage(GotListboxGroupedDemoMessage({ message })),
           anchor: LISTBOX_ANCHOR,
           items: GROUPED_CHARACTERS,
           itemToValue: characterName,

@@ -70,13 +70,13 @@ const filterCities = (inputValue: string): ReadonlyArray<City> =>
 
 const comboboxConfig = (
   model: Ui.Combobox.Model,
-  toMessage: (message: Ui.Combobox.Message) => ParentMessage,
+  toParentMessage: (message: Ui.Combobox.Message) => ParentMessage,
 ) => {
   const filteredCities = filterCities(model.inputValue)
 
   return {
     model,
-    toMessage,
+    toParentMessage,
     items: filteredCities,
     itemToConfig: (city: City, context: { isSelected: boolean }) => ({
       className: itemClassName,
@@ -108,7 +108,7 @@ const comboboxConfig = (
 
 export const view = (
   model: UiModel,
-  toMessage: (message: UiMessage) => ParentMessage,
+  toParentMessage: (message: UiMessage) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -124,7 +124,7 @@ export const view = (
         [
           Ui.Combobox.view(
             comboboxConfig(model.comboboxDemo, message =>
-              toMessage(GotComboboxDemoMessage({ message })),
+              toParentMessage(GotComboboxDemoMessage({ message })),
             ),
           ),
         ],
@@ -139,7 +139,7 @@ export const view = (
         [
           Ui.Combobox.view(
             comboboxConfig(model.comboboxNullableDemo, message =>
-              toMessage(GotComboboxNullableDemoMessage({ message })),
+              toParentMessage(GotComboboxNullableDemoMessage({ message })),
             ),
           ),
         ],
@@ -154,7 +154,7 @@ export const view = (
         [
           Ui.Combobox.view(
             comboboxConfig(model.comboboxSelectOnFocusDemo, message =>
-              toMessage(GotComboboxSelectOnFocusDemoMessage({ message })),
+              toParentMessage(GotComboboxSelectOnFocusDemoMessage({ message })),
             ),
           ),
         ],
@@ -179,8 +179,8 @@ export const view = (
           ),
           Ui.Combobox.Multi.view({
             model: model.comboboxMultiDemo,
-            toMessage: message =>
-              toMessage(GotComboboxMultiDemoMessage({ message })),
+            toParentMessage: message =>
+              toParentMessage(GotComboboxMultiDemoMessage({ message })),
             items: filterCities(model.comboboxMultiDemo.inputValue),
             itemToConfig: (city: City, context: { isSelected: boolean }) => ({
               className: itemClassName,

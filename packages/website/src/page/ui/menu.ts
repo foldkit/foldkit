@@ -127,7 +127,7 @@ const menuViewConfig = (itemsClassName: string) => ({
 
 export const basicDemo = (
   menuModel: Ui.Menu.Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ) => [
   heading('h3', basicHeader.id, basicHeader.text),
   div(
@@ -135,7 +135,8 @@ export const basicDemo = (
     [
       Ui.Menu.view({
         model: menuModel,
-        toMessage: message => toMessage(GotMenuBasicDemoMessage({ message })),
+        toParentMessage: message =>
+          toParentMessage(GotMenuBasicDemoMessage({ message })),
         ...menuViewConfig(basicItemsClassName),
       }),
     ],
@@ -144,7 +145,7 @@ export const basicDemo = (
 
 export const animatedDemo = (
   menuModel: Ui.Menu.Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ) => [
   heading('h3', animatedHeader.id, animatedHeader.text),
   div(
@@ -152,8 +153,8 @@ export const animatedDemo = (
     [
       Ui.Menu.view({
         model: menuModel,
-        toMessage: message =>
-          toMessage(GotMenuAnimatedDemoMessage({ message })),
+        toParentMessage: message =>
+          toParentMessage(GotMenuAnimatedDemoMessage({ message })),
         ...menuViewConfig(animatedItemsClassName),
       }),
     ],

@@ -79,7 +79,7 @@ const LISTBOX_ANCHOR = {
 
 export const view = (
   model: UiModel,
-  toMessage: (message: UiMessage) => ParentMessage,
+  toParentMessage: (message: UiMessage) => ParentMessage,
 ): Html => {
   const singleButtonLabel = Option.getOrElse(
     model.listboxDemo.maybeSelectedItem,
@@ -111,7 +111,8 @@ export const view = (
         [
           Ui.Listbox.view({
             model: model.listboxDemo,
-            toMessage: message => toMessage(GotListboxDemoMessage({ message })),
+            toParentMessage: message =>
+              toParentMessage(GotListboxDemoMessage({ message })),
             anchor: LISTBOX_ANCHOR,
             items: LISTBOX_ITEMS,
             itemToConfig: item => ({
@@ -147,8 +148,8 @@ export const view = (
         [
           Ui.Listbox.Multi.view({
             model: model.listboxMultiDemo,
-            toMessage: message =>
-              toMessage(GotListboxMultiDemoMessage({ message })),
+            toParentMessage: message =>
+              toParentMessage(GotListboxMultiDemoMessage({ message })),
             anchor: LISTBOX_ANCHOR,
             items: LISTBOX_ITEMS,
             itemToConfig: item => ({
@@ -181,8 +182,8 @@ export const view = (
         [
           Ui.Listbox.view({
             model: model.listboxGroupedDemo,
-            toMessage: message =>
-              toMessage(GotListboxGroupedDemoMessage({ message })),
+            toParentMessage: message =>
+              toParentMessage(GotListboxGroupedDemoMessage({ message })),
             anchor: LISTBOX_ANCHOR,
             items: GROUPED_CHARACTERS,
             itemToValue: characterName,

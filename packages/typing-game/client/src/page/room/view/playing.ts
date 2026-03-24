@@ -25,7 +25,7 @@ const typing = (
   gameText: string,
   userGameText: string,
   maybeWrongCharIndex: Option.Option<number>,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
     [Class('relative')],
@@ -35,7 +35,7 @@ const typing = (
           Id(USER_GAME_TEXT_INPUT_ID),
           Value(userGameText),
           Class('absolute inset-0 opacity-0 z-10 resize-none'),
-          OnInput(value => toMessage(ChangedUserText({ value }))),
+          OnInput(value => toParentMessage(ChangedUserText({ value }))),
           Spellcheck(false),
           Autocorrect('off'),
           Autocapitalize('none'),
@@ -98,7 +98,7 @@ export const playing = (
   maybeGameText: Option.Option<string>,
   userGameText: string,
   maybeWrongCharIndex: Option.Option<number>,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
     [Class('space-y-6')],
@@ -112,7 +112,7 @@ export const playing = (
       Option.match(maybeGameText, {
         onNone: () => empty,
         onSome: gameText =>
-          typing(gameText, userGameText, maybeWrongCharIndex, toMessage),
+          typing(gameText, userGameText, maybeWrongCharIndex, toParentMessage),
       }),
     ],
   )

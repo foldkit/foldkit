@@ -261,7 +261,7 @@ const fieldView = (
 
 export const view = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
   const canSubmit = isFormValid(model) && !model.isSubmitting
 
@@ -285,13 +285,13 @@ export const view = (
             ],
           ),
           form(
-            [Class('space-y-6'), OnSubmit(toMessage(ClickedSubmit()))],
+            [Class('space-y-6'), OnSubmit(toParentMessage(ClickedSubmit()))],
             [
               fieldView(
                 'email',
                 'Email',
                 model.email,
-                value => toMessage(ChangedEmail({ value })),
+                value => toParentMessage(ChangedEmail({ value })),
                 'email',
                 'you@example.com',
               ),
@@ -299,7 +299,7 @@ export const view = (
                 'password',
                 'Password',
                 model.password,
-                value => toMessage(ChangedPassword({ value })),
+                value => toParentMessage(ChangedPassword({ value })),
                 'password',
                 'Enter your password',
               ),

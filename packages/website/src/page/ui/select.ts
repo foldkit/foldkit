@@ -41,7 +41,7 @@ const descriptionClassName = 'text-sm text-gray-500 dark:text-gray-400'
 
 export const basicDemo = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ) => [
   heading('h3', basicHeader.id, basicHeader.text),
   div(
@@ -50,7 +50,7 @@ export const basicDemo = (
       Ui.Select.view({
         id: 'select-basic-demo',
         value: model.selectDemoValue,
-        onChange: value => toMessage(UpdatedSelectDemoValue({ value })),
+        onChange: value => toParentMessage(UpdatedSelectDemoValue({ value })),
         toView: attributes =>
           div(
             [Class('flex flex-col gap-1.5 w-full')],
@@ -87,7 +87,7 @@ export const basicDemo = (
 
 export const disabledDemo = (
   _model: Model,
-  _toMessage: (message: Message) => ParentMessage,
+  _toParentMessage: (message: Message) => ParentMessage,
 ) => [
   heading('h3', disabledHeader.id, disabledHeader.text),
   Ui.Select.view<ParentMessage>({

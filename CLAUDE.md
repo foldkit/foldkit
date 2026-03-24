@@ -119,7 +119,7 @@ Command definitions live where they're produced — colocated with the update fu
 - Capitalize namespace imports: `import * as Command from './command'` not `import * as command from './command'`.
 - Extract magic numbers to named constants. No raw numeric literals in logic — e.g. `FINAL_PHOTO_INDEX` not `15`.
 - Never use `T[]` syntax. Always use `Array<T>` or `ReadonlyArray<T>`.
-- For inline object types, use `Readonly<{...}>` instead of writing `readonly` on each property. e.g. `Readonly<{ model: Foo; toMessage: (m: Bar) => Baz }>` not `{ readonly model: Foo; readonly toMessage: ... }`.
+- For inline object types, use `Readonly<{...}>` instead of writing `readonly` on each property. e.g. `Readonly<{ model: Foo; toParentMessage: (m: Bar) => Baz }>` not `{ readonly model: Foo; readonly toParentMessage: ... }`.
 - Don't add type annotations to evo callbacks when the type can be inferred. `gameState: () => 'Loading'` not `gameState: (): GameState => 'Loading'`.
 
 ### Application Architecture

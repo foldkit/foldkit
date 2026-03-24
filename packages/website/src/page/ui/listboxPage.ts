@@ -23,7 +23,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 
 export const view = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -33,8 +33,8 @@ export const view = (
       para(
         'A custom select dropdown with persistent selection, keyboard navigation, and typeahead search. Unlike Menu (which is fire-and-forget), Listbox tracks the selected value and reflects it in the button.',
       ),
-      ...Listbox.basicDemo(model.listboxDemo, toMessage),
-      ...Listbox.multiSelectDemo(model.listboxMultiDemo, toMessage),
-      ...Listbox.groupedDemo(model.listboxGroupedDemo, toMessage),
+      ...Listbox.basicDemo(model.listboxDemo, toParentMessage),
+      ...Listbox.multiSelectDemo(model.listboxMultiDemo, toParentMessage),
+      ...Listbox.groupedDemo(model.listboxGroupedDemo, toParentMessage),
     ],
   )

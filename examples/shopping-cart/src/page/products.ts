@@ -94,7 +94,7 @@ export const view = (
   model: Model,
   cart: Cart.Cart,
   cartRouter: Route.Router<CartRoute>,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
   onAddToCart: (item: Item.Item) => ParentMessage,
   onQuantityChange: (itemId: string, quantity: number) => ParentMessage,
 ): Html => {
@@ -121,7 +121,7 @@ export const view = (
                   'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
                 ),
                 OnInput((value: string) =>
-                  toMessage(ChangedSearchInput({ value })),
+                  toParentMessage(ChangedSearchInput({ value })),
                 ),
               ]),
             ],

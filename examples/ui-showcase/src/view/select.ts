@@ -21,7 +21,7 @@ const descriptionClassName = 'text-sm text-gray-500'
 
 export const view = (
   model: UiModel,
-  toMessage: (message: UiMessage) => ParentMessage,
+  toParentMessage: (message: UiMessage) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -35,7 +35,8 @@ export const view = (
           Ui.Select.view({
             id: 'select-basic-demo',
             value: model.selectDemoValue,
-            onChange: value => toMessage(UpdatedSelectDemoValue({ value })),
+            onChange: value =>
+              toParentMessage(UpdatedSelectDemoValue({ value })),
             toView: attributes =>
               div(
                 [Class('flex flex-col gap-1.5 w-full')],

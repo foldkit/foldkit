@@ -20,7 +20,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 
 export const view = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -30,6 +30,6 @@ export const view = (
       para(
         'A simple, accessible foundation for building custom UIs that show and hide content, like toggleable FAQ sections.',
       ),
-      ...Disclosure.disclosureDemo(model.disclosureDemo, toMessage),
+      ...Disclosure.disclosureDemo(model.disclosureDemo, toParentMessage),
     ],
   )

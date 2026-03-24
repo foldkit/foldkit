@@ -683,7 +683,7 @@ export type GroupHeading = Readonly<{
 /** Configuration for rendering a menu with `view`. */
 export type ViewConfig<Message, Item extends string> = Readonly<{
   model: Model
-  toMessage: (
+  toParentMessage: (
     message:
       | Opened
       | Closed
@@ -772,7 +772,7 @@ export const view = <Message, Item extends string>(
       searchQuery,
       maybeLastButtonPointerType,
     },
-    toMessage,
+    toParentMessage,
     items,
     itemToConfig,
     isItemDisabled,
@@ -849,7 +849,7 @@ export const view = <Message, Item extends string>(
     M.value(key).pipe(
       M.whenOr('Enter', ' ', 'ArrowDown', () =>
         Option.some(
-          toMessage(
+          toParentMessage(
             Opened({
               maybeActiveItemIndex: Option.some(firstEnabledIndex),
             }),
@@ -858,7 +858,7 @@ export const view = <Message, Item extends string>(
       ),
       M.when('ArrowUp', () =>
         Option.some(
-          toMessage(
+          toParentMessage(
             Opened({
               maybeActiveItemIndex: Option.some(lastEnabledIndex),
             }),
@@ -876,7 +876,7 @@ export const view = <Message, Item extends string>(
     timeStamp: number,
   ): Option.Option<Message> =>
     Option.some(
-      toMessage(
+      toParentMessage(
         PressedPointerOnButton({
           pointerType,
           button,
@@ -894,16 +894,16 @@ export const view = <Message, Item extends string>(
     )
 
     if (isMouse) {
-      return toMessage(IgnoredMouseClick())
+      return toParentMessage(IgnoredMouseClick())
     } else if (isOpen) {
-      return toMessage(Closed())
+      return toParentMessage(Closed())
     } else {
-      return toMessage(Opened({ maybeActiveItemIndex: Option.none() }))
+      return toParentMessage(Opened({ maybeActiveItemIndex: Option.none() }))
     }
   }
 
   const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
-    OptionExt.when(key === ' ', toMessage(SuppressedSpaceScroll()))
+    OptionExt.when(key === ' ', toParentMessage(SuppressedSpaceScroll()))
 
   const resolveActiveIndex = keyToIndex(
     'ArrowDown',
@@ -923,22 +923,22 @@ export const view = <Message, Item extends string>(
       itemToSearchText,
       Str.isNonEmpty(searchQuery),
     )
-    return Option.some(toMessage(Searched({ key, maybeTargetIndex })))
+    return Option.some(toParentMessage(Searched({ key, maybeTargetIndex })))
   }
 
   const handleItemsKeyDown = (key: string): Option.Option<Message> =>
     M.value(key).pipe(
-      M.when('Escape', () => Option.some(toMessage(Closed()))),
+      M.when('Escape', () => Option.some(toParentMessage(Closed()))),
       M.when('Enter', () =>
         Option.map(maybeActiveItemIndex, index =>
-          toMessage(RequestedItemClick({ index })),
+          toParentMessage(RequestedItemClick({ index })),
         ),
       ),
       M.when(' ', () =>
         Str.isNonEmpty(searchQuery)
           ? searchForKey(' ')
           : Option.map(maybeActiveItemIndex, index =>
-              toMessage(RequestedItemClick({ index })),
+              toParentMessage(RequestedItemClick({ index })),
             ),
       ),
       M.whenOr(
@@ -950,7 +950,7 @@ export const view = <Message, Item extends string>(
         'PageDown',
         () =>
           Option.some(
-            toMessage(
+            toParentMessage(
               ActivatedItem({
                 index: resolveActiveIndex(key),
                 activationTrigger: 'Keyboard',
@@ -970,7 +970,7 @@ export const view = <Message, Item extends string>(
   ): Option.Option<Message> =>
     OptionExt.when(
       pointerType === 'mouse',
-      toMessage(ReleasedPointerOnItems({ screenX, screenY, timeStamp })),
+      toParentMessage(ReleasedPointerOnItems({ screenX, screenY, timeStamp })),
     )
 
   const resolvedButtonAttributes = [
@@ -1023,7 +1023,7 @@ export const view = <Message, Item extends string>(
           OnKeyDownPreventDefault(handleItemsKeyDown),
           OnKeyUpPreventDefault(handleSpaceKeyUp),
           OnPointerUp(handleItemsPointerUp),
-          OnBlur(toMessage(ClosedByTab())),
+          OnBlur(toParentMessage(ClosedByTab())),
         ]),
     ...(itemsClassName ? [Class(itemsClassName)] : []),
     ...itemsAttributes,
@@ -1053,14 +1053,14 @@ export const view = <Message, Item extends string>(
           : []),
         ...(isInteractive
           ? [
-              OnClick(toMessage(SelectedItem({ index }))),
+              OnClick(toParentMessage(SelectedItem({ index }))),
               ...(isActiveItem
                 ? []
                 : [
                     OnPointerMove((screenX, screenY, pointerType) =>
                       OptionExt.when(
                         pointerType !== 'touch',
-                        toMessage(
+                        toParentMessage(
                           MovedPointerOverItem({ index, screenX, screenY }),
                         ),
                       ),
@@ -1069,7 +1069,7 @@ export const view = <Message, Item extends string>(
               OnPointerLeave(pointerType =>
                 OptionExt.when(
                   pointerType !== 'touch',
-                  toMessage(DeactivatedItem()),
+                  toParentMessage(DeactivatedItem()),
                 ),
               ),
             ]
@@ -1153,7 +1153,7 @@ export const view = <Message, Item extends string>(
   const backdrop = keyed('div')(
     `${id}-backdrop`,
     [
-      ...(isLeaving ? [] : [OnClick(toMessage(Closed()))]),
+      ...(isLeaving ? [] : [OnClick(toParentMessage(Closed()))]),
       ...(backdropClassName ? [Class(backdropClassName)] : []),
       ...backdropAttributes,
     ],
@@ -1197,26 +1197,26 @@ export const view = <Message, Item extends string>(
 }
 
 /** Creates a memoized menu view. Static config is captured in a closure;
- *  only `model` and `toMessage` are compared per render via `createLazy`. */
+ *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
 export const lazy = <Message, Item extends string>(
-  staticConfig: Omit<ViewConfig<Message, Item>, 'model' | 'toMessage'>,
+  staticConfig: Omit<ViewConfig<Message, Item>, 'model' | 'toParentMessage'>,
 ): ((
   model: Model,
-  toMessage: ViewConfig<Message, Item>['toMessage'],
+  toParentMessage: ViewConfig<Message, Item>['toParentMessage'],
 ) => Html) => {
   const lazyView = createLazy()
 
-  return (model, toMessage) =>
+  return (model, toParentMessage) =>
     lazyView(
       (
         currentModel: Model,
-        currentToMessage: ViewConfig<Message, Item>['toMessage'],
+        currentToMessage: ViewConfig<Message, Item>['toParentMessage'],
       ) =>
         view({
           ...staticConfig,
           model: currentModel,
-          toMessage: currentToMessage,
+          toParentMessage: currentToMessage,
         }),
-      [model, toMessage],
+      [model, toParentMessage],
     )
 }

@@ -61,7 +61,7 @@ const navigationView = (session: Session, currentRouteTag: string): Html =>
 
 export const view = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
     [Class('min-h-screen')],
@@ -75,7 +75,7 @@ export const view = (
               Dashboard: () => Dashboard.view(model.session),
               Settings: () =>
                 Settings.view(model.session, message =>
-                  toMessage(GotSettingsMessage({ message })),
+                  toParentMessage(GotSettingsMessage({ message })),
                 ),
               NotFound: ({ path }) =>
                 notFoundView(path, dashboardRouter(), 'Go to Dashboard'),

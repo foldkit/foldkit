@@ -122,26 +122,30 @@ export const view = makeView<Model>({
 })
 
 /** Creates a memoized single-select combobox view. Static config is captured in a closure;
- *  only `model` and `toMessage` are compared per render via `createLazy`. */
+ *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
 export const lazy = <Message, Item extends string>(
-  staticConfig: Omit<ViewConfig<Message, Item>, 'model' | 'toMessage'>,
+  staticConfig: Omit<ViewConfig<Message, Item>, 'model' | 'toParentMessage'>,
 ): ((
   model: Model,
-  toMessage: BaseViewConfig<Message, Item, Model>['toMessage'],
+  toParentMessage: BaseViewConfig<Message, Item, Model>['toParentMessage'],
 ) => Html) => {
   const lazyView = createLazy()
 
-  return (model, toMessage) =>
+  return (model, toParentMessage) =>
     lazyView(
       (
         currentModel: Model,
-        currentToMessage: BaseViewConfig<Message, Item, Model>['toMessage'],
+        currentToMessage: BaseViewConfig<
+          Message,
+          Item,
+          Model
+        >['toParentMessage'],
       ) =>
         view({
           ...staticConfig,
           model: currentModel,
-          toMessage: currentToMessage,
+          toParentMessage: currentToMessage,
         }),
-      [model, toMessage],
+      [model, toParentMessage],
     )
 }

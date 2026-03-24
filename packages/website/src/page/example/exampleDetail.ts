@@ -198,12 +198,12 @@ const livePreviewDisclosureView = (
   meta: ExampleMeta,
   slug: string,
   maybeExampleUrl: Option.Option<string>,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   Ui.Disclosure.view({
     model: disclosureModel,
-    toMessage: message =>
-      toMessage(GotLivePreviewDisclosureMessage({ message })),
+    toParentMessage: message =>
+      toParentMessage(GotLivePreviewDisclosureMessage({ message })),
     buttonAttributes: [Class(DISCLOSURE_BUTTON_CLASS)],
     buttonContent: div(
       [Class('flex items-center justify-between w-full')],
@@ -260,13 +260,14 @@ const sourceCodeView = (
   tabsModel: Ui.Tabs.Model,
   copiedSnippets: CopiedSnippets,
   isNarrowViewport: boolean,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
   const filePaths = Array.map(files, file => file.path)
 
   return Ui.Tabs.view({
     model: tabsModel,
-    toMessage: message => toMessage(GotSourceFileTabsMessage({ message })),
+    toParentMessage: message =>
+      toParentMessage(GotSourceFileTabsMessage({ message })),
     tabs: filePaths,
     tabToConfig: (filePath, { isActive }) => {
       const maybeFile = Array.findFirst(files, file => file.path === filePath)
@@ -317,7 +318,7 @@ export const view = (
   sources: ExampleSources,
   copiedSnippets: CopiedSnippets,
   isNarrowViewport: boolean,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   pipe(
     findBySlug(slug),
@@ -334,7 +335,7 @@ export const view = (
               meta,
               slug,
               model.maybeExampleUrl,
-              toMessage,
+              toParentMessage,
             ),
             div(
               [Class('mt-6')],
@@ -344,7 +345,7 @@ export const view = (
                   model.sourceFileTabs,
                   copiedSnippets,
                   isNarrowViewport,
-                  toMessage,
+                  toParentMessage,
                 ),
               ],
             ),

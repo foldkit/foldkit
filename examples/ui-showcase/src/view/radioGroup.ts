@@ -78,7 +78,7 @@ const checkPlaceholder = div([Class('size-5')], [])
 
 export const view = (
   model: UiModel,
-  toMessage: (message: UiMessage) => ParentMessage,
+  toParentMessage: (message: UiMessage) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -91,8 +91,8 @@ export const view = (
       ),
       Ui.RadioGroup.view<ParentMessage, Plan>({
         model: model.verticalRadioGroupDemo,
-        toMessage: message =>
-          toMessage(GotVerticalRadioGroupDemoMessage({ message })),
+        toParentMessage: message =>
+          toParentMessage(GotVerticalRadioGroupDemoMessage({ message })),
         options: plans,
         ariaLabel: 'Server plan',
         optionToConfig: (plan, { isSelected }) => ({
@@ -141,8 +141,8 @@ export const view = (
       ),
       Ui.RadioGroup.view<ParentMessage, Plan>({
         model: model.horizontalRadioGroupDemo,
-        toMessage: message =>
-          toMessage(GotHorizontalRadioGroupDemoMessage({ message })),
+        toParentMessage: message =>
+          toParentMessage(GotHorizontalRadioGroupDemoMessage({ message })),
         options: plans,
         ariaLabel: 'Server plan',
         optionToConfig: (plan, { isSelected }) => ({

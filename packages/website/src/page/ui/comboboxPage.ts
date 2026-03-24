@@ -24,7 +24,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 
 export const view = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -34,9 +34,12 @@ export const view = (
       para(
         'An autocomplete input with filtering, keyboard navigation, and custom rendering. Uses aria-activedescendant for focus management and supports grouped items.',
       ),
-      ...Combobox.comboboxDemo(model.comboboxDemo, toMessage),
-      ...Combobox.nullableDemo(model.comboboxNullableDemo, toMessage),
-      ...Combobox.multiDemo(model.comboboxMultiDemo, toMessage),
-      ...Combobox.selectOnFocusDemo(model.comboboxSelectOnFocusDemo, toMessage),
+      ...Combobox.comboboxDemo(model.comboboxDemo, toParentMessage),
+      ...Combobox.nullableDemo(model.comboboxNullableDemo, toParentMessage),
+      ...Combobox.multiDemo(model.comboboxMultiDemo, toParentMessage),
+      ...Combobox.selectOnFocusDemo(
+        model.comboboxSelectOnFocusDemo,
+        toParentMessage,
+      ),
     ],
   )

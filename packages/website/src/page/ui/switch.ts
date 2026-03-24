@@ -39,14 +39,15 @@ const knob = (isChecked: boolean) =>
 
 export const switchDemo = (
   switchModel: Ui.Switch.Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ) => [
   div(
     [Class('mt-6')],
     [
       Ui.Switch.view({
         model: switchModel,
-        toMessage: message => toMessage(GotSwitchDemoMessage({ message })),
+        toParentMessage: message =>
+          toParentMessage(GotSwitchDemoMessage({ message })),
         toView: attributes =>
           div(
             [Class(wrapperClassName)],

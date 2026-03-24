@@ -51,7 +51,7 @@ const checkmark = span([Class('text-white text-xs')], ['\u2713'])
 
 export const view = (
   model: UiModel,
-  toMessage: (message: UiMessage) => ParentMessage,
+  toParentMessage: (message: UiMessage) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -83,7 +83,7 @@ export const view = (
                     id: 'fieldset-name-input',
                     value: model.fieldsetInputValue,
                     onInput: value =>
-                      toMessage(UpdatedFieldsetInputValue({ value })),
+                      toParentMessage(UpdatedFieldsetInputValue({ value })),
                     placeholder: 'Enter your full name',
                     toView: inputAttributes =>
                       div(
@@ -111,7 +111,7 @@ export const view = (
                     id: 'fieldset-bio-textarea',
                     value: model.fieldsetTextareaValue,
                     onInput: value =>
-                      toMessage(UpdatedFieldsetTextareaValue({ value })),
+                      toParentMessage(UpdatedFieldsetTextareaValue({ value })),
                     placeholder: 'Tell us about yourself...',
                     rows: 3,
                     toView: textareaAttributes =>
@@ -144,8 +144,10 @@ export const view = (
                   }),
                   Ui.Checkbox.view({
                     model: model.fieldsetCheckboxDemo,
-                    toMessage: message =>
-                      toMessage(GotFieldsetCheckboxDemoMessage({ message })),
+                    toParentMessage: message =>
+                      toParentMessage(
+                        GotFieldsetCheckboxDemoMessage({ message }),
+                      ),
                     toView: checkboxAttributes =>
                       div(
                         [Class('flex flex-col gap-1')],
@@ -266,8 +268,10 @@ export const view = (
                       isChecked: true,
                     },
                     isDisabled: true,
-                    toMessage: message =>
-                      toMessage(GotFieldsetCheckboxDemoMessage({ message })),
+                    toParentMessage: message =>
+                      toParentMessage(
+                        GotFieldsetCheckboxDemoMessage({ message }),
+                      ),
                     toView: checkboxAttributes =>
                       div(
                         [Class('flex items-center gap-2')],

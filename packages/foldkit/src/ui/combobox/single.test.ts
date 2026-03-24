@@ -1021,7 +1021,7 @@ describe('Combobox', () => {
 
     const baseViewConfig = (model: Model): ViewConfig<TestMessage, string> => ({
       model,
-      toMessage: message => message._tag,
+      toParentMessage: message => message._tag,
       items: ['Apple', 'Banana'],
       itemToConfig: () => ({ content: Effect.succeed(null) }),
       itemToValue: item => item,

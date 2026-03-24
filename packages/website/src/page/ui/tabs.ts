@@ -140,12 +140,13 @@ const verticalTabToConfig = (
 
 export const horizontalDemo = (
   tabsModel: Ui.Tabs.Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ) => [
   heading('h3', horizontalHeader.id, horizontalHeader.text),
   Ui.Tabs.view({
     model: tabsModel,
-    toMessage: message => toMessage(GotHorizontalTabsDemoMessage({ message })),
+    toParentMessage: message =>
+      toParentMessage(GotHorizontalTabsDemoMessage({ message })),
     tabs: demoTabs,
     tabToConfig,
     tabListAttributes: [Class('flex')],
@@ -155,12 +156,13 @@ export const horizontalDemo = (
 
 export const verticalDemo = (
   tabsModel: Ui.Tabs.Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ) => [
   heading('h3', verticalHeader.id, verticalHeader.text),
   Ui.Tabs.view({
     model: tabsModel,
-    toMessage: message => toMessage(GotVerticalTabsDemoMessage({ message })),
+    toParentMessage: message =>
+      toParentMessage(GotVerticalTabsDemoMessage({ message })),
     tabs: demoTabs,
     tabToConfig: verticalTabToConfig,
     orientation: 'Vertical',

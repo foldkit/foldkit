@@ -15,7 +15,7 @@ const descriptionClassName = 'text-sm text-gray-500'
 
 export const view = (
   model: UiModel,
-  toMessage: (message: UiMessage) => ParentMessage,
+  toParentMessage: (message: UiMessage) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -29,7 +29,8 @@ export const view = (
           Ui.Textarea.view({
             id: 'textarea-basic-demo',
             value: model.textareaDemoValue,
-            onInput: value => toMessage(UpdatedTextareaDemoValue({ value })),
+            onInput: value =>
+              toParentMessage(UpdatedTextareaDemoValue({ value })),
             placeholder: 'Tell us about yourself...',
             rows: 4,
             toView: attributes =>

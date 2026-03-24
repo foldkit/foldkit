@@ -274,7 +274,7 @@ const phaseColorClass = (phase: AnimationPhase): string =>
 
 export const view = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   DemoView.demoViewShell(
     DemoView.codePanelView(
@@ -283,12 +283,12 @@ export const view = (
       model.phase,
       demoCodeHtml,
     ),
-    appPanel(model, toMessage),
+    appPanel(model, toParentMessage),
   )
 
 const appPanel = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
     [Class('relative')],
@@ -296,7 +296,7 @@ const appPanel = (
       div(
         [Class('lg:absolute lg:inset-0 flex flex-col gap-4 overflow-hidden')],
         [
-          viewAndControlsView(model, toMessage),
+          viewAndControlsView(model, toParentMessage),
           DemoView.modelStateView([
             DemoView.modelStateField('count', String(model.count)),
             DemoView.modelStateField('isResetting', String(model.isResetting)),
@@ -328,7 +328,7 @@ const parseResetDuration = (value: string): number =>
 
 const viewAndControlsView = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
     [Class('flex flex-col gap-3')],
@@ -356,7 +356,7 @@ const viewAndControlsView = (
         ],
       ),
       Ui.Button.view<ParentMessage>({
-        onClick: toMessage(ClickedDemoIncrement()),
+        onClick: toParentMessage(ClickedDemoIncrement()),
         toView: attributes =>
           button(
             [
@@ -372,7 +372,7 @@ const viewAndControlsView = (
         id: 'demo-reset-duration',
         value: String(model.resetDuration),
         onInput: value =>
-          toMessage(
+          toParentMessage(
             ChangedDemoResetDuration({
               seconds: parseResetDuration(value),
             }),
@@ -402,7 +402,7 @@ const viewAndControlsView = (
                     Max(String(MAX_RESET_DURATION)),
                   ]),
                   Ui.Button.view<ParentMessage>({
-                    onClick: toMessage(
+                    onClick: toParentMessage(
                       ChangedDemoResetDuration({
                         seconds: N.clamp(model.resetDuration - 1, {
                           minimum: MIN_RESET_DURATION,
@@ -426,7 +426,7 @@ const viewAndControlsView = (
                       ),
                   }),
                   Ui.Button.view<ParentMessage>({
-                    onClick: toMessage(
+                    onClick: toParentMessage(
                       ChangedDemoResetDuration({
                         seconds: N.clamp(model.resetDuration + 1, {
                           minimum: MIN_RESET_DURATION,
@@ -455,7 +455,7 @@ const viewAndControlsView = (
           ),
       }),
       Ui.Button.view<ParentMessage>({
-        onClick: toMessage(ClickedDemoReset()),
+        onClick: toParentMessage(ClickedDemoReset()),
         isDisabled: model.isResetting,
         toView: attributes =>
           button(

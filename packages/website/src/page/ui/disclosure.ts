@@ -32,11 +32,12 @@ const chevron = (isOpen: boolean) =>
 
 export const disclosureDemo = (
   disclosureModel: Ui.Disclosure.Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ) => [
   Ui.Disclosure.view({
     model: disclosureModel,
-    toMessage: message => toMessage(GotDisclosureDemoMessage({ message })),
+    toParentMessage: message =>
+      toParentMessage(GotDisclosureDemoMessage({ message })),
     buttonAttributes: [Class(buttonClassName)],
     buttonContent: div(
       [Class('flex items-center justify-between w-full')],

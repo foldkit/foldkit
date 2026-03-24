@@ -22,7 +22,7 @@ const chevron = (isOpen: boolean) =>
 
 export const view = (
   model: UiModel,
-  toMessage: (message: UiMessage) => ParentMessage,
+  toParentMessage: (message: UiMessage) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -30,7 +30,8 @@ export const view = (
       h2([Class('text-2xl font-bold text-gray-900 mb-6')], ['Disclosure']),
       Ui.Disclosure.view({
         model: model.disclosureDemo,
-        toMessage: message => toMessage(GotDisclosureDemoMessage({ message })),
+        toParentMessage: message =>
+          toParentMessage(GotDisclosureDemoMessage({ message })),
         buttonAttributes: [Class(buttonClassName)],
         buttonContent: div(
           [Class('flex items-center justify-between w-full')],

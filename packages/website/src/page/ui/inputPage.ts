@@ -22,7 +22,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 
 export const view = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -32,7 +32,7 @@ export const view = (
       para(
         'A thin wrapper around the native input element that provides consistent accessibility attributes, ARIA label/description linking, and data-attribute hooks for styling.',
       ),
-      ...Input.basicDemo(model, toMessage),
-      ...Input.disabledDemo(model, toMessage),
+      ...Input.basicDemo(model, toParentMessage),
+      ...Input.disabledDemo(model, toParentMessage),
     ],
   )

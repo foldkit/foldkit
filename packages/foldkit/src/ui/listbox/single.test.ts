@@ -1174,7 +1174,7 @@ describe('Listbox', () => {
 
     const baseViewConfig = (model: Model): ViewConfig<TestMessage, string> => ({
       model,
-      toMessage: message => message._tag,
+      toParentMessage: message => message._tag,
       items: ['Apple', 'Banana'],
       itemToConfig: () => ({ content: Effect.succeed(null) }),
       buttonContent: Effect.succeed(null),
@@ -1524,7 +1524,7 @@ describe('Listbox', () => {
         model: Model,
       ): ViewConfig<TestMessage, Person> => ({
         model,
-        toMessage: message => message._tag,
+        toParentMessage: message => message._tag,
         items: people,
         itemToValue: person => person.id,
         itemToConfig: () => ({ content: Effect.succeed(null) }),

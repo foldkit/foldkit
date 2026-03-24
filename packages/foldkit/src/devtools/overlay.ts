@@ -1081,7 +1081,7 @@ const makeView = (
       [
         Tabs.view<Message, InspectorTab>({
           model: model.inspectorTabs,
-          toMessage: tabsMessage =>
+          toParentMessage: tabsMessage =>
             GotInspectorTabsMessage({ message: tabsMessage }),
           tabs: INSPECTOR_TABS,
           tabListAriaLabel: 'Inspector tabs',

@@ -462,7 +462,7 @@ const mobileHeaderView = (model: Model): Html =>
 const mobileMenuView = (model: Model): Html =>
   Ui.Dialog.view({
     model: model.uiModel.mobileMenuDialog,
-    toMessage: toMobileMenuDialogMessage,
+    toParentMessage: toMobileMenuDialogMessage,
     panelContent: mobileMenuContent(model.route),
     panelAttributes: [Class('fixed inset-0 z-[60] bg-white flex flex-col')],
     backdropAttributes: [Class('fixed inset-0 z-[59]')],

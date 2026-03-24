@@ -22,7 +22,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 
 export const view = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -32,7 +32,7 @@ export const view = (
       para(
         'A checkbox for toggling a checked state with accessible labeling, keyboard support, indeterminate state, and optional form integration via a hidden input.',
       ),
-      ...Checkbox.basicDemo(model, toMessage),
-      ...Checkbox.indeterminateDemo(model, toMessage),
+      ...Checkbox.basicDemo(model, toParentMessage),
+      ...Checkbox.indeterminateDemo(model, toParentMessage),
     ],
   )

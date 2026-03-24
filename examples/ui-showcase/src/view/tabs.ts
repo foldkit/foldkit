@@ -116,7 +116,7 @@ const verticalTabToConfig = (
 
 export const view = (
   model: UiModel,
-  toMessage: (message: UiMessage) => ParentMessage,
+  toParentMessage: (message: UiMessage) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -129,8 +129,8 @@ export const view = (
       ),
       Ui.Tabs.view({
         model: model.horizontalTabsDemo,
-        toMessage: message =>
-          toMessage(GotHorizontalTabsDemoMessage({ message })),
+        toParentMessage: message =>
+          toParentMessage(GotHorizontalTabsDemoMessage({ message })),
         tabs: demoTabs,
         tabToConfig: horizontalTabToConfig,
         tabListAttributes: [Class('flex')],
@@ -143,8 +143,8 @@ export const view = (
       ),
       Ui.Tabs.view({
         model: model.verticalTabsDemo,
-        toMessage: message =>
-          toMessage(GotVerticalTabsDemoMessage({ message })),
+        toParentMessage: message =>
+          toParentMessage(GotVerticalTabsDemoMessage({ message })),
         tabs: demoTabs,
         tabToConfig: verticalTabToConfig,
         orientation: 'Vertical',

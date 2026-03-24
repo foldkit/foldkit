@@ -25,7 +25,7 @@ const infoRow = (label: string, value: string): Html =>
 
 export const view = (
   session: Session,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
     [Class('max-w-4xl mx-auto px-4')],
@@ -54,7 +54,7 @@ export const view = (
           h2([Class('text-xl font-semibold text-gray-800 mb-4')], ['Actions']),
           button(
             [
-              OnClick(toMessage(ClickedLogout())),
+              OnClick(toParentMessage(ClickedLogout())),
               Class(
                 'px-6 py-3 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition cursor-pointer',
               ),

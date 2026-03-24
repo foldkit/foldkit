@@ -48,7 +48,7 @@ import {
 
 export const view = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
   const maybeUsername = M.value(model.homeStep).pipe(
     M.tagsExhaustive({
@@ -71,9 +71,9 @@ export const view = (
 
       M.value(model.homeStep).pipe(
         M.tagsExhaustive({
-          EnterUsername: enterUsername(toMessage),
+          EnterUsername: enterUsername(toParentMessage),
           SelectAction: selectAction,
-          EnterRoomId: enterRoomId(toMessage),
+          EnterRoomId: enterRoomId(toParentMessage),
         }),
       ),
 
@@ -83,10 +83,10 @@ export const view = (
 }
 
 const enterUsername =
-  (toMessage: (message: Message) => ParentMessage) =>
+  (toParentMessage: (message: Message) => ParentMessage) =>
   ({ username }: EnterUsername): Html =>
     form(
-      [OnSubmit(toMessage(SubmittedUsernameForm()))],
+      [OnSubmit(toParentMessage(SubmittedUsernameForm()))],
       [
         div(
           [Class('flex items-center gap-2')],
@@ -102,8 +102,8 @@ const enterUsername =
                   Type('text'),
                   Value(username),
                   Class('bg-transparent px-0 py-2 outline-none w-full'),
-                  OnInput(value => toMessage(ChangedUsername({ value }))),
-                  OnBlur(toMessage(BlurredUsernameInput())),
+                  OnInput(value => toParentMessage(ChangedUsername({ value }))),
+                  OnBlur(toParentMessage(BlurredUsernameInput())),
                   Autocapitalize('none'),
                   Spellcheck(false),
                   Autocorrect('off'),
@@ -141,10 +141,10 @@ const action =
     )
 
 const enterRoomId =
-  (toMessage: (message: Message) => ParentMessage) =>
+  (toParentMessage: (message: Message) => ParentMessage) =>
   ({ roomId }: EnterRoomId): Html =>
     form(
-      [OnSubmit(toMessage(SubmittedJoinRoomForm()))],
+      [OnSubmit(toParentMessage(SubmittedJoinRoomForm()))],
       [
         div(
           [Class('flex items-center gap-2')],
@@ -161,8 +161,8 @@ const enterRoomId =
                   Type('text'),
                   Value(roomId),
                   Class('bg-transparent px-0 py-2 outline-none w-full'),
-                  OnInput(value => toMessage(ChangedRoomId({ value }))),
-                  OnBlur(toMessage(BlurredRoomIdInput())),
+                  OnInput(value => toParentMessage(ChangedRoomId({ value }))),
+                  OnBlur(toParentMessage(BlurredRoomIdInput())),
                   Autocapitalize('none'),
                   Spellcheck(false),
                   Autocorrect('off'),

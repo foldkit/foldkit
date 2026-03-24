@@ -22,7 +22,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 
 export const view = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -32,7 +32,7 @@ export const view = (
       para(
         'A dropdown menu with keyboard navigation, typeahead search, and proper ARIA attributes. Uses aria-activedescendant for focus management — focus stays on the menu container while items are highlighted by reference.',
       ),
-      ...Menu.basicDemo(model.menuBasicDemo, toMessage),
-      ...Menu.animatedDemo(model.menuAnimatedDemo, toMessage),
+      ...Menu.basicDemo(model.menuBasicDemo, toParentMessage),
+      ...Menu.animatedDemo(model.menuAnimatedDemo, toParentMessage),
     ],
   )

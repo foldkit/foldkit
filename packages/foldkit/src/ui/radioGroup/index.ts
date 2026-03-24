@@ -112,7 +112,7 @@ export type OptionAttributes<Message> = Readonly<{
 }>
 
 /** Configuration for an individual radio option. The `value` field carries the generic `RadioOption` type
- *  so it flows through to `toMessage` callbacks without widening to `string`. */
+ *  so it flows through to `toParentMessage` callbacks without widening to `string`. */
 export type OptionConfig<
   Message,
   RadioOption extends string = string,
@@ -121,7 +121,7 @@ export type OptionConfig<
   content: (attributes: OptionAttributes<Message>) => Html
 }>
 
-/** The `SelectedOption` message as seen by `toMessage` callbacks, with `value` narrowed
+/** The `SelectedOption` message as seen by `toParentMessage` callbacks, with `value` narrowed
  *  to the generic `RadioOption` type instead of `string`. */
 export type NarrowedSelectedOption<RadioOption extends string> = Readonly<{
   readonly _tag: 'SelectedOption'
@@ -132,7 +132,7 @@ export type NarrowedSelectedOption<RadioOption extends string> = Readonly<{
 /** Configuration for rendering a radio group with `view`. */
 export type ViewConfig<Message, RadioOption extends string> = Readonly<{
   model: Model
-  toMessage: (
+  toParentMessage: (
     message: NarrowedSelectedOption<RadioOption> | CompletedFocusOption,
   ) => Message
   options: ReadonlyArray<RadioOption>
@@ -187,7 +187,7 @@ export const view = <Message, RadioOption extends string>(
   const {
     model,
     model: { id, selectedValue },
-    toMessage,
+    toParentMessage,
     options,
     optionToConfig,
     isOptionDisabled: isOptionDisabledFn,
@@ -289,7 +289,7 @@ export const view = <Message, RadioOption extends string>(
               optionValues,
               Array.get(nextIndex),
               Option.map(value =>
-                toMessage({
+                toParentMessage({
                   _tag: 'SelectedOption',
                   value,
                   index: nextIndex,
@@ -303,7 +303,7 @@ export const view = <Message, RadioOption extends string>(
             optionValues,
             Array.get(currentIndex),
             Option.map(value =>
-              toMessage({
+              toParentMessage({
                 _tag: 'SelectedOption',
                 value,
                 index: currentIndex,
@@ -348,7 +348,7 @@ export const view = <Message, RadioOption extends string>(
         ? []
         : [
             OnClick(
-              toMessage({
+              toParentMessage({
                 _tag: 'SelectedOption',
                 value: optionConfig.value,
                 index,
@@ -402,26 +402,29 @@ export const view = <Message, RadioOption extends string>(
 }
 
 /** Creates a memoized radio group view. Static config is captured in a closure;
- *  only `model` and `toMessage` are compared per render via `createLazy`. */
+ *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
 export const lazy = <Message, RadioOption extends string>(
-  staticConfig: Omit<ViewConfig<Message, RadioOption>, 'model' | 'toMessage'>,
+  staticConfig: Omit<
+    ViewConfig<Message, RadioOption>,
+    'model' | 'toParentMessage'
+  >,
 ): ((
   model: Model,
-  toMessage: ViewConfig<Message, RadioOption>['toMessage'],
+  toParentMessage: ViewConfig<Message, RadioOption>['toParentMessage'],
 ) => Html) => {
   const lazyView = createLazy()
 
-  return (model, toMessage) =>
+  return (model, toParentMessage) =>
     lazyView(
       (
         currentModel: Model,
-        currentToMessage: ViewConfig<Message, RadioOption>['toMessage'],
+        currentToMessage: ViewConfig<Message, RadioOption>['toParentMessage'],
       ) =>
         view({
           ...staticConfig,
           model: currentModel,
-          toMessage: currentToMessage,
+          toParentMessage: currentToMessage,
         }),
-      [model, toMessage],
+      [model, toParentMessage],
     )
 }

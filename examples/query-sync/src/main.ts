@@ -692,7 +692,7 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
           ]),
           Ui.Listbox.view({
             model: model.dietListbox,
-            toMessage: message => GotDietListboxMessage({ message }),
+            toParentMessage: message => GotDietListboxMessage({ message }),
             anchor: LISTBOX_ANCHOR,
             items: dietFilterItems,
             itemToConfig: item => filterItemConfig(dietLabel(item)),
@@ -710,7 +710,7 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
           }),
           Ui.Listbox.view({
             model: model.periodListbox,
-            toMessage: message => GotPeriodListboxMessage({ message }),
+            toParentMessage: message => GotPeriodListboxMessage({ message }),
             anchor: LISTBOX_ANCHOR,
             items: periodFilterItems,
             itemToConfig: item => filterItemConfig(periodLabel(item)),

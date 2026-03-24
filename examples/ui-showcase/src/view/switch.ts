@@ -32,7 +32,7 @@ const knob = (isChecked: boolean) =>
 
 export const view = (
   model: UiModel,
-  toMessage: (message: UiMessage) => ParentMessage,
+  toParentMessage: (message: UiMessage) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -43,7 +43,8 @@ export const view = (
         [
           Ui.Switch.view({
             model: model.switchDemo,
-            toMessage: message => toMessage(GotSwitchDemoMessage({ message })),
+            toParentMessage: message =>
+              toParentMessage(GotSwitchDemoMessage({ message })),
             toView: attributes =>
               div(
                 [Class(wrapperClassName)],

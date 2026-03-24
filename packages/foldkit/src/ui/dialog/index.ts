@@ -236,7 +236,7 @@ export const descriptionId = (model: Model): string => `${model.id}-description`
 /** Configuration for rendering a dialog with `view`. */
 export type ViewConfig<Message> = Readonly<{
   model: Model
-  toMessage: (
+  toParentMessage: (
     message: Closed | CompletedShowDialog | CompletedCloseDialog,
   ) => Message
   panelContent: Html
@@ -264,7 +264,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
 
   const {
     model: { id, isOpen, transitionState },
-    toMessage,
+    toParentMessage,
     panelContent,
     panelClassName,
     panelAttributes = [],
@@ -305,7 +305,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     Id(id),
     AriaLabelledBy(`${id}-title`),
     AriaDescribedBy(`${id}-description`),
-    OnCancel(toMessage(Closed())),
+    OnCancel(toParentMessage(Closed())),
     Style({
       width: '100%',
       height: '100%',
@@ -325,7 +325,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     [
       Style({ minHeight: '100vh' }),
       ...transitionAttributes,
-      ...(isLeaving ? [] : [OnClick(toMessage(Closed()))]),
+      ...(isLeaving ? [] : [OnClick(toParentMessage(Closed()))]),
       ...(backdropClassName ? [Class(backdropClassName)] : []),
       ...backdropAttributes,
     ],
@@ -349,23 +349,26 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
 }
 
 /** Creates a memoized dialog view. Static config is captured in a closure;
- *  only `model` and `toMessage` are compared per render via `createLazy`. */
+ *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
 export const lazy = <Message>(
-  staticConfig: Omit<ViewConfig<Message>, 'model' | 'toMessage'>,
-): ((model: Model, toMessage: ViewConfig<Message>['toMessage']) => Html) => {
+  staticConfig: Omit<ViewConfig<Message>, 'model' | 'toParentMessage'>,
+): ((
+  model: Model,
+  toParentMessage: ViewConfig<Message>['toParentMessage'],
+) => Html) => {
   const lazyView = createLazy()
 
-  return (model, toMessage) =>
+  return (model, toParentMessage) =>
     lazyView(
       (
         currentModel: Model,
-        currentToMessage: ViewConfig<Message>['toMessage'],
+        currentToMessage: ViewConfig<Message>['toParentMessage'],
       ) =>
         view({
           ...staticConfig,
           model: currentModel,
-          toMessage: currentToMessage,
+          toParentMessage: currentToMessage,
         }),
-      [model, toMessage],
+      [model, toParentMessage],
     )
 }

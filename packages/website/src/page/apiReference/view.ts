@@ -57,7 +57,7 @@ const functionView = (
   moduleName: string,
   apiFunction: ApiFunction,
   maybeDisclosure: Disclosure.Model | undefined,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
   const id = scopedId('function', moduleName, apiFunction.name)
 
@@ -97,7 +97,7 @@ const functionView = (
           headingLinkButton(id, apiFunction.name),
         ],
       ),
-      signaturesView(id, apiFunction, maybeDisclosure, toMessage),
+      signaturesView(id, apiFunction, maybeDisclosure, toParentMessage),
     ],
   )
 }
@@ -161,7 +161,7 @@ const signaturesView = (
   key: string,
   apiFunction: ApiFunction,
   maybeDisclosure: Disclosure.Model | undefined,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
   const maybeHighlighted = Record.get(highlights, key)
   const isInDisclosure = maybeDisclosure !== undefined
@@ -198,8 +198,8 @@ const signaturesView = (
   return maybeDisclosure !== undefined
     ? Ui.Disclosure.view({
         model: maybeDisclosure,
-        toMessage: message =>
-          toMessage(GotDisclosureMessage({ id: key, message })),
+        toParentMessage: message =>
+          toParentMessage(GotDisclosureMessage({ id: key, message })),
         buttonAttributes: [Class(disclosureButtonClassName)],
         buttonContent: div(
           [Class('flex items-center justify-between w-full')],
@@ -551,7 +551,7 @@ const section = <T extends { readonly name: string }>(
 export const view = (
   module: ApiModule,
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -563,7 +563,7 @@ export const view = (
           module.name,
           apiFunction,
           model[key],
-          toMessage,
+          toParentMessage,
         ])
       }),
       ...section('Types', module.types, type => {

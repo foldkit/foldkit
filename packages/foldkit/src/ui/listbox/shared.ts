@@ -645,7 +645,7 @@ export type GroupHeading = Readonly<{
 /** Configuration for rendering a listbox with `view`. */
 export type BaseViewConfig<Message, Item, Model extends BaseModel> = Readonly<{
   model: Model
-  toMessage: (
+  toParentMessage: (
     message:
       | Opened
       | Closed
@@ -756,7 +756,7 @@ export const makeView =
         searchQuery,
         maybeLastButtonPointerType,
       },
-      toMessage,
+      toParentMessage,
       items,
       itemToConfig,
       isItemDisabled,
@@ -863,7 +863,7 @@ export const makeView =
       M.value(key).pipe(
         M.whenOr('Enter', ' ', 'ArrowDown', () =>
           Option.some(
-            toMessage(
+            toParentMessage(
               Opened({
                 maybeActiveItemIndex: Option.orElse(selectedItemIndex, () =>
                   Option.some(firstEnabledIndex),
@@ -874,7 +874,7 @@ export const makeView =
         ),
         M.when('ArrowUp', () =>
           Option.some(
-            toMessage(
+            toParentMessage(
               Opened({
                 maybeActiveItemIndex: Option.orElse(selectedItemIndex, () =>
                   Option.some(lastEnabledIndex),
@@ -891,7 +891,7 @@ export const makeView =
       button: number,
     ): Option.Option<Message> =>
       Option.some(
-        toMessage(
+        toParentMessage(
           PressedPointerOnButton({
             pointerType,
             button,
@@ -906,16 +906,16 @@ export const makeView =
       )
 
       if (isMouse) {
-        return toMessage(IgnoredMouseClick())
+        return toParentMessage(IgnoredMouseClick())
       } else if (isOpen) {
-        return toMessage(Closed())
+        return toParentMessage(Closed())
       } else {
-        return toMessage(Opened({ maybeActiveItemIndex: Option.none() }))
+        return toParentMessage(Opened({ maybeActiveItemIndex: Option.none() }))
       }
     }
 
     const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
-      OptionExt.when(key === ' ', toMessage(SuppressedSpaceScroll()))
+      OptionExt.when(key === ' ', toParentMessage(SuppressedSpaceScroll()))
 
     const resolveActiveIndex = (key: string): number =>
       Option.match(maybeActiveItemIndex, {
@@ -944,27 +944,27 @@ export const makeView =
         itemToSearchText,
         Str.isNonEmpty(searchQuery),
       )
-      return Option.some(toMessage(Searched({ key, maybeTargetIndex })))
+      return Option.some(toParentMessage(Searched({ key, maybeTargetIndex })))
     }
 
     const handleItemsKeyDown = (key: string): Option.Option<Message> =>
       M.value(key).pipe(
-        M.when('Escape', () => Option.some(toMessage(Closed()))),
+        M.when('Escape', () => Option.some(toParentMessage(Closed()))),
         M.when('Enter', () =>
           Option.map(maybeActiveItemIndex, index =>
-            toMessage(RequestedItemClick({ index })),
+            toParentMessage(RequestedItemClick({ index })),
           ),
         ),
         M.when(' ', () =>
           Str.isNonEmpty(searchQuery)
             ? searchForKey(' ')
             : Option.map(maybeActiveItemIndex, index =>
-                toMessage(RequestedItemClick({ index })),
+                toParentMessage(RequestedItemClick({ index })),
               ),
         ),
         M.when(isNavigationKey, () =>
           Option.some(
-            toMessage(
+            toParentMessage(
               ActivatedItem({
                 index: resolveActiveIndex(key),
                 activationTrigger: 'Keyboard',
@@ -1028,7 +1028,7 @@ export const makeView =
         : [
             OnKeyDownPreventDefault(handleItemsKeyDown),
             OnKeyUpPreventDefault(handleSpaceKeyUp),
-            OnBlur(toMessage(ClosedByTab())),
+            OnBlur(toParentMessage(ClosedByTab())),
           ]),
       ...(itemsClassName ? [Class(itemsClassName)] : []),
       ...itemsAttributes,
@@ -1065,14 +1065,16 @@ export const makeView =
             : []),
           ...(isInteractive
             ? [
-                OnClick(toMessage(SelectedItem({ item: itemToValue(item) }))),
+                OnClick(
+                  toParentMessage(SelectedItem({ item: itemToValue(item) })),
+                ),
                 ...(isActiveItem
                   ? []
                   : [
                       OnPointerMove((screenX, screenY, pointerType) =>
                         OptionExt.when(
                           pointerType !== 'touch',
-                          toMessage(
+                          toParentMessage(
                             MovedPointerOverItem({ index, screenX, screenY }),
                           ),
                         ),
@@ -1081,7 +1083,7 @@ export const makeView =
                 OnPointerLeave(pointerType =>
                   OptionExt.when(
                     pointerType !== 'touch',
-                    toMessage(DeactivatedItem()),
+                    toParentMessage(DeactivatedItem()),
                   ),
                 ),
               ]
@@ -1163,7 +1165,7 @@ export const makeView =
     const backdrop = keyed('div')(
       `${id}-backdrop`,
       [
-        ...(isLeaving ? [] : [OnClick(toMessage(Closed()))]),
+        ...(isLeaving ? [] : [OnClick(toParentMessage(Closed()))]),
         ...(backdropClassName ? [Class(backdropClassName)] : []),
         ...backdropAttributes,
       ],

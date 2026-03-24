@@ -30,14 +30,14 @@ const buttonClassName =
 
 export const basicDemo = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ) => [
   heading('h3', basicHeader.id, basicHeader.text),
   div(
     [Class('flex flex-col items-start gap-2')],
     [
       Ui.Button.view({
-        onClick: toMessage(ClickedButtonDemo()),
+        onClick: toParentMessage(ClickedButtonDemo()),
         toView: attributes =>
           button([...attributes.button, Class(buttonClassName)], ['Click me']),
       }),
@@ -53,7 +53,7 @@ export const basicDemo = (
 
 export const disabledDemo = (
   _model: Model,
-  _toMessage: (message: Message) => ParentMessage,
+  _toParentMessage: (message: Message) => ParentMessage,
 ) => [
   heading('h3', disabledHeader.id, disabledHeader.text),
   Ui.Button.view<ParentMessage>({

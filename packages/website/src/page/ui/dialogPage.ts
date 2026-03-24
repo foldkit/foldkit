@@ -22,7 +22,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 
 export const view = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -32,7 +32,7 @@ export const view = (
       para(
         'A modal dialog backed by the native <dialog> element. Uses showModal() for focus trapping, backdrop rendering, and scroll locking — no JavaScript focus trap needed.',
       ),
-      ...Dialog.dialogDemo(model.dialogDemo, toMessage),
-      ...Dialog.dialogAnimatedDemo(model.dialogAnimatedDemo, toMessage),
+      ...Dialog.dialogDemo(model.dialogDemo, toParentMessage),
+      ...Dialog.dialogAnimatedDemo(model.dialogAnimatedDemo, toParentMessage),
     ],
   )

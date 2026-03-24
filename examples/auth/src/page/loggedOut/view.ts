@@ -12,7 +12,7 @@ import * as Login from './page/login'
 
 export const view = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
     [Class('py-8')],
@@ -22,7 +22,7 @@ export const view = (
           Home: () => Home.view(),
           Login: () =>
             Login.view(model.loginModel, message =>
-              toMessage(GotLoginMessage({ message })),
+              toParentMessage(GotLoginMessage({ message })),
             ),
           NotFound: ({ path }) => notFoundView(path, homeRouter(), 'Go Home'),
         }),

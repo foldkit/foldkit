@@ -47,7 +47,7 @@ import { betaTag, iconLink } from './shared'
 const sidebarGroup = (config: {
   readonly label: string
   readonly model: Ui.Disclosure.Model
-  readonly toMessage: (message: Ui.Disclosure.Message) => Message
+  readonly toParentMessage: (message: Ui.Disclosure.Message) => Message
   readonly children: Html
 }): Html =>
   li(
@@ -55,7 +55,7 @@ const sidebarGroup = (config: {
     [
       Ui.Disclosure.view({
         model: config.model,
-        toMessage: config.toMessage,
+        toParentMessage: config.toParentMessage,
         buttonAttributes: [
           Class(
             clsx(
@@ -143,40 +143,40 @@ const sidebarViewInner = (
   const sectionDisclosures: ReadonlyArray<
     Readonly<{
       model: Ui.Disclosure.Model
-      toMessage: (message: Ui.Disclosure.Message) => Message
+      toParentMessage: (message: Ui.Disclosure.Message) => Message
     }>
   > = [
     {
       model: getStartedGroup,
-      toMessage: message => GotGetStartedGroupMessage({ message }),
+      toParentMessage: message => GotGetStartedGroupMessage({ message }),
     },
     {
       model: coreConceptsGroup,
-      toMessage: message => GotCoreConceptsGroupMessage({ message }),
+      toParentMessage: message => GotCoreConceptsGroupMessage({ message }),
     },
     {
       model: guidesGroup,
-      toMessage: message => GotGuidesGroupMessage({ message }),
+      toParentMessage: message => GotGuidesGroupMessage({ message }),
     },
     {
       model: bestPracticesGroup,
-      toMessage: message => GotBestPracticesGroupMessage({ message }),
+      toParentMessage: message => GotBestPracticesGroupMessage({ message }),
     },
     {
       model: patternsGroup,
-      toMessage: message => GotPatternsGroupMessage({ message }),
+      toParentMessage: message => GotPatternsGroupMessage({ message }),
     },
     {
       model: examplesGroup,
-      toMessage: message => GotExamplesGroupMessage({ message }),
+      toParentMessage: message => GotExamplesGroupMessage({ message }),
     },
     {
       model: foldkitUiGroup,
-      toMessage: message => GotFoldkitUiGroupMessage({ message }),
+      toParentMessage: message => GotFoldkitUiGroupMessage({ message }),
     },
     {
       model: aiGroup,
-      toMessage: message => GotAiGroupMessage({ message }),
+      toParentMessage: message => GotAiGroupMessage({ message }),
     },
   ]
 
@@ -202,7 +202,7 @@ const sidebarViewInner = (
           sidebarGroup({
             label: section.label,
             model: disclosure.model,
-            toMessage: disclosure.toMessage,
+            toParentMessage: disclosure.toParentMessage,
             children: div(
               [Class('divide-y divide-gray-200 dark:divide-gray-800')],
               Array.map(section.pageGroups, group =>
@@ -217,7 +217,7 @@ const sidebarViewInner = (
       sidebarGroup({
         label: 'API Reference',
         model: apiReferenceGroup,
-        toMessage: message => GotApiReferenceGroupMessage({ message }),
+        toParentMessage: message => GotApiReferenceGroupMessage({ message }),
         children: ul(
           [Class('space-y-0.5')],
           Array.map(Page.ApiReference.moduleSlugs, ({ slug, name }) =>
@@ -308,7 +308,7 @@ const sidebarViewInner = (
 
   const mobileMenu = Ui.Dialog.view({
     model: mobileMenuDialog,
-    toMessage: message => GotMobileMenuDialogMessage({ message }),
+    toParentMessage: message => GotMobileMenuDialogMessage({ message }),
     panelContent: mobileMenuContent,
     panelAttributes: [
       Class('fixed inset-0 z-[60] bg-cream dark:bg-gray-900 flex flex-col'),

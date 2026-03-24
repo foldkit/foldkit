@@ -28,7 +28,7 @@ const indeterminateMark = span([Class('text-white text-xs')], ['\u2014'])
 
 export const view = (
   model: UiModel,
-  toMessage: (message: UiMessage) => ParentMessage,
+  toParentMessage: (message: UiMessage) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -38,8 +38,8 @@ export const view = (
       h3([Class('text-lg font-semibold text-gray-900 mt-8 mb-4')], ['Basic']),
       Ui.Checkbox.view({
         model: model.checkboxBasicDemo,
-        toMessage: message =>
-          toMessage(GotCheckboxBasicDemoMessage({ message })),
+        toParentMessage: message =>
+          toParentMessage(GotCheckboxBasicDemoMessage({ message })),
         toView: attributes =>
           div(
             [Class('flex flex-col gap-1')],
@@ -69,13 +69,13 @@ export const view = (
         [Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Indeterminate'],
       ),
-      ...indeterminateDemo(model, toMessage),
+      ...indeterminateDemo(model, toParentMessage),
     ],
   )
 
 const indeterminateDemo = (
   model: UiModel,
-  toMessage: (message: UiMessage) => ParentMessage,
+  toParentMessage: (message: UiMessage) => ParentMessage,
 ): ReadonlyArray<Html> => {
   const isAllChecked =
     model.checkboxOptionADemo.isChecked && model.checkboxOptionBDemo.isChecked
@@ -99,8 +99,8 @@ const indeterminateDemo = (
             isChecked: isAllChecked,
           },
           isIndeterminate,
-          toMessage: message =>
-            toMessage(GotCheckboxAllDemoMessage({ message })),
+          toParentMessage: message =>
+            toParentMessage(GotCheckboxAllDemoMessage({ message })),
           toView: attributes =>
             div(
               [Class(topRowClassName)],
@@ -121,8 +121,8 @@ const indeterminateDemo = (
           [
             Ui.Checkbox.view({
               model: model.checkboxOptionADemo,
-              toMessage: message =>
-                toMessage(GotCheckboxOptionADemoMessage({ message })),
+              toParentMessage: message =>
+                toParentMessage(GotCheckboxOptionADemoMessage({ message })),
               toView: attributes =>
                 div(
                   [Class(topRowClassName)],
@@ -140,8 +140,8 @@ const indeterminateDemo = (
             }),
             Ui.Checkbox.view({
               model: model.checkboxOptionBDemo,
-              toMessage: message =>
-                toMessage(GotCheckboxOptionBDemoMessage({ message })),
+              toParentMessage: message =>
+                toParentMessage(GotCheckboxOptionBDemoMessage({ message })),
               toView: attributes =>
                 div(
                   [Class(topRowClassName)],

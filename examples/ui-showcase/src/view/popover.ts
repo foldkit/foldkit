@@ -52,7 +52,7 @@ const popoverViewConfig = (panelClassNameValue: string) => ({
 
 export const view = (
   model: UiModel,
-  toMessage: (message: UiMessage) => ParentMessage,
+  toParentMessage: (message: UiMessage) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -65,8 +65,8 @@ export const view = (
         [
           Ui.Popover.view({
             model: model.popoverBasicDemo,
-            toMessage: message =>
-              toMessage(GotPopoverBasicDemoMessage({ message })),
+            toParentMessage: message =>
+              toParentMessage(GotPopoverBasicDemoMessage({ message })),
             ...popoverViewConfig(basicPanelClassName),
           }),
         ],
@@ -81,8 +81,8 @@ export const view = (
         [
           Ui.Popover.view({
             model: model.popoverAnimatedDemo,
-            toMessage: message =>
-              toMessage(GotPopoverAnimatedDemoMessage({ message })),
+            toParentMessage: message =>
+              toParentMessage(GotPopoverAnimatedDemoMessage({ message })),
             ...popoverViewConfig(animatedPanelClassName),
           }),
         ],

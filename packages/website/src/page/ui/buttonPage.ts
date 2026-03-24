@@ -22,7 +22,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 
 export const view = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -32,7 +32,7 @@ export const view = (
       para(
         'A thin wrapper around the native button element that provides consistent accessibility attributes and data-attribute hooks for styling.',
       ),
-      ...Button.basicDemo(model, toMessage),
-      ...Button.disabledDemo(model, toMessage),
+      ...Button.basicDemo(model, toParentMessage),
+      ...Button.disabledDemo(model, toParentMessage),
     ],
   )

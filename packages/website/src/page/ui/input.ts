@@ -35,7 +35,7 @@ const descriptionClassName = 'text-sm text-gray-500 dark:text-gray-400'
 
 export const basicDemo = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ) => [
   heading('h3', basicHeader.id, basicHeader.text),
   div(
@@ -44,7 +44,7 @@ export const basicDemo = (
       Ui.Input.view({
         id: 'input-basic-demo',
         value: model.inputDemoValue,
-        onInput: value => toMessage(UpdatedInputDemoValue({ value })),
+        onInput: value => toParentMessage(UpdatedInputDemoValue({ value })),
         placeholder: 'Enter your full name',
         toView: attributes =>
           div(
@@ -65,7 +65,7 @@ export const basicDemo = (
 
 export const disabledDemo = (
   _model: Model,
-  _toMessage: (message: Message) => ParentMessage,
+  _toParentMessage: (message: Message) => ParentMessage,
 ) => [
   heading('h3', disabledHeader.id, disabledHeader.text),
   Ui.Input.view<ParentMessage>({

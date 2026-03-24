@@ -20,7 +20,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 
 export const view = (
   model: Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
     [],
@@ -30,6 +30,6 @@ export const view = (
       para(
         'A toggle switch for on/off states with accessible labeling, keyboard support, and optional form integration via a hidden input.',
       ),
-      ...Switch.switchDemo(model.switchDemo, toMessage),
+      ...Switch.switchDemo(model.switchDemo, toParentMessage),
     ],
   )

@@ -268,7 +268,7 @@ describe('Tabs', () => {
       overrides: Partial<ViewConfig<TestMessage, Tab>> = {},
     ): ViewConfig<TestMessage, Tab> => ({
       model: init({ id: 'test' }),
-      toMessage: message => message._tag,
+      toParentMessage: message => message._tag,
       tabs,
       tabToConfig: () => ({
         buttonContent: Effect.succeed(null),

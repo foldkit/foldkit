@@ -155,5 +155,5 @@ Use `typeof ClickedSubmit` in type positions to reference a schema value's type.
 - Capitalize namespace imports: `import * as Command from './command'` not `import * as command from './command'`.
 - Extract magic numbers to named constants. No raw numeric literals in logic.
 - Never use `T[]` syntax. Always use `Array<T>` or `ReadonlyArray<T>`.
-- For inline object types in `ReadonlyArray`, put `Readonly<{...}>` on the element type rather than `ReadonlyArray<{ readonly a: ...; readonly b: ... }>`. e.g. `ReadonlyArray<Readonly<{ model: Foo; toMessage: (m: Bar) => Baz }>>` not `ReadonlyArray<{ readonly model: Foo; readonly toMessage: ... }>`.
+- For inline object types in `ReadonlyArray`, put `Readonly<{...}>` on the element type rather than `ReadonlyArray<{ readonly a: ...; readonly b: ... }>`. e.g. `ReadonlyArray<Readonly<{ model: Foo; toParentMessage: (m: Bar) => Baz }>>` not `ReadonlyArray<{ readonly model: Foo; readonly toParentMessage: ... }>`.
 - Extract repeated inline style values (colors, shadows) to constants. Use Tailwind `@theme` for colors that map to utility classes (e.g. `--color-valentine: #ff2d55` → `text-valentine`). Use a `theme.ts` for values Tailwind can't express as utilities (textShadow, boxShadow).

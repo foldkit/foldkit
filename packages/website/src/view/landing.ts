@@ -157,7 +157,7 @@ export const landingView = (model: Model) => {
 
   const demoTabsView = Ui.Tabs.view<Message, DemoTab>({
     model: model.demoTabs,
-    toMessage: message => GotDemoTabsMessage({ message }),
+    toParentMessage: message => GotDemoTabsMessage({ message }),
     tabs: demoTabs,
     tabToConfig: tab =>
       M.value(tab).pipe(

@@ -114,7 +114,7 @@ export const update = (
 /** Configuration for rendering a disclosure with `view`. */
 export type ViewConfig<Message> = Readonly<{
   model: Model
-  toMessage: (message: Toggled | Closed | CompletedFocusButton) => Message
+  toParentMessage: (message: Toggled | Closed | CompletedFocusButton) => Message
   buttonClassName?: string
   buttonAttributes?: ReadonlyArray<Attribute<Message>>
   buttonContent: Html
@@ -151,7 +151,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
 
   const {
     model: { id, isOpen },
-    toMessage,
+    toParentMessage,
     buttonClassName,
     buttonAttributes = [],
     buttonContent,
@@ -170,7 +170,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
 
   const handleKeyDown = (key: string): Option.Option<Message> =>
     M.value(key).pipe(
-      M.whenOr('Enter', ' ', () => Option.some(toMessage(Toggled()))),
+      M.whenOr('Enter', ' ', () => Option.some(toParentMessage(Toggled()))),
       M.orElse(() => Option.none()),
     )
 
@@ -183,7 +183,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
   const interactionAttributes = isDisabled
     ? disabledAttributes
     : [
-        OnClick(toMessage(Toggled())),
+        OnClick(toParentMessage(Toggled())),
         ...(!isNativeButton ? [OnKeyDownPreventDefault(handleKeyDown)] : []),
       ]
 
@@ -229,23 +229,26 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
 }
 
 /** Creates a memoized disclosure view. Static config is captured in a closure;
- *  only `model` and `toMessage` are compared per render via `createLazy`. */
+ *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
 export const lazy = <Message>(
-  staticConfig: Omit<ViewConfig<Message>, 'model' | 'toMessage'>,
-): ((model: Model, toMessage: ViewConfig<Message>['toMessage']) => Html) => {
+  staticConfig: Omit<ViewConfig<Message>, 'model' | 'toParentMessage'>,
+): ((
+  model: Model,
+  toParentMessage: ViewConfig<Message>['toParentMessage'],
+) => Html) => {
   const lazyView = createLazy()
 
-  return (model, toMessage) =>
+  return (model, toParentMessage) =>
     lazyView(
       (
         currentModel: Model,
-        currentToMessage: ViewConfig<Message>['toMessage'],
+        currentToMessage: ViewConfig<Message>['toParentMessage'],
       ) =>
         view({
           ...staticConfig,
           model: currentModel,
-          toMessage: currentToMessage,
+          toParentMessage: currentToMessage,
         }),
-      [model, toMessage],
+      [model, toParentMessage],
     )
 }

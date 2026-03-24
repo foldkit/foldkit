@@ -80,7 +80,7 @@ const popoverViewConfig = (panelClassName: string) => ({
 
 export const basicDemo = (
   popoverModel: Ui.Popover.Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ) => [
   heading('h3', basicHeader.id, basicHeader.text),
   div(
@@ -88,8 +88,8 @@ export const basicDemo = (
     [
       Ui.Popover.view({
         model: popoverModel,
-        toMessage: message =>
-          toMessage(GotPopoverBasicDemoMessage({ message })),
+        toParentMessage: message =>
+          toParentMessage(GotPopoverBasicDemoMessage({ message })),
         ...popoverViewConfig(basicPanelClassName),
       }),
     ],
@@ -98,7 +98,7 @@ export const basicDemo = (
 
 export const animatedDemo = (
   popoverModel: Ui.Popover.Model,
-  toMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => ParentMessage,
 ) => [
   heading('h3', animatedHeader.id, animatedHeader.text),
   div(
@@ -106,8 +106,8 @@ export const animatedDemo = (
     [
       Ui.Popover.view({
         model: popoverModel,
-        toMessage: message =>
-          toMessage(GotPopoverAnimatedDemoMessage({ message })),
+        toParentMessage: message =>
+          toParentMessage(GotPopoverAnimatedDemoMessage({ message })),
         ...popoverViewConfig(animatedPanelClassName),
       }),
     ],
