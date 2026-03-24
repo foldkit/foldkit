@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.5.12
+
+### Patch Changes
+
+- 321dac6: Update AGENTS.md template to use `toParentMessage` (renamed from `toMessage`).
+
 ## 0.5.11
 
 ### Patch Changes

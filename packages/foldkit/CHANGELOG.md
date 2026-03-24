@@ -1,5 +1,28 @@
 # foldkit
 
+## 0.42.0
+
+### Minor Changes
+
+- e061e16: Add optional `title` config to `makeProgram` for declarative `document.title` management. The function receives the current Model and is called after every render, keeping the browser tab title in sync with application state.
+- 321dac6: Rename `toMessage` to `toParentMessage` across all UI component `ViewConfig` types and the test module. The new name makes the semantics unambiguous — it always maps a child module's Message to the immediate parent's Message type, regardless of nesting depth.
+- 13afdac: Add optional domain-event callbacks to all UI components, separating user-meaningful events from internal plumbing in `toParentMessage`. Backwards compatible — when omitted, existing behavior is unchanged.
+
+  **RadioGroup:** `onSelected(value, index)` with narrowed generic type, `select()` helper, `SelectedOption` value export
+  **Tabs:** `onTabSelected(index)`, `selectTab()` helper
+  **Dialog:** `onClosed()`, `close()` helper
+  **Menu:** `onSelectedItem(index)`, `selectItem()` helper
+  **Listbox:** `onSelectedItem(value)` (single + multi), `selectItem()` helper
+  **Popover:** `onOpened()`, `onClosed()`, `open()` and `close()` helpers
+  **Disclosure:** `onToggled()`, `toggle()` helper
+  **Combobox:** `onSelectedItem(value)` (single + multi), `SelectedItem` value export
+
+  Previously type-only message constructors (`SelectedOption`, `TabSelected`, `SelectedItem`, `Opened`, `Closed`, `Toggled`) are now exported as values for programmatic use with `update()` and helper functions.
+
+### Patch Changes
+
+- 79b5198: Export Command definitions and their result Message constructors from all UI components, enabling consumers to resolve Commands in `Test.story`. Affects Dialog, Menu, Popover, Combobox, Listbox, Disclosure, Tabs, and RadioGroup.
+
 ## 0.41.0
 
 ### Minor Changes
