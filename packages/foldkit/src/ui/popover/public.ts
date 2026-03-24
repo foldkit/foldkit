@@ -1,4 +1,29 @@
-export { init, update, view, lazy, Model, Message } from './index'
+export {
+  init,
+  update,
+  view,
+  lazy,
+  Model,
+  Message,
+  CompletedFocusPanel,
+  CompletedFocusButton,
+  CompletedLockScroll,
+  CompletedUnlockScroll,
+  CompletedSetupInert,
+  CompletedTeardownInert,
+  AdvancedTransitionFrame,
+  EndedTransition,
+  DetectedButtonMovement,
+  RequestFrame,
+  LockScroll,
+  UnlockScroll,
+  InertOthers,
+  RestoreInert,
+  FocusPanel,
+  FocusButton,
+  WaitForTransitions,
+  DetectMovementOrTransitionEnd,
+} from './index'
 
 export { TransitionState } from '../transition'
 

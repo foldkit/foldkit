@@ -1,6 +1,33 @@
 export { init, update, view, lazy, Model } from './single'
 
-export { Message, Orientation } from './shared'
+export {
+  Message,
+  Orientation,
+  CompletedLockScroll,
+  CompletedUnlockScroll,
+  CompletedSetupInert,
+  CompletedTeardownInert,
+  CompletedFocusButton,
+  CompletedFocusItems,
+  CompletedScrollIntoView,
+  CompletedClickItem,
+  ClearedSearch,
+  AdvancedTransitionFrame,
+  EndedTransition,
+  DetectedButtonMovement,
+  RequestFrame,
+  LockScroll,
+  UnlockScroll,
+  InertOthers,
+  RestoreInert,
+  FocusButton,
+  FocusItems,
+  ScrollIntoView,
+  ClickItem,
+  DelayClearSearch,
+  WaitForTransitions,
+  DetectMovementOrTransitionEnd,
+} from './shared'
 
 export { TransitionState } from '../transition'
 
@@ -15,21 +42,9 @@ export type {
   MovedPointerOverItem,
   RequestedItemClick,
   Searched,
-  ClearedSearch,
   PressedPointerOnButton,
-  DetectedButtonMovement,
-  CompletedLockScroll,
-  CompletedUnlockScroll,
-  CompletedSetupInert,
-  CompletedTeardownInert,
-  CompletedFocusButton,
-  CompletedFocusItems,
-  CompletedScrollIntoView,
-  CompletedClickItem,
   IgnoredMouseClick,
   SuppressedSpaceScroll,
-  AdvancedTransitionFrame,
-  EndedTransition,
   ItemConfig,
   GroupHeading,
 } from './shared'

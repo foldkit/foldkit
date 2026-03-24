@@ -259,35 +259,47 @@ type SelectedItemContext = Readonly<{
   maybeRestoreInert: Option.Option<Command.Command<Message>>
 }>
 
+/** Advances the listbox's enter/leave transition by waiting a double-rAF. */
 export const RequestFrame = Command.define(
   'RequestFrame',
   AdvancedTransitionFrame,
 )
+/** Prevents page scrolling while the listbox is open in modal mode. */
 export const LockScroll = Command.define('LockScroll', CompletedLockScroll)
+/** Re-enables page scrolling after the listbox closes. */
 export const UnlockScroll = Command.define(
   'UnlockScroll',
   CompletedUnlockScroll,
 )
+/** Marks all elements outside the listbox as inert for modal behavior. */
 export const InertOthers = Command.define('InertOthers', CompletedSetupInert)
+/** Removes the inert attribute from elements outside the listbox. */
 export const RestoreInert = Command.define(
   'RestoreInert',
   CompletedTeardownInert,
 )
+/** Moves focus back to the listbox button after closing. */
 export const FocusButton = Command.define('FocusButton', CompletedFocusButton)
+/** Moves focus to the listbox items container after opening. */
 export const FocusItems = Command.define('FocusItems', CompletedFocusItems)
+/** Scrolls the active listbox item into view after keyboard navigation. */
 export const ScrollIntoView = Command.define(
   'ScrollIntoView',
   CompletedScrollIntoView,
 )
+/** Programmatically clicks the active listbox item's DOM element. */
 export const ClickItem = Command.define('ClickItem', CompletedClickItem)
+/** Waits for the typeahead search debounce period before clearing the query. */
 export const DelayClearSearch = Command.define(
   'DelayClearSearch',
   ClearedSearch,
 )
+/** Waits for all CSS transitions on the listbox items container to complete. */
 export const WaitForTransitions = Command.define(
   'WaitForTransitions',
   EndedTransition,
 )
+/** Detects whether the listbox button moved or the leave transition ended — whichever comes first. */
 export const DetectMovementOrTransitionEnd = Command.define(
   'DetectMovementOrTransitionEnd',
   DetectedButtonMovement,

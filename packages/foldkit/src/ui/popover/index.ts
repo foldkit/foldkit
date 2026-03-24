@@ -142,26 +142,35 @@ const panelSelector = (id: string): string => `#${id}-panel`
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
+/** Advances the popover's enter/leave transition by waiting a double-rAF. */
 export const RequestFrame = Command.define(
   'RequestFrame',
   AdvancedTransitionFrame,
 )
+/** Prevents page scrolling while the popover is open in modal mode. */
 export const LockScroll = Command.define('LockScroll', CompletedLockScroll)
+/** Re-enables page scrolling after the popover closes. */
 export const UnlockScroll = Command.define(
   'UnlockScroll',
   CompletedUnlockScroll,
 )
+/** Marks all elements outside the popover as inert for modal behavior. */
 export const InertOthers = Command.define('InertOthers', CompletedSetupInert)
+/** Removes the inert attribute from elements outside the popover. */
 export const RestoreInert = Command.define(
   'RestoreInert',
   CompletedTeardownInert,
 )
+/** Moves focus to the popover panel after opening. */
 export const FocusPanel = Command.define('FocusPanel', CompletedFocusPanel)
+/** Moves focus back to the popover button after closing. */
 export const FocusButton = Command.define('FocusButton', CompletedFocusButton)
+/** Waits for all CSS transitions on the popover panel to complete. */
 export const WaitForTransitions = Command.define(
   'WaitForTransitions',
   EndedTransition,
 )
+/** Detects whether the popover button moved or the leave transition ended — whichever comes first. */
 export const DetectMovementOrTransitionEnd = Command.define(
   'DetectMovementOrTransitionEnd',
   DetectedButtonMovement,

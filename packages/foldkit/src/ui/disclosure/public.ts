@@ -1,9 +1,12 @@
-export { init, update, view, lazy, Model, Message } from './index'
-
-export type {
-  Toggled,
-  Closed,
+export {
+  init,
+  update,
+  view,
+  lazy,
+  Model,
+  Message,
   CompletedFocusButton,
-  InitConfig,
-  ViewConfig,
+  FocusButton,
 } from './index'
+
+export type { Toggled, Closed, InitConfig, ViewConfig } from './index'

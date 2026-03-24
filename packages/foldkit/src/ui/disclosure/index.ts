@@ -64,6 +64,7 @@ const buttonSelector = (id: string): string => `#${CSS.escape(buttonId(id))}`
 
 const panelId = (id: string): string => `${id}-panel`
 
+/** Moves focus to the disclosure's toggle button. */
 export const FocusButton = Command.define('FocusButton', CompletedFocusButton)
 
 /** Processes a disclosure message and returns the next model and commands. */

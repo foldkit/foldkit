@@ -71,6 +71,7 @@ export const init = (config: InitConfig): Model => ({
 
 const optionId = (id: string, index: number): string => `${id}-option-${index}`
 
+/** Moves focus to the radio option at the given index. */
 export const FocusOption = Command.define('FocusOption', CompletedFocusOption)
 
 /** Processes a radio group message and returns the next model and commands. */

@@ -242,30 +242,40 @@ export type SelectedItemContext = Readonly<{
 }>
 
 /** Creates a combobox update function from variant-specific handlers. Shared logic (open, close, activate, transition) is handled internally; only close, selection, and immediate-activation behavior varies by variant. */
+/** Advances the combobox's enter/leave transition by waiting a double-rAF. */
 export const RequestFrame = Command.define(
   'RequestFrame',
   AdvancedTransitionFrame,
 )
+/** Prevents page scrolling while the combobox popup is open in modal mode. */
 export const LockScroll = Command.define('LockScroll', CompletedLockScroll)
+/** Re-enables page scrolling after the combobox popup closes. */
 export const UnlockScroll = Command.define(
   'UnlockScroll',
   CompletedUnlockScroll,
 )
+/** Marks all elements outside the combobox as inert for modal behavior. */
 export const InertOthers = Command.define('InertOthers', CompletedSetupInert)
+/** Removes the inert attribute from elements outside the combobox. */
 export const RestoreInert = Command.define(
   'RestoreInert',
   CompletedTeardownInert,
 )
+/** Moves focus to the combobox input after selection or close. */
 export const FocusInput = Command.define('FocusInput', CompletedFocusInput)
+/** Scrolls the active combobox item into view after keyboard navigation. */
 export const ScrollIntoView = Command.define(
   'ScrollIntoView',
   CompletedScrollIntoView,
 )
+/** Programmatically clicks the active combobox item's DOM element. */
 export const ClickItem = Command.define('ClickItem', CompletedClickItem)
+/** Waits for all CSS transitions on the combobox items container to complete. */
 export const WaitForTransitions = Command.define(
   'WaitForTransitions',
   EndedTransition,
 )
+/** Detects whether the combobox input moved or the leave transition ended — whichever comes first. */
 export const DetectMovementOrTransitionEnd = Command.define(
   'DetectMovementOrTransitionEnd',
   DetectedInputMovement,

@@ -85,6 +85,7 @@ export const init = (config: InitConfig): Model => {
 
 // UPDATE
 
+/** Moves focus to the tab at the given index. */
 export const FocusTab = Command.define('FocusTab', CompletedFocusTab)
 
 /** Processes a tabs message and returns the next model and commands. */

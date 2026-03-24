@@ -89,12 +89,16 @@ const panelSelector = (id: string): string => `#${id}-panel`
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
+/** Advances the dialog's enter/leave transition by waiting a double-rAF. */
 export const RequestFrame = Command.define(
   'RequestFrame',
   AdvancedTransitionFrame,
 )
+/** Locks page scroll and calls `showModal()` on the native dialog element. */
 export const ShowDialog = Command.define('ShowDialog', CompletedShowDialog)
+/** Calls `close()` on the native dialog element and unlocks page scroll. */
 export const CloseDialog = Command.define('CloseDialog', CompletedCloseDialog)
+/** Waits for all CSS transitions on the dialog panel to complete. */
 export const WaitForTransitions = Command.define(
   'WaitForTransitions',
   EndedTransition,

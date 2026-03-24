@@ -1,6 +1,28 @@
 export { init, update, view, lazy, Model } from './single'
 
-export { Message } from './shared'
+export {
+  Message,
+  CompletedLockScroll,
+  CompletedUnlockScroll,
+  CompletedSetupInert,
+  CompletedTeardownInert,
+  CompletedFocusInput,
+  CompletedScrollIntoView,
+  CompletedClickItem,
+  AdvancedTransitionFrame,
+  EndedTransition,
+  DetectedInputMovement,
+  RequestFrame,
+  LockScroll,
+  UnlockScroll,
+  InertOthers,
+  RestoreInert,
+  FocusInput,
+  ScrollIntoView,
+  ClickItem,
+  WaitForTransitions,
+  DetectMovementOrTransitionEnd,
+} from './shared'
 
 export { TransitionState } from '../transition'
 
@@ -16,16 +38,6 @@ export type {
   RequestedItemClick,
   UpdatedInputValue,
   PressedToggleButton,
-  CompletedLockScroll,
-  CompletedUnlockScroll,
-  CompletedSetupInert,
-  CompletedTeardownInert,
-  CompletedFocusInput,
-  CompletedScrollIntoView,
-  CompletedClickItem,
-  AdvancedTransitionFrame,
-  EndedTransition,
-  DetectedInputMovement,
   ItemConfig,
   GroupHeading,
 } from './shared'
