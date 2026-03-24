@@ -273,6 +273,7 @@ Every message must carry meaning. No `NoOp`.
 ### Runtime Wiring
 
 - Use `Runtime.makeProgram` — add `routing: { onUrlRequest, onUrlChange }` for apps with URL routing
+- Add `title: model => ...` to set `document.title` after every render — derive from route or any model state
 - See the With and Without URL Routing section in [architecture.md](architecture.md) for the full pattern
 - Include `ClickedLink` and `ChangedUrl` Messages for programs with routing, with proper `InternalUrl`/`ExternalUrl` handling in update
 - Always end with `Runtime.run(program)`

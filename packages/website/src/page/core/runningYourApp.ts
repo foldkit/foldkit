@@ -108,6 +108,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' guide for a full walkthrough.',
       ),
       para(
+        'The optional ',
+        inlineCode('title'),
+        ' function sets ',
+        inlineCode('document.title'),
+        ' after every render. It receives the current Model, so the browser tab title stays in sync as you navigate.',
+      ),
+      para(
         'Most apps can start with just these runtime options. The next page covers Resources — long-lived browser singletons like ',
         inlineCode('AudioContext'),
         ' or ',

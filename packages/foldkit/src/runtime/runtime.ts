@@ -214,6 +214,8 @@ type RuntimeConfig<
    * `makeManagedResources`.
    */
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
+  /** Derives the document title from the current model. Called after every render. */
+  title?: (model: Model) => string
   devtools?: DevtoolsConfig
 }>
 
@@ -244,6 +246,8 @@ type BaseProgramConfig<
   slowView?: SlowViewConfig<Model, Message>
   resources?: Layer.Layer<Resources>
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
+  /** Derives the document title from the current model. Called after every render. */
+  title?: (model: Model) => string
   devtools?: DevtoolsConfig
 }>
 
@@ -426,6 +430,7 @@ const makeRuntime = <
   slowView,
   resources,
   managedResources,
+  title,
   devtools,
 }: RuntimeConfig<
   Model,
@@ -713,6 +718,10 @@ const makeRuntime = <
               patchVNode(maybeCurrentVNode, nextVNodeNullish, container),
             )
             yield* Ref.set(maybeCurrentVNodeRef, Option.some(patchedVNode))
+
+            if (title) {
+              document.title = title(model)
+            }
           }).pipe(
             Effect.provideService(Dispatch, {
               dispatchAsync,
@@ -1107,6 +1116,7 @@ export function makeProgram<
     ...(config.managedResources && {
       managedResources: config.managedResources,
     }),
+    ...(config.title && { title: config.title }),
     ...(Predicate.isNotUndefined(config.devtools) && {
       devtools: config.devtools,
     }),

@@ -387,6 +387,7 @@ const program = Runtime.makeProgram({
   init,
   update,
   view,
+  title: model => routeTitle(model.route),
   container: document.getElementById('root')!,
   routing: {
     onUrlRequest: request => ClickedLink({ request }),
@@ -396,6 +397,10 @@ const program = Runtime.makeProgram({
 
 Runtime.run(program)
 ```
+
+### Document Title
+
+Pass a `title` function to set `document.title` after every render. It receives the current Model and returns a string. This is optional — programs that omit `title` don't touch the document title, which is the right default for embedded widgets. The `title` function is independent of `routing` — non-routed programs can set titles based on any model state (e.g. a game showing "Level 3" or "Game Over").
 
 `onUrlRequest` fires when the user clicks a link. The Message receives a `UrlRequest` (either `InternalUrl` or `ExternalUrl`). Handle it in update:
 

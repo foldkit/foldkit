@@ -920,6 +920,11 @@ const program = Runtime.makeProgram({
   init,
   update,
   view,
+  title: model =>
+    M.value(model.route).pipe(
+      M.tag('Browse', () => 'Dinosaur Explorer'),
+      M.orElse(() => 'Not Found — Dinosaur Explorer'),
+    ),
   container: document.getElementById('root')!,
   routing: {
     onUrlRequest: request => ClickedLink({ request }),

@@ -8,6 +8,7 @@ import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { inject } from '@vercel/analytics'
 import * as SpeedInsights from '@vercel/speed-insights'
 import {
+  Array,
   DateTime,
   Effect,
   HashSet,
@@ -17,6 +18,7 @@ import {
   Option,
   Schema as S,
   Tracer,
+  pipe,
 } from 'effect'
 import { Command, FieldValidation, Runtime, Ui } from 'foldkit'
 import { load, pushUrl } from 'foldkit/navigation'
@@ -24,6 +26,7 @@ import { evo } from 'foldkit/struct'
 import { makeSubscriptions } from 'foldkit/subscription'
 import { Url, toString as urlToString } from 'foldkit/url'
 
+import { allPages } from './docsNav'
 import {
   ChangedUrl,
   ClickedLink,
@@ -1061,6 +1064,41 @@ const view = (model: Model) =>
     M.orElse(route => docsView(model, route)),
   )
 
+// TITLE
+
+const SITE_NAME = 'Foldkit'
+
+const routeTitle = (route: AppRoute): string =>
+  M.value(route).pipe(
+    M.tag('Home', () => SITE_NAME),
+    M.tag('Newsletter', () => `Newsletter — ${SITE_NAME}`),
+    M.tag('NotFound', () => `Not Found — ${SITE_NAME}`),
+    M.tag(
+      'ApiModule',
+      ({ moduleSlug }) => `${moduleSlug} — API — ${SITE_NAME}`,
+    ),
+    M.tag('ExampleDetail', ({ exampleSlug }) =>
+      pipe(
+        allPages,
+        Array.findFirst(({ _tag }) => _tag === `ExampleDetail:${exampleSlug}`),
+        Option.match({
+          onNone: () => `${exampleSlug} — Examples — ${SITE_NAME}`,
+          onSome: ({ label }) => `${label} — Examples — ${SITE_NAME}`,
+        }),
+      ),
+    ),
+    M.orElse(({ _tag }) =>
+      pipe(
+        allPages,
+        Array.findFirst(page => page._tag === _tag),
+        Option.match({
+          onNone: () => SITE_NAME,
+          onSome: page => `${page.label} — ${SITE_NAME}`,
+        }),
+      ),
+    ),
+  )
+
 // SUBSCRIPTION
 
 const SubscriptionDeps = S.Struct({
@@ -1140,6 +1178,7 @@ const program = Runtime.makeProgram({
   init,
   update,
   view,
+  title: ({ route }) => routeTitle(route),
   subscriptions,
   container: document.getElementById('root')!,
   routing: {
