@@ -648,6 +648,7 @@ export type BaseViewConfig<
       | CompletedScrollIntoView
       | CompletedClickItem,
   ) => Message
+  onSelectedItem?: (value: string) => Message
   items: ReadonlyArray<Item>
   itemToConfig: (
     item: Item,
@@ -741,6 +742,7 @@ export const makeView =
     const {
       model: { id, isOpen, immediate, transitionState, maybeActiveItemIndex },
       toParentMessage,
+      onSelectedItem,
       items,
       itemToConfig,
       itemToValue,
@@ -774,6 +776,16 @@ export const makeView =
       separatorAttributes = [],
       anchor,
     } = config
+
+    const dispatchSelectedItem = (item: Item, index: number): Message =>
+      onSelectedItem
+        ? onSelectedItem(itemToValue(item, index))
+        : toParentMessage(
+            SelectedItem({
+              item: itemToValue(item, index),
+              displayText: itemToDisplayText(item, index),
+            }),
+          )
 
     const isLeaving =
       transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
@@ -1046,14 +1058,7 @@ export const makeView =
             : []),
           ...(isInteractive
             ? [
-                OnClick(
-                  toParentMessage(
-                    SelectedItem({
-                      item: itemToValue(item, index),
-                      displayText: itemToDisplayText(item, index),
-                    }),
-                  ),
-                ),
+                OnClick(dispatchSelectedItem(item, index)),
                 ...(isActiveItem
                   ? []
                   : [

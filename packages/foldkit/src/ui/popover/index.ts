@@ -374,6 +374,20 @@ export const update = (model: Model, message: Message): UpdateReturn => {
   )
 }
 
+/** Programmatically opens the popover, updating the model and returning
+ *  focus and modal commands. Use this in domain-event handlers when the popover uses `onOpened`. */
+export const open = (
+  model: Model,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+  update(model, Opened())
+
+/** Programmatically closes the popover, updating the model and returning
+ *  focus and modal commands. Use this in domain-event handlers when the popover uses `onClosed`. */
+export const close = (
+  model: Model,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+  update(model, Closed())
+
 // VIEW
 
 /** Configuration for rendering a popover with `view`. */
@@ -388,6 +402,8 @@ export type ViewConfig<Message> = Readonly<{
       | IgnoredMouseClick
       | SuppressedSpaceScroll,
   ) => Message
+  onOpened?: () => Message
+  onClosed?: () => Message
   anchor: AnchorConfig
   buttonContent: Html
   buttonClassName?: string
@@ -428,6 +444,8 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
   const {
     model: { id, isOpen, transitionState, maybeLastButtonPointerType },
     toParentMessage,
+    onOpened,
+    onClosed,
     anchor,
     buttonContent,
     buttonClassName,
@@ -441,6 +459,12 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     className,
     attributes = [],
   } = config
+
+  const dispatchOpened = (): Message =>
+    onOpened ? onOpened() : toParentMessage(Opened())
+
+  const dispatchClosed = (): Message =>
+    onClosed ? onClosed() : toParentMessage(Closed())
 
   const isLeaving =
     transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
@@ -472,7 +496,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
   const handleButtonKeyDown = (key: string): Option.Option<Message> =>
     M.value(key).pipe(
       M.whenOr('Enter', ' ', 'ArrowDown', () =>
-        Option.some(toParentMessage(isOpen ? Closed() : Opened())),
+        Option.some(isOpen ? dispatchClosed() : dispatchOpened()),
       ),
       M.orElse(() => Option.none()),
     )
@@ -499,9 +523,9 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     if (isMouse) {
       return toParentMessage(IgnoredMouseClick())
     } else if (isOpen) {
-      return toParentMessage(Closed())
+      return dispatchClosed()
     } else {
-      return toParentMessage(Opened())
+      return dispatchOpened()
     }
   }
 
@@ -510,7 +534,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
 
   const handlePanelKeyDown = (key: string): Option.Option<Message> =>
     M.value(key).pipe(
-      M.when('Escape', () => Option.some(toParentMessage(Closed()))),
+      M.when('Escape', () => Option.some(dispatchClosed())),
       M.orElse(() => Option.none()),
     )
 
@@ -562,7 +586,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
   const backdrop = keyed('div')(
     `${id}-backdrop`,
     [
-      ...(isLeaving ? [] : [OnClick(toParentMessage(Closed()))]),
+      ...(isLeaving ? [] : [OnClick(dispatchClosed())]),
       ...(backdropClassName ? [Class(backdropClassName)] : []),
       ...backdropAttributes,
     ],
@@ -591,7 +615,10 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
 /** Creates a memoized popover view. Static config is captured in a closure;
  *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
 export const lazy = <Message>(
-  staticConfig: Omit<ViewConfig<Message>, 'model' | 'toParentMessage'>,
+  staticConfig: Omit<
+    ViewConfig<Message>,
+    'model' | 'toParentMessage' | 'onOpened' | 'onClosed'
+  >,
 ): ((
   model: Model,
   toParentMessage: ViewConfig<Message>['toParentMessage'],

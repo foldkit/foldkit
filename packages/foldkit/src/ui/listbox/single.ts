@@ -1,11 +1,14 @@
 import { Array, Option, Schema as S, pipe } from 'effect'
 
+import type * as Command from '../../command'
 import { type Html, createLazy } from '../../html'
 import { evo } from '../../struct'
 import {
   type BaseInitConfig,
   BaseModel,
   type BaseViewConfig,
+  type Message,
+  SelectedItem,
   baseInit,
   closedModel,
   makeUpdate,
@@ -52,6 +55,14 @@ export const update = makeUpdate<Model>((model, item, context) => [
   ),
 ])
 
+/** Programmatically selects an item in the single-select listbox, closing the listbox and returning
+ *  focus commands. Use this in domain-event handlers when the listbox uses `onSelectedItem`. */
+export const selectItem = (
+  model: Model,
+  item: string,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+  update(model, SelectedItem({ item }))
+
 // VIEW
 
 /** Configuration for rendering a single-select listbox with `view`. */
@@ -74,7 +85,10 @@ export const view = makeView<Model>({
 /** Creates a memoized single-select listbox view. Static config is captured in a closure;
  *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
 export const lazy = <Message, Item>(
-  staticConfig: Omit<ViewConfig<Message, Item>, 'model' | 'toParentMessage'>,
+  staticConfig: Omit<
+    ViewConfig<Message, Item>,
+    'model' | 'toParentMessage' | 'onSelectedItem'
+  >,
 ): ((
   model: Model,
   toParentMessage: BaseViewConfig<Message, Item, Model>['toParentMessage'],

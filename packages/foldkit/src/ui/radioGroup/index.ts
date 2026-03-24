@@ -103,6 +103,22 @@ export const update = (
     }),
   )
 
+/** Programmatically selects a value in the radio group, updating the model and returning
+ *  focus commands. Use this in domain-event handlers when the radio group uses `onSelected`. */
+export const select = (
+  model: Model,
+  value: string,
+  options: ReadonlyArray<string>,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+  pipe(
+    options,
+    Array.findFirstIndex(option => option === value),
+    Option.match({
+      onNone: () => [model, []],
+      onSome: index => update(model, SelectedOption({ value, index })),
+    }),
+  )
+
 // VIEW
 
 /** Attribute groups the radio group component provides for each option's `content` callback. */
@@ -136,6 +152,7 @@ export type ViewConfig<Message, RadioOption extends string> = Readonly<{
   toParentMessage: (
     message: NarrowedSelectedOption<RadioOption> | CompletedFocusOption,
   ) => Message
+  onSelected?: (value: RadioOption, index: number) => Message
   options: ReadonlyArray<RadioOption>
   optionToConfig: (
     option: RadioOption,
@@ -189,6 +206,7 @@ export const view = <Message, RadioOption extends string>(
     model,
     model: { id, selectedValue },
     toParentMessage,
+    onSelected,
     options,
     optionToConfig,
     isOptionDisabled: isOptionDisabledFn,
@@ -199,6 +217,11 @@ export const view = <Message, RadioOption extends string>(
     name,
     isDisabled: isGroupDisabled = false,
   } = config
+
+  const dispatchSelected = (value: RadioOption, index: number): Message =>
+    onSelected
+      ? onSelected(value, index)
+      : toParentMessage({ _tag: 'SelectedOption', value, index })
 
   const isDisabled = (index: number): boolean => {
     if (isGroupDisabled) {
@@ -289,13 +312,7 @@ export const view = <Message, RadioOption extends string>(
             return pipe(
               optionValues,
               Array.get(nextIndex),
-              Option.map(value =>
-                toParentMessage({
-                  _tag: 'SelectedOption',
-                  value,
-                  index: nextIndex,
-                }),
-              ),
+              Option.map(value => dispatchSelected(value, nextIndex)),
             )
           },
         ),
@@ -303,13 +320,7 @@ export const view = <Message, RadioOption extends string>(
           pipe(
             optionValues,
             Array.get(currentIndex),
-            Option.map(value =>
-              toParentMessage({
-                _tag: 'SelectedOption',
-                value,
-                index: currentIndex,
-              }),
-            ),
+            Option.map(value => dispatchSelected(value, currentIndex)),
           ),
         ),
         M.orElse(() => Option.none()),
@@ -348,13 +359,7 @@ export const view = <Message, RadioOption extends string>(
       ...(isOptionDisabled
         ? []
         : [
-            OnClick(
-              toParentMessage({
-                _tag: 'SelectedOption',
-                value: optionConfig.value,
-                index,
-              }),
-            ),
+            OnClick(dispatchSelected(optionConfig.value, index)),
             OnKeyDownPreventDefault(handleKeyDown(index)),
           ]),
     ]
@@ -407,7 +412,7 @@ export const view = <Message, RadioOption extends string>(
 export const lazy = <Message, RadioOption extends string>(
   staticConfig: Omit<
     ViewConfig<Message, RadioOption>,
-    'model' | 'toParentMessage'
+    'model' | 'toParentMessage' | 'onSelected'
   >,
 ): ((
   model: Model,

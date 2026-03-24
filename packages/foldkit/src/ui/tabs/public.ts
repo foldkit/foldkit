@@ -1,10 +1,13 @@
 export {
   init,
   update,
+  selectTab,
   view,
   lazy,
   Model,
   Message,
+  TabSelected,
+  TabFocused,
   CompletedFocusTab,
   FocusTab,
 } from './index'
@@ -12,8 +15,6 @@ export {
 export type {
   Orientation,
   ActivationMode,
-  TabSelected,
-  TabFocused,
   InitConfig,
   ViewConfig,
   TabConfig,

@@ -2,6 +2,7 @@ export { init, update, view, lazy, Model } from './single'
 
 export {
   Message,
+  SelectedItem,
   CompletedLockScroll,
   CompletedUnlockScroll,
   CompletedSetupInert,
@@ -33,7 +34,6 @@ export type {
   ClosedByTab,
   ActivatedItem,
   DeactivatedItem,
-  SelectedItem,
   MovedPointerOverItem,
   RequestedItemClick,
   UpdatedInputValue,

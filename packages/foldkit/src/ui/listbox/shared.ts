@@ -672,6 +672,7 @@ export type BaseViewConfig<Message, Item, Model extends BaseModel> = Readonly<{
       | IgnoredMouseClick
       | SuppressedSpaceScroll,
   ) => Message
+  onSelectedItem?: (value: string) => Message
   items: ReadonlyArray<Item>
   itemToConfig: (
     item: Item,
@@ -769,6 +770,7 @@ export const makeView =
         maybeLastButtonPointerType,
       },
       toParentMessage,
+      onSelectedItem,
       items,
       itemToConfig,
       isItemDisabled,
@@ -800,6 +802,11 @@ export const makeView =
     const itemToValue = config.itemToValue ?? (item => String(item))
     const itemToSearchText =
       config.itemToSearchText ?? (item => itemToValue(item))
+
+    const dispatchSelectedItem = (value: string): Message =>
+      onSelectedItem
+        ? onSelectedItem(value)
+        : toParentMessage(SelectedItem({ item: value }))
 
     const isLeaving =
       transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
@@ -1077,9 +1084,7 @@ export const makeView =
             : []),
           ...(isInteractive
             ? [
-                OnClick(
-                  toParentMessage(SelectedItem({ item: itemToValue(item) })),
-                ),
+                OnClick(dispatchSelectedItem(itemToValue(item))),
                 ...(isActiveItem
                   ? []
                   : [

@@ -1,10 +1,14 @@
 export {
   init,
   update,
+  open,
+  close,
   view,
   lazy,
   Model,
   Message,
+  Opened,
+  Closed,
   CompletedFocusPanel,
   CompletedFocusButton,
   CompletedLockScroll,
@@ -28,8 +32,6 @@ export {
 export { TransitionState } from '../transition'
 
 export type {
-  Opened,
-  Closed,
   ClosedByTab,
   PressedPointerOnButton,
   IgnoredMouseClick,

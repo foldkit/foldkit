@@ -678,6 +678,14 @@ export const update = (model: Model, message: Message): UpdateReturn => {
   )
 }
 
+/** Programmatically selects a menu item at the given index, closing the menu and returning
+ *  focus commands. Use this in domain-event handlers when the menu uses `onSelectedItem`. */
+export const selectItem = (
+  model: Model,
+  index: number,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+  update(model, SelectedItem({ index }))
+
 // VIEW
 
 /** Configuration for an individual menu item's appearance. */
@@ -711,6 +719,7 @@ export type ViewConfig<Message, Item extends string> = Readonly<{
       | IgnoredMouseClick
       | SuppressedSpaceScroll,
   ) => Message
+  onSelectedItem?: (index: number) => Message
   items: ReadonlyArray<Item>
   itemToConfig: (
     item: Item,
@@ -785,6 +794,7 @@ export const view = <Message, Item extends string>(
       maybeLastButtonPointerType,
     },
     toParentMessage,
+    onSelectedItem,
     items,
     itemToConfig,
     isItemDisabled,
@@ -809,6 +819,11 @@ export const view = <Message, Item extends string>(
     separatorAttributes = [],
     anchor,
   } = config
+
+  const dispatchSelectedItem = (index: number): Message =>
+    onSelectedItem
+      ? onSelectedItem(index)
+      : toParentMessage(SelectedItem({ index }))
 
   const isLeaving =
     transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
@@ -1065,7 +1080,7 @@ export const view = <Message, Item extends string>(
           : []),
         ...(isInteractive
           ? [
-              OnClick(toParentMessage(SelectedItem({ index }))),
+              OnClick(dispatchSelectedItem(index)),
               ...(isActiveItem
                 ? []
                 : [
@@ -1211,7 +1226,10 @@ export const view = <Message, Item extends string>(
 /** Creates a memoized menu view. Static config is captured in a closure;
  *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
 export const lazy = <Message, Item extends string>(
-  staticConfig: Omit<ViewConfig<Message, Item>, 'model' | 'toParentMessage'>,
+  staticConfig: Omit<
+    ViewConfig<Message, Item>,
+    'model' | 'toParentMessage' | 'onSelectedItem'
+  >,
 ): ((
   model: Model,
   toParentMessage: ViewConfig<Message, Item>['toParentMessage'],

@@ -243,6 +243,7 @@ export type ViewConfig<Message> = Readonly<{
   toParentMessage: (
     message: Closed | CompletedShowDialog | CompletedCloseDialog,
   ) => Message
+  onClosed?: () => Message
   panelContent: Html
   panelClassName?: string
   panelAttributes?: ReadonlyArray<Attribute<Message>>
@@ -251,6 +252,13 @@ export type ViewConfig<Message> = Readonly<{
   className?: string
   attributes?: ReadonlyArray<Attribute<Message>>
 }>
+
+/** Programmatically closes the dialog, updating the model and returning
+ *  close commands. Use this in domain-event handlers when the dialog uses `onClosed`. */
+export const close = (
+  model: Model,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+  update(model, Closed())
 
 /** Renders a headless dialog component backed by the native `<dialog>` element with `showModal()`. */
 export const view = <Message>(config: ViewConfig<Message>): Html => {
@@ -269,6 +277,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
   const {
     model: { id, isOpen, transitionState },
     toParentMessage,
+    onClosed,
     panelContent,
     panelClassName,
     panelAttributes = [],
@@ -277,6 +286,9 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     className,
     attributes = [],
   } = config
+
+  const dispatchClosed = (): Message =>
+    onClosed ? onClosed() : toParentMessage(Closed())
 
   const isLeaving =
     transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
@@ -309,7 +321,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     Id(id),
     AriaLabelledBy(`${id}-title`),
     AriaDescribedBy(`${id}-description`),
-    OnCancel(toParentMessage(Closed())),
+    OnCancel(dispatchClosed()),
     Style({
       width: '100%',
       height: '100%',
@@ -329,7 +341,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     [
       Style({ minHeight: '100vh' }),
       ...transitionAttributes,
-      ...(isLeaving ? [] : [OnClick(toParentMessage(Closed()))]),
+      ...(isLeaving ? [] : [OnClick(dispatchClosed())]),
       ...(backdropClassName ? [Class(backdropClassName)] : []),
       ...backdropAttributes,
     ],
@@ -355,7 +367,10 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
 /** Creates a memoized dialog view. Static config is captured in a closure;
  *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
 export const lazy = <Message>(
-  staticConfig: Omit<ViewConfig<Message>, 'model' | 'toParentMessage'>,
+  staticConfig: Omit<
+    ViewConfig<Message>,
+    'model' | 'toParentMessage' | 'onClosed'
+  >,
 ): ((
   model: Model,
   toParentMessage: ViewConfig<Message>['toParentMessage'],

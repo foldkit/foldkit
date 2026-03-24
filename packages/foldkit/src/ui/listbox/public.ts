@@ -1,8 +1,9 @@
-export { init, update, view, lazy, Model } from './single'
+export { init, update, selectItem, view, lazy, Model } from './single'
 
 export {
   Message,
   Orientation,
+  SelectedItem,
   CompletedLockScroll,
   CompletedUnlockScroll,
   CompletedSetupInert,
@@ -38,7 +39,6 @@ export type {
   ClosedByTab,
   ActivatedItem,
   DeactivatedItem,
-  SelectedItem,
   MovedPointerOverItem,
   RequestedItemClick,
   Searched,

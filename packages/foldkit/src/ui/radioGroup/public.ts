@@ -1,16 +1,17 @@
 export {
   init,
   update,
+  select,
   view,
   lazy,
   Model,
   Message,
+  SelectedOption,
   CompletedFocusOption,
   FocusOption,
 } from './index'
 
 export type {
-  SelectedOption,
   NarrowedSelectedOption,
   Orientation,
   InitConfig,

@@ -151,6 +151,7 @@ export type TabConfig<Message = unknown> = Readonly<{
 export type ViewConfig<Message, Tab extends string> = Readonly<{
   model: Model
   toParentMessage: (message: TabSelected | TabFocused) => Message
+  onTabSelected?: (index: number) => Message
   tabs: ReadonlyArray<Tab>
   tabToConfig: (tab: Tab, context: { isActive: boolean }) => TabConfig<Message>
   isTabDisabled?: (tab: Tab, index: number) => boolean
@@ -169,6 +170,14 @@ export type ViewConfig<Message, Tab extends string> = Readonly<{
 const tabPanelId = (id: string, index: number): string => `${id}-panel-${index}`
 
 const tabId = (id: string, index: number): string => `${id}-tab-${index}`
+
+/** Programmatically selects a tab at the given index, updating the model and returning
+ *  focus commands. Use this in domain-event handlers when the tab group uses `onTabSelected`. */
+export const selectTab = (
+  model: Model,
+  index: number,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+  update(model, TabSelected({ index }))
 
 /** Renders a headless tab group with accessible ARIA roles, roving tabindex, and keyboard navigation. */
 export const view = <Message, Tab extends string>(
@@ -200,6 +209,7 @@ export const view = <Message, Tab extends string>(
     model,
     model: { id, activationMode, focusedIndex },
     toParentMessage,
+    onTabSelected,
     tabs,
     tabToConfig,
     isTabDisabled,
@@ -214,6 +224,11 @@ export const view = <Message, Tab extends string>(
     tabListAttributes = [],
     tabListAriaLabel,
   } = config
+
+  const dispatchTabSelected = (index: number): Message =>
+    onTabSelected
+      ? onTabSelected(index)
+      : toParentMessage(TabSelected({ index }))
 
   const isDisabled = (index: number): boolean =>
     !!isTabDisabled &&
@@ -246,12 +261,10 @@ export const view = <Message, Tab extends string>(
   const handleAutomaticKeyDown = (key: string): Option.Option<Message> =>
     M.value(key).pipe(
       M.whenOr(nextKey, previousKey, 'Home', 'End', 'PageUp', 'PageDown', () =>
-        Option.some(
-          toParentMessage(TabSelected({ index: resolveKeyIndex(key) })),
-        ),
+        Option.some(dispatchTabSelected(resolveKeyIndex(key))),
       ),
       M.whenOr('Enter', ' ', () =>
-        Option.some(toParentMessage(TabSelected({ index: focusedIndex }))),
+        Option.some(dispatchTabSelected(focusedIndex)),
       ),
       M.orElse(() => Option.none()),
     )
@@ -264,7 +277,7 @@ export const view = <Message, Tab extends string>(
         ),
       ),
       M.whenOr('Enter', ' ', () =>
-        Option.some(toParentMessage(TabSelected({ index: focusedIndex }))),
+        Option.some(dispatchTabSelected(focusedIndex)),
       ),
       M.orElse(() => Option.none()),
     )
@@ -294,7 +307,7 @@ export const view = <Message, Tab extends string>(
         ...(isActive ? [DataAttribute('selected', '')] : []),
         ...(isTabDisabledAtIndex
           ? [Disabled(true), AriaDisabled(true), DataAttribute('disabled', '')]
-          : [OnClick(toParentMessage(TabSelected({ index })))]),
+          : [OnClick(dispatchTabSelected(index))]),
         OnKeyDownPreventDefault(handleKeyDown),
         ...(tabConfig.buttonClassName
           ? [Class(tabConfig.buttonClassName)]
@@ -380,7 +393,10 @@ export const view = <Message, Tab extends string>(
 /** Creates a memoized tabs view. Static config is captured in a closure;
  *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
 export const lazy = <Message, Tab extends string>(
-  staticConfig: Omit<ViewConfig<Message, Tab>, 'model' | 'toParentMessage'>,
+  staticConfig: Omit<
+    ViewConfig<Message, Tab>,
+    'model' | 'toParentMessage' | 'onTabSelected'
+  >,
 ): ((
   model: Model,
   toParentMessage: ViewConfig<Message, Tab>['toParentMessage'],

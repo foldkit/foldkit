@@ -116,6 +116,7 @@ export const update = (
 export type ViewConfig<Message> = Readonly<{
   model: Model
   toParentMessage: (message: Toggled | Closed | CompletedFocusButton) => Message
+  onToggled?: () => Message
   buttonClassName?: string
   buttonAttributes?: ReadonlyArray<Attribute<Message>>
   buttonContent: Html
@@ -129,6 +130,13 @@ export type ViewConfig<Message> = Readonly<{
   className?: string
   attributes?: ReadonlyArray<Attribute<Message>>
 }>
+
+/** Programmatically toggles the disclosure, updating the model and returning
+ *  focus commands. Use this in domain-event handlers when the disclosure uses `onToggled`. */
+export const toggle = (
+  model: Model,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+  update(model, Toggled())
 
 /** Renders a headless disclosure component with accessible ARIA attributes and keyboard support. */
 export const view = <Message>(config: ViewConfig<Message>): Html => {
@@ -153,6 +161,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
   const {
     model: { id, isOpen },
     toParentMessage,
+    onToggled,
     buttonClassName,
     buttonAttributes = [],
     buttonContent,
@@ -167,11 +176,14 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     attributes = [],
   } = config
 
+  const dispatchToggled = (): Message =>
+    onToggled ? onToggled() : toParentMessage(Toggled())
+
   const isNativeButton = buttonElement === 'button'
 
   const handleKeyDown = (key: string): Option.Option<Message> =>
     M.value(key).pipe(
-      M.whenOr('Enter', ' ', () => Option.some(toParentMessage(Toggled()))),
+      M.whenOr('Enter', ' ', () => Option.some(dispatchToggled())),
       M.orElse(() => Option.none()),
     )
 
@@ -184,7 +196,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
   const interactionAttributes = isDisabled
     ? disabledAttributes
     : [
-        OnClick(toParentMessage(Toggled())),
+        OnClick(dispatchToggled()),
         ...(!isNativeButton ? [OnKeyDownPreventDefault(handleKeyDown)] : []),
       ]
 
@@ -232,7 +244,10 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
 /** Creates a memoized disclosure view. Static config is captured in a closure;
  *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
 export const lazy = <Message>(
-  staticConfig: Omit<ViewConfig<Message>, 'model' | 'toParentMessage'>,
+  staticConfig: Omit<
+    ViewConfig<Message>,
+    'model' | 'toParentMessage' | 'onToggled'
+  >,
 ): ((
   model: Model,
   toParentMessage: ViewConfig<Message>['toParentMessage'],

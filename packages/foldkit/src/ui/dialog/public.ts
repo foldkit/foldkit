@@ -1,6 +1,7 @@
 export {
   init,
   update,
+  close,
   view,
   lazy,
   titleId,
