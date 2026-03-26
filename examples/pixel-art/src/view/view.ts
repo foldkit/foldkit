@@ -88,7 +88,7 @@ const headerView = (): Html =>
   div(
     [
       Class(
-        'flex items-center justify-between px-6 py-3 border-b border-gray-800',
+        'flex items-center justify-between px-4 py-3 border-b border-gray-800',
       ),
     ],
     [
@@ -99,14 +99,31 @@ const headerView = (): Html =>
             [Class('text-lg font-bold tracking-tight leading-none mb-1')],
             ['PixelForge'],
           ),
-          a(
+          div(
             [
-              Href('https://foldkit.dev'),
               Class(
-                'text-xs text-gray-400 hover:text-gray-200 transition leading-none',
+                'flex items-center gap-1 text-xs text-gray-400 leading-none',
               ),
             ],
-            ['Built with Foldkit \u2192'],
+            [
+              a(
+                [
+                  Href('https://foldkit.dev'),
+                  Class('hover:text-gray-200 transition'),
+                ],
+                ['Built with Foldkit'],
+              ),
+              span([], ['/']),
+              a(
+                [
+                  Href(
+                    'https://github.com/foldkit/foldkit/tree/main/examples/pixel-art',
+                  ),
+                  Class('hover:text-gray-200 transition'),
+                ],
+                ['Source on GitHub'],
+              ),
+            ],
           ),
         ],
       ),
