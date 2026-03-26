@@ -27,6 +27,7 @@ export const Link = {
   exampleShoppingCart: `${exampleBase}/shopping-cart/src/main.ts`,
   exampleShoppingCartSubmodel:
     'https://github.com/foldkit/foldkit/blob/main/examples/shopping-cart/src/main.ts#L163-L175',
+  examplePixelArt: `${exampleBase}/pixel-art/src/main.ts`,
   exampleSnake: `${exampleBase}/snake/src/main.ts`,
   exampleSnakeRequestPattern:
     'https://github.com/foldkit/foldkit/blob/main/examples/snake/src/main.ts#L220-L234',
