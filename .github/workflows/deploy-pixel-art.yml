@@ -36,12 +36,11 @@ jobs:
       - name: Build foldkit and vite plugin
         run: pnpm --filter foldkit build && pnpm --filter @foldkit/vite-plugin build
 
-      - name: Build and deploy pixel art
+      - name: Deploy to Vercel
         working-directory: examples/pixel-art
         run: |
           npx vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-          npx vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-          npx vercel deploy --prod --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
+          npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.PIXEL_ART_VERCEL_PROJECT_ID }}
