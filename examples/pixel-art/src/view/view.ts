@@ -13,6 +13,7 @@ import { historyPanelView } from './history'
 import { toolPanelView } from './toolbar'
 
 const {
+  a,
   button,
   div,
   h1,
@@ -21,6 +22,7 @@ const {
   svg,
   AriaHidden,
   Class,
+  Href,
   D,
   Fill,
   Stroke,
@@ -90,7 +92,24 @@ const headerView = (): Html =>
       ),
     ],
     [
-      h1([Class('text-lg font-bold tracking-tight')], ['PixelForge']),
+      div(
+        [Class('flex flex-col')],
+        [
+          h1(
+            [Class('text-lg font-bold tracking-tight leading-none mb-1')],
+            ['PixelForge'],
+          ),
+          a(
+            [
+              Href('https://foldkit.dev'),
+              Class(
+                'text-xs text-gray-400 hover:text-gray-200 transition leading-none',
+              ),
+            ],
+            ['Built with Foldkit \u2192'],
+          ),
+        ],
+      ),
       div(
         [Class('flex items-center gap-4')],
         [
