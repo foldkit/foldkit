@@ -1,7 +1,7 @@
 import { Array, Equal, Option, pipe } from 'effect'
 import { type Html, createKeyedLazy, html } from 'foldkit/html'
 
-import { CANVAS_SIZE_PX, EMPTY_COLOR } from '../constant'
+import { EMPTY_COLOR } from '../constant'
 import { floodFill, getMirroredPositions } from '../grid'
 import { EnteredCell, LeftCanvas, type Message, PressedCell } from '../message'
 import type { Cell, Grid, HexColor, Model, PaletteIndex } from '../model'
@@ -57,21 +57,23 @@ export const canvasView = (model: Model, theme: PaletteTheme): Html => {
   const previewPositions = computePreviewPositions(model)
 
   return div(
-    [Class('flex flex-col items-center gap-4')],
+    [
+      Class(
+        'flex flex-col items-center gap-4 min-w-0 self-start col-span-full min-[480px]:col-span-full md:col-span-1 -order-1 md:order-none',
+      ),
+    ],
     [
       div(
-        [OnMouseLeave(LeftCanvas())],
+        [OnMouseLeave(LeftCanvas()), Class('w-full max-w-lg')],
         [
           html<Message>().keyed('div')(
             `canvas-${model.gridSize}`,
             [
-              Class('cursor-crosshair select-none'),
+              Class('cursor-crosshair select-none w-full aspect-square'),
               Style({
                 display: 'flex',
                 'flex-direction': 'column',
                 backgroundColor: '#ffffff',
-                width: `${CANVAS_SIZE_PX}px`,
-                height: `${CANVAS_SIZE_PX}px`,
               }),
             ],
             Array.filterMap(

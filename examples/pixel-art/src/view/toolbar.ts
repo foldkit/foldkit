@@ -127,7 +127,7 @@ export const toolPanelView = (
   themeListbox: typeof Ui.Listbox.Model.Type,
 ): Html =>
   div(
-    [Class('w-44 flex flex-col gap-5 flex-shrink-0')],
+    [Class('w-full md:w-44 flex flex-col gap-5 flex-shrink-0')],
     [
       toolSectionView(toolRadioGroup),
       mirrorSectionView(

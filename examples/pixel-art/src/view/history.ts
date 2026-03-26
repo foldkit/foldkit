@@ -49,7 +49,7 @@ export const historyPanelView = (
   const hiddenUndoCount = undoCount - visibleUndoEntries.length
 
   return div(
-    [Class('w-44 flex flex-col flex-shrink-0')],
+    [Class('w-full md:w-44 flex flex-col flex-shrink-0')],
     [
       sectionLabel('History'),
       div(

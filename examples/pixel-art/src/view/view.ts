@@ -119,7 +119,11 @@ const contentView = (model: Model): Html => {
   const theme = currentPaletteTheme(model)
 
   return div(
-    [Class('flex-1 flex gap-6 p-6 justify-center items-start')],
+    [
+      Class(
+        'flex-1 grid gap-6 p-4 md:p-6 grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-[auto_1fr_auto] md:justify-center md:items-start max-w-5xl mx-auto w-full',
+      ),
+    ],
     [
       lazyToolPanel(toolPanelView, [
         model.mirrorMode,
