@@ -19,6 +19,7 @@ SLUGS=(
   snake
   crash-view
   websocket-chat
+  pixel-art
   ui-showcase
 )
 

@@ -138,6 +138,17 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     entryFile: 'src/main.ts',
   },
   {
+    slug: 'pixel-art',
+    title: 'Pixel Art',
+    description:
+      'Pixel art editor showcasing undo/redo with immutable snapshots, time-travel history, UI components (RadioGroup, Switch, Listbox, Dialog, Button), createLazy view optimization, Subscriptions, Commands with error handling, and localStorage persistence via Flags.',
+    difficulty: 'Advanced',
+    tags: ['Undo/Redo', 'UI Components', 'Storage'],
+    sourceHref: Link.examplePixelArt,
+    hasRouting: false,
+    entryFile: 'src/main.ts',
+  },
+  {
     slug: 'websocket-chat',
     title: 'WebSocket Chat',
     description:

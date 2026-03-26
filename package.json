@@ -37,6 +37,7 @@
     "dev:example:websocket-chat": "pnpm --filter websocket-chat-example dev",
     "dev:example:auth": "pnpm --filter auth-example dev",
     "dev:example:crash-view": "pnpm --filter crash-view-example dev",
+    "dev:example:pixel-art": "pnpm --filter pixel-art-example dev",
     "dev:example:ui-showcase": "pnpm --filter ui-showcase dev",
     "changeset": "changeset",
     "version-packages": "changeset version && pnpm install --no-frozen-lockfile",
