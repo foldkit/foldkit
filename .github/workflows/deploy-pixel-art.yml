@@ -1,0 +1,50 @@
+name: Deploy Pixel Art to Vercel
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'examples/pixel-art/**'
+      - 'packages/foldkit/**'
+      - 'packages/vite-plugin-foldkit/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/deploy-pixel-art.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build foldkit
+        run: pnpm --filter foldkit build
+
+      - name: Build pixel art
+        working-directory: examples/pixel-art
+        run: npx vite build
+
+      - name: Deploy to Vercel
+        working-directory: examples/pixel-art
+        run: |
+          npx vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+          npx vercel deploy --prod --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.PIXEL_ART_VERCEL_PROJECT_ID }}
