@@ -36,6 +36,10 @@ jobs:
       - name: Build foldkit and vite plugin
         run: pnpm --filter foldkit build && pnpm --filter @foldkit/vite-plugin build
 
+      - name: Build pixel art
+        working-directory: examples/pixel-art
+        run: npx vite build
+
       - name: Deploy to Vercel
         working-directory: examples/pixel-art
         run: |
