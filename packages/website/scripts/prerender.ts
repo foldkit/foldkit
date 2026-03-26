@@ -152,6 +152,7 @@ export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   ExampleDetailRoute({ exampleSlug: 'auth' }),
   ExampleDetailRoute({ exampleSlug: 'shopping-cart' }),
   ExampleDetailRoute({ exampleSlug: 'websocket-chat' }),
+  ExampleDetailRoute({ exampleSlug: 'pixel-art' }),
   ExampleDetailRoute({ exampleSlug: 'ui-showcase' }),
   BestPracticesSideEffectsRoute(),
   BestPracticesMessagesRoute(),
