@@ -1,5 +1,8 @@
 const exampleBase = 'https://github.com/foldkit/foldkit/tree/main/examples'
 
+export const exampleSourceHref = (slug: string): string =>
+  `${exampleBase}/${slug}/src/main.ts`
+
 export const Link = {
   elm: 'https://elm-lang.org',
   elmArchitecture: 'https://guide.elm-lang.org/architecture/',
@@ -17,29 +20,11 @@ export const Link = {
   foldkitVdom:
     'https://github.com/foldkit/foldkit/blob/main/packages/foldkit/src/vdom.ts',
   foldkitExamples: exampleBase,
-  exampleAuth: `${exampleBase}/auth/src/main.ts`,
   exampleAuthLogin: `${exampleBase}/auth/src/page/loggedOut/page/login.ts`,
-  exampleCounter: `${exampleBase}/counter/src/main.ts`,
-  exampleCrashView: `${exampleBase}/crash-view/src/main.ts`,
-  exampleForm: `${exampleBase}/form/src/main.ts`,
-  exampleQuerySync: `${exampleBase}/query-sync/src/main.ts`,
-  exampleRouting: `${exampleBase}/routing/src/main.ts`,
-  exampleShoppingCart: `${exampleBase}/shopping-cart/src/main.ts`,
-  exampleShoppingCartSubmodel:
-    'https://github.com/foldkit/foldkit/blob/main/examples/shopping-cart/src/main.ts#L163-L175',
-  examplePixelArt: `${exampleBase}/pixel-art/src/main.ts`,
-  exampleSnake: `${exampleBase}/snake/src/main.ts`,
   exampleSnakeRequestPattern:
     'https://github.com/foldkit/foldkit/blob/main/examples/snake/src/main.ts#L220-L234',
-  exampleStopwatch: `${exampleBase}/stopwatch/src/main.ts`,
-  exampleTodo: `${exampleBase}/todo/src/main.ts`,
-  exampleWeather: `${exampleBase}/weather/src/main.ts`,
   exampleWeatherFetch:
     'https://github.com/foldkit/foldkit/blob/main/examples/weather/src/main.ts#L123-L177',
-  exampleWeatherTests:
-    'https://github.com/foldkit/foldkit/blob/main/examples/weather/src/main.test.ts',
-  exampleUiShowcase: `${exampleBase}/ui-showcase/src/main.ts`,
-  exampleWebsocketChat: `${exampleBase}/websocket-chat/src/main.ts`,
   typingTerminal: 'https://typingterminal.com',
   typingTerminalSource:
     'https://github.com/foldkit/foldkit/tree/main/packages/typing-game',

@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url'
 import { type Browser, chromium } from 'playwright'
 
 import { moduleNameToSlug } from '../src/page/apiReference/domain'
+import { exampleSlugs } from '../src/page/example/meta'
 import {
   AiOverviewRoute,
   AiSkillsRoute,
@@ -140,20 +141,7 @@ export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   FieldValidationRoute(),
   TestingRoute(),
   ExamplesRoute(),
-  ExampleDetailRoute({ exampleSlug: 'counter' }),
-  ExampleDetailRoute({ exampleSlug: 'todo' }),
-  ExampleDetailRoute({ exampleSlug: 'stopwatch' }),
-  ExampleDetailRoute({ exampleSlug: 'crash-view' }),
-  ExampleDetailRoute({ exampleSlug: 'form' }),
-  ExampleDetailRoute({ exampleSlug: 'weather' }),
-  ExampleDetailRoute({ exampleSlug: 'routing' }),
-  ExampleDetailRoute({ exampleSlug: 'query-sync' }),
-  ExampleDetailRoute({ exampleSlug: 'snake' }),
-  ExampleDetailRoute({ exampleSlug: 'auth' }),
-  ExampleDetailRoute({ exampleSlug: 'shopping-cart' }),
-  ExampleDetailRoute({ exampleSlug: 'websocket-chat' }),
-  ExampleDetailRoute({ exampleSlug: 'pixel-art' }),
-  ExampleDetailRoute({ exampleSlug: 'ui-showcase' }),
+  ...Array.map(exampleSlugs, slug => ExampleDetailRoute({ exampleSlug: slug })),
   BestPracticesSideEffectsRoute(),
   BestPracticesMessagesRoute(),
   BestPracticesKeyingRoute(),

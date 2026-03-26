@@ -418,7 +418,6 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           Page.Example.ExampleDetail.view(
             model.exampleDetail,
             exampleSlug,
-            Page.Example.getSourcesForSlug(exampleSlug),
             model.copiedSnippets,
             model.isNarrowViewport,
             message => GotExampleDetailMessage({ message }),

@@ -13,6 +13,8 @@ import uiShowcaseSources from 'virtual:example-sources/ui-showcase'
 import weatherSources from 'virtual:example-sources/weather'
 import websocketChatSources from 'virtual:example-sources/websocket-chat'
 
+import type { ExampleSlug } from './meta'
+
 export type ExampleSourceFile = Readonly<{
   path: string
   highlightedHtml: string
@@ -23,7 +25,7 @@ export type ExampleSources = Readonly<{
   files: ReadonlyArray<ExampleSourceFile>
 }>
 
-const sourcesBySlug: Record<string, ExampleSources> = {
+const sourcesBySlug: Record<ExampleSlug, ExampleSources> = {
   counter: counterSources,
   todo: todoSources,
   stopwatch: stopwatchSources,
@@ -40,7 +42,5 @@ const sourcesBySlug: Record<string, ExampleSources> = {
   'ui-showcase': uiShowcaseSources,
 }
 
-const EMPTY_SOURCES: ExampleSources = { files: [] }
-
-export const getSourcesForSlug = (slug: string): ExampleSources =>
-  sourcesBySlug[slug] ?? EMPTY_SOURCES
+export const getSourcesForSlug = (slug: ExampleSlug): ExampleSources =>
+  sourcesBySlug[slug]

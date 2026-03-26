@@ -1,3 +1,7 @@
 export * as ExampleDetail from './exampleDetail'
-export { examples, findBySlug, type ExampleMeta } from './meta'
-export { getSourcesForSlug } from './sources'
+export {
+  type ExampleMeta,
+  type ExampleSlug,
+  exampleSlugs,
+  findBySlug,
+} from './meta'

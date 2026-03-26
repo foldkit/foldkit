@@ -19,6 +19,7 @@ import {
   type TypeDocSignature,
   type TypeDocTypeParam,
 } from './src/page/apiReference/typedoc'
+import { exampleSlugs } from './src/page/example/meta'
 import { shikiDarkTheme, shikiLightTheme } from './src/shikiTheme'
 
 const shikiThemes = {
@@ -548,22 +549,7 @@ const landingDataPlugin = (): Plugin => ({
 const EXAMPLE_SOURCES_PREFIX = 'virtual:example-sources/'
 const RESOLVED_EXAMPLE_SOURCES_PREFIX = '\0' + EXAMPLE_SOURCES_PREFIX
 
-const EXAMPLE_SLUGS = [
-  'counter',
-  'todo',
-  'stopwatch',
-  'form',
-  'weather',
-  'routing',
-  'query-sync',
-  'shopping-cart',
-  'auth',
-  'snake',
-  'crash-view',
-  'websocket-chat',
-  'pixel-art',
-  'ui-showcase',
-]
+const EXAMPLE_SLUG_SET: Set<string> = new Set(exampleSlugs)
 
 const EXAMPLE_FILE_EXTENSIONS = new Set(['.ts', '.tsx', '.css'])
 
@@ -665,7 +651,7 @@ const highlightExampleSourcesPlugin = (): Plugin => ({
     }
 
     const slug = id.slice(RESOLVED_EXAMPLE_SOURCES_PREFIX.length)
-    if (!EXAMPLE_SLUGS.includes(slug)) {
+    if (!EXAMPLE_SLUG_SET.has(slug)) {
       return
     }
 
@@ -683,8 +669,6 @@ const highlightExampleSourcesPlugin = (): Plugin => ({
     return `export default ${JSON.stringify({ files })}`
   },
 })
-
-const EXAMPLE_SLUG_SET = new Set(EXAMPLE_SLUGS)
 
 const embeddedExampleRedirectPlugin = (): Plugin => ({
   name: 'embedded-example-redirect',

@@ -1,18 +1,30 @@
 import { Array, Option } from 'effect'
 
-import { Link } from '../../link'
-
 type Difficulty = 'Beginner' | 'Intermediate' | 'Advanced'
 
+export type ExampleSlug =
+  | 'counter'
+  | 'todo'
+  | 'stopwatch'
+  | 'crash-view'
+  | 'form'
+  | 'weather'
+  | 'routing'
+  | 'query-sync'
+  | 'snake'
+  | 'auth'
+  | 'shopping-cart'
+  | 'pixel-art'
+  | 'websocket-chat'
+  | 'ui-showcase'
+
 export type ExampleMeta = Readonly<{
-  slug: string
+  slug: ExampleSlug
   title: string
   description: string
   difficulty: Difficulty
   tags: ReadonlyArray<string>
-  sourceHref: string
   hasRouting: boolean
-  entryFile: string
 }>
 
 export const examples: ReadonlyArray<ExampleMeta> = [
@@ -23,9 +35,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'The classic counter example. Increment, decrement, and reset a number.',
     difficulty: 'Beginner',
     tags: ['State'],
-    sourceHref: Link.exampleCounter,
     hasRouting: false,
-    entryFile: 'src/main.ts',
   },
   {
     slug: 'todo',
@@ -34,9 +44,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'A todo list with local storage persistence. Add, complete, and delete tasks.',
     difficulty: 'Beginner',
     tags: ['Storage'],
-    sourceHref: Link.exampleTodo,
     hasRouting: false,
-    entryFile: 'src/main.ts',
   },
   {
     slug: 'stopwatch',
@@ -45,9 +53,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'A stopwatch with start, stop, and reset. Demonstrates time-based subscriptions.',
     difficulty: 'Beginner',
     tags: ['Subscriptions'],
-    sourceHref: Link.exampleStopwatch,
     hasRouting: false,
-    entryFile: 'src/main.ts',
   },
   {
     slug: 'crash-view',
@@ -56,9 +62,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'Custom crash fallback UI. Demonstrates crash.view and crash.report with a crash button and reload.',
     difficulty: 'Beginner',
     tags: ['Fallback UI'],
-    sourceHref: Link.exampleCrashView,
     hasRouting: false,
-    entryFile: 'src/main.ts',
   },
   {
     slug: 'form',
@@ -67,9 +71,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'Form handling with field validation, error states, and async submission.',
     difficulty: 'Intermediate',
     tags: ['Validation'],
-    sourceHref: Link.exampleForm,
     hasRouting: false,
-    entryFile: 'src/main.ts',
   },
   {
     slug: 'weather',
@@ -78,9 +80,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'Look up weather by zip code. Demonstrates HTTP requests and loading states.',
     difficulty: 'Intermediate',
     tags: ['HTTP'],
-    sourceHref: Link.exampleWeather,
     hasRouting: false,
-    entryFile: 'src/main.ts',
   },
   {
     slug: 'routing',
@@ -89,9 +89,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'Client-side routing with URL parameters, nested routes, and navigation.',
     difficulty: 'Intermediate',
     tags: ['Routing'],
-    sourceHref: Link.exampleRouting,
     hasRouting: true,
-    entryFile: 'src/main.ts',
   },
   {
     slug: 'query-sync',
@@ -100,9 +98,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'Filterable dinosaur table where every control syncs to URL query parameters. Schema transforms enforce valid states — invalid params gracefully fall back.',
     difficulty: 'Intermediate',
     tags: ['Routing', 'Query Params'],
-    sourceHref: Link.exampleQuerySync,
     hasRouting: true,
-    entryFile: 'src/main.ts',
   },
   {
     slug: 'snake',
@@ -111,9 +107,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'The classic snake game. Keyboard input, game loop, and collision detection.',
     difficulty: 'Advanced',
     tags: ['Game'],
-    sourceHref: Link.exampleSnake,
     hasRouting: false,
-    entryFile: 'src/main.ts',
   },
   {
     slug: 'auth',
@@ -122,9 +116,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'Authentication flow with Submodels, OutMessage, protected routes, and session management.',
     difficulty: 'Advanced',
     tags: ['Auth', 'Routing', 'Submodels', 'OutMessage'],
-    sourceHref: Link.exampleAuth,
     hasRouting: true,
-    entryFile: 'src/main.ts',
   },
   {
     slug: 'shopping-cart',
@@ -133,9 +125,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'E-commerce app with product listing, cart management, and checkout flow.',
     difficulty: 'Advanced',
     tags: ['Routing'],
-    sourceHref: Link.exampleShoppingCart,
     hasRouting: true,
-    entryFile: 'src/main.ts',
   },
   {
     slug: 'pixel-art',
@@ -144,9 +134,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'Pixel art editor showcasing undo/redo with immutable snapshots, time-travel history, UI components (RadioGroup, Switch, Listbox, Dialog, Button), createLazy view optimization, Subscriptions, Commands with error handling, and localStorage persistence via Flags.',
     difficulty: 'Advanced',
     tags: ['Undo/Redo', 'UI Components', 'Storage'],
-    sourceHref: Link.examplePixelArt,
     hasRouting: false,
-    entryFile: 'src/main.ts',
   },
   {
     slug: 'websocket-chat',
@@ -155,9 +143,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'Managed resources with WebSocket integration. Connection lifecycle, reconnection, and message streaming.',
     difficulty: 'Advanced',
     tags: ['Managed Resources', 'WebSocket'],
-    sourceHref: Link.exampleWebsocketChat,
     hasRouting: false,
-    entryFile: 'src/main.ts',
   },
   {
     slug: 'ui-showcase',
@@ -166,11 +152,14 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'Interactive showcase of every Foldkit UI component with styled examples, routing, and component state management.',
     difficulty: 'Advanced',
     tags: ['UI Components', 'Routing'],
-    sourceHref: Link.exampleUiShowcase,
     hasRouting: true,
-    entryFile: 'src/main.ts',
   },
 ]
+
+export const exampleSlugs: ReadonlyArray<ExampleSlug> = Array.map(
+  examples,
+  ({ slug }) => slug,
+)
 
 export const findBySlug = (slug: string): Option.Option<ExampleMeta> =>
   Array.findFirst(examples, example => example.slug === slug)

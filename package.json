@@ -18,7 +18,7 @@
     "format:check": "prettier --check .",
     "dev:core": "pnpm --filter foldkit watch",
     "dev:website": "pnpm --filter website dev",
-    "build:examples": "bash scripts/build-examples.sh",
+    "build:examples": "tsx scripts/build-examples.ts",
     "build:website": "pnpm --filter website... build",
     "preview:website": "pnpm build:website && pnpm --filter website prerender && pnpm --filter website preview",
     "dev:typing-game:client": "pnpm --filter @typing-game/client dev",

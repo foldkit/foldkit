@@ -18,12 +18,13 @@ import {
   span,
 } from '../../html'
 import { Icon } from '../../icon'
+import { exampleSourceHref } from '../../link'
 import type { Message as ParentMessage, TableOfContentsEntry } from '../../main'
 import { pageTitle, para } from '../../prose'
 import { examplesRouter } from '../../route'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 import { type ExampleMeta, findBySlug } from './meta'
-import type { ExampleSourceFile, ExampleSources } from './sources'
+import { type ExampleSourceFile, getSourcesForSlug } from './sources'
 
 // MODEL
 
@@ -149,7 +150,7 @@ const headerView = (meta: ExampleMeta): Html =>
       ),
       a(
         [
-          Href(meta.sourceHref),
+          Href(exampleSourceHref(meta.slug)),
           Class(
             'text-sm text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500 mt-3 inline-block',
           ),
@@ -315,7 +316,6 @@ const sourceCodeView = (
 export const view = (
   model: Model,
   slug: string,
-  sources: ExampleSources,
   copiedSnippets: CopiedSnippets,
   isNarrowViewport: boolean,
   toParentMessage: (message: Message) => ParentMessage,
@@ -341,7 +341,7 @@ export const view = (
               [Class('mt-6')],
               [
                 sourceCodeView(
-                  sources.files,
+                  getSourcesForSlug(meta.slug).files,
                   model.sourceFileTabs,
                   copiedSnippets,
                   isNarrowViewport,

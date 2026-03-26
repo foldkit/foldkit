@@ -39,7 +39,7 @@ jobs:
         run: pnpm --filter foldkit --filter @foldkit/vite-plugin... build
 
       - name: Build examples
-        run: bash scripts/build-examples.sh
+        run: pnpm build:examples
 
       - name: Build website
         run: pnpm build:website
