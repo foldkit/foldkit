@@ -255,15 +255,11 @@ const computeDiff = (previous: unknown, current: unknown): DiffResult => {
     curr: ReadonlyArray<unknown>,
     path: string,
   ): void => {
-    const prevRefToIndex = new Map(
-      prev.map((item, index) => [item, index] as const),
-    )
-
     curr.forEach((item, index) => {
       const childPath = `${path}.${index}`
-      const prevIndex = prevRefToIndex.get(item)
-
-      if (Predicate.isUndefined(prevIndex) || prevIndex !== index) {
+      if (index < prev.length) {
+        walk(prev[index], item, childPath)
+      } else {
         changed.add(childPath)
       }
     })
@@ -625,6 +621,7 @@ const makeView = (
     svg,
     path,
     keyed,
+    Key,
     Class,
     Style,
     OnClick,
@@ -807,6 +804,7 @@ const makeView = (
     if (!nodeIsExpandable) {
       return div(
         [
+          Key(treePath),
           Class(
             clsx('tree-row flex items-center gap-px font-mono text-2xs', {
               'diff-changed': isChanged,
@@ -832,6 +830,7 @@ const makeView = (
 
     return div(
       [
+        Key(treePath),
         Class(
           clsx('tree-row flex items-center gap-px font-mono text-2xs', {
             'tree-row-expandable cursor-pointer': !isRoot,
