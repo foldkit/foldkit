@@ -132,6 +132,11 @@ Command definitions live where they're produced — colocated with the update fu
 ### Commits and Releases
 
 - Use Conventional Commits. Add `!` after the scope for breaking changes (e.g. `refactor(schema)!:` when renaming or removing a public export)
+- Scope must identify the **package or example**, not an internal module. Valid scopes:
+  - Packages: `foldkit`, `create-foldkit-app`, `vite-plugin`, `website`
+  - Examples: the directory name — `pixel-art`, `auth`, `weather`, `counter`, etc.
+  - Infrastructure: `ci`, `release`
+  - Never use internal module names as scopes (e.g. `devtools`, `runtime`, `html`)
 - Do not co-author or mention Claude in commit messages
 - Do not mention Claude in release notes
 - When merging PRs via `gh pr merge`, always use `--squash` — never create merge commits on main
