@@ -330,8 +330,7 @@ describe('grid size', () => {
       Test.resolve(
         Ui.RadioGroup.FocusOption,
         Ui.RadioGroup.CompletedFocusOption(),
-        radioMessage =>
-          GotGridSizeRadioGroupMessage({ message: radioMessage }),
+        radioMessage => GotGridSizeRadioGroupMessage({ message: radioMessage }),
       ),
       Test.tap(({ model }) => {
         expect(model.gridSize).toBe(8)
