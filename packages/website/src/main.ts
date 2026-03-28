@@ -1101,6 +1101,9 @@ const routeTitle = (route: AppRoute): string =>
 
 // SUBSCRIPTION
 
+const dragAndDropDemoFields =
+  Subscription.DragAndDropDemo.SubscriptionDeps.fields
+
 const SubscriptionDeps = S.Struct({
   aiHeading: S.Struct({
     isLandingPage: S.Boolean,
@@ -1109,6 +1112,10 @@ const SubscriptionDeps = S.Struct({
     pageId: S.String,
     sections: S.Array(S.String),
   }),
+  dragPointer: dragAndDropDemoFields['dragPointer'],
+  dragEscape: dragAndDropDemoFields['dragEscape'],
+  dragKeyboard: dragAndDropDemoFields['dragKeyboard'],
+  autoScroll: dragAndDropDemoFields['autoScroll'],
   exampleUrl: S.OptionFromSelf(S.String),
   heroVisibility: S.Struct({
     isLandingPage: S.Boolean,
@@ -1127,6 +1134,10 @@ export type SubscriptionDeps = typeof SubscriptionDeps.Type
 const subscriptions = makeSubscriptions(SubscriptionDeps)<Model, Message>({
   aiHeading: Subscription.aiHeading,
   activeSection: Subscription.activeSection,
+  dragPointer: Subscription.DragAndDropDemo.subscriptions.dragPointer,
+  dragEscape: Subscription.DragAndDropDemo.subscriptions.dragEscape,
+  dragKeyboard: Subscription.DragAndDropDemo.subscriptions.dragKeyboard,
+  autoScroll: Subscription.DragAndDropDemo.subscriptions.autoScroll,
   exampleUrl: Subscription.exampleUrl,
   heroVisibility: Subscription.heroVisibility,
   searchShortcut: Subscription.searchShortcut,

@@ -780,8 +780,17 @@ const makeRuntime = <
             Effect.forEach(
               ([
                 _key,
-                { schema, modelToDependencies, dependenciesToStream },
+                {
+                  schema,
+                  modelToDependencies,
+                  equivalence: customEquivalence,
+                  dependenciesToStream,
+                },
               ]) => {
+                let latestDependencies = modelToDependencies(initModel)
+                const equivalence =
+                  customEquivalence ?? Schema.equivalence(schema)
+
                 const modelStream = Stream.concat(
                   Stream.make(initModel),
                   modelSubscriptionRef.changes,
@@ -789,9 +798,23 @@ const makeRuntime = <
 
                 return Effect.forkDaemon(
                   modelStream.pipe(
-                    Stream.map(modelToDependencies),
-                    Stream.changesWith(Schema.equivalence(schema)),
-                    Stream.flatMap(dependenciesToStream, { switch: true }),
+                    // NOTE: updates latestDependencies on every model change so
+                    // readDependencies() returns current values even when the
+                    // stream hasn't restarted (when equivalence filters the change).
+                    Stream.map(model => {
+                      const dependencies = modelToDependencies(model)
+                      latestDependencies = dependencies
+                      return dependencies
+                    }),
+                    Stream.changesWith(equivalence),
+                    Stream.flatMap(
+                      dependencies =>
+                        dependenciesToStream(
+                          dependencies,
+                          () => latestDependencies,
+                        ),
+                      { switch: true },
+                    ),
                     Stream.runForEach(enqueueMessage),
                     provideAllResources,
                   ),

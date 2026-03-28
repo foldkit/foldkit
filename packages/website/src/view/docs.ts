@@ -657,6 +657,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           Page.UiPages.SelectPage.view(model.uiPages, toUiPageMessage),
           Page.UiPages.SelectPage.tableOfContents,
         ),
+      UiDragAndDrop: () =>
+        withTableOfContents(
+          Page.UiPages.DragAndDropPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.DragAndDropPage.tableOfContents,
+        ),
       AiOverview: () =>
         withTableOfContents(
           lazyDocsContent(Page.AiOverview.view, [model.copiedSnippets]),

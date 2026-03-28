@@ -70,6 +70,28 @@ export const init = (): InitReturn => [
     verticalTabsDemo: Ui.Tabs.init({
       id: 'vertical-tabs-demo',
     }),
+    dragAndDropDemo: Ui.DragAndDrop.init({
+      id: 'drag-and-drop-demo',
+    }),
+    dragAndDropDemoColumns: [
+      {
+        id: 'backlog',
+        label: 'Backlog',
+        cards: [
+          { id: 'card-1', label: 'Design API' },
+          { id: 'card-2', label: 'Write tests' },
+          { id: 'card-3', label: 'Build docs' },
+        ],
+      },
+      {
+        id: 'done',
+        label: 'Done',
+        cards: [
+          { id: 'card-4', label: 'Set up repo' },
+          { id: 'card-5', label: 'Add CI' },
+        ],
+      },
+    ],
   },
   [],
 ]

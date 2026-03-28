@@ -23,6 +23,7 @@ import {
   uiComboboxRouter,
   uiDialogRouter,
   uiDisclosureRouter,
+  uiDragAndDropRouter,
   uiFieldsetRouter,
   uiInputRouter,
   uiListboxRouter,
@@ -175,6 +176,13 @@ const components: ReadonlyArray<ComponentEntry> = [
     category: 'Disclosure',
     description:
       'Tabbed interface with keyboard navigation, Home/End support, and wrapping.',
+  },
+  {
+    name: 'Drag and Drop',
+    href: uiDragAndDropRouter(),
+    category: 'Interaction',
+    description:
+      'Sortable lists and cross-container movement with pointer tracking, keyboard navigation, auto-scrolling, and screen reader announcements.',
   },
 ]
 

@@ -1,4 +1,4 @@
-import { Effect, Match as M, Number } from 'effect'
+import { Array, Effect, Match as M, Number, Option, pipe } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
@@ -13,6 +13,7 @@ import {
   GotDialogAnimatedDemoMessage,
   GotDialogDemoMessage,
   GotDisclosureDemoMessage,
+  GotDragAndDropDemoMessage,
   GotFieldsetCheckboxDemoMessage,
   GotHorizontalRadioGroupDemoMessage,
   GotHorizontalTabsDemoMessage,
@@ -29,6 +30,48 @@ import {
   type Message,
 } from './message'
 import type { Model } from './model'
+import type { DemoCard, DemoColumn } from './model'
+
+// REORDER
+
+const reorderColumns = (
+  columns: ReadonlyArray<typeof DemoColumn.Type>,
+  itemId: string,
+  fromContainerId: string,
+  toContainerId: string,
+  toIndex: number,
+): ReadonlyArray<typeof DemoColumn.Type> => {
+  const maybeCard: Option.Option<typeof DemoCard.Type> = pipe(
+    columns,
+    Array.findFirst(({ id }) => id === fromContainerId),
+    Option.flatMap(column =>
+      Array.findFirst(column.cards, ({ id }) => id === itemId),
+    ),
+  )
+
+  return Option.match(maybeCard, {
+    onNone: () => columns,
+    onSome: card =>
+      Array.map(columns, column => {
+        const withRemoved =
+          column.id === fromContainerId
+            ? Array.filter(column.cards, ({ id }) => id !== itemId)
+            : column.cards
+
+        if (column.id !== toContainerId) {
+          return evo(column, { cards: () => withRemoved })
+        }
+
+        const inserted = pipe(withRemoved, cards => [
+          ...Array.take(cards, toIndex),
+          card,
+          ...Array.drop(cards, toIndex),
+        ])
+
+        return evo(column, { cards: () => inserted })
+      }),
+  })
+}
 
 export type UpdateReturn = readonly [
   Model,
@@ -490,6 +533,46 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           verticalTabsCommands.map(
             Command.mapEffect(
               Effect.map(message => GotVerticalTabsDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      GotDragAndDropDemoMessage: ({ message }) => {
+        const [nextDragAndDrop, dragAndDropCommands, maybeOutMessage] =
+          Ui.DragAndDrop.update(model.dragAndDropDemo, message)
+
+        const nextColumns = pipe(
+          maybeOutMessage,
+          Option.flatMap(outMessage =>
+            M.value(outMessage).pipe(
+              M.tag(
+                'Reordered',
+                ({ itemId, fromContainerId, toContainerId, toIndex }) =>
+                  Option.some(
+                    reorderColumns(
+                      model.dragAndDropDemoColumns,
+                      itemId,
+                      fromContainerId,
+                      toContainerId,
+                      toIndex,
+                    ),
+                  ),
+              ),
+              M.orElse(() => Option.none()),
+            ),
+          ),
+          Option.getOrElse(() => model.dragAndDropDemoColumns),
+        )
+
+        return [
+          evo(model, {
+            dragAndDropDemo: () => nextDragAndDrop,
+            dragAndDropDemoColumns: () => nextColumns,
+          }),
+          dragAndDropCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotDragAndDropDemoMessage({ message })),
             ),
           ),
         ]

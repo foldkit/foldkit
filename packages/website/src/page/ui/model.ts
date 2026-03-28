@@ -4,6 +4,7 @@ import {
   Combobox,
   Dialog,
   Disclosure,
+  DragAndDrop,
   Listbox,
   Menu,
   Popover,
@@ -11,6 +12,17 @@ import {
   Switch,
   Tabs,
 } from 'foldkit/ui'
+
+export const DemoCard = S.Struct({
+  id: S.String,
+  label: S.String,
+})
+
+export const DemoColumn = S.Struct({
+  id: S.String,
+  label: S.String,
+  cards: S.Array(DemoCard),
+})
 
 export const Model = S.Struct({
   buttonClickCount: S.Number,
@@ -42,5 +54,7 @@ export const Model = S.Struct({
   switchDemo: Switch.Model,
   horizontalTabsDemo: Tabs.Model,
   verticalTabsDemo: Tabs.Model,
+  dragAndDropDemo: DragAndDrop.Model,
+  dragAndDropDemoColumns: S.Array(DemoColumn),
 })
 export type Model = typeof Model.Type

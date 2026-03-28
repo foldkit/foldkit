@@ -113,13 +113,16 @@ Command definitions live where they're produced — colocated with the update fu
 - Avoid `let`. Use `const` and prefer immutable patterns. Only use `let` when mutation is truly unavoidable.
 - Always use braces for control flow. `if (foo) { return true }` not `if (foo) return true`.
 - Use `is*` for boolean naming e.g. `isPlaying`, `isValid`
-- Don't add inline or block comments to explain code — if code needs explanation, refactor for clarity or use better names. Exceptions: section headers (`// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`, `// VIEW`) and TSDoc (`/** ... */`) on all public exports are required.
+- Don't add inline or block comments to explain code — if code needs explanation, refactor for clarity or use better names. Exceptions: section headers (`// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`, `// VIEW`), TSDoc (`/** ... */`) on all public exports, and `// NOTE:` comments for genuinely non-obvious behavior that can't be made self-documenting (e.g. subtle timing dependencies, browser quirks, workarounds for upstream bugs). `NOTE:` comments are rare — most code should not need them.
 - When editing code, follow existing patterns in the codebase exactly. Before writing new code, read 2-3 existing files that do similar things and match their style for naming, spacing, imports, and patterns. Never use placeholder types like `{_tag: string}`.
 - Use capitalized string literals for Schema literal types: `S.Literal('Horizontal', 'Vertical')` not `S.Literal('horizontal', 'vertical')`.
 - Capitalize namespace imports: `import * as Command from './command'` not `import * as command from './command'`.
 - Extract magic numbers to named constants. No raw numeric literals in logic — e.g. `FINAL_PHOTO_INDEX` not `15`.
 - Never use `T[]` syntax. Always use `Array<T>` or `ReadonlyArray<T>`.
+- Never use `globalThis.Array` or other `globalThis.*` references. Use Effect module equivalents: `Array.fromIterable(nodeList)` not `globalThis.Array.from(nodeList)`.
 - For inline object types, use `Readonly<{...}>` instead of writing `readonly` on each property. e.g. `Readonly<{ model: Foo; toParentMessage: (m: Bar) => Baz }>` not `{ readonly model: Foo; readonly toParentMessage: ... }`.
+- In `pipe` chains, put the data being piped on its own line: `pipe(\n  data,\n  Array.map(f),\n)` not `pipe(data, Array.map(f))`. The data source leads, transforms follow.
+- In callbacks, destructure the parameter when accessing a single field: `({ id }) => id === cardId` not `card => card.id === cardId`. Clearer what's being accessed without reading the full body.
 - Don't add type annotations to evo callbacks when the type can be inferred. `gameState: () => 'Loading'` not `gameState: (): GameState => 'Loading'`.
 
 ### Application Architecture
