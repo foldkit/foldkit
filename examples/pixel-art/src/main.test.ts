@@ -12,6 +12,8 @@ import {
   CompletedSaveCanvas,
   ConfirmedGridSizeChange,
   EnteredCell,
+  GotGridSizeConfirmDialogMessage,
+  GotGridSizeRadioGroupMessage,
   GotPaletteRadioGroupMessage,
   GotToolRadioGroupMessage,
   LeftCanvas,
@@ -24,14 +26,14 @@ import {
   ToggledMirrorHorizontal,
   ToggledMirrorVertical,
 } from './message'
-import { type PaletteIndex } from './model'
+import { type Model, type PaletteIndex } from './model'
 import { update } from './update'
 
-const emptyModel = {
+const emptyModel: Model = {
   grid: createEmptyGrid(4),
   undoStack: [],
   redoStack: [],
-  selectedColorIndex: 0 as PaletteIndex,
+  selectedColorIndex: 0,
   gridSize: 4,
   tool: 'Brush' as const,
   mirrorMode: 'None' as const,
@@ -190,7 +192,7 @@ describe('undo and redo', () => {
       Test.message(PressedCell({ x: 0, y: 0 })),
       Test.message(ReleasedMouse()),
       Test.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Test.message(SelectedColor({ colorIndex: 1 as PaletteIndex })),
+      Test.message(SelectedColor({ colorIndex: 1 })),
       Test.resolve(
         Ui.RadioGroup.FocusOption,
         Ui.RadioGroup.CompletedFocusOption(),
@@ -291,7 +293,7 @@ describe('fill tool', () => {
 
   test('fill does not cross color boundaries', () => {
     const gridWithBarrier = createEmptyGrid(4).map(row =>
-      row.map((cell, x) => (x === 2 ? Option.some(1 as PaletteIndex) : cell)),
+      row.map((cell, x) => (x === 2 ? Option.some<PaletteIndex>(1) : cell)),
     )
     const modelWithBarrier = {
       ...emptyModel,
@@ -321,33 +323,54 @@ describe('fill tool', () => {
 
 describe('grid size', () => {
   test('blank canvas resizes immediately without confirmation', () => {
-    const [nextModel] = update(emptyModel, SelectedGridSize({ size: 8 }))
-
-    expect(nextModel.gridSize).toBe(8)
-    expect(nextModel.grid).toHaveLength(8)
-    expect(nextModel.maybePendingGridSize).toEqual(Option.none())
-    expect(nextModel.gridSizeConfirmDialog.isOpen).toBe(false)
+    Test.story(
+      update,
+      Test.with(emptyModel),
+      Test.message(SelectedGridSize({ size: 8 })),
+      Test.resolve(
+        Ui.RadioGroup.FocusOption,
+        Ui.RadioGroup.CompletedFocusOption(),
+        radioMessage => GotGridSizeRadioGroupMessage({ message: radioMessage }),
+      ),
+      Test.tap(({ model }) => {
+        expect(model.gridSize).toBe(8)
+        expect(model.grid).toHaveLength(8)
+        expect(model.maybePendingGridSize).toEqual(Option.none())
+        expect(model.gridSizeConfirmDialog.isOpen).toBe(false)
+      }),
+    )
   })
 
   test('painted canvas opens confirmation dialog', () => {
-    const paintedModel = {
+    const paintedModel: Model = {
       ...emptyModel,
       grid: createEmptyGrid(4).map((row, y) =>
         row.map((cell, x) =>
-          x === 0 && y === 0 ? Option.some(0 as PaletteIndex) : cell,
+          x === 0 && y === 0 ? Option.some<PaletteIndex>(0) : cell,
         ),
       ),
     }
 
-    const [nextModel] = update(paintedModel, SelectedGridSize({ size: 8 }))
-
-    expect(nextModel.maybePendingGridSize).toEqual(Option.some(8))
-    expect(nextModel.gridSizeConfirmDialog.isOpen).toBe(true)
-    expect(nextModel.gridSize).toBe(4)
+    Test.story(
+      update,
+      Test.with(paintedModel),
+      Test.message(SelectedGridSize({ size: 8 })),
+      Test.resolve(
+        Ui.Dialog.ShowDialog,
+        Ui.Dialog.CompletedShowDialog(),
+        dialogMessage =>
+          GotGridSizeConfirmDialogMessage({ message: dialogMessage }),
+      ),
+      Test.tap(({ model }) => {
+        expect(model.maybePendingGridSize).toEqual(Option.some(8))
+        expect(model.gridSizeConfirmDialog.isOpen).toBe(true)
+        expect(model.gridSize).toBe(4)
+      }),
+    )
   })
 
   test('confirming grid size change resets canvas and history', () => {
-    const modelWithPending = {
+    const modelWithPending: Model = {
       ...emptyModel,
       maybePendingGridSize: Option.some(8),
       gridSizeConfirmDialog: Ui.Dialog.init({
@@ -357,20 +380,37 @@ describe('grid size', () => {
       undoStack: [createEmptyGrid(4)],
     }
 
-    const [nextModel] = update(modelWithPending, ConfirmedGridSizeChange())
-
-    expect(nextModel.gridSize).toBe(8)
-    expect(nextModel.grid).toHaveLength(8)
-    expect(nextModel.grid[0]).toHaveLength(8)
-    expect(nextModel.undoStack).toHaveLength(0)
-    expect(nextModel.redoStack).toHaveLength(0)
-    expect(nextModel.maybePendingGridSize).toEqual(Option.none())
+    Test.story(
+      update,
+      Test.with(modelWithPending),
+      Test.message(ConfirmedGridSizeChange()),
+      Test.resolve(
+        Ui.Dialog.CloseDialog,
+        Ui.Dialog.CompletedCloseDialog(),
+        dialogMessage =>
+          GotGridSizeConfirmDialogMessage({ message: dialogMessage }),
+      ),
+      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Test.tap(({ model }) => {
+        expect(model.gridSize).toBe(8)
+        expect(model.grid).toHaveLength(8)
+        expect(model.grid[0]).toHaveLength(8)
+        expect(model.undoStack).toHaveLength(0)
+        expect(model.redoStack).toHaveLength(0)
+        expect(model.maybePendingGridSize).toEqual(Option.none())
+      }),
+    )
   })
 
   test('selecting the same grid size is a no-op', () => {
-    const [nextModel] = update(emptyModel, SelectedGridSize({ size: 4 }))
-
-    expect(nextModel).toBe(emptyModel)
+    Test.story(
+      update,
+      Test.with(emptyModel),
+      Test.message(SelectedGridSize({ size: 4 })),
+      Test.tap(({ model }) => {
+        expect(model).toBe(emptyModel)
+      }),
+    )
   })
 })
 
