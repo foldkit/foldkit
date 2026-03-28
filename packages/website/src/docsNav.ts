@@ -41,6 +41,7 @@ import {
   uiComboboxRouter,
   uiDialogRouter,
   uiDisclosureRouter,
+  uiDragAndDropRouter,
   uiFieldsetRouter,
   uiInputRouter,
   uiListboxRouter,
@@ -407,6 +408,13 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'UiTabs',
           href: uiTabsRouter(),
           label: 'Tabs',
+        },
+      ],
+      [
+        {
+          _tag: 'UiDragAndDrop',
+          href: uiDragAndDropRouter(),
+          label: 'Drag and Drop',
         },
       ],
     ],

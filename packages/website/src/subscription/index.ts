@@ -1,5 +1,6 @@
 export { aiHeading } from './aiHeading'
 export { activeSection } from './activeSection'
+export * as DragAndDropDemo from './dragAndDropDemo'
 export { exampleUrl } from './exampleUrl'
 export { heroVisibility } from './heroVisibility'
 export { searchShortcut } from './searchShortcut'

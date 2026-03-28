@@ -114,6 +114,9 @@ export const GotHorizontalTabsDemoMessage = m('GotHorizontalTabsDemoMessage', {
 export const GotVerticalTabsDemoMessage = m('GotVerticalTabsDemoMessage', {
   message: Ui.Tabs.Message,
 })
+export const GotDragAndDropDemoMessage = m('GotDragAndDropDemoMessage', {
+  message: Ui.DragAndDrop.Message,
+})
 
 export const Message = S.Union(
   ClickedButtonDemo,
@@ -146,5 +149,6 @@ export const Message = S.Union(
   GotSwitchDemoMessage,
   GotHorizontalTabsDemoMessage,
   GotVerticalTabsDemoMessage,
+  GotDragAndDropDemoMessage,
 )
 export type Message = typeof Message.Type

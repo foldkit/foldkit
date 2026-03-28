@@ -232,6 +232,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Fieldset',
     'Group related form fields with accessible labeling.',
   ),
+  UiDragAndDrop: ui(
+    'Drag and Drop',
+    'Accessible drag and drop with keyboard support, auto-scrolling, and screen reader announcements.',
+  ),
   AiOverview: docs(
     'AI',
     'Why Foldkit\u2019s architecture makes AI-assisted development uniquely effective.',

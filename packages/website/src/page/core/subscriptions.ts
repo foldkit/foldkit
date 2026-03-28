@@ -10,7 +10,11 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
-import { coreArchitectureRouter, exampleDetailRouter } from '../../route'
+import {
+  coreArchitectureRouter,
+  exampleDetailRouter,
+  uiDragAndDropRouter,
+} from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
@@ -20,8 +24,29 @@ const overviewHeader: TableOfContentsEntry = {
   text: 'Overview',
 }
 
+const advancedHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'advanced',
+  text: 'Advanced',
+}
+
+const equivalenceHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'custom-equivalence',
+  text: 'Custom Equivalence',
+}
+
+const readDependenciesHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'reading-live-dependencies',
+  text: 'Reading Live Dependencies',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
+  advancedHeader,
+  equivalenceHeader,
+  readDependenciesHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
@@ -41,7 +66,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' connections, keyboard input, resize observers \u2014 is a Subscription.',
       ),
       para(
-        'A Subscription is a reactive binding between your Model and a long-running stream. You declare which part of the Model the Subscription depends on, and Foldkit manages the stream lifecycle automatically — starting it when dependencies are met, stopping it when they change.',
+        'A Subscription is a reactive binding between your Model and a long-running stream. You declare which part of the Model the Subscription depends on, and Foldkit manages the stream lifecycle automatically \u2014 starting it when dependencies are met, stopping it when they change.',
       ),
       para(
         'Here\u2019s how we add auto-counting to the counter. When ',
@@ -123,6 +148,84 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('event.preventDefault()'),
         ' \u2014 use ',
         inlineCode('Stream.mapEffect'),
+        '.',
+      ),
+
+      // ADVANCED
+
+      tableOfContentsEntryToHeader(advancedHeader),
+      para(
+        'Consider an auto-scroll Subscription for a drag-and-drop interface. It depends on both ',
+        inlineCode('isDragging'),
+        ' (should the scroll loop run?) and ',
+        inlineCode('clientY'),
+        ' (where is the pointer?). The stream should start when dragging begins and stop when it ends \u2014 but ',
+        inlineCode('clientY'),
+        ' changes on every pixel of mouse movement, and by default every change restarts the stream, destroying the ',
+        inlineCode('requestAnimationFrame'),
+        ' loop each time.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.subscriptionEquivalenceHighlighted),
+          ],
+          [],
+        ),
+        Snippets.subscriptionEquivalenceRaw,
+        'Copy advanced subscription example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+
+      // CUSTOM EQUIVALENCE
+
+      tableOfContentsEntryToHeader(equivalenceHeader),
+      para(
+        'The ',
+        inlineCode('equivalence'),
+        ' field overrides the default structural comparison with an ',
+        inlineCode('Equivalence'),
+        ' from Effect, letting you choose which fields trigger a restart. ',
+        inlineCode('Equivalence.struct({ isDragging: Equivalence.boolean })'),
+        ' means two snapshots are equal if they have the same ',
+        inlineCode('isDragging'),
+        ' value, regardless of ',
+        inlineCode('clientY'),
+        '. The stream starts once when dragging begins and stops when it ends \u2014 it never restarts in between.',
+      ),
+
+      // READING LIVE DEPENDENCIES
+
+      tableOfContentsEntryToHeader(readDependenciesHeader),
+      para(
+        'If the stream doesn\u2019t restart when ',
+        inlineCode('clientY'),
+        ' changes, how does the rAF loop read the latest pointer position? The second argument to ',
+        inlineCode('dependenciesToStream'),
+        ' is ',
+        inlineCode('readDependencies'),
+        ' \u2014 a function that returns the current deps synchronously, reflecting the latest Model state without restarting the stream.',
+      ),
+      para(
+        'Inside the ',
+        inlineCode('requestAnimationFrame'),
+        ' loop, ',
+        inlineCode('readDependencies()'),
+        ' returns the latest snapshot every frame. This is the bridge between the stream lifecycle (which gates on the deps that trigger restarts) and browser callbacks (which need synchronous access to the latest state).',
+      ),
+      para(
+        'In most Subscriptions, use ',
+        inlineCode('deps'),
+        ' directly \u2014 the stream restarts whenever they change, so they\u2019re always current. ',
+        inlineCode('readDependencies'),
+        ' is for the case where ',
+        inlineCode('equivalence'),
+        ' has excluded fast-changing fields from the restart decision, and you need to read those fields inside a long-lived callback. For a real-world example, see the ',
+        link(uiDragAndDropRouter(), 'Drag and Drop'),
+        ' component and the ',
+        link(exampleDetailRouter({ exampleSlug: 'kanban' }), 'Kanban example'),
         '.',
       ),
       para(

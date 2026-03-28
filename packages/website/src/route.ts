@@ -67,6 +67,7 @@ export const UiComboboxRoute = r('UiCombobox')
 export const UiInputRoute = r('UiInput')
 export const UiTextareaRoute = r('UiTextarea')
 export const UiFieldsetRoute = r('UiFieldset')
+export const UiDragAndDropRoute = r('UiDragAndDrop')
 
 export const AiOverviewRoute = r('AiOverview')
 export const AiSkillsRoute = r('AiSkills')
@@ -125,6 +126,7 @@ export const DocsRoute = S.Union(
   UiInputRoute,
   UiTextareaRoute,
   UiFieldsetRoute,
+  UiDragAndDropRoute,
   AiOverviewRoute,
   AiSkillsRoute,
   NotFoundRoute,
@@ -371,6 +373,11 @@ export const uiFieldsetRouter = pipe(
   slash(literal('fieldset')),
   mapTo(UiFieldsetRoute),
 )
+export const uiDragAndDropRouter = pipe(
+  literal('ui'),
+  slash(literal('drag-and-drop')),
+  mapTo(UiDragAndDropRoute),
+)
 
 export const aiOverviewRouter = pipe(
   literal('ai'),
@@ -443,6 +450,7 @@ const uiParser = oneOf(
   uiInputRouter,
   uiTextareaRouter,
   uiFieldsetRouter,
+  uiDragAndDropRouter,
 )
 
 const aiParser = oneOf(aiOverviewRouter, aiSkillsRouter)

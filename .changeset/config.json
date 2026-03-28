@@ -25,6 +25,7 @@
     "crash-view-example",
     "query-sync-example",
     "ui-showcase",
-    "pixel-art-example"
+    "pixel-art-example",
+    "kanban-example"
   ]
 }

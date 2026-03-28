@@ -2,6 +2,7 @@ import authSources from 'virtual:example-sources/auth'
 import counterSources from 'virtual:example-sources/counter'
 import crashViewSources from 'virtual:example-sources/crash-view'
 import formSources from 'virtual:example-sources/form'
+import kanbanSources from 'virtual:example-sources/kanban'
 import pixelArtSources from 'virtual:example-sources/pixel-art'
 import querySyncSources from 'virtual:example-sources/query-sync'
 import routingSources from 'virtual:example-sources/routing'
@@ -30,6 +31,7 @@ const sourcesBySlug: Record<ExampleSlug, ExampleSources> = {
   todo: todoSources,
   stopwatch: stopwatchSources,
   form: formSources,
+  kanban: kanbanSources,
   weather: weatherSources,
   routing: routingSources,
   'query-sync': querySyncSources,

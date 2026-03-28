@@ -16,6 +16,7 @@ export type ExampleSlug =
   | 'shopping-cart'
   | 'pixel-art'
   | 'websocket-chat'
+  | 'kanban'
   | 'ui-showcase'
 
 export type ExampleMeta = Readonly<{
@@ -143,6 +144,15 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'Managed resources with WebSocket integration. Connection lifecycle, reconnection, and message streaming.',
     difficulty: 'Advanced',
     tags: ['Managed Resources', 'WebSocket'],
+    hasRouting: false,
+  },
+  {
+    slug: 'kanban',
+    title: 'Kanban',
+    description:
+      'Drag-and-drop kanban board with cross-column reordering, keyboard navigation, fractional indexing, and screen reader announcements.',
+    difficulty: 'Advanced',
+    tags: ['Drag & Drop', 'Submodels', 'OutMessage', 'Storage'],
     hasRouting: false,
   },
   {
