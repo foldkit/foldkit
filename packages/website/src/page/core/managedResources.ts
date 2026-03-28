@@ -41,6 +41,12 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' connection while on a chat page, or a Web Worker pool during a computation. ',
         'Managed resources provide model-driven acquire/release lifecycle, using the same deps-diffing engine as subscriptions.',
       ),
+      infoCallout(
+        'The restaurant analogy',
+        'If resources are kitchen equipment (permanent, always on), managed resources are specialty ingredients sourced on demand. When the menu shifts to a seafood special (model state changes), the kitchen orders in fresh lobster and sets up the shellfish station. When the special ends, the lobster goes back to the supplier and the station is broken down. If the chef (Command) tries to plate lobster when it\u2019s not in season, they get a clear signal: ',
+        inlineCode('ResourceNotAvailable'),
+        '. And if the special changes from Maine lobster to king crab (params change), the old stock is returned and new stock is sourced — just like switching camera resolutions triggers release and reacquire.',
+      ),
       para(
         'Define a managed resource identity with ',
         inlineCode('ManagedResource.tag'),

@@ -48,6 +48,16 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('resources'),
         ' is for.',
       ),
+      infoCallout(
+        'Think of it like a restaurant kitchen',
+        'Resources are kitchen equipment — the oven, the stand mixer, the deep fryer. They\u2019re turned on when the kitchen opens and run all night. Every dish (Command) can use them. You don\u2019t buy a new oven per order. ',
+        inlineCode('AudioContext'),
+        ' and ',
+        inlineCode('CanvasRenderingContext2D'),
+        ' are the same — expensive singletons that live for the entire app lifecycle. Need multiple pieces of equipment? Combine them with ',
+        inlineCode('Layer.mergeAll'),
+        '.',
+      ),
       para(
         'Define a service using ',
         link(Link.effectService, 'Effect.Service'),
