@@ -2,3 +2,4 @@ packages:
   - 'packages/*'
   - 'packages/typing-game/*'
   - 'examples/*'
+  - 'comparisons/*'

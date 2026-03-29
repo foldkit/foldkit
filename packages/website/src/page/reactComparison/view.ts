@@ -1,0 +1,1136 @@
+import type { Html } from 'foldkit/html'
+
+import { Class, InnerHTML, div } from '../../html'
+import type { TableOfContentsEntry } from '../../main'
+import {
+  infoCallout,
+  inlineCode,
+  link,
+  pageTitle,
+  para,
+  tableOfContentsEntryToHeader,
+} from '../../prose'
+import { exampleDetailRouter } from '../../route'
+import * as Snippets from '../../snippet'
+import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
+import { comparisonTable } from '../../view/table'
+
+const overviewHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'overview',
+  text: 'Overview',
+}
+
+const whatDoesThisAppDoHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'what-does-this-app-do',
+  text: 'What Does This App Do?',
+}
+
+const foldkitMessageHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'foldkit-message',
+  text: 'Foldkit message.ts (30 Messages)',
+}
+
+const reactActionHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'react-action',
+  text: 'React Action type (19 actions)',
+}
+
+const declarationVsProcedureHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'declaration-vs-procedure',
+  text: 'Declaration vs Procedure',
+}
+
+const reactAppHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'react-app',
+  text: 'React App component',
+}
+
+const foldkitProgramHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'foldkit-program',
+  text: 'Foldkit program',
+}
+
+const stateManagementHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'state-management',
+  text: 'Complete State Ownership',
+}
+
+const foldkitModelHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'foldkit-model',
+  text: 'Foldkit Model (20 fields)',
+}
+
+const reactStateHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'react-state',
+  text: 'React State (14 fields)',
+}
+
+const completeAnswerHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'the-complete-answer',
+  text: 'The Complete Answer',
+}
+
+const foldkitUpdateHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'foldkit-update',
+  text: 'Foldkit update (state + side effects)',
+}
+
+const reactReducerHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'react-reducer',
+  text: 'React reducer (state only)',
+}
+
+const sideEffectsHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'side-effects',
+  text: 'Side Effects as Data',
+}
+
+const foldkitCommandHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'foldkit-command',
+  text: 'Foldkit Command (effect as a named, inspectable value)',
+}
+
+const reactUseEffectHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'react-useeffect',
+  text: 'React useEffect (effect as an implicit reaction)',
+}
+
+const whatYourTestsCanSeeHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'what-your-tests-can-see',
+  text: 'What Your Tests Can See',
+}
+
+const foldkitTestHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'foldkit-test',
+  text: 'Foldkit test (state + side effects in one story)',
+}
+
+const reactTestHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'react-test',
+  text: 'React test (state only)',
+}
+
+const reactSideEffectTestHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'react-side-effect-test',
+  text: 'React test (side effects require mocking + DOM + async)',
+}
+
+const streamsVsHooksHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'streams-vs-hooks',
+  text: 'Streams vs Hooks',
+}
+
+const foldkitSubscriptionsHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'foldkit-subscriptions',
+  text: 'Foldkit Subscriptions',
+}
+
+const reactHooksHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'react-hooks',
+  text: 'React hooks',
+}
+
+const yourStateOrTheirsHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'your-state-or-theirs',
+  text: 'Your State or Theirs',
+}
+
+const performanceHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'performance',
+  text: 'Performance',
+}
+
+const renderingHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'rendering',
+  text: 'Rendering',
+}
+
+const foldkitMemoizationHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'foldkit-memoization',
+  text: 'Foldkit memoization (structural equality)',
+}
+
+const reactMemoizationHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'react-memoization',
+  text: 'React memoization (reference equality)',
+}
+
+const stateUpdateSpeedHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'state-update-speed',
+  text: 'State update speed',
+}
+
+const guaranteesHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'guarantees',
+  text: 'Guarantees React Cannot Provide',
+}
+
+const auditLogHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'audit-log',
+  text: 'A complete audit log',
+}
+
+const exhaustiveMatchingHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'exhaustive-matching',
+  text: 'A compiler that catches forgotten cases',
+}
+
+const visibleEffectsHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'visible-effects',
+  text: 'Side effects you can see',
+}
+
+const timeTravelHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'time-travel',
+  text: 'Time-travel debugging that covers everything',
+}
+
+const storyTestsHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'story-tests',
+  text: 'Tests that read like stories',
+}
+
+const oneFunctionHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'one-function',
+  text: 'One function, one truth',
+}
+
+const noStaleClosuresHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'no-stale-closures',
+  text: 'No stale closures',
+}
+
+const scalabilityHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'scalability',
+  text: 'Which Scales Better?',
+}
+
+const remotePersistenceHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'remote-persistence',
+  text: 'Remote persistence',
+}
+
+const multiplayerHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'multiplayer',
+  text: 'Multiplayer editing',
+}
+
+const animatedGridsHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'animated-grids',
+  text: 'Animated grids',
+}
+
+const persistentUndoHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'persistent-undo',
+  text: 'Persistent undo history',
+}
+
+const conclusionHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'conclusion',
+  text: 'Conclusion',
+}
+
+export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
+  overviewHeader,
+  whatDoesThisAppDoHeader,
+  foldkitMessageHeader,
+  reactActionHeader,
+  declarationVsProcedureHeader,
+  reactAppHeader,
+  foldkitProgramHeader,
+  stateManagementHeader,
+  foldkitModelHeader,
+  reactStateHeader,
+  completeAnswerHeader,
+  foldkitUpdateHeader,
+  reactReducerHeader,
+  sideEffectsHeader,
+  foldkitCommandHeader,
+  reactUseEffectHeader,
+  whatYourTestsCanSeeHeader,
+  foldkitTestHeader,
+  reactTestHeader,
+  reactSideEffectTestHeader,
+  streamsVsHooksHeader,
+  foldkitSubscriptionsHeader,
+  reactHooksHeader,
+  yourStateOrTheirsHeader,
+  performanceHeader,
+  renderingHeader,
+  foldkitMemoizationHeader,
+  reactMemoizationHeader,
+  stateUpdateSpeedHeader,
+  guaranteesHeader,
+  auditLogHeader,
+  exhaustiveMatchingHeader,
+  visibleEffectsHeader,
+  timeTravelHeader,
+  storyTestsHeader,
+  oneFunctionHeader,
+  noStaleClosuresHeader,
+  scalabilityHeader,
+  remotePersistenceHeader,
+  multiplayerHeader,
+  animatedGridsHeader,
+  persistentUndoHeader,
+  conclusionHeader,
+]
+
+export const view = (copiedSnippets: CopiedSnippets): Html =>
+  div(
+    [],
+    [
+      pageTitle(
+        'foldkit-vs-react-side-by-side',
+        'Foldkit vs React: Side by Side',
+      ),
+
+      tableOfContentsEntryToHeader(overviewHeader),
+      para(
+        'Open ',
+        inlineCode('message.ts'),
+        '. Read 30 lines. You now know every single thing this application can do. That\u2019s the promise of Foldkit\u2019s architecture. It\u2019s also the gulf between it and React.',
+      ),
+      para(
+        'We built the same ',
+        link(
+          exampleDetailRouter({ exampleSlug: 'pixel-art' }),
+          'pixel art editor',
+        ),
+        ' in both Foldkit and React. Same features, same styling, same algorithms. The goal: show what Foldkit gives you that React cannot. This is a non-trivial app: grid state with undo/redo stacks, three tools with mirror modes, flood fill, localStorage persistence, PNG export, keyboard shortcuts, accessible UI components, and performance-critical grid rendering. It\u2019s the kind of app where architectural decisions compound over time.',
+      ),
+      para(
+        'The React version uses ',
+        inlineCode('useReducer'),
+        ', ',
+        link('https://headlessui.com', 'Headless UI'),
+        ', and all the best practices we\u2019d use in production: TypeScript, Tailwind, memoization, custom hooks. We gave React every advantage. The result is a clean, well-structured app. And Foldkit is still better in nearly every way that matters.',
+      ),
+      para(
+        'Not because React is bad. React is a good library. But Foldkit gives you structural guarantees that React\u2019s component model is architecturally incapable of providing. Those guarantees are what separate a codebase you can maintain with confidence from one you maintain with hope.',
+      ),
+      infoCallout(
+        'Try them both',
+        'The Foldkit version is in the ',
+        link(
+          exampleDetailRouter({ exampleSlug: 'pixel-art' }),
+          'examples gallery',
+        ),
+        '. The ',
+        link(
+          'https://github.com/foldkit/foldkit/tree/main/comparisons/pixel-art-react',
+          'React version source',
+        ),
+        ' is on GitHub.',
+      ),
+
+      tableOfContentsEntryToHeader(whatDoesThisAppDoHeader),
+      para(
+        'Imagine you\u2019ve just joined a team and opened this codebase for the first time. Your first question: what does this app do?',
+      ),
+      tableOfContentsEntryToHeader(foldkitMessageHeader),
+      para('In Foldkit, you open ', inlineCode('message.ts'), '.'),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.comparisonFoldkitMessageHighlighted),
+          ],
+          [],
+        ),
+        Snippets.comparisonFoldkitMessageRaw,
+        'Copy Foldkit messages',
+        copiedSnippets,
+        'mb-4',
+      ),
+      para(
+        '30 declarations. Each one reads as an English sentence: the user pressed a cell at coordinates x, y. The user selected a tool. The PNG export failed with an error message. The user confirmed a grid size change. The canvas was saved. That file is a complete, readable specification. If it\u2019s not in ',
+        inlineCode('message.ts'),
+        ', it can\u2019t happen.',
+      ),
+      infoCallout(
+        'The single source of behavior',
+        'Every state change in the Foldkit application starts with a Message. Every side effect outcome comes back as a Message. Every UI component interaction flows through a Message. If it\u2019s not a Message, it doesn\u2019t happen.',
+      ),
+      tableOfContentsEntryToHeader(reactActionHeader),
+      para(
+        'Now try to answer the same question in React. Since this app uses ',
+        inlineCode('useReducer'),
+        ', the closest equivalent is the ',
+        inlineCode('Action'),
+        ' type.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.comparisonReactActionHighlighted),
+          ],
+          [],
+        ),
+        Snippets.comparisonReactActionRaw,
+        'Copy React actions',
+        copiedSnippets,
+        'mb-4',
+      ),
+      para(
+        'The React ',
+        inlineCode('Action'),
+        ' type has 19 entries. That\u2019s 11 fewer than Foldkit\u2019s Message union. Where are the missing 11?',
+      ),
+      para(
+        inlineCode('ClickedExport'),
+        ' is missing. Export happens through a ',
+        inlineCode('useCallback'),
+        ' in the App component, not through the reducer. ',
+        inlineCode('SucceededExportPng'),
+        ' and ',
+        inlineCode('CompletedSaveCanvas'),
+        ' are missing. These are Command results that don\u2019t exist in React\u2019s model. And 8 ',
+        inlineCode('Got*Message'),
+        ' variants are missing. RadioGroup focus, Dialog transitions, Switch toggles, and Listbox selection all happen inside Headless UI, invisible to your code.',
+      ),
+      para(
+        'The React ',
+        inlineCode('Action'),
+        ' type tells you what the reducer handles. Foldkit\u2019s ',
+        inlineCode('message.ts'),
+        ' tells you everything the application does. One is a partial index. The other is a complete specification.',
+      ),
+
+      tableOfContentsEntryToHeader(declarationVsProcedureHeader),
+      para(
+        'The entry point of an application reveals its architecture. In Foldkit, the entry point is a declaration. In React, it\u2019s a procedure.',
+      ),
+      tableOfContentsEntryToHeader(reactAppHeader),
+      para(
+        'The React App component initializes the reducer, computes derived values, installs global event listeners, works around stale closures, memoizes callbacks, and manually threads state into 6 child components:',
+      ),
+      highlightedCodeBlock(
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.comparisonReactAppHighlighted)],
+          [],
+        ),
+        Snippets.comparisonReactAppRaw,
+        'Copy React App',
+        copiedSnippets,
+        'mb-4',
+      ),
+      para(
+        'Count the hooks: ',
+        inlineCode('useReducer'),
+        ', two ',
+        inlineCode('useMemo'),
+        ', one ',
+        inlineCode('useRef'),
+        ', one ',
+        inlineCode('useCallback'),
+        ', plus three custom hooks. That\u2019s 8 hooks in a single component. Every one is required. Remove any of them and something breaks.',
+      ),
+      para(
+        'The ',
+        inlineCode('useRef'),
+        ' on lines 10\u201311 deserves special attention. It exists because ',
+        inlineCode('handleExport'),
+        ' is wrapped in ',
+        inlineCode('useCallback'),
+        ' (for memoization), which closes over stale state. So you need a ref to access the current state. This is not a mistake. It\u2019s the standard pattern. React\u2019s closure-based model requires you to manually escape closures when you need current state in a memoized callback.',
+      ),
+      para(
+        'Then look at the JSX. Every child component receives ',
+        inlineCode('dispatch'),
+        ' as a prop, plus individual slices of state. ',
+        inlineCode('Toolbar'),
+        ' takes 8 props. ',
+        inlineCode('Canvas'),
+        ' takes 9. Each component will need its own ',
+        inlineCode('useCallback'),
+        ' wrappers internally. The prop threading is visible, manual, and exhausting.',
+      ),
+      tableOfContentsEntryToHeader(foldkitProgramHeader),
+      para(
+        'The Foldkit entry point declares the initial Model and wires five pieces together:',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.comparisonFoldkitProgramHighlighted),
+          ],
+          [],
+        ),
+        Snippets.comparisonFoldkitProgramRaw,
+        'Copy Foldkit program',
+        copiedSnippets,
+        'mb-6',
+      ),
+      para(
+        'No hooks. No refs. No memoized callbacks. No prop threading. The ',
+        inlineCode('init'),
+        ' function returns the initial Model and an empty list of startup Commands. ',
+        inlineCode('Runtime.makeProgram'),
+        ' wires the five pieces together: Model, init, update, view, subscriptions. ',
+        inlineCode('Runtime.run'),
+        ' starts it. The runtime handles event dispatch, memoization, and side effect execution. You declare what the program is. The framework runs it.',
+      ),
+
+      tableOfContentsEntryToHeader(stateManagementHeader),
+      para(
+        'In Foldkit, the Model is the complete truth. Every bit of application state lives in one place: the focus position of every RadioGroup, the open/closed state of every Dialog, the checked state of every Switch. You can inspect it, serialize it, send it over the wire, and replay it.',
+      ),
+      tableOfContentsEntryToHeader(foldkitModelHeader),
+      para(
+        'The Foldkit Model uses Effect Schema types with runtime validation, ',
+        inlineCode('Option<T>'),
+        ' instead of ',
+        inlineCode('null'),
+        ', and explicit fields for every UI component: RadioGroup focus, Dialog transitions, Switch toggles, Listbox selection.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.comparisonFoldkitModelHighlighted),
+          ],
+          [],
+        ),
+        Snippets.comparisonFoldkitModelRaw,
+        'Copy Foldkit model',
+        copiedSnippets,
+        'mb-4',
+      ),
+      tableOfContentsEntryToHeader(reactStateHeader),
+      para(
+        'React\u2019s state uses plain TypeScript types (compile-time only, no validation) with ',
+        inlineCode('null'),
+        ' for absent values. The 6 missing fields (RadioGroup focus, Dialog transition state, Switch toggles, Listbox selection) still exist at runtime, but inside Headless UI. They\u2019re invisible to your reducer, your debugger, and your serialization layer.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.comparisonReactStateHighlighted),
+          ],
+          [],
+        ),
+        Snippets.comparisonReactStateRaw,
+        'Copy React state',
+        copiedSnippets,
+        'mb-6',
+      ),
+
+      tableOfContentsEntryToHeader(completeAnswerHeader),
+      para(
+        'Foldkit\u2019s ',
+        inlineCode('update'),
+        ' function answers a complete question: given this Model and this Message, what is the new Model, and what side effects should happen? It returns ',
+        inlineCode('[Model, Command[]]'),
+        '. React\u2019s ',
+        inlineCode('reducer'),
+        ' answers half the question: given this state and this action, what is the new state? The other half (what side effects should happen) is scattered across ',
+        inlineCode('useEffect'),
+        ' hooks elsewhere in the codebase.',
+      ),
+      tableOfContentsEntryToHeader(foldkitUpdateHeader),
+      para(
+        'The update function returns ',
+        inlineCode('[Model, Command[]]'),
+        ': new state and a list of named side effects. It uses ',
+        inlineCode('M.tagsExhaustive'),
+        ' for exhaustive matching: add a new Message and the compiler forces you to handle it.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.comparisonFoldkitUpdateHighlighted),
+          ],
+          [],
+        ),
+        Snippets.comparisonFoldkitUpdateRaw,
+        'Copy Foldkit update',
+        copiedSnippets,
+        'mb-4',
+      ),
+      infoCallout(
+        'One function, complete answers',
+        'What happens when the user presses a cell? What happens when they undo? You can answer every one of these questions by reading this single function. In Foldkit, that\u2019s the only way to change state. There is no other path.',
+      ),
+      tableOfContentsEntryToHeader(reactReducerHeader),
+      para(
+        'The reducer returns only the new state. Side effects happen elsewhere in ',
+        inlineCode('useEffect'),
+        ' hooks. The ',
+        inlineCode('switch/case'),
+        ' silently ignores unhandled action types. Add a new action and the compiler won\u2019t catch forgotten cases.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.comparisonReactReducerHighlighted),
+          ],
+          [],
+        ),
+        Snippets.comparisonReactReducerRaw,
+        'Copy React reducer',
+        copiedSnippets,
+        'mb-6',
+      ),
+
+      tableOfContentsEntryToHeader(sideEffectsHeader),
+      para(
+        'In Foldkit, side effects are Commands: named, typed values that describe work for the runtime to execute. They\u2019re returned from the update function as data. You can see them in Foldkit DevTools, assert on them in tests, and trace exactly which Message caused which effect.',
+      ),
+      para(
+        'In React, side effects are imperative ',
+        inlineCode('useEffect'),
+        ' hooks that react to state changes. They\u2019re invisible to your reducer, invisible to your debugger, and connected to state only through dependency arrays that the compiler cannot verify.',
+      ),
+      tableOfContentsEntryToHeader(foldkitCommandHeader),
+      para(
+        'Commands are defined with ',
+        inlineCode('Command.define'),
+        ', wrapping an Effect that describes the work. The Command has a name, a return type, and appears in DevTools alongside the Model diff that triggered it.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.comparisonFoldkitCommandHighlighted),
+          ],
+          [],
+        ),
+        Snippets.comparisonFoldkitCommandRaw,
+        'Copy Foldkit command',
+        copiedSnippets,
+        'mb-4',
+      ),
+      infoCallout(
+        'A complete inventory of side effects',
+        'Every side effect triggered by a state transition must be created with ',
+        inlineCode('Command.define'),
+        '. Want to know what side effects your Foldkit app produces? Open ',
+        inlineCode('command.ts'),
+        '. This app has exactly two: ',
+        inlineCode('SaveCanvas'),
+        ' and ',
+        inlineCode('ExportPng'),
+        '. That\u2019s the complete list. (Subscriptions can also perform lightweight side effects as a consequence of event handling, like ',
+        inlineCode('preventDefault'),
+        ', but application-level effects always go through Commands.)',
+      ),
+      tableOfContentsEntryToHeader(reactUseEffectHeader),
+      para(
+        'The ',
+        inlineCode('useEffect'),
+        ' hook watches for state changes and fires imperatively. There\u2019s no trace connecting the reducer\u2019s state transition to the effect that fires. The effect is a consequence, not a decision.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.comparisonReactUseEffectHighlighted),
+          ],
+          [],
+        ),
+        Snippets.comparisonReactUseEffectRaw,
+        'Copy React useEffect',
+        copiedSnippets,
+        'mb-6',
+      ),
+
+      tableOfContentsEntryToHeader(whatYourTestsCanSeeHeader),
+      para(
+        'Both projects have full test suites covering the same behaviors. The tests verify the same things. But the experience of writing and reading them is not comparable.',
+      ),
+      para(
+        'React\u2019s reducer tests dispatch actions and assert on the resulting state. That\u2019s it. They have no way to verify which effects should fire, because effects don\u2019t exist in the reducer\u2019s return type. To test side effects, you need a completely different paradigm: render the full ',
+        inlineCode('<App />'),
+        ' component in jsdom, mock browser APIs, fire DOM events, and poll with ',
+        inlineCode('vi.waitFor()'),
+        '.',
+      ),
+      para(
+        'Foldkit\u2019s tests tell a different story. Look at the ',
+        inlineCode('Test.resolve'),
+        ' call in the snippet below. It asserts that releasing the mouse produced a ',
+        inlineCode('SaveCanvas'),
+        ' Command, provides the Message that Command will return, and advances the story. The test verifies state and side effects in the same synchronous pipeline. If someone removes the Command, the test breaks. In React, that regression is silent.',
+      ),
+      para(
+        'Every Foldkit test resolves Commands as part of the story. Not just the \u201Cside effect\u201D tests. Every single one. The framework makes side effects visible everywhere, not just in dedicated side-effect tests.',
+      ),
+      tableOfContentsEntryToHeader(foldkitTestHeader),
+      para(
+        inlineCode('Test.story()'),
+        ' feeds Messages into the update function and inspects both Model and Commands at every step.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.comparisonFoldkitTestHighlighted),
+          ],
+          [],
+        ),
+        Snippets.comparisonFoldkitTestRaw,
+        'Copy Foldkit test',
+        copiedSnippets,
+        'mb-4',
+      ),
+      tableOfContentsEntryToHeader(reactTestHeader),
+      para(
+        'The reducer test dispatches actions and asserts on the resulting state. It has no way to verify which side effects should fire, because effects don\u2019t exist in the reducer\u2019s return type.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.comparisonReactTestHighlighted),
+          ],
+          [],
+        ),
+        Snippets.comparisonReactTestRaw,
+        'Copy React test',
+        copiedSnippets,
+        'mb-4',
+      ),
+      tableOfContentsEntryToHeader(reactSideEffectTestHeader),
+      para(
+        'The export test below mocks ',
+        inlineCode('localStorage'),
+        ', renders the full ',
+        inlineCode('<App />'),
+        ' component, fires a paint stroke via DOM events, then polls with ',
+        inlineCode('vi.waitFor()'),
+        ' until the async effect completes.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.comparisonReactSideEffectTestHighlighted),
+          ],
+          [],
+        ),
+        Snippets.comparisonReactSideEffectTestRaw,
+        'Copy React side-effect test',
+        copiedSnippets,
+        'mb-6',
+      ),
+      infoCallout(
+        'Nothing to mock',
+        'Foldkit\u2019s update is a pure function. Side effects are return values, not imperative calls. That means you can test state transitions and side effects together in a unit test with zero mocking, zero DOM, and zero async. In React, testing a side effect means rendering the full component tree in jsdom, mocking browser APIs, firing synthetic events, and polling for async results.',
+      ),
+      comparisonTable(
+        ['', 'Foldkit', 'React'],
+        [
+          [
+            ['State testing'],
+            ['Inspect Model at any point in story'],
+            ['Assert on final state after dispatch'],
+          ],
+          [
+            ['Effect testing'],
+            ['Resolve Commands in same pipeline'],
+            ['Separate tests with mocking + DOM'],
+          ],
+          [
+            ['Test reads as'],
+            ['Chronological user story'],
+            ['State threading with intermediate variables'],
+          ],
+          [
+            ['Catches removed effects'],
+            ['Yes: unresolved Command fails the story'],
+            ['No: reducer tests can\u2019t see effects'],
+          ],
+          [
+            ['Infrastructure'],
+            [inlineCode('Test.story()'), ' (built-in, zero dependencies)'],
+            [
+              inlineCode('@testing-library/react'),
+              ', ',
+              inlineCode('jsdom'),
+              ', setup file',
+            ],
+          ],
+          [
+            ['Async'],
+            ['Never: everything is synchronous'],
+            [
+              'Required for ',
+              inlineCode('useEffect'),
+              ' (',
+              inlineCode('vi.waitFor'),
+              ')',
+            ],
+          ],
+        ],
+      ),
+
+      tableOfContentsEntryToHeader(streamsVsHooksHeader),
+      para(
+        'Both apps need global event listeners for keyboard shortcuts and mouse release during drawing. Foldkit uses Subscriptions: declarative streams that the runtime manages based on Model state. React uses ',
+        inlineCode('useEffect'),
+        ' hooks with manual setup and cleanup.',
+      ),
+      tableOfContentsEntryToHeader(foldkitSubscriptionsHeader),
+      para(
+        'Subscriptions are declarative streams. The ',
+        inlineCode('mouseRelease'),
+        ' Subscription conditionally activates based on ',
+        inlineCode('model.isDrawing'),
+        '. The runtime handles subscribe/unsubscribe automatically via structural comparison.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.comparisonFoldkitSubscriptionHighlighted),
+          ],
+          [],
+        ),
+        Snippets.comparisonFoldkitSubscriptionRaw,
+        'Copy Foldkit subscription',
+        copiedSnippets,
+        'mb-4',
+      ),
+      tableOfContentsEntryToHeader(reactHooksHeader),
+      para(
+        inlineCode('useEffect'),
+        ' hooks achieve the same result with manual setup, cleanup, and dependency arrays. Miss a dependency and you get stale closures. Foldkit has no closures to go stale. The view and Subscriptions always receive the current Model.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.comparisonReactHooksHighlighted),
+          ],
+          [],
+        ),
+        Snippets.comparisonReactHooksRaw,
+        'Copy React hooks',
+        copiedSnippets,
+        'mb-6',
+      ),
+
+      tableOfContentsEntryToHeader(yourStateOrTheirsHeader),
+      para(
+        'Foldkit ships accessible UI components (Dialog, RadioGroup, Switch, Listbox) that work like everything else in Foldkit: each has a Model, Messages, and an update function. You initialize them in your Model, delegate their Messages in your update, and compose their views. The state is yours. React uses Headless UI, which provides the same accessible patterns through a component API. But the state is theirs.',
+      ),
+      comparisonTable(
+        ['', 'Foldkit', 'React + Headless UI'],
+        [
+          [
+            ['State'],
+            ['Yours: in the Model, visible, serializable'],
+            ['Theirs: internal, invisible, not serializable'],
+          ],
+          [
+            ['Events'],
+            ['Messages delegated through your update'],
+            [
+              'Callbacks (',
+              inlineCode('onChange'),
+              ', ',
+              inlineCode('onClose'),
+              ')',
+            ],
+          ],
+          [
+            ['Accessibility'],
+            ['Built-in (aria, focus, keyboard)'],
+            ['Built-in (aria, focus, keyboard)'],
+          ],
+          [
+            ['Debugging'],
+            ['Full state visible in DevTools'],
+            ['Component internals hidden from DevTools'],
+          ],
+        ],
+      ),
+
+      tableOfContentsEntryToHeader(performanceHeader),
+
+      tableOfContentsEntryToHeader(renderingHeader),
+      para(
+        'Both versions optimize rendering for the same bottleneck: the canvas grid (up to 1024 cells on a 32\u00d732 grid) that must update during mouse drag without lag. The approaches look completely different.',
+      ),
+      tableOfContentsEntryToHeader(foldkitMemoizationHeader),
+      para(
+        'Declare memoization helpers at the module level. Pass data in. Structural equality handles the rest.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.comparisonFoldkitMemoizationHighlighted),
+          ],
+          [],
+        ),
+        Snippets.comparisonFoldkitMemoizationRaw,
+        'Copy Foldkit memoization',
+        copiedSnippets,
+        'mb-4',
+      ),
+      para(
+        inlineCode('createLazy()'),
+        ' and ',
+        inlineCode('createKeyedLazy()'),
+        ' compare arguments by structural equality. If the data hasn\u2019t changed, the view doesn\u2019t re-render. No wrappers, no dependency arrays, no reference stability concerns.',
+      ),
+      tableOfContentsEntryToHeader(reactMemoizationHeader),
+      para(
+        'Wrap every component in ',
+        inlineCode('memo'),
+        '. Wrap every handler in ',
+        inlineCode('useCallback'),
+        '. Wrap every derived value in ',
+        inlineCode('useMemo'),
+        '. Thread ',
+        inlineCode('dispatch'),
+        ' through every component.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.comparisonReactMemoizationHighlighted),
+          ],
+          [],
+        ),
+        Snippets.comparisonReactMemoizationRaw,
+        'Copy React memoization',
+        copiedSnippets,
+        'mb-4',
+      ),
+      para(
+        'React\u2019s ',
+        inlineCode('React.memo'),
+        ' uses shallow reference equality, so you need ',
+        inlineCode('useCallback'),
+        ' and ',
+        inlineCode('useMemo'),
+        ' to prevent unnecessary re-renders. Both approaches achieve the same result. But in Foldkit you get it by default. In React you have to earn it.',
+      ),
+
+      tableOfContentsEntryToHeader(stateUpdateSpeedHeader),
+      para(
+        'Foldkit\u2019s update function uses Effect-TS pattern matching and ',
+        inlineCode('evo()'),
+        ' structural updates. React\u2019s reducer uses plain ',
+        inlineCode('switch/case'),
+        ' and object spread. That difference shows up in raw throughput. Here are the numbers from a ',
+        link(
+          'https://github.com/foldkit/foldkit/tree/main/examples/pixel-art/src/comparison.bench.test.ts',
+          'vitest benchmark',
+        ),
+        ' running both update functions on the same 16\u00d716 grid:',
+      ),
+      comparisonTable(
+        ['Operation', 'Foldkit', 'React'],
+        [
+          [['Brush stroke (press + release)'], ['~3\u00b5s'], ['~0.5\u00b5s']],
+          [['Brush drag (5 cells)'], ['~8\u00b5s'], ['~2\u00b5s']],
+          [['Flood fill (16\u00d716)'], ['~130\u00b5s'], ['~16\u00b5s']],
+          [['Single undo (20 entries)'], ['~1\u00b5s'], ['~0.2\u00b5s']],
+          [['5\u00d7 undo + 5\u00d7 redo'], ['~10\u00b5s'], ['~1\u00b5s']],
+        ],
+      ),
+      para(
+        'React\u2019s reducer is faster. Plain JavaScript object spread is as cheap as it gets. But look at the absolute numbers. Foldkit\u2019s slowest operation (flood fill across an entire 16\u00d716 grid) takes ~130\u00b5s. A 60fps frame budget is 16,667\u00b5s. The update function uses less than 1% of it. Both are fast. One gives you exhaustive case handling, structural equality memoization, and side effects as return values. The other gives you raw speed you\u2019ll never need.',
+      ),
+      infoCallout(
+        'Run it yourself',
+        'Clone the repo and run ',
+        inlineCode(
+          'pnpm --filter pixel-art-example exec vitest run src/comparison.bench.test.ts',
+        ),
+        ' to see both implementations benchmarked side-by-side on your machine.',
+      ),
+
+      tableOfContentsEntryToHeader(guaranteesHeader),
+      para(
+        'The detailed comparisons above tell the story section by section. Here\u2019s the summary: what Foldkit guarantees by construction that React cannot.',
+      ),
+
+      tableOfContentsEntryToHeader(auditLogHeader),
+      para(
+        inlineCode('message.ts'),
+        ' is a complete, readable specification of every state change, side effect outcome, and UI component interaction. There is no equivalent in React.',
+      ),
+
+      tableOfContentsEntryToHeader(exhaustiveMatchingHeader),
+      para(
+        'Add a new Message and the compiler breaks everywhere it\u2019s unhandled. React\u2019s ',
+        inlineCode('switch/case'),
+        ' silently falls through.',
+      ),
+
+      tableOfContentsEntryToHeader(visibleEffectsHeader),
+      para(
+        'Commands have names, appear in DevTools alongside the Model diff, and can be asserted on in tests. React\u2019s ',
+        inlineCode('useEffect'),
+        ' hooks are invisible to the reducer and invisible to debugging tools.',
+      ),
+
+      tableOfContentsEntryToHeader(timeTravelHeader),
+      para(
+        'Every bit of state lives in the Model, including UI component internals (focus position, transition frames, checked state). Foldkit DevTools can step through the complete history. React\u2019s DevTools show the current component tree, but Headless UI\u2019s internal state is unreachable.',
+      ),
+
+      tableOfContentsEntryToHeader(storyTestsHeader),
+      para(
+        'If a side effect is removed, the test breaks. React\u2019s reducer tests can only see state. A removed ',
+        inlineCode('useEffect'),
+        ' is a silent regression.',
+      ),
+
+      tableOfContentsEntryToHeader(oneFunctionHeader),
+      para(
+        'When something goes wrong, Foldkit gives you one place to look. React gives you five: the reducer, ',
+        inlineCode('useEffect'),
+        ' hooks, callback refs, custom hooks, and library internals.',
+      ),
+
+      tableOfContentsEntryToHeader(noStaleClosuresHeader),
+      para(
+        'No dependency arrays. No ',
+        inlineCode('useCallback'),
+        ' wrappers. No refs to escape closures. The entire class of bugs that comes from React\u2019s closure-based model does not exist in Foldkit.',
+      ),
+
+      tableOfContentsEntryToHeader(scalabilityHeader),
+      para(
+        'A pixel art editor is a non-trivial app. But real products don\u2019t stop here. What happens when the feature set grows? Consider what it would take to add remote persistence, multiplayer editing, or an undo/redo timeline that survives a page refresh.',
+      ),
+
+      tableOfContentsEntryToHeader(remotePersistenceHeader),
+      para(
+        'In Foldkit, you\u2019d define a new Command called ',
+        inlineCode('SyncToServer'),
+        ' and return it from the update function alongside ',
+        inlineCode('SaveCanvas'),
+        '. The sync logic lives in one place, appears in DevTools, and your tests verify it was triggered by the right Message. In React, you\u2019d add another ',
+        inlineCode('useEffect'),
+        ' that watches for state changes and fires a network request. Now you have two independent effects (localStorage and remote sync) that can race, and neither is visible in the reducer.',
+      ),
+
+      tableOfContentsEntryToHeader(multiplayerHeader),
+      para(
+        'Foldkit\u2019s Model is serializable by design. Every field uses Effect Schema types with runtime validation. Sending the Model over a WebSocket and applying remote Messages through the same update function is architecturally trivial: the update function already handles every possible state transition. Remote Messages go through the same pipeline as local ones.',
+      ),
+      para(
+        'In React, Headless UI\u2019s internal state (focus position, transition frames, dialog open/close) can\u2019t be serialized or sent over the wire. You\u2019d need to rebuild UI component state on the receiving end, which means your multiplayer sync and your local UI are working with different sources of truth.',
+      ),
+
+      tableOfContentsEntryToHeader(animatedGridsHeader),
+      para(
+        'Imagine adding animated transitions between grid states: cells that fade in, pulse on paint, or ripple outward on fill. In Foldkit, you\u2019d add an animation Subscription that emits ',
+        inlineCode('AnimationTick'),
+        ' Messages on ',
+        inlineCode('requestAnimationFrame'),
+        '. The update function advances the animation state (which cells are mid-transition, their progress). The view renders the current frame. All animation state lives in the Model, every frame is visible in DevTools, and you can time-travel through the animation.',
+      ),
+      para(
+        'In React, this is where the architecture starts to balloon. You need a ',
+        inlineCode('useEffect'),
+        ' for the ',
+        inlineCode('requestAnimationFrame'),
+        ' loop with cleanup. You need a ',
+        inlineCode('useRef'),
+        ' for the frame ID (so cleanup can cancel it). You need another ',
+        inlineCode('useRef'),
+        ' for the current animation state (because the rAF callback closes over stale state otherwise). Now you have state in ',
+        inlineCode('useReducer'),
+        ', mutable state in refs, and a render loop coordinating between them. The existing drawing ',
+        inlineCode('useEffect'),
+        ' and the animation ',
+        inlineCode('useEffect'),
+        ' can interact in surprising ways. Both respond to grid changes, both touch the DOM, and neither knows about the other.',
+      ),
+      para(
+        'This is the pattern that repeats: every new real-time feature in React adds another ',
+        inlineCode('useEffect'),
+        '/\u200B',
+        inlineCode('useRef'),
+        '/\u200B',
+        inlineCode('useCallback'),
+        ' triad. In Foldkit, it\u2019s a Subscription and some Messages.',
+      ),
+
+      tableOfContentsEntryToHeader(persistentUndoHeader),
+      para(
+        'Foldkit\u2019s undo stack is part of the Model. Persisting it to IndexedDB is another Command. Restoring it on page load is part of ',
+        inlineCode('init'),
+        '. The entire round-trip (save, restore, resume) flows through the same architecture with no special cases. React\u2019s undo stack lives in ',
+        inlineCode('useReducer'),
+        ' state, but persisting it means coordinating another ',
+        inlineCode('useEffect'),
+        ' with the existing localStorage effect, managing serialization of the grid arrays, and ensuring the two effects don\u2019t step on each other.',
+      ),
+      para(
+        'The pattern is always the same: Foldkit\u2019s architecture scales by adding Messages and Commands to existing functions. React\u2019s architecture scales by adding more hooks, more effects, and more coordination between them. The first approach compounds clarity. The second compounds complexity.',
+      ),
+
+      tableOfContentsEntryToHeader(conclusionHeader),
+      para(
+        'React is a good library with a massive ecosystem. We\u2019re not pretending otherwise.',
+      ),
+      para(
+        'But look at what we built. The same app, the same features, the same styling. In React, understanding the app requires reading the reducer, the hooks, the components, and the Headless UI docs. In Foldkit, you open ',
+        inlineCode('message.ts'),
+        ' to see every state change. You open ',
+        inlineCode('command.ts'),
+        ' to see every side effect. Two files. Complete picture.',
+      ),
+      para(
+        'If you care about adding features without fear, onboarding new developers by pointing them at one file, debugging production issues by replaying state, and trusting that your test suite actually catches regressions, Foldkit gives you things React structurally cannot.',
+      ),
+    ],
+  )

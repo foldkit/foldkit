@@ -34,6 +34,7 @@ import {
   patternsOutMessageRouter,
   patternsSubmodelsRouter,
   projectOrganizationRouter,
+  reactComparisonRouter,
   routingAndNavigationRouter,
   testingRouter,
   uiButtonRouter,
@@ -217,6 +218,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'ComingFromReact',
           href: comingFromReactRouter(),
           label: 'Coming from React',
+        },
+        {
+          _tag: 'ReactComparison',
+          href: reactComparisonRouter(),
+          label: 'Foldkit vs React: Side by Side',
         },
         {
           _tag: 'RoutingAndNavigation',

@@ -26,6 +26,7 @@ export const activeSection: Subscription<
         M.tag('Manifesto', () => Page.Manifesto.tableOfContents),
         M.tag('GettingStarted', () => Page.GettingStarted.tableOfContents),
         M.tag('ComingFromReact', () => Page.ComingFromReact.tableOfContents),
+        M.tag('ReactComparison', () => Page.ReactComparison.tableOfContents),
         M.tag('RoutingAndNavigation', () => Page.Routing.tableOfContents),
         M.tag('FieldValidation', () => Page.FieldValidation.tableOfContents),
         M.tag('Testing', () => Page.Testing.tableOfContents),
@@ -124,6 +125,10 @@ export const activeSection: Subscription<
         M.tag('UiTabs', () => Page.UiPages.TabsPage.tableOfContents),
         M.tag('UiFieldset', () => Page.UiPages.FieldsetPage.tableOfContents),
         M.tag('UiSelect', () => Page.UiPages.SelectPage.tableOfContents),
+        M.tag(
+          'UiDragAndDrop',
+          () => Page.UiPages.DragAndDropPage.tableOfContents,
+        ),
         M.tag('UiOverview', () => Page.UiPages.OverviewPage.tableOfContents),
         M.tag('AiOverview', () => Page.AiOverview.tableOfContents),
         M.tag('AiSkills', () => Page.AiSkills.tableOfContents),

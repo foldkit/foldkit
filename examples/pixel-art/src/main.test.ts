@@ -11,7 +11,10 @@ import {
   ClickedUndo,
   CompletedSaveCanvas,
   ConfirmedGridSizeChange,
+  DismissedErrorDialog,
   EnteredCell,
+  FailedExportPng,
+  GotErrorDialogMessage,
   GotGridSizeConfirmDialogMessage,
   GotGridSizeRadioGroupMessage,
   GotPaletteRadioGroupMessage,
@@ -477,6 +480,82 @@ describe('hover preview', () => {
       Test.message(LeftCanvas()),
       Test.tap(({ model }) => {
         expect(model.maybeHoveredCell).toEqual(Option.none())
+      }),
+    )
+  })
+})
+
+describe('eraser tool', () => {
+  test('eraser removes color from a painted cell', () => {
+    Test.story(
+      update,
+      Test.with(emptyModel),
+      Test.message(PressedCell({ x: 0, y: 0 })),
+      Test.message(ReleasedMouse()),
+      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Test.tap(({ model }) => {
+        expect(model.grid[0]?.[0]).toEqual(Option.some(0))
+      }),
+      Test.message(SelectedTool({ tool: 'Eraser' })),
+      Test.resolve(
+        Ui.RadioGroup.FocusOption,
+        Ui.RadioGroup.CompletedFocusOption(),
+        radioMessage => GotToolRadioGroupMessage({ message: radioMessage }),
+      ),
+      Test.message(PressedCell({ x: 0, y: 0 })),
+      Test.message(ReleasedMouse()),
+      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Test.tap(({ model }) => {
+        expect(model.grid[0]?.[0]).toEqual(Option.none())
+        expect(model.undoStack).toHaveLength(2)
+      }),
+    )
+  })
+})
+
+describe('export failure', () => {
+  test('failed export sets error and opens error dialog', () => {
+    Test.story(
+      update,
+      Test.with(emptyModel),
+      Test.message(
+        FailedExportPng({ error: 'Canvas 2D context not available' }),
+      ),
+      Test.resolve(
+        Ui.Dialog.ShowDialog,
+        Ui.Dialog.CompletedShowDialog(),
+        dialogMessage => GotErrorDialogMessage({ message: dialogMessage }),
+      ),
+      Test.tap(({ model }) => {
+        expect(model.maybeExportError).toEqual(
+          Option.some('Canvas 2D context not available'),
+        )
+        expect(model.errorDialog.isOpen).toBe(true)
+      }),
+    )
+  })
+
+  test('dismissing error dialog clears error and closes dialog', () => {
+    Test.story(
+      update,
+      Test.with(emptyModel),
+      Test.message(
+        FailedExportPng({ error: 'Canvas 2D context not available' }),
+      ),
+      Test.resolve(
+        Ui.Dialog.ShowDialog,
+        Ui.Dialog.CompletedShowDialog(),
+        dialogMessage => GotErrorDialogMessage({ message: dialogMessage }),
+      ),
+      Test.message(DismissedErrorDialog()),
+      Test.resolve(
+        Ui.Dialog.CloseDialog,
+        Ui.Dialog.CompletedCloseDialog(),
+        dialogMessage => GotErrorDialogMessage({ message: dialogMessage }),
+      ),
+      Test.tap(({ model }) => {
+        expect(model.maybeExportError).toEqual(Option.none())
+        expect(model.errorDialog.isOpen).toBe(false)
       }),
     )
   })

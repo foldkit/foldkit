@@ -56,6 +56,11 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Moving from React to a principled architecture? Foldkit replaces hooks, useEffect, and component state with The Elm Architecture — one Model, one update function, explicit effects. Built on Effect-TS.',
     'Docs',
   ),
+  ReactComparison: docs(
+    'React Comparison',
+    'A side-by-side comparison of the same pixel art editor built in both Foldkit and React. Covers state management, side effects, event handling, UI components, performance, and architectural tradeoffs.',
+    'Guides',
+  ),
   RoutingAndNavigation: docs(
     'Routing and Navigation',
     'Type-safe routing with bidirectional parser combinators in Foldkit. URLs parse into typed routes and build back — no string matching, built on Effect-TS.',

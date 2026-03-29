@@ -15,6 +15,7 @@ import {
 export const HomeRoute = r('Home')
 export const ManifestoRoute = r('Manifesto')
 export const ComingFromReactRoute = r('ComingFromReact')
+export const ReactComparisonRoute = r('ReactComparison')
 export const GettingStartedRoute = r('GettingStarted')
 export const RoutingAndNavigationRoute = r('RoutingAndNavigation')
 export const FieldValidationRoute = r('FieldValidation')
@@ -79,6 +80,7 @@ export const NotFoundRoute = r('NotFound', { path: S.String })
 export const DocsRoute = S.Union(
   ManifestoRoute,
   ComingFromReactRoute,
+  ReactComparisonRoute,
   GettingStartedRoute,
   RoutingAndNavigationRoute,
   FieldValidationRoute,
@@ -143,6 +145,10 @@ export const manifestoRouter = pipe(literal('manifesto'), mapTo(ManifestoRoute))
 export const comingFromReactRouter = pipe(
   literal('coming-from-react'),
   mapTo(ComingFromReactRoute),
+)
+export const reactComparisonRouter = pipe(
+  literal('foldkit-vs-react-side-by-side'),
+  mapTo(ReactComparisonRoute),
 )
 export const gettingStartedRouter = pipe(
   literal('getting-started'),
@@ -395,6 +401,7 @@ export const aiSkillsRouter = pipe(
 const topLevelDocsParser = oneOf(
   manifestoRouter,
   comingFromReactRouter,
+  reactComparisonRouter,
   gettingStartedRouter,
   routingAndNavigationRouter,
   fieldValidationRouter,
