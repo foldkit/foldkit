@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.5.13
+
+### Patch Changes
+
+- 015c96a: Scaffold vitest configuration in new projects. Adds `vitest.config.ts` with `server.deps.inline: ['foldkit']` so tests resolve foldkit through Vite's bundler pipeline, a `test` script in `package.json`, and vitest and happy-dom as dev dependencies.
+
 ## 0.5.12
 
 ### Patch Changes
