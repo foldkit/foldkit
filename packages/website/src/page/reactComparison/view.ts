@@ -376,7 +376,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Message'),
         ' union, it can\u2019t happen. When a UI component has its own Submodel, its ',
         inlineCode('Message'),
-        ' union gives you the same complete picture one layer deeper \u2014 the full behavior tree is always right there in the types.',
+        ' union gives you the same complete picture one layer deeper, so the full behavior tree is always right there in the types.',
       ),
       infoCallout(
         'The single source of behavior',
