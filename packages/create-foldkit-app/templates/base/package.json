@@ -8,6 +8,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "format": "prettier -w .",
+    "test": "vitest run",
     "lint": "eslint ."
   }
 }
