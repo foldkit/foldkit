@@ -321,7 +321,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           exampleDetailRouter({ exampleSlug: 'pixel-art' }),
           'pixel art editor',
         ),
-        ' in both Foldkit and React. Same features, same styling, same algorithms. The goal: compare the two approaches side by side and highlight where they differ. This is a non-trivial app: grid state with undo/redo stacks, three tools with mirror modes, flood fill, localStorage persistence, PNG export, keyboard shortcuts, accessible UI components, and performance-critical grid rendering. It\u2019s the kind of app where architectural decisions compound over time.',
+        ' (',
+        link('https://pixel.foldkit.dev', 'try it live'),
+        ') in both Foldkit and React. Same features, same styling, same algorithms. The goal: compare the two approaches side by side and highlight where they differ. This is a non-trivial app: grid state with undo/redo stacks, three tools with mirror modes, flood fill, localStorage persistence, PNG export, keyboard shortcuts, accessible UI components, and performance-critical grid rendering. It\u2019s the kind of app where architectural decisions compound over time.',
       ),
       para(
         'The React version uses ',
