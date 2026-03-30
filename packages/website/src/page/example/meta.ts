@@ -96,7 +96,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     slug: 'query-sync',
     title: 'Query Sync',
     description:
-      'Filterable dinosaur table where every control syncs to URL query parameters. Schema transforms enforce valid states — invalid params gracefully fall back.',
+      'Filterable dinosaur table where every control syncs to URL query parameters. Schema transforms enforce valid states. Invalid params gracefully fall back.',
     difficulty: 'Intermediate',
     tags: ['Routing', 'Query Params'],
     hasRouting: true,

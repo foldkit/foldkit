@@ -53,7 +53,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   ComingFromReact: docs(
     'Coming from React',
-    'Moving from React to a principled architecture? Foldkit replaces hooks, useEffect, and component state with The Elm Architecture — one Model, one update function, explicit effects. Built on Effect-TS.',
+    'Moving from React to a principled architecture? Foldkit replaces hooks, useEffect, and component state with The Elm Architecture: one Model, one update function, explicit effects. Built on Effect-TS.',
     'Docs',
   ),
   ReactComparison: docs(
@@ -63,7 +63,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   RoutingAndNavigation: docs(
     'Routing and Navigation',
-    'Type-safe routing with bidirectional parser combinators in Foldkit. URLs parse into typed routes and build back — no string matching, built on Effect-TS.',
+    'Type-safe routing with bidirectional parser combinators in Foldkit. URLs parse into typed routes and build back. No string matching, built on Effect-TS.',
     'Docs',
   ),
   FieldValidation: docs(
@@ -73,12 +73,12 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   Testing: docs(
     'Testing',
-    'Test Foldkit programs with foldkit/test — simulate the update loop, declare Command resolvers, send Messages, and assert on the Model in a single pipe chain.',
+    'Test Foldkit programs with foldkit/test. Simulate the update loop, declare Command resolvers, send Messages, and assert on the Model in a single pipe chain.',
     'Docs',
   ),
   Examples: docs(
     'Example Apps',
-    'Working Foldkit example apps — counter, forms, routing, auth, websocket chat, and more. Each demonstrates Effect-TS and Elm Architecture patterns.',
+    'Working Foldkit example apps: counter, forms, routing, auth, websocket chat, and more. Each demonstrates Effect-TS and Elm Architecture patterns.',
     'Docs',
   ),
   BestPracticesSideEffects: docs(
@@ -108,7 +108,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreArchitecture: core(
     'Architecture',
-    'How Foldkit implements The Elm Architecture (TEA) with Effect-TS — Model, update, view, Commands, and Subscriptions.',
+    'How Foldkit implements The Elm Architecture (TEA) with Effect-TS: Model, update, view, Commands, and Subscriptions.',
   ),
   CoreCounterExample: core(
     'Counter Example',
@@ -128,7 +128,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreView: core(
     'View',
-    'Render your UI as a pure function of the Model. Foldkit views are plain TypeScript functions — no JSX, no hooks, no component lifecycle.',
+    'Render your UI as a pure function of the Model. Foldkit views are plain TypeScript functions. No JSX, no hooks, no component lifecycle.',
   ),
   CoreCommands: core(
     'Commands',
@@ -184,7 +184,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   UiOverview: ui(
     'Foldkit UI',
-    'Headless, accessible UI primitives for Foldkit — dialog, menu, tabs, listbox, and more. Built for The Elm Architecture with Effect-TS.',
+    'Headless, accessible UI primitives for Foldkit: dialog, menu, tabs, listbox, and more. Built for The Elm Architecture with Effect-TS.',
   ),
   UiButton: ui(
     'Button',

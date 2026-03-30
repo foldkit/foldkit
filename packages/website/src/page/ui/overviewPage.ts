@@ -244,7 +244,7 @@ export const view = (): Html =>
         whatIsFoldkitUiHeader.text,
       ),
       para(
-        'Foldkit UI is a set of headless, accessible UI components built for Foldkit. Each component manages its own state through The Elm Architecture — with a Model, Message, update, and view — and integrates into your app via the ',
+        'Foldkit UI is a set of headless, accessible UI components built for Foldkit. Each component manages its own state through The Elm Architecture (with a Model, Message, update, and view) and integrates into your app via the ',
         link(patternsSubmodelsRouter(), 'Submodels'),
         ' pattern.',
       ),

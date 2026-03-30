@@ -23,12 +23,12 @@ const statsView = (
     ],
   )
 
-// Create the lazy slot at module level — one slot per view
+// Create the lazy slot at module level. One slot per view.
 const lazyStats = createLazy()
 
 // In your view, wrap the call with the lazy slot.
 // If revenue, orderCount, and topProducts are the same references
-// as last render, the cached VNode is returned instantly —
+// as last render, the cached VNode is returned instantly.
 // both VNode construction and subtree diffing are skipped.
 const view = (model: Model) =>
   div(

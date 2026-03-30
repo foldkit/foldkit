@@ -83,7 +83,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
     [
       pageTitle('field-validation', 'Field Validation'),
       para(
-        'Foldkit models field validation as data in your Model, not scattered logic across event handlers. Each field is a four-state discriminated union — ',
+        'Foldkit models field validation as data in your Model, not scattered logic across event handlers. Each field is a four-state discriminated union: ',
         inlineCode('NotValidated'),
         ', ',
         inlineCode('Validating'),
@@ -91,7 +91,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Valid'),
         ', and ',
         inlineCode('Invalid'),
-        ' — making it impossible to render a success indicator while an error exists, or show a spinner when validation is already complete.',
+        '. This makes it impossible to render a success indicator while an error exists, or show a spinner when validation is already complete.',
       ),
 
       tableOfContentsEntryToHeader(creatingFieldHeader),
@@ -136,7 +136,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Validation rules are ',
         inlineCode('[predicate, errorMessage]'),
-        ' tuples. Foldkit ships built-in validators for common cases — compose them into an array for each field.',
+        ' tuples. Foldkit ships built-in validators for common cases. Compose them into an array for each field.',
       ),
       highlightedCodeBlock(
         div(
@@ -156,7 +156,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Validation<T>'),
         ' tuple. The predicate returns ',
         inlineCode('true'),
-        ' when the value is valid. The error message can be a static string or a function that receives the invalid value — pass a function when the message needs to include context like ',
+        ' when the value is valid. The error message can be a static string or a function that receives the invalid value. Pass a function when the message needs to include context like ',
         inlineCode('value => `Too long (${value.length}/20)`'),
         '.',
       ),
@@ -169,7 +169,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Valid'),
         ' or ',
         inlineCode('Invalid'),
-        ' schema instance. It fails fast — stopping at the first failing rule. Use it in your update function with ',
+        ' schema instance. It fails fast, stopping at the first failing rule. Use it in your update function with ',
         inlineCode('evo'),
         ' to set the field state.',
       ),
@@ -254,7 +254,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Validation<T>'),
         ' is a ',
         inlineCode('[Predicate<T>, ValidationMessage<T>]'),
-        ' tuple. Write your own by pairing any predicate with an error message — either a static string or a function that receives the value.',
+        ' tuple. Write your own by pairing any predicate with an error message, either a static string or a function that receives the value.',
       ),
       highlightedCodeBlock(
         div(
@@ -293,7 +293,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        'This is the natural place for cross-field logic — the update function already has the model, and constructing ',
+        'This is the natural place for cross-field logic. The update function already has the model, and constructing ',
         inlineCode('Valid'),
         ' or ',
         inlineCode('Invalid'),

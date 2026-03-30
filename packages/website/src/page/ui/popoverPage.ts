@@ -30,7 +30,7 @@ export const view = (
       pageTitle('ui/popover', 'Popover'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'A floating panel that attaches to a trigger button with proper focus management. Unlike Menu (which has role="menu" and item navigation), Popover uses the disclosure pattern — the panel holds arbitrary content with natural Tab navigation.',
+        'A floating panel that attaches to a trigger button with proper focus management. Unlike Menu (which has role="menu" and item navigation), Popover uses the disclosure pattern: the panel holds arbitrary content with natural Tab navigation.',
       ),
       ...Popover.basicDemo(model.popoverBasicDemo, toParentMessage),
       ...Popover.animatedDemo(model.popoverAnimatedDemo, toParentMessage),

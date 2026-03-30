@@ -136,7 +136,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         link(Link.snabbdom, 'Snabbdom'),
         ') compares the old and new VNode by reference before diffing. When ',
         inlineCode('oldVnode === newVnode'),
-        ', it returns immediately — no attribute comparison, no child reconciliation, no DOM touching. ',
+        ', it returns immediately. No attribute comparison, no child reconciliation, no DOM touching. ',
         inlineCode('createLazy'),
         ' and ',
         inlineCode('createKeyedLazy'),

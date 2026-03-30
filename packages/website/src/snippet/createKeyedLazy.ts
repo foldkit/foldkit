@@ -20,7 +20,7 @@ const lazyContact = createKeyedLazy()
 
 // When rendering a list, only items whose args changed are recomputed.
 // If you select a different contact, only the previously-selected
-// and newly-selected items re-render — all others return cached VNodes.
+// and newly-selected items re-render. All others return cached VNodes.
 const contactListView = (
   contacts: ReadonlyArray<Contact>,
   maybeSelectedId: Option.Option<string>,

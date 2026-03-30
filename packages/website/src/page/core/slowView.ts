@@ -34,7 +34,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('view'),
         ' function to build a virtual DOM tree describing what the screen should look like. Foldkit then diffs that tree against the previous one and patches the real DOM. The ',
         inlineCode('view'),
-        ' call is only the first step — the diff, DOM patch, browser layout, and paint still happen after it returns.',
+        ' call is only the first step. The diff, DOM patch, browser layout, and paint still happen after it returns.',
       ),
       para(
         'By default, Foldkit measures how long the ',
@@ -57,7 +57,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('import.meta.hot'),
         '), so there is zero runtime cost in production builds. Pass ',
         inlineCode("show: 'Always'"),
-        ' to enable it in all environments — useful for staging or when logging to an observability tool like Sentry.',
+        ' to enable it in all environments. Useful for staging or when logging to an observability tool like Sentry.',
       ),
       para(
         'The default threshold is 16ms (one frame at 60fps). Pass a ',
@@ -104,7 +104,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('createLazy'),
         ' and ',
         inlineCode('createKeyedLazy'),
-        ' — two tools for caching view subtrees so they skip both VNode construction and DOM diffing.',
+        ', two tools for caching view subtrees so they skip both VNode construction and DOM diffing.',
       ),
     ],
   )

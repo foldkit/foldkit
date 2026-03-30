@@ -60,7 +60,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       tableOfContentsEntryToHeader(makeProgramHeader),
       para(
         inlineCode('makeProgram'),
-        ' creates a Foldkit runtime. It handles both standalone components and full applications with routing — the difference is whether you provide a ',
+        ' creates a Foldkit runtime. It handles both standalone components and full applications with routing. The difference is whether you provide a ',
         inlineCode('routing'),
         ' config.',
       ),
@@ -115,7 +115,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' after every render. It receives the current Model, so the browser tab title stays in sync as you navigate.',
       ),
       para(
-        'Most apps can start with just these runtime options. The next page covers Resources — long-lived browser singletons like ',
+        'Most apps can start with just these runtime options. The next page covers Resources: long-lived browser singletons like ',
         inlineCode('AudioContext'),
         ' or ',
         inlineCode('CanvasRenderingContext2D'),

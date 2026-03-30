@@ -74,7 +74,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         '. In Foldkit, update is pure. It describes what should happen and the runtime does it.',
       ),
       para(
-        'Let\u2019s see what that looks like. Say we want a delayed reset — when the user clicks reset, the count resets after one second:',
+        'Let\u2019s see what that looks like. Say we want a delayed reset: when the user clicks reset, the count resets after one second:',
       ),
       highlightedCodeBlock(
         div(
@@ -201,7 +201,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ', and once all errors are handled, the type confirms it. The update function handles errors the same way it handles success: as facts about what happened.',
       ),
       para(
-        'Commands fire once and produce a single Message when they finish. But what about effects that run continuously — a timer that ticks every second, a ',
+        'Commands fire once and produce a single Message when they finish. But what about effects that run continuously, like a timer that ticks every second, a ',
         inlineCode('WebSocket'),
         ' that stays open, keyboard input? For ongoing streams, Foldkit has Subscriptions.',
       ),
