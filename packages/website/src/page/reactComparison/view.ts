@@ -374,7 +374,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         '30 declarations. Each one reads as an English sentence: the user pressed a cell at coordinates x, y. The user selected a tool. The PNG export failed with an error message. The user confirmed a grid size change. The canvas was saved. That union is a complete, readable specification. If it\u2019s not in the ',
         inlineCode('Message'),
-        ' union, it can\u2019t happen.',
+        ' union, it can\u2019t happen. When a UI component has its own Submodel, its ',
+        inlineCode('Message'),
+        ' union gives you the same complete picture one layer deeper \u2014 the full behavior tree is always right there in the types.',
       ),
       infoCallout(
         'The single source of behavior',
@@ -953,7 +955,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'The ',
         inlineCode('Message'),
-        ' union is a complete, readable specification of every state change, side effect outcome, and UI component interaction. There is no equivalent in React.',
+        ' union is a complete, readable specification of every state change, side effect outcome, and UI component interaction. UI Submodels carry their own ',
+        inlineCode('Message'),
+        ' unions, so you can drill into any component to see exactly what it does. There is no equivalent in React.',
       ),
 
       tableOfContentsEntryToHeader(exhaustiveMatchingHeader),
