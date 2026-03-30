@@ -372,9 +372,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-4',
       ),
       para(
-        '30 declarations. Each one reads as an English sentence: the user pressed a cell at coordinates x, y. The user selected a tool. The PNG export failed with an error message. The user confirmed a grid size change. The canvas was saved. That file is a complete, readable specification. If it\u2019s not in ',
-        inlineCode('message.ts'),
-        ', it can\u2019t happen.',
+        '30 declarations. Each one reads as an English sentence: the user pressed a cell at coordinates x, y. The user selected a tool. The PNG export failed with an error message. The user confirmed a grid size change. The canvas was saved. That union is a complete, readable specification. If it\u2019s not in the ',
+        inlineCode('Message'),
+        ' union, it can\u2019t happen.',
       ),
       infoCallout(
         'The single source of behavior',
@@ -422,8 +422,8 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'The React ',
         inlineCode('Action'),
         ' type tells you what the reducer handles. Foldkit\u2019s ',
-        inlineCode('message.ts'),
-        ' tells you everything the application does. One is a partial index. The other is a complete specification.',
+        inlineCode('Message'),
+        ' union tells you everything the application does. One is a partial index. The other is a complete specification.',
       ),
 
       tableOfContentsEntryToHeader(declarationVsProcedureHeader),
@@ -951,8 +951,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
 
       tableOfContentsEntryToHeader(auditLogHeader),
       para(
-        inlineCode('message.ts'),
-        ' is a complete, readable specification of every state change, side effect outcome, and UI component interaction. There is no equivalent in React.',
+        'The ',
+        inlineCode('Message'),
+        ' union is a complete, readable specification of every state change, side effect outcome, and UI component interaction. There is no equivalent in React.',
       ),
 
       tableOfContentsEntryToHeader(exhaustiveMatchingHeader),
@@ -1076,11 +1077,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'React is a good library with a massive ecosystem. We\u2019re not pretending otherwise.',
       ),
       para(
-        'But look at what we built. The same app, the same features, the same styling. In React, understanding the app requires reading the reducer, the hooks, the components, and the Headless UI docs. In Foldkit, you open ',
-        inlineCode('message.ts'),
-        ' to see every state change. You open ',
-        inlineCode('command.ts'),
-        ' to see every side effect. Two files. Complete picture.',
+        'But look at what we built. The same app, the same features, the same styling. In React, understanding the app requires reading the reducer, the hooks, the components, and the Headless UI docs. In Foldkit, you read the ',
+        inlineCode('Message'),
+        ' union to see every state change. You read the ',
+        inlineCode('Command'),
+        ' definitions to see every side effect. Complete picture.',
       ),
       para(
         'If you care about adding features without fear, onboarding new developers by pointing them at one file, debugging production issues by replaying state, and trusting that your test suite actually catches regressions, Foldkit gives you things React structurally cannot.',
