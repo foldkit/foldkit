@@ -327,6 +327,7 @@ const searchWeight = (tag: string): string =>
       'FieldValidation',
       'ProjectOrganization',
       'ComingFromReact',
+      'ReactComparison',
       () => '6',
     ),
     M.whenOr(S.startsWith('Ui'), S.startsWith('Ai'), () => '5'),
@@ -391,6 +392,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
             message => GotComingFromReactMessage({ message }),
           ),
           Page.ComingFromReact.tableOfContents,
+        ),
+      ReactComparison: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.ReactComparison.view, [model.copiedSnippets]),
+          Page.ReactComparison.tableOfContents,
         ),
       GettingStarted: () =>
         withTableOfContents(

@@ -197,6 +197,7 @@ const renderOgImage =
         const slug = urlPathToSlug(routeToUrlPath(route))
 
         const svg = yield* Effect.tryPromise(() =>
+          // @ts-expect-error satori expects ReactNode but accepts plain {type, props} objects at runtime
           satori(template, {
             width: OG_WIDTH,
             height: OG_HEIGHT,

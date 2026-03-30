@@ -5,5 +5,10 @@
     "noEmit": true
   },
   "include": ["src/**/*.ts", "vite.config.ts"],
-  "exclude": ["node_modules", "dist", "../../packages/foldkit/src"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "../../packages/foldkit/src",
+    "src/comparison.bench.test.ts"
+  ]
 }

@@ -26,6 +26,7 @@
     "query-sync-example",
     "ui-showcase",
     "pixel-art-example",
-    "kanban-example"
+    "kanban-example",
+    "pixel-art-react-comparison"
   ]
 }
