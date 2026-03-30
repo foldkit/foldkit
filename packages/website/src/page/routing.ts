@@ -87,7 +87,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Most routers make you define routes twice: once for matching URLs, and again for generating them. This leads to duplication and bugs when they get out of sync.',
       ),
       para(
-        'Foldkit\u2019s routing is based on biparsers — parsers that work in both directions. A single route definition handles:',
+        'Foldkit\u2019s routing is based on biparsers: parsers that work in both directions. A single route definition handles:',
       ),
       ul(
         [Class('list-disc mb-6 space-y-2')],
@@ -240,7 +240,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Order matters in ',
         inlineCode('oneOf'),
-        '. Put more specific routes first — ',
+        '. Put more specific routes first. ',
         inlineCode('/people/:id'),
         ' should come before ',
         inlineCode('/people'),
@@ -285,7 +285,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para(
         inlineCode('S.OptionFromUndefinedOr'),
-        ' makes parameters optional — missing params become ',
+        ' makes parameters optional. Missing params become ',
         inlineCode('Option.none()'),
         '. ',
         inlineCode('S.NumberFromString'),
@@ -297,7 +297,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           exampleDetailRouter({ exampleSlug: 'routing' }),
           'Routing example',
         ),
-        '. For a deeper look at query parameters — custom schema transforms, lenient parsing, and bidirectional URL sync — see the ',
+        '. For a deeper look at query parameters (custom schema transforms, lenient parsing, and bidirectional URL sync), see the ',
         link(
           exampleDetailRouter({ exampleSlug: 'query-sync' }),
           'Query Sync example',

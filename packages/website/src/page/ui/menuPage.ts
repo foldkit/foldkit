@@ -30,7 +30,7 @@ export const view = (
       pageTitle('ui/menu', 'Menu'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'A dropdown menu with keyboard navigation, typeahead search, and proper ARIA attributes. Uses aria-activedescendant for focus management — focus stays on the menu container while items are highlighted by reference.',
+        'A dropdown menu with keyboard navigation, typeahead search, and proper ARIA attributes. Uses aria-activedescendant for focus management. Focus stays on the menu container while items are highlighted by reference.',
       ),
       ...Menu.basicDemo(model.menuBasicDemo, toParentMessage),
       ...Menu.animatedDemo(model.menuAnimatedDemo, toParentMessage),

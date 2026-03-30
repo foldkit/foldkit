@@ -38,7 +38,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       pageTitle('core/resources', 'Resources'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'Commands are self-contained by default — each execution starts fresh with no shared state. But some browser APIs like ',
+        'Commands are self-contained by default. Each execution starts fresh with no shared state. But some browser APIs like ',
         inlineCode('AudioContext'),
         ', ',
         inlineCode('RTCPeerConnection'),
@@ -50,11 +50,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       infoCallout(
         'Think of it like a restaurant kitchen',
-        'Resources are kitchen equipment — the oven, the stand mixer, the deep fryer. They\u2019re turned on when the kitchen opens and run all night. Every dish (Command) can use them. You don\u2019t buy a new oven per order. ',
+        'Resources are kitchen equipment: the oven, the stand mixer, the deep fryer. They\u2019re turned on when the kitchen opens and run all night. Every dish (Command) can use them. You don\u2019t buy a new oven per order. ',
         inlineCode('AudioContext'),
         ' and ',
         inlineCode('CanvasRenderingContext2D'),
-        ' are the same — expensive singletons that live for the entire app lifecycle. Need multiple pieces of equipment? Combine them with ',
+        ' are the same: expensive singletons that live for the entire app lifecycle. Need multiple pieces of equipment? Combine them with ',
         inlineCode('Layer.mergeAll'),
         '.',
       ),
@@ -77,13 +77,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Commands declare their resource requirements in the type signature via the third type parameter of ',
         inlineCode('Command'),
-        '. This makes dependencies explicit and type-checked — if a command requires a service that isn\u2019t provided via ',
+        '. This makes dependencies explicit and type-checked. If a command requires a service that isn\u2019t provided via ',
         inlineCode('resources'),
         ', you\u2019ll get a compile error.',
       ),
       infoCallout(
         'When not to use resources',
-        'Resources are for mutable browser singletons with lifecycle — things that must be created once and reused. Stateless services like ',
+        'Resources are for mutable browser singletons with lifecycle: things that must be created once and reused. Stateless services like ',
         inlineCode('HttpClient'),
         ' or ',
         inlineCode('BrowserKeyValueStore'),
@@ -112,7 +112,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        'Resources live for the entire application. But what if a resource should only exist while the model is in a certain state — a camera stream during a video call, or a ',
+        'Resources live for the entire application. But what if a resource should only exist while the model is in a certain state, like a camera stream during a video call, or a ',
         inlineCode('WebSocket'),
         ' while on a chat page? That\u2019s what Managed Resources are for.',
       ),

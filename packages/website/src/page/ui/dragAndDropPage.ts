@@ -36,7 +36,7 @@ export const view = (
       pageTitle('ui/drag-and-drop', 'Drag and Drop'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'A headless drag-and-drop component for building sortable lists and cross-container movement. Manages the full drag lifecycle — pointer tracking, collision detection, keyboard navigation, auto-scrolling, and accessibility announcements — while leaving all rendering to you.',
+        'A headless drag-and-drop component for building sortable lists and cross-container movement. Manages the full drag lifecycle (pointer tracking, collision detection, keyboard navigation, auto-scrolling, and accessibility announcements) while leaving all rendering to you.',
       ),
       para(
         'Integrate via the ',

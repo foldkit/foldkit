@@ -158,7 +158,7 @@ export const dialogAnimatedDemo = (
           p(
             [Class('text-gray-600 dark:text-gray-300 mb-4')],
             [
-              'This dialog uses CSS transitions coordinated by the TransitionState machine — a fade on the backdrop and a scale-up on the panel. Content stays mounted during exit so both enter and leave transitions play smoothly.',
+              'This dialog uses CSS transitions coordinated by the TransitionState machine: a fade on the backdrop and a scale-up on the panel. Content stays mounted during exit so both enter and leave transitions play smoothly.',
             ],
           ),
           div(

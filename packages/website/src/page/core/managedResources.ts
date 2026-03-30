@@ -36,7 +36,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       pageTitle('core/managed-resources', 'Managed Resources'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'Resources live for the entire application lifecycle. But some resources are heavy and should only be active while the model is in a particular state — a camera stream during a video call, a ',
+        'Resources live for the entire application lifecycle. But some resources are heavy and should only be active while the model is in a particular state, like a camera stream during a video call, a ',
         inlineCode('WebSocket'),
         ' connection while on a chat page, or a Web Worker pool during a computation. ',
         'Managed resources provide model-driven acquire/release lifecycle, using the same deps-diffing engine as subscriptions.',
@@ -45,7 +45,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'The restaurant analogy',
         'If resources are kitchen equipment (permanent, always on), managed resources are specialty ingredients sourced on demand. When the menu shifts to a seafood special (model state changes), the kitchen orders in fresh lobster and sets up the shellfish station. When the special ends, the lobster goes back to the supplier and the station is broken down. If the chef (Command) tries to plate lobster when it\u2019s not in season, they get a clear signal: ',
         inlineCode('ResourceNotAvailable'),
-        '. And if the special changes from Maine lobster to king crab (params change), the old stock is returned and new stock is sourced — just like switching camera resolutions triggers release and reacquire.',
+        '. And if the special changes from Maine lobster to king crab (params change), the old stock is returned and new stock is sourced, just like switching camera resolutions triggers release and reacquire.',
       ),
       para(
         'Define a managed resource identity with ',
@@ -88,7 +88,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'If acquisition fails, ',
         inlineCode('onAcquireError'),
-        ' is sent as a message. The resource daemon continues watching for the next deps change — a failed acquisition does not crash the application.',
+        ' is sent as a message. The resource daemon continues watching for the next deps change. A failed acquisition does not crash the application.',
       ),
       tableOfContentsEntryToHeader(accessingManagedResourcesHeader),
       para(
@@ -98,7 +98,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('.get'),
         ' can fail with ',
         inlineCode('ResourceNotAvailable'),
-        '. The type system enforces this — your Command won\u2019t compile unless you handle the error.',
+        '. The type system enforces this: your Command won\u2019t compile unless you handle the error.',
       ),
       highlightedCodeBlock(
         div(
@@ -139,7 +139,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' connections, media recorders).',
       ),
       para(
-        'With resources and managed resources, your app can work with any browser API. But what happens when something goes seriously wrong — an unrecoverable error in update, view, or a Command? The next page covers crash views.',
+        'With resources and managed resources, your app can work with any browser API. But what happens when something goes seriously wrong, like an unrecoverable error in update, view, or a Command? The next page covers crash views.',
       ),
     ],
   )

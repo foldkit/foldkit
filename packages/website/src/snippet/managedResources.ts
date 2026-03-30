@@ -4,7 +4,7 @@ import { ManagedResource, Runtime } from 'foldkit'
 // 1. Define a managed resource identity
 const CameraStream = ManagedResource.tag<MediaStream>()('CameraStream')
 
-// 2. Define a requirements schema — Option.some = active, Option.none = inactive
+// 2. Define a requirements schema. Option.some = active, Option.none = inactive
 const ManagedResourceDeps = S.Struct({
   camera: S.Option(S.Struct({ facingMode: S.String })),
 })

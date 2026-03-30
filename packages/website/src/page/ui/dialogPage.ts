@@ -30,7 +30,7 @@ export const view = (
       pageTitle('ui/dialog', 'Dialog'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'A modal dialog backed by the native <dialog> element. Uses showModal() for focus trapping, backdrop rendering, and scroll locking — no JavaScript focus trap needed.',
+        'A modal dialog backed by the native <dialog> element. Uses showModal() for focus trapping, backdrop rendering, and scroll locking. No JavaScript focus trap needed.',
       ),
       ...Dialog.dialogDemo(model.dialogDemo, toParentMessage),
       ...Dialog.dialogAnimatedDemo(model.dialogAnimatedDemo, toParentMessage),
