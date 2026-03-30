@@ -209,14 +209,14 @@ const timeTravelHeader: TableOfContentsEntry = {
 
 const storyTestsHeader: TableOfContentsEntry = {
   level: 'h3',
-  id: 'story-tests',
-  text: 'Tests that read like stories',
+  id: 'side-effect-testing-for-free',
+  text: 'Side effect testing for free',
 }
 
 const oneFunctionHeader: TableOfContentsEntry = {
   level: 'h3',
-  id: 'one-function',
-  text: 'One function, one truth',
+  id: 'one-update-function',
+  text: 'One update function, one source of truth',
 }
 
 const noStaleClosuresHeader: TableOfContentsEntry = {

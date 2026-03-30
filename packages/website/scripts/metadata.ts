@@ -57,8 +57,8 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Docs',
   ),
   ReactComparison: docs(
-    'React Comparison',
-    'A side-by-side comparison of the same pixel art editor built in both Foldkit and React. Covers state management, side effects, event handling, UI components, performance, and architectural tradeoffs.',
+    'Foldkit vs React: Side by Side',
+    'A side-by-side comparison of the same pixel art editor built in both Foldkit and React. Covers state management, side effects, testing, performance, and architectural tradeoffs.',
     'Guides',
   ),
   RoutingAndNavigation: docs(
