@@ -702,7 +702,7 @@ export function makeTerminalProgram<
 ): MakeTerminalRuntimeReturn {
   const hasFlags = 'Flags' in config
 
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  /* eslint-disable @typescript-eslint/consistent-type-assertions */
   if (hasFlags) {
     const flagsConfig = config as TerminalProgramConfigWithFlags<
       Model,
