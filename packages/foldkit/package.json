@@ -130,6 +130,10 @@
     "./url": {
       "types": "./dist/url/public.d.ts",
       "import": "./dist/url/public.js"
+    },
+    "./terminal": {
+      "types": "./dist/terminal/public.d.ts",
+      "import": "./dist/terminal/public.js"
     }
   },
   "files": [
@@ -146,10 +150,20 @@
   },
   "peerDependencies": {
     "@effect/platform-browser": "^0.74.0",
+    "@effect/platform-node": "^0.74.0",
     "effect": "^3.18.2"
+  },
+  "peerDependenciesMeta": {
+    "@effect/platform-browser": {
+      "optional": true
+    },
+    "@effect/platform-node": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@effect/platform-browser": "^0.74.0",
+    "@effect/platform-node": "^0.74.0",
     "@effect/vitest": "^0.27.0",
     "effect": "^3.19.19",
     "happy-dom": "^18.0.1",
