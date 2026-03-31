@@ -35,12 +35,14 @@ export const createGrid = (width: number, height: number): CellGrid => {
 /** Check if two cells are visually identical. */
 export const cellEquals = (a: Cell, b: Cell): boolean =>
   a.char === b.char &&
-  Option.getEquivalence(
-    (x: Color, y: Color) => x === y,
-  )(a.foreground, b.foreground) &&
-  Option.getEquivalence(
-    (x: Color, y: Color) => x === y,
-  )(a.background, b.background) &&
+  Option.getEquivalence((x: Color, y: Color) => x === y)(
+    a.foreground,
+    b.foreground,
+  ) &&
+  Option.getEquivalence((x: Color, y: Color) => x === y)(
+    a.background,
+    b.background,
+  ) &&
   a.isBold === b.isBold &&
   a.isDim === b.isDim &&
   a.isUnderline === b.isUnderline &&

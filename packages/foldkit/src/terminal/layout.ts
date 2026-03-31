@@ -308,10 +308,7 @@ const measureNode = (
               ),
             }
           : {
-              width: childSizes.reduce(
-                (total, size) => total + size.width,
-                0,
-              ),
+              width: childSizes.reduce((total, size) => total + size.width, 0),
               height: childSizes.reduce(
                 (max, size) => Math.max(max, size.height),
                 0,

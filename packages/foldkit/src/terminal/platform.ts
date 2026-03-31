@@ -48,8 +48,7 @@ const render = (
 
   const output = Option.match(previous, {
     onNone: () => Ansi.renderFull(nextGrid),
-    onSome: ({ grid: previousGrid }) =>
-      Ansi.renderDiff(previousGrid, nextGrid),
+    onSome: ({ grid: previousGrid }) => Ansi.renderDiff(previousGrid, nextGrid),
   })
 
   target.write(output)

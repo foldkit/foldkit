@@ -19,8 +19,11 @@ import {
 
 import type { Command } from '../command'
 import { Dispatch } from '../runtime/dispatch'
+import type {
+  ManagedResourceConfig,
+  ManagedResources,
+} from '../runtime/managedResource'
 import type { SlowViewConfig } from '../runtime/runtime'
-import type { ManagedResourceConfig, ManagedResources } from '../runtime/managedResource'
 import type { Subscriptions } from '../runtime/subscription'
 import type { TerminalRenderState } from './platform'
 import { Terminal, createTarget } from './platform'
@@ -56,7 +59,9 @@ const defaultSlowViewCallback = (context: {
 
 /** Terminal crash config — report only, no custom view. */
 export type TerminalCrashConfig<Model, Message> = Readonly<{
-  report?: (context: Readonly<{ error: Error; model: Model; message: Message }>) => void
+  report?: (
+    context: Readonly<{ error: Error; model: Model; message: Message }>,
+  ) => void
 }>
 
 /** Configuration for terminal programs without flags. */
@@ -218,11 +223,11 @@ const makeTerminalRuntime = <
     Option.map(config => ({
       thresholdMs:
         typeof config === 'object' && 'thresholdMs' in config
-          ? config.thresholdMs ?? DEFAULT_SLOW_VIEW_THRESHOLD_MS
+          ? (config.thresholdMs ?? DEFAULT_SLOW_VIEW_THRESHOLD_MS)
           : DEFAULT_SLOW_VIEW_THRESHOLD_MS,
       onSlowView:
         typeof config === 'object' && 'onSlowView' in config
-          ? config.onSlowView ?? defaultSlowViewCallback
+          ? (config.onSlowView ?? defaultSlowViewCallback)
           : defaultSlowViewCallback,
     })),
   )
@@ -748,6 +753,8 @@ export function makeTerminalProgram<
 }
 
 /** Starts a Foldkit terminal runtime. */
-export const runTerminal = (terminalRuntime: MakeTerminalRuntimeReturn): void => {
+export const runTerminal = (
+  terminalRuntime: MakeTerminalRuntimeReturn,
+): void => {
   Terminal.runMain(terminalRuntime())
 }

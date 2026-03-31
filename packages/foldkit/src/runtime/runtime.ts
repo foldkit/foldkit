@@ -33,6 +33,7 @@ import {
   addNavigationEventListeners,
 } from './browserListeners'
 import { defaultCrashView, noOpDispatch } from './crashUI'
+import { Dispatch } from './dispatch'
 import type { ManagedResourceConfig, ManagedResources } from './managedResource'
 import type { Subscriptions } from './subscription'
 import { UrlRequest } from './urlRequest'
@@ -130,7 +131,6 @@ const defaultSlowViewCallback = (
   )
 }
 
-import { Dispatch } from './dispatch'
 export { Dispatch }
 
 export type { Command } from '../command'

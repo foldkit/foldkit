@@ -8,9 +8,9 @@ import {
   pipe,
 } from 'effect'
 import * as Command from 'foldkit/command'
-import * as Subscription from 'foldkit/subscription'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
+import * as Subscription from 'foldkit/subscription'
 import {
   type KeyPress,
   type TerminalView,
@@ -293,8 +293,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
 
 // VIEW
 
-const { box, text, Fg, Bg, Bold, Direction: Dir, Border } =
-  terminal<Message>()
+const { box, text, Fg, Bg, Bold, Direction: Dir, Border } = terminal<Message>()
 
 const CELL_CHAR = '  '
 
