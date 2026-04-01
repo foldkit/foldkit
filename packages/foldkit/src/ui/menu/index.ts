@@ -872,8 +872,12 @@ export const view = <Message, Item extends string>(
     isDisabled,
   )(items.length - 1, -1)
 
-  const handleButtonKeyDown = (key: string): Option.Option<Message> =>
-    M.value(key).pipe(
+  const handleButtonKeyDown = (key: string): Option.Option<Message> => {
+    if (isOpen) {
+      return handleItemsKeyDown(key)
+    }
+
+    return M.value(key).pipe(
       M.whenOr('Enter', ' ', 'ArrowDown', () =>
         Option.some(
           toParentMessage(
@@ -894,6 +898,7 @@ export const view = <Message, Item extends string>(
       ),
       M.orElse(() => Option.none()),
     )
+  }
 
   const handleButtonPointerDown = (
     pointerType: string,
@@ -1025,8 +1030,18 @@ export const view = <Message, Item extends string>(
   })
 
   const hooks = anchor
-    ? anchorHooks({ buttonId: `${id}-button`, anchor })
+    ? anchorHooks({
+        buttonId: `${id}-button`,
+        anchor,
+        focusAfterPosition: true,
+      })
     : undefined
+
+  const focusOnInsert = (element: Element): void => {
+    if (element instanceof HTMLElement) {
+      element.focus()
+    }
+  }
 
   const anchorAttributes = hooks
     ? [
@@ -1034,7 +1049,7 @@ export const view = <Message, Item extends string>(
         OnInsert(hooks.onInsert),
         OnDestroy(hooks.onDestroy),
       ]
-    : []
+    : [OnInsert(focusOnInsert)]
 
   const itemsContainerAttributes = [
     Id(`${id}-items`),

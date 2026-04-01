@@ -560,6 +560,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     buttonId: `${id}-button`,
     anchor,
     interceptTab: false,
+    focusAfterPosition: true,
   })
 
   const anchorAttributes = [

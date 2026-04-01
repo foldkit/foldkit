@@ -1397,11 +1397,11 @@ describe('Listbox', () => {
         expect(itemsContainer?.data?.hook?.destroy).toBeTypeOf('function')
       })
 
-      it('does not add hooks or positioning styles when anchor is absent', () => {
+      it('adds focus insert hook but no positioning styles when anchor is absent', () => {
         const vnode = renderView(baseViewConfig(openModel()))
         const itemsContainer = findChildByKey(vnode, 'test-items-container')
         expect(itemsContainer?.data?.style).toBeUndefined()
-        expect(itemsContainer?.data?.hook?.insert).toBeUndefined()
+        expect(itemsContainer?.data?.hook?.insert).toBeTypeOf('function')
         expect(itemsContainer?.data?.hook?.destroy).toBeUndefined()
       })
     })

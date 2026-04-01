@@ -34,11 +34,12 @@ const getOrCreatePortalRoot = (): HTMLElement => {
 
 const anchorCleanups = new WeakMap<Element, () => void>()
 
-/** Returns insert/destroy hook callbacks that position a floating element relative to its button using Floating UI. When `interceptTab` is true (default), Tab key in portal mode refocuses the button — set to false for components like Popover where Tab should navigate naturally within the panel. */
+/** Returns insert/destroy hook callbacks that position a floating element relative to its button using Floating UI. When `interceptTab` is true (default), Tab key in portal mode refocuses the button — set to false for components like Popover where Tab should navigate naturally within the panel. When `focusAfterPosition` is true, the element is focused after the first position computation clears visibility — necessary because `visibility: hidden` elements cannot receive focus synchronously. */
 export const anchorHooks = (config: {
   buttonId: string
   anchor: AnchorConfig
   interceptTab?: boolean
+  focusAfterPosition?: boolean
 }): Readonly<{
   onInsert: (items: Element) => void
   onDestroy: (items: Element) => void
@@ -92,6 +93,10 @@ export const anchorHooks = (config: {
         if (isFirstUpdate) {
           isFirstUpdate = false
           items.style.visibility = ''
+
+          if (config.focusAfterPosition ?? false) {
+            items.focus()
+          }
         }
       })
     })
