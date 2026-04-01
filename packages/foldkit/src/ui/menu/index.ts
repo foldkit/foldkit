@@ -249,7 +249,6 @@ const closedModel = (model: Model): Model =>
     isOpen: () => false,
     transitionState: () => (model.isAnimated ? 'LeaveStart' : 'Idle'),
     maybeActiveItemIndex: () => Option.none(),
-    activationTrigger: () => 'Keyboard',
     searchQuery: () => '',
     searchVersion: () => 0,
     maybeLastPointerPosition: () => Option.none(),

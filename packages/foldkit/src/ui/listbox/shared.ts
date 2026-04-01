@@ -243,7 +243,6 @@ export const closedModel = <Model extends BaseModel>(model: Model): Model =>
     transitionState: () =>
       model.isAnimated ? ('LeaveStart' as const) : ('Idle' as const),
     maybeActiveItemIndex: () => Option.none(),
-    activationTrigger: () => 'Keyboard' as const,
     searchQuery: () => '',
     searchVersion: () => 0,
     maybeLastPointerPosition: () => Option.none(),

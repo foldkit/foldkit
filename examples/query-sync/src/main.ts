@@ -147,6 +147,8 @@ const GotDietListboxMessage = m('GotDietListboxMessage', {
 const GotPeriodListboxMessage = m('GotPeriodListboxMessage', {
   message: Ui.Listbox.Message,
 })
+const SelectedDietFilter = m('SelectedDietFilter', { value: S.String })
+const SelectedPeriodFilter = m('SelectedPeriodFilter', { value: S.String })
 
 const Message = S.Union(
   CompletedNavigateInternal,
@@ -158,6 +160,8 @@ const Message = S.Union(
   ClickedColumnHeader,
   GotDietListboxMessage,
   GotPeriodListboxMessage,
+  SelectedDietFilter,
+  SelectedPeriodFilter,
 )
 type Message = typeof Message.Type
 
@@ -340,36 +344,15 @@ const update = (model: Model, message: Message): UpdateReturn =>
           model.dietListbox,
           message,
         )
-        const commands = listboxCommands.map(
-          Command.mapEffect(
-            Effect.map(message => GotDietListboxMessage({ message })),
+
+        return [
+          evo(model, { dietListbox: () => nextDietListbox }),
+          listboxCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotDietListboxMessage({ message })),
+            ),
           ),
-        )
-
-        return M.value(message).pipe(
-          withUpdateReturn,
-          M.tag('SelectedItem', () => {
-            const fields = routeToBrowseFields(model.route)
-
-            return [
-              evo(model, { dietListbox: () => nextDietListbox }),
-              [
-                ...commands,
-                replaceFilters({
-                  ...fields,
-                  diet: selectionToParam(
-                    nextDietListbox.maybeSelectedItem,
-                    Diet,
-                  ),
-                }),
-              ],
-            ]
-          }),
-          M.orElse(() => [
-            evo(model, { dietListbox: () => nextDietListbox }),
-            commands,
-          ]),
-        )
+        ]
       },
 
       GotPeriodListboxMessage: ({ message }) => {
@@ -377,36 +360,64 @@ const update = (model: Model, message: Message): UpdateReturn =>
           model.periodListbox,
           message,
         )
-        const commands = listboxCommands.map(
-          Command.mapEffect(
-            Effect.map(message => GotPeriodListboxMessage({ message })),
+
+        return [
+          evo(model, { periodListbox: () => nextPeriodListbox }),
+          listboxCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotPeriodListboxMessage({ message })),
+            ),
           ),
-        )
+        ]
+      },
 
-        return M.value(message).pipe(
-          withUpdateReturn,
-          M.tag('SelectedItem', () => {
-            const fields = routeToBrowseFields(model.route)
-
-            return [
-              evo(model, { periodListbox: () => nextPeriodListbox }),
-              [
-                ...commands,
-                replaceFilters({
-                  ...fields,
-                  period: selectionToParam(
-                    nextPeriodListbox.maybeSelectedItem,
-                    Period,
-                  ),
-                }),
-              ],
-            ]
-          }),
-          M.orElse(() => [
-            evo(model, { periodListbox: () => nextPeriodListbox }),
-            commands,
-          ]),
+      SelectedDietFilter: ({ value }) => {
+        const [nextDietListbox, listboxCommands] = Ui.Listbox.selectItem(
+          model.dietListbox,
+          value,
         )
+        const fields = routeToBrowseFields(model.route)
+
+        return [
+          evo(model, { dietListbox: () => nextDietListbox }),
+          [
+            ...listboxCommands.map(
+              Command.mapEffect(
+                Effect.map(message => GotDietListboxMessage({ message })),
+              ),
+            ),
+            replaceFilters({
+              ...fields,
+              diet: selectionToParam(nextDietListbox.maybeSelectedItem, Diet),
+            }),
+          ],
+        ]
+      },
+
+      SelectedPeriodFilter: ({ value }) => {
+        const [nextPeriodListbox, listboxCommands] = Ui.Listbox.selectItem(
+          model.periodListbox,
+          value,
+        )
+        const fields = routeToBrowseFields(model.route)
+
+        return [
+          evo(model, { periodListbox: () => nextPeriodListbox }),
+          [
+            ...listboxCommands.map(
+              Command.mapEffect(
+                Effect.map(message => GotPeriodListboxMessage({ message })),
+              ),
+            ),
+            replaceFilters({
+              ...fields,
+              period: selectionToParam(
+                nextPeriodListbox.maybeSelectedItem,
+                Period,
+              ),
+            }),
+          ],
+        ]
       },
     }),
   )
@@ -690,9 +701,10 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
               'flex-1 min-w-48 px-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500',
             ),
           ]),
-          Ui.Listbox.view({
+          Ui.Listbox.view<Message, string>({
             model: model.dietListbox,
             toParentMessage: message => GotDietListboxMessage({ message }),
+            onSelectedItem: value => SelectedDietFilter({ value }),
             anchor: LISTBOX_ANCHOR,
             items: dietFilterItems,
             itemToConfig: item => filterItemConfig(dietLabel(item)),
@@ -708,9 +720,10 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
             backdropAttributes: [Class(listboxBackdropClassName)],
             attributes: [Class(listboxWrapperClassName)],
           }),
-          Ui.Listbox.view({
+          Ui.Listbox.view<Message, string>({
             model: model.periodListbox,
             toParentMessage: message => GotPeriodListboxMessage({ message }),
+            onSelectedItem: value => SelectedPeriodFilter({ value }),
             anchor: LISTBOX_ANCHOR,
             items: periodFilterItems,
             itemToConfig: item => filterItemConfig(periodLabel(item)),
