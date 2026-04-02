@@ -449,22 +449,19 @@ const makeOverlaySubscriptions = (store: DevtoolsStore) =>
     storeUpdates: {
       modelToDependencies: ({ isOpen }) => isOpen,
       dependenciesToStream: isOpen =>
-        isOpen
-          ? Stream.concat(
-              Stream.fromEffect(
-                pipe(
-                  SubscriptionRef.get(store.stateRef),
-                  Effect.map(state =>
-                    ReceivedStoreUpdate(toDisplayState(state)),
-                  ),
-                ),
+        Stream.when(
+          Stream.concat(
+            Stream.fromEffect(
+              SubscriptionRef.get(store.stateRef).pipe(
+                Effect.map(state => ReceivedStoreUpdate(toDisplayState(state))),
               ),
-              pipe(
-                store.stateRef.changes,
-                Stream.map(state => ReceivedStoreUpdate(toDisplayState(state))),
-              ),
-            )
-          : Stream.empty,
+            ),
+            Stream.map(store.stateRef.changes, state =>
+              ReceivedStoreUpdate(toDisplayState(state)),
+            ),
+          ),
+          () => isOpen,
+        ),
     },
     mobileBreakpoint: {
       modelToDependencies: () => null,

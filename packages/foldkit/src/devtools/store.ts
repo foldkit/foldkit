@@ -6,6 +6,7 @@ import {
   Option,
   Predicate,
   Record,
+  String as String_,
   SubscriptionRef,
   pipe,
 } from 'effect'
@@ -95,15 +96,16 @@ export const computeDiff = (
 
   const affected = new Set(changed)
   const addAncestors = (path: string): void => {
-    const lastDot = path.lastIndexOf('.')
-    if (lastDot === -1) {
-      return
-    }
-    const parent = path.substring(0, lastDot)
-    if (!affected.has(parent)) {
-      affected.add(parent)
-      addAncestors(parent)
-    }
+    pipe(
+      path,
+      String_.lastIndexOf('.'),
+      Option.map(lastDot => path.substring(0, lastDot)),
+      Option.filter(parent => !affected.has(parent)),
+      Option.map(parent => {
+        affected.add(parent)
+        addAncestors(parent)
+      }),
+    )
   }
   changed.forEach(addAncestors)
 
@@ -307,18 +309,22 @@ export const createDevtoolsStore = (
     }))
 
     const getDiffAtIndex = (index: number) =>
-      SubscriptionRef.get(stateRef).pipe(
-        Effect.map(state =>
-          index === INIT_INDEX
-            ? emptyDiff
-            : pipe(
-                state.entries,
-                Array.get(index - state.startIndex),
-                Option.map(({ diff }) => diff),
-                Option.getOrElse(() => emptyDiff),
-              ),
-        ),
-      )
+      Effect.gen(function* () {
+        if (index === INIT_INDEX) {
+          return emptyDiff
+        }
+
+        const state = yield* SubscriptionRef.get(stateRef)
+
+        return pipe(
+          state.entries,
+          Array.get(index - state.startIndex),
+          Option.match({
+            onNone: () => emptyDiff,
+            onSome: ({ diff }) => diff,
+          }),
+        )
+      })
 
     return {
       recordInit,
