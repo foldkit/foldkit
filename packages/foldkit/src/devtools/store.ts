@@ -1,8 +1,119 @@
-import { Array, Effect, HashMap, Option, SubscriptionRef, pipe } from 'effect'
+import {
+  Array,
+  Effect,
+  HashMap,
+  HashSet,
+  Option,
+  Predicate,
+  Record,
+  SubscriptionRef,
+  pipe,
+} from 'effect'
 
 export const INIT_INDEX = -1
 const KEYFRAME_INTERVAL = 31
 const DEFAULT_MAX_ENTRIES = 500
+
+// DIFF
+
+export type DiffResult = Readonly<{
+  changedPaths: HashSet.HashSet<string>
+  affectedPaths: HashSet.HashSet<string>
+}>
+
+export const emptyDiff: DiffResult = {
+  changedPaths: HashSet.empty(),
+  affectedPaths: HashSet.empty(),
+}
+
+const isExpandable = (value: unknown): boolean =>
+  Predicate.isNotNull(value) && typeof value === 'object'
+
+export const computeDiff = (
+  previous: unknown,
+  current: unknown,
+): DiffResult => {
+  const changed = new Set<string>()
+
+  const walk = (prev: unknown, curr: unknown, path: string): void => {
+    if (prev === curr) {
+      return
+    }
+
+    if (!isExpandable(curr) || !isExpandable(prev)) {
+      changed.add(path)
+      return
+    }
+
+    if (Array.isArray(curr) && Array.isArray(prev)) {
+      walkArray(prev, curr, path)
+    } else if (
+      Predicate.isReadonlyRecord(curr) &&
+      Predicate.isReadonlyRecord(prev)
+    ) {
+      walkObject(prev, curr, path)
+    } else {
+      changed.add(path)
+    }
+  }
+
+  const walkObject = (
+    prev: Readonly<Record<string, unknown>>,
+    curr: Readonly<Record<string, unknown>>,
+    path: string,
+  ): void => {
+    pipe(
+      curr,
+      Record.keys,
+      Array.forEach(key => {
+        const childPath = `${path}.${key}`
+        if (Record.has(prev, key)) {
+          walk(prev[key], curr[key], childPath)
+        } else {
+          changed.add(childPath)
+        }
+      }),
+    )
+  }
+
+  const walkArray = (
+    prev: ReadonlyArray<unknown>,
+    curr: ReadonlyArray<unknown>,
+    path: string,
+  ): void => {
+    curr.forEach((item, index) => {
+      const childPath = `${path}.${index}`
+      if (index < prev.length) {
+        walk(prev[index], item, childPath)
+      } else {
+        changed.add(childPath)
+      }
+    })
+  }
+
+  walk(previous, current, 'root')
+
+  const affected = new Set(changed)
+  const addAncestors = (path: string): void => {
+    const lastDot = path.lastIndexOf('.')
+    if (lastDot === -1) {
+      return
+    }
+    const parent = path.substring(0, lastDot)
+    if (!affected.has(parent)) {
+      affected.add(parent)
+      addAncestors(parent)
+    }
+  }
+  changed.forEach(addAncestors)
+
+  return {
+    changedPaths: HashSet.fromIterable(changed),
+    affectedPaths: HashSet.fromIterable(affected),
+  }
+}
+
+// STORE
 
 export type HistoryEntry = Readonly<{
   tag: string
@@ -10,6 +121,7 @@ export type HistoryEntry = Readonly<{
   commandNames: ReadonlyArray<string>
   timestamp: number
   isModelChanged: boolean
+  diff: DiffResult
 }>
 
 export type StoreState = Readonly<{
@@ -104,12 +216,17 @@ export const createDevtoolsStore = (
 
     const recordMessage = (
       message: Readonly<{ _tag: string }>,
+      modelBeforeUpdate: unknown,
       modelAfterUpdate: unknown,
       commandNames: ReadonlyArray<string>,
       isModelChanged: boolean,
     ) =>
       SubscriptionRef.update(stateRef, state => {
         const absoluteIndex = state.startIndex + state.entries.length
+
+        const diff = isModelChanged
+          ? computeDiff(modelBeforeUpdate, modelAfterUpdate)
+          : emptyDiff
 
         const nextState: StoreState = {
           ...state,
@@ -119,6 +236,7 @@ export const createDevtoolsStore = (
             commandNames,
             timestamp: performance.now(),
             isModelChanged,
+            diff,
           }),
           keyframes: addKeyframeIfNeeded(
             state.keyframes,
@@ -188,11 +306,26 @@ export const createDevtoolsStore = (
       }),
     }))
 
+    const getDiffAtIndex = (index: number) =>
+      SubscriptionRef.get(stateRef).pipe(
+        Effect.map(state =>
+          index === INIT_INDEX
+            ? emptyDiff
+            : pipe(
+                state.entries,
+                Array.get(index - state.startIndex),
+                Option.map(({ diff }) => diff),
+                Option.getOrElse(() => emptyDiff),
+              ),
+        ),
+      )
+
     return {
       recordInit,
       recordMessage,
       getModelAtIndex,
       getMessageAtIndex,
+      getDiffAtIndex,
       jumpTo,
       resume,
       clear,
@@ -207,12 +340,14 @@ export type DevtoolsStore = Readonly<{
   ) => Effect.Effect<void>
   recordMessage: (
     message: Readonly<{ _tag: string }>,
+    modelBeforeUpdate: unknown,
     modelAfterUpdate: unknown,
     commandNames: ReadonlyArray<string>,
     isModelChanged: boolean,
   ) => Effect.Effect<void>
   getModelAtIndex: (index: number) => Effect.Effect<unknown>
   getMessageAtIndex: (index: number) => Effect.Effect<Option.Option<unknown>>
+  getDiffAtIndex: (index: number) => Effect.Effect<DiffResult>
   jumpTo: (index: number) => Effect.Effect<void>
   resume: Effect.Effect<void>
   clear: Effect.Effect<void>

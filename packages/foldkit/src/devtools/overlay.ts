@@ -194,100 +194,6 @@ const collapsedPreview = (value: unknown): string =>
     M.orElse(() => ''),
   )
 
-// DIFF
-
-type DiffResult = Readonly<{
-  changedPaths: HashSet.HashSet<string>
-  affectedPaths: HashSet.HashSet<string>
-}>
-
-const emptyDiff: DiffResult = {
-  changedPaths: HashSet.empty(),
-  affectedPaths: HashSet.empty(),
-}
-
-const computeDiff = (previous: unknown, current: unknown): DiffResult => {
-  const changed = new Set<string>()
-
-  const walk = (prev: unknown, curr: unknown, path: string): void => {
-    if (prev === curr) {
-      return
-    }
-
-    if (!isExpandable(curr) || !isExpandable(prev)) {
-      changed.add(path)
-      return
-    }
-
-    if (Array.isArray(curr) && Array.isArray(prev)) {
-      walkArray(prev, curr, path)
-    } else if (
-      Predicate.isReadonlyRecord(curr) &&
-      Predicate.isReadonlyRecord(prev)
-    ) {
-      walkObject(prev, curr, path)
-    } else {
-      changed.add(path)
-    }
-  }
-
-  const walkObject = (
-    prev: Readonly<Record<string, unknown>>,
-    curr: Readonly<Record<string, unknown>>,
-    path: string,
-  ): void => {
-    pipe(
-      curr,
-      Record.keys,
-      Array_.forEach(key => {
-        const childPath = `${path}.${key}`
-        if (Record.has(prev, key)) {
-          walk(prev[key], curr[key], childPath)
-        } else {
-          changed.add(childPath)
-        }
-      }),
-    )
-  }
-
-  const walkArray = (
-    prev: ReadonlyArray<unknown>,
-    curr: ReadonlyArray<unknown>,
-    path: string,
-  ): void => {
-    curr.forEach((item, index) => {
-      const childPath = `${path}.${index}`
-      if (index < prev.length) {
-        walk(prev[index], item, childPath)
-      } else {
-        changed.add(childPath)
-      }
-    })
-  }
-
-  walk(previous, current, 'root')
-
-  const affected = new Set(changed)
-  const addAncestors = (path: string): void => {
-    pipe(
-      path,
-      String_.lastIndexOf('.'),
-      Option.map(lastDot => path.substring(0, lastDot)),
-      Option.filter(parent => !affected.has(parent)),
-      Option.map(parent => {
-        affected.add(parent)
-        addAncestors(parent)
-      }),
-    )
-  }
-  changed.forEach(addAncestors)
-
-  return {
-    changedPaths: HashSet.fromIterable(changed),
-    affectedPaths: HashSet.fromIterable(affected),
-  }
-}
-
 // UPDATE
 
 export const JumpTo = Command.define('JumpTo', CompletedJump)
@@ -323,15 +229,7 @@ const makeUpdate = (
       Effect.gen(function* () {
         const model = yield* store.getModelAtIndex(index)
         const maybeMessage = yield* store.getMessageAtIndex(index)
-
-        const diff =
-          index === INIT_INDEX
-            ? emptyDiff
-            : yield* pipe(
-                store.getModelAtIndex(index - 1),
-                Effect.map(previousModel => computeDiff(previousModel, model)),
-                Effect.catchAll(() => Effect.succeed(emptyDiff)),
-              )
+        const diff = yield* store.getDiffAtIndex(index)
 
         return ReceivedInspectedState({ model, maybeMessage, ...diff })
       }),
@@ -542,27 +440,31 @@ const makeUpdate = (
 // SUBSCRIPTION
 
 const SubscriptionDeps = S.Struct({
-  storeUpdates: S.Null,
+  storeUpdates: S.Boolean,
   mobileBreakpoint: S.Null,
 })
 
 const makeOverlaySubscriptions = (store: DevtoolsStore) =>
   makeSubscriptions(SubscriptionDeps)<Model, Message>({
     storeUpdates: {
-      modelToDependencies: () => null,
-      dependenciesToStream: () =>
-        Stream.concat(
-          Stream.fromEffect(
-            pipe(
-              SubscriptionRef.get(store.stateRef),
-              Effect.map(state => ReceivedStoreUpdate(toDisplayState(state))),
-            ),
-          ),
-          pipe(
-            store.stateRef.changes,
-            Stream.map(state => ReceivedStoreUpdate(toDisplayState(state))),
-          ),
-        ),
+      modelToDependencies: ({ isOpen }) => isOpen,
+      dependenciesToStream: isOpen =>
+        isOpen
+          ? Stream.concat(
+              Stream.fromEffect(
+                pipe(
+                  SubscriptionRef.get(store.stateRef),
+                  Effect.map(state =>
+                    ReceivedStoreUpdate(toDisplayState(state)),
+                  ),
+                ),
+              ),
+              pipe(
+                store.stateRef.changes,
+                Stream.map(state => ReceivedStoreUpdate(toDisplayState(state))),
+              ),
+            )
+          : Stream.empty,
     },
     mobileBreakpoint: {
       modelToDependencies: () => null,
