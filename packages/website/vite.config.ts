@@ -546,6 +546,42 @@ const landingDataPlugin = (): Plugin => ({
   },
 })
 
+// NOTE: Vite injects the CSS <link> at the end of <head>, after the <script> tag, with a
+// `crossorigin` attribute. Safari iOS resumes rendering pre-rendered HTML before the CORS
+// CSS response arrives when restoring frozen tabs, causing a flash of unstyled content.
+// This plugin moves CSS <link> tags before <script> tags and strips the unnecessary
+// `crossorigin` from same-origin stylesheet links so they remain render-blocking.
+const cssLoadOrderPlugin = (): Plugin => ({
+  name: 'css-load-order',
+  enforce: 'post',
+  transformIndexHtml(html) {
+    const cssLinkPattern =
+      /<link\s+rel="stylesheet"[^>]*crossorigin[^>]*href="[^"]*\.css"[^>]*>/g
+    const cssLinks = html.match(cssLinkPattern)
+    if (!cssLinks) {
+      return html
+    }
+
+    let result = html
+    for (const link of cssLinks) {
+      result = result.replace(link, '')
+    }
+
+    const cleanedLinks = cssLinks.map(link =>
+      link.replace(/\s+crossorigin/, ''),
+    )
+
+    const headOpenIndex = result.indexOf('<head>')
+    if (headOpenIndex === -1) {
+      return html
+    }
+
+    const insertIndex = headOpenIndex + '<head>'.length
+    const linkBlock = '\n    ' + cleanedLinks.join('\n    ')
+    return result.slice(0, insertIndex) + linkBlock + result.slice(insertIndex)
+  },
+})
+
 const EXAMPLE_SOURCES_PREFIX = 'virtual:example-sources/'
 const RESOLVED_EXAMPLE_SOURCES_PREFIX = '\0' + EXAMPLE_SOURCES_PREFIX
 
@@ -705,5 +741,6 @@ export default defineConfig({
     counterDemoCodePlugin(),
     notePlayerDemoCodePlugin(),
     highlightExampleSourcesPlugin(),
+    cssLoadOrderPlugin(),
   ],
 })
