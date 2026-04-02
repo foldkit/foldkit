@@ -1,5 +1,11 @@
 # foldkit
 
+## 0.43.2
+
+### Patch Changes
+
+- ea6be4e: Improve DevTools performance with large models by replacing Schema.equivalence with reference equality for the isModelChanged flag, computing model diffs eagerly at record time instead of on-demand during inspection, and gating the store subscription on panel visibility to skip work when DevTools is closed.
+
 ## 0.43.1
 
 ### Patch Changes
