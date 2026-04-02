@@ -640,13 +640,14 @@ const makeRuntime = <
                 store.recordMessage(
                   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
                   message as Message & { _tag: string },
+                  currentModel,
                   nextModel,
                   Array.map(
                     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
                     commands as ReadonlyArray<AnyCommand<Message>>,
                     command => command.name,
                   ),
-                  !modelEquivalence(currentModel, nextModel),
+                  currentModel !== nextModel,
                 ),
             })
           })
