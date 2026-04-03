@@ -10,35 +10,15 @@ import {
   CompletedNavigateRoom,
   CompletedSaveSession,
 } from './message'
-import { Home, Room } from './page'
+import { Room } from './page'
 import { roomRouter } from './route'
-import { RoomsClient } from './rpc'
 
-export const JoinRoom = Command.define(
-  'JoinRoom',
-  Home.Message.SucceededJoinRoom,
-  Home.Message.FailedJoinRoom,
-)
 const NavigateToRoom = Command.define('NavigateToRoom', CompletedNavigateRoom)
 const SavePlayerSession = Command.define(
   'SavePlayerSession',
   CompletedSaveSession,
 )
 const ClearSession = Command.define('ClearSession', CompletedClearSession)
-
-export const joinRoom = (username: string, roomId: string) =>
-  JoinRoom(
-    Effect.gen(function* () {
-      const client = yield* RoomsClient
-      const { player, room } = yield* client.joinRoom({ username, roomId })
-      return Home.Message.SucceededJoinRoom({ roomId: room.id, player })
-    }).pipe(
-      Effect.catchAll(error =>
-        Effect.succeed(Home.Message.FailedJoinRoom({ error: String(error) })),
-      ),
-      Effect.provide(RoomsClient.Default),
-    ),
-  )
 
 export const navigateToRoom = (roomId: string) =>
   NavigateToRoom(
