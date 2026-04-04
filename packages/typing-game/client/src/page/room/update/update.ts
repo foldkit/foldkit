@@ -12,10 +12,10 @@ import { Command, Task } from 'foldkit'
 import { pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 
-import { clearSession, savePlayerSession } from '../../../command'
 import { ROOM_PAGE_USERNAME_INPUT_ID } from '../../../constant'
 import { optionWhen } from '../../../optionWhen'
 import { homeRouter } from '../../../route'
+import { clearSession, savePlayerSession } from '../command'
 import {
   copyRoomIdToClipboard,
   hideRoomIdCopiedIndicator,

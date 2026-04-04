@@ -4,7 +4,7 @@ import { Command, Task, Url } from 'foldkit'
 import { load, pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 
-import { navigateToRoom, savePlayerSession } from './command'
+import { navigateToRoom } from './command'
 import { USERNAME_INPUT_ID } from './constant'
 import {
   CompletedFocusUsernameInput,
@@ -16,6 +16,7 @@ import {
 } from './message'
 import { Model } from './model'
 import { Home, Room } from './page'
+import { savePlayerSession } from './page/room/command'
 import { urlToAppRoute } from './route'
 
 const NavigateInternal = Command.define(

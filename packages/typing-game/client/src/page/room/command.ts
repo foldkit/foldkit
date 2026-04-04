@@ -6,7 +6,9 @@ import { Command, Task } from 'foldkit'
 import { ROOM_PLAYER_SESSION_KEY } from '../../constant'
 import { RoomsClient } from '../../rpc'
 import {
+  CompletedClearSession,
   CompletedRequestGameStart,
+  CompletedSaveSession,
   CompletedUpdatePlayerProgress,
   FailedCopyClipboard,
   FailedFetchRoom,
@@ -152,5 +154,39 @@ export const hideRoomIdCopiedIndicator = () =>
   HideRoomIdCopiedIndicator(
     Effect.sleep(COPY_INDICATOR_DURATION).pipe(
       Effect.as(HiddenRoomIdCopiedIndicator()),
+    ),
+  )
+
+// SESSION COMMANDS
+
+const SavePlayerSession = Command.define(
+  'SavePlayerSession',
+  CompletedSaveSession,
+)
+const ClearSession = Command.define('ClearSession', CompletedClearSession)
+
+export const savePlayerSession = (session: RoomPlayerSession) =>
+  SavePlayerSession(
+    Effect.gen(function* () {
+      const store = yield* KeyValueStore.KeyValueStore
+      const encodeSession = S.encode(S.parseJson(RoomPlayerSession))
+      const sessionJson = yield* encodeSession(session)
+      yield* store.set(ROOM_PLAYER_SESSION_KEY, sessionJson)
+      return CompletedSaveSession()
+    }).pipe(
+      Effect.catchAll(() => Effect.succeed(CompletedSaveSession())),
+      Effect.provide(BrowserKeyValueStore.layerSessionStorage),
+    ),
+  )
+
+export const clearSession = () =>
+  ClearSession(
+    Effect.gen(function* () {
+      const store = yield* KeyValueStore.KeyValueStore
+      yield* store.remove(ROOM_PLAYER_SESSION_KEY)
+      return CompletedClearSession()
+    }).pipe(
+      Effect.catchAll(() => Effect.succeed(CompletedClearSession())),
+      Effect.provide(BrowserKeyValueStore.layerSessionStorage),
     ),
   )
