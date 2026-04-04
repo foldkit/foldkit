@@ -683,7 +683,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para(
         'Foldkit\u2019s tests tell a different story. Look at the ',
-        inlineCode('Test.resolve'),
+        inlineCode('Story.resolve'),
         ' call in the snippet below. It asserts that releasing the mouse produced a ',
         inlineCode('SaveCanvas'),
         ' Command, provides the Message that Command will return, and advances the story. The test verifies state and side effects in the same synchronous pipeline. If someone removes the Command, the test breaks. In React, that regression is silent.',
@@ -693,7 +693,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(foldkitTestHeader),
       para(
-        inlineCode('Test.story()'),
+        inlineCode('Story.story()'),
         ' feeds Messages into the update function and inspects both Model and Commands at every step.',
       ),
       highlightedCodeBlock(
@@ -778,7 +778,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           ],
           [
             ['Infrastructure'],
-            [inlineCode('Test.story()'), ' (built-in, zero dependencies)'],
+            [inlineCode('Story.story()'), ' (built-in, zero dependencies)'],
             [
               inlineCode('@testing-library/react'),
               ', ',
@@ -984,7 +984,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       tableOfContentsEntryToHeader(storyTestsHeader),
       para(
         'Foldkit\u2019s ',
-        inlineCode('Test.story'),
+        inlineCode('Story.story'),
         ' tests side effects for free with no mocking. Remove a Command and the test breaks. In React, testing side effects requires a separate paradigm: rendering in jsdom, mocking browser APIs, and polling for async results.',
       ),
 

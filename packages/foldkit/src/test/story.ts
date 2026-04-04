@@ -1,12 +1,17 @@
 import { Array, Predicate, pipe } from 'effect'
 
 import type { CommandDefinition } from '../command'
+import type { AnyCommand, BaseInternal, ResolverPair } from './internal'
+import {
+  assertAllCommandsResolved,
+  assertNoUnresolvedCommands,
+  resolveByName,
+} from './internal'
 
-/** A Command in a test simulation, identified by name. */
-export type AnyCommand = Readonly<{ name: string }>
+export type { AnyCommand, ResolverPair }
 
 /** An immutable test simulation of a Foldkit program. */
-export type Simulation<Model, Message, OutMessage = undefined> = Readonly<{
+export type StorySimulation<Model, Message, OutMessage = undefined> = Readonly<{
   model: Model
   message: Message | undefined
   commands: ReadonlyArray<AnyCommand>
@@ -16,18 +21,27 @@ export type Simulation<Model, Message, OutMessage = undefined> = Readonly<{
 /** A callable step that sets the initial Model. Carries phantom type for compile-time validation. */
 export type WithStep<Model> = Readonly<{ _phantomModel: Model }> &
   (<M, Message, OutMessage = undefined>(
-    simulation: Simulation<M, Message, OutMessage>,
-  ) => Simulation<M, Message, OutMessage>)
+    simulation: StorySimulation<M, Message, OutMessage>,
+  ) => StorySimulation<M, Message, OutMessage>)
+
+/** A single step in a story — either a {@link WithStep} or a simulation transform. */
+export type StoryStep<Model, Message, OutMessage> =
+  | WithStep<NoInfer<Model>>
+  | ((
+      simulation: StorySimulation<Model, Message, OutMessage>,
+    ) => StorySimulation<Model, Message, OutMessage>)
+
+// INTERNAL
 
 type UpdateResult<Model, OutMessage> =
   | readonly [Model, ReadonlyArray<AnyCommand>]
   | readonly [Model, ReadonlyArray<AnyCommand>, OutMessage]
 
-type InternalSimulation<Model, Message, OutMessage = undefined> = Simulation<
+type InternalStorySimulation<
   Model,
   Message,
-  OutMessage
-> &
+  OutMessage = undefined,
+> = StorySimulation<Model, Message, OutMessage> &
   Readonly<{
     updateFn: (
       model: Model,
@@ -37,49 +51,22 @@ type InternalSimulation<Model, Message, OutMessage = undefined> = Simulation<
   }>
 
 const toInternal = <Model, Message, OutMessage>(
-  simulation: Simulation<Model, Message, OutMessage>,
-): InternalSimulation<Model, Message, OutMessage> =>
+  simulation: StorySimulation<Model, Message, OutMessage>,
+): InternalStorySimulation<Model, Message, OutMessage> =>
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  simulation as InternalSimulation<Model, Message, OutMessage>
+  simulation as InternalStorySimulation<Model, Message, OutMessage>
 
-const resolveByName = <Model, Message>(
-  internal: InternalSimulation<Model, Message, unknown>,
-  commandName: string,
-  resolverMessage: Message,
-): InternalSimulation<Model, Message, unknown> | undefined => {
-  const commandIndex = internal.commands.findIndex(
-    ({ name }) => name === commandName,
-  )
-
-  if (commandIndex === -1) {
-    return undefined
-  }
-
-  const remainingCommands = Array.remove(internal.commands, commandIndex)
-  const result = internal.updateFn(internal.model, resolverMessage)
-  const nextModel = result[0]
-  const newCommands = result[1]
-  const outMessage = result.length === 3 ? result[2] : internal.outMessage
-
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return {
-    ...internal,
-    model: nextModel,
-    message: resolverMessage,
-    commands: Array.appendAll(remainingCommands, newCommands),
-    outMessage,
-  } as InternalSimulation<Model, Message, unknown>
-}
+// STEPS
 
 /** Sets the initial Model for a test story. */
 export { with_ as with }
 const with_ = <Model>(model: Model): WithStep<Model> => {
   const step = <M, Message, OutMessage = undefined>(
-    simulation: Simulation<M, Message, OutMessage>,
-  ): Simulation<M, Message, OutMessage> => {
+    simulation: StorySimulation<M, Message, OutMessage>,
+  ): StorySimulation<M, Message, OutMessage> => {
     const internal = toInternal(simulation)
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return { ...internal, model } as unknown as Simulation<
+    return { ...internal, model } as unknown as StorySimulation<
       M,
       Message,
       OutMessage
@@ -96,23 +83,11 @@ const with_ = <Model>(model: Model): WithStep<Model> => {
 export const message =
   <Message>(message_: NoInfer<Message>) =>
   <Model, OutMessage = undefined>(
-    simulation: Simulation<Model, Message, OutMessage>,
-  ): Simulation<Model, Message, OutMessage> => {
+    simulation: StorySimulation<Model, Message, OutMessage>,
+  ): StorySimulation<Model, Message, OutMessage> => {
     const internal = toInternal(simulation)
 
-    if (Array.isNonEmptyReadonlyArray(internal.commands)) {
-      const names = pipe(
-        internal.commands,
-        Array.map(({ name }) => `    ${name}`),
-        Array.join('\n'),
-      )
-      throw new Error(
-        `I found unresolved Commands when you sent a new Message:\n\n${names}\n\n` +
-          'Resolve all Commands before sending the next Message.\n' +
-          'Use Test.resolve(Definition, ResultMessage) for each one,\n' +
-          'or Test.resolveAll([...pairs]) to resolve them all at once.',
-      )
-    }
+    assertNoUnresolvedCommands(internal.commands, 'when you sent a new Message')
 
     const result = internal.updateFn(internal.model, message_)
     const nextModel = result[0]
@@ -126,7 +101,7 @@ export const message =
       message: message_,
       commands: Array.appendAll(internal.commands, commands),
       outMessage,
-    } as Simulation<Model, Message, OutMessage>
+    } as StorySimulation<Model, Message, OutMessage>
   }
 
 /** Resolves a specific pending Command with the given result Message. */
@@ -135,15 +110,15 @@ export const resolve: {
     definition: CommandDefinition<Name, ResultMessage>,
     resultMessage: ResultMessage,
   ): <Model, Message, OutMessage = undefined>(
-    simulation: Simulation<Model, Message, OutMessage>,
-  ) => Simulation<Model, Message, OutMessage>
+    simulation: StorySimulation<Model, Message, OutMessage>,
+  ) => StorySimulation<Model, Message, OutMessage>
   <Name extends string, ResultMessage, ParentMessage>(
     definition: CommandDefinition<Name, ResultMessage>,
     resultMessage: ResultMessage,
     toParentMessage: (message: ResultMessage) => ParentMessage,
   ): <Model, Message, OutMessage = undefined>(
-    simulation: Simulation<Model, Message, OutMessage>,
-  ) => Simulation<Model, Message, OutMessage>
+    simulation: StorySimulation<Model, Message, OutMessage>,
+  ) => StorySimulation<Model, Message, OutMessage>
 } =
   <Name extends string, ResultMessage>(
     definition: CommandDefinition<Name, ResultMessage>,
@@ -151,14 +126,18 @@ export const resolve: {
     toParentMessage?: (message: ResultMessage) => unknown,
   ) =>
   <Model, Message, OutMessage = undefined>(
-    simulation: Simulation<Model, Message, OutMessage>,
-  ): Simulation<Model, Message, OutMessage> => {
+    simulation: StorySimulation<Model, Message, OutMessage>,
+  ): StorySimulation<Model, Message, OutMessage> => {
     /* eslint-disable @typescript-eslint/consistent-type-assertions */
     const internal = toInternal(simulation)
     const messageForUpdate = (Predicate.isUndefined(toParentMessage)
       ? resultMessage
       : toParentMessage(resultMessage)) as unknown as Message
-    const next = resolveByName(internal, definition.name, messageForUpdate)
+    const next = resolveByName(
+      internal as BaseInternal<Model, Message, unknown>,
+      definition.name,
+      messageForUpdate,
+    )
 
     if (Predicate.isUndefined(next)) {
       const pending = Array.isNonEmptyReadonlyArray(internal.commands)
@@ -175,22 +154,16 @@ export const resolve: {
       )
     }
 
-    return next as Simulation<Model, Message, OutMessage>
+    return next as StorySimulation<Model, Message, OutMessage>
     /* eslint-enable @typescript-eslint/consistent-type-assertions */
   }
-
-/** A Command definition paired with the result Message to resolve it with. */
-export type ResolverPair<
-  Name extends string = string,
-  ResultMessage = unknown,
-> = readonly [CommandDefinition<Name, ResultMessage>, ResultMessage]
 
 /** Resolves all listed Commands with their result Messages. Handles cascading resolution. */
 export const resolveAll =
   (pairs: ReadonlyArray<ResolverPair>) =>
   <Model, Message, OutMessage = undefined>(
-    simulation: Simulation<Model, Message, OutMessage>,
-  ): Simulation<Model, Message, OutMessage> => {
+    simulation: StorySimulation<Model, Message, OutMessage>,
+  ): StorySimulation<Model, Message, OutMessage> => {
     const internal = toInternal(simulation)
     const resolvers: Record<string, Message> = {}
     for (const [definition, resultMessage] of pairs) {
@@ -198,10 +171,11 @@ export const resolveAll =
       resolvers[definition.name] = resultMessage as Message
     }
 
-    let current: InternalSimulation<Model, Message, OutMessage> = {
+    /* eslint-disable @typescript-eslint/consistent-type-assertions */
+    let current = {
       ...internal,
       resolvers: { ...internal.resolvers, ...resolvers },
-    }
+    } as BaseInternal<Model, Message, OutMessage>
 
     const MAX_CASCADE_DEPTH = 100
 
@@ -224,8 +198,7 @@ export const resolveAll =
         break
       }
 
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      current = next as InternalSimulation<Model, Message, OutMessage>
+      current = next as BaseInternal<Model, Message, OutMessage>
 
       if (depth === MAX_CASCADE_DEPTH - 1) {
         throw new Error(
@@ -235,28 +208,23 @@ export const resolveAll =
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return current as Simulation<Model, Message, OutMessage>
+    return current as StorySimulation<Model, Message, OutMessage>
+    /* eslint-enable @typescript-eslint/consistent-type-assertions */
   }
 
-/** Runs a function for side effects (e.g. assertions) without breaking the pipe chain. */
+/** Runs a function for side effects (e.g. assertions) without breaking the step chain. */
 export const tap =
   <Model, Message, OutMessage = undefined>(
-    f: (simulation: Simulation<Model, Message, OutMessage>) => void,
+    f: (simulation: StorySimulation<Model, Message, OutMessage>) => void,
   ) =>
   (
-    simulation: Simulation<Model, Message, OutMessage>,
-  ): Simulation<Model, Message, OutMessage> => {
+    simulation: StorySimulation<Model, Message, OutMessage>,
+  ): StorySimulation<Model, Message, OutMessage> => {
     f(simulation)
     return simulation
   }
 
-/** A single step in a test story — either a {@link WithStep} or a simulation transform. */
-export type StoryStep<Model, Message, OutMessage> =
-  | WithStep<NoInfer<Model>>
-  | ((
-      simulation: Simulation<Model, Message, OutMessage>,
-    ) => Simulation<Model, Message, OutMessage>)
+// STORY
 
 /** Executes a test story. Throws if any Commands remain unresolved. */
 export const story: {
@@ -286,32 +254,19 @@ export const story: {
     outMessage: undefined as unknown,
     updateFn,
     resolvers: {},
-  } as unknown as Simulation<Model, Message, OutMessage>
+  } as unknown as StorySimulation<Model, Message, OutMessage>
 
   const result = steps.reduce(
     (current, step) =>
       (
         step as (
-          simulation: Simulation<Model, Message, OutMessage>,
-        ) => Simulation<Model, Message, OutMessage>
+          simulation: StorySimulation<Model, Message, OutMessage>,
+        ) => StorySimulation<Model, Message, OutMessage>
       )(current),
     seed,
   )
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
 
   const internal = toInternal(result)
-
-  if (Array.isNonEmptyReadonlyArray(internal.commands)) {
-    const names = pipe(
-      internal.commands,
-      Array.map(({ name }) => `    ${name}`),
-      Array.join('\n'),
-    )
-    throw new Error(
-      `I found Commands without resolvers:\n\n${names}\n\n` +
-        'Every Command produced by update needs to be resolved.\n' +
-        'Use Test.resolve(Definition, ResultMessage) for each one,\n' +
-        'or Test.resolveAll([...pairs]) to resolve them all at once.',
-    )
-  }
+  assertAllCommandsResolved(internal.commands)
 }

@@ -515,7 +515,7 @@ const testingSection = (copiedSnippets: CopiedSnippets): Html =>
               'Tests that read like ',
               span(
                 [Class('text-accent-600 dark:text-accent-500')],
-                ['stories.'],
+                ['stories and scenes.'],
               ),
             ],
           ),
@@ -526,7 +526,7 @@ const testingSection = (copiedSnippets: CopiedSnippets): Html =>
               ),
             ],
             [
-              'Pure update functions mean pure tests. No side effects means nothing to mock. Declare how Commands resolve, send Messages, and check the result. That\u2019s really it.',
+              'Pure update functions mean pure tests. Story tests the state machine. Scene tests features through the view \u2014 clicking buttons, typing into inputs \u2014 with accessible locators. No DOM, no mocking. That\u2019s really it.',
             ],
           ),
           a(

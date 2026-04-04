@@ -7,15 +7,19 @@ import { ADD_CARD_INPUT_ID } from '../constant'
 import { Card, Column } from '../domain'
 import {
   AriaHidden,
+  AriaLabel,
   Class,
+  For,
   OnKeyDownPreventDefault,
   OnSubmit,
+  Role,
   button,
   div,
   form,
   h2,
   input,
   keyed,
+  label,
   span,
   ul,
 } from '../html'
@@ -54,6 +58,7 @@ const addCardForm = (model: Model, columnId: string): Html => {
   return form(
     [Class('flex flex-col gap-2'), OnSubmit(SubmittedNewCard())],
     [
+      label([For(ADD_CARD_INPUT_ID), Class('sr-only')], ['New card title']),
       Ui.Input.view({
         id: ADD_CARD_INPUT_ID,
         onInput: value => ChangedNewCardTitle({ value }),
@@ -203,6 +208,8 @@ export const columnView = (model: Model, column: Column.Column): Html => {
   return keyed('div')(
     column.id,
     [
+      Role('region'),
+      AriaLabel(column.name),
       Class(
         clsx('bg-gray-50 rounded-lg p-3 flex flex-col min-h-0 border-2', {
           'border-dashed border-blue-300': isDropTarget,

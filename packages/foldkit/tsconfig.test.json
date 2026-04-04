@@ -4,6 +4,6 @@
     "composite": true,
     "noEmit": true
   },
-  "include": ["src/**/*.test.ts"],
+  "include": ["src/**/*.test.ts", "src/test/vitest-setup.ts"],
   "references": [{ "path": "." }]
 }

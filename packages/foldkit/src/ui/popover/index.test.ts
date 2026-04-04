@@ -1,11 +1,10 @@
 import { describe, it } from '@effect/vitest'
-import { Effect, Option, Predicate, flow } from 'effect'
-import type { VNode } from 'snabbdom'
+import { Effect, Option, flow } from 'effect'
 import { expect } from 'vitest'
 
-import { Dispatch } from '../../runtime'
-import { noOpDispatch } from '../../runtime/crashUI'
-import * as Test from '../../test'
+import * as Scene from '../../test/scene'
+import * as Story from '../../test/story'
+import type { Message, Model, ViewConfig } from './index'
 import {
   AdvancedTransitionFrame,
   Closed,
@@ -33,22 +32,21 @@ import {
   update,
   view,
 } from './index'
-import type { Model, ViewConfig } from './index'
 
-const withClosed = Test.with(init({ id: 'test' }))
+const withClosed = Story.with(init({ id: 'test' }))
 
 const withOpen = flow(
   withClosed,
-  Test.message(Opened()),
-  Test.resolve(FocusPanel, CompletedFocusPanel()),
+  Story.message(Opened()),
+  Story.resolve(FocusPanel, CompletedFocusPanel()),
 )
 
-const withClosedAnimated = Test.with(init({ id: 'test', isAnimated: true }))
+const withClosedAnimated = Story.with(init({ id: 'test', isAnimated: true }))
 
 const withOpenAnimated = flow(
   withClosedAnimated,
-  Test.message(Opened()),
-  Test.resolveAll([
+  Story.message(Opened()),
+  Story.resolveAll([
     [FocusPanel, CompletedFocusPanel()],
     [RequestFrame, AdvancedTransitionFrame()],
     [WaitForTransitions, EndedTransition()],
@@ -89,12 +87,12 @@ describe('Popover', () => {
   describe('update', () => {
     describe('Opened', () => {
       it('opens the popover', () => {
-        Test.story(
+        Story.story(
           update,
           withClosed,
-          Test.message(Opened()),
-          Test.resolve(FocusPanel, CompletedFocusPanel()),
-          Test.tap(({ model }) => {
+          Story.message(Opened()),
+          Story.resolve(FocusPanel, CompletedFocusPanel()),
+          Story.tap(({ model }) => {
             expect(model.isOpen).toBe(true)
           }),
         )
@@ -103,12 +101,12 @@ describe('Popover', () => {
 
     describe('Closed', () => {
       it('closes the popover and returns a focus command', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(Closed()),
-          Test.resolve(FocusButton, CompletedFocusButton()),
-          Test.tap(({ model }) => {
+          Story.message(Closed()),
+          Story.resolve(FocusButton, CompletedFocusButton()),
+          Story.tap(({ model }) => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.none(),
@@ -118,12 +116,12 @@ describe('Popover', () => {
       })
 
       it('is idempotent when already closed', () => {
-        Test.story(
+        Story.story(
           update,
           withClosed,
-          Test.message(Closed()),
-          Test.resolve(FocusButton, CompletedFocusButton()),
-          Test.tap(({ model }) => {
+          Story.message(Closed()),
+          Story.resolve(FocusButton, CompletedFocusButton()),
+          Story.tap(({ model }) => {
             expect(model.isOpen).toBe(false)
           }),
         )
@@ -132,11 +130,11 @@ describe('Popover', () => {
 
     describe('ClosedByTab', () => {
       it('closes the popover without a focus command', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(ClosedByTab()),
-          Test.tap(({ model }) => {
+          Story.message(ClosedByTab()),
+          Story.tap(({ model }) => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.none(),
@@ -148,13 +146,13 @@ describe('Popover', () => {
 
     describe('PressedPointerOnButton', () => {
       it('records pointer type for touch without toggling', () => {
-        Test.story(
+        Story.story(
           update,
           withClosed,
-          Test.message(
+          Story.message(
             PressedPointerOnButton({ pointerType: 'touch', button: 0 }),
           ),
-          Test.tap(({ model }) => {
+          Story.tap(({ model }) => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('touch'),
@@ -164,13 +162,13 @@ describe('Popover', () => {
       })
 
       it('records pointer type for pen without toggling', () => {
-        Test.story(
+        Story.story(
           update,
           withClosed,
-          Test.message(
+          Story.message(
             PressedPointerOnButton({ pointerType: 'pen', button: 0 }),
           ),
-          Test.tap(({ model }) => {
+          Story.tap(({ model }) => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('pen'),
@@ -180,14 +178,14 @@ describe('Popover', () => {
       })
 
       it('opens the popover on mouse left button when closed', () => {
-        Test.story(
+        Story.story(
           update,
           withClosed,
-          Test.message(
+          Story.message(
             PressedPointerOnButton({ pointerType: 'mouse', button: 0 }),
           ),
-          Test.resolve(FocusPanel, CompletedFocusPanel()),
-          Test.tap(({ model }) => {
+          Story.resolve(FocusPanel, CompletedFocusPanel()),
+          Story.tap(({ model }) => {
             expect(model.isOpen).toBe(true)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('mouse'),
@@ -197,14 +195,14 @@ describe('Popover', () => {
       })
 
       it('closes the popover on mouse left button when open', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(
+          Story.message(
             PressedPointerOnButton({ pointerType: 'mouse', button: 0 }),
           ),
-          Test.resolve(FocusButton, CompletedFocusButton()),
-          Test.tap(({ model }) => {
+          Story.resolve(FocusButton, CompletedFocusButton()),
+          Story.tap(({ model }) => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.none(),
@@ -214,13 +212,13 @@ describe('Popover', () => {
       })
 
       it('does not toggle on mouse right button', () => {
-        Test.story(
+        Story.story(
           update,
           withClosed,
-          Test.message(
+          Story.message(
             PressedPointerOnButton({ pointerType: 'mouse', button: 2 }),
           ),
-          Test.tap(({ model }) => {
+          Story.tap(({ model }) => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('mouse'),
@@ -230,22 +228,22 @@ describe('Popover', () => {
       })
 
       it('always records maybeLastButtonPointerType', () => {
-        Test.story(
+        Story.story(
           update,
           withClosed,
-          Test.message(
+          Story.message(
             PressedPointerOnButton({ pointerType: 'touch', button: 0 }),
           ),
-          Test.tap(({ model }) => {
+          Story.tap(({ model }) => {
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('touch'),
             )
           }),
-          Test.message(
+          Story.message(
             PressedPointerOnButton({ pointerType: 'mouse', button: 0 }),
           ),
-          Test.resolve(FocusPanel, CompletedFocusPanel()),
-          Test.tap(({ model }) => {
+          Story.resolve(FocusPanel, CompletedFocusPanel()),
+          Story.tap(({ model }) => {
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('mouse'),
             )
@@ -256,11 +254,11 @@ describe('Popover', () => {
 
     describe('CompletedFocusPanel', () => {
       it('returns model unchanged', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(CompletedFocusPanel()),
-          Test.tap(({ model }) => {
+          Story.message(CompletedFocusPanel()),
+          Story.tap(({ model }) => {
             expect(model.isOpen).toBe(true)
           }),
         )
@@ -270,15 +268,15 @@ describe('Popover', () => {
     describe('transitions', () => {
       describe('enter flow', () => {
         it('sets EnterStart and emits focus + nextFrame on Opened', () => {
-          Test.story(
+          Story.story(
             update,
             withClosedAnimated,
-            Test.message(Opened()),
-            Test.tap(({ model }) => {
+            Story.message(Opened()),
+            Story.tap(({ model }) => {
               expect(model.isOpen).toBe(true)
               expect(model.transitionState).toBe('EnterStart')
             }),
-            Test.resolveAll([
+            Story.resolveAll([
               [FocusPanel, CompletedFocusPanel()],
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
@@ -288,15 +286,15 @@ describe('Popover', () => {
         })
 
         it('advances EnterStart to EnterAnimating on AdvancedTransitionFrame', () => {
-          Test.story(
+          Story.story(
             update,
             withClosedAnimated,
-            Test.message(Opened()),
-            Test.resolve(RequestFrame, AdvancedTransitionFrame()),
-            Test.tap(({ model }) => {
+            Story.message(Opened()),
+            Story.resolve(RequestFrame, AdvancedTransitionFrame()),
+            Story.tap(({ model }) => {
               expect(model.transitionState).toBe('EnterAnimating')
             }),
-            Test.resolveAll([
+            Story.resolveAll([
               [FocusPanel, CompletedFocusPanel()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
@@ -305,17 +303,17 @@ describe('Popover', () => {
         })
 
         it('completes EnterAnimating to Idle on EndedTransition', () => {
-          Test.story(
+          Story.story(
             update,
             withClosedAnimated,
-            Test.message(Opened()),
-            Test.resolveAll([
+            Story.message(Opened()),
+            Story.resolveAll([
               [FocusPanel, CompletedFocusPanel()],
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
             ]),
-            Test.tap(({ model }) => {
+            Story.tap(({ model }) => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
@@ -324,15 +322,15 @@ describe('Popover', () => {
 
       describe('leave flow', () => {
         it('sets LeaveStart on Closed', () => {
-          Test.story(
+          Story.story(
             update,
             withOpenAnimated,
-            Test.message(Closed()),
-            Test.tap(({ model }) => {
+            Story.message(Closed()),
+            Story.tap(({ model }) => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
-            Test.resolveAll([
+            Story.resolveAll([
               [FocusButton, CompletedFocusButton()],
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
@@ -342,15 +340,15 @@ describe('Popover', () => {
         })
 
         it('sets LeaveStart on ClosedByTab', () => {
-          Test.story(
+          Story.story(
             update,
             withOpenAnimated,
-            Test.message(ClosedByTab()),
-            Test.tap(({ model }) => {
+            Story.message(ClosedByTab()),
+            Story.tap(({ model }) => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
-            Test.resolveAll([
+            Story.resolveAll([
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
@@ -359,15 +357,15 @@ describe('Popover', () => {
         })
 
         it('advances LeaveStart to LeaveAnimating on AdvancedTransitionFrame', () => {
-          Test.story(
+          Story.story(
             update,
             withOpenAnimated,
-            Test.message(Closed()),
-            Test.resolve(RequestFrame, AdvancedTransitionFrame()),
-            Test.tap(({ model }) => {
+            Story.message(Closed()),
+            Story.resolve(RequestFrame, AdvancedTransitionFrame()),
+            Story.tap(({ model }) => {
               expect(model.transitionState).toBe('LeaveAnimating')
             }),
-            Test.resolveAll([
+            Story.resolveAll([
               [FocusButton, CompletedFocusButton()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
@@ -376,17 +374,17 @@ describe('Popover', () => {
         })
 
         it('completes LeaveAnimating to Idle on EndedTransition', () => {
-          Test.story(
+          Story.story(
             update,
             withOpenAnimated,
-            Test.message(Closed()),
-            Test.resolveAll([
+            Story.message(Closed()),
+            Story.resolveAll([
               [FocusButton, CompletedFocusButton()],
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
             ]),
-            Test.tap(({ model }) => {
+            Story.tap(({ model }) => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
@@ -395,24 +393,24 @@ describe('Popover', () => {
 
       describe('non-animated', () => {
         it('keeps transitionState Idle on Opened', () => {
-          Test.story(
+          Story.story(
             update,
             withClosed,
-            Test.message(Opened()),
-            Test.resolve(FocusPanel, CompletedFocusPanel()),
-            Test.tap(({ model }) => {
+            Story.message(Opened()),
+            Story.resolve(FocusPanel, CompletedFocusPanel()),
+            Story.tap(({ model }) => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
         })
 
         it('keeps transitionState Idle on Closed', () => {
-          Test.story(
+          Story.story(
             update,
             withOpen,
-            Test.message(Closed()),
-            Test.resolve(FocusButton, CompletedFocusButton()),
-            Test.tap(({ model }) => {
+            Story.message(Closed()),
+            Story.resolve(FocusButton, CompletedFocusButton()),
+            Story.tap(({ model }) => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
@@ -421,11 +419,11 @@ describe('Popover', () => {
 
       describe('stale messages', () => {
         it('ignores AdvancedTransitionFrame when Idle', () => {
-          Test.story(
+          Story.story(
             update,
             withOpen,
-            Test.message(AdvancedTransitionFrame()),
-            Test.tap(({ model }) => {
+            Story.message(AdvancedTransitionFrame()),
+            Story.tap(({ model }) => {
               expect(model.isOpen).toBe(true)
               expect(model.transitionState).toBe('Idle')
             }),
@@ -433,11 +431,11 @@ describe('Popover', () => {
         })
 
         it('ignores EndedTransition when Idle', () => {
-          Test.story(
+          Story.story(
             update,
             withOpen,
-            Test.message(EndedTransition()),
-            Test.tap(({ model }) => {
+            Story.message(EndedTransition()),
+            Story.tap(({ model }) => {
               expect(model.isOpen).toBe(true)
               expect(model.transitionState).toBe('Idle')
             }),
@@ -447,22 +445,22 @@ describe('Popover', () => {
 
       describe('interruptions', () => {
         it('transitions to LeaveStart when Closed during EnterStart', () => {
-          Test.story(
+          Story.story(
             update,
             withClosedAnimated,
-            Test.message(Opened()),
-            Test.resolveAll([
+            Story.message(Opened()),
+            Story.resolveAll([
               [FocusPanel, CompletedFocusPanel()],
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
             ]),
-            Test.message(Closed()),
-            Test.tap(({ model }) => {
+            Story.message(Closed()),
+            Story.tap(({ model }) => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
-            Test.resolveAll([
+            Story.resolveAll([
               [FocusButton, CompletedFocusButton()],
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
@@ -472,22 +470,22 @@ describe('Popover', () => {
         })
 
         it('transitions to LeaveStart when Closed during EnterAnimating', () => {
-          Test.story(
+          Story.story(
             update,
             withClosedAnimated,
-            Test.message(Opened()),
-            Test.resolveAll([
+            Story.message(Opened()),
+            Story.resolveAll([
               [FocusPanel, CompletedFocusPanel()],
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
             ]),
-            Test.message(Closed()),
-            Test.tap(({ model }) => {
+            Story.message(Closed()),
+            Story.tap(({ model }) => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
-            Test.resolveAll([
+            Story.resolveAll([
               [FocusButton, CompletedFocusButton()],
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
@@ -499,26 +497,26 @@ describe('Popover', () => {
 
       describe('DetectedButtonMovement', () => {
         it('cancels leave animation by setting transitionState to Idle', () => {
-          Test.story(
+          Story.story(
             update,
-            Test.with({
+            Story.with({
               ...init({ id: 'test', isAnimated: true }),
               isOpen: false,
               transitionState: 'LeaveAnimating' as const,
             }),
-            Test.message(DetectedButtonMovement()),
-            Test.tap(({ model }) => {
+            Story.message(DetectedButtonMovement()),
+            Story.tap(({ model }) => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
         })
 
         it('is a no-op during Idle', () => {
-          Test.story(
+          Story.story(
             update,
             withOpen,
-            Test.message(DetectedButtonMovement()),
-            Test.tap(({ model }) => {
+            Story.message(DetectedButtonMovement()),
+            Story.tap(({ model }) => {
               expect(model.isOpen).toBe(true)
               expect(model.transitionState).toBe('Idle')
             }),
@@ -526,15 +524,15 @@ describe('Popover', () => {
         })
 
         it('is a no-op during EnterAnimating', () => {
-          Test.story(
+          Story.story(
             update,
-            Test.with({
+            Story.with({
               ...init({ id: 'test', isAnimated: true }),
               isOpen: true,
               transitionState: 'EnterAnimating' as const,
             }),
-            Test.message(DetectedButtonMovement()),
-            Test.tap(({ model }) => {
+            Story.message(DetectedButtonMovement()),
+            Story.tap(({ model }) => {
               expect(model.transitionState).toBe('EnterAnimating')
             }),
           )
@@ -544,12 +542,12 @@ describe('Popover', () => {
   })
 
   describe('modal commands', () => {
-    const withClosedModal = Test.with(init({ id: 'test', isModal: true }))
+    const withClosedModal = Story.with(init({ id: 'test', isModal: true }))
 
     const withOpenModal = flow(
       withClosedModal,
-      Test.message(Opened()),
-      Test.resolveAll([
+      Story.message(Opened()),
+      Story.resolveAll([
         [FocusPanel, CompletedFocusPanel()],
         [LockScroll, CompletedLockScroll()],
         [InertOthers, CompletedSetupInert()],
@@ -557,64 +555,64 @@ describe('Popover', () => {
     )
 
     it('emits lockScroll and inertOthers commands on Opened when isModal is true', () => {
-      Test.story(
+      Story.story(
         update,
         withClosedModal,
-        Test.message(Opened()),
-        Test.resolveAll([
+        Story.message(Opened()),
+        Story.resolveAll([
           [FocusPanel, CompletedFocusPanel()],
           [LockScroll, CompletedLockScroll()],
           [InertOthers, CompletedSetupInert()],
         ]),
-        Test.tap(({ model }) => {
+        Story.tap(({ model }) => {
           expect(model.isOpen).toBe(true)
         }),
       )
     })
 
     it('emits unlockScroll and restoreInert commands on Closed when isModal is true', () => {
-      Test.story(
+      Story.story(
         update,
         withOpenModal,
-        Test.message(Closed()),
-        Test.resolveAll([
+        Story.message(Closed()),
+        Story.resolveAll([
           [FocusButton, CompletedFocusButton()],
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],
         ]),
-        Test.tap(({ model }) => {
+        Story.tap(({ model }) => {
           expect(model.isOpen).toBe(false)
         }),
       )
     })
 
     it('emits unlockScroll and restoreInert commands on ClosedByTab when isModal is true', () => {
-      Test.story(
+      Story.story(
         update,
         withOpenModal,
-        Test.message(ClosedByTab()),
-        Test.resolveAll([
+        Story.message(ClosedByTab()),
+        Story.resolveAll([
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],
         ]),
-        Test.tap(({ model }) => {
+        Story.tap(({ model }) => {
           expect(model.isOpen).toBe(false)
         }),
       )
     })
 
     it('does not emit modal commands when isModal is false', () => {
-      Test.story(
+      Story.story(
         update,
         withClosed,
-        Test.message(Opened()),
-        Test.resolve(FocusPanel, CompletedFocusPanel()),
-        Test.tap(({ model }) => {
+        Story.message(Opened()),
+        Story.resolve(FocusPanel, CompletedFocusPanel()),
+        Story.tap(({ model }) => {
           expect(model.isOpen).toBe(true)
         }),
-        Test.message(Closed()),
-        Test.resolve(FocusButton, CompletedFocusButton()),
-        Test.tap(({ model }) => {
+        Story.message(Closed()),
+        Story.resolve(FocusButton, CompletedFocusButton()),
+        Story.tap(({ model }) => {
           expect(model.isOpen).toBe(false)
         }),
       )
@@ -622,40 +620,31 @@ describe('Popover', () => {
   })
 
   describe('view', () => {
-    type TestMessage = string
-
-    const baseViewConfig = (model: Model): ViewConfig<TestMessage> => ({
-      model,
-      toParentMessage: message => message._tag,
-      anchor: { placement: 'bottom-start' },
-      buttonContent: Effect.succeed(null),
-      panelContent: Effect.succeed(null),
-    })
-
-    const renderView = (config: ViewConfig<TestMessage>): VNode => {
-      const vnode = Effect.runSync(
-        Effect.provideService(view(config), Dispatch, noOpDispatch),
-      )
-      if (Predicate.isNull(vnode)) {
-        throw new Error('Expected vnode, got null')
-      }
-      return vnode
-    }
-
-    const findChildByKey = (vnode: VNode, key: string): VNode | undefined =>
-      vnode.children?.find(
-        (child): child is VNode =>
-          typeof child !== 'string' && child.key === key,
-      )
+    const sceneView =
+      (
+        overrides: Omit<
+          Partial<ViewConfig<Message>>,
+          'model' | 'toParentMessage'
+        > = {},
+      ) =>
+      (model: Model) =>
+        view({
+          anchor: { placement: 'bottom-start' },
+          buttonContent: Effect.succeed(null),
+          panelContent: Effect.succeed(null),
+          ...overrides,
+          model,
+          toParentMessage: message => message,
+        })
 
     const closedModel = () => init({ id: 'test' })
 
     const openModel = (): Model => {
       let model!: Model
-      Test.story(
+      Story.story(
         update,
         withOpen,
-        Test.tap(simulation => {
+        Story.tap(simulation => {
           model = simulation.model
         }),
       )
@@ -663,73 +652,101 @@ describe('Popover', () => {
     }
 
     it('renders button with aria-expanded false when closed', () => {
-      const model = closedModel()
-      const vnode = renderView(baseViewConfig(model))
-      const button = findChildByKey(vnode, 'test-button')
-
-      expect(button?.data?.attrs?.['aria-expanded']).toBe('false')
-      expect(button?.data?.attrs?.['aria-controls']).toBe('test-panel')
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.with(closedModel()),
+        Scene.tap(({ html }) => {
+          const button = Scene.find(html, '[key="test-button"]')
+          expect(button).toHaveAttr('aria-expanded', 'false')
+          expect(button).toHaveAttr('aria-controls', 'test-panel')
+        }),
+      )
     })
 
     it('renders button with aria-expanded true when open', () => {
-      const model = openModel()
-      const vnode = renderView(baseViewConfig(model))
-      const button = findChildByKey(vnode, 'test-button')
-
-      expect(button?.data?.attrs?.['aria-expanded']).toBe('true')
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.with(openModel()),
+        Scene.tap(({ html }) => {
+          expect(Scene.find(html, '[key="test-button"]')).toHaveAttr(
+            'aria-expanded',
+            'true',
+          )
+        }),
+      )
     })
 
     it('renders panel when open', () => {
-      const model = openModel()
-      const vnode = renderView(baseViewConfig(model))
-      const panel = findChildByKey(vnode, 'test-panel-container')
-
-      expect(panel).toBeDefined()
-      expect(panel?.data?.props?.['tabIndex']).toBe(0)
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.with(openModel()),
+        Scene.tap(({ html }) => {
+          const panel = Scene.find(html, '[key="test-panel-container"]')
+          expect(panel).toExist()
+          expect(panel).toHaveAttr('tabIndex', '0')
+        }),
+      )
     })
 
     it('does not render panel when closed', () => {
-      const model = closedModel()
-      const vnode = renderView(baseViewConfig(model))
-      const panel = findChildByKey(vnode, 'test-panel-container')
-
-      expect(panel).toBeUndefined()
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.with(closedModel()),
+        Scene.tap(({ html }) => {
+          expect(Scene.find(html, '[key="test-panel-container"]')).toBeAbsent()
+        }),
+      )
     })
 
     it('renders backdrop when open', () => {
-      const model = openModel()
-      const vnode = renderView(baseViewConfig(model))
-      const backdrop = findChildByKey(vnode, 'test-backdrop')
-
-      expect(backdrop).toBeDefined()
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.with(openModel()),
+        Scene.tap(({ html }) => {
+          expect(Scene.find(html, '[key="test-backdrop"]')).toExist()
+        }),
+      )
     })
 
     it('does not have aria-haspopup on the button', () => {
-      const model = closedModel()
-      const vnode = renderView(baseViewConfig(model))
-      const button = findChildByKey(vnode, 'test-button')
-
-      expect(button?.data?.attrs?.['aria-haspopup']).toBeUndefined()
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.with(closedModel()),
+        Scene.tap(({ html }) => {
+          expect(Scene.find(html, '[key="test-button"]')).toExist()
+          expect(Scene.find(html, '[key="test-button"]')).not.toHaveAttr(
+            'aria-haspopup',
+          )
+        }),
+      )
     })
 
     it('does not have role on the panel', () => {
-      const model = openModel()
-      const vnode = renderView(baseViewConfig(model))
-      const panel = findChildByKey(vnode, 'test-panel-container')
-
-      expect(panel?.data?.attrs?.['role']).toBeUndefined()
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.with(openModel()),
+        Scene.tap(({ html }) => {
+          expect(Scene.find(html, '[key="test-panel-container"]')).toExist()
+          expect(
+            Scene.find(html, '[key="test-panel-container"]'),
+          ).not.toHaveAttr('role')
+        }),
+      )
     })
 
     it('adds anchor positioning styles and hooks', () => {
-      const model = openModel()
-      const vnode = renderView(baseViewConfig(model))
-      const panel = findChildByKey(vnode, 'test-panel-container')
-
-      expect(panel?.data?.style?.position).toBe('absolute')
-      expect(panel?.data?.style?.margin).toBe('0')
-      expect(panel?.data?.style?.visibility).toBe('hidden')
-      expect(panel?.data?.hook?.insert).toBeTypeOf('function')
-      expect(panel?.data?.hook?.destroy).toBeTypeOf('function')
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.with(openModel()),
+        Scene.tap(({ html }) => {
+          const panel = Scene.find(html, '[key="test-panel-container"]')
+          expect(panel).toHaveStyle('position', 'absolute')
+          expect(panel).toHaveStyle('margin', '0')
+          expect(panel).toHaveStyle('visibility', 'hidden')
+          expect(panel).toHaveHook('insert')
+          expect(panel).toHaveHook('destroy')
+        }),
+      )
     })
   })
 })

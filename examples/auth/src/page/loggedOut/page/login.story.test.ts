@@ -1,16 +1,16 @@
 import { Option, Schema } from 'effect'
-import { FieldValidation, Test } from 'foldkit'
+import { FieldValidation, Story } from 'foldkit'
 import { describe, expect, test } from 'vitest'
 
 import {
   ChangedEmail,
   ChangedPassword,
   ClickedSubmit,
-  FailedAuth,
+  FailedSimulateAuthRequest,
   type Model,
   SimulateAuthRequest,
-  SucceededAuth,
   SucceededLogin,
+  SucceededSimulateAuthRequest,
   initModel,
   update,
 } from './login'
@@ -23,19 +23,19 @@ const validModel: Model = {
   password: Valid({ value: 'password' }),
 }
 
-const alice = { userId: '1', email: 'alice@example.com', name: 'alice' }
+const aliceSession = { userId: '1', email: 'alice@example.com', name: 'alice' }
 
 describe('login', () => {
   test('typing an email validates the field', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(initModel()),
-      Test.message(ChangedEmail({ value: '' })),
-      Test.tap(({ model }) => {
+      Story.with(initModel()),
+      Story.message(ChangedEmail({ value: '' })),
+      Story.tap(({ model }) => {
         expect(model.email._tag).toBe('Invalid')
       }),
-      Test.message(ChangedEmail({ value: 'alice@example.com' })),
-      Test.tap(({ model }) => {
+      Story.message(ChangedEmail({ value: 'alice@example.com' })),
+      Story.tap(({ model }) => {
         expect(model.email._tag).toBe('Valid')
         expect(model.email.value).toBe('alice@example.com')
       }),
@@ -43,26 +43,26 @@ describe('login', () => {
   })
 
   test('typing a password validates the field', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(initModel()),
-      Test.message(ChangedPassword({ value: '' })),
-      Test.tap(({ model }) => {
+      Story.with(initModel()),
+      Story.message(ChangedPassword({ value: '' })),
+      Story.tap(({ model }) => {
         expect(model.password._tag).toBe('Invalid')
       }),
-      Test.message(ChangedPassword({ value: 'secret' })),
-      Test.tap(({ model }) => {
+      Story.message(ChangedPassword({ value: 'secret' })),
+      Story.tap(({ model }) => {
         expect(model.password._tag).toBe('Valid')
       }),
     )
   })
 
   test('submitting with invalid fields does nothing', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(initModel()),
-      Test.message(ClickedSubmit()),
-      Test.tap(({ model, commands }) => {
+      Story.with(initModel()),
+      Story.message(ClickedSubmit()),
+      Story.tap(({ model, commands }) => {
         expect(model.isSubmitting).toBe(false)
         expect(commands).toHaveLength(0)
       }),
@@ -70,36 +70,39 @@ describe('login', () => {
   })
 
   test('submitting with valid fields sends an auth request', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(validModel),
-      Test.message(ClickedSubmit()),
-      Test.tap(({ model, commands }) => {
+      Story.with(validModel),
+      Story.message(ClickedSubmit()),
+      Story.tap(({ model, commands }) => {
         expect(model.isSubmitting).toBe(true)
         expect(commands[0]?.name).toBe(SimulateAuthRequest.name)
       }),
-      Test.resolve(SimulateAuthRequest, SucceededAuth({ session: alice })),
-      Test.tap(({ outMessage }) => {
+      Story.resolve(
+        SimulateAuthRequest,
+        SucceededSimulateAuthRequest({ session: aliceSession }),
+      ),
+      Story.tap(({ outMessage }) => {
         expect(outMessage).toEqual(
-          Option.some(SucceededLogin({ session: alice })),
+          Option.some(SucceededLogin({ session: aliceSession })),
         )
       }),
     )
   })
 
   test('failed auth marks the password field invalid and stops submitting', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(validModel),
-      Test.message(ClickedSubmit()),
-      Test.tap(({ model }) => {
+      Story.with(validModel),
+      Story.message(ClickedSubmit()),
+      Story.tap(({ model }) => {
         expect(model.isSubmitting).toBe(true)
       }),
-      Test.resolve(
+      Story.resolve(
         SimulateAuthRequest,
-        FailedAuth({ error: 'Invalid credentials' }),
+        FailedSimulateAuthRequest({ error: 'Invalid credentials' }),
       ),
-      Test.tap(({ model, outMessage }) => {
+      Story.tap(({ model, outMessage }) => {
         expect(model.isSubmitting).toBe(false)
         expect(model.password._tag).toBe('Invalid')
         expect(outMessage).toEqual(Option.none())

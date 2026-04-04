@@ -97,7 +97,7 @@ Even after extracting some sections to their own files (e.g. `message.ts`), the 
 
 Test update functions with `foldkit/test`. Since update is pure — `(Model, Message) → [Model, Commands]` — tests run without a runtime, DOM, or side effects.
 
-Use `Test.story` to chain steps into a readable narrative: set initial Model → send Message → assert → resolve Command → assert again. Every `Command.define` must include result Message schemas so Commands can be resolved in tests.
+Use `Story.story` to chain steps into a readable narrative: set initial Model → send Message → assert → resolve Command → assert again. Use `Scene.scene` for feature-level testing through the view — clicking buttons, typing into inputs, pressing keys — with accessible locators (`Scene.role`, `Scene.label`, `Scene.placeholder`). Every `Command.define` must include result Message schemas so Commands can be resolved in tests.
 
 If the `repos/foldkit` submodule is available, study the `.test.ts` files in `repos/foldkit/examples/` for patterns — they cover simple Command resolution, multi-step interactions, and Submodel OutMessage assertions.
 

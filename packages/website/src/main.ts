@@ -56,6 +56,7 @@ import {
   GotNotePlayerDemoMessage,
   GotPatternsGroupMessage,
   GotSearchMessage,
+  GotTestingGroupMessage,
   GotUiPageMessage,
   HiddenCopiedIndicator,
   type Message,
@@ -172,6 +173,7 @@ export const Model = S.Struct({
   getStartedGroup: Ui.Disclosure.Model,
   coreConceptsGroup: Ui.Disclosure.Model,
   guidesGroup: Ui.Disclosure.Model,
+  testingGroup: Ui.Disclosure.Model,
   bestPracticesGroup: Ui.Disclosure.Model,
   patternsGroup: Ui.Disclosure.Model,
   foldkitUiGroup: Ui.Disclosure.Model,
@@ -278,6 +280,10 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
       },
       guidesGroup: {
         ...Ui.Disclosure.init({ id: 'guides-group' }),
+        isOpen: true,
+      },
+      testingGroup: {
+        ...Ui.Disclosure.init({ id: 'testing-group' }),
         isOpen: true,
       },
       bestPracticesGroup: {
@@ -731,6 +737,24 @@ const update = (
           guidesGroupCommands.map(
             Command.mapEffect(
               Effect.map(message => GotGuidesGroupMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      GotTestingGroupMessage: ({ message }) => {
+        const [nextTestingGroup, testingGroupCommands] = Ui.Disclosure.update(
+          model.testingGroup,
+          message,
+        )
+
+        return [
+          evo(model, {
+            testingGroup: () => nextTestingGroup,
+          }),
+          testingGroupCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotTestingGroupMessage({ message })),
             ),
           ),
         ]

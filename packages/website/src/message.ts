@@ -99,6 +99,9 @@ export const GotCoreConceptsGroupMessage = m('GotCoreConceptsGroupMessage', {
 export const GotGuidesGroupMessage = m('GotGuidesGroupMessage', {
   message: Ui.Disclosure.Message,
 })
+export const GotTestingGroupMessage = m('GotTestingGroupMessage', {
+  message: Ui.Disclosure.Message,
+})
 export const GotBestPracticesGroupMessage = m('GotBestPracticesGroupMessage', {
   message: Ui.Disclosure.Message,
 })
@@ -162,6 +165,7 @@ export const Message = S.Union(
   GotGetStartedGroupMessage,
   GotCoreConceptsGroupMessage,
   GotGuidesGroupMessage,
+  GotTestingGroupMessage,
   GotBestPracticesGroupMessage,
   GotPatternsGroupMessage,
   GotFoldkitUiGroupMessage,

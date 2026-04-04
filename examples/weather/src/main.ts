@@ -274,7 +274,7 @@ const {
   Value,
 } = html<Message>()
 
-const view = (model: Model): Html =>
+export const view = (model: Model): Html =>
   div(
     [
       Class(

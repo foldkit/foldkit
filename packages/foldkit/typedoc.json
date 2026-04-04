@@ -1,7 +1,7 @@
 {
   "$schema": "https://typedoc.org/schema.json",
   "entryPoints": ["src/index.ts"],
-  "tsconfig": "tsconfig.json",
+  "tsconfig": "tsconfig.build.json",
   "json": "../website/src/generated/api.json",
   "pretty": false,
   "excludePrivate": true,
@@ -25,23 +25,10 @@
     "BuildFn",
     "InferParsed",
     "ParserInput",
-    "CompletedFocusItems",
-    "CompletedFocusButton",
-    "CompletedLockScroll",
-    "CompletedUnlockScroll",
-    "CompletedSetupInert",
-    "CompletedTeardownInert",
-    "CompletedScrollIntoView",
-    "CompletedClickItem",
     "CompletedAdvanceFocus",
-    "CompletedFocusPanel",
-    "AdvancedTransitionFrame",
-    "EndedTransition",
-    "DetectedButtonMovement",
-    "CompletedFocusOption",
-    "CompletedFocusTab",
     "DevtoolsMode",
     "DevtoolsPosition",
-    "ResolveMessage"
+    "ResolveMessage",
+    "WithStep"
   ]
 }

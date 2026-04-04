@@ -137,10 +137,10 @@
   ],
   "scripts": {
     "clean": "rimraf dist *.tsbuildinfo",
-    "build": "pnpm run clean && node scripts/inline-css.js && tsc -b",
-    "watch": "node scripts/inline-css.js && tsc -b --watch",
-    "lint": "eslint src --ignore-pattern '**/*.test.ts'",
-    "typecheck": "node scripts/inline-css.js && tsc -b --noEmit",
+    "build": "pnpm run clean && node scripts/inline-css.js && tsc -b tsconfig.build.json",
+    "watch": "node scripts/inline-css.js && tsc -b tsconfig.build.json --watch",
+    "lint": "eslint src",
+    "typecheck": "node scripts/inline-css.js && tsc -b tsconfig.build.json --noEmit",
     "test": "vitest run",
     "docs": "typedoc"
   },

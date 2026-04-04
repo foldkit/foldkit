@@ -69,15 +69,19 @@ export const initModel = (): Model => ({
 export const ChangedEmail = m('ChangedEmail', { value: S.String })
 export const ChangedPassword = m('ChangedPassword', { value: S.String })
 export const ClickedSubmit = m('ClickedSubmit')
-export const SucceededAuth = m('SucceededAuth', { session: Session })
-export const FailedAuth = m('FailedAuth', { error: S.String })
+export const SucceededSimulateAuthRequest = m('SucceededSimulateAuthRequest', {
+  session: Session,
+})
+export const FailedSimulateAuthRequest = m('FailedSimulateAuthRequest', {
+  error: S.String,
+})
 
 export const Message = S.Union(
   ChangedEmail,
   ChangedPassword,
   ClickedSubmit,
-  SucceededAuth,
-  FailedAuth,
+  SucceededSimulateAuthRequest,
+  FailedSimulateAuthRequest,
 )
 export type Message = typeof Message.Type
 
@@ -115,8 +119,8 @@ const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 export const SimulateAuthRequest = Command.define(
   'SimulateAuthRequest',
-  SucceededAuth,
-  FailedAuth,
+  SucceededSimulateAuthRequest,
+  FailedSimulateAuthRequest,
 )
 
 const simulateAuthRequest = (email: string, password: string) =>
@@ -125,7 +129,7 @@ const simulateAuthRequest = (email: string, password: string) =>
       yield* Effect.sleep(Duration.seconds(1))
 
       if (password !== 'password') {
-        return FailedAuth({ error: 'Invalid credentials' })
+        return FailedSimulateAuthRequest({ error: 'Invalid credentials' })
       }
 
       const name = pipe(
@@ -137,7 +141,7 @@ const simulateAuthRequest = (email: string, password: string) =>
 
       const session: Session = { userId: '1', email, name }
 
-      return SucceededAuth({ session })
+      return SucceededSimulateAuthRequest({ session })
     }),
   )
 
@@ -169,13 +173,13 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ]
       },
 
-      SucceededAuth: ({ session }) => [
+      SucceededSimulateAuthRequest: ({ session }) => [
         model,
         [],
         Option.some(SucceededLogin({ session })),
       ],
 
-      FailedAuth: ({ error }) => [
+      FailedSimulateAuthRequest: ({ error }) => [
         evo(model, {
           password: () =>
             StringFieldInvalid({

@@ -328,6 +328,7 @@ const searchWeight = (tag: string): string =>
       'ProjectOrganization',
       'ComingFromReact',
       'ReactComparison',
+      S.startsWith('Testing'),
       () => '6',
     ),
     M.whenOr(S.startsWith('Ui'), S.startsWith('Ai'), () => '5'),
@@ -417,6 +418,16 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         withTableOfContents(
           lazyDocsContent(Page.Testing.view, [model.copiedSnippets]),
           Page.Testing.tableOfContents,
+        ),
+      TestingStory: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.TestingStory.view, [model.copiedSnippets]),
+          Page.TestingStory.tableOfContents,
+        ),
+      TestingScene: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.TestingScene.view, [model.copiedSnippets]),
+          Page.TestingScene.tableOfContents,
         ),
       Examples: () => withoutTableOfContents(Page.Examples.view()),
       ExampleDetail: ({ exampleSlug }) =>

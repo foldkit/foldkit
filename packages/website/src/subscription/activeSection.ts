@@ -71,6 +71,8 @@ export const activeSection: Subscription<
         M.tag('CoreView', () => Page.Core.CoreView.tableOfContents),
       )
       .pipe(
+        M.tag('TestingStory', () => Page.TestingStory.tableOfContents),
+        M.tag('TestingScene', () => Page.TestingScene.tableOfContents),
         M.tag('CoreCommands', () => Page.Core.Commands.tableOfContents),
         M.tag(
           'CoreSubscriptions',

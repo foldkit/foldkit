@@ -1,5 +1,5 @@
 {
   "name": "foldkit-skills",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "Skills for building Foldkit apps — app generator, message scaffolding, submodel extraction, and architecture auditing"
 }

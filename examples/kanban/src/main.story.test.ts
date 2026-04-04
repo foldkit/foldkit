@@ -1,11 +1,11 @@
 import { Option } from 'effect'
-import { Test, Ui } from 'foldkit'
+import { Story, Ui } from 'foldkit'
 import { generateKeyBetween } from 'fractional-indexing'
 import { describe, expect, test } from 'vitest'
 
 import { FocusAddCardInput, SaveBoard } from './command'
-import { DEFAULT_COLUMNS } from './constant'
 import { Column } from './domain'
+import type { Card } from './domain/card'
 import {
   CancelledNewCard,
   ChangedNewCardTitle,
@@ -18,8 +18,46 @@ import {
 import type { Model } from './model'
 import { update } from './update'
 
+const card = (id: string, title: string, sortKey: string): Card => ({
+  id,
+  title,
+  description: '',
+  sortKey,
+})
+
+const k1 = generateKeyBetween(null, null)
+const k2 = generateKeyBetween(k1, null)
+const k3 = generateKeyBetween(k2, null)
+const k4 = generateKeyBetween(k3, null)
+
+const testColumns: ReadonlyArray<Column.Column> = [
+  {
+    id: 'todo',
+    name: 'To Do',
+    cards: [
+      card('card-1', 'Write tests', k1),
+      card('card-2', 'Fix bug', k2),
+      card('card-3', 'Add feature', k3),
+      card('card-4', 'Update docs', k4),
+    ],
+  },
+  {
+    id: 'in-progress',
+    name: 'In Progress',
+    cards: [
+      card('card-5', 'Review PR', k1),
+      card('card-6', 'Deploy staging', k2),
+    ],
+  },
+  {
+    id: 'done',
+    name: 'Done',
+    cards: [card('card-7', 'Ship v1', k1)],
+  },
+]
+
 const emptyModel: Model = {
-  columns: DEFAULT_COLUMNS,
+  columns: testColumns,
   dragAndDrop: Ui.DragAndDrop.init({ id: 'kanban' }),
   maybeNewCardColumnId: Option.none(),
   newCardTitle: '',
@@ -30,12 +68,12 @@ const emptyModel: Model = {
 describe('kanban update', () => {
   describe('add card', () => {
     test('ClickedAddCard opens the add card form for the column', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(emptyModel),
-        Test.message(ClickedAddCard({ columnId: 'todo' })),
-        Test.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
-        Test.tap(({ model }) => {
+        Story.with(emptyModel),
+        Story.message(ClickedAddCard({ columnId: 'todo' })),
+        Story.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
+        Story.tap(({ model }) => {
           expect(model.maybeNewCardColumnId).toStrictEqual(Option.some('todo'))
           expect(model.newCardTitle).toBe('')
         }),
@@ -43,28 +81,28 @@ describe('kanban update', () => {
     })
 
     test('ChangedNewCardTitle updates the title', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(emptyModel),
-        Test.message(ClickedAddCard({ columnId: 'todo' })),
-        Test.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
-        Test.message(ChangedNewCardTitle({ value: 'New task' })),
-        Test.tap(({ model }) => {
+        Story.with(emptyModel),
+        Story.message(ClickedAddCard({ columnId: 'todo' })),
+        Story.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
+        Story.message(ChangedNewCardTitle({ value: 'New task' })),
+        Story.tap(({ model }) => {
           expect(model.newCardTitle).toBe('New task')
         }),
       )
     })
 
     test('SubmittedNewCard adds card to the column and saves', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(emptyModel),
-        Test.message(ClickedAddCard({ columnId: 'done' })),
-        Test.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
-        Test.message(ChangedNewCardTitle({ value: 'Ship it' })),
-        Test.message(SubmittedNewCard()),
-        Test.resolve(SaveBoard, CompletedSaveBoard()),
-        Test.tap(({ model }) => {
+        Story.with(emptyModel),
+        Story.message(ClickedAddCard({ columnId: 'done' })),
+        Story.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
+        Story.message(ChangedNewCardTitle({ value: 'Ship it' })),
+        Story.message(SubmittedNewCard()),
+        Story.resolve(SaveBoard, CompletedSaveBoard()),
+        Story.tap(({ model }) => {
           const doneColumn = model.columns.find(column => column.id === 'done')
           const lastCard = doneColumn?.cards[doneColumn.cards.length - 1]
           expect(lastCard?.title).toBe('Ship it')
@@ -75,27 +113,27 @@ describe('kanban update', () => {
     })
 
     test('SubmittedNewCard ignores empty title', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(emptyModel),
-        Test.message(ClickedAddCard({ columnId: 'todo' })),
-        Test.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
-        Test.message(SubmittedNewCard()),
-        Test.tap(({ model }) => {
+        Story.with(emptyModel),
+        Story.message(ClickedAddCard({ columnId: 'todo' })),
+        Story.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
+        Story.message(SubmittedNewCard()),
+        Story.tap(({ model }) => {
           expect(model.maybeNewCardColumnId).toStrictEqual(Option.some('todo'))
         }),
       )
     })
 
     test('CancelledNewCard closes the form', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(emptyModel),
-        Test.message(ClickedAddCard({ columnId: 'todo' })),
-        Test.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
-        Test.message(ChangedNewCardTitle({ value: 'Draft' })),
-        Test.message(CancelledNewCard()),
-        Test.tap(({ model }) => {
+        Story.with(emptyModel),
+        Story.message(ClickedAddCard({ columnId: 'todo' })),
+        Story.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
+        Story.message(ChangedNewCardTitle({ value: 'Draft' })),
+        Story.message(CancelledNewCard()),
+        Story.tap(({ model }) => {
           expect(model.maybeNewCardColumnId).toStrictEqual(Option.none())
           expect(model.newCardTitle).toBe('')
         }),
@@ -106,10 +144,10 @@ describe('kanban update', () => {
   describe('drag and drop reorder', () => {
     test('reorders a card within the same column', () => {
       const firstCardId = emptyModel.columns[0]!.cards[0]!.id
-      Test.story(
+      Story.story(
         update,
-        Test.with(emptyModel),
-        Test.message(
+        Story.with(emptyModel),
+        Story.message(
           GotDragAndDropMessage({
             message: Ui.DragAndDrop.PressedDraggable({
               itemId: firstCardId,
@@ -120,7 +158,7 @@ describe('kanban update', () => {
             }),
           }),
         ),
-        Test.message(
+        Story.message(
           GotDragAndDropMessage({
             message: Ui.DragAndDrop.MovedPointer({
               screenX: 100,
@@ -131,13 +169,13 @@ describe('kanban update', () => {
             }),
           }),
         ),
-        Test.message(
+        Story.message(
           GotDragAndDropMessage({
             message: Ui.DragAndDrop.ReleasedPointer(),
           }),
         ),
-        Test.resolve(SaveBoard, CompletedSaveBoard()),
-        Test.tap(({ model }) => {
+        Story.resolve(SaveBoard, CompletedSaveBoard()),
+        Story.tap(({ model }) => {
           const todoColumn = model.columns.find(column => column.id === 'todo')
           const cardIds = todoColumn?.cards.map(card => card.id)
           expect(cardIds?.indexOf(firstCardId)).toBeGreaterThan(0)
@@ -147,10 +185,10 @@ describe('kanban update', () => {
 
     test('moves a card to a different column', () => {
       const cardId = emptyModel.columns[0]!.cards[0]!.id
-      Test.story(
+      Story.story(
         update,
-        Test.with(emptyModel),
-        Test.message(
+        Story.with(emptyModel),
+        Story.message(
           GotDragAndDropMessage({
             message: Ui.DragAndDrop.PressedDraggable({
               itemId: cardId,
@@ -161,7 +199,7 @@ describe('kanban update', () => {
             }),
           }),
         ),
-        Test.message(
+        Story.message(
           GotDragAndDropMessage({
             message: Ui.DragAndDrop.MovedPointer({
               screenX: 300,
@@ -175,13 +213,13 @@ describe('kanban update', () => {
             }),
           }),
         ),
-        Test.message(
+        Story.message(
           GotDragAndDropMessage({
             message: Ui.DragAndDrop.ReleasedPointer(),
           }),
         ),
-        Test.resolve(SaveBoard, CompletedSaveBoard()),
-        Test.tap(({ model }) => {
+        Story.resolve(SaveBoard, CompletedSaveBoard()),
+        Story.tap(({ model }) => {
           const todoCards = model.columns
             .find(column => column.id === 'todo')
             ?.cards.map(card => card.id)
@@ -196,10 +234,10 @@ describe('kanban update', () => {
 
     test('keyboard drag reorders within the same column', () => {
       const firstCardId = emptyModel.columns[0]!.cards[0]!.id
-      Test.story(
+      Story.story(
         update,
-        Test.with(emptyModel),
-        Test.message(
+        Story.with(emptyModel),
+        Story.message(
           GotDragAndDropMessage({
             message: Ui.DragAndDrop.ActivatedKeyboardDrag({
               itemId: firstCardId,
@@ -208,7 +246,7 @@ describe('kanban update', () => {
             }),
           }),
         ),
-        Test.message(
+        Story.message(
           GotDragAndDropMessage({
             message: Ui.DragAndDrop.ResolvedKeyboardMove({
               targetContainerId: 'todo',
@@ -216,18 +254,18 @@ describe('kanban update', () => {
             }),
           }),
         ),
-        Test.message(
+        Story.message(
           GotDragAndDropMessage({
             message: Ui.DragAndDrop.ConfirmedKeyboardDrop(),
           }),
         ),
-        Test.resolve(
+        Story.resolve(
           Ui.DragAndDrop.FocusItem,
           Ui.DragAndDrop.CompletedFocusItem(),
           message => GotDragAndDropMessage({ message }),
         ),
-        Test.resolve(SaveBoard, CompletedSaveBoard()),
-        Test.tap(({ model }) => {
+        Story.resolve(SaveBoard, CompletedSaveBoard()),
+        Story.tap(({ model }) => {
           const todoColumn = model.columns.find(column => column.id === 'todo')
           const cardIds = todoColumn?.cards.map(card => card.id)
           expect(cardIds?.indexOf(firstCardId)).toBe(2)
@@ -237,10 +275,10 @@ describe('kanban update', () => {
 
     test('keyboard drag moves a card to a different column', () => {
       const cardId = emptyModel.columns[0]!.cards[0]!.id
-      Test.story(
+      Story.story(
         update,
-        Test.with(emptyModel),
-        Test.message(
+        Story.with(emptyModel),
+        Story.message(
           GotDragAndDropMessage({
             message: Ui.DragAndDrop.ActivatedKeyboardDrag({
               itemId: cardId,
@@ -249,7 +287,7 @@ describe('kanban update', () => {
             }),
           }),
         ),
-        Test.message(
+        Story.message(
           GotDragAndDropMessage({
             message: Ui.DragAndDrop.ResolvedKeyboardMove({
               targetContainerId: 'in-progress',
@@ -257,18 +295,18 @@ describe('kanban update', () => {
             }),
           }),
         ),
-        Test.message(
+        Story.message(
           GotDragAndDropMessage({
             message: Ui.DragAndDrop.ConfirmedKeyboardDrop(),
           }),
         ),
-        Test.resolve(
+        Story.resolve(
           Ui.DragAndDrop.FocusItem,
           Ui.DragAndDrop.CompletedFocusItem(),
           message => GotDragAndDropMessage({ message }),
         ),
-        Test.resolve(SaveBoard, CompletedSaveBoard()),
-        Test.tap(({ model }) => {
+        Story.resolve(SaveBoard, CompletedSaveBoard()),
+        Story.tap(({ model }) => {
           const todoCards = model.columns
             .find(column => column.id === 'todo')
             ?.cards.map(card => card.id)
@@ -282,10 +320,10 @@ describe('kanban update', () => {
     })
 
     test('cancelled keyboard drag does not change columns', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(emptyModel),
-        Test.message(
+        Story.with(emptyModel),
+        Story.message(
           GotDragAndDropMessage({
             message: Ui.DragAndDrop.ActivatedKeyboardDrag({
               itemId: emptyModel.columns[0]!.cards[0]!.id,
@@ -294,27 +332,27 @@ describe('kanban update', () => {
             }),
           }),
         ),
-        Test.message(
+        Story.message(
           GotDragAndDropMessage({
             message: Ui.DragAndDrop.CancelledDrag(),
           }),
         ),
-        Test.resolve(
+        Story.resolve(
           Ui.DragAndDrop.FocusItem,
           Ui.DragAndDrop.CompletedFocusItem(),
           message => GotDragAndDropMessage({ message }),
         ),
-        Test.tap(({ model }) => {
+        Story.tap(({ model }) => {
           expect(model.columns).toStrictEqual(emptyModel.columns)
         }),
       )
     })
 
     test('cancelled drag does not change columns', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(emptyModel),
-        Test.message(
+        Story.with(emptyModel),
+        Story.message(
           GotDragAndDropMessage({
             message: Ui.DragAndDrop.PressedDraggable({
               itemId: emptyModel.columns[0]!.cards[0]!.id,
@@ -325,7 +363,7 @@ describe('kanban update', () => {
             }),
           }),
         ),
-        Test.message(
+        Story.message(
           GotDragAndDropMessage({
             message: Ui.DragAndDrop.MovedPointer({
               screenX: 100,
@@ -336,12 +374,12 @@ describe('kanban update', () => {
             }),
           }),
         ),
-        Test.message(
+        Story.message(
           GotDragAndDropMessage({
             message: Ui.DragAndDrop.CancelledDrag(),
           }),
         ),
-        Test.tap(({ model }) => {
+        Story.tap(({ model }) => {
           expect(model.columns).toStrictEqual(emptyModel.columns)
         }),
       )

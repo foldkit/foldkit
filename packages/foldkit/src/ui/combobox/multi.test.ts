@@ -1,11 +1,9 @@
 import { describe, it } from '@effect/vitest'
-import { Effect, Option, Predicate, flow } from 'effect'
-import type { VNode } from 'snabbdom'
+import { Effect, Option, flow } from 'effect'
 import { expect } from 'vitest'
 
-import { Dispatch } from '../../runtime'
-import { noOpDispatch } from '../../runtime/crashUI'
-import * as Test from '../../test'
+import * as Scene from '../../test/scene'
+import * as Story from '../../test/story'
 import { init, update, view } from './multi'
 import type { Model, ViewConfig } from './multi'
 import {
@@ -18,12 +16,13 @@ import {
   ScrollIntoView,
   SelectedItem,
 } from './shared'
+import type { Message } from './shared'
 
-const withClosed = Test.with(init({ id: 'test' }))
+const withClosed = Story.with(init({ id: 'test' }))
 
 const withOpenMulti = flow(
   withClosed,
-  Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+  Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
 )
 
 describe('Combobox.Multi', () => {
@@ -63,65 +62,67 @@ describe('Combobox.Multi', () => {
   describe('update', () => {
     describe('SelectedItem (multiple)', () => {
       it('adds item to selectedItems', () => {
-        Test.story(
+        Story.story(
           update,
           withOpenMulti,
-          Test.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
-          Test.tap(({ model }) => {
+          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Story.tap(({ model }) => {
             expect(model.selectedItems).toStrictEqual(['apple'])
           }),
         )
       })
 
       it('stays open after selection', () => {
-        Test.story(
+        Story.story(
           update,
           withOpenMulti,
-          Test.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
-          Test.tap(({ model }) => {
+          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Story.tap(({ model }) => {
             expect(model.isOpen).toBe(true)
           }),
         )
       })
 
       it('toggles item off when already selected', () => {
-        Test.story(
+        Story.story(
           update,
           withOpenMulti,
-          Test.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
-          Test.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
-          Test.tap(({ model }) => {
+          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Story.tap(({ model }) => {
             expect(model.selectedItems).toStrictEqual([])
           }),
         )
       })
 
       it('accumulates multiple selections', () => {
-        Test.story(
+        Story.story(
           update,
           withOpenMulti,
-          Test.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
-          Test.message(SelectedItem({ item: 'banana', displayText: 'Banana' })),
-          Test.tap(({ model }) => {
+          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Story.message(
+            SelectedItem({ item: 'banana', displayText: 'Banana' }),
+          ),
+          Story.tap(({ model }) => {
             expect(model.selectedItems).toStrictEqual(['apple', 'banana'])
           }),
         )
       })
 
       it('preserves active item after selection', () => {
-        Test.story(
+        Story.story(
           update,
           withOpenMulti,
-          Test.message(
+          Story.message(
             ActivatedItem({
               index: 2,
               activationTrigger: 'Keyboard',
               maybeImmediateSelection: Option.none(),
             }),
           ),
-          Test.resolve(ScrollIntoView, CompletedScrollIntoView()),
-          Test.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
-          Test.tap(({ model }) => {
+          Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Story.tap(({ model }) => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
           }),
         )
@@ -130,14 +131,14 @@ describe('Combobox.Multi', () => {
 
     describe('handleClose with nullable', () => {
       it('clears selectedItems when nullable and input empty', () => {
-        Test.story(
+        Story.story(
           update,
-          Test.with(init({ id: 'test', nullable: true })),
-          Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-          Test.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
-          Test.message(Closed()),
-          Test.resolve(FocusInput, CompletedFocusInput()),
-          Test.tap(({ model }) => {
+          Story.with(init({ id: 'test', nullable: true })),
+          Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Story.message(Closed()),
+          Story.resolve(FocusInput, CompletedFocusInput()),
+          Story.tap(({ model }) => {
             expect(model.selectedItems).toStrictEqual([])
             expect(model.isOpen).toBe(false)
           }),
@@ -147,11 +148,11 @@ describe('Combobox.Multi', () => {
 
     describe('handleImmediateActivation', () => {
       it('toggles item in selectedItems', () => {
-        Test.story(
+        Story.story(
           update,
-          Test.with(init({ id: 'test', immediate: true })),
-          Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-          Test.message(
+          Story.with(init({ id: 'test', immediate: true })),
+          Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+          Story.message(
             ActivatedItem({
               index: 0,
               activationTrigger: 'Keyboard',
@@ -161,11 +162,11 @@ describe('Combobox.Multi', () => {
               }),
             }),
           ),
-          Test.resolve(ScrollIntoView, CompletedScrollIntoView()),
-          Test.tap(({ model }) => {
+          Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Story.tap(({ model }) => {
             expect(model.selectedItems).toStrictEqual(['apple'])
           }),
-          Test.message(
+          Story.message(
             ActivatedItem({
               index: 0,
               activationTrigger: 'Keyboard',
@@ -175,8 +176,8 @@ describe('Combobox.Multi', () => {
               }),
             }),
           ),
-          Test.resolve(ScrollIntoView, CompletedScrollIntoView()),
-          Test.tap(({ model }) => {
+          Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Story.tap(({ model }) => {
             expect(model.selectedItems).toStrictEqual([])
           }),
         )
@@ -185,57 +186,51 @@ describe('Combobox.Multi', () => {
   })
 
   describe('view', () => {
-    type TestMessage = string
-
     const closedModel = () => init({ id: 'test' })
 
     const openMultiModel = (): Model => {
       let model!: Model
-      Test.story(
+      Story.story(
         update,
         withOpenMulti,
-        Test.tap(simulation => {
+        Story.tap(simulation => {
           model = simulation.model
         }),
       )
       return model
     }
 
-    const baseViewConfig = (model: Model): ViewConfig<TestMessage, string> => ({
-      model,
-      toParentMessage: message => message._tag,
-      items: ['Apple', 'Banana'],
-      itemToConfig: () => ({
-        content: Effect.succeed(null),
-      }),
-      itemToValue: item => item,
-      itemToDisplayText: item => item,
-    })
-
-    const renderView = <Item extends string>(
-      config: ViewConfig<TestMessage, Item>,
-    ): VNode => {
-      const vnode = Effect.runSync(
-        Effect.provideService(view(config), Dispatch, noOpDispatch),
-      )
-      if (Predicate.isNull(vnode)) {
-        throw new Error('Expected vnode, got null')
-      }
-      return vnode
-    }
-
-    const findChildByKey = (vnode: VNode, key: string): VNode | undefined =>
-      vnode.children?.find(
-        (child): child is VNode =>
-          typeof child !== 'string' && child.key === key,
-      )
+    const sceneView =
+      (
+        overrides: Omit<
+          Partial<ViewConfig<Message, string>>,
+          'model' | 'toParentMessage'
+        > = {},
+      ) =>
+      (model: Model) =>
+        view({
+          items: ['Apple', 'Banana'],
+          itemToConfig: () => ({
+            content: Effect.succeed(null),
+          }),
+          itemToValue: item => item,
+          itemToDisplayText: item => item,
+          ...overrides,
+          model,
+          toParentMessage: message => message,
+        })
 
     describe('aria-multiselectable', () => {
       it('items container has aria-multiselectable', () => {
-        const vnode = renderView(baseViewConfig(openMultiModel()))
-        const itemsContainer = findChildByKey(vnode, 'test-items-container')
-        expect(itemsContainer?.data?.attrs?.['aria-multiselectable']).toBe(
-          'true',
+        Scene.scene(
+          { update, view: sceneView() },
+          Scene.with(openMultiModel()),
+          Scene.tap(({ html }) => {
+            expect(Scene.find(html, '[key="test-items-container"]')).toHaveAttr(
+              'aria-multiselectable',
+              'true',
+            )
+          }),
         )
       })
     })
@@ -246,13 +241,20 @@ describe('Combobox.Multi', () => {
           ...openMultiModel(),
           selectedItems: ['Apple', 'Banana'],
         }
-        const vnode = renderView(baseViewConfig(model))
-        const itemsContainer = findChildByKey(vnode, 'test-items-container')
-        const firstItem = findChildByKey(itemsContainer!, 'test-item-0')
-        const secondItem = findChildByKey(itemsContainer!, 'test-item-1')
-
-        expect(firstItem?.data?.attrs?.['data-selected']).toBe('')
-        expect(secondItem?.data?.attrs?.['data-selected']).toBe('')
+        Scene.scene(
+          { update, view: sceneView() },
+          Scene.with(model),
+          Scene.tap(({ html }) => {
+            expect(Scene.find(html, '[key="test-item-0"]')).toHaveAttr(
+              'data-selected',
+              '',
+            )
+            expect(Scene.find(html, '[key="test-item-1"]')).toHaveAttr(
+              'data-selected',
+              '',
+            )
+          }),
+        )
       })
     })
 
@@ -262,37 +264,31 @@ describe('Combobox.Multi', () => {
           ...closedModel(),
           selectedItems: ['Apple', 'Banana'],
         }
-        const config = {
-          ...baseViewConfig(model),
-          formName: 'fruit',
-        }
-        const vnode = renderView(config)
-        const children = vnode.children as ReadonlyArray<VNode>
-        const inputs = children.filter(
-          (child): child is VNode =>
-            typeof child !== 'string' && child.sel === 'input',
+        Scene.scene(
+          { update, view: sceneView({ formName: 'fruit' }) },
+          Scene.with(model),
+          Scene.tap(({ html }) => {
+            const inputs = Scene.findAll(html, 'input[type="hidden"]')
+            expect(inputs).toHaveLength(2)
+            expect(Option.some(inputs[0]!)).toHaveAttr('value', 'Apple')
+            expect(Option.some(inputs[1]!)).toHaveAttr('value', 'Banana')
+          }),
         )
-
-        expect(inputs).toHaveLength(2)
-        expect(inputs[0]?.data?.props?.['value']).toBe('Apple')
-        expect(inputs[1]?.data?.props?.['value']).toBe('Banana')
       })
 
       it('renders empty hidden input when no items selected', () => {
         const model = closedModel()
-        const config = {
-          ...baseViewConfig(model),
-          formName: 'fruit',
-        }
-        const vnode = renderView(config)
-        const children = vnode.children as ReadonlyArray<VNode>
-        const inputs = children.filter(
-          (child): child is VNode =>
-            typeof child !== 'string' && child.sel === 'input',
+        Scene.scene(
+          { update, view: sceneView({ formName: 'fruit' }) },
+          Scene.with(model),
+          Scene.tap(({ html }) => {
+            const inputs = Scene.findAll(html, 'input[type="hidden"]')
+            expect(inputs).toHaveLength(1)
+            expect(Scene.find(html, 'input[type="hidden"]')).not.toHaveAttr(
+              'value',
+            )
+          }),
         )
-
-        expect(inputs).toHaveLength(1)
-        expect(inputs[0]?.data?.props?.['value']).toBeUndefined()
       })
     })
   })

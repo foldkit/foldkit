@@ -2,7 +2,7 @@ import { describe, it } from '@effect/vitest'
 import { Option } from 'effect'
 import { expect } from 'vitest'
 
-import * as Test from '../../test'
+import * as Story from '../../test/story'
 import {
   CloseDialog,
   Closed,
@@ -53,46 +53,46 @@ describe('Dialog', () => {
 
   describe('update', () => {
     it('opens when closed on Opened', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(init({ id: 'test' })),
-        Test.message(Opened()),
-        Test.resolve(ShowDialog, CompletedShowDialog()),
-        Test.tap(({ model }) => {
+        Story.with(init({ id: 'test' })),
+        Story.message(Opened()),
+        Story.resolve(ShowDialog, CompletedShowDialog()),
+        Story.tap(({ model }) => {
           expect(model.isOpen).toBe(true)
         }),
       )
     })
 
     it('opens without command when already open on Opened', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(init({ id: 'test', isOpen: true })),
-        Test.message(Opened()),
-        Test.tap(({ model }) => {
+        Story.with(init({ id: 'test', isOpen: true })),
+        Story.message(Opened()),
+        Story.tap(({ model }) => {
           expect(model.isOpen).toBe(true)
         }),
       )
     })
 
     it('closes when open on Closed', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(init({ id: 'test', isOpen: true })),
-        Test.message(Closed()),
-        Test.resolve(CloseDialog, CompletedCloseDialog()),
-        Test.tap(({ model }) => {
+        Story.with(init({ id: 'test', isOpen: true })),
+        Story.message(Closed()),
+        Story.resolve(CloseDialog, CompletedCloseDialog()),
+        Story.tap(({ model }) => {
           expect(model.isOpen).toBe(false)
         }),
       )
     })
 
     it('closes without command when already closed on Closed', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(init({ id: 'test' })),
-        Test.message(Closed()),
-        Test.tap(({ model }) => {
+        Story.with(init({ id: 'test' })),
+        Story.message(Closed()),
+        Story.tap(({ model }) => {
           expect(model.isOpen).toBe(false)
         }),
       )
@@ -100,11 +100,11 @@ describe('Dialog', () => {
 
     it('returns model unchanged on CompletedShowDialog', () => {
       const originalModel = init({ id: 'test' })
-      Test.story(
+      Story.story(
         update,
-        Test.with(originalModel),
-        Test.message(CompletedShowDialog()),
-        Test.tap(({ model }) => {
+        Story.with(originalModel),
+        Story.message(CompletedShowDialog()),
+        Story.tap(({ model }) => {
           expect(model).toBe(originalModel)
         }),
       )
