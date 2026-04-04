@@ -2,8 +2,7 @@ import { Option } from 'effect'
 import { Test } from 'foldkit'
 import { describe, expect, test } from 'vitest'
 
-import { JoinRoom } from '../../../command'
-import { CreateRoom } from '../command'
+import { CreateRoom, JoinRoom } from '../command'
 import {
   ChangedRoomId,
   ChangedUsername,

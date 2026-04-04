@@ -2,10 +2,9 @@ import { Array, Effect, Match as M, Option, String as Str } from 'effect'
 import { Command, Task } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
-import { joinRoom } from '../../../command'
 import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../../constant'
 import { optionWhen } from '../../../optionWhen'
-import { createRoom } from '../command'
+import { createRoom, joinRoom } from '../command'
 import {
   CompletedFocusRoomIdInput,
   CompletedFocusUsernameInput,
