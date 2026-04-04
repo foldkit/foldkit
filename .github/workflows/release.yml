@@ -33,10 +33,10 @@ jobs:
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Install npm 11 for OIDC trusted publishing
+      - name: Upgrade npm for OIDC trusted publishing
         run: |
-          npm install -g --prefix "$HOME/.npm-11" npm@11
-          echo "$HOME/.npm-11/bin" >> $GITHUB_PATH
+          npm install -g --ignore-scripts npm@latest
+          npm --version
 
       - name: Install Dependencies
         run: pnpm install
