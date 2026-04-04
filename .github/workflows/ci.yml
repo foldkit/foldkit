@@ -54,6 +54,9 @@ jobs:
       - name: Test
         run: pnpm test
 
+      - name: Check circular dependencies
+        run: pnpm check:circular-deps
+
       - name: Verify changeset ignore list
         run: pnpm check:changeset-ignore
 
