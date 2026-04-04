@@ -37,6 +37,8 @@ import {
   reactComparisonRouter,
   routingAndNavigationRouter,
   testingRouter,
+  testingSceneRouter,
+  testingStoryRouter,
   uiButtonRouter,
   uiCheckboxRouter,
   uiComboboxRouter,
@@ -235,14 +237,31 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           label: 'Field Validation',
         },
         {
-          _tag: 'Testing',
-          href: testingRouter(),
-          label: 'Testing',
-        },
-        {
           _tag: 'ProjectOrganization',
           href: projectOrganizationRouter(),
           label: 'Project Organization',
+        },
+      ],
+    ],
+  },
+  {
+    label: 'Testing',
+    pageGroups: [
+      [
+        {
+          _tag: 'Testing',
+          href: testingRouter(),
+          label: 'Overview',
+        },
+        {
+          _tag: 'TestingStory',
+          href: testingStoryRouter(),
+          label: 'Story',
+        },
+        {
+          _tag: 'TestingScene',
+          href: testingSceneRouter(),
+          label: 'Scene',
         },
       ],
     ],

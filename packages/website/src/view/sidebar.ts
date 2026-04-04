@@ -38,6 +38,7 @@ import {
   GotGuidesGroupMessage,
   GotMobileMenuDialogMessage,
   GotPatternsGroupMessage,
+  GotTestingGroupMessage,
   type Message,
 } from '../message'
 import * as Page from '../page'
@@ -96,6 +97,7 @@ const sidebarViewInner = (
   getStartedGroup: Ui.Disclosure.Model,
   coreConceptsGroup: Ui.Disclosure.Model,
   guidesGroup: Ui.Disclosure.Model,
+  testingGroup: Ui.Disclosure.Model,
   bestPracticesGroup: Ui.Disclosure.Model,
   patternsGroup: Ui.Disclosure.Model,
   examplesGroup: Ui.Disclosure.Model,
@@ -157,6 +159,10 @@ const sidebarViewInner = (
     {
       model: guidesGroup,
       toParentMessage: message => GotGuidesGroupMessage({ message }),
+    },
+    {
+      model: testingGroup,
+      toParentMessage: message => GotTestingGroupMessage({ message }),
     },
     {
       model: bestPracticesGroup,
@@ -328,6 +334,7 @@ export const sidebarView = (model: Model): Html =>
     model.getStartedGroup,
     model.coreConceptsGroup,
     model.guidesGroup,
+    model.testingGroup,
     model.bestPracticesGroup,
     model.patternsGroup,
     model.examplesGroup,

@@ -1,11 +1,9 @@
 import { describe, it } from '@effect/vitest'
-import { Effect, Option, Predicate, flow } from 'effect'
-import type { VNode } from 'snabbdom'
+import { Effect, Option, flow } from 'effect'
 import { expect } from 'vitest'
 
-import { Dispatch } from '../../runtime'
-import { noOpDispatch } from '../../runtime/crashUI'
-import * as Test from '../../test'
+import * as Scene from '../../test/scene'
+import * as Story from '../../test/story'
 import {
   ActivatedItem,
   AdvancedTransitionFrame,
@@ -48,24 +46,24 @@ import {
   update,
   view,
 } from './index'
-import type { Model, ViewConfig } from './index'
+import type { Message, Model, ViewConfig } from './index'
 
 const STALE_CLEAR_SEARCH_VERSION = 9999
 
-const withClosed = Test.with(init({ id: 'test' }))
+const withClosed = Story.with(init({ id: 'test' }))
 
 const withOpen = flow(
   withClosed,
-  Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-  Test.resolve(FocusItems, CompletedFocusItems()),
+  Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+  Story.resolve(FocusItems, CompletedFocusItems()),
 )
 
-const withClosedAnimated = Test.with(init({ id: 'test', isAnimated: true }))
+const withClosedAnimated = Story.with(init({ id: 'test', isAnimated: true }))
 
 const withOpenAnimated = flow(
   withClosedAnimated,
-  Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-  Test.resolveAll([
+  Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+  Story.resolveAll([
     [FocusItems, CompletedFocusItems()],
     [RequestFrame, AdvancedTransitionFrame()],
     [WaitForTransitions, EndedTransition()],
@@ -112,12 +110,12 @@ describe('Menu', () => {
   describe('update', () => {
     describe('Opened', () => {
       it('opens the menu with the given active item', () => {
-        Test.story(
+        Story.story(
           update,
           withClosed,
-          Test.message(Opened({ maybeActiveItemIndex: Option.some(2) })),
-          Test.resolve(FocusItems, CompletedFocusItems()),
-          Test.tap(({ model }) => {
+          Story.message(Opened({ maybeActiveItemIndex: Option.some(2) })),
+          Story.resolve(FocusItems, CompletedFocusItems()),
+          Story.tap(({ model }) => {
             expect(model.isOpen).toBe(true)
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
           }),
@@ -125,16 +123,16 @@ describe('Menu', () => {
       })
 
       it('resets search state on open', () => {
-        Test.story(
+        Story.story(
           update,
-          Test.with({
+          Story.with({
             ...init({ id: 'test' }),
             searchQuery: 'stale',
             searchVersion: 1,
           }),
-          Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-          Test.resolve(FocusItems, CompletedFocusItems()),
-          Test.tap(({ model }) => {
+          Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+          Story.resolve(FocusItems, CompletedFocusItems()),
+          Story.tap(({ model }) => {
             expect(model.searchQuery).toBe('')
             expect(model.searchVersion).toBe(0)
           }),
@@ -142,24 +140,24 @@ describe('Menu', () => {
       })
 
       it('sets trigger to Keyboard when opened with active item', () => {
-        Test.story(
+        Story.story(
           update,
           withClosed,
-          Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-          Test.resolve(FocusItems, CompletedFocusItems()),
-          Test.tap(({ model }) => {
+          Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+          Story.resolve(FocusItems, CompletedFocusItems()),
+          Story.tap(({ model }) => {
             expect(model.activationTrigger).toBe('Keyboard')
           }),
         )
       })
 
       it('sets trigger to Pointer when opened without active item', () => {
-        Test.story(
+        Story.story(
           update,
           withClosed,
-          Test.message(Opened({ maybeActiveItemIndex: Option.none() })),
-          Test.resolve(FocusItems, CompletedFocusItems()),
-          Test.tap(({ model }) => {
+          Story.message(Opened({ maybeActiveItemIndex: Option.none() })),
+          Story.resolve(FocusItems, CompletedFocusItems()),
+          Story.tap(({ model }) => {
             expect(model.activationTrigger).toBe('Pointer')
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
           }),
@@ -167,18 +165,18 @@ describe('Menu', () => {
       })
 
       it('resets pointer position on open', () => {
-        Test.story(
+        Story.story(
           update,
-          Test.with({
+          Story.with({
             ...init({ id: 'test' }),
             maybeLastPointerPosition: Option.some({
               screenX: 100,
               screenY: 200,
             }),
           }),
-          Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-          Test.resolve(FocusItems, CompletedFocusItems()),
-          Test.tap(({ model }) => {
+          Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+          Story.resolve(FocusItems, CompletedFocusItems()),
+          Story.tap(({ model }) => {
             expect(model.maybeLastPointerPosition).toStrictEqual(Option.none())
           }),
         )
@@ -187,12 +185,12 @@ describe('Menu', () => {
 
     describe('Closed', () => {
       it('closes the menu and resets state', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(Closed()),
-          Test.resolve(FocusButton, CompletedFocusButton()),
-          Test.tap(({ model }) => {
+          Story.message(Closed()),
+          Story.resolve(FocusButton, CompletedFocusButton()),
+          Story.tap(({ model }) => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
             expect(model.activationTrigger).toBe('Keyboard')
@@ -210,11 +208,11 @@ describe('Menu', () => {
 
     describe('ClosedByTab', () => {
       it('closes the menu without a focus command', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(ClosedByTab()),
-          Test.tap(({ model }) => {
+          Story.message(ClosedByTab()),
+          Story.tap(({ model }) => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
             expect(model.maybeLastPointerPosition).toStrictEqual(Option.none())
@@ -225,10 +223,10 @@ describe('Menu', () => {
 
     describe('PressedPointerOnButton', () => {
       it('records pointer type for touch without toggling', () => {
-        Test.story(
+        Story.story(
           update,
           withClosed,
-          Test.message(
+          Story.message(
             PressedPointerOnButton({
               pointerType: 'touch',
               button: 0,
@@ -237,7 +235,7 @@ describe('Menu', () => {
               timeStamp: 1000,
             }),
           ),
-          Test.tap(({ model }) => {
+          Story.tap(({ model }) => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('touch'),
@@ -247,10 +245,10 @@ describe('Menu', () => {
       })
 
       it('records pointer type for pen without toggling', () => {
-        Test.story(
+        Story.story(
           update,
           withClosed,
-          Test.message(
+          Story.message(
             PressedPointerOnButton({
               pointerType: 'pen',
               button: 0,
@@ -259,7 +257,7 @@ describe('Menu', () => {
               timeStamp: 1000,
             }),
           ),
-          Test.tap(({ model }) => {
+          Story.tap(({ model }) => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('pen'),
@@ -269,10 +267,10 @@ describe('Menu', () => {
       })
 
       it('opens the menu on mouse left button when closed', () => {
-        Test.story(
+        Story.story(
           update,
           withClosed,
-          Test.message(
+          Story.message(
             PressedPointerOnButton({
               pointerType: 'mouse',
               button: 0,
@@ -281,8 +279,8 @@ describe('Menu', () => {
               timeStamp: 1000,
             }),
           ),
-          Test.resolve(FocusItems, CompletedFocusItems()),
-          Test.tap(({ model }) => {
+          Story.resolve(FocusItems, CompletedFocusItems()),
+          Story.tap(({ model }) => {
             expect(model.isOpen).toBe(true)
             expect(model.activationTrigger).toBe('Pointer')
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
@@ -297,10 +295,10 @@ describe('Menu', () => {
       })
 
       it('closes the menu on mouse left button when open', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(
+          Story.message(
             PressedPointerOnButton({
               pointerType: 'mouse',
               button: 0,
@@ -309,8 +307,8 @@ describe('Menu', () => {
               timeStamp: 1000,
             }),
           ),
-          Test.resolve(FocusButton, CompletedFocusButton()),
-          Test.tap(({ model }) => {
+          Story.resolve(FocusButton, CompletedFocusButton()),
+          Story.tap(({ model }) => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.none(),
@@ -321,10 +319,10 @@ describe('Menu', () => {
       })
 
       it('does not toggle on mouse right button', () => {
-        Test.story(
+        Story.story(
           update,
           withClosed,
-          Test.message(
+          Story.message(
             PressedPointerOnButton({
               pointerType: 'mouse',
               button: 2,
@@ -333,7 +331,7 @@ describe('Menu', () => {
               timeStamp: 1000,
             }),
           ),
-          Test.tap(({ model }) => {
+          Story.tap(({ model }) => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('mouse'),
@@ -343,10 +341,10 @@ describe('Menu', () => {
       })
 
       it('always records maybeLastButtonPointerType', () => {
-        Test.story(
+        Story.story(
           update,
           withClosed,
-          Test.message(
+          Story.message(
             PressedPointerOnButton({
               pointerType: 'touch',
               button: 0,
@@ -355,12 +353,12 @@ describe('Menu', () => {
               timeStamp: 0,
             }),
           ),
-          Test.tap(({ model }) => {
+          Story.tap(({ model }) => {
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('touch'),
             )
           }),
-          Test.message(
+          Story.message(
             PressedPointerOnButton({
               pointerType: 'mouse',
               button: 0,
@@ -369,8 +367,8 @@ describe('Menu', () => {
               timeStamp: 0,
             }),
           ),
-          Test.resolve(FocusItems, CompletedFocusItems()),
-          Test.tap(({ model }) => {
+          Story.resolve(FocusItems, CompletedFocusItems()),
+          Story.tap(({ model }) => {
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('mouse'),
             )
@@ -382,7 +380,7 @@ describe('Menu', () => {
     describe('ReleasedPointerOnItems', () => {
       const withOpenAndOrigin = flow(
         withClosed,
-        Test.message(
+        Story.message(
           PressedPointerOnButton({
             pointerType: 'mouse',
             button: 0,
@@ -391,14 +389,14 @@ describe('Menu', () => {
             timeStamp: 1000,
           }),
         ),
-        Test.resolve(FocusItems, CompletedFocusItems()),
+        Story.resolve(FocusItems, CompletedFocusItems()),
       )
 
       it('no-ops when no pointer origin', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(
+          Story.message(
             ReleasedPointerOnItems({
               screenX: 200,
               screenY: 300,
@@ -409,10 +407,10 @@ describe('Menu', () => {
       })
 
       it('no-ops when movement is below threshold', () => {
-        Test.story(
+        Story.story(
           update,
           withOpenAndOrigin,
-          Test.message(
+          Story.message(
             ReleasedPointerOnItems({
               screenX: 103,
               screenY: 203,
@@ -423,10 +421,10 @@ describe('Menu', () => {
       })
 
       it('no-ops when hold time is below threshold', () => {
-        Test.story(
+        Story.story(
           update,
           withOpenAndOrigin,
-          Test.message(
+          Story.message(
             ReleasedPointerOnItems({
               screenX: 200,
               screenY: 300,
@@ -437,13 +435,13 @@ describe('Menu', () => {
       })
 
       it('no-ops when no active item', () => {
-        Test.story(
+        Story.story(
           update,
           withOpenAndOrigin,
-          Test.tap(({ model }) => {
+          Story.tap(({ model }) => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
           }),
-          Test.message(
+          Story.message(
             ReleasedPointerOnItems({
               screenX: 200,
               screenY: 300,
@@ -454,21 +452,21 @@ describe('Menu', () => {
       })
 
       it('issues click command when all thresholds met', () => {
-        Test.story(
+        Story.story(
           update,
           withOpenAndOrigin,
-          Test.message(
+          Story.message(
             ActivatedItem({ index: 2, activationTrigger: 'Pointer' }),
           ),
-          Test.message(
+          Story.message(
             ReleasedPointerOnItems({
               screenX: 200,
               screenY: 300,
               timeStamp: 2000,
             }),
           ),
-          Test.resolve(ClickItem, CompletedClickItem()),
-          Test.tap(({ model }) => {
+          Story.resolve(ClickItem, CompletedClickItem()),
+          Story.tap(({ model }) => {
             expect(model.isOpen).toBe(true)
           }),
         )
@@ -477,69 +475,69 @@ describe('Menu', () => {
 
     describe('ActivatedItem', () => {
       it('sets the active item index', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(
+          Story.message(
             ActivatedItem({ index: 3, activationTrigger: 'Keyboard' }),
           ),
-          Test.resolve(ScrollIntoView, CompletedScrollIntoView()),
-          Test.tap(({ model }) => {
+          Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Story.tap(({ model }) => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(3))
           }),
         )
       })
 
       it('replaces the previous active item', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(
+          Story.message(
             ActivatedItem({ index: 1, activationTrigger: 'Keyboard' }),
           ),
-          Test.resolve(ScrollIntoView, CompletedScrollIntoView()),
-          Test.message(
+          Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Story.message(
             ActivatedItem({ index: 4, activationTrigger: 'Keyboard' }),
           ),
-          Test.resolve(ScrollIntoView, CompletedScrollIntoView()),
-          Test.tap(({ model }) => {
+          Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Story.tap(({ model }) => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(4))
           }),
         )
       })
 
       it('stores activation trigger in model', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(
+          Story.message(
             ActivatedItem({ index: 1, activationTrigger: 'Pointer' }),
           ),
-          Test.tap(({ model }) => {
+          Story.tap(({ model }) => {
             expect(model.activationTrigger).toBe('Pointer')
           }),
         )
       })
 
       it('returns scroll command for keyboard activation', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(
+          Story.message(
             ActivatedItem({ index: 2, activationTrigger: 'Keyboard' }),
           ),
-          Test.resolve(ScrollIntoView, CompletedScrollIntoView()),
-          Test.tap(({ model }) => {
+          Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Story.tap(({ model }) => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
           }),
         )
       })
 
       it('returns no commands for pointer activation', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(
+          Story.message(
             ActivatedItem({ index: 2, activationTrigger: 'Pointer' }),
           ),
         )
@@ -548,29 +546,29 @@ describe('Menu', () => {
 
     describe('DeactivatedItem', () => {
       it('clears active item when pointer-activated', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(
+          Story.message(
             ActivatedItem({ index: 1, activationTrigger: 'Pointer' }),
           ),
-          Test.message(DeactivatedItem()),
-          Test.tap(({ model }) => {
+          Story.message(DeactivatedItem()),
+          Story.tap(({ model }) => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
           }),
         )
       })
 
       it('preserves active item when keyboard-activated', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(
+          Story.message(
             ActivatedItem({ index: 2, activationTrigger: 'Keyboard' }),
           ),
-          Test.resolve(ScrollIntoView, CompletedScrollIntoView()),
-          Test.message(DeactivatedItem()),
-          Test.tap(({ model }) => {
+          Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Story.message(DeactivatedItem()),
+          Story.tap(({ model }) => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
           }),
         )
@@ -579,17 +577,17 @@ describe('Menu', () => {
 
     describe('MovedPointerOverItem', () => {
       it('activates item on first pointer move', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(
+          Story.message(
             MovedPointerOverItem({
               index: 2,
               screenX: 100,
               screenY: 200,
             }),
           ),
-          Test.tap(({ model }) => {
+          Story.tap(({ model }) => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
             expect(model.activationTrigger).toBe('Pointer')
             expect(model.maybeLastPointerPosition).toStrictEqual(
@@ -600,24 +598,24 @@ describe('Menu', () => {
       })
 
       it('activates when position differs from stored', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(
+          Story.message(
             MovedPointerOverItem({
               index: 1,
               screenX: 100,
               screenY: 200,
             }),
           ),
-          Test.message(
+          Story.message(
             MovedPointerOverItem({
               index: 3,
               screenX: 150,
               screenY: 250,
             }),
           ),
-          Test.tap(({ model }) => {
+          Story.tap(({ model }) => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(3))
             expect(model.maybeLastPointerPosition).toStrictEqual(
               Option.some({ screenX: 150, screenY: 250 }),
@@ -627,34 +625,34 @@ describe('Menu', () => {
       })
 
       it('returns model unchanged when position matches', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(
+          Story.message(
             MovedPointerOverItem({
               index: 1,
               screenX: 100,
               screenY: 200,
             }),
           ),
-          Test.message(
+          Story.message(
             MovedPointerOverItem({
               index: 2,
               screenX: 100,
               screenY: 200,
             }),
           ),
-          Test.tap(({ model }) => {
+          Story.tap(({ model }) => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(1))
           }),
         )
       })
 
       it('does not return scroll commands', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(
+          Story.message(
             MovedPointerOverItem({
               index: 2,
               screenX: 100,
@@ -667,12 +665,12 @@ describe('Menu', () => {
 
     describe('SelectedItem', () => {
       it('closes the menu and returns a focus command', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(SelectedItem({ index: 2 })),
-          Test.resolve(FocusButton, CompletedFocusButton()),
-          Test.tap(({ model }) => {
+          Story.message(SelectedItem({ index: 2 })),
+          Story.resolve(FocusButton, CompletedFocusButton()),
+          Story.tap(({ model }) => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
           }),
@@ -682,12 +680,12 @@ describe('Menu', () => {
 
     describe('RequestedItemClick', () => {
       it('returns model unchanged with a click command', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(RequestedItemClick({ index: 2 })),
-          Test.resolve(ClickItem, CompletedClickItem()),
-          Test.tap(({ model }) => {
+          Story.message(RequestedItemClick({ index: 2 })),
+          Story.resolve(ClickItem, CompletedClickItem()),
+          Story.tap(({ model }) => {
             expect(model.isOpen).toBe(true)
           }),
         )
@@ -696,93 +694,105 @@ describe('Menu', () => {
 
     describe('Searched', () => {
       it('appends the key to the search query', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(Searched({ key: 'a', maybeTargetIndex: Option.none() })),
-          Test.resolve(
+          Story.message(
+            Searched({ key: 'a', maybeTargetIndex: Option.none() }),
+          ),
+          Story.resolve(
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
-          Test.tap(({ model }) => {
+          Story.tap(({ model }) => {
             expect(model.searchQuery).toBe('a')
           }),
-          Test.message(Searched({ key: 'b', maybeTargetIndex: Option.none() })),
-          Test.resolve(
+          Story.message(
+            Searched({ key: 'b', maybeTargetIndex: Option.none() }),
+          ),
+          Story.resolve(
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
-          Test.tap(({ model }) => {
+          Story.tap(({ model }) => {
             expect(model.searchQuery).toBe('ab')
           }),
         )
       })
 
       it('bumps the search version', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(Searched({ key: 'x', maybeTargetIndex: Option.none() })),
-          Test.resolve(
+          Story.message(
+            Searched({ key: 'x', maybeTargetIndex: Option.none() }),
+          ),
+          Story.resolve(
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
-          Test.tap(({ model }) => {
+          Story.tap(({ model }) => {
             expect(model.searchVersion).toBe(1)
           }),
-          Test.message(Searched({ key: 'y', maybeTargetIndex: Option.none() })),
-          Test.resolve(
+          Story.message(
+            Searched({ key: 'y', maybeTargetIndex: Option.none() }),
+          ),
+          Story.resolve(
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
-          Test.tap(({ model }) => {
+          Story.tap(({ model }) => {
             expect(model.searchVersion).toBe(2)
           }),
         )
       })
 
       it('updates active item when a match is found', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(
+          Story.message(
             Searched({ key: 'd', maybeTargetIndex: Option.some(3) }),
           ),
-          Test.resolve(
+          Story.resolve(
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
-          Test.tap(({ model }) => {
+          Story.tap(({ model }) => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(3))
           }),
         )
       })
 
       it('keeps existing active item when no match is found', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(Searched({ key: 'z', maybeTargetIndex: Option.none() })),
-          Test.resolve(
+          Story.message(
+            Searched({ key: 'z', maybeTargetIndex: Option.none() }),
+          ),
+          Story.resolve(
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
-          Test.tap(({ model }) => {
+          Story.tap(({ model }) => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(0))
           }),
         )
       })
 
       it('returns a delay command for debounce', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(Searched({ key: 'a', maybeTargetIndex: Option.none() })),
-          Test.resolve(
+          Story.message(
+            Searched({ key: 'a', maybeTargetIndex: Option.none() }),
+          ),
+          Story.resolve(
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
-          Test.tap(({ model }) => {
+          Story.tap(({ model }) => {
             expect(model.searchQuery).toBe('a')
           }),
         )
@@ -791,43 +801,49 @@ describe('Menu', () => {
 
     describe('ClearedSearch', () => {
       it('clears search query when version matches', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(Searched({ key: 'a', maybeTargetIndex: Option.none() })),
-          Test.resolve(
+          Story.message(
+            Searched({ key: 'a', maybeTargetIndex: Option.none() }),
+          ),
+          Story.resolve(
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
-          Test.tap(({ model }) => {
+          Story.tap(({ model }) => {
             expect(model.searchVersion).toBe(1)
           }),
-          Test.message(ClearedSearch({ version: 1 })),
-          Test.tap(({ model }) => {
+          Story.message(ClearedSearch({ version: 1 })),
+          Story.tap(({ model }) => {
             expect(model.searchQuery).toBe('')
           }),
         )
       })
 
       it('ignores stale version', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(Searched({ key: 'a', maybeTargetIndex: Option.none() })),
-          Test.resolve(
+          Story.message(
+            Searched({ key: 'a', maybeTargetIndex: Option.none() }),
+          ),
+          Story.resolve(
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
-          Test.message(Searched({ key: 'b', maybeTargetIndex: Option.none() })),
-          Test.resolve(
+          Story.message(
+            Searched({ key: 'b', maybeTargetIndex: Option.none() }),
+          ),
+          Story.resolve(
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
-          Test.tap(({ model }) => {
+          Story.tap(({ model }) => {
             expect(model.searchVersion).toBe(2)
           }),
-          Test.message(ClearedSearch({ version: 1 })),
-          Test.tap(({ model }) => {
+          Story.message(ClearedSearch({ version: 1 })),
+          Story.tap(({ model }) => {
             expect(model.searchQuery).toBe('ab')
           }),
         )
@@ -836,11 +852,11 @@ describe('Menu', () => {
 
     describe('CompletedFocusItems', () => {
       it('returns model unchanged', () => {
-        Test.story(
+        Story.story(
           update,
           withOpen,
-          Test.message(CompletedFocusItems()),
-          Test.tap(({ model }) => {
+          Story.message(CompletedFocusItems()),
+          Story.tap(({ model }) => {
             expect(model.isOpen).toBe(true)
           }),
         )
@@ -850,15 +866,15 @@ describe('Menu', () => {
     describe('transitions', () => {
       describe('enter flow', () => {
         it('sets EnterStart and emits focus + nextFrame on Opened', () => {
-          Test.story(
+          Story.story(
             update,
             withClosedAnimated,
-            Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-            Test.tap(({ model }) => {
+            Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+            Story.tap(({ model }) => {
               expect(model.isOpen).toBe(true)
               expect(model.transitionState).toBe('EnterStart')
             }),
-            Test.resolveAll([
+            Story.resolveAll([
               [FocusItems, CompletedFocusItems()],
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
@@ -868,15 +884,15 @@ describe('Menu', () => {
         })
 
         it('advances EnterStart to EnterAnimating on AdvancedTransitionFrame', () => {
-          Test.story(
+          Story.story(
             update,
             withClosedAnimated,
-            Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-            Test.resolve(RequestFrame, AdvancedTransitionFrame()),
-            Test.tap(({ model }) => {
+            Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+            Story.resolve(RequestFrame, AdvancedTransitionFrame()),
+            Story.tap(({ model }) => {
               expect(model.transitionState).toBe('EnterAnimating')
             }),
-            Test.resolveAll([
+            Story.resolveAll([
               [FocusItems, CompletedFocusItems()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
@@ -885,17 +901,17 @@ describe('Menu', () => {
         })
 
         it('completes EnterAnimating to Idle on EndedTransition', () => {
-          Test.story(
+          Story.story(
             update,
             withClosedAnimated,
-            Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-            Test.resolveAll([
+            Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+            Story.resolveAll([
               [FocusItems, CompletedFocusItems()],
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
             ]),
-            Test.tap(({ model }) => {
+            Story.tap(({ model }) => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
@@ -904,15 +920,15 @@ describe('Menu', () => {
 
       describe('leave flow', () => {
         it('sets LeaveStart on Closed', () => {
-          Test.story(
+          Story.story(
             update,
             withOpenAnimated,
-            Test.message(Closed()),
-            Test.tap(({ model }) => {
+            Story.message(Closed()),
+            Story.tap(({ model }) => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
-            Test.resolveAll([
+            Story.resolveAll([
               [FocusButton, CompletedFocusButton()],
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
@@ -922,15 +938,15 @@ describe('Menu', () => {
         })
 
         it('sets LeaveStart on ClosedByTab', () => {
-          Test.story(
+          Story.story(
             update,
             withOpenAnimated,
-            Test.message(ClosedByTab()),
-            Test.tap(({ model }) => {
+            Story.message(ClosedByTab()),
+            Story.tap(({ model }) => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
-            Test.resolveAll([
+            Story.resolveAll([
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
@@ -939,15 +955,15 @@ describe('Menu', () => {
         })
 
         it('sets LeaveStart on SelectedItem', () => {
-          Test.story(
+          Story.story(
             update,
             withOpenAnimated,
-            Test.message(SelectedItem({ index: 0 })),
-            Test.tap(({ model }) => {
+            Story.message(SelectedItem({ index: 0 })),
+            Story.tap(({ model }) => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
-            Test.resolveAll([
+            Story.resolveAll([
               [FocusButton, CompletedFocusButton()],
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
@@ -957,15 +973,15 @@ describe('Menu', () => {
         })
 
         it('advances LeaveStart to LeaveAnimating on AdvancedTransitionFrame', () => {
-          Test.story(
+          Story.story(
             update,
             withOpenAnimated,
-            Test.message(Closed()),
-            Test.resolve(RequestFrame, AdvancedTransitionFrame()),
-            Test.tap(({ model }) => {
+            Story.message(Closed()),
+            Story.resolve(RequestFrame, AdvancedTransitionFrame()),
+            Story.tap(({ model }) => {
               expect(model.transitionState).toBe('LeaveAnimating')
             }),
-            Test.resolveAll([
+            Story.resolveAll([
               [FocusButton, CompletedFocusButton()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
@@ -974,17 +990,17 @@ describe('Menu', () => {
         })
 
         it('completes LeaveAnimating to Idle on EndedTransition', () => {
-          Test.story(
+          Story.story(
             update,
             withOpenAnimated,
-            Test.message(Closed()),
-            Test.resolveAll([
+            Story.message(Closed()),
+            Story.resolveAll([
               [FocusButton, CompletedFocusButton()],
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
             ]),
-            Test.tap(({ model }) => {
+            Story.tap(({ model }) => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
@@ -993,24 +1009,24 @@ describe('Menu', () => {
 
       describe('non-animated', () => {
         it('keeps transitionState Idle on Opened', () => {
-          Test.story(
+          Story.story(
             update,
             withClosed,
-            Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-            Test.resolve(FocusItems, CompletedFocusItems()),
-            Test.tap(({ model }) => {
+            Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+            Story.resolve(FocusItems, CompletedFocusItems()),
+            Story.tap(({ model }) => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
         })
 
         it('keeps transitionState Idle on Closed', () => {
-          Test.story(
+          Story.story(
             update,
             withOpen,
-            Test.message(Closed()),
-            Test.resolve(FocusButton, CompletedFocusButton()),
-            Test.tap(({ model }) => {
+            Story.message(Closed()),
+            Story.resolve(FocusButton, CompletedFocusButton()),
+            Story.tap(({ model }) => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
@@ -1019,11 +1035,11 @@ describe('Menu', () => {
 
       describe('stale messages', () => {
         it('ignores AdvancedTransitionFrame when Idle', () => {
-          Test.story(
+          Story.story(
             update,
             withOpen,
-            Test.message(AdvancedTransitionFrame()),
-            Test.tap(({ model }) => {
+            Story.message(AdvancedTransitionFrame()),
+            Story.tap(({ model }) => {
               expect(model.isOpen).toBe(true)
               expect(model.transitionState).toBe('Idle')
             }),
@@ -1031,11 +1047,11 @@ describe('Menu', () => {
         })
 
         it('ignores EndedTransition when Idle', () => {
-          Test.story(
+          Story.story(
             update,
             withOpen,
-            Test.message(EndedTransition()),
-            Test.tap(({ model }) => {
+            Story.message(EndedTransition()),
+            Story.tap(({ model }) => {
               expect(model.isOpen).toBe(true)
               expect(model.transitionState).toBe('Idle')
             }),
@@ -1045,22 +1061,22 @@ describe('Menu', () => {
 
       describe('interruptions', () => {
         it('transitions to LeaveStart when Closed during EnterStart', () => {
-          Test.story(
+          Story.story(
             update,
             withClosedAnimated,
-            Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-            Test.resolveAll([
+            Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+            Story.resolveAll([
               [FocusItems, CompletedFocusItems()],
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
             ]),
-            Test.message(Closed()),
-            Test.tap(({ model }) => {
+            Story.message(Closed()),
+            Story.tap(({ model }) => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
-            Test.resolveAll([
+            Story.resolveAll([
               [FocusButton, CompletedFocusButton()],
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
@@ -1070,22 +1086,22 @@ describe('Menu', () => {
         })
 
         it('transitions to LeaveStart when Closed during EnterAnimating', () => {
-          Test.story(
+          Story.story(
             update,
             withClosedAnimated,
-            Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-            Test.resolveAll([
+            Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+            Story.resolveAll([
               [FocusItems, CompletedFocusItems()],
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
             ]),
-            Test.message(Closed()),
-            Test.tap(({ model }) => {
+            Story.message(Closed()),
+            Story.tap(({ model }) => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
-            Test.resolveAll([
+            Story.resolveAll([
               [FocusButton, CompletedFocusButton()],
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
@@ -1097,26 +1113,26 @@ describe('Menu', () => {
 
       describe('DetectedButtonMovement', () => {
         it('cancels leave animation by setting transitionState to Idle', () => {
-          Test.story(
+          Story.story(
             update,
-            Test.with({
+            Story.with({
               ...init({ id: 'test', isAnimated: true }),
               isOpen: false,
               transitionState: 'LeaveAnimating' as const,
             }),
-            Test.message(DetectedButtonMovement()),
-            Test.tap(({ model }) => {
+            Story.message(DetectedButtonMovement()),
+            Story.tap(({ model }) => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
         })
 
         it('is a no-op during Idle', () => {
-          Test.story(
+          Story.story(
             update,
             withOpen,
-            Test.message(DetectedButtonMovement()),
-            Test.tap(({ model }) => {
+            Story.message(DetectedButtonMovement()),
+            Story.tap(({ model }) => {
               expect(model.isOpen).toBe(true)
               expect(model.transitionState).toBe('Idle')
             }),
@@ -1124,15 +1140,15 @@ describe('Menu', () => {
         })
 
         it('is a no-op during EnterAnimating', () => {
-          Test.story(
+          Story.story(
             update,
-            Test.with({
+            Story.with({
               ...init({ id: 'test', isAnimated: true }),
               isOpen: true,
               transitionState: 'EnterAnimating' as const,
             }),
-            Test.message(DetectedButtonMovement()),
-            Test.tap(({ model }) => {
+            Story.message(DetectedButtonMovement()),
+            Story.tap(({ model }) => {
               expect(model.transitionState).toBe('EnterAnimating')
             }),
           )
@@ -1142,12 +1158,12 @@ describe('Menu', () => {
   })
 
   describe('modal commands', () => {
-    const withClosedModal = Test.with(init({ id: 'test', isModal: true }))
+    const withClosedModal = Story.with(init({ id: 'test', isModal: true }))
 
     const withOpenModal = flow(
       withClosedModal,
-      Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-      Test.resolveAll([
+      Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+      Story.resolveAll([
         [FocusItems, CompletedFocusItems()],
         [LockScroll, CompletedLockScroll()],
         [InertOthers, CompletedSetupInert()],
@@ -1155,80 +1171,80 @@ describe('Menu', () => {
     )
 
     it('emits lockScroll and inertOthers commands on Opened when isModal is true', () => {
-      Test.story(
+      Story.story(
         update,
         withClosedModal,
-        Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-        Test.resolveAll([
+        Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+        Story.resolveAll([
           [FocusItems, CompletedFocusItems()],
           [LockScroll, CompletedLockScroll()],
           [InertOthers, CompletedSetupInert()],
         ]),
-        Test.tap(({ model }) => {
+        Story.tap(({ model }) => {
           expect(model.isOpen).toBe(true)
         }),
       )
     })
 
     it('emits unlockScroll and restoreInert commands on Closed when isModal is true', () => {
-      Test.story(
+      Story.story(
         update,
         withOpenModal,
-        Test.message(Closed()),
-        Test.resolveAll([
+        Story.message(Closed()),
+        Story.resolveAll([
           [FocusButton, CompletedFocusButton()],
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],
         ]),
-        Test.tap(({ model }) => {
+        Story.tap(({ model }) => {
           expect(model.isOpen).toBe(false)
         }),
       )
     })
 
     it('emits unlockScroll and restoreInert commands on ClosedByTab when isModal is true', () => {
-      Test.story(
+      Story.story(
         update,
         withOpenModal,
-        Test.message(ClosedByTab()),
-        Test.resolveAll([
+        Story.message(ClosedByTab()),
+        Story.resolveAll([
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],
         ]),
-        Test.tap(({ model }) => {
+        Story.tap(({ model }) => {
           expect(model.isOpen).toBe(false)
         }),
       )
     })
 
     it('emits unlockScroll and restoreInert commands on SelectedItem when isModal is true', () => {
-      Test.story(
+      Story.story(
         update,
         withOpenModal,
-        Test.message(SelectedItem({ index: 0 })),
-        Test.resolveAll([
+        Story.message(SelectedItem({ index: 0 })),
+        Story.resolveAll([
           [FocusButton, CompletedFocusButton()],
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],
         ]),
-        Test.tap(({ model }) => {
+        Story.tap(({ model }) => {
           expect(model.isOpen).toBe(false)
         }),
       )
     })
 
     it('does not emit modal commands when isModal is false', () => {
-      Test.story(
+      Story.story(
         update,
         withClosed,
-        Test.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-        Test.resolve(FocusItems, CompletedFocusItems()),
-        Test.tap(({ model }) => {
+        Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+        Story.resolve(FocusItems, CompletedFocusItems()),
+        Story.tap(({ model }) => {
           expect(model.isOpen).toBe(true)
         }),
-        Test.message(Closed()),
-        Test.resolve(FocusButton, CompletedFocusButton()),
-        Test.tap(({ model }) => {
+        Story.message(Closed()),
+        Story.resolve(FocusButton, CompletedFocusButton()),
+        Story.tap(({ model }) => {
           expect(model.isOpen).toBe(false)
         }),
       )
@@ -1536,111 +1552,141 @@ describe('Menu', () => {
   })
 
   describe('view', () => {
-    type TestMessage = string
-
     const openModel = (): Model => {
       let model!: Model
-      Test.story(
+      Story.story(
         update,
         withOpen,
-        Test.tap(simulation => {
+        Story.tap(simulation => {
           model = simulation.model
         }),
       )
       return model
     }
 
-    const baseViewConfig = (model: Model): ViewConfig<TestMessage, string> => ({
-      model,
-      toParentMessage: message => message._tag,
-      items: ['Edit', 'Delete'],
-      itemToConfig: () => ({
-        content: Effect.succeed(null),
-      }),
-      buttonContent: Effect.succeed(null),
-    })
-
-    const renderView = (config: ViewConfig<TestMessage, string>): VNode => {
-      const vnode = Effect.runSync(
-        Effect.provideService(view(config), Dispatch, noOpDispatch),
-      )
-      if (Predicate.isNull(vnode)) {
-        throw new Error('Expected vnode, got null')
-      }
-      return vnode
-    }
-
-    const findChildByKey = (vnode: VNode, key: string): VNode | undefined =>
-      vnode.children?.find(
-        (child): child is VNode =>
-          typeof child !== 'string' && child.key === key,
-      )
+    const sceneView =
+      (
+        overrides: Omit<
+          Partial<ViewConfig<Message, string>>,
+          'model' | 'toParentMessage'
+        > = {},
+      ) =>
+      (model: Model) =>
+        view({
+          items: ['Edit', 'Delete'],
+          itemToConfig: () => ({
+            content: Effect.succeed(null),
+          }),
+          buttonContent: Effect.succeed(null),
+          ...overrides,
+          model,
+          toParentMessage: message => message,
+        })
 
     describe('anchor', () => {
       it('adds absolute positioning, initial visibility hidden, and hooks when anchor is provided', () => {
-        const model = openModel()
-        const config = {
-          ...baseViewConfig(model),
-          anchor: { placement: 'bottom-start' as const },
-        }
-        const vnode = renderView(config)
-        const itemsContainer = findChildByKey(vnode, 'test-items-container')
-
-        expect(itemsContainer?.data?.style?.position).toBe('absolute')
-        expect(itemsContainer?.data?.style?.margin).toBe('0')
-        expect(itemsContainer?.data?.style?.visibility).toBe('hidden')
-        expect(itemsContainer?.data?.hook?.insert).toBeTypeOf('function')
-        expect(itemsContainer?.data?.hook?.destroy).toBeTypeOf('function')
+        Scene.scene(
+          {
+            update,
+            view: sceneView({
+              anchor: { placement: 'bottom-start' as const },
+            }),
+          },
+          Scene.with(openModel()),
+          Scene.tap(({ html }) => {
+            const itemsContainer = Scene.find(
+              html,
+              '[key="test-items-container"]',
+            )
+            expect(itemsContainer).toHaveStyle('position', 'absolute')
+            expect(itemsContainer).toHaveStyle('margin', '0')
+            expect(itemsContainer).toHaveStyle('visibility', 'hidden')
+            expect(itemsContainer).toHaveHook('insert')
+            expect(itemsContainer).toHaveHook('destroy')
+          }),
+        )
       })
 
       it('adds focus insert hook but no positioning styles when anchor is absent', () => {
-        const model = openModel()
-        const config = baseViewConfig(model)
-        const vnode = renderView(config)
-        const itemsContainer = findChildByKey(vnode, 'test-items-container')
-
-        expect(itemsContainer?.data?.style).toBeUndefined()
-        expect(itemsContainer?.data?.hook?.insert).toBeTypeOf('function')
-        expect(itemsContainer?.data?.hook?.destroy).toBeUndefined()
+        Scene.scene(
+          {
+            update,
+            view: sceneView(),
+          },
+          Scene.with(openModel()),
+          Scene.tap(({ html }) => {
+            const itemsContainer = Scene.find(
+              html,
+              '[key="test-items-container"]',
+            )
+            expect(itemsContainer).not.toHaveStyle('position')
+            expect(itemsContainer).toHaveHook('insert')
+            expect(itemsContainer).not.toHaveHook('destroy')
+          }),
+        )
       })
 
       it('adds hooks when portal is true', () => {
-        const model = openModel()
-        const config = {
-          ...baseViewConfig(model),
-          anchor: { placement: 'bottom-start' as const, portal: true },
-        }
-        const vnode = renderView(config)
-        const itemsContainer = findChildByKey(vnode, 'test-items-container')
-
-        expect(itemsContainer?.data?.style?.position).toBe('absolute')
-        expect(itemsContainer?.data?.style?.visibility).toBe('hidden')
-        expect(itemsContainer?.data?.hook?.insert).toBeTypeOf('function')
-        expect(itemsContainer?.data?.hook?.destroy).toBeTypeOf('function')
+        Scene.scene(
+          {
+            update,
+            view: sceneView({
+              anchor: { placement: 'bottom-start' as const, portal: true },
+            }),
+          },
+          Scene.with(openModel()),
+          Scene.tap(({ html }) => {
+            const itemsContainer = Scene.find(
+              html,
+              '[key="test-items-container"]',
+            )
+            expect(itemsContainer).toHaveStyle('position', 'absolute')
+            expect(itemsContainer).toHaveStyle('visibility', 'hidden')
+            expect(itemsContainer).toHaveHook('insert')
+            expect(itemsContainer).toHaveHook('destroy')
+          }),
+        )
       })
 
       it('does not affect button attributes when anchor is provided', () => {
         const model = openModel()
-        const configWithAnchor = {
-          ...baseViewConfig(model),
-          anchor: { placement: 'bottom-start' as const },
-        }
-        const configWithout = baseViewConfig(model)
 
-        const buttonWith = findChildByKey(
-          renderView(configWithAnchor),
-          'test-button',
-        )
-        const buttonWithout = findChildByKey(
-          renderView(configWithout),
-          'test-button',
+        let buttonWithAnchor: ReturnType<typeof Option.getOrThrow>
+        let buttonWithoutAnchor: ReturnType<typeof Option.getOrThrow>
+
+        Scene.scene(
+          {
+            update,
+            view: sceneView({
+              anchor: { placement: 'bottom-start' as const },
+            }),
+          },
+          Scene.with(model),
+          Scene.tap(({ html }) => {
+            buttonWithAnchor = Option.getOrThrow(
+              Scene.find(html, '[key="test-button"]'),
+            )
+          }),
         )
 
-        expect(buttonWith?.data?.attrs).toStrictEqual(
-          buttonWithout?.data?.attrs,
+        Scene.scene(
+          {
+            update,
+            view: sceneView(),
+          },
+          Scene.with(model),
+          Scene.tap(({ html }) => {
+            buttonWithoutAnchor = Option.getOrThrow(
+              Scene.find(html, '[key="test-button"]'),
+            )
+          }),
         )
-        expect(buttonWith?.data?.props).toStrictEqual(
-          buttonWithout?.data?.props,
+
+        expect(buttonWithAnchor!.data?.attrs).toStrictEqual(
+          buttonWithoutAnchor!.data?.attrs,
+        )
+        expect(buttonWithAnchor!.data?.props).toStrictEqual(
+          buttonWithoutAnchor!.data?.props,
         )
       })
     })

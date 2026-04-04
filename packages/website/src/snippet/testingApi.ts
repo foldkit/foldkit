@@ -1,32 +1,32 @@
-import { Test } from 'foldkit'
+import { Story } from 'foldkit'
 
 // Set the initial Model.
-Test.with(model)
+Story.with(model)
 
 // Send a Message. Commands stay pending.
-Test.message(ClickedSubmit())
+Story.message(ClickedSubmit())
 
 // Resolve one Command with its result.
-Test.resolve(FetchWeather, SucceededFetchWeather({ data }))
+Story.resolve(FetchWeather, SucceededFetchWeather({ data }))
 
 // Resolve many Commands at once.
-Test.resolveAll([
+Story.resolveAll([
   [FocusInput, CompletedFocusInput()],
   [ScrollToTop, CompletedScroll()],
 ])
 
 // Assert without breaking the chain.
-Test.tap(({ model, message, commands }) => {
+Story.tap(({ model, message, commands }) => {
   expect(model.count).toBe(0)
 })
 
 // Run the test story. Throws on unresolved Commands.
-Test.story(
+Story.story(
   update,
-  Test.with(model),
-  Test.message(ClickedSubmit()),
-  Test.resolve(FetchData, SucceededFetch({ data })),
-  Test.tap(({ model }) => {
+  Story.with(model),
+  Story.message(ClickedSubmit()),
+  Story.resolve(FetchData, SucceededFetch({ data })),
+  Story.tap(({ model }) => {
     expect(model.status).toBe('loaded')
   }),
 )

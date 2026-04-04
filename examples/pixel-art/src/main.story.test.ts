@@ -1,5 +1,5 @@
 import { Equal, Option } from 'effect'
-import { Test, Ui } from 'foldkit'
+import { Story, Ui } from 'foldkit'
 import { describe, expect, test } from 'vitest'
 
 import { ExportPng, SaveCanvas } from './command'
@@ -68,11 +68,11 @@ const emptyModel: Model = {
 
 describe('brush tool', () => {
   test('painting a cell sets its color and pushes undo history', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(emptyModel),
-      Test.message(PressedCell({ x: 1, y: 2 })),
-      Test.tap(({ model }) => {
+      Story.with(emptyModel),
+      Story.message(PressedCell({ x: 1, y: 2 })),
+      Story.tap(({ model }) => {
         expect(model.grid[2]?.[1]).toEqual(Option.some(0))
         expect(model.undoStack).toHaveLength(1)
         expect(model.redoStack).toHaveLength(0)
@@ -82,15 +82,15 @@ describe('brush tool', () => {
   })
 
   test('dragging paints multiple cells within a single undo entry', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(emptyModel),
-      Test.message(PressedCell({ x: 0, y: 0 })),
-      Test.message(EnteredCell({ x: 1, y: 0 })),
-      Test.message(EnteredCell({ x: 2, y: 0 })),
-      Test.message(ReleasedMouse()),
-      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Test.tap(({ model }) => {
+      Story.with(emptyModel),
+      Story.message(PressedCell({ x: 0, y: 0 })),
+      Story.message(EnteredCell({ x: 1, y: 0 })),
+      Story.message(EnteredCell({ x: 2, y: 0 })),
+      Story.message(ReleasedMouse()),
+      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.tap(({ model }) => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
         expect(model.grid[0]?.[1]).toEqual(Option.some(0))
         expect(model.grid[0]?.[2]).toEqual(Option.some(0))
@@ -103,19 +103,19 @@ describe('brush tool', () => {
 
 describe('undo and redo', () => {
   test('undo restores the previous grid state', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(emptyModel),
-      Test.message(PressedCell({ x: 0, y: 0 })),
-      Test.message(ReleasedMouse()),
-      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Test.tap(({ model }) => {
+      Story.with(emptyModel),
+      Story.message(PressedCell({ x: 0, y: 0 })),
+      Story.message(ReleasedMouse()),
+      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.tap(({ model }) => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
         expect(model.undoStack).toHaveLength(1)
       }),
-      Test.message(ClickedUndo()),
-      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Test.tap(({ model }) => {
+      Story.message(ClickedUndo()),
+      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.tap(({ model }) => {
         expect(model.grid[0]?.[0]).toEqual(Option.none())
         expect(model.undoStack).toHaveLength(0)
         expect(model.redoStack).toHaveLength(1)
@@ -124,17 +124,17 @@ describe('undo and redo', () => {
   })
 
   test('redo re-applies the undone state', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(emptyModel),
-      Test.message(PressedCell({ x: 0, y: 0 })),
-      Test.message(ReleasedMouse()),
-      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Test.message(ClickedUndo()),
-      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Test.message(ClickedRedo()),
-      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Test.tap(({ model }) => {
+      Story.with(emptyModel),
+      Story.message(PressedCell({ x: 0, y: 0 })),
+      Story.message(ReleasedMouse()),
+      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.message(ClickedUndo()),
+      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.message(ClickedRedo()),
+      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.tap(({ model }) => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
         expect(model.undoStack).toHaveLength(1)
         expect(model.redoStack).toHaveLength(0)
@@ -143,21 +143,21 @@ describe('undo and redo', () => {
   })
 
   test('new stroke after undo clears the redo stack', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(emptyModel),
-      Test.message(PressedCell({ x: 0, y: 0 })),
-      Test.message(ReleasedMouse()),
-      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Test.message(ClickedUndo()),
-      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Test.tap(({ model }) => {
+      Story.with(emptyModel),
+      Story.message(PressedCell({ x: 0, y: 0 })),
+      Story.message(ReleasedMouse()),
+      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.message(ClickedUndo()),
+      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.tap(({ model }) => {
         expect(model.redoStack).toHaveLength(1)
       }),
-      Test.message(PressedCell({ x: 1, y: 1 })),
-      Test.message(ReleasedMouse()),
-      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Test.tap(({ model }) => {
+      Story.message(PressedCell({ x: 1, y: 1 })),
+      Story.message(ReleasedMouse()),
+      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.tap(({ model }) => {
         expect(model.redoStack).toHaveLength(0)
         expect(model.undoStack).toHaveLength(1)
       }),
@@ -165,11 +165,11 @@ describe('undo and redo', () => {
   })
 
   test('undo on empty stack is a no-op', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(emptyModel),
-      Test.message(ClickedUndo()),
-      Test.tap(({ model }) => {
+      Story.with(emptyModel),
+      Story.message(ClickedUndo()),
+      Story.tap(({ model }) => {
         expect(model.grid).toEqual(emptyModel.grid)
         expect(model.undoStack).toHaveLength(0)
       }),
@@ -177,11 +177,11 @@ describe('undo and redo', () => {
   })
 
   test('redo on empty stack is a no-op', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(emptyModel),
-      Test.message(ClickedRedo()),
-      Test.tap(({ model }) => {
+      Story.with(emptyModel),
+      Story.message(ClickedRedo()),
+      Story.tap(({ model }) => {
         expect(model.grid).toEqual(emptyModel.grid)
         expect(model.redoStack).toHaveLength(0)
       }),
@@ -189,36 +189,36 @@ describe('undo and redo', () => {
   })
 
   test('multiple undo steps walk back through history', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(emptyModel),
-      Test.message(PressedCell({ x: 0, y: 0 })),
-      Test.message(ReleasedMouse()),
-      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Test.message(SelectedColor({ colorIndex: 1 })),
-      Test.resolve(
+      Story.with(emptyModel),
+      Story.message(PressedCell({ x: 0, y: 0 })),
+      Story.message(ReleasedMouse()),
+      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.message(SelectedColor({ colorIndex: 1 })),
+      Story.resolve(
         Ui.RadioGroup.FocusOption,
         Ui.RadioGroup.CompletedFocusOption(),
         radioMessage => GotPaletteRadioGroupMessage({ message: radioMessage }),
       ),
-      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Test.message(PressedCell({ x: 1, y: 1 })),
-      Test.message(ReleasedMouse()),
-      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Test.tap(({ model }) => {
+      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.message(PressedCell({ x: 1, y: 1 })),
+      Story.message(ReleasedMouse()),
+      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.tap(({ model }) => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
         expect(model.grid[1]?.[1]).toEqual(Option.some(1))
         expect(model.undoStack).toHaveLength(2)
       }),
-      Test.message(ClickedUndo()),
-      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Test.tap(({ model }) => {
+      Story.message(ClickedUndo()),
+      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.tap(({ model }) => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
         expect(model.grid[1]?.[1]).toEqual(Option.none())
       }),
-      Test.message(ClickedUndo()),
-      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Test.tap(({ model }) => {
+      Story.message(ClickedUndo()),
+      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.tap(({ model }) => {
         expect(model.grid[0]?.[0]).toEqual(Option.none())
         expect(model.grid[1]?.[1]).toEqual(Option.none())
       }),
@@ -228,12 +228,12 @@ describe('undo and redo', () => {
 
 describe('mirror mode', () => {
   test('horizontal mirror paints at mirrored x position', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(emptyModel),
-      Test.message(ToggledMirrorHorizontal()),
-      Test.message(PressedCell({ x: 0, y: 1 })),
-      Test.tap(({ model }) => {
+      Story.with(emptyModel),
+      Story.message(ToggledMirrorHorizontal()),
+      Story.message(PressedCell({ x: 0, y: 1 })),
+      Story.tap(({ model }) => {
         expect(model.grid[1]?.[0]).toEqual(Option.some(0))
         expect(model.grid[1]?.[3]).toEqual(Option.some(0))
       }),
@@ -241,12 +241,12 @@ describe('mirror mode', () => {
   })
 
   test('vertical mirror paints at mirrored y position', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(emptyModel),
-      Test.message(ToggledMirrorVertical()),
-      Test.message(PressedCell({ x: 1, y: 0 })),
-      Test.tap(({ model }) => {
+      Story.with(emptyModel),
+      Story.message(ToggledMirrorVertical()),
+      Story.message(PressedCell({ x: 1, y: 0 })),
+      Story.tap(({ model }) => {
         expect(model.grid[0]?.[1]).toEqual(Option.some(0))
         expect(model.grid[3]?.[1]).toEqual(Option.some(0))
       }),
@@ -254,13 +254,13 @@ describe('mirror mode', () => {
   })
 
   test('both mirrors paint at all four symmetric positions', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(emptyModel),
-      Test.message(ToggledMirrorHorizontal()),
-      Test.message(ToggledMirrorVertical()),
-      Test.message(PressedCell({ x: 0, y: 0 })),
-      Test.tap(({ model }) => {
+      Story.with(emptyModel),
+      Story.message(ToggledMirrorHorizontal()),
+      Story.message(ToggledMirrorVertical()),
+      Story.message(PressedCell({ x: 0, y: 0 })),
+      Story.tap(({ model }) => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
         expect(model.grid[0]?.[3]).toEqual(Option.some(0))
         expect(model.grid[3]?.[0]).toEqual(Option.some(0))
@@ -273,18 +273,18 @@ describe('mirror mode', () => {
 
 describe('fill tool', () => {
   test('flood fill colors a contiguous region', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(emptyModel),
-      Test.message(SelectedTool({ tool: 'Fill' })),
-      Test.resolve(
+      Story.with(emptyModel),
+      Story.message(SelectedTool({ tool: 'Fill' })),
+      Story.resolve(
         Ui.RadioGroup.FocusOption,
         Ui.RadioGroup.CompletedFocusOption(),
         radioMessage => GotToolRadioGroupMessage({ message: radioMessage }),
       ),
-      Test.message(PressedCell({ x: 0, y: 0 })),
-      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Test.tap(({ model }) => {
+      Story.message(PressedCell({ x: 0, y: 0 })),
+      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.tap(({ model }) => {
         const allPainted = model.grid.every(row =>
           row.every(cell => Equal.equals(cell, Option.some(0))),
         )
@@ -303,18 +303,18 @@ describe('fill tool', () => {
       grid: gridWithBarrier,
     }
 
-    Test.story(
+    Story.story(
       update,
-      Test.with(modelWithBarrier),
-      Test.message(SelectedTool({ tool: 'Fill' })),
-      Test.resolve(
+      Story.with(modelWithBarrier),
+      Story.message(SelectedTool({ tool: 'Fill' })),
+      Story.resolve(
         Ui.RadioGroup.FocusOption,
         Ui.RadioGroup.CompletedFocusOption(),
         radioMessage => GotToolRadioGroupMessage({ message: radioMessage }),
       ),
-      Test.message(PressedCell({ x: 0, y: 0 })),
-      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Test.tap(({ model }) => {
+      Story.message(PressedCell({ x: 0, y: 0 })),
+      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.tap(({ model }) => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
         expect(model.grid[0]?.[1]).toEqual(Option.some(0))
         expect(model.grid[0]?.[2]).toEqual(Option.some(1))
@@ -326,16 +326,16 @@ describe('fill tool', () => {
 
 describe('grid size', () => {
   test('blank canvas resizes immediately without confirmation', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(emptyModel),
-      Test.message(SelectedGridSize({ size: 8 })),
-      Test.resolve(
+      Story.with(emptyModel),
+      Story.message(SelectedGridSize({ size: 8 })),
+      Story.resolve(
         Ui.RadioGroup.FocusOption,
         Ui.RadioGroup.CompletedFocusOption(),
         radioMessage => GotGridSizeRadioGroupMessage({ message: radioMessage }),
       ),
-      Test.tap(({ model }) => {
+      Story.tap(({ model }) => {
         expect(model.gridSize).toBe(8)
         expect(model.grid).toHaveLength(8)
         expect(model.maybePendingGridSize).toEqual(Option.none())
@@ -354,17 +354,17 @@ describe('grid size', () => {
       ),
     }
 
-    Test.story(
+    Story.story(
       update,
-      Test.with(paintedModel),
-      Test.message(SelectedGridSize({ size: 8 })),
-      Test.resolve(
+      Story.with(paintedModel),
+      Story.message(SelectedGridSize({ size: 8 })),
+      Story.resolve(
         Ui.Dialog.ShowDialog,
         Ui.Dialog.CompletedShowDialog(),
         dialogMessage =>
           GotGridSizeConfirmDialogMessage({ message: dialogMessage }),
       ),
-      Test.tap(({ model }) => {
+      Story.tap(({ model }) => {
         expect(model.maybePendingGridSize).toEqual(Option.some(8))
         expect(model.gridSizeConfirmDialog.isOpen).toBe(true)
         expect(model.gridSize).toBe(4)
@@ -383,18 +383,18 @@ describe('grid size', () => {
       undoStack: [createEmptyGrid(4)],
     }
 
-    Test.story(
+    Story.story(
       update,
-      Test.with(modelWithPending),
-      Test.message(ConfirmedGridSizeChange()),
-      Test.resolve(
+      Story.with(modelWithPending),
+      Story.message(ConfirmedGridSizeChange()),
+      Story.resolve(
         Ui.Dialog.CloseDialog,
         Ui.Dialog.CompletedCloseDialog(),
         dialogMessage =>
           GotGridSizeConfirmDialogMessage({ message: dialogMessage }),
       ),
-      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Test.tap(({ model }) => {
+      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.tap(({ model }) => {
         expect(model.gridSize).toBe(8)
         expect(model.grid).toHaveLength(8)
         expect(model.grid[0]).toHaveLength(8)
@@ -406,11 +406,11 @@ describe('grid size', () => {
   })
 
   test('selecting the same grid size is a no-op', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(emptyModel),
-      Test.message(SelectedGridSize({ size: 4 })),
-      Test.tap(({ model }) => {
+      Story.with(emptyModel),
+      Story.message(SelectedGridSize({ size: 4 })),
+      Story.tap(({ model }) => {
         expect(model).toBe(emptyModel)
       }),
     )
@@ -419,21 +419,21 @@ describe('grid size', () => {
 
 describe('clear canvas', () => {
   test('clear resets all cells and pushes undo history', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(emptyModel),
-      Test.message(PressedCell({ x: 0, y: 0 })),
-      Test.message(ReleasedMouse()),
-      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Test.message(ClickedClear()),
-      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Test.tap(({ model }) => {
+      Story.with(emptyModel),
+      Story.message(PressedCell({ x: 0, y: 0 })),
+      Story.message(ReleasedMouse()),
+      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.message(ClickedClear()),
+      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.tap(({ model }) => {
         expect(model.grid[0]?.[0]).toEqual(Option.none())
         expect(model.undoStack).toHaveLength(2)
       }),
-      Test.message(ClickedUndo()),
-      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Test.tap(({ model }) => {
+      Story.message(ClickedUndo()),
+      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.tap(({ model }) => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
       }),
     )
@@ -442,16 +442,16 @@ describe('clear canvas', () => {
 
 describe('export', () => {
   test('successful export resolves without changing Model', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(emptyModel),
-      Test.message(ClickedExport()),
-      Test.tap(({ commands }) => {
+      Story.with(emptyModel),
+      Story.message(ClickedExport()),
+      Story.tap(({ commands }) => {
         expect(commands).toHaveLength(1)
         expect(commands[0]?.name).toBe(ExportPng.name)
       }),
-      Test.resolve(ExportPng, SucceededExportPng()),
-      Test.tap(({ model, commands }) => {
+      Story.resolve(ExportPng, SucceededExportPng()),
+      Story.tap(({ model, commands }) => {
         expect(commands).toHaveLength(0)
         expect(model.grid).toEqual(emptyModel.grid)
         expect(model.maybeExportError).toEqual(Option.none())
@@ -462,23 +462,23 @@ describe('export', () => {
 
 describe('hover preview', () => {
   test('entering a cell sets hover position', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(emptyModel),
-      Test.message(EnteredCell({ x: 2, y: 3 })),
-      Test.tap(({ model }) => {
+      Story.with(emptyModel),
+      Story.message(EnteredCell({ x: 2, y: 3 })),
+      Story.tap(({ model }) => {
         expect(model.maybeHoveredCell).toEqual(Option.some({ x: 2, y: 3 }))
       }),
     )
   })
 
   test('leaving canvas clears hover position', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(emptyModel),
-      Test.message(EnteredCell({ x: 2, y: 3 })),
-      Test.message(LeftCanvas()),
-      Test.tap(({ model }) => {
+      Story.with(emptyModel),
+      Story.message(EnteredCell({ x: 2, y: 3 })),
+      Story.message(LeftCanvas()),
+      Story.tap(({ model }) => {
         expect(model.maybeHoveredCell).toEqual(Option.none())
       }),
     )
@@ -487,25 +487,25 @@ describe('hover preview', () => {
 
 describe('eraser tool', () => {
   test('eraser removes color from a painted cell', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(emptyModel),
-      Test.message(PressedCell({ x: 0, y: 0 })),
-      Test.message(ReleasedMouse()),
-      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Test.tap(({ model }) => {
+      Story.with(emptyModel),
+      Story.message(PressedCell({ x: 0, y: 0 })),
+      Story.message(ReleasedMouse()),
+      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.tap(({ model }) => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
       }),
-      Test.message(SelectedTool({ tool: 'Eraser' })),
-      Test.resolve(
+      Story.message(SelectedTool({ tool: 'Eraser' })),
+      Story.resolve(
         Ui.RadioGroup.FocusOption,
         Ui.RadioGroup.CompletedFocusOption(),
         radioMessage => GotToolRadioGroupMessage({ message: radioMessage }),
       ),
-      Test.message(PressedCell({ x: 0, y: 0 })),
-      Test.message(ReleasedMouse()),
-      Test.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Test.tap(({ model }) => {
+      Story.message(PressedCell({ x: 0, y: 0 })),
+      Story.message(ReleasedMouse()),
+      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.tap(({ model }) => {
         expect(model.grid[0]?.[0]).toEqual(Option.none())
         expect(model.undoStack).toHaveLength(2)
       }),
@@ -515,18 +515,18 @@ describe('eraser tool', () => {
 
 describe('export failure', () => {
   test('failed export sets error and opens error dialog', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(emptyModel),
-      Test.message(
+      Story.with(emptyModel),
+      Story.message(
         FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
-      Test.resolve(
+      Story.resolve(
         Ui.Dialog.ShowDialog,
         Ui.Dialog.CompletedShowDialog(),
         dialogMessage => GotErrorDialogMessage({ message: dialogMessage }),
       ),
-      Test.tap(({ model }) => {
+      Story.tap(({ model }) => {
         expect(model.maybeExportError).toEqual(
           Option.some('Canvas 2D context not available'),
         )
@@ -536,24 +536,24 @@ describe('export failure', () => {
   })
 
   test('dismissing error dialog clears error and closes dialog', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(emptyModel),
-      Test.message(
+      Story.with(emptyModel),
+      Story.message(
         FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
-      Test.resolve(
+      Story.resolve(
         Ui.Dialog.ShowDialog,
         Ui.Dialog.CompletedShowDialog(),
         dialogMessage => GotErrorDialogMessage({ message: dialogMessage }),
       ),
-      Test.message(DismissedErrorDialog()),
-      Test.resolve(
+      Story.message(DismissedErrorDialog()),
+      Story.resolve(
         Ui.Dialog.CloseDialog,
         Ui.Dialog.CompletedCloseDialog(),
         dialogMessage => GotErrorDialogMessage({ message: dialogMessage }),
       ),
-      Test.tap(({ model }) => {
+      Story.tap(({ model }) => {
         expect(model.maybeExportError).toEqual(Option.none())
         expect(model.errorDialog.isOpen).toBe(false)
       }),

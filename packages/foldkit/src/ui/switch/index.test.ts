@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import * as Test from '../../test'
+import * as Story from '../../test/story'
 import { Toggled, init, update } from './index'
 
 describe('Switch', () => {
@@ -22,22 +22,22 @@ describe('Switch', () => {
 
   describe('update', () => {
     it('toggles from unchecked to checked on Toggled', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(init({ id: 'test' })),
-        Test.message(Toggled()),
-        Test.tap(({ model }) => {
+        Story.with(init({ id: 'test' })),
+        Story.message(Toggled()),
+        Story.tap(({ model }) => {
           expect(model.isChecked).toBe(true)
         }),
       )
     })
 
     it('toggles from checked to unchecked on Toggled', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(init({ id: 'test', isChecked: true })),
-        Test.message(Toggled()),
-        Test.tap(({ model }) => {
+        Story.with(init({ id: 'test', isChecked: true })),
+        Story.message(Toggled()),
+        Story.tap(({ model }) => {
           expect(model.isChecked).toBe(false)
         }),
       )

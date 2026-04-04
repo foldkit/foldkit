@@ -20,6 +20,8 @@ export const GettingStartedRoute = r('GettingStarted')
 export const RoutingAndNavigationRoute = r('RoutingAndNavigation')
 export const FieldValidationRoute = r('FieldValidation')
 export const TestingRoute = r('Testing')
+export const TestingStoryRoute = r('TestingStory')
+export const TestingSceneRoute = r('TestingScene')
 export const ExamplesRoute = r('Examples')
 export const ExampleDetailRoute = r('ExampleDetail', {
   exampleSlug: S.String,
@@ -85,6 +87,8 @@ export const DocsRoute = S.Union(
   RoutingAndNavigationRoute,
   FieldValidationRoute,
   TestingRoute,
+  TestingStoryRoute,
+  TestingSceneRoute,
   ExamplesRoute,
   ExampleDetailRoute,
   BestPracticesSideEffectsRoute,
@@ -163,6 +167,16 @@ export const fieldValidationRouter = pipe(
   mapTo(FieldValidationRoute),
 )
 export const testingRouter = pipe(literal('testing'), mapTo(TestingRoute))
+export const testingStoryRouter = pipe(
+  literal('testing'),
+  slash(literal('story')),
+  mapTo(TestingStoryRoute),
+)
+export const testingSceneRouter = pipe(
+  literal('testing'),
+  slash(literal('scene')),
+  mapTo(TestingSceneRoute),
+)
 export const examplesRouter = pipe(
   literal('example-apps'),
   mapTo(ExamplesRoute),
@@ -405,6 +419,8 @@ const topLevelDocsParser = oneOf(
   gettingStartedRouter,
   routingAndNavigationRouter,
   fieldValidationRouter,
+  testingStoryRouter,
+  testingSceneRouter,
   testingRouter,
   exampleDetailRouter,
   examplesRouter,

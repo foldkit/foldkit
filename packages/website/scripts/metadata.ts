@@ -73,8 +73,18 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   Testing: docs(
     'Testing',
-    'Test Foldkit programs with foldkit/test. Simulate the update loop, declare Command resolvers, send Messages, and assert on the Model in a single pipe chain.',
+    'Test Foldkit programs with Story and Scene. Story simulates the update loop. Scene tests features through the rendered view with accessible locators.',
     'Docs',
+  ),
+  TestingStory: docs(
+    'Story',
+    'Test the state machine with Story. Send Messages, resolve Commands inline, and assert on the Model. Pure, deterministic, fast.',
+    'Testing',
+  ),
+  TestingScene: docs(
+    'Scene',
+    'Test features through the rendered view with Scene. Click buttons, type into inputs, and assert on the HTML using accessible locators.',
+    'Testing',
   ),
   Examples: docs(
     'Example Apps',

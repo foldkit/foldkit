@@ -1,4 +1,4 @@
-import { Test } from 'foldkit'
+import { Story } from 'foldkit'
 import { describe, expect, test } from 'vitest'
 
 import { FetchSearchResults, NavigateToResult, ScrollToResult } from './command'
@@ -34,20 +34,20 @@ const searchResults = [
 
 describe('search', () => {
   test('typing a query starts a search', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(model),
-      Test.message(UpdatedSearchQuery({ query: 'routing' })),
-      Test.tap(({ model, commands }) => {
+      Story.with(model),
+      Story.message(UpdatedSearchQuery({ query: 'routing' })),
+      Story.tap(({ model, commands }) => {
         expect(model.query).toBe('routing')
         expect(model.searchState._tag).toBe('Loading')
         expect(commands[0]?.name).toBe(FetchSearchResults.name)
       }),
-      Test.resolve(
+      Story.resolve(
         FetchSearchResults,
         ReceivedSearchResults({ results: searchResults, query: 'routing' }),
       ),
-      Test.tap(({ model }) => {
+      Story.tap(({ model }) => {
         expect(model.searchState).toMatchObject({
           _tag: 'Ok',
           results: searchResults,
@@ -58,11 +58,11 @@ describe('search', () => {
   })
 
   test('clearing the query resets to Idle', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with({ ...model, query: 'routing' }),
-      Test.message(UpdatedSearchQuery({ query: '' })),
-      Test.tap(({ model, commands }) => {
+      Story.with({ ...model, query: 'routing' }),
+      Story.message(UpdatedSearchQuery({ query: '' })),
+      Story.tap(({ model, commands }) => {
         expect(model.query).toBe('')
         expect(model.searchState._tag).toBe('Idle')
         expect(model.activeResultIndex).toBe(-1)
@@ -72,11 +72,11 @@ describe('search', () => {
   })
 
   test('same query is ignored', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with({ ...model, query: 'routing' }),
-      Test.message(UpdatedSearchQuery({ query: 'routing' })),
-      Test.tap(({ model, commands }) => {
+      Story.with({ ...model, query: 'routing' }),
+      Story.message(UpdatedSearchQuery({ query: 'routing' })),
+      Story.tap(({ model, commands }) => {
         expect(model.searchState._tag).toBe('Idle')
         expect(commands).toHaveLength(0)
       }),
@@ -84,15 +84,15 @@ describe('search', () => {
   })
 
   test('new query preserves previous results in Loading state', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with({
+      Story.with({
         ...model,
         query: 'routing',
         searchState: Ok({ results: searchResults }),
       }),
-      Test.message(UpdatedSearchQuery({ query: 'testing' })),
-      Test.tap(({ model }) => {
+      Story.message(UpdatedSearchQuery({ query: 'testing' })),
+      Story.tap(({ model }) => {
         expect(model.query).toBe('testing')
         expect(model.searchState._tag).toBe('Loading')
         expect(model.searchState).toMatchObject({
@@ -100,7 +100,7 @@ describe('search', () => {
           results: searchResults,
         })
       }),
-      Test.resolve(
+      Story.resolve(
         FetchSearchResults,
         ReceivedSearchResults({ results: [], query: 'testing' }),
       ),
@@ -108,30 +108,30 @@ describe('search', () => {
   })
 
   test('stale results are ignored', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with({ ...model, query: 'testing' }),
-      Test.message(
+      Story.with({ ...model, query: 'testing' }),
+      Story.message(
         ReceivedSearchResults({ results: searchResults, query: 'routing' }),
       ),
-      Test.tap(({ model }) => {
+      Story.tap(({ model }) => {
         expect(model.searchState._tag).toBe('Idle')
       }),
     )
   })
 
   test('selecting a result navigates and resets', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with(model),
-      Test.message(SelectedSearchResult({ url: '/docs/commands' })),
-      Test.tap(({ model, commands }) => {
+      Story.with(model),
+      Story.message(SelectedSearchResult({ url: '/docs/commands' })),
+      Story.tap(({ model, commands }) => {
         expect(model.query).toBe('')
         expect(model.searchState._tag).toBe('Idle')
         expect(commands[0]?.name).toBe(NavigateToResult.name)
       }),
-      Test.resolve(NavigateToResult, CompletedNavigateSearch()),
-      Test.tap(({ model }) => {
+      Story.resolve(NavigateToResult, CompletedNavigateSearch()),
+      Story.tap(({ model }) => {
         expect(model.query).toBe('')
       }),
     )
@@ -144,39 +144,39 @@ describe('search', () => {
       activeResultIndex: 0,
     }
 
-    Test.story(
+    Story.story(
       update,
-      Test.with(modelWithResults),
-      Test.message(PressedArrowKey({ direction: 'Down' })),
-      Test.tap(({ model, commands }) => {
+      Story.with(modelWithResults),
+      Story.message(PressedArrowKey({ direction: 'Down' })),
+      Story.tap(({ model, commands }) => {
         expect(model.activeResultIndex).toBe(1)
         expect(commands[0]?.name).toBe(ScrollToResult.name)
       }),
-      Test.resolve(ScrollToResult, CompletedScrollToResult()),
-      Test.message(PressedArrowKey({ direction: 'Down' })),
-      Test.tap(({ model }) => {
+      Story.resolve(ScrollToResult, CompletedScrollToResult()),
+      Story.message(PressedArrowKey({ direction: 'Down' })),
+      Story.tap(({ model }) => {
         expect(model.activeResultIndex).toBe(0)
       }),
-      Test.resolve(ScrollToResult, CompletedScrollToResult()),
-      Test.message(PressedArrowKey({ direction: 'Up' })),
-      Test.tap(({ model }) => {
+      Story.resolve(ScrollToResult, CompletedScrollToResult()),
+      Story.message(PressedArrowKey({ direction: 'Up' })),
+      Story.tap(({ model }) => {
         expect(model.activeResultIndex).toBe(1)
       }),
-      Test.resolve(ScrollToResult, CompletedScrollToResult()),
+      Story.resolve(ScrollToResult, CompletedScrollToResult()),
     )
   })
 
   test('clearing the query explicitly resets state', () => {
-    Test.story(
+    Story.story(
       update,
-      Test.with({
+      Story.with({
         ...model,
         query: 'routing',
         searchState: Ok({ results: searchResults }),
         activeResultIndex: 1,
       }),
-      Test.message(ClearedSearchQuery()),
-      Test.tap(({ model }) => {
+      Story.message(ClearedSearchQuery()),
+      Story.tap(({ model }) => {
         expect(model.query).toBe('')
         expect(model.searchState._tag).toBe('Idle')
         expect(model.activeResultIndex).toBe(-1)

@@ -1,7 +1,7 @@
 import { describe, it } from '@effect/vitest'
 import { expect } from 'vitest'
 
-import * as Test from '../../test'
+import * as Story from '../../test/story'
 import {
   Closed,
   CompletedFocusButton,
@@ -30,35 +30,35 @@ describe('Disclosure', () => {
 
   describe('update', () => {
     it('opens when closed on Toggled', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(init({ id: 'test' })),
-        Test.message(Toggled()),
-        Test.tap(({ model }) => {
+        Story.with(init({ id: 'test' })),
+        Story.message(Toggled()),
+        Story.tap(({ model }) => {
           expect(model.isOpen).toBe(true)
         }),
       )
     })
 
     it('closes when open on Toggled', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(init({ id: 'test', isOpen: true })),
-        Test.message(Toggled()),
-        Test.resolve(FocusButton, CompletedFocusButton()),
-        Test.tap(({ model }) => {
+        Story.with(init({ id: 'test', isOpen: true })),
+        Story.message(Toggled()),
+        Story.resolve(FocusButton, CompletedFocusButton()),
+        Story.tap(({ model }) => {
           expect(model.isOpen).toBe(false)
         }),
       )
     })
 
     it('closes when open on Closed', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(init({ id: 'test', isOpen: true })),
-        Test.message(Closed()),
-        Test.resolve(FocusButton, CompletedFocusButton()),
-        Test.tap(({ model }) => {
+        Story.with(init({ id: 'test', isOpen: true })),
+        Story.message(Closed()),
+        Story.resolve(FocusButton, CompletedFocusButton()),
+        Story.tap(({ model }) => {
           expect(model.isOpen).toBe(false)
         }),
       )
@@ -66,11 +66,11 @@ describe('Disclosure', () => {
 
     it('is a no-op when already closed on Closed', () => {
       const originalModel = init({ id: 'test' })
-      Test.story(
+      Story.story(
         update,
-        Test.with(originalModel),
-        Test.message(Closed()),
-        Test.tap(({ model }) => {
+        Story.with(originalModel),
+        Story.message(Closed()),
+        Story.tap(({ model }) => {
           expect(model).toStrictEqual(originalModel)
         }),
       )
@@ -78,11 +78,11 @@ describe('Disclosure', () => {
 
     it('returns model unchanged on CompletedFocusButton', () => {
       const originalModel = init({ id: 'test' })
-      Test.story(
+      Story.story(
         update,
-        Test.with(originalModel),
-        Test.message(CompletedFocusButton()),
-        Test.tap(({ model }) => {
+        Story.with(originalModel),
+        Story.message(CompletedFocusButton()),
+        Story.tap(({ model }) => {
           expect(model).toBe(originalModel)
         }),
       )

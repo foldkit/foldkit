@@ -35,10 +35,10 @@ type Todos = typeof Todos.Type
 const Filter = S.Literal('All', 'Active', 'Completed')
 type Filter = typeof Filter.Type
 
-const NotEditing = ts('NotEditing')
+export const NotEditing = ts('NotEditing')
 type NotEditing = typeof NotEditing.Type
 
-const Editing = ts('Editing', {
+export const Editing = ts('Editing', {
   id: S.String,
   text: S.String,
 })
@@ -47,33 +47,33 @@ type Editing = typeof Editing.Type
 const EditingState = S.Union(NotEditing, Editing)
 type EditingState = typeof EditingState.Type
 
-const Model = S.Struct({
+export const Model = S.Struct({
   todos: Todos,
   newTodoText: S.String,
   filter: Filter,
   editing: EditingState,
 })
-type Model = typeof Model.Type
+export type Model = typeof Model.Type
 
 // MESSAGE
 
-const UpdatedNewTodo = m('UpdatedNewTodo', { text: S.String })
-const UpdatedEditingTodo = m('UpdatedEditingTodo', { text: S.String })
-const AddedTodo = m('AddedTodo')
-const GeneratedTodo = m('GeneratedTodo', {
+export const UpdatedNewTodo = m('UpdatedNewTodo', { text: S.String })
+export const UpdatedEditingTodo = m('UpdatedEditingTodo', { text: S.String })
+export const AddedTodo = m('AddedTodo')
+export const GeneratedTodo = m('GeneratedTodo', {
   id: S.String,
   timestamp: S.Number,
   text: S.String,
 })
-const DeletedTodo = m('DeletedTodo', { id: S.String })
-const ToggledTodo = m('ToggledTodo', { id: S.String })
-const StartedEditing = m('StartedEditing', { id: S.String })
-const SavedEdit = m('SavedEdit')
-const CancelledEdit = m('CancelledEdit')
-const ToggledAll = m('ToggledAll')
-const ClearedCompleted = m('ClearedCompleted')
-const SelectedFilter = m('SelectedFilter', { filter: Filter })
-const SavedTodos = m('SavedTodos', { todos: Todos })
+export const DeletedTodo = m('DeletedTodo', { id: S.String })
+export const ToggledTodo = m('ToggledTodo', { id: S.String })
+export const StartedEditing = m('StartedEditing', { id: S.String })
+export const SavedEdit = m('SavedEdit')
+export const CancelledEdit = m('CancelledEdit')
+export const ToggledAll = m('ToggledAll')
+export const ClearedCompleted = m('ClearedCompleted')
+export const SelectedFilter = m('SelectedFilter', { filter: Filter })
+export const SavedTodos = m('SavedTodos', { todos: Todos })
 
 export const Message = S.Union(
   UpdatedNewTodo,
@@ -113,7 +113,7 @@ const init: Runtime.ProgramInit<Model, Message, Flags> = flags => [
 
 // UPDATE
 
-const update = (
+export const update = (
   model: Model,
   message: Message,
 ): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
@@ -299,8 +299,8 @@ const update = (
 
 // COMMAND
 
-const GenerateTodo = Command.define('GenerateTodo', GeneratedTodo)
-const SaveTodos = Command.define('SaveTodos', SavedTodos)
+export const GenerateTodo = Command.define('GenerateTodo', GeneratedTodo)
+export const SaveTodos = Command.define('SaveTodos', SavedTodos)
 
 const generateTodo = (text: string) =>
   GenerateTodo(
@@ -341,6 +341,7 @@ const {
   li,
   span,
   ul,
+  AriaLabel,
   Class,
   For,
   Id,
@@ -348,6 +349,7 @@ const {
   OnInput,
   OnSubmit,
   Placeholder,
+  Role,
   Type,
   Value,
 } = html<Message>()
@@ -372,6 +374,7 @@ const editingTodoView = (todo: Todo, text: string): Html =>
       input([
         Type('text'),
         Id(`edit-${todo.id}`),
+        AriaLabel('Edit todo'),
         Value(text),
         Class(
           'flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500',
@@ -402,6 +405,7 @@ const nonEditingTodoView = (todo: Todo): Html =>
       input([
         Type('checkbox'),
         Id(`todo-${todo.id}`),
+        AriaLabel(todo.text),
         Value(todo.completed ? 'on' : ''),
         Class('w-4 h-4 text-blue-600 rounded focus:ring-blue-500'),
         OnClick(ToggledTodo({ id: todo.id })),
@@ -418,11 +422,12 @@ const nonEditingTodoView = (todo: Todo): Html =>
       button(
         [
           OnClick(DeletedTodo({ id: todo.id })),
+          AriaLabel(`Delete ${todo.text}`),
           Class(
             'px-2 py-1 text-red-600 opacity-0 group-hover:opacity-100 hover:bg-red-100 rounded transition-opacity',
           ),
         ],
-        ['×'],
+        ['\u00d7'],
       ),
     ],
   )
@@ -456,7 +461,7 @@ const footerView = (
         [Class('flex flex-col gap-4')],
         [
           div(
-            [Class('text-sm text-gray-600 text-center')],
+            [Class('text-sm text-gray-600 text-center'), Role('status')],
             [`${activeCount} active, ${completedCount} completed`],
           ),
 
@@ -515,7 +520,7 @@ const filterTodos = (todos: Todos, filter: Filter): Todos =>
     M.exhaustive,
   )
 
-const view = (model: Model): Html => {
+export const view = (model: Model): Html => {
   const filteredTodos = filterTodos(model.todos, model.filter)
   const activeCount = Array.length(
     Array.filter(model.todos, todo => !todo.completed),

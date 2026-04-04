@@ -297,18 +297,35 @@ Every message must carry meaning. No `NoOp`.
 
 Run `npx tsc --noEmit` in the project directory. Fix any type errors — the type system is the source of truth for API correctness (especially for Foldkit UI component APIs).
 
-Then generate tests using `foldkit/test`. Study these exemplar test files first — read at least one that matches the app's complexity:
+Then generate tests using `foldkit/test`. There are two test styles:
+
+**Story tests** (`main.story.test.ts`) test the update function directly — you send Messages and assert on the Model and Commands. Study these exemplars:
 
 - `${CLAUDE_SKILL_DIR}/../../examples/weather/src/main.test.ts` — simple Command resolution (happy path + error path)
 - `${CLAUDE_SKILL_DIR}/../../examples/auth/src/page/loggedOut/page/login.test.ts` — Submodel with OutMessage assertions, field validation
 - `${CLAUDE_SKILL_DIR}/../../packages/website/src/search/update.test.ts` — multi-step interactions (arrow key cycling, stale result handling)
 
-Write `Test.story` pipelines in `main.test.ts` (or `update.test.ts` for multi-file apps) covering:
+Write `Story.story` pipelines covering:
 
 - **Happy path** — the primary user flow from start to finish
 - **Error path** — every fallible Command resolved with its `Failed*` Message
 - **Multi-step interaction** — at least one test that chains multiple Messages and Command resolutions
 - **Edge cases** — empty states, boundary conditions, ignored inputs (e.g. stale results, duplicate submissions)
+
+**Scene tests** (`main.scene.test.ts`) test through the rendered view — you interact with elements by accessible locators (role, label, text) and assert on what the user sees. Study these exemplars:
+
+- `${CLAUDE_SKILL_DIR}/../../examples/weather/src/main.scene.test.ts` — basic Scene flow with form interaction and Command resolution
+- `${CLAUDE_SKILL_DIR}/../../examples/auth/src/page/loggedOut/page/login.scene.test.ts` — Submodel Scene testing with `childView`, field validation through the view
+- `${CLAUDE_SKILL_DIR}/../../examples/kanban/src/main.scene.test.ts` — scoped queries with `within`, `toHaveValue`, explicit test data
+
+Write `Scene.scene` pipelines covering:
+
+- **View rendering** — initial view has expected elements (headings, inputs, buttons)
+- **User interactions** — click, type, submit produce visible changes
+- **Loading states** — submitting shows loading indicator
+- **Error states** — failed Commands show error messages in the view
+- **Scoped queries** — use `Scene.within(parent, child)` when the view has repeated structures (e.g. multiple columns, card lists)
+- Prefer accessible locators: `Scene.label(...)`, `Scene.role(...)`, `Scene.text(...)` over `Scene.placeholder(...)` or CSS selectors
 
 Run `npx vitest run` to verify tests pass.
 

@@ -1,38 +1,38 @@
-import { Test } from 'foldkit'
+import { Story } from 'foldkit'
 import { expect, test } from 'vitest'
 
 test('weather search: success then failure', () => {
-  Test.story(
+  Story.story(
     update,
-    Test.with(model),
+    Story.with(model),
 
-    Test.message(UpdatedZipCodeInput({ value: '90210' })),
-    Test.tap(({ model }) => {
+    Story.message(UpdatedZipCodeInput({ value: '90210' })),
+    Story.tap(({ model }) => {
       expect(model.zipCode).toBe('90210')
     }),
-    Test.message(SubmittedWeatherForm()),
-    Test.tap(({ commands }) => {
+    Story.message(SubmittedWeatherForm()),
+    Story.tap(({ commands }) => {
       expect(commands[0]?.name).toBe(FetchWeather.name)
     }),
-    Test.resolve(
+    Story.resolve(
       FetchWeather,
       SucceededFetchWeather({ weather: beverlyHillsWeather }),
     ),
-    Test.tap(({ model }) => {
+    Story.tap(({ model }) => {
       expect(model.weather._tag).toBe('WeatherSuccess')
       expect(model.weather.data.temperature).toBe(72)
     }),
 
-    Test.message(UpdatedZipCodeInput({ value: '00000' })),
-    Test.tap(({ model }) => {
+    Story.message(UpdatedZipCodeInput({ value: '00000' })),
+    Story.tap(({ model }) => {
       expect(model.zipCode).toBe('00000')
     }),
-    Test.message(SubmittedWeatherForm()),
-    Test.tap(({ commands }) => {
+    Story.message(SubmittedWeatherForm()),
+    Story.tap(({ commands }) => {
       expect(commands[0]?.name).toBe(FetchWeather.name)
     }),
-    Test.resolve(FetchWeather, FailedFetchWeather({ error: 'Not found' })),
-    Test.tap(({ model }) => {
+    Story.resolve(FetchWeather, FailedFetchWeather({ error: 'Not found' })),
+    Story.tap(({ model }) => {
       expect(model.weather._tag).toBe('WeatherFailure')
     }),
   )

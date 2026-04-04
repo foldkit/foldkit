@@ -2,7 +2,7 @@ import { describe, it } from '@effect/vitest'
 import { Option } from 'effect'
 import { expect } from 'vitest'
 
-import * as Test from '../../test'
+import * as Story from '../../test/story'
 import {
   ActivatedKeyboardDrag,
   Cancelled,
@@ -86,11 +86,11 @@ describe('DragAndDrop', () => {
 
   describe('update', () => {
     it('transitions from Idle to Pending on PressedDraggable', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(pressedDraggable),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.tap(({ model }) => {
           expect(model.dragState._tag).toBe('Pending')
           if (model.dragState._tag === 'Pending') {
             expect(model.dragState.itemId).toBe('item-1')
@@ -106,24 +106,24 @@ describe('DragAndDrop', () => {
     })
 
     it('stays Pending when pointer moves below activation threshold', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(pressedDraggable),
-        Test.message(movedPointerBelowThreshold),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.message(movedPointerBelowThreshold),
+        Story.tap(({ model }) => {
           expect(model.dragState._tag).toBe('Pending')
         }),
       )
     })
 
     it('transitions from Pending to Dragging when pointer exceeds threshold', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(pressedDraggable),
-        Test.message(movedPointerAboveThreshold),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.message(movedPointerAboveThreshold),
+        Story.tap(({ model }) => {
           expect(model.dragState._tag).toBe('Dragging')
           if (model.dragState._tag === 'Dragging') {
             expect(model.dragState.itemId).toBe('item-1')
@@ -144,12 +144,12 @@ describe('DragAndDrop', () => {
     })
 
     it('transitions from Pending to Idle on ReleasedPointer (click)', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(pressedDraggable),
-        Test.message(ReleasedPointer()),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.message(ReleasedPointer()),
+        Story.tap(({ model }) => {
           expect(model.dragState._tag).toBe('Idle')
         }),
       )
@@ -157,12 +157,12 @@ describe('DragAndDrop', () => {
 
     it('updates current position and drop target while Dragging', () => {
       const dropTarget = Option.some({ containerId: 'list-1', index: 2 })
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(pressedDraggable),
-        Test.message(movedPointerAboveThreshold),
-        Test.message(
+        Story.with(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.message(movedPointerAboveThreshold),
+        Story.message(
           movedPointer({
             screenX: 150,
             screenY: 250,
@@ -171,7 +171,7 @@ describe('DragAndDrop', () => {
             maybeDropTarget: dropTarget,
           }),
         ),
-        Test.tap(({ model }) => {
+        Story.tap(({ model }) => {
           expect(model.dragState._tag).toBe('Dragging')
           if (model.dragState._tag === 'Dragging') {
             expect(model.dragState.current).toStrictEqual({
@@ -185,26 +185,26 @@ describe('DragAndDrop', () => {
     })
 
     it('transitions from Dragging to Idle on ReleasedPointer (drop)', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(pressedDraggable),
-        Test.message(movedPointerAboveThreshold),
-        Test.message(ReleasedPointer()),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.message(movedPointerAboveThreshold),
+        Story.message(ReleasedPointer()),
+        Story.tap(({ model }) => {
           expect(model.dragState._tag).toBe('Idle')
         }),
       )
     })
 
     it('transitions from Dragging to Idle on CancelledDrag', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(pressedDraggable),
-        Test.message(movedPointerAboveThreshold),
-        Test.message(CancelledDrag()),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.message(movedPointerAboveThreshold),
+        Story.message(CancelledDrag()),
+        Story.tap(({ model }) => {
           expect(model.dragState._tag).toBe('Idle')
         }),
       )
@@ -212,11 +212,11 @@ describe('DragAndDrop', () => {
 
     it('returns model unchanged when Idle receives MovedPointer', () => {
       const originalModel = defaultInit()
-      Test.story(
+      Story.story(
         update,
-        Test.with(originalModel),
-        Test.message(movedPointerAboveThreshold),
-        Test.tap(({ model }) => {
+        Story.with(originalModel),
+        Story.message(movedPointerAboveThreshold),
+        Story.tap(({ model }) => {
           expect(model).toBe(originalModel)
         }),
       )
@@ -224,23 +224,23 @@ describe('DragAndDrop', () => {
 
     it('returns model unchanged when Idle receives ReleasedPointer', () => {
       const originalModel = defaultInit()
-      Test.story(
+      Story.story(
         update,
-        Test.with(originalModel),
-        Test.message(ReleasedPointer()),
-        Test.tap(({ model }) => {
+        Story.with(originalModel),
+        Story.message(ReleasedPointer()),
+        Story.tap(({ model }) => {
           expect(model).toBe(originalModel)
         }),
       )
     })
 
     it('returns to Idle when CancelledDrag received while Pending', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(pressedDraggable),
-        Test.message(CancelledDrag()),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.message(CancelledDrag()),
+        Story.tap(({ model }) => {
           expect(model.dragState._tag).toBe('Idle')
         }),
       )
@@ -250,14 +250,14 @@ describe('DragAndDrop', () => {
   describe('OutMessage', () => {
     it('emits Reordered when dropping on a valid drop target', () => {
       const dropTarget = Option.some({ containerId: 'list-1', index: 2 })
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(pressedDraggable),
-        Test.message(movedPointerAboveThreshold),
-        Test.message(movedPointer({ maybeDropTarget: dropTarget })),
-        Test.message(ReleasedPointer()),
-        Test.tap(({ outMessage }) => {
+        Story.with(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.message(movedPointerAboveThreshold),
+        Story.message(movedPointer({ maybeDropTarget: dropTarget })),
+        Story.message(ReleasedPointer()),
+        Story.tap(({ outMessage }) => {
           expect(outMessage).toStrictEqual(
             Option.some(
               Reordered({
@@ -274,61 +274,61 @@ describe('DragAndDrop', () => {
     })
 
     it('emits Cancelled when dropping without a drop target', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(pressedDraggable),
-        Test.message(movedPointerAboveThreshold),
-        Test.message(ReleasedPointer()),
-        Test.tap(({ outMessage }) => {
+        Story.with(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.message(movedPointerAboveThreshold),
+        Story.message(ReleasedPointer()),
+        Story.tap(({ outMessage }) => {
           expect(outMessage).toStrictEqual(Option.some(Cancelled()))
         }),
       )
     })
 
     it('emits Cancelled when CancelledDrag while Dragging', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(pressedDraggable),
-        Test.message(movedPointerAboveThreshold),
-        Test.message(CancelledDrag()),
-        Test.tap(({ outMessage }) => {
+        Story.with(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.message(movedPointerAboveThreshold),
+        Story.message(CancelledDrag()),
+        Story.tap(({ outMessage }) => {
           expect(outMessage).toStrictEqual(Option.some(Cancelled()))
         }),
       )
     })
 
     it('emits no OutMessage when CancelledDrag while Pending', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(pressedDraggable),
-        Test.message(CancelledDrag()),
-        Test.tap(({ outMessage }) => {
+        Story.with(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.message(CancelledDrag()),
+        Story.tap(({ outMessage }) => {
           expect(outMessage).toStrictEqual(Option.none())
         }),
       )
     })
 
     it('emits no OutMessage on PressedDraggable', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(pressedDraggable),
-        Test.tap(({ outMessage }) => {
+        Story.with(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.tap(({ outMessage }) => {
           expect(outMessage).toStrictEqual(Option.none())
         }),
       )
     })
 
     it('emits no OutMessage on MovedPointer', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(pressedDraggable),
-        Test.message(movedPointerAboveThreshold),
-        Test.tap(({ outMessage }) => {
+        Story.with(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.message(movedPointerAboveThreshold),
+        Story.tap(({ outMessage }) => {
           expect(outMessage).toStrictEqual(Option.none())
         }),
       )
@@ -337,33 +337,33 @@ describe('DragAndDrop', () => {
 
   describe('ghostStyle', () => {
     it('returns None when Idle', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.tap(({ model }) => {
           expect(ghostStyle(model)).toStrictEqual(Option.none())
         }),
       )
     })
 
     it('returns None when Pending', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(pressedDraggable),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.tap(({ model }) => {
           expect(ghostStyle(model)).toStrictEqual(Option.none())
         }),
       )
     })
 
     it('returns Some with client-coordinate positioning when Dragging', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(pressedDraggable),
-        Test.message(movedPointerAboveThreshold),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.message(movedPointerAboveThreshold),
+        Story.tap(({ model }) => {
           const result = ghostStyle(model)
           expect(Option.isSome(result)).toBe(true)
           if (Option.isSome(result)) {
@@ -378,33 +378,33 @@ describe('DragAndDrop', () => {
 
   describe('isDragging', () => {
     it('returns false when Idle', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.tap(({ model }) => {
           expect(isDragging(model)).toBe(false)
         }),
       )
     })
 
     it('returns false when Pending', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(pressedDraggable),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.tap(({ model }) => {
           expect(isDragging(model)).toBe(false)
         }),
       )
     })
 
     it('returns true when Dragging', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(pressedDraggable),
-        Test.message(movedPointerAboveThreshold),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.message(movedPointerAboveThreshold),
+        Story.tap(({ model }) => {
           expect(isDragging(model)).toBe(true)
         }),
       )
@@ -413,33 +413,33 @@ describe('DragAndDrop', () => {
 
   describe('maybeDraggedItemId', () => {
     it('returns None when Idle', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.tap(({ model }) => {
           expect(maybeDraggedItemId(model)).toStrictEqual(Option.none())
         }),
       )
     })
 
     it('returns Some with itemId when Pending', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(pressedDraggable),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.tap(({ model }) => {
           expect(maybeDraggedItemId(model)).toStrictEqual(Option.some('item-1'))
         }),
       )
     })
 
     it('returns Some with itemId when Dragging', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(pressedDraggable),
-        Test.message(movedPointerAboveThreshold),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.message(movedPointerAboveThreshold),
+        Story.tap(({ model }) => {
           expect(maybeDraggedItemId(model)).toStrictEqual(Option.some('item-1'))
         }),
       )
@@ -448,33 +448,33 @@ describe('DragAndDrop', () => {
 
   describe('maybeDropTarget', () => {
     it('returns None when Idle', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.tap(({ model }) => {
           expect(maybeDropTarget(model)).toStrictEqual(Option.none())
         }),
       )
     })
 
     it('returns None when Pending', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(pressedDraggable),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.tap(({ model }) => {
           expect(maybeDropTarget(model)).toStrictEqual(Option.none())
         }),
       )
     })
 
     it('returns None when Dragging without a drop target', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(pressedDraggable),
-        Test.message(movedPointerAboveThreshold),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.message(movedPointerAboveThreshold),
+        Story.tap(({ model }) => {
           expect(maybeDropTarget(model)).toStrictEqual(Option.none())
         }),
       )
@@ -482,24 +482,24 @@ describe('DragAndDrop', () => {
 
     it('returns Some when Dragging over a drop target', () => {
       const target = Option.some({ containerId: 'list-1', index: 2 })
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(pressedDraggable),
-        Test.message(movedPointerAboveThreshold),
-        Test.message(movedPointer({ maybeDropTarget: target })),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.message(movedPointerAboveThreshold),
+        Story.message(movedPointer({ maybeDropTarget: target })),
+        Story.tap(({ model }) => {
           expect(maybeDropTarget(model)).toStrictEqual(target)
         }),
       )
     })
 
     it('returns Some when KeyboardDragging', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(activatedKeyboardDrag),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.message(activatedKeyboardDrag),
+        Story.tap(({ model }) => {
           expect(maybeDropTarget(model)).toStrictEqual(
             Option.some({ containerId: 'list-1', index: 0 }),
           )
@@ -510,11 +510,11 @@ describe('DragAndDrop', () => {
 
   describe('keyboard drag', () => {
     it('transitions from Idle to KeyboardDragging on ActivatedKeyboardDrag', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(activatedKeyboardDrag),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.message(activatedKeyboardDrag),
+        Story.tap(({ model }) => {
           expect(model.dragState._tag).toBe('KeyboardDragging')
           if (model.dragState._tag === 'KeyboardDragging') {
             expect(model.dragState.itemId).toBe('item-1')
@@ -528,16 +528,16 @@ describe('DragAndDrop', () => {
     })
 
     it('creates ResolveKeyboardMove command on PressedArrowKey and resolves target', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(activatedKeyboardDrag),
-        Test.message(PressedArrowKey({ direction: 'Down' })),
-        Test.resolve(
+        Story.with(defaultInit()),
+        Story.message(activatedKeyboardDrag),
+        Story.message(PressedArrowKey({ direction: 'Down' })),
+        Story.resolve(
           ResolveKeyboardMove,
           ResolvedKeyboardMove({ targetContainerId: 'list-1', targetIndex: 1 }),
         ),
-        Test.tap(({ model }) => {
+        Story.tap(({ model }) => {
           expect(model.dragState._tag).toBe('KeyboardDragging')
           if (model.dragState._tag === 'KeyboardDragging') {
             expect(model.dragState.targetIndex).toBe(1)
@@ -547,17 +547,17 @@ describe('DragAndDrop', () => {
     })
 
     it('updates target on ResolvedKeyboardMove', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(activatedKeyboardDrag),
-        Test.message(
+        Story.with(defaultInit()),
+        Story.message(activatedKeyboardDrag),
+        Story.message(
           ResolvedKeyboardMove({
             targetContainerId: 'list-2',
             targetIndex: 3,
           }),
         ),
-        Test.tap(({ model }) => {
+        Story.tap(({ model }) => {
           expect(model.dragState._tag).toBe('KeyboardDragging')
           if (model.dragState._tag === 'KeyboardDragging') {
             expect(model.dragState.targetContainerId).toBe('list-2')
@@ -568,18 +568,18 @@ describe('DragAndDrop', () => {
     })
 
     it('emits Reordered on ConfirmedKeyboardDrop', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(activatedKeyboardDrag),
-        Test.message(
+        Story.with(defaultInit()),
+        Story.message(activatedKeyboardDrag),
+        Story.message(
           ResolvedKeyboardMove({
             targetContainerId: 'list-2',
             targetIndex: 1,
           }),
         ),
-        Test.message(ConfirmedKeyboardDrop()),
-        Test.tap(({ model, outMessage }) => {
+        Story.message(ConfirmedKeyboardDrop()),
+        Story.tap(({ model, outMessage }) => {
           expect(model.dragState._tag).toBe('Idle')
           expect(outMessage).toStrictEqual(
             Option.some(
@@ -593,52 +593,52 @@ describe('DragAndDrop', () => {
             ),
           )
         }),
-        Test.resolve(FocusItem, CompletedFocusItem()),
+        Story.resolve(FocusItem, CompletedFocusItem()),
       )
     })
 
     it('emits Cancelled on CancelledDrag while KeyboardDragging', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(activatedKeyboardDrag),
-        Test.message(CancelledDrag()),
-        Test.tap(({ model, outMessage }) => {
+        Story.with(defaultInit()),
+        Story.message(activatedKeyboardDrag),
+        Story.message(CancelledDrag()),
+        Story.tap(({ model, outMessage }) => {
           expect(model.dragState._tag).toBe('Idle')
           expect(outMessage).toStrictEqual(Option.some(Cancelled()))
         }),
-        Test.resolve(FocusItem, CompletedFocusItem()),
+        Story.resolve(FocusItem, CompletedFocusItem()),
       )
     })
 
     it('isDragging returns true when KeyboardDragging', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(activatedKeyboardDrag),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.message(activatedKeyboardDrag),
+        Story.tap(({ model }) => {
           expect(isDragging(model)).toBe(true)
         }),
       )
     })
 
     it('maybeDraggedItemId returns Some when KeyboardDragging', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(activatedKeyboardDrag),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.message(activatedKeyboardDrag),
+        Story.tap(({ model }) => {
           expect(maybeDraggedItemId(model)).toStrictEqual(Option.some('item-1'))
         }),
       )
     })
 
     it('ghostStyle returns None when KeyboardDragging', () => {
-      Test.story(
+      Story.story(
         update,
-        Test.with(defaultInit()),
-        Test.message(activatedKeyboardDrag),
-        Test.tap(({ model }) => {
+        Story.with(defaultInit()),
+        Story.message(activatedKeyboardDrag),
+        Story.tap(({ model }) => {
           expect(ghostStyle(model)).toStrictEqual(Option.none())
         }),
       )

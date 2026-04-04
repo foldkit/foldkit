@@ -1,35 +1,34 @@
-import { Test } from 'foldkit'
+import { Scene, Story } from 'foldkit'
 import { expect, test } from 'vitest'
 
+// Story — test the state machine
 test('open the pod bay door', () => {
-  Test.story(
+  Story.story(
     update,
-    Test.with(model),
-
-    Test.message(PressedOpenPodBayDoor({ airlock: 'C' })),
-    Test.tap(({ model, commands }) => {
+    Story.with(model),
+    Story.message(PressedOpenPodBayDoor({ airlock: 'C' })),
+    Story.tap(({ model }) => {
       expect(model.airlockC._tag).toBe('RunningDiagnostics')
-      expect(commands[0]?.name).toBe(RunDiagnostics.name)
     }),
-
-    Test.resolve(RunDiagnostics, SucceededDiagnostics()),
-    Test.tap(({ model, message, commands }) => {
-      expect(message?._tag).toBe('SucceededDiagnostics')
-      expect(model.airlockC._tag).toBe('Depressurizing')
-      expect(commands[0]?.name).toBe(Depressurize.name)
-    }),
-
-    Test.resolve(Depressurize, CompletedDepressurize()),
-    Test.tap(({ model, message, commands }) => {
-      expect(message?._tag).toBe('CompletedDepressurize')
-      expect(model.airlockC._tag).toBe('Opening')
-      expect(commands[0]?.name).toBe(OpenDoor.name)
-    }),
-
-    Test.resolve(OpenDoor, CompletedOpenDoor()),
-    Test.tap(({ model, message }) => {
-      expect(message?._tag).toBe('CompletedOpenDoor')
+    Story.resolve(RunDiagnostics, SucceededDiagnostics()),
+    Story.resolve(Depressurize, CompletedDepressurize()),
+    Story.resolve(OpenDoor, CompletedOpenDoor()),
+    Story.tap(({ model }) => {
       expect(model.airlockC._tag).toBe('Open')
     }),
+  )
+})
+
+// Scene — test through the view
+test('type a zip code, see the forecast', () => {
+  Scene.scene(
+    { update, view },
+    Scene.with(model),
+    Scene.type(Scene.label('Zip code'), '90210'),
+    Scene.submit(Scene.role('form')),
+    Scene.expect(Scene.role('button', { name: 'Loading...' })).toExist(),
+    Scene.resolve(FetchWeather, SucceededFetchWeather({ weather })),
+    Scene.expect(Scene.role('heading', { name: '90210' })).toExist(),
+    Scene.expect(Scene.role('article')).toContainText('72\u00B0F'),
   )
 })
