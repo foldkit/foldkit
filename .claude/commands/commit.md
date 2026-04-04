@@ -39,7 +39,7 @@ If a published package has changes but no changeset covers it:
 Description of the change.
 ```
 
-Use single quotes around the package name. Write a concise but meaningful description.
+Use single quotes around the package name. Write a concise but meaningful description. For breaking changes (removing or renaming public exports, changing behavior), include a brief migration guide in the changeset description showing what consumers need to change.
 
 If no changed files touch published packages, skip this step entirely.
 
