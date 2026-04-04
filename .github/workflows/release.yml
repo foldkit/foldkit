@@ -32,6 +32,14 @@ jobs:
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Upgrade npm for OIDC trusted publishing
+        run: |
+          NPM_DIR="$(npm config get prefix)/lib/node_modules/npm"
+          rm -rf "$NPM_DIR"
+          curl -sL https://registry.npmjs.org/npm/-/npm-11.12.1.tgz | tar xz -C "$(dirname "$NPM_DIR")"
+          mv "$(dirname "$NPM_DIR")/package" "$NPM_DIR"
+          npm --version
+
       - name: Install Dependencies
         run: pnpm install
 
