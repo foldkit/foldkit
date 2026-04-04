@@ -27,9 +27,6 @@ export type ViewConfig<Message> = Readonly<{
   placeholder?: string
 }>
 
-/** Generates the label element ID from the input's base ID. */
-export const labelId = (id: string): string => `${id}-label`
-
 /** Generates the description element ID from the input's base ID. */
 export const descriptionId = (id: string): string => `${id}-description`
 
@@ -39,10 +36,10 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     AriaDescribedBy,
     AriaDisabled,
     AriaInvalid,
-    AriaLabelledBy,
     Autofocus,
     DataAttribute,
     Disabled,
+    For,
     Id,
     Name,
     OnInput,
@@ -88,7 +85,6 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
   const allInputAttributes = [
     Id(id),
     Type(type),
-    AriaLabelledBy(labelId(id)),
     AriaDescribedBy(descriptionId(id)),
     ...disabledAttributes,
     ...invalidAttributes,
@@ -99,7 +95,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     ...placeholderAttributes,
   ]
 
-  const labelAttributes = [Id(labelId(id))]
+  const labelAttributes = [For(id)]
 
   const descriptionAttributes = [Id(descriptionId(id))]
 

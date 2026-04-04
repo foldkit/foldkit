@@ -25,9 +25,6 @@ export type ViewConfig<Message> = Readonly<{
   name?: string
 }>
 
-/** Generates the label element ID from the select's base ID. */
-export const labelId = (id: string): string => `${id}-label`
-
 /** Generates the description element ID from the select's base ID. */
 export const descriptionId = (id: string): string => `${id}-description`
 
@@ -37,10 +34,10 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     AriaDescribedBy,
     AriaDisabled,
     AriaInvalid,
-    AriaLabelledBy,
     Autofocus,
     DataAttribute,
     Disabled,
+    For,
     Id,
     Name,
     OnChange,
@@ -79,7 +76,6 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
 
   const allSelectAttributes = [
     Id(id),
-    AriaLabelledBy(labelId(id)),
     AriaDescribedBy(descriptionId(id)),
     ...disabledAttributes,
     ...invalidAttributes,
@@ -89,7 +85,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     ...nameAttributes,
   ]
 
-  const labelAttributes = [Id(labelId(id))]
+  const labelAttributes = [For(id)]
 
   const descriptionAttributes = [Id(descriptionId(id))]
 

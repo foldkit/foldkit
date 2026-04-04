@@ -253,6 +253,13 @@ describe('accessible locators', () => {
       ]),
     ]),
     h('label', {}, ['Agree', h('input', { props: { type: 'checkbox' } })]),
+    h('div', {}, [
+      h('label', { props: { id: 'phone-label' } }, ['Phone']),
+      h('input', {
+        attrs: { 'aria-labelledby': 'phone-label' },
+        props: { type: 'tel' },
+      }),
+    ]),
   ])
 
   describe('getByRole', () => {
@@ -410,6 +417,13 @@ describe('accessible locators', () => {
       expect(Option.isSome(result)).toBe(true)
       expect(Option.getOrThrow(result).sel).toBe('input')
       expect(Option.getOrThrow(result).data?.props?.['type']).toBe('checkbox')
+    })
+
+    test('finds input via aria-labelledby', () => {
+      const result = getByLabel('Phone')(locatorTree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(Option.getOrThrow(result).sel).toBe('input')
+      expect(Option.getOrThrow(result).data?.props?.['type']).toBe('tel')
     })
 
     test('returns None for non-matching label', () => {

@@ -363,21 +363,23 @@ const resolveRole = (vnode: VNode): Option.Option<string> =>
 const nonEmptyString = (value: unknown): Option.Option<string> =>
   Option.filter(Option.some(String(value)), String_.isNonEmpty)
 
-const nameFromLabelledBy = (vnode: VNode, root: VNode): Option.Option<string> =>
-  pipe(
-    vnode,
-    lookupAttribute('aria-labelledby'),
-    Option.flatMap(nonEmptyString),
-    Option.map(labelledBy =>
-      pipe(
-        labelledBy,
-        String_.split(WHITESPACE_PATTERN),
-        Array.filterMap(flow(findById(root), Option.map(textContent))),
-        Array.join(' '),
+const nameFromLabelledBy =
+  (root: VNode) =>
+  (vnode: VNode): Option.Option<string> =>
+    pipe(
+      vnode,
+      lookupAttribute('aria-labelledby'),
+      Option.flatMap(nonEmptyString),
+      Option.map(labelledBy =>
+        pipe(
+          labelledBy,
+          String_.split(WHITESPACE_PATTERN),
+          Array.filterMap(flow(findById(root), Option.map(textContent))),
+          Array.join(' '),
+        ),
       ),
-    ),
-    Option.filter(String_.isNonEmpty),
-  )
+      Option.filter(String_.isNonEmpty),
+    )
 
 const nameFromAriaLabel = (vnode: VNode): Option.Option<string> =>
   pipe(vnode, lookupAttribute('aria-label'), Option.flatMap(nonEmptyString))
@@ -411,7 +413,8 @@ const nameFromTitle = (vnode: VNode): Option.Option<string> =>
 
 const accessibleName = (vnode: VNode, root: VNode): string =>
   pipe(
-    nameFromLabelledBy(vnode, root),
+    vnode,
+    nameFromLabelledBy(root),
     Option.orElse(() => nameFromAriaLabel(vnode)),
     Option.orElse(() => nameFromLabelFor(vnode, root)),
     Option.orElse(() => nameFromTextContent(vnode)),
@@ -577,7 +580,8 @@ export const getByPlaceholder =
     )
 
 /** Finds the first element with the given label text. Checks `aria-label`
- *  first, then `<label for="id">` association, then `<label>` nesting. */
+ *  first, then `<label for="id">` association, then `<label>` nesting,
+ *  then `aria-labelledby` reverse lookup. */
 export const getByLabel =
   (labelValue: string) =>
   (html: VNode): Option.Option<VNode> => {
@@ -607,6 +611,15 @@ export const getByLabel =
             ),
           ),
           Array.head,
+        ),
+      ),
+      Option.orElse(() =>
+        Array.findFirst(
+          allNodes,
+          flow(
+            nameFromLabelledBy(html),
+            Option.exists(Equal.equals(labelValue)),
+          ),
         ),
       ),
     )
