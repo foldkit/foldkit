@@ -1,5 +1,11 @@
 # foldkit
 
+## 0.45.0
+
+### Minor Changes
+
+- 4ed2508: Switch Ui.Input, Ui.Textarea, and Ui.Select label association from aria-labelledby to the standard label[for] → input[id] pattern. Remove the now-unused labelId export from all three components. Add aria-labelledby reverse lookup to getByLabel so it resolves elements whose aria-labelledby points to a label with matching text.
+
 ## 0.44.0
 
 ### Minor Changes
