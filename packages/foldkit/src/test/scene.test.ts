@@ -630,6 +630,40 @@ describe('scene with locators', () => {
     )
   })
 
+  test('type is dual — data-last pipes the target', () => {
+    Scene.scene(
+      { update, view },
+      Scene.with(initialModel),
+      pipe(Scene.label('Email'), Scene.type('alice@example.com')),
+      Scene.expect(Scene.label('Email')).toHaveValue('alice@example.com'),
+    )
+  })
+
+  test('keydown is dual — data-last pipes the target', () => {
+    Scene.scene(
+      { update: keyUpdate, view: keyView },
+      Scene.with({ lastKey: '', isShifted: false }),
+      pipe(
+        Scene.role('application', { name: 'Key press area' }),
+        Scene.keydown('a'),
+      ),
+      Scene.expect(Scene.label('Last key')).toHaveText('a'),
+    )
+  })
+
+  test('keydown data-last with modifiers', () => {
+    Scene.scene(
+      { update: keyUpdate, view: keyView },
+      Scene.with({ lastKey: '', isShifted: false }),
+      pipe(
+        Scene.role('application', { name: 'Key press area' }),
+        Scene.keydown('A', { shiftKey: true }),
+      ),
+      Scene.expect(Scene.label('Last key')).toHaveText('A'),
+      Scene.expect(Scene.label('Shift pressed')).toHaveText('true'),
+    )
+  })
+
   test('locator error message uses description', () => {
     expect(() =>
       Scene.scene(

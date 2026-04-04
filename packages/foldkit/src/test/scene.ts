@@ -1,4 +1,5 @@
 import { Array, Effect, Function, Option, Predicate, pipe } from 'effect'
+import { dual } from 'effect/Function'
 
 import type { CommandDefinition } from '../command'
 import type { Html, KeyboardModifiers } from '../html'
@@ -380,18 +381,36 @@ export const submit =
       handler({ preventDefault: Function.constVoid })
     })
 
-/** Simulates typing a value into the input matching the target. */
+/** Simulates typing a value into the input matching the target.
+ *  Dual: `type(target, value)` or `type(value)` for data-last piping. */
 export { type_ as type }
-const type_ =
-  (target: string | Locator, value: string) =>
-  <Model, Message, OutMessage = undefined>(
+const type_: {
+  (
+    target: string | Locator,
+    value: string,
+  ): <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
-  ): SceneSimulation<Model, Message, OutMessage> =>
-    invokeAndCapture(simulation, target, 'input', handler => {
-      handler({ target: { value } })
-    })
+  ) => SceneSimulation<Model, Message, OutMessage>
+  (
+    value: string,
+  ): (
+    target: string | Locator,
+  ) => <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ) => SceneSimulation<Model, Message, OutMessage>
+} = dual(
+  2,
+  (target: string | Locator, value: string) =>
+    <Model, Message, OutMessage = undefined>(
+      simulation: SceneSimulation<Model, Message, OutMessage>,
+    ): SceneSimulation<Model, Message, OutMessage> =>
+      invokeAndCapture(simulation, target, 'input', handler => {
+        handler({ target: { value } })
+      }),
+)
 
-/** Simulates a keydown event on the element matching the target. */
+/** Simulates a keydown event on the element matching the target.
+ *  Dual: `keydown(target, key, modifiers?)` or `keydown(key, modifiers?)` for data-last piping. */
 export const keydown: {
   (
     target: string | Locator,
@@ -406,23 +425,40 @@ export const keydown: {
   ): <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
   ) => SceneSimulation<Model, Message, OutMessage>
-} =
+  (
+    key: string,
+  ): (
+    target: string | Locator,
+  ) => <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ) => SceneSimulation<Model, Message, OutMessage>
+  (
+    key: string,
+    modifiers: Partial<KeyboardModifiers>,
+  ): (
+    target: string | Locator,
+  ) => <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ) => SceneSimulation<Model, Message, OutMessage>
+} = dual(
+  (args: IArguments) => args.length >= 2 && typeof args[1] === 'string',
   (
     target: string | Locator,
     key: string,
     modifiers?: Partial<KeyboardModifiers>,
   ) =>
-  <Model, Message, OutMessage = undefined>(
-    simulation: SceneSimulation<Model, Message, OutMessage>,
-  ): SceneSimulation<Model, Message, OutMessage> =>
-    invokeAndCapture(simulation, target, 'keydown', handler => {
-      handler({
-        key,
-        ...DEFAULT_KEYBOARD_MODIFIERS,
-        ...modifiers,
-        preventDefault: Function.constVoid,
-      })
-    })
+    <Model, Message, OutMessage = undefined>(
+      simulation: SceneSimulation<Model, Message, OutMessage>,
+    ): SceneSimulation<Model, Message, OutMessage> =>
+      invokeAndCapture(simulation, target, 'keydown', handler => {
+        handler({
+          key,
+          ...DEFAULT_KEYBOARD_MODIFIERS,
+          ...modifiers,
+          preventDefault: Function.constVoid,
+        })
+      }),
+)
 
 // ASSERTION STEPS
 
