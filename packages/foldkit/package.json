@@ -63,6 +63,10 @@
       "types": "./dist/test/public.d.ts",
       "import": "./dist/test/public.js"
     },
+    "./test/vitest": {
+      "types": "./dist/test/vitest.d.ts",
+      "import": "./dist/test/vitest.js"
+    },
     "./ui": {
       "types": "./dist/ui/index.d.ts",
       "import": "./dist/ui/index.js"

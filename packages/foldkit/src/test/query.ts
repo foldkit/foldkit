@@ -2,6 +2,7 @@ import {
   Array,
   Equal,
   Match,
+  Number as Number_,
   Option,
   Predicate,
   Record,
@@ -192,7 +193,7 @@ const lookupAttribute =
 const lookupStringAttribute =
   (name: string) =>
   (vnode: VNode): Option.Option<string> =>
-    Option.map(lookupAttribute(name)(vnode), String)
+    pipe(vnode, lookupAttribute(name), Option.map(String))
 
 const isElement = (node: VNode): boolean => !Predicate.isUndefined(node.sel)
 
@@ -208,6 +209,45 @@ const collectDescendants = (vnode: VNode): ReadonlyArray<VNode> =>
     ...collectDescendants(child),
   ])
 
+const allNodesIn = (vnode: VNode): ReadonlyArray<VNode> => [
+  vnode,
+  ...collectDescendants(vnode),
+]
+
+/** Returns the ancestor chain of `target` within `root`, ordered from root to
+ *  the immediate parent of `target` (exclusive). Returns an empty array when
+ *  `target` is `root` itself or is not present in the subtree. */
+export const ancestorsOf = (
+  root: VNode,
+  target: VNode,
+): ReadonlyArray<VNode> => {
+  const walk = (
+    node: VNode,
+    chain: ReadonlyArray<VNode>,
+  ): ReadonlyArray<VNode> | undefined => {
+    if (node === target) {
+      return chain
+    }
+    for (const child of vnodeChildren(node)) {
+      const result = walk(child, [...chain, node])
+      if (result !== undefined) {
+        return result
+      }
+    }
+    return undefined
+  }
+  return walk(root, []) ?? []
+}
+
+const attributeEquals =
+  (name: string, expected: string) =>
+  (vnode: VNode): boolean =>
+    pipe(
+      vnode,
+      lookupStringAttribute(name),
+      Option.exists(Equal.equals(expected)),
+    )
+
 const FORM_CONTROL_TAGS = ['input', 'select', 'textarea', 'button', 'output']
 
 const isFormControl = (node: VNode): boolean =>
@@ -220,10 +260,7 @@ const isFormControl = (node: VNode): boolean =>
 const findById =
   (root: VNode) =>
   (id: string): Option.Option<VNode> =>
-    Array.findFirst(
-      [root, ...collectDescendants(root)],
-      flow(lookupStringAttribute('id'), Option.exists(Equal.equals(id))),
-    )
+    Array.findFirst(allNodesIn(root), attributeEquals('id', id))
 
 // MATCHING
 
@@ -351,11 +388,15 @@ const implicitRole = (vnode: VNode): Option.Option<string> =>
     ),
   )
 
-const resolveRole = (vnode: VNode): Option.Option<string> =>
+const resolveRoles = (vnode: VNode): ReadonlyArray<string> =>
   pipe(
     vnode,
     lookupStringAttribute('role'),
-    Option.orElse(() => implicitRole(vnode)),
+    Option.map(
+      flow(String_.split(WHITESPACE_PATTERN), Array.filter(String_.isNonEmpty)),
+    ),
+    Option.orElse(() => Option.map(implicitRole(vnode), Array.of)),
+    Option.getOrElse(() => []),
   )
 
 // ACCESSIBLE NAME
@@ -384,26 +425,28 @@ const nameFromLabelledBy =
 const nameFromAriaLabel = (vnode: VNode): Option.Option<string> =>
   pipe(vnode, lookupAttribute('aria-label'), Option.flatMap(nonEmptyString))
 
-const nameFromLabelFor = (vnode: VNode, root: VNode): Option.Option<string> =>
-  pipe(
-    vnode,
-    lookupStringAttribute('id'),
-    Option.flatMap(idString =>
-      pipe(
-        [root, ...collectDescendants(root)],
-        Array.findFirst(
-          node =>
-            node.sel === 'label' &&
-            pipe(
-              node,
-              lookupStringAttribute('for'),
-              Option.exists(Equal.equals(idString)),
-            ),
+const nameFromLabelFor =
+  (root: VNode) =>
+  (vnode: VNode): Option.Option<string> =>
+    pipe(
+      vnode,
+      lookupStringAttribute('id'),
+      Option.flatMap(idString =>
+        pipe(
+          allNodesIn(root),
+          Array.findFirst(
+            node =>
+              node.sel === 'label' &&
+              pipe(
+                node,
+                lookupStringAttribute('for'),
+                Option.exists(Equal.equals(idString)),
+              ),
+          ),
+          Option.map(textContent),
         ),
-        Option.map(textContent),
       ),
-    ),
-  )
+    )
 
 const nameFromTextContent = (vnode: VNode): Option.Option<string> =>
   Option.filter(Option.some(textContent(vnode)), String_.isNonEmpty)
@@ -411,16 +454,39 @@ const nameFromTextContent = (vnode: VNode): Option.Option<string> =>
 const nameFromTitle = (vnode: VNode): Option.Option<string> =>
   pipe(vnode, lookupAttribute('title'), Option.flatMap(nonEmptyString))
 
-const accessibleName = (vnode: VNode, root: VNode): string =>
-  pipe(
-    vnode,
-    nameFromLabelledBy(root),
-    Option.orElse(() => nameFromAriaLabel(vnode)),
-    Option.orElse(() => nameFromLabelFor(vnode, root)),
-    Option.orElse(() => nameFromTextContent(vnode)),
-    Option.orElse(() => nameFromTitle(vnode)),
-    Option.getOrElse(() => ''),
-  )
+/** Computes the accessible name of an element. Resolves via
+ *  `aria-labelledby`, `aria-label`, `<label for>`, text content, then `title`. */
+export const accessibleName =
+  (root: VNode) =>
+  (vnode: VNode): string =>
+    pipe(
+      vnode,
+      nameFromLabelledBy(root),
+      Option.orElse(() => nameFromAriaLabel(vnode)),
+      Option.orElse(() => nameFromLabelFor(root)(vnode)),
+      Option.orElse(() => nameFromTextContent(vnode)),
+      Option.orElse(() => nameFromTitle(vnode)),
+      Option.getOrElse(() => ''),
+    )
+
+/** Computes the accessible description of an element. Resolves via
+ *  `aria-describedby` (joining referenced elements' text content). */
+export const accessibleDescription =
+  (root: VNode) =>
+  (vnode: VNode): string =>
+    pipe(
+      vnode,
+      lookupAttribute('aria-describedby'),
+      Option.flatMap(nonEmptyString),
+      Option.match({
+        onNone: () => '',
+        onSome: flow(
+          String_.split(WHITESPACE_PATTERN),
+          Array.filterMap(flow(findById(root), Option.map(textContent))),
+          Array.join(' '),
+        ),
+      }),
+    )
 
 // PUBLIC API
 
@@ -428,22 +494,24 @@ const findAllImpl =
   (selectorString: string) =>
   (html: VNode): ReadonlyArray<VNode> => {
     const selector = parseSelector(selectorString)
-    const allNodes = [html, ...collectDescendants(html)]
+    const allNodes = allNodesIn(html)
 
     return pipe(
-      Array.head(selector),
-      Option.map(firstSegment =>
-        Array.reduce(
-          Array.drop(selector, 1),
-          Array.filter(allNodes, matchesSimpleSelector(firstSegment)),
-          (candidates, segment) =>
-            Array.filter(
-              Array.flatMap(candidates, collectDescendants),
-              matchesSimpleSelector(segment),
-            ),
-        ),
-      ),
-      Option.getOrElse(() => []),
+      selector,
+      Array.head,
+      Option.match({
+        onNone: () => [],
+        onSome: firstSegment =>
+          Array.reduce(
+            Array.drop(selector, 1),
+            Array.filter(allNodes, matchesSimpleSelector(firstSegment)),
+            (candidates, segment) =>
+              Array.filter(
+                Array.flatMap(candidates, collectDescendants),
+                matchesSimpleSelector(segment),
+              ),
+          ),
+      }),
     )
   }
 
@@ -506,41 +574,159 @@ export const attr: {
 
 // ACCESSIBLE LOCATORS
 
-/** Finds the first element with the given ARIA role and optional accessible name. */
-export const getByRole =
-  (role: string, options?: Readonly<{ name?: string }>) =>
-  (html: VNode): Option.Option<VNode> => {
-    const maybeName = Option.fromNullable(options?.name)
+const HEADING_LEVEL_PATTERN = /^h([1-6])$/
 
-    return Array.findFirst(
-      [html, ...collectDescendants(html)],
-      node =>
-        pipe(node, resolveRole, Option.exists(Equal.equals(role))) &&
-        Option.match(maybeName, {
-          onNone: () => true,
-          onSome: name => accessibleName(node, html) === name,
-        }),
+const headingLevelFromTag = (vnode: VNode): Option.Option<number> =>
+  pipe(
+    vnode.sel,
+    Option.fromNullable,
+    Option.flatMap(String_.match(HEADING_LEVEL_PATTERN)),
+    Option.map(match => Number(match[1])),
+  )
+
+const ariaLevel = (vnode: VNode): Option.Option<number> =>
+  pipe(
+    vnode,
+    lookupStringAttribute('aria-level'),
+    Option.flatMap(Number_.parse),
+    Option.filter(value => !Number.isNaN(value)),
+  )
+
+const resolveLevel = (vnode: VNode): Option.Option<number> =>
+  Option.orElse(ariaLevel(vnode), () => headingLevelFromTag(vnode))
+
+const ariaTriStateMatches =
+  (attribute: string, expected: boolean | 'mixed') =>
+  (vnode: VNode): boolean =>
+    pipe(
+      vnode,
+      lookupStringAttribute(attribute),
+      Option.exists(value => value === String(expected)),
+    )
+
+const checkedMatches =
+  (expected: boolean | 'mixed') =>
+  (vnode: VNode): boolean => {
+    const fromAria = ariaTriStateMatches('aria-checked', expected)(vnode)
+    if (fromAria) return true
+    if (expected === 'mixed') return false
+    return pipe(
+      vnode,
+      lookupAttribute('checked'),
+      Option.exists(value => Boolean(value) === expected),
     )
   }
 
-/** Finds all elements with the given ARIA role and optional accessible name. */
-export const getAllByRole = (
-  html: VNode,
-  role: string,
-  options?: Readonly<{ name?: string }>,
-): ReadonlyArray<VNode> => {
-  const maybeName = Option.fromNullable(options?.name)
+const selectedMatches =
+  (expected: boolean) =>
+  (vnode: VNode): boolean => {
+    const fromAria = ariaTriStateMatches('aria-selected', expected)(vnode)
+    if (fromAria) return true
+    return pipe(
+      vnode,
+      lookupAttribute('selected'),
+      Option.exists(value => Boolean(value) === expected),
+    )
+  }
 
-  return Array.filter(
-    [html, ...collectDescendants(html)],
-    node =>
-      pipe(node, resolveRole, Option.exists(Equal.equals(role))) &&
-      Option.match(maybeName, {
-        onNone: () => true,
-        onSome: Equal.equals(accessibleName(node, html)),
-      }),
-  )
-}
+const disabledMatches =
+  (expected: boolean) =>
+  (vnode: VNode): boolean => {
+    const ariaValue = lookupStringAttribute('aria-disabled')(vnode)
+    if (Option.isSome(ariaValue)) {
+      return ariaValue.value === String(expected)
+    }
+    const disabled = pipe(
+      vnode,
+      lookupAttribute('disabled'),
+      Option.exists(Boolean),
+    )
+    return disabled === expected
+  }
+
+type RoleOptions = Readonly<{
+  name?: string
+  level?: number
+  checked?: boolean | 'mixed'
+  selected?: boolean
+  pressed?: boolean | 'mixed'
+  expanded?: boolean
+  disabled?: boolean
+}>
+
+const roleOptionsMatch =
+  (options: RoleOptions | undefined, html: VNode) =>
+  (node: VNode): boolean => {
+    if (!options) return true
+
+    if (
+      options.name !== undefined &&
+      accessibleName(html)(node) !== options.name
+    ) {
+      return false
+    }
+    if (
+      options.level !== undefined &&
+      !Option.exists(resolveLevel(node), Equal.equals(options.level))
+    ) {
+      return false
+    }
+    if (
+      options.checked !== undefined &&
+      !checkedMatches(options.checked)(node)
+    ) {
+      return false
+    }
+    if (
+      options.selected !== undefined &&
+      !selectedMatches(options.selected)(node)
+    ) {
+      return false
+    }
+    if (
+      options.pressed !== undefined &&
+      !ariaTriStateMatches('aria-pressed', options.pressed)(node)
+    ) {
+      return false
+    }
+    if (
+      options.expanded !== undefined &&
+      !ariaTriStateMatches('aria-expanded', options.expanded)(node)
+    ) {
+      return false
+    }
+    if (
+      options.disabled !== undefined &&
+      !disabledMatches(options.disabled)(node)
+    ) {
+      return false
+    }
+    return true
+  }
+
+/** Finds the first element with the given ARIA role and optional matching options.
+ *  Supports `name` (accessible name), `level` (heading level), `checked`,
+ *  `selected`, `pressed`, `expanded`, and `disabled` state filters. */
+export const getByRole =
+  (role: string, options?: RoleOptions) =>
+  (html: VNode): Option.Option<VNode> => {
+    const matchesOptions = roleOptionsMatch(options, html)
+    return Array.findFirst(
+      allNodesIn(html),
+      node => Array.contains(resolveRoles(node), role) && matchesOptions(node),
+    )
+  }
+
+/** Finds all elements with the given ARIA role and optional matching options. */
+export const getAllByRole =
+  (role: string, options?: RoleOptions) =>
+  (html: VNode): ReadonlyArray<VNode> => {
+    const matchesOptions = roleOptionsMatch(options, html)
+    return Array.filter(
+      allNodesIn(html),
+      node => Array.contains(resolveRoles(node), role) && matchesOptions(node),
+    )
+  }
 
 /** Finds the most specific element matching the given text content.
  *  Skips text VNodes (sel undefined) — only returns actual DOM elements. */
@@ -555,7 +741,7 @@ export const getByText =
     }
 
     return pipe(
-      [html, ...collectDescendants(html)],
+      allNodesIn(html),
       Array.filter(node => isElement(node) && textMatches(node)),
       Array.findFirst(
         match =>
@@ -572,11 +758,8 @@ export const getByPlaceholder =
   (placeholderValue: string) =>
   (html: VNode): Option.Option<VNode> =>
     Array.findFirst(
-      [html, ...collectDescendants(html)],
-      flow(
-        lookupStringAttribute('placeholder'),
-        Option.exists(Equal.equals(placeholderValue)),
-      ),
+      allNodesIn(html),
+      attributeEquals('placeholder', placeholderValue),
     )
 
 /** Finds the first element with the given label text. Checks `aria-label`
@@ -585,16 +768,10 @@ export const getByPlaceholder =
 export const getByLabel =
   (labelValue: string) =>
   (html: VNode): Option.Option<VNode> => {
-    const allNodes = [html, ...collectDescendants(html)]
+    const allNodes = allNodesIn(html)
 
     return pipe(
-      Array.findFirst(
-        allNodes,
-        flow(
-          lookupStringAttribute('aria-label'),
-          Option.exists(Equal.equals(labelValue)),
-        ),
-      ),
+      Array.findFirst(allNodes, attributeEquals('aria-label', labelValue)),
       Option.orElse(() =>
         pipe(
           Array.filter(
@@ -625,6 +802,128 @@ export const getByLabel =
     )
   }
 
+/** Finds every element with the given label text. Applies the same four
+ *  resolution strategies as `getByLabel` (`aria-label`, `<label for="id">`,
+ *  `<label>` nesting, `aria-labelledby`) and returns deduplicated matches. */
+export const getAllByLabel =
+  (labelValue: string) =>
+  (html: VNode): ReadonlyArray<VNode> => {
+    const allNodes = allNodesIn(html)
+
+    const viaAriaLabel = Array.filter(
+      allNodes,
+      attributeEquals('aria-label', labelValue),
+    )
+
+    const viaLabelElement = pipe(
+      Array.filter(
+        allNodes,
+        node => node.sel === 'label' && textContent(node) === labelValue,
+      ),
+      Array.flatMap(labelNode =>
+        pipe(
+          lookupStringAttribute('for')(labelNode),
+          Option.flatMap(findById(html)),
+          Option.match({
+            onNone: () =>
+              Array.filter(collectDescendants(labelNode), isFormControl),
+            onSome: control => [control],
+          }),
+        ),
+      ),
+    )
+
+    const viaLabelledBy = Array.filter(
+      allNodes,
+      flow(nameFromLabelledBy(html), Option.exists(Equal.equals(labelValue))),
+    )
+
+    return Array.dedupe([...viaAriaLabel, ...viaLabelElement, ...viaLabelledBy])
+  }
+
+/** Finds the first element with the given `alt` attribute. */
+export const getByAltText =
+  (altValue: string) =>
+  (html: VNode): Option.Option<VNode> =>
+    Array.findFirst(allNodesIn(html), attributeEquals('alt', altValue))
+
+/** Finds the first element with the given `title` attribute. */
+export const getByTitle =
+  (titleValue: string) =>
+  (html: VNode): Option.Option<VNode> =>
+    Array.findFirst(allNodesIn(html), attributeEquals('title', titleValue))
+
+/** Finds the first element with the given `data-testid` attribute. */
+export const getByTestId =
+  (testIdValue: string) =>
+  (html: VNode): Option.Option<VNode> =>
+    Array.findFirst(
+      allNodesIn(html),
+      attributeEquals('data-testid', testIdValue),
+    )
+
+/** Finds all elements matching the given text content.
+ *  Includes nested ancestors — a `<div><p>hi</p></div>` with text "hi" yields both. */
+export const getAllByText =
+  (target: string, options?: Readonly<{ exact?: boolean }>) =>
+  (html: VNode): ReadonlyArray<VNode> => {
+    const exact = options?.exact !== false
+    return Array.filter(allNodesIn(html), node => {
+      if (!isElement(node)) return false
+      const nodeText = textContent(node)
+      return exact ? nodeText === target : String_.includes(target)(nodeText)
+    })
+  }
+
+/** Finds all elements with the given placeholder attribute. */
+export const getAllByPlaceholder =
+  (placeholderValue: string) =>
+  (html: VNode): ReadonlyArray<VNode> =>
+    Array.filter(
+      allNodesIn(html),
+      attributeEquals('placeholder', placeholderValue),
+    )
+
+/** Finds all elements with the given `alt` attribute. */
+export const getAllByAltText =
+  (altValue: string) =>
+  (html: VNode): ReadonlyArray<VNode> =>
+    Array.filter(allNodesIn(html), attributeEquals('alt', altValue))
+
+/** Finds all elements with the given `title` attribute. */
+export const getAllByTitle =
+  (titleValue: string) =>
+  (html: VNode): ReadonlyArray<VNode> =>
+    Array.filter(allNodesIn(html), attributeEquals('title', titleValue))
+
+/** Finds all elements with the given `data-testid` attribute. */
+export const getAllByTestId =
+  (testIdValue: string) =>
+  (html: VNode): ReadonlyArray<VNode> =>
+    Array.filter(allNodesIn(html), attributeEquals('data-testid', testIdValue))
+
+/** Finds all form controls whose current value matches. */
+export const getAllByDisplayValue =
+  (displayValueString: string) =>
+  (html: VNode): ReadonlyArray<VNode> =>
+    Array.filter(
+      allNodesIn(html),
+      node =>
+        isFormControl(node) &&
+        attributeEquals('value', displayValueString)(node),
+    )
+
+/** Finds the first form control whose current value matches. Checks the `value`
+ *  attribute on inputs, textareas, and selects. */
+export const getByDisplayValue =
+  (displayValue: string) =>
+  (html: VNode): Option.Option<VNode> =>
+    Array.findFirst(
+      allNodesIn(html),
+      node =>
+        isFormControl(node) && attributeEquals('value', displayValue)(node),
+    )
+
 // LOCATORS
 
 /** A deferred element query that resolves against a VNode tree. Callable as a
@@ -634,23 +933,43 @@ export const getByLabel =
 export type Locator = ((html: VNode) => Option.Option<VNode>) &
   Readonly<{ description: string }>
 
+/** A deferred multi-element query that resolves to all matching VNodes.
+ *  Produced by `all*` locator factories and by `filter(...)`. Convert to a
+ *  single-match `Locator` via `first`, `last`, or `nth(n)`. */
+export type LocatorAll = ((html: VNode) => ReadonlyArray<VNode>) &
+  Readonly<{ description: string }>
+
 const makeLocator = (
   resolve: (html: VNode) => Option.Option<VNode>,
   description: string,
 ): Locator => Object.assign(resolve, { description } as const)
 
-/** Creates a Locator that finds an element by ARIA role and optional accessible name. */
-export const role = (
-  roleValue: string,
-  options?: Readonly<{ name?: string }>,
-): Locator =>
-  makeLocator(
-    getByRole(roleValue, options),
-    Option.match(Option.fromNullable(options?.name), {
-      onNone: () => roleValue,
-      onSome: name => `${roleValue} "${name}"`,
-    }),
-  )
+const makeLocatorAll = (
+  resolve: (html: VNode) => ReadonlyArray<VNode>,
+  description: string,
+): LocatorAll => Object.assign(resolve, { description } as const)
+
+const describeRoleOptions = (options: RoleOptions): string => {
+  const parts: Array<string> = []
+  if (options.name !== undefined) parts.push(`"${options.name}"`)
+  if (options.level !== undefined) parts.push(`level=${options.level}`)
+  if (options.checked !== undefined) parts.push(`checked=${options.checked}`)
+  if (options.selected !== undefined) parts.push(`selected=${options.selected}`)
+  if (options.pressed !== undefined) parts.push(`pressed=${options.pressed}`)
+  if (options.expanded !== undefined) parts.push(`expanded=${options.expanded}`)
+  if (options.disabled !== undefined) parts.push(`disabled=${options.disabled}`)
+  return Array.join(parts, ' ')
+}
+
+/** Creates a Locator that finds an element by ARIA role. Supports matching on
+ *  `name`, `level`, `checked`, `selected`, `pressed`, `expanded`, and `disabled`. */
+export const role = (roleValue: string, options?: RoleOptions): Locator => {
+  const optionsDescription = options ? describeRoleOptions(options) : ''
+  const description = String_.isEmpty(optionsDescription)
+    ? roleValue
+    : `${roleValue} ${optionsDescription}`
+  return makeLocator(getByRole(roleValue, options), description)
+}
 
 /** Creates a Locator that finds an element by placeholder attribute. */
 export const placeholder = (placeholderValue: string): Locator =>
@@ -662,6 +981,22 @@ export const placeholder = (placeholderValue: string): Locator =>
 /** Creates a Locator that finds an element by aria-label. */
 export const label = (labelValue: string): Locator =>
   makeLocator(getByLabel(labelValue), `label "${labelValue}"`)
+
+/** Creates a Locator that finds an element by its `alt` attribute. */
+export const altText = (altValue: string): Locator =>
+  makeLocator(getByAltText(altValue), `alt text "${altValue}"`)
+
+/** Creates a Locator that finds an element by its `title` attribute. */
+export const title = (titleValue: string): Locator =>
+  makeLocator(getByTitle(titleValue), `title "${titleValue}"`)
+
+/** Creates a Locator that finds an element by its `data-testid` attribute. */
+export const testId = (testIdValue: string): Locator =>
+  makeLocator(getByTestId(testIdValue), `testId "${testIdValue}"`)
+
+/** Creates a Locator that finds a form control by its current `value`. */
+export const displayValue = (valueString: string): Locator =>
+  makeLocator(getByDisplayValue(valueString), `display value "${valueString}"`)
 
 /** Creates a Locator that finds the most specific element matching the given text content. */
 export const text = (
@@ -686,6 +1021,137 @@ export const within: {
     makeLocator(
       flow(parent, Option.flatMap(child)),
       `${child.description} within ${parent.description}`,
+    ),
+)
+
+// LOCATOR-ALL FACTORIES
+
+/** Creates a LocatorAll that finds every element matching the role. */
+export const allRole = (
+  roleValue: string,
+  options?: RoleOptions,
+): LocatorAll => {
+  const optionsDescription = options ? describeRoleOptions(options) : ''
+  const description = String_.isEmpty(optionsDescription)
+    ? roleValue
+    : `${roleValue} ${optionsDescription}`
+  return makeLocatorAll(getAllByRole(roleValue, options), `all ${description}`)
+}
+
+/** Creates a LocatorAll that finds every element matching the text. */
+export const allText = (
+  target: string,
+  options?: Readonly<{ exact?: boolean }>,
+): LocatorAll =>
+  makeLocatorAll(getAllByText(target, options), `all text "${target}"`)
+
+/** Creates a LocatorAll that finds every element with the given label. */
+export const allLabel = (labelValue: string): LocatorAll =>
+  makeLocatorAll(getAllByLabel(labelValue), `all label "${labelValue}"`)
+
+/** Creates a LocatorAll that finds every element with the given placeholder. */
+export const allPlaceholder = (placeholderValue: string): LocatorAll =>
+  makeLocatorAll(
+    getAllByPlaceholder(placeholderValue),
+    `all placeholder "${placeholderValue}"`,
+  )
+
+/** Creates a LocatorAll that finds every element with the given alt text. */
+export const allAltText = (altValue: string): LocatorAll =>
+  makeLocatorAll(getAllByAltText(altValue), `all alt text "${altValue}"`)
+
+/** Creates a LocatorAll that finds every element with the given title. */
+export const allTitle = (titleValue: string): LocatorAll =>
+  makeLocatorAll(getAllByTitle(titleValue), `all title "${titleValue}"`)
+
+/** Creates a LocatorAll that finds every element with the given data-testid. */
+export const allTestId = (testIdValue: string): LocatorAll =>
+  makeLocatorAll(getAllByTestId(testIdValue), `all testId "${testIdValue}"`)
+
+/** Creates a LocatorAll that finds every form control with the given value. */
+export const allDisplayValue = (valueString: string): LocatorAll =>
+  makeLocatorAll(
+    getAllByDisplayValue(valueString),
+    `all display value "${valueString}"`,
+  )
+
+/** Creates a LocatorAll from a CSS selector — returns every match. */
+export const allSelector = (css: string): LocatorAll =>
+  makeLocatorAll(findAllImpl(css), `all "${css}"`)
+
+// LOCATOR-ALL COMBINATORS
+
+/** Picks the first match from a LocatorAll, producing a single-match Locator. */
+export const first = (locatorAll: LocatorAll): Locator =>
+  makeLocator(
+    flow(locatorAll, Array.head),
+    `first of ${locatorAll.description}`,
+  )
+
+/** Picks the last match from a LocatorAll, producing a single-match Locator. */
+export const last = (locatorAll: LocatorAll): Locator =>
+  makeLocator(flow(locatorAll, Array.last), `last of ${locatorAll.description}`)
+
+/** Picks the nth match (0-indexed) from a LocatorAll, producing a Locator. */
+export const nth: {
+  (locatorAll: LocatorAll, index: number): Locator
+  (index: number): (locatorAll: LocatorAll) => Locator
+} = dual(
+  2,
+  (locatorAll: LocatorAll, index: number): Locator =>
+    makeLocator(
+      flow(locatorAll, Array.get(index)),
+      `nth(${index}) of ${locatorAll.description}`,
+    ),
+)
+
+type FilterOptions = Readonly<{
+  has?: Locator
+  hasNot?: Locator
+  hasText?: string
+  hasNotText?: string
+}>
+
+const describeFilterOptions = (options: FilterOptions): string => {
+  const parts: Array<string> = []
+  if (options.has) parts.push(`has ${options.has.description}`)
+  if (options.hasNot) parts.push(`hasNot ${options.hasNot.description}`)
+  if (options.hasText !== undefined) parts.push(`hasText "${options.hasText}"`)
+  if (options.hasNotText !== undefined) {
+    parts.push(`hasNotText "${options.hasNotText}"`)
+  }
+  return Array.join(parts, ', ')
+}
+
+/** Filters a LocatorAll's matches. Supports `has`/`hasNot` to keep entries
+ *  that do/don't contain a matching descendant, and `hasText`/`hasNotText`
+ *  to keep entries whose text content does/doesn't include a substring. */
+export const filter: {
+  (locatorAll: LocatorAll, options: FilterOptions): LocatorAll
+  (options: FilterOptions): (locatorAll: LocatorAll) => LocatorAll
+} = dual(
+  2,
+  (locatorAll: LocatorAll, options: FilterOptions): LocatorAll =>
+    makeLocatorAll(
+      html =>
+        Array.filter(locatorAll(html), match => {
+          if (options.has && Option.isNone(options.has(match))) return false
+          if (options.hasNot && Option.isSome(options.hasNot(match))) {
+            return false
+          }
+          if (options.hasText !== undefined) {
+            if (!String_.includes(options.hasText)(textContent(match))) {
+              return false
+            }
+          }
+          if (options.hasNotText !== undefined) {
+            if (String_.includes(options.hasNotText)(textContent(match))) {
+              return false
+            }
+          }
+          return true
+        }),
+      `${locatorAll.description} filtered by (${describeFilterOptions(options)})`,
     ),
 )
 

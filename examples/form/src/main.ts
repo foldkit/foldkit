@@ -18,6 +18,8 @@ import { evo } from 'foldkit/struct'
 const StringField = makeField(S.String)
 type StringField = typeof StringField.Union.Type
 
+export { StringField }
+
 // MODEL
 
 const NotSubmitted = ts('NotSubmitted')
@@ -42,17 +44,19 @@ const Model = S.Struct({
 })
 type Model = typeof Model.Type
 
+export type { Model }
+
 // MESSAGE
 
 const UpdatedName = m('UpdatedName', { value: S.String })
 const UpdatedEmail = m('UpdatedEmail', { value: S.String })
-const ValidatedEmail = m('ValidatedEmail', {
+export const ValidatedEmail = m('ValidatedEmail', {
   validationId: S.Number,
   field: StringField.Union,
 })
 const UpdatedMessage = m('UpdatedMessage', { value: S.String })
 const ClickedFormSubmit = m('ClickedFormSubmit')
-const SubmittedForm = m('SubmittedForm', {
+export const SubmittedForm = m('SubmittedForm', {
   success: S.Boolean,
   name: S.String,
   email: S.String,
@@ -71,16 +75,15 @@ type Message = typeof Message.Type
 
 // INIT
 
-const init: Runtime.ProgramInit<Model, Message> = () => [
-  {
-    name: StringField.NotValidated({ value: '' }),
-    email: StringField.NotValidated({ value: '' }),
-    emailValidationId: 0,
-    message: StringField.NotValidated({ value: '' }),
-    submission: NotSubmitted(),
-  },
-  [],
-]
+export const initialModel: Model = {
+  name: StringField.NotValidated({ value: '' }),
+  email: StringField.NotValidated({ value: '' }),
+  emailValidationId: 0,
+  message: StringField.NotValidated({ value: '' }),
+  submission: NotSubmitted(),
+}
+
+const init: Runtime.ProgramInit<Model, Message> = () => [initialModel, []]
 
 // FIELD VALIDATION
 
@@ -105,7 +108,7 @@ const isEmailOnWaitlist = (email: string): Effect.Effect<boolean> =>
     return Array.contains(EMAILS_ON_WAITLIST, email.toLowerCase())
   })
 
-const ValidateEmail = Command.define('ValidateEmail', ValidatedEmail)
+export const ValidateEmail = Command.define('ValidateEmail', ValidatedEmail)
 
 const validateEmailAsync = (email: string, validationId: number) =>
   ValidateEmail(
@@ -135,7 +138,7 @@ const isFormValid = (model: Model): boolean =>
 
 // UPDATE
 
-const update = (
+export const update = (
   model: Model,
   message: Message,
 ): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
@@ -238,7 +241,7 @@ const update = (
 
 const FAKE_API_DELAY_MS = 500
 
-const SubmitForm = Command.define('SubmitForm', SubmittedForm)
+export const SubmitForm = Command.define('SubmitForm', SubmittedForm)
 
 const submitForm = (model: Model) =>
   SubmitForm(
@@ -271,6 +274,7 @@ const {
   Class,
   Disabled,
   OnSubmit,
+  Role,
   Type,
 } = html<Message>()
 
@@ -389,7 +393,7 @@ const textareaFieldView = (
       ),
   })
 
-const view = (model: Model): Html => {
+export const view = (model: Model): Html => {
   const canSubmit = isFormValid(model) && model.submission._tag !== 'Submitting'
 
   return div(
@@ -452,6 +456,7 @@ const view = (model: Model): Html => {
               SubmitSuccess: ({ message }) =>
                 div(
                   [
+                    Role('status'),
                     Class(
                       'mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg',
                     ),
@@ -461,6 +466,7 @@ const view = (model: Model): Html => {
               SubmitError: ({ error }) =>
                 div(
                   [
+                    Role('alert'),
                     Class(
                       'mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg',
                     ),

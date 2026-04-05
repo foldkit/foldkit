@@ -83,13 +83,12 @@ describe('scene', () => {
     Scene.scene(
       { update, view },
       Scene.with(testModel),
-      Scene.click(
-        Scene.within(toDoColumn, Scene.role('button', { name: '+ Add card' })),
+      Scene.inside(
+        toDoColumn,
+        Scene.click(Scene.role('button', { name: '+ Add card' })),
+        Scene.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
+        Scene.expect(Scene.label('New card title')).toExist(),
       ),
-      Scene.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
-      Scene.expect(
-        Scene.within(toDoColumn, Scene.label('New card title')),
-      ).toExist(),
     )
   })
 
@@ -110,16 +109,15 @@ describe('scene', () => {
     Scene.scene(
       { update, view },
       Scene.with(testModel),
-      Scene.click(
-        Scene.within(toDoColumn, Scene.role('button', { name: '+ Add card' })),
+      Scene.inside(
+        toDoColumn,
+        Scene.click(Scene.role('button', { name: '+ Add card' })),
+        Scene.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
+        Scene.type(Scene.label('New card title'), 'Buy groceries'),
+        Scene.submit(Scene.role('form')),
+        Scene.resolve(SaveBoard, CompletedSaveBoard()),
+        Scene.expect(Scene.text('Buy groceries')).toExist(),
       ),
-      Scene.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
-      Scene.type(Scene.label('New card title'), 'Buy groceries'),
-      Scene.submit(Scene.role('form')),
-      Scene.resolve(SaveBoard, CompletedSaveBoard()),
-      Scene.expect(
-        Scene.within(toDoColumn, Scene.text('Buy groceries')),
-      ).toExist(),
     )
   })
 
