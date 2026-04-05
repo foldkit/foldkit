@@ -836,6 +836,23 @@ describe('scene', () => {
     )
   })
 
+  test('clicking a disabled element throws a clear error', () => {
+    const submittingModel: Model = {
+      ...initialModel,
+      status: 'Submitting',
+      email: 'alice@example.com',
+      password: 'secret',
+    }
+
+    expect(() =>
+      Scene.scene(
+        { update, view },
+        Scene.with(submittingModel),
+        Scene.click(Scene.role('button', { name: 'Signing in...' })),
+      ),
+    ).toThrow(/it is disabled/)
+  })
+
   test('clicking a submit button falls through to the enclosing form', () => {
     Scene.scene(
       { update, view },

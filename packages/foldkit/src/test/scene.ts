@@ -610,13 +610,20 @@ export const click =
     }
 
     const element = maybeElement.value
+
+    if (isElementDisabled(element)) {
+      throw new Error(
+        `I found an element matching ${description} but it is disabled.\n\n` +
+          'Disabled elements do not receive click events in the browser. ' +
+          'Assert the state that enables the element before clicking, or ' +
+          'use Scene.expect(locator).not.toBeDisabled() to verify the ' +
+          'element is interactive.',
+      )
+    }
+
     const hasClickHandler = element.data?.on?.['click'] !== undefined
 
-    if (
-      !hasClickHandler &&
-      isSubmittingButton(element) &&
-      !isElementDisabled(element)
-    ) {
+    if (!hasClickHandler && isSubmittingButton(element)) {
       const maybeForm = pipe(
         ancestorsOf(internal.html, element),
         Array.findLast(vnode => vnode.sel === 'form'),
