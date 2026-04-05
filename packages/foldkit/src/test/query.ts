@@ -802,6 +802,45 @@ export const getByLabel =
     )
   }
 
+/** Finds every element with the given label text. Applies the same four
+ *  resolution strategies as `getByLabel` (`aria-label`, `<label for="id">`,
+ *  `<label>` nesting, `aria-labelledby`) and returns deduplicated matches. */
+export const getAllByLabel =
+  (labelValue: string) =>
+  (html: VNode): ReadonlyArray<VNode> => {
+    const allNodes = allNodesIn(html)
+
+    const viaAriaLabel = Array.filter(
+      allNodes,
+      attributeEquals('aria-label', labelValue),
+    )
+
+    const viaLabelElement = pipe(
+      Array.filter(
+        allNodes,
+        node => node.sel === 'label' && textContent(node) === labelValue,
+      ),
+      Array.flatMap(labelNode =>
+        pipe(
+          lookupStringAttribute('for')(labelNode),
+          Option.flatMap(findById(html)),
+          Option.match({
+            onNone: () =>
+              Array.filter(collectDescendants(labelNode), isFormControl),
+            onSome: control => [control],
+          }),
+        ),
+      ),
+    )
+
+    const viaLabelledBy = Array.filter(
+      allNodes,
+      flow(nameFromLabelledBy(html), Option.exists(Equal.equals(labelValue))),
+    )
+
+    return Array.dedupe([...viaAriaLabel, ...viaLabelElement, ...viaLabelledBy])
+  }
+
 /** Finds the first element with the given `alt` attribute. */
 export const getByAltText =
   (altValue: string) =>
@@ -1005,6 +1044,10 @@ export const allText = (
   options?: Readonly<{ exact?: boolean }>,
 ): LocatorAll =>
   makeLocatorAll(getAllByText(target, options), `all text "${target}"`)
+
+/** Creates a LocatorAll that finds every element with the given label. */
+export const allLabel = (labelValue: string): LocatorAll =>
+  makeLocatorAll(getAllByLabel(labelValue), `all label "${labelValue}"`)
 
 /** Creates a LocatorAll that finds every element with the given placeholder. */
 export const allPlaceholder = (placeholderValue: string): LocatorAll =>

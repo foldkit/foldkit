@@ -5,8 +5,8 @@ import { sceneMatchers } from './matchers'
 declare module 'vitest' {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface Assertion<T> {
-    toHaveText(expected: string): this
-    toContainText(expected: string): this
+    toHaveText(expected: string | RegExp): this
+    toContainText(expected: string | RegExp): this
     toHaveClass(expected: string): this
     toHaveAttr(name: string, value?: string): this
     toHaveStyle(name: string, value?: string): this
@@ -16,6 +16,9 @@ declare module 'vitest' {
     toBeDisabled(): this
     toBeEnabled(): this
     toBeChecked(): this
+    toBeEmpty(): this
+    toBeVisible(): this
+    toHaveId(expected: string): this
     toExist(): this
     toBeAbsent(): this
   }

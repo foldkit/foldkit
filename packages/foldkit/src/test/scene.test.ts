@@ -731,6 +731,44 @@ describe('multi-match locators', () => {
     const matches = Scene.all.selector('button')(tree)
     expect(matches).toHaveLength(3)
   })
+
+  test('all.label finds every element matching via aria-label', () => {
+    const labelTree: VNode = h('form', {}, [
+      h('input', { attrs: { 'aria-label': 'Accept' } }),
+      h('input', { attrs: { 'aria-label': 'Accept' } }),
+      h('input', { attrs: { 'aria-label': 'Decline' } }),
+    ])
+    expect(Scene.all.label('Accept')(labelTree)).toHaveLength(2)
+    expect(Scene.all.label('Decline')(labelTree)).toHaveLength(1)
+  })
+
+  test('all.label finds controls via <label for="id"> association', () => {
+    const labelTree: VNode = h('form', {}, [
+      h('label', { attrs: { for: 'a' } }, ['Item']),
+      h('input', { attrs: { id: 'a' } }),
+      h('label', { attrs: { for: 'b' } }, ['Item']),
+      h('input', { attrs: { id: 'b' } }),
+    ])
+    expect(Scene.all.label('Item')(labelTree)).toHaveLength(2)
+  })
+
+  test('all.label finds controls via nested <label>', () => {
+    const labelTree: VNode = h('form', {}, [
+      h('label', {}, ['Item', h('input', {})]),
+      h('label', {}, ['Item', h('input', {})]),
+    ])
+    expect(Scene.all.label('Item')(labelTree)).toHaveLength(2)
+  })
+
+  test('all.label dedupes when multiple strategies match the same element', () => {
+    const labelTree: VNode = h('form', {}, [
+      h('label', { attrs: { for: 'email' } }, ['Email']),
+      h('input', {
+        attrs: { id: 'email', 'aria-label': 'Email' },
+      }),
+    ])
+    expect(Scene.all.label('Email')(labelTree)).toHaveLength(1)
+  })
 })
 
 describe('custom matchers', () => {
@@ -796,6 +834,89 @@ describe('custom matchers', () => {
     expect(() => expect(Option.some(element)).toBeAbsent()).toThrow(
       'Expected element to be absent',
     )
+  })
+
+  test('toHaveText passes for matching regex', () => {
+    expect(Option.some(element)).toHaveText(/^Sign/)
+  })
+
+  test('toHaveText fails for non-matching regex', () => {
+    expect(() => expect(Option.some(element)).toHaveText(/^Log/)).toThrow(
+      'Expected element to have text /^Log/',
+    )
+  })
+
+  test('toContainText passes for matching regex', () => {
+    expect(Option.some(element)).toContainText(/ign/)
+  })
+
+  test('toContainText fails for non-matching regex', () => {
+    expect(() => expect(Option.some(element)).toContainText(/^Log$/)).toThrow(
+      'Expected element to contain text /^Log$/',
+    )
+  })
+
+  test('toBeEmpty passes for empty element', () => {
+    expect(Option.some(h('div', {}, []))).toBeEmpty()
+  })
+
+  test('toBeEmpty fails for element with text', () => {
+    expect(() =>
+      expect(Option.some(h('div', {}, ['content']))).toBeEmpty(),
+    ).toThrow('Expected element to be empty')
+  })
+
+  test('toBeEmpty fails for element with children', () => {
+    expect(() =>
+      expect(Option.some(h('div', {}, [h('span', {}, [])]))).toBeEmpty(),
+    ).toThrow('Expected element to be empty')
+  })
+
+  test('not.toBeEmpty passes for element with content', () => {
+    expect(Option.some(h('div', {}, ['content']))).not.toBeEmpty()
+  })
+
+  test('toBeVisible passes for default element', () => {
+    expect(Option.some(element)).toBeVisible()
+  })
+
+  test('toBeVisible fails for element with hidden attribute', () => {
+    const hidden: VNode = h('div', { attrs: { hidden: 'true' } }, [])
+    expect(() => expect(Option.some(hidden)).toBeVisible()).toThrow(
+      'Expected element to be visible',
+    )
+  })
+
+  test('toBeVisible fails for element with aria-hidden="true"', () => {
+    const hidden: VNode = h('div', { attrs: { 'aria-hidden': 'true' } }, [])
+    expect(() => expect(Option.some(hidden)).toBeVisible()).toThrow(
+      'Expected element to be visible',
+    )
+  })
+
+  test('toBeVisible fails for display:none', () => {
+    const hidden: VNode = h('div', { style: { display: 'none' } }, [])
+    expect(() => expect(Option.some(hidden)).toBeVisible()).toThrow(
+      'Expected element to be visible',
+    )
+  })
+
+  test('toHaveId passes for matching id', () => {
+    const withId: VNode = h('div', { attrs: { id: 'main' } }, [])
+    expect(Option.some(withId)).toHaveId('main')
+  })
+
+  test('toHaveId fails for non-matching id', () => {
+    const withId: VNode = h('div', { attrs: { id: 'main' } }, [])
+    expect(() => expect(Option.some(withId)).toHaveId('sidebar')).toThrow(
+      'Expected element to have id "sidebar"',
+    )
+  })
+
+  test('toHaveId fails for element without id', () => {
+    expect(() =>
+      expect(Option.some(h('div', {}, []))).toHaveId('main'),
+    ).toThrow('the element has no id')
   })
 })
 

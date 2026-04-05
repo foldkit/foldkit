@@ -1,49 +1,58 @@
-import { Option } from 'effect'
+import { Option, String as String_ } from 'effect'
 
 import type { VNode } from '../vdom'
 import { attr, textContent } from './query'
 
 type MatcherContext = Readonly<{ isNot: boolean }>
 
+const describeExpected = (expected: string | RegExp): string =>
+  expected instanceof RegExp ? `${expected}` : `"${expected}"`
+
+const textMatches = (value: string, expected: string | RegExp): boolean =>
+  expected instanceof RegExp ? expected.test(value) : value === expected
+
+const textIncludes = (value: string, expected: string | RegExp): boolean =>
+  expected instanceof RegExp ? expected.test(value) : value.includes(expected)
+
 /** Custom Vitest matchers for scene testing. Register with `expect.extend(Scene.sceneMatchers)`. */
 export const sceneMatchers = {
-  toHaveText(received: Option.Option<VNode>, expected: string) {
+  toHaveText(received: Option.Option<VNode>, expected: string | RegExp) {
     return Option.match(received, {
       onNone: () => ({
         pass: false,
         message: () =>
-          `Expected element to have text "${expected}" but the element does not exist.`,
+          `Expected element to have text ${describeExpected(expected)} but the element does not exist.`,
       }),
       onSome: vnode => {
         const actualText = textContent(vnode)
         return {
-          pass: actualText === expected,
+          pass: textMatches(actualText, expected),
           message: () =>
             // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             (this as unknown as MatcherContext).isNot
-              ? `Expected element not to have text "${expected}" but it does.`
-              : `Expected element to have text "${expected}" but received "${actualText}".`,
+              ? `Expected element not to have text ${describeExpected(expected)} but it does.`
+              : `Expected element to have text ${describeExpected(expected)} but received "${actualText}".`,
         }
       },
     })
   },
 
-  toContainText(received: Option.Option<VNode>, expected: string) {
+  toContainText(received: Option.Option<VNode>, expected: string | RegExp) {
     return Option.match(received, {
       onNone: () => ({
         pass: false,
         message: () =>
-          `Expected element to contain text "${expected}" but the element does not exist.`,
+          `Expected element to contain text ${describeExpected(expected)} but the element does not exist.`,
       }),
       onSome: vnode => {
         const actualText = textContent(vnode)
         return {
-          pass: actualText.includes(expected),
+          pass: textIncludes(actualText, expected),
           message: () =>
             // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             (this as unknown as MatcherContext).isNot
-              ? `Expected element not to contain text "${expected}" but it does.`
-              : `Expected element to contain text "${expected}" but received "${actualText}".`,
+              ? `Expected element not to contain text ${describeExpected(expected)} but it does.`
+              : `Expected element to contain text ${describeExpected(expected)} but received "${actualText}".`,
         }
       },
     })
@@ -298,6 +307,93 @@ export const sceneMatchers = {
               ? 'Expected element not to be enabled but it is.'
               : 'Expected element to be enabled but it is disabled.',
         }
+      },
+    })
+  },
+
+  toBeEmpty(received: Option.Option<VNode>) {
+    return Option.match(received, {
+      onNone: () => ({
+        pass: false,
+        message: () =>
+          'Expected element to be empty but the element does not exist.',
+      }),
+      onSome: vnode => {
+        const childCount = (vnode.children ?? []).length
+        const text = textContent(vnode)
+        const pass = String_.isEmpty(text) && childCount === 0
+        const actual: string = String_.isNonEmpty(text)
+          ? `received text "${text}"`
+          : `received ${childCount} child(ren)`
+        return {
+          pass,
+          message: (): string =>
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+            (this as unknown as MatcherContext).isNot
+              ? 'Expected element not to be empty but it is.'
+              : `Expected element to be empty but ${actual}.`,
+        }
+      },
+    })
+  },
+
+  toBeVisible(received: Option.Option<VNode>) {
+    return Option.match(received, {
+      onNone: () => ({
+        pass: false,
+        message: () =>
+          'Expected element to be visible but the element does not exist.',
+      }),
+      onSome: vnode => {
+        const hiddenAttr = attr(vnode, 'hidden')
+        const hiddenByAttr =
+          Option.isSome(hiddenAttr) && hiddenAttr.value !== 'false'
+        const ariaHidden = attr(vnode, 'aria-hidden')
+        const hiddenByAria =
+          Option.isSome(ariaHidden) && ariaHidden.value === 'true'
+        const display = vnode.data?.style?.['display']
+        const visibility = vnode.data?.style?.['visibility']
+        const isHidden =
+          hiddenByAttr ||
+          hiddenByAria ||
+          display === 'none' ||
+          visibility === 'hidden'
+        return {
+          pass: !isHidden,
+          message: () =>
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+            (this as unknown as MatcherContext).isNot
+              ? 'Expected element not to be visible but it is.'
+              : 'Expected element to be visible but it is hidden.',
+        }
+      },
+    })
+  },
+
+  toHaveId(received: Option.Option<VNode>, expected: string) {
+    return Option.match(received, {
+      onNone: () => ({
+        pass: false,
+        message: () =>
+          `Expected element to have id "${expected}" but the element does not exist.`,
+      }),
+      onSome: vnode => {
+        const actualId = attr(vnode, 'id')
+        return Option.match(actualId, {
+          onNone: () => ({
+            pass: false,
+            message: () =>
+              `Expected element to have id "${expected}" but the element has no id.`,
+          }),
+          onSome: actual => ({
+            pass: actual === expected,
+            message: () =>
+              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+              (this as unknown as MatcherContext).isNot
+                ? `Expected element not to have id "${expected}" but it does.`
+                : `Expected element to have id "${expected}" but received "${actual}".`,
+          }),
+        })
       },
     })
   },

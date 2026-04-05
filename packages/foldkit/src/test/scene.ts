@@ -33,6 +33,7 @@ import {
 import {
   allAltText,
   allDisplayValue,
+  allLabel,
   allPlaceholder,
   allRole,
   allSelector,
@@ -68,6 +69,7 @@ export {
   text,
   within,
   getAllByText,
+  getAllByLabel,
   getAllByPlaceholder,
   getAllByAltText,
   getAllByTitle,
@@ -86,6 +88,7 @@ export type { Locator, LocatorAll } from './query'
 export const all = {
   role: allRole,
   text: allText,
+  label: allLabel,
   placeholder: allPlaceholder,
   altText: allAltText,
   title: allTitle,
