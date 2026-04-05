@@ -344,7 +344,7 @@ const lookupTypeAttribute = (vnode: VNode): string | undefined => {
       : undefined
 }
 
-const isSubmittingButton = (element: VNode): boolean => {
+const isSubmitButton = (element: VNode): boolean => {
   const type = lookupTypeAttribute(element)
   if (element.sel === 'button') {
     return type === undefined || type === 'submit'
@@ -623,7 +623,7 @@ export const click =
 
     const hasClickHandler = element.data?.on?.['click'] !== undefined
 
-    if (!hasClickHandler && isSubmittingButton(element)) {
+    if (!hasClickHandler && isSubmitButton(element)) {
       const maybeForm = pipe(
         ancestorsOf(internal.html, element),
         Array.findLast(vnode => vnode.sel === 'form'),
