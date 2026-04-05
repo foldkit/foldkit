@@ -1,4 +1,12 @@
-import { Array, Effect, Function, Option, Predicate, pipe } from 'effect'
+import {
+  Array,
+  Effect,
+  Function,
+  Option,
+  Predicate,
+  String as String_,
+  pipe,
+} from 'effect'
 import { dual } from 'effect/Function'
 
 import type { CommandDefinition } from '../command'
@@ -11,12 +19,29 @@ import {
   assertNoUnresolvedCommands,
   resolveByName,
 } from './internal'
-import type { Locator } from './query'
-import { attr, resolveTarget, textContent } from './query'
+import type { Locator, LocatorAll } from './query'
+import {
+  accessibleDescription,
+  accessibleName,
+  attr,
+  resolveTarget,
+  selector,
+  textContent,
+  within,
+} from './query'
+import {
+  allAltText,
+  allDisplayValue,
+  allPlaceholder,
+  allRole,
+  allSelector,
+  allTestId,
+  allText,
+  allTitle,
+} from './query'
 
 export type { AnyCommand, ResolverPair }
 
-export type { Locator } from './query'
 export {
   find,
   findAll,
@@ -27,13 +52,46 @@ export {
   getByText,
   getByPlaceholder,
   getByLabel,
+  getByAltText,
+  getByTitle,
+  getByTestId,
+  getByDisplayValue,
   role,
   placeholder,
   label,
+  altText,
+  title,
+  testId,
+  displayValue,
   selector,
   text,
   within,
+  getAllByText,
+  getAllByPlaceholder,
+  getAllByAltText,
+  getAllByTitle,
+  getAllByTestId,
+  getAllByDisplayValue,
+  first,
+  last,
+  nth,
+  filter,
 } from './query'
+export type { Locator, LocatorAll } from './query'
+
+/** Multi-match Locator factories. Each returns a `LocatorAll` that resolves
+ *  to every matching VNode. Convert to a single `Locator` via `first`,
+ *  `last`, or `nth(n)`, or narrow via `filter`. */
+export const all = {
+  role: allRole,
+  text: allText,
+  placeholder: allPlaceholder,
+  altText: allAltText,
+  title: allTitle,
+  testId: allTestId,
+  displayValue: allDisplayValue,
+  selector: allSelector,
+} as const
 export { sceneMatchers } from './matchers'
 
 /** An immutable test simulation that includes the rendered VNode tree.
@@ -92,6 +150,7 @@ type InternalSceneSimulation<
     resolvers: Record<string, Message>
     viewFn: (model: Model) => Html
     capturingDispatch: CapturingDispatch
+    scope: Option.Option<Locator>
   }>
 
 const UNINITIALIZED = Symbol('uninitialized')
@@ -101,6 +160,45 @@ const toInternal = <Model, Message, OutMessage>(
 ): InternalSceneSimulation<Model, Message, OutMessage> =>
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   simulation as InternalSceneSimulation<Model, Message, OutMessage>
+
+const applyScopeToTarget = (
+  scope: Option.Option<Locator>,
+  target: string | Locator,
+): string | Locator =>
+  Option.match(scope, {
+    onNone: () => target,
+    onSome: parent =>
+      typeof target === 'string'
+        ? within(parent, selector(target))
+        : within(parent, target),
+  })
+
+const applyScopeToLocator = (
+  scope: Option.Option<Locator>,
+  locator: Locator,
+): Locator =>
+  Option.match(scope, {
+    onNone: () => locator,
+    onSome: parent => within(parent, locator),
+  })
+
+const applyScopeToLocatorAll = (
+  scope: Option.Option<Locator>,
+  locatorAll: LocatorAll,
+): LocatorAll =>
+  Option.match(scope, {
+    onNone: () => locatorAll,
+    onSome: parent => {
+      const resolve = (html: VNode): ReadonlyArray<VNode> =>
+        Option.match(parent(html), {
+          onNone: () => [],
+          onSome: locatorAll,
+        })
+      return Object.assign(resolve, {
+        description: `${locatorAll.description} within ${parent.description}`,
+      } as const)
+    },
+  })
 
 // CAPTURING DISPATCH
 
@@ -147,8 +245,14 @@ const renderView = <Model>(
 
 const EVENT_NAMES: Record<string, string> = {
   click: 'OnClick',
+  dblclick: 'OnDblClick',
   submit: 'OnSubmit',
   input: 'OnInput',
+  change: 'OnChange',
+  focus: 'OnFocus',
+  blur: 'OnBlur',
+  mouseenter: 'OnMouseEnter',
+  mouseover: 'OnMouseOver',
   keydown: 'OnKeyDown or OnKeyDownPreventDefault',
 }
 
@@ -159,7 +263,11 @@ const invokeAndCapture = <Model, Message, OutMessage>(
   invokeHandler: (handler: Function) => void,
 ): SceneSimulation<Model, Message, OutMessage> => {
   const internal = toInternal(simulation)
-  const { maybeElement, description } = resolveTarget(internal.html, target)
+  const scopedTarget = applyScopeToTarget(internal.scope, target)
+  const { maybeElement, description } = resolveTarget(
+    internal.html,
+    scopedTarget,
+  )
 
   if (Option.isNone(maybeElement)) {
     throw new Error(
@@ -359,6 +467,70 @@ export const tap =
     return simulation
   }
 
+const runSteps = <Model, Message, OutMessage>(
+  seed: SceneSimulation<Model, Message, OutMessage>,
+  steps: ReadonlyArray<SceneStep<Model, Message, OutMessage>>,
+): SceneSimulation<Model, Message, OutMessage> =>
+  /* eslint-disable @typescript-eslint/consistent-type-assertions */
+  Array.reduce(steps, seed, (current, step) => {
+    const next = (
+      step as (
+        simulation: SceneSimulation<Model, Message, OutMessage>,
+      ) => SceneSimulation<Model, Message, OutMessage>
+    )(current)
+
+    const internal = toInternal(next)
+
+    if ((internal.model as unknown) !== (UNINITIALIZED as unknown)) {
+      const html = renderView(
+        internal.viewFn,
+        internal.model,
+        internal.capturingDispatch.dispatch,
+      )
+      return { ...internal, html } as SceneSimulation<
+        Model,
+        Message,
+        OutMessage
+      >
+    }
+
+    return next
+  })
+/* eslint-enable @typescript-eslint/consistent-type-assertions */
+
+/** Scopes a sequence of steps to a parent element. Every Locator referenced by
+ *  child steps — assertions, interactions — resolves within the parent's subtree.
+ *  Use this when several steps share the same scope. For a single scoped query,
+ *  prefer `within(parent, child)` directly. Nested `inside` calls compose scopes
+ *  via `within(outer, inner)`. */
+export const inside =
+  <Model, Message, OutMessage = undefined>(
+    parent: Locator,
+    ...steps: ReadonlyArray<NoInfer<SceneStep<Model, Message, OutMessage>>>
+  ) =>
+  (
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    const internal = toInternal(simulation)
+    const priorScope = internal.scope
+    const nextScope = Option.match(priorScope, {
+      onNone: () => parent,
+      onSome: within(parent),
+    })
+    /* eslint-disable @typescript-eslint/consistent-type-assertions */
+    const scopedEntry = {
+      ...internal,
+      scope: Option.some(nextScope),
+    } as unknown as SceneSimulation<Model, Message, OutMessage>
+    const afterSteps = runSteps(scopedEntry, steps)
+    const afterInternal = toInternal(afterSteps)
+    return {
+      ...afterInternal,
+      scope: priorScope,
+    } as unknown as SceneSimulation<Model, Message, OutMessage>
+    /* eslint-enable @typescript-eslint/consistent-type-assertions */
+  }
+
 // INTERACTION STEPS
 
 /** Simulates a click on the element matching the target. */
@@ -370,6 +542,83 @@ export const click =
     invokeAndCapture(simulation, target, 'click', handler => {
       handler()
     })
+
+/** Simulates a double-click on the element matching the target. */
+export const doubleClick =
+  (target: string | Locator) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> =>
+    invokeAndCapture(simulation, target, 'dblclick', handler => {
+      handler()
+    })
+
+/** Simulates a hover (mouseenter) on the element matching the target.
+ *  Dispatches the `mouseenter` handler, falling back to `mouseover`. */
+export const hover =
+  (target: string | Locator) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    const internal = toInternal(simulation)
+    const scopedTarget = applyScopeToTarget(internal.scope, target)
+    const { maybeElement } = resolveTarget(internal.html, scopedTarget)
+    const eventName = Option.match(maybeElement, {
+      onNone: () => 'mouseenter',
+      onSome: element =>
+        element.data?.on?.['mouseenter'] ? 'mouseenter' : 'mouseover',
+    })
+    return invokeAndCapture(simulation, target, eventName, handler => {
+      handler()
+    })
+  }
+
+/** Simulates a focus event on the element matching the target. */
+export const focus =
+  (target: string | Locator) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> =>
+    invokeAndCapture(simulation, target, 'focus', handler => {
+      handler()
+    })
+
+/** Simulates a blur event on the element matching the target. */
+export const blur =
+  (target: string | Locator) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> =>
+    invokeAndCapture(simulation, target, 'blur', handler => {
+      handler()
+    })
+
+/** Simulates a change event on the element matching the target.
+ *  Dual: `change(target, value)` or `change(value)` for data-last piping. */
+export const change: {
+  (
+    target: string | Locator,
+    value: string,
+  ): <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ) => SceneSimulation<Model, Message, OutMessage>
+  (
+    value: string,
+  ): (
+    target: string | Locator,
+  ) => <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ) => SceneSimulation<Model, Message, OutMessage>
+} = dual(
+  2,
+  (target: string | Locator, value: string) =>
+    <Model, Message, OutMessage = undefined>(
+      simulation: SceneSimulation<Model, Message, OutMessage>,
+    ): SceneSimulation<Model, Message, OutMessage> =>
+      invokeAndCapture(simulation, target, 'change', handler => {
+        handler({ target: { value } })
+      }),
+)
 
 /** Simulates form submission on the element matching the target. */
 export const submit =
@@ -466,6 +715,7 @@ type SceneAssertion = (
   maybeElement: Option.Option<VNode>,
   description: string,
   isNot: boolean,
+  root: VNode,
 ) => void
 
 const wrapAssertion =
@@ -474,16 +724,25 @@ const wrapAssertion =
     simulation: SceneSimulation<Model, Message, OutMessage>,
   ): SceneSimulation<Model, Message, OutMessage> => {
     const internal = toInternal(simulation)
-    assertion(locator(internal.html), locator.description, isNot)
+    const scopedLocator = applyScopeToLocator(internal.scope, locator)
+    assertion(
+      scopedLocator(internal.html),
+      scopedLocator.description,
+      isNot,
+      internal.html,
+    )
     return simulation
   }
 
 const assertOnElement =
   (
-    check: (vnode: VNode) => Readonly<{ pass: boolean; actual: string }>,
+    check: (
+      vnode: VNode,
+      root: VNode,
+    ) => Readonly<{ pass: boolean; actual: string }>,
     expectation: string,
   ): SceneAssertion =>
-  (maybeElement, description, isNot) => {
+  (maybeElement, description, isNot, root) => {
     if (Option.isNone(maybeElement)) {
       if (!isNot) {
         throw new Error(
@@ -492,7 +751,7 @@ const assertOnElement =
       }
       return
     }
-    const { pass, actual } = check(maybeElement.value)
+    const { pass, actual } = check(maybeElement.value, root)
     if (isNot ? pass : !pass) {
       throw new Error(
         isNot
@@ -524,22 +783,31 @@ const assertAbsent: SceneAssertion = (maybeElement, description, isNot) => {
   }
 }
 
-const assertHasText = (expected: string): SceneAssertion =>
+const describeExpected = (expected: string | RegExp): string =>
+  expected instanceof RegExp ? `${expected}` : `"${expected}"`
+
+const textMatches = (value: string, expected: string | RegExp): boolean =>
+  expected instanceof RegExp ? expected.test(value) : value === expected
+
+const textIncludes = (value: string, expected: string | RegExp): boolean =>
+  expected instanceof RegExp ? expected.test(value) : value.includes(expected)
+
+const assertHasText = (expected: string | RegExp): SceneAssertion =>
   assertOnElement(
     vnode => ({
-      pass: textContent(vnode) === expected,
+      pass: textMatches(textContent(vnode), expected),
       actual: `received "${textContent(vnode)}"`,
     }),
-    `have text "${expected}"`,
+    `have text ${describeExpected(expected)}`,
   )
 
-const assertContainsText = (expected: string): SceneAssertion =>
+const assertContainsText = (expected: string | RegExp): SceneAssertion =>
   assertOnElement(
     vnode => ({
-      pass: textContent(vnode).includes(expected),
+      pass: textIncludes(textContent(vnode), expected),
       actual: `received "${textContent(vnode)}"`,
     }),
-    `contain text "${expected}"`,
+    `contain text ${describeExpected(expected)}`,
   )
 
 const assertHasAttr = (
@@ -674,12 +942,78 @@ const assertIsChecked: SceneAssertion = assertOnElement(vnode => {
   return { pass, actual: 'it is not checked' }
 }, 'be checked')
 
+const isHidden = (vnode: VNode): boolean => {
+  const hiddenAttr = attr(vnode, 'hidden')
+  if (Option.isSome(hiddenAttr) && hiddenAttr.value !== 'false') return true
+  const ariaHidden = attr(vnode, 'aria-hidden')
+  if (Option.isSome(ariaHidden) && ariaHidden.value === 'true') return true
+  const display = vnode.data?.style?.['display']
+  if (display === 'none') return true
+  const visibility = vnode.data?.style?.['visibility']
+  if (visibility === 'hidden') return true
+  return false
+}
+
+const assertIsVisible: SceneAssertion = assertOnElement(
+  vnode => ({ pass: !isHidden(vnode), actual: 'it is hidden' }),
+  'be visible',
+)
+
+const assertHasAccessibleName = (expected: string | RegExp): SceneAssertion =>
+  assertOnElement(
+    (vnode, root) => {
+      const actual = accessibleName(root)(vnode)
+      return {
+        pass: textMatches(actual, expected),
+        actual: `received "${actual}"`,
+      }
+    },
+    `have accessible name ${describeExpected(expected)}`,
+  )
+
+const assertHasAccessibleDescription = (
+  expected: string | RegExp,
+): SceneAssertion =>
+  assertOnElement(
+    (vnode, root) => {
+      const actual = accessibleDescription(root)(vnode)
+      return {
+        pass: textMatches(actual, expected),
+        actual: `received "${actual}"`,
+      }
+    },
+    `have accessible description ${describeExpected(expected)}`,
+  )
+
+const assertIsEmpty: SceneAssertion = assertOnElement(vnode => {
+  const childCount = (vnode.children ?? []).length
+  const text = textContent(vnode)
+  return {
+    pass: String_.isEmpty(text) && childCount === 0,
+    actual: String_.isNonEmpty(text)
+      ? `received text "${text}"`
+      : `received ${childCount} child(ren)`,
+  }
+}, 'be empty')
+
+const assertHasId = (expected: string): SceneAssertion =>
+  assertOnElement(vnode => {
+    const actualId = attr(vnode, 'id')
+    return Option.match(actualId, {
+      onNone: () => ({ pass: false, actual: 'the element has no id' }),
+      onSome: actual => ({
+        pass: actual === expected,
+        actual: `received "${actual}"`,
+      }),
+    })
+  }, `have id "${expected}"`)
+
 const buildExpectChain = (locator: Locator, isNot: boolean) => ({
   toExist: () => wrapAssertion(locator, assertExists, isNot),
   toBeAbsent: () => wrapAssertion(locator, assertAbsent, isNot),
-  toHaveText: (expected: string) =>
+  toHaveText: (expected: string | RegExp) =>
     wrapAssertion(locator, assertHasText(expected), isNot),
-  toContainText: (expected: string) =>
+  toContainText: (expected: string | RegExp) =>
     wrapAssertion(locator, assertContainsText(expected), isNot),
   toHaveAttr: (name: string, value?: string) =>
     wrapAssertion(locator, assertHasAttr(name, value), isNot),
@@ -695,6 +1029,14 @@ const buildExpectChain = (locator: Locator, isNot: boolean) => ({
     wrapAssertion(locator, assertHasValue(expected), isNot),
   toBeDisabled: () => wrapAssertion(locator, assertIsDisabled, isNot),
   toBeEnabled: () => wrapAssertion(locator, assertIsEnabled, isNot),
+  toBeEmpty: () => wrapAssertion(locator, assertIsEmpty, isNot),
+  toBeVisible: () => wrapAssertion(locator, assertIsVisible, isNot),
+  toHaveId: (expected: string) =>
+    wrapAssertion(locator, assertHasId(expected), isNot),
+  toHaveAccessibleName: (expected: string | RegExp) =>
+    wrapAssertion(locator, assertHasAccessibleName(expected), isNot),
+  toHaveAccessibleDescription: (expected: string | RegExp) =>
+    wrapAssertion(locator, assertHasAccessibleDescription(expected), isNot),
   toBeChecked: () => wrapAssertion(locator, assertIsChecked, isNot),
 })
 
@@ -704,6 +1046,62 @@ export { expect_ as expect }
 const expect_ = (locator: Locator) => ({
   ...buildExpectChain(locator, false),
   not: buildExpectChain(locator, true),
+})
+
+// LOCATOR-ALL ASSERTIONS
+
+const wrapAllAssertion =
+  (
+    locatorAll: LocatorAll,
+    assertion: (
+      matches: ReadonlyArray<VNode>,
+      description: string,
+      isNot: boolean,
+    ) => void,
+    isNot: boolean,
+  ) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    const internal = toInternal(simulation)
+    const scopedLocatorAll = applyScopeToLocatorAll(internal.scope, locatorAll)
+    assertion(
+      scopedLocatorAll(internal.html),
+      scopedLocatorAll.description,
+      isNot,
+    )
+    return simulation
+  }
+
+const assertCount =
+  (expected: number) =>
+  (
+    matches: ReadonlyArray<VNode>,
+    description: string,
+    isNot: boolean,
+  ): void => {
+    const actual = matches.length
+    const pass = actual === expected
+    if (isNot ? pass : !pass) {
+      throw new Error(
+        isNot
+          ? `Expected elements matching ${description} not to have count ${expected} but they do.`
+          : `Expected elements matching ${description} to have count ${expected} but received ${actual}.`,
+      )
+    }
+  }
+
+const buildExpectAllChain = (locatorAll: LocatorAll, isNot: boolean) => ({
+  toHaveCount: (expected: number) =>
+    wrapAllAssertion(locatorAll, assertCount(expected), isNot),
+  toBeEmpty: () => wrapAllAssertion(locatorAll, assertCount(0), isNot),
+})
+
+/** Creates an inline multi-match assertion step. Use for count-based
+ *  assertions like `toHaveCount(n)` or `toBeEmpty()`. */
+export const expectAll = (locatorAll: LocatorAll) => ({
+  ...buildExpectAllChain(locatorAll, false),
+  not: buildExpectAllChain(locatorAll, true),
 })
 
 // SUBMODEL VIEW ADAPTER
@@ -767,32 +1165,10 @@ export const scene: {
     html: undefined as unknown,
     viewFn: config.view,
     capturingDispatch,
+    scope: Option.none(),
   } as unknown as SceneSimulation<Model, Message, OutMessage>
 
-  const result = steps.reduce((current, step) => {
-    const next = (
-      step as (
-        simulation: SceneSimulation<Model, Message, OutMessage>,
-      ) => SceneSimulation<Model, Message, OutMessage>
-    )(current)
-
-    const internal = toInternal(next)
-
-    if ((internal.model as unknown) !== (UNINITIALIZED as unknown)) {
-      const html = renderView(
-        internal.viewFn,
-        internal.model,
-        internal.capturingDispatch.dispatch,
-      )
-      return { ...internal, html } as SceneSimulation<
-        Model,
-        Message,
-        OutMessage
-      >
-    }
-
-    return next
-  }, seed)
+  const result = runSteps(seed, steps)
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
 
   const internal = toInternal(result)

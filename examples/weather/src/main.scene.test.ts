@@ -53,15 +53,15 @@ describe('scene', () => {
         FetchWeather,
         SucceededFetchWeather({ weather: weatherData }),
       ),
-      Scene.expect(Scene.role('article')).toExist(),
-      Scene.expect(Scene.role('heading', { name: '90210' })).toExist(),
-      Scene.expect(Scene.role('article')).toContainText(
-        'Beverly Hills, California',
+      Scene.inside(
+        Scene.role('article'),
+        Scene.expect(Scene.role('heading', { name: '90210' })).toExist(),
+        Scene.expect(Scene.text('Beverly Hills, California')).toExist(),
+        Scene.expect(Scene.text('72°F')).toExist(),
+        Scene.expect(Scene.text('Clear sky')).toExist(),
+        Scene.expect(Scene.text('45%')).toExist(),
+        Scene.expect(Scene.text('10 mph')).toExist(),
       ),
-      Scene.expect(Scene.role('article')).toContainText('72°F'),
-      Scene.expect(Scene.role('article')).toContainText('Clear sky'),
-      Scene.expect(Scene.role('article')).toContainText('45%'),
-      Scene.expect(Scene.role('article')).toContainText('10 mph'),
     )
   })
 

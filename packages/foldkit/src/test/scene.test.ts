@@ -3,6 +3,11 @@ import { h } from 'snabbdom'
 import type { VNode } from 'snabbdom'
 import { describe, expect, test } from 'vitest'
 
+import {
+  initialModel as interactionsInitialModel,
+  update as interactionsUpdate,
+  view as interactionsView,
+} from './apps/interactions'
 import { update as keyUpdate, view as keyView } from './apps/keypress'
 import {
   Authenticate,
@@ -19,16 +24,25 @@ import {
   update as logoutUpdate,
   view as logoutView,
 } from './apps/logoutButton'
+import {
+  initialModel as multiRoleInitialModel,
+  update as multiRoleUpdate,
+  view as multiRoleView,
+} from './apps/multiRole'
 import { parseSelector } from './query'
 import {
   attr,
   find,
   findAll,
   getAllByRole,
+  getByAltText,
+  getByDisplayValue,
   getByLabel,
   getByPlaceholder,
   getByRole,
+  getByTestId,
   getByText,
+  getByTitle,
   textContent,
 } from './query'
 import * as Scene from './scene'
@@ -260,6 +274,41 @@ describe('accessible locators', () => {
         props: { type: 'tel' },
       }),
     ]),
+    h('img', { attrs: { alt: 'Company logo', src: '/logo.png' } }),
+    h('button', { attrs: { title: 'Close dialog' } }, ['X']),
+    h('div', { attrs: { 'data-testid': 'cart-summary' } }, ['2 items']),
+    h('input', {
+      attrs: { 'data-testid': 'search-box' },
+      props: { type: 'text', value: 'hello world' },
+    }),
+    h('textarea', { props: { value: 'lorem ipsum' } }),
+    h('select', { props: { value: 'apple' } }, [
+      h('option', { props: { value: 'apple' } }, ['Apple']),
+      h('option', { props: { value: 'banana' } }, ['Banana']),
+    ]),
+    h('h3', {}, ['Subsection']),
+    h('div', { attrs: { role: 'heading', 'aria-level': '4' } }, [
+      'ARIA heading',
+    ]),
+    h('input', {
+      attrs: { 'aria-label': 'Subscribe' },
+      props: { type: 'checkbox', checked: true },
+    }),
+    h('div', {
+      attrs: {
+        role: 'checkbox',
+        'aria-checked': 'mixed',
+        'aria-label': 'Mixed',
+      },
+    }),
+    h('div', { attrs: { role: 'option', 'aria-selected': 'true' } }, [
+      'Selected option',
+    ]),
+    h('button', { attrs: { 'aria-pressed': 'true' } }, ['Bold']),
+    h('button', { attrs: { 'aria-expanded': 'false' } }, ['Menu']),
+    h('button', { props: { disabled: true } }, ['Submit form']),
+    h('button', { attrs: { 'aria-disabled': 'true' } }, ['Archived']),
+    h('div', { attrs: { role: 'doc-subtitle heading' } }, ['Fallback heading']),
   ])
 
   describe('getByRole', () => {
@@ -334,25 +383,106 @@ describe('accessible locators', () => {
     test('returns None for nonexistent role', () => {
       expect(Option.isNone(getByRole('dialog')(locatorTree))).toBe(true)
     })
+
+    test('finds element with a fallback role list by its first token', () => {
+      const result = getByRole('doc-subtitle')(locatorTree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(textContent(Option.getOrThrow(result))).toBe('Fallback heading')
+    })
+
+    test('finds element with a fallback role list by a later token', () => {
+      const results = getAllByRole('heading')(locatorTree)
+      const texts = results.map(textContent)
+      expect(texts).toContain('Fallback heading')
+    })
+
+    test('filters headings by level via tag', () => {
+      const result = getByRole('heading', { level: 3 })(locatorTree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(Option.getOrThrow(result).sel).toBe('h3')
+    })
+
+    test('filters headings by level via aria-level', () => {
+      const result = getByRole('heading', { level: 4 })(locatorTree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(Option.getOrThrow(result).sel).toBe('div')
+    })
+
+    test('filters checkbox by checked=true', () => {
+      const result = getByRole('checkbox', {
+        name: 'Subscribe',
+        checked: true,
+      })(locatorTree)
+      expect(Option.isSome(result)).toBe(true)
+    })
+
+    test('filters checkbox by aria-checked=mixed', () => {
+      const result = getByRole('checkbox', { checked: 'mixed' })(locatorTree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(Option.getOrThrow(result).sel).toBe('div')
+    })
+
+    test('filters option by selected=true', () => {
+      const result = getByRole('option', { selected: true })(locatorTree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(textContent(Option.getOrThrow(result))).toBe('Selected option')
+    })
+
+    test('filters button by pressed=true', () => {
+      const result = getByRole('button', { pressed: true })(locatorTree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(textContent(Option.getOrThrow(result))).toBe('Bold')
+    })
+
+    test('filters button by expanded=false', () => {
+      const result = getByRole('button', { expanded: false })(locatorTree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(textContent(Option.getOrThrow(result))).toBe('Menu')
+    })
+
+    test('filters button by disabled=true via prop', () => {
+      const result = getByRole('button', {
+        name: 'Submit form',
+        disabled: true,
+      })(locatorTree)
+      expect(Option.isSome(result)).toBe(true)
+    })
+
+    test('filters button by aria-disabled=true', () => {
+      const result = getByRole('button', {
+        name: 'Archived',
+        disabled: true,
+      })(locatorTree)
+      expect(Option.isSome(result)).toBe(true)
+    })
+
+    test('combines multiple option filters', () => {
+      const result = getByRole('checkbox', {
+        name: 'Subscribe',
+        checked: true,
+        disabled: false,
+      })(locatorTree)
+      expect(Option.isSome(result)).toBe(true)
+    })
   })
 
   describe('getAllByRole', () => {
     test('finds all elements with role', () => {
-      expect(getAllByRole(locatorTree, 'link')).toHaveLength(2)
+      expect(getAllByRole('link')(locatorTree)).toHaveLength(2)
     })
 
     test('filters by name', () => {
-      expect(getAllByRole(locatorTree, 'link', { name: 'About' })).toHaveLength(
+      expect(getAllByRole('link', { name: 'About' })(locatorTree)).toHaveLength(
         1,
       )
     })
 
     test('finds all headings', () => {
-      expect(getAllByRole(locatorTree, 'heading')).toHaveLength(2)
+      expect(getAllByRole('heading')(locatorTree)).toHaveLength(5)
     })
 
     test('finds all listitems', () => {
-      expect(getAllByRole(locatorTree, 'listitem')).toHaveLength(2)
+      expect(getAllByRole('listitem')(locatorTree)).toHaveLength(2)
     })
   })
 
@@ -429,6 +559,177 @@ describe('accessible locators', () => {
     test('returns None for non-matching label', () => {
       expect(Option.isNone(getByLabel('Footer')(locatorTree))).toBe(true)
     })
+  })
+
+  describe('getByAltText', () => {
+    test('finds element by alt attribute', () => {
+      const result = getByAltText('Company logo')(locatorTree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(Option.getOrThrow(result).sel).toBe('img')
+    })
+
+    test('returns None for non-matching alt text', () => {
+      expect(Option.isNone(getByAltText('Nonexistent')(locatorTree))).toBe(true)
+    })
+  })
+
+  describe('getByTitle', () => {
+    test('finds element by title attribute', () => {
+      const result = getByTitle('Close dialog')(locatorTree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(Option.getOrThrow(result).sel).toBe('button')
+    })
+
+    test('returns None for non-matching title', () => {
+      expect(Option.isNone(getByTitle('Nonexistent')(locatorTree))).toBe(true)
+    })
+  })
+
+  describe('getByTestId', () => {
+    test('finds element by data-testid attribute', () => {
+      const result = getByTestId('cart-summary')(locatorTree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(Option.getOrThrow(result).sel).toBe('div')
+      expect(textContent(Option.getOrThrow(result))).toBe('2 items')
+    })
+
+    test('finds form controls by data-testid', () => {
+      const result = getByTestId('search-box')(locatorTree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(Option.getOrThrow(result).sel).toBe('input')
+    })
+
+    test('returns None for non-matching testid', () => {
+      expect(Option.isNone(getByTestId('nonexistent')(locatorTree))).toBe(true)
+    })
+  })
+
+  describe('getByDisplayValue', () => {
+    test('finds input by current value', () => {
+      const result = getByDisplayValue('hello world')(locatorTree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(Option.getOrThrow(result).sel).toBe('input')
+    })
+
+    test('finds textarea by current value', () => {
+      const result = getByDisplayValue('lorem ipsum')(locatorTree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(Option.getOrThrow(result).sel).toBe('textarea')
+    })
+
+    test('finds select by current value', () => {
+      const result = getByDisplayValue('apple')(locatorTree)
+      expect(Option.isSome(result)).toBe(true)
+      // The first match will be the select (form control) — option elements
+      // aren't form controls in our allow-list, so they don't match.
+      expect(Option.getOrThrow(result).sel).toBe('select')
+    })
+
+    test('returns None for non-matching value', () => {
+      expect(Option.isNone(getByDisplayValue('Nonexistent')(locatorTree))).toBe(
+        true,
+      )
+    })
+  })
+})
+
+describe('multi-match locators', () => {
+  const tree: VNode = h('ul', { attrs: { role: 'list' } }, [
+    h('li', { attrs: { role: 'row' } }, [
+      h('span', {}, ['Alice']),
+      h('button', {}, ['Edit']),
+    ]),
+    h('li', { attrs: { role: 'row' } }, [
+      h('span', {}, ['Bob']),
+      h('button', {}, ['Edit']),
+    ]),
+    h('li', { attrs: { role: 'row' } }, [
+      h('span', {}, ['Carol']),
+      h('button', {}, ['Delete']),
+    ]),
+  ])
+
+  test('all.role returns every matching element', () => {
+    const matches = Scene.all.role('row')(tree)
+    expect(matches).toHaveLength(3)
+  })
+
+  test('first resolves to the first match', () => {
+    const locator = Scene.first(Scene.all.role('row'))
+    const result = locator(tree)
+    expect(Option.isSome(result)).toBe(true)
+    expect(textContent(Option.getOrThrow(result))).toBe('AliceEdit')
+  })
+
+  test('last resolves to the last match', () => {
+    const locator = Scene.last(Scene.all.role('row'))
+    const result = locator(tree)
+    expect(Option.isSome(result)).toBe(true)
+    expect(textContent(Option.getOrThrow(result))).toBe('CarolDelete')
+  })
+
+  test('nth resolves to the nth match (data-first)', () => {
+    const locator = Scene.nth(Scene.all.role('row'), 1)
+    const result = locator(tree)
+    expect(Option.isSome(result)).toBe(true)
+    expect(textContent(Option.getOrThrow(result))).toBe('BobEdit')
+  })
+
+  test('nth resolves to the nth match (data-last)', () => {
+    const locator = pipe(Scene.all.role('row'), Scene.nth(2))
+    const result = locator(tree)
+    expect(Option.isSome(result)).toBe(true)
+    expect(textContent(Option.getOrThrow(result))).toBe('CarolDelete')
+  })
+
+  test('nth returns None for out-of-range index', () => {
+    const locator = Scene.nth(Scene.all.role('row'), 99)
+    expect(Option.isNone(locator(tree))).toBe(true)
+  })
+
+  test('filter by hasText narrows matches', () => {
+    const filtered = Scene.filter(Scene.all.role('row'), { hasText: 'Bob' })
+    expect(filtered(tree)).toHaveLength(1)
+  })
+
+  test('filter by hasNotText removes matches', () => {
+    const filtered = Scene.filter(Scene.all.role('row'), {
+      hasNotText: 'Bob',
+    })
+    expect(filtered(tree)).toHaveLength(2)
+  })
+
+  test('filter by has narrows to entries containing a descendant', () => {
+    const filtered = Scene.filter(Scene.all.role('row'), {
+      has: Scene.text('Delete'),
+    })
+    expect(filtered(tree)).toHaveLength(1)
+  })
+
+  test('filter by hasNot removes entries containing a descendant', () => {
+    const filtered = Scene.filter(Scene.all.role('row'), {
+      hasNot: Scene.text('Delete'),
+    })
+    expect(filtered(tree)).toHaveLength(2)
+  })
+
+  test('filter composes with first', () => {
+    const locator = Scene.first(
+      Scene.filter(Scene.all.role('row'), { hasText: 'Carol' }),
+    )
+    const result = locator(tree)
+    expect(Option.isSome(result)).toBe(true)
+    expect(textContent(Option.getOrThrow(result))).toBe('CarolDelete')
+  })
+
+  test('all.text finds every text match', () => {
+    const matches = Scene.all.text('Edit')(tree)
+    expect(matches).toHaveLength(2)
+  })
+
+  test('all.selector returns every CSS match', () => {
+    const matches = Scene.all.selector('button')(tree)
+    expect(matches).toHaveLength(3)
   })
 })
 
@@ -775,6 +1076,240 @@ describe('scene with expect', () => {
       Scene.expect(Scene.role('status')).toHaveText('Welcome, alice!'),
     )
   })
+
+  test('toHaveId checks element id', () => {
+    Scene.scene(
+      { update, view },
+      Scene.with(initialModel),
+      Scene.expect(Scene.selector('#app')).toHaveId('app'),
+      Scene.expect(Scene.label('Email')).toHaveId('email'),
+    )
+  })
+
+  test('toHaveId fails when id does not match', () => {
+    expect(() =>
+      Scene.scene(
+        { update, view },
+        Scene.with(initialModel),
+        Scene.expect(Scene.label('Email')).toHaveId('wrong'),
+      ),
+    ).toThrow(
+      'Expected element matching label "Email" to have id "wrong" but received "email".',
+    )
+  })
+
+  test('toHaveId not.toHaveId passes for different id', () => {
+    Scene.scene(
+      { update, view },
+      Scene.with(initialModel),
+      Scene.expect(Scene.label('Email')).not.toHaveId('wrong'),
+    )
+  })
+
+  test('toBeEmpty passes for empty element', () => {
+    const loggedInModel: Model = {
+      ...initialModel,
+      status: 'LoggedIn',
+      username: 'alice',
+    }
+    Scene.scene(
+      { update, view: () => view(loggedInModel) },
+      Scene.with(loggedInModel),
+      Scene.expect(Scene.role('status')).not.toBeEmpty(),
+    )
+  })
+
+  test('toBeEmpty fails for element with content', () => {
+    expect(() =>
+      Scene.scene(
+        { update, view },
+        Scene.with(initialModel),
+        Scene.expect(Scene.role('button')).toBeEmpty(),
+      ),
+    ).toThrow(
+      'Expected element matching button to be empty but received text "Sign in".',
+    )
+  })
+
+  test('toHaveText accepts a regex', () => {
+    Scene.scene(
+      { update, view },
+      Scene.with(initialModel),
+      Scene.expect(Scene.role('button')).toHaveText(/^Sign in$/),
+    )
+  })
+
+  test('toHaveText regex failure reports the pattern', () => {
+    expect(() =>
+      Scene.scene(
+        { update, view },
+        Scene.with(initialModel),
+        Scene.expect(Scene.role('button')).toHaveText(/^Log in$/),
+      ),
+    ).toThrow('to have text /^Log in$/ but received "Sign in"')
+  })
+
+  test('toContainText accepts a regex', () => {
+    Scene.scene(
+      { update, view },
+      Scene.with(initialModel),
+      Scene.expect(Scene.role('button')).toContainText(/ign/),
+    )
+  })
+
+  test('toHaveAccessibleName matches aria-label', () => {
+    const loggedInModel: Model = {
+      ...initialModel,
+      status: 'LoggedIn',
+      username: 'alice',
+    }
+    Scene.scene(
+      { update, view },
+      Scene.with(loggedInModel),
+      Scene.expect(Scene.role('region')).toHaveAccessibleName('User session'),
+    )
+  })
+
+  test('toHaveAccessibleName matches via regex', () => {
+    Scene.scene(
+      { update, view },
+      Scene.with(initialModel),
+      Scene.expect(Scene.role('button')).toHaveAccessibleName(/^Sign/),
+    )
+  })
+
+  test('toBeVisible passes for visible element', () => {
+    Scene.scene(
+      { update, view },
+      Scene.with(initialModel),
+      Scene.expect(Scene.role('button')).toBeVisible(),
+    )
+  })
+})
+
+describe('scene with extra interactions', () => {
+  test('doubleClick fires the dblclick handler', () => {
+    Scene.scene(
+      { update: interactionsUpdate, view: interactionsView },
+      Scene.with(interactionsInitialModel),
+      Scene.doubleClick(Scene.label('action')),
+      Scene.expect(Scene.label('action')).toContainText('dbl=1'),
+    )
+  })
+
+  test('hover fires mouseenter handler', () => {
+    Scene.scene(
+      { update: interactionsUpdate, view: interactionsView },
+      Scene.with(interactionsInitialModel),
+      Scene.hover(Scene.label('action')),
+      Scene.tap(({ html }) => {
+        expect(html).toBeDefined()
+      }),
+    )
+  })
+
+  test('focus fires focus handler; blur fires blur handler', () => {
+    Scene.scene(
+      { update: interactionsUpdate, view: interactionsView },
+      Scene.with(interactionsInitialModel),
+      Scene.focus(Scene.label('name')),
+      Scene.blur(Scene.label('name')),
+    )
+  })
+
+  test('change fires change handler with the new value', () => {
+    Scene.scene(
+      { update: interactionsUpdate, view: interactionsView },
+      Scene.with(interactionsInitialModel),
+      Scene.change(Scene.label('fruit'), 'banana'),
+    )
+  })
+
+  test('change is dual — data-last form works in pipe', () => {
+    Scene.scene(
+      { update: interactionsUpdate, view: interactionsView },
+      Scene.with(interactionsInitialModel),
+      pipe(Scene.label('fruit'), Scene.change('apple')),
+    )
+  })
+
+  test('click still works through the new event-name map', () => {
+    Scene.scene(
+      { update: interactionsUpdate, view: interactionsView },
+      Scene.with(interactionsInitialModel),
+      Scene.click(Scene.label('action')),
+      Scene.expect(Scene.label('action')).toContainText('clicks=1'),
+    )
+  })
+})
+
+describe('scene with expectAll', () => {
+  const loggedInModel: Model = {
+    ...initialModel,
+    status: 'LoggedIn',
+    username: 'alice',
+  }
+
+  test('toHaveCount matches the number of elements', () => {
+    Scene.scene(
+      { update, view },
+      Scene.with(initialModel),
+      Scene.expectAll(Scene.all.role('button')).toHaveCount(1),
+      Scene.expectAll(Scene.all.role('textbox')).toHaveCount(2),
+    )
+  })
+
+  test('toHaveCount fails with clear count mismatch message', () => {
+    expect(() =>
+      Scene.scene(
+        { update, view },
+        Scene.with(initialModel),
+        Scene.expectAll(Scene.all.role('button')).toHaveCount(3),
+      ),
+    ).toThrow(
+      'Expected elements matching all button to have count 3 but received 1.',
+    )
+  })
+
+  test('toBeEmpty passes when no matches', () => {
+    Scene.scene(
+      { update, view },
+      Scene.with(initialModel),
+      Scene.expectAll(Scene.all.role('dialog')).toBeEmpty(),
+    )
+  })
+
+  test('toBeEmpty fails when matches exist', () => {
+    expect(() =>
+      Scene.scene(
+        { update, view },
+        Scene.with(initialModel),
+        Scene.expectAll(Scene.all.role('button')).toBeEmpty(),
+      ),
+    ).toThrow(
+      'Expected elements matching all button to have count 0 but received 1.',
+    )
+  })
+
+  test('not.toHaveCount inverts the assertion', () => {
+    Scene.scene(
+      { update, view },
+      Scene.with(initialModel),
+      Scene.expectAll(Scene.all.role('button')).not.toHaveCount(3),
+    )
+  })
+
+  test('expectAll respects Scene.inside scope', () => {
+    Scene.scene(
+      { update, view },
+      Scene.with(loggedInModel),
+      Scene.inside(
+        Scene.role('region', { name: 'User session' }),
+        Scene.expectAll(Scene.all.role('button')).toHaveCount(1),
+      ),
+      Scene.expectAll(Scene.all.role('button')).toHaveCount(1),
+    )
+  })
 })
 
 describe('scene errors', () => {
@@ -924,6 +1459,117 @@ describe('scene with within', () => {
   })
 })
 
+describe('scene with inside', () => {
+  const loggedInModel: Model = {
+    ...initialModel,
+    status: 'LoggedIn',
+    username: 'alice',
+  }
+
+  test('inside scopes multiple assertion steps to a parent', () => {
+    Scene.scene(
+      { update, view },
+      Scene.with(loggedInModel),
+      Scene.inside(
+        Scene.role('region', { name: 'User session' }),
+        Scene.expect(Scene.role('status')).toContainText('Welcome, alice!'),
+        Scene.expect(Scene.role('button', { name: 'Log out' })).toExist(),
+      ),
+    )
+  })
+
+  test('inside scopes interaction steps to a parent', () => {
+    Scene.scene(
+      { update, view },
+      Scene.with(loggedInModel),
+      Scene.inside(
+        Scene.role('region', { name: 'User session' }),
+        Scene.click(Scene.role('button', { name: 'Log out' })),
+      ),
+      Scene.expect(Scene.role('button')).toHaveText('Sign in'),
+    )
+  })
+
+  test('inside restores the prior scope after its block', () => {
+    Scene.scene(
+      { update, view },
+      Scene.with(loggedInModel),
+      Scene.inside(
+        Scene.role('region', { name: 'User session' }),
+        Scene.expect(Scene.role('button', { name: 'Log out' })).toExist(),
+      ),
+      Scene.expect(Scene.role('region', { name: 'User session' })).toExist(),
+    )
+  })
+
+  test('inside composes with nested inside via within', () => {
+    Scene.scene(
+      { update, view },
+      Scene.with(loggedInModel),
+      Scene.inside(
+        Scene.role('region', { name: 'User session' }),
+        Scene.inside(
+          Scene.role('button', { name: 'Log out' }),
+          Scene.expect(Scene.text('Log out')).toExist(),
+        ),
+      ),
+    )
+  })
+
+  test('inside fails with a scoped error when the child is not found', () => {
+    expect(() =>
+      Scene.scene(
+        { update, view },
+        Scene.with(loggedInModel),
+        Scene.inside(
+          Scene.role('region', { name: 'User session' }),
+          Scene.expect(Scene.role('button', { name: 'Sign in' })).toExist(),
+        ),
+      ),
+    ).toThrow(
+      'Expected element matching button "Sign in" within region "User session" to exist but it does not.',
+    )
+  })
+
+  test('inside fails when the parent itself is not found', () => {
+    expect(() =>
+      Scene.scene(
+        { update, view },
+        Scene.with(initialModel),
+        Scene.inside(
+          Scene.role('region', { name: 'User session' }),
+          Scene.expect(Scene.role('button')).toExist(),
+        ),
+      ),
+    ).toThrow('within region "User session"')
+  })
+
+  test('inside scopes a CSS selector target', () => {
+    Scene.scene(
+      { update, view },
+      Scene.with(loggedInModel),
+      Scene.inside(
+        Scene.role('region', { name: 'User session' }),
+        Scene.click('button'),
+      ),
+      Scene.expect(Scene.role('button')).toHaveText('Sign in'),
+    )
+  })
+
+  test('inside passes the full html to tap (tap ignores scope)', () => {
+    Scene.scene(
+      { update, view },
+      Scene.with(loggedInModel),
+      Scene.inside(
+        Scene.role('region', { name: 'User session' }),
+        Scene.tap(({ html }) => {
+          expect(Scene.find(html, '[id="app"]')).toBeDefined()
+        }),
+      ),
+    )
+  })
+})
+
 describe('scene with text locator', () => {
   test('text locator finds by exact text', () => {
     Scene.scene(
@@ -1037,6 +1683,17 @@ describe('new matchers', () => {
       { update, view },
       Scene.with(initialModel),
       Scene.expect(Scene.role('button')).toBeEnabled(),
+    )
+  })
+
+  test('Scene.role matches any token in a fallback role list', () => {
+    Scene.scene(
+      { update: multiRoleUpdate, view: multiRoleView },
+      Scene.with(multiRoleInitialModel),
+      Scene.expect(Scene.role('doc-subtitle')).toExist(),
+      Scene.expect(Scene.role('heading')).toContainText('clicks=0'),
+      Scene.click(Scene.role('heading')),
+      Scene.expect(Scene.role('doc-subtitle')).toContainText('clicks=1'),
     )
   })
 })

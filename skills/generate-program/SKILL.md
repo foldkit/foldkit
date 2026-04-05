@@ -324,7 +324,7 @@ Write `Scene.scene` pipelines covering:
 - **User interactions** — click, type, submit produce visible changes
 - **Loading states** — submitting shows loading indicator
 - **Error states** — failed Commands show error messages in the view
-- **Scoped queries** — use `Scene.within(parent, child)` when the view has repeated structures (e.g. multiple columns, card lists)
+- **Scoped queries** — use `Scene.within(parent, child)` to compose a single scoped Locator (good for one-off scoped assertions or reusable named locators). Use `Scene.inside(parent, ...steps)` to scope a whole block of steps to the same parent — every Locator referenced by the nested steps resolves within the parent's subtree. Reach for `inside` when two or more steps share a scope; reach for `within` for single-use scoping.
 - Prefer accessible locators: `Scene.label(...)`, `Scene.role(...)`, `Scene.text(...)` over `Scene.placeholder(...)` or CSS selectors
 
 Run `npx vitest run` to verify tests pass.

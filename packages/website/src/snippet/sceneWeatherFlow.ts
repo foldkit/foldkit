@@ -14,9 +14,11 @@ test('weather search: type a zip code, see the forecast', () => {
       FetchWeather,
       SucceededFetchWeather({ weather: beverlyHillsWeather }),
     ),
-    Scene.expect(Scene.role('article')).toExist(),
-    Scene.expect(Scene.role('heading', { name: '90210' })).toExist(),
-    Scene.expect(Scene.role('article')).toContainText('72\u00B0F'),
-    Scene.expect(Scene.role('article')).toContainText('Clear sky'),
+    Scene.inside(
+      Scene.role('article'),
+      Scene.expect(Scene.role('heading', { name: '90210' })).toExist(),
+      Scene.expect(Scene.text('72\u00B0F')).toExist(),
+      Scene.expect(Scene.text('Clear sky')).toExist(),
+    ),
   )
 })

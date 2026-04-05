@@ -1,6 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../html'
+import { Class, InnerHTML, code, div } from '../html'
 import type { TableOfContentsEntry } from '../main'
 import {
   inlineCode,
@@ -10,6 +10,9 @@ import {
 } from '../prose'
 import * as Snippets from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
+import { comparisonTable } from '../view/table'
+
+const plainCode = (text: string): Html => code([Class('text-sm')], [text])
 
 const whyHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -27,6 +30,12 @@ const locatorsHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'locators',
   text: 'Locators',
+}
+
+const scopingHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'scoping',
+  text: 'Scoping and Multi-Match',
 }
 
 const interactionsHeader: TableOfContentsEntry = {
@@ -63,6 +72,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   whyHeader,
   apiHeader,
   locatorsHeader,
+  scopingHeader,
   interactionsHeader,
   assertionsHeader,
   submodelsHeader,
@@ -98,61 +108,301 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(locatorsHeader),
       para(
-        'Locators find elements the way users find them: by role, label, text, or placeholder. ',
-        inlineCode('Scene.role'),
-        ' matches ARIA roles, both explicit and implicit. A ',
-        inlineCode('<button>'),
-        ' has implicit role ',
-        inlineCode('button'),
-        '. ',
-        inlineCode('Scene.label'),
-        ' checks ',
-        inlineCode('aria-label'),
-        ' and ',
-        inlineCode('<label>'),
-        ' associations. ',
-        inlineCode('Scene.text'),
-        ' finds elements by their text content. ',
-        inlineCode('Scene.selector'),
-        ' is the CSS escape hatch for elements without accessible attributes.',
+        'Locators find elements the way users find them: by role, by label, by visible text. Each factory returns a ',
+        inlineCode('Locator'),
+        ' that resolves to a single match; interactions and assertions accept either a Locator or a raw CSS selector string.',
+      ),
+      comparisonTable(
+        ['Locator', 'Finds', 'Example'],
+        [
+          [
+            [plainCode('Scene.role(role, options?)')],
+            [
+              'Elements by ARIA role (explicit or implicit). Options narrow by accessible name and ARIA state.',
+            ],
+            [plainCode("Scene.role('button', { name: 'Save' })")],
+          ],
+          [
+            [plainCode('Scene.label(text)')],
+            ['Form controls by their aria-label or associated <label> text.'],
+            [plainCode("Scene.label('Email')")],
+          ],
+          [
+            [plainCode('Scene.placeholder(text)')],
+            ['Inputs by their placeholder attribute.'],
+            [plainCode("Scene.placeholder('Search...')")],
+          ],
+          [
+            [plainCode('Scene.text(text)')],
+            ['Elements by visible text content.'],
+            [plainCode("Scene.text('Welcome back')")],
+          ],
+          [
+            [plainCode('Scene.altText(text)')],
+            ['Images and similar elements by their alt attribute.'],
+            [plainCode("Scene.altText('Profile photo')")],
+          ],
+          [
+            [plainCode('Scene.title(text)')],
+            ['Elements by their title attribute (tooltip text).'],
+            [plainCode("Scene.title('Delete')")],
+          ],
+          [
+            [plainCode('Scene.testId(id)')],
+            ['Elements by data-testid — the escape hatch for tests.'],
+            [plainCode("Scene.testId('cart-item-3')")],
+          ],
+          [
+            [plainCode('Scene.displayValue(value)')],
+            ['Form controls by their current value.'],
+            [plainCode("Scene.displayValue('US')")],
+          ],
+          [
+            [plainCode('Scene.selector(css)')],
+            ['Elements by CSS selector. Use when no accessible query fits.'],
+            [plainCode("Scene.selector('.chart-legend')")],
+          ],
+        ],
       ),
       para(
-        inlineCode('Scene.within'),
-        ' scopes a locator to a parent element. When the view has repeated structures like columns or card lists, ',
-        inlineCode(
-          "Scene.within(Scene.role('region', { name: 'Sidebar' }), Scene.role('link'))",
-        ),
-        ' finds the link inside the sidebar, not elsewhere on the page. ',
+        inlineCode('Scene.role'),
+        ' accepts a second argument of state options that narrow the match. All options are optional:',
+      ),
+      comparisonTable(
+        ['Option', 'Type', 'Matches'],
+        [
+          [
+            [plainCode('name')],
+            [plainCode('string')],
+            [
+              'Accessible name (aria-label, aria-labelledby, label[for], or text content)',
+            ],
+          ],
+          [
+            [plainCode('level')],
+            [plainCode('number')],
+            ['Heading level (for role: "heading")'],
+          ],
+          [
+            [plainCode('checked')],
+            [plainCode("boolean | 'mixed'")],
+            ['aria-checked or the checked attribute'],
+          ],
+          [[plainCode('selected')], [plainCode('boolean')], ['aria-selected']],
+          [
+            [plainCode('pressed')],
+            [plainCode("boolean | 'mixed'")],
+            ['aria-pressed'],
+          ],
+          [[plainCode('expanded')], [plainCode('boolean')], ['aria-expanded']],
+          [
+            [plainCode('disabled')],
+            [plainCode('boolean')],
+            ['aria-disabled or the disabled attribute'],
+          ],
+        ],
+      ),
+      tableOfContentsEntryToHeader(scopingHeader),
+      para(
+        inlineCode('Scene.within(parent, child)'),
+        ' scopes a single locator to a parent element. ',
+        inlineCode('Scene.inside(parent, ...steps)'),
+        ' scopes a whole block of steps — every assertion or interaction inside the block resolves within the parent\u2019s subtree. Use ',
         inlineCode('within'),
-        ' also composes in pipe chains as a data-last function.',
+        ' for one-off scoped queries; use ',
+        inlineCode('inside'),
+        ' when several steps share the same scope. Nested ',
+        inlineCode('inside'),
+        ' calls compose.',
+      ),
+      para(
+        'For lists and repeated elements, the ',
+        inlineCode('Scene.all.*'),
+        ' factories (',
+        inlineCode('Scene.all.role'),
+        ', ',
+        inlineCode('Scene.all.text'),
+        ', ',
+        inlineCode('Scene.all.label'),
+        ', and so on — one per single-match factory) return a ',
+        inlineCode('LocatorAll'),
+        ' that resolves to every match. Pick one with ',
+        inlineCode('Scene.first'),
+        ', ',
+        inlineCode('Scene.last'),
+        ', or ',
+        inlineCode('Scene.nth(index)'),
+        ', or narrow with ',
+        inlineCode('Scene.filter'),
+        ':',
+      ),
+      comparisonTable(
+        ['Filter option', 'Keeps matches where'],
+        [
+          [
+            [plainCode('has')],
+            ['The element contains a descendant matching the given Locator'],
+          ],
+          [
+            [plainCode('hasNot')],
+            ['The element does not contain a descendant matching the Locator'],
+          ],
+          [
+            [plainCode('hasText')],
+            ['The element\u2019s text content includes the given substring'],
+          ],
+          [
+            [plainCode('hasNotText')],
+            ['The element\u2019s text content does not include the substring'],
+          ],
+        ],
+      ),
+      para(
+        'This is the clean way to say \u201Cthe row that contains Alice\u201D: ',
+        inlineCode(
+          "Scene.first(Scene.filter(Scene.all.role('row'), { hasText: 'Alice' }))",
+        ),
+        '.',
       ),
       tableOfContentsEntryToHeader(interactionsHeader),
       para(
-        'Interactions accept either a CSS selector string or a Locator. ',
-        inlineCode('Scene.click'),
-        ' invokes the element\u2019s ',
-        inlineCode('OnClick'),
-        ' handler. ',
-        inlineCode('Scene.type'),
-        ' invokes ',
-        inlineCode('OnInput'),
-        '. ',
-        inlineCode('Scene.submit'),
-        ' invokes ',
-        inlineCode('OnSubmit'),
-        '. Each one captures the dispatched Message, feeds it through update, and re-renders the view.',
+        'Interactions exercise the view by invoking event handlers on matched elements. Each one captures the dispatched Message, feeds it through update, and re-renders. They accept either a Locator or a CSS selector string.',
+      ),
+      comparisonTable(
+        ['Step', 'Invokes'],
+        [
+          [[plainCode('Scene.click(target)')], [plainCode('OnClick')]],
+          [[plainCode('Scene.doubleClick(target)')], [plainCode('OnDblClick')]],
+          [
+            [plainCode('Scene.hover(target)')],
+            [
+              plainCode('OnMouseEnter'),
+              ' (falls back to ',
+              plainCode('OnMouseOver'),
+              ')',
+            ],
+          ],
+          [[plainCode('Scene.focus(target)')], [plainCode('OnFocus')]],
+          [[plainCode('Scene.blur(target)')], [plainCode('OnBlur')]],
+          [
+            [plainCode('Scene.type(target, text)')],
+            [plainCode('OnInput'), ' with the given text'],
+          ],
+          [
+            [plainCode('Scene.change(target, value)')],
+            [
+              plainCode('OnChange'),
+              ' with the given value — for ',
+              plainCode('<select>'),
+              ' and similar',
+            ],
+          ],
+          [
+            [plainCode('Scene.keydown(target, key, modifiers?)')],
+            [
+              plainCode('OnKeyDown'),
+              ' or ',
+              plainCode('OnKeyDownPreventDefault'),
+              ' with optional ',
+              plainCode('{ shiftKey, ctrlKey, altKey, metaKey }'),
+            ],
+          ],
+          [[plainCode('Scene.submit(target)')], [plainCode('OnSubmit')]],
+        ],
       ),
       para(
-        inlineCode('Scene.keydown'),
-        ' invokes ',
-        inlineCode('OnKeyDown'),
-        ' or ',
-        inlineCode('OnKeyDownPreventDefault'),
-        ' with an optional modifiers object (',
-        inlineCode('{ shiftKey, ctrlKey, altKey, metaKey }'),
-        '). ',
-        inlineCode('Scene.tap'),
-        ' runs a function for side effects (like assertions on raw VNodes or outMessages) without breaking the step chain.',
+        inlineCode('Scene.tap(fn)'),
+        ' runs a function for side effects (like ad-hoc assertions on raw VNodes or the captured outMessages) without breaking the step chain.',
+      ),
+      tableOfContentsEntryToHeader(assertionsHeader),
+      para(
+        inlineCode('Scene.expect(locator)'),
+        ' creates an inline assertion step against a single element. Every matcher has a ',
+        inlineCode('.not'),
+        ' variant that inverts the assertion.',
+      ),
+      comparisonTable(
+        ['Matcher', 'Asserts that the element'],
+        [
+          [[plainCode('.toExist()')], ['Is present in the tree']],
+          [[plainCode('.toBeAbsent()')], ['Is not present in the tree']],
+          [
+            [plainCode('.toBeVisible()')],
+            [
+              'Is not hidden via the hidden attribute, aria-hidden, display: none, or visibility: hidden',
+            ],
+          ],
+          [
+            [plainCode('.toBeEmpty()')],
+            ['Has no text content or child elements'],
+          ],
+          [
+            [plainCode('.toHaveText(value)')],
+            [
+              'Has text content equal to the given string or matching the given regex',
+            ],
+          ],
+          [
+            [plainCode('.toContainText(value)')],
+            [
+              'Has text content including the given substring or matching the regex',
+            ],
+          ],
+          [
+            [plainCode('.toHaveAccessibleName(name)')],
+            [
+              'Has the given accessible name (resolves aria-labelledby, aria-label, label[for], text content)',
+            ],
+          ],
+          [
+            [plainCode('.toHaveAccessibleDescription(description)')],
+            [
+              'Has the given accessible description (resolves aria-describedby)',
+            ],
+          ],
+          [
+            [plainCode('.toBeDisabled()')],
+            ['Has aria-disabled or the disabled attribute'],
+          ],
+          [[plainCode('.toBeEnabled()')], ['Is not disabled']],
+          [
+            [plainCode('.toBeChecked()')],
+            ['Has aria-checked="true" or the checked attribute'],
+          ],
+          [
+            [plainCode('.toHaveValue(value)')],
+            ['Has the given current form-control value'],
+          ],
+          [
+            [plainCode('.toHaveAttr(name, value)')],
+            ['Has the given attribute set to the given value'],
+          ],
+          [[plainCode('.toHaveId(id)')], ['Has the given id']],
+          [[plainCode('.toHaveClass(name)')], ['Has the given CSS class']],
+          [
+            [plainCode('.toHaveStyle(name, value)')],
+            ['Has the given inline style property'],
+          ],
+        ],
+      ),
+      para(
+        'For ',
+        inlineCode('LocatorAll'),
+        ' (from ',
+        inlineCode('Scene.all.*'),
+        '), use ',
+        inlineCode('Scene.expectAll(locatorAll)'),
+        ' for count-based assertions:',
+      ),
+      comparisonTable(
+        ['Matcher', 'Asserts that'],
+        [
+          [
+            [plainCode('.toHaveCount(n)')],
+            ['The locator matches exactly n elements'],
+          ],
+          [[plainCode('.toBeEmpty()')], ['The locator matches zero elements']],
+        ],
       ),
       tableOfContentsEntryToHeader(submodelsHeader),
       para(
@@ -167,35 +417,6 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' bridges this by fixing the adapter to identity, so the child\u2019s Messages go straight to its own update. Use it whenever you Scene-test a Submodel view in isolation: ',
         inlineCode('Scene.scene({ update, view: Scene.childView(view) }, ...)'),
         '.',
-      ),
-      tableOfContentsEntryToHeader(assertionsHeader),
-      para(
-        inlineCode('Scene.expect'),
-        ' creates inline assertion steps that check the rendered HTML without breaking the pipeline. Existence matchers: ',
-        inlineCode('.toExist()'),
-        ' and ',
-        inlineCode('.toBeAbsent()'),
-        '. Text matchers: ',
-        inlineCode('.toHaveText()'),
-        ' and ',
-        inlineCode('.toContainText()'),
-        '. State matchers: ',
-        inlineCode('.toBeDisabled()'),
-        ', ',
-        inlineCode('.toBeEnabled()'),
-        ', ',
-        inlineCode('.toBeChecked()'),
-        ', and ',
-        inlineCode('.toHaveValue()'),
-        '. Attribute matchers: ',
-        inlineCode('.toHaveAttr()'),
-        ', ',
-        inlineCode('.toHaveClass()'),
-        ', and ',
-        inlineCode('.toHaveStyle()'),
-        '. Every matcher has a ',
-        inlineCode('.not'),
-        ' variant.',
       ),
       tableOfContentsEntryToHeader(exampleHeader),
       para(
