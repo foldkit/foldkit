@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.5.14
+
+### Patch Changes
+
+- 60f1594: Use a precise optimizeDeps entry point (src/main.ts) so Vite's dependency scanner never crawls into the repos/ submodule.
+
 ## 0.5.13
 
 ### Patch Changes
