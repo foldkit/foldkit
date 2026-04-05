@@ -90,4 +90,99 @@ describe('propsModule', () => {
     button.click()
     expect(clicked).toBe(true)
   })
+
+  it('resets disabled inside a keyed parent whose children go from empty to populated', () => {
+    const container = document.createElement('div')
+
+    const dialogClosed = h('dialog', { key: 'dlg' }, [])
+    const rendered1 = patchWithEvents(toVNode(container), dialogClosed)
+
+    const dialogOpenDisabled = h('dialog', { key: 'dlg' }, [
+      h('div', { key: 'dlg-backdrop' }, []),
+      h('div', { key: 'dlg-panel' }, [
+        h('button', { props: { disabled: true } }, ['Submit']),
+      ]),
+    ])
+    const rendered2 = patchWithEvents(rendered1, dialogOpenDisabled)
+
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const panel = rendered2.children![1] as {
+      children: Array<{ elm: HTMLButtonElement }>
+    }
+    const button = panel.children[0].elm
+    expect(button.disabled).toBe(true)
+
+    let clicked = false
+    const dialogOpenClickable = h('dialog', { key: 'dlg' }, [
+      h('div', { key: 'dlg-backdrop' }, []),
+      h('div', { key: 'dlg-panel' }, [
+        h(
+          'button',
+          {
+            on: {
+              click: () => {
+                clicked = true
+              },
+            },
+          },
+          ['Submit'],
+        ),
+      ]),
+    ])
+    patchWithEvents(rendered2, dialogOpenClickable)
+
+    expect(button.disabled).toBe(false)
+    button.click()
+    expect(clicked).toBe(true)
+  })
+
+  it('resets disabled when button is nested inside conditional content', () => {
+    const container = document.createElement('div')
+
+    const withDisabled = h('div', { key: 'panel' }, [
+      h('div', {}, [
+        h('p', {}, ['Help text']),
+        h(
+          'button',
+          { class: { 'bg-slate-100': true }, props: { disabled: true } },
+          ['Submit'],
+        ),
+      ]),
+    ])
+    const rendered1 = patchWithEvents(toVNode(container), withDisabled)
+
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const wrapper = rendered1.children![0] as {
+      children: Array<{ elm: HTMLElement }>
+    }
+    const button = wrapper.children[1].elm
+    expect(button).toBeInstanceOf(HTMLButtonElement)
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    expect((button as HTMLButtonElement).disabled).toBe(true)
+
+    let clicked = false
+    const withOnClick = h('div', { key: 'panel' }, [
+      h('div', {}, [
+        h('p', {}, ['Help text']),
+        h(
+          'button',
+          {
+            class: { 'bg-red-600': true },
+            on: {
+              click: () => {
+                clicked = true
+              },
+            },
+          },
+          ['Submit'],
+        ),
+      ]),
+    ])
+    patchWithEvents(rendered1, withOnClick)
+
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    expect((button as HTMLButtonElement).disabled).toBe(false)
+    button.click()
+    expect(clicked).toBe(true)
+  })
 })

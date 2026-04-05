@@ -9,41 +9,40 @@ import type { Module } from 'snabbdom'
  *  Since a disabled button swallows click events at the browser level, an
  *  `OnClick` handler that replaces `Disabled` at the same index silently fails.
  *
- *  This module adds a second loop (mirroring what snabbdom's attributesModule
- *  already does) that resets removed props to type-appropriate defaults:
- *  booleans → false, strings → '', numbers → 0. */
+ *  Instead of relying on the old vnode's `data.props` for cleanup (which
+ *  requires snabbdom to patch rather than recreate), this module tracks which
+ *  properties it has set on each DOM element via a WeakMap. On every create or
+ *  update hook, it compares the tracked set against the new vnode's props and
+ *  resets anything that was removed to its type-appropriate default: booleans →
+ *  false, strings → '', numbers → 0. The WeakMap entries are garbage-collected
+ *  when the element is removed from the DOM. */
+const managedProps = new WeakMap<Element, Record<string, unknown>>()
+
 function updateProps(
-  oldVnode: Parameters<NonNullable<Module['update']>>[0],
+  _oldVnode: Parameters<NonNullable<Module['update']>>[0],
   vnode: Parameters<NonNullable<Module['update']>>[1],
 ): void {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const elm = vnode.elm as any
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  let oldProps = (oldVnode.data as any)?.props as
-    | Record<string, any>
-    | undefined
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  let props = (vnode.data as any)?.props as Record<string, any> | undefined
-  if (!oldProps && !props) {
+  const props = ((vnode.data as any)?.props ?? {}) as Record<string, unknown>
+  const previous = managedProps.get(elm) ?? {}
+
+  if (props === previous) {
     return
   }
-  if (oldProps === props) {
-    return
-  }
-  oldProps = oldProps ?? {}
-  props = props ?? {}
 
   for (const key in props) {
     const cur = props[key]
-    const old = oldProps[key]
+    const old = previous[key]
     if (old !== cur && (key !== 'value' || elm[key] !== cur)) {
       elm[key] = cur
     }
   }
 
-  for (const key in oldProps) {
+  for (const key in previous) {
     if (!(key in props)) {
-      const old = oldProps[key]
+      const old = previous[key]
       if (typeof old === 'boolean') {
         elm[key] = false
       } else if (typeof old === 'string') {
@@ -53,6 +52,8 @@ function updateProps(
       }
     }
   }
+
+  managedProps.set(elm, { ...props })
 }
 
 export const propsModule: Module = { create: updateProps, update: updateProps }
