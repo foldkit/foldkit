@@ -4,11 +4,10 @@ import {
   datasetModule,
   eventListenersModule,
   init,
+  propsModule,
   styleModule,
   toVNode,
 } from 'snabbdom'
-
-import { propsModule } from './propsModule'
 
 export type { VNode } from 'snabbdom'
 export { toVNode }

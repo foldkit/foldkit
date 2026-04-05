@@ -364,30 +364,36 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
   return keyed('dialog')(id, dialogAttributes, content)
 }
 
-/** Creates a memoized dialog view. Static config is captured in a closure;
- *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
+/** Creates a memoized dialog view. Static config (className, panelClassName,
+ *  etc.) is captured in a closure. Dynamic fields — `model`, `toParentMessage`,
+ *  and `panelContent` — are compared by reference per render via `createLazy`.
+ *  When any of them change, the view re-renders; otherwise the cached VNode is
+ *  reused and snabbdom skips the entire subtree. */
 export const lazy = <Message>(
   staticConfig: Omit<
     ViewConfig<Message>,
-    'model' | 'toParentMessage' | 'onClosed'
+    'model' | 'toParentMessage' | 'onClosed' | 'panelContent'
   >,
 ): ((
   model: Model,
   toParentMessage: ViewConfig<Message>['toParentMessage'],
+  panelContent: Html,
 ) => Html) => {
   const lazyView = createLazy()
 
-  return (model, toParentMessage) =>
+  return (model, toParentMessage, panelContent) =>
     lazyView(
       (
         currentModel: Model,
         currentToMessage: ViewConfig<Message>['toParentMessage'],
+        currentPanelContent: Html,
       ) =>
         view({
           ...staticConfig,
           model: currentModel,
           toParentMessage: currentToMessage,
+          panelContent: currentPanelContent,
         }),
-      [model, toParentMessage],
+      [model, toParentMessage, panelContent],
     )
 }
