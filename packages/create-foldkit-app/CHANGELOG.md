@@ -1,5 +1,15 @@
 # create-foldkit-app
 
+## 0.5.15
+
+### Patch Changes
+
+- e72bd7f: Wire Scene matchers into the scaffolded project. The base template now ships
+  `src/vitest-setup.ts` (three lines: `import { setup } from 'foldkit/test/vitest'; setup()`) and `vitest.config.ts` registers it via `setupFiles`. Previously,
+  projects scaffolded with `--example form|weather|todo|auth|kanban|pixel-art`
+  pulled in the example's `src/vitest-setup.ts` and scene tests but never ran the
+  setup file — Scene matcher assertions would fail at runtime.
+
 ## 0.5.14
 
 ### Patch Changes
