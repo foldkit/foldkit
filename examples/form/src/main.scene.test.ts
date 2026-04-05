@@ -54,13 +54,21 @@ describe('form scene', () => {
   })
 
   test('typing a well-formed email triggers async validation', () => {
+    const modelWithValidName = {
+      ...initialModel,
+      name: StringField.Valid({ value: 'Alice' }),
+    }
+
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.with(modelWithValidName),
       Scene.type(Scene.label('Email'), 'alice@example.com'),
       Scene.expect(Scene.label('Email')).toHaveAccessibleDescription(
         'Checking...',
       ),
+      Scene.expect(
+        Scene.role('button', { name: 'Join Waitlist' }),
+      ).toBeDisabled(),
       Scene.resolve(
         ValidateEmail,
         ValidatedEmail({
@@ -68,7 +76,9 @@ describe('form scene', () => {
           field: StringField.Valid({ value: 'alice@example.com' }),
         }),
       ),
-      Scene.expect(Scene.label('Email')).toHaveValue('alice@example.com'),
+      Scene.expect(
+        Scene.role('button', { name: 'Join Waitlist' }),
+      ).toBeEnabled(),
     )
   })
 
@@ -119,7 +129,7 @@ describe('form scene', () => {
     Scene.scene(
       { update, view },
       Scene.with(validModel),
-      Scene.submit(Scene.role('form')),
+      Scene.click(Scene.role('button', { name: 'Join Waitlist' })),
       Scene.expect(Scene.role('button', { name: 'Joining...' })).toBeDisabled(),
       Scene.resolve(
         SubmitForm,
@@ -130,9 +140,9 @@ describe('form scene', () => {
           message: '',
         }),
       ),
-      Scene.expect(
-        Scene.text('Welcome to the waitlist, Alice!', { exact: false }),
-      ).toExist(),
+      Scene.expect(Scene.role('status')).toContainText(
+        'Welcome to the waitlist, Alice!',
+      ),
       Scene.expect(Scene.role('button', { name: 'Join Waitlist' })).toExist(),
     )
   })
@@ -157,13 +167,13 @@ describe('form scene', () => {
           message: '',
         }),
       ),
-      Scene.expect(
-        Scene.text('Sorry, there was an error', { exact: false }),
-      ).toExist(),
+      Scene.expect(Scene.role('alert')).toContainText(
+        'Sorry, there was an error',
+      ),
     )
   })
 
-  test('clicking submit on an invalid form stays disabled and sends nothing', () => {
+  test('submitting an invalid form (e.g. via Enter key) is rejected by update', () => {
     Scene.scene(
       { update, view },
       Scene.with(initialModel),

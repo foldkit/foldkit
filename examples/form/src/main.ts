@@ -274,6 +274,7 @@ const {
   Class,
   Disabled,
   OnSubmit,
+  Role,
   Type,
 } = html<Message>()
 
@@ -455,6 +456,7 @@ export const view = (model: Model): Html => {
               SubmitSuccess: ({ message }) =>
                 div(
                   [
+                    Role('status'),
                     Class(
                       'mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg',
                     ),
@@ -464,6 +466,7 @@ export const view = (model: Model): Html => {
               SubmitError: ({ error }) =>
                 div(
                   [
+                    Role('alert'),
                     Class(
                       'mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg',
                     ),

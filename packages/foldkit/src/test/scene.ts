@@ -23,6 +23,7 @@ import type { Locator, LocatorAll } from './query'
 import {
   accessibleDescription,
   accessibleName,
+  ancestorsOf,
   attr,
   resolveTarget,
   selector,
@@ -256,27 +257,14 @@ const EVENT_NAMES: Record<string, string> = {
   keydown: 'OnKeyDown or OnKeyDownPreventDefault',
 }
 
-const invokeAndCapture = <Model, Message, OutMessage>(
+const captureFromElement = <Model, Message, OutMessage>(
   simulation: SceneSimulation<Model, Message, OutMessage>,
-  target: string | Locator,
+  element: VNode,
+  description: string,
   eventName: string,
   invokeHandler: (handler: Function) => void,
 ): SceneSimulation<Model, Message, OutMessage> => {
   const internal = toInternal(simulation)
-  const scopedTarget = applyScopeToTarget(internal.scope, target)
-  const { maybeElement, description } = resolveTarget(
-    internal.html,
-    scopedTarget,
-  )
-
-  if (Option.isNone(maybeElement)) {
-    throw new Error(
-      `I could not find an element matching ${description}.\n\n` +
-        'Check that your selector matches an element in the current view.',
-    )
-  }
-
-  const element = maybeElement.value
   const maybeHandler = Option.fromNullable(element.data?.on?.[eventName])
 
   if (Option.isNone(maybeHandler)) {
@@ -315,6 +303,70 @@ const invokeAndCapture = <Model, Message, OutMessage>(
     outMessage,
   } as unknown as SceneSimulation<Model, Message, OutMessage>
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
+}
+
+const invokeAndCapture = <Model, Message, OutMessage>(
+  simulation: SceneSimulation<Model, Message, OutMessage>,
+  target: string | Locator,
+  eventName: string,
+  invokeHandler: (handler: Function) => void,
+): SceneSimulation<Model, Message, OutMessage> => {
+  const internal = toInternal(simulation)
+  const scopedTarget = applyScopeToTarget(internal.scope, target)
+  const { maybeElement, description } = resolveTarget(
+    internal.html,
+    scopedTarget,
+  )
+
+  if (Option.isNone(maybeElement)) {
+    throw new Error(
+      `I could not find an element matching ${description}.\n\n` +
+        'Check that your selector matches an element in the current view.',
+    )
+  }
+
+  return captureFromElement(
+    simulation,
+    maybeElement.value,
+    description,
+    eventName,
+    invokeHandler,
+  )
+}
+
+const lookupTypeAttribute = (vnode: VNode): string | undefined => {
+  const fromAttrs = vnode.data?.attrs?.['type']
+  const fromProps = vnode.data?.props?.['type']
+  return typeof fromAttrs === 'string'
+    ? fromAttrs
+    : typeof fromProps === 'string'
+      ? fromProps
+      : undefined
+}
+
+const isSubmittingButton = (element: VNode): boolean => {
+  const type = lookupTypeAttribute(element)
+  if (element.sel === 'button') {
+    return type === undefined || type === 'submit'
+  }
+  if (element.sel === 'input') {
+    return type === 'submit' || type === 'image'
+  }
+  return false
+}
+
+const isElementDisabled = (element: VNode): boolean => {
+  const attrDisabled = element.data?.attrs?.['disabled']
+  const propDisabled = element.data?.props?.['disabled']
+  const ariaDisabled = element.data?.attrs?.['aria-disabled']
+  return (
+    attrDisabled === true ||
+    attrDisabled === '' ||
+    attrDisabled === 'disabled' ||
+    propDisabled === true ||
+    ariaDisabled === 'true' ||
+    ariaDisabled === true
+  )
 }
 
 const DEFAULT_KEYBOARD_MODIFIERS: KeyboardModifiers = {
@@ -533,15 +585,65 @@ export const inside =
 
 // INTERACTION STEPS
 
-/** Simulates a click on the element matching the target. */
+/** Simulates a click on the element matching the target.
+ *  When the element is a submit button (`<button>` with no type or
+ *  `type="submit"`, `<input type="submit">`, `<input type="image">`) with no
+ *  click handler of its own, the click falls through to the `submit` handler
+ *  of the nearest ancestor `<form>` — mirroring browser behavior. */
 export const click =
   (target: string | Locator) =>
   <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
-  ): SceneSimulation<Model, Message, OutMessage> =>
-    invokeAndCapture(simulation, target, 'click', handler => {
-      handler()
-    })
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    const internal = toInternal(simulation)
+    const scopedTarget = applyScopeToTarget(internal.scope, target)
+    const { maybeElement, description } = resolveTarget(
+      internal.html,
+      scopedTarget,
+    )
+
+    if (Option.isNone(maybeElement)) {
+      throw new Error(
+        `I could not find an element matching ${description}.\n\n` +
+          'Check that your selector matches an element in the current view.',
+      )
+    }
+
+    const element = maybeElement.value
+    const hasClickHandler = element.data?.on?.['click'] !== undefined
+
+    if (
+      !hasClickHandler &&
+      isSubmittingButton(element) &&
+      !isElementDisabled(element)
+    ) {
+      const maybeForm = pipe(
+        ancestorsOf(internal.html, element),
+        Array.findLast(vnode => vnode.sel === 'form'),
+      )
+      if (Option.isSome(maybeForm)) {
+        return captureFromElement(
+          simulation,
+          maybeForm.value,
+          `form containing ${description}`,
+          'submit',
+          handler => {
+            handler({ preventDefault: Function.constVoid })
+          },
+        )
+      }
+    }
+
+    return captureFromElement(
+      simulation,
+      element,
+      description,
+      'click',
+      handler => {
+        handler()
+      },
+    )
+  }
 
 /** Simulates a double-click on the element matching the target. */
 export const doubleClick =

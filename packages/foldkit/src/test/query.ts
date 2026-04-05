@@ -214,6 +214,31 @@ const allNodesIn = (vnode: VNode): ReadonlyArray<VNode> => [
   ...collectDescendants(vnode),
 ]
 
+/** Returns the ancestor chain of `target` within `root`, ordered from root to
+ *  the immediate parent of `target` (exclusive). Returns an empty array when
+ *  `target` is `root` itself or is not present in the subtree. */
+export const ancestorsOf = (
+  root: VNode,
+  target: VNode,
+): ReadonlyArray<VNode> => {
+  const walk = (
+    node: VNode,
+    chain: ReadonlyArray<VNode>,
+  ): ReadonlyArray<VNode> | undefined => {
+    if (node === target) {
+      return chain
+    }
+    for (const child of vnodeChildren(node)) {
+      const result = walk(child, [...chain, node])
+      if (result !== undefined) {
+        return result
+      }
+    }
+    return undefined
+  }
+  return walk(root, []) ?? []
+}
+
 const attributeEquals =
   (name: string, expected: string) =>
   (vnode: VNode): boolean =>

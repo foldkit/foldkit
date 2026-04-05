@@ -836,6 +836,19 @@ describe('scene', () => {
     )
   })
 
+  test('clicking a submit button falls through to the enclosing form', () => {
+    Scene.scene(
+      { update, view },
+      Scene.with(initialModel),
+      Scene.type(Scene.label('Email'), 'alice@example.com'),
+      Scene.type(Scene.label('Password'), 'secret'),
+      Scene.click(Scene.role('button', { name: 'Sign in' })),
+      Scene.expect(Scene.role('button')).toHaveText('Signing in...'),
+      Scene.resolve(Authenticate, SucceededAuthenticate({ username: 'alice' })),
+      Scene.expect(Scene.role('status')).toHaveText('Welcome, alice!'),
+    )
+  })
+
   test('click dispatches the button Message', () => {
     const loggedInModel: Model = {
       ...initialModel,
