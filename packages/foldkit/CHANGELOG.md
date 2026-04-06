@@ -1,5 +1,23 @@
 # foldkit
 
+## 0.48.0
+
+### Minor Changes
+
+- 3d9cac6: Rename `OnDblClick` to `OnDoubleClick` to follow the never-abbreviate convention. Remove `Scene.childView` — test submodel views through the root update/view instead of in isolation.
+- 42a3af1: Replace `Story.tap` with focused assertion helpers: `Story.model` for Model assertions, `Story.expectHasCommand` / `Story.expectCommands` / `Story.expectNoCommands` for Command assertions, and `Story.expectOutMessage` / `Story.expectNoOutMessage` for OutMessage assertions. Remove `message` from the public `StorySimulation` type.
+
+  Migrate from `Story.tap`:
+  - `Story.tap(({ model }) => { ... })` → `Story.model(model => { ... })`
+  - `Story.tap(({ commands }) => { expect(commands[0]?.name).toBe(Foo.name) })` → `Story.expectHasCommand(Foo)`
+  - `Story.tap(({ commands }) => { expect(commands).toHaveLength(0) })` → `Story.expectNoCommands()`
+  - `Story.tap(({ outMessage }) => { expect(outMessage).toEqual(Option.some(Foo())) })` → `Story.expectOutMessage(Foo())`
+  - `Story.tap(({ outMessage }) => { expect(outMessage).toEqual(Option.none()) })` → `Story.expectNoOutMessage()`
+
+### Patch Changes
+
+- 1f2ffc7: Fix Dialog visibility during devtools time travel. The view now sets the native `.open` property and positioning styles directly, so the dialog renders correctly from the model alone without depending on Commands having run.
+
 ## 0.47.1
 
 ### Patch Changes
