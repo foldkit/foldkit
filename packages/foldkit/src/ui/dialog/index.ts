@@ -270,6 +270,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     Id,
     OnCancel,
     OnClick,
+    Open,
     Style,
     keyed,
   } = html<Message>()
@@ -322,6 +323,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     AriaLabelledBy(`${id}-title`),
     AriaDescribedBy(`${id}-description`),
     OnCancel(dispatchClosed()),
+    Open(isVisible),
     Style({
       width: '100%',
       height: '100%',
@@ -330,6 +332,9 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
       padding: '0',
       border: 'none',
       background: 'transparent',
+      ...(isVisible
+        ? { position: 'fixed', inset: '0', zIndex: '2147483600' }
+        : {}),
     }),
     ...(isVisible ? [DataAttribute('open', '')] : []),
     ...(className ? [Class(className)] : []),
