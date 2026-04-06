@@ -464,9 +464,12 @@ export const resolveAll =
   ): SceneSimulation<Model, Message, OutMessage> => {
     const internal = toInternal(simulation)
     const resolvers: Record<string, Message> = {}
-    for (const [definition, resultMessage] of pairs) {
+    for (const pair of pairs) {
+      const [definition, resultMessage] = pair
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      resolvers[definition.name] = resultMessage as Message
+      resolvers[definition.name] = (
+        pair.length === 3 ? pair[2](resultMessage) : resultMessage
+      ) as Message
     }
 
     /* eslint-disable @typescript-eslint/consistent-type-assertions */

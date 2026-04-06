@@ -246,6 +246,31 @@ describe('resolve with toParentMessage', () => {
   })
 })
 
+describe('resolveAll with toParentMessage', () => {
+  test('parent resolves mapped child Commands with per-pair mappers', () => {
+    Story.story(
+      parentUpdate,
+      Story.with(initialParentModel),
+      Story.message(GotChildMessage({ message: SubmittedForm() })),
+      Story.model(model => {
+        expect(model.child.status).toBe('Submitting')
+      }),
+      Story.resolveAll([
+        [
+          SubmitForm,
+          SucceededSubmit({ id: 'abc' }),
+          message => GotChildMessage({ message }),
+        ],
+        [ResetForm, CompletedReset(), message => GotChildMessage({ message })],
+      ]),
+      Story.model(model => {
+        expect(model.child.status).toBe('Idle')
+        expect(model.savedIds).toEqual(['abc'])
+      }),
+    )
+  })
+})
+
 describe('type safety', () => {
   test('with returns a WithStep', () => {
     const step = Story.with({ count: 0 })

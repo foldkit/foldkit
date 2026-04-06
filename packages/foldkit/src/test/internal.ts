@@ -13,7 +13,13 @@ type UpdateResult<Model, OutMessage> =
 export type ResolverPair<
   Name extends string = string,
   ResultMessage = unknown,
-> = readonly [CommandDefinition<Name, ResultMessage>, ResultMessage]
+> =
+  | readonly [CommandDefinition<Name, ResultMessage>, ResultMessage]
+  | readonly [
+      CommandDefinition<Name, ResultMessage>,
+      ResultMessage,
+      (message: ResultMessage) => unknown,
+    ]
 
 /** Base shape of an internal simulation — shared between Story and Scene. */
 export type BaseInternal<Model, Message, OutMessage = undefined> = Readonly<{
