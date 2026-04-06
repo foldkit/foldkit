@@ -1,5 +1,11 @@
 # foldkit
 
+## 0.49.1
+
+### Patch Changes
+
+- 9eb28ce: Fix `Story.expectExactCommands` always failing due to reference equality on arrays
+
 ## 0.49.0
 
 ### Minor Changes
