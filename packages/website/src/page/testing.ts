@@ -9,7 +9,11 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../prose'
-import { testingSceneRouter, testingStoryRouter } from '../route'
+import {
+  patternsSubmodelsRouter,
+  testingSceneRouter,
+  testingStoryRouter,
+} from '../route'
 import * as Snippets from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 
@@ -93,7 +97,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('update'),
         ' and ',
         inlineCode('view'),
-        '. In a Submodel app, only the root view has the ',
+        '. In a ',
+        link(patternsSubmodelsRouter(), 'Submodel'),
+        ' app, only the root view has the ',
         inlineCode('(model) => Html'),
         ' signature that ',
         inlineCode('Scene.scene'),

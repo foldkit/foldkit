@@ -37,6 +37,7 @@ Story.story(
   update,
   Story.with(model),
   Story.message(ClickedSubmit()),
+  Story.expectHasCommand(FetchData),
   Story.resolve(FetchData, SucceededFetch({ data })),
   Story.model(model => {
     expect(model.status).toBe('loaded')
