@@ -1,33 +1,49 @@
-import { Option, Schema } from 'effect'
+import { Schema } from 'effect'
 import { FieldValidation, Scene } from 'foldkit'
-import { describe, expect, test } from 'vitest'
+import { describe, test } from 'vitest'
 
+import { SaveSession } from '../../../command'
+import {
+  CompletedNavigateInternal,
+  GotLoggedOutMessage,
+  SucceededSaveSession,
+} from '../../../message'
+import { LoggedOut } from '../../../model'
+import { LoginRoute } from '../../../route'
+import { RedirectToDashboard, update } from '../../../update'
+import { view } from '../../../view'
+import { GotLoginMessage } from '../message'
 import {
   FailedSimulateAuthRequest,
-  type Model,
+  Message,
   SimulateAuthRequest,
-  SucceededLogin,
   SucceededSimulateAuthRequest,
-  initModel,
-  update,
-  view,
+  initModel as initLoginModel,
 } from './login'
 
 const { Valid } = FieldValidation.makeField(Schema.String)
 
-const validModel: Model = {
-  ...initModel(),
-  email: Valid({ value: 'alice@example.com' }),
-  password: Valid({ value: 'password' }),
-}
+const toLoginMessage = (message: Message) =>
+  GotLoggedOutMessage({ message: GotLoginMessage({ message }) })
+
+const initialModel = LoggedOut.init(LoginRoute())
+
+const validModel = LoggedOut.Model({
+  route: LoginRoute(),
+  loginModel: {
+    ...initLoginModel(),
+    email: Valid({ value: 'alice@example.com' }),
+    password: Valid({ value: 'password' }),
+  },
+})
 
 const aliceSession = { userId: '1', email: 'alice@example.com', name: 'alice' }
 
 describe('login scene', () => {
   test('initial view renders form with sign in heading, inputs, and submit button', () => {
     Scene.scene(
-      { update, view: Scene.childView(view) },
-      Scene.with(initModel()),
+      { update, view },
+      Scene.with(initialModel),
       Scene.expect(Scene.role('heading', { name: 'Sign In' })).toExist(),
       Scene.expect(Scene.label('Email')).toExist(),
       Scene.expect(Scene.label('Password')).toExist(),
@@ -37,8 +53,8 @@ describe('login scene', () => {
 
   test('typing a valid email shows checkmark', () => {
     Scene.scene(
-      { update, view: Scene.childView(view) },
-      Scene.with(initModel()),
+      { update, view },
+      Scene.with(initialModel),
       Scene.type(Scene.label('Email'), 'alice@example.com'),
       Scene.expect(Scene.text('✓')).toExist(),
     )
@@ -46,8 +62,8 @@ describe('login scene', () => {
 
   test('typing an invalid email shows error message', () => {
     Scene.scene(
-      { update, view: Scene.childView(view) },
-      Scene.with(initModel()),
+      { update, view },
+      Scene.with(initialModel),
       Scene.type(Scene.label('Email'), 'notanemail'),
       Scene.expect(Scene.text('Please enter a valid email')).toExist(),
     )
@@ -55,8 +71,8 @@ describe('login scene', () => {
 
   test('submit button is enabled after typing valid email and password', () => {
     Scene.scene(
-      { update, view: Scene.childView(view) },
-      Scene.with(initModel()),
+      { update, view },
+      Scene.with(initialModel),
       Scene.type(Scene.label('Email'), 'alice@example.com'),
       Scene.type(Scene.label('Password'), 'password'),
       Scene.expect(Scene.role('button', { name: 'Sign In' })).toBeEnabled(),
@@ -65,7 +81,7 @@ describe('login scene', () => {
 
   test('submitting with valid fields shows loading state', () => {
     Scene.scene(
-      { update, view: Scene.childView(view) },
+      { update, view },
       Scene.with(validModel),
       Scene.submit(Scene.role('form')),
       Scene.expect(Scene.role('button', { name: 'Signing in...' })).toExist(),
@@ -74,19 +90,21 @@ describe('login scene', () => {
       ).toBeDisabled(),
       Scene.resolve(
         SimulateAuthRequest,
-        SucceededSimulateAuthRequest({ session: aliceSession }),
+        FailedSimulateAuthRequest({ error: '' }),
+        toLoginMessage,
       ),
     )
   })
 
   test('failed auth shows error text', () => {
     Scene.scene(
-      { update, view: Scene.childView(view) },
+      { update, view },
       Scene.with(validModel),
       Scene.submit(Scene.role('form')),
       Scene.resolve(
         SimulateAuthRequest,
         FailedSimulateAuthRequest({ error: 'Invalid credentials' }),
+        toLoginMessage,
       ),
       Scene.expect(
         Scene.within(Scene.role('form'), Scene.text('Invalid credentials')),
@@ -95,23 +113,19 @@ describe('login scene', () => {
     )
   })
 
-  test('full successful flow produces SucceededLogin outMessage', () => {
+  test('successful login transitions to dashboard', () => {
     Scene.scene(
-      { update, view: Scene.childView(view) },
-      Scene.with(initModel()),
-      Scene.type(Scene.label('Email'), 'alice@example.com'),
-      Scene.type(Scene.label('Password'), 'password'),
+      { update, view },
+      Scene.with(validModel),
       Scene.submit(Scene.role('form')),
-      Scene.expect(Scene.role('button', { name: 'Signing in...' })).toExist(),
       Scene.resolve(
         SimulateAuthRequest,
         SucceededSimulateAuthRequest({ session: aliceSession }),
+        toLoginMessage,
       ),
-      Scene.tap(({ outMessage }) => {
-        expect(outMessage).toEqual(
-          Option.some(SucceededLogin({ session: aliceSession })),
-        )
-      }),
+      Scene.resolve(SaveSession, SucceededSaveSession()),
+      Scene.resolve(RedirectToDashboard, CompletedNavigateInternal()),
+      Scene.expect(Scene.text('Welcome back, alice!')).toExist(),
     )
   })
 })

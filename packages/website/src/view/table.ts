@@ -28,7 +28,7 @@ const cell = (
     [
       Class(
         clsx(
-          'px-4 py-3 text-base',
+          'px-4 py-3 text-base min-w-[12rem]',
           isFirstColumn
             ? 'font-normal text-gray-900 dark:text-white'
             : 'text-gray-700 dark:text-gray-300',
@@ -51,7 +51,7 @@ export const comparisonTable = (
     ],
     [
       table(
-        [Class('w-full')],
+        [Class('w-full min-w-[40rem]')],
         [
           thead(
             [

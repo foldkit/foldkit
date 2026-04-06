@@ -315,7 +315,7 @@ Write `Story.story` pipelines covering:
 **Scene tests** (`main.scene.test.ts`) test through the rendered view — you interact with elements by accessible locators (role, label, text) and assert on what the user sees. Study these exemplars:
 
 - `${CLAUDE_SKILL_DIR}/../../examples/weather/src/main.scene.test.ts` — basic Scene flow with form interaction and Command resolution
-- `${CLAUDE_SKILL_DIR}/../../examples/auth/src/page/loggedOut/page/login.scene.test.ts` — Submodel Scene testing with `childView`, field validation through the view
+- `${CLAUDE_SKILL_DIR}/../../examples/auth/src/page/loggedOut/page/login.scene.test.ts` — Submodel Scene testing, field validation through the view
 - `${CLAUDE_SKILL_DIR}/../../examples/kanban/src/main.scene.test.ts` — scoped queries with `within`, `toHaveValue`, explicit test data
 
 Write `Scene.scene` pipelines covering:

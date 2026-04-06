@@ -16,8 +16,8 @@ import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 
 const whyHeader: TableOfContentsEntry = {
   level: 'h2',
-  id: 'tests-that-read-like-stories',
-  text: 'Tests That Read Like Stories',
+  id: 'testing-the-update-loop',
+  text: 'Testing the Update Loop',
 }
 
 const apiHeader: TableOfContentsEntry = {
@@ -34,8 +34,8 @@ const simpleExampleHeader: TableOfContentsEntry = {
 
 const multiStepHeader: TableOfContentsEntry = {
   level: 'h2',
-  id: 'testing-user-stories',
-  text: 'Testing User Stories',
+  id: 'multi-step-flows',
+  text: 'Multi-Step Flows',
 }
 
 const commandEffectsHeader: TableOfContentsEntry = {

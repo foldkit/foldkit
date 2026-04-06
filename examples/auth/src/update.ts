@@ -31,7 +31,7 @@ const RedirectToLogin = Command.define(
   'RedirectToLogin',
   CompletedNavigateInternal,
 )
-const RedirectToDashboard = Command.define(
+export const RedirectToDashboard = Command.define(
   'RedirectToDashboard',
   CompletedNavigateInternal,
 )

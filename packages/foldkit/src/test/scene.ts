@@ -249,7 +249,7 @@ const renderView = <Model>(
 
 const EVENT_NAMES: Record<string, string> = {
   click: 'OnClick',
-  dblclick: 'OnDblClick',
+  dblclick: 'OnDoubleClick',
   submit: 'OnSubmit',
   input: 'OnInput',
   change: 'OnChange',
@@ -1215,23 +1215,6 @@ export const expectAll = (locatorAll: LocatorAll) => ({
   ...buildExpectAllChain(locatorAll, false),
   not: buildExpectAllChain(locatorAll, true),
 })
-
-// SUBMODEL VIEW ADAPTER
-
-/** Adapts a submodel view for Scene testing. In the Submodel pattern, the view
- *  takes a `toParentMessage` function that maps child Messages to parent Messages.
- *  Scene tests the child in isolation, so `childView` passes the identity function
- *  and erases the parent type. */
-export const childView =
-  <Model>(
-    viewFn: (
-      model: Model,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      toParentMessage: (message: any) => any,
-    ) => Html,
-  ): ((model: Model) => Html) =>
-  model =>
-    viewFn(model, message => message)
 
 // SCENE
 

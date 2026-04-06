@@ -264,7 +264,7 @@ export type Attribute<Message> = Data.TaggedEnum<{
   Tabindex: { readonly value: number }
   Hidden: { readonly value: boolean }
   OnClick: { readonly message: Message }
-  OnDblClick: { readonly message: Message }
+  OnDoubleClick: { readonly message: Message }
   OnMouseDown: { readonly message: Message }
   OnMouseUp: { readonly message: Message }
   OnMouseEnter: { readonly message: Message }
@@ -444,7 +444,7 @@ const {
   Tabindex,
   Hidden,
   OnClick,
-  OnDblClick,
+  OnDoubleClick,
   OnMouseDown,
   OnMouseUp,
   OnMouseEnter,
@@ -643,7 +643,7 @@ const buildVNodeData = <Message>(
             updateDataOn({
               click: () => dispatchSync(message),
             }),
-          OnDblClick: ({ message }) =>
+          OnDoubleClick: ({ message }) =>
             updateDataOn({
               dblclick: () => dispatchSync(message),
             }),
@@ -1515,8 +1515,8 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnClick'
     readonly message: Message
   }
-  OnDblClick: (message: Message) => {
-    readonly _tag: 'OnDblClick'
+  OnDoubleClick: (message: Message) => {
+    readonly _tag: 'OnDoubleClick'
     readonly message: Message
   }
   OnMouseDown: (message: Message) => {
@@ -1973,7 +1973,7 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   Tabindex: (value: number) => Tabindex({ value }),
   Hidden: (value: boolean) => Hidden({ value }),
   OnClick: (message: Message) => OnClick({ message }),
-  OnDblClick: (message: Message) => OnDblClick({ message }),
+  OnDoubleClick: (message: Message) => OnDoubleClick({ message }),
   OnMouseDown: (message: Message) => OnMouseDown({ message }),
   OnMouseUp: (message: Message) => OnMouseUp({ message }),
   OnMouseEnter: (message: Message) => OnMouseEnter({ message }),

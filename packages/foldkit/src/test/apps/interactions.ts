@@ -73,7 +73,7 @@ const {
   select,
   option,
   OnClick,
-  OnDblClick,
+  OnDoubleClick,
   OnMouseEnter,
   OnFocus,
   OnBlur,
@@ -90,7 +90,7 @@ export const view = (model: Model): Html =>
       button(
         [
           OnClick(ClickedButton()),
-          OnDblClick(DoubleClickedButton()),
+          OnDoubleClick(DoubleClickedButton()),
           OnMouseEnter(HoveredTarget()),
           AriaLabel('action'),
         ],

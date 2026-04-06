@@ -20,40 +20,40 @@ const whyHeader: TableOfContentsEntry = {
   text: 'Testing Through the View',
 }
 
-const apiHeader: TableOfContentsEntry = {
-  level: 'h2',
-  id: 'locators-interactions-assertions',
-  text: 'Locators, Interactions, Assertions',
-}
-
 const locatorsHeader: TableOfContentsEntry = {
-  level: 'h3',
+  level: 'h2',
   id: 'locators',
   text: 'Locators',
+}
+
+const roleHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'scene-role',
+  text: 'Scene.role',
 }
 
 const scopingHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'scoping',
-  text: 'Scoping and Multi-Match',
+  text: 'Scoping',
+}
+
+const multiMatchHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'multi-match',
+  text: 'Multi-Match',
 }
 
 const interactionsHeader: TableOfContentsEntry = {
-  level: 'h3',
+  level: 'h2',
   id: 'interactions',
   text: 'Interactions',
 }
 
 const assertionsHeader: TableOfContentsEntry = {
-  level: 'h3',
+  level: 'h2',
   id: 'assertions',
   text: 'Assertions',
-}
-
-const submodelsHeader: TableOfContentsEntry = {
-  level: 'h3',
-  id: 'submodel-views',
-  text: 'Submodel Views',
 }
 
 const exampleHeader: TableOfContentsEntry = {
@@ -70,12 +70,12 @@ const storyVsSceneHeader: TableOfContentsEntry = {
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   whyHeader,
-  apiHeader,
   locatorsHeader,
+  roleHeader,
   scopingHeader,
+  multiMatchHeader,
   interactionsHeader,
   assertionsHeader,
-  submodelsHeader,
   exampleHeader,
   storyVsSceneHeader,
 ]
@@ -93,24 +93,21 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Scene operates on the VNode tree directly. No DOM, no JSDOM, no browser. Tests are pure, deterministic, and fast.',
       ),
-      tableOfContentsEntryToHeader(apiHeader),
-      para(
-        'Import the Scene namespace: ',
-        inlineCode("import { Scene } from 'foldkit'"),
-        '. It has three kinds of functions: locators that find elements by accessible attributes, interactions that exercise the view, and assertions that check the rendered HTML.',
-      ),
-      highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.sceneApiHighlighted)], []),
-        Snippets.sceneApiRaw,
-        'Copy Scene API reference to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
       tableOfContentsEntryToHeader(locatorsHeader),
       para(
         'Locators find elements the way users find them: by role, by label, by visible text. Each factory returns a ',
         inlineCode('Locator'),
         ' that resolves to a single match; interactions and assertions accept either a Locator or a raw CSS selector string.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.sceneLocatorsHighlighted)],
+          [],
+        ),
+        Snippets.sceneLocatorsRaw,
+        'Copy locator examples to clipboard',
+        copiedSnippets,
+        'mb-8',
       ),
       comparisonTable(
         ['Locator', 'Finds', 'Example'],
@@ -164,9 +161,17 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           ],
         ],
       ),
+      tableOfContentsEntryToHeader(roleHeader),
       para(
         inlineCode('Scene.role'),
-        ' accepts a second argument of state options that narrow the match. All options are optional:',
+        ' is the most common locator. It accepts a second argument of state options that narrow the match. All options are optional:',
+      ),
+      highlightedCodeBlock(
+        div([Class('text-sm'), InnerHTML(Snippets.sceneRoleHighlighted)], []),
+        Snippets.sceneRoleRaw,
+        'Copy Scene.role examples to clipboard',
+        copiedSnippets,
+        'mb-8',
       ),
       comparisonTable(
         ['Option', 'Type', 'Matches'],
@@ -215,6 +220,17 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('inside'),
         ' calls compose.',
       ),
+      highlightedCodeBlock(
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.sceneScopingHighlighted)],
+          [],
+        ),
+        Snippets.sceneScopingRaw,
+        'Copy scoping examples to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      tableOfContentsEntryToHeader(multiMatchHeader),
       para(
         'For lists and repeated elements, the ',
         inlineCode('Scene.all.*'),
@@ -235,6 +251,16 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ', or narrow with ',
         inlineCode('Scene.filter'),
         ':',
+      ),
+      highlightedCodeBlock(
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.sceneMultiMatchHighlighted)],
+          [],
+        ),
+        Snippets.sceneMultiMatchRaw,
+        'Copy multi-match examples to clipboard',
+        copiedSnippets,
+        'mb-8',
       ),
       comparisonTable(
         ['Filter option', 'Keeps matches where'],
@@ -257,22 +283,28 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           ],
         ],
       ),
-      para(
-        'This is the clean way to say \u201Cthe row that contains Alice\u201D: ',
-        inlineCode(
-          "Scene.first(Scene.filter(Scene.all.role('row'), { hasText: 'Alice' }))",
-        ),
-        '.',
-      ),
       tableOfContentsEntryToHeader(interactionsHeader),
       para(
         'Interactions exercise the view by invoking event handlers on matched elements. Each one captures the dispatched Message, feeds it through update, and re-renders. They accept either a Locator or a CSS selector string.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.sceneInteractionsHighlighted)],
+          [],
+        ),
+        Snippets.sceneInteractionsRaw,
+        'Copy interaction examples to clipboard',
+        copiedSnippets,
+        'mb-8',
       ),
       comparisonTable(
         ['Step', 'Invokes'],
         [
           [[plainCode('Scene.click(target)')], [plainCode('OnClick')]],
-          [[plainCode('Scene.doubleClick(target)')], [plainCode('OnDblClick')]],
+          [
+            [plainCode('Scene.doubleClick(target)')],
+            [plainCode('OnDoubleClick')],
+          ],
           [
             [plainCode('Scene.hover(target)')],
             [
@@ -312,7 +344,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para(
         inlineCode('Scene.tap(fn)'),
-        ' runs a function for side effects (like ad-hoc assertions on raw VNodes or the captured outMessages) without breaking the step chain.',
+        ' runs a function for side effects (like ad-hoc assertions on raw VNodes or accumulated Commands) without breaking the step chain.',
       ),
       tableOfContentsEntryToHeader(assertionsHeader),
       para(
@@ -320,6 +352,16 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' creates an inline assertion step against a single element. Every matcher has a ',
         inlineCode('.not'),
         ' variant that inverts the assertion.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.sceneAssertionsHighlighted)],
+          [],
+        ),
+        Snippets.sceneAssertionsRaw,
+        'Copy assertion examples to clipboard',
+        copiedSnippets,
+        'mb-8',
       ),
       comparisonTable(
         ['Matcher', 'Asserts that the element'],
@@ -403,20 +445,6 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           ],
           [[plainCode('.toBeEmpty()')], ['The locator matches zero elements']],
         ],
-      ),
-      tableOfContentsEntryToHeader(submodelsHeader),
-      para(
-        'Submodel views have the signature ',
-        inlineCode('(model, toParentMessage) => Html'),
-        ', but ',
-        inlineCode('Scene.scene'),
-        ' expects ',
-        inlineCode('(model) => Html'),
-        '. ',
-        inlineCode('Scene.childView(view)'),
-        ' bridges this by fixing the adapter to identity, so the child\u2019s Messages go straight to its own update. Use it whenever you Scene-test a Submodel view in isolation: ',
-        inlineCode('Scene.scene({ update, view: Scene.childView(view) }, ...)'),
-        '.',
       ),
       tableOfContentsEntryToHeader(exampleHeader),
       para(

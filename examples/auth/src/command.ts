@@ -13,7 +13,7 @@ import {
   SucceededSaveSession,
 } from './message'
 
-const SaveSession = Command.define(
+export const SaveSession = Command.define(
   'SaveSession',
   SucceededSaveSession,
   FailedSaveSession,
