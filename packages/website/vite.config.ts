@@ -613,7 +613,7 @@ const collectSourceFiles = async (
         entry.isFile() &&
         EXAMPLE_FILE_EXTENSIONS.has(extname(entry.name)) &&
         !entry.parentPath.includes('node_modules') &&
-        !entry.name.includes('.test.'),
+        !entry.name.startsWith('vitest-setup'),
     )
     .map(entry => join(entry.parentPath, entry.name))
 }
