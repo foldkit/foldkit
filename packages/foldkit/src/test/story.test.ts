@@ -123,6 +123,42 @@ describe('resolveAll', () => {
   })
 })
 
+describe('expectExactCommands', () => {
+  test('passes when pending Commands match exactly', () => {
+    Story.story(
+      update,
+      Story.with({ count: 0 }),
+      Story.message(ClickedFetch()),
+      Story.expectExactCommands(FetchCount),
+      Story.resolveAll([[FetchCount, SucceededFetchCount({ count: 42 })]]),
+    )
+  })
+
+  test('throws when a Command is missing', () => {
+    expect(() =>
+      Story.story(
+        update,
+        Story.with({ count: 0 }),
+        Story.message(ClickedFetch()),
+        Story.expectExactCommands(FetchCount, SubmitForm),
+        Story.resolveAll([[FetchCount, SucceededFetchCount({ count: 42 })]]),
+      ),
+    ).toThrow('Expected exactly these Commands')
+  })
+
+  test('throws when there are extra pending Commands', () => {
+    expect(() =>
+      Story.story(
+        update,
+        Story.with({ count: 0 }),
+        Story.message(ClickedFetch()),
+        Story.expectExactCommands(),
+        Story.resolveAll([[FetchCount, SucceededFetchCount({ count: 42 })]]),
+      ),
+    ).toThrow('Expected exactly these Commands')
+  })
+})
+
 describe('story', () => {
   test('throws on unresolved Commands at the end', () => {
     expect(() =>

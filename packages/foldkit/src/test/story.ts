@@ -1,4 +1,4 @@
-import { Array, Equal, Option, Order, Predicate, pipe } from 'effect'
+import { Array, Equivalence, Option, Order, Predicate, pipe } from 'effect'
 
 import type { CommandDefinition } from '../command'
 import type { AnyCommand, BaseInternal, ResolverPair } from './internal'
@@ -276,7 +276,7 @@ export const expectExactCommands =
       Array.sort(Order.string),
     )
 
-    if (!Equal.equals(expectedNames, actualNames)) {
+    if (!Array.getEquivalence(Equivalence.string)(expectedNames, actualNames)) {
       const expected = pipe(
         expectedNames,
         Array.map(name => `    ${name}`),
