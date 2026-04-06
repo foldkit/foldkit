@@ -20,11 +20,11 @@ Story.model(model => {
   expect(model.count).toBe(0)
 })
 
-// Assert a Command was produced.
-Story.expectHasCommand(FetchWeather)
+// Assert these Commands were produced.
+Story.expectHasCommands(FetchWeather)
 
 // Assert exactly these Commands were produced.
-Story.expectCommands(FetchWeather, SaveBoard)
+Story.expectExactCommands(FetchWeather, SaveBoard)
 
 // Assert no Commands were produced.
 Story.expectNoCommands()
@@ -37,7 +37,7 @@ Story.story(
   update,
   Story.with(model),
   Story.message(ClickedSubmit()),
-  Story.expectHasCommand(FetchData),
+  Story.expectHasCommands(FetchData),
   Story.resolve(FetchData, SucceededFetch({ data })),
   Story.model(model => {
     expect(model.status).toBe('loaded')

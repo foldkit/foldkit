@@ -45,7 +45,7 @@ describe('message', () => {
       update,
       Story.with({ count: 0 }),
       Story.message(ClickedFetch()),
-      Story.expectHasCommand(FetchCount),
+      Story.expectHasCommands(FetchCount),
       Story.resolveAll([[FetchCount, SucceededFetchCount({ count: 42 })]]),
     )
   })
@@ -191,7 +191,7 @@ describe('resolve with toParentMessage', () => {
       Story.model(model => {
         expect(model.child.status).toBe('Submitting')
       }),
-      Story.expectHasCommand(SubmitForm),
+      Story.expectHasCommands(SubmitForm),
       Story.resolve(SubmitForm, SucceededSubmit({ id: 'abc' }), message =>
         GotChildMessage({ message }),
       ),

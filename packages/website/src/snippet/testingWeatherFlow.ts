@@ -11,7 +11,7 @@ test('weather search: success then failure', () => {
       expect(model.zipCode).toBe('90210')
     }),
     Story.message(SubmittedWeatherForm()),
-    Story.expectHasCommand(FetchWeather),
+    Story.expectHasCommands(FetchWeather),
     Story.resolve(
       FetchWeather,
       SucceededFetchWeather({ weather: beverlyHillsWeather }),
@@ -26,7 +26,7 @@ test('weather search: success then failure', () => {
       expect(model.zipCode).toBe('00000')
     }),
     Story.message(SubmittedWeatherForm()),
-    Story.expectHasCommand(FetchWeather),
+    Story.expectHasCommands(FetchWeather),
     Story.resolve(FetchWeather, FailedFetchWeather({ error: 'Not found' })),
     Story.model(model => {
       expect(model.weather._tag).toBe('WeatherFailure')

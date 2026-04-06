@@ -64,7 +64,7 @@ describe('todo update', () => {
         update,
         Story.with({ ...emptyModel, newTodoText: 'Buy milk' }),
         Story.message(AddedTodo()),
-        Story.expectHasCommand(GenerateTodo),
+        Story.expectHasCommands(GenerateTodo),
         Story.resolve(
           GenerateTodo,
           GeneratedTodo({ id: 'abc', timestamp: 1000, text: 'Buy milk' }),

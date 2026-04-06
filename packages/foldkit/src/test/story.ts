@@ -224,19 +224,25 @@ export const model =
     return simulation
   }
 
-/** Asserts that a specific Command is among the pending Commands. */
-export const expectHasCommand =
-  <Name extends string>(definition: CommandDefinition<Name, unknown>) =>
+/** Asserts that every given Command is among the pending Commands. */
+export const expectHasCommands =
+  (...definitions: ReadonlyArray<CommandDefinition<string, unknown>>) =>
   <Model, Message, OutMessage = undefined>(
     simulation: StorySimulation<Model, Message, OutMessage>,
   ): StorySimulation<Model, Message, OutMessage> => {
     const internal = toInternal(simulation)
-    const found = Array.findFirst(
-      internal.commands,
-      ({ name }) => name === definition.name,
+    const pendingNames = Array.map(internal.commands, ({ name }) => name)
+    const missing = Array.filter(
+      definitions,
+      ({ name }) => !Array.contains(pendingNames, name),
     )
 
-    if (Option.isNone(found)) {
+    if (Array.isNonEmptyReadonlyArray(missing)) {
+      const missingNames = pipe(
+        missing,
+        Array.map(({ name }) => `    ${name}`),
+        Array.join('\n'),
+      )
       const pending = Array.isNonEmptyReadonlyArray(internal.commands)
         ? pipe(
             internal.commands,
@@ -245,7 +251,7 @@ export const expectHasCommand =
           )
         : '    (none)'
       throw new Error(
-        `Expected to find Command "${definition.name}" but the pending Commands are:\n\n${pending}`,
+        `Expected to find Commands:\n\n${missingNames}\n\nBut the pending Commands are:\n\n${pending}`,
       )
     }
 
@@ -253,7 +259,7 @@ export const expectHasCommand =
   }
 
 /** Asserts that the pending Commands match the given definitions exactly (order-independent). */
-export const expectCommands =
+export const expectExactCommands =
   (...definitions: ReadonlyArray<CommandDefinition<string, unknown>>) =>
   <Model, Message, OutMessage = undefined>(
     simulation: StorySimulation<Model, Message, OutMessage>,

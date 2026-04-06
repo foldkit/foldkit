@@ -42,7 +42,7 @@ describe('search', () => {
         expect(model.query).toBe('routing')
         expect(model.searchState._tag).toBe('Loading')
       }),
-      Story.expectHasCommand(FetchSearchResults),
+      Story.expectHasCommands(FetchSearchResults),
       Story.resolve(
         FetchSearchResults,
         ReceivedSearchResults({ results: searchResults, query: 'routing' }),
@@ -129,7 +129,7 @@ describe('search', () => {
         expect(model.query).toBe('')
         expect(model.searchState._tag).toBe('Idle')
       }),
-      Story.expectHasCommand(NavigateToResult),
+      Story.expectHasCommands(NavigateToResult),
       Story.resolve(NavigateToResult, CompletedNavigateSearch()),
       Story.model(model => {
         expect(model.query).toBe('')
@@ -151,7 +151,7 @@ describe('search', () => {
       Story.model(model => {
         expect(model.activeResultIndex).toBe(1)
       }),
-      Story.expectHasCommand(ScrollToResult),
+      Story.expectHasCommands(ScrollToResult),
       Story.resolve(ScrollToResult, CompletedScrollToResult()),
       Story.message(PressedArrowKey({ direction: 'Down' })),
       Story.model(model => {

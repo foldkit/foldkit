@@ -6,7 +6,7 @@ test('delayed reset: count resets after the delay fires', () => {
     update,
     Story.with({ count: 5 }),
     Story.message(ClickedResetAfterDelay()),
-    Story.expectHasCommand(DelayReset),
+    Story.expectHasCommands(DelayReset),
     Story.resolve(DelayReset, DelayedReset()),
     Story.model(model => {
       expect(model.count).toBe(0)

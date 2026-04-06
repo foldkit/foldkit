@@ -446,7 +446,7 @@ describe('export', () => {
       update,
       Story.with(emptyModel),
       Story.message(ClickedExport()),
-      Story.expectHasCommand(ExportPng),
+      Story.expectHasCommands(ExportPng),
       Story.resolve(ExportPng, SucceededExportPng()),
       Story.model(model => {
         expect(model.grid).toEqual(emptyModel.grid)

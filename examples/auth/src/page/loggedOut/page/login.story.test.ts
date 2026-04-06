@@ -77,7 +77,7 @@ describe('login', () => {
       Story.model(model => {
         expect(model.isSubmitting).toBe(true)
       }),
-      Story.expectHasCommand(SimulateAuthRequest),
+      Story.expectHasCommands(SimulateAuthRequest),
       Story.resolve(
         SimulateAuthRequest,
         SucceededSimulateAuthRequest({ session: aliceSession }),
