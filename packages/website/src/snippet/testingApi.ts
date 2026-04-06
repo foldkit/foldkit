@@ -15,10 +15,22 @@ Story.resolveAll([
   [ScrollToTop, CompletedScroll()],
 ])
 
-// Assert without breaking the chain.
-Story.tap(({ model, message, commands }) => {
+// Assert on the Model.
+Story.model(model => {
   expect(model.count).toBe(0)
 })
+
+// Assert a Command was produced.
+Story.expectHasCommand(FetchWeather)
+
+// Assert exactly these Commands were produced.
+Story.expectCommands(FetchWeather, SaveBoard)
+
+// Assert no Commands were produced.
+Story.expectNoCommands()
+
+// Assert on the OutMessage.
+Story.expectOutMessage(SucceededLogin({ session }))
 
 // Run the test story. Throws on unresolved Commands.
 Story.story(
@@ -26,7 +38,7 @@ Story.story(
   Story.with(model),
   Story.message(ClickedSubmit()),
   Story.resolve(FetchData, SucceededFetch({ data })),
-  Story.tap(({ model }) => {
+  Story.model(model => {
     expect(model.status).toBe('loaded')
   }),
 )

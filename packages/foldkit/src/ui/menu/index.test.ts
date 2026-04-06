@@ -115,7 +115,7 @@ describe('Menu', () => {
           withClosed,
           Story.message(Opened({ maybeActiveItemIndex: Option.some(2) })),
           Story.resolve(FocusItems, CompletedFocusItems()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(true)
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
           }),
@@ -132,7 +132,7 @@ describe('Menu', () => {
           }),
           Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
           Story.resolve(FocusItems, CompletedFocusItems()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.searchQuery).toBe('')
             expect(model.searchVersion).toBe(0)
           }),
@@ -145,7 +145,7 @@ describe('Menu', () => {
           withClosed,
           Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
           Story.resolve(FocusItems, CompletedFocusItems()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.activationTrigger).toBe('Keyboard')
           }),
         )
@@ -157,7 +157,7 @@ describe('Menu', () => {
           withClosed,
           Story.message(Opened({ maybeActiveItemIndex: Option.none() })),
           Story.resolve(FocusItems, CompletedFocusItems()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.activationTrigger).toBe('Pointer')
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
           }),
@@ -176,7 +176,7 @@ describe('Menu', () => {
           }),
           Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
           Story.resolve(FocusItems, CompletedFocusItems()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeLastPointerPosition).toStrictEqual(Option.none())
           }),
         )
@@ -190,7 +190,7 @@ describe('Menu', () => {
           withOpen,
           Story.message(Closed()),
           Story.resolve(FocusButton, CompletedFocusButton()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
             expect(model.activationTrigger).toBe('Keyboard')
@@ -212,7 +212,7 @@ describe('Menu', () => {
           update,
           withOpen,
           Story.message(ClosedByTab()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
             expect(model.maybeLastPointerPosition).toStrictEqual(Option.none())
@@ -235,7 +235,7 @@ describe('Menu', () => {
               timeStamp: 1000,
             }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('touch'),
@@ -257,7 +257,7 @@ describe('Menu', () => {
               timeStamp: 1000,
             }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('pen'),
@@ -280,7 +280,7 @@ describe('Menu', () => {
             }),
           ),
           Story.resolve(FocusItems, CompletedFocusItems()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(true)
             expect(model.activationTrigger).toBe('Pointer')
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
@@ -308,7 +308,7 @@ describe('Menu', () => {
             }),
           ),
           Story.resolve(FocusButton, CompletedFocusButton()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.none(),
@@ -331,7 +331,7 @@ describe('Menu', () => {
               timeStamp: 1000,
             }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('mouse'),
@@ -353,7 +353,7 @@ describe('Menu', () => {
               timeStamp: 0,
             }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('touch'),
             )
@@ -368,7 +368,7 @@ describe('Menu', () => {
             }),
           ),
           Story.resolve(FocusItems, CompletedFocusItems()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('mouse'),
             )
@@ -438,7 +438,7 @@ describe('Menu', () => {
         Story.story(
           update,
           withOpenAndOrigin,
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
           }),
           Story.message(
@@ -466,7 +466,7 @@ describe('Menu', () => {
             }),
           ),
           Story.resolve(ClickItem, CompletedClickItem()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
         )
@@ -482,7 +482,7 @@ describe('Menu', () => {
             ActivatedItem({ index: 3, activationTrigger: 'Keyboard' }),
           ),
           Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(3))
           }),
         )
@@ -500,7 +500,7 @@ describe('Menu', () => {
             ActivatedItem({ index: 4, activationTrigger: 'Keyboard' }),
           ),
           Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(4))
           }),
         )
@@ -513,7 +513,7 @@ describe('Menu', () => {
           Story.message(
             ActivatedItem({ index: 1, activationTrigger: 'Pointer' }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.activationTrigger).toBe('Pointer')
           }),
         )
@@ -527,7 +527,7 @@ describe('Menu', () => {
             ActivatedItem({ index: 2, activationTrigger: 'Keyboard' }),
           ),
           Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
           }),
         )
@@ -553,7 +553,7 @@ describe('Menu', () => {
             ActivatedItem({ index: 1, activationTrigger: 'Pointer' }),
           ),
           Story.message(DeactivatedItem()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
           }),
         )
@@ -568,7 +568,7 @@ describe('Menu', () => {
           ),
           Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
           Story.message(DeactivatedItem()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
           }),
         )
@@ -587,7 +587,7 @@ describe('Menu', () => {
               screenY: 200,
             }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
             expect(model.activationTrigger).toBe('Pointer')
             expect(model.maybeLastPointerPosition).toStrictEqual(
@@ -615,7 +615,7 @@ describe('Menu', () => {
               screenY: 250,
             }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(3))
             expect(model.maybeLastPointerPosition).toStrictEqual(
               Option.some({ screenX: 150, screenY: 250 }),
@@ -642,7 +642,7 @@ describe('Menu', () => {
               screenY: 200,
             }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(1))
           }),
         )
@@ -670,7 +670,7 @@ describe('Menu', () => {
           withOpen,
           Story.message(SelectedItem({ index: 2 })),
           Story.resolve(FocusButton, CompletedFocusButton()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
           }),
@@ -685,7 +685,7 @@ describe('Menu', () => {
           withOpen,
           Story.message(RequestedItemClick({ index: 2 })),
           Story.resolve(ClickItem, CompletedClickItem()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
         )
@@ -704,7 +704,7 @@ describe('Menu', () => {
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.searchQuery).toBe('a')
           }),
           Story.message(
@@ -714,7 +714,7 @@ describe('Menu', () => {
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.searchQuery).toBe('ab')
           }),
         )
@@ -731,7 +731,7 @@ describe('Menu', () => {
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.searchVersion).toBe(1)
           }),
           Story.message(
@@ -741,7 +741,7 @@ describe('Menu', () => {
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.searchVersion).toBe(2)
           }),
         )
@@ -758,7 +758,7 @@ describe('Menu', () => {
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(3))
           }),
         )
@@ -775,7 +775,7 @@ describe('Menu', () => {
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(0))
           }),
         )
@@ -792,7 +792,7 @@ describe('Menu', () => {
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.searchQuery).toBe('a')
           }),
         )
@@ -811,11 +811,11 @@ describe('Menu', () => {
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.searchVersion).toBe(1)
           }),
           Story.message(ClearedSearch({ version: 1 })),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.searchQuery).toBe('')
           }),
         )
@@ -839,11 +839,11 @@ describe('Menu', () => {
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.searchVersion).toBe(2)
           }),
           Story.message(ClearedSearch({ version: 1 })),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.searchQuery).toBe('ab')
           }),
         )
@@ -856,7 +856,7 @@ describe('Menu', () => {
           update,
           withOpen,
           Story.message(CompletedFocusItems()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
         )
@@ -870,7 +870,7 @@ describe('Menu', () => {
             update,
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(true)
               expect(model.transitionState).toBe('EnterStart')
             }),
@@ -889,7 +889,7 @@ describe('Menu', () => {
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.resolve(RequestFrame, AdvancedTransitionFrame()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('EnterAnimating')
             }),
             Story.resolveAll([
@@ -911,7 +911,7 @@ describe('Menu', () => {
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
             ]),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
@@ -924,7 +924,7 @@ describe('Menu', () => {
             update,
             withOpenAnimated,
             Story.message(Closed()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
@@ -942,7 +942,7 @@ describe('Menu', () => {
             update,
             withOpenAnimated,
             Story.message(ClosedByTab()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
@@ -959,7 +959,7 @@ describe('Menu', () => {
             update,
             withOpenAnimated,
             Story.message(SelectedItem({ index: 0 })),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
@@ -978,7 +978,7 @@ describe('Menu', () => {
             withOpenAnimated,
             Story.message(Closed()),
             Story.resolve(RequestFrame, AdvancedTransitionFrame()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('LeaveAnimating')
             }),
             Story.resolveAll([
@@ -1000,7 +1000,7 @@ describe('Menu', () => {
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
             ]),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
@@ -1014,7 +1014,7 @@ describe('Menu', () => {
             withClosed,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.resolve(FocusItems, CompletedFocusItems()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
@@ -1026,7 +1026,7 @@ describe('Menu', () => {
             withOpen,
             Story.message(Closed()),
             Story.resolve(FocusButton, CompletedFocusButton()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
@@ -1039,7 +1039,7 @@ describe('Menu', () => {
             update,
             withOpen,
             Story.message(AdvancedTransitionFrame()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(true)
               expect(model.transitionState).toBe('Idle')
             }),
@@ -1051,7 +1051,7 @@ describe('Menu', () => {
             update,
             withOpen,
             Story.message(EndedTransition()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(true)
               expect(model.transitionState).toBe('Idle')
             }),
@@ -1072,7 +1072,7 @@ describe('Menu', () => {
               [DetectMovementOrTransitionEnd, EndedTransition()],
             ]),
             Story.message(Closed()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
@@ -1097,7 +1097,7 @@ describe('Menu', () => {
               [DetectMovementOrTransitionEnd, EndedTransition()],
             ]),
             Story.message(Closed()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
@@ -1121,7 +1121,7 @@ describe('Menu', () => {
               transitionState: 'LeaveAnimating' as const,
             }),
             Story.message(DetectedButtonMovement()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
@@ -1132,7 +1132,7 @@ describe('Menu', () => {
             update,
             withOpen,
             Story.message(DetectedButtonMovement()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(true)
               expect(model.transitionState).toBe('Idle')
             }),
@@ -1148,7 +1148,7 @@ describe('Menu', () => {
               transitionState: 'EnterAnimating' as const,
             }),
             Story.message(DetectedButtonMovement()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('EnterAnimating')
             }),
           )
@@ -1180,7 +1180,7 @@ describe('Menu', () => {
           [LockScroll, CompletedLockScroll()],
           [InertOthers, CompletedSetupInert()],
         ]),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(true)
         }),
       )
@@ -1196,7 +1196,7 @@ describe('Menu', () => {
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],
         ]),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),
       )
@@ -1211,7 +1211,7 @@ describe('Menu', () => {
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],
         ]),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),
       )
@@ -1227,7 +1227,7 @@ describe('Menu', () => {
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],
         ]),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),
       )
@@ -1239,12 +1239,12 @@ describe('Menu', () => {
         withClosed,
         Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
         Story.resolve(FocusItems, CompletedFocusItems()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(true)
         }),
         Story.message(Closed()),
         Story.resolve(FocusButton, CompletedFocusButton()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),
       )
@@ -1557,8 +1557,8 @@ describe('Menu', () => {
       Story.story(
         update,
         withOpen,
-        Story.tap(simulation => {
-          model = simulation.model
+        Story.model(extractedModel => {
+          model = extractedModel
         }),
       )
       return model

@@ -90,7 +90,7 @@ describe('DragAndDrop', () => {
         update,
         Story.with(defaultInit()),
         Story.message(pressedDraggable),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.dragState._tag).toBe('Pending')
           if (model.dragState._tag === 'Pending') {
             expect(model.dragState.itemId).toBe('item-1')
@@ -111,7 +111,7 @@ describe('DragAndDrop', () => {
         Story.with(defaultInit()),
         Story.message(pressedDraggable),
         Story.message(movedPointerBelowThreshold),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.dragState._tag).toBe('Pending')
         }),
       )
@@ -123,7 +123,7 @@ describe('DragAndDrop', () => {
         Story.with(defaultInit()),
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.dragState._tag).toBe('Dragging')
           if (model.dragState._tag === 'Dragging') {
             expect(model.dragState.itemId).toBe('item-1')
@@ -149,7 +149,7 @@ describe('DragAndDrop', () => {
         Story.with(defaultInit()),
         Story.message(pressedDraggable),
         Story.message(ReleasedPointer()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.dragState._tag).toBe('Idle')
         }),
       )
@@ -171,7 +171,7 @@ describe('DragAndDrop', () => {
             maybeDropTarget: dropTarget,
           }),
         ),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.dragState._tag).toBe('Dragging')
           if (model.dragState._tag === 'Dragging') {
             expect(model.dragState.current).toStrictEqual({
@@ -191,7 +191,7 @@ describe('DragAndDrop', () => {
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
         Story.message(ReleasedPointer()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.dragState._tag).toBe('Idle')
         }),
       )
@@ -204,7 +204,7 @@ describe('DragAndDrop', () => {
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
         Story.message(CancelledDrag()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.dragState._tag).toBe('Idle')
         }),
       )
@@ -216,7 +216,7 @@ describe('DragAndDrop', () => {
         update,
         Story.with(originalModel),
         Story.message(movedPointerAboveThreshold),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model).toBe(originalModel)
         }),
       )
@@ -228,7 +228,7 @@ describe('DragAndDrop', () => {
         update,
         Story.with(originalModel),
         Story.message(ReleasedPointer()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model).toBe(originalModel)
         }),
       )
@@ -240,7 +240,7 @@ describe('DragAndDrop', () => {
         Story.with(defaultInit()),
         Story.message(pressedDraggable),
         Story.message(CancelledDrag()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.dragState._tag).toBe('Idle')
         }),
       )
@@ -257,19 +257,15 @@ describe('DragAndDrop', () => {
         Story.message(movedPointerAboveThreshold),
         Story.message(movedPointer({ maybeDropTarget: dropTarget })),
         Story.message(ReleasedPointer()),
-        Story.tap(({ outMessage }) => {
-          expect(outMessage).toStrictEqual(
-            Option.some(
-              Reordered({
-                itemId: 'item-1',
-                fromContainerId: 'list-1',
-                fromIndex: 0,
-                toContainerId: 'list-1',
-                toIndex: 2,
-              }),
-            ),
-          )
-        }),
+        Story.expectOutMessage(
+          Reordered({
+            itemId: 'item-1',
+            fromContainerId: 'list-1',
+            fromIndex: 0,
+            toContainerId: 'list-1',
+            toIndex: 2,
+          }),
+        ),
       )
     })
 
@@ -280,9 +276,7 @@ describe('DragAndDrop', () => {
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
         Story.message(ReleasedPointer()),
-        Story.tap(({ outMessage }) => {
-          expect(outMessage).toStrictEqual(Option.some(Cancelled()))
-        }),
+        Story.expectOutMessage(Cancelled()),
       )
     })
 
@@ -293,9 +287,7 @@ describe('DragAndDrop', () => {
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
         Story.message(CancelledDrag()),
-        Story.tap(({ outMessage }) => {
-          expect(outMessage).toStrictEqual(Option.some(Cancelled()))
-        }),
+        Story.expectOutMessage(Cancelled()),
       )
     })
 
@@ -305,9 +297,7 @@ describe('DragAndDrop', () => {
         Story.with(defaultInit()),
         Story.message(pressedDraggable),
         Story.message(CancelledDrag()),
-        Story.tap(({ outMessage }) => {
-          expect(outMessage).toStrictEqual(Option.none())
-        }),
+        Story.expectNoOutMessage(),
       )
     })
 
@@ -316,9 +306,7 @@ describe('DragAndDrop', () => {
         update,
         Story.with(defaultInit()),
         Story.message(pressedDraggable),
-        Story.tap(({ outMessage }) => {
-          expect(outMessage).toStrictEqual(Option.none())
-        }),
+        Story.expectNoOutMessage(),
       )
     })
 
@@ -328,9 +316,7 @@ describe('DragAndDrop', () => {
         Story.with(defaultInit()),
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
-        Story.tap(({ outMessage }) => {
-          expect(outMessage).toStrictEqual(Option.none())
-        }),
+        Story.expectNoOutMessage(),
       )
     })
   })
@@ -340,7 +326,7 @@ describe('DragAndDrop', () => {
       Story.story(
         update,
         Story.with(defaultInit()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(ghostStyle(model)).toStrictEqual(Option.none())
         }),
       )
@@ -351,7 +337,7 @@ describe('DragAndDrop', () => {
         update,
         Story.with(defaultInit()),
         Story.message(pressedDraggable),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(ghostStyle(model)).toStrictEqual(Option.none())
         }),
       )
@@ -363,7 +349,7 @@ describe('DragAndDrop', () => {
         Story.with(defaultInit()),
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           const result = ghostStyle(model)
           expect(Option.isSome(result)).toBe(true)
           if (Option.isSome(result)) {
@@ -381,7 +367,7 @@ describe('DragAndDrop', () => {
       Story.story(
         update,
         Story.with(defaultInit()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(isDragging(model)).toBe(false)
         }),
       )
@@ -392,7 +378,7 @@ describe('DragAndDrop', () => {
         update,
         Story.with(defaultInit()),
         Story.message(pressedDraggable),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(isDragging(model)).toBe(false)
         }),
       )
@@ -404,7 +390,7 @@ describe('DragAndDrop', () => {
         Story.with(defaultInit()),
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(isDragging(model)).toBe(true)
         }),
       )
@@ -416,7 +402,7 @@ describe('DragAndDrop', () => {
       Story.story(
         update,
         Story.with(defaultInit()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(maybeDraggedItemId(model)).toStrictEqual(Option.none())
         }),
       )
@@ -427,7 +413,7 @@ describe('DragAndDrop', () => {
         update,
         Story.with(defaultInit()),
         Story.message(pressedDraggable),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(maybeDraggedItemId(model)).toStrictEqual(Option.some('item-1'))
         }),
       )
@@ -439,7 +425,7 @@ describe('DragAndDrop', () => {
         Story.with(defaultInit()),
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(maybeDraggedItemId(model)).toStrictEqual(Option.some('item-1'))
         }),
       )
@@ -451,7 +437,7 @@ describe('DragAndDrop', () => {
       Story.story(
         update,
         Story.with(defaultInit()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(maybeDropTarget(model)).toStrictEqual(Option.none())
         }),
       )
@@ -462,7 +448,7 @@ describe('DragAndDrop', () => {
         update,
         Story.with(defaultInit()),
         Story.message(pressedDraggable),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(maybeDropTarget(model)).toStrictEqual(Option.none())
         }),
       )
@@ -474,7 +460,7 @@ describe('DragAndDrop', () => {
         Story.with(defaultInit()),
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(maybeDropTarget(model)).toStrictEqual(Option.none())
         }),
       )
@@ -488,7 +474,7 @@ describe('DragAndDrop', () => {
         Story.message(pressedDraggable),
         Story.message(movedPointerAboveThreshold),
         Story.message(movedPointer({ maybeDropTarget: target })),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(maybeDropTarget(model)).toStrictEqual(target)
         }),
       )
@@ -499,7 +485,7 @@ describe('DragAndDrop', () => {
         update,
         Story.with(defaultInit()),
         Story.message(activatedKeyboardDrag),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(maybeDropTarget(model)).toStrictEqual(
             Option.some({ containerId: 'list-1', index: 0 }),
           )
@@ -514,7 +500,7 @@ describe('DragAndDrop', () => {
         update,
         Story.with(defaultInit()),
         Story.message(activatedKeyboardDrag),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.dragState._tag).toBe('KeyboardDragging')
           if (model.dragState._tag === 'KeyboardDragging') {
             expect(model.dragState.itemId).toBe('item-1')
@@ -537,7 +523,7 @@ describe('DragAndDrop', () => {
           ResolveKeyboardMove,
           ResolvedKeyboardMove({ targetContainerId: 'list-1', targetIndex: 1 }),
         ),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.dragState._tag).toBe('KeyboardDragging')
           if (model.dragState._tag === 'KeyboardDragging') {
             expect(model.dragState.targetIndex).toBe(1)
@@ -557,7 +543,7 @@ describe('DragAndDrop', () => {
             targetIndex: 3,
           }),
         ),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.dragState._tag).toBe('KeyboardDragging')
           if (model.dragState._tag === 'KeyboardDragging') {
             expect(model.dragState.targetContainerId).toBe('list-2')
@@ -579,20 +565,18 @@ describe('DragAndDrop', () => {
           }),
         ),
         Story.message(ConfirmedKeyboardDrop()),
-        Story.tap(({ model, outMessage }) => {
+        Story.model(model => {
           expect(model.dragState._tag).toBe('Idle')
-          expect(outMessage).toStrictEqual(
-            Option.some(
-              Reordered({
-                itemId: 'item-1',
-                fromContainerId: 'list-1',
-                fromIndex: 0,
-                toContainerId: 'list-2',
-                toIndex: 1,
-              }),
-            ),
-          )
         }),
+        Story.expectOutMessage(
+          Reordered({
+            itemId: 'item-1',
+            fromContainerId: 'list-1',
+            fromIndex: 0,
+            toContainerId: 'list-2',
+            toIndex: 1,
+          }),
+        ),
         Story.resolve(FocusItem, CompletedFocusItem()),
       )
     })
@@ -603,10 +587,10 @@ describe('DragAndDrop', () => {
         Story.with(defaultInit()),
         Story.message(activatedKeyboardDrag),
         Story.message(CancelledDrag()),
-        Story.tap(({ model, outMessage }) => {
+        Story.model(model => {
           expect(model.dragState._tag).toBe('Idle')
-          expect(outMessage).toStrictEqual(Option.some(Cancelled()))
         }),
+        Story.expectOutMessage(Cancelled()),
         Story.resolve(FocusItem, CompletedFocusItem()),
       )
     })
@@ -616,7 +600,7 @@ describe('DragAndDrop', () => {
         update,
         Story.with(defaultInit()),
         Story.message(activatedKeyboardDrag),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(isDragging(model)).toBe(true)
         }),
       )
@@ -627,7 +611,7 @@ describe('DragAndDrop', () => {
         update,
         Story.with(defaultInit()),
         Story.message(activatedKeyboardDrag),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(maybeDraggedItemId(model)).toStrictEqual(Option.some('item-1'))
         }),
       )
@@ -638,7 +622,7 @@ describe('DragAndDrop', () => {
         update,
         Story.with(defaultInit()),
         Story.message(activatedKeyboardDrag),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(ghostStyle(model)).toStrictEqual(Option.none())
         }),
       )

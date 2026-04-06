@@ -72,7 +72,7 @@ describe('brush tool', () => {
       update,
       Story.with(emptyModel),
       Story.message(PressedCell({ x: 1, y: 2 })),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.grid[2]?.[1]).toEqual(Option.some(0))
         expect(model.undoStack).toHaveLength(1)
         expect(model.redoStack).toHaveLength(0)
@@ -90,7 +90,7 @@ describe('brush tool', () => {
       Story.message(EnteredCell({ x: 2, y: 0 })),
       Story.message(ReleasedMouse()),
       Story.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
         expect(model.grid[0]?.[1]).toEqual(Option.some(0))
         expect(model.grid[0]?.[2]).toEqual(Option.some(0))
@@ -109,13 +109,13 @@ describe('undo and redo', () => {
       Story.message(PressedCell({ x: 0, y: 0 })),
       Story.message(ReleasedMouse()),
       Story.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
         expect(model.undoStack).toHaveLength(1)
       }),
       Story.message(ClickedUndo()),
       Story.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.none())
         expect(model.undoStack).toHaveLength(0)
         expect(model.redoStack).toHaveLength(1)
@@ -134,7 +134,7 @@ describe('undo and redo', () => {
       Story.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.message(ClickedRedo()),
       Story.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
         expect(model.undoStack).toHaveLength(1)
         expect(model.redoStack).toHaveLength(0)
@@ -151,13 +151,13 @@ describe('undo and redo', () => {
       Story.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.message(ClickedUndo()),
       Story.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.redoStack).toHaveLength(1)
       }),
       Story.message(PressedCell({ x: 1, y: 1 })),
       Story.message(ReleasedMouse()),
       Story.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.redoStack).toHaveLength(0)
         expect(model.undoStack).toHaveLength(1)
       }),
@@ -169,7 +169,7 @@ describe('undo and redo', () => {
       update,
       Story.with(emptyModel),
       Story.message(ClickedUndo()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.grid).toEqual(emptyModel.grid)
         expect(model.undoStack).toHaveLength(0)
       }),
@@ -181,7 +181,7 @@ describe('undo and redo', () => {
       update,
       Story.with(emptyModel),
       Story.message(ClickedRedo()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.grid).toEqual(emptyModel.grid)
         expect(model.redoStack).toHaveLength(0)
       }),
@@ -205,20 +205,20 @@ describe('undo and redo', () => {
       Story.message(PressedCell({ x: 1, y: 1 })),
       Story.message(ReleasedMouse()),
       Story.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
         expect(model.grid[1]?.[1]).toEqual(Option.some(1))
         expect(model.undoStack).toHaveLength(2)
       }),
       Story.message(ClickedUndo()),
       Story.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
         expect(model.grid[1]?.[1]).toEqual(Option.none())
       }),
       Story.message(ClickedUndo()),
       Story.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.none())
         expect(model.grid[1]?.[1]).toEqual(Option.none())
       }),
@@ -233,7 +233,7 @@ describe('mirror mode', () => {
       Story.with(emptyModel),
       Story.message(ToggledMirrorHorizontal()),
       Story.message(PressedCell({ x: 0, y: 1 })),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.grid[1]?.[0]).toEqual(Option.some(0))
         expect(model.grid[1]?.[3]).toEqual(Option.some(0))
       }),
@@ -246,7 +246,7 @@ describe('mirror mode', () => {
       Story.with(emptyModel),
       Story.message(ToggledMirrorVertical()),
       Story.message(PressedCell({ x: 1, y: 0 })),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.grid[0]?.[1]).toEqual(Option.some(0))
         expect(model.grid[3]?.[1]).toEqual(Option.some(0))
       }),
@@ -260,7 +260,7 @@ describe('mirror mode', () => {
       Story.message(ToggledMirrorHorizontal()),
       Story.message(ToggledMirrorVertical()),
       Story.message(PressedCell({ x: 0, y: 0 })),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
         expect(model.grid[0]?.[3]).toEqual(Option.some(0))
         expect(model.grid[3]?.[0]).toEqual(Option.some(0))
@@ -284,7 +284,7 @@ describe('fill tool', () => {
       ),
       Story.message(PressedCell({ x: 0, y: 0 })),
       Story.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         const allPainted = model.grid.every(row =>
           row.every(cell => Equal.equals(cell, Option.some(0))),
         )
@@ -314,7 +314,7 @@ describe('fill tool', () => {
       ),
       Story.message(PressedCell({ x: 0, y: 0 })),
       Story.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
         expect(model.grid[0]?.[1]).toEqual(Option.some(0))
         expect(model.grid[0]?.[2]).toEqual(Option.some(1))
@@ -335,7 +335,7 @@ describe('grid size', () => {
         Ui.RadioGroup.CompletedFocusOption(),
         radioMessage => GotGridSizeRadioGroupMessage({ message: radioMessage }),
       ),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.gridSize).toBe(8)
         expect(model.grid).toHaveLength(8)
         expect(model.maybePendingGridSize).toEqual(Option.none())
@@ -364,7 +364,7 @@ describe('grid size', () => {
         dialogMessage =>
           GotGridSizeConfirmDialogMessage({ message: dialogMessage }),
       ),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.maybePendingGridSize).toEqual(Option.some(8))
         expect(model.gridSizeConfirmDialog.isOpen).toBe(true)
         expect(model.gridSize).toBe(4)
@@ -394,7 +394,7 @@ describe('grid size', () => {
           GotGridSizeConfirmDialogMessage({ message: dialogMessage }),
       ),
       Story.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.gridSize).toBe(8)
         expect(model.grid).toHaveLength(8)
         expect(model.grid[0]).toHaveLength(8)
@@ -410,7 +410,7 @@ describe('grid size', () => {
       update,
       Story.with(emptyModel),
       Story.message(SelectedGridSize({ size: 4 })),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model).toBe(emptyModel)
       }),
     )
@@ -427,13 +427,13 @@ describe('clear canvas', () => {
       Story.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.message(ClickedClear()),
       Story.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.none())
         expect(model.undoStack).toHaveLength(2)
       }),
       Story.message(ClickedUndo()),
       Story.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
       }),
     )
@@ -446,16 +446,13 @@ describe('export', () => {
       update,
       Story.with(emptyModel),
       Story.message(ClickedExport()),
-      Story.tap(({ commands }) => {
-        expect(commands).toHaveLength(1)
-        expect(commands[0]?.name).toBe(ExportPng.name)
-      }),
+      Story.expectHasCommand(ExportPng),
       Story.resolve(ExportPng, SucceededExportPng()),
-      Story.tap(({ model, commands }) => {
-        expect(commands).toHaveLength(0)
+      Story.model(model => {
         expect(model.grid).toEqual(emptyModel.grid)
         expect(model.maybeExportError).toEqual(Option.none())
       }),
+      Story.expectNoCommands(),
     )
   })
 })
@@ -466,7 +463,7 @@ describe('hover preview', () => {
       update,
       Story.with(emptyModel),
       Story.message(EnteredCell({ x: 2, y: 3 })),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.maybeHoveredCell).toEqual(Option.some({ x: 2, y: 3 }))
       }),
     )
@@ -478,7 +475,7 @@ describe('hover preview', () => {
       Story.with(emptyModel),
       Story.message(EnteredCell({ x: 2, y: 3 })),
       Story.message(LeftCanvas()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.maybeHoveredCell).toEqual(Option.none())
       }),
     )
@@ -493,7 +490,7 @@ describe('eraser tool', () => {
       Story.message(PressedCell({ x: 0, y: 0 })),
       Story.message(ReleasedMouse()),
       Story.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
       }),
       Story.message(SelectedTool({ tool: 'Eraser' })),
@@ -505,7 +502,7 @@ describe('eraser tool', () => {
       Story.message(PressedCell({ x: 0, y: 0 })),
       Story.message(ReleasedMouse()),
       Story.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.none())
         expect(model.undoStack).toHaveLength(2)
       }),
@@ -526,7 +523,7 @@ describe('export failure', () => {
         Ui.Dialog.CompletedShowDialog(),
         dialogMessage => GotErrorDialogMessage({ message: dialogMessage }),
       ),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.maybeExportError).toEqual(
           Option.some('Canvas 2D context not available'),
         )
@@ -553,7 +550,7 @@ describe('export failure', () => {
         Ui.Dialog.CompletedCloseDialog(),
         dialogMessage => GotErrorDialogMessage({ message: dialogMessage }),
       ),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.maybeExportError).toEqual(Option.none())
         expect(model.errorDialog.isOpen).toBe(false)
       }),

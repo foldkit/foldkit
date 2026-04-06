@@ -73,7 +73,7 @@ describe('kanban update', () => {
         Story.with(emptyModel),
         Story.message(ClickedAddCard({ columnId: 'todo' })),
         Story.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.maybeNewCardColumnId).toStrictEqual(Option.some('todo'))
           expect(model.newCardTitle).toBe('')
         }),
@@ -87,7 +87,7 @@ describe('kanban update', () => {
         Story.message(ClickedAddCard({ columnId: 'todo' })),
         Story.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
         Story.message(ChangedNewCardTitle({ value: 'New task' })),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.newCardTitle).toBe('New task')
         }),
       )
@@ -102,7 +102,7 @@ describe('kanban update', () => {
         Story.message(ChangedNewCardTitle({ value: 'Ship it' })),
         Story.message(SubmittedNewCard()),
         Story.resolve(SaveBoard, CompletedSaveBoard()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           const doneColumn = model.columns.find(column => column.id === 'done')
           const lastCard = doneColumn?.cards[doneColumn.cards.length - 1]
           expect(lastCard?.title).toBe('Ship it')
@@ -119,7 +119,7 @@ describe('kanban update', () => {
         Story.message(ClickedAddCard({ columnId: 'todo' })),
         Story.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
         Story.message(SubmittedNewCard()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.maybeNewCardColumnId).toStrictEqual(Option.some('todo'))
         }),
       )
@@ -133,7 +133,7 @@ describe('kanban update', () => {
         Story.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
         Story.message(ChangedNewCardTitle({ value: 'Draft' })),
         Story.message(CancelledNewCard()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.maybeNewCardColumnId).toStrictEqual(Option.none())
           expect(model.newCardTitle).toBe('')
         }),
@@ -175,7 +175,7 @@ describe('kanban update', () => {
           }),
         ),
         Story.resolve(SaveBoard, CompletedSaveBoard()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           const todoColumn = model.columns.find(column => column.id === 'todo')
           const cardIds = todoColumn?.cards.map(card => card.id)
           expect(cardIds?.indexOf(firstCardId)).toBeGreaterThan(0)
@@ -219,7 +219,7 @@ describe('kanban update', () => {
           }),
         ),
         Story.resolve(SaveBoard, CompletedSaveBoard()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           const todoCards = model.columns
             .find(column => column.id === 'todo')
             ?.cards.map(card => card.id)
@@ -265,7 +265,7 @@ describe('kanban update', () => {
           message => GotDragAndDropMessage({ message }),
         ),
         Story.resolve(SaveBoard, CompletedSaveBoard()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           const todoColumn = model.columns.find(column => column.id === 'todo')
           const cardIds = todoColumn?.cards.map(card => card.id)
           expect(cardIds?.indexOf(firstCardId)).toBe(2)
@@ -306,7 +306,7 @@ describe('kanban update', () => {
           message => GotDragAndDropMessage({ message }),
         ),
         Story.resolve(SaveBoard, CompletedSaveBoard()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           const todoCards = model.columns
             .find(column => column.id === 'todo')
             ?.cards.map(card => card.id)
@@ -342,7 +342,7 @@ describe('kanban update', () => {
           Ui.DragAndDrop.CompletedFocusItem(),
           message => GotDragAndDropMessage({ message }),
         ),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.columns).toStrictEqual(emptyModel.columns)
         }),
       )
@@ -379,7 +379,7 @@ describe('kanban update', () => {
             message: Ui.DragAndDrop.CancelledDrag(),
           }),
         ),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.columns).toStrictEqual(emptyModel.columns)
         }),
       )

@@ -38,16 +38,16 @@ describe('search', () => {
       update,
       Story.with(model),
       Story.message(UpdatedSearchQuery({ query: 'routing' })),
-      Story.tap(({ model, commands }) => {
+      Story.model(model => {
         expect(model.query).toBe('routing')
         expect(model.searchState._tag).toBe('Loading')
-        expect(commands[0]?.name).toBe(FetchSearchResults.name)
       }),
+      Story.expectHasCommand(FetchSearchResults),
       Story.resolve(
         FetchSearchResults,
         ReceivedSearchResults({ results: searchResults, query: 'routing' }),
       ),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.searchState).toMatchObject({
           _tag: 'Ok',
           results: searchResults,
@@ -62,12 +62,12 @@ describe('search', () => {
       update,
       Story.with({ ...model, query: 'routing' }),
       Story.message(UpdatedSearchQuery({ query: '' })),
-      Story.tap(({ model, commands }) => {
+      Story.model(model => {
         expect(model.query).toBe('')
         expect(model.searchState._tag).toBe('Idle')
         expect(model.activeResultIndex).toBe(-1)
-        expect(commands).toHaveLength(0)
       }),
+      Story.expectNoCommands(),
     )
   })
 
@@ -76,10 +76,10 @@ describe('search', () => {
       update,
       Story.with({ ...model, query: 'routing' }),
       Story.message(UpdatedSearchQuery({ query: 'routing' })),
-      Story.tap(({ model, commands }) => {
+      Story.model(model => {
         expect(model.searchState._tag).toBe('Idle')
-        expect(commands).toHaveLength(0)
       }),
+      Story.expectNoCommands(),
     )
   })
 
@@ -92,7 +92,7 @@ describe('search', () => {
         searchState: Ok({ results: searchResults }),
       }),
       Story.message(UpdatedSearchQuery({ query: 'testing' })),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.query).toBe('testing')
         expect(model.searchState._tag).toBe('Loading')
         expect(model.searchState).toMatchObject({
@@ -114,7 +114,7 @@ describe('search', () => {
       Story.message(
         ReceivedSearchResults({ results: searchResults, query: 'routing' }),
       ),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.searchState._tag).toBe('Idle')
       }),
     )
@@ -125,13 +125,13 @@ describe('search', () => {
       update,
       Story.with(model),
       Story.message(SelectedSearchResult({ url: '/docs/commands' })),
-      Story.tap(({ model, commands }) => {
+      Story.model(model => {
         expect(model.query).toBe('')
         expect(model.searchState._tag).toBe('Idle')
-        expect(commands[0]?.name).toBe(NavigateToResult.name)
       }),
+      Story.expectHasCommand(NavigateToResult),
       Story.resolve(NavigateToResult, CompletedNavigateSearch()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.query).toBe('')
       }),
     )
@@ -148,18 +148,18 @@ describe('search', () => {
       update,
       Story.with(modelWithResults),
       Story.message(PressedArrowKey({ direction: 'Down' })),
-      Story.tap(({ model, commands }) => {
+      Story.model(model => {
         expect(model.activeResultIndex).toBe(1)
-        expect(commands[0]?.name).toBe(ScrollToResult.name)
       }),
+      Story.expectHasCommand(ScrollToResult),
       Story.resolve(ScrollToResult, CompletedScrollToResult()),
       Story.message(PressedArrowKey({ direction: 'Down' })),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.activeResultIndex).toBe(0)
       }),
       Story.resolve(ScrollToResult, CompletedScrollToResult()),
       Story.message(PressedArrowKey({ direction: 'Up' })),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.activeResultIndex).toBe(1)
       }),
       Story.resolve(ScrollToResult, CompletedScrollToResult()),
@@ -176,7 +176,7 @@ describe('search', () => {
         activeResultIndex: 1,
       }),
       Story.message(ClearedSearchQuery()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.query).toBe('')
         expect(model.searchState._tag).toBe('Idle')
         expect(model.activeResultIndex).toBe(-1)

@@ -7,13 +7,13 @@ test('open the pod bay door', () => {
     update,
     Story.with(model),
     Story.message(PressedOpenPodBayDoor({ airlock: 'C' })),
-    Story.tap(({ model }) => {
+    Story.model(model => {
       expect(model.airlockC._tag).toBe('RunningDiagnostics')
     }),
     Story.resolve(RunDiagnostics, SucceededDiagnostics()),
     Story.resolve(Depressurize, CompletedDepressurize()),
     Story.resolve(OpenDoor, CompletedOpenDoor()),
-    Story.tap(({ model }) => {
+    Story.model(model => {
       expect(model.airlockC._tag).toBe('Open')
     }),
   )

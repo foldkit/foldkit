@@ -26,7 +26,7 @@ describe('Checkbox', () => {
         update,
         Story.with(init({ id: 'test' })),
         Story.message(Toggled()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isChecked).toBe(true)
         }),
       )
@@ -37,7 +37,7 @@ describe('Checkbox', () => {
         update,
         Story.with(init({ id: 'test', isChecked: true })),
         Story.message(Toggled()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isChecked).toBe(false)
         }),
       )

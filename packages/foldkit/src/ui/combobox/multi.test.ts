@@ -66,7 +66,7 @@ describe('Combobox.Multi', () => {
           update,
           withOpenMulti,
           Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.selectedItems).toStrictEqual(['apple'])
           }),
         )
@@ -77,7 +77,7 @@ describe('Combobox.Multi', () => {
           update,
           withOpenMulti,
           Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
         )
@@ -89,7 +89,7 @@ describe('Combobox.Multi', () => {
           withOpenMulti,
           Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
           Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.selectedItems).toStrictEqual([])
           }),
         )
@@ -103,7 +103,7 @@ describe('Combobox.Multi', () => {
           Story.message(
             SelectedItem({ item: 'banana', displayText: 'Banana' }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.selectedItems).toStrictEqual(['apple', 'banana'])
           }),
         )
@@ -122,7 +122,7 @@ describe('Combobox.Multi', () => {
           ),
           Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
           Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
           }),
         )
@@ -138,7 +138,7 @@ describe('Combobox.Multi', () => {
           Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
           Story.message(Closed()),
           Story.resolve(FocusInput, CompletedFocusInput()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.selectedItems).toStrictEqual([])
             expect(model.isOpen).toBe(false)
           }),
@@ -163,7 +163,7 @@ describe('Combobox.Multi', () => {
             }),
           ),
           Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.selectedItems).toStrictEqual(['apple'])
           }),
           Story.message(
@@ -177,7 +177,7 @@ describe('Combobox.Multi', () => {
             }),
           ),
           Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.selectedItems).toStrictEqual([])
           }),
         )
@@ -193,8 +193,8 @@ describe('Combobox.Multi', () => {
       Story.story(
         update,
         withOpenMulti,
-        Story.tap(simulation => {
-          model = simulation.model
+        Story.model(extractedModel => {
+          model = extractedModel
         }),
       )
       return model

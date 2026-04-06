@@ -22,8 +22,8 @@ const whyHeader: TableOfContentsEntry = {
 
 const apiHeader: TableOfContentsEntry = {
   level: 'h2',
-  id: 'six-functions',
-  text: 'Six Functions',
+  id: 'the-api',
+  text: 'The API',
 }
 
 const simpleExampleHeader: TableOfContentsEntry = {
@@ -71,7 +71,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Import the Story namespace: ',
         inlineCode("import { Story } from 'foldkit'"),
-        '. It exports six functions: ',
+        '. It exports eleven functions: ',
         inlineCode('story'),
         ', ',
         inlineCode('with'),
@@ -81,8 +81,18 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('resolve'),
         ', ',
         inlineCode('resolveAll'),
+        ', ',
+        inlineCode('model'),
+        ', ',
+        inlineCode('expectHasCommand'),
+        ', ',
+        inlineCode('expectCommands'),
+        ', ',
+        inlineCode('expectNoCommands'),
+        ', ',
+        inlineCode('expectOutMessage'),
         ', and ',
-        inlineCode('tap'),
+        inlineCode('expectNoOutMessage'),
         '.',
       ),
       highlightedCodeBlock(
@@ -146,7 +156,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' or ',
         inlineCode('Story.resolveAll'),
         ' is world-building: \u201Cthe weather API succeeded.\u201D Every ',
-        inlineCode('Story.tap'),
+        inlineCode('Story.model'),
         ' is a scene check: \u201Cthe weather is showing.\u201D',
       ),
       infoCallout(

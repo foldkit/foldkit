@@ -1,4 +1,4 @@
-import { Array, Predicate, pipe } from 'effect'
+import { Array, Equal, Option, Order, Predicate, pipe } from 'effect'
 
 import type { CommandDefinition } from '../command'
 import type { AnyCommand, BaseInternal, ResolverPair } from './internal'
@@ -12,8 +12,9 @@ export type { AnyCommand, ResolverPair }
 
 /** An immutable test simulation of a Foldkit program. */
 export type StorySimulation<Model, Message, OutMessage = undefined> = Readonly<{
+  /** @internal Carries the Message type through the step chain. */
+  _phantomMessage?: Message
   model: Model
-  message: Message | undefined
   commands: ReadonlyArray<AnyCommand>
   outMessage: OutMessage
 }>
@@ -43,6 +44,7 @@ type InternalStorySimulation<
   OutMessage = undefined,
 > = StorySimulation<Model, Message, OutMessage> &
   Readonly<{
+    message: Message | undefined
     updateFn: (
       model: Model,
       message: Message,
@@ -212,15 +214,143 @@ export const resolveAll =
     /* eslint-enable @typescript-eslint/consistent-type-assertions */
   }
 
-/** Runs a function for side effects (e.g. assertions) without breaking the step chain. */
-export const tap =
-  <Model, Message, OutMessage = undefined>(
-    f: (simulation: StorySimulation<Model, Message, OutMessage>) => void,
-  ) =>
+/** Runs an assertion function against the current Model. */
+export const model =
+  <Model, Message, OutMessage = undefined>(f: (model: Model) => void) =>
   (
     simulation: StorySimulation<Model, Message, OutMessage>,
   ): StorySimulation<Model, Message, OutMessage> => {
-    f(simulation)
+    f(toInternal(simulation).model)
+    return simulation
+  }
+
+/** Asserts that a specific Command is among the pending Commands. */
+export const expectHasCommand =
+  <Name extends string>(definition: CommandDefinition<Name, unknown>) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: StorySimulation<Model, Message, OutMessage>,
+  ): StorySimulation<Model, Message, OutMessage> => {
+    const internal = toInternal(simulation)
+    const found = Array.findFirst(
+      internal.commands,
+      ({ name }) => name === definition.name,
+    )
+
+    if (Option.isNone(found)) {
+      const pending = Array.isNonEmptyReadonlyArray(internal.commands)
+        ? pipe(
+            internal.commands,
+            Array.map(({ name }) => `    ${name}`),
+            Array.join('\n'),
+          )
+        : '    (none)'
+      throw new Error(
+        `Expected to find Command "${definition.name}" but the pending Commands are:\n\n${pending}`,
+      )
+    }
+
+    return simulation
+  }
+
+/** Asserts that the pending Commands match the given definitions exactly (order-independent). */
+export const expectCommands =
+  (...definitions: ReadonlyArray<CommandDefinition<string, unknown>>) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: StorySimulation<Model, Message, OutMessage>,
+  ): StorySimulation<Model, Message, OutMessage> => {
+    const internal = toInternal(simulation)
+    const expectedNames = pipe(
+      definitions,
+      Array.map(({ name }) => name),
+      Array.sort(Order.string),
+    )
+    const actualNames = pipe(
+      internal.commands,
+      Array.map(({ name }) => name),
+      Array.sort(Order.string),
+    )
+
+    if (!Equal.equals(expectedNames, actualNames)) {
+      const expected = pipe(
+        expectedNames,
+        Array.map(name => `    ${name}`),
+        Array.join('\n'),
+      )
+      const actual = Array.isNonEmptyReadonlyArray(actualNames)
+        ? pipe(
+            actualNames,
+            Array.map(name => `    ${name}`),
+            Array.join('\n'),
+          )
+        : '    (none)'
+      throw new Error(
+        `Expected exactly these Commands:\n\n${expected}\n\nBut found:\n\n${actual}`,
+      )
+    }
+
+    return simulation
+  }
+
+/** Asserts that there are no pending Commands. */
+export const expectNoCommands =
+  () =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: StorySimulation<Model, Message, OutMessage>,
+  ): StorySimulation<Model, Message, OutMessage> => {
+    const internal = toInternal(simulation)
+
+    if (Array.isNonEmptyReadonlyArray(internal.commands)) {
+      const pending = pipe(
+        internal.commands,
+        Array.map(({ name }) => `    ${name}`),
+        Array.join('\n'),
+      )
+      throw new Error(`Expected no Commands but found:\n\n${pending}`)
+    }
+
+    return simulation
+  }
+
+/** Asserts that the OutMessage is Some with the expected value. */
+export const expectOutMessage =
+  <OutMessage>(expected: OutMessage) =>
+  <Model, Message>(
+    simulation: StorySimulation<Model, Message, Option.Option<OutMessage>>,
+  ): StorySimulation<Model, Message, Option.Option<OutMessage>> => {
+    const internal = toInternal(simulation)
+    const outMessage = internal.outMessage
+
+    if (
+      !Option.isOption(outMessage) ||
+      Option.isNone(outMessage) ||
+      JSON.stringify(outMessage.value) !== JSON.stringify(expected)
+    ) {
+      throw new Error(
+        `Expected OutMessage:\n\n    Some(${JSON.stringify(expected)})\n\nBut got:\n\n    ${JSON.stringify(outMessage)}`,
+      )
+    }
+
+    return simulation
+  }
+
+/** Asserts that the OutMessage is None. */
+export const expectNoOutMessage =
+  () =>
+  <Model, Message, OutMessage>(
+    simulation: StorySimulation<Model, Message, Option.Option<OutMessage>>,
+  ): StorySimulation<Model, Message, Option.Option<OutMessage>> => {
+    const internal = toInternal(simulation)
+    const outMessage = internal.outMessage
+
+    if (
+      !Predicate.isUndefined(outMessage) &&
+      !(Option.isOption(outMessage) && Option.isNone(outMessage))
+    ) {
+      throw new Error(
+        `Expected no OutMessage but got:\n\n    ${JSON.stringify(outMessage)}`,
+      )
+    }
+
     return simulation
   }
 

@@ -1,4 +1,3 @@
-import { Option } from 'effect'
 import { describe, expect, expectTypeOf, test } from 'vitest'
 
 import {
@@ -23,7 +22,6 @@ import {
   initialParentModel,
   parentUpdate,
 } from './apps/formChild'
-import type { ChildOutMessage } from './apps/formChild'
 import * as Story from './story'
 
 // TEST
@@ -36,19 +34,8 @@ describe('message', () => {
       Story.message(ClickedIncrement()),
       Story.message(ClickedIncrement()),
       Story.message(ClickedDecrement()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.count).toBe(1)
-      }),
-    )
-  })
-
-  test('simulation tracks the most recent Message', () => {
-    Story.story(
-      update,
-      Story.with({ count: 0 }),
-      Story.message(ClickedIncrement()),
-      Story.tap(({ message }) => {
-        expect(message?._tag).toBe('ClickedIncrement')
       }),
     )
   })
@@ -58,10 +45,7 @@ describe('message', () => {
       update,
       Story.with({ count: 0 }),
       Story.message(ClickedFetch()),
-      Story.tap(({ commands }) => {
-        expect(commands).toHaveLength(1)
-        expect(commands[0]?.name).toBe(FetchCount.name)
-      }),
+      Story.expectHasCommand(FetchCount),
       Story.resolveAll([[FetchCount, SucceededFetchCount({ count: 42 })]]),
     )
   })
@@ -99,13 +83,12 @@ describe('resolve', () => {
       update,
       Story.with({ count: 0 }),
       Story.message(ClickedFetch()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.count).toBe(0)
       }),
       Story.resolve(FetchCount, SucceededFetchCount({ count: 42 })),
-      Story.tap(({ model, message }) => {
+      Story.model(model => {
         expect(model.count).toBe(42)
-        expect(message?._tag).toBe('SucceededFetchCount')
       }),
     )
   })
@@ -118,7 +101,7 @@ describe('resolveAll', () => {
       Story.with({ count: 0 }),
       Story.message(ClickedFetch()),
       Story.resolveAll([[FetchCount, SucceededFetchCount({ count: 42 })]]),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.count).toBe(42)
       }),
     )
@@ -133,7 +116,7 @@ describe('resolveAll', () => {
         [SubmitForm, SucceededSubmit({ id: 'abc' })],
         [ResetForm, CompletedReset()],
       ]),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.status).toBe('Idle')
       }),
     )
@@ -167,10 +150,10 @@ describe('story', () => {
       update,
       Story.with({ count: 0 }),
       Story.message(ClickedIncrement()),
-      Story.tap(({ model, commands }) => {
+      Story.model(model => {
         expect(model.count).toBe(1)
-        expect(commands).toHaveLength(0)
       }),
+      Story.expectNoCommands(),
     )
   })
 })
@@ -181,17 +164,11 @@ describe('outMessage', () => {
       childUpdate,
       Story.with({ status: 'Idle' }),
       Story.message(SubmittedForm()),
-      Story.tap(({ outMessage }) => {
-        expect(outMessage).toEqual(Option.none())
-      }),
+      Story.expectNoOutMessage(),
       Story.resolve(SubmitForm, SucceededSubmit({ id: 'abc' })),
-      Story.tap(({ outMessage }) => {
-        expect(outMessage).toEqual(Option.some(RequestedSave({ id: 'abc' })))
-      }),
+      Story.expectOutMessage(RequestedSave({ id: 'abc' })),
       Story.resolve(ResetForm, CompletedReset()),
-      Story.tap(({ outMessage }) => {
-        expect(outMessage).toEqual(Option.none())
-      }),
+      Story.expectNoOutMessage(),
     )
   })
 
@@ -200,9 +177,7 @@ describe('outMessage', () => {
       childUpdate,
       Story.with({ status: 'Idle' }),
       Story.message(CancelledForm()),
-      Story.tap(({ outMessage }) => {
-        expect(outMessage).toEqual(Option.some(RequestedCancel()))
-      }),
+      Story.expectOutMessage(RequestedCancel()),
     )
   })
 })
@@ -213,40 +188,23 @@ describe('resolve with toParentMessage', () => {
       parentUpdate,
       Story.with(initialParentModel),
       Story.message(GotChildMessage({ message: SubmittedForm() })),
-      Story.tap(({ model, commands }) => {
+      Story.model(model => {
         expect(model.child.status).toBe('Submitting')
-        expect(commands[0]?.name).toBe(SubmitForm.name)
       }),
+      Story.expectHasCommand(SubmitForm),
       Story.resolve(SubmitForm, SucceededSubmit({ id: 'abc' }), message =>
         GotChildMessage({ message }),
       ),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.child.status).toBe('Submitted')
         expect(model.savedIds).toEqual(['abc'])
       }),
       Story.resolve(ResetForm, CompletedReset(), message =>
         GotChildMessage({ message }),
       ),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.child.status).toBe('Idle')
         expect(model.savedIds).toEqual(['abc'])
-      }),
-    )
-  })
-})
-
-describe('tap', () => {
-  test('runs assertions without breaking the chain', () => {
-    Story.story(
-      update,
-      Story.with({ count: 0 }),
-      Story.message(ClickedIncrement()),
-      Story.tap(({ model }) => {
-        expect(model.count).toBe(1)
-      }),
-      Story.message(ClickedIncrement()),
-      Story.tap(({ model }) => {
-        expect(model.count).toBe(2)
       }),
     )
   })
@@ -262,19 +220,7 @@ describe('type safety', () => {
     Story.story(
       childUpdate,
       Story.with({ status: 'Idle' }),
-      Story.tap(({ outMessage }) => {
-        expectTypeOf(outMessage).toEqualTypeOf<Option.Option<ChildOutMessage>>()
-      }),
-    )
-  })
-
-  test('story defaults OutMessage to undefined for a 2-tuple update', () => {
-    Story.story(
-      update,
-      Story.with({ count: 0 }),
-      Story.tap(({ outMessage }) => {
-        expectTypeOf(outMessage).toEqualTypeOf<undefined>()
-      }),
+      Story.expectNoOutMessage(),
     )
   })
 

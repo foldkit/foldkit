@@ -92,7 +92,7 @@ describe('Popover', () => {
           withClosed,
           Story.message(Opened()),
           Story.resolve(FocusPanel, CompletedFocusPanel()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
         )
@@ -106,7 +106,7 @@ describe('Popover', () => {
           withOpen,
           Story.message(Closed()),
           Story.resolve(FocusButton, CompletedFocusButton()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.none(),
@@ -121,7 +121,7 @@ describe('Popover', () => {
           withClosed,
           Story.message(Closed()),
           Story.resolve(FocusButton, CompletedFocusButton()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(false)
           }),
         )
@@ -134,7 +134,7 @@ describe('Popover', () => {
           update,
           withOpen,
           Story.message(ClosedByTab()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.none(),
@@ -152,7 +152,7 @@ describe('Popover', () => {
           Story.message(
             PressedPointerOnButton({ pointerType: 'touch', button: 0 }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('touch'),
@@ -168,7 +168,7 @@ describe('Popover', () => {
           Story.message(
             PressedPointerOnButton({ pointerType: 'pen', button: 0 }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('pen'),
@@ -185,7 +185,7 @@ describe('Popover', () => {
             PressedPointerOnButton({ pointerType: 'mouse', button: 0 }),
           ),
           Story.resolve(FocusPanel, CompletedFocusPanel()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(true)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('mouse'),
@@ -202,7 +202,7 @@ describe('Popover', () => {
             PressedPointerOnButton({ pointerType: 'mouse', button: 0 }),
           ),
           Story.resolve(FocusButton, CompletedFocusButton()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.none(),
@@ -218,7 +218,7 @@ describe('Popover', () => {
           Story.message(
             PressedPointerOnButton({ pointerType: 'mouse', button: 2 }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('mouse'),
@@ -234,7 +234,7 @@ describe('Popover', () => {
           Story.message(
             PressedPointerOnButton({ pointerType: 'touch', button: 0 }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('touch'),
             )
@@ -243,7 +243,7 @@ describe('Popover', () => {
             PressedPointerOnButton({ pointerType: 'mouse', button: 0 }),
           ),
           Story.resolve(FocusPanel, CompletedFocusPanel()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('mouse'),
             )
@@ -258,7 +258,7 @@ describe('Popover', () => {
           update,
           withOpen,
           Story.message(CompletedFocusPanel()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
         )
@@ -272,7 +272,7 @@ describe('Popover', () => {
             update,
             withClosedAnimated,
             Story.message(Opened()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(true)
               expect(model.transitionState).toBe('EnterStart')
             }),
@@ -291,7 +291,7 @@ describe('Popover', () => {
             withClosedAnimated,
             Story.message(Opened()),
             Story.resolve(RequestFrame, AdvancedTransitionFrame()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('EnterAnimating')
             }),
             Story.resolveAll([
@@ -313,7 +313,7 @@ describe('Popover', () => {
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
             ]),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
@@ -326,7 +326,7 @@ describe('Popover', () => {
             update,
             withOpenAnimated,
             Story.message(Closed()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
@@ -344,7 +344,7 @@ describe('Popover', () => {
             update,
             withOpenAnimated,
             Story.message(ClosedByTab()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
@@ -362,7 +362,7 @@ describe('Popover', () => {
             withOpenAnimated,
             Story.message(Closed()),
             Story.resolve(RequestFrame, AdvancedTransitionFrame()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('LeaveAnimating')
             }),
             Story.resolveAll([
@@ -384,7 +384,7 @@ describe('Popover', () => {
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
             ]),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
@@ -398,7 +398,7 @@ describe('Popover', () => {
             withClosed,
             Story.message(Opened()),
             Story.resolve(FocusPanel, CompletedFocusPanel()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
@@ -410,7 +410,7 @@ describe('Popover', () => {
             withOpen,
             Story.message(Closed()),
             Story.resolve(FocusButton, CompletedFocusButton()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
@@ -423,7 +423,7 @@ describe('Popover', () => {
             update,
             withOpen,
             Story.message(AdvancedTransitionFrame()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(true)
               expect(model.transitionState).toBe('Idle')
             }),
@@ -435,7 +435,7 @@ describe('Popover', () => {
             update,
             withOpen,
             Story.message(EndedTransition()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(true)
               expect(model.transitionState).toBe('Idle')
             }),
@@ -456,7 +456,7 @@ describe('Popover', () => {
               [DetectMovementOrTransitionEnd, EndedTransition()],
             ]),
             Story.message(Closed()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
@@ -481,7 +481,7 @@ describe('Popover', () => {
               [DetectMovementOrTransitionEnd, EndedTransition()],
             ]),
             Story.message(Closed()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
@@ -505,7 +505,7 @@ describe('Popover', () => {
               transitionState: 'LeaveAnimating' as const,
             }),
             Story.message(DetectedButtonMovement()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
@@ -516,7 +516,7 @@ describe('Popover', () => {
             update,
             withOpen,
             Story.message(DetectedButtonMovement()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(true)
               expect(model.transitionState).toBe('Idle')
             }),
@@ -532,7 +532,7 @@ describe('Popover', () => {
               transitionState: 'EnterAnimating' as const,
             }),
             Story.message(DetectedButtonMovement()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('EnterAnimating')
             }),
           )
@@ -564,7 +564,7 @@ describe('Popover', () => {
           [LockScroll, CompletedLockScroll()],
           [InertOthers, CompletedSetupInert()],
         ]),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(true)
         }),
       )
@@ -580,7 +580,7 @@ describe('Popover', () => {
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],
         ]),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),
       )
@@ -595,7 +595,7 @@ describe('Popover', () => {
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],
         ]),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),
       )
@@ -607,12 +607,12 @@ describe('Popover', () => {
         withClosed,
         Story.message(Opened()),
         Story.resolve(FocusPanel, CompletedFocusPanel()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(true)
         }),
         Story.message(Closed()),
         Story.resolve(FocusButton, CompletedFocusButton()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),
       )
@@ -644,8 +644,8 @@ describe('Popover', () => {
       Story.story(
         update,
         withOpen,
-        Story.tap(simulation => {
-          model = simulation.model
+        Story.model(extractedModel => {
+          model = extractedModel
         }),
       )
       return model

@@ -44,7 +44,7 @@ describe('RadioGroup', () => {
         Story.with(init({ id: 'test' })),
         Story.message(SelectedOption({ value: 'startup', index: 0 })),
         Story.resolve(FocusOption, CompletedFocusOption()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.selectedValue).toStrictEqual(Option.some('startup'))
         }),
       )
@@ -56,7 +56,7 @@ describe('RadioGroup', () => {
         Story.with(init({ id: 'test', selectedValue: 'startup' })),
         Story.message(SelectedOption({ value: 'enterprise', index: 2 })),
         Story.resolve(FocusOption, CompletedFocusOption()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.selectedValue).toStrictEqual(Option.some('enterprise'))
         }),
       )
@@ -73,7 +73,7 @@ describe('RadioGroup', () => {
         ),
         Story.message(SelectedOption({ value: 'startup', index: 0 })),
         Story.resolve(FocusOption, CompletedFocusOption()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.id).toBe('test')
           expect(model.orientation).toBe('Horizontal')
         }),
@@ -86,7 +86,7 @@ describe('RadioGroup', () => {
         update,
         Story.with(originalModel),
         Story.message(CompletedFocusOption()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model).toBe(originalModel)
         }),
       )

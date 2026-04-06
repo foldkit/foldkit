@@ -58,7 +58,7 @@ describe('Dialog', () => {
         Story.with(init({ id: 'test' })),
         Story.message(Opened()),
         Story.resolve(ShowDialog, CompletedShowDialog()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(true)
         }),
       )
@@ -69,7 +69,7 @@ describe('Dialog', () => {
         update,
         Story.with(init({ id: 'test', isOpen: true })),
         Story.message(Opened()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(true)
         }),
       )
@@ -81,7 +81,7 @@ describe('Dialog', () => {
         Story.with(init({ id: 'test', isOpen: true })),
         Story.message(Closed()),
         Story.resolve(CloseDialog, CompletedCloseDialog()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),
       )
@@ -92,7 +92,7 @@ describe('Dialog', () => {
         update,
         Story.with(init({ id: 'test' })),
         Story.message(Closed()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),
       )
@@ -104,7 +104,7 @@ describe('Dialog', () => {
         update,
         Story.with(originalModel),
         Story.message(CompletedShowDialog()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model).toBe(originalModel)
         }),
       )

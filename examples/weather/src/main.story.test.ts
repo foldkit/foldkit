@@ -23,14 +23,14 @@ test('submitting the weather form fetches weather and shows result', () => {
     update,
     Story.with(weatherModel),
     Story.message(SubmittedWeatherForm()),
-    Story.tap(({ model }) => {
+    Story.model(model => {
       expect(model.weather._tag).toBe('WeatherLoading')
     }),
     Story.resolve(
       FetchWeather,
       SucceededFetchWeather({ weather: weatherData }),
     ),
-    Story.tap(({ model }) => {
+    Story.model(model => {
       expect(model.weather._tag).toBe('WeatherSuccess')
       if (model.weather._tag === 'WeatherSuccess') {
         expect(model.weather.data.temperature).toBe(72)
@@ -46,7 +46,7 @@ test('failed fetch shows failure state', () => {
     Story.with(weatherModel),
     Story.message(SubmittedWeatherForm()),
     Story.resolve(FetchWeather, FailedFetchWeather({ error: 'Network error' })),
-    Story.tap(({ model }) => {
+    Story.model(model => {
       expect(model.weather._tag).toBe('WeatherFailure')
       if (model.weather._tag === 'WeatherFailure') {
         expect(model.weather.error).toBe('Network error')

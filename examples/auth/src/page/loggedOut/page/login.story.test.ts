@@ -1,4 +1,4 @@
-import { Option, Schema } from 'effect'
+import { Schema } from 'effect'
 import { FieldValidation, Story } from 'foldkit'
 import { describe, expect, test } from 'vitest'
 
@@ -31,11 +31,11 @@ describe('login', () => {
       update,
       Story.with(initModel()),
       Story.message(ChangedEmail({ value: '' })),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.email._tag).toBe('Invalid')
       }),
       Story.message(ChangedEmail({ value: 'alice@example.com' })),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.email._tag).toBe('Valid')
         expect(model.email.value).toBe('alice@example.com')
       }),
@@ -47,11 +47,11 @@ describe('login', () => {
       update,
       Story.with(initModel()),
       Story.message(ChangedPassword({ value: '' })),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.password._tag).toBe('Invalid')
       }),
       Story.message(ChangedPassword({ value: 'secret' })),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.password._tag).toBe('Valid')
       }),
     )
@@ -62,10 +62,10 @@ describe('login', () => {
       update,
       Story.with(initModel()),
       Story.message(ClickedSubmit()),
-      Story.tap(({ model, commands }) => {
+      Story.model(model => {
         expect(model.isSubmitting).toBe(false)
-        expect(commands).toHaveLength(0)
       }),
+      Story.expectNoCommands(),
     )
   })
 
@@ -74,19 +74,15 @@ describe('login', () => {
       update,
       Story.with(validModel),
       Story.message(ClickedSubmit()),
-      Story.tap(({ model, commands }) => {
+      Story.model(model => {
         expect(model.isSubmitting).toBe(true)
-        expect(commands[0]?.name).toBe(SimulateAuthRequest.name)
       }),
+      Story.expectHasCommand(SimulateAuthRequest),
       Story.resolve(
         SimulateAuthRequest,
         SucceededSimulateAuthRequest({ session: aliceSession }),
       ),
-      Story.tap(({ outMessage }) => {
-        expect(outMessage).toEqual(
-          Option.some(SucceededLogin({ session: aliceSession })),
-        )
-      }),
+      Story.expectOutMessage(SucceededLogin({ session: aliceSession })),
     )
   })
 
@@ -95,18 +91,18 @@ describe('login', () => {
       update,
       Story.with(validModel),
       Story.message(ClickedSubmit()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.isSubmitting).toBe(true)
       }),
       Story.resolve(
         SimulateAuthRequest,
         FailedSimulateAuthRequest({ error: 'Invalid credentials' }),
       ),
-      Story.tap(({ model, outMessage }) => {
+      Story.model(model => {
         expect(model.isSubmitting).toBe(false)
         expect(model.password._tag).toBe('Invalid')
-        expect(outMessage).toEqual(Option.none())
       }),
+      Story.expectNoOutMessage(),
     )
   })
 })

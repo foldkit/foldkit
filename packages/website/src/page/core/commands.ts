@@ -155,7 +155,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ', resolve Commands inline with ',
         inlineCode('Story.resolve'),
         ', and assert with ',
-        inlineCode('Story.tap'),
+        inlineCode('Story.model'),
         '. See the ',
         link(testingRouter(), 'Testing'),
         ' guide for the full API.',

@@ -34,7 +34,7 @@ describe('Disclosure', () => {
         update,
         Story.with(init({ id: 'test' })),
         Story.message(Toggled()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(true)
         }),
       )
@@ -46,7 +46,7 @@ describe('Disclosure', () => {
         Story.with(init({ id: 'test', isOpen: true })),
         Story.message(Toggled()),
         Story.resolve(FocusButton, CompletedFocusButton()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),
       )
@@ -58,7 +58,7 @@ describe('Disclosure', () => {
         Story.with(init({ id: 'test', isOpen: true })),
         Story.message(Closed()),
         Story.resolve(FocusButton, CompletedFocusButton()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),
       )
@@ -70,7 +70,7 @@ describe('Disclosure', () => {
         update,
         Story.with(originalModel),
         Story.message(Closed()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model).toStrictEqual(originalModel)
         }),
       )
@@ -82,7 +82,7 @@ describe('Disclosure', () => {
         update,
         Story.with(originalModel),
         Story.message(CompletedFocusButton()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model).toBe(originalModel)
         }),
       )

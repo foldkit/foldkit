@@ -48,7 +48,7 @@ describe('entering a username', () => {
       update,
       withEnterUsernameStep(),
       Story.message(ChangedUsername({ value: 'alice' })),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.homeStep).toMatchObject({
           _tag: 'EnterUsername',
           username: 'alice',
@@ -63,7 +63,7 @@ describe('entering a username', () => {
       withEnterUsernameStep(),
       Story.message(ChangedUsername({ value: 'alice' })),
       Story.message(SubmittedUsernameForm()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.homeStep).toMatchObject({
           _tag: 'SelectAction',
           username: 'alice',
@@ -78,7 +78,7 @@ describe('entering a username', () => {
       update,
       withEnterUsernameStep(),
       Story.message(SubmittedUsernameForm()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.homeStep._tag).toBe('EnterUsername')
       }),
     )
@@ -91,21 +91,21 @@ describe('selecting an action', () => {
       update,
       withSelectActionStep(),
       Story.message(PressedKey({ key: 'ArrowDown' })),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.homeStep).toMatchObject({
           _tag: 'SelectAction',
           selectedAction: 'JoinRoom',
         })
       }),
       Story.message(PressedKey({ key: 'ArrowDown' })),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.homeStep).toMatchObject({
           _tag: 'SelectAction',
           selectedAction: 'ChangeUsername',
         })
       }),
       Story.message(PressedKey({ key: 'ArrowDown' })),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.homeStep).toMatchObject({
           _tag: 'SelectAction',
           selectedAction: 'CreateRoom',
@@ -119,7 +119,7 @@ describe('selecting an action', () => {
       update,
       withSelectActionStep(),
       Story.message(PressedKey({ key: 'ArrowUp' })),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.homeStep).toMatchObject({
           _tag: 'SelectAction',
           selectedAction: 'ChangeUsername',
@@ -135,7 +135,7 @@ describe('selecting an action', () => {
       Story.message(PressedKey({ key: 'ArrowDown' })),
       Story.message(PressedKey({ key: 'Enter' })),
       Story.resolve(FocusRoomIdInput, CompletedFocusRoomIdInput()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.homeStep).toMatchObject({
           _tag: 'EnterRoomId',
           username: 'alice',
@@ -153,7 +153,7 @@ describe('selecting an action', () => {
       Story.message(PressedKey({ key: 'ArrowDown' })),
       Story.message(PressedKey({ key: 'Enter' })),
       Story.resolve(FocusUsernameInput, CompletedFocusUsernameInput()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.homeStep._tag).toBe('EnterUsername')
       }),
     )
@@ -168,12 +168,9 @@ describe('selecting an action', () => {
         CreateRoom,
         SucceededCreateRoom({ roomId: 'r1', player: alice }),
       ),
-      Story.tap(({ outMessage }) => {
-        expect(outMessage).toMatchObject({
-          _tag: 'Some',
-          value: { _tag: 'SucceededCreateRoom' },
-        })
-      }),
+      Story.expectOutMessage(
+        SucceededCreateRoom({ roomId: 'r1', player: alice }),
+      ),
     )
   })
 })
@@ -184,7 +181,7 @@ describe('joining a room', () => {
       update,
       withEnterRoomIdStep(),
       Story.message(ChangedRoomId({ value: 'abc' })),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.homeStep).toMatchObject({
           _tag: 'EnterRoomId',
           roomId: 'abc',
@@ -201,7 +198,7 @@ describe('joining a room', () => {
         formError: Option.some('Room not found'),
       }),
       Story.message(ChangedRoomId({ value: 'abc' })),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(Option.isNone(model.formError)).toBe(true)
       }),
     )
@@ -217,12 +214,9 @@ describe('joining a room', () => {
         JoinRoom,
         SucceededJoinRoom({ roomId: 'r1', player: alice }),
       ),
-      Story.tap(({ outMessage }) => {
-        expect(outMessage).toMatchObject({
-          _tag: 'Some',
-          value: { _tag: 'SucceededJoinRoom' },
-        })
-      }),
+      Story.expectOutMessage(
+        SucceededJoinRoom({ roomId: 'r1', player: alice }),
+      ),
     )
   })
 
@@ -231,7 +225,7 @@ describe('joining a room', () => {
       update,
       withEnterRoomIdStep(),
       Story.message(FailedJoinRoom({ error: 'Room not found' })),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.formError).toMatchObject({
           _tag: 'Some',
           value: 'Room not found',
@@ -246,7 +240,7 @@ describe('joining a room', () => {
       withEnterRoomIdStep(),
       Story.message(ChangedRoomId({ value: 'exit' })),
       Story.message(SubmittedJoinRoomForm()),
-      Story.tap(({ model }) => {
+      Story.model(model => {
         expect(model.homeStep).toMatchObject({
           _tag: 'SelectAction',
           selectedAction: 'JoinRoom',

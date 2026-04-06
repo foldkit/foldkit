@@ -150,7 +150,7 @@ describe('Combobox', () => {
           update,
           withClosed,
           Story.message(Opened({ maybeActiveItemIndex: Option.some(2) })),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(true)
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
           }),
@@ -168,7 +168,7 @@ describe('Combobox', () => {
             }),
           }),
           Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeLastPointerPosition).toStrictEqual(Option.none())
           }),
         )
@@ -179,7 +179,7 @@ describe('Combobox', () => {
           update,
           withClosed,
           Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.activationTrigger).toBe('Keyboard')
           }),
         )
@@ -190,7 +190,7 @@ describe('Combobox', () => {
           update,
           withClosed,
           Story.message(Opened({ maybeActiveItemIndex: Option.none() })),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.activationTrigger).toBe('Pointer')
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
           }),
@@ -211,7 +211,7 @@ describe('Combobox', () => {
           }),
           Story.message(Closed()),
           Story.resolve(FocusInput, CompletedFocusInput()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.inputValue).toBe('Apple')
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
@@ -233,7 +233,7 @@ describe('Combobox', () => {
           }),
           Story.message(Closed()),
           Story.resolve(FocusInput, CompletedFocusInput()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.inputValue).toBe('')
             expect(model.maybeSelectedItem).toStrictEqual(Option.none())
@@ -248,7 +248,7 @@ describe('Combobox', () => {
           withOpen,
           Story.message(Closed()),
           Story.resolve(FocusInput, CompletedFocusInput()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(false)
           }),
         )
@@ -261,7 +261,7 @@ describe('Combobox', () => {
           update,
           withOpen,
           Story.message(ClosedByTab()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
             expect(model.maybeLastPointerPosition).toStrictEqual(Option.none())
@@ -279,7 +279,7 @@ describe('Combobox', () => {
             maybeSelectedDisplayText: Option.some('Apple'),
           }),
           Story.message(ClosedByTab()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.inputValue).toBe('Apple')
           }),
         )
@@ -299,7 +299,7 @@ describe('Combobox', () => {
             }),
           ),
           Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(3))
           }),
         )
@@ -325,7 +325,7 @@ describe('Combobox', () => {
             }),
           ),
           Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(4))
           }),
         )
@@ -342,7 +342,7 @@ describe('Combobox', () => {
               maybeImmediateSelection: Option.none(),
             }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.activationTrigger).toBe('Pointer')
           }),
         )
@@ -360,7 +360,7 @@ describe('Combobox', () => {
             }),
           ),
           Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
           }),
         )
@@ -381,7 +381,7 @@ describe('Combobox', () => {
             }),
           ),
           Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeSelectedItem).toStrictEqual(Option.some('banana'))
             expect(model.maybeSelectedDisplayText).toStrictEqual(
               Option.some('Banana'),
@@ -405,7 +405,7 @@ describe('Combobox', () => {
             }),
           ),
           Story.message(DeactivatedItem()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
           }),
         )
@@ -424,7 +424,7 @@ describe('Combobox', () => {
           ),
           Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
           Story.message(DeactivatedItem()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
           }),
         )
@@ -439,7 +439,7 @@ describe('Combobox', () => {
           Story.message(
             MovedPointerOverItem({ index: 2, screenX: 100, screenY: 200 }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
             expect(model.activationTrigger).toBe('Pointer')
             expect(model.maybeLastPointerPosition).toStrictEqual(
@@ -459,7 +459,7 @@ describe('Combobox', () => {
           Story.message(
             MovedPointerOverItem({ index: 2, screenX: 100, screenY: 200 }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(1))
           }),
         )
@@ -475,7 +475,7 @@ describe('Combobox', () => {
           Story.message(
             MovedPointerOverItem({ index: 3, screenX: 150, screenY: 250 }),
           ),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(3))
             expect(model.maybeLastPointerPosition).toStrictEqual(
               Option.some({ screenX: 150, screenY: 250 }),
@@ -492,7 +492,7 @@ describe('Combobox', () => {
           withOpen,
           Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
           Story.resolve(FocusInput, CompletedFocusInput()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeSelectedItem).toStrictEqual(Option.some('apple'))
             expect(model.maybeSelectedDisplayText).toStrictEqual(
               Option.some('Apple'),
@@ -516,7 +516,7 @@ describe('Combobox', () => {
           }),
           Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
           Story.resolve(FocusInput, CompletedFocusInput()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeSelectedItem).toStrictEqual(Option.none())
             expect(model.maybeSelectedDisplayText).toStrictEqual(Option.none())
             expect(model.inputValue).toBe('')
@@ -531,7 +531,7 @@ describe('Combobox', () => {
           withOpen,
           Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
           Story.resolve(FocusInput, CompletedFocusInput()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(false)
           }),
         )
@@ -545,7 +545,7 @@ describe('Combobox', () => {
           withOpen,
           Story.message(RequestedItemClick({ index: 2 })),
           Story.resolve(ClickItem, CompletedClickItem()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
         )
@@ -558,7 +558,7 @@ describe('Combobox', () => {
           update,
           withOpen,
           Story.message(UpdatedInputValue({ value: 'app' })),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.inputValue).toBe('app')
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(0))
             expect(model.activationTrigger).toBe('Keyboard')
@@ -572,7 +572,7 @@ describe('Combobox', () => {
           update,
           withClosed,
           Story.message(UpdatedInputValue({ value: 'b' })),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(true)
             expect(model.inputValue).toBe('b')
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(0))
@@ -589,7 +589,7 @@ describe('Combobox', () => {
           withClosed,
           Story.message(PressedToggleButton()),
           Story.resolve(FocusInput, CompletedFocusInput()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(true)
             expect(model.activationTrigger).toBe('Pointer')
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
@@ -603,7 +603,7 @@ describe('Combobox', () => {
           withOpen,
           Story.message(PressedToggleButton()),
           Story.resolve(FocusInput, CompletedFocusInput()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(false)
           }),
         )
@@ -616,7 +616,7 @@ describe('Combobox', () => {
           update,
           withOpen,
           Story.message(CompletedFocusInput()),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
         )
@@ -630,7 +630,7 @@ describe('Combobox', () => {
             update,
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(true)
               expect(model.transitionState).toBe('EnterStart')
             }),
@@ -648,7 +648,7 @@ describe('Combobox', () => {
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.resolve(RequestFrame, AdvancedTransitionFrame()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('EnterAnimating')
             }),
             Story.resolveAll([
@@ -668,7 +668,7 @@ describe('Combobox', () => {
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
             ]),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
@@ -681,7 +681,7 @@ describe('Combobox', () => {
             update,
             withOpenAnimated,
             Story.message(Closed()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
@@ -699,7 +699,7 @@ describe('Combobox', () => {
             update,
             withOpenAnimated,
             Story.message(ClosedByTab()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
@@ -718,7 +718,7 @@ describe('Combobox', () => {
             Story.message(
               SelectedItem({ item: 'apple', displayText: 'Apple' }),
             ),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
@@ -737,7 +737,7 @@ describe('Combobox', () => {
             withOpenAnimated,
             Story.message(Closed()),
             Story.resolve(RequestFrame, AdvancedTransitionFrame()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('LeaveAnimating')
             }),
             Story.resolveAll([
@@ -759,7 +759,7 @@ describe('Combobox', () => {
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
             ]),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
@@ -772,7 +772,7 @@ describe('Combobox', () => {
             update,
             withClosed,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
@@ -784,7 +784,7 @@ describe('Combobox', () => {
             withOpen,
             Story.message(Closed()),
             Story.resolve(FocusInput, CompletedFocusInput()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
@@ -797,7 +797,7 @@ describe('Combobox', () => {
             update,
             withOpen,
             Story.message(AdvancedTransitionFrame()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(true)
               expect(model.transitionState).toBe('Idle')
             }),
@@ -809,7 +809,7 @@ describe('Combobox', () => {
             update,
             withOpen,
             Story.message(EndedTransition()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(true)
               expect(model.transitionState).toBe('Idle')
             }),
@@ -829,7 +829,7 @@ describe('Combobox', () => {
               [DetectMovementOrTransitionEnd, EndedTransition()],
             ]),
             Story.message(Closed()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
@@ -853,7 +853,7 @@ describe('Combobox', () => {
               [DetectMovementOrTransitionEnd, EndedTransition()],
             ]),
             Story.message(Closed()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
@@ -877,7 +877,7 @@ describe('Combobox', () => {
               transitionState: 'LeaveAnimating' as const,
             }),
             Story.message(DetectedInputMovement()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('Idle')
             }),
           )
@@ -888,7 +888,7 @@ describe('Combobox', () => {
             update,
             withOpen,
             Story.message(DetectedInputMovement()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.isOpen).toBe(true)
               expect(model.transitionState).toBe('Idle')
             }),
@@ -904,7 +904,7 @@ describe('Combobox', () => {
               transitionState: 'EnterAnimating' as const,
             }),
             Story.message(DetectedInputMovement()),
-            Story.tap(({ model }) => {
+            Story.model(model => {
               expect(model.transitionState).toBe('EnterAnimating')
             }),
           )
@@ -934,7 +934,7 @@ describe('Combobox', () => {
           [LockScroll, CompletedLockScroll()],
           [InertOthers, CompletedSetupInert()],
         ]),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(true)
         }),
       )
@@ -950,7 +950,7 @@ describe('Combobox', () => {
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],
         ]),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),
       )
@@ -965,7 +965,7 @@ describe('Combobox', () => {
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],
         ]),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),
       )
@@ -981,7 +981,7 @@ describe('Combobox', () => {
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],
         ]),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),
       )
@@ -992,12 +992,12 @@ describe('Combobox', () => {
         update,
         withClosed,
         Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(true)
         }),
         Story.message(Closed()),
         Story.resolve(FocusInput, CompletedFocusInput()),
-        Story.tap(({ model }) => {
+        Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),
       )
@@ -1011,8 +1011,8 @@ describe('Combobox', () => {
       Story.story(
         update,
         withOpen,
-        Story.tap(simulation => {
-          model = simulation.model
+        Story.model(extractedModel => {
+          model = extractedModel
         }),
       )
       return model

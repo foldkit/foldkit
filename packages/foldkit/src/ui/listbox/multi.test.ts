@@ -66,7 +66,7 @@ describe('Listbox.Multi', () => {
           update,
           withOpenMulti,
           Story.message(SelectedItem({ item: 'apple' })),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.selectedItems).toStrictEqual(['apple'])
           }),
         )
@@ -77,7 +77,7 @@ describe('Listbox.Multi', () => {
           update,
           withOpenMulti,
           Story.message(SelectedItem({ item: 'apple' })),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
         )
@@ -89,7 +89,7 @@ describe('Listbox.Multi', () => {
           withOpenMulti,
           Story.message(SelectedItem({ item: 'apple' })),
           Story.message(SelectedItem({ item: 'apple' })),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.selectedItems).toStrictEqual([])
           }),
         )
@@ -101,7 +101,7 @@ describe('Listbox.Multi', () => {
           withOpenMulti,
           Story.message(SelectedItem({ item: 'apple' })),
           Story.message(SelectedItem({ item: 'banana' })),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.selectedItems).toStrictEqual(['apple', 'banana'])
           }),
         )
@@ -116,7 +116,7 @@ describe('Listbox.Multi', () => {
           ),
           Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
           Story.message(SelectedItem({ item: 'apple' })),
-          Story.tap(({ model }) => {
+          Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
           }),
         )
@@ -132,8 +132,8 @@ describe('Listbox.Multi', () => {
       Story.story(
         update,
         withOpenMulti,
-        Story.tap(simulation => {
-          model = simulation.model
+        Story.model(extractedModel => {
+          model = extractedModel
         }),
       )
       return model
