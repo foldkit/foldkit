@@ -16,7 +16,7 @@ describe('scene', () => {
     Scene.scene(
       { update, view },
       Scene.with(weatherModel),
-      Scene.expect(Scene.label('Location')).toExist(),
+      Scene.expect(Scene.label('Zip code')).toExist(),
       Scene.expect(Scene.role('button', { name: 'Get Weather' })).toExist(),
       Scene.expect(Scene.role('article')).toBeAbsent(),
     )
@@ -26,8 +26,8 @@ describe('scene', () => {
     Scene.scene(
       { update, view },
       Scene.with(weatherModel),
-      Scene.type(Scene.label('Location'), '10001'),
-      Scene.expect(Scene.label('Location')).toHaveValue('10001'),
+      Scene.type(Scene.label('Zip code'), '10001'),
+      Scene.expect(Scene.label('Zip code')).toHaveValue('10001'),
     )
   })
 
@@ -86,7 +86,7 @@ describe('scene', () => {
     Scene.scene(
       { update, view },
       Scene.with({ zipCodeInput: '', weather: WeatherInit() }),
-      Scene.type(Scene.label('Location'), '90210'),
+      Scene.type(Scene.label('Zip code'), '90210'),
       Scene.click(Scene.role('button', { name: 'Get Weather' })),
       Scene.expect(Scene.role('button', { name: 'Loading...' })).toExist(),
       Scene.expectExactCommands(FetchWeather),

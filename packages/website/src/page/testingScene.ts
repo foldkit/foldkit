@@ -4,6 +4,7 @@ import { Class, InnerHTML, code, div } from '../html'
 import type { TableOfContentsEntry } from '../main'
 import {
   inlineCode,
+  link,
   pageTitle,
   para,
   tableOfContentsEntryToHeader,
@@ -88,7 +89,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       tableOfContentsEntryToHeader(whyHeader),
       para(
         inlineCode('Scene'),
-        ' tests features through the rendered view. Where Story sends Messages directly to update, Scene clicks buttons, types into inputs, presses keys, and asserts on the rendered HTML. The view function runs on every step, so if it crashes or renders the wrong thing, the test catches it.',
+        ' tests features through the rendered view. Where ',
+        link('/testing/story', 'Story'),
+        ' sends Messages directly to update, Scene clicks buttons, types into inputs, presses keys, and asserts on the rendered VNode tree. The view function runs on every step, so if it crashes or renders the wrong thing, the test catches it.',
       ),
       para(
         'Scene operates on the VNode tree directly. No DOM, no JSDOM, no browser. Tests are pure, deterministic, and fast.',

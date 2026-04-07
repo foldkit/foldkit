@@ -290,7 +290,7 @@ export const view = (model: Model): Html =>
           OnSubmit(SubmittedWeatherForm()),
         ],
         [
-          label([For('location'), Class('sr-only')], ['Location']),
+          label([For('location'), Class('sr-only')], ['Zip code']),
           input([
             Id('location'),
             Class(

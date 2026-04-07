@@ -2,33 +2,36 @@ import { Scene, Story } from 'foldkit'
 import { expect, test } from 'vitest'
 
 // Story — test the state machine
-test('open the pod bay door', () => {
+test('fetch weather updates the model', () => {
   Story.story(
     update,
     Story.with(model),
-    Story.message(PressedOpenPodBayDoor({ airlock: 'C' })),
+    Story.message(SubmittedWeatherForm()),
     Story.model(model => {
-      expect(model.airlockC._tag).toBe('RunningDiagnostics')
+      expect(model.weather._tag).toBe('WeatherLoading')
     }),
-    Story.resolve(RunDiagnostics, SucceededDiagnostics()),
-    Story.resolve(Depressurize, CompletedDepressurize()),
-    Story.resolve(OpenDoor, CompletedOpenDoor()),
+    Story.expectExactCommands(FetchWeather),
+    Story.resolve(FetchWeather, SucceededFetchWeather({ weather })),
     Story.model(model => {
-      expect(model.airlockC._tag).toBe('Open')
+      expect(model.weather._tag).toBe('WeatherSuccess')
     }),
   )
 })
 
 // Scene — test through the view
-test('type a zip code, see the forecast', () => {
+test('type a zip code, click get weather, see the forecast', () => {
   Scene.scene(
     { update, view },
     Scene.with(model),
     Scene.type(Scene.label('Zip code'), '90210'),
-    Scene.submit(Scene.role('form')),
+    Scene.click(Scene.role('button', { name: 'Get Weather' })),
     Scene.expect(Scene.role('button', { name: 'Loading...' })).toExist(),
+    Scene.expectExactCommands(FetchWeather),
     Scene.resolve(FetchWeather, SucceededFetchWeather({ weather })),
-    Scene.expect(Scene.role('heading', { name: '90210' })).toExist(),
-    Scene.expect(Scene.role('article')).toContainText('72\u00B0F'),
+    Scene.inside(
+      Scene.role('article'),
+      Scene.expect(Scene.text('Beverly Hills, California')).toExist(),
+      Scene.expect(Scene.text('72°F')).toExist(),
+    ),
   )
 })
