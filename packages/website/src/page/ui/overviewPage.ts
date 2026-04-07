@@ -34,6 +34,7 @@ import {
   uiSwitchRouter,
   uiTabsRouter,
   uiTextareaRouter,
+  uiTransitionRouter,
 } from '../../route'
 
 // TABLE OF CONTENTS
@@ -183,6 +184,13 @@ const components: ReadonlyArray<ComponentEntry> = [
     category: 'Interaction',
     description:
       'Sortable lists and cross-container movement with pointer tracking, keyboard navigation, auto-scrolling, and screen reader announcements.',
+  },
+  {
+    name: 'Transition',
+    href: uiTransitionRouter(),
+    category: 'Animation',
+    description:
+      'Coordinates CSS enter/leave animations via a state machine and data attributes. Sends an OutMessage when the leave animation completes.',
   },
 ]
 

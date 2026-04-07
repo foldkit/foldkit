@@ -71,6 +71,7 @@ export const UiInputRoute = r('UiInput')
 export const UiTextareaRoute = r('UiTextarea')
 export const UiFieldsetRoute = r('UiFieldset')
 export const UiDragAndDropRoute = r('UiDragAndDrop')
+export const UiTransitionRoute = r('UiTransition')
 
 export const AiOverviewRoute = r('AiOverview')
 export const AiSkillsRoute = r('AiSkills')
@@ -133,6 +134,7 @@ export const DocsRoute = S.Union(
   UiTextareaRoute,
   UiFieldsetRoute,
   UiDragAndDropRoute,
+  UiTransitionRoute,
   AiOverviewRoute,
   AiSkillsRoute,
   NotFoundRoute,
@@ -398,6 +400,11 @@ export const uiDragAndDropRouter = pipe(
   slash(literal('drag-and-drop')),
   mapTo(UiDragAndDropRoute),
 )
+export const uiTransitionRouter = pipe(
+  literal('ui'),
+  slash(literal('transition')),
+  mapTo(UiTransitionRoute),
+)
 
 export const aiOverviewRouter = pipe(
   literal('ai'),
@@ -474,6 +481,7 @@ const uiParser = oneOf(
   uiTextareaRouter,
   uiFieldsetRouter,
   uiDragAndDropRouter,
+  uiTransitionRouter,
 )
 
 const aiParser = oneOf(aiOverviewRouter, aiSkillsRouter)

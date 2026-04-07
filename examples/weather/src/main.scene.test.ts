@@ -79,12 +79,12 @@ describe('scene', () => {
     )
   })
 
-  test('full flow: type zip code, submit, see weather', () => {
+  test('full flow: type zip code, click get weather, see results', () => {
     Scene.scene(
       { update, view },
       Scene.with({ zipCodeInput: '', weather: WeatherInit() }),
       Scene.type(Scene.label('Location'), '90210'),
-      Scene.submit(Scene.role('form')),
+      Scene.click(Scene.role('button', { name: 'Get Weather' })),
       Scene.expect(Scene.role('button', { name: 'Loading...' })).toExist(),
       Scene.resolve(
         FetchWeather,

@@ -72,6 +72,8 @@ export const uiInit = (): [
     verticalTabsDemo: Ui.Tabs.init({
       id: 'vertical-tabs-demo',
     }),
+    transitionDemo: Ui.Transition.init({ id: 'transition-demo' }),
+    isTransitionDemoShowing: false,
   },
   [],
 ]

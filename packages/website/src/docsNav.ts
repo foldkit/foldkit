@@ -56,6 +56,7 @@ import {
   uiSwitchRouter,
   uiTabsRouter,
   uiTextareaRouter,
+  uiTransitionRouter,
 } from './route'
 
 // NAV PAGE
@@ -440,6 +441,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'UiDragAndDrop',
           href: uiDragAndDropRouter(),
           label: 'Drag and Drop',
+        },
+        {
+          _tag: 'UiTransition',
+          href: uiTransitionRouter(),
+          label: 'Transition',
         },
       ],
     ],
