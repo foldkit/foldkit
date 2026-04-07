@@ -121,7 +121,7 @@ const GotDurationRadioGroupMessage = m('GotDurationRadioGroupMessage', {
 const ClickedPlay = m('ClickedPlay')
 const ClickedPause = m('ClickedPause')
 const ClickedStop = m('ClickedStop')
-const PlayedNote = m('PlayedNote', { noteIndex: S.Number })
+const CompletedPlayNote = m('CompletedPlayNote', { noteIndex: S.Number })
 const ProgressedNotePhase = m('ProgressedNotePhase', {
   generation: S.Number,
 })
@@ -133,7 +133,7 @@ export const Message = S.Union(
   ClickedPlay,
   ClickedPause,
   ClickedStop,
-  PlayedNote,
+  CompletedPlayNote,
   ProgressedNotePhase,
 )
 export type Message = typeof Message.Type
@@ -377,7 +377,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [],
       ],
 
-      PlayedNote: ({ noteIndex }) => {
+      CompletedPlayNote: ({ noteIndex }) => {
         if (
           model.playbackState._tag !== 'Playing' ||
           noteIndex !== model.playbackState.currentNoteIndex
@@ -391,7 +391,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           evo(model, {
             highlightPhase: () => 'NoteMessage',
             generation: () => nextGeneration,
-            messageLog: prependToLog(`PlayedNote(${noteIndex})`),
+            messageLog: prependToLog(`CompletedPlayNote(${noteIndex})`),
           }),
           [delayAdvancePhase(nextGeneration)],
         ]
@@ -469,14 +469,14 @@ export class AudioContextService extends Effect.Service<AudioContextService>()(
   },
 ) {}
 
-const PlayNote = Command.define('PlayNote', PlayedNote)
+const PlayNote = Command.define('PlayNote', CompletedPlayNote)
 
 const playNote = (note: Note, duration: NoteDuration, noteIndex: number) =>
   PlayNote(
     Effect.gen(function* () {
       const audioContext = yield* AudioContextService
 
-      return yield* Effect.async<typeof PlayedNote.Type>(resume => {
+      return yield* Effect.async<typeof CompletedPlayNote.Type>(resume => {
         const oscillator = audioContext.createOscillator()
         const gainNode = audioContext.createGain()
         const durationSeconds = DURATION_MILLISECONDS[duration] / 1000
@@ -505,7 +505,7 @@ const playNote = (note: Note, duration: NoteDuration, noteIndex: number) =>
 
         oscillator.onended = () => {
           gainNode.disconnect()
-          resume(Effect.succeed(PlayedNote({ noteIndex })))
+          resume(Effect.succeed(CompletedPlayNote({ noteIndex })))
         }
       })
     }),

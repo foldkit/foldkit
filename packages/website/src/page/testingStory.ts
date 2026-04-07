@@ -127,7 +127,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         '. Verify that update returned a ',
         inlineCode('DelayReset'),
         ' Command. Resolve it with ',
-        inlineCode('DelayedReset()'),
+        inlineCode('CompletedDelayReset()'),
         '. Verify the count is 0. Every step is visible. The simulation called update, resolved the Command with the Message you provided, fed that Message back through update, and arrived at the final state.',
       ),
       tableOfContentsEntryToHeader(multiStepHeader),

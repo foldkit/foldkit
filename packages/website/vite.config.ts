@@ -335,11 +335,11 @@ const ChangedResetDuration = m('ChangedResetDuration', {
   seconds: S.Number,
 })
 const ClickedReset = m('ClickedReset')
-const CompletedReset = m('CompletedReset')
+const CompletedDelayReset = m('CompletedDelayReset')
 
 // COMMAND
 
-const DelayReset = Command.define('DelayReset')
+const DelayReset = Command.define('DelayReset', CompletedDelayReset)
 
 // UPDATE
 
@@ -356,11 +356,11 @@ M.tagsExhaustive({
     evo(model, { isResetting: () => true }),
     [DelayReset(
       Task.delay(\`\${model.resetDuration} seconds\`).pipe(
-        Effect.as(CompletedReset()),
+        Effect.as(CompletedDelayReset()),
       ),
     )],
   ],
-  CompletedReset: () => [
+  CompletedDelayReset: () => [
     evo(model, { count: () => 0, isResetting: () => false }),
     [],
   ],
@@ -417,7 +417,7 @@ const Model = S.Struct({
 
 const ClickedPlay = m('ClickedPlay')
 const ClickedPause = m('ClickedPause')
-const PlayedNote = m('PlayedNote', {
+const CompletedPlayNote = m('CompletedPlayNote', {
   noteIndex: S.Number,
 })
 
@@ -438,7 +438,7 @@ M.tagsExhaustive({
     }),
     [],
   ],
-  PlayedNote: ({ noteIndex }) => {
+  CompletedPlayNote: ({ noteIndex }) => {
     if (nextIndex >= noteSequence.length) {
       return [
         evo(model, { playbackState: () => Idle() }),
@@ -468,7 +468,7 @@ class AudioContextService extends Effect.Service<AudioContextService>()(
 
 // COMMAND
 
-const PlayNote = Command.define('PlayNote')
+const PlayNote = Command.define('PlayNote', CompletedPlayNote)
 
 const playNote = (note, duration, noteIndex) =>
   PlayNote(
@@ -482,7 +482,7 @@ const playNote = (note, duration, noteIndex) =>
         oscillator.start()
         oscillator.stop(audioContext.currentTime + duration)
         oscillator.onended = () =>
-          resume(Effect.succeed(PlayedNote({ noteIndex })))
+          resume(Effect.succeed(CompletedPlayNote({ noteIndex })))
       })
     }),
   )`

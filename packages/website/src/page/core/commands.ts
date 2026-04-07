@@ -93,9 +93,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' arrives: it returns the Model unchanged, along with ',
         inlineCode('delayReset'),
         ' \u2014 a Command that describes a one-second delay. The update function didn\u2019t start a timer. It handed the runtime a description that says \u201Cwait one second, then send me ',
-        inlineCode('DelayedReset'),
+        inlineCode('CompletedDelayReset'),
         '.\u201D The runtime does the waiting. When the delay fires, ',
-        inlineCode('DelayedReset'),
+        inlineCode('CompletedDelayReset'),
         ' arrives as a new Message, and update resets the count to zero.',
       ),
       para(
@@ -146,7 +146,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ', verify that update returned a ',
         inlineCode('DelayReset'),
         ' Command, resolve it with ',
-        inlineCode('DelayedReset()'),
+        inlineCode('CompletedDelayReset()'),
         ', and verify the count is 0. Every step is visible. The simulation called update, resolved the Command with the Message you provided, fed that back through update, and arrived at the final state.',
       ),
       para(

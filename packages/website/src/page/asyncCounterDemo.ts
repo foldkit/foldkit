@@ -202,7 +202,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             M.when('ResetCommandMessage', () => [
               evo(model, {
                 phase: () => 'ResetCommandUpdate',
-                messageLog: prependToLog('CompletedReset'),
+                messageLog: prependToLog('CompletedDelayReset'),
               }),
               [delayAdvancePhase(generation, PHASE_DURATION)],
             ]),

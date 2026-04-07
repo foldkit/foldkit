@@ -3,11 +3,11 @@ import { Command, Task } from 'foldkit'
 import { m } from 'foldkit/message'
 
 const ClickedResetAfterDelay = m('ClickedResetAfterDelay')
-const DelayedReset = m('DelayedReset')
+const CompletedDelayReset = m('CompletedDelayReset')
 
-const DelayReset = Command.define('DelayReset', DelayedReset)
+const DelayReset = Command.define('DelayReset', CompletedDelayReset)
 const delayReset = DelayReset(
-  Task.delay('1 second').pipe(Effect.as(DelayedReset())),
+  Task.delay('1 second').pipe(Effect.as(CompletedDelayReset())),
 )
 
 const update = (
@@ -20,6 +20,6 @@ const update = (
     >(),
     M.tagsExhaustive({
       ClickedResetAfterDelay: () => [model, [delayReset]],
-      DelayedReset: () => [Model({ count: 0 }), []],
+      CompletedDelayReset: () => [Model({ count: 0 }), []],
     }),
   )

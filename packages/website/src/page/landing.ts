@@ -526,7 +526,7 @@ const testingSection = (copiedSnippets: CopiedSnippets): Html =>
               ),
             ],
             [
-              'Pure update functions mean pure tests. Story tests the state machine. Scene tests features through the view \u2014 clicking buttons, typing into inputs \u2014 with accessible locators. No DOM, no mocking. That\u2019s really it.',
+              'Pure update functions mean pure tests. Story tests the state machine. Scene tests features through the view \u2014 clicking buttons, typing into inputs \u2014 with accessible locators. No DOM, no mocking.',
             ],
           ),
           a(

@@ -6,7 +6,7 @@ class AudioContextService extends Effect.Service<AudioContextService>()(
   { sync: () => new AudioContext() },
 ) {}
 
-const PlayNote = Command.define('PlayNote', PlayedNote)
+const PlayNote = Command.define('PlayNote', CompletedPlayNote)
 
 const playNote = (frequency: number, duration: number) =>
   PlayNote(
@@ -17,7 +17,7 @@ const playNote = (frequency: number, duration: number) =>
       oscillator.connect(audioContext.destination)
       oscillator.start()
       oscillator.stop(audioContext.currentTime + duration)
-      return PlayedNote()
+      return CompletedPlayNote()
     }),
   )
 

@@ -57,6 +57,12 @@ const assertionsHeader: TableOfContentsEntry = {
   text: 'Assertions',
 }
 
+const commandAssertionsHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'command-assertions',
+  text: 'Command Assertions',
+}
+
 const exampleHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'a-complete-scene',
@@ -77,6 +83,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   multiMatchHeader,
   interactionsHeader,
   assertionsHeader,
+  commandAssertionsHeader,
   exampleHeader,
   storyVsSceneHeader,
 ]
@@ -449,9 +456,37 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           [[plainCode('.toBeEmpty()')], ['The locator matches zero elements']],
         ],
       ),
+      tableOfContentsEntryToHeader(commandAssertionsHeader),
+      para(
+        'Scene can also assert on pending Commands. Use these steps to verify that an interaction produced the Commands you expect before resolving them:',
+      ),
+      comparisonTable(
+        ['Step', 'Asserts that'],
+        [
+          [
+            [plainCode('expectExactCommands(A, B)')],
+            ['The pending Commands are exactly A and B (order-independent)'],
+          ],
+          [
+            [plainCode('expectHasCommands(A)')],
+            ['A is among the pending Commands (subset check)'],
+          ],
+          [
+            [plainCode('expectNoCommands()')],
+            ['There are no pending Commands'],
+          ],
+        ],
+      ),
+      para(
+        'Prefer ',
+        inlineCode('expectExactCommands'),
+        ' as the default. It catches bugs where an interaction produces unexpected Commands. Use ',
+        inlineCode('expectHasCommands'),
+        ' only when you\u2019re resolving Commands one at a time from a batch.',
+      ),
       tableOfContentsEntryToHeader(exampleHeader),
       para(
-        'Here\u2019s a Scene test for a weather app. The user types a zip code, submits the form, sees a loading state, and then the forecast appears:',
+        'Here\u2019s a Scene test for a weather app. The user types a zip code, clicks Get Weather, sees a loading state, and then the forecast appears:',
       ),
       highlightedCodeBlock(
         div(
