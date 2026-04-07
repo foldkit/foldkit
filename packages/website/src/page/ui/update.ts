@@ -25,6 +25,7 @@ import {
   GotPopoverAnimatedDemoMessage,
   GotPopoverBasicDemoMessage,
   GotSwitchDemoMessage,
+  GotTransitionDemoMessage,
   GotVerticalRadioGroupDemoMessage,
   GotVerticalTabsDemoMessage,
   type Message,
@@ -533,6 +534,48 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           verticalTabsCommands.map(
             Command.mapEffect(
               Effect.map(message => GotVerticalTabsDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      GotTransitionDemoMessage: ({ message }) => {
+        const [nextTransitionDemo, transitionCommands] = Ui.Transition.update(
+          model.transitionDemo,
+          message,
+        )
+
+        return [
+          evo(model, {
+            transitionDemo: () => nextTransitionDemo,
+          }),
+          transitionCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotTransitionDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      ToggledTransitionDemo: () => {
+        const nextShowing = !model.isTransitionDemoShowing
+        const transitionMessage = nextShowing
+          ? Ui.Transition.Showed()
+          : Ui.Transition.Hidden()
+
+        const [nextTransitionDemo, transitionCommands] = Ui.Transition.update(
+          model.transitionDemo,
+          transitionMessage,
+        )
+
+        return [
+          evo(model, {
+            isTransitionDemoShowing: () => nextShowing,
+            transitionDemo: () => nextTransitionDemo,
+          }),
+          transitionCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotTransitionDemoMessage({ message })),
             ),
           ),
         ]

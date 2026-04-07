@@ -11,6 +11,7 @@ import {
   RadioGroup,
   Switch,
   Tabs,
+  Transition,
 } from 'foldkit/ui'
 
 export const DemoCard = S.Struct({
@@ -56,5 +57,7 @@ export const Model = S.Struct({
   verticalTabsDemo: Tabs.Model,
   dragAndDropDemo: DragAndDrop.Model,
   dragAndDropDemoColumns: S.Array(DemoColumn),
+  transitionDemo: Transition.Model,
+  isTransitionDemoShowing: S.Boolean,
 })
 export type Model = typeof Model.Type

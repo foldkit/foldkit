@@ -251,6 +251,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Drag and Drop',
     'Accessible drag and drop with keyboard support, auto-scrolling, and screen reader announcements.',
   ),
+  UiTransition: ui(
+    'Transition',
+    'Coordinates CSS enter/leave animations via a state machine and data attributes.',
+  ),
   AiOverview: docs(
     'AI',
     'Why Foldkit\u2019s architecture makes AI-assisted development uniquely effective.',

@@ -127,9 +127,15 @@ export const activeSection: Subscription<
         M.tag('UiTabs', () => Page.UiPages.TabsPage.tableOfContents),
         M.tag('UiFieldset', () => Page.UiPages.FieldsetPage.tableOfContents),
         M.tag('UiSelect', () => Page.UiPages.SelectPage.tableOfContents),
+      )
+      .pipe(
         M.tag(
           'UiDragAndDrop',
           () => Page.UiPages.DragAndDropPage.tableOfContents,
+        ),
+        M.tag(
+          'UiTransition',
+          () => Page.UiPages.TransitionPage.tableOfContents,
         ),
         M.tag('UiOverview', () => Page.UiPages.OverviewPage.tableOfContents),
         M.tag('AiOverview', () => Page.AiOverview.tableOfContents),
