@@ -1,5 +1,11 @@
 # foldkit
 
+## 0.50.0
+
+### Minor Changes
+
+- 8b84dbf: Add per-pair message mapper support to `Story.resolveAll` and `Scene.resolveAll`. Each pair in the array can now include an optional third element — a mapper function — matching the same signature as `resolve`'s third argument. This lets tests resolve multiple child Commands in a batch without expanding into individual `resolve` calls.
+
 ## 0.49.1
 
 ### Patch Changes
