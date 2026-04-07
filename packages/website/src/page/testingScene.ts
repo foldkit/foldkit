@@ -482,7 +482,20 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('expectExactCommands'),
         ' as the default. It catches bugs where an interaction produces unexpected Commands. Use ',
         inlineCode('expectHasCommands'),
-        ' only when you\u2019re resolving Commands one at a time from a batch.',
+        ' when you only care about a subset of the pending Commands.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.sceneCommandAssertionsHighlighted),
+          ],
+          [],
+        ),
+        Snippets.sceneCommandAssertionsRaw,
+        'Copy command assertions example to clipboard',
+        copiedSnippets,
+        'mb-8',
       ),
       tableOfContentsEntryToHeader(exampleHeader),
       para(
