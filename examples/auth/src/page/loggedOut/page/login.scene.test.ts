@@ -127,9 +127,10 @@ describe('login scene', () => {
         toLoginMessage,
       ),
       Scene.expectExactCommands(SaveSession, RedirectToDashboard),
-      Scene.resolve(SaveSession, SucceededSaveSession()),
-      Scene.expectExactCommands(RedirectToDashboard),
-      Scene.resolve(RedirectToDashboard, CompletedNavigateInternal()),
+      Scene.resolveAll(
+        [SaveSession, SucceededSaveSession()],
+        [RedirectToDashboard, CompletedNavigateInternal()],
+      ),
       Scene.expect(Scene.text('Welcome back, alice!')).toExist(),
     )
   })

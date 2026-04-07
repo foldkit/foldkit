@@ -72,6 +72,7 @@ describe('kanban update', () => {
         update,
         Story.with(emptyModel),
         Story.message(ClickedAddCard({ columnId: 'todo' })),
+        Story.expectExactCommands(FocusAddCardInput),
         Story.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
         Story.model(model => {
           expect(model.maybeNewCardColumnId).toStrictEqual(Option.some('todo'))

@@ -165,7 +165,7 @@ export const resolve: {
 
 /** Resolves all listed Commands with their result Messages. Handles cascading resolution. */
 export const resolveAll =
-  (pairs: ReadonlyArray<ResolverPair>) =>
+  (...pairs: ReadonlyArray<ResolverPair>) =>
   <Model, Message, OutMessage = undefined>(
     simulation: StorySimulation<Model, Message, OutMessage>,
   ): StorySimulation<Model, Message, OutMessage> => {

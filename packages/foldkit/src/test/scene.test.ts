@@ -1502,7 +1502,8 @@ describe('scene with resolveAll', () => {
       Scene.with(initialModel),
       Scene.submit(Scene.role('form')),
       Scene.resolveAll([
-        [Authenticate, SucceededAuthenticate({ username: 'bob' })],
+        Authenticate,
+        SucceededAuthenticate({ username: 'bob' }),
       ]),
       Scene.expect(Scene.role('status')).toHaveText('Welcome, bob!'),
     )

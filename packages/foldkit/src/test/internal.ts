@@ -157,7 +157,7 @@ export const assertNoUnresolvedCommands = (
       `I found unresolved Commands ${context}:\n\n${names}\n\n` +
         'Resolve all Commands before sending the next Message.\n' +
         'Use resolve(Definition, ResultMessage) for each one,\n' +
-        'or resolveAll([...pairs]) to resolve them all at once.',
+        'or resolveAll(...pairs) to resolve them all at once.',
     )
   }
 }
@@ -176,7 +176,7 @@ export const assertAllCommandsResolved = (
       `I found Commands without resolvers:\n\n${names}\n\n` +
         'Every Command produced by update needs to be resolved.\n' +
         'Use resolve(Definition, ResultMessage) for each one,\n' +
-        'or resolveAll([...pairs]) to resolve them all at once.',
+        'or resolveAll(...pairs) to resolve them all at once.',
     )
   }
 }

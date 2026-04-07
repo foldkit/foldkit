@@ -46,7 +46,7 @@ describe('message', () => {
       Story.with({ count: 0 }),
       Story.message(ClickedFetch()),
       Story.expectHasCommands(FetchCount),
-      Story.resolveAll([[FetchCount, SucceededFetchCount({ count: 42 })]]),
+      Story.resolveAll([FetchCount, SucceededFetchCount({ count: 42 })]),
     )
   })
 })
@@ -100,7 +100,7 @@ describe('resolveAll', () => {
       update,
       Story.with({ count: 0 }),
       Story.message(ClickedFetch()),
-      Story.resolveAll([[FetchCount, SucceededFetchCount({ count: 42 })]]),
+      Story.resolveAll([FetchCount, SucceededFetchCount({ count: 42 })]),
       Story.model(model => {
         expect(model.count).toBe(42)
       }),
@@ -112,10 +112,10 @@ describe('resolveAll', () => {
       childUpdate,
       Story.with({ status: 'Idle' }),
       Story.message(SubmittedForm()),
-      Story.resolveAll([
+      Story.resolveAll(
         [SubmitForm, SucceededSubmit({ id: 'abc' })],
         [ResetForm, CompletedReset()],
-      ]),
+      ),
       Story.model(model => {
         expect(model.status).toBe('Idle')
       }),
@@ -130,7 +130,7 @@ describe('expectExactCommands', () => {
       Story.with({ count: 0 }),
       Story.message(ClickedFetch()),
       Story.expectExactCommands(FetchCount),
-      Story.resolveAll([[FetchCount, SucceededFetchCount({ count: 42 })]]),
+      Story.resolveAll([FetchCount, SucceededFetchCount({ count: 42 })]),
     )
   })
 
@@ -141,7 +141,7 @@ describe('expectExactCommands', () => {
         Story.with({ count: 0 }),
         Story.message(ClickedFetch()),
         Story.expectExactCommands(FetchCount, SubmitForm),
-        Story.resolveAll([[FetchCount, SucceededFetchCount({ count: 42 })]]),
+        Story.resolveAll([FetchCount, SucceededFetchCount({ count: 42 })]),
       ),
     ).toThrow('Expected exactly these Commands')
   })
@@ -153,7 +153,7 @@ describe('expectExactCommands', () => {
         Story.with({ count: 0 }),
         Story.message(ClickedFetch()),
         Story.expectExactCommands(),
-        Story.resolveAll([[FetchCount, SucceededFetchCount({ count: 42 })]]),
+        Story.resolveAll([FetchCount, SucceededFetchCount({ count: 42 })]),
       ),
     ).toThrow('Expected exactly these Commands')
   })
@@ -255,14 +255,14 @@ describe('resolveAll with toParentMessage', () => {
       Story.model(model => {
         expect(model.child.status).toBe('Submitting')
       }),
-      Story.resolveAll([
+      Story.resolveAll(
         [
           SubmitForm,
           SucceededSubmit({ id: 'abc' }),
           message => GotChildMessage({ message }),
         ],
         [ResetForm, CompletedReset(), message => GotChildMessage({ message })],
-      ]),
+      ),
       Story.model(model => {
         expect(model.child.status).toBe('Idle')
         expect(model.savedIds).toEqual(['abc'])

@@ -52,11 +52,11 @@ const withClosedAnimated = Story.with(init({ id: 'test', isAnimated: true }))
 const withOpenAnimated = flow(
   withClosedAnimated,
   Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-  Story.resolveAll([
+  Story.resolveAll(
     [RequestFrame, AdvancedTransitionFrame()],
     [WaitForTransitions, EndedTransition()],
     [DetectMovementOrTransitionEnd, EndedTransition()],
-  ]),
+  ),
 )
 
 describe('Combobox', () => {
@@ -634,11 +634,11 @@ describe('Combobox', () => {
               expect(model.isOpen).toBe(true)
               expect(model.transitionState).toBe('EnterStart')
             }),
-            Story.resolveAll([
+            Story.resolveAll(
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
-            ]),
+            ),
           )
         })
 
@@ -651,10 +651,10 @@ describe('Combobox', () => {
             Story.model(model => {
               expect(model.transitionState).toBe('EnterAnimating')
             }),
-            Story.resolveAll([
+            Story.resolveAll(
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
-            ]),
+            ),
           )
         })
 
@@ -663,11 +663,11 @@ describe('Combobox', () => {
             update,
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-            Story.resolveAll([
+            Story.resolveAll(
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
-            ]),
+            ),
             Story.model(model => {
               expect(model.transitionState).toBe('Idle')
             }),
@@ -685,12 +685,12 @@ describe('Combobox', () => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
-            Story.resolveAll([
+            Story.resolveAll(
               [FocusInput, CompletedFocusInput()],
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
-            ]),
+            ),
           )
         })
 
@@ -703,11 +703,11 @@ describe('Combobox', () => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
-            Story.resolveAll([
+            Story.resolveAll(
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
-            ]),
+            ),
           )
         })
 
@@ -722,12 +722,12 @@ describe('Combobox', () => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
-            Story.resolveAll([
+            Story.resolveAll(
               [FocusInput, CompletedFocusInput()],
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
-            ]),
+            ),
           )
         })
 
@@ -740,11 +740,11 @@ describe('Combobox', () => {
             Story.model(model => {
               expect(model.transitionState).toBe('LeaveAnimating')
             }),
-            Story.resolveAll([
+            Story.resolveAll(
               [FocusInput, CompletedFocusInput()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
-            ]),
+            ),
           )
         })
 
@@ -753,12 +753,12 @@ describe('Combobox', () => {
             update,
             withOpenAnimated,
             Story.message(Closed()),
-            Story.resolveAll([
+            Story.resolveAll(
               [FocusInput, CompletedFocusInput()],
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
-            ]),
+            ),
             Story.model(model => {
               expect(model.transitionState).toBe('Idle')
             }),
@@ -823,22 +823,22 @@ describe('Combobox', () => {
             update,
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-            Story.resolveAll([
+            Story.resolveAll(
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
-            ]),
+            ),
             Story.message(Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
-            Story.resolveAll([
+            Story.resolveAll(
               [FocusInput, CompletedFocusInput()],
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
-            ]),
+            ),
           )
         })
 
@@ -847,22 +847,22 @@ describe('Combobox', () => {
             update,
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-            Story.resolveAll([
+            Story.resolveAll(
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
-            ]),
+            ),
             Story.message(Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.transitionState).toBe('LeaveStart')
             }),
-            Story.resolveAll([
+            Story.resolveAll(
               [FocusInput, CompletedFocusInput()],
               [RequestFrame, AdvancedTransitionFrame()],
               [WaitForTransitions, EndedTransition()],
               [DetectMovementOrTransitionEnd, EndedTransition()],
-            ]),
+            ),
           )
         })
       })
@@ -919,10 +919,10 @@ describe('Combobox', () => {
     const withOpenModal = flow(
       withClosedModal,
       Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-      Story.resolveAll([
+      Story.resolveAll(
         [LockScroll, CompletedLockScroll()],
         [InertOthers, CompletedSetupInert()],
-      ]),
+      ),
     )
 
     it('emits lockScroll and inertOthers commands on Opened when isModal is true', () => {
@@ -930,10 +930,10 @@ describe('Combobox', () => {
         update,
         withClosedModal,
         Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-        Story.resolveAll([
+        Story.resolveAll(
           [LockScroll, CompletedLockScroll()],
           [InertOthers, CompletedSetupInert()],
-        ]),
+        ),
         Story.model(model => {
           expect(model.isOpen).toBe(true)
         }),
@@ -945,11 +945,11 @@ describe('Combobox', () => {
         update,
         withOpenModal,
         Story.message(Closed()),
-        Story.resolveAll([
+        Story.resolveAll(
           [FocusInput, CompletedFocusInput()],
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],
-        ]),
+        ),
         Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),
@@ -961,10 +961,10 @@ describe('Combobox', () => {
         update,
         withOpenModal,
         Story.message(ClosedByTab()),
-        Story.resolveAll([
+        Story.resolveAll(
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],
-        ]),
+        ),
         Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),
@@ -976,11 +976,11 @@ describe('Combobox', () => {
         update,
         withOpenModal,
         Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
-        Story.resolveAll([
+        Story.resolveAll(
           [FocusInput, CompletedFocusInput()],
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],
-        ]),
+        ),
         Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),
