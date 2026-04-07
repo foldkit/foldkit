@@ -16,7 +16,10 @@ import type { VNode } from '../vdom'
 import type { AnyCommand, BaseInternal, ResolverPair } from './internal'
 import {
   assertAllCommandsResolved,
+  assertExactCommands,
+  assertHasCommands,
   assertNoUnresolvedCommands,
+  assertZeroCommands,
   resolveByName,
 } from './internal'
 import type { Locator, LocatorAll } from './query'
@@ -511,6 +514,36 @@ export const resolveAll =
 
     return current as unknown as SceneSimulation<Model, Message, OutMessage>
     /* eslint-enable @typescript-eslint/consistent-type-assertions */
+  }
+
+/** Asserts that every given Command is among the pending Commands. */
+export const expectHasCommands =
+  (...definitions: ReadonlyArray<CommandDefinition<string, unknown>>) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    assertHasCommands(toInternal(simulation).commands, definitions)
+    return simulation
+  }
+
+/** Asserts that the pending Commands match the given definitions exactly (order-independent). */
+export const expectExactCommands =
+  (...definitions: ReadonlyArray<CommandDefinition<string, unknown>>) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    assertExactCommands(toInternal(simulation).commands, definitions)
+    return simulation
+  }
+
+/** Asserts that there are no pending Commands. */
+export const expectNoCommands =
+  () =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    assertZeroCommands(toInternal(simulation).commands)
+    return simulation
   }
 
 /** Runs a function for side effects (e.g. assertions) without breaking the step chain. */

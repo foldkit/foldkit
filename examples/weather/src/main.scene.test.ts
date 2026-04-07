@@ -37,6 +37,7 @@ describe('scene', () => {
       Scene.with(weatherModel),
       Scene.submit(Scene.role('form')),
       Scene.expect(Scene.role('button', { name: 'Loading...' })).toExist(),
+      Scene.expectExactCommands(FetchWeather),
       Scene.resolve(
         FetchWeather,
         SucceededFetchWeather({ weather: weatherData }),
@@ -49,6 +50,7 @@ describe('scene', () => {
       { update, view },
       Scene.with(weatherModel),
       Scene.submit(Scene.role('form')),
+      Scene.expectExactCommands(FetchWeather),
       Scene.resolve(
         FetchWeather,
         SucceededFetchWeather({ weather: weatherData }),
@@ -70,6 +72,7 @@ describe('scene', () => {
       { update, view },
       Scene.with(weatherModel),
       Scene.submit(Scene.role('form')),
+      Scene.expectExactCommands(FetchWeather),
       Scene.resolve(
         FetchWeather,
         FailedFetchWeather({ error: 'Network error' }),
@@ -86,13 +89,16 @@ describe('scene', () => {
       Scene.type(Scene.label('Location'), '90210'),
       Scene.click(Scene.role('button', { name: 'Get Weather' })),
       Scene.expect(Scene.role('button', { name: 'Loading...' })).toExist(),
+      Scene.expectExactCommands(FetchWeather),
       Scene.resolve(
         FetchWeather,
         SucceededFetchWeather({ weather: weatherData }),
       ),
-      Scene.expect(Scene.role('button', { name: 'Get Weather' })).toExist(),
-      Scene.expect(Scene.role('article')).toExist(),
-      Scene.expect(Scene.role('heading', { name: '90210' })).toExist(),
+      Scene.inside(
+        Scene.role('article'),
+        Scene.expect(Scene.text('Beverly Hills, California')).toExist(),
+        Scene.expect(Scene.text('72°F')).toExist(),
+      ),
     )
   })
 })

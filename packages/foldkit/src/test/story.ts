@@ -1,10 +1,13 @@
-import { Array, Equivalence, Option, Order, Predicate, pipe } from 'effect'
+import { Array, Option, Predicate, pipe } from 'effect'
 
 import type { CommandDefinition } from '../command'
 import type { AnyCommand, BaseInternal, ResolverPair } from './internal'
 import {
   assertAllCommandsResolved,
+  assertExactCommands,
+  assertHasCommands,
   assertNoUnresolvedCommands,
+  assertZeroCommands,
   resolveByName,
 } from './internal'
 
@@ -233,31 +236,7 @@ export const expectHasCommands =
   <Model, Message, OutMessage = undefined>(
     simulation: StorySimulation<Model, Message, OutMessage>,
   ): StorySimulation<Model, Message, OutMessage> => {
-    const internal = toInternal(simulation)
-    const pendingNames = Array.map(internal.commands, ({ name }) => name)
-    const missing = Array.filter(
-      definitions,
-      ({ name }) => !Array.contains(pendingNames, name),
-    )
-
-    if (Array.isNonEmptyReadonlyArray(missing)) {
-      const missingNames = pipe(
-        missing,
-        Array.map(({ name }) => `    ${name}`),
-        Array.join('\n'),
-      )
-      const pending = Array.isNonEmptyReadonlyArray(internal.commands)
-        ? pipe(
-            internal.commands,
-            Array.map(({ name }) => `    ${name}`),
-            Array.join('\n'),
-          )
-        : '    (none)'
-      throw new Error(
-        `Expected to find Commands:\n\n${missingNames}\n\nBut the pending Commands are:\n\n${pending}`,
-      )
-    }
-
+    assertHasCommands(toInternal(simulation).commands, definitions)
     return simulation
   }
 
@@ -267,36 +246,7 @@ export const expectExactCommands =
   <Model, Message, OutMessage = undefined>(
     simulation: StorySimulation<Model, Message, OutMessage>,
   ): StorySimulation<Model, Message, OutMessage> => {
-    const internal = toInternal(simulation)
-    const expectedNames = pipe(
-      definitions,
-      Array.map(({ name }) => name),
-      Array.sort(Order.string),
-    )
-    const actualNames = pipe(
-      internal.commands,
-      Array.map(({ name }) => name),
-      Array.sort(Order.string),
-    )
-
-    if (!Array.getEquivalence(Equivalence.string)(expectedNames, actualNames)) {
-      const expected = pipe(
-        expectedNames,
-        Array.map(name => `    ${name}`),
-        Array.join('\n'),
-      )
-      const actual = Array.isNonEmptyReadonlyArray(actualNames)
-        ? pipe(
-            actualNames,
-            Array.map(name => `    ${name}`),
-            Array.join('\n'),
-          )
-        : '    (none)'
-      throw new Error(
-        `Expected exactly these Commands:\n\n${expected}\n\nBut found:\n\n${actual}`,
-      )
-    }
-
+    assertExactCommands(toInternal(simulation).commands, definitions)
     return simulation
   }
 
@@ -306,16 +256,7 @@ export const expectNoCommands =
   <Model, Message, OutMessage = undefined>(
     simulation: StorySimulation<Model, Message, OutMessage>,
   ): StorySimulation<Model, Message, OutMessage> => {
-    const internal = toInternal(simulation)
-
-    if (Array.isNonEmptyReadonlyArray(internal.commands)) {
-      const pending = pipe(
-        internal.commands,
-        Array.map(({ name }) => `    ${name}`),
-        Array.join('\n'),
-      )
-      throw new Error(`Expected no Commands but found:\n\n${pending}`)
-    }
+    assertZeroCommands(toInternal(simulation).commands)
 
     return simulation
   }

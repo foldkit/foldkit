@@ -1,4 +1,4 @@
-import { Array, Option, pipe } from 'effect'
+import { Array, Equivalence, Option, Order, pipe } from 'effect'
 
 import type { CommandDefinition } from '../command'
 
@@ -62,6 +62,85 @@ export const resolveByName = <Model, Message>(
       },
     }),
   )
+
+/** Throws if any of the given definitions are missing from the pending Commands. */
+export const assertHasCommands = (
+  commands: ReadonlyArray<AnyCommand>,
+  definitions: ReadonlyArray<CommandDefinition<string, unknown>>,
+): void => {
+  const pendingNames = Array.map(commands, ({ name }) => name)
+  const missing = Array.filter(
+    definitions,
+    ({ name }) => !Array.contains(pendingNames, name),
+  )
+
+  if (Array.isNonEmptyReadonlyArray(missing)) {
+    const missingNames = pipe(
+      missing,
+      Array.map(({ name }) => `    ${name}`),
+      Array.join('\n'),
+    )
+    const pending = Array.isNonEmptyReadonlyArray(commands)
+      ? pipe(
+          commands,
+          Array.map(({ name }) => `    ${name}`),
+          Array.join('\n'),
+        )
+      : '    (none)'
+    throw new Error(
+      `Expected to find Commands:\n\n${missingNames}\n\nBut the pending Commands are:\n\n${pending}`,
+    )
+  }
+}
+
+/** Throws if the pending Commands don't match the given definitions exactly (order-independent). */
+export const assertExactCommands = (
+  commands: ReadonlyArray<AnyCommand>,
+  definitions: ReadonlyArray<CommandDefinition<string, unknown>>,
+): void => {
+  const expectedNames = pipe(
+    definitions,
+    Array.map(({ name }) => name),
+    Array.sort(Order.string),
+  )
+  const actualNames = pipe(
+    commands,
+    Array.map(({ name }) => name),
+    Array.sort(Order.string),
+  )
+
+  if (!Array.getEquivalence(Equivalence.string)(expectedNames, actualNames)) {
+    const expected = pipe(
+      expectedNames,
+      Array.map(name => `    ${name}`),
+      Array.join('\n'),
+    )
+    const actual = Array.isNonEmptyReadonlyArray(actualNames)
+      ? pipe(
+          actualNames,
+          Array.map(name => `    ${name}`),
+          Array.join('\n'),
+        )
+      : '    (none)'
+    throw new Error(
+      `Expected exactly these Commands:\n\n${expected}\n\nBut found:\n\n${actual}`,
+    )
+  }
+}
+
+/** Throws if there are any pending Commands. */
+export const assertZeroCommands = (
+  commands: ReadonlyArray<AnyCommand>,
+): void => {
+  if (Array.isNonEmptyReadonlyArray(commands)) {
+    const pending = pipe(
+      commands,
+      Array.map(({ name }) => `    ${name}`),
+      Array.join('\n'),
+    )
+    throw new Error(`Expected no Commands but found:\n\n${pending}`)
+  }
+}
 
 /** Throws when trying to send a message with unresolved Commands. */
 export const assertNoUnresolvedCommands = (

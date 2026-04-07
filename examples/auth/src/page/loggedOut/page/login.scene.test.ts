@@ -88,6 +88,7 @@ describe('login scene', () => {
       Scene.expect(
         Scene.role('button', { name: 'Signing in...' }),
       ).toBeDisabled(),
+      Scene.expectExactCommands(SimulateAuthRequest),
       Scene.resolve(
         SimulateAuthRequest,
         FailedSimulateAuthRequest({ error: '' }),
@@ -101,6 +102,7 @@ describe('login scene', () => {
       { update, view },
       Scene.with(validModel),
       Scene.submit(Scene.role('form')),
+      Scene.expectExactCommands(SimulateAuthRequest),
       Scene.resolve(
         SimulateAuthRequest,
         FailedSimulateAuthRequest({ error: 'Invalid credentials' }),
@@ -118,12 +120,15 @@ describe('login scene', () => {
       { update, view },
       Scene.with(validModel),
       Scene.submit(Scene.role('form')),
+      Scene.expectExactCommands(SimulateAuthRequest),
       Scene.resolve(
         SimulateAuthRequest,
         SucceededSimulateAuthRequest({ session: aliceSession }),
         toLoginMessage,
       ),
+      Scene.expectExactCommands(SaveSession, RedirectToDashboard),
       Scene.resolve(SaveSession, SucceededSaveSession()),
+      Scene.expectExactCommands(RedirectToDashboard),
       Scene.resolve(RedirectToDashboard, CompletedNavigateInternal()),
       Scene.expect(Scene.text('Welcome back, alice!')).toExist(),
     )

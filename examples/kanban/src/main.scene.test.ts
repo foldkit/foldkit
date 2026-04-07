@@ -86,6 +86,7 @@ describe('scene', () => {
       Scene.inside(
         toDoColumn,
         Scene.click(Scene.role('button', { name: '+ Add card' })),
+        Scene.expectExactCommands(FocusAddCardInput),
         Scene.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
         Scene.expect(Scene.label('New card title')).toExist(),
       ),
@@ -99,6 +100,7 @@ describe('scene', () => {
       Scene.click(
         Scene.within(toDoColumn, Scene.role('button', { name: '+ Add card' })),
       ),
+      Scene.expectExactCommands(FocusAddCardInput),
       Scene.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
       Scene.type(Scene.label('New card title'), 'Buy groceries'),
       Scene.expect(Scene.label('New card title')).toHaveValue('Buy groceries'),
@@ -112,9 +114,11 @@ describe('scene', () => {
       Scene.inside(
         toDoColumn,
         Scene.click(Scene.role('button', { name: '+ Add card' })),
+        Scene.expectExactCommands(FocusAddCardInput),
         Scene.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
         Scene.type(Scene.label('New card title'), 'Buy groceries'),
         Scene.submit(Scene.role('form')),
+        Scene.expectExactCommands(SaveBoard),
         Scene.resolve(SaveBoard, CompletedSaveBoard()),
         Scene.expect(Scene.text('Buy groceries')).toExist(),
       ),
@@ -128,6 +132,7 @@ describe('scene', () => {
       Scene.click(
         Scene.within(toDoColumn, Scene.role('button', { name: '+ Add card' })),
       ),
+      Scene.expectExactCommands(FocusAddCardInput),
       Scene.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
       Scene.expect(Scene.label('New card title')).toExist(),
       Scene.click(Scene.role('button', { name: 'Cancel' })),
