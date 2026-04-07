@@ -1,5 +1,14 @@
 # foldkit
 
+## 0.52.0
+
+### Minor Changes
+
+- 95c5451: Change `Story.resolveAll` and `Scene.resolveAll` from a single array argument to variadic rest params.
+
+  Before: `resolveAll([[Definition, Message], [Definition, Message]])`
+  After: `resolveAll([Definition, Message], [Definition, Message])`
+
 ## 0.51.0
 
 ### Minor Changes
