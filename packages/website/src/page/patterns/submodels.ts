@@ -9,6 +9,7 @@ import {
   pageTitle,
   para,
   tableOfContentsEntryToHeader,
+  warningCallout,
 } from '../../prose'
 import { exampleDetailRouter, patternsOutMessageRouter } from '../../route'
 import * as Snippets from '../../snippet'
@@ -141,6 +142,12 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Copy wrapper message to clipboard',
         copiedSnippets,
         'mb-8',
+      ),
+      warningCallout(
+        'DevTools expects this naming convention',
+        'The Foldkit DevTools use the ',
+        inlineCode('Got*Message'),
+        ' pattern to power the Submodel filter, which lets you scope DevTools Messages to a chosen Submodel. If your wrapper Messages don\u2019t follow this naming convention, they won\u2019t appear in the list of filterable Submodel Messages.',
       ),
       tableOfContentsEntryToHeader(delegatingInUpdateHeader),
       para(

@@ -78,7 +78,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Generate a complete, idiomatic Foldkit application from a natural language description. Produces correct-by-construction apps with proper Model schemas, Message naming, Commands with error handling, and Foldkit UI component integration.',
       ),
       para(
-        'More skills are in development \u2014 including message scaffolding, submodel extraction, and architecture auditing.',
+        'More skills are in development \u2014 including message scaffolding, Submodel extraction, and architecture auditing.',
       ),
     ],
   )

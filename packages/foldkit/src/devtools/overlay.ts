@@ -2,10 +2,13 @@ import { clsx } from 'clsx'
 import {
   Array as Array_,
   Effect,
+  Equal,
+  Function,
   HashSet,
   Match as M,
   Number as Number_,
   Option,
+  Order,
   Predicate,
   Record,
   Schema as S,
@@ -24,20 +27,28 @@ import type { DevtoolsMode, DevtoolsPosition } from '../runtime/runtime'
 import { makeSubscriptions } from '../runtime/subscription'
 import { evo } from '../struct'
 import { lockScroll, unlockScroll } from '../task/scrollLock'
+import * as Listbox from '../ui/listbox/public'
 import * as Tabs from '../ui/tabs'
 import { overlayStyles } from './overlay-styles'
-import { type DevtoolsStore, INIT_INDEX, type StoreState } from './store'
+import {
+  type DevtoolsStore,
+  type HistoryEntry,
+  INIT_INDEX,
+  type StoreState,
+} from './store'
 
 // MODEL
 
 const DisplayEntry = S.Struct({
   tag: S.String,
+  maybeInnerTag: S.OptionFromSelf(S.String),
   commandNames: S.Array(S.String),
   timestamp: S.Number,
   isModelChanged: S.Boolean,
 })
 
 const INSPECTOR_TABS_ID = 'dt-inspector'
+const SUBMODEL_FILTER_ID = 'dt-submodel-filter'
 
 const InspectorTabsModel = S.Struct({
   id: S.String,
@@ -58,6 +69,9 @@ const Model = S.Struct({
   isFollowingLatest: S.Boolean,
   maybeInspectedModel: S.OptionFromSelf(S.Unknown),
   maybeInspectedMessage: S.OptionFromSelf(S.Unknown),
+  submodelTags: S.Array(S.String),
+  maybeSubmodelFilter: S.OptionFromSelf(S.String),
+  submodelFilterListbox: Listbox.Model,
   expandedPaths: S.HashSetFromSelf(S.String),
   changedPaths: S.HashSetFromSelf(S.String),
   affectedPaths: S.HashSetFromSelf(S.String),
@@ -107,6 +121,12 @@ const ReceivedStoreUpdate = m('ReceivedStoreUpdate', {
   isPaused: S.Boolean,
   pausedAtIndex: S.Number,
 })
+const GotSubmodelFilterMessage = m('GotSubmodelFilterMessage', {
+  message: Listbox.Message,
+})
+const SelectedSubmodelFilter = m('SelectedSubmodelFilter', {
+  tag: S.String,
+})
 
 const Message = S.Union(
   ClickedToggle,
@@ -125,6 +145,8 @@ const Message = S.Union(
   ToggledTreeNode,
   GotInspectorTabsMessage,
   ReceivedStoreUpdate,
+  GotSubmodelFilterMessage,
+  SelectedSubmodelFilter,
 )
 type Message = typeof Message.Type
 
@@ -135,6 +157,7 @@ const MOBILE_BREAKPOINT = 767
 const MOBILE_BREAKPOINT_QUERY = `(max-width: ${MOBILE_BREAKPOINT}px)`
 const TREE_INDENT_PX = 12
 const MAX_PREVIEW_KEYS = 3
+const ALL_MESSAGES_VALUE = ''
 
 const formatTimeDelta = (deltaMs: number): string =>
   M.value(deltaMs).pipe(
@@ -145,12 +168,40 @@ const formatTimeDelta = (deltaMs: number): string =>
 
 const MESSAGE_LIST_SELECTOR = '.message-list'
 
+const computeSubmodelTags = (
+  entries: ReadonlyArray<typeof DisplayEntry.Type>,
+): ReadonlyArray<string> =>
+  pipe(
+    entries,
+    Array_.filterMap(entry => entry.maybeInnerTag.pipe(Option.as(entry.tag))),
+    Array_.dedupe,
+    Array_.sort(Order.string),
+  )
+
+const GOT_MESSAGE_PATTERN = /^Got.+Message$/
+
+const extractInnerTag = (entry: HistoryEntry): Option.Option<string> =>
+  pipe(
+    entry.tag,
+    String_.search(GOT_MESSAGE_PATTERN),
+    Option.flatMap(() => {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      const inner = (entry.message as Record<string, unknown>)?.['message']
+      return pipe(
+        inner,
+        Option.liftPredicate(isTagged),
+        Option.map(({ _tag }) => _tag),
+      )
+    }),
+  )
+
 const toDisplayEntries = ({ entries }: StoreState) =>
-  Array_.map(entries, ({ tag, commandNames, timestamp, isModelChanged }) => ({
-    tag,
-    commandNames,
-    timestamp,
-    isModelChanged,
+  Array_.map(entries, entry => ({
+    tag: entry.tag,
+    maybeInnerTag: extractInnerTag(entry),
+    commandNames: entry.commandNames,
+    timestamp: entry.timestamp,
+    isModelChanged: entry.isModelChanged,
   }))
 
 const toDisplayState = (state: StoreState) => ({
@@ -161,8 +212,7 @@ const toDisplayState = (state: StoreState) => ({
   pausedAtIndex: state.pausedAtIndex,
 })
 
-const isExpandable = (value: unknown): boolean =>
-  Predicate.isNotNull(value) && typeof value === 'object'
+const isExpandable = (value: unknown): boolean => Predicate.isObject(value)
 
 const Tagged = S.Struct({ _tag: S.String })
 const isTagged = S.is(Tagged)
@@ -329,6 +379,7 @@ const makeUpdate = (
           evo(model, {
             selectedIndex: () => INIT_INDEX,
             isFollowingLatest: () => true,
+            maybeSubmodelFilter: () => Option.none(),
             expandedPaths: () => HashSet.empty<string>(),
             changedPaths: () => HashSet.empty<string>(),
             affectedPaths: () => HashSet.empty<string>(),
@@ -410,6 +461,12 @@ const makeUpdate = (
             onNonEmpty: () => startIndex + entries.length - 1,
           })
 
+          const nextSubmodelTags = computeSubmodelTags(entries)
+          const isFilterStale = Option.exists(
+            model.maybeSubmodelFilter,
+            filterTag => !Array_.contains(nextSubmodelTags, filterTag),
+          )
+
           return [
             evo(model, {
               entries: () => entries,
@@ -417,10 +474,59 @@ const makeUpdate = (
               startIndex: () => startIndex,
               isPaused: () => isPaused,
               pausedAtIndex: () => pausedAtIndex,
+              submodelTags: () => nextSubmodelTags,
+              maybeSubmodelFilter: current =>
+                isFilterStale ? Option.none() : current,
+              submodelFilterListbox: current =>
+                isFilterStale
+                  ? evo(current, {
+                      maybeSelectedItem: () => Option.some(ALL_MESSAGES_VALUE),
+                    })
+                  : current,
               selectedIndex: current =>
                 shouldFollowLatest ? latestIndex : current,
             }),
             shouldFollowLatest ? [scrollToTop, inspectLatest] : [],
+          ]
+        },
+        GotSubmodelFilterMessage: ({ message: listboxMessage }) => {
+          const [nextListboxModel, listboxCommands] = Listbox.update(
+            model.submodelFilterListbox,
+            listboxMessage,
+          )
+
+          return [
+            evo(model, {
+              submodelFilterListbox: () => nextListboxModel,
+            }),
+            listboxCommands.map(
+              Command.mapEffect(
+                Effect.map(innerMessage =>
+                  GotSubmodelFilterMessage({ message: innerMessage }),
+                ),
+              ),
+            ),
+          ]
+        },
+        SelectedSubmodelFilter: ({ tag }) => {
+          const [nextListbox, listboxCommands] = Listbox.selectItem(
+            model.submodelFilterListbox,
+            tag,
+          )
+
+          return [
+            evo(model, {
+              maybeSubmodelFilter: () =>
+                Option.liftPredicate(tag, String_.isNonEmpty),
+              submodelFilterListbox: () => nextListbox,
+            }),
+            listboxCommands.map(
+              Command.mapEffect(
+                Effect.map(innerMessage =>
+                  GotSubmodelFilterMessage({ message: innerMessage }),
+                ),
+              ),
+            ),
           ]
         },
       }),
@@ -870,11 +976,24 @@ const makeView = (
       true,
     )
 
+  const unwrapIfFiltered = (message: unknown, model: Model): unknown => {
+    if (Option.isNone(model.maybeSubmodelFilter)) {
+      return message
+    }
+
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const inner = (message as Record<string, unknown>)?.['message']
+
+    return isTagged(inner) ? inner : message
+  }
+
   const messageTabContent = (model: Model): Html =>
     Option.match(model.maybeInspectedMessage, {
       onNone: () => noMessageView,
-      onSome: message =>
-        div(
+      onSome: rawMessage => {
+        const message = unwrapIfFiltered(rawMessage, model)
+
+        return div(
           [Class('flex flex-col flex-1 min-h-0 min-w-0')],
           [
             div(
@@ -900,7 +1019,8 @@ const makeView = (
               ],
             ),
           ],
-        ),
+        )
+      },
     })
 
   const selectedCommandNames = (model: Model): ReadonlyArray<string> => {
@@ -1071,9 +1191,89 @@ const makeView = (
     ['Clear history'],
   )
 
+  const submodelLabel = (tag: string): string =>
+    pipe(tag, String_.replace(/^Got/, ''), String_.replace(/Message$/, ''))
+
+  const CHECK_ICON = 'M4.5 12.75l6 6 9-13.5'
+
+  const checkIconView: Html = svg(
+    [
+      AriaHidden(true),
+      Class('dt-filter-check shrink-0'),
+      Xmlns('http://www.w3.org/2000/svg'),
+      Fill('none'),
+      ViewBox('0 0 24 24'),
+      StrokeWidth('2'),
+      Stroke('currentColor'),
+    ],
+    [
+      path(
+        [D(CHECK_ICON), StrokeLinecap('round'), StrokeLinejoin('round')],
+        [],
+      ),
+    ],
+  )
+
+  const filterItemLabel = (item: string): string =>
+    String_.isNonEmpty(item) ? submodelLabel(item) : 'All Messages'
+
+  const submodelFilterView = (model: Model): Html => {
+    const buttonLabel = Option.match(model.maybeSubmodelFilter, {
+      onNone: () => 'All Messages',
+      onSome: submodelLabel,
+    })
+
+    return Listbox.view<Message, string>({
+      model: model.submodelFilterListbox,
+      toParentMessage: message => GotSubmodelFilterMessage({ message }),
+      onSelectedItem: tag => SelectedSubmodelFilter({ tag }),
+      items: [ALL_MESSAGES_VALUE, ...model.submodelTags],
+      itemToConfig: item => ({
+        className: 'dt-filter-item',
+        content: div(
+          [Class('flex items-center gap-2')],
+          [checkIconView, span([], [filterItemLabel(item)])],
+        ),
+      }),
+      buttonContent: span(
+        [Class('flex flex-1 items-center justify-between')],
+        [
+          span([], [buttonLabel]),
+          svg(
+            [
+              AriaHidden(true),
+              Class('json-arrow shrink-0'),
+              Xmlns('http://www.w3.org/2000/svg'),
+              Fill('none'),
+              ViewBox('0 0 24 24'),
+              StrokeWidth('2'),
+              Stroke('currentColor'),
+            ],
+            [
+              path(
+                [
+                  D(CHEVRON_DOWN),
+                  StrokeLinecap('round'),
+                  StrokeLinejoin('round'),
+                ],
+                [],
+              ),
+            ],
+          ),
+        ],
+      ),
+      buttonClassName: 'dt-filter-button',
+      itemsClassName: 'dt-filter-items',
+      className: 'dt-filter-wrapper',
+      backdropClassName: 'dt-filter-backdrop',
+    })
+  }
+
   const headerView = (model: Model): Html => {
-    const { status, action } = M.value(mode).pipe(
-      M.withReturnType<Readonly<{ status: Html; action: Html }>>(),
+    const { status, maybeAction } = M.value(mode).pipe(
+      M.withReturnType<
+        Readonly<{ status: Html; maybeAction: Option.Option<Html> }>
+      >(),
       M.when('TimeTravel', () =>
         model.isPaused
           ? {
@@ -1085,9 +1285,11 @@ const makeView = (
                     : `Paused (${model.pausedAtIndex + 1})`,
                 ],
               ),
-              action: button(
-                [Class(actionButtonClass), OnClick(ClickedResume())],
-                ['Resume →'],
+              maybeAction: Option.some(
+                button(
+                  [Class(actionButtonClass), OnClick(ClickedResume())],
+                  ['Resume →'],
+                ),
               ),
             }
           : {
@@ -1095,7 +1297,7 @@ const makeView = (
                 [Class(`${statusClass} text-dt-live font-medium`)],
                 ['Live'],
               ),
-              action: div([], []),
+              maybeAction: Option.none(),
             },
       ),
       M.when('Inspect', () => ({
@@ -1107,17 +1309,21 @@ const makeView = (
               : `Inspecting (${model.selectedIndex + 1})`,
           ],
         ),
-        action: model.isFollowingLatest
-          ? div([], [])
-          : button(
-              [Class(actionButtonClass), OnClick(ClickedFollowLatest())],
-              ['Follow Latest →'],
-            ),
+        maybeAction: OptionExt.when(
+          !model.isFollowingLatest,
+          button(
+            [Class(actionButtonClass), OnClick(ClickedFollowLatest())],
+            ['Follow Latest →'],
+          ),
+        ),
       })),
       M.exhaustive,
     )
 
-    return header([Class(headerClass)], [status, action, clearHistoryButton])
+    return header(
+      [Class(headerClass)],
+      [status, ...Option.toArray(maybeAction), clearHistoryButton],
+    )
   }
 
   const initRowView = (isSelected: boolean, isPausedHere: boolean): Html =>
@@ -1215,17 +1421,38 @@ const makeView = (
       M.exhaustive,
     )
     const isInitSelected = selectedIndex === INIT_INDEX
+    const isFiltered = Option.isSome(model.maybeSubmodelFilter)
+
+    const indexedEntries: ReadonlyArray<
+      Readonly<{
+        entry: typeof DisplayEntry.Type
+        absoluteIndex: number
+      }>
+    > = pipe(
+      model.entries,
+      Array_.map((entry, arrayIndex) => ({
+        entry,
+        absoluteIndex: model.startIndex + arrayIndex,
+      })),
+      isFiltered
+        ? Array_.filter(({ entry }) =>
+            Option.exists(model.maybeSubmodelFilter, Equal.equals(entry.tag)),
+          )
+        : Function.identity,
+    )
 
     const messageRows = pipe(
-      model.entries,
-      Array_.map((entry, arrayIndex) => {
-        const absoluteIndex = model.startIndex + arrayIndex
+      indexedEntries,
+      Array_.map(({ entry, absoluteIndex }) => {
         const isSelected = selectedIndex === absoluteIndex
         const isPausedHere =
           model.isPaused && model.pausedAtIndex === absoluteIndex
+        const displayTag = isFiltered
+          ? Option.getOrElse(entry.maybeInnerTag, () => entry.tag)
+          : entry.tag
 
         return lazyMessageRow(String(absoluteIndex), messageRowView, [
-          entry.tag,
+          displayTag,
           absoluteIndex,
           isSelected,
           isPausedHere,
@@ -1238,13 +1465,15 @@ const makeView = (
 
     return ul(
       [Class('message-list flex-1 overflow-y-auto min-h-0 overscroll-none')],
-      [
-        ...messageRows,
-        initRowView(
-          isInitSelected,
-          model.isPaused && model.pausedAtIndex === INIT_INDEX,
-        ),
-      ],
+      isFiltered
+        ? messageRows
+        : [
+            ...messageRows,
+            initRowView(
+              isInitSelected,
+              model.isPaused && model.pausedAtIndex === INIT_INDEX,
+            ),
+          ],
     )
   }
 
@@ -1278,7 +1507,13 @@ const makeView = (
           [
             div(
               [Class('flex flex-col min-h-0 dt-message-pane')],
-              [messageListView(model)],
+              [
+                ...Array_.match(model.submodelTags, {
+                  onEmpty: () => [],
+                  onNonEmpty: () => [submodelFilterView(model)],
+                }),
+                messageListView(model),
+              ],
             ),
             inspectorPaneView(model),
           ],
@@ -1356,6 +1591,12 @@ export const createOverlay = (
         ...flags,
         selectedIndex: INIT_INDEX,
         isFollowingLatest: true,
+        submodelTags: computeSubmodelTags(flags.entries),
+        maybeSubmodelFilter: Option.none(),
+        submodelFilterListbox: Listbox.init({
+          id: SUBMODEL_FILTER_ID,
+          selectedItem: ALL_MESSAGES_VALUE,
+        }),
         maybeInspectedModel: Option.none(),
         maybeInspectedMessage: Option.none(),
         expandedPaths: HashSet.empty(),
