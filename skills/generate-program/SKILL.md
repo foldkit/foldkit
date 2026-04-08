@@ -8,6 +8,10 @@ Generate a complete Foldkit program based on this description:
 
 **$ARGUMENTS**
 
+## Mental Model
+
+Foldkit is an Elm application written in TypeScript, powered by Effect-TS. The update function is pure, Messages describe what happened (not what to do), the Model is the single source of truth, and all side effects are expressed as Commands. If you find yourself reaching for imperative patterns, mutable state, or direct DOM access — stop and translate the idea into this architecture.
+
 ## Phase 1: Analyze the Description
 
 Before writing any code, analyze the description to identify:
