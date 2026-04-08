@@ -231,6 +231,83 @@ ul {
 .dt-resume-button:hover {
   opacity: 0.7;
 }
+.dt-filter-wrapper {
+  position: relative;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--dt-border);
+}
+.dt-filter-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  color: var(--dt-text-muted);
+  font-family:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+.dt-filter-button:hover {
+  color: var(--dt-text);
+  background-color: var(--dt-tree-hover);
+}
+.dt-filter-button:focus-visible {
+  outline: 1px solid var(--dt-accent);
+  outline-offset: -1px;
+}
+.dt-filter-button[data-open] {
+  color: var(--dt-text);
+  background-color: var(--dt-surface-selected);
+}
+.dt-filter-items {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--dt-bg);
+  border-top: none;
+  border-bottom: 1px solid var(--dt-border);
+  z-index: 10;
+  max-height: 200px;
+  overflow-y: auto;
+  outline: none;
+}
+.dt-filter-item {
+  padding: 6px 12px;
+  color: var(--dt-text-muted);
+  cursor: pointer;
+  font-family:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 13px;
+  border-bottom: 1px solid var(--dt-border);
+}
+.dt-filter-item:last-child {
+  border-bottom: none;
+}
+.dt-filter-item[data-active] {
+  background-color: var(--dt-tree-hover);
+  color: var(--dt-text);
+}
+.dt-filter-item[data-selected] {
+  color: var(--dt-accent);
+}
+.dt-filter-check {
+  width: 12px;
+  height: 12px;
+  visibility: hidden;
+}
+.dt-filter-item[data-selected] .dt-filter-check {
+  visibility: visible;
+  color: var(--dt-accent);
+}
+.dt-filter-backdrop {
+  position: fixed;
+  inset: 0;
+}
 .dt-tab-button {
   position: relative;
   background: transparent;
