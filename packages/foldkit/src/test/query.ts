@@ -546,6 +546,13 @@ export const textContent = (vnode: VNode): string => {
   )
 }
 
+const hasDirectTextNodeMatch = (node: VNode, target: string): boolean =>
+  Array.some(node.children ?? [], child =>
+    Predicate.isString(child)
+      ? child === target
+      : !isElement(child) && textContent(child) === target,
+  )
+
 const attrImpl = (vnode: VNode, name: string): Option.Option<string> => {
   if (name === 'class') {
     return pipe(
@@ -737,7 +744,9 @@ export const getByText =
 
     const textMatches = (node: VNode): boolean => {
       const nodeText = textContent(node)
-      return exact ? nodeText === target : String_.includes(target)(nodeText)
+      return exact
+        ? nodeText === target || hasDirectTextNodeMatch(node, target)
+        : String_.includes(target)(nodeText)
     }
 
     return pipe(
@@ -871,7 +880,9 @@ export const getAllByText =
     return Array.filter(allNodesIn(html), node => {
       if (!isElement(node)) return false
       const nodeText = textContent(node)
-      return exact ? nodeText === target : String_.includes(target)(nodeText)
+      return exact
+        ? nodeText === target || hasDirectTextNodeMatch(node, target)
+        : String_.includes(target)(nodeText)
     })
   }
 

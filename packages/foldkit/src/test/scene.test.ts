@@ -512,6 +512,16 @@ describe('accessible locators', () => {
     test('does not match substring by default', () => {
       expect(Option.isNone(getByText('Invalid')(locatorTree))).toBe(true)
     })
+
+    test('matches individual text node in mixed children', () => {
+      const tree = h('a', { props: { href: '/test' } }, [
+        'Hello',
+        h('span', {}, ['→']),
+      ])
+      const result = getByText('Hello')(tree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(Option.getOrThrow(result).sel).toBe('a')
+    })
   })
 
   describe('getByPlaceholder', () => {
