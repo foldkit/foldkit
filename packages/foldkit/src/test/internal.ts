@@ -1,4 +1,4 @@
-import { Array, Equivalence, Option, Order, pipe } from 'effect'
+import { Array, Equivalence, Option, Order, Predicate, pipe } from 'effect'
 
 import type { CommandDefinition } from '../command'
 
@@ -9,14 +9,11 @@ type UpdateResult<Model, OutMessage> =
   | readonly [Model, ReadonlyArray<AnyCommand>]
   | readonly [Model, ReadonlyArray<AnyCommand>, OutMessage]
 
-/** A Command definition paired with the result Message to resolve it with. */
-export type ResolverPair<
-  Name extends string = string,
-  ResultMessage = unknown,
-> =
-  | readonly [CommandDefinition<Name, ResultMessage>, ResultMessage]
+/** A Command definition with the result Message to resolve it with. */
+export type Resolver<ResultMessage = unknown> =
+  | readonly [CommandDefinition<string, ResultMessage>, ResultMessage]
   | readonly [
-      CommandDefinition<Name, ResultMessage>,
+      CommandDefinition<string, ResultMessage>,
       ResultMessage,
       (message: ResultMessage) => unknown,
     ]
@@ -62,6 +59,61 @@ export const resolveByName = <Model, Message>(
       },
     }),
   )
+
+const MAX_CASCADE_DEPTH = 100
+
+/** Resolves all listed Commands, cascading through any Commands produced by the result. */
+export const resolveAllInternal = <Model, Message, OutMessage>(
+  internal: BaseInternal<Model, Message, OutMessage>,
+  resolvers: ReadonlyArray<Resolver>,
+): BaseInternal<Model, Message, OutMessage> => {
+  const resolverMap: Record<string, Message> = {}
+  for (const resolver of resolvers) {
+    const [definition, resultMessage] = resolver
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    resolverMap[definition.name] = (
+      resolver.length === 3 ? resolver[2](resultMessage) : resultMessage
+    ) as Message
+  }
+
+  /* eslint-disable @typescript-eslint/consistent-type-assertions */
+  let current = {
+    ...internal,
+    resolvers: { ...internal.resolvers, ...resolverMap },
+  } as BaseInternal<Model, Message, unknown>
+
+  for (let depth = 0; depth < MAX_CASCADE_DEPTH; depth++) {
+    const resolvable = current.commands.find(
+      ({ name }) => name in current.resolvers,
+    )
+
+    if (Predicate.isUndefined(resolvable)) {
+      break
+    }
+
+    const next = resolveByName(
+      current,
+      resolvable.name,
+      current.resolvers[resolvable.name]!,
+    )
+
+    if (Predicate.isUndefined(next)) {
+      break
+    }
+
+    current = next
+
+    if (depth === MAX_CASCADE_DEPTH - 1) {
+      throw new Error(
+        'resolveAll hit the maximum cascade depth (100). ' +
+          'This usually means Commands are producing Commands in an infinite cycle.',
+      )
+    }
+  }
+
+  return current as BaseInternal<Model, Message, OutMessage>
+  /* eslint-enable @typescript-eslint/consistent-type-assertions */
+}
 
 /** Throws if any of the given definitions are missing from the pending Commands. */
 export const assertHasCommands = (
@@ -157,7 +209,7 @@ export const assertNoUnresolvedCommands = (
       `I found unresolved Commands ${context}:\n\n${names}\n\n` +
         'Resolve all Commands before sending the next Message.\n' +
         'Use resolve(Definition, ResultMessage) for each one,\n' +
-        'or resolveAll(...pairs) to resolve them all at once.',
+        'or resolveAll(...resolvers) to resolve them all at once.',
     )
   }
 }
@@ -176,7 +228,7 @@ export const assertAllCommandsResolved = (
       `I found Commands without resolvers:\n\n${names}\n\n` +
         'Every Command produced by update needs to be resolved.\n' +
         'Use resolve(Definition, ResultMessage) for each one,\n' +
-        'or resolveAll(...pairs) to resolve them all at once.',
+        'or resolveAll(...resolvers) to resolve them all at once.',
     )
   }
 }

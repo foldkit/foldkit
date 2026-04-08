@@ -1,17 +1,18 @@
 import { Array, Option, Predicate, pipe } from 'effect'
 
 import type { CommandDefinition } from '../command'
-import type { AnyCommand, BaseInternal, ResolverPair } from './internal'
+import type { AnyCommand, BaseInternal, Resolver } from './internal'
 import {
   assertAllCommandsResolved,
   assertExactCommands,
   assertHasCommands,
   assertNoUnresolvedCommands,
   assertZeroCommands,
+  resolveAllInternal,
   resolveByName,
 } from './internal'
 
-export type { AnyCommand, ResolverPair }
+export type { AnyCommand, Resolver }
 
 /** An immutable test simulation of a Foldkit program. */
 export type StorySimulation<Model, Message, OutMessage = undefined> = Readonly<{
@@ -165,60 +166,18 @@ export const resolve: {
 
 /** Resolves all listed Commands with their result Messages. Handles cascading resolution. */
 export const resolveAll =
-  (...pairs: ReadonlyArray<ResolverPair>) =>
+  <R extends ReadonlyArray<unknown>>(
+    ...resolvers: { [K in keyof R]: Resolver<R[K]> }
+  ) =>
   <Model, Message, OutMessage = undefined>(
     simulation: StorySimulation<Model, Message, OutMessage>,
-  ): StorySimulation<Model, Message, OutMessage> => {
-    const internal = toInternal(simulation)
-    const resolvers: Record<string, Message> = {}
-    for (const pair of pairs) {
-      const [definition, resultMessage] = pair
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      resolvers[definition.name] = (
-        pair.length === 3 ? pair[2](resultMessage) : resultMessage
-      ) as Message
-    }
-
-    /* eslint-disable @typescript-eslint/consistent-type-assertions */
-    let current = {
-      ...internal,
-      resolvers: { ...internal.resolvers, ...resolvers },
-    } as BaseInternal<Model, Message, OutMessage>
-
-    const MAX_CASCADE_DEPTH = 100
-
-    for (let depth = 0; depth < MAX_CASCADE_DEPTH; depth++) {
-      const resolvable = current.commands.find(
-        ({ name }) => name in current.resolvers,
-      )
-
-      if (Predicate.isUndefined(resolvable)) {
-        break
-      }
-
-      const next = resolveByName(
-        current,
-        resolvable.name,
-        current.resolvers[resolvable.name]!,
-      )
-
-      if (Predicate.isUndefined(next)) {
-        break
-      }
-
-      current = next as BaseInternal<Model, Message, OutMessage>
-
-      if (depth === MAX_CASCADE_DEPTH - 1) {
-        throw new Error(
-          'resolveAll hit the maximum cascade depth (100). ' +
-            'This usually means Commands are producing Commands in an infinite cycle.',
-        )
-      }
-    }
-
-    return current as StorySimulation<Model, Message, OutMessage>
-    /* eslint-enable @typescript-eslint/consistent-type-assertions */
-  }
+  ): StorySimulation<Model, Message, OutMessage> =>
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    resolveAllInternal(toInternal(simulation), resolvers) as StorySimulation<
+      Model,
+      Message,
+      OutMessage
+    >
 
 /** Runs an assertion function against the current Model. */
 export const model =
