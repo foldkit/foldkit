@@ -1,5 +1,17 @@
 # foldkit
 
+## 0.54.0
+
+### Minor Changes
+
+- f572dc0: Fix `resolveAll` mapper parameter typed as `unknown` instead of inferring from the Command definition's result Message type. Uses a mapped tuple type to infer `ResultMessage` per resolver, matching `resolve`'s behavior. Rename `ResolverPair` to `Resolver` and extract shared cascading resolution logic to `internal.ts`.
+
+  Migration: replace `Story.ResolverPair` / `Scene.ResolverPair` with `Story.Resolver` / `Scene.Resolver`.
+
+### Patch Changes
+
+- 25a8582: Fix `Scene.text` exact match failing on text nodes with sibling elements. When a text node is a direct child of an element alongside other element children, exact matching now checks individual text nodes instead of only the parent's combined textContent.
+
 ## 0.53.0
 
 ### Minor Changes
