@@ -32,8 +32,12 @@ import {
   aiOverviewRouter,
   comingFromReactRouter,
   coreArchitectureRouter,
+  coreCommandsRouter,
   coreDevtoolsRouter,
+  coreSubscriptionsRouter,
   examplesRouter,
+  fieldValidationRouter,
+  routingAndNavigationRouter,
   testingRouter,
   uiOverviewRouter,
 } from '../route'
@@ -378,6 +382,7 @@ const includedFeature = (
   icon: Html,
   title: string,
   description: ReadonlyArray<string | Html>,
+  link?: Readonly<{ href: string; label: string }>,
 ): Html =>
   div(
     [Class('landing-card')],
@@ -388,9 +393,35 @@ const includedFeature = (
         [title],
       ),
       p(
-        [Class('text-gray-600 dark:text-gray-300 leading-relaxed')],
+        [
+          Class(
+            clsx(
+              'text-gray-600 dark:text-gray-300 leading-relaxed',
+              link && 'mb-3',
+            ),
+          ),
+        ],
         description,
       ),
+      ...(link
+        ? [
+            a(
+              [
+                Href(link.href),
+                Class(
+                  'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500 font-normal',
+                ),
+              ],
+              [
+                link.label,
+                span(
+                  [Class('inline-block ml-1')],
+                  [Icon.arrowRight('w-3.5 h-3.5 inline')],
+                ),
+              ],
+            ),
+          ]
+        : []),
     ],
   )
 
@@ -422,9 +453,17 @@ const includedSection = (): Html =>
           div(
             [Class('grid gap-6 sm:grid-cols-2 lg:grid-cols-3')],
             [
-              includedFeature(Icon.route('w-6 h-6'), 'Routing', [
-                'Type-safe bidirectional routing. URLs parse into typed routes and routes build back into URLs. No string matching, no mismatches between parsing and building.',
-              ]),
+              includedFeature(
+                Icon.route('w-6 h-6'),
+                'Routing',
+                [
+                  'Type-safe bidirectional routing. URLs parse into typed routes and routes build back into URLs. No string matching, no mismatches between parsing and building.',
+                ],
+                {
+                  href: routingAndNavigationRouter(),
+                  label: 'Explore routing',
+                },
+              ),
               div(
                 [Class('landing-card')],
                 [
@@ -458,7 +497,7 @@ const includedSection = (): Html =>
                       ),
                     ],
                     [
-                      'See the docs',
+                      'Browse the components',
                       span(
                         [Class('inline-block ml-1')],
                         [Icon.arrowRight('w-3.5 h-3.5 inline')],
@@ -480,15 +519,39 @@ const includedSection = (): Html =>
                 ),
                 '. Fast, keyed diffing with declarative views that are plain functions of your Model.',
               ]),
-              includedFeature(Icon.signal('w-6 h-6'), 'Subscriptions', [
-                'Declare which streams your app needs as a function of the Model. The runtime diffs and switches them when the Model changes.',
-              ]),
-              includedFeature(Icon.shieldCheck('w-6 h-6'), 'Field Validation', [
-                'Per-field validation with sync and async support. Define rules as predicates, apply them in update, and the Model tracks every field state.',
-              ]),
-              includedFeature(Icon.cog('w-6 h-6'), 'Commands', [
-                'Commands are named Effects that return Messages. Each carries a name for identification in tests and tracing \u2014 you write the Effect, the runtime runs and instruments it.',
-              ]),
+              includedFeature(
+                Icon.signal('w-6 h-6'),
+                'Subscriptions',
+                [
+                  'Declare which streams your app needs as a function of the Model. The runtime diffs and switches them when the Model changes.',
+                ],
+                {
+                  href: coreSubscriptionsRouter(),
+                  label: 'Explore Subscriptions',
+                },
+              ),
+              includedFeature(
+                Icon.shieldCheck('w-6 h-6'),
+                'Field Validation',
+                [
+                  'Per-field validation with sync and async support. Define rules as predicates, apply them in update, and the Model tracks every field state.',
+                ],
+                {
+                  href: fieldValidationRouter(),
+                  label: 'Explore field validation',
+                },
+              ),
+              includedFeature(
+                Icon.cog('w-6 h-6'),
+                'Commands',
+                [
+                  'Commands are named Effects that return Messages. Each carries a name for identification in tests and tracing \u2014 you write the Effect, the runtime runs and instruments it.',
+                ],
+                {
+                  href: coreCommandsRouter(),
+                  label: 'Explore Commands',
+                },
+              ),
             ],
           ),
         ],
