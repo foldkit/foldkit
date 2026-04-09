@@ -262,6 +262,8 @@ const EVENT_NAMES: Record<string, string> = {
   mouseenter: 'OnMouseEnter',
   mouseover: 'OnMouseOver',
   keydown: 'OnKeyDown or OnKeyDownPreventDefault',
+  pointerdown: 'OnPointerDown',
+  pointerup: 'OnPointerUp',
 }
 
 const captureFromElement = <Model, Message, OutMessage>(
@@ -580,13 +582,27 @@ export const inside =
     /* eslint-enable @typescript-eslint/consistent-type-assertions */
   }
 
+const findAncestorWithHandler = (
+  root: VNode,
+  element: VNode,
+  eventName: string,
+): Option.Option<VNode> =>
+  pipe(
+    root,
+    ancestorsOf(element),
+    Array.reverse,
+    Array.findFirst(vnode => vnode.data?.on?.[eventName] !== undefined),
+  )
+
 // INTERACTION STEPS
 
 /** Simulates a click on the element matching the target.
+ *  When the element has no click handler, the event bubbles up to the
+ *  nearest ancestor with one — mirroring browser event propagation.
  *  When the element is a submit button (`<button>` with no type or
  *  `type="submit"`, `<input type="submit">`, `<input type="image">`) with no
- *  click handler of its own, the click falls through to the `submit` handler
- *  of the nearest ancestor `<form>` — mirroring browser behavior. */
+ *  click handler in its ancestor chain, the click falls through to the
+ *  `submit` handler of the nearest ancestor `<form>`. */
 export const click =
   (target: string | Locator) =>
   <Model, Message, OutMessage = undefined>(
@@ -620,9 +636,40 @@ export const click =
 
     const hasClickHandler = element.data?.on?.['click'] !== undefined
 
-    if (!hasClickHandler && isSubmitButton(element)) {
+    if (hasClickHandler) {
+      return captureFromElement(
+        simulation,
+        element,
+        description,
+        'click',
+        handler => {
+          handler()
+        },
+      )
+    }
+
+    const maybeAncestor = findAncestorWithHandler(
+      internal.html,
+      element,
+      'click',
+    )
+
+    if (Option.isSome(maybeAncestor)) {
+      return captureFromElement(
+        simulation,
+        maybeAncestor.value,
+        `ancestor of ${description}`,
+        'click',
+        handler => {
+          handler()
+        },
+      )
+    }
+
+    if (isSubmitButton(element)) {
       const maybeForm = pipe(
-        ancestorsOf(internal.html, element),
+        internal.html,
+        ancestorsOf(element),
         Array.findLast(vnode => vnode.sel === 'form'),
       )
       if (Option.isSome(maybeForm)) {
@@ -638,26 +685,228 @@ export const click =
       }
     }
 
-    return captureFromElement(
-      simulation,
-      element,
-      description,
-      'click',
-      handler => {
-        handler()
-      },
+    const attributeName = EVENT_NAMES['click'] ?? 'click'
+    throw new Error(
+      `I found an element matching ${description} but neither it nor any ancestor has a click handler.\n\n` +
+        `Make sure the element or a parent has an ${attributeName} attribute.`,
     )
   }
 
-/** Simulates a double-click on the element matching the target. */
+/** Simulates a double-click on the element matching the target.
+ *  When the element has no dblclick handler, the event bubbles up to the
+ *  nearest ancestor with one — mirroring browser event propagation. */
 export const doubleClick =
   (target: string | Locator) =>
   <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
-  ): SceneSimulation<Model, Message, OutMessage> =>
-    invokeAndCapture(simulation, target, 'dblclick', handler => {
-      handler()
-    })
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    const internal = toInternal(simulation)
+    const scopedTarget = applyScopeToTarget(internal.scope, target)
+    const { maybeElement, description } = resolveTarget(
+      internal.html,
+      scopedTarget,
+    )
+
+    if (Option.isNone(maybeElement)) {
+      throw new Error(
+        `I could not find an element matching ${description}.\n\n` +
+          'Check that your selector matches an element in the current view.',
+      )
+    }
+
+    const element = maybeElement.value
+    const hasHandler = element.data?.on?.['dblclick'] !== undefined
+
+    if (hasHandler) {
+      return captureFromElement(
+        simulation,
+        element,
+        description,
+        'dblclick',
+        handler => {
+          handler()
+        },
+      )
+    }
+
+    const maybeAncestor = findAncestorWithHandler(
+      internal.html,
+      element,
+      'dblclick',
+    )
+
+    if (Option.isSome(maybeAncestor)) {
+      return captureFromElement(
+        simulation,
+        maybeAncestor.value,
+        `ancestor of ${description}`,
+        'dblclick',
+        handler => {
+          handler()
+        },
+      )
+    }
+
+    const attributeName = EVENT_NAMES['dblclick'] ?? 'dblclick'
+    throw new Error(
+      `I found an element matching ${description} but neither it nor any ancestor has a dblclick handler.\n\n` +
+        `Make sure the element or a parent has an ${attributeName} attribute.`,
+    )
+  }
+
+type PointerDownOptions = Readonly<{
+  pointerType?: string
+  button?: number
+  screenX?: number
+  screenY?: number
+}>
+
+const DEFAULT_POINTER_DOWN_OPTIONS: Required<PointerDownOptions> = {
+  pointerType: 'mouse',
+  button: 0,
+  screenX: 0,
+  screenY: 0,
+}
+
+/** Simulates a pointerdown event on the element matching the target.
+ *  When the element has no pointerdown handler, the event bubbles up to
+ *  the nearest ancestor with one — mirroring browser event propagation.
+ *  Defaults to `pointerType: 'mouse'`, `button: 0`, and `screenX/screenY: 0`. */
+export const pointerDown =
+  (target: string | Locator, options?: PointerDownOptions) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    const internal = toInternal(simulation)
+    const scopedTarget = applyScopeToTarget(internal.scope, target)
+    const { maybeElement, description } = resolveTarget(
+      internal.html,
+      scopedTarget,
+    )
+
+    if (Option.isNone(maybeElement)) {
+      throw new Error(
+        `I could not find an element matching ${description}.\n\n` +
+          'Check that your selector matches an element in the current view.',
+      )
+    }
+
+    const element = maybeElement.value
+    const { pointerType, button, screenX, screenY } = {
+      ...DEFAULT_POINTER_DOWN_OPTIONS,
+      ...options,
+    }
+    const invokeHandler = (handler: Function) => {
+      handler({ pointerType, button, screenX, screenY, timeStamp: 0 })
+    }
+
+    if (element.data?.on?.['pointerdown'] !== undefined) {
+      return captureFromElement(
+        simulation,
+        element,
+        description,
+        'pointerdown',
+        invokeHandler,
+      )
+    }
+
+    const maybeAncestor = findAncestorWithHandler(
+      internal.html,
+      element,
+      'pointerdown',
+    )
+
+    if (Option.isSome(maybeAncestor)) {
+      return captureFromElement(
+        simulation,
+        maybeAncestor.value,
+        `ancestor of ${description}`,
+        'pointerdown',
+        invokeHandler,
+      )
+    }
+
+    throw new Error(
+      `I found an element matching ${description} but neither it nor any ancestor has a pointerdown handler.\n\n` +
+        'Make sure the element or a parent has an OnPointerDown attribute.',
+    )
+  }
+
+type PointerUpOptions = Readonly<{
+  pointerType?: string
+  screenX?: number
+  screenY?: number
+}>
+
+const DEFAULT_POINTER_UP_OPTIONS: Required<PointerUpOptions> = {
+  pointerType: 'mouse',
+  screenX: 0,
+  screenY: 0,
+}
+
+/** Simulates a pointerup event on the element matching the target.
+ *  When the element has no pointerup handler, the event bubbles up to
+ *  the nearest ancestor with one — mirroring browser event propagation.
+ *  Defaults to `pointerType: 'mouse'` and `screenX/screenY: 0`. */
+export const pointerUp =
+  (target: string | Locator, options?: PointerUpOptions) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    const internal = toInternal(simulation)
+    const scopedTarget = applyScopeToTarget(internal.scope, target)
+    const { maybeElement, description } = resolveTarget(
+      internal.html,
+      scopedTarget,
+    )
+
+    if (Option.isNone(maybeElement)) {
+      throw new Error(
+        `I could not find an element matching ${description}.\n\n` +
+          'Check that your selector matches an element in the current view.',
+      )
+    }
+
+    const element = maybeElement.value
+    const { pointerType, screenX, screenY } = {
+      ...DEFAULT_POINTER_UP_OPTIONS,
+      ...options,
+    }
+    const invokeHandler = (handler: Function) => {
+      handler({ screenX, screenY, pointerType, timeStamp: 0 })
+    }
+
+    if (element.data?.on?.['pointerup'] !== undefined) {
+      return captureFromElement(
+        simulation,
+        element,
+        description,
+        'pointerup',
+        invokeHandler,
+      )
+    }
+
+    const maybeAncestor = findAncestorWithHandler(
+      internal.html,
+      element,
+      'pointerup',
+    )
+
+    if (Option.isSome(maybeAncestor)) {
+      return captureFromElement(
+        simulation,
+        maybeAncestor.value,
+        `ancestor of ${description}`,
+        'pointerup',
+        invokeHandler,
+      )
+    }
+
+    throw new Error(
+      `I found an element matching ${description} but neither it nor any ancestor has a pointerup handler.\n\n` +
+        'Make sure the element or a parent has an OnPointerUp attribute.',
+    )
+  }
 
 /** Simulates a hover (mouseenter) on the element matching the target.
  *  Dispatches the `mouseenter` handler, falling back to `mouseover`. */

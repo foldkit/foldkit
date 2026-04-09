@@ -4,6 +4,11 @@ import type { VNode } from 'snabbdom'
 import { describe, expect, test } from 'vitest'
 
 import {
+  initialModel as bubblingInitialModel,
+  update as bubblingUpdate,
+  view as bubblingView,
+} from './apps/bubbling'
+import {
   initialModel as interactionsInitialModel,
   update as interactionsUpdate,
   view as interactionsView,
@@ -29,6 +34,11 @@ import {
   update as multiRoleUpdate,
   view as multiRoleView,
 } from './apps/multiRole'
+import {
+  initialModel as pointerInitialModel,
+  update as pointerUpdate,
+  view as pointerView,
+} from './apps/pointer'
 import { parseSelector } from './query'
 import {
   attr,
@@ -353,6 +363,20 @@ describe('accessible locators', () => {
       const result = getByRole('heading', { name: 'Section A' })(locatorTree)
       expect(Option.isSome(result)).toBe(true)
       expect(Option.getOrThrow(result).sel).toBe('h2')
+    })
+
+    test('filters by accessible name with RegExp', () => {
+      const result = getByRole('heading', { name: /Section/ })(locatorTree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(Option.getOrThrow(result).sel).toBe('h2')
+    })
+
+    test('returns None when RegExp name does not match', () => {
+      expect(
+        Option.isNone(
+          getByRole('heading', { name: /Nonexistent/ })(locatorTree),
+        ),
+      ).toBe(true)
     })
 
     test('returns None when name does not match', () => {
@@ -1491,7 +1515,7 @@ describe('scene errors', () => {
         Scene.with(initialModel),
         Scene.click('#email'),
       ),
-    ).toThrow('has no click handler')
+    ).toThrow('neither it nor any ancestor has a click handler')
   })
 
   test('throws on unresolved Commands at end', () => {
@@ -1857,5 +1881,147 @@ describe('new matchers', () => {
       Scene.click(Scene.role('heading')),
       Scene.expect(Scene.role('doc-subtitle')).toContainText('clicks=1'),
     )
+  })
+
+  test('Scene.role accepts RegExp for accessible name matching', () => {
+    Scene.scene(
+      { update, view },
+      Scene.with(initialModel),
+      Scene.expect(Scene.role('button', { name: /Sign/ })).toExist(),
+      Scene.expect(Scene.role('button', { name: /sign/i })).toExist(),
+      Scene.expect(Scene.role('button', { name: /Nonexistent/ })).not.toExist(),
+    )
+  })
+})
+
+describe('scene with click bubbling', () => {
+  test('click bubbles from child to parent with handler', () => {
+    Scene.scene(
+      { update: bubblingUpdate, view: bubblingView },
+      Scene.with(bubblingInitialModel),
+      Scene.click(Scene.text('clicks=0')),
+      Scene.expect(Scene.text('clicks=1')).toExist(),
+    )
+  })
+
+  test('doubleClick bubbles from child to parent with handler', () => {
+    Scene.scene(
+      { update: bubblingUpdate, view: bubblingView },
+      Scene.with(bubblingInitialModel),
+      Scene.doubleClick(Scene.text('dbl=0')),
+      Scene.expect(Scene.text('dbl=1')).toExist(),
+    )
+  })
+
+  test('click throws when no handler in ancestor chain', () => {
+    expect(() =>
+      Scene.scene(
+        { update: bubblingUpdate, view: bubblingView },
+        Scene.with(bubblingInitialModel),
+        Scene.click(Scene.text('dbl=0')),
+      ),
+    ).toThrow(/neither it nor any ancestor has a click handler/)
+  })
+
+  test('doubleClick throws when no handler in ancestor chain', () => {
+    expect(() =>
+      Scene.scene(
+        { update: bubblingUpdate, view: bubblingView },
+        Scene.with(bubblingInitialModel),
+        Scene.doubleClick(Scene.text('clicks=0')),
+      ),
+    ).toThrow(/neither it nor any ancestor has a dblclick handler/)
+  })
+})
+
+describe('scene with pointer events', () => {
+  test('pointerDown dispatches the handler', () => {
+    Scene.scene(
+      { update: pointerUpdate, view: pointerView },
+      Scene.with(pointerInitialModel),
+      Scene.pointerDown(Scene.label('pointer target')),
+      Scene.expect(Scene.label('pointer target')).toContainText('down=1'),
+    )
+  })
+
+  test('pointerDown passes pointerType option', () => {
+    Scene.scene(
+      { update: pointerUpdate, view: pointerView },
+      Scene.with(pointerInitialModel),
+      Scene.pointerDown(Scene.label('pointer target'), {
+        pointerType: 'touch',
+      }),
+      Scene.tap(({ html }) => {
+        expect(textContent(Option.getOrThrow(find(html, 'span')))).toContain(
+          'type=touch',
+        )
+      }),
+    )
+  })
+
+  test('pointerDown defaults to mouse', () => {
+    Scene.scene(
+      { update: pointerUpdate, view: pointerView },
+      Scene.with(pointerInitialModel),
+      Scene.pointerDown(Scene.label('nested target')),
+      Scene.expect(
+        Scene.within(Scene.label('nested target'), Scene.selector('span')),
+      ).toHaveText('type=mouse'),
+    )
+  })
+
+  test('pointerDown bubbles from child to parent', () => {
+    Scene.scene(
+      { update: pointerUpdate, view: pointerView },
+      Scene.with(pointerInitialModel),
+      Scene.pointerDown(Scene.text('type=')),
+      Scene.expect(
+        Scene.within(Scene.label('nested target'), Scene.selector('span')),
+      ).toHaveText('type=mouse'),
+    )
+  })
+
+  test('pointerUp dispatches the handler', () => {
+    Scene.scene(
+      { update: pointerUpdate, view: pointerView },
+      Scene.with(pointerInitialModel),
+      Scene.pointerUp(Scene.label('pointer target')),
+      Scene.expect(Scene.label('pointer target')).toContainText('up=1'),
+    )
+  })
+
+  test('pointerUp passes pointerType option', () => {
+    Scene.scene(
+      { update: pointerUpdate, view: pointerView },
+      Scene.with(pointerInitialModel),
+      Scene.pointerUp(Scene.label('pointer target'), {
+        pointerType: 'touch',
+      }),
+      Scene.tap(({ html }) => {
+        expect(textContent(Option.getOrThrow(find(html, 'span')))).toContain(
+          'type=touch',
+        )
+      }),
+    )
+  })
+
+  test('pointerDown throws when no handler in ancestor chain', () => {
+    expect(() =>
+      Scene.scene(
+        { update: pointerUpdate, view: pointerView },
+        Scene.with(pointerInitialModel),
+        Scene.pointerDown(Scene.label('no handler')),
+      ),
+    ).toThrow(/neither it nor any ancestor has a pointerdown handler/)
+  })
+
+  test('pointerUp throws when no handler in ancestor chain', () => {
+    expect(() =>
+      Scene.scene(
+        { update: pointerUpdate, view: pointerView },
+        Scene.with(pointerInitialModel),
+        Scene.pointerUp(Scene.label('no handler')),
+      ),
+    ).toThrow(/neither it nor any ancestor has a pointerup handler/)
   })
 })

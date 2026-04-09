@@ -2,6 +2,8 @@ import { Scene } from 'foldkit'
 
 Scene.click(Scene.role('button', { name: 'Log out' }))
 Scene.doubleClick(Scene.role('button', { name: 'Expand' }))
+Scene.pointerDown(Scene.role('button', { name: 'Toggle' }))
+Scene.pointerUp(Scene.role('button', { name: 'Toggle' }))
 Scene.hover(Scene.role('menuitem', { name: 'File' }))
 Scene.focus(Scene.label('Email'))
 Scene.blur(Scene.label('Email'))

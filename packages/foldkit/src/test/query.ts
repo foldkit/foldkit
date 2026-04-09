@@ -217,27 +217,26 @@ const allNodesIn = (vnode: VNode): ReadonlyArray<VNode> => [
 /** Returns the ancestor chain of `target` within `root`, ordered from root to
  *  the immediate parent of `target` (exclusive). Returns an empty array when
  *  `target` is `root` itself or is not present in the subtree. */
-export const ancestorsOf = (
-  root: VNode,
-  target: VNode,
-): ReadonlyArray<VNode> => {
-  const walk = (
-    node: VNode,
-    chain: ReadonlyArray<VNode>,
-  ): ReadonlyArray<VNode> | undefined => {
-    if (node === target) {
-      return chain
-    }
-    for (const child of vnodeChildren(node)) {
-      const result = walk(child, [...chain, node])
-      if (result !== undefined) {
-        return result
+export const ancestorsOf =
+  (target: VNode) =>
+  (root: VNode): ReadonlyArray<VNode> => {
+    const walk = (
+      node: VNode,
+      chain: ReadonlyArray<VNode>,
+    ): ReadonlyArray<VNode> | undefined => {
+      if (node === target) {
+        return chain
       }
+      for (const child of vnodeChildren(node)) {
+        const result = walk(child, [...chain, node])
+        if (result !== undefined) {
+          return result
+        }
+      }
+      return undefined
     }
-    return undefined
+    return walk(root, []) ?? []
   }
-  return walk(root, []) ?? []
-}
 
 const attributeEquals =
   (name: string, expected: string) =>
@@ -652,7 +651,7 @@ const disabledMatches =
   }
 
 type RoleOptions = Readonly<{
-  name?: string
+  name?: string | RegExp
   level?: number
   checked?: boolean | 'mixed'
   selected?: boolean
@@ -666,11 +665,15 @@ const roleOptionsMatch =
   (node: VNode): boolean => {
     if (!options) return true
 
-    if (
-      options.name !== undefined &&
-      accessibleName(html)(node) !== options.name
-    ) {
-      return false
+    if (options.name !== undefined) {
+      const actual = accessibleName(html)(node)
+      const matches =
+        options.name instanceof RegExp
+          ? options.name.test(actual)
+          : actual === options.name
+      if (!matches) {
+        return false
+      }
     }
     if (
       options.level !== undefined &&
@@ -962,7 +965,11 @@ const makeLocatorAll = (
 
 const describeRoleOptions = (options: RoleOptions): string => {
   const parts: Array<string> = []
-  if (options.name !== undefined) parts.push(`"${options.name}"`)
+  if (options.name !== undefined) {
+    parts.push(
+      options.name instanceof RegExp ? `${options.name}` : `"${options.name}"`,
+    )
+  }
   if (options.level !== undefined) parts.push(`level=${options.level}`)
   if (options.checked !== undefined) parts.push(`checked=${options.checked}`)
   if (options.selected !== undefined) parts.push(`selected=${options.selected}`)

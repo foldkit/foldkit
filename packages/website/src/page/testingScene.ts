@@ -188,9 +188,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         [
           [
             [plainCode('name')],
-            [plainCode('string')],
+            [plainCode('string | RegExp')],
             [
-              'Accessible name (aria-label, aria-labelledby, label[for], or text content)',
+              'Accessible name (aria-label, aria-labelledby, label[for], or text content). Strings match exactly; regular expressions match against the full name.',
             ],
           ],
           [
@@ -310,10 +310,31 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       comparisonTable(
         ['Step', 'Invokes'],
         [
-          [[plainCode('Scene.click(target)')], [plainCode('OnClick')]],
+          [
+            [plainCode('Scene.click(target)')],
+            [plainCode('OnClick'), ' (bubbles to ancestors)'],
+          ],
           [
             [plainCode('Scene.doubleClick(target)')],
-            [plainCode('OnDoubleClick')],
+            [plainCode('OnDoubleClick'), ' (bubbles to ancestors)'],
+          ],
+          [
+            [plainCode('Scene.pointerDown(target, options?)')],
+            [
+              plainCode('OnPointerDown'),
+              ' with optional ',
+              plainCode('{ pointerType, button, screenX, screenY }'),
+              ' (bubbles to ancestors)',
+            ],
+          ],
+          [
+            [plainCode('Scene.pointerUp(target, options?)')],
+            [
+              plainCode('OnPointerUp'),
+              ' with optional ',
+              plainCode('{ pointerType, screenX, screenY }'),
+              ' (bubbles to ancestors)',
+            ],
           ],
           [
             [plainCode('Scene.hover(target)')],
