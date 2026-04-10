@@ -135,6 +135,24 @@ const reactSideEffectTestHeader: TableOfContentsEntry = {
   text: 'React test (side effects require mocking + DOM + async)',
 }
 
+const interactionTestingHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'interaction-testing',
+  text: 'Interaction Testing Without a DOM',
+}
+
+const foldkitSceneTestHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'foldkit-scene-test',
+  text: 'Foldkit Scene test (virtual DOM, synchronous)',
+}
+
+const reactSceneTestHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'react-scene-test',
+  text: 'React Testing Library (jsdom, mocking, imperative)',
+}
+
 const streamsVsHooksHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'streams-vs-hooks',
@@ -282,6 +300,9 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   foldkitTestHeader,
   reactTestHeader,
   reactSideEffectTestHeader,
+  interactionTestingHeader,
+  foldkitSceneTestHeader,
+  reactSceneTestHeader,
   streamsVsHooksHeader,
   foldkitSubscriptionsHeader,
   reactHooksHeader,
@@ -795,6 +816,122 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
               ' (',
               inlineCode('vi.waitFor'),
               ')',
+            ],
+          ],
+        ],
+      ),
+
+      tableOfContentsEntryToHeader(interactionTestingHeader),
+      para(
+        'Story tests verify the state machine: Messages in, Model and Commands out. But what about testing from the user\u2019s perspective \u2014 clicking buttons, reading text, checking disabled states? React uses ',
+        inlineCode('@testing-library/react'),
+        ' with jsdom. Foldkit uses Scene: a built-in interaction testing API that runs against the virtual DOM. No browser, no jsdom, no mocking. Same synchronous pipeline, same Command resolution, same zero dependencies.',
+      ),
+      tableOfContentsEntryToHeader(foldkitSceneTestHeader),
+      para(
+        inlineCode('Scene.scene()'),
+        ' renders the view against a virtual DOM, finds elements by accessible role and text content, dispatches click events through the same update function, and resolves Commands inline. The entire test is synchronous. There is no DOM, no ',
+        inlineCode('jsdom'),
+        ', no ',
+        inlineCode('render()'),
+        ', no cleanup.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.comparisonFoldkitSceneTestHighlighted),
+          ],
+          [],
+        ),
+        Snippets.comparisonFoldkitSceneTestRaw,
+        'Copy Foldkit scene test',
+        copiedSnippets,
+        'mb-4',
+      ),
+      para(
+        'Scene finds the Dismiss button by ',
+        inlineCode('Scene.role(\'button\', { name: \'Dismiss\' })'),
+        ' \u2014 the same accessible name a screen reader would announce. The click dispatches ',
+        inlineCode('DismissedErrorDialog'),
+        ' through update, which returns a ',
+        inlineCode('CloseDialog'),
+        ' Command. Resolve it, and the dialog is gone. Every step is visible, every side effect is accounted for, and the test reads as a chronological user story.',
+      ),
+      tableOfContentsEntryToHeader(reactSceneTestHeader),
+      para(
+        'The same test in React requires jsdom, browser API mocking, and imperative setup. You must mock ',
+        inlineCode('document.createElement'),
+        ' to intercept canvas creation, then restore and re-apply the mock between React\u2019s internal rendering and your test interactions. The export side effect fires imperatively inside the component \u2014 there is no Command to resolve, so there is no way to assert that the effect happened other than checking the DOM after the fact.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.comparisonReactSceneTestHighlighted),
+          ],
+          [],
+        ),
+        Snippets.comparisonReactSceneTestRaw,
+        'Copy React interaction test',
+        copiedSnippets,
+        'mb-6',
+      ),
+      comparisonTable(
+        ['', 'Foldkit Scene', 'React Testing Library'],
+        [
+          [
+            ['DOM'],
+            ['Virtual (no jsdom)'],
+            ['jsdom (full browser simulation)'],
+          ],
+          [
+            ['Events'],
+            ['Direct handler invocation'],
+            ['Synthetic event simulation'],
+          ],
+          [
+            ['Mocking'],
+            ['None'],
+            ['Browser APIs (canvas, localStorage, \u2026)'],
+          ],
+          [
+            ['Side effects'],
+            ['Commands resolved inline'],
+            ['Fire imperatively, assert on DOM after'],
+          ],
+          [
+            ['Timing'],
+            ['Synchronous'],
+            [
+              'May require ',
+              inlineCode('act()'),
+              ' or ',
+              inlineCode('waitFor()'),
+            ],
+          ],
+          [
+            ['Queries'],
+            [
+              inlineCode('Scene.role()'),
+              ', ',
+              inlineCode('Scene.text()'),
+              ', ',
+              inlineCode('Scene.label()'),
+            ],
+            [
+              inlineCode('screen.getByRole()'),
+              ', ',
+              inlineCode('screen.getByText()'),
+            ],
+          ],
+          [
+            ['Cleanup'],
+            ['None'],
+            [
+              inlineCode('cleanup()'),
+              ' in ',
+              inlineCode('afterEach'),
             ],
           ],
         ],

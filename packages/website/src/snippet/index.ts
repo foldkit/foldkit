@@ -220,3 +220,7 @@ export { default as comparisonFoldkitMemoizationRaw } from './comparisonFoldkitM
 export { default as comparisonFoldkitMemoizationHighlighted } from './comparisonFoldkitMemoization.ts?highlighted'
 export { default as comparisonReactMemoizationRaw } from './comparisonReactMemoization.tsx?raw'
 export { default as comparisonReactMemoizationHighlighted } from './comparisonReactMemoization.tsx?highlighted'
+export { default as comparisonFoldkitSceneTestRaw } from './comparisonFoldkitSceneTest.ts?raw'
+export { default as comparisonFoldkitSceneTestHighlighted } from './comparisonFoldkitSceneTest.ts?highlighted'
+export { default as comparisonReactSceneTestRaw } from './comparisonReactSceneTest.tsx?raw'
+export { default as comparisonReactSceneTestHighlighted } from './comparisonReactSceneTest.tsx?highlighted'
