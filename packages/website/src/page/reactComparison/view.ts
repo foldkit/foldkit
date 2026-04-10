@@ -851,7 +851,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para(
         'Scene finds the Dismiss button by ',
-        inlineCode('Scene.role(\'button\', { name: \'Dismiss\' })'),
+        inlineCode("Scene.role('button', { name: 'Dismiss' })"),
         ' \u2014 the same accessible name a screen reader would announce. The click dispatches ',
         inlineCode('DismissedErrorDialog'),
         ' through update, which returns a ',
@@ -928,11 +928,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           [
             ['Cleanup'],
             ['None'],
-            [
-              inlineCode('cleanup()'),
-              ' in ',
-              inlineCode('afterEach'),
-            ],
+            [inlineCode('cleanup()'), ' in ', inlineCode('afterEach')],
           ],
         ],
       ),

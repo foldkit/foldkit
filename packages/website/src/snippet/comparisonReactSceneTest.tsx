@@ -34,9 +34,7 @@ test('failed export shows error dialog that can be dismissed', () => {
 
   // Assert the error dialog appeared
   expect(screen.getByText('Export Failed')).toBeInTheDocument()
-  expect(
-    screen.getByText('Could not get canvas context'),
-  ).toBeInTheDocument()
+  expect(screen.getByText('Could not get canvas context')).toBeInTheDocument()
 
   // Click dismiss and assert the dialog is gone
   fireEvent.click(screen.getByRole('button', { name: /dismiss/i }))

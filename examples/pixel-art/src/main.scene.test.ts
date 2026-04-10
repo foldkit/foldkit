@@ -67,17 +67,14 @@ const createPaintedModel = (): Model => ({
 const toErrorDialogMessage = (message: Ui.Dialog.Message): Message =>
   GotErrorDialogMessage({ message })
 
-const toGridSizeConfirmDialogMessage = (
-  message: Ui.Dialog.Message,
-): Message => GotGridSizeConfirmDialogMessage({ message })
+const toGridSizeConfirmDialogMessage = (message: Ui.Dialog.Message): Message =>
+  GotGridSizeConfirmDialogMessage({ message })
 
-const toToolRadioGroupMessage = (
-  message: Ui.RadioGroup.Message,
-): Message => GotToolRadioGroupMessage({ message })
+const toToolRadioGroupMessage = (message: Ui.RadioGroup.Message): Message =>
+  GotToolRadioGroupMessage({ message })
 
-const toGridSizeRadioGroupMessage = (
-  message: Ui.RadioGroup.Message,
-): Message => GotGridSizeRadioGroupMessage({ message })
+const toGridSizeRadioGroupMessage = (message: Ui.RadioGroup.Message): Message =>
+  GotGridSizeRadioGroupMessage({ message })
 
 // NOTE: Export PNG click tests run first because the header's lazy cache
 // (lazyHeader with empty args) can only be freshly evaluated on the first
@@ -109,9 +106,7 @@ describe('export workflow', () => {
       { update, view },
       Scene.with(modelWithExportError),
       Scene.expect(Scene.text('Export Failed')).toExist(),
-      Scene.expect(
-        Scene.text('Canvas 2D context not available'),
-      ).toExist(),
+      Scene.expect(Scene.text('Canvas 2D context not available')).toExist(),
       Scene.expect(Scene.role('button', { name: 'Dismiss' })).toExist(),
     )
   })
@@ -147,9 +142,7 @@ describe('header', () => {
       { update, view },
       Scene.with(createTestModel()),
       Scene.expect(Scene.role('heading', { name: 'PixelForge' })).toExist(),
-      Scene.expect(
-        Scene.role('button', { name: 'Export PNG' }),
-      ).toExist(),
+      Scene.expect(Scene.role('button', { name: 'Export PNG' })).toExist(),
     )
   })
 })
@@ -221,12 +214,8 @@ describe('history panel', () => {
     Scene.scene(
       { update, view },
       Scene.with(createTestModel()),
-      Scene.expect(
-        Scene.role('button', { name: /^Undo/ }),
-      ).toBeDisabled(),
-      Scene.expect(
-        Scene.role('button', { name: /^Redo/ }),
-      ).toBeDisabled(),
+      Scene.expect(Scene.role('button', { name: /^Undo/ })).toBeDisabled(),
+      Scene.expect(Scene.role('button', { name: /^Redo/ })).toBeDisabled(),
     )
   })
 
