@@ -6,10 +6,8 @@ import { ExportPng, SaveCanvas } from './command'
 import { createEmptyGrid } from './grid'
 import {
   CompletedSaveCanvas,
-  FailedExportPng,
   GotErrorDialogMessage,
   GotGridSizeConfirmDialogMessage,
-  GotGridSizeRadioGroupMessage,
   GotToolRadioGroupMessage,
   type Message,
   SucceededExportPng,
@@ -72,9 +70,6 @@ const toGridSizeConfirmDialogMessage = (message: Ui.Dialog.Message): Message =>
 
 const toToolRadioGroupMessage = (message: Ui.RadioGroup.Message): Message =>
   GotToolRadioGroupMessage({ message })
-
-const toGridSizeRadioGroupMessage = (message: Ui.RadioGroup.Message): Message =>
-  GotGridSizeRadioGroupMessage({ message })
 
 // NOTE: Export PNG click tests run first because the header's lazy cache
 // (lazyHeader with empty args) can only be freshly evaluated on the first
