@@ -41,7 +41,8 @@ import {
 
 const DisplayEntry = S.Struct({
   tag: S.String,
-  maybeInnerTag: S.OptionFromSelf(S.String),
+  submodelPath: S.Array(S.String),
+  maybeLeafTag: S.OptionFromSelf(S.String),
   commandNames: S.Array(S.String),
   timestamp: S.Number,
   isModelChanged: S.Boolean,
@@ -173,36 +174,55 @@ const computeSubmodelTags = (
 ): ReadonlyArray<string> =>
   pipe(
     entries,
-    Array_.filterMap(entry => entry.maybeInnerTag.pipe(Option.as(entry.tag))),
+    Array_.flatMap(({ submodelPath }) => submodelPath),
     Array_.dedupe,
     Array_.sort(Order.string),
   )
 
 const GOT_MESSAGE_PATTERN = /^Got.+Message$/
 
-const extractInnerTag = (entry: HistoryEntry): Option.Option<string> =>
-  pipe(
-    entry.tag,
-    String_.search(GOT_MESSAGE_PATTERN),
-    Option.flatMap(() => {
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      const inner = (entry.message as Record<string, unknown>)?.['message']
-      return pipe(
-        inner,
-        Option.liftPredicate(isTagged),
-        Option.map(({ _tag }) => _tag),
-      )
-    }),
-  )
+type SubmodelInfo = Readonly<{
+  submodelPath: ReadonlyArray<string>
+  maybeLeafTag: Option.Option<string>
+}>
+
+const extractSubmodelInfo = (entry: HistoryEntry): SubmodelInfo => {
+  if (!GOT_MESSAGE_PATTERN.test(entry.tag)) {
+    return { submodelPath: [], maybeLeafTag: Option.none() }
+  }
+
+  const path: Array<string> = [entry.tag]
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  let current: unknown = (entry.message as Record<string, unknown>)?.['message']
+
+  while (isTagged(current) && GOT_MESSAGE_PATTERN.test(current._tag)) {
+    path.push(current._tag)
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    current = (current as Record<string, unknown>)?.['message']
+  }
+
+  return {
+    submodelPath: path,
+    maybeLeafTag: pipe(
+      current,
+      Option.liftPredicate(isTagged),
+      Option.map(({ _tag }) => _tag),
+    ),
+  }
+}
 
 const toDisplayEntries = ({ entries }: StoreState) =>
-  Array_.map(entries, entry => ({
-    tag: entry.tag,
-    maybeInnerTag: extractInnerTag(entry),
-    commandNames: entry.commandNames,
-    timestamp: entry.timestamp,
-    isModelChanged: entry.isModelChanged,
-  }))
+  Array_.map(entries, entry => {
+    const { submodelPath, maybeLeafTag } = extractSubmodelInfo(entry)
+    return {
+      tag: entry.tag,
+      submodelPath,
+      maybeLeafTag,
+      commandNames: entry.commandNames,
+      timestamp: entry.timestamp,
+      isModelChanged: entry.isModelChanged,
+    }
+  })
 
 const toDisplayState = (state: StoreState) => ({
   entries: toDisplayEntries(state),
@@ -980,11 +1000,26 @@ const makeView = (
     if (Option.isNone(model.maybeSubmodelFilter)) {
       return message
     }
+    const { value: filterTag } = model.maybeSubmodelFilter
 
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    const inner = (message as Record<string, unknown>)?.['message']
+    let current = message
+    let matched = false
+    while (isTagged(current) && GOT_MESSAGE_PATTERN.test(current._tag)) {
+      if (current._tag === filterTag) {
+        matched = true
+      }
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      const inner = (current as Record<string, unknown>)?.['message']
+      if (inner === undefined) {
+        break
+      }
+      current = inner
+      if (matched) {
+        break
+      }
+    }
 
-    return isTagged(inner) ? inner : message
+    return current
   }
 
   const messageTabContent = (model: Model): Html =>
@@ -1421,7 +1456,8 @@ const makeView = (
       M.exhaustive,
     )
     const isInitSelected = selectedIndex === INIT_INDEX
-    const isFiltered = Option.isSome(model.maybeSubmodelFilter)
+    const { maybeSubmodelFilter: maybeFilterTag } = model
+    const isFiltered = Option.isSome(maybeFilterTag)
 
     const indexedEntries: ReadonlyArray<
       Readonly<{
@@ -1436,7 +1472,7 @@ const makeView = (
       })),
       isFiltered
         ? Array_.filter(({ entry }) =>
-            Option.exists(model.maybeSubmodelFilter, Equal.equals(entry.tag)),
+            Array_.contains(entry.submodelPath, maybeFilterTag.value),
           )
         : Function.identity,
     )
@@ -1448,7 +1484,15 @@ const makeView = (
         const isPausedHere =
           model.isPaused && model.pausedAtIndex === absoluteIndex
         const displayTag = isFiltered
-          ? Option.getOrElse(entry.maybeInnerTag, () => entry.tag)
+          ? pipe(
+              entry.submodelPath,
+              Array_.findFirstIndex(Equal.equals(maybeFilterTag.value)),
+              Option.flatMap(filterIndex =>
+                Array_.get(entry.submodelPath, Number_.increment(filterIndex)),
+              ),
+              Option.orElse(() => entry.maybeLeafTag),
+              Option.getOrElse(() => entry.tag),
+            )
           : entry.tag
 
         return lazyMessageRow(String(absoluteIndex), messageRowView, [

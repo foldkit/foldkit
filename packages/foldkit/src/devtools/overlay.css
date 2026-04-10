@@ -263,6 +263,9 @@ ul {
   color: var(--dt-text);
   background-color: var(--dt-surface-selected);
 }
+.dt-filter-button[data-open]:hover {
+  background-color: var(--dt-tree-hover);
+}
 .dt-filter-button[data-open] .json-arrow {
   transform: rotate(180deg);
 }
@@ -272,7 +275,7 @@ ul {
   left: 0;
   right: 0;
   background-color: var(--dt-bg);
-  border-top: none;
+  border-top: 1px solid var(--dt-border);
   border-bottom: 1px solid var(--dt-border);
   z-index: 10;
   max-height: 200px;
@@ -310,6 +313,7 @@ ul {
 .dt-filter-backdrop {
   position: fixed;
   inset: 0;
+  pointer-events: none;
 }
 .dt-tab-button {
   position: relative;

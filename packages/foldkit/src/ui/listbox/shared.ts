@@ -581,7 +581,9 @@ export const makeUpdate = <Model extends BaseModel>(
 
           if (model.isOpen) {
             return [
-              closedModel(withPointerType),
+              constrainedEvo(closedModel(withPointerType), {
+                maybeLastButtonPointerType: () => Option.some(pointerType),
+              }),
               pipe(
                 Array.getSomes([
                   maybeNextFrame,

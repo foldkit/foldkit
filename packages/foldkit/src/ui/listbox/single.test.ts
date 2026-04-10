@@ -302,7 +302,7 @@ describe('Listbox', () => {
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
-              Option.none(),
+              Option.some('mouse'),
             )
           }),
         )
