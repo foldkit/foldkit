@@ -179,11 +179,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Scene.changeFiles'),
         ' dispatches a synthetic change event on a file input, and ',
         inlineCode('Scene.dropFiles'),
-        ' dispatches a synthetic drop event on a drop zone. Both accept a ',
+        ' dispatches a synthetic drop event on a drop zone. Both accept a target locator and a ',
         inlineCode('ReadonlyArray<File>'),
-        ' and are dual, so they compose in ',
-        inlineCode('pipe'),
-        ' chains like every other Scene helper.',
+        '.',
       ),
       highlightedCodeBlock(
         div(

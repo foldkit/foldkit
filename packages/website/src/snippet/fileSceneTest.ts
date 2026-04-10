@@ -11,7 +11,7 @@ describe('resume upload flow', () => {
       { update, view },
       Scene.with(initialModel),
       Scene.changeFiles(Scene.label('resume'), [resume]),
-      Scene.expect(Scene.testId('resume-summary')).toContainText('resume.pdf'),
+      Scene.expect(Scene.text('resume.pdf')).toExist(),
     )
   })
 
@@ -27,7 +27,7 @@ describe('resume upload flow', () => {
       { update, view },
       Scene.with(initialModel),
       Scene.dropFiles(Scene.label('attachments'), [coverLetter, portfolio]),
-      Scene.expect(Scene.testId('attachment-count')).toContainText('2'),
+      Scene.expect(Scene.text('2 attachments selected')).toExist(),
     )
   })
 })
