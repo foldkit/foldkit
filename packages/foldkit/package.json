@@ -43,6 +43,10 @@
       "types": "./dist/fieldValidation/public.d.ts",
       "import": "./dist/fieldValidation/public.js"
     },
+    "./file": {
+      "types": "./dist/file/public.d.ts",
+      "import": "./dist/file/public.js"
+    },
     "./schema": {
       "types": "./dist/schema/public.d.ts",
       "import": "./dist/schema/public.js"

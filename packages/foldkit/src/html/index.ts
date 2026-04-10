@@ -13,10 +13,34 @@ import {
 import { h } from 'snabbdom'
 import type { Attrs, On, Props, VNodeData } from 'snabbdom'
 
+import type { File } from '../file'
 import { Dispatch } from '../runtime'
 import { VNode } from '../vdom'
 
 export { createKeyedLazy, createLazy } from './lazy'
+
+/**
+ * Tag symbol attached to file-aware event handler functions so Scene test
+ * helpers can distinguish `OnFileChange` from `OnChange` (both register on
+ * the DOM `change` event) and `OnDropFiles` from `OnDrop` (both register on
+ * the DOM `drop` event). Internal implementation detail — consumer code
+ * should never need to reference this directly.
+ */
+/* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+export const FileHandlerSymbol: unique symbol = Symbol.for(
+  'foldkit/html/fileHandler',
+) as unknown as FileHandlerSymbol
+/** Type-level brand for file-aware event handler tags. */
+export type FileHandlerSymbol = typeof FileHandlerSymbol
+
+const tagAsFileHandler = <T extends Function>(
+  handler: T,
+  tag: 'OnFileChange' | 'OnDropFiles',
+): T => {
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  ;(handler as unknown as Record<symbol, string>)[FileHandlerSymbol] = tag
+  return handler
+}
 
 /** Modifier key state extracted from a `KeyboardEvent`. */
 export type KeyboardModifiers = Readonly<{
@@ -332,6 +356,7 @@ export type Attribute<Message> = Data.TaggedEnum<{
   OnBlur: { readonly message: Message }
   OnInput: { readonly f: (value: string) => Message }
   OnChange: { readonly f: (value: string) => Message }
+  OnFileChange: { readonly f: (files: ReadonlyArray<File>) => Message }
   OnSubmit: { readonly message: Message }
   OnReset: { readonly message: Message }
   OnScroll: { readonly message: Message }
@@ -349,6 +374,7 @@ export type Attribute<Message> = Data.TaggedEnum<{
   OnDragLeave: { readonly message: Message }
   OnDragOver: { readonly message: Message }
   OnDrop: { readonly message: Message }
+  OnDropFiles: { readonly f: (files: ReadonlyArray<File>) => Message }
   OnTouchStart: { readonly message: Message }
   OnTouchEnd: { readonly message: Message }
   OnTouchMove: { readonly message: Message }
@@ -574,6 +600,7 @@ const {
   OnBlur,
   OnInput,
   OnChange,
+  OnFileChange,
   OnSubmit,
   OnReset,
   OnScroll,
@@ -591,6 +618,7 @@ const {
   OnDragLeave,
   OnDragOver,
   OnDrop,
+  OnDropFiles,
   OnTouchStart,
   OnTouchEnd,
   OnTouchMove,
@@ -994,6 +1022,18 @@ const buildVNodeData = <Message>(
                 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
                 dispatchSync(f((event.target as HTMLInputElement).value)),
             }),
+          OnFileChange: ({ f }) =>
+            updateDataOn({
+              change: tagAsFileHandler((event: Event) => {
+                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                const target = event.target as HTMLInputElement
+                const files: ReadonlyArray<File> = target.files
+                  ? Array.fromIterable(target.files)
+                  : Array.empty()
+                target.value = ''
+                dispatchSync(f(files))
+              }, 'OnFileChange'),
+            }),
           OnSubmit: ({ message }) =>
             updateDataOn({
               submit: (event: Event) => {
@@ -1081,6 +1121,18 @@ const buildVNodeData = <Message>(
                 event.preventDefault()
                 dispatchSync(message)
               },
+            }),
+          OnDropFiles: ({ f }) =>
+            updateDataOn({
+              drop: tagAsFileHandler((event: Event) => {
+                event.preventDefault()
+                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                const dragEvent = event as DragEvent
+                const files: ReadonlyArray<File> = dragEvent.dataTransfer?.files
+                  ? Array.fromIterable(dragEvent.dataTransfer.files)
+                  : Array.empty()
+                dispatchSync(f(files))
+              }, 'OnDropFiles'),
             }),
           OnTouchStart: ({ message }) =>
             updateDataOn({
@@ -2091,6 +2143,10 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnChange'
     readonly f: (value: string) => Message
   }
+  OnFileChange: (f: (files: ReadonlyArray<File>) => Message) => {
+    readonly _tag: 'OnFileChange'
+    readonly f: (files: ReadonlyArray<File>) => Message
+  }
   OnSubmit: (message: Message) => {
     readonly _tag: 'OnSubmit'
     readonly message: Message
@@ -2158,6 +2214,10 @@ type HtmlAttributes<Message> = {
   OnDrop: (message: Message) => {
     readonly _tag: 'OnDrop'
     readonly message: Message
+  }
+  OnDropFiles: (f: (files: ReadonlyArray<File>) => Message) => {
+    readonly _tag: 'OnDropFiles'
+    readonly f: (files: ReadonlyArray<File>) => Message
   }
   OnTouchStart: (message: Message) => {
     readonly _tag: 'OnTouchStart'
@@ -2819,6 +2879,8 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   OnBlur: (message: Message) => OnBlur({ message }),
   OnInput: (f: (value: string) => Message) => OnInput({ f }),
   OnChange: (f: (value: string) => Message) => OnChange({ f }),
+  OnFileChange: (f: (files: ReadonlyArray<File>) => Message) =>
+    OnFileChange({ f }),
   OnSubmit: (message: Message) => OnSubmit({ message }),
   OnReset: (message: Message) => OnReset({ message }),
   OnScroll: (message: Message) => OnScroll({ message }),
@@ -2836,6 +2898,8 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   OnDragLeave: (message: Message) => OnDragLeave({ message }),
   OnDragOver: (message: Message) => OnDragOver({ message }),
   OnDrop: (message: Message) => OnDrop({ message }),
+  OnDropFiles: (f: (files: ReadonlyArray<File>) => Message) =>
+    OnDropFiles({ f }),
   OnTouchStart: (message: Message) => OnTouchStart({ message }),
   OnTouchEnd: (message: Message) => OnTouchEnd({ message }),
   OnTouchMove: (message: Message) => OnTouchMove({ message }),

@@ -9,6 +9,11 @@ import {
   view as bubblingView,
 } from './apps/bubbling'
 import {
+  initialModel as fileUploadInitialModel,
+  update as fileUploadUpdate,
+  view as fileUploadView,
+} from './apps/fileUpload'
+import {
   initialModel as interactionsInitialModel,
   update as interactionsUpdate,
   view as interactionsView,
@@ -39,6 +44,18 @@ import {
   update as pointerUpdate,
   view as pointerView,
 } from './apps/pointer'
+import {
+  CancelledSelectResume,
+  FailedReadPreview,
+  ReadResumePreview,
+  SelectResume,
+  SelectedResume,
+  SucceededReadPreview,
+  initialModel as resumeInitialModel,
+  update as resumeUpdate,
+  view as resumeView,
+} from './apps/resumeUpload'
+import type { Model as ResumeModel } from './apps/resumeUpload'
 import { parseSelector } from './query'
 import {
   attr,
@@ -1424,6 +1441,248 @@ describe('scene with extra interactions', () => {
       Scene.with(interactionsInitialModel),
       Scene.click(Scene.label('action')),
       Scene.expect(Scene.label('action')).toContainText('clicks=1'),
+    )
+  })
+})
+
+describe('scene with file uploads', () => {
+  const resumePdf = new File(['%PDF-'], 'resume.pdf', {
+    type: 'application/pdf',
+  })
+  const coverLetter = new File(['cover'], 'cover.txt', {
+    type: 'text/plain',
+  })
+  const portfolio = new File(['<svg/>'], 'portfolio.svg', {
+    type: 'image/svg+xml',
+  })
+
+  test('changeFiles captures a single file on an OnFileChange input', () => {
+    Scene.scene(
+      { update: fileUploadUpdate, view: fileUploadView },
+      Scene.with(fileUploadInitialModel),
+      Scene.changeFiles(Scene.label('resume'), [resumePdf]),
+      Scene.expect(Scene.selector('[key="received-count"]')).toContainText(
+        'count=1',
+      ),
+      Scene.expect(Scene.selector('[key="received-names"]')).toContainText(
+        'names=resume.pdf',
+      ),
+    )
+  })
+
+  test('changeFiles captures multiple files in one dispatch', () => {
+    Scene.scene(
+      { update: fileUploadUpdate, view: fileUploadView },
+      Scene.with(fileUploadInitialModel),
+      Scene.changeFiles(Scene.label('resume'), [
+        resumePdf,
+        coverLetter,
+        portfolio,
+      ]),
+      Scene.expect(Scene.selector('[key="received-count"]')).toContainText(
+        'count=3',
+      ),
+      Scene.expect(Scene.selector('[key="received-names"]')).toContainText(
+        'names=resume.pdf,cover.txt,portfolio.svg',
+      ),
+    )
+  })
+
+  test('changeFiles dispatches an empty array when no files are provided', () => {
+    Scene.scene(
+      { update: fileUploadUpdate, view: fileUploadView },
+      Scene.with({
+        ...fileUploadInitialModel,
+        receivedFiles: [resumePdf],
+      }),
+      Scene.changeFiles(Scene.label('resume'), []),
+      Scene.expect(Scene.selector('[key="received-count"]')).toContainText(
+        'count=0',
+      ),
+    )
+  })
+
+  test('changeFiles is dual — data-last form works in pipe', () => {
+    Scene.scene(
+      { update: fileUploadUpdate, view: fileUploadView },
+      Scene.with(fileUploadInitialModel),
+      pipe(Scene.label('resume'), Scene.changeFiles([resumePdf])),
+      Scene.expect(Scene.selector('[key="received-count"]')).toContainText(
+        'count=1',
+      ),
+    )
+  })
+
+  test('dropFiles captures files dropped on an OnDropFiles zone', () => {
+    Scene.scene(
+      { update: fileUploadUpdate, view: fileUploadView },
+      Scene.with(fileUploadInitialModel),
+      Scene.dropFiles(Scene.label('attachments'), [portfolio]),
+      Scene.expect(Scene.selector('[key="received-count"]')).toContainText(
+        'count=1',
+      ),
+      Scene.expect(Scene.selector('[key="received-names"]')).toContainText(
+        'names=portfolio.svg',
+      ),
+    )
+  })
+
+  test('dropFiles captures multiple dropped files', () => {
+    Scene.scene(
+      { update: fileUploadUpdate, view: fileUploadView },
+      Scene.with(fileUploadInitialModel),
+      Scene.dropFiles(Scene.label('attachments'), [coverLetter, portfolio]),
+      Scene.expect(Scene.selector('[key="received-count"]')).toContainText(
+        'count=2',
+      ),
+      Scene.expect(Scene.selector('[key="received-names"]')).toContainText(
+        'names=cover.txt,portfolio.svg',
+      ),
+    )
+  })
+
+  test('dropFiles is dual — data-last form works in pipe', () => {
+    Scene.scene(
+      { update: fileUploadUpdate, view: fileUploadView },
+      Scene.with(fileUploadInitialModel),
+      pipe(Scene.label('attachments'), Scene.dropFiles([resumePdf])),
+      Scene.expect(Scene.selector('[key="received-count"]')).toContainText(
+        'count=1',
+      ),
+    )
+  })
+
+  test('dropFiles throws a clear error when no drop handler exists', () => {
+    expect(() =>
+      Scene.scene(
+        { update: interactionsUpdate, view: interactionsView },
+        Scene.with(interactionsInitialModel),
+        Scene.dropFiles(Scene.label('action'), [resumePdf]),
+      ),
+    ).toThrow(/drop/)
+  })
+
+  test('changeFiles on an OnChange element throws a clear error about OnFileChange', () => {
+    expect(() =>
+      Scene.scene(
+        { update: interactionsUpdate, view: interactionsView },
+        Scene.with(interactionsInitialModel),
+        Scene.changeFiles(Scene.label('fruit'), [resumePdf]),
+      ),
+    ).toThrow(/OnFileChange/)
+  })
+})
+
+describe('scene with Command-based file upload flow', () => {
+  const resumePdf = new File(['%PDF-'], 'resume.pdf', {
+    type: 'application/pdf',
+  })
+  const previewDataUrl = 'data:application/pdf;base64,JVBERi0='
+
+  const chooseButton = Scene.role('button', { name: 'Choose resume' })
+  const removeButton = Scene.role('button', { name: 'Remove resume' })
+  const previewImage = Scene.role('img', { name: 'Resume preview' })
+  const readingStatus = Scene.role('status')
+  const errorAlert = Scene.role('alert')
+
+  const resumeSelectedModel: ResumeModel = {
+    ...resumeInitialModel,
+    maybeResume: Option.some(resumePdf),
+    maybePreviewDataUrl: Option.some(previewDataUrl),
+    readStatus: 'Idle',
+  }
+
+  test('happy path: click → resolve select → resolve preview → file visible', () => {
+    Scene.scene(
+      { update: resumeUpdate, view: resumeView },
+      Scene.with(resumeInitialModel),
+      Scene.expect(chooseButton).toExist(),
+      Scene.click(chooseButton),
+      Scene.resolve(SelectResume, SelectedResume({ files: [resumePdf] })),
+      Scene.expect(Scene.text('resume.pdf')).toExist(),
+      Scene.expect(readingStatus).toHaveText('Reading preview...'),
+      Scene.resolve(
+        ReadResumePreview,
+        SucceededReadPreview({ dataUrl: previewDataUrl }),
+      ),
+      Scene.expect(previewImage).toExist(),
+      Scene.expect(previewImage).toHaveAttr('src', previewDataUrl),
+      Scene.expect(removeButton).toExist(),
+    )
+  })
+
+  test('cancel path: resolve SelectResume with CancelledSelectResume leaves view unchanged', () => {
+    Scene.scene(
+      { update: resumeUpdate, view: resumeView },
+      Scene.with(resumeInitialModel),
+      Scene.click(chooseButton),
+      Scene.resolve(SelectResume, CancelledSelectResume()),
+      Scene.expect(chooseButton).toExist(),
+      Scene.expect(Scene.text('resume.pdf')).toBeAbsent(),
+    )
+  })
+
+  test('empty selection: resolving SelectResume with no files is treated as cancel', () => {
+    Scene.scene(
+      { update: resumeUpdate, view: resumeView },
+      Scene.with(resumeInitialModel),
+      Scene.click(chooseButton),
+      Scene.resolve(SelectResume, SelectedResume({ files: [] })),
+      Scene.expect(chooseButton).toExist(),
+    )
+  })
+
+  test('preview failure: reading fails → file still visible, alert shown', () => {
+    Scene.scene(
+      { update: resumeUpdate, view: resumeView },
+      Scene.with(resumeInitialModel),
+      Scene.click(chooseButton),
+      Scene.resolve(SelectResume, SelectedResume({ files: [resumePdf] })),
+      Scene.resolve(ReadResumePreview, FailedReadPreview()),
+      Scene.expect(Scene.text('resume.pdf')).toExist(),
+      Scene.expect(errorAlert).toHaveText('Could not read preview'),
+      Scene.expect(previewImage).toBeAbsent(),
+      Scene.expect(removeButton).toExist(),
+    )
+  })
+
+  test('remove flow: clicking Remove clears the resume', () => {
+    Scene.scene(
+      { update: resumeUpdate, view: resumeView },
+      Scene.with(resumeSelectedModel),
+      Scene.expect(Scene.text('resume.pdf')).toExist(),
+      Scene.expect(removeButton).toExist(),
+      Scene.click(removeButton),
+      Scene.expect(chooseButton).toExist(),
+      Scene.expect(Scene.text('resume.pdf')).toBeAbsent(),
+      Scene.expect(previewImage).toBeAbsent(),
+    )
+  })
+
+  test('full user journey: choose, preview, remove, choose again', () => {
+    const secondResume = new File(['%PDF-2'], 'resume-v2.pdf', {
+      type: 'application/pdf',
+    })
+    const secondDataUrl = 'data:application/pdf;base64,JVBERi0y'
+
+    Scene.scene(
+      { update: resumeUpdate, view: resumeView },
+      Scene.with(resumeInitialModel),
+      Scene.click(chooseButton),
+      Scene.resolveAll(
+        [SelectResume, SelectedResume({ files: [resumePdf] })],
+        [ReadResumePreview, SucceededReadPreview({ dataUrl: previewDataUrl })],
+      ),
+      Scene.expect(Scene.text('resume.pdf')).toExist(),
+      Scene.click(removeButton),
+      Scene.expect(chooseButton).toExist(),
+      Scene.click(chooseButton),
+      Scene.resolveAll(
+        [SelectResume, SelectedResume({ files: [secondResume] })],
+        [ReadResumePreview, SucceededReadPreview({ dataUrl: secondDataUrl })],
+      ),
+      Scene.expect(Scene.text('resume-v2.pdf')).toExist(),
+      Scene.expect(previewImage).toHaveAttr('src', secondDataUrl),
     )
   })
 })
