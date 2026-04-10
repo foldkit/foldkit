@@ -9,6 +9,11 @@ import {
   view as bubblingView,
 } from './apps/bubbling'
 import {
+  initialModel as fileUploadInitialModel,
+  update as fileUploadUpdate,
+  view as fileUploadView,
+} from './apps/fileUpload'
+import {
   initialModel as interactionsInitialModel,
   update as interactionsUpdate,
   view as interactionsView,
@@ -1425,6 +1430,124 @@ describe('scene with extra interactions', () => {
       Scene.click(Scene.label('action')),
       Scene.expect(Scene.label('action')).toContainText('clicks=1'),
     )
+  })
+})
+
+describe('scene with file uploads', () => {
+  const resumePdf = new File(['%PDF-'], 'resume.pdf', {
+    type: 'application/pdf',
+  })
+  const coverLetter = new File(['cover'], 'cover.txt', {
+    type: 'text/plain',
+  })
+  const portfolio = new File(['<svg/>'], 'portfolio.svg', {
+    type: 'image/svg+xml',
+  })
+
+  test('changeFiles captures a single file on an OnFileChange input', () => {
+    Scene.scene(
+      { update: fileUploadUpdate, view: fileUploadView },
+      Scene.with(fileUploadInitialModel),
+      Scene.changeFiles(Scene.label('resume'), [resumePdf]),
+      Scene.expect(Scene.selector('[key="received-count"]')).toContainText(
+        'count=1',
+      ),
+      Scene.expect(Scene.selector('[key="received-names"]')).toContainText(
+        'names=resume.pdf',
+      ),
+    )
+  })
+
+  test('changeFiles captures multiple files in one dispatch', () => {
+    Scene.scene(
+      { update: fileUploadUpdate, view: fileUploadView },
+      Scene.with(fileUploadInitialModel),
+      Scene.changeFiles(Scene.label('resume'), [
+        resumePdf,
+        coverLetter,
+        portfolio,
+      ]),
+      Scene.expect(Scene.selector('[key="received-count"]')).toContainText(
+        'count=3',
+      ),
+      Scene.expect(Scene.selector('[key="received-names"]')).toContainText(
+        'names=resume.pdf,cover.txt,portfolio.svg',
+      ),
+    )
+  })
+
+  test('changeFiles dispatches an empty array when no files are provided', () => {
+    Scene.scene(
+      { update: fileUploadUpdate, view: fileUploadView },
+      Scene.with({
+        ...fileUploadInitialModel,
+        receivedFiles: [resumePdf],
+      }),
+      Scene.changeFiles(Scene.label('resume'), []),
+      Scene.expect(Scene.selector('[key="received-count"]')).toContainText(
+        'count=0',
+      ),
+    )
+  })
+
+  test('changeFiles is dual — data-last form works in pipe', () => {
+    Scene.scene(
+      { update: fileUploadUpdate, view: fileUploadView },
+      Scene.with(fileUploadInitialModel),
+      pipe(Scene.label('resume'), Scene.changeFiles([resumePdf])),
+      Scene.expect(Scene.selector('[key="received-count"]')).toContainText(
+        'count=1',
+      ),
+    )
+  })
+
+  test('dropFiles captures files dropped on an OnDropFiles zone', () => {
+    Scene.scene(
+      { update: fileUploadUpdate, view: fileUploadView },
+      Scene.with(fileUploadInitialModel),
+      Scene.dropFiles(Scene.label('attachments'), [portfolio]),
+      Scene.expect(Scene.selector('[key="received-count"]')).toContainText(
+        'count=1',
+      ),
+      Scene.expect(Scene.selector('[key="received-names"]')).toContainText(
+        'names=portfolio.svg',
+      ),
+    )
+  })
+
+  test('dropFiles captures multiple dropped files', () => {
+    Scene.scene(
+      { update: fileUploadUpdate, view: fileUploadView },
+      Scene.with(fileUploadInitialModel),
+      Scene.dropFiles(Scene.label('attachments'), [coverLetter, portfolio]),
+      Scene.expect(Scene.selector('[key="received-count"]')).toContainText(
+        'count=2',
+      ),
+      Scene.expect(Scene.selector('[key="received-names"]')).toContainText(
+        'names=cover.txt,portfolio.svg',
+      ),
+    )
+  })
+
+  test('dropFiles is dual — data-last form works in pipe', () => {
+    Scene.scene(
+      { update: fileUploadUpdate, view: fileUploadView },
+      Scene.with(fileUploadInitialModel),
+      pipe(Scene.label('attachments'), Scene.dropFiles([resumePdf])),
+      Scene.expect(Scene.selector('[key="received-count"]')).toContainText(
+        'count=1',
+      ),
+    )
+  })
+
+  test('dropFiles throws a clear error when no drop handler exists', () => {
+    expect(() =>
+      Scene.scene(
+        { update: interactionsUpdate, view: interactionsView },
+        Scene.with(interactionsInitialModel),
+        Scene.dropFiles(Scene.label('action'), [resumePdf]),
+      ),
+    ).toThrow(/drop/)
   })
 })
 
