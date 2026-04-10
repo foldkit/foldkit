@@ -1,6 +1,7 @@
 export * as Command from './command/public'
 export * as ManagedResource from './managedResource/public'
 export * as FieldValidation from './fieldValidation/public'
+export * as File from './file/public'
 export * as Html from './html/public'
 export * as Message from './message/public'
 export * as Navigation from './navigation/public'

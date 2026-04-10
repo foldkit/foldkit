@@ -10,6 +10,7 @@ import {
 import { dual } from 'effect/Function'
 
 import type { CommandDefinition } from '../command'
+import type { File } from '../file'
 import type { Html, KeyboardModifiers } from '../html'
 import { Dispatch } from '../runtime'
 import type { VNode } from '../vdom'
@@ -972,6 +973,68 @@ export const change: {
     ): SceneSimulation<Model, Message, OutMessage> =>
       invokeAndCapture(simulation, target, 'change', handler => {
         handler({ target: { value } })
+      }),
+)
+
+/** Simulates a file input change event on the element matching the target.
+ *  For use with `OnFileChange` attributes. The handler receives a synthetic
+ *  event with `target.files` set to the provided files array.
+ *  Dual: `changeFiles(target, files)` or `changeFiles(files)` for data-last piping. */
+export const changeFiles: {
+  (
+    target: string | Locator,
+    files: ReadonlyArray<File>,
+  ): <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ) => SceneSimulation<Model, Message, OutMessage>
+  (
+    files: ReadonlyArray<File>,
+  ): (
+    target: string | Locator,
+  ) => <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ) => SceneSimulation<Model, Message, OutMessage>
+} = dual(
+  2,
+  (target: string | Locator, files: ReadonlyArray<File>) =>
+    <Model, Message, OutMessage = undefined>(
+      simulation: SceneSimulation<Model, Message, OutMessage>,
+    ): SceneSimulation<Model, Message, OutMessage> =>
+      invokeAndCapture(simulation, target, 'change', handler => {
+        handler({ target: { files, value: '' } })
+      }),
+)
+
+/** Simulates a drop event with files on the element matching the target.
+ *  For use with `OnDropFiles` attributes. The handler receives a synthetic
+ *  event with `dataTransfer.files` set to the provided files array and a
+ *  no-op `preventDefault`.
+ *  Dual: `dropFiles(target, files)` or `dropFiles(files)` for data-last piping. */
+export const dropFiles: {
+  (
+    target: string | Locator,
+    files: ReadonlyArray<File>,
+  ): <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ) => SceneSimulation<Model, Message, OutMessage>
+  (
+    files: ReadonlyArray<File>,
+  ): (
+    target: string | Locator,
+  ) => <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ) => SceneSimulation<Model, Message, OutMessage>
+} = dual(
+  2,
+  (target: string | Locator, files: ReadonlyArray<File>) =>
+    <Model, Message, OutMessage = undefined>(
+      simulation: SceneSimulation<Model, Message, OutMessage>,
+    ): SceneSimulation<Model, Message, OutMessage> =>
+      invokeAndCapture(simulation, target, 'drop', handler => {
+        handler({
+          preventDefault: Function.constVoid,
+          dataTransfer: { files },
+        })
       }),
 )
 
