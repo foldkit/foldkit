@@ -13,7 +13,7 @@
 <h3 align="center">The frontend framework for correctness.</h3>
 
 <p align="center">
-  <a href="https://foldkit.dev"><strong>Documentation</strong></a> · <a href="https://foldkit.dev/example-apps"><strong>Examples</strong></a> · <a href="https://foldkit.dev/getting-started"><strong>Getting Started</strong></a>
+  <a href="https://foldkit.dev"><strong>Documentation</strong></a> · <a href="https://foldkit.dev/manifesto"><strong>Manifesto</strong></a> · <a href="https://foldkit.dev/example-apps"><strong>Examples</strong></a> · <a href="https://foldkit.dev/getting-started"><strong>Getting Started</strong></a>
 </p>
 
 ---
@@ -32,6 +32,10 @@ It's not incremental. There's no React interop, no escape hatch from Effect, no 
 ## Built on Effect
 
 Every Foldkit application is an [Effect](https://effect.website/) program. Your Model is a [Schema](https://effect.website/docs/schema/introduction/). Side effects are values you return, not callbacks you fire — the runtime handles when and how. If you already know Effect, Foldkit feels natural. If you're new to Effect, Foldkit is a great way to immerse yourself in it.
+
+## Coming from React?
+
+[Coming from React](https://foldkit.dev/coming-from-react) is a guided walk through the differences. [Foldkit vs React: Side by Side](https://foldkit.dev/foldkit-vs-react-side-by-side) implements the same pixel-art editor in both frameworks so you can read them line by line.
 
 ## Get Started
 
@@ -134,16 +138,21 @@ Source: [examples/counter/src/main.ts](https://github.com/foldkit/foldkit/blob/m
 
 Foldkit is a complete system, not a collection of libraries you stitch together.
 
-- **Commands** — Side effects are described as Effects that return Messages and are executed by the runtime. Use any Effect combinator you want — retry, timeout, race, parallel. You write the Effect, the runtime runs it.
-- **Routing** — Type-safe bidirectional routing. URLs parse into typed routes and routes build back into URLs. No string matching, no mismatches between parsing and building.
-- **Subscriptions** — Declare which streams your app needs as a function of the Model. The runtime diffs and switches them when the Model changes.
-- **Managed Resources** — Model-driven lifecycle for long-lived browser resources like WebSockets, AudioContext, and RTCPeerConnection. Acquire on state change, release on cleanup.
-- **UI Components** — Dialog, menu, tabs, listbox, disclosure — fully accessible primitives that are easy to style and customize.
-- **Field Validation** — Per-field validation state modeled as a discriminated union. Define rules as data, apply them in update, and the Model tracks the result.
-- **Virtual DOM** — Declarative Views powered by [Snabbdom](https://github.com/snabbdom/snabbdom). Fast, keyed diffing. Views are plain functions of your Model.
-- **DevTools** — Built-in overlay for inspecting Messages, Model state, and Commands. Time-travel mode lets you jump to any point in your app's history.
-- **Testing** — Simulate the update loop in tests. Send Messages, resolve Commands inline, and assert on the Model. No mocking libraries, no fake timers, no setup or teardown.
-- **HMR** — Vite plugin with state-preserving hot module replacement. Change your view, keep your state.
+- **Commands**: Side effects are named Effects that return Messages and are executed by the runtime. Define them with `Command.define`, passing the result Message schemas so the Effect's return type stays in lockstep with your Messages. Use any Effect combinator you want: retry, timeout, race, parallel. You write the Effect, the runtime runs it.
+- **Routing**: Type-safe bidirectional routing built from parser combinators. URLs parse into typed Routes and Routes build back into URLs. No string matching, no mismatches between parsing and building.
+- **Subscriptions**: Declare which streams your app needs as a function of the Model. The runtime diffs and switches them as the Model changes.
+- **Managed Resources**: Model-driven lifecycle for long-lived browser resources like WebSockets, AudioContext, and RTCPeerConnection. Acquire on state change, release on cleanup.
+- **Submodels**: A pattern for composing nested modules. A child owns its own Model, Messages, update function, and view; the parent embeds it and wraps child Messages in a `Got*Message` envelope. The pattern scales unchanged from a login form to a multi-page app.
+- **OutMessage**: A typed channel for a child Submodel to emit domain events up to its parent, so the parent reacts to meaningful facts instead of internal child Messages.
+- **UI Components**: Accessible, keyboard-friendly primitives covering Button, Checkbox, Combobox, Dialog, Disclosure, DragAndDrop, Fieldset, Input, Listbox, Menu, Popover, RadioGroup, Select, Switch, Tabs, Textarea, and Transition. Every component is a Submodel with a typed `ViewConfig`, domain-event callbacks like `onSelected`, `onClosed`, and `onToggled`, and `className` plus `attributes` props on every slot for styling and extension. Animated components share a `Transition` Submodel that coordinates CSS enter and leave animations.
+- **Field Validation**: Per-field validation state modeled as a discriminated union. Define rules as data, apply them in update, and the Model tracks the result.
+- **Virtual DOM**: Declarative views powered by [Snabbdom](https://github.com/snabbdom/snabbdom), with lazy memoization and fast, keyed diffing. Views are plain functions of your Model.
+- **DevTools**: Built-in overlay for inspecting Messages, Model state, and Commands. Time-travel mode lets you jump to any point in history, Inspect mode browses snapshots without pausing, and Submodel drill-in filtering scopes the Message list to any nested module.
+- **Crash View and Reporting**: Configure `crash.view` to render a custom fallback UI when the update loop throws. A `crash.report` callback fires first with the error, Model, and triggering Message, so you can ship it straight to Sentry or your logger.
+- **Story Testing**: Exercise the update function directly. Send Messages, resolve Commands inline with `resolve` and `resolveAll`, and assert with focused helpers: `Story.model`, `Story.expectHasCommands`, `Story.expectExactCommands`, `Story.expectNoCommands`, and `Story.expectOutMessage`. No mocking libraries, no fake timers.
+- **Scene Testing**: Drive your app the way a user does. Scene renders your real view, then clicks buttons, types into inputs, presses keys, and asserts on what's on screen. Accessible locators (`role`, `label`, `placeholder`, `altText`, `title`, `testId`, `displayValue`) with full options (`name`, `level`, `checked`, `selected`, `pressed`, `expanded`, `disabled`), multi-match `Scene.all` with `Scene.filter` and `Scene.nth`, scoped steps via `Scene.inside`, pointer events, event bubbling, and Vitest matchers like `toHaveText`, `toBeVisible`, `toHaveAccessibleName`, and `toHaveCount`. API parity with React Testing Library and Playwright, without a browser.
+- **Slow-View Monitoring**: Wire `slowView` on `makeProgram` to catch renders that exceed a threshold you set. The callback fires with the current Model, the triggering Message, and the render duration, so you can log it, sample it, or ship it to your observability tool.
+- **HMR**: Vite plugin with state-preserving hot module replacement. Change your view, keep your state.
 
 ## Correctness You (And Your LLM) Can See
 
@@ -166,6 +175,7 @@ This is what makes Foldkit unusually AI-friendly. The same property that makes t
 - **[Shopping Cart](https://foldkit.dev/example-apps/shopping-cart)** — Nested models and complex state
 - **[WebSocket Chat](https://foldkit.dev/example-apps/websocket-chat)** — Managed Resources with WebSocket integration
 - **[Kanban](https://foldkit.dev/example-apps/kanban)** — Drag-and-drop kanban board with cross-column reordering and keyboard navigation
+- **[Pixel Art](https://foldkit.dev/example-apps/pixel-art)** — Grid-based pixel editor with painting, erasing, and palette selection
 - **[UI Showcase](https://foldkit.dev/example-apps/ui-showcase)** — Interactive showcase of every Foldkit UI component
 - **[Typing Game](packages/typing-game)** — Multiplayer typing game with Effect RPC backend ([play it live](https://typingterminal.com))
 
