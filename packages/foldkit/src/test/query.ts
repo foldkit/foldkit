@@ -343,6 +343,7 @@ const IMPLICIT_ROLE_MAP: Record<string, string> = {
   h4: 'heading',
   h5: 'heading',
   h6: 'heading',
+  img: 'img',
   li: 'listitem',
   nav: 'navigation',
   ol: 'list',
@@ -453,8 +454,21 @@ const nameFromTextContent = (vnode: VNode): Option.Option<string> =>
 const nameFromTitle = (vnode: VNode): Option.Option<string> =>
   pipe(vnode, lookupAttribute('title'), Option.flatMap(nonEmptyString))
 
+// NOTE: Partial implementation of the AccName 1.2 "text alternative from
+// native host language" step. Currently covers `img.alt` only; the other
+// attribute-based cases (area, input[type=image|submit|reset|button]) and
+// the child-traversal cases (fieldset legend, figure figcaption, table
+// caption) are tracked in a follow-up ticket.
+const nameFromNativeHost = (vnode: VNode): Option.Option<string> => {
+  if (vnode.sel === 'img') {
+    return pipe(vnode, lookupAttribute('alt'), Option.flatMap(nonEmptyString))
+  }
+  return Option.none()
+}
+
 /** Computes the accessible name of an element. Resolves via
- *  `aria-labelledby`, `aria-label`, `<label for>`, text content, then `title`. */
+ *  `aria-labelledby`, `aria-label`, `<label for>`, native host language
+ *  attributes (currently `img.alt`), text content, then `title`. */
 export const accessibleName =
   (root: VNode) =>
   (vnode: VNode): string =>
@@ -463,6 +477,7 @@ export const accessibleName =
       nameFromLabelledBy(root),
       Option.orElse(() => nameFromAriaLabel(vnode)),
       Option.orElse(() => nameFromLabelFor(root)(vnode)),
+      Option.orElse(() => nameFromNativeHost(vnode)),
       Option.orElse(() => nameFromTextContent(vnode)),
       Option.orElse(() => nameFromTitle(vnode)),
       Option.getOrElse(() => ''),
