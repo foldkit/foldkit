@@ -1,6 +1,6 @@
 import { FileSystem } from '@effect/platform'
 import { Resvg } from '@resvg/resvg-js'
-import { Array, Console, Effect, pipe } from 'effect'
+import { Array, Console, Effect } from 'effect'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import satori, { type Font } from 'satori'
@@ -190,32 +190,31 @@ const renderOgImage =
     routeToUrlPath: (route: AppRoute) => string,
   ) =>
   (route: AppRoute) =>
-    pipe(
-      Effect.gen(function* () {
-        const metadata = routeToMetadata(route)
-        const template = ogTemplate(metadata)
-        const slug = urlPathToSlug(routeToUrlPath(route))
+    Effect.gen(function* () {
+      const metadata = routeToMetadata(route)
+      const template = ogTemplate(metadata)
+      const slug = urlPathToSlug(routeToUrlPath(route))
 
-        const svg = yield* Effect.tryPromise(() =>
-          // @ts-expect-error satori expects ReactNode but accepts plain {type, props} objects at runtime
-          satori(template, {
-            width: OG_WIDTH,
-            height: OG_HEIGHT,
-            fonts,
-          }),
-        )
+      const svg = yield* Effect.tryPromise(() =>
+        // @ts-expect-error satori expects ReactNode but accepts plain {type, props} objects at runtime
+        satori(template, {
+          width: OG_WIDTH,
+          height: OG_HEIGHT,
+          fonts,
+        }),
+      )
 
-        const resvg = new Resvg(svg, {
-          fitTo: { mode: 'width', value: OG_WIDTH },
-        })
-        const png = resvg.render().asPng()
+      const resvg = new Resvg(svg, {
+        fitTo: { mode: 'width', value: OG_WIDTH },
+      })
+      const png = resvg.render().asPng()
 
-        const fs = yield* FileSystem.FileSystem
-        yield* fs.writeFile(resolve(ogDir, `${slug}.png`), png)
-        yield* Console.log(`  ✓ og/${slug}.png`)
-      }),
-      Effect.catchAll(error =>
-        Console.warn(
+      const fs = yield* FileSystem.FileSystem
+      yield* fs.writeFile(resolve(ogDir, `${slug}.png`), png)
+      yield* Console.log(`  ✓ og/${slug}.png`)
+    }).pipe(
+      Effect.tapError(error =>
+        Console.error(
           `  ✗ og/${urlPathToSlug(routeToUrlPath(route))}.png: ${String(error)}`,
         ),
       ),
