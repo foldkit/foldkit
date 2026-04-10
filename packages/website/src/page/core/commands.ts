@@ -52,7 +52,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       pageTitle('core/commands', 'Commands'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'So far, update has been returning an empty Commands array. It\u2019s time to put it to use. But before we write our first Command, there\u2019s a fundamental idea to understand: the update function doesn\u2019t actually do anything.',
+        'A Command is a description of a side effect \u2014 an HTTP request, a timer, a DOM focus call. The update function doesn\u2019t actually do anything on its own: it returns data, and the Foldkit runtime reads the Commands and carries them out.',
       ),
       para(
         'In the ',
@@ -63,7 +63,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ', Commands are the slips the waiter hands to the kitchen. The waiter doesn\u2019t cook \u2014 they describe what\u2019s needed and hand it off. The kitchen does the work and reports back when it\u2019s done.',
       ),
       para(
-        'When update runs, no HTTP request fires, no timer starts, no DOM changes. It returns data \u2014 a new Model and a list of Commands that describe what should happen. The Foldkit runtime reads those descriptions and executes them.',
+        'When update runs, no HTTP request fires, no timer starts, no DOM changes. It returns a new Model and a list of Commands that describe what should happen, and the runtime executes them.',
       ),
       infoCallout(
         'A different model for side effects',
@@ -74,7 +74,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         '. In Foldkit, update is pure. It describes what should happen and the runtime does it.',
       ),
       para(
-        'Let\u2019s see what that looks like. Say we want a delayed reset: when the user clicks reset, the count resets after one second:',
+        'So far, update has been returning an empty Commands array. Let\u2019s put it to use. Say we want a delayed reset: when the user clicks reset, the count resets after one second:',
       ),
       highlightedCodeBlock(
         div(

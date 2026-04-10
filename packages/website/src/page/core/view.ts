@@ -45,7 +45,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       pageTitle('core/view', 'View'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'The update function produces a new Model. But the user doesn\u2019t see the Model \u2014 they see what the view function renders from it. In the ',
+        'The view function turns your Model into HTML. The user doesn\u2019t see the Model directly \u2014 they see what view renders from it.',
+      ),
+      para(
+        'In the ',
         link(
           `${coreArchitectureRouter()}#the-restaurant-analogy`,
           'restaurant analogy',

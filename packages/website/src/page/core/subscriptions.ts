@@ -56,24 +56,24 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       pageTitle('core/subscriptions', 'Subscriptions'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'Commands handle one-off side effects \u2014 a slip to the kitchen that comes back with a result. But what about ongoing streams? In the ',
+        'A Subscription is a reactive binding between your Model and a long-running stream \u2014 timers, ',
+        inlineCode('WebSocket'),
+        ' connections, keyboard input, resize observers, anything that produces a continuous stream of events. You declare which part of the Model the Subscription depends on, and Foldkit manages the stream lifecycle automatically, starting it when dependencies are met and stopping it when they change.',
+      ),
+      para(
+        'In the ',
         link(
           `${coreArchitectureRouter()}#the-restaurant-analogy`,
           'restaurant analogy',
         ),
-        ', a Subscription is a standing order: \u201Ckeep the coffee coming for table 5.\u201D The waiter doesn\u2019t keep walking back to repeat the order \u2014 the kitchen knows to keep pouring until the table says stop. Anything that produces a continuous stream of events \u2014 timers, ',
-        inlineCode('WebSocket'),
-        ' connections, keyboard input, resize observers \u2014 is a Subscription.',
+        ', a Subscription is a standing order: \u201Ckeep the coffee coming for table 5.\u201D The waiter doesn\u2019t keep walking back to repeat the order \u2014 the kitchen knows to keep pouring until the table says stop.',
       ),
       para(
-        'A Subscription is a reactive binding between your Model and a long-running stream. You declare which part of the Model the Subscription depends on, and Foldkit manages the stream lifecycle automatically \u2014 starting it when dependencies are met, stopping it when they change.',
-      ),
-      para(
-        'Here\u2019s how we add auto-counting to the counter. When ',
+        'Commands handle one-off side effects \u2014 a slip to the kitchen that comes back with a single result. Subscriptions handle the ongoing kind. Here\u2019s how we add auto-counting to the counter: when ',
         inlineCode('isAutoCounting'),
         ' is ',
         inlineCode('true'),
-        ', a stream ticks every second. When it flips to ',
+        ', a stream ticks every second, and when it flips to ',
         inlineCode('false'),
         ', the stream stops.',
       ),
