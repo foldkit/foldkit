@@ -15,4 +15,6 @@ Two new event attributes in the `foldkit/html` module for use with form file inp
 - `OnFileChange` decodes `event.target.files` for `<input type="file">` elements.
 - `OnDropFiles` decodes `event.dataTransfer.files` on drop events and calls `preventDefault`.
 
-Two new scene test helpers in `foldkit` (`Scene.changeFiles` and `Scene.dropFiles`) for asserting file upload flows in scene tests.
+Two new scene test helpers in `foldkit` (`Scene.changeFiles` and `Scene.dropFiles`) for asserting file upload flows in scene tests. Both helpers throw a clear error when applied to an element whose change or drop handler was registered via `OnChange`/`OnDrop` instead of the file-aware variant, preventing silent misuse that would otherwise dispatch the wrong message with an empty value.
+
+`Scene.role('img', { name })` now resolves `alt` attributes as the accessible name, matching the W3C AccName 1.2 "text alternative from native host language" step. Previously Scene only resolved `aria-labelledby`, `aria-label`, `<label for>`, text content, and `title`, so images required `Scene.altText` as a workaround.

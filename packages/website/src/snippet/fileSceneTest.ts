@@ -2,11 +2,11 @@ import { Scene } from 'foldkit'
 import { describe, test } from 'vitest'
 
 describe('resume upload flow', () => {
-  test('the form captures the selected resume', () => {
-    const resume = new File(['%PDF-'], 'resume.pdf', {
-      type: 'application/pdf',
-    })
+  const resume = new File(['%PDF-'], 'resume.pdf', {
+    type: 'application/pdf',
+  })
 
+  test('inline file input: changeFiles simulates selection', () => {
     Scene.scene(
       { update, view },
       Scene.with(initialModel),
@@ -15,7 +15,22 @@ describe('resume upload flow', () => {
     )
   })
 
-  test('the drop zone accepts multiple attachments', () => {
+  test('button-triggered picker: resolve the SelectResume Command', () => {
+    const previewDataUrl = 'data:application/pdf;base64,JVBERi0='
+
+    Scene.scene(
+      { update, view },
+      Scene.with(initialModel),
+      Scene.click(Scene.role('button', { name: 'Choose resume' })),
+      Scene.resolveAll(
+        [SelectResume, SelectedResume({ files: [resume] })],
+        [ReadResumePreview, SucceededReadPreview({ dataUrl: previewDataUrl })],
+      ),
+      Scene.expect(Scene.role('img', { name: 'Resume preview' })).toExist(),
+    )
+  })
+
+  test('drop zone: dropFiles simulates a drag-and-drop', () => {
     const coverLetter = new File(['cover'], 'cover.txt', {
       type: 'text/plain',
     })

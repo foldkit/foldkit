@@ -4,6 +4,7 @@ import * as Command from '../../command'
 import * as File from '../../file'
 import { type Html, html } from '../../html'
 import { m } from '../../message'
+import { evo } from '../../struct'
 
 // MODEL
 
@@ -54,10 +55,11 @@ export const ReadResumePreview = Command.define(
 
 const selectResume = SelectResume(
   File.select(['application/pdf']).pipe(
-    Effect.map(files =>
-      Array.isNonEmptyReadonlyArray(files)
-        ? SelectedResume({ files })
-        : CancelledSelectResume(),
+    Effect.map(
+      Array.match({
+        onEmpty: () => CancelledSelectResume(),
+        onNonEmpty: files => SelectedResume({ files }),
+      }),
     ),
   ),
 )
@@ -89,34 +91,31 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ClickedChooseResume: () => [model, [selectResume]],
       SelectedResume: ({ files }) =>
         Option.match(Array.head(files), {
-          onNone: (): UpdateReturn => [model, []],
+          onNone: () => [model, []],
           onSome: firstFile => [
-            {
-              ...model,
-              maybeResume: Option.some(firstFile),
-              maybePreviewDataUrl: Option.none(),
-              readStatus: 'Reading',
-            },
+            evo(model, {
+              maybeResume: () => Option.some(firstFile),
+              maybePreviewDataUrl: () => Option.none(),
+              readStatus: () => 'Reading',
+            }),
             [readResumePreview(firstFile)],
           ],
         }),
       CancelledSelectResume: () => [model, []],
       SucceededReadPreview: ({ dataUrl }) => [
-        {
-          ...model,
-          maybePreviewDataUrl: Option.some(dataUrl),
-          readStatus: 'Idle',
-        },
+        evo(model, {
+          maybePreviewDataUrl: () => Option.some(dataUrl),
+          readStatus: () => 'Idle',
+        }),
         [],
       ],
-      FailedReadPreview: () => [{ ...model, readStatus: 'Failed' }, []],
+      FailedReadPreview: () => [evo(model, { readStatus: () => 'Failed' }), []],
       ClickedRemoveResume: () => [
-        {
-          ...model,
-          maybeResume: Option.none(),
-          maybePreviewDataUrl: Option.none(),
-          readStatus: 'Idle',
-        },
+        evo(model, {
+          maybeResume: () => Option.none(),
+          maybePreviewDataUrl: () => Option.none(),
+          readStatus: () => 'Idle',
+        }),
         [],
       ],
     }),
@@ -130,6 +129,7 @@ const {
   img,
   button,
   empty,
+  keyed,
   Alt,
   AriaLabel,
   Class,
@@ -144,8 +144,12 @@ const previewView = (model: Model): Html =>
     onNone: () =>
       M.value(model.readStatus).pipe(
         M.withReturnType<Html>(),
-        M.when('Reading', () => p([Role('status')], ['Reading preview...'])),
-        M.when('Failed', () => p([Role('alert')], ['Could not read preview'])),
+        M.when('Reading', () =>
+          keyed('p')('reading', [Role('status')], ['Reading preview...']),
+        ),
+        M.when('Failed', () =>
+          keyed('p')('failed', [Role('alert')], ['Could not read preview']),
+        ),
         M.when('Idle', () => empty),
         M.exhaustive,
       ),
@@ -157,20 +161,14 @@ export const view = (model: Model): Html =>
     [
       Option.match(model.maybeResume, {
         onNone: () =>
-          button(
-            [OnClick(ClickedChooseResume()), AriaLabel('Choose resume')],
-            ['Choose resume'],
-          ),
+          button([OnClick(ClickedChooseResume())], ['Choose resume']),
         onSome: file =>
           div(
             [Role('region'), AriaLabel('Selected resume')],
             [
               p([Class('resume-name')], [File.name(file)]),
               previewView(model),
-              button(
-                [OnClick(ClickedRemoveResume()), AriaLabel('Remove resume')],
-                ['Remove'],
-              ),
+              button([OnClick(ClickedRemoveResume())], ['Remove']),
             ],
           ),
       }),

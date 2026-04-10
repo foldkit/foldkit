@@ -80,6 +80,7 @@ export const activeSection: Subscription<
         ),
         M.tag('CoreInitAndFlags', () => Page.Core.InitAndFlags.tableOfContents),
         M.tag('CoreTask', () => Page.Core.CoreTask.tableOfContents),
+        M.tag('CoreFile', () => Page.Core.CoreFile.tableOfContents),
         M.tag(
           'CoreRunningYourApp',
           () => Page.Core.RunningYourApp.tableOfContents,

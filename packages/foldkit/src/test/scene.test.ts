@@ -1580,7 +1580,7 @@ describe('scene with Command-based file upload flow', () => {
   const previewDataUrl = 'data:application/pdf;base64,JVBERi0='
 
   const chooseButton = Scene.role('button', { name: 'Choose resume' })
-  const removeButton = Scene.role('button', { name: 'Remove resume' })
+  const removeButton = Scene.role('button', { name: 'Remove' })
   const previewImage = Scene.role('img', { name: 'Resume preview' })
   const readingStatus = Scene.role('status')
   const errorAlert = Scene.role('alert')
