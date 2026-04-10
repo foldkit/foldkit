@@ -156,6 +156,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Task',
     'Utility functions for common side effects like time, focus, and randomness.',
   ),
+  CoreFile: core(
+    'File',
+    'Read and select files from the browser using an opaque File type and event attributes for inputs and drop zones.',
+  ),
   CoreRunningYourApp: core(
     'Running Your App',
     'Mount and run a Foldkit application in the browser.',

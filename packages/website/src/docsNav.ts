@@ -14,6 +14,7 @@ import {
   coreCounterExampleRouter,
   coreCrashViewRouter,
   coreDevtoolsRouter,
+  coreFileRouter,
   coreInitAndFlagsRouter,
   coreManagedResourcesRouter,
   coreMessagesRouter,
@@ -170,6 +171,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'CoreTask',
           href: coreTaskRouter(),
           label: 'Task',
+        },
+        {
+          _tag: 'CoreFile',
+          href: coreFileRouter(),
+          label: 'File',
         },
       ],
       [

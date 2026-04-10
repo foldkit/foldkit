@@ -43,6 +43,7 @@ export const CoreCommandsRoute = r('CoreCommands')
 export const CoreSubscriptionsRoute = r('CoreSubscriptions')
 export const CoreInitAndFlagsRoute = r('CoreInitAndFlags')
 export const CoreTaskRoute = r('CoreTask')
+export const CoreFileRoute = r('CoreFile')
 export const CoreRunningYourAppRoute = r('CoreRunningYourApp')
 export const CoreResourcesRoute = r('CoreResources')
 export const CoreManagedResourcesRoute = r('CoreManagedResources')
@@ -108,6 +109,7 @@ export const DocsRoute = S.Union(
   CoreSubscriptionsRoute,
   CoreInitAndFlagsRoute,
   CoreTaskRoute,
+  CoreFileRoute,
   CoreRunningYourAppRoute,
   CoreResourcesRoute,
   CoreManagedResourcesRoute,
@@ -267,6 +269,11 @@ export const coreTaskRouter = pipe(
   literal('core'),
   slash(literal('task')),
   mapTo(CoreTaskRoute),
+)
+export const coreFileRouter = pipe(
+  literal('core'),
+  slash(literal('file')),
+  mapTo(CoreFileRoute),
 )
 export const coreRunningYourAppRouter = pipe(
   literal('core'),
@@ -452,6 +459,7 @@ const coreParser = oneOf(
   coreSubscriptionsRouter,
   coreInitAndFlagsRouter,
   coreTaskRouter,
+  coreFileRouter,
   coreRunningYourAppRouter,
   coreResourcesRouter,
   coreManagedResourcesRouter,
