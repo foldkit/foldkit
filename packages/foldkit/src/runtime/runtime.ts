@@ -694,6 +694,8 @@ const makeRuntime = <
           /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
           enqueueMessage(message as Message)
 
+        const dispatch = { dispatchAsync, dispatchSync }
+
         const render = (model: Model, message: Option.Option<Message>) =>
           Effect.gen(function* () {
             const viewStart = performance.now()
@@ -723,12 +725,7 @@ const makeRuntime = <
             if (title) {
               document.title = title(model)
             }
-          }).pipe(
-            Effect.provideService(Dispatch, {
-              dispatchAsync,
-              dispatchSync,
-            }),
-          )
+          }).pipe(Effect.provideService(Dispatch, dispatch))
 
         const runtime = yield* Effect.runtime()
         yield* Ref.set(maybeRuntimeRef, Option.some(runtime))

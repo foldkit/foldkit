@@ -13,10 +13,10 @@ import {
 
 const { button, div, empty, h2, p, Class, Id } = html<Message>()
 
-const toErrorDialogMessage = (message: Ui.Dialog.Message): Message =>
+const errorDialogMessageToMessage = (message: Ui.Dialog.Message): Message =>
   GotErrorDialogMessage({ message })
 
-const toGridSizeConfirmDialogMessage = (message: Ui.Dialog.Message): Message =>
+const confirmDialogMessageToMessage = (message: Ui.Dialog.Message): Message =>
   GotGridSizeConfirmDialogMessage({ message })
 
 export const errorDialogView = (
@@ -25,7 +25,7 @@ export const errorDialogView = (
 ): Html =>
   Ui.Dialog.view({
     model: errorDialog,
-    toParentMessage: toErrorDialogMessage,
+    toParentMessage: errorDialogMessageToMessage,
     onClosed: () => DismissedErrorDialog(),
     attributes: [
       Class(
@@ -82,7 +82,7 @@ export const gridSizeConfirmDialogView = (
 ): Html =>
   Ui.Dialog.view({
     model: gridSizeConfirmDialog,
-    toParentMessage: toGridSizeConfirmDialogMessage,
+    toParentMessage: confirmDialogMessageToMessage,
     onClosed: () => DismissedGridSizeConfirmDialog(),
     attributes: [
       Class(

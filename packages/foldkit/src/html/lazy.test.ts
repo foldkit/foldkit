@@ -159,6 +159,27 @@ describe('createLazy', () => {
     expect(firstResult).toBeNull()
     expect(secondResult).toBeNull()
   })
+
+  it('recomputes when dispatch context changes', () => {
+    let callCount = 0
+    const viewFn = (label: string) => {
+      callCount++
+      return Effect.succeed(h('div', {}, [label]))
+    }
+
+    const otherDispatch = Dispatch.of({
+      dispatchAsync: () => Effect.void,
+      dispatchSync: () => {},
+    })
+
+    const lazy = createLazy()
+    runHtml(lazy(viewFn, ['hello']))
+    Effect.runSync(
+      Effect.provideService(lazy(viewFn, ['hello']), Dispatch, otherDispatch),
+    )
+
+    expect(callCount).toBe(2)
+  })
 })
 
 describe('createKeyedLazy', () => {
@@ -227,5 +248,30 @@ describe('createKeyedLazy', () => {
     const second = runHtml(lazy('a', viewFn, [true]))
 
     expect(second).not.toBe(first)
+  })
+
+  it('recomputes when dispatch context changes', () => {
+    let callCount = 0
+    const viewFn = (label: string) => {
+      callCount++
+      return Effect.succeed(h('div', {}, [label]))
+    }
+
+    const otherDispatch = Dispatch.of({
+      dispatchAsync: () => Effect.void,
+      dispatchSync: () => {},
+    })
+
+    const lazy = createKeyedLazy()
+    runHtml(lazy('a', viewFn, ['hello']))
+    Effect.runSync(
+      Effect.provideService(
+        lazy('a', viewFn, ['hello']),
+        Dispatch,
+        otherDispatch,
+      ),
+    )
+
+    expect(callCount).toBe(2)
   })
 })
