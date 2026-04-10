@@ -85,11 +85,7 @@ export const update = makeUpdate<Model>({
     return [
       nextModel,
       pipe(
-        Array.getSomes([
-          context.maybeNextFrame,
-          context.maybeUnlockScroll,
-          context.maybeRestoreInert,
-        ]),
+        Array.getSomes([context.maybeUnlockScroll, context.maybeRestoreInert]),
         Array.prepend(context.focusInput),
       ),
     ]

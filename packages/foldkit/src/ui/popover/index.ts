@@ -1,4 +1,4 @@
-import { Array, Effect, Match as M, Option, Schema as S, pipe } from 'effect'
+import { Array, Effect, Equal, Match as M, Option, Schema as S } from 'effect'
 
 import * as Command from '../../command'
 import { OptionExt } from '../../effectExtensions'
@@ -8,7 +8,19 @@ import { evo } from '../../struct'
 import * as Task from '../../task'
 import { anchorHooks } from '../anchor'
 import type { AnchorConfig } from '../anchor'
-import { TransitionState } from '../transition'
+// NOTE: Transition imports are split across schema + update to avoid a circular
+// dependency: transition → html → runtime → devtools → popover → transition.
+// The barrel (../transition) imports from html, which starts the cycle.
+import {
+  EndedTransition as TransitionEndedTransition,
+  Hidden as TransitionHidden,
+  Message as TransitionMessage,
+  Model as TransitionModel,
+  type OutMessage as TransitionOutMessage,
+  Showed as TransitionShowed,
+  init as transitionInit,
+} from '../transition/schema'
+import { update as transitionUpdate } from '../transition/update'
 
 // MODEL
 
@@ -18,7 +30,7 @@ export const Model = S.Struct({
   isOpen: S.Boolean,
   isAnimated: S.Boolean,
   isModal: S.Boolean,
-  transitionState: TransitionState,
+  transition: TransitionModel,
   maybeLastButtonPointerType: S.OptionFromSelf(S.String),
 })
 
@@ -53,12 +65,10 @@ export const CompletedTeardownInert = m('CompletedTeardownInert')
 export const IgnoredMouseClick = m('IgnoredMouseClick')
 /** Sent when a Space key-up is captured to prevent page scrolling. */
 export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
-/** Sent internally when a double-rAF completes, advancing the transition to its animating phase. */
-export const AdvancedTransitionFrame = m('AdvancedTransitionFrame')
-/** Sent internally when all CSS transitions on the popover panel have completed. */
-export const EndedTransition = m('EndedTransition')
-/** Sent internally when the popover button moves in the viewport during a leave transition, cancelling the animation. */
-export const DetectedButtonMovement = m('DetectedButtonMovement')
+/** Wraps a Transition submodel message for delegation. */
+export const GotTransitionMessage = m('GotTransitionMessage', {
+  message: TransitionMessage,
+})
 
 /** Union of all messages the popover component can produce. */
 export const Message: S.Union<
@@ -75,9 +85,7 @@ export const Message: S.Union<
     typeof CompletedTeardownInert,
     typeof IgnoredMouseClick,
     typeof SuppressedSpaceScroll,
-    typeof AdvancedTransitionFrame,
-    typeof EndedTransition,
-    typeof DetectedButtonMovement,
+    typeof GotTransitionMessage,
   ]
 > = S.Union(
   Opened,
@@ -92,9 +100,7 @@ export const Message: S.Union<
   CompletedTeardownInert,
   IgnoredMouseClick,
   SuppressedSpaceScroll,
-  AdvancedTransitionFrame,
-  EndedTransition,
-  DetectedButtonMovement,
+  GotTransitionMessage,
 )
 
 export type Opened = typeof Opened.Type
@@ -123,7 +129,7 @@ export const init = (config: InitConfig): Model => ({
   isOpen: false,
   isAnimated: config.isAnimated ?? false,
   isModal: config.isModal ?? false,
-  transitionState: 'Idle',
+  transition: transitionInit({ id: `${config.id}-panel` }),
   maybeLastButtonPointerType: Option.none(),
 })
 
@@ -132,7 +138,6 @@ export const init = (config: InitConfig): Model => ({
 const closedModel = (model: Model): Model =>
   evo(model, {
     isOpen: () => false,
-    transitionState: () => (model.isAnimated ? 'LeaveStart' : 'Idle'),
     maybeLastButtonPointerType: () => Option.none(),
   })
 
@@ -142,11 +147,6 @@ const panelSelector = (id: string): string => `#${id}-panel`
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-/** Advances the popover's enter/leave transition by waiting a double-rAF. */
-export const RequestFrame = Command.define(
-  'RequestFrame',
-  AdvancedTransitionFrame,
-)
 /** Prevents page scrolling while the popover is open in modal mode. */
 export const LockScroll = Command.define('LockScroll', CompletedLockScroll)
 /** Re-enables page scrolling after the popover closes. */
@@ -165,25 +165,60 @@ export const RestoreInert = Command.define(
 export const FocusPanel = Command.define('FocusPanel', CompletedFocusPanel)
 /** Moves focus back to the popover button after closing. */
 export const FocusButton = Command.define('FocusButton', CompletedFocusButton)
-/** Waits for all CSS transitions on the popover panel to complete. */
-export const WaitForTransitions = Command.define(
-  'WaitForTransitions',
-  EndedTransition,
-)
-/** Detects whether the popover button moved or the leave transition ended — whichever comes first. */
+/** Detects whether the popover button moved or the leave transition ended — whichever comes first. Both outcomes signal the Transition submodel that leave is complete. */
 export const DetectMovementOrTransitionEnd = Command.define(
   'DetectMovementOrTransitionEnd',
-  DetectedButtonMovement,
-  EndedTransition,
+  GotTransitionMessage,
 )
+
+const delegateToTransition = (
+  model: Model,
+  transitionMessage: TransitionMessage,
+): UpdateReturn => {
+  const [nextTransition, transitionCommands, maybeOutMessage] =
+    transitionUpdate(model.transition, transitionMessage)
+
+  const mappedCommands = transitionCommands.map(
+    Command.mapEffect(Effect.map(message => GotTransitionMessage({ message }))),
+  )
+
+  const additionalCommands = Option.match(maybeOutMessage, {
+    onNone: () => [],
+    onSome: M.type<TransitionOutMessage>().pipe(
+      M.tagsExhaustive({
+        StartedLeaveAnimating: () => [
+          DetectMovementOrTransitionEnd(
+            Effect.raceFirst(
+              Task.detectElementMovement(buttonSelector(model.id)).pipe(
+                Effect.as(
+                  GotTransitionMessage({
+                    message: TransitionEndedTransition(),
+                  }),
+                ),
+              ),
+              Task.waitForTransitions(panelSelector(model.id)).pipe(
+                Effect.as(
+                  GotTransitionMessage({
+                    message: TransitionEndedTransition(),
+                  }),
+                ),
+              ),
+            ),
+          ),
+        ],
+        TransitionedOut: () => [],
+      }),
+    ),
+  })
+
+  return [
+    evo(model, { transition: () => nextTransition }),
+    [...mappedCommands, ...additionalCommands],
+  ]
+}
 
 /** Processes a popover message and returns the next model and commands. */
 export const update = (model: Model, message: Message): UpdateReturn => {
-  const maybeNextFrame = OptionExt.when(
-    model.isAnimated,
-    RequestFrame(Task.nextFrame.pipe(Effect.as(AdvancedTransitionFrame()))),
-  )
-
   const maybeLockScroll = OptionExt.when(
     model.isModal,
     LockScroll(Task.lockScroll.pipe(Effect.as(CompletedLockScroll()))),
@@ -211,54 +246,83 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     ),
   )
 
+  const focusPanel = FocusPanel(
+    Task.focus(panelSelector(model.id)).pipe(
+      Effect.ignore,
+      Effect.as(CompletedFocusPanel()),
+    ),
+  )
+
+  const focusButton = FocusButton(
+    Task.focus(buttonSelector(model.id)).pipe(
+      Effect.ignore,
+      Effect.as(CompletedFocusButton()),
+    ),
+  )
+
+  const openCommands = [
+    focusPanel,
+    ...Array.getSomes([maybeLockScroll, maybeInertOthers]),
+  ]
+
+  const closeWithFocusCommands = [
+    focusButton,
+    ...Array.getSomes([maybeUnlockScroll, maybeRestoreInert]),
+  ]
+
+  const closeWithoutFocusCommands = Array.getSomes([
+    maybeUnlockScroll,
+    maybeRestoreInert,
+  ])
+
+  const openPopover = (baseModel: Model): UpdateReturn => {
+    if (model.isAnimated) {
+      const [nextModel, transitionCommands] = delegateToTransition(
+        baseModel,
+        TransitionShowed(),
+      )
+      return [
+        evo(nextModel, { isOpen: () => true }),
+        [...openCommands, ...transitionCommands],
+      ]
+    }
+
+    return [evo(baseModel, { isOpen: () => true }), openCommands]
+  }
+
+  const closePopover = (
+    baseModel: Model,
+    commands: ReadonlyArray<Command.Command<Message>>,
+  ): UpdateReturn => {
+    const closed = closedModel(baseModel)
+
+    if (model.isAnimated) {
+      const [nextModel, transitionCommands] = delegateToTransition(
+        closed,
+        TransitionHidden(),
+      )
+      return [nextModel, [...commands, ...transitionCommands]]
+    }
+
+    return [closed, commands]
+  }
+
   return M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      Opened: () => {
-        const nextModel = evo(model, {
-          isOpen: () => true,
-          transitionState: () => (model.isAnimated ? 'EnterStart' : 'Idle'),
-        })
+      Opened: () => openPopover(model),
 
-        return [
-          nextModel,
-          pipe(
-            Array.getSomes([maybeNextFrame, maybeLockScroll, maybeInertOthers]),
-            Array.prepend(
-              FocusPanel(
-                Task.focus(panelSelector(model.id)).pipe(
-                  Effect.ignore,
-                  Effect.as(CompletedFocusPanel()),
-                ),
-              ),
-            ),
-          ),
-        ]
+      Closed: () => closePopover(model, closeWithFocusCommands),
+
+      ClosedByTab: () => {
+        if (
+          Option.exists(model.maybeLastButtonPointerType, Equal.equals('mouse'))
+        ) {
+          return [model, []]
+        }
+
+        return closePopover(model, closeWithoutFocusCommands)
       },
-
-      Closed: () => [
-        closedModel(model),
-        pipe(
-          Array.getSomes([
-            maybeNextFrame,
-            maybeUnlockScroll,
-            maybeRestoreInert,
-          ]),
-          Array.prepend(
-            FocusButton(
-              Task.focus(buttonSelector(model.id)).pipe(
-                Effect.ignore,
-                Effect.as(CompletedFocusButton()),
-              ),
-            ),
-          ),
-        ),
-      ],
-
-      ClosedByTab: () => [
-        closedModel(model),
-        Array.getSomes([maybeNextFrame, maybeUnlockScroll, maybeRestoreInert]),
-      ],
 
       PressedPointerOnButton: ({ pointerType, button }) => {
         const withPointerType = evo(model, {
@@ -270,97 +334,23 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         }
 
         if (model.isOpen) {
+          const [closed, commands] = closePopover(
+            withPointerType,
+            closeWithFocusCommands,
+          )
           return [
-            closedModel(withPointerType),
-            pipe(
-              Array.getSomes([
-                maybeNextFrame,
-                maybeUnlockScroll,
-                maybeRestoreInert,
-              ]),
-              Array.prepend(
-                FocusButton(
-                  Task.focus(buttonSelector(model.id)).pipe(
-                    Effect.ignore,
-                    Effect.as(CompletedFocusButton()),
-                  ),
-                ),
-              ),
-            ),
+            evo(closed, {
+              maybeLastButtonPointerType: () => Option.some(pointerType),
+            }),
+            commands,
           ]
         }
 
-        const nextModel = evo(withPointerType, {
-          isOpen: () => true,
-          transitionState: () => (model.isAnimated ? 'EnterStart' : 'Idle'),
-        })
-
-        return [
-          nextModel,
-          pipe(
-            Array.getSomes([maybeNextFrame, maybeLockScroll, maybeInertOthers]),
-            Array.prepend(
-              FocusPanel(
-                Task.focus(panelSelector(model.id)).pipe(
-                  Effect.ignore,
-                  Effect.as(CompletedFocusPanel()),
-                ),
-              ),
-            ),
-          ),
-        ]
+        return openPopover(withPointerType)
       },
 
-      AdvancedTransitionFrame: () =>
-        M.value(model.transitionState).pipe(
-          withUpdateReturn,
-          M.when('EnterStart', () => [
-            evo(model, { transitionState: () => 'EnterAnimating' }),
-            [
-              WaitForTransitions(
-                Task.waitForTransitions(panelSelector(model.id)).pipe(
-                  Effect.as(EndedTransition()),
-                ),
-              ),
-            ],
-          ]),
-          M.when('LeaveStart', () => [
-            evo(model, { transitionState: () => 'LeaveAnimating' }),
-            [
-              DetectMovementOrTransitionEnd(
-                Effect.raceFirst(
-                  Task.detectElementMovement(buttonSelector(model.id)).pipe(
-                    Effect.as(DetectedButtonMovement()),
-                  ),
-                  Task.waitForTransitions(panelSelector(model.id)).pipe(
-                    Effect.as(EndedTransition()),
-                  ),
-                ),
-              ),
-            ],
-          ]),
-          M.orElse(() => [model, []]),
-        ),
-
-      EndedTransition: () =>
-        M.value(model.transitionState).pipe(
-          withUpdateReturn,
-          M.whenOr('EnterAnimating', 'LeaveAnimating', () => [
-            evo(model, { transitionState: () => 'Idle' }),
-            [],
-          ]),
-          M.orElse(() => [model, []]),
-        ),
-
-      DetectedButtonMovement: () =>
-        M.value(model.transitionState).pipe(
-          withUpdateReturn,
-          M.when('LeaveAnimating', () => [
-            evo(model, { transitionState: () => 'Idle' }),
-            [],
-          ]),
-          M.orElse(() => [model, []]),
-        ),
+      GotTransitionMessage: ({ message: transitionMessage }) =>
+        delegateToTransition(model, transitionMessage),
 
       CompletedFocusPanel: () => [model, []],
       CompletedFocusButton: () => [model, []],
@@ -368,7 +358,10 @@ export const update = (model: Model, message: Message): UpdateReturn => {
       CompletedUnlockScroll: () => [model, []],
       CompletedSetupInert: () => [model, []],
       CompletedTeardownInert: () => [model, []],
-      IgnoredMouseClick: () => [model, []],
+      IgnoredMouseClick: () => [
+        evo(model, { maybeLastButtonPointerType: () => Option.none() }),
+        [],
+      ],
       SuppressedSpaceScroll: () => [model, []],
     }),
   )
@@ -442,7 +435,12 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
   } = html<Message>()
 
   const {
-    model: { id, isOpen, transitionState, maybeLastButtonPointerType },
+    model: {
+      id,
+      isOpen,
+      transition: { transitionState },
+      maybeLastButtonPointerType,
+    },
     toParentMessage,
     onOpened,
     onClosed,
@@ -551,7 +549,12 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
           OnKeyUpPreventDefault(handleSpaceKeyUp),
           OnClick(handleButtonClick()),
         ]),
-    ...(isVisible ? [DataAttribute('open', '')] : []),
+    ...(isVisible
+      ? [
+          DataAttribute('open', ''),
+          Style({ position: 'relative', zIndex: '1' }),
+        ]
+      : []),
     ...(buttonClassName ? [Class(buttonClassName)] : []),
     ...buttonAttributes,
   ]

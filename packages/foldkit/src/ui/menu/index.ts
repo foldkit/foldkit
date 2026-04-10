@@ -1,6 +1,7 @@
 import {
   Array,
   Effect,
+  Equal,
   Match as M,
   Option,
   Predicate,
@@ -19,7 +20,19 @@ import { anchorHooks } from '../anchor'
 import type { AnchorConfig } from '../anchor'
 import { groupContiguous } from '../group'
 import { findFirstEnabledIndex, isPrintableKey, keyToIndex } from '../keyboard'
-import { TransitionState } from '../transition'
+// NOTE: Transition imports are split across schema + update to avoid a circular
+// dependency: transition → html → runtime → devtools → menu → transition.
+// The barrel (../transition) imports from html, which starts the cycle.
+import {
+  EndedTransition as TransitionEndedTransition,
+  Hidden as TransitionHidden,
+  Message as TransitionMessage,
+  Model as TransitionModel,
+  type OutMessage as TransitionOutMessage,
+  Showed as TransitionShowed,
+  init as transitionInit,
+} from '../transition/schema'
+import { update as transitionUpdate } from '../transition/update'
 import { resolveTypeaheadMatch } from '../typeahead'
 
 // MODEL
@@ -40,7 +53,7 @@ export const Model = S.Struct({
   isOpen: S.Boolean,
   isAnimated: S.Boolean,
   isModal: S.Boolean,
-  transitionState: TransitionState,
+  transition: TransitionModel,
   maybeActiveItemIndex: S.OptionFromSelf(S.Number),
   activationTrigger: ActivationTrigger,
   searchQuery: S.String,
@@ -112,12 +125,10 @@ export const CompletedAdvanceFocus = m('CompletedAdvanceFocus')
 export const IgnoredMouseClick = m('IgnoredMouseClick')
 /** Sent when a Space key-up is captured to prevent page scrolling. */
 export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
-/** Sent internally when a double-rAF completes, advancing the transition to its animating phase. */
-export const AdvancedTransitionFrame = m('AdvancedTransitionFrame')
-/** Sent internally when all CSS transitions on the menu items container have completed. */
-export const EndedTransition = m('EndedTransition')
-/** Sent internally when the menu button moves in the viewport during a leave transition, cancelling the animation. */
-export const DetectedButtonMovement = m('DetectedButtonMovement')
+/** Wraps a Transition submodel message for delegation. */
+export const GotTransitionMessage = m('GotTransitionMessage', {
+  message: TransitionMessage,
+})
 /** Sent when the user presses a pointer device on the menu button. Records pointer type and toggles for mouse. */
 export const PressedPointerOnButton = m('PressedPointerOnButton', {
   pointerType: S.String,
@@ -157,9 +168,7 @@ export const Message: S.Union<
     typeof CompletedAdvanceFocus,
     typeof IgnoredMouseClick,
     typeof SuppressedSpaceScroll,
-    typeof AdvancedTransitionFrame,
-    typeof EndedTransition,
-    typeof DetectedButtonMovement,
+    typeof GotTransitionMessage,
     typeof PressedPointerOnButton,
     typeof ReleasedPointerOnItems,
   ]
@@ -185,12 +194,12 @@ export const Message: S.Union<
   CompletedAdvanceFocus,
   IgnoredMouseClick,
   SuppressedSpaceScroll,
-  AdvancedTransitionFrame,
-  EndedTransition,
-  DetectedButtonMovement,
+  GotTransitionMessage,
   PressedPointerOnButton,
   ReleasedPointerOnItems,
 )
+
+export type Message = typeof Message.Type
 
 export type Opened = typeof Opened.Type
 export type Closed = typeof Closed.Type
@@ -204,13 +213,8 @@ export type Searched = typeof Searched.Type
 export type ClearedSearch = typeof ClearedSearch.Type
 export type IgnoredMouseClick = typeof IgnoredMouseClick.Type
 export type SuppressedSpaceScroll = typeof SuppressedSpaceScroll.Type
-export type AdvancedTransitionFrame = typeof AdvancedTransitionFrame.Type
-export type EndedTransition = typeof EndedTransition.Type
-export type DetectedButtonMovement = typeof DetectedButtonMovement.Type
 export type PressedPointerOnButton = typeof PressedPointerOnButton.Type
 export type ReleasedPointerOnItems = typeof ReleasedPointerOnItems.Type
-
-export type Message = typeof Message.Type
 
 // INIT
 
@@ -232,7 +236,7 @@ export const init = (config: InitConfig): Model => ({
   isOpen: false,
   isAnimated: config.isAnimated ?? false,
   isModal: config.isModal ?? false,
-  transitionState: 'Idle',
+  transition: transitionInit({ id: `${config.id}-items` }),
   maybeActiveItemIndex: Option.none(),
   activationTrigger: 'Keyboard',
   searchQuery: '',
@@ -247,7 +251,6 @@ export const init = (config: InitConfig): Model => ({
 const closedModel = (model: Model): Model =>
   evo(model, {
     isOpen: () => false,
-    transitionState: () => (model.isAnimated ? 'LeaveStart' : 'Idle'),
     maybeActiveItemIndex: () => Option.none(),
     searchQuery: () => '',
     searchVersion: () => 0,
@@ -264,11 +267,6 @@ const itemSelector = (id: string, index: number): string =>
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-/** Advances the menu's enter/leave transition by waiting a double-rAF. */
-export const RequestFrame = Command.define(
-  'RequestFrame',
-  AdvancedTransitionFrame,
-)
 /** Prevents page scrolling while the menu is open. */
 export const LockScroll = Command.define('LockScroll', CompletedLockScroll)
 /** Re-enables page scrolling after the menu closes. */
@@ -299,25 +297,60 @@ export const DelayClearSearch = Command.define(
   'DelayClearSearch',
   ClearedSearch,
 )
-/** Waits for all CSS transitions on the menu items container to complete. */
-export const WaitForTransitions = Command.define(
-  'WaitForTransitions',
-  EndedTransition,
-)
-/** Detects whether the menu button moved or the leave transition ended — whichever comes first. */
+/** Detects whether the menu button moved or the leave transition ended — whichever comes first. Both outcomes signal the Transition submodel that leave is complete. */
 export const DetectMovementOrTransitionEnd = Command.define(
   'DetectMovementOrTransitionEnd',
-  DetectedButtonMovement,
-  EndedTransition,
+  GotTransitionMessage,
 )
+
+const delegateToTransition = (
+  model: Model,
+  transitionMessage: TransitionMessage,
+): UpdateReturn => {
+  const [nextTransition, transitionCommands, maybeOutMessage] =
+    transitionUpdate(model.transition, transitionMessage)
+
+  const mappedCommands = transitionCommands.map(
+    Command.mapEffect(Effect.map(message => GotTransitionMessage({ message }))),
+  )
+
+  const additionalCommands = Option.match(maybeOutMessage, {
+    onNone: () => [],
+    onSome: M.type<TransitionOutMessage>().pipe(
+      M.tagsExhaustive({
+        StartedLeaveAnimating: () => [
+          DetectMovementOrTransitionEnd(
+            Effect.raceFirst(
+              Task.detectElementMovement(buttonSelector(model.id)).pipe(
+                Effect.as(
+                  GotTransitionMessage({
+                    message: TransitionEndedTransition(),
+                  }),
+                ),
+              ),
+              Task.waitForTransitions(itemsSelector(model.id)).pipe(
+                Effect.as(
+                  GotTransitionMessage({
+                    message: TransitionEndedTransition(),
+                  }),
+                ),
+              ),
+            ),
+          ),
+        ],
+        TransitionedOut: () => [],
+      }),
+    ),
+  })
+
+  return [
+    evo(model, { transition: () => nextTransition }),
+    [...mappedCommands, ...additionalCommands],
+  ]
+}
 
 /** Processes a menu message and returns the next model and commands. */
 export const update = (model: Model, message: Message): UpdateReturn => {
-  const maybeNextFrame = OptionExt.when(
-    model.isAnimated,
-    RequestFrame(Task.nextFrame.pipe(Effect.as(AdvancedTransitionFrame()))),
-  )
-
   const maybeLockScroll = OptionExt.when(
     model.isModal,
     LockScroll(Task.lockScroll.pipe(Effect.as(CompletedLockScroll()))),
@@ -345,63 +378,96 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     ),
   )
 
+  const focusItems = FocusItems(
+    Task.focus(itemsSelector(model.id)).pipe(
+      Effect.ignore,
+      Effect.as(CompletedFocusItems()),
+    ),
+  )
+
+  const focusButton = FocusButton(
+    Task.focus(buttonSelector(model.id)).pipe(
+      Effect.ignore,
+      Effect.as(CompletedFocusButton()),
+    ),
+  )
+
+  const openCommands = [
+    focusItems,
+    ...Array.getSomes([maybeLockScroll, maybeInertOthers]),
+  ]
+
+  const closeWithFocusCommands = [
+    focusButton,
+    ...Array.getSomes([maybeUnlockScroll, maybeRestoreInert]),
+  ]
+
+  const closeWithoutFocusCommands = Array.getSomes([
+    maybeUnlockScroll,
+    maybeRestoreInert,
+  ])
+
+  const openMenu = (baseModel: Model): UpdateReturn => {
+    if (model.isAnimated) {
+      const [nextModel, transitionCommands] = delegateToTransition(
+        baseModel,
+        TransitionShowed(),
+      )
+      return [
+        evo(nextModel, { isOpen: () => true }),
+        [...openCommands, ...transitionCommands],
+      ]
+    }
+
+    return [evo(baseModel, { isOpen: () => true }), openCommands]
+  }
+
+  const closeMenu = (
+    baseModel: Model,
+    commands: ReadonlyArray<Command.Command<Message>>,
+  ): UpdateReturn => {
+    const closed = closedModel(baseModel)
+
+    if (model.isAnimated) {
+      const [nextModel, transitionCommands] = delegateToTransition(
+        closed,
+        TransitionHidden(),
+      )
+      return [nextModel, [...commands, ...transitionCommands]]
+    }
+
+    return [closed, commands]
+  }
+
   return M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      Opened: ({ maybeActiveItemIndex }) => {
-        const nextModel = evo(model, {
-          isOpen: () => true,
-          transitionState: () => (model.isAnimated ? 'EnterStart' : 'Idle'),
-          maybeActiveItemIndex: () => maybeActiveItemIndex,
-          activationTrigger: () =>
-            Option.match(maybeActiveItemIndex, {
-              onNone: () => 'Pointer',
-              onSome: () => 'Keyboard',
-            }),
-          searchQuery: () => '',
-          searchVersion: () => 0,
-          maybeLastPointerPosition: () => Option.none(),
-        })
-
-        return [
-          nextModel,
-          pipe(
-            Array.getSomes([maybeNextFrame, maybeLockScroll, maybeInertOthers]),
-            Array.prepend(
-              FocusItems(
-                Task.focus(itemsSelector(model.id)).pipe(
-                  Effect.ignore,
-                  Effect.as(CompletedFocusItems()),
-                ),
-              ),
-            ),
-          ),
-        ]
-      },
-
-      Closed: () => [
-        closedModel(model),
-        pipe(
-          Array.getSomes([
-            maybeNextFrame,
-            maybeUnlockScroll,
-            maybeRestoreInert,
-          ]),
-          Array.prepend(
-            FocusButton(
-              Task.focus(buttonSelector(model.id)).pipe(
-                Effect.ignore,
-                Effect.as(CompletedFocusButton()),
-              ),
-            ),
-          ),
+      Opened: ({ maybeActiveItemIndex }) =>
+        openMenu(
+          evo(model, {
+            maybeActiveItemIndex: () => maybeActiveItemIndex,
+            activationTrigger: () =>
+              Option.match(maybeActiveItemIndex, {
+                onNone: () => 'Pointer',
+                onSome: () => 'Keyboard',
+              }),
+            searchQuery: () => '',
+            searchVersion: () => 0,
+            maybeLastPointerPosition: () => Option.none(),
+          }),
         ),
-      ],
 
-      ClosedByTab: () => [
-        closedModel(model),
-        Array.getSomes([maybeNextFrame, maybeUnlockScroll, maybeRestoreInert]),
-      ],
+      Closed: () => closeMenu(model, closeWithFocusCommands),
+
+      ClosedByTab: () => {
+        if (
+          Option.exists(model.maybeLastButtonPointerType, Equal.equals('mouse'))
+        ) {
+          return [model, []]
+        }
+
+        return closeMenu(model, closeWithoutFocusCommands)
+      },
 
       ActivatedItem: ({ index, activationTrigger }) => [
         evo(model, {
@@ -446,24 +512,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           ? [evo(model, { maybeActiveItemIndex: () => Option.none() }), []]
           : [model, []],
 
-      SelectedItem: () => [
-        closedModel(model),
-        pipe(
-          Array.getSomes([
-            maybeNextFrame,
-            maybeUnlockScroll,
-            maybeRestoreInert,
-          ]),
-          Array.prepend(
-            FocusButton(
-              Task.focus(buttonSelector(model.id)).pipe(
-                Effect.ignore,
-                Effect.as(CompletedFocusButton()),
-              ),
-            ),
-          ),
-        ),
-      ],
+      SelectedItem: () => closeMenu(model, closeWithFocusCommands),
 
       RequestedItemClick: ({ index }) => [
         model,
@@ -506,56 +555,8 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         return [evo(model, { searchQuery: () => '' }), []]
       },
 
-      AdvancedTransitionFrame: () =>
-        M.value(model.transitionState).pipe(
-          withUpdateReturn,
-          M.when('EnterStart', () => [
-            evo(model, { transitionState: () => 'EnterAnimating' }),
-            [
-              WaitForTransitions(
-                Task.waitForTransitions(itemsSelector(model.id)).pipe(
-                  Effect.as(EndedTransition()),
-                ),
-              ),
-            ],
-          ]),
-          M.when('LeaveStart', () => [
-            evo(model, { transitionState: () => 'LeaveAnimating' }),
-            [
-              DetectMovementOrTransitionEnd(
-                Effect.raceFirst(
-                  Task.detectElementMovement(buttonSelector(model.id)).pipe(
-                    Effect.as(DetectedButtonMovement()),
-                  ),
-                  Task.waitForTransitions(itemsSelector(model.id)).pipe(
-                    Effect.as(EndedTransition()),
-                  ),
-                ),
-              ),
-            ],
-          ]),
-          M.orElse(() => [model, []]),
-        ),
-
-      EndedTransition: () =>
-        M.value(model.transitionState).pipe(
-          withUpdateReturn,
-          M.whenOr('EnterAnimating', 'LeaveAnimating', () => [
-            evo(model, { transitionState: () => 'Idle' }),
-            [],
-          ]),
-          M.orElse(() => [model, []]),
-        ),
-
-      DetectedButtonMovement: () =>
-        M.value(model.transitionState).pipe(
-          withUpdateReturn,
-          M.when('LeaveAnimating', () => [
-            evo(model, { transitionState: () => 'Idle' }),
-            [],
-          ]),
-          M.orElse(() => [model, []]),
-        ),
+      GotTransitionMessage: ({ message: transitionMessage }) =>
+        delegateToTransition(model, transitionMessage),
 
       PressedPointerOnButton: ({
         pointerType,
@@ -573,52 +574,29 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         }
 
         if (model.isOpen) {
+          const [closed, commands] = closeMenu(
+            withPointerType,
+            closeWithFocusCommands,
+          )
           return [
-            closedModel(withPointerType),
-            pipe(
-              Array.getSomes([
-                maybeNextFrame,
-                maybeUnlockScroll,
-                maybeRestoreInert,
-              ]),
-              Array.prepend(
-                FocusButton(
-                  Task.focus(buttonSelector(model.id)).pipe(
-                    Effect.ignore,
-                    Effect.as(CompletedFocusButton()),
-                  ),
-                ),
-              ),
-            ),
+            evo(closed, {
+              maybeLastButtonPointerType: () => Option.some(pointerType),
+            }),
+            commands,
           ]
         }
 
-        const nextModel = evo(withPointerType, {
-          isOpen: () => true,
-          transitionState: () => (model.isAnimated ? 'EnterStart' : 'Idle'),
-          maybeActiveItemIndex: () => Option.none(),
-          activationTrigger: () => 'Pointer',
-          searchQuery: () => '',
-          searchVersion: () => 0,
-          maybeLastPointerPosition: () => Option.none(),
-          maybePointerOrigin: () =>
-            Option.some({ screenX, screenY, timeStamp }),
-        })
-
-        return [
-          nextModel,
-          pipe(
-            Array.getSomes([maybeNextFrame, maybeLockScroll, maybeInertOthers]),
-            Array.prepend(
-              FocusItems(
-                Task.focus(itemsSelector(model.id)).pipe(
-                  Effect.ignore,
-                  Effect.as(CompletedFocusItems()),
-                ),
-              ),
-            ),
-          ),
-        ]
+        return openMenu(
+          evo(withPointerType, {
+            maybeActiveItemIndex: () => Option.none(),
+            activationTrigger: () => 'Pointer',
+            searchQuery: () => '',
+            searchVersion: () => 0,
+            maybeLastPointerPosition: () => Option.none(),
+            maybePointerOrigin: () =>
+              Option.some({ screenX, screenY, timeStamp }),
+          }),
+        )
       },
 
       ReleasedPointerOnItems: ({ screenX, screenY, timeStamp }) => {
@@ -671,7 +649,10 @@ export const update = (model: Model, message: Message): UpdateReturn => {
       CompletedScrollIntoView: () => [model, []],
       CompletedClickItem: () => [model, []],
       CompletedAdvanceFocus: () => [model, []],
-      IgnoredMouseClick: () => [model, []],
+      IgnoredMouseClick: () => [
+        evo(model, { maybeLastButtonPointerType: () => Option.none() }),
+        [],
+      ],
       SuppressedSpaceScroll: () => [model, []],
     }),
   )
@@ -787,7 +768,7 @@ export const view = <Message, Item extends string>(
     model: {
       id,
       isOpen,
-      transitionState,
+      transition: { transitionState },
       maybeActiveItemIndex,
       searchQuery,
       maybeLastButtonPointerType,
@@ -1018,7 +999,12 @@ export const view = <Message, Item extends string>(
           OnKeyUpPreventDefault(handleSpaceKeyUp),
           OnClick(handleButtonClick()),
         ]),
-    ...(isVisible ? [DataAttribute('open', '')] : []),
+    ...(isVisible
+      ? [
+          DataAttribute('open', ''),
+          Style({ position: 'relative', zIndex: '1' }),
+        ]
+      : []),
     ...(buttonClassName ? [Class(buttonClassName)] : []),
     ...buttonAttributes,
   ]

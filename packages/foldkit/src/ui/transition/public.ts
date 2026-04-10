@@ -3,6 +3,7 @@ export {
   update,
   view,
   lazy,
+  defaultLeaveCommand,
   Model,
   Message,
   OutMessage,
@@ -10,7 +11,9 @@ export {
   Hidden,
   AdvancedTransitionFrame,
   EndedTransition,
+  StartedLeaveAnimating,
   TransitionedOut,
+  TransitionState,
   RequestFrame,
   WaitForTransitions,
 } from './index'

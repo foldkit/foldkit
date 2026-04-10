@@ -4,9 +4,9 @@ import { expect } from 'vitest'
 
 import * as Scene from '../../test/scene'
 import * as Story from '../../test/story'
+import * as Transition from '../transition'
 import {
   ActivatedItem,
-  AdvancedTransitionFrame,
   ClearedSearch,
   ClickItem,
   Closed,
@@ -22,17 +22,15 @@ import {
   DeactivatedItem,
   DelayClearSearch,
   DetectMovementOrTransitionEnd,
-  DetectedButtonMovement,
-  EndedTransition,
   FocusButton,
   FocusItems,
+  GotTransitionMessage,
   IgnoredMouseClick,
   InertOthers,
   LockScroll,
   MovedPointerOverItem,
   Opened,
   PressedPointerOnButton,
-  RequestFrame,
   RequestedItemClick,
   RestoreInert,
   ScrollIntoView,
@@ -40,11 +38,17 @@ import {
   SelectedItem,
   SuppressedSpaceScroll,
   UnlockScroll,
-  WaitForTransitions,
 } from './shared'
 import type { Message } from './shared'
 import { init, update, view } from './single'
 import type { Model, ViewConfig } from './single'
+
+const transitionToListboxMessage = (message: Transition.Message) =>
+  GotTransitionMessage({ message })
+
+const transitionEndMessage = GotTransitionMessage({
+  message: Transition.EndedTransition(),
+})
 
 const STALE_CLEAR_SEARCH_VERSION = 9999
 
@@ -63,9 +67,16 @@ const withOpenAnimated = flow(
   Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
   Story.resolveAll(
     [FocusItems, CompletedFocusItems()],
-    [RequestFrame, AdvancedTransitionFrame()],
-    [WaitForTransitions, EndedTransition()],
-    [DetectMovementOrTransitionEnd, EndedTransition()],
+    [
+      Transition.RequestFrame,
+      Transition.AdvancedTransitionFrame(),
+      transitionToListboxMessage,
+    ],
+    [
+      Transition.WaitForTransitions,
+      Transition.EndedTransition(),
+      transitionToListboxMessage,
+    ],
   ),
 )
 
@@ -78,7 +89,7 @@ describe('Listbox', () => {
         isAnimated: false,
         isModal: false,
         orientation: 'Vertical',
-        transitionState: 'Idle',
+        transition: Transition.init({ id: 'test-listbox' }),
         maybeActiveItemIndex: Option.none(),
         activationTrigger: 'Keyboard',
         searchQuery: '',
@@ -92,7 +103,7 @@ describe('Listbox', () => {
     it('accepts isAnimated option', () => {
       const model = init({ id: 'test', isAnimated: true })
       expect(model.isAnimated).toBe(true)
-      expect(model.transitionState).toBe('Idle')
+      expect(model.transition.transitionState).toBe('Idle')
     })
 
     it('defaults isModal to false', () => {
@@ -291,7 +302,7 @@ describe('Listbox', () => {
         )
       })
 
-      it('closes the listbox on mouse left button when open', () => {
+      it('closes the listbox on mouse left button when open and preserves pointer type', () => {
         Story.story(
           update,
           withOpen,
@@ -762,13 +773,25 @@ describe('Listbox', () => {
         )
       })
 
-      it('returns model unchanged for IgnoredMouseClick', () => {
+      it('resets maybeLastButtonPointerType for IgnoredMouseClick', () => {
         Story.story(
           update,
           withOpen,
+          Story.message(
+            PressedPointerOnButton({ pointerType: 'mouse', button: 0 }),
+          ),
+          Story.resolve(FocusButton, CompletedFocusButton()),
+          Story.model(model => {
+            expect(model.maybeLastButtonPointerType).toStrictEqual(
+              Option.some('mouse'),
+            )
+          }),
           Story.message(IgnoredMouseClick()),
           Story.model(model => {
-            expect(model.isOpen).toBe(true)
+            expect(model.isOpen).toBe(false)
+            expect(model.maybeLastButtonPointerType).toStrictEqual(
+              Option.none(),
+            )
           }),
         )
       })
@@ -794,47 +817,68 @@ describe('Listbox', () => {
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.model(model => {
               expect(model.isOpen).toBe(true)
-              expect(model.transitionState).toBe('EnterStart')
+              expect(model.transition.transitionState).toBe('EnterStart')
             }),
             Story.resolveAll(
               [FocusItems, CompletedFocusItems()],
-              [RequestFrame, AdvancedTransitionFrame()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.RequestFrame,
+                Transition.AdvancedTransitionFrame(),
+                transitionToListboxMessage,
+              ],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToListboxMessage,
+              ],
             ),
           )
         })
 
-        it('advances EnterStart to EnterAnimating on AdvancedTransitionFrame', () => {
+        it('advances EnterStart to EnterAnimating on GotTransitionMessage(AdvancedTransitionFrame)', () => {
           Story.story(
             update,
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-            Story.resolve(RequestFrame, AdvancedTransitionFrame()),
+            Story.resolve(
+              Transition.RequestFrame,
+              Transition.AdvancedTransitionFrame(),
+              transitionToListboxMessage,
+            ),
             Story.model(model => {
-              expect(model.transitionState).toBe('EnterAnimating')
+              expect(model.transition.transitionState).toBe('EnterAnimating')
             }),
             Story.resolveAll(
               [FocusItems, CompletedFocusItems()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToListboxMessage,
+              ],
             ),
           )
         })
 
-        it('completes EnterAnimating to Idle on EndedTransition', () => {
+        it('completes EnterAnimating to Idle on GotTransitionMessage(EndedTransition)', () => {
           Story.story(
             update,
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.resolveAll(
               [FocusItems, CompletedFocusItems()],
-              [RequestFrame, AdvancedTransitionFrame()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.RequestFrame,
+                Transition.AdvancedTransitionFrame(),
+                transitionToListboxMessage,
+              ],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToListboxMessage,
+              ],
             ),
             Story.model(model => {
-              expect(model.transitionState).toBe('Idle')
+              expect(model.transition.transitionState).toBe('Idle')
             }),
           )
         })
@@ -848,13 +892,21 @@ describe('Listbox', () => {
             Story.message(Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
-              expect(model.transitionState).toBe('LeaveStart')
+              expect(model.transition.transitionState).toBe('LeaveStart')
             }),
             Story.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [RequestFrame, AdvancedTransitionFrame()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.RequestFrame,
+                Transition.AdvancedTransitionFrame(),
+                transitionToListboxMessage,
+              ],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToListboxMessage,
+              ],
+              [DetectMovementOrTransitionEnd, transitionEndMessage],
             ),
           )
         })
@@ -866,12 +918,20 @@ describe('Listbox', () => {
             Story.message(ClosedByTab()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
-              expect(model.transitionState).toBe('LeaveStart')
+              expect(model.transition.transitionState).toBe('LeaveStart')
             }),
             Story.resolveAll(
-              [RequestFrame, AdvancedTransitionFrame()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.RequestFrame,
+                Transition.AdvancedTransitionFrame(),
+                transitionToListboxMessage,
+              ],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToListboxMessage,
+              ],
+              [DetectMovementOrTransitionEnd, transitionEndMessage],
             ),
           )
         })
@@ -883,47 +943,71 @@ describe('Listbox', () => {
             Story.message(SelectedItem({ item: 'apple' })),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
-              expect(model.transitionState).toBe('LeaveStart')
+              expect(model.transition.transitionState).toBe('LeaveStart')
             }),
             Story.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [RequestFrame, AdvancedTransitionFrame()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.RequestFrame,
+                Transition.AdvancedTransitionFrame(),
+                transitionToListboxMessage,
+              ],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToListboxMessage,
+              ],
+              [DetectMovementOrTransitionEnd, transitionEndMessage],
             ),
           )
         })
 
-        it('advances LeaveStart to LeaveAnimating on AdvancedTransitionFrame', () => {
+        it('advances LeaveStart to LeaveAnimating on GotTransitionMessage(AdvancedTransitionFrame)', () => {
           Story.story(
             update,
             withOpenAnimated,
             Story.message(Closed()),
-            Story.resolve(RequestFrame, AdvancedTransitionFrame()),
+            Story.resolve(
+              Transition.RequestFrame,
+              Transition.AdvancedTransitionFrame(),
+              transitionToListboxMessage,
+            ),
             Story.model(model => {
-              expect(model.transitionState).toBe('LeaveAnimating')
+              expect(model.transition.transitionState).toBe('LeaveAnimating')
             }),
             Story.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToListboxMessage,
+              ],
+              [DetectMovementOrTransitionEnd, transitionEndMessage],
             ),
           )
         })
 
-        it('completes LeaveAnimating to Idle on EndedTransition', () => {
+        it('completes LeaveAnimating to Idle on GotTransitionMessage(EndedTransition)', () => {
           Story.story(
             update,
             withOpenAnimated,
             Story.message(Closed()),
             Story.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [RequestFrame, AdvancedTransitionFrame()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.RequestFrame,
+                Transition.AdvancedTransitionFrame(),
+                transitionToListboxMessage,
+              ],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToListboxMessage,
+              ],
+              [DetectMovementOrTransitionEnd, transitionEndMessage],
             ),
             Story.model(model => {
-              expect(model.transitionState).toBe('Idle')
+              expect(model.transition.transitionState).toBe('Idle')
             }),
           )
         })
@@ -937,7 +1021,7 @@ describe('Listbox', () => {
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.resolve(FocusItems, CompletedFocusItems()),
             Story.model(model => {
-              expect(model.transitionState).toBe('Idle')
+              expect(model.transition.transitionState).toBe('Idle')
             }),
           )
         })
@@ -949,33 +1033,37 @@ describe('Listbox', () => {
             Story.message(Closed()),
             Story.resolve(FocusButton, CompletedFocusButton()),
             Story.model(model => {
-              expect(model.transitionState).toBe('Idle')
+              expect(model.transition.transitionState).toBe('Idle')
             }),
           )
         })
       })
 
       describe('stale messages', () => {
-        it('ignores AdvancedTransitionFrame when Idle', () => {
+        it('ignores GotTransitionMessage with AdvancedTransitionFrame when Idle', () => {
           Story.story(
             update,
             withOpen,
-            Story.message(AdvancedTransitionFrame()),
+            Story.message(
+              GotTransitionMessage({
+                message: Transition.AdvancedTransitionFrame(),
+              }),
+            ),
             Story.model(model => {
               expect(model.isOpen).toBe(true)
-              expect(model.transitionState).toBe('Idle')
+              expect(model.transition.transitionState).toBe('Idle')
             }),
           )
         })
 
-        it('ignores EndedTransition when Idle', () => {
+        it('ignores GotTransitionMessage with EndedTransition when Idle', () => {
           Story.story(
             update,
             withOpen,
-            Story.message(EndedTransition()),
+            Story.message(transitionEndMessage),
             Story.model(model => {
               expect(model.isOpen).toBe(true)
-              expect(model.transitionState).toBe('Idle')
+              expect(model.transition.transitionState).toBe('Idle')
             }),
           )
         })
@@ -989,20 +1077,35 @@ describe('Listbox', () => {
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.resolveAll(
               [FocusItems, CompletedFocusItems()],
-              [RequestFrame, AdvancedTransitionFrame()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.RequestFrame,
+                Transition.AdvancedTransitionFrame(),
+                transitionToListboxMessage,
+              ],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToListboxMessage,
+              ],
             ),
             Story.message(Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
-              expect(model.transitionState).toBe('LeaveStart')
+              expect(model.transition.transitionState).toBe('LeaveStart')
             }),
             Story.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [RequestFrame, AdvancedTransitionFrame()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.RequestFrame,
+                Transition.AdvancedTransitionFrame(),
+                transitionToListboxMessage,
+              ],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToListboxMessage,
+              ],
+              [DetectMovementOrTransitionEnd, transitionEndMessage],
             ),
           )
         })
@@ -1014,65 +1117,36 @@ describe('Listbox', () => {
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.resolveAll(
               [FocusItems, CompletedFocusItems()],
-              [RequestFrame, AdvancedTransitionFrame()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.RequestFrame,
+                Transition.AdvancedTransitionFrame(),
+                transitionToListboxMessage,
+              ],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToListboxMessage,
+              ],
             ),
             Story.message(Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
-              expect(model.transitionState).toBe('LeaveStart')
+              expect(model.transition.transitionState).toBe('LeaveStart')
             }),
             Story.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [RequestFrame, AdvancedTransitionFrame()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.RequestFrame,
+                Transition.AdvancedTransitionFrame(),
+                transitionToListboxMessage,
+              ],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToListboxMessage,
+              ],
+              [DetectMovementOrTransitionEnd, transitionEndMessage],
             ),
-          )
-        })
-      })
-
-      describe('DetectedButtonMovement', () => {
-        it('cancels leave animation by setting transitionState to Idle', () => {
-          Story.story(
-            update,
-            Story.with({
-              ...init({ id: 'test', isAnimated: true }),
-              isOpen: false,
-              transitionState: 'LeaveAnimating' as const,
-            }),
-            Story.message(DetectedButtonMovement()),
-            Story.model(model => {
-              expect(model.transitionState).toBe('Idle')
-            }),
-          )
-        })
-
-        it('is a no-op during Idle', () => {
-          Story.story(
-            update,
-            withOpen,
-            Story.message(DetectedButtonMovement()),
-            Story.model(model => {
-              expect(model.isOpen).toBe(true)
-              expect(model.transitionState).toBe('Idle')
-            }),
-          )
-        })
-
-        it('is a no-op during EnterAnimating', () => {
-          Story.story(
-            update,
-            Story.with({
-              ...init({ id: 'test', isAnimated: true }),
-              isOpen: true,
-              transitionState: 'EnterAnimating' as const,
-            }),
-            Story.message(DetectedButtonMovement()),
-            Story.model(model => {
-              expect(model.transitionState).toBe('EnterAnimating')
-            }),
           )
         })
       })
@@ -1374,22 +1448,24 @@ describe('Listbox', () => {
           ...openModel(),
           maybeSelectedItem: Option.some('Apple'),
         }
-        const contexts: Array<{
-          isActive: boolean
-          isDisabled: boolean
-          isSelected: boolean
-        }> = []
+        const contexts: Array<
+          Readonly<{
+            isActive: boolean
+            isDisabled: boolean
+            isSelected: boolean
+          }>
+        > = []
         Scene.scene(
           {
             update,
             view: sceneView({
               itemToConfig: (
                 _item: string,
-                context: {
+                context: Readonly<{
                   isActive: boolean
                   isDisabled: boolean
                   isSelected: boolean
-                },
+                }>,
               ) => {
                 contexts.push(context)
                 return { content: Effect.succeed(null) }
@@ -1408,22 +1484,24 @@ describe('Listbox', () => {
           ...openModel(),
           maybeSelectedItem: Option.some('Apple'),
         }
-        const contexts: Array<{
-          isActive: boolean
-          isDisabled: boolean
-          isSelected: boolean
-        }> = []
+        const contexts: Array<
+          Readonly<{
+            isActive: boolean
+            isDisabled: boolean
+            isSelected: boolean
+          }>
+        > = []
         Scene.scene(
           {
             update,
             view: sceneView({
               itemToConfig: (
                 _item: string,
-                context: {
+                context: Readonly<{
                   isActive: boolean
                   isDisabled: boolean
                   isSelected: boolean
-                },
+                }>,
               ) => {
                 contexts.push(context)
                 return { content: Effect.succeed(null) }

@@ -12,12 +12,9 @@ export {
   Closed,
   CompletedShowDialog,
   CompletedCloseDialog,
-  AdvancedTransitionFrame,
-  EndedTransition,
-  RequestFrame,
+  GotTransitionMessage,
   ShowDialog,
   CloseDialog,
-  WaitForTransitions,
 } from './index'
 
 export type { InitConfig, ViewConfig } from './index'

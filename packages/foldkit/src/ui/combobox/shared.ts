@@ -18,7 +18,19 @@ import { anchorHooks } from '../anchor'
 import type { AnchorConfig } from '../anchor'
 import { groupContiguous } from '../group'
 import { findFirstEnabledIndex, keyToIndex } from '../keyboard'
-import { TransitionState } from '../transition'
+// NOTE: Transition imports are split across schema + update to avoid a circular
+// dependency: transition → html → runtime → devtools → combobox → transition.
+// The barrel (../transition) imports from html, which starts the cycle.
+import {
+  EndedTransition as TransitionEndedTransition,
+  Hidden as TransitionHidden,
+  Message as TransitionMessage,
+  Model as TransitionModel,
+  type OutMessage as TransitionOutMessage,
+  Showed as TransitionShowed,
+  init as transitionInit,
+} from '../transition/schema'
+import { update as transitionUpdate } from '../transition/update'
 
 export { groupContiguous }
 
@@ -37,7 +49,7 @@ export const BaseModel = S.Struct({
   nullable: S.Boolean,
   immediate: S.Boolean,
   selectInputOnFocus: S.Boolean,
-  transitionState: TransitionState,
+  transition: TransitionModel,
   maybeActiveItemIndex: S.OptionFromSelf(S.Number),
   activationTrigger: ActivationTrigger,
   inputValue: S.String,
@@ -66,7 +78,7 @@ export const baseInit = (config: BaseInitConfig): BaseModel => ({
   nullable: config.nullable ?? false,
   immediate: config.immediate ?? false,
   selectInputOnFocus: config.selectInputOnFocus ?? false,
-  transitionState: 'Idle',
+  transition: transitionInit({ id: `${config.id}-items` }),
   maybeActiveItemIndex: Option.none(),
   activationTrigger: 'Keyboard',
   inputValue: '',
@@ -122,12 +134,10 @@ export const CompletedFocusInput = m('CompletedFocusInput')
 export const CompletedScrollIntoView = m('CompletedScrollIntoView')
 /** Sent when the programmatic item click command completes. */
 export const CompletedClickItem = m('CompletedClickItem')
-/** Sent internally when a double-rAF completes, advancing the transition to its animating phase. */
-export const AdvancedTransitionFrame = m('AdvancedTransitionFrame')
-/** Sent internally when all CSS transitions on the items container have completed. */
-export const EndedTransition = m('EndedTransition')
-/** Sent internally when the input wrapper moves in the viewport during a leave transition, cancelling the animation. */
-export const DetectedInputMovement = m('DetectedInputMovement')
+/** Wraps a Transition submodel message for delegation. */
+export const GotTransitionMessage = m('GotTransitionMessage', {
+  message: TransitionMessage,
+})
 /** Sent when the user types in the input. */
 export const UpdatedInputValue = m('UpdatedInputValue', {
   value: S.String,
@@ -153,9 +163,7 @@ export const Message: S.Union<
     typeof CompletedFocusInput,
     typeof CompletedScrollIntoView,
     typeof CompletedClickItem,
-    typeof AdvancedTransitionFrame,
-    typeof EndedTransition,
-    typeof DetectedInputMovement,
+    typeof GotTransitionMessage,
     typeof UpdatedInputValue,
     typeof PressedToggleButton,
   ]
@@ -175,9 +183,7 @@ export const Message: S.Union<
   CompletedFocusInput,
   CompletedScrollIntoView,
   CompletedClickItem,
-  AdvancedTransitionFrame,
-  EndedTransition,
-  DetectedInputMovement,
+  GotTransitionMessage,
   UpdatedInputValue,
   PressedToggleButton,
 )
@@ -197,9 +203,6 @@ export type CompletedTeardownInert = typeof CompletedTeardownInert.Type
 export type CompletedFocusInput = typeof CompletedFocusInput.Type
 export type CompletedScrollIntoView = typeof CompletedScrollIntoView.Type
 export type CompletedClickItem = typeof CompletedClickItem.Type
-export type AdvancedTransitionFrame = typeof AdvancedTransitionFrame.Type
-export type EndedTransition = typeof EndedTransition.Type
-export type DetectedInputMovement = typeof DetectedInputMovement.Type
 export type UpdatedInputValue = typeof UpdatedInputValue.Type
 export type PressedToggleButton = typeof PressedToggleButton.Type
 
@@ -224,8 +227,6 @@ const constrainedEvo = makeConstrainedEvo<BaseModel>()
 export const closedBaseModel = <Model extends BaseModel>(model: Model): Model =>
   constrainedEvo(model, {
     isOpen: () => false,
-    transitionState: () =>
-      model.isAnimated ? ('LeaveStart' as const) : ('Idle' as const),
     maybeActiveItemIndex: () => Option.none(),
     activationTrigger: () => 'Keyboard' as const,
     maybeLastPointerPosition: () => Option.none(),
@@ -236,17 +237,10 @@ export const closedBaseModel = <Model extends BaseModel>(model: Model): Model =>
 /** Context passed to the `handleSelectedItem` handler with commands for focus management and modal cleanup. */
 export type SelectedItemContext = Readonly<{
   focusInput: Command.Command<Message>
-  maybeNextFrame: Option.Option<Command.Command<Message>>
   maybeUnlockScroll: Option.Option<Command.Command<Message>>
   maybeRestoreInert: Option.Option<Command.Command<Message>>
 }>
 
-/** Creates a combobox update function from variant-specific handlers. Shared logic (open, close, activate, transition) is handled internally; only close, selection, and immediate-activation behavior varies by variant. */
-/** Advances the combobox's enter/leave transition by waiting a double-rAF. */
-export const RequestFrame = Command.define(
-  'RequestFrame',
-  AdvancedTransitionFrame,
-)
 /** Prevents page scrolling while the combobox popup is open in modal mode. */
 export const LockScroll = Command.define('LockScroll', CompletedLockScroll)
 /** Re-enables page scrolling after the combobox popup closes. */
@@ -270,18 +264,59 @@ export const ScrollIntoView = Command.define(
 )
 /** Programmatically clicks the active combobox item's DOM element. */
 export const ClickItem = Command.define('ClickItem', CompletedClickItem)
-/** Waits for all CSS transitions on the combobox items container to complete. */
-export const WaitForTransitions = Command.define(
-  'WaitForTransitions',
-  EndedTransition,
-)
-/** Detects whether the combobox input moved or the leave transition ended — whichever comes first. */
+/** Detects whether the combobox input wrapper moved or the leave transition ended — whichever comes first. Both outcomes signal the Transition submodel that leave is complete. */
 export const DetectMovementOrTransitionEnd = Command.define(
   'DetectMovementOrTransitionEnd',
-  DetectedInputMovement,
-  EndedTransition,
+  GotTransitionMessage,
 )
 
+const delegateToTransition = <Model extends BaseModel>(
+  model: Model,
+  transitionMessage: TransitionMessage,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
+  const [nextTransition, transitionCommands, maybeOutMessage] =
+    transitionUpdate(model.transition, transitionMessage)
+
+  const mappedCommands = transitionCommands.map(
+    Command.mapEffect(Effect.map(message => GotTransitionMessage({ message }))),
+  )
+
+  const additionalCommands = Option.match(maybeOutMessage, {
+    onNone: () => [],
+    onSome: M.type<TransitionOutMessage>().pipe(
+      M.tagsExhaustive({
+        StartedLeaveAnimating: () => [
+          DetectMovementOrTransitionEnd(
+            Effect.raceFirst(
+              Task.detectElementMovement(inputWrapperSelector(model.id)).pipe(
+                Effect.as(
+                  GotTransitionMessage({
+                    message: TransitionEndedTransition(),
+                  }),
+                ),
+              ),
+              Task.waitForTransitions(itemsSelector(model.id)).pipe(
+                Effect.as(
+                  GotTransitionMessage({
+                    message: TransitionEndedTransition(),
+                  }),
+                ),
+              ),
+            ),
+          ),
+        ],
+        TransitionedOut: () => [],
+      }),
+    ),
+  })
+
+  return [
+    constrainedEvo(model, { transition: () => nextTransition }),
+    [...mappedCommands, ...additionalCommands],
+  ]
+}
+
+/** Creates a combobox update function from variant-specific handlers. Shared logic (open, close, activate, transition) is handled internally; only close, selection, and immediate-activation behavior varies by variant. */
 export const makeUpdate = <Model extends BaseModel>(
   handlers: Readonly<{
     handleClose: (model: Model) => Model
@@ -302,11 +337,6 @@ export const makeUpdate = <Model extends BaseModel>(
   const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
   return (model: Model, message: Message): UpdateReturn => {
-    const maybeNextFrame = OptionExt.when(
-      model.isAnimated,
-      RequestFrame(Task.nextFrame.pipe(Effect.as(AdvancedTransitionFrame()))),
-    )
-
     const maybeLockScroll = OptionExt.when(
       model.isModal,
       LockScroll(Task.lockScroll.pipe(Effect.as(CompletedLockScroll()))),
@@ -341,49 +371,63 @@ export const makeUpdate = <Model extends BaseModel>(
       ),
     )
 
+    const openCombobox = (baseModel: Model): UpdateReturn => {
+      if (model.isAnimated) {
+        const [nextModel, transitionCommands] = delegateToTransition(
+          baseModel,
+          TransitionShowed(),
+        )
+        return [
+          constrainedEvo(nextModel, { isOpen: () => true }),
+          [
+            ...Array.getSomes([maybeLockScroll, maybeInertOthers]),
+            ...transitionCommands,
+          ],
+        ]
+      }
+
+      return [
+        constrainedEvo(baseModel, { isOpen: () => true }),
+        Array.getSomes([maybeLockScroll, maybeInertOthers]),
+      ]
+    }
+
+    const closeCombobox = (
+      baseModel: Model,
+      commands: ReadonlyArray<Command.Command<Message>>,
+    ): UpdateReturn => {
+      const closed = handlers.handleClose(baseModel)
+
+      if (model.isAnimated) {
+        const [nextModel, transitionCommands] = delegateToTransition(
+          closed,
+          TransitionHidden(),
+        )
+        return [nextModel, [...commands, ...transitionCommands]]
+      }
+
+      return [closed, commands]
+    }
+
     return M.value(message).pipe(
       withUpdateReturn,
       M.tagsExhaustive({
-        Opened: ({ maybeActiveItemIndex }) => {
-          const nextModel = constrainedEvo(model, {
-            isOpen: () => true,
-            transitionState: () =>
-              model.isAnimated ? ('EnterStart' as const) : ('Idle' as const),
-            maybeActiveItemIndex: () => maybeActiveItemIndex,
-            activationTrigger: () =>
-              Option.match(maybeActiveItemIndex, {
-                onNone: () => 'Pointer' as const,
-                onSome: () => 'Keyboard' as const,
-              }),
-            maybeLastPointerPosition: () => Option.none(),
-          })
-
-          return [
-            nextModel,
-            Array.getSomes([maybeNextFrame, maybeLockScroll, maybeInertOthers]),
-          ]
-        },
-
-        Closed: () => [
-          handlers.handleClose(model),
-          pipe(
-            Array.getSomes([
-              maybeNextFrame,
-              maybeUnlockScroll,
-              maybeRestoreInert,
-            ]),
-            Array.prepend(focusInput),
+        Opened: ({ maybeActiveItemIndex }) =>
+          openCombobox(
+            constrainedEvo(model, {
+              maybeActiveItemIndex: () => maybeActiveItemIndex,
+              activationTrigger: () =>
+                Option.match(maybeActiveItemIndex, {
+                  onNone: () => 'Pointer' as const,
+                  onSome: () => 'Keyboard' as const,
+                }),
+              maybeLastPointerPosition: () => Option.none(),
+            }),
           ),
-        ],
 
-        ClosedByTab: () => [
-          handlers.handleClose(model),
-          Array.getSomes([
-            maybeNextFrame,
-            maybeUnlockScroll,
-            maybeRestoreInert,
-          ]),
-        ],
+        Closed: () => closeCombobox(model, [focusInput]),
+
+        ClosedByTab: () => closeCombobox(model, []),
 
         ActivatedItem: ({
           index,
@@ -451,13 +495,26 @@ export const makeUpdate = <Model extends BaseModel>(
               ]
             : [model, []],
 
-        SelectedItem: ({ item, displayText }) =>
-          handlers.handleSelectedItem(model, item, displayText, {
-            focusInput,
-            maybeNextFrame,
-            maybeUnlockScroll,
-            maybeRestoreInert,
-          }),
+        SelectedItem: ({ item, displayText }) => {
+          const [nextModel, commands] = handlers.handleSelectedItem(
+            model,
+            item,
+            displayText,
+            {
+              focusInput,
+              maybeUnlockScroll,
+              maybeRestoreInert,
+            },
+          )
+
+          if (model.isOpen && !nextModel.isOpen && model.isAnimated) {
+            const [transitionedModel, transitionCommands] =
+              delegateToTransition(nextModel, TransitionHidden())
+            return [transitionedModel, [...commands, ...transitionCommands]]
+          }
+
+          return [nextModel, commands]
+        },
 
         RequestedItemClick: ({ index }) => [
           model,
@@ -483,117 +540,34 @@ export const makeUpdate = <Model extends BaseModel>(
             ]
           }
 
-          const nextModel = constrainedEvo(model, {
-            isOpen: () => true,
-            transitionState: () =>
-              model.isAnimated ? ('EnterStart' as const) : ('Idle' as const),
-            inputValue: () => value,
-            maybeActiveItemIndex: () => Option.some(0),
-            activationTrigger: () => 'Keyboard' as const,
-            maybeLastPointerPosition: () => Option.none(),
-          })
-
-          return [
-            nextModel,
-            Array.getSomes([maybeNextFrame, maybeLockScroll, maybeInertOthers]),
-          ]
+          return openCombobox(
+            constrainedEvo(model, {
+              inputValue: () => value,
+              maybeActiveItemIndex: () => Option.some(0),
+              activationTrigger: () => 'Keyboard' as const,
+              maybeLastPointerPosition: () => Option.none(),
+            }),
+          )
         },
 
         PressedToggleButton: () => {
           if (model.isOpen) {
-            return [
-              handlers.handleClose(model),
-              pipe(
-                Array.getSomes([
-                  maybeNextFrame,
-                  maybeUnlockScroll,
-                  maybeRestoreInert,
-                ]),
-                Array.prepend(focusInput),
-              ),
-            ]
+            return closeCombobox(model, [focusInput])
           }
 
-          const nextModel = constrainedEvo(model, {
-            isOpen: () => true,
-            transitionState: () =>
-              model.isAnimated ? ('EnterStart' as const) : ('Idle' as const),
-            maybeActiveItemIndex: () => Option.none(),
-            activationTrigger: () => 'Pointer' as const,
-            maybeLastPointerPosition: () => Option.none(),
-          })
+          const [nextModel, commands] = openCombobox(
+            constrainedEvo(model, {
+              maybeActiveItemIndex: () => Option.none(),
+              activationTrigger: () => 'Pointer' as const,
+              maybeLastPointerPosition: () => Option.none(),
+            }),
+          )
 
-          return [
-            nextModel,
-            pipe(
-              Array.getSomes([
-                maybeNextFrame,
-                maybeLockScroll,
-                maybeInertOthers,
-              ]),
-              Array.prepend(focusInput),
-            ),
-          ]
+          return [nextModel, [focusInput, ...commands]]
         },
 
-        AdvancedTransitionFrame: () =>
-          M.value(model.transitionState).pipe(
-            withUpdateReturn,
-            M.when('EnterStart', () => [
-              constrainedEvo(model, {
-                transitionState: () => 'EnterAnimating' as const,
-              }),
-              [
-                WaitForTransitions(
-                  Task.waitForTransitions(itemsSelector(model.id)).pipe(
-                    Effect.as(EndedTransition()),
-                  ),
-                ),
-              ],
-            ]),
-            M.when('LeaveStart', () => [
-              constrainedEvo(model, {
-                transitionState: () => 'LeaveAnimating' as const,
-              }),
-              [
-                DetectMovementOrTransitionEnd(
-                  Effect.raceFirst(
-                    Task.detectElementMovement(
-                      inputWrapperSelector(model.id),
-                    ).pipe(Effect.as(DetectedInputMovement())),
-                    Task.waitForTransitions(itemsSelector(model.id)).pipe(
-                      Effect.as(EndedTransition()),
-                    ),
-                  ),
-                ),
-              ],
-            ]),
-            M.orElse(() => [model, []]),
-          ),
-
-        EndedTransition: () =>
-          M.value(model.transitionState).pipe(
-            withUpdateReturn,
-            M.whenOr('EnterAnimating', 'LeaveAnimating', () => [
-              constrainedEvo(model, {
-                transitionState: () => 'Idle' as const,
-              }),
-              [],
-            ]),
-            M.orElse(() => [model, []]),
-          ),
-
-        DetectedInputMovement: () =>
-          M.value(model.transitionState).pipe(
-            withUpdateReturn,
-            M.when('LeaveAnimating', () => [
-              constrainedEvo(model, {
-                transitionState: () => 'Idle' as const,
-              }),
-              [],
-            ]),
-            M.orElse(() => [model, []]),
-          ),
+        GotTransitionMessage: ({ message: transitionMessage }) =>
+          delegateToTransition(model, transitionMessage),
 
         CompletedLockScroll: () => [model, []],
         CompletedUnlockScroll: () => [model, []],
@@ -639,14 +613,7 @@ export type BaseViewConfig<
       | MovedPointerOverItem
       | RequestedItemClick
       | UpdatedInputValue
-      | PressedToggleButton
-      | CompletedLockScroll
-      | CompletedUnlockScroll
-      | CompletedSetupInert
-      | CompletedTeardownInert
-      | CompletedFocusInput
-      | CompletedScrollIntoView
-      | CompletedClickItem,
+      | PressedToggleButton,
   ) => Message
   onSelectedItem?: (value: string) => Message
   items: ReadonlyArray<Item>
@@ -740,7 +707,13 @@ export const makeView =
     } = html<Message>()
 
     const {
-      model: { id, isOpen, immediate, transitionState, maybeActiveItemIndex },
+      model: {
+        id,
+        isOpen,
+        immediate,
+        transition: { transitionState },
+        maybeActiveItemIndex,
+      },
       toParentMessage,
       onSelectedItem,
       items,

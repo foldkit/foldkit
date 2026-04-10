@@ -4,28 +4,29 @@ import { expect } from 'vitest'
 
 import * as Scene from '../../test/scene'
 import * as Story from '../../test/story'
+import * as Transition from '../transition'
 import { init, update, view } from './multi'
 import type { Model, ViewConfig } from './multi'
-import type { Message } from './shared'
 import {
   ActivatedItem,
-  CompletedFocusItems,
+  Closed,
+  CompletedFocusInput,
   CompletedScrollIntoView,
-  FocusItems,
+  FocusInput,
   Opened,
   ScrollIntoView,
   SelectedItem,
 } from './shared'
+import type { Message } from './shared'
 
 const withClosed = Story.with(init({ id: 'test' }))
 
 const withOpenMulti = flow(
   withClosed,
   Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-  Story.resolve(FocusItems, CompletedFocusItems()),
 )
 
-describe('Listbox.Multi', () => {
+describe('Combobox.Multi', () => {
   describe('init', () => {
     it('defaults to closed with no active item and no selection', () => {
       expect(init({ id: 'test' })).toStrictEqual({
@@ -33,15 +34,15 @@ describe('Listbox.Multi', () => {
         isOpen: false,
         isAnimated: false,
         isModal: false,
-        orientation: 'Vertical',
-        transitionState: 'Idle',
+        nullable: false,
+        immediate: false,
+        selectInputOnFocus: false,
+        transition: Transition.init({ id: 'test-items' }),
         maybeActiveItemIndex: Option.none(),
         activationTrigger: 'Keyboard',
-        searchQuery: '',
-        searchVersion: 0,
+        inputValue: '',
         selectedItems: [],
         maybeLastPointerPosition: Option.none(),
-        maybeLastButtonPointerType: Option.none(),
       })
     })
 
@@ -65,7 +66,7 @@ describe('Listbox.Multi', () => {
         Story.story(
           update,
           withOpenMulti,
-          Story.message(SelectedItem({ item: 'apple' })),
+          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
           Story.model(model => {
             expect(model.selectedItems).toStrictEqual(['apple'])
           }),
@@ -76,7 +77,7 @@ describe('Listbox.Multi', () => {
         Story.story(
           update,
           withOpenMulti,
-          Story.message(SelectedItem({ item: 'apple' })),
+          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
@@ -87,8 +88,8 @@ describe('Listbox.Multi', () => {
         Story.story(
           update,
           withOpenMulti,
-          Story.message(SelectedItem({ item: 'apple' })),
-          Story.message(SelectedItem({ item: 'apple' })),
+          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
           Story.model(model => {
             expect(model.selectedItems).toStrictEqual([])
           }),
@@ -99,8 +100,10 @@ describe('Listbox.Multi', () => {
         Story.story(
           update,
           withOpenMulti,
-          Story.message(SelectedItem({ item: 'apple' })),
-          Story.message(SelectedItem({ item: 'banana' })),
+          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Story.message(
+            SelectedItem({ item: 'banana', displayText: 'Banana' }),
+          ),
           Story.model(model => {
             expect(model.selectedItems).toStrictEqual(['apple', 'banana'])
           }),
@@ -112,12 +115,71 @@ describe('Listbox.Multi', () => {
           update,
           withOpenMulti,
           Story.message(
-            ActivatedItem({ index: 2, activationTrigger: 'Keyboard' }),
+            ActivatedItem({
+              index: 2,
+              activationTrigger: 'Keyboard',
+              maybeImmediateSelection: Option.none(),
+            }),
           ),
           Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
-          Story.message(SelectedItem({ item: 'apple' })),
+          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
           Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
+          }),
+        )
+      })
+    })
+
+    describe('handleClose with nullable', () => {
+      it('clears selectedItems when nullable and input empty', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', nullable: true })),
+          Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+          Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
+          Story.message(Closed()),
+          Story.resolve(FocusInput, CompletedFocusInput()),
+          Story.model(model => {
+            expect(model.selectedItems).toStrictEqual([])
+            expect(model.isOpen).toBe(false)
+          }),
+        )
+      })
+    })
+
+    describe('handleImmediateActivation', () => {
+      it('toggles item in selectedItems', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', immediate: true })),
+          Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+          Story.message(
+            ActivatedItem({
+              index: 0,
+              activationTrigger: 'Keyboard',
+              maybeImmediateSelection: Option.some({
+                item: 'apple',
+                displayText: 'Apple',
+              }),
+            }),
+          ),
+          Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Story.model(model => {
+            expect(model.selectedItems).toStrictEqual(['apple'])
+          }),
+          Story.message(
+            ActivatedItem({
+              index: 0,
+              activationTrigger: 'Keyboard',
+              maybeImmediateSelection: Option.some({
+                item: 'apple',
+                displayText: 'Apple',
+              }),
+            }),
+          ),
+          Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Story.model(model => {
+            expect(model.selectedItems).toStrictEqual([])
           }),
         )
       })
@@ -152,7 +214,8 @@ describe('Listbox.Multi', () => {
           itemToConfig: () => ({
             content: Effect.succeed(null),
           }),
-          buttonContent: Effect.succeed(null),
+          itemToValue: item => item,
+          itemToDisplayText: item => item,
           ...overrides,
           model,
           toParentMessage: message => message,
@@ -203,21 +266,22 @@ describe('Listbox.Multi', () => {
           selectedItems: ['Apple', 'Banana'],
         }
         Scene.scene(
-          { update, view: sceneView({ name: 'fruit' }) },
+          { update, view: sceneView({ formName: 'fruit' }) },
           Scene.with(model),
           Scene.tap(({ html }) => {
             const inputs = Scene.findAll(html, 'input[type="hidden"]')
             expect(inputs).toHaveLength(2)
-            expect(Scene.find(html, 'input[value="Apple"]')).toExist()
-            expect(Scene.find(html, 'input[value="Banana"]')).toExist()
+            expect(Option.some(inputs[0]!)).toHaveAttr('value', 'Apple')
+            expect(Option.some(inputs[1]!)).toHaveAttr('value', 'Banana')
           }),
         )
       })
 
       it('renders empty hidden input when no items selected', () => {
+        const model = closedModel()
         Scene.scene(
-          { update, view: sceneView({ name: 'fruit' }) },
-          Scene.with(closedModel()),
+          { update, view: sceneView({ formName: 'fruit' }) },
+          Scene.with(model),
           Scene.tap(({ html }) => {
             const inputs = Scene.findAll(html, 'input[type="hidden"]')
             expect(inputs).toHaveLength(1)

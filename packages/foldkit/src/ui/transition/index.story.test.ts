@@ -8,6 +8,7 @@ import {
   Hidden,
   RequestFrame,
   Showed,
+  StartedLeaveAnimating,
   TransitionedOut,
   WaitForTransitions,
   init,
@@ -87,7 +88,9 @@ describe('Transition', () => {
           Story.model(model => {
             expect(model.transitionState).toBe('LeaveAnimating')
           }),
-          Story.resolve(WaitForTransitions, EndedTransition()),
+          Story.expectNoCommands(),
+          Story.expectOutMessage(StartedLeaveAnimating()),
+          Story.message(EndedTransition()),
           Story.model(model => {
             expect(model.transitionState).toBe('Idle')
           }),
@@ -108,14 +111,24 @@ describe('Transition', () => {
         )
       })
 
-      it('does nothing when already leaving', () => {
+      it('does nothing when already in LeaveAnimating', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test', isShowing: true })),
           Story.message(Hidden()),
           Story.expectHasCommands(RequestFrame),
           Story.resolve(RequestFrame, AdvancedTransitionFrame()),
-          Story.resolve(WaitForTransitions, EndedTransition()),
+          Story.model(model => {
+            expect(model.transitionState).toBe('LeaveAnimating')
+          }),
+          Story.expectNoCommands(),
+          Story.expectOutMessage(StartedLeaveAnimating()),
+          Story.message(Hidden()),
+          Story.model(model => {
+            expect(model.transitionState).toBe('LeaveAnimating')
+          }),
+          Story.expectNoCommands(),
+          Story.expectNoOutMessage(),
         )
       })
     })

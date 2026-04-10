@@ -3,11 +3,7 @@ import type { Html } from 'foldkit/html'
 
 import { Class, OnClick, button, div, h2, p } from '../html'
 import type { Message as ParentMessage } from '../main'
-import {
-  GotTransitionDemoMessage,
-  ToggledTransitionDemo,
-  type UiMessage,
-} from '../message'
+import { ToggledTransitionDemo, type UiMessage } from '../message'
 import type { UiModel } from '../model'
 
 const triggerClassName =
@@ -20,9 +16,6 @@ export const view = (
   model: UiModel,
   toParentMessage: (message: UiMessage) => ParentMessage,
 ): Html => {
-  const toTransitionMessage = (message: Ui.Transition.Message) =>
-    toParentMessage(GotTransitionDemoMessage({ message }))
-
   return div(
     [],
     [
@@ -44,7 +37,6 @@ export const view = (
         [
           Ui.Transition.view({
             model: model.transitionDemo,
-            toParentMessage: toTransitionMessage,
             className: contentClassName,
             animateSize: true,
             content: p(

@@ -16,10 +16,7 @@ export {
   CompletedScrollIntoView,
   CompletedClickItem,
   ClearedSearch,
-  AdvancedTransitionFrame,
-  EndedTransition,
-  DetectedButtonMovement,
-  RequestFrame,
+  GotTransitionMessage,
   LockScroll,
   UnlockScroll,
   InertOthers,
@@ -29,11 +26,8 @@ export {
   ScrollIntoView,
   ClickItem,
   DelayClearSearch,
-  WaitForTransitions,
   DetectMovementOrTransitionEnd,
 } from './index'
-
-export { TransitionState } from '../transition'
 
 export type {
   ActivationTrigger,

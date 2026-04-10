@@ -1,4 +1,4 @@
-import { Array, Option, Schema as S, pipe } from 'effect'
+import { Array, Option, Schema as S } from 'effect'
 
 import type * as Command from '../../command'
 import { type Html, createLazy } from '../../html'
@@ -10,7 +10,6 @@ import {
   type Message,
   SelectedItem,
   baseInit,
-  closedModel,
   makeUpdate,
   makeView,
 } from './shared'
@@ -41,19 +40,13 @@ export const init = (config: InitConfig): Model => ({
 // UPDATE
 
 /** Processes a listbox message and returns the next model and commands. Closes the listbox on selection (single-select behavior). */
-export const update = makeUpdate<Model>((model, item, context) => [
-  evo(closedModel(model), {
-    maybeSelectedItem: () => Option.some(item),
-  }),
-  pipe(
-    Array.getSomes([
-      context.maybeNextFrame,
-      context.maybeUnlockScroll,
-      context.maybeRestoreInert,
-    ]),
-    Array.prepend(context.focusButton),
-  ),
-])
+export const update = makeUpdate<Model>((model, item, context) => {
+  const [closedModelResult, commands] = context.closeWithFocus(model)
+  return [
+    evo(closedModelResult, { maybeSelectedItem: () => Option.some(item) }),
+    commands,
+  ]
+})
 
 /** Programmatically selects an item in the single-select listbox, closing the listbox and returning
  *  focus commands. Use this in domain-event handlers when the listbox uses `onSelectedItem`. */

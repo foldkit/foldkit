@@ -15,21 +15,15 @@ export {
   CompletedUnlockScroll,
   CompletedSetupInert,
   CompletedTeardownInert,
-  AdvancedTransitionFrame,
-  EndedTransition,
-  DetectedButtonMovement,
-  RequestFrame,
+  GotTransitionMessage,
   LockScroll,
   UnlockScroll,
   InertOthers,
   RestoreInert,
   FocusPanel,
   FocusButton,
-  WaitForTransitions,
   DetectMovementOrTransitionEnd,
 } from './index'
-
-export { TransitionState } from '../transition'
 
 export type {
   ClosedByTab,

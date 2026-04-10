@@ -1,6 +1,7 @@
 import {
   Array,
   Effect,
+  Equal,
   Match as M,
   Option,
   Predicate,
@@ -19,7 +20,19 @@ import { anchorHooks } from '../anchor'
 import type { AnchorConfig } from '../anchor'
 import { groupContiguous } from '../group'
 import { findFirstEnabledIndex, isPrintableKey, keyToIndex } from '../keyboard'
-import { TransitionState } from '../transition'
+// NOTE: Transition imports are split across schema + update to avoid a circular
+// dependency: transition → html → runtime → devtools → listbox → transition.
+// The barrel (../transition) imports from html, which starts the cycle.
+import {
+  EndedTransition as TransitionEndedTransition,
+  Hidden as TransitionHidden,
+  Message as TransitionMessage,
+  Model as TransitionModel,
+  type OutMessage as TransitionOutMessage,
+  Showed as TransitionShowed,
+  init as transitionInit,
+} from '../transition/schema'
+import { update as transitionUpdate } from '../transition/update'
 import { resolveTypeaheadMatch } from '../typeahead'
 
 export { resolveTypeaheadMatch }
@@ -41,7 +54,7 @@ export const BaseModel = S.Struct({
   isAnimated: S.Boolean,
   isModal: S.Boolean,
   orientation: Orientation,
-  transitionState: TransitionState,
+  transition: TransitionModel,
   maybeActiveItemIndex: S.OptionFromSelf(S.Number),
   activationTrigger: ActivationTrigger,
   searchQuery: S.String,
@@ -68,7 +81,7 @@ export const baseInit = (config: BaseInitConfig): BaseModel => ({
   isAnimated: config.isAnimated ?? false,
   isModal: config.isModal ?? false,
   orientation: config.orientation ?? 'Vertical',
-  transitionState: 'Idle',
+  transition: transitionInit({ id: `${config.id}-listbox` }),
   maybeActiveItemIndex: Option.none(),
   activationTrigger: 'Keyboard',
   searchQuery: '',
@@ -133,12 +146,10 @@ export const CompletedClickItem = m('CompletedClickItem')
 export const IgnoredMouseClick = m('IgnoredMouseClick')
 /** Sent when a Space key-up is captured to prevent page scrolling. */
 export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
-/** Sent internally when a double-rAF completes, advancing the transition to its animating phase. */
-export const AdvancedTransitionFrame = m('AdvancedTransitionFrame')
-/** Sent internally when all CSS transitions on the listbox items container have completed. */
-export const EndedTransition = m('EndedTransition')
-/** Sent internally when the listbox button moves in the viewport during a leave transition, cancelling the animation. */
-export const DetectedButtonMovement = m('DetectedButtonMovement')
+/** Wraps a Transition submodel message for delegation. */
+export const GotTransitionMessage = m('GotTransitionMessage', {
+  message: TransitionMessage,
+})
 /** Sent when the user presses a pointer device on the listbox button. Records pointer type for click handling. */
 export const PressedPointerOnButton = m('PressedPointerOnButton', {
   pointerType: S.String,
@@ -168,9 +179,7 @@ export const Message: S.Union<
     typeof CompletedClickItem,
     typeof IgnoredMouseClick,
     typeof SuppressedSpaceScroll,
-    typeof AdvancedTransitionFrame,
-    typeof EndedTransition,
-    typeof DetectedButtonMovement,
+    typeof GotTransitionMessage,
     typeof PressedPointerOnButton,
   ]
 > = S.Union(
@@ -194,9 +203,7 @@ export const Message: S.Union<
   CompletedClickItem,
   IgnoredMouseClick,
   SuppressedSpaceScroll,
-  AdvancedTransitionFrame,
-  EndedTransition,
-  DetectedButtonMovement,
+  GotTransitionMessage,
   PressedPointerOnButton,
 )
 
@@ -212,9 +219,6 @@ export type Searched = typeof Searched.Type
 export type ClearedSearch = typeof ClearedSearch.Type
 export type IgnoredMouseClick = typeof IgnoredMouseClick.Type
 export type SuppressedSpaceScroll = typeof SuppressedSpaceScroll.Type
-export type AdvancedTransitionFrame = typeof AdvancedTransitionFrame.Type
-export type EndedTransition = typeof EndedTransition.Type
-export type DetectedButtonMovement = typeof DetectedButtonMovement.Type
 export type PressedPointerOnButton = typeof PressedPointerOnButton.Type
 
 export type Message = typeof Message.Type
@@ -240,8 +244,6 @@ const constrainedEvo = makeConstrainedEvo<BaseModel>()
 export const closedModel = <Model extends BaseModel>(model: Model): Model =>
   constrainedEvo(model, {
     isOpen: () => false,
-    transitionState: () =>
-      model.isAnimated ? ('LeaveStart' as const) : ('Idle' as const),
     maybeActiveItemIndex: () => Option.none(),
     searchQuery: () => '',
     searchVersion: () => 0,
@@ -251,18 +253,15 @@ export const closedModel = <Model extends BaseModel>(model: Model): Model =>
 
 // UPDATE FACTORY
 
-type SelectedItemContext = Readonly<{
-  focusButton: Command.Command<Message>
-  maybeNextFrame: Option.Option<Command.Command<Message>>
-  maybeUnlockScroll: Option.Option<Command.Command<Message>>
-  maybeRestoreInert: Option.Option<Command.Command<Message>>
+type SelectedItemContext<Model extends BaseModel> = Readonly<{
+  closeWithFocus: (
+    model: Model,
+  ) => readonly [Model, ReadonlyArray<Command.Command<Message>>]
+  closeWithoutFocus: (
+    model: Model,
+  ) => readonly [Model, ReadonlyArray<Command.Command<Message>>]
 }>
 
-/** Advances the listbox's enter/leave transition by waiting a double-rAF. */
-export const RequestFrame = Command.define(
-  'RequestFrame',
-  AdvancedTransitionFrame,
-)
 /** Prevents page scrolling while the listbox is open in modal mode. */
 export const LockScroll = Command.define('LockScroll', CompletedLockScroll)
 /** Re-enables page scrolling after the listbox closes. */
@@ -293,34 +292,106 @@ export const DelayClearSearch = Command.define(
   'DelayClearSearch',
   ClearedSearch,
 )
-/** Waits for all CSS transitions on the listbox items container to complete. */
-export const WaitForTransitions = Command.define(
-  'WaitForTransitions',
-  EndedTransition,
-)
-/** Detects whether the listbox button moved or the leave transition ended — whichever comes first. */
+/** Detects whether the listbox button moved or the leave transition ended — whichever comes first. Both outcomes signal the Transition submodel that leave is complete. */
 export const DetectMovementOrTransitionEnd = Command.define(
   'DetectMovementOrTransitionEnd',
-  DetectedButtonMovement,
-  EndedTransition,
+  GotTransitionMessage,
 )
 
 export const makeUpdate = <Model extends BaseModel>(
   handleSelectedItem: (
     model: Model,
     item: string,
-    context: SelectedItemContext,
+    context: SelectedItemContext<Model>,
   ) => [Model, ReadonlyArray<Command.Command<Message>>],
 ) => {
   type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
   const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-  return (model: Model, message: Message): UpdateReturn => {
-    const maybeNextFrame = OptionExt.when(
-      model.isAnimated,
-      RequestFrame(Task.nextFrame.pipe(Effect.as(AdvancedTransitionFrame()))),
+  const delegateToTransition = (
+    model: Model,
+    transitionMessage: TransitionMessage,
+  ): UpdateReturn => {
+    const [nextTransition, transitionCommands, maybeOutMessage] =
+      transitionUpdate(model.transition, transitionMessage)
+
+    const mappedCommands = transitionCommands.map(
+      Command.mapEffect(
+        Effect.map(message => GotTransitionMessage({ message })),
+      ),
     )
 
+    const additionalCommands = Option.match(maybeOutMessage, {
+      onNone: () => [],
+      onSome: M.type<TransitionOutMessage>().pipe(
+        M.tagsExhaustive({
+          StartedLeaveAnimating: () => [
+            DetectMovementOrTransitionEnd(
+              Effect.raceFirst(
+                Task.detectElementMovement(buttonSelector(model.id)).pipe(
+                  Effect.as(
+                    GotTransitionMessage({
+                      message: TransitionEndedTransition(),
+                    }),
+                  ),
+                ),
+                Task.waitForTransitions(itemsSelector(model.id)).pipe(
+                  Effect.as(
+                    GotTransitionMessage({
+                      message: TransitionEndedTransition(),
+                    }),
+                  ),
+                ),
+              ),
+            ),
+          ],
+          TransitionedOut: () => [],
+        }),
+      ),
+    })
+
+    return [
+      constrainedEvo(model, { transition: () => nextTransition }),
+      [...mappedCommands, ...additionalCommands],
+    ]
+  }
+
+  const openListbox = (
+    baseModel: Model,
+    openCommands: ReadonlyArray<Command.Command<Message>>,
+  ): UpdateReturn => {
+    if (baseModel.isAnimated) {
+      const [nextModel, transitionCommands] = delegateToTransition(
+        baseModel,
+        TransitionShowed(),
+      )
+      return [
+        constrainedEvo(nextModel, { isOpen: () => true }),
+        [...openCommands, ...transitionCommands],
+      ]
+    }
+
+    return [constrainedEvo(baseModel, { isOpen: () => true }), openCommands]
+  }
+
+  const closeListbox = (
+    baseModel: Model,
+    commands: ReadonlyArray<Command.Command<Message>>,
+  ): UpdateReturn => {
+    const closed = closedModel(baseModel)
+
+    if (baseModel.isAnimated) {
+      const [nextModel, transitionCommands] = delegateToTransition(
+        closed,
+        TransitionHidden(),
+      )
+      return [nextModel, [...commands, ...transitionCommands]]
+    }
+
+    return [closed, commands]
+  }
+
+  return (model: Model, message: Message): UpdateReturn => {
     const maybeLockScroll = OptionExt.when(
       model.isModal,
       LockScroll(Task.lockScroll.pipe(Effect.as(CompletedLockScroll()))),
@@ -355,65 +426,61 @@ export const makeUpdate = <Model extends BaseModel>(
       ),
     )
 
+    const focusItems = FocusItems(
+      Task.focus(itemsSelector(model.id)).pipe(
+        Effect.ignore,
+        Effect.as(CompletedFocusItems()),
+      ),
+    )
+
+    const openCommands = [
+      focusItems,
+      ...Array.getSomes([maybeLockScroll, maybeInertOthers]),
+    ]
+
+    const closeWithFocusCommands = [
+      focusButton,
+      ...Array.getSomes([maybeUnlockScroll, maybeRestoreInert]),
+    ]
+
+    const closeWithoutFocusCommands = Array.getSomes([
+      maybeUnlockScroll,
+      maybeRestoreInert,
+    ])
+
     return M.value(message).pipe(
       withUpdateReturn,
       M.tagsExhaustive({
-        Opened: ({ maybeActiveItemIndex }) => {
-          const nextModel = constrainedEvo(model, {
-            isOpen: () => true,
-            transitionState: () =>
-              model.isAnimated ? ('EnterStart' as const) : ('Idle' as const),
-            maybeActiveItemIndex: () => maybeActiveItemIndex,
-            activationTrigger: () =>
-              Option.match(maybeActiveItemIndex, {
-                onNone: () => 'Pointer' as const,
-                onSome: () => 'Keyboard' as const,
-              }),
-            searchQuery: () => '',
-            searchVersion: () => 0,
-            maybeLastPointerPosition: () => Option.none(),
-          })
-
-          return [
-            nextModel,
-            pipe(
-              Array.getSomes([
-                maybeNextFrame,
-                maybeLockScroll,
-                maybeInertOthers,
-              ]),
-              Array.prepend(
-                FocusItems(
-                  Task.focus(itemsSelector(model.id)).pipe(
-                    Effect.ignore,
-                    Effect.as(CompletedFocusItems()),
-                  ),
-                ),
-              ),
-            ),
-          ]
-        },
-
-        Closed: () => [
-          closedModel(model),
-          pipe(
-            Array.getSomes([
-              maybeNextFrame,
-              maybeUnlockScroll,
-              maybeRestoreInert,
-            ]),
-            Array.prepend(focusButton),
+        Opened: ({ maybeActiveItemIndex }) =>
+          openListbox(
+            constrainedEvo(model, {
+              maybeActiveItemIndex: () => maybeActiveItemIndex,
+              activationTrigger: () =>
+                Option.match(maybeActiveItemIndex, {
+                  onNone: () => 'Pointer' as const,
+                  onSome: () => 'Keyboard' as const,
+                }),
+              searchQuery: () => '',
+              searchVersion: () => 0,
+              maybeLastPointerPosition: () => Option.none(),
+            }),
+            openCommands,
           ),
-        ],
 
-        ClosedByTab: () => [
-          closedModel(model),
-          Array.getSomes([
-            maybeNextFrame,
-            maybeUnlockScroll,
-            maybeRestoreInert,
-          ]),
-        ],
+        Closed: () => closeListbox(model, closeWithFocusCommands),
+
+        ClosedByTab: () => {
+          if (
+            Option.exists(
+              model.maybeLastButtonPointerType,
+              Equal.equals('mouse'),
+            )
+          ) {
+            return [model, []]
+          }
+
+          return closeListbox(model, closeWithoutFocusCommands)
+        },
 
         ActivatedItem: ({ index, activationTrigger }) => [
           constrainedEvo(model, {
@@ -465,10 +532,10 @@ export const makeUpdate = <Model extends BaseModel>(
 
         SelectedItem: ({ item }) =>
           handleSelectedItem(model, item, {
-            focusButton,
-            maybeNextFrame,
-            maybeUnlockScroll,
-            maybeRestoreInert,
+            closeWithFocus: closeModel =>
+              closeListbox(closeModel, closeWithFocusCommands),
+            closeWithoutFocus: closeModel =>
+              closeListbox(closeModel, closeWithoutFocusCommands),
           }),
 
         RequestedItemClick: ({ index }) => [
@@ -515,60 +582,8 @@ export const makeUpdate = <Model extends BaseModel>(
           return [constrainedEvo(model, { searchQuery: () => '' }), []]
         },
 
-        AdvancedTransitionFrame: () =>
-          M.value(model.transitionState).pipe(
-            withUpdateReturn,
-            M.when('EnterStart', () => [
-              constrainedEvo(model, {
-                transitionState: () => 'EnterAnimating' as const,
-              }),
-              [
-                WaitForTransitions(
-                  Task.waitForTransitions(itemsSelector(model.id)).pipe(
-                    Effect.as(EndedTransition()),
-                  ),
-                ),
-              ],
-            ]),
-            M.when('LeaveStart', () => [
-              constrainedEvo(model, {
-                transitionState: () => 'LeaveAnimating' as const,
-              }),
-              [
-                DetectMovementOrTransitionEnd(
-                  Effect.raceFirst(
-                    Task.detectElementMovement(buttonSelector(model.id)).pipe(
-                      Effect.as(DetectedButtonMovement()),
-                    ),
-                    Task.waitForTransitions(itemsSelector(model.id)).pipe(
-                      Effect.as(EndedTransition()),
-                    ),
-                  ),
-                ),
-              ],
-            ]),
-            M.orElse(() => [model, []]),
-          ),
-
-        EndedTransition: () =>
-          M.value(model.transitionState).pipe(
-            withUpdateReturn,
-            M.whenOr('EnterAnimating', 'LeaveAnimating', () => [
-              constrainedEvo(model, { transitionState: () => 'Idle' as const }),
-              [],
-            ]),
-            M.orElse(() => [model, []]),
-          ),
-
-        DetectedButtonMovement: () =>
-          M.value(model.transitionState).pipe(
-            withUpdateReturn,
-            M.when('LeaveAnimating', () => [
-              constrainedEvo(model, { transitionState: () => 'Idle' as const }),
-              [],
-            ]),
-            M.orElse(() => [model, []]),
-          ),
+        GotTransitionMessage: ({ message: transitionMessage }) =>
+          delegateToTransition(model, transitionMessage),
 
         PressedPointerOnButton: ({ pointerType, button }) => {
           const withPointerType = constrainedEvo(model, {
@@ -580,50 +595,28 @@ export const makeUpdate = <Model extends BaseModel>(
           }
 
           if (model.isOpen) {
+            const [closed, commands] = closeListbox(
+              withPointerType,
+              closeWithFocusCommands,
+            )
             return [
-              constrainedEvo(closedModel(withPointerType), {
+              constrainedEvo(closed, {
                 maybeLastButtonPointerType: () => Option.some(pointerType),
               }),
-              pipe(
-                Array.getSomes([
-                  maybeNextFrame,
-                  maybeUnlockScroll,
-                  maybeRestoreInert,
-                ]),
-                Array.prepend(focusButton),
-              ),
+              commands,
             ]
           }
 
-          const nextModel = constrainedEvo(withPointerType, {
-            isOpen: () => true,
-            transitionState: () =>
-              model.isAnimated ? ('EnterStart' as const) : ('Idle' as const),
-            maybeActiveItemIndex: () => Option.none(),
-            activationTrigger: () => 'Pointer' as const,
-            searchQuery: () => '',
-            searchVersion: () => 0,
-            maybeLastPointerPosition: () => Option.none(),
-          })
-
-          return [
-            nextModel,
-            pipe(
-              Array.getSomes([
-                maybeNextFrame,
-                maybeLockScroll,
-                maybeInertOthers,
-              ]),
-              Array.prepend(
-                FocusItems(
-                  Task.focus(itemsSelector(model.id)).pipe(
-                    Effect.ignore,
-                    Effect.as(CompletedFocusItems()),
-                  ),
-                ),
-              ),
-            ),
-          ]
+          return openListbox(
+            constrainedEvo(withPointerType, {
+              maybeActiveItemIndex: () => Option.none(),
+              activationTrigger: () => 'Pointer' as const,
+              searchQuery: () => '',
+              searchVersion: () => 0,
+              maybeLastPointerPosition: () => Option.none(),
+            }),
+            openCommands,
+          )
         },
 
         CompletedLockScroll: () => [model, []],
@@ -634,7 +627,12 @@ export const makeUpdate = <Model extends BaseModel>(
         CompletedFocusItems: () => [model, []],
         CompletedScrollIntoView: () => [model, []],
         CompletedClickItem: () => [model, []],
-        IgnoredMouseClick: () => [model, []],
+        IgnoredMouseClick: () => [
+          constrainedEvo(model, {
+            maybeLastButtonPointerType: () => Option.none(),
+          }),
+          [],
+        ],
         SuppressedSpaceScroll: () => [model, []],
       }),
     )
@@ -765,7 +763,7 @@ export const makeView =
         id,
         isOpen,
         orientation,
-        transitionState,
+        transition: { transitionState },
         maybeActiveItemIndex,
         searchQuery,
         maybeLastButtonPointerType,
@@ -1015,7 +1013,12 @@ export const makeView =
             OnKeyUpPreventDefault(handleSpaceKeyUp),
             OnClick(handleButtonClick()),
           ]),
-      ...(isVisible ? [DataAttribute('open', '')] : []),
+      ...(isVisible
+        ? [
+            DataAttribute('open', ''),
+            Style({ position: 'relative', zIndex: '1' }),
+          ]
+        : []),
       ...(isInvalid ? [DataAttribute('invalid', '')] : []),
       ...(buttonClassName ? [Class(buttonClassName)] : []),
       ...buttonAttributes,

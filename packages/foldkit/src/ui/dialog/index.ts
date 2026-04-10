@@ -1,12 +1,25 @@
-import { Array, Effect, Match as M, Option, Schema as S } from 'effect'
+import { Effect, Match as M, Option, Schema as S } from 'effect'
 
 import * as Command from '../../command'
-import { OptionExt } from '../../effectExtensions'
 import { type Attribute, type Html, createLazy, html } from '../../html'
 import { m } from '../../message'
 import { evo } from '../../struct'
 import * as Task from '../../task'
-import { TransitionState } from '../transition'
+// NOTE: Transition imports are split across schema + update to avoid a circular
+// dependency: transition → html → runtime → devtools → dialog → transition.
+// The barrel (../transition) imports from html, which starts the cycle.
+import {
+  Hidden as TransitionHidden,
+  Message as TransitionMessage,
+  Model as TransitionModel,
+  type OutMessage as TransitionOutMessage,
+  Showed as TransitionShowed,
+  init as transitionInit,
+} from '../transition/schema'
+import {
+  defaultLeaveCommand as transitionDefaultLeaveCommand,
+  update as transitionUpdate,
+} from '../transition/update'
 
 // MODEL
 
@@ -15,7 +28,7 @@ export const Model = S.Struct({
   id: S.String,
   isOpen: S.Boolean,
   isAnimated: S.Boolean,
-  transitionState: TransitionState,
+  transition: TransitionModel,
   maybeFocusSelector: S.OptionFromSelf(S.String),
 })
 
@@ -31,10 +44,10 @@ export const Closed = m('Closed')
 export const CompletedShowDialog = m('CompletedShowDialog')
 /** Sent when the close-dialog command completes (closeModal + scroll unlock). */
 export const CompletedCloseDialog = m('CompletedCloseDialog')
-/** Sent internally when a double-rAF completes, advancing the transition to its animating phase. */
-export const AdvancedTransitionFrame = m('AdvancedTransitionFrame')
-/** Sent internally when all CSS transitions on the dialog panel have completed. */
-export const EndedTransition = m('EndedTransition')
+/** Wraps a Transition submodel message for delegation. */
+export const GotTransitionMessage = m('GotTransitionMessage', {
+  message: TransitionMessage,
+})
 
 /** Union of all messages the dialog component can produce. */
 export const Message: S.Union<
@@ -43,16 +56,14 @@ export const Message: S.Union<
     typeof Closed,
     typeof CompletedShowDialog,
     typeof CompletedCloseDialog,
-    typeof AdvancedTransitionFrame,
-    typeof EndedTransition,
+    typeof GotTransitionMessage,
   ]
 > = S.Union(
   Opened,
   Closed,
   CompletedShowDialog,
   CompletedCloseDialog,
-  AdvancedTransitionFrame,
-  EndedTransition,
+  GotTransitionMessage,
 )
 
 export type Opened = typeof Opened.Type
@@ -77,41 +88,72 @@ export const init = (config: InitConfig): Model => ({
   id: config.id,
   isOpen: config.isOpen ?? false,
   isAnimated: config.isAnimated ?? false,
-  transitionState: 'Idle',
+  transition: transitionInit({
+    id: `${config.id}-panel`,
+    ...(config.isOpen !== undefined ? { isShowing: config.isOpen } : {}),
+  }),
   maybeFocusSelector: Option.fromNullable(config.focusSelector),
 })
 
 // UPDATE
 
 const dialogSelector = (id: string): string => `#${id}`
-const panelSelector = (id: string): string => `#${id}-panel`
 
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-/** Advances the dialog's enter/leave transition by waiting a double-rAF. */
-export const RequestFrame = Command.define(
-  'RequestFrame',
-  AdvancedTransitionFrame,
-)
 /** Locks page scroll and calls `showModal()` on the native dialog element. */
 export const ShowDialog = Command.define('ShowDialog', CompletedShowDialog)
 /** Calls `close()` on the native dialog element and unlocks page scroll. */
 export const CloseDialog = Command.define('CloseDialog', CompletedCloseDialog)
-/** Waits for all CSS transitions on the dialog panel to complete. */
-export const WaitForTransitions = Command.define(
-  'WaitForTransitions',
-  EndedTransition,
-)
 
-/** Processes a dialog message and returns the next model and commands. */
-export const update = (model: Model, message: Message): UpdateReturn => {
-  const maybeNextFrame = OptionExt.when(
-    model.isAnimated,
-    RequestFrame(Task.nextFrame.pipe(Effect.as(AdvancedTransitionFrame()))),
+const closeDialog = (id: string): Command.Command<Message> =>
+  CloseDialog(
+    Task.closeModal(dialogSelector(id)).pipe(
+      Effect.andThen(() => Task.unlockScroll),
+      Effect.ignore,
+      Effect.as(CompletedCloseDialog()),
+    ),
   )
 
-  return M.value(message).pipe(
+const toParentMessage = (message: TransitionMessage): Message =>
+  GotTransitionMessage({ message })
+
+const delegateToTransition = (
+  model: Model,
+  transitionMessage: TransitionMessage,
+): UpdateReturn => {
+  const [nextTransition, transitionCommands, maybeOutMessage] =
+    transitionUpdate(model.transition, transitionMessage)
+
+  const mappedCommands = transitionCommands.map(
+    Command.mapEffect(Effect.map(toParentMessage)),
+  )
+
+  const additionalCommands = Option.match(maybeOutMessage, {
+    onNone: () => [],
+    onSome: M.type<TransitionOutMessage>().pipe(
+      M.tagsExhaustive({
+        StartedLeaveAnimating: () => [
+          Command.mapEffect(
+            transitionDefaultLeaveCommand(nextTransition),
+            Effect.map(toParentMessage),
+          ),
+        ],
+        TransitionedOut: () => [closeDialog(model.id)],
+      }),
+    ),
+  })
+
+  return [
+    evo(model, { transition: () => nextTransition }),
+    [...mappedCommands, ...additionalCommands],
+  ]
+}
+
+/** Processes a dialog message and returns the next model and commands. */
+export const update = (model: Model, message: Message): UpdateReturn =>
+  M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
       Opened: () => {
@@ -133,101 +175,55 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           () => !model.isOpen,
         )
 
-        return [
-          evo(model, {
-            isOpen: () => true,
-            transitionState: () => (model.isAnimated ? 'EnterStart' : 'Idle'),
-          }),
-          Array.getSomes([maybeShow, maybeNextFrame]),
-        ]
+        if (model.isAnimated) {
+          const [nextModel, transitionCommands] = delegateToTransition(
+            model,
+            TransitionShowed(),
+          )
+
+          return [
+            evo(nextModel, { isOpen: () => true }),
+            [...Option.toArray(maybeShow), ...transitionCommands],
+          ]
+        }
+
+        return [evo(model, { isOpen: () => true }), Option.toArray(maybeShow)]
       },
 
       Closed: () => {
+        const { transitionState } = model.transition
         const isLeaving =
-          model.transitionState === 'LeaveStart' ||
-          model.transitionState === 'LeaveAnimating'
+          transitionState === 'LeaveStart' ||
+          transitionState === 'LeaveAnimating'
 
         if (isLeaving) {
           return [model, []]
         }
 
         if (model.isAnimated) {
-          return [
-            evo(model, {
-              isOpen: () => false,
-              transitionState: () => 'LeaveStart',
-            }),
-            Option.toArray(maybeNextFrame),
-          ]
+          const [nextModel, transitionCommands] = delegateToTransition(
+            evo(model, { isOpen: () => false }),
+            TransitionHidden(),
+          )
+
+          return [nextModel, transitionCommands]
         }
 
         const maybeClose = Option.liftPredicate(
-          CloseDialog(
-            Task.closeModal(dialogSelector(model.id)).pipe(
-              Effect.andThen(() => Task.unlockScroll),
-              Effect.ignore,
-              Effect.as(CompletedCloseDialog()),
-            ),
-          ),
+          closeDialog(model.id),
           () => model.isOpen,
         )
 
         return [evo(model, { isOpen: () => false }), Option.toArray(maybeClose)]
       },
 
-      AdvancedTransitionFrame: () =>
-        M.value(model.transitionState).pipe(
-          withUpdateReturn,
-          M.when('EnterStart', () => [
-            evo(model, { transitionState: () => 'EnterAnimating' }),
-            [
-              WaitForTransitions(
-                Task.waitForTransitions(panelSelector(model.id)).pipe(
-                  Effect.as(EndedTransition()),
-                ),
-              ),
-            ],
-          ]),
-          M.when('LeaveStart', () => [
-            evo(model, { transitionState: () => 'LeaveAnimating' }),
-            [
-              WaitForTransitions(
-                Task.waitForTransitions(panelSelector(model.id)).pipe(
-                  Effect.as(EndedTransition()),
-                ),
-              ),
-            ],
-          ]),
-          M.orElse(() => [model, []]),
-        ),
-
-      EndedTransition: () =>
-        M.value(model.transitionState).pipe(
-          withUpdateReturn,
-          M.when('EnterAnimating', () => [
-            evo(model, { transitionState: () => 'Idle' }),
-            [],
-          ]),
-          M.when('LeaveAnimating', () => [
-            evo(model, { transitionState: () => 'Idle' }),
-            [
-              CloseDialog(
-                Task.closeModal(dialogSelector(model.id)).pipe(
-                  Effect.andThen(() => Task.unlockScroll),
-                  Effect.ignore,
-                  Effect.as(CompletedCloseDialog()),
-                ),
-              ),
-            ],
-          ]),
-          M.orElse(() => [model, []]),
-        ),
+      GotTransitionMessage: ({ message: transitionMessage }) =>
+        delegateToTransition(model, transitionMessage),
 
       CompletedShowDialog: () => [model, []],
       CompletedCloseDialog: () => [model, []],
     }),
   )
-}
 
 // VIEW
 
@@ -276,7 +272,11 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
   } = html<Message>()
 
   const {
-    model: { id, isOpen, transitionState },
+    model: {
+      id,
+      isOpen,
+      transition: { transitionState },
+    },
     toParentMessage,
     onClosed,
     panelContent,

@@ -4,9 +4,9 @@ import { expect } from 'vitest'
 
 import * as Scene from '../../test/scene'
 import * as Story from '../../test/story'
+import * as Transition from '../transition'
 import {
   ActivatedItem,
-  AdvancedTransitionFrame,
   ClearedSearch,
   ClickItem,
   Closed,
@@ -22,24 +22,22 @@ import {
   DeactivatedItem,
   DelayClearSearch,
   DetectMovementOrTransitionEnd,
-  DetectedButtonMovement,
-  EndedTransition,
   FocusButton,
   FocusItems,
+  GotTransitionMessage,
+  IgnoredMouseClick,
   InertOthers,
   LockScroll,
   MovedPointerOverItem,
   Opened,
   PressedPointerOnButton,
   ReleasedPointerOnItems,
-  RequestFrame,
   RequestedItemClick,
   RestoreInert,
   ScrollIntoView,
   Searched,
   SelectedItem,
   UnlockScroll,
-  WaitForTransitions,
   groupContiguous,
   init,
   resolveTypeaheadMatch,
@@ -47,6 +45,13 @@ import {
   view,
 } from './index'
 import type { Message, Model, ViewConfig } from './index'
+
+const transitionToMenuMessage = (message: Transition.Message) =>
+  GotTransitionMessage({ message })
+
+const transitionEndMessage = GotTransitionMessage({
+  message: Transition.EndedTransition(),
+})
 
 const STALE_CLEAR_SEARCH_VERSION = 9999
 
@@ -65,9 +70,16 @@ const withOpenAnimated = flow(
   Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
   Story.resolveAll(
     [FocusItems, CompletedFocusItems()],
-    [RequestFrame, AdvancedTransitionFrame()],
-    [WaitForTransitions, EndedTransition()],
-    [DetectMovementOrTransitionEnd, EndedTransition()],
+    [
+      Transition.RequestFrame,
+      Transition.AdvancedTransitionFrame(),
+      transitionToMenuMessage,
+    ],
+    [
+      Transition.WaitForTransitions,
+      Transition.EndedTransition(),
+      transitionToMenuMessage,
+    ],
   ),
 )
 
@@ -79,7 +91,7 @@ describe('Menu', () => {
         isOpen: false,
         isAnimated: false,
         isModal: false,
-        transitionState: 'Idle',
+        transition: Transition.init({ id: 'test-items' }),
         maybeActiveItemIndex: Option.none(),
         activationTrigger: 'Keyboard',
         searchQuery: '',
@@ -93,7 +105,7 @@ describe('Menu', () => {
     it('accepts isAnimated option', () => {
       const model = init({ id: 'test', isAnimated: true })
       expect(model.isAnimated).toBe(true)
-      expect(model.transitionState).toBe('Idle')
+      expect(model.transition.transitionState).toBe('Idle')
     })
 
     it('defaults isModal to false', () => {
@@ -294,7 +306,7 @@ describe('Menu', () => {
         )
       })
 
-      it('closes the menu on mouse left button when open', () => {
+      it('closes the menu on mouse left button when open and preserves pointer type', () => {
         Story.story(
           update,
           withOpen,
@@ -311,7 +323,7 @@ describe('Menu', () => {
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
-              Option.none(),
+              Option.some('mouse'),
             )
             expect(model.maybePointerOrigin).toStrictEqual(Option.none())
           }),
@@ -371,6 +383,37 @@ describe('Menu', () => {
           Story.model(model => {
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('mouse'),
+            )
+          }),
+        )
+      })
+    })
+
+    describe('IgnoredMouseClick', () => {
+      it('resets maybeLastButtonPointerType', () => {
+        Story.story(
+          update,
+          withOpen,
+          Story.message(
+            PressedPointerOnButton({
+              pointerType: 'mouse',
+              button: 0,
+              screenX: 100,
+              screenY: 200,
+              timeStamp: 1000,
+            }),
+          ),
+          Story.resolve(FocusButton, CompletedFocusButton()),
+          Story.model(model => {
+            expect(model.maybeLastButtonPointerType).toStrictEqual(
+              Option.some('mouse'),
+            )
+          }),
+          Story.message(IgnoredMouseClick()),
+          Story.model(model => {
+            expect(model.isOpen).toBe(false)
+            expect(model.maybeLastButtonPointerType).toStrictEqual(
+              Option.none(),
             )
           }),
         )
@@ -872,13 +915,21 @@ describe('Menu', () => {
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.model(model => {
               expect(model.isOpen).toBe(true)
-              expect(model.transitionState).toBe('EnterStart')
+              expect(model.transition.transitionState).toBe('EnterStart')
             }),
             Story.resolveAll(
               [FocusItems, CompletedFocusItems()],
-              [RequestFrame, AdvancedTransitionFrame()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.RequestFrame,
+                Transition.AdvancedTransitionFrame(),
+                transitionToMenuMessage,
+              ],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToMenuMessage,
+              ],
+              [DetectMovementOrTransitionEnd, transitionEndMessage],
             ),
           )
         })
@@ -888,14 +939,22 @@ describe('Menu', () => {
             update,
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-            Story.resolve(RequestFrame, AdvancedTransitionFrame()),
+            Story.resolve(
+              Transition.RequestFrame,
+              Transition.AdvancedTransitionFrame(),
+              transitionToMenuMessage,
+            ),
             Story.model(model => {
-              expect(model.transitionState).toBe('EnterAnimating')
+              expect(model.transition.transitionState).toBe('EnterAnimating')
             }),
             Story.resolveAll(
               [FocusItems, CompletedFocusItems()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToMenuMessage,
+              ],
+              [DetectMovementOrTransitionEnd, transitionEndMessage],
             ),
           )
         })
@@ -907,12 +966,20 @@ describe('Menu', () => {
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.resolveAll(
               [FocusItems, CompletedFocusItems()],
-              [RequestFrame, AdvancedTransitionFrame()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.RequestFrame,
+                Transition.AdvancedTransitionFrame(),
+                transitionToMenuMessage,
+              ],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToMenuMessage,
+              ],
+              [DetectMovementOrTransitionEnd, transitionEndMessage],
             ),
             Story.model(model => {
-              expect(model.transitionState).toBe('Idle')
+              expect(model.transition.transitionState).toBe('Idle')
             }),
           )
         })
@@ -926,13 +993,21 @@ describe('Menu', () => {
             Story.message(Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
-              expect(model.transitionState).toBe('LeaveStart')
+              expect(model.transition.transitionState).toBe('LeaveStart')
             }),
             Story.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [RequestFrame, AdvancedTransitionFrame()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.RequestFrame,
+                Transition.AdvancedTransitionFrame(),
+                transitionToMenuMessage,
+              ],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToMenuMessage,
+              ],
+              [DetectMovementOrTransitionEnd, transitionEndMessage],
             ),
           )
         })
@@ -944,12 +1019,20 @@ describe('Menu', () => {
             Story.message(ClosedByTab()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
-              expect(model.transitionState).toBe('LeaveStart')
+              expect(model.transition.transitionState).toBe('LeaveStart')
             }),
             Story.resolveAll(
-              [RequestFrame, AdvancedTransitionFrame()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.RequestFrame,
+                Transition.AdvancedTransitionFrame(),
+                transitionToMenuMessage,
+              ],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToMenuMessage,
+              ],
+              [DetectMovementOrTransitionEnd, transitionEndMessage],
             ),
           )
         })
@@ -961,13 +1044,21 @@ describe('Menu', () => {
             Story.message(SelectedItem({ index: 0 })),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
-              expect(model.transitionState).toBe('LeaveStart')
+              expect(model.transition.transitionState).toBe('LeaveStart')
             }),
             Story.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [RequestFrame, AdvancedTransitionFrame()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.RequestFrame,
+                Transition.AdvancedTransitionFrame(),
+                transitionToMenuMessage,
+              ],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToMenuMessage,
+              ],
+              [DetectMovementOrTransitionEnd, transitionEndMessage],
             ),
           )
         })
@@ -977,14 +1068,22 @@ describe('Menu', () => {
             update,
             withOpenAnimated,
             Story.message(Closed()),
-            Story.resolve(RequestFrame, AdvancedTransitionFrame()),
+            Story.resolve(
+              Transition.RequestFrame,
+              Transition.AdvancedTransitionFrame(),
+              transitionToMenuMessage,
+            ),
             Story.model(model => {
-              expect(model.transitionState).toBe('LeaveAnimating')
+              expect(model.transition.transitionState).toBe('LeaveAnimating')
             }),
             Story.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToMenuMessage,
+              ],
+              [DetectMovementOrTransitionEnd, transitionEndMessage],
             ),
           )
         })
@@ -996,12 +1095,20 @@ describe('Menu', () => {
             Story.message(Closed()),
             Story.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [RequestFrame, AdvancedTransitionFrame()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.RequestFrame,
+                Transition.AdvancedTransitionFrame(),
+                transitionToMenuMessage,
+              ],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToMenuMessage,
+              ],
+              [DetectMovementOrTransitionEnd, transitionEndMessage],
             ),
             Story.model(model => {
-              expect(model.transitionState).toBe('Idle')
+              expect(model.transition.transitionState).toBe('Idle')
             }),
           )
         })
@@ -1015,7 +1122,7 @@ describe('Menu', () => {
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.resolve(FocusItems, CompletedFocusItems()),
             Story.model(model => {
-              expect(model.transitionState).toBe('Idle')
+              expect(model.transition.transitionState).toBe('Idle')
             }),
           )
         })
@@ -1027,7 +1134,7 @@ describe('Menu', () => {
             Story.message(Closed()),
             Story.resolve(FocusButton, CompletedFocusButton()),
             Story.model(model => {
-              expect(model.transitionState).toBe('Idle')
+              expect(model.transition.transitionState).toBe('Idle')
             }),
           )
         })
@@ -1038,10 +1145,14 @@ describe('Menu', () => {
           Story.story(
             update,
             withOpen,
-            Story.message(AdvancedTransitionFrame()),
+            Story.message(
+              GotTransitionMessage({
+                message: Transition.AdvancedTransitionFrame(),
+              }),
+            ),
             Story.model(model => {
               expect(model.isOpen).toBe(true)
-              expect(model.transitionState).toBe('Idle')
+              expect(model.transition.transitionState).toBe('Idle')
             }),
           )
         })
@@ -1050,10 +1161,10 @@ describe('Menu', () => {
           Story.story(
             update,
             withOpen,
-            Story.message(EndedTransition()),
+            Story.message(transitionEndMessage),
             Story.model(model => {
               expect(model.isOpen).toBe(true)
-              expect(model.transitionState).toBe('Idle')
+              expect(model.transition.transitionState).toBe('Idle')
             }),
           )
         })
@@ -1067,20 +1178,36 @@ describe('Menu', () => {
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.resolveAll(
               [FocusItems, CompletedFocusItems()],
-              [RequestFrame, AdvancedTransitionFrame()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.RequestFrame,
+                Transition.AdvancedTransitionFrame(),
+                transitionToMenuMessage,
+              ],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToMenuMessage,
+              ],
+              [DetectMovementOrTransitionEnd, transitionEndMessage],
             ),
             Story.message(Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
-              expect(model.transitionState).toBe('LeaveStart')
+              expect(model.transition.transitionState).toBe('LeaveStart')
             }),
             Story.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [RequestFrame, AdvancedTransitionFrame()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.RequestFrame,
+                Transition.AdvancedTransitionFrame(),
+                transitionToMenuMessage,
+              ],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToMenuMessage,
+              ],
+              [DetectMovementOrTransitionEnd, transitionEndMessage],
             ),
           )
         })
@@ -1092,65 +1219,37 @@ describe('Menu', () => {
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.resolveAll(
               [FocusItems, CompletedFocusItems()],
-              [RequestFrame, AdvancedTransitionFrame()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.RequestFrame,
+                Transition.AdvancedTransitionFrame(),
+                transitionToMenuMessage,
+              ],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToMenuMessage,
+              ],
+              [DetectMovementOrTransitionEnd, transitionEndMessage],
             ),
             Story.message(Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
-              expect(model.transitionState).toBe('LeaveStart')
+              expect(model.transition.transitionState).toBe('LeaveStart')
             }),
             Story.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [RequestFrame, AdvancedTransitionFrame()],
-              [WaitForTransitions, EndedTransition()],
-              [DetectMovementOrTransitionEnd, EndedTransition()],
+              [
+                Transition.RequestFrame,
+                Transition.AdvancedTransitionFrame(),
+                transitionToMenuMessage,
+              ],
+              [
+                Transition.WaitForTransitions,
+                Transition.EndedTransition(),
+                transitionToMenuMessage,
+              ],
+              [DetectMovementOrTransitionEnd, transitionEndMessage],
             ),
-          )
-        })
-      })
-
-      describe('DetectedButtonMovement', () => {
-        it('cancels leave animation by setting transitionState to Idle', () => {
-          Story.story(
-            update,
-            Story.with({
-              ...init({ id: 'test', isAnimated: true }),
-              isOpen: false,
-              transitionState: 'LeaveAnimating' as const,
-            }),
-            Story.message(DetectedButtonMovement()),
-            Story.model(model => {
-              expect(model.transitionState).toBe('Idle')
-            }),
-          )
-        })
-
-        it('is a no-op during Idle', () => {
-          Story.story(
-            update,
-            withOpen,
-            Story.message(DetectedButtonMovement()),
-            Story.model(model => {
-              expect(model.isOpen).toBe(true)
-              expect(model.transitionState).toBe('Idle')
-            }),
-          )
-        })
-
-        it('is a no-op during EnterAnimating', () => {
-          Story.story(
-            update,
-            Story.with({
-              ...init({ id: 'test', isAnimated: true }),
-              isOpen: true,
-              transitionState: 'EnterAnimating' as const,
-            }),
-            Story.message(DetectedButtonMovement()),
-            Story.model(model => {
-              expect(model.transitionState).toBe('EnterAnimating')
-            }),
           )
         })
       })

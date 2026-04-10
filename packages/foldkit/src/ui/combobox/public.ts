@@ -10,10 +10,7 @@ export {
   CompletedFocusInput,
   CompletedScrollIntoView,
   CompletedClickItem,
-  AdvancedTransitionFrame,
-  EndedTransition,
-  DetectedInputMovement,
-  RequestFrame,
+  GotTransitionMessage,
   LockScroll,
   UnlockScroll,
   InertOthers,
@@ -21,11 +18,8 @@ export {
   FocusInput,
   ScrollIntoView,
   ClickItem,
-  WaitForTransitions,
   DetectMovementOrTransitionEnd,
 } from './shared'
-
-export { TransitionState } from '../transition'
 
 export type {
   ActivationTrigger,

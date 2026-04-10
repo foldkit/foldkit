@@ -2,11 +2,7 @@ import { Ui } from 'foldkit'
 
 import { Class, OnClick, button, div, p } from '../../html'
 import type { Message as ParentMessage, TableOfContentsEntry } from '../../main'
-import {
-  GotTransitionDemoMessage,
-  type Message,
-  ToggledTransitionDemo,
-} from './message'
+import { type Message, ToggledTransitionDemo } from './message'
 
 // TABLE OF CONTENTS
 
@@ -31,9 +27,6 @@ export const transitionDemo = (
   isTransitionDemoShowing: boolean,
   toParentMessage: (message: Message) => ParentMessage,
 ) => {
-  const toTransitionMessage = (message: Ui.Transition.Message) =>
-    toParentMessage(GotTransitionDemoMessage({ message }))
-
   return [
     div(
       [Class('flex gap-3')],
@@ -52,7 +45,6 @@ export const transitionDemo = (
       [
         Ui.Transition.view({
           model: transitionModel,
-          toParentMessage: toTransitionMessage,
           className: contentClassName,
           animateSize: true,
           content: p(
