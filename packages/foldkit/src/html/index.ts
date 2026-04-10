@@ -19,6 +19,29 @@ import { VNode } from '../vdom'
 
 export { createKeyedLazy, createLazy } from './lazy'
 
+/**
+ * Tag symbol attached to file-aware event handler functions so Scene test
+ * helpers can distinguish `OnFileChange` from `OnChange` (both register on
+ * the DOM `change` event) and `OnDropFiles` from `OnDrop` (both register on
+ * the DOM `drop` event). Internal implementation detail — consumer code
+ * should never need to reference this directly.
+ */
+/* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+export const FileHandlerSymbol: unique symbol = Symbol.for(
+  'foldkit/html/fileHandler',
+) as unknown as FileHandlerSymbol
+/** Type-level brand for file-aware event handler tags. */
+export type FileHandlerSymbol = typeof FileHandlerSymbol
+
+const tagAsFileHandler = <T extends Function>(
+  handler: T,
+  tag: 'OnFileChange' | 'OnDropFiles',
+): T => {
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  ;(handler as unknown as Record<symbol, string>)[FileHandlerSymbol] = tag
+  return handler
+}
+
 /** Modifier key state extracted from a `KeyboardEvent`. */
 export type KeyboardModifiers = Readonly<{
   shiftKey: boolean
@@ -1001,7 +1024,7 @@ const buildVNodeData = <Message>(
             }),
           OnFileChange: ({ f }) =>
             updateDataOn({
-              change: (event: Event) => {
+              change: tagAsFileHandler((event: Event) => {
                 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
                 const target = event.target as HTMLInputElement
                 const files: ReadonlyArray<File> = target.files
@@ -1009,7 +1032,7 @@ const buildVNodeData = <Message>(
                   : Array.empty()
                 target.value = ''
                 dispatchSync(f(files))
-              },
+              }, 'OnFileChange'),
             }),
           OnSubmit: ({ message }) =>
             updateDataOn({
@@ -1101,7 +1124,7 @@ const buildVNodeData = <Message>(
             }),
           OnDropFiles: ({ f }) =>
             updateDataOn({
-              drop: (event: Event) => {
+              drop: tagAsFileHandler((event: Event) => {
                 event.preventDefault()
                 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
                 const dragEvent = event as DragEvent
@@ -1109,7 +1132,7 @@ const buildVNodeData = <Message>(
                   ? Array.fromIterable(dragEvent.dataTransfer.files)
                   : Array.empty()
                 dispatchSync(f(files))
-              },
+              }, 'OnDropFiles'),
             }),
           OnTouchStart: ({ message }) =>
             updateDataOn({

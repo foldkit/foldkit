@@ -44,6 +44,18 @@ import {
   update as pointerUpdate,
   view as pointerView,
 } from './apps/pointer'
+import {
+  CancelledSelectResume,
+  FailedReadPreview,
+  ReadResumePreview,
+  SelectResume,
+  SelectedResume,
+  SucceededReadPreview,
+  initialModel as resumeInitialModel,
+  update as resumeUpdate,
+  view as resumeView,
+} from './apps/resumeUpload'
+import type { Model as ResumeModel } from './apps/resumeUpload'
 import { parseSelector } from './query'
 import {
   attr,
@@ -1548,6 +1560,130 @@ describe('scene with file uploads', () => {
         Scene.dropFiles(Scene.label('action'), [resumePdf]),
       ),
     ).toThrow(/drop/)
+  })
+
+  test('changeFiles on an OnChange element throws a clear error about OnFileChange', () => {
+    expect(() =>
+      Scene.scene(
+        { update: interactionsUpdate, view: interactionsView },
+        Scene.with(interactionsInitialModel),
+        Scene.changeFiles(Scene.label('fruit'), [resumePdf]),
+      ),
+    ).toThrow(/OnFileChange/)
+  })
+})
+
+describe('scene with Command-based file upload flow', () => {
+  const resumePdf = new File(['%PDF-'], 'resume.pdf', {
+    type: 'application/pdf',
+  })
+  const previewDataUrl = 'data:application/pdf;base64,JVBERi0='
+
+  const chooseButton = Scene.role('button', { name: 'Choose resume' })
+  const removeButton = Scene.role('button', { name: 'Remove resume' })
+  const previewImage = Scene.role('img', { name: 'Resume preview' })
+  const readingStatus = Scene.role('status')
+  const errorAlert = Scene.role('alert')
+
+  const resumeSelectedModel: ResumeModel = {
+    ...resumeInitialModel,
+    maybeResume: Option.some(resumePdf),
+    maybePreviewDataUrl: Option.some(previewDataUrl),
+    readStatus: 'Idle',
+  }
+
+  test('happy path: click → resolve select → resolve preview → file visible', () => {
+    Scene.scene(
+      { update: resumeUpdate, view: resumeView },
+      Scene.with(resumeInitialModel),
+      Scene.expect(chooseButton).toExist(),
+      Scene.click(chooseButton),
+      Scene.resolve(SelectResume, SelectedResume({ files: [resumePdf] })),
+      Scene.expect(Scene.text('resume.pdf')).toExist(),
+      Scene.expect(readingStatus).toHaveText('Reading preview...'),
+      Scene.resolve(
+        ReadResumePreview,
+        SucceededReadPreview({ dataUrl: previewDataUrl }),
+      ),
+      Scene.expect(previewImage).toExist(),
+      Scene.expect(previewImage).toHaveAttr('src', previewDataUrl),
+      Scene.expect(removeButton).toExist(),
+    )
+  })
+
+  test('cancel path: resolve SelectResume with CancelledSelectResume leaves view unchanged', () => {
+    Scene.scene(
+      { update: resumeUpdate, view: resumeView },
+      Scene.with(resumeInitialModel),
+      Scene.click(chooseButton),
+      Scene.resolve(SelectResume, CancelledSelectResume()),
+      Scene.expect(chooseButton).toExist(),
+      Scene.expect(Scene.text('resume.pdf')).toBeAbsent(),
+    )
+  })
+
+  test('empty selection: resolving SelectResume with no files is treated as cancel', () => {
+    Scene.scene(
+      { update: resumeUpdate, view: resumeView },
+      Scene.with(resumeInitialModel),
+      Scene.click(chooseButton),
+      Scene.resolve(SelectResume, SelectedResume({ files: [] })),
+      Scene.expect(chooseButton).toExist(),
+    )
+  })
+
+  test('preview failure: reading fails → file still visible, alert shown', () => {
+    Scene.scene(
+      { update: resumeUpdate, view: resumeView },
+      Scene.with(resumeInitialModel),
+      Scene.click(chooseButton),
+      Scene.resolve(SelectResume, SelectedResume({ files: [resumePdf] })),
+      Scene.resolve(ReadResumePreview, FailedReadPreview()),
+      Scene.expect(Scene.text('resume.pdf')).toExist(),
+      Scene.expect(errorAlert).toHaveText('Could not read preview'),
+      Scene.expect(previewImage).toBeAbsent(),
+      Scene.expect(removeButton).toExist(),
+    )
+  })
+
+  test('remove flow: clicking Remove clears the resume', () => {
+    Scene.scene(
+      { update: resumeUpdate, view: resumeView },
+      Scene.with(resumeSelectedModel),
+      Scene.expect(Scene.text('resume.pdf')).toExist(),
+      Scene.expect(removeButton).toExist(),
+      Scene.click(removeButton),
+      Scene.expect(chooseButton).toExist(),
+      Scene.expect(Scene.text('resume.pdf')).toBeAbsent(),
+      Scene.expect(previewImage).toBeAbsent(),
+    )
+  })
+
+  test('full user journey: choose, preview, remove, choose again', () => {
+    const secondResume = new File(['%PDF-2'], 'resume-v2.pdf', {
+      type: 'application/pdf',
+    })
+    const secondDataUrl = 'data:application/pdf;base64,JVBERi0y'
+
+    Scene.scene(
+      { update: resumeUpdate, view: resumeView },
+      Scene.with(resumeInitialModel),
+      Scene.click(chooseButton),
+      Scene.resolveAll(
+        [SelectResume, SelectedResume({ files: [resumePdf] })],
+        [ReadResumePreview, SucceededReadPreview({ dataUrl: previewDataUrl })],
+      ),
+      Scene.expect(Scene.text('resume.pdf')).toExist(),
+      Scene.click(removeButton),
+      Scene.expect(chooseButton).toExist(),
+      Scene.click(chooseButton),
+      Scene.resolveAll(
+        [SelectResume, SelectedResume({ files: [secondResume] })],
+        [ReadResumePreview, SucceededReadPreview({ dataUrl: secondDataUrl })],
+      ),
+      Scene.expect(Scene.text('resume-v2.pdf')).toExist(),
+      Scene.expect(previewImage).toHaveAttr('src', secondDataUrl),
+    )
   })
 })
 

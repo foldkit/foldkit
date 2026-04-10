@@ -11,6 +11,7 @@ import { dual } from 'effect/Function'
 
 import type { CommandDefinition } from '../command'
 import type { File } from '../file'
+import { FileHandlerSymbol } from '../html'
 import type { Html, KeyboardModifiers } from '../html'
 import { Dispatch } from '../runtime'
 import type { VNode } from '../vdom'
@@ -384,6 +385,41 @@ const DEFAULT_KEYBOARD_MODIFIERS: KeyboardModifiers = {
   ctrlKey: false,
   altKey: false,
   metaKey: false,
+}
+
+const readFileHandlerTag = (handler: unknown): string | undefined => {
+  if (typeof handler !== 'function') {
+    return undefined
+  }
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const tag = (handler as unknown as Record<symbol, unknown>)[FileHandlerSymbol]
+  return typeof tag === 'string' ? tag : undefined
+}
+
+const assertFileHandler = (
+  handler: unknown,
+  expectedTag: 'OnFileChange' | 'OnDropFiles',
+  helperName: 'changeFiles' | 'dropFiles',
+): void => {
+  const tag = readFileHandlerTag(handler)
+  if (tag === expectedTag) {
+    return
+  }
+
+  const isFileChange = expectedTag === 'OnFileChange'
+  const eventName = isFileChange ? 'change' : 'drop'
+  const correctAttribute = isFileChange ? 'OnFileChange' : 'OnDropFiles'
+  const wrongAttribute = isFileChange ? 'OnChange' : 'OnDrop'
+  const alternativeHelper = isFileChange
+    ? 'Use `Scene.change` for text inputs and selects.'
+    : 'Remove `Scene.dropFiles` or add an `OnDropFiles` attribute to the drop zone.'
+
+  throw new Error(
+    `Scene.${helperName} requires the target element's ${eventName} handler to be ` +
+      `registered via ${correctAttribute}, but it appears to use ${wrongAttribute} instead. ` +
+      `${correctAttribute} decodes files from the event; ${wrongAttribute} does not. ` +
+      `${alternativeHelper}`,
+  )
 }
 
 // STEPS
@@ -1001,6 +1037,7 @@ export const changeFiles: {
       simulation: SceneSimulation<Model, Message, OutMessage>,
     ): SceneSimulation<Model, Message, OutMessage> =>
       invokeAndCapture(simulation, target, 'change', handler => {
+        assertFileHandler(handler, 'OnFileChange', 'changeFiles')
         handler({ target: { files, value: '' } })
       }),
 )
@@ -1031,6 +1068,7 @@ export const dropFiles: {
       simulation: SceneSimulation<Model, Message, OutMessage>,
     ): SceneSimulation<Model, Message, OutMessage> =>
       invokeAndCapture(simulation, target, 'drop', handler => {
+        assertFileHandler(handler, 'OnDropFiles', 'dropFiles')
         handler({
           preventDefault: Function.constVoid,
           dataTransfer: { files },
