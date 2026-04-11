@@ -15,6 +15,16 @@ export type ThemePreference = typeof ThemePreference.Type
 export const ResolvedTheme = S.Literal('Dark', 'Light')
 export type ResolvedTheme = typeof ResolvedTheme.Type
 
+// STATUS BANNER
+
+export const StatusBanner = S.Struct({
+  message: S.String,
+  avatarUrl: S.String,
+  profileHandle: S.String,
+  profileUrl: S.String,
+})
+export type StatusBanner = typeof StatusBanner.Type
+
 // MESSAGE
 
 export const CompletedNavigateInternal = m('CompletedNavigateInternal')
@@ -44,6 +54,10 @@ export const UpdatedEmailField = m('UpdatedEmailField', { value: S.String })
 export const SubmittedEmailForm = m('SubmittedEmailForm')
 export const SucceededSubscribeEmail = m('SucceededSubscribeEmail')
 export const FailedSubscribeEmail = m('FailedSubscribeEmail')
+export const SucceededFetchStatusBanner = m('SucceededFetchStatusBanner', {
+  banner: StatusBanner,
+})
+export const FailedFetchStatusBanner = m('FailedFetchStatusBanner')
 export const GotMobileMenuDialogMessage = m('GotMobileMenuDialogMessage', {
   message: Ui.Dialog.Message,
 })
@@ -147,6 +161,8 @@ export const Message = S.Union(
   SubmittedEmailForm,
   SucceededSubscribeEmail,
   FailedSubscribeEmail,
+  SucceededFetchStatusBanner,
+  FailedFetchStatusBanner,
   GotMobileMenuDialogMessage,
   ToggledMobileTableOfContents,
   ClickedMobileTableOfContentsLink,

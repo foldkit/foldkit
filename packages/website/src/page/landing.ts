@@ -32,6 +32,7 @@ import {
 } from '../html'
 import { Icon } from '../icon'
 import { Link } from '../link'
+import { type StatusBanner } from '../message'
 import {
   aiOverviewRouter,
   comingFromReactRouter,
@@ -93,11 +94,13 @@ export const view = (
   demoTabsView: Html,
   emailSignupView: Html,
   aiHeadingToggleCount: number,
+  statusBanner: StatusBanner,
 ): Html =>
   div(
     [Class('isolate overflow-x-hidden')],
     [
       heroSection(copiedSnippets),
+      nowStatusBanner(statusBanner),
       glyph('{ }'),
       poweredBySection(),
       glyph('=>'),
@@ -204,6 +207,79 @@ const heroSection = (copiedSnippets: CopiedSnippets): Html =>
               a(
                 [Href(Link.github), Class('cta-secondary')],
                 [Icon.github('w-5 h-5'), 'View on GitHub'],
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+  )
+
+// NOW STATUS BANNER
+
+const nowStatusBanner = (banner: StatusBanner): Html =>
+  div(
+    [Class('px-6 md:px-12 lg:px-20 -mt-2 md:-mt-8')],
+    [
+      div(
+        [Class('landing-section-narrow')],
+        [
+          a(
+            [
+              Href(banner.profileUrl),
+              AriaLabel(
+                `Now: ${banner.message}. Follow ${banner.profileHandle} on X.`,
+              ),
+              Class(
+                'group inline-flex items-center gap-3 max-w-full sm:max-w-2xl rounded-full border border-gray-200 dark:border-gray-800 bg-cream dark:bg-gray-900/60 py-2 pl-2 pr-4 shadow-sm backdrop-blur-sm transition hover:border-accent-600/50 dark:hover:border-accent-500/50 hover:bg-white dark:hover:bg-gray-900',
+              ),
+            ],
+            [
+              img([
+                Src(banner.avatarUrl),
+                Alt(banner.profileHandle),
+                Width('40'),
+                Height('40'),
+                Class(
+                  'h-9 w-9 rounded-full shrink-0 ring-1 ring-gray-200 dark:ring-gray-800 object-cover',
+                ),
+              ]),
+              span(
+                [
+                  AriaHidden(true),
+                  Class(
+                    'inline-flex items-center gap-1.5 text-[0.625rem] font-mono font-semibold uppercase tracking-wider text-accent-600 dark:text-accent-500 shrink-0',
+                  ),
+                ],
+                [
+                  span(
+                    [
+                      Class(
+                        'inline-block h-1.5 w-1.5 rounded-full bg-accent-600 dark:bg-accent-500 animate-pulse',
+                      ),
+                    ],
+                    [],
+                  ),
+                  'Now',
+                ],
+              ),
+              span(
+                [
+                  AriaHidden(true),
+                  Class(
+                    'text-sm text-gray-700 dark:text-gray-200 leading-snug',
+                  ),
+                ],
+                [banner.message],
+              ),
+              span(
+                [
+                  AriaHidden(true),
+                  Class(
+                    'shrink-0 text-gray-400 dark:text-gray-500 group-hover:text-accent-600 dark:group-hover:text-accent-500 transition',
+                  ),
+                ],
+                [Icon.arrowRight('w-4 h-4')],
               ),
             ],
           ),

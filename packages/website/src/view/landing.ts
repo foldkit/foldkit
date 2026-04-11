@@ -199,6 +199,7 @@ export const landingView = (model: Model) => {
             demoTabsView,
             emailSignupView,
             model.aiHeadingToggleCount,
+            model.statusBanner,
           ),
         ],
       ),

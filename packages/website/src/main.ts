@@ -38,6 +38,7 @@ import {
   CompletedSaveThemePreference,
   CompletedScroll,
   FailedCopy,
+  FailedFetchStatusBanner,
   FailedSubscribeEmail,
   GotAiGroupMessage,
   GotApiReferenceGroupMessage,
@@ -61,8 +62,10 @@ import {
   HiddenCopiedIndicator,
   type Message,
   ResolvedTheme,
+  StatusBanner,
   SucceededCopy,
   SucceededCopyLink,
+  SucceededFetchStatusBanner,
   SucceededSubscribeEmail,
   ThemePreference,
 } from './message'
@@ -85,6 +88,18 @@ export type TableOfContentsEntry = {
 const THEME_STORAGE_KEY = 'theme-preference'
 
 export { type ThemePreference, type ResolvedTheme } from './message'
+
+// STATUS BANNER
+
+const DEFAULT_STATUS_BANNER: StatusBanner = {
+  message: 'Building Foldkit',
+  avatarUrl: 'https://github.com/devinjameson.png',
+  profileHandle: '@devinjameson',
+  profileUrl: 'https://x.com/devinjameson',
+}
+
+const STATUS_BANNER_URL =
+  'https://raw.githubusercontent.com/foldkit/foldkit/main/packages/website/now.json'
 
 const resolveTheme = (
   preference: typeof ThemePreference.Type,
@@ -192,6 +207,7 @@ export const Model = S.Struct({
   apiReference: Page.ApiReference.Model,
   exampleDetail: Page.Example.ExampleDetail.Model,
   search: Search.Model,
+  statusBanner: StatusBanner,
 })
 
 export type Model = typeof Model.Type
@@ -362,11 +378,13 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
       apiReference,
       exampleDetail,
       search: Search.init()[0],
+      statusBanner: DEFAULT_STATUS_BANNER,
     },
     [
       injectAnalytics,
       injectSpeedInsights,
       applyThemeToDocument(resolvedTheme),
+      fetchStatusBanner,
       ...mappedAsyncCounterDemoCommands,
       ...mappedNotePlayerDemoCommands,
       ...mappedUiPagesCommands,
@@ -967,6 +985,11 @@ const update = (
           ),
         ]
       },
+
+      SucceededFetchStatusBanner: ({ banner }) => [
+        evo(model, { statusBanner: () => banner }),
+        [],
+      ],
     }),
     M.tag(
       'CompletedNavigateInternal',
@@ -978,6 +1001,7 @@ const update = (
       'CompletedSaveThemePreference',
       'SucceededCopyLink',
       'FailedCopy',
+      'FailedFetchStatusBanner',
       () => [model, []],
     ),
     M.exhaustive,
@@ -1006,6 +1030,11 @@ const SubscribeToNewsletter = Command.define(
   'SubscribeToNewsletter',
   SucceededSubscribeEmail,
   FailedSubscribeEmail,
+)
+const FetchStatusBanner = Command.define(
+  'FetchStatusBanner',
+  SucceededFetchStatusBanner,
+  FailedFetchStatusBanner,
 )
 const SaveThemePreference = Command.define(
   'SaveThemePreference',
@@ -1140,6 +1169,23 @@ const subscribeToNewsletter = (email: string) =>
       Effect.provide(FetchHttpClient.layer),
     ),
   )
+
+const fetchStatusBanner = FetchStatusBanner(
+  Effect.gen(function* () {
+    const client = yield* HttpClient.HttpClient
+    const response = yield* client.execute(
+      HttpClientRequest.get(STATUS_BANNER_URL),
+    )
+    const json = yield* response.json
+    const banner = yield* S.decodeUnknown(StatusBanner)(json)
+    return SucceededFetchStatusBanner({ banner })
+  }).pipe(
+    Effect.scoped,
+    Effect.catchAll(() => Effect.succeed(FailedFetchStatusBanner())),
+    Effect.locally(HttpClient.currentTracerPropagation, false),
+    Effect.provide(FetchHttpClient.layer),
+  ),
+)
 
 const saveThemePreference = (preference: typeof ThemePreference.Type) =>
   SaveThemePreference(
