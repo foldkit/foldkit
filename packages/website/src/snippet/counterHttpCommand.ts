@@ -26,7 +26,7 @@ const update = (
     >(),
     M.tagsExhaustive({
       ClickedFetchCount: () => [model, [fetchCount]],
-      SucceededFetchCount: ({ count }) => [Model({ count }), []],
+      SucceededFetchCount: ({ count }) => [{ count }, []],
       FailedFetchCount: () => [model, []],
     }),
   )

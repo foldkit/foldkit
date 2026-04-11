@@ -14,8 +14,8 @@ const update = (
       readonly [Model, ReadonlyArray<Command.Command<Message>>]
     >(),
     M.tagsExhaustive({
-      ClickedDecrement: () => [Model({ count: model.count - 1 }), []],
-      ClickedIncrement: () => [Model({ count: model.count + 1 }), []],
-      ClickedReset: () => [Model({ count: 0 }), []],
+      ClickedDecrement: () => [{ count: model.count - 1 }, []],
+      ClickedIncrement: () => [{ count: model.count + 1 }, []],
+      ClickedReset: () => [{ count: 0 }, []],
     }),
   )
