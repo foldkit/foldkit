@@ -1,5 +1,39 @@
 # foldkit
 
+## 0.59.0
+
+### Minor Changes
+
+- a486514: Complete Scene's AccName 1.2 "text alternative from native host language" coverage and expand the implicit role map.
+
+  `Scene.role(tag, { name })` now resolves accessible names from every native-host source in the W3C AccName 1.2 spec:
+  - `img.alt` and `area.alt`
+  - `input[type="image"].alt`
+  - `input[type="submit|button|reset"].value`
+  - `<fieldset>` → text of its `<legend>` child
+  - `<figure>` → text of its `<figcaption>` child
+  - `<table>` → text of its `<caption>` child
+
+  The implicit role map was extended with common elements that previously matched nothing: `p` (paragraph), `hr` (separator), `dialog`, `main`, `aside` (complementary), `fieldset`/`details` (group), `figure`, `output` (status), `progress` (progressbar), `meter`, `summary` (button), `tr` (row), `td` (cell). `input[type="image|button"]` now correctly map to role `button`.
+
+  Edge cases from the ARIA-in-HTML spec are now handled:
+  - `<img alt="">` has role `presentation`, not `img`.
+  - `<a>` and `<area>` without an `href` have role `generic`, not `link`.
+  - `<th scope="row">` has role `rowheader`; otherwise `columnheader`.
+
+  Context-sensitive landmark roles are now resolved by walking the ancestor chain:
+  - `<header>` has role `banner` unless it descends from `<article>`, `<aside>`, `<main>`, `<nav>`, or `<section>`, in which case it's `generic`.
+  - `<footer>` has role `contentinfo` under the same conditions.
+  - `<section>` has role `region` when it has an accessible name (via `aria-label`, `aria-labelledby`, or `title`); otherwise `generic`.
+
+### Patch Changes
+
+- 314f132: Fix `label(For(id), ...)` so the `for` attribute actually reaches the DOM.
+
+  The `For` attribute handler was routing through snabbdom's `props` module with the key `for`, which told snabbdom to run `element.for = value`. `HTMLLabelElement` has no `for` property — the reflected DOM property is `htmlFor` — so the assignment silently created a JS expando and no `for=""` attribute was ever emitted on the rendered label. Every Foldkit form using `label([For(id)], ...)` was missing its label↔control association, so assistive tech and axe-core could not resolve accessible names from the label.
+
+  The handler now routes through `htmlFor`, which snabbdom assigns as a real DOM property and which reflects to the `for` HTML attribute.
+
 ## 0.58.0
 
 ### Minor Changes
