@@ -10,7 +10,11 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
-import { coreArchitectureRouter, testingRouter } from '../../route'
+import {
+  coreArchitectureRouter,
+  exampleDetailRouter,
+  testingRouter,
+} from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
@@ -173,6 +177,33 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Copy HTTP command example to clipboard',
         copiedSnippets,
         'mb-8',
+      ),
+      infoCallout(
+        'Using fetch for simplicity',
+        'This example wraps ',
+        inlineCode('fetch'),
+        ' in ',
+        inlineCode('Effect.tryPromise'),
+        ' to keep the focus on Commands. For real applications, we recommend Effect\u2019s ',
+        inlineCode('HttpClient'),
+        ' module \u2014 it gives you typed errors, request and response schemas, retries, and ',
+        inlineCode('Layer'),
+        '-based configuration. See the ',
+        link(
+          exampleDetailRouter({ exampleSlug: 'weather' }),
+          'Weather example',
+        ),
+        ' for a real ',
+        inlineCode('HttpClient'),
+        ' usage \u2014 ',
+        inlineCode('fetchWeather'),
+        ' builds requests with ',
+        inlineCode('HttpClientRequest.get'),
+        ', runs them through ',
+        inlineCode('client.execute'),
+        ', and decodes the response with ',
+        inlineCode('S.decodeUnknown'),
+        '. Whatever Effect produces the value, the Command shape stays the same.',
       ),
       para(
         'Let\u2019s zoom in on ',

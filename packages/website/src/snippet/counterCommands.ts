@@ -20,6 +20,6 @@ const update = (
     >(),
     M.tagsExhaustive({
       ClickedResetAfterDelay: () => [model, [delayReset]],
-      CompletedDelayReset: () => [Model({ count: 0 }), []],
+      CompletedDelayReset: () => [{ count: 0 }, []],
     }),
   )
