@@ -54,3 +54,7 @@ declare module 'virtual:example-sources/*' {
   }
   export default data
 }
+
+interface Window {
+  readonly __FOLDKIT_PRERENDER__?: boolean
+}

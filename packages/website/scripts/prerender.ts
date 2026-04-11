@@ -346,6 +346,11 @@ const captureRouteHtml = (browser: Browser, url: string) =>
     Effect.tryPromise(() => browser.newPage()),
     page =>
       Effect.gen(function* () {
+        yield* Effect.tryPromise(() =>
+          page.addInitScript(
+            'Object.defineProperty(window, "__FOLDKIT_PRERENDER__", { value: true, writable: false })',
+          ),
+        )
         yield* Effect.tryPromise(() => page.goto(url))
         yield* Effect.tryPromise(() =>
           page.waitForFunction(() => {
