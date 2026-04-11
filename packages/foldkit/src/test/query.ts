@@ -544,7 +544,7 @@ const nameFromLabelFor =
               node.sel === 'label' &&
               pipe(
                 node,
-                lookupStringAttribute('for'),
+                lookupStringAttribute('htmlFor'),
                 Option.exists(Equal.equals(idString)),
               ),
           ),
@@ -952,7 +952,8 @@ export const getByLabel =
           ),
           Array.filterMap(labelNode =>
             pipe(
-              lookupStringAttribute('for')(labelNode),
+              labelNode,
+              lookupStringAttribute('htmlFor'),
               Option.flatMap(findById(html)),
               Option.orElse(() =>
                 Array.findFirst(collectDescendants(labelNode), isFormControl),
@@ -994,7 +995,8 @@ export const getAllByLabel =
       ),
       Array.flatMap(labelNode =>
         pipe(
-          lookupStringAttribute('for')(labelNode),
+          labelNode,
+          lookupStringAttribute('htmlFor'),
           Option.flatMap(findById(html)),
           Option.match({
             onNone: () =>

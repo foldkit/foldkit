@@ -271,11 +271,11 @@ describe('accessible locators', () => {
   const locatorTree: VNode = h('div', {}, [
     h('h1', {}, ['Welcome']),
     h('form', { attrs: { 'aria-label': 'Login form' } }, [
-      h('label', { props: { for: 'email' } }, ['Email']),
+      h('label', { props: { htmlFor: 'email' } }, ['Email']),
       h('input', {
         props: { id: 'email', type: 'email', placeholder: 'Email address' },
       }),
-      h('label', { props: { for: 'pw' } }, ['Password']),
+      h('label', { props: { htmlFor: 'pw' } }, ['Password']),
       h('input', {
         props: { id: 'pw', type: 'password', placeholder: 'Password' },
       }),
@@ -1181,10 +1181,10 @@ describe('multi-match locators', () => {
 
   test('all.label finds controls via <label for="id"> association', () => {
     const labelTree: VNode = h('form', {}, [
-      h('label', { attrs: { for: 'a' } }, ['Item']),
-      h('input', { attrs: { id: 'a' } }),
-      h('label', { attrs: { for: 'b' } }, ['Item']),
-      h('input', { attrs: { id: 'b' } }),
+      h('label', { props: { htmlFor: 'a' } }, ['Item']),
+      h('input', { props: { id: 'a' } }),
+      h('label', { props: { htmlFor: 'b' } }, ['Item']),
+      h('input', { props: { id: 'b' } }),
     ])
     expect(Scene.all.label('Item')(labelTree)).toHaveLength(2)
   })
@@ -1199,7 +1199,7 @@ describe('multi-match locators', () => {
 
   test('all.label dedupes when multiple strategies match the same element', () => {
     const labelTree: VNode = h('form', {}, [
-      h('label', { attrs: { for: 'email' } }, ['Email']),
+      h('label', { props: { htmlFor: 'email' } }, ['Email']),
       h('input', {
         attrs: { id: 'email', 'aria-label': 'Email' },
       }),
