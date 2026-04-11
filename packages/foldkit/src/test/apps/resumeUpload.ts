@@ -125,6 +125,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
 const {
   div,
+  section,
   p,
   img,
   button,
@@ -163,8 +164,8 @@ export const view = (model: Model): Html =>
         onNone: () =>
           button([OnClick(ClickedChooseResume())], ['Choose resume']),
         onSome: file =>
-          div(
-            [Role('region'), AriaLabel('Selected resume')],
+          section(
+            [AriaLabel('Selected resume')],
             [
               p([Class('resume-name')], [File.name(file)]),
               previewView(model),
