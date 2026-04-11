@@ -605,8 +605,6 @@ export const view = (
     ],
   )
 
-// NOTE: Rendered while `model.apiData` is `Loading`. The shape mirrors a real module page
-// so layout doesn't jump when the data resolves.
 const skeletonBlockClasses = ['h-20', 'h-28', 'h-20']
 
 export const skeletonView = (): Html =>
@@ -636,8 +634,6 @@ export const skeletonView = (): Html =>
     ],
   )
 
-// NOTE: Rendered while `model.apiData` is `Failure`. Kept deliberately simple — the docs
-// layout around this already provides navigation to recover.
 export const failureView = (error: string): Html =>
   div(
     [Class('rounded-lg border border-red-300 dark:border-red-800 p-6')],

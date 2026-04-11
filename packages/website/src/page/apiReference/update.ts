@@ -45,22 +45,15 @@ export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      StartedLoadApiData: () => {
-        const shouldLoad = M.value(model.apiData).pipe(
-          M.tag('NotAsked', () => true),
-          M.tag('Failure', () => true),
-          M.tag('Loading', () => false),
-          M.tag('Ok', () => false),
-          M.exhaustive,
-        )
-        if (!shouldLoad) {
-          return [model, []]
-        }
-        return [
-          evo(model, { apiData: () => ApiDataRemoteData.Loading() }),
-          [loadApiData],
-        ]
-      },
+      StartedLoadApiData: () =>
+        M.value(model.apiData).pipe(
+          withUpdateReturn,
+          M.tag('NotAsked', 'Failure', () => [
+            evo(model, { apiData: () => ApiDataRemoteData.Loading() }),
+            [loadApiData],
+          ]),
+          M.orElse(() => [model, []]),
+        ),
 
       SucceededLoadApiData: ({ apiData }) => [
         evo(model, {

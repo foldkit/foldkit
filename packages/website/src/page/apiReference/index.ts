@@ -22,9 +22,6 @@ export { update } from './update'
 export { failureView, skeletonView, view } from './view'
 export type { TypeDocJson } from './typedoc'
 
-// NOTE: Resolves a slug to a module from already-loaded data. Unlike the previous
-// module-level `slugToModule`, this is a pure function callers pass the loaded modules
-// into — avoiding the eager 5MB+ JSON parse at app startup.
 const modulesBySlug = (
   modules: ReadonlyArray<ApiModule>,
 ): Record<string, ApiModule> =>
