@@ -224,19 +224,23 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
   const [comingFromReact, comingFromReactCommands] = Page.ComingFromReact.init()
   const initialRoute = urlToAppRoute(url)
 
-  // NOTE: The API reference starts in NotAsked. If the user is landing directly on an
-  // API route, synchronously dispatch `StartedLoadApiData` through the submodel's
-  // update function so the Loading state + dynamic import chunk kicks off before the
-  // first paint — matching the Foldkit Submodel pattern used elsewhere (e.g.
-  // `Ui.Dialog.update` in the `ChangedUrl` handler below).
-  const [baseApiReference, baseApiReferenceCommands] = Page.ApiReference.init()
-  const [apiReference, apiReferenceCommands] =
-    initialRoute._tag === 'ApiModule'
-      ? Page.ApiReference.update(
-          baseApiReference,
-          Page.ApiReference.StartedLoadApiData(),
-        )
-      : [baseApiReference, baseApiReferenceCommands]
+  const [initApiReference, apiReferenceInitCommands] = Page.ApiReference.init()
+  const [apiReference, apiReferenceStartLoadCommands] = M.value(
+    initialRoute,
+  ).pipe(
+    M.withReturnType<ReturnType<typeof Page.ApiReference.update>>(),
+    M.tag('ApiModule', () =>
+      Page.ApiReference.update(
+        initApiReference,
+        Page.ApiReference.StartedLoadApiData(),
+      ),
+    ),
+    M.orElse(() => [initApiReference, []]),
+  )
+  const apiReferenceCommands = [
+    ...apiReferenceInitCommands,
+    ...apiReferenceStartLoadCommands,
+  ]
 
   const mappedAsyncCounterDemoCommands = asyncCounterDemoCommands.map(
     Command.mapEffect(
@@ -408,16 +412,18 @@ const update = (
         )
         const [closedSearchDialog, closeSearchDialogCommands] =
           Ui.Dialog.update(model.search.dialog, Ui.Dialog.Closed())
-        // NOTE: Trigger the lazy API data load on transition into an ApiModule route.
-        // The apiReference update function gates on current state, so this is a no-op if
-        // the data is already loaded or in flight.
-        const [nextApiReference, apiReferenceLoadCommands] =
-          nextRoute._tag === 'ApiModule'
-            ? Page.ApiReference.update(
-                model.apiReference,
-                Page.ApiReference.StartedLoadApiData(),
-              )
-            : [model.apiReference, []]
+        const [nextApiReference, apiReferenceStartLoadCommands] = M.value(
+          nextRoute,
+        ).pipe(
+          M.withReturnType<ReturnType<typeof Page.ApiReference.update>>(),
+          M.tag('ApiModule', () =>
+            Page.ApiReference.update(
+              model.apiReference,
+              Page.ApiReference.StartedLoadApiData(),
+            ),
+          ),
+          M.orElse(() => [model.apiReference, []]),
+        )
 
         return [
           evo(model, {
@@ -466,9 +472,11 @@ const update = (
                 ),
               ),
             ),
-            ...apiReferenceLoadCommands.map(
-              Command.mapEffect(
-                Effect.map(message => GotApiReferenceMessage({ message })),
+            ...apiReferenceStartLoadCommands.map(command =>
+              Command.mapEffect(command, effect =>
+                Effect.map(effect, message =>
+                  GotApiReferenceMessage({ message }),
+                ),
               ),
             ),
             ...Option.match(url.hash, {

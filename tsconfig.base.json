@@ -18,13 +18,7 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-
-    "baseUrl": ".",
-    "paths": {
-      "@foldkit": ["packages/foldkit/src/index.ts"],
-      "@foldkit/*": ["packages/foldkit/src/core/*"]
-    }
+    "forceConsistentCasingInFileNames": true
   },
   "exclude": ["node_modules", "dist"]
 }

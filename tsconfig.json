@@ -1,7 +1,0 @@
-{
-  "references": [
-    { "path": "packages/foldkit" },
-    { "path": "packages/foldkit/tsconfig.test.json" }
-  ],
-  "files": []
-}

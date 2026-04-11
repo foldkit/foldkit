@@ -31,34 +31,36 @@ const shikiThemes = {
 const highlightCodePlugin = (): Plugin => ({
   name: 'highlight-code',
   async transform(_code, id) {
-    if (id.includes('?highlighted')) {
-      const filePath = id.slice(0, id.indexOf('?'))
-      const rawCode = await readFile(filePath, 'utf-8')
-      const code = rawCode.trimEnd()
-
-      const lines = code.split('\n')
-      const lineCount = lines.length
-      const lineDigits = String(lineCount).length
-
-      const lang = filePath.endsWith('.tsx') ? 'tsx' : 'typescript'
-
-      const html = await codeToHtml(code, {
-        lang,
-        themes: shikiThemes,
-        decorations: lines.map((line, i) => ({
-          start: { line: i, character: 0 },
-          end: { line: i, character: line.length },
-          properties: { 'data-line': i + 1 },
-        })),
-      })
-
-      const htmlWithDigits = html.replace(
-        '<pre ',
-        `<pre data-line-digits="${lineDigits}" `,
-      )
-
-      return `export default ${JSON.stringify(htmlWithDigits)}`
+    if (!id.includes('?highlighted')) {
+      return undefined
     }
+
+    const filePath = id.slice(0, id.indexOf('?'))
+    const rawCode = await readFile(filePath, 'utf-8')
+    const code = rawCode.trimEnd()
+
+    const lines = code.split('\n')
+    const lineCount = lines.length
+    const lineDigits = String(lineCount).length
+
+    const lang = filePath.endsWith('.tsx') ? 'tsx' : 'typescript'
+
+    const html = await codeToHtml(code, {
+      lang,
+      themes: shikiThemes,
+      decorations: lines.map((line, i) => ({
+        start: { line: i, character: 0 },
+        end: { line: i, character: line.length },
+        properties: { 'data-line': i + 1 },
+      })),
+    })
+
+    const htmlWithDigits = html.replace(
+      '<pre ',
+      `<pre data-line-digits="${lineDigits}" `,
+    )
+
+    return `export default ${JSON.stringify(htmlWithDigits)}`
   },
 })
 
@@ -273,11 +275,13 @@ const highlightApiSignaturesPlugin = (): Plugin => ({
   resolveId(id) {
     if (id === VIRTUAL_MODULE_ID) {
       return RESOLVED_VIRTUAL_MODULE_ID
+    } else {
+      return undefined
     }
   },
   async load(id) {
     if (id !== RESOLVED_VIRTUAL_MODULE_ID) {
-      return
+      return undefined
     }
 
     const jsonPath = resolve(__dirname, 'src/generated/api.json')
@@ -329,11 +333,13 @@ const apiModuleIndexPlugin = (): Plugin => ({
   resolveId(id) {
     if (id === API_MODULE_INDEX_ID) {
       return RESOLVED_API_MODULE_INDEX_ID
+    } else {
+      return undefined
     }
   },
   async load(id) {
     if (id !== RESOLVED_API_MODULE_INDEX_ID) {
-      return
+      return undefined
     }
 
     const jsonPath = resolve(__dirname, 'src/generated/api.json')
@@ -429,11 +435,13 @@ const counterDemoCodePlugin = (): Plugin => ({
   resolveId(id) {
     if (id === COUNTER_DEMO_CODE_ID) {
       return RESOLVED_COUNTER_DEMO_CODE_ID
+    } else {
+      return undefined
     }
   },
   async load(id) {
     if (id !== RESOLVED_COUNTER_DEMO_CODE_ID) {
-      return
+      return undefined
     }
 
     const code = DEMO_CODE.trimEnd()
@@ -550,11 +558,13 @@ const notePlayerDemoCodePlugin = (): Plugin => ({
   resolveId(id) {
     if (id === NOTE_PLAYER_DEMO_CODE_ID) {
       return RESOLVED_NOTE_PLAYER_DEMO_CODE_ID
+    } else {
+      return undefined
     }
   },
   async load(id) {
     if (id !== RESOLVED_NOTE_PLAYER_DEMO_CODE_ID) {
-      return
+      return undefined
     }
 
     const code = NOTE_PLAYER_DEMO_CODE.trimEnd()
@@ -589,11 +599,13 @@ const landingDataPlugin = (): Plugin => ({
   resolveId(id) {
     if (id === LANDING_DATA_ID) {
       return RESOLVED_LANDING_DATA_ID
+    } else {
+      return undefined
     }
   },
   async load(id) {
     if (id !== RESOLVED_LANDING_DATA_ID) {
-      return
+      return undefined
     }
 
     const packageJson = JSON.parse(
@@ -737,16 +749,18 @@ const highlightExampleSourcesPlugin = (): Plugin => ({
   resolveId(id) {
     if (id.startsWith(EXAMPLE_SOURCES_PREFIX)) {
       return '\0' + id
+    } else {
+      return undefined
     }
   },
   async load(id) {
     if (!id.startsWith(RESOLVED_EXAMPLE_SOURCES_PREFIX)) {
-      return
+      return undefined
     }
 
     const slug = id.slice(RESOLVED_EXAMPLE_SOURCES_PREFIX.length)
     if (!EXAMPLE_SLUG_SET.has(slug)) {
-      return
+      return undefined
     }
 
     const exampleDirectory = resolve(__dirname, `../../examples/${slug}`)
@@ -781,7 +795,7 @@ const embeddedExampleRedirectPlugin = (): Plugin => ({
         const target = `/example-apps-embed/${slug}/index.html${url.search}`
         res.writeHead(302, { Location: target })
         res.end()
-        return
+        return undefined
       }
       next()
     })
