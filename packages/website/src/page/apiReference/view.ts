@@ -605,27 +605,36 @@ export const view = (
     ],
   )
 
-const skeletonBlockClasses = ['h-20', 'h-28', 'h-20']
+const skeletonFunctionBlocks: ReadonlyArray<{
+  readonly labelWidth: string
+  readonly bodyHeight: string
+}> = [
+  { labelWidth: 'w-56', bodyHeight: 'h-24' },
+  { labelWidth: 'w-48', bodyHeight: 'h-20' },
+  { labelWidth: 'w-64', bodyHeight: 'h-28' },
+  { labelWidth: 'w-40', bodyHeight: 'h-16' },
+  { labelWidth: 'w-52', bodyHeight: 'h-24' },
+  { labelWidth: 'w-44', bodyHeight: 'h-20' },
+]
+
+const skeletonSurfaceClass = 'bg-gray-200 dark:bg-gray-800'
 
 export const skeletonView = (): Html =>
   div(
     [Class('animate-pulse')],
     [
-      div([Class('h-10 w-64 mb-8 rounded bg-gray-200 dark:bg-gray-800')], []),
-      ...Array.map(skeletonBlockClasses, blockHeightClass =>
+      div([Class(`h-10 w-72 mb-10 rounded ${skeletonSurfaceClass}`)], []),
+      div([Class(`h-7 w-36 mb-6 rounded ${skeletonSurfaceClass}`)], []),
+      ...Array.map(skeletonFunctionBlocks, ({ labelWidth, bodyHeight }) =>
         div(
           [Class('mb-8')],
           [
             div(
-              [Class('h-5 w-40 mb-3 rounded bg-gray-200 dark:bg-gray-800')],
+              [Class(`h-5 ${labelWidth} mb-3 rounded ${skeletonSurfaceClass}`)],
               [],
             ),
             div(
-              [
-                Class(
-                  `${blockHeightClass} rounded bg-gray-100 dark:bg-gray-900`,
-                ),
-              ],
+              [Class(`${bodyHeight} w-full rounded ${skeletonSurfaceClass}`)],
               [],
             ),
           ],

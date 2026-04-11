@@ -66,8 +66,8 @@ export const shikiDarkTheme: ThemeRegistration = {
 }
 
 /**
- * Light Shiki theme — AA-compliant counterparts of the dark palette on a
- * cream/gray-50 background (#f5f4f8). Every token meets WCAG 4.5:1 contrast.
+ * Light Shiki theme — AA-compliant counterparts of the dark palette. Every
+ * token meets WCAG 4.5:1 contrast on the editor background (#eeedf2).
  */
 export const shikiLightTheme: ThemeRegistration = {
   name: '0x96f-light',
@@ -79,7 +79,7 @@ export const shikiLightTheme: ThemeRegistration = {
   tokenColors: [
     {
       scope: ['comment', 'punctuation.definition.comment'],
-      settings: { foreground: '#6e6a7c' },
+      settings: { foreground: '#625e75' },
     },
     {
       scope: ['keyword', 'storage', 'storage.type'],
@@ -108,7 +108,7 @@ export const shikiLightTheme: ThemeRegistration = {
     },
     {
       scope: ['variable.parameter', 'variable.other'],
-      settings: { foreground: '#92640a' },
+      settings: { foreground: '#885a06' },
     },
     {
       scope: ['entity.name.type', 'support.type', 'support.class'],
@@ -120,11 +120,11 @@ export const shikiLightTheme: ThemeRegistration = {
     },
     {
       scope: ['entity.other.attribute-name'],
-      settings: { foreground: '#92640a' },
+      settings: { foreground: '#885a06' },
     },
     {
       scope: ['punctuation', 'keyword.operator'],
-      settings: { foreground: '#6e6a7c' },
+      settings: { foreground: '#625e75' },
     },
     {
       scope: ['variable.other.property'],
