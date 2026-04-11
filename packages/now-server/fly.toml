@@ -1,0 +1,31 @@
+app = "foldkit-now-server"
+primary_region = "sjc"
+
+[build]
+  dockerfile = "Dockerfile"
+  context = "../.."
+
+[env]
+  PORT = "3002"
+  NODE_ENV = "production"
+  NOW_BANNER_FILE_PATH = "/data/banner.json"
+  NOW_ORIGIN = "https://foldkit.dev"
+  NOW_RP_ID = "foldkit.dev"
+  NOW_RP_NAME = "Foldkit Now"
+  NOW_CORS_ORIGINS = "https://foldkit.dev,https://www.foldkit.dev"
+
+[http_service]
+  internal_port = 3002
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[mounts]]
+  source = "now_data"
+  destination = "/data"
+
+[[vm]]
+  memory = '256mb'
+  cpu_kind = 'shared'
+  cpus = 1

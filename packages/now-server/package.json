@@ -1,0 +1,36 @@
+{
+  "name": "@foldkit/now-server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "register-passkey": "tsx scripts/register-passkey.ts",
+    "hash-passphrase": "tsx scripts/hash-passphrase.ts"
+  },
+  "dependencies": {
+    "@effect/platform": "^0.94.5",
+    "@effect/platform-node": "^0.104.1",
+    "@effect/rpc": "^0.73.2",
+    "@foldkit/now-shared": "workspace:*",
+    "@node-rs/argon2": "^2.0.2",
+    "@simplewebauthn/server": "^11.0.0",
+    "effect": "^3.19.19"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/node": "^25.1.0",
+    "@typescript-eslint/eslint-plugin": "^8.54.0",
+    "@typescript-eslint/parser": "^8.54.0",
+    "eslint": "^9.39.2",
+    "eslint-plugin-unused-imports": "^4.3.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

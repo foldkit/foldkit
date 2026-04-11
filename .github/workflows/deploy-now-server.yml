@@ -1,0 +1,26 @@
+name: Deploy Now Server to Fly.io
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/now-server/**'
+      - 'packages/now-shared/**'
+      - '.github/workflows/deploy-now-server.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Fly.io CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to Fly.io
+        run: flyctl deploy --config packages/now-server/fly.toml
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

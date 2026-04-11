@@ -1,0 +1,20 @@
+{
+  "name": "@foldkit/now-shared",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@effect/rpc": "^0.73.2",
+    "effect": "^3.19.19"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
