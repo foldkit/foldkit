@@ -68,6 +68,7 @@ export const {
   Disabled,
   Fill,
   For,
+  Height,
   Href,
   Id,
   InnerHTML,
@@ -85,6 +86,7 @@ export const {
   Role,
   Rows,
   Src,
+  Srcset,
   Stroke,
   StrokeLinecap,
   StrokeLinejoin,
@@ -94,6 +96,7 @@ export const {
   Type,
   Value,
   ViewBox,
+  Width,
   Xmlns,
 } = html<Message>()
 

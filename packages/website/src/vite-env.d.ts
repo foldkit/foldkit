@@ -25,6 +25,11 @@ declare module 'virtual:api-highlights' {
   export default highlights
 }
 
+declare module 'virtual:api-module-index' {
+  const index: ReadonlyArray<{ readonly slug: string; readonly name: string }>
+  export default index
+}
+
 declare module 'virtual:landing-data' {
   export const foldkitVersion: string
 }

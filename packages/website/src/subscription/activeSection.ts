@@ -51,13 +51,17 @@ export const activeSection: Subscription<
           () => Page.ProjectOrganization.tableOfContents,
         ),
         M.tag('ApiModule', ({ moduleSlug }) =>
-          pipe(
-            moduleSlug,
-            Page.ApiReference.slugToModule,
-            Option.match({
-              onNone: () => [],
-              onSome: Page.ApiReference.toModuleTableOfContents,
-            }),
+          M.value(model.apiReference.apiData).pipe(
+            M.tag('Ok', ({ data }) =>
+              pipe(
+                Page.ApiReference.resolveModule(data.parsedApi, moduleSlug),
+                Option.match({
+                  onNone: () => [],
+                  onSome: Page.ApiReference.toModuleTableOfContents,
+                }),
+              ),
+            ),
+            M.orElse(() => []),
           ),
         ),
         M.tag('CoreArchitecture', () => Page.Core.Architecture.tableOfContents),

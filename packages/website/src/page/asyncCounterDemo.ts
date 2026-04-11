@@ -250,7 +250,7 @@ const phaseLabel = (phase: AnimationPhase): string =>
 
 const phaseColorClass = (phase: AnimationPhase): string =>
   M.value(phase).pipe(
-    M.when('Idle', () => 'text-gray-400 dark:text-gray-500'),
+    M.when('Idle', () => 'text-gray-500 dark:text-gray-400'),
     M.whenOr(
       'IncrementMessage',
       'ResetMessage',

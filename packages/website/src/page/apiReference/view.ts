@@ -3,7 +3,6 @@ import { Array, Option, Record, pipe } from 'effect'
 import { Ui } from 'foldkit'
 import { Html, createKeyedLazy } from 'foldkit/html'
 import { Disclosure } from 'foldkit/ui'
-import highlights from 'virtual:api-highlights'
 
 import {
   AriaLabel,
@@ -29,7 +28,9 @@ import {
   scopedId,
 } from './domain'
 import { GotDisclosureMessage, type Message } from './message'
-import type { Model } from './model'
+import type { ApiData, Disclosures } from './model'
+
+type Highlights = ApiData['highlights']
 
 const sourceLink = (
   sourceUrl: Option.Option<string>,
@@ -57,6 +58,7 @@ const functionView = (
   moduleName: string,
   apiFunction: ApiFunction,
   maybeDisclosure: Disclosure.Model | undefined,
+  highlights: Highlights,
   toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
   const id = scopedId('function', moduleName, apiFunction.name)
@@ -97,7 +99,13 @@ const functionView = (
           headingLinkButton(id, apiFunction.name),
         ],
       ),
-      signaturesView(id, apiFunction, maybeDisclosure, toParentMessage),
+      signaturesView(
+        id,
+        apiFunction,
+        maybeDisclosure,
+        highlights,
+        toParentMessage,
+      ),
     ],
   )
 }
@@ -161,6 +169,7 @@ const signaturesView = (
   key: string,
   apiFunction: ApiFunction,
   maybeDisclosure: Disclosure.Model | undefined,
+  highlights: Highlights,
   toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
   const maybeHighlighted = Record.get(highlights, key)
@@ -322,7 +331,11 @@ const signatureChildrenFallback = (signature: {
   returnTypeView(signature.returnType),
 ]
 
-const typeView = (moduleName: string, type: ApiType): Html => {
+const typeView = (
+  moduleName: string,
+  type: ApiType,
+  highlights: Highlights,
+): Html => {
   const id = scopedId('type', moduleName, type.name)
   const maybeHighlighted = Record.get(highlights, id)
 
@@ -395,6 +408,7 @@ const typeView = (moduleName: string, type: ApiType): Html => {
 const interfaceView = (
   moduleName: string,
   apiInterface: ApiInterface,
+  highlights: Highlights,
 ): Html => {
   const id = scopedId('interface', moduleName, apiInterface.name)
   const maybeHighlighted = Record.get(highlights, id)
@@ -465,7 +479,11 @@ const interfaceView = (
   )
 }
 
-const variableView = (moduleName: string, variable: ApiVariable): Html => {
+const variableView = (
+  moduleName: string,
+  variable: ApiVariable,
+  highlights: Highlights,
+): Html => {
   const id = scopedId('const', moduleName, variable.name)
   const maybeHighlighted = Record.get(highlights, id)
 
@@ -550,7 +568,8 @@ const section = <T extends { readonly name: string }>(
 
 export const view = (
   module: ApiModule,
-  model: Model,
+  disclosures: Disclosures,
+  highlights: Highlights,
   toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   div(
@@ -562,21 +581,71 @@ export const view = (
         return lazyItem(key, functionView, [
           module.name,
           apiFunction,
-          model[key],
+          disclosures[key],
+          highlights,
           toParentMessage,
         ])
       }),
       ...section('Types', module.types, type => {
         const key = scopedId('type', module.name, type.name)
-        return lazyItem(key, typeView, [module.name, type])
+        return lazyItem(key, typeView, [module.name, type, highlights])
       }),
       ...section('Interfaces', module.interfaces, apiInterface => {
         const key = scopedId('interface', module.name, apiInterface.name)
-        return lazyItem(key, interfaceView, [module.name, apiInterface])
+        return lazyItem(key, interfaceView, [
+          module.name,
+          apiInterface,
+          highlights,
+        ])
       }),
       ...section('Constants', module.variables, variable => {
         const key = scopedId('const', module.name, variable.name)
-        return lazyItem(key, variableView, [module.name, variable])
+        return lazyItem(key, variableView, [module.name, variable, highlights])
       }),
+    ],
+  )
+
+// NOTE: Rendered while `model.apiData` is `Loading`. The shape mirrors a real module page
+// so layout doesn't jump when the data resolves.
+const skeletonBlockClasses = ['h-20', 'h-28', 'h-20']
+
+export const skeletonView = (): Html =>
+  div(
+    [Class('animate-pulse')],
+    [
+      div([Class('h-10 w-64 mb-8 rounded bg-gray-200 dark:bg-gray-800')], []),
+      ...Array.map(skeletonBlockClasses, blockHeightClass =>
+        div(
+          [Class('mb-8')],
+          [
+            div(
+              [Class('h-5 w-40 mb-3 rounded bg-gray-200 dark:bg-gray-800')],
+              [],
+            ),
+            div(
+              [
+                Class(
+                  `${blockHeightClass} rounded bg-gray-100 dark:bg-gray-900`,
+                ),
+              ],
+              [],
+            ),
+          ],
+        ),
+      ),
+    ],
+  )
+
+// NOTE: Rendered while `model.apiData` is `Failure`. Kept deliberately simple — the docs
+// layout around this already provides navigation to recover.
+export const failureView = (error: string): Html =>
+  div(
+    [Class('rounded-lg border border-red-300 dark:border-red-800 p-6')],
+    [
+      h3(
+        [Class('text-base font-semibold text-red-700 dark:text-red-400 mb-2')],
+        ['Failed to load API reference'],
+      ),
+      div([Class('text-sm text-gray-600 dark:text-gray-400')], [error]),
     ],
   )

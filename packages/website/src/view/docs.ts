@@ -12,12 +12,14 @@ import {
   AriaLive,
   Class,
   DataAttribute,
+  Height,
   Href,
   Id,
   OnClick,
   PagefindBody,
   PagefindIgnore,
   Src,
+  Width,
   a,
   button,
   div,
@@ -79,7 +81,9 @@ const docsHeaderView = (model: Model) =>
               img([
                 Src('/logo.svg'),
                 Alt('Foldkit'),
-                Class('h-6 md:h-8 dark:invert'),
+                Width('801'),
+                Height('200'),
+                Class('h-6 md:h-8 w-auto dark:invert'),
               ]),
               betaTag,
             ],
@@ -365,12 +369,14 @@ const toUiPageMessage = (message: Page.UiPages.Message): Message =>
 
 const apiReferenceView = (
   module: Page.ApiReference.ApiModule,
-  apiReferenceModel: Page.ApiReference.Model,
+  disclosures: Page.ApiReference.Disclosures,
+  highlights: Page.ApiReference.ApiData['highlights'],
 ): Html =>
-  Page.ApiReference.view(module, apiReferenceModel, toApiReferenceMessage)
+  Page.ApiReference.view(module, disclosures, highlights, toApiReferenceMessage)
 
 const lazyDocsContent = createLazy()
 const lazyApiReference = createLazy()
+const lazyApiReferenceSkeleton = createLazy()
 
 // VIEW
 
@@ -474,21 +480,41 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           Page.ProjectOrganization.tableOfContents,
         ),
       ApiModule: ({ moduleSlug }) =>
-        Option.match(Page.ApiReference.slugToModule(moduleSlug), {
-          onSome: module => ({
-            content: lazyApiReference(apiReferenceView, [
-              module,
-              model.apiReference,
-            ]),
-            tableOfContents: Option.some(
-              Page.ApiReference.toModuleTableOfContents(module),
+        M.value(model.apiReference.apiData).pipe(
+          M.withReturnType<{
+            content: Html
+            tableOfContents: Option.Option<ReadonlyArray<TableOfContentsEntry>>
+          }>(),
+          M.tag('Ok', ({ data }) =>
+            Option.match(
+              Page.ApiReference.resolveModule(data.parsedApi, moduleSlug),
+              {
+                onSome: module => ({
+                  content: lazyApiReference(apiReferenceView, [
+                    module,
+                    model.apiReference.disclosures,
+                    data.highlights,
+                  ]),
+                  tableOfContents: Option.some(
+                    Page.ApiReference.toModuleTableOfContents(module),
+                  ),
+                }),
+                onNone: () =>
+                  withoutTableOfContents(
+                    Page.NotFound.view(moduleSlug, homeRouter()),
+                  ),
+              },
             ),
-          }),
-          onNone: () =>
+          ),
+          M.tag('Failure', ({ error }) =>
+            withoutTableOfContents(Page.ApiReference.failureView(error)),
+          ),
+          M.orElse(() =>
             withoutTableOfContents(
-              Page.NotFound.view(moduleSlug, homeRouter()),
+              lazyApiReferenceSkeleton(Page.ApiReference.skeletonView, []),
             ),
-        }),
+          ),
+        ),
       CoreArchitecture: () =>
         withTableOfContents(
           Page.Core.Architecture.view(),

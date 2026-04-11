@@ -2,6 +2,7 @@ import { clsx } from 'clsx'
 import { Array, Option, pipe } from 'effect'
 import { Ui } from 'foldkit'
 import { Html, createLazy } from 'foldkit/html'
+import apiModuleIndex from 'virtual:api-module-index'
 
 import { type NavPage, docsSections, isNavPageActive } from '../docsNav'
 import {
@@ -10,10 +11,12 @@ import {
   AriaLabel,
   Autofocus,
   Class,
+  Height,
   Href,
   OnClick,
   Src,
   Tabindex,
+  Width,
   a,
   aside,
   button,
@@ -41,7 +44,6 @@ import {
   GotTestingGroupMessage,
   type Message,
 } from '../message'
-import * as Page from '../page'
 import { ExampleDetailRoute, apiModuleRouter, homeRouter } from '../route'
 import { betaTag, iconLink } from './shared'
 
@@ -226,7 +228,7 @@ const sidebarViewInner = (
         toParentMessage: message => GotApiReferenceGroupMessage({ message }),
         children: ul(
           [Class('space-y-0.5')],
-          Array.map(Page.ApiReference.moduleSlugs, ({ slug, name }) =>
+          Array.map(apiModuleIndex, ({ slug, name }) =>
             navLink(
               apiModuleRouter({
                 moduleSlug: slug,
@@ -268,7 +270,13 @@ const sidebarViewInner = (
           a(
             [Href(homeRouter()), Class('flex items-center gap-2')],
             [
-              img([Src('/logo.svg'), Alt('Foldkit'), Class('h-6 dark:invert')]),
+              img([
+                Src('/logo.svg'),
+                Alt('Foldkit'),
+                Width('801'),
+                Height('200'),
+                Class('h-6 w-auto dark:invert'),
+              ]),
               betaTag,
             ],
           ),

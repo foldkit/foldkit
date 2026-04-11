@@ -222,9 +222,21 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
   const [notePlayerDemo, notePlayerDemoCommands] = Page.NotePlayerDemo.init()
   const [uiPages, uiPagesCommands] = Page.UiPages.init()
   const [comingFromReact, comingFromReactCommands] = Page.ComingFromReact.init()
-  const [apiReference, apiReferenceCommands] = Page.ApiReference.init(
-    Page.ApiReference.apiReference.modules,
-  )
+  const initialRoute = urlToAppRoute(url)
+
+  // NOTE: The API reference starts in NotAsked. If the user is landing directly on an
+  // API route, synchronously dispatch `StartedLoadApiData` through the submodel's
+  // update function so the Loading state + dynamic import chunk kicks off before the
+  // first paint — matching the Foldkit Submodel pattern used elsewhere (e.g.
+  // `Ui.Dialog.update` in the `ChangedUrl` handler below).
+  const [baseApiReference, baseApiReferenceCommands] = Page.ApiReference.init()
+  const [apiReference, apiReferenceCommands] =
+    initialRoute._tag === 'ApiModule'
+      ? Page.ApiReference.update(
+          baseApiReference,
+          Page.ApiReference.StartedLoadApiData(),
+        )
+      : [baseApiReference, baseApiReferenceCommands]
 
   const mappedAsyncCounterDemoCommands = asyncCounterDemoCommands.map(
     Command.mapEffect(
@@ -253,8 +265,6 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
       Effect.map(message => GotApiReferenceMessage({ message })),
     ),
   )
-
-  const initialRoute = urlToAppRoute(url)
 
   return [
     {
@@ -398,12 +408,23 @@ const update = (
         )
         const [closedSearchDialog, closeSearchDialogCommands] =
           Ui.Dialog.update(model.search.dialog, Ui.Dialog.Closed())
+        // NOTE: Trigger the lazy API data load on transition into an ApiModule route.
+        // The apiReference update function gates on current state, so this is a no-op if
+        // the data is already loaded or in flight.
+        const [nextApiReference, apiReferenceLoadCommands] =
+          nextRoute._tag === 'ApiModule'
+            ? Page.ApiReference.update(
+                model.apiReference,
+                Page.ApiReference.StartedLoadApiData(),
+              )
+            : [model.apiReference, []]
 
         return [
           evo(model, {
             route: () => nextRoute,
             url: () => url,
             mobileMenuDialog: () => closedMobileMenu,
+            apiReference: () => nextApiReference,
             search: search => ({
               ...search,
               dialog: closedSearchDialog,
@@ -443,6 +464,11 @@ const update = (
                     message: Search.GotSearchDialogMessage({ message }),
                   }),
                 ),
+              ),
+            ),
+            ...apiReferenceLoadCommands.map(
+              Command.mapEffect(
+                Effect.map(message => GotApiReferenceMessage({ message })),
               ),
             ),
             ...Option.match(url.hash, {

@@ -8,11 +8,14 @@ import {
   AriaHidden,
   AriaLabel,
   Class,
+  Height,
   Href,
   Id,
   InnerHTML,
   Role,
   Src,
+  Srcset,
+  Width,
   a,
   br,
   div,
@@ -134,7 +137,9 @@ const heroSection = (copiedSnippets: CopiedSnippets): Html =>
               img([
                 Src('/logo.svg'),
                 Alt('Foldkit'),
-                Class('h-10 md:h-12 dark:invert'),
+                Width('801'),
+                Height('200'),
+                Class('h-10 md:h-12 w-auto dark:invert'),
               ]),
               span(
                 [
@@ -663,10 +668,15 @@ const devtoolsSection = (): Html =>
             ],
             [
               img([
-                Src('/devtools-overlay.png'),
+                Src('/devtools-overlay.webp'),
+                Srcset(
+                  '/devtools-overlay-1x.webp 1x, /devtools-overlay.webp 2x',
+                ),
                 Alt(
                   'Foldkit DevTools overlay inspecting the Foldkit website — a numbered Message timeline on the left with entries like ClickedLink, ChangedUrl, and CompletedScroll, and an expandable Model state tree on the right showing route, url, and theme fields.',
                 ),
+                Width('972'),
+                Height('637'),
                 Class('w-full h-auto'),
               ]),
             ],

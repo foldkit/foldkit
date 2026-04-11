@@ -6,6 +6,7 @@ import { basename, extname, join, relative, resolve } from 'node:path'
 import { codeToHtml } from 'shiki'
 import { type Plugin, defineConfig } from 'vite'
 
+import { moduleNameToSlug } from './src/page/apiReference/domain'
 import {
   typeDefFromChildren,
   typeToString,
@@ -63,6 +64,9 @@ const highlightCodePlugin = (): Plugin => ({
 
 const VIRTUAL_MODULE_ID = 'virtual:api-highlights'
 const RESOLVED_VIRTUAL_MODULE_ID = '\0' + VIRTUAL_MODULE_ID
+
+const API_MODULE_INDEX_ID = 'virtual:api-module-index'
+const RESOLVED_API_MODULE_INDEX_ID = '\0' + API_MODULE_INDEX_ID
 
 const formatTypeParam = (typeParam: TypeDocTypeParam): string => {
   const constraint = Option.match(typeParam.type, {
@@ -314,6 +318,60 @@ const highlightApiSignaturesPlugin = (): Plugin => ({
     const highlighted = Object.fromEntries(highlightedEntries)
 
     return `export default ${JSON.stringify(highlighted)}`
+  },
+})
+
+// NOTE: Tiny synchronous index of API module slugs + display names. Used by the sidebar so
+// it can render link entries without pulling in the 5MB+ api.json. The heavy parsed data and
+// the pre-highlighted HTML are loaded lazily by the api reference page itself.
+const apiModuleIndexPlugin = (): Plugin => ({
+  name: 'api-module-index',
+  resolveId(id) {
+    if (id === API_MODULE_INDEX_ID) {
+      return RESOLVED_API_MODULE_INDEX_ID
+    }
+  },
+  async load(id) {
+    if (id !== RESOLVED_API_MODULE_INDEX_ID) {
+      return
+    }
+
+    const jsonPath = resolve(__dirname, 'src/generated/api.json')
+    const raw = await readFile(jsonPath, 'utf-8')
+    const json = S.decodeUnknownSync(TypeDocJson)(JSON.parse(raw))
+
+    const collectModuleNames = (
+      prefix: string,
+      children: ReadonlyArray<TypeDocItem>,
+    ): ReadonlyArray<string> =>
+      Array.flatMap(children, item =>
+        item.kind === Kind.Namespace
+          ? Option.match(item.children, {
+              onNone: () => [],
+              onSome: namespaceChildren =>
+                collectModuleNames(`${prefix}${item.name}/`, namespaceChildren),
+            })
+          : [],
+      )
+
+    const index = Array.flatMap(json.children, module => {
+      const namespaceNames = collectModuleNames('', module.children)
+      const hasDirectChildren = Array.some(
+        module.children,
+        ({ kind }) => kind !== Kind.Namespace,
+      )
+      const directName = hasDirectChildren ? [module.name] : []
+      const namespaceQualified = Array.map(
+        namespaceNames,
+        name => `${module.name}/${name}`,
+      )
+      return Array.map([...directName, ...namespaceQualified], name => ({
+        slug: moduleNameToSlug(name),
+        name,
+      }))
+    })
+
+    return `export default ${JSON.stringify(index)}`
   },
 })
 
@@ -737,6 +795,7 @@ export default defineConfig({
     embeddedExampleRedirectPlugin(),
     highlightCodePlugin(),
     highlightApiSignaturesPlugin(),
+    apiModuleIndexPlugin(),
     landingDataPlugin(),
     counterDemoCodePlugin(),
     notePlayerDemoCodePlugin(),

@@ -1,34 +1,41 @@
-import { Array, Option, Record, Schema as S, pipe } from 'effect'
+import { Array, Option, Record, pipe } from 'effect'
 
-import apiJson from '../../generated/api.json'
-import { type ApiModule, moduleNameToSlug, parseTypedocJson } from './domain'
-import { TypeDocJson } from './typedoc'
+import {
+  type ApiModule,
+  type ParsedApiReference,
+  moduleNameToSlug,
+} from './domain'
 
 export * from './domain'
-export { Model } from './model'
-export { Message } from './message'
+export { ApiData, ApiDataRemoteData, Model } from './model'
+export type { Disclosures } from './model'
+export {
+  FailedLoadApiData,
+  GotDisclosureMessage,
+  Message,
+  StartedLoadApiData,
+  SucceededLoadApiData,
+} from './message'
+export { LoadApiData, loadApiData } from './command'
 export { init } from './init'
 export { update } from './update'
-export { view } from './view'
+export { failureView, skeletonView, view } from './view'
 export type { TypeDocJson } from './typedoc'
 
-export const apiReference = parseTypedocJson(
-  S.decodeUnknownSync(TypeDocJson)(apiJson),
-)
+// NOTE: Resolves a slug to a module from already-loaded data. Unlike the previous
+// module-level `slugToModule`, this is a pure function callers pass the loaded modules
+// into — avoiding the eager 5MB+ JSON parse at app startup.
+const modulesBySlug = (
+  modules: ReadonlyArray<ApiModule>,
+): Record<string, ApiModule> =>
+  pipe(
+    modules,
+    Array.map(module => [moduleNameToSlug(module.name), module] as const),
+    Record.fromEntries,
+  )
 
-export const modulesBySlug: Record<string, ApiModule> = pipe(
-  apiReference.modules,
-  Array.map(module => [moduleNameToSlug(module.name), module] as const),
-  Record.fromEntries,
-)
-
-export const slugToModule = (slug: string): Option.Option<ApiModule> =>
-  Record.get(modulesBySlug, slug)
-
-export const moduleSlugs: ReadonlyArray<{
-  readonly slug: string
-  readonly name: string
-}> = Array.map(apiReference.modules, ({ name }) => ({
-  slug: moduleNameToSlug(name),
-  name,
-}))
+export const resolveModule = (
+  parsedApi: ParsedApiReference,
+  slug: string,
+): Option.Option<ApiModule> =>
+  Record.get(modulesBySlug(parsedApi.modules), slug)
