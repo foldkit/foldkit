@@ -13,7 +13,16 @@ type RegistrationResponseJSON = Parameters<
   typeof import('@simplewebauthn/server').verifyRegistrationResponse
 >[0]['response']
 
-const AUTHENTICATOR_TRANSPORTS = [
+type KnownTransport =
+  | 'ble'
+  | 'cable'
+  | 'hybrid'
+  | 'internal'
+  | 'nfc'
+  | 'smart-card'
+  | 'usb'
+
+const AUTHENTICATOR_TRANSPORT_SET: ReadonlySet<string> = new Set([
   'ble',
   'cable',
   'hybrid',
@@ -21,12 +30,10 @@ const AUTHENTICATOR_TRANSPORTS = [
   'nfc',
   'smart-card',
   'usb',
-] as const
-
-type KnownTransport = (typeof AUTHENTICATOR_TRANSPORTS)[number]
+])
 
 const isKnownTransport = (value: string): value is KnownTransport =>
-  (AUTHENTICATOR_TRANSPORTS as ReadonlyArray<string>).includes(value)
+  AUTHENTICATOR_TRANSPORT_SET.has(value)
 
 export const filterKnownTransports = (
   transports: ReadonlyArray<string> | undefined,

@@ -33,7 +33,10 @@ const ui = (title: string, description: string): PageMetadata =>
 const pattern = (title: string, description: string): PageMetadata =>
   docs(title, description, 'Patterns')
 
-type StaticRouteTag = Exclude<AppRoute['_tag'], 'ApiModule' | 'ExampleDetail'>
+type StaticRouteTag = Exclude<
+  AppRoute['_tag'],
+  'ApiModule' | 'ExampleDetail' | 'NowAdmin'
+>
 
 const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   Home: {
@@ -300,6 +303,14 @@ export const routeToMetadata = (route: AppRoute): PageMetadata => {
         onSome: example => docs(example.title, example.description, 'Examples'),
       }),
     )
+  }
+
+  if (route._tag === 'NowAdmin') {
+    return {
+      title: 'Now Admin',
+      description: '',
+      section: '',
+    }
   }
 
   return METADATA_BY_TAG[route._tag]

@@ -14,14 +14,14 @@ import {
   SubscriptionRef,
 } from 'effect'
 
-import { AppConfig } from './config.js'
-import { makeNonceTracker, type NonceTracker } from './auth/nonceTracker.js'
+import { type NonceTracker, makeNonceTracker } from './auth/nonceTracker.js'
 import {
-  readPasskeysFromDisk,
   type StoredPasskey,
+  readPasskeysFromDisk,
   writePasskeysToDisk,
 } from './auth/passkey.js'
-import { makeRateLimiter, type RateLimiter } from './auth/rateLimit.js'
+import { type RateLimiter, makeRateLimiter } from './auth/rateLimit.js'
+import { AppConfig } from './config.js'
 
 // DEFAULT BANNER
 
@@ -51,15 +51,15 @@ const readBannerFromDisk = (
 ): Effect.Effect<StatusBannerType, never, FileSystem.FileSystem> =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
-    const exists = yield* fs.exists(filePath).pipe(
-      Effect.catchAll(() => Effect.succeed(false)),
-    )
+    const exists = yield* fs
+      .exists(filePath)
+      .pipe(Effect.catchAll(() => Effect.succeed(false)))
     if (!exists) {
       return DEFAULT_STATUS_BANNER
     }
-    const contents = yield* fs.readFileString(filePath).pipe(
-      Effect.catchAll(() => Effect.succeed('')),
-    )
+    const contents = yield* fs
+      .readFileString(filePath)
+      .pipe(Effect.catchAll(() => Effect.succeed('')))
     if (contents === '') {
       return DEFAULT_STATUS_BANNER
     }
@@ -165,10 +165,7 @@ export type PasskeyStoreService = Readonly<{
   list: () => Effect.Effect<ReadonlyArray<StoredPasskey>>
   add: (passkey: StoredPasskey) => Effect.Effect<void>
   remove: (credentialId: string) => Effect.Effect<void>
-  updateCounter: (
-    credentialId: string,
-    counter: number,
-  ) => Effect.Effect<void>
+  updateCounter: (credentialId: string, counter: number) => Effect.Effect<void>
 }>
 
 export class PasskeyStore extends Context.Tag('PasskeyStore')<

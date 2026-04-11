@@ -38,7 +38,6 @@ import {
   CompletedSaveThemePreference,
   CompletedScroll,
   FailedCopy,
-  FailedFetchStatusBanner,
   FailedSubscribeEmail,
   GotAiGroupMessage,
   GotApiReferenceGroupMessage,
@@ -55,6 +54,7 @@ import {
   GotGuidesGroupMessage,
   GotMobileMenuDialogMessage,
   GotNotePlayerDemoMessage,
+  GotNowAdminMessage,
   GotPatternsGroupMessage,
   GotSearchMessage,
   GotTestingGroupMessage,
@@ -65,10 +65,11 @@ import {
   StatusBanner,
   SucceededCopy,
   SucceededCopyLink,
-  SucceededFetchStatusBanner,
   SucceededSubscribeEmail,
   ThemePreference,
 } from './message'
+import * as NowAdmin from './now/page/admin'
+import * as NowSubscription from './now/subscription'
 import * as Page from './page'
 import { AppRoute, isLandingHeaderAlwaysVisible, urlToAppRoute } from './route'
 import * as Search from './search'
@@ -91,15 +92,12 @@ export { type ThemePreference, type ResolvedTheme } from './message'
 
 // STATUS BANNER
 
-const DEFAULT_STATUS_BANNER: StatusBanner = {
+const DEFAULT_STATUS_BANNER: StatusBanner = S.decodeUnknownSync(StatusBanner)({
   message: 'Building Foldkit',
   avatarUrl: 'https://github.com/devinjameson.png',
   profileHandle: '@devinjameson',
   profileUrl: 'https://x.com/devinjameson',
-}
-
-const STATUS_BANNER_URL =
-  'https://raw.githubusercontent.com/foldkit/foldkit/main/packages/website/now.json'
+})
 
 const resolveTheme = (
   preference: typeof ThemePreference.Type,
@@ -208,6 +206,7 @@ export const Model = S.Struct({
   exampleDetail: Page.Example.ExampleDetail.Model,
   search: Search.Model,
   statusBanner: StatusBanner,
+  nowAdmin: NowAdmin.Model,
 })
 
 export type Model = typeof Model.Type
@@ -379,12 +378,21 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
       exampleDetail,
       search: Search.init()[0],
       statusBanner: DEFAULT_STATUS_BANNER,
+      nowAdmin: NowAdmin.init(),
     },
     [
       injectAnalytics,
       injectSpeedInsights,
       applyThemeToDocument(resolvedTheme),
-      fetchStatusBanner,
+      ...(initialRoute._tag === 'NowAdmin'
+        ? [
+            Command.mapEffect(
+              Effect.map((message: NowAdmin.Message.Message) =>
+                GotNowAdminMessage({ message }),
+              ),
+            )(NowAdmin.loadRegistrationStatus),
+          ]
+        : []),
       ...mappedAsyncCounterDemoCommands,
       ...mappedNotePlayerDemoCommands,
       ...mappedUiPagesCommands,
@@ -537,6 +545,15 @@ const update = (
                 ),
               ),
             ),
+            ...(nextRoute._tag === 'NowAdmin'
+              ? [
+                  Command.mapEffect(
+                    Effect.map((message: NowAdmin.Message.Message) =>
+                      GotNowAdminMessage({ message }),
+                    ),
+                  )(NowAdmin.loadRegistrationStatus),
+                ]
+              : []),
             ...Option.match(url.hash, {
               onNone: () => [scrollToTop],
               onSome: hash => [scrollToHash(hash)],
@@ -986,10 +1003,25 @@ const update = (
         ]
       },
 
-      SucceededFetchStatusBanner: ({ banner }) => [
+      ReceivedStatusBannerUpdate: ({ banner }) => [
         evo(model, { statusBanner: () => banner }),
         [],
       ],
+
+      GotNowAdminMessage: ({ message }) => {
+        const [nextNowAdmin, nowAdminCommands] = NowAdmin.update(
+          model.statusBanner,
+        )(model.nowAdmin, message)
+
+        return [
+          evo(model, { nowAdmin: () => nextNowAdmin }),
+          nowAdminCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotNowAdminMessage({ message })),
+            ),
+          ),
+        ]
+      },
     }),
     M.tag(
       'CompletedNavigateInternal',
@@ -1001,7 +1033,6 @@ const update = (
       'CompletedSaveThemePreference',
       'SucceededCopyLink',
       'FailedCopy',
-      'FailedFetchStatusBanner',
       () => [model, []],
     ),
     M.exhaustive,
@@ -1030,11 +1061,6 @@ const SubscribeToNewsletter = Command.define(
   'SubscribeToNewsletter',
   SucceededSubscribeEmail,
   FailedSubscribeEmail,
-)
-const FetchStatusBanner = Command.define(
-  'FetchStatusBanner',
-  SucceededFetchStatusBanner,
-  FailedFetchStatusBanner,
 )
 const SaveThemePreference = Command.define(
   'SaveThemePreference',
@@ -1170,23 +1196,6 @@ const subscribeToNewsletter = (email: string) =>
     ),
   )
 
-const fetchStatusBanner = FetchStatusBanner(
-  Effect.gen(function* () {
-    const client = yield* HttpClient.HttpClient
-    const response = yield* client.execute(
-      HttpClientRequest.get(STATUS_BANNER_URL),
-    )
-    const json = yield* response.json
-    const banner = yield* S.decodeUnknown(StatusBanner)(json)
-    return SucceededFetchStatusBanner({ banner })
-  }).pipe(
-    Effect.scoped,
-    Effect.catchAll(() => Effect.succeed(FailedFetchStatusBanner())),
-    Effect.locally(HttpClient.currentTracerPropagation, false),
-    Effect.provide(FetchHttpClient.layer),
-  ),
-)
-
 const saveThemePreference = (preference: typeof ThemePreference.Type) =>
   SaveThemePreference(
     Effect.gen(function* () {
@@ -1205,6 +1214,7 @@ const view = (model: Model) =>
   M.value(model.route).pipe(
     M.tag('Home', () => landingView(model)),
     M.tag('Newsletter', () => newsletterView(model)),
+    M.tag('NowAdmin', () => NowAdmin.view(model.nowAdmin)),
     M.orElse(route => docsView(model, route)),
   )
 
@@ -1216,6 +1226,7 @@ const routeTitle = (route: AppRoute): string =>
   M.value(route).pipe(
     M.tag('Home', () => SITE_NAME),
     M.tag('Newsletter', () => `Newsletter — ${SITE_NAME}`),
+    M.tag('NowAdmin', () => `Now Admin — ${SITE_NAME}`),
     M.tag('NotFound', () => `Not Found — ${SITE_NAME}`),
     M.tag(
       'ApiModule',
@@ -1267,6 +1278,7 @@ const SubscriptionDeps = S.Struct({
   searchShortcut: S.Struct({
     isDocsPage: S.Boolean,
   }),
+  statusBannerStream: S.Literal('Active'),
   systemTheme: S.Struct({
     isSystemPreference: S.Boolean,
   }),
@@ -1285,6 +1297,10 @@ const subscriptions = makeSubscriptions(SubscriptionDeps)<Model, Message>({
   exampleUrl: Subscription.exampleUrl,
   heroVisibility: Subscription.heroVisibility,
   searchShortcut: Subscription.searchShortcut,
+  statusBannerStream: {
+    modelToDependencies: () => 'Active' as const,
+    dependenciesToStream: () => NowSubscription.statusBannerStream(),
+  },
   systemTheme: Subscription.systemTheme,
   viewportWidth: Subscription.viewportWidth,
 })

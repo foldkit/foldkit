@@ -24,9 +24,7 @@ export const deletePasskey =
       yield* verifySessionToken(payload.sessionToken, deps.config.sessionSecret)
 
       const existing = yield* deps.passkeyStore.list()
-      const match = existing.find(
-        p => p.credentialId === payload.credentialId,
-      )
+      const match = existing.find(p => p.credentialId === payload.credentialId)
       if (!match) {
         return yield* Effect.fail(
           new ValidationError({ message: 'credential not found' }),

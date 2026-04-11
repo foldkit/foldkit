@@ -2,10 +2,7 @@ import { UnauthorizedError } from '@foldkit/now-shared'
 import { Effect, Exit, Redacted } from 'effect'
 import { describe, expect, it } from 'vitest'
 
-import {
-  issueSessionToken,
-  verifySessionToken,
-} from '../auth/session.js'
+import { issueSessionToken, verifySessionToken } from '../auth/session.js'
 
 const SECRET = Redacted.make('test-secret-do-not-use-in-production')
 const OTHER_SECRET = Redacted.make('different-secret')

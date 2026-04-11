@@ -21,6 +21,9 @@
   "dependencies": {
     "@effect/platform": "^0.94.5",
     "@effect/platform-browser": "^0.74.0",
+    "@effect/rpc": "^0.73.2",
+    "@foldkit/now-shared": "workspace:*",
+    "@simplewebauthn/browser": "^11.0.0",
     "@tailwindcss/vite": "^4.1.18",
     "@vercel/analytics": "^1.6.1",
     "@vercel/speed-insights": "^1.3.1",

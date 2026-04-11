@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /now/admin
 
 Sitemap: https://foldkit.dev/sitemap.xml

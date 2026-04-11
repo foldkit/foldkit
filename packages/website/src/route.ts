@@ -79,6 +79,8 @@ export const AiSkillsRoute = r('AiSkills')
 
 export const NewsletterRoute = r('Newsletter')
 
+export const NowAdminRoute = r('NowAdmin')
+
 export const NotFoundRoute = r('NotFound', { path: S.String })
 
 export const DocsRoute = S.Union(
@@ -143,7 +145,12 @@ export const DocsRoute = S.Union(
 )
 export type DocsRoute = typeof DocsRoute.Type
 
-export const AppRoute = S.Union(HomeRoute, NewsletterRoute, DocsRoute)
+export const AppRoute = S.Union(
+  HomeRoute,
+  NewsletterRoute,
+  NowAdminRoute,
+  DocsRoute,
+)
 export type AppRoute = typeof AppRoute.Type
 
 // ROUTERS
@@ -508,10 +515,17 @@ export const newsletterRouter = pipe(
   mapTo(NewsletterRoute),
 )
 
+export const nowAdminRouter = pipe(
+  literal('now'),
+  slash(literal('admin')),
+  mapTo(NowAdminRoute),
+)
+
 export const routeParser = oneOf(
   docsParser,
   apiModuleRouter,
   newsletterRouter,
+  nowAdminRouter,
   homeRouter,
 )
 

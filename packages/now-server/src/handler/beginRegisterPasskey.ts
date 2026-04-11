@@ -10,10 +10,7 @@ import { Effect, HashMap, Ref } from 'effect'
 import { verifySessionToken } from '../auth/session.js'
 import { filterKnownTransports } from '../auth/webauthnTypes.js'
 import { type AppConfigShape } from '../config.js'
-import type {
-  ChallengeRecord,
-  PasskeyStoreService,
-} from '../store.js'
+import type { ChallengeRecord, PasskeyStoreService } from '../store.js'
 
 const CHALLENGE_RETENTION_MILLIS = 5 * 60 * 1000
 const ADMIN_USER_NAME = 'admin'

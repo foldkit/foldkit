@@ -1,6 +1,6 @@
 import { hash } from '@node-rs/argon2'
-import { createInterface } from 'node:readline/promises'
 import { stdin, stdout } from 'node:process'
+import { createInterface } from 'node:readline/promises'
 
 const MIN_PASSPHRASE_LENGTH = 16
 

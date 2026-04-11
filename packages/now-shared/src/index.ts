@@ -117,7 +117,8 @@ export const UserVerificationRequirement = S.Literal(
   'preferred',
   'discouraged',
 )
-export type UserVerificationRequirement = typeof UserVerificationRequirement.Type
+export type UserVerificationRequirement =
+  typeof UserVerificationRequirement.Type
 
 export const AuthenticationOptions = S.Struct({
   challenge: S.String,
@@ -143,9 +144,7 @@ export const AuthenticationResponse = S.Struct({
   type: S.Literal('public-key'),
   response: AuthenticatorAssertionResponsePayload,
   clientExtensionResults: S.Unknown,
-  authenticatorAttachment: S.optional(
-    S.Literal('platform', 'cross-platform'),
-  ),
+  authenticatorAttachment: S.optional(S.Literal('platform', 'cross-platform')),
 })
 export type AuthenticationResponse = typeof AuthenticationResponse.Type
 
@@ -172,13 +171,9 @@ export type PublicKeyCredentialParameters =
   typeof PublicKeyCredentialParameters.Type
 
 export const AuthenticatorSelectionCriteria = S.Struct({
-  residentKey: S.optional(
-    S.Literal('discouraged', 'preferred', 'required'),
-  ),
+  residentKey: S.optional(S.Literal('discouraged', 'preferred', 'required')),
   userVerification: S.optional(UserVerificationRequirement),
-  authenticatorAttachment: S.optional(
-    S.Literal('platform', 'cross-platform'),
-  ),
+  authenticatorAttachment: S.optional(S.Literal('platform', 'cross-platform')),
   requireResidentKey: S.optional(S.Boolean),
 })
 export type AuthenticatorSelectionCriteria =
@@ -214,9 +209,7 @@ export const RegistrationResponse = S.Struct({
   type: S.Literal('public-key'),
   response: AuthenticatorAttestationResponsePayload,
   clientExtensionResults: S.Unknown,
-  authenticatorAttachment: S.optional(
-    S.Literal('platform', 'cross-platform'),
-  ),
+  authenticatorAttachment: S.optional(S.Literal('platform', 'cross-platform')),
 })
 export type RegistrationResponse = typeof RegistrationResponse.Type
 
@@ -348,11 +341,7 @@ export const finishRegisterPasskeyRpc = Rpc.make('finishRegisterPasskey', {
     response: RegistrationResponse,
   }),
   success: RegisteredPasskeySummary,
-  error: S.Union(
-    UnauthorizedError,
-    AuthenticationFailedError,
-    ValidationError,
-  ),
+  error: S.Union(UnauthorizedError, AuthenticationFailedError, ValidationError),
 })
 
 export const deletePasskeyRpc = Rpc.make('deletePasskey', {

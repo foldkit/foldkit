@@ -37,13 +37,16 @@ export const authenticateWithPassphrase =
         )
       }
 
-      const verifyResult = yield* Option.match(deps.config.maybePassphraseHash, {
-        onNone: () => Effect.succeed(false),
-        onSome: hash =>
-          payload.passphrase.length < MIN_PASSPHRASE_LENGTH
-            ? Effect.succeed(false)
-            : verifyPassphrase(payload.passphrase, hash),
-      })
+      const verifyResult = yield* Option.match(
+        deps.config.maybePassphraseHash,
+        {
+          onNone: () => Effect.succeed(false),
+          onSome: hash =>
+            payload.passphrase.length < MIN_PASSPHRASE_LENGTH
+              ? Effect.succeed(false)
+              : verifyPassphrase(payload.passphrase, hash),
+        },
+      )
 
       // Ensure a minimum response time so attackers can't distinguish
       // "not configured" / "bad passphrase" / "short passphrase" by timing.

@@ -1,4 +1,9 @@
-import { Config, Effect, type Option, type Redacted as RedactedType } from 'effect'
+import {
+  Config,
+  Effect,
+  type Option,
+  type Redacted as RedactedType,
+} from 'effect'
 import { Redacted } from 'effect'
 
 export type AppConfigShape = Readonly<{
@@ -32,9 +37,7 @@ export class AppConfig extends Effect.Service<AppConfig>()('AppConfig', {
     const corsOrigins = yield* Config.array(
       Config.string(),
       'NOW_CORS_ORIGINS',
-    ).pipe(
-      Config.withDefault<ReadonlyArray<string>>(['http://localhost:5173']),
-    )
+    ).pipe(Config.withDefault<ReadonlyArray<string>>(['http://localhost:5173']))
 
     const rpId = yield* Config.string('NOW_RP_ID').pipe(
       Config.withDefault('localhost'),

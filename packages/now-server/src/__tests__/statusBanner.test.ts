@@ -92,7 +92,10 @@ describe('StatusBanner schema', () => {
   })
 
   it('rejects handles that are too long', async () => {
-    await expectRejected({ ...validPayload, profileHandle: `@${'a'.repeat(31)}` })
+    await expectRejected({
+      ...validPayload,
+      profileHandle: `@${'a'.repeat(31)}`,
+    })
   })
 
   it('rejects a URL parser exploit attempt', async () => {

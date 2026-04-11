@@ -267,6 +267,7 @@ export const routeToUrlPath = (route: AppRoute): string =>
       AiSkills: () => aiSkillsRouter(),
       ApiModule: ({ moduleSlug }) => apiModuleRouter({ moduleSlug }),
       Newsletter: () => newsletterRouter(),
+      NowAdmin: () => '/now/admin',
       NotFound: () => '/',
     }),
   )

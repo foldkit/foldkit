@@ -15,9 +15,7 @@ const extractForwardedIp = (headerValue: string): string | null => {
   return first && first.length > 0 ? first : null
 }
 
-const extractClientIp = (
-  headers: Readonly<Record<string, string>>,
-): string => {
+const extractClientIp = (headers: Readonly<Record<string, string>>): string => {
   const flyClientIp = Option.fromNullable(headers['fly-client-ip'])
   if (Option.isSome(flyClientIp)) {
     return flyClientIp.value
@@ -29,10 +27,7 @@ const extractClientIp = (
   return FALLBACK_IP_BUCKET
 }
 
-const hashIpForAudit = (
-  ip: string,
-  salt: Redacted.Redacted<string>,
-): string =>
+const hashIpForAudit = (ip: string, salt: Redacted.Redacted<string>): string =>
   createHash('sha256')
     .update(Redacted.value(salt))
     .update(':')

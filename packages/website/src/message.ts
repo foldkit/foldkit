@@ -1,9 +1,11 @@
+import { StatusBanner } from '@foldkit/now-shared'
 import { Schema as S } from 'effect'
 import { Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { UrlRequest } from 'foldkit/runtime'
 import { Url } from 'foldkit/url'
 
+import * as NowAdmin from './now/page/admin'
 import * as Page from './page'
 import * as Search from './search'
 
@@ -15,15 +17,9 @@ export type ThemePreference = typeof ThemePreference.Type
 export const ResolvedTheme = S.Literal('Dark', 'Light')
 export type ResolvedTheme = typeof ResolvedTheme.Type
 
-// STATUS BANNER
+// STATUS BANNER (re-exported from shared)
 
-export const StatusBanner = S.Struct({
-  message: S.String,
-  avatarUrl: S.String,
-  profileHandle: S.String,
-  profileUrl: S.String,
-})
-export type StatusBanner = typeof StatusBanner.Type
+export { StatusBanner } from '@foldkit/now-shared'
 
 // MESSAGE
 
@@ -54,10 +50,12 @@ export const UpdatedEmailField = m('UpdatedEmailField', { value: S.String })
 export const SubmittedEmailForm = m('SubmittedEmailForm')
 export const SucceededSubscribeEmail = m('SucceededSubscribeEmail')
 export const FailedSubscribeEmail = m('FailedSubscribeEmail')
-export const SucceededFetchStatusBanner = m('SucceededFetchStatusBanner', {
+export const ReceivedStatusBannerUpdate = m('ReceivedStatusBannerUpdate', {
   banner: StatusBanner,
 })
-export const FailedFetchStatusBanner = m('FailedFetchStatusBanner')
+export const GotNowAdminMessage = m('GotNowAdminMessage', {
+  message: NowAdmin.Message.Message,
+})
 export const GotMobileMenuDialogMessage = m('GotMobileMenuDialogMessage', {
   message: Ui.Dialog.Message,
 })
@@ -161,8 +159,8 @@ export const Message = S.Union(
   SubmittedEmailForm,
   SucceededSubscribeEmail,
   FailedSubscribeEmail,
-  SucceededFetchStatusBanner,
-  FailedFetchStatusBanner,
+  ReceivedStatusBannerUpdate,
+  GotNowAdminMessage,
   GotMobileMenuDialogMessage,
   ToggledMobileTableOfContents,
   ClickedMobileTableOfContentsLink,

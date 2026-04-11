@@ -12,10 +12,7 @@ import { Effect, HashMap, Ref } from 'effect'
 import { verifySessionToken } from '../auth/session.js'
 import { toRegistrationResponseJSON } from '../auth/webauthnTypes.js'
 import { type AppConfigShape } from '../config.js'
-import type {
-  ChallengeRecord,
-  PasskeyStoreService,
-} from '../store.js'
+import type { ChallengeRecord, PasskeyStoreService } from '../store.js'
 
 const CHALLENGE_MAX_AGE_MILLIS = 5 * 60 * 1000
 const LABEL_MIN_LENGTH = 1
