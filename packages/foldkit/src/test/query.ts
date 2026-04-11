@@ -333,9 +333,13 @@ const matchesSimpleSelector =
 // IMPLICIT ROLES
 
 const IMPLICIT_ROLE_MAP: Record<string, string> = {
-  a: 'link',
   article: 'article',
+  aside: 'complementary',
   button: 'button',
+  details: 'group',
+  dialog: 'dialog',
+  fieldset: 'group',
+  figure: 'figure',
   form: 'form',
   h1: 'heading',
   h2: 'heading',
@@ -343,19 +347,29 @@ const IMPLICIT_ROLE_MAP: Record<string, string> = {
   h4: 'heading',
   h5: 'heading',
   h6: 'heading',
-  img: 'img',
+  hr: 'separator',
   li: 'listitem',
+  main: 'main',
+  meter: 'meter',
   nav: 'navigation',
   ol: 'list',
   option: 'option',
+  output: 'status',
+  p: 'paragraph',
+  progress: 'progressbar',
   select: 'combobox',
+  summary: 'button',
   table: 'table',
+  td: 'cell',
   textarea: 'textbox',
+  tr: 'row',
   ul: 'list',
 }
 
 const INPUT_TYPE_ROLE_MAP: Record<string, string> = {
+  button: 'button',
   checkbox: 'checkbox',
+  image: 'button',
   number: 'spinbutton',
   radio: 'radio',
   range: 'slider',
@@ -379,25 +393,116 @@ const inputRole = (vnode: VNode): Option.Option<string> =>
     ),
   )
 
-const implicitRole = (vnode: VNode): Option.Option<string> =>
-  pipe(
-    vnode.sel,
-    Option.fromNullable,
-    Option.flatMap(tag =>
-      tag === 'input' ? inputRole(vnode) : Record.get(IMPLICIT_ROLE_MAP, tag),
-    ),
-  )
-
-const resolveRoles = (vnode: VNode): ReadonlyArray<string> =>
+const imgRole = (vnode: VNode): string =>
   pipe(
     vnode,
-    lookupStringAttribute('role'),
-    Option.map(
-      flow(String_.split(WHITESPACE_PATTERN), Array.filter(String_.isNonEmpty)),
-    ),
-    Option.orElse(() => Option.map(implicitRole(vnode), Array.of)),
-    Option.getOrElse(() => []),
+    lookupAttribute('alt'),
+    Option.match({
+      onNone: () => 'img',
+      onSome: value => (String(value) === '' ? 'presentation' : 'img'),
+    }),
   )
+
+const linkOrGenericRole = (vnode: VNode): string =>
+  pipe(
+    vnode,
+    lookupAttribute('href'),
+    Option.match({
+      onNone: () => 'generic',
+      onSome: () => 'link',
+    }),
+  )
+
+const thRole = (vnode: VNode): string =>
+  pipe(
+    vnode,
+    lookupStringAttribute('scope'),
+    Option.exists(Equal.equals('row')),
+  )
+    ? 'rowheader'
+    : 'columnheader'
+
+const LANDMARK_EXCLUDING_ANCESTORS: ReadonlyArray<string> = [
+  'article',
+  'aside',
+  'main',
+  'nav',
+  'section',
+]
+
+const isInsideLandmarkAncestor =
+  (root: VNode) =>
+  (vnode: VNode): boolean =>
+    pipe(
+      root,
+      ancestorsOf(vnode),
+      Array.some(
+        ({ sel }) =>
+          sel !== undefined &&
+          Array.contains(LANDMARK_EXCLUDING_ANCESTORS, sel),
+      ),
+    )
+
+const headerOrFooterRole =
+  (bannerRole: 'banner' | 'contentinfo') =>
+  (root: VNode) =>
+  (vnode: VNode): string =>
+    isInsideLandmarkAncestor(root)(vnode) ? 'generic' : bannerRole
+
+const sectionRole =
+  (root: VNode) =>
+  (vnode: VNode): string =>
+    pipe(
+      vnode,
+      nameFromLabelledBy(root),
+      Option.orElse(() => nameFromAriaLabel(vnode)),
+      Option.orElse(() => nameFromTitle(vnode)),
+      Option.match({
+        onNone: () => 'generic',
+        onSome: () => 'region',
+      }),
+    )
+
+const implicitRole =
+  (root: VNode) =>
+  (vnode: VNode): Option.Option<string> =>
+    pipe(
+      vnode.sel,
+      Option.fromNullable,
+      Option.flatMap(tag =>
+        Match.value(tag).pipe(
+          Match.when('input', () => inputRole(vnode)),
+          Match.when('img', () => Option.some(imgRole(vnode))),
+          Match.whenOr('a', 'area', () =>
+            Option.some(linkOrGenericRole(vnode)),
+          ),
+          Match.when('th', () => Option.some(thRole(vnode))),
+          Match.when('header', () =>
+            Option.some(headerOrFooterRole('banner')(root)(vnode)),
+          ),
+          Match.when('footer', () =>
+            Option.some(headerOrFooterRole('contentinfo')(root)(vnode)),
+          ),
+          Match.when('section', () => Option.some(sectionRole(root)(vnode))),
+          Match.orElse(() => Record.get(IMPLICIT_ROLE_MAP, tag)),
+        ),
+      ),
+    )
+
+const resolveRoles =
+  (root: VNode) =>
+  (vnode: VNode): ReadonlyArray<string> =>
+    pipe(
+      vnode,
+      lookupStringAttribute('role'),
+      Option.map(
+        flow(
+          String_.split(WHITESPACE_PATTERN),
+          Array.filter(String_.isNonEmpty),
+        ),
+      ),
+      Option.getOrElse(() => Option.toArray(implicitRole(root)(vnode))),
+    )
 
 // ACCESSIBLE NAME
 
@@ -454,21 +559,55 @@ const nameFromTextContent = (vnode: VNode): Option.Option<string> =>
 const nameFromTitle = (vnode: VNode): Option.Option<string> =>
   pipe(vnode, lookupAttribute('title'), Option.flatMap(nonEmptyString))
 
-// NOTE: Partial implementation of the AccName 1.2 "text alternative from
-// native host language" step. Currently covers `img.alt` only; the other
-// attribute-based cases (area, input[type=image|submit|reset|button]) and
-// the child-traversal cases (fieldset legend, figure figcaption, table
-// caption) are tracked in a follow-up ticket.
-const nameFromNativeHost = (vnode: VNode): Option.Option<string> => {
-  if (vnode.sel === 'img') {
+const findFirstDirectChildWithTag =
+  (tag: string) =>
+  (vnode: VNode): Option.Option<VNode> =>
+    Array.findFirst(vnodeChildren(vnode), ({ sel }) => sel === tag)
+
+const nameFromChildTag =
+  (childTag: string) =>
+  (vnode: VNode): Option.Option<string> =>
+    pipe(
+      vnode,
+      findFirstDirectChildWithTag(childTag),
+      Option.map(textContent),
+      Option.flatMap(nonEmptyString),
+    )
+
+const INPUT_BUTTON_TYPES = ['button', 'reset', 'submit']
+
+const nameFromInput = (vnode: VNode): Option.Option<string> => {
+  const type = pipe(
+    vnode,
+    lookupStringAttribute('type'),
+    Option.getOrElse(() => 'text'),
+  )
+  if (type === 'image') {
     return pipe(vnode, lookupAttribute('alt'), Option.flatMap(nonEmptyString))
+  }
+  if (Array.contains(INPUT_BUTTON_TYPES, type)) {
+    return pipe(vnode, lookupAttribute('value'), Option.flatMap(nonEmptyString))
   }
   return Option.none()
 }
 
+const nameFromNativeHost = (vnode: VNode): Option.Option<string> =>
+  Match.value(vnode.sel).pipe(
+    Match.whenOr('img', 'area', () =>
+      pipe(vnode, lookupAttribute('alt'), Option.flatMap(nonEmptyString)),
+    ),
+    Match.when('input', () => nameFromInput(vnode)),
+    Match.when('fieldset', () => nameFromChildTag('legend')(vnode)),
+    Match.when('figure', () => nameFromChildTag('figcaption')(vnode)),
+    Match.when('table', () => nameFromChildTag('caption')(vnode)),
+    Match.orElse(() => Option.none()),
+  )
+
 /** Computes the accessible name of an element. Resolves via
  *  `aria-labelledby`, `aria-label`, `<label for>`, native host language
- *  attributes (currently `img.alt`), text content, then `title`. */
+ *  attributes and child elements (img/area alt, input value/alt,
+ *  fieldset legend, figure figcaption, table caption), text content,
+ *  then `title`. */
 export const accessibleName =
   (root: VNode) =>
   (vnode: VNode): string =>
@@ -736,9 +875,12 @@ export const getByRole =
   (role: string, options?: RoleOptions) =>
   (html: VNode): Option.Option<VNode> => {
     const matchesOptions = roleOptionsMatch(options, html)
+    const resolveRolesInRoot = resolveRoles(html)
     return Array.findFirst(
       allNodesIn(html),
-      node => Array.contains(resolveRoles(node), role) && matchesOptions(node),
+      node =>
+        pipe(node, resolveRolesInRoot, Array.contains(role)) &&
+        matchesOptions(node),
     )
   }
 
@@ -747,9 +889,12 @@ export const getAllByRole =
   (role: string, options?: RoleOptions) =>
   (html: VNode): ReadonlyArray<VNode> => {
     const matchesOptions = roleOptionsMatch(options, html)
+    const resolveRolesInRoot = resolveRoles(html)
     return Array.filter(
       allNodesIn(html),
-      node => Array.contains(resolveRoles(node), role) && matchesOptions(node),
+      node =>
+        pipe(node, resolveRolesInRoot, Array.contains(role)) &&
+        matchesOptions(node),
     )
   }
 

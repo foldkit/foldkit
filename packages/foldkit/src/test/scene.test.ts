@@ -684,6 +684,392 @@ describe('accessible locators', () => {
   })
 })
 
+describe('AccName 1.2 native host language', () => {
+  describe('attribute-based', () => {
+    test('resolves name from area alt', () => {
+      const tree = h('map', {}, [
+        h('area', {
+          attrs: { alt: 'Documentation link', href: '/docs' },
+        }),
+      ])
+      const result = getByRole('link', { name: 'Documentation link' })(tree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(Option.getOrThrow(result).sel).toBe('area')
+    })
+
+    test('resolves name from input[type=image] alt', () => {
+      const tree = h('form', {}, [
+        h('input', {
+          attrs: { type: 'image', alt: 'Submit photo', src: '/go.png' },
+        }),
+      ])
+      const result = getByRole('button', { name: 'Submit photo' })(tree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(Option.getOrThrow(result).sel).toBe('input')
+    })
+
+    test('resolves name from input[type=submit] value', () => {
+      const tree = h('form', {}, [
+        h('input', { attrs: { type: 'submit', value: 'Save changes' } }),
+      ])
+      const result = getByRole('button', { name: 'Save changes' })(tree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(Option.getOrThrow(result).sel).toBe('input')
+    })
+
+    test('resolves name from input[type=button] value', () => {
+      const tree = h('form', {}, [
+        h('input', { attrs: { type: 'button', value: 'Add row' } }),
+      ])
+      const result = getByRole('button', { name: 'Add row' })(tree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(Option.getOrThrow(result).sel).toBe('input')
+    })
+
+    test('resolves name from input[type=reset] value', () => {
+      const tree = h('form', {}, [
+        h('input', { attrs: { type: 'reset', value: 'Clear form' } }),
+      ])
+      const result = getByRole('button', { name: 'Clear form' })(tree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(Option.getOrThrow(result).sel).toBe('input')
+    })
+  })
+
+  describe('child-element', () => {
+    test('resolves fieldset name from its <legend>', () => {
+      const tree = h('form', {}, [
+        h('fieldset', {}, [
+          h('legend', {}, ['Billing address']),
+          h('input', { attrs: { type: 'text' } }),
+        ]),
+      ])
+      const result = getByRole('group', { name: 'Billing address' })(tree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(Option.getOrThrow(result).sel).toBe('fieldset')
+    })
+
+    test('resolves figure name from its <figcaption>', () => {
+      const tree = h('div', {}, [
+        h('figure', {}, [
+          h('img', { attrs: { alt: '', src: '/chart.png' } }),
+          h('figcaption', {}, ['Quarterly revenue, 2025']),
+        ]),
+      ])
+      const result = getByRole('figure', {
+        name: 'Quarterly revenue, 2025',
+      })(tree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(Option.getOrThrow(result).sel).toBe('figure')
+    })
+
+    test('resolves table name from its <caption>', () => {
+      const tree = h('div', {}, [
+        h('table', {}, [
+          h('caption', {}, ['Employees by department']),
+          h('tr', {}, [h('th', {}, ['Name'])]),
+        ]),
+      ])
+      const result = getByRole('table', {
+        name: 'Employees by department',
+      })(tree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(Option.getOrThrow(result).sel).toBe('table')
+    })
+
+    test('returns None when child element is missing', () => {
+      const tree = h('form', {}, [
+        h('fieldset', {}, [h('input', { attrs: { type: 'text' } })]),
+      ])
+      const result = getByRole('group', { name: 'Billing address' })(tree)
+      expect(Option.isNone(result)).toBe(true)
+    })
+  })
+})
+
+describe('expanded implicit role map', () => {
+  const tree: VNode = h('div', {}, [
+    h('p', {}, ['A paragraph']),
+    h('hr', {}),
+    h('main', {}, [h('h1', {}, ['Main content'])]),
+    h('aside', {}, ['Sidebar']),
+    h('dialog', { attrs: { 'aria-label': 'Confirm delete' } }, [
+      h('p', {}, ['Are you sure?']),
+    ]),
+    h('article', {}, [h('h2', {}, ['Post title'])]),
+    h('figure', {}, [
+      h('img', { attrs: { alt: '', src: '/fig.png' } }),
+      h('figcaption', {}, ['Figure one']),
+    ]),
+    h('details', {}, [
+      h('summary', {}, ['More info']),
+      h('p', {}, ['Detail text']),
+    ]),
+    h('fieldset', {}, [
+      h('legend', {}, ['Contact']),
+      h('input', { attrs: { type: 'text' } }),
+    ]),
+    h('output', { attrs: { 'aria-label': 'Total' } }, ['$42']),
+    h('progress', {
+      attrs: { 'aria-label': 'Upload', value: '30', max: '100' },
+    }),
+    h('meter', {
+      attrs: { 'aria-label': 'Disk', value: '0.5' },
+    }),
+    h('table', {}, [
+      h('caption', {}, ['Scores']),
+      h('tr', {}, [
+        h('th', { attrs: { scope: 'col' } }, ['Player']),
+        h('th', { attrs: { scope: 'col' } }, ['Score']),
+      ]),
+      h('tr', {}, [
+        h('th', { attrs: { scope: 'row' } }, ['Alice']),
+        h('td', {}, ['10']),
+      ]),
+    ]),
+  ])
+
+  test('finds p as paragraph', () => {
+    const result = getByRole('paragraph')(tree)
+    expect(Option.isSome(result)).toBe(true)
+    expect(textContent(Option.getOrThrow(result))).toBe('A paragraph')
+  })
+
+  test('finds hr as separator', () => {
+    expect(Option.isSome(getByRole('separator')(tree))).toBe(true)
+  })
+
+  test('finds main landmark', () => {
+    expect(Option.isSome(getByRole('main')(tree))).toBe(true)
+  })
+
+  test('finds aside as complementary', () => {
+    const result = getByRole('complementary')(tree)
+    expect(Option.isSome(result)).toBe(true)
+    expect(textContent(Option.getOrThrow(result))).toBe('Sidebar')
+  })
+
+  test('finds dialog', () => {
+    const result = getByRole('dialog', { name: 'Confirm delete' })(tree)
+    expect(Option.isSome(result)).toBe(true)
+  })
+
+  test('finds article', () => {
+    expect(Option.isSome(getByRole('article')(tree))).toBe(true)
+  })
+
+  test('finds figure', () => {
+    expect(
+      Option.isSome(getByRole('figure', { name: 'Figure one' })(tree)),
+    ).toBe(true)
+  })
+
+  test('finds details as group', () => {
+    expect(Option.isSome(getByRole('group')(tree))).toBe(true)
+  })
+
+  test('finds fieldset as group', () => {
+    const result = getByRole('group', { name: 'Contact' })(tree)
+    expect(Option.isSome(result)).toBe(true)
+    expect(Option.getOrThrow(result).sel).toBe('fieldset')
+  })
+
+  test('finds summary as button', () => {
+    const result = getByRole('button', { name: 'More info' })(tree)
+    expect(Option.isSome(result)).toBe(true)
+    expect(Option.getOrThrow(result).sel).toBe('summary')
+  })
+
+  test('finds output as status', () => {
+    const result = getByRole('status', { name: 'Total' })(tree)
+    expect(Option.isSome(result)).toBe(true)
+    expect(Option.getOrThrow(result).sel).toBe('output')
+  })
+
+  test('finds progress as progressbar', () => {
+    expect(
+      Option.isSome(getByRole('progressbar', { name: 'Upload' })(tree)),
+    ).toBe(true)
+  })
+
+  test('finds meter', () => {
+    expect(Option.isSome(getByRole('meter', { name: 'Disk' })(tree))).toBe(true)
+  })
+
+  test('finds tr as row', () => {
+    expect(getAllByRole('row')(tree)).toHaveLength(2)
+  })
+
+  test('finds td as cell', () => {
+    const result = getByRole('cell')(tree)
+    expect(Option.isSome(result)).toBe(true)
+    expect(textContent(Option.getOrThrow(result))).toBe('10')
+  })
+
+  test('finds th without scope as columnheader', () => {
+    expect(getAllByRole('columnheader')(tree)).toHaveLength(2)
+  })
+
+  test('finds th[scope=row] as rowheader', () => {
+    const result = getByRole('rowheader')(tree)
+    expect(Option.isSome(result)).toBe(true)
+    expect(textContent(Option.getOrThrow(result))).toBe('Alice')
+  })
+})
+
+describe('implicit role edge cases', () => {
+  test('img with non-empty alt has role img', () => {
+    const tree = h('img', { attrs: { alt: 'Logo', src: '/logo.png' } })
+    expect(Option.isSome(getByRole('img')(tree))).toBe(true)
+    expect(Option.isNone(getByRole('presentation')(tree))).toBe(true)
+  })
+
+  test('img with empty alt has role presentation', () => {
+    const tree = h('img', { attrs: { alt: '', src: '/spacer.png' } })
+    expect(Option.isNone(getByRole('img')(tree))).toBe(true)
+    expect(Option.isSome(getByRole('presentation')(tree))).toBe(true)
+  })
+
+  test('img without alt has role img', () => {
+    const tree = h('img', { attrs: { src: '/photo.png' } })
+    expect(Option.isSome(getByRole('img')(tree))).toBe(true)
+    expect(Option.isNone(getByRole('presentation')(tree))).toBe(true)
+  })
+
+  test('a with href has role link', () => {
+    const tree = h('a', { props: { href: '/about' } }, ['About'])
+    expect(Option.isSome(getByRole('link')(tree))).toBe(true)
+  })
+
+  test('a without href has role generic', () => {
+    const tree = h('a', {}, ['Plain anchor'])
+    expect(Option.isNone(getByRole('link')(tree))).toBe(true)
+    expect(Option.isSome(getByRole('generic')(tree))).toBe(true)
+  })
+
+  test('area with href has role link', () => {
+    const tree = h('map', {}, [
+      h('area', { attrs: { href: '/region', alt: 'Region' } }),
+    ])
+    expect(Option.isSome(getByRole('link')(tree))).toBe(true)
+  })
+
+  test('area without href has role generic', () => {
+    const tree = h('map', {}, [h('area', { attrs: { alt: 'No link' } })])
+    expect(Option.isNone(getByRole('link')(tree))).toBe(true)
+    expect(Option.isSome(getByRole('generic')(tree))).toBe(true)
+  })
+})
+
+describe('context-sensitive implicit roles', () => {
+  describe('header', () => {
+    test('has role banner when not inside a landmark', () => {
+      const tree = h('div', {}, [
+        h('header', {}, [h('h1', {}, ['Site title'])]),
+        h('main', {}, [h('p', {}, ['Main content'])]),
+      ])
+      const result = getByRole('banner')(tree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(Option.getOrThrow(result).sel).toBe('header')
+    })
+
+    test('has role generic when inside main', () => {
+      const tree = h('main', {}, [
+        h('header', {}, [h('h2', {}, ['Article title'])]),
+        h('p', {}, ['Body']),
+      ])
+      expect(Option.isNone(getByRole('banner')(tree))).toBe(true)
+      expect(Option.isSome(getByRole('generic')(tree))).toBe(true)
+    })
+
+    test('has role generic when inside article', () => {
+      const tree = h('div', {}, [
+        h('article', {}, [
+          h('header', {}, [h('h2', {}, ['Post title'])]),
+          h('p', {}, ['Body']),
+        ]),
+      ])
+      expect(Option.isNone(getByRole('banner')(tree))).toBe(true)
+    })
+
+    test('has role generic when inside section', () => {
+      const tree = h('div', {}, [
+        h('section', { attrs: { 'aria-label': 'Intro' } }, [
+          h('header', {}, ['Section header']),
+        ]),
+      ])
+      expect(Option.isNone(getByRole('banner')(tree))).toBe(true)
+    })
+  })
+
+  describe('footer', () => {
+    test('has role contentinfo when not inside a landmark', () => {
+      const tree = h('div', {}, [
+        h('main', {}, [h('p', {}, ['Body'])]),
+        h('footer', {}, [h('p', {}, ['Copyright'])]),
+      ])
+      const result = getByRole('contentinfo')(tree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(Option.getOrThrow(result).sel).toBe('footer')
+    })
+
+    test('has role generic when inside article', () => {
+      const tree = h('div', {}, [
+        h('article', {}, [
+          h('p', {}, ['Body']),
+          h('footer', {}, ['Author info']),
+        ]),
+      ])
+      expect(Option.isNone(getByRole('contentinfo')(tree))).toBe(true)
+    })
+
+    test('has role generic when inside aside', () => {
+      const tree = h('aside', {}, [h('footer', {}, ['Sidebar footer'])])
+      expect(Option.isNone(getByRole('contentinfo')(tree))).toBe(true)
+    })
+  })
+
+  describe('section', () => {
+    test('has role region when labeled with aria-label', () => {
+      const tree = h('section', { attrs: { 'aria-label': 'Introduction' } }, [
+        h('p', {}, ['Body']),
+      ])
+      const result = getByRole('region', { name: 'Introduction' })(tree)
+      expect(Option.isSome(result)).toBe(true)
+      expect(Option.getOrThrow(result).sel).toBe('section')
+    })
+
+    test('has role region when labeled with aria-labelledby', () => {
+      const tree = h('div', {}, [
+        h('h2', { props: { id: 'intro-heading' } }, ['Introduction']),
+        h('section', { attrs: { 'aria-labelledby': 'intro-heading' } }, [
+          h('p', {}, ['Body']),
+        ]),
+      ])
+      const result = getByRole('region', { name: 'Introduction' })(tree)
+      expect(Option.isSome(result)).toBe(true)
+    })
+
+    test('has role region when labeled with title', () => {
+      const tree = h('section', { attrs: { title: 'Summary' } }, [
+        h('p', {}, ['Body']),
+      ])
+      expect(Option.isSome(getByRole('region')(tree))).toBe(true)
+    })
+
+    test('has role generic when unlabeled', () => {
+      const tree = h('section', {}, [h('p', {}, ['Body content'])])
+      expect(Option.isNone(getByRole('region')(tree))).toBe(true)
+      expect(Option.isSome(getByRole('generic')(tree))).toBe(true)
+    })
+
+    test('text content alone does not confer region role', () => {
+      const tree = h('section', {}, [h('h2', {}, ['Unlabeled section'])])
+      expect(Option.isNone(getByRole('region')(tree))).toBe(true)
+    })
+  })
+})
+
 describe('multi-match locators', () => {
   const tree: VNode = h('ul', { attrs: { role: 'list' } }, [
     h('li', { attrs: { role: 'row' } }, [
