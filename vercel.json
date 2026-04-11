@@ -17,7 +17,13 @@
   "rewrites": [
     {
       "source": "/",
-      "has": [{ "type": "query", "key": "embedded" }],
+      "has": [
+        {
+          "type": "query",
+          "key": "embedded",
+          "value": "(?<embedded>[^&]+)"
+        }
+      ],
       "destination": "/example-apps-embed/:embedded/index.html"
     },
     {
