@@ -13,7 +13,7 @@ export class NowEnvConfig extends Effect.Service<NowEnvConfig>()(
   {
     effect: Effect.succeed({
       VITE_NOW_SERVER_URL: getNullableOrThrow(
-        import.meta.env.VITE_NOW_SERVER_URL,
+        import.meta.env['VITE_NOW_SERVER_URL'],
         'VITE_NOW_SERVER_URL environment variable is not set',
       ),
     }),

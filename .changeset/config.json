@@ -12,6 +12,8 @@
     "@typing-game/client",
     "@typing-game/server",
     "@typing-game/shared",
+    "@foldkit/now-server",
+    "@foldkit/now-shared",
     "form-example",
     "auth-example",
     "todo-example",
