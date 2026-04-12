@@ -3,7 +3,6 @@ import { Ui } from 'foldkit'
 import { Class, button, div, span } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
-import { heading } from '../../prose'
 import { ClickedButtonDemo, type Message } from './message'
 import type { Model } from './model'
 
@@ -32,7 +31,6 @@ export const basicDemo = (
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => [
-  heading('h3', basicHeader.id, basicHeader.text),
   div(
     [Class('flex flex-col items-start gap-2')],
     [
@@ -55,7 +53,6 @@ export const disabledDemo = (
   _model: Model,
   _toParentMessage: (message: Message) => ParentMessage,
 ) => [
-  heading('h3', disabledHeader.id, disabledHeader.text),
   Ui.Button.view<ParentMessage>({
     isDisabled: true,
     toView: attributes =>

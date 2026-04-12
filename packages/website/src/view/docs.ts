@@ -632,7 +632,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       UiButton: () =>
         withTableOfContents(
-          Page.UiPages.ButtonPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.ButtonPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.ButtonPage.tableOfContents,
         ),
       UiTabs: () =>
