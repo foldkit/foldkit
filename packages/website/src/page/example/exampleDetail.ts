@@ -25,7 +25,7 @@ import { makeRemoteData } from '../../makeRemoteData'
 import { pageTitle, para } from '../../prose'
 import { examplesRouter } from '../../route'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
-import { type ExampleMeta, type ExampleSlug, findBySlug } from './meta'
+import { type ExampleMeta, findBySlug } from './meta'
 import {
   type ExampleSourceFile,
   ExampleSources,
@@ -84,7 +84,7 @@ export const LoadExampleSources = Command.define(
 const loadExampleSources = (slug: string) =>
   LoadExampleSources(
     Effect.tryPromise({
-      try: () => loadSourcesForSlug(slug as ExampleSlug),
+      try: () => loadSourcesForSlug(slug),
       catch: error =>
         error instanceof Error ? error.message : `Unknown example: ${slug}`,
     }).pipe(

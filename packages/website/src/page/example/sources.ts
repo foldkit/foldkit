@@ -1,7 +1,5 @@
 import { Schema as S } from 'effect'
 
-import type { ExampleSlug } from './meta'
-
 export const ExampleSourceFile = S.Struct({
   path: S.String,
   highlightedHtml: S.String,
@@ -14,10 +12,9 @@ export const ExampleSources = S.Struct({
 })
 export type ExampleSources = typeof ExampleSources.Type
 
-const loadersBySlug: Record<
-  ExampleSlug,
-  () => Promise<{ default: ExampleSources }>
-> = {
+type SourceLoader = () => Promise<Readonly<{ default: ExampleSources }>>
+
+const loadersBySlug: Readonly<Record<string, SourceLoader | undefined>> = {
   counter: () => import('virtual:example-sources/counter'),
   todo: () => import('virtual:example-sources/todo'),
   stopwatch: () => import('virtual:example-sources/stopwatch'),
@@ -35,7 +32,13 @@ const loadersBySlug: Record<
   'ui-showcase': () => import('virtual:example-sources/ui-showcase'),
 }
 
-export const loadSourcesForSlug = (
-  slug: ExampleSlug,
-): Promise<ExampleSources> =>
-  loadersBySlug[slug]().then(({ default: sources }) => sources)
+export const loadSourcesForSlug = async (
+  slug: string,
+): Promise<ExampleSources> => {
+  const loader = loadersBySlug[slug]
+  if (!loader) {
+    throw new Error(`Unknown example: ${slug}`)
+  }
+  const { default: sources } = await loader()
+  return sources
+}
