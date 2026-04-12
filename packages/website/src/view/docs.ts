@@ -700,7 +700,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       UiTextarea: () =>
         withTableOfContents(
-          Page.UiPages.TextareaPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.TextareaPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.TextareaPage.tableOfContents,
         ),
       UiFieldset: () =>
