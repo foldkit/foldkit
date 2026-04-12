@@ -4,7 +4,6 @@ import { Ui } from 'foldkit'
 import { Class, div, p, span } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
-import { heading } from '../../prose'
 import {
   GotHorizontalTabsDemoMessage,
   GotVerticalTabsDemoMessage,
@@ -142,7 +141,6 @@ export const horizontalDemo = (
   tabsModel: Ui.Tabs.Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => [
-  heading('h3', horizontalHeader.id, horizontalHeader.text),
   Ui.Tabs.view({
     model: tabsModel,
     toParentMessage: message =>
@@ -158,7 +156,6 @@ export const verticalDemo = (
   tabsModel: Ui.Tabs.Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => [
-  heading('h3', verticalHeader.id, verticalHeader.text),
   Ui.Tabs.view({
     model: tabsModel,
     toParentMessage: message =>
