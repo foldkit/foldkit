@@ -92,7 +92,7 @@ export type KeyboardEntry = Readonly<{
 }>
 
 const keyboardKeyClassName =
-  'inline-flex items-center justify-center min-w-[1.5rem] px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-xs font-mono text-gray-700 dark:text-gray-300'
+  'inline-flex items-center justify-center min-w-[1.5rem] px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-sm font-mono text-gray-700 dark:text-gray-300'
 
 const keyboardRow = (entry: KeyboardEntry): Html =>
   tr(
