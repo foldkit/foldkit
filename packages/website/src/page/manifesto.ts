@@ -88,7 +88,7 @@ export const view = (): Html =>
         'So here\u2019s the big claim: Foldkit models the frontend so you can model everything else. State, events, transitions, effects, streams, resource management. All accounted for. All connected. All typed. All in one place.',
       ),
       para(
-        'Frontend architecture is solved. The only question left is, what are you going to create? Make it cool.',
+        'Frontend architecture is solved. The only question left is, what are you going to create?',
       ),
       div([Class('mb-4')], [p([], ['See you on GitHub,']), p([], ['Devin'])]),
     ],
