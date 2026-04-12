@@ -6,7 +6,6 @@ import { Class, div, span } from '../../html'
 import { Icon } from '../../icon'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
-import { heading } from '../../prose'
 import {
   GotListboxDemoMessage,
   GotListboxGroupedDemoMessage,
@@ -121,7 +120,6 @@ export const basicDemo = (
   )
 
   return [
-    heading('h3', singleSelectHeader.id, singleSelectHeader.text),
     div(
       [Class('relative')],
       [
@@ -169,7 +167,6 @@ export const multiSelectDemo = (
   })
 
   return [
-    heading('h3', multiSelectHeader.id, multiSelectHeader.text),
     div(
       [Class('relative')],
       [
@@ -215,7 +212,6 @@ export const groupedDemo = (
   )
 
   return [
-    heading('h3', groupedHeader.id, groupedHeader.text),
     div(
       [Class('relative')],
       [

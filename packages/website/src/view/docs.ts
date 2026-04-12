@@ -674,7 +674,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       UiListbox: () =>
         withTableOfContents(
-          Page.UiPages.ListboxPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.ListboxPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.ListboxPage.tableOfContents,
         ),
       UiRadioGroup: () =>
