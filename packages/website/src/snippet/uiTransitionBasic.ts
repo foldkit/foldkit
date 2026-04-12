@@ -1,26 +1,65 @@
-import { Ui } from 'foldkit'
+import { Effect, Match as M, Option } from 'effect'
+import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
+import { evo } from 'foldkit/struct'
 
 import { Class, p } from './html'
 
-// Submodel wiring:
-//   Model field: transition: Ui.Transition.Model
-//   Init: Ui.Transition.init({ id: 'content' })
-//   Update: delegate via Ui.Transition.update — returns [model, commands, maybeOutMessage]
+// MODEL — store the Transition submodel and your own visibility flag
+//   transition: Ui.Transition.Model
+//   isShowing: S.Boolean
+
+// INIT
+//   transition: Ui.Transition.init({ id: 'content' })
+//   isShowing: false
+
+// MESSAGE
 
 const GotTransitionMessage = m('GotTransitionMessage', {
   message: Ui.Transition.Message,
 })
+const ToggledContent = m('ToggledContent')
 
-// Trigger show/hide by dispatching Showed() or Hidden():
-//   Ui.Transition.Showed()  → starts enter animation
-//   Ui.Transition.Hidden()  → starts leave animation
+// UPDATE — Transition.update returns a three-tuple: [model, commands, maybeOutMessage]
+//
+// ToggledContent: () => {
+//   const nextShowing = !model.isShowing
+//   // Send Showed() or Hidden() to start the animation:
+//   delegateToTransition(nextShowing ? Ui.Transition.Showed() : Ui.Transition.Hidden())
+// }
+//
+// GotTransitionMessage: ({ message }) => {
+//   const [nextTransition, commands, maybeOutMessage] =
+//     Ui.Transition.update(model.transition, message)
+//
+//   const mappedCommands = commands.map(
+//     Command.mapEffect(Effect.map(m => GotTransitionMessage({ message: m }))),
+//   )
+//
+//   // Handle OutMessages:
+//   const additionalCommands = Option.match(maybeOutMessage, {
+//     onNone: () => [],
+//     onSome: Match.tagsExhaustive({
+//       // Provide the leave detection command so the animation completes:
+//       StartedLeaveAnimating: () => [
+//         Command.mapEffect(
+//           Ui.Transition.defaultLeaveCommand(nextTransition),
+//           Effect.map(m => GotTransitionMessage({ message: m })),
+//         ),
+//       ],
+//       // Leave animation finished — content is now hidden:
+//       TransitionedOut: () => [],
+//     }),
+//   })
+//
+//   return [
+//     evo(model, { transition: () => nextTransition }),
+//     [...mappedCommands, ...additionalCommands],
+//   ]
+// }
 
-// Handle OutMessage in your update:
-//   StartedLeaveAnimating → provide Transition.defaultLeaveCommand(model)
-//   TransitionedOut → unmount or hide content
+// VIEW — CSS transitions driven by data attributes
 
-// The view — CSS transitions driven by data attributes:
 Ui.Transition.view({
   model: model.transition,
   animateSize: true,

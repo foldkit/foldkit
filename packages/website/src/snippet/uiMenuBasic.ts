@@ -12,6 +12,9 @@ const GotMenuMessage = m('GotMenuMessage', {
   message: Ui.Menu.Message,
 })
 
+// Your own Message for handling the selected action:
+const SelectedAction = m('SelectedAction', { value: S.String })
+
 type Action = 'Edit' | 'Duplicate' | 'Archive' | 'Delete'
 const actions: ReadonlyArray<Action> = [
   'Edit',
@@ -20,6 +23,8 @@ const actions: ReadonlyArray<Action> = [
   'Delete',
 ]
 
+// Menu is fire-and-forget — use onSelectedItem to handle actions
+// in your own update function instead of through the Submodel:
 Ui.Menu.view({
   model: model.menu,
   toParentMessage: message => GotMenuMessage({ message }),

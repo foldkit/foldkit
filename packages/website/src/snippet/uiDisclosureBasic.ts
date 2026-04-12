@@ -1,7 +1,7 @@
 import { Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 
-import { Class } from './html'
+import { Class, p, span } from './html'
 
 // Submodel wiring:
 //   Model field: disclosure: Ui.Disclosure.Model
@@ -18,6 +18,6 @@ Ui.Disclosure.view({
   buttonContent: span([], ['What is Foldkit?']),
   panelContent: p([], ['A functional UI framework built on Effect-TS.']),
   buttonClassName:
-    'flex items-center justify-between w-full p-4 border rounded-lg',
+    'flex items-center justify-between w-full p-4 border rounded-lg data-[open]:rounded-b-none',
   panelClassName: 'p-4 border-x border-b rounded-b-lg',
 })
