@@ -16,7 +16,7 @@ const descriptions: Record<Framework, string> = {
   Elm: 'The original MVU architecture.',
 }
 
-// Set orientation to 'Vertical' and use flex + flex-col for layout
+// In your view, set orientation to 'Vertical' and use flex + flex-col for layout:
 Ui.Tabs.view<Message, Framework>({
   model: model.tabs,
   toParentMessage: message => GotTabsMessage({ message }),

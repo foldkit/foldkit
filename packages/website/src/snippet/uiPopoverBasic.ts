@@ -1,28 +1,27 @@
-import { Effect, Schema as S } from 'effect'
+import { Effect } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Class, div, h3, p, span } from './html'
 
-// MODEL
-
+// Your Model has a field for the Popover Submodel:
 const Model = S.Struct({
   popover: Ui.Popover.Model,
+  // ...your other fields
 })
 
-// INIT
+// Initialize it:
+const initialModel = {
+  popover: Ui.Popover.init({ id: 'info' }),
+}
 
-const init = () => [{ popover: Ui.Popover.init({ id: 'info' }) }, []]
-
-// MESSAGE
-
+// Wrap the Popover Message in your parent Message:
 const GotPopoverMessage = m('GotPopoverMessage', {
   message: Ui.Popover.Message,
 })
 
-// UPDATE
-
+// In your update, delegate to Popover.update:
 GotPopoverMessage: ({ message }) => {
   const [nextPopover, commands] = Ui.Popover.update(model.popover, message)
 
@@ -34,8 +33,7 @@ GotPopoverMessage: ({ message }) => {
   ]
 }
 
-// VIEW
-
+// In your view:
 Ui.Popover.view({
   model: model.popover,
   toParentMessage: message => GotPopoverMessage({ message }),

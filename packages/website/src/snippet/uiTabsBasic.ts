@@ -1,28 +1,27 @@
-import { Effect, Schema as S } from 'effect'
+import { Effect } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Class, div, p, span } from './html'
+import { Class, p, span } from './html'
 
-// MODEL
-
+// Your Model has a field for the Tabs Submodel:
 const Model = S.Struct({
   tabs: Ui.Tabs.Model,
+  // ...your other fields
 })
 
-// INIT
+// Initialize it:
+const initialModel = {
+  tabs: Ui.Tabs.init({ id: 'framework-tabs' }),
+}
 
-const init = () => [{ tabs: Ui.Tabs.init({ id: 'framework-tabs' }) }, []]
-
-// MESSAGE
-
+// Wrap the Tabs Message in your parent Message:
 const GotTabsMessage = m('GotTabsMessage', {
   message: Ui.Tabs.Message,
 })
 
-// UPDATE
-
+// In your update, delegate to Tabs.update:
 GotTabsMessage: ({ message }) => {
   const [nextTabs, commands] = Ui.Tabs.update(model.tabs, message)
 
@@ -34,8 +33,7 @@ GotTabsMessage: ({ message }) => {
   ]
 }
 
-// VIEW
-
+// In your view:
 type Framework = 'Foldkit' | 'React' | 'Elm'
 const frameworks: ReadonlyArray<Framework> = ['Foldkit', 'React', 'Elm']
 

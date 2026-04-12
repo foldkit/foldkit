@@ -1,31 +1,27 @@
-import { Effect, Option, Schema as S } from 'effect'
+import { Effect, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Class, div, span } from './html'
 
-// MODEL
-
+// Your Model has a field for the Listbox Submodel:
 const Model = S.Struct({
   listbox: Ui.Listbox.Model,
+  // ...your other fields
 })
 
-// INIT
+// Initialize it:
+const initialModel = {
+  listbox: Ui.Listbox.init({ id: 'person', selectedItem: 'Michael Bluth' }),
+}
 
-const init = () => [
-  { listbox: Ui.Listbox.init({ id: 'person', selectedItem: 'Michael Bluth' }) },
-  [],
-]
-
-// MESSAGE
-
+// Wrap the Listbox Message in your parent Message:
 const GotListboxMessage = m('GotListboxMessage', {
   message: Ui.Listbox.Message,
 })
 
-// UPDATE
-
+// In your update, delegate to Listbox.update:
 GotListboxMessage: ({ message }) => {
   const [nextListbox, commands] = Ui.Listbox.update(model.listbox, message)
 
@@ -37,8 +33,7 @@ GotListboxMessage: ({ message }) => {
   ]
 }
 
-// VIEW
-
+// In your view:
 const people = ['Michael Bluth', 'Lindsay Funke', 'Tobias Funke']
 
 Ui.Listbox.view({

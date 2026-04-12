@@ -1,34 +1,27 @@
-import { Effect, Schema as S } from 'effect'
+import { Effect } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Class, Id, OnClick, button, div, h2, p } from './html'
 
-// MODEL
-
+// Your Model has a field for the Dialog Submodel:
 const Model = S.Struct({
   dialog: Ui.Dialog.Model,
+  // ...your other fields
 })
 
-// INIT — set isAnimated: true for CSS transition coordination
+// Initialize with isAnimated: true for CSS transition coordination:
+const initialModel = {
+  dialog: Ui.Dialog.init({ id: 'confirm', isAnimated: true }),
+}
 
-const init = () => [
-  { dialog: Ui.Dialog.init({ id: 'confirm', isAnimated: true }) },
-  [],
-]
-
-// MESSAGE
-
+// Wrap the Dialog Message in your parent Message:
 const GotDialogMessage = m('GotDialogMessage', {
   message: Ui.Dialog.Message,
 })
 
-const Message = S.Union(GotDialogMessage)
-type Message = typeof Message.Type
-
-// UPDATE
-
+// In your update, delegate to Dialog.update:
 GotDialogMessage: ({ message }) => {
   const [nextDialog, commands] = Ui.Dialog.update(model.dialog, message)
 
@@ -40,8 +33,7 @@ GotDialogMessage: ({ message }) => {
   ]
 }
 
-// VIEW — use data-[closed] for enter/leave transitions
-
+// In your view, use data-[closed] for enter/leave transitions:
 const dialogToParentMessage = (message: Ui.Dialog.Message): Message =>
   GotDialogMessage({ message })
 

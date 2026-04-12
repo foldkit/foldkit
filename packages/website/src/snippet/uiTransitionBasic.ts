@@ -1,36 +1,32 @@
-import { Effect, Match as M, Option, Schema as S } from 'effect'
+import { Effect, Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Class, p } from './html'
+import { p } from './html'
 
-// MODEL
-
+// Your Model has a field for the Transition Submodel plus a boolean flag
+// tracking whether the content is currently showing:
 const Model = S.Struct({
   transition: Ui.Transition.Model,
   isShowing: S.Boolean,
+  // ...your other fields
 })
 
-// INIT
+// Initialize it:
+const initialModel = {
+  transition: Ui.Transition.init({ id: 'content' }),
+  isShowing: false,
+}
 
-const init = () => [
-  {
-    transition: Ui.Transition.init({ id: 'content' }),
-    isShowing: false,
-  },
-  [],
-]
-
-// MESSAGE
-
+// Wrap the Transition Message in your parent Message, plus a Message for the toggle:
 const GotTransitionMessage = m('GotTransitionMessage', {
   message: Ui.Transition.Message,
 })
 const ToggledContent = m('ToggledContent')
 
-// UPDATE — Transition.update returns [model, commands, maybeOutMessage]
-
+// In your update, Transition.update returns a three-tuple: [model, commands, maybeOutMessage].
+// OutMessages signal transition lifecycle events your parent may need to react to:
 ToggledContent: () => {
   const nextShowing = !model.isShowing
   const [nextTransition, commands, maybeOutMessage] = Ui.Transition.update(
@@ -92,8 +88,7 @@ const handleTransitionUpdate = (
   ]
 }
 
-// VIEW
-
+// In your view:
 Ui.Transition.view({
   model: model.transition,
   animateSize: true,

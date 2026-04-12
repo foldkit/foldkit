@@ -1,22 +1,22 @@
-import { Effect, Schema as S } from 'effect'
+import { Effect } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Class, div, span } from './html'
 
-// MODEL
-
+// Your Model has a field for the Menu Submodel:
 const Model = S.Struct({
   menu: Ui.Menu.Model,
+  // ...your other fields
 })
 
-// INIT
+// Initialize it:
+const initialModel = {
+  menu: Ui.Menu.init({ id: 'actions' }),
+}
 
-const init = () => [{ menu: Ui.Menu.init({ id: 'actions' }) }, []]
-
-// MESSAGE
-
+// Wrap the Menu Message in your parent Message:
 const GotMenuMessage = m('GotMenuMessage', {
   message: Ui.Menu.Message,
 })
@@ -24,8 +24,7 @@ const GotMenuMessage = m('GotMenuMessage', {
 // Your own Message for handling the selected action:
 const SelectedAction = m('SelectedAction', { value: S.String })
 
-// UPDATE
-
+// In your update, delegate to Menu.update:
 GotMenuMessage: ({ message }) => {
   const [nextMenu, commands] = Ui.Menu.update(model.menu, message)
 
@@ -37,8 +36,7 @@ GotMenuMessage: ({ message }) => {
   ]
 }
 
-// VIEW
-
+// In your view:
 type Action = 'Edit' | 'Duplicate' | 'Archive' | 'Delete'
 const actions: ReadonlyArray<Action> = [
   'Edit',

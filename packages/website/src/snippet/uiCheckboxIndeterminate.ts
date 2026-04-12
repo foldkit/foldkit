@@ -1,29 +1,24 @@
-import { Array, Effect, Schema as S } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Array } from 'effect'
+import { Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Class, button, div, label } from './html'
 
-// MODEL — multiple checkbox Submodels for parent + children
-
+// Your Model has multiple checkbox Submodels for parent + children:
 const Model = S.Struct({
   optionA: Ui.Checkbox.Model,
   optionB: Ui.Checkbox.Model,
+  // ...your other fields
 })
 
-// INIT
+// Initialize each one:
+const initialModel = {
+  optionA: Ui.Checkbox.init({ id: 'option-a' }),
+  optionB: Ui.Checkbox.init({ id: 'option-b' }),
+}
 
-const init = () => [
-  {
-    optionA: Ui.Checkbox.init({ id: 'option-a' }),
-    optionB: Ui.Checkbox.init({ id: 'option-b' }),
-  },
-  [],
-]
-
-// MESSAGE
-
+// Wrap each child's Message, plus a Message for the "Select All" parent:
 const GotSelectAllMessage = m('GotSelectAllMessage', {
   message: Ui.Checkbox.Message,
 })
@@ -34,8 +29,7 @@ const GotOptionBMessage = m('GotOptionBMessage', {
   message: Ui.Checkbox.Message,
 })
 
-// UPDATE — toggling "Select All" sets all children to the same state
-
+// Toggling "Select All" sets all children to the same state:
 GotSelectAllMessage: () => {
   const isAllChecked = Array.every(
     [model.optionA, model.optionB],
@@ -52,8 +46,7 @@ GotSelectAllMessage: () => {
   ]
 }
 
-// VIEW — compute indeterminate from child states
-
+// In your view, compute indeterminate from child states:
 const childModels = [model.optionA, model.optionB]
 const isAllChecked = Array.every(childModels, ({ isChecked }) => isChecked)
 const isIndeterminate =

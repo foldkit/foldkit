@@ -1,31 +1,27 @@
-import { Effect, Schema as S } from 'effect'
+import { Effect } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Class, div, span } from './html'
 
-// MODEL
-
+// Your Model has a field for the Listbox.Multi Submodel:
 const Model = S.Struct({
   listboxMulti: Ui.Listbox.Multi.Model,
+  // ...your other fields
 })
 
-// INIT
+// Initialize it:
+const initialModel = {
+  listboxMulti: Ui.Listbox.Multi.init({ id: 'people' }),
+}
 
-const init = () => [
-  { listboxMulti: Ui.Listbox.Multi.init({ id: 'people' }) },
-  [],
-]
-
-// MESSAGE
-
+// Wrap the Listbox Message in your parent Message:
 const GotListboxMultiMessage = m('GotListboxMultiMessage', {
   message: Ui.Listbox.Message,
 })
 
-// UPDATE
-
+// In your update, delegate to Listbox.Multi.update:
 GotListboxMultiMessage: ({ message }) => {
   const [nextListbox, commands] = Ui.Listbox.Multi.update(
     model.listboxMulti,
@@ -42,8 +38,7 @@ GotListboxMultiMessage: ({ message }) => {
   ]
 }
 
-// VIEW
-
+// In your view, use Listbox.Multi.view — selectedItems is an array:
 const people = ['Michael Bluth', 'Lindsay Funke', 'Tobias Funke']
 
 Ui.Listbox.Multi.view({

@@ -1,31 +1,27 @@
-import { Array, Effect, Schema as S } from 'effect'
+import { Array, Effect } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Class, Placeholder, div, span } from './html'
 
-// MODEL
-
+// Your Model has a field for the Combobox.Multi Submodel:
 const Model = S.Struct({
   comboboxMulti: Ui.Combobox.Multi.Model,
+  // ...your other fields
 })
 
-// INIT
+// Initialize it:
+const initialModel = {
+  comboboxMulti: Ui.Combobox.Multi.init({ id: 'cities-multi' }),
+}
 
-const init = () => [
-  { comboboxMulti: Ui.Combobox.Multi.init({ id: 'cities-multi' }) },
-  [],
-]
-
-// MESSAGE
-
+// Wrap the Combobox Message in your parent Message:
 const GotComboboxMultiMessage = m('GotComboboxMultiMessage', {
   message: Ui.Combobox.Message,
 })
 
-// UPDATE
-
+// In your update, delegate to Combobox.Multi.update:
 GotComboboxMultiMessage: ({ message }) => {
   const [nextCombobox, commands] = Ui.Combobox.Multi.update(
     model.comboboxMulti,
@@ -42,8 +38,7 @@ GotComboboxMultiMessage: ({ message }) => {
   ]
 }
 
-// VIEW
-
+// In your view, filter items based on the current input value:
 type City = 'Johannesburg' | 'Kyiv' | 'Oxford' | 'Wellington'
 const cities: ReadonlyArray<City> = [
   'Johannesburg',

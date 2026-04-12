@@ -1,28 +1,27 @@
-import { Effect, Schema as S } from 'effect'
+import { Effect } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Class, p, span } from './html'
+import { p, span } from './html'
 
-// MODEL
-
+// Your Model has a field for the Disclosure Submodel:
 const Model = S.Struct({
   disclosure: Ui.Disclosure.Model,
+  // ...your other fields
 })
 
-// INIT
+// Initialize it:
+const initialModel = {
+  disclosure: Ui.Disclosure.init({ id: 'faq-1' }),
+}
 
-const init = () => [{ disclosure: Ui.Disclosure.init({ id: 'faq-1' }) }, []]
-
-// MESSAGE
-
+// Wrap the Disclosure Message in your parent Message:
 const GotDisclosureMessage = m('GotDisclosureMessage', {
   message: Ui.Disclosure.Message,
 })
 
-// UPDATE
-
+// In your update, delegate to Disclosure.update:
 GotDisclosureMessage: ({ message }) => {
   const [nextDisclosure, commands] = Ui.Disclosure.update(
     model.disclosure,
@@ -39,8 +38,7 @@ GotDisclosureMessage: ({ message }) => {
   ]
 }
 
-// VIEW
-
+// In your view:
 Ui.Disclosure.view({
   model: model.disclosure,
   toParentMessage: message => GotDisclosureMessage({ message }),

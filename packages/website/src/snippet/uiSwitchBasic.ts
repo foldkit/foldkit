@@ -1,28 +1,27 @@
-import { Effect, Schema as S } from 'effect'
+import { Effect } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Class, button, div, label, p } from './html'
 
-// MODEL
-
+// Your Model has a field for the Switch Submodel:
 const Model = S.Struct({
   switchDemo: Ui.Switch.Model,
+  // ...your other fields
 })
 
-// INIT
+// Initialize it:
+const initialModel = {
+  switchDemo: Ui.Switch.init({ id: 'notifications' }),
+}
 
-const init = () => [{ switchDemo: Ui.Switch.init({ id: 'notifications' }) }, []]
-
-// MESSAGE
-
+// Wrap the Switch Message in your parent Message:
 const GotSwitchMessage = m('GotSwitchMessage', {
   message: Ui.Switch.Message,
 })
 
-// UPDATE
-
+// In your update, delegate to Switch.update:
 GotSwitchMessage: ({ message }) => {
   const [nextSwitch, commands] = Ui.Switch.update(model.switchDemo, message)
 
@@ -34,8 +33,7 @@ GotSwitchMessage: ({ message }) => {
   ]
 }
 
-// VIEW
-
+// In your view:
 Ui.Switch.view({
   model: model.switchDemo,
   toParentMessage: message => GotSwitchMessage({ message }),

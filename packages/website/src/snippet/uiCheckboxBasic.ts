@@ -1,28 +1,27 @@
-import { Effect, Schema as S } from 'effect'
+import { Effect } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Class, button, div, label, p } from './html'
 
-// MODEL
-
+// Your Model has a field for the Checkbox Submodel:
 const Model = S.Struct({
   checkboxDemo: Ui.Checkbox.Model,
+  // ...your other fields
 })
 
-// INIT
+// Initialize it:
+const initialModel = {
+  checkboxDemo: Ui.Checkbox.init({ id: 'terms' }),
+}
 
-const init = () => [{ checkboxDemo: Ui.Checkbox.init({ id: 'terms' }) }, []]
-
-// MESSAGE
-
+// Wrap the Checkbox Message in your parent Message:
 const GotCheckboxMessage = m('GotCheckboxMessage', {
   message: Ui.Checkbox.Message,
 })
 
-// UPDATE
-
+// In your update, delegate to Checkbox.update:
 GotCheckboxMessage: ({ message }) => {
   const [nextCheckbox, commands] = Ui.Checkbox.update(
     model.checkboxDemo,
@@ -37,8 +36,7 @@ GotCheckboxMessage: ({ message }) => {
   ]
 }
 
-// VIEW
-
+// In your view:
 Ui.Checkbox.view({
   model: model.checkboxDemo,
   toParentMessage: message => GotCheckboxMessage({ message }),

@@ -1,28 +1,27 @@
-import { Effect, Schema as S } from 'effect'
+import { Effect } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Class, div, p, span } from './html'
 
-// MODEL
-
+// Your Model has a field for the RadioGroup Submodel:
 const Model = S.Struct({
   radioGroup: Ui.RadioGroup.Model,
+  // ...your other fields
 })
 
-// INIT
+// Initialize it:
+const initialModel = {
+  radioGroup: Ui.RadioGroup.init({ id: 'plan' }),
+}
 
-const init = () => [{ radioGroup: Ui.RadioGroup.init({ id: 'plan' }) }, []]
-
-// MESSAGE
-
+// Wrap the RadioGroup Message in your parent Message:
 const GotRadioGroupMessage = m('GotRadioGroupMessage', {
   message: Ui.RadioGroup.Message,
 })
 
-// UPDATE
-
+// In your update, delegate to RadioGroup.update:
 GotRadioGroupMessage: ({ message }) => {
   const [nextRadioGroup, commands] = Ui.RadioGroup.update(
     model.radioGroup,
@@ -39,8 +38,7 @@ GotRadioGroupMessage: ({ message }) => {
   ]
 }
 
-// VIEW
-
+// In your view:
 type Plan = 'Startup' | 'Business' | 'Enterprise'
 const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']
 

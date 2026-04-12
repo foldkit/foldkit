@@ -1,28 +1,27 @@
-import { Array, Effect, Schema as S } from 'effect'
+import { Array, Effect } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Class, Placeholder, div, span } from './html'
 
-// MODEL
-
+// Your Model has a field for the Combobox Submodel:
 const Model = S.Struct({
   combobox: Ui.Combobox.Model,
+  // ...your other fields
 })
 
-// INIT
+// Initialize it:
+const initialModel = {
+  combobox: Ui.Combobox.init({ id: 'city' }),
+}
 
-const init = () => [{ combobox: Ui.Combobox.init({ id: 'city' }) }, []]
-
-// MESSAGE
-
+// Wrap the Combobox Message in your parent Message:
 const GotComboboxMessage = m('GotComboboxMessage', {
   message: Ui.Combobox.Message,
 })
 
-// UPDATE
-
+// In your update, delegate to Combobox.update:
 GotComboboxMessage: ({ message }) => {
   const [nextCombobox, commands] = Ui.Combobox.update(model.combobox, message)
 
@@ -34,8 +33,7 @@ GotComboboxMessage: ({ message }) => {
   ]
 }
 
-// VIEW
-
+// In your view:
 type City = 'Johannesburg' | 'Kyiv' | 'Oxford' | 'Wellington'
 const cities: ReadonlyArray<City> = [
   'Johannesburg',

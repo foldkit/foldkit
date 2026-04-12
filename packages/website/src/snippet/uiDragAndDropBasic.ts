@@ -1,39 +1,34 @@
-import { Effect, Match as M, Option, Schema as S, Stream } from 'effect'
+import { Effect, Match as M, Option, Stream } from 'effect'
 import { Command, Subscription, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Class, div, li, span, ul } from './html'
+import { Class, li, span, ul } from './html'
 
-// MODEL
-
+// Your Model has a field for the DragAndDrop Submodel plus the items being sorted:
 const Model = S.Struct({
   items: S.Array(S.Struct({ id: S.String, label: S.String })),
   dragAndDrop: Ui.DragAndDrop.Model,
+  // ...your other fields
 })
 
-// INIT
+// Initialize it:
+const initialModel = {
+  items: [
+    { id: '1', label: 'First' },
+    { id: '2', label: 'Second' },
+    { id: '3', label: 'Third' },
+  ],
+  dragAndDrop: Ui.DragAndDrop.init({ id: 'sortable-list' }),
+}
 
-const init = () => [
-  {
-    items: [
-      { id: '1', label: 'First' },
-      { id: '2', label: 'Second' },
-      { id: '3', label: 'Third' },
-    ],
-    dragAndDrop: Ui.DragAndDrop.init({ id: 'sortable-list' }),
-  },
-  [],
-]
-
-// MESSAGE
-
+// Wrap the DragAndDrop Message in your parent Message:
 const GotDragAndDropMessage = m('GotDragAndDropMessage', {
   message: Ui.DragAndDrop.Message,
 })
 
-// UPDATE — three-tuple return with OutMessage handling
-
+// In your update, DragAndDrop.update returns a three-tuple: [model, commands, maybeOutMessage].
+// Handle the Reordered OutMessage to apply the move to your own list:
 GotDragAndDropMessage: ({ message: dragMessage }) => {
   const [nextDragAndDrop, dragCommands, maybeOutMessage] =
     Ui.DragAndDrop.update(model.dragAndDrop, dragMessage)
@@ -69,8 +64,7 @@ GotDragAndDropMessage: ({ message: dragMessage }) => {
   })
 }
 
-// SUBSCRIPTIONS — forward all four document-level listeners
-
+// In your subscriptions, forward all four document-level listeners:
 const dragAndDropSubs = Ui.DragAndDrop.subscriptions
 
 const mapDragStream = stream =>
@@ -120,8 +114,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)({
   },
 })
 
-// VIEW — spread draggable() onto items, droppable() onto containers
-
+// In your view, spread draggable() onto items and droppable() onto containers:
 ul(
   [
     ...Ui.DragAndDrop.droppable('list', 'Sortable items'),
