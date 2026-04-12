@@ -2,8 +2,10 @@ import { Ui } from 'foldkit'
 
 import { Class, button } from './html'
 
+// Button is view-only — dispatch your own Message on click.
+
 Ui.Button.view({
-  onClick: ClickedSave(),
+  onClick: ClickedSave(), // your Message
   toView: attributes =>
     button(
       [

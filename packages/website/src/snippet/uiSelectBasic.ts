@@ -2,10 +2,12 @@ import { Ui } from 'foldkit'
 
 import { Class, Value, div, label, option, select, span } from './html'
 
+// Select is view-only — the selected value lives in your own Model as a string.
+
 Ui.Select.view({
   id: 'country',
-  value: model.country,
-  onChange: value => UpdatedCountry({ value }),
+  value: model.country, // your Model field
+  onChange: value => UpdatedCountry({ value }), // your Message
   toView: attributes =>
     div(
       [Class('flex flex-col gap-1.5')],

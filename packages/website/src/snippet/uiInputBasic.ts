@@ -2,10 +2,12 @@ import { Ui } from 'foldkit'
 
 import { Class, div, input, label, span } from './html'
 
+// Input is view-only — the value lives in your own Model as a string.
+
 Ui.Input.view({
   id: 'full-name',
-  value: model.name,
-  onInput: value => UpdatedName({ value }),
+  value: model.name, // your Model field
+  onInput: value => UpdatedName({ value }), // your Message
   placeholder: 'Enter your full name',
   toView: attributes =>
     div(
