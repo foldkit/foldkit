@@ -26,9 +26,9 @@ export const modelStateField = (name: string, value: string): Html =>
   div(
     [],
     [
-      span([Class('text-accent-600 dark:text-accent-400')], [name]),
+      span([Class('text-accent-700 dark:text-accent-400')], [name]),
       span([Class('text-gray-400 dark:text-gray-500')], [': ']),
-      span([Class('text-amber-600 dark:text-amber-300')], [value]),
+      span([Class('text-amber-800 dark:text-amber-300')], [value]),
     ],
   )
 

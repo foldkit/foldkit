@@ -1,48 +1,41 @@
-import authSources from 'virtual:example-sources/auth'
-import counterSources from 'virtual:example-sources/counter'
-import crashViewSources from 'virtual:example-sources/crash-view'
-import formSources from 'virtual:example-sources/form'
-import kanbanSources from 'virtual:example-sources/kanban'
-import pixelArtSources from 'virtual:example-sources/pixel-art'
-import querySyncSources from 'virtual:example-sources/query-sync'
-import routingSources from 'virtual:example-sources/routing'
-import shoppingCartSources from 'virtual:example-sources/shopping-cart'
-import snakeSources from 'virtual:example-sources/snake'
-import stopwatchSources from 'virtual:example-sources/stopwatch'
-import todoSources from 'virtual:example-sources/todo'
-import uiShowcaseSources from 'virtual:example-sources/ui-showcase'
-import weatherSources from 'virtual:example-sources/weather'
-import websocketChatSources from 'virtual:example-sources/websocket-chat'
+import { Schema as S } from 'effect'
 
 import type { ExampleSlug } from './meta'
 
-export type ExampleSourceFile = Readonly<{
-  path: string
-  highlightedHtml: string
-  rawCode: string
-}>
+export const ExampleSourceFile = S.Struct({
+  path: S.String,
+  highlightedHtml: S.String,
+  rawCode: S.String,
+})
+export type ExampleSourceFile = typeof ExampleSourceFile.Type
 
-export type ExampleSources = Readonly<{
-  files: ReadonlyArray<ExampleSourceFile>
-}>
+export const ExampleSources = S.Struct({
+  files: S.Array(ExampleSourceFile),
+})
+export type ExampleSources = typeof ExampleSources.Type
 
-const sourcesBySlug: Record<ExampleSlug, ExampleSources> = {
-  counter: counterSources,
-  todo: todoSources,
-  stopwatch: stopwatchSources,
-  form: formSources,
-  kanban: kanbanSources,
-  weather: weatherSources,
-  routing: routingSources,
-  'query-sync': querySyncSources,
-  'shopping-cart': shoppingCartSources,
-  auth: authSources,
-  'pixel-art': pixelArtSources,
-  snake: snakeSources,
-  'crash-view': crashViewSources,
-  'websocket-chat': websocketChatSources,
-  'ui-showcase': uiShowcaseSources,
+const loadersBySlug: Record<
+  ExampleSlug,
+  () => Promise<{ default: ExampleSources }>
+> = {
+  counter: () => import('virtual:example-sources/counter'),
+  todo: () => import('virtual:example-sources/todo'),
+  stopwatch: () => import('virtual:example-sources/stopwatch'),
+  form: () => import('virtual:example-sources/form'),
+  kanban: () => import('virtual:example-sources/kanban'),
+  weather: () => import('virtual:example-sources/weather'),
+  routing: () => import('virtual:example-sources/routing'),
+  'query-sync': () => import('virtual:example-sources/query-sync'),
+  'shopping-cart': () => import('virtual:example-sources/shopping-cart'),
+  auth: () => import('virtual:example-sources/auth'),
+  'pixel-art': () => import('virtual:example-sources/pixel-art'),
+  snake: () => import('virtual:example-sources/snake'),
+  'crash-view': () => import('virtual:example-sources/crash-view'),
+  'websocket-chat': () => import('virtual:example-sources/websocket-chat'),
+  'ui-showcase': () => import('virtual:example-sources/ui-showcase'),
 }
 
-export const getSourcesForSlug = (slug: ExampleSlug): ExampleSources =>
-  sourcesBySlug[slug]
+export const loadSourcesForSlug = (
+  slug: ExampleSlug,
+): Promise<ExampleSources> =>
+  loadersBySlug[slug]().then(({ default: sources }) => sources)

@@ -13,6 +13,7 @@ import {
   a,
   div,
   empty,
+  h3,
   iframe,
   keyed,
   span,
@@ -20,18 +21,26 @@ import {
 import { Icon } from '../../icon'
 import { exampleSourceHref } from '../../link'
 import type { Message as ParentMessage, TableOfContentsEntry } from '../../main'
+import { makeRemoteData } from '../../makeRemoteData'
 import { pageTitle, para } from '../../prose'
 import { examplesRouter } from '../../route'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
-import { type ExampleMeta, findBySlug } from './meta'
-import { type ExampleSourceFile, getSourcesForSlug } from './sources'
+import { type ExampleMeta, type ExampleSlug, findBySlug } from './meta'
+import {
+  type ExampleSourceFile,
+  ExampleSources,
+  loadSourcesForSlug,
+} from './sources'
 
 // MODEL
+
+export const CurrentSourcesRemoteData = makeRemoteData(S.String, ExampleSources)
 
 export const Model = S.Struct({
   sourceFileTabs: Ui.Tabs.Model,
   maybeExampleUrl: S.OptionFromSelf(S.String),
   livePreviewDisclosure: Ui.Disclosure.Model,
+  currentSources: CurrentSourcesRemoteData.Union,
 })
 export type Model = typeof Model.Type
 
@@ -44,13 +53,47 @@ export const ChangedExampleUrl = m('ChangedExampleUrl', { url: S.String })
 const GotLivePreviewDisclosureMessage = m('GotLivePreviewDisclosureMessage', {
   message: Ui.Disclosure.Message,
 })
+export const StartedLoadExampleSources = m('StartedLoadExampleSources', {
+  slug: S.String,
+})
+export const SucceededLoadExampleSources = m('SucceededLoadExampleSources', {
+  sources: ExampleSources,
+})
+export const FailedLoadExampleSources = m('FailedLoadExampleSources', {
+  error: S.String,
+})
 
 export const Message = S.Union(
   GotSourceFileTabsMessage,
   ChangedExampleUrl,
   GotLivePreviewDisclosureMessage,
+  StartedLoadExampleSources,
+  SucceededLoadExampleSources,
+  FailedLoadExampleSources,
 )
 export type Message = typeof Message.Type
+
+// COMMAND
+
+export const LoadExampleSources = Command.define(
+  'LoadExampleSources',
+  SucceededLoadExampleSources,
+  FailedLoadExampleSources,
+)
+
+const loadExampleSources = (slug: string) =>
+  LoadExampleSources(
+    Effect.tryPromise({
+      try: () => loadSourcesForSlug(slug as ExampleSlug),
+      catch: error =>
+        error instanceof Error ? error.message : `Unknown example: ${slug}`,
+    }).pipe(
+      Effect.map(sources => SucceededLoadExampleSources({ sources })),
+      Effect.catchAll(error =>
+        Effect.succeed(FailedLoadExampleSources({ error })),
+      ),
+    ),
+  )
 
 // INIT
 
@@ -65,6 +108,7 @@ export const init = (): readonly [
       id: 'live-preview',
       isOpen: true,
     }),
+    currentSources: CurrentSourcesRemoteData.NotAsked(),
   },
   [],
 ]
@@ -114,6 +158,29 @@ export const update = (
           ),
         ]
       },
+
+      StartedLoadExampleSources: ({ slug }) => [
+        evo(model, {
+          sourceFileTabs: () => Ui.Tabs.init({ id: 'source-file-tabs' }),
+          maybeExampleUrl: () => Option.none(),
+          currentSources: () => CurrentSourcesRemoteData.Loading(),
+        }),
+        [loadExampleSources(slug)],
+      ],
+
+      SucceededLoadExampleSources: ({ sources }) => [
+        evo(model, {
+          currentSources: () => CurrentSourcesRemoteData.Ok({ data: sources }),
+        }),
+        [],
+      ],
+
+      FailedLoadExampleSources: ({ error }) => [
+        evo(model, {
+          currentSources: () => CurrentSourcesRemoteData.Failure({ error }),
+        }),
+        [],
+      ],
     }),
   )
 
@@ -313,6 +380,64 @@ const sourceCodeView = (
   })
 }
 
+const skeletonFileRowClasses: ReadonlyArray<string> = [
+  'w-32',
+  'w-40',
+  'w-28',
+  'w-36',
+]
+
+const sourcesSkeletonView = (): Html =>
+  div(
+    [
+      Class(
+        'flex flex-col lg:flex-row overflow-hidden max-h-[80vh] border border-gray-200 dark:border-gray-700/50 animate-pulse',
+      ),
+    ],
+    [
+      div(
+        [
+          Class(
+            'flex flex-shrink-0 overflow-hidden lg:w-44 lg:flex-col bg-gray-200 dark:bg-gray-800/50 p-3 gap-2',
+          ),
+        ],
+        Array.map(skeletonFileRowClasses, widthClass =>
+          div(
+            [Class(`h-5 ${widthClass} rounded bg-gray-300 dark:bg-gray-700`)],
+            [],
+          ),
+        ),
+      ),
+      div(
+        [
+          Class(
+            'flex-1 min-h-[24rem] bg-gray-100 dark:bg-gray-800/30 p-6 space-y-3',
+          ),
+        ],
+        [
+          div([Class('h-4 w-11/12 rounded bg-gray-300 dark:bg-gray-700')], []),
+          div([Class('h-4 w-10/12 rounded bg-gray-300 dark:bg-gray-700')], []),
+          div([Class('h-4 w-8/12 rounded bg-gray-300 dark:bg-gray-700')], []),
+          div([Class('h-4 w-11/12 rounded bg-gray-300 dark:bg-gray-700')], []),
+          div([Class('h-4 w-9/12 rounded bg-gray-300 dark:bg-gray-700')], []),
+          div([Class('h-4 w-10/12 rounded bg-gray-300 dark:bg-gray-700')], []),
+        ],
+      ),
+    ],
+  )
+
+const sourcesFailureView = (error: string): Html =>
+  div(
+    [Class('rounded-lg border border-red-300 dark:border-red-800 p-6')],
+    [
+      h3(
+        [Class('text-base font-semibold text-red-700 dark:text-red-400 mb-2')],
+        ['Failed to load example sources'],
+      ),
+      div([Class('text-sm text-gray-600 dark:text-gray-400')], [error]),
+    ],
+  )
+
 export const view = (
   model: Model,
   slug: string,
@@ -340,12 +465,20 @@ export const view = (
             div(
               [Class('mt-6')],
               [
-                sourceCodeView(
-                  getSourcesForSlug(meta.slug).files,
-                  model.sourceFileTabs,
-                  copiedSnippets,
-                  isNarrowViewport,
-                  toParentMessage,
+                M.value(model.currentSources).pipe(
+                  M.withReturnType<Html>(),
+                  M.tag('NotAsked', 'Loading', () => sourcesSkeletonView()),
+                  M.tag('Failure', ({ error }) => sourcesFailureView(error)),
+                  M.tag('Ok', ({ data: sources }) =>
+                    sourceCodeView(
+                      sources.files,
+                      model.sourceFileTabs,
+                      copiedSnippets,
+                      isNarrowViewport,
+                      toParentMessage,
+                    ),
+                  ),
+                  M.exhaustive,
                 ),
               ],
             ),

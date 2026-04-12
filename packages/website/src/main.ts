@@ -242,6 +242,27 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
     ...apiReferenceStartLoadCommands,
   ]
 
+  const [initExampleDetail, exampleDetailInitCommands] =
+    Page.Example.ExampleDetail.init()
+  const [exampleDetail, exampleDetailStartLoadCommands] = M.value(
+    initialRoute,
+  ).pipe(
+    M.withReturnType<ReturnType<typeof Page.Example.ExampleDetail.update>>(),
+    M.tag('ExampleDetail', ({ exampleSlug }) =>
+      Page.Example.ExampleDetail.update(
+        initExampleDetail,
+        Page.Example.ExampleDetail.StartedLoadExampleSources({
+          slug: exampleSlug,
+        }),
+      ),
+    ),
+    M.orElse(() => [initExampleDetail, []]),
+  )
+  const exampleDetailCommands = [
+    ...exampleDetailInitCommands,
+    ...exampleDetailStartLoadCommands,
+  ]
+
   const mappedAsyncCounterDemoCommands = asyncCounterDemoCommands.map(
     Command.mapEffect(
       Effect.map(message => GotAsyncCounterDemoMessage({ message })),
@@ -267,6 +288,12 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
   const mappedApiReferenceCommands = apiReferenceCommands.map(
     Command.mapEffect(
       Effect.map(message => GotApiReferenceMessage({ message })),
+    ),
+  )
+
+  const mappedExampleDetailCommands = exampleDetailCommands.map(
+    Command.mapEffect(
+      Effect.map(message => GotExampleDetailMessage({ message })),
     ),
   )
 
@@ -333,7 +360,7 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
       uiPages,
       comingFromReact,
       apiReference,
-      exampleDetail: Page.Example.ExampleDetail.init()[0],
+      exampleDetail,
       search: Search.init()[0],
     },
     [
@@ -345,6 +372,7 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
       ...mappedUiPagesCommands,
       ...mappedComingFromReactCommands,
       ...mappedApiReferenceCommands,
+      ...mappedExampleDetailCommands,
       ...Option.match(url.hash, {
         onNone: () => [],
         onSome: hash => [scrollToHashAfterRender(hash)],
@@ -424,6 +452,22 @@ const update = (
           ),
           M.orElse(() => [model.apiReference, []]),
         )
+        const [nextExampleDetail, exampleDetailStartLoadCommands] = M.value(
+          nextRoute,
+        ).pipe(
+          M.withReturnType<
+            ReturnType<typeof Page.Example.ExampleDetail.update>
+          >(),
+          M.tag('ExampleDetail', ({ exampleSlug }) =>
+            Page.Example.ExampleDetail.update(
+              model.exampleDetail,
+              Page.Example.ExampleDetail.StartedLoadExampleSources({
+                slug: exampleSlug,
+              }),
+            ),
+          ),
+          M.orElse(() => [model.exampleDetail, []]),
+        )
 
         return [
           evo(model, {
@@ -431,6 +475,7 @@ const update = (
             url: () => url,
             mobileMenuDialog: () => closedMobileMenu,
             apiReference: () => nextApiReference,
+            exampleDetail: () => nextExampleDetail,
             search: search => ({
               ...search,
               dialog: closedSearchDialog,
@@ -444,18 +489,6 @@ const update = (
               nextRoute._tag === 'ApiModule'
                 ? { ...apiReferenceGroup, isOpen: true }
                 : apiReferenceGroup,
-            exampleDetail: exampleDetail =>
-              nextRoute._tag === 'ExampleDetail' &&
-              model.route._tag === 'ExampleDetail' &&
-              nextRoute.exampleSlug !== model.route.exampleSlug
-                ? {
-                    ...exampleDetail,
-                    sourceFileTabs: Ui.Tabs.init({
-                      id: 'source-file-tabs',
-                    }),
-                    maybeExampleUrl: Option.none(),
-                  }
-                : exampleDetail,
           }),
           [
             ...closeMobileMenuCommands.map(
@@ -476,6 +509,13 @@ const update = (
               Command.mapEffect(command, effect =>
                 Effect.map(effect, message =>
                   GotApiReferenceMessage({ message }),
+                ),
+              ),
+            ),
+            ...exampleDetailStartLoadCommands.map(command =>
+              Command.mapEffect(command, effect =>
+                Effect.map(effect, message =>
+                  GotExampleDetailMessage({ message }),
                 ),
               ),
             ),
