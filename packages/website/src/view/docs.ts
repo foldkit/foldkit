@@ -681,7 +681,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       UiCheckbox: () =>
         withTableOfContents(
-          Page.UiPages.CheckboxPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.CheckboxPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.CheckboxPage.tableOfContents,
         ),
       UiCombobox: () =>
