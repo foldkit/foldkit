@@ -5,7 +5,7 @@ import { evo } from 'foldkit/struct'
 
 import { Class, button, div, label, p } from './html'
 
-// Your Model has a field for the Checkbox Submodel:
+// Add a field to your Model for the Checkbox Submodel:
 const Model = S.Struct({
   checkboxDemo: Ui.Checkbox.Model,
   // ...your other fields

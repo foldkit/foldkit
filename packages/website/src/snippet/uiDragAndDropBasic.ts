@@ -5,7 +5,7 @@ import { evo } from 'foldkit/struct'
 
 import { Class, li, span, ul } from './html'
 
-// Your Model has a field for the DragAndDrop Submodel plus the items being sorted:
+// Add a field to your Model for the DragAndDrop Submodel plus the items being sorted:
 const Model = S.Struct({
   items: S.Array(S.Struct({ id: S.String, label: S.String })),
   dragAndDrop: Ui.DragAndDrop.Model,

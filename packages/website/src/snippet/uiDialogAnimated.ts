@@ -5,7 +5,7 @@ import { evo } from 'foldkit/struct'
 
 import { Class, Id, OnClick, button, div, h2, p } from './html'
 
-// Your Model has a field for the Dialog Submodel:
+// Add a field to your Model for the Dialog Submodel:
 const Model = S.Struct({
   dialog: Ui.Dialog.Model,
   // ...your other fields

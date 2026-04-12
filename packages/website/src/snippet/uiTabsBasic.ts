@@ -5,7 +5,7 @@ import { evo } from 'foldkit/struct'
 
 import { Class, p, span } from './html'
 
-// Your Model has a field for the Tabs Submodel:
+// Add a field to your Model for the Tabs Submodel:
 const Model = S.Struct({
   tabs: Ui.Tabs.Model,
   // ...your other fields

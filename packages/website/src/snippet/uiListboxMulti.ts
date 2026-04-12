@@ -5,7 +5,7 @@ import { evo } from 'foldkit/struct'
 
 import { Class, div, span } from './html'
 
-// Your Model has a field for the Listbox.Multi Submodel:
+// Add a field to your Model for the Listbox.Multi Submodel:
 const Model = S.Struct({
   listboxMulti: Ui.Listbox.Multi.Model,
   // ...your other fields

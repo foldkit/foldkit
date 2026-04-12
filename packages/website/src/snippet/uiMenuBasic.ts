@@ -5,7 +5,7 @@ import { evo } from 'foldkit/struct'
 
 import { Class, div, span } from './html'
 
-// Your Model has a field for the Menu Submodel:
+// Add a field to your Model for the Menu Submodel:
 const Model = S.Struct({
   menu: Ui.Menu.Model,
   // ...your other fields

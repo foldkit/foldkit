@@ -5,7 +5,7 @@ import { evo } from 'foldkit/struct'
 
 import { p, span } from './html'
 
-// Your Model has a field for the Disclosure Submodel:
+// Add a field to your Model for the Disclosure Submodel:
 const Model = S.Struct({
   disclosure: Ui.Disclosure.Model,
   // ...your other fields

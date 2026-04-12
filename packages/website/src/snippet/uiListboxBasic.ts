@@ -5,7 +5,7 @@ import { evo } from 'foldkit/struct'
 
 import { Class, div, span } from './html'
 
-// Your Model has a field for the Listbox Submodel:
+// Add a field to your Model for the Listbox Submodel:
 const Model = S.Struct({
   listbox: Ui.Listbox.Model,
   // ...your other fields

@@ -5,7 +5,7 @@ import { evo } from 'foldkit/struct'
 
 import { Class, Placeholder, div, span } from './html'
 
-// Your Model has a field for the Combobox Submodel:
+// Add a field to your Model for the Combobox Submodel:
 const Model = S.Struct({
   combobox: Ui.Combobox.Model,
   // ...your other fields

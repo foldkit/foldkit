@@ -5,7 +5,7 @@ import { evo } from 'foldkit/struct'
 
 import { Class, button, div, label, p } from './html'
 
-// Your Model has a field for the Switch Submodel:
+// Add a field to your Model for the Switch Submodel:
 const Model = S.Struct({
   switchDemo: Ui.Switch.Model,
   // ...your other fields

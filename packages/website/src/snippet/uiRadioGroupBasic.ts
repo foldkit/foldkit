@@ -5,7 +5,7 @@ import { evo } from 'foldkit/struct'
 
 import { Class, div, p, span } from './html'
 
-// Your Model has a field for the RadioGroup Submodel:
+// Add a field to your Model for the RadioGroup Submodel:
 const Model = S.Struct({
   radioGroup: Ui.RadioGroup.Model,
   // ...your other fields

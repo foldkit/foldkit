@@ -5,7 +5,7 @@ import { evo } from 'foldkit/struct'
 
 import { Class, div, h3, p, span } from './html'
 
-// Your Model has a field for the Popover Submodel:
+// Add a field to your Model for the Popover Submodel:
 const Model = S.Struct({
   popover: Ui.Popover.Model,
   // ...your other fields

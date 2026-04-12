@@ -5,7 +5,7 @@ import { evo } from 'foldkit/struct'
 
 import { p } from './html'
 
-// Your Model has a field for the Transition Submodel plus a boolean flag
+// Add a field to your Model for the Transition Submodel plus a boolean flag
 // tracking whether the content is currently showing:
 const Model = S.Struct({
   transition: Ui.Transition.Model,
