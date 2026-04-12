@@ -646,7 +646,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       UiDisclosure: () =>
         withTableOfContents(
-          Page.UiPages.DisclosurePage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.DisclosurePage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.DisclosurePage.tableOfContents,
         ),
       UiDialog: () =>
