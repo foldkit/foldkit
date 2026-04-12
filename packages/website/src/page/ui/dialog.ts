@@ -3,7 +3,6 @@ import { Ui } from 'foldkit'
 import { Class, Id, OnClick, button, div, h2, p } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
-import { heading } from '../../prose'
 import {
   GotDialogAnimatedDemoMessage,
   GotDialogDemoMessage,
@@ -67,7 +66,6 @@ export const dialogDemo = (
     toParentMessage(GotDialogDemoMessage({ message }))
 
   return [
-    heading('h3', basicHeader.id, basicHeader.text),
     div(
       [Class('flex gap-3')],
       [
@@ -132,7 +130,6 @@ export const dialogAnimatedDemo = (
     toParentMessage(GotDialogAnimatedDemoMessage({ message }))
 
   return [
-    heading('h3', animatedHeader.id, animatedHeader.text),
     div(
       [Class('flex gap-3')],
       [
