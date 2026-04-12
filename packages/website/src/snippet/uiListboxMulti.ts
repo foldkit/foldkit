@@ -11,10 +11,14 @@ const Model = S.Struct({
   // ...your other fields
 })
 
-// Initialize it with a unique id:
-const initialModel = {
-  listboxMulti: Ui.Listbox.Multi.init({ id: 'people' }),
-}
+// In your init function, initialize the Listbox Submodel with a unique id:
+const init = () => [
+  {
+    listboxMulti: Ui.Listbox.Multi.init({ id: 'people' }),
+    // ...your other fields
+  },
+  [],
+]
 
 // Embed the Listbox Message in your parent Message:
 const GotListboxMultiMessage = m('GotListboxMultiMessage', {
@@ -29,7 +33,9 @@ GotListboxMultiMessage: ({ message }) => {
   )
 
   return [
+    // Merge the next state into your Model:
     evo(model, { listboxMulti: () => nextListbox }),
+    // Forward the Submodel's Commands through your parent Message:
     commands.map(
       Command.mapEffect(
         Effect.map(message => GotListboxMultiMessage({ message })),

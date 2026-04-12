@@ -11,10 +11,14 @@ const Model = S.Struct({
   // ...your other fields
 })
 
-// Initialize it with a unique id:
-const initialModel = {
-  comboboxMulti: Ui.Combobox.Multi.init({ id: 'cities-multi' }),
-}
+// In your init function, initialize the Combobox Submodel with a unique id:
+const init = () => [
+  {
+    comboboxMulti: Ui.Combobox.Multi.init({ id: 'cities-multi' }),
+    // ...your other fields
+  },
+  [],
+]
 
 // Embed the Combobox Message in your parent Message:
 const GotComboboxMultiMessage = m('GotComboboxMultiMessage', {
@@ -29,7 +33,9 @@ GotComboboxMultiMessage: ({ message }) => {
   )
 
   return [
+    // Merge the next state into your Model:
     evo(model, { comboboxMulti: () => nextCombobox }),
+    // Forward the Submodel's Commands through your parent Message:
     commands.map(
       Command.mapEffect(
         Effect.map(message => GotComboboxMultiMessage({ message })),

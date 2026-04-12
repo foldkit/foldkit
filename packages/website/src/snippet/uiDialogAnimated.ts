@@ -11,10 +11,14 @@ const Model = S.Struct({
   // ...your other fields
 })
 
-// Initialize with isAnimated: true for CSS transition coordination:
-const initialModel = {
-  dialog: Ui.Dialog.init({ id: 'confirm', isAnimated: true }),
-}
+// In your init function, set isAnimated: true to coordinate CSS transitions:
+const init = () => [
+  {
+    dialog: Ui.Dialog.init({ id: 'confirm', isAnimated: true }),
+    // ...your other fields
+  },
+  [],
+]
 
 // Embed the Dialog Message in your parent Message:
 const GotDialogMessage = m('GotDialogMessage', {
@@ -26,7 +30,9 @@ GotDialogMessage: ({ message }) => {
   const [nextDialog, commands] = Ui.Dialog.update(model.dialog, message)
 
   return [
+    // Merge the next state into your Model:
     evo(model, { dialog: () => nextDialog }),
+    // Forward the Submodel's Commands through your parent Message:
     commands.map(
       Command.mapEffect(Effect.map(message => GotDialogMessage({ message }))),
     ),

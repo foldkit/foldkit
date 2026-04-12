@@ -13,11 +13,15 @@ const Model = S.Struct({
   // ...your other fields
 })
 
-// Initialize it with a unique id:
-const initialModel = {
-  transition: Ui.Transition.init({ id: 'content' }),
-  isShowing: false,
-}
+// In your init function, initialize the Transition Submodel with a unique id:
+const init = () => [
+  {
+    transition: Ui.Transition.init({ id: 'content' }),
+    isShowing: false,
+    // ...your other fields
+  },
+  [],
+]
 
 // Embed the Transition Message in your parent Message, plus a Message for the toggle:
 const GotTransitionMessage = m('GotTransitionMessage', {
@@ -83,7 +87,9 @@ const handleTransitionUpdate = (
   })
 
   return [
+    // Merge the next state into your Model:
     evo(model, { transition: () => nextTransition }),
+    // Forward the Submodel's Commands through your parent Message:
     [...mappedCommands, ...additionalCommands],
   ]
 }

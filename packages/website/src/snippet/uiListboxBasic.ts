@@ -11,10 +11,14 @@ const Model = S.Struct({
   // ...your other fields
 })
 
-// Initialize it with a unique id:
-const initialModel = {
-  listbox: Ui.Listbox.init({ id: 'person', selectedItem: 'Michael Bluth' }),
-}
+// In your init function, initialize the Listbox Submodel with a unique id:
+const init = () => [
+  {
+    listbox: Ui.Listbox.init({ id: 'person', selectedItem: 'Michael Bluth' }),
+    // ...your other fields
+  },
+  [],
+]
 
 // Embed the Listbox Message in your parent Message:
 const GotListboxMessage = m('GotListboxMessage', {
@@ -26,7 +30,9 @@ GotListboxMessage: ({ message }) => {
   const [nextListbox, commands] = Ui.Listbox.update(model.listbox, message)
 
   return [
+    // Merge the next state into your Model:
     evo(model, { listbox: () => nextListbox }),
+    // Forward the Submodel's Commands through your parent Message:
     commands.map(
       Command.mapEffect(Effect.map(message => GotListboxMessage({ message }))),
     ),

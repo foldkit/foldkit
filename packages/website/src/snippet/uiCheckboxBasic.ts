@@ -11,10 +11,14 @@ const Model = S.Struct({
   // ...your other fields
 })
 
-// Initialize it with a unique id:
-const initialModel = {
-  checkboxDemo: Ui.Checkbox.init({ id: 'terms' }),
-}
+// In your init function, initialize the Checkbox Submodel with a unique id:
+const init = () => [
+  {
+    checkboxDemo: Ui.Checkbox.init({ id: 'terms' }),
+    // ...your other fields
+  },
+  [],
+]
 
 // Embed the Checkbox Message in your parent Message:
 const GotCheckboxMessage = m('GotCheckboxMessage', {
@@ -29,7 +33,9 @@ GotCheckboxMessage: ({ message }) => {
   )
 
   return [
+    // Merge the next state into your Model:
     evo(model, { checkboxDemo: () => nextCheckbox }),
+    // Forward the Submodel's Commands through your parent Message:
     commands.map(
       Command.mapEffect(Effect.map(message => GotCheckboxMessage({ message }))),
     ),

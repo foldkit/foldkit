@@ -12,15 +12,19 @@ const Model = S.Struct({
   // ...your other fields
 })
 
-// Initialize it with a unique id:
-const initialModel = {
-  items: [
-    { id: '1', label: 'First' },
-    { id: '2', label: 'Second' },
-    { id: '3', label: 'Third' },
-  ],
-  dragAndDrop: Ui.DragAndDrop.init({ id: 'sortable-list' }),
-}
+// In your init function, initialize the DragAndDrop Submodel with a unique id:
+const init = () => [
+  {
+    items: [
+      { id: '1', label: 'First' },
+      { id: '2', label: 'Second' },
+      { id: '3', label: 'Third' },
+    ],
+    dragAndDrop: Ui.DragAndDrop.init({ id: 'sortable-list' }),
+    // ...your other fields
+  },
+  [],
+]
 
 // Embed the DragAndDrop Message in your parent Message:
 const GotDragAndDropMessage = m('GotDragAndDropMessage', {
@@ -41,22 +45,28 @@ GotDragAndDropMessage: ({ message: dragMessage }) => {
 
   return Option.match(maybeOutMessage, {
     onNone: () => [
+      // Merge the next state into your Model:
       evo(model, { dragAndDrop: () => nextDragAndDrop }),
+      // Forward the Submodel's Commands through your parent Message:
       mappedCommands,
     ],
     onSome: outMessage =>
       M.value(outMessage).pipe(
         M.tagsExhaustive({
           Reordered: ({ itemId, fromIndex, toIndex }) => [
+            // Merge the next state into your Model:
             evo(model, {
               // reorder is your own function that moves the item
               items: () => reorder(model.items, itemId, fromIndex, toIndex),
               dragAndDrop: () => nextDragAndDrop,
             }),
+            // Forward the Submodel's Commands through your parent Message:
             mappedCommands,
           ],
           Cancelled: () => [
+            // Merge the next state into your Model:
             evo(model, { dragAndDrop: () => nextDragAndDrop }),
+            // Forward the Submodel's Commands through your parent Message:
             mappedCommands,
           ],
         }),

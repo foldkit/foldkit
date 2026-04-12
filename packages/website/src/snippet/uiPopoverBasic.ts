@@ -11,10 +11,14 @@ const Model = S.Struct({
   // ...your other fields
 })
 
-// Initialize it with a unique id:
-const initialModel = {
-  popover: Ui.Popover.init({ id: 'info' }),
-}
+// In your init function, initialize the Popover Submodel with a unique id:
+const init = () => [
+  {
+    popover: Ui.Popover.init({ id: 'info' }),
+    // ...your other fields
+  },
+  [],
+]
 
 // Embed the Popover Message in your parent Message:
 const GotPopoverMessage = m('GotPopoverMessage', {
@@ -26,7 +30,9 @@ GotPopoverMessage: ({ message }) => {
   const [nextPopover, commands] = Ui.Popover.update(model.popover, message)
 
   return [
+    // Merge the next state into your Model:
     evo(model, { popover: () => nextPopover }),
+    // Forward the Submodel's Commands through your parent Message:
     commands.map(
       Command.mapEffect(Effect.map(message => GotPopoverMessage({ message }))),
     ),

@@ -3,10 +3,14 @@ import { m } from 'foldkit/message'
 
 import { Class, div, span } from './html'
 
-// Initialize with isAnimated: true for CSS transition coordination:
-const initialModel = {
-  menu: Ui.Menu.init({ id: 'actions', isAnimated: true }),
-}
+// In your init function, set isAnimated: true to coordinate CSS transitions:
+const init = () => [
+  {
+    menu: Ui.Menu.init({ id: 'actions', isAnimated: true }),
+    // ...your other fields
+  },
+  [],
+]
 
 // Embed the Menu Message in your parent Message:
 const GotMenuMessage = m('GotMenuMessage', {

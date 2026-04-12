@@ -11,10 +11,14 @@ const Model = S.Struct({
   // ...your other fields
 })
 
-// Initialize it with a unique id:
-const initialModel = {
-  radioGroup: Ui.RadioGroup.init({ id: 'plan' }),
-}
+// In your init function, initialize the RadioGroup Submodel with a unique id:
+const init = () => [
+  {
+    radioGroup: Ui.RadioGroup.init({ id: 'plan' }),
+    // ...your other fields
+  },
+  [],
+]
 
 // Embed the RadioGroup Message in your parent Message:
 const GotRadioGroupMessage = m('GotRadioGroupMessage', {
@@ -29,7 +33,9 @@ GotRadioGroupMessage: ({ message }) => {
   )
 
   return [
+    // Merge the next state into your Model:
     evo(model, { radioGroup: () => nextRadioGroup }),
+    // Forward the Submodel's Commands through your parent Message:
     commands.map(
       Command.mapEffect(
         Effect.map(message => GotRadioGroupMessage({ message })),

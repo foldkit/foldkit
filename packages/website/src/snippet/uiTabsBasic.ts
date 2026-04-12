@@ -11,10 +11,14 @@ const Model = S.Struct({
   // ...your other fields
 })
 
-// Initialize it with a unique id:
-const initialModel = {
-  tabs: Ui.Tabs.init({ id: 'framework-tabs' }),
-}
+// In your init function, initialize the Tabs Submodel with a unique id:
+const init = () => [
+  {
+    tabs: Ui.Tabs.init({ id: 'framework-tabs' }),
+    // ...your other fields
+  },
+  [],
+]
 
 // Embed the Tabs Message in your parent Message:
 const GotTabsMessage = m('GotTabsMessage', {
@@ -26,7 +30,9 @@ GotTabsMessage: ({ message }) => {
   const [nextTabs, commands] = Ui.Tabs.update(model.tabs, message)
 
   return [
+    // Merge the next state into your Model:
     evo(model, { tabs: () => nextTabs }),
+    // Forward the Submodel's Commands through your parent Message:
     commands.map(
       Command.mapEffect(Effect.map(message => GotTabsMessage({ message }))),
     ),

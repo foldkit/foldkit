@@ -11,10 +11,14 @@ const Model = S.Struct({
   // ...your other fields
 })
 
-// Initialize it with a unique id:
-const initialModel = {
-  switchDemo: Ui.Switch.init({ id: 'notifications' }),
-}
+// In your init function, initialize the Switch Submodel with a unique id:
+const init = () => [
+  {
+    switchDemo: Ui.Switch.init({ id: 'notifications' }),
+    // ...your other fields
+  },
+  [],
+]
 
 // Embed the Switch Message in your parent Message:
 const GotSwitchMessage = m('GotSwitchMessage', {
@@ -26,7 +30,9 @@ GotSwitchMessage: ({ message }) => {
   const [nextSwitch, commands] = Ui.Switch.update(model.switchDemo, message)
 
   return [
+    // Merge the next state into your Model:
     evo(model, { switchDemo: () => nextSwitch }),
+    // Forward the Submodel's Commands through your parent Message:
     commands.map(
       Command.mapEffect(Effect.map(message => GotSwitchMessage({ message }))),
     ),

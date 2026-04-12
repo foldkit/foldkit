@@ -11,10 +11,14 @@ const Model = S.Struct({
   // ...your other fields
 })
 
-// Initialize it with a unique id:
-const initialModel = {
-  menu: Ui.Menu.init({ id: 'actions' }),
-}
+// In your init function, initialize the Menu Submodel with a unique id:
+const init = () => [
+  {
+    menu: Ui.Menu.init({ id: 'actions' }),
+    // ...your other fields
+  },
+  [],
+]
 
 // Embed the Menu Message in your parent Message:
 const GotMenuMessage = m('GotMenuMessage', {
@@ -29,7 +33,9 @@ GotMenuMessage: ({ message }) => {
   const [nextMenu, commands] = Ui.Menu.update(model.menu, message)
 
   return [
+    // Merge the next state into your Model:
     evo(model, { menu: () => nextMenu }),
+    // Forward the Submodel's Commands through your parent Message:
     commands.map(
       Command.mapEffect(Effect.map(message => GotMenuMessage({ message }))),
     ),

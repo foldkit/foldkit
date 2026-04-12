@@ -5,20 +5,24 @@ import { evo } from 'foldkit/struct'
 
 import { Class, button, div, label } from './html'
 
-// Your Model has multiple checkbox Submodels for parent + children:
+// Add multiple Checkbox Submodels to your Model for the parent and children:
 const Model = S.Struct({
   optionA: Ui.Checkbox.Model,
   optionB: Ui.Checkbox.Model,
   // ...your other fields
 })
 
-// Initialize each one:
-const initialModel = {
-  optionA: Ui.Checkbox.init({ id: 'option-a' }),
-  optionB: Ui.Checkbox.init({ id: 'option-b' }),
-}
+// In your init function, initialize each Submodel:
+const init = () => [
+  {
+    optionA: Ui.Checkbox.init({ id: 'option-a' }),
+    optionB: Ui.Checkbox.init({ id: 'option-b' }),
+    // ...your other fields
+  },
+  [],
+]
 
-// Wrap each child's Message, plus a Message for the "Select All" parent:
+// Embed each child's Message, plus a Message for the "Select All" parent:
 const GotSelectAllMessage = m('GotSelectAllMessage', {
   message: Ui.Checkbox.Message,
 })
