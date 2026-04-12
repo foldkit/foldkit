@@ -4,7 +4,6 @@ import { Class, Value, div, label, option, select, span } from '../../html'
 import { Icon } from '../../icon'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
-import { heading } from '../../prose'
 import { type Message, UpdatedSelectDemoValue } from './message'
 import type { Model } from './model'
 
@@ -43,7 +42,6 @@ export const basicDemo = (
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => [
-  heading('h3', basicHeader.id, basicHeader.text),
   div(
     [Class('flex flex-col items-start gap-2 max-w-sm')],
     [
@@ -89,7 +87,6 @@ export const disabledDemo = (
   _model: Model,
   _toParentMessage: (message: Message) => ParentMessage,
 ) => [
-  heading('h3', disabledHeader.id, disabledHeader.text),
   Ui.Select.view<ParentMessage>({
     id: 'select-disabled-demo',
     isDisabled: true,

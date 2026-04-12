@@ -718,7 +718,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       UiSelect: () =>
         withTableOfContents(
-          Page.UiPages.SelectPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.SelectPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.SelectPage.tableOfContents,
         ),
       UiDragAndDrop: () =>
