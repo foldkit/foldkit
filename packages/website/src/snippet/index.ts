@@ -232,3 +232,7 @@ export { default as comparisonFoldkitSceneTestRaw } from './comparisonFoldkitSce
 export { default as comparisonFoldkitSceneTestHighlighted } from './comparisonFoldkitSceneTest.ts?highlighted'
 export { default as comparisonReactSceneTestRaw } from './comparisonReactSceneTest.tsx?raw'
 export { default as comparisonReactSceneTestHighlighted } from './comparisonReactSceneTest.tsx?highlighted'
+export { default as uiButtonBasicRaw } from './uiButtonBasic.ts?raw'
+export { default as uiButtonBasicHighlighted } from './uiButtonBasic.ts?highlighted'
+export { default as uiButtonDisabledRaw } from './uiButtonDisabled.ts?raw'
+export { default as uiButtonDisabledHighlighted } from './uiButtonDisabled.ts?highlighted'
