@@ -13,7 +13,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import { uiCheckboxRouter } from '../../route'
-import * as Snippets from '../../snippet'
+import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 import {
   type DataAttributeEntry,
@@ -163,16 +163,11 @@ export const view = (
     [],
     [
       pageTitle('ui/button', 'Button'),
-
-      // OVERVIEW
       tableOfContentsEntryToHeader(overviewHeader),
       para(
         'A thin wrapper around the native button element that provides consistent accessibility attributes and data-attribute hooks for styling. Button is a view-only component — it has no Model, Messages, or update function.',
       ),
-
-      // EXAMPLES
       heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
-
       heading(
         Button.basicHeader.level,
         Button.basicHeader.id,
@@ -190,10 +185,10 @@ export const view = (
       ...Button.basicDemo(model, toParentMessage),
       highlightedCodeBlock(
         div(
-          [Class('text-sm'), InnerHTML(Snippets.uiButtonBasicHighlighted)],
+          [Class('text-sm'), InnerHTML(Snippet.uiButtonBasicHighlighted)],
           [],
         ),
-        Snippets.uiButtonBasicRaw,
+        Snippet.uiButtonBasicRaw,
         'Copy basic button example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -216,16 +211,14 @@ export const view = (
       ...Button.disabledDemo(model, toParentMessage),
       highlightedCodeBlock(
         div(
-          [Class('text-sm'), InnerHTML(Snippets.uiButtonDisabledHighlighted)],
+          [Class('text-sm'), InnerHTML(Snippet.uiButtonDisabledHighlighted)],
           [],
         ),
-        Snippets.uiButtonDisabledRaw,
+        Snippet.uiButtonDisabledRaw,
         'Copy disabled button example to clipboard',
         copiedSnippets,
         'mb-8',
       ),
-
-      // STYLING
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
         'Button is headless — it provides no default styles. Your ',
@@ -234,8 +227,6 @@ export const view = (
       ),
       para('Use the following data attributes to style different states:'),
       dataAttributeTable(dataAttributes),
-
-      // KEYBOARD INTERACTION
       heading(
         keyboardInteractionHeader.level,
         keyboardInteractionHeader.id,
@@ -247,8 +238,6 @@ export const view = (
         ' element, so keyboard interaction is handled by the browser.',
       ),
       keyboardTable(keyboardEntries),
-
-      // ACCESSIBILITY
       heading(
         accessibilityHeader.level,
         accessibilityHeader.id,
@@ -269,8 +258,6 @@ export const view = (
         inlineCode('"button"'),
         ' to prevent accidental form submissions.',
       ),
-
-      // API REFERENCE
       heading(
         apiReferenceHeader.level,
         apiReferenceHeader.id,
@@ -301,7 +288,6 @@ export const view = (
       ),
       propTable(buttonAttributesProps),
 
-      // RELATED COMPONENTS
       para(
         'For a toggle between two states, see ',
         link(uiCheckboxRouter(), 'Checkbox'),
