@@ -7,9 +7,16 @@ const GotTabsMessage = m('GotTabsMessage', {
   message: Ui.Tabs.Message,
 })
 
-// Init with no special config — orientation is set in the view
-//   tabs: Ui.Tabs.init({ id: 'vertical-tabs' })
+type Framework = 'Foldkit' | 'React' | 'Elm'
+const frameworks: ReadonlyArray<Framework> = ['Foldkit', 'React', 'Elm']
 
+const descriptions: Record<Framework, string> = {
+  Foldkit: 'Model-View-Update with Effect.',
+  React: 'Component-based with hooks.',
+  Elm: 'The original MVU architecture.',
+}
+
+// Set orientation to 'Vertical' and use flex + flex-col for layout
 Ui.Tabs.view<Message, Framework>({
   model: model.tabs,
   toParentMessage: message => GotTabsMessage({ message }),

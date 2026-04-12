@@ -1,14 +1,50 @@
-import { Ui } from 'foldkit'
+import { Effect, Schema as S } from 'effect'
+import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
+import { evo } from 'foldkit/struct'
 
 import { Class, div, span } from './html'
 
-// Multi-select uses Listbox.Multi — the dropdown stays open on selection
-// and items toggle on/off.
+// MODEL
+
+const Model = S.Struct({
+  listboxMulti: Ui.Listbox.Multi.Model,
+})
+
+// INIT
+
+const init = () => [
+  { listboxMulti: Ui.Listbox.Multi.init({ id: 'people' }) },
+  [],
+]
+
+// MESSAGE
 
 const GotListboxMultiMessage = m('GotListboxMultiMessage', {
   message: Ui.Listbox.Message,
 })
+
+// UPDATE
+
+GotListboxMultiMessage: ({ message }) => {
+  const [nextListbox, commands] = Ui.Listbox.Multi.update(
+    model.listboxMulti,
+    message,
+  )
+
+  return [
+    evo(model, { listboxMulti: () => nextListbox }),
+    commands.map(
+      Command.mapEffect(
+        Effect.map(message => GotListboxMultiMessage({ message })),
+      ),
+    ),
+  ]
+}
+
+// VIEW
+
+const people = ['Michael Bluth', 'Lindsay Funke', 'Tobias Funke']
 
 Ui.Listbox.Multi.view({
   model: model.listboxMulti,

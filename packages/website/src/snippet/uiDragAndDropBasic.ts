@@ -52,9 +52,10 @@ GotDragAndDropMessage: ({ message: dragMessage }) => {
     onSome: outMessage =>
       M.value(outMessage).pipe(
         M.tagsExhaustive({
-          Reordered: ({ itemId, toIndex }) => [
+          Reordered: ({ itemId, fromIndex, toIndex }) => [
             evo(model, {
-              items: () => reorder(model.items, itemId, toIndex),
+              // reorder is your own function that moves the item
+              items: () => reorder(model.items, itemId, fromIndex, toIndex),
               dragAndDrop: () => nextDragAndDrop,
             }),
             mappedCommands,
@@ -74,6 +75,15 @@ const dragAndDropSubs = Ui.DragAndDrop.subscriptions
 
 const mapDragStream = stream =>
   stream.pipe(Stream.map(message => GotDragAndDropMessage({ message })))
+
+const dragFields = Ui.DragAndDrop.SubscriptionDeps.fields
+
+const SubscriptionDeps = S.Struct({
+  dragPointer: dragFields['documentPointer'],
+  dragEscape: dragFields['documentEscape'],
+  dragKeyboard: dragFields['documentKeyboard'],
+  autoScroll: dragFields['autoScroll'],
+})
 
 const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)({
   dragPointer: {
@@ -117,7 +127,7 @@ ul(
     ...Ui.DragAndDrop.droppable('list', 'Sortable items'),
     Class('flex flex-col gap-2'),
   ],
-  items.map((item, index) =>
+  model.items.map((item, index) =>
     li(
       [
         ...Ui.DragAndDrop.draggable({

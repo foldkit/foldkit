@@ -1,18 +1,49 @@
-import { Ui } from 'foldkit'
+import { Effect, Schema as S } from 'effect'
+import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
+import { evo } from 'foldkit/struct'
 
 import { Class, Id, OnClick, button, div, h2, p } from './html'
+
+// MODEL
+
+const Model = S.Struct({
+  dialog: Ui.Dialog.Model,
+})
+
+// INIT — set isAnimated: true for CSS transition coordination
+
+const init = () => [
+  { dialog: Ui.Dialog.init({ id: 'confirm', isAnimated: true }) },
+  [],
+]
+
+// MESSAGE
 
 const GotDialogMessage = m('GotDialogMessage', {
   message: Ui.Dialog.Message,
 })
 
-// Init with isAnimated: true to coordinate CSS transitions
-//   dialog: Ui.Dialog.init({ id: 'confirm', isAnimated: true })
+// UPDATE
+
+GotDialogMessage: ({ message }) => {
+  const [nextDialog, commands] = Ui.Dialog.update(model.dialog, message)
+
+  return [
+    evo(model, { dialog: () => nextDialog }),
+    commands.map(
+      Command.mapEffect(Effect.map(message => GotDialogMessage({ message }))),
+    ),
+  ]
+}
+
+// VIEW — use data-[closed] for enter/leave transitions
+
+const toDialogMessage = message => GotDialogMessage({ message })
 
 Ui.Dialog.view({
   model: model.dialog,
-  toParentMessage: message => GotDialogMessage({ message }),
+  toParentMessage: toDialogMessage,
   backdropAttributes: [
     Class(
       'fixed inset-0 bg-black/50 transition duration-150 ease-out data-[closed]:opacity-0',
@@ -28,22 +59,14 @@ Ui.Dialog.view({
         [
           button(
             [
-              OnClick(
-                toParentMessage(
-                  GotDialogMessage({ message: Ui.Dialog.Closed() }),
-                ),
-              ),
+              OnClick(toDialogMessage(Ui.Dialog.Closed())),
               Class('px-4 py-2 rounded-lg border'),
             ],
             ['Cancel'],
           ),
           button(
             [
-              OnClick(
-                toParentMessage(
-                  GotDialogMessage({ message: Ui.Dialog.Closed() }),
-                ),
-              ),
+              OnClick(toDialogMessage(Ui.Dialog.Closed())),
               Class('px-4 py-2 rounded-lg bg-blue-600 text-white'),
             ],
             ['Confirm'],

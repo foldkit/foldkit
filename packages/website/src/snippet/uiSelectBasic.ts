@@ -1,6 +1,6 @@
 import { Ui } from 'foldkit'
 
-import { Class, Value, label, option, select, span } from './html'
+import { Class, Value, div, label, option, select, span } from './html'
 
 Ui.Select.view({
   id: 'country',

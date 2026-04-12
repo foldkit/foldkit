@@ -1,19 +1,65 @@
-import { Array } from 'effect'
-import { Ui } from 'foldkit'
+import { Array, Effect, Schema as S } from 'effect'
+import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
+import { evo } from 'foldkit/struct'
 
 import { Class, Placeholder, div, span } from './html'
 
-// Multi-select uses Combobox.Multi — the dropdown stays open on selection
-// and items toggle on/off. Selected items are stored in model.selectedItems.
+// MODEL
+
+const Model = S.Struct({
+  comboboxMulti: Ui.Combobox.Multi.Model,
+})
+
+// INIT
+
+const init = () => [
+  { comboboxMulti: Ui.Combobox.Multi.init({ id: 'cities-multi' }) },
+  [],
+]
+
+// MESSAGE
 
 const GotComboboxMultiMessage = m('GotComboboxMultiMessage', {
   message: Ui.Combobox.Message,
 })
 
-const filteredCities = Array.filter(cities, city =>
-  city.toLowerCase().includes(model.comboboxMulti.inputValue.toLowerCase()),
-)
+// UPDATE
+
+GotComboboxMultiMessage: ({ message }) => {
+  const [nextCombobox, commands] = Ui.Combobox.Multi.update(
+    model.comboboxMulti,
+    message,
+  )
+
+  return [
+    evo(model, { comboboxMulti: () => nextCombobox }),
+    commands.map(
+      Command.mapEffect(
+        Effect.map(message => GotComboboxMultiMessage({ message })),
+      ),
+    ),
+  ]
+}
+
+// VIEW
+
+type City = 'Johannesburg' | 'Kyiv' | 'Oxford' | 'Wellington'
+const cities: ReadonlyArray<City> = [
+  'Johannesburg',
+  'Kyiv',
+  'Oxford',
+  'Wellington',
+]
+
+const filteredCities =
+  model.comboboxMulti.inputValue === ''
+    ? cities
+    : Array.filter(cities, city =>
+        city
+          .toLowerCase()
+          .includes(model.comboboxMulti.inputValue.toLowerCase()),
+      )
 
 Ui.Combobox.Multi.view({
   model: model.comboboxMulti,

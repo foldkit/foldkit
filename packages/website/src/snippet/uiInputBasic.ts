@@ -1,6 +1,6 @@
 import { Ui } from 'foldkit'
 
-import { Class, input, label, span } from './html'
+import { Class, div, input, label, span } from './html'
 
 Ui.Input.view({
   id: 'full-name',

@@ -1,6 +1,6 @@
 import { Ui } from 'foldkit'
 
-import { Class, label, span, textarea } from './html'
+import { Class, div, label, span, textarea } from './html'
 
 Ui.Textarea.view({
   id: 'bio',
