@@ -20,12 +20,14 @@ const init = () => [
   [],
 ]
 
-// Embed the Listbox Message in your parent Message:
+// Embed the Listbox Message for keyboard/pointer events, plus your own
+// Message for the actual selection:
 const GotListboxMessage = m('GotListboxMessage', {
   message: Ui.Listbox.Message,
 })
+const SelectedCharacter = m('SelectedCharacter', { value: S.String })
 
-// In your update, delegate to Listbox.update:
+// Delegate keyboard navigation, typeahead, and open/close to Listbox.update:
 GotListboxMessage: ({ message }) => {
   const [nextListbox, commands] = Ui.Listbox.update(model.listbox, message)
 
@@ -33,6 +35,18 @@ GotListboxMessage: ({ message }) => {
     // Merge the next state into your Model:
     evo(model, { listbox: () => nextListbox }),
     // Forward the Submodel's Commands through your parent Message:
+    commands.map(
+      Command.mapEffect(Effect.map(message => GotListboxMessage({ message }))),
+    ),
+  ]
+}
+
+// Handle selection with Listbox.selectItem:
+SelectedCharacter: ({ value }) => {
+  const [nextListbox, commands] = Ui.Listbox.selectItem(model.listbox, value)
+
+  return [
+    evo(model, { listbox: () => nextListbox }),
     commands.map(
       Command.mapEffect(Effect.map(message => GotListboxMessage({ message }))),
     ),
@@ -63,6 +77,7 @@ const characters: ReadonlyArray<Character> = [
 Ui.Listbox.view({
   model: model.listbox,
   toParentMessage: message => GotListboxMessage({ message }),
+  onSelectedItem: value => SelectedCharacter({ value }),
   items: characters,
   itemToValue: characterName,
   // Group contiguous items by a shared key:

@@ -14,18 +14,20 @@ const Model = S.Struct({
 // In your init function, initialize the Listbox Submodel with a unique id:
 const init = () => [
   {
-    listbox: Ui.Listbox.init({ id: 'person', selectedItem: 'Michael Bluth' }),
+    listbox: Ui.Listbox.init({ id: 'person' }),
     // ...your other fields
   },
   [],
 ]
 
-// Embed the Listbox Message in your parent Message:
+// Embed the Listbox Message for keyboard/pointer events, plus your own
+// Message for the actual selection:
 const GotListboxMessage = m('GotListboxMessage', {
   message: Ui.Listbox.Message,
 })
+const SelectedPerson = m('SelectedPerson', { value: S.String })
 
-// In your update, delegate to Listbox.update for user-driven interactions:
+// Delegate keyboard navigation, typeahead, and open/close to Listbox.update:
 GotListboxMessage: ({ message }) => {
   const [nextListbox, commands] = Ui.Listbox.update(model.listbox, message)
 
@@ -39,12 +41,10 @@ GotListboxMessage: ({ message }) => {
   ]
 }
 
-// To select programmatically from an external event (URL change, API result,
-// an action from another component, etc.), use Listbox.selectItem. It updates
-// the state AND returns the same close-and-focus Commands that a user click
-// would — so the listbox behaves identically whether the selection came from
-// the user or from your own code:
-SelectedPersonFromUrl: ({ value }) => {
+// Handle selection with Listbox.selectItem. It updates the listbox state
+// AND returns the close-and-focus Commands. Put any other domain logic you
+// want to run on selection here too (URL sync, analytics, etc.):
+SelectedPerson: ({ value }) => {
   const [nextListbox, commands] = Ui.Listbox.selectItem(model.listbox, value)
 
   return [
@@ -55,12 +55,13 @@ SelectedPersonFromUrl: ({ value }) => {
   ]
 }
 
-// In your view:
+// In your view, pass onSelectedItem to fire your own Message on selection:
 const people = ['Michael Bluth', 'Lindsay Funke', 'Tobias Funke']
 
 Ui.Listbox.view({
   model: model.listbox,
   toParentMessage: message => GotListboxMessage({ message }),
+  onSelectedItem: value => SelectedPerson({ value }),
   items: people,
   buttonContent: span(
     [],
