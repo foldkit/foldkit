@@ -258,3 +258,5 @@ export { default as uiCheckboxIndeterminateRaw } from './uiCheckboxIndeterminate
 export { default as uiCheckboxIndeterminateHighlighted } from './uiCheckboxIndeterminate.ts?highlighted'
 export { default as uiSwitchBasicRaw } from './uiSwitchBasic.ts?raw'
 export { default as uiSwitchBasicHighlighted } from './uiSwitchBasic.ts?highlighted'
+export { default as uiRadioGroupBasicRaw } from './uiRadioGroupBasic.ts?raw'
+export { default as uiRadioGroupBasicHighlighted } from './uiRadioGroupBasic.ts?highlighted'

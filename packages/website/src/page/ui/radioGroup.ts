@@ -17,7 +17,6 @@ import {
 } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
-import { heading } from '../../prose'
 import {
   GotHorizontalRadioGroupDemoMessage,
   GotVerticalRadioGroupDemoMessage,
@@ -101,7 +100,6 @@ export const verticalDemo = (
   radioGroupModel: Ui.RadioGroup.Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => [
-  heading('h3', verticalHeader.id, verticalHeader.text),
   Ui.RadioGroup.view<ParentMessage, Plan>({
     model: radioGroupModel,
     toParentMessage: message =>
@@ -147,7 +145,6 @@ export const horizontalDemo = (
   radioGroupModel: Ui.RadioGroup.Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => [
-  heading('h3', horizontalHeader.id, horizontalHeader.text),
   Ui.RadioGroup.view<ParentMessage, Plan>({
     model: radioGroupModel,
     toParentMessage: message =>

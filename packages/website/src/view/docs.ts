@@ -671,7 +671,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       UiRadioGroup: () =>
         withTableOfContents(
-          Page.UiPages.RadioGroupPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.RadioGroupPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.RadioGroupPage.tableOfContents,
         ),
       UiSwitch: () =>
