@@ -350,6 +350,16 @@ export const view = (
       demoContainer(
         ...Listbox.groupedDemo(model.listboxGroupedDemo, toParentMessage),
       ),
+      highlightedCodeBlock(
+        div(
+          [Class('text-sm'), InnerHTML(Snippet.uiListboxGroupedHighlighted)],
+          [],
+        ),
+        Snippet.uiListboxGroupedRaw,
+        'Copy grouped listbox example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
         'Listbox is headless — the ',
