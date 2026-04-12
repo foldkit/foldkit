@@ -1,17 +1,40 @@
-import { Array } from 'effect'
-import { Ui } from 'foldkit'
+import { Array, Effect, Schema as S } from 'effect'
+import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
+import { evo } from 'foldkit/struct'
 
 import { Class, Placeholder, div, span } from './html'
 
-// Submodel wiring:
-//   Model field: combobox: Ui.Combobox.Model
-//   Init: Ui.Combobox.init({ id: 'city' })
-//   Update: delegate via Ui.Combobox.update
+// MODEL
+
+const Model = S.Struct({
+  combobox: Ui.Combobox.Model,
+})
+
+// INIT
+
+const init = () => [{ combobox: Ui.Combobox.init({ id: 'city' }) }, []]
+
+// MESSAGE
 
 const GotComboboxMessage = m('GotComboboxMessage', {
   message: Ui.Combobox.Message,
 })
+
+// UPDATE
+
+GotComboboxMessage: ({ message }) => {
+  const [nextCombobox, commands] = Ui.Combobox.update(model.combobox, message)
+
+  return [
+    evo(model, { combobox: () => nextCombobox }),
+    commands.map(
+      Command.mapEffect(Effect.map(message => GotComboboxMessage({ message }))),
+    ),
+  ]
+}
+
+// VIEW
 
 type City = 'Johannesburg' | 'Kyiv' | 'Oxford' | 'Wellington'
 const cities: ReadonlyArray<City> = [

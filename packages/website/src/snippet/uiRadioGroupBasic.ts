@@ -1,16 +1,45 @@
-import { Ui } from 'foldkit'
+import { Effect, Schema as S } from 'effect'
+import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
+import { evo } from 'foldkit/struct'
 
 import { Class, div, p, span } from './html'
 
-// Submodel wiring:
-//   Model field: radioGroup: Ui.RadioGroup.Model
-//   Init: Ui.RadioGroup.init({ id: 'plan' })
-//   Update: delegate via Ui.RadioGroup.update
+// MODEL
+
+const Model = S.Struct({
+  radioGroup: Ui.RadioGroup.Model,
+})
+
+// INIT
+
+const init = () => [{ radioGroup: Ui.RadioGroup.init({ id: 'plan' }) }, []]
+
+// MESSAGE
 
 const GotRadioGroupMessage = m('GotRadioGroupMessage', {
   message: Ui.RadioGroup.Message,
 })
+
+// UPDATE
+
+GotRadioGroupMessage: ({ message }) => {
+  const [nextRadioGroup, commands] = Ui.RadioGroup.update(
+    model.radioGroup,
+    message,
+  )
+
+  return [
+    evo(model, { radioGroup: () => nextRadioGroup }),
+    commands.map(
+      Command.mapEffect(
+        Effect.map(message => GotRadioGroupMessage({ message })),
+      ),
+    ),
+  ]
+}
+
+// VIEW
 
 type Plan = 'Startup' | 'Business' | 'Enterprise'
 const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']

@@ -1,17 +1,26 @@
-import { Effect, Match as M, Option } from 'effect'
+import { Effect, Match as M, Option, Schema as S } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Class, p } from './html'
 
-// MODEL — embed Transition.Model and your own visibility flag
-//   transition: Ui.Transition.Model
-//   isShowing: S.Boolean
+// MODEL
+
+const Model = S.Struct({
+  transition: Ui.Transition.Model,
+  isShowing: S.Boolean,
+})
 
 // INIT
-//   transition: Ui.Transition.init({ id: 'content' })
-//   isShowing: false
+
+const init = () => [
+  {
+    transition: Ui.Transition.init({ id: 'content' }),
+    isShowing: false,
+  },
+  [],
+]
 
 // MESSAGE
 
@@ -20,7 +29,7 @@ const GotTransitionMessage = m('GotTransitionMessage', {
 })
 const ToggledContent = m('ToggledContent')
 
-// UPDATE — Transition.update returns a three-tuple: [model, commands, maybeOutMessage]
+// UPDATE — Transition.update returns [model, commands, maybeOutMessage]
 
 ToggledContent: () => {
   const nextShowing = !model.isShowing
@@ -83,7 +92,7 @@ const handleTransitionUpdate = (
   ]
 }
 
-// VIEW — CSS transitions driven by data attributes
+// VIEW
 
 Ui.Transition.view({
   model: model.transition,

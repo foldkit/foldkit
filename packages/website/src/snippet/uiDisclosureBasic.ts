@@ -1,16 +1,45 @@
-import { Ui } from 'foldkit'
+import { Effect, Schema as S } from 'effect'
+import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
+import { evo } from 'foldkit/struct'
 
 import { Class, p, span } from './html'
 
-// Submodel wiring:
-//   Model field: disclosure: Ui.Disclosure.Model
-//   Init: Ui.Disclosure.init({ id: 'faq-1' })
-//   Update: delegate via Ui.Disclosure.update
+// MODEL
+
+const Model = S.Struct({
+  disclosure: Ui.Disclosure.Model,
+})
+
+// INIT
+
+const init = () => [{ disclosure: Ui.Disclosure.init({ id: 'faq-1' }) }, []]
+
+// MESSAGE
 
 const GotDisclosureMessage = m('GotDisclosureMessage', {
   message: Ui.Disclosure.Message,
 })
+
+// UPDATE
+
+GotDisclosureMessage: ({ message }) => {
+  const [nextDisclosure, commands] = Ui.Disclosure.update(
+    model.disclosure,
+    message,
+  )
+
+  return [
+    evo(model, { disclosure: () => nextDisclosure }),
+    commands.map(
+      Command.mapEffect(
+        Effect.map(message => GotDisclosureMessage({ message })),
+      ),
+    ),
+  ]
+}
+
+// VIEW
 
 Ui.Disclosure.view({
   model: model.disclosure,

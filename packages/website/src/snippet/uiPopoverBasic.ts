@@ -1,16 +1,40 @@
-import { Ui } from 'foldkit'
+import { Effect, Schema as S } from 'effect'
+import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
+import { evo } from 'foldkit/struct'
 
-import { Class, h3, p, span } from './html'
+import { Class, div, h3, p, span } from './html'
 
-// Submodel wiring:
-//   Model field: popover: Ui.Popover.Model
-//   Init: Ui.Popover.init({ id: 'info' })
-//   Update: delegate via Ui.Popover.update
+// MODEL
+
+const Model = S.Struct({
+  popover: Ui.Popover.Model,
+})
+
+// INIT
+
+const init = () => [{ popover: Ui.Popover.init({ id: 'info' }) }, []]
+
+// MESSAGE
 
 const GotPopoverMessage = m('GotPopoverMessage', {
   message: Ui.Popover.Message,
 })
+
+// UPDATE
+
+GotPopoverMessage: ({ message }) => {
+  const [nextPopover, commands] = Ui.Popover.update(model.popover, message)
+
+  return [
+    evo(model, { popover: () => nextPopover }),
+    commands.map(
+      Command.mapEffect(Effect.map(message => GotPopoverMessage({ message }))),
+    ),
+  ]
+}
+
+// VIEW
 
 Ui.Popover.view({
   model: model.popover,

@@ -1,23 +1,27 @@
-import { Effect } from 'effect'
+import { Effect, Schema as S } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Class, button, div, label, p } from './html'
 
-// MODEL — embed Switch.Model as a Submodel field
-//   switchDemo: Ui.Switch.Model
+// MODEL
+
+const Model = S.Struct({
+  switchDemo: Ui.Switch.Model,
+})
 
 // INIT
-//   switchDemo: Ui.Switch.init({ id: 'notifications' })
 
-// MESSAGE — embed the Switch Message in your parent Message
+const init = () => [{ switchDemo: Ui.Switch.init({ id: 'notifications' }) }, []]
+
+// MESSAGE
 
 const GotSwitchMessage = m('GotSwitchMessage', {
   message: Ui.Switch.Message,
 })
 
-// UPDATE — delegate to Switch.update
+// UPDATE
 
 GotSwitchMessage: ({ message }) => {
   const [nextSwitch, commands] = Ui.Switch.update(model.switchDemo, message)

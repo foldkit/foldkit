@@ -1,16 +1,40 @@
-import { Ui } from 'foldkit'
+import { Effect, Schema as S } from 'effect'
+import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
+import { evo } from 'foldkit/struct'
 
 import { Class, div, p, span } from './html'
 
-// Submodel wiring:
-//   Model field: tabs: Ui.Tabs.Model
-//   Init: Ui.Tabs.init({ id: 'framework-tabs' })
-//   Update: delegate via Ui.Tabs.update
+// MODEL
+
+const Model = S.Struct({
+  tabs: Ui.Tabs.Model,
+})
+
+// INIT
+
+const init = () => [{ tabs: Ui.Tabs.init({ id: 'framework-tabs' }) }, []]
+
+// MESSAGE
 
 const GotTabsMessage = m('GotTabsMessage', {
   message: Ui.Tabs.Message,
 })
+
+// UPDATE
+
+GotTabsMessage: ({ message }) => {
+  const [nextTabs, commands] = Ui.Tabs.update(model.tabs, message)
+
+  return [
+    evo(model, { tabs: () => nextTabs }),
+    commands.map(
+      Command.mapEffect(Effect.map(message => GotTabsMessage({ message }))),
+    ),
+  ]
+}
+
+// VIEW
 
 type Framework = 'Foldkit' | 'React' | 'Elm'
 const frameworks: ReadonlyArray<Framework> = ['Foldkit', 'React', 'Elm']

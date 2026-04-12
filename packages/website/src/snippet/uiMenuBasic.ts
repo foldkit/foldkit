@@ -1,12 +1,21 @@
-import { Ui } from 'foldkit'
+import { Effect, Schema as S } from 'effect'
+import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
+import { evo } from 'foldkit/struct'
 
 import { Class, div, span } from './html'
 
-// Submodel wiring:
-//   Model field: menu: Ui.Menu.Model
-//   Init: Ui.Menu.init({ id: 'actions' })
-//   Update: delegate via Ui.Menu.update
+// MODEL
+
+const Model = S.Struct({
+  menu: Ui.Menu.Model,
+})
+
+// INIT
+
+const init = () => [{ menu: Ui.Menu.init({ id: 'actions' }) }, []]
+
+// MESSAGE
 
 const GotMenuMessage = m('GotMenuMessage', {
   message: Ui.Menu.Message,
@@ -14,6 +23,21 @@ const GotMenuMessage = m('GotMenuMessage', {
 
 // Your own Message for handling the selected action:
 const SelectedAction = m('SelectedAction', { value: S.String })
+
+// UPDATE
+
+GotMenuMessage: ({ message }) => {
+  const [nextMenu, commands] = Ui.Menu.update(model.menu, message)
+
+  return [
+    evo(model, { menu: () => nextMenu }),
+    commands.map(
+      Command.mapEffect(Effect.map(message => GotMenuMessage({ message }))),
+    ),
+  ]
+}
+
+// VIEW
 
 type Action = 'Edit' | 'Duplicate' | 'Archive' | 'Delete'
 const actions: ReadonlyArray<Action> = [

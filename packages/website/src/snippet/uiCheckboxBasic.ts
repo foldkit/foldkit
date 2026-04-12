@@ -1,23 +1,27 @@
-import { Effect } from 'effect'
+import { Effect, Schema as S } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Class, button, div, label, p } from './html'
 
-// MODEL — embed Checkbox.Model as a Submodel field
-//   checkboxDemo: Ui.Checkbox.Model
+// MODEL
+
+const Model = S.Struct({
+  checkboxDemo: Ui.Checkbox.Model,
+})
 
 // INIT
-//   checkboxDemo: Ui.Checkbox.init({ id: 'terms' })
 
-// MESSAGE — embed the Checkbox Message in your parent Message
+const init = () => [{ checkboxDemo: Ui.Checkbox.init({ id: 'terms' }) }, []]
+
+// MESSAGE
 
 const GotCheckboxMessage = m('GotCheckboxMessage', {
   message: Ui.Checkbox.Message,
 })
 
-// UPDATE — delegate to Checkbox.update
+// UPDATE
 
 GotCheckboxMessage: ({ message }) => {
   const [nextCheckbox, commands] = Ui.Checkbox.update(

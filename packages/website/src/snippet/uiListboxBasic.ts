@@ -1,17 +1,43 @@
-import { Option } from 'effect'
-import { Ui } from 'foldkit'
+import { Effect, Option, Schema as S } from 'effect'
+import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
+import { evo } from 'foldkit/struct'
 
 import { Class, div, span } from './html'
 
-// Submodel wiring:
-//   Model field: listbox: Ui.Listbox.Model
-//   Init: Ui.Listbox.init({ id: 'person', selectedItem: 'Michael Bluth' })
-//   Update: delegate via Ui.Listbox.update
+// MODEL
+
+const Model = S.Struct({
+  listbox: Ui.Listbox.Model,
+})
+
+// INIT
+
+const init = () => [
+  { listbox: Ui.Listbox.init({ id: 'person', selectedItem: 'Michael Bluth' }) },
+  [],
+]
+
+// MESSAGE
 
 const GotListboxMessage = m('GotListboxMessage', {
   message: Ui.Listbox.Message,
 })
+
+// UPDATE
+
+GotListboxMessage: ({ message }) => {
+  const [nextListbox, commands] = Ui.Listbox.update(model.listbox, message)
+
+  return [
+    evo(model, { listbox: () => nextListbox }),
+    commands.map(
+      Command.mapEffect(Effect.map(message => GotListboxMessage({ message }))),
+    ),
+  ]
+}
+
+// VIEW
 
 const people = ['Michael Bluth', 'Lindsay Funke', 'Tobias Funke']
 

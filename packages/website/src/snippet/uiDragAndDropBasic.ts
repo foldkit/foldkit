@@ -1,21 +1,15 @@
-import { Effect, Match as M, Option } from 'effect'
+import { Effect, Match as M, Option, Schema as S, Stream } from 'effect'
 import { Command, Subscription, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Class, div, li, span, ul } from './html'
 
-// MODEL — embed DragAndDrop.Model alongside your own data
+// MODEL
 
 const Model = S.Struct({
   items: S.Array(S.Struct({ id: S.String, label: S.String })),
   dragAndDrop: Ui.DragAndDrop.Model,
-})
-
-// MESSAGE
-
-const GotDragAndDropMessage = m('GotDragAndDropMessage', {
-  message: Ui.DragAndDrop.Message,
 })
 
 // INIT
@@ -31,6 +25,12 @@ const init = () => [
   },
   [],
 ]
+
+// MESSAGE
+
+const GotDragAndDropMessage = m('GotDragAndDropMessage', {
+  message: Ui.DragAndDrop.Message,
+})
 
 // UPDATE — three-tuple return with OutMessage handling
 
