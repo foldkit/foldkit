@@ -6,6 +6,8 @@ type PackageManager = 'pnpm' | 'npm' | 'yarn'
 const GITHUB_RAW_BASE_URL =
   'https://raw.githubusercontent.com/foldkit/foldkit/main/examples'
 
+const shouldRunCommandInShell = process.platform === 'win32'
+
 const getInstallArgs = (
   packageManager: PackageManager,
   isDev = false,
@@ -63,6 +65,7 @@ export const installDependencies = (
       'foldkit',
       ...exampleDeps.dependencies,
     ).pipe(
+      Command.runInShell(shouldRunCommandInShell),
       Command.workingDirectory(projectPath),
       Command.stdout('inherit'),
       Command.stderr('inherit'),
@@ -78,6 +81,7 @@ export const installDependencies = (
       'happy-dom',
       ...exampleDeps.devDependencies,
     ).pipe(
+      Command.runInShell(shouldRunCommandInShell),
       Command.workingDirectory(projectPath),
       Command.stdout('inherit'),
       Command.stderr('inherit'),

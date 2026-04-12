@@ -26,6 +26,9 @@ type CreateOptions = {
   packageManager: PackageManager
 }
 
+const packageManagerLookupCommand =
+  process.platform === 'win32' ? 'where' : 'which'
+
 const validateProject = (
   name: string,
   projectPath: string,
@@ -39,10 +42,10 @@ const validateProject = (
       return yield* Effect.fail(`Directory ${name} already exists!`)
     }
 
-    const checkCommand = Command.make('which', packageManager).pipe(
-      Command.stdout('pipe'),
-      Command.stderr('pipe'),
-    )
+    const checkCommand = Command.make(
+      packageManagerLookupCommand,
+      packageManager,
+    ).pipe(Command.stdout('pipe'), Command.stderr('pipe'))
 
     return yield* Command.exitCode(checkCommand).pipe(
       Effect.filterOrFail(
