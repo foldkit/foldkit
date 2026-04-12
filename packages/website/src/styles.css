@@ -90,7 +90,7 @@
   }
 
   body {
-    @apply text-base leading-relaxed font-light tracking-[0.01em] text-gray-800 dark:text-gray-300 bg-cream dark:bg-gray-900;
+    @apply text-base leading-relaxed font-light tracking-[0.01em] text-gray-800 dark:text-gray-200 bg-cream dark:bg-gray-900;
   }
 
   strong {
@@ -114,7 +114,7 @@
   }
 
   pre {
-    @apply pr-14 pl-[11px] py-4 rounded-lg overflow-x-auto border border-gray-200 dark:border-gray-700/50 font-code text-sm;
+    @apply pr-14 pl-2.75 py-4 rounded-lg overflow-x-auto border border-gray-200 dark:border-gray-700/50 font-code text-sm;
   }
 
   .dark .shiki {
@@ -169,7 +169,7 @@
     @apply flex-1 min-w-0 relative flex flex-col;
 
     .code-embed-copy {
-      @apply !right-6;
+      @apply right-6!;
     }
   }
 
