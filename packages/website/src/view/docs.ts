@@ -691,7 +691,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       UiInput: () =>
         withTableOfContents(
-          Page.UiPages.InputPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.InputPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.InputPage.tableOfContents,
         ),
       UiTextarea: () =>
