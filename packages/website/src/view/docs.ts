@@ -767,12 +767,20 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       UiDragAndDrop: () =>
         withTableOfContents(
-          Page.UiPages.DragAndDropPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.DragAndDropPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.DragAndDropPage.tableOfContents,
         ),
       UiTransition: () =>
         withTableOfContents(
-          Page.UiPages.TransitionPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.TransitionPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.TransitionPage.tableOfContents,
         ),
       AiOverview: () =>
