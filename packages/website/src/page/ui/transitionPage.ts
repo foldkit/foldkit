@@ -4,6 +4,7 @@ import { Class, InnerHTML, div } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
+  demoContainer,
   heading,
   inlineCode,
   pageTitle,
@@ -195,10 +196,12 @@ export const view = (
         inlineCode('data-[closed]:opacity-0'),
         '.',
       ),
-      ...Transition.transitionDemo(
-        model.transitionDemo,
-        model.isTransitionDemoShowing,
-        toParentMessage,
+      demoContainer(
+        ...Transition.transitionDemo(
+          model.transitionDemo,
+          model.isTransitionDemoShowing,
+          toParentMessage,
+        ),
       ),
       highlightedCodeBlock(
         div(

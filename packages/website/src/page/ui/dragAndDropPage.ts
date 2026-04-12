@@ -4,6 +4,7 @@ import { Class, InnerHTML, div } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
+  demoContainer,
   heading,
   inlineCode,
   link,
@@ -249,7 +250,7 @@ export const view = (
         link(exampleDetailRouter({ exampleSlug: 'kanban' }), 'Kanban example'),
         '.',
       ),
-      ...DragAndDrop.demo(model, toParentMessage),
+      demoContainer(...DragAndDrop.demo(model, toParentMessage)),
       highlightedCodeBlock(
         div(
           [Class('text-sm'), InnerHTML(Snippet.uiDragAndDropBasicHighlighted)],

@@ -4,6 +4,7 @@ import { Class, InnerHTML, div } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
+  demoContainer,
   heading,
   inlineCode,
   pageTitle,
@@ -179,7 +180,7 @@ export const view = (
         inlineCode('<button>'),
         ' element.',
       ),
-      ...Button.basicDemo(model, toParentMessage),
+      demoContainer(...Button.basicDemo(model, toParentMessage)),
       highlightedCodeBlock(
         div(
           [Class('text-sm'), InnerHTML(Snippet.uiButtonBasicHighlighted)],
@@ -205,7 +206,7 @@ export const view = (
         inlineCode('disabled'),
         ' attribute so the button remains focusable for screen readers.',
       ),
-      ...Button.disabledDemo(model, toParentMessage),
+      demoContainer(...Button.disabledDemo(model, toParentMessage)),
       highlightedCodeBlock(
         div(
           [Class('text-sm'), InnerHTML(Snippet.uiButtonDisabledHighlighted)],

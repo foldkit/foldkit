@@ -4,6 +4,7 @@ import { Class, InnerHTML, div } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
+  demoContainer,
   heading,
   inlineCode,
   pageTitle,
@@ -164,7 +165,7 @@ export const view = (
         inlineCode('description'),
         ' for help text. Nest other Foldkit UI components inside the fieldset body.',
       ),
-      ...Fieldset.basicDemo(model, toParentMessage),
+      demoContainer(...Fieldset.basicDemo(model, toParentMessage)),
       highlightedCodeBlock(
         div(
           [Class('text-sm'), InnerHTML(Snippet.uiFieldsetBasicHighlighted)],
@@ -187,7 +188,7 @@ export const view = (
         inlineCode('<fieldset disabled>'),
         ' attribute propagates to all child inputs, textareas, buttons, and selects — you don\u2019t need to disable each control individually.',
       ),
-      ...Fieldset.disabledDemo(model, toParentMessage),
+      demoContainer(...Fieldset.disabledDemo(model, toParentMessage)),
       highlightedCodeBlock(
         div(
           [Class('text-sm'), InnerHTML(Snippet.uiFieldsetDisabledHighlighted)],

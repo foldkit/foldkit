@@ -4,6 +4,7 @@ import { Class, InnerHTML, div } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
+  demoContainer,
   heading,
   inlineCode,
   pageTitle,
@@ -229,7 +230,7 @@ export const view = (
         inlineCode('<input>'),
         '.',
       ),
-      ...Textarea.basicDemo(model, toParentMessage),
+      demoContainer(...Textarea.basicDemo(model, toParentMessage)),
       highlightedCodeBlock(
         div(
           [Class('text-sm'), InnerHTML(Snippet.uiTextareaBasicHighlighted)],
@@ -254,7 +255,7 @@ export const view = (
         inlineCode('aria-disabled'),
         '.',
       ),
-      ...Textarea.disabledDemo(model, toParentMessage),
+      demoContainer(...Textarea.disabledDemo(model, toParentMessage)),
       highlightedCodeBlock(
         div(
           [Class('text-sm'), InnerHTML(Snippet.uiTextareaDisabledHighlighted)],

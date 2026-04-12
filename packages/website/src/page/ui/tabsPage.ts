@@ -4,6 +4,7 @@ import { Class, InnerHTML, div } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
+  demoContainer,
   heading,
   inlineCode,
   pageTitle,
@@ -291,7 +292,9 @@ export const view = (
         inlineCode('tabToConfig'),
         ' callback that maps each tab to its button and panel content.',
       ),
-      ...Tabs.horizontalDemo(model.horizontalTabsDemo, toParentMessage),
+      demoContainer(
+        ...Tabs.horizontalDemo(model.horizontalTabsDemo, toParentMessage),
+      ),
       highlightedCodeBlock(
         div([Class('text-sm'), InnerHTML(Snippet.uiTabsBasicHighlighted)], []),
         Snippet.uiTabsBasicRaw,
@@ -309,7 +312,9 @@ export const view = (
         inlineCode("orientation: 'Vertical'"),
         ' to switch to up/down arrow navigation. Use a flex column layout on the tab list and a flex row layout on the wrapper.',
       ),
-      ...Tabs.verticalDemo(model.verticalTabsDemo, toParentMessage),
+      demoContainer(
+        ...Tabs.verticalDemo(model.verticalTabsDemo, toParentMessage),
+      ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
         'Tabs is headless — the ',

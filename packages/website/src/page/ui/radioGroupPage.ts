@@ -4,6 +4,7 @@ import { Class, InnerHTML, div } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
+  demoContainer,
   heading,
   inlineCode,
   pageTitle,
@@ -279,7 +280,12 @@ export const view = (
         inlineCode('content'),
         ' callback receiving attribute groups.',
       ),
-      ...RadioGroup.verticalDemo(model.verticalRadioGroupDemo, toParentMessage),
+      demoContainer(
+        ...RadioGroup.verticalDemo(
+          model.verticalRadioGroupDemo,
+          toParentMessage,
+        ),
+      ),
       highlightedCodeBlock(
         div(
           [Class('text-sm'), InnerHTML(Snippet.uiRadioGroupBasicHighlighted)],
@@ -300,9 +306,11 @@ export const view = (
         inlineCode("orientation: 'Horizontal'"),
         ' to switch to left/right arrow navigation. Set the orientation at init time or override it per render in the view config.',
       ),
-      ...RadioGroup.horizontalDemo(
-        model.horizontalRadioGroupDemo,
-        toParentMessage,
+      demoContainer(
+        ...RadioGroup.horizontalDemo(
+          model.horizontalRadioGroupDemo,
+          toParentMessage,
+        ),
       ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(

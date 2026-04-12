@@ -4,6 +4,7 @@ import { Class, InnerHTML, div } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
+  demoContainer,
   heading,
   inlineCode,
   pageTitle,
@@ -230,7 +231,9 @@ export const view = (
         inlineCode('panelContent'),
         ' directly — Disclosure handles the wrapper, ARIA linking, and toggle behavior. Style the button and panel with className or attributes props.',
       ),
-      ...Disclosure.disclosureDemo(model.disclosureDemo, toParentMessage),
+      demoContainer(
+        ...Disclosure.disclosureDemo(model.disclosureDemo, toParentMessage),
+      ),
       highlightedCodeBlock(
         div(
           [Class('text-sm'), InnerHTML(Snippet.uiDisclosureBasicHighlighted)],

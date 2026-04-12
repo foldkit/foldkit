@@ -4,6 +4,7 @@ import { Class, InnerHTML, div } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
+  demoContainer,
   heading,
   inlineCode,
   pageTitle,
@@ -279,7 +280,9 @@ export const view = (
         inlineCode('model.inputValue'),
         '.',
       ),
-      ...Combobox.comboboxDemo(model.comboboxDemo, toParentMessage),
+      demoContainer(
+        ...Combobox.comboboxDemo(model.comboboxDemo, toParentMessage),
+      ),
       highlightedCodeBlock(
         div(
           [Class('text-sm'), InnerHTML(Snippet.uiComboboxBasicHighlighted)],
@@ -300,7 +303,9 @@ export const view = (
         inlineCode('nullable: true'),
         ' at init to allow clearing the selection by clicking the selected item again.',
       ),
-      ...Combobox.nullableDemo(model.comboboxNullableDemo, toParentMessage),
+      demoContainer(
+        ...Combobox.nullableDemo(model.comboboxNullableDemo, toParentMessage),
+      ),
       heading(
         Combobox.selectOnFocusHeader.level,
         Combobox.selectOnFocusHeader.id,
@@ -311,9 +316,11 @@ export const view = (
         inlineCode('selectInputOnFocus: true'),
         ' at init to highlight the input text when the combobox receives focus. Typing immediately replaces the current value, making it easy to start a new search.',
       ),
-      ...Combobox.selectOnFocusDemo(
-        model.comboboxSelectOnFocusDemo,
-        toParentMessage,
+      demoContainer(
+        ...Combobox.selectOnFocusDemo(
+          model.comboboxSelectOnFocusDemo,
+          toParentMessage,
+        ),
       ),
       heading(
         Combobox.multiHeader.level,
@@ -327,7 +334,9 @@ export const view = (
         inlineCode('model.selectedItems'),
         '.',
       ),
-      ...Combobox.multiDemo(model.comboboxMultiDemo, toParentMessage),
+      demoContainer(
+        ...Combobox.multiDemo(model.comboboxMultiDemo, toParentMessage),
+      ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
         'Combobox is headless — the ',

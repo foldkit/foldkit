@@ -4,6 +4,7 @@ import { Class, InnerHTML, div } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
+  demoContainer,
   heading,
   inlineCode,
   pageTitle,
@@ -239,7 +240,7 @@ export const view = (
         inlineCode('Dialog.titleId(model)'),
         ' on a heading element so the dialog is labeled for screen readers.',
       ),
-      ...Dialog.dialogDemo(model.dialogDemo, toParentMessage),
+      demoContainer(...Dialog.dialogDemo(model.dialogDemo, toParentMessage)),
       highlightedCodeBlock(
         div(
           [Class('text-sm'), InnerHTML(Snippet.uiDialogBasicHighlighted)],
@@ -264,7 +265,9 @@ export const view = (
         inlineCode('data-[closed]:opacity-0 data-[closed]:scale-95'),
         ').',
       ),
-      ...Dialog.dialogAnimatedDemo(model.dialogAnimatedDemo, toParentMessage),
+      demoContainer(
+        ...Dialog.dialogAnimatedDemo(model.dialogAnimatedDemo, toParentMessage),
+      ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
         'Dialog is headless — you control the panel and backdrop markup through className and attribute props. The native ',

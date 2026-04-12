@@ -4,6 +4,7 @@ import { Class, InnerHTML, div } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
+  demoContainer,
   heading,
   inlineCode,
   pageTitle,
@@ -221,7 +222,7 @@ export const view = (
         inlineCode('toView'),
         ' callback.',
       ),
-      ...Select.basicDemo(model, toParentMessage),
+      demoContainer(...Select.basicDemo(model, toParentMessage)),
       highlightedCodeBlock(
         div(
           [Class('text-sm'), InnerHTML(Snippet.uiSelectBasicHighlighted)],
@@ -238,7 +239,7 @@ export const view = (
         Select.disabledHeader.text,
       ),
       para('Set ', inlineCode('isDisabled: true'), ' to disable the select.'),
-      ...Select.disabledDemo(model, toParentMessage),
+      demoContainer(...Select.disabledDemo(model, toParentMessage)),
       highlightedCodeBlock(
         div(
           [Class('text-sm'), InnerHTML(Snippet.uiSelectDisabledHighlighted)],

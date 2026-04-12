@@ -4,6 +4,7 @@ import { Class, InnerHTML, div } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
+  demoContainer,
   heading,
   inlineCode,
   pageTitle,
@@ -230,7 +231,9 @@ export const view = (
         inlineCode('anchor'),
         ' to position the panel relative to the button. The panel can hold any content — links, forms, or informational text.',
       ),
-      ...Popover.basicDemo(model.popoverBasicDemo, toParentMessage),
+      demoContainer(
+        ...Popover.basicDemo(model.popoverBasicDemo, toParentMessage),
+      ),
       highlightedCodeBlock(
         div(
           [Class('text-sm'), InnerHTML(Snippet.uiPopoverBasicHighlighted)],
@@ -251,7 +254,9 @@ export const view = (
         inlineCode('isAnimated: true'),
         ' at init for CSS transition coordination.',
       ),
-      ...Popover.animatedDemo(model.popoverAnimatedDemo, toParentMessage),
+      demoContainer(
+        ...Popover.animatedDemo(model.popoverAnimatedDemo, toParentMessage),
+      ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
         'Popover is headless — button and panel styling is controlled through className and attribute props.',

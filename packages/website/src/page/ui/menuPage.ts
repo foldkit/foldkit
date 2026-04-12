@@ -4,6 +4,7 @@ import { Class, InnerHTML, div } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
+  demoContainer,
   heading,
   inlineCode,
   pageTitle,
@@ -244,7 +245,7 @@ export const view = (
         inlineCode('onSelectedItem'),
         ' to handle menu item selection. Menu closes automatically after selection.',
       ),
-      ...Menu.basicDemo(model.menuBasicDemo, toParentMessage),
+      demoContainer(...Menu.basicDemo(model.menuBasicDemo, toParentMessage)),
       highlightedCodeBlock(
         div([Class('text-sm'), InnerHTML(Snippet.uiMenuBasicHighlighted)], []),
         Snippet.uiMenuBasicRaw,
@@ -262,7 +263,9 @@ export const view = (
         inlineCode('isAnimated: true'),
         ' at init for CSS transition coordination.',
       ),
-      ...Menu.animatedDemo(model.menuAnimatedDemo, toParentMessage),
+      demoContainer(
+        ...Menu.animatedDemo(model.menuAnimatedDemo, toParentMessage),
+      ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
         'Menu is headless — the ',

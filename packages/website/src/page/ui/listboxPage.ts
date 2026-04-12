@@ -4,6 +4,7 @@ import { Class, InnerHTML, div } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
+  demoContainer,
   heading,
   inlineCode,
   pageTitle,
@@ -298,7 +299,7 @@ export const view = (
         inlineCode('isActive'),
         ' for styling the highlighted and selected states.',
       ),
-      ...Listbox.basicDemo(model.listboxDemo, toParentMessage),
+      demoContainer(...Listbox.basicDemo(model.listboxDemo, toParentMessage)),
       highlightedCodeBlock(
         div(
           [Class('text-sm'), InnerHTML(Snippet.uiListboxBasicHighlighted)],
@@ -321,7 +322,9 @@ export const view = (
         inlineCode('model.selectedItems'),
         '.',
       ),
-      ...Listbox.multiSelectDemo(model.listboxMultiDemo, toParentMessage),
+      demoContainer(
+        ...Listbox.multiSelectDemo(model.listboxMultiDemo, toParentMessage),
+      ),
       heading(
         Listbox.groupedHeader.level,
         Listbox.groupedHeader.id,
@@ -334,7 +337,9 @@ export const view = (
         inlineCode('groupToHeading'),
         ' to render section headers. Groups are separated automatically.',
       ),
-      ...Listbox.groupedDemo(model.listboxGroupedDemo, toParentMessage),
+      demoContainer(
+        ...Listbox.groupedDemo(model.listboxGroupedDemo, toParentMessage),
+      ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
         'Listbox is headless — the ',

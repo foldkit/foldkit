@@ -4,6 +4,7 @@ import { Class, InnerHTML, div } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
+  demoContainer,
   heading,
   inlineCode,
   pageTitle,
@@ -216,7 +217,7 @@ export const view = (
         inlineCode('data-checked'),
         ' attribute for the on state.',
       ),
-      ...Switch.switchDemo(model.switchDemo, toParentMessage),
+      demoContainer(...Switch.switchDemo(model.switchDemo, toParentMessage)),
       highlightedCodeBlock(
         div(
           [Class('text-sm'), InnerHTML(Snippet.uiSwitchBasicHighlighted)],

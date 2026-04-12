@@ -4,6 +4,7 @@ import { Class, InnerHTML, div } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
+  demoContainer,
   heading,
   inlineCode,
   pageTitle,
@@ -236,7 +237,7 @@ export const view = (
         inlineCode('aria-describedby'),
         ').',
       ),
-      ...Input.basicDemo(model, toParentMessage),
+      demoContainer(...Input.basicDemo(model, toParentMessage)),
       highlightedCodeBlock(
         div([Class('text-sm'), InnerHTML(Snippet.uiInputBasicHighlighted)], []),
         Snippet.uiInputBasicRaw,
@@ -258,7 +259,7 @@ export const view = (
         inlineCode('aria-disabled'),
         ', so the browser prevents interaction entirely.',
       ),
-      ...Input.disabledDemo(model, toParentMessage),
+      demoContainer(...Input.disabledDemo(model, toParentMessage)),
       highlightedCodeBlock(
         div(
           [Class('text-sm'), InnerHTML(Snippet.uiInputDisabledHighlighted)],

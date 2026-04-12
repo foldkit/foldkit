@@ -4,6 +4,7 @@ import { Class, InnerHTML, div } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
+  demoContainer,
   heading,
   inlineCode,
   pageTitle,
@@ -258,7 +259,7 @@ export const view = (
         inlineCode('attributes.checkbox'),
         ' onto it for role, ARIA state, and keyboard/click handlers. The label click handler also toggles the checkbox.',
       ),
-      ...Checkbox.basicDemo(model, toParentMessage),
+      demoContainer(...Checkbox.basicDemo(model, toParentMessage)),
       highlightedCodeBlock(
         div(
           [Class('text-sm'), InnerHTML(Snippet.uiCheckboxBasicHighlighted)],
@@ -279,7 +280,7 @@ export const view = (
         inlineCode('isIndeterminate: true'),
         ' to show a mixed state. This is typically computed from child checkbox states — when some but not all children are checked, the parent shows the indeterminate mark. Toggling the parent sets all children to the same state.',
       ),
-      ...Checkbox.indeterminateDemo(model, toParentMessage),
+      demoContainer(...Checkbox.indeterminateDemo(model, toParentMessage)),
       highlightedCodeBlock(
         div(
           [
