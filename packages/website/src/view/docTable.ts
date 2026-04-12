@@ -23,8 +23,7 @@ const rowClassName = 'border-b border-gray-200 dark:border-gray-700/50'
 
 const cellClassName = 'py-2.5 pr-4 align-top'
 
-const descriptionCellClassName =
-  'py-2.5 text-gray-600 dark:text-gray-400 align-top'
+const descriptionCellClassName = 'py-2.5 align-top'
 
 const codeClassName =
   'bg-gray-200/70 dark:bg-gray-800 px-1 py-px rounded text-sm border border-gray-300/50 dark:border-gray-700/50 whitespace-nowrap'
