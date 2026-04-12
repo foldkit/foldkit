@@ -63,7 +63,7 @@ const verticalOptionClassName =
 const horizontalGroupClassName = 'flex flex-row gap-3 w-full'
 
 const horizontalOptionClassName =
-  'relative flex flex-1 cursor-pointer rounded-lg border border-gray-200 dark:border-gray-700 p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 data-[checked]:border-accent-600 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900'
+  'relative flex flex-1 items-start cursor-pointer rounded-lg border border-gray-200 dark:border-gray-700 p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 data-[checked]:border-accent-600 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900'
 
 const labelClassName = 'text-sm font-medium text-gray-900 dark:text-white'
 
