@@ -19,7 +19,7 @@ const initialModel = {
   isShowing: false,
 }
 
-// Wrap the Transition Message in your parent Message, plus a Message for the toggle:
+// Embed the Transition Message in your parent Message, plus a Message for the toggle:
 const GotTransitionMessage = m('GotTransitionMessage', {
   message: Ui.Transition.Message,
 })

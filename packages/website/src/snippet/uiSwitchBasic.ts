@@ -16,7 +16,7 @@ const initialModel = {
   switchDemo: Ui.Switch.init({ id: 'notifications' }),
 }
 
-// Wrap the Switch Message in your parent Message:
+// Embed the Switch Message in your parent Message:
 const GotSwitchMessage = m('GotSwitchMessage', {
   message: Ui.Switch.Message,
 })

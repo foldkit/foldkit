@@ -16,7 +16,7 @@ const initialModel = {
   comboboxMulti: Ui.Combobox.Multi.init({ id: 'cities-multi' }),
 }
 
-// Wrap the Combobox Message in your parent Message:
+// Embed the Combobox Message in your parent Message:
 const GotComboboxMultiMessage = m('GotComboboxMultiMessage', {
   message: Ui.Combobox.Message,
 })

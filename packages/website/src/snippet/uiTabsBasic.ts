@@ -16,7 +16,7 @@ const initialModel = {
   tabs: Ui.Tabs.init({ id: 'framework-tabs' }),
 }
 
-// Wrap the Tabs Message in your parent Message:
+// Embed the Tabs Message in your parent Message:
 const GotTabsMessage = m('GotTabsMessage', {
   message: Ui.Tabs.Message,
 })

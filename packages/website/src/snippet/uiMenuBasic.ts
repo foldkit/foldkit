@@ -16,7 +16,7 @@ const initialModel = {
   menu: Ui.Menu.init({ id: 'actions' }),
 }
 
-// Wrap the Menu Message in your parent Message:
+// Embed the Menu Message in your parent Message:
 const GotMenuMessage = m('GotMenuMessage', {
   message: Ui.Menu.Message,
 })

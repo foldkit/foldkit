@@ -16,7 +16,7 @@ const initialModel = {
   radioGroup: Ui.RadioGroup.init({ id: 'plan' }),
 }
 
-// Wrap the RadioGroup Message in your parent Message:
+// Embed the RadioGroup Message in your parent Message:
 const GotRadioGroupMessage = m('GotRadioGroupMessage', {
   message: Ui.RadioGroup.Message,
 })

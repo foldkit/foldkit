@@ -266,6 +266,16 @@ export const view = (
       demoContainer(
         ...Menu.animatedDemo(model.menuAnimatedDemo, toParentMessage),
       ),
+      highlightedCodeBlock(
+        div(
+          [Class('text-sm'), InnerHTML(Snippet.uiMenuAnimatedHighlighted)],
+          [],
+        ),
+        Snippet.uiMenuAnimatedRaw,
+        'Copy animated menu example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
         'Menu is headless — the ',

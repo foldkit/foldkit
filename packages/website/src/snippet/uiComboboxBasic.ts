@@ -16,7 +16,7 @@ const initialModel = {
   combobox: Ui.Combobox.init({ id: 'city' }),
 }
 
-// Wrap the Combobox Message in your parent Message:
+// Embed the Combobox Message in your parent Message:
 const GotComboboxMessage = m('GotComboboxMessage', {
   message: Ui.Combobox.Message,
 })

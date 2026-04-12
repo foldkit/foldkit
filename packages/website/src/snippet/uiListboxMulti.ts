@@ -16,7 +16,7 @@ const initialModel = {
   listboxMulti: Ui.Listbox.Multi.init({ id: 'people' }),
 }
 
-// Wrap the Listbox Message in your parent Message:
+// Embed the Listbox Message in your parent Message:
 const GotListboxMultiMessage = m('GotListboxMultiMessage', {
   message: Ui.Listbox.Message,
 })

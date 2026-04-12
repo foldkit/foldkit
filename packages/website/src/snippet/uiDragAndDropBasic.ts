@@ -22,7 +22,7 @@ const initialModel = {
   dragAndDrop: Ui.DragAndDrop.init({ id: 'sortable-list' }),
 }
 
-// Wrap the DragAndDrop Message in your parent Message:
+// Embed the DragAndDrop Message in your parent Message:
 const GotDragAndDropMessage = m('GotDragAndDropMessage', {
   message: Ui.DragAndDrop.Message,
 })

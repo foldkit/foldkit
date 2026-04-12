@@ -16,7 +16,7 @@ const initialModel = {
   listbox: Ui.Listbox.init({ id: 'person', selectedItem: 'Michael Bluth' }),
 }
 
-// Wrap the Listbox Message in your parent Message:
+// Embed the Listbox Message in your parent Message:
 const GotListboxMessage = m('GotListboxMessage', {
   message: Ui.Listbox.Message,
 })

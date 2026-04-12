@@ -16,7 +16,7 @@ const initialModel = {
   popover: Ui.Popover.init({ id: 'info' }),
 }
 
-// Wrap the Popover Message in your parent Message:
+// Embed the Popover Message in your parent Message:
 const GotPopoverMessage = m('GotPopoverMessage', {
   message: Ui.Popover.Message,
 })

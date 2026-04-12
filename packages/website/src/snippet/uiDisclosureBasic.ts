@@ -16,7 +16,7 @@ const initialModel = {
   disclosure: Ui.Disclosure.init({ id: 'faq-1' }),
 }
 
-// Wrap the Disclosure Message in your parent Message:
+// Embed the Disclosure Message in your parent Message:
 const GotDisclosureMessage = m('GotDisclosureMessage', {
   message: Ui.Disclosure.Message,
 })

@@ -16,7 +16,7 @@ const initialModel = {
   checkboxDemo: Ui.Checkbox.init({ id: 'terms' }),
 }
 
-// Wrap the Checkbox Message in your parent Message:
+// Embed the Checkbox Message in your parent Message:
 const GotCheckboxMessage = m('GotCheckboxMessage', {
   message: Ui.Checkbox.Message,
 })

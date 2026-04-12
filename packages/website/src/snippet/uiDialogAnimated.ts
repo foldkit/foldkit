@@ -16,7 +16,7 @@ const initialModel = {
   dialog: Ui.Dialog.init({ id: 'confirm', isAnimated: true }),
 }
 
-// Wrap the Dialog Message in your parent Message:
+// Embed the Dialog Message in your parent Message:
 const GotDialogMessage = m('GotDialogMessage', {
   message: Ui.Dialog.Message,
 })
