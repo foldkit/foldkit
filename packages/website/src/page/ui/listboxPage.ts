@@ -325,6 +325,16 @@ export const view = (
       demoContainer(
         ...Listbox.multiSelectDemo(model.listboxMultiDemo, toParentMessage),
       ),
+      highlightedCodeBlock(
+        div(
+          [Class('text-sm'), InnerHTML(Snippet.uiListboxMultiHighlighted)],
+          [],
+        ),
+        Snippet.uiListboxMultiRaw,
+        'Copy multi-select listbox example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
       heading(
         Listbox.groupedHeader.level,
         Listbox.groupedHeader.id,

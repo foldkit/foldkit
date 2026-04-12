@@ -29,7 +29,7 @@ export const transitionDemo = (
 ) => {
   return [
     div(
-      [Class('flex gap-3')],
+      [Class('flex flex-col items-center gap-4')],
       [
         button(
           [
@@ -38,11 +38,6 @@ export const transitionDemo = (
           ],
           [isTransitionDemoShowing ? 'Hide Content' : 'Show Content'],
         ),
-      ],
-    ),
-    div(
-      [Class('mt-4')],
-      [
         Ui.Transition.view({
           model: transitionModel,
           className: contentClassName,

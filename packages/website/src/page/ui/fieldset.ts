@@ -38,8 +38,7 @@ export const disabledHeader: TableOfContentsEntry = {
 
 // SHARED STYLES
 
-const fieldsetClassName =
-  'rounded-lg border border-gray-200 p-6 dark:border-gray-700'
+const fieldsetClassName = 'w-full p-6'
 
 const legendClassName =
   'float-left w-full text-base font-semibold text-gray-900 dark:text-white'

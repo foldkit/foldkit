@@ -43,7 +43,7 @@ export const basicDemo = (
   toParentMessage: (message: Message) => ParentMessage,
 ) => [
   div(
-    [Class('flex flex-col items-start gap-2 max-w-sm')],
+    [Class('flex flex-col items-start gap-2 w-full max-w-md')],
     [
       Ui.Select.view({
         id: 'select-basic-demo',
@@ -93,7 +93,7 @@ export const disabledDemo = (
     value: 'us',
     toView: attributes =>
       div(
-        [Class('flex flex-col gap-1.5 max-w-sm')],
+        [Class('flex flex-col gap-1.5 w-full max-w-md')],
         [
           label([...attributes.label, Class(labelClassName)], ['Country']),
           div(

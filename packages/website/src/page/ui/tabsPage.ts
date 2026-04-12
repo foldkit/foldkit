@@ -310,10 +310,20 @@ export const view = (
       para(
         'Pass ',
         inlineCode("orientation: 'Vertical'"),
-        ' to switch to up/down arrow navigation. Use a flex column layout on the tab list and a flex row layout on the wrapper.',
+        ' to switch to up/down arrow navigation.',
       ),
       demoContainer(
         ...Tabs.verticalDemo(model.verticalTabsDemo, toParentMessage),
+      ),
+      highlightedCodeBlock(
+        div(
+          [Class('text-sm'), InnerHTML(Snippet.uiTabsVerticalHighlighted)],
+          [],
+        ),
+        Snippet.uiTabsVerticalRaw,
+        'Copy vertical tabs example to clipboard',
+        copiedSnippets,
+        'mb-8',
       ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(

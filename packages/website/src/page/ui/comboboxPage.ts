@@ -337,6 +337,16 @@ export const view = (
       demoContainer(
         ...Combobox.multiDemo(model.comboboxMultiDemo, toParentMessage),
       ),
+      highlightedCodeBlock(
+        div(
+          [Class('text-sm'), InnerHTML(Snippet.uiComboboxMultiHighlighted)],
+          [],
+        ),
+        Snippet.uiComboboxMultiRaw,
+        'Copy multi-select combobox example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
         'Combobox is headless — the ',

@@ -1,10 +1,12 @@
+import { Array } from 'effect'
 import { Ui } from 'foldkit'
 
 import { Class, button, div, label } from './html'
 
 // Compute indeterminate from child checkbox states:
-const isAllChecked = model.optionA.isChecked && model.optionB.isChecked
-const isNoneChecked = !model.optionA.isChecked && !model.optionB.isChecked
+const childModels = [model.optionA, model.optionB]
+const isAllChecked = Array.every(childModels, ({ isChecked }) => isChecked)
+const isNoneChecked = !Array.some(childModels, ({ isChecked }) => isChecked)
 const isIndeterminate = !isAllChecked && !isNoneChecked
 
 // The parent "Select All" checkbox:

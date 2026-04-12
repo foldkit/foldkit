@@ -268,6 +268,16 @@ export const view = (
       demoContainer(
         ...Dialog.dialogAnimatedDemo(model.dialogAnimatedDemo, toParentMessage),
       ),
+      highlightedCodeBlock(
+        div(
+          [Class('text-sm'), InnerHTML(Snippet.uiDialogAnimatedHighlighted)],
+          [],
+        ),
+        Snippet.uiDialogAnimatedRaw,
+        'Copy animated dialog example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
         'Dialog is headless — you control the panel and backdrop markup through className and attribute props. The native ',

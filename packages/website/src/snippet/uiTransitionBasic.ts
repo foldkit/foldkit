@@ -5,7 +5,7 @@ import { evo } from 'foldkit/struct'
 
 import { Class, p } from './html'
 
-// MODEL — store the Transition submodel and your own visibility flag
+// MODEL — embed Transition.Model and your own visibility flag
 //   transition: Ui.Transition.Model
 //   isShowing: S.Boolean
 
@@ -21,42 +21,67 @@ const GotTransitionMessage = m('GotTransitionMessage', {
 const ToggledContent = m('ToggledContent')
 
 // UPDATE — Transition.update returns a three-tuple: [model, commands, maybeOutMessage]
-//
-// ToggledContent: () => {
-//   const nextShowing = !model.isShowing
-//   // Send Showed() or Hidden() to start the animation:
-//   delegateToTransition(nextShowing ? Ui.Transition.Showed() : Ui.Transition.Hidden())
-// }
-//
-// GotTransitionMessage: ({ message }) => {
-//   const [nextTransition, commands, maybeOutMessage] =
-//     Ui.Transition.update(model.transition, message)
-//
-//   const mappedCommands = commands.map(
-//     Command.mapEffect(Effect.map(m => GotTransitionMessage({ message: m }))),
-//   )
-//
-//   // Handle OutMessages:
-//   const additionalCommands = Option.match(maybeOutMessage, {
-//     onNone: () => [],
-//     onSome: Match.tagsExhaustive({
-//       // Provide the leave detection command so the animation completes:
-//       StartedLeaveAnimating: () => [
-//         Command.mapEffect(
-//           Ui.Transition.defaultLeaveCommand(nextTransition),
-//           Effect.map(m => GotTransitionMessage({ message: m })),
-//         ),
-//       ],
-//       // Leave animation finished — content is now hidden:
-//       TransitionedOut: () => [],
-//     }),
-//   })
-//
-//   return [
-//     evo(model, { transition: () => nextTransition }),
-//     [...mappedCommands, ...additionalCommands],
-//   ]
-// }
+
+ToggledContent: () => {
+  const nextShowing = !model.isShowing
+  const [nextTransition, commands, maybeOutMessage] = Ui.Transition.update(
+    model.transition,
+    nextShowing ? Ui.Transition.Showed() : Ui.Transition.Hidden(),
+  )
+
+  return handleTransitionUpdate(
+    evo(model, { isShowing: () => nextShowing }),
+    nextTransition,
+    commands,
+    maybeOutMessage,
+  )
+}
+
+GotTransitionMessage: ({ message }) => {
+  const [nextTransition, commands, maybeOutMessage] = Ui.Transition.update(
+    model.transition,
+    message,
+  )
+
+  return handleTransitionUpdate(
+    model,
+    nextTransition,
+    commands,
+    maybeOutMessage,
+  )
+}
+
+const handleTransitionUpdate = (
+  model,
+  nextTransition,
+  commands,
+  maybeOutMessage,
+) => {
+  const toMessage = message => GotTransitionMessage({ message })
+
+  const mappedCommands = commands.map(Command.mapEffect(Effect.map(toMessage)))
+
+  const additionalCommands = Option.match(maybeOutMessage, {
+    onNone: () => [],
+    onSome: outMessage =>
+      M.value(outMessage).pipe(
+        M.tagsExhaustive({
+          StartedLeaveAnimating: () => [
+            Command.mapEffect(
+              Ui.Transition.defaultLeaveCommand(nextTransition),
+              Effect.map(toMessage),
+            ),
+          ],
+          TransitionedOut: () => [],
+        }),
+      ),
+  })
+
+  return [
+    evo(model, { transition: () => nextTransition }),
+    [...mappedCommands, ...additionalCommands],
+  ]
+}
 
 // VIEW — CSS transitions driven by data attributes
 

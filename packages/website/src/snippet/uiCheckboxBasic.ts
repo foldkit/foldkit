@@ -1,32 +1,40 @@
-import { Schema as S } from 'effect'
-import { Ui } from 'foldkit'
+import { Effect } from 'effect'
+import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
+import { evo } from 'foldkit/struct'
 
 import { Class, button, div, label, p } from './html'
 
-// In your Model, store the checkbox state as a Submodel field:
+// MODEL — embed Checkbox.Model as a Submodel field
 //   checkboxDemo: Ui.Checkbox.Model
 
-// In your init, initialize it:
+// INIT
 //   checkboxDemo: Ui.Checkbox.init({ id: 'terms' })
 
-// Wrap the checkbox Message in your parent Message:
+// MESSAGE — embed the Checkbox Message in your parent Message
+
 const GotCheckboxMessage = m('GotCheckboxMessage', {
   message: Ui.Checkbox.Message,
 })
 
-// In your update, delegate to Checkbox.update:
-//   GotCheckboxMessage: ({ message }) => {
-//     const [next, commands] = Ui.Checkbox.update(model.checkboxDemo, message)
-//     return [
-//       evo(model, { checkboxDemo: () => next }),
-//       commands.map(Command.mapEffect(Effect.map(
-//         message => GotCheckboxMessage({ message })
-//       ))),
-//     ]
-//   }
+// UPDATE — delegate to Checkbox.update
 
-// In your view:
+GotCheckboxMessage: ({ message }) => {
+  const [nextCheckbox, commands] = Ui.Checkbox.update(
+    model.checkboxDemo,
+    message,
+  )
+
+  return [
+    evo(model, { checkboxDemo: () => nextCheckbox }),
+    commands.map(
+      Command.mapEffect(Effect.map(message => GotCheckboxMessage({ message }))),
+    ),
+  ]
+}
+
+// VIEW
+
 Ui.Checkbox.view({
   model: model.checkboxDemo,
   toParentMessage: message => GotCheckboxMessage({ message }),

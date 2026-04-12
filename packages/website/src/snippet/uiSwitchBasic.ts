@@ -1,16 +1,36 @@
-import { Ui } from 'foldkit'
+import { Effect } from 'effect'
+import { Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
+import { evo } from 'foldkit/struct'
 
 import { Class, button, div, label, p } from './html'
 
-// Submodel wiring — same pattern as Checkbox:
-//   Model field: switchDemo: Ui.Switch.Model
-//   Init: Ui.Switch.init({ id: 'notifications' })
-//   Update: delegate via Ui.Switch.update
+// MODEL — embed Switch.Model as a Submodel field
+//   switchDemo: Ui.Switch.Model
+
+// INIT
+//   switchDemo: Ui.Switch.init({ id: 'notifications' })
+
+// MESSAGE — embed the Switch Message in your parent Message
 
 const GotSwitchMessage = m('GotSwitchMessage', {
   message: Ui.Switch.Message,
 })
+
+// UPDATE — delegate to Switch.update
+
+GotSwitchMessage: ({ message }) => {
+  const [nextSwitch, commands] = Ui.Switch.update(model.switchDemo, message)
+
+  return [
+    evo(model, { switchDemo: () => nextSwitch }),
+    commands.map(
+      Command.mapEffect(Effect.map(message => GotSwitchMessage({ message }))),
+    ),
+  ]
+}
+
+// VIEW
 
 Ui.Switch.view({
   model: model.switchDemo,
@@ -27,7 +47,6 @@ Ui.Switch.view({
             ),
           ],
           [
-            // Knob that slides on toggle
             div(
               [
                 Class(

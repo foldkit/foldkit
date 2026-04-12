@@ -1,5 +1,5 @@
 import { Effect, Match as M, Option } from 'effect'
-import { Command, Ui } from 'foldkit'
+import { Command, Subscription, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
@@ -12,13 +12,13 @@ const Model = S.Struct({
   dragAndDrop: Ui.DragAndDrop.Model,
 })
 
-// MESSAGE — wrap DragAndDrop.Message in your parent Message
+// MESSAGE
 
 const GotDragAndDropMessage = m('GotDragAndDropMessage', {
   message: Ui.DragAndDrop.Message,
 })
 
-// INIT — initialize alongside your data
+// INIT
 
 const init = () => [
   {
@@ -49,28 +49,66 @@ GotDragAndDropMessage: ({ message: dragMessage }) => {
       evo(model, { dragAndDrop: () => nextDragAndDrop }),
       mappedCommands,
     ],
-    onSome: M.type<Ui.DragAndDrop.OutMessage>().pipe(
-      M.tagsExhaustive({
-        Reordered: ({ itemId, toIndex }) => [
-          evo(model, {
-            items: () => reorder(model.items, itemId, toIndex),
-            dragAndDrop: () => nextDragAndDrop,
-          }),
-          mappedCommands,
-        ],
-        Cancelled: () => [
-          evo(model, { dragAndDrop: () => nextDragAndDrop }),
-          mappedCommands,
-        ],
-      }),
-    ),
+    onSome: outMessage =>
+      M.value(outMessage).pipe(
+        M.tagsExhaustive({
+          Reordered: ({ itemId, toIndex }) => [
+            evo(model, {
+              items: () => reorder(model.items, itemId, toIndex),
+              dragAndDrop: () => nextDragAndDrop,
+            }),
+            mappedCommands,
+          ],
+          Cancelled: () => [
+            evo(model, { dragAndDrop: () => nextDragAndDrop }),
+            mappedCommands,
+          ],
+        }),
+      ),
   })
 }
 
-// SUBSCRIPTIONS — forward document-level listeners
-// DragAndDrop requires four subscriptions: documentPointer, documentEscape,
-// documentKeyboard, and autoScroll. Map each stream through your wrapper
-// Message. See the Kanban example for the full subscription wiring.
+// SUBSCRIPTIONS — forward all four document-level listeners
+
+const dragAndDropSubs = Ui.DragAndDrop.subscriptions
+
+const mapDragStream = stream =>
+  stream.pipe(Stream.map(message => GotDragAndDropMessage({ message })))
+
+const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)({
+  dragPointer: {
+    modelToDependencies: model =>
+      dragAndDropSubs.documentPointer.modelToDependencies(model.dragAndDrop),
+    dependenciesToStream: (deps, readDeps) =>
+      mapDragStream(
+        dragAndDropSubs.documentPointer.dependenciesToStream(deps, readDeps),
+      ),
+  },
+  dragEscape: {
+    modelToDependencies: model =>
+      dragAndDropSubs.documentEscape.modelToDependencies(model.dragAndDrop),
+    dependenciesToStream: (deps, readDeps) =>
+      mapDragStream(
+        dragAndDropSubs.documentEscape.dependenciesToStream(deps, readDeps),
+      ),
+  },
+  dragKeyboard: {
+    modelToDependencies: model =>
+      dragAndDropSubs.documentKeyboard.modelToDependencies(model.dragAndDrop),
+    dependenciesToStream: (deps, readDeps) =>
+      mapDragStream(
+        dragAndDropSubs.documentKeyboard.dependenciesToStream(deps, readDeps),
+      ),
+  },
+  autoScroll: {
+    modelToDependencies: model =>
+      dragAndDropSubs.autoScroll.modelToDependencies(model.dragAndDrop),
+    dependenciesToStream: (deps, readDeps) =>
+      mapDragStream(
+        dragAndDropSubs.autoScroll.dependenciesToStream(deps, readDeps),
+      ),
+  },
+})
 
 // VIEW — spread draggable() onto items, droppable() onto containers
 
