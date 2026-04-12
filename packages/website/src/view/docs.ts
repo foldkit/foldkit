@@ -676,7 +676,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       UiSwitch: () =>
         withTableOfContents(
-          Page.UiPages.SwitchPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.SwitchPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.SwitchPage.tableOfContents,
         ),
       UiCheckbox: () =>
