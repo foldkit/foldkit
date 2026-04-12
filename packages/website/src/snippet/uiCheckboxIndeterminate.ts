@@ -51,10 +51,10 @@ GotSelectAllMessage: () => {
 }
 
 // In your view, compute indeterminate from child states:
-const childModels = [model.optionA, model.optionB]
-const isAllChecked = Array.every(childModels, ({ isChecked }) => isChecked)
+const checkboxes = [model.optionA, model.optionB]
+const isAllChecked = Array.every(checkboxes, ({ isChecked }) => isChecked)
 const isIndeterminate =
-  !isAllChecked && Array.some(childModels, ({ isChecked }) => isChecked)
+  !isAllChecked && Array.some(checkboxes, ({ isChecked }) => isChecked)
 
 Ui.Checkbox.view({
   model: { id: 'select-all', isChecked: isAllChecked },
