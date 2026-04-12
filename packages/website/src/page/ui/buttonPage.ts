@@ -9,7 +9,6 @@ import {
   link,
   pageTitle,
   para,
-  subPara,
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import { uiCheckboxRouter } from '../../route'
@@ -173,7 +172,7 @@ export const view = (
         Button.basicHeader.id,
         Button.basicHeader.text,
       ),
-      subPara(
+      para(
         'Pass an ',
         inlineCode('onClick'),
         ' Message and a ',
@@ -199,7 +198,7 @@ export const view = (
         Button.disabledHeader.id,
         Button.disabledHeader.text,
       ),
-      subPara(
+      para(
         'Set ',
         inlineCode('isDisabled: true'),
         ' to disable the button. Foldkit uses ',
@@ -269,11 +268,7 @@ export const view = (
         viewConfigHeader.id,
         viewConfigHeader.text,
       ),
-      subPara(
-        'Configuration object passed to ',
-        inlineCode('Button.view()'),
-        '.',
-      ),
+      para('Configuration object passed to ', inlineCode('Button.view()'), '.'),
       propTable(viewConfigProps),
 
       heading(
@@ -281,7 +276,7 @@ export const view = (
         buttonAttributesHeader.id,
         buttonAttributesHeader.text,
       ),
-      subPara(
+      para(
         'Attribute groups provided to the ',
         inlineCode('toView'),
         ' callback.',
