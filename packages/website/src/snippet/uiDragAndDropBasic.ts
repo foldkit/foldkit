@@ -12,7 +12,7 @@ const Model = S.Struct({
   // ...your other fields
 })
 
-// Initialize it:
+// Initialize it with a unique id:
 const initialModel = {
   items: [
     { id: '1', label: 'First' },

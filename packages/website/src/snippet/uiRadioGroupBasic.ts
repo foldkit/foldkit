@@ -11,7 +11,7 @@ const Model = S.Struct({
   // ...your other fields
 })
 
-// Initialize it:
+// Initialize it with a unique id:
 const initialModel = {
   radioGroup: Ui.RadioGroup.init({ id: 'plan' }),
 }
