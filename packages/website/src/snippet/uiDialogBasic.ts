@@ -36,16 +36,16 @@ GotDialogMessage: ({ message }) => {
 
 // VIEW
 
+const dialogToParentMessage = (message: Ui.Dialog.Message) =>
+  GotDialogMessage({ message })
+
 // Open the dialog by dispatching Ui.Dialog.Opened()
-button(
-  [OnClick(toParentMessage(GotDialogMessage({ message: Ui.Dialog.Opened() })))],
-  ['Open Dialog'],
-)
+button([OnClick(dialogToParentMessage(Ui.Dialog.Opened()))], ['Open Dialog'])
 
 // The dialog view — backed by native <dialog> with showModal()
 Ui.Dialog.view({
   model: model.dialog,
-  toParentMessage: message => GotDialogMessage({ message }),
+  toParentMessage: dialogToParentMessage,
   backdropAttributes: [Class('fixed inset-0 bg-black/50')],
   panelContent: div(
     [],
@@ -54,9 +54,8 @@ Ui.Dialog.view({
       p([], ['Are you sure you want to proceed?']),
       button(
         [
-          OnClick(
-            toParentMessage(GotDialogMessage({ message: Ui.Dialog.Closed() })),
-          ),
+          OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
+          Class('px-4 py-2 rounded-lg border'),
         ],
         ['Close'],
       ),

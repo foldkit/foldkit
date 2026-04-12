@@ -62,7 +62,7 @@ export const dialogDemo = (
   dialogModel: Ui.Dialog.Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => {
-  const toDialogMessage = (message: Ui.Dialog.Message) =>
+  const dialogToParentMessage = (message: Ui.Dialog.Message) =>
     toParentMessage(GotDialogDemoMessage({ message }))
 
   return [
@@ -72,7 +72,7 @@ export const dialogDemo = (
         button(
           [
             Class(triggerClassName),
-            OnClick(toDialogMessage(Ui.Dialog.Opened())),
+            OnClick(dialogToParentMessage(Ui.Dialog.Opened())),
           ],
           ['Open Dialog'],
         ),
@@ -80,7 +80,7 @@ export const dialogDemo = (
     ),
     Ui.Dialog.view({
       model: dialogModel,
-      toParentMessage: toDialogMessage,
+      toParentMessage: dialogToParentMessage,
       panelContent: div(
         [],
         [
@@ -100,14 +100,14 @@ export const dialogDemo = (
               button(
                 [
                   Class(cancelButtonClassName),
-                  OnClick(toDialogMessage(Ui.Dialog.Closed())),
+                  OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
                 ],
                 ['Cancel'],
               ),
               button(
                 [
                   Class(confirmButtonClassName),
-                  OnClick(toDialogMessage(Ui.Dialog.Closed())),
+                  OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
                 ],
                 ['Confirm'],
               ),
@@ -126,7 +126,7 @@ export const dialogAnimatedDemo = (
   dialogModel: Ui.Dialog.Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => {
-  const toDialogMessage = (message: Ui.Dialog.Message) =>
+  const dialogToParentMessage = (message: Ui.Dialog.Message) =>
     toParentMessage(GotDialogAnimatedDemoMessage({ message }))
 
   return [
@@ -136,7 +136,7 @@ export const dialogAnimatedDemo = (
         button(
           [
             Class(triggerClassName),
-            OnClick(toDialogMessage(Ui.Dialog.Opened())),
+            OnClick(dialogToParentMessage(Ui.Dialog.Opened())),
           ],
           ['Open Animated Dialog'],
         ),
@@ -144,7 +144,7 @@ export const dialogAnimatedDemo = (
     ),
     Ui.Dialog.view({
       model: dialogModel,
-      toParentMessage: toDialogMessage,
+      toParentMessage: dialogToParentMessage,
       panelContent: div(
         [],
         [
@@ -164,14 +164,14 @@ export const dialogAnimatedDemo = (
               button(
                 [
                   Class(cancelButtonClassName),
-                  OnClick(toDialogMessage(Ui.Dialog.Closed())),
+                  OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
                 ],
                 ['Cancel'],
               ),
               button(
                 [
                   Class(confirmButtonClassName),
-                  OnClick(toDialogMessage(Ui.Dialog.Closed())),
+                  OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
                 ],
                 ['Confirm'],
               ),

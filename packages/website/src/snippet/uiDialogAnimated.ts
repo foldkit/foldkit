@@ -39,11 +39,11 @@ GotDialogMessage: ({ message }) => {
 
 // VIEW — use data-[closed] for enter/leave transitions
 
-const toDialogMessage = message => GotDialogMessage({ message })
+const dialogToParentMessage = message => GotDialogMessage({ message })
 
 Ui.Dialog.view({
   model: model.dialog,
-  toParentMessage: toDialogMessage,
+  toParentMessage: dialogToParentMessage,
   backdropAttributes: [
     Class(
       'fixed inset-0 bg-black/50 transition duration-150 ease-out data-[closed]:opacity-0',
@@ -59,14 +59,14 @@ Ui.Dialog.view({
         [
           button(
             [
-              OnClick(toDialogMessage(Ui.Dialog.Closed())),
+              OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
               Class('px-4 py-2 rounded-lg border'),
             ],
             ['Cancel'],
           ),
           button(
             [
-              OnClick(toDialogMessage(Ui.Dialog.Closed())),
+              OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
               Class('px-4 py-2 rounded-lg bg-blue-600 text-white'),
             ],
             ['Confirm'],
