@@ -246,7 +246,7 @@ export const view = (
         DragAndDrop.demoHeader.text,
       ),
       para(
-        'For a full example with persistence and add-card forms, see the ',
+        'The snippet below shows a minimal sortable list with all four integration pieces. For a full example with persistence, cross-container moves, and add-card forms, see the ',
         link(exampleDetailRouter({ exampleSlug: 'kanban' }), 'Kanban example'),
         '.',
       ),
