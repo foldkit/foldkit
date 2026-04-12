@@ -709,7 +709,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       UiFieldset: () =>
         withTableOfContents(
-          Page.UiPages.FieldsetPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.FieldsetPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.FieldsetPage.tableOfContents,
         ),
       UiSelect: () =>
