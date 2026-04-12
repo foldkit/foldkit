@@ -6,12 +6,10 @@ import type { TableOfContentsEntry } from '../../main'
 import {
   heading,
   inlineCode,
-  link,
   pageTitle,
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
-import { uiCheckboxRouter } from '../../route'
 import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 import {
@@ -282,11 +280,5 @@ export const view = (
         ' callback.',
       ),
       propTable(buttonAttributesProps),
-
-      para(
-        'For a toggle between two states, see ',
-        link(uiCheckboxRouter(), 'Checkbox'),
-        '.',
-      ),
     ],
   )
