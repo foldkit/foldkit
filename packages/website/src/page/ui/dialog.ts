@@ -62,7 +62,7 @@ export const dialogDemo = (
   dialogModel: Ui.Dialog.Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => {
-  const dialogToParentMessage = (message: Ui.Dialog.Message) =>
+  const dialogToParentMessage = (message: Ui.Dialog.Message): ParentMessage =>
     toParentMessage(GotDialogDemoMessage({ message }))
 
   return [
@@ -126,7 +126,7 @@ export const dialogAnimatedDemo = (
   dialogModel: Ui.Dialog.Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => {
-  const dialogToParentMessage = (message: Ui.Dialog.Message) =>
+  const dialogToParentMessage = (message: Ui.Dialog.Message): ParentMessage =>
     toParentMessage(GotDialogAnimatedDemoMessage({ message }))
 
   return [

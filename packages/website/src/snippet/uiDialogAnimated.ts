@@ -24,6 +24,9 @@ const GotDialogMessage = m('GotDialogMessage', {
   message: Ui.Dialog.Message,
 })
 
+const Message = S.Union(GotDialogMessage)
+type Message = typeof Message.Type
+
 // UPDATE
 
 GotDialogMessage: ({ message }) => {
@@ -39,7 +42,8 @@ GotDialogMessage: ({ message }) => {
 
 // VIEW — use data-[closed] for enter/leave transitions
 
-const dialogToParentMessage = message => GotDialogMessage({ message })
+const dialogToParentMessage = (message: Ui.Dialog.Message): Message =>
+  GotDialogMessage({ message })
 
 Ui.Dialog.view({
   model: model.dialog,

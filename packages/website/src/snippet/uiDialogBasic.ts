@@ -21,6 +21,9 @@ const GotDialogMessage = m('GotDialogMessage', {
   message: Ui.Dialog.Message,
 })
 
+const Message = S.Union(GotDialogMessage)
+type Message = typeof Message.Type
+
 // UPDATE
 
 GotDialogMessage: ({ message }) => {
@@ -36,7 +39,7 @@ GotDialogMessage: ({ message }) => {
 
 // VIEW
 
-const dialogToParentMessage = (message: Ui.Dialog.Message) =>
+const dialogToParentMessage = (message: Ui.Dialog.Message): Message =>
   GotDialogMessage({ message })
 
 // Open the dialog by dispatching Ui.Dialog.Opened()
