@@ -7,7 +7,6 @@ import { Class, div, span } from '../../html'
 import { Icon } from '../../icon'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
-import { heading } from '../../prose'
 import {
   GotMenuAnimatedDemoMessage,
   GotMenuBasicDemoMessage,
@@ -129,7 +128,6 @@ export const basicDemo = (
   menuModel: Ui.Menu.Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => [
-  heading('h3', basicHeader.id, basicHeader.text),
   div(
     [Class('relative')],
     [
@@ -147,7 +145,6 @@ export const animatedDemo = (
   menuModel: Ui.Menu.Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => [
-  heading('h3', animatedHeader.id, animatedHeader.text),
   div(
     [Class('relative')],
     [
