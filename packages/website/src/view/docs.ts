@@ -659,17 +659,29 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       UiDialog: () =>
         withTableOfContents(
-          Page.UiPages.DialogPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.DialogPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.DialogPage.tableOfContents,
         ),
       UiMenu: () =>
         withTableOfContents(
-          Page.UiPages.MenuPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.MenuPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.MenuPage.tableOfContents,
         ),
       UiPopover: () =>
         withTableOfContents(
-          Page.UiPages.PopoverPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.PopoverPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.PopoverPage.tableOfContents,
         ),
       UiListbox: () =>
@@ -710,7 +722,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       UiCombobox: () =>
         withTableOfContents(
-          Page.UiPages.ComboboxPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.ComboboxPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.ComboboxPage.tableOfContents,
         ),
       UiInput: () =>
