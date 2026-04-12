@@ -8,6 +8,7 @@ import {
   AriaHidden,
   AriaLabel,
   Class,
+  DataAttribute,
   Height,
   Href,
   Id,
@@ -62,6 +63,7 @@ const glyph = (symbol: string, offsetY?: string): Html =>
       Class(
         '-my-[9rem] md:-my-[13.5rem] px-6 md:px-12 lg:px-20 select-none pointer-events-none',
       ),
+      AriaHidden(true),
     ],
     [
       div(
@@ -75,8 +77,9 @@ const glyph = (symbol: string, offsetY?: string): Html =>
                   offsetY,
                 ),
               ),
+              DataAttribute('glyph', symbol),
             ],
-            [symbol],
+            [],
           ),
         ],
       ),
