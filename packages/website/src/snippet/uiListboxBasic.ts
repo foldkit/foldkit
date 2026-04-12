@@ -25,7 +25,7 @@ const GotListboxMessage = m('GotListboxMessage', {
   message: Ui.Listbox.Message,
 })
 
-// In your update, delegate to Listbox.update:
+// In your update, delegate to Listbox.update for user-driven interactions:
 GotListboxMessage: ({ message }) => {
   const [nextListbox, commands] = Ui.Listbox.update(model.listbox, message)
 
@@ -33,6 +33,22 @@ GotListboxMessage: ({ message }) => {
     // Merge the next state into your Model:
     evo(model, { listbox: () => nextListbox }),
     // Forward the Submodel's Commands through your parent Message:
+    commands.map(
+      Command.mapEffect(Effect.map(message => GotListboxMessage({ message }))),
+    ),
+  ]
+}
+
+// To select programmatically from an external event (URL change, API result,
+// an action from another component, etc.), use Listbox.selectItem. It updates
+// the state AND returns the same close-and-focus Commands that a user click
+// would — so the listbox behaves identically whether the selection came from
+// the user or from your own code:
+SelectedPersonFromUrl: ({ value }) => {
+  const [nextListbox, commands] = Ui.Listbox.selectItem(model.listbox, value)
+
+  return [
+    evo(model, { listbox: () => nextListbox }),
     commands.map(
       Command.mapEffect(Effect.map(message => GotListboxMessage({ message }))),
     ),
@@ -70,6 +86,3 @@ Ui.Listbox.view({
   backdropClassName: 'fixed inset-0',
   anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
 })
-
-// Programmatic selection (e.g. from a domain event):
-// const [nextListbox, commands] = Ui.Listbox.selectItem(model.listbox, 'Lindsay Funke')
