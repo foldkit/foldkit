@@ -127,7 +127,7 @@ export const demoViewShell = (codePanel: Html, appPanel: Html): Html =>
       p(
         [
           Class(
-            'text-sm text-gray-500 dark:text-gray-400 text-center text-balance lg:hidden',
+            'text-sm text-gray-500 dark:text-gray-500 text-center text-balance lg:hidden',
           ),
           AriaHidden(true),
         ],

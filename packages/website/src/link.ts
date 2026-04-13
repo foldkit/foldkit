@@ -3,6 +3,9 @@ const exampleBase = 'https://github.com/foldkit/foldkit/tree/main/examples'
 export const exampleSourceHref = (slug: string): string =>
   `${exampleBase}/${slug}/src/main.ts`
 
+export const uiShowcaseViewSourceHref = (slug: string): string =>
+  `https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/view/${slug}.ts`
+
 export const Link = {
   elm: 'https://elm-lang.org',
   elmArchitecture: 'https://guide.elm-lang.org/architecture/',

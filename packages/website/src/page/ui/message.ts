@@ -120,7 +120,6 @@ export const GotDragAndDropDemoMessage = m('GotDragAndDropDemoMessage', {
 export const GotTransitionDemoMessage = m('GotTransitionDemoMessage', {
   message: Ui.Transition.Message,
 })
-export const ToggledTransitionDemo = m('ToggledTransitionDemo')
 
 export const Message = S.Union(
   ClickedButtonDemo,
@@ -155,6 +154,5 @@ export const Message = S.Union(
   GotVerticalTabsDemoMessage,
   GotDragAndDropDemoMessage,
   GotTransitionDemoMessage,
-  ToggledTransitionDemo,
 )
 export type Message = typeof Message.Type

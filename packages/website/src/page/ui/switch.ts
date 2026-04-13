@@ -41,37 +41,32 @@ export const switchDemo = (
   switchModel: Ui.Switch.Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => [
-  div(
-    [Class('mt-6')],
-    [
-      Ui.Switch.view({
-        model: switchModel,
-        toParentMessage: message =>
-          toParentMessage(GotSwitchDemoMessage({ message })),
-        toView: attributes =>
+  Ui.Switch.view({
+    model: switchModel,
+    toParentMessage: message =>
+      toParentMessage(GotSwitchDemoMessage({ message })),
+    toView: attributes =>
+      div(
+        [Class(wrapperClassName)],
+        [
+          button(
+            [...attributes.button, Class(buttonClassName)],
+            [knob(switchModel.isChecked)],
+          ),
           div(
-            [Class(wrapperClassName)],
+            [],
             [
-              button(
-                [...attributes.button, Class(buttonClassName)],
-                [knob(switchModel.isChecked)],
+              label(
+                [...attributes.label, Class(labelClassName)],
+                ['Enable notifications'],
               ),
-              div(
-                [],
-                [
-                  label(
-                    [...attributes.label, Class(labelClassName)],
-                    ['Enable notifications'],
-                  ),
-                  p(
-                    [...attributes.description, Class(descriptionClassName)],
-                    ['Get notified when something important happens.'],
-                  ),
-                ],
+              p(
+                [...attributes.description, Class(descriptionClassName)],
+                ['Get notified when something important happens.'],
               ),
             ],
           ),
-      }),
-    ],
-  ),
+        ],
+      ),
+  }),
 ]

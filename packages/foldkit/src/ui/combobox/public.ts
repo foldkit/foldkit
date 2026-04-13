@@ -1,4 +1,4 @@
-export { init, update, view, lazy, Model } from './single'
+export { init, update, selectItem, view, lazy, Model } from './single'
 
 export {
   Message,

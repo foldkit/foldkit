@@ -74,7 +74,6 @@ export const init = (): InitReturn => [
       id: 'drag-and-drop-demo',
     }),
     transitionDemo: Ui.Transition.init({ id: 'transition-demo' }),
-    isTransitionDemoShowing: false,
     dragAndDropDemoColumns: [
       {
         id: 'backlog',

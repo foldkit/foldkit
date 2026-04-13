@@ -5,7 +5,6 @@ import type { Html } from 'foldkit/html'
 import { Class, Style, div, empty } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
-import { heading } from '../../prose'
 import { GotDragAndDropDemoMessage, type Message } from './message'
 import type { Model } from './model'
 import type { DemoCard, DemoColumn } from './model'
@@ -226,9 +225,8 @@ export const demo = (
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
 ): ReadonlyArray<Html> => [
-  heading('h3', demoHeader.id, demoHeader.text),
   div(
-    [Class('mb-8')],
+    [Class('mb-8 w-full max-w-md')],
     [
       div(
         [Class('grid grid-cols-2 gap-4')],

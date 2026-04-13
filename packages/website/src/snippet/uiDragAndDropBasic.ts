@@ -1,0 +1,153 @@
+// Pseudocode walkthrough of the Foldkit integration points. Each labeled
+// block below is an excerpt — fit them into your own Model, init, Message,
+// update, subscriptions, and view definitions.
+import { Effect, Match as M, Option, Stream } from 'effect'
+import { Command, Subscription, Ui } from 'foldkit'
+import { m } from 'foldkit/message'
+import { evo } from 'foldkit/struct'
+
+import { Class, li, span, ul } from './html'
+
+// Add a field to your Model for the DragAndDrop Submodel plus the items being sorted:
+const Model = S.Struct({
+  items: S.Array(S.Struct({ id: S.String, label: S.String })),
+  dragAndDrop: Ui.DragAndDrop.Model,
+  // ...your other fields
+})
+
+// In your init function, initialize the DragAndDrop Submodel with a unique id:
+const init = () => [
+  {
+    items: [
+      { id: '1', label: 'First' },
+      { id: '2', label: 'Second' },
+      { id: '3', label: 'Third' },
+    ],
+    dragAndDrop: Ui.DragAndDrop.init({ id: 'sortable-list' }),
+    // ...your other fields
+  },
+  [],
+]
+
+// Embed the DragAndDrop Message in your parent Message:
+const GotDragAndDropMessage = m('GotDragAndDropMessage', {
+  message: Ui.DragAndDrop.Message,
+})
+
+// Inside your update function's M.tagsExhaustive({...}), DragAndDrop.update
+// returns a three-tuple: [model, commands, maybeOutMessage]. Handle the
+// Reordered OutMessage to apply the move to your own list:
+GotDragAndDropMessage: ({ message: dragMessage }) => {
+  const [nextDragAndDrop, dragCommands, maybeOutMessage] =
+    Ui.DragAndDrop.update(model.dragAndDrop, dragMessage)
+
+  const mappedCommands = dragCommands.map(
+    Command.mapEffect(
+      Effect.map(message => GotDragAndDropMessage({ message })),
+    ),
+  )
+
+  return Option.match(maybeOutMessage, {
+    onNone: () => [
+      // Merge the next state into your Model:
+      evo(model, { dragAndDrop: () => nextDragAndDrop }),
+      // Forward the Submodel's Commands through your parent Message:
+      mappedCommands,
+    ],
+    onSome: outMessage =>
+      M.value(outMessage).pipe(
+        M.tagsExhaustive({
+          Reordered: ({ itemId, fromIndex, toIndex }) => [
+            // Merge the next state into your Model:
+            evo(model, {
+              // reorder is your own function that moves the item
+              items: () => reorder(model.items, itemId, fromIndex, toIndex),
+              dragAndDrop: () => nextDragAndDrop,
+            }),
+            // Forward the Submodel's Commands through your parent Message:
+            mappedCommands,
+          ],
+          Cancelled: () => [
+            // Merge the next state into your Model:
+            evo(model, { dragAndDrop: () => nextDragAndDrop }),
+            // Forward the Submodel's Commands through your parent Message:
+            mappedCommands,
+          ],
+        }),
+      ),
+  })
+}
+
+// In your subscriptions, forward all four document-level listeners:
+const dragAndDropSubs = Ui.DragAndDrop.subscriptions
+
+const mapDragStream = stream =>
+  stream.pipe(Stream.map(message => GotDragAndDropMessage({ message })))
+
+const dragFields = Ui.DragAndDrop.SubscriptionDeps.fields
+
+const SubscriptionDeps = S.Struct({
+  dragPointer: dragFields['documentPointer'],
+  dragEscape: dragFields['documentEscape'],
+  dragKeyboard: dragFields['documentKeyboard'],
+  autoScroll: dragFields['autoScroll'],
+})
+
+const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)({
+  dragPointer: {
+    modelToDependencies: model =>
+      dragAndDropSubs.documentPointer.modelToDependencies(model.dragAndDrop),
+    dependenciesToStream: (deps, readDeps) =>
+      mapDragStream(
+        dragAndDropSubs.documentPointer.dependenciesToStream(deps, readDeps),
+      ),
+  },
+  dragEscape: {
+    modelToDependencies: model =>
+      dragAndDropSubs.documentEscape.modelToDependencies(model.dragAndDrop),
+    dependenciesToStream: (deps, readDeps) =>
+      mapDragStream(
+        dragAndDropSubs.documentEscape.dependenciesToStream(deps, readDeps),
+      ),
+  },
+  dragKeyboard: {
+    modelToDependencies: model =>
+      dragAndDropSubs.documentKeyboard.modelToDependencies(model.dragAndDrop),
+    dependenciesToStream: (deps, readDeps) =>
+      mapDragStream(
+        dragAndDropSubs.documentKeyboard.dependenciesToStream(deps, readDeps),
+      ),
+  },
+  autoScroll: {
+    modelToDependencies: model =>
+      dragAndDropSubs.autoScroll.modelToDependencies(model.dragAndDrop),
+    dependenciesToStream: (deps, readDeps) =>
+      mapDragStream(
+        dragAndDropSubs.autoScroll.dependenciesToStream(deps, readDeps),
+      ),
+  },
+})
+
+// Inside your view function, spread draggable() onto items and droppable()
+// onto containers:
+ul(
+  [
+    ...Ui.DragAndDrop.droppable('list', 'Sortable items'),
+    Class('flex flex-col gap-2'),
+  ],
+  model.items.map((item, index) =>
+    li(
+      [
+        ...Ui.DragAndDrop.draggable({
+          model: model.dragAndDrop,
+          toParentMessage: message => GotDragAndDropMessage({ message }),
+          itemId: item.id,
+          containerId: 'list',
+          index,
+        }),
+        Class('p-3 rounded-lg border cursor-grab'),
+      ],
+      [span([], [item.label])],
+    ),
+  ),
+)

@@ -1,9 +1,11 @@
+// Pseudocode — Button is view-only. Replace ClickedSave() with your own
+// Message constructor.
 import { Ui } from 'foldkit'
 
 import { Class, button } from './html'
 
 Ui.Button.view({
-  onClick: ClickedSave(),
+  onClick: ClickedSave(), // your Message
   toView: attributes =>
     button(
       [

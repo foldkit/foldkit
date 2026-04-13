@@ -2,7 +2,7 @@ import { Ui } from 'foldkit'
 
 import { Class, OnClick, button, div, p } from '../../html'
 import type { Message as ParentMessage, TableOfContentsEntry } from '../../main'
-import { type Message, ToggledTransitionDemo } from './message'
+import { GotTransitionDemoMessage, type Message } from './message'
 
 // TABLE OF CONTENTS
 
@@ -18,31 +18,33 @@ const triggerClassName =
   'px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 dark:border-gray-700 bg-cream dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 select-none'
 
 const contentClassName =
-  'rounded-lg bg-accent-100 dark:bg-accent-900/30 border border-accent-300 dark:border-accent-700 p-4 transition duration-200 ease-out data-[closed]:opacity-0 data-[closed]:scale-95 data-[closed]:-translate-y-2'
+  'mt-4 rounded-lg bg-accent-100 dark:bg-accent-900/30 border border-accent-300 dark:border-accent-700 p-4 transition duration-200 ease-out data-[closed]:opacity-0 data-[closed]:scale-95 data-[closed]:-translate-y-2'
 
 // VIEW
 
 export const transitionDemo = (
   transitionModel: Ui.Transition.Model,
-  isTransitionDemoShowing: boolean,
   toParentMessage: (message: Message) => ParentMessage,
 ) => {
+  const toggleMessage = transitionModel.isShowing
+    ? Ui.Transition.Hid()
+    : Ui.Transition.Showed()
+
   return [
     div(
-      [Class('flex gap-3')],
+      [Class('flex flex-col items-center')],
       [
         button(
           [
             Class(triggerClassName),
-            OnClick(toParentMessage(ToggledTransitionDemo())),
+            OnClick(
+              toParentMessage(
+                GotTransitionDemoMessage({ message: toggleMessage }),
+              ),
+            ),
           ],
-          [isTransitionDemoShowing ? 'Hide Content' : 'Show Content'],
+          [transitionModel.isShowing ? 'Hide Content' : 'Show Content'],
         ),
-      ],
-    ),
-    div(
-      [Class('mt-4')],
-      [
         Ui.Transition.view({
           model: transitionModel,
           className: contentClassName,

@@ -1,11 +1,14 @@
 import { Array, Schema as S } from 'effect'
 
+import type * as Command from '../../command'
 import { type Html, createLazy } from '../../html'
 import { evo } from '../../struct'
 import {
   type BaseInitConfig,
   BaseModel,
   type BaseViewConfig,
+  type Message,
+  SelectedItem,
   baseInit,
   closedBaseModel,
   makeUpdate,
@@ -73,6 +76,13 @@ export const update = makeUpdate<Model>({
       selectedItems: () => toggleItem(model.selectedItems, item),
     }),
 })
+
+/** Programmatically toggles an item in the multi-select combobox. Use this in domain-event handlers when the combobox uses `onSelectedItem`. */
+export const selectItem = (
+  model: Model,
+  item: string,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+  update(model, SelectedItem({ item, displayText: item }))
 
 // VIEW
 

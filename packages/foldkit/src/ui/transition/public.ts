@@ -8,7 +8,7 @@ export {
   Message,
   OutMessage,
   Showed,
-  Hidden,
+  Hid,
   AdvancedTransitionFrame,
   EndedTransition,
   StartedLeaveAnimating,

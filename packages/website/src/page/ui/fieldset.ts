@@ -14,7 +14,6 @@ import {
 } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
-import { heading } from '../../prose'
 import {
   GotFieldsetCheckboxDemoMessage,
   type Message,
@@ -39,8 +38,7 @@ export const disabledHeader: TableOfContentsEntry = {
 
 // SHARED STYLES
 
-const fieldsetClassName =
-  'rounded-lg border border-gray-200 p-6 dark:border-gray-700'
+const fieldsetClassName = 'w-full p-6'
 
 const legendClassName =
   'float-left w-full text-base font-semibold text-gray-900 dark:text-white'
@@ -72,7 +70,6 @@ export const basicDemo = (
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => [
-  heading('h3', basicHeader.id, basicHeader.text),
   Ui.Fieldset.view<ParentMessage>({
     id: 'fieldset-basic-demo',
     toView: attributes =>
@@ -199,7 +196,6 @@ export const disabledDemo = (
   _model: Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => [
-  heading('h3', disabledHeader.id, disabledHeader.text),
   Ui.Fieldset.view<ParentMessage>({
     id: 'fieldset-disabled-demo',
     isDisabled: true,

@@ -7,7 +7,7 @@ import { Class, Placeholder, div, span } from '../../html'
 import { Icon } from '../../icon'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
-import { heading, inlineCode, subPara } from '../../prose'
+import { inlineCode, subPara } from '../../prose'
 import {
   GotComboboxDemoMessage,
   GotComboboxMultiDemoMessage,
@@ -107,7 +107,6 @@ export const comboboxDemo = (
   const filteredCities = filterCities(comboboxModel.inputValue)
 
   return [
-    heading('h3', singleSelectHeader.id, singleSelectHeader.text),
     div(
       [Class('relative')],
       [
@@ -157,7 +156,6 @@ export const nullableDemo = (
   const filteredCities = filterCities(comboboxNullableModel.inputValue)
 
   return [
-    heading('h3', nullableHeader.id, nullableHeader.text),
     div(
       [Class('relative')],
       [
@@ -207,7 +205,6 @@ export const selectOnFocusDemo = (
   const filteredCities = filterCities(comboboxSelectOnFocusModel.inputValue)
 
   return [
-    heading('h3', selectOnFocusHeader.id, selectOnFocusHeader.text),
     subPara(
       'Pass ',
       inlineCode('selectInputOnFocus: true', 'text-xs px-0.5'),
@@ -267,7 +264,6 @@ export const multiDemo = (
   const filteredCities = filterCities(comboboxMultiModel.inputValue)
 
   return [
-    heading('h3', multiHeader.id, multiHeader.text),
     div(
       [Class('relative')],
       [

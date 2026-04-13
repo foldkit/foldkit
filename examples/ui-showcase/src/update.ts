@@ -564,7 +564,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
         const nextShowing = !model.isTransitionDemoShowing
         const [nextTransitionDemo, commands] = delegateToTransitionDemo(
           model.transitionDemo,
-          nextShowing ? Ui.Transition.Showed() : Ui.Transition.Hidden(),
+          nextShowing ? Ui.Transition.Showed() : Ui.Transition.Hid(),
         )
 
         return [

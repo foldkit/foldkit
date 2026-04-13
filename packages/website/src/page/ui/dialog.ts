@@ -3,7 +3,6 @@ import { Ui } from 'foldkit'
 import { Class, Id, OnClick, button, div, h2, p } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
-import { heading } from '../../prose'
 import {
   GotDialogAnimatedDemoMessage,
   GotDialogDemoMessage,
@@ -63,18 +62,17 @@ export const dialogDemo = (
   dialogModel: Ui.Dialog.Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => {
-  const toDialogMessage = (message: Ui.Dialog.Message) =>
+  const dialogToParentMessage = (message: Ui.Dialog.Message): ParentMessage =>
     toParentMessage(GotDialogDemoMessage({ message }))
 
   return [
-    heading('h3', basicHeader.id, basicHeader.text),
     div(
       [Class('flex gap-3')],
       [
         button(
           [
             Class(triggerClassName),
-            OnClick(toDialogMessage(Ui.Dialog.Opened())),
+            OnClick(dialogToParentMessage(Ui.Dialog.Opened())),
           ],
           ['Open Dialog'],
         ),
@@ -82,7 +80,7 @@ export const dialogDemo = (
     ),
     Ui.Dialog.view({
       model: dialogModel,
-      toParentMessage: toDialogMessage,
+      toParentMessage: dialogToParentMessage,
       panelContent: div(
         [],
         [
@@ -102,14 +100,14 @@ export const dialogDemo = (
               button(
                 [
                   Class(cancelButtonClassName),
-                  OnClick(toDialogMessage(Ui.Dialog.Closed())),
+                  OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
                 ],
                 ['Cancel'],
               ),
               button(
                 [
                   Class(confirmButtonClassName),
-                  OnClick(toDialogMessage(Ui.Dialog.Closed())),
+                  OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
                 ],
                 ['Confirm'],
               ),
@@ -128,18 +126,17 @@ export const dialogAnimatedDemo = (
   dialogModel: Ui.Dialog.Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => {
-  const toDialogMessage = (message: Ui.Dialog.Message) =>
+  const dialogToParentMessage = (message: Ui.Dialog.Message): ParentMessage =>
     toParentMessage(GotDialogAnimatedDemoMessage({ message }))
 
   return [
-    heading('h3', animatedHeader.id, animatedHeader.text),
     div(
       [Class('flex gap-3')],
       [
         button(
           [
             Class(triggerClassName),
-            OnClick(toDialogMessage(Ui.Dialog.Opened())),
+            OnClick(dialogToParentMessage(Ui.Dialog.Opened())),
           ],
           ['Open Animated Dialog'],
         ),
@@ -147,7 +144,7 @@ export const dialogAnimatedDemo = (
     ),
     Ui.Dialog.view({
       model: dialogModel,
-      toParentMessage: toDialogMessage,
+      toParentMessage: dialogToParentMessage,
       panelContent: div(
         [],
         [
@@ -167,14 +164,14 @@ export const dialogAnimatedDemo = (
               button(
                 [
                   Class(cancelButtonClassName),
-                  OnClick(toDialogMessage(Ui.Dialog.Closed())),
+                  OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
                 ],
                 ['Cancel'],
               ),
               button(
                 [
                   Class(confirmButtonClassName),
-                  OnClick(toDialogMessage(Ui.Dialog.Closed())),
+                  OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
                 ],
                 ['Confirm'],
               ),

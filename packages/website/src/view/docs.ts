@@ -641,82 +641,146 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       UiTabs: () =>
         withTableOfContents(
-          Page.UiPages.TabsPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.TabsPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.TabsPage.tableOfContents,
         ),
       UiDisclosure: () =>
         withTableOfContents(
-          Page.UiPages.DisclosurePage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.DisclosurePage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.DisclosurePage.tableOfContents,
         ),
       UiDialog: () =>
         withTableOfContents(
-          Page.UiPages.DialogPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.DialogPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.DialogPage.tableOfContents,
         ),
       UiMenu: () =>
         withTableOfContents(
-          Page.UiPages.MenuPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.MenuPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.MenuPage.tableOfContents,
         ),
       UiPopover: () =>
         withTableOfContents(
-          Page.UiPages.PopoverPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.PopoverPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.PopoverPage.tableOfContents,
         ),
       UiListbox: () =>
         withTableOfContents(
-          Page.UiPages.ListboxPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.ListboxPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.ListboxPage.tableOfContents,
         ),
       UiRadioGroup: () =>
         withTableOfContents(
-          Page.UiPages.RadioGroupPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.RadioGroupPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.RadioGroupPage.tableOfContents,
         ),
       UiSwitch: () =>
         withTableOfContents(
-          Page.UiPages.SwitchPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.SwitchPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.SwitchPage.tableOfContents,
         ),
       UiCheckbox: () =>
         withTableOfContents(
-          Page.UiPages.CheckboxPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.CheckboxPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.CheckboxPage.tableOfContents,
         ),
       UiCombobox: () =>
         withTableOfContents(
-          Page.UiPages.ComboboxPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.ComboboxPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.ComboboxPage.tableOfContents,
         ),
       UiInput: () =>
         withTableOfContents(
-          Page.UiPages.InputPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.InputPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.InputPage.tableOfContents,
         ),
       UiTextarea: () =>
         withTableOfContents(
-          Page.UiPages.TextareaPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.TextareaPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.TextareaPage.tableOfContents,
         ),
       UiFieldset: () =>
         withTableOfContents(
-          Page.UiPages.FieldsetPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.FieldsetPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.FieldsetPage.tableOfContents,
         ),
       UiSelect: () =>
         withTableOfContents(
-          Page.UiPages.SelectPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.SelectPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.SelectPage.tableOfContents,
         ),
       UiDragAndDrop: () =>
         withTableOfContents(
-          Page.UiPages.DragAndDropPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.DragAndDropPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.DragAndDropPage.tableOfContents,
         ),
       UiTransition: () =>
         withTableOfContents(
-          Page.UiPages.TransitionPage.view(model.uiPages, toUiPageMessage),
+          Page.UiPages.TransitionPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
           Page.UiPages.TransitionPage.tableOfContents,
         ),
       AiOverview: () =>

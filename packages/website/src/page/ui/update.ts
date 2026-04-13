@@ -583,22 +583,6 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ]
       },
 
-      ToggledTransitionDemo: () => {
-        const nextShowing = !model.isTransitionDemoShowing
-        const [nextTransitionDemo, commands] = delegateToTransitionDemo(
-          model.transitionDemo,
-          nextShowing ? Ui.Transition.Showed() : Ui.Transition.Hidden(),
-        )
-
-        return [
-          evo(model, {
-            isTransitionDemoShowing: () => nextShowing,
-            transitionDemo: () => nextTransitionDemo,
-          }),
-          commands,
-        ]
-      },
-
       GotDragAndDropDemoMessage: ({ message }) => {
         const [nextDragAndDrop, dragAndDropCommands, maybeOutMessage] =
           Ui.DragAndDrop.update(model.dragAndDropDemo, message)

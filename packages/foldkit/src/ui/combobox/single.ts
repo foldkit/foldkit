@@ -1,11 +1,14 @@
 import { Array, Option, Schema as S, pipe } from 'effect'
 
+import type * as Command from '../../command'
 import { type Html, createLazy } from '../../html'
 import { evo } from '../../struct'
 import {
   type BaseInitConfig,
   BaseModel,
   type BaseViewConfig,
+  type Message,
+  SelectedItem,
   baseInit,
   closedBaseModel,
   makeUpdate,
@@ -97,6 +100,15 @@ export const update = makeUpdate<Model>({
       maybeSelectedDisplayText: () => Option.some(displayText),
     }),
 })
+
+/** Programmatically selects an item in the single-select combobox, closing the combobox and returning
+ *  focus commands. Use this in domain-event handlers when the combobox uses `onSelectedItem`. */
+export const selectItem = (
+  model: Model,
+  item: string,
+  displayText: string,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+  update(model, SelectedItem({ item, displayText }))
 
 // VIEW
 

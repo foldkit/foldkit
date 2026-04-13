@@ -13,7 +13,7 @@ import type { AnchorConfig } from '../anchor'
 // The barrel (../transition) imports from html, which starts the cycle.
 import {
   EndedTransition as TransitionEndedTransition,
-  Hidden as TransitionHidden,
+  Hid as TransitionHid,
   Message as TransitionMessage,
   Model as TransitionModel,
   type OutMessage as TransitionOutMessage,
@@ -299,7 +299,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     if (model.isAnimated) {
       const [nextModel, transitionCommands] = delegateToTransition(
         closed,
-        TransitionHidden(),
+        TransitionHid(),
       )
       return [nextModel, [...commands, ...transitionCommands]]
     }

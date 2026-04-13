@@ -3,7 +3,6 @@ import { Ui } from 'foldkit'
 import { Class, button, div, label, p, span } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
-import { heading } from '../../prose'
 import {
   GotCheckboxAllDemoMessage,
   GotCheckboxBasicDemoMessage,
@@ -51,7 +50,6 @@ export const basicDemo = (
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => [
-  heading('h3', basicHeader.id, basicHeader.text),
   Ui.Checkbox.view({
     model: model.checkboxBasicDemo,
     toParentMessage: message =>
@@ -99,7 +97,6 @@ export const indeterminateDemo = (
       : undefined
 
   return [
-    heading('h3', indeterminateHeader.id, indeterminateHeader.text),
     div(
       [Class('flex flex-col gap-3')],
       [

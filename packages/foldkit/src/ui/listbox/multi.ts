@@ -1,11 +1,14 @@
 import { Array, Option, Schema as S, pipe } from 'effect'
 
+import type * as Command from '../../command'
 import { type Html, createLazy } from '../../html'
 import { evo } from '../../struct'
 import {
   type BaseInitConfig,
   BaseModel,
   type BaseViewConfig,
+  type Message,
+  SelectedItem,
   baseInit,
   makeUpdate,
   makeView,
@@ -44,6 +47,13 @@ export const update = makeUpdate<Model>((model, item) => {
 
   return [evo(model, { selectedItems: () => nextSelectedItems }), []]
 })
+
+/** Programmatically toggles an item in the multi-select listbox. Use this in domain-event handlers when the listbox uses `onSelectedItem`. */
+export const selectItem = (
+  model: Model,
+  item: string,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+  update(model, SelectedItem({ item }))
 
 // VIEW
 

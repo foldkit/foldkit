@@ -59,7 +59,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         ]
       },
 
-      Hidden: () => {
+      Hid: () => {
         const isLeaving =
           model.transitionState === 'LeaveStart' ||
           model.transitionState === 'LeaveAnimating'

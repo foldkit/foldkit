@@ -30,7 +30,7 @@ export type Model = typeof Model.Type
 /** Sent when the transition should enter (become visible). Starts the enter animation sequence. */
 export const Showed = m('Showed')
 /** Sent when the transition should leave (become hidden). Starts the leave animation sequence. */
-export const Hidden = m('Hidden')
+export const Hid = m('Hid')
 /** Sent internally when a double-rAF completes, advancing the transition to its animating phase. */
 export const AdvancedTransitionFrame = m('AdvancedTransitionFrame')
 /** Sent internally when all CSS transitions on the transition element have completed. */
@@ -40,15 +40,15 @@ export const EndedTransition = m('EndedTransition')
 export const Message: S.Union<
   [
     typeof Showed,
-    typeof Hidden,
+    typeof Hid,
     typeof AdvancedTransitionFrame,
     typeof EndedTransition,
   ]
-> = S.Union(Showed, Hidden, AdvancedTransitionFrame, EndedTransition)
+> = S.Union(Showed, Hid, AdvancedTransitionFrame, EndedTransition)
 export type Message = typeof Message.Type
 
 export type Showed = typeof Showed.Type
-export type Hidden = typeof Hidden.Type
+export type Hid = typeof Hid.Type
 
 // OUT MESSAGE
 

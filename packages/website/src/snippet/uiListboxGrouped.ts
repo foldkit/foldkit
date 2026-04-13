@@ -1,0 +1,121 @@
+// Pseudocode walkthrough of the Foldkit integration points. Each labeled
+// block below is an excerpt — fit them into your own Model, init, Message,
+// update, and view definitions.
+import { Effect, Option } from 'effect'
+import { Command, Ui } from 'foldkit'
+import { m } from 'foldkit/message'
+import { evo } from 'foldkit/struct'
+
+import { Class, div, span } from './html'
+
+// Add a field to your Model for the Listbox Submodel, plus a field for
+// the selected value your app actually cares about:
+const Model = S.Struct({
+  maybeCharacter: S.OptionFromSelf(S.String),
+  listbox: Ui.Listbox.Model,
+  // ...your other fields
+})
+
+// In your init function, initialize the Listbox Submodel with a unique id:
+const init = () => [
+  {
+    maybeCharacter: Option.none(),
+    listbox: Ui.Listbox.init({ id: 'character' }),
+    // ...your other fields
+  },
+  [],
+]
+
+// Embed the Listbox Message for keyboard/pointer events, plus your own
+// Message for the actual selection:
+const GotListboxMessage = m('GotListboxMessage', {
+  message: Ui.Listbox.Message,
+})
+const SelectedCharacter = m('SelectedCharacter', { value: S.String })
+
+// Inside your update function's M.tagsExhaustive({...}), delegate keyboard
+// navigation, typeahead, and open/close to Listbox.update:
+GotListboxMessage: ({ message }) => {
+  const [nextListbox, commands] = Ui.Listbox.update(model.listbox, message)
+
+  return [
+    // Merge the next state into your Model:
+    evo(model, { listbox: () => nextListbox }),
+    // Forward the Submodel's Commands through your parent Message:
+    commands.map(
+      Command.mapEffect(Effect.map(message => GotListboxMessage({ message }))),
+    ),
+  ]
+}
+
+// Still inside your update function's M.tagsExhaustive({...}), handle your
+// own selection Message:
+SelectedCharacter: ({ value }) => {
+  // Ui.Listbox.selectItem gives you the next listbox state with the
+  // selection reflected, plus the Commands that close the dropdown
+  // and return focus to the button:
+  const [nextListbox, commands] = Ui.Listbox.selectItem(model.listbox, value)
+
+  return [
+    evo(model, {
+      maybeCharacter: () => Option.some(value),
+      listbox: () => nextListbox,
+    }),
+    commands.map(
+      Command.mapEffect(Effect.map(message => GotListboxMessage({ message }))),
+    ),
+  ]
+}
+
+type Character = Readonly<{
+  firstName: string
+  lastName: string
+}>
+
+const characterName = (character: Character): string =>
+  `${character.firstName} ${character.lastName}`
+
+const characters: ReadonlyArray<Character> = [
+  { firstName: 'Michael', lastName: 'Bluth' },
+  { firstName: 'Gob', lastName: 'Bluth' },
+  { firstName: 'George Michael', lastName: 'Bluth' },
+  { firstName: 'Lindsay', lastName: 'Funke' },
+  { firstName: 'Maeby', lastName: 'Funke' },
+  { firstName: 'Tobias', lastName: 'Funke' },
+]
+
+// Inside your view function, group items by a key and render a heading for
+// each group. Items are grouped in the order they appear — make sure items
+// with the same key are contiguous in the items array:
+Ui.Listbox.view({
+  model: model.listbox,
+  toParentMessage: message => GotListboxMessage({ message }),
+  onSelectedItem: value => SelectedCharacter({ value }),
+  items: characters,
+  itemToValue: characterName,
+  // Group contiguous items by a shared key:
+  itemGroupKey: character => character.lastName,
+  // Render a heading for each group:
+  groupToHeading: lastName => ({
+    content: span([], [`${lastName}s`]),
+    className: 'px-3 py-1 text-xs font-semibold uppercase text-gray-500',
+  }),
+  // Optional separator between groups:
+  separatorAttributes: [Class('my-1 border-t')],
+  itemToConfig: character => ({
+    className:
+      'px-3 py-2 cursor-pointer data-[active]:bg-blue-100 data-[selected]:font-semibold',
+    content: div(
+      [Class('flex items-center gap-2')],
+      [span([], [characterName(character)])],
+    ),
+  }),
+  buttonContent: span(
+    [],
+    [Option.getOrElse(model.maybeCharacter, () => 'Select a character')],
+  ),
+  buttonClassName: 'w-full rounded-lg border px-3 py-2 text-left',
+  itemsClassName: 'rounded-lg border shadow-lg',
+  backdropClassName: 'fixed inset-0',
+  anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+})

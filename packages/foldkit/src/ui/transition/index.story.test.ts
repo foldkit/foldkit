@@ -5,7 +5,7 @@ import * as Story from '../../test/story'
 import {
   AdvancedTransitionFrame,
   EndedTransition,
-  Hidden,
+  Hid,
   RequestFrame,
   Showed,
   StartedLeaveAnimating,
@@ -73,12 +73,12 @@ describe('Transition', () => {
       })
     })
 
-    describe('Hidden', () => {
+    describe('Hid', () => {
       it('starts leave transition when showing', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test', isShowing: true })),
-          Story.message(Hidden()),
+          Story.message(Hid()),
           Story.model(model => {
             expect(model.isShowing).toBe(false)
             expect(model.transitionState).toBe('LeaveStart')
@@ -102,7 +102,7 @@ describe('Transition', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test' })),
-          Story.message(Hidden()),
+          Story.message(Hid()),
           Story.model(model => {
             expect(model.isShowing).toBe(false)
           }),
@@ -115,7 +115,7 @@ describe('Transition', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test', isShowing: true })),
-          Story.message(Hidden()),
+          Story.message(Hid()),
           Story.expectHasCommands(RequestFrame),
           Story.resolve(RequestFrame, AdvancedTransitionFrame()),
           Story.model(model => {
@@ -123,7 +123,7 @@ describe('Transition', () => {
           }),
           Story.expectNoCommands(),
           Story.expectOutMessage(StartedLeaveAnimating()),
-          Story.message(Hidden()),
+          Story.message(Hid()),
           Story.model(model => {
             expect(model.transitionState).toBe('LeaveAnimating')
           }),

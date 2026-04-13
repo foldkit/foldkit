@@ -3,7 +3,6 @@ import { Ui } from 'foldkit'
 import { Class, div, input, label, span } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
-import { heading } from '../../prose'
 import { type Message, UpdatedInputDemoValue } from './message'
 import type { Model } from './model'
 
@@ -37,9 +36,8 @@ export const basicDemo = (
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => [
-  heading('h3', basicHeader.id, basicHeader.text),
   div(
-    [Class('flex flex-col items-start gap-2 max-w-sm')],
+    [Class('flex flex-col items-start gap-2 w-full max-w-md')],
     [
       Ui.Input.view({
         id: 'input-basic-demo',
@@ -67,14 +65,13 @@ export const disabledDemo = (
   _model: Model,
   _toParentMessage: (message: Message) => ParentMessage,
 ) => [
-  heading('h3', disabledHeader.id, disabledHeader.text),
   Ui.Input.view<ParentMessage>({
     id: 'input-disabled-demo',
     isDisabled: true,
     value: 'Ada Lovelace',
     toView: attributes =>
       div(
-        [Class('flex flex-col gap-1.5 max-w-sm')],
+        [Class('flex flex-col gap-1.5 w-full max-w-md')],
         [
           label([...attributes.label, Class(labelClassName)], ['Name']),
           input([...attributes.input, Class(inputClassName)]),

@@ -32,7 +32,7 @@ export const basicDemo = (
   toParentMessage: (message: Message) => ParentMessage,
 ) => [
   div(
-    [Class('flex flex-col items-start gap-2')],
+    [Class('flex flex-col items-center gap-2')],
     [
       Ui.Button.view({
         onClick: toParentMessage(ClickedButtonDemo()),

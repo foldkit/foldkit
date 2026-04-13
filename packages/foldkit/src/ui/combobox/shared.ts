@@ -23,7 +23,7 @@ import { findFirstEnabledIndex, keyToIndex } from '../keyboard'
 // The barrel (../transition) imports from html, which starts the cycle.
 import {
   EndedTransition as TransitionEndedTransition,
-  Hidden as TransitionHidden,
+  Hid as TransitionHid,
   Message as TransitionMessage,
   Model as TransitionModel,
   type OutMessage as TransitionOutMessage,
@@ -401,7 +401,7 @@ export const makeUpdate = <Model extends BaseModel>(
       if (model.isAnimated) {
         const [nextModel, transitionCommands] = delegateToTransition(
           closed,
-          TransitionHidden(),
+          TransitionHid(),
         )
         return [nextModel, [...commands, ...transitionCommands]]
       }
@@ -509,7 +509,7 @@ export const makeUpdate = <Model extends BaseModel>(
 
           if (model.isOpen && !nextModel.isOpen && model.isAnimated) {
             const [transitionedModel, transitionCommands] =
-              delegateToTransition(nextModel, TransitionHidden())
+              delegateToTransition(nextModel, TransitionHid())
             return [transitionedModel, [...commands, ...transitionCommands]]
           }
 

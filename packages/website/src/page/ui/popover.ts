@@ -4,7 +4,6 @@ import type { AnchorConfig } from 'foldkit/ui/popover'
 import { Class, div, p, span } from '../../html'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
-import { heading } from '../../prose'
 import {
   GotPopoverAnimatedDemoMessage,
   GotPopoverBasicDemoMessage,
@@ -82,7 +81,6 @@ export const basicDemo = (
   popoverModel: Ui.Popover.Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => [
-  heading('h3', basicHeader.id, basicHeader.text),
   div(
     [Class('relative')],
     [
@@ -100,7 +98,6 @@ export const animatedDemo = (
   popoverModel: Ui.Popover.Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => [
-  heading('h3', animatedHeader.id, animatedHeader.text),
   div(
     [Class('relative')],
     [

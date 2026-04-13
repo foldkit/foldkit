@@ -153,6 +153,16 @@ export const infoCallout = (
     ],
   )
 
+export const demoContainer = (...content: ReadonlyArray<Html>): Html =>
+  div(
+    [
+      Class(
+        'rounded-xl border border-gray-200 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/20 p-8 mb-6 flex flex-col items-center',
+      ),
+    ],
+    content,
+  )
+
 export const warningCallout = (
   label: string,
   ...content: ReadonlyArray<string | Html>

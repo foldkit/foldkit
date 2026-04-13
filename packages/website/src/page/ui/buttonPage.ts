@@ -1,11 +1,15 @@
 import type { Html } from 'foldkit/html'
 
 import { Class, InnerHTML, div } from '../../html'
+import { uiShowcaseViewSourceHref } from '../../link'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
+  demoContainer,
   heading,
+  infoCallout,
   inlineCode,
+  link,
   pageTitle,
   para,
   tableOfContentsEntryToHeader,
@@ -164,6 +168,12 @@ export const view = (
       para(
         'A thin wrapper around the native button element that provides consistent accessibility attributes and data-attribute hooks for styling. Button is a view-only component — it has no Model, Messages, or update function.',
       ),
+      infoCallout(
+        'See it in an app',
+        'Check out how Button is wired up in a ',
+        link(uiShowcaseViewSourceHref('button'), 'real Foldkit app'),
+        '.',
+      ),
       heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
       heading(
         Button.basicHeader.level,
@@ -179,7 +189,7 @@ export const view = (
         inlineCode('<button>'),
         ' element.',
       ),
-      ...Button.basicDemo(model, toParentMessage),
+      demoContainer(...Button.basicDemo(model, toParentMessage)),
       highlightedCodeBlock(
         div(
           [Class('text-sm'), InnerHTML(Snippet.uiButtonBasicHighlighted)],
@@ -205,7 +215,7 @@ export const view = (
         inlineCode('disabled'),
         ' attribute so the button remains focusable for screen readers.',
       ),
-      ...Button.disabledDemo(model, toParentMessage),
+      demoContainer(...Button.disabledDemo(model, toParentMessage)),
       highlightedCodeBlock(
         div(
           [Class('text-sm'), InnerHTML(Snippet.uiButtonDisabledHighlighted)],

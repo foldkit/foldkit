@@ -10,7 +10,7 @@ import {
 import {
   AdvancedTransitionFrame,
   EndedTransition,
-  Hidden,
+  Hid,
   Message,
   Model,
   OutMessage,
@@ -31,7 +31,7 @@ export type { InitConfig } from './schema'
 export {
   AdvancedTransitionFrame,
   EndedTransition,
-  Hidden,
+  Hid,
   init,
   Message,
   Model,

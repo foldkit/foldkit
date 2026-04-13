@@ -58,6 +58,5 @@ export const Model = S.Struct({
   dragAndDropDemo: DragAndDrop.Model,
   dragAndDropDemoColumns: S.Array(DemoColumn),
   transitionDemo: Transition.Model,
-  isTransitionDemoShowing: S.Boolean,
 })
 export type Model = typeof Model.Type
