@@ -464,11 +464,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' variants are missing because the React version delegates those components (Dialog, RadioGroup, Switch, Listbox) to Headless UI, which keeps their internal state inside its own hooks rather than surfacing deltas as values.',
       ),
       para(
-        'Stating the difference plainly: Foldkit pulls side effects and UI component state into the Message union as first-class facts. React distributes them across ',
+        'Stating the difference plainly: Foldkit pulls side effect results and UI component state changes into the Message union as first-class facts. React leaves them distributed \u2014 effect outcomes inside ',
         inlineCode('useCallback'),
-        ' closures, ',
+        ' closures and ',
         inlineCode('useEffect'),
-        ' bodies, and library-internal hooks. Both are valid design choices. But only one gives you a single file to open when a teammate asks \u201Chow can state change in this app?\u201D',
+        ' bodies, component-internal events inside library hooks. Both are valid design choices. But only one gives you a single file to open when a teammate asks \u201Chow can state change in this app?\u201D',
       ),
 
       tableOfContentsEntryToHeader(declarationVsProcedureHeader),
@@ -551,7 +551,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'In Foldkit, the ',
         link(coreModelRouter(), 'Model'),
-        ' is the complete truth. Every UI component this app uses \u2014 Dialog, RadioGroup, Switch, Listbox \u2014 lives in the Model as a Submodel. Open/closed state, transition frames, highlighted items, search queries: all of it is data you can inspect, serialize, send over the wire, and replay.',
+        ' is the complete truth. Every UI component this app uses \u2014 Dialog, RadioGroup, Switch, Listbox \u2014 lives in the Model as a Submodel. Open/closed state, transition phase, highlighted item, search query: all of it is data you can inspect, serialize, send over the wire, and replay.',
       ),
       tableOfContentsEntryToHeader(foldkitModelHeader),
       para(
@@ -641,9 +641,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'The reducer returns only the new state. Side effects happen elsewhere in ',
         inlineCode('useEffect'),
-        ' hooks. TypeScript\u2019s exhaustive switch catches a missing state case, but there\u2019s no equivalent for the side effects an action should trigger: those live in ',
-        inlineCode('useEffect'),
-        ' bodies in other files, with no type-level connection back to the action.',
+        ' hooks. TypeScript\u2019s exhaustive switch catches a missing state case, but nothing equivalent catches a missing side effect: forget to fire a save on a new ',
+        inlineCode('ClickedClear'),
+        ' case, and the code still compiles.',
       ),
       highlightedCodeBlock(
         div(
@@ -776,12 +776,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Foldkit\u2019s tests tell a different story. Look at the ',
         inlineCode('Story.resolve'),
-        ' call in the snippet below. It asserts that releasing the mouse produced a ',
+        ' call in the snippet below: it asserts that releasing the mouse produced a ',
         inlineCode('SaveCanvas'),
-        ' Command, provides the Message that Command will return, and advances the story. The test verifies state and side effects in the same synchronous pipeline. If someone removes the Command, the test breaks. In React, that regression is silent.',
-      ),
-      para(
-        'Every Foldkit test that fires a Command resolves it as part of the same story. Not just the \u201Cside effect\u201D tests \u2014 any test that paints, undoes, or exports has Command resolution baked in by construction. Forget to resolve one and the story fails.',
+        ' Command, provides the Message that Command will return, and advances the story. State and side effects get verified in the same synchronous pipeline, and every test that fires a Command resolves it by construction \u2014 not just the \u201Cside effect\u201D tests. Any test that paints, undoes, or exports has Command resolution baked in. Remove a Command from the update function and the tests that depended on it all fail. In React, that regression is silent.',
       ),
       tableOfContentsEntryToHeader(foldkitTestHeader),
       para(
@@ -1288,7 +1285,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
 
       tableOfContentsEntryToHeader(timeTravelHeader),
       para(
-        'Every bit of state lives in the Model, including UI component internals (transition frames, active item indices, checked state). ',
+        'Every bit of state lives in the Model, including UI component internals (transition phase, active item indices, checked state). ',
         link(coreDevtoolsRouter(), 'Foldkit DevTools'),
         ' can step through the complete history. React\u2019s DevTools show the current component tree, but Headless UI\u2019s internal state is scattered across component hooks and isn\u2019t available as a single replayable value.',
       ),
@@ -1345,7 +1342,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Foldkit\u2019s Model is serializable by design. Every field uses Effect Schema types with runtime validation. Sending the Model over a WebSocket and applying remote Messages through the same update function is architecturally trivial: the update function already handles every possible state transition. Remote Messages go through the same pipeline as local ones.',
       ),
       para(
-        'In React, Headless UI\u2019s internal state (active item, transition frames, dialog open/close) can\u2019t be serialized or sent over the wire. A fair response: \u201CI don\u2019t need to sync UI component state; other users don\u2019t care which menu item my cursor is hovering.\u201D True for multiplayer specifically. But the same architectural gap bites you elsewhere: you can\u2019t time-travel through UI interactions during debugging, you can\u2019t replay a user session to reproduce a UI bug, and you can\u2019t assert on UI component state in tests without rendering the full tree in jsdom. The wins Foldkit\u2019s architecture buys aren\u2019t only about multiplayer \u2014 they\u2019re about everything downstream of \u201Cstate is data you can hold in your hand.\u201D',
+        'In React, Headless UI\u2019s internal state (active item, transition phase, dialog open/close) can\u2019t be serialized or sent over the wire. A fair response: \u201CI don\u2019t need to sync UI component state; other users don\u2019t care which menu item my cursor is hovering.\u201D True for multiplayer specifically. But the same architectural gap bites you elsewhere: you can\u2019t time-travel through UI interactions during debugging, you can\u2019t replay a user session to reproduce a UI bug, and you can\u2019t assert on UI component state in tests without rendering the full tree in jsdom. The wins Foldkit\u2019s architecture buys aren\u2019t only about multiplayer \u2014 they\u2019re about everything downstream of \u201Cstate is data you can hold in your hand.\u201D',
       ),
 
       tableOfContentsEntryToHeader(animationTimelineHeader),
