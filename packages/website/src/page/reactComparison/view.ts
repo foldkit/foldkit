@@ -446,7 +446,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Action'),
         ' type tells you what the reducer handles. Foldkit\u2019s ',
         inlineCode('Message'),
-        ' union tells you every way state in the application can change. One is a partial index. The other is a complete one \u2014 because the Model is the only place state lives, the Message union is the only place state changes can originate.',
+        ' union tells you every way state in the application can change. One is a partial index. The other is a complete one \u2014 the Model is the only place state can live, and the Message union is the only way to change it.',
       ),
 
       tableOfContentsEntryToHeader(declarationVsProcedureHeader),
