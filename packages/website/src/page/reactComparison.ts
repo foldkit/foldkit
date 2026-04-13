@@ -362,14 +362,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ),
         ' (',
         link('https://pixel.foldkit.dev', 'try it live'),
-        ') in both Foldkit and React. Same features, same styling, same algorithms. The goal: compare the two approaches side by side and highlight where they differ. This is a non-trivial app: grid state with undo/redo stacks, three tools with mirror modes, flood fill, localStorage persistence, PNG export, keyboard shortcuts, accessible UI components, and performance-critical grid rendering. It\u2019s the kind of app where architectural decisions compound over time.',
+        ') in both Foldkit and React. Same features, same styling, same algorithms. The goal: put the two approaches side by side and see where they differ. This is a non-trivial app: grid state with undo/redo stacks, three tools with mirror modes, flood fill, localStorage persistence, PNG export, keyboard shortcuts, accessible UI components, and performance-critical grid rendering. It\u2019s the kind of app where architectural decisions compound over time.',
       ),
       para(
         'The React version uses ',
         inlineCode('useReducer'),
         ', ',
         link('https://headlessui.com', 'Headless UI'),
-        ', and all the best practices we\u2019d use in production: TypeScript, Tailwind, memoization, custom hooks. We gave React every advantage. The result is a clean, well-structured React app written by people who know what they\u2019re doing.',
+        ', and the best practices we\u2019d use in production: TypeScript, Tailwind, memoization, custom hooks. We gave React every advantage. The result is a clean, well-structured React app written by people who know what they\u2019re doing.',
       ),
       para(
         'React is a good library with an unmatched ecosystem. This page isn\u2019t a hit-piece. It\u2019s an argument that Foldkit gives you structural guarantees React cannot provide by construction \u2014 guarantees about where state lives, how it changes, and what your tests can see \u2014 and that those guarantees matter once a codebase has to survive real feature work, real bugs, and real onboarding.',
@@ -498,16 +498,16 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('useRef'),
         ', one ',
         inlineCode('useCallback'),
-        ', plus three custom hooks. That\u2019s 8 hooks in a single component. Every one is required. Remove any of them and something breaks.',
+        ', plus three custom hooks. That\u2019s 8 hooks in a single component. Remove any of them and something breaks.',
       ),
       para(
         'The ',
         inlineCode('stateRef'),
-        ' pattern deserves special attention. It exists because ',
+        ' pattern is worth a closer look. It exists because ',
         inlineCode('handleExport'),
         ' is wrapped in ',
         inlineCode('useCallback'),
-        ' (for memoization), which closes over stale state. So you need a ref to access the current state. This is not a mistake. It\u2019s the standard pattern. React\u2019s closure-based model requires you to manually escape closures when you need current state in a memoized callback.',
+        ' for memoization, which closes over stale state. So you need a ref to read the current state. This is not a mistake. It\u2019s the standard pattern. React\u2019s closure-based model requires you to manually escape closures when you need current state in a memoized callback.',
       ),
       para(
         'Then look at the JSX. Each child receives ',
@@ -561,7 +561,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('null'),
         ', and a Submodel field for every accessible UI component. The ',
         inlineCode('themeListbox'),
-        ' field alone tracks eight pieces of internal state: open/closed, transition phase, highlighted item, search query, activation trigger, last pointer position, orientation, selected item. All of that exists in the React app too, but inside Headless UI\u2019s hooks, where your reducer can\u2019t see it.',
+        ' field alone exposes the listbox\u2019s internal state: open/closed, transition phase, highlighted item, search query, activation trigger, last pointer position, orientation, selected item. All of that exists in the React app too, but inside Headless UI\u2019s hooks, where your reducer can\u2019t see it.',
       ),
       highlightedCodeBlock(
         div(
@@ -646,7 +646,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       infoCallout(
         'One function, complete answers',
-        'What happens when the user presses a cell? What happens when they undo? You can answer every one of these questions by reading this single function. In Foldkit, that\u2019s the only way to change state. There is no other path.',
+        'What happens when the user presses a cell? What happens when they undo? Any question of that shape has its answer in this single function. In Foldkit, that\u2019s the only way to change state. There is no other path.',
       ),
       tableOfContentsEntryToHeader(reactReducerHeader),
       para(
@@ -1088,7 +1088,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('isDrawing'),
         ' is false; it attaches and removes the listener through a cleanup function; it lists ',
         inlineCode('[isDrawing, dispatch]'),
-        ' as dependencies. Each of those is a thing you have to remember to write. Miss the cleanup and the listener leaks. Miss a dependency and the effect captures stale values and silently misbehaves. The framework can\u2019t catch either for you. ',
+        ' as dependencies. All of it is manual. Miss the cleanup and the listener leaks. Miss a dependency and the effect captures stale values and silently misbehaves. The framework can\u2019t catch either for you. ',
         inlineCode('useEffect'),
         ' is a general-purpose escape hatch, so it has to trust you to write it correctly. Foldkit has no closures at the Subscription boundary. The view and Subscriptions always receive the current Model by construction.',
       ),
@@ -1424,7 +1424,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
 
       tableOfContentsEntryToHeader(conclusionHeader),
       para(
-        'React is a good library with an unmatched ecosystem. Foldkit trades ecosystem breadth for architectural guarantees. Whether that trade is worth it depends on whether you\u2019ve been burned by the things Foldkit prevents.',
+        'React is a good library with an unmatched ecosystem. Foldkit trades ecosystem breadth for architectural guarantees. Whether that trade is worth it depends on whether you\u2019ve been burned by what Foldkit prevents.',
       ),
       para(
         'Look at what we built. The same app, the same features, the same styling. In React, understanding the app means reading the reducer, the hooks, the components, and the Headless UI docs, then reconciling them in your head. In Foldkit, you read the ',
@@ -1434,7 +1434,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' definitions to see every side effect the update function produces. You read the Subscriptions to see every external event stream the app listens to. Complete picture, in three files.',
       ),
       para(
-        'If you care about adding features without fear, onboarding new developers by pointing them at the Message union, debugging production issues by replaying state, and trusting that your test suite actually catches regressions: those are the things Foldkit structurally guarantees and React cannot.',
+        'If you care about adding features without fear, onboarding new developers by pointing them at the Message union, debugging production issues by replaying state, and trusting that your test suite actually catches regressions: Foldkit structurally guarantees those outcomes. React cannot.',
       ),
     ],
   )
