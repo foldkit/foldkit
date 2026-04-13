@@ -16,7 +16,7 @@ const init: Runtime.ProgramInit<Model, Message, Flags> = flags => [
     }),
     errorDialog: Ui.Dialog.init({ id: 'export-error-dialog' }),
     themeListbox: Ui.Listbox.init({ id: 'theme-picker', selectedItem: '0' }),
-    // ... all 20 fields initialized declaratively
+    // remaining fields elided for brevity
   },
   [],
 ]
