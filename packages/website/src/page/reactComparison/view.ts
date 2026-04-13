@@ -401,7 +401,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       infoCallout(
         'The single source of state changes',
-        'Every state change in the Foldkit application starts with a Message. Every side effect outcome comes back as a Message. Every UI component interaction flows through a Message. If it\u2019s not a Message, no state changes.',
+        'Every state change in the Foldkit application starts with a Message. Every side effect outcome comes back as a Message. Every UI component interaction flows through a Message.',
       ),
       tableOfContentsEntryToHeader(reactActionHeader),
       para(
