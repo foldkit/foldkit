@@ -397,7 +397,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'In Foldkit, you read the ',
         link(coreMessagesRouter(), 'Message'),
-        ' union. 30 declarations. The Model is the only place state lives, and the Message union is the only way to change the Model. So the union is a complete, readable index of every state transition this app can make.',
+        ' union. 30 declarations. The Model is the only place state lives, and the Message union is the only way to change the Model. So the union is a complete index of every way the app can change state.',
       ),
       highlightedCodeBlock(
         div(
@@ -419,7 +419,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         link(patternsSubmodelsRouter(), 'Submodel'),
         ', its ',
         inlineCode('Message'),
-        ' union gives you the same complete picture one layer deeper. The full set of state transitions is always right there in the types.',
+        ' union gives you the same complete picture one layer deeper. The full set of state transitions lives in the types.',
       ),
       infoCallout(
         'The single source of state changes',
@@ -522,7 +522,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(foldkitProgramHeader),
       para(
-        'The Foldkit entry point declares the initial Model and wires five pieces together:',
+        'The Foldkit entry point declares the initial Model and hands the runtime the pieces that make up the program:',
       ),
       highlightedCodeBlock(
         div(
@@ -542,7 +542,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('init'),
         ' function returns the initial Model and an empty list of startup Commands. ',
         inlineCode('Runtime.makeProgram'),
-        ' wires the five pieces together: Model, init, update, view, subscriptions. ',
+        ' takes the Model schema, init, update, view, and subscriptions, plus the Flags schema and DOM container. ',
         inlineCode('Runtime.run'),
         ' starts it. The runtime handles event dispatch, memoization, and side effect execution. You declare what the program is. The framework runs it.',
       ),
@@ -551,7 +551,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Where does the state of this app actually live? Foldkit has one answer: the ',
         link(coreModelRouter(), 'Model'),
-        '. React has many answers, and the many tend to compound over a codebase\u2019s lifetime.',
+        '. React has many answers, and those answers compound over a codebase\u2019s lifetime.',
       ),
       tableOfContentsEntryToHeader(foldkitModelHeader),
       para(
@@ -582,7 +582,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('null'),
         ' for absent values. The reducer tracks two boolean ',
         inlineCode('isOpen'),
-        ' flags for the dialogs and nothing else about the UI components. Everything that makes a Dialog a Dialog \u2014 transition state, focus trap selector, animation coordination \u2014 lives inside Headless UI\u2019s hooks, out of reach of your reducer, your debugger, and your serialization layer.',
+        ' flags for the dialogs and nothing else about the UI components. Everything that makes a Dialog a Dialog \u2014 transition state, focus trap, animation coordination \u2014 lives inside Headless UI\u2019s hooks, out of reach of your reducer, your debugger, and your serialization layer.',
       ),
       para(
         'And this comparison is already being generous. ',
@@ -775,7 +775,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
 
       tableOfContentsEntryToHeader(whatYourTestsCanSeeHeader),
       para(
-        'Both projects have full test suites covering the same behaviors. The tests verify the same things. But the experience of writing and reading them is not comparable.',
+        'Both projects have full test suites covering the same behaviors. The experience of writing and reading them is not comparable.',
       ),
       para(
         'React\u2019s reducer tests dispatch actions and assert on the resulting state. That\u2019s it. They have no way to verify which effects should fire, because effects don\u2019t exist in the reducer\u2019s return type. To test side effects, you need a completely different paradigm: render the full ',
@@ -789,7 +789,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Story.resolve'),
         ' call in the snippet below: it asserts that releasing the mouse produced a ',
         inlineCode('SaveCanvas'),
-        ' Command, provides the Message that Command will return, and advances the story. State and side effects get verified in the same synchronous pipeline, and every test that fires a Command resolves it by construction, not just the \u201Cside effect\u201D tests. Any test that paints, undoes, or exports has Command resolution baked in. Remove a Command from the update function and the tests that depended on it all fail. In React, that regression is silent.',
+        ' Command, provides the Message that Command will return, and advances the story. State and side effects get verified in the same synchronous pipeline, and every test that fires a Command resolves it by construction, not just the \u201Cside effect\u201D tests. Any test that paints, undoes, or exports has Command resolution baked in. Delete a Command from the update function and every test that depended on it breaks. In React, that regression is silent.',
       ),
       tableOfContentsEntryToHeader(foldkitTestHeader),
       para(
@@ -1047,7 +1047,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
 
       tableOfContentsEntryToHeader(streamsVsHooksHeader),
       para(
-        'Both apps need global event listeners for keyboard shortcuts and mouse release during drawing. Only one of those is always-on. The mouse release listener should only exist while the user is actively drawing. Otherwise you\u2019re paying for a global handler on every pointer up event on the page.',
+        'Both apps need global event listeners for keyboard shortcuts and mouse release during drawing. Only one of those is always-on. The mouse release listener should only exist while the user is actively drawing. Otherwise you\u2019re paying for a global handler on every ',
+        inlineCode('mouseup'),
+        ' event on the page.',
       ),
       tableOfContentsEntryToHeader(foldkitSubscriptionsHeader),
       para(
@@ -1197,7 +1199,6 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-4',
       ),
       para(
-        'React\u2019s ',
         inlineCode('React.memo'),
         ' also uses reference equality. The catch: React components receive callbacks as props, and a fresh arrow function is a new reference every render. Without ',
         inlineCode('useCallback'),
@@ -1278,7 +1279,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'The ',
         inlineCode('Message'),
-        ' union is the total input domain of the update function. By construction, it enumerates every way state can change in this app. And because the runtime only dispatches values from the union, that total is also exhaustive. Submodels nest the same property: drill into any UI component and its Message union gives you the same completeness one layer down. React has no equivalent, because React does not structurally require state changes to go through a single channel. Once the channel is optional, the index stops being total, and the answer to \u201Chow can state change in this app?\u201D becomes an archaeological dig through ',
+        ' union is the total input domain of the update function. By construction, it enumerates every way state can change in this app. And because the runtime dispatches only values from the union, nothing state-changing can reach update any other way. Submodels nest the same property: drill into any UI component and its Message union gives you the same completeness one layer down. React has no equivalent, because React does not structurally require state changes to go through a single channel. Once the channel is optional, the index stops being total, and the answer to \u201Chow can state change in this app?\u201D becomes an archaeological dig through ',
         inlineCode('useEffect'),
         ' dependencies, custom hooks, and library-internal state.',
       ),
@@ -1293,7 +1294,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Tool'),
         ' variant and the nested match inside ',
         inlineCode('PressedCell'),
-        ' stops typechecking. You literally cannot forget a case: the type system refuses to let the code build. In React, the reducer\u2019s ',
+        ' stops typechecking. You cannot forget a case: the type system refuses to let the code build. In React, the reducer\u2019s ',
         inlineCode('switch'),
         ' catches the one call site you knew about; it cannot catch the ',
         inlineCode('useEffect'),
@@ -1344,12 +1345,12 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'No dependency arrays. No ',
         inlineCode('useCallback'),
-        ' wrappers. No refs to escape closures. The view and Subscriptions always receive the current Model because the runtime calls them with it on every update. There is no closure captured at render time waiting to go stale. The entire class of bugs that comes from React\u2019s closure-based model simply does not exist in Foldkit.',
+        ' wrappers. No refs to escape closures. The view and Subscriptions always receive the current Model because the runtime calls them with it on every update. There is no closure captured at render time waiting to go stale. The entire class of bugs that comes from React\u2019s closure-based model does not exist in Foldkit.',
       ),
 
       tableOfContentsEntryToHeader(scalabilityHeader),
       para(
-        'A pixel art editor is a non-trivial app, but real codebases accumulate features over time. What would it take to add remote persistence, multiplayer editing, or an undo/redo timeline that survives a page refresh?',
+        'A pixel art editor is a non-trivial app, but real codebases accumulate features over time. What would it take to add remote persistence, multiplayer editing, an animation timeline, or persistent undo history?',
       ),
 
       tableOfContentsEntryToHeader(remotePersistenceHeader),
