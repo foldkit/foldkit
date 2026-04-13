@@ -1,7 +1,7 @@
 import type { Html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
-import type { TableOfContentsEntry } from '../../main'
+import { Class, InnerHTML, div } from '../html'
+import type { TableOfContentsEntry } from '../main'
 import {
   infoCallout,
   inlineCode,
@@ -9,11 +9,20 @@ import {
   pageTitle,
   para,
   tableOfContentsEntryToHeader,
-} from '../../prose'
-import { exampleDetailRouter } from '../../route'
-import * as Snippets from '../../snippet'
-import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
-import { comparisonTable } from '../../view/table'
+} from '../prose'
+import {
+  coreCommandsRouter,
+  coreDevtoolsRouter,
+  coreSubscriptionsRouter,
+  exampleDetailRouter,
+  patternsSubmodelsRouter,
+  testingSceneRouter,
+  testingStoryRouter,
+  uiOverviewRouter,
+} from '../route'
+import * as Snippets from '../snippet'
+import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
+import { comparisonTable } from '../view/table'
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -377,7 +386,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(foldkitMessageHeader),
       para(
-        'In Foldkit, you read the Message union. 30 declarations. You now know every single thing this application can do.',
+        'In Foldkit, you read the Message union. 30 declarations. You now know every way state in this application can change. The Model is the only place state can live, and the Message union is the only way to change the Model.',
       ),
       highlightedCodeBlock(
         div(
@@ -393,15 +402,17 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-4',
       ),
       para(
-        '30 declarations. Each one reads as an English sentence: the user pressed a cell at coordinates x, y. The user selected a tool. The PNG export failed with an error message. The user confirmed a grid size change. The canvas was saved. That union is a complete, readable specification. If it\u2019s not in the ',
+        '30 declarations. Each one reads as an English sentence: the user pressed a cell at coordinates x, y. The user selected a tool. The PNG export failed with an error message. The user confirmed a grid size change. The canvas was saved. That union is a complete, readable index of every state transition this application can make. If it\u2019s not in the ',
         inlineCode('Message'),
-        ' union, it can\u2019t happen. When a UI component has its own Submodel, its ',
+        ' union, it can\u2019t produce a state change. When a UI component has its own ',
+        link(patternsSubmodelsRouter(), 'Submodel'),
+        ', its ',
         inlineCode('Message'),
-        ' union gives you the same complete picture one layer deeper, so the full behavior tree is always right there in the types.',
+        ' union gives you the same complete picture one layer deeper, so the full set of state transitions is always right there in the types.',
       ),
       infoCallout(
-        'The single source of behavior',
-        'Every state change in the Foldkit application starts with a Message. Every side effect outcome comes back as a Message. Every UI component interaction flows through a Message. If it\u2019s not a Message, it doesn\u2019t happen.',
+        'The single source of state changes',
+        'Every state change in the Foldkit application starts with a Message. Every side effect (Command) outcome returns to the update function as a Message. Every UI component interaction flows through a Message.',
       ),
       tableOfContentsEntryToHeader(reactActionHeader),
       para(
@@ -446,7 +457,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Action'),
         ' type tells you what the reducer handles. Foldkit\u2019s ',
         inlineCode('Message'),
-        ' union tells you everything the application does. One is a partial index. The other is a complete specification.',
+        ' union tells you every way state in the application can change. One is a partial index. The other is a complete one \u2014 the Model is the only place state lives, every Model update originates from a Message.',
       ),
 
       tableOfContentsEntryToHeader(declarationVsProcedureHeader),
@@ -631,7 +642,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
 
       tableOfContentsEntryToHeader(sideEffectsHeader),
       para(
-        'In Foldkit, side effects are Commands: named, typed values that describe work for the runtime to execute. They\u2019re returned from the update function as data. You can see them in Foldkit DevTools, assert on them in tests, and trace exactly which Message caused which effect.',
+        'In Foldkit, side effects are ',
+        link(coreCommandsRouter(), 'Commands'),
+        ': named, typed values that describe work for the runtime to execute. They\u2019re returned from the update function as data. You can see them in ',
+        link(coreDevtoolsRouter(), 'Foldkit DevTools'),
+        ', assert on them in tests, and trace exactly which Message caused which effect.',
       ),
       para(
         'In React, side effects are imperative ',
@@ -689,6 +704,44 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Copy React useEffect',
         copiedSnippets,
         'mb-6',
+      ),
+      para(
+        'Now try to produce the same inventory of side effects for the React app. There is no ',
+        inlineCode('command.ts'),
+        ' to open, no ',
+        inlineCode('Command.define'),
+        ' to grep for. The PNG export fires from a ',
+        inlineCode('useCallback'),
+        ' in ',
+        inlineCode('App.tsx'),
+        '. The localStorage save lives in a ',
+        inlineCode('useEffect'),
+        ' inside ',
+        inlineCode('useLocalStorage.ts'),
+        '. Keyboard shortcuts attach window listeners from a ',
+        inlineCode('useEffect'),
+        ' in ',
+        inlineCode('useKeyboardShortcuts.ts'),
+        '. Mouse release tracking installs another window listener from ',
+        inlineCode('useMouseRelease.ts'),
+        '. Dialog focus restoration and transition timing run inside Headless UI, in code you didn\u2019t write and can\u2019t see. To enumerate the side effects, you grep for ',
+        inlineCode('useEffect'),
+        ', then audit every component for inline handlers and ',
+        inlineCode('useCallback'),
+        ' bodies, then read the Headless UI source for what its components do internally. There is no list. There is no file you can open.',
+      ),
+      para(
+        'In Foldkit, you know exactly where to look. The PNG export and localStorage save are Commands, declared in ',
+        inlineCode('command.ts'),
+        '. The keyboard shortcuts and mouse release listener are ',
+        link(coreSubscriptionsRouter(), 'Subscriptions'),
+        ', declared in ',
+        inlineCode('subscription.ts'),
+        '. Dialog focus and transition timing belong to Foldkit UI components, which have their own ',
+        inlineCode('Message'),
+        ' unions and ',
+        inlineCode('Command'),
+        ' definitions you can drill into. Every side effect has a declared home. React\u2019s side effects are a search problem.',
       ),
 
       tableOfContentsEntryToHeader(whatYourTestsCanSeeHeader),
@@ -823,9 +876,12 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
 
       tableOfContentsEntryToHeader(interactionTestingHeader),
       para(
-        'Story tests verify the state machine: Messages in, Model and Commands out. But what about testing from the user\u2019s perspective \u2014 clicking buttons, reading text, checking disabled states? React uses ',
+        link(testingStoryRouter(), 'Story'),
+        ' tests verify the state machine: Messages in, Model and Commands out. But what about testing from the user\u2019s perspective \u2014 clicking buttons, reading text, checking disabled states? React uses ',
         inlineCode('@testing-library/react'),
-        ' with jsdom. Foldkit uses Scene: a built-in interaction testing API that runs against the virtual DOM. No browser, no jsdom, no mocking. Same synchronous pipeline, same Command resolution, same zero dependencies.',
+        ' with jsdom. Foldkit uses ',
+        link(testingSceneRouter(), 'Scene'),
+        ': a built-in interaction testing API that runs against the virtual DOM. No browser, no jsdom, no mocking. Same synchronous pipeline, same Command resolution, same zero dependencies.',
       ),
       tableOfContentsEntryToHeader(foldkitSceneTestHeader),
       para(
@@ -958,7 +1014,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
 
       tableOfContentsEntryToHeader(streamsVsHooksHeader),
       para(
-        'Both apps need global event listeners for keyboard shortcuts and mouse release during drawing. Foldkit uses Subscriptions: declarative streams that the runtime manages based on Model state. React uses ',
+        'Both apps need global event listeners for keyboard shortcuts and mouse release during drawing. Foldkit uses ',
+        link(coreSubscriptionsRouter(), 'Subscriptions'),
+        ': declarative streams that the runtime manages based on Model state. React uses ',
         inlineCode('useEffect'),
         ' hooks with manual setup and cleanup.',
       ),
@@ -1004,7 +1062,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
 
       tableOfContentsEntryToHeader(yourStateOrTheirsHeader),
       para(
-        'Foldkit ships accessible UI components (Dialog, RadioGroup, Switch, Listbox) that work like everything else in Foldkit: each has a Model, Messages, and an update function. You initialize them in your Model, delegate their Messages in your update, and compose their views. The state is yours. React uses Headless UI, which provides the same accessible patterns through a component API. But the state is theirs.',
+        'Foldkit ships ',
+        link(uiOverviewRouter(), 'accessible UI components'),
+        ' (Dialog, RadioGroup, Switch, Listbox) that work like everything else in Foldkit: each has a Model, Messages, and an update function. You initialize them in your Model, delegate their Messages in your update, and compose their views. The state is yours. React uses Headless UI, which provides the same accessible patterns through a component API. But the state is theirs.',
       ),
       comparisonTable(
         ['', 'Foldkit', 'React + Headless UI'],
@@ -1044,7 +1104,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(foldkitMemoizationHeader),
       para(
-        'Declare memoization helpers at the module level. Pass model data in. The arguments are compared by reference, and ',
+        'Declare memoization helpers at the module level. Pass Model data in. The arguments are compared by reference, and ',
         inlineCode('evo()'),
         ' preserves references for unchanged fields, so the check passes naturally for panels whose data hasn\u2019t changed.',
       ),
@@ -1065,7 +1125,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('createLazy()'),
         ' and ',
         inlineCode('createKeyedLazy()'),
-        ' compare arguments by reference. The key: the arguments are pure data (model fields, primitive values), not callback functions. There are no closures at the memoization boundary, so there\u2019s nothing to stabilize.',
+        ' compare arguments by reference. The key: the arguments are pure data (Model fields, primitive values), not callback functions. There are no closures at the memoization boundary, so there\u2019s nothing to stabilize.',
       ),
       tableOfContentsEntryToHeader(reactMemoizationHeader),
       para(
@@ -1127,26 +1187,32 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
 
       tableOfContentsEntryToHeader(visibleEffectsHeader),
       para(
-        'Commands have names, appear in DevTools alongside the Model diff, and can be asserted on in tests. React\u2019s ',
+        'Commands have names, appear in ',
+        link(coreDevtoolsRouter(), 'DevTools'),
+        ' alongside the Model diff, and can be asserted on in tests. React\u2019s ',
         inlineCode('useEffect'),
         ' hooks are invisible to the reducer and invisible to debugging tools.',
       ),
 
       tableOfContentsEntryToHeader(timeTravelHeader),
       para(
-        'Every bit of state lives in the Model, including UI component internals (focus position, transition frames, checked state). Foldkit DevTools can step through the complete history. React\u2019s DevTools show the current component tree, but Headless UI\u2019s internal state is unreachable.',
+        'Every bit of state lives in the Model, including UI component internals (focus position, transition frames, checked state). ',
+        link(coreDevtoolsRouter(), 'Foldkit DevTools'),
+        ' can step through the complete history. React\u2019s DevTools show the current component tree, but Headless UI\u2019s internal state is unreachable.',
       ),
 
       tableOfContentsEntryToHeader(storyTestsHeader),
       para(
         'Foldkit\u2019s ',
-        inlineCode('Story.story'),
-        ' tests side effects for free with no mocking. Remove a Command and the test breaks. In React, testing side effects requires a separate paradigm: rendering in jsdom, mocking browser APIs, and polling for async results.',
+        link(testingStoryRouter(), 'Story'),
+        ' and ',
+        link(testingSceneRouter(), 'Scene'),
+        ' testing modules test side effects for free with no mocking. Remove a Command and the test breaks. In React, testing side effects requires a separate paradigm: rendering in jsdom, mocking browser APIs, and polling for async results.',
       ),
 
       tableOfContentsEntryToHeader(oneFunctionHeader),
       para(
-        'A bug in Foldkit lives in the update function. That\u2019s the only place state changes. In React, the same bug could be in the reducer, a ',
+        'When the Model doesn\u2019t update the way you expected, the bug is in the update function. That\u2019s the only place the Model changes. In React, a state-transition bug could be in the reducer, a ',
         inlineCode('useEffect'),
         ', a ',
         inlineCode('useCallback'),
@@ -1175,7 +1241,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('SaveCanvas'),
         ' and ',
         inlineCode('SyncToServer'),
-        '. Both side effects are visible in one place, appear in DevTools, and your tests verify they were triggered by the right Message. In React, you\u2019d add another ',
+        '. Both side effects are visible in one place, appear in ',
+        link(coreDevtoolsRouter(), 'DevTools'),
+        ', and your tests verify they were triggered by the right Message. In React, you\u2019d add another ',
         inlineCode('useEffect'),
         ' that watches for state changes and fires a network request. Now you have two independent effects (localStorage and remote sync) that can race, and neither is visible in the reducer.',
       ),
@@ -1241,7 +1309,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Message'),
         ' union to see every state change. You read the ',
         inlineCode('Command'),
-        ' definitions to see every side effect. Complete picture.',
+        ' definitions to see every side effect the update function produces. You read the Subscriptions to see every external event stream the app listens to. Complete picture.',
       ),
       para(
         'If you care about adding features without fear, onboarding new developers by pointing them at one file, debugging production issues by replaying state, and trusting that your test suite actually catches regressions, Foldkit gives you things React structurally cannot.',

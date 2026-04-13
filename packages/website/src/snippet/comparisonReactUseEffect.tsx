@@ -19,7 +19,7 @@ const useLocalStorage = (
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(saved))
     } catch {
-      // Silently fail on storage errors
+      // Handle storage errors
     }
   }, [grid, gridSize, paletteThemeIndex, selectedColorIndex, isDrawing])
 }
