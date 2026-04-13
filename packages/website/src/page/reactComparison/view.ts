@@ -377,7 +377,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(foldkitMessageHeader),
       para(
-        'In Foldkit, you read the Message union. 30 declarations. You now know every way state in this application can change. Every state transition starts with a Message, and there is nowhere else state can live, so there is nowhere else it can change.',
+        'In Foldkit, you read the Message union. 30 declarations. You now know every way state in this application can change. The Model is the only place state can live, and the Message union is the only way to change the Model.',
       ),
       highlightedCodeBlock(
         div(
@@ -1069,7 +1069,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(foldkitMemoizationHeader),
       para(
-        'Declare memoization helpers at the module level. Pass model data in. The arguments are compared by reference, and ',
+        'Declare memoization helpers at the module level. Pass Model data in. The arguments are compared by reference, and ',
         inlineCode('evo()'),
         ' preserves references for unchanged fields, so the check passes naturally for panels whose data hasn\u2019t changed.',
       ),
@@ -1090,7 +1090,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('createLazy()'),
         ' and ',
         inlineCode('createKeyedLazy()'),
-        ' compare arguments by reference. The key: the arguments are pure data (model fields, primitive values), not callback functions. There are no closures at the memoization boundary, so there\u2019s nothing to stabilize.',
+        ' compare arguments by reference. The key: the arguments are pure data (Model fields, primitive values), not callback functions. There are no closures at the memoization boundary, so there\u2019s nothing to stabilize.',
       ),
       tableOfContentsEntryToHeader(reactMemoizationHeader),
       para(
