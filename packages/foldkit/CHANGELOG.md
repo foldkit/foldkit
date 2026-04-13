@@ -1,5 +1,15 @@
 # foldkit
 
+## 0.60.0
+
+### Minor Changes
+
+- c7191f0: Add `Ui.Combobox.selectItem` and `Ui.Combobox.Multi.selectItem` helpers, mirroring the equivalents on `Ui.Listbox`. Use these in domain-event handlers when a combobox uses `onSelectedItem` to intercept selection. Single-select takes `(model, item, displayText)` because Combobox tracks the selected item and its display text separately. Multi-select takes `(model, item)` since it only tracks the toggled items.
+- c7191f0: Add `Ui.Listbox.Multi.selectItem` helper, mirroring `Ui.Listbox.selectItem` for single-select. Use this in domain-event handlers when a multi-select listbox uses `onSelectedItem` to intercept selection — it returns the next listbox state with the item toggled in or out of the selection.
+- c7191f0: **Breaking**: renamed `Ui.Transition.Hidden` to `Ui.Transition.Hid`. The Message convention is verb-first past-tense events describing what happened (`Showed`, `Clicked`, `Submitted`), and `Hidden` is the past participle of hide — grammatically mismatched with its sibling `Showed`. `Hid` is the correct past simple form.
+
+  Migration: replace `Ui.Transition.Hidden()` with `Ui.Transition.Hid()` at every call site. TypeScript will surface any remaining references as errors.
+
 ## 0.59.0
 
 ### Minor Changes
