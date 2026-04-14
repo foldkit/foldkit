@@ -1,14 +1,14 @@
 import { Option } from 'effect'
 import { describe, expect, it } from 'vitest'
 
-import * as Story from '../../test/story'
+import * as Story from '../../test/story.js'
 import {
   CompletedFocusOption,
   FocusOption,
   SelectedOption,
   init,
   update,
-} from './index'
+} from './index.js'
 
 describe('RadioGroup', () => {
   describe('init', () => {

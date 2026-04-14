@@ -1,9 +1,14 @@
 import { Match as M, Option, Schema as S } from 'effect'
 
-import type { Command } from '../../command'
-import { type Attribute, type Html, createLazy, html } from '../../html'
-import { m } from '../../message'
-import { evo } from '../../struct'
+import type { Command } from '../../command/index.js'
+import {
+  type Attribute,
+  type Html,
+  createLazy,
+  html,
+} from '../../html/index.js'
+import { m } from '../../message/index.js'
+import { evo } from '../../struct/index.js'
 
 // MODEL
 

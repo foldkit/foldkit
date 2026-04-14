@@ -3,8 +3,8 @@ import { Effect } from 'effect'
 import { h } from 'snabbdom'
 import { expect } from 'vitest'
 
-import { Dispatch } from '../runtime'
-import { createKeyedLazy, createLazy } from './lazy'
+import { Dispatch } from '../runtime/index.js'
+import { createKeyedLazy, createLazy } from './lazy.js'
 
 const noOpDispatch = Dispatch.of({
   dispatchAsync: () => Effect.void,

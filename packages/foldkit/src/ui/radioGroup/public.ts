@@ -9,7 +9,7 @@ export {
   SelectedOption,
   CompletedFocusOption,
   FocusOption,
-} from './index'
+} from './index.js'
 
 export type {
   NarrowedSelectedOption,
@@ -18,4 +18,4 @@ export type {
   ViewConfig,
   OptionAttributes,
   OptionConfig,
-} from './index'
+} from './index.js'

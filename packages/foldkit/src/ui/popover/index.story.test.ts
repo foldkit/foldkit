@@ -2,8 +2,8 @@ import { describe, it } from '@effect/vitest'
 import { Option, flow } from 'effect'
 import { expect } from 'vitest'
 
-import * as Story from '../../test/story'
-import * as Transition from '../transition'
+import * as Story from '../../test/story.js'
+import * as Transition from '../transition/index.js'
 import {
   Closed,
   ClosedByTab,
@@ -26,7 +26,7 @@ import {
   UnlockScroll,
   init,
   update,
-} from './index'
+} from './index.js'
 
 const transitionToPopoverMessage = (message: Transition.Message) =>
   GotTransitionMessage({ message })

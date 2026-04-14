@@ -14,4 +14,4 @@ export {
   randomInt,
   nextFrame,
   waitForTransitions,
-} from './index'
+} from './index.js'

@@ -1,6 +1,6 @@
 import { expect } from 'vitest'
 
-import { sceneMatchers } from './matchers'
+import { sceneMatchers } from './matchers.js'
 
 declare module 'vitest' {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

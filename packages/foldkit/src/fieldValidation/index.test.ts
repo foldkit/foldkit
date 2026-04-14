@@ -23,7 +23,7 @@ import {
   resolveMessage,
   startsWith,
   url,
-} from './index'
+} from './index.js'
 
 describe('makeField', () => {
   const StringField = makeField(S.String)

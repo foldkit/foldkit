@@ -11,13 +11,13 @@ import {
   pipe,
 } from 'effect'
 
-import * as Command from '../../command'
-import { type Attribute, html } from '../../html'
-import { m } from '../../message'
-import { makeSubscriptions } from '../../runtime/subscription'
-import { ts } from '../../schema'
-import { evo } from '../../struct'
-import * as Task from '../../task'
+import * as Command from '../../command/index.js'
+import { type Attribute, html } from '../../html/index.js'
+import { m } from '../../message/index.js'
+import { makeSubscriptions } from '../../runtime/subscription.js'
+import { ts } from '../../schema/index.js'
+import { evo } from '../../struct/index.js'
+import * as Task from '../../task/index.js'
 
 // MODEL
 

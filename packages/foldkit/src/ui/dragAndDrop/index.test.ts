@@ -2,7 +2,7 @@ import { describe, it } from '@effect/vitest'
 import { Option } from 'effect'
 import { expect } from 'vitest'
 
-import * as Story from '../../test/story'
+import * as Story from '../../test/story.js'
 import {
   ActivatedKeyboardDrag,
   Cancelled,
@@ -23,7 +23,7 @@ import {
   maybeDraggedItemId,
   maybeDropTarget,
   update,
-} from './index'
+} from './index.js'
 
 const defaultInit = () => init({ id: 'test' })
 

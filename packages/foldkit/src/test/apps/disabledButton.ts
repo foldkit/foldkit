@@ -1,9 +1,9 @@
 import { Effect, Match as M, Schema as S } from 'effect'
 
-import * as Command from '../../command'
-import { type Html, html } from '../../html'
-import { m } from '../../message'
-import * as Dialog from '../../ui/dialog'
+import * as Command from '../../command/index.js'
+import { type Html, html } from '../../html/index.js'
+import { m } from '../../message/index.js'
+import * as Dialog from '../../ui/dialog/index.js'
 
 // MODEL
 

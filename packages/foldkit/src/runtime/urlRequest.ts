@@ -1,7 +1,7 @@
 import { Schema as S } from 'effect'
 
-import { ts } from '../schema'
-import { Url } from '../url'
+import { ts } from '../schema/index.js'
+import { Url } from '../url/index.js'
 
 /** A URL request to a page within the application (same origin). */
 export const Internal = ts('Internal', {

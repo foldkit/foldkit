@@ -2,7 +2,7 @@ import { describe, it } from '@effect/vitest'
 import { Option } from 'effect'
 import { expect } from 'vitest'
 
-import { stripPrefix, stripPrefixNonEmpty } from './stringExtensions'
+import { stripPrefix, stripPrefixNonEmpty } from './stringExtensions.js'
 
 describe('stripPrefix', () => {
   it('strips a matching prefix', () => {

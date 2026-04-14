@@ -2,8 +2,8 @@ import { describe, it } from '@effect/vitest'
 import { Option } from 'effect'
 import { expect } from 'vitest'
 
-import * as Story from '../../test/story'
-import * as Transition from '../transition'
+import * as Story from '../../test/story.js'
+import * as Transition from '../transition/index.js'
 import {
   CloseDialog,
   Closed,
@@ -16,7 +16,7 @@ import {
   init,
   titleId,
   update,
-} from './index'
+} from './index.js'
 
 const transitionToDialogMessage = (message: Transition.Message) =>
   GotTransitionMessage({ message })

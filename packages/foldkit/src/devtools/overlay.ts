@@ -18,24 +18,24 @@ import {
   pipe,
 } from 'effect'
 
-import * as Command from '../command'
-import { OptionExt } from '../effectExtensions'
-import { type Html, createKeyedLazy, html } from '../html'
-import { m } from '../message'
-import { makeProgram } from '../runtime/runtime'
-import type { DevtoolsMode, DevtoolsPosition } from '../runtime/runtime'
-import { makeSubscriptions } from '../runtime/subscription'
-import { evo } from '../struct'
-import { lockScroll, unlockScroll } from '../task/scrollLock'
-import * as Listbox from '../ui/listbox/public'
-import * as Tabs from '../ui/tabs'
-import { overlayStyles } from './overlay-styles'
+import * as Command from '../command/index.js'
+import { OptionExt } from '../effectExtensions/index.js'
+import { type Html, createKeyedLazy, html } from '../html/index.js'
+import { m } from '../message/index.js'
+import { makeProgram } from '../runtime/runtime.js'
+import type { DevtoolsMode, DevtoolsPosition } from '../runtime/runtime.js'
+import { makeSubscriptions } from '../runtime/subscription.js'
+import { evo } from '../struct/index.js'
+import { lockScroll, unlockScroll } from '../task/scrollLock.js'
+import * as Listbox from '../ui/listbox/public.js'
+import * as Tabs from '../ui/tabs/index.js'
+import { overlayStyles } from './overlay-styles.js'
 import {
   type DevtoolsStore,
   type HistoryEntry,
   INIT_INDEX,
   type StoreState,
-} from './store'
+} from './store.js'
 
 // MODEL
 

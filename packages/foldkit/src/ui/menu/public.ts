@@ -27,7 +27,7 @@ export {
   ClickItem,
   DelayClearSearch,
   DetectMovementOrTransitionEnd,
-} from './index'
+} from './index.js'
 
 export type {
   ActivationTrigger,
@@ -47,6 +47,6 @@ export type {
   ViewConfig,
   ItemConfig,
   GroupHeading,
-} from './index'
+} from './index.js'
 
-export type { AnchorConfig } from '../anchor'
+export type { AnchorConfig } from '../anchor.js'

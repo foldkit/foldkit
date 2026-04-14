@@ -1,6 +1,6 @@
 import { Effect } from 'effect'
 
-import { Html, html } from '../html'
+import { Html, html } from '../html/index.js'
 
 export const noOpDispatch = {
   dispatchAsync: (_message: unknown) => Effect.void,

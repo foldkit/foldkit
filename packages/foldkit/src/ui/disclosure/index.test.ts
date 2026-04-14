@@ -1,7 +1,7 @@
 import { describe, it } from '@effect/vitest'
 import { expect } from 'vitest'
 
-import * as Story from '../../test/story'
+import * as Story from '../../test/story.js'
 import {
   Closed,
   CompletedFocusButton,
@@ -9,7 +9,7 @@ import {
   Toggled,
   init,
   update,
-} from './index'
+} from './index.js'
 
 describe('Disclosure', () => {
   describe('init', () => {

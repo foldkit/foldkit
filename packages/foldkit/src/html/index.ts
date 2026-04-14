@@ -13,11 +13,11 @@ import {
 import { h } from 'snabbdom'
 import type { Attrs, On, Props, VNodeData } from 'snabbdom'
 
-import type { File } from '../file'
-import { Dispatch } from '../runtime'
-import { VNode } from '../vdom'
+import type { File } from '../file/index.js'
+import { Dispatch } from '../runtime/index.js'
+import { VNode } from '../vdom.js'
 
-export { createKeyedLazy, createLazy } from './lazy'
+export { createKeyedLazy, createLazy } from './lazy.js'
 
 /**
  * Tag symbol attached to file-aware event handler functions so Scene test

@@ -1,1 +1,1 @@
-export { evo, makeConstrainedEvo } from './index'
+export { evo, makeConstrainedEvo } from './index.js'

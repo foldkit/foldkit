@@ -15,7 +15,7 @@ import {
   randomInt,
   restoreInert,
   unlockScroll,
-} from './index'
+} from './index.js'
 
 describe('getTime', () => {
   it.scoped('returns a UTC time', () =>

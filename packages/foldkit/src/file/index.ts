@@ -1,4 +1,4 @@
-export { File, mimeType, name, size } from './file'
-export { FileReadError } from './error'
-export { select, selectMultiple } from './select'
-export { readAsArrayBuffer, readAsDataUrl, readAsText } from './reader'
+export { File, mimeType, name, size } from './file.js'
+export { FileReadError } from './error.js'
+export { select, selectMultiple } from './select.js'
+export { readAsArrayBuffer, readAsDataUrl, readAsText } from './reader.js'

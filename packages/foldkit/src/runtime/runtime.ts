@@ -22,20 +22,23 @@ import {
 } from 'effect'
 import { h } from 'snabbdom'
 
-import type { Command } from '../command'
-import { createOverlay } from '../devtools/overlay'
-import { type DevtoolsStore, createDevtoolsStore } from '../devtools/store'
-import { Html } from '../html'
-import { Url, fromString as urlFromString } from '../url'
-import { VNode, patch, toVNode } from '../vdom'
+import type { Command } from '../command/index.js'
+import { createOverlay } from '../devtools/overlay.js'
+import { type DevtoolsStore, createDevtoolsStore } from '../devtools/store.js'
+import { Html } from '../html/index.js'
+import { Url, fromString as urlFromString } from '../url/index.js'
+import { VNode, patch, toVNode } from '../vdom.js'
 import {
   addBfcacheRestoreListener,
   addNavigationEventListeners,
-} from './browserListeners'
-import { defaultCrashView, noOpDispatch } from './crashUI'
-import type { ManagedResourceConfig, ManagedResources } from './managedResource'
-import type { Subscriptions } from './subscription'
-import { UrlRequest } from './urlRequest'
+} from './browserListeners.js'
+import { defaultCrashView, noOpDispatch } from './crashUI.js'
+import type {
+  ManagedResourceConfig,
+  ManagedResources,
+} from './managedResource.js'
+import type { Subscriptions } from './subscription.js'
+import { UrlRequest } from './urlRequest.js'
 
 type AnyCommand<T, E = never, R = never> = {
   readonly name: string
@@ -139,7 +142,7 @@ export class Dispatch extends Context.Tag('@foldkit/Dispatch')<
   }
 >() {}
 
-export type { Command } from '../command'
+export type { Command } from '../command/index.js'
 
 /** Configuration for URL routing with handlers for URL requests and URL changes. */
 export type RoutingConfig<Message> = Readonly<{

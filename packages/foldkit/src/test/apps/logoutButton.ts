@@ -1,8 +1,8 @@
 import { Match as M, Option, Schema as S } from 'effect'
 
-import type { Html } from '../../html'
-import { html } from '../../html'
-import { m } from '../../message'
+import type { Html } from '../../html/index.js'
+import { html } from '../../html/index.js'
+import { m } from '../../message/index.js'
 
 // MODEL
 

@@ -9,4 +9,4 @@ export {
   select,
   selectMultiple,
   size,
-} from './index'
+} from './index.js'

@@ -9,7 +9,7 @@ import {
   pipe,
 } from 'effect'
 
-import { CallableTaggedStruct, ts } from '../schema'
+import { CallableTaggedStruct, ts } from '../schema/index.js'
 
 /** A tagged union of field states for use with form validation. */
 export type Field<A, I> = Readonly<{

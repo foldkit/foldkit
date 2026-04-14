@@ -8,7 +8,7 @@ import {
   Option,
 } from 'effect'
 
-import { ElementNotFound } from './error'
+import { ElementNotFound } from './error.js'
 
 const BASE_DIALOG_Z_INDEX = 2147483600
 let openDialogCount = 0

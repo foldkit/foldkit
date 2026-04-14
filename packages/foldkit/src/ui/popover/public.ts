@@ -23,7 +23,7 @@ export {
   FocusPanel,
   FocusButton,
   DetectMovementOrTransitionEnd,
-} from './index'
+} from './index.js'
 
 export type {
   ClosedByTab,
@@ -32,6 +32,6 @@ export type {
   SuppressedSpaceScroll,
   InitConfig,
   ViewConfig,
-} from './index'
+} from './index.js'
 
-export type { AnchorConfig } from '../anchor'
+export type { AnchorConfig } from '../anchor.js'

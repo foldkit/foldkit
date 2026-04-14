@@ -2,9 +2,9 @@ import { describe, it } from '@effect/vitest'
 import { Effect, Option, flow } from 'effect'
 import { expect } from 'vitest'
 
-import * as Scene from '../../test/scene'
-import * as Story from '../../test/story'
-import * as Transition from '../transition'
+import * as Scene from '../../test/scene.js'
+import * as Story from '../../test/story.js'
+import * as Transition from '../transition/index.js'
 import {
   ActivatedItem,
   ClearedSearch,
@@ -43,8 +43,8 @@ import {
   resolveTypeaheadMatch,
   update,
   view,
-} from './index'
-import type { Message, Model, ViewConfig } from './index'
+} from './index.js'
+import type { Message, Model, ViewConfig } from './index.js'
 
 const transitionToMenuMessage = (message: Transition.Message) =>
   GotTransitionMessage({ message })

@@ -1,7 +1,7 @@
 import { describe, it } from '@effect/vitest'
 import { expect } from 'vitest'
 
-import { evo } from './index'
+import { evo } from './index.js'
 
 describe('evo', () => {
   it('transforms specified fields', () => {

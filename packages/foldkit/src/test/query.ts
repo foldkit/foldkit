@@ -12,8 +12,8 @@ import {
 } from 'effect'
 import { dual } from 'effect/Function'
 
-import { evo } from '../struct'
-import type { VNode } from '../vdom'
+import { evo } from '../struct/index.js'
+import type { VNode } from '../vdom.js'
 
 // SELECTOR PARSING
 

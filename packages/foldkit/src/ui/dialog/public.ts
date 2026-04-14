@@ -15,6 +15,6 @@ export {
   GotTransitionMessage,
   ShowDialog,
   CloseDialog,
-} from './index'
+} from './index.js'
 
-export type { InitConfig, ViewConfig } from './index'
+export type { InitConfig, ViewConfig } from './index.js'

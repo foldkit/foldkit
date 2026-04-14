@@ -8,16 +8,16 @@ import {
   pipe,
 } from 'effect'
 
-import * as Command from '../../command'
-import { OptionExt } from '../../effectExtensions'
-import { type Attribute, type Html, html } from '../../html'
-import { m } from '../../message'
-import { makeConstrainedEvo } from '../../struct'
-import * as Task from '../../task'
-import { anchorHooks } from '../anchor'
-import type { AnchorConfig } from '../anchor'
-import { groupContiguous } from '../group'
-import { findFirstEnabledIndex, keyToIndex } from '../keyboard'
+import * as Command from '../../command/index.js'
+import { OptionExt } from '../../effectExtensions/index.js'
+import { type Attribute, type Html, html } from '../../html/index.js'
+import { m } from '../../message/index.js'
+import { makeConstrainedEvo } from '../../struct/index.js'
+import * as Task from '../../task/index.js'
+import { anchorHooks } from '../anchor.js'
+import type { AnchorConfig } from '../anchor.js'
+import { groupContiguous } from '../group.js'
+import { findFirstEnabledIndex, keyToIndex } from '../keyboard.js'
 // NOTE: Transition imports are split across schema + update to avoid a circular
 // dependency: transition → html → runtime → devtools → combobox → transition.
 // The barrel (../transition) imports from html, which starts the cycle.
@@ -29,8 +29,8 @@ import {
   type OutMessage as TransitionOutMessage,
   Showed as TransitionShowed,
   init as transitionInit,
-} from '../transition/schema'
-import { update as transitionUpdate } from '../transition/update'
+} from '../transition/schema.js'
+import { update as transitionUpdate } from '../transition/update.js'
 
 export { groupContiguous }
 

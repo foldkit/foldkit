@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import * as Story from '../../test/story'
-import { Toggled, init, update } from './index'
+import * as Story from '../../test/story.js'
+import { Toggled, init, update } from './index.js'
 
 describe('Checkbox', () => {
   describe('init', () => {

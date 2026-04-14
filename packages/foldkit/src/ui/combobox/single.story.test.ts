@@ -2,10 +2,10 @@ import { describe, it } from '@effect/vitest'
 import { Effect, Option, flow } from 'effect'
 import { expect } from 'vitest'
 
-import * as Scene from '../../test/scene'
-import * as Story from '../../test/story'
-import * as Transition from '../transition'
-import type { Message } from './shared'
+import * as Scene from '../../test/scene.js'
+import * as Story from '../../test/story.js'
+import * as Transition from '../transition/index.js'
+import type { Message } from './shared.js'
 import {
   ActivatedItem,
   ClickItem,
@@ -33,9 +33,9 @@ import {
   SelectedItem,
   UnlockScroll,
   UpdatedInputValue,
-} from './shared'
-import { init, update, view } from './single'
-import type { Model, ViewConfig } from './single'
+} from './shared.js'
+import { init, update, view } from './single.js'
+import type { Model, ViewConfig } from './single.js'
 
 const transitionToComboboxMessage = (message: Transition.Message) =>
   GotTransitionMessage({ message })

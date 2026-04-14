@@ -1,6 +1,6 @@
 import { Effect, Option, ParseResult, Schema as S, String } from 'effect'
 
-import { OptionExt } from '../effectExtensions'
+import { OptionExt } from '../effectExtensions/index.js'
 
 /** Schema representing a parsed URL with protocol, host, port, pathname, search, and hash fields. */
 export const Url = S.Struct({

@@ -1,8 +1,8 @@
 import { Predicate } from 'effect'
 
-import type { Attribute } from '../../html'
-import { html } from '../../html'
-import type { Html } from '../../html'
+import type { Attribute } from '../../html/index.js'
+import { html } from '../../html/index.js'
+import type { Html } from '../../html/index.js'
 
 // VIEW
 

@@ -9,8 +9,12 @@ import {
 } from 'effect'
 import { describe, expect, it, vi } from 'vitest'
 
-import { m } from '../message'
-import { type Bridge, type DevtoolsStore, createDevtoolsStore } from './store'
+import { m } from '../message/index.js'
+import {
+  type Bridge,
+  type DevtoolsStore,
+  createDevtoolsStore,
+} from './store.js'
 
 const initialModel = { count: 0 }
 

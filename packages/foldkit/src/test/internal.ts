@@ -1,6 +1,6 @@
 import { Array, Equivalence, Option, Order, Predicate, pipe } from 'effect'
 
-import type { CommandDefinition } from '../command'
+import type { CommandDefinition } from '../command/index.js'
 
 /** A Command in a test simulation, identified by name. */
 export type AnyCommand = Readonly<{ name: string }>

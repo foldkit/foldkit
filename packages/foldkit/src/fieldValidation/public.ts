@@ -17,6 +17,6 @@ export {
   nonNegative,
   integer,
   oneOf,
-} from './index'
+} from './index.js'
 
-export type { Field, Validation, ValidationMessage } from './index'
+export type { Field, Validation, ValidationMessage } from './index.js'

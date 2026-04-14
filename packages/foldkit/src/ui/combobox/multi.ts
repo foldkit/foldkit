@@ -1,8 +1,8 @@
 import { Array, Schema as S } from 'effect'
 
-import type * as Command from '../../command'
-import { type Html, createLazy } from '../../html'
-import { evo } from '../../struct'
+import type * as Command from '../../command/index.js'
+import { type Html, createLazy } from '../../html/index.js'
+import { evo } from '../../struct/index.js'
 import {
   type BaseInitConfig,
   BaseModel,
@@ -13,7 +13,7 @@ import {
   closedBaseModel,
   makeUpdate,
   makeView,
-} from './shared'
+} from './shared.js'
 
 // MODEL
 

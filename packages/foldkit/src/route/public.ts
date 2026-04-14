@@ -11,7 +11,7 @@ export {
   query,
   parseUrlWithFallback,
   r,
-} from './index'
+} from './index.js'
 
 export type {
   ParseResult,
@@ -19,4 +19,4 @@ export type {
   Router,
   TerminalParser,
   Parser,
-} from './index'
+} from './index.js'

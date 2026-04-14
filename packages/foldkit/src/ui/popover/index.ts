@@ -1,13 +1,18 @@
 import { Array, Effect, Equal, Match as M, Option, Schema as S } from 'effect'
 
-import * as Command from '../../command'
-import { OptionExt } from '../../effectExtensions'
-import { type Attribute, type Html, createLazy, html } from '../../html'
-import { m } from '../../message'
-import { evo } from '../../struct'
-import * as Task from '../../task'
-import { anchorHooks } from '../anchor'
-import type { AnchorConfig } from '../anchor'
+import * as Command from '../../command/index.js'
+import { OptionExt } from '../../effectExtensions/index.js'
+import {
+  type Attribute,
+  type Html,
+  createLazy,
+  html,
+} from '../../html/index.js'
+import { m } from '../../message/index.js'
+import { evo } from '../../struct/index.js'
+import * as Task from '../../task/index.js'
+import { anchorHooks } from '../anchor.js'
+import type { AnchorConfig } from '../anchor.js'
 // NOTE: Transition imports are split across schema + update to avoid a circular
 // dependency: transition → html → runtime → devtools → popover → transition.
 // The barrel (../transition) imports from html, which starts the cycle.
@@ -19,8 +24,8 @@ import {
   type OutMessage as TransitionOutMessage,
   Showed as TransitionShowed,
   init as transitionInit,
-} from '../transition/schema'
-import { update as transitionUpdate } from '../transition/update'
+} from '../transition/schema.js'
+import { update as transitionUpdate } from '../transition/update.js'
 
 // MODEL
 

@@ -27,6 +27,6 @@ export {
   ResolveKeyboardMove,
   Reordered,
   Cancelled,
-} from './index'
+} from './index.js'
 
-export type { InitConfig, DraggableConfig, DraggableMessage } from './index'
+export type { InitConfig, DraggableConfig, DraggableMessage } from './index.js'

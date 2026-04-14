@@ -7,7 +7,7 @@ import {
   FetchCount,
   SucceededFetchCount,
   update,
-} from './apps/counter'
+} from './apps/counter.js'
 import {
   CancelledForm,
   CompletedReset,
@@ -21,8 +21,8 @@ import {
   childUpdate,
   initialParentModel,
   parentUpdate,
-} from './apps/formChild'
-import * as Story from './story'
+} from './apps/formChild.js'
+import * as Story from './story.js'
 
 // TEST
 

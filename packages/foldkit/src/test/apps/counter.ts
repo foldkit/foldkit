@@ -1,7 +1,7 @@
 import { Effect, Match as M, Schema as S } from 'effect'
 
-import * as Command from '../../command'
-import { m } from '../../message'
+import * as Command from '../../command/index.js'
+import { m } from '../../message/index.js'
 
 // MODEL
 

@@ -1,6 +1,6 @@
 import { Array, Option, String as Str, pipe } from 'effect'
 
-import { wrapIndex } from './keyboard'
+import { wrapIndex } from './keyboard.js'
 
 /** Finds the first enabled item whose search text starts with the query, searching forward from the active item and wrapping around. On a fresh search, starts after the active item; on a refinement, includes the active item. */
 export const resolveTypeaheadMatch = <Item>(

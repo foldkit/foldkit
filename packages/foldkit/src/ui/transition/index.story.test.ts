@@ -1,7 +1,7 @@
 import { describe, it } from '@effect/vitest'
 import { expect } from 'vitest'
 
-import * as Story from '../../test/story'
+import * as Story from '../../test/story.js'
 import {
   AdvancedTransitionFrame,
   EndedTransition,
@@ -13,7 +13,7 @@ import {
   WaitForTransitions,
   init,
   update,
-} from './index'
+} from './index.js'
 
 describe('Transition', () => {
   describe('init', () => {

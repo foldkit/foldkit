@@ -7,18 +7,18 @@ import {
   initialModel as bubblingInitialModel,
   update as bubblingUpdate,
   view as bubblingView,
-} from './apps/bubbling'
+} from './apps/bubbling.js'
 import {
   initialModel as fileUploadInitialModel,
   update as fileUploadUpdate,
   view as fileUploadView,
-} from './apps/fileUpload'
+} from './apps/fileUpload.js'
 import {
   initialModel as interactionsInitialModel,
   update as interactionsUpdate,
   view as interactionsView,
-} from './apps/interactions'
-import { update as keyUpdate, view as keyView } from './apps/keypress'
+} from './apps/interactions.js'
+import { update as keyUpdate, view as keyView } from './apps/keypress.js'
 import {
   Authenticate,
   FailedAuthenticate,
@@ -26,24 +26,24 @@ import {
   initialModel,
   update,
   view,
-} from './apps/login'
-import type { Model } from './apps/login'
+} from './apps/login.js'
+import type { Model } from './apps/login.js'
 import {
   RequestedLogout,
   initialModel as logoutInitialModel,
   update as logoutUpdate,
   view as logoutView,
-} from './apps/logoutButton'
+} from './apps/logoutButton.js'
 import {
   initialModel as multiRoleInitialModel,
   update as multiRoleUpdate,
   view as multiRoleView,
-} from './apps/multiRole'
+} from './apps/multiRole.js'
 import {
   initialModel as pointerInitialModel,
   update as pointerUpdate,
   view as pointerView,
-} from './apps/pointer'
+} from './apps/pointer.js'
 import {
   CancelledSelectResume,
   FailedReadPreview,
@@ -54,9 +54,9 @@ import {
   initialModel as resumeInitialModel,
   update as resumeUpdate,
   view as resumeView,
-} from './apps/resumeUpload'
-import type { Model as ResumeModel } from './apps/resumeUpload'
-import { parseSelector } from './query'
+} from './apps/resumeUpload.js'
+import type { Model as ResumeModel } from './apps/resumeUpload.js'
+import { parseSelector } from './query.js'
 import {
   attr,
   find,
@@ -71,8 +71,8 @@ import {
   getByText,
   getByTitle,
   textContent,
-} from './query'
-import * as Scene from './scene'
+} from './query.js'
+import * as Scene from './scene.js'
 
 // TEST
 

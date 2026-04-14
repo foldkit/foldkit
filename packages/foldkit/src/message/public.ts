@@ -1,1 +1,1 @@
-export { m } from './index'
+export { m } from './index.js'

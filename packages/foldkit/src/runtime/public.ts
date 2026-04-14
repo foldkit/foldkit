@@ -1,4 +1,4 @@
-export { makeProgram, run } from './runtime'
+export { makeProgram, run } from './runtime.js'
 
 export type {
   RoutingConfig,
@@ -15,8 +15,8 @@ export type {
   SlowViewContext,
   SlowViewConfig,
   DevtoolsConfig,
-} from './runtime'
+} from './runtime.js'
 
-export { UrlRequest } from './urlRequest'
+export { UrlRequest } from './urlRequest.js'
 
-export type { Internal, External } from './urlRequest'
+export type { Internal, External } from './urlRequest.js'

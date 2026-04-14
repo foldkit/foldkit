@@ -2,11 +2,11 @@ import { describe, it } from '@effect/vitest'
 import { Effect, Option, flow } from 'effect'
 import { expect } from 'vitest'
 
-import * as Scene from '../../test/scene'
-import * as Story from '../../test/story'
-import * as Transition from '../transition'
-import { init, update, view } from './multi'
-import type { Model, ViewConfig } from './multi'
+import * as Scene from '../../test/scene.js'
+import * as Story from '../../test/story.js'
+import * as Transition from '../transition/index.js'
+import { init, update, view } from './multi.js'
+import type { Model, ViewConfig } from './multi.js'
 import {
   ActivatedItem,
   Closed,
@@ -16,8 +16,8 @@ import {
   Opened,
   ScrollIntoView,
   SelectedItem,
-} from './shared'
-import type { Message } from './shared'
+} from './shared.js'
+import type { Message } from './shared.js'
 
 const withClosed = Story.with(init({ id: 'test' }))
 

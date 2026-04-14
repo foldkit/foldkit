@@ -1,8 +1,8 @@
 import { Effect, Predicate } from 'effect'
 
-import { Dispatch } from '../runtime'
-import type { VNode } from '../vdom'
-import type { Html } from './index'
+import { Dispatch } from '../runtime/index.js'
+import type { VNode } from '../vdom.js'
+import type { Html } from './index.js'
 
 const argsEqual = (
   previous: ReadonlyArray<unknown>,

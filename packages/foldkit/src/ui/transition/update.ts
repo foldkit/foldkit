@@ -1,8 +1,8 @@
 import { Effect, Match as M, Option } from 'effect'
 
-import * as Command from '../../command'
-import { evo } from '../../struct'
-import * as Task from '../../task'
+import * as Command from '../../command/index.js'
+import { evo } from '../../struct/index.js'
+import * as Task from '../../task/index.js'
 import {
   AdvancedTransitionFrame,
   EndedTransition,
@@ -11,7 +11,7 @@ import {
   type OutMessage,
   StartedLeaveAnimating,
   TransitionedOut,
-} from './schema'
+} from './schema.js'
 
 // UPDATE
 

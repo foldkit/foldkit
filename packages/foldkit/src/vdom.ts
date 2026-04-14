@@ -8,7 +8,7 @@ import {
   toVNode,
 } from 'snabbdom'
 
-import { propsModule } from './propsModule'
+import { propsModule } from './propsModule.js'
 
 export type { VNode } from 'snabbdom'
 export { toVNode }
