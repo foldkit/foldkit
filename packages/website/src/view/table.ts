@@ -28,10 +28,8 @@ const cell = (
     [
       Class(
         clsx(
-          'px-4 py-3 text-base min-w-[12rem]',
-          isFirstColumn
-            ? 'font-normal text-gray-900 dark:text-white'
-            : 'text-gray-700 dark:text-gray-300',
+          'px-4 py-3 text-base min-w-[12rem] text-gray-800 dark:text-gray-200',
+          { 'font-normal': isFirstColumn },
           { [columnBorder]: !isLastColumn },
         ),
       ),
