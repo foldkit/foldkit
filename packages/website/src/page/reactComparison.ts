@@ -397,7 +397,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'In Foldkit, you read the ',
         link(coreMessagesRouter(), 'Message'),
-        ' union. 30 declarations. The Model is the only place state lives, and the Message union is the only way to change the Model. So the union is a complete index of every way the app can change state.',
+        ' union alongside the update function. 30 Message declarations, each handled by a case in update. The Model is the only place state lives, and the Message union is the only way to change the Model. So together they form a complete index of every way the app can change state, and exactly what changes for each event.',
       ),
       highlightedCodeBlock(
         div(
@@ -419,7 +419,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         link(patternsSubmodelsRouter(), 'Submodel'),
         ', its ',
         inlineCode('Message'),
-        ' union gives you the same complete picture one layer deeper. The full set of state transitions lives in the types.',
+        ' union gives you the same complete picture one layer deeper. Every state transition is indexed in the types and implemented in the update function \u2014 nowhere else.',
       ),
       infoCallout(
         'The single source of state changes',
@@ -468,7 +468,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('useCallback'),
         ' closures and ',
         inlineCode('useEffect'),
-        ' bodies, component-internal events inside library hooks. Both are valid design choices. But only one gives you a single file to open when a teammate asks \u201Chow can state change in this app?\u201D',
+        ' bodies, component-internal events inside library hooks. Both are valid design choices. But only one gives you a single answer when a teammate asks \u201Chow can state change in this app?\u201D \u2014 the Message union catalogs every event, and the update function implements every transition.',
       ),
 
       tableOfContentsEntryToHeader(declarationVsProcedureHeader),
@@ -1279,7 +1279,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'The ',
         inlineCode('Message'),
-        ' union is the total input domain of the update function. By construction, it enumerates every way state can change in this app. And because the runtime dispatches only values from the union, nothing state-changing can reach update any other way. Submodels nest the same property: drill into any UI component and its Message union gives you the same completeness one layer down. React has no equivalent, because React does not structurally require state changes to go through a single channel. Once the channel is optional, the index stops being total, and the answer to \u201Chow can state change in this app?\u201D becomes an archaeological dig through ',
+        ' union is the total input domain of the update function. By construction, it enumerates every event that can change state, and the update function implements every resulting transition. And because the runtime dispatches only values from the union, nothing state-changing can reach update any other way. Submodels nest the same property: drill into any UI component and its Message union and update function give you the same completeness one layer down. React has no equivalent, because React does not structurally require state changes to go through a single channel. Once the channel is optional, the index stops being total, and the answer to \u201Chow can state change in this app?\u201D becomes an archaeological dig through ',
         inlineCode('useEffect'),
         ' dependencies, custom hooks, and library-internal state.',
       ),
@@ -1429,9 +1429,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Look at what we built. The same app, the same features, the same styling. In React, understanding the app means reading the reducer, the hooks, the components, and the Headless UI docs, then reconciling them in your head. In Foldkit, you read the ',
         inlineCode('Message'),
-        ' union to see every state change. You read the ',
+        ' union and the update function to see every state change. You read the ',
         inlineCode('Command'),
-        ' definitions to see every side effect the update function produces. You read the Subscriptions to see every external event stream the app listens to. Complete picture, in three files.',
+        ' definitions to see every side effect the update function produces. You read the Subscriptions to see every external event stream the app listens to. Complete picture, in three places.',
       ),
       para(
         'If you care about adding features without fear, onboarding new developers by pointing them at the Message union, debugging production issues by replaying state, and trusting that your test suite actually catches regressions: Foldkit structurally guarantees those outcomes. React cannot.',
