@@ -20,12 +20,12 @@
     "@eslint/js": "^9.39.2",
     "@foldkit/vite-plugin": "workspace:*",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
-    "@typescript-eslint/eslint-plugin": "^8.54.0",
-    "@typescript-eslint/parser": "^8.54.0",
+    "@typescript-eslint/eslint-plugin": "^8.58.2",
+    "@typescript-eslint/parser": "^8.58.2",
     "eslint": "^9.39.2",
-    "prettier": "^3.8.1",
     "happy-dom": "^18.0.1",
-    "typescript": "^5.9.3",
+    "prettier": "^3.8.1",
+    "typescript": "^6.0.2",
     "vite": "^7.3.1",
     "vitest": "^3.2.4"
   }
