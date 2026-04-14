@@ -25,6 +25,12 @@ const theLoopHeader: TableOfContentsEntry = {
   text: 'The Loop',
 }
 
+const definitionsHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'definitions',
+  text: 'Definitions',
+}
+
 const theRestaurantAnalogyHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'the-restaurant-analogy',
@@ -34,6 +40,7 @@ const theRestaurantAnalogyHeader: TableOfContentsEntry = {
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   theLoopHeader,
+  definitionsHeader,
   theRestaurantAnalogyHeader,
 ]
 
@@ -66,14 +73,24 @@ export const view = (): Html =>
         ' function renders the new Model as HTML. When the user interacts with the view, it produces another Message, and the loop continues.',
       ),
       para(
-        'Commands are descriptions of side effects \u2014 HTTP requests, timers, browser API calls. The Foldkit runtime executes them and sends their results back as new Messages, feeding them into the same loop.',
+        'Commands are descriptions of one-shot side effects \u2014 HTTP requests, focus operations, ',
+        inlineCode('localStorage'),
+        ' writes, navigation calls. The Foldkit runtime executes them and sends their results back as new Messages, feeding them into the same loop. Each Command carries a name, which surfaces in tracing and tests.',
+      ),
+      para(
+        'Subscriptions are continuous streams of Messages from external sources \u2014 keypresses, recurring timers, ',
+        inlineCode('WebSocket'),
+        ' frames, window resize events. Where a Command runs once and reports back, a Subscription stays active for as long as the Model says it should, and the stream decides which source events become Messages.',
+      ),
+      para(
+        'ManagedResources have an acquire/release lifecycle tied to Model state \u2014 a camera stream during a video call, a ',
+        inlineCode('WebSocket'),
+        ' connection while the user is on a chat page. The runtime acquires them when the Model enters the relevant state, releases them when it leaves, and dispatches Messages for each transition.',
       ),
       para(
         'That\u2019s it. Every state transition in your app flows through a single loop. There\u2019s no action-at-a-distance, no hidden state mutation, no effect that runs outside the cycle. If you want to know how the app got into its current state, you follow the Messages.',
       ),
-      para(
-        'The complete cycle, including Subscriptions and ManagedResources, looks like this:',
-      ),
+      para('The complete cycle looks like this:'),
       pre(
         [
           Class(
@@ -105,7 +122,77 @@ export const view = (): Html =>
       para(
         'Every path on the right side produces a Message that feeds back into ',
         inlineCode('update'),
-        '. Commands are named, one-shot effects \u2014 each carries a name for identification in tracing and tests. Subscriptions emit a continuous stream of Messages. ManagedResources dispatch Messages when they\u2019re acquired, released, or fail to acquire. The Browser sends Messages when the user interacts with the DOM. Four sources, one loop.',
+        '. Four sources \u2014 Commands, Subscriptions, ManagedResources, and the Browser \u2014 one loop.',
+      ),
+      para(
+        'Sitting beneath the loop are Resources: app-lifetime singletons like ',
+        inlineCode('AudioContext'),
+        ', ',
+        inlineCode('RTCPeerConnection'),
+        ', or a shared ',
+        inlineCode('HttpClient'),
+        ' that Commands, Subscriptions, and ManagedResources draw on. Resources don\u2019t produce Messages themselves \u2014 they\u2019re the ambient dependencies the Message-producing parts need to do their work.',
+      ),
+      tableOfContentsEntryToHeader(definitionsHeader),
+      para('Each concept in one place, in plain terms:'),
+      comparisonTable(
+        ['Concept', 'Definition'],
+        [
+          [
+            ['Model'],
+            [
+              'The single data structure that holds your entire application state.',
+            ],
+          ],
+          [
+            ['Message'],
+            [
+              'A fact about something that happened \u2014 a click, a key press, an HTTP response.',
+            ],
+          ],
+          [
+            ['update'],
+            [
+              'A pure function that receives the current Model and a Message and returns a new Model along with any Commands to execute.',
+            ],
+          ],
+          [
+            ['view'],
+            [
+              'A pure function that renders the Model as HTML. User interactions produce Messages that flow back into update.',
+            ],
+          ],
+          [
+            ['Command'],
+            [
+              'A description of a one-shot side effect. The runtime executes it and sends the result back as a Message.',
+            ],
+          ],
+          [
+            ['Subscription'],
+            [
+              'A continuous stream of Messages from an external source, active for as long as the Model says it should be.',
+            ],
+          ],
+          [
+            ['Resource'],
+            [
+              'An app-lifetime singleton \u2014 an AudioContext, a shared HTTP client, a canvas context \u2014 that Commands, Subscriptions, and ManagedResources can draw on. A dependency, not a Message source.',
+            ],
+          ],
+          [
+            ['ManagedResource'],
+            [
+              'A resource with an acquire/release lifecycle tied to Model state. Dispatches Messages for each lifecycle transition.',
+            ],
+          ],
+          [
+            ['Runtime'],
+            [
+              'The Foldkit engine that executes Commands, runs Subscriptions, manages resource lifecycles, and routes Messages back into update.',
+            ],
+          ],
+        ],
       ),
       tableOfContentsEntryToHeader(theRestaurantAnalogyHeader),
       para(
@@ -151,6 +238,18 @@ export const view = (): Html =>
             ['Subscription'],
             [
               'A standing order: \u201Ckeep the coffee coming for table 5\u201D',
+            ],
+          ],
+          [
+            ['Resource'],
+            [
+              'Kitchen equipment \u2014 the oven, the stand mixer, the deep fryer. Turned on when the kitchen opens and available to every dish.',
+            ],
+          ],
+          [
+            ['ManagedResource'],
+            [
+              'A specialty station \u2014 set up when the menu features the seafood special, broken down when the special ends',
             ],
           ],
           [
