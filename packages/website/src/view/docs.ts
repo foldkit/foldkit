@@ -711,6 +711,15 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           ),
           Page.UiPages.SwitchPage.tableOfContents,
         ),
+      UiCalendar: () =>
+        withTableOfContents(
+          Page.UiPages.CalendarPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
+          Page.UiPages.CalendarPage.tableOfContents,
+        ),
       UiCheckbox: () =>
         withTableOfContents(
           Page.UiPages.CheckboxPage.view(

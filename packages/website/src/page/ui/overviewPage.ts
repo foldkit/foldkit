@@ -19,6 +19,7 @@ import {
   exampleDetailRouter,
   patternsSubmodelsRouter,
   uiButtonRouter,
+  uiCalendarRouter,
   uiCheckboxRouter,
   uiComboboxRouter,
   uiDialogRouter,
@@ -184,6 +185,13 @@ const components: ReadonlyArray<ComponentEntry> = [
     category: 'Interaction',
     description:
       'Sortable lists and cross-container movement with pointer tracking, keyboard navigation, auto-scrolling, and screen reader announcements.',
+  },
+  {
+    name: 'Calendar',
+    href: uiCalendarRouter(),
+    category: 'Date',
+    description:
+      'Inline calendar grid with 2D keyboard navigation, locale-aware headers, min/max constraints, and disabled-date support. Foundation for date pickers.',
   },
   {
     name: 'Transition',

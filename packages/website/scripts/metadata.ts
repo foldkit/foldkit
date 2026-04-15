@@ -204,6 +204,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Button',
     'A thin wrapper around the native button with accessibility attributes and styling hooks.',
   ),
+  UiCalendar: ui(
+    'Calendar',
+    'Accessible inline calendar grid with 2D keyboard navigation, locale-aware headers, and min/max/disabled-date constraints.',
+  ),
   UiCheckbox: ui(
     'Checkbox',
     'Accessible checkbox with indeterminate state support.',

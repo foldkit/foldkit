@@ -20,7 +20,7 @@ import {
   Tracer,
   pipe,
 } from 'effect'
-import { Command, FieldValidation, Runtime, Ui } from 'foldkit'
+import { Calendar, Command, FieldValidation, Runtime, Ui } from 'foldkit'
 import { load, pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 import { makeSubscriptions } from 'foldkit/subscription'
@@ -116,6 +116,7 @@ const Flags = S.Struct({
   systemTheme: ResolvedTheme,
   isNarrowViewport: S.Boolean,
   currentYear: S.Number,
+  today: Calendar.CalendarDate,
 })
 
 type Flags = typeof Flags.Type
@@ -148,11 +149,14 @@ const flags: Effect.Effect<Flags> = Effect.gen(function* () {
     Effect.map(DateTime.getPartUtc('year')),
   )
 
+  const today = yield* Calendar.today.local
+
   return {
     themePreference,
     systemTheme,
     isNarrowViewport,
     currentYear,
+    today,
   }
 })
 
@@ -220,7 +224,7 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
   const [asyncCounterDemo, asyncCounterDemoCommands] =
     Page.AsyncCounterDemo.init()
   const [notePlayerDemo, notePlayerDemoCommands] = Page.NotePlayerDemo.init()
-  const [uiPages, uiPagesCommands] = Page.UiPages.init()
+  const [uiPages, uiPagesCommands] = Page.UiPages.init(flags.today)
   const [comingFromReact, comingFromReactCommands] = Page.ComingFromReact.init()
   const initialRoute = urlToAppRoute(url)
 

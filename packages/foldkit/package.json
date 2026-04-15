@@ -11,6 +11,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./calendar": {
+      "types": "./dist/calendar/public.d.ts",
+      "import": "./dist/calendar/public.js"
+    },
     "./command": {
       "types": "./dist/command/public.d.ts",
       "import": "./dist/command/public.js"
@@ -78,6 +82,10 @@
     "./ui/button": {
       "types": "./dist/ui/button/public.d.ts",
       "import": "./dist/ui/button/public.js"
+    },
+    "./ui/calendar": {
+      "types": "./dist/ui/calendar/public.d.ts",
+      "import": "./dist/ui/calendar/public.js"
     },
     "./ui/checkbox": {
       "types": "./dist/ui/checkbox/public.d.ts",

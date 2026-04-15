@@ -1,11 +1,11 @@
-import { Command, Ui } from 'foldkit'
+import { Calendar, Command, Ui } from 'foldkit'
 
 import type { Message } from './message'
 import type { Model } from './model'
 
 export type InitReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 
-export const init = (): InitReturn => [
+export const init = (today: Calendar.CalendarDate): InitReturn => [
   {
     buttonClickCount: 0,
     inputDemoValue: '',
@@ -14,6 +14,10 @@ export const init = (): InitReturn => [
     fieldsetTextareaValue: '',
     fieldsetCheckboxDemo: Ui.Checkbox.init({
       id: 'fieldset-checkbox-demo',
+    }),
+    calendarBasicDemo: Ui.Calendar.init({
+      id: 'calendar-basic-demo',
+      today,
     }),
     checkboxBasicDemo: Ui.Checkbox.init({ id: 'checkbox-basic-demo' }),
     checkboxOptionADemo: Ui.Checkbox.init({
