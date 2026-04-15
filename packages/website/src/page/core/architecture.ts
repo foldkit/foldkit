@@ -129,9 +129,9 @@ export const view = (): Html =>
         inlineCode('AudioContext'),
         ', ',
         inlineCode('RTCPeerConnection'),
-        ', or a shared ',
-        inlineCode('HttpClient'),
-        ' that Commands, Subscriptions, and ManagedResources draw on. Resources don\u2019t produce Messages themselves \u2014 they\u2019re the ambient dependencies the Message-producing parts need to do their work.',
+        ', or ',
+        inlineCode('CanvasRenderingContext2D'),
+        ' that Commands draw on. Resources don\u2019t produce Messages themselves \u2014 they\u2019re the ambient dependencies the Message-producing parts need to do their work.',
       ),
       tableOfContentsEntryToHeader(definitionsHeader),
       para('Each concept in one place, in plain terms:'),
@@ -147,7 +147,7 @@ export const view = (): Html =>
           [
             ['Message'],
             [
-              'A fact about something that happened \u2014 a click, a key press, an HTTP response.',
+              'A fact about something that happened \u2014 a button was clicked, a key was pressed, a request succeeded with a payload.',
             ],
           ],
           [
@@ -177,13 +177,13 @@ export const view = (): Html =>
           [
             ['Resource'],
             [
-              'An app-lifetime singleton \u2014 an AudioContext, a shared HTTP client, a canvas context \u2014 that Commands, Subscriptions, and ManagedResources can draw on. A dependency, not a Message source.',
+              'An app-lifetime singleton \u2014 an AudioContext, an RTCPeerConnection, a CanvasRenderingContext2D \u2014 that Commands can draw on. A dependency, not a Message source.',
             ],
           ],
           [
             ['ManagedResource'],
             [
-              'A resource with an acquire/release lifecycle tied to Model state. Dispatches Messages for each lifecycle transition.',
+              'Like a Resource, but scoped to a window of Model state instead of the app lifetime \u2014 a WebSocket connection while the user is on a chat page, a camera stream during a video call. Commands access it as a typed service while it\u2019s live; the runtime acquires it on entry, releases it on exit, and dispatches Messages for each lifecycle transition.',
             ],
           ],
           [

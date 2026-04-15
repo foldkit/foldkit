@@ -56,7 +56,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       pageTitle('core/commands', 'Commands'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'A Command is a description of a side effect \u2014 an HTTP request, a timer, a DOM focus call. The update function doesn\u2019t actually do anything on its own: it returns data, and the Foldkit runtime reads the Commands and carries them out.',
+        'A Command is a description of a side effect \u2014 an HTTP request, a one-shot delay, a DOM focus call. The update function doesn\u2019t actually do anything on its own: it returns data, and the Foldkit runtime reads the Commands and carries them out.',
       ),
       para(
         'In the ',
