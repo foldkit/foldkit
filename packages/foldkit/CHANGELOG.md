@@ -1,5 +1,76 @@
 # foldkit
 
+## 0.61.0
+
+### Minor Changes
+
+- 79a9ce7: Add `Calendar` module for immutable calendar-date math.
+
+  New `foldkit/calendar` module — an immutable `CalendarDate` type modeling the same concept as Java's `LocalDate` and TC39's `Temporal.PlainDate`. No time, no timezone; useful for birthdays, deadlines, form date inputs, and event calendars. The module depends only on `effect` and can be extracted as a standalone library in the future.
+
+  Construction and interop:
+  - `make` / `unsafeMake` / `isCalendarDate` type guard
+  - `fromDateLocal` / `fromDateInZone` / `toDateLocal` for JavaScript `Date`
+  - `CalendarDateFromIsoString` schema transform for JSON and form serialization
+
+  Arithmetic (all binary functions are dual via `Function.dual`, so data-first and pipe-style calls both work):
+  - `addDays` / `addMonths` / `addYears` with day-clamping on month overflow (Jan 31 + 1 month → Feb 28/29)
+  - `subtractDays` / `subtractMonths` / `subtractYears`
+  - `daysUntil` / `daysSince` matching `Temporal.PlainDate.until` / `since`
+
+  Comparison and ordering:
+  - `Order` and `Equivalence` exported as named instances for ecosystem interop
+  - `isEqual`, `isBefore`, `isAfter`, `isBeforeOrEqual`, `isAfterOrEqual`
+  - `min`, `max`, `between({ minimum, maximum })`, `clamp({ minimum, maximum })`
+
+  Calendar info:
+  - `dayOfWeek` via Sakamoto's algorithm, returning a `DayOfWeek` tagged literal
+  - `isLeapYear`, `daysInMonth`, `firstOfMonth`, `lastOfMonth`
+  - `startOfWeek` / `endOfWeek` with configurable first day of week
+
+  Today:
+  - `today.local` and `today.inZone(timeZone)` — Effect-based accessors backed by `Clock.currentTimeMillis`, so tests can freeze time via `TestClock`. This is the only impurity boundary in the module; every other function is referentially transparent.
+
+  Locale and formatting:
+  - `LocaleConfig` schema and `defaultEnglishLocale` constant
+  - `formatLong`, `formatShort`, `formatAriaLabel` pure formatters
+
+- 79a9ce7: Add `Ui.Calendar` component for rendering accessible inline calendar grids.
+
+  New `foldkit/ui/calendar` module — a calendar UI primitive that manages the 2D keyboard navigation state machine and renders an ARIA grid. Designed for standalone inline-calendar use (scheduling UIs, event calendars) and as the foundation for the upcoming DatePicker component.
+
+  Model:
+  - Tracks `viewYear`/`viewMonth` (what the grid is showing), `maybeFocusedDate` (keyboard cursor), `maybeSelectedDate` (chosen value), `isGridFocused` (DOM focus state), plus `locale`, `maybeMinDate`, `maybeMaxDate`, `disabledDaysOfWeek`, and `disabledDates` configuration
+  - Two distinct "current date" concepts: navigating with arrows never touches selection; commit gestures (click, Enter, Space) move both
+  - `init` takes `today`, optional `maybeInitialSelectedDate`, and configuration; view defaults to the month of the selected date or today
+
+  Messages: `ClickedDay`, `PressedKeyOnGrid`, `ClickedPreviousMonthButton`, `ClickedNextMonthButton`, `SelectedMonthFromDropdown`, `SelectedYearFromDropdown`, `FocusedGrid` / `BlurredGrid`, `RefreshedToday`, `CompletedFocusGrid`.
+
+  Selection events use the controlled / uncontrolled callback pattern from Listbox / Combobox / Popover: provide an `onSelectedDate?: (date: CalendarDate) => ParentMessage` callback in the ViewConfig to take control of the event, then call `Calendar.selectDate(model, date)` from your handler to write the selection back to internal state. Omit the callback for uncontrolled mode where Calendar manages `maybeSelectedDate` automatically.
+
+  OutMessage: `ChangedViewMonth({ year, month })` when navigation changes the visible month — useful for inline-calendar consumers loading month-scoped data like holidays or availability. Date selection does NOT go through OutMessage; subscribe via the `onSelectedDate` callback above.
+
+  Keyboard navigation (WAI-ARIA grid pattern):
+  - Arrow keys move focus by day (±1) or week (±7)
+  - `Home` / `End` jump to start / end of week (based on `locale.firstDayOfWeek`)
+  - `PageUp` / `PageDown` move by month
+  - `Shift+PageUp` / `Shift+PageDown` move by year
+  - `Enter` / `Space` commits the focused date
+  - Navigation skips disabled dates with a bounded cap, so fully-disabled ranges don't cause infinite loops
+
+  Configuration:
+  - `maybeMinDate` / `maybeMaxDate` — inclusive range constraints
+  - `disabledDaysOfWeek` — e.g. `['Saturday', 'Sunday']` to disable weekends
+  - `disabledDates` — explicit array of disabled dates (holidays, blackout days)
+  - `locale` — `LocaleConfig` from `foldkit/calendar`, defaults to `defaultEnglishLocale`
+
+  View:
+  - `view` builds ARIA attribute groups (`grid`, `row`, `gridcell`, `columnheader`) plus derived data (6×7 grid of dates, rotated column headers, month/year dropdown options, formatted heading text) and delegates layout to a `toView` callback
+  - `lazy` memoizes the view for stable renders
+  - `focusGrid(id)` builds a command that focuses the grid container — intended for parent components like DatePicker that hand off focus after opening
+
+  Also extracted named constants for Gregorian cycle arithmetic in `foldkit/calendar/arithmetic.ts` (`MONTHS_PER_YEAR`, `DAYS_PER_YEAR`, `YEARS_PER_ERA`, `DAYS_PER_ERA`, `EPOCH_DAY_OFFSET`). No behavior change, clearer Howard Hinnant algorithm references.
+
 ## 0.60.0
 
 ### Minor Changes
