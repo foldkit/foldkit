@@ -41,6 +41,7 @@ import {
   testingSceneRouter,
   testingStoryRouter,
   uiButtonRouter,
+  uiCalendarRouter,
   uiCheckboxRouter,
   uiComboboxRouter,
   uiDialogRouter,
@@ -447,6 +448,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'UiDragAndDrop',
           href: uiDragAndDropRouter(),
           label: 'Drag and Drop',
+        },
+        {
+          _tag: 'UiCalendar',
+          href: uiCalendarRouter(),
+          label: 'Calendar',
         },
         {
           _tag: 'UiTransition',

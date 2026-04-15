@@ -1,3 +1,4 @@
+export * as Calendar from './calendar/public'
 export * as Command from './command/public'
 export * as ManagedResource from './managedResource/public'
 export * as FieldValidation from './fieldValidation/public'

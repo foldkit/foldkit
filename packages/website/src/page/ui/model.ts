@@ -1,5 +1,6 @@
 import { Schema as S } from 'effect'
 import {
+  Calendar,
   Checkbox,
   Combobox,
   Dialog,
@@ -32,6 +33,7 @@ export const Model = S.Struct({
   fieldsetInputValue: S.String,
   fieldsetTextareaValue: S.String,
   fieldsetCheckboxDemo: Checkbox.Model,
+  calendarBasicDemo: Calendar.Model,
   checkboxBasicDemo: Checkbox.Model,
   checkboxOptionADemo: Checkbox.Model,
   checkboxOptionBDemo: Checkbox.Model,

@@ -3,6 +3,7 @@ import { Command, Ui } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import {
+  GotCalendarBasicDemoMessage,
   GotCheckboxBasicDemoMessage,
   GotCheckboxOptionADemoMessage,
   GotCheckboxOptionBDemoMessage,
@@ -165,6 +166,22 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         }),
         [],
       ],
+
+      GotCalendarBasicDemoMessage: ({ message }) => {
+        const [nextCalendarBasicDemo, calendarBasicCommands] =
+          Ui.Calendar.update(model.calendarBasicDemo, message)
+
+        return [
+          evo(model, {
+            calendarBasicDemo: () => nextCalendarBasicDemo,
+          }),
+          calendarBasicCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotCalendarBasicDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
 
       GotCheckboxBasicDemoMessage: ({ message }) => {
         const [nextCheckboxBasicDemo, checkboxBasicCommands] =
