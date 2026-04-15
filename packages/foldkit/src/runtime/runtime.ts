@@ -1,4 +1,4 @@
-import { BrowserRuntime } from '@effect/platform-browser/index'
+import { BrowserRuntime } from '@effect/platform-browser'
 import {
   Array,
   Cause,
