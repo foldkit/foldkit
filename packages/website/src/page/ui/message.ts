@@ -24,6 +24,12 @@ export const GotFieldsetCheckboxDemoMessage = m(
 export const GotCalendarBasicDemoMessage = m('GotCalendarBasicDemoMessage', {
   message: Ui.Calendar.Message,
 })
+export const GotDatePickerBasicDemoMessage = m(
+  'GotDatePickerBasicDemoMessage',
+  {
+    message: Ui.DatePicker.Message,
+  },
+)
 export const GotCheckboxBasicDemoMessage = m('GotCheckboxBasicDemoMessage', {
   message: Ui.Checkbox.Message,
 })
@@ -132,6 +138,7 @@ export const Message = S.Union(
   UpdatedFieldsetTextareaValue,
   GotFieldsetCheckboxDemoMessage,
   GotCalendarBasicDemoMessage,
+  GotDatePickerBasicDemoMessage,
   GotCheckboxBasicDemoMessage,
   GotCheckboxAllDemoMessage,
   GotCheckboxOptionADemoMessage,

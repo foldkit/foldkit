@@ -1,14 +1,30 @@
+import { Option } from 'effect'
 import { Ui } from 'foldkit'
+import type { AnchorConfig } from 'foldkit/ui/popover'
 
-import { Class, Id, button, div, h2 } from '../../html'
+import { Class, Id, button, div, h2, span } from '../../html'
+import { Icon } from '../../icon'
 import type { Message as ParentMessage } from '../../main'
-import { GotCalendarBasicDemoMessage, type Message } from './message'
+import { GotDatePickerBasicDemoMessage, type Message } from './message'
 import type { Model } from './model'
 
 // DEMO CONTENT
 
-const containerClassName =
-  'inline-flex flex-col gap-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-4 shadow-sm select-none'
+const triggerClassName =
+  'inline-flex items-center justify-between gap-2 min-w-48 px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 dark:border-gray-700 bg-cream dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 select-none'
+
+const triggerContentClassName = 'flex w-full items-center justify-between gap-4'
+
+const placeholderClassName = 'text-gray-500 dark:text-gray-400'
+
+const panelClassName =
+  'rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-4 shadow-lg z-10 outline-none'
+
+const backdropClassName = 'fixed inset-0 z-0'
+
+const wrapperClassName = 'relative inline-block'
+
+const calendarWrapperClassName = 'flex flex-col gap-3 select-none'
 
 const headerClassName = 'flex items-center justify-between gap-2'
 
@@ -34,17 +50,50 @@ const dayButtonClassName =
 
 // VIEW
 
+const DATE_PICKER_ANCHOR: AnchorConfig = {
+  placement: 'bottom-start',
+  gap: 4,
+  padding: 8,
+}
+
+const formatTriggerLabel = (
+  date: Readonly<{ year: number; month: number; day: number }>,
+) =>
+  `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`
+
+const triggerContent = (
+  maybeDate: Option.Option<
+    Readonly<{ year: number; month: number; day: number }>
+  >,
+) =>
+  div(
+    [Class(triggerContentClassName)],
+    [
+      Option.match(maybeDate, {
+        onNone: () => span([Class(placeholderClassName)], ['Pick a date']),
+        onSome: date => span([], [formatTriggerLabel(date)]),
+      }),
+      Icon.chevronDown('w-4 h-4'),
+    ],
+  )
+
 export const basicDemo = (
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => [
-  Ui.Calendar.view({
-    model: model.calendarBasicDemo,
+  Ui.DatePicker.view({
+    model: model.datePickerBasicDemo,
     toParentMessage: message =>
-      toParentMessage(GotCalendarBasicDemoMessage({ message })),
-    toView: attributes =>
+      toParentMessage(GotDatePickerBasicDemoMessage({ message })),
+    anchor: DATE_PICKER_ANCHOR,
+    triggerContent,
+    triggerClassName,
+    panelClassName,
+    backdropClassName,
+    className: wrapperClassName,
+    toCalendarView: attributes =>
       div(
-        [...attributes.root, Class(containerClassName)],
+        [...attributes.root, Class(calendarWrapperClassName)],
         [
           div(
             [Class(headerClassName)],

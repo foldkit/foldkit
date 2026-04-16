@@ -58,6 +58,7 @@ export const PatternsOutMessageRoute = r('PatternsOutMessage')
 export const UiOverviewRoute = r('UiOverview')
 export const UiButtonRoute = r('UiButton')
 export const UiCalendarRoute = r('UiCalendar')
+export const UiDatePickerRoute = r('UiDatePicker')
 export const UiCheckboxRoute = r('UiCheckbox')
 export const UiTabsRoute = r('UiTabs')
 export const UiDisclosureRoute = r('UiDisclosure')
@@ -123,6 +124,7 @@ export const DocsRoute = S.Union(
   UiOverviewRoute,
   UiButtonRoute,
   UiCalendarRoute,
+  UiDatePickerRoute,
   UiCheckboxRoute,
   UiTabsRoute,
   UiDisclosureRoute,
@@ -339,6 +341,11 @@ export const uiCalendarRouter = pipe(
   slash(literal('calendar')),
   mapTo(UiCalendarRoute),
 )
+export const uiDatePickerRouter = pipe(
+  literal('ui'),
+  slash(literal('date-picker')),
+  mapTo(UiDatePickerRoute),
+)
 export const uiCheckboxRouter = pipe(
   literal('ui'),
   slash(literal('checkbox')),
@@ -482,6 +489,7 @@ const uiParser = oneOf(
   uiOverviewRouter,
   uiButtonRouter,
   uiCalendarRouter,
+  uiDatePickerRouter,
   uiCheckboxRouter,
   uiTabsRouter,
   uiDisclosureRouter,

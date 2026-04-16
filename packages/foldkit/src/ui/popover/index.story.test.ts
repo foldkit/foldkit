@@ -71,6 +71,7 @@ describe('Popover', () => {
         isOpen: false,
         isAnimated: false,
         isModal: false,
+        contentFocus: false,
         transition: Transition.init({ id: 'test-panel' }),
         maybeLastButtonPointerType: Option.none(),
       })
@@ -91,6 +92,16 @@ describe('Popover', () => {
       const model = init({ id: 'test', isModal: true })
       expect(model.isModal).toBe(true)
     })
+
+    it('defaults contentFocus to false', () => {
+      const model = init({ id: 'test' })
+      expect(model.contentFocus).toBe(false)
+    })
+
+    it('accepts contentFocus option', () => {
+      const model = init({ id: 'test', contentFocus: true })
+      expect(model.contentFocus).toBe(true)
+    })
   })
 
   describe('update', () => {
@@ -101,6 +112,18 @@ describe('Popover', () => {
           withClosed,
           Story.message(Opened()),
           Story.resolve(FocusPanel, CompletedFocusPanel()),
+          Story.model(model => {
+            expect(model.isOpen).toBe(true)
+          }),
+        )
+      })
+
+      it('does not dispatch FocusPanel when contentFocus is enabled', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', contentFocus: true })),
+          Story.message(Opened()),
+          Story.expectNoCommands(),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),

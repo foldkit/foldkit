@@ -1,5 +1,6 @@
 export * as Button from './button/public'
 export * as Calendar from './calendar/public'
+export * as DatePicker from './datePicker/public'
 export * as Checkbox from './checkbox/public'
 export * as Combobox from './combobox/public'
 export * as Dialog from './dialog/public'

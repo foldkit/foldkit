@@ -115,6 +115,10 @@ export const activeSection: Subscription<
         M.tag('UiInput', () => Page.UiPages.InputPage.tableOfContents),
         M.tag('UiTextarea', () => Page.UiPages.TextareaPage.tableOfContents),
         M.tag('UiCalendar', () => Page.UiPages.CalendarPage.tableOfContents),
+        M.tag(
+          'UiDatePicker',
+          () => Page.UiPages.DatePickerPage.tableOfContents,
+        ),
         M.tag('UiCheckbox', () => Page.UiPages.CheckboxPage.tableOfContents),
         M.tag(
           'UiRadioGroup',

@@ -30,6 +30,7 @@ export const Model = S.Struct({
   isOpen: S.Boolean,
   isAnimated: S.Boolean,
   isModal: S.Boolean,
+  contentFocus: S.Boolean,
   transition: TransitionModel,
   maybeLastButtonPointerType: S.OptionFromSelf(S.String),
 })
@@ -116,11 +117,12 @@ export type Message = typeof Message.Type
 
 const LEFT_MOUSE_BUTTON = 0
 
-/** Configuration for creating a popover model with `init`. `isAnimated` enables CSS transition coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). */
+/** Configuration for creating a popover model with `init`. `isAnimated` enables CSS transition coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). `contentFocus` hands focus ownership to the consumer — the panel is not focusable and does not close on blur, so the consumer must focus a descendant on open and close the popover on its own blur rules (default `false`). */
 export type InitConfig = Readonly<{
   id: string
   isAnimated?: boolean
   isModal?: boolean
+  contentFocus?: boolean
 }>
 
 /** Creates an initial popover model from a config. Defaults to closed. */
@@ -129,6 +131,7 @@ export const init = (config: InitConfig): Model => ({
   isOpen: false,
   isAnimated: config.isAnimated ?? false,
   isModal: config.isModal ?? false,
+  contentFocus: config.contentFocus ?? false,
   transition: transitionInit({ id: `${config.id}-panel` }),
   maybeLastButtonPointerType: Option.none(),
 })
@@ -261,7 +264,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
   )
 
   const openCommands = [
-    focusPanel,
+    ...(model.contentFocus ? [] : [focusPanel]),
     ...Array.getSomes([maybeLockScroll, maybeInertOthers]),
   ]
 
@@ -438,6 +441,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     model: {
       id,
       isOpen,
+      contentFocus,
       transition: { transitionState },
       maybeLastButtonPointerType,
     },
@@ -496,6 +500,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
       M.whenOr('Enter', ' ', 'ArrowDown', () =>
         Option.some(isOpen ? dispatchClosed() : dispatchOpened()),
       ),
+      M.when('Escape', () => OptionExt.when(isOpen, dispatchClosed())),
       M.orElse(() => Option.none()),
     )
 
@@ -574,14 +579,14 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
 
   const resolvedPanelAttributes = [
     Id(`${id}-panel`),
-    Tabindex(0),
+    ...(contentFocus ? [] : [Tabindex(0)]),
     ...anchorAttributes,
     ...transitionAttributes,
     ...(isLeaving
       ? []
       : [
           OnKeyDownPreventDefault(handlePanelKeyDown),
-          OnBlur(toParentMessage(ClosedByTab())),
+          ...(contentFocus ? [] : [OnBlur(toParentMessage(ClosedByTab()))]),
         ]),
     ...(panelClassName ? [Class(panelClassName)] : []),
     ...panelAttributes,

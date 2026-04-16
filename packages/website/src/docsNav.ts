@@ -44,6 +44,7 @@ import {
   uiCalendarRouter,
   uiCheckboxRouter,
   uiComboboxRouter,
+  uiDatePickerRouter,
   uiDialogRouter,
   uiDisclosureRouter,
   uiDragAndDropRouter,
@@ -453,6 +454,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'UiCalendar',
           href: uiCalendarRouter(),
           label: 'Calendar',
+        },
+        {
+          _tag: 'UiDatePicker',
+          href: uiDatePickerRouter(),
+          label: 'Date Picker',
         },
         {
           _tag: 'UiTransition',

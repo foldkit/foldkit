@@ -101,6 +101,8 @@ export const anchorHooks = (config: {
       })
     })
 
+    const portalCleanup = isPortal ? () => items.remove() : undefined
+
     if (isPortal && shouldInterceptTab) {
       const handleTabKey = (event: Event): void => {
         if (event instanceof KeyboardEvent && event.key === 'Tab') {
@@ -113,9 +115,13 @@ export const anchorHooks = (config: {
       anchorCleanups.set(items, () => {
         floatingCleanup()
         items.removeEventListener('keydown', handleTabKey)
+        portalCleanup?.()
       })
     } else {
-      anchorCleanups.set(items, floatingCleanup)
+      anchorCleanups.set(items, () => {
+        floatingCleanup()
+        portalCleanup?.()
+      })
     }
   },
   onDestroy: (items: Element) => {

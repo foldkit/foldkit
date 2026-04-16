@@ -720,6 +720,15 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           ),
           Page.UiPages.CalendarPage.tableOfContents,
         ),
+      UiDatePicker: () =>
+        withTableOfContents(
+          Page.UiPages.DatePickerPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
+          Page.UiPages.DatePickerPage.tableOfContents,
+        ),
       UiCheckbox: () =>
         withTableOfContents(
           Page.UiPages.CheckboxPage.view(

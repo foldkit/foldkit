@@ -1,0 +1,308 @@
+import { describe, it } from '@effect/vitest'
+import { Option, flow } from 'effect'
+import { expect } from 'vitest'
+
+import * as Calendar from '../../calendar'
+import * as Story from '../../test/story'
+import * as UiCalendar from '../calendar'
+import * as Popover from '../popover'
+import {
+  ChangedSelectedDate,
+  ChangedViewMonth,
+  Cleared,
+  Closed,
+  GotCalendarMessage,
+  GotPopoverMessage,
+  Opened,
+  SelectedDate,
+  clear,
+  close,
+  init,
+  open,
+  selectDate,
+  update,
+} from './index'
+
+const today = Calendar.make(2026, 4, 13)
+
+const withClosed = Story.with(init({ id: 'picker', today }))
+
+const withOpen = flow(
+  withClosed,
+  Story.message(Opened()),
+  Story.resolve(
+    UiCalendar.FocusGrid,
+    UiCalendar.CompletedFocusGrid(),
+    message => GotCalendarMessage({ message }),
+  ),
+)
+
+describe('DatePicker', () => {
+  describe('init', () => {
+    it('defaults to no selected date and closed popover with contentFocus enabled', () => {
+      const model = init({ id: 'picker', today })
+      expect(model.id).toBe('picker')
+      expect(model.maybeSelectedDate).toStrictEqual(Option.none())
+      expect(model.popover.isOpen).toBe(false)
+      expect(model.popover.contentFocus).toBe(true)
+      expect(model.popover.id).toBe('picker-popover')
+      expect(model.calendar.id).toBe('picker-calendar')
+    })
+
+    it('seeds the selection from maybeInitialSelectedDate', () => {
+      const selected = Calendar.make(2026, 5, 2)
+      const model = init({
+        id: 'picker',
+        today,
+        maybeInitialSelectedDate: Option.some(selected),
+      })
+      expect(model.maybeSelectedDate).toStrictEqual(Option.some(selected))
+      expect(model.calendar.maybeSelectedDate).toStrictEqual(
+        Option.some(selected),
+      )
+      expect(model.calendar.viewMonth).toBe(5)
+    })
+
+    it('propagates isAnimated to the popover submodel', () => {
+      const model = init({ id: 'picker', today, isAnimated: true })
+      expect(model.popover.isAnimated).toBe(true)
+    })
+
+    it('propagates min/max and disabled config to the calendar submodel', () => {
+      const minDate = Calendar.make(2026, 1, 1)
+      const maxDate = Calendar.make(2026, 12, 31)
+      const model = init({
+        id: 'picker',
+        today,
+        maybeMinDate: Option.some(minDate),
+        maybeMaxDate: Option.some(maxDate),
+        disabledDaysOfWeek: ['Sunday'],
+      })
+      expect(model.calendar.maybeMinDate).toStrictEqual(Option.some(minDate))
+      expect(model.calendar.maybeMaxDate).toStrictEqual(Option.some(maxDate))
+      expect(model.calendar.disabledDaysOfWeek).toStrictEqual(['Sunday'])
+    })
+  })
+
+  describe('update', () => {
+    describe('Opened', () => {
+      it('opens the popover and focuses the calendar grid', () => {
+        Story.story(
+          update,
+          withClosed,
+          Story.message(Opened()),
+          Story.resolve(
+            UiCalendar.FocusGrid,
+            UiCalendar.CompletedFocusGrid(),
+            message => GotCalendarMessage({ message }),
+          ),
+          Story.model(model => {
+            expect(model.popover.isOpen).toBe(true)
+          }),
+          Story.expectNoOutMessage(),
+        )
+      })
+
+      it('does not dispatch Popover.FocusPanel because contentFocus is enabled', () => {
+        Story.story(
+          update,
+          withClosed,
+          Story.message(Opened()),
+          Story.expectHasCommands(UiCalendar.FocusGrid),
+          Story.resolve(
+            UiCalendar.FocusGrid,
+            UiCalendar.CompletedFocusGrid(),
+            message => GotCalendarMessage({ message }),
+          ),
+        )
+      })
+    })
+
+    describe('Closed', () => {
+      it('closes the popover and returns focus to the trigger button', () => {
+        Story.story(
+          update,
+          withOpen,
+          Story.message(Closed()),
+          Story.resolve(
+            Popover.FocusButton,
+            Popover.CompletedFocusButton(),
+            message => GotPopoverMessage({ message }),
+          ),
+          Story.model(model => {
+            expect(model.popover.isOpen).toBe(false)
+          }),
+          Story.expectNoOutMessage(),
+        )
+      })
+    })
+
+    describe('SelectedDate', () => {
+      it('commits the date, closes the popover, and emits ChangedSelectedDate', () => {
+        const target = Calendar.make(2026, 4, 20)
+        Story.story(
+          update,
+          withOpen,
+          Story.message(SelectedDate({ date: target })),
+          Story.expectOutMessage(
+            ChangedSelectedDate({ maybeDate: Option.some(target) }),
+          ),
+          Story.resolve(
+            Popover.FocusButton,
+            Popover.CompletedFocusButton(),
+            message => GotPopoverMessage({ message }),
+          ),
+          Story.model(model => {
+            expect(model.maybeSelectedDate).toStrictEqual(Option.some(target))
+            expect(model.calendar.maybeSelectedDate).toStrictEqual(
+              Option.some(target),
+            )
+            expect(model.calendar.maybeFocusedDate).toStrictEqual(
+              Option.some(target),
+            )
+            expect(model.popover.isOpen).toBe(false)
+          }),
+        )
+      })
+
+      it('syncs the calendar view month when the selection crosses a month boundary', () => {
+        const target = Calendar.make(2026, 6, 5)
+        Story.story(
+          update,
+          withOpen,
+          Story.message(SelectedDate({ date: target })),
+          Story.resolve(
+            Popover.FocusButton,
+            Popover.CompletedFocusButton(),
+            message => GotPopoverMessage({ message }),
+          ),
+          Story.model(model => {
+            expect(model.calendar.viewYear).toBe(2026)
+            expect(model.calendar.viewMonth).toBe(6)
+          }),
+        )
+      })
+    })
+
+    describe('Cleared', () => {
+      it('clears the selected date without closing the popover', () => {
+        const seeded = init({
+          id: 'picker',
+          today,
+          maybeInitialSelectedDate: Option.some(Calendar.make(2026, 4, 20)),
+        })
+        Story.story(
+          update,
+          flow(
+            Story.with(seeded),
+            Story.message(Opened()),
+            Story.resolve(
+              UiCalendar.FocusGrid,
+              UiCalendar.CompletedFocusGrid(),
+              message => GotCalendarMessage({ message }),
+            ),
+          ),
+          Story.message(Cleared()),
+          Story.expectNoCommands(),
+          Story.model(model => {
+            expect(model.maybeSelectedDate).toStrictEqual(Option.none())
+            expect(model.popover.isOpen).toBe(true)
+          }),
+          Story.expectOutMessage(
+            ChangedSelectedDate({ maybeDate: Option.none() }),
+          ),
+        )
+      })
+    })
+
+    describe('GotCalendarMessage', () => {
+      it('propagates Calendar ChangedViewMonth as DatePicker ChangedViewMonth', () => {
+        Story.story(
+          update,
+          withOpen,
+          Story.message(
+            GotCalendarMessage({
+              message: UiCalendar.ClickedNextMonthButton(),
+            }),
+          ),
+          Story.model(model => {
+            expect(model.calendar.viewMonth).toBe(5)
+          }),
+          Story.expectOutMessage(ChangedViewMonth({ year: 2026, month: 5 })),
+        )
+      })
+
+      it('passes keyboard navigation through to the calendar grid', () => {
+        Story.story(
+          update,
+          withOpen,
+          Story.message(
+            GotCalendarMessage({
+              message: UiCalendar.PressedKeyOnGrid({
+                key: 'ArrowRight',
+                isShift: false,
+              }),
+            }),
+          ),
+          Story.model(model => {
+            expect(model.calendar.maybeFocusedDate).toStrictEqual(
+              Option.some(Calendar.make(2026, 4, 14)),
+            )
+          }),
+        )
+      })
+    })
+
+    describe('GotPopoverMessage', () => {
+      it('routes popover messages through the popover update', () => {
+        Story.story(
+          update,
+          withOpen,
+          Story.message(GotPopoverMessage({ message: Popover.Closed() })),
+          Story.resolve(
+            Popover.FocusButton,
+            Popover.CompletedFocusButton(),
+            message => GotPopoverMessage({ message }),
+          ),
+          Story.model(model => {
+            expect(model.popover.isOpen).toBe(false)
+          }),
+        )
+      })
+    })
+  })
+
+  describe('programmatic helpers', () => {
+    it('open(model) behaves like dispatching Opened', () => {
+      const model = init({ id: 'picker', today })
+      const [nextModel, commands] = open(model)
+      expect(nextModel.popover.isOpen).toBe(true)
+      expect(commands.length).toBeGreaterThan(0)
+    })
+
+    it('close(model) behaves like dispatching Closed', () => {
+      const [openedModel] = open(init({ id: 'picker', today }))
+      const [nextModel, commands] = close(openedModel)
+      expect(nextModel.popover.isOpen).toBe(false)
+      expect(commands.length).toBeGreaterThan(0)
+    })
+
+    it('selectDate(model, date) commits the date and closes the popover', () => {
+      const target = Calendar.make(2026, 4, 20)
+      const [openedModel] = open(init({ id: 'picker', today }))
+      const [nextModel] = selectDate(openedModel, target)
+      expect(nextModel.maybeSelectedDate).toStrictEqual(Option.some(target))
+      expect(nextModel.popover.isOpen).toBe(false)
+    })
+
+    it('clear(model) clears the selected date', () => {
+      const seeded = init({
+        id: 'picker',
+        today,
+        maybeInitialSelectedDate: Option.some(Calendar.make(2026, 4, 20)),
+      })
+      const [nextModel] = clear(seeded)
+      expect(nextModel.maybeSelectedDate).toStrictEqual(Option.none())
+    })
+  })
+})

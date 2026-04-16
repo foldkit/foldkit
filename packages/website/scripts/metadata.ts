@@ -208,6 +208,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Calendar',
     'Accessible inline calendar grid with 2D keyboard navigation, locale-aware headers, and min/max/disabled-date constraints.',
   ),
+  UiDatePicker: ui(
+    'Date Picker',
+    'Accessible date picker that wraps Calendar in a Popover. Focus choreography, click-outside dismissal, and hidden form input for native form submission.',
+  ),
   UiCheckbox: ui(
     'Checkbox',
     'Accessible checkbox with indeterminate state support.',

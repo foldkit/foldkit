@@ -11,6 +11,7 @@ import {
   GotComboboxMultiDemoMessage,
   GotComboboxNullableDemoMessage,
   GotComboboxSelectOnFocusDemoMessage,
+  GotDatePickerBasicDemoMessage,
   GotDialogAnimatedDemoMessage,
   GotDialogDemoMessage,
   GotDisclosureDemoMessage,
@@ -178,6 +179,22 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           calendarBasicCommands.map(
             Command.mapEffect(
               Effect.map(message => GotCalendarBasicDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      GotDatePickerBasicDemoMessage: ({ message }) => {
+        const [nextDatePickerBasicDemo, datePickerBasicCommands] =
+          Ui.DatePicker.update(model.datePickerBasicDemo, message)
+
+        return [
+          evo(model, {
+            datePickerBasicDemo: () => nextDatePickerBasicDemo,
+          }),
+          datePickerBasicCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotDatePickerBasicDemoMessage({ message })),
             ),
           ),
         ]

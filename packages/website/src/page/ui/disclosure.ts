@@ -34,21 +34,26 @@ export const disclosureDemo = (
   disclosureModel: Ui.Disclosure.Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => [
-  Ui.Disclosure.view({
-    model: disclosureModel,
-    toParentMessage: message =>
-      toParentMessage(GotDisclosureDemoMessage({ message })),
-    buttonAttributes: [Class(buttonClassName)],
-    buttonContent: div(
-      [Class('flex items-center justify-between w-full')],
-      [span([], ['What is Foldkit?']), chevron(disclosureModel.isOpen)],
-    ),
-    panelAttributes: [Class(panelClassName)],
-    panelContent: p(
-      [Class('text-gray-800 dark:text-gray-200')],
-      [
-        'Foldkit is an Elm-inspired UI framework powered by Effect. It brings the Model-View-Update architecture to TypeScript with Schema-typed state, explicit side effects via commands, and composable headless UI components.',
-      ],
-    ),
-  }),
+  div(
+    [Class('w-full max-w-lg')],
+    [
+      Ui.Disclosure.view({
+        model: disclosureModel,
+        toParentMessage: message =>
+          toParentMessage(GotDisclosureDemoMessage({ message })),
+        buttonAttributes: [Class(buttonClassName)],
+        buttonContent: div(
+          [Class('flex items-center justify-between w-full')],
+          [span([], ['What is Foldkit?']), chevron(disclosureModel.isOpen)],
+        ),
+        panelAttributes: [Class(panelClassName)],
+        panelContent: p(
+          [Class('text-gray-800 dark:text-gray-200')],
+          [
+            'Foldkit is an Elm-inspired UI framework powered by Effect. It brings the Model-View-Update architecture to TypeScript with Schema-typed state, explicit side effects via commands, and composable headless UI components.',
+          ],
+        ),
+      }),
+    ],
+  ),
 ]

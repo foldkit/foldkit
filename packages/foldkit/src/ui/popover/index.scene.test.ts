@@ -28,6 +28,10 @@ const backdrop = Scene.selector('[key="test-backdrop"]')
 
 const closedModel = init({ id: 'test' })
 const [openModel] = update(init({ id: 'test' }), Opened())
+const [openContentFocusModel] = update(
+  init({ id: 'test', contentFocus: true }),
+  Opened(),
+)
 
 describe('Popover', () => {
   describe('view', () => {
@@ -101,6 +105,33 @@ describe('Popover', () => {
         Scene.expect(panel).toHaveHook('insert'),
         Scene.expect(panel).toHaveHook('destroy'),
       )
+    })
+
+    describe('contentFocus mode', () => {
+      it('renders panel without tabindex when contentFocus is enabled', () => {
+        Scene.scene(
+          { update, view: sceneView() },
+          Scene.with(openContentFocusModel),
+          Scene.expect(panel).toExist(),
+          Scene.expect(panel).not.toHaveAttr('tabIndex'),
+        )
+      })
+
+      it('renders panel without blur handler when contentFocus is enabled', () => {
+        Scene.scene(
+          { update, view: sceneView() },
+          Scene.with(openContentFocusModel),
+          Scene.expect(panel).not.toHaveHandler('blur'),
+        )
+      })
+
+      it('keeps the panel keydown handler when contentFocus is enabled', () => {
+        Scene.scene(
+          { update, view: sceneView() },
+          Scene.with(openContentFocusModel),
+          Scene.expect(panel).toHaveHandler('keydown'),
+        )
+      })
     })
   })
 })
