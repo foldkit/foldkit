@@ -14,7 +14,6 @@ export const Model = S.Struct({
   dragAndDrop: Ui.DragAndDrop.Model,
   maybeNewCardColumnId: S.OptionFromSelf(S.String),
   newCardTitle: S.String,
-  nextCardId: S.Number,
   announcement: S.String,
 })
 

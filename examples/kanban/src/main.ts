@@ -1,6 +1,6 @@
 import { KeyValueStore } from '@effect/platform'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
-import { Array, Effect, Option, Schema as S, pipe } from 'effect'
+import { Effect, Option, Schema as S } from 'effect'
 import { Runtime, Ui } from 'foldkit'
 
 import { DEFAULT_COLUMNS, STORAGE_KEY } from './constant'
@@ -30,36 +30,6 @@ const flags: Effect.Effect<Flags> = Effect.gen(function* () {
 
 // INIT
 
-const INITIAL_NEXT_CARD_ID = 100
-
-const CARD_ID_PREFIX = 'card-'
-
-const deriveNextCardId = (
-  columns: ReadonlyArray<{
-    readonly cards: ReadonlyArray<{ readonly id: string }>
-  }>,
-): number =>
-  pipe(
-    columns,
-    Array.flatMap(({ cards }) => cards),
-    Array.filterMap(({ id }) =>
-      Option.flatMap(
-        id.startsWith(CARD_ID_PREFIX)
-          ? Option.some(id.slice(CARD_ID_PREFIX.length))
-          : Option.none(),
-        suffix => {
-          const parsed = Number(suffix)
-          return Number.isNaN(parsed) ? Option.none() : Option.some(parsed)
-        },
-      ),
-    ),
-    Array.match({
-      onEmpty: () => INITIAL_NEXT_CARD_ID,
-      onNonEmpty: ids => Math.max(...ids) + 1,
-    }),
-    nextId => Math.max(nextId, INITIAL_NEXT_CARD_ID),
-  )
-
 const init: Runtime.ProgramInit<Model, Message, Flags> = flags => {
   const columns = Option.match(flags.maybeSavedBoard, {
     onNone: () => DEFAULT_COLUMNS,
@@ -72,7 +42,6 @@ const init: Runtime.ProgramInit<Model, Message, Flags> = flags => {
       dragAndDrop: Ui.DragAndDrop.init({ id: 'kanban' }),
       maybeNewCardColumnId: Option.none(),
       newCardTitle: '',
-      nextCardId: deriveNextCardId(columns),
       announcement: '',
     },
     [],

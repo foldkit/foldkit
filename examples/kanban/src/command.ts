@@ -5,10 +5,16 @@ import { Command, Task } from 'foldkit'
 
 import { ADD_CARD_INPUT_ID, STORAGE_KEY } from './constant'
 import { Column } from './domain'
-import { CompletedFocusAddCardInput, CompletedSaveBoard } from './message'
+import {
+  CompletedFocusAddCardInput,
+  CompletedSaveBoard,
+  GeneratedCardId,
+} from './message'
 import { SavedBoard } from './model'
 
 const ADD_CARD_INPUT_SELECTOR = `#${ADD_CARD_INPUT_ID}`
+
+export const GenerateCardId = Command.define('GenerateCardId', GeneratedCardId)
 
 export const SaveBoard = Command.define('SaveBoard', CompletedSaveBoard)
 
@@ -16,6 +22,13 @@ export const FocusAddCardInput = Command.define(
   'FocusAddCardInput',
   CompletedFocusAddCardInput,
 )
+
+export const generateCardId = (columnId: string, title: string) =>
+  GenerateCardId(
+    Effect.sync(() =>
+      GeneratedCardId({ cardId: crypto.randomUUID(), columnId, title }),
+    ),
+  )
 
 export const focusAddCardInput = FocusAddCardInput(
   Task.focus(ADD_CARD_INPUT_SELECTOR).pipe(

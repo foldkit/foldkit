@@ -3,7 +3,7 @@ import { Story, Ui } from 'foldkit'
 import { generateKeyBetween } from 'fractional-indexing'
 import { describe, expect, test } from 'vitest'
 
-import { FocusAddCardInput, SaveBoard } from './command'
+import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
 import { Column } from './domain'
 import type { Card } from './domain/card'
 import {
@@ -12,6 +12,7 @@ import {
   ClickedAddCard,
   CompletedFocusAddCardInput,
   CompletedSaveBoard,
+  GeneratedCardId,
   GotDragAndDropMessage,
   SubmittedNewCard,
 } from './message'
@@ -61,7 +62,6 @@ const emptyModel: Model = {
   dragAndDrop: Ui.DragAndDrop.init({ id: 'kanban' }),
   maybeNewCardColumnId: Option.none(),
   newCardTitle: '',
-  nextCardId: 100,
   announcement: '',
 }
 
@@ -102,13 +102,21 @@ describe('kanban update', () => {
         Story.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
         Story.message(ChangedNewCardTitle({ value: 'Ship it' })),
         Story.message(SubmittedNewCard()),
+        Story.resolve(
+          GenerateCardId,
+          GeneratedCardId({
+            cardId: 'test-uuid',
+            columnId: 'done',
+            title: 'Ship it',
+          }),
+        ),
         Story.resolve(SaveBoard, CompletedSaveBoard()),
         Story.model(model => {
           const doneColumn = model.columns.find(column => column.id === 'done')
           const lastCard = doneColumn?.cards[doneColumn.cards.length - 1]
           expect(lastCard?.title).toBe('Ship it')
+          expect(lastCard?.id).toBe('test-uuid')
           expect(model.maybeNewCardColumnId).toStrictEqual(Option.none())
-          expect(model.nextCardId).toBe(101)
         }),
       )
     })

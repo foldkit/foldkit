@@ -2,10 +2,14 @@ import { Option } from 'effect'
 import { Scene, Ui } from 'foldkit'
 import { describe, test } from 'vitest'
 
-import { FocusAddCardInput, SaveBoard } from './command'
+import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
 import type { Card } from './domain/card'
 import type { Column } from './domain/column'
-import { CompletedFocusAddCardInput, CompletedSaveBoard } from './message'
+import {
+  CompletedFocusAddCardInput,
+  CompletedSaveBoard,
+  GeneratedCardId,
+} from './message'
 import type { Model } from './model'
 import { update } from './update'
 import { view } from './view/index'
@@ -36,7 +40,6 @@ const testModel: Model = {
   dragAndDrop: Ui.DragAndDrop.init({ id: 'kanban' }),
   maybeNewCardColumnId: Option.none(),
   newCardTitle: '',
-  nextCardId: 100,
   announcement: '',
 }
 
@@ -118,6 +121,15 @@ describe('scene', () => {
         Scene.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
         Scene.type(Scene.label('New card title'), 'Buy groceries'),
         Scene.submit(Scene.role('form')),
+        Scene.expectExactCommands(GenerateCardId),
+        Scene.resolve(
+          GenerateCardId,
+          GeneratedCardId({
+            cardId: 'test-uuid',
+            columnId: 'todo',
+            title: 'Buy groceries',
+          }),
+        ),
         Scene.expectExactCommands(SaveBoard),
         Scene.resolve(SaveBoard, CompletedSaveBoard()),
         Scene.expect(Scene.text('Buy groceries')).toExist(),
