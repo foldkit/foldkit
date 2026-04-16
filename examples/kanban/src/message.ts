@@ -11,6 +11,11 @@ export const ChangedNewCardTitle = m('ChangedNewCardTitle', {
 })
 export const SubmittedNewCard = m('SubmittedNewCard')
 export const CancelledNewCard = m('CancelledNewCard')
+export const GeneratedCardId = m('GeneratedCardId', {
+  cardId: S.String,
+  columnId: S.String,
+  title: S.String,
+})
 export const CompletedSaveBoard = m('CompletedSaveBoard')
 export const CompletedFocusAddCardInput = m('CompletedFocusAddCardInput')
 
@@ -20,6 +25,7 @@ export const Message = S.Union(
   ChangedNewCardTitle,
   SubmittedNewCard,
   CancelledNewCard,
+  GeneratedCardId,
   CompletedSaveBoard,
   CompletedFocusAddCardInput,
 )

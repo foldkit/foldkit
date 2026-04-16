@@ -2,7 +2,7 @@ import { Array, Effect, Match as M, Option, String, pipe } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
-import { focusAddCardInput, saveBoard } from './command'
+import { focusAddCardInput, generateCardId, saveBoard } from './command'
 import { Column } from './domain'
 import { GotDragAndDropMessage, type Message } from './message'
 import type { Model } from './model'
@@ -180,34 +180,37 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         Option.match(model.maybeNewCardColumnId, {
           onNone: () => [model, []],
           onSome: columnId => {
-            if (String.isEmpty(String.trim(model.newCardTitle))) {
+            const title = String.trim(model.newCardTitle)
+            if (String.isEmpty(title)) {
               return [model, []]
             }
 
-            const cardId = `card-${model.nextCardId}`
-            const nextColumns = Array.map(model.columns, column => {
-              if (column.id !== columnId) {
-                return column
-              }
-              return Column.appendCard(column, {
-                id: cardId,
-                title: String.trim(model.newCardTitle),
-                description: '',
-                sortKey: '',
-              })
-            })
-
-            return [
-              evo(model, {
-                columns: () => nextColumns,
-                maybeNewCardColumnId: () => Option.none(),
-                newCardTitle: () => '',
-                nextCardId: nextCardId => nextCardId + 1,
-              }),
-              [saveBoard(nextColumns)],
-            ]
+            return [model, [generateCardId(columnId, title)]]
           },
         }),
+
+      GeneratedCardId: ({ cardId, columnId, title }) => {
+        const nextColumns = Array.map(model.columns, column => {
+          if (column.id !== columnId) {
+            return column
+          }
+          return Column.appendCard(column, {
+            id: cardId,
+            title,
+            description: '',
+            sortKey: '',
+          })
+        })
+
+        return [
+          evo(model, {
+            columns: () => nextColumns,
+            maybeNewCardColumnId: () => Option.none(),
+            newCardTitle: () => '',
+          }),
+          [saveBoard(nextColumns)],
+        ]
+      },
 
       CancelledNewCard: () => [
         evo(model, {
