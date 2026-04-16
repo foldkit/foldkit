@@ -1,5 +1,48 @@
 # foldkit
 
+## 0.62.0
+
+### Minor Changes
+
+- 8e0b0ce: Add DatePicker UI component and Popover contentFocus mode.
+
+  DatePicker wraps Calendar in a Popover with focus choreography (opening
+  focuses the grid, closing returns focus to the trigger), click-outside
+  dismissal, and an optional hidden form input for native form submission.
+  Consumers provide the trigger face and calendar grid layout.
+
+  Popover gains a `contentFocus` option that hands focus ownership to the
+  consumer — the panel is not focusable and does not close on blur, so the
+  consumer must focus a descendant on open. DatePicker uses this to focus
+  the calendar grid instead of the panel.
+
+- 6c6da0c: Simplify Calendar and DatePicker init config — replace Option-wrapped
+  parameters with plain optional values.
+  - `maybeInitialSelectedDate: Option<CalendarDate>` → `initialSelectedDate?: CalendarDate`
+  - `maybeMinDate: Option<CalendarDate>` → `minDate?: CalendarDate`
+  - `maybeMaxDate: Option<CalendarDate>` → `maxDate?: CalendarDate`
+
+  Remove `ChangedSelectedDate` from DatePicker OutMessage. Date selection
+  now goes through the `onSelectedDate` ViewConfig callback instead.
+  OutMessage is just `ChangedViewMonth`.
+
+### Patch Changes
+
+- dfdd933: Fix Popover panel never receiving focus on open.
+
+  FocusPanel/FocusItems commands raced the anchor module's async positioning
+  pipeline — they called element.focus() while the panel was still
+  visibility:hidden, which is a no-op. Focus is now owned entirely by the
+  anchor module: after the first computePosition resolves and clears
+  visibility, a requestAnimationFrame defers the focus call so the element
+  is painted before focus fires. A new focusSelector option lets consumers
+  target a descendant (e.g. DatePicker focuses the calendar grid instead of
+  the panel).
+
+  Affects Popover, Menu, and DatePicker. Consumers using FocusPanel or
+  FocusItems in story test setups should remove the resolve step — these
+  commands are no longer dispatched on open.
+
 ## 0.61.0
 
 ### Minor Changes
