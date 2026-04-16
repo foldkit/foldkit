@@ -378,13 +378,6 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     ),
   )
 
-  const focusItems = FocusItems(
-    Task.focus(itemsSelector(model.id)).pipe(
-      Effect.ignore,
-      Effect.as(CompletedFocusItems()),
-    ),
-  )
-
   const focusButton = FocusButton(
     Task.focus(buttonSelector(model.id)).pipe(
       Effect.ignore,
@@ -392,10 +385,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     ),
   )
 
-  const openCommands = [
-    focusItems,
-    ...Array.getSomes([maybeLockScroll, maybeInertOthers]),
-  ]
+  const openCommands = Array.getSomes([maybeLockScroll, maybeInertOthers])
 
   const closeWithFocusCommands = [
     focusButton,

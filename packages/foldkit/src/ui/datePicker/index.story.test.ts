@@ -26,15 +26,7 @@ const today = Calendar.make(2026, 4, 13)
 
 const withClosed = Story.with(init({ id: 'picker', today }))
 
-const withOpen = flow(
-  withClosed,
-  Story.message(Opened()),
-  Story.resolve(
-    UiCalendar.FocusGrid,
-    UiCalendar.CompletedFocusGrid(),
-    message => GotCalendarMessage({ message }),
-  ),
-)
+const withOpen = flow(withClosed, Story.message(Opened()))
 
 describe('DatePicker', () => {
   describe('init', () => {
@@ -85,16 +77,11 @@ describe('DatePicker', () => {
 
   describe('update', () => {
     describe('Opened', () => {
-      it('opens the popover and focuses the calendar grid', () => {
+      it('opens the popover', () => {
         Story.story(
           update,
           withClosed,
           Story.message(Opened()),
-          Story.resolve(
-            UiCalendar.FocusGrid,
-            UiCalendar.CompletedFocusGrid(),
-            message => GotCalendarMessage({ message }),
-          ),
           Story.model(model => {
             expect(model.popover.isOpen).toBe(true)
           }),
@@ -102,17 +89,12 @@ describe('DatePicker', () => {
         )
       })
 
-      it('does not dispatch Popover.FocusPanel because contentFocus is enabled', () => {
+      it('does not dispatch focus commands when opening', () => {
         Story.story(
           update,
           withClosed,
           Story.message(Opened()),
-          Story.expectHasCommands(UiCalendar.FocusGrid),
-          Story.resolve(
-            UiCalendar.FocusGrid,
-            UiCalendar.CompletedFocusGrid(),
-            message => GotCalendarMessage({ message }),
-          ),
+          Story.expectNoCommands(),
         )
       })
     })
@@ -190,15 +172,7 @@ describe('DatePicker', () => {
         })
         Story.story(
           update,
-          flow(
-            Story.with(seeded),
-            Story.message(Opened()),
-            Story.resolve(
-              UiCalendar.FocusGrid,
-              UiCalendar.CompletedFocusGrid(),
-              message => GotCalendarMessage({ message }),
-            ),
-          ),
+          flow(Story.with(seeded), Story.message(Opened())),
           Story.message(Cleared()),
           Story.expectNoCommands(),
           Story.model(model => {
@@ -270,9 +244,8 @@ describe('DatePicker', () => {
   describe('programmatic helpers', () => {
     it('open(model) behaves like dispatching Opened', () => {
       const model = init({ id: 'picker', today })
-      const [nextModel, commands] = open(model)
+      const [nextModel] = open(model)
       expect(nextModel.popover.isOpen).toBe(true)
-      expect(commands.length).toBeGreaterThan(0)
     })
 
     it('close(model) behaves like dispatching Closed', () => {

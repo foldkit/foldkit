@@ -205,10 +205,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         const [nextPopover, popoverCommands] = Popover.open(model.popover)
         return [
           evo(model, { popover: () => nextPopover }),
-          [
-            ...mapPopoverCommands(popoverCommands),
-            ...mapCalendarCommands([UiCalendar.focusGrid(model.calendar.id)]),
-          ],
+          mapPopoverCommands(popoverCommands),
           Option.none(),
         ]
       },
@@ -382,6 +379,7 @@ export const view = <ParentMessage>(
     anchor,
     buttonContent: triggerContent(model.maybeSelectedDate),
     panelContent: calendarVNode,
+    focusSelector: `#${model.calendar.id}-grid`,
     ...(isDisabled !== undefined && { isDisabled }),
     ...(triggerClassName !== undefined && {
       buttonClassName: triggerClassName,

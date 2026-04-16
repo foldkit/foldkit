@@ -58,32 +58,18 @@ const SelectedDate = m('SelectedDate', {
 // `GotDatePickerMessage` delegates navigation, focus, and popover messages
 // to DatePicker's own update:
 GotDatePickerMessage: ({ message }) => {
-  const [nextDatePicker, commands, maybeOutMessage] = Ui.DatePicker.update(
+  const [nextDatePicker, commands] = Ui.DatePicker.update(
     model.datePickerDemo,
     message,
   )
 
-  const mappedCommands = commands.map(
-    Command.mapEffect(Effect.map(message => GotDatePickerMessage({ message }))),
-  )
-
-  // The OutMessage fires when the visible month changes — use it to load
-  // any month-scoped data your app needs (e.g. holidays, availability).
-  const additionalCommands = Option.match(maybeOutMessage, {
-    onNone: () => [],
-    onSome: M.type<Ui.DatePicker.OutMessage>().pipe(
-      M.tagsExhaustive({
-        ChangedViewMonth: ({ year, month }) => {
-          // Your app logic here.
-          return []
-        },
-      }),
-    ),
-  })
-
   return [
     evo(model, { datePickerDemo: () => nextDatePicker }),
-    [...mappedCommands, ...additionalCommands],
+    commands.map(
+      Command.mapEffect(
+        Effect.map(message => GotDatePickerMessage({ message })),
+      ),
+    ),
   ]
 }
 

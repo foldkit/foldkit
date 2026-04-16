@@ -23,7 +23,6 @@ import {
   DelayClearSearch,
   DetectMovementOrTransitionEnd,
   FocusButton,
-  FocusItems,
   GotTransitionMessage,
   IgnoredMouseClick,
   InertOthers,
@@ -60,7 +59,6 @@ const withClosed = Story.with(init({ id: 'test' }))
 const withOpen = flow(
   withClosed,
   Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-  Story.resolve(FocusItems, CompletedFocusItems()),
 )
 
 const withClosedAnimated = Story.with(init({ id: 'test', isAnimated: true }))
@@ -69,7 +67,6 @@ const withOpenAnimated = flow(
   withClosedAnimated,
   Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
   Story.resolveAll(
-    [FocusItems, CompletedFocusItems()],
     [
       Transition.RequestFrame,
       Transition.AdvancedTransitionFrame(),
@@ -126,7 +123,6 @@ describe('Menu', () => {
           update,
           withClosed,
           Story.message(Opened({ maybeActiveItemIndex: Option.some(2) })),
-          Story.resolve(FocusItems, CompletedFocusItems()),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
@@ -143,7 +139,6 @@ describe('Menu', () => {
             searchVersion: 1,
           }),
           Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-          Story.resolve(FocusItems, CompletedFocusItems()),
           Story.model(model => {
             expect(model.searchQuery).toBe('')
             expect(model.searchVersion).toBe(0)
@@ -156,7 +151,6 @@ describe('Menu', () => {
           update,
           withClosed,
           Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-          Story.resolve(FocusItems, CompletedFocusItems()),
           Story.model(model => {
             expect(model.activationTrigger).toBe('Keyboard')
           }),
@@ -168,7 +162,6 @@ describe('Menu', () => {
           update,
           withClosed,
           Story.message(Opened({ maybeActiveItemIndex: Option.none() })),
-          Story.resolve(FocusItems, CompletedFocusItems()),
           Story.model(model => {
             expect(model.activationTrigger).toBe('Pointer')
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
@@ -187,7 +180,6 @@ describe('Menu', () => {
             }),
           }),
           Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-          Story.resolve(FocusItems, CompletedFocusItems()),
           Story.model(model => {
             expect(model.maybeLastPointerPosition).toStrictEqual(Option.none())
           }),
@@ -291,7 +283,6 @@ describe('Menu', () => {
               timeStamp: 1000,
             }),
           ),
-          Story.resolve(FocusItems, CompletedFocusItems()),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
             expect(model.activationTrigger).toBe('Pointer')
@@ -379,7 +370,6 @@ describe('Menu', () => {
               timeStamp: 0,
             }),
           ),
-          Story.resolve(FocusItems, CompletedFocusItems()),
           Story.model(model => {
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('mouse'),
@@ -432,7 +422,6 @@ describe('Menu', () => {
             timeStamp: 1000,
           }),
         ),
-        Story.resolve(FocusItems, CompletedFocusItems()),
       )
 
       it('no-ops when no pointer origin', () => {
@@ -918,7 +907,6 @@ describe('Menu', () => {
               expect(model.transition.transitionState).toBe('EnterStart')
             }),
             Story.resolveAll(
-              [FocusItems, CompletedFocusItems()],
               [
                 Transition.RequestFrame,
                 Transition.AdvancedTransitionFrame(),
@@ -948,7 +936,6 @@ describe('Menu', () => {
               expect(model.transition.transitionState).toBe('EnterAnimating')
             }),
             Story.resolveAll(
-              [FocusItems, CompletedFocusItems()],
               [
                 Transition.WaitForTransitions,
                 Transition.EndedTransition(),
@@ -965,7 +952,6 @@ describe('Menu', () => {
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.resolveAll(
-              [FocusItems, CompletedFocusItems()],
               [
                 Transition.RequestFrame,
                 Transition.AdvancedTransitionFrame(),
@@ -1120,7 +1106,6 @@ describe('Menu', () => {
             update,
             withClosed,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-            Story.resolve(FocusItems, CompletedFocusItems()),
             Story.model(model => {
               expect(model.transition.transitionState).toBe('Idle')
             }),
@@ -1177,7 +1162,6 @@ describe('Menu', () => {
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.resolveAll(
-              [FocusItems, CompletedFocusItems()],
               [
                 Transition.RequestFrame,
                 Transition.AdvancedTransitionFrame(),
@@ -1218,7 +1202,6 @@ describe('Menu', () => {
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.resolveAll(
-              [FocusItems, CompletedFocusItems()],
               [
                 Transition.RequestFrame,
                 Transition.AdvancedTransitionFrame(),
@@ -1263,7 +1246,6 @@ describe('Menu', () => {
       withClosedModal,
       Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
       Story.resolveAll(
-        [FocusItems, CompletedFocusItems()],
         [LockScroll, CompletedLockScroll()],
         [InertOthers, CompletedSetupInert()],
       ),
@@ -1275,7 +1257,6 @@ describe('Menu', () => {
         withClosedModal,
         Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
         Story.resolveAll(
-          [FocusItems, CompletedFocusItems()],
           [LockScroll, CompletedLockScroll()],
           [InertOthers, CompletedSetupInert()],
         ),
@@ -1337,7 +1318,6 @@ describe('Menu', () => {
         update,
         withClosed,
         Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-        Story.resolve(FocusItems, CompletedFocusItems()),
         Story.model(model => {
           expect(model.isOpen).toBe(true)
         }),

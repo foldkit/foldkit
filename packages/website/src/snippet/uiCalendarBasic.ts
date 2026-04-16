@@ -55,33 +55,16 @@ const SelectedCalendarDate = m('SelectedCalendarDate', {
 // paths. `GotCalendarMessage` delegates navigation, focus, and dropdown
 // messages to the Calendar's own update:
 GotCalendarMessage: ({ message }) => {
-  const [nextCalendar, commands, maybeOutMessage] = Ui.Calendar.update(
+  const [nextCalendar, commands] = Ui.Calendar.update(
     model.calendarDemo,
     message,
   )
 
-  const mappedCommands = commands.map(
-    Command.mapEffect(Effect.map(message => GotCalendarMessage({ message }))),
-  )
-
-  // Exhaustive dispatch on the Calendar OutMessage — currently only
-  // The OutMessage fires when the visible month changes ��� use it to load
-  // any month-scoped data your app needs (e.g. holidays, availability).
-  const additionalCommands = Option.match(maybeOutMessage, {
-    onNone: () => [],
-    onSome: M.type<Ui.Calendar.OutMessage>().pipe(
-      M.tagsExhaustive({
-        ChangedViewMonth: ({ year, month }) => {
-          // Your app logic here.
-          return []
-        },
-      }),
-    ),
-  })
-
   return [
     evo(model, { calendarDemo: () => nextCalendar }),
-    [...mappedCommands, ...additionalCommands],
+    commands.map(
+      Command.mapEffect(Effect.map(message => GotCalendarMessage({ message }))),
+    ),
   ]
 }
 

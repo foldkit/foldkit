@@ -15,7 +15,6 @@ import {
   CompletedUnlockScroll,
   DetectMovementOrTransitionEnd,
   FocusButton,
-  FocusPanel,
   GotTransitionMessage,
   IgnoredMouseClick,
   InertOthers,
@@ -37,11 +36,7 @@ const transitionEndMessage = GotTransitionMessage({
 
 const withClosed = Story.with(init({ id: 'test' }))
 
-const withOpen = flow(
-  withClosed,
-  Story.message(Opened()),
-  Story.resolve(FocusPanel, CompletedFocusPanel()),
-)
+const withOpen = flow(withClosed, Story.message(Opened()))
 
 const withClosedAnimated = Story.with(init({ id: 'test', isAnimated: true }))
 
@@ -49,7 +44,6 @@ const withOpenAnimated = flow(
   withClosedAnimated,
   Story.message(Opened()),
   Story.resolveAll(
-    [FocusPanel, CompletedFocusPanel()],
     [
       Transition.RequestFrame,
       Transition.AdvancedTransitionFrame(),
@@ -111,17 +105,16 @@ describe('Popover', () => {
           update,
           withClosed,
           Story.message(Opened()),
-          Story.resolve(FocusPanel, CompletedFocusPanel()),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
         )
       })
 
-      it('does not dispatch FocusPanel when contentFocus is enabled', () => {
+      it('does not dispatch focus commands when opening', () => {
         Story.story(
           update,
-          Story.with(init({ id: 'test', contentFocus: true })),
+          withClosed,
           Story.message(Opened()),
           Story.expectNoCommands(),
           Story.model(model => {
@@ -216,7 +209,6 @@ describe('Popover', () => {
           Story.message(
             PressedPointerOnButton({ pointerType: 'mouse', button: 0 }),
           ),
-          Story.resolve(FocusPanel, CompletedFocusPanel()),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
@@ -274,7 +266,6 @@ describe('Popover', () => {
           Story.message(
             PressedPointerOnButton({ pointerType: 'mouse', button: 0 }),
           ),
-          Story.resolve(FocusPanel, CompletedFocusPanel()),
           Story.model(model => {
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('mouse'),
@@ -324,7 +315,7 @@ describe('Popover', () => {
 
     describe('transitions', () => {
       describe('enter flow', () => {
-        it('starts enter transition and emits focus + RequestFrame on Opened', () => {
+        it('starts enter transition and emits RequestFrame on Opened', () => {
           Story.story(
             update,
             withClosedAnimated,
@@ -333,9 +324,8 @@ describe('Popover', () => {
               expect(model.isOpen).toBe(true)
               expect(model.transition.transitionState).toBe('EnterStart')
             }),
-            Story.expectHasCommands(FocusPanel, Transition.RequestFrame),
+            Story.expectHasCommands(Transition.RequestFrame),
             Story.resolveAll(
-              [FocusPanel, CompletedFocusPanel()],
               [
                 Transition.RequestFrame,
                 Transition.AdvancedTransitionFrame(),
@@ -363,13 +353,10 @@ describe('Popover', () => {
             Story.model(model => {
               expect(model.transition.transitionState).toBe('EnterAnimating')
             }),
-            Story.resolveAll(
-              [FocusPanel, CompletedFocusPanel()],
-              [
-                Transition.WaitForTransitions,
-                Transition.EndedTransition(),
-                transitionToPopoverMessage,
-              ],
+            Story.resolve(
+              Transition.WaitForTransitions,
+              Transition.EndedTransition(),
+              transitionToPopoverMessage,
             ),
           )
         })
@@ -380,7 +367,6 @@ describe('Popover', () => {
             withClosedAnimated,
             Story.message(Opened()),
             Story.resolveAll(
-              [FocusPanel, CompletedFocusPanel()],
               [
                 Transition.RequestFrame,
                 Transition.AdvancedTransitionFrame(),
@@ -489,7 +475,6 @@ describe('Popover', () => {
             update,
             withClosed,
             Story.message(Opened()),
-            Story.resolve(FocusPanel, CompletedFocusPanel()),
             Story.model(model => {
               expect(model.transition.transitionState).toBe('Idle')
             }),
@@ -546,7 +531,6 @@ describe('Popover', () => {
             withClosedAnimated,
             Story.message(Opened()),
             Story.resolveAll(
-              [FocusPanel, CompletedFocusPanel()],
               [
                 Transition.RequestFrame,
                 Transition.AdvancedTransitionFrame(),
@@ -585,7 +569,6 @@ describe('Popover', () => {
       withClosedModal,
       Story.message(Opened()),
       Story.resolveAll(
-        [FocusPanel, CompletedFocusPanel()],
         [LockScroll, CompletedLockScroll()],
         [InertOthers, CompletedSetupInert()],
       ),
@@ -597,7 +580,6 @@ describe('Popover', () => {
         withClosedModal,
         Story.message(Opened()),
         Story.resolveAll(
-          [FocusPanel, CompletedFocusPanel()],
           [LockScroll, CompletedLockScroll()],
           [InertOthers, CompletedSetupInert()],
         ),
@@ -643,7 +625,6 @@ describe('Popover', () => {
         update,
         withClosed,
         Story.message(Opened()),
-        Story.resolve(FocusPanel, CompletedFocusPanel()),
         Story.model(model => {
           expect(model.isOpen).toBe(true)
         }),

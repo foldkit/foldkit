@@ -34,12 +34,13 @@ const getOrCreatePortalRoot = (): HTMLElement => {
 
 const anchorCleanups = new WeakMap<Element, () => void>()
 
-/** Returns insert/destroy hook callbacks that position a floating element relative to its button using Floating UI. When `interceptTab` is true (default), Tab key in portal mode refocuses the button — set to false for components like Popover where Tab should navigate naturally within the panel. When `focusAfterPosition` is true, the element is focused after the first position computation clears visibility — necessary because `visibility: hidden` elements cannot receive focus synchronously. */
+/** Returns insert/destroy hook callbacks that position a floating element relative to its button using Floating UI. When `interceptTab` is true (default), Tab key in portal mode refocuses the button — set to false for components like Popover where Tab should navigate naturally within the panel. When `focusAfterPosition` is true, the element is focused after the first position computation clears visibility — deferred via requestAnimationFrame so the element is painted before focus fires. `focusSelector` optionally targets a descendant (e.g. a calendar grid inside a popover panel) instead of the panel itself. */
 export const anchorHooks = (config: {
   buttonId: string
   anchor: AnchorConfig
   interceptTab?: boolean
   focusAfterPosition?: boolean
+  focusSelector?: string
 }): Readonly<{
   onInsert: (items: Element) => void
   onDestroy: (items: Element) => void
@@ -95,13 +96,28 @@ export const anchorHooks = (config: {
           items.style.visibility = ''
 
           if (config.focusAfterPosition ?? false) {
-            items.focus()
+            requestAnimationFrame(() => {
+              const target = config.focusSelector
+                ? document.querySelector(config.focusSelector)
+                : items
+              if (target instanceof HTMLElement) {
+                target.focus()
+              }
+            })
           }
         }
       })
     })
 
-    const portalCleanup = isPortal ? () => items.remove() : undefined
+    const portalCleanup = isPortal
+      ? () => {
+          try {
+            items.remove()
+          } catch {
+            // Element was already removed by a blur-triggered re-render.
+          }
+        }
+      : undefined
 
     if (isPortal && shouldInterceptTab) {
       const handleTabKey = (event: Event): void => {

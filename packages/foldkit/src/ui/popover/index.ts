@@ -249,13 +249,6 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     ),
   )
 
-  const focusPanel = FocusPanel(
-    Task.focus(panelSelector(model.id)).pipe(
-      Effect.ignore,
-      Effect.as(CompletedFocusPanel()),
-    ),
-  )
-
   const focusButton = FocusButton(
     Task.focus(buttonSelector(model.id)).pipe(
       Effect.ignore,
@@ -263,10 +256,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     ),
   )
 
-  const openCommands = [
-    ...(model.contentFocus ? [] : [focusPanel]),
-    ...Array.getSomes([maybeLockScroll, maybeInertOthers]),
-  ]
+  const openCommands = Array.getSomes([maybeLockScroll, maybeInertOthers])
 
   const closeWithFocusCommands = [
     focusButton,
@@ -410,6 +400,7 @@ export type ViewConfig<Message> = Readonly<{
   backdropClassName?: string
   backdropAttributes?: ReadonlyArray<Attribute<Message>>
   isDisabled?: boolean
+  focusSelector?: string
   className?: string
   attributes?: ReadonlyArray<Attribute<Message>>
 }>
@@ -458,6 +449,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     backdropClassName,
     backdropAttributes = [],
     isDisabled,
+    focusSelector,
     className,
     attributes = [],
   } = config
@@ -569,6 +561,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     anchor,
     interceptTab: false,
     focusAfterPosition: true,
+    ...(focusSelector !== undefined && { focusSelector }),
   })
 
   const anchorAttributes = [
