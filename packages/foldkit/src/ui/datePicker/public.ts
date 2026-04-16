@@ -16,7 +16,6 @@ export {
   Cleared,
   Opened,
   Closed,
-  ChangedSelectedDate,
   ChangedViewMonth,
 } from './index'
 

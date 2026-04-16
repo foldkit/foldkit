@@ -6,11 +6,11 @@ import { Calendar, Command, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Class, Id, button, div, h2 } from './html'
+import { Class, Id, button, div, h2, span } from './html'
 
-// Add a field to your Model for the Calendar Submodel:
+// Add a field to your Model for the DatePicker Submodel:
 const Model = S.Struct({
-  calendarDemo: Ui.Calendar.Model,
+  datePickerDemo: Ui.DatePicker.Model,
   // ...your other fields
 })
 
@@ -25,51 +25,53 @@ const flags = Effect.gen(function* () {
   return { today /* ...your other flags */ }
 })
 
-// In your init function, pass the flags-resolved today into Calendar.init:
+// In your init function, pass the flags-resolved today into DatePicker.init.
+// Optional: constrain the selectable range with minDate / maxDate.
 const init = (flags: Flags) => [
   {
-    calendarDemo: Ui.Calendar.init({
-      id: 'calendar-demo',
+    datePickerDemo: Ui.DatePicker.init({
+      id: 'date-picker-demo',
       today: flags.today,
+      minDate: flags.today,
+      maxDate: Calendar.addMonths(flags.today, 3),
     }),
     // ...your other fields
   },
   [],
 ]
 
-// Embed the Calendar Message in your parent Message for navigation and
-// keyboard routing:
-const GotCalendarMessage = m('GotCalendarMessage', {
-  message: Ui.Calendar.Message,
+// Embed the DatePicker Message in your parent Message. DatePicker handles
+// Calendar + Popover routing internally — you only need one wrapper:
+const GotDatePickerMessage = m('GotDatePickerMessage', {
+  message: Ui.DatePicker.Message,
 })
 
-// Add your own domain Message for selection events. The Calendar view
-// dispatches this via the `onSelectedDate` callback below — your update can
-// validate, save, navigate, etc., then write the selection back into the
-// Calendar's internal state.
-const SelectedCalendarDate = m('SelectedCalendarDate', {
+// Add a domain Message for selection events. The DatePicker view dispatches
+// this via the `onSelectedDate` callback — your update handler decides what
+// to do with the date (validate, save, navigate, etc.), then writes it back
+// via `DatePicker.selectDate` to sync internal state.
+const SelectedDate = m('SelectedDate', {
   date: Calendar.CalendarDate,
 })
 
-// Inside your update function's M.tagsExhaustive({...}), handle the two
-// paths. `GotCalendarMessage` delegates navigation, focus, and dropdown
-// messages to the Calendar's own update:
-GotCalendarMessage: ({ message }) => {
-  const [nextCalendar, commands, maybeOutMessage] = Ui.Calendar.update(
-    model.calendarDemo,
+// Inside your update function's M.tagsExhaustive({...}), handle both paths.
+// `GotDatePickerMessage` delegates navigation, focus, and popover messages
+// to DatePicker's own update:
+GotDatePickerMessage: ({ message }) => {
+  const [nextDatePicker, commands, maybeOutMessage] = Ui.DatePicker.update(
+    model.datePickerDemo,
     message,
   )
 
   const mappedCommands = commands.map(
-    Command.mapEffect(Effect.map(message => GotCalendarMessage({ message }))),
+    Command.mapEffect(Effect.map(message => GotDatePickerMessage({ message }))),
   )
 
-  // Exhaustive dispatch on the Calendar OutMessage — currently only
-  // The OutMessage fires when the visible month changes ��� use it to load
+  // The OutMessage fires when the visible month changes — use it to load
   // any month-scoped data your app needs (e.g. holidays, availability).
   const additionalCommands = Option.match(maybeOutMessage, {
     onNone: () => [],
-    onSome: M.type<Ui.Calendar.OutMessage>().pipe(
+    onSome: M.type<Ui.DatePicker.OutMessage>().pipe(
       M.tagsExhaustive({
         ChangedViewMonth: ({ year, month }) => {
           // Your app logic here.
@@ -80,46 +82,47 @@ GotCalendarMessage: ({ message }) => {
   })
 
   return [
-    evo(model, { calendarDemo: () => nextCalendar }),
+    evo(model, { datePickerDemo: () => nextDatePicker }),
     [...mappedCommands, ...additionalCommands],
   ]
 }
 
-// `SelectedCalendarDate` is dispatched by the view's `onSelectedDate`
-// callback when the user commits a date (click, Enter, or Space). Your
-// handler runs domain side effects, then writes the selection back to
-// Calendar via `Calendar.selectDate` so its internal cursor + selected
-// cell stay in sync.
-SelectedCalendarDate: ({ date }) => {
-  const [nextCalendar, commands] = Ui.Calendar.selectDate(
-    model.calendarDemo,
+// `SelectedDate` is dispatched by the view's `onSelectedDate` callback when
+// the user commits a date. Write the selection back to DatePicker via
+// `DatePicker.selectDate` so its internal state stays in sync:
+SelectedDate: ({ date }) => {
+  const [nextDatePicker, commands] = Ui.DatePicker.selectDate(
+    model.datePickerDemo,
     date,
   )
 
   return [
-    // Optionally store the selection in your own state too, e.g. for form
-    // submission or validation:
-    evo(model, {
-      calendarDemo: () =>
-        nextCalendar /*, pickedDate: () => Option.some(date) */,
-    }),
+    evo(model, { datePickerDemo: () => nextDatePicker }),
     commands.map(
-      Command.mapEffect(Effect.map(message => GotCalendarMessage({ message }))),
+      Command.mapEffect(
+        Effect.map(message => GotDatePickerMessage({ message })),
+      ),
     ),
   ]
 }
 
-// Inside your view function, render the calendar. The `onSelectedDate`
-// callback converts a committed date into your parent Message. The `toView`
-// callback receives attribute groups (grid, rows, buttons, dropdowns) plus
-// the 6×7 grid of day cells to lay out however you like:
-Ui.Calendar.view({
-  model: model.calendarDemo,
-  toParentMessage: message => GotCalendarMessage({ message }),
-  onSelectedDate: date => SelectedCalendarDate({ date }),
-  toView: attributes =>
+// Inside your view function, render the date picker. The `onSelectedDate`
+// callback converts a committed date into your parent Message. The
+// `toCalendarView` callback lays out the calendar grid — same shape as
+// Calendar.view's `toView`:
+Ui.DatePicker.view({
+  model: model.datePickerDemo,
+  toParentMessage: message => GotDatePickerMessage({ message }),
+  onSelectedDate: date => SelectedDate({ date }),
+  anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+  triggerContent: maybeDate =>
+    Option.match(maybeDate, {
+      onNone: () => span([], ['Pick a date']),
+      onSome: date => span([], [`${date.year}-${date.month}-${date.day}`]),
+    }),
+  toCalendarView: attributes =>
     div(
-      [...attributes.root, Class('flex flex-col gap-3 rounded-xl border p-4')],
+      [...attributes.root, Class('flex flex-col gap-3 p-4')],
       [
         div(
           [Class('flex items-center justify-between')],
@@ -158,8 +161,6 @@ Ui.Calendar.view({
                 [...week.attributes, Class('grid grid-cols-7 gap-1')],
                 week.cells.map(cell =>
                   div(
-                    // `group` lets day buttons react to parent state via
-                    // group-data-[today], group-data-[selected], etc.
                     [
                       ...cell.cellAttributes,
                       Class('group flex items-center justify-center'),
@@ -183,4 +184,6 @@ Ui.Calendar.view({
         ),
       ],
     ),
+  // Optional: enable hidden form input for native <form> submission:
+  name: 'appointment-date',
 })

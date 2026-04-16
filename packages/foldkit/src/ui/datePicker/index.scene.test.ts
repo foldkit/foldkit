@@ -104,7 +104,7 @@ describe('DatePicker scene', () => {
       const seeded = init({
         id: 'picker',
         today,
-        maybeInitialSelectedDate: Option.some(Calendar.make(2026, 4, 20)),
+        initialSelectedDate: Calendar.make(2026, 4, 20),
       })
       Scene.scene(
         { update, view: sceneView() },
@@ -190,7 +190,7 @@ describe('DatePicker scene', () => {
       const seeded = init({
         id: 'picker',
         today,
-        maybeInitialSelectedDate: Option.some(Calendar.make(2026, 4, 5)),
+        initialSelectedDate: Calendar.make(2026, 4, 5),
       })
       Scene.scene(
         { update, view: sceneView({ name: 'dob' }) },
@@ -203,7 +203,7 @@ describe('DatePicker scene', () => {
       const seeded = init({
         id: 'picker',
         today,
-        maybeInitialSelectedDate: Option.some(Calendar.make(2026, 1, 9)),
+        initialSelectedDate: Calendar.make(2026, 1, 9),
       })
       Scene.scene(
         { update, view: sceneView({ name: 'dob' }) },

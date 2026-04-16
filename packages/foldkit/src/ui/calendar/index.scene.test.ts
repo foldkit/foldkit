@@ -1,5 +1,4 @@
 import { describe, it } from '@effect/vitest'
-import { Option } from 'effect'
 
 import * as Calendar from '../../calendar'
 import { html } from '../../html'
@@ -162,7 +161,7 @@ describe('Calendar scene', () => {
           init({
             id: 'test',
             today,
-            maybeInitialSelectedDate: Option.some(selected),
+            initialSelectedDate: selected,
           }),
         ),
         Scene.expect(cellById('test', 2026, 4, 20)).toHaveAttr(
@@ -371,7 +370,7 @@ describe('Calendar scene', () => {
           init({
             id: 'test',
             today,
-            maybeMinDate: Option.some(today),
+            minDate: today,
           }),
         ),
         Scene.keydown(grid, 'ArrowLeft'),
@@ -389,7 +388,7 @@ describe('Calendar scene', () => {
           init({
             id: 'test',
             today,
-            maybeMaxDate: Option.some(today),
+            maxDate: today,
           }),
         ),
         Scene.keydown(grid, 'ArrowRight'),

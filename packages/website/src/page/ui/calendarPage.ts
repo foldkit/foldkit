@@ -122,9 +122,8 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
       'The current calendar date. Typically fetched at the app boundary via Calendar.today.local and threaded through flags.',
   },
   {
-    name: 'maybeInitialSelectedDate',
-    type: 'Option<CalendarDate>',
-    default: 'Option.none()',
+    name: 'initialSelectedDate',
+    type: 'CalendarDate',
     description:
       'Pre-selected date. When set, the view starts on the month containing this date.',
   },
@@ -136,16 +135,14 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
       'Month and day names plus the first day of the week. Import from foldkit/calendar.',
   },
   {
-    name: 'maybeMinDate',
-    type: 'Option<CalendarDate>',
-    default: 'Option.none()',
+    name: 'minDate',
+    type: 'CalendarDate',
     description:
       'Earliest selectable date. Dates before minDate are marked disabled and skipped by keyboard navigation.',
   },
   {
-    name: 'maybeMaxDate',
-    type: 'Option<CalendarDate>',
-    default: 'Option.none()',
+    name: 'maxDate',
+    type: 'CalendarDate',
     description:
       'Latest selectable date. Dates after maxDate are marked disabled and skipped by keyboard navigation.',
   },

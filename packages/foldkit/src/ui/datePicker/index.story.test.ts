@@ -7,7 +7,6 @@ import * as Story from '../../test/story'
 import * as UiCalendar from '../calendar'
 import * as Popover from '../popover'
 import {
-  ChangedSelectedDate,
   ChangedViewMonth,
   Cleared,
   Closed,
@@ -49,12 +48,12 @@ describe('DatePicker', () => {
       expect(model.calendar.id).toBe('picker-calendar')
     })
 
-    it('seeds the selection from maybeInitialSelectedDate', () => {
+    it('seeds the selection from initialSelectedDate', () => {
       const selected = Calendar.make(2026, 5, 2)
       const model = init({
         id: 'picker',
         today,
-        maybeInitialSelectedDate: Option.some(selected),
+        initialSelectedDate: selected,
       })
       expect(model.maybeSelectedDate).toStrictEqual(Option.some(selected))
       expect(model.calendar.maybeSelectedDate).toStrictEqual(
@@ -74,8 +73,8 @@ describe('DatePicker', () => {
       const model = init({
         id: 'picker',
         today,
-        maybeMinDate: Option.some(minDate),
-        maybeMaxDate: Option.some(maxDate),
+        minDate,
+        maxDate,
         disabledDaysOfWeek: ['Sunday'],
       })
       expect(model.calendar.maybeMinDate).toStrictEqual(Option.some(minDate))
@@ -138,15 +137,13 @@ describe('DatePicker', () => {
     })
 
     describe('SelectedDate', () => {
-      it('commits the date, closes the popover, and emits ChangedSelectedDate', () => {
+      it('commits the date and closes the popover', () => {
         const target = Calendar.make(2026, 4, 20)
         Story.story(
           update,
           withOpen,
           Story.message(SelectedDate({ date: target })),
-          Story.expectOutMessage(
-            ChangedSelectedDate({ maybeDate: Option.some(target) }),
-          ),
+          Story.expectNoOutMessage(),
           Story.resolve(
             Popover.FocusButton,
             Popover.CompletedFocusButton(),
@@ -189,7 +186,7 @@ describe('DatePicker', () => {
         const seeded = init({
           id: 'picker',
           today,
-          maybeInitialSelectedDate: Option.some(Calendar.make(2026, 4, 20)),
+          initialSelectedDate: Calendar.make(2026, 4, 20),
         })
         Story.story(
           update,
@@ -208,9 +205,7 @@ describe('DatePicker', () => {
             expect(model.maybeSelectedDate).toStrictEqual(Option.none())
             expect(model.popover.isOpen).toBe(true)
           }),
-          Story.expectOutMessage(
-            ChangedSelectedDate({ maybeDate: Option.none() }),
-          ),
+          Story.expectNoOutMessage(),
         )
       })
     })
@@ -299,7 +294,7 @@ describe('DatePicker', () => {
       const seeded = init({
         id: 'picker',
         today,
-        maybeInitialSelectedDate: Option.some(Calendar.make(2026, 4, 20)),
+        initialSelectedDate: Calendar.make(2026, 4, 20),
       })
       const [nextModel] = clear(seeded)
       expect(nextModel.maybeSelectedDate).toStrictEqual(Option.none())

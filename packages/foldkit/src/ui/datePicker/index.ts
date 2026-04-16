@@ -67,13 +67,6 @@ export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
-/** Emitted when the user commits or clears a date. Parents can subscribe to
- * this to drive form state, validation, or domain side effects without having
- * to register a separate `onSelectedDate` callback. */
-export const ChangedSelectedDate = m('ChangedSelectedDate', {
-  maybeDate: S.OptionFromSelf(Calendar.CalendarDate),
-})
-
 /** Emitted when the visible month changes (propagated from the embedded
  * Calendar). Useful for month-scoped data loading. */
 export const ChangedViewMonth = m('ChangedViewMonth', {
@@ -81,10 +74,10 @@ export const ChangedViewMonth = m('ChangedViewMonth', {
   month: S.Int,
 })
 
-/** The date picker's OutMessage. */
-export const OutMessage: S.Union<
-  [typeof ChangedSelectedDate, typeof ChangedViewMonth]
-> = S.Union(ChangedSelectedDate, ChangedViewMonth)
+/** The date picker's OutMessage. Matches Calendar — only `ChangedViewMonth`.
+ * Date selection goes through the `onSelectedDate` ViewConfig callback, not
+ * OutMessage. */
+export const OutMessage = ChangedViewMonth
 export type OutMessage = typeof OutMessage.Type
 
 // INIT
@@ -93,11 +86,11 @@ export type OutMessage = typeof OutMessage.Type
 export type InitConfig = Readonly<{
   id: string
   today: CalendarDate
-  maybeInitialSelectedDate?: Option.Option<CalendarDate>
+  initialSelectedDate?: CalendarDate
   isAnimated?: boolean
   locale?: Calendar.LocaleConfig
-  maybeMinDate?: Option.Option<CalendarDate>
-  maybeMaxDate?: Option.Option<CalendarDate>
+  minDate?: CalendarDate
+  maxDate?: CalendarDate
   disabledDaysOfWeek?: ReadonlyArray<Calendar.DayOfWeek>
   disabledDates?: ReadonlyArray<CalendarDate>
 }>
@@ -108,20 +101,16 @@ export type InitConfig = Readonly<{
  * the calendar grid instead of the panel. */
 export const init = (config: InitConfig): Model => ({
   id: config.id,
-  maybeSelectedDate: config.maybeInitialSelectedDate ?? Option.none(),
+  maybeSelectedDate: Option.fromNullable(config.initialSelectedDate),
   calendar: UiCalendar.init({
     id: `${config.id}-calendar`,
     today: config.today,
-    ...(config.maybeInitialSelectedDate !== undefined && {
-      maybeInitialSelectedDate: config.maybeInitialSelectedDate,
+    ...(config.initialSelectedDate !== undefined && {
+      initialSelectedDate: config.initialSelectedDate,
     }),
     ...(config.locale !== undefined && { locale: config.locale }),
-    ...(config.maybeMinDate !== undefined && {
-      maybeMinDate: config.maybeMinDate,
-    }),
-    ...(config.maybeMaxDate !== undefined && {
-      maybeMaxDate: config.maybeMaxDate,
-    }),
+    ...(config.minDate !== undefined && { minDate: config.minDate }),
+    ...(config.maxDate !== undefined && { maxDate: config.maxDate }),
     ...(config.disabledDaysOfWeek !== undefined && {
       disabledDaysOfWeek: config.disabledDaysOfWeek,
     }),
@@ -249,14 +238,14 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             ...mapCalendarCommands(calendarCommands),
             ...mapPopoverCommands(popoverCommands),
           ],
-          Option.some(ChangedSelectedDate({ maybeDate: Option.some(date) })),
+          Option.none(),
         ]
       },
 
       Cleared: () => [
         evo(model, { maybeSelectedDate: () => Option.none() }),
         [],
-        Option.some(ChangedSelectedDate({ maybeDate: Option.none() })),
+        Option.none(),
       ],
     }),
   )

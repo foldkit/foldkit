@@ -105,10 +105,10 @@ export type OutMessage = typeof OutMessage.Type
 export type InitConfig = Readonly<{
   id: string
   today: CalendarDate
-  maybeInitialSelectedDate?: Option.Option<CalendarDate>
+  initialSelectedDate?: CalendarDate
   locale?: Calendar.LocaleConfig
-  maybeMinDate?: Option.Option<CalendarDate>
-  maybeMaxDate?: Option.Option<CalendarDate>
+  minDate?: CalendarDate
+  maxDate?: CalendarDate
   disabledDaysOfWeek?: ReadonlyArray<Calendar.DayOfWeek>
   disabledDates?: ReadonlyArray<CalendarDate>
 }>
@@ -116,8 +116,11 @@ export type InitConfig = Readonly<{
 /** Creates an initial calendar model. The view month defaults to the month
  * of the initial selected date, or today if no date is pre-selected. */
 export const init = (config: InitConfig): Model => {
+  const maybeInitialSelectedDate = Option.fromNullable(
+    config.initialSelectedDate,
+  )
   const initialFocus = Option.getOrElse(
-    config.maybeInitialSelectedDate ?? Option.none<CalendarDate>(),
+    maybeInitialSelectedDate,
     () => config.today,
   )
   return {
@@ -126,11 +129,11 @@ export const init = (config: InitConfig): Model => {
     viewYear: initialFocus.year,
     viewMonth: initialFocus.month,
     maybeFocusedDate: Option.some(initialFocus),
-    maybeSelectedDate: config.maybeInitialSelectedDate ?? Option.none(),
+    maybeSelectedDate: maybeInitialSelectedDate,
     isGridFocused: false,
     locale: config.locale ?? Calendar.defaultEnglishLocale,
-    maybeMinDate: config.maybeMinDate ?? Option.none(),
-    maybeMaxDate: config.maybeMaxDate ?? Option.none(),
+    maybeMinDate: Option.fromNullable(config.minDate),
+    maybeMaxDate: Option.fromNullable(config.maxDate),
     disabledDaysOfWeek: config.disabledDaysOfWeek ?? [],
     disabledDates: config.disabledDates ?? [],
   }

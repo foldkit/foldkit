@@ -22,6 +22,8 @@ export const init = (today: Calendar.CalendarDate): InitReturn => [
     datePickerBasicDemo: Ui.DatePicker.init({
       id: 'date-picker-basic-demo',
       today,
+      minDate: today,
+      maxDate: Calendar.addMonths(today, 3),
     }),
     checkboxBasicDemo: Ui.Checkbox.init({ id: 'checkbox-basic-demo' }),
     checkboxOptionADemo: Ui.Checkbox.init({
