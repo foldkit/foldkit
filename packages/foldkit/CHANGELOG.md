@@ -1,5 +1,33 @@
 # foldkit
 
+## 0.63.0
+
+### Minor Changes
+
+- 25e3f32: Add programmatic `open` and `close` helper functions to all UI components
+  with open/close semantics. Each returns `[Model, Commands]` directly,
+  mirroring the existing `Dialog.close` pattern.
+  - Dialog: add `open`
+  - Disclosure: add `close`
+  - Menu: add `open`, `close`
+  - Combobox: add `open`, `close` (single and multi)
+  - Listbox: add `open`, `close` (single and multi)
+
+- 88c2c75: Add programmatic setters for `Calendar` and `DatePicker` constraint props — `setMinDate`, `setMaxDate`, `setDisabledDates`, `setDisabledDaysOfWeek`. These allow consumers to update the `minDate`, `maxDate`, `disabledDates`, and `disabledDaysOfWeek` fields after `init()`, which is how cross-field date validation works (e.g. an end date picker whose minimum tracks a start date picker's selection).
+
+  Constraints remain set at init time via `InitConfig` and live in the Model — the new setters update those fields. They do not reconcile the current selection if it falls outside the new constraint range; callers should `clear` or reassign the selection explicitly if their domain requires it.
+
+  ```ts
+  GotStartDateMessage: ({ message }) => {
+    const [nextStartDate, commands] = Ui.DatePicker.update(model.startDate, message)
+    const nextEndDate = Ui.DatePicker.setMinDate(
+      model.endDate,
+      nextStartDate.maybeSelectedDate,
+    )
+    return [evo(model, { startDate: () => nextStartDate, endDate: () => nextEndDate }), ...]
+  },
+  ```
+
 ## 0.62.0
 
 ### Minor Changes
