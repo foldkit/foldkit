@@ -750,12 +750,15 @@ const makeRuntime = <
 
             const maybeCurrentVNode = yield* Ref.get(maybeCurrentVNodeRef)
 
-            yield* Ref.set(isRenderingRef, true)
-            const patchedVNode = yield* Effect.sync(() =>
-              patchVNode(maybeCurrentVNode, nextVNodeNullish, container),
+            const patchedVNode = yield* Effect.acquireUseRelease(
+              Ref.set(isRenderingRef, true),
+              () =>
+                Effect.sync(() =>
+                  patchVNode(maybeCurrentVNode, nextVNodeNullish, container),
+                ),
+              () => Ref.set(isRenderingRef, false),
             )
             yield* Ref.set(maybeCurrentVNodeRef, Option.some(patchedVNode))
-            yield* Ref.set(isRenderingRef, false)
 
             if (title) {
               document.title = title(model)
