@@ -585,6 +585,19 @@ const makeRuntime = <
           Option.Option<DevtoolsStore>
         >(Option.none())
 
+        /** `true` while a render is patching the DOM. Synchronous events
+         * that fire as a side-effect of DOM mutations (e.g. Chrome firing
+         * `blur` when a focused element is removed) call `dispatchSync`; if
+         * they do so while the flag is set, the message is offered to
+         * `pendingMessagesQueue` and processed after the current render
+         * completes. Without this lock, nested dispatches during a patch
+         * see a stale `maybeCurrentVNodeRef` and double-patch the DOM. */
+        const isRenderingRef = yield* Ref.make(false)
+
+        /** Messages offered by `dispatchSync` calls that land while a render
+         * is in progress. Drained at the end of each render. */
+        const pendingMessagesQueue = yield* Queue.unbounded<Message>()
+
         const processMessage = (message: Message): Effect.Effect<void> =>
           Effect.gen(function* () {
             const currentModel = yield* Ref.get(modelRef)
@@ -677,6 +690,16 @@ const makeRuntime = <
           }
 
         const dispatchSync = (message: unknown): void => {
+          const isRendering = Ref.get(isRenderingRef).pipe(Effect.runSync)
+
+          if (isRendering) {
+            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+            Queue.offer(pendingMessagesQueue, message as Message).pipe(
+              Effect.runSync,
+            )
+            return
+          }
+
           const maybeRuntime = Ref.get(maybeRuntimeRef).pipe(Effect.runSync)
 
           Option.match(maybeRuntime, {
@@ -695,6 +718,15 @@ const makeRuntime = <
           enqueueMessage(message as Message)
 
         const dispatch = { dispatchAsync, dispatchSync }
+
+        const drainPendingMessages: Effect.Effect<void> = Effect.gen(
+          function* () {
+            const pending = yield* Queue.takeAll(pendingMessagesQueue)
+            yield* Effect.forEach(pending, queuedMessage =>
+              Effect.sync(() => dispatchSync(queuedMessage)),
+            )
+          },
+        )
 
         const render = (model: Model, message: Option.Option<Message>) =>
           Effect.gen(function* () {
@@ -717,14 +749,19 @@ const makeRuntime = <
             })
 
             const maybeCurrentVNode = yield* Ref.get(maybeCurrentVNodeRef)
+
+            yield* Ref.set(isRenderingRef, true)
             const patchedVNode = yield* Effect.sync(() =>
               patchVNode(maybeCurrentVNode, nextVNodeNullish, container),
             )
             yield* Ref.set(maybeCurrentVNodeRef, Option.some(patchedVNode))
+            yield* Ref.set(isRenderingRef, false)
 
             if (title) {
               document.title = title(model)
             }
+
+            yield* drainPendingMessages
           }).pipe(Effect.provideService(Dispatch, dispatch))
 
         const runtime = yield* Effect.runtime()
