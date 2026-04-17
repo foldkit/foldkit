@@ -1,6 +1,8 @@
 export {
   init,
   update,
+  open,
+  close,
   selectItem,
   view,
   lazy,

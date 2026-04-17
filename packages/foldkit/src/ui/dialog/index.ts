@@ -249,6 +249,13 @@ export type ViewConfig<Message> = Readonly<{
   attributes?: ReadonlyArray<Attribute<Message>>
 }>
 
+/** Programmatically opens the dialog, updating the model and returning
+ *  show commands. Use this in domain-event handlers to open the dialog. */
+export const open = (
+  model: Model,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+  update(model, Opened())
+
 /** Programmatically closes the dialog, updating the model and returning
  *  close commands. Use this in domain-event handlers when the dialog uses `onClosed`. */
 export const close = (

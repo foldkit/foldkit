@@ -336,9 +336,8 @@ export const update = (
       CompletedSaveCanvas: () => [model, []],
 
       FailedExportPng: ({ error }) => {
-        const [nextErrorDialog, errorDialogCommands] = Ui.Dialog.update(
+        const [nextErrorDialog, errorDialogCommands] = Ui.Dialog.open(
           model.errorDialog,
-          Ui.Dialog.Opened(),
         )
 
         return [
@@ -627,9 +626,8 @@ const requestGridSizeChange = (
     return applyGridSizeChange(model, size)
   }
 
-  const [nextDialog, dialogCommands] = Ui.Dialog.update(
+  const [nextDialog, dialogCommands] = Ui.Dialog.open(
     model.gridSizeConfirmDialog,
-    Ui.Dialog.Opened(),
   )
   return [
     evo(model, {

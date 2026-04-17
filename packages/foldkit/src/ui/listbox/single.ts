@@ -7,7 +7,9 @@ import {
   type BaseInitConfig,
   BaseModel,
   type BaseViewConfig,
+  Closed,
   type Message,
+  Opened,
   SelectedItem,
   baseInit,
   makeUpdate,
@@ -47,6 +49,20 @@ export const update = makeUpdate<Model>((model, item, context) => {
     commands,
   ]
 })
+
+/** Programmatically opens the listbox, updating the model and returning
+ *  focus and modal commands. Use this in domain-event handlers to open the listbox. */
+export const open = (
+  model: Model,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+  update(model, Opened({ maybeActiveItemIndex: Option.none() }))
+
+/** Programmatically closes the listbox, updating the model and returning
+ *  focus and modal commands. Use this in domain-event handlers to close the listbox. */
+export const close = (
+  model: Model,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+  update(model, Closed())
 
 /** Programmatically selects an item in the single-select listbox, closing the listbox and returning
  *  focus commands. Use this in domain-event handlers when the listbox uses `onSelectedItem`. */

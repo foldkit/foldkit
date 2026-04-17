@@ -138,6 +138,13 @@ export const toggle = (
 ): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
   update(model, Toggled())
 
+/** Programmatically closes the disclosure, updating the model and returning
+ *  focus commands. Use this in domain-event handlers to close the disclosure. */
+export const close = (
+  model: Model,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+  update(model, Closed())
+
 /** Renders a headless disclosure component with accessible ARIA attributes and keyboard support. */
 export const view = <Message>(config: ViewConfig<Message>): Html => {
   const {

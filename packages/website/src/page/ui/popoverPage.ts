@@ -224,6 +224,15 @@ export const view = (
       para(
         'An anchored floating panel with natural Tab navigation. Unlike Dialog (which is modal and traps focus) or Menu (which uses aria-activedescendant for item navigation), Popover holds arbitrary content and uses the disclosure ARIA pattern. Focus flows naturally through the panel content.',
       ),
+      para(
+        'For programmatic control in update functions, use ',
+        inlineCode('Popover.open(model)'),
+        ' and ',
+        inlineCode('Popover.close(model)'),
+        ' which return ',
+        inlineCode('[Model, Commands]'),
+        ' directly.',
+      ),
       infoCallout(
         'See it in an app',
         'Check out how Popover is wired up in a ',
