@@ -1,6 +1,7 @@
 import {
   Array,
   Effect,
+  HashSet,
   Match,
   Option,
   Schema,
@@ -10,7 +11,81 @@ import {
 import { describe, expect, it, vi } from 'vitest'
 
 import { m } from '../message'
-import { type Bridge, type DevtoolsStore, createDevtoolsStore } from './store'
+import {
+  type Bridge,
+  type DevtoolsStore,
+  computeDiff,
+  createDevtoolsStore,
+} from './store'
+
+const hasPath = (paths: HashSet.HashSet<string>, path: string) =>
+  HashSet.has(paths, path)
+
+describe('computeDiff', () => {
+  it('returns empty diff for identical references', () => {
+    const model = { count: 0 }
+    const { changedPaths, affectedPaths } = computeDiff(model, model)
+
+    expect(HashSet.size(changedPaths)).toBe(0)
+    expect(HashSet.size(affectedPaths)).toBe(0)
+  })
+
+  it('returns empty diff for structurally identical objects', () => {
+    const { changedPaths } = computeDiff({ count: 5 }, { count: 5 })
+
+    expect(HashSet.size(changedPaths)).toBe(0)
+  })
+
+  it('detects changed primitive fields', () => {
+    const { changedPaths, affectedPaths } = computeDiff(
+      { count: 0 },
+      { count: 1 },
+    )
+
+    expect(hasPath(changedPaths, 'root.count')).toBe(true)
+    expect(hasPath(affectedPaths, 'root')).toBe(true)
+  })
+
+  it('detects nested field changes', () => {
+    const { changedPaths, affectedPaths } = computeDiff(
+      { user: { name: 'Alice', age: 30 } },
+      { user: { name: 'Bob', age: 30 } },
+    )
+
+    expect(hasPath(changedPaths, 'root.user.name')).toBe(true)
+    expect(hasPath(changedPaths, 'root.user.age')).toBe(false)
+    expect(hasPath(affectedPaths, 'root.user')).toBe(true)
+    expect(hasPath(affectedPaths, 'root')).toBe(true)
+  })
+
+  it('detects array element changes', () => {
+    const { changedPaths } = computeDiff(
+      { items: [1, 2, 3] },
+      { items: [1, 99, 3] },
+    )
+
+    expect(hasPath(changedPaths, 'root.items.1')).toBe(true)
+    expect(hasPath(changedPaths, 'root.items.0')).toBe(false)
+    expect(hasPath(changedPaths, 'root.items.2')).toBe(false)
+  })
+
+  it('detects added fields', () => {
+    const { changedPaths } = computeDiff({ a: 1 }, { a: 1, b: 2 })
+
+    expect(hasPath(changedPaths, 'root.b')).toBe(true)
+    expect(hasPath(changedPaths, 'root.a')).toBe(false)
+  })
+
+  it('handles Option transitions', () => {
+    const { changedPaths, affectedPaths } = computeDiff(
+      { value: Option.none() },
+      { value: Option.some(42) },
+    )
+
+    expect(hasPath(changedPaths, 'root.value.value')).toBe(true)
+    expect(hasPath(affectedPaths, 'root.value')).toBe(true)
+  })
+})
 
 const initialModel = { count: 0 }
 
@@ -432,6 +507,37 @@ describe('DevtoolsStore', () => {
 
       const state = getState(store)
       expect(state.entries[0]?.isModelChanged).toBe(false)
+    })
+
+    it('stores false when reference changed but values are identical', () => {
+      const { store } = makeStore()
+
+      const before = { count: 5 }
+      const after = { count: 5 }
+
+      run(
+        store.recordMessage(clickedIncrement, before, after, [], true),
+      )
+
+      const state = getState(store)
+      expect(state.entries[0]?.isModelChanged).toBe(false)
+    })
+
+    it('stores true when values actually differ', () => {
+      const { store } = makeStore()
+
+      run(
+        store.recordMessage(
+          clickedIncrement,
+          { count: 0 },
+          { count: 1 },
+          [],
+          true,
+        ),
+      )
+
+      const state = getState(store)
+      expect(state.entries[0]?.isModelChanged).toBe(true)
     })
   })
 

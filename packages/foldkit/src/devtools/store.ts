@@ -230,6 +230,8 @@ export const createDevtoolsStore = (
           ? computeDiff(modelBeforeUpdate, modelAfterUpdate)
           : emptyDiff
 
+        const hasChangedFields = HashSet.size(diff.changedPaths) > 0
+
         const nextState: StoreState = {
           ...state,
           entries: Array.append(state.entries, {
@@ -237,7 +239,7 @@ export const createDevtoolsStore = (
             message,
             commandNames,
             timestamp: performance.now(),
-            isModelChanged,
+            isModelChanged: hasChangedFields,
             diff,
           }),
           keyframes: addKeyframeIfNeeded(
