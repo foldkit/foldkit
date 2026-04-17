@@ -273,6 +273,17 @@ export const view = (
         inlineCode('model.inputValue'),
         ' and pass the filtered items array.',
       ),
+      para(
+        'For programmatic control in update functions, use ',
+        inlineCode('Combobox.open(model)'),
+        ', ',
+        inlineCode('Combobox.close(model)'),
+        ', and ',
+        inlineCode('Combobox.selectItem(model, item, displayText)'),
+        '. Each returns ',
+        inlineCode('[Model, Commands]'),
+        ' directly.',
+      ),
       infoCallout(
         'See it in an app',
         'Check out how Combobox is wired up in a ',

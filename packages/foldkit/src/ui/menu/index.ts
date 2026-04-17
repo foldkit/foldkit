@@ -658,6 +658,20 @@ export const update = (model: Model, message: Message): UpdateReturn => {
   )
 }
 
+/** Programmatically opens the menu, updating the model and returning
+ *  focus and modal commands. Use this in domain-event handlers to open the menu. */
+export const open = (
+  model: Model,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+  update(model, Opened({ maybeActiveItemIndex: Option.none() }))
+
+/** Programmatically closes the menu, updating the model and returning
+ *  focus and modal commands. Use this in domain-event handlers to close the menu. */
+export const close = (
+  model: Model,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+  update(model, Closed())
+
 /** Programmatically selects a menu item at the given index, closing the menu and returning
  *  focus commands. Use this in domain-event handlers when the menu uses `onSelectedItem`. */
 export const selectItem = (

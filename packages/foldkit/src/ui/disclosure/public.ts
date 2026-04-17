@@ -2,6 +2,7 @@ export {
   init,
   update,
   toggle,
+  close,
   view,
   lazy,
   Model,

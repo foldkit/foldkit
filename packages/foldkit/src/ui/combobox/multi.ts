@@ -1,4 +1,4 @@
-import { Array, Schema as S } from 'effect'
+import { Array, Option, Schema as S } from 'effect'
 
 import type * as Command from '../../command'
 import { type Html, createLazy } from '../../html'
@@ -7,7 +7,9 @@ import {
   type BaseInitConfig,
   BaseModel,
   type BaseViewConfig,
+  Closed,
   type Message,
+  Opened,
   SelectedItem,
   baseInit,
   closedBaseModel,
@@ -76,6 +78,20 @@ export const update = makeUpdate<Model>({
       selectedItems: () => toggleItem(model.selectedItems, item),
     }),
 })
+
+/** Programmatically opens the combobox, updating the model and returning
+ *  focus and modal commands. Use this in domain-event handlers to open the combobox. */
+export const open = (
+  model: Model,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+  update(model, Opened({ maybeActiveItemIndex: Option.none() }))
+
+/** Programmatically closes the combobox, updating the model and returning
+ *  focus and modal commands. Use this in domain-event handlers to close the combobox. */
+export const close = (
+  model: Model,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+  update(model, Closed())
 
 /** Programmatically toggles an item in the multi-select combobox. Use this in domain-event handlers when the combobox uses `onSelectedItem`. */
 export const selectItem = (

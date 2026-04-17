@@ -1,6 +1,7 @@
 export {
   init,
   update,
+  open,
   close,
   view,
   lazy,

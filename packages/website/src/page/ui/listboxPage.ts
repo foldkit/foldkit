@@ -288,6 +288,17 @@ export const view = (
       para(
         'A custom select dropdown with persistent selection, keyboard navigation, typeahead search, and anchor positioning. Unlike Menu (which is for actions), Listbox tracks the selected value and reflects it in the button. For a searchable input with filtering, use Combobox instead.',
       ),
+      para(
+        'For programmatic control in update functions, use ',
+        inlineCode('Listbox.open(model)'),
+        ', ',
+        inlineCode('Listbox.close(model)'),
+        ', and ',
+        inlineCode('Listbox.selectItem(model, item)'),
+        '. Each returns ',
+        inlineCode('[Model, Commands]'),
+        ' directly.',
+      ),
       infoCallout(
         'See it in an app',
         'Check out how Listbox is wired up in a ',

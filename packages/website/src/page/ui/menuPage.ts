@@ -238,6 +238,17 @@ export const view = (
       para(
         'A dropdown menu for actions — like a macOS context menu. Menu is fire-and-forget: it doesn\u2019t track a selected value (use Listbox for persistent selection). It supports typeahead search, drag-to-select, keyboard navigation, grouped items, and anchor positioning.',
       ),
+      para(
+        'For programmatic control in update functions, use ',
+        inlineCode('Menu.open(model)'),
+        ', ',
+        inlineCode('Menu.close(model)'),
+        ', and ',
+        inlineCode('Menu.selectItem(model, index)'),
+        '. Each returns ',
+        inlineCode('[Model, Commands]'),
+        ' directly.',
+      ),
       infoCallout(
         'See it in an app',
         'Check out how Menu is wired up in a ',

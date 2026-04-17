@@ -227,6 +227,15 @@ export const view = (
       para(
         'A toggle for showing and hiding content inline. Disclosure manages its own open/closed state and renders a button + panel pair. Use it for FAQs, accordions, and collapsible sections. For overlaying content in a floating panel, use Dialog or Popover instead.',
       ),
+      para(
+        'For programmatic control in update functions, use ',
+        inlineCode('Disclosure.toggle(model)'),
+        ' and ',
+        inlineCode('Disclosure.close(model)'),
+        ' which return ',
+        inlineCode('[Model, Commands]'),
+        ' directly.',
+      ),
       infoCallout(
         'See it in an app',
         'Check out how Disclosure is wired up in a ',

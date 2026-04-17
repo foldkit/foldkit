@@ -7,7 +7,9 @@ import {
   type BaseInitConfig,
   BaseModel,
   type BaseViewConfig,
+  Closed,
   type Message,
+  Opened,
   SelectedItem,
   baseInit,
   closedBaseModel,
@@ -100,6 +102,20 @@ export const update = makeUpdate<Model>({
       maybeSelectedDisplayText: () => Option.some(displayText),
     }),
 })
+
+/** Programmatically opens the combobox, updating the model and returning
+ *  focus and modal commands. Use this in domain-event handlers to open the combobox. */
+export const open = (
+  model: Model,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+  update(model, Opened({ maybeActiveItemIndex: Option.none() }))
+
+/** Programmatically closes the combobox, updating the model and returning
+ *  focus and modal commands. Use this in domain-event handlers to close the combobox. */
+export const close = (
+  model: Model,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+  update(model, Closed())
 
 /** Programmatically selects an item in the single-select combobox, closing the combobox and returning
  *  focus commands. Use this in domain-event handlers when the combobox uses `onSelectedItem`. */
