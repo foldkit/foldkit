@@ -515,9 +515,7 @@ describe('DevtoolsStore', () => {
       const before = { count: 5 }
       const after = { count: 5 }
 
-      run(
-        store.recordMessage(clickedIncrement, before, after, [], true),
-      )
+      run(store.recordMessage(clickedIncrement, before, after, [], true))
 
       const state = getState(store)
       expect(state.entries[0]?.isModelChanged).toBe(false)
