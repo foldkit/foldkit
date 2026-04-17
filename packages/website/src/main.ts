@@ -1258,7 +1258,7 @@ const devTracerLayer: Layer.Layer<never> = import.meta.hot
           return {
             _tag: 'Span' as const,
             name,
-            spanId: `${name}-${Date.now()}`,
+            spanId: `${name}-${startTime}`,
             traceId: 'dev',
             sampled: true,
             parent: Option.none(),

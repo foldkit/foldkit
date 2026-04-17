@@ -150,11 +150,13 @@ describe('fromDateLocal', () => {
   it('reads year, month, and day from a JS Date in local time', () => {
     // new Date(year, monthIndex, day) constructs in local time; reading back
     // with the same local-time getters round-trips cleanly.
+    // eslint-disable-next-line no-restricted-syntax
     const jsDate = new Date(2026, 3, 13)
     expect(fromDateLocal(jsDate)).toStrictEqual(make(2026, 4, 13))
   })
 
   it('handles month boundaries', () => {
+    // eslint-disable-next-line no-restricted-syntax
     const jsDate = new Date(2026, 11, 31)
     expect(fromDateLocal(jsDate)).toStrictEqual(make(2026, 12, 31))
   })
@@ -163,6 +165,7 @@ describe('fromDateLocal', () => {
 describe('fromDateInZone', () => {
   it('reads year, month, and day in a specified IANA timezone', () => {
     // 2026-04-13T12:00:00Z is April 13 in UTC and in America/New_York (08:00 local).
+    // eslint-disable-next-line no-restricted-syntax
     const jsDate = new Date(Date.UTC(2026, 3, 13, 12, 0, 0))
     expect(fromDateInZone(jsDate, 'America/New_York')).toStrictEqual(
       make(2026, 4, 13),
@@ -173,6 +176,7 @@ describe('fromDateInZone', () => {
   it('handles timezone-dependent date transitions', () => {
     // 2026-04-13T01:00:00Z is still April 12 in New York (21:00 on the 12th)
     // but April 13 in UTC.
+    // eslint-disable-next-line no-restricted-syntax
     const jsDate = new Date(Date.UTC(2026, 3, 13, 1, 0, 0))
     expect(fromDateInZone(jsDate, 'UTC')).toStrictEqual(make(2026, 4, 13))
     expect(fromDateInZone(jsDate, 'America/New_York')).toStrictEqual(

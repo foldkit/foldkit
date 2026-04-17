@@ -32,6 +32,7 @@ export const today = {
    */
   local: Effect.map(
     Clock.currentTimeMillis,
+    // eslint-disable-next-line no-restricted-syntax
     (millis): CalendarDate => fromDateLocal(new Date(millis)),
   ),
 
@@ -42,6 +43,7 @@ export const today = {
   inZone: (timeZone: string) =>
     Effect.map(
       Clock.currentTimeMillis,
+      // eslint-disable-next-line no-restricted-syntax
       (millis): CalendarDate => fromDateInZone(new Date(millis), timeZone),
     ),
 }

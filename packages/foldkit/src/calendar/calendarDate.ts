@@ -180,6 +180,7 @@ export const fromDateInZone = (date: Date, timeZone: string): CalendarDate => {
  * ```
  */
 export const toDateLocal = (calendarDate: CalendarDate): Date =>
+  // eslint-disable-next-line no-restricted-syntax
   new Date(calendarDate.year, calendarDate.month - 1, calendarDate.day)
 
 const isoPattern = /^(\d{4})-(\d{2})-(\d{2})$/

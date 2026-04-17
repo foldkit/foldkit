@@ -9,4 +9,5 @@ import { Effect } from 'effect'
  * ```
  */
 export const randomInt = (min: number, max: number): Effect.Effect<number> =>
+  // eslint-disable-next-line no-restricted-syntax
   Effect.sync(() => Math.floor(Math.random() * (max - min)) + min)

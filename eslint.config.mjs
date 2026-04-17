@@ -21,6 +21,26 @@ export default [
       'no-redeclare': 'off',
       'no-undef': 'off',
       'no-unused-vars': 'off',
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "NewExpression[callee.name='Date']",
+          message:
+            'Impure — use Calendar.today.local for current time (Effect-based), or Calendar.make(year, month, day) for fixed dates.',
+        },
+        {
+          selector:
+            "CallExpression[callee.object.name='Date'][callee.property.name='now']",
+          message:
+            'Impure — use Clock.currentTimeMillis from Effect instead of Date.now().',
+        },
+        {
+          selector:
+            "CallExpression[callee.object.name='Math'][callee.property.name='random']",
+          message:
+            'Impure — use Task.randomInt from Foldkit (Effect-based) instead of Math.random().',
+        },
+      ],
       '@typescript-eslint/consistent-type-assertions': [
         'error',
         { assertionStyle: 'never' },
@@ -55,6 +75,26 @@ export default [
       'no-redeclare': 'off',
       'no-undef': 'off',
       'no-unused-vars': 'off',
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "NewExpression[callee.name='Date']",
+          message:
+            'Impure — use Calendar.today.local for current time (Effect-based), or Calendar.make(year, month, day) for fixed dates.',
+        },
+        {
+          selector:
+            "CallExpression[callee.object.name='Date'][callee.property.name='now']",
+          message:
+            'Impure — use Clock.currentTimeMillis from Effect instead of Date.now().',
+        },
+        {
+          selector:
+            "CallExpression[callee.object.name='Math'][callee.property.name='random']",
+          message:
+            'Impure — use Task.randomInt from Foldkit (Effect-based) instead of Math.random().',
+        },
+      ],
       '@typescript-eslint/consistent-type-assertions': [
         'error',
         { assertionStyle: 'never' },
