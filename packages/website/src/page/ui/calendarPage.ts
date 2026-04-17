@@ -93,6 +93,12 @@ const outMessagesHeader: TableOfContentsEntry = {
   text: 'OutMessage',
 }
 
+const programmaticHelpersHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'programmatic-helpers',
+  text: 'Programmatic Helpers',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -105,6 +111,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   viewConfigHeader,
   calendarAttributesHeader,
   outMessagesHeader,
+  programmaticHelpersHeader,
 ]
 
 // SECTION DATA
@@ -340,6 +347,45 @@ const outMessagesProps: ReadonlyArray<PropEntry> = [
   },
 ]
 
+const programmaticHelpersProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'selectDate',
+    type: '(model: Model, date: CalendarDate) => [Model, Commands, Option<OutMessage>]',
+    description:
+      'Commits the given date and moves the cursor onto it. Use in controlled mode — when ViewConfig provides onSelectedDate — to write the selection back to the calendar.',
+  },
+  {
+    name: 'focusGrid',
+    type: '(modelId: string) => Command',
+    description:
+      "Returns a command that focuses the calendar grid container. Parent components like DatePicker use this to hand focus to the grid's keyboard layer after opening.",
+  },
+  {
+    name: 'setMinDate',
+    type: '(model: Model, maybeMinDate: Option<CalendarDate>) => Model',
+    description:
+      'Updates the minimum selectable date. Pass Option.none() to remove the minimum. Use for cross-field validation when the minimum derives from other Model state. Does not reconcile the current selection if it falls below the new minimum.',
+  },
+  {
+    name: 'setMaxDate',
+    type: '(model: Model, maybeMaxDate: Option<CalendarDate>) => Model',
+    description:
+      'Updates the maximum selectable date. Pass Option.none() to remove the maximum. Does not reconcile the current selection.',
+  },
+  {
+    name: 'setDisabledDates',
+    type: '(model: Model, disabledDates: ReadonlyArray<CalendarDate>) => Model',
+    description:
+      'Replaces the list of individually-disabled dates (e.g. holidays). Pass an empty array to clear.',
+  },
+  {
+    name: 'setDisabledDaysOfWeek',
+    type: '(model: Model, disabledDaysOfWeek: ReadonlyArray<DayOfWeek>) => Model',
+    description:
+      'Replaces the list of disabled days of the week (e.g. ["Saturday", "Sunday"]). Pass an empty array to clear.',
+  },
+]
+
 const dataAttributes: ReadonlyArray<DataAttributeEntry> = [
   {
     attribute: 'data-today',
@@ -535,5 +581,19 @@ export const view = (
         '. Parents pattern-match on the OutMessage in their own update handler.',
       ),
       propTable(outMessagesProps),
+      heading(
+        programmaticHelpersHeader.level,
+        programmaticHelpersHeader.id,
+        programmaticHelpersHeader.text,
+      ),
+      para(
+        'Helpers you call from your own update handlers to drive the calendar imperatively — writing back the selection in controlled mode, focusing the grid, or updating constraints when they derive from other Model state.',
+      ),
+      para(
+        'The four ',
+        inlineCode('set*'),
+        ' helpers are the supported path for cross-field date validation. Constraints are set at init time and updated via these helpers — they do not live on ViewConfig, because the update function needs them for keyboard-navigation disabled-skipping and commit-time validation.',
+      ),
+      propTable(programmaticHelpersProps),
     ],
   )

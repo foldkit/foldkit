@@ -81,6 +81,12 @@ const outMessagesHeader: TableOfContentsEntry = {
   text: 'OutMessage',
 }
 
+const programmaticHelpersHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'programmatic-helpers',
+  text: 'Programmatic Helpers',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -91,6 +97,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   initConfigHeader,
   viewConfigHeader,
   outMessagesHeader,
+  programmaticHelpersHeader,
 ]
 
 // SECTION DATA
@@ -230,6 +237,55 @@ const outMessagesProps: ReadonlyArray<PropEntry> = [
     type: '{ year: number; month: number }',
     description:
       'Emitted when navigation changes the visible month inside the calendar grid. Date selection goes through the onSelectedDate ViewConfig callback, not OutMessage.',
+  },
+]
+
+const programmaticHelpersProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'selectDate',
+    type: '(model: Model, date: CalendarDate) => [Model, Commands]',
+    description:
+      'Commits the given date and closes the popover. Use in controlled mode — when ViewConfig provides onSelectedDate — to write the selection back to the date picker.',
+  },
+  {
+    name: 'clear',
+    type: '(model: Model) => [Model, Commands]',
+    description: 'Clears the selected date. Does not close the popover.',
+  },
+  {
+    name: 'open',
+    type: '(model: Model) => [Model, Commands]',
+    description:
+      'Programmatically opens the popover. Use from domain-event handlers when the date picker should open in response to something other than a trigger click.',
+  },
+  {
+    name: 'close',
+    type: '(model: Model) => [Model, Commands]',
+    description: 'Programmatically closes the popover.',
+  },
+  {
+    name: 'setMinDate',
+    type: '(model: Model, maybeMinDate: Option<CalendarDate>) => Model',
+    description:
+      "Updates the minimum selectable date. Pass Option.none() to remove the minimum. Use for cross-field validation — e.g. an end date picker whose minimum tracks a start date picker's selection. Does not reconcile the current selection if it falls below the new minimum.",
+  },
+  {
+    name: 'setMaxDate',
+    type: '(model: Model, maybeMaxDate: Option<CalendarDate>) => Model',
+    description:
+      'Updates the maximum selectable date. Pass Option.none() to remove the maximum. Does not reconcile the current selection.',
+  },
+  {
+    name: 'setDisabledDates',
+    type: '(model: Model, disabledDates: ReadonlyArray<CalendarDate>) => Model',
+    description:
+      'Replaces the list of individually-disabled dates (e.g. holidays). Pass an empty array to clear.',
+  },
+  {
+    name: 'setDisabledDaysOfWeek',
+    type: '(model: Model, disabledDaysOfWeek: ReadonlyArray<DayOfWeek>) => Model',
+    description:
+      'Replaces the list of disabled days of the week (e.g. ["Saturday", "Sunday"]). Pass an empty array to clear.',
   },
 ]
 
@@ -445,5 +501,21 @@ export const view = (
         '. Pattern-match on the OutMessage in your update handler.',
       ),
       propTable(outMessagesProps),
+      heading(
+        programmaticHelpersHeader.level,
+        programmaticHelpersHeader.id,
+        programmaticHelpersHeader.text,
+      ),
+      para(
+        'Helpers you call from your own update handlers to drive the date picker imperatively — for writing back the selection in controlled mode, opening/closing on domain events, or updating constraints when they derive from other Model state.',
+      ),
+      para(
+        'The four ',
+        inlineCode('set*'),
+        ' helpers are how you implement cross-field date validation. Constraints are set at init time and updated via these helpers — they do not live on ViewConfig, because the update function needs them for keyboard-navigation disabled-skipping and commit-time validation. For an end date that must be on or after a start date, call ',
+        inlineCode('setMinDate(endDate, startDate.maybeSelectedDate)'),
+        ' in the handler that processes the start date change.',
+      ),
+      propTable(programmaticHelpersProps),
     ],
   )

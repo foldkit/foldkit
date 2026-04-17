@@ -174,6 +174,39 @@ export const focusGrid = (modelId: string): Command.Command<Message> =>
 export const selectDate = (model: Model, date: CalendarDate): UpdateReturn =>
   update(model, ClickedDay({ date }))
 
+/** Sets the minimum selectable date. Pass `Option.none()` to remove the
+ * minimum. Use this when the minimum derives from other Model state (e.g. a
+ * start date field whose current selection constrains an end date picker).
+ *
+ * Does NOT reconcile the current selection — if a previously-selected date
+ * is now below the new minimum, it remains selected. Callers should clear or
+ * reassign the selection explicitly if their domain requires it. */
+export const setMinDate = (
+  model: Model,
+  maybeMinDate: Option.Option<CalendarDate>,
+): Model => evo(model, { maybeMinDate: () => maybeMinDate })
+
+/** Sets the maximum selectable date. Pass `Option.none()` to remove the
+ * maximum. Does NOT reconcile the current selection. */
+export const setMaxDate = (
+  model: Model,
+  maybeMaxDate: Option.Option<CalendarDate>,
+): Model => evo(model, { maybeMaxDate: () => maybeMaxDate })
+
+/** Sets the list of individually-disabled dates. Pass an empty array to
+ * clear. Does NOT reconcile the current selection. */
+export const setDisabledDates = (
+  model: Model,
+  disabledDates: ReadonlyArray<CalendarDate>,
+): Model => evo(model, { disabledDates: () => disabledDates })
+
+/** Sets the days of the week that are disabled (e.g. weekends). Pass an
+ * empty array to clear. Does NOT reconcile the current selection. */
+export const setDisabledDaysOfWeek = (
+  model: Model,
+  disabledDaysOfWeek: ReadonlyArray<Calendar.DayOfWeek>,
+): Model => evo(model, { disabledDaysOfWeek: () => disabledDaysOfWeek })
+
 const DAY_SKIP_CAP = 31
 const MONTH_SKIP_CAP = 12
 

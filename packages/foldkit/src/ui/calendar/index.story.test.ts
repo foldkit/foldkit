@@ -16,6 +16,10 @@ import {
   SelectedMonthFromDropdown,
   SelectedYearFromDropdown,
   init,
+  setDisabledDates,
+  setDisabledDaysOfWeek,
+  setMaxDate,
+  setMinDate,
   update,
 } from './index'
 
@@ -512,6 +516,129 @@ describe('Calendar', () => {
             expect(model.maybeSelectedDate).toStrictEqual(Option.none())
           }),
         )
+      })
+    })
+  })
+
+  describe('programmatic setters', () => {
+    describe('setMinDate', () => {
+      it('sets a minimum date on a calendar that had none', () => {
+        const model = init({ id: 'test', today })
+        const newMin = Calendar.make(2026, 5, 1)
+        const next = setMinDate(model, Option.some(newMin))
+        expect(next.maybeMinDate).toStrictEqual(Option.some(newMin))
+      })
+
+      it('replaces an existing minimum date', () => {
+        const originalMin = Calendar.make(2026, 1, 1)
+        const model = init({ id: 'test', today, minDate: originalMin })
+        const newMin = Calendar.make(2026, 6, 1)
+        const next = setMinDate(model, Option.some(newMin))
+        expect(next.maybeMinDate).toStrictEqual(Option.some(newMin))
+      })
+
+      it('clears the minimum date when given Option.none()', () => {
+        const originalMin = Calendar.make(2026, 1, 1)
+        const model = init({ id: 'test', today, minDate: originalMin })
+        const next = setMinDate(model, Option.none())
+        expect(next.maybeMinDate).toStrictEqual(Option.none())
+      })
+
+      it('does not reconcile a previously-selected date below the new min', () => {
+        const selected = Calendar.make(2026, 3, 15)
+        const model = init({
+          id: 'test',
+          today,
+          initialSelectedDate: selected,
+        })
+        const newMin = Calendar.make(2026, 6, 1)
+        const next = setMinDate(model, Option.some(newMin))
+        expect(next.maybeSelectedDate).toStrictEqual(Option.some(selected))
+      })
+
+      it('causes subsequent ClickedDay on a now-disabled date to be ignored', () => {
+        const model = init({ id: 'test', today })
+        const newMin = Calendar.make(2026, 6, 1)
+        const withMin = setMinDate(model, Option.some(newMin))
+        const belowMin = Calendar.make(2026, 5, 10)
+        Story.story(
+          update,
+          Story.with(withMin),
+          Story.message(ClickedDay({ date: belowMin })),
+          Story.model(m => {
+            expect(m.maybeSelectedDate).toStrictEqual(Option.none())
+          }),
+        )
+      })
+    })
+
+    describe('setMaxDate', () => {
+      it('sets a maximum date on a calendar that had none', () => {
+        const model = init({ id: 'test', today })
+        const newMax = Calendar.make(2026, 12, 31)
+        const next = setMaxDate(model, Option.some(newMax))
+        expect(next.maybeMaxDate).toStrictEqual(Option.some(newMax))
+      })
+
+      it('clears the maximum date when given Option.none()', () => {
+        const originalMax = Calendar.make(2026, 12, 31)
+        const model = init({ id: 'test', today, maxDate: originalMax })
+        const next = setMaxDate(model, Option.none())
+        expect(next.maybeMaxDate).toStrictEqual(Option.none())
+      })
+    })
+
+    describe('setDisabledDates', () => {
+      it('sets a list of disabled dates', () => {
+        const model = init({ id: 'test', today })
+        const disabled = [
+          Calendar.make(2026, 4, 15),
+          Calendar.make(2026, 4, 16),
+        ]
+        const next = setDisabledDates(model, disabled)
+        expect(next.disabledDates).toStrictEqual(disabled)
+      })
+
+      it('replaces the list with an empty array', () => {
+        const model = init({
+          id: 'test',
+          today,
+          disabledDates: [Calendar.make(2026, 4, 15)],
+        })
+        const next = setDisabledDates(model, [])
+        expect(next.disabledDates).toStrictEqual([])
+      })
+
+      it('causes subsequent ClickedDay on a newly-disabled date to be ignored', () => {
+        const disabled = Calendar.make(2026, 4, 15)
+        const model = init({ id: 'test', today })
+        const withDisabled = setDisabledDates(model, [disabled])
+        Story.story(
+          update,
+          Story.with(withDisabled),
+          Story.message(ClickedDay({ date: disabled })),
+          Story.model(m => {
+            expect(m.maybeSelectedDate).toStrictEqual(Option.none())
+          }),
+        )
+      })
+    })
+
+    describe('setDisabledDaysOfWeek', () => {
+      it('sets disabled days of the week', () => {
+        const model = init({ id: 'test', today })
+        const next = setDisabledDaysOfWeek(model, ['Saturday', 'Sunday'])
+        expect(next.disabledDaysOfWeek).toStrictEqual(['Saturday', 'Sunday'])
+      })
+
+      it('replaces the list with an empty array', () => {
+        const model = init({
+          id: 'test',
+          today,
+          disabledDaysOfWeek: ['Sunday'],
+        })
+        const next = setDisabledDaysOfWeek(model, [])
+        expect(next.disabledDaysOfWeek).toStrictEqual([])
       })
     })
   })

@@ -19,6 +19,10 @@ import {
   init,
   open,
   selectDate,
+  setDisabledDates,
+  setDisabledDaysOfWeek,
+  setMaxDate,
+  setMinDate,
   update,
 } from './index'
 
@@ -271,6 +275,61 @@ describe('DatePicker', () => {
       })
       const [nextModel] = clear(seeded)
       expect(nextModel.maybeSelectedDate).toStrictEqual(Option.none())
+    })
+
+    it('setMinDate(model, minDate) forwards to the embedded calendar', () => {
+      const model = init({ id: 'picker', today })
+      const newMin = Calendar.make(2026, 5, 1)
+      const next = setMinDate(model, Option.some(newMin))
+      expect(next.calendar.maybeMinDate).toStrictEqual(Option.some(newMin))
+    })
+
+    it('setMinDate(model, Option.none()) clears the minimum', () => {
+      const model = init({
+        id: 'picker',
+        today,
+        minDate: Calendar.make(2026, 1, 1),
+      })
+      const next = setMinDate(model, Option.none())
+      expect(next.calendar.maybeMinDate).toStrictEqual(Option.none())
+    })
+
+    it('setMaxDate(model, maxDate) forwards to the embedded calendar', () => {
+      const model = init({ id: 'picker', today })
+      const newMax = Calendar.make(2026, 12, 31)
+      const next = setMaxDate(model, Option.some(newMax))
+      expect(next.calendar.maybeMaxDate).toStrictEqual(Option.some(newMax))
+    })
+
+    it('setDisabledDates(model, dates) forwards to the embedded calendar', () => {
+      const model = init({ id: 'picker', today })
+      const disabled = [Calendar.make(2026, 4, 15)]
+      const next = setDisabledDates(model, disabled)
+      expect(next.calendar.disabledDates).toStrictEqual(disabled)
+    })
+
+    it('setDisabledDaysOfWeek(model, days) forwards to the embedded calendar', () => {
+      const model = init({ id: 'picker', today })
+      const next = setDisabledDaysOfWeek(model, ['Saturday', 'Sunday'])
+      expect(next.calendar.disabledDaysOfWeek).toStrictEqual([
+        'Saturday',
+        'Sunday',
+      ])
+    })
+
+    it('setMinDate does not reconcile a previously-selected date below the new min', () => {
+      const selected = Calendar.make(2026, 3, 15)
+      const model = init({
+        id: 'picker',
+        today,
+        initialSelectedDate: selected,
+      })
+      const newMin = Calendar.make(2026, 6, 1)
+      const next = setMinDate(model, Option.some(newMin))
+      expect(next.maybeSelectedDate).toStrictEqual(Option.some(selected))
+      expect(next.calendar.maybeSelectedDate).toStrictEqual(
+        Option.some(selected),
+      )
     })
   })
 })

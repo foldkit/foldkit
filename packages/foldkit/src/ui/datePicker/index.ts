@@ -283,6 +283,55 @@ export const clear = (
   return [nextModel, commands]
 }
 
+/** Sets the minimum selectable date on the embedded calendar. Pass
+ * `Option.none()` to remove the minimum. Use this when the minimum derives
+ * from other Model state (e.g. a start date field whose current selection
+ * constrains an end date picker).
+ *
+ * Does NOT reconcile the current selection — if a previously-selected date
+ * is now below the new minimum, it remains selected. Callers should `clear`
+ * or reassign the selection explicitly if their domain requires it. */
+export const setMinDate = (
+  model: Model,
+  maybeMinDate: Option.Option<CalendarDate>,
+): Model =>
+  evo(model, {
+    calendar: () => UiCalendar.setMinDate(model.calendar, maybeMinDate),
+  })
+
+/** Sets the maximum selectable date on the embedded calendar. Pass
+ * `Option.none()` to remove the maximum. Does NOT reconcile the current
+ * selection. */
+export const setMaxDate = (
+  model: Model,
+  maybeMaxDate: Option.Option<CalendarDate>,
+): Model =>
+  evo(model, {
+    calendar: () => UiCalendar.setMaxDate(model.calendar, maybeMaxDate),
+  })
+
+/** Sets the list of individually-disabled dates on the embedded calendar.
+ * Pass an empty array to clear. Does NOT reconcile the current selection. */
+export const setDisabledDates = (
+  model: Model,
+  disabledDates: ReadonlyArray<CalendarDate>,
+): Model =>
+  evo(model, {
+    calendar: () => UiCalendar.setDisabledDates(model.calendar, disabledDates),
+  })
+
+/** Sets the days of the week that are disabled on the embedded calendar
+ * (e.g. weekends). Pass an empty array to clear. Does NOT reconcile the
+ * current selection. */
+export const setDisabledDaysOfWeek = (
+  model: Model,
+  disabledDaysOfWeek: ReadonlyArray<Calendar.DayOfWeek>,
+): Model =>
+  evo(model, {
+    calendar: () =>
+      UiCalendar.setDisabledDaysOfWeek(model.calendar, disabledDaysOfWeek),
+  })
+
 const toModelAndCommands = (
   result: UpdateReturn,
 ): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
