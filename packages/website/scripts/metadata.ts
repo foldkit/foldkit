@@ -263,6 +263,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Drag and Drop',
     'Accessible drag and drop with keyboard support, auto-scrolling, and screen reader announcements.',
   ),
+  UiFileDrop: ui(
+    'File Drop',
+    'Headless file drop zone that accepts drag-and-drop plus click-to-browse via a hidden native file input.',
+  ),
   UiTransition: ui(
     'Transition',
     'Coordinates CSS enter/leave animations via a state machine and data attributes.',

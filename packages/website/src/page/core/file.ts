@@ -152,12 +152,12 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para(
         'Drop zones still need ',
-        inlineCode('OnDragOver'),
+        inlineCode('AllowDrop'),
         ' to enable dropping in the browser, and you can use ',
         inlineCode('OnDragEnter'),
         '/',
         inlineCode('OnDragLeave'),
-        ' for visual feedback.',
+        ' for visual feedback. The latter pair only fire on true entry and exit — bubbled events from transitions between child elements of the zone are filtered out internally.',
       ),
       highlightedCodeBlock(
         div(

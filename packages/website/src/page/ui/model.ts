@@ -1,4 +1,5 @@
 import { Schema as S } from 'effect'
+import { File } from 'foldkit'
 import {
   Calendar,
   Checkbox,
@@ -7,6 +8,7 @@ import {
   Dialog,
   Disclosure,
   DragAndDrop,
+  FileDrop,
   Listbox,
   Menu,
   Popover,
@@ -61,6 +63,8 @@ export const Model = S.Struct({
   verticalTabsDemo: Tabs.Model,
   dragAndDropDemo: DragAndDrop.Model,
   dragAndDropDemoColumns: S.Array(DemoColumn),
+  fileDropBasicDemo: FileDrop.Model,
+  fileDropBasicDemoFiles: S.Array(File.File),
   transitionDemo: Transition.Model,
 })
 export type Model = typeof Model.Type

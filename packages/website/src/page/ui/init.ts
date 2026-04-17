@@ -83,6 +83,8 @@ export const init = (today: Calendar.CalendarDate): InitReturn => [
     dragAndDropDemo: Ui.DragAndDrop.init({
       id: 'drag-and-drop-demo',
     }),
+    fileDropBasicDemo: Ui.FileDrop.init({ id: 'file-drop-basic-demo' }),
+    fileDropBasicDemoFiles: [],
     transitionDemo: Ui.Transition.init({ id: 'transition-demo' }),
     dragAndDropDemoColumns: [
       {

@@ -17,6 +17,7 @@ import {
   GotDisclosureDemoMessage,
   GotDragAndDropDemoMessage,
   GotFieldsetCheckboxDemoMessage,
+  GotFileDropBasicDemoMessage,
   GotHorizontalRadioGroupDemoMessage,
   GotHorizontalTabsDemoMessage,
   GotListboxDemoMessage,
@@ -616,6 +617,43 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           commands,
         ]
       },
+
+      GotFileDropBasicDemoMessage: ({ message }) => {
+        const [nextFileDrop, commands, maybeOutMessage] = Ui.FileDrop.update(
+          model.fileDropBasicDemo,
+          message,
+        )
+        const nextFiles = Option.match(maybeOutMessage, {
+          onNone: () => model.fileDropBasicDemoFiles,
+          onSome: M.type<Ui.FileDrop.OutMessage>().pipe(
+            M.tagsExhaustive({
+              ReceivedFiles: ({ files }) => [
+                ...model.fileDropBasicDemoFiles,
+                ...files,
+              ],
+            }),
+          ),
+        })
+        return [
+          evo(model, {
+            fileDropBasicDemo: () => nextFileDrop,
+            fileDropBasicDemoFiles: () => nextFiles,
+          }),
+          commands.map(
+            Command.mapEffect(
+              Effect.map(message => GotFileDropBasicDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      ClickedRemoveFileDropDemoFile: ({ fileIndex }) => [
+        evo(model, {
+          fileDropBasicDemoFiles: () =>
+            Array.remove(model.fileDropBasicDemoFiles, fileIndex),
+        }),
+        [],
+      ],
 
       GotDragAndDropDemoMessage: ({ message }) => {
         const [nextDragAndDrop, dragAndDropCommands, maybeOutMessage] =

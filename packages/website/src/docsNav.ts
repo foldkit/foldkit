@@ -49,6 +49,7 @@ import {
   uiDisclosureRouter,
   uiDragAndDropRouter,
   uiFieldsetRouter,
+  uiFileDropRouter,
   uiInputRouter,
   uiListboxRouter,
   uiMenuRouter,
@@ -449,6 +450,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'UiDragAndDrop',
           href: uiDragAndDropRouter(),
           label: 'Drag and Drop',
+        },
+        {
+          _tag: 'UiFileDrop',
+          href: uiFileDropRouter(),
+          label: 'File Drop',
         },
         {
           _tag: 'UiCalendar',

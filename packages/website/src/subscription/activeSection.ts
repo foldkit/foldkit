@@ -143,6 +143,7 @@ export const activeSection: Subscription<
           'UiDragAndDrop',
           () => Page.UiPages.DragAndDropPage.tableOfContents,
         ),
+        M.tag('UiFileDrop', () => Page.UiPages.FileDropPage.tableOfContents),
         M.tag(
           'UiTransition',
           () => Page.UiPages.TransitionPage.tableOfContents,

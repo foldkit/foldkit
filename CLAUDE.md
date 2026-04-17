@@ -47,7 +47,30 @@ Match the quality and thoughtfulness of these files. The principles below apply 
 
 ### Effect-TS Patterns
 
-- Prefer `pipe()` for multi-step data flow. Never use `pipe` with a single operation — call the function directly instead: `Option.match(value, {...})` not `pipe(value, Option.match({...}))`.
+- **`pipe` is for multi-step data flow. Never use `pipe` for a single operation.** Call the function directly. Read this rule again before writing any `pipe()`.
+
+  ```ts
+  // ❌ WRONG — one operation, no pipe needed
+  pipe(value, Option.match({ onNone: ..., onSome: ... }))
+  pipe(xs, Array.map(f))
+  pipe(maybeX, Option.getOrElse(() => fallback))
+
+  // ✅ RIGHT — call the function directly
+  Option.match(value, { onNone: ..., onSome: ... })
+  Array.map(xs, f)
+  Option.getOrElse(maybeX, () => fallback)
+
+  // ✅ RIGHT — multiple operations, pipe is justified
+  pipe(
+    xs,
+    Array.filter(isEnabled),
+    Array.map(toDisplay),
+    Array.take(5),
+  )
+  ```
+
+  The test: if the `pipe` has only one argument after the data, you do not need `pipe`. Call the function directly. Wrapping a single call in `pipe()` adds zero value, costs a closure allocation, and obscures the code.
+
 - Use `Effect.gen()` for imperative-style async operations
 - Use curried functions for better composition
 - Always use Effect.Match instead of switch
@@ -152,3 +175,7 @@ Command definitions live where they're produced — colocated with the update fu
 
 - When I ask a question or make a comment that sounds rhetorical, opinion-based, or conversational (e.g., 'what do you think about X?', 'im asking you'), respond with discussion — not code edits. Only make code changes when explicitly asked to.
 - When I leave CLAUDE-prefixed comments in code, those are instructions for you. Search for them explicitly and address them. Do not remove or skip them.
+
+## Prose Style
+
+- **Avoid em dashes.** You overuse them. Default to periods, semicolons, commas, or parentheses. An em dash is fine when it genuinely makes a clause punchier (a sharp aside, a summarizing afterthought) — but most of the time it's lazy punctuation covering for imprecise structure. Before writing one, ask: "would a period or comma work here?" If yes, use that. Applies to all prose: commit messages, comments, TSDoc, docs, snippets, website copy, and conversation.

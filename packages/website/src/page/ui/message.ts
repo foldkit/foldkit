@@ -126,6 +126,15 @@ export const GotVerticalTabsDemoMessage = m('GotVerticalTabsDemoMessage', {
 export const GotDragAndDropDemoMessage = m('GotDragAndDropDemoMessage', {
   message: Ui.DragAndDrop.Message,
 })
+export const GotFileDropBasicDemoMessage = m('GotFileDropBasicDemoMessage', {
+  message: Ui.FileDrop.Message,
+})
+export const ClickedRemoveFileDropDemoFile = m(
+  'ClickedRemoveFileDropDemoFile',
+  {
+    fileIndex: S.Number,
+  },
+)
 export const GotTransitionDemoMessage = m('GotTransitionDemoMessage', {
   message: Ui.Transition.Message,
 })
@@ -164,6 +173,8 @@ export const Message = S.Union(
   GotHorizontalTabsDemoMessage,
   GotVerticalTabsDemoMessage,
   GotDragAndDropDemoMessage,
+  GotFileDropBasicDemoMessage,
+  ClickedRemoveFileDropDemoFile,
   GotTransitionDemoMessage,
 )
 export type Message = typeof Message.Type

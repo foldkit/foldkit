@@ -16,6 +16,13 @@ import type { Attrs, On, Props, VNodeData } from 'snabbdom'
 import type { File } from '../file'
 import { Dispatch } from '../runtime'
 import { VNode } from '../vdom'
+import {
+  checkScheduledLeave,
+  clearDragZoneAfterDrop,
+  getDragZoneState,
+  processDragEnter,
+  processDragLeave,
+} from './dragZoneTracking'
 
 export { createKeyedLazy, createLazy } from './lazy'
 
@@ -373,6 +380,7 @@ export type Attribute<Message> = Data.TaggedEnum<{
   OnDragEnter: { readonly message: Message }
   OnDragLeave: { readonly message: Message }
   OnDragOver: { readonly message: Message }
+  AllowDrop: {}
   OnDrop: { readonly message: Message }
   OnDropFiles: { readonly f: (files: ReadonlyArray<File>) => Message }
   OnTouchStart: { readonly message: Message }
@@ -617,6 +625,7 @@ const {
   OnDragEnter,
   OnDragLeave,
   OnDragOver,
+  AllowDrop,
   OnDrop,
   OnDropFiles,
   OnTouchStart,
@@ -1101,12 +1110,36 @@ const buildVNodeData = <Message>(
             updateDataOn({
               dragenter: (event: Event) => {
                 event.preventDefault()
-                dispatchSync(message)
+                const zone = event.currentTarget
+                if (!(zone instanceof Element)) {
+                  dispatchSync(message)
+                  return
+                }
+                const state = getDragZoneState(zone)
+                if (processDragEnter(state, zone, event.target)) {
+                  dispatchSync(message)
+                }
               },
             }),
           OnDragLeave: ({ message }) =>
             updateDataOn({
-              dragleave: () => dispatchSync(message),
+              dragleave: (event: Event) => {
+                const zone = event.currentTarget
+                if (!(zone instanceof Element)) {
+                  dispatchSync(message)
+                  return
+                }
+                const state = getDragZoneState(zone)
+                if (
+                  processDragLeave(state, zone, event.target) === 'schedule'
+                ) {
+                  queueMicrotask(() => {
+                    if (checkScheduledLeave(state)) {
+                      dispatchSync(message)
+                    }
+                  })
+                }
+              },
             }),
           OnDragOver: ({ message }) =>
             updateDataOn({
@@ -1115,10 +1148,20 @@ const buildVNodeData = <Message>(
                 dispatchSync(message)
               },
             }),
+          AllowDrop: () =>
+            updateDataOn({
+              dragover: (event: Event) => {
+                event.preventDefault()
+              },
+            }),
           OnDrop: ({ message }) =>
             updateDataOn({
               drop: (event: Event) => {
                 event.preventDefault()
+                const zone = event.currentTarget
+                if (zone instanceof Element) {
+                  clearDragZoneAfterDrop(zone)
+                }
                 dispatchSync(message)
               },
             }),
@@ -1128,6 +1171,10 @@ const buildVNodeData = <Message>(
                 event.preventDefault()
                 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
                 const dragEvent = event as DragEvent
+                const zone = dragEvent.currentTarget
+                if (zone instanceof Element) {
+                  clearDragZoneAfterDrop(zone)
+                }
                 const files: ReadonlyArray<File> = dragEvent.dataTransfer?.files
                   ? Array.fromIterable(dragEvent.dataTransfer.files)
                   : Array.empty()
@@ -2211,6 +2258,7 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnDragOver'
     readonly message: Message
   }
+  AllowDrop: () => { readonly _tag: 'AllowDrop' }
   OnDrop: (message: Message) => {
     readonly _tag: 'OnDrop'
     readonly message: Message
@@ -2897,6 +2945,7 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   OnDragEnter: (message: Message) => OnDragEnter({ message }),
   OnDragLeave: (message: Message) => OnDragLeave({ message }),
   OnDragOver: (message: Message) => OnDragOver({ message }),
+  AllowDrop: () => AllowDrop(),
   OnDrop: (message: Message) => OnDrop({ message }),
   OnDropFiles: (f: (files: ReadonlyArray<File>) => Message) =>
     OnDropFiles({ f }),

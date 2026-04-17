@@ -792,6 +792,15 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           ),
           Page.UiPages.DragAndDropPage.tableOfContents,
         ),
+      UiFileDrop: () =>
+        withTableOfContents(
+          Page.UiPages.FileDropPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
+          Page.UiPages.FileDropPage.tableOfContents,
+        ),
       UiTransition: () =>
         withTableOfContents(
           Page.UiPages.TransitionPage.view(
