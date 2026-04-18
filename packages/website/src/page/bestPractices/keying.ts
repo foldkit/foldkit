@@ -4,6 +4,8 @@ import { Class, InnerHTML, div } from '../../html'
 import { Link } from '../../link'
 import type { TableOfContentsEntry } from '../../main'
 import {
+  bulletPoint,
+  bullets,
   inlineCode,
   link,
   pageTitle,
@@ -20,29 +22,29 @@ const keyingHeader: TableOfContentsEntry = {
   text: 'Keying',
 }
 
-const keyingRouteViewsHeader: TableOfContentsEntry = {
+const branchingViewsHeader: TableOfContentsEntry = {
   level: 'h3',
-  id: 'keying-route-views',
-  text: 'Route Views',
+  id: 'branching-views',
+  text: 'Branching Views',
 }
 
-const keyingLayoutBranchesHeader: TableOfContentsEntry = {
+const mappedListItemsHeader: TableOfContentsEntry = {
   level: 'h3',
-  id: 'keying-layout-branches',
-  text: 'Layout Branches',
+  id: 'mapped-list-items',
+  text: 'Mapped List Items',
 }
 
-const keyingModelStateHeader: TableOfContentsEntry = {
+const conditionalInsertsHeader: TableOfContentsEntry = {
   level: 'h3',
-  id: 'keying-model-state',
-  text: 'Model State Branches',
+  id: 'conditional-inserts',
+  text: 'Conditional Inserts',
 }
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   keyingHeader,
-  keyingRouteViewsHeader,
-  keyingLayoutBranchesHeader,
-  keyingModelStateHeader,
+  branchingViewsHeader,
+  mappedListItemsHeader,
+  conditionalInsertsHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
@@ -54,73 +56,92 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Foldkit uses ',
         link(Link.snabbdom, 'Snabbdom'),
-        ' for virtual DOM diffing. When a view branches into structurally different trees in the same DOM position, Snabbdom will try to patch one tree into the other. This causes stale input state, mismatched event handlers, broken focus, and bugs that are extremely hard to track down.',
+        ' for virtual DOM diffing. When a view renders different content at the same DOM position, Snabbdom will try to patch one version into the other. This can cause stale input state, mismatched event handlers, and carried-over focus.',
       ),
       warningCallout(
         'Always key branch points',
-        'Any time your view switches between structurally different trees \u2014 routes, layouts, or model states \u2014 wrap the branch in a ',
-        inlineCode('keyed'),
-        ' element. Without it, the virtual DOM patches instead of replacing, which causes subtle and hard-to-diagnose bugs.',
+        'If the same DOM position renders different content depending on your model, key it. Without a key, Snabbdom patches where it should replace.',
       ),
       para(
         'The ',
         inlineCode('keyed'),
-        ' function tells Snabbdom that when the key changes, the old tree should be fully removed and the new tree inserted fresh \u2014 no diffing, no patching, no carryover. In React, this happens automatically when component types differ. In Foldkit, you opt in explicitly.',
+        ' function tells Snabbdom that when the key changes, the old tree should be fully removed and the new tree inserted fresh: no diffing, no patching, no carryover.',
       ),
-      tableOfContentsEntryToHeader(keyingRouteViewsHeader),
-      para(
-        'The most common case. When rendering route content, key by ',
-        inlineCode('model.route._tag'),
-        ' so navigating between routes replaces the DOM rather than patching it:',
+      para('There are three places in a view where keying matters:'),
+      bullets(
+        bulletPoint(
+          'Branching views',
+          'a position rendering different content based on a value',
+        ),
+        bulletPoint(
+          'Mapped list items',
+          'children rendered by mapping over an array',
+        ),
+        bulletPoint(
+          'Conditional inserts',
+          'all children in a list where any appear conditionally',
+        ),
       ),
+      tableOfContentsEntryToHeader(branchingViewsHeader),
+      para('Use a discriminating string as the key, typically a tag:'),
       highlightedCodeBlock(
         div(
-          [Class('text-sm'), InnerHTML(Snippets.keyingRouteViewsHighlighted)],
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.keyingBranchingViewsHighlighted),
+          ],
           [],
         ),
-        Snippets.keyingRouteViewsRaw,
-        'Copy route views keying example to clipboard',
+        Snippets.keyingBranchingViewsRaw,
+        'Copy branching views keying example to clipboard',
         copiedSnippets,
         'mb-8',
       ),
-      tableOfContentsEntryToHeader(keyingLayoutBranchesHeader),
       para(
-        'When the app switches between entirely different layouts \u2014 a landing page vs. a docs layout with sidebar vs. a dashboard \u2014 key the outermost container of each branch with a stable string:',
+        'The same rule applies to any control-flow branch that produces different content: ',
+        inlineCode('Match'),
+        ', ',
+        inlineCode('if/else'),
+        ', and ternaries.',
+      ),
+      tableOfContentsEntryToHeader(mappedListItemsHeader),
+      para(
+        'Key list items by a stable model identifier (an id, a UUID), never by array position:',
+      ),
+      highlightedCodeBlock(
+        div(
+          [Class('text-sm'), InnerHTML(Snippets.keyingListItemsHighlighted)],
+          [],
+        ),
+        Snippets.keyingListItemsRaw,
+        'Copy list items keying example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'Positional diffing looks correct until an entry is removed from the middle of the list or the list is reordered. Snabbdom then patches the old row\u2019s DOM into what should be a different row.',
+      ),
+      tableOfContentsEntryToHeader(conditionalInsertsHeader),
+      para(
+        'When a child appears or disappears between stable siblings, key each of them. Given children like ',
+        inlineCode('[a, ...(cond ? [b] : []), c]'),
+        ', give all three a key:',
       ),
       highlightedCodeBlock(
         div(
           [
             Class('text-sm'),
-            InnerHTML(Snippets.keyingLayoutBranchesHighlighted),
+            InnerHTML(Snippets.keyingConditionalInsertsHighlighted),
           ],
           [],
         ),
-        Snippets.keyingLayoutBranchesRaw,
-        'Copy layout branches keying example to clipboard',
+        Snippets.keyingConditionalInsertsRaw,
+        'Copy conditional inserts keying example to clipboard',
         copiedSnippets,
         'mb-8',
       ),
       para(
-        'Without this, navigating from a full-width landing page to a sidebar docs layout would cause Snabbdom to try to morph one into the other \u2014 reusing DOM nodes across completely different structures.',
-      ),
-      tableOfContentsEntryToHeader(keyingModelStateHeader),
-      para(
-        'When the model itself is a discriminated union with structurally different views per variant, key on ',
-        inlineCode('model._tag'),
-        ':',
-      ),
-      highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.keyingModelStateHighlighted)],
-          [],
-        ),
-        Snippets.keyingModelStateRaw,
-        'Copy model state keying example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
-      para(
-        'This ensures that logging in fully tears down the login form and builds the dashboard from scratch, rather than patching one into the other.',
+        'Snabbdom\u2019s diff can often handle conditional inserts correctly by matching elements on their tag and classes, but that is implicit behavior. Explicit keys make the intent clear and stay correct across refactors.',
       ),
     ],
   )

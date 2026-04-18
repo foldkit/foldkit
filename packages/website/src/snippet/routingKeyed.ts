@@ -1,5 +1,5 @@
+import { Match as M } from 'effect'
 import { html } from 'foldkit/html'
-import * as M from 'foldkit/match'
 
 const { div, header, main, keyed } = html<Message>()
 
