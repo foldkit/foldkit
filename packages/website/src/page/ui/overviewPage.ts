@@ -22,10 +22,12 @@ import {
   uiCalendarRouter,
   uiCheckboxRouter,
   uiComboboxRouter,
+  uiDatePickerRouter,
   uiDialogRouter,
   uiDisclosureRouter,
   uiDragAndDropRouter,
   uiFieldsetRouter,
+  uiFileDropRouter,
   uiInputRouter,
   uiListboxRouter,
   uiMenuRouter,
@@ -187,11 +189,25 @@ const components: ReadonlyArray<ComponentEntry> = [
       'Sortable lists and cross-container movement with pointer tracking, keyboard navigation, auto-scrolling, and screen reader announcements.',
   },
   {
+    name: 'File Drop',
+    href: uiFileDropRouter(),
+    category: 'Interaction',
+    description:
+      'File input with drag-and-drop support, configurable accept patterns, and multiple-file mode. Emits typed OutMessages for received files and non-file drops.',
+  },
+  {
     name: 'Calendar',
     href: uiCalendarRouter(),
     category: 'Date',
     description:
       'Inline calendar grid with 2D keyboard navigation, locale-aware headers, min/max constraints, and disabled-date support. Foundation for date pickers.',
+  },
+  {
+    name: 'Date Picker',
+    href: uiDatePickerRouter(),
+    category: 'Date',
+    description:
+      'Input paired with a popover Calendar. Inherits the calendar\u2019s constraint and keyboard-navigation support, with programmatic open/close and setters.',
   },
   {
     name: 'Transition',
