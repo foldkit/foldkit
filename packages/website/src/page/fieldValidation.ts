@@ -66,9 +66,23 @@ const builtInValidatorsHeader: TableOfContentsEntry = {
   text: 'Built-in Validators',
 }
 
+const makingFieldsOptionalHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'making-fields-optional',
+  text: 'Making Fields Optional',
+}
+
+const conditionalRulesHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'conditional-rules',
+  text: 'Conditional Rules',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   creatingFieldHeader,
   definingRulesHeader,
+  makingFieldsOptionalHeader,
+  conditionalRulesHeader,
   applyingValidationHeader,
   renderingStateHeader,
   asyncValidationHeader,
@@ -159,6 +173,59 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' when the value is valid. The error message can be a static string or a function that receives the invalid value. Pass a function when the message needs to include context like ',
         inlineCode('value => `Too long (${value.length}/20)`'),
         '.',
+      ),
+
+      tableOfContentsEntryToHeader(makingFieldsOptionalHeader),
+      para(
+        'An optional field is one that may be empty, but if filled in, the same validations apply. Drop ',
+        inlineCode('required()'),
+        ' from the list and map ',
+        inlineCode('optional'),
+        ' across the remaining validations:',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.fieldValidationOptionalHighlighted),
+          ],
+          [],
+        ),
+        Snippets.fieldValidationOptionalRaw,
+        'Copy optional field example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        inlineCode('optional'),
+        ' wraps a single ',
+        inlineCode('Validation<string>'),
+        ' so empty strings bypass the predicate. For a list, ',
+        inlineCode('.map(optional)'),
+        ' lifts it across every validation. For a single validator, inline wrapping reads just as well.',
+      ),
+
+      tableOfContentsEntryToHeader(conditionalRulesHeader),
+      para(
+        'Since a validation list is just a ',
+        inlineCode('ReadonlyArray<Validation<T>>'),
+        ', you can build it from model state. Turn the list into a function that takes the state it depends on, and spread validations in or out:',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.fieldValidationConditionalHighlighted),
+          ],
+          [],
+        ),
+        Snippets.fieldValidationConditionalRaw,
+        'Copy conditional rules example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'No special DSL, no resolver rebuild, no schema registration: just standard TypeScript array composition.',
       ),
 
       tableOfContentsEntryToHeader(applyingValidationHeader),
