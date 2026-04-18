@@ -1,5 +1,32 @@
 # foldkit
 
+## 0.65.0
+
+### Minor Changes
+
+- c53dd67: Add `FieldValidation.optional`, a combinator that wraps a string `Validation` so empty strings pass without being checked. Useful for fields that are optional but must be valid when filled in (e.g. an optional email).
+
+  ```ts
+  FieldValidation.validate([
+    FieldValidation.optional(FieldValidation.email()),
+    FieldValidation.optional(FieldValidation.maxLength(100)),
+  ])(model.websiteInput)
+  ```
+
+- 9b5bcd9: `FileDrop.ReceivedFiles` now carries `NonEmptyArray<File>` instead of `Array<File>`, and a new `FileDrop.DroppedWithoutFiles` Message and OutMessage covers the case where a drop or input-change event fires without files (typically a drag of non-file data like text, URLs, or images from another page).
+
+  Migration: if your parent update handled `ReceivedFiles({ files })` and branched on `Array.isEmptyArray(files)`, move that branch to a new handler for `DroppedWithoutFiles`. The files list in `ReceivedFiles` is now guaranteed non-empty, so you can drop the empty check on the happy path.
+
+- 3f1a877: Add `Task.uuid`, a primitive that generates an RFC 4122 version 4 UUID via `crypto.randomUUID()`. Use it in Commands that need stable identifiers without threading `crypto` calls through consumer code.
+
+### Patch Changes
+
+- e4b67a0: Fix a runtime race that could corrupt the DOM when a synchronous event fired during a patch caused a nested `dispatchSync` to run against a stale VNode reference. Most visible in Chrome when a focused element was removed from the DOM during a render (Chrome fires `blur` synchronously), and specifically reproduced with `Ui.Listbox`: selecting an item closed the list, removing the items container, firing `blur`, which dispatched another message while the outer render was still mid-patch. Symptom was duplicate DOM elements that the outer render did not clean up.
+
+  The render path now sets an internal `isRendering` flag before patching and clears it after. Any `dispatchSync` that lands while the flag is set offers the message to a pending queue (`Queue.unbounded`) instead of kicking off a nested render. The queue is drained at the end of each render, so the nested messages still process in order, just serially rather than re-entrantly.
+
+- 43f84b7: Internal refactor: call `Effect.runSync` directly in the runtime instead of `.pipe(Effect.runSync)`. Purely stylistic; no runtime behavior change.
+
 ## 0.64.0
 
 ### Minor Changes
