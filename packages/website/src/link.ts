@@ -4,7 +4,7 @@ export const exampleSourceHref = (slug: string): string =>
   `${exampleBase}/${slug}/src/main.ts`
 
 export const exampleStackBlitzHref = (slug: string): string =>
-  `https://stackblitz.com/github/foldkit/foldkit/tree/main/examples/${slug}?file=src/main.ts`
+  `https://stackblitz.com/github/foldkit/foldkit?file=examples/${slug}/src/main.ts&startScript=dev:example:${slug}`
 
 export const uiShowcaseViewSourceHref = (slug: string): string =>
   `https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/view/${slug}.ts`
