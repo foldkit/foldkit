@@ -230,6 +230,8 @@ export const createDevtoolsStore = (
           ? computeDiff(modelBeforeUpdate, modelAfterUpdate)
           : emptyDiff
 
+        const hasChangedFields = HashSet.size(diff.changedPaths) > 0
+
         const nextState: StoreState = {
           ...state,
           entries: Array.append(state.entries, {
@@ -237,7 +239,7 @@ export const createDevtoolsStore = (
             message,
             commandNames,
             timestamp: performance.now(),
-            isModelChanged,
+            isModelChanged: hasChangedFields,
             diff,
           }),
           keyframes: addKeyframeIfNeeded(
@@ -265,17 +267,19 @@ export const createDevtoolsStore = (
       )
 
     const getMessageAtIndex = (index: number) =>
-      SubscriptionRef.get(stateRef).pipe(
-        Effect.map(state =>
-          index === INIT_INDEX
-            ? Option.none<unknown>()
-            : pipe(
-                state.entries,
-                Array.get(index - state.startIndex),
-                Option.map(({ message }) => message),
-              ),
-        ),
-      )
+      Effect.gen(function* () {
+        if (index === INIT_INDEX) {
+          return Option.none()
+        }
+
+        const state = yield* SubscriptionRef.get(stateRef)
+
+        return pipe(
+          state.entries,
+          Array.get(index - state.startIndex),
+          Option.map(({ message }) => message),
+        )
+      })
 
     const jumpTo = (index: number) =>
       Effect.gen(function* () {
