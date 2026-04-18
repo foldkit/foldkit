@@ -310,6 +310,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         [
           [[plainCode('required(message?)')], ['Non-empty string']],
           [
+            [plainCode('optional(validation)')],
+            ['Wraps another validator so empty strings pass'],
+          ],
+          [
             [plainCode('minLength(min, message?)')],
             ['Minimum character count'],
           ],

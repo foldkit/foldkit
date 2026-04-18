@@ -1,6 +1,7 @@
 export {
   makeField,
   required,
+  optional,
   minLength,
   maxLength,
   pattern,

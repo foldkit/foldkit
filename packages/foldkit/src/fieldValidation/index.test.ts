@@ -17,6 +17,7 @@ import {
   minLength,
   nonNegative,
   oneOf,
+  optional,
   pattern,
   positive,
   required,
@@ -106,6 +107,24 @@ describe('string validators', () => {
     it('accepts custom message', () => {
       const [, message] = required('Email is required')
       expect(resolveMessage(message, '')).toBe('Email is required')
+    })
+  })
+
+  describe('optional', () => {
+    it('passes for empty string even when the wrapped predicate would fail', () => {
+      const [predicate] = optional(email())
+      expect(predicate('')).toBe(true)
+    })
+
+    it('applies the wrapped validation for non-empty values', () => {
+      const [predicate] = optional(email())
+      expect(predicate('not-an-email')).toBe(false)
+      expect(predicate('user@example.com')).toBe(true)
+    })
+
+    it('preserves the wrapped message', () => {
+      const [, message] = optional(email('Bad email'))
+      expect(resolveMessage(message, 'x')).toBe('Bad email')
     })
   })
 

@@ -117,6 +117,16 @@ export const required = (
   message: ValidationMessage<string> = 'Required',
 ): Validation<string> => [String.isNonEmpty, message]
 
+/** Wraps a string validation so that empty strings pass without being
+ * checked. Useful for fields that are optional but must be valid if
+ * filled in (e.g. an optional email). */
+export const optional = (
+  validation: Validation<string>,
+): Validation<string> => {
+  const [predicate, message] = validation
+  return [Predicate.or(String.isEmpty, predicate), message]
+}
+
 /** Creates a `Validation` that checks if a string meets a minimum length. */
 export const minLength = (
   min: number,
