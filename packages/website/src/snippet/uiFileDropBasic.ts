@@ -44,6 +44,9 @@ GotFileDropMessage: ({ message }) => {
     onSome: M.type<Ui.FileDrop.OutMessage>().pipe(
       M.tagsExhaustive({
         ReceivedFiles: ({ files }) => [...model.uploadedFiles, ...files],
+        // Fires when something is dropped but no files came through (e.g.
+        // a drag of text or a URL). Ignore, or show a hint to the user.
+        DroppedWithoutFiles: () => model.uploadedFiles,
       }),
     ),
   })

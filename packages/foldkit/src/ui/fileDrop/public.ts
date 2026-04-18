@@ -10,6 +10,7 @@ export {
   EnteredDragZone,
   LeftDragZone,
   DroppedFiles,
+  DroppedWithoutFiles,
 } from './index'
 
 export type { InitConfig, ViewConfig, FileDropAttributes } from './index'

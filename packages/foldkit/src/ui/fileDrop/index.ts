@@ -1,4 +1,4 @@
-import { Match as M, Option, Schema as S } from 'effect'
+import { Array, Match as M, Option, Schema as S } from 'effect'
 
 import * as Command from '../../command'
 import * as File from '../../file'
@@ -29,27 +29,43 @@ export const EnteredDragZone = m('EnteredDragZone')
  * `isDragOver` back to false. */
 export const LeftDragZone = m('LeftDragZone')
 /** Sent when the user drops files on the zone or selects them via the
- * hidden `<input type="file">`. Carries the raw `File` objects, resets
- * `isDragOver`, and emits `ReceivedFiles` as an OutMessage. */
+ * hidden `<input type="file">`. Carries a non-empty list of `File`
+ * objects, resets `isDragOver`, and emits `ReceivedFiles` as an
+ * OutMessage. */
 export const DroppedFiles = m('DroppedFiles', {
-  files: S.Array(File.File),
+  files: S.NonEmptyArray(File.File),
 })
+/** Sent when a drop or input-change event fires without any files \u2014
+ * typically a drag of non-file data (text, URLs, images from another
+ * page). Resets `isDragOver` and emits `DroppedWithoutFiles` as an
+ * OutMessage so the consumer can surface a message (e.g. "Only files are
+ * accepted"). */
+export const DroppedWithoutFiles = m('DroppedWithoutFiles')
 
 /** Union of all messages the file-drop component can produce. */
-export const Message = S.Union(EnteredDragZone, LeftDragZone, DroppedFiles)
+export const Message = S.Union(
+  EnteredDragZone,
+  LeftDragZone,
+  DroppedFiles,
+  DroppedWithoutFiles,
+)
 export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
 /** Emitted when files arrive via drop or input-change. The consumer's
  * parent update handles this to process the files (validate, upload,
- * store in Model, etc.). */
+ * store in Model, etc.). The files list is non-empty. */
 export const ReceivedFiles = m('ReceivedFiles', {
-  files: S.Array(File.File),
+  files: S.NonEmptyArray(File.File),
 })
 
-/** The file-drop component's OutMessage, narrowed to `ReceivedFiles`. */
-export const OutMessage = ReceivedFiles
+/** The file-drop component's OutMessages: `ReceivedFiles` on the happy
+ * path and `DroppedWithoutFiles` when a drop event fires without files.
+ * `DroppedWithoutFiles` is reused from the Message definitions \u2014 the
+ * fact is the same whether the component is handling it or reporting it
+ * up. */
+export const OutMessage = S.Union(ReceivedFiles, DroppedWithoutFiles)
 export type OutMessage = typeof OutMessage.Type
 
 // INIT
@@ -93,6 +109,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         evo(model, { isDragOver: () => false }),
         [],
         Option.some(ReceivedFiles({ files })),
+      ],
+      DroppedWithoutFiles: () => [
+        evo(model, { isDragOver: () => false }),
+        [],
+        Option.some(DroppedWithoutFiles()),
       ],
     }),
   )
@@ -178,7 +199,15 @@ export const view = <ParentMessage>(
         OnDragEnter(toParentMessage(EnteredDragZone())),
         OnDragLeave(toParentMessage(LeftDragZone())),
         AllowDrop(),
-        OnDropFiles(files => toParentMessage(DroppedFiles({ files }))),
+        OnDropFiles(files =>
+          toParentMessage(
+            Array.match(files, {
+              onEmpty: () => DroppedWithoutFiles(),
+              onNonEmpty: nonEmptyFiles =>
+                DroppedFiles({ files: [...nonEmptyFiles] }),
+            }),
+          ),
+        ),
       ]
 
   const inputAttributes = [
@@ -191,7 +220,17 @@ export const view = <ParentMessage>(
       : []),
     ...(isDisabled
       ? [Disabled(true)]
-      : [OnFileChange(files => toParentMessage(DroppedFiles({ files })))]),
+      : [
+          OnFileChange(files =>
+            toParentMessage(
+              Array.match(files, {
+                onEmpty: () => DroppedWithoutFiles(),
+                onNonEmpty: nonEmptyFiles =>
+                  DroppedFiles({ files: [...nonEmptyFiles] }),
+              }),
+            ),
+          ),
+        ]),
   ]
 
   return config.toView({

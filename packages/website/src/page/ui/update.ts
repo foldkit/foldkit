@@ -631,6 +631,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                 ...model.fileDropBasicDemoFiles,
                 ...files,
               ],
+              DroppedWithoutFiles: () => model.fileDropBasicDemoFiles,
             }),
           ),
         })

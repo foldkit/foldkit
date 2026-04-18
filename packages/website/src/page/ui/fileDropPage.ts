@@ -160,9 +160,15 @@ const fileDropAttributesProps: ReadonlyArray<PropEntry> = [
 const outMessageProps: ReadonlyArray<PropEntry> = [
   {
     name: 'ReceivedFiles',
-    type: '{ files: ReadonlyArray<File> }',
+    type: '{ files: NonEmptyReadonlyArray<File> }',
     description:
-      'Emitted when the user drops files on the zone or selects them via the hidden input. Pattern-match on the OutMessage in your parent update to process the files (validate, upload, store in Model).',
+      'Emitted when the user drops files on the zone or selects them via the hidden input. The files list is guaranteed non-empty. Pattern-match on the OutMessage in your parent update to process the files (validate, upload, store in Model).',
+  },
+  {
+    name: 'DroppedWithoutFiles',
+    type: '{}',
+    description:
+      'Emitted when a drop or input-change event fires without any files, typically a drag of non-file data (text, URLs, images from another page). Consumers can ignore this or surface a hint to the user.',
   },
 ]
 
@@ -205,7 +211,7 @@ export const view = (
         inlineCode('FileDrop.view()'),
         '. The update function returns ',
         inlineCode('[Model, Commands, Option<OutMessage>]'),
-        ' — the OutMessage fires when files arrive (drop or change). Pattern-match on it to process the files.',
+        '. `ReceivedFiles` fires when files arrive with a guaranteed non-empty list; `DroppedWithoutFiles` fires when a drop or change event produced no files (e.g. a drag of non-file data). Pattern-match on both.',
       ),
       heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
       para(
