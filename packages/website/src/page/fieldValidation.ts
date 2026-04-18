@@ -78,6 +78,24 @@ const conditionalRulesHeader: TableOfContentsEntry = {
   text: 'Conditional Rules',
 }
 
+const stringValidatorsHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'string-validators',
+  text: 'String Validators',
+}
+
+const numberValidatorsHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'number-validators',
+  text: 'Number Validators',
+}
+
+const genericValidatorsHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'generic-validators',
+  text: 'Generic Validators',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   creatingFieldHeader,
   definingRulesHeader,
@@ -89,6 +107,9 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   customValidatorsHeader,
   crossFieldValidationHeader,
   builtInValidatorsHeader,
+  stringValidatorsHeader,
+  numberValidatorsHeader,
+  genericValidatorsHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
@@ -371,7 +392,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Foldkit ships validators for strings, numbers, and generic values.',
       ),
-      para('String validators:'),
+      tableOfContentsEntryToHeader(stringValidatorsHeader),
       comparisonTable(
         ['Validator', 'Description'],
         [
@@ -406,7 +427,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           [[plainCode('equals(expected, message?)')], ['Exact string match']],
         ],
       ),
-      para('Number validators:'),
+      tableOfContentsEntryToHeader(numberValidatorsHeader),
       comparisonTable(
         ['Validator', 'Description'],
         [
@@ -421,7 +442,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           [[plainCode('integer(message?)')], ['Whole number']],
         ],
       ),
-      para('Generic validators:'),
+      tableOfContentsEntryToHeader(genericValidatorsHeader),
       comparisonTable(
         ['Validator', 'Description'],
         [
