@@ -12,6 +12,7 @@ export {
   delay,
   scrollIntoView,
   randomInt,
+  uuid,
   nextFrame,
   waitForTransitions,
 } from './index'

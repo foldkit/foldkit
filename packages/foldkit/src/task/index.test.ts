@@ -15,6 +15,7 @@ import {
   randomInt,
   restoreInert,
   unlockScroll,
+  uuid,
 } from './index'
 
 describe('getTime', () => {
@@ -81,6 +82,25 @@ describe('randomInt', () => {
       const value = yield* randomInt(5, 15)
       expect(value).toBeGreaterThanOrEqual(5)
       expect(value).toBeLessThan(15)
+    }),
+  )
+})
+
+describe('uuid', () => {
+  it.scoped('returns a RFC 4122 v4 UUID string', () =>
+    Effect.gen(function* () {
+      const value = yield* uuid
+      expect(value).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      )
+    }),
+  )
+
+  it.scoped('produces a distinct value on each call', () =>
+    Effect.gen(function* () {
+      const first = yield* uuid
+      const second = yield* uuid
+      expect(first).not.toBe(second)
     }),
   )
 })
