@@ -679,7 +679,7 @@ const makeRuntime = <
                 squashed instanceof Error
                   ? squashed
                   : new Error(String(squashed))
-              const model = Ref.get(modelRef).pipe(Effect.runSync)
+              const model = Effect.runSync(Ref.get(modelRef))
               renderCrashView(
                 { error: appError, model, message },
                 crash,
@@ -690,7 +690,7 @@ const makeRuntime = <
           }
 
         const dispatchSync = (message: unknown): void => {
-          const isRendering = Ref.get(isRenderingRef).pipe(Effect.runSync)
+          const isRendering = Effect.runSync(Ref.get(isRenderingRef))
 
           if (isRendering) {
             /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -700,7 +700,7 @@ const makeRuntime = <
             return
           }
 
-          const maybeRuntime = Ref.get(maybeRuntimeRef).pipe(Effect.runSync)
+          const maybeRuntime = Effect.runSync(Ref.get(maybeRuntimeRef))
 
           Option.match(maybeRuntime, {
             onNone: Function.constVoid,
@@ -967,7 +967,7 @@ const makeRuntime = <
                   ? squashed
                   : new Error(String(squashed))
 
-              const model = Ref.get(modelRef).pipe(Effect.runSync)
+              const model = Effect.runSync(Ref.get(modelRef))
               const message = Ref.get(currentMessageRef).pipe(
                 Effect.runSync,
                 Option.getOrThrow,
@@ -1021,7 +1021,7 @@ const renderCrashView = <Model, Message>(
       ? crash.view(context)
       : defaultCrashView(context)
 
-    const maybeCurrentVNode = Ref.get(maybeCurrentVNodeRef).pipe(Effect.runSync)
+    const maybeCurrentVNode = Effect.runSync(Ref.get(maybeCurrentVNodeRef))
 
     const vnode = crashHtml.pipe(
       Effect.provideService(Dispatch, noOpDispatch),
@@ -1032,7 +1032,7 @@ const renderCrashView = <Model, Message>(
   } catch (viewError) {
     console.error('[foldkit] crash.view failed:', viewError)
 
-    const maybeCurrentVNode = Ref.get(maybeCurrentVNodeRef).pipe(Effect.runSync)
+    const maybeCurrentVNode = Effect.runSync(Ref.get(maybeCurrentVNodeRef))
 
     const fallbackViewError =
       viewError instanceof Error ? viewError : new Error(String(viewError))
