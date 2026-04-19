@@ -19,6 +19,7 @@ const loadersBySlug: Readonly<Record<string, SourceLoader | undefined>> = {
   todo: () => import('virtual:example-sources/todo'),
   stopwatch: () => import('virtual:example-sources/stopwatch'),
   form: () => import('virtual:example-sources/form'),
+  'job-application': () => import('virtual:example-sources/job-application'),
   kanban: () => import('virtual:example-sources/kanban'),
   weather: () => import('virtual:example-sources/weather'),
   routing: () => import('virtual:example-sources/routing'),

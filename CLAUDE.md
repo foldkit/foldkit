@@ -71,6 +71,12 @@ Match the quality and thoughtfulness of these files. The principles below apply 
 
   The test: if the `pipe` has only one argument after the data, you do not need `pipe`. Call the function directly. Wrapping a single call in `pipe()` adds zero value, costs a closure allocation, and obscures the code.
 
+- **When composing two or more data transformations, prefer `pipe` to nested calls.** `pipe(xs, Array.head, Option.exists(p))` reads top-to-bottom as "take xs, take the head, check if it exists and satisfies p" — the data flow is on the page. `Option.exists(Array.head(xs), p)` reads inside-out and hides the pipeline. Applies to any chain of 2+ transforms.
+
+- **Use `Effect.runSync(effect)` directly, not `effect.pipe(Effect.runSync)`**, for running a synchronous Effect. Same rule as "no pipe for single op" — the pipe form is a habit trap that single-step effects fall into.
+
+- **Use `Equal.equals` for curried equality in callbacks.** `Option.exists(maybeItem, Equal.equals('Other'))` is cleaner than `Option.exists(maybeItem, item => item === 'Other')`. Same for `Array.findFirst(items, Equal.equals(target))` and similar. Point-free when the predicate is just "is this value equal to a known one."
+
 - Use `Effect.gen()` for imperative-style async operations
 - Use curried functions for better composition
 - Always use Effect.Match instead of switch
@@ -131,6 +137,7 @@ Command definitions live where they're produced — colocated with the update fu
 
 ### General Preferences
 
+- **Never use nested ternaries.** `a ? x : b ? y : z` is dense at two levels and unreadable past three. Extract to an `if`/`return` chain, a `Match.value`, or a named helper function that encodes the decision in one place. A ternary is fine for a single boolean branch; nesting is not.
 - Never abbreviate names. Use full, descriptive names everywhere — variables, types, functions, parameters, including callback parameters. e.g. `signature` not `sig`, `cart` not `c`, `Message` not `Msg`, `(tickCount) => tickCount + 1` not `(t) => t + 1`.
 - Don't suffix Command variables with `Command`. Name them by what they do: `focusButton` not `focusButtonCommand`, `scrollToItem` not `scrollToItemCommand`. The type already communicates that it's a Command. Command definitions are PascalCase (`FocusButton`, `ScrollToItem`); Command instances and factory functions are camelCase (`focusButton`, `scrollToItem`).
 - Avoid `let`. Use `const` and prefer immutable patterns. Only use `let` when mutation is truly unavoidable.
@@ -147,12 +154,15 @@ Command definitions live where they're produced — colocated with the update fu
 - In `pipe` chains, put the data being piped on its own line: `pipe(\n  data,\n  Array.map(f),\n)` not `pipe(data, Array.map(f))`. The data source leads, transforms follow.
 - In callbacks, destructure the parameter when accessing a single field: `({ id }) => id === cardId` not `card => card.id === cardId`. Clearer what's being accessed without reading the full body.
 - Don't add type annotations to evo callbacks when the type can be inferred. `gameState: () => 'Loading'` not `gameState: (): GameState => 'Loading'`.
+- Don't annotate callback return types when the surrounding context already constrains them. `onNone: () => [model, []]` not `onNone: (): UpdateReturn => [model, []]`. This applies to `Option.match`, `M.tagsExhaustive`, `Effect.map`, and any other callback whose return type flows from the outer API. If inference fails, annotate the outermost context (e.g. the `M.withReturnType<T>()` call), not every inner callback.
+- Never use bracket array indexing like `xs[0]` or `xs[xs.length - 1]`. Use `Array.get(index)` (returns `Option`), `Array.head` / `Array.last` (return `Option`), or `Array.headNonEmpty` / `Array.lastNonEmpty` (when the array is non-empty at the type level). Compose with `pipe` + `Option.match` / `Option.getOrElse`. Same goes for `xs.length === 0` / `xs.length > 0` — use `Array.isEmptyArray` / `Array.isNonEmptyArray`.
 
 ### Application Architecture
 
 - **Key every branching view.** Whenever a DOM position can render different content based on a value (a route tag, a top-level model variant, a sub-model, or any other tagged union), wrap it in a single `keyed` element whose key is a discriminating string: `keyed('div')(model.route._tag, [], [routeContent])`. The same rule applies to any control-flow branch that produces different content: `Match`, `if/else`, and ternaries. Without a key, snabbdom patches one version into another, which can cause stale input state, mismatched event handlers, and carried-over focus.
 - **Key mapped list items by a stable model identifier**, never by array position. `entry.id` not `index`. Positional diffing looks correct until an entry is removed from the middle of the list or the list is reordered. Snabbdom then patches the old row's DOM into what should be a different row.
 - **Key conditional inserts between stable siblings.** When rendering `[a, ...(cond ? [b] : []), c]`, give each of a/b/c a key. Snabbdom's diff can often handle this correctly by matching elements on their tag and classes, but that's implicit behavior. Explicit keys make the intent clear and stay correct across refactors.
+- **`index.ts` is always a barrel; real code lives in a named file.** For a module `foo/`, the shape is `foo/foo.ts` for the code and `foo/index.ts` for the barrel. `index.ts` re-exports via `export * from './foo'` and nests child modules as namespaces via `export * as Child from './child'`. Never put implementation code in `index.ts`. This applies everywhere — domain modules (`domain/step.ts` + `domain/index.ts` re-exports), submodels with children (`step/education/education.ts` + `step/education/entry.ts` + `step/education/index.ts` barrel), nested UI components. Consumer imports read as `import { Education } from '../step'` → `Education.Model`, `Education.Entry.Model`. The hierarchy is visible in the file tree AND in the namespace.
 - Extract Messages to a dedicated `message.ts` file when Commands need Message constructors — this breaks the circular dependency between command.ts and main.ts. Export all schemas individually and as the `Message` union type.
 - Use the `ViteEnvConfig` Effect.Service pattern for environment variables in RPC layers (see `examples/typing-game/client/src/config.ts`). For values needed synchronously in views (e.g. photo URLs), keep a simple module-level `const` alongside the service.
 - Extract repeated inline style values (colors, shadows) to constants. Use Tailwind `@theme` for colors that map to utility classes (e.g. `--color-valentine: #ff2d55` → `text-valentine`). Use a `theme.ts` for values Tailwind can't express as utilities (textShadow, boxShadow).

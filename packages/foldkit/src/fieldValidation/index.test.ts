@@ -10,10 +10,12 @@ import {
   Valid,
   Validating,
   allValid,
+  anyInvalid,
   email,
   endsWith,
   equals,
   includes,
+  isInvalid,
   isRequired,
   isValid,
   makeRules,
@@ -267,6 +269,50 @@ describe('allValid', () => {
 
   it('returns true for an empty input (vacuously)', () => {
     expect(allValid([])).toBe(true)
+  })
+})
+
+describe('isInvalid', () => {
+  it('returns true for Invalid', () => {
+    expect(isInvalid(Invalid({ value: 'x', errors: ['bad'] }))).toBe(true)
+  })
+
+  it('returns false for Valid', () => {
+    expect(isInvalid(Valid({ value: 'x' }))).toBe(false)
+  })
+
+  it('returns false for NotValidated', () => {
+    expect(isInvalid(NotValidated({ value: '' }))).toBe(false)
+  })
+
+  it('returns false for Validating', () => {
+    expect(isInvalid(Validating({ value: 'x' }))).toBe(false)
+  })
+})
+
+describe('anyInvalid', () => {
+  it('returns true when any state is Invalid', () => {
+    expect(
+      anyInvalid([
+        Valid({ value: 'a' }),
+        Invalid({ value: 'b', errors: ['bad'] }),
+        NotValidated({ value: '' }),
+      ]),
+    ).toBe(true)
+  })
+
+  it('returns false when no state is Invalid', () => {
+    expect(
+      anyInvalid([
+        Valid({ value: 'a' }),
+        NotValidated({ value: '' }),
+        Validating({ value: 'x' }),
+      ]),
+    ).toBe(false)
+  })
+
+  it('returns false for an empty input', () => {
+    expect(anyInvalid([])).toBe(false)
   })
 })
 

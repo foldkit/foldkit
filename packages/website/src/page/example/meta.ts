@@ -8,6 +8,7 @@ export type ExampleSlug =
   | 'stopwatch'
   | 'crash-view'
   | 'form'
+  | 'job-application'
   | 'weather'
   | 'routing'
   | 'query-sync'
@@ -135,6 +136,15 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'Pixel art editor showcasing undo/redo with immutable snapshots, time-travel history, UI components (RadioGroup, Switch, Listbox, Dialog, Button), createLazy view optimization, Subscriptions, Commands with error handling, and localStorage persistence via Flags.',
     difficulty: 'Advanced',
     tags: ['Undo/Redo', 'UI Components', 'Storage'],
+    hasRouting: false,
+  },
+  {
+    slug: 'job-application',
+    title: 'Job Application',
+    description:
+      'Multi-step form with async email validation, cross-field date constraints, file uploads, and per-step error indicators.',
+    difficulty: 'Advanced',
+    tags: ['Validation', 'Multi-step', 'UI Components'],
     hasRouting: false,
   },
   {

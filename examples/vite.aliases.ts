@@ -2,6 +2,10 @@ import path from 'path'
 
 /** Vite resolve aliases that point foldkit subpath imports at the local source. */
 export const foldkitAliases = (dirname: string) => ({
+  'foldkit/calendar': path.resolve(
+    dirname,
+    '../../packages/foldkit/src/calendar',
+  ),
   'foldkit/command': path.resolve(
     dirname,
     '../../packages/foldkit/src/command',

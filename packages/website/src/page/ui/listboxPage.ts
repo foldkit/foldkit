@@ -391,6 +391,13 @@ export const view = (
         inlineCode('data-selected'),
         ' for the persistent selection indicator.',
       ),
+      para(
+        'To make the items panel match the trigger button width, set ',
+        inlineCode('width: var(--button-width)'),
+        ' (or Tailwind ',
+        inlineCode('w-(--button-width)'),
+        ') on the items class. The anchor system writes the trigger button\u2019s measured width to this CSS variable on the items element every time it positions the panel, so the panel always matches the button even as content or viewport sizes change. Without it, the items panel sizes to its content.',
+      ),
       dataAttributeTable(dataAttributes),
       heading(
         keyboardInteractionHeader.level,

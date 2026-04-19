@@ -156,11 +156,23 @@ export const isValid =
 export const isRequired = (rules: Rules): boolean =>
   Option.isSome(rules.requiredMessage)
 
+/** Returns true when the state's tag is `Invalid`. Tag-only predicate;
+ *  unlike `!isValid(rules)(state)`, this does not treat `NotValidated`
+ *  or `Validating` as errors. Use for "has the user seen a rule failure
+ *  on this field?" affordances like red borders or per-step error
+ *  indicators. */
+export const isInvalid = (state: Field): boolean => state._tag === 'Invalid'
+
 /** Returns true when every `(state, rules)` pair in the input is
  *  acceptable per `isValid`. Use for form-level submit gates. */
 export const allValid = (
   pairs: ReadonlyArray<readonly [Field, Rules]>,
 ): boolean => Array.every(pairs, ([state, rules]) => isValid(rules)(state))
+
+/** Returns true when any state in the input has tag `Invalid`. Use for
+ *  "this step/section has errors" affordances, independent of rules. */
+export const anyInvalid = (states: ReadonlyArray<Field>): boolean =>
+  Array.some(states, isInvalid)
 
 // STRING RULES
 
