@@ -25,3 +25,10 @@ export const forward = (): Effect.Effect<void> =>
 /** Performs a full page navigation to the given href. */
 export const load = (href: string): Effect.Effect<void> =>
   Effect.sync(() => window.location.assign(href))
+
+/** Opens the given href in a new browsing context (tab or window, at the browser's discretion).
+ *  The current page is unchanged. Subject to popup blockers when not called from a user-gesture handler. */
+export const openUrl = (href: string): Effect.Effect<void> =>
+  Effect.sync(() => {
+    window.open(href, '_blank', 'noopener,noreferrer')
+  })

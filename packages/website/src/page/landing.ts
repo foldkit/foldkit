@@ -92,12 +92,13 @@ export const view = (
   copiedSnippets: CopiedSnippets,
   demoTabsView: Html,
   emailSignupView: Html,
+  playgroundMenuView: Html,
   aiHeadingToggleCount: number,
 ): Html =>
   div(
     [Class('isolate overflow-x-hidden')],
     [
-      heroSection(copiedSnippets),
+      heroSection(copiedSnippets, playgroundMenuView),
       glyph('{ }'),
       poweredBySection(),
       glyph('=>'),
@@ -127,7 +128,10 @@ export const view = (
 
 const INSTALL_COMMAND = 'npx create-foldkit-app@latest --wizard'
 
-const heroSection = (copiedSnippets: CopiedSnippets): Html =>
+const heroSection = (
+  copiedSnippets: CopiedSnippets,
+  playgroundMenuView: Html,
+): Html =>
   section(
     [Id(HERO_SECTION_ID), Class('landing-section relative overflow-hidden')],
     [
@@ -201,6 +205,7 @@ const heroSection = (copiedSnippets: CopiedSnippets): Html =>
                 [Href(coreArchitectureRouter()), Class('cta-primary')],
                 ['Dive In', Icon.arrowRight('w-5 h-5')],
               ),
+              playgroundMenuView,
               a(
                 [Href(Link.github), Class('cta-secondary')],
                 [Icon.github('w-5 h-5'), 'View on GitHub'],

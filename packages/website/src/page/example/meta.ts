@@ -1,24 +1,26 @@
-import { Array, Option } from 'effect'
+import { Array, Option, Schema as S } from 'effect'
 
 type Difficulty = 'Beginner' | 'Intermediate' | 'Advanced'
 
-export type ExampleSlug =
-  | 'counter'
-  | 'todo'
-  | 'stopwatch'
-  | 'crash-view'
-  | 'form'
-  | 'job-application'
-  | 'weather'
-  | 'routing'
-  | 'query-sync'
-  | 'snake'
-  | 'auth'
-  | 'shopping-cart'
-  | 'pixel-art'
-  | 'websocket-chat'
-  | 'kanban'
-  | 'ui-showcase'
+export const ExampleSlug = S.Literal(
+  'counter',
+  'todo',
+  'stopwatch',
+  'crash-view',
+  'form',
+  'job-application',
+  'weather',
+  'routing',
+  'query-sync',
+  'snake',
+  'auth',
+  'shopping-cart',
+  'pixel-art',
+  'websocket-chat',
+  'kanban',
+  'ui-showcase',
+)
+export type ExampleSlug = typeof ExampleSlug.Type
 
 export type ExampleMeta = Readonly<{
   slug: ExampleSlug

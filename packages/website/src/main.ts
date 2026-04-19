@@ -21,12 +21,13 @@ import {
   pipe,
 } from 'effect'
 import { Calendar, Command, FieldValidation, Runtime, Ui } from 'foldkit'
-import { load, pushUrl } from 'foldkit/navigation'
+import { load, openUrl, pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 import { makeSubscriptions } from 'foldkit/subscription'
 import { Url, toString as urlToString } from 'foldkit/url'
 
 import { allPages } from './docsNav'
+import { exampleStackBlitzHref } from './link'
 import {
   ChangedUrl,
   ClickedLink,
@@ -35,6 +36,7 @@ import {
   CompletedInjectSpeedInsights,
   CompletedLoadExternal,
   CompletedNavigateInternal,
+  CompletedOpenUrl,
   CompletedSaveThemePreference,
   CompletedScroll,
   FailedCopy,
@@ -55,6 +57,7 @@ import {
   GotMobileMenuDialogMessage,
   GotNotePlayerDemoMessage,
   GotPatternsGroupMessage,
+  GotPlaygroundMenuMessage,
   GotSearchMessage,
   GotTestingGroupMessage,
   GotUiPageMessage,
@@ -191,6 +194,7 @@ export const Model = S.Struct({
   systemTheme: ResolvedTheme,
   resolvedTheme: ResolvedTheme,
   demoTabs: Ui.Tabs.Model,
+  playgroundMenu: Ui.Menu.Model,
   asyncCounterDemo: Page.AsyncCounterDemo.Model,
   notePlayerDemo: Page.NotePlayerDemo.Model,
   uiPages: Page.UiPages.Model,
@@ -221,6 +225,11 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
 
   const demoTabs = Ui.Tabs.init({
     id: 'demo-tabs',
+  })
+
+  const playgroundMenu = Ui.Menu.init({
+    id: 'playground-menu',
+    isAnimated: true,
   })
 
   const [asyncCounterDemo, asyncCounterDemoCommands] =
@@ -361,6 +370,7 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
       systemTheme,
       resolvedTheme,
       demoTabs,
+      playgroundMenu,
       asyncCounterDemo,
       notePlayerDemo,
       uiPages,
@@ -682,6 +692,44 @@ const update = (
         ]
       },
 
+      GotPlaygroundMenuMessage: ({ message }) => {
+        const [nextMenu, menuCommands] = Ui.Menu.update(
+          model.playgroundMenu,
+          message,
+        )
+
+        return [
+          evo(model, { playgroundMenu: () => nextMenu }),
+          menuCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotPlaygroundMenuMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      SelectedPlaygroundExample: ({ slug }) => {
+        const [closedMenu, closeMenuCommands] = Ui.Menu.close(
+          model.playgroundMenu,
+        )
+
+        return [
+          evo(model, { playgroundMenu: () => closedMenu }),
+          [
+            ...closeMenuCommands.map(
+              Command.mapEffect(
+                Effect.map(message => GotPlaygroundMenuMessage({ message })),
+              ),
+            ),
+            OpenUrl(
+              openUrl(exampleStackBlitzHref(slug)).pipe(
+                Effect.as(CompletedOpenUrl()),
+              ),
+            ),
+          ],
+        ]
+      },
+
       GotAsyncCounterDemoMessage: ({ message }) => {
         const [nextAsyncCounterDemo, asyncCounterDemoCommands] =
           Page.AsyncCounterDemo.update(model.asyncCounterDemo, message)
@@ -977,6 +1025,7 @@ const update = (
     M.tag(
       'CompletedNavigateInternal',
       'CompletedLoadExternal',
+      'CompletedOpenUrl',
       'CompletedInjectAnalytics',
       'CompletedInjectSpeedInsights',
       'CompletedScroll',
@@ -1022,6 +1071,7 @@ const NavigateInternal = Command.define(
   CompletedNavigateInternal,
 )
 const LoadExternal = Command.define('LoadExternal', CompletedLoadExternal)
+const OpenUrl = Command.define('OpenUrl', CompletedOpenUrl)
 
 const injectAnalytics = InjectAnalytics(
   Effect.sync(() => inject()).pipe(Effect.as(CompletedInjectAnalytics())),

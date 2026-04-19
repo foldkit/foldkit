@@ -5,6 +5,7 @@ import { UrlRequest } from 'foldkit/runtime'
 import { Url } from 'foldkit/url'
 
 import * as Page from './page'
+import { ExampleSlug } from './page/example/meta'
 import * as Search from './search'
 
 // THEME
@@ -19,6 +20,7 @@ export type ResolvedTheme = typeof ResolvedTheme.Type
 
 export const CompletedNavigateInternal = m('CompletedNavigateInternal')
 export const CompletedLoadExternal = m('CompletedLoadExternal')
+export const CompletedOpenUrl = m('CompletedOpenUrl')
 export const CompletedInjectAnalytics = m('CompletedInjectAnalytics')
 export const CompletedInjectSpeedInsights = m('CompletedInjectSpeedInsights')
 export const CompletedScroll = m('CompletedScroll')
@@ -75,6 +77,12 @@ export const ToggledAiHeading = m('ToggledAiHeading')
 export const GotDemoTabsMessage = m('GotDemoTabsMessage', {
   message: Ui.Tabs.Message,
 })
+export const GotPlaygroundMenuMessage = m('GotPlaygroundMenuMessage', {
+  message: Ui.Menu.Message,
+})
+export const SelectedPlaygroundExample = m('SelectedPlaygroundExample', {
+  slug: ExampleSlug,
+})
 export const GotAsyncCounterDemoMessage = m('GotAsyncCounterDemoMessage', {
   message: Page.AsyncCounterDemo.Message,
 })
@@ -130,6 +138,7 @@ export const GotSearchMessage = m('GotSearchMessage', {
 export const Message = S.Union(
   CompletedNavigateInternal,
   CompletedLoadExternal,
+  CompletedOpenUrl,
   CompletedInjectAnalytics,
   CompletedInjectSpeedInsights,
   CompletedScroll,
@@ -157,6 +166,8 @@ export const Message = S.Union(
   ChangedViewportWidth,
   ToggledAiHeading,
   GotDemoTabsMessage,
+  GotPlaygroundMenuMessage,
+  SelectedPlaygroundExample,
   GotAsyncCounterDemoMessage,
   GotNotePlayerDemoMessage,
   GotUiPageMessage,

@@ -1,4 +1,4 @@
-import { Array, Effect, Match as M, Option, Schema as S, pipe } from 'effect'
+import { Array, Effect, Match as M, Option, Schema as S } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -19,7 +19,7 @@ import {
   span,
 } from '../../html'
 import { Icon } from '../../icon'
-import { exampleSourceHref } from '../../link'
+import { exampleSourceHref, exampleStackBlitzHref } from '../../link'
 import type { Message as ParentMessage, TableOfContentsEntry } from '../../main'
 import { makeRemoteData } from '../../makeRemoteData'
 import { pageTitle, para } from '../../prose'
@@ -215,14 +215,23 @@ const headerView = (meta: ExampleMeta): Html =>
         [Class('flex flex-wrap items-center gap-2 mt-3')],
         Array.map(meta.tags, featureTag),
       ),
-      a(
+      div(
+        [Class('flex flex-col items-start gap-3 mt-3')],
         [
-          Href(exampleSourceHref(meta.slug)),
-          Class(
-            'text-sm text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500 mt-3 inline-block',
+          a(
+            [Href(exampleStackBlitzHref(meta.slug)), Class('cta-amber-sm')],
+            [Icon.bolt('w-4 h-4'), 'Launch Playground'],
+          ),
+          a(
+            [
+              Href(exampleSourceHref(meta.slug)),
+              Class(
+                'text-sm text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500',
+              ),
+            ],
+            ['View source on GitHub'],
           ),
         ],
-        ['View source on GitHub'],
       ),
     ],
   )
@@ -445,46 +454,43 @@ export const view = (
   isNarrowViewport: boolean,
   toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
-  pipe(
-    findBySlug(slug),
-    Option.match({
-      onNone: () => div([], ['Example not found']),
-      onSome: meta =>
-        keyed('div')(
-          slug,
-          [],
-          [
-            headerView(meta),
-            livePreviewDisclosureView(
-              model.livePreviewDisclosure,
-              meta,
-              slug,
-              model.maybeExampleUrl,
-              toParentMessage,
-            ),
-            div(
-              [Class('mt-6')],
-              [
-                M.value(model.currentSources).pipe(
-                  M.withReturnType<Html>(),
-                  M.tag('NotAsked', 'Loading', () => sourcesSkeletonView()),
-                  M.tag('Failure', ({ error }) => sourcesFailureView(error)),
-                  M.tag('Ok', ({ data: sources }) =>
-                    sourceCodeView(
-                      sources.files,
-                      model.sourceFileTabs,
-                      copiedSnippets,
-                      isNarrowViewport,
-                      toParentMessage,
-                    ),
+  Option.match(findBySlug(slug), {
+    onNone: () => div([], ['Example not found']),
+    onSome: meta =>
+      keyed('div')(
+        slug,
+        [],
+        [
+          headerView(meta),
+          livePreviewDisclosureView(
+            model.livePreviewDisclosure,
+            meta,
+            slug,
+            model.maybeExampleUrl,
+            toParentMessage,
+          ),
+          div(
+            [Class('mt-6')],
+            [
+              M.value(model.currentSources).pipe(
+                M.withReturnType<Html>(),
+                M.tag('NotAsked', 'Loading', () => sourcesSkeletonView()),
+                M.tag('Failure', ({ error }) => sourcesFailureView(error)),
+                M.tag('Ok', ({ data: sources }) =>
+                  sourceCodeView(
+                    sources.files,
+                    model.sourceFileTabs,
+                    copiedSnippets,
+                    isNarrowViewport,
+                    toParentMessage,
                   ),
-                  M.exhaustive,
                 ),
-              ],
-            ),
-          ],
-        ),
-    }),
-  )
+                M.exhaustive,
+              ),
+            ],
+          ),
+        ],
+      ),
+  })
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = []

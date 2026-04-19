@@ -22,7 +22,7 @@ export const bolt = (className: string = 'w-5 h-5'): Html =>
       Class(className),
       Xmlns('http://www.w3.org/2000/svg'),
       Fill('none'),
-      ViewBox('0 0 24 24'),
+      ViewBox('2 2 20 20'),
       StrokeWidth('1.5'),
       Stroke('currentColor'),
     ],
