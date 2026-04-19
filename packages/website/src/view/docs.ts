@@ -1,6 +1,7 @@
 import { clsx } from 'clsx'
 import { Match as M, Option, String as S } from 'effect'
 import { Ui } from 'foldkit'
+import type { Field } from 'foldkit/fieldValidation'
 import { Html, createLazy } from 'foldkit/html'
 
 import { pageNeighbors } from '../docsNav'
@@ -39,7 +40,6 @@ import { Link } from '../link'
 import {
   type EmailSubscriptionStatus,
   type Model,
-  type StringField,
   type TableOfContentsEntry,
 } from '../main'
 import {
@@ -172,7 +172,7 @@ const docsHeaderView = (model: Model) =>
 // DOCS FOOTER
 
 const docsFooterView = (
-  emailField: StringField,
+  emailField: Field,
   emailSubscriptionStatus: EmailSubscriptionStatus,
   currentYear: number,
 ): Html =>

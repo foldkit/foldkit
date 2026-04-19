@@ -1,7 +1,16 @@
 export {
-  makeField,
-  required,
-  optional,
+  makeRules,
+  validate,
+  validateAll,
+  isValid,
+  isRequired,
+  allValid,
+  resolveMessage,
+  NotValidated,
+  Validating,
+  Valid,
+  Invalid,
+  Field,
   minLength,
   maxLength,
   pattern,
@@ -11,13 +20,7 @@ export {
   endsWith,
   includes,
   equals,
-  min,
-  max,
-  between,
-  positive,
-  nonNegative,
-  integer,
   oneOf,
 } from './index'
 
-export type { Field, Validation, ValidationMessage } from './index'
+export type { Rules, MakeRulesOptions, Rule, RuleMessage } from './index'

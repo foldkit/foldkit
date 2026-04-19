@@ -1,5 +1,5 @@
-import { Schema } from 'effect'
-import { FieldValidation, Scene } from 'foldkit'
+import { Scene } from 'foldkit'
+import { Valid } from 'foldkit/fieldValidation'
 import { describe, test } from 'vitest'
 
 import { SaveSession } from '../../../command'
@@ -20,8 +20,6 @@ import {
   SucceededSimulateAuthRequest,
   initModel as initLoginModel,
 } from './login'
-
-const { Valid } = FieldValidation.makeField(Schema.String)
 
 const toLoginMessage = (message: Message) =>
   GotLoggedOutMessage({ message: GotLoginMessage({ message }) })

@@ -1,8 +1,7 @@
-import { Scene } from 'foldkit'
+import { FieldValidation, Scene } from 'foldkit'
 import { describe, test } from 'vitest'
 
 import {
-  StringField,
   SubmitForm,
   SubmittedForm,
   ValidateEmail,
@@ -56,7 +55,7 @@ describe('form scene', () => {
   test('typing a well-formed email triggers async validation', () => {
     const modelWithValidName = {
       ...initialModel,
-      name: StringField.Valid({ value: 'Alice' }),
+      name: FieldValidation.Valid({ value: 'Alice' }),
     }
 
     Scene.scene(
@@ -74,7 +73,7 @@ describe('form scene', () => {
         ValidateEmail,
         ValidatedEmail({
           validationId: 1,
-          field: StringField.Valid({ value: 'alice@example.com' }),
+          field: FieldValidation.Valid({ value: 'alice@example.com' }),
         }),
       ),
       Scene.expect(
@@ -93,7 +92,7 @@ describe('form scene', () => {
         ValidateEmail,
         ValidatedEmail({
           validationId: 1,
-          field: StringField.Invalid({
+          field: FieldValidation.Invalid({
             value: 'test@example.com',
             errors: ['This email is already on our waitlist'],
           }),
@@ -108,8 +107,8 @@ describe('form scene', () => {
   test('submit becomes enabled once name and email are valid', () => {
     const validModel = {
       ...initialModel,
-      name: StringField.Valid({ value: 'Alice' }),
-      email: StringField.Valid({ value: 'alice@example.com' }),
+      name: FieldValidation.Valid({ value: 'Alice' }),
+      email: FieldValidation.Valid({ value: 'alice@example.com' }),
     }
 
     Scene.scene(
@@ -124,8 +123,8 @@ describe('form scene', () => {
   test('submitting a valid form shows the loading label then a success banner', () => {
     const validModel = {
       ...initialModel,
-      name: StringField.Valid({ value: 'Alice' }),
-      email: StringField.Valid({ value: 'alice@example.com' }),
+      name: FieldValidation.Valid({ value: 'Alice' }),
+      email: FieldValidation.Valid({ value: 'alice@example.com' }),
     }
 
     Scene.scene(
@@ -153,8 +152,8 @@ describe('form scene', () => {
   test('a failed submission renders an error banner', () => {
     const validModel = {
       ...initialModel,
-      name: StringField.Valid({ value: 'Alice' }),
-      email: StringField.Valid({ value: 'alice@example.com' }),
+      name: FieldValidation.Valid({ value: 'Alice' }),
+      email: FieldValidation.Valid({ value: 'alice@example.com' }),
     }
 
     Scene.scene(

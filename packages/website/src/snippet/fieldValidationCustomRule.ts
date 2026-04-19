@@ -1,11 +1,17 @@
-import type { Validation } from 'foldkit/fieldValidation'
+import type { Rule } from 'foldkit/fieldValidation'
 
-const noConsecutiveSpaces: Validation<string> = [
+const noConsecutiveSpaces: Rule = [
   value => !/  /.test(value),
   'Cannot contain consecutive spaces',
 ]
 
-const divisibleBy = (divisor: number): Validation<number> => [
-  value => value % divisor === 0,
-  value => `${value} is not divisible by ${divisor}`,
+const hasUppercase: Rule = [
+  value => /[A-Z]/.test(value),
+  'Must contain at least one uppercase letter',
+]
+
+// Messages can be functions that receive the failing value:
+const noTrailingWhitespace: Rule = [
+  value => value === value.trimEnd(),
+  value => `Remove the trailing whitespace from "${value}"`,
 ]

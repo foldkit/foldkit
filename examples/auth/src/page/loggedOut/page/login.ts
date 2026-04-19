@@ -9,8 +9,16 @@ import {
   String,
   pipe,
 } from 'effect'
-import { Command, FieldValidation } from 'foldkit'
-import { type Validation, makeField } from 'foldkit/fieldValidation'
+import { Command } from 'foldkit'
+import {
+  Field,
+  Invalid,
+  NotValidated,
+  allValid,
+  email,
+  makeRules,
+  validate,
+} from 'foldkit/fieldValidation'
 import { Html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -41,26 +49,19 @@ import {
 import type { Message as ParentMessage } from '../../../message'
 import { homeRouter } from '../../../route'
 
-// FIELD
-
-const StringField = makeField(S.String)
-type StringField = typeof StringField.Union.Type
-
-const StringFieldInvalid = StringField.Invalid
-
 // MODEL
 
 export const Model = S.Struct({
-  email: StringField.Union,
-  password: StringField.Union,
+  email: Field,
+  password: Field,
   isSubmitting: S.Boolean,
 })
 
 export type Model = typeof Model.Type
 
 export const initModel = (): Model => ({
-  email: StringField.NotValidated({ value: '' }),
-  password: StringField.NotValidated({ value: '' }),
+  email: NotValidated({ value: '' }),
+  password: NotValidated({ value: '' }),
   isSubmitting: false,
 })
 
@@ -93,20 +94,23 @@ export type OutMessage = typeof OutMessage.Type
 
 // VALIDATION
 
-const emailValidations: ReadonlyArray<Validation<string>> = [
-  FieldValidation.required('Email is required'),
-  FieldValidation.email('Please enter a valid email'),
-]
+const emailRules = makeRules({
+  required: 'Email is required',
+  rules: [email('Please enter a valid email')],
+})
 
-const passwordValidations: ReadonlyArray<Validation<string>> = [
-  FieldValidation.required('Password is required'),
-]
+const passwordRules = makeRules({
+  required: 'Password is required',
+})
 
-const validateEmail = StringField.validate(emailValidations)
-const validatePassword = StringField.validate(passwordValidations)
+const validateEmail = validate(emailRules)
+const validatePassword = validate(passwordRules)
 
 const isFormValid = (model: Model): boolean =>
-  Array.every([model.email, model.password], field => field._tag === 'Valid')
+  allValid([
+    [model.email, emailRules],
+    [model.password, passwordRules],
+  ])
 
 // UPDATE
 
@@ -182,7 +186,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       FailedSimulateAuthRequest: ({ error }) => [
         evo(model, {
           password: () =>
-            StringFieldInvalid({
+            Invalid({
               value: model.password.value,
               errors: [error],
             }),
@@ -196,7 +200,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
 // VIEW
 
-const fieldToBorderClass = (field: StringField) =>
+const fieldToBorderClass = (field: Field) =>
   M.value(field).pipe(
     M.tagsExhaustive({
       NotValidated: () => 'border-gray-300',
@@ -209,7 +213,7 @@ const fieldToBorderClass = (field: StringField) =>
 const fieldView = (
   id: string,
   labelText: string,
-  field: StringField,
+  field: Field,
   onUpdate: (value: string) => ParentMessage,
   type: 'text' | 'email' | 'password' = 'text',
   placeholder = '',

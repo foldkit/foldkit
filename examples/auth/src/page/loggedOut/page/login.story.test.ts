@@ -1,5 +1,5 @@
-import { Schema } from 'effect'
-import { FieldValidation, Story } from 'foldkit'
+import { Story } from 'foldkit'
+import { Valid } from 'foldkit/fieldValidation'
 import { describe, expect, test } from 'vitest'
 
 import {
@@ -14,8 +14,6 @@ import {
   initModel,
   update,
 } from './login'
-
-const { Valid } = FieldValidation.makeField(Schema.String)
 
 const validModel: Model = {
   ...initModel(),

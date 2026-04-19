@@ -1,6 +1,7 @@
 import { Array, Match as M } from 'effect'
+import { type Field, allValid } from 'foldkit/fieldValidation'
 
-const borderClass = (field: StringField) =>
+const borderClass = (field: Field) =>
   M.value(field).pipe(
     M.tagsExhaustive({
       NotValidated: () => 'border-gray-300',
@@ -10,15 +11,28 @@ const borderClass = (field: StringField) =>
     }),
   )
 
-const statusIndicator = (field: StringField) =>
-  M.value(field).pipe(
-    M.tagsExhaustive({
-      NotValidated: () => empty,
-      Validating: () => span([], ['Checking...']),
-      Valid: () => span([], ['✓']),
-      Invalid: ({ errors }) => div([], [Array.headNonEmpty(errors)]),
-    }),
+// Branching views are wrapped in `keyed` so snabbdom patches the right tree
+// when the tag flips.
+const statusIndicator = (field: Field) =>
+  keyed('span')(
+    field._tag,
+    [],
+    [
+      M.value(field).pipe(
+        M.tagsExhaustive({
+          NotValidated: () => empty,
+          Validating: () => span([], ['Checking...']),
+          Valid: () => span([], ['✓']),
+          Invalid: ({ errors }) => div([], [Array.headNonEmpty(errors)]),
+        }),
+      ),
+    ],
   )
 
+// `allValid` walks each (state, rules) pair; required rules demand `Valid`,
+// optional rules also accept `NotValidated`.
 const isFormValid = (model: Model): boolean =>
-  Array.every([model.username, model.email], field => field._tag === 'Valid')
+  allValid([
+    [model.username, usernameRules],
+    [model.email, emailRules],
+  ])

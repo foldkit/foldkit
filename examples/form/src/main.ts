@@ -8,17 +8,32 @@ import {
   Random,
   Schema as S,
 } from 'effect'
-import { Command, FieldValidation, Runtime, Ui } from 'foldkit'
-import { type Validation, makeField } from 'foldkit/fieldValidation'
+import { Command, Runtime, Ui } from 'foldkit'
+import {
+  Field,
+  Invalid,
+  NotValidated,
+  Valid,
+  Validating,
+  allValid,
+  email,
+  makeRules,
+  minLength,
+  validate,
+} from 'foldkit/fieldValidation'
 import { type Attribute, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
 
-const StringField = makeField(S.String)
-type StringField = typeof StringField.Union.Type
+const nameRules = makeRules({
+  rules: [minLength(2, 'Name must be at least 2 characters')],
+})
 
-export { StringField }
+const emailRules = makeRules({
+  required: 'Email is required',
+  rules: [email('Please enter a valid email address')],
+})
 
 // MODEL
 
@@ -36,10 +51,10 @@ type SubmitError = typeof SubmitError.Type
 type Submission = typeof Submission.Type
 
 const Model = S.Struct({
-  name: StringField.Union,
-  email: StringField.Union,
+  name: Field,
+  email: Field,
   emailValidationId: S.Number,
-  message: StringField.Union,
+  message: Field,
   submission: Submission,
 })
 type Model = typeof Model.Type
@@ -52,7 +67,7 @@ const UpdatedName = m('UpdatedName', { value: S.String })
 const UpdatedEmail = m('UpdatedEmail', { value: S.String })
 export const ValidatedEmail = m('ValidatedEmail', {
   validationId: S.Number,
-  field: StringField.Union,
+  field: Field,
 })
 const UpdatedMessage = m('UpdatedMessage', { value: S.String })
 const ClickedFormSubmit = m('ClickedFormSubmit')
@@ -76,25 +91,16 @@ type Message = typeof Message.Type
 // INIT
 
 export const initialModel: Model = {
-  name: StringField.NotValidated({ value: '' }),
-  email: StringField.NotValidated({ value: '' }),
+  name: NotValidated({ value: '' }),
+  email: NotValidated({ value: '' }),
   emailValidationId: 0,
-  message: StringField.NotValidated({ value: '' }),
+  message: NotValidated({ value: '' }),
   submission: NotSubmitted(),
 }
 
 const init: Runtime.ProgramInit<Model, Message> = () => [initialModel, []]
 
 // FIELD VALIDATION
-
-const nameValidations: ReadonlyArray<Validation<string>> = [
-  FieldValidation.minLength(2, 'Name must be at least 2 characters'),
-]
-
-const emailValidations: ReadonlyArray<Validation<string>> = [
-  FieldValidation.required('Email is required'),
-  FieldValidation.email('Please enter a valid email address'),
-]
 
 const EMAILS_ON_WAITLIST = [
   'test@example.com',
@@ -116,7 +122,7 @@ const validateEmailAsync = (email: string, validationId: number) =>
       if (yield* isEmailOnWaitlist(email)) {
         return ValidatedEmail({
           validationId,
-          field: StringField.Invalid({
+          field: Invalid({
             value: email,
             errors: ['This email is already on our waitlist'],
           }),
@@ -124,17 +130,20 @@ const validateEmailAsync = (email: string, validationId: number) =>
       } else {
         return ValidatedEmail({
           validationId,
-          field: StringField.Valid({ value: email }),
+          field: Valid({ value: email }),
         })
       }
     }),
   )
 
-const validateName = StringField.validate(nameValidations)
-const validateEmail = StringField.validate(emailValidations)
+const validateName = validate(nameRules)
+const validateEmail = validate(emailRules)
 
 const isFormValid = (model: Model): boolean =>
-  Array.every([model.name, model.email], field => field._tag === 'Valid')
+  allValid([
+    [model.name, nameRules],
+    [model.email, emailRules],
+  ])
 
 // UPDATE
 
@@ -161,7 +170,7 @@ export const update = (
         if (validateEmailResult._tag === 'Valid') {
           return [
             evo(model, {
-              email: () => StringField.Validating({ value }),
+              email: () => Validating({ value }),
               emailValidationId: () => validationId,
             }),
             [validateEmailAsync(value, validationId)],
@@ -192,7 +201,7 @@ export const update = (
 
       UpdatedMessage: ({ value }) => [
         evo(model, {
-          message: () => StringField.Valid({ value }),
+          message: () => Valid({ value }),
         }),
         [],
       ],
@@ -281,7 +290,7 @@ const {
 const LABEL_CLASS = 'text-sm font-medium text-gray-700'
 const DESCRIPTION_CLASS = 'text-sm mt-1'
 
-const borderClass = (field: StringField): string =>
+const borderClass = (field: Field): string =>
   M.value(field).pipe(
     M.tagsExhaustive({
       NotValidated: () => 'border-gray-300',
@@ -291,13 +300,13 @@ const borderClass = (field: StringField): string =>
     }),
   )
 
-const inputClassName = (field: StringField): string =>
+const inputClassName = (field: Field): string =>
   clsx(
     'w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500',
     borderClass(field),
   )
 
-const statusIndicator = (field: StringField): Html =>
+const statusIndicator = (field: Field): Html =>
   M.value(field).pipe(
     M.tagsExhaustive({
       NotValidated: () => empty,
@@ -309,7 +318,7 @@ const statusIndicator = (field: StringField): Html =>
   )
 
 const descriptionView = (
-  field: StringField,
+  field: Field,
   descriptionAttributes: ReadonlyArray<Attribute<Message>>,
 ): Html =>
   M.value(field).pipe(
@@ -338,7 +347,7 @@ const descriptionView = (
 const inputFieldView = (
   id: string,
   labelText: string,
-  field: StringField,
+  field: Field,
   onUpdate: (value: string) => Message,
   type: string = 'text',
 ): Html =>
@@ -368,7 +377,7 @@ const inputFieldView = (
 const textareaFieldView = (
   id: string,
   labelText: string,
-  field: StringField,
+  field: Field,
   onUpdate: (value: string) => Message,
 ): Html =>
   Ui.Textarea.view({

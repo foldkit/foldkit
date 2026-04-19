@@ -98,8 +98,10 @@ const resolveTheme = (
     M.exhaustive,
   )
 
-const StringField = FieldValidation.makeField(S.String)
-export type StringField = typeof StringField.Union.Type
+const emailRules = FieldValidation.makeRules({
+  required: 'Email is required',
+  rules: [FieldValidation.email('Please enter a valid email address')],
+})
 
 const EmailSubscriptionStatus = S.Literal(
   'Idle',
@@ -166,7 +168,7 @@ export const Model = S.Struct({
   route: AppRoute,
   url: Url,
   copiedSnippets: S.HashSet(S.String),
-  emailField: StringField.Union,
+  emailField: FieldValidation.Field,
   emailSubscriptionStatus: EmailSubscriptionStatus,
   currentYear: S.Number,
   mobileMenuDialog: Ui.Dialog.Model,
@@ -306,7 +308,7 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
       route: initialRoute,
       url,
       copiedSnippets: HashSet.empty(),
-      emailField: StringField.NotValidated({ value: '' }),
+      emailField: FieldValidation.NotValidated({ value: '' }),
       emailSubscriptionStatus: 'Idle',
       currentYear: flags.currentYear,
       mobileMenuDialog: Ui.Dialog.init({ id: 'mobile-menu' }),
@@ -561,7 +563,7 @@ const update = (
 
       UpdatedEmailField: ({ value }) => [
         evo(model, {
-          emailField: () => StringField.NotValidated({ value }),
+          emailField: () => FieldValidation.NotValidated({ value }),
           emailSubscriptionStatus: () => 'Idle',
         }),
         [],
@@ -583,7 +585,7 @@ const update = (
 
       SucceededSubscribeEmail: () => [
         evo(model, {
-          emailField: () => StringField.NotValidated({ value: '' }),
+          emailField: () => FieldValidation.NotValidated({ value: '' }),
           emailSubscriptionStatus: () => 'Succeeded',
         }),
         [],
@@ -1118,10 +1120,7 @@ const applyThemeToDocument = (theme: typeof ResolvedTheme.Type) =>
 const BUTTONDOWN_SUBSCRIBE_URL =
   'https://buttondown.com/api/emails/embed-subscribe/foldkit'
 
-const validateEmail = StringField.validate([
-  FieldValidation.required('Email is required'),
-  FieldValidation.email('Please enter a valid email address'),
-])
+const validateEmail = FieldValidation.validate(emailRules)
 
 const subscribeToNewsletter = (email: string) =>
   SubscribeToNewsletter(

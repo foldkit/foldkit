@@ -1,20 +1,30 @@
-import { Match as M, Schema as S } from 'effect'
-import { makeField, minLength, required } from 'foldkit/fieldValidation'
+import { Match as M } from 'effect'
+import {
+  type Field,
+  Invalid,
+  Valid,
+  makeRules,
+  minLength,
+  validate,
+} from 'foldkit/fieldValidation'
 import { evo } from 'foldkit/struct'
 
-const StringField = makeField(S.String)
+const passwordRules = makeRules({
+  required: 'Password is required',
+  rules: [minLength(8, 'Must be at least 8 characters')],
+})
 
-const validatePassword = StringField.validate([
-  required('Password is required'),
-  minLength(8, 'Must be at least 8 characters'),
-])
+const validatePassword = validate(passwordRules)
 
-const validateConfirmPassword = (password: string, confirmPassword: string) =>
+const validateConfirmPassword = (
+  password: string,
+  confirmPassword: string,
+): Field =>
   M.value(validatePassword(confirmPassword)).pipe(
     M.tag('Valid', () =>
       confirmPassword === password
-        ? StringField.Valid({ value: confirmPassword })
-        : StringField.Invalid({
+        ? Valid({ value: confirmPassword })
+        : Invalid({
             value: confirmPassword,
             errors: ['Passwords must match'],
           }),

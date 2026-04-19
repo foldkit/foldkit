@@ -1,5 +1,6 @@
 import { clsx } from 'clsx'
 import { Array, Match as M } from 'effect'
+import type { Field } from 'foldkit/fieldValidation'
 import { Html } from 'foldkit/html'
 
 import {
@@ -24,7 +25,7 @@ import {
   p,
   span,
 } from '../html'
-import { type EmailSubscriptionStatus, type StringField } from '../main'
+import { type EmailSubscriptionStatus } from '../main'
 import { SubmittedEmailForm, UpdatedEmailField } from '../message'
 
 export const betaTag: Html = span(
@@ -60,7 +61,7 @@ export const skipNavLink: Html = a(
 )
 
 export const emailFormView = (
-  emailField: StringField,
+  emailField: Field,
   status: 'Idle' | 'Submitting' | 'Failed',
   formClassName: string,
 ): Html => {
@@ -128,7 +129,7 @@ export const emailFormView = (
 }
 
 export const emailSignupContentView = (
-  emailField: StringField,
+  emailField: Field,
   emailSubscriptionStatus: EmailSubscriptionStatus,
 ): Html =>
   div(

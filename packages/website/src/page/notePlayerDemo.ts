@@ -11,7 +11,6 @@ import {
   pipe,
 } from 'effect'
 import { Command, FieldValidation, Task, Ui } from 'foldkit'
-import { makeField } from 'foldkit/fieldValidation'
 import { Html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
@@ -70,7 +69,14 @@ type Note = typeof Note.Type
 const NoteDuration = S.Literal('Short', 'Medium', 'Long')
 type NoteDuration = typeof NoteDuration.Type
 
-const NoteInputField = makeField(S.String)
+const noteInputRules = FieldValidation.makeRules({
+  required: 'Enter some notes',
+  rules: [
+    FieldValidation.pattern(/^[A-G]+$/, 'Use notes A through G'),
+    FieldValidation.minLength(MIN_NOTES, `Enter at least ${MIN_NOTES} notes`),
+    FieldValidation.maxLength(MAX_NOTES, `Enter at most ${MAX_NOTES} notes`),
+  ],
+})
 
 const Idle = ts('Idle')
 const Playing = ts('Playing', {
@@ -97,7 +103,7 @@ const NoteHighlightPhase = S.Literal(
 type NoteHighlightPhase = typeof NoteHighlightPhase.Type
 
 export const Model = S.Struct({
-  noteInput: NoteInputField.Union,
+  noteInput: FieldValidation.Field,
   noteDuration: NoteDuration,
   durationRadioGroup: Ui.RadioGroup.Model,
   playbackState: PlaybackState,
@@ -140,14 +146,7 @@ export type Message = typeof Message.Type
 
 // FIELD VALIDATION
 
-const noteInputValidations = [
-  FieldValidation.required('Enter some notes'),
-  FieldValidation.pattern(/^[A-G]+$/, 'Use notes A through G'),
-  FieldValidation.minLength(MIN_NOTES, `Enter at least ${MIN_NOTES} notes`),
-  FieldValidation.maxLength(MAX_NOTES, `Enter at most ${MAX_NOTES} notes`),
-]
-
-const validateNoteInput = NoteInputField.validate(noteInputValidations)
+const validateNoteInput = FieldValidation.validate(noteInputRules)
 
 const parseNotes = (value: string) =>
   pipe(
@@ -233,7 +232,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ChangedNoteInput: ({ value }) => {
         const uppercased = Str.toUpperCase(value)
         const fieldState = Str.isEmpty(uppercased)
-          ? NoteInputField.NotValidated({ value: uppercased })
+          ? FieldValidation.NotValidated({ value: uppercased })
           : validateNoteInput(uppercased)
 
         return [
@@ -513,7 +512,7 @@ const playNote = (note: Note, duration: NoteDuration, noteIndex: number) =>
 
 // VIEW
 
-const inputBorderClass = (field: typeof NoteInputField.Union.Type): string =>
+const inputBorderClass = (field: FieldValidation.Field): string =>
   M.value(field).pipe(
     M.tagsExhaustive({
       NotValidated: () => 'border-gray-300 dark:border-gray-600',

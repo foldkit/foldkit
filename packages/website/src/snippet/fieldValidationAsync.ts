@@ -1,11 +1,9 @@
-import { Effect, Match as M, Number, Schema as S } from 'effect'
+import { Effect, Match as M, Number } from 'effect'
 import { Command } from 'foldkit'
-import { makeField } from 'foldkit/fieldValidation'
+import { Invalid, Valid, Validating, validate } from 'foldkit/fieldValidation'
 import { evo } from 'foldkit/struct'
 
-const StringField = makeField(S.String)
-
-const validateEmail = StringField.validate(emailValidations)
+const validateEmail = validate(emailRules)
 
 const CheckEmailAvailable = Command.define(
   'CheckEmailAvailable',
@@ -19,8 +17,8 @@ const checkEmailAvailable = (email: string, validationId: number) =>
       return ValidatedEmail({
         validationId,
         field: isAvailable
-          ? StringField.Valid({ value: email })
-          : StringField.Invalid({
+          ? Valid({ value: email })
+          : Invalid({
               value: email,
               errors: ['This email is already taken'],
             }),
@@ -38,20 +36,27 @@ const update = (model: Model, message: Message) =>
         return M.value(syncResult).pipe(
           M.tag('Valid', () => [
             evo(model, {
-              email: () => StringField.Validating({ value }),
+              email: () => Validating({ value }),
               emailValidationId: () => validationId,
             }),
             [checkEmailAvailable(value, validationId)],
           ]),
-          M.orElse(() => [evo(model, { email: () => syncResult }), []]),
+          M.orElse(() => [
+            evo(model, {
+              email: () => syncResult,
+              emailValidationId: () => validationId,
+            }),
+            [],
+          ]),
         )
       },
 
       ValidatedEmail: ({ validationId, field }) => {
-        if (validationId !== model.emailValidationId) {
+        if (validationId === model.emailValidationId) {
+          return [evo(model, { email: () => field }), []]
+        } else {
           return [model, []]
         }
-        return [evo(model, { email: () => field }), []]
       },
     }),
   )

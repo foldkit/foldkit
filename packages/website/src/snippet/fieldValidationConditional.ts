@@ -1,12 +1,15 @@
-import { type Validation, maxLength, required } from 'foldkit/fieldValidation'
+import { makeRules, maxLength, validate } from 'foldkit/fieldValidation'
 
-// The validation list is a function that takes whatever state it depends
-// on. Spread validations in or out based on that state.
-const companyNameValidations = (
+// A function that builds the bundle from whatever state it depends on.
+const companyNameRules = (accountType: 'Personal' | 'Business') =>
+  makeRules({
+    ...(accountType === 'Business' && {
+      required: 'Required for business accounts',
+    }),
+    rules: [maxLength(100)],
+  })
+
+const validateCompanyName = (
   accountType: 'Personal' | 'Business',
-): ReadonlyArray<Validation<string>> => [
-  ...(accountType === 'Business'
-    ? [required('Required for business accounts')]
-    : []),
-  maxLength(100),
-]
+  value: string,
+) => validate(companyNameRules(accountType))(value)
