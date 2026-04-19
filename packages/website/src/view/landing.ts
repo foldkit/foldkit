@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { Match as M } from 'effect'
+import { Array, Match as M, Option, pipe } from 'effect'
 import { Ui } from 'foldkit'
 import { Html, createLazy } from 'foldkit/html'
 
@@ -31,9 +31,17 @@ import {
   GotAsyncCounterDemoMessage,
   GotDemoTabsMessage,
   GotNotePlayerDemoMessage,
+  GotPlaygroundMenuMessage,
   type Message,
+  SelectedPlaygroundExample,
 } from '../message'
 import * as Page from '../page'
+import {
+  type ExampleMeta,
+  type ExampleSlug,
+  examples,
+  findBySlug,
+} from '../page/example/meta'
 import { coreArchitectureRouter, homeRouter } from '../route'
 import { betaTag, emailSignupContentView, skipNavLink } from './shared'
 import { themeSelector } from './themeSelector'
@@ -141,6 +149,91 @@ const toNotePlayerDemoMessage = (
 const lazyAsyncCounterDemo = createLazy()
 const lazyNotePlayerDemo = createLazy()
 
+// PLAYGROUND MENU
+
+const PLAYGROUND_MENU_ANCHOR = {
+  placement: 'bottom-start' as const,
+  gap: 8,
+  padding: 16,
+}
+
+const playgroundButtonClassName = 'cta-amber cursor-pointer'
+
+const playgroundItemsClassName =
+  'absolute mt-1 w-80 max-h-[28rem] overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-cream dark:bg-gray-900 shadow-xl z-20 outline-none transition duration-150 ease-out data-[closed]:scale-95 data-[closed]:opacity-0'
+
+const playgroundItemClassName =
+  'block px-4 py-3 cursor-pointer border-b border-gray-100 dark:border-gray-800 last:border-b-0 hover:bg-gray-100 dark:hover:bg-gray-800/60 data-[active]:bg-gray-100 dark:data-[active]:bg-gray-800/60'
+
+const playgroundBackdropClassName = 'fixed inset-0 z-10'
+
+const playgroundItemContent = (meta: ExampleMeta): Html =>
+  div(
+    [],
+    [
+      div(
+        [Class('font-medium text-gray-900 dark:text-white text-sm mb-0.5')],
+        [meta.title],
+      ),
+      p(
+        [
+          Class(
+            'text-xs text-gray-600 dark:text-gray-400 leading-snug line-clamp-2',
+          ),
+        ],
+        [meta.description],
+      ),
+    ],
+  )
+
+const playgroundMenuView = (
+  menuModel: Ui.Menu.Model,
+  slugs: ReadonlyArray<ExampleSlug>,
+): Html =>
+  Ui.Menu.view<Message, ExampleSlug>({
+    model: menuModel,
+    toParentMessage: message => GotPlaygroundMenuMessage({ message }),
+    onSelectedItem: index =>
+      SelectedPlaygroundExample({ slug: Array.unsafeGet(slugs, index) }),
+    anchor: PLAYGROUND_MENU_ANCHOR,
+    items: slugs,
+    itemToConfig: slug => ({
+      className: playgroundItemClassName,
+      content: pipe(
+        findBySlug(slug),
+        Option.match({
+          onNone: () => span([], [slug]),
+          onSome: playgroundItemContent,
+        }),
+      ),
+    }),
+    isItemDisabled: () => false,
+    itemGroupKey: () => 'examples',
+    groupToHeading: () => ({
+      className:
+        'px-4 pt-3 pb-2 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800 leading-snug',
+      content: span(
+        [],
+        [
+          'Run an example ',
+          span(
+            [Class('text-gray-700 dark:text-gray-200 font-medium')],
+            ['live in your browser'],
+          ),
+          '. No install.',
+        ],
+      ),
+    }),
+    buttonContent: span(
+      [Class('inline-flex items-center gap-2')],
+      [Icon.bolt('w-5 h-5'), 'Launch Playground'],
+    ),
+    buttonAttributes: [Class(playgroundButtonClassName)],
+    itemsAttributes: [Class(playgroundItemsClassName)],
+    backdropAttributes: [Class(playgroundBackdropClassName)],
+    attributes: [Class('relative inline-block')],
+  })
+
 // VIEW
 
 export const landingView = (model: Model) => {
@@ -157,6 +250,11 @@ export const landingView = (model: Model) => {
   const emailSignupView = emailSignupContentView(
     model.emailField,
     model.emailSubscriptionStatus,
+  )
+
+  const playgroundMenu = playgroundMenuView(
+    model.playgroundMenu,
+    examples.map(example => example.slug),
   )
 
   const demoTabsView = Ui.Tabs.view<Message, DemoTab>({
@@ -198,6 +296,7 @@ export const landingView = (model: Model) => {
             model.copiedSnippets,
             demoTabsView,
             emailSignupView,
+            playgroundMenu,
             model.aiHeadingToggleCount,
           ),
         ],

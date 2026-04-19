@@ -378,6 +378,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
               ' — full page load (for external URLs)',
             ],
           ),
+          li(
+            [],
+            [
+              inlineCode('Navigation.openUrl'),
+              ' — opens an external URL in a new browsing context (tab or window), leaving the current page untouched',
+            ],
+          ),
         ],
       ),
       para(

@@ -216,6 +216,10 @@
     @apply inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-cream dark:bg-gray-900 text-gray-900 dark:text-white font-normal text-base transition hover:bg-gray-200 hover:border-gray-400 dark:hover:bg-gray-800 dark:hover:border-gray-400;
   }
 
+  .cta-amber {
+    @apply inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-amber-500 dark:bg-amber-400 text-amber-950 font-normal text-base transition hover:bg-amber-400 dark:hover:bg-amber-300 active:bg-amber-600 dark:active:bg-amber-500;
+  }
+
   .landing-card {
     @apply relative;
   }

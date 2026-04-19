@@ -19,7 +19,7 @@ import {
   span,
 } from '../../html'
 import { Icon } from '../../icon'
-import { exampleSourceHref } from '../../link'
+import { exampleSourceHref, exampleStackBlitzHref } from '../../link'
 import type { Message as ParentMessage, TableOfContentsEntry } from '../../main'
 import { makeRemoteData } from '../../makeRemoteData'
 import { pageTitle, para } from '../../prose'
@@ -215,14 +215,28 @@ const headerView = (meta: ExampleMeta): Html =>
         [Class('flex flex-wrap items-center gap-2 mt-3')],
         Array.map(meta.tags, featureTag),
       ),
-      a(
+      div(
+        [Class('flex flex-wrap items-center gap-4 mt-3')],
         [
-          Href(exampleSourceHref(meta.slug)),
-          Class(
-            'text-sm text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500 mt-3 inline-block',
+          a(
+            [
+              Href(exampleSourceHref(meta.slug)),
+              Class(
+                'text-sm text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500',
+              ),
+            ],
+            ['View source on GitHub'],
+          ),
+          a(
+            [
+              Href(exampleStackBlitzHref(meta.slug)),
+              Class(
+                'inline-flex items-center gap-1 text-sm text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500',
+              ),
+            ],
+            [Icon.bolt('w-4 h-4'), 'Open in StackBlitz'],
           ),
         ],
-        ['View source on GitHub'],
       ),
     ],
   )
