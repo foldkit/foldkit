@@ -443,6 +443,7 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
             exampleSlug,
             model.copiedSnippets,
             model.isNarrowViewport,
+            model.isChromium,
             message => GotExampleDetailMessage({ message }),
           ),
         ),

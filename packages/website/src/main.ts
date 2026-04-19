@@ -120,6 +120,7 @@ const Flags = S.Struct({
   themePreference: S.Option(ThemePreference),
   systemTheme: ResolvedTheme,
   isNarrowViewport: S.Boolean,
+  isChromium: S.Boolean,
   currentYear: S.Number,
   today: Calendar.CalendarDate,
 })
@@ -127,6 +128,18 @@ const Flags = S.Struct({
 type Flags = typeof Flags.Type
 
 export const NARROW_VIEWPORT_QUERY = '(max-width: 1023px)'
+
+const CHROMIUM_BRANDS = new Set(['Chromium', 'Google Chrome', 'Microsoft Edge'])
+const CHROMIUM_UA_PATTERN = /Chrome\/|Chromium\/|Edg\/|OPR\//
+
+const detectChromium = (): boolean => {
+  const nullableBrands = navigator.userAgentData?.brands
+  if (nullableBrands) {
+    return nullableBrands.some(({ brand }) => CHROMIUM_BRANDS.has(brand))
+  } else {
+    return CHROMIUM_UA_PATTERN.test(navigator.userAgent)
+  }
+}
 
 const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   const themePreference = yield* Effect.gen(function* () {
@@ -150,6 +163,8 @@ const flags: Effect.Effect<Flags> = Effect.gen(function* () {
     () => window.matchMedia(NARROW_VIEWPORT_QUERY).matches,
   )
 
+  const isChromium = yield* Effect.sync(detectChromium)
+
   const currentYear = yield* DateTime.now.pipe(
     Effect.map(DateTime.getPartUtc('year')),
   )
@@ -160,6 +175,7 @@ const flags: Effect.Effect<Flags> = Effect.gen(function* () {
     themePreference,
     systemTheme,
     isNarrowViewport,
+    isChromium,
     currentYear,
     today,
   }
@@ -179,6 +195,7 @@ export const Model = S.Struct({
   activeSection: S.Option(S.String),
   isLandingHeaderVisible: S.Boolean,
   isNarrowViewport: S.Boolean,
+  isChromium: S.Boolean,
   getStartedGroup: Ui.Disclosure.Model,
   coreConceptsGroup: Ui.Disclosure.Model,
   guidesGroup: Ui.Disclosure.Model,
@@ -326,6 +343,7 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
       aiHeadingToggleCount: 0,
       isLandingHeaderVisible: isLandingHeaderAlwaysVisible(initialRoute),
       isNarrowViewport: flags.isNarrowViewport,
+      isChromium: flags.isChromium,
       getStartedGroup: {
         ...Ui.Disclosure.init({ id: 'get-started-group' }),
         isOpen: true,

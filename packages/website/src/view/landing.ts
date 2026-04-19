@@ -167,6 +167,19 @@ const playgroundItemClassName =
 
 const playgroundBackdropClassName = 'fixed inset-0 z-10'
 
+const chromeRecommendedHint: Html = p(
+  [Class('text-xs text-gray-500 dark:text-gray-400')],
+  ['Requires a Chromium browser'],
+)
+
+const withChromeRecommendedHint = (menu: Html, isChromium: boolean): Html =>
+  isChromium
+    ? menu
+    : div(
+        [Class('flex flex-col items-start gap-1')],
+        [menu, chromeRecommendedHint],
+      )
+
 const playgroundItemContent = (meta: ExampleMeta): Html =>
   div(
     [],
@@ -249,9 +262,12 @@ export const landingView = (model: Model) => {
     model.emailSubscriptionStatus,
   )
 
-  const playgroundMenu = playgroundMenuView(
-    model.playgroundMenu,
-    examples.map(example => example.slug),
+  const playgroundMenu = withChromeRecommendedHint(
+    playgroundMenuView(
+      model.playgroundMenu,
+      examples.map(example => example.slug),
+    ),
+    model.isChromium,
   )
 
   const demoTabsView = Ui.Tabs.view<Message, DemoTab>({

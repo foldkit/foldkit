@@ -16,6 +16,7 @@ import {
   h3,
   iframe,
   keyed,
+  p,
   span,
 } from '../../html'
 import { Icon } from '../../icon'
@@ -196,7 +197,27 @@ const featureTag = (text: string): Html =>
     [text],
   )
 
-const headerView = (meta: ExampleMeta): Html =>
+const chromeRecommendedHint: Html = p(
+  [Class('text-xs text-gray-500 dark:text-gray-400')],
+  ['Requires a Chromium browser'],
+)
+
+const launchPlaygroundSection = (
+  meta: ExampleMeta,
+  isChromium: boolean,
+): Html =>
+  div(
+    [Class('flex flex-col items-start gap-1')],
+    [
+      a(
+        [Href(exampleStackBlitzHref(meta.slug)), Class('cta-amber-sm')],
+        [Icon.bolt('w-4 h-4'), 'Launch Playground'],
+      ),
+      ...(isChromium ? [] : [chromeRecommendedHint]),
+    ],
+  )
+
+const headerView = (meta: ExampleMeta, isChromium: boolean): Html =>
   div(
     [Class('mb-6')],
     [
@@ -218,10 +239,7 @@ const headerView = (meta: ExampleMeta): Html =>
       div(
         [Class('flex flex-col items-start gap-3 mt-3')],
         [
-          a(
-            [Href(exampleStackBlitzHref(meta.slug)), Class('cta-amber-sm')],
-            [Icon.bolt('w-4 h-4'), 'Launch Playground'],
-          ),
+          launchPlaygroundSection(meta, isChromium),
           a(
             [
               Href(exampleSourceHref(meta.slug)),
@@ -452,6 +470,7 @@ export const view = (
   slug: string,
   copiedSnippets: CopiedSnippets,
   isNarrowViewport: boolean,
+  isChromium: boolean,
   toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
   Option.match(findBySlug(slug), {
@@ -461,7 +480,7 @@ export const view = (
         slug,
         [],
         [
-          headerView(meta),
+          headerView(meta, isChromium),
           livePreviewDisclosureView(
             model.livePreviewDisclosure,
             meta,

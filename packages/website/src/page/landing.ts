@@ -195,11 +195,7 @@ const heroSection = (
             ],
           ),
           div(
-            [
-              Class(
-                'mt-8 flex flex-col sm:flex-row items-start sm:items-center gap-4',
-              ),
-            ],
+            [Class('mt-8 flex flex-col sm:flex-row items-start gap-4')],
             [
               a(
                 [Href(coreArchitectureRouter()), Class('cta-primary')],
