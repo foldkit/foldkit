@@ -1,0 +1,38 @@
+import { html } from 'foldkit/html'
+
+import { Message } from './main'
+
+export const {
+  a,
+  article,
+  button,
+  div,
+  empty,
+  form,
+  h1,
+  h2,
+  h3,
+  header,
+  input,
+  keyed,
+  li,
+  main,
+  nav,
+  p,
+  search,
+  section,
+  span,
+  textarea,
+  ul,
+  Class,
+  Disabled,
+  For,
+  Href,
+  Id,
+  OnClick,
+  OnInput,
+  OnSubmit,
+  Placeholder,
+  Type,
+  Value,
+} = html<Message>()
