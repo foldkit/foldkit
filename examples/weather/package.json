@@ -12,12 +12,12 @@
     "@effect/platform": "^0.94.5",
     "@tailwindcss/vite": "^4.1.18",
     "effect": "^3.19.19",
-    "foldkit": "workspace:*",
+    "foldkit": "^0.65.0",
     "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
-    "@foldkit/vite-plugin": "workspace:*",
+    "@foldkit/vite-plugin": "^0.2.3",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "@typescript-eslint/eslint-plugin": "^8.54.0",
     "@typescript-eslint/parser": "^8.54.0",

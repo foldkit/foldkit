@@ -139,7 +139,7 @@ importers:
         specifier: ^3.19.19
         version: 3.19.19
       foldkit:
-        specifier: workspace:*
+        specifier: ^0.65.0
         version: link:../../packages/foldkit
       tailwindcss:
         specifier: ^4.1.18
@@ -149,7 +149,7 @@ importers:
         specifier: ^9.39.2
         version: 9.39.2
       '@foldkit/vite-plugin':
-        specifier: workspace:*
+        specifier: ^0.2.3
         version: link:../../packages/vite-plugin-foldkit
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^5.2.2
@@ -188,7 +188,7 @@ importers:
         specifier: ^3.19.19
         version: 3.19.19
       foldkit:
-        specifier: workspace:*
+        specifier: ^0.65.0
         version: link:../../packages/foldkit
       tailwindcss:
         specifier: ^4.1.18
@@ -198,7 +198,7 @@ importers:
         specifier: ^9.39.2
         version: 9.39.2
       '@foldkit/vite-plugin':
-        specifier: workspace:*
+        specifier: ^0.2.3
         version: link:../../packages/vite-plugin-foldkit
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^5.2.2
@@ -231,7 +231,7 @@ importers:
         specifier: ^3.19.19
         version: 3.19.19
       foldkit:
-        specifier: workspace:*
+        specifier: ^0.65.0
         version: link:../../packages/foldkit
       tailwindcss:
         specifier: ^4.1.18
@@ -241,7 +241,7 @@ importers:
         specifier: ^9.39.2
         version: 9.39.2
       '@foldkit/vite-plugin':
-        specifier: workspace:*
+        specifier: ^0.2.3
         version: link:../../packages/vite-plugin-foldkit
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^5.2.2
@@ -277,7 +277,7 @@ importers:
         specifier: ^3.19.19
         version: 3.19.19
       foldkit:
-        specifier: workspace:*
+        specifier: ^0.65.0
         version: link:../../packages/foldkit
       tailwindcss:
         specifier: ^4.1.18
@@ -287,7 +287,7 @@ importers:
         specifier: ^9.39.2
         version: 9.39.2
       '@foldkit/vite-plugin':
-        specifier: workspace:*
+        specifier: ^0.2.3
         version: link:../../packages/vite-plugin-foldkit
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^5.2.2
@@ -335,7 +335,7 @@ importers:
         specifier: ^3.19.19
         version: 3.19.19
       foldkit:
-        specifier: workspace:*
+        specifier: ^0.65.0
         version: link:../../packages/foldkit
       fractional-indexing:
         specifier: ^3.2.0
@@ -348,7 +348,7 @@ importers:
         specifier: ^9.39.2
         version: 9.39.2
       '@foldkit/vite-plugin':
-        specifier: workspace:*
+        specifier: ^0.2.3
         version: link:../../packages/vite-plugin-foldkit
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^5.2.2
@@ -396,7 +396,7 @@ importers:
         specifier: ^3.19.19
         version: 3.19.19
       foldkit:
-        specifier: workspace:*
+        specifier: ^0.65.0
         version: link:../../packages/foldkit
       tailwindcss:
         specifier: ^4.1.18
@@ -406,8 +406,8 @@ importers:
         specifier: ^9.39.2
         version: 9.39.2
       '@foldkit/vite-plugin':
-        specifier: workspace:*
-        version: link:../../packages/vite-plugin-foldkit
+        specifier: ^0.2.3
+        version: 0.2.3(vite@7.3.1(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^5.2.2
         version: 5.2.2(@vue/compiler-sfc@3.5.32)(prettier@3.8.1)
@@ -448,7 +448,7 @@ importers:
         specifier: ^3.19.19
         version: 3.19.19
       foldkit:
-        specifier: workspace:*
+        specifier: ^0.65.0
         version: link:../../packages/foldkit
       tailwindcss:
         specifier: ^4.1.18
@@ -458,7 +458,7 @@ importers:
         specifier: ^9.39.2
         version: 9.39.2
       '@foldkit/vite-plugin':
-        specifier: workspace:*
+        specifier: ^0.2.3
         version: link:../../packages/vite-plugin-foldkit
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^5.2.2
@@ -491,7 +491,7 @@ importers:
         specifier: ^3.19.19
         version: 3.19.19
       foldkit:
-        specifier: workspace:*
+        specifier: ^0.65.0
         version: link:../../packages/foldkit
       tailwindcss:
         specifier: ^4.1.18
@@ -501,7 +501,7 @@ importers:
         specifier: ^9.39.2
         version: 9.39.2
       '@foldkit/vite-plugin':
-        specifier: workspace:*
+        specifier: ^0.2.3
         version: link:../../packages/vite-plugin-foldkit
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^5.2.2
@@ -534,7 +534,7 @@ importers:
         specifier: ^3.19.19
         version: 3.19.19
       foldkit:
-        specifier: workspace:*
+        specifier: ^0.65.0
         version: link:../../packages/foldkit
       tailwindcss:
         specifier: ^4.1.18
@@ -544,7 +544,7 @@ importers:
         specifier: ^9.39.2
         version: 9.39.2
       '@foldkit/vite-plugin':
-        specifier: workspace:*
+        specifier: ^0.2.3
         version: link:../../packages/vite-plugin-foldkit
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^5.2.2
@@ -577,7 +577,7 @@ importers:
         specifier: ^3.19.19
         version: 3.19.19
       foldkit:
-        specifier: workspace:*
+        specifier: ^0.65.0
         version: link:../../packages/foldkit
       tailwindcss:
         specifier: ^4.1.18
@@ -587,7 +587,7 @@ importers:
         specifier: ^9.39.2
         version: 9.39.2
       '@foldkit/vite-plugin':
-        specifier: workspace:*
+        specifier: ^0.2.3
         version: link:../../packages/vite-plugin-foldkit
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^5.2.2
@@ -620,7 +620,7 @@ importers:
         specifier: ^3.19.19
         version: 3.19.19
       foldkit:
-        specifier: workspace:*
+        specifier: ^0.65.0
         version: link:../../packages/foldkit
       tailwindcss:
         specifier: ^4.1.18
@@ -630,7 +630,7 @@ importers:
         specifier: ^9.39.2
         version: 9.39.2
       '@foldkit/vite-plugin':
-        specifier: workspace:*
+        specifier: ^0.2.3
         version: link:../../packages/vite-plugin-foldkit
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^5.2.2
@@ -669,7 +669,7 @@ importers:
         specifier: ^3.19.19
         version: 3.19.19
       foldkit:
-        specifier: workspace:*
+        specifier: ^0.65.0
         version: link:../../packages/foldkit
       tailwindcss:
         specifier: ^4.1.18
@@ -679,7 +679,7 @@ importers:
         specifier: ^9.39.2
         version: 9.39.2
       '@foldkit/vite-plugin':
-        specifier: workspace:*
+        specifier: ^0.2.3
         version: link:../../packages/vite-plugin-foldkit
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^5.2.2
@@ -721,7 +721,7 @@ importers:
         specifier: ^3.19.19
         version: 3.19.19
       foldkit:
-        specifier: workspace:*
+        specifier: ^0.65.0
         version: link:../../packages/foldkit
       tailwindcss:
         specifier: ^4.1.18
@@ -731,7 +731,7 @@ importers:
         specifier: ^9.39.2
         version: 9.39.2
       '@foldkit/vite-plugin':
-        specifier: workspace:*
+        specifier: ^0.2.3
         version: link:../../packages/vite-plugin-foldkit
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^5.2.2
@@ -767,7 +767,7 @@ importers:
         specifier: ^3.19.19
         version: 3.19.19
       foldkit:
-        specifier: workspace:*
+        specifier: ^0.65.0
         version: link:../../packages/foldkit
       tailwindcss:
         specifier: ^4.1.18
@@ -777,7 +777,7 @@ importers:
         specifier: ^9.39.2
         version: 9.39.2
       '@foldkit/vite-plugin':
-        specifier: workspace:*
+        specifier: ^0.2.3
         version: link:../../packages/vite-plugin-foldkit
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^5.2.2
@@ -816,7 +816,7 @@ importers:
         specifier: ^3.19.19
         version: 3.19.19
       foldkit:
-        specifier: workspace:*
+        specifier: ^0.65.0
         version: link:../../packages/foldkit
       tailwindcss:
         specifier: ^4.1.18
@@ -826,7 +826,7 @@ importers:
         specifier: ^9.39.2
         version: 9.39.2
       '@foldkit/vite-plugin':
-        specifier: workspace:*
+        specifier: ^0.2.3
         version: link:../../packages/vite-plugin-foldkit
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^5.2.2
@@ -1826,6 +1826,12 @@ packages:
 
   '@floating-ui/utils@0.2.11':
     resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
+
+  '@foldkit/vite-plugin@0.2.3':
+    resolution: {integrity: sha512-NUWEIMna8RjaYAn05jUFDNU5No6rpOI+lAqMs5uFNIlzuNoK4lU4FV2WVRnjh1GPeo+nbNFEgXqW24SEKDlhzw==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      vite: ^7.0.0
 
   '@gerrit0/mini-shiki@3.22.0':
     resolution: {integrity: sha512-jMpciqEVUBKE1QwU64S4saNMzpsSza6diNCk4MWAeCxO2+LFi2FIFmL2S0VDLzEJCxuvCbU783xi8Hp/gkM5CQ==}
@@ -5216,7 +5222,7 @@ snapshots:
 
   '@floating-ui/core@1.7.4':
     dependencies:
-      '@floating-ui/utils': 0.2.10
+      '@floating-ui/utils': 0.2.11
 
   '@floating-ui/core@1.7.5':
     dependencies:
@@ -5241,7 +5247,7 @@ snapshots:
   '@floating-ui/react@0.26.28(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
       '@floating-ui/react-dom': 2.1.8(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      '@floating-ui/utils': 0.2.10
+      '@floating-ui/utils': 0.2.11
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
       tabbable: 6.4.0
@@ -5249,6 +5255,10 @@ snapshots:
   '@floating-ui/utils@0.2.10': {}
 
   '@floating-ui/utils@0.2.11': {}
+
+  '@foldkit/vite-plugin@0.2.3(vite@7.3.1(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))':
+    dependencies:
+      vite: 7.3.1(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)
 
   '@gerrit0/mini-shiki@3.22.0':
     dependencies:
