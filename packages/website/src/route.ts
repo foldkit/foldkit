@@ -26,6 +26,9 @@ export const ExamplesRoute = r('Examples')
 export const ExampleDetailRoute = r('ExampleDetail', {
   exampleSlug: S.String,
 })
+export const PlaygroundRoute = r('Playground', {
+  exampleSlug: S.String,
+})
 export const BestPracticesSideEffectsRoute = r('BestPracticesSideEffects')
 export const BestPracticesMessagesRoute = r('BestPracticesMessages')
 export const BestPracticesKeyingRoute = r('BestPracticesKeying')
@@ -149,7 +152,12 @@ export const DocsRoute = S.Union(
 )
 export type DocsRoute = typeof DocsRoute.Type
 
-export const AppRoute = S.Union(HomeRoute, NewsletterRoute, DocsRoute)
+export const AppRoute = S.Union(
+  HomeRoute,
+  NewsletterRoute,
+  PlaygroundRoute,
+  DocsRoute,
+)
 export type AppRoute = typeof AppRoute.Type
 
 // ROUTERS
@@ -195,6 +203,11 @@ export const exampleDetailRouter = pipe(
   literal('example-apps'),
   slash(string('exampleSlug')),
   mapTo(ExampleDetailRoute),
+)
+export const playgroundRouter = pipe(
+  literal('playground'),
+  slash(string('exampleSlug')),
+  mapTo(PlaygroundRoute),
 )
 export const bestPracticesSideEffectsRouter = pipe(
   literal('best-practices'),
@@ -536,6 +549,7 @@ export const routeParser = oneOf(
   docsParser,
   apiModuleRouter,
   newsletterRouter,
+  playgroundRouter,
   homeRouter,
 )
 

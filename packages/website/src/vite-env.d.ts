@@ -55,6 +55,11 @@ declare module 'virtual:example-sources/*' {
   export default data
 }
 
+declare module 'virtual:playground-files' {
+  const data: Record<string, { files: Record<string, string> }>
+  export default data
+}
+
 interface Window {
   readonly __FOLDKIT_PRERENDER__?: boolean
 }

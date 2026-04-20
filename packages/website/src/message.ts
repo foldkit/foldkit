@@ -20,7 +20,6 @@ export type ResolvedTheme = typeof ResolvedTheme.Type
 
 export const CompletedNavigateInternal = m('CompletedNavigateInternal')
 export const CompletedLoadExternal = m('CompletedLoadExternal')
-export const CompletedOpenUrl = m('CompletedOpenUrl')
 export const CompletedInjectAnalytics = m('CompletedInjectAnalytics')
 export const CompletedInjectSpeedInsights = m('CompletedInjectSpeedInsights')
 export const CompletedScroll = m('CompletedScroll')
@@ -83,6 +82,10 @@ export const GotPlaygroundMenuMessage = m('GotPlaygroundMenuMessage', {
 export const SelectedPlaygroundExample = m('SelectedPlaygroundExample', {
   slug: ExampleSlug,
 })
+export const SucceededPlaygroundEmbed = m('SucceededPlaygroundEmbed')
+export const FailedPlaygroundEmbed = m('FailedPlaygroundEmbed', {
+  reason: S.String,
+})
 export const GotAsyncCounterDemoMessage = m('GotAsyncCounterDemoMessage', {
   message: Page.AsyncCounterDemo.Message,
 })
@@ -138,7 +141,6 @@ export const GotSearchMessage = m('GotSearchMessage', {
 export const Message = S.Union(
   CompletedNavigateInternal,
   CompletedLoadExternal,
-  CompletedOpenUrl,
   CompletedInjectAnalytics,
   CompletedInjectSpeedInsights,
   CompletedScroll,
@@ -168,6 +170,8 @@ export const Message = S.Union(
   GotDemoTabsMessage,
   GotPlaygroundMenuMessage,
   SelectedPlaygroundExample,
+  SucceededPlaygroundEmbed,
+  FailedPlaygroundEmbed,
   GotAsyncCounterDemoMessage,
   GotNotePlayerDemoMessage,
   GotUiPageMessage,

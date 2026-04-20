@@ -20,11 +20,11 @@ import {
   span,
 } from '../../html'
 import { Icon } from '../../icon'
-import { exampleSourceHref, exampleStackBlitzHref } from '../../link'
+import { exampleSourceHref } from '../../link'
 import type { Message as ParentMessage, TableOfContentsEntry } from '../../main'
 import { makeRemoteData } from '../../makeRemoteData'
 import { pageTitle, para } from '../../prose'
-import { examplesRouter } from '../../route'
+import { examplesRouter, playgroundRouter } from '../../route'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 import { type ExampleMeta, findBySlug } from './meta'
 import {
@@ -210,7 +210,10 @@ const launchPlaygroundSection = (
     [Class('flex flex-col items-start gap-1')],
     [
       a(
-        [Href(exampleStackBlitzHref(meta.slug)), Class('cta-amber-sm')],
+        [
+          Href(playgroundRouter({ exampleSlug: meta.slug })),
+          Class('cta-amber-sm'),
+        ],
         [Icon.bolt('w-4 h-4'), 'Launch Playground'],
       ),
       ...(isChromium ? [] : [chromeRecommendedHint]),

@@ -21,13 +21,12 @@ import {
   pipe,
 } from 'effect'
 import { Calendar, Command, FieldValidation, Runtime, Ui } from 'foldkit'
-import { load, openUrl, pushUrl } from 'foldkit/navigation'
+import { load, pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 import { makeSubscriptions } from 'foldkit/subscription'
 import { Url, toString as urlToString } from 'foldkit/url'
 
 import { allPages } from './docsNav'
-import { exampleStackBlitzHref } from './link'
 import {
   ChangedUrl,
   ClickedLink,
@@ -36,7 +35,6 @@ import {
   CompletedInjectSpeedInsights,
   CompletedLoadExternal,
   CompletedNavigateInternal,
-  CompletedOpenUrl,
   CompletedSaveThemePreference,
   CompletedScroll,
   FailedCopy,
@@ -70,7 +68,12 @@ import {
   ThemePreference,
 } from './message'
 import * as Page from './page'
-import { AppRoute, isLandingHeaderAlwaysVisible, urlToAppRoute } from './route'
+import {
+  AppRoute,
+  isLandingHeaderAlwaysVisible,
+  playgroundRouter,
+  urlToAppRoute,
+} from './route'
 import * as Search from './search'
 import * as Subscription from './subscription'
 import { docsView, landingView, newsletterView } from './view'
@@ -132,14 +135,11 @@ export const NARROW_VIEWPORT_QUERY = '(max-width: 1023px)'
 const CHROMIUM_BRANDS = new Set(['Chromium', 'Google Chrome', 'Microsoft Edge'])
 const CHROMIUM_UA_PATTERN = /Chrome\/|Chromium\/|Edg\/|OPR\//
 
-const detectChromium = (): boolean => {
-  const nullableBrands = navigator.userAgentData?.brands
-  if (nullableBrands) {
-    return nullableBrands.some(({ brand }) => CHROMIUM_BRANDS.has(brand))
-  } else {
-    return CHROMIUM_UA_PATTERN.test(navigator.userAgent)
-  }
-}
+const detectChromium = (): boolean =>
+  Option.match(Option.fromNullable(navigator.userAgentData?.brands), {
+    onNone: () => CHROMIUM_UA_PATTERN.test(navigator.userAgent),
+    onSome: brands => brands.some(({ brand }) => CHROMIUM_BRANDS.has(brand)),
+  })
 
 const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   const themePreference = yield* Effect.gen(function* () {
@@ -196,6 +196,7 @@ export const Model = S.Struct({
   isLandingHeaderVisible: S.Boolean,
   isNarrowViewport: S.Boolean,
   isChromium: S.Boolean,
+  playgroundError: S.OptionFromSelf(S.String),
   getStartedGroup: Ui.Disclosure.Model,
   coreConceptsGroup: Ui.Disclosure.Model,
   guidesGroup: Ui.Disclosure.Model,
@@ -344,6 +345,7 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
       isLandingHeaderVisible: isLandingHeaderAlwaysVisible(initialRoute),
       isNarrowViewport: flags.isNarrowViewport,
       isChromium: flags.isChromium,
+      playgroundError: Option.none(),
       getStartedGroup: {
         ...Ui.Disclosure.init({ id: 'get-started-group' }),
         isOpen: true,
@@ -443,9 +445,10 @@ const update = (
             ] => [
               model,
               [
-                pushUrl(urlToString(url)).pipe(
-                  Effect.as(CompletedNavigateInternal()),
-                  NavigateInternal,
+                NavigateInternal(
+                  pushUrl(urlToString(url)).pipe(
+                    Effect.as(CompletedNavigateInternal()),
+                  ),
                 ),
               ],
             ],
@@ -510,6 +513,7 @@ const update = (
             mobileMenuDialog: () => closedMobileMenu,
             apiReference: () => nextApiReference,
             exampleDetail: () => nextExampleDetail,
+            playgroundError: () => Option.none(),
             search: search => ({
               ...search,
               dialog: closedSearchDialog,
@@ -739,9 +743,9 @@ const update = (
                 Effect.map(message => GotPlaygroundMenuMessage({ message })),
               ),
             ),
-            OpenUrl(
-              openUrl(exampleStackBlitzHref(slug)).pipe(
-                Effect.as(CompletedOpenUrl()),
+            NavigateInternal(
+              pushUrl(playgroundRouter({ exampleSlug: slug })).pipe(
+                Effect.as(CompletedNavigateInternal()),
               ),
             ),
           ],
@@ -1039,11 +1043,15 @@ const update = (
           ),
         ]
       },
+
+      FailedPlaygroundEmbed: ({ reason }) => [
+        evo(model, { playgroundError: () => Option.some(reason) }),
+        [],
+      ],
     }),
     M.tag(
       'CompletedNavigateInternal',
       'CompletedLoadExternal',
-      'CompletedOpenUrl',
       'CompletedInjectAnalytics',
       'CompletedInjectSpeedInsights',
       'CompletedScroll',
@@ -1051,6 +1059,7 @@ const update = (
       'CompletedSaveThemePreference',
       'SucceededCopyLink',
       'FailedCopy',
+      'SucceededPlaygroundEmbed',
       () => [model, []],
     ),
     M.exhaustive,
@@ -1089,7 +1098,6 @@ const NavigateInternal = Command.define(
   CompletedNavigateInternal,
 )
 const LoadExternal = Command.define('LoadExternal', CompletedLoadExternal)
-const OpenUrl = Command.define('OpenUrl', CompletedOpenUrl)
 
 const injectAnalytics = InjectAnalytics(
   Effect.sync(() => inject()).pipe(Effect.as(CompletedInjectAnalytics())),
@@ -1230,6 +1238,13 @@ const view = (model: Model) =>
   M.value(model.route).pipe(
     M.tag('Home', () => landingView(model)),
     M.tag('Newsletter', () => newsletterView(model)),
+    M.tag('Playground', ({ exampleSlug }) =>
+      Page.Playground.view(
+        exampleSlug,
+        model.isChromium,
+        model.playgroundError,
+      ),
+    ),
     M.orElse(route => docsView(model, route)),
   )
 
@@ -1253,6 +1268,16 @@ const routeTitle = (route: AppRoute): string =>
         Option.match({
           onNone: () => `${exampleSlug} — Examples — ${SITE_NAME}`,
           onSome: ({ label }) => `${label} — Examples — ${SITE_NAME}`,
+        }),
+      ),
+    ),
+    M.tag('Playground', ({ exampleSlug }) =>
+      pipe(
+        allPages,
+        Array.findFirst(({ _tag }) => _tag === `ExampleDetail:${exampleSlug}`),
+        Option.match({
+          onNone: () => `Playground — ${SITE_NAME}`,
+          onSome: ({ label }) => `${label} — Playground — ${SITE_NAME}`,
         }),
       ),
     ),

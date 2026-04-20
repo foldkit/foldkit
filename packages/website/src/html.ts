@@ -77,6 +77,8 @@ export const {
   Min,
   OnChange,
   OnClick,
+  OnInsert,
+  OnInsertEffect,
   OnKeyDownPreventDefault,
   OnToggle,
   Open,

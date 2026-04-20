@@ -1,4 +1,4 @@
-import { Option, pipe } from 'effect'
+import { Match as M, Option } from 'effect'
 
 import { findBySlug } from '../src/page/example/meta'
 import { type AppRoute } from '../src/route'
@@ -33,7 +33,10 @@ const ui = (title: string, description: string): PageMetadata =>
 const pattern = (title: string, description: string): PageMetadata =>
   docs(title, description, 'Patterns')
 
-type StaticRouteTag = Exclude<AppRoute['_tag'], 'ApiModule' | 'ExampleDetail'>
+type StaticRouteTag = Exclude<
+  AppRoute['_tag'],
+  'ApiModule' | 'ExampleDetail' | 'Playground'
+>
 
 const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   Home: {
@@ -294,25 +297,33 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   },
 }
 
-export const routeToMetadata = (route: AppRoute): PageMetadata => {
-  if (route._tag === 'ApiModule') {
-    return docs(
-      route.moduleSlug,
-      `API documentation for the ${route.moduleSlug} module.`,
-      'API Reference',
-    )
-  }
-
-  if (route._tag === 'ExampleDetail') {
-    return pipe(
-      findBySlug(route.exampleSlug),
-      Option.match({
+export const routeToMetadata = (route: AppRoute): PageMetadata =>
+  M.value(route).pipe(
+    M.withReturnType<PageMetadata>(),
+    M.tag('ApiModule', ({ moduleSlug }) =>
+      docs(
+        moduleSlug,
+        `API documentation for the ${moduleSlug} module.`,
+        'API Reference',
+      ),
+    ),
+    M.tag('ExampleDetail', ({ exampleSlug }) =>
+      Option.match(findBySlug(exampleSlug), {
         onNone: () =>
           docs('Example', 'A Foldkit example application.', 'Examples'),
         onSome: example => docs(example.title, example.description, 'Examples'),
       }),
-    )
-  }
-
-  return METADATA_BY_TAG[route._tag]
-}
+    ),
+    M.tag('Playground', ({ exampleSlug }) =>
+      Option.match(findBySlug(exampleSlug), {
+        onNone: () => docs('Playground', 'Foldkit playground.', 'Playground'),
+        onSome: example =>
+          docs(
+            `${example.title} playground`,
+            `Edit and run the ${example.title} example live in your browser.`,
+            'Playground',
+          ),
+      }),
+    ),
+    M.orElse(({ _tag }) => METADATA_BY_TAG[_tag]),
+  )

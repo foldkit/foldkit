@@ -562,6 +562,9 @@ export type Attribute<Message> = Data.TaggedEnum<{
   StrokeDasharray: { readonly value: string }
   StrokeDashoffset: { readonly value: string }
   OnInsert: { readonly f: (element: Element) => void }
+  OnInsertEffect: {
+    readonly f: (element: Element) => Effect.Effect<Message>
+  }
   OnDestroy: { readonly f: (element: Element) => void }
 }>
 
@@ -807,6 +810,7 @@ const {
   StrokeDasharray,
   StrokeDashoffset,
   OnInsert,
+  OnInsertEffect,
   OnDestroy,
 } = Data.taggedEnum<AttributeDefinition>()
 
@@ -1467,6 +1471,32 @@ const buildVNodeData = <Message>(
                 insert: vnode => {
                   if (vnode.elm instanceof Element) {
                     f(vnode.elm)
+                  }
+                },
+              },
+            })),
+          OnInsertEffect: ({ f }) =>
+            Ref.update(dataRef, data => ({
+              ...data,
+              hook: {
+                ...data.hook,
+                insert: vnode => {
+                  if (vnode.elm instanceof Element) {
+                    Effect.runFork(
+                      f(vnode.elm).pipe(
+                        Effect.tap(message =>
+                          Effect.sync(() => dispatchSync(message)),
+                        ),
+                        Effect.catchAllCause(cause =>
+                          Effect.sync(() => {
+                            console.error(
+                              '[OnInsertEffect] unhandled failure',
+                              cause,
+                            )
+                          }),
+                        ),
+                      ),
+                    )
                   }
                 },
               },
@@ -2853,6 +2883,10 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnInsert'
     readonly f: (element: Element) => void
   }
+  OnInsertEffect: (f: (element: Element) => Effect.Effect<Message>) => {
+    readonly _tag: 'OnInsertEffect'
+    readonly f: (element: Element) => Effect.Effect<Message>
+  }
   OnDestroy: (f: (element: Element) => void) => {
     readonly _tag: 'OnDestroy'
     readonly f: (element: Element) => void
@@ -3128,6 +3162,8 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   StrokeDasharray: (value: string) => StrokeDasharray({ value }),
   StrokeDashoffset: (value: string) => StrokeDashoffset({ value }),
   OnInsert: (f: (element: Element) => void) => OnInsert({ f }),
+  OnInsertEffect: (f: (element: Element) => Effect.Effect<Message>) =>
+    OnInsertEffect({ f }),
   OnDestroy: (f: (element: Element) => void) => OnDestroy({ f }),
 })
 

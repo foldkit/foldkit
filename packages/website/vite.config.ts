@@ -6,6 +6,7 @@ import { basename, extname, join, relative, resolve } from 'node:path'
 import { codeToHtml } from 'shiki'
 import { type Plugin, defineConfig } from 'vite'
 
+import { playgroundFilesPlugin } from './scripts/playgroundFilesPlugin'
 import { moduleNameToSlug } from './src/page/apiReference/domain'
 import {
   typeDefFromChildren,
@@ -814,6 +815,7 @@ export default defineConfig({
     counterDemoCodePlugin(),
     notePlayerDemoCodePlugin(),
     highlightExampleSourcesPlugin(),
+    playgroundFilesPlugin(),
     cssLoadOrderPlugin(),
   ],
 })
