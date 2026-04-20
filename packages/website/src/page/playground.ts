@@ -90,6 +90,7 @@ const embedView = (meta: ExampleMeta, files: Record<string, string>): Html => {
             height: '100%',
             hideNavigation: true,
             openFile: 'src/main.ts',
+            showSidebar: true,
             view: 'default',
           },
         ),
