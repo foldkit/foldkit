@@ -15,6 +15,7 @@ import {
   RadioGroup,
   Switch,
   Tabs,
+  Tooltip,
   Transition,
 } from 'foldkit/ui'
 
@@ -65,6 +66,7 @@ export const Model = S.Struct({
   dragAndDropDemoColumns: S.Array(DemoColumn),
   fileDropBasicDemo: FileDrop.Model,
   fileDropBasicDemoFiles: S.Array(File.File),
+  tooltipDemo: Tooltip.Model,
   transitionDemo: Transition.Model,
 })
 export type Model = typeof Model.Type

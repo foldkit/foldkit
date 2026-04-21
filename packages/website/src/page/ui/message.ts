@@ -135,6 +135,9 @@ export const ClickedRemoveFileDropDemoFile = m(
     fileIndex: S.Number,
   },
 )
+export const GotTooltipDemoMessage = m('GotTooltipDemoMessage', {
+  message: Ui.Tooltip.Message,
+})
 export const GotTransitionDemoMessage = m('GotTransitionDemoMessage', {
   message: Ui.Transition.Message,
 })
@@ -175,6 +178,7 @@ export const Message = S.Union(
   GotDragAndDropDemoMessage,
   GotFileDropBasicDemoMessage,
   ClickedRemoveFileDropDemoFile,
+  GotTooltipDemoMessage,
   GotTransitionDemoMessage,
 )
 export type Message = typeof Message.Type

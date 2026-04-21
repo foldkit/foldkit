@@ -122,6 +122,12 @@ export const GotHorizontalTabsDemoMessage = m('GotHorizontalTabsDemoMessage', {
 export const GotVerticalTabsDemoMessage = m('GotVerticalTabsDemoMessage', {
   message: Ui.Tabs.Message,
 })
+export const GotTooltipBasicDemoMessage = m('GotTooltipBasicDemoMessage', {
+  message: Ui.Tooltip.Message,
+})
+export const GotTooltipNoDelayDemoMessage = m('GotTooltipNoDelayDemoMessage', {
+  message: Ui.Tooltip.Message,
+})
 
 export const UiMessage = S.Union(
   GotMobileMenuDialogMessage,
@@ -157,5 +163,7 @@ export const UiMessage = S.Union(
   GotSwitchDemoMessage,
   GotHorizontalTabsDemoMessage,
   GotVerticalTabsDemoMessage,
+  GotTooltipBasicDemoMessage,
+  GotTooltipNoDelayDemoMessage,
 )
 export type UiMessage = typeof UiMessage.Type

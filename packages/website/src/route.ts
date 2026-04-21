@@ -78,6 +78,7 @@ export const UiTextareaRoute = r('UiTextarea')
 export const UiFieldsetRoute = r('UiFieldset')
 export const UiDragAndDropRoute = r('UiDragAndDrop')
 export const UiFileDropRoute = r('UiFileDrop')
+export const UiTooltipRoute = r('UiTooltip')
 export const UiTransitionRoute = r('UiTransition')
 
 export const AiOverviewRoute = r('AiOverview')
@@ -145,6 +146,7 @@ export const DocsRoute = S.Union(
   UiFieldsetRoute,
   UiDragAndDropRoute,
   UiFileDropRoute,
+  UiTooltipRoute,
   UiTransitionRoute,
   AiOverviewRoute,
   AiSkillsRoute,
@@ -441,6 +443,11 @@ export const uiFileDropRouter = pipe(
   slash(literal('file-drop')),
   mapTo(UiFileDropRoute),
 )
+export const uiTooltipRouter = pipe(
+  literal('ui'),
+  slash(literal('tooltip')),
+  mapTo(UiTooltipRoute),
+)
 export const uiTransitionRouter = pipe(
   literal('ui'),
   slash(literal('transition')),
@@ -526,6 +533,7 @@ const uiParser = oneOf(
   uiFieldsetRouter,
   uiDragAndDropRouter,
   uiFileDropRouter,
+  uiTooltipRouter,
   uiTransitionRouter,
 )
 

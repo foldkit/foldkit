@@ -72,6 +72,11 @@ export const uiInit = (): [
     verticalTabsDemo: Ui.Tabs.init({
       id: 'vertical-tabs-demo',
     }),
+    tooltipBasicDemo: Ui.Tooltip.init({ id: 'tooltip-basic-demo' }),
+    tooltipNoDelayDemo: Ui.Tooltip.init({
+      id: 'tooltip-no-delay-demo',
+      showDelay: 0,
+    }),
     transitionDemo: Ui.Transition.init({ id: 'transition-demo' }),
     isTransitionDemoShowing: false,
   },

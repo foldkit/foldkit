@@ -81,6 +81,7 @@ import {
   UiSwitchRoute,
   UiTabsRoute,
   UiTextareaRoute,
+  UiTooltipRoute,
   UiTransitionRoute,
   aiOverviewRouter,
   aiSkillsRouter,
@@ -144,6 +145,7 @@ import {
   uiSwitchRouter,
   uiTabsRouter,
   uiTextareaRouter,
+  uiTooltipRouter,
   uiTransitionRouter,
 } from '../src/route'
 import { generateOgImages, injectMetaTags } from './og-image'
@@ -209,6 +211,7 @@ export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   UiFieldsetRoute(),
   UiDragAndDropRoute(),
   UiFileDropRoute(),
+  UiTooltipRoute(),
   UiTransitionRoute(),
   AiOverviewRoute(),
   AiSkillsRoute(),
@@ -275,6 +278,7 @@ export const routeToUrlPath = (route: AppRoute): string =>
       UiFieldset: () => uiFieldsetRouter(),
       UiDragAndDrop: () => uiDragAndDropRouter(),
       UiFileDrop: () => uiFileDropRouter(),
+      UiTooltip: () => uiTooltipRouter(),
       UiTransition: () => uiTransitionRouter(),
       AiOverview: () => aiOverviewRouter(),
       AiSkills: () => aiSkillsRouter(),

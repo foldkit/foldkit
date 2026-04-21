@@ -28,6 +28,7 @@ import {
   GotPopoverAnimatedDemoMessage,
   GotPopoverBasicDemoMessage,
   GotSwitchDemoMessage,
+  GotTooltipDemoMessage,
   GotTransitionDemoMessage,
   GotVerticalRadioGroupDemoMessage,
   GotVerticalTabsDemoMessage,
@@ -601,6 +602,24 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           verticalTabsCommands.map(
             Command.mapEffect(
               Effect.map(message => GotVerticalTabsDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      GotTooltipDemoMessage: ({ message }) => {
+        const [nextTooltipDemo, tooltipCommands] = Ui.Tooltip.update(
+          model.tooltipDemo,
+          message,
+        )
+
+        return [
+          evo(model, {
+            tooltipDemo: () => nextTooltipDemo,
+          }),
+          tooltipCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotTooltipDemoMessage({ message })),
             ),
           ),
         ]

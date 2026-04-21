@@ -685,6 +685,15 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           ),
           Page.UiPages.PopoverPage.tableOfContents,
         ),
+      UiTooltip: () =>
+        withTableOfContents(
+          Page.UiPages.TooltipPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
+          Page.UiPages.TooltipPage.tableOfContents,
+        ),
       UiListbox: () =>
         withTableOfContents(
           Page.UiPages.ListboxPage.view(

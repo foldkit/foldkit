@@ -143,6 +143,10 @@
       "types": "./dist/ui/tabs/public.d.ts",
       "import": "./dist/ui/tabs/public.js"
     },
+    "./ui/tooltip": {
+      "types": "./dist/ui/tooltip/public.d.ts",
+      "import": "./dist/ui/tooltip/public.js"
+    },
     "./ui/transition": {
       "types": "./dist/ui/transition/public.d.ts",
       "import": "./dist/ui/transition/public.js"
