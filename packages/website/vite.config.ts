@@ -347,32 +347,37 @@ const apiModuleIndexPlugin = (): Plugin => ({
     const raw = await readFile(jsonPath, 'utf-8')
     const json = S.decodeUnknownSync(TypeDocJson)(JSON.parse(raw))
 
-    const collectModuleNames = (
+    const collectNestedNames = (
       prefix: string,
       children: ReadonlyArray<TypeDocItem>,
     ): ReadonlyArray<string> =>
-      Array.flatMap(children, item =>
-        item.kind === Kind.Namespace
-          ? Option.match(item.children, {
-              onNone: () => [],
-              onSome: namespaceChildren =>
-                collectModuleNames(`${prefix}${item.name}/`, namespaceChildren),
-            })
-          : [],
-      )
+      Array.flatMap(children, item => {
+        if (item.kind !== Kind.Namespace) {
+          return []
+        }
+        return Option.match(item.children, {
+          onNone: () => [],
+          onSome: namespaceChildren => {
+            const qualifiedName = `${prefix}/${item.name}`
+            const hasDeclarations = Array.some(
+              namespaceChildren,
+              ({ kind }) => kind !== Kind.Namespace,
+            )
+            const selfEntry = hasDeclarations ? [qualifiedName] : []
+            const nested = collectNestedNames(qualifiedName, namespaceChildren)
+            return [...selfEntry, ...nested]
+          },
+        })
+      })
 
     const index = Array.flatMap(json.children, module => {
-      const namespaceNames = collectModuleNames('', module.children)
-      const hasDirectChildren = Array.some(
+      const hasDeclarations = Array.some(
         module.children,
         ({ kind }) => kind !== Kind.Namespace,
       )
-      const directName = hasDirectChildren ? [module.name] : []
-      const namespaceQualified = Array.map(
-        namespaceNames,
-        name => `${module.name}/${name}`,
-      )
-      return Array.map([...directName, ...namespaceQualified], name => ({
+      const selfEntry = hasDeclarations ? [module.name] : []
+      const nested = collectNestedNames(module.name, module.children)
+      return Array.map([...selfEntry, ...nested], name => ({
         slug: moduleNameToSlug(name),
         name,
       }))
