@@ -33,6 +33,7 @@ import {
   addNavigationEventListeners,
 } from './browserListeners'
 import { defaultCrashView, noOpDispatch } from './crashUI'
+import { deepFreeze } from './deepFreeze'
 import type { ManagedResourceConfig, ManagedResources } from './managedResource'
 import type { Subscriptions } from './subscription'
 import { UrlRequest } from './urlRequest'
@@ -109,6 +110,33 @@ export type SlowViewConfig<Model, Message> =
 
 const DEFAULT_SLOW_VIEW_SHOW: Visibility = 'Development'
 const DEFAULT_SLOW_VIEW_THRESHOLD_MS = 16
+
+/**
+ * Model-freeze configuration for catching accidental mutations in development.
+ *
+ * When active, Foldkit deep-freezes the Model after `init` and after every
+ * `update`. Accidental mutations (e.g. `model.items.push(...)`) then throw a
+ * `TypeError` at the exact write site with a stack trace, rather than
+ * silently corrupting state or breaking reference-equality change detection.
+ *
+ * Pass `false` to disable entirely.
+ *
+ * - `show`: `'Development'` (default) enables when Vite HMR is active,
+ *   `'Always'` enables in all environments including production.
+ *
+ * Scope: only the Model is frozen. Messages are short-lived and are not
+ * frozen; they often carry `OptionFromSelf` / `DateTimeFromSelf` fields that
+ * rely on `Hash.cached` which lazily writes to the instance. Production
+ * builds (`'Development'` + no HMR) leave change detection at reference
+ * equality and pay nothing for this feature.
+ */
+export type FreezeModelConfig =
+  | false
+  | Readonly<{
+      show?: Visibility
+    }>
+
+const DEFAULT_FREEZE_MODEL_SHOW: Visibility = 'Development'
 
 const defaultSlowViewCallback = (
   context: SlowViewContext<unknown, unknown>,
@@ -197,6 +225,7 @@ type RuntimeConfig<
   routing?: RoutingConfig<Message>
   crash?: CrashConfig<Model, Message>
   slowView?: SlowViewConfig<Model, Message>
+  freezeModel?: FreezeModelConfig
   /**
    * An Effect Layer providing long-lived resources that persist across command
    * invocations. Use this for browser resources with lifecycle (AudioContext,
@@ -244,6 +273,7 @@ type BaseProgramConfig<
   container: HTMLElement
   crash?: CrashConfig<Model, Message>
   slowView?: SlowViewConfig<Model, Message>
+  freezeModel?: FreezeModelConfig
   resources?: Layer.Layer<Resources>
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
   /** Derives the document title from the current model. Called after every render. */
@@ -428,6 +458,7 @@ const makeRuntime = <
   routing: routingConfig,
   crash,
   slowView,
+  freezeModel,
   resources,
   managedResources,
   title,
@@ -455,6 +486,22 @@ const makeRuntime = <
       onSlowView: config.onSlowView ?? defaultSlowViewCallback,
     })),
   )
+
+  const isFreezeModelActive = pipe(
+    freezeModel ?? {},
+    Option.liftPredicate(config => config !== false),
+    Option.filter(config =>
+      Match.value(config.show ?? DEFAULT_FREEZE_MODEL_SHOW).pipe(
+        Match.when('Always', () => true),
+        Match.when('Development', () => !!import.meta.hot),
+        Match.exhaustive,
+      ),
+    ),
+    Option.isSome,
+  )
+
+  const maybeFreezeModel = (model: Model): Model =>
+    isFreezeModelActive ? deepFreeze(model) : model
 
   return (hmrModel?: unknown): Effect.Effect<void> =>
     Effect.scoped(
@@ -535,7 +582,7 @@ const makeRuntime = <
           routingConfig,
         ).pipe(Option.flatMap(() => urlFromString(window.location.href)))
 
-        const [initModel, initCommands] = Predicate.isNotUndefined(hmrModel)
+        const [initModelRaw, initCommands] = Predicate.isNotUndefined(hmrModel)
           ? pipe(
               hmrModel,
               Schema.decodeUnknownEither(Model),
@@ -545,6 +592,8 @@ const makeRuntime = <
               }),
             )
           : init(flags, Option.getOrUndefined(currentUrl))
+
+        const initModel = maybeFreezeModel(initModelRaw)
 
         const modelSubscriptionRef = yield* SubscriptionRef.make(initModel)
 
@@ -602,7 +651,8 @@ const makeRuntime = <
           Effect.gen(function* () {
             const currentModel = yield* Ref.get(modelRef)
 
-            const [nextModel, commands] = update(currentModel, message)
+            const [nextModelRaw, commands] = update(currentModel, message)
+            const nextModel = maybeFreezeModel(nextModelRaw)
 
             if (currentModel !== nextModel) {
               yield* Ref.set(modelRef, nextModel)
@@ -792,8 +842,10 @@ const makeRuntime = <
           const { position, mode, maybeBanner } = resolvedDevtools.value
           const devtoolsStore = yield* createDevtoolsStore({
             replay: (model, message) =>
-              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-              Tuple.getFirst(update(model as Model, message as Message)),
+              maybeFreezeModel(
+                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                Tuple.getFirst(update(model as Model, message as Message)),
+              ),
             render: model =>
               /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
               render(model as Model, Option.none()),
@@ -1172,6 +1224,9 @@ export function makeProgram<
     ...(config.crash && { crash: config.crash }),
     ...(Predicate.isNotUndefined(config.slowView) && {
       slowView: config.slowView,
+    }),
+    ...(Predicate.isNotUndefined(config.freezeModel) && {
+      freezeModel: config.freezeModel,
     }),
     ...(config.resources && { resources: config.resources }),
     ...(config.managedResources && {

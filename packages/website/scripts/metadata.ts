@@ -187,6 +187,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Slow View',
     'Performance monitoring for view render times.',
   ),
+  CoreFreezeModel: core(
+    'Freeze Model',
+    'Catch accidental Model mutations at the write site in development.',
+  ),
   CoreViewMemoization: core(
     'View Memoization',
     'Optimize rendering performance with memoized views.',

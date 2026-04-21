@@ -15,6 +15,7 @@ import {
   coreCrashViewRouter,
   coreDevtoolsRouter,
   coreFileRouter,
+  coreFreezeModelRouter,
   coreInitAndFlagsRouter,
   coreManagedResourcesRouter,
   coreMessagesRouter,
@@ -216,6 +217,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'CoreSlowView',
           href: coreSlowViewRouter(),
           label: 'Slow View',
+        },
+        {
+          _tag: 'CoreFreezeModel',
+          href: coreFreezeModelRouter(),
+          label: 'Freeze Model',
         },
         {
           _tag: 'CoreViewMemoization',

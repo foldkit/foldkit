@@ -14,6 +14,7 @@ export type {
   Visibility,
   SlowViewContext,
   SlowViewConfig,
+  FreezeModelConfig,
   DevtoolsConfig,
 } from './runtime'
 

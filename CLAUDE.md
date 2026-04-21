@@ -195,4 +195,4 @@ Command definitions live where they're produced — colocated with the update fu
 
 ## Prose Style
 
-- **Avoid em dashes.** You overuse them. Default to periods, semicolons, commas, or parentheses. An em dash is fine when it genuinely makes a clause punchier (a sharp aside, a summarizing afterthought) — but most of the time it's lazy punctuation covering for imprecise structure. Before writing one, ask: "would a period or comma work here?" If yes, use that. Applies to comments, TSDoc, docs, snippets, website copy, and conversation. **Exception:** em dashes in commit messages are fine.
+- **No em dashes.** You compulsively reach for them and the user is sick of removing them. Default to periods. A comma, semicolon, parentheses, or a colon will also almost always work. Before typing `—`, stop: a period and a fresh sentence is the right answer 99% of the time. "It runs at startup — useful for QA" should be "It runs at startup. Useful for QA." Applies to comments, TSDoc, docs, snippets, website copy, conversation, and especially anything user-facing. The only place em dashes are allowed: commit messages. Everywhere else, treat `—` as a typo.

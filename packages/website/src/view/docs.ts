@@ -607,6 +607,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           lazyDocsContent(Page.Core.SlowView.view, [model.copiedSnippets]),
           Page.Core.SlowView.tableOfContents,
         ),
+      CoreFreezeModel: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.Core.FreezeModel.view, [model.copiedSnippets]),
+          Page.Core.FreezeModel.tableOfContents,
+        ),
       PatternsSubmodels: () =>
         withTableOfContents(
           lazyDocsContent(Page.Patterns.Submodels.view, [model.copiedSnippets]),

@@ -96,6 +96,7 @@ export const activeSection: Subscription<
         ),
         M.tag('CoreCrashView', () => Page.Core.CrashView.tableOfContents),
         M.tag('CoreSlowView', () => Page.Core.SlowView.tableOfContents),
+        M.tag('CoreFreezeModel', () => Page.Core.FreezeModel.tableOfContents),
         M.tag('CoreDevtools', () => Page.Core.DevTools.tableOfContents),
         M.tag(
           'PatternsSubmodels',
