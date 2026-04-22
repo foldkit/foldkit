@@ -19,6 +19,8 @@ import {
   Transition,
 } from 'foldkit/ui'
 
+import { Toast } from './toastModule'
+
 export const DemoCard = S.Struct({
   id: S.String,
   label: S.String,
@@ -66,6 +68,7 @@ export const Model = S.Struct({
   dragAndDropDemoColumns: S.Array(DemoColumn),
   fileDropBasicDemo: FileDrop.Model,
   fileDropBasicDemoFiles: S.Array(File.File),
+  toastDemo: Toast.Model,
   tooltipDemo: Tooltip.Model,
   transitionDemo: Transition.Model,
 })

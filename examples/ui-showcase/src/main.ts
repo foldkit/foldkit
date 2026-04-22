@@ -33,6 +33,7 @@ const SelectRoute = r('Select')
 const SwitchRoute = r('Switch')
 const TabsRoute = r('Tabs')
 const TextareaRoute = r('Textarea')
+const ToastRoute = r('Toast')
 const TooltipRoute = r('Tooltip')
 const TransitionRoute = r('Transition')
 const NotFoundRoute = r('NotFound', { path: S.String })
@@ -54,6 +55,7 @@ const AppRoute = S.Union(
   SwitchRoute,
   TabsRoute,
   TextareaRoute,
+  ToastRoute,
   TooltipRoute,
   TransitionRoute,
   NotFoundRoute,
@@ -83,6 +85,7 @@ const selectRouter = pipe(literal('select'), Route.mapTo(SelectRoute))
 const switchRouter = pipe(literal('switch'), Route.mapTo(SwitchRoute))
 const tabsRouter = pipe(literal('tabs'), Route.mapTo(TabsRoute))
 const textareaRouter = pipe(literal('textarea'), Route.mapTo(TextareaRoute))
+const toastRouter = pipe(literal('toast'), Route.mapTo(ToastRoute))
 const tooltipRouter = pipe(literal('tooltip'), Route.mapTo(TooltipRoute))
 const transitionRouter = pipe(
   literal('transition'),
@@ -105,6 +108,7 @@ const routeParser = Route.oneOf(
   switchRouter,
   tabsRouter,
   textareaRouter,
+  toastRouter,
   tooltipRouter,
   transitionRouter,
   homeRouter,
@@ -301,6 +305,7 @@ const NAV_ITEMS: ReadonlyArray<NavItem> = [
   { label: 'Switch', routeTag: 'Switch', href: switchRouter() },
   { label: 'Tabs', routeTag: 'Tabs', href: tabsRouter() },
   { label: 'Textarea', routeTag: 'Textarea', href: textareaRouter() },
+  { label: 'Toast', routeTag: 'Toast', href: toastRouter() },
   { label: 'Tooltip', routeTag: 'Tooltip', href: tooltipRouter() },
   { label: 'Transition', routeTag: 'Transition', href: transitionRouter() },
 ]
@@ -540,6 +545,7 @@ const contentView = (model: Model): Html =>
       Switch: () => View.switch_(model.uiModel, toUiMessage),
       Tabs: () => View.tabs(model.uiModel, toUiMessage),
       Textarea: () => View.textarea(model.uiModel, toUiMessage),
+      Toast: () => View.toast(model.uiModel, toUiMessage),
       Tooltip: () => View.tooltip(model.uiModel, toUiMessage),
       Transition: () => View.transition(model.uiModel, toUiMessage),
       NotFound: ({ path }) => notFoundView(path),

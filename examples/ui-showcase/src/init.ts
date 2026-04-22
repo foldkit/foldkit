@@ -2,6 +2,7 @@ import { Command, Ui } from 'foldkit'
 
 import type { UiMessage } from './message'
 import type { UiModel } from './model'
+import { Toast } from './toast'
 
 export const uiInit = (): [
   UiModel,
@@ -72,6 +73,7 @@ export const uiInit = (): [
     verticalTabsDemo: Ui.Tabs.init({
       id: 'vertical-tabs-demo',
     }),
+    toastDemo: Toast.init({ id: 'toast-demo' }),
     tooltipBasicDemo: Ui.Tooltip.init({ id: 'tooltip-basic-demo' }),
     tooltipNoDelayDemo: Ui.Tooltip.init({
       id: 'tooltip-no-delay-demo',

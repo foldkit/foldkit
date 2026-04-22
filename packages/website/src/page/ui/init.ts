@@ -2,6 +2,7 @@ import { Calendar, Command, Ui } from 'foldkit'
 
 import type { Message } from './message'
 import type { Model } from './model'
+import { Toast } from './toastModule'
 
 export type InitReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 
@@ -85,6 +86,7 @@ export const init = (today: Calendar.CalendarDate): InitReturn => [
     }),
     fileDropBasicDemo: Ui.FileDrop.init({ id: 'file-drop-basic-demo' }),
     fileDropBasicDemoFiles: [],
+    toastDemo: Toast.init({ id: 'toast-demo' }),
     tooltipDemo: Ui.Tooltip.init({ id: 'tooltip-demo' }),
     transitionDemo: Ui.Transition.init({ id: 'transition-demo' }),
     dragAndDropDemoColumns: [

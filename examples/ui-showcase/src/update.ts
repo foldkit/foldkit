@@ -25,6 +25,7 @@ import {
   GotPopoverAnimatedDemoMessage,
   GotPopoverBasicDemoMessage,
   GotSwitchDemoMessage,
+  GotToastDemoMessage,
   GotTooltipBasicDemoMessage,
   GotTooltipNoDelayDemoMessage,
   GotTransitionDemoMessage,
@@ -33,6 +34,7 @@ import {
   type UiMessage,
 } from './message'
 import type { UiModel } from './model'
+import { Toast } from './toast'
 
 export type UiUpdateReturn = [
   UiModel,
@@ -545,6 +547,139 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           verticalTabsCommands.map(
             Command.mapEffect(
               Effect.map(message => GotVerticalTabsDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      GotToastDemoMessage: ({ message }) => {
+        const [nextToastDemo, toastCommands] = Toast.update(
+          model.toastDemo,
+          message,
+        )
+
+        return [
+          evo(model, { toastDemo: () => nextToastDemo }),
+          toastCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotToastDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      ClickedShowInfoToast: () => {
+        const [nextToastDemo, toastCommands] = Toast.show(model.toastDemo, {
+          variant: 'Info',
+          payload: {
+            title: 'Changes saved',
+            maybeDescription: Option.some(
+              'Your preferences have been updated.',
+            ),
+          },
+        })
+
+        return [
+          evo(model, { toastDemo: () => nextToastDemo }),
+          toastCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotToastDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      ClickedShowSuccessToast: () => {
+        const [nextToastDemo, toastCommands] = Toast.show(model.toastDemo, {
+          variant: 'Success',
+          payload: {
+            title: 'Uploaded successfully',
+            maybeDescription: Option.some('kit-manual.pdf is now available.'),
+          },
+        })
+
+        return [
+          evo(model, { toastDemo: () => nextToastDemo }),
+          toastCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotToastDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      ClickedShowWarningToast: () => {
+        const [nextToastDemo, toastCommands] = Toast.show(model.toastDemo, {
+          variant: 'Warning',
+          payload: {
+            title: 'Network slow',
+            maybeDescription: Option.some(
+              'Some assets are loading over a weak connection.',
+            ),
+          },
+        })
+
+        return [
+          evo(model, { toastDemo: () => nextToastDemo }),
+          toastCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotToastDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      ClickedShowErrorToast: () => {
+        const [nextToastDemo, toastCommands] = Toast.show(model.toastDemo, {
+          variant: 'Error',
+          payload: {
+            title: 'Failed to save',
+            maybeDescription: Option.some(
+              'Check your connection and try again.',
+            ),
+          },
+        })
+
+        return [
+          evo(model, { toastDemo: () => nextToastDemo }),
+          toastCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotToastDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      ClickedShowStickyToast: () => {
+        const [nextToastDemo, toastCommands] = Toast.show(model.toastDemo, {
+          variant: 'Info',
+          payload: {
+            title: 'Review pending',
+            maybeDescription: Option.some(
+              'Action required — this stays until dismissed.',
+            ),
+          },
+          sticky: true,
+        })
+
+        return [
+          evo(model, { toastDemo: () => nextToastDemo }),
+          toastCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotToastDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      ClickedDismissAllToasts: () => {
+        const [nextToastDemo, toastCommands] = Toast.dismissAll(model.toastDemo)
+
+        return [
+          evo(model, { toastDemo: () => nextToastDemo }),
+          toastCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotToastDemoMessage({ message })),
             ),
           ),
         ]

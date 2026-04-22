@@ -28,6 +28,7 @@ import {
   GotPopoverAnimatedDemoMessage,
   GotPopoverBasicDemoMessage,
   GotSwitchDemoMessage,
+  GotToastDemoMessage,
   GotTooltipDemoMessage,
   GotTransitionDemoMessage,
   GotVerticalRadioGroupDemoMessage,
@@ -36,6 +37,7 @@ import {
 } from './message'
 import type { Model } from './model'
 import type { DemoCard, DemoColumn } from './model'
+import { Toast } from './toastModule'
 
 // REORDER
 
@@ -620,6 +622,114 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           tooltipCommands.map(
             Command.mapEffect(
               Effect.map(message => GotTooltipDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      GotToastDemoMessage: ({ message }) => {
+        const [nextToastDemo, toastCommands] = Toast.update(
+          model.toastDemo,
+          message,
+        )
+
+        return [
+          evo(model, { toastDemo: () => nextToastDemo }),
+          toastCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotToastDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      ClickedShowInfoToast: () => {
+        const [nextToastDemo, toastCommands] = Toast.show(model.toastDemo, {
+          variant: 'Info',
+          payload: {
+            title: 'Preferences updated',
+            maybeDescription: Option.some('Your changes are saved.'),
+          },
+        })
+
+        return [
+          evo(model, { toastDemo: () => nextToastDemo }),
+          toastCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotToastDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      ClickedShowSuccessToast: () => {
+        const [nextToastDemo, toastCommands] = Toast.show(model.toastDemo, {
+          variant: 'Success',
+          payload: {
+            title: 'Uploaded',
+            maybeDescription: Option.some('kit-manual.pdf is now available.'),
+          },
+        })
+
+        return [
+          evo(model, { toastDemo: () => nextToastDemo }),
+          toastCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotToastDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      ClickedShowErrorToast: () => {
+        const [nextToastDemo, toastCommands] = Toast.show(model.toastDemo, {
+          variant: 'Error',
+          payload: {
+            title: 'Save failed',
+            maybeDescription: Option.some(
+              'Check your connection and try again.',
+            ),
+          },
+        })
+
+        return [
+          evo(model, { toastDemo: () => nextToastDemo }),
+          toastCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotToastDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      ClickedShowStickyToast: () => {
+        const [nextToastDemo, toastCommands] = Toast.show(model.toastDemo, {
+          variant: 'Info',
+          payload: {
+            title: 'Action required',
+            maybeDescription: Option.some('Stays visible until dismissed.'),
+          },
+          sticky: true,
+        })
+
+        return [
+          evo(model, { toastDemo: () => nextToastDemo }),
+          toastCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotToastDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      ClickedDismissAllToasts: () => {
+        const [nextToastDemo, toastCommands] = Toast.dismissAll(model.toastDemo)
+
+        return [
+          evo(model, { toastDemo: () => nextToastDemo }),
+          toastCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotToastDemoMessage({ message })),
             ),
           ),
         ]

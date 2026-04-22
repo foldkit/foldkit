@@ -694,6 +694,15 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           ),
           Page.UiPages.TooltipPage.tableOfContents,
         ),
+      UiToast: () =>
+        withTableOfContents(
+          Page.UiPages.ToastPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
+          Page.UiPages.ToastPage.tableOfContents,
+        ),
       UiListbox: () =>
         withTableOfContents(
           Page.UiPages.ListboxPage.view(

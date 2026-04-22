@@ -2,6 +2,8 @@ import { Schema as S } from 'effect'
 import { Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 
+import { Toast } from './toast'
+
 export const GotTransitionDemoMessage = m('GotTransitionDemoMessage', {
   message: Ui.Transition.Message,
 })
@@ -122,6 +124,16 @@ export const GotHorizontalTabsDemoMessage = m('GotHorizontalTabsDemoMessage', {
 export const GotVerticalTabsDemoMessage = m('GotVerticalTabsDemoMessage', {
   message: Ui.Tabs.Message,
 })
+export const GotToastDemoMessage = m('GotToastDemoMessage', {
+  message: Toast.Message,
+})
+export const ClickedShowInfoToast = m('ClickedShowInfoToast')
+export const ClickedShowSuccessToast = m('ClickedShowSuccessToast')
+export const ClickedShowWarningToast = m('ClickedShowWarningToast')
+export const ClickedShowErrorToast = m('ClickedShowErrorToast')
+export const ClickedShowStickyToast = m('ClickedShowStickyToast')
+export const ClickedDismissAllToasts = m('ClickedDismissAllToasts')
+
 export const GotTooltipBasicDemoMessage = m('GotTooltipBasicDemoMessage', {
   message: Ui.Tooltip.Message,
 })
@@ -163,6 +175,13 @@ export const UiMessage = S.Union(
   GotSwitchDemoMessage,
   GotHorizontalTabsDemoMessage,
   GotVerticalTabsDemoMessage,
+  GotToastDemoMessage,
+  ClickedShowInfoToast,
+  ClickedShowSuccessToast,
+  ClickedShowWarningToast,
+  ClickedShowErrorToast,
+  ClickedShowStickyToast,
+  ClickedDismissAllToasts,
   GotTooltipBasicDemoMessage,
   GotTooltipNoDelayDemoMessage,
 )

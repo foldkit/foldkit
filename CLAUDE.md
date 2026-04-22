@@ -80,6 +80,8 @@ Match the quality and thoughtfulness of these files. The principles below apply 
 - Use `Effect.gen()` for imperative-style async operations
 - Use curried functions for better composition
 - Always use Effect.Match instead of switch
+- **Don't use if-return chains when you're dispatching on a single value.** A sequence of `if (x === 'A') { return ... }  if (x === 'B') { return ... }  ...  return default` is a switch in disguise — use `Match.value` with `M.when` / `M.whenOr` / `M.exhaustive` instead. The signal: if every early return tests the same variable against a different literal/tag, it's pattern matching spelled as control flow.
+- **Prefer explicit `if` / `else` over `if { return ... }` + fallthrough return.** When both branches of a condition return, write both inside `if` / `else` blocks. Early-return reads as "A is the exceptional case, B is the default", which misrepresents a symmetric either/or. Early-return is correct only when it's a true guard (the other branch falls through to code after the `if`). For three or more branches on the same discriminant, use `Match.value` (see above).
 - Prefer Effect module functions over native methods when available — e.g. `Array.map`, `Array.filter`, `Option.map`, `String.startsWith` from Effect instead of their native equivalents. This includes Effect's `String` module: use `String.includes`, `String.indexOf` (returns `Option<number>`), `String.slice`, `String.startsWith`, `String.replaceAll`, `String.length`, `String.isNonEmpty`, `String.trim` etc. in `pipe` chains. Exception: native `.map`, `.filter`, `.indexOf()`, `.slice()`, etc. are fine when calling directly on a named variable (e.g. `commands.map(Effect.map(...))`, `fullUrl.indexOf(prefix)`) — use Effect's curried, data-last forms in `pipe` chains where they compose naturally.
 - Prefer functional iteration — `Array.map`, `Array.reduce`, `Array.findFirst`, `Array.filterMap`, `Array.flatMap`, `Array.makeBy`. Use `for` loops and `let` only when bounded imperative loops with early exit are genuinely clearer than the functional alternative.
 - Never cast Schema values with `as Type`. Use callable constructors: `LoginSucceeded({ sessionId })` not `{ _tag: 'LoginSucceeded', sessionId } as Message`. Let TypeScript infer Command return types from the Effect — explicit `Command.Command<typeof Foo>` annotations are unnecessary when using `Command.define`. The result Message schemas passed to `Command.define` constrain the Effect's return type at the type level.
@@ -170,6 +172,7 @@ Command definitions live where they're produced — colocated with the update fu
 ### Commits and Releases
 
 - Use Conventional Commits. Add `!` after the scope for breaking changes (e.g. `refactor(schema)!:` when renaming or removing a public export)
+- **Commit messages are historical records, not live docs.** Time-bound claims ("first component to X", "replaces the old Y approach", "before this, Z") are appropriate in commit bodies — they describe the state of the world at the moment the commit landed. A reader of `git log` already understands they're reading through time. Don't flag such claims as "will rot" during commit review; rotting is a concern for TSDoc, README, and live documentation, not the git log.
 - Scope must identify the **package or example**, not an internal module. Valid scopes:
   - Packages: `foldkit`, `create-foldkit-app`, `vite-plugin`, `website`
   - Examples: the directory name — `pixel-art`, `auth`, `weather`, `counter`, etc.
@@ -190,4 +193,4 @@ Command definitions live where they're produced — colocated with the update fu
 
 ## Prose Style
 
-- **Avoid em dashes.** You overuse them. Default to periods, semicolons, commas, or parentheses. An em dash is fine when it genuinely makes a clause punchier (a sharp aside, a summarizing afterthought) — but most of the time it's lazy punctuation covering for imprecise structure. Before writing one, ask: "would a period or comma work here?" If yes, use that. Applies to all prose: commit messages, comments, TSDoc, docs, snippets, website copy, and conversation.
+- **Avoid em dashes.** You overuse them. Default to periods, semicolons, commas, or parentheses. An em dash is fine when it genuinely makes a clause punchier (a sharp aside, a summarizing afterthought) — but most of the time it's lazy punctuation covering for imprecise structure. Before writing one, ask: "would a period or comma work here?" If yes, use that. Applies to comments, TSDoc, docs, snippets, website copy, and conversation. **Exception:** em dashes in commit messages are fine.

@@ -14,6 +14,8 @@ import {
   Transition,
 } from 'foldkit/ui'
 
+import { Toast } from './toast'
+
 export const UiModel = S.Struct({
   mobileMenuDialog: Dialog.Model,
   buttonClickCount: S.Number,
@@ -45,6 +47,7 @@ export const UiModel = S.Struct({
   switchDemo: Switch.Model,
   horizontalTabsDemo: Tabs.Model,
   verticalTabsDemo: Tabs.Model,
+  toastDemo: Toast.Model,
   tooltipBasicDemo: Tooltip.Model,
   tooltipNoDelayDemo: Tooltip.Model,
   transitionDemo: Transition.Model,

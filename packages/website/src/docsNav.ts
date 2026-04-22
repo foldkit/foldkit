@@ -60,6 +60,7 @@ import {
   uiSwitchRouter,
   uiTabsRouter,
   uiTextareaRouter,
+  uiToastRouter,
   uiTooltipRouter,
   uiTransitionRouter,
 } from './route'
@@ -439,6 +440,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'UiTooltip',
           href: uiTooltipRouter(),
           label: 'Tooltip',
+        },
+        {
+          _tag: 'UiToast',
+          href: uiToastRouter(),
+          label: 'Toast',
         },
         {
           _tag: 'UiDisclosure',

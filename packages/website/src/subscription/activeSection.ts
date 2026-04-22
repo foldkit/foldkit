@@ -144,6 +144,8 @@ export const activeSection: Subscription<
           () => Page.UiPages.DragAndDropPage.tableOfContents,
         ),
         M.tag('UiFileDrop', () => Page.UiPages.FileDropPage.tableOfContents),
+        M.tag('UiToast', () => Page.UiPages.ToastPage.tableOfContents),
+        M.tag('UiTooltip', () => Page.UiPages.TooltipPage.tableOfContents),
         M.tag(
           'UiTransition',
           () => Page.UiPages.TransitionPage.tableOfContents,

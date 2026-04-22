@@ -233,6 +233,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Popover',
     'Floating content panels anchored to trigger elements.',
   ),
+  UiToast: ui(
+    'Toast',
+    'Stack of transient notifications anchored to a corner of the viewport with per-entry enter/leave animations and auto-dismiss.',
+  ),
   UiTooltip: ui(
     'Tooltip',
     'Non-interactive floating label that appears on hover or focus and hides on leave, blur, or Escape.',

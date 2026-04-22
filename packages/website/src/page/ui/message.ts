@@ -2,6 +2,8 @@ import { Schema as S } from 'effect'
 import { Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 
+import { Toast } from './toastModule'
+
 export const ClickedButtonDemo = m('ClickedButtonDemo')
 export const UpdatedInputDemoValue = m('UpdatedInputDemoValue', {
   value: S.String,
@@ -135,6 +137,14 @@ export const ClickedRemoveFileDropDemoFile = m(
     fileIndex: S.Number,
   },
 )
+export const GotToastDemoMessage = m('GotToastDemoMessage', {
+  message: Toast.Message,
+})
+export const ClickedShowInfoToast = m('ClickedShowInfoToast')
+export const ClickedShowSuccessToast = m('ClickedShowSuccessToast')
+export const ClickedShowErrorToast = m('ClickedShowErrorToast')
+export const ClickedShowStickyToast = m('ClickedShowStickyToast')
+export const ClickedDismissAllToasts = m('ClickedDismissAllToasts')
 export const GotTooltipDemoMessage = m('GotTooltipDemoMessage', {
   message: Ui.Tooltip.Message,
 })
@@ -178,6 +188,12 @@ export const Message = S.Union(
   GotDragAndDropDemoMessage,
   GotFileDropBasicDemoMessage,
   ClickedRemoveFileDropDemoFile,
+  GotToastDemoMessage,
+  ClickedShowInfoToast,
+  ClickedShowSuccessToast,
+  ClickedShowErrorToast,
+  ClickedShowStickyToast,
+  ClickedDismissAllToasts,
   GotTooltipDemoMessage,
   GotTransitionDemoMessage,
 )
