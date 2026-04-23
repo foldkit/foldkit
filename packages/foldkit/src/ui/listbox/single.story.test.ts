@@ -4,7 +4,7 @@ import { expect } from 'vitest'
 
 import * as Scene from '../../test/scene'
 import * as Story from '../../test/story'
-import * as Transition from '../transition'
+import * as Animation from '../animation'
 import {
   ActivatedItem,
   ClearedSearch,
@@ -21,10 +21,10 @@ import {
   CompletedUnlockScroll,
   DeactivatedItem,
   DelayClearSearch,
-  DetectMovementOrTransitionEnd,
+  DetectMovementOrAnimationEnd,
   FocusButton,
   FocusItems,
-  GotTransitionMessage,
+  GotAnimationMessage,
   IgnoredMouseClick,
   InertOthers,
   LockScroll,
@@ -43,11 +43,11 @@ import type { Message } from './shared'
 import { init, update, view } from './single'
 import type { Model, ViewConfig } from './single'
 
-const transitionToListboxMessage = (message: Transition.Message) =>
-  GotTransitionMessage({ message })
+const animationToListboxMessage = (message: Animation.Message) =>
+  GotAnimationMessage({ message })
 
-const transitionEndMessage = GotTransitionMessage({
-  message: Transition.EndedTransition(),
+const animationEndMessage = GotAnimationMessage({
+  message: Animation.EndedAnimation(),
 })
 
 const STALE_CLEAR_SEARCH_VERSION = 9999
@@ -68,14 +68,14 @@ const withOpenAnimated = flow(
   Story.resolveAll(
     [FocusItems, CompletedFocusItems()],
     [
-      Transition.RequestFrame,
-      Transition.AdvancedTransitionFrame(),
-      transitionToListboxMessage,
+      Animation.RequestFrame,
+      Animation.AdvancedAnimationFrame(),
+      animationToListboxMessage,
     ],
     [
-      Transition.WaitForTransitions,
-      Transition.EndedTransition(),
-      transitionToListboxMessage,
+      Animation.WaitForAnimationSettled,
+      Animation.EndedAnimation(),
+      animationToListboxMessage,
     ],
   ),
 )
@@ -89,7 +89,7 @@ describe('Listbox', () => {
         isAnimated: false,
         isModal: false,
         orientation: 'Vertical',
-        transition: Transition.init({ id: 'test-listbox' }),
+        animation: Animation.init({ id: 'test-listbox' }),
         maybeActiveItemIndex: Option.none(),
         activationTrigger: 'Keyboard',
         searchQuery: '',
@@ -103,7 +103,7 @@ describe('Listbox', () => {
     it('accepts isAnimated option', () => {
       const model = init({ id: 'test', isAnimated: true })
       expect(model.isAnimated).toBe(true)
-      expect(model.transition.transitionState).toBe('Idle')
+      expect(model.animation.transitionState).toBe('Idle')
     })
 
     it('defaults isModal to false', () => {
@@ -817,49 +817,49 @@ describe('Listbox', () => {
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.model(model => {
               expect(model.isOpen).toBe(true)
-              expect(model.transition.transitionState).toBe('EnterStart')
+              expect(model.animation.transitionState).toBe('EnterStart')
             }),
             Story.resolveAll(
               [FocusItems, CompletedFocusItems()],
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToListboxMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToListboxMessage,
               ],
               [
-                Transition.WaitForTransitions,
-                Transition.EndedTransition(),
-                transitionToListboxMessage,
+                Animation.WaitForAnimationSettled,
+                Animation.EndedAnimation(),
+                animationToListboxMessage,
               ],
             ),
           )
         })
 
-        it('advances EnterStart to EnterAnimating on GotTransitionMessage(AdvancedTransitionFrame)', () => {
+        it('advances EnterStart to EnterAnimating on GotAnimationMessage(AdvancedAnimationFrame)', () => {
           Story.story(
             update,
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.resolve(
-              Transition.RequestFrame,
-              Transition.AdvancedTransitionFrame(),
-              transitionToListboxMessage,
+              Animation.RequestFrame,
+              Animation.AdvancedAnimationFrame(),
+              animationToListboxMessage,
             ),
             Story.model(model => {
-              expect(model.transition.transitionState).toBe('EnterAnimating')
+              expect(model.animation.transitionState).toBe('EnterAnimating')
             }),
             Story.resolveAll(
               [FocusItems, CompletedFocusItems()],
               [
-                Transition.WaitForTransitions,
-                Transition.EndedTransition(),
-                transitionToListboxMessage,
+                Animation.WaitForAnimationSettled,
+                Animation.EndedAnimation(),
+                animationToListboxMessage,
               ],
             ),
           )
         })
 
-        it('completes EnterAnimating to Idle on GotTransitionMessage(EndedTransition)', () => {
+        it('completes EnterAnimating to Idle on GotAnimationMessage(EndedAnimation)', () => {
           Story.story(
             update,
             withClosedAnimated,
@@ -867,18 +867,18 @@ describe('Listbox', () => {
             Story.resolveAll(
               [FocusItems, CompletedFocusItems()],
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToListboxMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToListboxMessage,
               ],
               [
-                Transition.WaitForTransitions,
-                Transition.EndedTransition(),
-                transitionToListboxMessage,
+                Animation.WaitForAnimationSettled,
+                Animation.EndedAnimation(),
+                animationToListboxMessage,
               ],
             ),
             Story.model(model => {
-              expect(model.transition.transitionState).toBe('Idle')
+              expect(model.animation.transitionState).toBe('Idle')
             }),
           )
         })
@@ -892,21 +892,21 @@ describe('Listbox', () => {
             Story.message(Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
-              expect(model.transition.transitionState).toBe('LeaveStart')
+              expect(model.animation.transitionState).toBe('LeaveStart')
             }),
             Story.resolveAll(
               [FocusButton, CompletedFocusButton()],
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToListboxMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToListboxMessage,
               ],
               [
-                Transition.WaitForTransitions,
-                Transition.EndedTransition(),
-                transitionToListboxMessage,
+                Animation.WaitForAnimationSettled,
+                Animation.EndedAnimation(),
+                animationToListboxMessage,
               ],
-              [DetectMovementOrTransitionEnd, transitionEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
         })
@@ -918,20 +918,20 @@ describe('Listbox', () => {
             Story.message(ClosedByTab()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
-              expect(model.transition.transitionState).toBe('LeaveStart')
+              expect(model.animation.transitionState).toBe('LeaveStart')
             }),
             Story.resolveAll(
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToListboxMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToListboxMessage,
               ],
               [
-                Transition.WaitForTransitions,
-                Transition.EndedTransition(),
-                transitionToListboxMessage,
+                Animation.WaitForAnimationSettled,
+                Animation.EndedAnimation(),
+                animationToListboxMessage,
               ],
-              [DetectMovementOrTransitionEnd, transitionEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
         })
@@ -943,51 +943,51 @@ describe('Listbox', () => {
             Story.message(SelectedItem({ item: 'apple' })),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
-              expect(model.transition.transitionState).toBe('LeaveStart')
+              expect(model.animation.transitionState).toBe('LeaveStart')
             }),
             Story.resolveAll(
               [FocusButton, CompletedFocusButton()],
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToListboxMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToListboxMessage,
               ],
               [
-                Transition.WaitForTransitions,
-                Transition.EndedTransition(),
-                transitionToListboxMessage,
+                Animation.WaitForAnimationSettled,
+                Animation.EndedAnimation(),
+                animationToListboxMessage,
               ],
-              [DetectMovementOrTransitionEnd, transitionEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
         })
 
-        it('advances LeaveStart to LeaveAnimating on GotTransitionMessage(AdvancedTransitionFrame)', () => {
+        it('advances LeaveStart to LeaveAnimating on GotAnimationMessage(AdvancedAnimationFrame)', () => {
           Story.story(
             update,
             withOpenAnimated,
             Story.message(Closed()),
             Story.resolve(
-              Transition.RequestFrame,
-              Transition.AdvancedTransitionFrame(),
-              transitionToListboxMessage,
+              Animation.RequestFrame,
+              Animation.AdvancedAnimationFrame(),
+              animationToListboxMessage,
             ),
             Story.model(model => {
-              expect(model.transition.transitionState).toBe('LeaveAnimating')
+              expect(model.animation.transitionState).toBe('LeaveAnimating')
             }),
             Story.resolveAll(
               [FocusButton, CompletedFocusButton()],
               [
-                Transition.WaitForTransitions,
-                Transition.EndedTransition(),
-                transitionToListboxMessage,
+                Animation.WaitForAnimationSettled,
+                Animation.EndedAnimation(),
+                animationToListboxMessage,
               ],
-              [DetectMovementOrTransitionEnd, transitionEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
         })
 
-        it('completes LeaveAnimating to Idle on GotTransitionMessage(EndedTransition)', () => {
+        it('completes LeaveAnimating to Idle on GotAnimationMessage(EndedAnimation)', () => {
           Story.story(
             update,
             withOpenAnimated,
@@ -995,19 +995,19 @@ describe('Listbox', () => {
             Story.resolveAll(
               [FocusButton, CompletedFocusButton()],
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToListboxMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToListboxMessage,
               ],
               [
-                Transition.WaitForTransitions,
-                Transition.EndedTransition(),
-                transitionToListboxMessage,
+                Animation.WaitForAnimationSettled,
+                Animation.EndedAnimation(),
+                animationToListboxMessage,
               ],
-              [DetectMovementOrTransitionEnd, transitionEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
             Story.model(model => {
-              expect(model.transition.transitionState).toBe('Idle')
+              expect(model.animation.transitionState).toBe('Idle')
             }),
           )
         })
@@ -1021,7 +1021,7 @@ describe('Listbox', () => {
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.resolve(FocusItems, CompletedFocusItems()),
             Story.model(model => {
-              expect(model.transition.transitionState).toBe('Idle')
+              expect(model.animation.transitionState).toBe('Idle')
             }),
           )
         })
@@ -1033,37 +1033,37 @@ describe('Listbox', () => {
             Story.message(Closed()),
             Story.resolve(FocusButton, CompletedFocusButton()),
             Story.model(model => {
-              expect(model.transition.transitionState).toBe('Idle')
+              expect(model.animation.transitionState).toBe('Idle')
             }),
           )
         })
       })
 
       describe('stale messages', () => {
-        it('ignores GotTransitionMessage with AdvancedTransitionFrame when Idle', () => {
+        it('ignores GotAnimationMessage with AdvancedAnimationFrame when Idle', () => {
           Story.story(
             update,
             withOpen,
             Story.message(
-              GotTransitionMessage({
-                message: Transition.AdvancedTransitionFrame(),
+              GotAnimationMessage({
+                message: Animation.AdvancedAnimationFrame(),
               }),
             ),
             Story.model(model => {
               expect(model.isOpen).toBe(true)
-              expect(model.transition.transitionState).toBe('Idle')
+              expect(model.animation.transitionState).toBe('Idle')
             }),
           )
         })
 
-        it('ignores GotTransitionMessage with EndedTransition when Idle', () => {
+        it('ignores GotAnimationMessage with EndedAnimation when Idle', () => {
           Story.story(
             update,
             withOpen,
-            Story.message(transitionEndMessage),
+            Story.message(animationEndMessage),
             Story.model(model => {
               expect(model.isOpen).toBe(true)
-              expect(model.transition.transitionState).toBe('Idle')
+              expect(model.animation.transitionState).toBe('Idle')
             }),
           )
         })
@@ -1078,34 +1078,34 @@ describe('Listbox', () => {
             Story.resolveAll(
               [FocusItems, CompletedFocusItems()],
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToListboxMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToListboxMessage,
               ],
               [
-                Transition.WaitForTransitions,
-                Transition.EndedTransition(),
-                transitionToListboxMessage,
+                Animation.WaitForAnimationSettled,
+                Animation.EndedAnimation(),
+                animationToListboxMessage,
               ],
             ),
             Story.message(Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
-              expect(model.transition.transitionState).toBe('LeaveStart')
+              expect(model.animation.transitionState).toBe('LeaveStart')
             }),
             Story.resolveAll(
               [FocusButton, CompletedFocusButton()],
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToListboxMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToListboxMessage,
               ],
               [
-                Transition.WaitForTransitions,
-                Transition.EndedTransition(),
-                transitionToListboxMessage,
+                Animation.WaitForAnimationSettled,
+                Animation.EndedAnimation(),
+                animationToListboxMessage,
               ],
-              [DetectMovementOrTransitionEnd, transitionEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
         })
@@ -1118,34 +1118,34 @@ describe('Listbox', () => {
             Story.resolveAll(
               [FocusItems, CompletedFocusItems()],
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToListboxMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToListboxMessage,
               ],
               [
-                Transition.WaitForTransitions,
-                Transition.EndedTransition(),
-                transitionToListboxMessage,
+                Animation.WaitForAnimationSettled,
+                Animation.EndedAnimation(),
+                animationToListboxMessage,
               ],
             ),
             Story.message(Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
-              expect(model.transition.transitionState).toBe('LeaveStart')
+              expect(model.animation.transitionState).toBe('LeaveStart')
             }),
             Story.resolveAll(
               [FocusButton, CompletedFocusButton()],
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToListboxMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToListboxMessage,
               ],
               [
-                Transition.WaitForTransitions,
-                Transition.EndedTransition(),
-                transitionToListboxMessage,
+                Animation.WaitForAnimationSettled,
+                Animation.EndedAnimation(),
+                animationToListboxMessage,
               ],
-              [DetectMovementOrTransitionEnd, transitionEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
         })

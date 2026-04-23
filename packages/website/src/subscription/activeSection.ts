@@ -146,10 +146,7 @@ export const activeSection: Subscription<
         M.tag('UiFileDrop', () => Page.UiPages.FileDropPage.tableOfContents),
         M.tag('UiToast', () => Page.UiPages.ToastPage.tableOfContents),
         M.tag('UiTooltip', () => Page.UiPages.TooltipPage.tableOfContents),
-        M.tag(
-          'UiTransition',
-          () => Page.UiPages.TransitionPage.tableOfContents,
-        ),
+        M.tag('UiAnimation', () => Page.UiPages.AnimationPage.tableOfContents),
         M.tag('UiOverview', () => Page.UiPages.OverviewPage.tableOfContents),
         M.tag('AiOverview', () => Page.AiOverview.tableOfContents),
         M.tag('AiSkills', () => Page.AiSkills.tableOfContents),

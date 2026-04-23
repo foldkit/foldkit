@@ -820,14 +820,14 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           ),
           Page.UiPages.FileDropPage.tableOfContents,
         ),
-      UiTransition: () =>
+      UiAnimation: () =>
         withTableOfContents(
-          Page.UiPages.TransitionPage.view(
+          Page.UiPages.AnimationPage.view(
             model.uiPages,
             toUiPageMessage,
             model.copiedSnippets,
           ),
-          Page.UiPages.TransitionPage.tableOfContents,
+          Page.UiPages.AnimationPage.tableOfContents,
         ),
       AiOverview: () =>
         withTableOfContents(

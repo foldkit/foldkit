@@ -125,7 +125,7 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
     type: 'boolean',
     default: 'false',
     description:
-      'Enables CSS transition coordination on the popover panel (enter/leave animations).',
+      'Enables animation coordination on the popover panel (enter/leave animations).',
   },
   {
     name: 'locale',

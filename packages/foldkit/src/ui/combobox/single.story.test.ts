@@ -4,7 +4,7 @@ import { expect } from 'vitest'
 
 import * as Scene from '../../test/scene'
 import * as Story from '../../test/story'
-import * as Transition from '../transition'
+import * as Animation from '../animation'
 import type { Message } from './shared'
 import {
   ActivatedItem,
@@ -19,9 +19,9 @@ import {
   CompletedTeardownInert,
   CompletedUnlockScroll,
   DeactivatedItem,
-  DetectMovementOrTransitionEnd,
+  DetectMovementOrAnimationEnd,
   FocusInput,
-  GotTransitionMessage,
+  GotAnimationMessage,
   InertOthers,
   LockScroll,
   MovedPointerOverItem,
@@ -37,11 +37,11 @@ import {
 import { init, update, view } from './single'
 import type { Model, ViewConfig } from './single'
 
-const transitionToComboboxMessage = (message: Transition.Message) =>
-  GotTransitionMessage({ message })
+const animationToComboboxMessage = (message: Animation.Message) =>
+  GotAnimationMessage({ message })
 
-const transitionEndMessage = GotTransitionMessage({
-  message: Transition.EndedTransition(),
+const animationEndMessage = GotAnimationMessage({
+  message: Animation.EndedAnimation(),
 })
 
 const withClosed = Story.with(init({ id: 'test' }))
@@ -58,14 +58,14 @@ const withOpenAnimated = flow(
   Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
   Story.resolveAll(
     [
-      Transition.RequestFrame,
-      Transition.AdvancedTransitionFrame(),
-      transitionToComboboxMessage,
+      Animation.RequestFrame,
+      Animation.AdvancedAnimationFrame(),
+      animationToComboboxMessage,
     ],
     [
-      Transition.WaitForTransitions,
-      Transition.EndedTransition(),
-      transitionToComboboxMessage,
+      Animation.WaitForAnimationSettled,
+      Animation.EndedAnimation(),
+      animationToComboboxMessage,
     ],
   ),
 )
@@ -81,7 +81,7 @@ describe('Combobox', () => {
         nullable: false,
         immediate: false,
         selectInputOnFocus: false,
-        transition: Transition.init({ id: 'test-items' }),
+        animation: Animation.init({ id: 'test-items' }),
         maybeActiveItemIndex: Option.none(),
         activationTrigger: 'Keyboard',
         inputValue: '',
@@ -94,7 +94,7 @@ describe('Combobox', () => {
     it('accepts isAnimated option', () => {
       const model = init({ id: 'test', isAnimated: true })
       expect(model.isAnimated).toBe(true)
-      expect(model.transition.transitionState).toBe('Idle')
+      expect(model.animation.transitionState).toBe('Idle')
     })
 
     it('defaults isModal to false', () => {
@@ -643,64 +643,64 @@ describe('Combobox', () => {
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.model(model => {
               expect(model.isOpen).toBe(true)
-              expect(model.transition.transitionState).toBe('EnterStart')
+              expect(model.animation.transitionState).toBe('EnterStart')
             }),
-            Story.expectHasCommands(Transition.RequestFrame),
+            Story.expectHasCommands(Animation.RequestFrame),
             Story.resolveAll(
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToComboboxMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToComboboxMessage,
               ],
               [
-                Transition.WaitForTransitions,
-                Transition.EndedTransition(),
-                transitionToComboboxMessage,
+                Animation.WaitForAnimationSettled,
+                Animation.EndedAnimation(),
+                animationToComboboxMessage,
               ],
             ),
           )
         })
 
-        it('advances EnterStart to EnterAnimating on AdvancedTransitionFrame', () => {
+        it('advances EnterStart to EnterAnimating on AdvancedAnimationFrame', () => {
           Story.story(
             update,
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.resolve(
-              Transition.RequestFrame,
-              Transition.AdvancedTransitionFrame(),
-              transitionToComboboxMessage,
+              Animation.RequestFrame,
+              Animation.AdvancedAnimationFrame(),
+              animationToComboboxMessage,
             ),
             Story.model(model => {
-              expect(model.transition.transitionState).toBe('EnterAnimating')
+              expect(model.animation.transitionState).toBe('EnterAnimating')
             }),
             Story.resolveAll([
-              Transition.WaitForTransitions,
-              Transition.EndedTransition(),
-              transitionToComboboxMessage,
+              Animation.WaitForAnimationSettled,
+              Animation.EndedAnimation(),
+              animationToComboboxMessage,
             ]),
           )
         })
 
-        it('completes EnterAnimating to Idle on EndedTransition', () => {
+        it('completes EnterAnimating to Idle on EndedAnimation', () => {
           Story.story(
             update,
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.resolveAll(
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToComboboxMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToComboboxMessage,
               ],
               [
-                Transition.WaitForTransitions,
-                Transition.EndedTransition(),
-                transitionToComboboxMessage,
+                Animation.WaitForAnimationSettled,
+                Animation.EndedAnimation(),
+                animationToComboboxMessage,
               ],
             ),
             Story.model(model => {
-              expect(model.transition.transitionState).toBe('Idle')
+              expect(model.animation.transitionState).toBe('Idle')
             }),
           )
         })
@@ -714,16 +714,16 @@ describe('Combobox', () => {
             Story.message(Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
-              expect(model.transition.transitionState).toBe('LeaveStart')
+              expect(model.animation.transitionState).toBe('LeaveStart')
             }),
             Story.resolveAll(
               [FocusInput, CompletedFocusInput()],
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToComboboxMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToComboboxMessage,
               ],
-              [DetectMovementOrTransitionEnd, transitionEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
         })
@@ -735,15 +735,15 @@ describe('Combobox', () => {
             Story.message(ClosedByTab()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
-              expect(model.transition.transitionState).toBe('LeaveStart')
+              expect(model.animation.transitionState).toBe('LeaveStart')
             }),
             Story.resolveAll(
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToComboboxMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToComboboxMessage,
               ],
-              [DetectMovementOrTransitionEnd, transitionEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
         })
@@ -757,37 +757,37 @@ describe('Combobox', () => {
             ),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
-              expect(model.transition.transitionState).toBe('LeaveStart')
+              expect(model.animation.transitionState).toBe('LeaveStart')
             }),
             Story.resolveAll(
               [FocusInput, CompletedFocusInput()],
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToComboboxMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToComboboxMessage,
               ],
-              [DetectMovementOrTransitionEnd, transitionEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
         })
 
-        it('advances LeaveStart to LeaveAnimating with DetectMovementOrTransitionEnd', () => {
+        it('advances LeaveStart to LeaveAnimating with DetectMovementOrAnimationEnd', () => {
           Story.story(
             update,
             withOpenAnimated,
             Story.message(Closed()),
             Story.resolve(
-              Transition.RequestFrame,
-              Transition.AdvancedTransitionFrame(),
-              transitionToComboboxMessage,
+              Animation.RequestFrame,
+              Animation.AdvancedAnimationFrame(),
+              animationToComboboxMessage,
             ),
             Story.model(model => {
-              expect(model.transition.transitionState).toBe('LeaveAnimating')
+              expect(model.animation.transitionState).toBe('LeaveAnimating')
             }),
-            Story.expectHasCommands(DetectMovementOrTransitionEnd),
+            Story.expectHasCommands(DetectMovementOrAnimationEnd),
             Story.resolveAll(
               [FocusInput, CompletedFocusInput()],
-              [DetectMovementOrTransitionEnd, transitionEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
         })
@@ -800,14 +800,14 @@ describe('Combobox', () => {
             Story.resolveAll(
               [FocusInput, CompletedFocusInput()],
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToComboboxMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToComboboxMessage,
               ],
-              [DetectMovementOrTransitionEnd, transitionEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
             Story.model(model => {
-              expect(model.transition.transitionState).toBe('Idle')
+              expect(model.animation.transitionState).toBe('Idle')
             }),
           )
         })
@@ -820,7 +820,7 @@ describe('Combobox', () => {
             withClosed,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.model(model => {
-              expect(model.transition.transitionState).toBe('Idle')
+              expect(model.animation.transitionState).toBe('Idle')
             }),
           )
         })
@@ -832,37 +832,37 @@ describe('Combobox', () => {
             Story.message(Closed()),
             Story.resolve(FocusInput, CompletedFocusInput()),
             Story.model(model => {
-              expect(model.transition.transitionState).toBe('Idle')
+              expect(model.animation.transitionState).toBe('Idle')
             }),
           )
         })
       })
 
       describe('stale messages', () => {
-        it('ignores GotTransitionMessage with AdvancedTransitionFrame when Idle', () => {
+        it('ignores GotAnimationMessage with AdvancedAnimationFrame when Idle', () => {
           Story.story(
             update,
             withOpen,
             Story.message(
-              GotTransitionMessage({
-                message: Transition.AdvancedTransitionFrame(),
+              GotAnimationMessage({
+                message: Animation.AdvancedAnimationFrame(),
               }),
             ),
             Story.model(model => {
               expect(model.isOpen).toBe(true)
-              expect(model.transition.transitionState).toBe('Idle')
+              expect(model.animation.transitionState).toBe('Idle')
             }),
           )
         })
 
-        it('ignores GotTransitionMessage with EndedTransition when Idle', () => {
+        it('ignores GotAnimationMessage with EndedAnimation when Idle', () => {
           Story.story(
             update,
             withOpen,
-            Story.message(transitionEndMessage),
+            Story.message(animationEndMessage),
             Story.model(model => {
               expect(model.isOpen).toBe(true)
-              expect(model.transition.transitionState).toBe('Idle')
+              expect(model.animation.transitionState).toBe('Idle')
             }),
           )
         })
@@ -876,29 +876,29 @@ describe('Combobox', () => {
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.resolveAll(
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToComboboxMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToComboboxMessage,
               ],
               [
-                Transition.WaitForTransitions,
-                Transition.EndedTransition(),
-                transitionToComboboxMessage,
+                Animation.WaitForAnimationSettled,
+                Animation.EndedAnimation(),
+                animationToComboboxMessage,
               ],
             ),
             Story.message(Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
-              expect(model.transition.transitionState).toBe('LeaveStart')
+              expect(model.animation.transitionState).toBe('LeaveStart')
             }),
             Story.resolveAll(
               [FocusInput, CompletedFocusInput()],
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToComboboxMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToComboboxMessage,
               ],
-              [DetectMovementOrTransitionEnd, transitionEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
         })

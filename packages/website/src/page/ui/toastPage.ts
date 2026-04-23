@@ -14,6 +14,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
+import { uiAnimationRouter } from '../../route'
 import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 import {
@@ -287,6 +288,11 @@ export const view = (
         '. Use ',
         inlineCode('data-variant'),
         ' on the entry to drive per-variant styling.',
+      ),
+      para(
+        'Each entry’s enter/leave animations flow through the ',
+        link(uiAnimationRouter(), 'Animation'),
+        ' module. Style with CSS transitions or CSS keyframe animations. Animation advances once every animation on the element has settled.',
       ),
       dataAttributeTable(dataAttributes),
       heading(

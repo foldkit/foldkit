@@ -79,8 +79,8 @@ export const uiInit = (): [
       id: 'tooltip-no-delay-demo',
       showDelay: 0,
     }),
-    transitionDemo: Ui.Transition.init({ id: 'transition-demo' }),
-    isTransitionDemoShowing: false,
+    animationDemo: Ui.Animation.init({ id: 'animation-demo' }),
+    isAnimationDemoShowing: false,
   },
   [],
 ]

@@ -3,7 +3,7 @@ import { Duration, Option, Schema as S } from 'effect'
 
 import { html } from '../../html'
 import * as Scene from '../../test/scene'
-import * as Transition from '../transition'
+import * as Animation from '../animation'
 import { type EntryHandlers, type Variant, make } from './index'
 
 const TestPayload = S.Struct({ body: S.String })
@@ -20,7 +20,7 @@ const { div, span } = html<Message>()
 const makeSettledEntry = (overrides: Partial<Entry> = {}): Entry => ({
   id: 'test-entry-0',
   variant: 'Info',
-  transition: Transition.init({ id: 'test-entry-0', isShowing: true }),
+  animation: Animation.init({ id: 'test-entry-0', isShowing: true }),
   maybeDuration: Option.some(Duration.seconds(4)),
   pendingDismissVersion: 0,
   isHovered: false,
@@ -109,7 +109,7 @@ describe('Toast', () => {
     it('reflects the enter transition via data attributes', () => {
       const enteringEntry: Entry = {
         ...makeSettledEntry(),
-        transition: {
+        animation: {
           id: 'test-entry-0',
           isShowing: true,
           transitionState: 'EnterAnimating',
@@ -131,7 +131,7 @@ describe('Toast', () => {
     it('reflects the leave transition via data attributes', () => {
       const leavingEntry: Entry = {
         ...makeSettledEntry(),
-        transition: {
+        animation: {
           id: 'test-entry-0',
           isShowing: false,
           transitionState: 'LeaveAnimating',

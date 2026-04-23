@@ -18,21 +18,21 @@ import { evo } from '../../struct'
 import * as Task from '../../task'
 import { anchorHooks } from '../anchor'
 import type { AnchorConfig } from '../anchor'
+// NOTE: Animation imports are split across schema + update to avoid a circular
+// dependency: animation → html → runtime → devtools → menu → animation.
+// The barrel (../animation) imports from html, which starts the cycle.
+import {
+  EndedAnimation as AnimationEndedAnimation,
+  Hid as AnimationHid,
+  Message as AnimationMessage,
+  Model as AnimationModel,
+  type OutMessage as AnimationOutMessage,
+  Showed as AnimationShowed,
+  init as animationInit,
+} from '../animation/schema'
+import { update as animationUpdate } from '../animation/update'
 import { groupContiguous } from '../group'
 import { findFirstEnabledIndex, isPrintableKey, keyToIndex } from '../keyboard'
-// NOTE: Transition imports are split across schema + update to avoid a circular
-// dependency: transition → html → runtime → devtools → menu → transition.
-// The barrel (../transition) imports from html, which starts the cycle.
-import {
-  EndedTransition as TransitionEndedTransition,
-  Hid as TransitionHid,
-  Message as TransitionMessage,
-  Model as TransitionModel,
-  type OutMessage as TransitionOutMessage,
-  Showed as TransitionShowed,
-  init as transitionInit,
-} from '../transition/schema'
-import { update as transitionUpdate } from '../transition/update'
 import { resolveTypeaheadMatch } from '../typeahead'
 
 // MODEL
@@ -53,7 +53,7 @@ export const Model = S.Struct({
   isOpen: S.Boolean,
   isAnimated: S.Boolean,
   isModal: S.Boolean,
-  transition: TransitionModel,
+  animation: AnimationModel,
   maybeActiveItemIndex: S.OptionFromSelf(S.Number),
   activationTrigger: ActivationTrigger,
   searchQuery: S.String,
@@ -125,9 +125,9 @@ export const CompletedAdvanceFocus = m('CompletedAdvanceFocus')
 export const IgnoredMouseClick = m('IgnoredMouseClick')
 /** Sent when a Space key-up is captured to prevent page scrolling. */
 export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
-/** Wraps a Transition submodel message for delegation. */
-export const GotTransitionMessage = m('GotTransitionMessage', {
-  message: TransitionMessage,
+/** Wraps an Animation submodel message for delegation. */
+export const GotAnimationMessage = m('GotAnimationMessage', {
+  message: AnimationMessage,
 })
 /** Sent when the user presses a pointer device on the menu button. Records pointer type and toggles for mouse. */
 export const PressedPointerOnButton = m('PressedPointerOnButton', {
@@ -168,7 +168,7 @@ export const Message: S.Union<
     typeof CompletedAdvanceFocus,
     typeof IgnoredMouseClick,
     typeof SuppressedSpaceScroll,
-    typeof GotTransitionMessage,
+    typeof GotAnimationMessage,
     typeof PressedPointerOnButton,
     typeof ReleasedPointerOnItems,
   ]
@@ -194,7 +194,7 @@ export const Message: S.Union<
   CompletedAdvanceFocus,
   IgnoredMouseClick,
   SuppressedSpaceScroll,
-  GotTransitionMessage,
+  GotAnimationMessage,
   PressedPointerOnButton,
   ReleasedPointerOnItems,
 )
@@ -223,7 +223,7 @@ const LEFT_MOUSE_BUTTON = 0
 const POINTER_HOLD_THRESHOLD_MILLISECONDS = 200
 const POINTER_MOVEMENT_THRESHOLD_PIXELS = 5
 
-/** Configuration for creating a menu model with `init`. `isAnimated` enables CSS transition coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). */
+/** Configuration for creating a menu model with `init`. `isAnimated` enables animation coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). */
 export type InitConfig = Readonly<{
   id: string
   isAnimated?: boolean
@@ -236,7 +236,7 @@ export const init = (config: InitConfig): Model => ({
   isOpen: false,
   isAnimated: config.isAnimated ?? false,
   isModal: config.isModal ?? false,
-  transition: transitionInit({ id: `${config.id}-items` }),
+  animation: animationInit({ id: `${config.id}-items` }),
   maybeActiveItemIndex: Option.none(),
   activationTrigger: 'Keyboard',
   searchQuery: '',
@@ -297,41 +297,43 @@ export const DelayClearSearch = Command.define(
   'DelayClearSearch',
   ClearedSearch,
 )
-/** Detects whether the menu button moved or the leave transition ended — whichever comes first. Both outcomes signal the Transition submodel that leave is complete. */
-export const DetectMovementOrTransitionEnd = Command.define(
-  'DetectMovementOrTransitionEnd',
-  GotTransitionMessage,
+/** Detects whether the menu button moved or the leave animation ended — whichever comes first. Both outcomes signal the Animation submodel that leave is complete. */
+export const DetectMovementOrAnimationEnd = Command.define(
+  'DetectMovementOrAnimationEnd',
+  GotAnimationMessage,
 )
 
-const delegateToTransition = (
+const delegateToAnimation = (
   model: Model,
-  transitionMessage: TransitionMessage,
+  animationMessage: AnimationMessage,
 ): UpdateReturn => {
-  const [nextTransition, transitionCommands, maybeOutMessage] =
-    transitionUpdate(model.transition, transitionMessage)
+  const [nextAnimation, animationCommands, maybeOutMessage] = animationUpdate(
+    model.animation,
+    animationMessage,
+  )
 
-  const mappedCommands = transitionCommands.map(
-    Command.mapEffect(Effect.map(message => GotTransitionMessage({ message }))),
+  const mappedCommands = animationCommands.map(
+    Command.mapEffect(Effect.map(message => GotAnimationMessage({ message }))),
   )
 
   const additionalCommands = Option.match(maybeOutMessage, {
     onNone: () => [],
-    onSome: M.type<TransitionOutMessage>().pipe(
+    onSome: M.type<AnimationOutMessage>().pipe(
       M.tagsExhaustive({
         StartedLeaveAnimating: () => [
-          DetectMovementOrTransitionEnd(
+          DetectMovementOrAnimationEnd(
             Effect.raceFirst(
               Task.detectElementMovement(buttonSelector(model.id)).pipe(
                 Effect.as(
-                  GotTransitionMessage({
-                    message: TransitionEndedTransition(),
+                  GotAnimationMessage({
+                    message: AnimationEndedAnimation(),
                   }),
                 ),
               ),
-              Task.waitForTransitions(itemsSelector(model.id)).pipe(
+              Task.waitForAnimationSettled(itemsSelector(model.id)).pipe(
                 Effect.as(
-                  GotTransitionMessage({
-                    message: TransitionEndedTransition(),
+                  GotAnimationMessage({
+                    message: AnimationEndedAnimation(),
                   }),
                 ),
               ),
@@ -344,7 +346,7 @@ const delegateToTransition = (
   })
 
   return [
-    evo(model, { transition: () => nextTransition }),
+    evo(model, { animation: () => nextAnimation }),
     [...mappedCommands, ...additionalCommands],
   ]
 }
@@ -399,13 +401,13 @@ export const update = (model: Model, message: Message): UpdateReturn => {
 
   const openMenu = (baseModel: Model): UpdateReturn => {
     if (model.isAnimated) {
-      const [nextModel, transitionCommands] = delegateToTransition(
+      const [nextModel, animationCommands] = delegateToAnimation(
         baseModel,
-        TransitionShowed(),
+        AnimationShowed(),
       )
       return [
         evo(nextModel, { isOpen: () => true }),
-        [...openCommands, ...transitionCommands],
+        [...openCommands, ...animationCommands],
       ]
     }
 
@@ -419,11 +421,11 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     const closed = closedModel(baseModel)
 
     if (model.isAnimated) {
-      const [nextModel, transitionCommands] = delegateToTransition(
+      const [nextModel, animationCommands] = delegateToAnimation(
         closed,
-        TransitionHid(),
+        AnimationHid(),
       )
-      return [nextModel, [...commands, ...transitionCommands]]
+      return [nextModel, [...commands, ...animationCommands]]
     }
 
     return [closed, commands]
@@ -545,8 +547,8 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         return [evo(model, { searchQuery: () => '' }), []]
       },
 
-      GotTransitionMessage: ({ message: transitionMessage }) =>
-        delegateToTransition(model, transitionMessage),
+      GotAnimationMessage: ({ message: animationMessage }) =>
+        delegateToAnimation(model, animationMessage),
 
       PressedPointerOnButton: ({
         pointerType,
@@ -772,7 +774,7 @@ export const view = <Message, Item extends string>(
     model: {
       id,
       isOpen,
-      transition: { transitionState },
+      animation: { transitionState },
       maybeActiveItemIndex,
       searchQuery,
       maybeLastButtonPointerType,
@@ -813,7 +815,7 @@ export const view = <Message, Item extends string>(
     transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
   const isVisible = isOpen || isLeaving
 
-  const transitionAttributes: ReadonlyArray<ReturnType<typeof DataAttribute>> =
+  const animationAttributes: ReadonlyArray<ReturnType<typeof DataAttribute>> =
     M.value(transitionState).pipe(
       M.when('EnterStart', () => [
         DataAttribute('closed', ''),
@@ -1047,7 +1049,7 @@ export const view = <Message, Item extends string>(
     ...maybeActiveDescendant,
     Tabindex(0),
     ...anchorAttributes,
-    ...transitionAttributes,
+    ...animationAttributes,
     ...(isLeaving
       ? []
       : [

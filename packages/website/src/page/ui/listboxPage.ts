@@ -115,8 +115,7 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
     name: 'isAnimated',
     type: 'boolean',
     default: 'false',
-    description:
-      'Enables CSS transition coordination for open/close animations.',
+    description: 'Enables animation coordination for open/close animations.',
   },
   {
     name: 'isModal',

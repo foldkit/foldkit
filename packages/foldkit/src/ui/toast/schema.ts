@@ -2,9 +2,9 @@ import { Duration, Schema as S } from 'effect'
 
 import { m } from '../../message'
 import {
-  Message as TransitionMessage,
-  Model as TransitionModel,
-} from '../transition/schema'
+  Message as AnimationMessage,
+  Model as AnimationModel,
+} from '../animation/schema'
 
 // VARIANT
 
@@ -34,14 +34,14 @@ export type Position = typeof Position.Type
 /** Schema factory for a single toast entry. `payloadSchema` is user-provided
  *  and defines the shape of per-entry content — whatever the consumer wants
  *  to encode. The component itself owns only lifecycle + a11y fields: `id`,
- *  `variant` (for ARIA role), `transition`, `maybeDuration`,
+ *  `variant` (for ARIA role), `animation`, `maybeDuration`,
  *  `pendingDismissVersion` (for cancellable auto-dismiss), and `isHovered`
  *  (for pause-on-hover). */
 export const makeEntry = <A, I>(payloadSchema: S.Schema<A, I>) =>
   S.Struct({
     id: S.String,
     variant: Variant,
-    transition: TransitionModel,
+    animation: AnimationModel,
     maybeDuration: S.OptionFromSelf(S.DurationFromMillis),
     pendingDismissVersion: S.Number,
     isHovered: S.Boolean,
@@ -83,10 +83,10 @@ export const HoveredEntry = m('HoveredEntry', { entryId: S.String })
 /** Sent when the pointer leaves an entry. Restarts the auto-dismiss timer
  *  with the entry's full duration. */
 export const LeftEntry = m('LeftEntry', { entryId: S.String })
-/** Wraps a single entry's Transition submodel message for delegation. */
-export const GotTransitionMessage = m('GotTransitionMessage', {
+/** Wraps a single entry's Animation submodel message for delegation. */
+export const GotAnimationMessage = m('GotAnimationMessage', {
   entryId: S.String,
-  message: TransitionMessage,
+  message: AnimationMessage,
 })
 
 export type Dismissed = typeof Dismissed.Type
@@ -94,7 +94,7 @@ export type DismissedAll = typeof DismissedAll.Type
 export type ElapsedDuration = typeof ElapsedDuration.Type
 export type HoveredEntry = typeof HoveredEntry.Type
 export type LeftEntry = typeof LeftEntry.Type
-export type GotTransitionMessage = typeof GotTransitionMessage.Type
+export type GotAnimationMessage = typeof GotAnimationMessage.Type
 
 /** Factory for the `Added` message, which carries a fully-constructed entry
  *  whose shape depends on the user-provided payload. */
@@ -110,7 +110,7 @@ export const makeMessage = <A, I>(payloadSchema: S.Schema<A, I>) =>
     ElapsedDuration,
     HoveredEntry,
     LeftEntry,
-    GotTransitionMessage,
+    GotAnimationMessage,
   )
 
 // INIT

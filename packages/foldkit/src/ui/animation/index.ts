@@ -8,8 +8,8 @@ import {
   html,
 } from '../../html'
 import {
-  AdvancedTransitionFrame,
-  EndedTransition,
+  AdvancedAnimationFrame,
+  EndedAnimation,
   Hid,
   Message,
   Model,
@@ -22,15 +22,15 @@ import {
 } from './schema'
 import {
   RequestFrame,
-  WaitForTransitions,
+  WaitForAnimationSettled,
   defaultLeaveCommand,
   update,
 } from './update'
 
 export type { InitConfig } from './schema'
 export {
-  AdvancedTransitionFrame,
-  EndedTransition,
+  AdvancedAnimationFrame,
+  EndedAnimation,
   Hid,
   init,
   Message,
@@ -42,11 +42,11 @@ export {
   TransitionedOut,
 }
 
-export { RequestFrame, WaitForTransitions, defaultLeaveCommand, update }
+export { RequestFrame, WaitForAnimationSettled, defaultLeaveCommand, update }
 
 // VIEW
 
-/** Configuration for rendering a transition with `view`. */
+/** Configuration for rendering an animation with `view`. */
 export type ViewConfig<Message> = Readonly<{
   model: Model
   content: Html
@@ -59,9 +59,10 @@ export type ViewConfig<Message> = Readonly<{
   animateSize?: boolean
 }>
 
-/** Renders a headless transition wrapper that coordinates CSS transitions via data attributes.
+/** Renders a headless animation wrapper that coordinates CSS transitions and
+ *  CSS keyframe animations via data attributes.
  *
- *  Data attributes reflect the current transition phase:
+ *  Data attributes reflect the current lifecycle phase:
  *  - `data-closed` — element is in its hidden/initial state
  *  - `data-enter` — enter animation is active
  *  - `data-leave` — leave animation is active
@@ -164,7 +165,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
   )
 }
 
-/** Creates a memoized transition view. Static config (className, element, etc.)
+/** Creates a memoized animation view. Static config (className, element, etc.)
  *  is captured in a closure. Dynamic fields — `model` and `content` — are
  *  compared by reference per render via `createLazy`. */
 export const lazy = <Message>(

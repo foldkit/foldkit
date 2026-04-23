@@ -14,6 +14,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
+import { uiAnimationRouter } from '../../route'
 import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 import {
@@ -103,7 +104,7 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
     name: 'isAnimated',
     type: 'boolean',
     default: 'false',
-    description: 'Enables CSS transition coordination.',
+    description: 'Enables animation coordination.',
   },
   {
     name: 'isModal',
@@ -282,7 +283,7 @@ export const view = (
       para(
         'Pass ',
         inlineCode('isAnimated: true'),
-        ' at init for CSS transition coordination.',
+        ' at init for animation coordination.',
       ),
       demoContainer(
         ...Menu.animatedDemo(model.menuAnimatedDemo, toParentMessage),
@@ -306,6 +307,13 @@ export const view = (
         ' and ',
         inlineCode('groupToHeading'),
         '.',
+      ),
+      para(
+        'When ',
+        inlineCode('isAnimated'),
+        ' is true, enter/leave animations flow through the ',
+        link(uiAnimationRouter(), 'Animation'),
+        ' module. Style with CSS transitions or CSS keyframe animations. Animation advances once every animation on the element has settled.',
       ),
       dataAttributeTable(dataAttributes),
       heading(

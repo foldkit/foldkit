@@ -4,10 +4,10 @@ import { m } from 'foldkit/message'
 
 import { Toast } from './toast'
 
-export const GotTransitionDemoMessage = m('GotTransitionDemoMessage', {
-  message: Ui.Transition.Message,
+export const GotAnimationDemoMessage = m('GotAnimationDemoMessage', {
+  message: Ui.Animation.Message,
 })
-export const ToggledTransitionDemo = m('ToggledTransitionDemo')
+export const ToggledAnimationDemo = m('ToggledAnimationDemo')
 
 export const GotMobileMenuDialogMessage = m('GotMobileMenuDialogMessage', {
   message: Ui.Dialog.Message,
@@ -144,8 +144,8 @@ export const GotTooltipNoDelayDemoMessage = m('GotTooltipNoDelayDemoMessage', {
 export const UiMessage = S.Union(
   GotMobileMenuDialogMessage,
   ClickedButtonDemo,
-  GotTransitionDemoMessage,
-  ToggledTransitionDemo,
+  GotAnimationDemoMessage,
+  ToggledAnimationDemo,
   UpdatedInputDemoValue,
   UpdatedTextareaDemoValue,
   UpdatedFieldsetInputValue,

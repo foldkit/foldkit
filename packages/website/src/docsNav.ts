@@ -40,6 +40,7 @@ import {
   testingRouter,
   testingSceneRouter,
   testingStoryRouter,
+  uiAnimationRouter,
   uiButtonRouter,
   uiCalendarRouter,
   uiCheckboxRouter,
@@ -62,7 +63,6 @@ import {
   uiTextareaRouter,
   uiToastRouter,
   uiTooltipRouter,
-  uiTransitionRouter,
 } from './route'
 
 // NAV PAGE
@@ -479,9 +479,9 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           label: 'Date Picker',
         },
         {
-          _tag: 'UiTransition',
-          href: uiTransitionRouter(),
-          label: 'Transition',
+          _tag: 'UiAnimation',
+          href: uiAnimationRouter(),
+          label: 'Animation',
         },
       ],
     ],

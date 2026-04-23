@@ -15,14 +15,14 @@ export {
   CompletedUnlockScroll,
   CompletedSetupInert,
   CompletedTeardownInert,
-  GotTransitionMessage,
+  GotAnimationMessage,
   LockScroll,
   UnlockScroll,
   InertOthers,
   RestoreInert,
   FocusPanel,
   FocusButton,
-  DetectMovementOrTransitionEnd,
+  DetectMovementOrAnimationEnd,
 } from './index'
 
 export type {

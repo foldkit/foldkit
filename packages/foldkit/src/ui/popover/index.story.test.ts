@@ -3,7 +3,7 @@ import { Option, flow } from 'effect'
 import { expect } from 'vitest'
 
 import * as Story from '../../test/story'
-import * as Transition from '../transition'
+import * as Animation from '../animation'
 import {
   Closed,
   ClosedByTab,
@@ -13,9 +13,9 @@ import {
   CompletedSetupInert,
   CompletedTeardownInert,
   CompletedUnlockScroll,
-  DetectMovementOrTransitionEnd,
+  DetectMovementOrAnimationEnd,
   FocusButton,
-  GotTransitionMessage,
+  GotAnimationMessage,
   IgnoredMouseClick,
   InertOthers,
   LockScroll,
@@ -27,11 +27,11 @@ import {
   update,
 } from './index'
 
-const transitionToPopoverMessage = (message: Transition.Message) =>
-  GotTransitionMessage({ message })
+const animationToPopoverMessage = (message: Animation.Message) =>
+  GotAnimationMessage({ message })
 
-const transitionEndMessage = GotTransitionMessage({
-  message: Transition.EndedTransition(),
+const animationEndMessage = GotAnimationMessage({
+  message: Animation.EndedAnimation(),
 })
 
 const withClosed = Story.with(init({ id: 'test' }))
@@ -45,14 +45,14 @@ const withOpenAnimated = flow(
   Story.message(Opened()),
   Story.resolveAll(
     [
-      Transition.RequestFrame,
-      Transition.AdvancedTransitionFrame(),
-      transitionToPopoverMessage,
+      Animation.RequestFrame,
+      Animation.AdvancedAnimationFrame(),
+      animationToPopoverMessage,
     ],
     [
-      Transition.WaitForTransitions,
-      Transition.EndedTransition(),
-      transitionToPopoverMessage,
+      Animation.WaitForAnimationSettled,
+      Animation.EndedAnimation(),
+      animationToPopoverMessage,
     ],
   ),
 )
@@ -66,7 +66,7 @@ describe('Popover', () => {
         isAnimated: false,
         isModal: false,
         contentFocus: false,
-        transition: Transition.init({ id: 'test-panel' }),
+        animation: Animation.init({ id: 'test-panel' }),
         maybeLastButtonPointerType: Option.none(),
       })
     })
@@ -74,7 +74,7 @@ describe('Popover', () => {
     it('accepts isAnimated option', () => {
       const model = init({ id: 'test', isAnimated: true })
       expect(model.isAnimated).toBe(true)
-      expect(model.transition.transitionState).toBe('Idle')
+      expect(model.animation.transitionState).toBe('Idle')
     })
 
     it('defaults isModal to false', () => {
@@ -313,73 +313,73 @@ describe('Popover', () => {
       })
     })
 
-    describe('transitions', () => {
+    describe('animation', () => {
       describe('enter flow', () => {
-        it('starts enter transition and emits RequestFrame on Opened', () => {
+        it('starts enter animation and emits RequestFrame on Opened', () => {
           Story.story(
             update,
             withClosedAnimated,
             Story.message(Opened()),
             Story.model(model => {
               expect(model.isOpen).toBe(true)
-              expect(model.transition.transitionState).toBe('EnterStart')
+              expect(model.animation.transitionState).toBe('EnterStart')
             }),
-            Story.expectHasCommands(Transition.RequestFrame),
+            Story.expectHasCommands(Animation.RequestFrame),
             Story.resolveAll(
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToPopoverMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToPopoverMessage,
               ],
               [
-                Transition.WaitForTransitions,
-                Transition.EndedTransition(),
-                transitionToPopoverMessage,
+                Animation.WaitForAnimationSettled,
+                Animation.EndedAnimation(),
+                animationToPopoverMessage,
               ],
             ),
           )
         })
 
-        it('advances EnterStart to EnterAnimating on AdvancedTransitionFrame', () => {
+        it('advances EnterStart to EnterAnimating on AdvancedAnimationFrame', () => {
           Story.story(
             update,
             withClosedAnimated,
             Story.message(Opened()),
             Story.resolve(
-              Transition.RequestFrame,
-              Transition.AdvancedTransitionFrame(),
-              transitionToPopoverMessage,
+              Animation.RequestFrame,
+              Animation.AdvancedAnimationFrame(),
+              animationToPopoverMessage,
             ),
             Story.model(model => {
-              expect(model.transition.transitionState).toBe('EnterAnimating')
+              expect(model.animation.transitionState).toBe('EnterAnimating')
             }),
             Story.resolve(
-              Transition.WaitForTransitions,
-              Transition.EndedTransition(),
-              transitionToPopoverMessage,
+              Animation.WaitForAnimationSettled,
+              Animation.EndedAnimation(),
+              animationToPopoverMessage,
             ),
           )
         })
 
-        it('completes EnterAnimating to Idle on EndedTransition', () => {
+        it('completes EnterAnimating to Idle on EndedAnimation', () => {
           Story.story(
             update,
             withClosedAnimated,
             Story.message(Opened()),
             Story.resolveAll(
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToPopoverMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToPopoverMessage,
               ],
               [
-                Transition.WaitForTransitions,
-                Transition.EndedTransition(),
-                transitionToPopoverMessage,
+                Animation.WaitForAnimationSettled,
+                Animation.EndedAnimation(),
+                animationToPopoverMessage,
               ],
             ),
             Story.model(model => {
-              expect(model.transition.transitionState).toBe('Idle')
+              expect(model.animation.transitionState).toBe('Idle')
             }),
           )
         })
@@ -393,16 +393,16 @@ describe('Popover', () => {
             Story.message(Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
-              expect(model.transition.transitionState).toBe('LeaveStart')
+              expect(model.animation.transitionState).toBe('LeaveStart')
             }),
             Story.resolveAll(
               [FocusButton, CompletedFocusButton()],
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToPopoverMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToPopoverMessage,
               ],
-              [DetectMovementOrTransitionEnd, transitionEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
         })
@@ -414,41 +414,41 @@ describe('Popover', () => {
             Story.message(ClosedByTab()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
-              expect(model.transition.transitionState).toBe('LeaveStart')
+              expect(model.animation.transitionState).toBe('LeaveStart')
             }),
             Story.resolveAll(
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToPopoverMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToPopoverMessage,
               ],
-              [DetectMovementOrTransitionEnd, transitionEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
         })
 
-        it('advances LeaveStart to LeaveAnimating with DetectMovementOrTransitionEnd', () => {
+        it('advances LeaveStart to LeaveAnimating with DetectMovementOrAnimationEnd', () => {
           Story.story(
             update,
             withOpenAnimated,
             Story.message(Closed()),
             Story.resolve(
-              Transition.RequestFrame,
-              Transition.AdvancedTransitionFrame(),
-              transitionToPopoverMessage,
+              Animation.RequestFrame,
+              Animation.AdvancedAnimationFrame(),
+              animationToPopoverMessage,
             ),
             Story.model(model => {
-              expect(model.transition.transitionState).toBe('LeaveAnimating')
+              expect(model.animation.transitionState).toBe('LeaveAnimating')
             }),
-            Story.expectHasCommands(DetectMovementOrTransitionEnd),
+            Story.expectHasCommands(DetectMovementOrAnimationEnd),
             Story.resolveAll(
               [FocusButton, CompletedFocusButton()],
-              [DetectMovementOrTransitionEnd, transitionEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
         })
 
-        it('completes LeaveAnimating to Idle on transition end', () => {
+        it('completes LeaveAnimating to Idle on animation end', () => {
           Story.story(
             update,
             withOpenAnimated,
@@ -456,14 +456,14 @@ describe('Popover', () => {
             Story.resolveAll(
               [FocusButton, CompletedFocusButton()],
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToPopoverMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToPopoverMessage,
               ],
-              [DetectMovementOrTransitionEnd, transitionEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
             Story.model(model => {
-              expect(model.transition.transitionState).toBe('Idle')
+              expect(model.animation.transitionState).toBe('Idle')
             }),
           )
         })
@@ -476,7 +476,7 @@ describe('Popover', () => {
             withClosed,
             Story.message(Opened()),
             Story.model(model => {
-              expect(model.transition.transitionState).toBe('Idle')
+              expect(model.animation.transitionState).toBe('Idle')
             }),
           )
         })
@@ -488,37 +488,37 @@ describe('Popover', () => {
             Story.message(Closed()),
             Story.resolve(FocusButton, CompletedFocusButton()),
             Story.model(model => {
-              expect(model.transition.transitionState).toBe('Idle')
+              expect(model.animation.transitionState).toBe('Idle')
             }),
           )
         })
       })
 
       describe('stale messages', () => {
-        it('ignores GotTransitionMessage with AdvancedTransitionFrame when Idle', () => {
+        it('ignores GotAnimationMessage with AdvancedAnimationFrame when Idle', () => {
           Story.story(
             update,
             withOpen,
             Story.message(
-              GotTransitionMessage({
-                message: Transition.AdvancedTransitionFrame(),
+              GotAnimationMessage({
+                message: Animation.AdvancedAnimationFrame(),
               }),
             ),
             Story.model(model => {
               expect(model.isOpen).toBe(true)
-              expect(model.transition.transitionState).toBe('Idle')
+              expect(model.animation.transitionState).toBe('Idle')
             }),
           )
         })
 
-        it('ignores GotTransitionMessage with EndedTransition when Idle', () => {
+        it('ignores GotAnimationMessage with EndedAnimation when Idle', () => {
           Story.story(
             update,
             withOpen,
-            Story.message(transitionEndMessage),
+            Story.message(animationEndMessage),
             Story.model(model => {
               expect(model.isOpen).toBe(true)
-              expect(model.transition.transitionState).toBe('Idle')
+              expect(model.animation.transitionState).toBe('Idle')
             }),
           )
         })
@@ -532,29 +532,29 @@ describe('Popover', () => {
             Story.message(Opened()),
             Story.resolveAll(
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToPopoverMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToPopoverMessage,
               ],
               [
-                Transition.WaitForTransitions,
-                Transition.EndedTransition(),
-                transitionToPopoverMessage,
+                Animation.WaitForAnimationSettled,
+                Animation.EndedAnimation(),
+                animationToPopoverMessage,
               ],
             ),
             Story.message(Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
-              expect(model.transition.transitionState).toBe('LeaveStart')
+              expect(model.animation.transitionState).toBe('LeaveStart')
             }),
             Story.resolveAll(
               [FocusButton, CompletedFocusButton()],
               [
-                Transition.RequestFrame,
-                Transition.AdvancedTransitionFrame(),
-                transitionToPopoverMessage,
+                Animation.RequestFrame,
+                Animation.AdvancedAnimationFrame(),
+                animationToPopoverMessage,
               ],
-              [DetectMovementOrTransitionEnd, transitionEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
           )
         })

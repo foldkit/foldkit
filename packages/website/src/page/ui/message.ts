@@ -148,8 +148,8 @@ export const ClickedDismissAllToasts = m('ClickedDismissAllToasts')
 export const GotTooltipDemoMessage = m('GotTooltipDemoMessage', {
   message: Ui.Tooltip.Message,
 })
-export const GotTransitionDemoMessage = m('GotTransitionDemoMessage', {
-  message: Ui.Transition.Message,
+export const GotAnimationDemoMessage = m('GotAnimationDemoMessage', {
+  message: Ui.Animation.Message,
 })
 
 export const Message = S.Union(
@@ -195,6 +195,6 @@ export const Message = S.Union(
   ClickedShowStickyToast,
   ClickedDismissAllToasts,
   GotTooltipDemoMessage,
-  GotTransitionDemoMessage,
+  GotAnimationDemoMessage,
 )
 export type Message = typeof Message.Type

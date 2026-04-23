@@ -3,6 +3,7 @@ import { Command, Ui } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import {
+  GotAnimationDemoMessage,
   GotCalendarBasicDemoMessage,
   GotCheckboxBasicDemoMessage,
   GotCheckboxOptionADemoMessage,
@@ -30,7 +31,6 @@ import {
   GotSwitchDemoMessage,
   GotToastDemoMessage,
   GotTooltipDemoMessage,
-  GotTransitionDemoMessage,
   GotVerticalRadioGroupDemoMessage,
   GotVerticalTabsDemoMessage,
   type Message,
@@ -86,27 +86,27 @@ export type UpdateReturn = readonly [
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-const delegateToTransitionDemo = (
-  transitionModel: Ui.Transition.Model,
-  message: Ui.Transition.Message,
-): readonly [Ui.Transition.Model, ReadonlyArray<Command.Command<Message>>] => {
-  const [nextTransition, transitionCommands, maybeOutMessage] =
-    Ui.Transition.update(transitionModel, message)
+const delegateToAnimationDemo = (
+  animationModel: Ui.Animation.Model,
+  message: Ui.Animation.Message,
+): readonly [Ui.Animation.Model, ReadonlyArray<Command.Command<Message>>] => {
+  const [nextAnimation, animationCommands, maybeOutMessage] =
+    Ui.Animation.update(animationModel, message)
 
-  const toMessage = (transitionMessage: Ui.Transition.Message): Message =>
-    GotTransitionDemoMessage({ message: transitionMessage })
+  const toMessage = (animationMessage: Ui.Animation.Message): Message =>
+    GotAnimationDemoMessage({ message: animationMessage })
 
-  const mappedCommands = transitionCommands.map(
+  const mappedCommands = animationCommands.map(
     Command.mapEffect(Effect.map(toMessage)),
   )
 
   const additionalCommands = Option.match(maybeOutMessage, {
     onNone: () => [],
-    onSome: M.type<Ui.Transition.OutMessage>().pipe(
+    onSome: M.type<Ui.Animation.OutMessage>().pipe(
       M.tagsExhaustive({
         StartedLeaveAnimating: () => [
           Command.mapEffect(
-            Ui.Transition.defaultLeaveCommand(nextTransition),
+            Ui.Animation.defaultLeaveCommand(nextAnimation),
             Effect.map(toMessage),
           ),
         ],
@@ -115,7 +115,7 @@ const delegateToTransitionDemo = (
     ),
   })
 
-  return [nextTransition, [...mappedCommands, ...additionalCommands]]
+  return [nextAnimation, [...mappedCommands, ...additionalCommands]]
 }
 
 export const update = (model: Model, message: Message): UpdateReturn =>
@@ -735,14 +735,14 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ]
       },
 
-      GotTransitionDemoMessage: ({ message }) => {
-        const [nextTransitionDemo, commands] = delegateToTransitionDemo(
-          model.transitionDemo,
+      GotAnimationDemoMessage: ({ message }) => {
+        const [nextAnimationDemo, commands] = delegateToAnimationDemo(
+          model.animationDemo,
           message,
         )
 
         return [
-          evo(model, { transitionDemo: () => nextTransitionDemo }),
+          evo(model, { animationDemo: () => nextAnimationDemo }),
           commands,
         ]
       },

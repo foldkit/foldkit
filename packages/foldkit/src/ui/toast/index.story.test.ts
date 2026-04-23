@@ -3,13 +3,13 @@ import { Duration, Option, Schema as S } from 'effect'
 import { expect } from 'vitest'
 
 import * as Story from '../../test/story'
-import * as Transition from '../transition'
+import * as Animation from '../animation'
 import {
   DismissAfter,
   Dismissed,
   DismissedAll,
   ElapsedDuration,
-  GotTransitionMessage,
+  GotAnimationMessage,
   HoveredEntry,
   LeftEntry,
   make,
@@ -29,10 +29,10 @@ type Entry = typeof Toast.Entry.Type
 
 const STALE_VERSION = -1
 
-const transitionToToastMessage =
+const animationToToastMessage =
   (entryId: string) =>
-  (message: Transition.Message): Message =>
-    GotTransitionMessage({ entryId, message })
+  (message: Animation.Message): Message =>
+    GotAnimationMessage({ entryId, message })
 
 // A post-enter entry: isShowing true, transition Idle. Use this for tests
 // that exercise behavior after the enter animation has settled — Dismissed,
@@ -40,7 +40,7 @@ const transitionToToastMessage =
 const makeSettledEntry = (overrides: Partial<Entry> = {}): Entry => ({
   id: 'test-entry-0',
   variant: 'Info',
-  transition: Transition.init({ id: 'test-entry-0', isShowing: true }),
+  animation: Animation.init({ id: 'test-entry-0', isShowing: true }),
   maybeDuration: Option.some(Duration.seconds(4)),
   pendingDismissVersion: 0,
   isHovered: false,
@@ -54,7 +54,7 @@ const makeSettledEntry = (overrides: Partial<Entry> = {}): Entry => ({
 const makeFreshEntry = (overrides: Partial<Entry> = {}): Entry => ({
   id: 'test-entry-0',
   variant: 'Info',
-  transition: Transition.init({ id: 'test-entry-0' }),
+  animation: Animation.init({ id: 'test-entry-0' }),
   maybeDuration: Option.some(Duration.seconds(4)),
   pendingDismissVersion: 0,
   isHovered: false,
@@ -104,7 +104,7 @@ describe('Toast', () => {
       expect(entry?.id).toBe(firstEntryId)
       expect(entry?.payload).toStrictEqual({ body: 'Saved' })
       expect(entry?.variant).toBe('Info')
-      expect(entry?.transition.transitionState).toBe('EnterStart')
+      expect(entry?.animation.transitionState).toBe('EnterStart')
       expect(nextModel.nextEntryKey).toBe(1)
       expect(commands).toHaveLength(2)
     })
@@ -169,7 +169,7 @@ describe('Toast', () => {
             }),
           ),
           Story.model((next: Model) => {
-            expect(next.entries[0]?.transition.transitionState).toBe('Idle')
+            expect(next.entries[0]?.animation.transitionState).toBe('Idle')
           }),
           Story.expectNoCommands(),
         )
@@ -186,20 +186,20 @@ describe('Toast', () => {
           Story.with(model),
           Story.message(ElapsedDuration({ entryId: firstEntryId, version: 0 })),
           Story.model((next: Model) => {
-            expect(next.entries[0]?.transition.transitionState).toBe(
+            expect(next.entries[0]?.animation.transitionState).toBe(
               'LeaveStart',
             )
           }),
           Story.resolveAll(
             [
-              Transition.RequestFrame,
-              Transition.AdvancedTransitionFrame(),
-              transitionToToastMessage(firstEntryId),
+              Animation.RequestFrame,
+              Animation.AdvancedAnimationFrame(),
+              animationToToastMessage(firstEntryId),
             ],
             [
-              Transition.WaitForTransitions,
-              Transition.EndedTransition(),
-              transitionToToastMessage(firstEntryId),
+              Animation.WaitForAnimationSettled,
+              Animation.EndedAnimation(),
+              animationToToastMessage(firstEntryId),
             ],
           ),
         )
@@ -295,7 +295,7 @@ describe('Toast', () => {
           }),
           Story.message(ElapsedDuration({ entryId: firstEntryId, version: 0 })),
           Story.model((next: Model) => {
-            expect(next.entries[0]?.transition.transitionState).toBe('Idle')
+            expect(next.entries[0]?.animation.transitionState).toBe('Idle')
             expect(next.entries[0]?.isHovered).toBe(true)
           }),
           Story.expectNoCommands(),
@@ -344,20 +344,20 @@ describe('Toast', () => {
           Story.with(model),
           Story.message(Dismissed({ entryId: firstEntryId })),
           Story.model((next: Model) => {
-            expect(next.entries[0]?.transition.transitionState).toBe(
+            expect(next.entries[0]?.animation.transitionState).toBe(
               'LeaveStart',
             )
           }),
           Story.resolveAll(
             [
-              Transition.RequestFrame,
-              Transition.AdvancedTransitionFrame(),
-              transitionToToastMessage(firstEntryId),
+              Animation.RequestFrame,
+              Animation.AdvancedAnimationFrame(),
+              animationToToastMessage(firstEntryId),
             ],
             [
-              Transition.WaitForTransitions,
-              Transition.EndedTransition(),
-              transitionToToastMessage(firstEntryId),
+              Animation.WaitForAnimationSettled,
+              Animation.EndedAnimation(),
+              animationToToastMessage(firstEntryId),
             ],
           ),
           Story.model((next: Model) => {
@@ -368,7 +368,7 @@ describe('Toast', () => {
 
       it('is a no-op when the entry is already leaving', () => {
         const leavingEntry = makeSettledEntry({
-          transition: {
+          animation: {
             id: firstEntryId,
             isShowing: false,
             transitionState: 'LeaveAnimating',
@@ -392,7 +392,7 @@ describe('Toast', () => {
 
       it('removes the entry when its leave transition completes', () => {
         const entry = makeSettledEntry({
-          transition: {
+          animation: {
             id: firstEntryId,
             isShowing: false,
             transitionState: 'LeaveAnimating',
@@ -407,9 +407,9 @@ describe('Toast', () => {
           Toast.update,
           Story.with(model),
           Story.message(
-            GotTransitionMessage({
+            GotAnimationMessage({
               entryId: firstEntryId,
-              message: Transition.EndedTransition(),
+              message: Animation.EndedAnimation(),
             }),
           ),
           Story.model((next: Model) => {
@@ -423,14 +423,14 @@ describe('Toast', () => {
       it('starts leave transition on every non-leaving entry', () => {
         const entryOne = makeSettledEntry({
           id: 'test-entry-0',
-          transition: {
-            ...Transition.init({ id: 'test-entry-0', isShowing: true }),
+          animation: {
+            ...Animation.init({ id: 'test-entry-0', isShowing: true }),
           },
         })
         const entryTwo = makeSettledEntry({
           id: 'test-entry-1',
-          transition: {
-            ...Transition.init({ id: 'test-entry-1', isShowing: true }),
+          animation: {
+            ...Animation.init({ id: 'test-entry-1', isShowing: true }),
           },
         })
         const model: Model = {
@@ -443,32 +443,32 @@ describe('Toast', () => {
           Story.with(model),
           Story.message(DismissedAll()),
           Story.model((next: Model) => {
-            expect(next.entries[0]?.transition.transitionState).toBe(
+            expect(next.entries[0]?.animation.transitionState).toBe(
               'LeaveStart',
             )
-            expect(next.entries[1]?.transition.transitionState).toBe(
+            expect(next.entries[1]?.animation.transitionState).toBe(
               'LeaveStart',
             )
           }),
           Story.resolve(
-            Transition.RequestFrame,
-            Transition.AdvancedTransitionFrame(),
-            transitionToToastMessage('test-entry-0'),
+            Animation.RequestFrame,
+            Animation.AdvancedAnimationFrame(),
+            animationToToastMessage('test-entry-0'),
           ),
           Story.resolve(
-            Transition.RequestFrame,
-            Transition.AdvancedTransitionFrame(),
-            transitionToToastMessage('test-entry-1'),
+            Animation.RequestFrame,
+            Animation.AdvancedAnimationFrame(),
+            animationToToastMessage('test-entry-1'),
           ),
           Story.resolve(
-            Transition.WaitForTransitions,
-            Transition.EndedTransition(),
-            transitionToToastMessage('test-entry-0'),
+            Animation.WaitForAnimationSettled,
+            Animation.EndedAnimation(),
+            animationToToastMessage('test-entry-0'),
           ),
           Story.resolve(
-            Transition.WaitForTransitions,
-            Transition.EndedTransition(),
-            transitionToToastMessage('test-entry-1'),
+            Animation.WaitForAnimationSettled,
+            Animation.EndedAnimation(),
+            animationToToastMessage('test-entry-1'),
           ),
           Story.model((next: Model) => {
             expect(next.entries).toHaveLength(0)
@@ -489,36 +489,36 @@ describe('Toast', () => {
         Story.message(Toast.Added({ entry })),
         Story.resolveAll(
           [
-            Transition.RequestFrame,
-            Transition.AdvancedTransitionFrame(),
-            transitionToToastMessage(firstEntryId),
+            Animation.RequestFrame,
+            Animation.AdvancedAnimationFrame(),
+            animationToToastMessage(firstEntryId),
           ],
           [
-            Transition.WaitForTransitions,
-            Transition.EndedTransition(),
-            transitionToToastMessage(firstEntryId),
+            Animation.WaitForAnimationSettled,
+            Animation.EndedAnimation(),
+            animationToToastMessage(firstEntryId),
           ],
         ),
         Story.model((next: Model) => {
-          expect(next.entries[0]?.transition.transitionState).toBe('Idle')
+          expect(next.entries[0]?.animation.transitionState).toBe('Idle')
         }),
         Story.resolve(
           DismissAfter,
           ElapsedDuration({ entryId: firstEntryId, version: 0 }),
         ),
         Story.model((next: Model) => {
-          expect(next.entries[0]?.transition.transitionState).toBe('LeaveStart')
+          expect(next.entries[0]?.animation.transitionState).toBe('LeaveStart')
         }),
         Story.resolveAll(
           [
-            Transition.RequestFrame,
-            Transition.AdvancedTransitionFrame(),
-            transitionToToastMessage(firstEntryId),
+            Animation.RequestFrame,
+            Animation.AdvancedAnimationFrame(),
+            animationToToastMessage(firstEntryId),
           ],
           [
-            Transition.WaitForTransitions,
-            Transition.EndedTransition(),
-            transitionToToastMessage(firstEntryId),
+            Animation.WaitForAnimationSettled,
+            Animation.EndedAnimation(),
+            animationToToastMessage(firstEntryId),
           ],
         ),
         Story.model((next: Model) => {
@@ -536,7 +536,7 @@ describe('Toast', () => {
         nextEntryKey: 1,
       }
       const [next] = Toast.dismiss(model, firstEntryId)
-      expect(next.entries[0]?.transition.transitionState).toBe('LeaveStart')
+      expect(next.entries[0]?.animation.transitionState).toBe('LeaveStart')
     })
 
     it('dismissAll(model) dispatches DismissedAll', () => {
@@ -550,7 +550,7 @@ describe('Toast', () => {
       }
       const [next] = Toast.dismissAll(model)
       next.entries.forEach((entry: Entry) => {
-        expect(entry.transition.transitionState).toBe('LeaveStart')
+        expect(entry.animation.transitionState).toBe('LeaveStart')
       })
     })
   })

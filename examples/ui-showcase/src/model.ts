@@ -1,5 +1,6 @@
 import { Schema as S } from 'effect'
 import {
+  Animation,
   Checkbox,
   Combobox,
   Dialog,
@@ -11,7 +12,6 @@ import {
   Switch,
   Tabs,
   Tooltip,
-  Transition,
 } from 'foldkit/ui'
 
 import { Toast } from './toast'
@@ -50,7 +50,7 @@ export const UiModel = S.Struct({
   toastDemo: Toast.Model,
   tooltipBasicDemo: Tooltip.Model,
   tooltipNoDelayDemo: Tooltip.Model,
-  transitionDemo: Transition.Model,
-  isTransitionDemoShowing: S.Boolean,
+  animationDemo: Animation.Model,
+  isAnimationDemoShowing: S.Boolean,
 })
 export type UiModel = typeof UiModel.Type

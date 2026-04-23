@@ -5,7 +5,7 @@ import {
   Dismissed,
   DismissedAll,
   ElapsedDuration,
-  GotTransitionMessage,
+  GotAnimationMessage,
   HoveredEntry,
   LeftEntry,
   Position,
@@ -24,7 +24,7 @@ export {
   ElapsedDuration,
   HoveredEntry,
   LeftEntry,
-  GotTransitionMessage,
+  GotAnimationMessage,
   DismissAfter,
 }
 
@@ -116,7 +116,7 @@ const DEFAULT_ARIA_LABEL = 'Notifications'
  *  The payload is whatever content shape the consumer supplies via Schema.
  *  The component never reads it — it flows through to `renderEntry`. The
  *  component itself owns only lifecycle and a11y fields (id, variant,
- *  transition, dismiss timer, hover state).
+ *  animation, dismiss timer, hover state).
  *
  *  Consume the bound module's exports everywhere — `Toast.Model` in your app
  *  Model, `Toast.Message` in your parent Message union, `Toast.show` /
@@ -159,7 +159,7 @@ export const make = <A, I>(payloadSchema: S.Schema<A, I>) => {
   /** Renders a headless toast stack. The `<ol>` container is always present
    *  in the DOM so screen readers can observe its `aria-live` region from
    *  page load. Each entry becomes an `<li>` keyed by its id, with
-   *  transition data attributes (`data-enter`, `data-leave`,
+   *  animation data attributes (`data-enter`, `data-leave`,
    *  `data-transition`, `data-closed`) and `data-variant` reflecting the
    *  entry's variant. */
   const view = <ParentMessage>(config: ViewConfig<ParentMessage>): Html => {
@@ -200,9 +200,9 @@ export const make = <A, I>(payloadSchema: S.Schema<A, I>) => {
     ]
 
     const renderEntryItem = (entry: Entry): Html => {
-      const { transitionState } = entry.transition
+      const { transitionState } = entry.animation
 
-      const transitionAttributes: ReadonlyArray<
+      const animationAttributes: ReadonlyArray<
         ReturnType<typeof DataAttribute>
       > = M.value(transitionState).pipe(
         M.when('EnterStart', () => [
@@ -238,7 +238,7 @@ export const make = <A, I>(payloadSchema: S.Schema<A, I>) => {
         Style({ pointerEvents: 'auto' }),
         OnMouseEnter(toParentMessage(HoveredEntry({ entryId: entry.id }))),
         OnMouseLeave(toParentMessage(LeftEntry({ entryId: entry.id }))),
-        ...transitionAttributes,
+        ...animationAttributes,
         ...(entryClassName ? [Class(entryClassName)] : []),
         ...entryAttributes,
       ]

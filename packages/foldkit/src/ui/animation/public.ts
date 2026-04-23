@@ -9,13 +9,13 @@ export {
   OutMessage,
   Showed,
   Hid,
-  AdvancedTransitionFrame,
-  EndedTransition,
+  AdvancedAnimationFrame,
+  EndedAnimation,
   StartedLeaveAnimating,
   TransitionedOut,
   TransitionState,
   RequestFrame,
-  WaitForTransitions,
+  WaitForAnimationSettled,
 } from './index'
 
 export type { InitConfig, ViewConfig } from './index'

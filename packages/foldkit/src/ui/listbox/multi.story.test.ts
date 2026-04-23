@@ -4,7 +4,7 @@ import { expect } from 'vitest'
 
 import * as Scene from '../../test/scene'
 import * as Story from '../../test/story'
-import * as Transition from '../transition'
+import * as Animation from '../animation'
 import { init, update, view } from './multi'
 import type { Model, ViewConfig } from './multi'
 import type { Message } from './shared'
@@ -35,7 +35,7 @@ describe('Listbox.Multi', () => {
         isAnimated: false,
         isModal: false,
         orientation: 'Vertical',
-        transition: Transition.init({ id: 'test-listbox' }),
+        animation: Animation.init({ id: 'test-listbox' }),
         maybeActiveItemIndex: Option.none(),
         activationTrigger: 'Keyboard',
         searchQuery: '',

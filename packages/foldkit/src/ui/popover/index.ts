@@ -8,30 +8,30 @@ import { evo } from '../../struct'
 import * as Task from '../../task'
 import { anchorHooks } from '../anchor'
 import type { AnchorConfig } from '../anchor'
-// NOTE: Transition imports are split across schema + update to avoid a circular
-// dependency: transition → html → runtime → devtools → popover → transition.
-// The barrel (../transition) imports from html, which starts the cycle.
+// NOTE: Animation imports are split across schema + update to avoid a circular
+// dependency: animation → html → runtime → devtools → popover → animation.
+// The barrel (../animation) imports from html, which starts the cycle.
 import {
-  EndedTransition as TransitionEndedTransition,
-  Hid as TransitionHid,
-  Message as TransitionMessage,
-  Model as TransitionModel,
-  type OutMessage as TransitionOutMessage,
-  Showed as TransitionShowed,
-  init as transitionInit,
-} from '../transition/schema'
-import { update as transitionUpdate } from '../transition/update'
+  EndedAnimation as AnimationEndedAnimation,
+  Hid as AnimationHid,
+  Message as AnimationMessage,
+  Model as AnimationModel,
+  type OutMessage as AnimationOutMessage,
+  Showed as AnimationShowed,
+  init as animationInit,
+} from '../animation/schema'
+import { update as animationUpdate } from '../animation/update'
 
 // MODEL
 
-/** Schema for the popover component's state, tracking open/closed status and transition animation. */
+/** Schema for the popover component's state, tracking open/closed status and animation lifecycle. */
 export const Model = S.Struct({
   id: S.String,
   isOpen: S.Boolean,
   isAnimated: S.Boolean,
   isModal: S.Boolean,
   contentFocus: S.Boolean,
-  transition: TransitionModel,
+  animation: AnimationModel,
   maybeLastButtonPointerType: S.OptionFromSelf(S.String),
 })
 
@@ -66,9 +66,9 @@ export const CompletedTeardownInert = m('CompletedTeardownInert')
 export const IgnoredMouseClick = m('IgnoredMouseClick')
 /** Sent when a Space key-up is captured to prevent page scrolling. */
 export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
-/** Wraps a Transition submodel message for delegation. */
-export const GotTransitionMessage = m('GotTransitionMessage', {
-  message: TransitionMessage,
+/** Wraps an Animation submodel message for delegation. */
+export const GotAnimationMessage = m('GotAnimationMessage', {
+  message: AnimationMessage,
 })
 
 /** Union of all messages the popover component can produce. */
@@ -86,7 +86,7 @@ export const Message: S.Union<
     typeof CompletedTeardownInert,
     typeof IgnoredMouseClick,
     typeof SuppressedSpaceScroll,
-    typeof GotTransitionMessage,
+    typeof GotAnimationMessage,
   ]
 > = S.Union(
   Opened,
@@ -101,7 +101,7 @@ export const Message: S.Union<
   CompletedTeardownInert,
   IgnoredMouseClick,
   SuppressedSpaceScroll,
-  GotTransitionMessage,
+  GotAnimationMessage,
 )
 
 export type Opened = typeof Opened.Type
@@ -117,7 +117,7 @@ export type Message = typeof Message.Type
 
 const LEFT_MOUSE_BUTTON = 0
 
-/** Configuration for creating a popover model with `init`. `isAnimated` enables CSS transition coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). `contentFocus` hands focus ownership to the consumer — the panel is not focusable and does not close on blur, so the consumer must focus a descendant on open and close the popover on its own blur rules (default `false`). */
+/** Configuration for creating a popover model with `init`. `isAnimated` enables animation coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). `contentFocus` hands focus ownership to the consumer — the panel is not focusable and does not close on blur, so the consumer must focus a descendant on open and close the popover on its own blur rules (default `false`). */
 export type InitConfig = Readonly<{
   id: string
   isAnimated?: boolean
@@ -132,7 +132,7 @@ export const init = (config: InitConfig): Model => ({
   isAnimated: config.isAnimated ?? false,
   isModal: config.isModal ?? false,
   contentFocus: config.contentFocus ?? false,
-  transition: transitionInit({ id: `${config.id}-panel` }),
+  animation: animationInit({ id: `${config.id}-panel` }),
   maybeLastButtonPointerType: Option.none(),
 })
 
@@ -168,41 +168,43 @@ export const RestoreInert = Command.define(
 export const FocusPanel = Command.define('FocusPanel', CompletedFocusPanel)
 /** Moves focus back to the popover button after closing. */
 export const FocusButton = Command.define('FocusButton', CompletedFocusButton)
-/** Detects whether the popover button moved or the leave transition ended — whichever comes first. Both outcomes signal the Transition submodel that leave is complete. */
-export const DetectMovementOrTransitionEnd = Command.define(
-  'DetectMovementOrTransitionEnd',
-  GotTransitionMessage,
+/** Detects whether the popover button moved or the leave animation ended — whichever comes first. Both outcomes signal the Animation submodel that leave is complete. */
+export const DetectMovementOrAnimationEnd = Command.define(
+  'DetectMovementOrAnimationEnd',
+  GotAnimationMessage,
 )
 
-const delegateToTransition = (
+const delegateToAnimation = (
   model: Model,
-  transitionMessage: TransitionMessage,
+  animationMessage: AnimationMessage,
 ): UpdateReturn => {
-  const [nextTransition, transitionCommands, maybeOutMessage] =
-    transitionUpdate(model.transition, transitionMessage)
+  const [nextAnimation, animationCommands, maybeOutMessage] = animationUpdate(
+    model.animation,
+    animationMessage,
+  )
 
-  const mappedCommands = transitionCommands.map(
-    Command.mapEffect(Effect.map(message => GotTransitionMessage({ message }))),
+  const mappedCommands = animationCommands.map(
+    Command.mapEffect(Effect.map(message => GotAnimationMessage({ message }))),
   )
 
   const additionalCommands = Option.match(maybeOutMessage, {
     onNone: () => [],
-    onSome: M.type<TransitionOutMessage>().pipe(
+    onSome: M.type<AnimationOutMessage>().pipe(
       M.tagsExhaustive({
         StartedLeaveAnimating: () => [
-          DetectMovementOrTransitionEnd(
+          DetectMovementOrAnimationEnd(
             Effect.raceFirst(
               Task.detectElementMovement(buttonSelector(model.id)).pipe(
                 Effect.as(
-                  GotTransitionMessage({
-                    message: TransitionEndedTransition(),
+                  GotAnimationMessage({
+                    message: AnimationEndedAnimation(),
                   }),
                 ),
               ),
-              Task.waitForTransitions(panelSelector(model.id)).pipe(
+              Task.waitForAnimationSettled(panelSelector(model.id)).pipe(
                 Effect.as(
-                  GotTransitionMessage({
-                    message: TransitionEndedTransition(),
+                  GotAnimationMessage({
+                    message: AnimationEndedAnimation(),
                   }),
                 ),
               ),
@@ -215,7 +217,7 @@ const delegateToTransition = (
   })
 
   return [
-    evo(model, { transition: () => nextTransition }),
+    evo(model, { animation: () => nextAnimation }),
     [...mappedCommands, ...additionalCommands],
   ]
 }
@@ -270,13 +272,13 @@ export const update = (model: Model, message: Message): UpdateReturn => {
 
   const openPopover = (baseModel: Model): UpdateReturn => {
     if (model.isAnimated) {
-      const [nextModel, transitionCommands] = delegateToTransition(
+      const [nextModel, animationCommands] = delegateToAnimation(
         baseModel,
-        TransitionShowed(),
+        AnimationShowed(),
       )
       return [
         evo(nextModel, { isOpen: () => true }),
-        [...openCommands, ...transitionCommands],
+        [...openCommands, ...animationCommands],
       ]
     }
 
@@ -290,11 +292,11 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     const closed = closedModel(baseModel)
 
     if (model.isAnimated) {
-      const [nextModel, transitionCommands] = delegateToTransition(
+      const [nextModel, animationCommands] = delegateToAnimation(
         closed,
-        TransitionHid(),
+        AnimationHid(),
       )
-      return [nextModel, [...commands, ...transitionCommands]]
+      return [nextModel, [...commands, ...animationCommands]]
     }
 
     return [closed, commands]
@@ -342,8 +344,8 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         return openPopover(withPointerType)
       },
 
-      GotTransitionMessage: ({ message: transitionMessage }) =>
-        delegateToTransition(model, transitionMessage),
+      GotAnimationMessage: ({ message: animationMessage }) =>
+        delegateToAnimation(model, animationMessage),
 
       CompletedFocusPanel: () => [model, []],
       CompletedFocusButton: () => [model, []],
@@ -433,7 +435,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
       id,
       isOpen,
       contentFocus,
-      transition: { transitionState },
+      animation: { transitionState },
       maybeLastButtonPointerType,
     },
     toParentMessage,
@@ -464,7 +466,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
   const isVisible = isOpen || isLeaving
 
-  const transitionAttributes: ReadonlyArray<ReturnType<typeof DataAttribute>> =
+  const animationAttributes: ReadonlyArray<ReturnType<typeof DataAttribute>> =
     M.value(transitionState).pipe(
       M.when('EnterStart', () => [
         DataAttribute('closed', ''),
@@ -574,7 +576,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     Id(`${id}-panel`),
     ...(contentFocus ? [] : [Tabindex(0)]),
     ...anchorAttributes,
-    ...transitionAttributes,
+    ...animationAttributes,
     ...(isLeaving
       ? []
       : [

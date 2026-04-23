@@ -35,7 +35,7 @@ const TabsRoute = r('Tabs')
 const TextareaRoute = r('Textarea')
 const ToastRoute = r('Toast')
 const TooltipRoute = r('Tooltip')
-const TransitionRoute = r('Transition')
+const AnimationRoute = r('Animation')
 const NotFoundRoute = r('NotFound', { path: S.String })
 
 const AppRoute = S.Union(
@@ -57,7 +57,7 @@ const AppRoute = S.Union(
   TextareaRoute,
   ToastRoute,
   TooltipRoute,
-  TransitionRoute,
+  AnimationRoute,
   NotFoundRoute,
 )
 
@@ -87,10 +87,7 @@ const tabsRouter = pipe(literal('tabs'), Route.mapTo(TabsRoute))
 const textareaRouter = pipe(literal('textarea'), Route.mapTo(TextareaRoute))
 const toastRouter = pipe(literal('toast'), Route.mapTo(ToastRoute))
 const tooltipRouter = pipe(literal('tooltip'), Route.mapTo(TooltipRoute))
-const transitionRouter = pipe(
-  literal('transition'),
-  Route.mapTo(TransitionRoute),
-)
+const animationRouter = pipe(literal('animation'), Route.mapTo(AnimationRoute))
 
 const routeParser = Route.oneOf(
   buttonRouter,
@@ -110,7 +107,7 @@ const routeParser = Route.oneOf(
   textareaRouter,
   toastRouter,
   tooltipRouter,
-  transitionRouter,
+  animationRouter,
   homeRouter,
 )
 
@@ -290,6 +287,7 @@ type NavItem = Readonly<{
 }>
 
 const NAV_ITEMS: ReadonlyArray<NavItem> = [
+  { label: 'Animation', routeTag: 'Animation', href: animationRouter() },
   { label: 'Button', routeTag: 'Button', href: buttonRouter() },
   { label: 'Checkbox', routeTag: 'Checkbox', href: checkboxRouter() },
   { label: 'Combobox', routeTag: 'Combobox', href: comboboxRouter() },
@@ -307,7 +305,6 @@ const NAV_ITEMS: ReadonlyArray<NavItem> = [
   { label: 'Textarea', routeTag: 'Textarea', href: textareaRouter() },
   { label: 'Toast', routeTag: 'Toast', href: toastRouter() },
   { label: 'Tooltip', routeTag: 'Tooltip', href: tooltipRouter() },
-  { label: 'Transition', routeTag: 'Transition', href: transitionRouter() },
 ]
 
 const navLinkClassName = (isActive: boolean): string =>
@@ -547,7 +544,7 @@ const contentView = (model: Model): Html =>
       Textarea: () => View.textarea(model.uiModel, toUiMessage),
       Toast: () => View.toast(model.uiModel, toUiMessage),
       Tooltip: () => View.tooltip(model.uiModel, toUiMessage),
-      Transition: () => View.transition(model.uiModel, toUiMessage),
+      Animation: () => View.animation(model.uiModel, toUiMessage),
       NotFound: ({ path }) => notFoundView(path),
     }),
   )

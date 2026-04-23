@@ -5,30 +5,30 @@ import { type Attribute, type Html, createLazy, html } from '../../html'
 import { m } from '../../message'
 import { evo } from '../../struct'
 import * as Task from '../../task'
-// NOTE: Transition imports are split across schema + update to avoid a circular
-// dependency: transition → html → runtime → devtools → dialog → transition.
-// The barrel (../transition) imports from html, which starts the cycle.
+// NOTE: Animation imports are split across schema + update to avoid a circular
+// dependency: animation → html → runtime → devtools → dialog → animation.
+// The barrel (../animation) imports from html, which starts the cycle.
 import {
-  Hid as TransitionHid,
-  Message as TransitionMessage,
-  Model as TransitionModel,
-  type OutMessage as TransitionOutMessage,
-  Showed as TransitionShowed,
-  init as transitionInit,
-} from '../transition/schema'
+  Hid as AnimationHid,
+  Message as AnimationMessage,
+  Model as AnimationModel,
+  type OutMessage as AnimationOutMessage,
+  Showed as AnimationShowed,
+  init as animationInit,
+} from '../animation/schema'
 import {
-  defaultLeaveCommand as transitionDefaultLeaveCommand,
-  update as transitionUpdate,
-} from '../transition/update'
+  defaultLeaveCommand as animationDefaultLeaveCommand,
+  update as animationUpdate,
+} from '../animation/update'
 
 // MODEL
 
-/** Schema for the dialog component's state, tracking its unique ID, open/closed status, animation support, and transition phase. */
+/** Schema for the dialog component's state, tracking its unique ID, open/closed status, animation support, and animation lifecycle phase. */
 export const Model = S.Struct({
   id: S.String,
   isOpen: S.Boolean,
   isAnimated: S.Boolean,
-  transition: TransitionModel,
+  animation: AnimationModel,
   maybeFocusSelector: S.OptionFromSelf(S.String),
 })
 
@@ -44,9 +44,9 @@ export const Closed = m('Closed')
 export const CompletedShowDialog = m('CompletedShowDialog')
 /** Sent when the close-dialog command completes (closeModal + scroll unlock). */
 export const CompletedCloseDialog = m('CompletedCloseDialog')
-/** Wraps a Transition submodel message for delegation. */
-export const GotTransitionMessage = m('GotTransitionMessage', {
-  message: TransitionMessage,
+/** Wraps an Animation submodel message for delegation. */
+export const GotAnimationMessage = m('GotAnimationMessage', {
+  message: AnimationMessage,
 })
 
 /** Union of all messages the dialog component can produce. */
@@ -56,14 +56,14 @@ export const Message: S.Union<
     typeof Closed,
     typeof CompletedShowDialog,
     typeof CompletedCloseDialog,
-    typeof GotTransitionMessage,
+    typeof GotAnimationMessage,
   ]
 > = S.Union(
   Opened,
   Closed,
   CompletedShowDialog,
   CompletedCloseDialog,
-  GotTransitionMessage,
+  GotAnimationMessage,
 )
 
 export type Opened = typeof Opened.Type
@@ -75,7 +75,7 @@ export type Message = typeof Message.Type
 
 // INIT
 
-/** Configuration for creating a dialog model with `init`. `isAnimated` enables CSS transition coordination (default `false`). */
+/** Configuration for creating a dialog model with `init`. `isAnimated` enables animation coordination (default `false`). */
 export type InitConfig = Readonly<{
   id: string
   isOpen?: boolean
@@ -88,7 +88,7 @@ export const init = (config: InitConfig): Model => ({
   id: config.id,
   isOpen: config.isOpen ?? false,
   isAnimated: config.isAnimated ?? false,
-  transition: transitionInit({
+  animation: animationInit({
     id: `${config.id}-panel`,
     ...(config.isOpen !== undefined ? { isShowing: config.isOpen } : {}),
   }),
@@ -116,27 +116,29 @@ const closeDialog = (id: string): Command.Command<Message> =>
     ),
   )
 
-const toParentMessage = (message: TransitionMessage): Message =>
-  GotTransitionMessage({ message })
+const toParentMessage = (message: AnimationMessage): Message =>
+  GotAnimationMessage({ message })
 
-const delegateToTransition = (
+const delegateToAnimation = (
   model: Model,
-  transitionMessage: TransitionMessage,
+  animationMessage: AnimationMessage,
 ): UpdateReturn => {
-  const [nextTransition, transitionCommands, maybeOutMessage] =
-    transitionUpdate(model.transition, transitionMessage)
+  const [nextAnimation, animationCommands, maybeOutMessage] = animationUpdate(
+    model.animation,
+    animationMessage,
+  )
 
-  const mappedCommands = transitionCommands.map(
+  const mappedCommands = animationCommands.map(
     Command.mapEffect(Effect.map(toParentMessage)),
   )
 
   const additionalCommands = Option.match(maybeOutMessage, {
     onNone: () => [],
-    onSome: M.type<TransitionOutMessage>().pipe(
+    onSome: M.type<AnimationOutMessage>().pipe(
       M.tagsExhaustive({
         StartedLeaveAnimating: () => [
           Command.mapEffect(
-            transitionDefaultLeaveCommand(nextTransition),
+            animationDefaultLeaveCommand(nextAnimation),
             Effect.map(toParentMessage),
           ),
         ],
@@ -146,7 +148,7 @@ const delegateToTransition = (
   })
 
   return [
-    evo(model, { transition: () => nextTransition }),
+    evo(model, { animation: () => nextAnimation }),
     [...mappedCommands, ...additionalCommands],
   ]
 }
@@ -176,14 +178,14 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         )
 
         if (model.isAnimated) {
-          const [nextModel, transitionCommands] = delegateToTransition(
+          const [nextModel, animationCommands] = delegateToAnimation(
             model,
-            TransitionShowed(),
+            AnimationShowed(),
           )
 
           return [
             evo(nextModel, { isOpen: () => true }),
-            [...Option.toArray(maybeShow), ...transitionCommands],
+            [...Option.toArray(maybeShow), ...animationCommands],
           ]
         }
 
@@ -191,7 +193,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       },
 
       Closed: () => {
-        const { transitionState } = model.transition
+        const { transitionState } = model.animation
         const isLeaving =
           transitionState === 'LeaveStart' ||
           transitionState === 'LeaveAnimating'
@@ -201,12 +203,12 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         }
 
         if (model.isAnimated) {
-          const [nextModel, transitionCommands] = delegateToTransition(
+          const [nextModel, animationCommands] = delegateToAnimation(
             evo(model, { isOpen: () => false }),
-            TransitionHid(),
+            AnimationHid(),
           )
 
-          return [nextModel, transitionCommands]
+          return [nextModel, animationCommands]
         }
 
         const maybeClose = Option.liftPredicate(
@@ -217,8 +219,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         return [evo(model, { isOpen: () => false }), Option.toArray(maybeClose)]
       },
 
-      GotTransitionMessage: ({ message: transitionMessage }) =>
-        delegateToTransition(model, transitionMessage),
+      GotAnimationMessage: ({ message: animationMessage }) =>
+        delegateToAnimation(model, animationMessage),
 
       CompletedShowDialog: () => [model, []],
       CompletedCloseDialog: () => [model, []],
@@ -282,7 +284,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     model: {
       id,
       isOpen,
-      transition: { transitionState },
+      animation: { transitionState },
     },
     toParentMessage,
     onClosed,
@@ -302,7 +304,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
   const isVisible = isOpen || isLeaving
 
-  const transitionAttributes: ReadonlyArray<ReturnType<typeof DataAttribute>> =
+  const animationAttributes: ReadonlyArray<ReturnType<typeof DataAttribute>> =
     M.value(transitionState).pipe(
       M.when('EnterStart', () => [
         DataAttribute('closed', ''),
@@ -352,7 +354,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     `${id}-backdrop`,
     [
       Style({ minHeight: '100vh' }),
-      ...transitionAttributes,
+      ...animationAttributes,
       ...(isLeaving ? [] : [OnClick(dispatchClosed())]),
       ...(backdropClassName ? [Class(backdropClassName)] : []),
       ...backdropAttributes,
@@ -364,7 +366,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     `${id}-panel`,
     [
       Id(`${id}-panel`),
-      ...transitionAttributes,
+      ...animationAttributes,
       ...(panelClassName ? [Class(panelClassName)] : []),
       ...panelAttributes,
     ],

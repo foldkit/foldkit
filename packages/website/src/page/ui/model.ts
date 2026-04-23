@@ -1,6 +1,7 @@
 import { Schema as S } from 'effect'
 import { File } from 'foldkit'
 import {
+  Animation,
   Calendar,
   Checkbox,
   Combobox,
@@ -16,7 +17,6 @@ import {
   Switch,
   Tabs,
   Tooltip,
-  Transition,
 } from 'foldkit/ui'
 
 import { Toast } from './toastModule'
@@ -70,6 +70,6 @@ export const Model = S.Struct({
   fileDropBasicDemoFiles: S.Array(File.File),
   toastDemo: Toast.Model,
   tooltipDemo: Tooltip.Model,
-  transitionDemo: Transition.Model,
+  animationDemo: Animation.Model,
 })
 export type Model = typeof Model.Type

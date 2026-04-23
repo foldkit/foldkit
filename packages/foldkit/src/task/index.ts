@@ -10,7 +10,7 @@ export {
 } from './dom'
 export type { FocusDirection } from './dom'
 export { detectElementMovement } from './elementMovement'
-export { delay, nextFrame, waitForTransitions } from './timing'
+export { delay, nextFrame, waitForAnimationSettled } from './timing'
 export { randomInt, uuid } from './random'
 export { lockScroll, unlockScroll } from './scrollLock'
 export { inertOthers, restoreInert } from './inert'

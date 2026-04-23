@@ -88,7 +88,7 @@ export const init = (today: Calendar.CalendarDate): InitReturn => [
     fileDropBasicDemoFiles: [],
     toastDemo: Toast.init({ id: 'toast-demo' }),
     tooltipDemo: Ui.Tooltip.init({ id: 'tooltip-demo' }),
-    transitionDemo: Ui.Transition.init({ id: 'transition-demo' }),
+    animationDemo: Ui.Animation.init({ id: 'animation-demo' }),
     dragAndDropDemoColumns: [
       {
         id: 'backlog',

@@ -61,6 +61,7 @@ import {
   TestingRoute,
   TestingSceneRoute,
   TestingStoryRoute,
+  UiAnimationRoute,
   UiButtonRoute,
   UiCalendarRoute,
   UiCheckboxRoute,
@@ -83,7 +84,6 @@ import {
   UiTextareaRoute,
   UiToastRoute,
   UiTooltipRoute,
-  UiTransitionRoute,
   aiOverviewRouter,
   aiSkillsRouter,
   apiModuleRouter,
@@ -126,6 +126,7 @@ import {
   testingRouter,
   testingSceneRouter,
   testingStoryRouter,
+  uiAnimationRouter,
   uiButtonRouter,
   uiCalendarRouter,
   uiCheckboxRouter,
@@ -148,7 +149,6 @@ import {
   uiTextareaRouter,
   uiToastRouter,
   uiTooltipRouter,
-  uiTransitionRouter,
 } from '../src/route'
 import { generateOgImages, injectMetaTags } from './og-image'
 
@@ -215,7 +215,7 @@ export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   UiFileDropRoute(),
   UiToastRoute(),
   UiTooltipRoute(),
-  UiTransitionRoute(),
+  UiAnimationRoute(),
   AiOverviewRoute(),
   AiSkillsRoute(),
 ]
@@ -283,7 +283,7 @@ export const routeToUrlPath = (route: AppRoute): string =>
       UiFileDrop: () => uiFileDropRouter(),
       UiToast: () => uiToastRouter(),
       UiTooltip: () => uiTooltipRouter(),
-      UiTransition: () => uiTransitionRouter(),
+      UiAnimation: () => uiAnimationRouter(),
       AiOverview: () => aiOverviewRouter(),
       AiSkills: () => aiSkillsRouter(),
       ApiModule: ({ moduleSlug }) => apiModuleRouter({ moduleSlug }),

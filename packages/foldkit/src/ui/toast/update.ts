@@ -13,22 +13,22 @@ import { OptionExt } from '../../effectExtensions'
 import { evo } from '../../struct'
 import * as Task from '../../task'
 import {
-  Hid as TransitionHid,
-  type Message as TransitionMessage,
-  type OutMessage as TransitionOutMessage,
-  Showed as TransitionShowed,
-  init as transitionInit,
-} from '../transition/schema'
+  Hid as AnimationHid,
+  type Message as AnimationMessage,
+  type OutMessage as AnimationOutMessage,
+  Showed as AnimationShowed,
+  init as animationInit,
+} from '../animation/schema'
 import {
-  defaultLeaveCommand as transitionDefaultLeaveCommand,
-  update as transitionUpdate,
-} from '../transition/update'
+  defaultLeaveCommand as animationDefaultLeaveCommand,
+  update as animationUpdate,
+} from '../animation/update'
 import {
   DEFAULT_DURATION,
   Dismissed,
   DismissedAll,
   ElapsedDuration,
-  GotTransitionMessage,
+  GotAnimationMessage,
   type InitConfig,
   type Variant,
   makeAdded,
@@ -92,7 +92,7 @@ export const makeRuntime = <A, I>(payloadSchema: S.Schema<A, I>) => {
     })
 
   const isEntryLeaving = (entry: Entry): boolean => {
-    const { transitionState } = entry.transition
+    const { transitionState } = entry.animation
     return (
       transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
     )
@@ -124,10 +124,10 @@ export const makeRuntime = <A, I>(payloadSchema: S.Schema<A, I>) => {
     }
   }
 
-  const delegateToEntryTransition = (
+  const delegateToEntryAnimation = (
     model: Model,
     entryId: string,
-    transitionMessage: TransitionMessage,
+    animationMessage: AnimationMessage,
   ): UpdateReturn => {
     const maybeEntry = Array.findFirst(
       model.entries,
@@ -137,18 +137,18 @@ export const makeRuntime = <A, I>(payloadSchema: S.Schema<A, I>) => {
     return Option.match(maybeEntry, {
       onNone: () => [model, []],
       onSome: entry => {
-        const [nextTransition, transitionCommands, maybeOutMessage] =
-          transitionUpdate(entry.transition, transitionMessage)
+        const [nextAnimation, animationCommands, maybeOutMessage] =
+          animationUpdate(entry.animation, animationMessage)
 
-        const toMessage = (message: TransitionMessage): Message =>
-          GotTransitionMessage({ entryId, message })
+        const toMessage = (message: AnimationMessage): Message =>
+          GotAnimationMessage({ entryId, message })
 
-        const mappedCommands = transitionCommands.map(
+        const mappedCommands = animationCommands.map(
           Command.mapEffect(Effect.map(toMessage)),
         )
 
         const nextEntry: Entry = evo(entry, {
-          transition: () => nextTransition,
+          animation: () => nextAnimation,
         })
 
         return Option.match(maybeOutMessage, {
@@ -156,7 +156,7 @@ export const makeRuntime = <A, I>(payloadSchema: S.Schema<A, I>) => {
             updateEntry(model, entryId, () => nextEntry),
             mappedCommands,
           ],
-          onSome: M.type<TransitionOutMessage>().pipe(
+          onSome: M.type<AnimationOutMessage>().pipe(
             withUpdateReturn,
             M.tagsExhaustive({
               StartedLeaveAnimating: () => [
@@ -164,7 +164,7 @@ export const makeRuntime = <A, I>(payloadSchema: S.Schema<A, I>) => {
                 [
                   ...mappedCommands,
                   Command.mapEffect(
-                    transitionDefaultLeaveCommand(nextTransition),
+                    animationDefaultLeaveCommand(nextAnimation),
                     Effect.map(toMessage),
                   ),
                 ],
@@ -193,7 +193,7 @@ export const makeRuntime = <A, I>(payloadSchema: S.Schema<A, I>) => {
     return {
       id: entryId,
       variant: input.variant ?? DEFAULT_VARIANT,
-      transition: transitionInit({ id: entryId, isShowing: false }),
+      animation: animationInit({ id: entryId, isShowing: false }),
       maybeDuration,
       pendingDismissVersion: 0,
       isHovered: false,
@@ -223,10 +223,10 @@ export const makeRuntime = <A, I>(payloadSchema: S.Schema<A, I>) => {
             nextEntryKey: Number.increment,
           })
 
-          const [modelAfterShow, showCommands] = delegateToEntryTransition(
+          const [modelAfterShow, showCommands] = delegateToEntryAnimation(
             modelWithEntry,
             entry.id,
-            TransitionShowed(),
+            AnimationShowed(),
           )
 
           const postShowEntry = Array.findFirst(
@@ -254,11 +254,7 @@ export const makeRuntime = <A, I>(payloadSchema: S.Schema<A, I>) => {
               if (isEntryLeaving(entry)) {
                 return [model, []]
               } else {
-                return delegateToEntryTransition(
-                  model,
-                  entryId,
-                  TransitionHid(),
-                )
+                return delegateToEntryAnimation(model, entryId, AnimationHid())
               }
             },
           })
@@ -272,10 +268,10 @@ export const makeRuntime = <A, I>(payloadSchema: S.Schema<A, I>) => {
               if (isEntryLeaving(entry)) {
                 return [currentModel, currentCommands]
               }
-              const [nextModel, nextCommands] = delegateToEntryTransition(
+              const [nextModel, nextCommands] = delegateToEntryAnimation(
                 currentModel,
                 entry.id,
-                TransitionHid(),
+                AnimationHid(),
               )
               return [nextModel, [...currentCommands, ...nextCommands]]
             },
@@ -294,11 +290,7 @@ export const makeRuntime = <A, I>(payloadSchema: S.Schema<A, I>) => {
               if (isStale || isEntryLeaving(entry)) {
                 return [model, []]
               } else {
-                return delegateToEntryTransition(
-                  model,
-                  entryId,
-                  TransitionHid(),
-                )
+                return delegateToEntryAnimation(model, entryId, AnimationHid())
               }
             },
           })
@@ -335,8 +327,8 @@ export const makeRuntime = <A, I>(payloadSchema: S.Schema<A, I>) => {
           })
         },
 
-        GotTransitionMessage: ({ entryId, message: transitionMessage }) =>
-          delegateToEntryTransition(model, entryId, transitionMessage),
+        GotAnimationMessage: ({ entryId, message: animationMessage }) =>
+          delegateToEntryAnimation(model, entryId, animationMessage),
       }),
     )
 

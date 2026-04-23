@@ -3,7 +3,7 @@ import type { Html } from 'foldkit/html'
 
 import { Class, OnClick, button, div, h2, p } from '../html'
 import type { Message as ParentMessage } from '../main'
-import { ToggledTransitionDemo, type UiMessage } from '../message'
+import { ToggledAnimationDemo, type UiMessage } from '../message'
 import type { UiModel } from '../model'
 
 const triggerClassName =
@@ -19,30 +19,30 @@ export const view = (
   return div(
     [],
     [
-      h2([Class('text-2xl font-bold text-gray-900 mb-6')], ['Transition']),
+      h2([Class('text-2xl font-bold text-gray-900 mb-6')], ['Animation']),
       div(
         [Class('flex gap-3')],
         [
           button(
             [
               Class(triggerClassName),
-              OnClick(toParentMessage(ToggledTransitionDemo())),
+              OnClick(toParentMessage(ToggledAnimationDemo())),
             ],
-            [model.isTransitionDemoShowing ? 'Hide Content' : 'Show Content'],
+            [model.isAnimationDemoShowing ? 'Hide Content' : 'Show Content'],
           ),
         ],
       ),
       div(
         [Class('mt-4')],
         [
-          Ui.Transition.view({
-            model: model.transitionDemo,
+          Ui.Animation.view({
+            model: model.animationDemo,
             className: contentClassName,
             animateSize: true,
             content: p(
               [Class('text-indigo-800')],
               [
-                'This content smoothly animates in and out. The Transition component coordinates CSS enter/leave animations via data attributes, while animateSize uses a CSS grid wrapper for smooth height animation.',
+                'This content smoothly animates in and out. The Animation component coordinates CSS enter/leave lifecycles via data attributes, while animateSize uses a CSS grid wrapper for smooth height animation.',
               ],
             ),
           }),

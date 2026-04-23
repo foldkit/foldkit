@@ -18,6 +18,7 @@ import { heading, link, pageTitle, para } from '../../prose'
 import {
   exampleDetailRouter,
   patternsSubmodelsRouter,
+  uiAnimationRouter,
   uiButtonRouter,
   uiCalendarRouter,
   uiCheckboxRouter,
@@ -37,7 +38,6 @@ import {
   uiSwitchRouter,
   uiTabsRouter,
   uiTextareaRouter,
-  uiTransitionRouter,
 } from '../../route'
 
 // TABLE OF CONTENTS
@@ -210,11 +210,11 @@ const components: ReadonlyArray<ComponentEntry> = [
       'Input paired with a popover Calendar. Inherits the calendar\u2019s constraint and keyboard-navigation support, with programmatic open/close and setters.',
   },
   {
-    name: 'Transition',
-    href: uiTransitionRouter(),
+    name: 'Animation',
+    href: uiAnimationRouter(),
     category: 'Animation',
     description:
-      'Coordinates CSS enter/leave animations via a state machine and data attributes. Sends an OutMessage when the leave animation completes.',
+      'Coordinates CSS enter/leave animations via a state machine and data attributes. Works with both CSS transitions and CSS keyframe animations. Sends an OutMessage when the leave animation completes.',
   },
 ]
 

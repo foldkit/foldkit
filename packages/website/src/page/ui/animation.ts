@@ -2,14 +2,14 @@ import { Ui } from 'foldkit'
 
 import { Class, OnClick, button, div, p } from '../../html'
 import type { Message as ParentMessage, TableOfContentsEntry } from '../../main'
-import { GotTransitionDemoMessage, type Message } from './message'
+import { GotAnimationDemoMessage, type Message } from './message'
 
 // TABLE OF CONTENTS
 
-export const transitionHeader: TableOfContentsEntry = {
+export const animationHeader: TableOfContentsEntry = {
   level: 'h2',
-  id: 'transition',
-  text: 'Transition',
+  id: 'animation',
+  text: 'Animation',
 }
 
 // DEMO CONTENT
@@ -22,13 +22,13 @@ const contentClassName =
 
 // VIEW
 
-export const transitionDemo = (
-  transitionModel: Ui.Transition.Model,
+export const animationDemo = (
+  animationModel: Ui.Animation.Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => {
-  const toggleMessage = transitionModel.isShowing
-    ? Ui.Transition.Hid()
-    : Ui.Transition.Showed()
+  const toggleMessage = animationModel.isShowing
+    ? Ui.Animation.Hid()
+    : Ui.Animation.Showed()
 
   return [
     div(
@@ -39,20 +39,20 @@ export const transitionDemo = (
             Class(triggerClassName),
             OnClick(
               toParentMessage(
-                GotTransitionDemoMessage({ message: toggleMessage }),
+                GotAnimationDemoMessage({ message: toggleMessage }),
               ),
             ),
           ],
-          [transitionModel.isShowing ? 'Hide Content' : 'Show Content'],
+          [animationModel.isShowing ? 'Hide Content' : 'Show Content'],
         ),
-        Ui.Transition.view({
-          model: transitionModel,
+        Ui.Animation.view({
+          model: animationModel,
           className: contentClassName,
           animateSize: true,
           content: p(
             [Class('text-accent-800 dark:text-accent-200')],
             [
-              'This content fades in and out using CSS transitions coordinated by the Transition component. The data attributes (data-closed, data-enter, data-leave, data-transition) drive the animation via Tailwind selectors.',
+              'This content fades in and out using CSS transitions coordinated by the Animation component. The data attributes (data-closed, data-enter, data-leave, data-transition) drive the animation via Tailwind selectors.',
             ],
           ),
         }),

@@ -22,7 +22,7 @@ export {
   CompletedScrollIntoView,
   CompletedClickItem,
   ClearedSearch,
-  GotTransitionMessage,
+  GotAnimationMessage,
   LockScroll,
   UnlockScroll,
   InertOthers,
@@ -32,7 +32,7 @@ export {
   ScrollIntoView,
   ClickItem,
   DelayClearSearch,
-  DetectMovementOrTransitionEnd,
+  DetectMovementOrAnimationEnd,
 } from './shared'
 
 export type {

@@ -115,7 +115,7 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
     name: 'isAnimated',
     type: 'boolean',
     default: 'false',
-    description: 'Enables CSS transition coordination.',
+    description: 'Enables animation coordination.',
   },
   {
     name: 'isModal',

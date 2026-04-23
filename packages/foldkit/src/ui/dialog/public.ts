@@ -13,7 +13,7 @@ export {
   Closed,
   CompletedShowDialog,
   CompletedCloseDialog,
-  GotTransitionMessage,
+  GotAnimationMessage,
   ShowDialog,
   CloseDialog,
 } from './index'

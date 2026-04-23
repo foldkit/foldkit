@@ -19,7 +19,7 @@ export {
   CompletedFocusInput,
   CompletedScrollIntoView,
   CompletedClickItem,
-  GotTransitionMessage,
+  GotAnimationMessage,
   LockScroll,
   UnlockScroll,
   InertOthers,
@@ -27,7 +27,7 @@ export {
   FocusInput,
   ScrollIntoView,
   ClickItem,
-  DetectMovementOrTransitionEnd,
+  DetectMovementOrAnimationEnd,
 } from './shared'
 
 export type {

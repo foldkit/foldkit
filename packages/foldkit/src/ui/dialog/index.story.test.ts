@@ -3,13 +3,13 @@ import { Option } from 'effect'
 import { expect } from 'vitest'
 
 import * as Story from '../../test/story'
-import * as Transition from '../transition'
+import * as Animation from '../animation'
 import {
   CloseDialog,
   Closed,
   CompletedCloseDialog,
   CompletedShowDialog,
-  GotTransitionMessage,
+  GotAnimationMessage,
   Opened,
   ShowDialog,
   descriptionId,
@@ -18,8 +18,8 @@ import {
   update,
 } from './index'
 
-const transitionToDialogMessage = (message: Transition.Message) =>
-  GotTransitionMessage({ message })
+const animationToDialogMessage = (message: Animation.Message) =>
+  GotAnimationMessage({ message })
 
 describe('Dialog', () => {
   describe('init', () => {
@@ -28,7 +28,7 @@ describe('Dialog', () => {
         id: 'test',
         isOpen: false,
         isAnimated: false,
-        transition: Transition.init({ id: 'test-panel' }),
+        animation: Animation.init({ id: 'test-panel' }),
         maybeFocusSelector: Option.none(),
       })
     })
@@ -38,7 +38,7 @@ describe('Dialog', () => {
         id: 'test',
         isOpen: true,
         isAnimated: false,
-        transition: Transition.init({ id: 'test-panel', isShowing: true }),
+        animation: Animation.init({ id: 'test-panel', isShowing: true }),
         maybeFocusSelector: Option.none(),
       })
     })
@@ -50,7 +50,7 @@ describe('Dialog', () => {
         id: 'test',
         isOpen: false,
         isAnimated: false,
-        transition: Transition.init({ id: 'test-panel' }),
+        animation: Animation.init({ id: 'test-panel' }),
         maybeFocusSelector: Option.some('#search-input'),
       })
     })
@@ -118,56 +118,56 @@ describe('Dialog', () => {
     })
 
     describe('animated', () => {
-      it('opens with enter transition on Opened', () => {
+      it('opens with enter animation on Opened', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test', isAnimated: true })),
           Story.message(Opened()),
-          Story.expectHasCommands(ShowDialog, Transition.RequestFrame),
+          Story.expectHasCommands(ShowDialog, Animation.RequestFrame),
           Story.resolveAll(
             [ShowDialog, CompletedShowDialog()],
             [
-              Transition.RequestFrame,
-              Transition.AdvancedTransitionFrame(),
-              transitionToDialogMessage,
+              Animation.RequestFrame,
+              Animation.AdvancedAnimationFrame(),
+              animationToDialogMessage,
             ],
             [
-              Transition.WaitForTransitions,
-              Transition.EndedTransition(),
-              transitionToDialogMessage,
+              Animation.WaitForAnimationSettled,
+              Animation.EndedAnimation(),
+              animationToDialogMessage,
             ],
           ),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
-            expect(model.transition.transitionState).toBe('Idle')
+            expect(model.animation.transitionState).toBe('Idle')
           }),
         )
       })
 
-      it('closes with leave transition and CloseDialog on Closed', () => {
+      it('closes with leave animation and CloseDialog on Closed', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test', isOpen: true, isAnimated: true })),
           Story.message(Closed()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
-            expect(model.transition.transitionState).toBe('LeaveStart')
+            expect(model.animation.transitionState).toBe('LeaveStart')
           }),
           Story.resolveAll(
             [
-              Transition.RequestFrame,
-              Transition.AdvancedTransitionFrame(),
-              transitionToDialogMessage,
+              Animation.RequestFrame,
+              Animation.AdvancedAnimationFrame(),
+              animationToDialogMessage,
             ],
             [
-              Transition.WaitForTransitions,
-              Transition.EndedTransition(),
-              transitionToDialogMessage,
+              Animation.WaitForAnimationSettled,
+              Animation.EndedAnimation(),
+              animationToDialogMessage,
             ],
             [CloseDialog, CompletedCloseDialog()],
           ),
           Story.model(model => {
-            expect(model.transition.transitionState).toBe('Idle')
+            expect(model.animation.transitionState).toBe('Idle')
           }),
         )
       })
@@ -176,7 +176,7 @@ describe('Dialog', () => {
         const leavingModel = {
           ...init({ id: 'test', isOpen: true, isAnimated: true }),
           isOpen: false,
-          transition: {
+          animation: {
             id: 'test-panel',
             isShowing: false,
             transitionState: 'LeaveStart' as const,
@@ -197,7 +197,7 @@ describe('Dialog', () => {
         const leavingModel = {
           ...init({ id: 'test', isOpen: true, isAnimated: true }),
           isOpen: false,
-          transition: {
+          animation: {
             id: 'test-panel',
             isShowing: false,
             transitionState: 'LeaveAnimating' as const,

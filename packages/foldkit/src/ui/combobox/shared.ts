@@ -16,21 +16,21 @@ import { makeConstrainedEvo } from '../../struct'
 import * as Task from '../../task'
 import { anchorHooks } from '../anchor'
 import type { AnchorConfig } from '../anchor'
+// NOTE: Animation imports are split across schema + update to avoid a circular
+// dependency: animation → html → runtime → devtools → combobox → animation.
+// The barrel (../animation) imports from html, which starts the cycle.
+import {
+  EndedAnimation as AnimationEndedAnimation,
+  Hid as AnimationHid,
+  Message as AnimationMessage,
+  Model as AnimationModel,
+  type OutMessage as AnimationOutMessage,
+  Showed as AnimationShowed,
+  init as animationInit,
+} from '../animation/schema'
+import { update as animationUpdate } from '../animation/update'
 import { groupContiguous } from '../group'
 import { findFirstEnabledIndex, keyToIndex } from '../keyboard'
-// NOTE: Transition imports are split across schema + update to avoid a circular
-// dependency: transition → html → runtime → devtools → combobox → transition.
-// The barrel (../transition) imports from html, which starts the cycle.
-import {
-  EndedTransition as TransitionEndedTransition,
-  Hid as TransitionHid,
-  Message as TransitionMessage,
-  Model as TransitionModel,
-  type OutMessage as TransitionOutMessage,
-  Showed as TransitionShowed,
-  init as transitionInit,
-} from '../transition/schema'
-import { update as transitionUpdate } from '../transition/update'
 
 export { groupContiguous }
 
@@ -49,7 +49,7 @@ export const BaseModel = S.Struct({
   nullable: S.Boolean,
   immediate: S.Boolean,
   selectInputOnFocus: S.Boolean,
-  transition: TransitionModel,
+  animation: AnimationModel,
   maybeActiveItemIndex: S.OptionFromSelf(S.Number),
   activationTrigger: ActivationTrigger,
   inputValue: S.String,
@@ -78,7 +78,7 @@ export const baseInit = (config: BaseInitConfig): BaseModel => ({
   nullable: config.nullable ?? false,
   immediate: config.immediate ?? false,
   selectInputOnFocus: config.selectInputOnFocus ?? false,
-  transition: transitionInit({ id: `${config.id}-items` }),
+  animation: animationInit({ id: `${config.id}-items` }),
   maybeActiveItemIndex: Option.none(),
   activationTrigger: 'Keyboard',
   inputValue: '',
@@ -134,9 +134,9 @@ export const CompletedFocusInput = m('CompletedFocusInput')
 export const CompletedScrollIntoView = m('CompletedScrollIntoView')
 /** Sent when the programmatic item click command completes. */
 export const CompletedClickItem = m('CompletedClickItem')
-/** Wraps a Transition submodel message for delegation. */
-export const GotTransitionMessage = m('GotTransitionMessage', {
-  message: TransitionMessage,
+/** Wraps an Animation submodel message for delegation. */
+export const GotAnimationMessage = m('GotAnimationMessage', {
+  message: AnimationMessage,
 })
 /** Sent when the user types in the input. */
 export const UpdatedInputValue = m('UpdatedInputValue', {
@@ -163,7 +163,7 @@ export const Message: S.Union<
     typeof CompletedFocusInput,
     typeof CompletedScrollIntoView,
     typeof CompletedClickItem,
-    typeof GotTransitionMessage,
+    typeof GotAnimationMessage,
     typeof UpdatedInputValue,
     typeof PressedToggleButton,
   ]
@@ -183,7 +183,7 @@ export const Message: S.Union<
   CompletedFocusInput,
   CompletedScrollIntoView,
   CompletedClickItem,
-  GotTransitionMessage,
+  GotAnimationMessage,
   UpdatedInputValue,
   PressedToggleButton,
 )
@@ -264,41 +264,43 @@ export const ScrollIntoView = Command.define(
 )
 /** Programmatically clicks the active combobox item's DOM element. */
 export const ClickItem = Command.define('ClickItem', CompletedClickItem)
-/** Detects whether the combobox input wrapper moved or the leave transition ended — whichever comes first. Both outcomes signal the Transition submodel that leave is complete. */
-export const DetectMovementOrTransitionEnd = Command.define(
-  'DetectMovementOrTransitionEnd',
-  GotTransitionMessage,
+/** Detects whether the combobox input wrapper moved or the leave animation ended — whichever comes first. Both outcomes signal the Animation submodel that leave is complete. */
+export const DetectMovementOrAnimationEnd = Command.define(
+  'DetectMovementOrAnimationEnd',
+  GotAnimationMessage,
 )
 
-const delegateToTransition = <Model extends BaseModel>(
+const delegateToAnimation = <Model extends BaseModel>(
   model: Model,
-  transitionMessage: TransitionMessage,
+  animationMessage: AnimationMessage,
 ): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
-  const [nextTransition, transitionCommands, maybeOutMessage] =
-    transitionUpdate(model.transition, transitionMessage)
+  const [nextAnimation, animationCommands, maybeOutMessage] = animationUpdate(
+    model.animation,
+    animationMessage,
+  )
 
-  const mappedCommands = transitionCommands.map(
-    Command.mapEffect(Effect.map(message => GotTransitionMessage({ message }))),
+  const mappedCommands = animationCommands.map(
+    Command.mapEffect(Effect.map(message => GotAnimationMessage({ message }))),
   )
 
   const additionalCommands = Option.match(maybeOutMessage, {
     onNone: () => [],
-    onSome: M.type<TransitionOutMessage>().pipe(
+    onSome: M.type<AnimationOutMessage>().pipe(
       M.tagsExhaustive({
         StartedLeaveAnimating: () => [
-          DetectMovementOrTransitionEnd(
+          DetectMovementOrAnimationEnd(
             Effect.raceFirst(
               Task.detectElementMovement(inputWrapperSelector(model.id)).pipe(
                 Effect.as(
-                  GotTransitionMessage({
-                    message: TransitionEndedTransition(),
+                  GotAnimationMessage({
+                    message: AnimationEndedAnimation(),
                   }),
                 ),
               ),
-              Task.waitForTransitions(itemsSelector(model.id)).pipe(
+              Task.waitForAnimationSettled(itemsSelector(model.id)).pipe(
                 Effect.as(
-                  GotTransitionMessage({
-                    message: TransitionEndedTransition(),
+                  GotAnimationMessage({
+                    message: AnimationEndedAnimation(),
                   }),
                 ),
               ),
@@ -311,7 +313,7 @@ const delegateToTransition = <Model extends BaseModel>(
   })
 
   return [
-    constrainedEvo(model, { transition: () => nextTransition }),
+    constrainedEvo(model, { animation: () => nextAnimation }),
     [...mappedCommands, ...additionalCommands],
   ]
 }
@@ -373,15 +375,15 @@ export const makeUpdate = <Model extends BaseModel>(
 
     const openCombobox = (baseModel: Model): UpdateReturn => {
       if (model.isAnimated) {
-        const [nextModel, transitionCommands] = delegateToTransition(
+        const [nextModel, animationCommands] = delegateToAnimation(
           baseModel,
-          TransitionShowed(),
+          AnimationShowed(),
         )
         return [
           constrainedEvo(nextModel, { isOpen: () => true }),
           [
             ...Array.getSomes([maybeLockScroll, maybeInertOthers]),
-            ...transitionCommands,
+            ...animationCommands,
           ],
         ]
       }
@@ -399,11 +401,11 @@ export const makeUpdate = <Model extends BaseModel>(
       const closed = handlers.handleClose(baseModel)
 
       if (model.isAnimated) {
-        const [nextModel, transitionCommands] = delegateToTransition(
+        const [nextModel, animationCommands] = delegateToAnimation(
           closed,
-          TransitionHid(),
+          AnimationHid(),
         )
-        return [nextModel, [...commands, ...transitionCommands]]
+        return [nextModel, [...commands, ...animationCommands]]
       }
 
       return [closed, commands]
@@ -508,9 +510,11 @@ export const makeUpdate = <Model extends BaseModel>(
           )
 
           if (model.isOpen && !nextModel.isOpen && model.isAnimated) {
-            const [transitionedModel, transitionCommands] =
-              delegateToTransition(nextModel, TransitionHid())
-            return [transitionedModel, [...commands, ...transitionCommands]]
+            const [transitionedModel, animationCommands] = delegateToAnimation(
+              nextModel,
+              AnimationHid(),
+            )
+            return [transitionedModel, [...commands, ...animationCommands]]
           }
 
           return [nextModel, commands]
@@ -566,8 +570,8 @@ export const makeUpdate = <Model extends BaseModel>(
           return [nextModel, [focusInput, ...commands]]
         },
 
-        GotTransitionMessage: ({ message: transitionMessage }) =>
-          delegateToTransition(model, transitionMessage),
+        GotAnimationMessage: ({ message: animationMessage }) =>
+          delegateToAnimation(model, animationMessage),
 
         CompletedLockScroll: () => [model, []],
         CompletedUnlockScroll: () => [model, []],
@@ -711,7 +715,7 @@ export const makeView =
         id,
         isOpen,
         immediate,
-        transition: { transitionState },
+        animation: { transitionState },
         maybeActiveItemIndex,
       },
       toParentMessage,
@@ -764,29 +768,28 @@ export const makeView =
       transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
     const isVisible = isOpen || isLeaving
 
-    const transitionAttributes: ReadonlyArray<
-      ReturnType<typeof DataAttribute>
-    > = M.value(transitionState).pipe(
-      M.when('EnterStart', () => [
-        DataAttribute('closed', ''),
-        DataAttribute('enter', ''),
-        DataAttribute('transition', ''),
-      ]),
-      M.when('EnterAnimating', () => [
-        DataAttribute('enter', ''),
-        DataAttribute('transition', ''),
-      ]),
-      M.when('LeaveStart', () => [
-        DataAttribute('leave', ''),
-        DataAttribute('transition', ''),
-      ]),
-      M.when('LeaveAnimating', () => [
-        DataAttribute('closed', ''),
-        DataAttribute('leave', ''),
-        DataAttribute('transition', ''),
-      ]),
-      M.orElse(() => []),
-    )
+    const animationAttributes: ReadonlyArray<ReturnType<typeof DataAttribute>> =
+      M.value(transitionState).pipe(
+        M.when('EnterStart', () => [
+          DataAttribute('closed', ''),
+          DataAttribute('enter', ''),
+          DataAttribute('transition', ''),
+        ]),
+        M.when('EnterAnimating', () => [
+          DataAttribute('enter', ''),
+          DataAttribute('transition', ''),
+        ]),
+        M.when('LeaveStart', () => [
+          DataAttribute('leave', ''),
+          DataAttribute('transition', ''),
+        ]),
+        M.when('LeaveAnimating', () => [
+          DataAttribute('closed', ''),
+          DataAttribute('leave', ''),
+          DataAttribute('transition', ''),
+        ]),
+        M.orElse(() => []),
+      )
 
     const isDisabledAtIndex = (index: number): boolean =>
       Predicate.isNotUndefined(isItemDisabled) &&
@@ -995,7 +998,7 @@ export const makeView =
       AriaLabelledBy(`${id}-input`),
       Tabindex(-1),
       ...anchorAttributes,
-      ...transitionAttributes,
+      ...animationAttributes,
       ...(itemsClassName ? [Class(itemsClassName)] : []),
       ...itemsAttributes,
     ]

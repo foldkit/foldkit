@@ -14,5 +14,5 @@ export {
   randomInt,
   uuid,
   nextFrame,
-  waitForTransitions,
+  waitForAnimationSettled,
 } from './index'

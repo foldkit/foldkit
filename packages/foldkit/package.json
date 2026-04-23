@@ -79,6 +79,10 @@
       "types": "./dist/ui/index.d.ts",
       "import": "./dist/ui/index.js"
     },
+    "./ui/animation": {
+      "types": "./dist/ui/animation/public.d.ts",
+      "import": "./dist/ui/animation/public.js"
+    },
     "./ui/button": {
       "types": "./dist/ui/button/public.d.ts",
       "import": "./dist/ui/button/public.js"
@@ -150,10 +154,6 @@
     "./ui/tooltip": {
       "types": "./dist/ui/tooltip/public.d.ts",
       "import": "./dist/ui/tooltip/public.js"
-    },
-    "./ui/transition": {
-      "types": "./dist/ui/transition/public.d.ts",
-      "import": "./dist/ui/transition/public.js"
     },
     "./url": {
       "types": "./dist/url/public.d.ts",

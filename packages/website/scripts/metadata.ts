@@ -278,9 +278,9 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'File Drop',
     'Headless file drop zone that accepts drag-and-drop plus click-to-browse via a hidden native file input.',
   ),
-  UiTransition: ui(
-    'Transition',
-    'Coordinates CSS enter/leave animations via a state machine and data attributes.',
+  UiAnimation: ui(
+    'Animation',
+    'Coordinates CSS enter/leave animations via a state machine and data attributes. Works with both CSS transitions and keyframe animations.',
   ),
   AiOverview: docs(
     'AI',

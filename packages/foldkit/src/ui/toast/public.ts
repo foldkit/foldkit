@@ -7,7 +7,7 @@ export {
   ElapsedDuration,
   HoveredEntry,
   LeftEntry,
-  GotTransitionMessage,
+  GotAnimationMessage,
   DismissAfter,
 } from './index'
 

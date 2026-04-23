@@ -4,8 +4,8 @@ import * as Command from '../../command'
 import { evo } from '../../struct'
 import * as Task from '../../task'
 import {
-  AdvancedTransitionFrame,
-  EndedTransition,
+  AdvancedAnimationFrame,
+  EndedAnimation,
   type Message,
   type Model,
   type OutMessage,
@@ -24,21 +24,21 @@ type UpdateReturn = readonly [
 ]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-/** Advances the transition's enter/leave animation by waiting a double-rAF. */
+/** Advances the enter/leave lifecycle by waiting a double-rAF. */
 export const RequestFrame = Command.define(
   'RequestFrame',
-  AdvancedTransitionFrame,
+  AdvancedAnimationFrame,
 )
-/** Waits for all CSS transitions on the transition element to complete. */
-export const WaitForTransitions = Command.define(
-  'WaitForTransitions',
-  EndedTransition,
+/** Waits for all CSS animations on the element to settle. Covers both CSS transitions and CSS keyframe animations. */
+export const WaitForAnimationSettled = Command.define(
+  'WaitForAnimationSettled',
+  EndedAnimation,
 )
 
-/** Processes a transition message and returns the next model, commands, and optional OutMessage. */
+/** Processes an animation message and returns the next model, commands, and optional OutMessage. */
 export const update = (model: Model, message: Message): UpdateReturn => {
   const maybeNextFrame = RequestFrame(
-    Task.nextFrame.pipe(Effect.as(AdvancedTransitionFrame())),
+    Task.nextFrame.pipe(Effect.as(AdvancedAnimationFrame())),
   )
 
   return M.value(message).pipe(
@@ -78,15 +78,15 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         ]
       },
 
-      AdvancedTransitionFrame: () =>
+      AdvancedAnimationFrame: () =>
         M.value(model.transitionState).pipe(
           withUpdateReturn,
           M.when('EnterStart', () => [
             evo(model, { transitionState: () => 'EnterAnimating' }),
             [
-              WaitForTransitions(
-                Task.waitForTransitions(elementSelector(model.id)).pipe(
-                  Effect.as(EndedTransition()),
+              WaitForAnimationSettled(
+                Task.waitForAnimationSettled(elementSelector(model.id)).pipe(
+                  Effect.as(EndedAnimation()),
                 ),
               ),
             ],
@@ -100,7 +100,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           M.orElse(() => [model, [], Option.none()]),
         ),
 
-      EndedTransition: () =>
+      EndedAnimation: () =>
         M.value(model.transitionState).pipe(
           withUpdateReturn,
           M.when('EnterAnimating', () => [
@@ -119,10 +119,10 @@ export const update = (model: Model, message: Message): UpdateReturn => {
   )
 }
 
-/** Creates the standard leave-phase command that waits for CSS transitions on the transition element. Use this when handling the `StartedLeaveAnimating` OutMessage for components that don't need custom leave behavior. */
+/** Creates the standard leave-phase command that waits for CSS animations on the element to settle. Use this when handling the `StartedLeaveAnimating` OutMessage for components that don't need custom leave behavior. */
 export const defaultLeaveCommand = (model: Model): Command.Command<Message> =>
-  WaitForTransitions(
-    Task.waitForTransitions(elementSelector(model.id)).pipe(
-      Effect.as(EndedTransition()),
+  WaitForAnimationSettled(
+    Task.waitForAnimationSettled(elementSelector(model.id)).pipe(
+      Effect.as(EndedAnimation()),
     ),
   )

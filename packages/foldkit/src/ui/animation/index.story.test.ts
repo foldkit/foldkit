@@ -3,19 +3,19 @@ import { expect } from 'vitest'
 
 import * as Story from '../../test/story'
 import {
-  AdvancedTransitionFrame,
-  EndedTransition,
+  AdvancedAnimationFrame,
+  EndedAnimation,
   Hid,
   RequestFrame,
   Showed,
   StartedLeaveAnimating,
   TransitionedOut,
-  WaitForTransitions,
+  WaitForAnimationSettled,
   init,
   update,
 } from './index'
 
-describe('Transition', () => {
+describe('Animation', () => {
   describe('init', () => {
     it('defaults isShowing to false', () => {
       expect(init({ id: 'test' })).toStrictEqual({
@@ -36,7 +36,7 @@ describe('Transition', () => {
 
   describe('update', () => {
     describe('Showed', () => {
-      it('starts enter transition when hidden', () => {
+      it('starts enter lifecycle when hidden', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test' })),
@@ -46,11 +46,11 @@ describe('Transition', () => {
             expect(model.transitionState).toBe('EnterStart')
           }),
           Story.expectHasCommands(RequestFrame),
-          Story.resolve(RequestFrame, AdvancedTransitionFrame()),
+          Story.resolve(RequestFrame, AdvancedAnimationFrame()),
           Story.model(model => {
             expect(model.transitionState).toBe('EnterAnimating')
           }),
-          Story.resolve(WaitForTransitions, EndedTransition()),
+          Story.resolve(WaitForAnimationSettled, EndedAnimation()),
           Story.model(model => {
             expect(model.transitionState).toBe('Idle')
           }),
@@ -74,7 +74,7 @@ describe('Transition', () => {
     })
 
     describe('Hid', () => {
-      it('starts leave transition when showing', () => {
+      it('starts leave lifecycle when showing', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test', isShowing: true })),
@@ -84,13 +84,13 @@ describe('Transition', () => {
             expect(model.transitionState).toBe('LeaveStart')
           }),
           Story.expectHasCommands(RequestFrame),
-          Story.resolve(RequestFrame, AdvancedTransitionFrame()),
+          Story.resolve(RequestFrame, AdvancedAnimationFrame()),
           Story.model(model => {
             expect(model.transitionState).toBe('LeaveAnimating')
           }),
           Story.expectNoCommands(),
           Story.expectOutMessage(StartedLeaveAnimating()),
-          Story.message(EndedTransition()),
+          Story.message(EndedAnimation()),
           Story.model(model => {
             expect(model.transitionState).toBe('Idle')
           }),
@@ -117,7 +117,7 @@ describe('Transition', () => {
           Story.with(init({ id: 'test', isShowing: true })),
           Story.message(Hid()),
           Story.expectHasCommands(RequestFrame),
-          Story.resolve(RequestFrame, AdvancedTransitionFrame()),
+          Story.resolve(RequestFrame, AdvancedAnimationFrame()),
           Story.model(model => {
             expect(model.transitionState).toBe('LeaveAnimating')
           }),
@@ -133,12 +133,12 @@ describe('Transition', () => {
       })
     })
 
-    describe('AdvancedTransitionFrame', () => {
+    describe('AdvancedAnimationFrame', () => {
       it('does nothing when Idle', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test' })),
-          Story.message(AdvancedTransitionFrame()),
+          Story.message(AdvancedAnimationFrame()),
           Story.model(model => {
             expect(model.transitionState).toBe('Idle')
           }),
@@ -147,12 +147,12 @@ describe('Transition', () => {
       })
     })
 
-    describe('EndedTransition', () => {
+    describe('EndedAnimation', () => {
       it('does nothing when Idle', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test' })),
-          Story.message(EndedTransition()),
+          Story.message(EndedAnimation()),
           Story.model(model => {
             expect(model.transitionState).toBe('Idle')
           }),

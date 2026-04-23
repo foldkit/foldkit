@@ -14,6 +14,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
+import { uiAnimationRouter } from '../../route'
 import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 import {
@@ -109,8 +110,7 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
     name: 'isAnimated',
     type: 'boolean',
     default: 'false',
-    description:
-      'Enables CSS transition coordination for open/close animations.',
+    description: 'Enables animation coordination for open/close animations.',
   },
   {
     name: 'focusSelector',
@@ -275,7 +275,7 @@ export const view = (
       para(
         'Pass ',
         inlineCode('isAnimated: true'),
-        ' at init to coordinate CSS transitions. The component manages a Transition submodel internally — apply transition classes using ',
+        ' at init to coordinate animations. The component manages an Animation submodel internally — apply transition classes using ',
         inlineCode('data-closed'),
         ' (e.g. ',
         inlineCode('data-[closed]:opacity-0 data-[closed]:scale-95'),
@@ -303,6 +303,13 @@ export const view = (
         ' as ',
         inlineCode('backdrop:bg-transparent'),
         ' and render your own custom backdrop for full control.',
+      ),
+      para(
+        'When ',
+        inlineCode('isAnimated'),
+        ' is true, enter/leave animations flow through the ',
+        link(uiAnimationRouter(), 'Animation'),
+        ' module. Style with CSS transitions or CSS keyframe animations. Animation advances once every animation on the element has settled.',
       ),
       dataAttributeTable(dataAttributes),
       heading(

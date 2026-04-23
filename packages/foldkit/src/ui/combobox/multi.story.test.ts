@@ -4,7 +4,7 @@ import { expect } from 'vitest'
 
 import * as Scene from '../../test/scene'
 import * as Story from '../../test/story'
-import * as Transition from '../transition'
+import * as Animation from '../animation'
 import { init, update, view } from './multi'
 import type { Model, ViewConfig } from './multi'
 import {
@@ -37,7 +37,7 @@ describe('Combobox.Multi', () => {
         nullable: false,
         immediate: false,
         selectInputOnFocus: false,
-        transition: Transition.init({ id: 'test-items' }),
+        animation: Animation.init({ id: 'test-items' }),
         maybeActiveItemIndex: Option.none(),
         activationTrigger: 'Keyboard',
         inputValue: '',
