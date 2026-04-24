@@ -1298,6 +1298,8 @@ const routeTitle = (route: AppRoute): string =>
 const dragAndDropDemoFields =
   Subscription.DragAndDropDemo.SubscriptionDeps.fields
 
+const sliderDemoFields = Subscription.SliderDemo.SubscriptionDeps.fields
+
 const SubscriptionDeps = S.Struct({
   aiHeading: S.Struct({
     isLandingPage: S.Boolean,
@@ -1310,6 +1312,10 @@ const SubscriptionDeps = S.Struct({
   dragEscape: dragAndDropDemoFields['dragEscape'],
   dragKeyboard: dragAndDropDemoFields['dragKeyboard'],
   autoScroll: dragAndDropDemoFields['autoScroll'],
+  sliderPainPointer: sliderDemoFields['painPointer'],
+  sliderPainEscape: sliderDemoFields['painEscape'],
+  sliderVolumePointer: sliderDemoFields['volumePointer'],
+  sliderVolumeEscape: sliderDemoFields['volumeEscape'],
   exampleUrl: S.OptionFromSelf(S.String),
   heroVisibility: S.Struct({
     isLandingPage: S.Boolean,
@@ -1332,6 +1338,10 @@ const subscriptions = makeSubscriptions(SubscriptionDeps)<Model, Message>({
   dragEscape: Subscription.DragAndDropDemo.subscriptions.dragEscape,
   dragKeyboard: Subscription.DragAndDropDemo.subscriptions.dragKeyboard,
   autoScroll: Subscription.DragAndDropDemo.subscriptions.autoScroll,
+  sliderPainPointer: Subscription.SliderDemo.subscriptions.painPointer,
+  sliderPainEscape: Subscription.SliderDemo.subscriptions.painEscape,
+  sliderVolumePointer: Subscription.SliderDemo.subscriptions.volumePointer,
+  sliderVolumeEscape: Subscription.SliderDemo.subscriptions.volumeEscape,
   exampleUrl: Subscription.exampleUrl,
   heroVisibility: Subscription.heroVisibility,
   searchShortcut: Subscription.searchShortcut,
