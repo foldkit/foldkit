@@ -328,6 +328,8 @@ export type Attribute<Message> = Data.TaggedEnum<{
       screenX: number,
       screenY: number,
       timeStamp: number,
+      clientX: number,
+      clientY: number,
     ) => Option.Option<Message>
   }
   OnPointerUp: {
@@ -960,6 +962,8 @@ const buildVNodeData = <Message>(
                   event.screenX,
                   event.screenY,
                   event.timeStamp,
+                  event.clientX,
+                  event.clientY,
                 )
                 if (Option.isSome(maybeMessage)) {
                   dispatchSync(maybeMessage.value)
@@ -2147,6 +2151,8 @@ type HtmlAttributes<Message> = {
       screenX: number,
       screenY: number,
       timeStamp: number,
+      clientX: number,
+      clientY: number,
     ) => Option.Option<Message>,
   ) => {
     readonly _tag: 'OnPointerDown'
@@ -2156,6 +2162,8 @@ type HtmlAttributes<Message> = {
       screenX: number,
       screenY: number,
       timeStamp: number,
+      clientX: number,
+      clientY: number,
     ) => Option.Option<Message>
   }
   OnPointerUp: (
@@ -2935,6 +2943,8 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
       screenX: number,
       screenY: number,
       timeStamp: number,
+      clientX: number,
+      clientY: number,
     ) => Option.Option<Message>,
   ) => OnPointerDown({ f }),
   OnPointerUp: (

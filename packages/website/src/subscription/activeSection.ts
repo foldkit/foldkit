@@ -124,6 +124,7 @@ export const activeSection: Subscription<
           'UiRadioGroup',
           () => Page.UiPages.RadioGroupPage.tableOfContents,
         ),
+        M.tag('UiSlider', () => Page.UiPages.SliderPage.tableOfContents),
         M.tag('UiSwitch', () => Page.UiPages.SwitchPage.tableOfContents),
         M.tag('UiListbox', () => Page.UiPages.ListboxPage.tableOfContents),
         M.tag('UiCombobox', () => Page.UiPages.ComboboxPage.tableOfContents),

@@ -113,6 +113,12 @@ export const GotHorizontalRadioGroupDemoMessage = m(
     message: Ui.RadioGroup.Message,
   },
 )
+export const GotSliderRatingDemoMessage = m('GotSliderRatingDemoMessage', {
+  message: Ui.Slider.Message,
+})
+export const GotSliderVolumeDemoMessage = m('GotSliderVolumeDemoMessage', {
+  message: Ui.Slider.Message,
+})
 export const GotSwitchDemoMessage = m('GotSwitchDemoMessage', {
   message: Ui.Switch.Message,
 })
@@ -182,6 +188,8 @@ export const Message = S.Union(
   GotVerticalRadioGroupDemoMessage,
   GotHorizontalRadioGroupDemoMessage,
   UpdatedSelectDemoValue,
+  GotSliderRatingDemoMessage,
+  GotSliderVolumeDemoMessage,
   GotSwitchDemoMessage,
   GotHorizontalTabsDemoMessage,
   GotVerticalTabsDemoMessage,

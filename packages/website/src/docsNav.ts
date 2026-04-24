@@ -58,6 +58,7 @@ import {
   uiPopoverRouter,
   uiRadioGroupRouter,
   uiSelectRouter,
+  uiSliderRouter,
   uiSwitchRouter,
   uiTabsRouter,
   uiTextareaRouter,
@@ -403,6 +404,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'UiSwitch',
           href: uiSwitchRouter(),
           label: 'Switch',
+        },
+        {
+          _tag: 'UiSlider',
+          href: uiSliderRouter(),
+          label: 'Slider',
         },
         {
           _tag: 'UiSelect',

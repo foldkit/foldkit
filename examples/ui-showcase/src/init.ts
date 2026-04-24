@@ -68,6 +68,20 @@ export const uiInit = (): [
       orientation: 'Horizontal',
     }),
     selectDemoValue: 'us',
+    sliderRatingDemo: Ui.Slider.init({
+      id: 'slider-rating-demo',
+      min: 0,
+      max: 10,
+      step: 1,
+      initialValue: 3,
+    }),
+    sliderVolumeDemo: Ui.Slider.init({
+      id: 'slider-volume-demo',
+      min: 0,
+      max: 1,
+      step: 0.05,
+      initialValue: 0.5,
+    }),
     switchDemo: Ui.Switch.init({ id: 'switch-demo' }),
     horizontalTabsDemo: Ui.Tabs.init({ id: 'horizontal-tabs-demo' }),
     verticalTabsDemo: Ui.Tabs.init({

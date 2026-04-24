@@ -135,6 +135,10 @@
       "types": "./dist/ui/select/public.d.ts",
       "import": "./dist/ui/select/public.js"
     },
+    "./ui/slider": {
+      "types": "./dist/ui/slider/public.d.ts",
+      "import": "./dist/ui/slider/public.js"
+    },
     "./ui/switch": {
       "types": "./dist/ui/switch/public.d.ts",
       "import": "./dist/ui/switch/public.js"

@@ -1,6 +1,6 @@
 import clsx from 'clsx'
-import { Effect, Match as M, Schema as S, pipe } from 'effect'
-import { Command, Route, Runtime, Ui } from 'foldkit'
+import { Effect, Match as M, Schema as S, Stream, pipe } from 'effect'
+import { Command, Route, Runtime, Subscription, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { load, pushUrl } from 'foldkit/navigation'
@@ -10,7 +10,12 @@ import { Url, toString as urlToString } from 'foldkit/url'
 
 import * as Icon from './icon'
 import { uiInit } from './init'
-import { GotMobileMenuDialogMessage, UiMessage } from './message'
+import {
+  GotMobileMenuDialogMessage,
+  GotSliderRatingDemoMessage,
+  GotSliderVolumeDemoMessage,
+  UiMessage,
+} from './message'
 import { UiModel } from './model'
 import { uiUpdate } from './update'
 import * as View from './view'
@@ -30,6 +35,7 @@ const MenuRoute = r('Menu')
 const PopoverRoute = r('Popover')
 const RadioGroupRoute = r('RadioGroup')
 const SelectRoute = r('Select')
+const SliderRoute = r('Slider')
 const SwitchRoute = r('Switch')
 const TabsRoute = r('Tabs')
 const TextareaRoute = r('Textarea')
@@ -52,6 +58,7 @@ const AppRoute = S.Union(
   PopoverRoute,
   RadioGroupRoute,
   SelectRoute,
+  SliderRoute,
   SwitchRoute,
   TabsRoute,
   TextareaRoute,
@@ -82,6 +89,7 @@ const radioGroupRouter = pipe(
   Route.mapTo(RadioGroupRoute),
 )
 const selectRouter = pipe(literal('select'), Route.mapTo(SelectRoute))
+const sliderRouter = pipe(literal('slider'), Route.mapTo(SliderRoute))
 const switchRouter = pipe(literal('switch'), Route.mapTo(SwitchRoute))
 const tabsRouter = pipe(literal('tabs'), Route.mapTo(TabsRoute))
 const textareaRouter = pipe(literal('textarea'), Route.mapTo(TextareaRoute))
@@ -102,6 +110,7 @@ const routeParser = Route.oneOf(
   popoverRouter,
   radioGroupRouter,
   selectRouter,
+  sliderRouter,
   switchRouter,
   tabsRouter,
   textareaRouter,
@@ -300,6 +309,7 @@ const NAV_ITEMS: ReadonlyArray<NavItem> = [
   { label: 'Popover', routeTag: 'Popover', href: popoverRouter() },
   { label: 'Radio Group', routeTag: 'RadioGroup', href: radioGroupRouter() },
   { label: 'Select', routeTag: 'Select', href: selectRouter() },
+  { label: 'Slider', routeTag: 'Slider', href: sliderRouter() },
   { label: 'Switch', routeTag: 'Switch', href: switchRouter() },
   { label: 'Tabs', routeTag: 'Tabs', href: tabsRouter() },
   { label: 'Textarea', routeTag: 'Textarea', href: textareaRouter() },
@@ -539,6 +549,7 @@ const contentView = (model: Model): Html =>
       Popover: () => View.popover(model.uiModel, toUiMessage),
       RadioGroup: () => View.radioGroup(model.uiModel, toUiMessage),
       Select: () => View.select(model.uiModel, toUiMessage),
+      Slider: () => View.slider(model.uiModel, toUiMessage),
       Switch: () => View.switch_(model.uiModel, toUiMessage),
       Tabs: () => View.tabs(model.uiModel, toUiMessage),
       Textarea: () => View.textarea(model.uiModel, toUiMessage),
@@ -563,6 +574,91 @@ const view = (model: Model): Html =>
     ],
   )
 
+// SUBSCRIPTION
+
+const sliderFields = Ui.Slider.SubscriptionDeps.fields
+
+const SubscriptionDeps = S.Struct({
+  sliderRatingPointer: sliderFields['documentPointer'],
+  sliderRatingEscape: sliderFields['documentEscape'],
+  sliderVolumePointer: sliderFields['documentPointer'],
+  sliderVolumeEscape: sliderFields['documentEscape'],
+})
+
+const sliderSubscriptions = Ui.Slider.subscriptions
+
+const mapRatingStream = (stream: Stream.Stream<Ui.Slider.Message>) =>
+  stream.pipe(
+    Stream.map(message =>
+      GotUiMessage({ message: GotSliderRatingDemoMessage({ message }) }),
+    ),
+  )
+
+const mapVolumeStream = (stream: Stream.Stream<Ui.Slider.Message>) =>
+  stream.pipe(
+    Stream.map(message =>
+      GotUiMessage({ message: GotSliderVolumeDemoMessage({ message }) }),
+    ),
+  )
+
+const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
+  Model,
+  Message
+>({
+  sliderRatingPointer: {
+    modelToDependencies: model =>
+      sliderSubscriptions.documentPointer.modelToDependencies(
+        model.uiModel.sliderRatingDemo,
+      ),
+    dependenciesToStream: (dependencies, readDependencies) =>
+      mapRatingStream(
+        sliderSubscriptions.documentPointer.dependenciesToStream(
+          dependencies,
+          readDependencies,
+        ),
+      ),
+  },
+  sliderRatingEscape: {
+    modelToDependencies: model =>
+      sliderSubscriptions.documentEscape.modelToDependencies(
+        model.uiModel.sliderRatingDemo,
+      ),
+    dependenciesToStream: (dependencies, readDependencies) =>
+      mapRatingStream(
+        sliderSubscriptions.documentEscape.dependenciesToStream(
+          dependencies,
+          readDependencies,
+        ),
+      ),
+  },
+  sliderVolumePointer: {
+    modelToDependencies: model =>
+      sliderSubscriptions.documentPointer.modelToDependencies(
+        model.uiModel.sliderVolumeDemo,
+      ),
+    dependenciesToStream: (dependencies, readDependencies) =>
+      mapVolumeStream(
+        sliderSubscriptions.documentPointer.dependenciesToStream(
+          dependencies,
+          readDependencies,
+        ),
+      ),
+  },
+  sliderVolumeEscape: {
+    modelToDependencies: model =>
+      sliderSubscriptions.documentEscape.modelToDependencies(
+        model.uiModel.sliderVolumeDemo,
+      ),
+    dependenciesToStream: (dependencies, readDependencies) =>
+      mapVolumeStream(
+        sliderSubscriptions.documentEscape.dependenciesToStream(
+          dependencies,
+          readDependencies,
+        ),
+      ),
+  },
+})
+
 // RUN
 
 const program = Runtime.makeProgram({
@@ -570,6 +666,7 @@ const program = Runtime.makeProgram({
   init,
   update,
   view,
+  subscriptions,
   title: model =>
     M.value(model.route).pipe(
       M.tag('Home', () => 'UI Showcase'),

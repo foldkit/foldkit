@@ -721,6 +721,15 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           ),
           Page.UiPages.RadioGroupPage.tableOfContents,
         ),
+      UiSlider: () =>
+        withTableOfContents(
+          Page.UiPages.SliderPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
+          Page.UiPages.SliderPage.tableOfContents,
+        ),
       UiSwitch: () =>
         withTableOfContents(
           Page.UiPages.SwitchPage.view(
