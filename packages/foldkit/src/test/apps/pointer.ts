@@ -68,9 +68,8 @@ export const view = (model: Model): Html =>
       button(
         [
           AriaLabel('pointer target'),
-          OnPointerDown(
-            (pointerType, _button, _screenX, _screenY, _timeStamp) =>
-              Option.some(PressedPointerDown({ pointerType })),
+          OnPointerDown(pointerType =>
+            Option.some(PressedPointerDown({ pointerType })),
           ),
           OnPointerUp((_screenX, _screenY, pointerType, _timeStamp) =>
             Option.some(ReleasedPointerUp({ pointerType })),
@@ -81,9 +80,8 @@ export const view = (model: Model): Html =>
       div(
         [
           AriaLabel('nested target'),
-          OnPointerDown(
-            (pointerType, _button, _screenX, _screenY, _timeStamp) =>
-              Option.some(PressedPointerDown({ pointerType })),
+          OnPointerDown(pointerType =>
+            Option.some(PressedPointerDown({ pointerType })),
           ),
         ],
         [span([], [`type=${model.lastPointerType}`])],

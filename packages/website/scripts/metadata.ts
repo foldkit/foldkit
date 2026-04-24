@@ -253,6 +253,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Select',
     'A thin wrapper around the native select with ARIA linking and styling hooks.',
   ),
+  UiSlider: ui(
+    'Slider',
+    'Accessible slider for numeric range input. Pointer drag, keyboard navigation, ARIA slider semantics.',
+  ),
   UiSwitch: ui('Switch', 'Accessible toggle switch for boolean settings.'),
   UiCombobox: ui(
     'Combobox',

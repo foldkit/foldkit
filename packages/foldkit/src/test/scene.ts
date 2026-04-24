@@ -796,6 +796,8 @@ type PointerDownOptions = Readonly<{
   button?: number
   screenX?: number
   screenY?: number
+  clientX?: number
+  clientY?: number
 }>
 
 const DEFAULT_POINTER_DOWN_OPTIONS: Required<PointerDownOptions> = {
@@ -803,6 +805,8 @@ const DEFAULT_POINTER_DOWN_OPTIONS: Required<PointerDownOptions> = {
   button: 0,
   screenX: 0,
   screenY: 0,
+  clientX: 0,
+  clientY: 0,
 }
 
 /** Simulates a pointerdown event on the element matching the target.
@@ -829,12 +833,20 @@ export const pointerDown =
     }
 
     const element = maybeElement.value
-    const { pointerType, button, screenX, screenY } = {
+    const { pointerType, button, screenX, screenY, clientX, clientY } = {
       ...DEFAULT_POINTER_DOWN_OPTIONS,
       ...options,
     }
     const invokeHandler = (handler: Function) => {
-      handler({ pointerType, button, screenX, screenY, timeStamp: 0 })
+      handler({
+        pointerType,
+        button,
+        screenX,
+        screenY,
+        timeStamp: 0,
+        clientX,
+        clientY,
+      })
     }
 
     if (element.data?.on?.['pointerdown'] !== undefined) {

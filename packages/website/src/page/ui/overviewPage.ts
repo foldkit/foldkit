@@ -35,6 +35,7 @@ import {
   uiPopoverRouter,
   uiRadioGroupRouter,
   uiSelectRouter,
+  uiSliderRouter,
   uiSwitchRouter,
   uiTabsRouter,
   uiTextareaRouter,
@@ -124,6 +125,13 @@ const components: ReadonlyArray<ComponentEntry> = [
     category: 'Forms',
     description:
       'On/off toggle with accessible labeling, keyboard support, and optional form integration.',
+  },
+  {
+    name: 'Slider',
+    href: uiSliderRouter(),
+    category: 'Forms',
+    description:
+      'Numeric range input with pointer drag, keyboard step / page / home / end navigation, and ARIA slider semantics.',
   },
   {
     name: 'Select',

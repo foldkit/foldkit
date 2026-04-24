@@ -28,6 +28,8 @@ import {
   GotMenuBasicDemoMessage,
   GotPopoverAnimatedDemoMessage,
   GotPopoverBasicDemoMessage,
+  GotSliderPainDemoMessage,
+  GotSliderVolumeDemoMessage,
   GotSwitchDemoMessage,
   GotToastDemoMessage,
   GotTooltipDemoMessage,
@@ -550,6 +552,42 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               Effect.map(message =>
                 GotHorizontalRadioGroupDemoMessage({ message }),
               ),
+            ),
+          ),
+        ]
+      },
+
+      GotSliderPainDemoMessage: ({ message }) => {
+        const [nextSliderPainDemo, sliderPainCommands] = Ui.Slider.update(
+          model.sliderPainDemo,
+          message,
+        )
+
+        return [
+          evo(model, {
+            sliderPainDemo: () => nextSliderPainDemo,
+          }),
+          sliderPainCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotSliderPainDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      GotSliderVolumeDemoMessage: ({ message }) => {
+        const [nextSliderVolumeDemo, sliderVolumeCommands] = Ui.Slider.update(
+          model.sliderVolumeDemo,
+          message,
+        )
+
+        return [
+          evo(model, {
+            sliderVolumeDemo: () => nextSliderVolumeDemo,
+          }),
+          sliderVolumeCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotSliderVolumeDemoMessage({ message })),
             ),
           ),
         ]
