@@ -1,10 +1,15 @@
 import { Schema as S } from 'effect'
+import { File } from 'foldkit'
 import {
   Animation,
+  Calendar,
   Checkbox,
   Combobox,
+  DatePicker,
   Dialog,
   Disclosure,
+  DragAndDrop,
+  FileDrop,
   Listbox,
   Menu,
   Popover,
@@ -17,6 +22,19 @@ import {
 
 import { Toast } from './toast'
 
+export const DemoCard = S.Struct({
+  id: S.String,
+  label: S.String,
+})
+export type DemoCard = typeof DemoCard.Type
+
+export const DemoColumn = S.Struct({
+  id: S.String,
+  label: S.String,
+  cards: S.Array(DemoCard),
+})
+export type DemoColumn = typeof DemoColumn.Type
+
 export const UiModel = S.Struct({
   mobileMenuDialog: Dialog.Model,
   buttonClickCount: S.Number,
@@ -25,6 +43,8 @@ export const UiModel = S.Struct({
   fieldsetInputValue: S.String,
   fieldsetTextareaValue: S.String,
   fieldsetCheckboxDemo: Checkbox.Model,
+  calendarBasicDemo: Calendar.Model,
+  datePickerBasicDemo: DatePicker.Model,
   checkboxBasicDemo: Checkbox.Model,
   checkboxOptionADemo: Checkbox.Model,
   checkboxOptionBDemo: Checkbox.Model,
@@ -35,6 +55,10 @@ export const UiModel = S.Struct({
   dialogDemo: Dialog.Model,
   dialogAnimatedDemo: Dialog.Model,
   disclosureDemo: Disclosure.Model,
+  dragAndDropDemo: DragAndDrop.Model,
+  dragAndDropDemoColumns: S.Array(DemoColumn),
+  fileDropBasicDemo: FileDrop.Model,
+  fileDropBasicDemoFiles: S.Array(File.File),
   listboxDemo: Listbox.Model,
   listboxMultiDemo: Listbox.Multi.Model,
   listboxGroupedDemo: Listbox.Model,

@@ -1,9 +1,10 @@
-import { Effect, Match as M, Number, Option } from 'effect'
+import { Array, Effect, Match as M, Number, Option, pipe } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import {
   GotAnimationDemoMessage,
+  GotCalendarBasicDemoMessage,
   GotCheckboxBasicDemoMessage,
   GotCheckboxOptionADemoMessage,
   GotCheckboxOptionBDemoMessage,
@@ -11,10 +12,13 @@ import {
   GotComboboxMultiDemoMessage,
   GotComboboxNullableDemoMessage,
   GotComboboxSelectOnFocusDemoMessage,
+  GotDatePickerBasicDemoMessage,
   GotDialogAnimatedDemoMessage,
   GotDialogDemoMessage,
   GotDisclosureDemoMessage,
+  GotDragAndDropDemoMessage,
   GotFieldsetCheckboxDemoMessage,
+  GotFileDropBasicDemoMessage,
   GotHorizontalRadioGroupDemoMessage,
   GotHorizontalTabsDemoMessage,
   GotListboxDemoMessage,
@@ -35,8 +39,47 @@ import {
   GotVerticalTabsDemoMessage,
   type UiMessage,
 } from './message'
-import type { UiModel } from './model'
+import type { DemoColumn, UiModel } from './model'
 import { Toast } from './toast'
+
+const reorderColumns = (
+  columns: ReadonlyArray<DemoColumn>,
+  itemId: string,
+  fromContainerId: string,
+  toContainerId: string,
+  toIndex: number,
+): ReadonlyArray<DemoColumn> => {
+  const maybeCard = pipe(
+    columns,
+    Array.findFirst(({ id }) => id === fromContainerId),
+    Option.flatMap(column =>
+      Array.findFirst(column.cards, ({ id }) => id === itemId),
+    ),
+  )
+
+  return Option.match(maybeCard, {
+    onNone: () => columns,
+    onSome: card =>
+      Array.map(columns, column => {
+        const withRemoved =
+          column.id === fromContainerId
+            ? Array.filter(column.cards, ({ id }) => id !== itemId)
+            : column.cards
+
+        if (column.id !== toContainerId) {
+          return evo(column, { cards: () => withRemoved })
+        }
+
+        const inserted = [
+          ...Array.take(withRemoved, toIndex),
+          card,
+          ...Array.drop(withRemoved, toIndex),
+        ]
+
+        return evo(column, { cards: () => inserted })
+      }),
+  })
+}
 
 export type UiUpdateReturn = [
   UiModel,
@@ -340,6 +383,116 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           ),
         ]
       },
+
+      GotCalendarBasicDemoMessage: ({ message }) => {
+        const [nextCalendarBasicDemo, calendarBasicCommands] =
+          Ui.Calendar.update(model.calendarBasicDemo, message)
+
+        return [
+          evo(model, {
+            calendarBasicDemo: () => nextCalendarBasicDemo,
+          }),
+          calendarBasicCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotCalendarBasicDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      GotDatePickerBasicDemoMessage: ({ message }) => {
+        const [nextDatePickerBasicDemo, datePickerBasicCommands] =
+          Ui.DatePicker.update(model.datePickerBasicDemo, message)
+
+        return [
+          evo(model, {
+            datePickerBasicDemo: () => nextDatePickerBasicDemo,
+          }),
+          datePickerBasicCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotDatePickerBasicDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      GotDragAndDropDemoMessage: ({ message }) => {
+        const [nextDragAndDrop, dragAndDropCommands, maybeOutMessage] =
+          Ui.DragAndDrop.update(model.dragAndDropDemo, message)
+
+        const nextColumns = pipe(
+          maybeOutMessage,
+          Option.flatMap(outMessage =>
+            M.value(outMessage).pipe(
+              M.tag(
+                'Reordered',
+                ({ itemId, fromContainerId, toContainerId, toIndex }) =>
+                  Option.some(
+                    reorderColumns(
+                      model.dragAndDropDemoColumns,
+                      itemId,
+                      fromContainerId,
+                      toContainerId,
+                      toIndex,
+                    ),
+                  ),
+              ),
+              M.orElse(() => Option.none()),
+            ),
+          ),
+          Option.getOrElse(() => model.dragAndDropDemoColumns),
+        )
+
+        return [
+          evo(model, {
+            dragAndDropDemo: () => nextDragAndDrop,
+            dragAndDropDemoColumns: () => nextColumns,
+          }),
+          dragAndDropCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotDragAndDropDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      GotFileDropBasicDemoMessage: ({ message }) => {
+        const [nextFileDrop, fileDropCommands, maybeOutMessage] =
+          Ui.FileDrop.update(model.fileDropBasicDemo, message)
+
+        const nextFiles = Option.match(maybeOutMessage, {
+          onNone: () => model.fileDropBasicDemoFiles,
+          onSome: M.type<Ui.FileDrop.OutMessage>().pipe(
+            M.tagsExhaustive({
+              ReceivedFiles: ({ files }) => [
+                ...model.fileDropBasicDemoFiles,
+                ...files,
+              ],
+              DroppedWithoutFiles: () => model.fileDropBasicDemoFiles,
+            }),
+          ),
+        })
+
+        return [
+          evo(model, {
+            fileDropBasicDemo: () => nextFileDrop,
+            fileDropBasicDemoFiles: () => nextFiles,
+          }),
+          fileDropCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotFileDropBasicDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      ClickedRemoveFileDropDemoFile: ({ fileIndex }) => [
+        evo(model, {
+          fileDropBasicDemoFiles: () =>
+            Array.remove(model.fileDropBasicDemoFiles, fileIndex),
+        }),
+        [],
+      ],
 
       GotListboxDemoMessage: ({ message }) => {
         const [nextListboxDemo, listboxCommands] = Ui.Listbox.update(

@@ -76,6 +76,25 @@ export const GotDialogAnimatedDemoMessage = m('GotDialogAnimatedDemoMessage', {
 export const GotDisclosureDemoMessage = m('GotDisclosureDemoMessage', {
   message: Ui.Disclosure.Message,
 })
+export const GotCalendarBasicDemoMessage = m('GotCalendarBasicDemoMessage', {
+  message: Ui.Calendar.Message,
+})
+export const GotDatePickerBasicDemoMessage = m(
+  'GotDatePickerBasicDemoMessage',
+  {
+    message: Ui.DatePicker.Message,
+  },
+)
+export const GotDragAndDropDemoMessage = m('GotDragAndDropDemoMessage', {
+  message: Ui.DragAndDrop.Message,
+})
+export const GotFileDropBasicDemoMessage = m('GotFileDropBasicDemoMessage', {
+  message: Ui.FileDrop.Message,
+})
+export const ClickedRemoveFileDropDemoFile = m(
+  'ClickedRemoveFileDropDemoFile',
+  { fileIndex: S.Number },
+)
 export const GotListboxDemoMessage = m('GotListboxDemoMessage', {
   message: Ui.Listbox.Message,
 })
@@ -168,6 +187,11 @@ export const UiMessage = S.Union(
   GotDialogDemoMessage,
   GotDialogAnimatedDemoMessage,
   GotDisclosureDemoMessage,
+  GotCalendarBasicDemoMessage,
+  GotDatePickerBasicDemoMessage,
+  GotDragAndDropDemoMessage,
+  GotFileDropBasicDemoMessage,
+  ClickedRemoveFileDropDemoFile,
   GotListboxDemoMessage,
   GotListboxMultiDemoMessage,
   GotListboxGroupedDemoMessage,

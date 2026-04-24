@@ -1,13 +1,12 @@
-import { Command, Ui } from 'foldkit'
+import { Calendar, Command, Ui } from 'foldkit'
 
 import type { UiMessage } from './message'
 import type { UiModel } from './model'
 import { Toast } from './toast'
 
-export const uiInit = (): [
-  UiModel,
-  ReadonlyArray<Command.Command<UiMessage>>,
-] => [
+export const uiInit = (
+  today: Calendar.CalendarDate,
+): [UiModel, ReadonlyArray<Command.Command<UiMessage>>] => [
   {
     mobileMenuDialog: Ui.Dialog.init({ id: 'mobile-menu' }),
     buttonClickCount: 0,
@@ -17,6 +16,16 @@ export const uiInit = (): [
     fieldsetTextareaValue: '',
     fieldsetCheckboxDemo: Ui.Checkbox.init({
       id: 'fieldset-checkbox-demo',
+    }),
+    calendarBasicDemo: Ui.Calendar.init({
+      id: 'calendar-basic-demo',
+      today,
+    }),
+    datePickerBasicDemo: Ui.DatePicker.init({
+      id: 'date-picker-basic-demo',
+      today,
+      minDate: today,
+      maxDate: Calendar.addMonths(today, 3),
     }),
     checkboxBasicDemo: Ui.Checkbox.init({ id: 'checkbox-basic-demo' }),
     checkboxOptionADemo: Ui.Checkbox.init({
@@ -43,6 +52,28 @@ export const uiInit = (): [
       isAnimated: true,
     }),
     disclosureDemo: Ui.Disclosure.init({ id: 'disclosure-demo' }),
+    dragAndDropDemo: Ui.DragAndDrop.init({ id: 'drag-and-drop-demo' }),
+    dragAndDropDemoColumns: [
+      {
+        id: 'backlog',
+        label: 'Backlog',
+        cards: [
+          { id: 'card-1', label: 'Design API' },
+          { id: 'card-2', label: 'Write tests' },
+          { id: 'card-3', label: 'Build docs' },
+        ],
+      },
+      {
+        id: 'done',
+        label: 'Done',
+        cards: [
+          { id: 'card-4', label: 'Set up repo' },
+          { id: 'card-5', label: 'Add CI' },
+        ],
+      },
+    ],
+    fileDropBasicDemo: Ui.FileDrop.init({ id: 'file-drop-basic-demo' }),
+    fileDropBasicDemoFiles: [],
     listboxDemo: Ui.Listbox.init({ id: 'listbox-demo' }),
     listboxMultiDemo: Ui.Listbox.Multi.init({
       id: 'listbox-multi-demo',

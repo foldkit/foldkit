@@ -1,7 +1,7 @@
 import type { Html } from 'foldkit/html'
 
 import { Class, InnerHTML, div } from '../../html'
-import { exampleSourceHref } from '../../link'
+import { exampleSourceHref, uiShowcaseViewSourceHref } from '../../link'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
@@ -243,8 +243,10 @@ export const view = (
       ),
       infoCallout(
         'See it in an app',
-        'Check out how DragAndDrop is wired up in a ',
-        link(exampleSourceHref('kanban'), 'real Foldkit app'),
+        'Check out how DragAndDrop is wired up in the ',
+        link(exampleSourceHref('kanban'), 'kanban example'),
+        ' or the ',
+        link(uiShowcaseViewSourceHref('dragAndDrop'), 'UI showcase'),
         '.',
       ),
       heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),

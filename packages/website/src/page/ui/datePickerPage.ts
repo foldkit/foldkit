@@ -1,12 +1,15 @@
 import type { Html } from 'foldkit/html'
 
 import { Class, InnerHTML, div } from '../../html'
+import { uiShowcaseViewSourceHref } from '../../link'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
   demoContainer,
   heading,
+  infoCallout,
   inlineCode,
+  link,
   pageTitle,
   para,
   tableOfContentsEntryToHeader,
@@ -393,6 +396,12 @@ export const view = (
         ' which return ',
         inlineCode('[Model, Commands]'),
         ' directly.',
+      ),
+      infoCallout(
+        'See it in an app',
+        'Check out how DatePicker is wired up in a ',
+        link(uiShowcaseViewSourceHref('datePicker'), 'real Foldkit app'),
+        '.',
       ),
       heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
       para(

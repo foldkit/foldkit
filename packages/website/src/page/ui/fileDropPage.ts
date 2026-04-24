@@ -1,12 +1,15 @@
 import type { Html } from 'foldkit/html'
 
 import { Class, InnerHTML, div } from '../../html'
+import { uiShowcaseViewSourceHref } from '../../link'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
   demoContainer,
   heading,
+  infoCallout,
   inlineCode,
+  link,
   pageTitle,
   para,
   tableOfContentsEntryToHeader,
@@ -212,6 +215,12 @@ export const view = (
         '. The update function returns ',
         inlineCode('[Model, Commands, Option<OutMessage>]'),
         '. `ReceivedFiles` fires when files arrive with a guaranteed non-empty list; `DroppedWithoutFiles` fires when a drop or change event produced no files (e.g. a drag of non-file data). Pattern-match on both.',
+      ),
+      infoCallout(
+        'See it in an app',
+        'Check out how FileDrop is wired up in a ',
+        link(uiShowcaseViewSourceHref('fileDrop'), 'real Foldkit app'),
+        '.',
       ),
       heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
       para(

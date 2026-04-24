@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@source "../../../packages/foldkit/src";
 
 @layer base {
   [tabindex='-1']:focus {

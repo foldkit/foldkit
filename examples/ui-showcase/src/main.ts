@@ -1,6 +1,13 @@
 import clsx from 'clsx'
-import { Effect, Match as M, Schema as S, Stream, pipe } from 'effect'
-import { Command, Route, Runtime, Subscription, Ui } from 'foldkit'
+import {
+  Effect,
+  Equivalence,
+  Match as M,
+  Schema as S,
+  Stream,
+  pipe,
+} from 'effect'
+import { Calendar, Command, Route, Runtime, Subscription, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { load, pushUrl } from 'foldkit/navigation'
@@ -11,6 +18,7 @@ import { Url, toString as urlToString } from 'foldkit/url'
 import * as Icon from './icon'
 import { uiInit } from './init'
 import {
+  GotDragAndDropDemoMessage,
   GotMobileMenuDialogMessage,
   GotSliderRatingDemoMessage,
   GotSliderVolumeDemoMessage,
@@ -24,11 +32,15 @@ import * as View from './view'
 
 const HomeRoute = r('Home')
 const ButtonRoute = r('Button')
+const CalendarRoute = r('Calendar')
 const CheckboxRoute = r('Checkbox')
 const ComboboxRoute = r('Combobox')
+const DatePickerRoute = r('DatePicker')
 const DialogRoute = r('Dialog')
 const DisclosureRoute = r('Disclosure')
+const DragAndDropRoute = r('DragAndDrop')
 const FieldsetRoute = r('Fieldset')
+const FileDropRoute = r('FileDrop')
 const InputRoute = r('Input')
 const ListboxRoute = r('Listbox')
 const MenuRoute = r('Menu')
@@ -47,11 +59,15 @@ const NotFoundRoute = r('NotFound', { path: S.String })
 const AppRoute = S.Union(
   HomeRoute,
   ButtonRoute,
+  CalendarRoute,
   CheckboxRoute,
   ComboboxRoute,
+  DatePickerRoute,
   DialogRoute,
   DisclosureRoute,
+  DragAndDropRoute,
   FieldsetRoute,
+  FileDropRoute,
   InputRoute,
   ListboxRoute,
   MenuRoute,
@@ -72,14 +88,24 @@ type AppRoute = typeof AppRoute.Type
 
 const homeRouter = pipe(Route.root, Route.mapTo(HomeRoute))
 const buttonRouter = pipe(literal('button'), Route.mapTo(ButtonRoute))
+const calendarRouter = pipe(literal('calendar'), Route.mapTo(CalendarRoute))
 const checkboxRouter = pipe(literal('checkbox'), Route.mapTo(CheckboxRoute))
 const comboboxRouter = pipe(literal('combobox'), Route.mapTo(ComboboxRoute))
+const datePickerRouter = pipe(
+  literal('date-picker'),
+  Route.mapTo(DatePickerRoute),
+)
 const dialogRouter = pipe(literal('dialog'), Route.mapTo(DialogRoute))
 const disclosureRouter = pipe(
   literal('disclosure'),
   Route.mapTo(DisclosureRoute),
 )
+const dragAndDropRouter = pipe(
+  literal('drag-and-drop'),
+  Route.mapTo(DragAndDropRoute),
+)
 const fieldsetRouter = pipe(literal('fieldset'), Route.mapTo(FieldsetRoute))
+const fileDropRouter = pipe(literal('file-drop'), Route.mapTo(FileDropRoute))
 const inputRouter = pipe(literal('input'), Route.mapTo(InputRoute))
 const listboxRouter = pipe(literal('listbox'), Route.mapTo(ListboxRoute))
 const menuRouter = pipe(literal('menu'), Route.mapTo(MenuRoute))
@@ -99,11 +125,15 @@ const animationRouter = pipe(literal('animation'), Route.mapTo(AnimationRoute))
 
 const routeParser = Route.oneOf(
   buttonRouter,
+  calendarRouter,
   checkboxRouter,
   comboboxRouter,
+  datePickerRouter,
   dialogRouter,
   disclosureRouter,
+  dragAndDropRouter,
   fieldsetRouter,
+  fileDropRouter,
   inputRouter,
   listboxRouter,
   menuRouter,
@@ -162,8 +192,22 @@ const LoadExternal = Command.define('LoadExternal', CompletedLoadExternal)
 
 // INIT
 
-const init: Runtime.RoutingProgramInit<Model, Message> = (url: Url) => {
-  const [initialUiModel, uiCommands] = uiInit()
+const Flags = S.Struct({
+  today: Calendar.CalendarDate,
+})
+
+type Flags = typeof Flags.Type
+
+const flags: Effect.Effect<Flags> = Effect.gen(function* () {
+  const today = yield* Calendar.today.local
+  return { today }
+})
+
+const init: Runtime.RoutingProgramInit<Model, Message, Flags> = (
+  flags: Flags,
+  url: Url,
+) => {
+  const [initialUiModel, uiCommands] = uiInit(flags.today)
 
   return [
     {
@@ -298,11 +342,19 @@ type NavItem = Readonly<{
 const NAV_ITEMS: ReadonlyArray<NavItem> = [
   { label: 'Animation', routeTag: 'Animation', href: animationRouter() },
   { label: 'Button', routeTag: 'Button', href: buttonRouter() },
+  { label: 'Calendar', routeTag: 'Calendar', href: calendarRouter() },
   { label: 'Checkbox', routeTag: 'Checkbox', href: checkboxRouter() },
   { label: 'Combobox', routeTag: 'Combobox', href: comboboxRouter() },
+  { label: 'Date Picker', routeTag: 'DatePicker', href: datePickerRouter() },
   { label: 'Dialog', routeTag: 'Dialog', href: dialogRouter() },
   { label: 'Disclosure', routeTag: 'Disclosure', href: disclosureRouter() },
+  {
+    label: 'Drag and Drop',
+    routeTag: 'DragAndDrop',
+    href: dragAndDropRouter(),
+  },
   { label: 'Fieldset', routeTag: 'Fieldset', href: fieldsetRouter() },
+  { label: 'File Drop', routeTag: 'FileDrop', href: fileDropRouter() },
   { label: 'Input', routeTag: 'Input', href: inputRouter() },
   { label: 'Listbox', routeTag: 'Listbox', href: listboxRouter() },
   { label: 'Menu', routeTag: 'Menu', href: menuRouter() },
@@ -538,11 +590,15 @@ const contentView = (model: Model): Html =>
     M.tagsExhaustive({
       Home: homeView,
       Button: () => View.button(model.uiModel, toUiMessage),
+      Calendar: () => View.calendar(model.uiModel, toUiMessage),
       Checkbox: () => View.checkbox(model.uiModel, toUiMessage),
       Combobox: () => View.combobox(model.uiModel, toUiMessage),
+      DatePicker: () => View.datePicker(model.uiModel, toUiMessage),
       Dialog: () => View.dialog(model.uiModel, toUiMessage),
       Disclosure: () => View.disclosure(model.uiModel, toUiMessage),
+      DragAndDrop: () => View.dragAndDrop(model.uiModel, toUiMessage),
       Fieldset: () => View.fieldset(model.uiModel, toUiMessage),
+      FileDrop: () => View.fileDrop(model.uiModel, toUiMessage),
       Input: () => View.input(model.uiModel, toUiMessage),
       Listbox: () => View.listbox(model.uiModel, toUiMessage),
       Menu: () => View.menu(model.uiModel, toUiMessage),
@@ -577,15 +633,21 @@ const view = (model: Model): Html =>
 // SUBSCRIPTION
 
 const sliderFields = Ui.Slider.SubscriptionDeps.fields
+const dragAndDropFields = Ui.DragAndDrop.SubscriptionDeps.fields
 
 const SubscriptionDeps = S.Struct({
   sliderRatingPointer: sliderFields['documentPointer'],
   sliderRatingEscape: sliderFields['documentEscape'],
   sliderVolumePointer: sliderFields['documentPointer'],
   sliderVolumeEscape: sliderFields['documentEscape'],
+  dragPointer: dragAndDropFields['documentPointer'],
+  dragEscape: dragAndDropFields['documentEscape'],
+  dragKeyboard: dragAndDropFields['documentKeyboard'],
+  autoScroll: dragAndDropFields['autoScroll'],
 })
 
 const sliderSubscriptions = Ui.Slider.subscriptions
+const dragAndDropSubscriptions = Ui.DragAndDrop.subscriptions
 
 const mapRatingStream = (stream: Stream.Stream<Ui.Slider.Message>) =>
   stream.pipe(
@@ -598,6 +660,13 @@ const mapVolumeStream = (stream: Stream.Stream<Ui.Slider.Message>) =>
   stream.pipe(
     Stream.map(message =>
       GotUiMessage({ message: GotSliderVolumeDemoMessage({ message }) }),
+    ),
+  )
+
+const mapDragStream = (stream: Stream.Stream<Ui.DragAndDrop.Message>) =>
+  stream.pipe(
+    Stream.map(message =>
+      GotUiMessage({ message: GotDragAndDropDemoMessage({ message }) }),
     ),
   )
 
@@ -657,12 +726,67 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
         ),
       ),
   },
+  dragPointer: {
+    modelToDependencies: model =>
+      dragAndDropSubscriptions.documentPointer.modelToDependencies(
+        model.uiModel.dragAndDropDemo,
+      ),
+    dependenciesToStream: (dependencies, readDependencies) =>
+      mapDragStream(
+        dragAndDropSubscriptions.documentPointer.dependenciesToStream(
+          dependencies,
+          readDependencies,
+        ),
+      ),
+  },
+  dragEscape: {
+    modelToDependencies: model =>
+      dragAndDropSubscriptions.documentEscape.modelToDependencies(
+        model.uiModel.dragAndDropDemo,
+      ),
+    dependenciesToStream: (dependencies, readDependencies) =>
+      mapDragStream(
+        dragAndDropSubscriptions.documentEscape.dependenciesToStream(
+          dependencies,
+          readDependencies,
+        ),
+      ),
+  },
+  dragKeyboard: {
+    modelToDependencies: model =>
+      dragAndDropSubscriptions.documentKeyboard.modelToDependencies(
+        model.uiModel.dragAndDropDemo,
+      ),
+    dependenciesToStream: (dependencies, readDependencies) =>
+      mapDragStream(
+        dragAndDropSubscriptions.documentKeyboard.dependenciesToStream(
+          dependencies,
+          readDependencies,
+        ),
+      ),
+  },
+  autoScroll: {
+    modelToDependencies: model =>
+      dragAndDropSubscriptions.autoScroll.modelToDependencies(
+        model.uiModel.dragAndDropDemo,
+      ),
+    equivalence: Equivalence.struct({ isDragging: Equivalence.boolean }),
+    dependenciesToStream: (dependencies, readDependencies) =>
+      mapDragStream(
+        dragAndDropSubscriptions.autoScroll.dependenciesToStream(
+          dependencies,
+          readDependencies,
+        ),
+      ),
+  },
 })
 
 // RUN
 
 const program = Runtime.makeProgram({
   Model,
+  Flags,
+  flags,
   init,
   update,
   view,

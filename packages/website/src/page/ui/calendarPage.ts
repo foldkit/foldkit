@@ -1,12 +1,15 @@
 import type { Html } from 'foldkit/html'
 
 import { Class, InnerHTML, div } from '../../html'
+import { uiShowcaseViewSourceHref } from '../../link'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
   demoContainer,
   heading,
+  infoCallout,
   inlineCode,
+  link,
   pageTitle,
   para,
   tableOfContentsEntryToHeader,
@@ -465,6 +468,12 @@ export const view = (
         '. The update function returns ',
         inlineCode('[Model, Commands, Option<OutMessage>]'),
         ' — the OutMessage lets parents react to meaningful events like date selection and month changes.',
+      ),
+      infoCallout(
+        'See it in an app',
+        'Check out how Calendar is wired up in a ',
+        link(uiShowcaseViewSourceHref('calendar'), 'real Foldkit app'),
+        '.',
       ),
       heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
       para(
