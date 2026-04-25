@@ -47,16 +47,20 @@ const name = Options.text('name').pipe(
 
 const example = Options.choice('example', [
   'counter',
-  'stopwatch',
-  'weather',
   'todo',
+  'stopwatch',
+  'crash-view',
   'form',
-  'snake',
+  'job-application',
+  'weather',
   'routing',
   'query-sync',
-  'shopping-cart',
-  'websocket-chat',
+  'snake',
   'auth',
+  'shopping-cart',
+  'pixel-art',
+  'websocket-chat',
+  'kanban',
   'ui-showcase',
 ]).pipe(
   Options.withAlias('e'),
@@ -64,16 +68,20 @@ const example = Options.choice('example', [
     "The example application to start from. Pick an example that's similar to the application you're building. Or create multiple projects and take pieces of each!\n\n" +
       'Available examples:\n' +
       '  counter - Simple increment/decrement with reset\n' +
-      '  stopwatch - Timer with start/stop/reset functionality\n' +
-      '  weather - HTTP requests with async state handling\n' +
       '  todo - CRUD operations with localStorage persistence\n' +
+      '  stopwatch - Timer with start/stop/reset functionality\n' +
+      '  crash-view - Custom crash fallback UI with crash.view and crash.report\n' +
       '  form - Form validation with async email checking\n' +
-      '  snake - Classic game built with subscriptions\n' +
+      '  job-application - Multi-step form with async validation, file uploads, and per-step error indicators\n' +
+      '  weather - HTTP requests with async state handling\n' +
       '  routing - URL routing with parser combinators and route parameters\n' +
       '  query-sync - URL-driven filtering, sorting, and search with query parameters\n' +
-      '  shopping-cart - Complex state management with nested models and routing\n' +
-      '  websocket-chat - Managed resources with WebSocket integration\n' +
+      '  snake - Classic game built with subscriptions\n' +
       '  auth - Authentication with Submodels, OutMessage, and protected routes\n' +
+      '  shopping-cart - Complex state management with nested models and routing\n' +
+      '  pixel-art - Pixel editor with undo/redo, time-travel history, UI components, and localStorage persistence\n' +
+      '  websocket-chat - Managed resources with WebSocket integration\n' +
+      '  kanban - Drag-and-drop board with fractional indexing, keyboard navigation, and screen reader announcements\n' +
       '  ui-showcase - Every Foldkit UI component with routing and Submodels',
   ),
 )
