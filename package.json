@@ -6,7 +6,7 @@
   "scripts": {
     "prepare": "test -z \"$CI\" && simple-git-hooks || true",
     "build": "pnpm -r --if-present build",
-    "check": "pnpm -r typecheck && pnpm lint",
+    "check": "pnpm -F foldkit -F @foldkit/vite-plugin -F @typing-game/shared build && pnpm -r typecheck && pnpm lint",
     "lint": "pnpm -r --if-present lint",
     "check:changeset-ignore": "tsx scripts/check-changeset-ignore.ts",
     "check:skill-version": "bash scripts/check-skill-version.sh",
