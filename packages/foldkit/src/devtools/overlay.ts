@@ -28,7 +28,7 @@ import { makeSubscriptions } from '../runtime/subscription.js'
 import { evo } from '../struct/index.js'
 import { lockScroll, unlockScroll } from '../task/scrollLock.js'
 import * as Listbox from '../ui/listbox/public.js'
-import * as Tabs from '../ui/tabs/index.js'
+import * as Tabs from '../ui/tabs/public.js'
 import { overlayStyles } from './overlay-styles.js'
 import {
   type DevtoolsStore,
