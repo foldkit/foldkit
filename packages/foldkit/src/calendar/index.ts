@@ -9,7 +9,7 @@ export {
   make,
   toDateLocal,
   unsafeMake,
-} from './calendarDate'
+} from './calendarDate.js'
 
 export {
   addDays,
@@ -20,7 +20,7 @@ export {
   subtractDays,
   subtractMonths,
   subtractYears,
-} from './arithmetic'
+} from './arithmetic.js'
 
 export {
   between,
@@ -34,7 +34,7 @@ export {
   max,
   min,
   Order,
-} from './comparison'
+} from './comparison.js'
 
 export {
   DayOfWeek,
@@ -43,9 +43,9 @@ export {
   firstOfMonth,
   lastOfMonth,
   startOfWeek,
-} from './info'
+} from './info.js'
 
-export { today } from './today'
+export { today } from './today.js'
 
 export {
   defaultEnglishLocale,
@@ -53,4 +53,4 @@ export {
   formatLong,
   formatShort,
   LocaleConfig,
-} from './locale'
+} from './locale.js'

@@ -2,9 +2,9 @@ import { describe, it } from '@effect/vitest'
 import { Effect, Option, flow } from 'effect'
 import { expect } from 'vitest'
 
-import * as Scene from '../../test/scene'
-import * as Story from '../../test/story'
-import * as Animation from '../animation'
+import * as Scene from '../../test/scene.js'
+import * as Story from '../../test/story.js'
+import * as Animation from '../animation/index.js'
 import {
   ActivatedItem,
   ClearedSearch,
@@ -42,8 +42,8 @@ import {
   resolveTypeaheadMatch,
   update,
   view,
-} from './index'
-import type { Message, Model, ViewConfig } from './index'
+} from './index.js'
+import type { Message, Model, ViewConfig } from './index.js'
 
 const animationToMenuMessage = (message: Animation.Message) =>
   GotAnimationMessage({ message })

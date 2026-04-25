@@ -10,7 +10,7 @@ export {
   TabFocused,
   CompletedFocusTab,
   FocusTab,
-} from './index'
+} from './index.js'
 
 export type {
   Orientation,
@@ -18,4 +18,4 @@ export type {
   InitConfig,
   ViewConfig,
   TabConfig,
-} from './index'
+} from './index.js'

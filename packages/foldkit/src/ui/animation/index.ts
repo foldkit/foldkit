@@ -6,7 +6,7 @@ import {
   type TagName,
   createLazy,
   html,
-} from '../../html'
+} from '../../html/index.js'
 import {
   AdvancedAnimationFrame,
   EndedAnimation,
@@ -19,15 +19,15 @@ import {
   TransitionState,
   TransitionedOut,
   init,
-} from './schema'
+} from './schema.js'
 import {
   RequestFrame,
   WaitForAnimationSettled,
   defaultLeaveCommand,
   update,
-} from './update'
+} from './update.js'
 
-export type { InitConfig } from './schema'
+export type { InitConfig } from './schema.js'
 export {
   AdvancedAnimationFrame,
   EndedAnimation,

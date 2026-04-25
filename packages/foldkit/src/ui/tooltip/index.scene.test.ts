@@ -1,9 +1,9 @@
 import { describe, it } from '@effect/vitest'
 import { Effect } from 'effect'
 
-import * as Scene from '../../test/scene'
-import type { Message, Model, ViewConfig } from './index'
-import { FocusedTrigger, init, update, view } from './index'
+import * as Scene from '../../test/scene.js'
+import type { Message, Model, ViewConfig } from './index.js'
+import { FocusedTrigger, init, update, view } from './index.js'
 
 const sceneView =
   (

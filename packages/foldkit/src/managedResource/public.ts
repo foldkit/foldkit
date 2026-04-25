@@ -1,16 +1,16 @@
-export { tag, ResourceNotAvailable } from './index'
+export { tag, ResourceNotAvailable } from './index.js'
 
 export type {
   ManagedResource,
   ManagedResourceService,
   Value,
   ServiceOf,
-} from './index'
+} from './index.js'
 
-export { makeManagedResources } from '../runtime/managedResource'
+export { makeManagedResources } from '../runtime/managedResource.js'
 
 export type {
   ManagedResourceConfig,
   ManagedResources,
   ManagedResourceServicesOf,
-} from '../runtime/managedResource'
+} from '../runtime/managedResource.js'

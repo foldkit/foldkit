@@ -1,6 +1,6 @@
 import { DateTime, Effect, Option } from 'effect'
 
-import { TimeZoneError } from './error'
+import { TimeZoneError } from './error.js'
 
 /**
  * Gets the current UTC time.

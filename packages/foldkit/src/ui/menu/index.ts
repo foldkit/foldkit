@@ -10,14 +10,19 @@ import {
   pipe,
 } from 'effect'
 
-import * as Command from '../../command'
-import { OptionExt } from '../../effectExtensions'
-import { type Attribute, type Html, createLazy, html } from '../../html'
-import { m } from '../../message'
-import { evo } from '../../struct'
-import * as Task from '../../task'
-import { anchorHooks } from '../anchor'
-import type { AnchorConfig } from '../anchor'
+import * as Command from '../../command/index.js'
+import { OptionExt } from '../../effectExtensions/index.js'
+import {
+  type Attribute,
+  type Html,
+  createLazy,
+  html,
+} from '../../html/index.js'
+import { m } from '../../message/index.js'
+import { evo } from '../../struct/index.js'
+import * as Task from '../../task/index.js'
+import { anchorHooks } from '../anchor.js'
+import type { AnchorConfig } from '../anchor.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → menu → animation.
 // The barrel (../animation) imports from html, which starts the cycle.
@@ -29,11 +34,15 @@ import {
   type OutMessage as AnimationOutMessage,
   Showed as AnimationShowed,
   init as animationInit,
-} from '../animation/schema'
-import { update as animationUpdate } from '../animation/update'
-import { groupContiguous } from '../group'
-import { findFirstEnabledIndex, isPrintableKey, keyToIndex } from '../keyboard'
-import { resolveTypeaheadMatch } from '../typeahead'
+} from '../animation/schema.js'
+import { update as animationUpdate } from '../animation/update.js'
+import { groupContiguous } from '../group.js'
+import {
+  findFirstEnabledIndex,
+  isPrintableKey,
+  keyToIndex,
+} from '../keyboard.js'
+import { resolveTypeaheadMatch } from '../typeahead.js'
 
 // MODEL
 

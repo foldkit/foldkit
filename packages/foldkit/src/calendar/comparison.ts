@@ -4,7 +4,7 @@ import {
   Order as order,
 } from 'effect'
 
-import type { CalendarDate } from './calendarDate'
+import type { CalendarDate } from './calendarDate.js'
 
 /**
  * Total ordering over calendar dates. Uses lexicographic comparison on

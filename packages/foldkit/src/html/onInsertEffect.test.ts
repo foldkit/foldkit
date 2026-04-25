@@ -11,11 +11,11 @@ import {
 } from 'snabbdom'
 import { afterEach, beforeEach, expect, vi } from 'vitest'
 
-import { m } from '../message'
-import { propsModule } from '../propsModule'
-import { Dispatch } from '../runtime'
-import type { VNode } from '../vdom'
-import { html } from './index'
+import { m } from '../message/index.js'
+import { propsModule } from '../propsModule.js'
+import { Dispatch } from '../runtime/index.js'
+import type { VNode } from '../vdom.js'
+import { html } from './index.js'
 
 const patch = init([
   attributesModule,

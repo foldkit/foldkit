@@ -11,6 +11,6 @@ export {
   LeftDragZone,
   DroppedFiles,
   DroppedWithoutFiles,
-} from './index'
+} from './index.js'
 
-export type { InitConfig, ViewConfig, FileDropAttributes } from './index'
+export type { InitConfig, ViewConfig, FileDropAttributes } from './index.js'

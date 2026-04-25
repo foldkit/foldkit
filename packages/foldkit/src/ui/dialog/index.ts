@@ -1,10 +1,15 @@
 import { Effect, Match as M, Option, Schema as S } from 'effect'
 
-import * as Command from '../../command'
-import { type Attribute, type Html, createLazy, html } from '../../html'
-import { m } from '../../message'
-import { evo } from '../../struct'
-import * as Task from '../../task'
+import * as Command from '../../command/index.js'
+import {
+  type Attribute,
+  type Html,
+  createLazy,
+  html,
+} from '../../html/index.js'
+import { m } from '../../message/index.js'
+import { evo } from '../../struct/index.js'
+import * as Task from '../../task/index.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → dialog → animation.
 // The barrel (../animation) imports from html, which starts the cycle.
@@ -15,11 +20,11 @@ import {
   type OutMessage as AnimationOutMessage,
   Showed as AnimationShowed,
   init as animationInit,
-} from '../animation/schema'
+} from '../animation/schema.js'
 import {
   defaultLeaveCommand as animationDefaultLeaveCommand,
   update as animationUpdate,
-} from '../animation/update'
+} from '../animation/update.js'
 
 // MODEL
 

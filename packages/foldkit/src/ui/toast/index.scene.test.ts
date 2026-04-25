@@ -1,10 +1,10 @@
 import { describe, it } from '@effect/vitest'
 import { Duration, Option, Schema as S } from 'effect'
 
-import { html } from '../../html'
-import * as Scene from '../../test/scene'
-import * as Animation from '../animation'
-import { type EntryHandlers, type Variant, make } from './index'
+import { html } from '../../html/index.js'
+import * as Scene from '../../test/scene.js'
+import * as Animation from '../animation/index.js'
+import { type EntryHandlers, type Variant, make } from './index.js'
 
 const TestPayload = S.Struct({ body: S.String })
 type TestPayload = typeof TestPayload.Type

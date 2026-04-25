@@ -16,7 +16,7 @@ import {
   restoreInert,
   unlockScroll,
   uuid,
-} from './index'
+} from './index.js'
 
 describe('getTime', () => {
   it.scoped('returns a UTC time', () =>

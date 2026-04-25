@@ -1,8 +1,8 @@
 import { Effect, TestClock, TestContext } from 'effect'
 import { describe, expect, it } from 'vitest'
 
-import { make } from './calendarDate'
-import { today } from './today'
+import { make } from './calendarDate.js'
+import { today } from './today.js'
 
 describe('today.local', () => {
   it('returns the calendar date at the current Clock time', () =>

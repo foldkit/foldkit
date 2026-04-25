@@ -15,4 +15,4 @@ export {
   uuid,
   nextFrame,
   waitForAnimationSettled,
-} from './index'
+} from './index.js'

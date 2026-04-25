@@ -1,16 +1,16 @@
 import { Effect, Match as M, Option, Schema as S } from 'effect'
 
-import * as Command from '../../command'
+import * as Command from '../../command/index.js'
 import {
   type Attribute,
   type Html,
   type TagName,
   createLazy,
   html,
-} from '../../html'
-import { m } from '../../message'
-import { evo } from '../../struct'
-import * as Task from '../../task'
+} from '../../html/index.js'
+import { m } from '../../message/index.js'
+import { evo } from '../../struct/index.js'
+import * as Task from '../../task/index.js'
 
 // MODEL
 

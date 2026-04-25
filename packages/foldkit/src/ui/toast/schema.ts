@@ -1,10 +1,10 @@
 import { Duration, Schema as S } from 'effect'
 
-import { m } from '../../message'
+import { m } from '../../message/index.js'
 import {
   Message as AnimationMessage,
   Model as AnimationModel,
-} from '../animation/schema'
+} from '../animation/schema.js'
 
 // VARIANT
 

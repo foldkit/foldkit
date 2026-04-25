@@ -1,6 +1,11 @@
 import { Match as M, Schema as S } from 'effect'
 
-import { type Attribute, type Html, createLazy, html } from '../../html'
+import {
+  type Attribute,
+  type Html,
+  createLazy,
+  html,
+} from '../../html/index.js'
 import {
   Dismissed,
   DismissedAll,
@@ -10,11 +15,11 @@ import {
   LeftEntry,
   Position,
   Variant,
-} from './schema'
-import { DismissAfter, makeRuntime } from './update'
+} from './schema.js'
+import { DismissAfter, makeRuntime } from './update.js'
 
-export type { InitConfig } from './schema'
-export type { ShowInput } from './update'
+export type { InitConfig } from './schema.js'
+export type { ShowInput } from './update.js'
 
 export {
   Variant,

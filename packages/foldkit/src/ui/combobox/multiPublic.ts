@@ -7,5 +7,5 @@ export {
   view,
   lazy,
   Model,
-} from './multi'
-export type { InitConfig, ViewConfig } from './multi'
+} from './multi.js'
+export type { InitConfig, ViewConfig } from './multi.js'

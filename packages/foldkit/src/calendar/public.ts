@@ -39,4 +39,4 @@ export {
   subtractYears,
   toDateLocal,
   today,
-} from './index'
+} from './index.js'

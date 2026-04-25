@@ -1,14 +1,14 @@
 import { pipe } from 'effect'
 import { describe, expect, it } from 'vitest'
 
-import { make } from './calendarDate'
+import { make } from './calendarDate.js'
 import {
   dayOfWeek,
   endOfWeek,
   firstOfMonth,
   lastOfMonth,
   startOfWeek,
-} from './info'
+} from './info.js'
 
 describe('dayOfWeek', () => {
   it('returns the correct day for known reference dates', () => {

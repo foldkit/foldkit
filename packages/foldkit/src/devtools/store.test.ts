@@ -10,13 +10,13 @@ import {
 } from 'effect'
 import { describe, expect, it, vi } from 'vitest'
 
-import { m } from '../message'
+import { m } from '../message/index.js'
 import {
   type Bridge,
   type DevtoolsStore,
   computeDiff,
   createDevtoolsStore,
-} from './store'
+} from './store.js'
 
 const hasPath = (paths: HashSet.HashSet<string>, path: string) =>
   HashSet.has(paths, path)

@@ -9,7 +9,7 @@ export {
   Message,
   OutMessage,
   SubscriptionDeps,
-} from './index'
+} from './index.js'
 
 export type {
   InitConfig,
@@ -21,4 +21,4 @@ export type {
   ReleasedDragPointer,
   CancelledDrag,
   PressedKeyboardNavigation,
-} from './index'
+} from './index.js'

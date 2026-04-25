@@ -1,10 +1,10 @@
 import { Array, Effect, Match as M, Option, Schema as S } from 'effect'
 
-import * as Command from '../../command'
-import * as File from '../../file'
-import { type Html, html } from '../../html'
-import { m } from '../../message'
-import { evo } from '../../struct'
+import * as Command from '../../command/index.js'
+import * as File from '../../file/index.js'
+import { type Html, html } from '../../html/index.js'
+import { m } from '../../message/index.js'
+import { evo } from '../../struct/index.js'
 
 // MODEL
 

@@ -1,1 +1,1 @@
-export { pushUrl, replaceUrl, back, forward, load, openUrl } from './index'
+export { pushUrl, replaceUrl, back, forward, load, openUrl } from './index.js'

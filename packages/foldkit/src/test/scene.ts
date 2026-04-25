@@ -9,13 +9,13 @@ import {
 } from 'effect'
 import { dual } from 'effect/Function'
 
-import type { CommandDefinition } from '../command'
-import type { File } from '../file'
-import { FileHandlerSymbol } from '../html'
-import type { Html, KeyboardModifiers } from '../html'
-import { Dispatch } from '../runtime'
-import type { VNode } from '../vdom'
-import type { AnyCommand, BaseInternal, Resolver } from './internal'
+import type { CommandDefinition } from '../command/index.js'
+import type { File } from '../file/index.js'
+import { FileHandlerSymbol } from '../html/index.js'
+import type { Html, KeyboardModifiers } from '../html/index.js'
+import { Dispatch } from '../runtime/index.js'
+import type { VNode } from '../vdom.js'
+import type { AnyCommand, BaseInternal, Resolver } from './internal.js'
 import {
   assertAllCommandsResolved,
   assertExactCommands,
@@ -24,8 +24,8 @@ import {
   assertZeroCommands,
   resolveAllInternal,
   resolveByName,
-} from './internal'
-import type { Locator, LocatorAll } from './query'
+} from './internal.js'
+import type { Locator, LocatorAll } from './query.js'
 import {
   accessibleDescription,
   accessibleName,
@@ -35,7 +35,7 @@ import {
   selector,
   textContent,
   within,
-} from './query'
+} from './query.js'
 import {
   allAltText,
   allDisplayValue,
@@ -46,7 +46,7 @@ import {
   allTestId,
   allText,
   allTitle,
-} from './query'
+} from './query.js'
 
 export type { AnyCommand, Resolver }
 
@@ -85,8 +85,8 @@ export {
   last,
   nth,
   filter,
-} from './query'
-export type { Locator, LocatorAll } from './query'
+} from './query.js'
+export type { Locator, LocatorAll } from './query.js'
 
 /** Multi-match Locator factories. Each returns a `LocatorAll` that resolves
  *  to every matching VNode. Convert to a single `Locator` via `first`,
@@ -102,7 +102,7 @@ export const all = {
   displayValue: allDisplayValue,
   selector: allSelector,
 } as const
-export { sceneMatchers } from './matchers'
+export { sceneMatchers } from './matchers.js'
 
 /** An immutable test simulation that includes the rendered VNode tree.
  *  The Model and Message are intentionally opaque — Scene tests assert

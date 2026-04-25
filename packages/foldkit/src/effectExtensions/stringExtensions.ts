@@ -1,6 +1,6 @@
 import { Option, String, flow } from 'effect'
 
-import { fromString } from './optionExtensions'
+import { fromString } from './optionExtensions.js'
 
 export const stripPrefix = (prefix: string) =>
   flow(

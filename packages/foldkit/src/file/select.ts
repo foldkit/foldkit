@@ -1,6 +1,6 @@
 import { Array, Effect } from 'effect'
 
-import type { File } from './file'
+import type { File } from './file.js'
 
 type OpenPickerOptions = Readonly<{
   accept: ReadonlyArray<string>

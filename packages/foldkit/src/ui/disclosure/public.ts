@@ -11,6 +11,6 @@ export {
   Closed,
   CompletedFocusButton,
   FocusButton,
-} from './index'
+} from './index.js'
 
-export type { InitConfig, ViewConfig } from './index'
+export type { InitConfig, ViewConfig } from './index.js'

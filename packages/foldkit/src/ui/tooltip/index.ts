@@ -8,14 +8,19 @@ import {
   Schema as S,
 } from 'effect'
 
-import * as Command from '../../command'
-import { OptionExt } from '../../effectExtensions'
-import { type Attribute, type Html, createLazy, html } from '../../html'
-import { m } from '../../message'
-import { evo } from '../../struct'
-import * as Task from '../../task'
-import { anchorHooks } from '../anchor'
-import type { AnchorConfig } from '../anchor'
+import * as Command from '../../command/index.js'
+import { OptionExt } from '../../effectExtensions/index.js'
+import {
+  type Attribute,
+  type Html,
+  createLazy,
+  html,
+} from '../../html/index.js'
+import { m } from '../../message/index.js'
+import { evo } from '../../struct/index.js'
+import * as Task from '../../task/index.js'
+import { anchorHooks } from '../anchor.js'
+import type { AnchorConfig } from '../anchor.js'
 
 // MODEL
 

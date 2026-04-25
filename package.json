@@ -53,8 +53,8 @@
     "@eslint/js": "^9.39.2",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "@types/node": "^25.1.0",
-    "@typescript-eslint/eslint-plugin": "^8.54.0",
-    "@typescript-eslint/parser": "^8.54.0",
+    "@typescript-eslint/eslint-plugin": "^8.58.2",
+    "@typescript-eslint/parser": "^8.58.2",
     "effect": "^3.19.19",
     "eslint": "^9.39.2",
     "madge": "^8.0.0",
@@ -62,8 +62,8 @@
     "rimraf": "^6.1.2",
     "simple-git-hooks": "^2.13.1",
     "tsx": "^4.21.0",
-    "typedoc": "^0.28.16",
-    "typescript": "^5.9.3",
+    "typedoc": "^0.28.19",
+    "typescript": "^6.0.2",
     "vite": "^7.3.1"
   },
   "simple-git-hooks": {

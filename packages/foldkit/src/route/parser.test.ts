@@ -2,8 +2,8 @@ import { describe, it } from '@effect/vitest'
 import { Effect, Option, Schema as S, pipe } from 'effect'
 import { expect } from 'vitest'
 
-import { Url } from '../url'
-import { r } from './index'
+import { Url } from '../url/index.js'
+import { r } from './index.js'
 import {
   int,
   literal,
@@ -14,7 +14,7 @@ import {
   root,
   slash,
   string,
-} from './parser'
+} from './parser.js'
 
 const makeUrl = (path: string, search?: string): Url => ({
   protocol: 'https:',

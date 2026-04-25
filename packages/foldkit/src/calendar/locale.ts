@@ -1,7 +1,7 @@
 import { Function, Schema as S } from 'effect'
 
-import type { CalendarDate } from './calendarDate'
-import { DayOfWeek, dayOfWeek } from './info'
+import type { CalendarDate } from './calendarDate.js'
+import { DayOfWeek, dayOfWeek } from './info.js'
 
 const twelveStrings = S.Tuple(
   S.String,

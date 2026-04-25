@@ -4,7 +4,7 @@ import {
   type CalendarDate,
   fromDateInZone,
   fromDateLocal,
-} from './calendarDate'
+} from './calendarDate.js'
 
 /**
  * Effect-based accessors for the current calendar date. Uses Effect's `Clock`

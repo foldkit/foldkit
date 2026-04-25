@@ -21,6 +21,6 @@ export {
   Opened,
   Closed,
   ChangedViewMonth,
-} from './index'
+} from './index.js'
 
-export type { InitConfig, ViewConfig } from './index'
+export type { InitConfig, ViewConfig } from './index.js'

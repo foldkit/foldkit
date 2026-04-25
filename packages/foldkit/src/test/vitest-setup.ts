@@ -1,3 +1,3 @@
-import { setup } from './vitest'
+import { setup } from './vitest.js'
 
 setup()

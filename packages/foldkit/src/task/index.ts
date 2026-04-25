@@ -1,5 +1,5 @@
-export { ElementNotFound, TimeZoneError } from './error'
-export { getTime, getTimeZone, getZonedTime, getZonedTimeIn } from './time'
+export { ElementNotFound, TimeZoneError } from './error.js'
+export { getTime, getTimeZone, getZonedTime, getZonedTimeIn } from './time.js'
 export {
   advanceFocus,
   focus,
@@ -7,10 +7,10 @@ export {
   closeModal,
   clickElement,
   scrollIntoView,
-} from './dom'
-export type { FocusDirection } from './dom'
-export { detectElementMovement } from './elementMovement'
-export { delay, nextFrame, waitForAnimationSettled } from './timing'
-export { randomInt, uuid } from './random'
-export { lockScroll, unlockScroll } from './scrollLock'
-export { inertOthers, restoreInert } from './inert'
+} from './dom.js'
+export type { FocusDirection } from './dom.js'
+export { detectElementMovement } from './elementMovement.js'
+export { delay, nextFrame, waitForAnimationSettled } from './timing.js'
+export { randomInt, uuid } from './random.js'
+export { lockScroll, unlockScroll } from './scrollLock.js'
+export { inertOthers, restoreInert } from './inert.js'

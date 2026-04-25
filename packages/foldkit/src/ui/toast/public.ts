@@ -9,7 +9,7 @@ export {
   LeftEntry,
   GotAnimationMessage,
   DismissAfter,
-} from './index'
+} from './index.js'
 
-export type { EntryHandlers } from './index'
-export type { InitConfig, ShowInput } from './index'
+export type { EntryHandlers } from './index.js'
+export type { InitConfig, ShowInput } from './index.js'

@@ -15,8 +15,8 @@ export {
   ElapsedShowDelay,
   ChangedShowDelay,
   ShowAfterDelay,
-} from './index'
+} from './index.js'
 
-export type { InitConfig, ViewConfig } from './index'
+export type { InitConfig, ViewConfig } from './index.js'
 
-export type { AnchorConfig } from '../anchor'
+export type { AnchorConfig } from '../anchor.js'

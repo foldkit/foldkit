@@ -2,8 +2,8 @@ import { describe, it } from '@effect/vitest'
 import { Option, flow } from 'effect'
 import { expect } from 'vitest'
 
-import * as Story from '../../test/story'
-import * as Animation from '../animation'
+import * as Story from '../../test/story.js'
+import * as Animation from '../animation/index.js'
 import {
   Closed,
   ClosedByTab,
@@ -25,7 +25,7 @@ import {
   UnlockScroll,
   init,
   update,
-} from './index'
+} from './index.js'
 
 const animationToPopoverMessage = (message: Animation.Message) =>
   GotAnimationMessage({ message })

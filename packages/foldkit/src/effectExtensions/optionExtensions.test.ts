@@ -2,7 +2,7 @@ import { describe, it } from '@effect/vitest'
 import { Option, pipe } from 'effect'
 import { expect } from 'vitest'
 
-import { fromString, when } from './optionExtensions'
+import { fromString, when } from './optionExtensions.js'
 
 describe('fromString', () => {
   it('returns Some for non-empty string', () => {

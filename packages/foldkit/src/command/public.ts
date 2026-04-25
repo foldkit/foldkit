@@ -1,2 +1,2 @@
-export type { Command, CommandDefinition } from './index'
-export { CommandDefinitionTypeId, define, mapEffect } from './index'
+export type { Command, CommandDefinition } from './index.js'
+export { CommandDefinitionTypeId, define, mapEffect } from './index.js'

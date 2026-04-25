@@ -24,7 +24,7 @@ export {
   RefreshedToday,
   CompletedFocusGrid,
   FocusGrid,
-} from './index'
+} from './index.js'
 
 export type {
   InitConfig,
@@ -33,4 +33,4 @@ export type {
   DayCell,
   ColumnHeader,
   Week,
-} from './index'
+} from './index.js'

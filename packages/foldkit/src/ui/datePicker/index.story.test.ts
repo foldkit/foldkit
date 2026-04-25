@@ -2,10 +2,10 @@ import { describe, it } from '@effect/vitest'
 import { Option, flow } from 'effect'
 import { expect } from 'vitest'
 
-import * as Calendar from '../../calendar'
-import * as Story from '../../test/story'
-import * as UiCalendar from '../calendar'
-import * as Popover from '../popover'
+import * as Calendar from '../../calendar/index.js'
+import * as Story from '../../test/story.js'
+import * as UiCalendar from '../calendar/index.js'
+import * as Popover from '../popover/index.js'
 import {
   ChangedViewMonth,
   Cleared,
@@ -24,7 +24,7 @@ import {
   setMaxDate,
   setMinDate,
   update,
-} from './index'
+} from './index.js'
 
 const today = Calendar.make(2026, 4, 13)
 

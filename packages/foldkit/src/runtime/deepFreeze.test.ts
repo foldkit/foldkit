@@ -2,7 +2,7 @@ import { describe, it } from '@effect/vitest'
 import { Equal, Hash, Option } from 'effect'
 import { expect } from 'vitest'
 
-import { deepFreeze } from './deepFreeze'
+import { deepFreeze } from './deepFreeze.js'
 
 describe('deepFreeze', () => {
   it('returns primitives unchanged', () => {

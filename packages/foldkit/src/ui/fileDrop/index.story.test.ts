@@ -1,7 +1,7 @@
 import { describe, it } from '@effect/vitest'
 import { expect } from 'vitest'
 
-import * as Story from '../../test/story'
+import * as Story from '../../test/story.js'
 import {
   DroppedFiles,
   DroppedWithoutFiles,
@@ -10,7 +10,7 @@ import {
   ReceivedFiles,
   init,
   update,
-} from './index'
+} from './index.js'
 
 const makeFile = (name: string, type = 'application/pdf'): File =>
   new globalThis.File(['content'], name, { type })

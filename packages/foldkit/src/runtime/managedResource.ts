@@ -1,6 +1,6 @@
 import { type Effect, type Option, Record, type Schema } from 'effect'
 
-import type { ManagedResource } from '../managedResource'
+import type { ManagedResource } from '../managedResource/index.js'
 
 /** Internal configuration for a single managed resource, used by the runtime. */
 export type ManagedResourceConfig<Model, Message> = {

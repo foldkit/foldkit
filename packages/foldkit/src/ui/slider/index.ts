@@ -10,12 +10,17 @@ import {
   pipe,
 } from 'effect'
 
-import type { Command } from '../../command'
-import { type Attribute, type Html, createLazy, html } from '../../html'
-import { m } from '../../message'
-import { makeSubscriptions } from '../../runtime/subscription'
-import { ts } from '../../schema'
-import { evo } from '../../struct'
+import type { Command } from '../../command/index.js'
+import {
+  type Attribute,
+  type Html,
+  createLazy,
+  html,
+} from '../../html/index.js'
+import { m } from '../../message/index.js'
+import { makeSubscriptions } from '../../runtime/subscription.js'
+import { ts } from '../../schema/index.js'
+import { evo } from '../../struct/index.js'
 
 // MODEL
 

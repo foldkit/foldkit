@@ -1,1 +1,1 @@
-export { m } from '../schema'
+export { m } from '../schema/index.js'

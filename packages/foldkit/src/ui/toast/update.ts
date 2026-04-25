@@ -8,21 +8,21 @@ import {
   Schema as S,
 } from 'effect'
 
-import * as Command from '../../command'
-import { OptionExt } from '../../effectExtensions'
-import { evo } from '../../struct'
-import * as Task from '../../task'
+import * as Command from '../../command/index.js'
+import { OptionExt } from '../../effectExtensions/index.js'
+import { evo } from '../../struct/index.js'
+import * as Task from '../../task/index.js'
 import {
   Hid as AnimationHid,
   type Message as AnimationMessage,
   type OutMessage as AnimationOutMessage,
   Showed as AnimationShowed,
   init as animationInit,
-} from '../animation/schema'
+} from '../animation/schema.js'
 import {
   defaultLeaveCommand as animationDefaultLeaveCommand,
   update as animationUpdate,
-} from '../animation/update'
+} from '../animation/update.js'
 import {
   DEFAULT_DURATION,
   Dismissed,
@@ -35,7 +35,7 @@ import {
   makeEntry,
   makeMessage,
   makeModel,
-} from './schema'
+} from './schema.js'
 
 // Factory-level ShowInput. The consumer supplies the full payload.
 

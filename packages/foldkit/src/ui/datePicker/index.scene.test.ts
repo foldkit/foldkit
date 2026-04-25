@@ -1,12 +1,12 @@
 import { describe, it } from '@effect/vitest'
 import { Option } from 'effect'
 
-import * as Calendar from '../../calendar'
-import { html } from '../../html'
-import * as Scene from '../../test/scene'
-import * as UiCalendar from '../calendar'
-import type { Message, Model, ViewConfig } from './index'
-import { Opened, init, update, view } from './index'
+import * as Calendar from '../../calendar/index.js'
+import { html } from '../../html/index.js'
+import * as Scene from '../../test/scene.js'
+import * as UiCalendar from '../calendar/index.js'
+import type { Message, Model, ViewConfig } from './index.js'
+import { Opened, init, update, view } from './index.js'
 
 const { button, div, h2, select, option, Id, Value } = html<Message>()
 

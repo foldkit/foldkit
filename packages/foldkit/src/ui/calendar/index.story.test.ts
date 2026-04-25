@@ -2,8 +2,8 @@ import { describe, it } from '@effect/vitest'
 import { Option } from 'effect'
 import { expect } from 'vitest'
 
-import * as Calendar from '../../calendar'
-import * as Story from '../../test/story'
+import * as Calendar from '../../calendar/index.js'
+import * as Story from '../../test/story.js'
 import {
   BlurredGrid,
   ChangedViewMonth,
@@ -21,7 +21,7 @@ import {
   setMaxDate,
   setMinDate,
   update,
-} from './index'
+} from './index.js'
 
 const today = Calendar.make(2026, 4, 13)
 

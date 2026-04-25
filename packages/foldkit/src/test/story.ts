@@ -1,7 +1,7 @@
 import { Array, Option, Predicate, pipe } from 'effect'
 
-import type { CommandDefinition } from '../command'
-import type { AnyCommand, BaseInternal, Resolver } from './internal'
+import type { CommandDefinition } from '../command/index.js'
+import type { AnyCommand, BaseInternal, Resolver } from './internal.js'
 import {
   assertAllCommandsResolved,
   assertExactCommands,
@@ -10,7 +10,7 @@ import {
   assertZeroCommands,
   resolveAllInternal,
   resolveByName,
-} from './internal'
+} from './internal.js'
 
 export type { AnyCommand, Resolver }
 

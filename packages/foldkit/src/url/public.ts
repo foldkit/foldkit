@@ -1,1 +1,1 @@
-export { Url, fromString, toString } from './index'
+export { Url, fromString, toString } from './index.js'

@@ -10,8 +10,8 @@ import {
   subtractDays,
   subtractMonths,
   subtractYears,
-} from './arithmetic'
-import { make } from './calendarDate'
+} from './arithmetic.js'
+import { make } from './calendarDate.js'
 
 describe('addDays', () => {
   it('returns the same date when adding zero', () => {

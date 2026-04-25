@@ -1,6 +1,6 @@
 import { Schema as S } from 'effect'
 
-import { m } from '../../message'
+import { m } from '../../message/index.js'
 
 // TRANSITION STATE
 

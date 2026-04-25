@@ -2,8 +2,8 @@ import { describe, it } from '@effect/vitest'
 import { Duration, Option, Schema as S } from 'effect'
 import { expect } from 'vitest'
 
-import * as Story from '../../test/story'
-import * as Animation from '../animation'
+import * as Story from '../../test/story.js'
+import * as Animation from '../animation/index.js'
 import {
   DismissAfter,
   Dismissed,
@@ -13,7 +13,7 @@ import {
   HoveredEntry,
   LeftEntry,
   make,
-} from './index'
+} from './index.js'
 
 // Test payload: minimal so fixtures are simple. The library is generic; these
 // tests only need to verify that lifecycle semantics work regardless of

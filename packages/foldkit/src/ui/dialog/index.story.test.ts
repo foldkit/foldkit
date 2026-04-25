@@ -2,8 +2,8 @@ import { describe, it } from '@effect/vitest'
 import { Option } from 'effect'
 import { expect } from 'vitest'
 
-import * as Story from '../../test/story'
-import * as Animation from '../animation'
+import * as Story from '../../test/story.js'
+import * as Animation from '../animation/index.js'
 import {
   CloseDialog,
   Closed,
@@ -16,7 +16,7 @@ import {
   init,
   titleId,
   update,
-} from './index'
+} from './index.js'
 
 const animationToDialogMessage = (message: Animation.Message) =>
   GotAnimationMessage({ message })

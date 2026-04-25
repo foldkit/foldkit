@@ -1,14 +1,19 @@
 import { Effect, Match as M, Option, Schema as S } from 'effect'
 
-import * as Calendar from '../../calendar'
-import type { CalendarDate } from '../../calendar'
-import * as Command from '../../command'
-import { type Attribute, type Html, createLazy, html } from '../../html'
-import { m } from '../../message'
-import { evo } from '../../struct'
-import type { AnchorConfig } from '../anchor'
-import * as UiCalendar from '../calendar'
-import * as Popover from '../popover'
+import * as Calendar from '../../calendar/index.js'
+import type { CalendarDate } from '../../calendar/index.js'
+import * as Command from '../../command/index.js'
+import {
+  type Attribute,
+  type Html,
+  createLazy,
+  html,
+} from '../../html/index.js'
+import { m } from '../../message/index.js'
+import { evo } from '../../struct/index.js'
+import type { AnchorConfig } from '../anchor.js'
+import * as UiCalendar from '../calendar/index.js'
+import * as Popover from '../popover/index.js'
 
 // MODEL
 

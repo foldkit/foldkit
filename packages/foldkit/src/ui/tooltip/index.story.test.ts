@@ -2,7 +2,7 @@ import { describe, it } from '@effect/vitest'
 import { Duration, Option, flow } from 'effect'
 import { expect } from 'vitest'
 
-import * as Story from '../../test/story'
+import * as Story from '../../test/story.js'
 import {
   BlurredTrigger,
   ChangedShowDelay,
@@ -15,7 +15,7 @@ import {
   ShowAfterDelay,
   init,
   update,
-} from './index'
+} from './index.js'
 
 const STALE_SHOW_VERSION = -1
 

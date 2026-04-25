@@ -1,3 +1,3 @@
-export { makeSubscriptions } from '../runtime/subscription'
+export { makeSubscriptions } from '../runtime/subscription.js'
 
-export type { Subscription, Subscriptions } from '../runtime/subscription'
+export type { Subscription, Subscriptions } from '../runtime/subscription.js'

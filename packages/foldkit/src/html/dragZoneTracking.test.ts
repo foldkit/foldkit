@@ -8,7 +8,7 @@ import {
   getDragZoneState,
   processDragEnter,
   processDragLeave,
-} from './dragZoneTracking'
+} from './dragZoneTracking.js'
 
 const makeZoneWithChildren = (
   childCount: number,

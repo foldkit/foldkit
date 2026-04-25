@@ -1,2 +1,2 @@
-export * from './parser'
-export { r } from '../schema'
+export * from './parser.js'
+export { r } from '../schema/index.js'

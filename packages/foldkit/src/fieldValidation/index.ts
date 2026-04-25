@@ -9,8 +9,8 @@ import {
   pipe,
 } from 'effect'
 
-import { OptionExt } from '../effectExtensions'
-import { ts } from '../schema'
+import { OptionExt } from '../effectExtensions/index.js'
+import { ts } from '../schema/index.js'
 
 // RULES + MESSAGES
 

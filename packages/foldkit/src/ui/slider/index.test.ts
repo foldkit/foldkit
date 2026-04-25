@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import * as Story from '../../test/story'
+import * as Story from '../../test/story.js'
 import {
   CancelledDrag,
   ChangedValue,
@@ -12,7 +12,7 @@ import {
   fractionOfValue,
   init,
   update,
-} from './index'
+} from './index.js'
 
 const defaultInit = () =>
   init({ id: 'test', min: 0, max: 10, step: 1, initialValue: 5 })

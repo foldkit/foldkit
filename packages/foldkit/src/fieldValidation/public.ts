@@ -23,6 +23,6 @@ export {
   includes,
   equals,
   oneOf,
-} from './index'
+} from './index.js'
 
-export type { Rules, MakeRulesOptions, Rule, RuleMessage } from './index'
+export type { Rules, MakeRulesOptions, Rule, RuleMessage } from './index.js'

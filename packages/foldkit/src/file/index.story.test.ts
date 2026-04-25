@@ -12,7 +12,7 @@ import {
   select,
   selectMultiple,
   size,
-} from './index'
+} from './index.js'
 
 const makeTextFile = (contents: string, fileName: string): File =>
   new File([contents], fileName, { type: 'text/plain' })

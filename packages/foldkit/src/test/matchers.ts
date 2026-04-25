@@ -1,7 +1,7 @@
 import { Option, String as String_ } from 'effect'
 
-import type { VNode } from '../vdom'
-import { attr, textContent } from './query'
+import type { VNode } from '../vdom.js'
+import { attr, textContent } from './query.js'
 
 type MatcherContext = Readonly<{ isNot: boolean }>
 

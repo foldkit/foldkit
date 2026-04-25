@@ -1,6 +1,6 @@
 import { Function } from 'effect'
 
-import { type CalendarDate, daysInMonth, unsafeMake } from './calendarDate'
+import { type CalendarDate, daysInMonth, unsafeMake } from './calendarDate.js'
 
 // NOTE: Rata Die conversion uses Howard Hinnant's algorithm, which correctly
 // handles all Gregorian dates including century and quadricentennial leap-year

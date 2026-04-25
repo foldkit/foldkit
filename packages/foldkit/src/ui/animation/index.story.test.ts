@@ -1,7 +1,7 @@
 import { describe, it } from '@effect/vitest'
 import { expect } from 'vitest'
 
-import * as Story from '../../test/story'
+import * as Story from '../../test/story.js'
 import {
   AdvancedAnimationFrame,
   EndedAnimation,
@@ -13,7 +13,7 @@ import {
   WaitForAnimationSettled,
   init,
   update,
-} from './index'
+} from './index.js'
 
 describe('Animation', () => {
   describe('init', () => {

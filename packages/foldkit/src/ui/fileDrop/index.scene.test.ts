@@ -1,9 +1,9 @@
 import { describe, it } from '@effect/vitest'
 
-import { html } from '../../html'
-import * as Scene from '../../test/scene'
-import type { Message, Model, ViewConfig } from './index'
-import { EnteredDragZone, init, update, view } from './index'
+import { html } from '../../html/index.js'
+import * as Scene from '../../test/scene.js'
+import type { Message, Model, ViewConfig } from './index.js'
+import { EnteredDragZone, init, update, view } from './index.js'
 
 const { input, label, p } = html<Message>()
 

@@ -28,7 +28,7 @@ import {
   url,
   validate,
   validateAll,
-} from './index'
+} from './index.js'
 
 describe('state constructors', () => {
   it('build tagged instances for each state', () => {

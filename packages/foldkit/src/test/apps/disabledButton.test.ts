@@ -1,13 +1,13 @@
 import { describe, test } from 'vitest'
 
-import * as Scene from '../scene'
+import * as Scene from '../scene.js'
 import {
   initialModel,
   update,
   view,
   viewWithDialog,
   viewWithLazyDialog,
-} from './disabledButton'
+} from './disabledButton.js'
 
 describe('disabled button cleanup', () => {
   describe('plain button (no dialog)', () => {

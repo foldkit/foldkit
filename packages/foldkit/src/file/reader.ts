@@ -1,7 +1,7 @@
 import { Effect } from 'effect'
 
-import { FileReadError } from './error'
-import type { File } from './file'
+import { FileReadError } from './error.js'
+import type { File } from './file.js'
 
 type ReadMode = 'text' | 'dataUrl' | 'arrayBuffer'
 

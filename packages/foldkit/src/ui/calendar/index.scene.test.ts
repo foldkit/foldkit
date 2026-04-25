@@ -1,10 +1,10 @@
 import { describe, it } from '@effect/vitest'
 
-import * as Calendar from '../../calendar'
-import { html } from '../../html'
-import * as Scene from '../../test/scene'
-import type { CalendarAttributes, Message, Model, ViewConfig } from './index'
-import { init, update, view } from './index'
+import * as Calendar from '../../calendar/index.js'
+import { html } from '../../html/index.js'
+import * as Scene from '../../test/scene.js'
+import type { CalendarAttributes, Message, Model, ViewConfig } from './index.js'
+import { init, update, view } from './index.js'
 
 const { div, button, h2, select, option, Id, Value } = html<Message>()
 

@@ -2,10 +2,10 @@ import { describe, it } from '@effect/vitest'
 import { Effect } from 'effect'
 import { expect } from 'vitest'
 
-import { html } from '../../html'
-import * as Scene from '../../test/scene'
-import * as Story from '../../test/story'
-import type { Message, Model, ViewConfig } from './index'
+import { html } from '../../html/index.js'
+import * as Scene from '../../test/scene.js'
+import * as Story from '../../test/story.js'
+import type { Message, Model, ViewConfig } from './index.js'
 import {
   CompletedFocusTab,
   FocusTab,
@@ -17,7 +17,7 @@ import {
   update,
   view,
   wrapIndex,
-} from './index'
+} from './index.js'
 
 const noneDisabled = () => false
 

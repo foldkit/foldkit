@@ -2,9 +2,9 @@ import { describe, it } from '@effect/vitest'
 import { Effect, Option, flow } from 'effect'
 import { expect } from 'vitest'
 
-import * as Scene from '../../test/scene'
-import * as Story from '../../test/story'
-import * as Animation from '../animation'
+import * as Scene from '../../test/scene.js'
+import * as Story from '../../test/story.js'
+import * as Animation from '../animation/index.js'
 import {
   ActivatedItem,
   ClearedSearch,
@@ -38,10 +38,10 @@ import {
   SelectedItem,
   SuppressedSpaceScroll,
   UnlockScroll,
-} from './shared'
-import type { Message } from './shared'
-import { init, update, view } from './single'
-import type { Model, ViewConfig } from './single'
+} from './shared.js'
+import type { Message } from './shared.js'
+import { init, update, view } from './single.js'
+import type { Model, ViewConfig } from './single.js'
 
 const animationToListboxMessage = (message: Animation.Message) =>
   GotAnimationMessage({ message })

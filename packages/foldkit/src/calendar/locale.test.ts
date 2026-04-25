@@ -1,14 +1,14 @@
 import { pipe } from 'effect'
 import { describe, expect, it } from 'vitest'
 
-import { make } from './calendarDate'
+import { make } from './calendarDate.js'
 import {
   LocaleConfig,
   defaultEnglishLocale,
   formatAriaLabel,
   formatLong,
   formatShort,
-} from './locale'
+} from './locale.js'
 
 describe('defaultEnglishLocale', () => {
   it('has twelve month names starting with January', () => {

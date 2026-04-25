@@ -7,7 +7,7 @@ export {
   view,
   lazy,
   Model,
-} from './single'
+} from './single.js'
 
 export {
   Message,
@@ -33,7 +33,7 @@ export {
   ClickItem,
   DelayClearSearch,
   DetectMovementOrAnimationEnd,
-} from './shared'
+} from './shared.js'
 
 export type {
   ActivationTrigger,
@@ -50,10 +50,10 @@ export type {
   SuppressedSpaceScroll,
   ItemConfig,
   GroupHeading,
-} from './shared'
+} from './shared.js'
 
-export type { InitConfig, ViewConfig } from './single'
+export type { InitConfig, ViewConfig } from './single.js'
 
-export type { AnchorConfig } from '../anchor'
+export type { AnchorConfig } from '../anchor.js'
 
-export * as Multi from './multiPublic'
+export * as Multi from './multiPublic.js'
