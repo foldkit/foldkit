@@ -33,6 +33,7 @@ import {
   addNavigationEventListeners,
 } from './browserListeners'
 import { defaultCrashView, noOpDispatch } from './crashUI'
+import { Dispatch } from './dispatch'
 import type { ManagedResourceConfig, ManagedResources } from './managedResource'
 import type { Subscriptions } from './subscription'
 import { UrlRequest } from './urlRequest'
@@ -130,14 +131,7 @@ const defaultSlowViewCallback = (
   )
 }
 
-/** Effect service tag that provides message dispatching to the view layer. */
-export class Dispatch extends Context.Tag('@foldkit/Dispatch')<
-  Dispatch,
-  {
-    readonly dispatchAsync: (message: unknown) => Effect.Effect<void>
-    readonly dispatchSync: (message: unknown) => void
-  }
->() {}
+export { Dispatch }
 
 export type { Command } from '../command'
 
