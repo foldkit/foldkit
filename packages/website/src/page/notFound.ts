@@ -12,6 +12,6 @@ export const view = (path: string, introductionRoute: string): Html =>
         ['404 - Page Not Found'],
       ),
       para(`The path "${path}" was not found.`),
-      link(introductionRoute, '← Go to Introduction'),
+      link(introductionRoute, '← Go Home'),
     ],
   )
