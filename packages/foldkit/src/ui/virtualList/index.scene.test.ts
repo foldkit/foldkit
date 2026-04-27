@@ -6,6 +6,7 @@ import {
   MeasuredContainer,
   type Message,
   type Model,
+  ScrolledContainer,
   type ViewConfig,
   init,
   update,
@@ -134,6 +135,43 @@ describe('VirtualList scene', () => {
         Scene.expect(
           Scene.selector('[data-virtual-list-item-index="0"]'),
         ).toHaveStyle('height', `${ROW_HEIGHT}px`),
+      )
+    })
+
+    it('sets aria-setsize on each row to the full item count so screen readers announce the logical list size, not the mounted-row count', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.with(measuredModel),
+        Scene.expect(
+          Scene.selector('li[data-virtual-list-item-index="0"]'),
+        ).toHaveAttr('aria-setsize', '10'),
+      )
+    })
+
+    it('sets aria-posinset on each row to its 1-based logical position so screen readers announce "row N of total"', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.with(measuredModel),
+        Scene.expect(
+          Scene.selector('li[data-virtual-list-item-index="0"]'),
+        ).toHaveAttr('aria-posinset', '1'),
+        Scene.expect(
+          Scene.selector('li[data-virtual-list-item-index="2"]'),
+        ).toHaveAttr('aria-posinset', '3'),
+      )
+    })
+
+    it('sets aria-posinset using the logical (data) index, not the slice index, when scrolled', () => {
+      const [scrolled] = update(
+        measuredModel,
+        ScrolledContainer({ scrollTop: 90 }),
+      )
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.with(scrolled),
+        Scene.expect(
+          Scene.selector('li[data-virtual-list-item-index="3"]'),
+        ).toHaveAttr('aria-posinset', '4'),
       )
     })
 

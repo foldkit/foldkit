@@ -408,8 +408,8 @@ export type ViewConfig<Message, Item> = Readonly<{
 }>
 
 /** Renders a virtualized list. Only items inside the viewport (plus an
- *  overscan buffer) are mounted; spacer divs above and below the slice keep
- *  the scrollbar's apparent total height correct.
+ *  overscan buffer) are mounted; spacer elements above and below the slice
+ *  keep the scrollbar's apparent total height correct.
  *
  *  Items must be keyed via `itemToKey` so the VDOM matches `row 150` to
  *  `row 150` after the slice shifts during scroll, rather than matching by
@@ -418,11 +418,25 @@ export type ViewConfig<Message, Item> = Readonly<{
  *  Each row wrapper is rendered with `display: grid` so the consumer's
  *  `itemToView` content fills the configured `rowHeightPx` and the full row
  *  width. Use flex/grid with `align-items: center` inside `itemToView` to
- *  vertically center content within the row. */
+ *  vertically center content within the row.
+ *
+ *  Each row carries `aria-setsize` (total item count) and `aria-posinset`
+ *  (1-based logical row index) so screen readers announce the full list
+ *  size and each row's position within it, rather than the much smaller
+ *  count of currently mounted rows. */
 export const view = <Message, Item>(
   config: ViewConfig<Message, Item>,
 ): Html => {
-  const { Class, DataAttribute, Id, Role, Style, keyed } = html<Message>()
+  const {
+    AriaPosinset,
+    AriaSetsize,
+    Class,
+    DataAttribute,
+    Id,
+    Role,
+    Style,
+    keyed,
+  } = html<Message>()
 
   const {
     model,
@@ -475,7 +489,10 @@ export const view = <Message, Item>(
         return keyed(rowElement)(
           itemToKey(item, dataIndex),
           [
+            Role('listitem'),
             DataAttribute('virtual-list-item-index', String(dataIndex)),
+            AriaSetsize(items.length),
+            AriaPosinset(dataIndex + 1),
             Style({ height: `${model.rowHeightPx}px`, display: 'grid' }),
           ],
           [itemToView(item, dataIndex)],
