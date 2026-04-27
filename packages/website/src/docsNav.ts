@@ -65,6 +65,7 @@ import {
   uiTextareaRouter,
   uiToastRouter,
   uiTooltipRouter,
+  uiVirtualListRouter,
 } from './route'
 
 // NAV PAGE
@@ -494,6 +495,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'UiAnimation',
           href: uiAnimationRouter(),
           label: 'Animation',
+        },
+        {
+          _tag: 'UiVirtualList',
+          href: uiVirtualListRouter(),
+          label: 'Virtual List',
         },
       ],
     ],

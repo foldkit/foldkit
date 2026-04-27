@@ -35,11 +35,13 @@ import {
   GotTooltipDemoMessage,
   GotVerticalRadioGroupDemoMessage,
   GotVerticalTabsDemoMessage,
+  GotVirtualListDemoMessage,
   type Message,
 } from './message'
 import type { Model } from './model'
 import type { DemoCard, DemoColumn } from './model'
 import { Toast } from './toastModule'
+import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './virtualList'
 
 // REORDER
 
@@ -858,6 +860,37 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           dragAndDropCommands.map(
             Command.mapEffect(
               Effect.map(message => GotDragAndDropDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      GotVirtualListDemoMessage: ({ message }) => {
+        const [nextVirtualListDemo, virtualListCommands] =
+          Ui.VirtualList.update(model.virtualListDemo, message)
+
+        return [
+          evo(model, { virtualListDemo: () => nextVirtualListDemo }),
+          virtualListCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotVirtualListDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      ClickedVirtualListScrollToMiddle: () => {
+        const [nextVirtualListDemo, virtualListCommands] =
+          Ui.VirtualList.scrollToIndex(
+            model.virtualListDemo,
+            Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
+          )
+
+        return [
+          evo(model, { virtualListDemo: () => nextVirtualListDemo }),
+          virtualListCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotVirtualListDemoMessage({ message })),
             ),
           ),
         ]

@@ -22,6 +22,7 @@ import {
   GotMobileMenuDialogMessage,
   GotSliderRatingDemoMessage,
   GotSliderVolumeDemoMessage,
+  GotVirtualListDemoMessage,
   UiMessage,
 } from './message'
 import { UiModel } from './model'
@@ -54,6 +55,7 @@ const TextareaRoute = r('Textarea')
 const ToastRoute = r('Toast')
 const TooltipRoute = r('Tooltip')
 const AnimationRoute = r('Animation')
+const VirtualListRoute = r('VirtualList')
 const NotFoundRoute = r('NotFound', { path: S.String })
 
 const AppRoute = S.Union(
@@ -81,6 +83,7 @@ const AppRoute = S.Union(
   ToastRoute,
   TooltipRoute,
   AnimationRoute,
+  VirtualListRoute,
   NotFoundRoute,
 )
 
@@ -122,6 +125,10 @@ const textareaRouter = pipe(literal('textarea'), Route.mapTo(TextareaRoute))
 const toastRouter = pipe(literal('toast'), Route.mapTo(ToastRoute))
 const tooltipRouter = pipe(literal('tooltip'), Route.mapTo(TooltipRoute))
 const animationRouter = pipe(literal('animation'), Route.mapTo(AnimationRoute))
+const virtualListRouter = pipe(
+  literal('virtual-list'),
+  Route.mapTo(VirtualListRoute),
+)
 
 const routeParser = Route.oneOf(
   buttonRouter,
@@ -147,6 +154,7 @@ const routeParser = Route.oneOf(
   toastRouter,
   tooltipRouter,
   animationRouter,
+  virtualListRouter,
   homeRouter,
 )
 
@@ -367,6 +375,11 @@ const NAV_ITEMS: ReadonlyArray<NavItem> = [
   { label: 'Textarea', routeTag: 'Textarea', href: textareaRouter() },
   { label: 'Toast', routeTag: 'Toast', href: toastRouter() },
   { label: 'Tooltip', routeTag: 'Tooltip', href: tooltipRouter() },
+  {
+    label: 'Virtual List',
+    routeTag: 'VirtualList',
+    href: virtualListRouter(),
+  },
 ]
 
 const navLinkClassName = (isActive: boolean): string =>
@@ -612,6 +625,7 @@ const contentView = (model: Model): Html =>
       Toast: () => View.toast(model.uiModel, toUiMessage),
       Tooltip: () => View.tooltip(model.uiModel, toUiMessage),
       Animation: () => View.animation(model.uiModel, toUiMessage),
+      VirtualList: () => View.virtualList(model.uiModel, toUiMessage),
       NotFound: ({ path }) => notFoundView(path),
     }),
   )
@@ -644,6 +658,8 @@ const SubscriptionDeps = S.Struct({
   dragEscape: dragAndDropFields['documentEscape'],
   dragKeyboard: dragAndDropFields['documentKeyboard'],
   autoScroll: dragAndDropFields['autoScroll'],
+  virtualListContainerEvents:
+    Ui.VirtualList.SubscriptionDeps.fields['containerEvents'],
 })
 
 const sliderSubscriptions = Ui.Slider.subscriptions
@@ -778,6 +794,22 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
           readDependencies,
         ),
       ),
+  },
+  virtualListContainerEvents: {
+    modelToDependencies: model =>
+      Ui.VirtualList.subscriptions.containerEvents.modelToDependencies(
+        model.uiModel.virtualListDemo,
+      ),
+    dependenciesToStream: (dependencies, readDependencies) =>
+      Ui.VirtualList.subscriptions.containerEvents
+        .dependenciesToStream(dependencies, readDependencies)
+        .pipe(
+          Stream.map(message =>
+            GotUiMessage({
+              message: GotVirtualListDemoMessage({ message }),
+            }),
+          ),
+        ),
   },
 })
 

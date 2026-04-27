@@ -18,6 +18,7 @@ import {
   Switch,
   Tabs,
   Tooltip,
+  VirtualList,
 } from 'foldkit/ui'
 
 import { Toast } from './toastModule'
@@ -74,5 +75,6 @@ export const Model = S.Struct({
   toastDemo: Toast.Model,
   tooltipDemo: Tooltip.Model,
   animationDemo: Animation.Model,
+  virtualListDemo: VirtualList.Model,
 })
 export type Model = typeof Model.Type

@@ -126,6 +126,10 @@ export const uiInit = (
     }),
     animationDemo: Ui.Animation.init({ id: 'animation-demo' }),
     isAnimationDemoShowing: false,
+    virtualListDemo: Ui.VirtualList.init({
+      id: 'virtual-list-demo',
+      rowHeightPx: 56,
+    }),
   },
   [],
 ]

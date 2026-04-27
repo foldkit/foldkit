@@ -1300,6 +1300,9 @@ const dragAndDropDemoFields =
 
 const sliderDemoFields = Subscription.SliderDemo.SubscriptionDeps.fields
 
+const virtualListDemoFields =
+  Subscription.VirtualListDemo.SubscriptionDeps.fields
+
 const SubscriptionDeps = S.Struct({
   aiHeading: S.Struct({
     isLandingPage: S.Boolean,
@@ -1316,6 +1319,7 @@ const SubscriptionDeps = S.Struct({
   sliderRatingEscape: sliderDemoFields['ratingEscape'],
   sliderVolumePointer: sliderDemoFields['volumePointer'],
   sliderVolumeEscape: sliderDemoFields['volumeEscape'],
+  virtualListContainerEvents: virtualListDemoFields['containerEvents'],
   exampleUrl: S.OptionFromSelf(S.String),
   heroVisibility: S.Struct({
     isLandingPage: S.Boolean,
@@ -1342,6 +1346,8 @@ const subscriptions = makeSubscriptions(SubscriptionDeps)<Model, Message>({
   sliderRatingEscape: Subscription.SliderDemo.subscriptions.ratingEscape,
   sliderVolumePointer: Subscription.SliderDemo.subscriptions.volumePointer,
   sliderVolumeEscape: Subscription.SliderDemo.subscriptions.volumeEscape,
+  virtualListContainerEvents:
+    Subscription.VirtualListDemo.subscriptions.containerEvents,
   exampleUrl: Subscription.exampleUrl,
   heroVisibility: Subscription.heroVisibility,
   searchShortcut: Subscription.searchShortcut,

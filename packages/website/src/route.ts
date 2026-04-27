@@ -83,6 +83,7 @@ export const UiFileDropRoute = r('UiFileDrop')
 export const UiToastRoute = r('UiToast')
 export const UiTooltipRoute = r('UiTooltip')
 export const UiAnimationRoute = r('UiAnimation')
+export const UiVirtualListRoute = r('UiVirtualList')
 
 export const AiOverviewRoute = r('AiOverview')
 export const AiSkillsRoute = r('AiSkills')
@@ -154,6 +155,7 @@ export const DocsRoute = S.Union(
   UiToastRoute,
   UiTooltipRoute,
   UiAnimationRoute,
+  UiVirtualListRoute,
   AiOverviewRoute,
   AiSkillsRoute,
   NotFoundRoute,
@@ -474,6 +476,11 @@ export const uiAnimationRouter = pipe(
   slash(literal('animation')),
   mapTo(UiAnimationRoute),
 )
+export const uiVirtualListRouter = pipe(
+  literal('ui'),
+  slash(literal('virtual-list')),
+  mapTo(UiVirtualListRoute),
+)
 
 export const aiOverviewRouter = pipe(
   literal('ai'),
@@ -559,6 +566,7 @@ const uiParser = oneOf(
   uiToastRouter,
   uiTooltipRouter,
   uiAnimationRouter,
+  uiVirtualListRouter,
 )
 
 const aiParser = oneOf(aiOverviewRouter, aiSkillsRouter)

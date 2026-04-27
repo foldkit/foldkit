@@ -23,12 +23,20 @@ const rowClassName = 'border-b border-gray-200 dark:border-gray-700/50'
 
 const cellClassName = 'py-2.5 pr-4 align-top'
 
+const typeCellClassName = 'py-2.5 pr-4 align-top max-w-xs'
+
 const descriptionCellClassName = 'py-2.5 align-top min-w-[24rem]'
 
 const codeClassName =
   'bg-gray-200/70 dark:bg-gray-800 px-1 py-px rounded text-sm border border-gray-300/50 dark:border-gray-700/50 whitespace-nowrap'
 
+const wrappingCodeClassName =
+  'bg-gray-200/70 dark:bg-gray-800 px-1 py-px rounded text-sm border border-gray-300/50 dark:border-gray-700/50 whitespace-pre-wrap break-words'
+
 const inlineCode = (text: string): Html => code([Class(codeClassName)], [text])
+
+const wrappingInlineCode = (text: string): Html =>
+  code([Class(wrappingCodeClassName)], [text])
 
 // PROP TABLE
 
@@ -44,7 +52,7 @@ const propRow = (entry: PropEntry): Html =>
     [Class(rowClassName)],
     [
       td([Class(cellClassName)], [inlineCode(entry.name)]),
-      td([Class(cellClassName)], [inlineCode(entry.type)]),
+      td([Class(typeCellClassName)], [wrappingInlineCode(entry.type)]),
       td(
         [Class(cellClassName)],
         [

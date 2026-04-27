@@ -843,6 +843,15 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           ),
           Page.UiPages.AnimationPage.tableOfContents,
         ),
+      UiVirtualList: () =>
+        withTableOfContents(
+          Page.UiPages.VirtualListPage.view(
+            model.uiPages,
+            toUiPageMessage,
+            model.copiedSnippets,
+          ),
+          Page.UiPages.VirtualListPage.tableOfContents,
+        ),
       AiOverview: () =>
         withTableOfContents(
           lazyDocsContent(Page.AiOverview.view, [model.copiedSnippets]),

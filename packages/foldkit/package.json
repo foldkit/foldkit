@@ -159,6 +159,10 @@
       "types": "./dist/ui/tooltip/public.d.ts",
       "import": "./dist/ui/tooltip/public.js"
     },
+    "./ui/virtualList": {
+      "types": "./dist/ui/virtualList/public.d.ts",
+      "import": "./dist/ui/virtualList/public.js"
+    },
     "./url": {
       "types": "./dist/url/public.d.ts",
       "import": "./dist/url/public.js"

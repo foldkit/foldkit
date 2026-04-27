@@ -86,6 +86,7 @@ import {
   UiTextareaRoute,
   UiToastRoute,
   UiTooltipRoute,
+  UiVirtualListRoute,
   aiOverviewRouter,
   aiSkillsRouter,
   apiModuleRouter,
@@ -153,6 +154,7 @@ import {
   uiTextareaRouter,
   uiToastRouter,
   uiTooltipRouter,
+  uiVirtualListRouter,
 } from '../src/route'
 import { generateOgImages, injectMetaTags } from './og-image'
 
@@ -222,6 +224,7 @@ export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   UiToastRoute(),
   UiTooltipRoute(),
   UiAnimationRoute(),
+  UiVirtualListRoute(),
   AiOverviewRoute(),
   AiSkillsRoute(),
 ]
@@ -292,6 +295,7 @@ export const routeToUrlPath = (route: AppRoute): string =>
       UiToast: () => uiToastRouter(),
       UiTooltip: () => uiTooltipRouter(),
       UiAnimation: () => uiAnimationRouter(),
+      UiVirtualList: () => uiVirtualListRouter(),
       AiOverview: () => aiOverviewRouter(),
       AiSkills: () => aiSkillsRouter(),
       ApiModule: ({ moduleSlug }) => apiModuleRouter({ moduleSlug }),

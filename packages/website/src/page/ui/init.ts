@@ -103,6 +103,10 @@ export const init = (today: Calendar.CalendarDate): InitReturn => [
     toastDemo: Toast.init({ id: 'toast-demo' }),
     tooltipDemo: Ui.Tooltip.init({ id: 'tooltip-demo' }),
     animationDemo: Ui.Animation.init({ id: 'animation-demo' }),
+    virtualListDemo: Ui.VirtualList.init({
+      id: 'virtual-list-demo',
+      rowHeightPx: 56,
+    }),
     dragAndDropDemoColumns: [
       {
         id: 'backlog',

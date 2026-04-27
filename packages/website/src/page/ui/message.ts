@@ -157,6 +157,12 @@ export const GotTooltipDemoMessage = m('GotTooltipDemoMessage', {
 export const GotAnimationDemoMessage = m('GotAnimationDemoMessage', {
   message: Ui.Animation.Message,
 })
+export const GotVirtualListDemoMessage = m('GotVirtualListDemoMessage', {
+  message: Ui.VirtualList.Message,
+})
+export const ClickedVirtualListScrollToMiddle = m(
+  'ClickedVirtualListScrollToMiddle',
+)
 
 export const Message = S.Union(
   ClickedButtonDemo,
@@ -204,5 +210,7 @@ export const Message = S.Union(
   ClickedDismissAllToasts,
   GotTooltipDemoMessage,
   GotAnimationDemoMessage,
+  GotVirtualListDemoMessage,
+  ClickedVirtualListScrollToMiddle,
 )
 export type Message = typeof Message.Type

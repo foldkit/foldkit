@@ -290,6 +290,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Animation',
     'Coordinates CSS enter/leave animations via a state machine and data attributes. Works with both CSS transitions and keyframe animations.',
   ),
+  UiVirtualList: ui(
+    'Virtual List',
+    'Virtualization primitive for large lists. Only items inside the viewport plus an overscan buffer are mounted; spacers above and below keep the scrollbar physically correct.',
+  ),
   AiOverview: docs(
     'AI',
     'Why Foldkit\u2019s architecture makes AI-assisted development uniquely effective.',

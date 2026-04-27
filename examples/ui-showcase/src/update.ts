@@ -37,10 +37,12 @@ import {
   GotTooltipNoDelayDemoMessage,
   GotVerticalRadioGroupDemoMessage,
   GotVerticalTabsDemoMessage,
+  GotVirtualListDemoMessage,
   type UiMessage,
 } from './message'
 import type { DemoColumn, UiModel } from './model'
 import { Toast } from './toast'
+import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './view/virtualList'
 
 const reorderColumns = (
   columns: ReadonlyArray<DemoColumn>,
@@ -932,6 +934,37 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             animationDemo: () => nextAnimationDemo,
           }),
           commands,
+        ]
+      },
+
+      GotVirtualListDemoMessage: ({ message }) => {
+        const [nextVirtualListDemo, virtualListCommands] =
+          Ui.VirtualList.update(model.virtualListDemo, message)
+
+        return [
+          evo(model, { virtualListDemo: () => nextVirtualListDemo }),
+          virtualListCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotVirtualListDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      ClickedVirtualListScrollToMiddle: () => {
+        const [nextVirtualListDemo, virtualListCommands] =
+          Ui.VirtualList.scrollToIndex(
+            model.virtualListDemo,
+            Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
+          )
+
+        return [
+          evo(model, { virtualListDemo: () => nextVirtualListDemo }),
+          virtualListCommands.map(
+            Command.mapEffect(
+              Effect.map(message => GotVirtualListDemoMessage({ message })),
+            ),
+          ),
         ]
       },
     }),
