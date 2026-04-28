@@ -189,6 +189,10 @@ Command definitions live where they're produced — colocated with the update fu
 
 - When making multi-file edits or refactors, apply changes to ALL relevant files — not just a subset. After refactoring, verify that spacing, margins, and visual formatting haven't regressed from the original.
 
+## Debugging Example Apps
+
+Apps in `examples/` ship with the `@foldkit/devtools-mcp` relay wired up. When debugging behavior in a running example, reach for the `foldkit_*` MCP tools before adding logs. If they aren't visible, see `packages/devtools-mcp/README.md` for setup.
+
 ## Communication
 
 - When I ask a question or make a comment that sounds rhetorical, opinion-based, or conversational (e.g., 'what do you think about X?', 'im asking you'), respond with discussion — not code edits. Only make code changes when explicitly asked to.

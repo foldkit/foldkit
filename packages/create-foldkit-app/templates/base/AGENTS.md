@@ -101,6 +101,12 @@ Use `Story.story` to chain steps into a readable narrative: set initial Model â†
 
 If the `repos/foldkit` submodule is available, study the `.test.ts` files in `repos/foldkit/examples/` for patterns â€” they cover simple Command resolution, multi-step interactions, and Submodel OutMessage assertions.
 
+## Debugging with Foldkit DevTools
+
+This project ships with `@foldkit/devtools-mcp` pre-wired. When the dev server is running and the app is open in a browser tab, `foldkit_*` MCP tools are available for inspecting Model, Message history, and time-travel. Reach for them before adding `console.log` whenever the question is about state or Message flow.
+
+If the `foldkit_*` tools aren't visible, see `@foldkit/devtools-mcp` on npm for setup.
+
 ## Code Quality Standards
 
 - Every name should eliminate ambiguity. Prefix Option-typed values with `maybe` (e.g. `maybeSession`). Name functions by their precise effect (e.g. `enqueueMessage` not `addMessage`). A reader should never need to check a type signature to understand what a name refers to.
