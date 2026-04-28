@@ -25,12 +25,14 @@ import {
   ResponseDispatched,
   ResponseError,
   type ResponseFrame,
+  ResponseInit,
   ResponseKeyframes,
   ResponseMessage,
   ResponseMessages,
   ResponseModel,
   ResponseReplayed,
   ResponseResumed,
+  ResponseRuntimeState,
   RuntimeInfo,
 } from './protocol.js'
 import { toInspectableValue, toSerializedEntry } from './serialize.js'
@@ -334,5 +336,34 @@ const dispatchRequest = (
               'RequestListRuntimes is plugin-handled and should not reach the runtime bridge',
           }),
         ),
+
+      RequestGetInit: () =>
+        Effect.gen(function* () {
+          const state = yield* SubscriptionRef.get(store.stateRef)
+          return ResponseInit({
+            maybeModel: Option.map(state.maybeInitModel, toInspectableValue),
+            commandNames: state.initCommandNames,
+          })
+        }),
+
+      RequestGetRuntimeState: () =>
+        Effect.gen(function* () {
+          const state = yield* SubscriptionRef.get(store.stateRef)
+          const currentIndex = currentAbsoluteIndex(
+            state.entries.length,
+            state.startIndex,
+          )
+          return ResponseRuntimeState({
+            currentIndex,
+            startIndex: state.startIndex,
+            totalEntries: state.entries.length,
+            isPaused: state.isPaused,
+            maybePausedAtIndex: OptionExt.when(
+              state.isPaused,
+              state.pausedAtIndex,
+            ),
+            hasInitModel: Option.isSome(state.maybeInitModel),
+          })
+        }),
     }),
   )

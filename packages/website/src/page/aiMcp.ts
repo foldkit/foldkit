@@ -90,15 +90,41 @@ const tools: ReadonlyArray<ToolRowSpec> = [
     description: ['Snapshots the current Model.'],
   },
   {
+    name: 'foldkit_get_init',
+    description: [
+      "Reads the recorded initial Model and the names of Commands returned from the application's ",
+      inlineCode('init', 'text-xs'),
+      ' function. Equivalent to selecting the synthetic ',
+      inlineCode('init', 'text-xs'),
+      ' row in the DevTools panel.',
+    ],
+  },
+  {
+    name: 'foldkit_get_runtime_state',
+    description: [
+      "Snapshots the runtime's DevTools state: history bounds, current paused/live status, and whether init is recorded. Useful for understanding what ",
+      inlineCode('foldkit_list_messages', 'text-xs'),
+      ' and ',
+      inlineCode('foldkit_get_message', 'text-xs'),
+      ' will see.',
+    ],
+  },
+  {
     name: 'foldkit_list_messages',
     description: [
-      'Lists recent Message history entries with pagination. Each entry carries the Message body, command names triggered, timestamp, and a path-level diff.',
+      'Lists recent Message history entries with pagination. Each entry carries the Message body, Command names triggered, timestamp, an ',
+      inlineCode('isModelChanged', 'text-xs'),
+      ' flag, the diff path lists, and any extracted Submodel chain.',
     ],
   },
   {
     name: 'foldkit_get_message',
     description: [
-      'Reads one entry at a given index, including the Model before and after the Message was applied.',
+      'Reads one entry at a given index, including the Model before and after the Message was applied. Use ',
+      inlineCode('foldkit_get_init', 'text-xs'),
+      ' for the synthetic init entry at index ',
+      inlineCode('-1', 'text-xs'),
+      '.',
     ],
   },
   {

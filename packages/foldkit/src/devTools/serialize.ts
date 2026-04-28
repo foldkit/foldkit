@@ -9,6 +9,7 @@ import {
 
 import type { SerializedEntry } from './protocol.js'
 import type { HistoryEntry } from './store.js'
+import { extractSubmodelInfo } from './submodelPath.js'
 
 /**
  * Convert DOM-class instances (File, Blob, Date, URL) to plain-object
@@ -46,13 +47,22 @@ export const toInspectableValue = (value: unknown): unknown =>
 export const toSerializedEntry = (
   entry: HistoryEntry,
   index: number,
-): SerializedEntry => ({
-  index,
-  tag: entry.tag,
-  message: toInspectableValue(entry.message),
-  commandNames: entry.commandNames,
-  timestamp: entry.timestamp,
-  isModelChanged: entry.isModelChanged,
-  changedPaths: HashSet.toValues(entry.diff.changedPaths),
-  affectedPaths: HashSet.toValues(entry.diff.affectedPaths),
-})
+): SerializedEntry => {
+  const { submodelPath, maybeLeafTag } = extractSubmodelInfo(
+    entry.tag,
+    entry.message,
+  )
+
+  return {
+    index,
+    tag: entry.tag,
+    message: toInspectableValue(entry.message),
+    commandNames: entry.commandNames,
+    timestamp: entry.timestamp,
+    isModelChanged: entry.isModelChanged,
+    changedPaths: HashSet.toValues(entry.diff.changedPaths),
+    affectedPaths: HashSet.toValues(entry.diff.affectedPaths),
+    submodelPath,
+    maybeLeafTag,
+  }
+}

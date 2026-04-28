@@ -4,7 +4,7 @@ import { ts } from '../schema/index.js'
 
 // SHARED
 
-/** A serialized history entry as it appears on the wire. */
+/** A serialized history entry as it appears on the wire. `submodelPath` lists `Got<Child>Message` wrapper tags from outer to inner when the entry came up through a Submodel chain; `maybeLeafTag` is `Some` with the innermost child Message tag when one exists. */
 export const SerializedEntry = S.Struct({
   index: S.Number,
   tag: S.String,
@@ -14,6 +14,8 @@ export const SerializedEntry = S.Struct({
   isModelChanged: S.Boolean,
   changedPaths: S.Array(S.String),
   affectedPaths: S.Array(S.String),
+  submodelPath: S.Array(S.String),
+  maybeLeafTag: S.Option(S.String),
 })
 /** A serialized history entry suitable for transmission over the WS protocol. */
 export type SerializedEntry = typeof SerializedEntry.Type
@@ -61,6 +63,12 @@ export const RequestReplayToKeyframe = ts('RequestReplayToKeyframe', {
 /** Request the runtime resume normal execution from a paused state. */
 export const RequestResume = ts('RequestResume')
 
+/** Request the recorded init data: the initial Model and the names of Commands returned from `init`. */
+export const RequestGetInit = ts('RequestGetInit')
+
+/** Request a snapshot of the runtime's DevTools state: history bounds, current paused/live status, and whether init is recorded. */
+export const RequestGetRuntimeState = ts('RequestGetRuntimeState')
+
 /** Request the runtime dispatch a Message at the current state. The payload is opaque to the protocol; the runtime validates against the app's Message Schema. */
 export const RequestDispatchMessage = ts('RequestDispatchMessage', {
   message: S.Unknown,
@@ -79,6 +87,8 @@ export const Request = S.Union(
   RequestResume,
   RequestDispatchMessage,
   RequestListRuntimes,
+  RequestGetInit,
+  RequestGetRuntimeState,
 )
 /** A request from the MCP server. */
 export type Request = typeof Request.Type
@@ -126,6 +136,22 @@ export const ResponseRuntimes = ts('ResponseRuntimes', {
   runtimes: S.Array(RuntimeInfo),
 })
 
+/** Response carrying the recorded init data. `maybeModel` is `None` until the runtime has finished its first render and recorded init; once set it stays set for the rest of the runtime's life. `commandNames` lists the Commands returned from the application's `init` function in the order they were produced. */
+export const ResponseInit = ts('ResponseInit', {
+  maybeModel: S.Option(S.Unknown),
+  commandNames: S.Array(S.String),
+})
+
+/** Response carrying a snapshot of the runtime's DevTools state. `currentIndex` is the absolute index of the most recently recorded Message, or -1 when no Messages have been recorded yet. `startIndex` is the earliest absolute index still retained in the rolling buffer (older entries are evicted past `maxEntries`). `totalEntries` is the number of retained entries. `isPaused` is true while the runtime is paused at a replayed snapshot; `maybePausedAtIndex` is `Some(index)` then and `None` otherwise. `hasInitModel` is true once the runtime has finished initialising. */
+export const ResponseRuntimeState = ts('ResponseRuntimeState', {
+  currentIndex: S.Number,
+  startIndex: S.Number,
+  totalEntries: S.Number,
+  isPaused: S.Boolean,
+  maybePausedAtIndex: S.Option(S.Number),
+  hasInitModel: S.Boolean,
+})
+
 /** Response carrying an error reason for a failed Request. */
 export const ResponseError = ts('ResponseError', {
   reason: S.String,
@@ -141,6 +167,8 @@ export const Response = S.Union(
   ResponseResumed,
   ResponseDispatched,
   ResponseRuntimes,
+  ResponseInit,
+  ResponseRuntimeState,
   ResponseError,
 )
 /** A response replying to a Request. */

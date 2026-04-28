@@ -5,7 +5,9 @@ A Model Context Protocol server that exposes a running [Foldkit](https://foldkit
 With it attached, agents can:
 
 - Read the current Model
-- List and inspect the Message history
+- List and inspect the Message history, with diffs and submodel chains
+- Read the recorded init Model and init Command names
+- Inspect runtime state: current index, retained history bounds, pause status
 - Replay to any past state and resume
 - Dispatch Messages into the runtime, decoded against your `Message` Schema
 
@@ -55,7 +57,7 @@ Runtime.makeProgram({
 })
 ```
 
-Restart your dev server, then restart your AI agent. The MCP server will appear with the eight `foldkit_*` tools attached.
+Restart your dev server, then restart your AI agent. The MCP server will appear with the ten `foldkit_*` tools attached.
 
 The browser bridge runs inside your app, so the MCP server only sees a runtime while the app is open in a browser tab. Close the tab and the runtime disappears from `foldkit_list_runtimes`.
 
@@ -63,16 +65,18 @@ The browser bridge runs inside your app, so the MCP server only sees a runtime w
 
 Each tool accepts an optional `runtime_id`. When omitted, the most recently connected runtime is used.
 
-| Tool                         | Description                                                                                                                                                                 |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `foldkit_list_runtimes`      | Returns metadata for every connected browser tab. Agents call this first to discover which runtime to target.                                                               |
-| `foldkit_get_model`          | Snapshots the current Model.                                                                                                                                                |
-| `foldkit_list_messages`      | Lists recent Message history entries with pagination. Each entry carries the Message body, command names triggered, timestamp, and a path-level diff.                       |
-| `foldkit_get_message`        | Reads one entry at a given index, including the Model before and after the Message was applied.                                                                             |
-| `foldkit_list_keyframes`     | Returns the indices Foldkit can replay back to. Index `-1` is the initial Model.                                                                                            |
-| `foldkit_replay_to_keyframe` | Time-travels the runtime to a previous state. The runtime is paused at that snapshot until `foldkit_resume` is called.                                                      |
-| `foldkit_resume`             | Resumes normal execution after a replay.                                                                                                                                    |
-| `foldkit_dispatch_message`   | Enqueues a Message into the runtime as if your application produced it. The runtime decodes the payload against your Schema and returns a clean error if it does not match. |
+| Tool                         | Description                                                                                                                                                                                                                                             |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `foldkit_list_runtimes`      | Returns metadata for every connected browser tab. Agents call this first to discover which runtime to target.                                                                                                                                           |
+| `foldkit_get_model`          | Snapshots the current Model.                                                                                                                                                                                                                            |
+| `foldkit_get_init`           | Reads the recorded initial Model and the names of Commands returned from the application's `init` function. Equivalent to selecting the synthetic "init" row in the DevTools panel.                                                                     |
+| `foldkit_get_runtime_state`  | Snapshots the runtime's DevTools state: history bounds, current paused/live status, and whether init is recorded. Useful for understanding what `foldkit_list_messages` and `foldkit_get_message` will see and detecting whether the runtime is paused. |
+| `foldkit_list_messages`      | Lists recent Message history entries with pagination. Each entry carries the Message body, Command names triggered, timestamp, an `isModelChanged` flag, the diff path lists (`changedPaths` / `affectedPaths`), and any extracted Submodel chain.      |
+| `foldkit_get_message`        | Reads one entry at a given index, including the Model before and after the Message was applied. Use `foldkit_get_init` instead for the synthetic init entry at index -1.                                                                                |
+| `foldkit_list_keyframes`     | Returns the indices Foldkit can replay back to. Index `-1` is the initial Model.                                                                                                                                                                        |
+| `foldkit_replay_to_keyframe` | Time-travels the runtime to a previous state. The runtime is paused at that snapshot until `foldkit_resume` is called.                                                                                                                                  |
+| `foldkit_resume`             | Resumes normal execution after a replay.                                                                                                                                                                                                                |
+| `foldkit_dispatch_message`   | Enqueues a Message into the runtime as if your application produced it. The runtime decodes the payload against your Schema and returns a clean error if it does not match.                                                                             |
 
 ## Architecture
 

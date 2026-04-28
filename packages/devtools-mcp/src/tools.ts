@@ -2,8 +2,10 @@ import { Array, Effect, JSONSchema, Match, Option, Schema as S } from 'effect'
 import {
   type Request,
   RequestDispatchMessage,
+  RequestGetInit,
   RequestGetMessage,
   RequestGetModel,
+  RequestGetRuntimeState,
   RequestListKeyframes,
   RequestListMessages,
   RequestListRuntimes,
@@ -79,6 +81,14 @@ const ReplayToKeyframeInput = S.Struct({
 })
 
 const ResumeInput = S.Struct({
+  runtime_id: RuntimeIdField,
+})
+
+const GetInitInput = S.Struct({
+  runtime_id: RuntimeIdField,
+})
+
+const GetRuntimeStateInput = S.Struct({
   runtime_id: RuntimeIdField,
 })
 
@@ -252,11 +262,29 @@ export const buildTools = (
   {
     name: 'foldkit_get_message',
     description:
-      'Read a single Message history entry by absolute index, including before/after Model snapshots.',
+      'Read a single Message history entry by absolute index, including before/after Model snapshots. The entry carries the Message body, the Commands the update function returned, an `isModelChanged` flag, and the diff path lists (`changedPaths` for leaf-level mutations and `affectedPaths` adding their ancestor paths) so you can see exactly which Model fields changed. For Submodel-routed entries (those whose tag matches `Got*Message`), the entry also carries `submodelPath` listing the wrapper tags from outer to inner and `maybeLeafTag` naming the innermost child Message.',
     inputSchema: JSONSchema.make(GetMessageInput),
     handle: runRuntimeTool(
       GetMessageInput,
       ({ index }) => RequestGetMessage({ index }),
+      wsClient,
+    ),
+  },
+  {
+    name: 'foldkit_get_init',
+    description:
+      "Read the runtime's initial Model and the names of Commands returned from the application's `init` function. The init entry is the synthetic row at index -1 in the DevTools panel; this tool exposes the same data without time-travelling the runtime. `maybeModel` is `None` until the runtime has finished its first render and recorded init, then stays `Some` for the rest of the runtime's life.",
+    inputSchema: JSONSchema.make(GetInitInput),
+    handle: runRuntimeTool(GetInitInput, () => RequestGetInit(), wsClient),
+  },
+  {
+    name: 'foldkit_get_runtime_state',
+    description:
+      "Snapshot the runtime's DevTools state: history bounds, current paused/live status, and whether init is recorded. Returns `currentIndex` (the absolute index of the most recent Message, or -1 when none), `startIndex` (the earliest absolute index still retained in the rolling buffer), `totalEntries` (count of retained entries), `isPaused`, `maybePausedAtIndex` (`Some(index)` when paused, `None` otherwise), and `hasInitModel`. Use it to reason about what `foldkit_list_messages` and `foldkit_get_message` will see, and to detect whether the runtime is currently paused at a replayed snapshot.",
+    inputSchema: JSONSchema.make(GetRuntimeStateInput),
+    handle: runRuntimeTool(
+      GetRuntimeStateInput,
+      () => RequestGetRuntimeState(),
       wsClient,
     ),
   },

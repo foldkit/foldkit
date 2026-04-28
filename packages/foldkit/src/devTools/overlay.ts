@@ -36,12 +36,12 @@ import * as Listbox from '../ui/listbox/public.js'
 import * as Tabs from '../ui/tabs/public.js'
 import { overlayStyles } from './overlay-styles.js'
 import { toInspectableValue } from './serialize.js'
+import { type DevToolsStore, INIT_INDEX, type StoreState } from './store.js'
 import {
-  type DevToolsStore,
-  type HistoryEntry,
-  INIT_INDEX,
-  type StoreState,
-} from './store.js'
+  GOT_MESSAGE_PATTERN,
+  extractSubmodelInfo,
+  isTagged,
+} from './submodelPath.js'
 
 // MODEL
 
@@ -185,41 +185,12 @@ const computeSubmodelTags = (
     Array_.sort(Order.string),
   )
 
-const GOT_MESSAGE_PATTERN = /^Got.+Message$/
-
-type SubmodelInfo = Readonly<{
-  submodelPath: ReadonlyArray<string>
-  maybeLeafTag: Option.Option<string>
-}>
-
-const extractSubmodelInfo = (entry: HistoryEntry): SubmodelInfo => {
-  if (!GOT_MESSAGE_PATTERN.test(entry.tag)) {
-    return { submodelPath: [], maybeLeafTag: Option.none() }
-  }
-
-  const path: Array<string> = [entry.tag]
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  let current: unknown = (entry.message as Record<string, unknown>)?.['message']
-
-  while (isTagged(current) && GOT_MESSAGE_PATTERN.test(current._tag)) {
-    path.push(current._tag)
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    current = (current as Record<string, unknown>)?.['message']
-  }
-
-  return {
-    submodelPath: path,
-    maybeLeafTag: pipe(
-      current,
-      Option.liftPredicate(isTagged),
-      Option.map(({ _tag }) => _tag),
-    ),
-  }
-}
-
 const toDisplayEntries = ({ entries }: StoreState) =>
   Array_.map(entries, entry => {
-    const { submodelPath, maybeLeafTag } = extractSubmodelInfo(entry)
+    const { submodelPath, maybeLeafTag } = extractSubmodelInfo(
+      entry.tag,
+      entry.message,
+    )
     return {
       tag: entry.tag,
       submodelPath,
@@ -239,9 +210,6 @@ const toDisplayState = (state: StoreState) => ({
 })
 
 const isExpandable = (value: unknown): boolean => Predicate.isObject(value)
-
-const Tagged = S.Struct({ _tag: S.String })
-const isTagged = S.is(Tagged)
 
 const objectPreview = (value: Record<string, unknown>): string =>
   pipe(

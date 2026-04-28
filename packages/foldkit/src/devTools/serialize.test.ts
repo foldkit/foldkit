@@ -1,4 +1,4 @@
-import { HashSet } from 'effect'
+import { HashSet, Option } from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import { toInspectableValue, toSerializedEntry } from './serialize.js'
@@ -167,5 +167,25 @@ describe('toSerializedEntry', () => {
     expect(result.changedPaths).toEqual([])
     expect(result.affectedPaths).toEqual([])
     expect(result.isModelChanged).toBe(false)
+  })
+
+  it('leaves submodelPath empty and maybeLeafTag None for top-level Messages', () => {
+    const result = toSerializedEntry(baseEntry, 0)
+    expect(result.submodelPath).toEqual([])
+    expect(result.maybeLeafTag).toEqual(Option.none())
+  })
+
+  it('extracts the submodel chain and leaf tag for Got*Message entries', () => {
+    const entry: HistoryEntry = {
+      ...baseEntry,
+      tag: 'GotProductsMessage',
+      message: {
+        _tag: 'GotProductsMessage',
+        message: { _tag: 'ClickedRow', index: 2 },
+      },
+    }
+    const result = toSerializedEntry(entry, 0)
+    expect(result.submodelPath).toEqual(['GotProductsMessage'])
+    expect(result.maybeLeafTag).toEqual(Option.some('ClickedRow'))
   })
 })
