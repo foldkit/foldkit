@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.6.2
+
+### Patch Changes
+
+- 88c5bcc: Note Foldkit DevTools in the AGENTS.md template so agents reach for `foldkit_*` MCP tools before `console.log` when debugging running apps.
+
 ## 0.6.1
 
 ### Patch Changes
