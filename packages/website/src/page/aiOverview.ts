@@ -106,7 +106,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Skills generate code. The ',
         link(aiMcpRouter(), 'DevTools MCP server'),
-        ' lets agents observe and interact with code that\u2019s already running. Agents can read the current Model, list and inspect Message history, replay to past states, and dispatch Messages into the runtime. The runtime validates every payload against your Message Schema before it reaches the update loop.',
+        ' lets agents observe and interact with code that\u2019s already running. Agents can read the current Model, list and inspect Message history, rewind the UI to any past Model, and dispatch Messages into the runtime.',
       ),
     ],
   )

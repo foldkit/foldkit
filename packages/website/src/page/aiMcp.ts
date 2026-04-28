@@ -175,7 +175,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Foldkit ships ',
         inlineCode('@foldkit/devtools-mcp'),
-        ', an MCP server that exposes a running Foldkit app to AI agents. Agents can read the current Model, list and inspect Message history, replay to past states, and dispatch Messages into the runtime.',
+        ', an MCP server that exposes a running Foldkit app to AI agents. Agents can read the current Model, list and inspect Message history, rewind the UI to any past Model, and dispatch Messages into the runtime.',
       ),
       para(
         'It complements ',
