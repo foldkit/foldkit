@@ -5,6 +5,6 @@ dist
 **/.claude/*
 !/.claude/commands/
 !/.claude/settings.json
-packages/foldkit/src/devtools/overlay-styles.ts
+packages/foldkit/src/devTools/overlay-styles.ts
 packages/website/src/generated/
 .playwright-mcp/
