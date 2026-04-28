@@ -43,7 +43,7 @@
     "dev:example:kanban": "pnpm --filter kanban-example dev",
     "dev:example:ui-showcase": "pnpm --filter ui-showcase dev",
     "changeset": "changeset",
-    "version-packages": "changeset version && pnpm install --no-frozen-lockfile",
+    "version-packages": "changeset version && tsx scripts/reset-peer-deps.ts && pnpm install --no-frozen-lockfile",
     "release": "pnpm -r build && changeset publish"
   },
   "devDependencies": {

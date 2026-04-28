@@ -23,7 +23,7 @@
   },
   "peerDependencies": {
     "effect": "^3.18.2",
-    "foldkit": "workspace:^0.76.0"
+    "foldkit": "workspace:^0"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
