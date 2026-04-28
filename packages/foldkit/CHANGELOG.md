@@ -1,5 +1,11 @@
 # foldkit
 
+## 0.76.1
+
+### Patch Changes
+
+- c5d56cb: Clarify the "DevTools MCP" README bullet to say agents rewind the UI to any past Model, instead of the vaguer "replay to any past state."
+
 ## 0.76.0
 
 ### Minor Changes
