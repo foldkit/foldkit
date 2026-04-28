@@ -25,12 +25,11 @@ export const KeyframeInfo = S.Struct({
 /** Metadata about a single keyframe. */
 export type KeyframeInfo = typeof KeyframeInfo.Type
 
-/** Metadata about a connected browser runtime. The `maybeMessageSchema` carries the runtime's app-level Message Schema as JSON Schema for `dispatch_message` validation, when the runtime exposes one via `DevToolsConfig.Message`. */
+/** Metadata about a connected browser runtime. */
 export const RuntimeInfo = S.Struct({
   connectionId: S.String,
   url: S.String,
   title: S.String,
-  maybeMessageSchema: S.Option(S.Unknown),
 })
 /** Metadata about a connected browser runtime. */
 export type RuntimeInfo = typeof RuntimeInfo.Type
@@ -149,7 +148,7 @@ export type Response = typeof Response.Type
 
 // EVENT
 
-/** A new browser runtime connected. The `runtime.maybeMessageSchema` field carries the runtime's Message Schema (as JSON Schema) when the runtime exposes one via `DevToolsConfig.Message`. */
+/** A new browser runtime connected. */
 export const EventConnected = ts('EventConnected', {
   runtime: RuntimeInfo,
 })

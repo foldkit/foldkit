@@ -84,9 +84,8 @@ export type DevToolsConfig =
       /**
        * The application's `Message` Schema. When provided and the running app
        * is connected to the Foldkit DevTools MCP server, AI agents can dispatch
-       * Messages into the runtime. The Schema validates inbound dispatch
-       * payloads at the bridge boundary, and its JSON Schema representation is
-       * exposed to the MCP server so agents discover the available variants.
+       * Messages into the runtime. The Schema decodes inbound dispatch payloads
+       * at the bridge boundary and returns a clean error on mismatch.
        *
        * Without this field, `RequestDispatchMessage` is rejected with an
        * informative error.

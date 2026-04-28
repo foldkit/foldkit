@@ -7,7 +7,7 @@ With it attached, agents can:
 - Read the current Model
 - List and inspect the Message history
 - Replay to any past state and resume
-- Dispatch Messages into the runtime, validated against your `Message` Schema
+- Dispatch Messages into the runtime, decoded against your `Message` Schema
 
 ## Quick Start
 
@@ -44,7 +44,7 @@ export default defineConfig({
 })
 ```
 
-In your `Runtime.makeProgram` call, pass your `Message` Schema. This is what the agent sees when it asks "what Messages can I dispatch?", and it gates dispatch by validating every payload before it reaches your update function:
+In your `Runtime.makeProgram` call, pass your `Message` Schema. The runtime decodes every dispatched payload against it, returning a clean error if the shape does not match before it reaches your update function:
 
 ```typescript
 Runtime.makeProgram({
@@ -63,16 +63,16 @@ The browser bridge runs inside your app, so the MCP server only sees a runtime w
 
 Each tool accepts an optional `runtime_id`. When omitted, the most recently connected runtime is used.
 
-| Tool                         | Description                                                                                                                                                          |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `foldkit_list_runtimes`      | Returns metadata for every connected browser tab, including each runtime's Message Schema as JSON Schema. Agents call this first to discover what they can dispatch. |
-| `foldkit_get_model`          | Snapshots the current Model.                                                                                                                                         |
-| `foldkit_list_messages`      | Lists recent Message history entries with pagination. Each entry carries the Message body, command names triggered, timestamp, and a path-level diff.                |
-| `foldkit_get_message`        | Reads one entry at a given index, including the Model before and after the Message was applied.                                                                      |
-| `foldkit_list_keyframes`     | Returns the indices Foldkit can replay back to. Index `-1` is the initial Model.                                                                                     |
-| `foldkit_replay_to_keyframe` | Time-travels the runtime to a previous state. The runtime is paused at that snapshot until `foldkit_resume` is called.                                               |
-| `foldkit_resume`             | Resumes normal execution after a replay.                                                                                                                             |
-| `foldkit_dispatch_message`   | Enqueues a Message into the runtime as if your application produced it. The bridge validates the payload against your Schema before it reaches the update loop.      |
+| Tool                         | Description                                                                                                                                                                 |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `foldkit_list_runtimes`      | Returns metadata for every connected browser tab. Agents call this first to discover which runtime to target.                                                               |
+| `foldkit_get_model`          | Snapshots the current Model.                                                                                                                                                |
+| `foldkit_list_messages`      | Lists recent Message history entries with pagination. Each entry carries the Message body, command names triggered, timestamp, and a path-level diff.                       |
+| `foldkit_get_message`        | Reads one entry at a given index, including the Model before and after the Message was applied.                                                                             |
+| `foldkit_list_keyframes`     | Returns the indices Foldkit can replay back to. Index `-1` is the initial Model.                                                                                            |
+| `foldkit_replay_to_keyframe` | Time-travels the runtime to a previous state. The runtime is paused at that snapshot until `foldkit_resume` is called.                                                      |
+| `foldkit_resume`             | Resumes normal execution after a replay.                                                                                                                                    |
+| `foldkit_dispatch_message`   | Enqueues a Message into the runtime as if your application produced it. The runtime decodes the payload against your Schema and returns a clean error if it does not match. |
 
 ## Architecture
 

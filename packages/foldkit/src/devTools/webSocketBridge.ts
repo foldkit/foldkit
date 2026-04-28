@@ -4,7 +4,6 @@ import {
   Effect,
   Either,
   HashMap,
-  JSONSchema,
   Match,
   Option,
   Order,
@@ -62,7 +61,7 @@ const currentAbsoluteIndex = (
  * remove this runtime from its connected set.
  *
  * `dispatch` enqueues a Message into the runtime's message queue; the bridge
- * uses it to fulfill `RequestDispatchMessage` after the payload is validated
+ * uses it to fulfill `RequestDispatchMessage` after decoding the payload
  * against `maybeMessageSchema`. When `maybeMessageSchema` is `None`, dispatch
  * requests are rejected with an informative error.
  *
@@ -78,25 +77,6 @@ export const startWebSocketBridge = (
   Effect.gen(function* () {
     const connectionId = generateConnectionId()
     const runtime = yield* Effect.runtime<never>()
-
-    const maybeJsonMessageSchema: Option.Option<unknown> = pipe(
-      maybeMessageSchema,
-      Option.flatMap(schema =>
-        Either.match(
-          Either.try(() => JSONSchema.make(schema)),
-          {
-            onLeft: error => {
-              console.warn(
-                '[foldkit:devTools] Failed to generate JSON Schema for Message; MCP dispatch validation will be unavailable.',
-                error,
-              )
-              return Option.none()
-            },
-            onRight: jsonSchema => Option.some(jsonSchema),
-          },
-        ),
-      ),
-    )
 
     const sendEvent = (event: Event): void => {
       hot.send(EVENT_CHANNEL, {
@@ -116,7 +96,6 @@ export const startWebSocketBridge = (
           connectionId,
           url: window.location.href,
           title: document.title,
-          maybeMessageSchema: maybeJsonMessageSchema,
         }),
       }),
     )

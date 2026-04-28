@@ -86,7 +86,7 @@ const DispatchMessageInput = S.Struct({
   runtime_id: RuntimeIdField,
   message: S.Unknown.annotations({
     description:
-      "A Foldkit Message object to dispatch into the runtime. Must match the runtime's Message Schema (call foldkit_list_runtimes and inspect each runtime's maybeMessageSchema field for the exact shape). At minimum it has a `_tag` field naming the variant.",
+      "A Foldkit Message object to dispatch into the runtime. Must match the runtime's Message Schema — read the application's source to see the exact shape. At minimum it has a `_tag` field naming the variant. The runtime decodes the payload and returns a clean error if it doesn't match.",
   }),
 })
 
@@ -293,7 +293,7 @@ export const buildTools = (
   {
     name: 'foldkit_dispatch_message',
     description:
-      "Dispatch a Message into a Foldkit runtime's message queue, as if the application itself produced it. Requires the runtime to have configured DevToolsConfig.Message; without it, dispatch is rejected. Use foldkit_list_runtimes to discover the runtime's maybeMessageSchema and construct a Message object.",
+      "Dispatch a Message into a Foldkit runtime's message queue, as if the application itself produced it. Requires the runtime to have configured DevToolsConfig.Message; without it, dispatch is rejected. Read the application's Message Schema source to construct a valid Message object. The runtime decodes the payload and returns a clean error if it doesn't match.",
     inputSchema: JSONSchema.make(DispatchMessageInput),
     handle: runRuntimeTool(
       DispatchMessageInput,

@@ -82,7 +82,7 @@ const tools: ReadonlyArray<ToolRowSpec> = [
   {
     name: 'foldkit_list_runtimes',
     description: [
-      'Returns metadata for every connected browser tab, including each runtime’s Message Schema as JSON Schema. Agents call this first to discover what they can dispatch.',
+      'Returns metadata for every connected browser tab. Agents call this first to discover which runtime to target.',
     ],
   },
   {
@@ -124,7 +124,7 @@ const tools: ReadonlyArray<ToolRowSpec> = [
   {
     name: 'foldkit_dispatch_message',
     description: [
-      'Enqueues a Message into the runtime as if your application produced it. The bridge validates the payload against your Schema before it reaches the update loop.',
+      'Enqueues a Message into the runtime as if your application produced it. The runtime decodes the payload against your Schema and returns a clean error if it does not match.',
     ],
   },
 ]
@@ -235,7 +235,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Runtime.makeProgram'),
         ' call, pass your ',
         inlineCode('Message'),
-        ' Schema. The agent reads it to build Message payloads, and the runtime validates every dispatch against it before reaching your update function:',
+        ' Schema. The runtime decodes every dispatched Message against it before reaching your update function:',
       ),
       highlightedCodeBlock(
         div(
@@ -278,9 +278,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Multiple browser tabs can be connected at once and each is addressable by its connection id. When a tab closes (gracefully or not) the plugin prunes it from the live runtime list, so the agent’s default to most recently connected always points at a live tab.',
       ),
       para(
-        'Messages flow as Effect Schema values end to end. Foldkit defines the wire protocol and every layer validates at its boundary. The runtime’s ',
+        'Messages flow as Effect Schema values end to end. Foldkit defines the wire protocol and every layer validates at its boundary. To dispatch, agents read your application source to learn the ',
         inlineCode('Message'),
-        ' Schema is converted to JSON Schema and shipped alongside the runtime metadata, so the agent sees what it can dispatch as documentation rather than guesswork.',
+        ' Schema and construct a payload; the runtime decodes it and returns a clean error if the shape does not match.',
       ),
       para(
         'When the dev server restarts, the MCP server’s WebSocket client reconnects automatically with exponential backoff. No agent restart required.',
