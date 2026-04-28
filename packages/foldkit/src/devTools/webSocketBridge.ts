@@ -79,9 +79,23 @@ export const startWebSocketBridge = (
     const connectionId = generateConnectionId()
     const runtime = yield* Effect.runtime<never>()
 
-    const maybeJsonMessageSchema: Option.Option<unknown> = Option.map(
+    const maybeJsonMessageSchema: Option.Option<unknown> = pipe(
       maybeMessageSchema,
-      schema => JSONSchema.make(schema),
+      Option.flatMap(schema =>
+        Either.match(
+          Either.try(() => JSONSchema.make(schema)),
+          {
+            onLeft: error => {
+              console.warn(
+                '[foldkit:devTools] Failed to generate JSON Schema for Message; MCP dispatch validation will be unavailable.',
+                error,
+              )
+              return Option.none()
+            },
+            onRight: jsonSchema => Option.some(jsonSchema),
+          },
+        ),
+      ),
     )
 
     const sendEvent = (event: Event): void => {
