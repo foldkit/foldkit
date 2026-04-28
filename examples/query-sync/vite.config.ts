@@ -5,7 +5,7 @@ import { defineConfig } from 'vite'
 import { foldkitAliases } from '../vite.aliases'
 
 export default defineConfig({
-  plugins: [tailwindcss(), foldkit()],
+  plugins: [tailwindcss(), foldkit({ devToolsMcpPort: 9988 })],
   resolve: {
     alias: foldkitAliases(__dirname),
   },

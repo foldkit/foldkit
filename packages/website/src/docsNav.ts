@@ -2,6 +2,7 @@ import { Array, Number, Option, pipe } from 'effect'
 
 import { examples } from './page/example/meta'
 import {
+  aiMcpRouter,
   aiOverviewRouter,
   aiSkillsRouter,
   bestPracticesImmutabilityRouter,
@@ -13,7 +14,7 @@ import {
   coreCommandsRouter,
   coreCounterExampleRouter,
   coreCrashViewRouter,
-  coreDevtoolsRouter,
+  coreDevToolsRouter,
   coreFileRouter,
   coreFreezeModelRouter,
   coreInitAndFlagsRouter,
@@ -205,8 +206,8 @@ export const docsSections: ReadonlyArray<DocsSection> = [
       ],
       [
         {
-          _tag: 'CoreDevtools',
-          href: coreDevtoolsRouter(),
+          _tag: 'CoreDevTools',
+          href: coreDevToolsRouter(),
           label: 'DevTools',
         },
         {
@@ -360,6 +361,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'AiSkills',
           href: aiSkillsRouter(),
           label: 'Skills',
+        },
+        {
+          _tag: 'AiMcp',
+          href: aiMcpRouter(),
+          label: 'DevTools MCP',
         },
       ],
     ],

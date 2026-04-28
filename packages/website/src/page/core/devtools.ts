@@ -3,11 +3,14 @@ import type { Html } from 'foldkit/html'
 import { Class, InnerHTML, div } from '../../html'
 import type { TableOfContentsEntry } from '../../main'
 import {
+  infoCallout,
   inlineCode,
+  link,
   pageTitle,
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
+import { aiMcpRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
@@ -68,9 +71,15 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'You can see it in action right now \u2014 look for the tab on the bottom right edge of this page.',
       ),
+      infoCallout(
+        'AI agent integration',
+        'Foldkit also exposes DevTools to AI agents over the Model Context Protocol. See the ',
+        link(aiMcpRouter(), 'DevTools MCP'),
+        ' page for setup.',
+      ),
       para(
         'DevTools are enabled by default in development. Pass a ',
-        inlineCode('devtools'),
+        inlineCode('devTools'),
         ' object to ',
         inlineCode('makeProgram'),
         ' to configure behavior:',
@@ -88,7 +97,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       tableOfContentsEntryToHeader(configurationHeader),
       para(
         'The ',
-        inlineCode('devtools'),
+        inlineCode('devTools'),
         ' field accepts an object with the following optional properties, or ',
         inlineCode('false'),
         ' to disable DevTools entirely.',

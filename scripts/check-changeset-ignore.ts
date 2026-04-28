@@ -6,6 +6,7 @@ const PUBLISHABLE_PACKAGES = [
   'foldkit',
   'create-foldkit-app',
   '@foldkit/vite-plugin',
+  '@foldkit/devtools-mcp',
 ]
 
 const ChangesetConfig = Schema.parseJson(

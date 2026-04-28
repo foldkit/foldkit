@@ -77,6 +77,7 @@ export const installDependencies = (
       packageManager,
       ...installDevArgs,
       '@foldkit/vite-plugin',
+      '@foldkit/devtools-mcp',
       'vitest',
       'happy-dom',
       ...exampleDeps.devDependencies,

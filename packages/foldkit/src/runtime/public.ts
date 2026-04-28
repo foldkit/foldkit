@@ -15,7 +15,7 @@ export type {
   SlowViewContext,
   SlowViewConfig,
   FreezeModelConfig,
-  DevtoolsConfig,
+  DevToolsConfig,
 } from './runtime.js'
 
 export { UrlRequest } from './urlRequest.js'

@@ -152,10 +152,10 @@ const emptyState: StoreState = {
   pausedAtIndex: 0,
 }
 
-export const createDevtoolsStore = (
+export const createDevToolsStore = (
   bridge: Bridge,
   maxEntries = DEFAULT_MAX_ENTRIES,
-): Effect.Effect<DevtoolsStore> =>
+): Effect.Effect<DevToolsStore> =>
   Effect.gen(function* () {
     const stateRef = yield* SubscriptionRef.make(emptyState)
 
@@ -343,7 +343,7 @@ export const createDevtoolsStore = (
     }
   })
 
-export type DevtoolsStore = Readonly<{
+export type DevToolsStore = Readonly<{
   recordInit: (
     model: unknown,
     commandNames: ReadonlyArray<string>,

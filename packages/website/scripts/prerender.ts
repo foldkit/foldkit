@@ -19,6 +19,7 @@ import { type Browser, chromium } from 'playwright'
 import { moduleNameToSlug } from '../src/page/apiReference/domain'
 import { exampleSlugs } from '../src/page/example/meta'
 import {
+  AiMcpRoute,
   AiOverviewRoute,
   AiSkillsRoute,
   ApiModuleRoute,
@@ -32,7 +33,7 @@ import {
   CoreCommandsRoute,
   CoreCounterExampleRoute,
   CoreCrashViewRoute,
-  CoreDevtoolsRoute,
+  CoreDevToolsRoute,
   CoreFileRoute,
   CoreFreezeModelRoute,
   CoreInitAndFlagsRoute,
@@ -87,6 +88,7 @@ import {
   UiToastRoute,
   UiTooltipRoute,
   UiVirtualListRoute,
+  aiMcpRouter,
   aiOverviewRouter,
   aiSkillsRouter,
   apiModuleRouter,
@@ -99,7 +101,7 @@ import {
   coreCommandsRouter,
   coreCounterExampleRouter,
   coreCrashViewRouter,
-  coreDevtoolsRouter,
+  coreDevToolsRouter,
   coreFileRouter,
   coreFreezeModelRouter,
   coreInitAndFlagsRouter,
@@ -193,7 +195,7 @@ export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   CoreRunningYourAppRoute(),
   CoreResourcesRoute(),
   CoreManagedResourcesRoute(),
-  CoreDevtoolsRoute(),
+  CoreDevToolsRoute(),
   CoreCrashViewRoute(),
   CoreSlowViewRoute(),
   CoreFreezeModelRoute(),
@@ -227,6 +229,7 @@ export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   UiVirtualListRoute(),
   AiOverviewRoute(),
   AiSkillsRoute(),
+  AiMcpRoute(),
 ]
 
 export const routeToUrlPath = (route: AppRoute): string =>
@@ -264,7 +267,7 @@ export const routeToUrlPath = (route: AppRoute): string =>
       CoreRunningYourApp: () => coreRunningYourAppRouter(),
       CoreResources: () => coreResourcesRouter(),
       CoreManagedResources: () => coreManagedResourcesRouter(),
-      CoreDevtools: () => coreDevtoolsRouter(),
+      CoreDevTools: () => coreDevToolsRouter(),
       CoreCrashView: () => coreCrashViewRouter(),
       CoreSlowView: () => coreSlowViewRouter(),
       CoreFreezeModel: () => coreFreezeModelRouter(),
@@ -298,6 +301,7 @@ export const routeToUrlPath = (route: AppRoute): string =>
       UiVirtualList: () => uiVirtualListRouter(),
       AiOverview: () => aiOverviewRouter(),
       AiSkills: () => aiSkillsRouter(),
+      AiMcp: () => aiMcpRouter(),
       ApiModule: ({ moduleSlug }) => apiModuleRouter({ moduleSlug }),
       Playground: ({ exampleSlug }) => playgroundRouter({ exampleSlug }),
       Newsletter: () => newsletterRouter(),

@@ -4,7 +4,7 @@ import { Effect, Option, Schema as S } from 'effect'
 import { Runtime, Ui } from 'foldkit'
 
 import { DEFAULT_COLUMNS, STORAGE_KEY } from './constant'
-import type { Message } from './message'
+import { Message } from './message'
 import { Model, SavedBoard } from './model'
 import { subscriptions } from './subscription'
 import { update } from './update'
@@ -59,6 +59,9 @@ const program = Runtime.makeProgram({
   view,
   subscriptions,
   container: document.getElementById('root')!,
+  devTools: {
+    Message,
+  },
 })
 
 Runtime.run(program)

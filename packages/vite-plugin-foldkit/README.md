@@ -44,6 +44,18 @@ The plugin uses Vite's WebSocket connection to communicate between the dev serve
 
 Model is preserved across hot reloads but cleared on manual browser refreshes, giving you control over when to reset your app.
 
+## DevTools MCP relay
+
+Pass `devToolsMcpPort` to enable the relay that exposes your running Foldkit app to AI agents via the [`@foldkit/devtools-mcp`](https://www.npmjs.com/package/@foldkit/devtools-mcp) MCP server:
+
+```typescript
+plugins: [foldkit({ devToolsMcpPort: 9988 })]
+```
+
+When set, the plugin opens a separate WebSocket server on the given port. The MCP server connects to it and forwards typed `Request` and `Response` frames between AI agents and your runtime. Without `devToolsMcpPort` (the default), the relay is not started and the plugin behaves exactly as before.
+
+See the [DevTools MCP documentation](https://foldkit.dev/ai/mcp) for setup, the available tools, and how dispatch validation works.
+
 ## License
 
 MIT

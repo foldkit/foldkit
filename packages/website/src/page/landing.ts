@@ -36,8 +36,7 @@ import {
   aiOverviewRouter,
   comingFromReactRouter,
   coreArchitectureRouter,
-  coreCommandsRouter,
-  coreDevtoolsRouter,
+  coreDevToolsRouter,
   coreSubscriptionsRouter,
   examplesRouter,
   fieldValidationRouter,
@@ -110,7 +109,7 @@ export const view = (
       glyph('::'),
       testingSection(copiedSnippets),
       glyph('??'),
-      devtoolsSection(),
+      devToolsSection(),
       glyph('~~'),
       aiSection(aiHeadingToggleCount),
       glyph('< >'),
@@ -551,14 +550,14 @@ const includedSection = (): Html =>
                 },
               ),
               includedFeature(
-                Icon.cog('w-6 h-6'),
-                'Commands',
+                Icon.computer('w-6 h-6'),
+                'DevTools',
                 [
-                  'Commands are named Effects that return Messages. Each carries a name for identification in tests and tracing \u2014 you write the Effect, the runtime runs and instruments it.',
+                  'Inspect Messages, Model state, and Commands as your app runs. Time-travel mode rewinds your UI to any past Model. AI agents can connect to the same data over MCP.',
                 ],
                 {
-                  href: coreCommandsRouter(),
-                  label: 'Explore Commands',
+                  href: coreDevToolsRouter(),
+                  label: 'Explore DevTools',
                 },
               ),
             ],
@@ -622,7 +621,7 @@ const testingSection = (copiedSnippets: CopiedSnippets): Html =>
 
 // DEVTOOLS
 
-const devtoolsSection = (): Html =>
+const devToolsSection = (): Html =>
   section(
     [Id('devtools'), Class('landing-section')],
     [
@@ -653,15 +652,25 @@ const devtoolsSection = (): Html =>
           p(
             [
               Class(
+                'text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-4 max-w-3xl',
+              ),
+            ],
+            [
+              'Plus, AI agents can connect over MCP. They read the current Model, walk Message history, and replay to past states. Programmatic access to the same data DevTools shows you.',
+            ],
+          ),
+          p(
+            [
+              Class(
                 'text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl',
               ),
             ],
             [
-              'This site runs on Foldkit. Look for the tab on the bottom right of this page to try it live.',
+              'This site runs on Foldkit. Look for the tab on the bottom right of this page to try DevTools live.',
             ],
           ),
           a(
-            [Href(coreDevtoolsRouter()), Class('cta-secondary mb-8')],
+            [Href(coreDevToolsRouter()), Class('cta-secondary mb-8')],
             ['Learn about DevTools', Icon.arrowRight('w-5 h-5')],
           ),
           div(
@@ -1096,9 +1105,15 @@ const aiSection = (aiHeadingToggleCount: number): Html =>
         [
           solariHeading(aiHeadingToggleCount),
           p(
-            [Class('text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-2xl')],
+            [Class('text-lg text-gray-600 dark:text-gray-300 mb-4 max-w-2xl')],
             [
               'Foldkit apps are explicit and predictable. This makes LLMs particularly good at generating Foldkit code. And it makes generated Foldkit code exceptionally easy for humans to review.',
+            ],
+          ),
+          p(
+            [Class('text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-2xl')],
+            [
+              'AI agents can also connect directly to a running Foldkit app over the Model Context Protocol. They read the current Model, inspect Message history, replay to past states, and dispatch Messages.',
             ],
           ),
           a(

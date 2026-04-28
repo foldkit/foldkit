@@ -1411,7 +1411,7 @@ const program = Runtime.makeProgram({
     Search.PagefindService.Default,
     devTracerLayer,
   ),
-  devtools: {
+  devTools: {
     show: 'Always',
     mode: 'Inspect',
     banner:

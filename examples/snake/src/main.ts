@@ -371,6 +371,9 @@ const program = Runtime.makeProgram({
   view,
   subscriptions,
   container: document.getElementById('root')!,
+  devTools: {
+    Message,
+  },
 })
 
 Runtime.run(program)

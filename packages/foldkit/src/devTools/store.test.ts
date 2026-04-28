@@ -13,9 +13,9 @@ import { describe, expect, it, vi } from 'vitest'
 import { m } from '../message/index.js'
 import {
   type Bridge,
-  type DevtoolsStore,
+  type DevToolsStore,
   computeDiff,
-  createDevtoolsStore,
+  createDevToolsStore,
 } from './store.js'
 
 const hasPath = (paths: HashSet.HashSet<string>, path: string) =>
@@ -133,17 +133,17 @@ const clickedDecrement = ClickedDecrement()
 
 const run = <A>(effect: Effect.Effect<A>): A => Effect.runSync(effect)
 
-const getState = (store: DevtoolsStore) =>
+const getState = (store: DevToolsStore) =>
   run(SubscriptionRef.get(store.stateRef))
 
 const makeStore = (overrides?: Partial<Bridge>, maxEntries?: number) => {
   const { bridge, rendered } = makeBridge(overrides)
-  const store = run(createDevtoolsStore(bridge, maxEntries))
+  const store = run(createDevToolsStore(bridge, maxEntries))
   run(store.recordInit(initialModel))
   return { bridge, store, rendered }
 }
 
-const recordIncrements = (store: DevtoolsStore, count: number) =>
+const recordIncrements = (store: DevToolsStore, count: number) =>
   pipe(
     Array.range(1, count),
     Effect.forEach(index =>
@@ -158,7 +158,7 @@ const recordIncrements = (store: DevtoolsStore, count: number) =>
     run,
   )
 
-describe('DevtoolsStore', () => {
+describe('DevToolsStore', () => {
   describe('recordInit', () => {
     it('stores the initial model as the first keyframe', () => {
       const { store } = makeStore()

@@ -22,9 +22,17 @@
     "typecheck": "tsc -b --noEmit"
   },
   "peerDependencies": {
+    "effect": "^3.18.2",
+    "foldkit": "workspace:^0",
     "vite": "^7.0.0"
   },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
   "devDependencies": {
+    "@types/ws": "^8.5.13",
+    "effect": "^3.19.19",
+    "foldkit": "workspace:*",
     "typescript": "^6.0.2",
     "vite": "^7.3.1"
   },

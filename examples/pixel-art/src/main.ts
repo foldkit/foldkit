@@ -10,7 +10,7 @@ import {
   STORAGE_KEY,
 } from './constant'
 import { createEmptyGrid } from './grid'
-import type { Message } from './message'
+import { Message } from './message'
 import { Model, SavedCanvas } from './model'
 import { subscriptions } from './subscription'
 import { update } from './update'
@@ -108,6 +108,9 @@ const program = Runtime.makeProgram({
   view,
   subscriptions,
   container: document.getElementById('root')!,
+  devTools: {
+    Message,
+  },
 })
 
 Runtime.run(program)

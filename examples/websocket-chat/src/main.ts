@@ -614,6 +614,9 @@ const program = Runtime.makeProgram({
   subscriptions,
   managedResources,
   container: document.getElementById('root')!,
+  devTools: {
+    Message,
+  },
 })
 
 Runtime.run(program)

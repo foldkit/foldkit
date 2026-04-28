@@ -175,7 +175,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Managed Resources',
     'Resources that activate and release based on Model state.',
   ),
-  CoreDevtools: core(
+  CoreDevTools: core(
     'DevTools',
     'A built-in overlay for inspecting Messages and Model state.',
   ),
@@ -302,6 +302,11 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   AiSkills: docs(
     'Skills',
     'Agent skills for generating, scaffolding, and auditing Foldkit programs.',
+    'AI',
+  ),
+  AiMcp: docs(
+    'DevTools MCP',
+    'Expose a running Foldkit app to AI agents over the Model Context Protocol.',
     'AI',
   ),
   NotFound: {

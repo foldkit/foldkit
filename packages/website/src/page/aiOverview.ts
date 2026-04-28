@@ -10,6 +10,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../prose'
 import {
+  aiMcpRouter,
   aiSkillsRouter,
   patternsOutMessageRouter,
   patternsSubmodelsRouter,
@@ -34,10 +35,17 @@ const skillsPluginHeader: TableOfContentsEntry = {
   text: 'Skills Plugin',
 }
 
+const devToolsMcpHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'devtools-mcp',
+  text: 'DevTools MCP',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   submoduleHeader,
   skillsPluginHeader,
+  devToolsMcpHeader,
 ]
 
 const SUBMODULE_COMMAND =
@@ -93,6 +101,12 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Foldkit ships a ',
         link(aiSkillsRouter(), 'skills plugin'),
         ' for Claude Code that encodes Foldkit\u2019s conventions, patterns, and quality standards into agent workflows. The skills reference the actual example code in the Foldkit repository, so the generated output stays in sync with the framework as it evolves.',
+      ),
+      tableOfContentsEntryToHeader(devToolsMcpHeader),
+      para(
+        'Skills generate code. The ',
+        link(aiMcpRouter(), 'DevTools MCP server'),
+        ' lets agents observe and interact with code that\u2019s already running. Agents can read the current Model, list and inspect Message history, replay to past states, and dispatch Messages into the runtime. The runtime validates every payload against your Message Schema before it reaches the update loop.',
       ),
     ],
   )

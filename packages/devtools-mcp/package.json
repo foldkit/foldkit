@@ -1,0 +1,63 @@
+{
+  "name": "@foldkit/devtools-mcp",
+  "version": "0.0.0",
+  "description": "MCP server exposing Foldkit DevTools to AI agents (Claude Code, Cursor, etc.)",
+  "type": "module",
+  "main": "./dist/server.js",
+  "module": "./dist/server.js",
+  "types": "./dist/server.d.ts",
+  "bin": {
+    "foldkit-devtools-mcp": "./dist/server.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
+    }
+  },
+  "scripts": {
+    "clean": "rimraf dist *.tsbuildinfo",
+    "build": "pnpm run clean && tsc -b",
+    "watch": "tsc -b --watch",
+    "typecheck": "tsc -b --noEmit"
+  },
+  "peerDependencies": {
+    "effect": "^3.18.2",
+    "foldkit": "workspace:^0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.5.13",
+    "effect": "^3.19.19",
+    "foldkit": "workspace:*",
+    "rimraf": "^6.0.0",
+    "typescript": "^6.0.2"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "foldkit",
+    "mcp",
+    "model-context-protocol",
+    "devtools",
+    "ai"
+  ],
+  "author": "Devin Jameson",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/foldkit/foldkit.git",
+    "directory": "packages/devtools-mcp"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

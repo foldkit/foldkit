@@ -1,7 +1,7 @@
 import { Effect, Schema as S } from 'effect'
 import { Calendar, Runtime, Ui } from 'foldkit'
 
-import type { Message } from './message'
+import { Message } from './message'
 import { Model, NotSubmitted } from './model'
 import {
   Attachments,
@@ -54,6 +54,9 @@ const program = Runtime.makeProgram({
   update,
   view,
   container: document.getElementById('root')!,
+  devTools: {
+    Message,
+  },
 })
 
 Runtime.run(program)

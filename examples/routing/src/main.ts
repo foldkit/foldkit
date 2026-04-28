@@ -534,6 +534,9 @@ const program = Runtime.makeProgram({
     onUrlRequest: request => ClickedLink({ request }),
     onUrlChange: url => ChangedUrl({ url }),
   },
+  devTools: {
+    Message,
+  },
 })
 
 Runtime.run(program)

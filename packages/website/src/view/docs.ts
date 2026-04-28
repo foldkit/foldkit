@@ -592,7 +592,7 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           ]),
           Page.Core.ManagedResources.tableOfContents,
         ),
-      CoreDevtools: () =>
+      CoreDevTools: () =>
         withTableOfContents(
           lazyDocsContent(Page.Core.DevTools.view, [model.copiedSnippets]),
           Page.Core.DevTools.tableOfContents,
@@ -861,6 +861,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         withTableOfContents(
           lazyDocsContent(Page.AiSkills.view, [model.copiedSnippets]),
           Page.AiSkills.tableOfContents,
+        ),
+      AiMcp: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.AiMcp.view, [model.copiedSnippets]),
+          Page.AiMcp.tableOfContents,
         ),
       NotFound: ({ path }) =>
         withoutTableOfContents(Page.NotFound.view(path, homeRouter())),

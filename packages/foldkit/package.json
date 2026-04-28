@@ -166,6 +166,10 @@
     "./url": {
       "types": "./dist/url/public.d.ts",
       "import": "./dist/url/public.js"
+    },
+    "./devtools-protocol": {
+      "types": "./dist/devTools/public.d.ts",
+      "import": "./dist/devTools/public.js"
     }
   },
   "files": [

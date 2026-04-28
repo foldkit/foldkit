@@ -6,7 +6,7 @@ const program = Runtime.makeProgram({
   update,
   view,
   container: document.getElementById('root')!,
-  devtools: {
+  devTools: {
     position: 'BottomLeft',
   },
 })

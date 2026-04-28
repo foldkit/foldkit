@@ -12,7 +12,7 @@ import {
 } from '../prose'
 import {
   coreCommandsRouter,
-  coreDevtoolsRouter,
+  coreDevToolsRouter,
   coreMessagesRouter,
   coreModelRouter,
   coreSubscriptionsRouter,
@@ -675,7 +675,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'In Foldkit, side effects are ',
         link(coreCommandsRouter(), 'Commands'),
         ': named, typed values that describe work for the runtime to execute. They\u2019re returned from the update function as data. You can see them in ',
-        link(coreDevtoolsRouter(), 'Foldkit DevTools'),
+        link(coreDevToolsRouter(), 'Foldkit DevTools'),
         ', assert on them in tests, and trace exactly which Message caused which effect.',
       ),
       para(
@@ -1306,7 +1306,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       tableOfContentsEntryToHeader(visibleEffectsHeader),
       para(
         'A Command is a plain value. It has a name. It appears in ',
-        link(coreDevtoolsRouter(), 'DevTools'),
+        link(coreDevToolsRouter(), 'DevTools'),
         ' next to the Message that produced it. You can assert on it with ',
         inlineCode('Scene.expectExactCommands'),
         ' or resolve it with a synthetic return Message via ',
@@ -1319,7 +1319,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       tableOfContentsEntryToHeader(timeTravelHeader),
       para(
         'React DevTools shows you the current component tree. ',
-        link(coreDevtoolsRouter(), 'Foldkit DevTools'),
+        link(coreDevToolsRouter(), 'Foldkit DevTools'),
         ' shows you the complete history: every Model snapshot, every Message, every Command. And because Submodels live in the Model, that history covers UI component internals too: the Dialog\u2019s transition phase, the Listbox\u2019s active item, the Switch\u2019s checked state. You can scrub backwards through a session and see every interior state the UI passed through. In React, Headless UI\u2019s internals never leave component hooks. They aren\u2019t available as a replayable sequence because they aren\u2019t available as values at all.',
       ),
 
@@ -1364,7 +1364,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' and ',
         inlineCode('SyncToServer'),
         '. Both side effects are visible in one place, appear in ',
-        link(coreDevtoolsRouter(), 'DevTools'),
+        link(coreDevToolsRouter(), 'DevTools'),
         ', and your tests verify they were triggered by the right Message. In React, you\u2019d add another ',
         inlineCode('useEffect'),
         ' that watches for state changes and fires a network request. Now you have two independent effects (localStorage and remote sync) that can race, and neither is visible in the reducer.',

@@ -50,7 +50,7 @@ export const CoreFileRoute = r('CoreFile')
 export const CoreRunningYourAppRoute = r('CoreRunningYourApp')
 export const CoreResourcesRoute = r('CoreResources')
 export const CoreManagedResourcesRoute = r('CoreManagedResources')
-export const CoreDevtoolsRoute = r('CoreDevtools')
+export const CoreDevToolsRoute = r('CoreDevTools')
 export const CoreCrashViewRoute = r('CoreCrashView')
 export const CoreSlowViewRoute = r('CoreSlowView')
 export const CoreFreezeModelRoute = r('CoreFreezeModel')
@@ -87,6 +87,7 @@ export const UiVirtualListRoute = r('UiVirtualList')
 
 export const AiOverviewRoute = r('AiOverview')
 export const AiSkillsRoute = r('AiSkills')
+export const AiMcpRoute = r('AiMcp')
 
 export const NewsletterRoute = r('Newsletter')
 
@@ -124,7 +125,7 @@ export const DocsRoute = S.Union(
   CoreRunningYourAppRoute,
   CoreResourcesRoute,
   CoreManagedResourcesRoute,
-  CoreDevtoolsRoute,
+  CoreDevToolsRoute,
   CoreCrashViewRoute,
   CoreSlowViewRoute,
   CoreFreezeModelRoute,
@@ -158,6 +159,7 @@ export const DocsRoute = S.Union(
   UiVirtualListRoute,
   AiOverviewRoute,
   AiSkillsRoute,
+  AiMcpRoute,
   NotFoundRoute,
 )
 export type DocsRoute = typeof DocsRoute.Type
@@ -319,10 +321,10 @@ export const coreManagedResourcesRouter = pipe(
   slash(literal('managed-resources')),
   mapTo(CoreManagedResourcesRoute),
 )
-export const coreDevtoolsRouter = pipe(
+export const coreDevToolsRouter = pipe(
   literal('core'),
   slash(literal('devtools')),
-  mapTo(CoreDevtoolsRoute),
+  mapTo(CoreDevToolsRoute),
 )
 export const coreCrashViewRouter = pipe(
   literal('core'),
@@ -492,6 +494,11 @@ export const aiSkillsRouter = pipe(
   slash(literal('skills')),
   mapTo(AiSkillsRoute),
 )
+export const aiMcpRouter = pipe(
+  literal('ai'),
+  slash(literal('mcp')),
+  mapTo(AiMcpRoute),
+)
 
 // PARSER
 
@@ -532,7 +539,7 @@ const coreParser = oneOf(
   coreRunningYourAppRouter,
   coreResourcesRouter,
   coreManagedResourcesRouter,
-  coreDevtoolsRouter,
+  coreDevToolsRouter,
   coreCrashViewRouter,
   coreSlowViewRouter,
   coreFreezeModelRouter,
@@ -569,7 +576,7 @@ const uiParser = oneOf(
   uiVirtualListRouter,
 )
 
-const aiParser = oneOf(aiOverviewRouter, aiSkillsRouter)
+const aiParser = oneOf(aiOverviewRouter, aiSkillsRouter, aiMcpRouter)
 
 const docsParser = oneOf(
   topLevelDocsParser,

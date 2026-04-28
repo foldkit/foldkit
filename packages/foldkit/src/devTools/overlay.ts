@@ -23,15 +23,16 @@ import { OptionExt } from '../effectExtensions/index.js'
 import { type Html, createKeyedLazy, html } from '../html/index.js'
 import { m } from '../message/index.js'
 import { makeProgram } from '../runtime/runtime.js'
-import type { DevtoolsMode, DevtoolsPosition } from '../runtime/runtime.js'
+import type { DevToolsMode, DevToolsPosition } from '../runtime/runtime.js'
 import { makeSubscriptions } from '../runtime/subscription.js'
 import { evo } from '../struct/index.js'
 import { lockScroll, unlockScroll } from '../task/scrollLock.js'
 import * as Listbox from '../ui/listbox/public.js'
 import * as Tabs from '../ui/tabs/public.js'
 import { overlayStyles } from './overlay-styles.js'
+import { toInspectableValue } from './serialize.js'
 import {
-  type DevtoolsStore,
+  type DevToolsStore,
   type HistoryEntry,
   INIT_INDEX,
   type StoreState,
@@ -234,31 +235,6 @@ const toDisplayState = (state: StoreState) => ({
 
 const isExpandable = (value: unknown): boolean => Predicate.isObject(value)
 
-/** Convert DOM-class instances (File, Blob, Date, URL) to plain-object
- * representations so the tree renderer's key-enumeration walk can see their
- * meaningful data, which otherwise lives on the prototype as getters and
- * is invisible to `Object.keys`. Recurses through arrays and records so
- * the transform applies at every level. File is matched before Blob
- * because File extends Blob. */
-const toInspectableValue = (value: unknown): unknown =>
-  M.value(value).pipe(
-    M.when(M.instanceOf(File), file => ({
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      lastModified: file.lastModified,
-    })),
-    M.when(M.instanceOf(Blob), blob => ({
-      size: blob.size,
-      type: blob.type,
-    })),
-    M.when(M.instanceOf(Date), date => date.toISOString()),
-    M.when(M.instanceOf(URL), ({ href }) => href),
-    M.when(Array.isArray, Array_.map(toInspectableValue)),
-    M.when(Predicate.isReadonlyRecord, Record.map(toInspectableValue)),
-    M.orElse(Function.identity),
-  )
-
 const Tagged = S.Struct({ _tag: S.String })
 const isTagged = S.is(Tagged)
 
@@ -307,9 +283,9 @@ export const UnlockScroll = Command.define('UnlockScroll', UnlockedScroll)
 export const ScrollToTop = Command.define('ScrollToTop', ScrolledToTop)
 
 const makeUpdate = (
-  store: DevtoolsStore,
+  store: DevToolsStore,
   shadow: ShadowRoot,
-  mode: DevtoolsMode,
+  mode: DevToolsMode,
 ) => {
   const jumpTo = (index: number) =>
     JumpTo(
@@ -595,23 +571,20 @@ const SubscriptionDeps = S.Struct({
   mobileBreakpoint: S.Null,
 })
 
-const makeOverlaySubscriptions = (store: DevtoolsStore) =>
+const makeOverlaySubscriptions = (store: DevToolsStore) =>
   makeSubscriptions(SubscriptionDeps)<Model, Message>({
     storeUpdates: {
-      modelToDependencies: ({ isOpen }) => isOpen,
-      dependenciesToStream: isOpen =>
-        Stream.when(
-          Stream.concat(
-            Stream.fromEffect(
-              SubscriptionRef.get(store.stateRef).pipe(
-                Effect.map(state => ReceivedStoreUpdate(toDisplayState(state))),
-              ),
-            ),
-            Stream.map(store.stateRef.changes, state =>
-              ReceivedStoreUpdate(toDisplayState(state)),
+      modelToDependencies: () => true,
+      dependenciesToStream: () =>
+        Stream.concat(
+          Stream.fromEffect(
+            SubscriptionRef.get(store.stateRef).pipe(
+              Effect.map(state => ReceivedStoreUpdate(toDisplayState(state))),
             ),
           ),
-          () => isOpen,
+          Stream.map(store.stateRef.changes, state =>
+            ReceivedStoreUpdate(toDisplayState(state)),
+          ),
         ),
     },
     mobileBreakpoint: {
@@ -643,14 +616,14 @@ const headerButtonClass =
 const ROW_BASE =
   'dt-row flex items-center py-1 px-1 cursor-pointer gap-1.5 transition-colors border-b'
 
-const BADGE_POSITION_CLASS: Record<DevtoolsPosition, string> = {
+const BADGE_POSITION_CLASS: Record<DevToolsPosition, string> = {
   BottomRight: 'dt-pos-br',
   BottomLeft: 'dt-pos-bl',
   TopRight: 'dt-pos-tr',
   TopLeft: 'dt-pos-tl',
 }
 
-const PANEL_POSITION_CLASS: Record<DevtoolsPosition, string> = {
+const PANEL_POSITION_CLASS: Record<DevToolsPosition, string> = {
   BottomRight: 'dt-panel-br',
   BottomLeft: 'dt-panel-bl',
   TopRight: 'dt-panel-tr',
@@ -658,8 +631,8 @@ const PANEL_POSITION_CLASS: Record<DevtoolsPosition, string> = {
 }
 
 const makeView = (
-  position: DevtoolsPosition,
-  mode: DevtoolsMode,
+  position: DevToolsPosition,
+  mode: DevToolsMode,
   maybeBanner: Option.Option<string>,
 ): ((model: Model) => Html) => {
   const {
@@ -1636,9 +1609,9 @@ const createShadowContainer = (): Readonly<{
 }
 
 export const createOverlay = (
-  store: DevtoolsStore,
-  position: DevtoolsPosition,
-  mode: DevtoolsMode,
+  store: DevToolsStore,
+  position: DevToolsPosition,
+  mode: DevToolsMode,
   maybeBanner: Option.Option<string>,
 ) =>
   Effect.gen(function* () {
@@ -1685,7 +1658,7 @@ export const createOverlay = (
       view: makeView(position, mode, maybeBanner),
       container,
       subscriptions: makeOverlaySubscriptions(store),
-      devtools: false,
+      devTools: false,
     })
 
     yield* Effect.forkDaemon(overlayRuntime())

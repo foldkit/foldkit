@@ -6,7 +6,7 @@ const program = Runtime.makeProgram({
   update,
   view,
   container: document.getElementById('root')!,
-  devtools: {
+  devTools: {
     show: 'Always',
     mode: 'Inspect',
     banner: 'Welcome to our app! Browse the state tree to see how it works.',

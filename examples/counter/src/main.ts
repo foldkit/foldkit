@@ -77,6 +77,9 @@ const program = Runtime.makeProgram({
   update,
   view,
   container: document.getElementById('root')!,
+  devTools: {
+    Message,
+  },
 })
 
 Runtime.run(program)
