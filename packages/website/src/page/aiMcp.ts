@@ -9,7 +9,11 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../prose'
-import { aiOverviewRouter, coreDevToolsRouter } from '../route'
+import {
+  aiOverviewRouter,
+  coreDevToolsRouter,
+  gettingStartedRouter,
+} from '../route'
 import * as Snippets from '../snippet'
 import {
   type CopiedSnippets,
@@ -186,7 +190,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
 
       tableOfContentsEntryToHeader(setupHeader),
       para(
-        'Run the init command in your project root. It writes a ',
+        'Projects scaffolded with ',
+        link(gettingStartedRouter(), 'create-foldkit-app'),
+        ' already ship with the MCP server pre-wired. Open the project in your AI agent and the tools appear under the ',
+        inlineCode('foldkit-devtools'),
+        ' server. Skip the rest of this section.',
+      ),
+      para(
+        'For existing projects, run the init command in your project root. It writes a ',
         inlineCode('.mcp.json'),
         ' that any MCP-aware AI agent (Claude Code, Codex, Cursor, Windsurf) will pick up:',
       ),
