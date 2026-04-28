@@ -2,14 +2,18 @@ import { Effect, Option, ParseResult, Schema as S, String } from 'effect'
 
 import { OptionExt } from '../effectExtensions/index.js'
 
+const optionalStringJsonSchema = {
+  jsonSchema: { oneOf: [{ type: 'string' }, { type: 'null' }] },
+}
+
 /** Schema representing a parsed URL with protocol, host, port, pathname, search, and hash fields. */
 export const Url = S.Struct({
   protocol: S.String,
   host: S.String,
-  port: S.OptionFromSelf(S.String),
+  port: S.OptionFromSelf(S.String).annotations(optionalStringJsonSchema),
   pathname: S.String,
-  search: S.OptionFromSelf(S.String),
-  hash: S.OptionFromSelf(S.String),
+  search: S.OptionFromSelf(S.String).annotations(optionalStringJsonSchema),
+  hash: S.OptionFromSelf(S.String).annotations(optionalStringJsonSchema),
 })
 export type Url = typeof Url.Type
 
