@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 
-const css = readFileSync('src/devtools/overlay.css', 'utf8')
+const css = readFileSync('src/devTools/overlay.css', 'utf8')
 const escaped = css
   .replaceAll('\\', '\\\\')
   .replaceAll('`', '\\`')
@@ -8,4 +8,4 @@ const escaped = css
 
 const output = `const overlayStyles = \`${escaped}\`\n\nexport { overlayStyles }\n`
 
-writeFileSync('src/devtools/overlay-styles.ts', output)
+writeFileSync('src/devTools/overlay-styles.ts', output)
