@@ -189,6 +189,17 @@ Command definitions live where they're produced — colocated with the update fu
 
 - When making multi-file edits or refactors, apply changes to ALL relevant files — not just a subset. After refactoring, verify that spacing, margins, and visual formatting haven't regressed from the original.
 
+## Debugging Example Apps
+
+The apps in `examples/` ship with Foldkit DevTools and the `@foldkit/devtools-mcp` relay wired up. When debugging behavior in a running example, the `foldkit_*` MCP tools are usually faster than reading code or adding logs:
+
+- `foldkit_list_runtimes` to find connected tabs, `foldkit_get_model` for the current Model.
+- `foldkit_list_messages` and `foldkit_get_message` for the Message history with per-path diffs.
+- `foldkit_list_keyframes`, `foldkit_replay_to_keyframe`, and `foldkit_resume` for time-travel.
+- `foldkit_dispatch_message` to enqueue a Message decoded against the app's Schema.
+
+The relay only runs when an example's dev server and a browser tab are open. It is unavailable when working purely on library internals in `packages/foldkit/`. The agent-facing reference for app projects lives in `packages/create-foldkit-app/templates/base/AGENTS.md`. Keep the two in sync when changing the public tool surface.
+
 ## Communication
 
 - When I ask a question or make a comment that sounds rhetorical, opinion-based, or conversational (e.g., 'what do you think about X?', 'im asking you'), respond with discussion — not code edits. Only make code changes when explicitly asked to.

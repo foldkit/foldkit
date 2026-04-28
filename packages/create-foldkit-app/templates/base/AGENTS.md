@@ -101,6 +101,22 @@ Use `Story.story` to chain steps into a readable narrative: set initial Model â†
 
 If the `repos/foldkit` submodule is available, study the `.test.ts` files in `repos/foldkit/examples/` for patterns â€” they cover simple Command resolution, multi-step interactions, and Submodel OutMessage assertions.
 
+## Debugging with Foldkit DevTools
+
+This project ships with `@foldkit/devtools-mcp` pre-wired. When the dev server is running and the app is open in a browser tab, the following MCP tools are available (prefix `foldkit_`):
+
+- `foldkit_list_runtimes`: connected browser tabs. Call first to discover which runtime to target.
+- `foldkit_get_model`: snapshots the current Model.
+- `foldkit_list_messages` / `foldkit_get_message`: Message history with per-path diffs, plus the Model before and after each Message.
+- `foldkit_list_keyframes` / `foldkit_replay_to_keyframe` / `foldkit_resume`: time-travel to a past state and resume.
+- `foldkit_dispatch_message`: enqueue a Message into the runtime, decoded against the app's Schema.
+
+Reach for these before adding `console.log` whenever the question is about state, Message flow, or reproducing a sequence. To verify a behavior change end-to-end, dispatch the Messages that exercise it rather than clicking through the UI.
+
+If `foldkit_list_runtimes` returns nothing, ask the user to open the app in a browser tab. If the `foldkit_*` tools aren't visible at all, the relay may not be wired. Check `devToolsMcpPort` in `vite.config.ts` and the `Message` field in `Runtime.makeProgram`'s `devTools` config, and ask the user before adding them.
+
+The relay is dev-only. Production builds never include it, so DevTools cannot be used to debug deployed apps.
+
 ## Code Quality Standards
 
 - Every name should eliminate ambiguity. Prefix Option-typed values with `maybe` (e.g. `maybeSession`). Name functions by their precise effect (e.g. `enqueueMessage` not `addMessage`). A reader should never need to check a type signature to understand what a name refers to.
