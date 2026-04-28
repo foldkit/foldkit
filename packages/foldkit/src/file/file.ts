@@ -15,8 +15,19 @@ export type File = globalThis.File
  * ```ts
  * attachedResume: S.OptionFromSelf(File.File)
  * ```
+ *
+ * The JSON Schema annotation is a placeholder so apps that include `File`
+ * in a Message survive `JSONSchema.make` for MCP. File values can't actually
+ * be transferred over MCP — the annotation just keeps the rest of the
+ * Message schema usable for dispatch validation.
  */
-export const File: S.Schema<File> = S.instanceOf(globalThis.File)
+export const File: S.Schema<File> = S.instanceOf(globalThis.File).annotations({
+  jsonSchema: {
+    type: 'object',
+    description:
+      'Browser File instance. Cannot be transferred over MCP; this field will not accept dispatched values.',
+  },
+})
 
 /** The file's name including extension, as reported by the browser. */
 export const name = (file: File): string => file.name
