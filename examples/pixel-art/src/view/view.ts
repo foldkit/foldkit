@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { Array, Option, pipe } from 'effect'
 import { Ui } from 'foldkit'
-import { type Html, createLazy, html } from 'foldkit/html'
+import { type Document, type Html, createLazy, html } from 'foldkit/html'
 
 import { isGridEmpty } from '../grid'
 import { ClickedExport, type Message } from '../message'
@@ -67,8 +67,9 @@ const lazyHistoryPanel = createLazy()
 const lazyErrorDialog = createLazy()
 const lazyGridSizeConfirmDialog = createLazy()
 
-export const view = (model: Model): Html =>
-  div(
+export const view = (model: Model): Document => ({
+  title: 'Pixel Art',
+  body: div(
     [Class('min-h-screen bg-gray-900 text-gray-100 flex flex-col')],
     [
       lazyHeader(headerView, []),
@@ -82,7 +83,8 @@ export const view = (model: Model): Html =>
         model.maybePendingGridSize,
       ]),
     ],
-  )
+  ),
+})
 
 const headerView = (): Html =>
   div(

@@ -1,6 +1,6 @@
 import { Duration, Match as M, Schema as S, Stream } from 'effect'
 import { Command, Subscription } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import { Document, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
@@ -80,8 +80,9 @@ const update = (model: Model, message: Message): UpdateReturn =>
 
 const { div, button, p, label, input, OnClick, OnInput } = html<Message>()
 
-const view = (model: Model): Html =>
-  div(
+const view = (model: Model): Document => ({
+  title: `Count: ${model.count}`,
+  body: div(
     [],
     [
       p([], [`Count: ${model.count}`]),
@@ -98,4 +99,5 @@ const view = (model: Model): Html =>
         [model.isAutoCounting ? 'Stop' : 'Auto-Count'],
       ),
     ],
-  )
+  ),
+})

@@ -10,7 +10,7 @@ import {
   String,
 } from 'effect'
 import { Command, Runtime, Task } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
@@ -520,14 +520,14 @@ const filterTodos = (todos: Todos, filter: Filter): Todos =>
     M.exhaustive,
   )
 
-export const view = (model: Model): Html => {
+export const view = (model: Model): Document => {
   const filteredTodos = filterTodos(model.todos, model.filter)
   const activeCount = Array.length(
     Array.filter(model.todos, todo => !todo.completed),
   )
   const completedCount = Array.length(model.todos) - activeCount
 
-  return div(
+  const body = div(
     [Class('min-h-screen bg-gray-100 py-8')],
     [
       div(
@@ -593,6 +593,8 @@ export const view = (model: Model): Html => {
       ),
     ],
   )
+
+  return { title: `Todos (${activeCount})`, body }
 }
 
 // FLAG

@@ -1,5 +1,5 @@
 import { Match as M } from 'effect'
-import { Html } from 'foldkit/html'
+import { Document, Html } from 'foldkit/html'
 
 import { GotHomeMessage, GotRoomMessage } from '../message'
 import { Model } from '../model'
@@ -19,7 +19,16 @@ import {
   span,
 } from './html'
 
-export const view = (model: Model): Html => {
+const routeTitle = (route: Model['route']): string =>
+  M.value(route).pipe(
+    M.tagsExhaustive({
+      Home: () => 'Typing Game',
+      Room: ({ roomId }) => `Room ${roomId} — Typing Game`,
+      NotFound: () => 'Not Found — Typing Game',
+    }),
+  )
+
+export const view = (model: Model): Document => {
   const content = M.value(model.route).pipe(
     M.tagsExhaustive({
       Home: () => Home.view(model.home, message => GotHomeMessage({ message })),
@@ -40,16 +49,19 @@ export const view = (model: Model): Html => {
     ],
   )
 
-  return div(
-    [Class('min-h-screen flex flex-col p-16')],
-    [
-      main(
-        [Class('flex-1 flex flex-col')],
-        [keyed('div')(model.route._tag, [], [content])],
-      ),
-      footerElement,
-    ],
-  )
+  return {
+    title: routeTitle(model.route),
+    body: div(
+      [Class('min-h-screen flex flex-col p-16')],
+      [
+        main(
+          [Class('flex-1 flex flex-col')],
+          [keyed('div')(model.route._tag, [], [content])],
+        ),
+        footerElement,
+      ],
+    ),
+  }
 }
 
 const notFound = ({ path }: NotFoundRoute): Html =>

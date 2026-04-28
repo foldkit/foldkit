@@ -21,7 +21,7 @@ import {
   minLength,
   validate,
 } from 'foldkit/fieldValidation'
-import { type Attribute, Html, html } from 'foldkit/html'
+import { type Attribute, Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
@@ -402,10 +402,10 @@ const textareaFieldView = (
       ),
   })
 
-export const view = (model: Model): Html => {
+export const view = (model: Model): Document => {
   const canSubmit = isFormValid(model) && model.submission._tag !== 'Submitting'
 
-  return div(
+  const body = div(
     [Class('min-h-screen bg-gray-100 py-8')],
     [
       div(
@@ -488,6 +488,8 @@ export const view = (model: Model): Html => {
       ),
     ],
   )
+
+  return { title: 'Foldkit Form Example', body }
 }
 
 // RUN

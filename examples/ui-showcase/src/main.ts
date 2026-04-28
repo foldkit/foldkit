@@ -8,7 +8,7 @@ import {
   pipe,
 } from 'effect'
 import { Calendar, Command, Route, Runtime, Subscription, Ui } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { load, pushUrl } from 'foldkit/navigation'
 import { literal, r } from 'foldkit/route'
@@ -630,8 +630,15 @@ const contentView = (model: Model): Html =>
     }),
   )
 
-const view = (model: Model): Html =>
-  div(
+const routeTitle = (route: Model['route']): string =>
+  M.value(route).pipe(
+    M.tag('Home', () => 'Foldkit UI Showcase'),
+    M.orElse(({ _tag }) => `${_tag} — Foldkit UI Showcase`),
+  )
+
+const view = (model: Model): Document => ({
+  title: routeTitle(model.route),
+  body: div(
     [Class('flex flex-col md:flex-row min-h-screen bg-white')],
     [
       mobileHeaderView(model),
@@ -642,7 +649,8 @@ const view = (model: Model): Html =>
         [keyed('div')(model.route._tag, [], [contentView(model)])],
       ),
     ],
-  )
+  ),
+})
 
 // SUBSCRIPTION
 
@@ -823,11 +831,6 @@ const program = Runtime.makeProgram({
   update,
   view,
   subscriptions,
-  title: model =>
-    M.value(model.route).pipe(
-      M.tag('Home', () => 'UI Showcase'),
-      M.orElse(({ _tag }) => `${_tag} — UI Showcase`),
-    ),
   container: document.getElementById('root')!,
   routing: {
     onUrlRequest: request => ClickedLink({ request }),

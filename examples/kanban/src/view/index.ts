@@ -1,6 +1,6 @@
 import { Array, Option, pipe } from 'effect'
 import { Ui } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import type { Document, Html } from 'foldkit/html'
 
 import { AriaHidden, AriaLive, Class, Style, div, empty, h1 } from '../html'
 import type { Model } from '../model'
@@ -36,8 +36,9 @@ const ghostElement = (model: Model): Html =>
     }),
   )
 
-export const view = (model: Model): Html =>
-  div(
+export const view = (model: Model): Document => ({
+  title: 'Kanban Board',
+  body: div(
     [Class('flex flex-col min-h-screen bg-gray-100')],
     [
       div(
@@ -55,4 +56,5 @@ export const view = (model: Model): Html =>
       ghostElement(model),
       div([Class('sr-only'), AriaLive('assertive')], [model.announcement]),
     ],
-  )
+  ),
+})

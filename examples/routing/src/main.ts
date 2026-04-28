@@ -1,6 +1,6 @@
 import { Array, Effect, Match as M, Option, Schema as S, pipe } from 'effect'
 import { Command, Route, Runtime } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { load, pushUrl, replaceUrl } from 'foldkit/navigation'
 import { int, literal, r, slash } from 'foldkit/route'
@@ -493,7 +493,14 @@ const notFoundView = (path: string): Html =>
     ],
   )
 
-const view = (model: Model): Html => {
+const routeTitle = (route: Model['route']): string =>
+  M.value(route).pipe(
+    M.tag('Home', () => 'Routing'),
+    M.tag('Person', ({ personId }) => `Person ${personId} — Routing`),
+    M.orElse(({ _tag }) => `${_tag} — Routing`),
+  )
+
+const view = (model: Model): Document => {
   const routeContent = M.value(model.route).pipe(
     M.tagsExhaustive({
       Home: homeView,
@@ -504,16 +511,19 @@ const view = (model: Model): Html => {
     }),
   )
 
-  return div(
-    [Class('min-h-screen bg-gray-100')],
-    [
-      header([], [navigationView(model.route)]),
-      main(
-        [Class('py-8')],
-        [keyed('div')(model.route._tag, [], [routeContent])],
-      ),
-    ],
-  )
+  return {
+    title: routeTitle(model.route),
+    body: div(
+      [Class('min-h-screen bg-gray-100')],
+      [
+        header([], [navigationView(model.route)]),
+        main(
+          [Class('py-8')],
+          [keyed('div')(model.route._tag, [], [routeContent])],
+        ),
+      ],
+    ),
+  }
 }
 
 // RUN
@@ -523,12 +533,6 @@ const program = Runtime.makeProgram({
   init,
   update,
   view,
-  title: model =>
-    M.value(model.route).pipe(
-      M.tag('Home', () => 'Routing'),
-      M.tag('Person', ({ personId }) => `Person ${personId} — Routing`),
-      M.orElse(({ _tag }) => `${_tag} — Routing`),
-    ),
   container: document.getElementById('root')!,
   routing: {
     onUrlRequest: request => ClickedLink({ request }),

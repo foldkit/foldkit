@@ -12,7 +12,7 @@ import {
   pipe,
 } from 'effect'
 import { Command, Route, Runtime, Ui } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { load, pushUrl, replaceUrl } from 'foldkit/navigation'
 import { r } from 'foldkit/route'
@@ -895,7 +895,13 @@ const notFoundView = (path: string): Html =>
     ],
   )
 
-const view = (model: Model): Html => {
+const routeTitle = (route: Model['route']): string =>
+  M.value(route).pipe(
+    M.tag('Browse', () => 'Dinosaur Explorer'),
+    M.orElse(() => 'Not Found — Dinosaur Explorer'),
+  )
+
+const view = (model: Model): Document => {
   const routeContent = M.value(model.route).pipe(
     M.tagsExhaustive({
       Browse: route => browseView(model, route),
@@ -903,7 +909,7 @@ const view = (model: Model): Html => {
     }),
   )
 
-  return div(
+  const body = div(
     [Class('min-h-screen bg-gray-50')],
     [
       header(
@@ -924,6 +930,8 @@ const view = (model: Model): Html => {
       ),
     ],
   )
+
+  return { title: routeTitle(model.route), body }
 }
 
 // RUN
@@ -933,11 +941,6 @@ const program = Runtime.makeProgram({
   init,
   update,
   view,
-  title: model =>
-    M.value(model.route).pipe(
-      M.tag('Browse', () => 'Dinosaur Explorer'),
-      M.orElse(() => 'Not Found — Dinosaur Explorer'),
-    ),
   container: document.getElementById('root')!,
   routing: {
     onUrlRequest: request => ClickedLink({ request }),

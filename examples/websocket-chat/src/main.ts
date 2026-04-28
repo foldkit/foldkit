@@ -10,7 +10,7 @@ import {
   String,
 } from 'effect'
 import { Command, ManagedResource, Runtime, Subscription, Task } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
@@ -375,8 +375,9 @@ const {
   Value,
 } = html<Message>()
 
-const view = (model: Model): Html =>
-  div(
+const view = (model: Model): Document => ({
+  title: 'WebSocket Chat',
+  body: div(
     [
       Class(
         'min-h-screen bg-gradient-to-br from-purple-100 to-blue-100 flex flex-col items-center justify-center p-6',
@@ -427,7 +428,8 @@ const view = (model: Model): Html =>
         ],
       ),
     ],
-  )
+  ),
+})
 
 const connectionStatusView = (connection: ConnectionState): Html =>
   div(

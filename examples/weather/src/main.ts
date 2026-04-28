@@ -5,7 +5,7 @@ import {
 } from '@effect/platform'
 import { Array, Effect, Match as M, Option, Schema as S, String } from 'effect'
 import { Command, Runtime } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
@@ -274,8 +274,9 @@ const {
   Value,
 } = html<Message>()
 
-export const view = (model: Model): Html =>
-  div(
+export const view = (model: Model): Document => ({
+  title: 'Weather',
+  body: div(
     [
       Class(
         'min-h-screen bg-gradient-to-br from-blue-100 to-blue-300 flex flex-col items-center justify-center gap-6 p-6',
@@ -340,7 +341,8 @@ export const view = (model: Model): Html =>
         }),
       ),
     ],
-  )
+  ),
+})
 
 const weatherView = (weather: WeatherData): Html =>
   article(

@@ -8,7 +8,7 @@ import {
   pipe,
 } from 'effect'
 import { Command, Runtime, Subscription } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
@@ -340,8 +340,9 @@ const instructionsView = (): Html =>
     ],
   )
 
-const view = (model: Model): Html =>
-  div(
+const view = (model: Model): Document => ({
+  title: `Snake — ${model.points} pts`,
+  body: div(
     [
       Class(
         'flex flex-col items-center justify-center min-h-screen bg-black text-white p-8',
@@ -360,7 +361,8 @@ const view = (model: Model): Html =>
       gridView(model),
       instructionsView(),
     ],
-  )
+  ),
+})
 
 // RUN
 

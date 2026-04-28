@@ -1,6 +1,6 @@
 import { Effect } from 'effect'
 
-import { Html, html } from '../html/index.js'
+import { Document, html } from '../html/index.js'
 
 export const noOpDispatch = {
   dispatchAsync: (_message: unknown) => Effect.void,
@@ -27,7 +27,7 @@ const monoStack =
 export const defaultCrashView = (
   context: Readonly<{ error: Error }>,
   viewError?: unknown,
-): Html => {
+): Document => {
   const { div, h1, p, span, button, Style, Attribute } = html()
 
   const codeBlockStyle = Style({
@@ -127,7 +127,7 @@ export const defaultCrashView = (
         ),
       ]
 
-  return div(
+  const body = div(
     [
       Style({
         fontFamily: fontStack,
@@ -213,4 +213,6 @@ export const defaultCrashView = (
       ),
     ],
   )
+
+  return { title: 'Application Crash', body }
 }

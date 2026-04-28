@@ -20,7 +20,12 @@ import {
 
 import * as Command from '../command/index.js'
 import { OptionExt } from '../effectExtensions/index.js'
-import { type Html, createKeyedLazy, html } from '../html/index.js'
+import {
+  type Document,
+  type Html,
+  createKeyedLazy,
+  html,
+} from '../html/index.js'
 import { m } from '../message/index.js'
 import { makeProgram } from '../runtime/runtime.js'
 import type { DevToolsMode, DevToolsPosition } from '../runtime/runtime.js'
@@ -634,7 +639,7 @@ const makeView = (
   position: DevToolsPosition,
   mode: DevToolsMode,
   maybeBanner: Option.Option<string>,
-): ((model: Model) => Html) => {
+): ((model: Model) => Document) => {
   const {
     div,
     header,
@@ -1565,8 +1570,9 @@ const makeView = (
 
   const interactionBlocker = div([Class('dt-interaction-blocker')], [])
 
-  return (model: Model): Html =>
-    div(
+  return (model: Model): Document => ({
+    title: 'Foldkit DevTools',
+    body: div(
       [],
       [
         ...OptionExt.when(
@@ -1576,7 +1582,8 @@ const makeView = (
         ...OptionExt.when(model.isOpen, panelView(model)).pipe(Option.toArray),
         badgeView(model),
       ],
-    )
+    ),
+  })
 }
 
 // CREATE

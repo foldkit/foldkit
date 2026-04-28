@@ -5,7 +5,6 @@ const program = Runtime.makeProgram({
   init,
   update,
   view,
-  title: model => routeTitle(model.route),
   container: document.getElementById('root')!,
   routing: {
     onUrlRequest: request => ClickedLink({ request }),

@@ -10,7 +10,7 @@ import {
   pipe,
 } from 'effect'
 import { Command, Runtime, Subscription } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
@@ -177,8 +177,9 @@ const formatTime = (ms: number): string => {
 
 const floorAndPad = flow(Math.floor, v => v.toString(), String.padStart(2, '0'))
 
-const view = (model: Model): Html =>
-  div(
+const view = (model: Model): Document => ({
+  title: `Stopwatch ${formatTime(model.elapsedMs)}`,
+  body: div(
     [Class('min-h-screen bg-gray-200 flex items-center justify-center')],
     [
       div(
@@ -204,7 +205,8 @@ const view = (model: Model): Html =>
         ],
       ),
     ],
-  )
+  ),
+})
 
 const startStopButton = (isRunning: boolean): Html =>
   isRunning

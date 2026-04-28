@@ -1,6 +1,6 @@
 import { Effect, Match as M, Option, Schema as S, pipe } from 'effect'
 import { Command, Route, Runtime } from 'foldkit'
-import { Html } from 'foldkit/html'
+import { Document, Html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { load, pushUrl } from 'foldkit/navigation'
 import { literal, r } from 'foldkit/route'
@@ -364,7 +364,13 @@ const notFoundView = (path: string): Html =>
     ],
   )
 
-const view = (model: Model): Html => {
+const routeTitle = (route: Model['route']): string =>
+  M.value(route).pipe(
+    M.tag('Products', () => 'Shopping Cart'),
+    M.orElse(({ _tag }) => `${_tag} — Shopping Cart`),
+  )
+
+const view = (model: Model): Document => {
   const routeContent = M.value(model.route).pipe(
     M.tagsExhaustive({
       Products: () => productsView(model),
@@ -374,16 +380,19 @@ const view = (model: Model): Html => {
     }),
   )
 
-  return div(
-    [Class('min-h-screen bg-gray-100')],
-    [
-      header([], [navigationView(model.route, Cart.totalItems(model.cart))]),
-      main(
-        [Class('py-8')],
-        [keyed('div')(model.route._tag, [], [routeContent])],
-      ),
-    ],
-  )
+  return {
+    title: routeTitle(model.route),
+    body: div(
+      [Class('min-h-screen bg-gray-100')],
+      [
+        header([], [navigationView(model.route, Cart.totalItems(model.cart))]),
+        main(
+          [Class('py-8')],
+          [keyed('div')(model.route._tag, [], [routeContent])],
+        ),
+      ],
+    ),
+  }
 }
 
 // RUN
@@ -393,11 +402,6 @@ const program = Runtime.makeProgram({
   init,
   update,
   view,
-  title: model =>
-    M.value(model.route).pipe(
-      M.tag('Products', () => 'Shopping Cart'),
-      M.orElse(({ _tag }) => `${_tag} — Shopping Cart`),
-    ),
   container: document.getElementById('root')!,
   routing: {
     onUrlRequest: request => ClickedLink({ request }),

@@ -1,6 +1,6 @@
 import { Match as M, Schema as S } from 'effect'
 import { Command } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import { Document, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 
 // MODEL - Your entire application state
@@ -28,15 +28,17 @@ const update = (model: Model, message: Message): UpdateReturn =>
     }),
   )
 
-// VIEW - A pure function from Model to HTML
+// VIEW - A pure function from Model to a Document
 
 const { div, button, p, OnClick } = html<Message>()
 
-const view = (model: Model): Html =>
-  div(
+const view = (model: Model): Document => ({
+  title: `Count: ${model}`,
+  body: div(
     [],
     [
       p([], [`Count: ${model}`]),
       button([OnClick(ClickedIncrement())], ['Increment']),
     ],
-  )
+  ),
+})
