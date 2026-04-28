@@ -1,5 +1,51 @@
 # foldkit
 
+## 0.77.0
+
+### Minor Changes
+
+- 9c59ada: `view` now returns a `Document` instead of `Html`, and the `title` callback on `makeProgram` is gone.
+
+  A `Document` is `{ title, body, canonical?, ogUrl? }`. The runtime applies all four on every render: `document.title` is set from `title`, `<link rel="canonical">` and `<meta property="og:url">` are upserted from `canonical` and `ogUrl` (creating the tags if they're not already in the document head), and `body` is patched into the application container as before. When `canonical` is omitted it defaults to the current URL (origin + pathname + search); when `ogUrl` is omitted it falls back to `canonical`.
+
+  This fixes a bug where Safari's system Share menu would copy the URL the page was originally loaded from rather than the page the user navigated to. `<link rel="canonical">` was static, and Safari reads canonical first when copying a link.
+
+  Migrating an existing app:
+
+  ```ts
+  // Before
+  import { Html } from 'foldkit/html'
+
+  const view = (model: Model): Html => div([], [...])
+
+  Runtime.makeProgram({
+    view,
+    title: (model) => `Page ${model.page}`,
+    // ...
+  })
+
+  // After
+  import { Document } from 'foldkit/html'
+
+  const view = (model: Model): Document => ({
+    title: `Page ${model.page}`,
+    body: div([], [...]),
+  })
+
+  Runtime.makeProgram({
+    view,
+    // title field removed
+  })
+  ```
+
+  `crash.view` follows the same shape and now returns a `Document` too.
+
+- bbe2a03: Stop publishing the runtime's Message Schema as JSON Schema in the DevTools wire protocol. `RuntimeInfo.maybeMessageSchema` is removed; agents discover Message shape by reading the application's source instead. Dispatch still works the same: the runtime decodes the payload against the live `Message` Schema and returns a clean error on mismatch. Only the upfront introspection hint is gone.
+
+  This avoids a class of `JSONSchema.make` failures triggered by schema constructs like `OptionFromSelf`, `instanceOf`, and other shapes without a default JSON Schema. Foldkit's UI components and `Url` use those constructs internally, so any app wrapping them via the Submodel pattern was either crashing or losing dispatch validation. The simpler protocol sidesteps the whole annotation grind.
+
+  The `Url` and `File.File` JSON Schema annotations added in the unreleased work, and the bridge's `Either.try` safety net around `JSONSchema.make`, are removed in the same change since their only purpose was to make the JSON Schema generation succeed.
+
 ## 0.76.1
 
 ### Patch Changes
