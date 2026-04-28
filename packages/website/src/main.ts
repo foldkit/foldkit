@@ -21,6 +21,7 @@ import {
   pipe,
 } from 'effect'
 import { Calendar, Command, FieldValidation, Runtime, Ui } from 'foldkit'
+import type { Document } from 'foldkit/html'
 import { load, pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 import { makeSubscriptions } from 'foldkit/subscription'
@@ -1234,8 +1235,9 @@ const saveThemePreference = (preference: typeof ThemePreference.Type) =>
 
 // VIEW
 
-const view = (model: Model) =>
-  M.value(model.route).pipe(
+const view = (model: Model): Document => ({
+  title: routeTitle(model.route),
+  body: M.value(model.route).pipe(
     M.tag('Home', () => landingView(model)),
     M.tag('Newsletter', () => newsletterView(model)),
     M.tag('Playground', ({ exampleSlug }) =>
@@ -1246,7 +1248,8 @@ const view = (model: Model) =>
       ),
     ),
     M.orElse(route => docsView(model, route)),
-  )
+  ),
+})
 
 // TITLE
 
@@ -1399,7 +1402,6 @@ const program = Runtime.makeProgram({
   init,
   update,
   view,
-  title: ({ route }) => routeTitle(route),
   subscriptions,
   container: document.getElementById('root')!,
   routing: {

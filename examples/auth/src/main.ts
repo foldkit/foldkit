@@ -118,11 +118,6 @@ const program = Runtime.makeProgram({
   init,
   update,
   view,
-  title: model =>
-    M.value(model.route).pipe(
-      M.tag('Home', () => 'Auth'),
-      M.orElse(({ _tag }) => `${_tag} — Auth`),
-    ),
   container: document.getElementById('root')!,
   routing: {
     onUrlRequest: request => ClickedLink({ request }),

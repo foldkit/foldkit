@@ -1,9 +1,12 @@
-import { Class, Html, OnClick, button, div } from '../html'
+import type { Document } from 'foldkit/html'
+
+import { Class, OnClick, button, div } from '../html'
 
 // VIEW
 
-const view = (model: Model): Html =>
-  div(
+const view = (model: Model): Document => ({
+  title: `Counter: ${model.count}`,
+  body: div(
     [Class(containerStyle)],
     [
       div(
@@ -22,7 +25,8 @@ const view = (model: Model): Html =>
         ],
       ),
     ],
-  )
+  ),
+})
 
 // STYLE
 

@@ -26,7 +26,7 @@ import type { Command } from '../command/index.js'
 import { createOverlay } from '../devTools/overlay.js'
 import { type DevToolsStore, createDevToolsStore } from '../devTools/store.js'
 import { startWebSocketBridge } from '../devTools/webSocketBridge.js'
-import { Html } from '../html/index.js'
+import { Document } from '../html/index.js'
 import { Url, fromString as urlFromString } from '../url/index.js'
 import { VNode, patch, toVNode } from '../vdom.js'
 import {
@@ -199,7 +199,7 @@ export type CrashContext<Model, Message> = Readonly<{
 
 /** Configuration for crash handling — custom crash UI and/or crash reporting. */
 export type CrashConfig<Model, Message> = Readonly<{
-  view?: (context: CrashContext<Model, Message>) => Html
+  view?: (context: CrashContext<Model, Message>) => Document
   report?: (context: CrashContext<Model, Message>) => void
 }>
 
@@ -229,7 +229,7 @@ type RuntimeConfig<
     Model,
     ReadonlyArray<Command<Message, never, Resources | ManagedResourceServices>>,
   ]
-  view: (model: Model) => Html
+  view: (model: Model) => Document
   subscriptions?: Subscriptions<
     Model,
     Message,
@@ -258,8 +258,6 @@ type RuntimeConfig<
    * `makeManagedResources`.
    */
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
-  /** Derives the document title from the current model. Called after every render. */
-  title?: (model: Model) => string
   devTools?: DevToolsConfig
 }>
 
@@ -278,7 +276,7 @@ type BaseProgramConfig<
     Model,
     ReadonlyArray<Command<Message, never, Resources | ManagedResourceServices>>,
   ]
-  view: (model: Model) => Html
+  view: (model: Model) => Document
   subscriptions?: Subscriptions<
     Model,
     Message,
@@ -291,8 +289,6 @@ type BaseProgramConfig<
   freezeModel?: FreezeModelConfig
   resources?: Layer.Layer<Resources>
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
-  /** Derives the document title from the current model. Called after every render. */
-  title?: (model: Model) => string
   devTools?: DevToolsConfig
 }>
 
@@ -476,7 +472,6 @@ const makeRuntime = <
   freezeModel,
   resources,
   managedResources,
-  title,
   devTools,
 }: RuntimeConfig<
   Model,
@@ -796,7 +791,8 @@ const makeRuntime = <
         const render = (model: Model, message: Option.Option<Message>) =>
           Effect.gen(function* () {
             const viewStart = performance.now()
-            const nextVNodeNullish = yield* view(model)
+            const nextDocument = view(model)
+            const nullableNextVNode = yield* nextDocument.body
             const viewDuration = performance.now() - viewStart
 
             Option.match(resolvedSlowView, {
@@ -819,15 +815,15 @@ const makeRuntime = <
               Ref.set(isRenderingRef, true),
               () =>
                 Effect.sync(() =>
-                  patchVNode(maybeCurrentVNode, nextVNodeNullish, container),
+                  patchVNode(maybeCurrentVNode, nullableNextVNode, container),
                 ),
               () => Ref.set(isRenderingRef, false),
             )
             yield* Ref.set(maybeCurrentVNodeRef, Option.some(patchedVNode))
 
-            if (title) {
-              document.title = title(model)
-            }
+            yield* Effect.sync(() =>
+              applyDocumentMetadata(nextDocument, container),
+            )
 
             yield* drainPendingMessages
           }).pipe(Effect.provideService(Dispatch, dispatch))
@@ -1068,16 +1064,59 @@ const makeRuntime = <
 
 const patchVNode = (
   maybeCurrentVNode: Option.Option<VNode>,
-  nextVNodeNullish: VNode | null,
+  nullableNextVNode: VNode | null,
   container: HTMLElement,
 ): VNode => {
-  const nextVNode = Predicate.isNotNull(nextVNodeNullish)
-    ? nextVNodeNullish
+  const nextVNode = Predicate.isNotNull(nullableNextVNode)
+    ? nullableNextVNode
     : h('!')
 
   return Option.match(maybeCurrentVNode, {
     onNone: () => patch(toVNode(container), nextVNode),
     onSome: currentVNode => patch(currentVNode, nextVNode),
+  })
+}
+
+const currentLocationUrl = (): string => {
+  const { origin, pathname, search } = window.location
+  return `${origin}${pathname}${search}`
+}
+
+const upsertHeadElement = <K extends keyof HTMLElementTagNameMap>(
+  tagName: K,
+  selector: string,
+  attributes: Readonly<Record<string, string>>,
+): void => {
+  const existing = document.head.querySelector(selector)
+  const element =
+    existing ?? document.head.appendChild(document.createElement(tagName))
+  Object.entries(attributes).forEach(([key, value]) => {
+    element.setAttribute(key, value)
+  })
+}
+
+const applyDocumentMetadata = (
+  nextDocument: Document,
+  container: HTMLElement,
+): void => {
+  if (!document.body.contains(container)) {
+    return
+  }
+
+  if (document.title !== nextDocument.title) {
+    document.title = nextDocument.title
+  }
+
+  const canonical = nextDocument.canonical ?? currentLocationUrl()
+  const ogUrl = nextDocument.ogUrl ?? canonical
+
+  upsertHeadElement('link', 'link[rel="canonical"]', {
+    rel: 'canonical',
+    href: canonical,
+  })
+  upsertHeadElement('meta', 'meta[property="og:url"]', {
+    property: 'og:url',
+    content: ogUrl,
   })
 }
 
@@ -1098,18 +1137,19 @@ const renderCrashView = <Model, Message>(
   }
 
   try {
-    const crashHtml = crash?.view
+    const crashDocument = crash?.view
       ? crash.view(context)
       : defaultCrashView(context)
 
     const maybeCurrentVNode = Effect.runSync(Ref.get(maybeCurrentVNodeRef))
 
-    const vnode = crashHtml.pipe(
+    const vnode = crashDocument.body.pipe(
       Effect.provideService(Dispatch, noOpDispatch),
       Effect.runSync,
     )
 
     patchVNode(maybeCurrentVNode, vnode, container)
+    applyDocumentMetadata(crashDocument, container)
   } catch (viewError) {
     console.error('[foldkit] crash.view failed:', viewError)
 
@@ -1118,12 +1158,14 @@ const renderCrashView = <Model, Message>(
     const fallbackViewError =
       viewError instanceof Error ? viewError : new Error(String(viewError))
 
-    const vnode = defaultCrashView(context, fallbackViewError).pipe(
+    const fallbackDocument = defaultCrashView(context, fallbackViewError)
+    const vnode = fallbackDocument.body.pipe(
       Effect.provideService(Dispatch, noOpDispatch),
       Effect.runSync,
     )
 
     patchVNode(maybeCurrentVNode, vnode, container)
+    applyDocumentMetadata(fallbackDocument, container)
   }
 }
 
@@ -1261,7 +1303,6 @@ export function makeProgram<
     ...(config.managedResources && {
       managedResources: config.managedResources,
     }),
-    ...(config.title && { title: config.title }),
     ...(Predicate.isNotUndefined(config.devTools) && {
       devTools: config.devTools,
     }),

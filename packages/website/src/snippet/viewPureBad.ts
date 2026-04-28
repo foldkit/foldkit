@@ -1,11 +1,11 @@
-import { Html, html } from 'foldkit/html'
+import { Document, html } from 'foldkit/html'
 
 import { Model } from './model'
 
 const { div } = html()
 
 // ❌ Don't do this in view
-const view = (model: Model): Html => {
+const view = (model: Model): Document => {
   // Fetching data in view
   fetch('/api/user').then(res => res.json())
 
@@ -15,5 +15,5 @@ const view = (model: Model): Html => {
   // Subscriptions
   window.addEventListener('resize', handleResize)
 
-  return div([], ['Hello'])
+  return { title: 'Hello', body: div([], ['Hello']) }
 }

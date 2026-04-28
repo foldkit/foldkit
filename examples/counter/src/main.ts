@@ -1,6 +1,6 @@
 import { Match as M, Schema as S } from 'effect'
 import { Command, Runtime } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import { Document, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 
 // MODEL
@@ -42,8 +42,9 @@ const init: Runtime.ProgramInit<Model, Message> = () => [{ count: 0 }, []]
 
 const { div, button, Class, OnClick } = html<Message>()
 
-const view = (model: Model): Html =>
-  div(
+const view = (model: Model): Document => ({
+  title: `Counter: ${model.count}`,
+  body: div(
     [
       Class(
         'min-h-screen bg-white flex flex-col items-center justify-center gap-6 p-6',
@@ -63,7 +64,8 @@ const view = (model: Model): Html =>
         ],
       ),
     ],
-  )
+  ),
+})
 
 // STYLE
 

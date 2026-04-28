@@ -68,6 +68,21 @@ const keyboardModifiers = (event: KeyboardEvent): KeyboardModifiers => ({
 export type Html = Effect.Effect<VNode | null, never, Dispatch>
 type Child = Html | string
 
+/** A view's complete output for the runtime: title, body, and optional document
+ *  metadata. The runtime applies `title` to `document.title`, syncs `canonical`
+ *  to `<link rel="canonical">` (creating it if absent), syncs `ogUrl` to
+ *  `<meta property="og:url">` (creating it if absent), and patches `body` into
+ *  the application container.
+ *
+ *  When `canonical` is omitted, it defaults to the current URL (origin +
+ *  pathname + search). When `ogUrl` is omitted, it falls back to `canonical`. */
+export type Document = Readonly<{
+  title: string
+  canonical?: string
+  ogUrl?: string
+  body: Html
+}>
+
 /** Union of all valid HTML, SVG, and MathML tag names. */
 export type TagName =
   | 'a'

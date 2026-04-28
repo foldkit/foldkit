@@ -12,7 +12,7 @@ import { dual } from 'effect/Function'
 import type { CommandDefinition } from '../command/index.js'
 import type { File } from '../file/index.js'
 import { FileHandlerSymbol } from '../html/index.js'
-import type { Html, KeyboardModifiers } from '../html/index.js'
+import type { Document, Html, KeyboardModifiers } from '../html/index.js'
 import { Dispatch } from '../runtime/index.js'
 import type { VNode } from '../vdom.js'
 import type { AnyCommand, BaseInternal, Resolver } from './internal.js'
@@ -158,7 +158,7 @@ type InternalSceneSimulation<
       message: Message,
     ) => UpdateResult<Model, OutMessage>
     resolvers: Record<string, Message>
-    viewFn: (model: Model) => Html
+    viewFn: (model: Model) => Html | Document
     capturingDispatch: CapturingDispatch
     scope: Option.Option<Locator>
   }>
@@ -232,12 +232,14 @@ const createCapturingDispatch = (): CapturingDispatch => {
 // RENDERING
 
 const renderView = <Model>(
-  viewFn: (model: Model) => Html,
+  viewFn: (model: Model) => Html | Document,
   model: Model,
   dispatch: DispatchService,
 ): VNode => {
+  const result = viewFn(model)
+  const body = Effect.isEffect(result) ? result : result.body
   const maybeVNode = Effect.runSync(
-    Effect.provideService(viewFn(model), Dispatch, dispatch),
+    Effect.provideService(body, Dispatch, dispatch),
   )
 
   if (Predicate.isNull(maybeVNode)) {
@@ -1582,7 +1584,7 @@ export const scene: {
         model: Model,
         message: Message,
       ) => readonly [Model, ReadonlyArray<AnyCommand>, OutMessage]
-      view: (model: Model) => Html
+      view: (model: Model) => Html | Document
     }>,
     ...steps: ReadonlyArray<SceneStep<Model, Message, OutMessage>>
   ): void
@@ -1592,14 +1594,14 @@ export const scene: {
         model: Model,
         message: Message,
       ) => readonly [Model, ReadonlyArray<AnyCommand>]
-      view: (model: Model) => Html
+      view: (model: Model) => Html | Document
     }>,
     ...steps: ReadonlyArray<SceneStep<Model, Message, undefined>>
   ): void
 } = <Model, Message, OutMessage = undefined>(
   config: Readonly<{
     update: (model: Model, message: Message) => UpdateResult<Model, OutMessage>
-    view: (model: Model) => Html
+    view: (model: Model) => Html | Document
   }>,
   ...steps: ReadonlyArray<SceneStep<Model, Message, OutMessage>>
 ): void => {

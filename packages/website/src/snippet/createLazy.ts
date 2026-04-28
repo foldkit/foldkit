@@ -30,8 +30,9 @@ const lazyStats = createLazy()
 // If revenue, orderCount, and topProducts are the same references
 // as last render, the cached VNode is returned instantly.
 // both VNode construction and subtree diffing are skipped.
-const view = (model: Model) =>
-  div(
+const view = (model: Model) => ({
+  title: 'Dashboard',
+  body: div(
     [],
     [
       headerView(model),
@@ -42,4 +43,5 @@ const view = (model: Model) =>
       ]),
       sidebarView(model),
     ],
-  )
+  ),
+})

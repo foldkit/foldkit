@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 import { Array, Equal, HashSet, Match as M, Option, pipe } from 'effect'
-import { type Html } from 'foldkit/html'
+import { type Document, type Html } from 'foldkit/html'
 
 import { Step } from '../domain'
 import {
@@ -204,9 +204,9 @@ const mobilePreviewOverlay = (model: Model): Html =>
     [preview(model)],
   )
 
-export const view = (model: Model): Html => {
+export const view = (model: Model): Document => {
   const errorSteps = stepsWithErrors(model)
-  return div(
+  const body = div(
     [Class('min-h-screen bg-gray-50')],
     [
       div(
@@ -228,4 +228,6 @@ export const view = (model: Model): Html => {
       ),
     ],
   )
+
+  return { title: 'Job Application', body }
 }
