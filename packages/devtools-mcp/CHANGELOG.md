@@ -1,5 +1,14 @@
 # @foldkit/devtools-mcp
 
+## 0.1.1
+
+### Patch Changes
+
+- a7576fc: Document that the MCP server only sees a runtime while the app is open in a browser tab. The browser bridge runs inside the app, so closing the tab removes the runtime from `foldkit_list_runtimes`.
+- 15d77a6: Broaden the `foldkit` peer dependency from `^0.76.0` to `^0` so future foldkit minor releases don't trigger an unwanted major version cascade in dependent packages. The repo's `version-packages` script now resets these peer dep ranges back to broad form after `changeset version` runs, preventing the narrowing that was causing `onlyUpdatePeerDependentsWhenOutOfRange` to fire on every minor.
+- Updated dependencies [c5d56cb]
+  - foldkit@0.76.1
+
 ## 0.1.0
 
 ### Minor Changes
