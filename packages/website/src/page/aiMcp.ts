@@ -254,6 +254,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('foldkit-devtools'),
         ' server.',
       ),
+      para(
+        'The browser bridge runs inside your app, so the MCP server only sees a runtime while the app is open in a browser tab. Close the tab and the runtime disappears from ',
+        inlineCode('foldkit_list_runtimes'),
+        '.',
+      ),
 
       tableOfContentsEntryToHeader(toolsHeader),
       para(

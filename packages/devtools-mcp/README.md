@@ -57,6 +57,8 @@ Runtime.makeProgram({
 
 Restart your dev server, then restart your AI agent. The MCP server will appear with the eight `foldkit_*` tools attached.
 
+The browser bridge runs inside your app, so the MCP server only sees a runtime while the app is open in a browser tab. Close the tab and the runtime disappears from `foldkit_list_runtimes`.
+
 ## Tools
 
 Each tool accepts an optional `runtime_id`. When omitted, the most recently connected runtime is used.
