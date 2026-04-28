@@ -4,7 +4,8 @@ A Model Context Protocol server that exposes a running [Foldkit](https://foldkit
 
 With it attached, agents can:
 
-- Read the current Model
+- Read the current Model, or any historical Model by history index
+- Narrow reads with dot-string paths and summarized payloads to fit token budgets
 - List and inspect the Message history, with diffs and submodel chains
 - Read the recorded init Model and init Command names
 - Inspect runtime state: current index, retained history bounds, pause status
@@ -57,7 +58,7 @@ Runtime.makeProgram({
 })
 ```
 
-Restart your dev server, then restart your AI agent. The MCP server will appear with the ten `foldkit_*` tools attached.
+Restart your dev server, then restart your AI agent. The MCP server will appear with the `foldkit_*` tools attached.
 
 The browser bridge runs inside your app, so the MCP server only sees a runtime while the app is open in a browser tab. Close the tab and the runtime disappears from `foldkit_list_runtimes`.
 
@@ -68,15 +69,23 @@ Each tool accepts an optional `runtime_id`. When omitted, the most recently conn
 | Tool                         | Description                                                                                                                                                                                                                                             |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `foldkit_list_runtimes`      | Returns metadata for every connected browser tab. Agents call this first to discover which runtime to target.                                                                                                                                           |
-| `foldkit_get_model`          | Snapshots the current Model.                                                                                                                                                                                                                            |
+| `foldkit_get_model`          | Snapshots the current Model. Accepts an optional `path` to narrow to a subtree and `expand` to control summarization.                                                                                                                                   |
+| `foldkit_get_model_at`       | Snapshots a historical Model after a given history entry. Pass `index: N - 1` to read the Model just before message `N`. Same `path`/`expand` semantics as `foldkit_get_model`. For the initial Model (and init Command names), use `foldkit_get_init`. |
 | `foldkit_get_init`           | Reads the recorded initial Model and the names of Commands returned from the application's `init` function. Equivalent to selecting the synthetic "init" row in the DevTools panel.                                                                     |
 | `foldkit_get_runtime_state`  | Snapshots the runtime's DevTools state: history bounds, current paused/live status, and whether init is recorded. Useful for understanding what `foldkit_list_messages` and `foldkit_get_message` will see and detecting whether the runtime is paused. |
 | `foldkit_list_messages`      | Lists recent Message history entries with pagination. Each entry carries the Message body, Command names triggered, timestamp, an `isModelChanged` flag, the diff path lists (`changedPaths` / `affectedPaths`), and any extracted Submodel chain.      |
-| `foldkit_get_message`        | Reads one entry at a given index, including the Model before and after the Message was applied. Use `foldkit_get_init` instead for the synthetic init entry at index -1.                                                                                |
+| `foldkit_get_message`        | Reads one entry at a given index. The response carries the SerializedEntry only; to inspect the Model around the entry, call `foldkit_get_model_at` with `index - 1` (before) and `index` (after). Use `foldkit_get_init` for the synthetic init entry. |
 | `foldkit_list_keyframes`     | Returns the indices Foldkit can replay back to. Index `-1` is the initial Model.                                                                                                                                                                        |
 | `foldkit_replay_to_keyframe` | Time-travels the runtime to a previous state. The runtime is paused at that snapshot until `foldkit_resume` is called.                                                                                                                                  |
 | `foldkit_resume`             | Resumes normal execution after a replay.                                                                                                                                                                                                                |
 | `foldkit_dispatch_message`   | Enqueues a Message into the runtime as if your application produced it. The runtime decodes the payload against your Schema and returns a clean error if it does not match.                                                                             |
+
+### Reading the Model efficiently
+
+`foldkit_get_model` and `foldkit_get_model_at` are designed for AI agents reading state into a token-bounded context. Two parameters control the payload size:
+
+- **`path`** is a dot-string anchored at `root` that narrows the response to a subtree. The alphabet matches the `changedPaths` array on each `SerializedEntry`, so a path observed in `foldkit_list_messages` can be passed straight back. Examples: `'root'` (the whole Model), `'root.route'`, `'root.session.user'`, `'root.cards.0'`. When the path doesn't resolve, the response is an error listing the keys available at the deepest segment that did resolve, so the agent can refine in one follow-up call.
+- **`expand`** controls summarization. By default (`false`), large arrays collapse to `{ _summary: 'array', length, sample: [head, last] }`, deeply nested records collapse to `{ _summary: 'record', keys }`, and long strings collapse to `{ _summary: 'string', length, head }`. Tagged-union variants (`{ _tag, ... }`) keep their tag and recursively summarize children. With `expand: true`, the literal value at the path is returned with no summarization. Pair a narrow `path` with `expand: true` to read a specific subtree at full fidelity without paying for the rest of the Model.
 
 ## Architecture
 

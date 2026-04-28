@@ -37,6 +37,12 @@ import {
 } from './protocol.js'
 import { toInspectableValue, toSerializedEntry } from './serialize.js'
 import { type DevToolsStore, INIT_INDEX } from './store.js'
+import {
+  type PathResolution,
+  formatPathNotFound,
+  resolvePath,
+  summarizeValue,
+} from './summarize.js'
 
 type Hot = NonNullable<ImportMeta['hot']>
 
@@ -151,6 +157,46 @@ export const startWebSocketBridge = (
     window.addEventListener('beforeunload', emitDisconnect, { once: true })
   })
 
+const presentResolution = (
+  resolution: PathResolution,
+  expand: boolean,
+): Response =>
+  Match.value(resolution).pipe(
+    Match.tag('Found', ({ value, atPath }) =>
+      ResponseModel({
+        value: expand ? value : summarizeValue(value),
+        atPath,
+        summarized: !expand,
+      }),
+    ),
+    Match.orElse(notFound =>
+      ResponseError({ reason: formatPathNotFound(notFound) }),
+    ),
+  )
+
+const readModelResponse = (
+  store: DevToolsStore,
+  index: number,
+  maybePath: Option.Option<string>,
+  expand: boolean,
+): Effect.Effect<Response> =>
+  Effect.gen(function* () {
+    const model = yield* store.getModelAtIndex(index)
+    const path = Option.getOrElse(maybePath, () => 'root')
+    return presentResolution(
+      resolvePath(toInspectableValue(model), path),
+      expand,
+    )
+  }).pipe(
+    Effect.catchAllCause(cause =>
+      Effect.succeed(
+        ResponseError({
+          reason: `Failed to read Model at index ${index}: ${Cause.pretty(cause)}`,
+        }),
+      ),
+    ),
+  )
+
 const dispatchRequest = (
   store: DevToolsStore,
   dispatch: (message: unknown) => Effect.Effect<void>,
@@ -159,28 +205,18 @@ const dispatchRequest = (
 ): Effect.Effect<Response> =>
   Match.value(request).pipe(
     Match.tagsExhaustive({
-      RequestGetModel: () =>
+      RequestGetModel: ({ maybePath, expand }) =>
         Effect.gen(function* () {
           const state = yield* SubscriptionRef.get(store.stateRef)
           const index = currentAbsoluteIndex(
             state.entries.length,
             state.startIndex,
           )
-          return yield* pipe(
-            index,
-            store.getModelAtIndex,
-            Effect.map(model =>
-              ResponseModel({ model: toInspectableValue(model) }),
-            ),
-            Effect.catchAllCause(cause =>
-              Effect.succeed(
-                ResponseError({
-                  reason: `Failed to read current Model: ${Cause.pretty(cause)}`,
-                }),
-              ),
-            ),
-          )
+          return yield* readModelResponse(store, index, maybePath, expand)
         }),
+
+      RequestGetModelAt: ({ index, maybePath, expand }) =>
+        readModelResponse(store, index, maybePath, expand),
 
       RequestListMessages: ({ limit, maybeSinceIndex }) =>
         Effect.gen(function* () {
@@ -227,26 +263,10 @@ const dispatchRequest = (
                 }),
               ),
             onSome: entry =>
-              pipe(
-                {
-                  modelBefore: store.getModelAtIndex(index - 1),
-                  modelAfter: store.getModelAtIndex(index),
-                },
-                Effect.all,
-                Effect.map(({ modelBefore, modelAfter }) =>
-                  ResponseMessage({
-                    entry: toSerializedEntry(entry, index),
-                    modelBefore: toInspectableValue(modelBefore),
-                    modelAfter: toInspectableValue(modelAfter),
-                  }),
-                ),
-                Effect.catchAllCause(cause =>
-                  Effect.succeed(
-                    ResponseError({
-                      reason: `Failed to read Models around index ${index}: ${Cause.pretty(cause)}`,
-                    }),
-                  ),
-                ),
+              Effect.succeed(
+                ResponseMessage({
+                  entry: toSerializedEntry(entry, index),
+                }),
               ),
           })
         }),

@@ -9,6 +9,7 @@ export {
   RequestGetInit,
   RequestGetMessage,
   RequestGetModel,
+  RequestGetModelAt,
   RequestGetRuntimeState,
   RequestListKeyframes,
   RequestListMessages,

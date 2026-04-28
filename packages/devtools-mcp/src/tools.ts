@@ -5,6 +5,7 @@ import {
   RequestGetInit,
   RequestGetMessage,
   RequestGetModel,
+  RequestGetModelAt,
   RequestGetRuntimeState,
   RequestListKeyframes,
   RequestListMessages,
@@ -56,8 +57,39 @@ const KeyframeIndex = S.Number.pipe(
   }),
 )
 
+const ModelIndex = S.Number.pipe(
+  S.int(),
+  S.annotations({
+    description:
+      'Absolute history index. Returns the Model state right after the entry at this index was applied. To inspect the Model immediately before message N, pass index N - 1. For the initial Model, use foldkit_get_init.',
+  }),
+)
+
+const PathField = S.optional(
+  S.String.annotations({
+    description:
+      "Dot-string path into the Model anchored at 'root'. Examples: 'root', 'root.route', 'root.session.user', 'root.cards.0'. Matches the alphabet used by SerializedEntry.changedPaths so paths copied from one tool's output can be passed straight into the next. Defaults to 'root' (the whole Model).",
+  }),
+)
+
+const ExpandField = S.optional(
+  S.Boolean.annotations({
+    description:
+      "When false (the default), large arrays/records/strings collapse to '_summary' placeholders to keep payloads small. Set true to receive the literal value at the path. Pair with `path` to drill in: a narrow path with `expand: true` is the cheapest way to read a specific subtree at full fidelity.",
+  }),
+)
+
 const GetModelInput = S.Struct({
   runtime_id: RuntimeIdField,
+  path: PathField,
+  expand: ExpandField,
+})
+
+const GetModelAtInput = S.Struct({
+  runtime_id: RuntimeIdField,
+  index: ModelIndex,
+  path: PathField,
+  expand: ExpandField,
 })
 
 const ListMessagesInput = S.Struct({
@@ -240,9 +272,34 @@ export const buildTools = (
 ): ReadonlyArray<ToolDefinition> => [
   {
     name: 'foldkit_get_model',
-    description: 'Snapshot the current Model from a connected Foldkit runtime.',
+    description:
+      "Snapshot the current Model from a connected Foldkit runtime. By default the response is summarized (large arrays/records/strings collapse to `_summary` placeholders) to keep payloads small for AI agents. Pass `path` (e.g. 'root.session.user') to narrow to a subtree, and `expand: true` to receive the literal value at that path. Returns `{ value, atPath, summarized }`.",
     inputSchema: JSONSchema.make(GetModelInput),
-    handle: runRuntimeTool(GetModelInput, () => RequestGetModel(), wsClient),
+    handle: runRuntimeTool(
+      GetModelInput,
+      ({ path, expand }) =>
+        RequestGetModel({
+          maybePath: Option.fromNullable(path),
+          expand: expand ?? false,
+        }),
+      wsClient,
+    ),
+  },
+  {
+    name: 'foldkit_get_model_at',
+    description:
+      "Snapshot a historical Model after a given history entry was applied. Pass `index: N - 1` to read the Model just before message N. Same `path`/`expand` semantics as foldkit_get_model. For the initial Model (and the names of Commands returned from the application's `init`), use foldkit_get_init.",
+    inputSchema: JSONSchema.make(GetModelAtInput),
+    handle: runRuntimeTool(
+      GetModelAtInput,
+      ({ index, path, expand }) =>
+        RequestGetModelAt({
+          index,
+          maybePath: Option.fromNullable(path),
+          expand: expand ?? false,
+        }),
+      wsClient,
+    ),
   },
   {
     name: 'foldkit_list_messages',
@@ -262,7 +319,7 @@ export const buildTools = (
   {
     name: 'foldkit_get_message',
     description:
-      'Read a single Message history entry by absolute index, including before/after Model snapshots. The entry carries the Message body, the Commands the update function returned, an `isModelChanged` flag, and the diff path lists (`changedPaths` for leaf-level mutations and `affectedPaths` adding their ancestor paths) so you can see exactly which Model fields changed. For Submodel-routed entries (those whose tag matches `Got*Message`), the entry also carries `submodelPath` listing the wrapper tags from outer to inner and `maybeLeafTag` naming the innermost child Message.',
+      'Read a single Message history entry by absolute index. The response carries the SerializedEntry (tag, message body, commandNames, timestamp, `isModelChanged`, `changedPaths` for leaf-level mutations, `affectedPaths` adding their ancestor paths). For Submodel-routed entries (tag matches `Got*Message`), the entry also carries `submodelPath` listing wrapper tags from outer to inner and `maybeLeafTag` naming the innermost child Message. Model snapshots are not included; call foldkit_get_model_at with `index - 1` (before) and `index` (after) to inspect Model state around the entry.',
     inputSchema: JSONSchema.make(GetMessageInput),
     handle: runRuntimeTool(
       GetMessageInput,

@@ -38,8 +38,18 @@ export type RuntimeInfo = typeof RuntimeInfo.Type
 
 // REQUEST
 
-/** Request the current Model snapshot. */
-export const RequestGetModel = ts('RequestGetModel')
+/** Request the current Model snapshot, optionally narrowed to a path and/or expanded. */
+export const RequestGetModel = ts('RequestGetModel', {
+  maybePath: S.Option(S.String),
+  expand: S.Boolean,
+})
+
+/** Request a historical Model snapshot at an absolute history index, optionally narrowed to a path and/or expanded. Use `index: -1` for the initial Model. */
+export const RequestGetModelAt = ts('RequestGetModelAt', {
+  index: S.Number,
+  maybePath: S.Option(S.String),
+  expand: S.Boolean,
+})
 
 /** Request recent history entries, optionally starting from a given index. */
 export const RequestListMessages = ts('RequestListMessages', {
@@ -47,7 +57,7 @@ export const RequestListMessages = ts('RequestListMessages', {
   maybeSinceIndex: S.Option(S.Number),
 })
 
-/** Request a single history entry by index, including before/after Model snapshots. */
+/** Request a single history entry by index. To inspect the Model around the entry, call `RequestGetModelAt` with `index - 1` (before) and `index` (after). */
 export const RequestGetMessage = ts('RequestGetMessage', {
   index: S.Number,
 })
@@ -80,6 +90,7 @@ export const RequestListRuntimes = ts('RequestListRuntimes')
 /** A request from the MCP server. RequestListRuntimes is handled at the Vite plugin layer; all other requests are routed to a browser runtime. */
 export const Request = S.Union(
   RequestGetModel,
+  RequestGetModelAt,
   RequestListMessages,
   RequestGetMessage,
   RequestListKeyframes,
@@ -95,9 +106,11 @@ export type Request = typeof Request.Type
 
 // RESPONSE
 
-/** Response carrying the current Model snapshot. */
+/** Response carrying a Model snapshot. The `value` is the resolved subtree at `atPath` (or the whole Model when no path was supplied). When `summarized` is true, large arrays/records/strings have been collapsed to `_summary` placeholders to keep payloads small for AI agents; pass `expand: true` on the Request to receive the literal value. */
 export const ResponseModel = ts('ResponseModel', {
-  model: S.Unknown,
+  value: S.Unknown,
+  atPath: S.String,
+  summarized: S.Boolean,
 })
 
 /** Response carrying a page of history entries. `maybeNextIndex` is `Some` when more entries are available beyond this page (pass it as `RequestListMessages.maybeSinceIndex` to fetch the next page) and `None` when this page reaches the current end of history. */
@@ -106,11 +119,9 @@ export const ResponseMessages = ts('ResponseMessages', {
   maybeNextIndex: S.Option(S.Number),
 })
 
-/** Response carrying a single history entry with surrounding Model snapshots. */
+/** Response carrying a single history entry. Model snapshots are not included; use `RequestGetModelAt` with `index - 1` and `index` to inspect Model state around the entry. */
 export const ResponseMessage = ts('ResponseMessage', {
   entry: SerializedEntry,
-  modelBefore: S.Unknown,
-  modelAfter: S.Unknown,
 })
 
 /** Response carrying the list of available keyframes. */

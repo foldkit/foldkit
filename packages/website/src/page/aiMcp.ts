@@ -87,7 +87,31 @@ const tools: ReadonlyArray<ToolRowSpec> = [
   },
   {
     name: 'foldkit_get_model',
-    description: ['Snapshots the current Model.'],
+    description: [
+      'Snapshots the current Model. Accepts an optional ',
+      inlineCode('path', 'text-xs'),
+      ' to narrow to a subtree and ',
+      inlineCode('expand', 'text-xs'),
+      ' to control summarization.',
+    ],
+  },
+  {
+    name: 'foldkit_get_model_at',
+    description: [
+      'Snapshots a historical Model after a given history entry. Pass ',
+      inlineCode('index: N - 1', 'text-xs'),
+      ' to read the Model before message ',
+      inlineCode('N', 'text-xs'),
+      '. Same ',
+      inlineCode('path', 'text-xs'),
+      '/',
+      inlineCode('expand', 'text-xs'),
+      ' semantics as ',
+      inlineCode('foldkit_get_model', 'text-xs'),
+      '. For the initial Model, use ',
+      inlineCode('foldkit_get_init', 'text-xs'),
+      '.',
+    ],
   },
   {
     name: 'foldkit_get_init',
@@ -120,7 +144,13 @@ const tools: ReadonlyArray<ToolRowSpec> = [
   {
     name: 'foldkit_get_message',
     description: [
-      'Reads one entry at a given index, including the Model before and after the Message was applied. Use ',
+      'Reads one entry at a given index. To inspect the Model around the entry, call ',
+      inlineCode('foldkit_get_model_at', 'text-xs'),
+      ' with ',
+      inlineCode('index - 1', 'text-xs'),
+      ' (before) and ',
+      inlineCode('index', 'text-xs'),
+      ' (after). Use ',
       inlineCode('foldkit_get_init', 'text-xs'),
       ' for the synthetic init entry at index ',
       inlineCode('-1', 'text-xs'),
