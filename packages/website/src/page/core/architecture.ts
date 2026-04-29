@@ -11,6 +11,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
+import { coreDevToolsRouter, testingRouter } from '../../route'
 import { comparisonTable } from '../../view/table'
 
 const overviewHeader: TableOfContentsEntry = {
@@ -75,7 +76,11 @@ export const view = (): Html =>
       para(
         'Commands are descriptions of one-shot side effects \u2014 HTTP requests, focus operations, ',
         inlineCode('localStorage'),
-        ' writes, navigation calls. The Foldkit runtime executes them and sends their results back as new Messages, feeding them into the same loop. Each Command carries a name, which surfaces in tracing and tests.',
+        ' writes, navigation calls. The Foldkit runtime executes them and sends their results back as new Messages, feeding them into the same loop. Each Command carries a name, which surfaces in ',
+        link(coreDevToolsRouter(), 'DevTools'),
+        ', ',
+        link(testingRouter(), 'tests'),
+        ', and tracing.',
       ),
       para(
         'Subscriptions are continuous streams of Messages from external sources \u2014 keypresses, recurring timers, ',
