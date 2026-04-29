@@ -70,14 +70,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'At some point, your app has 30 Messages, a sprawling Model, and an update function that scrolls for days. You\u2019ve outgrown a single Model, Message, and update.',
       ),
       para(
-        'The Submodels pattern lets you decompose your app into self-contained modules, each with its own Model, Message, and update \u2014 the same pieces you already know, just scoped to a single feature.',
+        'The Submodels pattern lets you decompose your app into self-contained modules, each with its own Model, Message, and update. The same pieces you already know, just scoped to a single feature.',
       ),
       para(
-        'In the restaurant analogy, think of a large restaurant with multiple stations \u2014 a sushi bar, a grill, a pastry counter. Each station has its own chef, its own order flow, its own plating. But the head waiter still coordinates: taking the order, routing it to the right station, and combining everything onto the table.',
+        'In the restaurant analogy, think of a large restaurant with multiple stations: a sushi bar, a grill, a pastry counter. Each station has its own chef, its own order flow, its own plating. But the head waiter still coordinates: taking the order, routing it to the right station, and combining everything onto the table.',
       ),
       infoCallout(
         'Compare to React',
-        'In React, components naturally nest and communicate through props and callbacks. In Foldkit, composition is explicit \u2014 the parent embeds the child\u2019s Model, wraps its Messages, and delegates in update. Every interaction between parent and child is visible in the update function.',
+        'In React, components naturally nest and communicate through props and callbacks. In Foldkit, composition is explicit: the parent embeds the child\u2019s Model, wraps its Messages, and delegates in update. Every interaction between parent and child is visible in the update function.',
       ),
       tableOfContentsEntryToHeader(childModuleHeader),
       para(
@@ -97,7 +97,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        'Nothing here knows about the parent. The child manages its own state and handles its own Messages. This isolation is the point \u2014 you can develop, test, and reason about each module independently.',
+        'Nothing here knows about the parent. The child manages its own state and handles its own Messages. This isolation is the point: you can develop, test, and reason about each module independently.',
       ),
       tableOfContentsEntryToHeader(parentResponsibilitiesHeader),
       para(
@@ -122,9 +122,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(wrappingMessagesHeader),
       para(
-        'In Foldkit, every Message is a top-level Message \u2014 the runtime only delivers Messages to your app\u2019s update function. There\u2019s no built-in message routing to child modules. Instead, the parent creates a wrapper Message that carries the child\u2019s Message inside it. By convention, these use the ',
+        'In Foldkit, every Message is a top-level Message. The runtime only delivers Messages to your app\u2019s update function, and there\u2019s no built-in message routing to child modules. Instead, the parent creates a wrapper Message that carries the child\u2019s Message inside it. By convention, these use the ',
         inlineCode('Got*Message'),
-        ' prefix \u2014 ',
+        ' prefix: ',
         inlineCode('GotSettingsMessage'),
         ', ',
         inlineCode('GotProductsMessage'),
@@ -169,13 +169,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        'The Command mapping deserves attention. The child\u2019s Commands produce child Messages when they complete \u2014 but the Foldkit runtime expects top-level Messages. The child doesn\u2019t wrap its own Commands because it could be used across many parents. So the parent uses ',
+        'The Command mapping deserves attention. The child\u2019s Commands produce child Messages when they complete, but the Foldkit runtime expects top-level Messages. The child doesn\u2019t wrap its own Commands because it could be used across many parents. So the parent uses ',
         inlineCode('Command.mapEffect'),
         ' to wrap each result in ',
         inlineCode('GotSettingsMessage'),
         ', translating child Messages back into the parent\u2019s Message type. ',
         inlineCode('Command.mapEffect'),
-        ' transforms the inner Effect while preserving the Command\u2019s name \u2014 so traces still show the original name from the child module.',
+        ' transforms the inner Effect while preserving the Command\u2019s name, so traces still show the original name from the child module.',
       ),
       infoCallout(
         'Multiple instances',
@@ -187,7 +187,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           exampleDetailRouter({ exampleSlug: 'shopping-cart' }),
           'Shopping Cart example',
         ),
-        ' for a complete Submodels implementation. But what happens when a Message in the child should trigger a change in the parent\u2019s Model \u2014 like a switch from logged-out to logged-in in the root Model, or an item added to a cart in a sibling Submodel? The child can\u2019t update parent state and shouldn\u2019t know about it. That\u2019s what ',
+        ' for a complete Submodels implementation. But what happens when a Message in the child should trigger a change in the parent\u2019s Model, like a switch from logged-out to logged-in in the root Model, or an item added to a cart in a sibling Submodel? The child can\u2019t update parent state and shouldn\u2019t know about it. That\u2019s what ',
         link(patternsOutMessageRouter(), 'OutMessage'),
         ' solves.',
       ),

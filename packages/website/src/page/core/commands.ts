@@ -56,7 +56,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       pageTitle('core/commands', 'Commands'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'A Command is a description of a side effect \u2014 an HTTP request, a one-shot delay, a DOM focus call. The update function doesn\u2019t actually do anything on its own: it returns data, and the Foldkit runtime reads the Commands and carries them out.',
+        'A Command is a description of a side effect: an HTTP request, a one-shot delay, a DOM focus call. The update function doesn\u2019t actually do anything on its own. It returns data, and the Foldkit runtime reads the Commands and carries them out.',
       ),
       para(
         'In the ',
@@ -64,14 +64,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           `${coreArchitectureRouter()}#the-restaurant-analogy`,
           'restaurant analogy',
         ),
-        ', Commands are the slips the waiter hands to the kitchen. The waiter doesn\u2019t cook \u2014 they describe what\u2019s needed and hand it off. The kitchen does the work and reports back when it\u2019s done.',
+        ', Commands are the slips the waiter hands to the kitchen. The waiter doesn\u2019t cook. They describe what\u2019s needed and hand it off. The kitchen does the work and reports back when it\u2019s done.',
       ),
       para(
         'When update runs, no HTTP request fires, no timer starts, no DOM changes. It returns a new Model and a list of Commands that describe what should happen, and the runtime executes them.',
       ),
       infoCallout(
         'A different model for side effects',
-        'In React, event handlers do things directly \u2014 call ',
+        'In React, event handlers do things directly: call ',
         inlineCode('fetch()'),
         ', start a timer, write to ',
         inlineCode('localStorage'),
@@ -96,7 +96,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('ClickedResetAfterDelay'),
         ' arrives: it returns the Model unchanged, along with ',
         inlineCode('delayReset'),
-        ' \u2014 a Command that describes a one-second delay. The update function didn\u2019t start a timer. It handed the runtime a description that says \u201Cwait one second, then send me ',
+        ', a Command that describes a one-second delay. The update function didn\u2019t start a timer. It handed the runtime a description that says \u201Cwait one second, then send me ',
         inlineCode('CompletedDelayReset'),
         '.\u201D The runtime does the waiting. When the delay fires, ',
         inlineCode('CompletedDelayReset'),
@@ -116,7 +116,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('m()'),
         ' gives a Message a name that the type system knows, ',
         inlineCode('Command.define'),
-        ' gives a Command an identity that DevTools can display, tests can reference, and traces can track. The name isn\u2019t a debug string \u2014 it\u2019s a first-class value.',
+        ' gives a Command an identity that DevTools can display, tests can reference, and traces can track. The name isn\u2019t a debug string. It\u2019s a first-class value.',
       ),
       para(
         'Names are verb-first imperatives: ',
@@ -125,7 +125,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('FocusButton'),
         ', ',
         inlineCode('LockScroll'),
-        '. Messages describe what happened (past tense), Command names are imperatives \u2014 instructions to the runtime.',
+        '. Messages describe what happened (past tense), Command names are imperatives: instructions to the runtime.',
       ),
       tableOfContentsEntryToHeader(testableByDesignHeader),
       para(
@@ -186,7 +186,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Effect.tryPromise'),
         ' to keep the focus on Commands. For real applications, we recommend Effect\u2019s ',
         inlineCode('HttpClient'),
-        ' module \u2014 it gives you typed errors, request and response schemas, retries, and ',
+        ' module. It gives you typed errors, request and response schemas, retries, and ',
         inlineCode('Layer'),
         '-based configuration. See the ',
         link(
@@ -195,7 +195,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ),
         ' for a real ',
         inlineCode('HttpClient'),
-        ' usage \u2014 ',
+        ' usage: ',
         inlineCode('fetchWeather'),
         ' builds requests with ',
         inlineCode('HttpClientRequest.get'),
@@ -225,7 +225,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       infoCallout(
         'Errors are tracked, not hidden',
-        'Commands use Effect\u2019s typed error channel \u2014 if a Command can fail, the type signature tells you. ',
+        'Commands use Effect\u2019s typed error channel: if a Command can fail, the type signature tells you. ',
         inlineCode('Effect.catchAll'),
         ' turns failures into Messages like ',
         inlineCode('FailedFetchCount'),

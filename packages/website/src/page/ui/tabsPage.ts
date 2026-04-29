@@ -117,7 +117,7 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
     type: "'Automatic' | 'Manual'",
     default: "'Automatic'",
     description:
-      'In Automatic mode, arrow keys select tabs on focus. In Manual mode, arrow keys focus only — Enter or Space is required to select.',
+      'In Automatic mode, arrow keys select tabs on focus. In Manual mode, arrow keys focus only. Enter or Space is required to select.',
   },
 ]
 
@@ -173,7 +173,7 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     name: 'onTabSelected',
     type: '(index: number) => Message',
     description:
-      'Alternative to Submodel delegation — fires your own Message on tab selection. Use with Tabs.selectTab() to update the Model.',
+      'Alternative to Submodel delegation: fires your own Message on tab selection. Use with Tabs.selectTab() to update the Model.',
   },
   {
     name: 'tabListAttributes',
@@ -262,7 +262,7 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
   {
     key: 'Enter / Space',
     description:
-      'Select the focused tab (Manual mode only — Automatic selects on focus).',
+      'Select the focused tab (Manual mode only; Automatic selects on focus).',
   },
 ]
 
@@ -279,7 +279,7 @@ export const view = (
       pageTitle('ui/tabs', 'Tabs'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'Tab panel navigation with roving tabindex keyboard support, horizontal and vertical orientation, and automatic or manual activation modes. Tabs renders a tab list with buttons and corresponding panels — only the active panel is visible.',
+        'Tab panel navigation with roving tabindex keyboard support, horizontal and vertical orientation, and automatic or manual activation modes. Tabs renders a tab list with buttons and corresponding panels. Only the active panel is visible.',
       ),
       infoCallout(
         'See it in an app',
@@ -337,7 +337,7 @@ export const view = (
       ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
-        'Tabs is headless — the ',
+        'Tabs is headless. The ',
         inlineCode('tabToConfig'),
         ' callback controls all tab and panel markup. A common styling trick is to use a negative margin (',
         inlineCode('mb-[-1px]'),
@@ -352,7 +352,7 @@ export const view = (
         keyboardInteractionHeader.text,
       ),
       para(
-        'Tabs uses roving tabindex — only the focused tab is in the tab order. Arrow direction depends on orientation: left/right for horizontal, up/down for vertical. Disabled tabs are skipped during navigation.',
+        'Tabs uses roving tabindex: only the focused tab is in the tab order. Arrow direction depends on orientation: left/right for horizontal, up/down for vertical. Disabled tabs are skipped during navigation.',
       ),
       keyboardTable(keyboardEntries),
       heading(

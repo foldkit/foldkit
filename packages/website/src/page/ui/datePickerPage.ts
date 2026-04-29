@@ -199,7 +199,7 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     name: 'toCalendarView',
     type: '(attributes: CalendarAttributes<ParentMessage>) => Html',
     description:
-      'Renders the calendar grid layout inside the popover panel. Same callback shape as Calendar.view toView — lay out the attribute groups (grid, header, weeks, cells) however you like.',
+      'Renders the calendar grid layout inside the popover panel. Same callback shape as Calendar.view toView. Lay out the attribute groups (grid, header, weeks, cells) however you like.',
   },
   {
     name: 'isDisabled',
@@ -248,7 +248,7 @@ const programmaticHelpersProps: ReadonlyArray<PropEntry> = [
     name: 'selectDate',
     type: '(model: Model, date: CalendarDate) => [Model, Commands]',
     description:
-      'Commits the given date and closes the popover. Use in controlled mode — when ViewConfig provides onSelectedDate — to write the selection back to the date picker.',
+      'Commits the given date and closes the popover. Use in controlled mode (when ViewConfig provides onSelectedDate) to write the selection back to the date picker.',
   },
   {
     name: 'clear',
@@ -270,7 +270,7 @@ const programmaticHelpersProps: ReadonlyArray<PropEntry> = [
     name: 'setMinDate',
     type: '(model: Model, maybeMinDate: Option<CalendarDate>) => Model',
     description:
-      "Updates the minimum selectable date. Pass Option.none() to remove the minimum. Use for cross-field validation — e.g. an end date picker whose minimum tracks a start date picker's selection. Does not reconcile the current selection if it falls below the new minimum.",
+      "Updates the minimum selectable date. Pass Option.none() to remove the minimum. Use for cross-field validation, e.g. an end date picker whose minimum tracks a start date picker's selection. Does not reconcile the current selection if it falls below the new minimum.",
   },
   {
     name: 'setMaxDate',
@@ -378,10 +378,10 @@ export const view = (
         inlineCode('Calendar'),
         ' in a ',
         inlineCode('Popover'),
-        '. Consumers provide the trigger button face and the calendar grid layout — DatePicker handles focus choreography (opening focuses the grid, closing returns focus to the trigger), open/close state, and an optional hidden form input for native form submission.',
+        '. Consumers provide the trigger button face and the calendar grid layout. DatePicker handles focus choreography (opening focuses the grid, closing returns focus to the trigger), open/close state, and an optional hidden form input for native form submission.',
       ),
       para(
-        'DatePicker uses the Submodel pattern — initialize with ',
+        'DatePicker uses the Submodel pattern: initialize with ',
         inlineCode('DatePicker.init()'),
         ', store the Model in your parent, delegate Messages via ',
         inlineCode('DatePicker.update()'),
@@ -389,7 +389,7 @@ export const view = (
         inlineCode('DatePicker.view()'),
         '. The update function returns ',
         inlineCode('[Model, Commands, Option<OutMessage>]'),
-        ' — the OutMessage fires when the user commits a date or clears the selection. For programmatic control in update functions, use ',
+        '. The OutMessage fires when the user commits a date or clears the selection. For programmatic control in update functions, use ',
         inlineCode('DatePicker.open(model)'),
         ' and ',
         inlineCode('DatePicker.close(model)'),
@@ -522,12 +522,12 @@ export const view = (
         programmaticHelpersHeader.text,
       ),
       para(
-        'Helpers you call from your own update handlers to drive the date picker imperatively — for writing back the selection in controlled mode, opening/closing on domain events, or updating constraints when they derive from other Model state.',
+        'Helpers you call from your own update handlers to drive the date picker imperatively: for writing back the selection in controlled mode, opening/closing on domain events, or updating constraints when they derive from other Model state.',
       ),
       para(
         'The four ',
         inlineCode('set*'),
-        ' helpers are how you implement cross-field date validation. Constraints are set at init time and updated via these helpers — they do not live on ViewConfig, because the update function needs them for keyboard-navigation disabled-skipping and commit-time validation. For an end date that must be on or after a start date, call ',
+        ' helpers are how you implement cross-field date validation. Constraints are set at init time and updated via these helpers. They do not live on ViewConfig, because the update function needs them for keyboard-navigation disabled-skipping and commit-time validation. For an end date that must be on or after a start date, call ',
         inlineCode('setMinDate(endDate, startDate.maybeSelectedDate)'),
         ' in the handler that processes the start date change.',
       ),

@@ -208,7 +208,7 @@ export const view = (
       pageTitle('ui/switch', 'Switch'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'An on/off toggle. Semantically different from Checkbox — Switch represents an immediate action (like a light switch), while Checkbox represents a form value that gets submitted. Switch uses the Submodel pattern with the same wiring as Checkbox.',
+        'An on/off toggle. Semantically different from Checkbox: Switch represents an immediate action (like a light switch), while Checkbox represents a form value that gets submitted. Switch uses the Submodel pattern with the same wiring as Checkbox.',
       ),
       infoCallout(
         'See it in an app',
@@ -239,7 +239,7 @@ export const view = (
       ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
-        'Switch is headless — your ',
+        'Switch is headless. Your ',
         inlineCode('toView'),
         ' callback controls all markup and styling. Use ',
         inlineCode('data-[checked]'),

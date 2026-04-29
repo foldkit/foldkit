@@ -69,7 +69,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Foldkit includes a built-in DevTools overlay that displays every Message flowing through your app and lets you inspect the Model, Message, and Commands at any point in time. It renders inside a shadow DOM so it won\u2019t interfere with your styles or layout.',
       ),
       para(
-        'You can see it in action right now \u2014 look for the tab on the bottom right edge of this page.',
+        'You can see it in action right now. Look for the tab on the bottom right edge of this page.',
       ),
       infoCallout(
         'AI agent integration',
@@ -124,7 +124,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       tableOfContentsEntryToHeader(modeHeader),
       para(
         inlineCode("'TimeTravel'"),
-        ' (the default) enables full time-travel debugging \u2014 clicking a Message row pauses the app and re-renders it exactly as it looked at that point in time. User interaction is blocked while paused, but Subscriptions continue running in the background and new rows keep appearing in the panel. Click Resume to jump back to the live state.',
+        ' (the default) enables full time-travel debugging. Clicking a Message row pauses the app and re-renders it exactly as it looked at that point in time. User interaction is blocked while paused, but Subscriptions continue running in the background and new rows keep appearing in the panel. Click Resume to jump back to the live state.',
       ),
       para(
         inlineCode("'Inspect'"),

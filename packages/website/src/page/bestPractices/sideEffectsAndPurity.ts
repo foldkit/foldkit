@@ -104,14 +104,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Correct Foldkit programs have zero side effects, period. Yes, zero (0).',
       ),
       para(
-        'Every side effect is described as an Effect \u2014 a value that represents a computation without executing it. An Effect does nothing when you construct it. It produces side effects when the Foldkit runtime runs your program.',
+        'Every side effect is described as an Effect: a value that represents a computation without executing it. An Effect does nothing when you construct it. It produces side effects when the Foldkit runtime runs your program.',
       ),
       para(
         'Both ',
         inlineCode('view'),
         ' and ',
         inlineCode('update'),
-        ' are pure functions \u2014 they take inputs and return outputs without touching the outside world.',
+        ' are pure functions. They take inputs and return outputs without touching the outside world.',
       ),
       para('You encapsulate side effects in exactly five places:'),
       ul(
@@ -121,25 +121,25 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
             [],
             [
               link(coreCommandsRouter(), 'Commands'),
-              ' \u2014 an Effect that performs a side effect and returns a Message. HTTP requests, DOM operations, reading from storage. This is where most of your side effects live.',
+              ': an Effect that performs a side effect and returns a Message. HTTP requests, DOM operations, reading from storage. This is where most of your side effects live.',
             ],
           ),
           li(
             [],
             [
               link(`${coreInitAndFlagsRouter()}#flags`, 'flags'),
-              ' \u2014 an Effect that returns the initial data your program needs to start. Reading from local storage, detecting browser capabilities, or fetching configuration.',
+              ': an Effect that returns the initial data your program needs to start. Reading from local storage, detecting browser capabilities, or fetching configuration.',
             ],
           ),
           li(
             [],
             [
               link(coreSubscriptionsRouter(), 'Subscription'),
-              ' streams \u2014 a ',
+              ' streams: a ',
               inlineCode('Stream<Message>'),
-              '. Subscriptions model ongoing processes like keyboard events, window resizing, or intersection observers. When a stream callback needs to perform a side effect before producing a Message \u2014 like calling ',
+              '. Subscriptions model ongoing processes like keyboard events, window resizing, or intersection observers. When a stream callback needs to perform a side effect before producing a Message (like calling ',
               inlineCode('event.preventDefault()'),
-              ' \u2014 use ',
+              '), use ',
               inlineCode('Stream.mapEffect'),
               '. The runtime controls when streams subscribe and unsubscribe based on your Model.',
             ],
@@ -148,14 +148,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
             [],
             [
               link(coreResourcesRouter(), 'Resources'),
-              ' \u2014 an Effect Layer that provides long-lived services to your Commands. One-time setup like creating an AudioContext or opening a database connection.',
+              ': an Effect Layer that provides long-lived services to your Commands. One-time setup like creating an AudioContext or opening a database connection.',
             ],
           ),
           li(
             [],
             [
               link(coreManagedResourcesRouter(), 'Managed Resources'),
-              ' \u2014 ',
+              ': ',
               inlineCode('acquire'),
               ' and ',
               inlineCode('release'),
@@ -175,7 +175,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           li(
             [],
             [
-              'DevTools replay \u2014 the DevTools can replay any sequence of Messages against your ',
+              'DevTools replay: the DevTools can replay any sequence of Messages against your ',
               inlineCode('update'),
               ' function because it\u2019s pure. If ',
               inlineCode('update'),
@@ -185,13 +185,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           li(
             [],
             [
-              'Time-travel debugging \u2014 you can jump to any point in your app\u2019s history and see exactly what the Model looked like, because each state is a deterministic function of the previous state plus the Message.',
+              'Time-travel debugging: you can jump to any point in your app\u2019s history and see exactly what the Model looked like, because each state is a deterministic function of the previous state plus the Message.',
             ],
           ),
           li(
             [],
             [
-              'Predictability \u2014 reading ',
+              'Predictability: reading ',
               inlineCode('update'),
               ' tells you everything about how a Message changes the Model. There are no hidden effects, no action-at-a-distance, no callbacks firing behind the scenes.',
             ],
@@ -208,9 +208,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
               inlineCode('console.log'),
               ' in ',
               inlineCode('update'),
-              ' \u2014 ',
+              ': ',
               inlineCode('console.log'),
-              ' during development is fine for quick debugging. But production logging or error monitoring is a side effect that belongs in a Command \u2014 it will fire again during DevTools replay, and you want structured control over what gets reported.',
+              ' during development is fine for quick debugging. But production logging or error monitoring is a side effect that belongs in a Command. It will fire again during DevTools replay, and you want structured control over what gets reported.',
             ],
           ),
           li(
@@ -219,7 +219,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
               inlineCode('Date.now()'),
               ' in ',
               inlineCode('update'),
-              ' \u2014 calling ',
+              ': calling ',
               inlineCode('Date.now()'),
               ' breaks purity because the same Model and Message produce different results depending on when they run. Request the current time via a Command using ',
               taskLink('const-Task/getTime', 'Task.getTime'),
@@ -236,7 +236,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
               inlineCode('fetch'),
               ' in ',
               inlineCode('view'),
-              ' \u2014 the view is called on every render. Instead, return a Command from ',
+              ': the view is called on every render. Instead, return a Command from ',
               inlineCode('update'),
               ' that fetches your data and returns a Message. Handle the Message to update your Model.',
             ],
@@ -244,7 +244,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           li(
             [],
             [
-              'DOM access anywhere \u2014 reading ',
+              'DOM access anywhere: reading ',
               inlineCode('document.getElementById'),
               ' or ',
               inlineCode('window.innerWidth'),
@@ -287,7 +287,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           li(
             [],
             [
-              'Returns a new Model and a list of Commands \u2014 doesn\u2019t execute anything. Each Command carries a name for tracing and testing. Foldkit runs the provided Commands.',
+              'Returns a new Model and a list of Commands. It doesn\u2019t execute anything. Each Command carries a name for tracing and testing. Foldkit runs the provided Commands.',
             ],
           ),
           li([], ['No mutations, no side effects']),
@@ -322,7 +322,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'This purity has a practical payoff: testing is trivial. Foldkit ships ',
         inlineCode('foldkit/test'),
-        ' \u2014 a simulation module that lets you send Messages, declare Command resolvers, and assert on the Model in a single pipe chain. See the ',
+        ': a simulation module that lets you send Messages, declare Command resolvers, and assert on the Model in a single pipe chain. See the ',
         link(testingRouter(), 'Testing'),
         ' guide for the full API.',
       ),
@@ -330,7 +330,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'A common mistake is computing random or time-based values directly in ',
         inlineCode('update'),
-        '. This breaks purity \u2014 calling the function twice with the same inputs would return different results.',
+        '. This breaks purity. Calling the function twice with the same inputs would return different results.',
       ),
       tableOfContentsEntryToHeader(dontComputeInUpdateHeader),
       highlightedCodeBlock(
@@ -362,7 +362,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('update'),
         ' pure. The ',
         inlineCode('RequestedApple'),
-        ' handler always returns the same result \u2014 it just emits a Command. The actual random generation happens in the Effect, and the result comes back via ',
+        ' handler always returns the same result. It just emits a Command. The actual random generation happens in the Effect, and the result comes back via ',
         inlineCode('GeneratedApple'),
         '.',
       ),

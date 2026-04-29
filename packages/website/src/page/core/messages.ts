@@ -31,7 +31,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       pageTitle('core/messages', 'Messages'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'A Message is a fact about something that happened in your application \u2014 not an instruction to do something, just a record of what occurred.',
+        'A Message is a fact about something that happened in your application. Not an instruction to do something, just a record of what occurred.',
       ),
       para(
         'In the ',
@@ -39,11 +39,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           `${coreArchitectureRouter()}#the-restaurant-analogy`,
           'restaurant analogy',
         ),
-        ', \u201Ctable 3 asked for the check\u201D is a Message. It doesn\u2019t tell the waiter what to do \u2014 maybe they bring the check immediately, maybe they offer dessert first. The waiter (the update function) decides. The message stays the same either way.',
+        ', \u201Ctable 3 asked for the check\u201D is a Message. It doesn\u2019t tell the waiter what to do: maybe they bring the check immediately, maybe they offer dessert first. The waiter (the update function) decides. The message stays the same either way.',
       ),
       para(
         inlineCode('ClickedIncrement'),
-        ' doesn\u2019t say \u201Cadd one to the count\u201D \u2014 it says \u201Cthe user clicked the increment button.\u201D The update function decides what that means. Maybe today it adds one. Maybe tomorrow it fetches a new count from a server. The Message stays the same.',
+        ' doesn\u2019t say \u201Cadd one to the count.\u201D It says \u201Cthe user clicked the increment button.\u201D The update function decides what that means. Maybe today it adds one. Maybe tomorrow it fetches a new count from a server. The Message stays the same.',
       ),
       para('The counter has three Messages:'),
       highlightedCodeBlock(
@@ -84,7 +84,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('TaggedStruct'),
         ' with a callable constructor. ',
         inlineCode("m('ClickedIncrement')"),
-        ' gives you a type you can pattern match on and a function you can call to create instances \u2014 ',
+        ' gives you a type you can pattern match on and a function you can call to create instances: ',
         inlineCode('ClickedIncrement()'),
         '.',
       ),
@@ -93,7 +93,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Messages are similar to Redux action types, but more ergonomic with Effect Schema. Instead of string constants and action creators, you get type inference and pattern matching for free.',
       ),
       para(
-        'Messages describe what happened. But who decides what to do about it? That\u2019s the job of the update function \u2014 the single place where your application\u2019s state transitions live.',
+        'Messages describe what happened. But who decides what to do about it? That\u2019s the job of the update function: the single place where your application\u2019s state transitions live.',
       ),
     ],
   )

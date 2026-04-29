@@ -53,9 +53,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Foldkit ships two testing primitives. ',
         inlineCode('Story'),
-        ' tests the state machine \u2014 you send Messages directly through update, resolve Commands inline, and assert on the Model. ',
+        ' tests the state machine: you send Messages directly through update, resolve Commands inline, and assert on the Model. ',
         inlineCode('Scene'),
-        ' tests features through the rendered view \u2014 clicking buttons, typing into inputs, pressing keys \u2014 using accessible locators. Both are pure, deterministic, and fast.',
+        ' tests features through the rendered view (clicking buttons, typing into inputs, pressing keys) using accessible locators. Both are pure, deterministic, and fast.',
       ),
       para(
         'Use Story for update logic, edge cases, and Command wiring. Use Scene for user flows, view rendering, and accessibility. A well-tested Foldkit app uses both.',
@@ -70,7 +70,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Story tests are flexible about testing level. Because Story sends Messages directly to ',
         inlineCode('update'),
-        ' and asserts on the Model, testing a child\u2019s update in isolation is valid \u2014 the function signature is the contract, and it works the same whether the parent calls it or the test does.',
+        ' and asserts on the Model, testing a child\u2019s update in isolation is valid: the function signature is the contract, and it works the same whether the parent calls it or the test does.',
       ),
       highlightedCodeBlock(
         div(
@@ -88,7 +88,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       tableOfContentsEntryToHeader(sceneHeader),
       para(
         inlineCode('Scene.scene'),
-        ' exercises the view. Locators find elements the way users do \u2014 by role, label, or placeholder. Interactions dispatch Messages through the rendered event handlers. Inline assertions check the HTML between steps. See the ',
+        ' exercises the view. Locators find elements the way users do: by role, label, or placeholder. Interactions dispatch Messages through the rendered event handlers. Inline assertions check the HTML between steps. See the ',
         link(testingSceneRouter(), 'Scene'),
         ' page for the full API.',
       ),
@@ -103,7 +103,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('(model) => Html'),
         ' signature that ',
         inlineCode('Scene.scene'),
-        ' expects \u2014 every level below takes a ',
+        ' expects. Every level below takes a ',
         inlineCode('toParentMessage'),
         ' adapter. Testing a child view in isolation means inventing a code path that never runs in production: the parent\u2019s Command mapping, OutMessage handling, and Model transitions would all be invisible. Test what users see, through the same code path they use.',
       ),

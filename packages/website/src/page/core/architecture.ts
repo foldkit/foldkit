@@ -56,13 +56,13 @@ export const view = (): Html =>
       para(
         'This pattern is called ',
         link(Link.elmArchitecture, 'The Elm Architecture'),
-        '. You don\u2019t need to know Elm \u2014 Foldkit adapts it for TypeScript and Effect.',
+        '. You don\u2019t need to know Elm. Foldkit adapts it for TypeScript and Effect.',
       ),
       tableOfContentsEntryToHeader(theLoopHeader),
       para(
         'Every Foldkit app runs the same loop. A ',
         inlineCode('Message'),
-        ' arrives \u2014 the user clicked a button, a timer fired, an HTTP response came back. The ',
+        ' arrives: the user clicked a button, a timer fired, an HTTP response came back. The ',
         inlineCode('update'),
         ' function receives the current ',
         inlineCode('Model'),
@@ -73,17 +73,17 @@ export const view = (): Html =>
         ' function renders the new Model as HTML. When the user interacts with the view, it produces another Message, and the loop continues.',
       ),
       para(
-        'Commands are descriptions of one-shot side effects \u2014 HTTP requests, focus operations, ',
+        'Commands are descriptions of one-shot side effects: HTTP requests, focus operations, ',
         inlineCode('localStorage'),
         ' writes, navigation calls. The Foldkit runtime executes them and sends their results back as new Messages, feeding them into the same loop. Each Command carries a name, which surfaces in tracing and tests.',
       ),
       para(
-        'Subscriptions are continuous streams of Messages from external sources \u2014 keypresses, recurring timers, ',
+        'Subscriptions are continuous streams of Messages from external sources: keypresses, recurring timers, ',
         inlineCode('WebSocket'),
         ' frames, window resize events. Where a Command runs once and reports back, a Subscription stays active for as long as the Model says it should, and the stream decides which source events become Messages.',
       ),
       para(
-        'ManagedResources have an acquire/release lifecycle tied to Model state \u2014 a camera stream during a video call, a ',
+        'ManagedResources have an acquire/release lifecycle tied to Model state: a camera stream during a video call, a ',
         inlineCode('WebSocket'),
         ' connection while the user is on a chat page. The runtime acquires them when the Model enters the relevant state, releases them when it leaves, and dispatches Messages for each transition.',
       ),
@@ -122,7 +122,7 @@ export const view = (): Html =>
       para(
         'Every path on the right side produces a Message that feeds back into ',
         inlineCode('update'),
-        '. Four sources \u2014 Commands, Subscriptions, ManagedResources, and the Browser \u2014 one loop.',
+        '. Four sources: Commands, Subscriptions, ManagedResources, and the Browser. One loop.',
       ),
       para(
         'Sitting beneath the loop are Resources: app-lifetime singletons like ',
@@ -131,7 +131,7 @@ export const view = (): Html =>
         inlineCode('RTCPeerConnection'),
         ', or ',
         inlineCode('CanvasRenderingContext2D'),
-        ' that Commands draw on. Resources don\u2019t produce Messages themselves \u2014 they\u2019re the ambient dependencies the Message-producing parts need to do their work.',
+        ' that Commands draw on. Resources don\u2019t produce Messages themselves. They\u2019re the ambient dependencies the Message-producing parts need to do their work.',
       ),
       tableOfContentsEntryToHeader(definitionsHeader),
       para('Each concept in one place, in plain terms:'),
@@ -147,7 +147,7 @@ export const view = (): Html =>
           [
             ['Message'],
             [
-              'A fact about something that happened \u2014 a button was clicked, a key was pressed, a request succeeded with a payload.',
+              'A fact about something that happened: a button was clicked, a key was pressed, a request succeeded with a payload.',
             ],
           ],
           [
@@ -177,13 +177,13 @@ export const view = (): Html =>
           [
             ['Resource'],
             [
-              'An app-lifetime singleton \u2014 an AudioContext, an RTCPeerConnection, a CanvasRenderingContext2D \u2014 that Commands can draw on. A dependency, not a Message source.',
+              'An app-lifetime singleton (an AudioContext, an RTCPeerConnection, a CanvasRenderingContext2D) that Commands can draw on. A dependency, not a Message source.',
             ],
           ],
           [
             ['ManagedResource'],
             [
-              'Like a Resource, but scoped to a window of Model state instead of the app lifetime \u2014 a WebSocket connection while the user is on a chat page, a camera stream during a video call. Commands access it as a typed service while it\u2019s live; the runtime acquires it on entry, releases it on exit, and dispatches Messages for each lifecycle transition.',
+              'Like a Resource, but scoped to a window of Model state instead of the app lifetime: a WebSocket connection while the user is on a chat page, a camera stream during a video call. Commands access it as a typed service while it\u2019s live; the runtime acquires it on entry, releases it on exit, and dispatches Messages for each lifecycle transition.',
             ],
           ],
           [
@@ -196,10 +196,10 @@ export const view = (): Html =>
       ),
       tableOfContentsEntryToHeader(theRestaurantAnalogyHeader),
       para(
-        'Think of a Foldkit app like a restaurant. The waiter keeps a notebook \u2014 a running picture of everything happening right now. Table 3 ordered the salmon. Table 5 is waiting for dessert. When something happens \u2014 a customer flags the waiter, the kitchen rings the bell \u2014 the waiter hears about it, updates their notebook, and maybe writes a slip for the kitchen. The waiter doesn\u2019t cook the salmon \u2014 they hand the slip to the kitchen, and the kitchen reports back when it\u2019s done.',
+        'Think of a Foldkit app like a restaurant. The waiter keeps a notebook: a running picture of everything happening right now. Table 3 ordered the salmon. Table 5 is waiting for dessert. When something happens (a customer flags the waiter, the kitchen rings the bell), the waiter hears about it, updates their notebook, and maybe writes a slip for the kitchen. The waiter doesn\u2019t cook the salmon. They hand the slip to the kitchen, and the kitchen reports back when it\u2019s done.',
       ),
       para(
-        'Messages work the same way. \u201CTable 3 asked for the check\u201D is a fact given to the waiter, not an instruction. The waiter decides what to do \u2014 maybe bring the check immediately, maybe offer dessert first. The message stays the same either way.',
+        'Messages work the same way. \u201CTable 3 asked for the check\u201D is a fact given to the waiter, not an instruction. The waiter decides what to do: maybe bring the check immediately, maybe offer dessert first. The message stays the same either way.',
       ),
       infoCallout(
         'The restaurant analogy',
@@ -210,9 +210,7 @@ export const view = (): Html =>
         [
           [
             ['Model'],
-            [
-              'The waiter\u2019s notebook \u2014 the current state of everything',
-            ],
+            ['The waiter\u2019s notebook: the current state of everything'],
           ],
           [
             ['Message'],
@@ -221,13 +219,13 @@ export const view = (): Html =>
           [
             ['update'],
             [
-              'The waiter \u2014 hears what happened, updates the notebook, maybe writes a slip',
+              'The waiter: hears what happened, updates the notebook, maybe writes a slip',
             ],
           ],
           [
             ['view'],
             [
-              'What the customers actually see \u2014 plates on the table, the check arriving',
+              'What the customers actually see: plates on the table, the check arriving',
             ],
           ],
           [
@@ -243,23 +241,20 @@ export const view = (): Html =>
           [
             ['Resource'],
             [
-              'Kitchen equipment \u2014 the oven, the stand mixer, the deep fryer. Turned on when the kitchen opens and available to every dish.',
+              'Kitchen equipment: the oven, the stand mixer, the deep fryer. Turned on when the kitchen opens and available to every dish.',
             ],
           ],
           [
             ['ManagedResource'],
             [
-              'A specialty station \u2014 set up when the menu features the seafood special, broken down when the special ends',
+              'A specialty station: set up when the menu features the seafood special, broken down when the special ends',
             ],
           ],
-          [
-            ['Runtime'],
-            ['The kitchen \u2014 does the work, reports back when done'],
-          ],
+          [['Runtime'], ['The kitchen: does the work, reports back when done']],
         ],
       ),
       para(
-        'That\u2019s the architecture in the abstract. The next page shows a complete counter application \u2014 and you\u2019ll see each of these pieces in the code.',
+        'That\u2019s the architecture in the abstract. The next page shows a complete counter application, and you\u2019ll see each of these pieces in the code.',
       ),
     ],
   )

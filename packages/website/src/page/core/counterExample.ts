@@ -31,7 +31,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Here\u2019s a complete counter application. It has all the pieces from the ',
         link(coreArchitectureRouter(), 'Architecture'),
-        ' page \u2014 a Model, Messages, update, init, and view \u2014 wired together and running.',
+        ' page (a Model, Messages, update, init, and view) wired together and running.',
       ),
       highlightedCodeBlock(
         div([Class('text-sm'), InnerHTML(Snippets.counterHighlighted)], []),
@@ -41,10 +41,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        'Don\u2019t worry about understanding every line yet. The next four pages break this code apart piece by piece. After that, we\u2019ll add new features to the counter \u2014 a delayed reset, auto-counting, loading saved state \u2014 and each one will introduce a new concept.',
+        'Don\u2019t worry about understanding every line yet. The next four pages break this code apart piece by piece. After that, we\u2019ll add new features to the counter (a delayed reset, auto-counting, loading saved state) and each one will introduce a new concept.',
       ),
       para(
-        'Let\u2019s start with the Model \u2014 the single data structure that holds everything your application can be.',
+        'Let\u2019s start with the Model: the single data structure that holds everything your application can be.',
       ),
     ],
   )

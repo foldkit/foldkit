@@ -39,7 +39,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           `${coreArchitectureRouter()}#the-restaurant-analogy`,
           'restaurant analogy',
         ),
-        ', the update function is the waiter. Something happens \u2014 a customer flags them down, the kitchen rings the bell \u2014 and the waiter decides what to do next. Update the notebook, maybe write a slip for the kitchen. The waiter doesn\u2019t cook the food or serve it directly \u2014 they take in what happened and decide on next steps.',
+        ', the update function is the waiter. Something happens (a customer flags them down, the kitchen rings the bell) and the waiter decides what to do next. Update the notebook, maybe write a slip for the kitchen. The waiter doesn\u2019t cook the food or serve it directly. They take in what happened and decide on next steps.',
       ),
       para(
         'Pure means predictable: given the same Model and the same Message, update always returns the same result. No hidden state, no ambient mutation, no surprises. This makes every state transition easy to reason about and trivial to test: pass in a Model and a Message, assert on the output.',
@@ -65,7 +65,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        'Notice that update returns a tuple: the new Model and an array of Commands. Commands represent side effects \u2014 HTTP requests, timers, browser API calls. Each Command carries a name for tracing and testing. For the counter, the Commands array is always empty. But when we add a delayed reset on the ',
+        'Notice that update returns a tuple: the new Model and an array of Commands. Commands represent side effects: HTTP requests, timers, browser API calls. Each Command carries a name for tracing and testing. For the counter, the Commands array is always empty. But when we add a delayed reset on the ',
         link(coreCommandsRouter(), 'Commands'),
         ' page, that will change.',
       ),

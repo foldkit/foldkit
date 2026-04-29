@@ -227,7 +227,7 @@ export const view = (
         inlineCode('<dialog>'),
         ' element. Uses ',
         inlineCode('showModal()'),
-        ' for focus trapping, backdrop rendering, and scroll locking — no JavaScript focus trap needed. For non-modal floating content, use Popover instead.',
+        ' for focus trapping, backdrop rendering, and scroll locking. No JavaScript focus trap needed. For non-modal floating content, use Popover instead.',
       ),
       infoCallout(
         'See it in an app',
@@ -275,7 +275,7 @@ export const view = (
       para(
         'Pass ',
         inlineCode('isAnimated: true'),
-        ' at init to coordinate animations. The component manages an Animation submodel internally — apply transition classes using ',
+        ' at init to coordinate animations. The component manages an Animation submodel internally. Apply transition classes using ',
         inlineCode('data-closed'),
         ' (e.g. ',
         inlineCode('data-[closed]:opacity-0 data-[closed]:scale-95'),
@@ -296,7 +296,7 @@ export const view = (
       ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
-        'Dialog is headless — you control the panel and backdrop markup through className and attribute props. The native ',
+        'Dialog is headless. You control the panel and backdrop markup through className and attribute props. The native ',
         inlineCode('<dialog>'),
         ' element handles the top layer, so style its ',
         inlineCode('::backdrop'),

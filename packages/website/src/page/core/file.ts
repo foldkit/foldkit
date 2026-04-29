@@ -71,7 +71,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('File'),
         ' type. You can hold one in your Model with ',
         inlineCode('S.OptionFromSelf(File.File)'),
-        ' \u2014 Foldkit never serializes files, so the schema acts as an opaque guard rather than a parser.',
+        '. Foldkit never serializes files, so the schema acts as an opaque guard rather than a parser.',
       ),
       tableOfContentsEntryToHeader(metadataHeader),
       para(
@@ -121,7 +121,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Wrap the Effect in a Command at the call site with ',
         inlineCode('Effect.map'),
-        ' to produce your own Message \u2014 the ',
+        ' to produce your own Message. The ',
         inlineCode('File'),
         ' module never defines Messages, so you keep full control of your domain vocabulary.',
       ),
@@ -157,7 +157,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('OnDragEnter'),
         '/',
         inlineCode('OnDragLeave'),
-        ' for visual feedback. The latter pair only fire on true entry and exit — bubbled events from transitions between child elements of the zone are filtered out internally.',
+        ' for visual feedback. The latter pair only fire on true entry and exit. Bubbled events from transitions between child elements of the zone are filtered out internally.',
       ),
       highlightedCodeBlock(
         div(
@@ -185,7 +185,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('OnFileChange'),
         ' or ',
         inlineCode('OnDropFiles'),
-        ' \u2014 this prevents silent misuse against elements that use ',
+        '. This prevents silent misuse against elements that use ',
         inlineCode('OnChange'),
         ' or ',
         inlineCode('OnDrop'),
@@ -200,7 +200,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Scene.resolve'),
         ' to synthesize the result, bypassing the native file picker entirely. Use ',
         inlineCode('Scene.resolveAll'),
-        ' when an update returns multiple Commands at once, or when resolving one Command cascades into others — for example, reading a preview immediately after a successful selection.',
+        ' when an update returns multiple Commands at once, or when resolving one Command cascades into others, like reading a preview immediately after a successful selection.',
       ),
       highlightedCodeBlock(
         div(

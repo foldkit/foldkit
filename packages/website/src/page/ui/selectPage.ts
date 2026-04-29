@@ -206,7 +206,7 @@ export const view = (
       para(
         'A wrapper around the native ',
         inlineCode('<select>'),
-        ' element with ARIA label/description linking and data-attribute hooks. Select is a view-only component — for a custom dropdown with keyboard navigation and custom rendering, use Listbox or Combobox instead.',
+        ' element with ARIA label/description linking and data-attribute hooks. Select is a view-only component. For a custom dropdown with keyboard navigation and custom rendering, use Listbox or Combobox instead.',
       ),
       infoCallout(
         'See it in an app',
@@ -261,7 +261,7 @@ export const view = (
       ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
-        'Select is headless — your ',
+        'Select is headless. Your ',
         inlineCode('toView'),
         ' callback controls all markup and styling. The native ',
         inlineCode('<select>'),

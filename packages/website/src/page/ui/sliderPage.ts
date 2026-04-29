@@ -299,7 +299,7 @@ export const view = (
       ),
       heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
       para(
-        'Slider is headless — your ',
+        'Slider is headless. Your ',
         inlineCode('toView'),
         ' callback controls all markup and styling. The component hands back attribute groups for the root, track, filled track, thumb, label, and an optional hidden input for form submission.',
       ),

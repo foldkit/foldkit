@@ -241,7 +241,7 @@ export const view = (
       pageTitle('ui/checkbox', 'Checkbox'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'A stateful toggle with checked, unchecked, and indeterminate states. Checkbox uses the Submodel pattern — initialize with ',
+        'A stateful toggle with checked, unchecked, and indeterminate states. Checkbox uses the Submodel pattern: initialize with ',
         inlineCode('Checkbox.init()'),
         ', store the Model in your parent, delegate Messages via ',
         inlineCode('Checkbox.update()'),
@@ -264,7 +264,7 @@ export const view = (
       para(
         'The checkbox element is typically a ',
         inlineCode('<button>'),
-        ' — spread ',
+        '. Spread ',
         inlineCode('attributes.checkbox'),
         ' onto it for role, ARIA state, and keyboard/click handlers. The label click handler also toggles the checkbox.',
       ),
@@ -287,7 +287,7 @@ export const view = (
       para(
         'Pass ',
         inlineCode('isIndeterminate: true'),
-        ' to show a mixed state. This is typically computed from child checkbox states — when some but not all children are checked, the parent shows the indeterminate mark. Toggling the parent sets all children to the same state.',
+        ' to show a mixed state. This is typically computed from child checkbox states: when some but not all children are checked, the parent shows the indeterminate mark. Toggling the parent sets all children to the same state.',
       ),
       demoContainer(...Checkbox.indeterminateDemo(model, toParentMessage)),
       highlightedCodeBlock(
@@ -305,7 +305,7 @@ export const view = (
       ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
-        'Checkbox is headless — your ',
+        'Checkbox is headless. Your ',
         inlineCode('toView'),
         ' callback controls all markup and styling. Use the data attributes below to style checked, indeterminate, and disabled states.',
       ),

@@ -200,7 +200,7 @@ const modelProps: ReadonlyArray<PropEntry> = [
     name: 'maybeSelectedDate',
     type: 'Option<CalendarDate>',
     description:
-      'The committed selection. Distinct from maybeFocusedDate — arrow keys never change selection.',
+      'The committed selection. Distinct from maybeFocusedDate. Arrow keys never change selection.',
   },
   {
     name: 'isGridFocused',
@@ -251,7 +251,7 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     name: 'onSelectedDate',
     type: '(date: CalendarDate) => ParentMessage',
     description:
-      'Optional. When provided, click / Enter / Space on a day dispatches this callback directly (controlled mode — parent owns the event). When omitted, the calendar manages its own maybeSelectedDate automatically (uncontrolled mode). In controlled mode, use Calendar.selectDate(model, date) to write the selection back to internal state. Matches the Listbox / Combobox / Popover callback pattern.',
+      'Optional. When provided, click / Enter / Space on a day dispatches this callback directly (controlled mode: parent owns the event). When omitted, the calendar manages its own maybeSelectedDate automatically (uncontrolled mode). In controlled mode, use Calendar.selectDate(model, date) to write the selection back to internal state. Matches the Listbox / Combobox / Popover callback pattern.',
   },
   {
     name: 'toView',
@@ -346,7 +346,7 @@ const outMessagesProps: ReadonlyArray<PropEntry> = [
     name: 'ChangedViewMonth',
     type: '{ year: number; month: number }',
     description:
-      'Emitted when navigation changes the visible month (buttons, dropdowns, or arrow keys crossing a month boundary, or a commit that crosses a month). Useful for inline-calendar consumers loading month-scoped data like holidays or availability. Note: date selection does NOT go through OutMessage — consumers subscribe via the onSelectedDate ViewConfig callback (see above).',
+      'Emitted when navigation changes the visible month (buttons, dropdowns, or arrow keys crossing a month boundary, or a commit that crosses a month). Useful for inline-calendar consumers loading month-scoped data like holidays or availability. Note: date selection does NOT go through OutMessage. Consumers subscribe via the onSelectedDate ViewConfig callback (see above).',
   },
 ]
 
@@ -355,7 +355,7 @@ const programmaticHelpersProps: ReadonlyArray<PropEntry> = [
     name: 'selectDate',
     type: '(model: Model, date: CalendarDate) => [Model, Commands, Option<OutMessage>]',
     description:
-      'Commits the given date and moves the cursor onto it. Use in controlled mode — when ViewConfig provides onSelectedDate — to write the selection back to the calendar.',
+      'Commits the given date and moves the cursor onto it. Use in controlled mode (when ViewConfig provides onSelectedDate) to write the selection back to the calendar.',
   },
   {
     name: 'focusGrid',
@@ -459,7 +459,7 @@ export const view = (
         'An accessible inline calendar grid built to the WAI-ARIA grid pattern. Calendar manages the 2D keyboard navigation state machine and renders a 6×7 grid of days with full screen reader support. Use it standalone for scheduling UIs and event calendars, or as the foundation of a date picker.',
       ),
       para(
-        'Calendar uses the Submodel pattern — initialize with ',
+        'Calendar uses the Submodel pattern: initialize with ',
         inlineCode('Calendar.init()'),
         ', store the Model in your parent, delegate Messages via ',
         inlineCode('Calendar.update()'),
@@ -467,7 +467,7 @@ export const view = (
         inlineCode('Calendar.view()'),
         '. The update function returns ',
         inlineCode('[Model, Commands, Option<OutMessage>]'),
-        ' — the OutMessage lets parents react to meaningful events like date selection and month changes.',
+        '. The OutMessage lets parents react to meaningful events like date selection and month changes.',
       ),
       infoCallout(
         'See it in an app',
@@ -492,7 +492,7 @@ export const view = (
       ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
-        'Calendar is headless — your ',
+        'Calendar is headless. Your ',
         inlineCode('toView'),
         ' callback controls all markup and styling. The attribute groups carry ARIA and event wiring; data attributes on day cells let you style state variants with CSS selectors like ',
         inlineCode('data-[today]:'),
@@ -509,7 +509,7 @@ export const view = (
       para(
         'The grid container receives DOM focus, and navigation happens via ',
         inlineCode('aria-activedescendant'),
-        ' — screen readers announce the focused cell without moving browser focus. Disabled dates are skipped during navigation with a bounded cap so fully-disabled ranges terminate cleanly.',
+        '. Screen readers announce the focused cell without moving browser focus. Disabled dates are skipped during navigation with a bounded cap so fully-disabled ranges terminate cleanly.',
       ),
       keyboardTable(keyboardEntries),
       heading(
@@ -532,7 +532,7 @@ export const view = (
         inlineCode('aria-selected'),
         ' set on the chosen date. Day buttons carry a full accessible name via ',
         inlineCode('aria-label'),
-        ' — e.g. "Monday, April 13, 2026" — and disabled days get ',
+        ' (e.g. "Monday, April 13, 2026"), and disabled days get ',
         inlineCode('aria-disabled="true"'),
         '.',
       ),
@@ -596,12 +596,12 @@ export const view = (
         programmaticHelpersHeader.text,
       ),
       para(
-        'Helpers you call from your own update handlers to drive the calendar imperatively — writing back the selection in controlled mode, focusing the grid, or updating constraints when they derive from other Model state.',
+        'Helpers you call from your own update handlers to drive the calendar imperatively: writing back the selection in controlled mode, focusing the grid, or updating constraints when they derive from other Model state.',
       ),
       para(
         'The four ',
         inlineCode('set*'),
-        ' helpers are the supported path for cross-field date validation. Constraints are set at init time and updated via these helpers — they do not live on ViewConfig, because the update function needs them for keyboard-navigation disabled-skipping and commit-time validation.',
+        ' helpers are the supported path for cross-field date validation. Constraints are set at init time and updated via these helpers. They do not live on ViewConfig, because the update function needs them for keyboard-navigation disabled-skipping and commit-time validation.',
       ),
       propTable(programmaticHelpersProps),
     ],

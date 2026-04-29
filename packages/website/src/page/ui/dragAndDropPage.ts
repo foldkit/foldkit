@@ -218,7 +218,7 @@ export const view = (
       para(
         'DragAndDrop is different from other Foldkit UI components in two ways. First, it doesn\u2019t have a ',
         inlineCode('view()'),
-        ' function — instead, you spread ',
+        ' function. Instead, you spread ',
         inlineCode('draggable()'),
         ' and ',
         inlineCode('droppable()'),
@@ -273,7 +273,7 @@ export const view = (
       ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
-        'DragAndDrop is fully headless — you render all items, containers, and ghost elements. Use ',
+        'DragAndDrop is fully headless. You render all items, containers, and ghost elements. Use ',
         inlineCode('isDragging()'),
         ' and ',
         inlineCode('maybeDraggedItemId()'),

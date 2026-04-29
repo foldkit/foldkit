@@ -207,13 +207,13 @@ export const view = (
       pageTitle('ui/input', 'Input'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'An accessible text input that links a label and description to the input element via ARIA attributes. Input is a view-only component with no Model or update function. It provides three attribute groups — ',
+        'An accessible text input that links a label and description to the input element via ARIA attributes. Input is a view-only component with no Model or update function. It provides three attribute groups (',
         inlineCode('input'),
         ', ',
         inlineCode('label'),
         ', and ',
         inlineCode('description'),
-        ' — that you spread onto your own elements to get correct accessibility wiring.',
+        ') that you spread onto your own elements to get correct accessibility wiring.',
       ),
       infoCallout(
         'See it in an app',
@@ -281,7 +281,7 @@ export const view = (
       ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
-        'Input is headless — your ',
+        'Input is headless. Your ',
         inlineCode('toView'),
         ' callback controls all markup and styling. Use the data attributes below to style different states. For validation, set ',
         inlineCode('isInvalid: true'),

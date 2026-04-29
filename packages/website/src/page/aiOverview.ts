@@ -63,7 +63,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Most frameworks give AI tools too much freedom. State can live anywhere, effects can happen anywhere, and there\u2019s no canonical structure to follow. The result is generated code that works but doesn\u2019t hold up.',
       ),
       para(
-        'Foldkit\u2019s architecture changes this. The Elm Architecture enforces a rigid, yet expressive structure \u2014 Message \u2192 update \u2192 Model \u2192 view \u2192 Command \u2014 where every piece has a canonical shape and a canonical place. The same constraints that make your code correct make it machine-legible.',
+        'Foldkit\u2019s architecture changes this. The Elm Architecture enforces a rigid, yet expressive structure (Message \u2192 update \u2192 Model \u2192 view \u2192 Command) where every piece has a canonical shape and a canonical place. The same constraints that make your code correct make it machine-legible.',
       ),
       para(
         'An AI that understands this loop can reason about the entire program as a state machine. It can generate structurally valid code, not just syntactically valid code. It can scaffold Messages and know exactly where they wire through. It can extract ',
@@ -86,7 +86,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-4',
       ),
       para(
-        'This gives the AI access to the Foldkit source code, the examples, and this documentation site \u2014 real patterns it can learn from and apply to your code. The starter template includes an ',
+        'This gives the AI access to the Foldkit source code, the examples, and this documentation site: real patterns it can learn from and apply to your code. The starter template includes an ',
         inlineCode('AGENTS.md'),
         ' with Foldkit conventions and a ',
         inlineCode('.ignore'),
