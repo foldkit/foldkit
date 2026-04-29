@@ -58,6 +58,21 @@ jobs:
           {
             "version": 3,
             "routes": [
+              {
+                "src": "^/og/(.*)\\.png$",
+                "headers": {
+                  "Content-Type": "image/png",
+                  "Cache-Control": "public, max-age=31536000, immutable"
+                },
+                "continue": true
+              },
+              {
+                "src": "^/$",
+                "headers": {
+                  "Link": "</sitemap.xml>; rel=\"sitemap\", </manifesto>; rel=\"about\", </getting-started>; rel=\"help\", </example-apps>; rel=\"related\", </ai/overview>; rel=\"related\""
+                },
+                "continue": true
+              },
               { "handle": "filesystem" },
               {
                 "src": "/",
