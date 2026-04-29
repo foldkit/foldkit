@@ -49,6 +49,11 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Why Foldkit exists and the principles behind its design.',
     'Docs',
   ),
+  WhyNoJsx: docs(
+    'Why no JSX?',
+    'Why Foldkit does not use JSX, and what its typed function-call DSL enables that JSX cannot. A side-by-side comparison with honest tradeoffs.',
+    'Docs',
+  ),
   GettingStarted: docs(
     'Getting Started',
     'Set up your first Foldkit application in minutes. Install, scaffold with create-foldkit-app, and build a TypeScript frontend with Effect-TS.',
