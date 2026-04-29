@@ -170,6 +170,7 @@ This is what makes Foldkit unusually AI-friendly. The same property that makes t
 - **[Stopwatch](https://foldkit.dev/example-apps/stopwatch)** — Timer with start/stop/reset
 - **[Crash View](https://foldkit.dev/example-apps/crash-view)** — Custom crash fallback UI with crash reporting
 - **[Form](https://foldkit.dev/example-apps/form)** — Form validation with async email checking
+- **[Job Application](https://foldkit.dev/example-apps/job-application)** — Multi-step form with cross-field validation, file uploads, and per-step error indicators
 - **[Weather](https://foldkit.dev/example-apps/weather)** — HTTP requests with async state handling
 - **[Routing](https://foldkit.dev/example-apps/routing)** — URL routing with parser combinators
 - **[Query Sync](https://foldkit.dev/example-apps/query-sync)** — URL query parameter sync with filtering and sorting
