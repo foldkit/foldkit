@@ -137,12 +137,12 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ul(
         [Class('list-none mb-6 space-y-2')],
         [
-          li([], [inlineCode('HomeRoute'), ' — no parameters']),
+          li([], [inlineCode('HomeRoute'), ': no parameters']),
           li(
             [],
             [
               inlineCode('PersonRoute'),
-              ' — holds a ',
+              ': holds a ',
               inlineCode('personId: number'),
             ],
           ),
@@ -150,7 +150,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
             [],
             [
               inlineCode('PeopleRoute'),
-              ' — holds an optional ',
+              ': holds an optional ',
               inlineCode('searchText: Option<string>'),
             ],
           ),
@@ -158,7 +158,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
             [],
             [
               inlineCode('NotFoundRoute'),
-              ' — holds the unmatched ',
+              ': holds the unmatched ',
               inlineCode('path: string'),
             ],
           ),
@@ -189,34 +189,31 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
             [],
             [
               inlineCode("literal('people')"),
-              ' — matches the exact segment ',
+              ': matches the exact segment ',
               inlineCode('people'),
             ],
           ),
           li(
             [],
-            [inlineCode("int('personId')"), ' — captures an integer parameter'],
+            [inlineCode("int('personId')"), ': captures an integer parameter'],
           ),
           li(
             [],
-            [inlineCode("string('name')"), ' — captures a string parameter'],
+            [inlineCode("string('name')"), ': captures a string parameter'],
           ),
-          li(
-            [],
-            [inlineCode('slash(...)'), ' — chains path segments together'],
-          ),
+          li([], [inlineCode('slash(...)'), ': chains path segments together']),
           li(
             [],
             [
               inlineCode('Route.query(Schema)'),
-              ' — adds query parameter parsing',
+              ': adds query parameter parsing',
             ],
           ),
           li(
             [],
             [
               inlineCode('Route.mapTo(RouteType)'),
-              ' — converts parsed data into a typed route',
+              ': converts parsed data into a typed route',
             ],
           ),
         ],
@@ -352,14 +349,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
             [],
             [
               inlineCode('Navigation.pushUrl'),
-              ' — adds a new entry to browser history',
+              ': adds a new entry to browser history',
             ],
           ),
           li(
             [],
             [
               inlineCode('Navigation.replaceUrl'),
-              ' — replaces the current history entry (no back button)',
+              ': replaces the current history entry (no back button)',
             ],
           ),
           li(
@@ -368,21 +365,21 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
               inlineCode('Navigation.back'),
               ' / ',
               inlineCode('Navigation.forward'),
-              ' — navigate through browser history',
+              ': navigate through browser history',
             ],
           ),
           li(
             [],
             [
               inlineCode('Navigation.load'),
-              ' — full page load (for external URLs)',
+              ': full page load (for external URLs)',
             ],
           ),
           li(
             [],
             [
               inlineCode('Navigation.openUrl'),
-              ' — opens an external URL in a new browsing context (tab or window), leaving the current page untouched',
+              ': opens an external URL in a new browsing context (tab or window), leaving the current page untouched',
             ],
           ),
         ],

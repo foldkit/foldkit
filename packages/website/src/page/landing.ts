@@ -597,7 +597,7 @@ const testingSection = (copiedSnippets: CopiedSnippets): Html =>
               ),
             ],
             [
-              'Pure update functions mean pure tests. Story tests the state machine. Scene tests features through the view \u2014 clicking buttons, typing into inputs \u2014 with accessible locators. No DOM, no mocking.',
+              'Pure update functions mean pure tests. Story tests the state machine. Scene tests features through the view (clicking buttons, typing into inputs) with accessible locators. No DOM, no mocking.',
             ],
           ),
           a(
@@ -686,7 +686,7 @@ const devToolsSection = (): Html =>
                   '/devtools-overlay-1x.webp 1x, /devtools-overlay.webp 2x',
                 ),
                 Alt(
-                  'Foldkit DevTools overlay inspecting the Foldkit website — a numbered Message timeline on the left with entries like ClickedLink, ChangedUrl, and CompletedScroll, and an expandable Model state tree on the right showing route, url, and theme fields.',
+                  'Foldkit DevTools overlay inspecting the Foldkit website: a numbered Message timeline on the left with entries like ClickedLink, ChangedUrl, and CompletedScroll, and an expandable Model state tree on the right showing route, url, and theme fields.',
                 ),
                 Width('972'),
                 Height('637'),
@@ -772,7 +772,7 @@ const tradeOffsSection = (): Html =>
                   p(
                     [Class('text-lg text-gray-600 dark:text-gray-300 mb-8')],
                     [
-                      'Foldkit is a different kind of frontend framework. If you\u2019re weighing it against React, Vue, Svelte, or Solid, the key difference isn\u2019t syntax or performance \u2014 it\u2019s that Foldkit prescribes the architecture instead of leaving it to you.',
+                      'Foldkit is a different kind of frontend framework. If you\u2019re weighing it against React, Vue, Svelte, or Solid, the key difference isn\u2019t syntax or performance. It\u2019s that Foldkit prescribes the architecture instead of leaving it to you.',
                     ],
                   ),
                   a(
@@ -816,7 +816,7 @@ const audienceSection = (): Html =>
                     [
                       audienceForItem(
                         'Effect developers who need a frontend',
-                        'Your backend already uses Effect. Foldkit is the missing frontend piece \u2014 same ecosystem, same patterns, no context switching.',
+                        'Your backend already uses Effect. Foldkit is the missing frontend piece: same ecosystem, same patterns, no context switching.',
                       ),
                       audienceForItem(
                         'Developers who value correctness',
@@ -828,7 +828,7 @@ const audienceSection = (): Html =>
                       ),
                       audienceForItem(
                         'Projects with complex state',
-                        'Auth flows, real-time data, multi-step forms — the architecture handles complexity without losing clarity.',
+                        'Auth flows, real-time data, multi-step forms. The architecture handles complexity without losing clarity.',
                       ),
                     ],
                   ),
@@ -850,11 +850,11 @@ const audienceSection = (): Html =>
                     [
                       audienceNotItem(
                         'Large existing React codebases',
-                        'Foldkit isn\u2019t an incremental adoption \u2014 it\u2019s a different architecture. Migration means a rewrite.',
+                        'Foldkit isn\u2019t an incremental adoption. It\u2019s a different architecture. Migration means a rewrite.',
                       ),
                       audienceNotItem(
                         'Teams not ready to invest in Effect',
-                        'Foldkit leans on pipe, discriminated unions, and Effect throughout. There\u2019s no escape hatch \u2014 you\u2019re all in or you\u2019re not.',
+                        'Foldkit leans on pipe, discriminated unions, and Effect throughout. There\u2019s no escape hatch. You\u2019re all in or you\u2019re not.',
                       ),
                       audienceNotItem(
                         'Projects that need the React ecosystem',

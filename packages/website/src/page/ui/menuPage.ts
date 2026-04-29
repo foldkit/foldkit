@@ -220,7 +220,7 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
   },
   {
     key: 'Type a character',
-    description: 'Typeahead search — jumps to the matching item.',
+    description: 'Typeahead search: jumps to the matching item.',
   },
 ]
 
@@ -237,7 +237,7 @@ export const view = (
       pageTitle('ui/menu', 'Menu'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'A dropdown menu for actions — like a macOS context menu. Menu is fire-and-forget: it doesn\u2019t track a selected value (use Listbox for persistent selection). It supports typeahead search, drag-to-select, keyboard navigation, grouped items, and anchor positioning.',
+        'A dropdown menu for actions, like a macOS context menu. Menu is fire-and-forget: it doesn\u2019t track a selected value (use Listbox for persistent selection). It supports typeahead search, drag-to-select, keyboard navigation, grouped items, and anchor positioning.',
       ),
       para(
         'For programmatic control in update functions, use ',
@@ -300,7 +300,7 @@ export const view = (
       ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
-        'Menu is headless — the ',
+        'Menu is headless. The ',
         inlineCode('itemToConfig'),
         ' callback controls all item markup. Group items with ',
         inlineCode('itemGroupKey'),
@@ -324,7 +324,7 @@ export const view = (
       para(
         'Menu uses ',
         inlineCode('aria-activedescendant'),
-        ' — focus stays on the items container while arrow keys update the highlighted item. Typeahead search accumulates characters for 350ms.',
+        '. Focus stays on the items container while arrow keys update the highlighted item. Typeahead search accumulates characters for 350ms.',
       ),
       keyboardTable(keyboardEntries),
       heading(

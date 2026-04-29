@@ -109,7 +109,7 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
     type: 'Duration.DurationInput',
     default: 'Duration.millis(500)',
     description:
-      'How long the pointer must hover before the tooltip appears. Accepts any Effect Duration input — a bare number is interpreted as milliseconds. Keyboard focus shows the tooltip immediately regardless of this value.',
+      'How long the pointer must hover before the tooltip appears. Accepts any Effect Duration input. A bare number is interpreted as milliseconds. Keyboard focus shows the tooltip immediately regardless of this value.',
   },
 ]
 
@@ -220,7 +220,7 @@ export const view = (
         inlineCode('Popover'),
         ' and ',
         inlineCode('Menu'),
-        ' — pass ',
+        '. Pass ',
         inlineCode('anchor'),
         ' to control placement and spacing.',
       ),
@@ -249,7 +249,7 @@ export const view = (
       ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
-        'Tooltip is headless — the trigger and panel are both styled through className and attribute props. The panel is rendered with ',
+        'Tooltip is headless. The trigger and panel are both styled through className and attribute props. The panel is rendered with ',
         inlineCode('pointer-events: none'),
         ' so it never captures hover or clicks, which keeps the open/close logic tied to the trigger.',
       ),

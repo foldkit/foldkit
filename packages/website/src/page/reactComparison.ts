@@ -372,7 +372,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ', and the best practices we\u2019d use in production: TypeScript, Tailwind, memoization, custom hooks. We gave React every advantage. The result is a clean, well-structured React app written by people who know what they\u2019re doing.',
       ),
       para(
-        'React is a good library with an unmatched ecosystem. This page isn\u2019t a hit-piece. It\u2019s an argument that Foldkit gives you structural guarantees React cannot provide by construction \u2014 guarantees about where state lives, how it changes, and what your tests can see \u2014 and that those guarantees matter once a codebase has to survive real feature work, real bugs, and real onboarding.',
+        'React is a good library with an unmatched ecosystem. This page isn\u2019t a hit-piece. It\u2019s an argument that Foldkit gives you structural guarantees React cannot provide by construction (guarantees about where state lives, how it changes, and what your tests can see) and that those guarantees matter once a codebase has to survive real feature work, real bugs, and real onboarding.',
       ),
       infoCallout(
         'Try them both',
@@ -419,7 +419,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         link(patternsSubmodelsRouter(), 'Submodel'),
         ', its ',
         inlineCode('Message'),
-        ' union gives you the same complete picture one layer deeper. Every state transition is indexed in the types and implemented in the update function \u2014 nowhere else.',
+        ' union gives you the same complete picture one layer deeper. Every state transition is indexed in the types and implemented in the update function. Nowhere else.',
       ),
       infoCallout(
         'The single source of state changes',
@@ -468,7 +468,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('useCallback'),
         ' closures and ',
         inlineCode('useEffect'),
-        ' bodies, component-internal events inside library hooks. Both are valid design choices. But only one gives you a single answer when a teammate asks \u201Chow can state change in this app?\u201D \u2014 the Message union catalogs every event, and the update function implements every transition.',
+        ' bodies, component-internal events inside library hooks. Both are valid design choices. But only one gives you a single answer when a teammate asks \u201Chow can state change in this app?\u201D. The Message union catalogs every event, and the update function implements every transition.',
       ),
 
       tableOfContentsEntryToHeader(declarationVsProcedureHeader),
@@ -582,7 +582,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('null'),
         ' for absent values. The reducer tracks two boolean ',
         inlineCode('isOpen'),
-        ' flags for the dialogs and nothing else about the UI components. Everything that makes a Dialog a Dialog \u2014 transition state, focus trap, animation coordination \u2014 lives inside Headless UI\u2019s hooks, out of reach of your reducer, your debugger, and your serialization layer.',
+        ' flags for the dialogs and nothing else about the UI components. Everything that makes a Dialog a Dialog (transition state, focus trap, animation coordination) lives inside Headless UI\u2019s hooks, out of reach of your reducer, your debugger, and your serialization layer.',
       ),
       para(
         'And this comparison is already being generous. ',
@@ -617,7 +617,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('[Model, Command[]]'),
         '. React\u2019s ',
         inlineCode('reducer'),
-        ' answers only the first half: given this state and this action, what is the new state? The second half \u2014 which side effects should fire \u2014 lives in ',
+        ' answers only the first half: given this state and this action, what is the new state? The second half (which side effects should fire) lives in ',
         inlineCode('useEffect'),
         ' hooks elsewhere in the codebase, with no type-level connection back to the action that caused them.',
       ),
@@ -712,7 +712,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('SaveCanvas'),
         ' and ',
         inlineCode('ExportPng'),
-        '. That\u2019s the complete list of effects your update function can emit. (External event streams \u2014 keyboard, mouse release \u2014 are handled separately through Subscriptions in ',
+        '. That\u2019s the complete list of effects your update function can emit. (External event streams like keyboard and mouse release are handled separately through Subscriptions in ',
         inlineCode('subscription.ts'),
         '.)',
       ),
@@ -1171,7 +1171,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('createKeyedLazy()'),
         ' compare arguments element-by-element. ',
         inlineCode('evo()'),
-        ' preserves references for unchanged Model fields, so the comparison just works: panels whose data didn\u2019t change aren\u2019t re-rendered. The arguments are pure data \u2014 Model fields and primitives, not handler closures \u2014 so there\u2019s nothing to stabilize.',
+        ' preserves references for unchanged Model fields, so the comparison just works: panels whose data didn\u2019t change aren\u2019t re-rendered. The arguments are pure data (Model fields and primitives, not handler closures), so there\u2019s nothing to stabilize.',
       ),
       tableOfContentsEntryToHeader(reactMemoizationHeader),
       para(
@@ -1311,7 +1311,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Scene.expectExactCommands'),
         ' or resolve it with a synthetic return Message via ',
         inlineCode('Story.resolve'),
-        '. Two testing affordances against the same value the runtime executes in production \u2014 tests and runtime operate on the identical Command, not a mock of one. ',
+        '. Two testing affordances against the same value the runtime executes in production: tests and runtime operate on the identical Command, not a mock of one. ',
         inlineCode('useEffect'),
         ' has none of those: no name, no identity in DevTools, no connection back to the action that caused it, no way to assert intent without also asserting outcome.',
       ),
@@ -1334,7 +1334,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
 
       tableOfContentsEntryToHeader(oneFunctionHeader),
       para(
-        'When the Model is wrong, the bug is in the update function. That is the only place the Model changes \u2014 by construction, not by convention. When a React state-transition bug surfaces, it could be in the reducer, in any ',
+        'When the Model is wrong, the bug is in the update function. That is the only place the Model changes, by construction, not by convention. When a React state-transition bug surfaces, it could be in the reducer, in any ',
         inlineCode('useEffect'),
         ' that dispatches, in a ',
         inlineCode('useCallback'),

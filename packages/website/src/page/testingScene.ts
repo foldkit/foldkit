@@ -156,7 +156,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           ],
           [
             [plainCode('Scene.testId(id)')],
-            ['Elements by data-testid — the escape hatch for tests.'],
+            ['Elements by data-testid: the escape hatch for tests.'],
             [plainCode("Scene.testId('cart-item-3')")],
           ],
           [
@@ -222,7 +222,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Scene.within(parent, child)'),
         ' scopes a single locator to a parent element. ',
         inlineCode('Scene.inside(parent, ...steps)'),
-        ' scopes a whole block of steps — every assertion or interaction inside the block resolves within the parent\u2019s subtree. Use ',
+        ' scopes a whole block of steps. Every assertion or interaction inside the block resolves within the parent\u2019s subtree. Use ',
         inlineCode('within'),
         ' for one-off scoped queries; use ',
         inlineCode('inside'),
@@ -250,7 +250,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Scene.all.text'),
         ', ',
         inlineCode('Scene.all.label'),
-        ', and so on — one per single-match factory) return a ',
+        ', and so on, one per single-match factory) return a ',
         inlineCode('LocatorAll'),
         ' that resolves to every match. Pick one with ',
         inlineCode('Scene.first'),
@@ -355,7 +355,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
             [plainCode('Scene.change(target, value)')],
             [
               plainCode('OnChange'),
-              ' with the given value — for ',
+              ' with the given value, for ',
               plainCode('<select>'),
               ' and similar',
             ],

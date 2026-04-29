@@ -90,7 +90,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Arguments are compared by reference, not by value. This works naturally with ',
         link(`${bestPracticesImmutabilityRouter()}#immutable-updates`, 'evo'),
-        ' \u2014 when a model field isn\u2019t updated, ',
+        ': when a model field isn\u2019t updated, ',
         inlineCode('evo'),
         ' preserves its reference. Only fields that actually changed get new references, so unchanged arguments automatically pass the ',
         inlineCode('==='),

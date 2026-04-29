@@ -35,10 +35,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       pageTitle('core/init', 'Init & Flags'),
       tableOfContentsEntryToHeader(initHeader),
       para(
-        'The counter works, but every time the user refreshes the page, the count resets to zero. What if we want to remember the last count? That\u2019s where Init comes in \u2014 and where flags let you pass data into your app at startup.',
+        'The counter works, but every time the user refreshes the page, the count resets to zero. What if we want to remember the last count? That\u2019s where Init comes in, and where flags let you pass data into your app at startup.',
       ),
       para(
-        'In the restaurant analogy, init is the waiter\u2019s notebook at the start of the shift \u2014 the state of every table before the first customer walks in.',
+        'In the restaurant analogy, init is the waiter\u2019s notebook at the start of the shift: the state of every table before the first customer walks in.',
       ),
       para(
         'The ',
@@ -62,7 +62,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'In the restaurant analogy, flags are what the manager tells the waiter before the shift: \u201Ctable 5 has a reservation at 7, and we\u2019re out of the salmon.\u201D Information from outside the app that shapes the initial state.',
       ),
       para(
-        'Flags let you pass initialization data into your application \u2014 things like persisted state from localStorage or configuration values. Define a Flags schema and provide an Effect that loads the flags.',
+        'Flags let you pass initialization data into your application, like persisted state from localStorage or configuration values. Define a Flags schema and provide an Effect that loads the flags.',
       ),
       highlightedCodeBlock(
         div(

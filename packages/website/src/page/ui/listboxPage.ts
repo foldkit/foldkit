@@ -159,7 +159,7 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     name: 'onSelectedItem',
     type: '(value: string) => Message',
     description:
-      'Alternative to Submodel delegation — fires your own Message on selection. Use with Listbox.selectItem() to update the Model while also handling domain logic.',
+      'Alternative to Submodel delegation: fires your own Message on selection. Use with Listbox.selectItem() to update the Model while also handling domain logic.',
   },
   {
     name: 'itemToValue',
@@ -268,7 +268,7 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
   {
     key: 'Type a character',
     description:
-      'Typeahead search — jumps to the first matching item. Accumulates characters for 350ms.',
+      'Typeahead search: jumps to the first matching item. Accumulates characters for 350ms.',
   },
 ]
 
@@ -382,7 +382,7 @@ export const view = (
       ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
-        'Listbox is headless — the ',
+        'Listbox is headless. The ',
         inlineCode('itemToConfig'),
         ' callback controls all item markup. Use ',
         inlineCode('data-active'),
@@ -404,7 +404,7 @@ export const view = (
         keyboardInteractionHeader.text,
       ),
       para(
-        'Listbox uses typeahead search — typing printable characters jumps to the first matching item. Characters accumulate for 350ms before the search resets.',
+        'Listbox uses typeahead search: typing printable characters jumps to the first matching item. Characters accumulate for 350ms before the search resets.',
       ),
       keyboardTable(keyboardEntries),
       heading(

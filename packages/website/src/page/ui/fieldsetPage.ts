@@ -149,7 +149,7 @@ export const view = (
       para(
         'A semantic form section that groups related controls with a legend and description. Fieldset is a view-only component that wraps the native ',
         inlineCode('<fieldset>'),
-        ' element — when disabled, the browser propagates the disabled state to all child form controls automatically.',
+        ' element. When disabled, the browser propagates the disabled state to all child form controls automatically.',
       ),
       infoCallout(
         'See it in an app',
@@ -195,7 +195,7 @@ export const view = (
         inlineCode('isDisabled: true'),
         ' to disable the entire group. The native ',
         inlineCode('<fieldset disabled>'),
-        ' attribute propagates to all child inputs, textareas, buttons, and selects — you don\u2019t need to disable each control individually.',
+        ' attribute propagates to all child inputs, textareas, buttons, and selects. You don\u2019t need to disable each control individually.',
       ),
       demoContainer(...Fieldset.disabledDemo(model, toParentMessage)),
       highlightedCodeBlock(
@@ -210,7 +210,7 @@ export const view = (
       ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
-        'Fieldset is headless — your ',
+        'Fieldset is headless. Your ',
         inlineCode('toView'),
         ' callback controls all markup and styling.',
       ),

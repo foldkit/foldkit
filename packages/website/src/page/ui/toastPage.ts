@@ -124,7 +124,7 @@ const showInputProps: ReadonlyArray<PropEntry> = [
     type: "'Info' | 'Success' | 'Warning' | 'Error'",
     default: "'Info'",
     description:
-      'Semantic category. Maps to data-variant for styling and to role=status (Info, Success) or role=alert (Warning, Error) for accessibility. The only content-adjacent field the component owns — everything else is in payload.',
+      'Semantic category. Maps to data-variant for styling and to role=status (Info, Success) or role=alert (Warning, Error) for accessibility. The only content-adjacent field the component owns. Everything else is in payload.',
   },
   {
     name: 'duration',
@@ -245,7 +245,7 @@ export const view = (
         '.',
       ),
       para(
-        'Toast is parameterized on a user-provided payload schema. The component owns only lifecycle and a11y fields — id, variant (drives ARIA role), transition, dismiss timer, hover state. Everything else lives in your payload and is rendered by your ',
+        'Toast is parameterized on a user-provided payload schema. The component owns only lifecycle and a11y fields: id, variant (drives ARIA role), transition, dismiss timer, hover state. Everything else lives in your payload and is rendered by your ',
         inlineCode('renderEntry'),
         ' callback. ',
         inlineCode('Ui.Toast.make(PayloadSchema)'),

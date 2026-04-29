@@ -162,7 +162,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       infoCallout(
         'Unresolved Commands',
         inlineCode('Story.message'),
-        ' throws if there are pending Commands from a previous step \u2014 resolve all Commands before sending the next Message. ',
+        ' throws if there are pending Commands from a previous step. Resolve all Commands before sending the next Message. ',
         inlineCode('Story.story'),
         ' throws at the end if any Commands remain unresolved. Every Command your update function produces must be accounted for.',
       ),

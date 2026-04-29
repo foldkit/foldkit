@@ -32,7 +32,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('evo'),
         " for immutable model updates. It wraps Effect's ",
         inlineCode('Struct.evolve'),
-        ' with stricter type checking — if you remove or rename a key from your Model, you’ll get type errors everywhere you try to update it.',
+        ' with stricter type checking. If you remove or rename a key from your Model, you’ll get type errors everywhere you try to update it.',
       ),
       highlightedCodeBlock(
         div([Class('text-sm'), InnerHTML(Snippets.evoExampleHighlighted)], []),

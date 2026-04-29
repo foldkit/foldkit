@@ -170,7 +170,7 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     name: 'onSelected',
     type: '(value, index) => Message',
     description:
-      'Alternative to Submodel delegation — fires your own Message on selection instead of the internal SelectedOption. Use with RadioGroup.select() to update the Model.',
+      'Alternative to Submodel delegation: fires your own Message on selection instead of the internal SelectedOption. Use with RadioGroup.select() to update the Model.',
   },
   {
     name: 'name',
@@ -262,7 +262,7 @@ export const view = (
       pageTitle('ui/radioGroup', 'Radio Group'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'A single-selection component with roving tabindex keyboard navigation. Arrow keys simultaneously move focus and select the option — there is no separate focus-then-select step. RadioGroup uses the Submodel pattern and supports both vertical and horizontal orientation.',
+        'A single-selection component with roving tabindex keyboard navigation. Arrow keys simultaneously move focus and select the option. There is no separate focus-then-select step. RadioGroup uses the Submodel pattern and supports both vertical and horizontal orientation.',
       ),
       infoCallout(
         'See it in an app',
@@ -323,7 +323,7 @@ export const view = (
       ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
-        'RadioGroup is headless — the ',
+        'RadioGroup is headless. The ',
         inlineCode('optionToConfig'),
         ' callback controls all option markup and styling. Use the data attributes below to style selected, focused, and disabled states.',
       ),
@@ -334,7 +334,7 @@ export const view = (
         keyboardInteractionHeader.text,
       ),
       para(
-        'RadioGroup uses roving tabindex — only the active option is in the tab order. Arrow keys move focus and select simultaneously. Disabled options are skipped during keyboard navigation.',
+        'RadioGroup uses roving tabindex: only the active option is in the tab order. Arrow keys move focus and select simultaneously. Disabled options are skipped during keyboard navigation.',
       ),
       keyboardTable(keyboardEntries),
       heading(

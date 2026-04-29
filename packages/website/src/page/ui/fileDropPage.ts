@@ -201,12 +201,12 @@ export const view = (
       para(
         'A file drop zone that accepts files via both drag-and-drop and a hidden ',
         inlineCode('<input type="file">'),
-        '. FileDrop is headless — the component owns drag state and file-arrival events; your ',
+        '. FileDrop is headless. The component owns drag state and file-arrival events; your ',
         inlineCode('toView'),
         ' callback owns the visual.',
       ),
       para(
-        'FileDrop uses the Submodel pattern — initialize with ',
+        'FileDrop uses the Submodel pattern: initialize with ',
         inlineCode('FileDrop.init()'),
         ', delegate in your parent update via ',
         inlineCode('FileDrop.update()'),
@@ -224,7 +224,7 @@ export const view = (
       ),
       heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
       para(
-        'A multi-file drop zone. Drag files on or click to browse — the component exposes ',
+        'A multi-file drop zone. Drag files on or click to browse. The component exposes ',
         inlineCode('data-drag-over'),
         ' on the root while a drag hovers, so you can style the highlighted state with ',
         inlineCode('data-[drag-over]:*'),

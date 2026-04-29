@@ -155,7 +155,7 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     name: 'onSelectedItem',
     type: '(value: string) => ParentMessage',
     description:
-      'Alternative to Submodel delegation — fires your own Message on selection. Use with Combobox.selectItem() in your update handler to reflect the selection in the combobox state.',
+      'Alternative to Submodel delegation: fires your own Message on selection. Use with Combobox.selectItem() in your update handler to reflect the selection in the combobox state.',
   },
   {
     name: 'items',
@@ -269,7 +269,7 @@ export const view = (
       pageTitle('ui/combobox', 'Combobox'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'A searchable select with input filtering, keyboard navigation, and anchor positioning. Unlike Listbox (which uses a button trigger), Combobox has a text input for searching. You control the filtering logic — read ',
+        'A searchable select with input filtering, keyboard navigation, and anchor positioning. Unlike Listbox (which uses a button trigger), Combobox has a text input for searching. You control the filtering logic: read ',
         inlineCode('model.inputValue'),
         ' and pass the filtered items array.',
       ),
@@ -376,7 +376,7 @@ export const view = (
       ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
-        'Combobox is headless — the ',
+        'Combobox is headless. The ',
         inlineCode('itemToConfig'),
         ' callback controls all item markup. Style the input, button, items container, and backdrop through their respective attribute props.',
       ),

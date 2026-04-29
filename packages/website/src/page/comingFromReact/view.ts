@@ -171,7 +171,7 @@ export const view = (
     [
       pageTitle('coming-from-react', 'Coming from React'),
       para(
-        'If you know React, you already have the instincts for building UIs. Foldkit channels those instincts through a different structure \u2014 one where every state change, every side effect, and every event is explicit and visible. The best way to feel the difference is to build the same thing in both.',
+        'If you know React, you already have the instincts for building UIs. Foldkit channels those instincts through a different structure: one where every state change, every side effect, and every event is explicit and visible. The best way to feel the difference is to build the same thing in both.',
       ),
       tableOfContentsEntryToHeader(simpleCounterHeader),
       para('A counter in React:'),
@@ -197,7 +197,7 @@ export const view = (
         'mb-6',
       ),
       para(
-        'More lines, same result. At this scale, Foldkit\u2019s structure \u2014 Model, Message, update, view \u2014 looks like overhead. The benefits come with scale. Every piece earns its place as more complex behavior is introduced.',
+        'More lines, same result. At this scale, Foldkit\u2019s structure (Model, Message, update, view) looks like overhead. The benefits come with scale. Every piece earns its place as more complex behavior is introduced.',
       ),
       tableOfContentsEntryToHeader(autoCountHeader),
       para(
@@ -219,7 +219,7 @@ export const view = (
         'mb-4',
       ),
       para(
-        'The interval state lives outside React\u2019s state system \u2014 in a ref \u2014 because the effect needs to clear the previous interval before starting a new one. The cleanup function is critical: miss it and you leak intervals.',
+        'The interval state lives outside React\u2019s state system (in a ref) because the effect needs to clear the previous interval before starting a new one. The cleanup function is critical: miss it and you leak intervals.',
       ),
       para('Foldkit adds a Subscription and a Message:'),
       highlightedCodeBlock(
@@ -240,7 +240,7 @@ export const view = (
         inlineCode('Ticked'),
         ' every second while ',
         inlineCode('isAutoCounting'),
-        ' is true. Foldkit manages the stream lifecycle \u2014 starts it when the dependency changes to true, tears it down when it changes to false. No refs, no manual cleanup.',
+        ' is true. Foldkit manages the stream lifecycle: starts it when the dependency changes to true, tears it down when it changes to false. No refs, no manual cleanup.',
       ),
       tableOfContentsEntryToHeader(stepSizeHeader),
       para(
@@ -251,7 +251,7 @@ export const view = (
         inlineCode('setInterval'),
         ' callback captures ',
         inlineCode('step'),
-        ' at creation time. If you change the step while playing, the interval keeps using the old value \u2014 a stale closure. The fix: a ref and a sync effect to keep it current:',
+        ' at creation time. If you change the step while playing, the interval keeps using the old value: a stale closure. The fix is a ref and a sync effect to keep it current:',
       ),
       highlightedCodeBlock(
         div(
@@ -267,7 +267,7 @@ export const view = (
         'mb-4',
       ),
       para(
-        'Two refs, two effects, and a subtle bug that only manifests at runtime \u2014 the interval silently uses a stale value until you add the ref workaround. Most React developers have been burned by this.',
+        'Two refs, two effects, and a subtle bug that only manifests at runtime. The interval silently uses a stale value until you add the ref workaround. Most React developers have been burned by this.',
       ),
       para('In Foldkit, there is no stale closure:'),
       highlightedCodeBlock(
@@ -291,29 +291,29 @@ export const view = (
         inlineCode('Ticked'),
         ' use ',
         inlineCode('model.step'),
-        ' and it just works \u2014 no refs, no sync effects, no runtime surprises.',
+        ' and it just works. No refs, no sync effects, no runtime surprises.',
       ),
       para(
-        'Read the update function top to bottom. Every behavior in the app is right there. Each case is independent \u2014 they don\u2019t interact through shared mutable state or overlapping effect dependencies. Adding a feature meant adding cases, not restructuring existing ones.',
+        'Read the update function top to bottom. Every behavior in the app is right there. Each case is independent. They don\u2019t interact through shared mutable state or overlapping effect dependencies. Adding a feature meant adding cases, not restructuring existing ones.',
       ),
       infoCallout(
         'The pattern',
-        'In React, complexity compounds. Each feature interacts with existing effects, refs, and closures. In Foldkit, complexity scales linearly. Each feature adds Messages, update cases, and possibly Commands or Subscriptions \u2014 but they don\u2019t interact with each other through shared mutable state.',
+        'In React, complexity compounds. Each feature interacts with existing effects, refs, and closures. In Foldkit, complexity scales linearly. Each feature adds Messages, update cases, and possibly Commands or Subscriptions, but they don\u2019t interact with each other through shared mutable state.',
       ),
       para(
-        'This structure also makes testing trivial. Your update function is pure \u2014 pass a Model and a Message, assert on the returned Model. No rendering, no mocking ',
+        'This structure also makes testing trivial. Your update function is pure. Pass a Model and a Message, assert on the returned Model. No rendering, no mocking ',
         inlineCode('useEffect'),
         ', no wrapping in providers.',
       ),
       para(
-        'This is a toy example. Consider what happens at real scale \u2014 a multiplayer game with WebSocket streams, a mix of client and server state, handling keyboard events, animations, and reconnection logic. In React, every feature adds effects that interact with every other effect. In Foldkit, the architecture is the same as the counter: Messages come in, the update function decides what to do, Commands and Subscriptions handle the rest. The complexity of your domain grows, but the complexity of your architecture doesn\u2019t.',
+        'This is a toy example. Consider what happens at real scale: a multiplayer game with WebSocket streams, a mix of client and server state, handling keyboard events, animations, and reconnection logic. In React, every feature adds effects that interact with every other effect. In Foldkit, the architecture is the same as the counter: Messages come in, the update function decides what to do, Commands and Subscriptions handle the rest. The complexity of your domain grows, but the complexity of your architecture doesn\u2019t.',
       ),
       tableOfContentsEntryToHeader(translatingConceptsHeader),
       para('Here\u2019s how React patterns map to Foldkit:'),
       patternMappingTable(),
       infoCallout(
         'If you know Redux...',
-        'The Model-View-Update pattern will feel familiar. Think of the Model as your Redux store, Messages as actions, and update as your reducer \u2014 but without action creators, selectors, or middleware.',
+        'The Model-View-Update pattern will feel familiar. Think of the Model as your Redux store, Messages as actions, and update as your reducer, but without action creators, selectors, or middleware.',
       ),
       tableOfContentsEntryToHeader(faqHeader),
       faqItem(
@@ -321,7 +321,7 @@ export const view = (
         'How do I make reusable \u201Ccomponents\u201D?',
         [
           para(
-            'Create functions that take parts of your Model and return Html. They\u2019re not components in the React sense \u2014 they don\u2019t have their own state or lifecycle \u2014 but they\u2019re reusable view logic. For complex features that need their own state, use the ',
+            'Create functions that take parts of your Model and return Html. They\u2019re not components in the React sense (they don\u2019t have their own state or lifecycle), but they\u2019re reusable view logic. For complex features that need their own state, use the ',
             link(patternsSubmodelsRouter(), 'Submodels'),
             ' pattern: the child module gets its own Model, Message, and update, and the parent embeds and delegates to it.',
           ),
@@ -352,7 +352,7 @@ export const view = (
           para(
             'Each ',
             inlineCode('Accordion.Model'),
-            ' is a Submodel \u2014 a self-contained piece of state with its own Messages, update, and view. This is similar to what React developers end up doing anyway \u2014 lifting state into a parent \u2014 but Foldkit enforces it from the start. See the ',
+            ' is a Submodel: a self-contained piece of state with its own Messages, update, and view. This is similar to what React developers end up doing anyway (lifting state into a parent), but Foldkit enforces it from the start. See the ',
             link(
               exampleDetailRouter({ exampleSlug: 'shopping-cart' }),
               'Shopping Cart example',
@@ -368,7 +368,7 @@ export const view = (
         'How does routing work?',
         [
           para(
-            'Foldkit has built-in typed routing with bidirectional parsers \u2014 define routes once, use them for both URL parsing and URL building. See ',
+            'Foldkit has built-in typed routing with bidirectional parsers: define routes once, use them for both URL parsing and URL building. See ',
             link(routingAndNavigationRouter(), 'Routing & Navigation'),
             '.',
           ),
@@ -405,7 +405,7 @@ export const view = (
         [
           para(
             link(uiOverviewRouter(), 'Foldkit UI'),
-            ' is a built-in set of headless, accessible components \u2014 Disclosure, Combobox, Listbox, Menu, Popover, and more. Each one follows The Elm Architecture with its own Model, Message, and update, and integrates into your app via the Submodels pattern. You provide the markup and styling; Foldkit UI provides the accessibility attributes, keyboard navigation, and state management.',
+            ' is a built-in set of headless, accessible components: Disclosure, Combobox, Listbox, Menu, Popover, and more. Each one follows The Elm Architecture with its own Model, Message, and update, and integrates into your app via the Submodels pattern. You provide the markup and styling; Foldkit UI provides the accessibility attributes, keyboard navigation, and state management.',
           ),
         ],
         model,
@@ -416,7 +416,7 @@ export const view = (
         'How do I fetch data?',
         [
           para(
-            'Return a Command from your update function. The runtime runs the Command \u2014 an HTTP request, a localStorage read, a DOM focus call, whatever side effect you need \u2014 and feeds the resulting Message back into update. No ',
+            'Return a Command from your update function. The runtime runs the Command (an HTTP request, a localStorage read, a DOM focus call, whatever side effect you need) and feeds the resulting Message back into update. No ',
             inlineCode('useEffect'),
             ', no cleanup functions, no race conditions. See the ',
             link(Link.exampleWeatherFetch, 'Weather example'),
@@ -431,7 +431,7 @@ export const view = (
         'How do I test my app?',
         [
           para(
-            'Your update function is pure \u2014 give it a Model and a Message, check the returned Model and Commands. Commands carry names, so you can assert which ones were produced: ',
+            'Your update function is pure. Give it a Model and a Message, check the returned Model and Commands. Commands carry names, so you can assert which ones were produced: ',
             inlineCode("expect(commands[0].name).toBe('FetchWeather')"),
             '. No rendering, no mocking hooks, no test utilities. Commands are Effects with explicit dependencies, so you can swap in test layers without stubbing globals. See ',
             link(

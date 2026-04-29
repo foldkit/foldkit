@@ -248,7 +248,7 @@ export const view = (
         inlineCode('buttonContent'),
         ' and ',
         inlineCode('panelContent'),
-        ' directly — Disclosure handles the wrapper, ARIA linking, and toggle behavior. Style the button and panel with className or attributes props.',
+        ' directly. Disclosure handles the wrapper, ARIA linking, and toggle behavior. Style the button and panel with className or attributes props.',
       ),
       demoContainer(
         ...Disclosure.disclosureDemo(model.disclosureDemo, toParentMessage),

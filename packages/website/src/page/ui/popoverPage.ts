@@ -249,7 +249,7 @@ export const view = (
       para(
         'Pass ',
         inlineCode('anchor'),
-        ' to position the panel relative to the button. The panel can hold any content — links, forms, or informational text.',
+        ' to position the panel relative to the button. The panel can hold any content: links, forms, or informational text.',
       ),
       demoContainer(
         ...Popover.basicDemo(model.popoverBasicDemo, toParentMessage),
@@ -279,7 +279,7 @@ export const view = (
       ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
-        'Popover is headless — button and panel styling is controlled through className and attribute props.',
+        'Popover is headless. Button and panel styling is controlled through className and attribute props.',
       ),
       para(
         'When ',
@@ -310,7 +310,7 @@ export const view = (
         inlineCode('aria-expanded'),
         ' and ',
         inlineCode('aria-controls'),
-        ' linking to the panel. The panel has no role — Popover uses the disclosure pattern, not the menu pattern.',
+        ' linking to the panel. The panel has no role. Popover uses the disclosure pattern, not the menu pattern.',
       ),
       heading(
         apiReferenceHeader.level,

@@ -45,7 +45,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       pageTitle('core/view', 'View'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'The view function turns your Model into HTML. The user doesn\u2019t see the Model directly \u2014 they see what view renders from it.',
+        'The view function turns your Model into HTML. The user doesn\u2019t see the Model directly. They see what view renders from it.',
       ),
       para(
         'In the ',
@@ -53,10 +53,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           `${coreArchitectureRouter()}#the-restaurant-analogy`,
           'restaurant analogy',
         ),
-        ', the waiter\u2019s notebook says \u201Ctable 3: salmon, ready.\u201D The view is what\u2019s actually on the table \u2014 the plate in front of the customer.',
+        ', the waiter\u2019s notebook says \u201Ctable 3: salmon, ready.\u201D The view is what\u2019s actually on the table: the plate in front of the customer.',
       ),
       para(
-        'Given the same Model, view always produces the same HTML. It never modifies state directly \u2014 instead, it dispatches Messages through event handlers, feeding them back into the loop.',
+        'Given the same Model, view always produces the same HTML. It never modifies state directly. Instead, it dispatches Messages through event handlers, feeding them back into the loop.',
       ),
       highlightedCodeBlock(
         div([Class('text-sm'), InnerHTML(Snippets.counterViewHighlighted)], []),
@@ -67,7 +67,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       infoCallout(
         'No hook rules',
-        'In React, functional components can hold local state and run effects via hooks, which come with ordering rules you have to follow. In Foldkit, view is guaranteed pure \u2014 no hooks, no effects, no local state. It\u2019s a function from Model to Html.',
+        'In React, functional components can hold local state and run effects via hooks, which come with ordering rules you have to follow. In Foldkit, view is guaranteed pure: no hooks, no effects, no local state. It\u2019s a function from Model to Html.',
       ),
       tableOfContentsEntryToHeader(typedHtmlHelpersHeader),
       para(
@@ -83,15 +83,15 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        'This gives you strong type safety \u2014 if you try to pass an invalid Message to ',
+        'This gives you strong type safety: if you try to pass an invalid Message to ',
         inlineCode('OnClick'),
-        ', TypeScript catches it at compile time. You only need to do this once per module \u2014 most apps create a single ',
+        ', TypeScript catches it at compile time. You only need to do this once per module. Most apps create a single ',
         inlineCode('html.ts'),
         ' file and import from there.',
       ),
       tableOfContentsEntryToHeader(eventHandlingHeader),
       para(
-        'When the customer flags the waiter, that\u2019s a Message. In the view, event handlers work the same way \u2014 instead of imperative callbacks that modify state, you pass a Message, or a function that maps an event to a Message.',
+        'When the customer flags the waiter, that\u2019s a Message. In the view, event handlers work the same way. Instead of imperative callbacks that modify state, you pass a Message, or a function that maps an event to a Message.',
       ),
       highlightedCodeBlock(
         div(
@@ -107,7 +107,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'For simple events like clicks, you pass the Message directly. For events that carry data (like input changes), you pass a function that receives the event and returns a Message. This keeps your view declarative. It describes what Messages should be sent, not how to handle them.',
       ),
       para(
-        'So far everything has been synchronous \u2014 the user clicks a button, update produces a new Model, the view rerenders. But real apps need side effects: HTTP requests, timers, browser APIs. That\u2019s where Commands come in.',
+        'So far everything has been synchronous. The user clicks a button, update produces a new Model, the view rerenders. But real apps need side effects: HTTP requests, timers, browser APIs. That\u2019s where Commands come in.',
       ),
     ],
   )
