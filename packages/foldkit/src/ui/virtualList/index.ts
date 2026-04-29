@@ -6,6 +6,7 @@ import {
   Option,
   Schema as S,
   Stream,
+  pipe,
 } from 'effect'
 
 import * as Command from '../../command/index.js'
@@ -180,6 +181,21 @@ export const update = (
     }),
   )
 
+const buildScrollToIndex = (
+  model: Model,
+  index: number,
+  targetScrollTop: number,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
+  const nextVersion = Number.increment(model.pendingScrollVersion)
+  return [
+    evo(model, {
+      pendingScrollVersion: () => nextVersion,
+      pendingScroll: () => ScrollingToIndex({ index, version: nextVersion }),
+    }),
+    [applyScroll(model.id, targetScrollTop, nextVersion)],
+  ]
+}
+
 /** Programmatically scrolls the container so the row at `index` is visible.
  *  Returns the next model and a Command that mutates `element.scrollTop`. The
  *  natural scroll event then flows back through `ScrolledContainer` and the
@@ -191,21 +207,43 @@ export const update = (
  *
  *  Should be called after the container has rendered. If the container is not
  *  yet in the DOM the Command silently no-ops (the model still transitions
- *  through `ScrollingToIndex` → `Idle` via the version-matched completion). */
+ *  through `ScrollingToIndex` → `Idle` via the version-matched completion).
+ *
+ *  Assumes uniform row heights: target scroll position is computed as
+ *  `index * model.rowHeightPx`. For variable-height rows, use
+ *  `scrollToIndexVariable`. */
 export const scrollToIndex = (
   model: Model,
   index: number,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
-  const nextVersion = Number.increment(model.pendingScrollVersion)
-  const targetScrollTop = index * model.rowHeightPx
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+  buildScrollToIndex(model, index, index * model.rowHeightPx)
 
-  return [
-    evo(model, {
-      pendingScrollVersion: () => nextVersion,
-      pendingScroll: () => ScrollingToIndex({ index, version: nextVersion }),
-    }),
-    [applyScroll(model.id, targetScrollTop, nextVersion)],
-  ]
+/** Variable-height counterpart of `scrollToIndex`. Walks the heights of items
+ *  before `index` to compute the target `scrollTop`. Use this when rendering
+ *  the list with `itemToRowHeightPx`; use `scrollToIndex` for uniform heights.
+ *
+ *  Out-of-range indices clamp to the corresponding edge: negative or zero
+ *  scrolls to the top, indices past the end scroll past the last row.
+ *
+ *  Note: when restoring `initialScrollTop` on the first measurement of a
+ *  variable-height list, the runtime falls back to uniform-height math (using
+ *  `model.rowHeightPx`) because items aren't reachable from the `update`
+ *  function. Consumers who need an accurate initial scroll on a
+ *  variable-height list should call `scrollToIndexVariable` after the first
+ *  `MeasuredContainer` arrives. */
+export const scrollToIndexVariable = <Item>(
+  model: Model,
+  items: ReadonlyArray<Item>,
+  itemToRowHeightPx: (item: Item, index: number) => number,
+  index: number,
+): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
+  const cumulativeOffsets = prefixSum(items, itemToRowHeightPx)
+  const targetScrollTop = pipe(
+    cumulativeOffsets,
+    Array.get(Math.max(0, index)),
+    Option.getOrElse(() => lastOrZero(cumulativeOffsets)),
+  )
+  return buildScrollToIndex(model, index, targetScrollTop)
 }
 
 // HELPERS
@@ -223,8 +261,26 @@ export type VisibleWindow = Readonly<{
 const clampIndex = (index: number, itemCount: number): number =>
   Math.max(0, Math.min(index, itemCount))
 
+const prefixSum = <Item>(
+  items: ReadonlyArray<Item>,
+  itemToRowHeightPx: (item: Item, index: number) => number,
+): ReadonlyArray<number> => {
+  const heights = Array.map(items, itemToRowHeightPx)
+  return Array.scan(heights, 0, (cumulative, height) => cumulative + height)
+}
+
+const lastOrZero = (values: ReadonlyArray<number>): number =>
+  pipe(
+    values,
+    Array.last,
+    Option.getOrElse(() => 0),
+  )
+
 /** Computes the visible slice of a data array given the current scroll
  *  position, container height, row height, and an overscan buffer.
+ *
+ *  Assumes uniform row heights via `model.rowHeightPx`. For variable-height
+ *  rows, use `visibleWindowVariable`.
  *
  *  Returns `Option.none()` when the container has not yet been measured;
  *  callers should render a placeholder (or `Html.empty`) and wait for the
@@ -251,6 +307,74 @@ export const visibleWindow = (
 
         const topSpacerHeight = startIndex * model.rowHeightPx
         const bottomSpacerHeight = (itemCount - endIndex) * model.rowHeightPx
+
+        return Option.some({
+          startIndex,
+          endIndex,
+          topSpacerHeight,
+          bottomSpacerHeight,
+        })
+      },
+    }),
+  )
+
+/** Variable-height counterpart of `visibleWindow`. Walks the heights of every
+ *  item to build a prefix-sum array, then locates the visible slice with two
+ *  linear searches.
+ *
+ *  Cost is O(N) per call, walking the whole `items` array once to build the
+ *  prefix sums. For lists in the 10k-item range, this comfortably fits inside
+ *  a 60Hz scroll budget. Larger lists or hotter scroll paths can layer a
+ *  prefix-sum cache invalidated when items change; that lives behind the same
+ *  return shape so consumers don't have to know.
+ *
+ *  Returns `Option.none()` when the container has not yet been measured. */
+export const visibleWindowVariable = <Item>(
+  model: Model,
+  items: ReadonlyArray<Item>,
+  itemToRowHeightPx: (item: Item, index: number) => number,
+  overscan: number,
+): Option.Option<VisibleWindow> =>
+  M.value(model.measurement).pipe(
+    M.withReturnType<Option.Option<VisibleWindow>>(),
+    M.tagsExhaustive({
+      Unmeasured: () => Option.none(),
+      Measured: ({ containerHeight }) => {
+        const itemCount = items.length
+        const cumulativeOffsets = prefixSum(items, itemToRowHeightPx)
+        const totalHeight = lastOrZero(cumulativeOffsets)
+
+        const firstVisibleIndex = pipe(
+          cumulativeOffsets,
+          Array.findFirstIndex(Number.greaterThan(model.scrollTop)),
+          Option.match({
+            onNone: () => itemCount,
+            onSome: index => Math.max(0, index - 1),
+          }),
+        )
+
+        const lastVisibleIndex = pipe(
+          cumulativeOffsets,
+          Array.findFirstIndex(
+            Number.greaterThanOrEqualTo(model.scrollTop + containerHeight),
+          ),
+          Option.getOrElse(() => itemCount),
+        )
+
+        const startIndex = clampIndex(firstVisibleIndex - overscan, itemCount)
+        const endIndex = clampIndex(lastVisibleIndex + overscan, itemCount)
+
+        const topSpacerHeight = pipe(
+          cumulativeOffsets,
+          Array.get(startIndex),
+          Option.getOrElse(() => 0),
+        )
+        const offsetAtEnd = pipe(
+          cumulativeOffsets,
+          Array.get(endIndex),
+          Option.getOrElse(() => totalHeight),
+        )
+        const bottomSpacerHeight = totalHeight - offsetAtEnd
 
         return Option.some({
           startIndex,
@@ -397,6 +521,14 @@ export type ViewConfig<Message, Item> = Readonly<{
   items: ReadonlyArray<Item>
   itemToKey: (item: Item, index: number) => string
   itemToView: (item: Item, index: number) => Html
+  /** Optional per-item row height in pixels. When provided, the list renders
+   *  with variable-height rows: each row's wrapper takes the height returned
+   *  by this callback, and scroll math walks the items to compute the visible
+   *  slice and spacers. When absent, all rows use `model.rowHeightPx`. Use
+   *  this for tables with wrapping cells, taller detail rows, or any list
+   *  where rows differ. Prefer the uniform `rowHeightPx` path when row
+   *  heights are stable: it avoids the per-render walk over `items`. */
+  itemToRowHeightPx?: (item: Item, index: number) => number
   /** Number of rows rendered above and below the visible viewport. Higher
    *  values smooth out fast scroll at the cost of mounting more DOM. Default
    *  is 5; react-window uses 1 and react-virtualized uses 3. Pick a value
@@ -443,6 +575,7 @@ export const view = <Message, Item>(
     items,
     itemToKey,
     itemToView,
+    itemToRowHeightPx,
     overscan = DEFAULT_OVERSCAN,
     rowElement = 'li',
     className,
@@ -466,7 +599,17 @@ export const view = <Message, Item>(
   const renderContainer = (children: ReadonlyArray<Html>): Html =>
     keyed('ul')(model.id, containerAttributes, children)
 
-  return Option.match(visibleWindow(model, items.length, overscan), {
+  const maybeWindow =
+    itemToRowHeightPx !== undefined
+      ? visibleWindowVariable(model, items, itemToRowHeightPx, overscan)
+      : visibleWindow(model, items.length, overscan)
+
+  const rowHeightFor = (item: Item, dataIndex: number): number =>
+    itemToRowHeightPx !== undefined
+      ? itemToRowHeightPx(item, dataIndex)
+      : model.rowHeightPx
+
+  return Option.match(maybeWindow, {
     onNone: () => renderContainer([]),
 
     onSome: ({ startIndex, endIndex, topSpacerHeight, bottomSpacerHeight }) => {
@@ -493,7 +636,10 @@ export const view = <Message, Item>(
             DataAttribute('virtual-list-item-index', String(dataIndex)),
             AriaSetsize(items.length),
             AriaPosinset(dataIndex + 1),
-            Style({ height: `${model.rowHeightPx}px`, display: 'grid' }),
+            Style({
+              height: `${rowHeightFor(item, dataIndex)}px`,
+              display: 'grid',
+            }),
           ],
           [itemToView(item, dataIndex)],
         )

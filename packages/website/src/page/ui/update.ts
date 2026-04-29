@@ -36,12 +36,17 @@ import {
   GotVerticalRadioGroupDemoMessage,
   GotVerticalTabsDemoMessage,
   GotVirtualListDemoMessage,
+  GotVirtualListVariableDemoMessage,
   type Message,
 } from './message'
 import type { Model } from './model'
 import type { DemoCard, DemoColumn } from './model'
 import { Toast } from './toastModule'
-import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './virtualList'
+import {
+  ROW_COUNT as VIRTUAL_LIST_ROW_COUNT,
+  variableActivities,
+  variableRowHeightPx,
+} from './virtualList'
 
 // REORDER
 
@@ -891,6 +896,47 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           virtualListCommands.map(
             Command.mapEffect(
               Effect.map(message => GotVirtualListDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      GotVirtualListVariableDemoMessage: ({ message }) => {
+        const [nextVirtualListVariableDemo, virtualListCommands] =
+          Ui.VirtualList.update(model.virtualListVariableDemo, message)
+
+        return [
+          evo(model, {
+            virtualListVariableDemo: () => nextVirtualListVariableDemo,
+          }),
+          virtualListCommands.map(
+            Command.mapEffect(
+              Effect.map(message =>
+                GotVirtualListVariableDemoMessage({ message }),
+              ),
+            ),
+          ),
+        ]
+      },
+
+      ClickedVirtualListVariableScrollToMiddle: () => {
+        const [nextVirtualListVariableDemo, virtualListCommands] =
+          Ui.VirtualList.scrollToIndexVariable(
+            model.virtualListVariableDemo,
+            variableActivities,
+            variableRowHeightPx,
+            Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
+          )
+
+        return [
+          evo(model, {
+            virtualListVariableDemo: () => nextVirtualListVariableDemo,
+          }),
+          virtualListCommands.map(
+            Command.mapEffect(
+              Effect.map(message =>
+                GotVirtualListVariableDemoMessage({ message }),
+              ),
             ),
           ),
         ]

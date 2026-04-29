@@ -1323,6 +1323,8 @@ const SubscriptionDeps = S.Struct({
   sliderVolumePointer: sliderDemoFields['volumePointer'],
   sliderVolumeEscape: sliderDemoFields['volumeEscape'],
   virtualListContainerEvents: virtualListDemoFields['containerEvents'],
+  virtualListVariableContainerEvents:
+    virtualListDemoFields['variableContainerEvents'],
   exampleUrl: S.OptionFromSelf(S.String),
   heroVisibility: S.Struct({
     isLandingPage: S.Boolean,
@@ -1351,6 +1353,8 @@ const subscriptions = makeSubscriptions(SubscriptionDeps)<Model, Message>({
   sliderVolumeEscape: Subscription.SliderDemo.subscriptions.volumeEscape,
   virtualListContainerEvents:
     Subscription.VirtualListDemo.subscriptions.containerEvents,
+  virtualListVariableContainerEvents:
+    Subscription.VirtualListDemo.subscriptions.variableContainerEvents,
   exampleUrl: Subscription.exampleUrl,
   heroVisibility: Subscription.heroVisibility,
   searchShortcut: Subscription.searchShortcut,

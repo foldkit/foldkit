@@ -193,4 +193,38 @@ describe('VirtualList scene', () => {
       )
     })
   })
+
+  describe('variable row heights via itemToRowHeightPx', () => {
+    const itemToRowHeightPx = (item: DemoItem): number =>
+      item.id % 2 === 0 ? 60 : 20
+
+    const variableMeasuredModel = (() => {
+      const [model] = update(
+        unmeasuredModel,
+        MeasuredContainer({ containerHeight: 90 }),
+      )
+      return model
+    })()
+
+    it('renders each row at the height returned by itemToRowHeightPx', () => {
+      Scene.scene(
+        { update, view: sceneView({ itemToRowHeightPx }) },
+        Scene.with(variableMeasuredModel),
+        Scene.expect(
+          Scene.selector('[data-virtual-list-item-index="0"]'),
+        ).toHaveStyle('height', '60px'),
+        Scene.expect(
+          Scene.selector('[data-virtual-list-item-index="1"]'),
+        ).toHaveStyle('height', '20px'),
+      )
+    })
+
+    it('still picks the visible slice from cumulative heights', () => {
+      Scene.scene(
+        { update, view: sceneView({ itemToRowHeightPx }) },
+        Scene.with(variableMeasuredModel),
+        Scene.expectAll(rows).toHaveCount(3),
+      )
+    })
+  })
 })

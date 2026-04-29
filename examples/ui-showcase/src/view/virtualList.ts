@@ -2,9 +2,13 @@ import { Array, Match as M, Option, pipe } from 'effect'
 import { Ui } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
-import { Class, OnClick, button, div, h2, span } from '../html'
+import { Class, OnClick, button, div, h2, h3, span } from '../html'
 import type { Message as ParentMessage } from '../main'
-import { ClickedVirtualListScrollToMiddle, type UiMessage } from '../message'
+import {
+  ClickedVirtualListScrollToMiddle,
+  ClickedVirtualListVariableScrollToMiddle,
+  type UiMessage,
+} from '../message'
 import type { UiModel } from '../model'
 
 type Activity = Readonly<{
@@ -15,6 +19,7 @@ type Activity = Readonly<{
   verb: string
   target: string
   timeAgo: string
+  hasSummary: boolean
 }>
 
 export const ROW_COUNT = 10_000
@@ -110,6 +115,7 @@ const sampleActivities: ReadonlyArray<Activity> = Array.makeBy(
       verb,
       target: targetForVerb(verb, index),
       timeAgo: formatTimeAgo(hoursAgo),
+      hasSummary: index % 4 === 0,
     }
   },
 )
@@ -137,6 +143,123 @@ const buttonClassName =
 const headerClassName =
   'flex items-end justify-between text-sm text-gray-600 max-w-2xl'
 
+// VARIABLE-HEIGHT DATA
+
+type Summary = Readonly<{
+  title: string
+  body: string
+  artifact: string
+}>
+
+const summaries: ReadonlyArray<Summary> = [
+  {
+    title: 'CI passing across all browsers',
+    body: 'Resolved the flake in the snapshot suite and confirmed the migration step runs idempotently against staging.',
+    artifact: 'ci/run-4892',
+  },
+  {
+    title: 'Tracking upstream change',
+    body: 'Linked the upstream regression and added reproduction context so the next reviewer has everything in one place.',
+    artifact: 'tracker/issue-218',
+  },
+  {
+    title: 'Release notes ready for review',
+    body: 'Bumped the patch version, regenerated the changelog, and queued the release notes for editorial pass.',
+    artifact: 'release/v0.42.1-rc1',
+  },
+  {
+    title: 'Rollback plan coordinated',
+    body: 'Walked through the unwind steps with on-call and pre-staged the revert PR in case the deploy needs to be undone.',
+    artifact: 'runbook/rollback-checklist',
+  },
+  {
+    title: 'Failure trace attached',
+    body: 'Captured the steps to reproduce, attached the failing trace, and tagged the owning team for triage.',
+    artifact: 'traces/failure-7c2e',
+  },
+  {
+    title: 'Visual direction approved',
+    body: 'Aligned with the design team on spacing, contrast, and the dark-mode treatment before merging the implementation.',
+    artifact: 'design/spec-v3',
+  },
+  {
+    title: 'Migration verified on staging',
+    body: 'Confirmed the migration runs cleanly against the staging snapshot and produces the expected row counts on every shard.',
+    artifact: 'migration/2026-04-batch',
+  },
+]
+
+const SHORT_ROW_HEIGHT_PX = 56
+const TALL_ROW_HEIGHT_PX = 112
+
+const summaryFor = (index: number): Summary =>
+  pipe(summaries, Array.get(index % summaries.length), Option.getOrThrow)
+
+export const variableActivities: ReadonlyArray<Activity> = sampleActivities
+
+export const variableRowHeightPx = (activity: Activity): number =>
+  activity.hasSummary ? TALL_ROW_HEIGHT_PX : SHORT_ROW_HEIGHT_PX
+
+const variableTallRowClassName =
+  'grid grid-cols-[2rem_1fr_5rem] items-center gap-3 px-4 py-3 border-b border-gray-100'
+
+const variableSummaryTitleClassName =
+  'mt-0.5 text-xs font-semibold text-gray-700'
+
+const variableSummaryBodyClassName =
+  'mt-0.5 text-xs text-gray-500 leading-tight line-clamp-1'
+
+const variableArtifactClassName =
+  'mt-1 inline-flex w-fit rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[10px] text-gray-600'
+
+const subsectionHeadingClassName = 'text-lg font-semibold text-gray-900 mt-2'
+
+const shortRow = (row: Activity) =>
+  div(
+    [Class(rowClassName)],
+    [
+      div([Class(avatarClassName(row.colorClass))], [row.initial]),
+      div(
+        [Class(activityTextClassName)],
+        [
+          span([Class(actorClassName)], [row.actor]),
+          ' ',
+          row.verb,
+          ' ',
+          span([Class(targetClassName)], [row.target]),
+        ],
+      ),
+      div([Class(timeAgoClassName)], [row.timeAgo]),
+    ],
+  )
+
+const tallRow = (row: Activity, summary: Summary) =>
+  div(
+    [Class(variableTallRowClassName)],
+    [
+      div([Class(avatarClassName(row.colorClass))], [row.initial]),
+      div(
+        [Class('min-w-0')],
+        [
+          div(
+            [Class(activityTextClassName)],
+            [
+              span([Class(actorClassName)], [row.actor]),
+              ' ',
+              row.verb,
+              ' ',
+              span([Class(targetClassName)], [row.target]),
+            ],
+          ),
+          div([Class(variableSummaryTitleClassName)], [summary.title]),
+          div([Class(variableSummaryBodyClassName)], [summary.body]),
+          div([Class(variableArtifactClassName)], [summary.artifact]),
+        ],
+      ),
+      div([Class(timeAgoClassName)], [row.timeAgo]),
+    ],
+  )
+
 export const view = (
   model: UiModel,
   toParentMessage: (message: UiMessage) => ParentMessage,
@@ -146,45 +269,73 @@ export const view = (
     [
       h2([Class('text-2xl font-bold text-gray-900 mb-6')], ['Virtual List']),
       div(
-        [Class('flex flex-col gap-4 max-w-2xl')],
+        [Class('flex flex-col gap-8 max-w-2xl')],
         [
           div(
-            [Class(headerClassName)],
+            [Class('flex flex-col gap-4')],
             [
-              span([], [`${ROW_COUNT.toLocaleString()} activity events`]),
-              button(
+              h3([Class(subsectionHeadingClassName)], ['Basic']),
+              div(
+                [Class(headerClassName)],
                 [
-                  Class(buttonClassName),
-                  OnClick(toParentMessage(ClickedVirtualListScrollToMiddle())),
+                  span([], [`${ROW_COUNT.toLocaleString()} activity events`]),
+                  button(
+                    [
+                      Class(buttonClassName),
+                      OnClick(
+                        toParentMessage(ClickedVirtualListScrollToMiddle()),
+                      ),
+                    ],
+                    ['Jump to middle'],
+                  ),
                 ],
-                ['Jump to middle'],
               ),
+              Ui.VirtualList.view({
+                model: model.virtualListDemo,
+                items: sampleActivities,
+                itemToKey: row => String(row.id),
+                itemToView: row => shortRow(row),
+                className: containerClassName,
+              }),
             ],
           ),
-          Ui.VirtualList.view({
-            model: model.virtualListDemo,
-            items: sampleActivities,
-            itemToKey: row => String(row.id),
-            itemToView: row =>
+          div(
+            [Class('flex flex-col gap-4')],
+            [
+              h3([Class(subsectionHeadingClassName)], ['Variable row heights']),
               div(
-                [Class(rowClassName)],
+                [Class(headerClassName)],
                 [
-                  div([Class(avatarClassName(row.colorClass))], [row.initial]),
-                  div(
-                    [Class(activityTextClassName)],
-                    [
-                      span([Class(actorClassName)], [row.actor]),
-                      ' ',
-                      row.verb,
-                      ' ',
-                      span([Class(targetClassName)], [row.target]),
-                    ],
+                  span(
+                    [],
+                    ['Every fourth row is taller and shows a summary block'],
                   ),
-                  div([Class(timeAgoClassName)], [row.timeAgo]),
+                  button(
+                    [
+                      Class(buttonClassName),
+                      OnClick(
+                        toParentMessage(
+                          ClickedVirtualListVariableScrollToMiddle(),
+                        ),
+                      ),
+                    ],
+                    ['Jump to middle'],
+                  ),
                 ],
               ),
-            className: containerClassName,
-          }),
+              Ui.VirtualList.view({
+                model: model.virtualListVariableDemo,
+                items: variableActivities,
+                itemToKey: row => String(row.id),
+                itemToRowHeightPx: variableRowHeightPx,
+                itemToView: (row, index) =>
+                  row.hasSummary
+                    ? tallRow(row, summaryFor(index))
+                    : shortRow(row),
+                className: containerClassName,
+              }),
+            ],
+          ),
         ],
       ),
     ],

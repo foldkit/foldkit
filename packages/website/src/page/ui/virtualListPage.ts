@@ -39,6 +39,18 @@ const exampleHeader: TableOfContentsEntry = {
   text: 'Example',
 }
 
+const basicHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'basic',
+  text: 'Basic',
+}
+
+const variableHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'variable-row-heights',
+  text: 'Variable row heights',
+}
+
 const subscriptionsHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'subscriptions',
@@ -78,6 +90,8 @@ const viewConfigHeader: TableOfContentsEntry = {
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   exampleHeader,
+  basicHeader,
+  variableHeader,
   subscriptionsHeader,
   stylingHeader,
   accessibilityHeader,
@@ -133,6 +147,12 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     type: '(item: Item, index: number) => Html',
     description:
       "Renders one row's contents. The framework wraps your output in a row-height grid container; use flex or grid with align-items: center inside to vertically center your content.",
+  },
+  {
+    name: 'itemToRowHeightPx',
+    type: '(item: Item, index: number) => number',
+    description:
+      'Optional. When provided, the list renders with variable-height rows: each row wrapper takes the height returned for its item, and slice and spacer math walks the items to compute cumulative offsets. When absent, every row uses model.rowHeightPx. Prefer the uniform path when row heights are stable.',
   },
   {
     name: 'overscan',
@@ -204,6 +224,12 @@ export const view = (
         inlineCode('itemToKey'),
         ' so the VDOM matches rows by data identity, not by position, when the visible slice shifts.',
       ),
+      heading(basicHeader.level, basicHeader.id, basicHeader.text),
+      para(
+        'Every row uses the same height, configured at init through ',
+        inlineCode('rowHeightPx'),
+        '. The component divides scroll math by that constant. Prefer this path when row heights are stable.',
+      ),
       ...VirtualList.virtualListDemo(model.virtualListDemo, toParentMessage),
       highlightedCodeBlock(
         div(
@@ -212,6 +238,44 @@ export const view = (
         ),
         Snippet.uiVirtualListBasicRaw,
         'Copy virtual list example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      heading(variableHeader.level, variableHeader.id, variableHeader.text),
+      para(
+        'Pass an ',
+        inlineCode('itemToRowHeightPx'),
+        ' callback on ',
+        inlineCode('ViewConfig'),
+        ' and rows take the height the callback returns for each item. The component walks the items at render time to compute cumulative offsets for the visible slice and the spacers. Use this for tables with wrapping cells, taller detail rows, or any list where heights differ.',
+      ),
+      para(
+        'Programmatic scrolling for variable-height lists uses ',
+        inlineCode('scrollToIndexVariable'),
+        ', which walks the heights to compute the target ',
+        inlineCode('scrollTop'),
+        '. Pass the same ',
+        inlineCode('items'),
+        ' and ',
+        inlineCode('itemToRowHeightPx'),
+        ' you pass to ',
+        inlineCode('view'),
+        ' so the math agrees.',
+      ),
+      ...VirtualList.virtualListVariableDemo(
+        model.virtualListVariableDemo,
+        toParentMessage,
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippet.uiVirtualListVariableHighlighted),
+          ],
+          [],
+        ),
+        Snippet.uiVirtualListVariableRaw,
+        'Copy variable-height virtual list example to clipboard',
         copiedSnippets,
         'mb-8',
       ),

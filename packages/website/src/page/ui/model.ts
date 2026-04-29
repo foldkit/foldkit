@@ -76,5 +76,6 @@ export const Model = S.Struct({
   tooltipDemo: Tooltip.Model,
   animationDemo: Animation.Model,
   virtualListDemo: VirtualList.Model,
+  virtualListVariableDemo: VirtualList.Model,
 })
 export type Model = typeof Model.Type

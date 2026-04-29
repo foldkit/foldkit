@@ -172,6 +172,15 @@ export const GotVirtualListDemoMessage = m('GotVirtualListDemoMessage', {
 export const ClickedVirtualListScrollToMiddle = m(
   'ClickedVirtualListScrollToMiddle',
 )
+export const GotVirtualListVariableDemoMessage = m(
+  'GotVirtualListVariableDemoMessage',
+  {
+    message: Ui.VirtualList.Message,
+  },
+)
+export const ClickedVirtualListVariableScrollToMiddle = m(
+  'ClickedVirtualListVariableScrollToMiddle',
+)
 
 export const UiMessage = S.Union(
   GotMobileMenuDialogMessage,
@@ -225,5 +234,7 @@ export const UiMessage = S.Union(
   GotTooltipNoDelayDemoMessage,
   GotVirtualListDemoMessage,
   ClickedVirtualListScrollToMiddle,
+  GotVirtualListVariableDemoMessage,
+  ClickedVirtualListVariableScrollToMiddle,
 )
 export type UiMessage = typeof UiMessage.Type

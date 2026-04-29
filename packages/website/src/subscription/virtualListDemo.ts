@@ -3,10 +3,15 @@ import { Subscription, Ui } from 'foldkit'
 
 import type { Model } from '../main'
 import { GotUiPageMessage, type Message } from '../message'
-import { GotVirtualListDemoMessage } from '../page/ui/message'
+import {
+  GotVirtualListDemoMessage,
+  GotVirtualListVariableDemoMessage,
+} from '../page/ui/message'
 
 export const SubscriptionDeps = S.Struct({
   containerEvents: Ui.VirtualList.SubscriptionDeps.fields['containerEvents'],
+  variableContainerEvents:
+    Ui.VirtualList.SubscriptionDeps.fields['containerEvents'],
 })
 
 export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
@@ -25,6 +30,22 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
           Stream.map(message =>
             GotUiPageMessage({
               message: GotVirtualListDemoMessage({ message }),
+            }),
+          ),
+        ),
+  },
+  variableContainerEvents: {
+    modelToDependencies: model =>
+      Ui.VirtualList.subscriptions.containerEvents.modelToDependencies(
+        model.uiPages.virtualListVariableDemo,
+      ),
+    dependenciesToStream: (dependencies, readDependencies) =>
+      Ui.VirtualList.subscriptions.containerEvents
+        .dependenciesToStream(dependencies, readDependencies)
+        .pipe(
+          Stream.map(message =>
+            GotUiPageMessage({
+              message: GotVirtualListVariableDemoMessage({ message }),
             }),
           ),
         ),

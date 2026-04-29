@@ -130,6 +130,10 @@ export const uiInit = (
       id: 'virtual-list-demo',
       rowHeightPx: 56,
     }),
+    virtualListVariableDemo: Ui.VirtualList.init({
+      id: 'virtual-list-variable-demo',
+      rowHeightPx: 56,
+    }),
   },
   [],
 ]

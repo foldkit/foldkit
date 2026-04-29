@@ -23,6 +23,7 @@ import {
   GotSliderRatingDemoMessage,
   GotSliderVolumeDemoMessage,
   GotVirtualListDemoMessage,
+  GotVirtualListVariableDemoMessage,
   UiMessage,
 } from './message'
 import { UiModel } from './model'
@@ -668,6 +669,8 @@ const SubscriptionDeps = S.Struct({
   autoScroll: dragAndDropFields['autoScroll'],
   virtualListContainerEvents:
     Ui.VirtualList.SubscriptionDeps.fields['containerEvents'],
+  virtualListVariableContainerEvents:
+    Ui.VirtualList.SubscriptionDeps.fields['containerEvents'],
 })
 
 const sliderSubscriptions = Ui.Slider.subscriptions
@@ -815,6 +818,22 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
           Stream.map(message =>
             GotUiMessage({
               message: GotVirtualListDemoMessage({ message }),
+            }),
+          ),
+        ),
+  },
+  virtualListVariableContainerEvents: {
+    modelToDependencies: model =>
+      Ui.VirtualList.subscriptions.containerEvents.modelToDependencies(
+        model.uiModel.virtualListVariableDemo,
+      ),
+    dependenciesToStream: (dependencies, readDependencies) =>
+      Ui.VirtualList.subscriptions.containerEvents
+        .dependenciesToStream(dependencies, readDependencies)
+        .pipe(
+          Stream.map(message =>
+            GotUiMessage({
+              message: GotVirtualListVariableDemoMessage({ message }),
             }),
           ),
         ),

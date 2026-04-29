@@ -81,5 +81,6 @@ export const UiModel = S.Struct({
   animationDemo: Animation.Model,
   isAnimationDemoShowing: S.Boolean,
   virtualListDemo: VirtualList.Model,
+  virtualListVariableDemo: VirtualList.Model,
 })
 export type UiModel = typeof UiModel.Type

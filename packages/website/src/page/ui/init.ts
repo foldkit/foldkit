@@ -107,6 +107,10 @@ export const init = (today: Calendar.CalendarDate): InitReturn => [
       id: 'virtual-list-demo',
       rowHeightPx: 56,
     }),
+    virtualListVariableDemo: Ui.VirtualList.init({
+      id: 'virtual-list-variable-demo',
+      rowHeightPx: 56,
+    }),
     dragAndDropDemoColumns: [
       {
         id: 'backlog',

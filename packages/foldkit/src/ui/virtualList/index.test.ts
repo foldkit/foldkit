@@ -1,4 +1,4 @@
-import { Option } from 'effect'
+import { Array, Option } from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import * as Story from '../../test/story.js'
@@ -10,8 +10,10 @@ import {
   ScrolledContainer,
   init,
   scrollToIndex,
+  scrollToIndexVariable,
   update,
   visibleWindow,
+  visibleWindowVariable,
 } from './index.js'
 
 const defaultInit = (): Model => init({ id: 'test', rowHeightPx: 30 })
@@ -248,6 +250,154 @@ describe('VirtualList', () => {
         expect(result.value.endIndex).toBe(0)
         expect(result.value.topSpacerHeight).toBe(0)
         expect(result.value.bottomSpacerHeight).toBe(0)
+      }
+    })
+  })
+
+  describe('visibleWindowVariable', () => {
+    type Row = Readonly<{ height: number }>
+    const rows: ReadonlyArray<Row> = [
+      { height: 10 },
+      { height: 20 },
+      { height: 30 },
+      { height: 40 },
+      { height: 50 },
+    ]
+    const heightOf = (row: Row): number => row.height
+    const totalHeight = 150
+
+    it('returns None while the container has not been measured', () => {
+      const result = visibleWindowVariable(defaultInit(), rows, heightOf, 0)
+      expect(Option.isNone(result)).toBe(true)
+    })
+
+    it('computes the slice from cumulative heights at scrollTop 0', () => {
+      const model: Model = { ...measuredInit(60), scrollTop: 0 }
+      const result = visibleWindowVariable(model, rows, heightOf, 0)
+
+      expect(Option.isSome(result)).toBe(true)
+      if (Option.isSome(result)) {
+        expect(result.value.startIndex).toBe(0)
+        expect(result.value.endIndex).toBe(3)
+        expect(result.value.topSpacerHeight).toBe(0)
+        expect(result.value.bottomSpacerHeight).toBe(totalHeight - 60)
+      }
+    })
+
+    it('shifts the slice into rows whose offsets straddle scrollTop', () => {
+      const model: Model = { ...measuredInit(60), scrollTop: 25 }
+      const result = visibleWindowVariable(model, rows, heightOf, 0)
+
+      if (Option.isSome(result)) {
+        expect(result.value.startIndex).toBe(1)
+        expect(result.value.endIndex).toBe(4)
+        expect(result.value.topSpacerHeight).toBe(10)
+        expect(result.value.bottomSpacerHeight).toBe(totalHeight - 100)
+      }
+    })
+
+    it('expands the slice by overscan and recomputes spacers from cumulative heights', () => {
+      const model: Model = { ...measuredInit(60), scrollTop: 25 }
+      const result = visibleWindowVariable(model, rows, heightOf, 1)
+
+      if (Option.isSome(result)) {
+        expect(result.value.startIndex).toBe(0)
+        expect(result.value.endIndex).toBe(5)
+        expect(result.value.topSpacerHeight).toBe(0)
+        expect(result.value.bottomSpacerHeight).toBe(0)
+      }
+    })
+
+    it('clamps the slice to itemCount when scrollTop exceeds total content height', () => {
+      const model: Model = { ...measuredInit(60), scrollTop: 1000 }
+      const result = visibleWindowVariable(model, rows, heightOf, 0)
+
+      if (Option.isSome(result)) {
+        expect(result.value.startIndex).toBe(rows.length)
+        expect(result.value.endIndex).toBe(rows.length)
+        expect(result.value.topSpacerHeight).toBe(totalHeight)
+        expect(result.value.bottomSpacerHeight).toBe(0)
+      }
+    })
+
+    it('produces an empty slice when items is empty', () => {
+      const model: Model = { ...measuredInit(60), scrollTop: 0 }
+      const result = visibleWindowVariable(model, [], heightOf, 0)
+
+      if (Option.isSome(result)) {
+        expect(result.value.startIndex).toBe(0)
+        expect(result.value.endIndex).toBe(0)
+        expect(result.value.topSpacerHeight).toBe(0)
+        expect(result.value.bottomSpacerHeight).toBe(0)
+      }
+    })
+  })
+
+  describe('scrollToIndexVariable', () => {
+    type Row = Readonly<{ height: number }>
+    const rows: ReadonlyArray<Row> = [
+      { height: 10 },
+      { height: 20 },
+      { height: 30 },
+      { height: 40 },
+    ]
+    const heightOf = (row: Row): number => row.height
+
+    it('bumps the version and stores the target index in pendingScroll', () => {
+      const [model, commands] = scrollToIndexVariable(
+        defaultInit(),
+        rows,
+        heightOf,
+        2,
+      )
+      expect(model.pendingScrollVersion).toBe(1)
+      expect(model.pendingScroll._tag).toBe('ScrollingToIndex')
+      if (model.pendingScroll._tag === 'ScrollingToIndex') {
+        expect(model.pendingScroll.index).toBe(2)
+        expect(model.pendingScroll.version).toBe(1)
+      }
+      expect(commands).toHaveLength(1)
+    })
+
+    it('increments the version monotonically across calls', () => {
+      const [first] = scrollToIndexVariable(defaultInit(), rows, heightOf, 1)
+      const [second] = scrollToIndexVariable(first, rows, heightOf, 2)
+      expect(first.pendingScrollVersion).toBe(1)
+      expect(second.pendingScrollVersion).toBe(2)
+    })
+
+    it('emits an ApplyScroll Command per call', () => {
+      const [, commands] = scrollToIndexVariable(
+        defaultInit(),
+        rows,
+        heightOf,
+        3,
+      )
+      expect(commands).toHaveLength(1)
+    })
+  })
+
+  describe('uniform-vs-variable agreement', () => {
+    type Row = Readonly<{ height: number }>
+    const rows: ReadonlyArray<Row> = Array.makeBy(50, () => ({ height: 30 }))
+    const constantHeight = (): number => 30
+
+    it('visibleWindow and visibleWindowVariable produce the same slice for uniform-height inputs', () => {
+      const model: Model = { ...measuredInit(300), scrollTop: 600 }
+      const uniform = visibleWindow(model, rows.length, 5)
+      const variable = visibleWindowVariable(model, rows, constantHeight, 5)
+
+      expect(Option.isSome(uniform)).toBe(true)
+      expect(Option.isSome(variable)).toBe(true)
+      if (Option.isSome(uniform) && Option.isSome(variable)) {
+        expect(variable.value.startIndex).toBe(uniform.value.startIndex)
+        expect(variable.value.endIndex).toBe(uniform.value.endIndex)
+        expect(variable.value.topSpacerHeight).toBe(
+          uniform.value.topSpacerHeight,
+        )
+        expect(variable.value.bottomSpacerHeight).toBe(
+          uniform.value.bottomSpacerHeight,
+        )
       }
     })
   })

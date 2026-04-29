@@ -38,11 +38,16 @@ import {
   GotVerticalRadioGroupDemoMessage,
   GotVerticalTabsDemoMessage,
   GotVirtualListDemoMessage,
+  GotVirtualListVariableDemoMessage,
   type UiMessage,
 } from './message'
 import type { DemoColumn, UiModel } from './model'
 import { Toast } from './toast'
-import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './view/virtualList'
+import {
+  ROW_COUNT as VIRTUAL_LIST_ROW_COUNT,
+  variableActivities,
+  variableRowHeightPx,
+} from './view/virtualList'
 
 const reorderColumns = (
   columns: ReadonlyArray<DemoColumn>,
@@ -963,6 +968,47 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           virtualListCommands.map(
             Command.mapEffect(
               Effect.map(message => GotVirtualListDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      GotVirtualListVariableDemoMessage: ({ message }) => {
+        const [nextVirtualListVariableDemo, virtualListCommands] =
+          Ui.VirtualList.update(model.virtualListVariableDemo, message)
+
+        return [
+          evo(model, {
+            virtualListVariableDemo: () => nextVirtualListVariableDemo,
+          }),
+          virtualListCommands.map(
+            Command.mapEffect(
+              Effect.map(message =>
+                GotVirtualListVariableDemoMessage({ message }),
+              ),
+            ),
+          ),
+        ]
+      },
+
+      ClickedVirtualListVariableScrollToMiddle: () => {
+        const [nextVirtualListVariableDemo, virtualListCommands] =
+          Ui.VirtualList.scrollToIndexVariable(
+            model.virtualListVariableDemo,
+            variableActivities,
+            variableRowHeightPx,
+            Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
+          )
+
+        return [
+          evo(model, {
+            virtualListVariableDemo: () => nextVirtualListVariableDemo,
+          }),
+          virtualListCommands.map(
+            Command.mapEffect(
+              Effect.map(message =>
+                GotVirtualListVariableDemoMessage({ message }),
+              ),
             ),
           ),
         ]
