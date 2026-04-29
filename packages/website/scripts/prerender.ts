@@ -88,6 +88,7 @@ import {
   UiToastRoute,
   UiTooltipRoute,
   UiVirtualListRoute,
+  WhyNoJsxRoute,
   aiMcpRouter,
   aiOverviewRouter,
   aiSkillsRouter,
@@ -157,6 +158,7 @@ import {
   uiToastRouter,
   uiTooltipRouter,
   uiVirtualListRouter,
+  whyNoJsxRouter,
 } from '../src/route'
 import { generateOgImages, injectMetaTags } from './og-image'
 
@@ -166,6 +168,7 @@ export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   HomeRoute(),
   NewsletterRoute(),
   ManifestoRoute(),
+  WhyNoJsxRoute(),
   GettingStartedRoute(),
   ComingFromReactRoute(),
   ReactComparisonRoute(),
@@ -238,6 +241,7 @@ export const routeToUrlPath = (route: AppRoute): string =>
     M.tagsExhaustive({
       Home: () => homeRouter(),
       Manifesto: () => manifestoRouter(),
+      WhyNoJsx: () => whyNoJsxRouter(),
       GettingStarted: () => gettingStartedRouter(),
       ComingFromReact: () => comingFromReactRouter(),
       ReactComparison: () => reactComparisonRouter(),

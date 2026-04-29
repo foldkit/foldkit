@@ -67,6 +67,7 @@ import {
   uiToastRouter,
   uiTooltipRouter,
   uiVirtualListRouter,
+  whyNoJsxRouter,
 } from './route'
 
 // NAV PAGE
@@ -246,6 +247,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'ReactComparison',
           href: reactComparisonRouter(),
           label: 'Foldkit vs React: Side by Side',
+        },
+        {
+          _tag: 'WhyNoJsx',
+          href: whyNoJsxRouter(),
+          label: 'Why no JSX?',
         },
         {
           _tag: 'RoutingAndNavigation',

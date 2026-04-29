@@ -24,6 +24,7 @@ export const activeSection: Subscription<
     const currentPageTableOfContents = M.value(model.route)
       .pipe(
         M.tag('Manifesto', () => Page.Manifesto.tableOfContents),
+        M.tag('WhyNoJsx', () => Page.WhyNoJsx.tableOfContents),
         M.tag('GettingStarted', () => Page.GettingStarted.tableOfContents),
         M.tag('ComingFromReact', () => Page.ComingFromReact.tableOfContents),
         M.tag('ReactComparison', () => Page.ReactComparison.tableOfContents),
