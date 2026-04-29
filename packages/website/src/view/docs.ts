@@ -126,6 +126,11 @@ const docsHeaderView = (model: Model) =>
             [Class('hidden md:flex items-center gap-3 md:gap-4')],
             [
               iconLink(
+                Link.discord,
+                'Discord',
+                Icon.discord('w-5 h-5 md:w-6 md:h-6'),
+              ),
+              iconLink(
                 Link.github,
                 'GitHub',
                 Icon.github('w-5 h-5 md:w-6 md:h-6'),
@@ -218,6 +223,20 @@ const docsFooterView = (
       div(
         [Class('text-sm text-gray-500 dark:text-gray-400')],
         [
+          p(
+            [Class('mb-4')],
+            [
+              a(
+                [
+                  Href(Link.discord),
+                  Class(
+                    'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500',
+                  ),
+                ],
+                ['Join the Discord'],
+              ),
+            ],
+          ),
           p(
             [],
             [

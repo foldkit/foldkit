@@ -1,6 +1,7 @@
 import type { Html } from 'foldkit/html'
 
-import { Class, div, p } from '../html'
+import { Class, Href, a, div, p } from '../html'
+import { Link } from '../link'
 import type { TableOfContentsEntry } from '../main'
 import { pageTitle, para, tableOfContentsEntryToHeader } from '../prose'
 
@@ -90,6 +91,37 @@ export const view = (): Html =>
       para(
         'Frontend architecture is solved. The only question left is, what are you going to create?',
       ),
-      div([Class('mb-4')], [p([], ['See you on GitHub,']), p([], ['Devin'])]),
+      div(
+        [Class('mb-4')],
+        [
+          p(
+            [],
+            [
+              'See you on ',
+              a(
+                [
+                  Href(Link.github),
+                  Class(
+                    'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500',
+                  ),
+                ],
+                ['GitHub'],
+              ),
+              ' and ',
+              a(
+                [
+                  Href(Link.discord),
+                  Class(
+                    'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500',
+                  ),
+                ],
+                ['Discord'],
+              ),
+              ',',
+            ],
+          ),
+          p([], ['Devin']),
+        ],
+      ),
     ],
   )

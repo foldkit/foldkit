@@ -43,7 +43,12 @@ import {
   findBySlug,
 } from '../page/example/meta'
 import { coreArchitectureRouter, homeRouter } from '../route'
-import { betaTag, emailSignupContentView, skipNavLink } from './shared'
+import {
+  betaTag,
+  emailSignupContentView,
+  iconLink,
+  skipNavLink,
+} from './shared'
 import { themeSelector } from './themeSelector'
 
 // LANDING HEADER
@@ -79,8 +84,15 @@ const landingHeaderView = (model: Model) =>
         [AriaLabel('Main'), Class('flex items-center gap-3')],
         [
           div(
-            [Class('hidden md:flex')],
-            [themeSelector(model.themePreference)],
+            [Class('hidden md:flex items-center gap-3')],
+            [
+              themeSelector(model.themePreference),
+              iconLink(
+                Link.discord,
+                'Discord',
+                Icon.discord('w-5 h-5 md:w-6 md:h-6'),
+              ),
+            ],
           ),
           a(
             [
@@ -106,6 +118,20 @@ const landingFooter = (currentYear: number): Html =>
       ),
     ],
     [
+      p(
+        [Class('mb-4')],
+        [
+          a(
+            [
+              Href(Link.discord),
+              Class(
+                'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500',
+              ),
+            ],
+            ['Join the Discord'],
+          ),
+        ],
+      ),
       p(
         [],
         [

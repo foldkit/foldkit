@@ -13,6 +13,7 @@ import { codeBracket } from './codeBracket'
 import { cog } from './cog'
 import { computer } from './computer'
 import { copy } from './copy'
+import { discord } from './discord'
 import { documentDuplicate } from './documentDuplicate'
 import { exclamationTriangle } from './exclamationTriangle'
 import { github } from './github'
@@ -51,6 +52,7 @@ export const Icon = {
   cog,
   computer,
   copy,
+  discord,
   documentDuplicate,
   exclamationTriangle,
   github,
