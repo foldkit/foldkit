@@ -69,7 +69,7 @@ jobs:
               {
                 "src": "^/$",
                 "headers": {
-                  "Link": "</sitemap.xml>; rel=\"sitemap\", </manifesto>; rel=\"about\", </getting-started>; rel=\"help\", </example-apps>; rel=\"related\", </ai/overview>; rel=\"related\""
+                  "Link": "</sitemap.xml>; rel=\"sitemap\", </manifesto>; rel=\"about\", </getting-started>; rel=\"help\", </example-apps>; rel=\"related\", </ai/overview>; rel=\"describedby\""
                 },
                 "continue": true
               },
