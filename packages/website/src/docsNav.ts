@@ -34,6 +34,7 @@ import {
   fieldValidationRouter,
   gettingStartedRouter,
   manifestoRouter,
+  onSsrRouter,
   patternsOutMessageRouter,
   patternsSubmodelsRouter,
   projectOrganizationRouter,
@@ -252,6 +253,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'WhyNoJsx',
           href: whyNoJsxRouter(),
           label: 'Why no JSX?',
+        },
+        {
+          _tag: 'OnSsr',
+          href: onSsrRouter(),
+          label: 'On SSR',
         },
         {
           _tag: 'RoutingAndNavigation',

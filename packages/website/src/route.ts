@@ -15,6 +15,7 @@ import {
 export const HomeRoute = r('Home')
 export const ManifestoRoute = r('Manifesto')
 export const WhyNoJsxRoute = r('WhyNoJsx')
+export const OnSsrRoute = r('OnSsr')
 export const ComingFromReactRoute = r('ComingFromReact')
 export const ReactComparisonRoute = r('ReactComparison')
 export const GettingStartedRoute = r('GettingStarted')
@@ -97,6 +98,7 @@ export const NotFoundRoute = r('NotFound', { path: S.String })
 export const DocsRoute = S.Union(
   ManifestoRoute,
   WhyNoJsxRoute,
+  OnSsrRoute,
   ComingFromReactRoute,
   ReactComparisonRoute,
   GettingStartedRoute,
@@ -179,6 +181,7 @@ export type AppRoute = typeof AppRoute.Type
 export const homeRouter = pipe(root, mapTo(HomeRoute))
 export const manifestoRouter = pipe(literal('manifesto'), mapTo(ManifestoRoute))
 export const whyNoJsxRouter = pipe(literal('why-no-jsx'), mapTo(WhyNoJsxRoute))
+export const onSsrRouter = pipe(literal('on-ssr'), mapTo(OnSsrRoute))
 export const comingFromReactRouter = pipe(
   literal('coming-from-react'),
   mapTo(ComingFromReactRoute),
@@ -508,6 +511,7 @@ export const aiMcpRouter = pipe(
 const topLevelDocsParser = oneOf(
   manifestoRouter,
   whyNoJsxRouter,
+  onSsrRouter,
   comingFromReactRouter,
   reactComparisonRouter,
   gettingStartedRouter,
