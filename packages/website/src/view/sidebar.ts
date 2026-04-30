@@ -37,6 +37,7 @@ import {
   GotCoreConceptsGroupMessage,
   GotExamplesGroupMessage,
   GotFoldkitUiGroupMessage,
+  GotForReactDevelopersGroupMessage,
   GotGetStartedGroupMessage,
   GotGuidesGroupMessage,
   GotMobileMenuDialogMessage,
@@ -98,6 +99,7 @@ const sidebarViewInner = (
   route: Model['route'],
   getStartedGroup: Ui.Disclosure.Model,
   coreConceptsGroup: Ui.Disclosure.Model,
+  forReactDevelopersGroup: Ui.Disclosure.Model,
   guidesGroup: Ui.Disclosure.Model,
   testingGroup: Ui.Disclosure.Model,
   bestPracticesGroup: Ui.Disclosure.Model,
@@ -157,6 +159,11 @@ const sidebarViewInner = (
     {
       model: coreConceptsGroup,
       toParentMessage: message => GotCoreConceptsGroupMessage({ message }),
+    },
+    {
+      model: forReactDevelopersGroup,
+      toParentMessage: message =>
+        GotForReactDevelopersGroupMessage({ message }),
     },
     {
       model: guidesGroup,
@@ -341,6 +348,7 @@ export const sidebarView = (model: Model): Html =>
     model.route,
     model.getStartedGroup,
     model.coreConceptsGroup,
+    model.forReactDevelopersGroup,
     model.guidesGroup,
     model.testingGroup,
     model.bestPracticesGroup,

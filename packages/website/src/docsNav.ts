@@ -235,7 +235,7 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     ],
   },
   {
-    label: 'Guides',
+    label: 'For React Developers',
     pageGroups: [
       [
         {
@@ -253,6 +253,13 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           href: whyNoJsxRouter(),
           label: 'Why no JSX?',
         },
+      ],
+    ],
+  },
+  {
+    label: 'Guides',
+    pageGroups: [
+      [
         {
           _tag: 'RoutingAndNavigation',
           href: routingAndNavigationRouter(),
