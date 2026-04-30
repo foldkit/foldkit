@@ -1,5 +1,19 @@
 # foldkit
 
+## 0.80.0
+
+### Minor Changes
+
+- 5dff4f7: `Ui.Calendar` gains fast navigation for distant dates. The heading is now a button — clicking it switches the calendar to a 3×4 months grid, and clicking the year heading from there switches to a paged 3×4 years grid. Selecting a year drills back to the months grid for that year; selecting a month drills back to the days grid for that month. Prev/next arrows in the years grid page through 12-year windows. Reaching a target year/month now takes 2-3 clicks instead of 60-200 prev-month presses.
+
+  The calendar's `Model` gains a `viewMode: 'Days' | 'Months' | 'Years'` field. New messages: `ClickedHeading`, `SelectedMonth`, `SelectedYear`, `PagedYears`. Keyboard navigation works in all three modes — arrows move within the grid, Enter/Space commits, PageUp/PageDown pages the years window. Escape passes through to outer handlers (in popovered DatePicker contexts, the popover closes on Escape, matching Apple Calendar / Material / shadcn behavior). Selecting a month or year is the way to drill back to the day grid. Standalone consumers that need their own back-out gesture can call the new `Calendar.dropToDays(model)` helper to return any picker mode to Days programmatically.
+
+  **Breaking.** `CalendarAttributes` is now a discriminated union — pattern-match on `_tag` (`'Days' | 'Months' | 'Years'`) with `M.tagsExhaustive` to render each grid. We chose this shape over a "Calendar self-renders months/years grids" approach because each grid has different ARIA semantics, cell shapes, and button handlers; modeling that as a single optional-fields shape would be messy, and the discriminated union matches conventions used elsewhere in foldkit (routes, models, messages). The Days variant keeps the existing fields (`previousMonthButton`, `nextMonthButton`, `headerRow`, `columnHeaders`, `weeks`) plus a new `headingButton` for the click-to-drill heading. The Months variant exposes `cells: ReadonlyArray<MonthCell>` — each cell carries both `label` (full month name) and `shortLabel` (locale-aware abbreviation). The Years variant exposes `cells: ReadonlyArray<YearCell>` plus `previousPageButton` / `nextPageButton`.
+
+  **Removed.** `monthSelect`, `monthOptions`, `yearSelect`, `yearOptions` from `CalendarAttributes`; `SelectedMonthFromDropdown` and `SelectedYearFromDropdown` messages; `monthSelectLabel` and `yearSelectLabel` from `ViewConfig`. These attribute groups were exposed for consumers who wanted a `<select>`-based month/year jumper alongside the prev/next-month buttons, but no consumer in this repo rendered them. The heading-drill flow is the canonical way to jump months and years now, matching Apple Calendar, Material Design, and shadcn DatePicker.
+
+  `Ui.DatePicker` requires no API changes — it composes `Calendar.view` and forwards the new `toCalendarView` shape. Existing DatePicker consumers must update their `toCalendarView` callback to pattern-match on `_tag`. DatePicker also now resets the embedded calendar to Days mode on every open and close, so users always see the day grid when reopening the picker (matching Apple Calendar / Material / shadcn behavior).
+
 ## 0.79.0
 
 ### Minor Changes
