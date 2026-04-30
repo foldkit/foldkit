@@ -107,6 +107,12 @@ export const GotGetStartedGroupMessage = m('GotGetStartedGroupMessage', {
 export const GotCoreConceptsGroupMessage = m('GotCoreConceptsGroupMessage', {
   message: Ui.Disclosure.Message,
 })
+export const GotForReactDevelopersGroupMessage = m(
+  'GotForReactDevelopersGroupMessage',
+  {
+    message: Ui.Disclosure.Message,
+  },
+)
 export const GotGuidesGroupMessage = m('GotGuidesGroupMessage', {
   message: Ui.Disclosure.Message,
 })
@@ -179,6 +185,7 @@ export const Message = S.Union(
   GotApiReferenceMessage,
   GotGetStartedGroupMessage,
   GotCoreConceptsGroupMessage,
+  GotForReactDevelopersGroupMessage,
   GotGuidesGroupMessage,
   GotTestingGroupMessage,
   GotBestPracticesGroupMessage,

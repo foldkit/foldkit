@@ -51,6 +51,7 @@ import {
   GotExampleDetailMessage,
   GotExamplesGroupMessage,
   GotFoldkitUiGroupMessage,
+  GotForReactDevelopersGroupMessage,
   GotGetStartedGroupMessage,
   GotGuidesGroupMessage,
   GotMobileMenuDialogMessage,
@@ -200,6 +201,7 @@ export const Model = S.Struct({
   playgroundError: S.OptionFromSelf(S.String),
   getStartedGroup: Ui.Disclosure.Model,
   coreConceptsGroup: Ui.Disclosure.Model,
+  forReactDevelopersGroup: Ui.Disclosure.Model,
   guidesGroup: Ui.Disclosure.Model,
   testingGroup: Ui.Disclosure.Model,
   bestPracticesGroup: Ui.Disclosure.Model,
@@ -353,6 +355,10 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
       },
       coreConceptsGroup: {
         ...Ui.Disclosure.init({ id: 'core-concepts-group' }),
+        isOpen: true,
+      },
+      forReactDevelopersGroup: {
+        ...Ui.Disclosure.init({ id: 'for-react-developers-group' }),
         isOpen: true,
       },
       guidesGroup: {
@@ -870,6 +876,24 @@ const update = (
           coreConceptsGroupCommands.map(
             Command.mapEffect(
               Effect.map(message => GotCoreConceptsGroupMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      GotForReactDevelopersGroupMessage: ({ message }) => {
+        const [nextForReactDevelopersGroup, forReactDevelopersGroupCommands] =
+          Ui.Disclosure.update(model.forReactDevelopersGroup, message)
+
+        return [
+          evo(model, {
+            forReactDevelopersGroup: () => nextForReactDevelopersGroup,
+          }),
+          forReactDevelopersGroupCommands.map(
+            Command.mapEffect(
+              Effect.map(message =>
+                GotForReactDevelopersGroupMessage({ message }),
+              ),
             ),
           ),
         ]
