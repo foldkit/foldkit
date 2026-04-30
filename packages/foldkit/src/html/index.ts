@@ -299,6 +299,15 @@ export type TagName =
   | 'munderover'
   | 'semantics'
 
+/**
+ * Result of an `OnMount` Effect: a Message announcing the mount, plus a
+ * synchronous cleanup function the runtime invokes when the element unmounts.
+ */
+export type Mount<Message> = Readonly<{
+  message: Message
+  cleanup: () => void
+}>
+
 /** Union of all HTML, SVG, and MathML attributes a virtual DOM element can carry. */
 export type Attribute<Message> = Data.TaggedEnum<{
   Key: { readonly value: string }
@@ -582,6 +591,9 @@ export type Attribute<Message> = Data.TaggedEnum<{
   OnInsertEffect: {
     readonly f: (element: Element) => Effect.Effect<Message>
   }
+  OnMount: {
+    readonly f: (element: Element) => Effect.Effect<Mount<Message>>
+  }
   OnDestroy: { readonly f: (element: Element) => void }
 }>
 
@@ -828,6 +840,7 @@ const {
   StrokeDashoffset,
   OnInsert,
   OnInsertEffect,
+  OnMount,
   OnDestroy,
 } = Data.taggedEnum<AttributeDefinition>()
 
@@ -1520,6 +1533,53 @@ const buildVNodeData = <Message>(
                 },
               },
             })),
+          OnMount: ({ f }) => {
+            const state: {
+              destroyed: boolean
+              cleanup: Option.Option<() => void>
+            } = { destroyed: false, cleanup: Option.none() }
+            return Ref.update(dataRef, data => ({
+              ...data,
+              hook: {
+                ...data.hook,
+                insert: vnode => {
+                  if (vnode.elm instanceof Element) {
+                    Effect.runFork(
+                      f(vnode.elm).pipe(
+                        Effect.tap(({ message, cleanup }) =>
+                          Effect.sync(() => {
+                            if (state.destroyed) {
+                              cleanup()
+                            } else {
+                              state.cleanup = Option.some(cleanup)
+                              dispatchSync(message)
+                            }
+                          }),
+                        ),
+                        Effect.catchAllCause(cause =>
+                          Effect.sync(() => {
+                            console.error('[OnMount] unhandled failure', cause)
+                          }),
+                        ),
+                      ),
+                    )
+                  }
+                },
+                destroy: vnode => {
+                  if (vnode.elm instanceof Element) {
+                    state.destroyed = true
+                    Option.match(state.cleanup, {
+                      onNone: () => {},
+                      onSome: cleanup => {
+                        cleanup()
+                        state.cleanup = Option.none()
+                      },
+                    })
+                  }
+                },
+              },
+            }))
+          },
           OnDestroy: ({ f }) =>
             Ref.update(dataRef, data => ({
               ...data,
@@ -2910,6 +2970,10 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnInsertEffect'
     readonly f: (element: Element) => Effect.Effect<Message>
   }
+  OnMount: (f: (element: Element) => Effect.Effect<Mount<Message>>) => {
+    readonly _tag: 'OnMount'
+    readonly f: (element: Element) => Effect.Effect<Mount<Message>>
+  }
   OnDestroy: (f: (element: Element) => void) => {
     readonly _tag: 'OnDestroy'
     readonly f: (element: Element) => void
@@ -3189,6 +3253,8 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   OnInsert: (f: (element: Element) => void) => OnInsert({ f }),
   OnInsertEffect: (f: (element: Element) => Effect.Effect<Message>) =>
     OnInsertEffect({ f }),
+  OnMount: (f: (element: Element) => Effect.Effect<Mount<Message>>) =>
+    OnMount({ f }),
   OnDestroy: (f: (element: Element) => void) => OnDestroy({ f }),
 })
 

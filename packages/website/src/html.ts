@@ -80,6 +80,7 @@ export const {
   OnDestroy,
   OnInsert,
   OnInsertEffect,
+  OnMount,
   OnKeyDownPreventDefault,
   OnToggle,
   Open,

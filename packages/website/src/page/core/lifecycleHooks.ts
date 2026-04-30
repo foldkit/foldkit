@@ -32,10 +32,10 @@ const onInsertEffectHeader: TableOfContentsEntry = {
   text: 'OnInsertEffect',
 }
 
-const thirdPartyLibrariesHeader: TableOfContentsEntry = {
+const onMountHeader: TableOfContentsEntry = {
   level: 'h2',
-  id: 'third-party-libraries',
-  text: 'Integrating a Third-Party Library',
+  id: 'on-mount',
+  text: 'OnMount',
 }
 
 const limitsHeader: TableOfContentsEntry = {
@@ -48,7 +48,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   onInsertHeader,
   onInsertEffectHeader,
-  thirdPartyLibrariesHeader,
+  onMountHeader,
   limitsHeader,
 ]
 
@@ -68,11 +68,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para(
         inlineCode('OnInsert'),
-        ', ',
+        ' for fire-and-forget mount work, ',
         inlineCode('OnInsertEffect'),
-        ', and ',
-        inlineCode('OnDestroy'),
-        '. They run when an element mounts (or unmounts), they receive the real ',
+        ' for async mount work that produces a Message, and ',
+        inlineCode('OnMount'),
+        ' for async mount work that also needs paired cleanup. They each receive the real ',
         inlineCode('Element'),
         ', and they keep the imperative work confined to the seam where it has to live. Everything else stays declarative.',
       ),
@@ -80,8 +80,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Functional core, imperative shell',
         'The view describes what should be on screen. Lifecycle hooks describe what to do at the boundary where the virtual DOM meets the real one. ',
         inlineCode('OnInsertEffect'),
-        ' is the strongest version of this idea: even mount-time async work stays expressed as an ',
-        inlineCode('Effect<Message>'),
+        ' and ',
+        inlineCode('OnMount'),
+        ' are the strongest version of this idea: even mount-time async work stays expressed as an ',
+        inlineCode('Effect'),
         ', so its outcome flows back through update like any other Message.',
       ),
       tableOfContentsEntryToHeader(onInsertHeader),
@@ -115,12 +117,17 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Ui.Combobox'),
         ' uses it to keep focus on the input during pointer interactions. The pattern is consistent: a small DOM operation that has to happen exactly when the element appears, with no Message-shaped outcome.',
       ),
+      para(
+        'For symmetric synchronous teardown, pair with ',
+        inlineCode('OnDestroy'),
+        ', which takes the same shape and runs when the element unmounts.',
+      ),
       tableOfContentsEntryToHeader(onInsertEffectHeader),
       para(
         inlineCode('OnInsertEffect'),
         ' takes an ',
         inlineCode('(element: Element) => Effect<Message>'),
-        '. When the element mounts, the runtime executes the Effect, dispatches the resulting Message, and any failure is logged rather than crashing the app. Reach for it when the mount-time work is async, and its success or failure must reach the Model.',
+        '. When the element mounts, the runtime executes the Effect, dispatches the resulting Message, and any failure is logged rather than crashing the app. Reach for it when the mount-time work is async, its success or failure must reach the Model, and there\u2019s nothing to clean up on unmount.',
       ),
       highlightedCodeBlock(
         div(
@@ -146,9 +153,24 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('OnInsertEffect'),
         ' shares the same execution and error model as Commands. One mental model covers both.',
       ),
-      tableOfContentsEntryToHeader(thirdPartyLibrariesHeader),
+      tableOfContentsEntryToHeader(onMountHeader),
       para(
-        'The most common reason to reach for these primitives is to embed a third-party library that owns its own DOM. Charting libraries, code editors, map renderers, force-directed graphs: they all expect a real element to render into and a way to be torn down later. The pattern is the same in every case.',
+        'The most common reason to reach for these primitives is to embed a third-party library that owns its own DOM. Charting libraries, code editors, map renderers, force-directed graphs: they all expect a real element to render into and a way to be torn down later. ',
+        inlineCode('OnMount'),
+        ' is the primitive shaped for that pair.',
+      ),
+      para(
+        'It takes an ',
+        inlineCode('(element: Element) => Effect<Mount<Message>>'),
+        '. The Effect resolves to a ',
+        inlineCode('{ message, cleanup }'),
+        ' record: the runtime dispatches the Message and stashes the cleanup. When Snabbdom later removes the node, ',
+        inlineCode('OnMount'),
+        ' invokes the cleanup automatically. No paired ',
+        inlineCode('OnDestroy'),
+        ', no module-level ',
+        inlineCode('WeakMap'),
+        ', no element-keyed bookkeeping in user code.',
       ),
       highlightedCodeBlock(
         div(
@@ -164,23 +186,24 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        inlineCode('OnInsertEffect'),
-        ' dynamically imports the library, attaches it to the element Foldkit hands us, and stashes the teardown function in a ',
-        inlineCode('WeakMap'),
-        ' keyed by the element. When Snabbdom later removes the node, ',
-        inlineCode('OnDestroy'),
-        ' runs synchronously, finds the cleanup, and calls it. The Model stays the source of truth for the data going in. The library owns its rendered subtree. Neither side reaches into the other.',
+        'The Model stays the source of truth for the data going in. The library owns its rendered subtree. The runtime owns the lifecycle. Neither side reaches into the other.',
+      ),
+      infoCallout(
+        'What if the Effect is still in flight when the element is removed?',
+        'The runtime tracks both states. If unmount happens before the Effect resolves, the cleanup runs as soon as it arrives and the Message is suppressed. The chart never leaks, the Model never sees a Mounted Message for an element that\u2019s already gone.',
       ),
       tableOfContentsEntryToHeader(limitsHeader),
       para(
         inlineCode('OnInsertEffect'),
-        ' produces exactly one Message: the result of running the Effect. That covers async setup work cleanly, but it does not cover ongoing event streams. If the library you mounted emits events you want in the Model (a code editor\u2019s buffer changes, a map\u2019s viewport, a zoom gesture\u2019s deltas), a single mount-time Message is the wrong shape.',
+        ' and ',
+        inlineCode('OnMount'),
+        ' each produce exactly one Message: the result of running the Effect. That covers async setup work cleanly, but it does not cover ongoing event streams. If the library you mounted emits events you want in the Model (a code editor\u2019s buffer changes, a map\u2019s viewport, a zoom gesture\u2019s deltas), a single mount-time Message is the wrong shape.',
       ),
       para(
         'Dispatch the element reference out via the mount Message, hold it in the Model, and bridge the library\u2019s ongoing events through a ',
         link(coreSubscriptionsRouter(), 'Subscription'),
         '. Subscriptions exist to model continuous external sources: a Subscription keyed on the element ref can attach the library\u2019s listeners and emit a Message for each event. ',
-        inlineCode('OnInsertEffect'),
+        inlineCode('OnMount'),
         ' announces the seam exists. The Subscription carries the traffic.',
       ),
       para(
