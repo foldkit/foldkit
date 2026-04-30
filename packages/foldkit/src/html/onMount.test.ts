@@ -201,49 +201,6 @@ describe('OnMount', () => {
     expect(cleanupCalls).toBe(1)
   })
 
-  it('runs the cleanup exactly once even if the destroy hook is invoked twice', async () => {
-    const { div, span, OnMount } = html<typeof MountedRoot.Type>()
-    const { dispatch, dispatched } = createCapturingDispatch()
-    let cleanupCalls = 0
-
-    const withChild = div(
-      [],
-      [
-        span(
-          [
-            OnMount(() =>
-              Effect.succeed({
-                message: MountedRoot(),
-                cleanup: () => {
-                  cleanupCalls += 1
-                },
-              }),
-            ),
-          ],
-          [],
-        ),
-      ],
-    )
-    const withoutChild = div([], [])
-
-    const mounted = patch(
-      toVNode(makeRootContainer()),
-      renderView(withChild, dispatch),
-    )
-
-    await vi.waitFor(() => {
-      expect(dispatched).toHaveLength(1)
-    })
-
-    patch(mounted, renderView(withoutChild, dispatch))
-    patch(
-      renderView(withoutChild, dispatch),
-      renderView(withoutChild, dispatch),
-    )
-
-    expect(cleanupCalls).toBe(1)
-  })
-
   it('logs a failing Effect and dispatches nothing', async () => {
     const { div, span, OnMount } = html<typeof MountedRoot.Type>()
     const { dispatch, dispatched } = createCapturingDispatch()
@@ -309,5 +266,93 @@ describe('OnMount', () => {
       expect(cleanupCalls).toBe(1)
     })
     expect(dispatched).toStrictEqual([])
+  })
+
+  it('OnMount overrides OnDestroy when OnMount comes later in the attribute list', async () => {
+    const { div, span, OnDestroy, OnMount } = html<typeof MountedRoot.Type>()
+    const { dispatch, dispatched } = createCapturingDispatch()
+    let onDestroyCalls = 0
+    let onMountCleanupCalls = 0
+
+    const withChild = div(
+      [],
+      [
+        span(
+          [
+            OnDestroy(() => {
+              onDestroyCalls += 1
+            }),
+            OnMount(() =>
+              Effect.succeed({
+                message: MountedRoot(),
+                cleanup: () => {
+                  onMountCleanupCalls += 1
+                },
+              }),
+            ),
+          ],
+          [],
+        ),
+      ],
+    )
+    const withoutChild = div([], [])
+
+    const mounted = patch(
+      toVNode(makeRootContainer()),
+      renderView(withChild, dispatch),
+    )
+
+    await vi.waitFor(() => {
+      expect(dispatched).toStrictEqual([MountedRoot()])
+    })
+
+    patch(mounted, renderView(withoutChild, dispatch))
+
+    expect(onMountCleanupCalls).toBe(1)
+    expect(onDestroyCalls).toBe(0)
+  })
+
+  it('OnDestroy overrides OnMount when OnDestroy comes later in the attribute list', async () => {
+    const { div, span, OnDestroy, OnMount } = html<typeof MountedRoot.Type>()
+    const { dispatch, dispatched } = createCapturingDispatch()
+    let onDestroyCalls = 0
+    let onMountCleanupCalls = 0
+
+    const withChild = div(
+      [],
+      [
+        span(
+          [
+            OnMount(() =>
+              Effect.succeed({
+                message: MountedRoot(),
+                cleanup: () => {
+                  onMountCleanupCalls += 1
+                },
+              }),
+            ),
+            OnDestroy(() => {
+              onDestroyCalls += 1
+            }),
+          ],
+          [],
+        ),
+      ],
+    )
+    const withoutChild = div([], [])
+
+    const mounted = patch(
+      toVNode(makeRootContainer()),
+      renderView(withChild, dispatch),
+    )
+
+    await vi.waitFor(() => {
+      expect(dispatched).toStrictEqual([MountedRoot()])
+    })
+
+    patch(mounted, renderView(withoutChild, dispatch))
+
+    expect(onDestroyCalls).toBe(1)
+    expect(onMountCleanupCalls).toBe(0)
   })
 })

@@ -1570,10 +1570,7 @@ const buildVNodeData = <Message>(
                     state.destroyed = true
                     Option.match(state.cleanup, {
                       onNone: () => {},
-                      onSome: cleanup => {
-                        cleanup()
-                        state.cleanup = Option.none()
-                      },
+                      onSome: cleanup => cleanup(),
                     })
                   }
                 },

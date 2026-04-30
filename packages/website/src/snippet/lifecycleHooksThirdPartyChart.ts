@@ -1,5 +1,5 @@
 import { Effect, Schema as S } from 'effect'
-import type { Html } from 'foldkit/html'
+import type { Html, Mount } from 'foldkit/html'
 import { m } from 'foldkit/message'
 
 import { Class, OnMount, div } from '../html'
