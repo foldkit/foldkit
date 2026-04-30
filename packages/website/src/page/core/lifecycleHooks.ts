@@ -41,7 +41,7 @@ const thirdPartyLibrariesHeader: TableOfContentsEntry = {
 const limitsHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'limits',
-  text: 'What Lifecycle Hooks Don’t Solve',
+  text: 'What Lifecycle Hooks Don\u2019t Solve',
 }
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
@@ -61,10 +61,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'The ',
         link(coreViewRouter(), 'view'),
-        ' is a function from Model to Html. It doesn’t reach into the DOM, it doesn’t hold references, it doesn’t run side effects. That purity is what makes Foldkit programs predictable and testable.',
+        ' is a function from Model to Html. It doesn\u2019t reach into the DOM, it doesn\u2019t hold references, it doesn\u2019t run side effects. That purity is what makes Foldkit programs predictable and testable.',
       ),
       para(
-        'But sometimes you need a real DOM node to do something a virtual DOM can’t describe: focus an input the moment it appears, hand a div to a charting library, attach a Mapbox instance. Foldkit gives you three attribute-shaped escape hatches for those moments:',
+        'But sometimes you need a real DOM node to do something a virtual DOM can\u2019t describe: focus an input the moment it appears, hand a div to a charting library, attach a Mapbox instance. Foldkit gives you three attribute-shaped escape hatches for those moments:',
       ),
       para(
         inlineCode('OnInsert'),
@@ -105,7 +105,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        'Foldkit’s own UI components use this shape internally. ',
+        'Foldkit\u2019s own UI components use this shape internally. ',
         inlineCode('Ui.Menu'),
         ' uses ',
         inlineCode('OnInsert'),
@@ -174,21 +174,21 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       tableOfContentsEntryToHeader(limitsHeader),
       para(
         inlineCode('OnInsertEffect'),
-        ' produces exactly one Message: the result of running the Effect. That covers async setup work cleanly, but it does not cover ongoing event streams. If the library you mounted emits events you want in the Model (a code editor’s buffer changes, a map’s viewport, a zoom gesture’s deltas), a single mount-time Message is the wrong shape.',
+        ' produces exactly one Message: the result of running the Effect. That covers async setup work cleanly, but it does not cover ongoing event streams. If the library you mounted emits events you want in the Model (a code editor\u2019s buffer changes, a map\u2019s viewport, a zoom gesture\u2019s deltas), a single mount-time Message is the wrong shape.',
       ),
       para(
-        'Dispatch the element reference out via the mount Message, hold it in the Model, and bridge the library’s ongoing events through a ',
+        'Dispatch the element reference out via the mount Message, hold it in the Model, and bridge the library\u2019s ongoing events through a ',
         link(coreSubscriptionsRouter(), 'Subscription'),
-        '. Subscriptions exist to model continuous external sources: a Subscription keyed on the element ref can attach the library’s listeners and emit a Message for each event. ',
+        '. Subscriptions exist to model continuous external sources: a Subscription keyed on the element ref can attach the library\u2019s listeners and emit a Message for each event. ',
         inlineCode('OnInsertEffect'),
         ' announces the seam exists. The Subscription carries the traffic.',
       ),
       para(
-        'Foldkit also doesn’t expose ',
+        'Foldkit also doesn\u2019t expose ',
         inlineCode('OnDestroyEffect'),
         '. Cleanup tends to be synchronous (cancel a timer, call ',
         inlineCode('library.destroy()'),
-        ', remove a listener), and there’s no current case where teardown needs to dispatch a Message. If you find one, file an issue.',
+        ', remove a listener), and there\u2019s no current case where teardown needs to dispatch a Message. If you find one, file an issue.',
       ),
     ],
   )
