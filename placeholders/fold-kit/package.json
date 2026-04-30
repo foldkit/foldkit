@@ -1,0 +1,29 @@
+{
+  "name": "fold-kit",
+  "version": "0.0.1",
+  "description": "Reserved name. The Foldkit framework is published as `foldkit`. Run `npm install foldkit`.",
+  "type": "module",
+  "main": "./index.js",
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "foldkit",
+    "placeholder",
+    "reserved"
+  ],
+  "author": "Devin Jameson",
+  "license": "MIT",
+  "homepage": "https://foldkit.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/foldkit/foldkit.git",
+    "directory": "placeholders/fold-kit"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

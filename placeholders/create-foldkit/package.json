@@ -1,0 +1,32 @@
+{
+  "name": "create-foldkit",
+  "version": "0.0.1",
+  "description": "Reserved name. To scaffold a Foldkit app, run `npm create foldkit-app`.",
+  "type": "module",
+  "main": "./index.js",
+  "bin": {
+    "create-foldkit": "./index.js"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "foldkit",
+    "placeholder",
+    "reserved"
+  ],
+  "author": "Devin Jameson",
+  "license": "MIT",
+  "homepage": "https://foldkit.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/foldkit/foldkit.git",
+    "directory": "placeholders/create-foldkit"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
