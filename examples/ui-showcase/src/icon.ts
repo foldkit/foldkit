@@ -32,6 +32,12 @@ const heroIcon = (className: string, strokeWidth: string, d: string): Html =>
 export const chevronDown = (className: string = 'w-6 h-6'): Html =>
   heroIcon(className, '1.5', 'M19.5 8.25l-7.5 7.5-7.5-7.5')
 
+export const chevronLeft = (className: string = 'w-6 h-6'): Html =>
+  heroIcon(className, '1.5', 'M15.75 19.5L8.25 12l7.5-7.5')
+
+export const chevronRight = (className: string = 'w-6 h-6'): Html =>
+  heroIcon(className, '1.5', 'm8.25 4.5 7.5 7.5-7.5 7.5')
+
 export const check = (className: string = 'w-6 h-6'): Html =>
   heroIcon(className, '2', 'M4.5 12.75l6 6 9-13.5')
 

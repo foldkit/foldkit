@@ -7,6 +7,7 @@ import { check } from './check'
 import { checkBadge } from './checkBadge'
 import { chevronDown } from './chevronDown'
 import { chevronLeft } from './chevronLeft'
+import { chevronRight } from './chevronRight'
 import { circleStack } from './circleStack'
 import { close } from './close'
 import { codeBracket } from './codeBracket'
@@ -45,6 +46,7 @@ export const Icon = {
   checkBadge,
   chevronDown,
   chevronLeft,
+  chevronRight,
   circleStack,
   close,
   codeBracket,

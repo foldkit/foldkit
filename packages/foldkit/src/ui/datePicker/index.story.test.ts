@@ -101,6 +101,42 @@ describe('DatePicker', () => {
           Story.expectNoCommands(),
         )
       })
+
+      it('drops the calendar back to Days mode if a previous session left it drilled into Months or Years', () => {
+        Story.story(
+          update,
+          withOpen,
+          Story.message(
+            GotCalendarMessage({ message: UiCalendar.ClickedHeading() }),
+          ),
+          Story.resolve(
+            UiCalendar.FocusGrid,
+            UiCalendar.CompletedFocusGrid(),
+            message => GotCalendarMessage({ message }),
+          ),
+          Story.message(
+            GotCalendarMessage({ message: UiCalendar.ClickedHeading() }),
+          ),
+          Story.resolve(
+            UiCalendar.FocusGrid,
+            UiCalendar.CompletedFocusGrid(),
+            message => GotCalendarMessage({ message }),
+          ),
+          Story.model(model => {
+            expect(model.calendar.viewMode).toBe('Years')
+          }),
+          Story.message(Closed()),
+          Story.resolve(
+            Popover.FocusButton,
+            Popover.CompletedFocusButton(),
+            message => GotPopoverMessage({ message }),
+          ),
+          Story.message(Opened()),
+          Story.model(model => {
+            expect(model.calendar.viewMode).toBe('Days')
+          }),
+        )
+      })
     })
 
     describe('Closed', () => {
@@ -118,6 +154,83 @@ describe('DatePicker', () => {
             expect(model.popover.isOpen).toBe(false)
           }),
           Story.expectNoOutMessage(),
+        )
+      })
+
+      it('drops the calendar back to Days mode if the user closed while drilled into Months or Years', () => {
+        Story.story(
+          update,
+          withOpen,
+          Story.message(
+            GotCalendarMessage({ message: UiCalendar.ClickedHeading() }),
+          ),
+          Story.resolve(
+            UiCalendar.FocusGrid,
+            UiCalendar.CompletedFocusGrid(),
+            message => GotCalendarMessage({ message }),
+          ),
+          Story.message(
+            GotCalendarMessage({ message: UiCalendar.ClickedHeading() }),
+          ),
+          Story.resolve(
+            UiCalendar.FocusGrid,
+            UiCalendar.CompletedFocusGrid(),
+            message => GotCalendarMessage({ message }),
+          ),
+          Story.model(model => {
+            expect(model.calendar.viewMode).toBe('Years')
+          }),
+          Story.message(Closed()),
+          Story.resolve(
+            Popover.FocusButton,
+            Popover.CompletedFocusButton(),
+            message => GotPopoverMessage({ message }),
+          ),
+          Story.model(model => {
+            expect(model.calendar.viewMode).toBe('Days')
+          }),
+        )
+      })
+
+      it('reconciles the calendar focus after Years-mode paging so reopening does not drift the day grid', () => {
+        Story.story(
+          update,
+          withOpen,
+          Story.message(
+            GotCalendarMessage({ message: UiCalendar.ClickedHeading() }),
+          ),
+          Story.resolve(
+            UiCalendar.FocusGrid,
+            UiCalendar.CompletedFocusGrid(),
+            message => GotCalendarMessage({ message }),
+          ),
+          Story.message(
+            GotCalendarMessage({ message: UiCalendar.ClickedHeading() }),
+          ),
+          Story.resolve(
+            UiCalendar.FocusGrid,
+            UiCalendar.CompletedFocusGrid(),
+            message => GotCalendarMessage({ message }),
+          ),
+          Story.message(
+            GotCalendarMessage({
+              message: UiCalendar.PagedYears({ direction: 1 }),
+            }),
+          ),
+          Story.message(Closed()),
+          Story.resolve(
+            Popover.FocusButton,
+            Popover.CompletedFocusButton(),
+            message => GotPopoverMessage({ message }),
+          ),
+          Story.model(model => {
+            expect(model.calendar.viewMode).toBe('Days')
+            expect(model.calendar.viewYear).toBe(2026)
+            expect(model.calendar.viewMonth).toBe(4)
+            expect(model.calendar.maybeFocusedDate).toStrictEqual(
+              Option.some(Calendar.make(2026, 4, 13)),
+            )
+          }),
         )
       })
     })

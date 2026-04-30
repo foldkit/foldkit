@@ -23,15 +23,15 @@ const rowClassName = 'border-b border-gray-200 dark:border-gray-700/50'
 
 const cellClassName = 'py-2.5 pr-4 align-top'
 
-const typeCellClassName = 'py-2.5 pr-4 align-top max-w-xs'
+const typeCellClassName = 'py-2.5 pr-4 align-top min-w-[20rem] max-w-md'
 
-const descriptionCellClassName = 'py-2.5 align-top min-w-[24rem]'
+const descriptionCellClassName = 'py-2.5 align-top min-w-[18rem]'
 
 const codeClassName =
   'bg-gray-200/70 dark:bg-gray-800 px-1 py-px rounded text-sm border border-gray-300/50 dark:border-gray-700/50 whitespace-nowrap'
 
 const wrappingCodeClassName =
-  'bg-gray-200/70 dark:bg-gray-800 px-1 py-px rounded text-sm border border-gray-300/50 dark:border-gray-700/50 whitespace-pre-wrap break-words'
+  'bg-gray-200/70 dark:bg-gray-800 px-1 py-px rounded text-sm border border-gray-300/50 dark:border-gray-700/50 whitespace-pre-wrap break-normal'
 
 const inlineCode = (text: string): Html => code([Class(codeClassName)], [text])
 

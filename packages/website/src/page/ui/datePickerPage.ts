@@ -14,6 +14,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
+import { patternsOutMessageRouter, uiCalendarRouter } from '../../route'
 import * as Snippet from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 import {
@@ -72,10 +73,22 @@ const initConfigHeader: TableOfContentsEntry = {
   text: 'InitConfig',
 }
 
+const modelHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'model',
+  text: 'Model',
+}
+
 const viewConfigHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'view-config',
   text: 'ViewConfig',
+}
+
+const calendarAttributesHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'calendar-attributes',
+  text: 'CalendarAttributes',
 }
 
 const outMessagesHeader: TableOfContentsEntry = {
@@ -98,7 +111,9 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   accessibilityHeader,
   apiReferenceHeader,
   initConfigHeader,
+  modelHeader,
   viewConfigHeader,
+  calendarAttributesHeader,
   outMessagesHeader,
   programmaticHelpersHeader,
 ]
@@ -121,7 +136,7 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
     name: 'initialSelectedDate',
     type: 'CalendarDate',
     description:
-      'Pre-selected date. When set, the calendar grid starts on the month containing this date.',
+      'Pre-selected date. When set, the view starts on the month containing this date.',
   },
   {
     name: 'isAnimated',
@@ -165,6 +180,28 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
   },
 ]
 
+const modelProps: ReadonlyArray<PropEntry> = [
+  { name: 'id', type: 'string', description: 'The date picker instance ID.' },
+  {
+    name: 'maybeSelectedDate',
+    type: 'Option<CalendarDate>',
+    description:
+      'The committed selection. In uncontrolled mode, the date picker manages this automatically when the user picks a date. In controlled mode, the parent owns the value and writes it back via DatePicker.selectDate.',
+  },
+  {
+    name: 'calendar',
+    type: 'Calendar.Model',
+    description:
+      'The embedded Calendar submodel. Forwards navigation, focus, locale, and disabled-cell state. The picker delegates Calendar messages and resets the calendar to Days mode every time the popover opens or closes.',
+  },
+  {
+    name: 'popover',
+    type: 'Popover.Model',
+    description:
+      'The embedded Popover submodel. Tracks open/close state, animation phase, and focus choreography (opening focuses the calendar grid, closing returns focus to the trigger).',
+  },
+]
+
 const viewConfigProps: ReadonlyArray<PropEntry> = [
   {
     name: 'model',
@@ -181,7 +218,7 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     name: 'onSelectedDate',
     type: '(date: CalendarDate) => ParentMessage',
     description:
-      'Optional. When provided, committing a date dispatches this callback directly (controlled mode). When omitted, DatePicker manages its own selection (uncontrolled mode). In controlled mode, use DatePicker.selectDate(model, date) to write the selection back.',
+      'Optional. When provided, click / Enter / Space on a day dispatches this callback directly (controlled mode: parent owns the event). When omitted, DatePicker manages its own maybeSelectedDate automatically (uncontrolled mode). In controlled mode, use DatePicker.selectDate(model, date) to write the selection back to internal state.',
   },
   {
     name: 'anchor',
@@ -295,21 +332,23 @@ const programmaticHelpersProps: ReadonlyArray<PropEntry> = [
 const dataAttributes: ReadonlyArray<DataAttributeEntry> = [
   {
     attribute: 'data-today',
-    condition: 'Present on the cell for today.',
+    condition:
+      'Present on the cell representing "today". The day cell in Days mode, the current month cell in Months mode, the current year cell in Years mode.',
   },
   {
     attribute: 'data-selected',
-    condition: 'Present on the cell for the selected date.',
+    condition:
+      "Present on the calendar's currently-centered cell. The selected date in Days mode, the centered month (viewMonth) in Months mode, the centered year (viewYear) in Years mode.",
   },
   {
     attribute: 'data-focused',
     condition:
-      'Present on the cell for the keyboard cursor position while the grid has DOM focus.',
+      'Present on the cell at the keyboard cursor position while the grid has DOM focus.',
   },
   {
     attribute: 'data-outside-month',
     condition:
-      'Present on cells that fall outside the currently-viewed month (leading/trailing grid rows).',
+      '(Days mode only.) Present on cells that fall outside the currently-viewed month (leading/trailing grid rows).',
   },
   {
     attribute: 'data-disabled',
@@ -335,29 +374,32 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
   },
   {
     key: 'ArrowLeft / ArrowRight',
-    description: 'Move focus by one day inside the calendar grid.',
+    description:
+      'Move the focus cursor by one cell. Days: ±1 day. Months: ±1 month (wraps across years). Years: ±1 year (wraps across pages).',
   },
   {
     key: 'ArrowUp / ArrowDown',
-    description: 'Move focus by one week inside the calendar grid.',
+    description:
+      'Move the focus cursor by one row. Days: ±1 week (7 days). Months: ±1 row (3 months). Years: ±1 row (3 years).',
   },
   {
     key: 'Home / End',
     description:
-      'Move focus to the start / end of the current week (based on locale.firstDayOfWeek).',
+      '(Days mode only.) Move focus to the start / end of the current week (based on locale.firstDayOfWeek).',
   },
   {
     key: 'PageUp / PageDown',
-    description: 'Move focus by one month inside the calendar grid.',
+    description:
+      'Days: ±1 month. Months: ±1 year. Years: ±1 window (12 years).',
   },
   {
     key: 'Shift + PageUp / Shift + PageDown',
-    description: 'Move focus by one year inside the calendar grid.',
+    description: '(Days mode only.) Move focus by one year.',
   },
   {
     key: 'Enter / Space',
     description:
-      'Commit the focused date as the selection and close the popover.',
+      'Commit the focus cursor. Days: select the date and close the popover. Months: jump the calendar to that month and drill back to Days. Years: jump to that year and drill back to Months.',
   },
 ]
 
@@ -389,13 +431,22 @@ export const view = (
         inlineCode('DatePicker.view()'),
         '. The update function returns ',
         inlineCode('[Model, Commands, Option<OutMessage>]'),
-        '. The OutMessage fires when the user commits a date or clears the selection. For programmatic control in update functions, use ',
+        '. The ',
+        link(patternsOutMessageRouter(), 'OutMessage'),
+        " forwards the embedded calendar's ",
+        inlineCode('ChangedViewMonth'),
+        ' so consumers can react to month-scoped data needs. Date selection goes through the ',
+        inlineCode('onSelectedDate'),
+        ' ViewConfig callback, not OutMessage. For programmatic control in update functions, use ',
         inlineCode('DatePicker.open(model)'),
         ' and ',
         inlineCode('DatePicker.close(model)'),
         ' which return ',
         inlineCode('[Model, Commands]'),
         ' directly.',
+      ),
+      para(
+        'The calendar heading inside the popover is a button: clicking it switches the day grid into a 3x4 months grid; clicking the year heading from there switches into a paged 3x4 years grid. Selecting a year drills back to the months grid for that year; selecting a month drills back to the days grid for that month. Re-opening the popover always shows the day grid.',
       ),
       infoCallout(
         'See it in an app',
@@ -405,11 +456,11 @@ export const view = (
       ),
       heading(examplesHeader.level, examplesHeader.id, examplesHeader.text),
       para(
-        'A date picker constrained to the next three months via ',
-        inlineCode('maybeMinDate'),
+        'A date picker constrained to a one-year window around today via ',
+        inlineCode('minDate'),
         ' and ',
-        inlineCode('maybeMaxDate'),
-        '. Click the trigger to open, pick a date or navigate with arrow keys, then press Enter to commit or Escape to dismiss.',
+        inlineCode('maxDate'),
+        '. Click the trigger to open, pick a date, click the heading to drill into a months grid (and again to drill into a years grid), or navigate with the full WAI-ARIA grid keyboard pattern. Press Enter to commit, Escape to dismiss.',
       ),
       demoContainer(...DatePicker.basicDemo(model, toParentMessage)),
       highlightedCodeBlock(
@@ -458,15 +509,21 @@ export const view = (
         inlineCode('aria-expanded'),
         ' and ',
         inlineCode('aria-controls'),
-        ' to announce the popover relationship. Inside the popover, the calendar grid renders with the full WAI-ARIA grid pattern: ',
+        ' to announce the popover relationship. Inside the popover, the calendar grid renders with ',
         inlineCode('role="grid"'),
-        ' with ',
+        ' and an explicit ',
+        inlineCode('aria-label'),
+        ' that leads with a non-numeric word ("Calendar, April 2026") so VoiceOver does not pattern-match the grid\'s row position into a date literal. ',
         inlineCode('aria-activedescendant'),
-        ' for cursor tracking, ',
+        ' tracks the keyboard cursor; rows carry ',
         inlineCode('role="row"'),
-        ' and ',
-        inlineCode('role="gridcell"'),
         ' with ',
+        inlineCode('aria-rowindex'),
+        '; cells carry ',
+        inlineCode('role="gridcell"'),
+        ', ',
+        inlineCode('aria-colindex'),
+        ', and ',
         inlineCode('aria-selected'),
         ' on the chosen date. Day buttons carry full accessible names via ',
         inlineCode('aria-label'),
@@ -494,6 +551,15 @@ export const view = (
         '. Calendar constraints (min/max, disabled dates) are forwarded to the embedded Calendar submodel.',
       ),
       propTable(initConfigProps),
+      heading(modelHeader.level, modelHeader.id, modelHeader.text),
+      para(
+        'The DatePicker Model. Stored on your parent Model and threaded through ',
+        inlineCode('DatePicker.update()'),
+        ' and ',
+        inlineCode('DatePicker.view()'),
+        '.',
+      ),
+      propTable(modelProps),
       heading(
         viewConfigHeader.level,
         viewConfigHeader.id,
@@ -505,6 +571,27 @@ export const view = (
         '.',
       ),
       propTable(viewConfigProps),
+      heading(
+        calendarAttributesHeader.level,
+        calendarAttributesHeader.id,
+        calendarAttributesHeader.text,
+      ),
+      para(
+        'The discriminated union passed to ',
+        inlineCode('toCalendarView'),
+        '. Pattern-match on ',
+        inlineCode('_tag'),
+        ' (',
+        inlineCode("'Days' | 'Months' | 'Years'"),
+        ') with ',
+        inlineCode('M.tagsExhaustive'),
+        ' to render each grid. Each variant exposes a different shape: Days carries weeks plus a headingButton; Months carries 12 month cells plus a headingButton; Years carries 12 year cells plus prev/next page buttons. See ',
+        link(
+          uiCalendarRouter(),
+          "the Calendar page's CalendarAttributes section",
+        ),
+        ' for the full prop table — the type is the same.',
+      ),
       heading(
         outMessagesHeader.level,
         outMessagesHeader.id,

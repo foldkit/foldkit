@@ -1,5 +1,5 @@
 import { describe, it } from '@effect/vitest'
-import { Option } from 'effect'
+import { Match as M, Option } from 'effect'
 
 import * as Calendar from '../../calendar/index.js'
 import { html } from '../../html/index.js'
@@ -8,57 +8,97 @@ import * as UiCalendar from '../calendar/index.js'
 import type { Message, Model, ViewConfig } from './index.js'
 import { Opened, init, update, view } from './index.js'
 
-const { button, div, h2, select, option, Id, Value } = html<Message>()
+const { button, div, h2, span, Id } = html<Message>()
 
 const today = Calendar.make(2026, 4, 13)
 
 const testToCalendarView = (attrs: UiCalendar.CalendarAttributes<Message>) =>
-  div(attrs.root, [
-    div(
-      [],
-      [
-        button(attrs.previousMonthButton, ['prev']),
-        h2([Id(attrs.heading.id)], [attrs.heading.text]),
-        button(attrs.nextMonthButton, ['next']),
-        select(
-          attrs.monthSelect,
-          attrs.monthOptions.map(o =>
-            option([Value(String(o.value))], [o.label]),
+  M.value(attrs).pipe(
+    M.tagsExhaustive({
+      Days: days =>
+        div(days.root, [
+          div(
+            [],
+            [
+              button(days.previousMonthButton, ['prev']),
+              button(
+                [Id(days.heading.id), ...days.headingButton],
+                [days.heading.text],
+              ),
+              button(days.nextMonthButton, ['next']),
+            ],
           ),
-        ),
-        select(
-          attrs.yearSelect,
-          attrs.yearOptions.map(year =>
-            option([Value(String(year))], [String(year)]),
+          div(days.grid, [
+            div(
+              days.headerRow,
+              days.columnHeaders.map(header =>
+                div(header.attributes, [header.name]),
+              ),
+            ),
+            ...days.weeks.map(week =>
+              div(
+                week.attributes,
+                week.cells.map(cell =>
+                  div(cell.cellAttributes, [
+                    button(cell.buttonAttributes, [cell.label]),
+                  ]),
+                ),
+              ),
+            ),
+          ]),
+        ]),
+      Months: months =>
+        div(months.root, [
+          div(
+            [],
+            [
+              button(
+                [Id(months.heading.id), ...months.headingButton],
+                [months.heading.text],
+              ),
+            ],
           ),
-        ),
-      ],
-    ),
-    div(attrs.grid, [
-      div(
-        attrs.headerRow,
-        attrs.columnHeaders.map(header =>
-          div(header.attributes, [header.name]),
-        ),
-      ),
-      ...attrs.weeks.map(week =>
-        div(
-          week.attributes,
-          week.cells.map(cell =>
-            div(cell.cellAttributes, [
-              button(cell.buttonAttributes, [cell.label]),
-            ]),
+          div(
+            months.grid,
+            months.cells.map(cell =>
+              div(cell.cellAttributes, [
+                button(cell.buttonAttributes, [cell.label]),
+              ]),
+            ),
           ),
-        ),
-      ),
-    ]),
-  ])
+        ]),
+      Years: years =>
+        div(years.root, [
+          div(
+            [],
+            [
+              button(years.previousPageButton, ['prev page']),
+              h2([Id(years.heading.id)], [years.heading.text]),
+              button(years.nextPageButton, ['next page']),
+            ],
+          ),
+          div(
+            years.grid,
+            years.cells.map(cell =>
+              div(cell.cellAttributes, [
+                button(cell.buttonAttributes, [cell.label]),
+              ]),
+            ),
+          ),
+        ]),
+    }),
+  )
 
 const triggerContent = (maybeDate: Option.Option<Calendar.CalendarDate>) =>
-  Option.match(maybeDate, {
-    onNone: () => 'Pick a date',
-    onSome: date => `${date.year}-${date.month}-${date.day}`,
-  })
+  span(
+    [],
+    [
+      Option.match(maybeDate, {
+        onNone: () => 'Pick a date',
+        onSome: date => `${date.year}-${date.month}-${date.day}`,
+      }),
+    ],
+  )
 
 const sceneView =
   (overrides: Partial<ViewConfig<Message>> = {}) =>

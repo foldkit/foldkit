@@ -16,14 +16,22 @@ import * as Task from '../../task/index.js'
 
 // MODEL
 
+/** Which grid the calendar is currently displaying. `Days` is the standard
+ * 6×7 day grid; `Months` is a 3×4 month-name grid for fast month jumps;
+ * `Years` is a 3×4 year grid paged in 12-year windows for fast year jumps. */
+export const ViewMode = S.Literal('Days', 'Months', 'Years')
+export type ViewMode = typeof ViewMode.Type
+
 /** Schema for the calendar component's state. Tracks the visible month/year,
- * the keyboard-focused and user-selected dates, and the configuration that
- * governs navigation (locale, min/max, disabled days). */
+ * the keyboard-focused and user-selected dates, the active view mode, and
+ * the configuration that governs navigation (locale, min/max, disabled
+ * days). */
 export const Model = S.Struct({
   id: S.String,
   today: Calendar.CalendarDate,
   viewYear: S.Int,
   viewMonth: S.Int.pipe(S.between(1, 12)),
+  viewMode: ViewMode,
   maybeFocusedDate: S.OptionFromSelf(Calendar.CalendarDate),
   maybeSelectedDate: S.OptionFromSelf(Calendar.CalendarDate),
   isGridFocused: S.Boolean,
@@ -46,18 +54,24 @@ export const PressedKeyOnGrid = m('PressedKeyOnGrid', {
   key: S.String,
   isShift: S.Boolean,
 })
-/** Sent when the user clicks the previous-month navigation button. */
+/** Sent when the user clicks the previous-month navigation button in Days
+ * mode. (The Years mode prev/next-page buttons dispatch `PagedYears`.) */
 export const ClickedPreviousMonthButton = m('ClickedPreviousMonthButton')
-/** Sent when the user clicks the next-month navigation button. */
+/** Sent when the user clicks the next-month navigation button in Days
+ * mode. (The Years mode prev/next-page buttons dispatch `PagedYears`.) */
 export const ClickedNextMonthButton = m('ClickedNextMonthButton')
-/** Sent when the user picks a month from the month dropdown. */
-export const SelectedMonthFromDropdown = m('SelectedMonthFromDropdown', {
-  month: S.Int,
-})
-/** Sent when the user picks a year from the year dropdown. */
-export const SelectedYearFromDropdown = m('SelectedYearFromDropdown', {
-  year: S.Int,
-})
+/** Sent when the user clicks the calendar heading. Zooms out one mode
+ * level: Days → Months, Months → Years. Terminal in Years mode. */
+export const ClickedHeading = m('ClickedHeading')
+/** Sent when the user picks a month from the months grid. Jumps the view
+ * to that month and returns the calendar to Days mode. */
+export const SelectedMonth = m('SelectedMonth', { month: S.Int })
+/** Sent when the user picks a year from the years grid. Jumps the view to
+ * that year and transitions the calendar to Months mode for further drilling. */
+export const SelectedYear = m('SelectedYear', { year: S.Int })
+/** Sent when the user pages the years grid forward or backward by one
+ * window. Direction is `1` for next, `-1` for previous. */
+export const PagedYears = m('PagedYears', { direction: S.Literal(1, -1) })
 /** Sent when the grid container receives DOM focus. */
 export const FocusedGrid = m('FocusedGrid')
 /** Sent when the grid container loses DOM focus. */
@@ -75,8 +89,10 @@ export const Message = S.Union(
   PressedKeyOnGrid,
   ClickedPreviousMonthButton,
   ClickedNextMonthButton,
-  SelectedMonthFromDropdown,
-  SelectedYearFromDropdown,
+  ClickedHeading,
+  SelectedMonth,
+  SelectedYear,
+  PagedYears,
   FocusedGrid,
   BlurredGrid,
   RefreshedToday,
@@ -133,6 +149,7 @@ export const init = (config: InitConfig): Model => {
     today: config.today,
     viewYear: initialFocus.year,
     viewMonth: initialFocus.month,
+    viewMode: 'Days',
     maybeFocusedDate: Option.some(initialFocus),
     maybeSelectedDate: maybeInitialSelectedDate,
     isGridFocused: false,
@@ -212,30 +229,40 @@ export const setDisabledDaysOfWeek = (
   disabledDaysOfWeek: ReadonlyArray<Calendar.DayOfWeek>,
 ): Model => evo(model, { disabledDaysOfWeek: () => disabledDaysOfWeek })
 
+/** Returns the calendar to Days mode regardless of current depth. Useful for
+ * standalone (non-popovered) consumers that want to wire their own back-out
+ * gesture. Popovered consumers like `Ui.DatePicker` don't need this — Escape
+ * closes the popover, and the calendar resets to Days on next open.
+ *
+ * Reconciles `maybeFocusedDate` to a date inside the visible (`viewYear`,
+ * `viewMonth`) — Months/Years navigation can leave the cursor on a date
+ * outside the days grid (paged-away year, etc.), which would otherwise
+ * cause `aria-activedescendant` to point at a non-rendered cell and the
+ * next ArrowLeft to jump to the cursor's stale year. */
+export const dropToDays = (model: Model): Model => {
+  const focusedDay = Option.match(model.maybeFocusedDate, {
+    onNone: () => 1,
+    onSome: date =>
+      Math.min(date.day, Calendar.daysInMonth(model.viewYear, model.viewMonth)),
+  })
+  return evo(model, {
+    viewMode: () => 'Days',
+    maybeFocusedDate: () =>
+      Option.some(Calendar.make(model.viewYear, model.viewMonth, focusedDay)),
+  })
+}
+
 const DAY_SKIP_CAP = 31
 const MONTH_SKIP_CAP = 12
 
-const isDateDisabled = (model: Model, date: CalendarDate): boolean => {
-  const belowMin = Option.exists(model.maybeMinDate, min =>
-    Calendar.isBefore(date, min),
-  )
-  if (belowMin) {
-    return true
-  }
-  const aboveMax = Option.exists(model.maybeMaxDate, max =>
-    Calendar.isAfter(date, max),
-  )
-  if (aboveMax) {
-    return true
-  }
-  if (model.disabledDaysOfWeek.includes(Calendar.dayOfWeek(date))) {
-    return true
-  }
-  if (model.disabledDates.some(Calendar.isEqual(date))) {
-    return true
-  }
-  return false
-}
+/** Number of years per Years-mode page. A 3×4 grid renders one window. */
+const YEARS_PAGE_SIZE = 12
+
+const isDateDisabled = (model: Model, date: CalendarDate): boolean =>
+  Option.exists(model.maybeMinDate, min => Calendar.isBefore(date, min)) ||
+  Option.exists(model.maybeMaxDate, max => Calendar.isAfter(date, max)) ||
+  model.disabledDaysOfWeek.includes(Calendar.dayOfWeek(date)) ||
+  model.disabledDates.some(Calendar.isEqual(date))
 
 /** Walks from `start` in `direction`, returning the first non-disabled date
  * within `cap` steps. Falls back to `start` if every candidate is disabled. */
@@ -399,17 +426,81 @@ const applyViewMonthChange = (
   return [nextModel, [], Option.some(ChangedViewMonth({ year, month }))]
 }
 
-/** Direction the user moved when jumping to a new view month via dropdown.
- * Used by `skipDisabled` so a forward jump skips forward through disabled
- * dates and a backward jump skips backward. */
-const dropdownDirection = (
-  model: Model,
-  year: number,
-  month: number,
-): 1 | -1 => {
+/** Direction the user moved when jumping to a new view year/month via grid
+ * selection. Used by `skipDisabled` so a forward jump skips forward through
+ * disabled dates and a backward jump skips backward. */
+const jumpDirection = (model: Model, year: number, month: number): 1 | -1 => {
   const next = Calendar.make(year, month, 1)
   const current = Calendar.make(model.viewYear, model.viewMonth, 1)
   return Calendar.isAfter(next, current) ? 1 : -1
+}
+
+/** Maps a keyboard key to a months-grid focus shift (in months). Months
+ * mode supports horizontal (±1), vertical (±row width), and PageUp/Down
+ * (±12) navigation. */
+const resolveMonthsKey = (key: string): Option.Option<number> =>
+  M.value(key).pipe(
+    M.withReturnType<number>(),
+    M.when('ArrowLeft', () => -1),
+    M.when('ArrowRight', () => 1),
+    M.when('ArrowUp', () => -MONTHS_GRID_COLUMNS),
+    M.when('ArrowDown', () => MONTHS_GRID_COLUMNS),
+    M.when('PageUp', () => -MONTHS_IN_YEAR),
+    M.when('PageDown', () => MONTHS_IN_YEAR),
+    M.option,
+  )
+
+/** Maps a keyboard key to a years-grid focus shift (in years). Years mode
+ * supports horizontal (±1), vertical (±row width), and PageUp/Down (±12 =
+ * one window) navigation. */
+const resolveYearsKey = (key: string): Option.Option<number> =>
+  M.value(key).pipe(
+    M.withReturnType<number>(),
+    M.when('ArrowLeft', () => -1),
+    M.when('ArrowRight', () => 1),
+    M.when('ArrowUp', () => -YEARS_GRID_COLUMNS),
+    M.when('ArrowDown', () => YEARS_GRID_COLUMNS),
+    M.when('PageUp', () => -YEARS_PAGE_SIZE),
+    M.when('PageDown', () => YEARS_PAGE_SIZE),
+    M.option,
+  )
+
+/** Applies a months-grid focus shift, updating `maybeFocusedDate` and
+ * `viewYear` to reflect the new focused date. `viewMonth` is preserved —
+ * Months mode keyboard navigation moves the cursor without committing. */
+const applyMonthsFocusShift = (
+  model: Model,
+  monthShift: number,
+): UpdateReturn => {
+  const focused = currentOrFallbackFocus(model)
+  const nextFocus = Calendar.addMonths(focused, monthShift)
+  return [
+    evo(model, {
+      maybeFocusedDate: () => Option.some(nextFocus),
+      viewYear: () => nextFocus.year,
+    }),
+    [],
+    Option.none(),
+  ]
+}
+
+/** Applies a years-grid focus shift, updating only `maybeFocusedDate`.
+ * `viewYear` is preserved so the "selected" highlight (`year === viewYear`)
+ * stays on the calendar's centered year while the cursor moves freely. The
+ * visible 12-year page is derived from the cursor in the view layer. */
+const applyYearsFocusShift = (
+  model: Model,
+  yearShift: number,
+): UpdateReturn => {
+  const focused = currentOrFallbackFocus(model)
+  const nextFocus = Calendar.addYears(focused, yearShift)
+  return [
+    evo(model, {
+      maybeFocusedDate: () => Option.some(nextFocus),
+    }),
+    [],
+    Option.none(),
+  ]
 }
 
 /** Processes a calendar message and returns the next model, commands, and
@@ -421,43 +512,65 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       ClickedDay: ({ date }) => {
         if (isDateDisabled(model, date)) {
           return [model, [], Option.none()]
-        }
-        const [nextModel, maybeOutMessage] = commitSelection(model, date)
-        return [nextModel, [], maybeOutMessage]
-      },
-
-      PressedKeyOnGrid: ({ key, isShift }) => {
-        const focused = currentOrFallbackFocus(model)
-
-        if (isCommitKey(key)) {
-          if (isDateDisabled(model, focused)) {
-            return [model, [], Option.none()]
-          }
-          const [nextModel, maybeOutMessage] = commitSelection(model, focused)
+        } else {
+          const [nextModel, maybeOutMessage] = commitSelection(model, date)
           return [nextModel, [], maybeOutMessage]
         }
-
-        return Option.match(
-          resolveNavigationKey(
-            key,
-            isShift,
-            focused,
-            model.locale.firstDayOfWeek,
-          ),
-          {
-            onNone: () => [model, [], Option.none()],
-            onSome: ([candidate, direction, cap]) => {
-              const [nextModel, maybeOutMessage] = applyFocusMove(
-                model,
-                candidate,
-                direction,
-                cap,
-              )
-              return [nextModel, [], maybeOutMessage]
-            },
-          },
-        )
       },
+
+      PressedKeyOnGrid: ({ key, isShift }) =>
+        M.value(model.viewMode).pipe(
+          withUpdateReturn,
+          M.when('Days', () => {
+            const focused = currentOrFallbackFocus(model)
+
+            if (isCommitKey(key)) {
+              if (isDateDisabled(model, focused)) {
+                return [model, [], Option.none()]
+              } else {
+                const [nextModel, maybeOutMessage] = commitSelection(
+                  model,
+                  focused,
+                )
+                return [nextModel, [], maybeOutMessage]
+              }
+            } else {
+              return Option.match(
+                resolveNavigationKey(
+                  key,
+                  isShift,
+                  focused,
+                  model.locale.firstDayOfWeek,
+                ),
+                {
+                  onNone: () => [model, [], Option.none()],
+                  onSome: ([candidate, direction, cap]) => {
+                    const [nextModel, maybeOutMessage] = applyFocusMove(
+                      model,
+                      candidate,
+                      direction,
+                      cap,
+                    )
+                    return [nextModel, [], maybeOutMessage]
+                  },
+                },
+              )
+            }
+          }),
+          M.when('Months', () =>
+            Option.match(resolveMonthsKey(key), {
+              onNone: () => [model, [], Option.none()],
+              onSome: shift => applyMonthsFocusShift(model, shift),
+            }),
+          ),
+          M.when('Years', () =>
+            Option.match(resolveYearsKey(key), {
+              onNone: () => [model, [], Option.none()],
+              onSome: shift => applyYearsFocusShift(model, shift),
+            }),
+          ),
+          M.exhaustive,
+        ),
 
       ClickedPreviousMonthButton: () => {
         const next = Calendar.subtractMonths(
@@ -475,21 +588,61 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         return applyViewMonthChange(model, next.year, next.month, 1)
       },
 
-      SelectedMonthFromDropdown: ({ month }) =>
-        applyViewMonthChange(
-          model,
-          model.viewYear,
-          month,
-          dropdownDirection(model, model.viewYear, month),
+      ClickedHeading: () =>
+        M.value(model.viewMode).pipe(
+          withUpdateReturn,
+          M.when('Days', () => [
+            evo(model, { viewMode: () => 'Months' }),
+            [focusGrid(model.id)],
+            Option.none(),
+          ]),
+          M.when('Months', () => [
+            evo(model, { viewMode: () => 'Years' }),
+            [focusGrid(model.id)],
+            Option.none(),
+          ]),
+          M.when('Years', () => [model, [], Option.none()]),
+          M.exhaustive,
         ),
 
-      SelectedYearFromDropdown: ({ year }) =>
-        applyViewMonthChange(
-          model,
-          year,
-          model.viewMonth,
-          dropdownDirection(model, year, model.viewMonth),
-        ),
+      SelectedMonth: ({ month }) => {
+        if (isMonthDisabled(model, model.viewYear, month)) {
+          return [model, [], Option.none()]
+        } else {
+          const [nextModel, commands, maybeOutMessage] = applyViewMonthChange(
+            model,
+            model.viewYear,
+            month,
+            jumpDirection(model, model.viewYear, month),
+          )
+          return [
+            evo(nextModel, { viewMode: () => 'Days' }),
+            [...commands, focusGrid(model.id)],
+            maybeOutMessage,
+          ]
+        }
+      },
+
+      SelectedYear: ({ year }) => {
+        if (isYearDisabled(model, year)) {
+          return [model, [], Option.none()]
+        } else {
+          const [nextModel, commands, maybeOutMessage] = applyViewMonthChange(
+            model,
+            year,
+            model.viewMonth,
+            jumpDirection(model, year, model.viewMonth),
+          )
+          return [
+            evo(nextModel, { viewMode: () => 'Months' }),
+            [...commands, focusGrid(model.id)],
+            maybeOutMessage,
+          ]
+        }
+      },
+
+      PagedYears: ({ direction }) =>
+        applyYearsFocusShift(model, direction * YEARS_PAGE_SIZE),
 
       FocusedGrid: () => [
         evo(model, { isGridFocused: () => true }),
@@ -516,8 +669,12 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 // VIEW
 
 const headingId = (modelId: string): string => `${modelId}-heading`
-const cellId = (modelId: string, date: CalendarDate): string =>
+const dayCellId = (modelId: string, date: CalendarDate): string =>
   `${modelId}-cell-${date.year}-${date.month}-${date.day}`
+const monthCellId = (modelId: string, month: number): string =>
+  `${modelId}-cell-month-${month}`
+const yearCellId = (modelId: string, year: number): string =>
+  `${modelId}-cell-year-${year}`
 
 const DAY_NAMES_SUNDAY_FIRST: ReadonlyArray<Calendar.DayOfWeek> = [
   'Sunday',
@@ -574,26 +731,6 @@ const buildGrid = (
   return { gridStart, weeks }
 }
 
-const YEAR_RANGE_LOOKAHEAD = 10
-const YEAR_RANGE_LOOKBEHIND = 100
-
-/** Computes the inclusive year range the year dropdown should expose,
- * derived from min/max constraints if set, else a sensible default window
- * around today. */
-const resolveYearRange = (model: Model): readonly [number, number] => {
-  const defaultStart = model.today.year - YEAR_RANGE_LOOKBEHIND
-  const defaultEnd = model.today.year + YEAR_RANGE_LOOKAHEAD
-  const start = Option.match(model.maybeMinDate, {
-    onNone: () => defaultStart,
-    onSome: min => min.year,
-  })
-  const end = Option.match(model.maybeMaxDate, {
-    onNone: () => defaultEnd,
-    onSome: max => max.year,
-  })
-  return [start, end]
-}
-
 /** Information about a single day cell in the rendered calendar grid. */
 export type DayCell<ParentMessage> = Readonly<{
   date: CalendarDate
@@ -607,35 +744,94 @@ export type DayCell<ParentMessage> = Readonly<{
   isDisabled: boolean
 }>
 
-/** A column header for the grid's first row (day-of-week labels). */
+/** A column header for the day grid's first row (day-of-week labels). */
 export type ColumnHeader<ParentMessage> = Readonly<{
   name: string
   attributes: ReadonlyArray<Attribute<ParentMessage>>
 }>
 
-/** A single week row in the calendar grid, carrying its own row attributes
- * (role, aria-rowindex) alongside its 7 day cells. */
+/** A single week row in the day grid, carrying its own row attributes (role,
+ * aria-rowindex) alongside its 7 day cells. */
 export type Week<ParentMessage> = Readonly<{
   attributes: ReadonlyArray<Attribute<ParentMessage>>
   cells: ReadonlyArray<DayCell<ParentMessage>>
 }>
 
-/** Attribute groups and derived data the calendar component provides to the
- * consumer's `toView` callback. */
-export type CalendarAttributes<ParentMessage> = Readonly<{
+/** Information about a single month cell in the rendered months grid.
+ * `label` is the locale-aware full month name (e.g. "September"); `shortLabel`
+ * is the locale-aware abbreviation (e.g. "Sep"). Render whichever fits the
+ * cell — never substring `label` to abbreviate, since that's not safe across
+ * locales. */
+export type MonthCell<ParentMessage> = Readonly<{
+  month: number
+  label: string
+  shortLabel: string
+  cellAttributes: ReadonlyArray<Attribute<ParentMessage>>
+  buttonAttributes: ReadonlyArray<Attribute<ParentMessage>>
+  isSelected: boolean
+  isFocused: boolean
+  isCurrentMonth: boolean
+  isDisabled: boolean
+}>
+
+/** Information about a single year cell in the rendered years grid. */
+export type YearCell<ParentMessage> = Readonly<{
+  year: number
+  label: string
+  cellAttributes: ReadonlyArray<Attribute<ParentMessage>>
+  buttonAttributes: ReadonlyArray<Attribute<ParentMessage>>
+  isSelected: boolean
+  isFocused: boolean
+  isCurrentYear: boolean
+  isDisabled: boolean
+}>
+
+/** Attributes provided to the consumer when rendering the day grid. */
+export type DaysModeAttributes<ParentMessage> = Readonly<{
+  _tag: 'Days'
   root: ReadonlyArray<Attribute<ParentMessage>>
   previousMonthButton: ReadonlyArray<Attribute<ParentMessage>>
   nextMonthButton: ReadonlyArray<Attribute<ParentMessage>>
+  headingButton: ReadonlyArray<Attribute<ParentMessage>>
   heading: Readonly<{ id: string; text: string }>
-  monthSelect: ReadonlyArray<Attribute<ParentMessage>>
-  monthOptions: ReadonlyArray<Readonly<{ value: number; label: string }>>
-  yearSelect: ReadonlyArray<Attribute<ParentMessage>>
-  yearOptions: ReadonlyArray<number>
   grid: ReadonlyArray<Attribute<ParentMessage>>
   headerRow: ReadonlyArray<Attribute<ParentMessage>>
   columnHeaders: ReadonlyArray<ColumnHeader<ParentMessage>>
   weeks: ReadonlyArray<Week<ParentMessage>>
 }>
+
+/** Attributes provided to the consumer when rendering the months grid. The
+ * 12 cells are pre-built in calendar (locale-ordered) — the consumer arranges
+ * them in whatever grid layout they prefer (3×4 is the typical choice). */
+export type MonthsModeAttributes<ParentMessage> = Readonly<{
+  _tag: 'Months'
+  root: ReadonlyArray<Attribute<ParentMessage>>
+  headingButton: ReadonlyArray<Attribute<ParentMessage>>
+  heading: Readonly<{ id: string; text: string }>
+  grid: ReadonlyArray<Attribute<ParentMessage>>
+  cells: ReadonlyArray<MonthCell<ParentMessage>>
+}>
+
+/** Attributes provided to the consumer when rendering the years grid. The
+ * 12 cells span one paged window; prev/next buttons page by 12 years. */
+export type YearsModeAttributes<ParentMessage> = Readonly<{
+  _tag: 'Years'
+  root: ReadonlyArray<Attribute<ParentMessage>>
+  previousPageButton: ReadonlyArray<Attribute<ParentMessage>>
+  nextPageButton: ReadonlyArray<Attribute<ParentMessage>>
+  heading: Readonly<{ id: string; text: string }>
+  grid: ReadonlyArray<Attribute<ParentMessage>>
+  cells: ReadonlyArray<YearCell<ParentMessage>>
+}>
+
+/** Discriminated union of attribute groups and derived data the calendar
+ * component provides to the consumer's `toView` callback. The variant
+ * matches `model.viewMode` — pattern-match on `_tag` with `M.tagsExhaustive`
+ * to render each mode. */
+export type CalendarAttributes<ParentMessage> =
+  | DaysModeAttributes<ParentMessage>
+  | MonthsModeAttributes<ParentMessage>
+  | YearsModeAttributes<ParentMessage>
 
 /** Configuration for rendering a calendar with `view`. */
 export type ViewConfig<ParentMessage> = Readonly<{
@@ -651,8 +847,10 @@ export type ViewConfig<ParentMessage> = Readonly<{
   onSelectedDate?: (date: CalendarDate) => ParentMessage
   previousMonthLabel?: string
   nextMonthLabel?: string
-  monthSelectLabel?: string
-  yearSelectLabel?: string
+  previousYearsPageLabel?: string
+  nextYearsPageLabel?: string
+  daysHeadingButtonLabel?: string
+  monthsHeadingButtonLabel?: string
 }>
 
 const NAV_KEYS: ReadonlySet<string> = new Set([
@@ -668,12 +866,40 @@ const NAV_KEYS: ReadonlySet<string> = new Set([
   ' ',
 ])
 
-/** Renders an accessible calendar grid. Builds ARIA attribute groups (grid,
- * row, gridcell, column header) plus the derived month grid, then delegates
- * layout to the consumer's `toView` callback. */
-export const view = <ParentMessage>(
+const MONTHS_GRID_COLUMNS = 3
+const YEARS_GRID_COLUMNS = 3
+const MONTHS_IN_YEAR = 12
+
+/** Returns the start year of the 12-year window the years grid renders. */
+const yearsPageStart = (viewYear: number): number =>
+  Math.floor(viewYear / YEARS_PAGE_SIZE) * YEARS_PAGE_SIZE
+
+/** A month range is fully disabled when its last day is below the minimum
+ * or its first day is above the maximum. */
+const isMonthDisabled = (
+  model: Model,
+  year: number,
+  month: number,
+): boolean => {
+  const monthStart = Calendar.make(year, month, 1)
+  const monthEnd = Calendar.make(year, month, Calendar.daysInMonth(year, month))
+  return (
+    Option.exists(model.maybeMinDate, min =>
+      Calendar.isBefore(monthEnd, min),
+    ) ||
+    Option.exists(model.maybeMaxDate, max => Calendar.isAfter(monthStart, max))
+  )
+}
+
+/** A year is fully disabled when it falls entirely below the minimum date's
+ * year or entirely above the maximum date's year. */
+const isYearDisabled = (model: Model, year: number): boolean =>
+  Option.exists(model.maybeMinDate, min => year < min.year) ||
+  Option.exists(model.maybeMaxDate, max => year > max.year)
+
+const buildDaysAttributes = <ParentMessage>(
   config: ViewConfig<ParentMessage>,
-): Html => {
+): DaysModeAttributes<ParentMessage> => {
   const {
     AriaActiveDescendant,
     AriaColcount,
@@ -685,8 +911,8 @@ export const view = <ParentMessage>(
     AriaSelected,
     DataAttribute,
     Id,
+    Key,
     OnBlur,
-    OnChange,
     OnClick,
     OnFocus,
     OnKeyDownPreventDefault,
@@ -695,7 +921,7 @@ export const view = <ParentMessage>(
     Type,
   } = html<ParentMessage>()
 
-  const { model, toParentMessage, toView, onSelectedDate } = config
+  const { model, toParentMessage, onSelectedDate } = config
   const {
     id,
     viewYear,
@@ -707,10 +933,6 @@ export const view = <ParentMessage>(
     isGridFocused,
   } = model
 
-  /** Returns the parent message to dispatch when the user commits a date. In
-   * controlled mode (when `onSelectedDate` is provided), dispatches the
-   * callback directly. In uncontrolled mode, routes through the internal
-   * `ClickedDay` message so the calendar's own update manages selection. */
   const dispatchSelectedDate = (date: CalendarDate): ParentMessage =>
     onSelectedDate !== undefined
       ? onSelectedDate(date)
@@ -718,21 +940,10 @@ export const view = <ParentMessage>(
 
   const previousMonthLabel = config.previousMonthLabel ?? 'Previous month'
   const nextMonthLabel = config.nextMonthLabel ?? 'Next month'
-  const monthSelectLabel = config.monthSelectLabel ?? 'Select month'
-  const yearSelectLabel = config.yearSelectLabel ?? 'Select year'
+  const headingButtonLabel =
+    config.daysHeadingButtonLabel ?? 'Switch to month picker'
 
   const headingText = `${locale.monthNames[viewMonth - 1]} ${viewYear}`
-
-  const monthOptions = locale.monthNames.map((label, index) => ({
-    value: index + 1,
-    label,
-  }))
-
-  const [yearRangeStart, yearRangeEnd] = resolveYearRange(model)
-  const yearOptions = Array.makeBy(
-    Math.max(0, yearRangeEnd - yearRangeStart + 1),
-    index => yearRangeStart + index,
-  )
 
   const rotatedDayNames = rotateDayNames(
     DAY_NAMES_SUNDAY_FIRST,
@@ -749,33 +960,27 @@ export const view = <ParentMessage>(
     locale.firstDayOfWeek,
   )
 
-  const rootAttributes: ReadonlyArray<Attribute<ParentMessage>> = [Id(id)]
+  const rootAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
+    Id(id),
+    Key('Days'),
+  ]
 
-  const previousMonthButtonAttributes: ReadonlyArray<Attribute<ParentMessage>> =
-    [
-      Type('button'),
-      AriaLabel(previousMonthLabel),
-      OnClick(toParentMessage(ClickedPreviousMonthButton())),
-    ]
+  const previousMonthButton: ReadonlyArray<Attribute<ParentMessage>> = [
+    Type('button'),
+    AriaLabel(previousMonthLabel),
+    OnClick(toParentMessage(ClickedPreviousMonthButton())),
+  ]
 
-  const nextMonthButtonAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
+  const nextMonthButton: ReadonlyArray<Attribute<ParentMessage>> = [
     Type('button'),
     AriaLabel(nextMonthLabel),
     OnClick(toParentMessage(ClickedNextMonthButton())),
   ]
 
-  const monthSelectAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-    AriaLabel(monthSelectLabel),
-    OnChange(value =>
-      toParentMessage(SelectedMonthFromDropdown({ month: Number(value) })),
-    ),
-  ]
-
-  const yearSelectAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-    AriaLabel(yearSelectLabel),
-    OnChange(value =>
-      toParentMessage(SelectedYearFromDropdown({ year: Number(value) })),
-    ),
+  const headingButton: ReadonlyArray<Attribute<ParentMessage>> = [
+    Type('button'),
+    AriaLabel(headingButtonLabel),
+    OnClick(toParentMessage(ClickedHeading())),
   ]
 
   const handleKeyDown = (
@@ -800,7 +1005,7 @@ export const view = <ParentMessage>(
   const activeDescendantAttributes: ReadonlyArray<Attribute<ParentMessage>> =
     pipe(
       maybeFocusedDate,
-      Option.map(date => AriaActiveDescendant(cellId(id, date))),
+      Option.map(date => AriaActiveDescendant(dayCellId(id, date))),
       Option.toArray,
     )
 
@@ -858,7 +1063,7 @@ export const view = <ParentMessage>(
       ])
 
     const cellAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-      Id(cellId(id, date)),
+      Id(dayCellId(id, date)),
       Role('gridcell'),
       AriaSelected(isSelected),
       AriaColindex(columnIndex + 1),
@@ -900,21 +1105,329 @@ export const view = <ParentMessage>(
     },
   )
 
-  return toView({
+  return {
+    _tag: 'Days',
     root: rootAttributes,
-    previousMonthButton: previousMonthButtonAttributes,
-    nextMonthButton: nextMonthButtonAttributes,
+    previousMonthButton,
+    nextMonthButton,
+    headingButton,
     heading: { id: headingId(id), text: headingText },
-    monthSelect: monthSelectAttributes,
-    monthOptions,
-    yearSelect: yearSelectAttributes,
-    yearOptions,
     grid: gridAttributes,
     headerRow: headerRowAttributes,
     columnHeaders,
     weeks,
-  })
+  }
 }
+
+const buildMonthsAttributes = <ParentMessage>(
+  config: ViewConfig<ParentMessage>,
+): MonthsModeAttributes<ParentMessage> => {
+  const {
+    AriaActiveDescendant,
+    AriaDisabled,
+    AriaLabel,
+    AriaSelected,
+    DataAttribute,
+    Id,
+    Key,
+    OnBlur,
+    OnClick,
+    OnFocus,
+    OnKeyDownPreventDefault,
+    Role,
+    Tabindex,
+    Type,
+  } = html<ParentMessage>()
+
+  const { model, toParentMessage } = config
+  const {
+    id,
+    viewYear,
+    viewMonth,
+    maybeFocusedDate,
+    today,
+    locale,
+    isGridFocused,
+  } = model
+
+  const headingButtonLabel =
+    config.monthsHeadingButtonLabel ?? 'Switch to year picker'
+
+  const headingText = `${viewYear}`
+
+  const rootAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
+    Id(id),
+    Key('Months'),
+  ]
+
+  const headingButton: ReadonlyArray<Attribute<ParentMessage>> = [
+    Type('button'),
+    AriaLabel(headingButtonLabel),
+    OnClick(toParentMessage(ClickedHeading())),
+  ]
+
+  const focusedMonth = Option.match(maybeFocusedDate, {
+    onNone: () => viewMonth,
+    onSome: date => (date.year === viewYear ? date.month : viewMonth),
+  })
+
+  const handleKeyDown = (
+    key: string,
+    modifiers: { readonly shiftKey: boolean },
+  ): Option.Option<ParentMessage> => {
+    if (!NAV_KEYS.has(key)) {
+      return Option.none()
+    } else if (isCommitKey(key)) {
+      return OptionExt.when(
+        !isMonthDisabled(model, viewYear, focusedMonth),
+        toParentMessage(SelectedMonth({ month: focusedMonth })),
+      )
+    } else {
+      return Option.some(
+        toParentMessage(PressedKeyOnGrid({ key, isShift: modifiers.shiftKey })),
+      )
+    }
+  }
+
+  const activeDescendantAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
+    AriaActiveDescendant(monthCellId(id, focusedMonth)),
+  ]
+
+  const gridAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
+    Id(gridId(id)),
+    Role('grid'),
+    AriaLabel(`Month picker, ${headingText}`),
+    Tabindex(0),
+    OnFocus(toParentMessage(FocusedGrid())),
+    OnBlur(toParentMessage(BlurredGrid())),
+    OnKeyDownPreventDefault(handleKeyDown),
+    ...activeDescendantAttributes,
+  ]
+
+  const buildMonthCell = (month: number): MonthCell<ParentMessage> => {
+    const label = locale.monthNames[month - 1] ?? String(month)
+    const shortLabel = locale.shortMonthNames[month - 1] ?? label
+    const isSelected = month === viewMonth
+    const isFocused = month === focusedMonth
+    const isCurrentMonth = today.year === viewYear && today.month === month
+    const isDisabled = isMonthDisabled(model, viewYear, month)
+
+    const stateDataAttributes: ReadonlyArray<Attribute<ParentMessage>> =
+      Array.getSomes([
+        OptionExt.when(isCurrentMonth, DataAttribute('today', '')),
+        OptionExt.when(isSelected, DataAttribute('selected', '')),
+        OptionExt.when(
+          isFocused && isGridFocused,
+          DataAttribute('focused', ''),
+        ),
+        OptionExt.when(isDisabled, DataAttribute('disabled', '')),
+      ])
+
+    const cellAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
+      Id(monthCellId(id, month)),
+      Role('gridcell'),
+      AriaSelected(isSelected),
+      ...stateDataAttributes,
+    ]
+
+    const buttonAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
+      Type('button'),
+      Tabindex(-1),
+      AriaLabel(`${label} ${viewYear}`),
+      AriaDisabled(isDisabled),
+      ...(isDisabled
+        ? []
+        : [OnClick(toParentMessage(SelectedMonth({ month })))]),
+    ]
+
+    return {
+      month,
+      label,
+      shortLabel,
+      cellAttributes,
+      buttonAttributes,
+      isSelected,
+      isFocused: isFocused && isGridFocused,
+      isCurrentMonth,
+      isDisabled,
+    }
+  }
+
+  const cells = Array.makeBy(MONTHS_IN_YEAR, monthIndex =>
+    buildMonthCell(monthIndex + 1),
+  )
+
+  return {
+    _tag: 'Months',
+    root: rootAttributes,
+    headingButton,
+    heading: { id: headingId(id), text: headingText },
+    grid: gridAttributes,
+    cells,
+  }
+}
+
+const buildYearsAttributes = <ParentMessage>(
+  config: ViewConfig<ParentMessage>,
+): YearsModeAttributes<ParentMessage> => {
+  const {
+    AriaActiveDescendant,
+    AriaDisabled,
+    AriaLabel,
+    AriaSelected,
+    DataAttribute,
+    Id,
+    Key,
+    OnBlur,
+    OnClick,
+    OnFocus,
+    OnKeyDownPreventDefault,
+    Role,
+    Tabindex,
+    Type,
+  } = html<ParentMessage>()
+
+  const { model, toParentMessage } = config
+  const { id, viewYear, maybeFocusedDate, today, isGridFocused } = model
+
+  const previousYearsPageLabel =
+    config.previousYearsPageLabel ?? 'Previous 12 years'
+  const nextYearsPageLabel = config.nextYearsPageLabel ?? 'Next 12 years'
+
+  const cursorYear = Option.match(maybeFocusedDate, {
+    onNone: () => viewYear,
+    onSome: date => date.year,
+  })
+  const pageStart = yearsPageStart(cursorYear)
+  const pageEnd = pageStart + YEARS_PAGE_SIZE - 1
+  const headingText = `${pageStart}–${pageEnd}`
+
+  const rootAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
+    Id(id),
+    Key('Years'),
+  ]
+
+  const previousPageButton: ReadonlyArray<Attribute<ParentMessage>> = [
+    Type('button'),
+    AriaLabel(previousYearsPageLabel),
+    OnClick(toParentMessage(PagedYears({ direction: -1 }))),
+  ]
+
+  const nextPageButton: ReadonlyArray<Attribute<ParentMessage>> = [
+    Type('button'),
+    AriaLabel(nextYearsPageLabel),
+    OnClick(toParentMessage(PagedYears({ direction: 1 }))),
+  ]
+
+  const focusedYear = cursorYear
+
+  const handleKeyDown = (
+    key: string,
+    modifiers: { readonly shiftKey: boolean },
+  ): Option.Option<ParentMessage> => {
+    if (!NAV_KEYS.has(key)) {
+      return Option.none()
+    } else if (isCommitKey(key)) {
+      return OptionExt.when(
+        !isYearDisabled(model, focusedYear),
+        toParentMessage(SelectedYear({ year: focusedYear })),
+      )
+    } else {
+      return Option.some(
+        toParentMessage(PressedKeyOnGrid({ key, isShift: modifiers.shiftKey })),
+      )
+    }
+  }
+
+  const activeDescendantAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
+    AriaActiveDescendant(yearCellId(id, focusedYear)),
+  ]
+
+  const gridAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
+    Id(gridId(id)),
+    Role('grid'),
+    AriaLabel(`Year picker, ${headingText}`),
+    Tabindex(0),
+    OnFocus(toParentMessage(FocusedGrid())),
+    OnBlur(toParentMessage(BlurredGrid())),
+    OnKeyDownPreventDefault(handleKeyDown),
+    ...activeDescendantAttributes,
+  ]
+
+  const buildYearCell = (year: number): YearCell<ParentMessage> => {
+    const label = String(year)
+    const isSelected = year === viewYear
+    const isFocused = year === focusedYear
+    const isCurrentYear = today.year === year
+    const isDisabled = isYearDisabled(model, year)
+
+    const stateDataAttributes: ReadonlyArray<Attribute<ParentMessage>> =
+      Array.getSomes([
+        OptionExt.when(isCurrentYear, DataAttribute('today', '')),
+        OptionExt.when(isSelected, DataAttribute('selected', '')),
+        OptionExt.when(
+          isFocused && isGridFocused,
+          DataAttribute('focused', ''),
+        ),
+        OptionExt.when(isDisabled, DataAttribute('disabled', '')),
+      ])
+
+    const cellAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
+      Id(yearCellId(id, year)),
+      Role('gridcell'),
+      AriaSelected(isSelected),
+      ...stateDataAttributes,
+    ]
+
+    const buttonAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
+      Type('button'),
+      Tabindex(-1),
+      AriaLabel(label),
+      AriaDisabled(isDisabled),
+      ...(isDisabled ? [] : [OnClick(toParentMessage(SelectedYear({ year })))]),
+    ]
+
+    return {
+      year,
+      label,
+      cellAttributes,
+      buttonAttributes,
+      isSelected,
+      isFocused: isFocused && isGridFocused,
+      isCurrentYear,
+      isDisabled,
+    }
+  }
+
+  const cells = Array.makeBy(YEARS_PAGE_SIZE, offset =>
+    buildYearCell(pageStart + offset),
+  )
+
+  return {
+    _tag: 'Years',
+    root: rootAttributes,
+    previousPageButton,
+    nextPageButton,
+    heading: { id: headingId(id), text: headingText },
+    grid: gridAttributes,
+    cells,
+  }
+}
+
+/** Renders an accessible calendar. Builds mode-specific ARIA attribute
+ * groups and derived cell data, then delegates layout to the consumer's
+ * `toView` callback. The variant of `CalendarAttributes` passed to `toView`
+ * matches `model.viewMode`. */
+export const view = <ParentMessage>(config: ViewConfig<ParentMessage>): Html =>
+  config.toView(
+    M.value(config.model.viewMode).pipe(
+      M.withReturnType<CalendarAttributes<ParentMessage>>(),
+      M.when('Days', () => buildDaysAttributes(config)),
+      M.when('Months', () => buildMonthsAttributes(config)),
+      M.when('Years', () => buildYearsAttributes(config)),
+      M.exhaustive,
+    ),
+  )
 
 /** Creates a memoized calendar view. Static config is captured in a closure;
  *  only `model` and `toParentMessage` are compared per render via `createLazy`. */

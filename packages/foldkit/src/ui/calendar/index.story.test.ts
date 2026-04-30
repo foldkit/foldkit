@@ -8,13 +8,18 @@ import {
   BlurredGrid,
   ChangedViewMonth,
   ClickedDay,
+  ClickedHeading,
   ClickedNextMonthButton,
   ClickedPreviousMonthButton,
+  CompletedFocusGrid,
+  FocusGrid,
   FocusedGrid,
+  PagedYears,
   PressedKeyOnGrid,
   RefreshedToday,
-  SelectedMonthFromDropdown,
-  SelectedYearFromDropdown,
+  SelectedMonth,
+  SelectedYear,
+  dropToDays,
   init,
   setDisabledDates,
   setDisabledDaysOfWeek,
@@ -24,6 +29,8 @@ import {
 } from './index.js'
 
 const today = Calendar.make(2026, 4, 13)
+
+const resolveFocusGrid = Story.resolve(FocusGrid, CompletedFocusGrid())
 
 describe('Calendar', () => {
   describe('init', () => {
@@ -419,39 +426,62 @@ describe('Calendar', () => {
       })
     })
 
-    describe('SelectedMonthFromDropdown', () => {
-      it('jumps to the selected month and moves focus to the same day in the new month', () => {
+    describe('SelectedMonth', () => {
+      it('jumps to the selected month, transitions to Days, and moves focus to the same day in the new month', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test', today })),
-          Story.message(SelectedMonthFromDropdown({ month: 9 })),
+          Story.message(SelectedMonth({ month: 9 })),
+          Story.expectOutMessage(ChangedViewMonth({ year: 2026, month: 9 })),
+          resolveFocusGrid,
           Story.model(model => {
+            expect(model.viewMode).toBe('Days')
             expect(model.viewMonth).toBe(9)
             expect(model.viewYear).toBe(2026)
             expect(model.maybeFocusedDate).toStrictEqual(
               Option.some(Calendar.make(2026, 9, 13)),
             )
           }),
-          Story.expectOutMessage(ChangedViewMonth({ year: 2026, month: 9 })),
         )
       })
 
-      it('is a no-op when the selected month matches the current month', () => {
+      it('drills back to Days without emitting ChangedViewMonth when the selected month matches the current view month', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test', today })),
-          Story.message(SelectedMonthFromDropdown({ month: 4 })),
+          Story.message(SelectedMonth({ month: 4 })),
+          resolveFocusGrid,
+          Story.model(model => {
+            expect(model.viewMode).toBe('Days')
+            expect(model.viewMonth).toBe(4)
+          }),
+          Story.expectNoOutMessage(),
+        )
+      })
+
+      it('is a no-op when the selected month is fully disabled by maxDate', () => {
+        const maxDate = Calendar.make(2026, 4, 30)
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', today, maxDate })),
+          Story.message(SelectedMonth({ month: 9 })),
+          Story.model(model => {
+            expect(model.viewMonth).toBe(4)
+            expect(model.viewMode).toBe('Days')
+          }),
           Story.expectNoOutMessage(),
         )
       })
     })
 
-    describe('SelectedYearFromDropdown', () => {
+    describe('SelectedYear', () => {
       it('jumps to the selected year and moves focus to the same day in that year', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test', today })),
-          Story.message(SelectedYearFromDropdown({ year: 2030 })),
+          Story.message(SelectedYear({ year: 2030 })),
+          Story.expectOutMessage(ChangedViewMonth({ year: 2030, month: 4 })),
+          resolveFocusGrid,
           Story.model(model => {
             expect(model.viewYear).toBe(2030)
             expect(model.viewMonth).toBe(4)
@@ -459,7 +489,354 @@ describe('Calendar', () => {
               Option.some(Calendar.make(2030, 4, 13)),
             )
           }),
-          Story.expectOutMessage(ChangedViewMonth({ year: 2030, month: 4 })),
+        )
+      })
+
+      it('transitions the calendar to Months mode after selecting a year', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', today })),
+          Story.message(SelectedYear({ year: 2030 })),
+          resolveFocusGrid,
+          Story.model(model => {
+            expect(model.viewMode).toBe('Months')
+          }),
+        )
+      })
+
+      it('is a no-op when the selected year is below minDate', () => {
+        const minDate = Calendar.make(2020, 1, 1)
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', today, minDate })),
+          Story.message(SelectedYear({ year: 2018 })),
+          Story.model(model => {
+            expect(model.viewYear).toBe(2026)
+            expect(model.viewMode).toBe('Days')
+          }),
+          Story.expectNoOutMessage(),
+        )
+      })
+    })
+
+    describe('ClickedHeading', () => {
+      it('transitions Days to Months', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', today })),
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.model(model => {
+            expect(model.viewMode).toBe('Months')
+          }),
+          Story.expectNoOutMessage(),
+        )
+      })
+
+      it('transitions Months to Years', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', today })),
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.model(model => {
+            expect(model.viewMode).toBe('Years')
+          }),
+          Story.expectNoOutMessage(),
+        )
+      })
+
+      it('is a no-op in Years mode (terminal)', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', today })),
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.message(ClickedHeading()),
+          Story.model(model => {
+            expect(model.viewMode).toBe('Years')
+          }),
+        )
+      })
+    })
+
+    describe('PressedKeyOnGrid in Months mode', () => {
+      it('ArrowLeft moves the focused month back by 1', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', today })),
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.message(PressedKeyOnGrid({ key: 'ArrowLeft', isShift: false })),
+          Story.model(model => {
+            expect(model.maybeFocusedDate).toStrictEqual(
+              Option.some(Calendar.make(2026, 3, 13)),
+            )
+          }),
+        )
+      })
+
+      it('ArrowRight moves the focused month forward by 1', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', today })),
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.message(
+            PressedKeyOnGrid({ key: 'ArrowRight', isShift: false }),
+          ),
+          Story.model(model => {
+            expect(model.maybeFocusedDate).toStrictEqual(
+              Option.some(Calendar.make(2026, 5, 13)),
+            )
+          }),
+        )
+      })
+
+      it('ArrowUp moves the focused month back by one row (3 months)', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', today })),
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.message(PressedKeyOnGrid({ key: 'ArrowUp', isShift: false })),
+          Story.model(model => {
+            expect(model.maybeFocusedDate).toStrictEqual(
+              Option.some(Calendar.make(2026, 1, 13)),
+            )
+          }),
+        )
+      })
+
+      it('ArrowDown moves the focused month forward by one row (3 months)', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', today })),
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.message(PressedKeyOnGrid({ key: 'ArrowDown', isShift: false })),
+          Story.model(model => {
+            expect(model.maybeFocusedDate).toStrictEqual(
+              Option.some(Calendar.make(2026, 7, 13)),
+            )
+          }),
+        )
+      })
+
+      it('ArrowLeft at January wraps backward to December of prior year', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', today: Calendar.make(2026, 1, 15) })),
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.message(PressedKeyOnGrid({ key: 'ArrowLeft', isShift: false })),
+          Story.model(model => {
+            expect(model.maybeFocusedDate).toStrictEqual(
+              Option.some(Calendar.make(2025, 12, 15)),
+            )
+          }),
+        )
+      })
+
+      it('PageUp moves the focused month back by one year', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', today })),
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.message(PressedKeyOnGrid({ key: 'PageUp', isShift: false })),
+          Story.model(model => {
+            expect(model.maybeFocusedDate).toStrictEqual(
+              Option.some(Calendar.make(2025, 4, 13)),
+            )
+          }),
+        )
+      })
+
+      it('PageDown moves the focused month forward by one year', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', today })),
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.message(PressedKeyOnGrid({ key: 'PageDown', isShift: false })),
+          Story.model(model => {
+            expect(model.maybeFocusedDate).toStrictEqual(
+              Option.some(Calendar.make(2027, 4, 13)),
+            )
+          }),
+        )
+      })
+
+      it('unknown keys are no-ops in Months mode', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', today })),
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.message(PressedKeyOnGrid({ key: 'a', isShift: false })),
+          Story.model(model => {
+            expect(model.maybeFocusedDate).toStrictEqual(Option.some(today))
+          }),
+          Story.expectNoOutMessage(),
+        )
+      })
+    })
+
+    describe('PressedKeyOnGrid in Years mode', () => {
+      it('arrow nav moves the cursor without changing viewYear (the selection)', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', today })),
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.message(
+            PressedKeyOnGrid({ key: 'ArrowRight', isShift: false }),
+          ),
+          Story.model(model => {
+            expect(model.viewYear).toBe(2026)
+            expect(model.maybeFocusedDate).toStrictEqual(
+              Option.some(Calendar.make(2027, 4, 13)),
+            )
+          }),
+          Story.expectNoOutMessage(),
+        )
+      })
+
+      it('ArrowLeft moves the cursor back by 1 year', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', today })),
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.message(PressedKeyOnGrid({ key: 'ArrowLeft', isShift: false })),
+          Story.model(model => {
+            expect(model.maybeFocusedDate).toStrictEqual(
+              Option.some(Calendar.make(2025, 4, 13)),
+            )
+          }),
+        )
+      })
+
+      it('ArrowUp moves the cursor back by one row (3 years)', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', today })),
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.message(PressedKeyOnGrid({ key: 'ArrowUp', isShift: false })),
+          Story.model(model => {
+            expect(model.maybeFocusedDate).toStrictEqual(
+              Option.some(Calendar.make(2023, 4, 13)),
+            )
+          }),
+        )
+      })
+
+      it('PageDown advances the cursor by one window (12 years)', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', today })),
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.message(PressedKeyOnGrid({ key: 'PageDown', isShift: false })),
+          Story.model(model => {
+            expect(model.maybeFocusedDate).toStrictEqual(
+              Option.some(Calendar.make(2038, 4, 13)),
+            )
+          }),
+        )
+      })
+
+      it('unknown keys are no-ops in Years mode', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', today })),
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.message(PressedKeyOnGrid({ key: 'a', isShift: false })),
+          Story.model(model => {
+            expect(model.maybeFocusedDate).toStrictEqual(Option.some(today))
+          }),
+          Story.expectNoOutMessage(),
+        )
+      })
+    })
+
+    describe('PagedYears', () => {
+      it('shifts the cursor forward by 12 years with direction +1, leaving viewYear untouched', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', today })),
+          Story.message(PagedYears({ direction: 1 })),
+          Story.model(model => {
+            expect(model.viewYear).toBe(2026)
+            expect(model.maybeFocusedDate).toStrictEqual(
+              Option.some(Calendar.make(2038, 4, 13)),
+            )
+          }),
+          Story.expectNoOutMessage(),
+        )
+      })
+
+      it('shifts the cursor backward by 12 years with direction -1, leaving viewYear untouched', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', today })),
+          Story.message(PagedYears({ direction: -1 })),
+          Story.model(model => {
+            expect(model.viewYear).toBe(2026)
+            expect(model.maybeFocusedDate).toStrictEqual(
+              Option.some(Calendar.make(2014, 4, 13)),
+            )
+          }),
+          Story.expectNoOutMessage(),
+        )
+      })
+    })
+
+    describe('full year-jump flow', () => {
+      it('Days → Months → Years → SelectedYear → SelectedMonth → Days', () => {
+        Story.story(
+          update,
+          Story.with(init({ id: 'test', today })),
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.model(model => {
+            expect(model.viewMode).toBe('Months')
+          }),
+          Story.message(ClickedHeading()),
+          resolveFocusGrid,
+          Story.model(model => {
+            expect(model.viewMode).toBe('Years')
+          }),
+          Story.message(SelectedYear({ year: 2020 })),
+          resolveFocusGrid,
+          Story.model(model => {
+            expect(model.viewMode).toBe('Months')
+            expect(model.viewYear).toBe(2020)
+          }),
+          Story.message(SelectedMonth({ month: 3 })),
+          resolveFocusGrid,
+          Story.model(model => {
+            expect(model.viewMode).toBe('Days')
+            expect(model.viewYear).toBe(2020)
+            expect(model.viewMonth).toBe(3)
+          }),
         )
       })
     })
@@ -521,6 +898,84 @@ describe('Calendar', () => {
   })
 
   describe('programmatic setters', () => {
+    describe('dropToDays', () => {
+      it('returns the calendar to Days mode from Months mode', () => {
+        const model = init({ id: 'test', today })
+        const inMonths = update(model, ClickedHeading())[0]
+        expect(inMonths.viewMode).toBe('Months')
+        expect(dropToDays(inMonths).viewMode).toBe('Days')
+      })
+
+      it('returns the calendar to Days mode from Years mode (skips Months)', () => {
+        const model = init({ id: 'test', today })
+        const inYears = update(
+          update(model, ClickedHeading())[0],
+          ClickedHeading(),
+        )[0]
+        expect(inYears.viewMode).toBe('Years')
+        expect(dropToDays(inYears).viewMode).toBe('Days')
+      })
+
+      it('is a no-op in Days mode', () => {
+        const model = init({ id: 'test', today })
+        expect(dropToDays(model).viewMode).toBe('Days')
+      })
+
+      it('reconciles maybeFocusedDate to a date inside the visible Days grid after Years-mode paging', () => {
+        const model = init({ id: 'test', today })
+        const inYears = update(
+          update(model, ClickedHeading())[0],
+          ClickedHeading(),
+        )[0]
+        expect(inYears.viewMode).toBe('Years')
+        const paged = update(inYears, PagedYears({ direction: 1 }))[0]
+        expect(paged.maybeFocusedDate).toStrictEqual(
+          Option.some(Calendar.make(2038, 4, 13)),
+        )
+        expect(paged.viewYear).toBe(2026)
+        const dropped = dropToDays(paged)
+        expect(dropped.viewMode).toBe('Days')
+        expect(dropped.maybeFocusedDate).toStrictEqual(
+          Option.some(Calendar.make(2026, 4, 13)),
+        )
+      })
+
+      it('an ArrowLeft after dropToDays does not drift the calendar to the cursor year', () => {
+        const model = init({ id: 'test', today })
+        const inYears = update(
+          update(model, ClickedHeading())[0],
+          ClickedHeading(),
+        )[0]
+        const paged = update(inYears, PagedYears({ direction: 1 }))[0]
+        const dropped = dropToDays(paged)
+        const afterArrow = update(
+          dropped,
+          PressedKeyOnGrid({ key: 'ArrowLeft', isShift: false }),
+        )[0]
+        expect(afterArrow.viewYear).toBe(2026)
+        expect(afterArrow.viewMonth).toBe(4)
+      })
+
+      it('clamps the focused day to the days-in-month when reconciling', () => {
+        const today31 = Calendar.make(2026, 1, 31)
+        const model = init({ id: 'test', today: today31 })
+        const movedToFebruary = update(
+          model,
+          PressedKeyOnGrid({ key: 'PageDown', isShift: false }),
+        )[0]
+        expect(movedToFebruary.viewYear).toBe(2026)
+        expect(movedToFebruary.viewMonth).toBe(2)
+        const inYears = update(
+          update(movedToFebruary, ClickedHeading())[0],
+          ClickedHeading(),
+        )[0]
+        const dropped = dropToDays(inYears)
+        expect(dropped.maybeFocusedDate).toStrictEqual(
+          Option.some(Calendar.make(2026, 2, 28)),
+        )
+      })
+    })
+
     describe('setMinDate', () => {
       it('sets a minimum date on a calendar that had none', () => {
         const model = init({ id: 'test', today })

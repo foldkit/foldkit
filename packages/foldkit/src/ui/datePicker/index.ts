@@ -209,7 +209,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       Opened: () => {
         const [nextPopover, popoverCommands] = Popover.open(model.popover)
         return [
-          evo(model, { popover: () => nextPopover }),
+          evo(model, {
+            popover: () => nextPopover,
+            calendar: () => UiCalendar.dropToDays(model.calendar),
+          }),
           mapPopoverCommands(popoverCommands),
           Option.none(),
         ]
@@ -218,7 +221,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       Closed: () => {
         const [nextPopover, popoverCommands] = Popover.close(model.popover)
         return [
-          evo(model, { popover: () => nextPopover }),
+          evo(model, {
+            popover: () => nextPopover,
+            calendar: () => UiCalendar.dropToDays(model.calendar),
+          }),
           mapPopoverCommands(popoverCommands),
           Option.none(),
         ]

@@ -245,99 +245,123 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     name: 'toParentMessage',
     type: '(childMessage: Calendar.Message) => ParentMessage',
     description:
-      'Wraps Calendar Messages in your parent Message type for Submodel delegation (navigation, keyboard, dropdown changes).',
+      'Wraps Calendar Messages in your parent Message type for Submodel delegation (navigation, keyboard, picker-mode transitions).',
   },
   {
     name: 'onSelectedDate',
     type: '(date: CalendarDate) => ParentMessage',
     description:
-      'Optional. When provided, click / Enter / Space on a day dispatches this callback directly (controlled mode: parent owns the event). When omitted, the calendar manages its own maybeSelectedDate automatically (uncontrolled mode). In controlled mode, use Calendar.selectDate(model, date) to write the selection back to internal state. Matches the Listbox / Combobox / Popover callback pattern.',
+      'Optional. When provided, click / Enter / Space on a day dispatches this callback directly (controlled mode: parent owns the event). When omitted, the calendar manages its own maybeSelectedDate automatically (uncontrolled mode). In controlled mode, use Calendar.selectDate(model, date) to write the selection back to internal state.',
   },
   {
     name: 'toView',
     type: '(attributes: CalendarAttributes) => Html',
     description:
-      'Callback that receives attribute groups plus derived grid data (weeks, column headers, dropdown options) to render the calendar layout.',
+      'Callback that receives a discriminated CalendarAttributes whose variant matches the calendar viewMode (Days, Months, or Years). Pattern-match on _tag to render each grid.',
   },
   {
     name: 'previousMonthLabel',
     type: 'string',
     default: "'Previous month'",
-    description: 'Accessible label for the previous-month navigation button.',
+    description:
+      'Accessible label for the previous-month navigation button (Days mode).',
   },
   {
     name: 'nextMonthLabel',
     type: 'string',
     default: "'Next month'",
-    description: 'Accessible label for the next-month navigation button.',
+    description:
+      'Accessible label for the next-month navigation button (Days mode).',
   },
   {
-    name: 'monthSelectLabel',
+    name: 'previousYearsPageLabel',
     type: 'string',
-    default: "'Select month'",
-    description: 'Accessible label for the month dropdown.',
+    default: "'Previous 12 years'",
+    description:
+      'Accessible label for the previous-page button in the years grid.',
   },
   {
-    name: 'yearSelectLabel',
+    name: 'nextYearsPageLabel',
     type: 'string',
-    default: "'Select year'",
-    description: 'Accessible label for the year dropdown.',
+    default: "'Next 12 years'",
+    description: 'Accessible label for the next-page button in the years grid.',
+  },
+  {
+    name: 'daysHeadingButtonLabel',
+    type: 'string',
+    default: "'Switch to month picker'",
+    description:
+      'Accessible label for the heading button in Days mode. Clicked to drill into the months grid.',
+  },
+  {
+    name: 'monthsHeadingButtonLabel',
+    type: 'string',
+    default: "'Switch to year picker'",
+    description:
+      'Accessible label for the heading button in Months mode. Clicked to drill into the years grid.',
   },
 ]
 
 const calendarAttributesProps: ReadonlyArray<PropEntry> = [
   {
+    name: '_tag',
+    type: "'Days' | 'Months' | 'Years'",
+    description:
+      'Discriminator matching model.viewMode. Use M.tagsExhaustive to render each variant. The fields below describe the union of variants — only the fields documented for the current _tag are present.',
+  },
+  {
     name: 'root',
     type: 'ReadonlyArray<Attribute<Message>>',
-    description: 'Spread onto the outermost wrapper. Includes the root id.',
+    description:
+      '(All modes.) Spread onto the outermost wrapper. Includes the root id.',
   },
   {
     name: 'grid',
     type: 'ReadonlyArray<Attribute<Message>>',
     description:
-      'Spread onto the grid container. Includes role="grid", tabindex, aria-labelledby, aria-activedescendant, and keyboard/focus handlers.',
+      '(All modes.) Spread onto the grid container. Includes role="grid", tabindex, aria-label, aria-activedescendant, and keyboard/focus handlers.',
   },
   {
     name: 'heading',
     type: '{ id: string; text: string }',
     description:
-      'Month/year heading text plus an id for aria-labelledby wiring. Render inside an element with Id(heading.id).',
+      '(All modes.) Heading id and text. In Days mode the text is "September 2019"; in Months mode "2019"; in Years mode "2016–2027" (the visible window).',
   },
   {
-    name: 'previousMonthButton',
+    name: 'headingButton',
     type: 'ReadonlyArray<Attribute<Message>>',
     description:
-      'Spread onto the previous-month button. Includes aria-label and click handler.',
+      '(Days, Months only.) Spread onto a <button> wrapping heading.text. Clicking dispatches ClickedHeading and drills one level deeper. Years mode is terminal and omits this field.',
   },
   {
-    name: 'nextMonthButton',
+    name: 'previousMonthButton / nextMonthButton',
     type: 'ReadonlyArray<Attribute<Message>>',
     description:
-      'Spread onto the next-month button. Includes aria-label and click handler.',
+      '(Days only.) Prev/next month navigation. Click handlers dispatch ClickedPreviousMonthButton / ClickedNextMonthButton.',
   },
   {
-    name: 'monthSelect / monthOptions',
-    type: 'Attribute<Message>[] + { value; label }[]',
+    name: 'previousPageButton / nextPageButton',
+    type: 'ReadonlyArray<Attribute<Message>>',
     description:
-      'Attributes and option data for an optional month dropdown. Pair with a native <select>.',
-  },
-  {
-    name: 'yearSelect / yearOptions',
-    type: 'Attribute<Message>[] + number[]',
-    description:
-      'Attributes and year list for an optional year dropdown. Range derived from min/max or today ±10/100.',
+      '(Years only.) Page through 12-year windows. Click handlers dispatch PagedYears with direction -1 or 1.',
   },
   {
     name: 'headerRow / columnHeaders',
     type: 'Attribute<Message>[] + ColumnHeader<Message>[]',
     description:
-      'Row attributes (role="row") and seven column headers (role="columnheader") in locale-aware order.',
+      '(Days only.) Row attributes (role="row") and seven column headers (role="columnheader") in locale-aware order.',
   },
   {
     name: 'weeks',
     type: 'ReadonlyArray<Week<Message>>',
     description:
-      'Six week rows. Each Week carries its own row attributes (role="row", aria-rowindex) and seven DayCells. DayCells carry cellAttributes (role="gridcell", aria-colindex), buttonAttributes (type="button", aria-label, click), the day label string, and state flags (isToday, isSelected, isFocused, isInViewMonth, isDisabled).',
+      '(Days only.) Six week rows. Each Week carries its own row attributes (role="row", aria-rowindex) and seven DayCells. DayCells carry cellAttributes (role="gridcell", aria-colindex), buttonAttributes (type="button", aria-label, click), the day label string, and state flags (isToday, isSelected, isFocused, isInViewMonth, isDisabled).',
+  },
+  {
+    name: 'cells',
+    type: 'ReadonlyArray<MonthCell<Message>> | ReadonlyArray<YearCell<Message>>',
+    description:
+      '(Months, Years.) Twelve cells. In Months mode each cell carries the month number (1-12), the full localized name (label, e.g. "September"), and the localized abbreviation (shortLabel, e.g. "Sep") — render whichever fits, never substring label to abbreviate. In Years mode each cell carries a year from the current 12-year window. Both expose cellAttributes (role="gridcell", aria-selected), buttonAttributes (click dispatches SelectedMonth/SelectedYear), and state flags (isSelected, isFocused, isCurrentMonth/isCurrentYear, isDisabled).',
   },
 ]
 
@@ -346,7 +370,7 @@ const outMessagesProps: ReadonlyArray<PropEntry> = [
     name: 'ChangedViewMonth',
     type: '{ year: number; month: number }',
     description:
-      'Emitted when navigation changes the visible month (buttons, dropdowns, or arrow keys crossing a month boundary, or a commit that crosses a month). Useful for inline-calendar consumers loading month-scoped data like holidays or availability. Note: date selection does NOT go through OutMessage. Consumers subscribe via the onSelectedDate ViewConfig callback (see above).',
+      'Emitted when navigation changes the visible month (prev/next buttons, heading-drill selection of a different month, or arrow keys crossing a month boundary, or a commit that crosses a month). Useful for inline-calendar consumers loading month-scoped data like holidays or availability. Note: date selection does NOT go through OutMessage. Consumers subscribe via the onSelectedDate ViewConfig callback (see above).',
   },
 ]
 
@@ -362,6 +386,12 @@ const programmaticHelpersProps: ReadonlyArray<PropEntry> = [
     type: '(modelId: string) => Command',
     description:
       "Returns a command that focuses the calendar grid container. Parent components like DatePicker use this to hand focus to the grid's keyboard layer after opening.",
+  },
+  {
+    name: 'dropToDays',
+    type: '(model: Model) => Model',
+    description:
+      'Returns the calendar to Days mode regardless of current depth (Days, Months, or Years). Useful for standalone consumers that want to wire their own back-out gesture; popovered consumers like DatePicker call this internally on open and close so the picker always reopens at the day grid.',
   },
   {
     name: 'setMinDate',
@@ -392,21 +422,23 @@ const programmaticHelpersProps: ReadonlyArray<PropEntry> = [
 const dataAttributes: ReadonlyArray<DataAttributeEntry> = [
   {
     attribute: 'data-today',
-    condition: 'Present on the cell for today.',
+    condition:
+      'Present on the cell representing "today" — the day cell in Days mode, the current month cell in Months mode, the current year cell in Years mode.',
   },
   {
     attribute: 'data-selected',
-    condition: 'Present on the cell for the selected date.',
+    condition:
+      "Present on the calendar's currently-centered cell — the selected date in Days mode, the centered month (viewMonth) in Months mode, the centered year (viewYear) in Years mode.",
   },
   {
     attribute: 'data-focused',
     condition:
-      'Present on the cell for the keyboard cursor position while the grid has DOM focus.',
+      'Present on the cell at the keyboard cursor position while the grid has DOM focus.',
   },
   {
     attribute: 'data-outside-month',
     condition:
-      'Present on cells that fall outside the currently-viewed month (leading/trailing grid rows).',
+      '(Days mode only.) Present on cells that fall outside the currently-viewed month (leading/trailing grid rows).',
   },
   {
     attribute: 'data-disabled',
@@ -418,28 +450,32 @@ const dataAttributes: ReadonlyArray<DataAttributeEntry> = [
 const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
   {
     key: 'ArrowLeft / ArrowRight',
-    description: 'Move focus by one day.',
+    description:
+      'Move the focus cursor by one cell. Days: ±1 day. Months: ±1 month (wraps across years). Years: ±1 year (wraps across pages).',
   },
   {
     key: 'ArrowUp / ArrowDown',
-    description: 'Move focus by one week.',
+    description:
+      'Move the focus cursor by one row. Days: ±1 week (7 days). Months: ±1 row (3 months). Years: ±1 row (3 years).',
   },
   {
     key: 'Home / End',
     description:
-      'Move focus to the start / end of the current week (based on locale.firstDayOfWeek).',
+      '(Days mode only.) Move focus to the start / end of the current week (based on locale.firstDayOfWeek).',
   },
   {
     key: 'PageUp / PageDown',
-    description: 'Move focus by one month.',
+    description:
+      'Days: ±1 month. Months: ±1 year. Years: ±1 window (12 years).',
   },
   {
     key: 'Shift + PageUp / Shift + PageDown',
-    description: 'Move focus by one year.',
+    description: '(Days mode only.) Move focus by one year.',
   },
   {
     key: 'Enter / Space',
-    description: 'Commit the focused date as the selection.',
+    description:
+      'Commit the focus cursor. Days: select the date. Months: jump the calendar to that month and drill back to Days. Years: jump to that year and drill back to Months.',
   },
 ]
 
@@ -457,6 +493,9 @@ export const view = (
       tableOfContentsEntryToHeader(overviewHeader),
       para(
         'An accessible inline calendar grid built to the WAI-ARIA grid pattern. Calendar manages the 2D keyboard navigation state machine and renders a 6×7 grid of days with full screen reader support. Use it standalone for scheduling UIs and event calendars, or as the foundation of a date picker.',
+      ),
+      para(
+        'The calendar heading is a button: clicking it switches the day grid into a 3×4 months grid. Clicking the year heading from there switches into a paged 3×4 years grid (prev/next page through 12-year windows). Selecting a year drills back to the months grid for that year; selecting a month drills back to the days grid for that month.',
       ),
       para(
         'Calendar uses the Submodel pattern: initialize with ',
@@ -520,9 +559,9 @@ export const view = (
       para(
         'The grid renders with ',
         inlineCode('role="grid"'),
-        ' and is labelled by the month/year heading via ',
-        inlineCode('aria-labelledby'),
-        '. Each row has ',
+        ' and an explicit ',
+        inlineCode('aria-label'),
+        ' that leads with a non-numeric word ("Calendar, April 2026") so VoiceOver doesn\'t pattern-match the grid\'s row position into a date literal. Each row has ',
         inlineCode('role="row"'),
         ', column headers have ',
         inlineCode('role="columnheader"'),
@@ -601,7 +640,9 @@ export const view = (
       para(
         'The four ',
         inlineCode('set*'),
-        ' helpers are the supported path for cross-field date validation. Constraints are set at init time and updated via these helpers. They do not live on ViewConfig, because the update function needs them for keyboard-navigation disabled-skipping and commit-time validation.',
+        ' helpers are how you implement cross-field date validation. Constraints are set at init time and updated via these helpers. They do not live on ViewConfig, because the update function needs them for keyboard-navigation disabled-skipping and commit-time validation. For an end date that must be on or after a start date, call ',
+        inlineCode('setMinDate(endCalendar, startCalendar.maybeSelectedDate)'),
+        ' in the handler that processes the start date change.',
       ),
       propTable(programmaticHelpersProps),
     ],
