@@ -80,6 +80,10 @@ export const activeSection: Subscription<
         M.tag('TestingScene', () => Page.TestingScene.tableOfContents),
         M.tag('CoreCommands', () => Page.Core.Commands.tableOfContents),
         M.tag(
+          'CoreLifecycleHooks',
+          () => Page.Core.LifecycleHooks.tableOfContents,
+        ),
+        M.tag(
           'CoreSubscriptions',
           () => Page.Core.Subscriptions.tableOfContents,
         ),

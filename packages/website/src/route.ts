@@ -44,6 +44,7 @@ export const CoreMessagesRoute = r('CoreMessages')
 export const CoreUpdateRoute = r('CoreUpdate')
 export const CoreViewRoute = r('CoreView')
 export const CoreCommandsRoute = r('CoreCommands')
+export const CoreLifecycleHooksRoute = r('CoreLifecycleHooks')
 export const CoreSubscriptionsRoute = r('CoreSubscriptions')
 export const CoreInitAndFlagsRoute = r('CoreInitAndFlags')
 export const CoreTaskRoute = r('CoreTask')
@@ -120,6 +121,7 @@ export const DocsRoute = S.Union(
   CoreUpdateRoute,
   CoreViewRoute,
   CoreCommandsRoute,
+  CoreLifecycleHooksRoute,
   CoreSubscriptionsRoute,
   CoreInitAndFlagsRoute,
   CoreTaskRoute,
@@ -288,6 +290,11 @@ export const coreCommandsRouter = pipe(
   literal('core'),
   slash(literal('commands')),
   mapTo(CoreCommandsRoute),
+)
+export const coreLifecycleHooksRouter = pipe(
+  literal('core'),
+  slash(literal('lifecycle-hooks')),
+  mapTo(CoreLifecycleHooksRoute),
 )
 export const coreSubscriptionsRouter = pipe(
   literal('core'),
@@ -536,6 +543,7 @@ const coreParser = oneOf(
   coreUpdateRouter,
   coreViewRouter,
   coreCommandsRouter,
+  coreLifecycleHooksRouter,
   coreSubscriptionsRouter,
   coreInitAndFlagsRouter,
   coreTaskRouter,
