@@ -714,6 +714,8 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('ExportPng'),
         '. That\u2019s the complete list of effects your update function can emit. (External event streams like keyboard and mouse release are handled separately through Subscriptions in ',
         inlineCode('subscription.ts'),
+        '. Per-element DOM work like focus or third-party library setup is declared inline in the view via ',
+        inlineCode('OnMount'),
         '.)',
       ),
       tableOfContentsEntryToHeader(reactUseEffectHeader),
@@ -1431,7 +1433,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Message'),
         ' union and the update function to see every state change. You read the ',
         inlineCode('Command'),
-        ' definitions to see every side effect the update function produces. You read the Subscriptions to see every external event stream the app listens to. Complete picture, in three places.',
+        ' definitions to see every side effect the update function produces. You read the Subscriptions to see every external event stream the app listens to. Per-element DOM work like focus or third-party library setup is a Mount declared inline at the view, right where the element is. Complete picture, every effect declared at home.',
       ),
       para(
         'If you care about adding features without fear, onboarding new developers by pointing them at the Message union, debugging production issues by replaying state, and trusting that your test suite actually catches regressions: Foldkit structurally guarantees those outcomes. React cannot.',

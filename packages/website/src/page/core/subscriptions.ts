@@ -229,7 +229,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         '.',
       ),
       para(
-        'You\u2019ve now seen how state changes flow through update, how one-off side effects work as Commands, and how ongoing streams are managed with Subscriptions. But where do the first Model and Commands come from? That\u2019s ',
+        'You\u2019ve now seen how state changes flow through update, how one-off side effects work as Commands, how view code reaches the live DOM with Mount, and how ongoing streams are managed with Subscriptions. But where do the first Model and Commands come from? That\u2019s ',
         inlineCode('init'),
         '.',
       ),

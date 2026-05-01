@@ -14,6 +14,7 @@ import {
   apiModuleRouter,
   coreCommandsRouter,
   coreInitAndFlagsRouter,
+  coreLifecycleHooksRouter,
   coreManagedResourcesRouter,
   coreResourcesRouter,
   coreSubscriptionsRouter,
@@ -113,7 +114,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('update'),
         ' are pure functions. They take inputs and return outputs without touching the outside world.',
       ),
-      para('You encapsulate side effects in exactly five places:'),
+      para('You encapsulate side effects in exactly six places:'),
       ul(
         [Class('list-disc mb-6 space-y-2')],
         [
@@ -122,6 +123,15 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
             [
               link(coreCommandsRouter(), 'Commands'),
               ': an Effect that performs a side effect and returns a Message. HTTP requests, DOM operations, reading from storage. This is where most of your side effects live.',
+            ],
+          ),
+          li(
+            [],
+            [
+              link(coreLifecycleHooksRouter(), 'Mount'),
+              ': an Effect run with the live ',
+              inlineCode('Element'),
+              ' when a view element enters the DOM, paired with cleanup that fires when it unmounts. The seam where view code reaches a real DOM node, like focusing an input or handing it to a third-party library that owns its own DOM.',
             ],
           ),
           li(

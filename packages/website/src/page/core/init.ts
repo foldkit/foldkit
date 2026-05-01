@@ -88,7 +88,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        'You\u2019ve now seen the full Foldkit architecture: the Model holds your state, Messages describe events, update transitions state, the view renders it, Commands handle one-off side effects, Subscriptions manage ongoing streams, and init bootstraps everything. The remaining pages cover utilities, runtime configuration, and advanced topics you\u2019ll reach for as your app grows.',
+        'You\u2019ve now seen the full Foldkit architecture: the Model holds your state, Messages describe events, update transitions state, the view renders it, Commands handle one-off side effects, Mount reaches the live DOM, Subscriptions manage ongoing streams, and init bootstraps everything. The remaining pages cover utilities, runtime configuration, and advanced topics you\u2019ll reach for as your app grows.',
       ),
     ],
   )

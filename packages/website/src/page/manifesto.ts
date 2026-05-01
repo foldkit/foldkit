@@ -62,7 +62,7 @@ export const view = (): Html =>
         'Every Foldkit app has the same architecture. Not by convention. By design.',
       ),
       para(
-        'State lives in the Model. Events are Messages. Every state change flows through update. Side effects are managed by Commands. Ongoing streams are Subscriptions. These aren\u2019t conventions. This is the only path. You can\u2019t scatter state across components because there are no component-local state hooks. You can\u2019t hide side effects in the view because the view is a pure function.',
+        'State lives in the Model. Events are Messages. Every state change flows through update. Side effects are managed by Commands. View code reaches the DOM through Mount. Ongoing streams are Subscriptions. These aren\u2019t conventions. This is the only path. You can\u2019t scatter state across components because there are no component-local state hooks. You can\u2019t hide side effects in the view because the view is a pure function.',
       ),
       para(
         'This might sound limiting. It\u2019s the opposite. When architectural decisions are off the table, development gets more interesting. The questions shift from implementation to behavior. Not \u201cHow should we manage side effects in this component?\u201d but \u201cHow should this feature behave?\u201d Not \u201cWhat tool should we use for streams and how should we wire them up to our components?\u201d but \u201cWhat Model state does this Subscription depend on?\u201d',

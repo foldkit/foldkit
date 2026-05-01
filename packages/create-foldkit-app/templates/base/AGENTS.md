@@ -87,6 +87,33 @@ Commands catch all errors and return Messages — side effects never crash the a
 
 Command definitions live where they're produced — colocated with the update function that returns them. Don't centralize all definitions in one file.
 
+### Mount
+
+For per-element DOM work — focusing an input, handing the live `Element` to a third-party library — define a Mount with `Mount.define` and attach it to a view element with `OnMount`. The runtime runs the Effect when the element mounts, dispatches its result Message back through `update`, and runs the paired cleanup on unmount.
+
+```ts
+const CompletedFocusInput = m('CompletedFocusInput')
+
+const FocusInput = Mount.define('FocusInput', CompletedFocusInput)
+
+const focusInput = FocusInput(element =>
+  Effect.sync(() => {
+    if (element instanceof HTMLInputElement) {
+      element.focus()
+    }
+    return {
+      message: CompletedFocusInput(),
+      cleanup: Function.constVoid,
+    }
+  }),
+)
+
+// In view:
+input([Type('search'), OnMount(focusInput)])
+```
+
+Cleanup is data, paired with setup as a single value. For setup with no cleanup, pass `Function.constVoid`. The `Completed*` Message marks the lifecycle without forcing a meaningful response in update.
+
 ### File Organization
 
 Use uppercase section headers (`// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`, `// COMMAND`, `// VIEW`) to make files easier to skim. These are for wayfinding — they make it clear where things live and where new code should go. Use domain-specific headers too when it helps (e.g. `// PHYSICS`, `// ROUTING`).
