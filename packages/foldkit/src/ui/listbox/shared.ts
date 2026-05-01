@@ -109,8 +109,8 @@ export const Opened = m('Opened', {
 })
 /** Sent when the listbox closes via Escape key or backdrop click. */
 export const Closed = m('Closed')
-/** Sent when focus leaves the listbox items container via Tab key or blur. */
-export const ClosedByTab = m('ClosedByTab')
+/** Sent when the listbox items container loses focus. */
+export const BlurredItems = m('BlurredItems')
 /** Sent when an item is highlighted via arrow keys or mouse hover. Includes activation trigger. */
 export const ActivatedItem = m('ActivatedItem', {
   index: S.Number,
@@ -176,7 +176,7 @@ export const Message: S.Union<
   [
     typeof Opened,
     typeof Closed,
-    typeof ClosedByTab,
+    typeof BlurredItems,
     typeof ActivatedItem,
     typeof DeactivatedItem,
     typeof SelectedItem,
@@ -202,7 +202,7 @@ export const Message: S.Union<
 > = S.Union(
   Opened,
   Closed,
-  ClosedByTab,
+  BlurredItems,
   ActivatedItem,
   DeactivatedItem,
   SelectedItem,
@@ -228,7 +228,7 @@ export const Message: S.Union<
 
 export type Opened = typeof Opened.Type
 export type Closed = typeof Closed.Type
-export type ClosedByTab = typeof ClosedByTab.Type
+export type BlurredItems = typeof BlurredItems.Type
 export type ActivatedItem = typeof ActivatedItem.Type
 export type DeactivatedItem = typeof DeactivatedItem.Type
 export type SelectedItem = typeof SelectedItem.Type
@@ -490,7 +490,7 @@ export const makeUpdate = <Model extends BaseModel>(
 
         Closed: () => closeListbox(model, closeWithFocusCommands),
 
-        ClosedByTab: () => {
+        BlurredItems: () => {
           if (
             Option.exists(
               model.maybeLastButtonPointerType,
@@ -704,7 +704,7 @@ export type BaseViewConfig<Message, Item, Model extends BaseModel> = Readonly<{
     message:
       | Opened
       | Closed
-      | ClosedByTab
+      | BlurredItems
       | ActivatedItem
       | DeactivatedItem
       | SelectedItem
@@ -1114,7 +1114,7 @@ export const makeView =
         : [
             OnKeyDownPreventDefault(handleItemsKeyDown),
             OnKeyUpPreventDefault(handleSpaceKeyUp),
-            OnBlur(toParentMessage(ClosedByTab())),
+            OnBlur(toParentMessage(BlurredItems())),
           ]),
       ...(itemsClassName ? [Class(itemsClassName)] : []),
       ...itemsAttributes,

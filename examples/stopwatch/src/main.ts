@@ -27,19 +27,19 @@ type Model = typeof Model.Type
 
 // MESSAGE
 
-const RequestedStart = m('RequestedStart')
+const ClickedStart = m('ClickedStart')
 const RecordedStartTime = m('RecordedStartTime', { startTime: S.Number })
 const ClickedStop = m('ClickedStop')
 const ClickedReset = m('ClickedReset')
-const RequestedTick = m('RequestedTick')
+const Ticked = m('Ticked')
 const RecordedTickTime = m('RecordedTickTime', { elapsedMs: S.Number })
 
 export const Message = S.Union(
-  RequestedStart,
+  ClickedStart,
   RecordedStartTime,
   ClickedStop,
   ClickedReset,
-  RequestedTick,
+  Ticked,
   RecordedTickTime,
 )
 export type Message = typeof Message.Type
@@ -60,7 +60,7 @@ const update = (
       readonly [Model, ReadonlyArray<Command.Command<Message>>]
     >(),
     M.tagsExhaustive({
-      RequestedStart: () => [
+      ClickedStart: () => [
         model,
         [
           RecordStartTime(
@@ -96,7 +96,7 @@ const update = (
         [],
       ],
 
-      RequestedTick: () => [
+      Ticked: () => [
         model,
         [
           RecordTickTime(
@@ -144,9 +144,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
     modelToDependencies: (model: Model) => ({ isRunning: model.isRunning }),
     dependenciesToStream: ({ isRunning }) =>
       Stream.when(
-        Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
-          Stream.map(RequestedTick),
-        ),
+        Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(Stream.map(Ticked)),
         () => isRunning,
       ),
   },
@@ -219,7 +217,7 @@ const startStopButton = (isRunning: boolean): Html =>
       )
     : button(
         [
-          OnClick(RequestedStart()),
+          OnClick(ClickedStart()),
           Class(buttonStyle + ' bg-green-500 hover:bg-green-600'),
         ],
         ['Start'],

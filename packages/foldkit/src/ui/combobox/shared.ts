@@ -99,8 +99,8 @@ export const Opened = m('Opened', {
 })
 /** Sent when the combobox closes via Escape key or backdrop click. */
 export const Closed = m('Closed')
-/** Sent when focus leaves the input via Tab key or blur. */
-export const ClosedByTab = m('ClosedByTab')
+/** Sent when the combobox input loses focus. */
+export const BlurredInput = m('BlurredInput')
 /** Sent when an item is highlighted via arrow keys or mouse hover. Includes activation trigger and optional immediate selection info. */
 export const ActivatedItem = m('ActivatedItem', {
   index: S.Number,
@@ -162,7 +162,7 @@ export const Message: S.Union<
   [
     typeof Opened,
     typeof Closed,
-    typeof ClosedByTab,
+    typeof BlurredInput,
     typeof ActivatedItem,
     typeof DeactivatedItem,
     typeof SelectedItem,
@@ -185,7 +185,7 @@ export const Message: S.Union<
 > = S.Union(
   Opened,
   Closed,
-  ClosedByTab,
+  BlurredInput,
   ActivatedItem,
   DeactivatedItem,
   SelectedItem,
@@ -208,7 +208,7 @@ export const Message: S.Union<
 
 export type Opened = typeof Opened.Type
 export type Closed = typeof Closed.Type
-export type ClosedByTab = typeof ClosedByTab.Type
+export type BlurredInput = typeof BlurredInput.Type
 export type ActivatedItem = typeof ActivatedItem.Type
 export type DeactivatedItem = typeof DeactivatedItem.Type
 export type SelectedItem = typeof SelectedItem.Type
@@ -447,7 +447,7 @@ export const makeUpdate = <Model extends BaseModel>(
 
         Closed: () => closeCombobox(model, [focusInput]),
 
-        ClosedByTab: () => closeCombobox(model, []),
+        BlurredInput: () => closeCombobox(model, []),
 
         ActivatedItem: ({
           index,
@@ -678,7 +678,7 @@ export type BaseViewConfig<
     message:
       | Opened
       | Closed
-      | ClosedByTab
+      | BlurredInput
       | ActivatedItem
       | DeactivatedItem
       | SelectedItem
@@ -1004,7 +1004,7 @@ export const makeView =
         : [
             OnInput(value => toParentMessage(UpdatedInputValue({ value }))),
             OnKeyDownPreventDefault(handleInputKeyDown),
-            OnBlur(toParentMessage(ClosedByTab())),
+            OnBlur(toParentMessage(BlurredInput())),
             ...(openOnFocus
               ? [
                   OnFocus(
