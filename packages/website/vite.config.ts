@@ -811,7 +811,7 @@ const embeddedExampleRedirectPlugin = (): Plugin => ({
 export default defineConfig({
   plugins: [
     tailwindcss(),
-    foldkit(),
+    foldkit({ devToolsMcpPort: 9988 }),
     embeddedExampleRedirectPlugin(),
     highlightCodePlugin(),
     highlightApiSignaturesPlugin(),

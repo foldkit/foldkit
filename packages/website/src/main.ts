@@ -62,7 +62,7 @@ import {
   GotTestingGroupMessage,
   GotUiPageMessage,
   HiddenCopiedIndicator,
-  type Message,
+  Message,
   ResolvedTheme,
   SucceededCopy,
   SucceededCopyLink,
@@ -1446,6 +1446,7 @@ const program = Runtime.makeProgram({
     mode: 'Inspect',
     banner:
       'Welcome to Foldkit DevTools. This site runs on Foldkit \u2014 navigate around or interact with the page and every action appears here as a Message. Click any row to see the Model state it produced.',
+    Message,
   },
 })
 
