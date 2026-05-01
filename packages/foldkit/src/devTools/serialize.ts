@@ -60,8 +60,8 @@ export const toSerializedEntry = (
     commandNames: entry.commandNames,
     timestamp: entry.timestamp,
     isModelChanged: entry.isModelChanged,
-    changedPaths: HashSet.toValues(entry.diff.changedPaths),
-    affectedPaths: HashSet.toValues(entry.diff.affectedPaths),
+    changedPaths: Array_.fromIterable(entry.diff.changedPaths),
+    affectedPaths: Array_.fromIterable(entry.diff.affectedPaths),
     submodelPath,
     maybeLeafTag,
   }

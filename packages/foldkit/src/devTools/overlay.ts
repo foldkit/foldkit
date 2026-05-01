@@ -558,7 +558,7 @@ const makeOverlaySubscriptions = (store: DevToolsStore) =>
               Effect.map(state => ReceivedStoreUpdate(toDisplayState(state))),
             ),
           ),
-          Stream.map(store.stateRef.changes, state =>
+          Stream.map(SubscriptionRef.changes(store.stateRef), state =>
             ReceivedStoreUpdate(toDisplayState(state)),
           ),
         ),

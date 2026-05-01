@@ -262,7 +262,7 @@ export const oneOf = <Parsers extends ReadonlyArray<ParserInput>>(
             message: `No parsers provided for path: /${Array.join(segments, '/')}`,
           }),
         ),
-      onNonEmpty: ([head, ...tail]) =>
+      onNonEmpty: (head, tail) =>
         Array.reduce(
           tail,
           head.parse(segments, search),
