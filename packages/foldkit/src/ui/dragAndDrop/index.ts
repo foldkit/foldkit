@@ -683,7 +683,7 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
 
       return Stream.when(
         Stream.merge(pointerEvents, documentDragStyles),
-        () => dragActivity === 'Active',
+        Effect.sync(() => dragActivity === 'Active'),
       )
     },
   },
@@ -698,7 +698,7 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
           Stream.filter(({ key }) => key === 'Escape'),
           Stream.map(() => CancelledDrag()),
         ),
-        () => dragActivity === 'Active',
+        Effect.sync(() => dragActivity === 'Active'),
       ),
   },
 
@@ -738,9 +738,10 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
                 })
               }),
           ),
-          Stream.filterMap(Function.identity),
+          Stream.filter(Option.isSome),
+          Stream.map(option => option.value),
         ),
-        () => dragActivity === 'Active',
+        Effect.sync(() => dragActivity === 'Active'),
       ),
   },
 
@@ -765,7 +766,7 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
           animationFrameId = requestAnimationFrame(step)
           return Effect.sync(() => cancelAnimationFrame(animationFrameId))
         }),
-        () => isDragging,
+        Effect.sync(() => isDragging),
       ),
   },
 })

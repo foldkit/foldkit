@@ -395,7 +395,8 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
               ),
             ),
           ),
-          Stream.filterMap(Function.identity),
+          Stream.filter(Option.isSome),
+          Stream.map(option => option.value),
         ),
         Stream.fromEventListener<PointerEvent>(document, 'pointerup').pipe(
           Stream.map(() => ReleasedDragPointer()),
@@ -437,7 +438,7 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
           Stream.filter(({ key }) => key === 'Escape'),
           Stream.map(() => CancelledDrag()),
         ),
-        () => dragActivity === 'Active',
+        Effect.sync(() => dragActivity === 'Active'),
       ),
   },
 })
