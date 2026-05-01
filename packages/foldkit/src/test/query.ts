@@ -119,7 +119,7 @@ const tryParseAttribute = (
             evo(accumulator, {
               attributes: Array.append({
                 name,
-                value: Option.fromNullable(match[3]),
+                value: Option.fromNullishOr(match[3]),
                 mode,
               }),
             }),
@@ -186,8 +186,8 @@ const lookupAttribute =
   (vnode: VNode): Option.Option<unknown> =>
     pipe(
       vnode.data?.attrs?.[name],
-      Option.fromNullable,
-      Option.orElse(() => Option.fromNullable(vnode.data?.props?.[name])),
+      Option.fromNullishOr,
+      Option.orElse(() => Option.fromNullishOr(vnode.data?.props?.[name])),
     )
 
 const lookupStringAttribute =
@@ -252,7 +252,7 @@ const FORM_CONTROL_TAGS = ['input', 'select', 'textarea', 'button', 'output']
 const isFormControl = (node: VNode): boolean =>
   pipe(
     node.sel,
-    Option.fromNullable,
+    Option.fromNullishOr,
     Option.exists(sel => Array.contains(FORM_CONTROL_TAGS, sel)),
   )
 
@@ -290,7 +290,7 @@ const matchesAttribute =
     if (name === 'key') {
       return pipe(
         vnode.key,
-        Option.fromNullable,
+        Option.fromNullishOr,
         Option.map(key =>
           typeof key === 'symbol' ? key.toString() : String(key),
         ),
@@ -468,7 +468,7 @@ const implicitRole =
   (vnode: VNode): Option.Option<string> =>
     pipe(
       vnode.sel,
-      Option.fromNullable,
+      Option.fromNullishOr,
       Option.flatMap(tag =>
         Match.value(tag).pipe(
           Match.when('input', () => inputRole(vnode)),
@@ -710,7 +710,7 @@ const attrImpl = (vnode: VNode, name: string): Option.Option<string> => {
   if (name === 'class') {
     return pipe(
       vnode.data?.class,
-      Option.fromNullable,
+      Option.fromNullishOr,
       Option.map(
         flow(
           Record.toEntries,
@@ -739,7 +739,7 @@ const HEADING_LEVEL_PATTERN = /^h([1-6])$/
 const headingLevelFromTag = (vnode: VNode): Option.Option<number> =>
   pipe(
     vnode.sel,
-    Option.fromNullable,
+    Option.fromNullishOr,
     Option.flatMap(String_.match(HEADING_LEVEL_PATTERN)),
     Option.map(match => Number(match[1])),
   )

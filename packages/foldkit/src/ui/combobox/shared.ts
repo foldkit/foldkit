@@ -43,7 +43,7 @@ export { groupContiguous }
 // MODEL
 
 /** Schema for the activation trigger — whether the user interacted via mouse or keyboard. */
-export const ActivationTrigger = S.Literal('Pointer', 'Keyboard')
+export const ActivationTrigger = S.Literals(['Pointer', 'Keyboard'])
 export type ActivationTrigger = typeof ActivationTrigger.Type
 
 /** Schema fields shared by all combobox variants (single-select and multi-select). Spread into each variant's `S.Struct` to avoid duplicating field definitions. */
@@ -56,10 +56,10 @@ export const BaseModel = S.Struct({
   immediate: S.Boolean,
   selectInputOnFocus: S.Boolean,
   animation: AnimationModel,
-  maybeActiveItemIndex: S.OptionFromSelf(S.Number),
+  maybeActiveItemIndex: S.Option(S.Number),
   activationTrigger: ActivationTrigger,
   inputValue: S.String,
-  maybeLastPointerPosition: S.OptionFromSelf(
+  maybeLastPointerPosition: S.Option(
     S.Struct({ screenX: S.Number, screenY: S.Number }),
   ),
 })
@@ -95,7 +95,7 @@ export const baseInit = (config: BaseInitConfig): BaseModel => ({
 
 /** Sent when the combobox popup opens. Contains an optional initial active item index. */
 export const Opened = m('Opened', {
-  maybeActiveItemIndex: S.OptionFromSelf(S.Number),
+  maybeActiveItemIndex: S.Option(S.Number),
 })
 /** Sent when the combobox closes via Escape key or backdrop click. */
 export const Closed = m('Closed')
@@ -105,7 +105,7 @@ export const BlurredInput = m('BlurredInput')
 export const ActivatedItem = m('ActivatedItem', {
   index: S.Number,
   activationTrigger: ActivationTrigger,
-  maybeImmediateSelection: S.OptionFromSelf(
+  maybeImmediateSelection: S.Option(
     S.Struct({ item: S.String, displayText: S.String }),
   ),
 })
@@ -182,7 +182,7 @@ export const Message: S.Union<
     typeof UpdatedInputValue,
     typeof PressedToggleButton,
   ]
-> = S.Union(
+> = S.Union([
   Opened,
   Closed,
   BlurredInput,
@@ -204,7 +204,7 @@ export const Message: S.Union<
   GotAnimationMessage,
   UpdatedInputValue,
   PressedToggleButton,
-)
+])
 
 export type Opened = typeof Opened.Type
 export type Closed = typeof Closed.Type
@@ -1153,7 +1153,7 @@ export const makeView =
       )
 
       return Array.flatMap(segments, (segment, segmentIndex) => {
-        const maybeHeading = Option.fromNullable(
+        const maybeHeading = Option.fromNullishOr(
           groupToHeading && groupToHeading(segment.key),
         )
 
@@ -1190,7 +1190,7 @@ export const makeView =
         const separator =
           segmentIndex > 0 &&
           (separatorClassName ||
-            Array.isNonEmptyReadonlyArray(separatorAttributes))
+            Array.isNonEmptyArray(separatorAttributes))
             ? [
                 keyed('div')(
                   `${id}-separator-${segmentIndex}`,
@@ -1222,7 +1222,7 @@ export const makeView =
 
     const scrollableItems =
       itemsScrollClassName ||
-      Array.isNonEmptyReadonlyArray(itemsScrollAttributes)
+      Array.isNonEmptyArray(itemsScrollAttributes)
         ? [
             div(
               [
@@ -1310,7 +1310,7 @@ export const makeView =
         input(resolvedInputAttributes),
         ...toggleButton,
       ]),
-      ...(isVisible && Array.isNonEmptyReadonlyArray(items)
+      ...(isVisible && Array.isNonEmptyArray(items)
         ? visibleContent
         : []),
       ...hiddenInputs,

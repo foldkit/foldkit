@@ -36,7 +36,7 @@ const addLinkClickListener = <Message>(
     }
 
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    const maybeLink = Option.fromNullable((target as Element).closest('a'))
+    const maybeLink = Option.fromNullishOr((target as Element).closest('a'))
     if (Option.isNone(maybeLink)) {
       return
     }

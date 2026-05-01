@@ -34,7 +34,7 @@ export const Model = S.Struct({
   isOpen: S.Boolean,
   isAnimated: S.Boolean,
   animation: AnimationModel,
-  maybeFocusSelector: S.OptionFromSelf(S.String),
+  maybeFocusSelector: S.Option(S.String),
 })
 
 export type Model = typeof Model.Type
@@ -63,13 +63,13 @@ export const Message: S.Union<
     typeof CompletedCloseDialog,
     typeof GotAnimationMessage,
   ]
-> = S.Union(
+> = S.Union([
   Opened,
   Closed,
   CompletedShowDialog,
   CompletedCloseDialog,
   GotAnimationMessage,
-)
+])
 
 export type Opened = typeof Opened.Type
 export type Closed = typeof Closed.Type
@@ -97,7 +97,7 @@ export const init = (config: InitConfig): Model => ({
     id: `${config.id}-panel`,
     ...(config.isOpen !== undefined ? { isShowing: config.isOpen } : {}),
   }),
-  maybeFocusSelector: Option.fromNullable(config.focusSelector),
+  maybeFocusSelector: Option.fromNullishOr(config.focusSelector),
 })
 
 // UPDATE

@@ -48,12 +48,12 @@ export const DroppedFiles = m('DroppedFiles', {
 export const DroppedWithoutFiles = m('DroppedWithoutFiles')
 
 /** Union of all messages the file-drop component can produce. */
-export const Message = S.Union(
+export const Message = S.Union([
   EnteredDragZone,
   LeftDragZone,
   DroppedFiles,
   DroppedWithoutFiles,
-)
+])
 export type Message = typeof Message.Type
 
 // OUT MESSAGE
@@ -70,7 +70,7 @@ export const ReceivedFiles = m('ReceivedFiles', {
  * `DroppedWithoutFiles` is reused from the Message definitions \u2014 the
  * fact is the same whether the component is handling it or reporting it
  * up. */
-export const OutMessage = S.Union(ReceivedFiles, DroppedWithoutFiles)
+export const OutMessage = S.Union([ReceivedFiles, DroppedWithoutFiles])
 export type OutMessage = typeof OutMessage.Type
 
 // INIT

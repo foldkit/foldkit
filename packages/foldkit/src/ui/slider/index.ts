@@ -27,7 +27,7 @@ import { evo } from '../../struct/index.js'
 const Idle = ts('Idle')
 const Dragging = ts('Dragging', { originValue: S.Number })
 
-const DragState = S.Union(Idle, Dragging)
+const DragState = S.Union([Idle, Dragging])
 
 /** Schema for the slider component's state. Tracks the current value, the
  *  range (min/max/step), and the active drag phase. */
@@ -59,14 +59,14 @@ export const ReleasedDragPointer = m('ReleasedDragPointer')
 export const CancelledDrag = m('CancelledDrag')
 /** The user pressed a keyboard navigation key on the focused thumb. */
 export const PressedKeyboardNavigation = m('PressedKeyboardNavigation', {
-  direction: S.Literal(
+  direction: S.Literals([
     'StepDecrement',
     'StepIncrement',
     'PageDecrement',
     'PageIncrement',
     'Min',
     'Max',
-  ),
+  ]),
 })
 
 /** Union of all messages the slider component can produce. */
@@ -79,14 +79,14 @@ export const Message: S.Union<
     typeof CancelledDrag,
     typeof PressedKeyboardNavigation,
   ]
-> = S.Union(
+> = S.Union([
   PressedThumb,
   PressedPointer,
   MovedDragPointer,
   ReleasedDragPointer,
   CancelledDrag,
   PressedKeyboardNavigation,
-)
+])
 
 export type Message = typeof Message.Type
 
@@ -326,7 +326,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
 // SUBSCRIPTION
 
-const DragActivity = S.Literal('Idle', 'Active')
+const DragActivity = S.Literals(['Idle', 'Active'])
 
 const dragActivityFromModel = (model: Model): typeof DragActivity.Type =>
   M.value(model.dragState).pipe(
@@ -336,7 +336,7 @@ const dragActivityFromModel = (model: Model): typeof DragActivity.Type =>
   )
 
 const trackElement = (id: string): Option.Option<HTMLElement> =>
-  Option.fromNullable(
+  Option.fromNullishOr(
     document.querySelector<HTMLElement>(`[data-slider-track-id="${id}"]`),
   )
 

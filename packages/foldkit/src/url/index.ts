@@ -6,10 +6,10 @@ import { OptionExt } from '../effectExtensions/index.js'
 export const Url = S.Struct({
   protocol: S.String,
   host: S.String,
-  port: S.OptionFromSelf(S.String),
+  port: S.Option(S.String),
   pathname: S.String,
-  search: S.OptionFromSelf(S.String),
-  hash: S.OptionFromSelf(S.String),
+  search: S.Option(S.String),
+  hash: S.Option(S.String),
 })
 export type Url = typeof Url.Type
 

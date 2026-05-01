@@ -66,8 +66,8 @@ export const daysInMonth = (year: number, month: number): number => {
  */
 export const CalendarDate = S.Struct({
   year: S.Int,
-  month: S.Int.pipe(S.between(1, 12)),
-  day: S.Int.pipe(S.between(1, 31)),
+  month: S.Int.pipe(S.isBetween(1, 12)),
+  day: S.Int.pipe(S.isBetween(1, 31)),
 }).pipe(
   S.filter(({ year, month, day }) => day <= daysInMonth(year, month), {
     identifier: 'CalendarDate',

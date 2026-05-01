@@ -48,7 +48,7 @@ import {
 const DisplayEntry = S.Struct({
   tag: S.String,
   submodelPath: S.Array(S.String),
-  maybeLeafTag: S.OptionFromSelf(S.String),
+  maybeLeafTag: S.Option(S.String),
   commandNames: S.Array(S.String),
   timestamp: S.Number,
   isModelChanged: S.Boolean,
@@ -61,7 +61,7 @@ const InspectorTabsModel = S.Struct({
   id: S.String,
   activeIndex: S.Number,
   focusedIndex: S.Number,
-  activationMode: S.Literal('Automatic', 'Manual'),
+  activationMode: S.Literals(['Automatic', 'Manual']),
 })
 
 const Model = S.Struct({
@@ -74,14 +74,14 @@ const Model = S.Struct({
   pausedAtIndex: S.Number,
   selectedIndex: S.Number,
   isFollowingLatest: S.Boolean,
-  maybeInspectedModel: S.OptionFromSelf(S.Unknown),
-  maybeInspectedMessage: S.OptionFromSelf(S.Unknown),
+  maybeInspectedModel: S.Option(S.Unknown),
+  maybeInspectedMessage: S.Option(S.Unknown),
   submodelTags: S.Array(S.String),
-  maybeSubmodelFilter: S.OptionFromSelf(S.String),
+  maybeSubmodelFilter: S.Option(S.String),
   submodelFilterListbox: Listbox.Model,
-  expandedPaths: S.HashSetFromSelf(S.String),
-  changedPaths: S.HashSetFromSelf(S.String),
-  affectedPaths: S.HashSetFromSelf(S.String),
+  expandedPaths: S.HashSet(S.String),
+  changedPaths: S.HashSet(S.String),
+  affectedPaths: S.HashSet(S.String),
   inspectorTabs: InspectorTabsModel,
 })
 type Model = typeof Model.Type
@@ -113,9 +113,9 @@ const CrossedMobileBreakpoint = m('CrossedMobileBreakpoint', {
 })
 const ReceivedInspectedState = m('ReceivedInspectedState', {
   model: S.Unknown,
-  maybeMessage: S.OptionFromSelf(S.Unknown),
-  changedPaths: S.HashSetFromSelf(S.String),
-  affectedPaths: S.HashSetFromSelf(S.String),
+  maybeMessage: S.Option(S.Unknown),
+  changedPaths: S.HashSet(S.String),
+  affectedPaths: S.HashSet(S.String),
 })
 const ToggledTreeNode = m('ToggledTreeNode', { path: S.String })
 const GotInspectorTabsMessage = m('GotInspectorTabsMessage', {
@@ -135,7 +135,7 @@ const SelectedSubmodelFilter = m('SelectedSubmodelFilter', {
   tag: S.String,
 })
 
-const Message = S.Union(
+const Message = S.Union([
   ClickedToggle,
   ClickedRow,
   ClickedResume,
@@ -154,7 +154,7 @@ const Message = S.Union(
   ReceivedStoreUpdate,
   GotSubmodelFilterMessage,
   SelectedSubmodelFilter,
-)
+])
 type Message = typeof Message.Type
 
 // HELPERS
@@ -182,7 +182,7 @@ const computeSubmodelTags = (
     entries,
     Array_.flatMap(({ submodelPath }) => submodelPath),
     Array_.dedupe,
-    Array_.sort(Order.string),
+    Array_.sort(Order.String),
   )
 
 const toDisplayEntries = ({ entries }: StoreState) =>
@@ -234,7 +234,7 @@ const objectPreview = (value: Record<string, unknown>): string =>
 const collapsedPreview = (value: unknown): string =>
   M.value(value).pipe(
     M.when(Array.isArray, array => `(${array.length})`),
-    M.when(Predicate.isReadonlyRecord, objectPreview),
+    M.when(Predicate.isRecord, objectPreview),
     M.orElse(() => ''),
   )
 
@@ -765,7 +765,7 @@ const makeView = (
           key: String(arrayIndex),
         }),
       )
-    } else if (Predicate.isReadonlyRecord(value)) {
+    } else if (Predicate.isRecord(value)) {
       pipe(
         value,
         Record.toEntries,
@@ -1636,5 +1636,5 @@ export const createOverlay = (
       devTools: false,
     })
 
-    yield* Effect.forkDaemon(overlayRuntime())
+    yield* Effect.forkDetach(overlayRuntime())
   })

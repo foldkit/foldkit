@@ -7,7 +7,7 @@ import { type CalendarDate, daysInMonth, unsafeMake } from './calendarDate.js'
  * Schema for days of the week, Sunday through Saturday. Tagged union preferred
  * over 0-6 numeric indices to avoid magic numbers at call sites.
  */
-export const DayOfWeek = S.Literal(
+export const DayOfWeek = S.Literals([
   'Sunday',
   'Monday',
   'Tuesday',
@@ -15,7 +15,7 @@ export const DayOfWeek = S.Literal(
   'Thursday',
   'Friday',
   'Saturday',
-)
+])
 
 export type DayOfWeek = typeof DayOfWeek.Type
 

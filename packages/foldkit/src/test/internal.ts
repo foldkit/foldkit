@@ -126,13 +126,13 @@ export const assertHasCommands = (
     ({ name }) => !Array.contains(pendingNames, name),
   )
 
-  if (Array.isNonEmptyReadonlyArray(missing)) {
+  if (Array.isNonEmptyArray(missing)) {
     const missingNames = pipe(
       missing,
       Array.map(({ name }) => `    ${name}`),
       Array.join('\n'),
     )
-    const pending = Array.isNonEmptyReadonlyArray(commands)
+    const pending = Array.isNonEmptyArray(commands)
       ? pipe(
           commands,
           Array.map(({ name }) => `    ${name}`),
@@ -153,12 +153,12 @@ export const assertExactCommands = (
   const expectedNames = pipe(
     definitions,
     Array.map(({ name }) => name),
-    Array.sort(Order.string),
+    Array.sort(Order.String),
   )
   const actualNames = pipe(
     commands,
     Array.map(({ name }) => name),
-    Array.sort(Order.string),
+    Array.sort(Order.String),
   )
 
   if (!Array.getEquivalence(Equivalence.string)(expectedNames, actualNames)) {
@@ -167,7 +167,7 @@ export const assertExactCommands = (
       Array.map(name => `    ${name}`),
       Array.join('\n'),
     )
-    const actual = Array.isNonEmptyReadonlyArray(actualNames)
+    const actual = Array.isNonEmptyArray(actualNames)
       ? pipe(
           actualNames,
           Array.map(name => `    ${name}`),
@@ -184,7 +184,7 @@ export const assertExactCommands = (
 export const assertZeroCommands = (
   commands: ReadonlyArray<AnyCommand>,
 ): void => {
-  if (Array.isNonEmptyReadonlyArray(commands)) {
+  if (Array.isNonEmptyArray(commands)) {
     const pending = pipe(
       commands,
       Array.map(({ name }) => `    ${name}`),
@@ -199,7 +199,7 @@ export const assertNoUnresolvedCommands = (
   commands: ReadonlyArray<AnyCommand>,
   context: string,
 ): void => {
-  if (Array.isNonEmptyReadonlyArray(commands)) {
+  if (Array.isNonEmptyArray(commands)) {
     const names = pipe(
       commands,
       Array.map(({ name }) => `    ${name}`),
@@ -218,7 +218,7 @@ export const assertNoUnresolvedCommands = (
 export const assertAllCommandsResolved = (
   commands: ReadonlyArray<AnyCommand>,
 ): void => {
-  if (Array.isNonEmptyReadonlyArray(commands)) {
+  if (Array.isNonEmptyArray(commands)) {
     const names = pipe(
       commands,
       Array.map(({ name }) => `    ${name}`),

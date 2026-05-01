@@ -106,7 +106,7 @@ describe('readAsArrayBuffer', () => {
 describe('select', () => {
   it.scoped('mounts a hidden single-select input with the given accept', () =>
     Effect.gen(function* () {
-      const fiber = yield* Effect.fork(select(['application/pdf']))
+      const fiber = yield* Effect.forkChild(select(['application/pdf']))
       yield* Effect.yieldNow()
 
       const input = findHiddenFileInput()
@@ -127,7 +127,7 @@ describe('select', () => {
 
   it.scoped('joins multiple accept values into a comma-separated list', () =>
     Effect.gen(function* () {
-      const fiber = yield* Effect.fork(
+      const fiber = yield* Effect.forkChild(
         select(['image/png', 'image/jpeg', 'image/webp']),
       )
       yield* Effect.yieldNow()
@@ -142,7 +142,7 @@ describe('select', () => {
 
   it.scoped('resolves with an empty array when no files are selected', () =>
     Effect.gen(function* () {
-      const fiber = yield* Effect.fork(select(['*/*']))
+      const fiber = yield* Effect.forkChild(select(['*/*']))
       yield* Effect.yieldNow()
 
       const input = findHiddenFileInput()
@@ -155,7 +155,7 @@ describe('select', () => {
 
   it.scoped('removes the hidden input from the DOM after resolving', () =>
     Effect.gen(function* () {
-      const fiber = yield* Effect.fork(select(['*/*']))
+      const fiber = yield* Effect.forkChild(select(['*/*']))
       yield* Effect.yieldNow()
 
       const input = findHiddenFileInput()
@@ -174,7 +174,7 @@ describe('selectMultiple', () => {
     'mounts a hidden multi-select input and resolves with all files',
     () =>
       Effect.gen(function* () {
-        const fiber = yield* Effect.fork(selectMultiple(['image/*']))
+        const fiber = yield* Effect.forkChild(selectMultiple(['image/*']))
         yield* Effect.yieldNow()
 
         const input = findHiddenFileInput()

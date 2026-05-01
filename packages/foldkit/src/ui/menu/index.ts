@@ -50,7 +50,7 @@ import { resolveTypeaheadMatch } from '../typeahead.js'
 // MODEL
 
 /** Schema for the activation trigger — whether the user interacted via mouse or keyboard. */
-export const ActivationTrigger = S.Literal('Pointer', 'Keyboard')
+export const ActivationTrigger = S.Literals(['Pointer', 'Keyboard'])
 export type ActivationTrigger = typeof ActivationTrigger.Type
 
 const PointerOrigin = S.Struct({
@@ -66,15 +66,15 @@ export const Model = S.Struct({
   isAnimated: S.Boolean,
   isModal: S.Boolean,
   animation: AnimationModel,
-  maybeActiveItemIndex: S.OptionFromSelf(S.Number),
+  maybeActiveItemIndex: S.Option(S.Number),
   activationTrigger: ActivationTrigger,
   searchQuery: S.String,
   searchVersion: S.Number,
-  maybeLastPointerPosition: S.OptionFromSelf(
+  maybeLastPointerPosition: S.Option(
     S.Struct({ screenX: S.Number, screenY: S.Number }),
   ),
-  maybeLastButtonPointerType: S.OptionFromSelf(S.String),
-  maybePointerOrigin: S.OptionFromSelf(PointerOrigin),
+  maybeLastButtonPointerType: S.Option(S.String),
+  maybePointerOrigin: S.Option(PointerOrigin),
 })
 
 export type Model = typeof Model.Type
@@ -83,7 +83,7 @@ export type Model = typeof Model.Type
 
 /** Sent when the menu opens via button click or keyboard. Contains an optional initial active item index — None for pointer, Some for keyboard. */
 export const Opened = m('Opened', {
-  maybeActiveItemIndex: S.OptionFromSelf(S.Number),
+  maybeActiveItemIndex: S.Option(S.Number),
 })
 /** Sent when the menu closes via Escape key or backdrop click. */
 export const Closed = m('Closed')
@@ -105,7 +105,7 @@ export const RequestedItemClick = m('RequestedItemClick', {
 /** Sent when a printable character is typed for typeahead search. */
 export const Searched = m('Searched', {
   key: S.String,
-  maybeTargetIndex: S.OptionFromSelf(S.Number),
+  maybeTargetIndex: S.Option(S.Number),
 })
 /** Sent after the search debounce period to clear the accumulated query. */
 export const ClearedSearch = m('ClearedSearch', { version: S.Number })
@@ -190,7 +190,7 @@ export const Message: S.Union<
     typeof PressedPointerOnButton,
     typeof ReleasedPointerOnItems,
   ]
-> = S.Union(
+> = S.Union([
   Opened,
   Closed,
   BlurredItems,
@@ -217,7 +217,7 @@ export const Message: S.Union<
   GotAnimationMessage,
   PressedPointerOnButton,
   ReleasedPointerOnItems,
-)
+])
 
 export type Message = typeof Message.Type
 
@@ -1174,7 +1174,7 @@ export const view = <Message, Item extends string>(
     )
 
     return Array.flatMap(segments, (segment, segmentIndex) => {
-      const maybeHeading = Option.fromNullable(
+      const maybeHeading = Option.fromNullishOr(
         groupToHeading && groupToHeading(segment.key),
       )
 
@@ -1211,7 +1211,7 @@ export const view = <Message, Item extends string>(
       const separator =
         segmentIndex > 0 &&
         (separatorClassName ||
-          Array.isNonEmptyReadonlyArray(separatorAttributes))
+          Array.isNonEmptyArray(separatorAttributes))
           ? [
               keyed('div')(
                 `${id}-separator-${segmentIndex}`,
@@ -1242,7 +1242,7 @@ export const view = <Message, Item extends string>(
   const renderedItems = renderGroupedItems()
 
   const scrollableItems =
-    itemsScrollClassName || Array.isNonEmptyReadonlyArray(itemsScrollAttributes)
+    itemsScrollClassName || Array.isNonEmptyArray(itemsScrollAttributes)
       ? [
           div(
             [

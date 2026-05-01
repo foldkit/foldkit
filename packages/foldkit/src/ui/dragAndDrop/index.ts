@@ -21,7 +21,7 @@ import * as Task from '../../task/index.js'
 
 // MODEL
 
-const Orientation = S.Literal('Horizontal', 'Vertical')
+const Orientation = S.Literals(['Horizontal', 'Vertical'])
 
 const ScreenPoint = S.Struct({
   screenX: S.Number,
@@ -53,7 +53,7 @@ const Dragging = ts('Dragging', {
   sourceIndex: S.Number,
   origin: ScreenPoint,
   current: ClientPoint,
-  maybeDropTarget: S.OptionFromSelf(DropTarget),
+  maybeDropTarget: S.Option(DropTarget),
 })
 
 const KeyboardDragging = ts('KeyboardDragging', {
@@ -64,7 +64,7 @@ const KeyboardDragging = ts('KeyboardDragging', {
   targetIndex: S.Number,
 })
 
-const DragState = S.Union(Idle, Pending, Dragging, KeyboardDragging)
+const DragState = S.Union([Idle, Pending, Dragging, KeyboardDragging])
 
 /** Schema for the drag-and-drop component's state, tracking its unique ID, orientation, and current drag phase. */
 export const Model = S.Struct({
@@ -92,7 +92,7 @@ export const MovedPointer = m('MovedPointer', {
   screenY: S.Number,
   clientX: S.Number,
   clientY: S.Number,
-  maybeDropTarget: S.OptionFromSelf(DropTarget),
+  maybeDropTarget: S.Option(DropTarget),
 })
 /** The pointer was released. */
 export const ReleasedPointer = m('ReleasedPointer')
@@ -113,14 +113,14 @@ export const ResolvedKeyboardMove = m('ResolvedKeyboardMove', {
 export const ConfirmedKeyboardDrop = m('ConfirmedKeyboardDrop')
 /** The user pressed an arrow key during keyboard drag. */
 export const PressedArrowKey = m('PressedArrowKey', {
-  direction: S.Literal(
+  direction: S.Literals([
     'Up',
     'Down',
     'Left',
     'Right',
     'NextContainer',
     'PreviousContainer',
-  ),
+  ]),
 })
 /** An animation frame fired during auto-scroll. */
 export const CompletedAutoScroll = m('CompletedAutoScroll')
@@ -141,7 +141,7 @@ export const Message: S.Union<
     typeof CompletedAutoScroll,
     typeof CompletedFocusItem,
   ]
-> = S.Union(
+> = S.Union([
   PressedDraggable,
   MovedPointer,
   ReleasedPointer,
@@ -152,7 +152,7 @@ export const Message: S.Union<
   PressedArrowKey,
   CompletedAutoScroll,
   CompletedFocusItem,
-)
+])
 
 export type Message = typeof Message.Type
 
@@ -170,7 +170,7 @@ export const Reordered = ts('Reordered', {
 export const Cancelled = ts('Cancelled')
 
 /** Union of all out-messages the drag-and-drop component can emit to its parent. */
-export const OutMessage = S.Union(Reordered, Cancelled)
+export const OutMessage = S.Union([Reordered, Cancelled])
 export type OutMessage = typeof OutMessage.Type
 
 // INIT
@@ -525,9 +525,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
 // SUBSCRIPTION
 
-const DragActivity = S.Literal('Idle', 'Active')
-const PointerDragActivity = S.Literal('Idle', 'Active')
-const KeyboardDragActivity = S.Literal('Idle', 'Active')
+const DragActivity = S.Literals(['Idle', 'Active'])
+const PointerDragActivity = S.Literals(['Idle', 'Active'])
+const KeyboardDragActivity = S.Literals(['Idle', 'Active'])
 
 const resolveDropTarget = (
   clientX: number,

@@ -1,6 +1,6 @@
 import { type Equivalence, Record, type Schema, type Stream } from 'effect'
 
-type ResolveMessage<T> = [T] extends [Schema.Schema.Any]
+type ResolveMessage<T> = [T] extends [Schema.Top]
   ? Schema.Schema.Type<T>
   : T
 

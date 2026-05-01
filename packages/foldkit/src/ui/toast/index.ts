@@ -134,7 +134,7 @@ const DEFAULT_ARIA_LABEL = 'Notifications'
  *  ```ts
  *  const ToastPayload = S.Struct({
  *    bodyText: S.String,
- *    maybeLink: S.OptionFromSelf(S.Struct({
+ *    maybeLink: S.Option(S.Struct({
  *      href: S.String,
  *      text: S.String,
  *    })),
@@ -142,7 +142,7 @@ const DEFAULT_ARIA_LABEL = 'Notifications'
  *  export const Toast = Ui.Toast.make(ToastPayload)
  *  ```
  */
-export const make = <A, I>(payloadSchema: S.Schema<A, I>) => {
+export const make = <A, I>(payloadSchema: S.Codec<A, I>) => {
   const runtime = makeRuntime(payloadSchema)
   type Entry = typeof runtime.Entry.Type
 

@@ -80,7 +80,7 @@ export const startWebSocketBridge = (
   store: DevToolsStore,
   hot: Hot,
   dispatch: (message: unknown) => Effect.Effect<void>,
-  maybeMessageSchema: Option.Option<S.Schema<any, any, never>>,
+  maybeMessageSchema: Option.Option<S.Codec<any, any>>,
 ): Effect.Effect<void> =>
   Effect.gen(function* () {
     const connectionId = generateConnectionId()
@@ -120,7 +120,7 @@ export const startWebSocketBridge = (
       })
 
     const handleRequestFrame = (frame: unknown): void => {
-      const decoded = S.decodeUnknownEither(RequestFrame)(frame)
+      const decoded = S.decodeUnknownExit(RequestFrame)(frame)
       Either.match(decoded, {
         onLeft: error => {
           console.warn('[foldkit:devTools] malformed request frame', error)
@@ -188,7 +188,7 @@ const readModelResponse = (
       expand,
     )
   }).pipe(
-    Effect.catchAllCause(cause =>
+    Effect.catchCause(cause =>
       Effect.succeed(
         ResponseError({
           reason: `Failed to read Model at index ${index}: ${Cause.pretty(cause)}`,
@@ -200,7 +200,7 @@ const readModelResponse = (
 const dispatchRequest = (
   store: DevToolsStore,
   dispatch: (message: unknown) => Effect.Effect<void>,
-  maybeMessageSchema: Option.Option<S.Schema<any, any, never>>,
+  maybeMessageSchema: Option.Option<S.Codec<any, any>>,
   request: Request,
 ): Effect.Effect<Response> =>
   Match.value(request).pipe(
@@ -278,7 +278,7 @@ const dispatchRequest = (
             state.keyframes,
             HashMap.keys,
             Array.fromIterable,
-            Array.sort(Order.number),
+            Array.sort(Order.Number),
           )
           const indicesWithInit = Option.match(state.maybeInitModel, {
             onNone: () => sortedKeyframeIndices,
@@ -297,7 +297,7 @@ const dispatchRequest = (
             const model = yield* store.getModelAtIndex(keyframeIndex)
             return ResponseReplayed({ model: toInspectableValue(model) })
           }),
-          Effect.catchAllCause(cause =>
+          Effect.catchCause(cause =>
             Effect.succeed(
               ResponseError({
                 reason: `Failed to replay to keyframe ${keyframeIndex}: ${Cause.pretty(cause)}`,
@@ -311,7 +311,7 @@ const dispatchRequest = (
           yield* store.resume
           return ResponseResumed()
         }).pipe(
-          Effect.catchAllCause(cause =>
+          Effect.catchCause(cause =>
             Effect.succeed(
               ResponseError({
                 reason: `Failed to resume: ${Cause.pretty(cause)}`,
@@ -332,14 +332,14 @@ const dispatchRequest = (
           onSome: messageSchema =>
             Effect.gen(function* () {
               const decodedMessage =
-                yield* S.decodeUnknown(messageSchema)(message)
+                yield* S.decodeUnknownEffect(messageSchema)(message)
               const stateBefore = yield* SubscriptionRef.get(store.stateRef)
               const acceptedAtIndex =
                 stateBefore.startIndex + stateBefore.entries.length
               yield* dispatch(decodedMessage)
               return ResponseDispatched({ acceptedAtIndex })
             }).pipe(
-              Effect.catchAll(error =>
+              Effect.catch(error =>
                 Effect.succeed(
                   ResponseError({
                     reason: `Invalid Message: ${error instanceof Error ? error.message : String(error)}\n\nReceived (typeof ${typeof message}): ${JSON.stringify(message)}`,

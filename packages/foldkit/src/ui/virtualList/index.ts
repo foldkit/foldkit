@@ -34,7 +34,7 @@ const Measured = ts('Measured', { containerHeight: S.Number })
  * `Unmeasured` explicitly, typically by rendering a placeholder until the
  * first measurement arrives.
  */
-const Measurement = S.Union(Unmeasured, Measured)
+const Measurement = S.Union([Unmeasured, Measured])
 
 const Idle = ts('Idle')
 const ScrollingToIndex = ts('ScrollingToIndex', {
@@ -43,7 +43,7 @@ const ScrollingToIndex = ts('ScrollingToIndex', {
 })
 
 /** State of a programmatic scroll initiated by `scrollToIndex`. */
-const PendingScroll = S.Union(Idle, ScrollingToIndex)
+const PendingScroll = S.Union([Idle, ScrollingToIndex])
 
 /** Schema for the virtual list's state. Tracks scroll position, container
  *  measurement, and any in-flight programmatic scroll. */
@@ -83,7 +83,7 @@ export const Message: S.Union<
     typeof MeasuredContainer,
     typeof CompletedApplyScroll,
   ]
-> = S.Union(ScrolledContainer, MeasuredContainer, CompletedApplyScroll)
+> = S.Union([ScrolledContainer, MeasuredContainer, CompletedApplyScroll])
 
 export type ScrolledContainer = typeof ScrolledContainer.Type
 export type MeasuredContainer = typeof MeasuredContainer.Type
@@ -346,7 +346,7 @@ export const visibleWindowVariable = <Item>(
 
         const firstVisibleIndex = pipe(
           cumulativeOffsets,
-          Array.findFirstIndex(Number.greaterThan(model.scrollTop)),
+          Array.findFirstIndex(Number.isGreaterThan(model.scrollTop)),
           Option.match({
             onNone: () => itemCount,
             onSome: index => Math.max(0, index - 1),
@@ -356,7 +356,7 @@ export const visibleWindowVariable = <Item>(
         const lastVisibleIndex = pipe(
           cumulativeOffsets,
           Array.findFirstIndex(
-            Number.greaterThanOrEqualTo(model.scrollTop + containerHeight),
+            Number.isGreaterThanOrEqualTo(model.scrollTop + containerHeight),
           ),
           Option.getOrElse(() => itemCount),
         )
@@ -389,7 +389,7 @@ export const visibleWindowVariable = <Item>(
 // SUBSCRIPTION
 
 const containerElement = (id: string): Option.Option<HTMLElement> =>
-  Option.fromNullable(document.getElementById(id))
+  Option.fromNullishOr(document.getElementById(id))
 
 /** Schema describing the subscription dependencies for container scroll and
  *  resize tracking. */

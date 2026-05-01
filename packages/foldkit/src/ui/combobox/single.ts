@@ -23,8 +23,8 @@ import {
 export const Model = BaseModel.pipe(
   S.extend(
     S.Struct({
-      maybeSelectedItem: S.OptionFromSelf(S.String),
-      maybeSelectedDisplayText: S.OptionFromSelf(S.String),
+      maybeSelectedItem: S.Option(S.String),
+      maybeSelectedDisplayText: S.Option(S.String),
     }),
   ),
 )
@@ -43,8 +43,8 @@ export type InitConfig = BaseInitConfig &
 /** Creates an initial single-select combobox model from a config. Defaults to closed with no active item, empty input, and no selection. */
 export const init = (config: InitConfig): Model => ({
   ...baseInit(config),
-  maybeSelectedItem: Option.fromNullable(config.selectedItem),
-  maybeSelectedDisplayText: Option.fromNullable(
+  maybeSelectedItem: Option.fromNullishOr(config.selectedItem),
+  maybeSelectedDisplayText: Option.fromNullishOr(
     config.selectedDisplayText ?? config.selectedItem,
   ),
 })

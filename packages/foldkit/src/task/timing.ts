@@ -9,7 +9,7 @@ import { Duration, Effect } from 'effect'
  * Task.delay('1 second').pipe(Effect.as(TimedOut()))
  * ```
  */
-export const delay = (duration: Duration.DurationInput): Effect.Effect<void> =>
+export const delay = (duration: Duration.Input): Effect.Effect<void> =>
   Effect.sleep(duration)
 
 /**

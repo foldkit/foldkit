@@ -17,7 +17,7 @@ export type Model = typeof Model.Type
 const PressedPointerDown = m('PressedPointerDown', { pointerType: S.String })
 const ReleasedPointerUp = m('ReleasedPointerUp', { pointerType: S.String })
 
-const Message = S.Union(PressedPointerDown, ReleasedPointerUp)
+const Message = S.Union([PressedPointerDown, ReleasedPointerUp])
 type Message = typeof Message.Type
 
 // INIT

@@ -368,7 +368,7 @@ export const slash =
  */
 export const query =
   <A, I extends Record.ReadonlyRecord<string, unknown>>(
-    schema: Schema.Schema<A, I>,
+    schema: Schema.Codec<A, I>,
   ) =>
   <B extends Record<string, unknown>>(
     parser: Biparser<B>,
@@ -383,7 +383,7 @@ export const query =
 
             return pipe(
               queryRecord,
-              Schema.decodeUnknown(schema),
+              Schema.decodeUnknownEffect(schema),
               Effect.mapError(
                 error =>
                   new ParseError({
@@ -408,7 +408,7 @@ export const query =
           parser.print(value, state),
           Effect.flatMap(newState =>
             pipe(
-              Schema.encode(schema)(value),
+              Schema.encodeEffect(schema)(value),
               Effect.map(queryValue => {
                 const newQueryParams = new URLSearchParams(newState.queryParams)
                 pipe(

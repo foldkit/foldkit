@@ -30,14 +30,14 @@ export const Model = S.Struct({
   id: S.String,
   today: Calendar.CalendarDate,
   viewYear: S.Int,
-  viewMonth: S.Int.pipe(S.between(1, 12)),
+  viewMonth: S.Int.pipe(S.isBetween(1, 12)),
   viewMode: ViewMode,
-  maybeFocusedDate: S.OptionFromSelf(Calendar.CalendarDate),
-  maybeSelectedDate: S.OptionFromSelf(Calendar.CalendarDate),
+  maybeFocusedDate: S.Option(Calendar.CalendarDate),
+  maybeSelectedDate: S.Option(Calendar.CalendarDate),
   isGridFocused: S.Boolean,
   locale: Calendar.LocaleConfig,
-  maybeMinDate: S.OptionFromSelf(Calendar.CalendarDate),
-  maybeMaxDate: S.OptionFromSelf(Calendar.CalendarDate),
+  maybeMinDate: S.Option(Calendar.CalendarDate),
+  maybeMaxDate: S.Option(Calendar.CalendarDate),
   disabledDaysOfWeek: S.Array(Calendar.DayOfWeek),
   disabledDates: S.Array(Calendar.CalendarDate),
 })
@@ -84,7 +84,7 @@ export const RefreshedToday = m('RefreshedToday', {
 export const CompletedFocusGrid = m('CompletedFocusGrid')
 
 /** Union of all messages the calendar component can produce. */
-export const Message = S.Union(
+export const Message = S.Union([
   ClickedDay,
   PressedKeyOnGrid,
   ClickedPreviousMonthButton,
@@ -97,7 +97,7 @@ export const Message = S.Union(
   BlurredGrid,
   RefreshedToday,
   CompletedFocusGrid,
-)
+])
 export type Message = typeof Message.Type
 
 // OUT MESSAGE
@@ -137,7 +137,7 @@ export type InitConfig = Readonly<{
 /** Creates an initial calendar model. The view month defaults to the month
  * of the initial selected date, or today if no date is pre-selected. */
 export const init = (config: InitConfig): Model => {
-  const maybeInitialSelectedDate = Option.fromNullable(
+  const maybeInitialSelectedDate = Option.fromNullishOr(
     config.initialSelectedDate,
   )
   const initialFocus = Option.getOrElse(
@@ -154,8 +154,8 @@ export const init = (config: InitConfig): Model => {
     maybeSelectedDate: maybeInitialSelectedDate,
     isGridFocused: false,
     locale: config.locale ?? Calendar.defaultEnglishLocale,
-    maybeMinDate: Option.fromNullable(config.minDate),
-    maybeMaxDate: Option.fromNullable(config.maxDate),
+    maybeMinDate: Option.fromNullishOr(config.minDate),
+    maybeMaxDate: Option.fromNullishOr(config.maxDate),
     disabledDaysOfWeek: config.disabledDaysOfWeek ?? [],
     disabledDates: config.disabledDates ?? [],
   }

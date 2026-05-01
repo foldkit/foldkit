@@ -278,7 +278,7 @@ const captureFromElement = <Model, Message, OutMessage>(
   invokeHandler: (handler: Function) => void,
 ): SceneSimulation<Model, Message, OutMessage> => {
   const internal = toInternal(simulation)
-  const maybeHandler = Option.fromNullable(element.data?.on?.[eventName])
+  const maybeHandler = Option.fromNullishOr(element.data?.on?.[eventName])
 
   if (Option.isNone(maybeHandler)) {
     const attributeName = EVENT_NAMES[eventName] ?? eventName
@@ -483,7 +483,7 @@ export const resolve: {
     )
 
     if (Predicate.isUndefined(next)) {
-      const pending = Array.isNonEmptyReadonlyArray(internal.commands)
+      const pending = Array.isNonEmptyArray(internal.commands)
         ? pipe(
             internal.commands,
             Array.map(({ name }) => `    ${name}`),
@@ -1324,7 +1324,7 @@ const assertHasStyle = (
 ): SceneAssertion =>
   assertOnElement(
     vnode => {
-      const maybeActualValue = Option.fromNullable(vnode.data?.style?.[name])
+      const maybeActualValue = Option.fromNullishOr(vnode.data?.style?.[name])
       if (Predicate.isUndefined(value)) {
         return {
           pass: Option.isSome(maybeActualValue),

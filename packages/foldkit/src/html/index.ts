@@ -1519,7 +1519,7 @@ const buildVNodeData = <Message>(
                           dispatchSync(message)
                         }
                       }).pipe(
-                        Effect.catchAllCause(cause =>
+                        Effect.catchCause(cause =>
                           Effect.sync(() => {
                             console.error(
                               `[OnMount ${action.name}] unhandled failure`,
@@ -1552,7 +1552,7 @@ const buildVNodeData = <Message>(
 
     const postpatchProps = yield* Ref.get(postpatchPropsRef)
 
-    if (Array.isNonEmptyArray(postpatchProps)) {
+    if (Array.isReadonlyArrayNonEmpty(postpatchProps)) {
       yield* Ref.update(dataRef, data => ({
         ...data,
         hook: {

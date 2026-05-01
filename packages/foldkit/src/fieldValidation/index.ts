@@ -41,7 +41,7 @@ export const Invalid = ts('Invalid', {
 })
 
 /** The four-state union that represents a field's value in the Model. */
-export const Field = S.Union(NotValidated, Validating, Valid, Invalid)
+export const Field = S.Union([NotValidated, Validating, Valid, Invalid])
 export type Field = typeof Field.Type
 
 // RULES DESCRIPTOR
@@ -72,7 +72,7 @@ export type MakeRulesOptions = Readonly<{
 }>
 
 export const makeRules = (options: MakeRulesOptions = {}): Rules => ({
-  requiredMessage: Option.fromNullable(options.required),
+  requiredMessage: Option.fromNullishOr(options.required),
   rules: options.rules ?? [],
   isEmpty: options.isEmpty ?? String.isEmpty,
 })

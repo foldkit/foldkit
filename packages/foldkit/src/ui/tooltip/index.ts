@@ -35,7 +35,7 @@ export const Model = S.Struct({
   isDismissed: S.Boolean,
   showDelay: S.DurationFromMillis,
   pendingShowVersion: S.Number,
-  maybeLastPointerType: S.OptionFromSelf(S.String),
+  maybeLastPointerType: S.Option(S.String),
 })
 
 export type Model = typeof Model.Type
@@ -81,7 +81,7 @@ export const Message: S.Union<
     typeof ChangedShowDelay,
     typeof CompletedAnchorMount,
   ]
-> = S.Union(
+> = S.Union([
   EnteredTrigger,
   LeftTrigger,
   FocusedTrigger,
@@ -91,7 +91,7 @@ export const Message: S.Union<
   ElapsedShowDelay,
   ChangedShowDelay,
   CompletedAnchorMount,
-)
+])
 
 export type EnteredTrigger = typeof EnteredTrigger.Type
 export type LeftTrigger = typeof LeftTrigger.Type
@@ -108,10 +108,10 @@ const DEFAULT_SHOW_DELAY = Duration.millis(500)
 
 const LEFT_MOUSE_BUTTON = 0
 
-/** Configuration for creating a tooltip model with `init`. `showDelay` controls how long the pointer must hover before the tooltip appears (default 500ms). Accepts any `Duration.DurationInput` — a bare number is interpreted as milliseconds. Keyboard focus shows the tooltip immediately regardless of this value. */
+/** Configuration for creating a tooltip model with `init`. `showDelay` controls how long the pointer must hover before the tooltip appears (default 500ms). Accepts any `Duration.Input` — a bare number is interpreted as milliseconds. Keyboard focus shows the tooltip immediately regardless of this value. */
 export type InitConfig = Readonly<{
   id: string
-  showDelay?: Duration.DurationInput
+  showDelay?: Duration.Input
 }>
 
 /** Creates an initial tooltip model from a config. Defaults to hidden. */
@@ -124,7 +124,7 @@ export const init = (config: InitConfig): Model => ({
   showDelay:
     config.showDelay === undefined
       ? DEFAULT_SHOW_DELAY
-      : Duration.decode(config.showDelay),
+      : Duration.fromInputUnsafe(config.showDelay),
   pendingShowVersion: 0,
   maybeLastPointerType: Option.none(),
 })
@@ -278,9 +278,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 /** Programmatically updates the tooltip's hover show-delay. Use this in response to user preference changes, input-method switches, or reduced-motion settings. The new delay applies to the next hover; any pending timer is unaffected (its stale version will discard harmlessly when it fires). */
 export const setShowDelay = (
   model: Model,
-  showDelay: Duration.DurationInput,
+  showDelay: Duration.Input,
 ): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  update(model, ChangedShowDelay({ showDelay: Duration.decode(showDelay) }))
+  update(model, ChangedShowDelay({ showDelay: Duration.fromInputUnsafe(showDelay) }))
 
 // VIEW
 

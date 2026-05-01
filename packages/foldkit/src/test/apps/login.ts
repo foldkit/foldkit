@@ -9,7 +9,7 @@ import { m } from '../../message/index.js'
 export const Model = S.Struct({
   email: S.String,
   password: S.String,
-  status: S.Literal('Idle', 'Submitting', 'LoggedIn', 'Error'),
+  status: S.Literals(['Idle', 'Submitting', 'LoggedIn', 'Error']),
   username: S.String,
   error: S.String,
 })
@@ -27,14 +27,14 @@ export const SucceededAuthenticate = m('SucceededAuthenticate', {
 export const FailedAuthenticate = m('FailedAuthenticate', { error: S.String })
 export const ClickedLogout = m('ClickedLogout')
 
-export const Message = S.Union(
+export const Message = S.Union([
   UpdatedEmail,
   UpdatedPassword,
   SubmittedLogin,
   SucceededAuthenticate,
   FailedAuthenticate,
   ClickedLogout,
-)
+])
 export type Message = typeof Message.Type
 
 // COMMAND

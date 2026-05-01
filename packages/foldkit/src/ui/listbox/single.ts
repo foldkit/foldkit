@@ -20,7 +20,7 @@ import {
 
 /** Schema for the listbox component's state, tracking open/closed status, active item, selected item, activation trigger, and typeahead search. */
 export const Model = BaseModel.pipe(
-  S.extend(S.Struct({ maybeSelectedItem: S.OptionFromSelf(S.String) })),
+  S.extend(S.Struct({ maybeSelectedItem: S.Option(S.String) })),
 )
 
 export type Model = typeof Model.Type
@@ -36,7 +36,7 @@ export type InitConfig = BaseInitConfig &
 /** Creates an initial single-select listbox model from a config. Defaults to closed with no active item and no selection. */
 export const init = (config: InitConfig): Model => ({
   ...baseInit(config),
-  maybeSelectedItem: Option.fromNullable(config.selectedItem),
+  maybeSelectedItem: Option.fromNullishOr(config.selectedItem),
 })
 
 // UPDATE

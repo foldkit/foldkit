@@ -88,7 +88,7 @@ export const RequestDispatchMessage = ts('RequestDispatchMessage', {
 export const RequestListRuntimes = ts('RequestListRuntimes')
 
 /** A request from the MCP server. RequestListRuntimes is handled at the Vite plugin layer; all other requests are routed to a browser runtime. */
-export const Request = S.Union(
+export const Request = S.Union([
   RequestGetModel,
   RequestGetModelAt,
   RequestListMessages,
@@ -100,7 +100,7 @@ export const Request = S.Union(
   RequestListRuntimes,
   RequestGetInit,
   RequestGetRuntimeState,
-)
+])
 /** A request from the MCP server. */
 export type Request = typeof Request.Type
 
@@ -169,7 +169,7 @@ export const ResponseError = ts('ResponseError', {
 })
 
 /** A response replying to a Request. */
-export const Response = S.Union(
+export const Response = S.Union([
   ResponseModel,
   ResponseMessages,
   ResponseMessage,
@@ -181,7 +181,7 @@ export const Response = S.Union(
   ResponseInit,
   ResponseRuntimeState,
   ResponseError,
-)
+])
 /** A response replying to a Request. */
 export type Response = typeof Response.Type
 
@@ -198,7 +198,7 @@ export const EventDisconnected = ts('EventDisconnected', {
 })
 
 /** A runtime lifecycle event used by the Vite plugin to track which browser tabs are connected. Not forwarded to MCP clients. */
-export const Event = S.Union(EventConnected, EventDisconnected)
+export const Event = S.Union([EventConnected, EventDisconnected])
 /** A runtime lifecycle event. */
 export type Event = typeof Event.Type
 

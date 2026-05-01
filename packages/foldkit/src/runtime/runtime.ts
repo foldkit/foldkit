@@ -90,7 +90,7 @@ export type DevToolsConfig =
        * Without this field, `RequestDispatchMessage` is rejected with an
        * informative error.
        */
-      Message?: Schema.Schema<any, any, never>
+      Message?: Schema.Codec<any, any>
     }>
 
 const DEFAULT_DEV_TOOLS_SHOW: Visibility = 'Development'
@@ -184,8 +184,8 @@ type RuntimeConfig<
   Resources = never,
   ManagedResourceServices = never,
 > = Readonly<{
-  Model: Schema.Schema<Model, any, never>
-  Flags: Schema.Schema<Flags, any, never>
+  Model: Schema.Codec<Model, any>
+  Flags: Schema.Codec<Flags, any>
   flags: Effect.Effect<Flags>
   init: (
     flags: Flags,
@@ -252,7 +252,7 @@ type BaseProgramConfig<
   Resources = never,
   ManagedResourceServices = never,
 > = Readonly<{
-  Model: Schema.Schema<Model, any, never>
+  Model: Schema.Codec<Model, any>
   update: (
     model: Model,
     message: Message,
@@ -292,7 +292,7 @@ export type RoutingProgramConfigWithFlags<
   ManagedResourceServices
 > &
   Readonly<{
-    Flags: Schema.Schema<Flags, any, never>
+    Flags: Schema.Codec<Flags, any>
     flags: Effect.Effect<Flags>
     routing: RoutingConfig<Message>
     init: (
@@ -348,7 +348,7 @@ export type ProgramConfigWithFlags<
   ManagedResourceServices
 > &
   Readonly<{
-    Flags: Schema.Schema<Flags, any, never>
+    Flags: Schema.Codec<Flags, any>
     flags: Effect.Effect<Flags>
     init: (
       flags: Flags,
@@ -555,20 +555,20 @@ const makeRuntime = <
 
         const flags = yield* resolveFlags
 
-        const modelEquivalence = Schema.equivalence(Model)
+        const modelEquivalence = Schema.toEquivalence(Model)
 
         const messageQueue = yield* Queue.unbounded<Message>()
         const enqueueMessage = (message: Message) =>
           Queue.offer(messageQueue, message)
 
-        const currentUrl: Option.Option<Url> = Option.fromNullable(
+        const currentUrl: Option.Option<Url> = Option.fromNullishOr(
           routingConfig,
         ).pipe(Option.flatMap(() => urlFromString(window.location.href)))
 
         const [initModelRaw, initCommands] = Predicate.isNotUndefined(hmrModel)
           ? pipe(
               hmrModel,
-              Schema.decodeUnknownEither(Model),
+              Schema.decodeUnknownExit(Model),
               Either.match({
                 onLeft: () => init(flags, Option.getOrUndefined(currentUrl)),
                 onRight: restoredModel => [restoredModel, []],
@@ -586,7 +586,7 @@ const makeRuntime = <
             AnyCommand<Message, never, Resources | ManagedResourceServices>
           >,
           command =>
-            Effect.forkDaemon(
+            Effect.forkDetach(
               command.effect.pipe(
                 Effect.withSpan(command.name),
                 provideAllResources,
@@ -670,7 +670,7 @@ const makeRuntime = <
                 AnyCommand<Message, never, Resources | ManagedResourceServices>
               >,
               command =>
-                Effect.forkDaemon(
+                Effect.forkDetach(
                   command.effect.pipe(
                     Effect.withSpan(command.name),
                     provideAllResources,
@@ -818,7 +818,7 @@ const makeRuntime = <
           Option.map(config => ({
             position: config.position ?? DEFAULT_DEV_TOOLS_POSITION,
             mode: config.mode ?? DEFAULT_DEV_TOOLS_MODE,
-            maybeBanner: Option.fromNullable(config.banner),
+            maybeBanner: Option.fromNullishOr(config.banner),
           })),
         )
 
@@ -845,8 +845,8 @@ const makeRuntime = <
           if (import.meta.hot) {
             const maybeMessageSchema =
               devTools !== undefined && devTools !== false
-                ? Option.fromNullable(devTools.Message)
-                : Option.none<Schema.Schema<any, any, never>>()
+                ? Option.fromNullishOr(devTools.Message)
+                : Option.none<Schema.Codec<any, any>>()
             yield* startWebSocketBridge(
               devToolsStore,
               import.meta.hot,
@@ -877,14 +877,14 @@ const makeRuntime = <
               ]) => {
                 let latestDependencies = modelToDependencies(initModel)
                 const equivalence =
-                  customEquivalence ?? Schema.equivalence(schema)
+                  customEquivalence ?? Schema.toEquivalence(schema)
 
                 const modelStream = Stream.concat(
                   Stream.make(initModel),
                   modelSubscriptionRef.changes,
                 )
 
-                return Effect.forkDaemon(
+                return Effect.forkDetach(
                   modelStream.pipe(
                     // NOTE: updates latestDependencies on every model change so
                     // readDependencies() returns current values even when the
@@ -946,7 +946,7 @@ const makeRuntime = <
                 yield* config.release(value)
                 yield* Ref.set(resourceRef, Option.none())
                 yield* enqueueMessage(config.onReleased())
-              }).pipe(Effect.catchAllCause(() => Effect.void))
+              }).pipe(Effect.catchCause(() => Effect.void))
 
             return pipe(
               Stream.scoped(Effect.acquireRelease(acquire, release)),
@@ -975,9 +975,9 @@ const makeRuntime = <
               modelSubscriptionRef.changes,
             )
 
-            const equivalence = Schema.equivalence(config.schema)
+            const equivalence = Schema.toEquivalence(config.schema)
 
-            yield* Effect.forkDaemon(
+            yield* Effect.forkDetach(
               modelStream.pipe(
                 Stream.map(config.modelToMaybeRequirements),
                 Stream.changesWith(equivalence),
@@ -1009,7 +1009,7 @@ const makeRuntime = <
               yield* processMessage(message)
             }),
           ),
-          Effect.catchAllCause(cause =>
+          Effect.catchCause(cause =>
             Effect.sync(() => {
               const squashed = Cause.squash(cause)
               const appError =

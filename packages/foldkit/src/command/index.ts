@@ -10,7 +10,7 @@ export const CommandDefinitionTypeId: unique symbol = Symbol.for(
 export type CommandDefinitionTypeId = typeof CommandDefinitionTypeId
 
 /** A named Effect that produces a message. */
-export type Command<T, E = never, R = never> = [T] extends [Schema.Schema.Any]
+export type Command<T, E = never, R = never> = [T] extends [Schema.Top]
   ? Readonly<{
       name: string
       effect: Effect.Effect<Schema.Schema.Type<T>, E, R>
@@ -31,13 +31,13 @@ export interface CommandDefinition<Name extends string, ResultMessage = any> {
 
 /** Defines a named Command identity with the Messages it returns. */
 export const define: {
-  <const Name extends string, Results extends ReadonlyArray<Schema.Schema.Any>>(
+  <const Name extends string, Results extends ReadonlyArray<Schema.Top>>(
     name: Name,
     ...results: Results
   ): CommandDefinition<Name, Schema.Schema.Type<Results[number]>>
 } = <const Name extends string>(
   name: Name,
-  ..._results: ReadonlyArray<Schema.Schema.Any>
+  ..._results: ReadonlyArray<Schema.Top>
 ): CommandDefinition<Name, any> => {
   const create = (
     effect: Effect.Effect<any, any, any>,

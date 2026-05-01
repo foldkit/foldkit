@@ -18,7 +18,7 @@ export type Model = typeof Model.Type
 export const PressedKey = m('PressedKey', { key: S.String })
 export const PressedShiftKey = m('PressedShiftKey', { key: S.String })
 
-export const Message = S.Union(PressedKey, PressedShiftKey)
+export const Message = S.Union([PressedKey, PressedShiftKey])
 export type Message = typeof Message.Type
 
 // INIT
