@@ -622,7 +622,7 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         ),
       CoreFreezeModel: () =>
         withTableOfContents(
-          lazyDocsContent(Page.Core.FreezeModel.view, [model.copiedSnippets]),
+          lazyDocsContent(Page.Core.FreezeModel.view, []),
           Page.Core.FreezeModel.tableOfContents,
         ),
       PatternsSubmodels: () =>

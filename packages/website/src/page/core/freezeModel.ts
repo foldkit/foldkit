@@ -1,6 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
+import { div } from '../../html'
 import type { TableOfContentsEntry } from '../../main'
 import {
   inlineCode,
@@ -8,8 +8,6 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
-import * as Snippets from '../../snippet'
-import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -28,7 +26,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   scopeHeader,
 ]
 
-export const view = (copiedSnippets: CopiedSnippets): Html =>
+export const view = (): Html =>
   div(
     [],
     [
@@ -51,24 +49,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' at the exact call site with a clear stack trace, instead of silently corrupting state.',
       ),
       para(
-        'Freezing runs in dev mode by default (gated behind ',
+        'Freezing runs in dev mode (gated behind ',
         inlineCode('import.meta.hot'),
-        '), so there is zero runtime cost in production builds. Pass ',
-        inlineCode("show: 'Always'"),
-        ' to enable it in every environment. Useful for QA and staging where you want the safety net active, or for hunting a mutation bug that only reproduces under real traffic:',
-      ),
-      highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.freezeModelAlwaysHighlighted)],
-          [],
-        ),
-        Snippets.freezeModelAlwaysRaw,
-        'Enable freeze model in every environment',
-        copiedSnippets,
-        'mb-8',
-      ),
-      para(
-        'Set ',
+        '), so there is zero runtime cost in production builds. Set ',
         inlineCode('freezeModel'),
         ' to ',
         inlineCode('false'),
@@ -113,9 +96,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' still throws if you try to mutate the inner array.',
       ),
       para(
-        'Messages are never frozen, even with ',
-        inlineCode("show: 'Always'"),
-        '. They routinely carry ',
+        'Messages are never frozen. They routinely carry ',
         inlineCode('OptionFromSelf'),
         ' and ',
         inlineCode('DateTimeFromSelf'),
