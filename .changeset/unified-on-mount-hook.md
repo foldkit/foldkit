@@ -23,17 +23,17 @@ const view = div(
 import { Mount } from 'foldkit'
 import type { MountResult } from 'foldkit/html'
 
-const Mounted = Mount.define('Mounted', SucceededMount)
-const mounted = Mounted(
+const MountWidget = Mount.define('MountWidget', CompletedMountWidget)
+const mountWidget = MountWidget(
   (element): Effect.Effect<MountResult<Message>> =>
     Effect.sync(() => ({
-      message: SucceededMount(),
+      message: CompletedMountWidget(),
       cleanup: () => detachWidget(element),
     })),
 )
 
 const { OnMount } = html<Message>()
-const view = div([OnMount(mounted)], [])
+const view = div([OnMount(mountWidget)], [])
 ```
 
 For setup that has no cleanup, pass `Function.constVoid`. `Mount.mapMessage` lifts a `MountAction` into a parent's Message universe, mirroring `Command.mapEffect` for the Submodel pattern.
