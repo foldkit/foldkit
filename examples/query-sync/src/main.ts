@@ -125,7 +125,7 @@ const browseRouter = pipe(
   Route.root,
   Route.query(
     S.Struct({
-      search: S.OptionFromUndefinedOr(S.String),
+      search: S.OptionFromOptional(S.String),
       sorting: sortingFromParam,
       diet: optionFromValidParam(Diet),
       period: optionFromValidParam(Period),

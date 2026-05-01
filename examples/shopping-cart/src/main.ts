@@ -46,7 +46,7 @@ export type AppRoute = typeof AppRoute.Type
 
 const productsRouter = pipe(
   Route.root,
-  Route.query(S.Struct({ searchText: S.OptionFromUndefinedOr(S.String) })),
+  Route.query(S.Struct({ searchText: S.OptionFromOptional(S.String) })),
   Route.mapTo(ProductsRoute),
 )
 const cartRouter = pipe(literal('cart'), Route.mapTo(CartRoute))

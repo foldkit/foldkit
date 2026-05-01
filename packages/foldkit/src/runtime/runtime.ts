@@ -570,17 +570,18 @@ const makeRuntime = <
               {
                 onFailure: () =>
                   init(flags, Option.getOrUndefined(currentUrl)),
-                onSuccess: (restoredModel: Model) =>
-                  [
-                    restoredModel,
-                    [] as ReadonlyArray<
-                      AnyCommand<
-                        Message,
-                        never,
-                        Resources | ManagedResourceServices
-                      >
-                    >,
-                  ] as const,
+                onSuccess: (
+                  restoredModel: Model,
+                ): readonly [
+                  Model,
+                  ReadonlyArray<
+                    AnyCommand<
+                      Message,
+                      never,
+                      Resources | ManagedResourceServices
+                    >
+                  >,
+                ] => [restoredModel, []],
               },
             )
           : init(flags, Option.getOrUndefined(currentUrl))
@@ -907,8 +908,8 @@ const makeRuntime = <
                         () => latestDependencies,
                       ),
                     ),
-                    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
                     Stream.runForEach(message =>
+                      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
                       enqueueMessage(message as Message),
                     ),
                     provideAllResources,

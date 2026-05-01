@@ -1021,7 +1021,10 @@ export const getAllByLabel =
       flow(nameFromLabelledBy(html), Option.exists(Equal.equals(labelValue))),
     )
 
-    return Array.dedupe([...viaAriaLabel, ...viaLabelElement, ...viaLabelledBy])
+    return Array.dedupeWith(
+      [...viaAriaLabel, ...viaLabelElement, ...viaLabelledBy],
+      (a, b) => a === b,
+    )
   }
 
 /** Finds the first element with the given `alt` attribute. */

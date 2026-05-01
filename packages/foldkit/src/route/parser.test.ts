@@ -26,7 +26,7 @@ const makeUrl = (path: string, search?: string): Url => ({
 })
 
 describe('literal', () => {
-  it.scoped('matches an exact segment', () =>
+  it.effect('matches an exact segment', () =>
     Effect.gen(function* () {
       const [value, remaining] = yield* literal('users').parse(['users', 'abc'])
       expect(value).toStrictEqual({})
@@ -34,7 +34,7 @@ describe('literal', () => {
     }),
   )
 
-  it.scoped('fails on mismatched segment', () =>
+  it.effect('fails on mismatched segment', () =>
     Effect.gen(function* () {
       const error = yield* Effect.flip(literal('users').parse(['posts']))
       expect(error._tag).toBe('ParseError')
@@ -43,14 +43,14 @@ describe('literal', () => {
     }),
   )
 
-  it.scoped('fails on empty segments', () =>
+  it.effect('fails on empty segments', () =>
     Effect.gen(function* () {
       const error = yield* Effect.flip(literal('users').parse([]))
       expect(error.actual).toBe('end of path')
     }),
   )
 
-  it.scoped('prints a segment', () =>
+  it.effect('prints a segment', () =>
     Effect.gen(function* () {
       const state = yield* literal('users').print(
         {},
@@ -62,7 +62,7 @@ describe('literal', () => {
 })
 
 describe('string', () => {
-  it.scoped('captures a segment as a named string', () =>
+  it.effect('captures a segment as a named string', () =>
     Effect.gen(function* () {
       const [value, remaining] = yield* string('id').parse(['abc', 'next'])
       expect(value).toStrictEqual({ id: 'abc' })
@@ -70,14 +70,14 @@ describe('string', () => {
     }),
   )
 
-  it.scoped('fails on empty segments', () =>
+  it.effect('fails on empty segments', () =>
     Effect.gen(function* () {
       const error = yield* Effect.flip(string('id').parse([]))
       expect(error._tag).toBe('ParseError')
     }),
   )
 
-  it.scoped('prints the named value', () =>
+  it.effect('prints the named value', () =>
     Effect.gen(function* () {
       const state = yield* string('id').print(
         { id: 'abc' },
@@ -89,14 +89,14 @@ describe('string', () => {
 })
 
 describe('int', () => {
-  it.scoped('parses a valid integer', () =>
+  it.effect('parses a valid integer', () =>
     Effect.gen(function* () {
       const [value] = yield* int('id').parse(['42'])
       expect(value).toStrictEqual({ id: 42 })
     }),
   )
 
-  it.scoped('rejects non-integer strings', () =>
+  it.effect('rejects non-integer strings', () =>
     Effect.gen(function* () {
       const error = yield* Effect.flip(int('id').parse(['abc']))
       expect(error._tag).toBe('ParseError')
@@ -104,21 +104,21 @@ describe('int', () => {
     }),
   )
 
-  it.scoped('rejects floating point numbers', () =>
+  it.effect('rejects floating point numbers', () =>
     Effect.gen(function* () {
       const error = yield* Effect.flip(int('id').parse(['3.5']))
       expect(error._tag).toBe('ParseError')
     }),
   )
 
-  it.scoped('rejects empty string', () =>
+  it.effect('rejects empty string', () =>
     Effect.gen(function* () {
       const error = yield* Effect.flip(int('id').parse(['']))
       expect(error._tag).toBe('ParseError')
     }),
   )
 
-  it.scoped('prints the integer as a string segment', () =>
+  it.effect('prints the integer as a string segment', () =>
     Effect.gen(function* () {
       const state = yield* int('id').print(
         { id: 42 },
@@ -130,7 +130,7 @@ describe('int', () => {
 })
 
 describe('root', () => {
-  it.scoped('succeeds on empty segments', () =>
+  it.effect('succeeds on empty segments', () =>
     Effect.gen(function* () {
       const [value, remaining] = yield* root.parse([])
       expect(value).toStrictEqual({})
@@ -138,7 +138,7 @@ describe('root', () => {
     }),
   )
 
-  it.scoped('fails when segments remain', () =>
+  it.effect('fails when segments remain', () =>
     Effect.gen(function* () {
       const error = yield* Effect.flip(root.parse(['extra']))
       expect(error._tag).toBe('ParseError')
@@ -147,7 +147,7 @@ describe('root', () => {
 })
 
 describe('slash', () => {
-  it.scoped('composes two parsers sequentially', () =>
+  it.effect('composes two parsers sequentially', () =>
     Effect.gen(function* () {
       const parser = pipe(literal('users'), slash(string('id')))
       const [value, remaining] = yield* parser.parse(['users', 'abc'])
@@ -156,7 +156,7 @@ describe('slash', () => {
     }),
   )
 
-  it.scoped('merges parsed values from chained parsers', () =>
+  it.effect('merges parsed values from chained parsers', () =>
     Effect.gen(function* () {
       const parser = pipe(
         literal('posts'),
@@ -168,7 +168,7 @@ describe('slash', () => {
     }),
   )
 
-  it.scoped('fails if first parser fails', () =>
+  it.effect('fails if first parser fails', () =>
     Effect.gen(function* () {
       const parser = pipe(literal('users'), slash(string('id')))
       const error = yield* Effect.flip(parser.parse(['posts', 'abc']))
@@ -176,7 +176,7 @@ describe('slash', () => {
     }),
   )
 
-  it.scoped('fails if second parser fails', () =>
+  it.effect('fails if second parser fails', () =>
     Effect.gen(function* () {
       const parser = pipe(literal('users'), slash(int('id')))
       const error = yield* Effect.flip(parser.parse(['users', 'abc']))
@@ -186,29 +186,29 @@ describe('slash', () => {
 })
 
 describe('query', () => {
-  it.scoped('parses query parameters with a schema', () =>
+  it.effect('parses query parameters with a schema', () =>
     Effect.gen(function* () {
       const parser = pipe(
         literal('items'),
-        query(S.Struct({ page: S.NumberFromString })),
+        query(S.Struct({ page: S.FiniteFromString })),
       )
       const [value] = yield* parser.parse(['items'], 'page=3')
       expect(value).toStrictEqual({ page: 3 })
     }),
   )
 
-  it.scoped('fails on invalid query parameters', () =>
+  it.effect('fails on invalid query parameters', () =>
     Effect.gen(function* () {
       const parser = pipe(
         literal('items'),
-        query(S.Struct({ page: S.NumberFromString })),
+        query(S.Struct({ page: S.FiniteFromString })),
       )
       const error = yield* Effect.flip(parser.parse(['items'], 'page=abc'))
       expect(error._tag).toBe('ParseError')
     }),
   )
 
-  it.scoped('combines path and query values', () =>
+  it.effect('combines path and query values', () =>
     Effect.gen(function* () {
       const parser = pipe(
         literal('shop'),
@@ -222,7 +222,7 @@ describe('query', () => {
 })
 
 describe('oneOf', () => {
-  it.scoped('matches the first successful parser', () =>
+  it.effect('matches the first successful parser', () =>
     Effect.gen(function* () {
       const parser = oneOf(literal('users'), literal('posts'))
       const [value] = yield* parser.parse(['users'])
@@ -230,7 +230,7 @@ describe('oneOf', () => {
     }),
   )
 
-  it.scoped('falls through to second parser', () =>
+  it.effect('falls through to second parser', () =>
     Effect.gen(function* () {
       const parser = oneOf(literal('users'), literal('posts'))
       const [value] = yield* parser.parse(['posts'])
@@ -238,7 +238,7 @@ describe('oneOf', () => {
     }),
   )
 
-  it.scoped('fails when no parser matches', () =>
+  it.effect('fails when no parser matches', () =>
     Effect.gen(function* () {
       const parser = oneOf(literal('users'), literal('posts'))
       const error = yield* Effect.flip(parser.parse(['comments']))
@@ -251,7 +251,7 @@ describe('mapTo', () => {
   const Home = r('Home')
   const UserProfile = r('UserProfile', { id: S.String })
 
-  it.scoped('wraps parsed values with a constructor', () =>
+  it.effect('wraps parsed values with a constructor', () =>
     Effect.gen(function* () {
       const router = mapTo(Home)(root)
       const [result] = yield* router.parse([])
@@ -259,7 +259,7 @@ describe('mapTo', () => {
     }),
   )
 
-  it.scoped('wraps parameterized parsed values', () =>
+  it.effect('wraps parameterized parsed values', () =>
     Effect.gen(function* () {
       const router = pipe(
         literal('users'),
@@ -315,7 +315,7 @@ describe('round-trip: parse then build', () => {
     expect(url).toBe('/users/jane/7')
   })
 
-  it.scoped('parse then build round-trips', () =>
+  it.effect('parse then build round-trips', () =>
     Effect.gen(function* () {
       const [parsed] = yield* router.parse(['users', 'jane', '7'])
       const rebuilt = router({

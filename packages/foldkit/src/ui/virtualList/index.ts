@@ -423,11 +423,16 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
       Stream.callback<Message>(queue =>
         Effect.acquireRelease(
           Effect.sync(() => {
-            const state = {
-              scrollListener: null as (() => void) | null,
-              resizeObserver: null as ResizeObserver | null,
-              observedElement: null as HTMLElement | null,
-              pendingFrame: null as number | null,
+            const state: {
+              scrollListener: (() => void) | null
+              resizeObserver: ResizeObserver | null
+              observedElement: HTMLElement | null
+              pendingFrame: number | null
+            } = {
+              scrollListener: null,
+              resizeObserver: null,
+              observedElement: null,
+              pendingFrame: null,
             }
 
             const detach = () => {

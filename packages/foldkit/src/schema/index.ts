@@ -19,12 +19,18 @@ const makeCallable = <Tag extends string, Fields extends S.Struct.Fields>(
   schema: S.TaggedStruct<Tag, Fields>,
 ): CallableTaggedStruct<Tag, Fields> =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  new Proxy(schema, {
+  new Proxy(function () {} as unknown as object, {
     apply(_target, _thisArg, argumentsList) {
-      return schema.make(argumentsList[0])
+      return schema.make(argumentsList[0] ?? {})
     },
-    get(target, property, receiver) {
-      return Reflect.get(target, property, receiver)
+    get(_target, property, receiver) {
+      return Reflect.get(schema, property, receiver)
+    },
+    has(_target, property) {
+      return Reflect.has(schema, property)
+    },
+    getPrototypeOf() {
+      return Reflect.getPrototypeOf(schema)
     },
   }) as unknown as CallableTaggedStruct<Tag, Fields>
 

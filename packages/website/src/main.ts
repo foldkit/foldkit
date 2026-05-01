@@ -143,23 +143,22 @@ const detectChromium = (): boolean =>
   })
 
 const flags: Effect.Effect<Flags> = Effect.gen(function* () {
-  const themePreference = yield* Effect.gen(function* () {
-    const store = yield* KeyValueStore.KeyValueStore
-    const json = yield* Effect.fromOption(
-      Option.fromNullishOr(yield* store.get(THEME_STORAGE_KEY)),
-    )
-    const theme = yield* S.decodeEffect(S.fromJsonString(ThemePreference))(json)
-    return Option.some(theme) as Option.Option<typeof ThemePreference.Type>
-  }).pipe(
-    Effect.catch(() =>
-      Effect.succeed(
-        Option.none<typeof ThemePreference.Type>() as Option.Option<
-          typeof ThemePreference.Type
-        >,
+  const themePreference: Option.Option<typeof ThemePreference.Type> =
+    yield* Effect.gen(function* () {
+      const store = yield* KeyValueStore.KeyValueStore
+      const json = yield* Effect.fromOption(
+        Option.fromNullishOr(yield* store.get(THEME_STORAGE_KEY)),
+      )
+      const theme = yield* S.decodeEffect(S.fromJsonString(ThemePreference))(
+        json,
+      )
+      return Option.some(theme)
+    }).pipe(
+      Effect.catch(() =>
+        Effect.succeed(Option.none<typeof ThemePreference.Type>()),
       ),
-    ),
-    Effect.provide(BrowserKeyValueStore.layerLocalStorage),
-  )
+      Effect.provide(BrowserKeyValueStore.layerLocalStorage),
+    )
 
   const systemTheme: typeof ResolvedTheme.Type = yield* Effect.sync(() =>
     window.matchMedia('(prefers-color-scheme: dark)').matches

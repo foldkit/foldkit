@@ -125,11 +125,11 @@ const GeocodingResult = S.Struct({
   name: S.String,
   latitude: S.Number,
   longitude: S.Number,
-  admin1: S.OptionFromUndefinedOr(S.String),
+  admin1: S.OptionFromOptional(S.String),
 })
 
 const GeocodingResponse = S.Struct({
-  results: S.OptionFromUndefinedOr(S.Array(GeocodingResult)),
+  results: S.OptionFromOptional(S.Array(GeocodingResult)),
 })
 
 const WeatherResponse = S.Struct({
