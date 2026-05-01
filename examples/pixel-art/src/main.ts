@@ -1,4 +1,4 @@
-import { KeyValueStore } from 'effect/unstable/http'
+import { KeyValueStore } from 'effect/unstable/persistence'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Effect, Option, Schema as S } from 'effect'
 import { Runtime, Ui } from 'foldkit'
@@ -25,12 +25,15 @@ type Flags = typeof Flags.Type
 
 const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   const store = yield* KeyValueStore.KeyValueStore
-  const maybeJson = yield* store.get(STORAGE_KEY)
-  const json = yield* maybeJson
+  const json = yield* Effect.fromOption(
+    Option.fromNullishOr(yield* store.get(STORAGE_KEY)),
+  )
   const decoded = yield* S.decodeEffect(S.fromJsonString(SavedCanvas))(json)
-  return { maybeSavedCanvas: Option.some(decoded) }
+  return { maybeSavedCanvas: Option.some(decoded) } as Flags
 }).pipe(
-  Effect.catch(() => Effect.succeed({ maybeSavedCanvas: Option.none() })),
+  Effect.catch(() =>
+    Effect.succeed({ maybeSavedCanvas: Option.none() } as Flags),
+  ),
   Effect.provide(BrowserKeyValueStore.layerLocalStorage),
 )
 

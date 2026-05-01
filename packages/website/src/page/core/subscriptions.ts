@@ -188,7 +188,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' field overrides the default structural comparison with an ',
         inlineCode('Equivalence'),
         ' from Effect, letting you choose which fields trigger a restart. ',
-        inlineCode('Equivalence.struct({ isDragging: Equivalence.Boolean })'),
+        inlineCode('Equivalence.Struct({ isDragging: Equivalence.Boolean })'),
         ' means two snapshots are equal if they have the same ',
         inlineCode('isDragging'),
         ' value, regardless of ',

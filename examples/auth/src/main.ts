@@ -1,4 +1,4 @@
-import { KeyValueStore } from 'effect/unstable/http'
+import { KeyValueStore } from 'effect/unstable/persistence'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Effect, Match as M, Option, Schema as S } from 'effect'
 import { Command, Runtime } from 'foldkit'
@@ -32,15 +32,18 @@ const Flags = S.Struct({
 
 const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   const store = yield* KeyValueStore.KeyValueStore
-  const maybeSessionJson = yield* store.get(SESSION_STORAGE_KEY)
-  const sessionJson = yield* maybeSessionJson
+  const sessionJson = yield* Effect.fromOption(
+    Option.fromNullishOr(yield* store.get(SESSION_STORAGE_KEY)),
+  )
 
   const decodeSession = S.decodeEffect(S.fromJsonString(Session))
   const session = yield* decodeSession(sessionJson)
 
-  return { maybeSession: Option.some(session) }
+  return { maybeSession: Option.some(session) } as Flags
 }).pipe(
-  Effect.catch(() => Effect.succeed({ maybeSession: Option.none() })),
+  Effect.catch(() =>
+    Effect.succeed({ maybeSession: Option.none() } as Flags),
+  ),
   Effect.provide(BrowserKeyValueStore.layerLocalStorage),
 )
 

@@ -1,4 +1,4 @@
-import { KeyValueStore } from 'effect/unstable/http'
+import { KeyValueStore } from 'effect/unstable/persistence'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Console, Effect, Schema as S } from 'effect'
 import { Command } from 'foldkit'

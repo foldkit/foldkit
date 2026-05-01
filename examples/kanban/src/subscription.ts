@@ -70,7 +70,7 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
       dragAndDropSubscriptions.autoScroll.modelToDependencies(
         model.dragAndDrop,
       ),
-    equivalence: Equivalence.struct({ isDragging: Equivalence.Boolean }),
+    equivalence: Equivalence.Struct({ isDragging: Equivalence.Boolean }),
     dependenciesToStream: (deps, readDependencies) =>
       mapDragStream(
         dragAndDropSubscriptions.autoScroll.dependenciesToStream(

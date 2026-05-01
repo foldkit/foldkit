@@ -1,4 +1,4 @@
-import { KeyValueStore } from 'effect/unstable/http'
+import { KeyValueStore } from 'effect/unstable/persistence'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import {
   Array,
@@ -601,8 +601,9 @@ export const view = (model: Model): Document => {
 
 const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   const store = yield* KeyValueStore.KeyValueStore
-  const maybeTodosJson = yield* store.get(TODOS_STORAGE_KEY)
-  const todosJson = yield* maybeTodosJson
+  const todosJson = yield* Effect.fromOption(
+    Option.fromNullishOr(yield* store.get(TODOS_STORAGE_KEY)),
+  )
 
   const decodeTodos = S.decodeEffect(S.fromJsonString(Todos))
   const todos = yield* decodeTodos(todosJson)
