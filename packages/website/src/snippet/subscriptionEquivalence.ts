@@ -33,7 +33,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
     // Only restart the stream when isDragging changes.
     // Without this, every clientY change (every pixel) would tear down
     // and recreate the requestAnimationFrame loop.
-    equivalence: Equivalence.struct({ isDragging: Equivalence.boolean }),
+    equivalence: Equivalence.struct({ isDragging: Equivalence.Boolean }),
     // readDependencies returns the latest dependencies without restarting the stream.
     // The rAF loop calls readDependencies() each frame to get the current clientY.
     dependenciesToStream: ({ isDragging }, readDependencies) =>

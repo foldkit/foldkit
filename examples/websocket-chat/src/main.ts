@@ -22,7 +22,7 @@ const CONNECTION_TIMEOUT_MS = 5000
 
 const ChatMessage = S.Struct({
   text: S.String,
-  zoned: S.DateTimeZonedFromSelf,
+  zoned: S.DateTimeZoned,
   isSent: S.Boolean,
 })
 
@@ -64,7 +64,7 @@ const SucceededSendMessage = m('SucceededSendMessage', { text: S.String })
 const ReceivedMessage = m('ReceivedMessage', { text: S.String })
 const TimestampedMessage = m('TimestampedMessage', {
   text: S.String,
-  zoned: S.DateTimeZonedFromSelf,
+  zoned: S.DateTimeZoned,
   isSent: S.Boolean,
 })
 
@@ -254,7 +254,7 @@ const managedResources = ManagedResource.makeManagedResources(
         M.orElse(() => Option.none()),
       ),
     acquire: () =>
-      Effect.async<WebSocket, Error>(resume => {
+      Effect.callback<WebSocket, Error>(resume => {
         const ws = new WebSocket(WS_URL)
 
         const handleOpen = () => {

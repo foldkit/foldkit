@@ -797,7 +797,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
       dragAndDropSubscriptions.autoScroll.modelToDependencies(
         model.uiModel.dragAndDropDemo,
       ),
-    equivalence: Equivalence.struct({ isDragging: Equivalence.boolean }),
+    equivalence: Equivalence.struct({ isDragging: Equivalence.Boolean }),
     dependenciesToStream: (dependencies, readDependencies) =>
       mapDragStream(
         dragAndDropSubscriptions.autoScroll.dependenciesToStream(

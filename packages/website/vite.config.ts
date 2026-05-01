@@ -547,7 +547,7 @@ const playNote = (note, duration, noteIndex) =>
     Effect.gen(function* () {
       const audioContext = yield* AudioContextService
 
-      return yield* Effect.async(resume => {
+      return yield* Effect.callback(resume => {
         const oscillator = audioContext.createOscillator()
         oscillator.frequency.setValueAtTime(NOTE_FREQUENCIES[note])
         oscillator.connect(audioContext.destination)

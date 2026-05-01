@@ -65,7 +65,7 @@ const reconnectSchedule = Schedule.exponential(INITIAL_RECONNECT_DELAY).pipe(
 )
 
 const attemptOpen = (url: string): Effect.Effect<WebSocket, Error> =>
-  Effect.async<WebSocket, Error>(resume => {
+  Effect.callback<WebSocket, Error>(resume => {
     const socket = new WebSocket(url)
     let settled = false
     socket.once('open', () => {
@@ -87,7 +87,7 @@ const attemptOpen = (url: string): Effect.Effect<WebSocket, Error> =>
   })
 
 const waitForClose = (socket: WebSocket): Effect.Effect<void> =>
-  Effect.async<void>(resume => {
+  Effect.callback<void>(resume => {
     const isAlreadyClosing =
       socket.readyState === WebSocket.CLOSED ||
       socket.readyState === WebSocket.CLOSING

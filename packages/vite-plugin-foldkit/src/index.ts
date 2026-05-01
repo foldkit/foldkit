@@ -1,7 +1,7 @@
 import {
   Array,
   Effect,
-  Either,
+  Exit,
   HashMap,
   HashSet,
   Match,
@@ -36,16 +36,16 @@ export type FoldkitPluginOptions = Readonly<{
 let preservedModel: unknown = undefined
 let isHmrReload = false
 
-const connectedRuntimesRef = Ref.unsafeMake<
+const connectedRuntimesRef = Ref.makeUnsafe<
   HashMap.HashMap<string, typeof RuntimeInfo.Type>
 >(HashMap.empty())
-const mcpClientsRef = Ref.unsafeMake<HashSet.HashSet<WebSocket>>(
+const mcpClientsRef = Ref.makeUnsafe<HashSet.HashSet<WebSocket>>(
   HashSet.empty(),
 )
-const clientConnectionsRef = Ref.unsafeMake<
+const clientConnectionsRef = Ref.makeUnsafe<
   HashMap.HashMap<WebSocketClient, HashSet.HashSet<string>>
 >(HashMap.empty())
-const trackedClientsRef = Ref.unsafeMake<HashSet.HashSet<WebSocketClient>>(
+const trackedClientsRef = Ref.makeUnsafe<HashSet.HashSet<WebSocketClient>>(
   HashSet.empty(),
 )
 
@@ -146,9 +146,9 @@ const startMcpWebSocketServer = (port: number): void => {
 
 const stopMcpWebSocketServer = (): void => {
   const clients = Effect.runSync(Ref.get(mcpClientsRef))
-  HashSet.forEach(clients, client => {
+  for (const client of clients) {
     client.close()
-  })
+  }
   Effect.runSync(Ref.set(mcpClientsRef, HashSet.empty()))
   mcpWebSocketServer?.close()
   mcpWebSocketServer = null
@@ -160,14 +160,14 @@ const handleBrowserEventFrame = (
   client: WebSocketClient,
 ): void => {
   const decoded = S.decodeUnknownExit(EventFrame)(data)
-  Either.match(decoded, {
-    onLeft: error => {
+  Exit.match(decoded, {
+    onFailure: error => {
       console.warn(
         '[foldkit:devTools] failed to decode browser event frame',
         error,
       )
     },
-    onRight: frame =>
+    onSuccess: frame =>
       Match.value(frame.event).pipe(
         Match.tagsExhaustive({
           EventConnected: event => handleConnectedEvent(event, client),
@@ -192,15 +192,16 @@ const handleClientClose = (client: WebSocketClient): void => {
     HashMap.get(client),
     Option.match({
       onNone: () => {},
-      onSome: connectionIds =>
-        HashSet.forEach(connectionIds, connectionId => {
+      onSome: connectionIds => {
+        for (const connectionId of connectionIds) {
           Effect.runSync(
             Ref.update(connectedRuntimesRef, HashMap.remove(connectionId)),
           )
           console.log(
             `[foldkit:devTools] runtime pruned (socket close): ${connectionId}`,
           )
-        }),
+        }
+      },
     }),
   )
   Effect.runSync(Ref.update(clientConnectionsRef, HashMap.remove(client)))
@@ -209,14 +210,14 @@ const handleClientClose = (client: WebSocketClient): void => {
 
 const handleBrowserResponseFrame = (data: unknown): void => {
   const decoded = S.decodeUnknownExit(ResponseFrame)(data)
-  Either.match(decoded, {
-    onLeft: error => {
+  Exit.match(decoded, {
+    onFailure: error => {
       console.warn(
         '[foldkit:devTools] failed to decode browser response frame',
         error,
       )
     },
-    onRight: forwardResponseToMcpClients,
+    onSuccess: forwardResponseToMcpClients,
   })
 }
 
@@ -259,11 +260,11 @@ const handleDisconnectedEvent = (
 
 const broadcastToMcpClients = (payload: string): void => {
   const clients = Effect.runSync(Ref.get(mcpClientsRef))
-  HashSet.forEach(clients, client => {
+  for (const client of clients) {
     if (client.readyState === client.OPEN) {
       client.send(payload)
     }
-  })
+  }
 }
 
 const forwardResponseToMcpClients = (
@@ -274,14 +275,14 @@ const forwardResponseToMcpClients = (
 
 const handleMcpMessage = (client: WebSocket, raw: string): void => {
   const decoded = S.decodeUnknownExit(S.fromJsonString(RequestFrame))(raw)
-  Either.match(decoded, {
-    onLeft: error => {
+  Exit.match(decoded, {
+    onFailure: error => {
       console.warn(
         '[foldkit:devTools] failed to decode MCP request frame',
         error,
       )
     },
-    onRight: frame =>
+    onSuccess: frame =>
       Match.value(frame.request).pipe(
         Match.tag('RequestListRuntimes', () =>
           replyListRuntimes(client, frame.id),

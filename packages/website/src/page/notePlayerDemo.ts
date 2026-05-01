@@ -475,7 +475,7 @@ const playNote = (note: Note, duration: NoteDuration, noteIndex: number) =>
     Effect.gen(function* () {
       const audioContext = yield* AudioContextService
 
-      return yield* Effect.async<typeof CompletedPlayNote.Type>(resume => {
+      return yield* Effect.callback<typeof CompletedPlayNote.Type>(resume => {
         const oscillator = audioContext.createOscillator()
         const gainNode = audioContext.createGain()
         const durationSeconds = DURATION_MILLISECONDS[duration] / 1000

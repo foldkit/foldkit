@@ -1196,7 +1196,7 @@ const scrollToHash = (hash: string) =>
 
 const scrollToHashAfterRender = (hash: string) =>
   ScrollToAnchor(
-    Effect.async<typeof CompletedScroll.Type>(resume => {
+    Effect.callback<typeof CompletedScroll.Type>(resume => {
       requestAnimationFrame(() => {
         focusAndScrollToHash(hash)
         resume(Effect.succeed(CompletedScroll()))
