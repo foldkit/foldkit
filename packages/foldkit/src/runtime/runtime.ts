@@ -889,15 +889,13 @@ const makeRuntime = <
                       return dependencies
                     }),
                     Stream.changesWith(equivalence),
-                    Stream.flatMap(
-                      dependencies =>
-                        dependenciesToStream(
-                          dependencies,
-                          () => latestDependencies,
-                        ),
-                      { switch: true },
+                    Stream.switchMap(dependencies =>
+                      dependenciesToStream(
+                        dependencies,
+                        () => latestDependencies,
+                      ),
                     ),
-                    Stream.runForEach(enqueueMessage),
+                    Stream.runForEach(message => enqueueMessage(message)),
                     provideAllResources,
                   ),
                 )
@@ -943,7 +941,9 @@ const makeRuntime = <
               }).pipe(Effect.catchCause(() => Effect.void))
 
             return pipe(
-              Stream.scoped(Effect.acquireRelease(acquire, release)),
+              Stream.scoped(
+                Stream.fromEffect(Effect.acquireRelease(acquire, release)),
+              ),
               Stream.flatMap(value =>
                 Stream.concat(
                   Stream.make(config.onAcquired(value)),
@@ -975,11 +975,8 @@ const makeRuntime = <
               modelStream.pipe(
                 Stream.map(config.modelToMaybeRequirements),
                 Stream.changesWith(equivalence),
-                Stream.flatMap(
+                Stream.switchMap(
                   maybeRequirementsToLifecycle(config, resourceRef),
-                  {
-                    switch: true,
-                  },
                 ),
                 Stream.runForEach(Effect.flatMap(enqueueMessage)),
               ),

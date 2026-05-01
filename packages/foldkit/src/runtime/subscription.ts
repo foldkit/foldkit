@@ -1,9 +1,5 @@
 import { type Equivalence, Record, type Schema, type Stream } from 'effect'
 
-type ResolveMessage<T> = [T] extends [Schema.Top]
-  ? Schema.Schema.Type<T>
-  : T
-
 /** A reactive binding between Model state and a long-running stream of Messages. */
 export type Subscription<Model, Message, StreamDeps, Resources = never> = {
   readonly modelToDependencies: (model: Model) => StreamDeps
@@ -11,7 +7,7 @@ export type Subscription<Model, Message, StreamDeps, Resources = never> = {
   readonly dependenciesToStream: (
     deps: StreamDeps,
     readDependencies: () => StreamDeps,
-  ) => Stream.Stream<ResolveMessage<Message>, never, Resources>
+  ) => Stream.Stream<Message, never, Resources>
 }
 
 type SubscriptionConfig<Model, Message, StreamDeps, Resources = never> = {
@@ -49,7 +45,7 @@ export const makeSubscriptions =
       dependenciesToStream: (
         deps: Schema.Schema.Type<SubscriptionDeps>[K],
         readDependencies: () => Schema.Schema.Type<SubscriptionDeps>[K],
-      ) => Stream.Stream<ResolveMessage<Message>, never, Resources>
+      ) => Stream.Stream<Message, never, Resources>
     }
   }): Subscriptions<Model, Message, SubscriptionDeps, Resources> =>
     /* eslint-disable @typescript-eslint/consistent-type-assertions */
