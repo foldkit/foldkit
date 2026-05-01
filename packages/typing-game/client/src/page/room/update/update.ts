@@ -48,25 +48,7 @@ const withUpdateReturn = M.withReturnType<UpdateReturn>()
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
-    M.tagsExhaustive({
-      CompletedFocusRoomPageUsernameInput: () => [model, []],
-
-      CompletedFocusUserGameTextInput: () => [model, []],
-
-      CompletedNavigateHome: () => [model, []],
-
-      CompletedRequestGameStart: () => [model, []],
-
-      CompletedUpdatePlayerProgress: () => [model, []],
-
-      CompletedSaveSession: () => [model, []],
-
-      CompletedClearSession: () => [model, []],
-
-      FailedJoinRoom: () => [model, []],
-
-      FailedCopyClipboard: () => [model, []],
-
+    M.tags({
       PressedKey: handleKeyPressed(model),
 
       ChangedUserText: ({ value }) => {
@@ -235,6 +217,19 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ]
       },
     }),
+    M.tag(
+      'CompletedFocusRoomPageUsernameInput',
+      'CompletedFocusUserGameTextInput',
+      'CompletedNavigateHome',
+      'CompletedRequestGameStart',
+      'CompletedUpdatePlayerProgress',
+      'CompletedSaveSession',
+      'CompletedClearSession',
+      'FailedJoinRoom',
+      'FailedCopyClipboard',
+      () => [model, []],
+    ),
+    M.exhaustive,
   )
 
 const handleKeyPressed =

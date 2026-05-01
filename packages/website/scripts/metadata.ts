@@ -99,6 +99,11 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Working Foldkit example apps: counter, forms, routing, auth, websocket chat, and more. Each demonstrates Effect-TS and Elm Architecture patterns.',
     'Docs',
   ),
+  TypingTerminal: docs(
+    'Typing Terminal',
+    'A production real-time multiplayer typing speed game. Full-stack Effect app with an RPC backend, streaming room subscriptions, and a Foldkit frontend that share schemas across the wire.',
+    'Examples',
+  ),
   BestPracticesSideEffects: docs(
     'Side Effects & Purity',
     'Why Foldkit programs should have zero side effects outside of Commands.',

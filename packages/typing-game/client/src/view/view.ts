@@ -43,9 +43,16 @@ export const view = (model: Model): Document => {
       'Made with ',
       span([Class('text-terminal-red')], ['♥']),
       ' with ',
-      a([Href('https://foldkit.dev'), Class('underline')], ['Foldkit']),
+      a(
+        [
+          Href('https://foldkit.dev/example-apps/typing-terminal'),
+          Class('underline'),
+        ],
+        ['Foldkit'],
+      ),
       ' and ',
       a([Href('https://effect.website'), Class('underline')], ['Effect']),
+      '.',
     ],
   )
 

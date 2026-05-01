@@ -27,6 +27,7 @@ export const ExamplesRoute = r('Examples')
 export const ExampleDetailRoute = r('ExampleDetail', {
   exampleSlug: S.String,
 })
+export const TypingTerminalRoute = r('TypingTerminal')
 export const PlaygroundRoute = r('Playground', {
   exampleSlug: S.String,
 })
@@ -108,6 +109,7 @@ export const DocsRoute = S.Union(
   TestingSceneRoute,
   ExamplesRoute,
   ExampleDetailRoute,
+  TypingTerminalRoute,
   BestPracticesSideEffectsRoute,
   BestPracticesMessagesRoute,
   BestPracticesKeyingRoute,
@@ -220,6 +222,11 @@ export const exampleDetailRouter = pipe(
   literal('example-apps'),
   slash(string('exampleSlug')),
   mapTo(ExampleDetailRoute),
+)
+export const typingTerminalRouter = pipe(
+  literal('example-apps'),
+  slash(literal('typing-terminal')),
+  mapTo(TypingTerminalRoute),
 )
 export const playgroundRouter = pipe(
   literal('playground'),
@@ -523,6 +530,7 @@ const topLevelDocsParser = oneOf(
   testingStoryRouter,
   testingSceneRouter,
   testingRouter,
+  typingTerminalRouter,
   exampleDetailRouter,
   examplesRouter,
   projectOrganizationRouter,

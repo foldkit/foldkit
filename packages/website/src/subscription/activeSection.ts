@@ -161,6 +161,7 @@ export const activeSection: Subscription<
         M.tag('UiOverview', () => Page.UiPages.OverviewPage.tableOfContents),
         M.tag('AiOverview', () => Page.AiOverview.tableOfContents),
         M.tag('AiSkills', () => Page.AiSkills.tableOfContents),
+        M.tag('TypingTerminal', () => Page.TypingTerminal.tableOfContents),
         M.option,
       )
 

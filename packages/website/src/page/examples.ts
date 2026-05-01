@@ -4,7 +4,11 @@ import type { Html } from 'foldkit/html'
 import { Class, Href, a, div, table, tbody, td, th, thead, tr } from '../html'
 import { Link } from '../link'
 import { pageTitle, para } from '../prose'
-import { exampleDetailRouter, gettingStartedRouter } from '../route'
+import {
+  exampleDetailRouter,
+  gettingStartedRouter,
+  typingTerminalRouter,
+} from '../route'
 import { type ExampleMeta, examples as exampleMetas } from './example/meta'
 
 export const exampleAppCount = exampleMetas.length + 1
@@ -42,7 +46,7 @@ const typingTerminalRow: Html = tr(
       [Class('py-2.5 pr-4 whitespace-nowrap align-top')],
       [
         a(
-          [Href(Link.typingTerminalSource), Class(nameClassName)],
+          [Href(typingTerminalRouter()), Class(nameClassName)],
           ['Typing Terminal'],
         ),
       ],

@@ -338,7 +338,7 @@ const searchWeight = (tag: string): string =>
     ),
     M.whenOr(S.startsWith('Ui'), S.startsWith('Ai'), () => '5'),
     M.when('ApiModule', () => '3'),
-    M.whenOr('Examples', 'ExampleDetail', () => '2'),
+    M.whenOr('Examples', 'ExampleDetail', 'TypingTerminal', () => '2'),
     M.orElse(() => '4'),
   )
 
@@ -442,6 +442,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           Page.TestingScene.tableOfContents,
         ),
       Examples: () => withoutTableOfContents(Page.Examples.view()),
+      TypingTerminal: () =>
+        withTableOfContents(
+          Page.TypingTerminal.view(),
+          Page.TypingTerminal.tableOfContents,
+        ),
       ExampleDetail: ({ exampleSlug }) =>
         withoutTableOfContents(
           Page.Example.ExampleDetail.view(
