@@ -1,4 +1,4 @@
-import { Rpc } from '@effect/rpc'
+import { Rpc } from 'effect/unstable/rpc'
 import * as Shared from '@typing-game/shared'
 import {
   Array,
@@ -80,7 +80,7 @@ export const startGame =
             payload.roomId,
           ),
         ),
-        Effect.forkDaemon,
+        Effect.forkDetach,
       )
     })
 

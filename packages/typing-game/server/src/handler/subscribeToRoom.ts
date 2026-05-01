@@ -1,4 +1,4 @@
-import { Rpc } from '@effect/rpc'
+import { Rpc } from 'effect/unstable/rpc'
 import * as Shared from '@typing-game/shared'
 import {
   Array,
@@ -98,7 +98,7 @@ const scheduleDelayedCleanup = (
       }
     })
 
-    yield* Effect.fork(scheduledCleanup)
+    yield* Effect.forkChild(scheduledCleanup)
   })
 
 export const subscribeToRoom =

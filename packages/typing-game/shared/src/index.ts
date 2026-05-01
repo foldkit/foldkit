@@ -1,5 +1,5 @@
-import { Rpc, RpcGroup } from '@effect/rpc'
 import { Schema as S } from 'effect'
+import { Rpc, RpcGroup } from 'effect/unstable/rpc'
 
 export const Waiting = S.TaggedStruct('Waiting', {})
 export const GetReady = S.TaggedStruct('GetReady', {})
@@ -13,13 +13,13 @@ export type Countdown = typeof Countdown.Type
 export type Playing = typeof Playing.Type
 export type Finished = typeof Finished.Type
 
-export const GameStatus = S.Union(
+export const GameStatus = S.Union([
   Waiting,
   GetReady,
   Countdown,
   Playing,
   Finished,
-)
+])
 export type GameStatus = typeof GameStatus.Type
 
 export const Player = S.Struct({
@@ -74,17 +74,17 @@ export const Room = S.Struct({
 })
 export type Room = typeof Room.Type
 
-export const RoomById = S.HashMap({ key: S.String, value: Room })
+export const RoomById = S.HashMap(S.String, Room)
 export type RoomById = typeof RoomById.Type
 
-export class RoomNotFoundError extends S.TaggedError<RoomNotFoundError>()(
+export class RoomNotFoundError extends S.TaggedErrorClass<RoomNotFoundError>()(
   'RoomNotFoundError',
   {
     roomId: S.String,
   },
 ) {}
 
-export class UnauthorizedError extends S.TaggedError<UnauthorizedError>()(
+export class UnauthorizedError extends S.TaggedErrorClass<UnauthorizedError>()(
   'UnauthorizedError',
   {
     message: S.String,
@@ -127,7 +127,7 @@ export const subscribeToRoomRpc = Rpc.make('subscribeToRoom', {
 export const startGameRpc = Rpc.make('startGame', {
   payload: S.Struct({ roomId: S.String, playerId: S.String }),
   success: S.Void,
-  error: S.Union(RoomNotFoundError, UnauthorizedError),
+  error: S.Union([RoomNotFoundError, UnauthorizedError]),
 })
 
 export const updatePlayerProgressRpc = Rpc.make('updatePlayerProgress', {

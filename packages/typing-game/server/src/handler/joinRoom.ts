@@ -1,4 +1,4 @@
-import { Rpc } from '@effect/rpc'
+import { Rpc } from 'effect/unstable/rpc'
 import * as Shared from '@typing-game/shared'
 import { Array, Effect, HashMap, Number, Struct, SubscriptionRef } from 'effect'
 import { randomUUID } from 'node:crypto'

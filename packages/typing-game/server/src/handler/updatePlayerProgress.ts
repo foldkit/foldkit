@@ -1,4 +1,4 @@
-import { Rpc } from '@effect/rpc'
+import { Rpc } from 'effect/unstable/rpc'
 import * as Shared from '@typing-game/shared'
 import { Clock, Data, Effect, HashMap, SubscriptionRef } from 'effect'
 
@@ -15,7 +15,7 @@ export const updatePlayerProgress =
     Effect.gen(function* () {
       const updatedAt = yield* Clock.currentTimeMillis
 
-      const gamePlayer = Data.struct(
+      const gamePlayer = Data.Struct(
         Shared.GamePlayer.make({
           gameId: payload.gameId,
           playerId: payload.playerId,
