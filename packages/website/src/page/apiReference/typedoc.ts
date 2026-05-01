@@ -320,8 +320,8 @@ export const TypeDocItem: S.Codec<TypeDocItem, TypeDocItemEncoded> = S.Struct({
   children: S.OptionFromOptional(
     S.Array(
       S.suspend(
-        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
         () =>
+          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
           TypeDocItem as unknown as S.Codec<TypeDocItem, TypeDocItemEncoded>,
       ),
     ),
