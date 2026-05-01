@@ -13,13 +13,15 @@ import { OptionExt } from '../../effectExtensions/index.js'
 import {
   type Attribute,
   type Html,
+  type MountResult,
   createLazy,
   html,
 } from '../../html/index.js'
 import { m } from '../../message/index.js'
+import * as Mount from '../../mount/index.js'
 import { evo } from '../../struct/index.js'
 import * as Task from '../../task/index.js'
-import { anchorHooks } from '../anchor.js'
+import { anchorSetup } from '../anchor.js'
 import type { AnchorConfig } from '../anchor.js'
 
 // MODEL
@@ -63,6 +65,8 @@ export const ElapsedShowDelay = m('ElapsedShowDelay', {
 export const ChangedShowDelay = m('ChangedShowDelay', {
   showDelay: S.DurationFromMillis,
 })
+/** Sent when the tooltip panel mounts and Floating UI has positioned it. Update no-ops; the side effect is the act of positioning, surfaced for DevTools observability. */
+export const CompletedAnchorMount = m('CompletedAnchorMount')
 
 /** Union of all messages the tooltip component can produce. */
 export const Message: S.Union<
@@ -75,6 +79,7 @@ export const Message: S.Union<
     typeof PressedPointerOnTrigger,
     typeof ElapsedShowDelay,
     typeof ChangedShowDelay,
+    typeof CompletedAnchorMount,
   ]
 > = S.Union(
   EnteredTrigger,
@@ -85,6 +90,7 @@ export const Message: S.Union<
   PressedPointerOnTrigger,
   ElapsedShowDelay,
   ChangedShowDelay,
+  CompletedAnchorMount,
 )
 
 export type EnteredTrigger = typeof EnteredTrigger.Type
@@ -130,6 +136,8 @@ const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 /** Waits for the tooltip's show delay before emitting `ElapsedShowDelay`. The version is echoed back so a stale timer is ignored when the user leaves before the delay fires. */
 export const ShowAfterDelay = Command.define('ShowAfterDelay', ElapsedShowDelay)
+
+const TooltipAnchor = Mount.define('TooltipAnchor', CompletedAnchorMount)
 
 /** Processes a tooltip message and returns the next model and commands. */
 export const update = (model: Model, message: Message): UpdateReturn =>
@@ -262,6 +270,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         evo(model, { showDelay: () => showDelay }),
         [],
       ],
+
+      CompletedAnchorMount: () => [model, []],
     }),
   )
 
@@ -284,7 +294,8 @@ export type ViewConfig<Message> = Readonly<{
       | FocusedTrigger
       | BlurredTrigger
       | PressedEscape
-      | PressedPointerOnTrigger,
+      | PressedPointerOnTrigger
+      | typeof CompletedAnchorMount.Type,
   ) => Message
   anchor: AnchorConfig
   triggerContent: Html
@@ -308,10 +319,9 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     DataAttribute,
     Id,
     OnBlur,
-    OnDestroy,
     OnFocus,
-    OnInsert,
     OnKeyDownPreventDefault,
+    OnMount,
     OnMouseEnter,
     OnMouseLeave,
     OnPointerDown,
@@ -371,11 +381,20 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     ...triggerAttributes,
   ]
 
-  const hooks = anchorHooks({
-    buttonId: `${id}-trigger`,
-    anchor,
-    interceptTab: false,
-  })
+  const anchorAction = Mount.mapMessage(
+    TooltipAnchor(
+      (items): Effect.Effect<MountResult<typeof CompletedAnchorMount.Type>> =>
+        Effect.sync(() => ({
+          message: CompletedAnchorMount(),
+          cleanup: anchorSetup({
+            buttonId: `${id}-trigger`,
+            anchor,
+            interceptTab: false,
+          })(items),
+        })),
+    ),
+    toParentMessage,
+  )
 
   const anchorAttributes = [
     Style({
@@ -384,8 +403,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
       visibility: 'hidden',
       pointerEvents: 'none',
     }),
-    OnInsert(hooks.onInsert),
-    OnDestroy(hooks.onDestroy),
+    OnMount(anchorAction),
   ]
 
   const resolvedPanelAttributes = [

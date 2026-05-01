@@ -18,6 +18,7 @@ import {
   coreFileRouter,
   coreFreezeModelRouter,
   coreInitAndFlagsRouter,
+  coreLifecycleHooksRouter,
   coreManagedResourcesRouter,
   coreMessagesRouter,
   coreModelRouter,
@@ -166,6 +167,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'CoreCommands',
           href: coreCommandsRouter(),
           label: 'Commands',
+        },
+        {
+          _tag: 'CoreLifecycleHooks',
+          href: coreLifecycleHooksRouter(),
+          label: 'Lifecycle Hooks',
         },
         {
           _tag: 'CoreSubscriptions',

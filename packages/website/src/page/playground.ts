@@ -1,5 +1,8 @@
-import { Effect, Match as M, Option } from 'effect'
+import { Effect, Function, Match as M, Option, Schema as S } from 'effect'
+import { Mount } from 'foldkit'
+import type { MountResult } from 'foldkit/html'
 import { Html } from 'foldkit/html'
+import { m } from 'foldkit/message'
 import filesBySlug from 'virtual:playground-files'
 
 import {
@@ -7,16 +10,30 @@ import {
   Class,
   Href,
   Id,
-  OnInsertEffect,
+  OnMount,
   a,
   div,
   keyed,
   main,
 } from '../html'
 import { Icon } from '../icon'
-import { FailedPlaygroundEmbed, SucceededPlaygroundEmbed } from '../message'
 import { exampleDetailRouter, examplesRouter } from '../route'
 import { type ExampleMeta, findBySlug } from './example/meta'
+
+export const SucceededPlaygroundEmbed = m('SucceededPlaygroundEmbed')
+export const FailedPlaygroundEmbed = m('FailedPlaygroundEmbed', {
+  reason: S.String,
+})
+
+type PlaygroundEmbedMessage =
+  | typeof SucceededPlaygroundEmbed.Type
+  | typeof FailedPlaygroundEmbed.Type
+
+const PlaygroundEmbed = Mount.define(
+  'PlaygroundEmbed',
+  SucceededPlaygroundEmbed,
+  FailedPlaygroundEmbed,
+)
 
 const backToExampleButton = (maybeMeta: Option.Option<ExampleMeta>): Html =>
   Option.match(maybeMeta, {
@@ -61,56 +78,62 @@ const messageView = (
     ],
   )
 
-// NOTE: We don't wire OnDestroy here. The StackBlitz SDK maintains an internal
+// NOTE: cleanup is constVoid here. The StackBlitz SDK maintains an internal
 // `connections` array that isn't exposed for cleanup — once an embed succeeds,
 // its Connection object lives for the page's lifetime. Snabbdom already removes
 // the iframe from the DOM on unmount; there is no additional cleanup hook the
 // SDK accepts. The resulting per-visit leak is a few KB of JS state — negligible
 // for a docs site, tracked as a follow-up to request a public teardown method.
 const embedView = (meta: ExampleMeta, files: Record<string, string>): Html => {
-  const embedPlayground = (element: Element) => {
-    if (!(element instanceof HTMLElement)) {
-      return Effect.succeed(
-        FailedPlaygroundEmbed({
-          reason: 'Playground requires an HTMLElement host.',
-        }),
-      )
-    }
-    return Effect.tryPromise(() =>
-      import('@stackblitz/sdk').then(({ default: sdk }) =>
-        sdk.embedProject(
-          element,
-          {
-            title: meta.title,
-            description: meta.description,
-            template: 'node',
-            files,
-          },
-          {
-            height: '100%',
-            hideNavigation: true,
-            openFile: 'src/main.ts',
-            showSidebar: true,
-            view: 'default',
-          },
-        ),
-      ),
-    ).pipe(
-      Effect.as(SucceededPlaygroundEmbed()),
-      Effect.catchAll(error =>
-        Effect.succeed(
-          FailedPlaygroundEmbed({
-            reason: error instanceof Error ? error.message : String(error),
+  const embedPlayground = PlaygroundEmbed(
+    (element: Element): Effect.Effect<MountResult<PlaygroundEmbedMessage>> => {
+      if (!(element instanceof HTMLElement)) {
+        return Effect.succeed({
+          message: FailedPlaygroundEmbed({
+            reason: 'Playground requires an HTMLElement host.',
+          }),
+          cleanup: Function.constVoid,
+        })
+      }
+      return Effect.gen(function* () {
+        yield* Effect.tryPromise(() =>
+          import('@stackblitz/sdk').then(({ default: sdk }) =>
+            sdk.embedProject(
+              element,
+              {
+                title: meta.title,
+                description: meta.description,
+                template: 'node',
+                files,
+              },
+              {
+                height: '100%',
+                hideNavigation: true,
+                openFile: 'src/main.ts',
+                showSidebar: true,
+                view: 'default',
+              },
+            ),
+          ),
+        )
+        return {
+          message: SucceededPlaygroundEmbed(),
+          cleanup: Function.constVoid,
+        }
+      }).pipe(
+        Effect.catchAll(error =>
+          Effect.succeed({
+            message: FailedPlaygroundEmbed({
+              reason: error instanceof Error ? error.message : String(error),
+            }),
+            cleanup: Function.constVoid,
           }),
         ),
-      ),
-    )
-  }
-
-  return div(
-    [Class('flex-1 min-h-0')],
-    [div([OnInsertEffect(embedPlayground)], [])],
+      )
+    },
   )
+
+  return div([Class('flex-1 min-h-0')], [div([OnMount(embedPlayground)], [])])
 }
 
 export const view = (

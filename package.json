@@ -41,6 +41,7 @@
     "dev:example:pixel-art": "pnpm --filter pixel-art-example dev",
     "dev:example:job-application": "pnpm --filter job-application-example dev",
     "dev:example:kanban": "pnpm --filter kanban-example dev",
+    "dev:example:map": "pnpm --filter map-example dev",
     "dev:example:ui-showcase": "pnpm --filter ui-showcase dev",
     "changeset": "changeset",
     "version-packages": "changeset version && tsx scripts/reset-peer-deps.ts && pnpm install --no-frozen-lockfile",

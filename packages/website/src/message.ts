@@ -82,10 +82,8 @@ export const GotPlaygroundMenuMessage = m('GotPlaygroundMenuMessage', {
 export const SelectedPlaygroundExample = m('SelectedPlaygroundExample', {
   slug: ExampleSlug,
 })
-export const SucceededPlaygroundEmbed = m('SucceededPlaygroundEmbed')
-export const FailedPlaygroundEmbed = m('FailedPlaygroundEmbed', {
-  reason: S.String,
-})
+export const { SucceededPlaygroundEmbed, FailedPlaygroundEmbed } =
+  Page.Playground
 export const GotAsyncCounterDemoMessage = m('GotAsyncCounterDemoMessage', {
   message: Page.AsyncCounterDemo.Message,
 })

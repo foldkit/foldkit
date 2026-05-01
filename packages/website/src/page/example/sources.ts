@@ -30,6 +30,7 @@ const loadersBySlug: Readonly<Record<string, SourceLoader | undefined>> = {
   snake: () => import('virtual:example-sources/snake'),
   'crash-view': () => import('virtual:example-sources/crash-view'),
   'websocket-chat': () => import('virtual:example-sources/websocket-chat'),
+  map: () => import('virtual:example-sources/map'),
   'ui-showcase': () => import('virtual:example-sources/ui-showcase'),
 }
 

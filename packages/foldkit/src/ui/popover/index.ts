@@ -5,13 +5,15 @@ import { OptionExt } from '../../effectExtensions/index.js'
 import {
   type Attribute,
   type Html,
+  type MountResult,
   createLazy,
   html,
 } from '../../html/index.js'
 import { m } from '../../message/index.js'
+import * as Mount from '../../mount/index.js'
 import { evo } from '../../struct/index.js'
 import * as Task from '../../task/index.js'
-import { anchorHooks } from '../anchor.js'
+import { anchorSetup } from '../anchor.js'
 import type { AnchorConfig } from '../anchor.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → popover → animation.
@@ -71,6 +73,8 @@ export const CompletedTeardownInert = m('CompletedTeardownInert')
 export const IgnoredMouseClick = m('IgnoredMouseClick')
 /** Sent when a Space key-up is captured to prevent page scrolling. */
 export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
+/** Sent when the popover panel mounts and Floating UI has positioned it. Update no-ops; the side effect is the act of positioning, surfaced for DevTools observability. */
+export const CompletedAnchorMount = m('CompletedAnchorMount')
 /** Wraps an Animation submodel message for delegation. */
 export const GotAnimationMessage = m('GotAnimationMessage', {
   message: AnimationMessage,
@@ -91,6 +95,7 @@ export const Message: S.Union<
     typeof CompletedTeardownInert,
     typeof IgnoredMouseClick,
     typeof SuppressedSpaceScroll,
+    typeof CompletedAnchorMount,
     typeof GotAnimationMessage,
   ]
 > = S.Union(
@@ -106,6 +111,7 @@ export const Message: S.Union<
   CompletedTeardownInert,
   IgnoredMouseClick,
   SuppressedSpaceScroll,
+  CompletedAnchorMount,
   GotAnimationMessage,
 )
 
@@ -363,9 +369,12 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         [],
       ],
       SuppressedSpaceScroll: () => [model, []],
+      CompletedAnchorMount: () => [model, []],
     }),
   )
 }
+
+const PopoverAnchor = Mount.define('PopoverAnchor', CompletedAnchorMount)
 
 /** Programmatically opens the popover, updating the model and returning
  *  focus and modal commands. Use this in domain-event handlers when the popover uses `onOpened`. */
@@ -393,7 +402,8 @@ export type ViewConfig<Message> = Readonly<{
       | ClosedByTab
       | PressedPointerOnButton
       | IgnoredMouseClick
-      | SuppressedSpaceScroll,
+      | SuppressedSpaceScroll
+      | typeof CompletedAnchorMount.Type,
   ) => Message
   onOpened?: () => Message
   onClosed?: () => Message
@@ -424,10 +434,9 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     Id,
     OnBlur,
     OnClick,
-    OnDestroy,
-    OnInsert,
     OnKeyDownPreventDefault,
     OnKeyUpPreventDefault,
+    OnMount,
     OnPointerDown,
     Style,
     Tabindex,
@@ -563,18 +572,26 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     ...buttonAttributes,
   ]
 
-  const hooks = anchorHooks({
-    buttonId: `${id}-button`,
-    anchor,
-    interceptTab: false,
-    focusAfterPosition: true,
-    ...(focusSelector !== undefined && { focusSelector }),
-  })
+  const anchorAction = Mount.mapMessage(
+    PopoverAnchor(
+      (items): Effect.Effect<MountResult<typeof CompletedAnchorMount.Type>> =>
+        Effect.sync(() => ({
+          message: CompletedAnchorMount(),
+          cleanup: anchorSetup({
+            buttonId: `${id}-button`,
+            anchor,
+            interceptTab: false,
+            focusAfterPosition: true,
+            ...(focusSelector !== undefined && { focusSelector }),
+          })(items),
+        })),
+    ),
+    toParentMessage,
+  )
 
   const anchorAttributes = [
     Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
-    OnInsert(hooks.onInsert),
-    OnDestroy(hooks.onDestroy),
+    OnMount(anchorAction),
   ]
 
   const resolvedPanelAttributes = [

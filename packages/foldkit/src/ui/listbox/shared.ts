@@ -2,6 +2,7 @@ import {
   Array,
   Effect,
   Equal,
+  Function,
   Match as M,
   Option,
   Predicate,
@@ -12,11 +13,17 @@ import {
 
 import * as Command from '../../command/index.js'
 import { OptionExt } from '../../effectExtensions/index.js'
-import { type Attribute, type Html, html } from '../../html/index.js'
+import {
+  type Attribute,
+  type Html,
+  type MountResult,
+  html,
+} from '../../html/index.js'
 import { m } from '../../message/index.js'
+import * as Mount from '../../mount/index.js'
 import { makeConstrainedEvo } from '../../struct/index.js'
 import * as Task from '../../task/index.js'
-import { anchorHooks } from '../anchor.js'
+import { anchorSetup } from '../anchor.js'
 import type { AnchorConfig } from '../anchor.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → listbox → animation.
@@ -150,6 +157,10 @@ export const CompletedClickItem = m('CompletedClickItem')
 export const IgnoredMouseClick = m('IgnoredMouseClick')
 /** Sent when a Space key-up is captured to prevent page scrolling. */
 export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
+/** Sent when the listbox items panel mounts and Floating UI has positioned it. Update no-ops; surfaces the positioning side effect for DevTools. */
+export const CompletedAnchorMount = m('CompletedAnchorMount')
+/** Sent when the listbox items panel mounts and the no-anchor focus fallback runs. Update no-ops; surfaces the focus side effect for DevTools. */
+export const CompletedFocusItemsOnMount = m('CompletedFocusItemsOnMount')
 /** Wraps an Animation submodel message for delegation. */
 export const GotAnimationMessage = m('GotAnimationMessage', {
   message: AnimationMessage,
@@ -183,6 +194,8 @@ export const Message: S.Union<
     typeof CompletedClickItem,
     typeof IgnoredMouseClick,
     typeof SuppressedSpaceScroll,
+    typeof CompletedAnchorMount,
+    typeof CompletedFocusItemsOnMount,
     typeof GotAnimationMessage,
     typeof PressedPointerOnButton,
   ]
@@ -207,6 +220,8 @@ export const Message: S.Union<
   CompletedClickItem,
   IgnoredMouseClick,
   SuppressedSpaceScroll,
+  CompletedAnchorMount,
+  CompletedFocusItemsOnMount,
   GotAnimationMessage,
   PressedPointerOnButton,
 )
@@ -640,10 +655,33 @@ export const makeUpdate = <Model extends BaseModel>(
           [],
         ],
         SuppressedSpaceScroll: () => [model, []],
+        CompletedAnchorMount: () => [model, []],
+        CompletedFocusItemsOnMount: () => [model, []],
       }),
     )
   }
 }
+
+const ListboxAnchor = Mount.define('ListboxAnchor', CompletedAnchorMount)
+const ListboxFocusItemsOnMount = Mount.define(
+  'ListboxFocusItemsOnMount',
+  CompletedFocusItemsOnMount,
+)
+
+const focusItemsOnMount = ListboxFocusItemsOnMount(
+  (
+    element,
+  ): Effect.Effect<MountResult<typeof CompletedFocusItemsOnMount.Type>> =>
+    Effect.sync(() => {
+      if (element instanceof HTMLElement) {
+        element.focus()
+      }
+      return {
+        message: CompletedFocusItemsOnMount(),
+        cleanup: Function.constVoid,
+      }
+    }),
+)
 
 // VIEW TYPES
 
@@ -675,7 +713,9 @@ export type BaseViewConfig<Message, Item, Model extends BaseModel> = Readonly<{
       | Searched
       | PressedPointerOnButton
       | IgnoredMouseClick
-      | SuppressedSpaceScroll,
+      | SuppressedSpaceScroll
+      | typeof CompletedAnchorMount.Type
+      | typeof CompletedFocusItemsOnMount.Type,
   ) => Message
   onSelectedItem?: (value: string) => Message
   items: ReadonlyArray<Item>
@@ -749,10 +789,9 @@ export const makeView =
       Name,
       OnBlur,
       OnClick,
-      OnDestroy,
-      OnInsert,
       OnKeyDownPreventDefault,
       OnKeyUpPreventDefault,
+      OnMount,
       OnPointerDown,
       OnPointerLeave,
       OnPointerMove,
@@ -1034,27 +1073,31 @@ export const makeView =
       onSome: index => [AriaActiveDescendant(itemId(id, index))],
     })
 
-    const hooks = anchor
-      ? anchorHooks({
-          buttonId: `${id}-button`,
-          anchor,
-          focusAfterPosition: true,
-        })
-      : undefined
-
-    const focusOnInsert = (element: Element): void => {
-      if (element instanceof HTMLElement) {
-        element.focus()
-      }
-    }
-
-    const anchorAttributes = hooks
+    const anchorAttributes = anchor
       ? [
           Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
-          OnInsert(hooks.onInsert),
-          OnDestroy(hooks.onDestroy),
+          OnMount(
+            Mount.mapMessage(
+              ListboxAnchor(
+                (
+                  items,
+                ): Effect.Effect<
+                  MountResult<typeof CompletedAnchorMount.Type>
+                > =>
+                  Effect.sync(() => ({
+                    message: CompletedAnchorMount(),
+                    cleanup: anchorSetup({
+                      buttonId: `${id}-button`,
+                      anchor,
+                      focusAfterPosition: true,
+                    })(items),
+                  })),
+              ),
+              toParentMessage,
+            ),
+          ),
         ]
-      : [OnInsert(focusOnInsert)]
+      : [OnMount(Mount.mapMessage(focusItemsOnMount, toParentMessage))]
 
     const itemsContainerAttributes = [
       Id(`${id}-items`),

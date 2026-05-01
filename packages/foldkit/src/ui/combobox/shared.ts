@@ -10,11 +10,17 @@ import {
 
 import * as Command from '../../command/index.js'
 import { OptionExt } from '../../effectExtensions/index.js'
-import { type Attribute, type Html, html } from '../../html/index.js'
+import {
+  type Attribute,
+  type Html,
+  type MountResult,
+  html,
+} from '../../html/index.js'
 import { m } from '../../message/index.js'
+import * as Mount from '../../mount/index.js'
 import { makeConstrainedEvo } from '../../struct/index.js'
 import * as Task from '../../task/index.js'
-import { anchorHooks } from '../anchor.js'
+import { anchorSetup } from '../anchor.js'
 import type { AnchorConfig } from '../anchor.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → combobox → animation.
@@ -134,6 +140,12 @@ export const CompletedFocusInput = m('CompletedFocusInput')
 export const CompletedScrollIntoView = m('CompletedScrollIntoView')
 /** Sent when the programmatic item click command completes. */
 export const CompletedClickItem = m('CompletedClickItem')
+/** Sent when the items panel mounts and Floating UI has positioned it. Update no-ops; surfaces the positioning side effect for DevTools. */
+export const CompletedAnchorMount = m('CompletedAnchorMount')
+/** Sent when the items panel mounts and the capture-phase pointerdown listener is attached (with or without anchor). Update no-ops; surfaces the listener-attach side effect for DevTools. */
+export const CompletedAttachPreventBlur = m('CompletedAttachPreventBlur')
+/** Sent when the input mounts and the focus listener that auto-selects on focus is attached. Update no-ops; surfaces the listener-attach side effect for DevTools. */
+export const CompletedAttachSelectOnFocus = m('CompletedAttachSelectOnFocus')
 /** Wraps an Animation submodel message for delegation. */
 export const GotAnimationMessage = m('GotAnimationMessage', {
   message: AnimationMessage,
@@ -163,6 +175,9 @@ export const Message: S.Union<
     typeof CompletedFocusInput,
     typeof CompletedScrollIntoView,
     typeof CompletedClickItem,
+    typeof CompletedAnchorMount,
+    typeof CompletedAttachPreventBlur,
+    typeof CompletedAttachSelectOnFocus,
     typeof GotAnimationMessage,
     typeof UpdatedInputValue,
     typeof PressedToggleButton,
@@ -183,6 +198,9 @@ export const Message: S.Union<
   CompletedFocusInput,
   CompletedScrollIntoView,
   CompletedClickItem,
+  CompletedAnchorMount,
+  CompletedAttachPreventBlur,
+  CompletedAttachSelectOnFocus,
   GotAnimationMessage,
   UpdatedInputValue,
   PressedToggleButton,
@@ -580,10 +598,60 @@ export const makeUpdate = <Model extends BaseModel>(
         CompletedFocusInput: () => [model, []],
         CompletedScrollIntoView: () => [model, []],
         CompletedClickItem: () => [model, []],
+        CompletedAnchorMount: () => [model, []],
+        CompletedAttachPreventBlur: () => [model, []],
+        CompletedAttachSelectOnFocus: () => [model, []],
       }),
     )
   }
 }
+
+const ComboboxAnchor = Mount.define('ComboboxAnchor', CompletedAnchorMount)
+const ComboboxAttachPreventBlur = Mount.define(
+  'ComboboxAttachPreventBlur',
+  CompletedAttachPreventBlur,
+)
+const ComboboxAttachSelectOnFocus = Mount.define(
+  'ComboboxAttachSelectOnFocus',
+  CompletedAttachSelectOnFocus,
+)
+
+const attachPreventBlurOnPointerDown = ComboboxAttachPreventBlur(
+  (
+    element,
+  ): Effect.Effect<MountResult<typeof CompletedAttachPreventBlur.Type>> =>
+    Effect.sync(() => {
+      const handler = (event: Event) => {
+        event.preventDefault()
+      }
+      element.addEventListener('pointerdown', handler, { capture: true })
+      return {
+        message: CompletedAttachPreventBlur(),
+        cleanup: () =>
+          element.removeEventListener('pointerdown', handler, {
+            capture: true,
+          }),
+      }
+    }),
+)
+
+const attachSelectOnFocus = ComboboxAttachSelectOnFocus(
+  (
+    element,
+  ): Effect.Effect<MountResult<typeof CompletedAttachSelectOnFocus.Type>> =>
+    Effect.sync(() => {
+      const handler = () => {
+        if (element instanceof HTMLInputElement) {
+          element.select()
+        }
+      }
+      element.addEventListener('focus', handler)
+      return {
+        message: CompletedAttachSelectOnFocus(),
+        cleanup: () => element.removeEventListener('focus', handler),
+      }
+    }),
+)
 
 // VIEW TYPES
 
@@ -617,7 +685,10 @@ export type BaseViewConfig<
       | MovedPointerOverItem
       | RequestedItemClick
       | UpdatedInputValue
-      | PressedToggleButton,
+      | PressedToggleButton
+      | typeof CompletedAnchorMount.Type
+      | typeof CompletedAttachPreventBlur.Type
+      | typeof CompletedAttachSelectOnFocus.Type,
   ) => Message
   onSelectedItem?: (value: string) => Message
   items: ReadonlyArray<Item>
@@ -694,11 +765,10 @@ export const makeView =
       Name,
       OnBlur,
       OnClick,
-      OnDestroy,
       OnFocus,
       OnInput,
-      OnInsert,
       OnKeyDownPreventDefault,
+      OnMount,
       OnPointerLeave,
       OnPointerMove,
       Placeholder,
@@ -913,16 +983,6 @@ export const makeView =
         M.orElse(() => Option.none()),
       )
 
-    const preventBlurOnPointerDown = (element: Element): void => {
-      element.addEventListener(
-        'pointerdown',
-        (event: Event) => {
-          event.preventDefault()
-        },
-        { capture: true },
-      )
-    }
-
     const maybeActiveDescendant = Option.match(maybeActiveItemIndex, {
       onNone: () => [],
       onSome: index => [AriaActiveDescendant(itemId(id, index))],
@@ -958,38 +1018,55 @@ export const makeView =
       ...(isInvalid ? [AriaInvalid(true), DataAttribute('invalid', '')] : []),
       ...(isVisible ? [DataAttribute('open', '')] : []),
       ...(config.model.selectInputOnFocus
-        ? [
-            OnInsert((element: Element) => {
-              element.addEventListener('focus', () => {
-                if (element instanceof HTMLInputElement) {
-                  element.select()
-                }
-              })
-            }),
-          ]
+        ? [OnMount(Mount.mapMessage(attachSelectOnFocus, toParentMessage))]
         : []),
       ...(inputClassName ? [Class(inputClassName)] : []),
       ...inputAttributes,
     ]
 
-    const hooks = anchor
-      ? anchorHooks({
-          buttonId: `${id}-input-wrapper`,
-          anchor,
-          interceptTab: false,
-        })
-      : undefined
-
-    const anchorAttributes = hooks
+    const anchorAttributes = anchor
       ? [
           Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
-          OnInsert((element: Element) => {
-            preventBlurOnPointerDown(element)
-            hooks.onInsert(element)
-          }),
-          OnDestroy(hooks.onDestroy),
+          OnMount(
+            Mount.mapMessage(
+              ComboboxAnchor(
+                (
+                  items,
+                ): Effect.Effect<
+                  MountResult<typeof CompletedAnchorMount.Type>
+                > =>
+                  Effect.sync(() => {
+                    const preventBlur = (event: Event) => {
+                      event.preventDefault()
+                    }
+                    items.addEventListener('pointerdown', preventBlur, {
+                      capture: true,
+                    })
+                    const teardownAnchor = anchorSetup({
+                      buttonId: `${id}-input-wrapper`,
+                      anchor,
+                      interceptTab: false,
+                    })(items)
+                    return {
+                      message: CompletedAnchorMount(),
+                      cleanup: () => {
+                        items.removeEventListener('pointerdown', preventBlur, {
+                          capture: true,
+                        })
+                        teardownAnchor()
+                      },
+                    }
+                  }),
+              ),
+              toParentMessage,
+            ),
+          ),
         ]
-      : [OnInsert(preventBlurOnPointerDown)]
+      : [
+          OnMount(
+            Mount.mapMessage(attachPreventBlurOnPointerDown, toParentMessage),
+          ),
+        ]
 
     const itemsContainerAttributes = [
       Id(`${id}-items`),
@@ -1186,7 +1263,12 @@ export const makeView =
               ...(isDisabled
                 ? [AriaDisabled(true), DataAttribute('disabled', '')]
                 : [OnClick(toParentMessage(PressedToggleButton()))]),
-              OnInsert(preventBlurOnPointerDown),
+              OnMount(
+                Mount.mapMessage(
+                  attachPreventBlurOnPointerDown,
+                  toParentMessage,
+                ),
+              ),
               ...(buttonClassName ? [Class(buttonClassName)] : []),
               ...buttonAttributes,
             ],

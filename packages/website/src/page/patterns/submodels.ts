@@ -11,7 +11,11 @@ import {
   tableOfContentsEntryToHeader,
   warningCallout,
 } from '../../prose'
-import { exampleDetailRouter, patternsOutMessageRouter } from '../../route'
+import {
+  coreLifecycleHooksRouter,
+  exampleDetailRouter,
+  patternsOutMessageRouter,
+} from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
@@ -176,6 +180,20 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ', translating child Messages back into the parent\u2019s Message type. ',
         inlineCode('Command.mapEffect'),
         ' transforms the inner Effect while preserving the Command\u2019s name, so traces still show the original name from the child module.',
+      ),
+      para(
+        inlineCode('Mount.mapMessage'),
+        ' does the same lift for ',
+        link(coreLifecycleHooksRouter(), 'OnMount'),
+        ' actions. When the child attaches mount-time work via ',
+        inlineCode('OnMount'),
+        ', the action\u2019s result Message starts in the child\u2019s Message type; ',
+        inlineCode('Mount.mapMessage(action, toParentMessage)'),
+        ' translates it into the parent\u2019s, just as ',
+        inlineCode('Command.mapEffect'),
+        ' does for Commands. The name set on the original ',
+        inlineCode('Mount.define'),
+        ' is preserved through the lift, so DevTools still attributes the action to the child module.',
       ),
       infoCallout(
         'Multiple instances',

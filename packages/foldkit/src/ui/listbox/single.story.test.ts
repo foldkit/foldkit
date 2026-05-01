@@ -1540,7 +1540,7 @@ describe('Listbox', () => {
         )
       })
 
-      it('adds focus insert hook but no positioning styles when anchor is absent', () => {
+      it('adds focus mount hook but no positioning styles when anchor is absent', () => {
         Scene.scene(
           { update, view: sceneView() },
           Scene.with(openModel()),
@@ -1551,7 +1551,7 @@ describe('Listbox', () => {
             )
             expect(itemsContainer).not.toHaveStyle('position')
             expect(itemsContainer).toHaveHook('insert')
-            expect(itemsContainer).not.toHaveHook('destroy')
+            expect(itemsContainer).toHaveHook('destroy')
           }),
         )
       })

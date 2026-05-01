@@ -32,24 +32,30 @@ const getOrCreatePortalRoot = (): HTMLElement => {
   return document.body.appendChild(root)
 }
 
-const anchorCleanups = new WeakMap<Element, () => void>()
-
-/** Returns insert/destroy hook callbacks that position a floating element relative to its button using Floating UI. When `interceptTab` is true (default), Tab key in portal mode refocuses the button — set to false for components like Popover where Tab should navigate naturally within the panel. When `focusAfterPosition` is true, the element is focused after the first position computation clears visibility — deferred via requestAnimationFrame so the element is painted before focus fires. `focusSelector` optionally targets a descendant (e.g. a calendar grid inside a popover panel) instead of the panel itself. */
-export const anchorHooks = (config: {
-  buttonId: string
-  anchor: AnchorConfig
-  interceptTab?: boolean
-  focusAfterPosition?: boolean
-  focusSelector?: string
-}): Readonly<{
-  onInsert: (items: Element) => void
-  onDestroy: (items: Element) => void
-}> => ({
-  onInsert: (items: Element) => {
+/** Positions a floating element relative to its button using Floating UI, then
+ *  returns a cleanup function. Designed to be called inside an `OnMount`
+ *  action: the consumer wraps the call in `Effect.sync` and stashes the
+ *  returned cleanup in the `Mount` result. When `interceptTab` is true
+ *  (default), Tab key in portal mode refocuses the button — set to false for
+ *  components like Popover where Tab should navigate naturally within the
+ *  panel. When `focusAfterPosition` is true, the element is focused after the
+ *  first position computation clears visibility — deferred via
+ *  requestAnimationFrame so the element is painted before focus fires.
+ *  `focusSelector` optionally targets a descendant (e.g. a calendar grid
+ *  inside a popover panel) instead of the panel itself. */
+export const anchorSetup =
+  (config: {
+    buttonId: string
+    anchor: AnchorConfig
+    interceptTab?: boolean
+    focusAfterPosition?: boolean
+    focusSelector?: string
+  }) =>
+  (items: Element): (() => void) => {
     const button = document.getElementById(config.buttonId)
 
     if (!(button instanceof HTMLElement) || !(items instanceof HTMLElement)) {
-      return
+      return () => {}
     }
 
     const isPortal = config.anchor.portal ?? true
@@ -114,7 +120,9 @@ export const anchorHooks = (config: {
           try {
             items.remove()
           } catch {
-            // Element was already removed by a blur-triggered re-render.
+            // NOTE: a blur-triggered re-render may unmount the items element
+            // before this cleanup runs, so the remove() call can throw on a
+            // node that's already been removed. Swallow the error.
           }
         }
       : undefined
@@ -128,20 +136,15 @@ export const anchorHooks = (config: {
 
       items.addEventListener('keydown', handleTabKey)
 
-      anchorCleanups.set(items, () => {
+      return () => {
         floatingCleanup()
         items.removeEventListener('keydown', handleTabKey)
         portalCleanup?.()
-      })
+      }
     } else {
-      anchorCleanups.set(items, () => {
+      return () => {
         floatingCleanup()
         portalCleanup?.()
-      })
+      }
     }
-  },
-  onDestroy: (items: Element) => {
-    anchorCleanups.get(items)?.()
-    anchorCleanups.delete(items)
-  },
-})
+  }

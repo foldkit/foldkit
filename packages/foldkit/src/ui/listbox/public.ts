@@ -21,6 +21,8 @@ export {
   CompletedFocusItems,
   CompletedScrollIntoView,
   CompletedClickItem,
+  CompletedAnchorMount,
+  CompletedFocusItemsOnMount,
   ClearedSearch,
   GotAnimationMessage,
   LockScroll,

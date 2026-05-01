@@ -31,6 +31,10 @@
       "types": "./dist/message/public.d.ts",
       "import": "./dist/message/public.js"
     },
+    "./mount": {
+      "types": "./dist/mount/public.d.ts",
+      "import": "./dist/mount/public.js"
+    },
     "./navigation": {
       "types": "./dist/navigation/public.d.ts",
       "import": "./dist/navigation/public.js"

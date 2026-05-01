@@ -18,6 +18,7 @@ export const ExampleSlug = S.Literal(
   'pixel-art',
   'websocket-chat',
   'kanban',
+  'map',
   'ui-showcase',
 )
 export type ExampleSlug = typeof ExampleSlug.Type
@@ -165,6 +166,15 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'Drag-and-drop kanban board with cross-column reordering, keyboard navigation, fractional indexing, and screen reader announcements.',
     difficulty: 'Advanced',
     tags: ['Drag & Drop', 'Submodels', 'OutMessage', 'Storage'],
+    hasRouting: false,
+  },
+  {
+    slug: 'map',
+    title: 'Map',
+    description:
+      'Interactive MapLibre GL map with locations, search, and "find my location". Demonstrates OnMount integration with a third-party DOM library, plus a Subscription bridging map move and marker click events back to the Model.',
+    difficulty: 'Advanced',
+    tags: ['Lifecycle Hooks', 'Subscriptions', 'Third-Party Library'],
     hasRouting: false,
   },
   {

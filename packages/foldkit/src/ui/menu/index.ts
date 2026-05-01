@@ -2,6 +2,7 @@ import {
   Array,
   Effect,
   Equal,
+  Function,
   Match as M,
   Option,
   Predicate,
@@ -15,13 +16,15 @@ import { OptionExt } from '../../effectExtensions/index.js'
 import {
   type Attribute,
   type Html,
+  type MountResult,
   createLazy,
   html,
 } from '../../html/index.js'
 import { m } from '../../message/index.js'
+import * as Mount from '../../mount/index.js'
 import { evo } from '../../struct/index.js'
 import * as Task from '../../task/index.js'
-import { anchorHooks } from '../anchor.js'
+import { anchorSetup } from '../anchor.js'
 import type { AnchorConfig } from '../anchor.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → menu → animation.
@@ -134,6 +137,10 @@ export const CompletedAdvanceFocus = m('CompletedAdvanceFocus')
 export const IgnoredMouseClick = m('IgnoredMouseClick')
 /** Sent when a Space key-up is captured to prevent page scrolling. */
 export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
+/** Sent when the menu items panel mounts and Floating UI has positioned it. Update no-ops; the side effect is the act of positioning, surfaced for DevTools observability. */
+export const CompletedAnchorMount = m('CompletedAnchorMount')
+/** Sent when the menu items panel mounts and the no-anchor focus fallback runs. Update no-ops; the side effect is the focus call, surfaced for DevTools observability. */
+export const CompletedFocusItemsOnMount = m('CompletedFocusItemsOnMount')
 /** Wraps an Animation submodel message for delegation. */
 export const GotAnimationMessage = m('GotAnimationMessage', {
   message: AnimationMessage,
@@ -177,6 +184,8 @@ export const Message: S.Union<
     typeof CompletedAdvanceFocus,
     typeof IgnoredMouseClick,
     typeof SuppressedSpaceScroll,
+    typeof CompletedAnchorMount,
+    typeof CompletedFocusItemsOnMount,
     typeof GotAnimationMessage,
     typeof PressedPointerOnButton,
     typeof ReleasedPointerOnItems,
@@ -203,6 +212,8 @@ export const Message: S.Union<
   CompletedAdvanceFocus,
   IgnoredMouseClick,
   SuppressedSpaceScroll,
+  CompletedAnchorMount,
+  CompletedFocusItemsOnMount,
   GotAnimationMessage,
   PressedPointerOnButton,
   ReleasedPointerOnItems,
@@ -655,9 +666,32 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         [],
       ],
       SuppressedSpaceScroll: () => [model, []],
+      CompletedAnchorMount: () => [model, []],
+      CompletedFocusItemsOnMount: () => [model, []],
     }),
   )
 }
+
+const MenuAnchor = Mount.define('MenuAnchor', CompletedAnchorMount)
+const MenuFocusItemsOnMount = Mount.define(
+  'MenuFocusItemsOnMount',
+  CompletedFocusItemsOnMount,
+)
+
+const focusItemsOnMount = MenuFocusItemsOnMount(
+  (
+    element,
+  ): Effect.Effect<MountResult<typeof CompletedFocusItemsOnMount.Type>> =>
+    Effect.sync(() => {
+      if (element instanceof HTMLElement) {
+        element.focus()
+      }
+      return {
+        message: CompletedFocusItemsOnMount(),
+        cleanup: Function.constVoid,
+      }
+    }),
+)
 
 /** Programmatically opens the menu, updating the model and returning
  *  focus and modal commands. Use this in domain-event handlers to open the menu. */
@@ -712,7 +746,9 @@ export type ViewConfig<Message, Item extends string> = Readonly<{
       | PressedPointerOnButton
       | ReleasedPointerOnItems
       | IgnoredMouseClick
-      | SuppressedSpaceScroll,
+      | SuppressedSpaceScroll
+      | typeof CompletedAnchorMount.Type
+      | typeof CompletedFocusItemsOnMount.Type,
   ) => Message
   onSelectedItem?: (index: number) => Message
   items: ReadonlyArray<Item>
@@ -764,10 +800,9 @@ export const view = <Message, Item extends string>(
     Id,
     OnBlur,
     OnClick,
-    OnDestroy,
-    OnInsert,
     OnKeyDownPreventDefault,
     OnKeyUpPreventDefault,
+    OnMount,
     OnPointerDown,
     OnPointerLeave,
     OnPointerMove,
@@ -1029,27 +1064,29 @@ export const view = <Message, Item extends string>(
     onSome: index => [AriaActiveDescendant(itemId(id, index))],
   })
 
-  const hooks = anchor
-    ? anchorHooks({
-        buttonId: `${id}-button`,
-        anchor,
-        focusAfterPosition: true,
-      })
-    : undefined
-
-  const focusOnInsert = (element: Element): void => {
-    if (element instanceof HTMLElement) {
-      element.focus()
-    }
-  }
-
-  const anchorAttributes = hooks
+  const anchorAttributes = anchor
     ? [
         Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
-        OnInsert(hooks.onInsert),
-        OnDestroy(hooks.onDestroy),
+        OnMount(
+          Mount.mapMessage(
+            MenuAnchor(
+              (
+                items,
+              ): Effect.Effect<MountResult<typeof CompletedAnchorMount.Type>> =>
+                Effect.sync(() => ({
+                  message: CompletedAnchorMount(),
+                  cleanup: anchorSetup({
+                    buttonId: `${id}-button`,
+                    anchor,
+                    focusAfterPosition: true,
+                  })(items),
+                })),
+            ),
+            toParentMessage,
+          ),
+        ),
       ]
-    : [OnInsert(focusOnInsert)]
+    : [OnMount(Mount.mapMessage(focusItemsOnMount, toParentMessage))]
 
   const itemsContainerAttributes = [
     Id(`${id}-items`),

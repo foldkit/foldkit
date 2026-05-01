@@ -2,6 +2,7 @@ import {
   Array,
   Data,
   Effect,
+  Function,
   Match,
   Option,
   Predicate,
@@ -14,6 +15,7 @@ import { h } from 'snabbdom'
 import type { Attrs, On, Props, VNodeData } from 'snabbdom'
 
 import type { File } from '../file/index.js'
+import type { MountAction } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
 import { VNode } from '../vdom.js'
 import {
@@ -299,6 +301,22 @@ export type TagName =
   | 'munderover'
   | 'semantics'
 
+/**
+ * Result of an `OnMount` Effect: a Message announcing the mount, plus a
+ * synchronous cleanup function the runtime invokes when the element unmounts.
+ */
+export type MountResult<Message> = Readonly<{
+  message: Message
+  cleanup: () => void
+}>
+
+type OnMountState = {
+  destroyed: boolean
+  cleanup: Option.Option<() => void>
+}
+
+const onMountStates = new WeakMap<Element, OnMountState>()
+
 /** Union of all HTML, SVG, and MathML attributes a virtual DOM element can carry. */
 export type Attribute<Message> = Data.TaggedEnum<{
   Key: { readonly value: string }
@@ -578,11 +596,9 @@ export type Attribute<Message> = Data.TaggedEnum<{
   Opacity: { readonly value: string }
   StrokeDasharray: { readonly value: string }
   StrokeDashoffset: { readonly value: string }
-  OnInsert: { readonly f: (element: Element) => void }
-  OnInsertEffect: {
-    readonly f: (element: Element) => Effect.Effect<Message>
+  OnMount: {
+    readonly action: MountAction<Message, any>
   }
-  OnDestroy: { readonly f: (element: Element) => void }
 }>
 
 interface AttributeDefinition extends Data.TaggedEnum.WithGenerics<1> {
@@ -826,9 +842,7 @@ const {
   Opacity,
   StrokeDasharray,
   StrokeDashoffset,
-  OnInsert,
-  OnInsertEffect,
-  OnDestroy,
+  OnMount,
 } = Data.taggedEnum<AttributeDefinition>()
 
 const buildVNodeData = <Message>(
@@ -1482,34 +1496,33 @@ const buildVNodeData = <Message>(
             updateDataAttrs({ 'stroke-dasharray': value }),
           StrokeDashoffset: ({ value }) =>
             updateDataAttrs({ 'stroke-dashoffset': value }),
-          OnInsert: ({ f }) =>
+          OnMount: ({ action }) =>
             Ref.update(dataRef, data => ({
               ...data,
               hook: {
                 ...data.hook,
                 insert: vnode => {
                   if (vnode.elm instanceof Element) {
-                    f(vnode.elm)
-                  }
-                },
-              },
-            })),
-          OnInsertEffect: ({ f }) =>
-            Ref.update(dataRef, data => ({
-              ...data,
-              hook: {
-                ...data.hook,
-                insert: vnode => {
-                  if (vnode.elm instanceof Element) {
+                    const element = vnode.elm
+                    const state: OnMountState = {
+                      destroyed: false,
+                      cleanup: Option.none(),
+                    }
+                    onMountStates.set(element, state)
                     Effect.runFork(
-                      f(vnode.elm).pipe(
-                        Effect.tap(message =>
-                          Effect.sync(() => dispatchSync(message)),
-                        ),
+                      Effect.gen(function* () {
+                        const { message, cleanup } = yield* action.f(element)
+                        if (state.destroyed) {
+                          cleanup()
+                        } else {
+                          state.cleanup = Option.some(cleanup)
+                          dispatchSync(message)
+                        }
+                      }).pipe(
                         Effect.catchAllCause(cause =>
                           Effect.sync(() => {
                             console.error(
-                              '[OnInsertEffect] unhandled failure',
+                              `[OnMount ${action.name}] unhandled failure`,
                               cause,
                             )
                           }),
@@ -1518,16 +1531,17 @@ const buildVNodeData = <Message>(
                     )
                   }
                 },
-              },
-            })),
-          OnDestroy: ({ f }) =>
-            Ref.update(dataRef, data => ({
-              ...data,
-              hook: {
-                ...data.hook,
                 destroy: vnode => {
                   if (vnode.elm instanceof Element) {
-                    f(vnode.elm)
+                    const state = onMountStates.get(vnode.elm)
+                    if (state) {
+                      state.destroyed = true
+                      Option.match(state.cleanup, {
+                        onNone: Function.constVoid,
+                        onSome: cleanup => cleanup(),
+                      })
+                      onMountStates.delete(vnode.elm)
+                    }
                   }
                 },
               },
@@ -2902,17 +2916,9 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'StrokeDashoffset'
     readonly value: string
   }
-  OnInsert: (f: (element: Element) => void) => {
-    readonly _tag: 'OnInsert'
-    readonly f: (element: Element) => void
-  }
-  OnInsertEffect: (f: (element: Element) => Effect.Effect<Message>) => {
-    readonly _tag: 'OnInsertEffect'
-    readonly f: (element: Element) => Effect.Effect<Message>
-  }
-  OnDestroy: (f: (element: Element) => void) => {
-    readonly _tag: 'OnDestroy'
-    readonly f: (element: Element) => void
+  OnMount: (action: MountAction<Message, any>) => {
+    readonly _tag: 'OnMount'
+    readonly action: MountAction<Message, any>
   }
 }
 
@@ -3186,10 +3192,7 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   Opacity: (value: string) => Opacity({ value }),
   StrokeDasharray: (value: string) => StrokeDasharray({ value }),
   StrokeDashoffset: (value: string) => StrokeDashoffset({ value }),
-  OnInsert: (f: (element: Element) => void) => OnInsert({ f }),
-  OnInsertEffect: (f: (element: Element) => Effect.Effect<Message>) =>
-    OnInsertEffect({ f }),
-  OnDestroy: (f: (element: Element) => void) => OnDestroy({ f }),
+  OnMount: (action: MountAction<Message, any>) => OnMount({ action }),
 })
 
 /**
