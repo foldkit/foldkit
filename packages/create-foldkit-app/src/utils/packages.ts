@@ -24,8 +24,8 @@ const getInstallArgs = (
 const StringRecord = Schema.Record({ key: Schema.String, value: Schema.String })
 
 const PackageJson = Schema.Struct({
-  dependencies: Schema.optionalWith(StringRecord, { default: () => ({}) }),
-  devDependencies: Schema.optionalWith(StringRecord, { default: () => ({}) }),
+  dependencies: StringRecord.pipe(Schema.withDecodingDefaultKey(Effect.succeed(({})))),
+  devDependencies: StringRecord.pipe(Schema.withDecodingDefaultKey(Effect.succeed(({})))),
 })
 
 const formatDeps = (deps: Record<string, string>): ReadonlyArray<string> =>

@@ -1,10 +1,10 @@
-import { Option, Schema as S } from 'effect'
+import { Effect, Option, Schema as S } from 'effect'
 
 export const TypeDocFlags = S.Struct({
-  isOptional: S.optionalWith(S.Boolean, { default: () => false }),
-  isPrivate: S.optionalWith(S.Boolean, { default: () => false }),
-  isProtected: S.optionalWith(S.Boolean, { default: () => false }),
-  isStatic: S.optionalWith(S.Boolean, { default: () => false }),
+  isOptional: S.Boolean.pipe(S.withDecodingDefaultKey(Effect.succeed(false))),
+  isPrivate: S.Boolean.pipe(S.withDecodingDefaultKey(Effect.succeed(false))),
+  isProtected: S.Boolean.pipe(S.withDecodingDefaultKey(Effect.succeed(false))),
+  isStatic: S.Boolean.pipe(S.withDecodingDefaultKey(Effect.succeed(false))),
 })
 
 export type TypeDocFlags = typeof TypeDocFlags.Type
@@ -264,9 +264,9 @@ export const TypeDocParam = S.Struct({
   name: S.String,
   variant: S.String,
   kind: S.Number,
-  flags: S.optionalWith(TypeDocFlags, {
-    default: () => defaultFlags,
-  }),
+  flags: TypeDocFlags.pipe(
+    S.withDecodingDefaultKey(Effect.succeed(defaultFlags)),
+  ),
   type: S.OptionFromUndefinedOr(TypeDocTypeSchema),
   defaultValue: S.OptionFromUndefinedOr(S.String),
   comment: S.OptionFromUndefinedOr(TypeDocComment),
@@ -292,9 +292,9 @@ const typeDocItemFields = {
   name: S.String,
   variant: S.String,
   kind: S.Number,
-  flags: S.optionalWith(TypeDocFlags, {
-    default: () => defaultFlags,
-  }),
+  flags: TypeDocFlags.pipe(
+    S.withDecodingDefaultKey(Effect.succeed(defaultFlags)),
+  ),
   comment: S.OptionFromUndefinedOr(TypeDocComment),
   sources: S.OptionFromUndefinedOr(S.Array(TypeDocSource)),
   signatures: S.OptionFromUndefinedOr(S.Array(TypeDocSignature)),
@@ -328,9 +328,9 @@ export const TypeDocModule = S.Struct({
   name: S.String,
   variant: S.String,
   kind: S.Number,
-  children: S.optionalWith(S.Array(TypeDocItem), {
-    default: () => [],
-  }),
+  children: S.Array(TypeDocItem).pipe(
+    S.withDecodingDefaultKey(Effect.succeed([])),
+  ),
 })
 
 export type TypeDocModule = typeof TypeDocModule.Type
