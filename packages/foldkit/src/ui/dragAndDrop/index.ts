@@ -5,13 +5,13 @@ import {
   Equivalence,
   Match as M,
   Option,
+  Queue,
   Schema as S,
   Stream,
   pipe,
 } from 'effect'
 
 import * as Command from '../../command/index.js'
-import { StreamExt } from '../../effectExtensions/index.js'
 import { type Attribute, html } from '../../html/index.js'
 import { m } from '../../message/index.js'
 import { makeSubscriptions } from '../../runtime/subscription.js'
@@ -664,21 +664,29 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
       // NOTE: prevents text selection and locks cursor to grabbing during
       // pointer drag. Uses a <style> element for cursor because inline styles
       // on <html> don't override descendant elements' cursor values.
-      const documentDragStyles = StreamExt.fromEmit<never>(_emit => {
-        document.documentElement.style.setProperty('user-select', 'none')
-        document.documentElement.style.setProperty(
-          '-webkit-user-select',
-          'none',
-        )
-        const cursorStyle = document.createElement('style')
-        cursorStyle.textContent = '* { cursor: grabbing !important; }'
-        document.head.appendChild(cursorStyle)
-        return Effect.sync(() => {
-          document.documentElement.style.removeProperty('user-select')
-          document.documentElement.style.removeProperty('-webkit-user-select')
-          cursorStyle.remove()
-        })
-      })
+      const documentDragStyles = Stream.callback<never>(() =>
+        Effect.acquireRelease(
+          Effect.sync(() => {
+            document.documentElement.style.setProperty('user-select', 'none')
+            document.documentElement.style.setProperty(
+              '-webkit-user-select',
+              'none',
+            )
+            const cursorStyle = document.createElement('style')
+            cursorStyle.textContent = '* { cursor: grabbing !important; }'
+            document.head.appendChild(cursorStyle)
+            return cursorStyle
+          }),
+          cursorStyle =>
+            Effect.sync(() => {
+              document.documentElement.style.removeProperty('user-select')
+              document.documentElement.style.removeProperty(
+                '-webkit-user-select',
+              )
+              cursorStyle.remove()
+            }),
+        ).pipe(Effect.flatMap(() => Effect.never)),
+      )
 
       return Stream.when(
         Stream.merge(pointerEvents, documentDragStyles),
@@ -755,16 +763,21 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
     equivalence: Equivalence.Struct({ isDragging: Equivalence.Boolean }),
     dependenciesToStream: ({ isDragging }, readDependencies) =>
       Stream.when(
-        StreamExt.fromEmit<typeof CompletedAutoScroll.Type>(emit => {
-          let animationFrameId = 0
-          const step = () => {
-            autoScroll(readDependencies().clientY)
-            emit.single(CompletedAutoScroll())
-            animationFrameId = requestAnimationFrame(step)
-          }
-          animationFrameId = requestAnimationFrame(step)
-          return Effect.sync(() => cancelAnimationFrame(animationFrameId))
-        }),
+        Stream.callback<typeof CompletedAutoScroll.Type>(queue =>
+          Effect.acquireRelease(
+            Effect.sync(() => {
+              const ref = { id: 0 }
+              const step = () => {
+                autoScroll(readDependencies().clientY)
+                Queue.offerUnsafe(queue, CompletedAutoScroll())
+                ref.id = requestAnimationFrame(step)
+              }
+              ref.id = requestAnimationFrame(step)
+              return ref
+            }),
+            ref => Effect.sync(() => cancelAnimationFrame(ref.id)),
+          ).pipe(Effect.flatMap(() => Effect.never)),
+        ),
         Effect.sync(() => isDragging),
       ),
   },

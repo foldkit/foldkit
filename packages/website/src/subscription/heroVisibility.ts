@@ -1,5 +1,4 @@
-import { Effect, Stream } from 'effect'
-import { streamFromEmit } from './streamFromEmit'
+import { Effect, Queue, Stream } from 'effect'
 import { Subscription } from 'foldkit/subscription'
 
 import { type Model, type SubscriptionDeps } from '../main'
@@ -16,31 +15,36 @@ export const heroVisibility: Subscription<
   }),
   dependenciesToStream: ({ isLandingPage }) =>
     Stream.when(
-      streamFromEmit<typeof ChangedHeroVisibility.Type>(emit => {
-        const heroElement = document.getElementById(HERO_SECTION_ID)
-
-        if (!heroElement) {
-          return Effect.void
-        }
-
-        const observer = new IntersectionObserver(
-          entries => {
-            const entry = entries[0]
-            if (entry) {
-              emit.single(
-                ChangedHeroVisibility({
-                  isVisible: entry.isIntersecting,
-                }),
-              )
+      Stream.callback<typeof ChangedHeroVisibility.Type>(queue =>
+        Effect.acquireRelease(
+          Effect.sync(() => {
+            const heroElement = document.getElementById(HERO_SECTION_ID)
+            if (!heroElement) {
+              return null
             }
-          },
-          { threshold: 0 },
-        )
-
-        observer.observe(heroElement)
-
-        return Effect.sync(() => observer.disconnect())
-      }),
+            const observer = new IntersectionObserver(
+              entries => {
+                const entry = entries[0]
+                if (entry) {
+                  Queue.offerUnsafe(
+                    queue,
+                    ChangedHeroVisibility({
+                      isVisible: entry.isIntersecting,
+                    }),
+                  )
+                }
+              },
+              { threshold: 0 },
+            )
+            observer.observe(heroElement)
+            return observer
+          }),
+          observer =>
+            Effect.sync(() => {
+              if (observer !== null) observer.disconnect()
+            }),
+        ).pipe(Effect.flatMap(() => Effect.never)),
+      ),
       Effect.sync(() => isLandingPage),
     ),
 }

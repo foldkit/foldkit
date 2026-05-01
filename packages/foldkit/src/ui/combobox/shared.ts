@@ -4,6 +4,7 @@ import {
   Match as M,
   Option,
   Predicate,
+  Result,
   Schema as S,
   pipe,
 } from 'effect'
@@ -1281,11 +1282,9 @@ export const makeView =
       items,
       Array.filterMap((item, index) => {
         const value = itemToValue(item, index)
-        return OptionExt.asResult(
-          OptionExt.when(
-            behavior.isItemSelected(config.model, value),
-            value,
-          ),
+        return Result.fromOption(
+          OptionExt.when(behavior.isItemSelected(config.model, value), value),
+          () => undefined,
         )
       }),
     )

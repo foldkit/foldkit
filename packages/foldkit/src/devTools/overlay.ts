@@ -10,6 +10,7 @@ import {
   Option,
   Order,
   Predicate,
+  Queue,
   Record,
   Schema as S,
   Stream,
@@ -19,7 +20,7 @@ import {
 } from 'effect'
 
 import * as Command from '../command/index.js'
-import { OptionExt, StreamExt } from '../effectExtensions/index.js'
+import { OptionExt } from '../effectExtensions/index.js'
 import {
   type Document,
   type Html,
@@ -566,19 +567,25 @@ const makeOverlaySubscriptions = (store: DevToolsStore) =>
     mobileBreakpoint: {
       modelToDependencies: () => null,
       dependenciesToStream: () =>
-        StreamExt.fromEmit<Message>(emit => {
-          const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT_QUERY)
-
-          const handler = (event: MediaQueryListEvent) => {
-            emit.single(CrossedMobileBreakpoint({ isMobile: event.matches }))
-          }
-
-          mediaQuery.addEventListener('change', handler)
-
-          return Effect.sync(() =>
-            mediaQuery.removeEventListener('change', handler),
-          )
-        }),
+        Stream.callback<Message>(queue =>
+          Effect.acquireRelease(
+            Effect.sync(() => {
+              const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT_QUERY)
+              const handler = (event: MediaQueryListEvent) => {
+                Queue.offerUnsafe(
+                  queue,
+                  CrossedMobileBreakpoint({ isMobile: event.matches }),
+                )
+              }
+              mediaQuery.addEventListener('change', handler)
+              return { mediaQuery, handler }
+            }),
+            ({ mediaQuery, handler }) =>
+              Effect.sync(() =>
+                mediaQuery.removeEventListener('change', handler),
+              ),
+          ).pipe(Effect.flatMap(() => Effect.never)),
+        ),
     },
   })
 

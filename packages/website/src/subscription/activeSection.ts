@@ -6,11 +6,11 @@ import {
   Match as M,
   MutableRef,
   Option,
+  Queue,
+  Stream,
   pipe,
 } from 'effect'
 import { Subscription } from 'foldkit/subscription'
-
-import { streamFromEmit } from './streamFromEmit'
 
 import { Model, SubscriptionDeps } from '../main'
 import { ChangedActiveSection } from '../message'
@@ -175,47 +175,58 @@ export const activeSection: Subscription<
     }
   },
   dependenciesToStream: ({ sections }) =>
-    streamFromEmit<typeof ChangedActiveSection.Type>(emit => {
-      if (!Array.isReadonlyArrayNonEmpty(sections)) {
-        return Effect.void
-      }
+    Stream.callback<typeof ChangedActiveSection.Type>(queue =>
+      Effect.acquireRelease(
+        Effect.sync(() => {
+          if (!Array.isReadonlyArrayNonEmpty(sections)) {
+            return null
+          }
+          const visibleSections = MutableRef.make(HashSet.empty<string>())
+          const observer = new IntersectionObserver(
+            entries => {
+              Array.forEach(
+                entries,
+                ({ isIntersecting, target: { id } }) => {
+                  if (isIntersecting) {
+                    MutableRef.update(visibleSections, HashSet.add(id))
+                  } else {
+                    MutableRef.update(visibleSections, HashSet.remove(id))
+                  }
+                },
+              )
 
-      const visibleSections = MutableRef.make(HashSet.empty<string>())
+              const activeSectionId = Array.findFirst(sections, sectionId =>
+                HashSet.has(MutableRef.get(visibleSections), sectionId),
+              )
 
-      const observer = new IntersectionObserver(
-        entries => {
-          Array.forEach(entries, ({ isIntersecting, target: { id } }) => {
-            if (isIntersecting) {
-              MutableRef.update(visibleSections, HashSet.add(id))
-            } else {
-              MutableRef.update(visibleSections, HashSet.remove(id))
+              Option.match(activeSectionId, {
+                onNone: Function.constVoid,
+                onSome: sectionId => {
+                  Queue.offerUnsafe(
+                    queue,
+                    ChangedActiveSection({ sectionId }),
+                  )
+                },
+              })
+            },
+            {
+              rootMargin: '-100px 0px -80% 0px',
+            },
+          )
+
+          Array.forEach(sections, sectionId => {
+            const element = document.getElementById(sectionId)
+            if (element) {
+              observer.observe(element)
             }
           })
 
-          const activeSectionId = Array.findFirst(sections, sectionId =>
-            HashSet.has(MutableRef.get(visibleSections), sectionId),
-          )
-
-          Option.match(activeSectionId, {
-            onNone: Function.constVoid,
-            onSome: sectionId => {
-              emit.single(ChangedActiveSection({ sectionId }))
-            },
-          })
-        },
-        {
-          rootMargin: '-100px 0px -80% 0px',
-        },
-      )
-
-      Array.forEach(sections, sectionId => {
-        const element = document.getElementById(sectionId)
-
-        if (element) {
-          observer.observe(element)
-        }
-      })
-
-      return Effect.sync(() => observer.disconnect())
-    }),
+          return observer
+        }),
+        observer =>
+          Effect.sync(() => {
+            if (observer !== null) observer.disconnect()
+          }),
+      ).pipe(Effect.flatMap(() => Effect.never)),
+    ),
 }

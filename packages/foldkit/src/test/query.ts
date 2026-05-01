@@ -6,13 +6,12 @@ import {
   Option,
   Predicate,
   Record,
+  Result,
   String as String_,
   flow,
   pipe,
 } from 'effect'
 import { dual } from 'effect/Function'
-
-import { OptionExt } from '../effectExtensions/index.js'
 import { evo } from '../struct/index.js'
 import type { VNode } from '../vdom.js'
 
@@ -203,7 +202,7 @@ const isVNode = (child: VNode | string): child is VNode =>
 
 const vnodeChildren = (vnode: VNode): ReadonlyArray<VNode> =>
   Array.filterMap(vnode.children ?? [], child =>
-    OptionExt.asResult(Option.liftPredicate(child, isVNode)),
+    Result.fromOption(Option.liftPredicate(child, isVNode), () => undefined),
   )
 
 const collectDescendants = (vnode: VNode): ReadonlyArray<VNode> =>
@@ -524,7 +523,7 @@ const nameFromLabelledBy =
           labelledBy,
           String_.split(WHITESPACE_PATTERN),
           Array.filterMap(
-            flow(findById(root), Option.map(textContent), OptionExt.asResult),
+            flow(findById(root), Option.map(textContent), Result.fromOption(() => undefined)),
           ),
           Array.join(' '),
         ),
@@ -641,7 +640,7 @@ export const accessibleDescription =
         onSome: flow(
           String_.split(WHITESPACE_PATTERN),
           Array.filterMap(
-            flow(findById(root), Option.map(textContent), OptionExt.asResult),
+            flow(findById(root), Option.map(textContent), Result.fromOption(() => undefined)),
           ),
           Array.join(' '),
         ),
@@ -958,7 +957,7 @@ export const getByLabel =
             node => node.sel === 'label' && textContent(node) === labelValue,
           ),
           Array.filterMap(labelNode =>
-            OptionExt.asResult(
+            Result.fromOption(
               pipe(
                 labelNode,
                 lookupStringAttribute('htmlFor'),
@@ -967,6 +966,7 @@ export const getByLabel =
                   Array.findFirst(collectDescendants(labelNode), isFormControl),
                 ),
               ),
+              () => undefined,
             ),
           ),
           Array.head,

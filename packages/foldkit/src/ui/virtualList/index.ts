@@ -4,12 +4,13 @@ import {
   Match as M,
   Number,
   Option,
+  Queue,
   Schema as S,
+  Stream,
   pipe,
 } from 'effect'
 
 import * as Command from '../../command/index.js'
-import { StreamExt } from '../../effectExtensions/index.js'
 import {
   type Attribute,
   type Html,
@@ -419,89 +420,108 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
   containerEvents: {
     modelToDependencies: model => ({ id: model.id }),
     dependenciesToStream: ({ id }) =>
-      StreamExt.fromEmit<Message>(emit => {
-        let scrollListener: (() => void) | null = null
-        let resizeObserver: ResizeObserver | null = null
-        let observedElement: HTMLElement | null = null
-        let pendingFrame: number | null = null
-
-        const detach = () => {
-          if (resizeObserver !== null) {
-            resizeObserver.disconnect()
-            resizeObserver = null
-          }
-          if (observedElement !== null && scrollListener !== null) {
-            observedElement.removeEventListener('scroll', scrollListener)
-          }
-          observedElement = null
-          scrollListener = null
-        }
-
-        const attach = (element: HTMLElement) => {
-          const listener = () =>
-            emit.single(ScrolledContainer({ scrollTop: element.scrollTop }))
-          element.addEventListener('scroll', listener, { passive: true })
-          scrollListener = listener
-          observedElement = element
-
-          resizeObserver = new ResizeObserver(entries => {
-            const lastEntry = Array.last(entries)
-            if (Option.isSome(lastEntry)) {
-              emit.single(
-                MeasuredContainer({
-                  containerHeight: lastEntry.value.contentRect.height,
-                }),
-              )
+      Stream.callback<Message>(queue =>
+        Effect.acquireRelease(
+          Effect.sync(() => {
+            const state = {
+              scrollListener: null as (() => void) | null,
+              resizeObserver: null as ResizeObserver | null,
+              observedElement: null as HTMLElement | null,
+              pendingFrame: null as number | null,
             }
-          })
-          resizeObserver.observe(element)
-        }
 
-        const reconcile = () => {
-          const maybeElement = containerElement(id)
-          if (Option.isNone(maybeElement)) {
-            if (observedElement !== null) {
+            const detach = () => {
+              if (state.resizeObserver !== null) {
+                state.resizeObserver.disconnect()
+                state.resizeObserver = null
+              }
+              if (
+                state.observedElement !== null &&
+                state.scrollListener !== null
+              ) {
+                state.observedElement.removeEventListener(
+                  'scroll',
+                  state.scrollListener,
+                )
+              }
+              state.observedElement = null
+              state.scrollListener = null
+            }
+
+            const attach = (element: HTMLElement) => {
+              const listener = () =>
+                Queue.offerUnsafe(
+                  queue,
+                  ScrolledContainer({ scrollTop: element.scrollTop }),
+                )
+              element.addEventListener('scroll', listener, { passive: true })
+              state.scrollListener = listener
+              state.observedElement = element
+
+              state.resizeObserver = new ResizeObserver(entries => {
+                const lastEntry = Array.last(entries)
+                if (Option.isSome(lastEntry)) {
+                  Queue.offerUnsafe(
+                    queue,
+                    MeasuredContainer({
+                      containerHeight: lastEntry.value.contentRect.height,
+                    }),
+                  )
+                }
+              })
+              state.resizeObserver.observe(element)
+            }
+
+            const reconcile = () => {
+              const maybeElement = containerElement(id)
+              if (Option.isNone(maybeElement)) {
+                if (state.observedElement !== null) {
+                  detach()
+                }
+                return
+              }
+              if (state.observedElement === maybeElement.value) {
+                return
+              }
               detach()
+              attach(maybeElement.value)
             }
-            return
-          }
-          if (observedElement === maybeElement.value) {
-            return
-          }
-          detach()
-          attach(maybeElement.value)
-        }
 
-        reconcile()
-
-        // NOTE: observes the entire document subtree because the container
-        // can be inserted/removed by any parent the consumer chooses (route
-        // changes, conditional renders, modal mounts), and the framework has
-        // no way to know that hierarchy in advance. Reconcile is gated by rAF
-        // and short-circuits when the cached observedElement is still in the
-        // DOM, so per-mutation cost stays low even with subtree: true.
-        const mutationObserver = new MutationObserver(() => {
-          if (pendingFrame !== null) {
-            return
-          }
-          pendingFrame = requestAnimationFrame(() => {
-            pendingFrame = null
             reconcile()
-          })
-        })
-        mutationObserver.observe(document.body, {
-          childList: true,
-          subtree: true,
-        })
 
-        return Effect.sync(() => {
-          mutationObserver.disconnect()
-          if (pendingFrame !== null) {
-            cancelAnimationFrame(pendingFrame)
-          }
-          detach()
-        })
-      }),
+            // NOTE: observes the entire document subtree because the container
+            // can be inserted/removed by any parent the consumer chooses (route
+            // changes, conditional renders, modal mounts), and the framework
+            // has no way to know that hierarchy in advance. Reconcile is gated
+            // by rAF and short-circuits when the cached observedElement is
+            // still in the DOM, so per-mutation cost stays low even with
+            // subtree: true.
+            const mutationObserver = new MutationObserver(() => {
+              if (state.pendingFrame !== null) {
+                return
+              }
+              state.pendingFrame = requestAnimationFrame(() => {
+                state.pendingFrame = null
+                reconcile()
+              })
+            })
+            mutationObserver.observe(document.body, {
+              childList: true,
+              subtree: true,
+            })
+
+            return { state, detach, mutationObserver }
+          }),
+          ({ state, detach, mutationObserver }) =>
+            Effect.sync(() => {
+              mutationObserver.disconnect()
+              if (state.pendingFrame !== null) {
+                cancelAnimationFrame(state.pendingFrame)
+              }
+              detach()
+            }),
+        ).pipe(Effect.flatMap(() => Effect.never)),
+      ),
   },
 })
 

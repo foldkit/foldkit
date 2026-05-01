@@ -10,7 +10,6 @@ import {
 } from 'effect'
 
 import type { Command } from '../../command/index.js'
-import { StreamExt } from '../../effectExtensions/index.js'
 import {
   type Attribute,
   type Html,
@@ -404,21 +403,29 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
 
       // NOTE: prevents text selection and locks cursor to grabbing while the
       // user drags the thumb. Matches the approach used in drag-and-drop.
-      const documentDragStyles = StreamExt.fromEmit<never>(_emit => {
-        document.documentElement.style.setProperty('user-select', 'none')
-        document.documentElement.style.setProperty(
-          '-webkit-user-select',
-          'none',
-        )
-        const cursorStyle = document.createElement('style')
-        cursorStyle.textContent = '* { cursor: grabbing !important; }'
-        document.head.appendChild(cursorStyle)
-        return Effect.sync(() => {
-          document.documentElement.style.removeProperty('user-select')
-          document.documentElement.style.removeProperty('-webkit-user-select')
-          cursorStyle.remove()
-        })
-      })
+      const documentDragStyles = Stream.callback<never>(() =>
+        Effect.acquireRelease(
+          Effect.sync(() => {
+            document.documentElement.style.setProperty('user-select', 'none')
+            document.documentElement.style.setProperty(
+              '-webkit-user-select',
+              'none',
+            )
+            const cursorStyle = document.createElement('style')
+            cursorStyle.textContent = '* { cursor: grabbing !important; }'
+            document.head.appendChild(cursorStyle)
+            return cursorStyle
+          }),
+          cursorStyle =>
+            Effect.sync(() => {
+              document.documentElement.style.removeProperty('user-select')
+              document.documentElement.style.removeProperty(
+                '-webkit-user-select',
+              )
+              cursorStyle.remove()
+            }),
+        ).pipe(Effect.flatMap(() => Effect.never)),
+      )
 
       return Stream.when(
         Stream.merge(pointerEvents, documentDragStyles),

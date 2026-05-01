@@ -3,13 +3,13 @@ import {
   Number as Number_,
   Option,
   Predicate,
+  Result,
   Schema as S,
   String,
   flow,
   pipe,
 } from 'effect'
 
-import { OptionExt } from '../effectExtensions/index.js'
 import { ts } from '../schema/index.js'
 
 // RULES + MESSAGES
@@ -121,9 +121,9 @@ export const validateAll =
     return pipe(
       rules.rules,
       Array.filterMap(([predicate, message]) =>
-        OptionExt.asResult(
-          OptionExt.when(!predicate(value), resolveMessage(message, value)),
-        ),
+        !predicate(value)
+          ? Result.succeed(resolveMessage(message, value))
+          : Result.failVoid,
       ),
       Array.match({
         onEmpty: () => Valid({ value }),
