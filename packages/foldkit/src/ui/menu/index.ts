@@ -1211,7 +1211,7 @@ export const view = <Message, Item extends string>(
       const separator =
         segmentIndex > 0 &&
         (separatorClassName ||
-          Array.isArrayNonEmpty(separatorAttributes))
+          Array.isReadonlyArrayNonEmpty(separatorAttributes))
           ? [
               keyed('div')(
                 `${id}-separator-${segmentIndex}`,
@@ -1242,7 +1242,7 @@ export const view = <Message, Item extends string>(
   const renderedItems = renderGroupedItems()
 
   const scrollableItems =
-    itemsScrollClassName || Array.isArrayNonEmpty(itemsScrollAttributes)
+    itemsScrollClassName || Array.isReadonlyArrayNonEmpty(itemsScrollAttributes)
       ? [
           div(
             [

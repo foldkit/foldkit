@@ -282,7 +282,7 @@ const makeUpdate = (
   const inspectLatest = InspectLatest(
     Effect.gen(function* () {
       const state = yield* SubscriptionRef.get(store.stateRef)
-      const latestIndex = Array_.isArrayEmpty(state.entries)
+      const latestIndex = Array_.isReadonlyArrayEmpty(state.entries)
         ? INIT_INDEX
         : state.startIndex + state.entries.length - 1
 
@@ -894,7 +894,7 @@ const makeView = (
   }
 
   const inspectedTimestamp = (model: Model): string => {
-    const lastIndex = Array_.isArrayEmpty(model.entries)
+    const lastIndex = Array_.isReadonlyArrayEmpty(model.entries)
       ? INIT_INDEX
       : model.startIndex + model.entries.length - 1
 
@@ -1418,7 +1418,7 @@ const makeView = (
       }),
     )
 
-    const lastIndex = Array_.isArrayEmpty(model.entries)
+    const lastIndex = Array_.isReadonlyArrayEmpty(model.entries)
       ? INIT_INDEX
       : model.startIndex + model.entries.length - 1
 

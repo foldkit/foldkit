@@ -191,7 +191,7 @@ const formatAvailableKeys = (
   keys: ReadonlyArray<string>,
 ): Option.Option<string> =>
   OptionExt.when(
-    Array_.isArrayNonEmpty(keys),
+    Array_.isReadonlyArrayNonEmpty(keys),
     `Available keys: ${keys.join(', ')}.`,
   )
 

@@ -1228,7 +1228,7 @@ export const makeView =
         const separator =
           segmentIndex > 0 &&
           (separatorClassName ||
-            Array.isArrayNonEmpty(separatorAttributes))
+            Array.isReadonlyArrayNonEmpty(separatorAttributes))
             ? [
                 keyed('div')(
                   `${id}-separator-${segmentIndex}`,
@@ -1260,7 +1260,7 @@ export const makeView =
 
     const scrollableItems =
       itemsScrollClassName ||
-      Array.isArrayNonEmpty(itemsScrollAttributes)
+      Array.isReadonlyArrayNonEmpty(itemsScrollAttributes)
         ? [
             div(
               [

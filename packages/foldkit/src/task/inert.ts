@@ -1,5 +1,7 @@
 import { Array, Effect, Number, Option, Predicate, pipe } from 'effect'
 
+import { OptionExt } from '../effectExtensions/index.js'
+
 const inertState = {
   originals: new Map<
     HTMLElement,
@@ -54,7 +56,9 @@ const resolveElements = (
 ): ReadonlyArray<HTMLElement> =>
   Array.filterMap(selectors, selector => {
     const element = document.querySelector(selector)
-    return element instanceof HTMLElement ? Option.some(element) : Option.none()
+    return OptionExt.asResult(
+      element instanceof HTMLElement ? Option.some(element) : Option.none(),
+    )
   })
 
 const ancestorsUpToBody = (element: HTMLElement): ReadonlyArray<HTMLElement> =>
@@ -75,10 +79,12 @@ const inertableSiblings = (
     parent.children,
     Array.fromIterable,
     Array.filterMap(child =>
-      child instanceof HTMLElement &&
-      !Array.some(allowedElements, allowed => child.contains(allowed))
-        ? Option.some(child)
-        : Option.none(),
+      OptionExt.asResult(
+        child instanceof HTMLElement &&
+          !Array.some(allowedElements, allowed => child.contains(allowed))
+          ? Option.some(child)
+          : Option.none(),
+      ),
     ),
   )
 

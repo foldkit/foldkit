@@ -146,7 +146,7 @@ export const resolve: {
     )
 
     if (Predicate.isUndefined(next)) {
-      const pending = Array.isArrayNonEmpty(internal.commands)
+      const pending = Array.isReadonlyArrayNonEmpty(internal.commands)
         ? pipe(
             internal.commands,
             Array.map(({ name }) => `    ${name}`),

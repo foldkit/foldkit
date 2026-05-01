@@ -45,7 +45,7 @@ export const resolveByName = <Model, Message>(
           internal.model,
           resolverMessage,
         )
-        const outMessage = Array.isArrayNonEmpty(rest)
+        const outMessage = Array.isReadonlyArrayNonEmpty(rest)
           ? rest[0]
           : internal.outMessage
 
@@ -126,13 +126,13 @@ export const assertHasCommands = (
     ({ name }) => !Array.contains(pendingNames, name),
   )
 
-  if (Array.isArrayNonEmpty(missing)) {
+  if (Array.isReadonlyArrayNonEmpty(missing)) {
     const missingNames = pipe(
       missing,
       Array.map(({ name }) => `    ${name}`),
       Array.join('\n'),
     )
-    const pending = Array.isArrayNonEmpty(commands)
+    const pending = Array.isReadonlyArrayNonEmpty(commands)
       ? pipe(
           commands,
           Array.map(({ name }) => `    ${name}`),
@@ -167,7 +167,7 @@ export const assertExactCommands = (
       Array.map(name => `    ${name}`),
       Array.join('\n'),
     )
-    const actual = Array.isArrayNonEmpty(actualNames)
+    const actual = Array.isReadonlyArrayNonEmpty(actualNames)
       ? pipe(
           actualNames,
           Array.map(name => `    ${name}`),
@@ -184,7 +184,7 @@ export const assertExactCommands = (
 export const assertZeroCommands = (
   commands: ReadonlyArray<AnyCommand>,
 ): void => {
-  if (Array.isArrayNonEmpty(commands)) {
+  if (Array.isReadonlyArrayNonEmpty(commands)) {
     const pending = pipe(
       commands,
       Array.map(({ name }) => `    ${name}`),
@@ -199,7 +199,7 @@ export const assertNoUnresolvedCommands = (
   commands: ReadonlyArray<AnyCommand>,
   context: string,
 ): void => {
-  if (Array.isArrayNonEmpty(commands)) {
+  if (Array.isReadonlyArrayNonEmpty(commands)) {
     const names = pipe(
       commands,
       Array.map(({ name }) => `    ${name}`),
@@ -218,7 +218,7 @@ export const assertNoUnresolvedCommands = (
 export const assertAllCommandsResolved = (
   commands: ReadonlyArray<AnyCommand>,
 ): void => {
-  if (Array.isArrayNonEmpty(commands)) {
+  if (Array.isReadonlyArrayNonEmpty(commands)) {
     const names = pipe(
       commands,
       Array.map(({ name }) => `    ${name}`),
