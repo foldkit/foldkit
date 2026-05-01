@@ -262,9 +262,12 @@ export const oneOf = <Parsers extends ReadonlyArray<ParserInput>>(
             message: `No parsers provided for path: /${Array.join(segments, '/')}`,
           }),
         ),
-      onNonEmpty: () =>
-        Effect.firstSuccessOf(
-          Array.map(parsers, parser => parser.parse(segments, search)),
+      onNonEmpty: ([head, ...tail]) =>
+        Array.reduce(
+          tail,
+          head.parse(segments, search),
+          (acc, parser) =>
+            acc.pipe(Effect.catch(() => parser.parse(segments, search))),
         ),
     }),
 })
@@ -415,7 +418,7 @@ export const query =
                   queryValue,
                   Record.toEntries,
                   Array.forEach(([key, val]) => {
-                    if (Predicate.isNotNullable(val)) {
+                    if (Predicate.isNotNullish(val)) {
                       newQueryParams.set(key, val.toString())
                     }
                   }),
@@ -481,7 +484,7 @@ export const parseUrlWithFallback =
     pipe(
       url,
       parseUrl(parser),
-      Effect.orElse(() =>
+      Effect.catch(() =>
         Effect.succeed(notFoundRouteConstructor.make({ path: url.pathname })),
       ),
       Effect.runSync,

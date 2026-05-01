@@ -32,7 +32,7 @@ export interface ManagedResource<in out Value, out Service = unknown> {
   readonly key: string
   readonly get: Effect.Effect<Value, ResourceNotAvailable, Service>
   /** @internal */
-  readonly _tag: Context.Tag<any, any>
+  readonly _tag: Context.Service<any, any>
 }
 
 /** Creates a managed resource identity with a `.get` accessor for use in commands. */
@@ -41,7 +41,7 @@ export const tag =
   <const Key extends string>(
     key: Key,
   ): ManagedResource<Value, ManagedResourceService<Key>> => {
-    const serviceTag = Context.GenericTag<
+    const serviceTag = Context.Service<
       ManagedResourceService<Key>,
       Ref.Ref<Option.Option<Value>>
     >(`@foldkit/ManagedResource/${key}`)
@@ -51,7 +51,7 @@ export const tag =
       const maybeValue = yield* Ref.get(ref)
       return yield* maybeValue
     }).pipe(
-      Effect.catchTag('NoSuchElementException', () =>
+      Effect.catchTag('NoSuchElementError', () =>
         Effect.fail(new ResourceNotAvailable({ resource: key })),
       ),
     )

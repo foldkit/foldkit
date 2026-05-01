@@ -1,6 +1,6 @@
 import {
   Function,
-  type Equivalence,
+  type Equivalence as Equivalence_,
   Order as Order_,
 } from 'effect'
 
@@ -33,7 +33,7 @@ export const Order: Order_.Order<CalendarDate> = Order_.Struct({
 /**
  * Value-based equivalence for calendar dates.
  */
-export const Equivalence: Equivalence.Equivalence<CalendarDate> = (a, b) =>
+export const Equivalence: Equivalence_.Equivalence<CalendarDate> = (a, b) =>
   a.year === b.year && a.month === b.month && a.day === b.day
 
 /**

@@ -4,7 +4,7 @@ import {
   Cause,
   Context,
   Effect,
-  Either,
+  Exit,
   Function,
   Layer,
   Match,
@@ -13,11 +13,9 @@ import {
   Queue,
   Record,
   Ref,
-  Runtime,
   Schema,
   Stream,
   SubscriptionRef,
-  Tuple,
   pipe,
 } from 'effect'
 import { h } from 'snabbdom'
@@ -146,13 +144,13 @@ const defaultSlowViewCallback = (
 }
 
 /** Effect service tag that provides message dispatching to the view layer. */
-export class Dispatch extends Context.Tag('@foldkit/Dispatch')<
+export class Dispatch extends Context.Service<
   Dispatch,
   {
     readonly dispatchAsync: (message: unknown) => Effect.Effect<void>
     readonly dispatchSync: (message: unknown) => void
   }
->() {}
+>()('@foldkit/Dispatch') {}
 
 export type { Command } from '../command/index.js'
 
@@ -490,7 +488,7 @@ const makeRuntime = <
     Effect.scoped(
       Effect.gen(function* () {
         const maybeResourceLayer = resources
-          ? Option.some(yield* Layer.memoize(resources))
+          ? Option.some(resources)
           : Option.none()
 
         const managedResourceEntries: ReadonlyArray<
@@ -518,7 +516,7 @@ const makeRuntime = <
             layer,
             Layer.succeed(
               /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-              config.resource._tag as Context.Tag<any, any>,
+              config.resource._tag as Context.Service<any, any>,
               ref,
             ),
           )
@@ -569,9 +567,9 @@ const makeRuntime = <
           ? pipe(
               hmrModel,
               Schema.decodeUnknownExit(Model),
-              Either.match({
-                onLeft: () => init(flags, Option.getOrUndefined(currentUrl)),
-                onRight: restoredModel => [restoredModel, []],
+              Exit.match({
+                onFailure: () => init(flags, Option.getOrUndefined(currentUrl)),
+                onSuccess: restoredModel => [restoredModel, []],
               }),
             )
           : init(flags, Option.getOrUndefined(currentUrl))
@@ -610,7 +608,7 @@ const makeRuntime = <
         )
 
         const maybeRuntimeRef = yield* Ref.make<
-          Option.Option<Runtime.Runtime<never>>
+          Option.Option<Context.Context<never>>
         >(Option.none())
 
         const maybeDevToolsStoreRef = yield* Ref.make<
@@ -700,14 +698,10 @@ const makeRuntime = <
 
         const runProcessMessage =
           (message: Message, messageEffect: Effect.Effect<void>) =>
-          (runtime: Runtime.Runtime<never>): void => {
-            try {
-              Runtime.runSync(runtime, messageEffect)
-            } catch (error) {
-              const squashed = Runtime.isFiberFailure(error)
-                ? Cause.squash(error[Runtime.FiberFailureCauseId])
-                : error
-
+          (context: Context.Context<never>): void => {
+            const exit = Effect.runSyncExitWith(context)(messageEffect)
+            if (Exit.isFailure(exit)) {
+              const squashed = Cause.squash(exit.cause)
               const appError =
                 squashed instanceof Error
                   ? squashed
@@ -801,8 +795,8 @@ const makeRuntime = <
             yield* drainPendingMessages
           }).pipe(Effect.provideService(Dispatch, dispatch))
 
-        const runtime = yield* Effect.runtime()
-        yield* Ref.set(maybeRuntimeRef, Option.some(runtime))
+        const capturedContext = yield* Effect.context<never>()
+        yield* Ref.set(maybeRuntimeRef, Option.some(capturedContext))
 
         const isInIframe = window.self !== window.top
         const resolvedDevTools = pipe(
@@ -825,11 +819,11 @@ const makeRuntime = <
         if (Option.isSome(resolvedDevTools)) {
           const { position, mode, maybeBanner } = resolvedDevTools.value
           const devToolsStore = yield* createDevToolsStore({
-            replay: (model, message) =>
-              maybeFreezeModel(
-                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                Tuple.getFirst(update(model as Model, message as Message)),
-              ),
+            replay: (model, message) => {
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              const [updatedModel] = update(model as Model, message as Message)
+              return maybeFreezeModel(updatedModel)
+            },
             render: model =>
               /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
               render(model as Model, Option.none()),
@@ -881,7 +875,7 @@ const makeRuntime = <
 
                 const modelStream = Stream.concat(
                   Stream.make(initModel),
-                  modelSubscriptionRef.changes,
+                  SubscriptionRef.changes(modelSubscriptionRef),
                 )
 
                 return Effect.forkDetach(
@@ -957,7 +951,7 @@ const makeRuntime = <
                 ),
               ),
               Stream.map(Effect.succeed),
-              Stream.catchAll(error =>
+              Stream.catch(error =>
                 Stream.make(Effect.succeed(config.onAcquireError(error))),
               ),
             )
@@ -972,7 +966,7 @@ const makeRuntime = <
           Effect.gen(function* () {
             const modelStream = Stream.concat(
               Stream.make(initModel),
-              modelSubscriptionRef.changes,
+              SubscriptionRef.changes(modelSubscriptionRef),
             )
 
             const equivalence = Schema.toEquivalence(config.schema)
@@ -1394,24 +1388,21 @@ export const run = (foldkitRuntime: MakeRuntimeReturn): void => {
     const hot = import.meta.hot
 
     const requestPreservedModel = pipe(
-      Effect.async<unknown>(resume => {
+      Effect.callback<unknown>(resume => {
         hot.on('foldkit:restore-model', model => {
           resume(Effect.succeed(model))
         })
         hot.send('foldkit:request-model')
       }),
-      Effect.timeoutTo({
-        onTimeout: () => {
-          console.warn(
-            '[foldkit] No response from vite-plugin-foldkit. Add it to your vite.config.ts for HMR model preservation:\n\n' +
-              "  import foldkit from 'vite-plugin-foldkit'\n\n" +
-              '  export default defineConfig({ plugins: [foldkit()] })\n\n' +
-              'Starting without HMR support.',
-          )
-          return undefined
-        },
-        onSuccess: Function.identity,
-        duration: PLUGIN_RESPONSE_TIMEOUT_MS,
+      Effect.timeout(PLUGIN_RESPONSE_TIMEOUT_MS),
+      Effect.catchTag('TimeoutError', () => {
+        console.warn(
+          '[foldkit] No response from vite-plugin-foldkit. Add it to your vite.config.ts for HMR model preservation:\n\n' +
+            "  import foldkit from 'vite-plugin-foldkit'\n\n" +
+            '  export default defineConfig({ plugins: [foldkit()] })\n\n' +
+            'Starting without HMR support.',
+        )
+        return Effect.succeed(undefined)
       }),
       Effect.flatMap(foldkitRuntime),
     )
