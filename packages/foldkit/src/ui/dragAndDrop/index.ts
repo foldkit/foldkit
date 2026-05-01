@@ -3,7 +3,6 @@ import {
   Effect,
   Equal,
   Equivalence,
-  Function,
   Match as M,
   Option,
   Schema as S,

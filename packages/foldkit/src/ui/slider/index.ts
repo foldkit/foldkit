@@ -1,7 +1,6 @@
 import {
   Effect,
   Equal,
-  Function,
   Match as M,
   Option,
   Schema as S,
@@ -423,7 +422,7 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
 
       return Stream.when(
         Stream.merge(pointerEvents, documentDragStyles),
-        () => dragActivity === 'Active',
+        Effect.sync(() => dragActivity === 'Active'),
       )
     },
   },

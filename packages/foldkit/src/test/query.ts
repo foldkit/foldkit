@@ -12,6 +12,7 @@ import {
 } from 'effect'
 import { dual } from 'effect/Function'
 
+import { OptionExt } from '../effectExtensions/index.js'
 import { evo } from '../struct/index.js'
 import type { VNode } from '../vdom.js'
 
@@ -201,7 +202,9 @@ const isVNode = (child: VNode | string): child is VNode =>
   !Predicate.isString(child)
 
 const vnodeChildren = (vnode: VNode): ReadonlyArray<VNode> =>
-  Array.filterMap(vnode.children ?? [], Option.liftPredicate(isVNode))
+  Array.filterMap(vnode.children ?? [], child =>
+    OptionExt.asResult(Option.liftPredicate(child, isVNode)),
+  )
 
 const collectDescendants = (vnode: VNode): ReadonlyArray<VNode> =>
   Array.flatMap(vnodeChildren(vnode), child => [
@@ -520,7 +523,9 @@ const nameFromLabelledBy =
         pipe(
           labelledBy,
           String_.split(WHITESPACE_PATTERN),
-          Array.filterMap(flow(findById(root), Option.map(textContent))),
+          Array.filterMap(
+            flow(findById(root), Option.map(textContent), OptionExt.asResult),
+          ),
           Array.join(' '),
         ),
       ),
@@ -635,7 +640,9 @@ export const accessibleDescription =
         onNone: () => '',
         onSome: flow(
           String_.split(WHITESPACE_PATTERN),
-          Array.filterMap(flow(findById(root), Option.map(textContent))),
+          Array.filterMap(
+            flow(findById(root), Option.map(textContent), OptionExt.asResult),
+          ),
           Array.join(' '),
         ),
       }),
@@ -951,12 +958,14 @@ export const getByLabel =
             node => node.sel === 'label' && textContent(node) === labelValue,
           ),
           Array.filterMap(labelNode =>
-            pipe(
-              labelNode,
-              lookupStringAttribute('htmlFor'),
-              Option.flatMap(findById(html)),
-              Option.orElse(() =>
-                Array.findFirst(collectDescendants(labelNode), isFormControl),
+            OptionExt.asResult(
+              pipe(
+                labelNode,
+                lookupStringAttribute('htmlFor'),
+                Option.flatMap(findById(html)),
+                Option.orElse(() =>
+                  Array.findFirst(collectDescendants(labelNode), isFormControl),
+                ),
               ),
             ),
           ),

@@ -5,7 +5,6 @@ import {
   Number,
   Option,
   Schema as S,
-  Stream,
   pipe,
 } from 'effect'
 

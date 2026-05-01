@@ -121,7 +121,9 @@ export const validateAll =
     return pipe(
       rules.rules,
       Array.filterMap(([predicate, message]) =>
-        OptionExt.when(!predicate(value), resolveMessage(message, value)),
+        OptionExt.asResult(
+          OptionExt.when(!predicate(value), resolveMessage(message, value)),
+        ),
       ),
       Array.match({
         onEmpty: () => Valid({ value }),

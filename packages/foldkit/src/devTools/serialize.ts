@@ -1,7 +1,6 @@
 import {
   Array as Array_,
   Function,
-  HashSet,
   Match as M,
   Predicate,
   Record,

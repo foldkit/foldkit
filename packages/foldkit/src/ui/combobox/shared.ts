@@ -1281,9 +1281,11 @@ export const makeView =
       items,
       Array.filterMap((item, index) => {
         const value = itemToValue(item, index)
-        return OptionExt.when(
-          behavior.isItemSelected(config.model, value),
-          value,
+        return OptionExt.asResult(
+          OptionExt.when(
+            behavior.isItemSelected(config.model, value),
+            value,
+          ),
         )
       }),
     )
