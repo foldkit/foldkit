@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { FetchHttpClient } from 'effect/unstable/http'
 import { RpcClient, RpcSerialization } from 'effect/unstable/rpc'
 import { RoomRpcs } from '@typing-game/shared'

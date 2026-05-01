@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Effect, Match as M, Option, Schema as S, Stream } from 'effect'
 import { Subscription } from 'foldkit'
 

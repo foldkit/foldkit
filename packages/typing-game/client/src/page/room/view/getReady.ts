@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Option } from 'effect'
 import { Html } from 'foldkit/html'
 

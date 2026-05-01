@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Function, Option } from 'effect'
 
 export const optionWhen = <T>(

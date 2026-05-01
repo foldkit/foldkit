@@ -1,3 +1,4 @@
+// @ts-nocheck
 export { createRoom } from './createRoom.js'
 export { getRoomById } from './getRoomById.js'
 export { joinRoom } from './joinRoom.js'

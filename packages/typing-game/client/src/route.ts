@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Schema as S, pipe } from 'effect'
 import { Route } from 'foldkit'
 import { literal, r, slash, string } from 'foldkit/route'

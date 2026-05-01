@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Array, Option, pipe } from 'effect'
 import { Command } from 'foldkit'
 

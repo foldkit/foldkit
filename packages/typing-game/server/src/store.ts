@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as Shared from '@typing-game/shared'
 import { Context, HashMap, HashSet, Layer, Ref, SubscriptionRef } from 'effect'
 

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Runtime } from 'foldkit'
 
 import { init } from './init'

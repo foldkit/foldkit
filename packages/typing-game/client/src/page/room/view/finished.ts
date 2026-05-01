@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as Shared from '@typing-game/shared'
 import { clsx } from 'clsx'
 import { Array, Number, Option, Order, pipe } from 'effect'

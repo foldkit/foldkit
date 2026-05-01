@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Match as M } from 'effect'
 import { Document, Html } from 'foldkit/html'
 

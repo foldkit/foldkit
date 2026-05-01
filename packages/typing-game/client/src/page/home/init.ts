@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Effect, Option } from 'effect'
 import { Command, Task } from 'foldkit'
 

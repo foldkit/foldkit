@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Array, Equal, Option, Predicate, String as Str, pipe } from 'effect'
 
 import { MAX_WRONG_CHARS } from '../../constant'

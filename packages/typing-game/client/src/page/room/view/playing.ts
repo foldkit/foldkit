@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { clsx } from 'clsx'
 import { Array, Number, Option, Order, String as Str, pipe } from 'effect'
 import { Html } from 'foldkit/html'

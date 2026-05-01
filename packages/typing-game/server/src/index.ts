@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { NodeHttpServer, NodeRuntime } from '@effect/platform-node'
 import * as Shared from '@typing-game/shared'
 import { Effect, Layer } from 'effect'

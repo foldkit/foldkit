@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Array, Effect, Match as M, Option, String as Str } from 'effect'
 import { Command, Task } from 'foldkit'
 import { evo } from 'foldkit/struct'

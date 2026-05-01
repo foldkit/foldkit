@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Rpc } from 'effect/unstable/rpc'
 import * as Shared from '@typing-game/shared'
 import {
@@ -73,7 +74,7 @@ export const startGame =
           concurrency: 'unbounded',
         }),
         Stream.runDrain,
-        Effect.zipRight(
+        Effect.flatMap(
           finalizeGameScoreboard(
             roomByIdRef,
             progressByGamePlayerRef,

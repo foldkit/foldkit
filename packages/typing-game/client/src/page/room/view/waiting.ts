@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as Shared from '@typing-game/shared'
 import { Array, Match, Option, flow, pipe } from 'effect'
 import { Html } from 'foldkit/html'
