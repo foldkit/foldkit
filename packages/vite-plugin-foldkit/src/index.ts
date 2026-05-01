@@ -104,10 +104,19 @@ const startMcpWebSocketServer = (port: number): void => {
   const wss = new WebSocketServer({ port })
   mcpWebSocketServer = wss
   wss.on('error', error => {
-    console.error(
-      `[foldkit:devTools] MCP relay failed to start on port ${port}; continuing without the relay`,
-      error,
-    )
+    if ('code' in error && error.code === 'EADDRINUSE') {
+      console.error(
+        `\n[foldkit:devTools] Port ${port} is already in use, so the DevTools MCP relay could not start.\n` +
+          `[foldkit:devTools] This usually means another Foldkit project is already running and bound to this port.\n` +
+          `[foldkit:devTools] Until the port is freed, agents will not be able to connect to this app via the Foldkit DevTools MCP server.\n` +
+          `[foldkit:devTools] Stop the other project, or set a different \`devToolsMcpPort\` in this project's vite config.\n`,
+      )
+    } else {
+      console.error(
+        `[foldkit:devTools] MCP relay failed to start on port ${port}; continuing without the relay`,
+        error,
+      )
+    }
     mcpWebSocketServer = null
   })
   wss.on('connection', client => {
@@ -128,9 +137,11 @@ const startMcpWebSocketServer = (port: number): void => {
       console.error('[foldkit:devTools] MCP client error', error)
     })
   })
-  console.log(
-    `[foldkit:devTools] MCP relay listening on ws://localhost:${port}`,
-  )
+  wss.on('listening', () => {
+    console.log(
+      `[foldkit:devTools] MCP relay listening on ws://localhost:${port}`,
+    )
+  })
 }
 
 const stopMcpWebSocketServer = (): void => {
