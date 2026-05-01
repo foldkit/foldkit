@@ -125,33 +125,6 @@ export type SlowViewConfig<Model, Message> =
 const DEFAULT_SLOW_VIEW_SHOW: Visibility = 'Development'
 const DEFAULT_SLOW_VIEW_THRESHOLD_MS = 16
 
-/**
- * Model-freeze configuration for catching accidental mutations in development.
- *
- * When active, Foldkit deep-freezes the Model after `init` and after every
- * `update`. Accidental mutations (e.g. `model.items.push(...)`) then throw a
- * `TypeError` at the exact write site with a stack trace, rather than
- * silently corrupting state or breaking reference-equality change detection.
- *
- * Pass `false` to disable entirely.
- *
- * - `show`: `'Development'` (default) enables when Vite HMR is active,
- *   `'Always'` enables in all environments including production.
- *
- * Scope: only the Model is frozen. Messages are short-lived and are not
- * frozen; they often carry `OptionFromSelf` / `DateTimeFromSelf` fields that
- * rely on `Hash.cached` which lazily writes to the instance. Production
- * builds (`'Development'` + no HMR) leave change detection at reference
- * equality and pay nothing for this feature.
- */
-export type FreezeModelConfig =
-  | false
-  | Readonly<{
-      show?: Visibility
-    }>
-
-const DEFAULT_FREEZE_MODEL_SHOW: Visibility = 'Development'
-
 const defaultSlowViewCallback = (
   context: SlowViewContext<unknown, unknown>,
 ): void => {
@@ -239,7 +212,19 @@ type RuntimeConfig<
   routing?: RoutingConfig<Message>
   crash?: CrashConfig<Model, Message>
   slowView?: SlowViewConfig<Model, Message>
-  freezeModel?: FreezeModelConfig
+  /**
+   * Deep-freezes the Model after `init` and after every `update`, so accidental
+   * mutations (e.g. `model.items.push(...)`) throw a `TypeError` at the exact
+   * write site with a stack trace, rather than silently corrupting state or
+   * breaking reference-equality change detection.
+   *
+   * Defaults to `true`. Activates only when Vite HMR is available, so production
+   * builds pay nothing. Pass `false` to disable.
+   *
+   * Scope: only the Model is frozen. Messages are short-lived and are not
+   * frozen.
+   */
+  freezeModel?: boolean
   /**
    * An Effect Layer providing long-lived resources that persist across command
    * invocations. Use this for browser resources with lifecycle (AudioContext,
@@ -285,7 +270,7 @@ type BaseProgramConfig<
   container: HTMLElement
   crash?: CrashConfig<Model, Message>
   slowView?: SlowViewConfig<Model, Message>
-  freezeModel?: FreezeModelConfig
+  freezeModel?: boolean
   resources?: Layer.Layer<Resources>
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
   devTools?: DevToolsConfig
@@ -496,18 +481,7 @@ const makeRuntime = <
     })),
   )
 
-  const isFreezeModelActive = pipe(
-    freezeModel ?? {},
-    Option.liftPredicate(config => config !== false),
-    Option.filter(config =>
-      Match.value(config.show ?? DEFAULT_FREEZE_MODEL_SHOW).pipe(
-        Match.when('Always', () => true),
-        Match.when('Development', () => !!import.meta.hot),
-        Match.exhaustive,
-      ),
-    ),
-    Option.isSome,
-  )
+  const isFreezeModelActive = freezeModel !== false && !!import.meta.hot
 
   const maybeFreezeModel = (model: Model): Model =>
     isFreezeModelActive ? deepFreeze(model) : model
