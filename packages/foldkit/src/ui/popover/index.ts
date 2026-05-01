@@ -48,8 +48,8 @@ export type Model = typeof Model.Type
 export const Opened = m('Opened')
 /** Sent when the popover closes via Escape key or backdrop click. Returns focus to the button. */
 export const Closed = m('Closed')
-/** Sent when focus leaves the popover panel via Tab key. Does NOT return focus to the button. */
-export const ClosedByTab = m('ClosedByTab')
+/** Sent when the popover panel loses focus. Does NOT return focus to the button. */
+export const BlurredPanel = m('BlurredPanel')
 /** Sent when the user presses a pointer device on the popover button. Records pointer type and toggles for mouse. */
 export const PressedPointerOnButton = m('PressedPointerOnButton', {
   pointerType: S.String,
@@ -81,7 +81,7 @@ export const Message: S.Union<
   [
     typeof Opened,
     typeof Closed,
-    typeof ClosedByTab,
+    typeof BlurredPanel,
     typeof PressedPointerOnButton,
     typeof CompletedFocusPanel,
     typeof CompletedFocusButton,
@@ -96,7 +96,7 @@ export const Message: S.Union<
 > = S.Union(
   Opened,
   Closed,
-  ClosedByTab,
+  BlurredPanel,
   PressedPointerOnButton,
   CompletedFocusPanel,
   CompletedFocusButton,
@@ -111,7 +111,7 @@ export const Message: S.Union<
 
 export type Opened = typeof Opened.Type
 export type Closed = typeof Closed.Type
-export type ClosedByTab = typeof ClosedByTab.Type
+export type BlurredPanel = typeof BlurredPanel.Type
 export type PressedPointerOnButton = typeof PressedPointerOnButton.Type
 export type IgnoredMouseClick = typeof IgnoredMouseClick.Type
 export type SuppressedSpaceScroll = typeof SuppressedSpaceScroll.Type
@@ -314,7 +314,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
 
       Closed: () => closePopover(model, closeWithFocusCommands),
 
-      ClosedByTab: () => {
+      BlurredPanel: () => {
         if (
           Option.exists(model.maybeLastButtonPointerType, Equal.equals('mouse'))
         ) {
@@ -390,7 +390,7 @@ export type ViewConfig<Message> = Readonly<{
     message:
       | Opened
       | Closed
-      | ClosedByTab
+      | BlurredPanel
       | PressedPointerOnButton
       | IgnoredMouseClick
       | SuppressedSpaceScroll,
@@ -586,7 +586,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
       ? []
       : [
           OnKeyDownPreventDefault(handlePanelKeyDown),
-          ...(contentFocus ? [] : [OnBlur(toParentMessage(ClosedByTab()))]),
+          ...(contentFocus ? [] : [OnBlur(toParentMessage(BlurredPanel()))]),
         ]),
     ...(panelClassName ? [Class(panelClassName)] : []),
     ...panelAttributes,

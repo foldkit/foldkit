@@ -5,8 +5,8 @@ import { expect } from 'vitest'
 import * as Story from '../../test/story.js'
 import * as Animation from '../animation/index.js'
 import {
+  BlurredPanel,
   Closed,
-  ClosedByTab,
   CompletedFocusButton,
   CompletedFocusPanel,
   CompletedLockScroll,
@@ -153,12 +153,12 @@ describe('Popover', () => {
       })
     })
 
-    describe('ClosedByTab', () => {
-      it('closes the popover without a focus command', () => {
+    describe('BlurredPanel', () => {
+      it('closes the popover without restoring button focus', () => {
         Story.story(
           update,
           withOpen,
-          Story.message(ClosedByTab()),
+          Story.message(BlurredPanel()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
@@ -407,11 +407,11 @@ describe('Popover', () => {
           )
         })
 
-        it('sets LeaveStart on ClosedByTab', () => {
+        it('begins the leave animation when the panel blurs', () => {
           Story.story(
             update,
             withOpenAnimated,
-            Story.message(ClosedByTab()),
+            Story.message(BlurredPanel()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')
@@ -605,11 +605,11 @@ describe('Popover', () => {
       )
     })
 
-    it('emits unlockScroll and restoreInert commands on ClosedByTab when isModal is true', () => {
+    it('emits unlockScroll and restoreInert commands when the panel blurs in modal mode', () => {
       Story.story(
         update,
         withOpenModal,
-        Story.message(ClosedByTab()),
+        Story.message(BlurredPanel()),
         Story.resolveAll(
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],

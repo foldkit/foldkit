@@ -5,10 +5,10 @@ import { describe, expect, test } from 'vitest'
 import {
   ChangedEmail,
   ChangedPassword,
-  ClickedSubmit,
   FailedSimulateAuthRequest,
   type Model,
   SimulateAuthRequest,
+  SubmittedForm,
   SucceededLogin,
   SucceededSimulateAuthRequest,
   initModel,
@@ -59,7 +59,7 @@ describe('login', () => {
     Story.story(
       update,
       Story.with(initModel()),
-      Story.message(ClickedSubmit()),
+      Story.message(SubmittedForm()),
       Story.model(model => {
         expect(model.isSubmitting).toBe(false)
       }),
@@ -71,7 +71,7 @@ describe('login', () => {
     Story.story(
       update,
       Story.with(validModel),
-      Story.message(ClickedSubmit()),
+      Story.message(SubmittedForm()),
       Story.model(model => {
         expect(model.isSubmitting).toBe(true)
       }),
@@ -88,7 +88,7 @@ describe('login', () => {
     Story.story(
       update,
       Story.with(validModel),
-      Story.message(ClickedSubmit()),
+      Story.message(SubmittedForm()),
       Story.model(model => {
         expect(model.isSubmitting).toBe(true)
       }),

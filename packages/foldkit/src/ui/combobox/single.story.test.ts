@@ -8,9 +8,9 @@ import * as Animation from '../animation/index.js'
 import type { Message } from './shared.js'
 import {
   ActivatedItem,
+  BlurredInput,
   ClickItem,
   Closed,
-  ClosedByTab,
   CompletedClickItem,
   CompletedFocusInput,
   CompletedLockScroll,
@@ -266,12 +266,12 @@ describe('Combobox', () => {
       })
     })
 
-    describe('ClosedByTab', () => {
-      it('closes without focus command', () => {
+    describe('BlurredInput', () => {
+      it('closes without restoring input focus', () => {
         Story.story(
           update,
           withOpen,
-          Story.message(ClosedByTab()),
+          Story.message(BlurredInput()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
@@ -280,7 +280,7 @@ describe('Combobox', () => {
         )
       })
 
-      it('restores input value', () => {
+      it('restores input value to the selected display text', () => {
         Story.story(
           update,
           Story.with({
@@ -289,7 +289,7 @@ describe('Combobox', () => {
             inputValue: 'app',
             maybeSelectedDisplayText: Option.some('Apple'),
           }),
-          Story.message(ClosedByTab()),
+          Story.message(BlurredInput()),
           Story.model(model => {
             expect(model.inputValue).toBe('Apple')
           }),
@@ -728,11 +728,11 @@ describe('Combobox', () => {
           )
         })
 
-        it('sets LeaveStart on ClosedByTab', () => {
+        it('begins the leave animation when the input blurs', () => {
           Story.story(
             update,
             withOpenAnimated,
-            Story.message(ClosedByTab()),
+            Story.message(BlurredInput()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')
@@ -949,11 +949,11 @@ describe('Combobox', () => {
       )
     })
 
-    it('emits unlockScroll and restoreInert commands on ClosedByTab when isModal is true', () => {
+    it('emits unlockScroll and restoreInert commands when the input blurs in modal mode', () => {
       Story.story(
         update,
         withOpenModal,
-        Story.message(ClosedByTab()),
+        Story.message(BlurredInput()),
         Story.resolveAll(
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],

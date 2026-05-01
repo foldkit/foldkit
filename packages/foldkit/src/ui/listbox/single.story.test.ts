@@ -7,10 +7,10 @@ import * as Story from '../../test/story.js'
 import * as Animation from '../animation/index.js'
 import {
   ActivatedItem,
+  BlurredItems,
   ClearedSearch,
   ClickItem,
   Closed,
-  ClosedByTab,
   CompletedClickItem,
   CompletedFocusButton,
   CompletedFocusItems,
@@ -235,12 +235,12 @@ describe('Listbox', () => {
       })
     })
 
-    describe('ClosedByTab', () => {
-      it('closes the listbox without a focus command', () => {
+    describe('BlurredItems', () => {
+      it('closes the listbox without restoring button focus', () => {
         Story.story(
           update,
           withOpen,
-          Story.message(ClosedByTab()),
+          Story.message(BlurredItems()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
@@ -911,11 +911,11 @@ describe('Listbox', () => {
           )
         })
 
-        it('sets LeaveStart on ClosedByTab', () => {
+        it('begins the leave animation when the items container blurs', () => {
           Story.story(
             update,
             withOpenAnimated,
-            Story.message(ClosedByTab()),
+            Story.message(BlurredItems()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')
@@ -1198,11 +1198,11 @@ describe('Listbox', () => {
       )
     })
 
-    it('emits unlockScroll and restoreInert commands on ClosedByTab when isModal is true', () => {
+    it('emits unlockScroll and restoreInert commands when the items container blurs in modal mode', () => {
       Story.story(
         update,
         withOpenModal,
-        Story.message(ClosedByTab()),
+        Story.message(BlurredItems()),
         Story.resolveAll(
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],

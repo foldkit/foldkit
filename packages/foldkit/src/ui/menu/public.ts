@@ -35,7 +35,7 @@ export type {
   ActivationTrigger,
   Opened,
   Closed,
-  ClosedByTab,
+  BlurredItems,
   ActivatedItem,
   DeactivatedItem,
   MovedPointerOverItem,

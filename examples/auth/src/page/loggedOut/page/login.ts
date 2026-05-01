@@ -69,7 +69,7 @@ export const initModel = (): Model => ({
 
 export const ChangedEmail = m('ChangedEmail', { value: S.String })
 export const ChangedPassword = m('ChangedPassword', { value: S.String })
-export const ClickedSubmit = m('ClickedSubmit')
+export const SubmittedForm = m('SubmittedForm')
 export const SucceededSimulateAuthRequest = m('SucceededSimulateAuthRequest', {
   session: Session,
 })
@@ -80,7 +80,7 @@ export const FailedSimulateAuthRequest = m('FailedSimulateAuthRequest', {
 export const Message = S.Union(
   ChangedEmail,
   ChangedPassword,
-  ClickedSubmit,
+  SubmittedForm,
   SucceededSimulateAuthRequest,
   FailedSimulateAuthRequest,
 )
@@ -165,7 +165,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         Option.none(),
       ],
 
-      ClickedSubmit: () => {
+      SubmittedForm: () => {
         if (!isFormValid(model)) {
           return [model, [], Option.none()]
         }
@@ -293,7 +293,7 @@ export const view = (
             ],
           ),
           form(
-            [Class('space-y-6'), OnSubmit(toParentMessage(ClickedSubmit()))],
+            [Class('space-y-6'), OnSubmit(toParentMessage(SubmittedForm()))],
             [
               fieldView(
                 'email',

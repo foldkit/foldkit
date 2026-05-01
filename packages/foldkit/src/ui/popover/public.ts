@@ -26,7 +26,7 @@ export {
 } from './index.js'
 
 export type {
-  ClosedByTab,
+  BlurredPanel,
   PressedPointerOnButton,
   IgnoredMouseClick,
   SuppressedSpaceScroll,

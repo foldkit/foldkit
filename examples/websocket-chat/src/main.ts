@@ -54,12 +54,12 @@ type Model = typeof Model.Type
 
 // MESSAGE
 
-const RequestedConnection = m('RequestedConnection')
+const ClickedConnect = m('ClickedConnect')
 const Connected = m('Connected')
 const Disconnected = m('Disconnected')
 const FailedConnect = m('FailedConnect', { error: S.String })
 const UpdatedMessageInput = m('UpdatedMessageInput', { value: S.String })
-const RequestedMessageSend = m('RequestedMessageSend')
+const SubmittedMessage = m('SubmittedMessage')
 const SucceededSendMessage = m('SucceededSendMessage', { text: S.String })
 const ReceivedMessage = m('ReceivedMessage', { text: S.String })
 const TimestampedMessage = m('TimestampedMessage', {
@@ -69,12 +69,12 @@ const TimestampedMessage = m('TimestampedMessage', {
 })
 
 const Message = S.Union(
-  RequestedConnection,
+  ClickedConnect,
   Connected,
   Disconnected,
   FailedConnect,
   UpdatedMessageInput,
-  RequestedMessageSend,
+  SubmittedMessage,
   SucceededSendMessage,
   ReceivedMessage,
   TimestampedMessage,
@@ -95,7 +95,7 @@ const update = (
       [Model, ReadonlyArray<Command.Command<Message, never, ChatSocketService>>]
     >(),
     M.tagsExhaustive({
-      RequestedConnection: () => [
+      ClickedConnect: () => [
         evo(model, {
           connection: () => ConnectionConnecting(),
         }),
@@ -131,7 +131,7 @@ const update = (
         [],
       ],
 
-      RequestedMessageSend: () => {
+      SubmittedMessage: () => {
         const trimmedMessage = model.messageInput.trim()
 
         if (String.isEmpty(trimmedMessage)) {
@@ -536,7 +536,7 @@ const connectButtonView = (): Html =>
     [
       button(
         [
-          OnClick(RequestedConnection()),
+          OnClick(ClickedConnect()),
           Class(
             'bg-blue-500 hover:bg-blue-600 text-white font-semibold px-8 py-3 rounded-lg transition',
           ),
@@ -554,7 +554,7 @@ const connectingView = (): Html =>
 
 const messageInputView = (messageInput: string): Html =>
   form(
-    [Class('p-6 border-t border-gray-200'), OnSubmit(RequestedMessageSend())],
+    [Class('p-6 border-t border-gray-200'), OnSubmit(SubmittedMessage())],
     [
       div(
         [Class('flex gap-3')],
@@ -596,7 +596,7 @@ const errorView = (error: string): Html =>
       ),
       button(
         [
-          OnClick(RequestedConnection()),
+          OnClick(ClickedConnect()),
           Class(
             'w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg transition',
           ),
