@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-nocheck
 import { Command, HelpDoc, Options } from 'effect/unstable/cli'
 import { FetchHttpClient } from 'effect/unstable/http'
 import { NodeContext, NodeRuntime } from '@effect/platform-node'

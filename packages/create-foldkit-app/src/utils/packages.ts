@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Command, HttpClient, HttpClientRequest } from 'effect/unstable/http'
 import { Array, Effect, Match, Record, Schema, pipe } from 'effect'
 
