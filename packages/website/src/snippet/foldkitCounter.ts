@@ -12,7 +12,7 @@ type Model = typeof Model.Type
 
 const ClickedIncrement = m('ClickedIncrement')
 
-const Message = S.Union(ClickedIncrement)
+const Message = S.Union([ClickedIncrement])
 type Message = typeof Message.Type
 
 // UPDATE - How Messages change the Model

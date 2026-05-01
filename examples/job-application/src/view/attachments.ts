@@ -24,9 +24,9 @@ const BYTES_PER_MB = BYTES_PER_KB * BYTES_PER_KB
 
 const formatFileSize = (bytes: number): string =>
   M.value(bytes).pipe(
-    M.when(Number.lessThan(BYTES_PER_KB), () => `${bytes} B`),
+    M.when(Number.isLessThan(BYTES_PER_KB), () => `${bytes} B`),
     M.when(
-      Number.lessThan(BYTES_PER_MB),
+      Number.isLessThan(BYTES_PER_MB),
       () => `${(bytes / BYTES_PER_KB).toFixed(1)} KB`,
     ),
     M.orElse(() => `${(bytes / BYTES_PER_MB).toFixed(1)} MB`),

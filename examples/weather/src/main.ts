@@ -28,12 +28,12 @@ export const WeatherLoading = ts('WeatherLoading')
 export const WeatherSuccess = ts('WeatherSuccess', { data: WeatherData })
 export const WeatherFailure = ts('WeatherFailure', { error: S.String })
 
-const WeatherAsyncResult = S.Union(
+const WeatherAsyncResult = S.Union([
   WeatherInit,
   WeatherLoading,
   WeatherSuccess,
   WeatherFailure,
-)
+])
 type WeatherAsyncResult = typeof WeatherAsyncResult.Type
 
 export const Model = S.Struct({
@@ -53,12 +53,12 @@ export const SucceededFetchWeather = m('SucceededFetchWeather', {
 })
 export const FailedFetchWeather = m('FailedFetchWeather', { error: S.String })
 
-const Message = S.Union(
+const Message = S.Union([
   UpdatedZipCodeInput,
   SubmittedWeatherForm,
   SucceededFetchWeather,
   FailedFetchWeather,
-)
+])
 type Message = typeof Message.Type
 
 export const update = (
@@ -183,7 +183,7 @@ export const fetchWeather = (zipCode: string) =>
         )
       }
 
-      const geocodeData = yield* S.decodeUnknown(GeocodingResponse)(
+      const geocodeData = yield* S.decodeUnknownEffect(GeocodingResponse)(
         yield* geocodeResponse.json,
       )
 
@@ -214,7 +214,7 @@ export const fetchWeather = (zipCode: string) =>
         )
       }
 
-      const weatherData = yield* S.decodeUnknown(WeatherResponse)(
+      const weatherData = yield* S.decodeUnknownEffect(WeatherResponse)(
         yield* weatherResponse.json,
       )
 
@@ -232,7 +232,7 @@ export const fetchWeather = (zipCode: string) =>
     }).pipe(
       Effect.scoped,
       Effect.catchTag('FailedFetchWeather', error => Effect.succeed(error)),
-      Effect.catchAll(() =>
+      Effect.catch(() =>
         Effect.succeed(
           FailedFetchWeather({ error: 'Failed to fetch weather data' }),
         ),

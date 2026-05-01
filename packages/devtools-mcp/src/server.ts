@@ -23,7 +23,7 @@ const main: Effect.Effect<void, Error> = Effect.gen(function* () {
   const toolsByName = HashMap.fromIterable(
     tools.map(tool => [tool.name, tool] as const),
   )
-  const runtime = yield* Effect.runtime<never>()
+  const runtime = yield* Effect.context<never>()
 
   const server = new Server(
     { name: '@foldkit/devtools-mcp', version: '0.1.0' },

@@ -36,12 +36,12 @@ const ConnectionConnecting = ts('ConnectionConnecting')
 const ConnectionConnected = ts('ConnectionConnected')
 const ConnectionError = ts('ConnectionError', { error: S.String })
 
-const ConnectionState = S.Union(
+const ConnectionState = S.Union([
   ConnectionDisconnected,
   ConnectionConnecting,
   ConnectionConnected,
   ConnectionError,
-)
+])
 type ConnectionState = typeof ConnectionState.Type
 
 const Model = S.Struct({
@@ -68,7 +68,7 @@ const TimestampedMessage = m('TimestampedMessage', {
   isSent: S.Boolean,
 })
 
-const Message = S.Union(
+const Message = S.Union([
   ClickedConnect,
   Connected,
   Disconnected,
@@ -78,7 +78,7 @@ const Message = S.Union(
   SucceededSendMessage,
   ReceivedMessage,
   TimestampedMessage,
-)
+])
 type Message = typeof Message.Type
 
 // UPDATE

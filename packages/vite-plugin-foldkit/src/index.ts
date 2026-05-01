@@ -159,7 +159,7 @@ const handleBrowserEventFrame = (
   data: unknown,
   client: WebSocketClient,
 ): void => {
-  const decoded = S.decodeUnknownEither(EventFrame)(data)
+  const decoded = S.decodeUnknownExit(EventFrame)(data)
   Either.match(decoded, {
     onLeft: error => {
       console.warn(
@@ -208,7 +208,7 @@ const handleClientClose = (client: WebSocketClient): void => {
 }
 
 const handleBrowserResponseFrame = (data: unknown): void => {
-  const decoded = S.decodeUnknownEither(ResponseFrame)(data)
+  const decoded = S.decodeUnknownExit(ResponseFrame)(data)
   Either.match(decoded, {
     onLeft: error => {
       console.warn(
@@ -273,7 +273,7 @@ const forwardResponseToMcpClients = (
 }
 
 const handleMcpMessage = (client: WebSocket, raw: string): void => {
-  const decoded = S.decodeUnknownEither(S.parseJson(RequestFrame))(raw)
+  const decoded = S.decodeUnknownExit(S.fromJsonString(RequestFrame))(raw)
   Either.match(decoded, {
     onLeft: error => {
       console.warn(

@@ -35,12 +35,12 @@ const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   const maybeSessionJson = yield* store.get(SESSION_STORAGE_KEY)
   const sessionJson = yield* maybeSessionJson
 
-  const decodeSession = S.decode(S.parseJson(Session))
+  const decodeSession = S.decodeEffect(S.fromJsonString(Session))
   const session = yield* decodeSession(sessionJson)
 
   return { maybeSession: Option.some(session) }
 }).pipe(
-  Effect.catchAll(() => Effect.succeed({ maybeSession: Option.none() })),
+  Effect.catch(() => Effect.succeed({ maybeSession: Option.none() })),
   Effect.provide(BrowserKeyValueStore.layerLocalStorage),
 )
 

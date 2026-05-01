@@ -42,7 +42,7 @@ const fetchExampleDeps = (example: string) =>
     const url = `${GITHUB_RAW_BASE_URL}/${example}/package.json`
     const response = yield* client.execute(HttpClientRequest.get(url))
     const json = yield* response.json
-    const packageJson = yield* Schema.decodeUnknown(PackageJson)(json)
+    const packageJson = yield* Schema.decodeUnknownEffect(PackageJson)(json)
 
     return {
       dependencies: formatDeps(packageJson.dependencies),

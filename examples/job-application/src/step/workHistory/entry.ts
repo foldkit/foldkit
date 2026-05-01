@@ -62,7 +62,7 @@ export const UpdatedDescription = m('UpdatedDescription', {
   value: S.String,
 })
 
-export const Message = S.Union(
+export const Message = S.Union([
   UpdatedCompany,
   UpdatedTitle,
   GotStartDateMessage,
@@ -71,7 +71,7 @@ export const Message = S.Union(
   SelectedEndDate,
   GotIsCurrentlyEmployedMessage,
   UpdatedDescription,
-)
+])
 export type Message = typeof Message.Type
 
 // INIT

@@ -7,12 +7,12 @@ const CompletedLoadExternal = m('CompletedLoadExternal')
 const CompletedOpenUrl = m('CompletedOpenUrl')
 const CompletedNavigateHistory = m('CompletedNavigateHistory')
 
-const Message = S.Union(
+const Message = S.Union([
   CompletedNavigateInternal,
   CompletedLoadExternal,
   CompletedOpenUrl,
   CompletedNavigateHistory,
-)
+])
 type Message = typeof Message.Type
 
 const NavigateInternal = Command.define(

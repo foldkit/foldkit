@@ -214,7 +214,7 @@ const renderOgImage =
         yield* fs.writeFile(resolve(ogDir, `${slug}.png`), png)
         yield* Console.log(`  ✓ og/${slug}.png`)
       }),
-      Effect.catchAll(error =>
+      Effect.catch(error =>
         Console.warn(
           `  ✗ og/${urlPathToSlug(routeToUrlPath(route))}.png: ${String(error)}`,
         ),

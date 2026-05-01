@@ -377,7 +377,7 @@ const previewServerResource = Effect.acquireRelease(
       Stream.decodeText('utf-8'),
       Stream.splitLines,
       Stream.runForEach(checkLine),
-      Effect.forkDaemon,
+      Effect.forkDetach,
     )
 
     yield* Deferred.await(ready)
@@ -421,7 +421,7 @@ const captureRouteHtml = (browser: Browser, url: string) =>
 
 // PRERENDER
 
-const ApiDocJson = S.parseJson(
+const ApiDocJson = S.fromJsonString(
   S.Struct({
     children: S.Array(S.Struct({ name: S.String })),
   }),
@@ -430,7 +430,7 @@ const ApiDocJson = S.parseJson(
 const readApiModuleNames = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem
   const raw = yield* fs.readFileString(API_JSON_PATH)
-  const apiDoc = yield* S.decodeUnknown(ApiDocJson)(raw)
+  const apiDoc = yield* S.decodeUnknownEffect(ApiDocJson)(raw)
   return Array.map(apiDoc.children, ({ name }) => moduleNameToSlug(name))
 })
 
@@ -453,7 +453,7 @@ const prerenderRoute =
       yield* fs.writeFileString(outputFilePath, outputHtml)
       yield* Console.log(`  ✓ ${urlPath}`)
     }).pipe(
-      Effect.catchAll(error =>
+      Effect.catch(error =>
         Console.warn(`  ✗ ${routeToUrlPath(route)}: ${String(error)}`),
       ),
     )

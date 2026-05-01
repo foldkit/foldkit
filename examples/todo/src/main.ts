@@ -32,7 +32,7 @@ type Todo = typeof Todo.Type
 const Todos = S.Array(Todo)
 type Todos = typeof Todos.Type
 
-const Filter = S.Literal('All', 'Active', 'Completed')
+const Filter = S.Literals(['All', 'Active', 'Completed'])
 type Filter = typeof Filter.Type
 
 export const NotEditing = ts('NotEditing')
@@ -44,7 +44,7 @@ export const Editing = ts('Editing', {
 })
 type Editing = typeof Editing.Type
 
-const EditingState = S.Union(NotEditing, Editing)
+const EditingState = S.Union([NotEditing, Editing])
 type EditingState = typeof EditingState.Type
 
 export const Model = S.Struct({
@@ -75,7 +75,7 @@ export const ClearedCompleted = m('ClearedCompleted')
 export const SelectedFilter = m('SelectedFilter', { filter: Filter })
 export const SavedTodos = m('SavedTodos', { todos: Todos })
 
-export const Message = S.Union(
+export const Message = S.Union([
   UpdatedNewTodo,
   UpdatedEditingTodo,
   AddedTodo,
@@ -89,7 +89,7 @@ export const Message = S.Union(
   ClearedCompleted,
   SelectedFilter,
   SavedTodos,
-)
+])
 export type Message = typeof Message.Type
 
 // FLAGS
@@ -319,11 +319,11 @@ const saveTodos = (todos: Todos) =>
       const store = yield* KeyValueStore.KeyValueStore
       yield* store.set(
         TODOS_STORAGE_KEY,
-        S.encodeSync(S.parseJson(Todos))(todos),
+        S.encodeSync(S.fromJsonString(Todos))(todos),
       )
       return SavedTodos({ todos })
     }).pipe(
-      Effect.catchAll(() => Effect.succeed(SavedTodos({ todos }))),
+      Effect.catch(() => Effect.succeed(SavedTodos({ todos }))),
       Effect.provide(BrowserKeyValueStore.layerLocalStorage),
     ),
   )
@@ -604,12 +604,12 @@ const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   const maybeTodosJson = yield* store.get(TODOS_STORAGE_KEY)
   const todosJson = yield* maybeTodosJson
 
-  const decodeTodos = S.decode(S.parseJson(Todos))
+  const decodeTodos = S.decodeEffect(S.fromJsonString(Todos))
   const todos = yield* decodeTodos(todosJson)
 
   return { todos: Option.some(todos) }
 }).pipe(
-  Effect.catchAll(() => Effect.succeed({ todos: Option.none() })),
+  Effect.catch(() => Effect.succeed({ todos: Option.none() })),
   Effect.provide(BrowserKeyValueStore.layerLocalStorage),
 )
 

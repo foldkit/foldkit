@@ -27,39 +27,39 @@ const RuntimeIdField = S.optional(
 )
 
 const ListLimit = S.Number.pipe(
-  S.int(),
-  S.between(1, 500),
-  S.annotations({
+  S.Int(),
+  S.isBetween(1, 500),
+  S.annotate({
     description: `Maximum number of entries to return. Defaults to ${DEFAULT_LIST_MESSAGES_LIMIT}; max 500.`,
   }),
 )
 
 const SinceIndex = S.Number.pipe(
-  S.int(),
-  S.annotations({
+  S.Int(),
+  S.annotate({
     description:
       'Absolute history index to start from. Use the maybeNextIndex returned by a prior call to paginate.',
   }),
 )
 
 const MessageIndex = S.Number.pipe(
-  S.int(),
-  S.annotations({
+  S.Int(),
+  S.annotate({
     description: 'Absolute history index of the entry to read.',
   }),
 )
 
 const KeyframeIndex = S.Number.pipe(
-  S.int(),
-  S.annotations({
+  S.Int(),
+  S.annotate({
     description:
       'Index to replay to. Use -1 to jump to the initial Model (before any messages). Use a non-negative index to jump to the Model state right after that history index. Call foldkit_list_keyframes for the canonical replay points.',
   }),
 )
 
 const ModelIndex = S.Number.pipe(
-  S.int(),
-  S.annotations({
+  S.Int(),
+  S.annotate({
     description:
       'Absolute history index. Returns the Model state right after the entry at this index was applied. To inspect the Model immediately before message N, pass index N - 1. For the initial Model, use foldkit_get_init.',
   }),
@@ -173,7 +173,7 @@ const decodeInput = <Input>(
   schema: S.Schema<Input>,
   rawInput: unknown,
 ): Effect.Effect<Input, Error> =>
-  S.decodeUnknown(schema)(rawInput).pipe(
+  S.decodeUnknownEffect(schema)(rawInput).pipe(
     Effect.mapError(error => new Error(`Invalid input: ${error.message}`)),
   )
 
@@ -237,7 +237,7 @@ const callRuntimeRequest = (
       Option.some(runtimeId),
     )
     return responseToToolResult(response)
-  }).pipe(Effect.catchAll(error => Effect.succeed(formatError(error.message))))
+  }).pipe(Effect.catch(error => Effect.succeed(formatError(error.message))))
 
 type RuntimeToolInput = Readonly<{ runtime_id?: string | undefined }>
 
@@ -259,7 +259,7 @@ const runRuntimeTool =
         buildRequest(input),
       )
     }).pipe(
-      Effect.catchAll(error => Effect.succeed(formatError(error.message))),
+      Effect.catch(error => Effect.succeed(formatError(error.message))),
     )
 
 /**
@@ -279,7 +279,7 @@ export const buildTools = (
       GetModelInput,
       ({ path, expand }) =>
         RequestGetModel({
-          maybePath: Option.fromNullable(path),
+          maybePath: Option.fromNullishOr(path),
           expand: expand ?? false,
         }),
       wsClient,
@@ -295,7 +295,7 @@ export const buildTools = (
       ({ index, path, expand }) =>
         RequestGetModelAt({
           index,
-          maybePath: Option.fromNullable(path),
+          maybePath: Option.fromNullishOr(path),
           expand: expand ?? false,
         }),
       wsClient,
@@ -311,7 +311,7 @@ export const buildTools = (
       ({ limit, since_index }) =>
         RequestListMessages({
           limit: limit ?? DEFAULT_LIST_MESSAGES_LIMIT,
-          maybeSinceIndex: Option.fromNullable(since_index),
+          maybeSinceIndex: Option.fromNullishOr(since_index),
         }),
       wsClient,
     ),
@@ -399,7 +399,7 @@ export const buildTools = (
         )
         return responseToToolResult(response)
       }).pipe(
-        Effect.catchAll(error => Effect.succeed(formatError(error.message))),
+        Effect.catch(error => Effect.succeed(formatError(error.message))),
       ),
   },
 ]

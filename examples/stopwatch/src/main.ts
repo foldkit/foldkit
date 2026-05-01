@@ -34,14 +34,14 @@ const ClickedReset = m('ClickedReset')
 const Ticked = m('Ticked')
 const RecordedTickTime = m('RecordedTickTime', { elapsedMs: S.Number })
 
-export const Message = S.Union(
+export const Message = S.Union([
   ClickedStart,
   RecordedStartTime,
   ClickedStop,
   ClickedReset,
   Ticked,
   RecordedTickTime,
-)
+])
 export type Message = typeof Message.Type
 
 // COMMAND

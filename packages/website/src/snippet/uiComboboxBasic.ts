@@ -11,7 +11,7 @@ import { Class, Placeholder, div, span } from './html'
 // Add a field to your Model for the Combobox Submodel, plus a field for
 // the selected value your app actually cares about:
 const Model = S.Struct({
-  maybeCity: S.OptionFromSelf(S.String),
+  maybeCity: S.Option(S.String),
   combobox: Ui.Combobox.Model,
   // ...your other fields
 })

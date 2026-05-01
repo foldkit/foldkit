@@ -4,7 +4,7 @@ import { m } from 'foldkit/message'
 
 const CompletedAutoScroll = m('CompletedAutoScroll')
 
-const Message = S.Union(CompletedAutoScroll)
+const Message = S.Union([CompletedAutoScroll])
 type Message = typeof Message.Type
 
 const Model = S.Struct({

@@ -10,10 +10,10 @@ import * as Search from './search'
 
 // THEME
 
-export const ThemePreference = S.Literal('Dark', 'Light', 'System')
+export const ThemePreference = S.Literals(['Dark', 'Light', 'System'])
 export type ThemePreference = typeof ThemePreference.Type
 
-export const ResolvedTheme = S.Literal('Dark', 'Light')
+export const ResolvedTheme = S.Literals(['Dark', 'Light'])
 export type ResolvedTheme = typeof ResolvedTheme.Type
 
 // MESSAGE
@@ -142,7 +142,7 @@ export const GotSearchMessage = m('GotSearchMessage', {
   message: Search.Message,
 })
 
-export const Message = S.Union(
+export const Message = S.Union([
   CompletedNavigateInternal,
   CompletedLoadExternal,
   CompletedInjectAnalytics,
@@ -194,5 +194,5 @@ export const Message = S.Union(
   GotApiReferenceGroupMessage,
   GotExampleDetailMessage,
   GotSearchMessage,
-)
+])
 export type Message = typeof Message.Type

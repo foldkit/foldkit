@@ -13,7 +13,7 @@ import { view } from './view'
 // FLAGS
 
 const Flags = S.Struct({
-  maybeSavedBoard: S.OptionFromSelf(SavedBoard),
+  maybeSavedBoard: S.Option(SavedBoard),
 })
 type Flags = typeof Flags.Type
 
@@ -21,10 +21,10 @@ const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   const store = yield* KeyValueStore.KeyValueStore
   const maybeJson = yield* store.get(STORAGE_KEY)
   const json = yield* maybeJson
-  const decoded = yield* S.decode(S.parseJson(SavedBoard))(json)
+  const decoded = yield* S.decodeEffect(S.fromJsonString(SavedBoard))(json)
   return { maybeSavedBoard: Option.some(decoded) }
 }).pipe(
-  Effect.catchAll(() => Effect.succeed({ maybeSavedBoard: Option.none() })),
+  Effect.catch(() => Effect.succeed({ maybeSavedBoard: Option.none() })),
   Effect.provide(BrowserKeyValueStore.layerLocalStorage),
 )
 

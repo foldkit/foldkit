@@ -175,7 +175,7 @@ export const activeSection: Subscription<
   },
   dependenciesToStream: ({ sections }) =>
     Stream.async<typeof ChangedActiveSection.Type>(emit => {
-      if (!Array.isNonEmptyReadonlyArray(sections)) {
+      if (!Array.isNonEmptyArray(sections)) {
         return Effect.void
       }
 

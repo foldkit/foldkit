@@ -17,12 +17,12 @@ import { Apple, Direction, Position, Snake } from './domain'
 
 // MODEL
 
-export const GameState = S.Literal(
+export const GameState = S.Literals([
   'NotStarted',
   'Playing',
   'Paused',
   'GameOver',
-)
+])
 export type GameState = typeof GameState.Type
 
 const Model = S.Struct({
@@ -46,13 +46,13 @@ const GeneratedApplePosition = m('GeneratedApplePosition', {
   position: Position.Position,
 })
 
-export const Message = S.Union(
+export const Message = S.Union([
   TickedClock,
   PressedKey,
   PausedGame,
   RestartedGame,
   GeneratedApplePosition,
-)
+])
 export type Message = typeof Message.Type
 
 // INIT

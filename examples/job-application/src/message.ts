@@ -54,7 +54,7 @@ export const FailedSubmitApplication = m('FailedSubmitApplication', {
 
 // UNION
 
-export const Message = S.Union(
+export const Message = S.Union([
   GotPersonalInfoMessage,
   GotWorkHistoryMessage,
   GotEducationMessage,
@@ -69,5 +69,5 @@ export const Message = S.Union(
   SubmittedApplication,
   SucceededSubmitApplication,
   FailedSubmitApplication,
-)
+])
 export type Message = typeof Message.Type

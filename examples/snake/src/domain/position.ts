@@ -8,7 +8,7 @@ export const Position = Schema.Struct({
   y: Schema.Number,
 })
 
-export const equivalence = Schema.equivalence(Position)
+export const equivalence = Schema.toEquivalence(Position)
 
 export type Position = typeof Position.Type
 

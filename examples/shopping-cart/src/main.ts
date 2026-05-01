@@ -31,12 +31,12 @@ export const ProductsRoute = r('Products', { searchText: S.Option(S.String) })
 export const CartRoute = r('Cart')
 export const CheckoutRoute = r('Checkout')
 export const NotFoundRoute = r('NotFound', { path: S.String })
-export const AppRoute = S.Union(
+export const AppRoute = S.Union([
   ProductsRoute,
   CartRoute,
   CheckoutRoute,
   NotFoundRoute,
-)
+])
 
 export type ProductsRoute = typeof ProductsRoute.Type
 export type CartRoute = typeof CartRoute.Type
@@ -96,7 +96,7 @@ export const UpdatedDeliveryInstructions = m('UpdatedDeliveryInstructions', {
 })
 export const ClickedPlaceOrder = m('ClickedPlaceOrder')
 
-export const Message = S.Union(
+export const Message = S.Union([
   CompletedNavigateInternal,
   CompletedLoadExternal,
   ClickedLink,
@@ -109,7 +109,7 @@ export const Message = S.Union(
   ClickedClearCart,
   UpdatedDeliveryInstructions,
   ClickedPlaceOrder,
-)
+])
 export type Message = typeof Message.Type
 
 // INIT

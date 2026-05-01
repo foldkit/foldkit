@@ -48,7 +48,7 @@ const headerSection = (
             ),
           ]
         : []),
-      ...(Array.isNonEmptyReadonlyArray(contacts)
+      ...(Array.isNonEmptyArray(contacts)
         ? [
             keyed('p')(
               'preview-contact',
@@ -169,7 +169,7 @@ const proficiencyRank = (level: string): number =>
   )
 
 const proficiencyOrder = Order.mapInput(
-  Order.number,
+  Order.Number,
   ([level]: readonly [string, unknown]) => proficiencyRank(level),
 )
 

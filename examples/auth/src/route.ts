@@ -14,19 +14,19 @@ export type DashboardRoute = typeof DashboardRoute.Type
 export type SettingsRoute = typeof SettingsRoute.Type
 export type NotFoundRoute = typeof NotFoundRoute.Type
 
-export const LoggedOutRoute = S.Union(HomeRoute, LoginRoute, NotFoundRoute)
-export const LoggedInRoute = S.Union(
+export const LoggedOutRoute = S.Union([HomeRoute, LoginRoute, NotFoundRoute])
+export const LoggedInRoute = S.Union([
   DashboardRoute,
   SettingsRoute,
   NotFoundRoute,
-)
-export const AppRoute = S.Union(
+])
+export const AppRoute = S.Union([
   HomeRoute,
   LoginRoute,
   DashboardRoute,
   SettingsRoute,
   NotFoundRoute,
-)
+])
 
 export type LoggedOutRoute = typeof LoggedOutRoute.Type
 export type LoggedInRoute = typeof LoggedInRoute.Type

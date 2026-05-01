@@ -22,12 +22,12 @@ const ClickedToggleAutoCount = m('ClickedToggleAutoCount')
 const ChangedStep = m('ChangedStep', { step: S.Number })
 const Ticked = m('Ticked')
 
-const Message = S.Union(
+const Message = S.Union([
   ClickedIncrement,
   ClickedToggleAutoCount,
   ChangedStep,
   Ticked,
-)
+])
 type Message = typeof Message.Type
 
 // SUBSCRIPTION

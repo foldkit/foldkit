@@ -7,5 +7,5 @@ export const GotFaqDisclosureMessage = m('GotFaqDisclosureMessage', {
   message: Ui.Disclosure.Message,
 })
 
-export const Message = S.Union(GotFaqDisclosureMessage)
+export const Message = S.Union([GotFaqDisclosureMessage])
 export type Message = typeof Message.Type

@@ -105,7 +105,7 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
   },
   {
     name: 'defaultDuration',
-    type: 'Duration.DurationInput',
+    type: 'Duration.Input',
     default: 'Duration.seconds(4)',
     description:
       'Auto-dismiss duration applied to any show() call that does not provide its own duration or pass sticky: true. Accepts any Effect Duration input; a bare number is interpreted as milliseconds.',
@@ -128,7 +128,7 @@ const showInputProps: ReadonlyArray<PropEntry> = [
   },
   {
     name: 'duration',
-    type: 'Duration.DurationInput',
+    type: 'Duration.Input',
     description:
       "Overrides the container's defaultDuration for this entry. Ignored when sticky: true.",
   },

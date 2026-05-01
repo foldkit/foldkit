@@ -56,17 +56,17 @@ const DURATION_MILLISECONDS: Record<NoteDuration, number> = {
 const GAIN_ATTACK_TIME = 0.01
 const GAIN_RELEASE_TIME = 0.02
 const GAIN_NEAR_SILENT = 0.001
-const PHASE_DURATION: Duration.DurationInput = '150 millis'
+const PHASE_DURATION: Duration.Input = '150 millis'
 const MAX_LOG_ENTRIES = 50
 const MIN_NOTES = 2
 const MAX_NOTES = 8
 
 // MODEL
 
-const Note = S.Literal('A', 'B', 'C', 'D', 'E', 'F', 'G')
+const Note = S.Literals(['A', 'B', 'C', 'D', 'E', 'F', 'G'])
 type Note = typeof Note.Type
 
-const NoteDuration = S.Literal('Short', 'Medium', 'Long')
+const NoteDuration = S.Literals(['Short', 'Medium', 'Long'])
 type NoteDuration = typeof NoteDuration.Type
 
 const noteInputRules = FieldValidation.makeRules({
@@ -87,9 +87,9 @@ const Paused = ts('Paused', {
   noteSequence: S.Array(Note),
   currentNoteIndex: S.Number,
 })
-const PlaybackState = S.Union(Idle, Playing, Paused)
+const PlaybackState = S.Union([Idle, Playing, Paused])
 
-const NoteHighlightPhase = S.Literal(
+const NoteHighlightPhase = S.Literals([
   'Idle',
   'PlayMessage',
   'PlayUpdate',
@@ -99,7 +99,7 @@ const NoteHighlightPhase = S.Literal(
   'NoteUpdate',
   'NoteModel',
   'NoteCommand',
-)
+])
 type NoteHighlightPhase = typeof NoteHighlightPhase.Type
 
 export const Model = S.Struct({
@@ -132,7 +132,7 @@ const ProgressedNotePhase = m('ProgressedNotePhase', {
   generation: S.Number,
 })
 
-export const Message = S.Union(
+export const Message = S.Union([
   ChangedNoteInput,
   SelectedNoteDuration,
   GotDurationRadioGroupMessage,
@@ -141,7 +141,7 @@ export const Message = S.Union(
   ClickedStop,
   CompletedPlayNote,
   ProgressedNotePhase,
-)
+])
 export type Message = typeof Message.Type
 
 // FIELD VALIDATION

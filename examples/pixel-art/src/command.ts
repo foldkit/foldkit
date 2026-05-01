@@ -27,11 +27,11 @@ export const saveCanvas = (model: Model) =>
       }
       yield* store.set(
         STORAGE_KEY,
-        S.encodeSync(S.parseJson(SavedCanvasSchema))(data),
+        S.encodeSync(S.fromJsonString(SavedCanvasSchema))(data),
       )
       return CompletedSaveCanvas()
     }).pipe(
-      Effect.catchAll(() => Effect.succeed(CompletedSaveCanvas())),
+      Effect.catch(() => Effect.succeed(CompletedSaveCanvas())),
       Effect.provide(BrowserKeyValueStore.layerLocalStorage),
     ),
   )
@@ -73,7 +73,7 @@ export const exportPng = (grid: Grid, gridSize: number, theme: PaletteTheme) =>
       return SucceededExportPng()
     }).pipe(
       Effect.catchTag('FailedExportPng', error => Effect.succeed(error)),
-      Effect.catchAll(() =>
+      Effect.catch(() =>
         Effect.succeed(FailedExportPng({ error: 'Failed to export image' })),
       ),
     ),

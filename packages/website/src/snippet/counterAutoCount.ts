@@ -8,7 +8,7 @@ const ClickedIncrement = m('ClickedIncrement')
 const ToggledAutoCounting = m('ToggledAutoCounting')
 const Ticked = m('Ticked')
 
-const Message = S.Union(ClickedIncrement, ToggledAutoCounting, Ticked)
+const Message = S.Union([ClickedIncrement, ToggledAutoCounting, Ticked])
 type Message = typeof Message.Type
 
 // MODEL

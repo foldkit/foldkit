@@ -20,7 +20,7 @@ const ClickedIncrement = m('ClickedIncrement')
 const ClickedToggleAutoCount = m('ClickedToggleAutoCount')
 const Ticked = m('Ticked')
 
-const Message = S.Union(ClickedIncrement, ClickedToggleAutoCount, Ticked)
+const Message = S.Union([ClickedIncrement, ClickedToggleAutoCount, Ticked])
 type Message = typeof Message.Type
 
 // SUBSCRIPTION

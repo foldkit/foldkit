@@ -19,7 +19,7 @@ import { view } from './view'
 // FLAGS
 
 const Flags = S.Struct({
-  maybeSavedCanvas: S.OptionFromSelf(SavedCanvas),
+  maybeSavedCanvas: S.Option(SavedCanvas),
 })
 type Flags = typeof Flags.Type
 
@@ -27,10 +27,10 @@ const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   const store = yield* KeyValueStore.KeyValueStore
   const maybeJson = yield* store.get(STORAGE_KEY)
   const json = yield* maybeJson
-  const decoded = yield* S.decode(S.parseJson(SavedCanvas))(json)
+  const decoded = yield* S.decodeEffect(S.fromJsonString(SavedCanvas))(json)
   return { maybeSavedCanvas: Option.some(decoded) }
 }).pipe(
-  Effect.catchAll(() => Effect.succeed({ maybeSavedCanvas: Option.none() })),
+  Effect.catch(() => Effect.succeed({ maybeSavedCanvas: Option.none() })),
   Effect.provide(BrowserKeyValueStore.layerLocalStorage),
 )
 

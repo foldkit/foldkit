@@ -64,7 +64,7 @@ export const GotAvailableDateMessage = m('GotAvailableDateMessage', {
   message: Ui.DatePicker.Message,
 })
 
-export const Message = S.Union(
+export const Message = S.Union([
   UpdatedFirstName,
   UpdatedLastName,
   UpdatedEmail,
@@ -74,7 +74,7 @@ export const Message = S.Union(
   UpdatedCustomPronouns,
   UpdatedPortfolioUrl,
   GotAvailableDateMessage,
-)
+])
 export type Message = typeof Message.Type
 
 // INIT

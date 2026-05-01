@@ -9,7 +9,7 @@ const UserSchema = S.Struct({ id: S.String, name: S.String })
 const UserLoading = ts('UserLoading')
 const UserSuccess = ts('UserSuccess', { data: UserSchema })
 const UserFailure = ts('UserFailure', { error: S.String })
-const UserState = S.Union(UserLoading, UserSuccess, UserFailure)
+const UserState = S.Union([UserLoading, UserSuccess, UserFailure])
 
 // MODEL
 
@@ -27,7 +27,7 @@ const SucceededFetchUser = m('SucceededFetchUser', {
 })
 const FailedFetchUser = m('FailedFetchUser', { error: S.String })
 
-const Message = S.Union(ClickedFetchUser, SucceededFetchUser, FailedFetchUser)
+const Message = S.Union([ClickedFetchUser, SucceededFetchUser, FailedFetchUser])
 type Message = typeof Message.Type
 
 // COMMAND
@@ -44,10 +44,10 @@ const fetchUser = (userId: string) =>
       const response = yield* Effect.tryPromise(() =>
         fetch(`/api/users/${userId}`).then(response => response.json()),
       )
-      const data = yield* S.decodeUnknown(UserSchema)(response)
+      const data = yield* S.decodeUnknownEffect(UserSchema)(response)
       return SucceededFetchUser({ data })
     }).pipe(
-      Effect.catchAll(error =>
+      Effect.catch(error =>
         Effect.succeed(FailedFetchUser({ error: String(error) })),
       ),
     ),

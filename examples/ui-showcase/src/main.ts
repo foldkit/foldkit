@@ -59,7 +59,7 @@ const AnimationRoute = r('Animation')
 const VirtualListRoute = r('VirtualList')
 const NotFoundRoute = r('NotFound', { path: S.String })
 
-const AppRoute = S.Union(
+const AppRoute = S.Union([
   HomeRoute,
   ButtonRoute,
   CalendarRoute,
@@ -86,7 +86,7 @@ const AppRoute = S.Union(
   AnimationRoute,
   VirtualListRoute,
   NotFoundRoute,
-)
+])
 
 type AppRoute = typeof AppRoute.Type
 
@@ -182,13 +182,13 @@ const GotUiMessage = m('GotUiMessage', {
   message: UiMessage,
 })
 
-export const Message = S.Union(
+export const Message = S.Union([
   CompletedNavigateInternal,
   CompletedLoadExternal,
   ClickedLink,
   ChangedUrl,
   GotUiMessage,
-)
+])
 export type Message = typeof Message.Type
 
 // COMMAND

@@ -4,7 +4,7 @@ const getNullableOrThrow = <T>(
   value: T | null | undefined,
   errorMessage: string,
 ): T =>
-  Option.fromNullable(value).pipe(
+  Option.fromNullishOr(value).pipe(
     Option.getOrThrowWith(() => new Error(errorMessage)),
   )
 

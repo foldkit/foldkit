@@ -9,7 +9,7 @@ const searchRouter = pipe(
     S.Struct({
       q: S.OptionFromUndefinedOr(S.String),
       page: S.OptionFromUndefinedOr(S.NumberFromString),
-      sort: S.OptionFromUndefinedOr(S.Literal('Asc', 'Desc')),
+      sort: S.OptionFromUndefinedOr(S.Literals(['Asc', 'Desc'])),
     }),
   ),
   Route.mapTo(SearchRoute),

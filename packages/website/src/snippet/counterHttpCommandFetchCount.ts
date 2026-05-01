@@ -18,7 +18,7 @@ const fetchCount = FetchCount(
 
     return SucceededFetchCount({ count: result.count })
   }).pipe(
-    Effect.catchAll(error =>
+    Effect.catch(error =>
       Effect.succeed(FailedFetchCount({ error: error.message })),
     ),
   ),

@@ -62,7 +62,7 @@ export const GotThemeListboxMessage = m('GotThemeListboxMessage', {
 })
 export const CompletedSaveCanvas = m('CompletedSaveCanvas')
 
-export const Message = S.Union(
+export const Message = S.Union([
   PressedCell,
   EnteredCell,
   LeftCanvas,
@@ -93,5 +93,5 @@ export const Message = S.Union(
   DismissedGridSizeConfirmDialog,
   GotGridSizeConfirmDialogMessage,
   CompletedSaveCanvas,
-)
+])
 export type Message = typeof Message.Type

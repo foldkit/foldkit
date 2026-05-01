@@ -22,12 +22,12 @@ export const GotEntryMessage = m('GotEntryMessage', {
   message: Entry.Message,
 })
 
-export const Message = S.Union(
+export const Message = S.Union([
   ClickedAddEntry,
   AddedEntry,
   RemovedEntry,
   GotEntryMessage,
-)
+])
 export type Message = typeof Message.Type
 
 // INIT
@@ -111,5 +111,5 @@ export const hasErrors = (model: Model): boolean =>
   Array.some(model.entries, Entry.hasErrors)
 
 export const isComplete = (model: Model): boolean =>
-  Array.isNonEmptyReadonlyArray(model.entries) &&
+  Array.isNonEmptyArray(model.entries) &&
   Array.every(model.entries, Entry.isComplete)

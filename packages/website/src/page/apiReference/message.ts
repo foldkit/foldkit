@@ -16,10 +16,10 @@ export const GotDisclosureMessage = m('GotDisclosureMessage', {
   message: Ui.Disclosure.Message,
 })
 
-export const Message = S.Union(
+export const Message = S.Union([
   StartedLoadApiData,
   SucceededLoadApiData,
   FailedLoadApiData,
   GotDisclosureMessage,
-)
+])
 export type Message = typeof Message.Type

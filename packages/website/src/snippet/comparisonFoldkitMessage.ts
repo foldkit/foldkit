@@ -45,7 +45,7 @@ const GotThemeListboxMessage = m('GotThemeListboxMessage', {
 })
 const CompletedSaveCanvas = m('CompletedSaveCanvas')
 
-const Message = S.Union(
+const Message = S.Union([
   PressedCell,
   EnteredCell,
   LeftCanvas,
@@ -76,5 +76,5 @@ const Message = S.Union(
   GotMirrorVerticalSwitchMessage,
   GotThemeListboxMessage,
   CompletedSaveCanvas,
-)
+])
 type Message = typeof Message.Type

@@ -203,7 +203,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ', runs them through ',
         inlineCode('client.execute'),
         ', and decodes the response with ',
-        inlineCode('S.decodeUnknown'),
+        inlineCode('S.decodeUnknownEffect'),
         '. Whatever Effect produces the value, the Command shape stays the same.',
       ),
       para(
@@ -227,7 +227,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       infoCallout(
         'Errors are tracked, not hidden',
         'Commands use Effect\u2019s typed error channel: if a Command can fail, the type signature tells you. ',
-        inlineCode('Effect.catchAll'),
+        inlineCode('Effect.catch'),
         ' turns failures into Messages like ',
         inlineCode('FailedFetchCount'),
         ', and once all errors are handled, the type confirms it. The update function handles errors the same way it handles success: as facts about what happened.',

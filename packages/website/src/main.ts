@@ -111,12 +111,12 @@ const emailRules = FieldValidation.makeRules({
   rules: [FieldValidation.email('Please enter a valid email address')],
 })
 
-const EmailSubscriptionStatus = S.Literal(
+const EmailSubscriptionStatus = S.Literals([
   'Idle',
   'Submitting',
   'Succeeded',
   'Failed',
-)
+])
 export type EmailSubscriptionStatus = typeof EmailSubscriptionStatus.Type
 
 // FLAGS
@@ -138,7 +138,7 @@ const CHROMIUM_BRANDS = new Set(['Chromium', 'Google Chrome', 'Microsoft Edge'])
 const CHROMIUM_UA_PATTERN = /Chrome\/|Chromium\/|Edg\/|OPR\//
 
 const detectChromium = (): boolean =>
-  Option.match(Option.fromNullable(navigator.userAgentData?.brands), {
+  Option.match(Option.fromNullishOr(navigator.userAgentData?.brands), {
     onNone: () => CHROMIUM_UA_PATTERN.test(navigator.userAgent),
     onSome: brands => brands.some(({ brand }) => CHROMIUM_BRANDS.has(brand)),
   })
@@ -148,10 +148,10 @@ const flags: Effect.Effect<Flags> = Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
     const maybeJson = yield* store.get(THEME_STORAGE_KEY)
     const json = yield* maybeJson
-    const theme = yield* S.decode(S.parseJson(ThemePreference))(json)
+    const theme = yield* S.decodeEffect(S.fromJsonString(ThemePreference))(json)
     return Option.some(theme)
   }).pipe(
-    Effect.catchAll(() => Effect.succeed(Option.none())),
+    Effect.catch(() => Effect.succeed(Option.none())),
     Effect.provide(BrowserKeyValueStore.layerLocalStorage),
   )
 
@@ -198,7 +198,7 @@ export const Model = S.Struct({
   isLandingHeaderVisible: S.Boolean,
   isNarrowViewport: S.Boolean,
   isChromium: S.Boolean,
-  playgroundError: S.OptionFromSelf(S.String),
+  playgroundError: S.Option(S.String),
   getStartedGroup: Ui.Disclosure.Model,
   coreConceptsGroup: Ui.Disclosure.Model,
   forReactDevelopersGroup: Ui.Disclosure.Model,
@@ -1141,7 +1141,7 @@ const copySnippetToClipboard = (text: string) =>
       catch: () => new Error('Failed to copy to clipboard'),
     }).pipe(
       Effect.as(SucceededCopy({ text })),
-      Effect.catchAll(() => Effect.succeed(FailedCopy())),
+      Effect.catch(() => Effect.succeed(FailedCopy())),
     ),
   )
 
@@ -1152,7 +1152,7 @@ const copyLinkToClipboard = (url: string) =>
       catch: () => new Error('Failed to copy link to clipboard'),
     }).pipe(
       Effect.as(SucceededCopyLink()),
-      Effect.catchAll(() => Effect.succeed(FailedCopy())),
+      Effect.catch(() => Effect.succeed(FailedCopy())),
     ),
   )
 
@@ -1239,7 +1239,7 @@ const subscribeToNewsletter = (email: string) =>
       return SucceededSubscribeEmail()
     }).pipe(
       Effect.scoped,
-      Effect.catchAll(() => Effect.succeed(FailedSubscribeEmail())),
+      Effect.catch(() => Effect.succeed(FailedSubscribeEmail())),
       Effect.locally(HttpClient.currentTracerPropagation, false),
       Effect.provide(FetchHttpClient.layer),
     ),
@@ -1252,7 +1252,7 @@ const saveThemePreference = (preference: typeof ThemePreference.Type) =>
       yield* store.set(THEME_STORAGE_KEY, JSON.stringify(preference))
       return CompletedSaveThemePreference()
     }).pipe(
-      Effect.catchAll(() => Effect.succeed(CompletedSaveThemePreference())),
+      Effect.catch(() => Effect.succeed(CompletedSaveThemePreference())),
       Effect.provide(BrowserKeyValueStore.layerLocalStorage),
     ),
   )
@@ -1349,7 +1349,7 @@ const SubscriptionDeps = S.Struct({
   virtualListContainerEvents: virtualListDemoFields['containerEvents'],
   virtualListVariableContainerEvents:
     virtualListDemoFields['variableContainerEvents'],
-  exampleUrl: S.OptionFromSelf(S.String),
+  exampleUrl: S.Option(S.String),
   heroVisibility: S.Struct({
     isLandingPage: S.Boolean,
   }),

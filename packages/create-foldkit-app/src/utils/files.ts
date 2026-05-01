@@ -179,7 +179,7 @@ const fetchExampleFileList = (
         const request = HttpClientRequest.get(apiUrl)
         const response = yield* client.execute(request)
         const json = yield* response.json
-        const entries = yield* Schema.decodeUnknown(
+        const entries = yield* Schema.decodeUnknownEffect(
           Schema.Array(GitHubFileEntry),
         )(json)
 

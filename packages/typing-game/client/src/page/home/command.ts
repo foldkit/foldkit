@@ -27,7 +27,7 @@ export const createRoom = (username: string) =>
       const { player, room } = yield* client.createRoom({ username })
       return SucceededCreateRoom({ roomId: room.id, player })
     }).pipe(
-      Effect.catchAll(error =>
+      Effect.catch(error =>
         Effect.succeed(FailedJoinRoom({ error: String(error) })),
       ),
       Effect.provide(RoomsClient.Default),
@@ -41,7 +41,7 @@ export const joinRoom = (username: string, roomId: string) =>
       const { player, room } = yield* client.joinRoom({ username, roomId })
       return SucceededJoinRoom({ roomId: room.id, player })
     }).pipe(
-      Effect.catchAll(error =>
+      Effect.catch(error =>
         Effect.succeed(FailedJoinRoom({ error: String(error) })),
       ),
       Effect.provide(RoomsClient.Default),

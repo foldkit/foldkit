@@ -63,7 +63,7 @@ export const GotIsCurrentlyEnrolledMessage = m(
 )
 export const UpdatedGpa = m('UpdatedGpa', { value: S.String })
 
-export const Message = S.Union(
+export const Message = S.Union([
   UpdatedSchool,
   UpdatedDegree,
   UpdatedFieldOfStudy,
@@ -71,7 +71,7 @@ export const Message = S.Union(
   GotGraduationYearListboxMessage,
   GotIsCurrentlyEnrolledMessage,
   UpdatedGpa,
-)
+])
 export type Message = typeof Message.Type
 
 // INIT

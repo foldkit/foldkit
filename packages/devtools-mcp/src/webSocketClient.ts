@@ -48,7 +48,7 @@ export type WebSocketClient = Readonly<{
   sendRequest: (
     request: typeof Request.Type,
     maybeRuntimeId: Option.Option<string>,
-  ) => Effect.Effect<typeof Response.Type, Cause.TimeoutException | Error>
+  ) => Effect.Effect<typeof Response.Type, Cause.TimeoutError | Error>
   close: Effect.Effect<void>
 }>
 
@@ -126,7 +126,7 @@ export const connectWebSocketClient = (
     )
     const currentSocketRef = yield* Ref.make(initialSocket)
     const isManuallyClosedRef = yield* Ref.make(false)
-    const runtime = yield* Effect.runtime<never>()
+    const runtime = yield* Effect.context<never>()
 
     const attachMessageHandler = (socket: WebSocket): void => {
       socket.on('message', raw => {
@@ -177,12 +177,12 @@ export const connectWebSocketClient = (
       yield* reconnectLoop
     })
 
-    const reconnectFiber = yield* Effect.forkDaemon(reconnectLoop)
+    const reconnectFiber = yield* Effect.forkDetach(reconnectLoop)
 
     const sendRequest = (
       request: typeof Request.Type,
       maybeRuntimeId: Option.Option<string>,
-    ): Effect.Effect<typeof Response.Type, Cause.TimeoutException | Error> =>
+    ): Effect.Effect<typeof Response.Type, Cause.TimeoutError | Error> =>
       Effect.gen(function* () {
         const id = generateRequestId()
         const deferred = yield* Deferred.make<typeof Response.Type, Error>()
@@ -239,7 +239,7 @@ const handleIncomingMessage = (
   raw: RawData,
   pendingResponsesRef: Ref.Ref<PendingResponses>,
 ): Effect.Effect<void> => {
-  const decoded = S.decodeUnknownEither(S.parseJson(ResponseFrame))(
+  const decoded = S.decodeUnknownExit(S.fromJsonString(ResponseFrame))(
     raw.toString(),
   )
   return Either.match(decoded, {

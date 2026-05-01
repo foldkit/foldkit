@@ -21,11 +21,11 @@ const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   const maybeTodosJson = yield* store.get('todos')
   const todosJson = yield* maybeTodosJson
 
-  const decodeTodos = S.decode(S.parseJson(Todos))
+  const decodeTodos = S.decodeEffect(S.fromJsonString(Todos))
   const todos = yield* decodeTodos(todosJson)
 
   return { todos: Option.some(todos) }
 }).pipe(
-  Effect.catchAll(() => Effect.succeed({ todos: Option.none() })),
+  Effect.catch(() => Effect.succeed({ todos: Option.none() })),
   Effect.provide(BrowserKeyValueStore.layerLocalStorage),
 )

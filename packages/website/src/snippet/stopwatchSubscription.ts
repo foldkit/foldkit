@@ -5,7 +5,7 @@ import { m } from 'foldkit/message'
 // MESSAGE
 
 const Ticked = m('Ticked')
-const Message = S.Union(Ticked)
+const Message = S.Union([Ticked])
 type Message = typeof Message.Type
 
 // MODEL

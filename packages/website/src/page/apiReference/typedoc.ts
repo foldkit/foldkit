@@ -179,9 +179,9 @@ type TypeDocTypeEncoded =
   | TypeDocPredicateType
   | TypeDocUnknownType
 
-export const TypeDocTypeSchema: S.Schema<TypeDocType, TypeDocTypeEncoded> =
+export const TypeDocTypeSchema: S.Codec<TypeDocType, TypeDocTypeEncoded> =
   S.suspend(() =>
-    S.Union(
+    S.Union([
       S.Struct({ type: S.Literal('intrinsic'), name: S.String }),
       S.Struct({ type: S.Literal('literal'), value: S.Unknown }),
       S.Struct({
@@ -245,7 +245,7 @@ export const TypeDocTypeSchema: S.Schema<TypeDocType, TypeDocTypeEncoded> =
       S.Struct({ type: S.Literal('inferred'), name: S.String }),
       S.Struct({ type: S.Literal('predicate') }),
       S.Struct({ type: S.Literal('unknown') }),
-    ),
+    ]),
   )
 
 export const TypeDocTypeParam = S.Struct({
@@ -318,7 +318,7 @@ export const TypeDocItem = S.Struct({
   type: S.OptionFromUndefinedOr(TypeDocTypeSchema),
   children: S.OptionFromUndefinedOr(
     S.Array(
-      S.suspend((): S.Schema<TypeDocItem, TypeDocItemEncoded> => TypeDocItem),
+      S.suspend((): S.Codec<TypeDocItem, TypeDocItemEncoded> => TypeDocItem),
     ),
   ),
 })

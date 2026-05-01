@@ -43,11 +43,11 @@ export const saveBoard = (columns: ReadonlyArray<Column.Column>) =>
       const store = yield* KeyValueStore.KeyValueStore
       yield* store.set(
         STORAGE_KEY,
-        S.encodeSync(S.parseJson(SavedBoard))({ columns }),
+        S.encodeSync(S.fromJsonString(SavedBoard))({ columns }),
       )
       return CompletedSaveBoard()
     }).pipe(
-      Effect.catchAll(() => Effect.succeed(CompletedSaveBoard())),
+      Effect.catch(() => Effect.succeed(CompletedSaveBoard())),
       Effect.provide(BrowserKeyValueStore.layerLocalStorage),
     ),
   )
