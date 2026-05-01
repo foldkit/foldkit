@@ -1,4 +1,5 @@
 import { Effect, Option, Stream, pipe } from 'effect'
+import { streamFromEmit } from './streamFromEmit'
 import { Subscription } from 'foldkit/subscription'
 
 import { type Model, type SubscriptionDeps } from '../main'
@@ -24,7 +25,7 @@ export const exampleUrl: Subscription<
     ),
   dependenciesToStream: maybeSlug =>
     Stream.when(
-      Stream.async<typeof GotExampleDetailMessage.Type>(emit => {
+      streamFromEmit<typeof GotExampleDetailMessage.Type>(emit => {
         const handler = (event: MessageEvent) => {
           if (
             event.origin === window.location.origin &&
@@ -44,6 +45,6 @@ export const exampleUrl: Subscription<
 
         return Effect.sync(() => window.removeEventListener('message', handler))
       }),
-      () => Option.isSome(maybeSlug),
+      Effect.sync(() => Option.isSome(maybeSlug)),
     ),
 }

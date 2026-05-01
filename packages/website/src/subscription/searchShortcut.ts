@@ -1,4 +1,5 @@
 import { Effect, Stream } from 'effect'
+import { streamFromEmit } from './streamFromEmit'
 import { Ui } from 'foldkit'
 import { Subscription } from 'foldkit/subscription'
 
@@ -17,7 +18,7 @@ export const searchShortcut: Subscription<
   }),
   dependenciesToStream: ({ isDocsPage }) =>
     Stream.when(
-      Stream.async<typeof GotSearchMessage.Type>(emit => {
+      streamFromEmit<typeof GotSearchMessage.Type>(emit => {
         const handler = (event: KeyboardEvent) => {
           if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
             event.preventDefault()
@@ -37,6 +38,6 @@ export const searchShortcut: Subscription<
           document.removeEventListener('keydown', handler),
         )
       }),
-      () => isDocsPage,
+      Effect.sync(() => isDocsPage),
     ),
 }

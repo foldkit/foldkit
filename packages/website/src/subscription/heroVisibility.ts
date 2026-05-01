@@ -1,4 +1,5 @@
 import { Effect, Stream } from 'effect'
+import { streamFromEmit } from './streamFromEmit'
 import { Subscription } from 'foldkit/subscription'
 
 import { type Model, type SubscriptionDeps } from '../main'
@@ -15,7 +16,7 @@ export const heroVisibility: Subscription<
   }),
   dependenciesToStream: ({ isLandingPage }) =>
     Stream.when(
-      Stream.async<typeof ChangedHeroVisibility.Type>(emit => {
+      streamFromEmit<typeof ChangedHeroVisibility.Type>(emit => {
         const heroElement = document.getElementById(HERO_SECTION_ID)
 
         if (!heroElement) {
@@ -40,6 +41,6 @@ export const heroVisibility: Subscription<
 
         return Effect.sync(() => observer.disconnect())
       }),
-      () => isLandingPage,
+      Effect.sync(() => isLandingPage),
     ),
 }

@@ -11,6 +11,8 @@ import {
 } from 'effect'
 import { Subscription } from 'foldkit/subscription'
 
+import { streamFromEmit } from './streamFromEmit'
+
 import { Model, SubscriptionDeps } from '../main'
 import { ChangedActiveSection } from '../message'
 import * as Page from '../page'
@@ -174,7 +176,7 @@ export const activeSection: Subscription<
     }
   },
   dependenciesToStream: ({ sections }) =>
-    Stream.async<typeof ChangedActiveSection.Type>(emit => {
+    streamFromEmit<typeof ChangedActiveSection.Type>(emit => {
       if (!Array.isReadonlyArrayNonEmpty(sections)) {
         return Effect.void
       }
