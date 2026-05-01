@@ -4,28 +4,13 @@ import { Ui } from 'foldkit'
 // CONSTANT
 
 export const PaletteIndex = S.Literals([
-  0,
-  1,
-  2,
-  3,
-  4,
-  5,
-  6,
-  7,
-  8,
-  9,
-  10,
-  11,
-  12,
-  13,
-  14,
-  15,
+  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
 ])
 export type PaletteIndex = typeof PaletteIndex.Type
 
-export const HexColor = S.String.check(
-  S.isPattern(/^#[0-9a-f]{6}$/),
-).pipe(S.brand('HexColor'))
+export const HexColor = S.String.check(S.isPattern(/^#[0-9a-f]{6}$/)).pipe(
+  S.brand('HexColor'),
+)
 export type HexColor = typeof HexColor.Type
 
 export const Tool = S.Literals(['Brush', 'Fill', 'Eraser'])

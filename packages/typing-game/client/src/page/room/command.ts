@@ -1,7 +1,7 @@
 // @ts-nocheck
-import { KeyValueStore } from 'effect/unstable/persistence'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Effect, Option, Schema as S } from 'effect'
+import { KeyValueStore } from 'effect/unstable/persistence'
 import { Command, Task } from 'foldkit'
 
 import { ROOM_PLAYER_SESSION_KEY } from '../../constant'

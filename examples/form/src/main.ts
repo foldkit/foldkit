@@ -42,7 +42,12 @@ const Submitting = ts('Submitting')
 const SubmitSuccess = ts('SubmitSuccess', { message: S.String })
 const SubmitError = ts('SubmitError', { error: S.String })
 
-const Submission = S.Union([NotSubmitted, Submitting, SubmitSuccess, SubmitError])
+const Submission = S.Union([
+  NotSubmitted,
+  Submitting,
+  SubmitSuccess,
+  SubmitError,
+])
 
 type NotSubmitted = typeof NotSubmitted.Type
 type Submitting = typeof Submitting.Type

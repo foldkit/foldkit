@@ -1,5 +1,5 @@
-import { FileSystem } from 'effect'
 import { Resvg } from '@resvg/resvg-js'
+import { FileSystem } from 'effect'
 import { Array, Console, Effect, pipe } from 'effect'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'

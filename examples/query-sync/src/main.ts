@@ -49,8 +49,7 @@ const optionFromValidParam = <A extends string>(schema: S.Codec<A, A>) => {
     S.decodeTo(
       S.Option(schema),
       SchemaTransformation.transform({
-        decode: (value: string | undefined): Option.Option<A> =>
-          decode(value),
+        decode: (value: string | undefined): Option.Option<A> => decode(value),
         encode: (option: Option.Option<A>): string | undefined =>
           Option.getOrUndefined(option),
       }),

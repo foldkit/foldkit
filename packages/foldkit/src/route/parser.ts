@@ -263,11 +263,8 @@ export const oneOf = <Parsers extends ReadonlyArray<ParserInput>>(
           }),
         ),
       onNonEmpty: (head, tail) =>
-        Array.reduce(
-          tail,
-          head.parse(segments, search),
-          (acc, parser) =>
-            acc.pipe(Effect.catch(() => parser.parse(segments, search))),
+        Array.reduce(tail, head.parse(segments, search), (acc, parser) =>
+          acc.pipe(Effect.catch(() => parser.parse(segments, search))),
         ),
     }),
 })

@@ -1,6 +1,6 @@
-import { KeyValueStore } from 'effect/unstable/persistence'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Array, Effect, Predicate, Schema as S } from 'effect'
+import { KeyValueStore } from 'effect/unstable/persistence'
 import { Command } from 'foldkit'
 
 import { CANVAS_SIZE_PX, EXPORT_SCALE, STORAGE_KEY } from './constant'

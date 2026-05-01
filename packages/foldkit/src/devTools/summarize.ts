@@ -167,9 +167,7 @@ const summarizeAt = (value: unknown, depth: number): unknown =>
   M.value(value).pipe(
     M.when(Predicate.isString, truncateString),
     M.when(Array.isArray, items => summarizeArray(items, depth)),
-    M.when(Predicate.isObject, record =>
-      summarizeRecord(record, depth),
-    ),
+    M.when(Predicate.isObject, record => summarizeRecord(record, depth)),
     M.orElse(Function.identity),
   )
 

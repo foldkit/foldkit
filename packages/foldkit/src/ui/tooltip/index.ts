@@ -280,7 +280,10 @@ export const setShowDelay = (
   model: Model,
   showDelay: Duration.Input,
 ): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  update(model, ChangedShowDelay({ showDelay: Duration.fromInputUnsafe(showDelay) }))
+  update(
+    model,
+    ChangedShowDelay({ showDelay: Duration.fromInputUnsafe(showDelay) }),
+  )
 
 // VIEW
 

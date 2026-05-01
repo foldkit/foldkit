@@ -1,6 +1,6 @@
-import { KeyValueStore } from 'effect/unstable/persistence'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Effect, Schema as S } from 'effect'
+import { KeyValueStore } from 'effect/unstable/persistence'
 import { Command, Task } from 'foldkit'
 
 import { ADD_CARD_INPUT_ID, STORAGE_KEY } from './constant'

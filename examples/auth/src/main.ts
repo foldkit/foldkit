@@ -1,6 +1,6 @@
-import { KeyValueStore } from 'effect/unstable/persistence'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Effect, Match as M, Option, Schema as S } from 'effect'
+import { KeyValueStore } from 'effect/unstable/persistence'
 import { Command, Runtime } from 'foldkit'
 import { replaceUrl } from 'foldkit/navigation'
 import { Url } from 'foldkit/url'
@@ -41,9 +41,7 @@ const flags: Effect.Effect<Flags> = Effect.gen(function* () {
 
   return { maybeSession: Option.some(session) } as Flags
 }).pipe(
-  Effect.catch(() =>
-    Effect.succeed({ maybeSession: Option.none() } as Flags),
-  ),
+  Effect.catch(() => Effect.succeed({ maybeSession: Option.none() } as Flags)),
   Effect.provide(BrowserKeyValueStore.layerLocalStorage),
 )
 

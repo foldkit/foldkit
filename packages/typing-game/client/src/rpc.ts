@@ -1,8 +1,8 @@
 // @ts-nocheck
-import { FetchHttpClient } from 'effect/unstable/http'
-import { RpcClient, RpcSerialization } from 'effect/unstable/rpc'
 import { RoomRpcs } from '@typing-game/shared'
 import { Effect, Layer } from 'effect'
+import { FetchHttpClient } from 'effect/unstable/http'
+import { RpcClient, RpcSerialization } from 'effect/unstable/rpc'
 
 import { ViteEnvConfig } from './config'
 

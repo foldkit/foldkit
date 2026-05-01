@@ -37,9 +37,7 @@ export const searchShortcut: Subscription<
             return handler
           }),
           handler =>
-            Effect.sync(() =>
-              document.removeEventListener('keydown', handler),
-            ),
+            Effect.sync(() => document.removeEventListener('keydown', handler)),
         ).pipe(Effect.flatMap(() => Effect.never)),
       ),
       Effect.sync(() => isDocsPage),

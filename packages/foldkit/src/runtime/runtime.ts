@@ -568,8 +568,7 @@ const makeRuntime = <
               /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
               Schema.decodeUnknownExit(Model as Schema.Codec<Model>)(hmrModel),
               {
-                onFailure: () =>
-                  init(flags, Option.getOrUndefined(currentUrl)),
+                onFailure: () => init(flags, Option.getOrUndefined(currentUrl)),
                 onSuccess: (
                   restoredModel: Model,
                 ): readonly [

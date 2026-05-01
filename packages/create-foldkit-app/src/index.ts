@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // @ts-nocheck
-import { Command, HelpDoc, Options } from 'effect/unstable/cli'
-import { FetchHttpClient } from 'effect/unstable/http'
 import { NodeContext, NodeRuntime } from '@effect/platform-node'
 import { Effect, Match, Option, Schema, String, flow } from 'effect'
+import { Command, HelpDoc, Options } from 'effect/unstable/cli'
+import { FetchHttpClient } from 'effect/unstable/http'
 import { createRequire } from 'node:module'
 
 import { create as create_ } from './commands/create.js'

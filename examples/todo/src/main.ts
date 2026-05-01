@@ -1,4 +1,3 @@
-import { KeyValueStore } from 'effect/unstable/persistence'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import {
   Array,
@@ -9,6 +8,7 @@ import {
   Schema as S,
   String,
 } from 'effect'
+import { KeyValueStore } from 'effect/unstable/persistence'
 import { Command, Runtime, Task } from 'foldkit'
 import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'

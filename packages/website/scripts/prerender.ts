@@ -4,7 +4,6 @@
 // effect/unstable/process and @effect/platform-node's NodeServices, with
 // different APIs. Disabling typecheck here so the website typechecks; the
 // script still runs because tsx executes the JS at runtime.
-import { Command, FileSystem } from 'effect/unstable/http'
 import { NodeContext, NodeRuntime } from '@effect/platform-node'
 import {
   Array,
@@ -18,6 +17,7 @@ import {
   Stream,
   pipe,
 } from 'effect'
+import { Command, FileSystem } from 'effect/unstable/http'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { type Browser, chromium } from 'playwright'

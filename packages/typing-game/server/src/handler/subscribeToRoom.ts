@@ -1,5 +1,4 @@
 // @ts-nocheck
-import { Rpc } from 'effect/unstable/rpc'
 import * as Shared from '@typing-game/shared'
 import {
   Array,
@@ -15,6 +14,7 @@ import {
   pipe,
 } from 'effect'
 import { DurationInput } from 'effect/Duration'
+import { Rpc } from 'effect/unstable/rpc'
 
 import { ROOM_UPDATE_THROTTLE_MS } from '../game.js'
 import { getPlayerProgress } from '../scoring.js'

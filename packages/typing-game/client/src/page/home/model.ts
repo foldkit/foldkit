@@ -2,7 +2,11 @@
 import { Match, Schema as S } from 'effect'
 import { ts } from 'foldkit/schema'
 
-export const HomeAction = S.Literals(['CreateRoom', 'JoinRoom', 'ChangeUsername'])
+export const HomeAction = S.Literals([
+  'CreateRoom',
+  'JoinRoom',
+  'ChangeUsername',
+])
 export type HomeAction = typeof HomeAction.Type
 
 export const HOME_ACTIONS: readonly HomeAction[] = [

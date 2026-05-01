@@ -26,7 +26,9 @@ const RuntimeIdField = S.optional(
   S.String.annotate({ description: RUNTIME_ID_DESCRIPTION }),
 )
 
-const ListLimit = S.Int.check(S.isBetween({ minimum: 1, maximum: 500 })).annotate({
+const ListLimit = S.Int.check(
+  S.isBetween({ minimum: 1, maximum: 500 }),
+).annotate({
   description: `Maximum number of entries to return. Defaults to ${DEFAULT_LIST_MESSAGES_LIMIT}; max 500.`,
 })
 
@@ -242,9 +244,7 @@ const runRuntimeTool =
       return yield* callRuntimeRequest(wsClient, input.runtime_id, () =>
         buildRequest(input),
       )
-    }).pipe(
-      Effect.catch(error => Effect.succeed(formatError(error.message))),
-    )
+    }).pipe(Effect.catch(error => Effect.succeed(formatError(error.message))))
 
 /**
  * Build the read-only Foldkit DevTools tool definitions. Each tool decodes its

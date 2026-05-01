@@ -110,10 +110,7 @@ const DelayAdvancePhase = Command.define(
   ProgressedDemoPhase,
 )
 
-const delayAdvancePhase = (
-  generation: number,
-  duration: Duration.Input,
-) =>
+const delayAdvancePhase = (generation: number, duration: Duration.Input) =>
   DelayAdvancePhase(
     Task.delay(duration).pipe(Effect.as(ProgressedDemoPhase({ generation }))),
   )

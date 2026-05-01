@@ -184,16 +184,13 @@ export const activeSection: Subscription<
           const visibleSections = MutableRef.make(HashSet.empty<string>())
           const observer = new IntersectionObserver(
             entries => {
-              Array.forEach(
-                entries,
-                ({ isIntersecting, target: { id } }) => {
-                  if (isIntersecting) {
-                    MutableRef.update(visibleSections, HashSet.add(id))
-                  } else {
-                    MutableRef.update(visibleSections, HashSet.remove(id))
-                  }
-                },
-              )
+              Array.forEach(entries, ({ isIntersecting, target: { id } }) => {
+                if (isIntersecting) {
+                  MutableRef.update(visibleSections, HashSet.add(id))
+                } else {
+                  MutableRef.update(visibleSections, HashSet.remove(id))
+                }
+              })
 
               const activeSectionId = Array.findFirst(sections, sectionId =>
                 HashSet.has(MutableRef.get(visibleSections), sectionId),
@@ -202,10 +199,7 @@ export const activeSection: Subscription<
               Option.match(activeSectionId, {
                 onNone: Function.constVoid,
                 onSome: sectionId => {
-                  Queue.offerUnsafe(
-                    queue,
-                    ChangedActiveSection({ sectionId }),
-                  )
+                  Queue.offerUnsafe(queue, ChangedActiveSection({ sectionId }))
                 },
               })
             },

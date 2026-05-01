@@ -12,6 +12,7 @@ import {
   pipe,
 } from 'effect'
 import { dual } from 'effect/Function'
+
 import { evo } from '../struct/index.js'
 import type { VNode } from '../vdom.js'
 
@@ -523,7 +524,11 @@ const nameFromLabelledBy =
           labelledBy,
           String_.split(WHITESPACE_PATTERN),
           Array.filterMap(
-            flow(findById(root), Option.map(textContent), Result.fromOption(() => undefined)),
+            flow(
+              findById(root),
+              Option.map(textContent),
+              Result.fromOption(() => undefined),
+            ),
           ),
           Array.join(' '),
         ),
@@ -640,7 +645,11 @@ export const accessibleDescription =
         onSome: flow(
           String_.split(WHITESPACE_PATTERN),
           Array.filterMap(
-            flow(findById(root), Option.map(textContent), Result.fromOption(() => undefined)),
+            flow(
+              findById(root),
+              Option.map(textContent),
+              Result.fromOption(() => undefined),
+            ),
           ),
           Array.join(' '),
         ),

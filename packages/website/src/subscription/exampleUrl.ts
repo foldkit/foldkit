@@ -46,9 +46,7 @@ export const exampleUrl: Subscription<
             return handler
           }),
           handler =>
-            Effect.sync(() =>
-              window.removeEventListener('message', handler),
-            ),
+            Effect.sync(() => window.removeEventListener('message', handler)),
         ).pipe(Effect.flatMap(() => Effect.never)),
       ),
       Effect.sync(() => Option.isSome(maybeSlug)),

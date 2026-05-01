@@ -181,72 +181,72 @@ type TypeDocTypeEncoded =
 
 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
 export const TypeDocTypeSchema = S.suspend(() =>
-    S.Union([
-      S.Struct({ type: S.Literal('intrinsic'), name: S.String }),
-      S.Struct({ type: S.Literal('literal'), value: S.Unknown }),
-      S.Struct({
-        type: S.Literal('reference'),
-        name: S.String,
-        package: S.optional(S.String),
-        typeArguments: S.optional(S.Array(TypeDocTypeSchema)),
-      }),
-      S.Struct({
-        type: S.Literal('array'),
-        elementType: TypeDocTypeSchema,
-      }),
-      S.Struct({
-        type: S.Literal('rest'),
-        elementType: TypeDocTypeSchema,
-      }),
-      S.Struct({
-        type: S.Literal('tuple'),
-        elements: S.Array(TypeDocTypeSchema),
-      }),
-      S.Struct({
-        type: S.Literal('union'),
-        types: S.Array(TypeDocTypeSchema),
-      }),
-      S.Struct({
-        type: S.Literal('intersection'),
-        types: S.Array(TypeDocTypeSchema),
-      }),
-      S.Struct({
-        type: S.Literal('reflection'),
-        declaration: S.OptionFromOptional(TypeDocItem),
-      }),
-      S.Struct({
-        type: S.Literal('typeOperator'),
-        operator: S.String,
-        target: TypeDocTypeSchema,
-      }),
-      S.Struct({
-        type: S.Literal('mapped'),
-        parameter: S.String,
-        parameterType: TypeDocTypeSchema,
-        templateType: TypeDocTypeSchema,
-        readonlyModifier: S.optional(S.String),
-      }),
-      S.Struct({
-        type: S.Literal('conditional'),
-        checkType: TypeDocTypeSchema,
-        extendsType: TypeDocTypeSchema,
-        trueType: TypeDocTypeSchema,
-        falseType: TypeDocTypeSchema,
-      }),
-      S.Struct({
-        type: S.Literal('indexedAccess'),
-        objectType: TypeDocTypeSchema,
-        indexType: TypeDocTypeSchema,
-      }),
-      S.Struct({
-        type: S.Literal('query'),
-        queryType: TypeDocTypeSchema,
-      }),
-      S.Struct({ type: S.Literal('inferred'), name: S.String }),
-      S.Struct({ type: S.Literal('predicate') }),
-      S.Struct({ type: S.Literal('unknown') }),
-    ]),
-  ) as unknown as S.Codec<TypeDocType, TypeDocTypeEncoded>
+  S.Union([
+    S.Struct({ type: S.Literal('intrinsic'), name: S.String }),
+    S.Struct({ type: S.Literal('literal'), value: S.Unknown }),
+    S.Struct({
+      type: S.Literal('reference'),
+      name: S.String,
+      package: S.optional(S.String),
+      typeArguments: S.optional(S.Array(TypeDocTypeSchema)),
+    }),
+    S.Struct({
+      type: S.Literal('array'),
+      elementType: TypeDocTypeSchema,
+    }),
+    S.Struct({
+      type: S.Literal('rest'),
+      elementType: TypeDocTypeSchema,
+    }),
+    S.Struct({
+      type: S.Literal('tuple'),
+      elements: S.Array(TypeDocTypeSchema),
+    }),
+    S.Struct({
+      type: S.Literal('union'),
+      types: S.Array(TypeDocTypeSchema),
+    }),
+    S.Struct({
+      type: S.Literal('intersection'),
+      types: S.Array(TypeDocTypeSchema),
+    }),
+    S.Struct({
+      type: S.Literal('reflection'),
+      declaration: S.OptionFromOptional(TypeDocItem),
+    }),
+    S.Struct({
+      type: S.Literal('typeOperator'),
+      operator: S.String,
+      target: TypeDocTypeSchema,
+    }),
+    S.Struct({
+      type: S.Literal('mapped'),
+      parameter: S.String,
+      parameterType: TypeDocTypeSchema,
+      templateType: TypeDocTypeSchema,
+      readonlyModifier: S.optional(S.String),
+    }),
+    S.Struct({
+      type: S.Literal('conditional'),
+      checkType: TypeDocTypeSchema,
+      extendsType: TypeDocTypeSchema,
+      trueType: TypeDocTypeSchema,
+      falseType: TypeDocTypeSchema,
+    }),
+    S.Struct({
+      type: S.Literal('indexedAccess'),
+      objectType: TypeDocTypeSchema,
+      indexType: TypeDocTypeSchema,
+    }),
+    S.Struct({
+      type: S.Literal('query'),
+      queryType: TypeDocTypeSchema,
+    }),
+    S.Struct({ type: S.Literal('inferred'), name: S.String }),
+    S.Struct({ type: S.Literal('predicate') }),
+    S.Struct({ type: S.Literal('unknown') }),
+  ]),
+) as unknown as S.Codec<TypeDocType, TypeDocTypeEncoded>
 
 export const TypeDocTypeParam = S.Struct({
   id: S.Number,
@@ -321,7 +321,8 @@ export const TypeDocItem: S.Codec<TypeDocItem, TypeDocItemEncoded> = S.Struct({
     S.Array(
       S.suspend(
         /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-        () => TypeDocItem as unknown as S.Codec<TypeDocItem, TypeDocItemEncoded>,
+        () =>
+          TypeDocItem as unknown as S.Codec<TypeDocItem, TypeDocItemEncoded>,
       ),
     ),
   ),

@@ -1,9 +1,3 @@
-import {
-  FetchHttpClient,
-  HttpClient,
-  HttpClientRequest,
-} from 'effect/unstable/http'
-import { KeyValueStore } from 'effect/unstable/persistence'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { inject } from '@vercel/analytics'
 import * as SpeedInsights from '@vercel/speed-insights'
@@ -19,6 +13,12 @@ import {
   Schema as S,
   pipe,
 } from 'effect'
+import {
+  FetchHttpClient,
+  HttpClient,
+  HttpClientRequest,
+} from 'effect/unstable/http'
+import { KeyValueStore } from 'effect/unstable/persistence'
 import { Calendar, Command, FieldValidation, Runtime, Ui } from 'foldkit'
 import type { Document } from 'foldkit/html'
 import { load, pushUrl } from 'foldkit/navigation'

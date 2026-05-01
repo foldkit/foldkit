@@ -1,8 +1,8 @@
 // @ts-nocheck
-import { FileSystem, Path } from 'effect'
-import * as Process from 'effect/unstable/process'
 import chalk from 'chalk'
+import { FileSystem, Path } from 'effect'
 import { Console, Effect, Match } from 'effect'
+import * as Process from 'effect/unstable/process'
 
 import { createProject } from '../utils/files.js'
 import { installDependencies } from '../utils/packages.js'

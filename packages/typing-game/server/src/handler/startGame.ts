@@ -1,5 +1,4 @@
 // @ts-nocheck
-import { Rpc } from 'effect/unstable/rpc'
 import * as Shared from '@typing-game/shared'
 import {
   Array,
@@ -11,6 +10,7 @@ import {
   SubscriptionRef,
   pipe,
 } from 'effect'
+import { Rpc } from 'effect/unstable/rpc'
 import { randomUUID } from 'node:crypto'
 
 import { gameSequence } from '../game.js'

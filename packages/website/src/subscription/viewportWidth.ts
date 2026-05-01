@@ -29,9 +29,7 @@ export const viewportWidth: Subscription<
           return { mediaQuery, handler }
         }),
         ({ mediaQuery, handler }) =>
-          Effect.sync(() =>
-            mediaQuery.removeEventListener('change', handler),
-          ),
+          Effect.sync(() => mediaQuery.removeEventListener('change', handler)),
       ).pipe(Effect.flatMap(() => Effect.never)),
     ),
 }

@@ -1,7 +1,7 @@
 // @ts-nocheck
-import { Rpc } from 'effect/unstable/rpc'
 import * as Shared from '@typing-game/shared'
 import { Effect, SubscriptionRef } from 'effect'
+import { Rpc } from 'effect/unstable/rpc'
 
 import * as Rooms from '../roomById.js'
 

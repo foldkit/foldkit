@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { Command, HttpClient, HttpClientRequest } from 'effect/unstable/http'
 import { Array, Effect, Match, Record, Schema, pipe } from 'effect'
+import { Command, HttpClient, HttpClientRequest } from 'effect/unstable/http'
 
 type PackageManager = 'pnpm' | 'npm' | 'yarn'
 
@@ -25,8 +25,12 @@ const getInstallArgs = (
 const StringRecord = Schema.Record({ key: Schema.String, value: Schema.String })
 
 const PackageJson = Schema.Struct({
-  dependencies: StringRecord.pipe(Schema.withDecodingDefaultKey(Effect.succeed(({})))),
-  devDependencies: StringRecord.pipe(Schema.withDecodingDefaultKey(Effect.succeed(({})))),
+  dependencies: StringRecord.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed({})),
+  ),
+  devDependencies: StringRecord.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed({})),
+  ),
 })
 
 const formatDeps = (deps: Record<string, string>): ReadonlyArray<string> =>

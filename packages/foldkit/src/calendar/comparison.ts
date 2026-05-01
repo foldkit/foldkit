@@ -1,6 +1,6 @@
 import {
-  Function,
   type Equivalence as Equivalence_,
+  Function,
   Order as Order_,
 } from 'effect'
 

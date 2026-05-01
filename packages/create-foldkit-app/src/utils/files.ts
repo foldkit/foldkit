@@ -1,13 +1,5 @@
 // @ts-nocheck
 import {
-  Error,
-  FileSystem,
-  HttpClient,
-  HttpClientError,
-  HttpClientRequest,
-  Path,
-} from 'effect/unstable/http'
-import {
   Array,
   Effect,
   Match,
@@ -19,6 +11,14 @@ import {
   pipe,
 } from 'effect'
 import { ParseError } from 'effect/ParseResult'
+import {
+  Error,
+  FileSystem,
+  HttpClient,
+  HttpClientError,
+  HttpClientRequest,
+  Path,
+} from 'effect/unstable/http'
 import { fileURLToPath } from 'node:url'
 
 const GITHUB_API_BASE_URL =
