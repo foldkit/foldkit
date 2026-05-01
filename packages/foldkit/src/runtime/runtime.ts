@@ -907,7 +907,10 @@ const makeRuntime = <
                         () => latestDependencies,
                       ),
                     ),
-                    Stream.runForEach(message => enqueueMessage(message)),
+                    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                    Stream.runForEach(message =>
+                      enqueueMessage(message as Message),
+                    ),
                     provideAllResources,
                   ),
                 )

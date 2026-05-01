@@ -1,11 +1,14 @@
 import { clsx } from 'clsx'
 import {
   Array,
+  Context,
   Duration,
   Effect,
+  Layer,
   Match as M,
   Number,
   Option,
+  Result,
   Schema as S,
   String as Str,
   pipe,
@@ -152,7 +155,13 @@ const parseNotes = (value: string) =>
   pipe(
     value,
     Array.fromIterable,
-    Array.filterMap(character => S.decodeUnknownOption(Note)(character)),
+    Array.filterMap(character => {
+      const decoded = S.decodeUnknownOption(Note)(character)
+      return Option.match(decoded, {
+        onNone: () => Result.failVoid,
+        onSome: Result.succeed,
+      })
+    }),
   )
 // INIT
 
@@ -218,7 +227,7 @@ const enterNoteCommandPhase = (
   }),
   [
     playNote(
-      Array.unsafeGet(noteSequence, noteIndex),
+      Array.getUnsafe(noteSequence, noteIndex),
       model.noteDuration,
       noteIndex,
     ),
@@ -321,7 +330,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                 ? parseNotes(model.noteInput.value)
                 : []
 
-            if (Array.isEmptyArray(noteSequence)) {
+            if (Array.isReadonlyArrayEmpty(noteSequence)) {
               return [model, []]
             }
 
@@ -461,12 +470,12 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
 // COMMAND
 
-export class AudioContextService extends Effect.Service<AudioContextService>()(
-  'AudioContextService',
-  {
-    sync: () => new AudioContext(),
-  },
-) {}
+export class AudioContextService extends Context.Service<
+  AudioContextService,
+  AudioContext
+>()('AudioContextService') {
+  static readonly Default = Layer.sync(this, () => new AudioContext())
+}
 
 const PlayNote = Command.define('PlayNote', CompletedPlayNote)
 

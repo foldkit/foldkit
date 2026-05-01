@@ -2,8 +2,8 @@ import {
   FetchHttpClient,
   HttpClient,
   HttpClientRequest,
-  KeyValueStore,
 } from 'effect/unstable/http'
+import { KeyValueStore } from 'effect/unstable/persistence'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { inject } from '@vercel/analytics'
 import * as SpeedInsights from '@vercel/speed-insights'
@@ -1247,7 +1247,6 @@ const subscribeToNewsletter = (email: string) =>
     }).pipe(
       Effect.scoped,
       Effect.catch(() => Effect.succeed(FailedSubscribeEmail())),
-      Effect.locally(HttpClient.currentTracerPropagation, false),
       Effect.provide(FetchHttpClient.layer),
     ),
   )
@@ -1394,39 +1393,10 @@ const subscriptions = makeSubscriptions(SubscriptionDeps)<Model, Message>({
 })
 
 // TRACER
-
-const devTracerLayer: Layer.Layer<never> = import.meta.hot
-  ? Layer.setTracer(
-      Tracer.make({
-        context: f => f(),
-        span: (name, _parent, _context, _links, startTime, kind) => {
-          const attributes = new Map<string, unknown>()
-          return {
-            _tag: 'Span' as const,
-            name,
-            spanId: `${name}-${Date.now()}`,
-            traceId: 'dev',
-            sampled: true,
-            parent: Option.none(),
-            context: _context,
-            links: [],
-            kind,
-            status: { _tag: 'Started' as const, startTime },
-            attributes,
-            end: (endTime: bigint) => {
-              const durationMs = Number(endTime - startTime) / 1_000_000
-              console.log(`[Command] ${name} ${durationMs.toFixed(1)}ms`)
-            },
-            attribute: (key: string, value: unknown) => {
-              attributes.set(key, value)
-            },
-            event: () => {},
-            addLinks: () => {},
-          }
-        },
-      }),
-    )
-  : Layer.empty
+// NOTE: Custom dev tracer disabled pending Effect 4 Tracer/Layer API rewrite.
+// v4 removed Layer.setTracer and changed Tracer.make's signature; restore
+// once we adopt the new Tracer construction pattern.
+const devTracerLayer: Layer.Layer<never> = Layer.empty
 
 // RUN
 

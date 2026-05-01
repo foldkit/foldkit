@@ -107,7 +107,7 @@ const formatParams = (parameters: ReadonlyArray<TypeDocParam>): string =>
 const buildFunctionSignatureString = (signature: TypeDocSignature): string => {
   const typeParamString = pipe(
     signature.typeParameters,
-    Option.filter(Array.isNonEmptyArray),
+    Option.filter(Array.isReadonlyArrayNonEmpty),
     Option.match({
       onNone: () => '',
       onSome: typeParams =>
@@ -122,7 +122,7 @@ const buildFunctionSignatureString = (signature: TypeDocSignature): string => {
 
   const paramString = pipe(
     signature.parameters,
-    Option.filter(Array.isNonEmptyArray),
+    Option.filter(Array.isReadonlyArrayNonEmpty),
     Option.match({
       onNone: () => '()',
       onSome: formatParams,
@@ -181,7 +181,7 @@ const functionEntries = (
 ): ReadonlyArray<readonly [string, string]> =>
   pipe(
     item.signatures,
-    Option.filter(Array.isNonEmptyArray),
+    Option.filter(Array.isReadonlyArrayNonEmpty),
     Option.match({
       onNone: () => [],
       onSome: signatures => [

@@ -85,7 +85,7 @@ Ui.Listbox.Multi.view({
   buttonContent: span(
     [],
     [
-      Array.isNonEmptyArray(model.selectedPeople)
+      Array.isReadonlyArrayNonEmpty(model.selectedPeople)
         ? `${model.selectedPeople.length} selected`
         : 'Select people',
     ],
