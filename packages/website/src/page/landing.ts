@@ -37,6 +37,7 @@ import {
   comingFromReactRouter,
   coreArchitectureRouter,
   coreDevToolsRouter,
+  coreLifecycleHooksRouter,
   coreSubscriptionsRouter,
   examplesRouter,
   fieldValidationRouter,
@@ -536,6 +537,17 @@ const includedSection = (): Html =>
                 {
                   href: coreSubscriptionsRouter(),
                   label: 'Explore Subscriptions',
+                },
+              ),
+              includedFeature(
+                Icon.link('w-6 h-6'),
+                'Mount',
+                [
+                  'The seam where view code reaches a real DOM element. Run an Effect with the live element on mount, paired with cleanup that fires on unmount.',
+                ],
+                {
+                  href: coreLifecycleHooksRouter(),
+                  label: 'Explore Mount',
                 },
               ),
               includedFeature(

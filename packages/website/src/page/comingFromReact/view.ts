@@ -90,6 +90,10 @@ const patternMappingTable = (): Html =>
         ['Commands (returned from ', inlineCode('update'), ')'],
       ],
       [
+        [inlineCode('useRef'), ' + ', inlineCode('useEffect'), ' (DOM access)'],
+        ['Mount (', inlineCode('OnMount'), ' with paired cleanup)'],
+      ],
+      [
         [inlineCode('useContext'), ' / Redux / Zustand'],
         ['Single Model (no prop drilling)'],
       ],

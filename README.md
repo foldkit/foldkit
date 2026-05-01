@@ -139,6 +139,7 @@ Source: [examples/counter/src/main.ts](https://github.com/foldkit/foldkit/blob/m
 Foldkit is a complete system, not a collection of libraries you stitch together.
 
 - **Commands**: Side effects are named Effects that return Messages and are executed by the runtime. Define them with `Command.define`, passing the result Message schemas so the Effect's return type stays in lockstep with your Messages. Use any Effect combinator you want: retry, timeout, race, parallel. You write the Effect, the runtime runs it.
+- **Mount**: The seam where view code reaches a real DOM element, like focusing an input or handing the live `Element` to a third-party library that owns its own DOM. The runtime runs your Effect on mount, dispatches its Message back through update, and runs the paired cleanup on unmount.
 - **Routing**: Type-safe bidirectional routing built from parser combinators. URLs parse into typed Routes and Routes build back into URLs. No string matching, no mismatches between parsing and building.
 - **Subscriptions**: Declare which streams your app needs as a function of the Model. The runtime diffs and switches them as the Model changes.
 - **Managed Resources**: Model-driven lifecycle for long-lived browser resources like WebSockets, AudioContext, and RTCPeerConnection. Acquire on state change, release on cleanup.
@@ -157,7 +158,7 @@ Foldkit is a complete system, not a collection of libraries you stitch together.
 
 ## Correctness You (And Your LLM) Can See
 
-Every state change flows through one update function. Every side effect is declared explicitly — in Commands, Subscription streams, and Managed Resource lifecycles. You don't have to hold a mental model of what runs when — you can point at it.
+Every state change flows through one update function. Every side effect is declared explicitly — in Commands, Mount Effects, Subscription streams, and Managed Resource lifecycles. You don't have to hold a mental model of what runs when — you can point at it.
 
 This is what makes Foldkit unusually AI-friendly. The same property that makes the code easy for humans to reason about makes it easy for LLMs to generate and review. The architecture makes correctness visible, whether the reader is a person or an LLM.
 
@@ -173,6 +174,7 @@ This is what makes Foldkit unusually AI-friendly. The same property that makes t
 - **[Routing](https://foldkit.dev/example-apps/routing)** — URL routing with parser combinators
 - **[Query Sync](https://foldkit.dev/example-apps/query-sync)** — URL query parameter sync with filtering and sorting
 - **[Snake](https://foldkit.dev/example-apps/snake)** — Classic game built with Subscriptions
+- **[Map](https://foldkit.dev/example-apps/map)** — Interactive MapLibre GL map demonstrating Mount with a third-party DOM library
 - **[Auth](https://foldkit.dev/example-apps/auth)** — Authentication flow with Submodels and OutMessage
 - **[Shopping Cart](https://foldkit.dev/example-apps/shopping-cart)** — Nested models and complex state
 - **[WebSocket Chat](https://foldkit.dev/example-apps/websocket-chat)** — Managed Resources with WebSocket integration

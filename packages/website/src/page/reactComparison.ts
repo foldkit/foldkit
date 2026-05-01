@@ -714,6 +714,8 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('ExportPng'),
         '. That\u2019s the complete list of effects your update function can emit. (External event streams like keyboard and mouse release are handled separately through Subscriptions in ',
         inlineCode('subscription.ts'),
+        '. Per-element DOM work like focus or third-party library setup is declared inline in the view via ',
+        inlineCode('OnMount'),
         '.)',
       ),
       tableOfContentsEntryToHeader(reactUseEffectHeader),

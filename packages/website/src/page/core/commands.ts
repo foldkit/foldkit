@@ -12,6 +12,7 @@ import {
 } from '../../prose'
 import {
   coreArchitectureRouter,
+  coreLifecycleHooksRouter,
   exampleDetailRouter,
   testingRouter,
 } from '../../route'
@@ -232,9 +233,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ', and once all errors are handled, the type confirms it. The update function handles errors the same way it handles success: as facts about what happened.',
       ),
       para(
-        'Commands fire once and produce a single Message when they finish. But what about effects that run continuously, like a timer that ticks every second, a ',
+        'Commands fire once and produce a single Message when they finish. For one-shot work tied to a specific DOM element instead of a Message, Foldkit has ',
+        link(coreLifecycleHooksRouter(), 'Mount'),
+        '. For effects that run continuously (a timer that ticks every second, a ',
         inlineCode('WebSocket'),
-        ' that stays open, keyboard input? For ongoing streams, Foldkit has Subscriptions.',
+        ' that stays open, keyboard input), Foldkit has Subscriptions.',
       ),
     ],
   )

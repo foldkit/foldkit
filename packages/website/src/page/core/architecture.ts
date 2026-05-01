@@ -1,6 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import { Class, div, pre } from '../../html'
+import { Class, div, li, pre, strong, ul } from '../../html'
 import { Link } from '../../link'
 import type { TableOfContentsEntry } from '../../main'
 import {
@@ -73,24 +73,54 @@ export const view = (): Html =>
         inlineCode('view'),
         ' function renders the new Model as HTML. When the user interacts with the view, it produces another Message, and the loop continues.',
       ),
-      para(
-        'Commands are descriptions of one-shot side effects: HTTP requests, focus operations, ',
-        inlineCode('localStorage'),
-        ' writes, navigation calls. The Foldkit runtime executes them and sends their results back as new Messages, feeding them into the same loop. Each Command carries a name, which surfaces in ',
-        link(coreDevToolsRouter(), 'DevTools'),
-        ', ',
-        link(testingRouter(), 'tests'),
-        ', and tracing.',
-      ),
-      para(
-        'Subscriptions are continuous streams of Messages from external sources: keypresses, recurring timers, ',
-        inlineCode('WebSocket'),
-        ' frames, window resize events. Where a Command runs once and reports back, a Subscription stays active for as long as the Model says it should, and the stream decides which source events become Messages.',
-      ),
-      para(
-        'ManagedResources have an acquire/release lifecycle tied to Model state: a camera stream during a video call, a ',
-        inlineCode('WebSocket'),
-        ' connection while the user is on a chat page. The runtime acquires them when the Model enters the relevant state, releases them when it leaves, and dispatches Messages for each transition.',
+      ul(
+        [Class('list-disc mb-4 space-y-3 ml-6')],
+        [
+          li(
+            [],
+            [
+              strong([], ['Commands:']),
+              ' descriptions of one-shot side effects: HTTP requests, focus operations, ',
+              inlineCode('localStorage'),
+              ' writes, navigation calls. The Foldkit runtime executes them and sends their results back as new Messages, feeding them into the same loop. Each Command carries a name, which surfaces in ',
+              link(coreDevToolsRouter(), 'DevTools'),
+              ', ',
+              link(testingRouter(), 'tests'),
+              ', and tracing.',
+            ],
+          ),
+          li(
+            [],
+            [
+              strong([], ['Mount:']),
+              ' the moment an element from the view enters the live DOM. ',
+              inlineCode('OnMount'),
+              ' is the seam where view code can drop down to imperative work at that moment, like focusing an input or handing a real ',
+              inlineCode('Element'),
+              ' to a third-party library that owns its own DOM. The runtime runs an Effect with the live element, dispatches its Message back through ',
+              inlineCode('update'),
+              ', and runs the paired cleanup when the element unmounts.',
+            ],
+          ),
+          li(
+            [],
+            [
+              strong([], ['Subscriptions:']),
+              ' continuous streams of Messages from external sources: keypresses, recurring timers, ',
+              inlineCode('WebSocket'),
+              ' frames, window resize events. Where a Command runs once and reports back, a Subscription stays active for as long as the Model says it should, and the stream decides which source events become Messages.',
+            ],
+          ),
+          li(
+            [],
+            [
+              strong([], ['ManagedResources:']),
+              ' acquire/release lifecycles tied to Model state: a camera stream during a video call, a ',
+              inlineCode('WebSocket'),
+              ' connection while the user is on a chat page. The runtime acquires them when the Model enters the relevant state, releases them when it leaves, and dispatches Messages for each transition.',
+            ],
+          ),
+        ],
       ),
       para(
         'That\u2019s it. Every state transition in your app flows through a single loop. There\u2019s no action-at-a-distance, no hidden state mutation, no effect that runs outside the cycle. If you want to know how the app got into its current state, you follow the Messages.',
@@ -103,31 +133,33 @@ export const view = (): Html =>
           ),
         ],
         [
-          '          +------------------------------------------+\n' +
-            '          |                                          |\n' +
-            '          \u2193                                          |\n' +
-            '       Message                                       |\n' +
-            '          |                                          |\n' +
-            '          \u2193                                          |\n' +
-            '  +---------------+                                  |\n' +
-            '  |    update     |                                  |\n' +
-            '  +-------+-------+                                  |\n' +
-            '  \u2193               \u2193                                  |\n' +
-            'Model    Command<Message>[]                          |\n' +
-            '  |               |                                  |\n' +
-            '  |               +-> Runtime -----------------------+\n' +
-            '  |                                                  |\n' +
-            '  +-> view -> Browser -> user events ----------------+\n' +
-            '  |                                                  |\n' +
-            '  +-> Subscriptions -> Stream<Message> -> Runtime ---+\n' +
-            '  |                                                  |\n' +
-            '  +-> ManagedResources -> lifecycle -----------------+',
+          '          +------------------------------------------------------+\n' +
+            '          |                                                      |\n' +
+            '          \u2193                                                      |\n' +
+            '       Message                                                   |\n' +
+            '          |                                                      |\n' +
+            '          \u2193                                                      |\n' +
+            '  +---------------+                                              |\n' +
+            '  |    update     |                                              |\n' +
+            '  +-------+-------+                                              |\n' +
+            '  \u2193               \u2193                                              |\n' +
+            'Model    Command<Message>[]                                      |\n' +
+            '  |               |                                              |\n' +
+            '  |               +-> Runtime -----------------------------------+\n' +
+            '  |                                                              |\n' +
+            '  +-> view -> Browser -> user events ----------------------------+\n' +
+            '  |                                                              |\n' +
+            '  +-> view -> Mount(Element) -> Effect<Message> -> Runtime ------+\n' +
+            '  |                                                              |\n' +
+            '  +-> Subscriptions -> Stream<Message> -> Runtime ---------------+\n' +
+            '  |                                                              |\n' +
+            '  +-> ManagedResources -> acquire/release Messages -> Runtime ---+',
         ],
       ),
       para(
         'Every path on the right side produces a Message that feeds back into ',
         inlineCode('update'),
-        '. Four sources: Commands, Subscriptions, ManagedResources, and the Browser. One loop.',
+        '. Five sources: Commands, the Browser, Mount, Subscriptions, and ManagedResources. One loop.',
       ),
       para(
         'Sitting beneath the loop are Resources: app-lifetime singletons like ',
@@ -174,6 +206,12 @@ export const view = (): Html =>
             ],
           ],
           [
+            ['Mount'],
+            [
+              'The seam where view code reaches a live DOM element. The runtime runs an Effect with the Element, dispatches its Message, and runs the paired cleanup on unmount.',
+            ],
+          ],
+          [
             ['Subscription'],
             [
               'A continuous stream of Messages from an external source, active for as long as the Model says it should be.',
@@ -194,7 +232,7 @@ export const view = (): Html =>
           [
             ['Runtime'],
             [
-              'The Foldkit engine that executes Commands, runs Subscriptions, manages resource lifecycles, and routes Messages back into update.',
+              'The Foldkit engine that executes Commands, runs Subscriptions, manages resource and mount lifecycles, and routes Messages back into update.',
             ],
           ],
         ],
@@ -236,6 +274,12 @@ export const view = (): Html =>
           [
             ['Command'],
             ['A slip for the kitchen: \u201Cprepare the salmon\u201D'],
+          ],
+          [
+            ['Mount'],
+            [
+              'Tableside flamb\u00E9: rolled out to a specific table the moment its dish arrives, rolled away when the plate is cleared',
+            ],
           ],
           [
             ['Subscription'],
