@@ -17,7 +17,6 @@ import {
   Number as Number_,
   Option,
   Schema as S,
-  Tracer,
   pipe,
 } from 'effect'
 import { Calendar, Command, FieldValidation, Runtime, Ui } from 'foldkit'

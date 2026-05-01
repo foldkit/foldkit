@@ -6,7 +6,6 @@ import {
   Match as M,
   MutableRef,
   Option,
-  Stream,
   pipe,
 } from 'effect'
 import { Subscription } from 'foldkit/subscription'

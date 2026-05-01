@@ -1,4 +1,4 @@
-import { Effect, Stream } from 'effect'
+import { Effect } from 'effect'
 import { streamFromEmit } from './streamFromEmit'
 import { Subscription } from 'foldkit/subscription'
 
