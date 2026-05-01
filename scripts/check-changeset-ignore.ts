@@ -1,6 +1,5 @@
-import { Command, FileSystem } from '@effect/platform'
-import { NodeContext, NodeRuntime } from '@effect/platform-node'
-import { Array, Console, Effect, Schema } from 'effect'
+import { execSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 
 const PUBLISHABLE_PACKAGES = [
   'foldkit',
@@ -9,57 +8,51 @@ const PUBLISHABLE_PACKAGES = [
   '@foldkit/devtools-mcp',
 ]
 
-const ChangesetConfig = Schema.parseJson(
-  Schema.Struct({
-    ignore: Schema.Array(Schema.String),
-  }),
+interface PnpmListEntry {
+  readonly name: string
+}
+
+interface ChangesetConfig {
+  readonly ignore: ReadonlyArray<string>
+}
+
+const listWorkspacePackages = (): ReadonlyArray<string> => {
+  const output = execSync('pnpm ls -r --depth -1 --json', {
+    encoding: 'utf8',
+  })
+  const entries = JSON.parse(output) as ReadonlyArray<PnpmListEntry>
+  return entries.map(entry => entry.name)
+}
+
+const readIgnoreList = (): ReadonlyArray<string> => {
+  const raw = readFileSync('.changeset/config.json', 'utf8')
+  const config = JSON.parse(raw) as ChangesetConfig
+  return config.ignore
+}
+
+const workspacePackages = listWorkspacePackages()
+const ignoreList = readIgnoreList()
+
+const missing = workspacePackages.filter(
+  name =>
+    !PUBLISHABLE_PACKAGES.includes(name) &&
+    !ignoreList.includes(name) &&
+    name !== 'foldkit-monorepo',
 )
 
-const PnpmListEntry = Schema.Struct({ name: Schema.String })
-
-const listWorkspacePackages = Effect.gen(function* () {
-  const command = Command.make('pnpm', 'ls', '-r', '--depth', '-1', '--json')
-
-  const output = yield* Command.string(command)
-  const entries = yield* Schema.decodeUnknown(Schema.Array(PnpmListEntry))(
-    JSON.parse(output),
+if (missing.length > 0) {
+  console.error(
+    'ERROR: The following packages are missing from .changeset/config.json ignore list:',
   )
-
-  return Array.map(entries, entry => entry.name)
-})
-
-const readIgnoreList = Effect.gen(function* () {
-  const fs = yield* FileSystem.FileSystem
-  const raw = yield* fs.readFileString('.changeset/config.json')
-  const config = yield* Schema.decodeUnknown(ChangesetConfig)(raw)
-  return config.ignore
-})
-
-const program = Effect.gen(function* () {
-  const workspacePackages = yield* listWorkspacePackages
-  const ignoreList = yield* readIgnoreList
-
-  const missing = Array.filter(
-    workspacePackages,
-    name =>
-      !Array.contains(PUBLISHABLE_PACKAGES, name) &&
-      !Array.contains(ignoreList, name) &&
-      name !== 'foldkit-monorepo',
-  )
-
-  if (Array.isNonEmptyArray(missing)) {
-    yield* Console.error(
-      'ERROR: The following packages are missing from .changeset/config.json ignore list:',
-    )
-    yield* Effect.forEach(missing, name => Console.error(`  - ${name}`))
-    yield* Console.error('')
-    yield* Console.error(
-      'Add them to .changeset/config.json or to PUBLISHABLE_PACKAGES in this script.',
-    )
-    return yield* Effect.fail('Changeset ignore list is out of date.')
+  for (const name of missing) {
+    console.error(`  - ${name}`)
   }
+  console.error('')
+  console.error(
+    'Add them to .changeset/config.json or to PUBLISHABLE_PACKAGES in this script.',
+  )
+  console.error('Changeset ignore list is out of date.')
+  process.exit(1)
+}
 
-  yield* Console.log('Changeset ignore list is up to date.')
-})
-
-NodeRuntime.runMain(program.pipe(Effect.provide(NodeContext.layer)))
+console.log('Changeset ignore list is up to date.')
