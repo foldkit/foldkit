@@ -1,5 +1,11 @@
 # foldkit
 
+## 0.81.1
+
+### Patch Changes
+
+- 21a6d30: README: mention Mount alongside Commands, Subscriptions, and ManagedResources, and link the new Map example.
+
 ## 0.81.0
 
 ### Minor Changes

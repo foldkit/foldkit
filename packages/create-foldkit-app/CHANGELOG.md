@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.6.3
+
+### Patch Changes
+
+- 21a6d30: AGENTS.md template: document Mount with a `Mount.define` + `OnMount` example.
+
 ## 0.6.2
 
 ### Patch Changes
