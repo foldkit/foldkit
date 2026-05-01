@@ -146,12 +146,19 @@ const detectChromium = (): boolean =>
 const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   const themePreference = yield* Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
-    const maybeJson = yield* store.get(THEME_STORAGE_KEY)
-    const json = yield* maybeJson
+    const json = yield* Effect.fromOption(
+      Option.fromNullishOr(yield* store.get(THEME_STORAGE_KEY)),
+    )
     const theme = yield* S.decodeEffect(S.fromJsonString(ThemePreference))(json)
-    return Option.some(theme)
+    return Option.some(theme) as Option.Option<typeof ThemePreference.Type>
   }).pipe(
-    Effect.catch(() => Effect.succeed(Option.none())),
+    Effect.catch(() =>
+      Effect.succeed(
+        Option.none<typeof ThemePreference.Type>() as Option.Option<
+          typeof ThemePreference.Type
+        >,
+      ),
+    ),
     Effect.provide(BrowserKeyValueStore.layerLocalStorage),
   )
 

@@ -1,4 +1,5 @@
-import { Command, FileSystem, Path } from 'effect/unstable/http'
+import { FileSystem, Path } from 'effect'
+import * as Process from 'effect/unstable/process'
 import chalk from 'chalk'
 import { Console, Effect, Match } from 'effect'
 
