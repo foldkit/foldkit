@@ -19,7 +19,7 @@ import {
 } from 'effect'
 
 import * as Command from '../command/index.js'
-import { OptionExt } from '../effectExtensions/index.js'
+import { OptionExt, StreamExt } from '../effectExtensions/index.js'
 import {
   type Document,
   type Html,
@@ -566,7 +566,7 @@ const makeOverlaySubscriptions = (store: DevToolsStore) =>
     mobileBreakpoint: {
       modelToDependencies: () => null,
       dependenciesToStream: () =>
-        Stream.async<Message>(emit => {
+        StreamExt.fromEmit<Message>(emit => {
           const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT_QUERY)
 
           const handler = (event: MediaQueryListEvent) => {

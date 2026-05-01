@@ -30,7 +30,7 @@ export const Model = S.Struct({
   id: S.String,
   today: Calendar.CalendarDate,
   viewYear: S.Int,
-  viewMonth: S.Int.pipe(S.isBetween(1, 12)),
+  viewMonth: S.Int.check(S.isBetween({ minimum: 1, maximum: 12 })),
   viewMode: ViewMode,
   maybeFocusedDate: S.Option(Calendar.CalendarDate),
   maybeSelectedDate: S.Option(Calendar.CalendarDate),

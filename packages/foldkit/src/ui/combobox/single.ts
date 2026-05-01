@@ -20,14 +20,11 @@ import {
 // MODEL
 
 /** Schema for the single-select combobox component's state, tracking open/closed status, active item, input value, selected item, and display text. */
-export const Model = BaseModel.pipe(
-  S.extend(
-    S.Struct({
-      maybeSelectedItem: S.Option(S.String),
-      maybeSelectedDisplayText: S.Option(S.String),
-    }),
-  ),
-)
+export const Model = S.Struct({
+  ...BaseModel.fields,
+  maybeSelectedItem: S.Option(S.String),
+  maybeSelectedDisplayText: S.Option(S.String),
+})
 
 export type Model = typeof Model.Type
 

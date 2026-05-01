@@ -19,9 +19,10 @@ import {
 // MODEL
 
 /** Schema for the listbox component's state, tracking open/closed status, active item, selected item, activation trigger, and typeahead search. */
-export const Model = BaseModel.pipe(
-  S.extend(S.Struct({ maybeSelectedItem: S.Option(S.String) })),
-)
+export const Model = S.Struct({
+  ...BaseModel.fields,
+  maybeSelectedItem: S.Option(S.String),
+})
 
 export type Model = typeof Model.Type
 

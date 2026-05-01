@@ -10,6 +10,7 @@ import {
 } from 'effect'
 
 import * as Command from '../../command/index.js'
+import { StreamExt } from '../../effectExtensions/index.js'
 import {
   type Attribute,
   type Html,
@@ -419,7 +420,7 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
   containerEvents: {
     modelToDependencies: model => ({ id: model.id }),
     dependenciesToStream: ({ id }) =>
-      Stream.async<Message>(emit => {
+      StreamExt.fromEmit<Message>(emit => {
         let scrollListener: (() => void) | null = null
         let resizeObserver: ResizeObserver | null = null
         let observedElement: HTMLElement | null = null

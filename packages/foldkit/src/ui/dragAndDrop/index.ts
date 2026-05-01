@@ -12,6 +12,7 @@ import {
 } from 'effect'
 
 import * as Command from '../../command/index.js'
+import { StreamExt } from '../../effectExtensions/index.js'
 import { type Attribute, html } from '../../html/index.js'
 import { m } from '../../message/index.js'
 import { makeSubscriptions } from '../../runtime/subscription.js'
@@ -664,7 +665,7 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
       // NOTE: prevents text selection and locks cursor to grabbing during
       // pointer drag. Uses a <style> element for cursor because inline styles
       // on <html> don't override descendant elements' cursor values.
-      const documentDragStyles = Stream.async<never>(_emit => {
+      const documentDragStyles = StreamExt.fromEmit<never>(_emit => {
         document.documentElement.style.setProperty('user-select', 'none')
         document.documentElement.style.setProperty(
           '-webkit-user-select',
@@ -751,10 +752,10 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
           ? model.dragState.current.clientY
           : 0,
     }),
-    equivalence: Equivalence.struct({ isDragging: Equivalence.Boolean }),
+    equivalence: Equivalence.Struct({ isDragging: Equivalence.Boolean }),
     dependenciesToStream: ({ isDragging }, readDependencies) =>
       Stream.when(
-        Stream.async<typeof CompletedAutoScroll.Type>(emit => {
+        StreamExt.fromEmit<typeof CompletedAutoScroll.Type>(emit => {
           let animationFrameId = 0
           const step = () => {
             autoScroll(readDependencies().clientY)

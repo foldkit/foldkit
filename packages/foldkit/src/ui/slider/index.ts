@@ -11,6 +11,7 @@ import {
 } from 'effect'
 
 import type { Command } from '../../command/index.js'
+import { StreamExt } from '../../effectExtensions/index.js'
 import {
   type Attribute,
   type Html,
@@ -403,7 +404,7 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
 
       // NOTE: prevents text selection and locks cursor to grabbing while the
       // user drags the thumb. Matches the approach used in drag-and-drop.
-      const documentDragStyles = Stream.async<never>(_emit => {
+      const documentDragStyles = StreamExt.fromEmit<never>(_emit => {
         document.documentElement.style.setProperty('user-select', 'none')
         document.documentElement.style.setProperty(
           '-webkit-user-select',
