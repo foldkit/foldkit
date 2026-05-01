@@ -34,7 +34,7 @@ export const toInspectableValue = (value: unknown): unknown =>
     M.when(M.instanceOf(Date), date => date.toISOString()),
     M.when(M.instanceOf(URL), ({ href }) => href),
     M.when(Array.isArray, Array_.map(toInspectableValue)),
-    M.when(Predicate.isRecord, Record.map(toInspectableValue)),
+    M.when(Predicate.isObject, Record.map(toInspectableValue)),
     M.orElse(Function.identity),
   )
 

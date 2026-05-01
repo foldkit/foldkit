@@ -178,13 +178,13 @@ export const anyInvalid = (states: ReadonlyArray<Field>): boolean =>
 
 /** Creates a `Rule` that checks if a string meets a minimum length. */
 export const minLength = (min: number, message?: RuleMessage): Rule => [
-  flow(String.length, Number_.greaterThanOrEqualTo(min)),
+  flow(String.length, Number_.isGreaterThanOrEqualTo(min)),
   message ?? `Must be at least ${min} characters`,
 ]
 
 /** Creates a `Rule` that checks if a string does not exceed a maximum length. */
 export const maxLength = (max: number, message?: RuleMessage): Rule => [
-  flow(String.length, Number_.lessThanOrEqualTo(max)),
+  flow(String.length, Number_.isLessThanOrEqualTo(max)),
   message ?? `Must be at most ${max} characters`,
 ]
 

@@ -169,7 +169,7 @@ const ALL_MESSAGES_VALUE = ''
 const formatTimeDelta = (deltaMs: number): string =>
   M.value(deltaMs).pipe(
     M.when(0, () => '0ms'),
-    M.when(Number_.lessThan(MILLIS_PER_SECOND), ms => `+${Math.round(ms)}ms`),
+    M.when(Number_.isLessThan(MILLIS_PER_SECOND), ms => `+${Math.round(ms)}ms`),
     M.orElse(ms => `+${(ms / MILLIS_PER_SECOND).toFixed(1)}s`),
   )
 
@@ -234,7 +234,7 @@ const objectPreview = (value: Record<string, unknown>): string =>
 const collapsedPreview = (value: unknown): string =>
   M.value(value).pipe(
     M.when(Array.isArray, array => `(${array.length})`),
-    M.when(Predicate.isRecord, objectPreview),
+    M.when(Predicate.isObject, objectPreview),
     M.orElse(() => ''),
   )
 
@@ -282,7 +282,7 @@ const makeUpdate = (
   const inspectLatest = InspectLatest(
     Effect.gen(function* () {
       const state = yield* SubscriptionRef.get(store.stateRef)
-      const latestIndex = Array_.isEmptyReadonlyArray(state.entries)
+      const latestIndex = Array_.isEmptyArray(state.entries)
         ? INIT_INDEX
         : state.startIndex + state.entries.length - 1
 
@@ -765,7 +765,7 @@ const makeView = (
           key: String(arrayIndex),
         }),
       )
-    } else if (Predicate.isRecord(value)) {
+    } else if (Predicate.isObject(value)) {
       pipe(
         value,
         Record.toEntries,
@@ -891,7 +891,7 @@ const makeView = (
   }
 
   const inspectedTimestamp = (model: Model): string => {
-    const lastIndex = Array_.isEmptyReadonlyArray(model.entries)
+    const lastIndex = Array_.isEmptyArray(model.entries)
       ? INIT_INDEX
       : model.startIndex + model.entries.length - 1
 
@@ -1415,7 +1415,7 @@ const makeView = (
       }),
     )
 
-    const lastIndex = Array_.isEmptyReadonlyArray(model.entries)
+    const lastIndex = Array_.isEmptyArray(model.entries)
       ? INIT_INDEX
       : model.startIndex + model.entries.length - 1
 

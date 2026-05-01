@@ -53,7 +53,7 @@ export const deepFreeze = <T>(value: T): T => {
 }
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> => {
-  if (!Predicate.isRecord(value)) {
+  if (!Predicate.isObject(value)) {
     return false
   }
   const prototype = Object.getPrototypeOf(value)

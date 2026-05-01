@@ -1,7 +1,7 @@
 import {
   Function,
-  type Equivalence as equivalence,
-  Order as order,
+  type Equivalence,
+  Order as Order_,
 } from 'effect'
 
 import type { CalendarDate } from './calendarDate.js'
@@ -24,16 +24,16 @@ import type { CalendarDate } from './calendarDate.js'
  * Array.sort(dates, Calendar.Order)
  * ```
  */
-export const Order: order.Order<CalendarDate> = order.struct({
-  year: order.number,
-  month: order.number,
-  day: order.number,
+export const Order: Order_.Order<CalendarDate> = Order_.Struct({
+  year: Order_.Number,
+  month: Order_.Number,
+  day: Order_.Number,
 })
 
 /**
  * Value-based equivalence for calendar dates.
  */
-export const Equivalence: equivalence.Equivalence<CalendarDate> = (a, b) =>
+export const Equivalence: Equivalence.Equivalence<CalendarDate> = (a, b) =>
   a.year === b.year && a.month === b.month && a.day === b.day
 
 /**

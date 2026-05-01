@@ -49,8 +49,8 @@ export const computeDiff = (
     if (Array.isArray(curr) && Array.isArray(prev)) {
       walkArray(prev, curr, path)
     } else if (
-      Predicate.isRecord(curr) &&
-      Predicate.isRecord(prev)
+      Predicate.isObject(curr) &&
+      Predicate.isObject(prev)
     ) {
       walkObject(prev, curr, path)
     } else {

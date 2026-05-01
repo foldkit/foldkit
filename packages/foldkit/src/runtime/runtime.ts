@@ -132,7 +132,7 @@ const defaultSlowViewCallback = (
     onNone: () => 'init',
     onSome: message => {
       const tag =
-        Predicate.isRecord(message) && '_tag' in message
+        Predicate.isObject(message) && '_tag' in message
           ? String(message['_tag'])
           : 'unknown'
       return tag

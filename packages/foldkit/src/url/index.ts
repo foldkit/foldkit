@@ -1,4 +1,11 @@
-import { Effect, Option, ParseResult, Schema as S, String } from 'effect'
+import {
+  Effect,
+  Option,
+  Schema as S,
+  SchemaIssue,
+  SchemaTransformation,
+  String,
+} from 'effect'
 
 import { OptionExt } from '../effectExtensions/index.js'
 
@@ -22,72 +29,81 @@ const LocationAndHref = S.Struct({
   }),
 })
 
-const LocationAndHrefFromString = S.transformOrFail(S.String, LocationAndHref, {
-  strict: true,
-  decode: (urlString, _options, ast) =>
-    Effect.try({
-      try: () => {
-        const url = new URL(urlString)
+const LocationAndHrefFromString = S.String.pipe(
+  S.decodeTo(
+    LocationAndHref,
+    SchemaTransformation.transformOrFail({
+      decode: urlString =>
+        Effect.try({
+          try: () => {
+            const url = new URL(urlString)
+            return {
+              href: `${url.pathname}${url.search}${url.hash}`,
+              location: {
+                protocol: url.protocol,
+                host: url.hostname,
+                port: url.port,
+              },
+            }
+          },
+          catch: () =>
+            new SchemaIssue.InvalidValue(Option.some(urlString), {
+              description: `Invalid URL: ${urlString}`,
+            }),
+        }),
+      encode: ({ href, location }) => {
+        const portString = location.port ? `:${location.port}` : ''
+        return Effect.succeed(
+          `${location.protocol}//${location.host}${portString}${href}`,
+        )
+      },
+    }),
+  ),
+)
+
+const UrlFromLocationAndHref = LocationAndHref.pipe(
+  S.decodeTo(
+    Url,
+    SchemaTransformation.transform({
+      decode: ({ href, location }) => {
+        const [pathAndQuery, hashPart] = String.split(href, '#')
+        const [pathname, searchPart] = String.split(pathAndQuery, '?')
+
         return {
-          href: `${url.pathname}${url.search}${url.hash}`,
+          protocol: location.protocol,
+          host: location.host,
+          port: OptionExt.fromString(location.port),
+          pathname: pathname || '/',
+          search: OptionExt.fromString(searchPart || ''),
+          hash: OptionExt.fromString(hashPart || ''),
+        }
+      },
+      encode: url => {
+        const search = Option.match(url.search, {
+          onNone: () => '',
+          onSome: s => `?${s}`,
+        })
+        const hash = Option.match(url.hash, {
+          onNone: () => '',
+          onSome: h => `#${h}`,
+        })
+        const href = `${url.pathname}${search}${hash}`
+
+        return {
+          href,
           location: {
             protocol: url.protocol,
-            host: url.hostname,
-            port: url.port,
+            host: url.host,
+            port: Option.getOrElse(url.port, () => ''),
           },
         }
       },
-      catch: error =>
-        new ParseResult.Type(ast, urlString, `Invalid URL: ${error}`),
     }),
-  encode: ({ href, location }) => {
-    const portString = location.port ? `:${location.port}` : ''
-    return ParseResult.succeed(
-      `${location.protocol}//${location.host}${portString}${href}`,
-    )
-  },
-})
+  ),
+)
 
-const UrlFromLocationAndHref = S.transform(LocationAndHref, Url, {
-  strict: true,
-  decode: ({ href, location }) => {
-    const [pathAndQuery, hashPart] = String.split(href, '#')
-    const [pathname, searchPart] = String.split(pathAndQuery, '?')
-
-    return {
-      protocol: location.protocol,
-      host: location.host,
-      port: OptionExt.fromString(location.port),
-      pathname: pathname || '/',
-      search: OptionExt.fromString(searchPart || ''),
-      hash: OptionExt.fromString(hashPart || ''),
-    }
-  },
-  encode: url => {
-    const search = Option.match(url.search, {
-      onNone: () => '',
-      onSome: s => `?${s}`,
-    })
-    const hash = Option.match(url.hash, {
-      onNone: () => '',
-      onSome: h => `#${h}`,
-    })
-    const href = `${url.pathname}${search}${hash}`
-
-    return {
-      href,
-      location: {
-        protocol: url.protocol,
-        host: url.host,
-        port: Option.getOrElse(url.port, () => ''),
-      },
-    }
-  },
-})
-
-const UrlFromString = S.compose(
-  LocationAndHrefFromString,
-  UrlFromLocationAndHref,
+const UrlFromString = LocationAndHrefFromString.pipe(
+  S.decodeTo(UrlFromLocationAndHref),
 )
 
 /** Parses a URL string into a `Url`, returning `Option.None` if invalid. */
