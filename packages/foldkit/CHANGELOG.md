@@ -1,5 +1,64 @@
 # foldkit
 
+## 0.81.0
+
+### Minor Changes
+
+- 23eb474: Rename misleading Messages in `Ui.Combobox`, `Ui.Listbox`, `Ui.Menu`, and `Ui.Popover` so each name describes what its dispatch site actually observes. All four components emitted `ClosedByTab` from an `OnBlur` handler, which fires for any blur cause (Tab key, outside click, programmatic blur, focus shift). The "ByTab" suffix invented a trigger the handler cannot verify.
+
+  **Breaking.**
+  - `Combobox.ClosedByTab` → `Combobox.BlurredInput`
+  - `Listbox.ClosedByTab` → `Listbox.BlurredItems`
+  - `Menu.ClosedByTab` → `Menu.BlurredItems`
+  - `Popover.ClosedByTab` → `Popover.BlurredPanel`
+
+  Update any code that constructed or pattern-matched on the old names. Behavior is unchanged.
+
+- 572baa0: Simplify the `freezeModel` runtime config to `boolean`. The wrapper object and `'Always'` mode have been removed.
+
+  Migration:
+  - `freezeModel: { show: 'Development' }` → omit, or `freezeModel: true`
+  - `freezeModel: { show: 'Always' }` → no direct replacement; freezing now only runs when Vite HMR is active.
+  - `freezeModel: false` → unchanged.
+
+- 1ae56a5: Replace `OnInsert`, `OnInsertEffect`, and `OnDestroy` with a single `OnMount` attribute backed by the new `Mount` module. The `Mount.define` constructor names a mount-time action and constrains the Messages it can dispatch; the wrapped Effect resolves to `{ message, cleanup }`, and the runtime invokes the cleanup automatically when the element unmounts. Cleanup runs immediately if the Effect resolves after the element has already been removed.
+
+  Migration:
+
+  ```ts
+  // Before
+  import { Function } from 'effect'
+  const { OnInsertEffect, OnDestroy } = html<Message>()
+
+  const view = div(
+    [
+      OnInsertEffect(element => attachWidget(element)),
+      OnDestroy(element => detachWidget(element)),
+    ],
+    [],
+  )
+
+  // After
+  import { Mount } from 'foldkit'
+  import type { MountResult } from 'foldkit/html'
+
+  const MountWidget = Mount.define('MountWidget', CompletedMountWidget)
+  const mountWidget = MountWidget(
+    (element): Effect.Effect<MountResult<Message>> =>
+      Effect.sync(() => ({
+        message: CompletedMountWidget(),
+        cleanup: () => detachWidget(element),
+      })),
+  )
+
+  const { OnMount } = html<Message>()
+  const view = div([OnMount(mountWidget)], [])
+  ```
+
+  For setup that has no cleanup, pass `Function.constVoid`. `Mount.mapMessage` lifts a `MountAction` into a parent's Message universe, mirroring `Command.mapEffect` for the Submodel pattern.
+
+  `Ui.Popover`, `Ui.Listbox`, `Ui.Menu`, `Ui.Tooltip`, and `Ui.Combobox` now expose new lifecycle Messages (`CompletedAnchorMount`, plus `CompletedFocusItemsOnMount` for Listbox and Menu, and `CompletedAttachPreventBlur` / `CompletedAttachSelectOnFocus` for Combobox) that widen the `onAction` callback's Message union. Consumers that pattern-match `onAction` exhaustively need to handle the new variants; consumers that route through `Foo.update(model, message)` are unaffected. The internal `anchorHooks` helper is now `anchorSetup`, which returns its cleanup directly.
+
 ## 0.80.0
 
 ### Minor Changes
