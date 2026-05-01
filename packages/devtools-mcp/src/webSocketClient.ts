@@ -3,12 +3,11 @@ import {
   Deferred,
   Duration,
   Effect,
-  Either,
+  Exit,
   Fiber,
   HashMap,
   Option,
   Ref,
-  Runtime,
   Schema as S,
   Schedule,
   pipe,
@@ -57,10 +56,12 @@ const generateRequestId = (): string =>
 
 /** Exponential backoff capped at MAX_RECONNECT_DELAY, retried indefinitely. */
 const reconnectSchedule = Schedule.exponential(INITIAL_RECONNECT_DELAY).pipe(
-  Schedule.modifyDelay(delay =>
-    Duration.lessThanOrEqualTo(delay, MAX_RECONNECT_DELAY)
-      ? delay
-      : MAX_RECONNECT_DELAY,
+  Schedule.modifyDelay((_output, delay) =>
+    Effect.succeed(
+      Duration.isLessThanOrEqualTo(delay, MAX_RECONNECT_DELAY)
+        ? delay
+        : MAX_RECONNECT_DELAY,
+    ),
   ),
 )
 
@@ -126,11 +127,11 @@ export const connectWebSocketClient = (
     )
     const currentSocketRef = yield* Ref.make(initialSocket)
     const isManuallyClosedRef = yield* Ref.make(false)
-    const runtime = yield* Effect.context<never>()
+    const capturedContext = yield* Effect.context<never>()
 
     const attachMessageHandler = (socket: WebSocket): void => {
       socket.on('message', raw => {
-        Runtime.runFork(runtime)(
+        Effect.runForkWith(capturedContext)(
           handleIncomingMessage(raw, pendingResponsesRef),
         )
       })
@@ -242,12 +243,12 @@ const handleIncomingMessage = (
   const decoded = S.decodeUnknownExit(S.fromJsonString(ResponseFrame))(
     raw.toString(),
   )
-  return Either.match(decoded, {
-    onLeft: error =>
+  return Exit.match(decoded, {
+    onFailure: error =>
       Effect.sync(() =>
         console.error('[foldkit-devtools-mcp] failed to decode frame', error),
       ),
-    onRight: responseFrame =>
+    onSuccess: responseFrame =>
       Effect.gen(function* () {
         const map = yield* Ref.get(pendingResponsesRef)
         const maybeDeferred = HashMap.get(map, responseFrame.id)

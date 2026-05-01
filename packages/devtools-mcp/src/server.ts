@@ -5,7 +5,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js'
-import { Effect, HashMap, Option, Runtime } from 'effect'
+import { Effect, HashMap, Option } from 'effect'
 
 import { runInit } from './install.js'
 import { buildTools } from './tools.js'
@@ -53,7 +53,7 @@ const main: Effect.Effect<void, Error> = Effect.gen(function* () {
           isError: true,
         }),
       onSome: tool =>
-        Runtime.runPromise(runtime)(
+        Effect.runPromiseWith(runtime)(
           tool.handle(request.params.arguments ?? {}),
         ),
     }),
