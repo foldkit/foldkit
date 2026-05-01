@@ -48,7 +48,7 @@ const headerSection = (
             ),
           ]
         : []),
-      ...(Array.isNonEmptyArray(contacts)
+      ...(Array.isReadonlyArrayNonEmpty(contacts)
         ? [
             keyed('p')(
               'preview-contact',

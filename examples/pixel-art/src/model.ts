@@ -23,10 +23,9 @@ export const PaletteIndex = S.Literals([
 ])
 export type PaletteIndex = typeof PaletteIndex.Type
 
-export const HexColor = S.String.pipe(
+export const HexColor = S.String.check(
   S.isPattern(/^#[0-9a-f]{6}$/),
-  S.brand('HexColor'),
-)
+).pipe(S.brand('HexColor'))
 export type HexColor = typeof HexColor.Type
 
 export const Tool = S.Literals(['Brush', 'Fill', 'Eraser'])

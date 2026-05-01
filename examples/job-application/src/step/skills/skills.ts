@@ -111,5 +111,5 @@ export const hasErrors = (model: Model): boolean =>
   Array.some(model.entries, Entry.hasErrors)
 
 export const isComplete = (model: Model): boolean =>
-  Array.isNonEmptyArray(model.entries) &&
+  Array.isReadonlyArrayNonEmpty(model.entries) &&
   Array.every(model.entries, Entry.isComplete)

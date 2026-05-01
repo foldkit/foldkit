@@ -88,7 +88,7 @@ export type DevToolsConfig =
        * Without this field, `RequestDispatchMessage` is rejected with an
        * informative error.
        */
-      Message?: Schema.Codec<any, any>
+      Message?: Schema.Codec<any, any, unknown, unknown>
     }>
 
 const DEFAULT_DEV_TOOLS_SHOW: Visibility = 'Development'
@@ -182,8 +182,8 @@ type RuntimeConfig<
   Resources = never,
   ManagedResourceServices = never,
 > = Readonly<{
-  Model: Schema.Codec<Model, any>
-  Flags: Schema.Codec<Flags, any>
+  Model: Schema.Codec<Model, any, unknown, unknown>
+  Flags: Schema.Codec<Flags, any, unknown, unknown>
   flags: Effect.Effect<Flags>
   init: (
     flags: Flags,
@@ -250,7 +250,7 @@ type BaseProgramConfig<
   Resources = never,
   ManagedResourceServices = never,
 > = Readonly<{
-  Model: Schema.Codec<Model, any>
+  Model: Schema.Codec<Model, any, unknown, unknown>
   update: (
     model: Model,
     message: Message,
@@ -290,7 +290,7 @@ export type RoutingProgramConfigWithFlags<
   ManagedResourceServices
 > &
   Readonly<{
-    Flags: Schema.Codec<Flags, any>
+    Flags: Schema.Codec<Flags, any, unknown, unknown>
     flags: Effect.Effect<Flags>
     routing: RoutingConfig<Message>
     init: (
@@ -346,7 +346,7 @@ export type ProgramConfigWithFlags<
   ManagedResourceServices
 > &
   Readonly<{
-    Flags: Schema.Codec<Flags, any>
+    Flags: Schema.Codec<Flags, any, unknown, unknown>
     flags: Effect.Effect<Flags>
     init: (
       flags: Flags,
@@ -564,13 +564,24 @@ const makeRuntime = <
         ).pipe(Option.flatMap(() => urlFromString(window.location.href)))
 
         const [initModelRaw, initCommands] = Predicate.isNotUndefined(hmrModel)
-          ? pipe(
-              hmrModel,
-              Schema.decodeUnknownExit(Model),
-              Exit.match({
-                onFailure: () => init(flags, Option.getOrUndefined(currentUrl)),
-                onSuccess: restoredModel => [restoredModel, []],
-              }),
+          ? Exit.match(
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              Schema.decodeUnknownExit(Model as Schema.Codec<Model>)(hmrModel),
+              {
+                onFailure: () =>
+                  init(flags, Option.getOrUndefined(currentUrl)),
+                onSuccess: (restoredModel: Model) =>
+                  [
+                    restoredModel,
+                    [] as ReadonlyArray<
+                      AnyCommand<
+                        Message,
+                        never,
+                        Resources | ManagedResourceServices
+                      >
+                    >,
+                  ] as const,
+              },
             )
           : init(flags, Option.getOrUndefined(currentUrl))
 
@@ -840,13 +851,14 @@ const makeRuntime = <
             const maybeMessageSchema =
               devTools !== undefined && devTools !== false
                 ? Option.fromNullishOr(devTools.Message)
-                : Option.none<Schema.Codec<any, any>>()
+                : Option.none<Schema.Codec<any, any, unknown, unknown>>()
             yield* startWebSocketBridge(
               devToolsStore,
               import.meta.hot,
               /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
               message => enqueueMessage(message as Message),
-              maybeMessageSchema,
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              maybeMessageSchema as Option.Option<Schema.Codec<any, any>>,
             )
           }
         }

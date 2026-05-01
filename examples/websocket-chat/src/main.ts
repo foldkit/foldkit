@@ -5,6 +5,7 @@ import {
   Effect,
   Match as M,
   Option,
+  Queue,
   Schema as S,
   Stream,
   String,
@@ -275,10 +276,10 @@ const managedResources = ManagedResource.makeManagedResources(
           ws.removeEventListener('error', handleError)
         })
       }).pipe(
-        Effect.timeoutFail({
-          duration: Duration.millis(CONNECTION_TIMEOUT_MS),
-          onTimeout: () => new Error('Connection timeout'),
-        }),
+        Effect.timeout(Duration.millis(CONNECTION_TIMEOUT_MS)),
+        Effect.catchTag('TimeoutError', () =>
+          Effect.fail(new Error('Connection timeout')),
+        ),
       ),
     release: socket =>
       Effect.sync(() => {
@@ -315,35 +316,45 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
       return Stream.unwrap(
         ChatSocket.get.pipe(
           Effect.map(socket =>
-            Stream.async<
+            Stream.callback<
               | typeof ReceivedMessage.Type
               | typeof Disconnected.Type
               | typeof FailedConnect.Type
-            >(emit => {
-              const handleMessage = (event: MessageEvent) => {
-                emit.single(ReceivedMessage({ text: event.data }))
-              }
+            >(queue =>
+              Effect.acquireRelease(
+                Effect.sync(() => {
+                  const handleMessage = (event: MessageEvent) => {
+                    Queue.offerUnsafe(
+                      queue,
+                      ReceivedMessage({ text: event.data }),
+                    )
+                  }
+                  const handleClose = () => {
+                    Queue.offerUnsafe(queue, Disconnected())
+                    Queue.endUnsafe(queue)
+                  }
+                  const handleError = () => {
+                    Queue.offerUnsafe(
+                      queue,
+                      FailedConnect({ error: 'Connection error' }),
+                    )
+                    Queue.endUnsafe(queue)
+                  }
 
-              const handleClose = () => {
-                emit.single(Disconnected())
-                emit.end()
-              }
+                  socket.addEventListener('message', handleMessage)
+                  socket.addEventListener('close', handleClose)
+                  socket.addEventListener('error', handleError)
 
-              const handleError = () => {
-                emit.single(FailedConnect({ error: 'Connection error' }))
-                emit.end()
-              }
-
-              socket.addEventListener('message', handleMessage)
-              socket.addEventListener('close', handleClose)
-              socket.addEventListener('error', handleError)
-
-              return Effect.sync(() => {
-                socket.removeEventListener('message', handleMessage)
-                socket.removeEventListener('close', handleClose)
-                socket.removeEventListener('error', handleError)
-              })
-            }),
+                  return { handleMessage, handleClose, handleError }
+                }),
+                ({ handleMessage, handleClose, handleError }) =>
+                  Effect.sync(() => {
+                    socket.removeEventListener('message', handleMessage)
+                    socket.removeEventListener('close', handleClose)
+                    socket.removeEventListener('error', handleError)
+                  }),
+              ).pipe(Effect.flatMap(() => Effect.never)),
+            ),
           ),
           Effect.catchTag('ResourceNotAvailable', () =>
             Effect.succeed(Stream.empty),

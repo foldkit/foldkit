@@ -242,10 +242,7 @@ export const fetchWeather = (zipCode: string) =>
 
 const fetchWeatherLive = (zipCode: string) =>
   Command.mapEffect(fetchWeather(zipCode), effect =>
-    effect.pipe(
-      Effect.locally(HttpClient.currentTracerPropagation, false),
-      Effect.provide(FetchHttpClient.layer),
-    ),
+    effect.pipe(Effect.provide(FetchHttpClient.layer)),
   )
 
 // VIEW
