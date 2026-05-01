@@ -532,4 +532,6 @@ const program = Effect.scoped(
   }),
 )
 
-NodeRuntime.runMain(program.pipe(Effect.provide(NodeContext.layer)))
+if (import.meta.url === `file://${process.argv[1]}`) {
+  NodeRuntime.runMain(program.pipe(Effect.provide(NodeContext.layer)))
+}
