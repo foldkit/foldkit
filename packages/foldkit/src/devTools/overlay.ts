@@ -282,7 +282,7 @@ const makeUpdate = (
   const inspectLatest = InspectLatest(
     Effect.gen(function* () {
       const state = yield* SubscriptionRef.get(store.stateRef)
-      const latestIndex = Array_.isEmptyArray(state.entries)
+      const latestIndex = Array_.isArrayEmpty(state.entries)
         ? INIT_INDEX
         : state.startIndex + state.entries.length - 1
 
@@ -433,7 +433,10 @@ const makeUpdate = (
         },
         ToggledTreeNode: ({ path }) => [
           evo(model, {
-            expandedPaths: paths => HashSet.toggle(paths, path),
+            expandedPaths: paths =>
+              HashSet.has(paths, path)
+                ? HashSet.remove(paths, path)
+                : HashSet.add(paths, path),
           }),
           [],
         ],
@@ -891,7 +894,7 @@ const makeView = (
   }
 
   const inspectedTimestamp = (model: Model): string => {
-    const lastIndex = Array_.isEmptyArray(model.entries)
+    const lastIndex = Array_.isArrayEmpty(model.entries)
       ? INIT_INDEX
       : model.startIndex + model.entries.length - 1
 
@@ -1415,7 +1418,7 @@ const makeView = (
       }),
     )
 
-    const lastIndex = Array_.isEmptyArray(model.entries)
+    const lastIndex = Array_.isArrayEmpty(model.entries)
       ? INIT_INDEX
       : model.startIndex + model.entries.length - 1
 

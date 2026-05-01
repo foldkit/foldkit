@@ -483,7 +483,7 @@ export const resolve: {
     )
 
     if (Predicate.isUndefined(next)) {
-      const pending = Array.isNonEmptyArray(internal.commands)
+      const pending = Array.isArrayNonEmpty(internal.commands)
         ? pipe(
             internal.commands,
             Array.map(({ name }) => `    ${name}`),

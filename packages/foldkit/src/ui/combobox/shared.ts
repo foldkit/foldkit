@@ -1190,7 +1190,7 @@ export const makeView =
         const separator =
           segmentIndex > 0 &&
           (separatorClassName ||
-            Array.isNonEmptyArray(separatorAttributes))
+            Array.isArrayNonEmpty(separatorAttributes))
             ? [
                 keyed('div')(
                   `${id}-separator-${segmentIndex}`,
@@ -1222,7 +1222,7 @@ export const makeView =
 
     const scrollableItems =
       itemsScrollClassName ||
-      Array.isNonEmptyArray(itemsScrollAttributes)
+      Array.isArrayNonEmpty(itemsScrollAttributes)
         ? [
             div(
               [
@@ -1310,7 +1310,7 @@ export const makeView =
         input(resolvedInputAttributes),
         ...toggleButton,
       ]),
-      ...(isVisible && Array.isNonEmptyArray(items)
+      ...(isVisible && Array.isArrayNonEmpty(items)
         ? visibleContent
         : []),
       ...hiddenInputs,

@@ -1552,7 +1552,7 @@ const buildVNodeData = <Message>(
 
     const postpatchProps = yield* Ref.get(postpatchPropsRef)
 
-    if (Array.isReadonlyArrayNonEmpty(postpatchProps)) {
+    if (Array.isArrayNonEmpty(postpatchProps)) {
       yield* Ref.update(dataRef, data => ({
         ...data,
         hook: {

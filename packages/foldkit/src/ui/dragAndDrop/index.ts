@@ -751,7 +751,7 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
           ? model.dragState.current.clientY
           : 0,
     }),
-    equivalence: Equivalence.struct({ isDragging: Equivalence.boolean }),
+    equivalence: Equivalence.struct({ isDragging: Equivalence.Boolean }),
     dependenciesToStream: ({ isDragging }, readDependencies) =>
       Stream.when(
         Stream.async<typeof CompletedAutoScroll.Type>(emit => {

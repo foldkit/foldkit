@@ -121,7 +121,7 @@ const trapFocusWithinDialog = (
   const focusable = Array.fromIterable(
     dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
   )
-  if (Array.isNonEmptyArray(focusable)) {
+  if (Array.isArrayNonEmpty(focusable)) {
     const first = Array.headNonEmpty(focusable)
     const last = Array.lastNonEmpty(focusable)
 

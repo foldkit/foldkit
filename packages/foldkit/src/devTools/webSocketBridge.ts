@@ -2,12 +2,11 @@ import {
   Array,
   Cause,
   Effect,
-  Either,
+  Exit,
   HashMap,
   Match,
   Option,
   Order,
-  Runtime,
   Schema as S,
   SubscriptionRef,
   pipe,
@@ -84,7 +83,7 @@ export const startWebSocketBridge = (
 ): Effect.Effect<void> =>
   Effect.gen(function* () {
     const connectionId = generateConnectionId()
-    const runtime = yield* Effect.runtime<never>()
+    const capturedContext = yield* Effect.context<never>()
 
     const sendEvent = (event: Event): void => {
       hot.send(EVENT_CHANNEL, {
@@ -121,11 +120,11 @@ export const startWebSocketBridge = (
 
     const handleRequestFrame = (frame: unknown): void => {
       const decoded = S.decodeUnknownExit(RequestFrame)(frame)
-      Either.match(decoded, {
-        onLeft: error => {
+      Exit.match(decoded, {
+        onFailure: error => {
           console.warn('[foldkit:devTools] malformed request frame', error)
         },
-        onRight: ({ id, maybeConnectionId, request }) => {
+        onSuccess: ({ id, maybeConnectionId, request }) => {
           const isForUs = Option.exists(
             maybeConnectionId,
             targetId => targetId === connectionId,
@@ -133,7 +132,7 @@ export const startWebSocketBridge = (
           if (!isForUs) {
             return
           }
-          Runtime.runFork(runtime)(handleRequest(id, request))
+          Effect.runForkWith(capturedContext)(handleRequest(id, request))
         },
       })
     }

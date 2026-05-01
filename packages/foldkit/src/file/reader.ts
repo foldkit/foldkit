@@ -10,7 +10,7 @@ const readFile = <Result>(
   mode: ReadMode,
   extract: (reader: FileReader) => Result | null,
 ): Effect.Effect<Result, FileReadError> =>
-  Effect.async<Result, FileReadError>((resume, signal) => {
+  Effect.callback<Result, FileReadError>((resume, signal) => {
     const reader = new FileReader()
 
     const handleLoad = () => {

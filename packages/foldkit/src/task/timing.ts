@@ -23,7 +23,7 @@ export const delay = (duration: Duration.Input): Effect.Effect<void> =>
  * Task.nextFrame.pipe(Effect.as(TransitionFrameAdvanced()))
  * ```
  */
-export const nextFrame: Effect.Effect<void> = Effect.async<void>(resume => {
+export const nextFrame: Effect.Effect<void> = Effect.callback<void>(resume => {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       resume(Effect.void)
@@ -48,7 +48,7 @@ export const nextFrame: Effect.Effect<void> = Effect.async<void>(resume => {
 export const waitForAnimationSettled = (
   selector: string,
 ): Effect.Effect<void> =>
-  Effect.async<void>(resume => {
+  Effect.callback<void>(resume => {
     requestAnimationFrame(async () => {
       const element = document.querySelector(selector)
 
