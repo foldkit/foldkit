@@ -171,7 +171,7 @@ export const docsSections: ReadonlyArray<DocsSection> = [
         {
           _tag: 'CoreLifecycleHooks',
           href: coreLifecycleHooksRouter(),
-          label: 'Lifecycle Hooks',
+          label: 'Mount',
         },
         {
           _tag: 'CoreSubscriptions',

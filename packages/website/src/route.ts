@@ -293,7 +293,7 @@ export const coreCommandsRouter = pipe(
 )
 export const coreLifecycleHooksRouter = pipe(
   literal('core'),
-  slash(literal('lifecycle-hooks')),
+  slash(literal('mount')),
   mapTo(CoreLifecycleHooksRoute),
 )
 export const coreSubscriptionsRouter = pipe(

@@ -174,7 +174,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     description:
       'Interactive MapLibre GL map with locations, search, and "find my location". Demonstrates OnMount integration with a third-party DOM library, plus a Subscription bridging map move and marker click events back to the Model.',
     difficulty: 'Advanced',
-    tags: ['Lifecycle Hooks', 'Subscriptions', 'Third-Party Library'],
+    tags: ['Mount', 'Subscriptions', 'Third-Party Library'],
     hasRouting: false,
   },
   {

@@ -9,11 +9,9 @@ import {
   pageTitle,
   para,
   tableOfContentsEntryToHeader,
-  warningCallout,
 } from '../../prose'
 import {
   coreSubscriptionsRouter,
-  coreTaskRouter,
   coreViewRouter,
   exampleDetailRouter,
 } from '../../route'
@@ -26,10 +24,16 @@ const overviewHeader: TableOfContentsEntry = {
   text: 'Overview',
 }
 
-const onMountHeader: TableOfContentsEntry = {
+const sideEffectsOnMountHeader: TableOfContentsEntry = {
   level: 'h2',
-  id: 'on-mount',
-  text: 'OnMount',
+  id: 'side-effects-on-mount',
+  text: 'Side Effects on Mount',
+}
+
+const thirdPartyLibrariesHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'third-party-libraries',
+  text: 'Third-Party Libraries',
 }
 
 const subscriptionsHeader: TableOfContentsEntry = {
@@ -40,7 +44,8 @@ const subscriptionsHeader: TableOfContentsEntry = {
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
-  onMountHeader,
+  sideEffectsOnMountHeader,
+  thirdPartyLibrariesHeader,
   subscriptionsHeader,
 ]
 
@@ -48,7 +53,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
     [],
     [
-      pageTitle('core/lifecycle-hooks', 'Lifecycle Hooks'),
+      pageTitle('core/mount', 'Mount'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
         'Most Foldkit code is declarative. The ',
@@ -56,13 +61,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' is a function from Model to Html. It doesn’t reach into the DOM, it doesn’t hold references, it doesn’t run side effects. That purity is what makes Foldkit programs predictable.',
       ),
       para(
-        'Lifecycle hooks are the seam where view code can drop down to imperative DOM work when it has to. ',
+        'Mount is the moment an element enters the live DOM, when the virtual DOM becomes real. ',
         inlineCode('OnMount'),
-        ' is the only primitive: it runs an ',
+        ' is the seam where view code can drop down to imperative work at that moment. It runs an ',
         inlineCode('Effect'),
         ' with the live ',
         inlineCode('Element'),
-        ' the moment it enters the page, and pairs it with cleanup that fires when the element unmounts. The Effect resolves to a Message that flows back through ',
+        ', and pairs it with cleanup that fires when the element unmounts. The Effect resolves to a Message that flows back through ',
         inlineCode('update'),
         ' like every other side effect in the architecture.',
       ),
@@ -74,25 +79,31 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Effect'),
         ', so its outcome flows back through update like any other Message. The cleanup is data, not a separate hook: paired with the setup as a single value the runtime owns.',
       ),
-      warningCallout(
-        'Before reaching for OnMount',
-        'Most DOM work in a Foldkit app belongs elsewhere. Use ',
-        link(coreTaskRouter(), 'Task'),
-        ' for action-triggered DOM work like focus and scrolling, Commands for side effects (whether from a Message or returned from ',
-        inlineCode('init'),
-        '), and ',
-        link(coreSubscriptionsRouter(), 'Subscriptions'),
-        ' for ongoing event streams. ',
-        inlineCode('OnMount'),
-        ' earns its keep specifically when a library or browser API requires the live ',
-        inlineCode('Element'),
-        ' handed to view code.',
-      ),
-      tableOfContentsEntryToHeader(onMountHeader),
+      tableOfContentsEntryToHeader(sideEffectsOnMountHeader),
       para(
-        'The most common reason to reach for ',
+        'The simplest mount-time work is setup that runs once and needs no teardown: focusing an input as soon as it enters the page, scrolling to a saved position, firing an analytics event. Pass ',
+        inlineCode('Function.constVoid'),
+        ' as the cleanup; the ',
+        inlineCode('Completed*'),
+        ' Message marks the lifecycle without forcing a meaningful response in update.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.lifecycleHooksFocusInputHighlighted),
+          ],
+          [],
+        ),
+        Snippets.lifecycleHooksFocusInputRaw,
+        'Copy focus on mount example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      tableOfContentsEntryToHeader(thirdPartyLibrariesHeader),
+      para(
         inlineCode('OnMount'),
-        ' is a library that owns its own DOM. Charts, code editors, map renderers, force-directed graphs: each expects a real element to render into and a way to be torn down later.',
+        ' really earns its keep when a library owns its own DOM. Charts, code editors, map renderers, force-directed graphs: each expects a real element to render into and a way to be torn down later.',
       ),
       para(
         'It takes an ',
@@ -123,7 +134,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       infoCallout(
         'What if the Effect is still in flight when the element is removed?',
-        'The runtime tracks both states. If unmount happens before the Effect resolves, the cleanup runs as soon as it arrives and the Message is suppressed. The chart never leaks, the Model never sees a Mounted Message for an element that’s already gone.',
+        'The runtime tracks both states. If unmount happens before the Effect resolves, the cleanup runs as soon as it arrives and the Message is suppressed. The chart never leaks, the Model never sees a mounted Message for an element that’s already gone.',
       ),
       tableOfContentsEntryToHeader(subscriptionsHeader),
       para(
