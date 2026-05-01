@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { Command, HelpDoc, Options } from '@effect/cli'
-import { FetchHttpClient } from '@effect/platform'
+import { Command, HelpDoc, Options } from 'effect/unstable/cli'
+import { FetchHttpClient } from 'effect/unstable/http'
 import { NodeContext, NodeRuntime } from '@effect/platform-node'
 import { Effect, Match, Option, Schema, String, flow } from 'effect'
 import { createRequire } from 'node:module'

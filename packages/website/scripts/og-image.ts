@@ -1,4 +1,4 @@
-import { FileSystem } from '@effect/platform'
+import { FileSystem } from 'effect/unstable/http'
 import { Resvg } from '@resvg/resvg-js'
 import { Array, Console, Effect, pipe } from 'effect'
 import { readFileSync } from 'node:fs'

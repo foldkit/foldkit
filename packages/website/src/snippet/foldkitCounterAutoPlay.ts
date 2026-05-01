@@ -47,7 +47,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
     dependenciesToStream: ({ isAutoCounting }) =>
       Stream.when(
         Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(Stream.map(Ticked)),
-        () => isAutoCounting,
+        Effect.sync(() => isAutoCounting),
       ),
   },
 })

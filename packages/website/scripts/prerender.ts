@@ -1,4 +1,4 @@
-import { Command, FileSystem } from '@effect/platform'
+import { Command, FileSystem } from 'effect/unstable/http'
 import { NodeContext, NodeRuntime } from '@effect/platform-node'
 import {
   Array,

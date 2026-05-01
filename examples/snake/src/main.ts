@@ -270,7 +270,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
         Stream.tick(Duration.millis(deps.interval)).pipe(
           Stream.map(TickedClock),
         ),
-        () => deps.isPlaying,
+        Effect.sync(() => deps.isPlaying),
       ),
   },
 

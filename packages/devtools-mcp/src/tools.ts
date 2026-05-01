@@ -23,7 +23,7 @@ const RUNTIME_ID_DESCRIPTION =
 const DEFAULT_LIST_MESSAGES_LIMIT = 50
 
 const RuntimeIdField = S.optional(
-  S.String.annotations({ description: RUNTIME_ID_DESCRIPTION }),
+  S.String.annotate({ description: RUNTIME_ID_DESCRIPTION }),
 )
 
 const ListLimit = S.Number.pipe(
@@ -66,14 +66,14 @@ const ModelIndex = S.Number.pipe(
 )
 
 const PathField = S.optional(
-  S.String.annotations({
+  S.String.annotate({
     description:
       "Dot-string path into the Model anchored at 'root'. Examples: 'root', 'root.route', 'root.session.user', 'root.cards.0'. Matches the alphabet used by SerializedEntry.changedPaths so paths copied from one tool's output can be passed straight into the next. Defaults to 'root' (the whole Model).",
   }),
 )
 
 const ExpandField = S.optional(
-  S.Boolean.annotations({
+  S.Boolean.annotate({
     description:
       "When false (the default), large arrays/records/strings collapse to '_summary' placeholders to keep payloads small. Set true to receive the literal value at the path. Pair with `path` to drill in: a narrow path with `expand: true` is the cheapest way to read a specific subtree at full fidelity.",
   }),
@@ -126,7 +126,7 @@ const GetRuntimeStateInput = S.Struct({
 
 const DispatchMessageInput = S.Struct({
   runtime_id: RuntimeIdField,
-  message: S.Unknown.annotations({
+  message: S.Unknown.annotate({
     description:
       "A Foldkit Message object to dispatch into the runtime. Must match the runtime's Message Schema — read the application's source to see the exact shape. At minimum it has a `_tag` field naming the variant. The runtime decodes the payload and returns a clean error if it doesn't match.",
   }),

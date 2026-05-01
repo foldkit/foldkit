@@ -145,7 +145,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
     dependenciesToStream: ({ isRunning }) =>
       Stream.when(
         Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(Stream.map(Ticked)),
-        () => isRunning,
+        Effect.sync(() => isRunning),
       ),
   },
 })

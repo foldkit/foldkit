@@ -1,4 +1,4 @@
-import { KeyValueStore } from '@effect/platform'
+import { KeyValueStore } from 'effect/unstable/http'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import {
   Array,

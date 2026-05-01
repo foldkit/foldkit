@@ -1,4 +1,4 @@
-import { HttpClient, HttpClientResponse } from '@effect/platform'
+import { HttpClient, HttpClientResponse } from 'effect/unstable/http'
 import { Effect, Layer, Match as M, String } from 'effect'
 import { expect, test } from 'vitest'
 

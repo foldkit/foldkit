@@ -2,7 +2,7 @@ import {
   FetchHttpClient,
   HttpClient,
   HttpClientRequest,
-} from '@effect/platform'
+} from 'effect/unstable/http'
 import { Array, Effect, Match as M, Option, Schema as S, String } from 'effect'
 import { Command, Runtime } from 'foldkit'
 import { Document, Html, html } from 'foldkit/html'

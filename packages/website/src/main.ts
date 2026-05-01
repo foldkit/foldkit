@@ -3,7 +3,7 @@ import {
   HttpClient,
   HttpClientRequest,
   KeyValueStore,
-} from '@effect/platform'
+} from 'effect/unstable/http'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { inject } from '@vercel/analytics'
 import * as SpeedInsights from '@vercel/speed-insights'

@@ -1,4 +1,4 @@
-import { Command, HttpClient, HttpClientRequest } from '@effect/platform'
+import { Command, HttpClient, HttpClientRequest } from 'effect/unstable/http'
 import { Array, Effect, Match, Record, Schema, pipe } from 'effect'
 
 type PackageManager = 'pnpm' | 'npm' | 'yarn'

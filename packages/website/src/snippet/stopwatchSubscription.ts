@@ -34,7 +34,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
     dependenciesToStream: ({ isRunning }) =>
       Stream.when(
         Stream.tick(Duration.millis(100)).pipe(Stream.map(Ticked)),
-        () => isRunning,
+        Effect.sync(() => isRunning),
       ),
   },
 })

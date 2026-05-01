@@ -5,7 +5,7 @@ import {
   HttpClientError,
   HttpClientRequest,
   Path,
-} from '@effect/platform'
+} from 'effect/unstable/http'
 import {
   Array,
   Effect,
