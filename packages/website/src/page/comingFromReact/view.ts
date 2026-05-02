@@ -15,12 +15,14 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import {
-  bestPracticesSideEffectsRouter,
   coreCounterExampleRouter,
   exampleDetailRouter,
+  fieldValidationRouter,
   gettingStartedRouter,
   patternsSubmodelsRouter,
   routingAndNavigationRouter,
+  testingSceneRouter,
+  testingStoryRouter,
   uiOverviewRouter,
 } from '../../route'
 import * as Snippets from '../../snippet'
@@ -176,6 +178,12 @@ export const view = (
       pageTitle('coming-from-react', 'Coming from React'),
       para(
         'If you know React, you already have the instincts for building UIs. Foldkit channels those instincts through a different structure: one where every state change, every side effect, and every event is explicit and visible. The best way to feel the difference is to build the same thing in both.',
+      ),
+      para(
+        'Foldkit doesn’t compete with React on brevity, and it isn’t trying to. The first counter you see below is longer than its React counterpart, and the shape will feel unfamiliar: a separate Model, Message union, update function, and view, where React fits the same idea into a single component with a hook. That gap is the point. Foldkit names every piece React leaves implicit (state, events, side effects, subscriptions) so they stay legible as the app grows.',
+      ),
+      para(
+        'The trade is upfront verbosity for structural guarantees that compound. If you read the small example and think “that’s a lot of code for a counter,” you’re right. Keep reading: the next two sections add features that turn React into stale-closure debugging and leave Foldkit unchanged in shape.',
       ),
       tableOfContentsEntryToHeader(simpleCounterHeader),
       para('A counter in React:'),
@@ -385,7 +393,9 @@ export const view = (
         'What about forms?',
         [
           para(
-            'Form state lives in your Model, inputs dispatch Messages, and update handles validation. Foldkit ships a field validation module with four-state fields (',
+            'Form state lives in your Model, inputs dispatch Messages, and update handles validation. Foldkit ships a ',
+            link(fieldValidationRouter(), 'field validation'),
+            ' module with four-state fields (',
             inlineCode('NotValidated'),
             ', ',
             inlineCode('Validating'),
@@ -435,14 +445,29 @@ export const view = (
         'How do I test my app?',
         [
           para(
-            'Your update function is pure. Give it a Model and a Message, check the returned Model and Commands. Commands carry names, so you can assert which ones were produced: ',
-            inlineCode("expect(commands[0].name).toBe('FetchWeather')"),
-            '. No rendering, no mocking hooks, no test utilities. Commands are Effects with explicit dependencies, so you can swap in test layers without stubbing globals. See ',
+            'Foldkit ships two built-in testing APIs that share the runtime’s pipeline. No jsdom, no mocking, no async waiting.',
+          ),
+          para(
+            link(testingStoryRouter(), 'Story'),
+            ' tests the state machine. You feed Messages into update, resolve Commands inline by providing the Message they would return, and assert on the Model at any step. The test reads as a chronological user story: ',
+            inlineCode('Story.message'),
+            ' to dispatch, ',
+            inlineCode('Story.resolve'),
+            ' to settle a Command, ',
+            inlineCode('Story.expectExactCommands'),
+            ' to assert which Commands were produced.',
+          ),
+          para(
+            link(testingSceneRouter(), 'Scene'),
+            ' tests through the rendered view. Locate elements by accessible role, label, or text (the same way a screen reader does), click and type to dispatch the same Messages a user would, and assert on the rendered VNode tree. Scene runs against the virtual DOM, so the entire test stays synchronous.',
+          ),
+          para(
+            'Both APIs run the same update function the runtime runs, so removing or renaming a Command breaks every test that depended on it. See the ',
             link(
-              `${bestPracticesSideEffectsRouter()}#testing-update`,
-              'Best Practices',
+              exampleDetailRouter({ exampleSlug: 'weather' }),
+              'Weather example',
             ),
-            ' for a complete testing example.',
+            ' for end-to-end Story and Scene tests of the same app.',
           ),
         ],
         model,
