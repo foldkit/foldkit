@@ -182,7 +182,7 @@ export const ClickedVirtualListVariableScrollToMiddle = m(
   'ClickedVirtualListVariableScrollToMiddle',
 )
 
-export const UiMessage = S.Union(
+export const UiMessage = S.Union([
   GotMobileMenuDialogMessage,
   ClickedButtonDemo,
   GotAnimationDemoMessage,
@@ -236,5 +236,5 @@ export const UiMessage = S.Union(
   ClickedVirtualListScrollToMiddle,
   GotVirtualListVariableDemoMessage,
   ClickedVirtualListVariableScrollToMiddle,
-)
+])
 export type UiMessage = typeof UiMessage.Type

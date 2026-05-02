@@ -39,7 +39,7 @@ export const Model = S.Struct({
   isModal: S.Boolean,
   contentFocus: S.Boolean,
   animation: AnimationModel,
-  maybeLastButtonPointerType: S.OptionFromSelf(S.String),
+  maybeLastButtonPointerType: S.Option(S.String),
 })
 
 export type Model = typeof Model.Type
@@ -98,7 +98,7 @@ export const Message: S.Union<
     typeof CompletedAnchorMount,
     typeof GotAnimationMessage,
   ]
-> = S.Union(
+> = S.Union([
   Opened,
   Closed,
   BlurredPanel,
@@ -113,7 +113,7 @@ export const Message: S.Union<
   SuppressedSpaceScroll,
   CompletedAnchorMount,
   GotAnimationMessage,
-)
+])
 
 export type Opened = typeof Opened.Type
 export type Closed = typeof Closed.Type

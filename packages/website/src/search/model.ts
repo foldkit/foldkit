@@ -10,7 +10,7 @@ export const Idle = ts('Idle')
 export const Loading = ts('Loading', { results: Results })
 export const Ok = ts('Ok', { results: Results })
 
-export const SearchState = S.Union(Idle, Loading, Ok)
+export const SearchState = S.Union([Idle, Loading, Ok])
 export type SearchState = typeof SearchState.Type
 
 export const resultsFromState = (

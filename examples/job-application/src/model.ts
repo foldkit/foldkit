@@ -19,12 +19,12 @@ export const Submitting = ts('Submitting')
 export const SubmitSuccess = ts('SubmitSuccess')
 export const SubmitError = ts('SubmitError', { error: S.String })
 
-export const Submission = S.Union(
+export const Submission = S.Union([
   NotSubmitted,
   Submitting,
   SubmitSuccess,
   SubmitError,
-)
+])
 export type Submission = typeof Submission.Type
 
 // MODEL

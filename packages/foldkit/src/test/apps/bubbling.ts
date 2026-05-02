@@ -16,7 +16,7 @@ export type Model = typeof Model.Type
 const ClickedContainer = m('ClickedContainer')
 const DoubleClickedContainer = m('DoubleClickedContainer')
 
-const Message = S.Union(ClickedContainer, DoubleClickedContainer)
+const Message = S.Union([ClickedContainer, DoubleClickedContainer])
 type Message = typeof Message.Type
 
 // INIT

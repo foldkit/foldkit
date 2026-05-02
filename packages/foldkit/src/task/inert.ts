@@ -1,4 +1,4 @@
-import { Array, Effect, Number, Option, Predicate, pipe } from 'effect'
+import { Array, Effect, Number, Option, Predicate, Result, pipe } from 'effect'
 
 const inertState = {
   originals: new Map<
@@ -52,10 +52,13 @@ const markNotInert = (element: HTMLElement): void => {
 const resolveElements = (
   selectors: ReadonlyArray<string>,
 ): ReadonlyArray<HTMLElement> =>
-  Array.filterMap(selectors, selector => {
-    const element = document.querySelector(selector)
-    return element instanceof HTMLElement ? Option.some(element) : Option.none()
-  })
+  Array.filterMap(selectors, selector =>
+    Result.liftPredicate(
+      document.querySelector(selector),
+      (element): element is HTMLElement => element instanceof HTMLElement,
+      () => undefined,
+    ),
+  )
 
 const ancestorsUpToBody = (element: HTMLElement): ReadonlyArray<HTMLElement> =>
   Array.unfold(element.parentElement, current =>
@@ -77,8 +80,8 @@ const inertableSiblings = (
     Array.filterMap(child =>
       child instanceof HTMLElement &&
       !Array.some(allowedElements, allowed => child.contains(allowed))
-        ? Option.some(child)
-        : Option.none(),
+        ? Result.succeed(child)
+        : Result.failVoid,
     ),
   )
 

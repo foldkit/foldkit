@@ -60,7 +60,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para(
         'Define a service using ',
-        link(Link.effectService, 'Effect.Service'),
+        link(Link.effectService, 'Context.Service'),
         ', then pass its default layer to ',
         inlineCode('makeProgram'),
         ' via the ',

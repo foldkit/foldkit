@@ -11,7 +11,7 @@ const openPicker = ({
   accept,
   multiple,
 }: OpenPickerOptions): Effect.Effect<ReadonlyArray<File>> =>
-  Effect.async<ReadonlyArray<File>>((resume, signal) => {
+  Effect.callback<ReadonlyArray<File>>((resume, signal) => {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = accept.join(',')

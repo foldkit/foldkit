@@ -34,7 +34,7 @@ export const CompletedFocusButton = m('CompletedFocusButton')
 /** Union of all messages the disclosure component can produce. */
 export const Message: S.Union<
   [typeof Toggled, typeof Closed, typeof CompletedFocusButton]
-> = S.Union(Toggled, Closed, CompletedFocusButton)
+> = S.Union([Toggled, Closed, CompletedFocusButton])
 
 export type Toggled = typeof Toggled.Type
 export type Closed = typeof Closed.Type

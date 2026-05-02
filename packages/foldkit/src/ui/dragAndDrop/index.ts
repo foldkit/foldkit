@@ -3,9 +3,9 @@ import {
   Effect,
   Equal,
   Equivalence,
-  Function,
   Match as M,
   Option,
+  Queue,
   Schema as S,
   Stream,
   pipe,
@@ -21,7 +21,7 @@ import * as Task from '../../task/index.js'
 
 // MODEL
 
-const Orientation = S.Literal('Horizontal', 'Vertical')
+const Orientation = S.Literals(['Horizontal', 'Vertical'])
 
 const ScreenPoint = S.Struct({
   screenX: S.Number,
@@ -53,7 +53,7 @@ const Dragging = ts('Dragging', {
   sourceIndex: S.Number,
   origin: ScreenPoint,
   current: ClientPoint,
-  maybeDropTarget: S.OptionFromSelf(DropTarget),
+  maybeDropTarget: S.Option(DropTarget),
 })
 
 const KeyboardDragging = ts('KeyboardDragging', {
@@ -64,7 +64,7 @@ const KeyboardDragging = ts('KeyboardDragging', {
   targetIndex: S.Number,
 })
 
-const DragState = S.Union(Idle, Pending, Dragging, KeyboardDragging)
+const DragState = S.Union([Idle, Pending, Dragging, KeyboardDragging])
 
 /** Schema for the drag-and-drop component's state, tracking its unique ID, orientation, and current drag phase. */
 export const Model = S.Struct({
@@ -92,7 +92,7 @@ export const MovedPointer = m('MovedPointer', {
   screenY: S.Number,
   clientX: S.Number,
   clientY: S.Number,
-  maybeDropTarget: S.OptionFromSelf(DropTarget),
+  maybeDropTarget: S.Option(DropTarget),
 })
 /** The pointer was released. */
 export const ReleasedPointer = m('ReleasedPointer')
@@ -113,14 +113,14 @@ export const ResolvedKeyboardMove = m('ResolvedKeyboardMove', {
 export const ConfirmedKeyboardDrop = m('ConfirmedKeyboardDrop')
 /** The user pressed an arrow key during keyboard drag. */
 export const PressedArrowKey = m('PressedArrowKey', {
-  direction: S.Literal(
+  direction: S.Literals([
     'Up',
     'Down',
     'Left',
     'Right',
     'NextContainer',
     'PreviousContainer',
-  ),
+  ]),
 })
 /** An animation frame fired during auto-scroll. */
 export const CompletedAutoScroll = m('CompletedAutoScroll')
@@ -141,7 +141,7 @@ export const Message: S.Union<
     typeof CompletedAutoScroll,
     typeof CompletedFocusItem,
   ]
-> = S.Union(
+> = S.Union([
   PressedDraggable,
   MovedPointer,
   ReleasedPointer,
@@ -152,7 +152,7 @@ export const Message: S.Union<
   PressedArrowKey,
   CompletedAutoScroll,
   CompletedFocusItem,
-)
+])
 
 export type Message = typeof Message.Type
 
@@ -170,7 +170,7 @@ export const Reordered = ts('Reordered', {
 export const Cancelled = ts('Cancelled')
 
 /** Union of all out-messages the drag-and-drop component can emit to its parent. */
-export const OutMessage = S.Union(Reordered, Cancelled)
+export const OutMessage = S.Union([Reordered, Cancelled])
 export type OutMessage = typeof OutMessage.Type
 
 // INIT
@@ -525,9 +525,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
 // SUBSCRIPTION
 
-const DragActivity = S.Literal('Idle', 'Active')
-const PointerDragActivity = S.Literal('Idle', 'Active')
-const KeyboardDragActivity = S.Literal('Idle', 'Active')
+const DragActivity = S.Literals(['Idle', 'Active'])
+const PointerDragActivity = S.Literals(['Idle', 'Active'])
+const KeyboardDragActivity = S.Literals(['Idle', 'Active'])
 
 const resolveDropTarget = (
   clientX: number,
@@ -664,25 +664,33 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
       // NOTE: prevents text selection and locks cursor to grabbing during
       // pointer drag. Uses a <style> element for cursor because inline styles
       // on <html> don't override descendant elements' cursor values.
-      const documentDragStyles = Stream.async<never>(_emit => {
-        document.documentElement.style.setProperty('user-select', 'none')
-        document.documentElement.style.setProperty(
-          '-webkit-user-select',
-          'none',
-        )
-        const cursorStyle = document.createElement('style')
-        cursorStyle.textContent = '* { cursor: grabbing !important; }'
-        document.head.appendChild(cursorStyle)
-        return Effect.sync(() => {
-          document.documentElement.style.removeProperty('user-select')
-          document.documentElement.style.removeProperty('-webkit-user-select')
-          cursorStyle.remove()
-        })
-      })
+      const documentDragStyles = Stream.callback<never>(() =>
+        Effect.acquireRelease(
+          Effect.sync(() => {
+            document.documentElement.style.setProperty('user-select', 'none')
+            document.documentElement.style.setProperty(
+              '-webkit-user-select',
+              'none',
+            )
+            const cursorStyle = document.createElement('style')
+            cursorStyle.textContent = '* { cursor: grabbing !important; }'
+            document.head.appendChild(cursorStyle)
+            return cursorStyle
+          }),
+          cursorStyle =>
+            Effect.sync(() => {
+              document.documentElement.style.removeProperty('user-select')
+              document.documentElement.style.removeProperty(
+                '-webkit-user-select',
+              )
+              cursorStyle.remove()
+            }),
+        ).pipe(Effect.flatMap(() => Effect.never)),
+      )
 
       return Stream.when(
         Stream.merge(pointerEvents, documentDragStyles),
-        () => dragActivity === 'Active',
+        Effect.sync(() => dragActivity === 'Active'),
       )
     },
   },
@@ -697,7 +705,7 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
           Stream.filter(({ key }) => key === 'Escape'),
           Stream.map(() => CancelledDrag()),
         ),
-        () => dragActivity === 'Active',
+        Effect.sync(() => dragActivity === 'Active'),
       ),
   },
 
@@ -737,9 +745,10 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
                 })
               }),
           ),
-          Stream.filterMap(Function.identity),
+          Stream.filter(Option.isSome),
+          Stream.map(option => option.value),
         ),
-        () => dragActivity === 'Active',
+        Effect.sync(() => dragActivity === 'Active'),
       ),
   },
 
@@ -751,20 +760,25 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
           ? model.dragState.current.clientY
           : 0,
     }),
-    equivalence: Equivalence.struct({ isDragging: Equivalence.boolean }),
+    equivalence: Equivalence.Struct({ isDragging: Equivalence.Boolean }),
     dependenciesToStream: ({ isDragging }, readDependencies) =>
       Stream.when(
-        Stream.async<typeof CompletedAutoScroll.Type>(emit => {
-          let animationFrameId = 0
-          const step = () => {
-            autoScroll(readDependencies().clientY)
-            emit.single(CompletedAutoScroll())
-            animationFrameId = requestAnimationFrame(step)
-          }
-          animationFrameId = requestAnimationFrame(step)
-          return Effect.sync(() => cancelAnimationFrame(animationFrameId))
-        }),
-        () => isDragging,
+        Stream.callback<typeof CompletedAutoScroll.Type>(queue =>
+          Effect.acquireRelease(
+            Effect.sync(() => {
+              const ref = { id: 0 }
+              const step = () => {
+                autoScroll(readDependencies().clientY)
+                Queue.offerUnsafe(queue, CompletedAutoScroll())
+                ref.id = requestAnimationFrame(step)
+              }
+              ref.id = requestAnimationFrame(step)
+              return ref
+            }),
+            ref => Effect.sync(() => cancelAnimationFrame(ref.id)),
+          ).pipe(Effect.flatMap(() => Effect.never)),
+        ),
+        Effect.sync(() => isDragging),
       ),
   },
 })

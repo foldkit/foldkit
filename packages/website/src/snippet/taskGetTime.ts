@@ -18,6 +18,6 @@ const getZonedTime = GetZonedTime(
 const getNyTime = GetNyTime(
   Task.getZonedTimeIn('America/New_York').pipe(
     Effect.map(zoned => SucceededGetNyTime({ zoned })),
-    Effect.catchAll(() => Effect.succeed(FailedGetTimeZone())),
+    Effect.catch(() => Effect.succeed(FailedGetTimeZone())),
   ),
 )

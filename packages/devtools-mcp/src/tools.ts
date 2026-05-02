@@ -1,4 +1,4 @@
-import { Array, Effect, JSONSchema, Match, Option, Schema as S } from 'effect'
+import { Array, Effect, Match, Option, Schema as S } from 'effect'
 import {
   type Request,
   RequestDispatchMessage,
@@ -23,57 +23,43 @@ const RUNTIME_ID_DESCRIPTION =
 const DEFAULT_LIST_MESSAGES_LIMIT = 50
 
 const RuntimeIdField = S.optional(
-  S.String.annotations({ description: RUNTIME_ID_DESCRIPTION }),
+  S.String.annotate({ description: RUNTIME_ID_DESCRIPTION }),
 )
 
-const ListLimit = S.Number.pipe(
-  S.int(),
-  S.between(1, 500),
-  S.annotations({
-    description: `Maximum number of entries to return. Defaults to ${DEFAULT_LIST_MESSAGES_LIMIT}; max 500.`,
-  }),
-)
+const ListLimit = S.Int.check(
+  S.isBetween({ minimum: 1, maximum: 500 }),
+).annotate({
+  description: `Maximum number of entries to return. Defaults to ${DEFAULT_LIST_MESSAGES_LIMIT}; max 500.`,
+})
 
-const SinceIndex = S.Number.pipe(
-  S.int(),
-  S.annotations({
-    description:
-      'Absolute history index to start from. Use the maybeNextIndex returned by a prior call to paginate.',
-  }),
-)
+const SinceIndex = S.Int.annotate({
+  description:
+    'Absolute history index to start from. Use the maybeNextIndex returned by a prior call to paginate.',
+})
 
-const MessageIndex = S.Number.pipe(
-  S.int(),
-  S.annotations({
-    description: 'Absolute history index of the entry to read.',
-  }),
-)
+const MessageIndex = S.Int.annotate({
+  description: 'Absolute history index of the entry to read.',
+})
 
-const KeyframeIndex = S.Number.pipe(
-  S.int(),
-  S.annotations({
-    description:
-      'Index to replay to. Use -1 to jump to the initial Model (before any messages). Use a non-negative index to jump to the Model state right after that history index. Call foldkit_list_keyframes for the canonical replay points.',
-  }),
-)
+const KeyframeIndex = S.Int.annotate({
+  description:
+    'Index to replay to. Use -1 to jump to the initial Model (before any messages). Use a non-negative index to jump to the Model state right after that history index. Call foldkit_list_keyframes for the canonical replay points.',
+})
 
-const ModelIndex = S.Number.pipe(
-  S.int(),
-  S.annotations({
-    description:
-      'Absolute history index. Returns the Model state right after the entry at this index was applied. To inspect the Model immediately before message N, pass index N - 1. For the initial Model, use foldkit_get_init.',
-  }),
-)
+const ModelIndex = S.Int.annotate({
+  description:
+    'Absolute history index. Returns the Model state right after the entry at this index was applied. To inspect the Model immediately before message N, pass index N - 1. For the initial Model, use foldkit_get_init.',
+})
 
 const PathField = S.optional(
-  S.String.annotations({
+  S.String.annotate({
     description:
       "Dot-string path into the Model anchored at 'root'. Examples: 'root', 'root.route', 'root.session.user', 'root.cards.0'. Matches the alphabet used by SerializedEntry.changedPaths so paths copied from one tool's output can be passed straight into the next. Defaults to 'root' (the whole Model).",
   }),
 )
 
 const ExpandField = S.optional(
-  S.Boolean.annotations({
+  S.Boolean.annotate({
     description:
       "When false (the default), large arrays/records/strings collapse to '_summary' placeholders to keep payloads small. Set true to receive the literal value at the path. Pair with `path` to drill in: a narrow path with `expand: true` is the cheapest way to read a specific subtree at full fidelity.",
   }),
@@ -126,17 +112,22 @@ const GetRuntimeStateInput = S.Struct({
 
 const DispatchMessageInput = S.Struct({
   runtime_id: RuntimeIdField,
-  message: S.Unknown.annotations({
+  message: S.Unknown.annotate({
     description:
       "A Foldkit Message object to dispatch into the runtime. Must match the runtime's Message Schema — read the application's source to see the exact shape. At minimum it has a `_tag` field naming the variant. The runtime decodes the payload and returns a clean error if it doesn't match.",
   }),
 })
 
 /**
- * JSON Schema for tools that take no input. Inlined as a literal because
- * `JSONSchema.make(S.Struct({}))` produces a shape MCP's AJV validator
- * rejects (no top-level `type: "object"` for an empty struct).
+ * Extract the inner JSON Schema from Effect's `JsonSchema.Document` wrapper.
+ * MCP's tool registry validates `inputSchema.type === "object"` at the top
+ * level; the Document wrapper (`{ dialect, schema, definitions }`) hides
+ * `type` one level deeper, so registration silently fails. Unwrapping fixes
+ * tool surfacing in Claude Code, Cursor, and any other MCP host.
  */
+const toInputSchema = <Input>(codec: S.Codec<Input>): object =>
+  S.toJsonSchemaDocument(codec).schema
+
 const NO_INPUT_SCHEMA = {
   type: 'object',
   properties: {},
@@ -170,10 +161,10 @@ const formatError = (reason: string): ToolResult => ({
  * `Error` for the outer handler's `catchAll` to convert into a `ToolResult`.
  */
 const decodeInput = <Input>(
-  schema: S.Schema<Input>,
+  schema: S.Codec<Input>,
   rawInput: unknown,
 ): Effect.Effect<Input, Error> =>
-  S.decodeUnknown(schema)(rawInput).pipe(
+  S.decodeUnknownEffect(schema)(rawInput).pipe(
     Effect.mapError(error => new Error(`Invalid input: ${error.message}`)),
   )
 
@@ -237,7 +228,7 @@ const callRuntimeRequest = (
       Option.some(runtimeId),
     )
     return responseToToolResult(response)
-  }).pipe(Effect.catchAll(error => Effect.succeed(formatError(error.message))))
+  }).pipe(Effect.catch(error => Effect.succeed(formatError(error.message))))
 
 type RuntimeToolInput = Readonly<{ runtime_id?: string | undefined }>
 
@@ -248,7 +239,7 @@ type RuntimeToolInput = Readonly<{ runtime_id?: string | undefined }>
  */
 const runRuntimeTool =
   <Input extends RuntimeToolInput>(
-    inputSchema: S.Schema<Input>,
+    inputSchema: S.Codec<Input>,
     buildRequest: (input: Input) => typeof Request.Type,
     wsClient: WebSocketClient,
   ) =>
@@ -258,9 +249,7 @@ const runRuntimeTool =
       return yield* callRuntimeRequest(wsClient, input.runtime_id, () =>
         buildRequest(input),
       )
-    }).pipe(
-      Effect.catchAll(error => Effect.succeed(formatError(error.message))),
-    )
+    }).pipe(Effect.catch(error => Effect.succeed(formatError(error.message))))
 
 /**
  * Build the read-only Foldkit DevTools tool definitions. Each tool decodes its
@@ -274,12 +263,12 @@ export const buildTools = (
     name: 'foldkit_get_model',
     description:
       "Snapshot the current Model from a connected Foldkit runtime. By default the response is summarized (large arrays/records/strings collapse to `_summary` placeholders) to keep payloads small for AI agents. Pass `path` (e.g. 'root.session.user') to narrow to a subtree, and `expand: true` to receive the literal value at that path. Returns `{ value, atPath, summarized }`.",
-    inputSchema: JSONSchema.make(GetModelInput),
+    inputSchema: toInputSchema(GetModelInput),
     handle: runRuntimeTool(
       GetModelInput,
       ({ path, expand }) =>
         RequestGetModel({
-          maybePath: Option.fromNullable(path),
+          maybePath: Option.fromNullishOr(path),
           expand: expand ?? false,
         }),
       wsClient,
@@ -289,13 +278,13 @@ export const buildTools = (
     name: 'foldkit_get_model_at',
     description:
       "Snapshot a historical Model after a given history entry was applied. Pass `index: N - 1` to read the Model just before message N. Same `path`/`expand` semantics as foldkit_get_model. For the initial Model (and the names of Commands returned from the application's `init`), use foldkit_get_init.",
-    inputSchema: JSONSchema.make(GetModelAtInput),
+    inputSchema: toInputSchema(GetModelAtInput),
     handle: runRuntimeTool(
       GetModelAtInput,
       ({ index, path, expand }) =>
         RequestGetModelAt({
           index,
-          maybePath: Option.fromNullable(path),
+          maybePath: Option.fromNullishOr(path),
           expand: expand ?? false,
         }),
       wsClient,
@@ -305,13 +294,13 @@ export const buildTools = (
     name: 'foldkit_list_messages',
     description:
       'List recent Message history entries from a Foldkit runtime, with optional pagination via since_index.',
-    inputSchema: JSONSchema.make(ListMessagesInput),
+    inputSchema: toInputSchema(ListMessagesInput),
     handle: runRuntimeTool(
       ListMessagesInput,
       ({ limit, since_index }) =>
         RequestListMessages({
           limit: limit ?? DEFAULT_LIST_MESSAGES_LIMIT,
-          maybeSinceIndex: Option.fromNullable(since_index),
+          maybeSinceIndex: Option.fromNullishOr(since_index),
         }),
       wsClient,
     ),
@@ -320,7 +309,7 @@ export const buildTools = (
     name: 'foldkit_get_message',
     description:
       'Read a single Message history entry by absolute index. The response carries the SerializedEntry (tag, message body, commandNames, timestamp, `isModelChanged`, `changedPaths` for leaf-level mutations, `affectedPaths` adding their ancestor paths). For Submodel-routed entries (tag matches `Got*Message`), the entry also carries `submodelPath` listing wrapper tags from outer to inner and `maybeLeafTag` naming the innermost child Message. Model snapshots are not included; call foldkit_get_model_at with `index - 1` (before) and `index` (after) to inspect Model state around the entry.',
-    inputSchema: JSONSchema.make(GetMessageInput),
+    inputSchema: toInputSchema(GetMessageInput),
     handle: runRuntimeTool(
       GetMessageInput,
       ({ index }) => RequestGetMessage({ index }),
@@ -331,14 +320,14 @@ export const buildTools = (
     name: 'foldkit_get_init',
     description:
       "Read the runtime's initial Model and the names of Commands returned from the application's `init` function. The init entry is the synthetic row at index -1 in the DevTools panel; this tool exposes the same data without time-travelling the runtime. `maybeModel` is `None` until the runtime has finished its first render and recorded init, then stays `Some` for the rest of the runtime's life.",
-    inputSchema: JSONSchema.make(GetInitInput),
+    inputSchema: toInputSchema(GetInitInput),
     handle: runRuntimeTool(GetInitInput, () => RequestGetInit(), wsClient),
   },
   {
     name: 'foldkit_get_runtime_state',
     description:
       "Snapshot the runtime's DevTools state: history bounds, current paused/live status, and whether init is recorded. Returns `currentIndex` (the absolute index of the most recent Message, or -1 when none), `startIndex` (the earliest absolute index still retained in the rolling buffer), `totalEntries` (count of retained entries), `isPaused`, `maybePausedAtIndex` (`Some(index)` when paused, `None` otherwise), and `hasInitModel`. Use it to reason about what `foldkit_list_messages` and `foldkit_get_message` will see, and to detect whether the runtime is currently paused at a replayed snapshot.",
-    inputSchema: JSONSchema.make(GetRuntimeStateInput),
+    inputSchema: toInputSchema(GetRuntimeStateInput),
     handle: runRuntimeTool(
       GetRuntimeStateInput,
       () => RequestGetRuntimeState(),
@@ -349,7 +338,7 @@ export const buildTools = (
     name: 'foldkit_list_keyframes',
     description:
       'List the available keyframes (replayable Model snapshots) from a Foldkit runtime.',
-    inputSchema: JSONSchema.make(ListKeyframesInput),
+    inputSchema: toInputSchema(ListKeyframesInput),
     handle: runRuntimeTool(
       ListKeyframesInput,
       () => RequestListKeyframes(),
@@ -360,7 +349,7 @@ export const buildTools = (
     name: 'foldkit_replay_to_keyframe',
     description:
       'Time-travel a Foldkit runtime back to a previous Model snapshot. Pass `keyframe_index: -1` for the initial Model, or a non-negative index for the state right after that history entry. The runtime is paused at the snapshot until foldkit_resume is called.',
-    inputSchema: JSONSchema.make(ReplayToKeyframeInput),
+    inputSchema: toInputSchema(ReplayToKeyframeInput),
     handle: runRuntimeTool(
       ReplayToKeyframeInput,
       ({ keyframe_index }) =>
@@ -372,14 +361,14 @@ export const buildTools = (
     name: 'foldkit_resume',
     description:
       'Resume normal execution of a Foldkit runtime that was paused by foldkit_replay_to_keyframe.',
-    inputSchema: JSONSchema.make(ResumeInput),
+    inputSchema: toInputSchema(ResumeInput),
     handle: runRuntimeTool(ResumeInput, () => RequestResume(), wsClient),
   },
   {
     name: 'foldkit_dispatch_message',
     description:
       "Dispatch a Message into a Foldkit runtime's message queue, as if the application itself produced it. Requires the runtime to have configured DevToolsConfig.Message; without it, dispatch is rejected. Read the application's Message Schema source to construct a valid Message object. The runtime decodes the payload and returns a clean error if it doesn't match.",
-    inputSchema: JSONSchema.make(DispatchMessageInput),
+    inputSchema: toInputSchema(DispatchMessageInput),
     handle: runRuntimeTool(
       DispatchMessageInput,
       ({ message }) => RequestDispatchMessage({ message }),
@@ -399,7 +388,7 @@ export const buildTools = (
         )
         return responseToToolResult(response)
       }).pipe(
-        Effect.catchAll(error => Effect.succeed(formatError(error.message))),
+        Effect.catch(error => Effect.succeed(formatError(error.message))),
       ),
   },
 ]

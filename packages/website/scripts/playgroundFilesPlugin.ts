@@ -23,6 +23,20 @@ const VIRTUAL_MODULE_ID = 'virtual:playground-files'
 const RESOLVED_VIRTUAL_MODULE_ID = '\0' + VIRTUAL_MODULE_ID
 
 const INCLUDED_EXTENSIONS = new Set(['.ts', '.tsx', '.css', '.html', '.json'])
+const EXPECTED_SKIP_EXTENSIONS = new Set([
+  '.gif',
+  '.ico',
+  '.jpeg',
+  '.jpg',
+  '.log',
+  '.map',
+  '.md',
+  '.png',
+  '.svg',
+  '.tsbuildinfo',
+  '.txt',
+  '.webp',
+])
 const EXCLUDED_DIRECTORIES = new Set(['node_modules', 'dist'])
 
 const RUNTIME_DEV_DEPENDENCIES = new Set(['@foldkit/vite-plugin', 'vite'])
@@ -163,14 +177,17 @@ const collectFiles = async (
     }
     const extension = extname(entry.name)
     if (!INCLUDED_EXTENSIONS.has(extension)) {
-      const relativePath = relative(
-        baseDirectory,
-        join(entry.parentPath, entry.name),
-      )
-      console.warn(
-        `[playground-files] Skipping ${relativePath} — extension "${extension}" is not in the playground allowlist. ` +
-          `If this file is needed at runtime, add the extension to INCLUDED_EXTENSIONS in playgroundFilesPlugin.ts.`,
-      )
+      if (!EXPECTED_SKIP_EXTENSIONS.has(extension)) {
+        const relativePath = relative(
+          baseDirectory,
+          join(entry.parentPath, entry.name),
+        )
+        console.warn(
+          `[playground-files] Skipping ${relativePath} — extension "${extension}" is not in the playground allowlist. ` +
+            `If this file is needed at runtime, add the extension to INCLUDED_EXTENSIONS in playgroundFilesPlugin.ts. ` +
+            `If it is intentionally not bundled, add the extension to EXPECTED_SKIP_EXTENSIONS to silence this warning.`,
+        )
+      }
       continue
     }
     const absolutePath = join(entry.parentPath, entry.name)

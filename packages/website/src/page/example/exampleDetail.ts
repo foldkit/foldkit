@@ -39,7 +39,7 @@ export const CurrentSourcesRemoteData = makeRemoteData(S.String, ExampleSources)
 
 export const Model = S.Struct({
   sourceFileTabs: Ui.Tabs.Model,
-  maybeExampleUrl: S.OptionFromSelf(S.String),
+  maybeExampleUrl: S.Option(S.String),
   livePreviewDisclosure: Ui.Disclosure.Model,
   currentSources: CurrentSourcesRemoteData.Union,
 })
@@ -64,14 +64,14 @@ export const FailedLoadExampleSources = m('FailedLoadExampleSources', {
   error: S.String,
 })
 
-export const Message = S.Union(
+export const Message = S.Union([
   GotSourceFileTabsMessage,
   ChangedExampleUrl,
   GotLivePreviewDisclosureMessage,
   StartedLoadExampleSources,
   SucceededLoadExampleSources,
   FailedLoadExampleSources,
-)
+])
 export type Message = typeof Message.Type
 
 // COMMAND
@@ -90,7 +90,7 @@ const loadExampleSources = (slug: string) =>
         error instanceof Error ? error.message : `Unknown example: ${slug}`,
     }).pipe(
       Effect.map(sources => SucceededLoadExampleSources({ sources })),
-      Effect.catchAll(error =>
+      Effect.catch(error =>
         Effect.succeed(FailedLoadExampleSources({ error })),
       ),
     ),

@@ -11,8 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@effect/rpc": "^0.73.2",
-    "effect": "^3.19.19"
+    "effect": "4.0.0-beta.59"
   },
   "devDependencies": {
     "typescript": "^6.0.2"

@@ -2,7 +2,7 @@ import { Array, Option, Schema as S } from 'effect'
 
 type Difficulty = 'Beginner' | 'Intermediate' | 'Advanced'
 
-export const ExampleSlug = S.Literal(
+export const ExampleSlug = S.Literals([
   'counter',
   'todo',
   'stopwatch',
@@ -20,7 +20,7 @@ export const ExampleSlug = S.Literal(
   'kanban',
   'map',
   'ui-showcase',
-)
+])
 export type ExampleSlug = typeof ExampleSlug.Type
 
 export type ExampleMeta = Readonly<{

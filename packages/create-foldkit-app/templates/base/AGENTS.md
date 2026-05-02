@@ -76,7 +76,7 @@ const fetchWeather = (city: string) =>
     // ...
     return SucceededFetchWeather({ data })
   }).pipe(
-    Effect.catchAll(error =>
+    Effect.catch(error =>
       Effect.succeed(FailedFetchWeather({ error: String(error) })),
     ),
     FetchWeather,
@@ -154,7 +154,7 @@ If the `foldkit_*` tools aren't visible, see `@foldkit/devtools-mcp` on npm for 
 - Prefer Effect module functions over native methods when available — e.g. `Array.map`, `Array.filter`, `Option.map`, `String.startsWith` from Effect instead of their native equivalents. This includes Effect's `String` module: use `String.includes`, `String.indexOf` (returns `Option<number>`), `String.slice`, `String.startsWith`, `String.replaceAll`, `String.length`, `String.isNonEmpty`, `String.trim` etc. in `pipe` chains. Exception: native `.map`, `.filter`, `.indexOf()`, `.slice()`, etc. are fine when calling directly on a named variable — use Effect's curried, data-last forms in `pipe` chains where they compose naturally.
 - Never use `for` loops or `let` for iteration. Use `Array.makeBy` for index-based construction, `Array.range` + `Array.findFirst`/`Array.findLast` for searches, and `Array.filterMap`/`Array.flatMap` for transforms.
 - Never cast Schema values with `as Type`. Use callable constructors: `LoginSucceeded({ sessionId })` not `{ _tag: 'LoginSucceeded', sessionId } as Message`.
-- Use `Option` for model fields that may be absent — not empty strings or zero values. `loginError: S.OptionFromSelf(S.String)` not `loginError: S.String` with `''` as the "none" state. Use `Option.match` in views to conditionally render.
+- Use `Option` for model fields that may be absent — not empty strings or zero values. `loginError: S.Option(S.String)` not `loginError: S.String` with `''` as the "none" state. Use `Option.match` in views to conditionally render.
 - Use `Array.take` instead of `.slice(0, n)`.
 - Always use `Array.isEmptyArray(foo)` instead of `foo.length === 0`. Use `Array.isNonEmptyArray(foo)` for non-empty checks. When handling both cases, prefer `Array.match`.
 
@@ -167,12 +167,16 @@ const ClickedSubmit = m('ClickedSubmit')
 const ChangedEmail = m('ChangedEmail', { value: S.String })
 const CompletedNavigateInternal = m('CompletedNavigateInternal')
 
-const Message = S.Union(ClickedSubmit, ChangedEmail, CompletedNavigateInternal)
+const Message = S.Union([
+  ClickedSubmit,
+  ChangedEmail,
+  CompletedNavigateInternal,
+])
 type Message = typeof Message.Type
 ```
 
 1. **Values** — all `m()` declarations, no blank lines between them
-2. **Union + type** — `S.Union(...)` followed by `type Message = typeof Message.Type` on adjacent lines (no blank line between them)
+2. **Union + type** — `S.Union([...])` followed by `type Message = typeof Message.Type` on adjacent lines (no blank line between them)
 
 Use `typeof ClickedSubmit` in type positions to reference a schema value's type.
 
@@ -184,7 +188,7 @@ Use `typeof ClickedSubmit` in type positions to reference a schema value's type.
 - Always use braces for control flow. `if (foo) { return true }` not `if (foo) return true`.
 - Use `is*` for boolean naming e.g. `isPlaying`, `isValid`.
 - Don't add inline or block comments to explain code — if code needs explanation, refactor for clarity or use better names. Exceptions: section headers (see File Organization above) and TSDoc (`/** ... */`) on public exports.
-- Use capitalized string literals for Schema literal types: `S.Literal('Horizontal', 'Vertical')` not `S.Literal('horizontal', 'vertical')`.
+- Use capitalized string literals for Schema literal types: `S.Literals(['Horizontal', 'Vertical'])` not `S.Literals(['horizontal', 'vertical'])`.
 - Capitalize namespace imports: `import * as Command from './command'` not `import * as command from './command'`.
 - Extract magic numbers to named constants. No raw numeric literals in logic.
 - Never use `T[]` syntax. Always use `Array<T>` or `ReadonlyArray<T>`.

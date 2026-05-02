@@ -6,7 +6,7 @@ import { m } from '../../message/index.js'
 // CHILD MODEL
 
 export const ChildModel = S.Struct({
-  status: S.Literal('Idle', 'Submitting', 'Submitted'),
+  status: S.Literals(['Idle', 'Submitting', 'Submitted']),
 })
 export type ChildModel = typeof ChildModel.Type
 
@@ -17,12 +17,12 @@ export const SucceededSubmit = m('SucceededSubmit', { id: S.String })
 export const CancelledForm = m('CancelledForm')
 export const CompletedReset = m('CompletedReset')
 
-export const ChildMessage = S.Union(
+export const ChildMessage = S.Union([
   SubmittedForm,
   SucceededSubmit,
   CancelledForm,
   CompletedReset,
-)
+])
 export type ChildMessage = typeof ChildMessage.Type
 
 // CHILD OUT MESSAGE
@@ -30,7 +30,7 @@ export type ChildMessage = typeof ChildMessage.Type
 export const RequestedSave = m('RequestedSave', { id: S.String })
 export const RequestedCancel = m('RequestedCancel')
 
-export const ChildOutMessage = S.Union(RequestedSave, RequestedCancel)
+export const ChildOutMessage = S.Union([RequestedSave, RequestedCancel])
 export type ChildOutMessage = typeof ChildOutMessage.Type
 
 // CHILD COMMAND
@@ -101,7 +101,7 @@ export const GotChildMessage = m('GotChildMessage', {
 })
 export const CompletedParentReset = m('CompletedParentReset')
 
-export const ParentMessage = S.Union(GotChildMessage, CompletedParentReset)
+export const ParentMessage = S.Union([GotChildMessage, CompletedParentReset])
 export type ParentMessage = typeof ParentMessage.Type
 
 // PARENT INIT

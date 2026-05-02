@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-import { Command, HelpDoc, Options } from '@effect/cli'
-import { FetchHttpClient } from '@effect/platform'
-import { NodeContext, NodeRuntime } from '@effect/platform-node'
-import { Effect, Match, Option, Schema, String, flow } from 'effect'
+import { NodeRuntime, NodeServices, NodeStdio } from '@effect/platform-node'
+import { Effect, Layer, Option, Schema } from 'effect'
+import { Command, Flag } from 'effect/unstable/cli'
+import { FetchHttpClient } from 'effect/unstable/http'
 import { createRequire } from 'node:module'
 
 import { create as create_ } from './commands/create.js'
+import { EXAMPLE_VALUES } from './examples.js'
+import { validateProjectName } from './validateName.js'
 
 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
 const packageJson = createRequire(import.meta.url)('../package.json') as {
@@ -13,88 +15,41 @@ const packageJson = createRequire(import.meta.url)('../package.json') as {
 }
 
 const nameSchema = Schema.String.pipe(
-  Schema.filter(name =>
-    Match.value(name).pipe(
-      Match.whenOr(
-        String.includes('/'),
-        String.includes('\\'),
-        () => 'Project name cannot contain path separators (/ or \\)',
-      ),
-      Match.when(
-        String.includes(' '),
-        () => 'Project name cannot contain spaces',
-      ),
-      Match.when(
-        flow(String.match(/[<>:"|?*]/), Option.isSome),
-        () => 'Project name cannot contain special characters: < > : " | ? *',
-      ),
-      Match.whenOr(
-        String.startsWith('.'),
-        String.startsWith('-'),
-        () => 'Project name cannot start with . or -',
-      ),
-      Match.when(String.isEmpty, () => 'Project name cannot be empty'),
-      Match.orElse(() => true),
+  Schema.check(
+    Schema.makeFilter<string>(value =>
+      Option.match(validateProjectName(value), {
+        onNone: () => true,
+        onSome: message => message,
+      }),
     ),
   ),
 )
 
-const name = Options.text('name').pipe(
-  Options.withAlias('n'),
-  Options.withDescription('The name of the project to create'),
-  Options.withSchema(nameSchema),
+const name = Flag.string('name').pipe(
+  Flag.withAlias('n'),
+  Flag.withDescription('The name of the project to create'),
+  Flag.withSchema(nameSchema),
+  Flag.optional,
 )
 
-const example = Options.choice('example', [
-  'counter',
-  'todo',
-  'stopwatch',
-  'crash-view',
-  'form',
-  'job-application',
-  'weather',
-  'routing',
-  'query-sync',
-  'snake',
-  'auth',
-  'shopping-cart',
-  'pixel-art',
-  'websocket-chat',
-  'kanban',
-  'ui-showcase',
-]).pipe(
-  Options.withAlias('e'),
-  Options.withDescription(
-    "The example application to start from. Pick an example that's similar to the application you're building. Or create multiple projects and take pieces of each!\n\n" +
-      'Available examples:\n' +
-      '  counter - Simple increment/decrement with reset\n' +
-      '  todo - CRUD operations with localStorage persistence\n' +
-      '  stopwatch - Timer with start/stop/reset functionality\n' +
-      '  crash-view - Custom crash fallback UI with crash.view and crash.report\n' +
-      '  form - Form validation with async email checking\n' +
-      '  job-application - Multi-step form with async validation, file uploads, and per-step error indicators\n' +
-      '  weather - HTTP requests with async state handling\n' +
-      '  routing - URL routing with parser combinators and route parameters\n' +
-      '  query-sync - URL-driven filtering, sorting, and search with query parameters\n' +
-      '  snake - Classic game built with subscriptions\n' +
-      '  auth - Authentication with Submodels, OutMessage, and protected routes\n' +
-      '  shopping-cart - Complex state management with nested models and routing\n' +
-      '  pixel-art - Pixel editor with undo/redo, time-travel history, UI components, and localStorage persistence\n' +
-      '  websocket-chat - Managed resources with WebSocket integration\n' +
-      '  kanban - Drag-and-drop board with fractional indexing, keyboard navigation, and screen reader announcements\n' +
-      '  ui-showcase - Every Foldkit UI component with routing and Submodels',
+const example = Flag.choice('example', EXAMPLE_VALUES).pipe(
+  Flag.withAlias('e'),
+  Flag.withDescription(
+    "The example application to start from. Run with no flags for an interactive picker that shows each example's description.",
   ),
+  Flag.optional,
 )
 
-const packageManager = Options.choice('package-manager', [
+const packageManager = Flag.choice('package-manager', [
   'pnpm',
   'npm',
   'yarn',
 ]).pipe(
-  Options.withAlias('p'),
-  Options.withDescription(
+  Flag.withAlias('p'),
+  Flag.withDescription(
     'The package manager to use for installing dependencies',
   ),
+  Flag.optional,
 )
 
 const create = Command.make(
@@ -105,15 +60,16 @@ const create = Command.make(
     packageManager,
   },
   create_,
-)
+).pipe(Command.withDescription('Create a new Foldkit application'))
 
 const cli = Command.run(create, {
-  name: 'Create Foldkit App',
   version: packageJson.version,
-  summary: HelpDoc.getSpan(HelpDoc.p('Create a new Foldkit application')),
 })
 
-cli(process.argv).pipe(
-  Effect.provide([FetchHttpClient.layer, NodeContext.layer]),
+cli.pipe(
+  Effect.provide([
+    FetchHttpClient.layer,
+    Layer.mergeAll(NodeServices.layer, NodeStdio.layer),
+  ]),
   NodeRuntime.runMain,
 )

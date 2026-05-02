@@ -1,4 +1,10 @@
-import { ParseResult, Schema as S } from 'effect'
+import {
+  Effect,
+  Option,
+  Schema as S,
+  SchemaIssue,
+  SchemaTransformation,
+} from 'effect'
 
 /**
  * Determines if a year is a leap year in the Gregorian calendar.
@@ -66,14 +72,18 @@ export const daysInMonth = (year: number, month: number): number => {
  */
 export const CalendarDate = S.Struct({
   year: S.Int,
-  month: S.Int.pipe(S.between(1, 12)),
-  day: S.Int.pipe(S.between(1, 31)),
-}).pipe(
-  S.filter(({ year, month, day }) => day <= daysInMonth(year, month), {
-    identifier: 'CalendarDate',
-    description:
-      'a valid calendar date (year, month 1-12, day within month length)',
-  }),
+  month: S.Int.check(S.isBetween({ minimum: 1, maximum: 12 })),
+  day: S.Int.check(S.isBetween({ minimum: 1, maximum: 31 })),
+}).check(
+  S.makeFilter(
+    ({ year, month, day }) =>
+      day <= daysInMonth(year, month) ? undefined : 'invalid calendar date',
+    {
+      identifier: 'CalendarDate',
+      description:
+        'a valid calendar date (year, month 1-12, day within month length)',
+    },
+  ),
 )
 
 export type CalendarDate = typeof CalendarDate.Type
@@ -121,7 +131,7 @@ export const unsafeMake = (
   month: number,
   day: number,
 ): CalendarDate =>
-  CalendarDate.make({ year, month, day }, { disableValidation: true })
+  CalendarDate.make({ year, month, day }, { disableChecks: true })
 
 /**
  * Constructs a `CalendarDate` from a JavaScript `Date` object, reading the
@@ -185,7 +195,7 @@ export const toDateLocal = (calendarDate: CalendarDate): Date =>
 const isoPattern = /^(\d{4})-(\d{2})-(\d{2})$/
 
 /**
- * Schema transform between an ISO 8601 date string (`YYYY-MM-DD`) and a
+ * Schema codec between an ISO 8601 date string (`YYYY-MM-DD`) and a
  * `CalendarDate`. Useful for form inputs, JSON serialization, URL query
  * parameters, and hidden form input values.
  *
@@ -204,32 +214,30 @@ const isoPattern = /^(\d{4})-(\d{2})-(\d{2})$/
  * encode(Calendar.make(2026, 4, 13)) // "2026-04-13"
  * ```
  */
-export const CalendarDateFromIsoString = S.transformOrFail(
-  S.String,
-  CalendarDate,
-  {
-    strict: true,
-    decode: (input, _options, ast) => {
-      const match = input.match(isoPattern)
-      if (match === null) {
-        return ParseResult.fail(
-          new ParseResult.Type(
-            ast,
-            input,
-            `Expected ISO date (YYYY-MM-DD), got ${JSON.stringify(input)}`,
-          ),
-        )
-      }
-      const [, yearString, monthString, dayString] = match
-      return ParseResult.succeed({
-        year: Number(yearString),
-        month: Number(monthString),
-        day: Number(dayString),
-      })
-    },
-    encode: ({ year, month, day }) =>
-      ParseResult.succeed(
-        `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
-      ),
-  },
+export const CalendarDateFromIsoString = S.String.pipe(
+  S.decodeTo(
+    CalendarDate,
+    SchemaTransformation.transformOrFail({
+      decode: input => {
+        const match = input.match(isoPattern)
+        if (match === null) {
+          return Effect.fail(
+            new SchemaIssue.InvalidValue(Option.some(input), {
+              description: `Expected ISO date (YYYY-MM-DD), got ${JSON.stringify(input)}`,
+            }),
+          )
+        }
+        const [, yearString, monthString, dayString] = match
+        return Effect.succeed({
+          year: Number(yearString),
+          month: Number(monthString),
+          day: Number(dayString),
+        })
+      },
+      encode: ({ year, month, day }) =>
+        Effect.succeed(
+          `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+        ),
+    }),
+  ),
 )

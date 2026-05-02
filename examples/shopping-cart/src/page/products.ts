@@ -42,7 +42,7 @@ export type Model = typeof Model.Type
 const CompletedReplaceUrl = m('CompletedReplaceUrl')
 const ChangedSearchInput = m('ChangedSearchInput', { value: S.String })
 
-export const Message = S.Union(CompletedReplaceUrl, ChangedSearchInput)
+export const Message = S.Union([CompletedReplaceUrl, ChangedSearchInput])
 export type Message = typeof Message.Type
 
 // INIT
@@ -79,7 +79,7 @@ export const update =
             ReplaceSearchUrl(
               replaceUrl(
                 productsRouter({
-                  searchText: Option.fromNullable(value || null),
+                  searchText: Option.fromNullishOr(value || null),
                 }),
               ).pipe(Effect.as(CompletedReplaceUrl())),
             ),

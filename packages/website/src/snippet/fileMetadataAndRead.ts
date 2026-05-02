@@ -14,7 +14,7 @@ const readAvatarPreview = (file: File.File) =>
   ReadAvatarPreview(
     File.readAsDataUrl(file).pipe(
       Effect.map(dataUrl => SucceededReadAvatarPreview({ dataUrl })),
-      Effect.catchAll(error =>
+      Effect.catch(error =>
         Effect.succeed(FailedReadAvatarPreview({ reason: error.reason })),
       ),
     ),

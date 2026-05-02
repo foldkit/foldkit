@@ -53,7 +53,7 @@ describe('name / size / mimeType', () => {
 })
 
 describe('readAsText', () => {
-  it.scoped('reads the file contents as a UTF-8 string', () =>
+  it.effect('reads the file contents as a UTF-8 string', () =>
     Effect.gen(function* () {
       const file = makeTextFile('hello world', 'greeting.txt')
       const text = yield* readAsText(file)
@@ -61,7 +61,7 @@ describe('readAsText', () => {
     }),
   )
 
-  it.scoped('handles empty files', () =>
+  it.effect('handles empty files', () =>
     Effect.gen(function* () {
       const file = makeTextFile('', 'empty.txt')
       const text = yield* readAsText(file)
@@ -69,7 +69,7 @@ describe('readAsText', () => {
     }),
   )
 
-  it.scoped('fails with FileReadError on an unreadable file', () =>
+  it.effect('fails with FileReadError on an unreadable file', () =>
     Effect.gen(function* () {
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       const bogus = {} as File
@@ -80,7 +80,7 @@ describe('readAsText', () => {
 })
 
 describe('readAsDataUrl', () => {
-  it.scoped('reads the file contents as a data URL', () =>
+  it.effect('reads the file contents as a data URL', () =>
     Effect.gen(function* () {
       const file = makeTextFile('abc', 'a.txt')
       const dataUrl = yield* readAsDataUrl(file)
@@ -91,7 +91,7 @@ describe('readAsDataUrl', () => {
 })
 
 describe('readAsArrayBuffer', () => {
-  it.scoped('reads the file contents as an ArrayBuffer', () =>
+  it.effect('reads the file contents as an ArrayBuffer', () =>
     Effect.gen(function* () {
       const bytes = new Uint8Array([0x01, 0x02, 0x03, 0x04])
       const file = makeBinaryFile(bytes, 'raw.bin')
@@ -104,10 +104,10 @@ describe('readAsArrayBuffer', () => {
 })
 
 describe('select', () => {
-  it.scoped('mounts a hidden single-select input with the given accept', () =>
+  it.effect('mounts a hidden single-select input with the given accept', () =>
     Effect.gen(function* () {
-      const fiber = yield* Effect.fork(select(['application/pdf']))
-      yield* Effect.yieldNow()
+      const fiber = yield* Effect.forkChild(select(['application/pdf']))
+      yield* Effect.yieldNow
 
       const input = findHiddenFileInput()
       expect(input.type).toBe('file')
@@ -125,12 +125,12 @@ describe('select', () => {
     }),
   )
 
-  it.scoped('joins multiple accept values into a comma-separated list', () =>
+  it.effect('joins multiple accept values into a comma-separated list', () =>
     Effect.gen(function* () {
-      const fiber = yield* Effect.fork(
+      const fiber = yield* Effect.forkChild(
         select(['image/png', 'image/jpeg', 'image/webp']),
       )
-      yield* Effect.yieldNow()
+      yield* Effect.yieldNow
 
       const input = findHiddenFileInput()
       expect(input.accept).toBe('image/png,image/jpeg,image/webp')
@@ -140,10 +140,10 @@ describe('select', () => {
     }),
   )
 
-  it.scoped('resolves with an empty array when no files are selected', () =>
+  it.effect('resolves with an empty array when no files are selected', () =>
     Effect.gen(function* () {
-      const fiber = yield* Effect.fork(select(['*/*']))
-      yield* Effect.yieldNow()
+      const fiber = yield* Effect.forkChild(select(['*/*']))
+      yield* Effect.yieldNow
 
       const input = findHiddenFileInput()
       simulateFileSelection(input, [])
@@ -153,10 +153,10 @@ describe('select', () => {
     }),
   )
 
-  it.scoped('removes the hidden input from the DOM after resolving', () =>
+  it.effect('removes the hidden input from the DOM after resolving', () =>
     Effect.gen(function* () {
-      const fiber = yield* Effect.fork(select(['*/*']))
-      yield* Effect.yieldNow()
+      const fiber = yield* Effect.forkChild(select(['*/*']))
+      yield* Effect.yieldNow
 
       const input = findHiddenFileInput()
       expect(input.isConnected).toBe(true)
@@ -170,12 +170,12 @@ describe('select', () => {
 })
 
 describe('selectMultiple', () => {
-  it.scoped(
+  it.effect(
     'mounts a hidden multi-select input and resolves with all files',
     () =>
       Effect.gen(function* () {
-        const fiber = yield* Effect.fork(selectMultiple(['image/*']))
-        yield* Effect.yieldNow()
+        const fiber = yield* Effect.forkChild(selectMultiple(['image/*']))
+        yield* Effect.yieldNow
 
         const input = findHiddenFileInput()
         expect(input.multiple).toBe(true)

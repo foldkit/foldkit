@@ -4,10 +4,10 @@ import { Context, HashMap, HashSet, Layer, Ref, SubscriptionRef } from 'effect'
 type RoomId = string
 type RoomById = HashMap.HashMap<RoomId, Shared.Room>
 
-export class RoomByIdStore extends Context.Tag('RoomByIdStore')<
+export class RoomByIdStore extends Context.Service<
   RoomByIdStore,
   SubscriptionRef.SubscriptionRef<RoomById>
->() {}
+>()('RoomByIdStore') {}
 
 export const RoomByIdStoreLive = Layer.effect(
   RoomByIdStore,
@@ -19,12 +19,10 @@ export type ProgressByGamePlayer = HashMap.HashMap<
   Shared.PlayerProgress
 >
 
-export class ProgressByGamePlayerStore extends Context.Tag(
-  'ProgressByGamePlayerStore',
-)<
+export class ProgressByGamePlayerStore extends Context.Service<
   ProgressByGamePlayerStore,
   SubscriptionRef.SubscriptionRef<ProgressByGamePlayer>
->() {}
+>()('ProgressByGamePlayerStore') {}
 
 export const ProgressByGamePlayerStoreLive = Layer.effect(
   ProgressByGamePlayerStore,
@@ -36,9 +34,10 @@ export const ProgressByGamePlayerStoreLive = Layer.effect(
 type PlayerId = string
 export type PendingCleanupPlayerIds = HashSet.HashSet<PlayerId>
 
-export class PendingCleanupPlayerIdsStore extends Context.Tag(
-  'PendingCleanupPlayerIdsStore',
-)<PendingCleanupPlayerIdsStore, Ref.Ref<PendingCleanupPlayerIds>>() {}
+export class PendingCleanupPlayerIdsStore extends Context.Service<
+  PendingCleanupPlayerIdsStore,
+  Ref.Ref<PendingCleanupPlayerIds>
+>()('PendingCleanupPlayerIdsStore') {}
 
 export const PendingCleanupPlayerIdsStoreLive = Layer.effect(
   PendingCleanupPlayerIdsStore,

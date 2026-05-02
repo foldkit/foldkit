@@ -281,11 +281,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        inlineCode('S.OptionFromUndefinedOr'),
+        inlineCode('S.OptionFromOptional'),
         ' makes parameters optional. Missing params become ',
         inlineCode('Option.none()'),
         '. ',
-        inlineCode('S.NumberFromString'),
+        inlineCode('S.FiniteFromString'),
         ' automatically parses string query values into numbers.',
       ),
       para(

@@ -3,39 +3,23 @@ import { Ui } from 'foldkit'
 
 // CONSTANT
 
-export const PaletteIndex = S.Literal(
-  0,
-  1,
-  2,
-  3,
-  4,
-  5,
-  6,
-  7,
-  8,
-  9,
-  10,
-  11,
-  12,
-  13,
-  14,
-  15,
-)
+export const PaletteIndex = S.Literals([
+  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+])
 export type PaletteIndex = typeof PaletteIndex.Type
 
-export const HexColor = S.String.pipe(
-  S.pattern(/^#[0-9a-f]{6}$/),
+export const HexColor = S.String.check(S.isPattern(/^#[0-9a-f]{6}$/)).pipe(
   S.brand('HexColor'),
 )
 export type HexColor = typeof HexColor.Type
 
-export const Tool = S.Literal('Brush', 'Fill', 'Eraser')
+export const Tool = S.Literals(['Brush', 'Fill', 'Eraser'])
 export type Tool = typeof Tool.Type
 
-export const MirrorMode = S.Literal('None', 'Horizontal', 'Vertical', 'Both')
+export const MirrorMode = S.Literals(['None', 'Horizontal', 'Vertical', 'Both'])
 export type MirrorMode = typeof MirrorMode.Type
 
-export const Cell = S.OptionFromSelf(PaletteIndex)
+export const Cell = S.Option(PaletteIndex)
 export type Cell = typeof Cell.Type
 
 const Row = S.Array(Cell)
@@ -56,6 +40,10 @@ export const SavedCanvas = S.Struct({
 })
 export type SavedCanvas = typeof SavedCanvas.Type
 
+export const SavedCanvasJsonString = S.fromJsonString(
+  S.toCodecJson(SavedCanvas),
+)
+
 // MODEL
 
 export const Model = S.Struct({
@@ -67,12 +55,12 @@ export const Model = S.Struct({
   tool: Tool,
   mirrorMode: MirrorMode,
   isDrawing: S.Boolean,
-  maybeHoveredCell: S.OptionFromSelf(Position),
+  maybeHoveredCell: S.Option(Position),
   errorDialog: Ui.Dialog.Model,
-  maybeExportError: S.OptionFromSelf(S.String),
+  maybeExportError: S.Option(S.String),
   paletteThemeIndex: S.Number,
   gridSizeConfirmDialog: Ui.Dialog.Model,
-  maybePendingGridSize: S.OptionFromSelf(S.Number),
+  maybePendingGridSize: S.Option(S.Number),
   toolRadioGroup: Ui.RadioGroup.Model,
   gridSizeRadioGroup: Ui.RadioGroup.Model,
   paletteRadioGroup: Ui.RadioGroup.Model,

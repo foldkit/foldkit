@@ -1,4 +1,3 @@
-import { Rpc } from '@effect/rpc'
 import * as Shared from '@typing-game/shared'
 import {
   Array,
@@ -10,6 +9,7 @@ import {
   SubscriptionRef,
   pipe,
 } from 'effect'
+import { Rpc } from 'effect/unstable/rpc'
 import { randomUUID } from 'node:crypto'
 
 import { gameSequence } from '../game.js'
@@ -68,19 +68,19 @@ export const startGame =
         }),
       )
 
-      return yield* gameSequence.pipe(
+      yield* gameSequence.pipe(
         Stream.mapEffect(updateRoomStatus(roomByIdRef, payload.roomId), {
           concurrency: 'unbounded',
         }),
         Stream.runDrain,
-        Effect.zipRight(
+        Effect.andThen(
           finalizeGameScoreboard(
             roomByIdRef,
             progressByGamePlayerRef,
             payload.roomId,
           ),
         ),
-        Effect.forkDaemon,
+        Effect.forkDetach,
       )
     })
 

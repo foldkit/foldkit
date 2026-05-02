@@ -20,9 +20,10 @@ import {
 // MODEL
 
 /** Schema for the multi-select combobox component's state, tracking open/closed status, active item, input value, and selected items. */
-export const Model = BaseModel.pipe(
-  S.extend(S.Struct({ selectedItems: S.Array(S.String) })),
-)
+export const Model = S.Struct({
+  ...BaseModel.fields,
+  selectedItems: S.Array(S.String),
+})
 
 export type Model = typeof Model.Type
 

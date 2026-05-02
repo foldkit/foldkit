@@ -207,7 +207,7 @@ const playgroundMenuView = (
     model: menuModel,
     toParentMessage: message => GotPlaygroundMenuMessage({ message }),
     onSelectedItem: index =>
-      SelectedPlaygroundExample({ slug: Array.unsafeGet(slugs, index) }),
+      SelectedPlaygroundExample({ slug: Array.getUnsafe(slugs, index) }),
     anchor: PLAYGROUND_MENU_ANCHOR,
     items: slugs,
     itemToConfig: slug => ({

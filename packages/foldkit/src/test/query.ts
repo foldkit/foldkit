@@ -6,6 +6,7 @@ import {
   Option,
   Predicate,
   Record,
+  Result,
   String as String_,
   flow,
   pipe,
@@ -119,7 +120,7 @@ const tryParseAttribute = (
             evo(accumulator, {
               attributes: Array.append({
                 name,
-                value: Option.fromNullable(match[3]),
+                value: Option.fromNullishOr(match[3]),
                 mode,
               }),
             }),
@@ -186,8 +187,8 @@ const lookupAttribute =
   (vnode: VNode): Option.Option<unknown> =>
     pipe(
       vnode.data?.attrs?.[name],
-      Option.fromNullable,
-      Option.orElse(() => Option.fromNullable(vnode.data?.props?.[name])),
+      Option.fromNullishOr,
+      Option.orElse(() => Option.fromNullishOr(vnode.data?.props?.[name])),
     )
 
 const lookupStringAttribute =
@@ -201,7 +202,7 @@ const isVNode = (child: VNode | string): child is VNode =>
   !Predicate.isString(child)
 
 const vnodeChildren = (vnode: VNode): ReadonlyArray<VNode> =>
-  Array.filterMap(vnode.children ?? [], Option.liftPredicate(isVNode))
+  Array.filter(vnode.children ?? [], isVNode)
 
 const collectDescendants = (vnode: VNode): ReadonlyArray<VNode> =>
   Array.flatMap(vnodeChildren(vnode), child => [
@@ -252,7 +253,7 @@ const FORM_CONTROL_TAGS = ['input', 'select', 'textarea', 'button', 'output']
 const isFormControl = (node: VNode): boolean =>
   pipe(
     node.sel,
-    Option.fromNullable,
+    Option.fromNullishOr,
     Option.exists(sel => Array.contains(FORM_CONTROL_TAGS, sel)),
   )
 
@@ -290,7 +291,7 @@ const matchesAttribute =
     if (name === 'key') {
       return pipe(
         vnode.key,
-        Option.fromNullable,
+        Option.fromNullishOr,
         Option.map(key =>
           typeof key === 'symbol' ? key.toString() : String(key),
         ),
@@ -468,7 +469,7 @@ const implicitRole =
   (vnode: VNode): Option.Option<string> =>
     pipe(
       vnode.sel,
-      Option.fromNullable,
+      Option.fromNullishOr,
       Option.flatMap(tag =>
         Match.value(tag).pipe(
           Match.when('input', () => inputRole(vnode)),
@@ -520,7 +521,13 @@ const nameFromLabelledBy =
         pipe(
           labelledBy,
           String_.split(WHITESPACE_PATTERN),
-          Array.filterMap(flow(findById(root), Option.map(textContent))),
+          Array.filterMap(
+            flow(
+              findById(root),
+              Option.map(textContent),
+              Result.fromOption(() => undefined),
+            ),
+          ),
           Array.join(' '),
         ),
       ),
@@ -635,7 +642,13 @@ export const accessibleDescription =
         onNone: () => '',
         onSome: flow(
           String_.split(WHITESPACE_PATTERN),
-          Array.filterMap(flow(findById(root), Option.map(textContent))),
+          Array.filterMap(
+            flow(
+              findById(root),
+              Option.map(textContent),
+              Result.fromOption(() => undefined),
+            ),
+          ),
           Array.join(' '),
         ),
       }),
@@ -710,7 +723,7 @@ const attrImpl = (vnode: VNode, name: string): Option.Option<string> => {
   if (name === 'class') {
     return pipe(
       vnode.data?.class,
-      Option.fromNullable,
+      Option.fromNullishOr,
       Option.map(
         flow(
           Record.toEntries,
@@ -739,7 +752,7 @@ const HEADING_LEVEL_PATTERN = /^h([1-6])$/
 const headingLevelFromTag = (vnode: VNode): Option.Option<number> =>
   pipe(
     vnode.sel,
-    Option.fromNullable,
+    Option.fromNullishOr,
     Option.flatMap(String_.match(HEADING_LEVEL_PATTERN)),
     Option.map(match => Number(match[1])),
   )
@@ -951,13 +964,16 @@ export const getByLabel =
             node => node.sel === 'label' && textContent(node) === labelValue,
           ),
           Array.filterMap(labelNode =>
-            pipe(
-              labelNode,
-              lookupStringAttribute('htmlFor'),
-              Option.flatMap(findById(html)),
-              Option.orElse(() =>
-                Array.findFirst(collectDescendants(labelNode), isFormControl),
+            Result.fromOption(
+              pipe(
+                labelNode,
+                lookupStringAttribute('htmlFor'),
+                Option.flatMap(findById(html)),
+                Option.orElse(() =>
+                  Array.findFirst(collectDescendants(labelNode), isFormControl),
+                ),
               ),
+              () => undefined,
             ),
           ),
           Array.head,
@@ -1012,7 +1028,10 @@ export const getAllByLabel =
       flow(nameFromLabelledBy(html), Option.exists(Equal.equals(labelValue))),
     )
 
-    return Array.dedupe([...viaAriaLabel, ...viaLabelElement, ...viaLabelledBy])
+    return Array.dedupeWith(
+      [...viaAriaLabel, ...viaLabelElement, ...viaLabelledBy],
+      (a, b) => a === b,
+    )
   }
 
 /** Finds the first element with the given `alt` attribute. */

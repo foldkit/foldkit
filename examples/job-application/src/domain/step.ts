@@ -1,6 +1,6 @@
 import { Match as M, Schema as S } from 'effect'
 
-export const Step = S.Literal(
+export const Step = S.Literals([
   'PersonalInfo',
   'WorkHistory',
   'Education',
@@ -8,7 +8,7 @@ export const Step = S.Literal(
   'CoverLetter',
   'Attachments',
   'Review',
-)
+])
 export type Step = typeof Step.Type
 
 export const all = Step.literals

@@ -850,6 +850,7 @@ const buildVNodeData = <Message>(
 ): Effect.Effect<VNodeData, never, Dispatch> =>
   Effect.gen(function* () {
     const { dispatchSync } = yield* Dispatch
+    const capturedContext = yield* Effect.context<never>()
     const dataRef = yield* Ref.make<VNodeData>({})
 
     const setData = <K extends keyof VNodeData>(key: K, value: VNodeData[K]) =>
@@ -1509,7 +1510,7 @@ const buildVNodeData = <Message>(
                       cleanup: Option.none(),
                     }
                     onMountStates.set(element, state)
-                    Effect.runFork(
+                    Effect.runForkWith(capturedContext)(
                       Effect.gen(function* () {
                         const { message, cleanup } = yield* action.f(element)
                         if (state.destroyed) {
@@ -1519,7 +1520,7 @@ const buildVNodeData = <Message>(
                           dispatchSync(message)
                         }
                       }).pipe(
-                        Effect.catchAllCause(cause =>
+                        Effect.catchCause(cause =>
                           Effect.sync(() => {
                             console.error(
                               `[OnMount ${action.name}] unhandled failure`,
@@ -1552,7 +1553,7 @@ const buildVNodeData = <Message>(
 
     const postpatchProps = yield* Ref.get(postpatchPropsRef)
 
-    if (Array.isNonEmptyArray(postpatchProps)) {
+    if (Array.isReadonlyArrayNonEmpty(postpatchProps)) {
       yield* Ref.update(dataRef, data => ({
         ...data,
         hook: {

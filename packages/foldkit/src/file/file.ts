@@ -13,7 +13,7 @@ export type File = globalThis.File
  * Use in Model fields that hold user-selected files:
  *
  * ```ts
- * attachedResume: S.OptionFromSelf(File.File)
+ * attachedResume: S.Option(File.File)
  * ```
  */
 export const File: S.Schema<File> = S.instanceOf(globalThis.File)

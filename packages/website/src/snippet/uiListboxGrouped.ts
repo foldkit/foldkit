@@ -11,7 +11,7 @@ import { Class, div, span } from './html'
 // Add a field to your Model for the Listbox Submodel, plus a field for
 // the selected value your app actually cares about:
 const Model = S.Struct({
-  maybeCharacter: S.OptionFromSelf(S.String),
+  maybeCharacter: S.Option(S.String),
   listbox: Ui.Listbox.Model,
   // ...your other fields
 })

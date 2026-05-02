@@ -23,14 +23,14 @@ export const FocusedInput = m('FocusedInput')
 export const BlurredInput = m('BlurredInput')
 export const ChangedSelect = m('ChangedSelect', { value: S.String })
 
-export const Message = S.Union(
+export const Message = S.Union([
   ClickedButton,
   DoubleClickedButton,
   HoveredTarget,
   FocusedInput,
   BlurredInput,
   ChangedSelect,
-)
+])
 export type Message = typeof Message.Type
 
 // INIT

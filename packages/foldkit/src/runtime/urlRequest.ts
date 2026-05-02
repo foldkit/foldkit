@@ -18,6 +18,6 @@ export const External = ts('External', {
 export type External = typeof External.Type
 
 /** Union of `Internal` and `External` URL request types. */
-export const UrlRequest = S.Union(Internal, External)
+export const UrlRequest = S.Union([Internal, External])
 /** Union of `Internal` and `External` URL request types. */
 export type UrlRequest = typeof UrlRequest.Type

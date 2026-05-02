@@ -106,7 +106,7 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
   },
   {
     name: 'showDelay',
-    type: 'Duration.DurationInput',
+    type: 'Duration.Input',
     default: 'Duration.millis(500)',
     description:
       'How long the pointer must hover before the tooltip appears. Accepts any Effect Duration input. A bare number is interpreted as milliseconds. Keyboard focus shows the tooltip immediately regardless of this value.',
@@ -173,7 +173,7 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
 const programmaticHelpers: ReadonlyArray<PropEntry> = [
   {
     name: 'setShowDelay',
-    type: '(model: Model, showDelay: Duration.DurationInput) => [Model, Commands]',
+    type: '(model: Model, showDelay: Duration.Input) => [Model, Commands]',
     description:
       'Updates the hover show-delay. Accepts any Effect Duration input (a bare number is interpreted as milliseconds). Applies to subsequent hovers; any in-flight delay is invalidated.',
   },

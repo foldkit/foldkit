@@ -19,7 +19,7 @@ export const GeneratedCardId = m('GeneratedCardId', {
 export const CompletedSaveBoard = m('CompletedSaveBoard')
 export const CompletedFocusAddCardInput = m('CompletedFocusAddCardInput')
 
-export const Message = S.Union(
+export const Message = S.Union([
   GotDragAndDropMessage,
   ClickedAddCard,
   ChangedNewCardTitle,
@@ -28,5 +28,5 @@ export const Message = S.Union(
   GeneratedCardId,
   CompletedSaveBoard,
   CompletedFocusAddCardInput,
-)
+])
 export type Message = typeof Message.Type

@@ -1,10 +1,10 @@
-import { Option, Schema as S } from 'effect'
+import { Effect, Option, Schema as S } from 'effect'
 
 export const TypeDocFlags = S.Struct({
-  isOptional: S.optionalWith(S.Boolean, { default: () => false }),
-  isPrivate: S.optionalWith(S.Boolean, { default: () => false }),
-  isProtected: S.optionalWith(S.Boolean, { default: () => false }),
-  isStatic: S.optionalWith(S.Boolean, { default: () => false }),
+  isOptional: S.Boolean.pipe(S.withDecodingDefaultKey(Effect.succeed(false))),
+  isPrivate: S.Boolean.pipe(S.withDecodingDefaultKey(Effect.succeed(false))),
+  isProtected: S.Boolean.pipe(S.withDecodingDefaultKey(Effect.succeed(false))),
+  isStatic: S.Boolean.pipe(S.withDecodingDefaultKey(Effect.succeed(false))),
 })
 
 export type TypeDocFlags = typeof TypeDocFlags.Type
@@ -31,8 +31,8 @@ export const TypeDocBlockTag = S.Struct({
 export type TypeDocBlockTag = typeof TypeDocBlockTag.Type
 
 export const TypeDocComment = S.Struct({
-  summary: S.OptionFromUndefinedOr(S.Array(TypeDocCommentPart)),
-  blockTags: S.OptionFromUndefinedOr(S.Array(TypeDocBlockTag)),
+  summary: S.OptionFromOptional(S.Array(TypeDocCommentPart)),
+  blockTags: S.OptionFromOptional(S.Array(TypeDocBlockTag)),
 })
 
 export type TypeDocComment = typeof TypeDocComment.Type
@@ -41,7 +41,7 @@ export const TypeDocSource = S.Struct({
   fileName: S.String,
   line: S.Number,
   character: S.Number,
-  url: S.OptionFromUndefinedOr(S.String),
+  url: S.OptionFromOptional(S.String),
 })
 
 export type TypeDocSource = typeof TypeDocSource.Type
@@ -169,7 +169,7 @@ type TypeDocTypeEncoded =
   | TypeDocTupleType<TypeDocTypeEncoded>
   | TypeDocUnionType<TypeDocTypeEncoded>
   | TypeDocIntersectionType<TypeDocTypeEncoded>
-  | TypeDocReflectionType<TypeDocItemEncoded | undefined>
+  | TypeDocReflectionType<TypeDocItemEncoded>
   | TypeDocTypeOperatorType<TypeDocTypeEncoded>
   | TypeDocMappedType<TypeDocTypeEncoded>
   | TypeDocConditionalType<TypeDocTypeEncoded>
@@ -179,82 +179,82 @@ type TypeDocTypeEncoded =
   | TypeDocPredicateType
   | TypeDocUnknownType
 
-export const TypeDocTypeSchema: S.Schema<TypeDocType, TypeDocTypeEncoded> =
-  S.suspend(() =>
-    S.Union(
-      S.Struct({ type: S.Literal('intrinsic'), name: S.String }),
-      S.Struct({ type: S.Literal('literal'), value: S.Unknown }),
-      S.Struct({
-        type: S.Literal('reference'),
-        name: S.String,
-        package: S.optional(S.String),
-        typeArguments: S.optional(S.Array(TypeDocTypeSchema)),
-      }),
-      S.Struct({
-        type: S.Literal('array'),
-        elementType: TypeDocTypeSchema,
-      }),
-      S.Struct({
-        type: S.Literal('rest'),
-        elementType: TypeDocTypeSchema,
-      }),
-      S.Struct({
-        type: S.Literal('tuple'),
-        elements: S.Array(TypeDocTypeSchema),
-      }),
-      S.Struct({
-        type: S.Literal('union'),
-        types: S.Array(TypeDocTypeSchema),
-      }),
-      S.Struct({
-        type: S.Literal('intersection'),
-        types: S.Array(TypeDocTypeSchema),
-      }),
-      S.Struct({
-        type: S.Literal('reflection'),
-        declaration: S.OptionFromUndefinedOr(TypeDocItem),
-      }),
-      S.Struct({
-        type: S.Literal('typeOperator'),
-        operator: S.String,
-        target: TypeDocTypeSchema,
-      }),
-      S.Struct({
-        type: S.Literal('mapped'),
-        parameter: S.String,
-        parameterType: TypeDocTypeSchema,
-        templateType: TypeDocTypeSchema,
-        readonlyModifier: S.optional(S.String),
-      }),
-      S.Struct({
-        type: S.Literal('conditional'),
-        checkType: TypeDocTypeSchema,
-        extendsType: TypeDocTypeSchema,
-        trueType: TypeDocTypeSchema,
-        falseType: TypeDocTypeSchema,
-      }),
-      S.Struct({
-        type: S.Literal('indexedAccess'),
-        objectType: TypeDocTypeSchema,
-        indexType: TypeDocTypeSchema,
-      }),
-      S.Struct({
-        type: S.Literal('query'),
-        queryType: TypeDocTypeSchema,
-      }),
-      S.Struct({ type: S.Literal('inferred'), name: S.String }),
-      S.Struct({ type: S.Literal('predicate') }),
-      S.Struct({ type: S.Literal('unknown') }),
-    ),
-  )
+/* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+export const TypeDocTypeSchema = S.suspend(() =>
+  S.Union([
+    S.Struct({ type: S.Literal('intrinsic'), name: S.String }),
+    S.Struct({ type: S.Literal('literal'), value: S.Unknown }),
+    S.Struct({
+      type: S.Literal('reference'),
+      name: S.String,
+      package: S.optional(S.String),
+      typeArguments: S.optional(S.Array(TypeDocTypeSchema)),
+    }),
+    S.Struct({
+      type: S.Literal('array'),
+      elementType: TypeDocTypeSchema,
+    }),
+    S.Struct({
+      type: S.Literal('rest'),
+      elementType: TypeDocTypeSchema,
+    }),
+    S.Struct({
+      type: S.Literal('tuple'),
+      elements: S.Array(TypeDocTypeSchema),
+    }),
+    S.Struct({
+      type: S.Literal('union'),
+      types: S.Array(TypeDocTypeSchema),
+    }),
+    S.Struct({
+      type: S.Literal('intersection'),
+      types: S.Array(TypeDocTypeSchema),
+    }),
+    S.Struct({
+      type: S.Literal('reflection'),
+      declaration: S.OptionFromOptional(TypeDocItem),
+    }),
+    S.Struct({
+      type: S.Literal('typeOperator'),
+      operator: S.String,
+      target: TypeDocTypeSchema,
+    }),
+    S.Struct({
+      type: S.Literal('mapped'),
+      parameter: S.String,
+      parameterType: TypeDocTypeSchema,
+      templateType: TypeDocTypeSchema,
+      readonlyModifier: S.optional(S.String),
+    }),
+    S.Struct({
+      type: S.Literal('conditional'),
+      checkType: TypeDocTypeSchema,
+      extendsType: TypeDocTypeSchema,
+      trueType: TypeDocTypeSchema,
+      falseType: TypeDocTypeSchema,
+    }),
+    S.Struct({
+      type: S.Literal('indexedAccess'),
+      objectType: TypeDocTypeSchema,
+      indexType: TypeDocTypeSchema,
+    }),
+    S.Struct({
+      type: S.Literal('query'),
+      queryType: TypeDocTypeSchema,
+    }),
+    S.Struct({ type: S.Literal('inferred'), name: S.String }),
+    S.Struct({ type: S.Literal('predicate') }),
+    S.Struct({ type: S.Literal('unknown') }),
+  ]),
+) as unknown as S.Codec<TypeDocType, TypeDocTypeEncoded>
 
 export const TypeDocTypeParam = S.Struct({
   id: S.Number,
   name: S.String,
   variant: S.String,
   kind: S.Number,
-  type: S.OptionFromUndefinedOr(TypeDocTypeSchema),
-  default: S.OptionFromUndefinedOr(TypeDocTypeSchema),
+  type: S.OptionFromOptional(TypeDocTypeSchema),
+  default: S.OptionFromOptional(TypeDocTypeSchema),
 })
 
 export type TypeDocTypeParam = typeof TypeDocTypeParam.Type
@@ -264,12 +264,12 @@ export const TypeDocParam = S.Struct({
   name: S.String,
   variant: S.String,
   kind: S.Number,
-  flags: S.optionalWith(TypeDocFlags, {
-    default: () => defaultFlags,
-  }),
-  type: S.OptionFromUndefinedOr(TypeDocTypeSchema),
-  defaultValue: S.OptionFromUndefinedOr(S.String),
-  comment: S.OptionFromUndefinedOr(TypeDocComment),
+  flags: TypeDocFlags.pipe(
+    S.withDecodingDefaultKey(Effect.succeed(defaultFlags)),
+  ),
+  type: S.OptionFromOptional(TypeDocTypeSchema),
+  defaultValue: S.OptionFromOptional(S.String),
+  comment: S.OptionFromOptional(TypeDocComment),
 })
 
 export type TypeDocParam = typeof TypeDocParam.Type
@@ -279,10 +279,10 @@ export const TypeDocSignature = S.Struct({
   name: S.String,
   variant: S.String,
   kind: S.Number,
-  comment: S.OptionFromUndefinedOr(TypeDocComment),
-  parameters: S.OptionFromUndefinedOr(S.Array(TypeDocParam)),
-  type: S.OptionFromUndefinedOr(TypeDocTypeSchema),
-  typeParameters: S.OptionFromUndefinedOr(S.Array(TypeDocTypeParam)),
+  comment: S.OptionFromOptional(TypeDocComment),
+  parameters: S.OptionFromOptional(S.Array(TypeDocParam)),
+  type: S.OptionFromOptional(TypeDocTypeSchema),
+  typeParameters: S.OptionFromOptional(S.Array(TypeDocTypeParam)),
 })
 
 export type TypeDocSignature = typeof TypeDocSignature.Type
@@ -292,13 +292,13 @@ const typeDocItemFields = {
   name: S.String,
   variant: S.String,
   kind: S.Number,
-  flags: S.optionalWith(TypeDocFlags, {
-    default: () => defaultFlags,
-  }),
-  comment: S.OptionFromUndefinedOr(TypeDocComment),
-  sources: S.OptionFromUndefinedOr(S.Array(TypeDocSource)),
-  signatures: S.OptionFromUndefinedOr(S.Array(TypeDocSignature)),
-  typeParameters: S.OptionFromUndefinedOr(S.Array(TypeDocTypeParam)),
+  flags: TypeDocFlags.pipe(
+    S.withDecodingDefaultKey(Effect.succeed(defaultFlags)),
+  ),
+  comment: S.OptionFromOptional(TypeDocComment),
+  sources: S.OptionFromOptional(S.Array(TypeDocSource)),
+  signatures: S.OptionFromOptional(S.Array(TypeDocSignature)),
+  typeParameters: S.OptionFromOptional(S.Array(TypeDocTypeParam)),
 }
 
 export interface TypeDocItem extends S.Struct.Type<typeof typeDocItemFields> {
@@ -309,28 +309,33 @@ export interface TypeDocItem extends S.Struct.Type<typeof typeDocItemFields> {
 interface TypeDocItemEncoded extends S.Struct.Encoded<
   typeof typeDocItemFields
 > {
-  readonly type: TypeDocTypeEncoded | undefined
-  readonly children: ReadonlyArray<TypeDocItemEncoded> | undefined
+  readonly type?: TypeDocTypeEncoded
+  readonly children?: ReadonlyArray<TypeDocItemEncoded>
 }
 
-export const TypeDocItem = S.Struct({
+/* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+export const TypeDocItem: S.Codec<TypeDocItem, TypeDocItemEncoded> = S.Struct({
   ...typeDocItemFields,
-  type: S.OptionFromUndefinedOr(TypeDocTypeSchema),
-  children: S.OptionFromUndefinedOr(
+  type: S.OptionFromOptional(TypeDocTypeSchema),
+  children: S.OptionFromOptional(
     S.Array(
-      S.suspend((): S.Schema<TypeDocItem, TypeDocItemEncoded> => TypeDocItem),
+      S.suspend(
+        () =>
+          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+          TypeDocItem as unknown as S.Codec<TypeDocItem, TypeDocItemEncoded>,
+      ),
     ),
   ),
-})
+}) as unknown as S.Codec<TypeDocItem, TypeDocItemEncoded>
 
 export const TypeDocModule = S.Struct({
   id: S.Number,
   name: S.String,
   variant: S.String,
   kind: S.Number,
-  children: S.optionalWith(S.Array(TypeDocItem), {
-    default: () => [],
-  }),
+  children: S.Array(TypeDocItem).pipe(
+    S.withDecodingDefaultKey(Effect.succeed([])),
+  ),
 })
 
 export type TypeDocModule = typeof TypeDocModule.Type

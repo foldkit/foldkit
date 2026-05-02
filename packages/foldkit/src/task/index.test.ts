@@ -19,7 +19,7 @@ import {
 } from './index.js'
 
 describe('getTime', () => {
-  it.scoped('returns a UTC time', () =>
+  it.effect('returns a UTC time', () =>
     Effect.gen(function* () {
       const utc = yield* getTime
       expect(DateTime.isUtc(utc)).toBe(true)
@@ -28,7 +28,7 @@ describe('getTime', () => {
 })
 
 describe('getTimeZone', () => {
-  it.scoped('returns a timezone', () =>
+  it.effect('returns a timezone', () =>
     Effect.gen(function* () {
       const zone = yield* getTimeZone
       expect(DateTime.isTimeZone(zone)).toBe(true)
@@ -37,7 +37,7 @@ describe('getTimeZone', () => {
 })
 
 describe('getZonedTime', () => {
-  it.scoped('returns a zoned datetime', () =>
+  it.effect('returns a zoned datetime', () =>
     Effect.gen(function* () {
       const zoned = yield* getZonedTime
       expect(DateTime.isZoned(zoned)).toBe(true)
@@ -46,14 +46,14 @@ describe('getZonedTime', () => {
 })
 
 describe('getZonedTimeIn', () => {
-  it.scoped('succeeds with a valid timezone', () =>
+  it.effect('succeeds with a valid timezone', () =>
     Effect.gen(function* () {
       const zoned = yield* getZonedTimeIn('America/New_York')
       expect(DateTime.isZoned(zoned)).toBe(true)
     }),
   )
 
-  it.scoped('fails with an invalid timezone', () =>
+  it.effect('fails with an invalid timezone', () =>
     Effect.gen(function* () {
       const error = yield* Effect.flip(getZonedTimeIn('Invalid/Zone'))
       expect(error).toBeInstanceOf(TimeZoneError)
@@ -63,7 +63,7 @@ describe('getZonedTimeIn', () => {
 })
 
 describe('randomInt', () => {
-  it.scoped('produces a value within the specified range', () =>
+  it.effect('produces a value within the specified range', () =>
     Effect.gen(function* () {
       const results: Array<number> = []
       for (let index = 0; index < 50; index++) {
@@ -77,7 +77,7 @@ describe('randomInt', () => {
     }),
   )
 
-  it.scoped('returns the raw number value', () =>
+  it.effect('returns the raw number value', () =>
     Effect.gen(function* () {
       const value = yield* randomInt(5, 15)
       expect(value).toBeGreaterThanOrEqual(5)
@@ -87,7 +87,7 @@ describe('randomInt', () => {
 })
 
 describe('uuid', () => {
-  it.scoped('returns a RFC 4122 v4 UUID string', () =>
+  it.effect('returns a RFC 4122 v4 UUID string', () =>
     Effect.gen(function* () {
       const value = yield* uuid
       expect(value).toMatch(
@@ -96,7 +96,7 @@ describe('uuid', () => {
     }),
   )
 
-  it.scoped('produces a distinct value on each call', () =>
+  it.effect('produces a distinct value on each call', () =>
     Effect.gen(function* () {
       const first = yield* uuid
       const second = yield* uuid
@@ -106,7 +106,7 @@ describe('uuid', () => {
 })
 
 describe('focus', () => {
-  it.scoped('fails with ElementNotFound when element is not found', () =>
+  it.effect('fails with ElementNotFound when element is not found', () =>
     Effect.gen(function* () {
       const error = yield* Effect.flip(focus('#nonexistent'))
       expect(error).toBeInstanceOf(ElementNotFound)
@@ -116,7 +116,7 @@ describe('focus', () => {
 })
 
 describe('lockScroll', () => {
-  it.scoped('sets overflow hidden on document element', () =>
+  it.effect('sets overflow hidden on document element', () =>
     Effect.gen(function* () {
       yield* lockScroll
       expect(document.documentElement.style.overflow).toBe('hidden')
@@ -125,7 +125,7 @@ describe('lockScroll', () => {
     }),
   )
 
-  it.scoped('restores original overflow on unlock', () =>
+  it.effect('restores original overflow on unlock', () =>
     Effect.gen(function* () {
       document.documentElement.style.overflow = 'auto'
 
@@ -139,7 +139,7 @@ describe('lockScroll', () => {
     }),
   )
 
-  it.scoped('supports nested locks via reference counting', () =>
+  it.effect('supports nested locks via reference counting', () =>
     Effect.gen(function* () {
       yield* lockScroll
       yield* lockScroll
@@ -155,7 +155,7 @@ describe('lockScroll', () => {
 })
 
 describe('unlockScroll', () => {
-  it.scoped('is safe to call without a preceding lock', () =>
+  it.effect('is safe to call without a preceding lock', () =>
     Effect.gen(function* () {
       yield* unlockScroll
     }),
@@ -191,7 +191,7 @@ describe('inertOthers', () => {
     document.body.innerHTML = ''
   }
 
-  it.scoped('marks siblings of allowed elements as inert', () =>
+  it.effect('marks siblings of allowed elements as inert', () =>
     Effect.gen(function* () {
       const { header, main, sidebar, content, button, items, footer } =
         buildDom()
@@ -215,7 +215,7 @@ describe('inertOthers', () => {
     }),
   )
 
-  it.scoped('restores original values', () =>
+  it.effect('restores original values', () =>
     Effect.gen(function* () {
       const { header, footer } = buildDom()
       header.setAttribute('aria-hidden', 'false')
@@ -233,7 +233,7 @@ describe('inertOthers', () => {
     }),
   )
 
-  it.scoped('removes aria-hidden when original was null', () =>
+  it.effect('removes aria-hidden when original was null', () =>
     Effect.gen(function* () {
       const { header } = buildDom()
       expect(header.getAttribute('aria-hidden')).toBeNull()
@@ -250,7 +250,7 @@ describe('inertOthers', () => {
     }),
   )
 
-  it.scoped('supports nested locks via reference counting', () =>
+  it.effect('supports nested locks via reference counting', () =>
     Effect.gen(function* () {
       const { header } = buildDom()
 
@@ -269,7 +269,7 @@ describe('inertOthers', () => {
     }),
   )
 
-  it.scoped('handles missing selectors gracefully', () =>
+  it.effect('handles missing selectors gracefully', () =>
     Effect.gen(function* () {
       buildDom()
 
@@ -282,7 +282,7 @@ describe('inertOthers', () => {
 })
 
 describe('restoreInert', () => {
-  it.scoped('is safe to call without a preceding inertOthers', () =>
+  it.effect('is safe to call without a preceding inertOthers', () =>
     Effect.gen(function* () {
       yield* restoreInert('nonexistent')
     }),

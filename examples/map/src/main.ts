@@ -5,6 +5,7 @@ import {
   Function,
   Match as M,
   Option,
+  Queue,
   Schema as S,
   Stream,
   String,
@@ -44,21 +45,21 @@ export const GeolocateIdle = ts('GeolocateIdle')
 export const GeolocateLocating = ts('GeolocateLocating')
 export const GeolocateFailed = ts('GeolocateFailed', { reason: S.String })
 
-const GeolocateState = S.Union(
+const GeolocateState = S.Union([
   GeolocateIdle,
   GeolocateLocating,
   GeolocateFailed,
-)
+])
 type GeolocateState = typeof GeolocateState.Type
 
 export const Model = S.Struct({
   locations: S.Array(Location),
   searchQuery: S.String,
-  maybeMapHostId: S.OptionFromSelf(S.String),
-  maybeMapError: S.OptionFromSelf(S.String),
-  maybeBounds: S.OptionFromSelf(Bounds),
-  maybeSelectedLocationId: S.OptionFromSelf(S.String),
-  maybeUserLocation: S.OptionFromSelf(LngLat),
+  maybeMapHostId: S.Option(S.String),
+  maybeMapError: S.Option(S.String),
+  maybeBounds: S.Option(Bounds),
+  maybeSelectedLocationId: S.Option(S.String),
+  maybeUserLocation: S.Option(LngLat),
   geolocateState: GeolocateState,
 })
 export type Model = typeof Model.Type
@@ -83,7 +84,7 @@ export const FailedFlyTo = m('FailedFlyTo', { reason: S.String })
 export const CompletedFocusSearchInput = m('CompletedFocusSearchInput')
 export const CompletedLockBodyScroll = m('CompletedLockBodyScroll')
 
-export const Message = S.Union(
+export const Message = S.Union([
   SucceededMountMap,
   FailedMountMap,
   MovedMap,
@@ -98,7 +99,7 @@ export const Message = S.Union(
   FailedFlyTo,
   CompletedFocusSearchInput,
   CompletedLockBodyScroll,
-)
+])
 export type Message = typeof Message.Type
 
 // COMMAND
@@ -151,30 +152,34 @@ export const Geolocate = Command.define(
 
 const geolocate = Geolocate(
   Effect.gen(function* () {
-    const position = yield* Effect.async<GeolocationPosition, Error>(resume => {
-      if (typeof navigator === 'undefined' || !navigator.geolocation) {
-        resume(
-          Effect.fail(
-            new Error('Geolocation is not available in this browser context.'),
-          ),
+    const position = yield* Effect.callback<GeolocationPosition, Error>(
+      resume => {
+        if (typeof navigator === 'undefined' || !navigator.geolocation) {
+          resume(
+            Effect.fail(
+              new Error(
+                'Geolocation is not available in this browser context.',
+              ),
+            ),
+          )
+          return
+        }
+        navigator.geolocation.getCurrentPosition(
+          position => resume(Effect.succeed(position)),
+          error => resume(Effect.fail(new Error(error.message))),
+          {
+            enableHighAccuracy: false,
+            timeout: GEOLOCATION_TIMEOUT_MS,
+          },
         )
-        return
-      }
-      navigator.geolocation.getCurrentPosition(
-        position => resume(Effect.succeed(position)),
-        error => resume(Effect.fail(new Error(error.message))),
-        {
-          enableHighAccuracy: false,
-          timeout: GEOLOCATION_TIMEOUT_MS,
-        },
-      )
-    })
+      },
+    )
     return SucceededGeolocate({
       lng: position.coords.longitude,
       lat: position.coords.latitude,
     })
   }).pipe(
-    Effect.catchAll(error =>
+    Effect.catch(error =>
       Effect.succeed(
         FailedGeolocate({
           reason: error instanceof Error ? error.message : `${error}`,
@@ -328,7 +333,7 @@ const mountMap = (hostId: string) =>
             cleanup: () => removeMap(hostId),
           }
         }).pipe(
-          Effect.catchAll(error =>
+          Effect.catch(error =>
             Effect.succeed({
               message: FailedMountMap({
                 reason: error instanceof Error ? error.message : `${error}`,
@@ -344,7 +349,7 @@ const mountMap = (hostId: string) =>
 // SUBSCRIPTIONS
 
 const SubscriptionDeps = S.Struct({
-  mapEvents: S.OptionFromSelf(S.String),
+  mapEvents: S.Option(S.String),
 })
 
 const boundsFromMap = (map: MapInstance): Bounds => {
@@ -367,46 +372,60 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
       Option.match(maybeHostId, {
         onNone: () => Stream.empty,
         onSome: hostId =>
-          Stream.async<Message>(emit =>
-            Option.match(getMap(hostId), {
-              onNone: Function.constVoid,
-              onSome: map => {
-                const onMoveEnd = () => {
-                  emit.single(MovedMap({ bounds: boundsFromMap(map) }))
-                }
+          Stream.callback<Message>(queue =>
+            Effect.acquireRelease(
+              Effect.sync(() =>
+                Option.match(getMap(hostId), {
+                  onNone: () => Option.none(),
+                  onSome: map => {
+                    const onMoveEnd = () => {
+                      Queue.offerUnsafe(
+                        queue,
+                        MovedMap({ bounds: boundsFromMap(map) }),
+                      )
+                    }
 
-                const onContainerClick = (event: MouseEvent) => {
-                  const target = event.target
-                  if (!(target instanceof Element)) {
-                    return
-                  }
-                  const marker = target.closest('[data-location-id]')
-                  if (!(marker instanceof HTMLElement)) {
-                    return
-                  }
-                  const locationId = marker.dataset['locationId']
-                  if (locationId !== undefined) {
-                    emit.single(ClickedMarker({ locationId }))
-                  }
-                }
+                    const onContainerClick = (event: MouseEvent) => {
+                      const target = event.target
+                      if (!(target instanceof Element)) {
+                        return
+                      }
+                      const marker = target.closest('[data-location-id]')
+                      if (!(marker instanceof HTMLElement)) {
+                        return
+                      }
+                      const locationId = marker.dataset['locationId']
+                      if (locationId !== undefined) {
+                        Queue.offerUnsafe(queue, ClickedMarker({ locationId }))
+                      }
+                    }
 
-                map.on('moveend', onMoveEnd)
-                map.getContainer().addEventListener('click', onContainerClick)
-                emit.single(MovedMap({ bounds: boundsFromMap(map) }))
+                    map.on('moveend', onMoveEnd)
+                    map
+                      .getContainer()
+                      .addEventListener('click', onContainerClick)
+                    Queue.offerUnsafe(
+                      queue,
+                      MovedMap({ bounds: boundsFromMap(map) }),
+                    )
 
-                return Effect.sync(() =>
-                  Option.match(getMap(hostId), {
+                    return Option.some({ map, onMoveEnd, onContainerClick })
+                  },
+                }),
+              ),
+              maybeHandle =>
+                Effect.sync(() =>
+                  Option.match(maybeHandle, {
                     onNone: Function.constVoid,
-                    onSome: currentMap => {
-                      currentMap.off('moveend', onMoveEnd)
-                      currentMap
+                    onSome: ({ map, onMoveEnd, onContainerClick }) => {
+                      map.off('moveend', onMoveEnd)
+                      map
                         .getContainer()
                         .removeEventListener('click', onContainerClick)
                     },
                   }),
-                )
-              },
-            }),
+                ),
+            ).pipe(Effect.flatMap(() => Effect.never)),
           ),
       }),
   },

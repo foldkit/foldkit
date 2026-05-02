@@ -22,7 +22,7 @@ export const setMap = (hostId: string, instance: MapInstance): void => {
 }
 
 export const getMap = (hostId: string): Option.Option<MapInstance> =>
-  Option.fromNullable(mapsByHostId.get(hostId))
+  Option.fromNullishOr(mapsByHostId.get(hostId))
 
 export const removeMap = (hostId: string): void =>
   Option.match(getMap(hostId), {

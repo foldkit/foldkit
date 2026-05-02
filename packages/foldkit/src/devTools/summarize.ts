@@ -30,7 +30,7 @@ const NotFound = ts('NotFound', {
   availableKeys: S.Array(S.String),
 })
 
-const PathResolution = S.Union(Found, NotFound)
+const PathResolution = S.Union([Found, NotFound])
 
 /**
  * Result of resolving a dot-string path against a Model snapshot.
@@ -46,14 +46,14 @@ export type PathResolution = typeof PathResolution.Type
 const isExpandable = (
   value: unknown,
 ): value is Readonly<Record<string, unknown>> | ReadonlyArray<unknown> =>
-  Predicate.isReadonlyRecord(value) || Array.isArray(value)
+  Predicate.isObject(value) || Array.isArray(value)
 
 const keysOf = (value: unknown): ReadonlyArray<string> =>
   M.value(value).pipe(
     M.when(Array.isArray, items =>
       Array_.makeBy(items.length, index => index.toString()),
     ),
-    M.when(Predicate.isReadonlyRecord, Record.keys),
+    M.when(Predicate.isObject, Record.keys),
     M.orElse(() => []),
   )
 
@@ -70,7 +70,7 @@ const descend = (parent: unknown, segment: string): Option.Option<unknown> =>
         Option.flatMap(index => Array_.get(array, index)),
       ),
     ),
-    M.when(Predicate.isReadonlyRecord, record => Record.get(record, segment)),
+    M.when(Predicate.isObject, record => Record.get(record, segment)),
     M.orElse(() => Option.none()),
   )
 
@@ -167,9 +167,7 @@ const summarizeAt = (value: unknown, depth: number): unknown =>
   M.value(value).pipe(
     M.when(Predicate.isString, truncateString),
     M.when(Array.isArray, items => summarizeArray(items, depth)),
-    M.when(Predicate.isReadonlyRecord, record =>
-      summarizeRecord(record, depth),
-    ),
+    M.when(Predicate.isObject, record => summarizeRecord(record, depth)),
     M.orElse(Function.identity),
   )
 
@@ -191,7 +189,7 @@ const formatAvailableKeys = (
   keys: ReadonlyArray<string>,
 ): Option.Option<string> =>
   OptionExt.when(
-    Array_.isNonEmptyReadonlyArray(keys),
+    Array_.isReadonlyArrayNonEmpty(keys),
     `Available keys: ${keys.join(', ')}.`,
   )
 

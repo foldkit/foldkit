@@ -1,4 +1,4 @@
-import { Duration, Stream } from 'effect'
+import { Duration, Effect, Stream } from 'effect'
 import { Subscription } from 'foldkit/subscription'
 
 import { type Model, type SubscriptionDeps } from '../main'
@@ -24,6 +24,6 @@ export const aiHeading: Subscription<
       Stream.tick(Duration.millis(TOGGLE_INTERVAL_MS)).pipe(
         Stream.map(ToggledAiHeading),
       ),
-      () => isLandingPage && !isPrerender,
+      Effect.sync(() => isLandingPage && !isPrerender),
     ),
 }

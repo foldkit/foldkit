@@ -1,4 +1,4 @@
-import { Array, Effect } from 'effect'
+import { Array, Context, Effect, Layer } from 'effect'
 import { Command } from 'foldkit'
 import { pushUrl } from 'foldkit/navigation'
 import * as Task from 'foldkit/task'
@@ -39,16 +39,19 @@ const NOOP_PAGEFIND: PagefindModule = {
   search: () => Promise.resolve({ results: [] }),
 }
 
-export class PagefindService extends Effect.Service<PagefindService>()(
-  'PagefindService',
-  {
-    effect: Effect.tryPromise({
+export class PagefindService extends Context.Service<
+  PagefindService,
+  PagefindModule
+>()('PagefindService') {
+  static readonly Default = Layer.effect(
+    this,
+    Effect.tryPromise({
       try: (): Promise<PagefindModule> =>
         new Function('path', 'return import(path)')(PAGEFIND_PATH),
       catch: () => new Error('Pagefind not available'),
-    }).pipe(Effect.catchAll(() => Effect.succeed(NOOP_PAGEFIND))),
-  },
-) {}
+    }).pipe(Effect.catch(() => Effect.succeed(NOOP_PAGEFIND))),
+  )
+}
 
 export const FetchSearchResults = Command.define(
   'FetchSearchResults',
@@ -91,7 +94,7 @@ export const searchPagefind = (query: string) =>
 
       return ReceivedSearchResults({ results, query })
     }).pipe(
-      Effect.catchAll(() =>
+      Effect.catch(() =>
         Effect.succeed(ReceivedSearchResults({ results: [], query })),
       ),
     ),

@@ -26,10 +26,10 @@ export const ClearedSearchQuery = m('ClearedSearchQuery')
 export const CompletedNavigateSearch = m('CompletedNavigateSearch')
 export const CompletedScrollToResult = m('CompletedScrollToResult')
 export const PressedArrowKey = m('PressedArrowKey', {
-  direction: S.Literal('Up', 'Down'),
+  direction: S.Literals(['Up', 'Down']),
 })
 
-export const Message = S.Union(
+export const Message = S.Union([
   UpdatedSearchQuery,
   ReceivedSearchResults,
   SelectedSearchResult,
@@ -38,5 +38,5 @@ export const Message = S.Union(
   CompletedNavigateSearch,
   CompletedScrollToResult,
   PressedArrowKey,
-)
+])
 export type Message = typeof Message.Type

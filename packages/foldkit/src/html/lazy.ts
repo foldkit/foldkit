@@ -24,21 +24,20 @@ const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
   args: Args,
   onCache: (entry: CacheEntry) => void,
 ): Html =>
-  Effect.flatMap(Dispatch, dispatch => {
+  Effect.gen(function* () {
+    const dispatch = yield* Dispatch
     if (
       Predicate.isNotUndefined(previousEntry) &&
       previousEntry.fn === fn &&
       previousEntry.dispatch === dispatch &&
       argsEqual(previousEntry.args, args)
     ) {
-      return Effect.succeed(previousEntry.vnode)
+      return previousEntry.vnode
     }
 
-    return Effect.gen(function* () {
-      const vnode = yield* fn(...args)
-      onCache({ fn, args, dispatch, vnode })
-      return vnode
-    })
+    const vnode = yield* fn(...args)
+    onCache({ fn, args, dispatch, vnode })
+    return vnode
   })
 
 /** Creates a memoization slot for a view function. On each render, if the

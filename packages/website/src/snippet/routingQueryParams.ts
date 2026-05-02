@@ -7,9 +7,9 @@ const searchRouter = pipe(
   literal('search'),
   Route.query(
     S.Struct({
-      q: S.OptionFromUndefinedOr(S.String),
-      page: S.OptionFromUndefinedOr(S.NumberFromString),
-      sort: S.OptionFromUndefinedOr(S.Literal('Asc', 'Desc')),
+      q: S.OptionFromOptional(S.String),
+      page: S.OptionFromOptional(S.FiniteFromString),
+      sort: S.OptionFromOptional(S.Literals(['Asc', 'Desc'])),
     }),
   ),
   Route.mapTo(SearchRoute),

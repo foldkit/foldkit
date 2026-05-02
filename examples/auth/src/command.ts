@@ -1,6 +1,6 @@
-import { KeyValueStore } from '@effect/platform'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Console, Effect, Schema as S } from 'effect'
+import { KeyValueStore } from 'effect/unstable/persistence'
 import { Command } from 'foldkit'
 
 import { SESSION_STORAGE_KEY } from './constant'
@@ -31,11 +31,11 @@ export const saveSession = (session: Session) =>
       const store = yield* KeyValueStore.KeyValueStore
       yield* store.set(
         SESSION_STORAGE_KEY,
-        S.encodeSync(S.parseJson(Session))(session),
+        S.encodeSync(S.fromJsonString(Session))(session),
       )
       return SucceededSaveSession()
     }).pipe(
-      Effect.catchAll(error =>
+      Effect.catch(error =>
         Effect.succeed(FailedSaveSession({ error: String(error) })),
       ),
       Effect.provide(BrowserKeyValueStore.layerLocalStorage),
@@ -49,7 +49,7 @@ export const clearSession = () =>
       yield* store.remove(SESSION_STORAGE_KEY)
       return SucceededClearSession()
     }).pipe(
-      Effect.catchAll(error =>
+      Effect.catch(error =>
         Effect.succeed(FailedClearSession({ error: String(error) })),
       ),
       Effect.provide(BrowserKeyValueStore.layerLocalStorage),

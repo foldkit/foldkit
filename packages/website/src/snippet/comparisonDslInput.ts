@@ -4,7 +4,7 @@ import { m } from 'foldkit/message'
 
 const InputtedEmail = m('InputtedEmail', { value: S.String })
 
-const Message = S.Union(InputtedEmail)
+const Message = S.Union([InputtedEmail])
 type Message = typeof Message.Type
 
 // In a real app, this destructure lives once in html.ts and is imported everywhere.

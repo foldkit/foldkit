@@ -65,7 +65,7 @@ const FailedFetchWeather = m('FailedFetchWeather', { error: S.String })
 
 ### Schemas
 
-- Capitalized string literals: `S.Literal('Horizontal', 'Vertical')` not `S.Literal('horizontal', 'vertical')`
+- Capitalized string literals: `S.Literals(['Horizontal', 'Vertical'])` not `S.Literals(['horizontal', 'vertical'])`
 - Capitalized namespace imports: `import * as ShoppingCart from './shoppingCart'`
 - `Array<T>` or `ReadonlyArray<T>`, never `T[]`
 
@@ -94,7 +94,7 @@ pipe(
 
 ```ts
 // Model fields
-maybeError: S.OptionFromSelf(S.String) // not error: S.String with '' as none
+maybeError: S.Option(S.String) // not error: S.String with '' as none
 
 // Conditional rendering
 Option.match(model.maybeError, {
@@ -176,14 +176,14 @@ Effect.gen(function* () {
   // ...
   return SucceededFetchWeather({ data })
 }).pipe(
-  Effect.catchAll(error =>
+  Effect.catch(error =>
     Effect.succeed(FailedFetchWeather({ error: String(error) })),
   ),
   FetchWeather,
 )
 ```
 
-The `.pipe(Effect.catchAll(...), FetchWeather)` is multi-step (two tail operators) and even if it were one, suffix-style `.pipe` on a yielded Effect is the canonical shape. Don't mechanically flatten it to `FetchWeather(Effect.catchAll(Effect.gen(...), ...))` — that reads inside-out and obscures the pipeline.
+The `.pipe(Effect.catch(...), FetchWeather)` is multi-step (two tail operators) and even if it were one, suffix-style `.pipe` on a yielded Effect is the canonical shape. Don't mechanically flatten it to `FetchWeather(Effect.catch(Effect.gen(...), ...))` — that reads inside-out and obscures the pipeline.
 
 ### Effect.ignore only when there's an error channel
 
@@ -199,7 +199,7 @@ pushUrl(path).pipe(Effect.as(CompletedNavigateInternal()))
 // RIGHT — fallible Effect, handle the error then swap
 httpClient.get(url).pipe(
   Effect.as(SucceededFetch({ data })),
-  Effect.catchAll(() => Effect.succeed(FailedFetch())),
+  Effect.catch(() => Effect.succeed(FailedFetch())),
 )
 ```
 
@@ -309,7 +309,7 @@ const Idle = ts('Idle')
 const Loading = ts('Loading')
 const Error = ts('Error', { error: S.String })
 const Ok = ts('Ok', { data: Data })
-const FetchState = S.Union(Idle, Loading, Error, Ok)
+const FetchState = S.Union([Idle, Loading, Error, Ok])
 
 const Model = S.Struct({
   fetchState: FetchState,
@@ -323,7 +323,7 @@ const NotValidated = ts('NotValidated')
 const Validating = ts('Validating')
 const Valid = ts('Valid')
 const Invalid = ts('Invalid', { error: S.String })
-const ValidationState = S.Union(NotValidated, Validating, Valid, Invalid)
+const ValidationState = S.Union([NotValidated, Validating, Valid, Invalid])
 ```
 
 For multi-step flows:
@@ -335,7 +335,7 @@ const EnterPassword = ts('EnterPassword', {
   password: S.String,
 })
 const Confirming = ts('Confirming', { email: S.String })
-const SignupStep = S.Union(EnterEmail, EnterPassword, Confirming)
+const SignupStep = S.Union([EnterEmail, EnterPassword, Confirming])
 ```
 
 ## Code Style

@@ -12,7 +12,7 @@ export type Model = typeof Model.Type
 
 export const ClickedFallback = m('ClickedFallback')
 
-export const Message = S.Union(ClickedFallback)
+export const Message = S.Union([ClickedFallback])
 export type Message = typeof Message.Type
 
 // INIT

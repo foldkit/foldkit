@@ -33,12 +33,12 @@ import * as DemoView from './demoView'
 
 // CONSTANTS
 
-const PHASE_DURATION: Duration.DurationInput = '300 millis'
+const PHASE_DURATION: Duration.Input = '300 millis'
 const MAX_LOG_ENTRIES = 50
 
 // MODEL
 
-const AnimationPhase = S.Literal(
+const AnimationPhase = S.Literals([
   'Idle',
   'IncrementMessage',
   'IncrementUpdate',
@@ -49,7 +49,7 @@ const AnimationPhase = S.Literal(
   'ResetCommandMessage',
   'ResetCommandUpdate',
   'ResetModel',
-)
+])
 
 type AnimationPhase = typeof AnimationPhase.Type
 
@@ -75,12 +75,12 @@ const ProgressedDemoPhase = m('ProgressedDemoPhase', {
   generation: S.Number,
 })
 
-export const Message = S.Union(
+export const Message = S.Union([
   ClickedDemoIncrement,
   ChangedDemoResetDuration,
   ClickedDemoReset,
   ProgressedDemoPhase,
-)
+])
 export type Message = typeof Message.Type
 
 // INIT
@@ -110,10 +110,7 @@ const DelayAdvancePhase = Command.define(
   ProgressedDemoPhase,
 )
 
-const delayAdvancePhase = (
-  generation: number,
-  duration: Duration.DurationInput,
-) =>
+const delayAdvancePhase = (generation: number, duration: Duration.Input) =>
   DelayAdvancePhase(
     Task.delay(duration).pipe(Effect.as(ProgressedDemoPhase({ generation }))),
   )

@@ -1,4 +1,4 @@
-import { Effect, Function, Option, Schema as S, Stream } from 'effect'
+import { Effect, Option, Schema as S, Stream } from 'effect'
 import { Subscription } from 'foldkit'
 
 import type { Message } from './message'
@@ -54,7 +54,8 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
     dependenciesToStream: () =>
       Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
         Stream.mapEffect(handleKeyboardEvent),
-        Stream.filterMap(Function.identity),
+        Stream.filter(Option.isSome),
+        Stream.map(option => option.value),
       ),
   },
 
@@ -65,7 +66,7 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
         Stream.fromEventListener(document, 'mouseup').pipe(
           Stream.map(() => ReleasedMouse()),
         ),
-        () => isDrawing,
+        Effect.sync(() => isDrawing),
       ),
   },
 })

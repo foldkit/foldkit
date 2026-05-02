@@ -26,11 +26,11 @@ export { wrapIndex, findFirstEnabledIndex, keyToIndex } from '../keyboard.js'
 // MODEL
 
 /** Controls the tab list layout direction and which arrow keys navigate between tabs. */
-export const Orientation = S.Literal('Horizontal', 'Vertical')
+export const Orientation = S.Literals(['Horizontal', 'Vertical'])
 export type Orientation = typeof Orientation.Type
 
 /** Controls whether tabs activate on focus (`Automatic`) or require an explicit selection (`Manual`). */
-export const ActivationMode = S.Literal('Automatic', 'Manual')
+export const ActivationMode = S.Literals(['Automatic', 'Manual'])
 export type ActivationMode = typeof ActivationMode.Type
 
 /** Schema for the tabs component's state, tracking active/focused indices and activation mode. */
@@ -55,7 +55,7 @@ export const CompletedFocusTab = m('CompletedFocusTab')
 /** Union of all messages the tabs component can produce. */
 export const Message: S.Union<
   [typeof TabSelected, typeof TabFocused, typeof CompletedFocusTab]
-> = S.Union(TabSelected, TabFocused, CompletedFocusTab)
+> = S.Union([TabSelected, TabFocused, CompletedFocusTab])
 
 export type TabSelected = typeof TabSelected.Type
 export type TabFocused = typeof TabFocused.Type

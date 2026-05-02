@@ -1,36 +1,66 @@
-import { Command, FileSystem, Path } from '@effect/platform'
 import chalk from 'chalk'
-import { Console, Effect, Match } from 'effect'
+import { Console, Effect, FileSystem, Match, Option, Path } from 'effect'
+import { Prompt } from 'effect/unstable/cli'
+import { spawnSync } from 'node:child_process'
 
+import { type Example, examples } from '../examples.js'
 import { createProject } from '../utils/files.js'
 import { installDependencies } from '../utils/packages.js'
+import { validateProjectName } from '../validateName.js'
 
 type PackageManager = 'pnpm' | 'npm' | 'yarn'
-type Example =
-  | 'counter'
-  | 'todo'
-  | 'stopwatch'
-  | 'crash-view'
-  | 'form'
-  | 'job-application'
-  | 'weather'
-  | 'routing'
-  | 'query-sync'
-  | 'snake'
-  | 'auth'
-  | 'shopping-cart'
-  | 'pixel-art'
-  | 'websocket-chat'
-  | 'kanban'
-  | 'ui-showcase'
 
-type CreateOptions = {
-  name: string
-  example: Example
-  packageManager: PackageManager
-}
+type CreateInput = Readonly<{
+  name: Option.Option<string>
+  example: Option.Option<Example>
+  packageManager: Option.Option<PackageManager>
+}>
 
 const isWindows = process.platform === 'win32'
+
+const promptForName = Prompt.text({
+  message: 'Give your project a name',
+  validate: value =>
+    Option.match(validateProjectName(value), {
+      onNone: () => Effect.succeed(value),
+      onSome: message => Effect.fail(message),
+    }),
+})
+
+const promptForExample = Prompt.autoComplete({
+  message: 'Pick a starting example',
+  choices: examples.map(({ value, title, description }) => ({
+    value,
+    title,
+    description,
+  })),
+})
+
+const promptForPackageManager = Prompt.select<PackageManager>({
+  message: 'Pick a package manager',
+  choices: [
+    { value: 'pnpm', title: 'pnpm' },
+    { value: 'npm', title: 'npm' },
+    { value: 'yarn', title: 'yarn' },
+  ],
+})
+
+const resolveInput = (input: CreateInput) =>
+  Effect.gen(function* () {
+    const name = yield* Option.match(input.name, {
+      onNone: () => promptForName,
+      onSome: Effect.succeed,
+    })
+    const example = yield* Option.match(input.example, {
+      onNone: () => promptForExample,
+      onSome: Effect.succeed,
+    })
+    const packageManager = yield* Option.match(input.packageManager, {
+      onNone: () => promptForPackageManager,
+      onSome: Effect.succeed,
+    })
+    return { name, example, packageManager }
+  })
 
 const validateProject = (
   name: string,
@@ -45,18 +75,20 @@ const validateProject = (
       return yield* Effect.fail(`Directory ${name} already exists!`)
     }
 
-    const checkCommand = Command.make(
-      isWindows ? 'where' : 'which',
-      packageManager,
-    ).pipe(Command.stdout('pipe'), Command.stderr('pipe'))
+    const exitCode = yield* Effect.sync(() => {
+      const result = spawnSync(
+        isWindows ? 'where' : 'which',
+        [packageManager],
+        { stdio: 'pipe', shell: isWindows },
+      )
+      return result.status
+    })
 
-    return yield* Command.exitCode(checkCommand).pipe(
-      Effect.filterOrFail(
-        exitCode => exitCode === 0,
-        () =>
-          `Package manager '${packageManager}' is not available. Please install it first.`,
-      ),
-    )
+    if (exitCode !== 0) {
+      return yield* Effect.fail(
+        `Package manager '${packageManager}' is not available. Please install it first.`,
+      )
+    }
   })
 
 const setupProject = (name: string, projectPath: string, example: Example) =>
@@ -116,27 +148,27 @@ const displaySuccessMessage = (name: string, packageManager: PackageManager) =>
     yield* Console.log('')
     yield* Console.log(`  Details: ${chalk.cyan('foldkit.dev/ai/overview')}`)
     yield* Console.log('')
-    yield* Console.log(
-      'Foldkit is a one-astronaut nights-and-weekends project.\n' +
-        'If you have praise or criticism, do share.\n' +
-        "Please. It's lonely out here.\n\n" +
-        'Be careful. Make good decisions.',
-    )
-    yield* Console.log('')
     yield* Console.log(`Training manual: ${chalk.cyan('foldkit.dev')}`)
     yield* Console.log(
       `Incident report: ${chalk.cyan('github.com/foldkit/foldkit/issues')}`,
     )
     yield* Console.log('')
+    yield* Console.log(`Crew channel: ${chalk.cyan('discord.gg/AZRTEs2VX')}`)
+    yield* Console.log('')
+    yield* Console.log('Transmissions:')
+    yield* Console.log(`  Newsletter:  ${chalk.cyan('foldkit.dev/newsletter')}`)
+    yield* Console.log(`  X:           ${chalk.cyan('x.com/devinjameson')}`)
     yield* Console.log(
-      `Transmissions:   ${chalk.cyan('foldkit.dev/newsletter')}`,
+      `  Bluesky:     ${chalk.cyan('bsky.app/profile/devinjameson.bsky.social')}`,
     )
-    yield* Console.log(`X:               ${chalk.cyan('x.com/devinjameson')}`)
     yield* Console.log(
-      `Bluesky:         ${chalk.cyan('bsky.app/profile/devinjameson.bsky.social')}`,
+      `  Threads:     ${chalk.cyan('threads.com/@devinthedeveloper')}`,
     )
+    yield* Console.log('')
     yield* Console.log(
-      `Threads:         ${chalk.cyan('threads.com/@devinthedeveloper')}`,
+      'Foldkit is a one-astronaut nights-and-weekends project.\n' +
+        'If you have praise or criticism, do share.\n' +
+        "Please. It's lonely out here.",
     )
     yield* Console.log('')
     yield* Console.log('Love you,')
@@ -144,8 +176,9 @@ const displaySuccessMessage = (name: string, packageManager: PackageManager) =>
     yield* Console.log('')
   })
 
-export const create = ({ name, example, packageManager }: CreateOptions) =>
+export const create = (input: CreateInput) =>
   Effect.gen(function* () {
+    const { name, example, packageManager } = yield* resolveInput(input)
     const path = yield* Path.Path
     const projectPath = path.resolve(name)
 

@@ -22,7 +22,7 @@ export const GotRoomMessage = m('GotRoomMessage', {
   message: Room.Message.Message,
 })
 
-export const Message = S.Union(
+export const Message = S.Union([
   CompletedNavigateInternal,
   CompletedLoadExternal,
   CompletedFocusUsernameInput,
@@ -34,5 +34,5 @@ export const Message = S.Union(
   ChangedUrl,
   GotHomeMessage,
   GotRoomMessage,
-)
+])
 export type Message = typeof Message.Type

@@ -1,7 +1,6 @@
 import {
   Array as Array_,
   Function,
-  HashSet,
   Match as M,
   Predicate,
   Record,
@@ -34,7 +33,7 @@ export const toInspectableValue = (value: unknown): unknown =>
     M.when(M.instanceOf(Date), date => date.toISOString()),
     M.when(M.instanceOf(URL), ({ href }) => href),
     M.when(Array.isArray, Array_.map(toInspectableValue)),
-    M.when(Predicate.isReadonlyRecord, Record.map(toInspectableValue)),
+    M.when(Predicate.isObject, Record.map(toInspectableValue)),
     M.orElse(Function.identity),
   )
 
@@ -60,8 +59,8 @@ export const toSerializedEntry = (
     commandNames: entry.commandNames,
     timestamp: entry.timestamp,
     isModelChanged: entry.isModelChanged,
-    changedPaths: HashSet.toValues(entry.diff.changedPaths),
-    affectedPaths: HashSet.toValues(entry.diff.affectedPaths),
+    changedPaths: Array_.fromIterable(entry.diff.changedPaths),
+    affectedPaths: Array_.fromIterable(entry.diff.affectedPaths),
     submodelPath,
     maybeLeafTag,
   }

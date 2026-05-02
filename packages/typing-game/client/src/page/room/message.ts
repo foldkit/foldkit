@@ -49,7 +49,7 @@ export const SucceededJoinRoom = m('SucceededJoinRoom', {
   player: Shared.Player,
 })
 
-export const Message = S.Union(
+export const Message = S.Union([
   CompletedFocusRoomPageUsernameInput,
   CompletedFocusUserGameTextInput,
   CompletedNavigateHome,
@@ -75,5 +75,5 @@ export const Message = S.Union(
   HiddenRoomIdCopiedIndicator,
   TickedExitCountdown,
   SucceededJoinRoom,
-)
+])
 export type Message = typeof Message.Type

@@ -1,6 +1,6 @@
-import { KeyValueStore } from '@effect/platform'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Array, Effect, Predicate, Schema as S } from 'effect'
+import { KeyValueStore } from 'effect/unstable/persistence'
 import { Command } from 'foldkit'
 
 import { CANVAS_SIZE_PX, EXPORT_SCALE, STORAGE_KEY } from './constant'
@@ -10,7 +10,7 @@ import {
   SucceededExportPng,
 } from './message'
 import type { Grid, Model, SavedCanvas } from './model'
-import { SavedCanvas as SavedCanvasSchema } from './model'
+import { SavedCanvasJsonString } from './model'
 import { type PaletteTheme, resolveColor } from './palette'
 
 export const SaveCanvas = Command.define('SaveCanvas', CompletedSaveCanvas)
@@ -25,13 +25,10 @@ export const saveCanvas = (model: Model) =>
         paletteThemeIndex: model.paletteThemeIndex,
         selectedColorIndex: model.selectedColorIndex,
       }
-      yield* store.set(
-        STORAGE_KEY,
-        S.encodeSync(S.parseJson(SavedCanvasSchema))(data),
-      )
+      yield* store.set(STORAGE_KEY, S.encodeSync(SavedCanvasJsonString)(data))
       return CompletedSaveCanvas()
     }).pipe(
-      Effect.catchAll(() => Effect.succeed(CompletedSaveCanvas())),
+      Effect.catch(() => Effect.succeed(CompletedSaveCanvas())),
       Effect.provide(BrowserKeyValueStore.layerLocalStorage),
     ),
   )
@@ -73,7 +70,7 @@ export const exportPng = (grid: Grid, gridSize: number, theme: PaletteTheme) =>
       return SucceededExportPng()
     }).pipe(
       Effect.catchTag('FailedExportPng', error => Effect.succeed(error)),
-      Effect.catchAll(() =>
+      Effect.catch(() =>
         Effect.succeed(FailedExportPng({ error: 'Failed to export image' })),
       ),
     ),

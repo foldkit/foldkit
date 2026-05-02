@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { Array, Option, Record, pipe } from 'effect'
+import { Array, Option, Record, Result, pipe } from 'effect'
 import { Ui } from 'foldkit'
 import { Html, createKeyedLazy } from 'foldkit/html'
 import { Disclosure } from 'foldkit/ui'
@@ -117,20 +117,23 @@ const allParameterDescriptions = (
     Array.flatMap(apiFunction.signatures, signature => signature.parameters),
     Array.dedupeWith((a, b) => a.name === b.name),
     Array.filterMap(parameter =>
-      Option.map(parameter.description, description =>
-        div(
-          [Class('mb-1')],
-          [
-            span(
-              [Class('font-normal text-gray-900 dark:text-gray-200')],
-              [parameter.name],
-            ),
-            span(
-              [Class('text-gray-500 dark:text-gray-400')],
-              [` — ${description}`],
-            ),
-          ],
+      Result.fromOption(
+        Option.map(parameter.description, description =>
+          div(
+            [Class('mb-1')],
+            [
+              span(
+                [Class('font-normal text-gray-900 dark:text-gray-200')],
+                [parameter.name],
+              ),
+              span(
+                [Class('text-gray-500 dark:text-gray-400')],
+                [` — ${description}`],
+              ),
+            ],
+          ),
         ),
+        () => undefined,
       ),
     ),
     Array.match({
@@ -226,20 +229,23 @@ const parameterDescriptions = (
   pipe(
     parameters,
     Array.filterMap(parameter =>
-      Option.map(parameter.description, description =>
-        div(
-          [Class('mb-1')],
-          [
-            span(
-              [Class('font-normal text-gray-900 dark:text-gray-200')],
-              [parameter.name],
-            ),
-            span(
-              [Class('text-gray-500 dark:text-gray-400')],
-              [` — ${description}`],
-            ),
-          ],
+      Result.fromOption(
+        Option.map(parameter.description, description =>
+          div(
+            [Class('mb-1')],
+            [
+              span(
+                [Class('font-normal text-gray-900 dark:text-gray-200')],
+                [parameter.name],
+              ),
+              span(
+                [Class('text-gray-500 dark:text-gray-400')],
+                [` — ${description}`],
+              ),
+            ],
+          ),
         ),
+        () => undefined,
       ),
     ),
     Array.match({

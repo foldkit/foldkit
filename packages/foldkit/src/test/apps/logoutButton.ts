@@ -14,14 +14,14 @@ export type Model = typeof Model.Type
 export const ClickedLogout = m('ClickedLogout')
 export const CompletedAction = m('CompletedAction')
 
-export const Message = S.Union(ClickedLogout, CompletedAction)
+export const Message = S.Union([ClickedLogout, CompletedAction])
 export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
 export const RequestedLogout = m('RequestedLogout')
 
-export const OutMessage = S.Union(RequestedLogout)
+export const OutMessage = S.Union([RequestedLogout])
 export type OutMessage = typeof OutMessage.Type
 
 // INIT

@@ -14,7 +14,7 @@ const Flags = S.Struct({
 type Flags = typeof Flags.Type
 
 const ClickedIncrement = m('ClickedIncrement')
-const Message = S.Union(ClickedIncrement)
+const Message = S.Union([ClickedIncrement])
 type Message = typeof Message.Type
 
 const init: Runtime.ProgramInit<Model, Message, Flags> = flags => [

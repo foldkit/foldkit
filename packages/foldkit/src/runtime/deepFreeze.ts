@@ -6,7 +6,7 @@ import { Array, Option, Predicate, Record } from 'effect'
  * corrupting state or breaking reference-equality change detection.
  *
  * Scope: plain objects and arrays only. `Date`, `Map`, `Set`, `File`, class
- * instances, and Effect-tagged values such as `Option`, `Either`, `DateTime`,
+ * instances, and Effect-tagged values such as `Option`, `Result`, `DateTime`,
  * `HashSet`, `HashMap`, and `Chunk` are returned untouched. Effect values rely
  * on `Hash.cached(this, ...)`, which lazily writes a memoized hash onto the
  * instance via `Object.defineProperty` on the first `Equal.equals` or
@@ -53,7 +53,7 @@ export const deepFreeze = <T>(value: T): T => {
 }
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> => {
-  if (!Predicate.isRecord(value)) {
+  if (!Predicate.isObject(value)) {
     return false
   }
   const prototype = Object.getPrototypeOf(value)

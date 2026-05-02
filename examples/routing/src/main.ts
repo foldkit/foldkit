@@ -15,13 +15,13 @@ const PeopleRoute = r('People', { searchText: S.Option(S.String) })
 const PersonRoute = r('Person', { personId: S.Number })
 const NotFoundRoute = r('NotFound', { path: S.String })
 
-export const AppRoute = S.Union(
+export const AppRoute = S.Union([
   HomeRoute,
   NestedRoute,
   PeopleRoute,
   PersonRoute,
   NotFoundRoute,
-)
+])
 
 type HomeRoute = typeof HomeRoute.Type
 type NestedRoute = typeof NestedRoute.Type
@@ -46,7 +46,7 @@ const peopleRouter = pipe(
   literal('people'),
   Route.query(
     S.Struct({
-      searchText: S.OptionFromUndefinedOr(S.String),
+      searchText: S.OptionFromOptional(S.String),
     }),
   ),
   Route.mapTo(PeopleRoute),
@@ -96,13 +96,13 @@ const ClickedLink = m('ClickedLink', {
 const ChangedUrl = m('ChangedUrl', { url: Url })
 const ChangedSearchInput = m('ChangedSearchInput', { value: S.String })
 
-export const Message = S.Union(
+export const Message = S.Union([
   CompletedNavigateInternal,
   CompletedLoadExternal,
   ClickedLink,
   ChangedUrl,
   ChangedSearchInput,
-)
+])
 export type Message = typeof Message.Type
 
 // INIT
@@ -184,7 +184,7 @@ const update = (
           ReplaceSearchUrl(
             replaceUrl(
               peopleRouter({
-                searchText: Option.fromNullable(value || null),
+                searchText: Option.fromNullishOr(value || null),
               }),
             ).pipe(Effect.as(CompletedNavigateInternal())),
           ),

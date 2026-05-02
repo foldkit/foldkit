@@ -1,5 +1,6 @@
-import { Command, HttpClient, HttpClientRequest } from '@effect/platform'
 import { Array, Effect, Match, Record, Schema, pipe } from 'effect'
+import { HttpClient, HttpClientRequest } from 'effect/unstable/http'
+import { spawn } from 'node:child_process'
 
 type PackageManager = 'pnpm' | 'npm' | 'yarn'
 
@@ -21,11 +22,15 @@ const getInstallArgs = (
     args => (isDev ? [...args, '-D'] : args),
   )
 
-const StringRecord = Schema.Record({ key: Schema.String, value: Schema.String })
+const StringRecord = Schema.Record(Schema.String, Schema.String)
 
 const PackageJson = Schema.Struct({
-  dependencies: Schema.optionalWith(StringRecord, { default: () => ({}) }),
-  devDependencies: Schema.optionalWith(StringRecord, { default: () => ({}) }),
+  dependencies: StringRecord.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed({})),
+  ),
+  devDependencies: StringRecord.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed({})),
+  ),
 })
 
 const formatDeps = (deps: Record<string, string>): ReadonlyArray<string> =>
@@ -42,13 +47,44 @@ const fetchExampleDeps = (example: string) =>
     const url = `${GITHUB_RAW_BASE_URL}/${example}/package.json`
     const response = yield* client.execute(HttpClientRequest.get(url))
     const json = yield* response.json
-    const packageJson = yield* Schema.decodeUnknown(PackageJson)(json)
+    const packageJson = yield* Schema.decodeUnknownEffect(PackageJson)(json)
 
     return {
       dependencies: formatDeps(packageJson.dependencies),
       devDependencies: formatDeps(packageJson.devDependencies),
     }
   })
+
+const runCommand = (
+  command: string,
+  args: ReadonlyArray<string>,
+  cwd: string,
+): Effect.Effect<void, Error> =>
+  Effect.callback<void, Error>(
+    (resume: (effect: Effect.Effect<void, Error>) => void) => {
+      const child = spawn(command, [...args], {
+        cwd,
+        shell: isWindows,
+        stdio: 'inherit',
+      })
+      child.on('error', error => resume(Effect.fail(error)))
+      child.on('exit', code => {
+        if (code === 0) {
+          resume(Effect.void)
+        } else {
+          resume(Effect.fail(new Error(`${command} exited with code ${code}`)))
+        }
+      })
+      // NOTE: SIGTERM only — the Effect.callback finalizer is sync so we
+      // can't escalate to SIGKILL. On Windows with shell:true the signal
+      // hits cmd.exe but doesn't propagate to the package manager.
+      return Effect.sync(() => {
+        if (child.exitCode === null && !child.killed) {
+          child.kill()
+        }
+      })
+    },
+  )
 
 export const installDependencies = (
   projectPath: string,
@@ -59,33 +95,23 @@ export const installDependencies = (
     const exampleDeps = yield* fetchExampleDeps(example)
 
     const installArgs = getInstallArgs(packageManager)
-    const installDeps = Command.make(
+    yield* runCommand(
       packageManager,
-      ...installArgs,
-      'foldkit',
-      ...exampleDeps.dependencies,
-    ).pipe(
-      Command.runInShell(isWindows),
-      Command.workingDirectory(projectPath),
-      Command.stdout('inherit'),
-      Command.stderr('inherit'),
+      [...installArgs, 'foldkit', ...exampleDeps.dependencies],
+      projectPath,
     )
-    yield* Command.exitCode(installDeps)
 
     const installDevArgs = getInstallArgs(packageManager, true)
-    const installDevDeps = Command.make(
+    yield* runCommand(
       packageManager,
-      ...installDevArgs,
-      '@foldkit/vite-plugin',
-      '@foldkit/devtools-mcp',
-      'vitest',
-      'happy-dom',
-      ...exampleDeps.devDependencies,
-    ).pipe(
-      Command.runInShell(isWindows),
-      Command.workingDirectory(projectPath),
-      Command.stdout('inherit'),
-      Command.stderr('inherit'),
+      [
+        ...installDevArgs,
+        '@foldkit/vite-plugin',
+        '@foldkit/devtools-mcp',
+        'vitest',
+        'happy-dom',
+        ...exampleDeps.devDependencies,
+      ],
+      projectPath,
     )
-    yield* Command.exitCode(installDevDeps)
   })

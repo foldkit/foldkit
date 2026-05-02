@@ -76,7 +76,7 @@ const fetchData = (id: string) =>
     const response = yield* httpClient.get(`/api/data/${id}`)
     return SucceededFetch({ data: response })
   }).pipe(
-    Effect.catchAll(error =>
+    Effect.catch(error =>
       Effect.succeed(FailedFetch({ error: String(error) })),
     ),
     FetchData,
@@ -105,7 +105,7 @@ const Idle = ts('Idle')
 const Loading = ts('Loading')
 const Error = ts('Error', { error: S.String })
 const Ok = ts('Ok', { data: Data })
-const DataState = S.Union(Idle, Loading, Error, Ok)
+const DataState = S.Union([Idle, Loading, Error, Ok])
 
 const Model = S.Struct({
   dataState: DataState,
@@ -268,7 +268,7 @@ const subscriptions = Subscription.makeSubscriptions(Deps)<Model, Message>({
         onSome: ({ userId }) =>
           someStream(userId).pipe(
             Stream.map(data => Effect.succeed(UpdatedData({ data }))),
-            Stream.catchAll(error =>
+            Stream.catch(error =>
               Stream.make(
                 Effect.succeed(FailedStream({ error: String(error) })),
               ),

@@ -1,8 +1,6 @@
 import { type Equivalence, Record, type Schema, type Stream } from 'effect'
 
-type ResolveMessage<T> = [T] extends [Schema.Schema.Any]
-  ? Schema.Schema.Type<T>
-  : T
+type ResolveMessage<T> = T extends Schema.Top ? Schema.Schema.Type<T> : T
 
 /** A reactive binding between Model state and a long-running stream of Messages. */
 export type Subscription<Model, Message, StreamDeps, Resources = never> = {
@@ -39,14 +37,14 @@ export const makeSubscriptions =
     SubscriptionDeps: SubscriptionDeps,
   ) =>
   <Model, Message, Resources = never>(configs: {
-    [K in keyof Schema.Schema.Type<SubscriptionDeps>]: {
-      modelToDependencies: (
+    readonly [K in keyof Schema.Schema.Type<SubscriptionDeps>]: {
+      readonly modelToDependencies: (
         model: Model,
       ) => Schema.Schema.Type<SubscriptionDeps>[K]
-      equivalence?: Equivalence.Equivalence<
-        Schema.Schema.Type<SubscriptionDeps>[K]
-      >
-      dependenciesToStream: (
+      readonly equivalence?:
+        | Equivalence.Equivalence<Schema.Schema.Type<SubscriptionDeps>[K]>
+        | undefined
+      readonly dependenciesToStream: (
         deps: Schema.Schema.Type<SubscriptionDeps>[K],
         readDependencies: () => Schema.Schema.Type<SubscriptionDeps>[K],
       ) => Stream.Stream<ResolveMessage<Message>, never, Resources>

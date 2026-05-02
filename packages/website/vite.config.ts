@@ -107,7 +107,7 @@ const formatParams = (parameters: ReadonlyArray<TypeDocParam>): string =>
 const buildFunctionSignatureString = (signature: TypeDocSignature): string => {
   const typeParamString = pipe(
     signature.typeParameters,
-    Option.filter(Array.isNonEmptyReadonlyArray),
+    Option.filter(Array.isReadonlyArrayNonEmpty),
     Option.match({
       onNone: () => '',
       onSome: typeParams =>
@@ -122,7 +122,7 @@ const buildFunctionSignatureString = (signature: TypeDocSignature): string => {
 
   const paramString = pipe(
     signature.parameters,
-    Option.filter(Array.isNonEmptyReadonlyArray),
+    Option.filter(Array.isReadonlyArrayNonEmpty),
     Option.match({
       onNone: () => '()',
       onSome: formatParams,
@@ -181,7 +181,7 @@ const functionEntries = (
 ): ReadonlyArray<readonly [string, string]> =>
   pipe(
     item.signatures,
-    Option.filter(Array.isNonEmptyReadonlyArray),
+    Option.filter(Array.isReadonlyArrayNonEmpty),
     Option.match({
       onNone: () => [],
       onSome: signatures => [
@@ -533,10 +533,12 @@ M.tagsExhaustive({
 
 // RESOURCE
 
-class AudioContextService extends Effect.Service<AudioContextService>()(
-  'AudioContextService',
-  { sync: () => new AudioContext() },
-) {}
+class AudioContextService extends Context.Service<
+  AudioContextService,
+  AudioContext
+>()('AudioContextService') {
+  static readonly Default = Layer.sync(this, () => new AudioContext())
+}
 
 // COMMAND
 
@@ -547,7 +549,7 @@ const playNote = (note, duration, noteIndex) =>
     Effect.gen(function* () {
       const audioContext = yield* AudioContextService
 
-      return yield* Effect.async(resume => {
+      return yield* Effect.callback(resume => {
         const oscillator = audioContext.createOscillator()
         oscillator.frequency.setValueAtTime(NOTE_FREQUENCIES[note])
         oscillator.connect(audioContext.destination)

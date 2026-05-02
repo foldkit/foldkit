@@ -10,7 +10,7 @@ const readFile = <Result>(
   mode: ReadMode,
   extract: (reader: FileReader) => Result | null,
 ): Effect.Effect<Result, FileReadError> =>
-  Effect.async<Result, FileReadError>((resume, signal) => {
+  Effect.callback<Result, FileReadError>((resume, signal) => {
     const reader = new FileReader()
 
     const handleLoad = () => {
@@ -58,14 +58,14 @@ const readFile = <Result>(
  *
  * Fails with a `FileReadError` if the browser's `FileReader` encounters an
  * error (e.g. the file was deleted while reading). Handle failures with
- * `Effect.catchAll` to convert them into a failure Message.
+ * `Effect.catch` to convert them into a failure Message.
  *
  * @example
  * ```typescript
  * ReadResumeText(
  *   File.readAsText(file).pipe(
  *     Effect.map(text => GotResumeText({ text })),
- *     Effect.catchAll(error => Effect.succeed(FailedReadResume({ error: error.reason }))),
+ *     Effect.catch(error => Effect.succeed(FailedReadResume({ error: error.reason }))),
  *   ),
  * )
  * ```
@@ -84,7 +84,7 @@ export const readAsText = (file: File): Effect.Effect<string, FileReadError> =>
  * ReadImagePreview(
  *   File.readAsDataUrl(imageFile).pipe(
  *     Effect.map(dataUrl => GotImagePreview({ dataUrl })),
- *     Effect.catchAll(error => Effect.succeed(FailedReadImage({ error: error.reason }))),
+ *     Effect.catch(error => Effect.succeed(FailedReadImage({ error: error.reason }))),
  *   ),
  * )
  * ```
@@ -109,7 +109,7 @@ export const readAsDataUrl = (
  *   File.readAsArrayBuffer(file).pipe(
  *     Effect.flatMap(buffer => uploadToServer(buffer)),
  *     Effect.map(() => SucceededUpload()),
- *     Effect.catchAll(error => Effect.succeed(FailedUpload({ reason: String(error) }))),
+ *     Effect.catch(error => Effect.succeed(FailedUpload({ reason: String(error) }))),
  *   ),
  * )
  * ```

@@ -7,7 +7,7 @@ import { evo } from 'foldkit/struct'
 
 export const Model = S.Struct({
   resumeDrop: Ui.FileDrop.Model,
-  maybeResume: S.OptionFromSelf(File.File),
+  maybeResume: S.Option(File.File),
   additionalFilesDrop: Ui.FileDrop.Model,
   additionalFiles: S.Array(File.File),
 })
@@ -27,12 +27,12 @@ export const RemovedAdditionalFile = m('RemovedAdditionalFile', {
   fileIndex: S.Number,
 })
 
-export const Message = S.Union(
+export const Message = S.Union([
   GotResumeDropMessage,
   GotAdditionalFilesDropMessage,
   RemovedResume,
   RemovedAdditionalFile,
-)
+])
 export type Message = typeof Message.Type
 
 // INIT

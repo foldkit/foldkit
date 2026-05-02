@@ -1,5 +1,4 @@
-import { Command, FileSystem } from '@effect/platform'
-import { NodeContext, NodeRuntime } from '@effect/platform-node'
+import { NodeRuntime, NodeServices } from '@effect/platform-node'
 import {
   Array,
   Console,
@@ -12,6 +11,8 @@ import {
   Stream,
   pipe,
 } from 'effect'
+import { FileSystem } from 'effect'
+import { ChildProcess } from 'effect/unstable/process'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { type Browser, chromium } from 'playwright'
@@ -355,17 +356,20 @@ const PREVIEW_BASE_URL = `http://localhost:${PREVIEW_PORT}`
 
 const previewServerResource = Effect.acquireRelease(
   Effect.gen(function* () {
-    const cmd = Command.make(
+    const cmd = ChildProcess.make(
       'pnpm',
-      'exec',
-      'vite',
-      'preview',
-      '--port',
-      String(PREVIEW_PORT),
-      '--strictPort',
-    ).pipe(Command.workingDirectory(WEBSITE_DIR))
+      [
+        'exec',
+        'vite',
+        'preview',
+        '--port',
+        String(PREVIEW_PORT),
+        '--strictPort',
+      ],
+      { cwd: WEBSITE_DIR },
+    )
 
-    const serverProcess = yield* Command.start(cmd)
+    const serverProcess = yield* cmd
     const ready = yield* Deferred.make<void>()
 
     const checkLine = (line: string): Effect.Effect<void> =>
@@ -374,16 +378,16 @@ const previewServerResource = Effect.acquireRelease(
         : Effect.void
 
     yield* serverProcess.stdout.pipe(
-      Stream.decodeText('utf-8'),
+      Stream.decodeText({ encoding: 'utf-8' }),
       Stream.splitLines,
       Stream.runForEach(checkLine),
-      Effect.forkDaemon,
+      Effect.forkDetach,
     )
 
     yield* Deferred.await(ready)
     return serverProcess
   }),
-  serverProcess => serverProcess.kill().pipe(Effect.ignore),
+  serverProcess => Effect.ignore(serverProcess.kill()),
 ).pipe(Effect.asVoid)
 
 const playwrightBrowserResource = Effect.acquireRelease(
@@ -421,7 +425,7 @@ const captureRouteHtml = (browser: Browser, url: string) =>
 
 // PRERENDER
 
-const ApiDocJson = S.parseJson(
+const ApiDocJson = S.fromJsonString(
   S.Struct({
     children: S.Array(S.Struct({ name: S.String })),
   }),
@@ -430,7 +434,7 @@ const ApiDocJson = S.parseJson(
 const readApiModuleNames = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem
   const raw = yield* fs.readFileString(API_JSON_PATH)
-  const apiDoc = yield* S.decodeUnknown(ApiDocJson)(raw)
+  const apiDoc = yield* S.decodeUnknownEffect(ApiDocJson)(raw)
   return Array.map(apiDoc.children, ({ name }) => moduleNameToSlug(name))
 })
 
@@ -453,7 +457,7 @@ const prerenderRoute =
       yield* fs.writeFileString(outputFilePath, outputHtml)
       yield* Console.log(`  ✓ ${urlPath}`)
     }).pipe(
-      Effect.catchAll(error =>
+      Effect.catch(error =>
         Console.warn(`  ✗ ${routeToUrlPath(route)}: ${String(error)}`),
       ),
     )
@@ -526,4 +530,6 @@ const program = Effect.scoped(
   }),
 )
 
-NodeRuntime.runMain(program.pipe(Effect.provide(NodeContext.layer)))
+if (import.meta.url === `file://${process.argv[1]}`) {
+  NodeRuntime.runMain(program.pipe(Effect.provide(NodeServices.layer)))
+}

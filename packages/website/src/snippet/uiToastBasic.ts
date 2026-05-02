@@ -13,7 +13,7 @@ import { Class, Href, OnClick, a, button, div, p } from './html'
 // state). The payload is yours — whatever you can encode in a Schema:
 const ToastPayload = S.Struct({
   bodyText: S.String,
-  maybeLink: S.OptionFromSelf(S.Struct({ href: S.String, text: S.String })),
+  maybeLink: S.Option(S.Struct({ href: S.String, text: S.String })),
 })
 
 // Bind a Toast module to your payload schema:

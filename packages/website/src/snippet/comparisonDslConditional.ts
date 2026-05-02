@@ -6,7 +6,7 @@ const Loading = S.TaggedStruct('Loading', {})
 const Failed = S.TaggedStruct('Failed', { error: S.String })
 const Loaded = S.TaggedStruct('Loaded', { greeting: S.String })
 
-const Status = S.Union(Idle, Loading, Failed, Loaded)
+const Status = S.Union([Idle, Loading, Failed, Loaded])
 type Status = typeof Status.Type
 
 const { div, p, empty } = html()

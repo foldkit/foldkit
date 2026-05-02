@@ -16,7 +16,7 @@ export const submitApplication = SubmitApplication(
     yield* Effect.sleep(Duration.millis(1500))
     return SucceededSubmitApplication()
   }).pipe(
-    Effect.catchAll(() =>
+    Effect.catch(() =>
       Effect.succeed(FailedSubmitApplication({ error: 'Submission failed' })),
     ),
   ),

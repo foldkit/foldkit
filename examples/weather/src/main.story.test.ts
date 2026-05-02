@@ -1,5 +1,5 @@
-import { HttpClient, HttpClientResponse } from '@effect/platform'
 import { Effect, Layer, Match as M, String } from 'effect'
+import { HttpClient, HttpClientResponse } from 'effect/unstable/http'
 import { Story } from 'foldkit'
 import { expect, test } from 'vitest'
 

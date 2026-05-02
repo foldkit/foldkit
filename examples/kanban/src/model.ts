@@ -12,7 +12,7 @@ export type SavedBoard = typeof SavedBoard.Type
 export const Model = S.Struct({
   columns: S.Array(Column.Column),
   dragAndDrop: Ui.DragAndDrop.Model,
-  maybeNewCardColumnId: S.OptionFromSelf(S.String),
+  maybeNewCardColumnId: S.Option(S.String),
   newCardTitle: S.String,
   announcement: S.String,
 })

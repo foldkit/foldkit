@@ -1,7 +1,6 @@
 import {
   Effect,
   Equal,
-  Function,
   Match as M,
   Option,
   Schema as S,
@@ -27,7 +26,7 @@ import { evo } from '../../struct/index.js'
 const Idle = ts('Idle')
 const Dragging = ts('Dragging', { originValue: S.Number })
 
-const DragState = S.Union(Idle, Dragging)
+const DragState = S.Union([Idle, Dragging])
 
 /** Schema for the slider component's state. Tracks the current value, the
  *  range (min/max/step), and the active drag phase. */
@@ -59,14 +58,14 @@ export const ReleasedDragPointer = m('ReleasedDragPointer')
 export const CancelledDrag = m('CancelledDrag')
 /** The user pressed a keyboard navigation key on the focused thumb. */
 export const PressedKeyboardNavigation = m('PressedKeyboardNavigation', {
-  direction: S.Literal(
+  direction: S.Literals([
     'StepDecrement',
     'StepIncrement',
     'PageDecrement',
     'PageIncrement',
     'Min',
     'Max',
-  ),
+  ]),
 })
 
 /** Union of all messages the slider component can produce. */
@@ -79,14 +78,14 @@ export const Message: S.Union<
     typeof CancelledDrag,
     typeof PressedKeyboardNavigation,
   ]
-> = S.Union(
+> = S.Union([
   PressedThumb,
   PressedPointer,
   MovedDragPointer,
   ReleasedDragPointer,
   CancelledDrag,
   PressedKeyboardNavigation,
-)
+])
 
 export type Message = typeof Message.Type
 
@@ -326,7 +325,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
 // SUBSCRIPTION
 
-const DragActivity = S.Literal('Idle', 'Active')
+const DragActivity = S.Literals(['Idle', 'Active'])
 
 const dragActivityFromModel = (model: Model): typeof DragActivity.Type =>
   M.value(model.dragState).pipe(
@@ -336,7 +335,7 @@ const dragActivityFromModel = (model: Model): typeof DragActivity.Type =>
   )
 
 const trackElement = (id: string): Option.Option<HTMLElement> =>
-  Option.fromNullable(
+  Option.fromNullishOr(
     document.querySelector<HTMLElement>(`[data-slider-track-id="${id}"]`),
   )
 
@@ -394,7 +393,8 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
               ),
             ),
           ),
-          Stream.filterMap(Function.identity),
+          Stream.filter(Option.isSome),
+          Stream.map(option => option.value),
         ),
         Stream.fromEventListener<PointerEvent>(document, 'pointerup').pipe(
           Stream.map(() => ReleasedDragPointer()),
@@ -403,25 +403,33 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
 
       // NOTE: prevents text selection and locks cursor to grabbing while the
       // user drags the thumb. Matches the approach used in drag-and-drop.
-      const documentDragStyles = Stream.async<never>(_emit => {
-        document.documentElement.style.setProperty('user-select', 'none')
-        document.documentElement.style.setProperty(
-          '-webkit-user-select',
-          'none',
-        )
-        const cursorStyle = document.createElement('style')
-        cursorStyle.textContent = '* { cursor: grabbing !important; }'
-        document.head.appendChild(cursorStyle)
-        return Effect.sync(() => {
-          document.documentElement.style.removeProperty('user-select')
-          document.documentElement.style.removeProperty('-webkit-user-select')
-          cursorStyle.remove()
-        })
-      })
+      const documentDragStyles = Stream.callback<never>(() =>
+        Effect.acquireRelease(
+          Effect.sync(() => {
+            document.documentElement.style.setProperty('user-select', 'none')
+            document.documentElement.style.setProperty(
+              '-webkit-user-select',
+              'none',
+            )
+            const cursorStyle = document.createElement('style')
+            cursorStyle.textContent = '* { cursor: grabbing !important; }'
+            document.head.appendChild(cursorStyle)
+            return cursorStyle
+          }),
+          cursorStyle =>
+            Effect.sync(() => {
+              document.documentElement.style.removeProperty('user-select')
+              document.documentElement.style.removeProperty(
+                '-webkit-user-select',
+              )
+              cursorStyle.remove()
+            }),
+        ).pipe(Effect.flatMap(() => Effect.never)),
+      )
 
       return Stream.when(
         Stream.merge(pointerEvents, documentDragStyles),
-        () => dragActivity === 'Active',
+        Effect.sync(() => dragActivity === 'Active'),
       )
     },
   },
@@ -436,7 +444,7 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
           Stream.filter(({ key }) => key === 'Escape'),
           Stream.map(() => CancelledDrag()),
         ),
-        () => dragActivity === 'Active',
+        Effect.sync(() => dragActivity === 'Active'),
       ),
   },
 })

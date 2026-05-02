@@ -1,4 +1,4 @@
-import { Duration, Match as M, Schema as S, Stream } from 'effect'
+import { Duration, Effect, Match as M, Schema as S, Stream } from 'effect'
 import { Command, Subscription } from 'foldkit'
 import { Document, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -20,7 +20,7 @@ const ClickedIncrement = m('ClickedIncrement')
 const ClickedToggleAutoCount = m('ClickedToggleAutoCount')
 const Ticked = m('Ticked')
 
-const Message = S.Union(ClickedIncrement, ClickedToggleAutoCount, Ticked)
+const Message = S.Union([ClickedIncrement, ClickedToggleAutoCount, Ticked])
 type Message = typeof Message.Type
 
 // SUBSCRIPTION
@@ -40,7 +40,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
     dependenciesToStream: ({ isAutoCounting }) =>
       Stream.when(
         Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(Stream.map(Ticked)),
-        () => isAutoCounting,
+        Effect.sync(() => isAutoCounting),
       ),
   },
 })
