@@ -45,7 +45,7 @@ import {
 export type ShowInput<A> = Readonly<{
   payload: A
   variant?: Variant
-  duration?: Duration.DurationInput
+  duration?: Duration.Input
   sticky?: boolean
 }>
 
@@ -64,7 +64,7 @@ const DEFAULT_VARIANT: Variant = 'Info'
  *
  *  @internal Consumers should use `Ui.Toast.make(PayloadSchema)`. This is
  *  only exported so `index.ts` can wire the view into the bound runtime. */
-export const makeRuntime = <A, I>(payloadSchema: S.Schema<A, I>) => {
+export const makeRuntime = <A, I>(payloadSchema: S.Codec<A, I>) => {
   const EntrySchema = makeEntry(payloadSchema)
   const ModelSchema = makeModel(payloadSchema)
   const MessageSchema = makeMessage(payloadSchema)
@@ -186,7 +186,7 @@ export const makeRuntime = <A, I>(payloadSchema: S.Schema<A, I>) => {
     const duration =
       input.duration === undefined
         ? model.defaultDuration
-        : Duration.decode(input.duration)
+        : Duration.fromInputUnsafe(input.duration)
 
     const maybeDuration = OptionExt.when(!input.sticky, duration)
 
@@ -207,7 +207,7 @@ export const makeRuntime = <A, I>(payloadSchema: S.Schema<A, I>) => {
     defaultDuration:
       config.defaultDuration === undefined
         ? DEFAULT_DURATION
-        : Duration.decode(config.defaultDuration),
+        : Duration.fromInputUnsafe(config.defaultDuration),
     entries: [],
     nextEntryKey: 0,
   })

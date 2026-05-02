@@ -1,6 +1,6 @@
 import { Match, Schema } from 'effect'
 
-export const Direction = Schema.Literal('Up', 'Down', 'Left', 'Right')
+export const Direction = Schema.Literals(['Up', 'Down', 'Left', 'Right'])
 export type Direction = typeof Direction.Type
 
 export const opposite = (direction: Direction): Direction =>

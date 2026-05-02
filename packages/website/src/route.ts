@@ -96,7 +96,7 @@ export const NewsletterRoute = r('Newsletter')
 
 export const NotFoundRoute = r('NotFound', { path: S.String })
 
-export const DocsRoute = S.Union(
+export const DocsRoute = S.Union([
   ManifestoRoute,
   WhyNoJsxRoute,
   ComingFromReactRoute,
@@ -167,15 +167,15 @@ export const DocsRoute = S.Union(
   AiSkillsRoute,
   AiMcpRoute,
   NotFoundRoute,
-)
+])
 export type DocsRoute = typeof DocsRoute.Type
 
-export const AppRoute = S.Union(
+export const AppRoute = S.Union([
   HomeRoute,
   NewsletterRoute,
   PlaygroundRoute,
   DocsRoute,
-)
+])
 export type AppRoute = typeof AppRoute.Type
 
 // ROUTERS

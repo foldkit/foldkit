@@ -1,11 +1,14 @@
 import { clsx } from 'clsx'
 import {
   Array,
+  Context,
   Duration,
   Effect,
+  Layer,
   Match as M,
   Number,
   Option,
+  Result,
   Schema as S,
   String as Str,
   pipe,
@@ -56,17 +59,17 @@ const DURATION_MILLISECONDS: Record<NoteDuration, number> = {
 const GAIN_ATTACK_TIME = 0.01
 const GAIN_RELEASE_TIME = 0.02
 const GAIN_NEAR_SILENT = 0.001
-const PHASE_DURATION: Duration.DurationInput = '150 millis'
+const PHASE_DURATION: Duration.Input = '150 millis'
 const MAX_LOG_ENTRIES = 50
 const MIN_NOTES = 2
 const MAX_NOTES = 8
 
 // MODEL
 
-const Note = S.Literal('A', 'B', 'C', 'D', 'E', 'F', 'G')
+const Note = S.Literals(['A', 'B', 'C', 'D', 'E', 'F', 'G'])
 type Note = typeof Note.Type
 
-const NoteDuration = S.Literal('Short', 'Medium', 'Long')
+const NoteDuration = S.Literals(['Short', 'Medium', 'Long'])
 type NoteDuration = typeof NoteDuration.Type
 
 const noteInputRules = FieldValidation.makeRules({
@@ -87,9 +90,9 @@ const Paused = ts('Paused', {
   noteSequence: S.Array(Note),
   currentNoteIndex: S.Number,
 })
-const PlaybackState = S.Union(Idle, Playing, Paused)
+const PlaybackState = S.Union([Idle, Playing, Paused])
 
-const NoteHighlightPhase = S.Literal(
+const NoteHighlightPhase = S.Literals([
   'Idle',
   'PlayMessage',
   'PlayUpdate',
@@ -99,7 +102,7 @@ const NoteHighlightPhase = S.Literal(
   'NoteUpdate',
   'NoteModel',
   'NoteCommand',
-)
+])
 type NoteHighlightPhase = typeof NoteHighlightPhase.Type
 
 export const Model = S.Struct({
@@ -132,7 +135,7 @@ const ProgressedNotePhase = m('ProgressedNotePhase', {
   generation: S.Number,
 })
 
-export const Message = S.Union(
+export const Message = S.Union([
   ChangedNoteInput,
   SelectedNoteDuration,
   GotDurationRadioGroupMessage,
@@ -141,7 +144,7 @@ export const Message = S.Union(
   ClickedStop,
   CompletedPlayNote,
   ProgressedNotePhase,
-)
+])
 export type Message = typeof Message.Type
 
 // FIELD VALIDATION
@@ -152,7 +155,13 @@ const parseNotes = (value: string) =>
   pipe(
     value,
     Array.fromIterable,
-    Array.filterMap(character => S.decodeUnknownOption(Note)(character)),
+    Array.filterMap(character => {
+      const decoded = S.decodeUnknownOption(Note)(character)
+      return Option.match(decoded, {
+        onNone: () => Result.failVoid,
+        onSome: Result.succeed,
+      })
+    }),
   )
 // INIT
 
@@ -218,7 +227,7 @@ const enterNoteCommandPhase = (
   }),
   [
     playNote(
-      Array.unsafeGet(noteSequence, noteIndex),
+      Array.getUnsafe(noteSequence, noteIndex),
       model.noteDuration,
       noteIndex,
     ),
@@ -321,7 +330,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                 ? parseNotes(model.noteInput.value)
                 : []
 
-            if (Array.isEmptyArray(noteSequence)) {
+            if (Array.isReadonlyArrayEmpty(noteSequence)) {
               return [model, []]
             }
 
@@ -461,12 +470,12 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
 // COMMAND
 
-export class AudioContextService extends Effect.Service<AudioContextService>()(
-  'AudioContextService',
-  {
-    sync: () => new AudioContext(),
-  },
-) {}
+export class AudioContextService extends Context.Service<
+  AudioContextService,
+  AudioContext
+>()('AudioContextService') {
+  static readonly Default = Layer.sync(this, () => new AudioContext())
+}
 
 const PlayNote = Command.define('PlayNote', CompletedPlayNote)
 
@@ -475,7 +484,7 @@ const playNote = (note: Note, duration: NoteDuration, noteIndex: number) =>
     Effect.gen(function* () {
       const audioContext = yield* AudioContextService
 
-      return yield* Effect.async<typeof CompletedPlayNote.Type>(resume => {
+      return yield* Effect.callback<typeof CompletedPlayNote.Type>(resume => {
         const oscillator = audioContext.createOscillator()
         const gainNode = audioContext.createGain()
         const durationSeconds = DURATION_MILLISECONDS[duration] / 1000

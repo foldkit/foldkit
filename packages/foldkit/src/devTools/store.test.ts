@@ -94,7 +94,7 @@ const CounterModel = Schema.Struct({ count: Schema.Number })
 const ClickedIncrement = m('ClickedIncrement')
 const ClickedDecrement = m('ClickedDecrement')
 
-const CounterMessage = Schema.Union(ClickedIncrement, ClickedDecrement)
+const CounterMessage = Schema.Union([ClickedIncrement, ClickedDecrement])
 
 const counterReplay = (model: unknown, message: unknown): unknown => {
   const { count } = Schema.decodeUnknownSync(CounterModel)(model)

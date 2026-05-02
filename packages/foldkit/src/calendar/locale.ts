@@ -3,7 +3,7 @@ import { Function, Schema as S } from 'effect'
 import type { CalendarDate } from './calendarDate.js'
 import { DayOfWeek, dayOfWeek } from './info.js'
 
-const twelveStrings = S.Tuple(
+const twelveStrings = S.Tuple([
   S.String,
   S.String,
   S.String,
@@ -16,9 +16,9 @@ const twelveStrings = S.Tuple(
   S.String,
   S.String,
   S.String,
-)
+])
 
-const sevenStrings = S.Tuple(
+const sevenStrings = S.Tuple([
   S.String,
   S.String,
   S.String,
@@ -26,7 +26,7 @@ const sevenStrings = S.Tuple(
   S.String,
   S.String,
   S.String,
-)
+])
 
 /**
  * Locale configuration for rendering calendar dates. Contains only data —

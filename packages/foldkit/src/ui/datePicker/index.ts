@@ -22,7 +22,7 @@ import * as Popover from '../popover/index.js'
  * submodel (the open/close + transition layer). */
 export const Model = S.Struct({
   id: S.String,
-  maybeSelectedDate: S.OptionFromSelf(Calendar.CalendarDate),
+  maybeSelectedDate: S.Option(Calendar.CalendarDate),
   calendar: UiCalendar.Model,
   popover: Popover.Model,
 })
@@ -60,14 +60,14 @@ export const Message: S.Union<
     typeof Opened,
     typeof Closed,
   ]
-> = S.Union(
+> = S.Union([
   GotCalendarMessage,
   GotPopoverMessage,
   SelectedDate,
   Cleared,
   Opened,
   Closed,
-)
+])
 export type Message = typeof Message.Type
 
 // OUT MESSAGE
@@ -106,7 +106,7 @@ export type InitConfig = Readonly<{
  * the calendar grid instead of the panel. */
 export const init = (config: InitConfig): Model => ({
   id: config.id,
-  maybeSelectedDate: Option.fromNullable(config.initialSelectedDate),
+  maybeSelectedDate: Option.fromNullishOr(config.initialSelectedDate),
   calendar: UiCalendar.init({
     id: `${config.id}-calendar`,
     today: config.today,

@@ -62,7 +62,7 @@ export const view = (): Html =>
         'Freezing is scoped to plain objects and arrays. Effect-tagged values such as ',
         inlineCode('Option'),
         ', ',
-        inlineCode('Either'),
+        inlineCode('Result'),
         ', ',
         inlineCode('DateTime'),
         ', ',
@@ -97,7 +97,7 @@ export const view = (): Html =>
       ),
       para(
         'Messages are never frozen. They routinely carry ',
-        inlineCode('OptionFromSelf'),
+        inlineCode('Option'),
         ' and ',
         inlineCode('DateTimeFromSelf'),
         ' payloads that rely on the same ',

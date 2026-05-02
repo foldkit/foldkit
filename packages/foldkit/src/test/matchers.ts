@@ -158,7 +158,7 @@ export const sceneMatchers = {
             : `Expected element to have style ${name}="${expectedValue}" but the element does not exist.`,
       }),
       onSome: vnode => {
-        const maybeActualValue = Option.fromNullable(vnode.data?.style?.[name])
+        const maybeActualValue = Option.fromNullishOr(vnode.data?.style?.[name])
 
         if (expectedValue === undefined) {
           return {

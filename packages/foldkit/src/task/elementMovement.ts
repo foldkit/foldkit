@@ -21,7 +21,7 @@ const rectToPosition = (rect: DOMRect): string => `${rect.x},${rect.y}`
  * ```
  */
 export const detectElementMovement = (selector: string): Effect.Effect<void> =>
-  Effect.async<void>((resume, signal) => {
+  Effect.callback<void>((resume, signal) => {
     requestAnimationFrame(() => {
       if (signal.aborted) {
         return

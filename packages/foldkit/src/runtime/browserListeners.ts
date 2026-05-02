@@ -19,7 +19,7 @@ const addPopStateListener = <Message>(
   routingConfig: RoutingConfig<Message>,
 ) => {
   const onPopState = () => {
-    Queue.unsafeOffer(messageQueue, routingConfig.onUrlChange(locationToUrl()))
+    Queue.offerUnsafe(messageQueue, routingConfig.onUrlChange(locationToUrl()))
   }
 
   window.addEventListener('popstate', onPopState)
@@ -31,12 +31,11 @@ const addLinkClickListener = <Message>(
 ) => {
   const onLinkClick = (event: Event) => {
     const target = event.target
-    if (!target || !('closest' in target)) {
+    if (!(target instanceof Element)) {
       return
     }
 
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    const maybeLink = Option.fromNullable((target as Element).closest('a'))
+    const maybeLink = Option.fromNullishOr(target.closest('a'))
     if (Option.isNone(maybeLink)) {
       return
     }
@@ -52,14 +51,14 @@ const addLinkClickListener = <Message>(
     const currentUrl = new URL(window.location.href)
 
     if (linkUrl.origin !== currentUrl.origin) {
-      Queue.unsafeOffer(
+      Queue.offerUnsafe(
         messageQueue,
         routingConfig.onUrlRequest(External({ href })),
       )
       return
     }
 
-    Queue.unsafeOffer(
+    Queue.offerUnsafe(
       messageQueue,
       routingConfig.onUrlRequest(Internal({ url: urlToFoldkitUrl(linkUrl) })),
     )
@@ -73,7 +72,7 @@ const addProgrammaticNavigationListener = <Message>(
   routingConfig: RoutingConfig<Message>,
 ) => {
   const onProgrammaticNavigation = () => {
-    Queue.unsafeOffer(messageQueue, routingConfig.onUrlChange(locationToUrl()))
+    Queue.offerUnsafe(messageQueue, routingConfig.onUrlChange(locationToUrl()))
   }
 
   window.addEventListener('foldkit:urlchange', onProgrammaticNavigation)

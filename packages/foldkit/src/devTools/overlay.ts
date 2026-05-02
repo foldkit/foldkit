@@ -10,6 +10,7 @@ import {
   Option,
   Order,
   Predicate,
+  Queue,
   Record,
   Schema as S,
   Stream,
@@ -48,7 +49,7 @@ import {
 const DisplayEntry = S.Struct({
   tag: S.String,
   submodelPath: S.Array(S.String),
-  maybeLeafTag: S.OptionFromSelf(S.String),
+  maybeLeafTag: S.Option(S.String),
   commandNames: S.Array(S.String),
   timestamp: S.Number,
   isModelChanged: S.Boolean,
@@ -61,7 +62,7 @@ const InspectorTabsModel = S.Struct({
   id: S.String,
   activeIndex: S.Number,
   focusedIndex: S.Number,
-  activationMode: S.Literal('Automatic', 'Manual'),
+  activationMode: S.Literals(['Automatic', 'Manual']),
 })
 
 const Model = S.Struct({
@@ -74,14 +75,14 @@ const Model = S.Struct({
   pausedAtIndex: S.Number,
   selectedIndex: S.Number,
   isFollowingLatest: S.Boolean,
-  maybeInspectedModel: S.OptionFromSelf(S.Unknown),
-  maybeInspectedMessage: S.OptionFromSelf(S.Unknown),
+  maybeInspectedModel: S.Option(S.Unknown),
+  maybeInspectedMessage: S.Option(S.Unknown),
   submodelTags: S.Array(S.String),
-  maybeSubmodelFilter: S.OptionFromSelf(S.String),
+  maybeSubmodelFilter: S.Option(S.String),
   submodelFilterListbox: Listbox.Model,
-  expandedPaths: S.HashSetFromSelf(S.String),
-  changedPaths: S.HashSetFromSelf(S.String),
-  affectedPaths: S.HashSetFromSelf(S.String),
+  expandedPaths: S.HashSet(S.String),
+  changedPaths: S.HashSet(S.String),
+  affectedPaths: S.HashSet(S.String),
   inspectorTabs: InspectorTabsModel,
 })
 type Model = typeof Model.Type
@@ -113,9 +114,9 @@ const CrossedMobileBreakpoint = m('CrossedMobileBreakpoint', {
 })
 const ReceivedInspectedState = m('ReceivedInspectedState', {
   model: S.Unknown,
-  maybeMessage: S.OptionFromSelf(S.Unknown),
-  changedPaths: S.HashSetFromSelf(S.String),
-  affectedPaths: S.HashSetFromSelf(S.String),
+  maybeMessage: S.Option(S.Unknown),
+  changedPaths: S.HashSet(S.String),
+  affectedPaths: S.HashSet(S.String),
 })
 const ToggledTreeNode = m('ToggledTreeNode', { path: S.String })
 const GotInspectorTabsMessage = m('GotInspectorTabsMessage', {
@@ -135,7 +136,7 @@ const SelectedSubmodelFilter = m('SelectedSubmodelFilter', {
   tag: S.String,
 })
 
-const Message = S.Union(
+const Message = S.Union([
   ClickedToggle,
   ClickedRow,
   ClickedResume,
@@ -154,7 +155,7 @@ const Message = S.Union(
   ReceivedStoreUpdate,
   GotSubmodelFilterMessage,
   SelectedSubmodelFilter,
-)
+])
 type Message = typeof Message.Type
 
 // HELPERS
@@ -169,7 +170,7 @@ const ALL_MESSAGES_VALUE = ''
 const formatTimeDelta = (deltaMs: number): string =>
   M.value(deltaMs).pipe(
     M.when(0, () => '0ms'),
-    M.when(Number_.lessThan(MILLIS_PER_SECOND), ms => `+${Math.round(ms)}ms`),
+    M.when(Number_.isLessThan(MILLIS_PER_SECOND), ms => `+${Math.round(ms)}ms`),
     M.orElse(ms => `+${(ms / MILLIS_PER_SECOND).toFixed(1)}s`),
   )
 
@@ -182,7 +183,7 @@ const computeSubmodelTags = (
     entries,
     Array_.flatMap(({ submodelPath }) => submodelPath),
     Array_.dedupe,
-    Array_.sort(Order.string),
+    Array_.sort(Order.String),
   )
 
 const toDisplayEntries = ({ entries }: StoreState) =>
@@ -234,7 +235,7 @@ const objectPreview = (value: Record<string, unknown>): string =>
 const collapsedPreview = (value: unknown): string =>
   M.value(value).pipe(
     M.when(Array.isArray, array => `(${array.length})`),
-    M.when(Predicate.isReadonlyRecord, objectPreview),
+    M.when(Predicate.isObject, objectPreview),
     M.orElse(() => ''),
   )
 
@@ -282,7 +283,7 @@ const makeUpdate = (
   const inspectLatest = InspectLatest(
     Effect.gen(function* () {
       const state = yield* SubscriptionRef.get(store.stateRef)
-      const latestIndex = Array_.isEmptyReadonlyArray(state.entries)
+      const latestIndex = Array_.isReadonlyArrayEmpty(state.entries)
         ? INIT_INDEX
         : state.startIndex + state.entries.length - 1
 
@@ -433,7 +434,10 @@ const makeUpdate = (
         },
         ToggledTreeNode: ({ path }) => [
           evo(model, {
-            expandedPaths: paths => HashSet.toggle(paths, path),
+            expandedPaths: paths =>
+              HashSet.has(paths, path)
+                ? HashSet.remove(paths, path)
+                : HashSet.add(paths, path),
           }),
           [],
         ],
@@ -555,7 +559,7 @@ const makeOverlaySubscriptions = (store: DevToolsStore) =>
               Effect.map(state => ReceivedStoreUpdate(toDisplayState(state))),
             ),
           ),
-          Stream.map(store.stateRef.changes, state =>
+          Stream.map(SubscriptionRef.changes(store.stateRef), state =>
             ReceivedStoreUpdate(toDisplayState(state)),
           ),
         ),
@@ -563,19 +567,25 @@ const makeOverlaySubscriptions = (store: DevToolsStore) =>
     mobileBreakpoint: {
       modelToDependencies: () => null,
       dependenciesToStream: () =>
-        Stream.async<Message>(emit => {
-          const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT_QUERY)
-
-          const handler = (event: MediaQueryListEvent) => {
-            emit.single(CrossedMobileBreakpoint({ isMobile: event.matches }))
-          }
-
-          mediaQuery.addEventListener('change', handler)
-
-          return Effect.sync(() =>
-            mediaQuery.removeEventListener('change', handler),
-          )
-        }),
+        Stream.callback<Message>(queue =>
+          Effect.acquireRelease(
+            Effect.sync(() => {
+              const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT_QUERY)
+              const handler = (event: MediaQueryListEvent) => {
+                Queue.offerUnsafe(
+                  queue,
+                  CrossedMobileBreakpoint({ isMobile: event.matches }),
+                )
+              }
+              mediaQuery.addEventListener('change', handler)
+              return { mediaQuery, handler }
+            }),
+            ({ mediaQuery, handler }) =>
+              Effect.sync(() =>
+                mediaQuery.removeEventListener('change', handler),
+              ),
+          ).pipe(Effect.flatMap(() => Effect.never)),
+        ),
     },
   })
 
@@ -765,7 +775,7 @@ const makeView = (
           key: String(arrayIndex),
         }),
       )
-    } else if (Predicate.isReadonlyRecord(value)) {
+    } else if (Predicate.isObject(value)) {
       pipe(
         value,
         Record.toEntries,
@@ -891,7 +901,7 @@ const makeView = (
   }
 
   const inspectedTimestamp = (model: Model): string => {
-    const lastIndex = Array_.isEmptyReadonlyArray(model.entries)
+    const lastIndex = Array_.isReadonlyArrayEmpty(model.entries)
       ? INIT_INDEX
       : model.startIndex + model.entries.length - 1
 
@@ -1415,7 +1425,7 @@ const makeView = (
       }),
     )
 
-    const lastIndex = Array_.isEmptyReadonlyArray(model.entries)
+    const lastIndex = Array_.isReadonlyArrayEmpty(model.entries)
       ? INIT_INDEX
       : model.startIndex + model.entries.length - 1
 
@@ -1591,6 +1601,7 @@ export const createOverlay = (
 ) =>
   Effect.gen(function* () {
     const { container, shadow } = createShadowContainer()
+    container.id = '__foldkit_devtools_overlay__'
 
     const flags: Effect.Effect<typeof Flags.Type> = Effect.gen(function* () {
       const storeState = yield* SubscriptionRef.get(store.stateRef)
@@ -1636,5 +1647,5 @@ export const createOverlay = (
       devTools: false,
     })
 
-    yield* Effect.forkDaemon(overlayRuntime())
+    yield* Effect.forkDetach(overlayRuntime.start())
   })

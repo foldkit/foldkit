@@ -15,7 +15,7 @@ export const SerializedEntry = S.Struct({
   changedPaths: S.Array(S.String),
   affectedPaths: S.Array(S.String),
   submodelPath: S.Array(S.String),
-  maybeLeafTag: S.Option(S.String),
+  maybeLeafTag: S.OptionFromNullOr(S.String),
 })
 /** A serialized history entry suitable for transmission over the WS protocol. */
 export type SerializedEntry = typeof SerializedEntry.Type
@@ -40,21 +40,21 @@ export type RuntimeInfo = typeof RuntimeInfo.Type
 
 /** Request the current Model snapshot, optionally narrowed to a path and/or expanded. */
 export const RequestGetModel = ts('RequestGetModel', {
-  maybePath: S.Option(S.String),
+  maybePath: S.OptionFromNullOr(S.String),
   expand: S.Boolean,
 })
 
 /** Request a historical Model snapshot at an absolute history index, optionally narrowed to a path and/or expanded. Use `index: -1` for the initial Model. */
 export const RequestGetModelAt = ts('RequestGetModelAt', {
   index: S.Number,
-  maybePath: S.Option(S.String),
+  maybePath: S.OptionFromNullOr(S.String),
   expand: S.Boolean,
 })
 
 /** Request recent history entries, optionally starting from a given index. */
 export const RequestListMessages = ts('RequestListMessages', {
   limit: S.Number,
-  maybeSinceIndex: S.Option(S.Number),
+  maybeSinceIndex: S.OptionFromNullOr(S.Number),
 })
 
 /** Request a single history entry by index. To inspect the Model around the entry, call `RequestGetModelAt` with `index - 1` (before) and `index` (after). */
@@ -88,7 +88,7 @@ export const RequestDispatchMessage = ts('RequestDispatchMessage', {
 export const RequestListRuntimes = ts('RequestListRuntimes')
 
 /** A request from the MCP server. RequestListRuntimes is handled at the Vite plugin layer; all other requests are routed to a browser runtime. */
-export const Request = S.Union(
+export const Request = S.Union([
   RequestGetModel,
   RequestGetModelAt,
   RequestListMessages,
@@ -100,7 +100,7 @@ export const Request = S.Union(
   RequestListRuntimes,
   RequestGetInit,
   RequestGetRuntimeState,
-)
+])
 /** A request from the MCP server. */
 export type Request = typeof Request.Type
 
@@ -116,7 +116,7 @@ export const ResponseModel = ts('ResponseModel', {
 /** Response carrying a page of history entries. `maybeNextIndex` is `Some` when more entries are available beyond this page (pass it as `RequestListMessages.maybeSinceIndex` to fetch the next page) and `None` when this page reaches the current end of history. */
 export const ResponseMessages = ts('ResponseMessages', {
   entries: S.Array(SerializedEntry),
-  maybeNextIndex: S.Option(S.Number),
+  maybeNextIndex: S.OptionFromNullOr(S.Number),
 })
 
 /** Response carrying a single history entry. Model snapshots are not included; use `RequestGetModelAt` with `index - 1` and `index` to inspect Model state around the entry. */
@@ -149,7 +149,7 @@ export const ResponseRuntimes = ts('ResponseRuntimes', {
 
 /** Response carrying the recorded init data. `maybeModel` is `None` until the runtime has finished its first render and recorded init; once set it stays set for the rest of the runtime's life. `commandNames` lists the Commands returned from the application's `init` function in the order they were produced. */
 export const ResponseInit = ts('ResponseInit', {
-  maybeModel: S.Option(S.Unknown),
+  maybeModel: S.OptionFromNullOr(S.Unknown),
   commandNames: S.Array(S.String),
 })
 
@@ -159,7 +159,7 @@ export const ResponseRuntimeState = ts('ResponseRuntimeState', {
   startIndex: S.Number,
   totalEntries: S.Number,
   isPaused: S.Boolean,
-  maybePausedAtIndex: S.Option(S.Number),
+  maybePausedAtIndex: S.OptionFromNullOr(S.Number),
   hasInitModel: S.Boolean,
 })
 
@@ -169,7 +169,7 @@ export const ResponseError = ts('ResponseError', {
 })
 
 /** A response replying to a Request. */
-export const Response = S.Union(
+export const Response = S.Union([
   ResponseModel,
   ResponseMessages,
   ResponseMessage,
@@ -181,7 +181,7 @@ export const Response = S.Union(
   ResponseInit,
   ResponseRuntimeState,
   ResponseError,
-)
+])
 /** A response replying to a Request. */
 export type Response = typeof Response.Type
 
@@ -198,7 +198,7 @@ export const EventDisconnected = ts('EventDisconnected', {
 })
 
 /** A runtime lifecycle event used by the Vite plugin to track which browser tabs are connected. Not forwarded to MCP clients. */
-export const Event = S.Union(EventConnected, EventDisconnected)
+export const Event = S.Union([EventConnected, EventDisconnected])
 /** A runtime lifecycle event. */
 export type Event = typeof Event.Type
 
@@ -207,7 +207,7 @@ export type Event = typeof Event.Type
 /** A wire frame carrying a Request from the MCP server. The id is opaque, used only by the MCP server to correlate the matching Response. The maybeConnectionId routes the request to a specific runtime when present. */
 export const RequestFrame = S.Struct({
   id: S.String,
-  maybeConnectionId: S.Option(S.String),
+  maybeConnectionId: S.OptionFromNullOr(S.String),
   request: Request,
 })
 /** A wire frame carrying a Request from the MCP server. */
@@ -223,7 +223,7 @@ export type ResponseFrame = typeof ResponseFrame.Type
 
 /** A wire frame carrying a runtime lifecycle event from the bridge to the Vite plugin. */
 export const EventFrame = S.Struct({
-  maybeConnectionId: S.Option(S.String),
+  maybeConnectionId: S.OptionFromNullOr(S.String),
   event: Event,
 })
 /** A wire frame carrying a runtime lifecycle event. */

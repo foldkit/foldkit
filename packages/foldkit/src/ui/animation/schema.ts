@@ -5,13 +5,13 @@ import { m } from '../../message/index.js'
 // TRANSITION STATE
 
 /** Schema for the animation lifecycle state, tracking enter/leave phases. */
-export const TransitionState = S.Literal(
+export const TransitionState = S.Literals([
   'Idle',
   'EnterStart',
   'EnterAnimating',
   'LeaveStart',
   'LeaveAnimating',
-)
+])
 export type TransitionState = typeof TransitionState.Type
 
 // MODEL
@@ -44,7 +44,7 @@ export const Message: S.Union<
     typeof AdvancedAnimationFrame,
     typeof EndedAnimation,
   ]
-> = S.Union(Showed, Hid, AdvancedAnimationFrame, EndedAnimation)
+> = S.Union([Showed, Hid, AdvancedAnimationFrame, EndedAnimation])
 export type Message = typeof Message.Type
 
 export type Showed = typeof Showed.Type
@@ -57,7 +57,7 @@ export const StartedLeaveAnimating = m('StartedLeaveAnimating')
 /** Sent to the parent when the leave animation completes. The parent can use this to unmount content or update its own state. */
 export const TransitionedOut = m('TransitionedOut')
 
-export const OutMessage = S.Union(StartedLeaveAnimating, TransitionedOut)
+export const OutMessage = S.Union([StartedLeaveAnimating, TransitionedOut])
 export type OutMessage = typeof OutMessage.Type
 
 // INIT

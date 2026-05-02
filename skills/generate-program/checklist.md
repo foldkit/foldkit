@@ -109,7 +109,7 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 - [ ] Every `Command.define` includes result Message schemas after the name
 - [ ] No inline `Command.define` in pipe chains — always stored as a constant
 - [ ] Definitions colocated with the update that produces them
-- [ ] Every _fallible_ Command catches all errors: `Effect.catchAll(() => Effect.succeed(FailedX(...)))`. Infallible Effects (Clock, Random, Task.uuid, Task.getTime) do NOT need catchAll — if the type system shows no error channel, there's nothing to catch, and no paired `Failed*` Message is needed either.
+- [ ] Every _fallible_ Command catches all errors: `Effect.catch(() => Effect.succeed(FailedX(...)))`. Infallible Effects (Clock, Random, Task.uuid, Task.getTime) do NOT need catch — if the type system shows no error channel, there's nothing to catch, and no paired `Failed*` Message is needed either.
 - [ ] Return types inferred — no explicit `Command<typeof A>` annotations
 - [ ] Factory functions named by action: `fetchWeather`, not `fetchWeatherCommand`
 - [ ] Fire-and-forget Commands return `Completed*` Messages
@@ -123,7 +123,7 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 - [ ] Boolean fields prefixed with `is`
 - [ ] No abbreviations anywhere
 - [ ] Constants for all magic numbers
-- [ ] Schema literals are capitalized: `S.Literal('Active', 'Inactive')`
+- [ ] Schema literals are capitalized: `S.Literals(['Active', 'Inactive'])`
 
 ## State modeling
 
@@ -275,7 +275,7 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 - [ ] `Equal.equals(target)` in predicates: `Array.findFirst(items, Equal.equals('Other'))` not `item => item === 'Other'`.
 - [ ] `Array.fromOption(maybeCommand)` for "zero or one command based on Option" — not `Option.match` that returns `[]` vs `[cmd]`.
 - [ ] `OptionExt.when(condition, value)` instead of `condition ? Option.some(value) : Option.none()`.
-- [ ] `pipe(...)` is multi-step only. Never `pipe(x, singleOp(...))` — call `singleOp(x, ...)` directly. (Exception: `.pipe(Effect.catchAll(...))` as a tail suffix is fine.)
+- [ ] `pipe(...)` is multi-step only. Never `pipe(x, singleOp(...))` — call `singleOp(x, ...)` directly. (Exception: `.pipe(Effect.catch(...))` as a tail suffix is fine.)
 - [ ] When piping, data leads on its own line: `pipe(\n  data,\n  Array.map(f),\n  ...\n)` — not `pipe(data, Array.map(f), ...)`.
 - [ ] Callback destructuring when accessing a single field: `({ id }) => id === cardId` not `card => card.id === cardId`.
 

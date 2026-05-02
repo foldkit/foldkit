@@ -48,7 +48,7 @@ export const getZonedTime: Effect.Effect<DateTime.Zoned> = Effect.gen(
  * ```typescript
  * Task.getZonedTimeIn('America/New_York').pipe(
  *   Effect.map(zoned => GotNYTime({ zoned })),
- *   Effect.catchAll(() => Effect.succeed(FailedGetTimeZone())),
+ *   Effect.catch(() => Effect.succeed(FailedGetTimeZone())),
  * )
  * ```
  */

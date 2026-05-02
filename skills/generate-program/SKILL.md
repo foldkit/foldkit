@@ -383,13 +383,13 @@ const FailedLogin = m('FailedLogin', { error: S.String })
 const CompletedFocusInput = m('CompletedFocusInput')
 
 // Group 2: Union + type (no blank line between them)
-const Message = S.Union(
+const Message = S.Union([
   ClickedSubmit,
   UpdatedEmail,
   SucceededLogin,
   FailedLogin,
   CompletedFocusInput,
-)
+])
 type Message = typeof Message.Type
 ```
 
@@ -439,7 +439,7 @@ Every message must carry meaning. No `NoOp`.
 - Definitions live where they're produced, colocated with the update function
 - Let TypeScript infer return types — no explicit `Command<typeof A>` annotations
 - Use `Effect.gen` for multi-step async
-- Always `Effect.catchAll(() => Effect.succeed(FailedX(...)))` for fallible Effects — Commands never throw. **Exception:** if the Effect is infallible at the type level (`Clock.currentTimeMillis`, `Task.getTime`, `Task.randomInt`, `Task.uuid`, etc.), no `catchAll` is needed and no `Failed*` Message is needed. Follow the types — if there's no error channel, there's nothing to catch.
+- Always `Effect.catch(() => Effect.succeed(FailedX(...)))` for fallible Effects — Commands never throw. **Exception:** if the Effect is infallible at the type level (`Clock.currentTimeMillis`, `Task.getTime`, `Task.randomInt`, `Task.uuid`, etc.), no `catch` is needed and no `Failed*` Message is needed. Follow the types — if there's no error channel, there's nothing to catch.
 - Use `Effect.provide` for services
 - Factory functions named by action: `fetchWeather`, not `fetchWeatherCommand`
 - Fire-and-forget Commands return `Completed*` Messages

@@ -70,7 +70,7 @@ const char =
       (index === userGameTextLength && Option.isNone(maybeWrongCharIndex))
 
     const isWrong = Option.exists(maybeWrongCharIndex, wrongIndex =>
-      Order.between(Number.Order)(index, {
+      Order.isBetween(Number.Order)(index, {
         minimum: wrongIndex,
         maximum: Number.decrement(userGameTextLength),
       }),

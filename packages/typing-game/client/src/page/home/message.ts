@@ -22,7 +22,7 @@ export const SucceededJoinRoom = m('SucceededJoinRoom', {
 export const FailedJoinRoom = m('FailedJoinRoom', { error: S.String })
 export const PressedKey = m('PressedKey', { key: S.String })
 
-export const Message = S.Union(
+export const Message = S.Union([
   CompletedFocusUsernameInput,
   CompletedFocusRoomIdInput,
   SubmittedUsernameForm,
@@ -36,10 +36,10 @@ export const Message = S.Union(
   SucceededJoinRoom,
   FailedJoinRoom,
   PressedKey,
-)
+])
 export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
-export const OutMessage = S.Union(SucceededCreateRoom, SucceededJoinRoom)
+export const OutMessage = S.Union([SucceededCreateRoom, SucceededJoinRoom])
 export type OutMessage = typeof OutMessage.Type

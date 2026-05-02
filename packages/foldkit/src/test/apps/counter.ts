@@ -16,13 +16,13 @@ export const ClickedFetch = m('ClickedFetch')
 export const SucceededFetchCount = m('SucceededFetchCount', { count: S.Number })
 export const FailedFetchCount = m('FailedFetchCount', { error: S.String })
 
-export const Message = S.Union(
+export const Message = S.Union([
   ClickedIncrement,
   ClickedDecrement,
   ClickedFetch,
   SucceededFetchCount,
   FailedFetchCount,
-)
+])
 export type Message = typeof Message.Type
 
 // COMMAND

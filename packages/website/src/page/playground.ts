@@ -121,7 +121,7 @@ const embedView = (meta: ExampleMeta, files: Record<string, string>): Html => {
           cleanup: Function.constVoid,
         }
       }).pipe(
-        Effect.catchAll(error =>
+        Effect.catch(error =>
           Effect.succeed({
             message: FailedPlaygroundEmbed({
               reason: error instanceof Error ? error.message : String(error),
@@ -142,7 +142,7 @@ export const view = (
   playgroundError: Option.Option<string>,
 ): Html => {
   const maybeMeta = findBySlug(slug)
-  const maybeFiles = Option.fromNullable(filesBySlug[slug])
+  const maybeFiles = Option.fromNullishOr(filesBySlug[slug])
 
   const content = M.value({
     isChromium,

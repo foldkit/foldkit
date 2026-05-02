@@ -32,7 +32,7 @@ const mountChart = (data: ChartData) =>
           cleanup: () => chart.destroy(),
         }
       }).pipe(
-        Effect.catchAll(error =>
+        Effect.catch(error =>
           Effect.succeed({
             message: FailedMountChart({
               reason: error instanceof Error ? error.message : String(error),

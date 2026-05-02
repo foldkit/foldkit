@@ -280,7 +280,7 @@ export type TableOfContentsEntry = {
 }
 
 const byName = <T extends { readonly name: string }>(): Order.Order<T> =>
-  Order.mapInput(Order.string, ({ name }: T) => name)
+  Order.mapInput(Order.String, ({ name }: T) => name)
 
 const sortByName = Array.sort(byName())
 

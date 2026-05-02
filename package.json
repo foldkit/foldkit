@@ -6,8 +6,9 @@
   "scripts": {
     "prepare": "test -z \"$CI\" && simple-git-hooks || true",
     "build": "pnpm -r --if-present build",
-    "check": "pnpm -F foldkit -F @foldkit/vite-plugin -F @typing-game/shared build && pnpm -r typecheck && pnpm lint",
+    "check": "pnpm -F foldkit -F @foldkit/vite-plugin -F @typing-game/shared build && pnpm -r typecheck && pnpm lint && pnpm check:effect-prebundle",
     "lint": "pnpm -r --if-present lint",
+    "check:effect-prebundle": "tsx scripts/check-effect-prebundle.ts",
     "check:changeset-ignore": "tsx scripts/check-changeset-ignore.ts",
     "check:skill-version": "bash scripts/check-skill-version.sh",
     "check:no-major-changesets": "bash scripts/check-no-major-changesets.sh",
@@ -49,14 +50,13 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
-    "@effect/platform": "^0.94.5",
-    "@effect/platform-node": "^0.104.1",
+    "@effect/platform-node": "4.0.0-beta.59",
     "@eslint/js": "^9.39.2",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "@types/node": "^25.1.0",
     "@typescript-eslint/eslint-plugin": "^8.58.2",
     "@typescript-eslint/parser": "^8.58.2",
-    "effect": "^3.19.19",
+    "effect": "4.0.0-beta.59",
     "eslint": "^9.39.2",
     "madge": "^8.0.0",
     "prettier": "^3.8.1",
@@ -79,13 +79,10 @@
       "simple-git-hooks"
     ],
     "overrides": {
-      "effect": "^3.19.19",
-      "@effect/platform": "^0.94.5",
-      "@effect/platform-browser": "^0.74.0",
-      "@effect/platform-node": "^0.104.1",
-      "@effect/rpc": "^0.73.0",
-      "@effect/cli": "^0.73.2",
-      "@effect/vitest": "^0.27.0"
+      "effect": "4.0.0-beta.59",
+      "@effect/platform-browser": "4.0.0-beta.59",
+      "@effect/platform-node": "4.0.0-beta.59",
+      "@effect/vitest": "4.0.0-beta.59"
     }
   },
   "engines": {

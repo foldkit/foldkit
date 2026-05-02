@@ -7,6 +7,7 @@ import {
   Order,
   Predicate,
   Schema as S,
+  SchemaTransformation,
   String,
   Types,
   pipe,
@@ -23,15 +24,15 @@ import { Url, toString as urlToString } from 'foldkit/url'
 
 import { type Dinosaur, dinosaurs } from './data'
 
-const Diet = S.Literal('Carnivore', 'Herbivore', 'Omnivore')
-const Period = S.Literal('Triassic', 'Jurassic', 'Cretaceous')
-const SortColumn = S.Literal('Name', 'Period', 'Diet', 'Length', 'Weight')
+const Diet = S.Literals(['Carnivore', 'Herbivore', 'Omnivore'])
+const Period = S.Literals(['Triassic', 'Jurassic', 'Cretaceous'])
+const SortColumn = S.Literals(['Name', 'Period', 'Diet', 'Length', 'Weight'])
 type SortColumn = typeof SortColumn.Type
 
 const Unsorted = ts('Unsorted')
 const Ascending = ts('Ascending', { column: SortColumn })
 const Descending = ts('Descending', { column: SortColumn })
-const Sorting = S.Union(Unsorted, Ascending, Descending)
+const Sorting = S.Union([Unsorted, Ascending, Descending])
 type Sorting = typeof Sorting.Type
 
 const dietFilterItems: ReadonlyArray<string> = ['', ...Diet.literals]
@@ -41,58 +42,71 @@ const periodFilterItems: ReadonlyArray<string> = ['', ...Period.literals]
 
 const SORT_PARAM_SEPARATOR = ':'
 
-const optionFromValidParam = <A extends string>(schema: S.Schema<A, A>) => {
+const optionFromValidParam = <A extends string>(schema: S.Codec<A, A>) => {
   const decode = S.decodeUnknownOption(schema)
 
-  return S.transform(S.UndefinedOr(S.String), S.OptionFromSelf(schema), {
-    strict: true,
-    decode: value => decode(value),
-    encode: option => Option.getOrUndefined(option),
-  })
+  return S.UndefinedOr(S.String).pipe(
+    S.decodeTo(
+      S.Option(schema),
+      SchemaTransformation.transform({
+        decode: (value: string | undefined): Option.Option<A> => decode(value),
+        encode: (option: Option.Option<A>): string | undefined =>
+          Option.getOrUndefined(option),
+      }),
+    ),
+  )
 }
 
-const SortDirection = S.Literal('Ascending', 'Descending')
+const SortDirection = S.Literals(['Ascending', 'Descending'])
 
 const sortingFromParam = (() => {
   const decodeColumn = S.decodeUnknownOption(SortColumn)
   const decodeDirection = S.decodeUnknownOption(SortDirection)
 
-  return S.transform(S.UndefinedOr(S.String), Sorting, {
-    strict: true,
-    decode: value => {
-      if (Predicate.isUndefined(value)) {
-        return Unsorted()
-      }
+  return S.UndefinedOr(S.String).pipe(
+    S.decodeTo(
+      Sorting,
+      SchemaTransformation.transform({
+        decode: (value: string | undefined) => {
+          if (Predicate.isUndefined(value)) {
+            return Unsorted()
+          }
 
-      const parts = String.split(value, SORT_PARAM_SEPARATOR)
+          const parts = String.split(value, SORT_PARAM_SEPARATOR)
 
-      return pipe(
-        Option.all({
-          column: pipe(Array.get(parts, 0), Option.flatMap(decodeColumn)),
-          direction: pipe(Array.get(parts, 1), Option.flatMap(decodeDirection)),
-        }),
-        Option.map(({ column, direction }) =>
-          M.value(direction).pipe(
-            M.when('Ascending', () => Ascending({ column })),
-            M.when('Descending', () => Descending({ column })),
-            M.exhaustive,
+          return pipe(
+            Option.all({
+              column: pipe(parts, Array.get(0), Option.flatMap(decodeColumn)),
+              direction: pipe(
+                parts,
+                Array.get(1),
+                Option.flatMap(decodeDirection),
+              ),
+            }),
+            Option.map(({ column, direction }) =>
+              M.value(direction).pipe(
+                M.when('Ascending', () => Ascending({ column })),
+                M.when('Descending', () => Descending({ column })),
+                M.exhaustive,
+              ),
+            ),
+            Option.getOrElse(() => Unsorted()),
+          )
+        },
+        encode: sorting =>
+          M.value(sorting).pipe(
+            M.withReturnType<string | undefined>(),
+            M.tagsExhaustive({
+              Unsorted: () => undefined,
+              Ascending: ({ column }) =>
+                `${column}${SORT_PARAM_SEPARATOR}Ascending`,
+              Descending: ({ column }) =>
+                `${column}${SORT_PARAM_SEPARATOR}Descending`,
+            }),
           ),
-        ),
-        Option.getOrElse(() => Unsorted()),
-      )
-    },
-    encode: sorting =>
-      M.value(sorting).pipe(
-        M.withReturnType<string | undefined>(),
-        M.tagsExhaustive({
-          Unsorted: () => undefined,
-          Ascending: ({ column }) =>
-            `${column}${SORT_PARAM_SEPARATOR}Ascending`,
-          Descending: ({ column }) =>
-            `${column}${SORT_PARAM_SEPARATOR}Descending`,
-        }),
-      ),
-  })
+      }),
+    ),
+  )
 })()
 
 const BrowseRoute = r('Browse', {
@@ -104,14 +118,14 @@ const BrowseRoute = r('Browse', {
 
 const NotFoundRoute = r('NotFound', { path: S.String })
 
-const AppRoute = S.Union(BrowseRoute, NotFoundRoute)
+const AppRoute = S.Union([BrowseRoute, NotFoundRoute])
 type AppRoute = typeof AppRoute.Type
 
 const browseRouter = pipe(
   Route.root,
   Route.query(
     S.Struct({
-      search: S.OptionFromUndefinedOr(S.String),
+      search: S.OptionFromOptional(S.String),
       sorting: sortingFromParam,
       diet: optionFromValidParam(Diet),
       period: optionFromValidParam(Period),
@@ -150,7 +164,7 @@ const GotPeriodListboxMessage = m('GotPeriodListboxMessage', {
 const SelectedDietFilter = m('SelectedDietFilter', { value: S.String })
 const SelectedPeriodFilter = m('SelectedPeriodFilter', { value: S.String })
 
-const Message = S.Union(
+const Message = S.Union([
   CompletedNavigateInternal,
   CompletedLoadExternal,
   CompletedReplaceUrl,
@@ -162,7 +176,7 @@ const Message = S.Union(
   GotPeriodListboxMessage,
   SelectedDietFilter,
   SelectedPeriodFilter,
-)
+])
 type Message = typeof Message.Type
 
 // INIT
@@ -230,7 +244,7 @@ const nextSorting = (sorting: Sorting, column: SortColumn): Sorting =>
 
 const selectionToParam = <A extends string>(
   maybeSelectedItem: Option.Option<string>,
-  schema: S.Schema<A, A>,
+  schema: S.Codec<A, A>,
 ): Option.Option<A> => {
   const decode = S.decodeUnknownOption(schema)
 
@@ -464,14 +478,14 @@ const {
 } = html<Message>()
 
 const columnOrders: Record<SortColumn, Order.Order<Dinosaur>> = {
-  Name: Order.mapInput(Order.string, ({ name }: Dinosaur) => name),
-  Period: Order.mapInput(Order.string, ({ period }: Dinosaur) => period),
-  Diet: Order.mapInput(Order.string, ({ diet }: Dinosaur) => diet),
+  Name: Order.mapInput(Order.String, ({ name }: Dinosaur) => name),
+  Period: Order.mapInput(Order.String, ({ period }: Dinosaur) => period),
+  Diet: Order.mapInput(Order.String, ({ diet }: Dinosaur) => diet),
   Length: Order.mapInput(
-    Order.number,
+    Order.Number,
     ({ lengthMeters }: Dinosaur) => lengthMeters,
   ),
-  Weight: Order.mapInput(Order.number, ({ weightKg }: Dinosaur) => weightKg),
+  Weight: Order.mapInput(Order.Number, ({ weightKg }: Dinosaur) => weightKg),
 }
 
 const filterWhenSome =
@@ -492,7 +506,7 @@ const sortBySorting =
       M.tag('Unsorted', () => items),
       M.tag('Ascending', ({ column }) => Array.sort(items, orders[column])),
       M.tag('Descending', ({ column }) =>
-        Array.sort(items, Order.reverse(orders[column])),
+        Array.sort(items, Order.flip(orders[column])),
       ),
       M.exhaustive,
     )

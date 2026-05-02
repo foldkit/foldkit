@@ -77,19 +77,19 @@ export const FailedSimulateAuthRequest = m('FailedSimulateAuthRequest', {
   error: S.String,
 })
 
-export const Message = S.Union(
+export const Message = S.Union([
   ChangedEmail,
   ChangedPassword,
   SubmittedForm,
   SucceededSimulateAuthRequest,
   FailedSimulateAuthRequest,
-)
+])
 export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
 export const SucceededLogin = m('SucceededLogin', { session: Session })
-export const OutMessage = S.Union(SucceededLogin)
+export const OutMessage = S.Union([SucceededLogin])
 export type OutMessage = typeof OutMessage.Type
 
 // VALIDATION

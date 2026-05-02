@@ -1,4 +1,4 @@
-import { Effect, Stream } from 'effect'
+import { Effect, Queue, Stream } from 'effect'
 import { Subscription } from 'foldkit/subscription'
 
 import {
@@ -15,17 +15,21 @@ export const viewportWidth: Subscription<
 > = {
   modelToDependencies: () => null,
   dependenciesToStream: () =>
-    Stream.async<typeof ChangedViewportWidth.Type>(emit => {
-      const mediaQuery = window.matchMedia(NARROW_VIEWPORT_QUERY)
-
-      const handler = (event: MediaQueryListEvent) => {
-        emit.single(ChangedViewportWidth({ isNarrow: event.matches }))
-      }
-
-      mediaQuery.addEventListener('change', handler)
-
-      return Effect.sync(() =>
-        mediaQuery.removeEventListener('change', handler),
-      )
-    }),
+    Stream.callback<typeof ChangedViewportWidth.Type>(queue =>
+      Effect.acquireRelease(
+        Effect.sync(() => {
+          const mediaQuery = window.matchMedia(NARROW_VIEWPORT_QUERY)
+          const handler = (event: MediaQueryListEvent) => {
+            Queue.offerUnsafe(
+              queue,
+              ChangedViewportWidth({ isNarrow: event.matches }),
+            )
+          }
+          mediaQuery.addEventListener('change', handler)
+          return { mediaQuery, handler }
+        }),
+        ({ mediaQuery, handler }) =>
+          Effect.sync(() => mediaQuery.removeEventListener('change', handler)),
+      ).pipe(Effect.flatMap(() => Effect.never)),
+    ),
 }

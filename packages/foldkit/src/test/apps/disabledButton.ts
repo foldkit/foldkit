@@ -21,7 +21,7 @@ export const GotDialogMessage = m('GotDialogMessage', {
   message: Dialog.Message,
 })
 
-export const Message = S.Union(ClickedToggle, ClickedSubmit, GotDialogMessage)
+export const Message = S.Union([ClickedToggle, ClickedSubmit, GotDialogMessage])
 export type Message = typeof Message.Type
 
 // INIT

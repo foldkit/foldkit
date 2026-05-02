@@ -1,4 +1,4 @@
-import { Array, Equal, Option, pipe } from 'effect'
+import { Array, Equal, Option, Result, pipe } from 'effect'
 import { type Html, createKeyedLazy, html } from 'foldkit/html'
 
 import { EMPTY_COLOR } from '../constant'
@@ -81,7 +81,7 @@ export const canvasView = (model: Model, theme: PaletteTheme): Html => {
               y => {
                 const row = model.grid[y]
                 if (row === undefined) {
-                  return Option.none()
+                  return Result.failVoid
                 }
                 const rowPreviewPositions = pipe(
                   previewPositions,
@@ -91,7 +91,7 @@ export const canvasView = (model: Model, theme: PaletteTheme): Html => {
                     onNonEmpty: filtered => filtered,
                   }),
                 )
-                return Option.some(
+                return Result.succeed(
                   lazyRow(`${y}`, rowView, [
                     row,
                     y,

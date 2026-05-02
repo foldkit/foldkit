@@ -173,7 +173,7 @@ export const ClickedVirtualListVariableScrollToMiddle = m(
   'ClickedVirtualListVariableScrollToMiddle',
 )
 
-export const Message = S.Union(
+export const Message = S.Union([
   ClickedButtonDemo,
   UpdatedInputDemoValue,
   UpdatedTextareaDemoValue,
@@ -223,5 +223,5 @@ export const Message = S.Union(
   ClickedVirtualListScrollToMiddle,
   GotVirtualListVariableDemoMessage,
   ClickedVirtualListVariableScrollToMiddle,
-)
+])
 export type Message = typeof Message.Type

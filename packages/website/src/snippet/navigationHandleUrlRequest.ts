@@ -9,7 +9,7 @@ import { evo } from 'foldkit/struct'
 const HomeRoute = r('Home')
 const PersonRoute = r('Person', { personId: S.Number })
 const NotFoundRoute = r('NotFound', { path: S.String })
-const AppRoute = S.Union(HomeRoute, PersonRoute, NotFoundRoute)
+const AppRoute = S.Union([HomeRoute, PersonRoute, NotFoundRoute])
 type AppRoute = typeof AppRoute.Type
 
 const homeRouter = pipe(Route.root, Route.mapTo(HomeRoute))
@@ -33,12 +33,12 @@ const CompletedLoadExternal = m('CompletedLoadExternal')
 const ClickedLink = m('ClickedLink', { request: Runtime.UrlRequest })
 const ChangedUrl = m('ChangedUrl', { url: Url.Url })
 
-const Message = S.Union(
+const Message = S.Union([
   CompletedNavigateInternal,
   CompletedLoadExternal,
   ClickedLink,
   ChangedUrl,
-)
+])
 type Message = typeof Message.Type
 
 // COMMAND

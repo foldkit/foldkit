@@ -12,7 +12,7 @@ type Model = typeof Model.Type
 
 const ClickedCrash = m('ClickedCrash')
 
-const Message = Schema.Union(ClickedCrash)
+const Message = Schema.Union([ClickedCrash])
 export type Message = typeof Message.Type
 
 // UPDATE

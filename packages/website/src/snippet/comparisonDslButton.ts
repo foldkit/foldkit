@@ -4,7 +4,7 @@ import { m } from 'foldkit/message'
 
 const ClickedSave = m('ClickedSave')
 
-const Message = S.Union(ClickedSave)
+const Message = S.Union([ClickedSave])
 type Message = typeof Message.Type
 
 // In a real app, this destructure lives once in html.ts and is imported everywhere.

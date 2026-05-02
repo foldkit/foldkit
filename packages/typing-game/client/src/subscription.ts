@@ -1,4 +1,4 @@
-import { Effect, Match as M, Option, Schema as S, Stream } from 'effect'
+import { Cause, Effect, Match as M, Option, Schema as S, Stream } from 'effect'
 import { Subscription } from 'foldkit'
 
 import {
@@ -10,7 +10,7 @@ import {
 import { Model } from './model'
 import { Home, Room } from './page'
 import { AppRoute } from './route'
-import { RoomsClient } from './rpc'
+import { RoomsClient, RoomsClientLive } from './rpc.js'
 
 const SubscriptionDeps = S.Struct({
   roomSubscription: S.Option(
@@ -57,17 +57,20 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
                   }),
                 }),
               ),
-              Stream.catchAll(error =>
+              Stream.catchCause(cause =>
                 Stream.make(
                   GotRoomMessage({
                     message: Room.Message.FailedStreamRoom({
-                      error: String(error),
+                      error: Option.match(Cause.findErrorOption(cause), {
+                        onSome: failure => String(failure),
+                        onNone: () => 'Unknown stream error',
+                      }),
                     }),
                   }),
                 ),
               ),
             )
-          }).pipe(Stream.unwrap, Stream.provideLayer(RoomsClient.Default)),
+          }).pipe(Stream.unwrap, Stream.provide(RoomsClientLive)),
       }),
   },
 
@@ -124,7 +127,7 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
             }),
           ),
         ),
-        () => deps.shouldCaptureKeyboard,
+        Effect.sync(() => deps.shouldCaptureKeyboard),
       ),
   },
 })

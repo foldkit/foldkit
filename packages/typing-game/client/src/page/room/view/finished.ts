@@ -21,7 +21,7 @@ import { RoomPlayerSession } from '../model'
 const byHighestWpm = pipe(
   Number.Order,
   Order.mapInput(({ wpm }: Shared.PlayerScore) => wpm),
-  Order.reverse,
+  Order.flip,
 )
 
 const scoreboardView = (scoreboard: Shared.Scoreboard, hostId: string) => {

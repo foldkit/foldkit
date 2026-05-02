@@ -6,7 +6,7 @@ const HomeRoute = r('Home')
 const RoomRoute = r('Room', { roomId: S.String })
 const NotFoundRoute = r('NotFound', { path: S.String })
 
-export const AppRoute = S.Union(HomeRoute, RoomRoute, NotFoundRoute)
+export const AppRoute = S.Union([HomeRoute, RoomRoute, NotFoundRoute])
 
 export type HomeRoute = typeof HomeRoute.Type
 export type RoomRoute = typeof RoomRoute.Type

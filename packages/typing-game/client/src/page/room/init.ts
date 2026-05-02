@@ -8,7 +8,7 @@ import { Model, RoomRemoteData } from './model'
 
 export type InitReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 export const init = (route: AppRoute): InitReturn => {
-  const commands = pipe(
+  const commands: ReadonlyArray<Command.Command<Message>> = pipe(
     route,
     Option.liftPredicate(route => route._tag === 'Room'),
     Option.map(({ roomId }) => [

@@ -80,7 +80,7 @@ const cycleAction =
           Number.remainder(homeActionsLength),
           remainder =>
             remainder < 0 ? remainder + homeActionsLength : remainder,
-          nextIndex => Array.unsafeGet(HOME_ACTIONS, nextIndex),
+          nextIndex => Array.getUnsafe(HOME_ACTIONS, nextIndex),
         ),
       ),
       Option.getOrElse(() => selectedAction),

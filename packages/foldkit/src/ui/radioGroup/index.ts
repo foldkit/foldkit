@@ -24,13 +24,13 @@ import { keyToIndex } from '../keyboard.js'
 // MODEL
 
 /** Controls the radio group layout direction and which arrow keys navigate between options. */
-export const Orientation = S.Literal('Horizontal', 'Vertical')
+export const Orientation = S.Literals(['Horizontal', 'Vertical'])
 export type Orientation = typeof Orientation.Type
 
 /** Schema for the radio group component's state, tracking the selected value and orientation. */
 export const Model = S.Struct({
   id: S.String,
-  selectedValue: S.OptionFromSelf(S.String),
+  selectedValue: S.Option(S.String),
   orientation: Orientation,
 })
 
@@ -49,7 +49,7 @@ export const CompletedFocusOption = m('CompletedFocusOption')
 /** Union of all messages the radio group component can produce. */
 export const Message: S.Union<
   [typeof SelectedOption, typeof CompletedFocusOption]
-> = S.Union(SelectedOption, CompletedFocusOption)
+> = S.Union([SelectedOption, CompletedFocusOption])
 
 export type SelectedOption = typeof SelectedOption.Type
 export type CompletedFocusOption = typeof CompletedFocusOption.Type
@@ -68,7 +68,7 @@ export type InitConfig = Readonly<{
 /** Creates an initial radio group model from a config. Defaults to no selection and vertical orientation. */
 export const init = (config: InitConfig): Model => ({
   id: config.id,
-  selectedValue: Option.fromNullable(config.selectedValue),
+  selectedValue: Option.fromNullishOr(config.selectedValue),
   orientation: config.orientation ?? 'Vertical',
 })
 
@@ -386,7 +386,7 @@ export const view = <Message, RadioOption extends string>(
 
   const hiddenInputs = pipe(
     name,
-    Option.fromNullable,
+    Option.fromNullishOr,
     Option.flatMap(inputName =>
       pipe(
         selectedValue,

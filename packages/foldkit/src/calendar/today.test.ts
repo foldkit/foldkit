@@ -1,4 +1,5 @@
-import { Effect, TestClock, TestContext } from 'effect'
+import { Effect } from 'effect'
+import { TestClock } from 'effect/testing'
 import { describe, expect, it } from 'vitest'
 
 import { make } from './calendarDate.js'
@@ -17,7 +18,7 @@ describe('today.local', () => {
         expect(result.year).toBe(2026)
         expect(result.month).toBeGreaterThanOrEqual(3)
         expect(result.month).toBeLessThanOrEqual(4)
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.scoped, Effect.provide(TestClock.layer())),
     ))
 
   it('produces consistent results for the same frozen time', () =>
@@ -27,7 +28,7 @@ describe('today.local', () => {
         const first = yield* today.local
         const second = yield* today.local
         expect(first).toStrictEqual(second)
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.scoped, Effect.provide(TestClock.layer())),
     ))
 })
 
@@ -42,7 +43,7 @@ describe('today.inZone', () => {
 
         const nyc = yield* today.inZone('America/New_York')
         expect(nyc).toStrictEqual(make(2026, 4, 13))
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.scoped, Effect.provide(TestClock.layer())),
     ))
 
   it('reflects timezone-dependent date transitions', () =>
@@ -55,7 +56,7 @@ describe('today.inZone', () => {
 
         const nyc = yield* today.inZone('America/New_York')
         expect(nyc).toStrictEqual(make(2026, 4, 12))
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.scoped, Effect.provide(TestClock.layer())),
     ))
 
   it('advances when the Clock advances across a day boundary', () =>
@@ -68,6 +69,6 @@ describe('today.inZone', () => {
         yield* TestClock.adjust('2 hours')
         const after = yield* today.inZone('UTC')
         expect(after).toStrictEqual(make(2026, 4, 14))
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.scoped, Effect.provide(TestClock.layer())),
     ))
 })

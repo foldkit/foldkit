@@ -1,4 +1,4 @@
-import { Effect, Stream } from 'effect'
+import { Effect, Queue, Stream } from 'effect'
 import { Subscription } from 'foldkit/subscription'
 
 import { type Model, type SubscriptionDeps } from '../main'
@@ -14,23 +14,27 @@ export const systemTheme: Subscription<
   }),
   dependenciesToStream: ({ isSystemPreference }) =>
     Stream.when(
-      Stream.async<typeof ChangedSystemTheme.Type>(emit => {
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-
-        const handler = (event: MediaQueryListEvent) => {
-          emit.single(
-            ChangedSystemTheme({
-              theme: event.matches ? 'Dark' : 'Light',
-            }),
-          )
-        }
-
-        mediaQuery.addEventListener('change', handler)
-
-        return Effect.sync(() =>
-          mediaQuery.removeEventListener('change', handler),
-        )
-      }),
-      () => isSystemPreference,
+      Stream.callback<typeof ChangedSystemTheme.Type>(queue =>
+        Effect.acquireRelease(
+          Effect.sync(() => {
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+            const handler = (event: MediaQueryListEvent) => {
+              Queue.offerUnsafe(
+                queue,
+                ChangedSystemTheme({
+                  theme: event.matches ? 'Dark' : 'Light',
+                }),
+              )
+            }
+            mediaQuery.addEventListener('change', handler)
+            return { mediaQuery, handler }
+          }),
+          ({ mediaQuery, handler }) =>
+            Effect.sync(() =>
+              mediaQuery.removeEventListener('change', handler),
+            ),
+        ).pipe(Effect.flatMap(() => Effect.never)),
+      ),
+      Effect.sync(() => isSystemPreference),
     ),
 }

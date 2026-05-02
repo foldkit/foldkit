@@ -70,7 +70,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' is a direct alias for the browser\u2019s native ',
         inlineCode('File'),
         ' type. You can hold one in your Model with ',
-        inlineCode('S.OptionFromSelf(File.File)'),
+        inlineCode('S.Option(File.File)'),
         '. Foldkit never serializes files, so the schema acts as an opaque guard rather than a parser.',
       ),
       tableOfContentsEntryToHeader(metadataHeader),

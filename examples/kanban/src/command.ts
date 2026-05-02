@@ -1,6 +1,6 @@
-import { KeyValueStore } from '@effect/platform'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Effect, Schema as S } from 'effect'
+import { KeyValueStore } from 'effect/unstable/persistence'
 import { Command, Task } from 'foldkit'
 
 import { ADD_CARD_INPUT_ID, STORAGE_KEY } from './constant'
@@ -43,11 +43,11 @@ export const saveBoard = (columns: ReadonlyArray<Column.Column>) =>
       const store = yield* KeyValueStore.KeyValueStore
       yield* store.set(
         STORAGE_KEY,
-        S.encodeSync(S.parseJson(SavedBoard))({ columns }),
+        S.encodeSync(S.fromJsonString(SavedBoard))({ columns }),
       )
       return CompletedSaveBoard()
     }).pipe(
-      Effect.catchAll(() => Effect.succeed(CompletedSaveBoard())),
+      Effect.catch(() => Effect.succeed(CompletedSaveBoard())),
       Effect.provide(BrowserKeyValueStore.layerLocalStorage),
     ),
   )

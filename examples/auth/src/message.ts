@@ -23,7 +23,7 @@ export const GotLoggedInMessage = m('GotLoggedInMessage', {
   message: LoggedIn.Message,
 })
 
-export const Message = S.Union(
+export const Message = S.Union([
   CompletedNavigateInternal,
   CompletedLoadExternal,
   CompletedLogError,
@@ -36,5 +36,5 @@ export const Message = S.Union(
   FailedClearSession,
   GotLoggedOutMessage,
   GotLoggedInMessage,
-)
+])
 export type Message = typeof Message.Type

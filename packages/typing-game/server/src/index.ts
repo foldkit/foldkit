@@ -1,8 +1,8 @@
-import { HttpMiddleware, HttpRouter, HttpServer } from '@effect/platform'
 import { NodeHttpServer, NodeRuntime } from '@effect/platform-node'
-import { RpcSerialization, RpcServer } from '@effect/rpc'
 import * as Shared from '@typing-game/shared'
-import { Effect, Layer } from 'effect'
+import { Effect, Layer, pipe } from 'effect'
+import { HttpMiddleware, HttpRouter, HttpServer } from 'effect/unstable/http'
+import { RpcSerialization, RpcServer } from 'effect/unstable/rpc'
 import { createServer } from 'node:http'
 
 import {
@@ -43,18 +43,26 @@ const RoomLive = Shared.RoomRpcs.toLayer(
   }),
 )
 
-const RpcLayer = RpcServer.layer(Shared.RoomRpcs).pipe(Layer.provide(RoomLive))
-
-const HttpProtocol = RpcServer.layerProtocolHttp({
+const RpcAppLayer = RpcServer.layerHttp({
+  group: Shared.RoomRpcs,
   path: '/rpc',
-}).pipe(Layer.provide(RpcSerialization.layerNdjson))
-
-const Main = HttpRouter.Default.serve(HttpMiddleware.cors()).pipe(
-  Layer.provide(RpcLayer),
-  Layer.provide(HttpProtocol),
+  protocol: 'http',
+}).pipe(
+  Layer.provide(RoomLive),
+  Layer.provide(RpcSerialization.layerNdjson),
   Layer.provide(RoomByIdStoreLive),
   Layer.provide(ProgressByGamePlayerStoreLive),
   Layer.provide(PendingCleanupPlayerIdsStoreLive),
+)
+
+const HttpAppLive = Layer.unwrap(
+  pipe(
+    HttpRouter.toHttpEffect(RpcAppLayer),
+    Effect.map(HttpServer.serve(HttpMiddleware.cors())),
+  ),
+)
+
+const Main = HttpAppLive.pipe(
   HttpServer.withLogAddress,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3001 })),
 )

@@ -1,5 +1,5 @@
-import { FileSystem } from '@effect/platform'
 import { Resvg } from '@resvg/resvg-js'
+import { FileSystem } from 'effect'
 import { Array, Console, Effect, pipe } from 'effect'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -214,7 +214,7 @@ const renderOgImage =
         yield* fs.writeFile(resolve(ogDir, `${slug}.png`), png)
         yield* Console.log(`  ✓ og/${slug}.png`)
       }),
-      Effect.catchAll(error =>
+      Effect.catch(error =>
         Console.warn(
           `  ✗ og/${urlPathToSlug(routeToUrlPath(route))}.png: ${String(error)}`,
         ),

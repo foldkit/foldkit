@@ -14,7 +14,7 @@ export type Model = typeof Model.Type
 
 export const UpdatedContent = m('UpdatedContent', { value: S.String })
 
-export const Message = S.Union(UpdatedContent)
+export const Message = S.Union([UpdatedContent])
 export type Message = typeof Message.Type
 
 // INIT

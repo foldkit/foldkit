@@ -38,7 +38,7 @@ const stepToStatus = (step: Step.Step, currentStep: Step.Step): StepStatus =>
     Match.withReturnType<StepStatus>(),
     Match.when(Equal.equals(currentStep), () => 'Current'),
     Match.when(
-      flow(Step.indexOf, Number.lessThan(Step.indexOf(currentStep))),
+      flow(Step.indexOf, Number.isLessThan(Step.indexOf(currentStep))),
       () => 'Completed',
     ),
     Match.orElse(() => 'Upcoming'),

@@ -45,7 +45,7 @@ export const resolveByName = <Model, Message>(
           internal.model,
           resolverMessage,
         )
-        const outMessage = Array.isNonEmptyArray(rest)
+        const outMessage = Array.isReadonlyArrayNonEmpty(rest)
           ? rest[0]
           : internal.outMessage
 
@@ -126,13 +126,13 @@ export const assertHasCommands = (
     ({ name }) => !Array.contains(pendingNames, name),
   )
 
-  if (Array.isNonEmptyReadonlyArray(missing)) {
+  if (Array.isReadonlyArrayNonEmpty(missing)) {
     const missingNames = pipe(
       missing,
       Array.map(({ name }) => `    ${name}`),
       Array.join('\n'),
     )
-    const pending = Array.isNonEmptyReadonlyArray(commands)
+    const pending = Array.isReadonlyArrayNonEmpty(commands)
       ? pipe(
           commands,
           Array.map(({ name }) => `    ${name}`),
@@ -153,21 +153,21 @@ export const assertExactCommands = (
   const expectedNames = pipe(
     definitions,
     Array.map(({ name }) => name),
-    Array.sort(Order.string),
+    Array.sort(Order.String),
   )
   const actualNames = pipe(
     commands,
     Array.map(({ name }) => name),
-    Array.sort(Order.string),
+    Array.sort(Order.String),
   )
 
-  if (!Array.getEquivalence(Equivalence.string)(expectedNames, actualNames)) {
+  if (!Array.makeEquivalence(Equivalence.String)(expectedNames, actualNames)) {
     const expected = pipe(
       expectedNames,
       Array.map(name => `    ${name}`),
       Array.join('\n'),
     )
-    const actual = Array.isNonEmptyReadonlyArray(actualNames)
+    const actual = Array.isReadonlyArrayNonEmpty(actualNames)
       ? pipe(
           actualNames,
           Array.map(name => `    ${name}`),
@@ -184,7 +184,7 @@ export const assertExactCommands = (
 export const assertZeroCommands = (
   commands: ReadonlyArray<AnyCommand>,
 ): void => {
-  if (Array.isNonEmptyReadonlyArray(commands)) {
+  if (Array.isReadonlyArrayNonEmpty(commands)) {
     const pending = pipe(
       commands,
       Array.map(({ name }) => `    ${name}`),
@@ -199,7 +199,7 @@ export const assertNoUnresolvedCommands = (
   commands: ReadonlyArray<AnyCommand>,
   context: string,
 ): void => {
-  if (Array.isNonEmptyReadonlyArray(commands)) {
+  if (Array.isReadonlyArrayNonEmpty(commands)) {
     const names = pipe(
       commands,
       Array.map(({ name }) => `    ${name}`),
@@ -218,7 +218,7 @@ export const assertNoUnresolvedCommands = (
 export const assertAllCommandsResolved = (
   commands: ReadonlyArray<AnyCommand>,
 ): void => {
-  if (Array.isNonEmptyReadonlyArray(commands)) {
+  if (Array.isReadonlyArrayNonEmpty(commands)) {
     const names = pipe(
       commands,
       Array.map(({ name }) => `    ${name}`),

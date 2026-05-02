@@ -4,20 +4,20 @@ import {
   Cause,
   Context,
   Effect,
-  Either,
+  Exit,
   Function,
   Layer,
   Match,
   Option,
   Predicate,
+  PubSub,
   Queue,
   Record,
   Ref,
-  Runtime,
+  Scheduler,
   Schema,
   Stream,
   SubscriptionRef,
-  Tuple,
   pipe,
 } from 'effect'
 import { h } from 'snabbdom'
@@ -35,6 +35,11 @@ import {
 } from './browserListeners.js'
 import { defaultCrashView, noOpDispatch } from './crashUI.js'
 import { deepFreeze } from './deepFreeze.js'
+import {
+  PreserveModelMessage,
+  RequestModelMessage,
+  RestoreModelMessage,
+} from './hmrProtocol.js'
 import type {
   ManagedResourceConfig,
   ManagedResources,
@@ -90,7 +95,7 @@ export type DevToolsConfig =
        * Without this field, `RequestDispatchMessage` is rejected with an
        * informative error.
        */
-      Message?: Schema.Schema<any, any, never>
+      Message?: Schema.Codec<any, any, unknown, unknown>
     }>
 
 const DEFAULT_DEV_TOOLS_SHOW: Visibility = 'Development'
@@ -132,7 +137,7 @@ const defaultSlowViewCallback = (
     onNone: () => 'init',
     onSome: message => {
       const tag =
-        Predicate.isRecord(message) && '_tag' in message
+        Predicate.isObject(message) && '_tag' in message
           ? String(message['_tag'])
           : 'unknown'
       return tag
@@ -146,13 +151,13 @@ const defaultSlowViewCallback = (
 }
 
 /** Effect service tag that provides message dispatching to the view layer. */
-export class Dispatch extends Context.Tag('@foldkit/Dispatch')<
+export class Dispatch extends Context.Service<
   Dispatch,
   {
     readonly dispatchAsync: (message: unknown) => Effect.Effect<void>
     readonly dispatchSync: (message: unknown) => void
   }
->() {}
+>()('@foldkit/Dispatch') {}
 
 export type { Command } from '../command/index.js'
 
@@ -184,8 +189,8 @@ type RuntimeConfig<
   Resources = never,
   ManagedResourceServices = never,
 > = Readonly<{
-  Model: Schema.Schema<Model, any, never>
-  Flags: Schema.Schema<Flags, any, never>
+  Model: Schema.Codec<Model, any, unknown, unknown>
+  Flags: Schema.Codec<Flags, any, unknown, unknown>
   flags: Effect.Effect<Flags>
   init: (
     flags: Flags,
@@ -252,7 +257,7 @@ type BaseProgramConfig<
   Resources = never,
   ManagedResourceServices = never,
 > = Readonly<{
-  Model: Schema.Schema<Model, any, never>
+  Model: Schema.Codec<Model, any, unknown, unknown>
   update: (
     model: Model,
     message: Message,
@@ -292,7 +297,7 @@ export type RoutingProgramConfigWithFlags<
   ManagedResourceServices
 > &
   Readonly<{
-    Flags: Schema.Schema<Flags, any, never>
+    Flags: Schema.Codec<Flags, any, unknown, unknown>
     flags: Effect.Effect<Flags>
     routing: RoutingConfig<Message>
     init: (
@@ -348,7 +353,7 @@ export type ProgramConfigWithFlags<
   ManagedResourceServices
 > &
   Readonly<{
-    Flags: Schema.Schema<Flags, any, never>
+    Flags: Schema.Codec<Flags, any, unknown, unknown>
     flags: Effect.Effect<Flags>
     init: (
       flags: Flags,
@@ -433,7 +438,10 @@ export type RoutingProgramInit<
     ]
 
 /** A configured Foldkit runtime returned by `makeProgram`, passed to `run` to start the application. */
-export type MakeRuntimeReturn = (hmrModel?: unknown) => Effect.Effect<void>
+export type MakeRuntimeReturn = Readonly<{
+  runtimeId: string
+  start: (hmrModel?: unknown) => Effect.Effect<void>
+}>
 
 const makeRuntime = <
   Model,
@@ -486,11 +494,21 @@ const makeRuntime = <
   const maybeFreezeModel = (model: Model): Model =>
     isFreezeModelActive ? deepFreeze(model) : model
 
-  return (hmrModel?: unknown): Effect.Effect<void> =>
+  const runtimeId = container.id
+
+  const start = (hmrModel?: unknown): Effect.Effect<void> =>
     Effect.scoped(
       Effect.gen(function* () {
+        if (runtimeId === '') {
+          return yield* Effect.die(
+            new Error(
+              '[foldkit] Runtime container must have an `id` for HMR model preservation. ' +
+                'Set `container.id = "app"` (or any unique string) before passing it to makeProgram.',
+            ),
+          )
+        }
         const maybeResourceLayer = resources
-          ? Option.some(yield* Layer.memoize(resources))
+          ? Option.some(resources)
           : Option.none()
 
         const managedResourceEntries: ReadonlyArray<
@@ -518,7 +536,7 @@ const makeRuntime = <
             layer,
             Layer.succeed(
               /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-              config.resource._tag as Context.Tag<any, any>,
+              config.resource._tag as Context.Service<any, any>,
               ref,
             ),
           )
@@ -555,30 +573,44 @@ const makeRuntime = <
 
         const flags = yield* resolveFlags
 
-        const modelEquivalence = Schema.equivalence(Model)
+        const modelEquivalence = Schema.toEquivalence(Model)
+
+        const ModelJsonCodec = Schema.toCodecJson(
+          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+          Model as Schema.Codec<Model>,
+        )
+        const decodeHmrModel = Schema.decodeUnknownExit(ModelJsonCodec)
+        const encodeHmrModel = Schema.encodeUnknownSync(ModelJsonCodec)
 
         const messageQueue = yield* Queue.unbounded<Message>()
         const enqueueMessage = (message: Message) =>
           Queue.offer(messageQueue, message)
 
-        const currentUrl: Option.Option<Url> = Option.fromNullable(
+        const currentUrl: Option.Option<Url> = Option.fromNullishOr(
           routingConfig,
         ).pipe(Option.flatMap(() => urlFromString(window.location.href)))
 
         const [initModelRaw, initCommands] = Predicate.isNotUndefined(hmrModel)
-          ? pipe(
-              hmrModel,
-              Schema.decodeUnknownEither(Model),
-              Either.match({
-                onLeft: () => init(flags, Option.getOrUndefined(currentUrl)),
-                onRight: restoredModel => [restoredModel, []],
-              }),
-            )
+          ? Exit.match(decodeHmrModel(hmrModel), {
+              onFailure: () => init(flags, Option.getOrUndefined(currentUrl)),
+              onSuccess: (
+                restoredModel: Model,
+              ): readonly [
+                Model,
+                ReadonlyArray<
+                  AnyCommand<
+                    Message,
+                    never,
+                    Resources | ManagedResourceServices
+                  >
+                >,
+              ] => [restoredModel, []],
+            })
           : init(flags, Option.getOrUndefined(currentUrl))
 
         const initModel = maybeFreezeModel(initModelRaw)
 
-        const modelSubscriptionRef = yield* SubscriptionRef.make(initModel)
+        const modelPubSub = yield* PubSub.unbounded<Model>()
 
         yield* Effect.forEach(
           /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -586,7 +618,7 @@ const makeRuntime = <
             AnyCommand<Message, never, Resources | ManagedResourceServices>
           >,
           command =>
-            Effect.forkDaemon(
+            Effect.forkDetach(
               command.effect.pipe(
                 Effect.withSpan(command.name),
                 provideAllResources,
@@ -609,26 +641,20 @@ const makeRuntime = <
           Option.none(),
         )
 
-        const maybeRuntimeRef = yield* Ref.make<
-          Option.Option<Runtime.Runtime<never>>
-        >(Option.none())
-
         const maybeDevToolsStoreRef = yield* Ref.make<
           Option.Option<DevToolsStore>
         >(Option.none())
 
-        /** `true` while a render is patching the DOM. Synchronous events
-         * that fire as a side-effect of DOM mutations (e.g. Chrome firing
-         * `blur` when a focused element is removed) call `dispatchSync`; if
-         * they do so while the flag is set, the message is offered to
-         * `pendingMessagesQueue` and processed after the current render
-         * completes. Without this lock, nested dispatches during a patch
-         * see a stale `maybeCurrentVNodeRef` and double-patch the DOM. */
-        const isRenderingRef = yield* Ref.make(false)
+        const dispatchSync = (message: unknown): void => {
+          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+          Queue.offerUnsafe(messageQueue, message as Message)
+        }
 
-        /** Messages offered by `dispatchSync` calls that land while a render
-         * is in progress. Drained at the end of each render. */
-        const pendingMessagesQueue = yield* Queue.unbounded<Message>()
+        const dispatchAsync = (message: unknown): Effect.Effect<void> =>
+          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+          enqueueMessage(message as Message)
+
+        const dispatch = { dispatchAsync, dispatchSync }
 
         const processMessage = (message: Message): Effect.Effect<void> =>
           Effect.gen(function* () {
@@ -659,8 +685,8 @@ const makeRuntime = <
               }
 
               if (!modelEquivalence(currentModel, nextModel)) {
-                yield* SubscriptionRef.set(modelSubscriptionRef, nextModel)
-                preserveModel(nextModel)
+                PubSub.publishUnsafe(modelPubSub, nextModel)
+                preserveModel(runtimeId, encodeHmrModel(nextModel))
               }
             }
 
@@ -670,7 +696,7 @@ const makeRuntime = <
                 AnyCommand<Message, never, Resources | ManagedResourceServices>
               >,
               command =>
-                Effect.forkDaemon(
+                Effect.forkDetach(
                   command.effect.pipe(
                     Effect.withSpan(command.name),
                     provideAllResources,
@@ -698,69 +724,6 @@ const makeRuntime = <
             })
           })
 
-        const runProcessMessage =
-          (message: Message, messageEffect: Effect.Effect<void>) =>
-          (runtime: Runtime.Runtime<never>): void => {
-            try {
-              Runtime.runSync(runtime, messageEffect)
-            } catch (error) {
-              const squashed = Runtime.isFiberFailure(error)
-                ? Cause.squash(error[Runtime.FiberFailureCauseId])
-                : error
-
-              const appError =
-                squashed instanceof Error
-                  ? squashed
-                  : new Error(String(squashed))
-              const model = Effect.runSync(Ref.get(modelRef))
-              renderCrashView(
-                { error: appError, model, message },
-                crash,
-                container,
-                maybeCurrentVNodeRef,
-              )
-            }
-          }
-
-        const dispatchSync = (message: unknown): void => {
-          const isRendering = Effect.runSync(Ref.get(isRenderingRef))
-
-          if (isRendering) {
-            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            Queue.offer(pendingMessagesQueue, message as Message).pipe(
-              Effect.runSync,
-            )
-            return
-          }
-
-          const maybeRuntime = Effect.runSync(Ref.get(maybeRuntimeRef))
-
-          Option.match(maybeRuntime, {
-            onNone: Function.constVoid,
-            onSome: runProcessMessage(
-              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-              message as Message,
-              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-              processMessage(message as Message),
-            ),
-          })
-        }
-
-        const dispatchAsync = (message: unknown): Effect.Effect<void> =>
-          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-          enqueueMessage(message as Message)
-
-        const dispatch = { dispatchAsync, dispatchSync }
-
-        const drainPendingMessages: Effect.Effect<void> = Effect.gen(
-          function* () {
-            const pending = yield* Queue.takeAll(pendingMessagesQueue)
-            yield* Effect.forEach(pending, queuedMessage =>
-              Effect.sync(() => dispatchSync(queuedMessage)),
-            )
-          },
-        )
-
         const render = (model: Model, message: Option.Option<Message>) =>
           Effect.gen(function* () {
             const viewStart = performance.now()
@@ -784,25 +747,15 @@ const makeRuntime = <
 
             const maybeCurrentVNode = yield* Ref.get(maybeCurrentVNodeRef)
 
-            const patchedVNode = yield* Effect.acquireUseRelease(
-              Ref.set(isRenderingRef, true),
-              () =>
-                Effect.sync(() =>
-                  patchVNode(maybeCurrentVNode, nullableNextVNode, container),
-                ),
-              () => Ref.set(isRenderingRef, false),
+            const patchedVNode = yield* Effect.sync(() =>
+              patchVNode(maybeCurrentVNode, nullableNextVNode, container),
             )
             yield* Ref.set(maybeCurrentVNodeRef, Option.some(patchedVNode))
 
             yield* Effect.sync(() =>
               applyDocumentMetadata(nextDocument, container),
             )
-
-            yield* drainPendingMessages
           }).pipe(Effect.provideService(Dispatch, dispatch))
-
-        const runtime = yield* Effect.runtime()
-        yield* Ref.set(maybeRuntimeRef, Option.some(runtime))
 
         const isInIframe = window.self !== window.top
         const resolvedDevTools = pipe(
@@ -818,18 +771,18 @@ const makeRuntime = <
           Option.map(config => ({
             position: config.position ?? DEFAULT_DEV_TOOLS_POSITION,
             mode: config.mode ?? DEFAULT_DEV_TOOLS_MODE,
-            maybeBanner: Option.fromNullable(config.banner),
+            maybeBanner: Option.fromNullishOr(config.banner),
           })),
         )
 
         if (Option.isSome(resolvedDevTools)) {
           const { position, mode, maybeBanner } = resolvedDevTools.value
           const devToolsStore = yield* createDevToolsStore({
-            replay: (model, message) =>
-              maybeFreezeModel(
-                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                Tuple.getFirst(update(model as Model, message as Message)),
-              ),
+            replay: (model, message) => {
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              const [updatedModel] = update(model as Model, message as Message)
+              return maybeFreezeModel(updatedModel)
+            },
             render: model =>
               /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
               render(model as Model, Option.none()),
@@ -845,14 +798,15 @@ const makeRuntime = <
           if (import.meta.hot) {
             const maybeMessageSchema =
               devTools !== undefined && devTools !== false
-                ? Option.fromNullable(devTools.Message)
-                : Option.none<Schema.Schema<any, any, never>>()
+                ? Option.fromNullishOr(devTools.Message)
+                : Option.none<Schema.Codec<any, any, unknown, unknown>>()
             yield* startWebSocketBridge(
               devToolsStore,
               import.meta.hot,
               /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
               message => enqueueMessage(message as Message),
-              maybeMessageSchema,
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              maybeMessageSchema as Option.Option<Schema.Codec<any, any>>,
             )
           }
         }
@@ -877,14 +831,14 @@ const makeRuntime = <
               ]) => {
                 let latestDependencies = modelToDependencies(initModel)
                 const equivalence =
-                  customEquivalence ?? Schema.equivalence(schema)
+                  customEquivalence ?? Schema.toEquivalence(schema)
 
                 const modelStream = Stream.concat(
                   Stream.make(initModel),
-                  modelSubscriptionRef.changes,
+                  Stream.fromPubSub(modelPubSub),
                 )
 
-                return Effect.forkDaemon(
+                return Effect.forkDetach(
                   modelStream.pipe(
                     // NOTE: updates latestDependencies on every model change so
                     // readDependencies() returns current values even when the
@@ -895,15 +849,16 @@ const makeRuntime = <
                       return dependencies
                     }),
                     Stream.changesWith(equivalence),
-                    Stream.flatMap(
-                      dependencies =>
-                        dependenciesToStream(
-                          dependencies,
-                          () => latestDependencies,
-                        ),
-                      { switch: true },
+                    Stream.switchMap(dependencies =>
+                      dependenciesToStream(
+                        dependencies,
+                        () => latestDependencies,
+                      ),
                     ),
-                    Stream.runForEach(enqueueMessage),
+                    Stream.runForEach(message =>
+                      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                      enqueueMessage(message as Message),
+                    ),
                     provideAllResources,
                   ),
                 )
@@ -946,10 +901,12 @@ const makeRuntime = <
                 yield* config.release(value)
                 yield* Ref.set(resourceRef, Option.none())
                 yield* enqueueMessage(config.onReleased())
-              }).pipe(Effect.catchAllCause(() => Effect.void))
+              }).pipe(Effect.catchCause(() => Effect.void))
 
             return pipe(
-              Stream.scoped(Effect.acquireRelease(acquire, release)),
+              Stream.scoped(
+                Stream.fromEffect(Effect.acquireRelease(acquire, release)),
+              ),
               Stream.flatMap(value =>
                 Stream.concat(
                   Stream.make(config.onAcquired(value)),
@@ -957,7 +914,7 @@ const makeRuntime = <
                 ),
               ),
               Stream.map(Effect.succeed),
-              Stream.catchAll(error =>
+              Stream.catch(error =>
                 Stream.make(Effect.succeed(config.onAcquireError(error))),
               ),
             )
@@ -972,20 +929,17 @@ const makeRuntime = <
           Effect.gen(function* () {
             const modelStream = Stream.concat(
               Stream.make(initModel),
-              modelSubscriptionRef.changes,
+              Stream.fromPubSub(modelPubSub),
             )
 
-            const equivalence = Schema.equivalence(config.schema)
+            const equivalence = Schema.toEquivalence(config.schema)
 
-            yield* Effect.forkDaemon(
+            yield* Effect.forkDetach(
               modelStream.pipe(
                 Stream.map(config.modelToMaybeRequirements),
                 Stream.changesWith(equivalence),
-                Stream.flatMap(
+                Stream.switchMap(
                   maybeRequirementsToLifecycle(config, resourceRef),
-                  {
-                    switch: true,
-                  },
                 ),
                 Stream.runForEach(Effect.flatMap(enqueueMessage)),
               ),
@@ -1004,12 +958,18 @@ const makeRuntime = <
         yield* pipe(
           Effect.forever(
             Effect.gen(function* () {
-              const message = yield* Queue.take(messageQueue)
-              yield* Ref.set(currentMessageRef, Option.some(message))
-              yield* processMessage(message)
+              const first = yield* Queue.take(messageQueue)
+              yield* Ref.set(currentMessageRef, Option.some(first))
+              yield* processMessage(first)
+
+              const more = yield* Queue.takeAll(messageQueue)
+              for (const message of more) {
+                yield* Ref.set(currentMessageRef, Option.some(message))
+                yield* processMessage(message)
+              }
             }),
           ),
-          Effect.catchAllCause(cause =>
+          Effect.catchCause(cause =>
             Effect.sync(() => {
               const squashed = Cause.squash(cause)
               const appError =
@@ -1033,6 +993,8 @@ const makeRuntime = <
         )
       }),
     )
+
+  return { runtimeId, start }
 }
 
 const patchVNode = (
@@ -1380,44 +1342,91 @@ export function makeProgram<
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
 }
 
-const preserveModel = (model: unknown): void => {
+const encodePreserveModelMessage =
+  Schema.encodeUnknownSync(PreserveModelMessage)
+const encodeRequestModelMessage = Schema.encodeUnknownSync(RequestModelMessage)
+const decodeRestoreModelMessage = Schema.decodeUnknownExit(RestoreModelMessage)
+
+const preserveModel = (id: string, model: unknown): void => {
   if (import.meta.hot) {
-    import.meta.hot.send('foldkit:preserve-model', model)
+    import.meta.hot.send(
+      'foldkit:preserve-model',
+      encodePreserveModelMessage(PreserveModelMessage.make({ id, model })),
+    )
   }
 }
 
 const PLUGIN_RESPONSE_TIMEOUT_MS = 500
 
+// NOTE: scheduling fix for browser performance. Effect needs to defer work
+// onto a future tick of the event loop. The default browser scheduler picks
+// `setTimeout(f, 0)`, but browsers clamp `setTimeout` to a minimum of 4ms.
+// `queueMicrotask` runs on the very next tick (sub-millisecond). Without this
+// override, every dispatched message takes an extra 4-16ms round-trip,
+// sharply visible on hover and drag.
+const microtaskSetImmediate = (callback: () => void): (() => void) => {
+  let cancelled = false
+  queueMicrotask(() => {
+    if (!cancelled) callback()
+  })
+  return () => {
+    cancelled = true
+  }
+}
+
+const browserScheduler = new Scheduler.MixedScheduler(
+  'async',
+  microtaskSetImmediate,
+)
+
+const provideBrowserScheduler = <A, E, R>(
+  effect: Effect.Effect<A, E, R>,
+): Effect.Effect<A, E, R> =>
+  Effect.provide(effect, Layer.succeed(Scheduler.Scheduler, browserScheduler))
+
 /** Starts a Foldkit runtime, with HMR support for development. */
-export const run = (foldkitRuntime: MakeRuntimeReturn): void => {
+export const run = (program: MakeRuntimeReturn): void => {
   if (import.meta.hot) {
     const hot = import.meta.hot
+    const { runtimeId, start } = program
 
     const requestPreservedModel = pipe(
-      Effect.async<unknown>(resume => {
-        hot.on('foldkit:restore-model', model => {
-          resume(Effect.succeed(model))
-        })
-        hot.send('foldkit:request-model')
+      Effect.callback<unknown>(resume => {
+        const handler = (message: unknown): void => {
+          Exit.match(decodeRestoreModelMessage(message), {
+            onFailure: Function.constVoid,
+            onSuccess: ({ id, model }) => {
+              if (id === runtimeId) {
+                hot.off('foldkit:restore-model', handler)
+                resume(Effect.succeed(model))
+              }
+            },
+          })
+        }
+        hot.on('foldkit:restore-model', handler)
+        hot.send(
+          'foldkit:request-model',
+          encodeRequestModelMessage(
+            RequestModelMessage.make({ id: runtimeId }),
+          ),
+        )
+        return Effect.sync(() => hot.off('foldkit:restore-model', handler))
       }),
-      Effect.timeoutTo({
-        onTimeout: () => {
-          console.warn(
-            '[foldkit] No response from vite-plugin-foldkit. Add it to your vite.config.ts for HMR model preservation:\n\n' +
-              "  import foldkit from 'vite-plugin-foldkit'\n\n" +
-              '  export default defineConfig({ plugins: [foldkit()] })\n\n' +
-              'Starting without HMR support.',
-          )
-          return undefined
-        },
-        onSuccess: Function.identity,
-        duration: PLUGIN_RESPONSE_TIMEOUT_MS,
+      Effect.timeout(PLUGIN_RESPONSE_TIMEOUT_MS),
+      Effect.catchTag('TimeoutError', () => {
+        console.warn(
+          '[foldkit] No response from vite-plugin-foldkit. Add it to your vite.config.ts for HMR model preservation:\n\n' +
+            "  import foldkit from 'vite-plugin-foldkit'\n\n" +
+            '  export default defineConfig({ plugins: [foldkit()] })\n\n' +
+            'Starting without HMR support.',
+        )
+        return Effect.succeed(undefined)
       }),
-      Effect.flatMap(foldkitRuntime),
+      Effect.flatMap(start),
     )
 
-    BrowserRuntime.runMain(requestPreservedModel)
+    BrowserRuntime.runMain(provideBrowserScheduler(requestPreservedModel))
   } else {
-    BrowserRuntime.runMain(foldkitRuntime())
+    BrowserRuntime.runMain(provideBrowserScheduler(program.start()))
   }
 }

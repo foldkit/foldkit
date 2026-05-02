@@ -5,7 +5,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js'
-import { Effect, HashMap, Option, Runtime } from 'effect'
+import { Console, Effect, HashMap, Option } from 'effect'
 
 import { runInit } from './install.js'
 import { buildTools } from './tools.js'
@@ -23,7 +23,7 @@ const main: Effect.Effect<void, Error> = Effect.gen(function* () {
   const toolsByName = HashMap.fromIterable(
     tools.map(tool => [tool.name, tool] as const),
   )
-  const runtime = yield* Effect.runtime<never>()
+  const runtime = yield* Effect.context<never>()
 
   const server = new Server(
     { name: '@foldkit/devtools-mcp', version: '0.1.0' },
@@ -53,7 +53,7 @@ const main: Effect.Effect<void, Error> = Effect.gen(function* () {
           isError: true,
         }),
       onSome: tool =>
-        Runtime.runPromise(runtime)(
+        Effect.runPromiseWith(runtime)(
           tool.handle(request.params.arguments ?? {}),
         ),
     }),
@@ -65,9 +65,21 @@ const main: Effect.Effect<void, Error> = Effect.gen(function* () {
     catch: error => error as Error,
   })
 
-  yield* Effect.sync(() =>
-    console.error('[foldkit-devtools-mcp] MCP server ready on stdio'),
-  )
+  yield* Console.error('[foldkit-devtools-mcp] MCP server ready on stdio')
+
+  // NOTE: blocks until stdin closes (parent MCP host exited). Without this,
+  // the forked WebSocket connection-loop fiber keeps the Effect runtime alive
+  // forever. The subprocess outlives its parent and accumulates as a zombie
+  // across host restarts.
+  yield* Effect.callback<void>(resume => {
+    const onClose = () => resume(Effect.void)
+    process.stdin.on('end', onClose)
+    process.stdin.on('close', onClose)
+    return Effect.sync(() => {
+      process.stdin.off('end', onClose)
+      process.stdin.off('close', onClose)
+    })
+  })
 })
 
 const subcommand = process.argv[2]
@@ -75,8 +87,11 @@ const subcommand = process.argv[2]
 if (subcommand === 'init') {
   runInit()
 } else {
-  Effect.runPromise(main).catch(error => {
-    console.error('[foldkit-devtools-mcp] fatal error', error)
-    process.exit(1)
-  })
+  Effect.runPromise(main).then(
+    () => process.exit(0),
+    error => {
+      console.error('[foldkit-devtools-mcp] fatal error', error)
+      process.exit(1)
+    },
+  )
 }

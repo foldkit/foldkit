@@ -42,7 +42,12 @@ const Submitting = ts('Submitting')
 const SubmitSuccess = ts('SubmitSuccess', { message: S.String })
 const SubmitError = ts('SubmitError', { error: S.String })
 
-const Submission = S.Union(NotSubmitted, Submitting, SubmitSuccess, SubmitError)
+const Submission = S.Union([
+  NotSubmitted,
+  Submitting,
+  SubmitSuccess,
+  SubmitError,
+])
 
 type NotSubmitted = typeof NotSubmitted.Type
 type Submitting = typeof Submitting.Type
@@ -78,14 +83,14 @@ export const SubmittedForm = m('SubmittedForm', {
   message: S.String,
 })
 
-const Message = S.Union(
+const Message = S.Union([
   UpdatedName,
   UpdatedEmail,
   ValidatedEmail,
   UpdatedMessage,
   ClickedFormSubmit,
   SubmittedForm,
-)
+])
 type Message = typeof Message.Type
 
 // INIT

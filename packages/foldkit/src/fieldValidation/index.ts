@@ -3,13 +3,13 @@ import {
   Number as Number_,
   Option,
   Predicate,
+  Result,
   Schema as S,
   String,
   flow,
   pipe,
 } from 'effect'
 
-import { OptionExt } from '../effectExtensions/index.js'
 import { ts } from '../schema/index.js'
 
 // RULES + MESSAGES
@@ -41,7 +41,7 @@ export const Invalid = ts('Invalid', {
 })
 
 /** The four-state union that represents a field's value in the Model. */
-export const Field = S.Union(NotValidated, Validating, Valid, Invalid)
+export const Field = S.Union([NotValidated, Validating, Valid, Invalid])
 export type Field = typeof Field.Type
 
 // RULES DESCRIPTOR
@@ -72,7 +72,7 @@ export type MakeRulesOptions = Readonly<{
 }>
 
 export const makeRules = (options: MakeRulesOptions = {}): Rules => ({
-  requiredMessage: Option.fromNullable(options.required),
+  requiredMessage: Option.fromNullishOr(options.required),
   rules: options.rules ?? [],
   isEmpty: options.isEmpty ?? String.isEmpty,
 })
@@ -121,7 +121,9 @@ export const validateAll =
     return pipe(
       rules.rules,
       Array.filterMap(([predicate, message]) =>
-        OptionExt.when(!predicate(value), resolveMessage(message, value)),
+        !predicate(value)
+          ? Result.succeed(resolveMessage(message, value))
+          : Result.failVoid,
       ),
       Array.match({
         onEmpty: () => Valid({ value }),
@@ -178,13 +180,13 @@ export const anyInvalid = (states: ReadonlyArray<Field>): boolean =>
 
 /** Creates a `Rule` that checks if a string meets a minimum length. */
 export const minLength = (min: number, message?: RuleMessage): Rule => [
-  flow(String.length, Number_.greaterThanOrEqualTo(min)),
+  flow(String.length, Number_.isGreaterThanOrEqualTo(min)),
   message ?? `Must be at least ${min} characters`,
 ]
 
 /** Creates a `Rule` that checks if a string does not exceed a maximum length. */
 export const maxLength = (max: number, message?: RuleMessage): Rule => [
-  flow(String.length, Number_.lessThanOrEqualTo(max)),
+  flow(String.length, Number_.isLessThanOrEqualTo(max)),
   message ?? `Must be at most ${max} characters`,
 ]
 

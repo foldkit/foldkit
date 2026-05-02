@@ -1,10 +1,10 @@
-import { KeyValueStore } from '@effect/platform'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Effect, Option, Schema as S } from 'effect'
+import { KeyValueStore } from 'effect/unstable/persistence'
 import { Command, Task } from 'foldkit'
 
 import { ROOM_PLAYER_SESSION_KEY } from '../../constant'
-import { RoomsClient } from '../../rpc'
+import { RoomsClient, RoomsClientLive } from '../../rpc.js'
 import {
   CompletedClearSession,
   CompletedRequestGameStart,
@@ -55,8 +55,8 @@ export const getRoomById = (roomId: string) =>
       const room = yield* client.getRoomById({ roomId })
       return SucceededFetchRoom({ room })
     }).pipe(
-      Effect.catchAll(() => Effect.succeed(FailedFetchRoom({ roomId }))),
-      Effect.provide(RoomsClient.Default),
+      Effect.catch(() => Effect.succeed(FailedFetchRoom({ roomId }))),
+      Effect.provide(RoomsClientLive),
     ),
   )
 
@@ -66,8 +66,10 @@ export const loadSessionFromStorage = (roomId: string) =>
       const store = yield* KeyValueStore.KeyValueStore
       const maybeSessionJson = yield* store.get(ROOM_PLAYER_SESSION_KEY)
 
-      const sessionJson = yield* maybeSessionJson
-      const decodeSession = S.decode(S.parseJson(RoomPlayerSession))
+      const sessionJson = yield* Effect.fromOption(
+        Option.fromNullishOr(maybeSessionJson),
+      )
+      const decodeSession = S.decodeEffect(S.fromJsonString(RoomPlayerSession))
 
       return yield* decodeSession(sessionJson).pipe(
         Effect.map(session =>
@@ -80,7 +82,7 @@ export const loadSessionFromStorage = (roomId: string) =>
         ),
       )
     }).pipe(
-      Effect.catchAll(() =>
+      Effect.catch(() =>
         Effect.succeed(LoadedSession({ maybeSession: Option.none() })),
       ),
       Effect.provide(BrowserKeyValueStore.layerSessionStorage),
@@ -94,8 +96,8 @@ export const joinRoom = (username: string, roomId: string) =>
       const { player, room } = yield* client.joinRoom({ username, roomId })
       return SucceededJoinRoom({ roomId: room.id, player })
     }).pipe(
-      Effect.catchAll(() => Effect.succeed(FailedJoinRoom())),
-      Effect.provide(RoomsClient.Default),
+      Effect.catch(() => Effect.succeed(FailedJoinRoom())),
+      Effect.provide(RoomsClientLive),
     ),
   )
 
@@ -106,8 +108,8 @@ export const startGame = (roomId: string, playerId: string) =>
       yield* client.startGame({ roomId, playerId })
       return CompletedRequestGameStart()
     }).pipe(
-      Effect.catchAll(() => Effect.succeed(CompletedRequestGameStart())),
-      Effect.provide(RoomsClient.Default),
+      Effect.catch(() => Effect.succeed(CompletedRequestGameStart())),
+      Effect.provide(RoomsClientLive),
     ),
   )
 
@@ -128,8 +130,8 @@ export const updatePlayerProgress = (
       })
       return CompletedUpdatePlayerProgress()
     }).pipe(
-      Effect.catchAll(() => Effect.succeed(CompletedUpdatePlayerProgress())),
-      Effect.provide(RoomsClient.Default),
+      Effect.catch(() => Effect.succeed(CompletedUpdatePlayerProgress())),
+      Effect.provide(RoomsClientLive),
     ),
   )
 
@@ -140,7 +142,7 @@ export const copyRoomIdToClipboard = (roomId: string) =>
       catch: () => new Error('Failed to copy to clipboard'),
     }).pipe(
       Effect.as(SucceededCopyRoomId()),
-      Effect.catchAll(() => Effect.succeed(FailedCopyClipboard())),
+      Effect.catch(() => Effect.succeed(FailedCopyClipboard())),
     ),
   )
 
@@ -169,12 +171,12 @@ export const savePlayerSession = (session: RoomPlayerSession) =>
   SavePlayerSession(
     Effect.gen(function* () {
       const store = yield* KeyValueStore.KeyValueStore
-      const encodeSession = S.encode(S.parseJson(RoomPlayerSession))
+      const encodeSession = S.encodeEffect(S.fromJsonString(RoomPlayerSession))
       const sessionJson = yield* encodeSession(session)
       yield* store.set(ROOM_PLAYER_SESSION_KEY, sessionJson)
       return CompletedSaveSession()
     }).pipe(
-      Effect.catchAll(() => Effect.succeed(CompletedSaveSession())),
+      Effect.catch(() => Effect.succeed(CompletedSaveSession())),
       Effect.provide(BrowserKeyValueStore.layerSessionStorage),
     ),
   )
@@ -186,7 +188,7 @@ export const clearSession = () =>
       yield* store.remove(ROOM_PLAYER_SESSION_KEY)
       return CompletedClearSession()
     }).pipe(
-      Effect.catchAll(() => Effect.succeed(CompletedClearSession())),
+      Effect.catch(() => Effect.succeed(CompletedClearSession())),
       Effect.provide(BrowserKeyValueStore.layerSessionStorage),
     ),
   )

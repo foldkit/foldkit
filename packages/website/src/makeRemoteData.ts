@@ -2,8 +2,8 @@ import { Schema as S } from 'effect'
 import { ts } from 'foldkit/schema'
 
 export const makeRemoteData = <EA, EI, DA, DI>(
-  error: S.Schema<EA, EI, never>,
-  data: S.Schema<DA, DI, never>,
+  error: S.Codec<EA, EI>,
+  data: S.Codec<DA, DI>,
 ) => {
   const NotAsked = ts('NotAsked')
   const Loading = ts('Loading')
@@ -15,6 +15,6 @@ export const makeRemoteData = <EA, EI, DA, DI>(
     Loading,
     Failure,
     Ok,
-    Union: S.Union(NotAsked, Loading, Failure, Ok),
+    Union: S.Union([NotAsked, Loading, Failure, Ok]),
   }
 }

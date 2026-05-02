@@ -47,6 +47,10 @@
       "types": "./dist/runtime/public.d.ts",
       "import": "./dist/runtime/public.js"
     },
+    "./hmr-protocol": {
+      "types": "./dist/runtime/hmrProtocolPublic.d.ts",
+      "import": "./dist/runtime/hmrProtocolPublic.js"
+    },
     "./fieldValidation": {
       "types": "./dist/fieldValidation/public.d.ts",
       "import": "./dist/fieldValidation/public.js"
@@ -189,13 +193,13 @@
     "docs": "typedoc"
   },
   "peerDependencies": {
-    "@effect/platform-browser": "^0.74.0",
-    "effect": "^3.18.2"
+    "@effect/platform-browser": "4.0.0-beta.59",
+    "effect": "4.0.0-beta.59"
   },
   "devDependencies": {
-    "@effect/platform-browser": "^0.74.0",
-    "@effect/vitest": "^0.27.0",
-    "effect": "^3.19.19",
+    "@effect/platform-browser": "4.0.0-beta.59",
+    "@effect/vitest": "4.0.0-beta.59",
+    "effect": "4.0.0-beta.59",
     "happy-dom": "^18.0.1",
     "typescript": "^6.0.2",
     "vitest": "^3.2.4"

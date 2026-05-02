@@ -23,7 +23,7 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
         Stream.fromEventListener(document, 'mouseup').pipe(
           Stream.map(() => ReleasedMouse()),
         ),
-        () => isDrawing,
+        Effect.sync(() => isDrawing),
       ),
   },
 })

@@ -12,7 +12,7 @@ const objectLiteralToString = (
 ): string =>
   pipe(
     maybeChildren,
-    Option.filter(Array.isNonEmptyReadonlyArray),
+    Option.filter(Array.isReadonlyArrayNonEmpty),
     Option.match({
       onNone: () => '{}',
       onSome: children =>
@@ -70,8 +70,8 @@ const formatType = (type: TypeDocType, depth: number): string =>
     whenType('literal', ({ value }) => JSON.stringify(value)),
     whenType('reference', ({ name, typeArguments }) =>
       pipe(
-        Option.fromNullable(typeArguments),
-        Option.filter(Array.isNonEmptyReadonlyArray),
+        Option.fromNullishOr(typeArguments),
+        Option.filter(Array.isReadonlyArrayNonEmpty),
         Option.match({
           onNone: () => name,
           onSome: arguments_ =>
@@ -175,7 +175,7 @@ export const typeDefFromChildren = (
 ): string =>
   pipe(
     maybeChildren,
-    Option.filter(Array.isNonEmptyReadonlyArray),
+    Option.filter(Array.isReadonlyArrayNonEmpty),
     Option.match({
       onNone: () => 'unknown',
       onSome: items =>

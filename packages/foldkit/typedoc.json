@@ -29,6 +29,8 @@
     "DevToolsMode",
     "DevToolsPosition",
     "ResolveMessage",
-    "WithStep"
+    "WithStep",
+    "FilterOptions",
+    "ViewConfig"
   ]
 }

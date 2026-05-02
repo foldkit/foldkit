@@ -1,6 +1,6 @@
-import { Rpc } from '@effect/rpc'
 import * as Shared from '@typing-game/shared'
 import { Clock, Effect, HashMap, Option, SubscriptionRef } from 'effect'
+import { Rpc } from 'effect/unstable/rpc'
 import { randomUUID } from 'node:crypto'
 
 import { ROOM_ID_WORDS } from '../constants.js'
@@ -24,7 +24,7 @@ export const createRoom =
         id: roomId,
         players: [player],
         hostId: playerId,
-        status: Shared.Waiting.make(),
+        status: Shared.Waiting.make({}),
         maybeGame: Option.none(),
         maybeScoreboard: Option.none(),
         createdAt,

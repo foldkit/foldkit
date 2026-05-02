@@ -20,14 +20,11 @@ import {
 // MODEL
 
 /** Schema for the single-select combobox component's state, tracking open/closed status, active item, input value, selected item, and display text. */
-export const Model = BaseModel.pipe(
-  S.extend(
-    S.Struct({
-      maybeSelectedItem: S.OptionFromSelf(S.String),
-      maybeSelectedDisplayText: S.OptionFromSelf(S.String),
-    }),
-  ),
-)
+export const Model = S.Struct({
+  ...BaseModel.fields,
+  maybeSelectedItem: S.Option(S.String),
+  maybeSelectedDisplayText: S.Option(S.String),
+})
 
 export type Model = typeof Model.Type
 
@@ -43,8 +40,8 @@ export type InitConfig = BaseInitConfig &
 /** Creates an initial single-select combobox model from a config. Defaults to closed with no active item, empty input, and no selection. */
 export const init = (config: InitConfig): Model => ({
   ...baseInit(config),
-  maybeSelectedItem: Option.fromNullable(config.selectedItem),
-  maybeSelectedDisplayText: Option.fromNullable(
+  maybeSelectedItem: Option.fromNullishOr(config.selectedItem),
+  maybeSelectedDisplayText: Option.fromNullishOr(
     config.selectedDisplayText ?? config.selectedItem,
   ),
 })

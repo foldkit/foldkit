@@ -1,6 +1,6 @@
-import { KeyValueStore } from '@effect/platform'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Effect, Option, Schema as S } from 'effect'
+import { KeyValueStore } from 'effect/unstable/persistence'
 import { Runtime, Ui } from 'foldkit'
 
 import { DEFAULT_COLUMNS, STORAGE_KEY } from './constant'
@@ -13,18 +13,21 @@ import { view } from './view'
 // FLAGS
 
 const Flags = S.Struct({
-  maybeSavedBoard: S.OptionFromSelf(SavedBoard),
+  maybeSavedBoard: S.Option(SavedBoard),
 })
 type Flags = typeof Flags.Type
 
 const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   const store = yield* KeyValueStore.KeyValueStore
-  const maybeJson = yield* store.get(STORAGE_KEY)
-  const json = yield* maybeJson
-  const decoded = yield* S.decode(S.parseJson(SavedBoard))(json)
-  return { maybeSavedBoard: Option.some(decoded) }
+  const json = yield* Effect.fromOption(
+    Option.fromNullishOr(yield* store.get(STORAGE_KEY)),
+  )
+  const decoded = yield* S.decodeEffect(S.fromJsonString(SavedBoard))(json)
+  return Flags.make({ maybeSavedBoard: Option.some(decoded) })
 }).pipe(
-  Effect.catchAll(() => Effect.succeed({ maybeSavedBoard: Option.none() })),
+  Effect.catch(() =>
+    Effect.succeed(Flags.make({ maybeSavedBoard: Option.none() })),
+  ),
   Effect.provide(BrowserKeyValueStore.layerLocalStorage),
 )
 

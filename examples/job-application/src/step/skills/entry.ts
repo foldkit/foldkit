@@ -35,7 +35,7 @@ export const GotProficiencyMessage = m('GotProficiencyMessage', {
   message: Ui.RadioGroup.Message,
 })
 
-export const Message = S.Union(UpdatedName, GotProficiencyMessage)
+export const Message = S.Union([UpdatedName, GotProficiencyMessage])
 export type Message = typeof Message.Type
 
 // INIT

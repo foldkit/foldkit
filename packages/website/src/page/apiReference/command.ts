@@ -34,7 +34,7 @@ export const loadApiData = LoadApiData(
       },
     })
   }).pipe(
-    Effect.catchAll(error =>
+    Effect.catch(error =>
       Effect.succeed(
         FailedLoadApiData({
           error: typeof error === 'string' ? error : 'Failed to load API data',

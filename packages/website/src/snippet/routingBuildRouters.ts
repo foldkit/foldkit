@@ -10,7 +10,7 @@ const peopleRouter = pipe(
   literal('people'),
   Route.query(
     S.Struct({
-      searchText: S.OptionFromUndefinedOr(S.String),
+      searchText: S.OptionFromOptional(S.String),
     }),
   ),
   Route.mapTo(PeopleRoute),

@@ -16,7 +16,7 @@ export const initialModel: Model = { receivedFiles: [] }
 
 export const ReceivedFiles = m('ReceivedFiles', { files: S.Array(File) })
 
-export const Message = S.Union(ReceivedFiles)
+export const Message = S.Union([ReceivedFiles])
 export type Message = typeof Message.Type
 
 // UPDATE

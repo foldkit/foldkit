@@ -4,6 +4,7 @@ import {
   Match as M,
   Number,
   Option,
+  Queue,
   Schema as S,
   Stream,
   pipe,
@@ -34,7 +35,7 @@ const Measured = ts('Measured', { containerHeight: S.Number })
  * `Unmeasured` explicitly, typically by rendering a placeholder until the
  * first measurement arrives.
  */
-const Measurement = S.Union(Unmeasured, Measured)
+const Measurement = S.Union([Unmeasured, Measured])
 
 const Idle = ts('Idle')
 const ScrollingToIndex = ts('ScrollingToIndex', {
@@ -43,7 +44,7 @@ const ScrollingToIndex = ts('ScrollingToIndex', {
 })
 
 /** State of a programmatic scroll initiated by `scrollToIndex`. */
-const PendingScroll = S.Union(Idle, ScrollingToIndex)
+const PendingScroll = S.Union([Idle, ScrollingToIndex])
 
 /** Schema for the virtual list's state. Tracks scroll position, container
  *  measurement, and any in-flight programmatic scroll. */
@@ -83,7 +84,7 @@ export const Message: S.Union<
     typeof MeasuredContainer,
     typeof CompletedApplyScroll,
   ]
-> = S.Union(ScrolledContainer, MeasuredContainer, CompletedApplyScroll)
+> = S.Union([ScrolledContainer, MeasuredContainer, CompletedApplyScroll])
 
 export type ScrolledContainer = typeof ScrolledContainer.Type
 export type MeasuredContainer = typeof MeasuredContainer.Type
@@ -346,7 +347,7 @@ export const visibleWindowVariable = <Item>(
 
         const firstVisibleIndex = pipe(
           cumulativeOffsets,
-          Array.findFirstIndex(Number.greaterThan(model.scrollTop)),
+          Array.findFirstIndex(Number.isGreaterThan(model.scrollTop)),
           Option.match({
             onNone: () => itemCount,
             onSome: index => Math.max(0, index - 1),
@@ -356,7 +357,7 @@ export const visibleWindowVariable = <Item>(
         const lastVisibleIndex = pipe(
           cumulativeOffsets,
           Array.findFirstIndex(
-            Number.greaterThanOrEqualTo(model.scrollTop + containerHeight),
+            Number.isGreaterThanOrEqualTo(model.scrollTop + containerHeight),
           ),
           Option.getOrElse(() => itemCount),
         )
@@ -389,7 +390,7 @@ export const visibleWindowVariable = <Item>(
 // SUBSCRIPTION
 
 const containerElement = (id: string): Option.Option<HTMLElement> =>
-  Option.fromNullable(document.getElementById(id))
+  Option.fromNullishOr(document.getElementById(id))
 
 /** Schema describing the subscription dependencies for container scroll and
  *  resize tracking. */
@@ -419,89 +420,113 @@ export const subscriptions = makeSubscriptions(SubscriptionDeps)<
   containerEvents: {
     modelToDependencies: model => ({ id: model.id }),
     dependenciesToStream: ({ id }) =>
-      Stream.async<Message>(emit => {
-        let scrollListener: (() => void) | null = null
-        let resizeObserver: ResizeObserver | null = null
-        let observedElement: HTMLElement | null = null
-        let pendingFrame: number | null = null
-
-        const detach = () => {
-          if (resizeObserver !== null) {
-            resizeObserver.disconnect()
-            resizeObserver = null
-          }
-          if (observedElement !== null && scrollListener !== null) {
-            observedElement.removeEventListener('scroll', scrollListener)
-          }
-          observedElement = null
-          scrollListener = null
-        }
-
-        const attach = (element: HTMLElement) => {
-          const listener = () =>
-            emit.single(ScrolledContainer({ scrollTop: element.scrollTop }))
-          element.addEventListener('scroll', listener, { passive: true })
-          scrollListener = listener
-          observedElement = element
-
-          resizeObserver = new ResizeObserver(entries => {
-            const lastEntry = Array.last(entries)
-            if (Option.isSome(lastEntry)) {
-              emit.single(
-                MeasuredContainer({
-                  containerHeight: lastEntry.value.contentRect.height,
-                }),
-              )
+      Stream.callback<Message>(queue =>
+        Effect.acquireRelease(
+          Effect.sync(() => {
+            const state: {
+              scrollListener: (() => void) | null
+              resizeObserver: ResizeObserver | null
+              observedElement: HTMLElement | null
+              pendingFrame: number | null
+            } = {
+              scrollListener: null,
+              resizeObserver: null,
+              observedElement: null,
+              pendingFrame: null,
             }
-          })
-          resizeObserver.observe(element)
-        }
 
-        const reconcile = () => {
-          const maybeElement = containerElement(id)
-          if (Option.isNone(maybeElement)) {
-            if (observedElement !== null) {
+            const detach = () => {
+              if (state.resizeObserver !== null) {
+                state.resizeObserver.disconnect()
+                state.resizeObserver = null
+              }
+              if (
+                state.observedElement !== null &&
+                state.scrollListener !== null
+              ) {
+                state.observedElement.removeEventListener(
+                  'scroll',
+                  state.scrollListener,
+                )
+              }
+              state.observedElement = null
+              state.scrollListener = null
+            }
+
+            const attach = (element: HTMLElement) => {
+              const listener = () =>
+                Queue.offerUnsafe(
+                  queue,
+                  ScrolledContainer({ scrollTop: element.scrollTop }),
+                )
+              element.addEventListener('scroll', listener, { passive: true })
+              state.scrollListener = listener
+              state.observedElement = element
+
+              state.resizeObserver = new ResizeObserver(entries => {
+                const lastEntry = Array.last(entries)
+                if (Option.isSome(lastEntry)) {
+                  Queue.offerUnsafe(
+                    queue,
+                    MeasuredContainer({
+                      containerHeight: lastEntry.value.contentRect.height,
+                    }),
+                  )
+                }
+              })
+              state.resizeObserver.observe(element)
+            }
+
+            const reconcile = () => {
+              const maybeElement = containerElement(id)
+              if (Option.isNone(maybeElement)) {
+                if (state.observedElement !== null) {
+                  detach()
+                }
+                return
+              }
+              if (state.observedElement === maybeElement.value) {
+                return
+              }
               detach()
+              attach(maybeElement.value)
             }
-            return
-          }
-          if (observedElement === maybeElement.value) {
-            return
-          }
-          detach()
-          attach(maybeElement.value)
-        }
 
-        reconcile()
-
-        // NOTE: observes the entire document subtree because the container
-        // can be inserted/removed by any parent the consumer chooses (route
-        // changes, conditional renders, modal mounts), and the framework has
-        // no way to know that hierarchy in advance. Reconcile is gated by rAF
-        // and short-circuits when the cached observedElement is still in the
-        // DOM, so per-mutation cost stays low even with subtree: true.
-        const mutationObserver = new MutationObserver(() => {
-          if (pendingFrame !== null) {
-            return
-          }
-          pendingFrame = requestAnimationFrame(() => {
-            pendingFrame = null
             reconcile()
-          })
-        })
-        mutationObserver.observe(document.body, {
-          childList: true,
-          subtree: true,
-        })
 
-        return Effect.sync(() => {
-          mutationObserver.disconnect()
-          if (pendingFrame !== null) {
-            cancelAnimationFrame(pendingFrame)
-          }
-          detach()
-        })
-      }),
+            // NOTE: observes the entire document subtree because the container
+            // can be inserted/removed by any parent the consumer chooses (route
+            // changes, conditional renders, modal mounts), and the framework
+            // has no way to know that hierarchy in advance. Reconcile is gated
+            // by rAF and short-circuits when the cached observedElement is
+            // still in the DOM, so per-mutation cost stays low even with
+            // subtree: true.
+            const mutationObserver = new MutationObserver(() => {
+              if (state.pendingFrame !== null) {
+                return
+              }
+              state.pendingFrame = requestAnimationFrame(() => {
+                state.pendingFrame = null
+                reconcile()
+              })
+            })
+            mutationObserver.observe(document.body, {
+              childList: true,
+              subtree: true,
+            })
+
+            return { state, detach, mutationObserver }
+          }),
+          ({ state, detach, mutationObserver }) =>
+            Effect.sync(() => {
+              mutationObserver.disconnect()
+              if (state.pendingFrame !== null) {
+                cancelAnimationFrame(state.pendingFrame)
+              }
+              detach()
+            }),
+        ).pipe(Effect.flatMap(() => Effect.never)),
+      ),
   },
 })
 

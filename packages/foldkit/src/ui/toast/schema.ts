@@ -13,20 +13,20 @@ import {
  *  `data-variant` on each entry for per-variant CSS. This is the only
  *  content-adjacent field the component owns — the rest of the entry's
  *  content lives in the user-provided payload. */
-export const Variant = S.Literal('Info', 'Success', 'Warning', 'Error')
+export const Variant = S.Literals(['Info', 'Success', 'Warning', 'Error'])
 export type Variant = typeof Variant.Type
 
 // POSITION
 
 /** Where the toast viewport is anchored on the screen and how entries stack. */
-export const Position = S.Literal(
+export const Position = S.Literals([
   'TopLeft',
   'TopCenter',
   'TopRight',
   'BottomLeft',
   'BottomCenter',
   'BottomRight',
-)
+])
 export type Position = typeof Position.Type
 
 // ENTRY
@@ -37,12 +37,12 @@ export type Position = typeof Position.Type
  *  `variant` (for ARIA role), `animation`, `maybeDuration`,
  *  `pendingDismissVersion` (for cancellable auto-dismiss), and `isHovered`
  *  (for pause-on-hover). */
-export const makeEntry = <A, I>(payloadSchema: S.Schema<A, I>) =>
+export const makeEntry = <A, I>(payloadSchema: S.Codec<A, I>) =>
   S.Struct({
     id: S.String,
     variant: Variant,
     animation: AnimationModel,
-    maybeDuration: S.OptionFromSelf(S.DurationFromMillis),
+    maybeDuration: S.Option(S.DurationFromMillis),
     pendingDismissVersion: S.Number,
     isHovered: S.Boolean,
     payload: payloadSchema,
@@ -55,7 +55,7 @@ export const makeEntry = <A, I>(payloadSchema: S.Schema<A, I>) =>
  *  state. Thread the updated model through successive `show()` calls —
  *  calling `show()` twice against the same pre-update model in the same tick
  *  will produce duplicate entry IDs. */
-export const makeModel = <A, I>(payloadSchema: S.Schema<A, I>) =>
+export const makeModel = <A, I>(payloadSchema: S.Codec<A, I>) =>
   S.Struct({
     id: S.String,
     defaultDuration: S.DurationFromMillis,
@@ -98,12 +98,12 @@ export type GotAnimationMessage = typeof GotAnimationMessage.Type
 
 /** Factory for the `Added` message, which carries a fully-constructed entry
  *  whose shape depends on the user-provided payload. */
-export const makeAdded = <A, I>(payloadSchema: S.Schema<A, I>) =>
+export const makeAdded = <A, I>(payloadSchema: S.Codec<A, I>) =>
   m('Added', { entry: makeEntry(payloadSchema) })
 
 /** Factory for the union of all messages the toast component can produce. */
-export const makeMessage = <A, I>(payloadSchema: S.Schema<A, I>) =>
-  S.Union(
+export const makeMessage = <A, I>(payloadSchema: S.Codec<A, I>) =>
+  S.Union([
     makeAdded(payloadSchema),
     Dismissed,
     DismissedAll,
@@ -111,7 +111,7 @@ export const makeMessage = <A, I>(payloadSchema: S.Schema<A, I>) =>
     HoveredEntry,
     LeftEntry,
     GotAnimationMessage,
-  )
+  ])
 
 // INIT
 
@@ -121,7 +121,7 @@ export const makeMessage = <A, I>(payloadSchema: S.Schema<A, I>) =>
  *  interpreted as milliseconds. */
 export type InitConfig = Readonly<{
   id: string
-  defaultDuration?: Duration.DurationInput
+  defaultDuration?: Duration.Input
 }>
 
 export const DEFAULT_DURATION = Duration.seconds(4)

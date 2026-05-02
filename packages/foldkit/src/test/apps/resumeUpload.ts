@@ -9,9 +9,9 @@ import { evo } from '../../struct/index.js'
 // MODEL
 
 export const Model = S.Struct({
-  maybeResume: S.OptionFromSelf(File.File),
-  maybePreviewDataUrl: S.OptionFromSelf(S.String),
-  readStatus: S.Literal('Idle', 'Reading', 'Failed'),
+  maybeResume: S.Option(File.File),
+  maybePreviewDataUrl: S.Option(S.String),
+  readStatus: S.Literals(['Idle', 'Reading', 'Failed']),
 })
 
 export type Model = typeof Model.Type
@@ -29,14 +29,14 @@ export const SucceededReadPreview = m('SucceededReadPreview', {
 export const FailedReadPreview = m('FailedReadPreview')
 export const ClickedRemoveResume = m('ClickedRemoveResume')
 
-export const Message = S.Union(
+export const Message = S.Union([
   ClickedChooseResume,
   SelectedResume,
   CancelledSelectResume,
   SucceededReadPreview,
   FailedReadPreview,
   ClickedRemoveResume,
-)
+])
 export type Message = typeof Message.Type
 
 // COMMAND
@@ -68,7 +68,7 @@ const readResumePreview = (file: File.File) =>
   ReadResumePreview(
     File.readAsDataUrl(file).pipe(
       Effect.map(dataUrl => SucceededReadPreview({ dataUrl })),
-      Effect.catchAll(() => Effect.succeed(FailedReadPreview())),
+      Effect.catch(() => Effect.succeed(FailedReadPreview())),
     ),
   )
 

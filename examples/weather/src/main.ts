@@ -1,9 +1,9 @@
+import { Array, Effect, Match as M, Option, Schema as S, String } from 'effect'
 import {
   FetchHttpClient,
   HttpClient,
   HttpClientRequest,
-} from '@effect/platform'
-import { Array, Effect, Match as M, Option, Schema as S, String } from 'effect'
+} from 'effect/unstable/http'
 import { Command, Runtime } from 'foldkit'
 import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -28,12 +28,12 @@ export const WeatherLoading = ts('WeatherLoading')
 export const WeatherSuccess = ts('WeatherSuccess', { data: WeatherData })
 export const WeatherFailure = ts('WeatherFailure', { error: S.String })
 
-const WeatherAsyncResult = S.Union(
+const WeatherAsyncResult = S.Union([
   WeatherInit,
   WeatherLoading,
   WeatherSuccess,
   WeatherFailure,
-)
+])
 type WeatherAsyncResult = typeof WeatherAsyncResult.Type
 
 export const Model = S.Struct({
@@ -53,12 +53,12 @@ export const SucceededFetchWeather = m('SucceededFetchWeather', {
 })
 export const FailedFetchWeather = m('FailedFetchWeather', { error: S.String })
 
-const Message = S.Union(
+const Message = S.Union([
   UpdatedZipCodeInput,
   SubmittedWeatherForm,
   SucceededFetchWeather,
   FailedFetchWeather,
-)
+])
 type Message = typeof Message.Type
 
 export const update = (
@@ -125,11 +125,11 @@ const GeocodingResult = S.Struct({
   name: S.String,
   latitude: S.Number,
   longitude: S.Number,
-  admin1: S.OptionFromUndefinedOr(S.String),
+  admin1: S.OptionFromOptional(S.String),
 })
 
 const GeocodingResponse = S.Struct({
-  results: S.OptionFromUndefinedOr(S.Array(GeocodingResult)),
+  results: S.OptionFromOptional(S.Array(GeocodingResult)),
 })
 
 const WeatherResponse = S.Struct({
@@ -183,7 +183,7 @@ export const fetchWeather = (zipCode: string) =>
         )
       }
 
-      const geocodeData = yield* S.decodeUnknown(GeocodingResponse)(
+      const geocodeData = yield* S.decodeUnknownEffect(GeocodingResponse)(
         yield* geocodeResponse.json,
       )
 
@@ -214,7 +214,7 @@ export const fetchWeather = (zipCode: string) =>
         )
       }
 
-      const weatherData = yield* S.decodeUnknown(WeatherResponse)(
+      const weatherData = yield* S.decodeUnknownEffect(WeatherResponse)(
         yield* weatherResponse.json,
       )
 
@@ -232,7 +232,7 @@ export const fetchWeather = (zipCode: string) =>
     }).pipe(
       Effect.scoped,
       Effect.catchTag('FailedFetchWeather', error => Effect.succeed(error)),
-      Effect.catchAll(() =>
+      Effect.catch(() =>
         Effect.succeed(
           FailedFetchWeather({ error: 'Failed to fetch weather data' }),
         ),
@@ -243,7 +243,7 @@ export const fetchWeather = (zipCode: string) =>
 const fetchWeatherLive = (zipCode: string) =>
   Command.mapEffect(fetchWeather(zipCode), effect =>
     effect.pipe(
-      Effect.locally(HttpClient.currentTracerPropagation, false),
+      Effect.provideService(HttpClient.TracerPropagationEnabled, false),
       Effect.provide(FetchHttpClient.layer),
     ),
   )
