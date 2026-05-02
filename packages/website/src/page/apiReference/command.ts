@@ -1,9 +1,8 @@
 import { Effect, Schema as S } from 'effect'
 import { Command } from 'foldkit'
 
-import { parseTypedocJson } from './domain'
+import { ParsedApiReference } from './domain'
 import { FailedLoadApiData, SucceededLoadApiData } from './message'
-import { TypeDocJson } from './typedoc'
 
 export const LoadApiData = Command.define(
   'LoadApiData',
@@ -13,18 +12,18 @@ export const LoadApiData = Command.define(
 
 export const loadApiData = LoadApiData(
   Effect.gen(function* () {
-    const [apiJsonModule, highlightsModule] = yield* Effect.tryPromise({
+    const [parsedApiModule, highlightsModule] = yield* Effect.tryPromise({
       try: () =>
         Promise.all([
-          import('../../generated/api.json'),
+          import('virtual:parsed-api'),
           import('virtual:api-highlights'),
         ]),
       catch: error =>
         error instanceof Error ? error.message : 'Unknown error',
     })
 
-    const parsedApi = parseTypedocJson(
-      S.decodeUnknownSync(TypeDocJson)(apiJsonModule.default),
+    const parsedApi = S.decodeUnknownSync(ParsedApiReference)(
+      parsedApiModule.default,
     )
 
     return SucceededLoadApiData({

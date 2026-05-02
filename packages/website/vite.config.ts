@@ -7,7 +7,11 @@ import { codeToHtml } from 'shiki'
 import { type Plugin, defineConfig } from 'vite'
 
 import { playgroundFilesPlugin } from './scripts/playgroundFilesPlugin'
-import { moduleNameToSlug } from './src/page/apiReference/domain'
+import {
+  ParsedApiReference,
+  moduleNameToSlug,
+  parseTypedocJson,
+} from './src/page/apiReference/domain'
 import {
   typeDefFromChildren,
   typeToString,
@@ -70,6 +74,9 @@ const RESOLVED_VIRTUAL_MODULE_ID = '\0' + VIRTUAL_MODULE_ID
 
 const API_MODULE_INDEX_ID = 'virtual:api-module-index'
 const RESOLVED_API_MODULE_INDEX_ID = '\0' + API_MODULE_INDEX_ID
+
+const PARSED_API_ID = 'virtual:parsed-api'
+const RESOLVED_PARSED_API_ID = '\0' + PARSED_API_ID
 
 const formatTypeParam = (typeParam: TypeDocTypeParam): string => {
   const constraint = Option.match(typeParam.type, {
@@ -327,8 +334,8 @@ const highlightApiSignaturesPlugin = (): Plugin => ({
 })
 
 // NOTE: Tiny synchronous index of API module slugs + display names. Used by the sidebar so
-// it can render link entries without pulling in the 5MB+ api.json. The heavy parsed data and
-// the pre-highlighted HTML are loaded lazily by the api reference page itself.
+// it can render link entries without pulling in the parsed api payload or the pre-highlighted
+// HTML, both of which are loaded lazily via virtual:parsed-api and virtual:api-highlights.
 const apiModuleIndexPlugin = (): Plugin => ({
   name: 'api-module-index',
   resolveId(id) {
@@ -384,6 +391,30 @@ const apiModuleIndexPlugin = (): Plugin => ({
     })
 
     return `export default ${JSON.stringify(index)}`
+  },
+})
+
+const parsedApiPlugin = (): Plugin => ({
+  name: 'parsed-api',
+  resolveId(id) {
+    if (id === PARSED_API_ID) {
+      return RESOLVED_PARSED_API_ID
+    } else {
+      return undefined
+    }
+  },
+  async load(id) {
+    if (id !== RESOLVED_PARSED_API_ID) {
+      return undefined
+    }
+
+    const jsonPath = resolve(__dirname, 'src/generated/api.json')
+    const raw = await readFile(jsonPath, 'utf-8')
+    const json = S.decodeUnknownSync(TypeDocJson)(JSON.parse(raw))
+    const parsed = parseTypedocJson(json)
+    const encoded = S.encodeSync(ParsedApiReference)(parsed)
+
+    return `export default ${JSON.stringify(encoded)}`
   },
 })
 
@@ -816,6 +847,7 @@ export default defineConfig({
     highlightCodePlugin(),
     highlightApiSignaturesPlugin(),
     apiModuleIndexPlugin(),
+    parsedApiPlugin(),
     landingDataPlugin(),
     counterDemoCodePlugin(),
     notePlayerDemoCodePlugin(),
