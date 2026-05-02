@@ -1,4 +1,3 @@
-// @ts-nocheck
 import * as Shared from '@typing-game/shared'
 import {
   Array,
@@ -13,14 +12,13 @@ import {
   SubscriptionRef,
   pipe,
 } from 'effect'
-import { DurationInput } from 'effect/Duration'
 import { Rpc } from 'effect/unstable/rpc'
 
 import { ROOM_UPDATE_THROTTLE_MS } from '../game.js'
 import { getPlayerProgress } from '../scoring.js'
 import { PendingCleanupPlayerIds, ProgressByGamePlayer } from '../store.js'
 
-const DISCONNECT_CLEANUP_DELAY: DurationInput = '2 seconds'
+const DISCONNECT_CLEANUP_DELAY: Duration.Input = '2 seconds'
 
 const removePlayerFromRoom = (
   roomByIdRef: SubscriptionRef.SubscriptionRef<Shared.RoomById>,
@@ -111,13 +109,16 @@ export const subscribeToRoom =
   (
     payload: Rpc.Payload<typeof Shared.subscribeToRoomRpc>,
   ): Stream.Stream<Shared.RoomWithPlayerProgress, Shared.RoomNotFoundError> =>
-    Stream.execute(
+    Stream.fromEffect(
       cancelPendingCleanup(pendingCleanupPlayerIdsRef, payload.playerId),
     ).pipe(
-      Stream.concat(roomByIdRef.changes),
+      Stream.drain,
+      Stream.concat(SubscriptionRef.changes(roomByIdRef)),
       Stream.mapEffect(roomById =>
         Effect.gen(function* () {
-          const room = yield* HashMap.get(roomById, payload.roomId).pipe(
+          const room = yield* Effect.fromOption(
+            HashMap.get(roomById, payload.roomId),
+          ).pipe(
             Effect.mapError(
               () => new Shared.RoomNotFoundError({ roomId: payload.roomId }),
             ),

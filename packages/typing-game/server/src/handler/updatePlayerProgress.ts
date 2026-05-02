@@ -1,6 +1,5 @@
-// @ts-nocheck
 import * as Shared from '@typing-game/shared'
-import { Clock, Data, Effect, HashMap, SubscriptionRef } from 'effect'
+import { Clock, Effect, HashMap, SubscriptionRef } from 'effect'
 import { Rpc } from 'effect/unstable/rpc'
 
 type ProgressByGamePlayer = HashMap.HashMap<
@@ -16,12 +15,10 @@ export const updatePlayerProgress =
     Effect.gen(function* () {
       const updatedAt = yield* Clock.currentTimeMillis
 
-      const gamePlayer = Data.Struct(
-        Shared.GamePlayer.make({
-          gameId: payload.gameId,
-          playerId: payload.playerId,
-        }),
-      )
+      const gamePlayer = Shared.GamePlayer.make({
+        gameId: payload.gameId,
+        playerId: payload.playerId,
+      })
 
       const progress = Shared.PlayerProgress.make({
         playerId: payload.playerId,

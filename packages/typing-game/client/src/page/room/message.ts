@@ -1,4 +1,3 @@
-// @ts-nocheck
 import * as Shared from '@typing-game/shared'
 import { Schema as S } from 'effect'
 import { m } from 'foldkit/message'

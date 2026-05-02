@@ -1,4 +1,3 @@
-// @ts-nocheck
 import * as Shared from '@typing-game/shared'
 import {
   Array,
@@ -69,12 +68,12 @@ export const startGame =
         }),
       )
 
-      return yield* gameSequence.pipe(
+      yield* gameSequence.pipe(
         Stream.mapEffect(updateRoomStatus(roomByIdRef, payload.roomId), {
           concurrency: 'unbounded',
         }),
         Stream.runDrain,
-        Effect.flatMap(
+        Effect.andThen(
           finalizeGameScoreboard(
             roomByIdRef,
             progressByGamePlayerRef,

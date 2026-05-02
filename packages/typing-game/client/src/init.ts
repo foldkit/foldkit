@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Effect, Match as M } from 'effect'
 import { Command, Runtime, Url } from 'foldkit'
 

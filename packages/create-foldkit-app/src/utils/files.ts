@@ -1,23 +1,21 @@
-// @ts-nocheck
 import {
   Array,
   Effect,
+  FileSystem,
   Match,
   Option,
+  Path,
+  PlatformError,
   Record,
   Ref,
   Schema,
   String,
   pipe,
 } from 'effect'
-import { ParseError } from 'effect/ParseResult'
 import {
-  Error,
-  FileSystem,
   HttpClient,
   HttpClientError,
   HttpClientRequest,
-  Path,
 } from 'effect/unstable/http'
 import { fileURLToPath } from 'node:url'
 
@@ -39,7 +37,7 @@ const getBaseFiles = Effect.gen(function* () {
 
   const processEntry =
     (dir: string) =>
-    (entry: string): Effect.Effect<void, Error.PlatformError> =>
+    (entry: string): Effect.Effect<void, PlatformError.PlatformError> =>
       Effect.gen(function* () {
         const fullPath = path.join(dir, entry)
         const stat = yield* fs.stat(fullPath)
@@ -63,7 +61,7 @@ const getBaseFiles = Effect.gen(function* () {
 
   const processDirectory = (
     dir: string,
-  ): Effect.Effect<void, Error.PlatformError> =>
+  ): Effect.Effect<void, PlatformError.PlatformError> =>
     Effect.gen(function* () {
       const entries = yield* fs.readDirectory(dir)
       yield* Effect.forEach(entries, processEntry(dir), {
@@ -164,7 +162,7 @@ const fetchExampleFileList = (
   example: string,
 ): Effect.Effect<
   ReadonlyArray<GitHubFileEntry>,
-  HttpClientError.HttpClientError | ParseError,
+  HttpClientError.HttpClientError | Schema.SchemaError,
   HttpClient.HttpClient
 > =>
   Effect.gen(function* () {
@@ -174,7 +172,7 @@ const fetchExampleFileList = (
       apiUrl: string,
     ): Effect.Effect<
       ReadonlyArray<GitHubFileEntry>,
-      HttpClientError.HttpClientError | ParseError
+      HttpClientError.HttpClientError | Schema.SchemaError
     > =>
       Effect.gen(function* () {
         const request = HttpClientRequest.get(apiUrl)

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Option } from 'effect'
 import { Story } from 'foldkit'
 import { describe, expect, test } from 'vitest'

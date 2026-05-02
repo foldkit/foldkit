@@ -1,4 +1,3 @@
-// @ts-nocheck
 export const USER_GAME_TEXT_INPUT_ID = 'userGameText'
 export const USERNAME_INPUT_ID = 'username'
 export const ROOM_ID_INPUT_ID = 'roomId'

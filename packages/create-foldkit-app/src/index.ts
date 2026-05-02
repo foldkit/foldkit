@@ -1,8 +1,7 @@
 #!/usr/bin/env node
-// @ts-nocheck
-import { NodeContext, NodeRuntime } from '@effect/platform-node'
-import { Effect, Match, Option, Schema, String, flow } from 'effect'
-import { Command, HelpDoc, Options } from 'effect/unstable/cli'
+import { NodeRuntime, NodeServices, NodeStdio } from '@effect/platform-node'
+import { Effect, Layer, Match, Option, Schema, String, flow } from 'effect'
+import { Command, Flag } from 'effect/unstable/cli'
 import { FetchHttpClient } from 'effect/unstable/http'
 import { createRequire } from 'node:module'
 
@@ -13,40 +12,40 @@ const packageJson = createRequire(import.meta.url)('../package.json') as {
   version: string
 }
 
-const nameSchema = Schema.String.pipe(
-  Schema.filter(name =>
-    Match.value(name).pipe(
-      Match.whenOr(
-        String.includes('/'),
-        String.includes('\\'),
-        () => 'Project name cannot contain path separators (/ or \\)',
-      ),
-      Match.when(
-        String.includes(' '),
-        () => 'Project name cannot contain spaces',
-      ),
-      Match.when(
-        flow(String.match(/[<>:"|?*]/), Option.isSome),
-        () => 'Project name cannot contain special characters: < > : " | ? *',
-      ),
-      Match.whenOr(
-        String.startsWith('.'),
-        String.startsWith('-'),
-        () => 'Project name cannot start with . or -',
-      ),
-      Match.when(String.isEmpty, () => 'Project name cannot be empty'),
-      Match.orElse(() => true),
+const validateName = Schema.makeFilter<string>((name: string) =>
+  Match.value(name).pipe(
+    Match.whenOr(
+      String.includes('/'),
+      String.includes('\\'),
+      () => 'Project name cannot contain path separators (/ or \\)',
     ),
+    Match.when(
+      String.includes(' '),
+      () => 'Project name cannot contain spaces',
+    ),
+    Match.when(
+      flow(String.match(/[<>:"|?*]/), Option.isSome),
+      () => 'Project name cannot contain special characters: < > : " | ? *',
+    ),
+    Match.whenOr(
+      String.startsWith('.'),
+      String.startsWith('-'),
+      () => 'Project name cannot start with . or -',
+    ),
+    Match.when(String.isEmpty, () => 'Project name cannot be empty'),
+    Match.orElse(() => true),
   ),
 )
 
-const name = Options.text('name').pipe(
-  Options.withAlias('n'),
-  Options.withDescription('The name of the project to create'),
-  Options.withSchema(nameSchema),
+const nameSchema = Schema.String.pipe(Schema.check(validateName))
+
+const name = Flag.string('name').pipe(
+  Flag.withAlias('n'),
+  Flag.withDescription('The name of the project to create'),
+  Flag.withSchema(nameSchema),
 )
 
-const example = Options.choice('example', [
+const example = Flag.choice('example', [
   'counter',
   'todo',
   'stopwatch',
@@ -64,8 +63,8 @@ const example = Options.choice('example', [
   'kanban',
   'ui-showcase',
 ]).pipe(
-  Options.withAlias('e'),
-  Options.withDescription(
+  Flag.withAlias('e'),
+  Flag.withDescription(
     "The example application to start from. Pick an example that's similar to the application you're building. Or create multiple projects and take pieces of each!\n\n" +
       'Available examples:\n' +
       '  counter - Simple increment/decrement with reset\n' +
@@ -87,13 +86,13 @@ const example = Options.choice('example', [
   ),
 )
 
-const packageManager = Options.choice('package-manager', [
+const packageManager = Flag.choice('package-manager', [
   'pnpm',
   'npm',
   'yarn',
 ]).pipe(
-  Options.withAlias('p'),
-  Options.withDescription(
+  Flag.withAlias('p'),
+  Flag.withDescription(
     'The package manager to use for installing dependencies',
   ),
 )
@@ -106,15 +105,16 @@ const create = Command.make(
     packageManager,
   },
   create_,
-)
+).pipe(Command.withDescription('Create a new Foldkit application'))
 
 const cli = Command.run(create, {
-  name: 'Create Foldkit App',
   version: packageJson.version,
-  summary: HelpDoc.getSpan(HelpDoc.p('Create a new Foldkit application')),
 })
 
-cli(process.argv).pipe(
-  Effect.provide([FetchHttpClient.layer, NodeContext.layer]),
+cli.pipe(
+  Effect.provide([
+    FetchHttpClient.layer,
+    Layer.mergeAll(NodeServices.layer, NodeStdio.layer),
+  ]),
   NodeRuntime.runMain,
 )

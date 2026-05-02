@@ -1,6 +1,5 @@
-// @ts-nocheck
 import * as Shared from '@typing-game/shared'
-import { Array, Chunk, Duration, Schedule, Stream, pipe } from 'effect'
+import { Array, Duration, Schedule, Stream, pipe } from 'effect'
 
 export const COUNTDOWN_SECONDS = 3
 export const PLAYING_SECONDS = 30
@@ -29,15 +28,10 @@ const finishedStream: Stream.Stream<Shared.Finished> = Stream.make(
   Shared.Finished.make({}),
 )
 
-export const gameSequence = pipe(
+export const gameSequence: Stream.Stream<Shared.GameStatus> = pipe(
   getReadyStream,
-  Stream.concat(
-    Stream.concat(
-      Chunk.make<Array.NonEmptyReadonlyArray<Stream.Stream<Shared.GameStatus>>>(
-        countdownStream,
-        playingStream,
-        finishedStream,
-      ),
-    ).pipe(Stream.schedule(Schedule.fixed(Duration.seconds(1)))),
-  ),
+  Stream.concat(countdownStream),
+  Stream.concat(playingStream),
+  Stream.concat(finishedStream),
+  Stream.schedule(Schedule.fixed(Duration.seconds(1))),
 )

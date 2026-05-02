@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Schema as S } from 'effect'
 import { Runtime, Url } from 'foldkit'
 import { m } from 'foldkit/message'

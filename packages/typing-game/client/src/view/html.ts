@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { html } from 'foldkit/html'
 
 import type { Message } from '../message'

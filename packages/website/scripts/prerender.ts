@@ -1,10 +1,4 @@
-// @ts-nocheck
-// NOTE: Prerender script is pending Effect 4 migration of Command/FileSystem
-// (process spawning + file ops). v4 moved these out of @effect/platform into
-// effect/unstable/process and @effect/platform-node's NodeServices, with
-// different APIs. Disabling typecheck here so the website typechecks; the
-// script still runs because tsx executes the JS at runtime.
-import { NodeContext, NodeRuntime } from '@effect/platform-node'
+import { NodeRuntime, NodeServices } from '@effect/platform-node'
 import {
   Array,
   Console,
@@ -17,7 +11,8 @@ import {
   Stream,
   pipe,
 } from 'effect'
-import { Command, FileSystem } from 'effect/unstable/http'
+import { FileSystem } from 'effect'
+import { ChildProcess } from 'effect/unstable/process'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { type Browser, chromium } from 'playwright'
@@ -361,17 +356,20 @@ const PREVIEW_BASE_URL = `http://localhost:${PREVIEW_PORT}`
 
 const previewServerResource = Effect.acquireRelease(
   Effect.gen(function* () {
-    const cmd = Command.make(
+    const cmd = ChildProcess.make(
       'pnpm',
-      'exec',
-      'vite',
-      'preview',
-      '--port',
-      String(PREVIEW_PORT),
-      '--strictPort',
-    ).pipe(Command.workingDirectory(WEBSITE_DIR))
+      [
+        'exec',
+        'vite',
+        'preview',
+        '--port',
+        String(PREVIEW_PORT),
+        '--strictPort',
+      ],
+      { cwd: WEBSITE_DIR },
+    )
 
-    const serverProcess = yield* Command.start(cmd)
+    const serverProcess = yield* cmd
     const ready = yield* Deferred.make<void>()
 
     const checkLine = (line: string): Effect.Effect<void> =>
@@ -380,7 +378,7 @@ const previewServerResource = Effect.acquireRelease(
         : Effect.void
 
     yield* serverProcess.stdout.pipe(
-      Stream.decodeText('utf-8'),
+      Stream.decodeText({ encoding: 'utf-8' }),
       Stream.splitLines,
       Stream.runForEach(checkLine),
       Effect.forkDetach,
@@ -389,7 +387,7 @@ const previewServerResource = Effect.acquireRelease(
     yield* Deferred.await(ready)
     return serverProcess
   }),
-  serverProcess => serverProcess.kill().pipe(Effect.ignore),
+  serverProcess => Effect.ignore(serverProcess.kill()),
 ).pipe(Effect.asVoid)
 
 const playwrightBrowserResource = Effect.acquireRelease(
@@ -533,5 +531,5 @@ const program = Effect.scoped(
 )
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  NodeRuntime.runMain(program.pipe(Effect.provide(NodeContext.layer)))
+  NodeRuntime.runMain(program.pipe(Effect.provide(NodeServices.layer)))
 }

@@ -1,8 +1,6 @@
-// @ts-nocheck
 import chalk from 'chalk'
-import { FileSystem, Path } from 'effect'
-import { Console, Effect, Match } from 'effect'
-import * as Process from 'effect/unstable/process'
+import { Console, Effect, FileSystem, Match, Path } from 'effect'
+import { spawnSync } from 'node:child_process'
 
 import { createProject } from '../utils/files.js'
 import { installDependencies } from '../utils/packages.js'
@@ -47,18 +45,20 @@ const validateProject = (
       return yield* Effect.fail(`Directory ${name} already exists!`)
     }
 
-    const checkCommand = Command.make(
-      isWindows ? 'where' : 'which',
-      packageManager,
-    ).pipe(Command.stdout('pipe'), Command.stderr('pipe'))
+    const exitCode = yield* Effect.sync(() => {
+      const result = spawnSync(
+        isWindows ? 'where' : 'which',
+        [packageManager],
+        { stdio: 'pipe', shell: isWindows },
+      )
+      return result.status
+    })
 
-    return yield* Command.exitCode(checkCommand).pipe(
-      Effect.filterOrFail(
-        exitCode => exitCode === 0,
-        () =>
-          `Package manager '${packageManager}' is not available. Please install it first.`,
-      ),
-    )
+    if (exitCode !== 0) {
+      return yield* Effect.fail(
+        `Package manager '${packageManager}' is not available. Please install it first.`,
+      )
+    }
   })
 
 const setupProject = (name: string, projectPath: string, example: Example) =>

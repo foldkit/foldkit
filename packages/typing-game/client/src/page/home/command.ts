@@ -1,8 +1,7 @@
-// @ts-nocheck
 import { Effect } from 'effect'
 import { Command } from 'foldkit'
 
-import { RoomsClient } from '../../rpc'
+import { RoomsClient, RoomsClientLive } from '../../rpc.js'
 import {
   FailedJoinRoom,
   SucceededCreateRoom,
@@ -31,7 +30,7 @@ export const createRoom = (username: string) =>
       Effect.catch(error =>
         Effect.succeed(FailedJoinRoom({ error: String(error) })),
       ),
-      Effect.provide(RoomsClient.Default),
+      Effect.provide(RoomsClientLive),
     ),
   )
 
@@ -45,6 +44,6 @@ export const joinRoom = (username: string, roomId: string) =>
       Effect.catch(error =>
         Effect.succeed(FailedJoinRoom({ error: String(error) })),
       ),
-      Effect.provide(RoomsClient.Default),
+      Effect.provide(RoomsClientLive),
     ),
   )

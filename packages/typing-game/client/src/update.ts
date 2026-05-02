@@ -1,4 +1,3 @@
-// @ts-nocheck
 import * as Shared from '@typing-game/shared'
 import { Array, Effect, Match as M, Option } from 'effect'
 import { Command, Task, Url } from 'foldkit'

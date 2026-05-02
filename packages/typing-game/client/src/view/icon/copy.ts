@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Html } from 'foldkit/html'
 
 import {

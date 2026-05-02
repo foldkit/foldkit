@@ -1,11 +1,10 @@
-// @ts-nocheck
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Effect, Option, Schema as S } from 'effect'
 import { KeyValueStore } from 'effect/unstable/persistence'
 import { Command, Task } from 'foldkit'
 
 import { ROOM_PLAYER_SESSION_KEY } from '../../constant'
-import { RoomsClient } from '../../rpc'
+import { RoomsClient, RoomsClientLive } from '../../rpc.js'
 import {
   CompletedClearSession,
   CompletedRequestGameStart,
@@ -57,7 +56,7 @@ export const getRoomById = (roomId: string) =>
       return SucceededFetchRoom({ room })
     }).pipe(
       Effect.catch(() => Effect.succeed(FailedFetchRoom({ roomId }))),
-      Effect.provide(RoomsClient.Default),
+      Effect.provide(RoomsClientLive),
     ),
   )
 
@@ -67,7 +66,9 @@ export const loadSessionFromStorage = (roomId: string) =>
       const store = yield* KeyValueStore.KeyValueStore
       const maybeSessionJson = yield* store.get(ROOM_PLAYER_SESSION_KEY)
 
-      const sessionJson = yield* maybeSessionJson
+      const sessionJson = yield* Effect.fromOption(
+        Option.fromNullishOr(maybeSessionJson),
+      )
       const decodeSession = S.decodeEffect(S.fromJsonString(RoomPlayerSession))
 
       return yield* decodeSession(sessionJson).pipe(
@@ -96,7 +97,7 @@ export const joinRoom = (username: string, roomId: string) =>
       return SucceededJoinRoom({ roomId: room.id, player })
     }).pipe(
       Effect.catch(() => Effect.succeed(FailedJoinRoom())),
-      Effect.provide(RoomsClient.Default),
+      Effect.provide(RoomsClientLive),
     ),
   )
 
@@ -108,7 +109,7 @@ export const startGame = (roomId: string, playerId: string) =>
       return CompletedRequestGameStart()
     }).pipe(
       Effect.catch(() => Effect.succeed(CompletedRequestGameStart())),
-      Effect.provide(RoomsClient.Default),
+      Effect.provide(RoomsClientLive),
     ),
   )
 
@@ -130,7 +131,7 @@ export const updatePlayerProgress = (
       return CompletedUpdatePlayerProgress()
     }).pipe(
       Effect.catch(() => Effect.succeed(CompletedUpdatePlayerProgress())),
-      Effect.provide(RoomsClient.Default),
+      Effect.provide(RoomsClientLive),
     ),
   )
 

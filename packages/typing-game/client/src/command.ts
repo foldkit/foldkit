@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Effect } from 'effect'
 import { Command } from 'foldkit'
 import { pushUrl } from 'foldkit/navigation'

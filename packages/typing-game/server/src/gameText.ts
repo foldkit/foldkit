@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Array, Effect, Function, Random, pipe } from 'effect'
 
 const theUniverse =

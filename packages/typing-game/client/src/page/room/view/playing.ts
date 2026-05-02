@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { clsx } from 'clsx'
 import { Array, Number, Option, Order, String as Str, pipe } from 'effect'
 import { Html } from 'foldkit/html'
@@ -71,7 +70,7 @@ const char =
       (index === userGameTextLength && Option.isNone(maybeWrongCharIndex))
 
     const isWrong = Option.exists(maybeWrongCharIndex, wrongIndex =>
-      Order.between(Number.Order)(index, {
+      Order.isBetween(Number.Order)(index, {
         minimum: wrongIndex,
         maximum: Number.decrement(userGameTextLength),
       }),

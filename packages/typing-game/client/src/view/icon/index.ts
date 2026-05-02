@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { copy } from './copy'
 
 export const Icon = {

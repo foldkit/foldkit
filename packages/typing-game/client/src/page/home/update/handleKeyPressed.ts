@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Array, Effect, Match as M, Number, Option, flow, pipe } from 'effect'
 import { Command, Task } from 'foldkit'
 import { evo } from 'foldkit/struct'
@@ -81,7 +80,7 @@ const cycleAction =
           Number.remainder(homeActionsLength),
           remainder =>
             remainder < 0 ? remainder + homeActionsLength : remainder,
-          nextIndex => Array.unsafeGet(HOME_ACTIONS, nextIndex),
+          nextIndex => Array.getUnsafe(HOME_ACTIONS, nextIndex),
         ),
       ),
       Option.getOrElse(() => selectedAction),

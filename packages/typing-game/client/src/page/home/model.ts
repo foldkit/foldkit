@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Match, Schema as S } from 'effect'
 import { ts } from 'foldkit/schema'
 

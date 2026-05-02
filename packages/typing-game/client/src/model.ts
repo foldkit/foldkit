@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Schema as S } from 'effect'
 
 import { Home, Room } from './page'

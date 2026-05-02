@@ -1,8 +1,6 @@
-// @ts-nocheck
 import * as Shared from '@typing-game/shared'
 import {
   Array,
-  Data,
   Effect,
   HashMap,
   Number,
@@ -60,12 +58,10 @@ export const calculateScoreboard = (
     const game = yield* room.maybeGame
 
     const scores = Array.map(room.players, player => {
-      const gamePlayer = Data.Struct(
-        Shared.GamePlayer.make({
-          gameId: game.id,
-          playerId: player.id,
-        }),
-      )
+      const gamePlayer = Shared.GamePlayer.make({
+        gameId: game.id,
+        playerId: player.id,
+      })
       const maybeProgress = HashMap.get(progressByGamePlayer, gamePlayer)
       return calculatePlayerScore(player, maybeProgress, PLAYING_SECONDS)
     })
@@ -85,6 +81,6 @@ export const getPlayerProgress = (
     const progressByGamePlayer = yield* SubscriptionRef.get(
       progressByGamePlayerRef,
     )
-    const gamePlayer = Data.Struct(Shared.GamePlayer.make({ gameId, playerId }))
+    const gamePlayer = Shared.GamePlayer.make({ gameId, playerId })
     return HashMap.get(progressByGamePlayer, gamePlayer)
   })

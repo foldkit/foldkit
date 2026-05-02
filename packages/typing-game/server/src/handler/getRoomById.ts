@@ -1,4 +1,3 @@
-// @ts-nocheck
 import * as Shared from '@typing-game/shared'
 import { Effect, SubscriptionRef } from 'effect'
 import { Rpc } from 'effect/unstable/rpc'
