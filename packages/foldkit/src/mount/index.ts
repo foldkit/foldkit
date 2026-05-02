@@ -44,13 +44,13 @@ export interface MountDefinition<Name extends string, ResultMessage = any> {
  *  Definition is callable: pass an `(element: Element) => Effect<MountResult<Message>>`
  *  to wrap it as a typed, named action that the `OnMount` attribute consumes. */
 export const define: {
-  <const Name extends string, Results extends ReadonlyArray<Schema.Schema.Any>>(
+  <const Name extends string, Results extends ReadonlyArray<Schema.Top>>(
     name: Name,
     ...results: Results
   ): MountDefinition<Name, Schema.Schema.Type<Results[number]>>
 } = <const Name extends string>(
   name: Name,
-  ..._results: ReadonlyArray<Schema.Schema.Any>
+  ..._results: ReadonlyArray<Schema.Top>
 ): MountDefinition<Name, any> => {
   const create = (f: (element: Element) => Effect.Effect<any, any, any>) => ({
     name,

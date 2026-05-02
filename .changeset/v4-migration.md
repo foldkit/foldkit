@@ -19,4 +19,3 @@ This is a breaking change. Highlights:
 - Query parameter schemas use `S.OptionFromOptional` (v4 `OptionFromUndefinedOr` requires the key to be present).
 - `S.NumberFromString` no longer rejects NaN. Use `S.FiniteFromString` where strict numeric parsing is required.
 - `Effect.yieldNow` is now a value, not a function.
-- `@typing-game/client` and `create-foldkit-app` carry `@ts-nocheck` pending v4 RPC and CLI/platform rewrites.

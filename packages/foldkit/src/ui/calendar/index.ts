@@ -19,7 +19,7 @@ import * as Task from '../../task/index.js'
 /** Which grid the calendar is currently displaying. `Days` is the standard
  * 6×7 day grid; `Months` is a 3×4 month-name grid for fast month jumps;
  * `Years` is a 3×4 year grid paged in 12-year windows for fast year jumps. */
-export const ViewMode = S.Literal('Days', 'Months', 'Years')
+export const ViewMode = S.Literals(['Days', 'Months', 'Years'])
 export type ViewMode = typeof ViewMode.Type
 
 /** Schema for the calendar component's state. Tracks the visible month/year,
@@ -71,7 +71,9 @@ export const SelectedMonth = m('SelectedMonth', { month: S.Int })
 export const SelectedYear = m('SelectedYear', { year: S.Int })
 /** Sent when the user pages the years grid forward or backward by one
  * window. Direction is `1` for next, `-1` for previous. */
-export const PagedYears = m('PagedYears', { direction: S.Literal(1, -1) })
+export const PagedYears = m('PagedYears', {
+  direction: S.Literals([1, -1]),
+})
 /** Sent when the grid container receives DOM focus. */
 export const FocusedGrid = m('FocusedGrid')
 /** Sent when the grid container loses DOM focus. */

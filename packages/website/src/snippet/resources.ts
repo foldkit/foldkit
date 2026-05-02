@@ -1,10 +1,12 @@
-import { Effect } from 'effect'
+import { Context, Effect, Layer } from 'effect'
 import { Command, Runtime } from 'foldkit'
 
-class AudioContextService extends Effect.Service<AudioContextService>()(
-  'AudioContextService',
-  { sync: () => new AudioContext() },
-) {}
+class AudioContextService extends Context.Service<
+  AudioContextService,
+  AudioContext
+>()('AudioContextService') {
+  static readonly Default = Layer.sync(this, () => new AudioContext())
+}
 
 const PlayNote = Command.define('PlayNote', CompletedPlayNote)
 

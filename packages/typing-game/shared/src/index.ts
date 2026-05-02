@@ -140,11 +140,12 @@ export const updatePlayerProgressRpc = Rpc.make('updatePlayerProgress', {
   success: S.Void,
 })
 
-export class RoomRpcs extends RpcGroup.make(
+export const RoomRpcs = RpcGroup.make(
   createRoomRpc,
   joinRoomRpc,
   getRoomByIdRpc,
   subscribeToRoomRpc,
   startGameRpc,
   updatePlayerProgressRpc,
-) {}
+)
+export type RoomRpcs = typeof RoomRpcs
