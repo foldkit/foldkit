@@ -40,5 +40,6 @@ export const Model = S.Struct({
   isPreviewVisible: S.Boolean,
   submission: Submission,
   stepMenu: Ui.Menu.Model,
+  hasAttemptedSubmit: S.Boolean,
 })
 export type Model = typeof Model.Type

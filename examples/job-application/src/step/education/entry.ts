@@ -3,6 +3,7 @@ import { Command, Ui } from 'foldkit'
 import {
   Field,
   NotValidated,
+  type Rules,
   allValid,
   anyInvalid,
   makeRules,
@@ -28,6 +29,11 @@ export const fieldOfStudyRules = makeRules({
 const validateSchool = validate(schoolRules)
 const validateDegree = validate(degreeRules)
 const validateFieldOfStudy = validate(fieldOfStudyRules)
+
+const revealFieldErrors =
+  (rules: Rules) =>
+  (field: Field): Field =>
+    field._tag === 'NotValidated' ? validate(rules)(field.value) : field
 
 // MODEL
 
@@ -169,3 +175,10 @@ export const isComplete = (entry: Model): boolean =>
     [entry.degree, degreeRules],
     [entry.fieldOfStudy, fieldOfStudyRules],
   ])
+
+export const revealErrors = (entry: Model): Model =>
+  evo(entry, {
+    school: revealFieldErrors(schoolRules),
+    degree: revealFieldErrors(degreeRules),
+    fieldOfStudy: revealFieldErrors(fieldOfStudyRules),
+  })

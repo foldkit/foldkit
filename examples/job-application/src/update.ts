@@ -24,6 +24,12 @@ import {
   WorkHistory,
 } from './step'
 
+const isApplicationComplete = (model: Model): boolean =>
+  PersonalInfo.isComplete(model.personalInfo) &&
+  WorkHistory.isComplete(model.workHistory) &&
+  Education.isComplete(model.education) &&
+  Skills.isComplete(model.skills)
+
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
@@ -169,10 +175,22 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [],
       ],
 
-      SubmittedApplication: () => [
-        evo(model, { submission: () => Submitting() }),
-        [submitApplication],
-      ],
+      ClickedSubmit: () => {
+        const revealedModel = evo(model, {
+          personalInfo: PersonalInfo.revealErrors,
+          workHistory: WorkHistory.revealErrors,
+          education: Education.revealErrors,
+          skills: Skills.revealErrors,
+          hasAttemptedSubmit: () => true,
+        })
+        if (isApplicationComplete(revealedModel)) {
+          return [
+            evo(revealedModel, { submission: () => Submitting() }),
+            [submitApplication],
+          ]
+        }
+        return [revealedModel, []]
+      },
 
       SucceededSubmitApplication: () => [
         evo(model, { submission: () => SubmitSuccess() }),

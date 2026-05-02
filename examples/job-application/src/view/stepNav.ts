@@ -15,7 +15,6 @@ import { type Html } from 'foldkit/html'
 import { Step } from '../domain'
 import {
   AriaCurrent,
-  AriaDisabled,
   AriaLabel,
   Class,
   OnClick,
@@ -43,9 +42,6 @@ const stepToStatus = (step: Step.Step, currentStep: Step.Step): StepStatus =>
     ),
     Match.orElse(() => 'Upcoming'),
   )
-
-const isClickable = (status: StepStatus, hasErrors: boolean): boolean =>
-  status !== 'Upcoming' || hasErrors
 
 const stepMarkerGlyph = (
   status: StepStatus,
@@ -88,17 +84,14 @@ const stepMarker = (
 
 const stepButtonClass = (status: StepStatus, hasErrors: boolean): string =>
   clsx(
-    'flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition',
+    'flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition cursor-pointer',
     hasErrors
-      ? 'text-red-700 hover:bg-red-50 cursor-pointer'
+      ? 'text-red-700 hover:bg-red-50'
       : Match.value(status).pipe(
           Match.withReturnType<string>(),
           Match.when('Current', () => 'bg-indigo-50 text-indigo-700'),
-          Match.when(
-            'Completed',
-            () => 'text-gray-700 hover:bg-gray-100 cursor-pointer',
-          ),
-          Match.when('Upcoming', () => 'text-gray-400 cursor-default'),
+          Match.when('Completed', () => 'text-gray-700 hover:bg-gray-100'),
+          Match.when('Upcoming', () => 'text-gray-500 hover:bg-gray-100'),
           Match.exhaustive,
         ),
   )
@@ -115,7 +108,6 @@ export const stepList = (
         Step.all.map((step, index) => {
           const status = stepToStatus(step, currentStep)
           const hasErrors = HashSet.has(stepsWithErrors, step)
-          const clickable = isClickable(status, hasErrors)
 
           return keyed('li')(
             step,
@@ -125,9 +117,7 @@ export const stepList = (
                 [
                   Type('button'),
                   ...(status === 'Current' ? [AriaCurrent('step')] : []),
-                  ...(clickable
-                    ? [OnClick(NavigatedToStep({ step }))]
-                    : [AriaDisabled(true)]),
+                  OnClick(NavigatedToStep({ step })),
                   Class(stepButtonClass(status, hasErrors)),
                 ],
                 [
@@ -186,22 +176,21 @@ export const stepMenu = (
       'flex items-center w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-gray-300 cursor-pointer',
     itemsClassName:
       'rounded-lg border border-gray-200 bg-white shadow-lg py-1 w-(--button-width)',
-    itemToConfig: (step, { isActive, isDisabled }) => {
+    itemToConfig: (step, { isActive }) => {
       const status = stepToStatus(step, model.currentStep)
       const hasErrors = HashSet.has(stepsWithErrors, step)
       const index = Step.indexOf(step)
       return {
         className: clsx(
-          'flex items-center gap-3 px-4 py-2.5 text-sm',
+          'flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer',
           isActive && 'bg-gray-50',
-          isDisabled ? 'cursor-not-allowed' : 'cursor-pointer',
           hasErrors
             ? 'text-red-700 font-semibold'
             : Match.value(status).pipe(
                 Match.withReturnType<string>(),
                 Match.when('Current', () => 'text-indigo-700 font-semibold'),
                 Match.when('Completed', () => 'text-gray-700'),
-                Match.when('Upcoming', () => 'text-gray-400'),
+                Match.when('Upcoming', () => 'text-gray-500'),
                 Match.exhaustive,
               ),
         ),
@@ -211,11 +200,6 @@ export const stepMenu = (
         ),
       }
     },
-    isItemDisabled: step =>
-      !isClickable(
-        stepToStatus(step, model.currentStep),
-        HashSet.has(stepsWithErrors, step),
-      ),
     backdropClassName: 'fixed inset-0',
     anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
   })

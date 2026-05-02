@@ -12,6 +12,7 @@ import {
   Field,
   Invalid,
   NotValidated,
+  type Rules,
   Valid,
   Validating,
   allValid,
@@ -131,6 +132,11 @@ const validateLastName = validate(lastNameRules)
 const validateEmail = validate(emailRules)
 const validatePhone = validate(phoneRules)
 const validatePortfolioUrl = validate(portfolioUrlRules)
+
+const revealFieldErrors =
+  (rules: Rules) =>
+  (field: Field): Field =>
+    field._tag === 'NotValidated' ? validate(rules)(field.value) : field
 
 // COMMAND
 
@@ -293,3 +299,12 @@ export const isComplete = (model: Model): boolean =>
     [model.phone, phoneRules],
     [model.portfolioUrl, portfolioUrlRules],
   ])
+
+export const revealErrors = (model: Model): Model =>
+  evo(model, {
+    firstName: revealFieldErrors(firstNameRules),
+    lastName: revealFieldErrors(lastNameRules),
+    email: revealFieldErrors(emailRules),
+    phone: revealFieldErrors(phoneRules),
+    portfolioUrl: revealFieldErrors(portfolioUrlRules),
+  })

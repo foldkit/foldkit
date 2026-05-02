@@ -116,3 +116,6 @@ export const hasErrors = (model: Model): boolean =>
 export const isComplete = (model: Model): boolean =>
   Array.isNonEmptyReadonlyArray(model.entries) &&
   Array.every(model.entries, Entry.isComplete)
+
+export const revealErrors = (model: Model): Model =>
+  evo(model, { entries: () => Array.map(model.entries, Entry.revealErrors) })

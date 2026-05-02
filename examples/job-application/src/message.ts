@@ -46,7 +46,7 @@ export const ToggledPreview = m('ToggledPreview')
 
 // SUBMISSION
 
-export const SubmittedApplication = m('SubmittedApplication')
+export const ClickedSubmit = m('ClickedSubmit')
 export const SucceededSubmitApplication = m('SucceededSubmitApplication')
 export const FailedSubmitApplication = m('FailedSubmitApplication', {
   error: S.String,
@@ -66,7 +66,7 @@ export const Message = S.Union(
   ClickedNext,
   ClickedPrevious,
   ToggledPreview,
-  SubmittedApplication,
+  ClickedSubmit,
   SucceededSubmitApplication,
   FailedSubmitApplication,
 )

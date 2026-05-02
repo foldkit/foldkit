@@ -4,7 +4,6 @@ import { type Html } from 'foldkit/html'
 
 import {
   Class,
-  Disabled,
   OnClick,
   Role,
   Type,
@@ -18,7 +17,7 @@ import {
   span,
   strong,
 } from '../html'
-import { SubmittedApplication } from '../message'
+import { ClickedSubmit } from '../message'
 import type { Model } from '../model'
 import * as Education from '../step/education'
 import * as PersonalInfo from '../step/personalInfo'
@@ -199,10 +198,8 @@ const attachmentsSection = (attachments: Model['attachments']): Html =>
     ),
   )
 
-const submitButtonClass = (isEnabled: boolean): string =>
-  isEnabled
-    ? 'w-full rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition cursor-pointer'
-    : 'w-full rounded-lg bg-indigo-300 px-4 py-3 text-sm font-semibold text-white cursor-not-allowed'
+const submitButtonClass =
+  'w-full rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition cursor-pointer'
 
 const blockedNotice = keyed('p')(
   'blocked-notice',
@@ -212,7 +209,7 @@ const blockedNotice = keyed('p')(
 
 const submissionSection = (
   submission: Model['submission'],
-  isSubmittable: boolean,
+  shouldShowBlockedNotice: boolean,
 ): Html =>
   M.value(submission).pipe(
     M.tagsExhaustive({
@@ -221,15 +218,13 @@ const submissionSection = (
           'submit-idle',
           [Class('pt-4 space-y-2')],
           [
-            ...(isSubmittable ? [] : [blockedNotice]),
+            ...(shouldShowBlockedNotice ? [blockedNotice] : []),
             keyed('button')(
               'submit',
               [
                 Type('button'),
-                ...(isSubmittable
-                  ? [OnClick(SubmittedApplication())]
-                  : [Disabled(true)]),
-                Class(submitButtonClass(isSubmittable)),
+                OnClick(ClickedSubmit()),
+                Class(submitButtonClass),
               ],
               ['Submit Application'],
             ),
@@ -286,15 +281,13 @@ const submissionSection = (
               ],
               [error],
             ),
-            ...(isSubmittable ? [] : [blockedNotice]),
+            ...(shouldShowBlockedNotice ? [blockedNotice] : []),
             keyed('button')(
               'submit',
               [
                 Type('button'),
-                ...(isSubmittable
-                  ? [OnClick(SubmittedApplication())]
-                  : [Disabled(true)]),
-                Class(submitButtonClass(isSubmittable)),
+                OnClick(ClickedSubmit()),
+                Class(submitButtonClass),
               ],
               ['Try Again'],
             ),
@@ -313,6 +306,12 @@ export const review = (model: Model): Html => {
     },
   )
 
+  const isApplicationComplete =
+    PersonalInfo.isComplete(model.personalInfo) &&
+    WorkHistory.isComplete(model.workHistory) &&
+    Education.isComplete(model.education) &&
+    Skills.isComplete(model.skills)
+
   return div(
     [Class('space-y-4')],
     [
@@ -324,10 +323,7 @@ export const review = (model: Model): Html => {
       attachmentsSection(model.attachments),
       submissionSection(
         model.submission,
-        PersonalInfo.isComplete(model.personalInfo) &&
-          WorkHistory.isComplete(model.workHistory) &&
-          Education.isComplete(model.education) &&
-          Skills.isComplete(model.skills),
+        model.hasAttemptedSubmit && !isApplicationComplete,
       ),
     ],
   )
