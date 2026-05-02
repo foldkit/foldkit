@@ -7,6 +7,7 @@ import { SubmitApplication } from './command'
 import {
   ClickedNext,
   ClickedPrevious,
+  ClickedSubmit,
   FailedSubmitApplication,
   GotAttachmentsMessage,
   GotCoverLetterMessage,
@@ -15,7 +16,6 @@ import {
   GotSkillsMessage,
   GotWorkHistoryMessage,
   NavigatedToStep,
-  SubmittedApplication,
   SucceededSubmitApplication,
   ToggledPreview,
 } from './message'
@@ -43,6 +43,41 @@ const initialModel: Model = {
   isPreviewVisible: false,
   submission: NotSubmitted(),
   stepMenu: Ui.Menu.init({ id: 'step-menu' }),
+  hasAttemptedSubmit: false,
+}
+
+const completeModel: Model = {
+  ...initialModel,
+  personalInfo: {
+    ...initialModel.personalInfo,
+    firstName: Valid({ value: 'Jane' }),
+    lastName: Valid({ value: 'Doe' }),
+    email: Valid({ value: 'jane@example.com' }),
+  },
+  workHistory: {
+    ...initialModel.workHistory,
+    entries: initialModel.workHistory.entries.map(entry => ({
+      ...entry,
+      company: Valid({ value: 'Foldkit' }),
+      title: Valid({ value: 'Engineer' }),
+    })),
+  },
+  education: {
+    ...initialModel.education,
+    entries: initialModel.education.entries.map(entry => ({
+      ...entry,
+      school: Valid({ value: 'MIT' }),
+      degree: Valid({ value: 'BS' }),
+      fieldOfStudy: Valid({ value: 'CS' }),
+    })),
+  },
+  skills: {
+    ...initialModel.skills,
+    entries: initialModel.skills.entries.map(entry => ({
+      ...entry,
+      name: Valid({ value: 'TypeScript' }),
+    })),
+  },
 }
 
 const withInitial = Story.with(initialModel)
@@ -504,15 +539,69 @@ describe('Job Application', () => {
   })
 
   describe('submission', () => {
-    test('SubmittedApplication sets submitting state and fires command', () => {
+    test('ClickedSubmit on a complete application transitions to Submitting and fires command', () => {
       Story.story(
         update,
-        Story.with({ ...initialModel, currentStep: 'Review' }),
-        Story.message(SubmittedApplication()),
+        Story.with({ ...completeModel, currentStep: 'Review' }),
+        Story.message(ClickedSubmit()),
         Story.expectExactCommands(SubmitApplication),
         Story.resolve(SubmitApplication, SucceededSubmitApplication()),
         Story.model(model => {
           expect(model.submission._tag).toBe('SubmitSuccess')
+          expect(model.hasAttemptedSubmit).toBe(true)
+        }),
+      )
+    })
+
+    test('ClickedSubmit on an incomplete application reveals errors and does not submit', () => {
+      Story.story(
+        update,
+        Story.with({ ...initialModel, currentStep: 'Review' }),
+        Story.message(ClickedSubmit()),
+        Story.expectNoCommands(),
+        Story.model(model => {
+          expect(model.submission._tag).toBe('NotSubmitted')
+          expect(model.hasAttemptedSubmit).toBe(true)
+          expect(model.personalInfo.firstName._tag).toBe('Invalid')
+          expect(model.personalInfo.lastName._tag).toBe('Invalid')
+          expect(model.personalInfo.email._tag).toBe('Invalid')
+          expect(
+            pipe(
+              model.workHistory.entries,
+              Array.head,
+              Option.map(entry => entry.company._tag),
+              Option.getOrThrow,
+            ),
+          ).toBe('Invalid')
+          expect(
+            pipe(
+              model.education.entries,
+              Array.head,
+              Option.map(entry => entry.school._tag),
+              Option.getOrThrow,
+            ),
+          ).toBe('Invalid')
+          expect(
+            pipe(
+              model.skills.entries,
+              Array.head,
+              Option.map(entry => entry.name._tag),
+              Option.getOrThrow,
+            ),
+          ).toBe('Invalid')
+        }),
+      )
+    })
+
+    test('ClickedSubmit preserves Valid fields rather than re-running validation', () => {
+      Story.story(
+        update,
+        Story.with({ ...completeModel, currentStep: 'Review' }),
+        Story.message(ClickedSubmit()),
+        Story.resolve(SubmitApplication, SucceededSubmitApplication()),
+        Story.model(model => {
+          expect(model.personalInfo.firstName._tag).toBe('Valid')
+          expect(model.personalInfo.firstName.value).toBe('Jane')
         }),
       )
     })

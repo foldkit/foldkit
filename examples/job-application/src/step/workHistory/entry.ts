@@ -4,6 +4,7 @@ import { CalendarDate } from 'foldkit/calendar'
 import {
   Field,
   NotValidated,
+  type Rules,
   allValid,
   anyInvalid,
   makeRules,
@@ -24,6 +25,11 @@ export const titleRules = makeRules({
 
 const validateCompany = validate(companyRules)
 const validateTitle = validate(titleRules)
+
+const revealFieldErrors =
+  (rules: Rules) =>
+  (field: Field): Field =>
+    field._tag === 'NotValidated' ? validate(rules)(field.value) : field
 
 // MODEL
 
@@ -207,3 +213,9 @@ export const isComplete = (entry: Model): boolean =>
     [entry.company, companyRules],
     [entry.title, titleRules],
   ])
+
+export const revealErrors = (entry: Model): Model =>
+  evo(entry, {
+    company: revealFieldErrors(companyRules),
+    title: revealFieldErrors(titleRules),
+  })

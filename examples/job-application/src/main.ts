@@ -40,6 +40,7 @@ const init: Runtime.ProgramInit<Model, Message, Flags> = ({ today }) => [
     isPreviewVisible: false,
     submission: NotSubmitted(),
     stepMenu: Ui.Menu.init({ id: 'step-menu' }),
+    hasAttemptedSubmit: false,
   },
   [],
 ]
