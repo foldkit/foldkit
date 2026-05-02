@@ -56,10 +56,19 @@ type TypeDocLiteralType = Readonly<{
   value: unknown
 }>
 
+type TypeDocReferenceTarget =
+  | number
+  | Readonly<{
+      packageName?: string | undefined
+      packagePath?: string | undefined
+      qualifiedName?: string | undefined
+    }>
+
 interface TypeDocReferenceType<Self> {
   readonly type: 'reference'
   readonly name: string
   readonly package?: string | undefined
+  readonly target?: TypeDocReferenceTarget | undefined
   readonly typeArguments?: ReadonlyArray<Self> | undefined
 }
 
@@ -188,6 +197,16 @@ export const TypeDocTypeSchema: S.Schema<TypeDocType, TypeDocTypeEncoded> =
         type: S.Literal('reference'),
         name: S.String,
         package: S.optional(S.String),
+        target: S.optional(
+          S.Union(
+            S.Number,
+            S.Struct({
+              packageName: S.optional(S.String),
+              packagePath: S.optional(S.String),
+              qualifiedName: S.optional(S.String),
+            }),
+          ),
+        ),
         typeArguments: S.optional(S.Array(TypeDocTypeSchema)),
       }),
       S.Struct({
