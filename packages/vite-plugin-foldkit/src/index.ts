@@ -109,7 +109,8 @@ const startMcpWebSocketServer = (port: number): void => {
         `\n[foldkit:devTools] Port ${port} is already in use, so the DevTools MCP relay could not start.\n` +
           `[foldkit:devTools] This usually means another Foldkit project is already running and bound to this port.\n` +
           `[foldkit:devTools] Until the port is freed, agents will not be able to connect to this app via the Foldkit DevTools MCP server.\n` +
-          `[foldkit:devTools] Stop the other project, or set a different \`devToolsMcpPort\` in this project's vite config.\n`,
+          `[foldkit:devTools] Stop the other project, or set a different \`devToolsMcpPort\` in this project's vite config.\n` +
+          `[foldkit:devTools] If you change \`devToolsMcpPort\`, also set \`FOLDKIT_DEVTOOLS_MCP_PORT\` to the same value for your MCP server.\n`,
       )
     } else {
       console.error(
