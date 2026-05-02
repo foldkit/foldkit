@@ -37,12 +37,12 @@ import {
   comingFromReactRouter,
   coreArchitectureRouter,
   coreDevToolsRouter,
-  coreLifecycleHooksRouter,
   coreSubscriptionsRouter,
   examplesRouter,
   fieldValidationRouter,
   routingAndNavigationRouter,
   testingRouter,
+  typingTerminalRouter,
   uiOverviewRouter,
 } from '../route'
 import * as Snippets from '../snippet'
@@ -100,9 +100,9 @@ export const view = (
     [
       heroSection(copiedSnippets, playgroundMenuView),
       glyph('{ }'),
-      poweredBySection(),
-      glyph('=>'),
       promiseSection(),
+      glyph('=>'),
+      poweredBySection(),
       glyph('|>', '-translate-y-1/4'),
       demoSection(demoTabsView),
       glyph('[ ]'),
@@ -179,9 +179,7 @@ const heroSection = (
                 'mt-6 text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-3xl leading-relaxed',
               ),
             ],
-            [
-              'A frontend framework for TypeScript, built on Effect, using The Elm Architecture.',
-            ],
+            ['Built on Effect. Architected like Elm. Written in TypeScript.'],
           ),
           div(
             [Class('mt-8')],
@@ -515,19 +513,6 @@ const includedSection = (): Html =>
                   ),
                 ],
               ),
-              includedFeature(Icon.squareStack('w-6 h-6'), 'Virtual DOM', [
-                'Built on ',
-                a(
-                  [
-                    Href(Link.snabbdom),
-                    Class(
-                      'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500 font-normal',
-                    ),
-                  ],
-                  ['Snabbdom'],
-                ),
-                '. Fast, keyed diffing with declarative views that are plain functions of your Model.',
-              ]),
               includedFeature(
                 Icon.signal('w-6 h-6'),
                 'Subscriptions',
@@ -540,17 +525,6 @@ const includedSection = (): Html =>
                 },
               ),
               includedFeature(
-                Icon.link('w-6 h-6'),
-                'Mount',
-                [
-                  'The seam where view code reaches a real DOM element. Run an Effect with the live element on mount, paired with cleanup that fires on unmount.',
-                ],
-                {
-                  href: coreLifecycleHooksRouter(),
-                  label: 'Explore Mount',
-                },
-              ),
-              includedFeature(
                 Icon.shieldCheck('w-6 h-6'),
                 'Field Validation',
                 [
@@ -559,6 +533,17 @@ const includedSection = (): Html =>
                 {
                   href: fieldValidationRouter(),
                   label: 'Explore field validation',
+                },
+              ),
+              includedFeature(
+                Icon.checkBadge('w-6 h-6'),
+                'Testing',
+                [
+                  'Two test primitives. Story sends Messages through update and asserts on the resulting Model and Commands. Scene drives the rendered view through accessible locators and asserts on the re-rendered HTML.',
+                ],
+                {
+                  href: testingRouter(),
+                  label: 'Explore testing',
                 },
               ),
               includedFeature(
@@ -668,7 +653,7 @@ const devToolsSection = (): Html =>
               ),
             ],
             [
-              'Plus, AI agents can connect over MCP. They read the current Model, walk Message history, and replay to past states. Programmatic access to the same data DevTools shows you.',
+              'Plus, AI agents can connect over MCP. They read the current Model, walk Message history, and rewind the UI to past states. Programmatic access to the same data DevTools shows you.',
             ],
           ),
           p(
@@ -967,7 +952,7 @@ const trustSection = (): Html =>
               trustItemWithLink(
                 'Production app',
                 'Typing Terminal',
-                Link.typingTerminal,
+                typingTerminalRouter(),
               ),
               trustItemWithLink('Changelog', 'View releases', Link.changelog),
             ],
@@ -1125,7 +1110,7 @@ const aiSection = (aiHeadingToggleCount: number): Html =>
           p(
             [Class('text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-2xl')],
             [
-              'AI agents can also connect directly to a running Foldkit app over the Model Context Protocol. They read the current Model, inspect Message history, replay to past states, and dispatch Messages.',
+              'AI agents can also connect directly to a running Foldkit app over the Model Context Protocol. They read the current Model, inspect Message history, rewind the UI to past states, and dispatch Messages.',
             ],
           ),
           a(
