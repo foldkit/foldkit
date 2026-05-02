@@ -3,7 +3,6 @@ import {
   Effect,
   Exit,
   HashMap,
-  HashSet,
   Match,
   Option,
   Ref,
@@ -39,15 +38,17 @@ let isHmrReload = false
 const connectedRuntimesRef = Ref.makeUnsafe<
   HashMap.HashMap<string, typeof RuntimeInfo.Type>
 >(HashMap.empty())
-const mcpClientsRef = Ref.makeUnsafe<HashSet.HashSet<WebSocket>>(
-  HashSet.empty(),
+
+// NOTE: WebSocket / WebSocketClient handles are tracked by reference identity,
+// not by value. v4 HashSet / HashMap use structural Equal.equals, so keying on
+// these live socket objects would walk their internal state recursively (slow,
+// risks circular-ref overflows) and could collide structurally-similar sockets.
+// JS Set / Map are the correct identity-keyed primitives here.
+const mcpClientsRef = Ref.makeUnsafe<Set<WebSocket>>(new Set())
+const clientConnectionsRef = Ref.makeUnsafe<Map<WebSocketClient, Set<string>>>(
+  new Map(),
 )
-const clientConnectionsRef = Ref.makeUnsafe<
-  HashMap.HashMap<WebSocketClient, HashSet.HashSet<string>>
->(HashMap.empty())
-const trackedClientsRef = Ref.makeUnsafe<HashSet.HashSet<WebSocketClient>>(
-  HashSet.empty(),
-)
+const trackedClientsRef = Ref.makeUnsafe<Set<WebSocketClient>>(new Set())
 
 let viteServer: ViteDevServer | null = null
 let mcpWebSocketServer: WebSocketServer | null = null
@@ -120,15 +121,20 @@ const startMcpWebSocketServer = (port: number): void => {
     mcpWebSocketServer = null
   })
   wss.on('connection', client => {
-    Effect.runSync(Ref.update(mcpClientsRef, HashSet.add(client)))
-    const total = HashSet.size(Effect.runSync(Ref.get(mcpClientsRef)))
+    Effect.runSync(Ref.update(mcpClientsRef, set => set.add(client)))
+    const total = Effect.runSync(Ref.get(mcpClientsRef)).size
     console.log(`[foldkit:devTools] MCP client connected (${total} total)`)
     client.on('message', raw => {
       handleMcpMessage(client, raw.toString())
     })
     client.on('close', () => {
-      Effect.runSync(Ref.update(mcpClientsRef, HashSet.remove(client)))
-      const remaining = HashSet.size(Effect.runSync(Ref.get(mcpClientsRef)))
+      Effect.runSync(
+        Ref.update(mcpClientsRef, set => {
+          set.delete(client)
+          return set
+        }),
+      )
+      const remaining = Effect.runSync(Ref.get(mcpClientsRef)).size
       console.log(
         `[foldkit:devTools] MCP client disconnected (${remaining} remaining)`,
       )
@@ -149,7 +155,7 @@ const stopMcpWebSocketServer = (): void => {
   for (const client of clients) {
     client.close()
   }
-  Effect.runSync(Ref.set(mcpClientsRef, HashSet.empty()))
+  Effect.runSync(Ref.set(mcpClientsRef, new Set()))
   mcpWebSocketServer?.close()
   mcpWebSocketServer = null
   console.log('[foldkit:devTools] MCP relay stopped')
@@ -179,33 +185,40 @@ const handleBrowserEventFrame = (
 
 const ensureClientTracked = (client: WebSocketClient): void => {
   const tracked = Effect.runSync(Ref.get(trackedClientsRef))
-  if (HashSet.has(tracked, client)) {
+  if (tracked.has(client)) {
     return
   }
-  Effect.runSync(Ref.update(trackedClientsRef, HashSet.add(client)))
+  Effect.runSync(Ref.update(trackedClientsRef, set => set.add(client)))
   client.socket.on('close', () => handleClientClose(client))
 }
 
 const handleClientClose = (client: WebSocketClient): void => {
-  pipe(
-    Effect.runSync(Ref.get(clientConnectionsRef)),
-    HashMap.get(client),
-    Option.match({
-      onNone: () => {},
-      onSome: connectionIds => {
-        for (const connectionId of connectionIds) {
-          Effect.runSync(
-            Ref.update(connectedRuntimesRef, HashMap.remove(connectionId)),
-          )
-          console.log(
-            `[foldkit:devTools] runtime pruned (socket close): ${connectionId}`,
-          )
-        }
-      },
+  const connections = Effect.runSync(Ref.get(clientConnectionsRef))
+  Option.match(Option.fromNullishOr(connections.get(client)), {
+    onNone: () => {},
+    onSome: connectionIds => {
+      for (const connectionId of connectionIds) {
+        Effect.runSync(
+          Ref.update(connectedRuntimesRef, HashMap.remove(connectionId)),
+        )
+        console.log(
+          `[foldkit:devTools] runtime pruned (socket close): ${connectionId}`,
+        )
+      }
+    },
+  })
+  Effect.runSync(
+    Ref.update(clientConnectionsRef, map => {
+      map.delete(client)
+      return map
     }),
   )
-  Effect.runSync(Ref.update(clientConnectionsRef, HashMap.remove(client)))
-  Effect.runSync(Ref.update(trackedClientsRef, HashSet.remove(client)))
+  Effect.runSync(
+    Ref.update(trackedClientsRef, set => {
+      set.delete(client)
+      return set
+    }),
+  )
 }
 
 const handleBrowserResponseFrame = (data: unknown): void => {
@@ -233,15 +246,15 @@ const handleConnectedEvent = (
   )
   Effect.runSync(
     Ref.update(clientConnectionsRef, currentMap => {
-      const existing = pipe(
-        HashMap.get(currentMap, client),
-        Option.getOrElse(() => HashSet.empty<string>()),
+      const existing = Option.match(
+        Option.fromNullishOr(currentMap.get(client)),
+        {
+          onNone: () => new Set<string>(),
+          onSome: set => set,
+        },
       )
-      return HashMap.set(
-        currentMap,
-        client,
-        HashSet.add(existing, event.runtime.connectionId),
-      )
+      existing.add(event.runtime.connectionId)
+      return currentMap.set(client, existing)
     }),
   )
   console.log(

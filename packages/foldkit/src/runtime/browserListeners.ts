@@ -31,12 +31,11 @@ const addLinkClickListener = <Message>(
 ) => {
   const onLinkClick = (event: Event) => {
     const target = event.target
-    if (!target || !('closest' in target)) {
+    if (!(target instanceof Element)) {
       return
     }
 
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    const maybeLink = Option.fromNullishOr((target as Element).closest('a'))
+    const maybeLink = Option.fromNullishOr(target.closest('a'))
     if (Option.isNone(maybeLink)) {
       return
     }

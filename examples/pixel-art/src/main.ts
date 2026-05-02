@@ -29,10 +29,10 @@ const flags: Effect.Effect<Flags> = Effect.gen(function* () {
     Option.fromNullishOr(yield* store.get(STORAGE_KEY)),
   )
   const decoded = yield* S.decodeEffect(S.fromJsonString(SavedCanvas))(json)
-  return { maybeSavedCanvas: Option.some(decoded) } as Flags
+  return Flags.make({ maybeSavedCanvas: Option.some(decoded) })
 }).pipe(
   Effect.catch(() =>
-    Effect.succeed({ maybeSavedCanvas: Option.none() } as Flags),
+    Effect.succeed(Flags.make({ maybeSavedCanvas: Option.none() })),
   ),
   Effect.provide(BrowserKeyValueStore.layerLocalStorage),
 )
