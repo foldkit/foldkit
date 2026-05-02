@@ -77,11 +77,9 @@ const runCommand = (
           resume(Effect.fail(new Error(`${command} exited with code ${code}`)))
         }
       })
-      // NOTE: SIGTERM only, no SIGKILL escalation — the Effect.callback
-      // finalizer is sync, so we can't time out and re-kill. On Windows with
-      // shell:true the signal hits cmd.exe but does not propagate to the
-      // pnpm/npm/yarn subprocess; the user has to kill it manually.
-      // Acceptable for a one-shot scaffolding CLI.
+      // NOTE: SIGTERM only — the Effect.callback finalizer is sync so we
+      // can't escalate to SIGKILL. On Windows with shell:true the signal
+      // hits cmd.exe but doesn't propagate to the package manager.
       return Effect.sync(() => {
         if (child.exitCode === null && !child.killed) {
           child.kill()

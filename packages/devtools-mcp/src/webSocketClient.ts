@@ -14,7 +14,7 @@ import {
 } from 'effect'
 import {
   type Request,
-  type RequestFrame,
+  RequestFrame,
   type Response,
   ResponseFrame,
 } from 'foldkit/devtools-protocol'
@@ -23,6 +23,10 @@ import { type RawData, WebSocket } from 'ws'
 const REQUEST_TIMEOUT = Duration.seconds(10)
 const INITIAL_RECONNECT_DELAY = Duration.millis(500)
 const MAX_RECONNECT_DELAY = Duration.seconds(30)
+
+const encodeRequestFrameToJson = S.encodeUnknownSync(
+  S.fromJsonString(RequestFrame),
+)
 
 type PendingResponses = HashMap.HashMap<
   string,
@@ -207,7 +211,7 @@ export const connectWebSocketClient = (
         }
 
         yield* Effect.try({
-          try: () => socket.send(JSON.stringify(frame)),
+          try: () => socket.send(encodeRequestFrameToJson(frame)),
           catch: error =>
             error instanceof Error
               ? error

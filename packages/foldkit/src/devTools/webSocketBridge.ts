@@ -17,13 +17,14 @@ import {
   type Event,
   EventConnected,
   EventDisconnected,
+  EventFrame,
   KeyframeInfo,
   type Request,
   RequestFrame,
   type Response,
   ResponseDispatched,
   ResponseError,
-  type ResponseFrame,
+  ResponseFrame,
   ResponseInit,
   ResponseKeyframes,
   ResponseMessage,
@@ -85,16 +86,21 @@ export const startWebSocketBridge = (
     const connectionId = generateConnectionId()
     const capturedContext = yield* Effect.context<never>()
 
+    const encodeEventFrame = S.encodeUnknownSync(EventFrame)
+    const encodeResponseFrame = S.encodeUnknownSync(ResponseFrame)
+
     const sendEvent = (event: Event): void => {
-      hot.send(EVENT_CHANNEL, {
-        maybeConnectionId: Option.some(connectionId),
-        event,
-      })
+      hot.send(
+        EVENT_CHANNEL,
+        encodeEventFrame({
+          maybeConnectionId: Option.some(connectionId),
+          event,
+        }),
+      )
     }
 
     const sendResponse = (id: string, response: Response): void => {
-      const frame: ResponseFrame = { id, response }
-      hot.send(RESPONSE_CHANNEL, frame)
+      hot.send(RESPONSE_CHANNEL, encodeResponseFrame({ id, response }))
     }
 
     sendEvent(

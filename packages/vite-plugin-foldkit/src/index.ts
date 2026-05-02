@@ -39,11 +39,8 @@ const connectedRuntimesRef = Ref.makeUnsafe<
   HashMap.HashMap<string, typeof RuntimeInfo.Type>
 >(HashMap.empty())
 
-// NOTE: WebSocket / WebSocketClient handles are tracked by reference identity,
-// not by value. v4 HashSet / HashMap use structural Equal.equals, so keying on
-// these live socket objects would walk their internal state recursively (slow,
-// risks circular-ref overflows) and could collide structurally-similar sockets.
-// JS Set / Map are the correct identity-keyed primitives here.
+// NOTE: identity-keyed; do not switch to HashSet/HashMap. Structural Equal
+// would recurse into live socket internals (slow, circular-ref risk).
 const mcpClientsRef = Ref.makeUnsafe<Set<WebSocket>>(new Set())
 const clientConnectionsRef = Ref.makeUnsafe<Map<WebSocketClient, Set<string>>>(
   new Map(),
@@ -280,10 +277,14 @@ const broadcastToMcpClients = (payload: string): void => {
   }
 }
 
+const encodeResponseFrameToJson = S.encodeUnknownSync(
+  S.fromJsonString(ResponseFrame),
+)
+
 const forwardResponseToMcpClients = (
   responseFrame: typeof ResponseFrame.Type,
 ): void => {
-  broadcastToMcpClients(JSON.stringify(responseFrame))
+  broadcastToMcpClients(encodeResponseFrameToJson(responseFrame))
 }
 
 const handleMcpMessage = (client: WebSocket, raw: string): void => {
@@ -320,11 +321,13 @@ const replyListRuntimes = (client: WebSocket, requestId: string): void => {
   }
 }
 
+const encodeRequestFrame = S.encodeUnknownSync(RequestFrame)
+
 const forwardRequestToBrowsers = (frame: typeof RequestFrame.Type): void => {
   if (viteServer === null) {
     return
   }
-  viteServer.ws.send('foldkit:devTools:request', frame)
+  viteServer.ws.send('foldkit:devTools:request', encodeRequestFrame(frame))
 }
 
 const handleHotUpdate = ({

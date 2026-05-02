@@ -808,6 +808,17 @@ const embeddedExampleRedirectPlugin = (): Plugin => ({
   },
 })
 
+// NOTE: Vite's optimizer scans the website's source for `effect` imports;
+// it does not follow imports from workspace packages (foldkit). Force-
+// include namespaces that foldkit uses but the website does not, or the
+// pre-bundled `effect.js` blob will be missing those exports at runtime.
+const FORCE_INCLUDED_EFFECT_NAMESPACES: Array<string> = [
+  'effect/Result',
+  'effect/SchemaIssue',
+  'effect/SchemaTransformation',
+  'effect/Cause',
+]
+
 export default defineConfig({
   plugins: [
     tailwindcss(),
@@ -823,4 +834,7 @@ export default defineConfig({
     playgroundFilesPlugin(),
     cssLoadOrderPlugin(),
   ],
+  optimizeDeps: {
+    include: FORCE_INCLUDED_EFFECT_NAMESPACES,
+  },
 })

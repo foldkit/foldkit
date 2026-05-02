@@ -10,10 +10,12 @@ import {
   Match,
   Option,
   Predicate,
+  PubSub,
   Queue,
   Record,
   Ref,
   Schema,
+  Scheduler,
   Stream,
   SubscriptionRef,
   pipe,
@@ -587,7 +589,7 @@ const makeRuntime = <
 
         const initModel = maybeFreezeModel(initModelRaw)
 
-        const modelSubscriptionRef = yield* SubscriptionRef.make(initModel)
+        const modelPubSub = yield* PubSub.unbounded<Model>()
 
         yield* Effect.forEach(
           /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -618,26 +620,20 @@ const makeRuntime = <
           Option.none(),
         )
 
-        const maybeRuntimeRef = yield* Ref.make<
-          Option.Option<Context.Context<never>>
-        >(Option.none())
-
         const maybeDevToolsStoreRef = yield* Ref.make<
           Option.Option<DevToolsStore>
         >(Option.none())
 
-        /** `true` while a render is patching the DOM. Synchronous events
-         * that fire as a side-effect of DOM mutations (e.g. Chrome firing
-         * `blur` when a focused element is removed) call `dispatchSync`; if
-         * they do so while the flag is set, the message is offered to
-         * `pendingMessagesQueue` and processed after the current render
-         * completes. Without this lock, nested dispatches during a patch
-         * see a stale `maybeCurrentVNodeRef` and double-patch the DOM. */
-        const isRenderingRef = yield* Ref.make(false)
+        const dispatchSync = (message: unknown): void => {
+          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+          Queue.offerUnsafe(messageQueue, message as Message)
+        }
 
-        /** Messages offered by `dispatchSync` calls that land while a render
-         * is in progress. Drained at the end of each render. */
-        const pendingMessagesQueue = yield* Queue.unbounded<Message>()
+        const dispatchAsync = (message: unknown): Effect.Effect<void> =>
+          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+          enqueueMessage(message as Message)
+
+        const dispatch = { dispatchAsync, dispatchSync }
 
         const processMessage = (message: Message): Effect.Effect<void> =>
           Effect.gen(function* () {
@@ -668,7 +664,7 @@ const makeRuntime = <
               }
 
               if (!modelEquivalence(currentModel, nextModel)) {
-                yield* SubscriptionRef.set(modelSubscriptionRef, nextModel)
+                PubSub.publishUnsafe(modelPubSub, nextModel)
                 preserveModel(nextModel)
               }
             }
@@ -707,65 +703,6 @@ const makeRuntime = <
             })
           })
 
-        const runProcessMessage =
-          (message: Message, messageEffect: Effect.Effect<void>) =>
-          (context: Context.Context<never>): void => {
-            const exit = Effect.runSyncExitWith(context)(messageEffect)
-            if (Exit.isFailure(exit)) {
-              const squashed = Cause.squash(exit.cause)
-              const appError =
-                squashed instanceof Error
-                  ? squashed
-                  : new Error(String(squashed))
-              const model = Effect.runSync(Ref.get(modelRef))
-              renderCrashView(
-                { error: appError, model, message },
-                crash,
-                container,
-                maybeCurrentVNodeRef,
-              )
-            }
-          }
-
-        const dispatchSync = (message: unknown): void => {
-          const isRendering = Effect.runSync(Ref.get(isRenderingRef))
-
-          if (isRendering) {
-            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            Queue.offer(pendingMessagesQueue, message as Message).pipe(
-              Effect.runSync,
-            )
-            return
-          }
-
-          const maybeRuntime = Effect.runSync(Ref.get(maybeRuntimeRef))
-
-          Option.match(maybeRuntime, {
-            onNone: Function.constVoid,
-            onSome: runProcessMessage(
-              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-              message as Message,
-              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-              processMessage(message as Message),
-            ),
-          })
-        }
-
-        const dispatchAsync = (message: unknown): Effect.Effect<void> =>
-          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-          enqueueMessage(message as Message)
-
-        const dispatch = { dispatchAsync, dispatchSync }
-
-        const drainPendingMessages: Effect.Effect<void> = Effect.gen(
-          function* () {
-            const pending = yield* Queue.takeAll(pendingMessagesQueue)
-            yield* Effect.forEach(pending, queuedMessage =>
-              Effect.sync(() => dispatchSync(queuedMessage)),
-            )
-          },
-        )
-
         const render = (model: Model, message: Option.Option<Message>) =>
           Effect.gen(function* () {
             const viewStart = performance.now()
@@ -789,25 +726,15 @@ const makeRuntime = <
 
             const maybeCurrentVNode = yield* Ref.get(maybeCurrentVNodeRef)
 
-            const patchedVNode = yield* Effect.acquireUseRelease(
-              Ref.set(isRenderingRef, true),
-              () =>
-                Effect.sync(() =>
-                  patchVNode(maybeCurrentVNode, nullableNextVNode, container),
-                ),
-              () => Ref.set(isRenderingRef, false),
+            const patchedVNode = yield* Effect.sync(() =>
+              patchVNode(maybeCurrentVNode, nullableNextVNode, container),
             )
             yield* Ref.set(maybeCurrentVNodeRef, Option.some(patchedVNode))
 
             yield* Effect.sync(() =>
               applyDocumentMetadata(nextDocument, container),
             )
-
-            yield* drainPendingMessages
           }).pipe(Effect.provideService(Dispatch, dispatch))
-
-        const capturedContext = yield* Effect.context<never>()
-        yield* Ref.set(maybeRuntimeRef, Option.some(capturedContext))
 
         const isInIframe = window.self !== window.top
         const resolvedDevTools = pipe(
@@ -887,7 +814,7 @@ const makeRuntime = <
 
                 const modelStream = Stream.concat(
                   Stream.make(initModel),
-                  SubscriptionRef.changes(modelSubscriptionRef),
+                  Stream.fromPubSub(modelPubSub),
                 )
 
                 return Effect.forkDetach(
@@ -981,7 +908,7 @@ const makeRuntime = <
           Effect.gen(function* () {
             const modelStream = Stream.concat(
               Stream.make(initModel),
-              SubscriptionRef.changes(modelSubscriptionRef),
+              Stream.fromPubSub(modelPubSub),
             )
 
             const equivalence = Schema.toEquivalence(config.schema)
@@ -1010,9 +937,15 @@ const makeRuntime = <
         yield* pipe(
           Effect.forever(
             Effect.gen(function* () {
-              const message = yield* Queue.take(messageQueue)
-              yield* Ref.set(currentMessageRef, Option.some(message))
-              yield* processMessage(message)
+              const first = yield* Queue.take(messageQueue)
+              yield* Ref.set(currentMessageRef, Option.some(first))
+              yield* processMessage(first)
+
+              const more = yield* Queue.takeAll(messageQueue)
+              for (const message of more) {
+                yield* Ref.set(currentMessageRef, Option.some(message))
+                yield* processMessage(message)
+              }
             }),
           ),
           Effect.catchCause(cause =>
@@ -1394,6 +1327,30 @@ const preserveModel = (model: unknown): void => {
 
 const PLUGIN_RESPONSE_TIMEOUT_MS = 500
 
+// NOTE: Effect's default browser scheduler polyfills setImmediate as
+// setTimeout(f, 0), which is clamped to ≥4ms. queueMicrotask is sub-
+// millisecond. Removing this override regresses event dispatch latency
+// by 4-16ms per message, sharply visible on hover and drag.
+const microtaskSetImmediate = (callback: () => void): (() => void) => {
+  let cancelled = false
+  queueMicrotask(() => {
+    if (!cancelled) callback()
+  })
+  return () => {
+    cancelled = true
+  }
+}
+
+const browserScheduler = new Scheduler.MixedScheduler(
+  'async',
+  microtaskSetImmediate,
+)
+
+const provideBrowserScheduler = <A, E, R>(
+  effect: Effect.Effect<A, E, R>,
+): Effect.Effect<A, E, R> =>
+  Effect.provide(effect, Layer.succeed(Scheduler.Scheduler, browserScheduler))
+
 /** Starts a Foldkit runtime, with HMR support for development. */
 export const run = (foldkitRuntime: MakeRuntimeReturn): void => {
   if (import.meta.hot) {
@@ -1419,8 +1376,8 @@ export const run = (foldkitRuntime: MakeRuntimeReturn): void => {
       Effect.flatMap(foldkitRuntime),
     )
 
-    BrowserRuntime.runMain(requestPreservedModel)
+    BrowserRuntime.runMain(provideBrowserScheduler(requestPreservedModel))
   } else {
-    BrowserRuntime.runMain(foldkitRuntime())
+    BrowserRuntime.runMain(provideBrowserScheduler(foldkitRuntime()))
   }
 }
