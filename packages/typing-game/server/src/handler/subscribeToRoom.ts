@@ -97,7 +97,7 @@ const scheduleDelayedCleanup = (
       }
     })
 
-    yield* Effect.forkChild(scheduledCleanup)
+    yield* Effect.forkDetach(scheduledCleanup)
   })
 
 export const subscribeToRoom =

@@ -1,4 +1,4 @@
-import { Effect, Match as M, Option, Schema as S, Stream } from 'effect'
+import { Cause, Effect, Match as M, Option, Schema as S, Stream } from 'effect'
 import { Subscription } from 'foldkit'
 
 import {
@@ -61,7 +61,10 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
                 Stream.make(
                   GotRoomMessage({
                     message: Room.Message.FailedStreamRoom({
-                      error: String(cause),
+                      error: Option.match(Cause.findErrorOption(cause), {
+                        onSome: failure => String(failure),
+                        onNone: () => 'Unknown stream error',
+                      }),
                     }),
                   }),
                 ),

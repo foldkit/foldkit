@@ -77,6 +77,11 @@ const runCommand = (
           resume(Effect.fail(new Error(`${command} exited with code ${code}`)))
         }
       })
+      return Effect.sync(() => {
+        if (child.exitCode === null && !child.killed) {
+          child.kill()
+        }
+      })
     },
   )
 
