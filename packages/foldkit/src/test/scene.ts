@@ -527,7 +527,7 @@ const with_ = <Model>(model: Model): WithStep<Model> => {
 }
 
 /** Resolves a specific pending Command with the given result Message. */
-export const resolve: {
+const resolveCommand: {
   <Name extends string, ResultMessage>(
     definition: CommandDefinition<Name, ResultMessage>,
     resultMessage: ResultMessage,
@@ -581,7 +581,7 @@ export const resolve: {
   }
 
 /** Resolves all listed Commands with their result Messages. Handles cascading resolution. */
-export const resolveAll =
+const resolveAllCommands =
   <R extends ReadonlyArray<unknown>>(
     ...resolvers: { [K in keyof R]: Resolver<R[K]> }
   ) =>
@@ -595,7 +595,7 @@ export const resolveAll =
     ) as unknown as SceneSimulation<Model, Message, OutMessage>
 
 /** Asserts that every given Command is among the pending Commands. */
-export const expectHasCommands =
+const expectHasCommandsStep =
   (...definitions: ReadonlyArray<CommandDefinition<string, unknown>>) =>
   <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
@@ -605,7 +605,7 @@ export const expectHasCommands =
   }
 
 /** Asserts that the pending Commands match the given definitions exactly (order-independent). */
-export const expectExactCommands =
+const expectExactCommandsStep =
   (...definitions: ReadonlyArray<CommandDefinition<string, unknown>>) =>
   <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
@@ -615,7 +615,7 @@ export const expectExactCommands =
   }
 
 /** Asserts that there are no pending Commands. */
-export const expectNoCommands =
+const expectNoCommandsStep =
   () =>
   <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
@@ -628,7 +628,7 @@ export const expectNoCommands =
  *  pending mount with the matching name is resolved. Mirrors `resolve` for
  *  Commands; the optional `toParentMessage` lifter matches `Mount.mapMessage`
  *  when a child Submodel mount is observed in a parent's view. */
-export const resolveMount: {
+const resolveMount: {
   <Name extends string, ResultMessage>(
     definition: MountDefinition<Name, ResultMessage>,
     resultMessage: ResultMessage,
@@ -705,10 +705,10 @@ export const resolveMount: {
     /* eslint-enable @typescript-eslint/consistent-type-assertions */
   }
 
-/** Resolves all listed Mounts with their result Messages. Mirrors
- *  `resolveAll` for Commands. Mounts are resolved in the order listed; each
- *  resolution feeds its Message through update before the next is resolved. */
-export const resolveAllMounts =
+/** Resolves all listed Mounts with their result Messages. Mounts are resolved
+ *  in the order listed; each resolution feeds its Message through update
+ *  before the next is resolved. */
+const resolveAllMounts =
   <R extends ReadonlyArray<unknown>>(
     ...resolvers: { [K in keyof R]: MountResolver<R[K]> }
   ) =>
@@ -728,7 +728,7 @@ export const resolveAllMounts =
     })
 
 /** Asserts that every given Mount is among the pending Mounts. */
-export const expectHasMounts =
+const expectHasMountsStep =
   (...definitions: ReadonlyArray<MountDefinition<string, unknown>>) =>
   <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
@@ -739,7 +739,7 @@ export const expectHasMounts =
 
 /** Asserts that the pending Mounts match the given definitions exactly
  *  (order-independent, by name). */
-export const expectExactMounts =
+const expectExactMountsStep =
   (...definitions: ReadonlyArray<MountDefinition<string, unknown>>) =>
   <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
@@ -749,7 +749,7 @@ export const expectExactMounts =
   }
 
 /** Asserts that there are no pending Mounts. */
-export const expectNoMounts =
+const expectNoMountsStep =
   () =>
   <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
@@ -757,6 +757,36 @@ export const expectNoMounts =
     assertZeroMounts(toInternal(simulation).mounts)
     return simulation
   }
+
+/** Steps that operate on the pending Commands of a scene simulation.
+ *  Destructure as `const { Command } = Scene` for concise call sites. */
+export const Command = {
+  /** Resolves a specific pending Command with the given result Message. */
+  resolve: resolveCommand,
+  /** Resolves all listed Commands with their result Messages. Handles cascading resolution. */
+  resolveAll: resolveAllCommands,
+  /** Asserts that every given Command is among the pending Commands. */
+  expectHas: expectHasCommandsStep,
+  /** Asserts that the pending Commands match the given definitions exactly (order-independent). */
+  expectExact: expectExactCommandsStep,
+  /** Asserts that there are no pending Commands. */
+  expectNone: expectNoCommandsStep,
+} as const
+
+/** Steps that operate on the pending Mounts of a scene simulation.
+ *  Destructure as `const { Mount } = Scene` for concise call sites. */
+export const Mount = {
+  /** Resolves a specific pending Mount with the given result Message. */
+  resolve: resolveMount,
+  /** Resolves all listed Mounts with their result Messages. */
+  resolveAll: resolveAllMounts,
+  /** Asserts that every given Mount is among the pending Mounts. */
+  expectHas: expectHasMountsStep,
+  /** Asserts that the pending Mounts match the given definitions exactly (order-independent, by name). */
+  expectExact: expectExactMountsStep,
+  /** Asserts that there are no pending Mounts. */
+  expectNone: expectNoMountsStep,
+} as const
 
 /** Runs a function for side effects (e.g. assertions) without breaking the step chain. */
 export const tap =

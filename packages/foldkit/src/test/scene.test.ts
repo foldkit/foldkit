@@ -1402,7 +1402,10 @@ describe('scene', () => {
         expect(commands).toHaveLength(1)
         expect(commands[0]?.name).toBe(Authenticate.name)
       }),
-      Scene.resolve(Authenticate, SucceededAuthenticate({ username: 'alice' })),
+      Scene.Command.resolve(
+        Authenticate,
+        SucceededAuthenticate({ username: 'alice' }),
+      ),
       Scene.expect(Scene.role('status')).toHaveText('Welcome, alice!'),
     )
   })
@@ -1432,7 +1435,10 @@ describe('scene', () => {
       Scene.type(Scene.label('Password'), 'secret'),
       Scene.click(Scene.role('button', { name: 'Sign in' })),
       Scene.expect(Scene.role('button')).toHaveText('Signing in...'),
-      Scene.resolve(Authenticate, SucceededAuthenticate({ username: 'alice' })),
+      Scene.Command.resolve(
+        Authenticate,
+        SucceededAuthenticate({ username: 'alice' }),
+      ),
       Scene.expect(Scene.role('status')).toHaveText('Welcome, alice!'),
     )
   })
@@ -1462,7 +1468,7 @@ describe('scene', () => {
       Scene.with(initialModel),
       Scene.submit(Scene.role('form')),
       Scene.expect(Scene.role('button')).toHaveText('Signing in...'),
-      Scene.resolve(
+      Scene.Command.resolve(
         Authenticate,
         FailedAuthenticate({ error: 'Invalid credentials' }),
       ),
@@ -1542,7 +1548,10 @@ describe('scene with locators', () => {
       Scene.type(Scene.label('Password'), 'secret'),
       Scene.submit(Scene.role('form')),
       Scene.expect(Scene.role('button')).toHaveText('Signing in...'),
-      Scene.resolve(Authenticate, SucceededAuthenticate({ username: 'alice' })),
+      Scene.Command.resolve(
+        Authenticate,
+        SucceededAuthenticate({ username: 'alice' }),
+      ),
     )
   })
 
@@ -1673,7 +1682,10 @@ describe('scene with expect', () => {
       Scene.type(Scene.label('Password'), 'secret'),
       Scene.submit(Scene.role('form')),
       Scene.expect(Scene.role('button')).toHaveText('Signing in...'),
-      Scene.resolve(Authenticate, SucceededAuthenticate({ username: 'alice' })),
+      Scene.Command.resolve(
+        Authenticate,
+        SucceededAuthenticate({ username: 'alice' }),
+      ),
       Scene.expect(Scene.role('status')).toHaveText('Welcome, alice!'),
     )
   })
@@ -1997,10 +2009,13 @@ describe('scene with Command-based file upload flow', () => {
       Scene.with(resumeInitialModel),
       Scene.expect(chooseButton).toExist(),
       Scene.click(chooseButton),
-      Scene.resolve(SelectResume, SelectedResume({ files: [resumePdf] })),
+      Scene.Command.resolve(
+        SelectResume,
+        SelectedResume({ files: [resumePdf] }),
+      ),
       Scene.expect(Scene.text('resume.pdf')).toExist(),
       Scene.expect(readingStatus).toHaveText('Reading preview...'),
-      Scene.resolve(
+      Scene.Command.resolve(
         ReadResumePreview,
         SucceededReadPreview({ dataUrl: previewDataUrl }),
       ),
@@ -2015,7 +2030,7 @@ describe('scene with Command-based file upload flow', () => {
       { update: resumeUpdate, view: resumeView },
       Scene.with(resumeInitialModel),
       Scene.click(chooseButton),
-      Scene.resolve(SelectResume, CancelledSelectResume()),
+      Scene.Command.resolve(SelectResume, CancelledSelectResume()),
       Scene.expect(chooseButton).toExist(),
       Scene.expect(Scene.text('resume.pdf')).toBeAbsent(),
     )
@@ -2026,7 +2041,7 @@ describe('scene with Command-based file upload flow', () => {
       { update: resumeUpdate, view: resumeView },
       Scene.with(resumeInitialModel),
       Scene.click(chooseButton),
-      Scene.resolve(SelectResume, SelectedResume({ files: [] })),
+      Scene.Command.resolve(SelectResume, SelectedResume({ files: [] })),
       Scene.expect(chooseButton).toExist(),
     )
   })
@@ -2036,8 +2051,11 @@ describe('scene with Command-based file upload flow', () => {
       { update: resumeUpdate, view: resumeView },
       Scene.with(resumeInitialModel),
       Scene.click(chooseButton),
-      Scene.resolve(SelectResume, SelectedResume({ files: [resumePdf] })),
-      Scene.resolve(ReadResumePreview, FailedReadPreview()),
+      Scene.Command.resolve(
+        SelectResume,
+        SelectedResume({ files: [resumePdf] }),
+      ),
+      Scene.Command.resolve(ReadResumePreview, FailedReadPreview()),
       Scene.expect(Scene.text('resume.pdf')).toExist(),
       Scene.expect(errorAlert).toHaveText('Could not read preview'),
       Scene.expect(previewImage).toBeAbsent(),
@@ -2068,7 +2086,7 @@ describe('scene with Command-based file upload flow', () => {
       { update: resumeUpdate, view: resumeView },
       Scene.with(resumeInitialModel),
       Scene.click(chooseButton),
-      Scene.resolveAll(
+      Scene.Command.resolveAll(
         [SelectResume, SelectedResume({ files: [resumePdf] })],
         [ReadResumePreview, SucceededReadPreview({ dataUrl: previewDataUrl })],
       ),
@@ -2076,7 +2094,7 @@ describe('scene with Command-based file upload flow', () => {
       Scene.click(removeButton),
       Scene.expect(chooseButton).toExist(),
       Scene.click(chooseButton),
-      Scene.resolveAll(
+      Scene.Command.resolveAll(
         [SelectResume, SelectedResume({ files: [secondResume] })],
         [ReadResumePreview, SucceededReadPreview({ dataUrl: secondDataUrl })],
       ),
@@ -2193,7 +2211,7 @@ describe('scene with resolveAll', () => {
       { update, view },
       Scene.with(initialModel),
       Scene.submit(Scene.role('form')),
-      Scene.resolveAll([
+      Scene.Command.resolveAll([
         Authenticate,
         SucceededAuthenticate({ username: 'bob' }),
       ]),
@@ -2685,7 +2703,7 @@ describe('scene with pointer events', () => {
 })
 
 describe('scene mounts', () => {
-  const acknowledgeButtonFocus = Scene.resolveMount(
+  const acknowledgeButtonFocus = Scene.Mount.resolve(
     ButtonFocus,
     CompletedFocusButton(),
   )
@@ -2694,7 +2712,7 @@ describe('scene mounts', () => {
     Scene.scene(
       { update: mountUpdate, view: mountView },
       Scene.with(mountInitialModel),
-      Scene.expectHasMounts(ButtonFocus),
+      Scene.Mount.expectHas(ButtonFocus),
       acknowledgeButtonFocus,
     )
   })
@@ -2704,7 +2722,7 @@ describe('scene mounts', () => {
       Scene.scene(
         { update: mountUpdate, view: mountView },
         Scene.with(mountInitialModel),
-        Scene.expectHasMounts(PanelMeasure),
+        Scene.Mount.expectHas(PanelMeasure),
         acknowledgeButtonFocus,
       ),
     ).toThrow(/Expected to find Mounts/)
@@ -2714,7 +2732,7 @@ describe('scene mounts', () => {
     Scene.scene(
       { update: mountUpdate, view: mountView },
       Scene.with(mountInitialModel),
-      Scene.expectExactMounts(ButtonFocus),
+      Scene.Mount.expectExact(ButtonFocus),
       acknowledgeButtonFocus,
     )
   })
@@ -2725,7 +2743,7 @@ describe('scene mounts', () => {
       Scene.scene(
         { update: mountUpdate, view: mountView },
         Scene.with(openModel),
-        Scene.expectExactMounts(ButtonFocus),
+        Scene.Mount.expectExact(ButtonFocus),
       ),
     ).toThrow(/Expected exactly these Mounts/)
   })
@@ -2740,7 +2758,7 @@ describe('scene mounts', () => {
         view: () => Effect.succeed(h('div', {}, [])),
       },
       Scene.with(mountInitialModel),
-      Scene.expectNoMounts(),
+      Scene.Mount.expectNone(),
     )
   })
 
@@ -2749,7 +2767,7 @@ describe('scene mounts', () => {
       Scene.scene(
         { update: mountUpdate, view: mountView },
         Scene.with(mountInitialModel),
-        Scene.expectNoMounts(),
+        Scene.Mount.expectNone(),
       ),
     ).toThrow(/Expected no Mounts/)
   })
@@ -2759,8 +2777,8 @@ describe('scene mounts', () => {
     Scene.scene(
       { update: mountUpdate, view: mountView },
       Scene.with(openModel),
-      Scene.expectHasMounts(PanelMeasure, ButtonFocus),
-      Scene.resolveMount(PanelMeasure, MeasuredPanel({ width: 200 })),
+      Scene.Mount.expectHas(PanelMeasure, ButtonFocus),
+      Scene.Mount.resolve(PanelMeasure, MeasuredPanel({ width: 200 })),
       Scene.tap(({ html }) => {
         expect(textContent(html)).toContain('width: 200')
       }),
@@ -2773,7 +2791,7 @@ describe('scene mounts', () => {
       Scene.scene(
         { update: mountUpdate, view: mountView },
         Scene.with(mountInitialModel),
-        Scene.resolveMount(PanelMeasure, MeasuredPanel({ width: 0 })),
+        Scene.Mount.resolve(PanelMeasure, MeasuredPanel({ width: 0 })),
       ),
     ).toThrow(/I tried to resolve Mount "PanelMeasure"/)
   })
@@ -2783,7 +2801,7 @@ describe('scene mounts', () => {
     Scene.scene(
       { update: mountUpdate, view: mountView },
       Scene.with(openModel),
-      Scene.resolveAllMounts(
+      Scene.Mount.resolveAll(
         [ButtonFocus, CompletedFocusButton()],
         [PanelMeasure, MeasuredPanel({ width: 100 })],
       ),
@@ -2798,11 +2816,11 @@ describe('scene mounts', () => {
     Scene.scene(
       { update: mountUpdate, view: mountView },
       Scene.with(openModel),
-      Scene.expectHasMounts(PanelMeasure, ButtonFocus),
-      Scene.resolveMount(PanelMeasure, MeasuredPanel({ width: 400 })),
+      Scene.Mount.expectHas(PanelMeasure, ButtonFocus),
+      Scene.Mount.resolve(PanelMeasure, MeasuredPanel({ width: 400 })),
       acknowledgeButtonFocus,
       Scene.click(Scene.role('button')),
-      Scene.expectNoMounts(),
+      Scene.Mount.expectNone(),
     )
   })
 
@@ -2832,8 +2850,8 @@ describe('scene mounts', () => {
       { update: mountUpdate, view: mountView },
       Scene.with(openModel),
       acknowledgeButtonFocus,
-      Scene.resolveMount(PanelMeasure, MeasuredPanel({ width: 50 })),
-      Scene.expectNoMounts(),
+      Scene.Mount.resolve(PanelMeasure, MeasuredPanel({ width: 50 })),
+      Scene.Mount.expectNone(),
     )
   })
 
@@ -2846,8 +2864,8 @@ describe('scene mounts', () => {
         expect(mounts[0]).toEqual({ name: 'PanelMeasure', occurrence: 0 })
         expect(mounts[1]).toEqual({ name: 'PanelMeasure', occurrence: 1 })
       }),
-      Scene.resolveMount(PanelMeasure, MeasuredPanel({ width: 1 })),
-      Scene.resolveMount(PanelMeasure, MeasuredPanel({ width: 2 })),
+      Scene.Mount.resolve(PanelMeasure, MeasuredPanel({ width: 1 })),
+      Scene.Mount.resolve(PanelMeasure, MeasuredPanel({ width: 2 })),
     )
   })
 
@@ -2878,11 +2896,11 @@ describe('scene mounts', () => {
     Scene.scene(
       { update: parentUpdate, view: parentView },
       Scene.with({ count: 0 }),
-      Scene.resolveMount(ButtonFocus, CompletedFocusButton(), message => ({
+      Scene.Mount.resolve(ButtonFocus, CompletedFocusButton(), message => ({
         _tag: 'GotPanelMessage' as const,
         message,
       })),
-      Scene.resolveMount(
+      Scene.Mount.resolve(
         PanelMeasure,
         MeasuredPanel({ width: 7 }),
         message => ({
@@ -2911,7 +2929,7 @@ describe('scene mounts', () => {
     Scene.scene(
       { update: mountUpdate, view: documentView },
       Scene.with(mountInitialModel),
-      Scene.expectHasMounts(ButtonFocus),
+      Scene.Mount.expectHas(ButtonFocus),
       acknowledgeButtonFocus,
     )
   })
@@ -2940,9 +2958,9 @@ describe('scene mounts', () => {
     Scene.scene(
       { update: closingUpdate, view: mountView },
       Scene.with(openModel),
-      Scene.expectHasMounts(PanelMeasure, ButtonFocus),
+      Scene.Mount.expectHas(PanelMeasure, ButtonFocus),
       acknowledgeButtonFocus,
-      Scene.expectNoMounts(),
+      Scene.Mount.expectNone(),
     )
   })
 })

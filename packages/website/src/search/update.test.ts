@@ -42,8 +42,8 @@ describe('search', () => {
         expect(model.query).toBe('routing')
         expect(model.searchState._tag).toBe('Loading')
       }),
-      Story.expectHasCommands(FetchSearchResults),
-      Story.resolve(
+      Story.Command.expectHas(FetchSearchResults),
+      Story.Command.resolve(
         FetchSearchResults,
         ReceivedSearchResults({ results: searchResults, query: 'routing' }),
       ),
@@ -67,7 +67,7 @@ describe('search', () => {
         expect(model.searchState._tag).toBe('Idle')
         expect(model.activeResultIndex).toBe(-1)
       }),
-      Story.expectNoCommands(),
+      Story.Command.expectNone(),
     )
   })
 
@@ -79,7 +79,7 @@ describe('search', () => {
       Story.model(model => {
         expect(model.searchState._tag).toBe('Idle')
       }),
-      Story.expectNoCommands(),
+      Story.Command.expectNone(),
     )
   })
 
@@ -100,7 +100,7 @@ describe('search', () => {
           results: searchResults,
         })
       }),
-      Story.resolve(
+      Story.Command.resolve(
         FetchSearchResults,
         ReceivedSearchResults({ results: [], query: 'testing' }),
       ),
@@ -129,8 +129,8 @@ describe('search', () => {
         expect(model.query).toBe('')
         expect(model.searchState._tag).toBe('Idle')
       }),
-      Story.expectHasCommands(NavigateToResult),
-      Story.resolve(NavigateToResult, CompletedNavigateSearch()),
+      Story.Command.expectHas(NavigateToResult),
+      Story.Command.resolve(NavigateToResult, CompletedNavigateSearch()),
       Story.model(model => {
         expect(model.query).toBe('')
       }),
@@ -151,18 +151,18 @@ describe('search', () => {
       Story.model(model => {
         expect(model.activeResultIndex).toBe(1)
       }),
-      Story.expectHasCommands(ScrollToResult),
-      Story.resolve(ScrollToResult, CompletedScrollToResult()),
+      Story.Command.expectHas(ScrollToResult),
+      Story.Command.resolve(ScrollToResult, CompletedScrollToResult()),
       Story.message(PressedArrowKey({ direction: 'Down' })),
       Story.model(model => {
         expect(model.activeResultIndex).toBe(0)
       }),
-      Story.resolve(ScrollToResult, CompletedScrollToResult()),
+      Story.Command.resolve(ScrollToResult, CompletedScrollToResult()),
       Story.message(PressedArrowKey({ direction: 'Up' })),
       Story.model(model => {
         expect(model.activeResultIndex).toBe(1)
       }),
-      Story.resolve(ScrollToResult, CompletedScrollToResult()),
+      Story.Command.resolve(ScrollToResult, CompletedScrollToResult()),
     )
   })
 

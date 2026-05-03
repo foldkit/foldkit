@@ -375,7 +375,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
 }
 
 /** The anchor-positioning Mount this Popover renders on its panel. Exposed so
- *  Scene tests can call `Scene.resolveMount(PopoverAnchor, CompletedAnchorMount())`
+ *  Scene tests can call `Scene.Mount.resolve(PopoverAnchor, CompletedAnchorMount())`
  *  to acknowledge the mount produced by the rendered panel. */
 export const PopoverAnchor = Mount.define('PopoverAnchor', CompletedAnchorMount)
 

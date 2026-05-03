@@ -62,13 +62,13 @@ describe('todo scene', () => {
       Scene.with(emptyModel),
       Scene.type(Scene.label('New todo'), 'Write tests'),
       Scene.submit(Scene.role('form')),
-      Scene.expectExactCommands(GenerateTodo),
-      Scene.resolve(
+      Scene.Command.expectExact(GenerateTodo),
+      Scene.Command.resolve(
         GenerateTodo,
         GeneratedTodo({ id: 'new-1', timestamp: 5000, text: 'Write tests' }),
       ),
-      Scene.expectExactCommands(SaveTodos),
-      Scene.resolve(SaveTodos, SavedTodos({ todos: [addedTodo] })),
+      Scene.Command.expectExact(SaveTodos),
+      Scene.Command.resolve(SaveTodos, SavedTodos({ todos: [addedTodo] })),
       Scene.expect(Scene.text('Write tests')).toExist(),
       Scene.expect(Scene.label('New todo')).toHaveValue(''),
     )
@@ -83,8 +83,8 @@ describe('todo scene', () => {
       { update, view },
       Scene.with(modelWithTodos),
       Scene.click(Scene.label('Buy milk')),
-      Scene.expectExactCommands(SaveTodos),
-      Scene.resolve(SaveTodos, SavedTodos({ todos: toggledTodos })),
+      Scene.Command.expectExact(SaveTodos),
+      Scene.Command.resolve(SaveTodos, SavedTodos({ todos: toggledTodos })),
       Scene.expect(Scene.role('status')).toContainText('1 active, 2 completed'),
     )
   })
@@ -96,8 +96,8 @@ describe('todo scene', () => {
       { update, view },
       Scene.with(modelWithTodos),
       Scene.click(Scene.role('button', { name: 'Delete Buy milk' })),
-      Scene.expectExactCommands(SaveTodos),
-      Scene.resolve(SaveTodos, SavedTodos({ todos: remainingTodos })),
+      Scene.Command.expectExact(SaveTodos),
+      Scene.Command.resolve(SaveTodos, SavedTodos({ todos: remainingTodos })),
       Scene.expect(Scene.text('Buy milk')).toBeAbsent(),
       Scene.expect(Scene.text('Walk the dog')).toExist(),
     )
@@ -112,8 +112,8 @@ describe('todo scene', () => {
       { update, view },
       Scene.with(modelWithTodos),
       Scene.click(Scene.role('button', { name: 'Clear 1 completed' })),
-      Scene.expectExactCommands(SaveTodos),
-      Scene.resolve(SaveTodos, SavedTodos({ todos: activeTodos })),
+      Scene.Command.expectExact(SaveTodos),
+      Scene.Command.resolve(SaveTodos, SavedTodos({ todos: activeTodos })),
       Scene.expect(Scene.text('Done task')).toBeAbsent(),
       Scene.expect(Scene.role('status')).toContainText('2 active, 0 completed'),
     )
@@ -129,8 +129,11 @@ describe('todo scene', () => {
       { update, view },
       Scene.with(modelWithTodos),
       Scene.click(Scene.role('button', { name: 'Mark all complete' })),
-      Scene.expectExactCommands(SaveTodos),
-      Scene.resolve(SaveTodos, SavedTodos({ todos: allCompletedTodos })),
+      Scene.Command.expectExact(SaveTodos),
+      Scene.Command.resolve(
+        SaveTodos,
+        SavedTodos({ todos: allCompletedTodos }),
+      ),
       Scene.expect(Scene.role('status')).toContainText('0 active, 3 completed'),
     )
   })

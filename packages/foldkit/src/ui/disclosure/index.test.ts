@@ -45,7 +45,7 @@ describe('Disclosure', () => {
         update,
         Story.with(init({ id: 'test', isOpen: true })),
         Story.message(Toggled()),
-        Story.resolve(FocusButton, CompletedFocusButton()),
+        Story.Command.resolve(FocusButton, CompletedFocusButton()),
         Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),
@@ -57,7 +57,7 @@ describe('Disclosure', () => {
         update,
         Story.with(init({ id: 'test', isOpen: true })),
         Story.message(Closed()),
-        Story.resolve(FocusButton, CompletedFocusButton()),
+        Story.Command.resolve(FocusButton, CompletedFocusButton()),
         Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),

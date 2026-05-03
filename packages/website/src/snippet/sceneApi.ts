@@ -79,6 +79,6 @@ Scene.scene(
   Scene.with(model),
   Scene.type(Scene.label('Email'), 'alice@example.com'),
   Scene.submit(Scene.role('form')),
-  Scene.resolve(Authenticate, SucceededAuthenticate({ session })),
+  Scene.Command.resolve(Authenticate, SucceededAuthenticate({ session })),
   Scene.expect(Scene.role('heading')).toHaveText('Welcome, alice!'),
 )

@@ -19,7 +19,7 @@ import {
 
 const STALE_SHOW_VERSION = -1
 
-const resolveShowAsStale = Story.resolve(
+const resolveShowAsStale = Story.Command.resolve(
   ShowAfterDelay,
   ElapsedShowDelay({ version: STALE_SHOW_VERSION }),
 )
@@ -29,7 +29,7 @@ const withHidden = Story.with(init({ id: 'test' }))
 const withHoveredOpen = flow(
   withHidden,
   Story.message(EnteredTrigger()),
-  Story.resolve(ShowAfterDelay, ElapsedShowDelay({ version: 1 })),
+  Story.Command.resolve(ShowAfterDelay, ElapsedShowDelay({ version: 1 })),
 )
 
 const withFocusedOpen = flow(withHidden, Story.message(FocusedTrigger()))
@@ -72,8 +72,11 @@ describe('Tooltip', () => {
             expect(model.isOpen).toBe(false)
             expect(model.pendingShowVersion).toBe(1)
           }),
-          Story.expectHasCommands(ShowAfterDelay),
-          Story.resolve(ShowAfterDelay, ElapsedShowDelay({ version: 1 })),
+          Story.Command.expectHas(ShowAfterDelay),
+          Story.Command.resolve(
+            ShowAfterDelay,
+            ElapsedShowDelay({ version: 1 }),
+          ),
         )
       })
 
@@ -82,7 +85,10 @@ describe('Tooltip', () => {
           update,
           withHidden,
           Story.message(EnteredTrigger()),
-          Story.resolve(ShowAfterDelay, ElapsedShowDelay({ version: 1 })),
+          Story.Command.resolve(
+            ShowAfterDelay,
+            ElapsedShowDelay({ version: 1 }),
+          ),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
             expect(model.isHovered).toBe(true)
@@ -95,7 +101,7 @@ describe('Tooltip', () => {
           update,
           withFocusedOpen,
           Story.message(EnteredTrigger()),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
           Story.model(model => {
             expect(model.isHovered).toBe(true)
             expect(model.isFocused).toBe(true)
@@ -113,14 +119,17 @@ describe('Tooltip', () => {
           Story.message(PressedEscape()),
           Story.message(LeftTrigger()),
           Story.message(EnteredTrigger()),
-          Story.expectHasCommands(ShowAfterDelay),
+          Story.Command.expectHas(ShowAfterDelay),
           Story.model(model => {
             expect(model.isFocused).toBe(true)
             expect(model.isHovered).toBe(true)
             expect(model.isOpen).toBe(false)
             expect(model.isDismissed).toBe(false)
           }),
-          Story.resolve(ShowAfterDelay, ElapsedShowDelay({ version: 4 })),
+          Story.Command.resolve(
+            ShowAfterDelay,
+            ElapsedShowDelay({ version: 4 }),
+          ),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
@@ -180,7 +189,7 @@ describe('Tooltip', () => {
           update,
           withHidden,
           Story.message(FocusedTrigger()),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
             expect(model.isFocused).toBe(true)
@@ -250,9 +259,9 @@ describe('Tooltip', () => {
           update,
           withHoveredOpen,
           Story.message(PressedEscape()),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
           Story.message(EnteredTrigger()),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.isDismissed).toBe(true)
@@ -307,8 +316,11 @@ describe('Tooltip', () => {
           Story.message(PressedEscape()),
           Story.message(LeftTrigger()),
           Story.message(EnteredTrigger()),
-          Story.expectHasCommands(ShowAfterDelay),
-          Story.resolve(ShowAfterDelay, ElapsedShowDelay({ version: 4 })),
+          Story.Command.expectHas(ShowAfterDelay),
+          Story.Command.resolve(
+            ShowAfterDelay,
+            ElapsedShowDelay({ version: 4 }),
+          ),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
             expect(model.isDismissed).toBe(false)
@@ -323,7 +335,10 @@ describe('Tooltip', () => {
           update,
           withHidden,
           Story.message(EnteredTrigger()),
-          Story.resolve(ShowAfterDelay, ElapsedShowDelay({ version: 99 })),
+          Story.Command.resolve(
+            ShowAfterDelay,
+            ElapsedShowDelay({ version: 99 }),
+          ),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
           }),
@@ -354,7 +369,7 @@ describe('Tooltip', () => {
           Story.message(
             PressedPointerOnTrigger({ pointerType: 'mouse', button: 0 }),
           ),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
           Story.model(model => {
             expect(model.maybeLastPointerType).toStrictEqual(
               Option.some('mouse'),
@@ -448,7 +463,10 @@ describe('Tooltip', () => {
           Story.message(FocusedTrigger()),
           Story.message(LeftTrigger()),
           Story.message(EnteredTrigger()),
-          Story.resolve(ShowAfterDelay, ElapsedShowDelay({ version: 4 })),
+          Story.Command.resolve(
+            ShowAfterDelay,
+            ElapsedShowDelay({ version: 4 }),
+          ),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
@@ -482,7 +500,7 @@ describe('Tooltip', () => {
             PressedPointerOnTrigger({ pointerType: 'mouse', button: 0 }),
           ),
           Story.message(EnteredTrigger()),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.isDismissed).toBe(true)
@@ -499,7 +517,7 @@ describe('Tooltip', () => {
           ),
           Story.message(LeftTrigger()),
           Story.message(EnteredTrigger()),
-          Story.expectHasCommands(ShowAfterDelay),
+          Story.Command.expectHas(ShowAfterDelay),
           Story.model(model => {
             expect(model.isDismissed).toBe(false)
           }),
@@ -514,7 +532,7 @@ describe('Tooltip', () => {
           update,
           withHidden,
           Story.message(ChangedShowDelay({ showDelay: Duration.seconds(1) })),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
           Story.model(model => {
             expect(model.showDelay).toStrictEqual(Duration.seconds(1))
             expect(model.isOpen).toBe(false)
@@ -535,7 +553,10 @@ describe('Tooltip', () => {
           Story.model(model => {
             expect(model.showDelay).toStrictEqual(Duration.millis(50))
           }),
-          Story.resolve(ShowAfterDelay, ElapsedShowDelay({ version: 3 })),
+          Story.Command.resolve(
+            ShowAfterDelay,
+            ElapsedShowDelay({ version: 3 }),
+          ),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),

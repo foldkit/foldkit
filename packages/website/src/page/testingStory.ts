@@ -133,9 +133,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       tableOfContentsEntryToHeader(multiStepHeader),
       para(
         'Real apps have multi-step user stories. ',
-        inlineCode('Story.resolve'),
+        inlineCode('Story.Command.resolve'),
         ' and ',
-        inlineCode('Story.resolveAll'),
+        inlineCode('Story.Command.resolveAll'),
         ' let you resolve Commands inline at any point in the story. This keeps the resolution next to the step that produced the Command, so the test reads chronologically:',
       ),
       highlightedCodeBlock(
@@ -152,9 +152,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Every ',
         inlineCode('Story.message'),
         ' is a user action: \u201Cthe user submitted the form.\u201D Every ',
-        inlineCode('Story.resolve'),
+        inlineCode('Story.Command.resolve'),
         ' or ',
-        inlineCode('Story.resolveAll'),
+        inlineCode('Story.Command.resolveAll'),
         ' is world-building: \u201Cthe weather API succeeded.\u201D Every ',
         inlineCode('Story.model'),
         ' is a scene check: \u201Cthe weather is showing.\u201D',

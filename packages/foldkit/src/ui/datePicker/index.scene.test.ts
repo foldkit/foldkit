@@ -9,7 +9,7 @@ import * as Popover from '../popover/public.js'
 import type { Message, Model, ViewConfig } from './index.js'
 import { GotPopoverMessage, Opened, init, update, view } from './index.js'
 
-const acknowledgePopoverAnchor = Scene.resolveMount(
+const acknowledgePopoverAnchor = Scene.Mount.resolve(
   Popover.PopoverAnchor,
   GotPopoverMessage({ message: Popover.CompletedAnchorMount() }),
 )

@@ -21,7 +21,7 @@ import {
 } from './shared.js'
 import type { Message } from './shared.js'
 
-const acknowledgePreventBlur = Scene.resolveMount(
+const acknowledgePreventBlur = Scene.Mount.resolve(
   ComboboxAttachPreventBlur,
   CompletedAttachPreventBlur(),
 )
@@ -128,7 +128,7 @@ describe('Combobox.Multi', () => {
               maybeImmediateSelection: Option.none(),
             }),
           ),
-          Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Story.Command.resolve(ScrollIntoView, CompletedScrollIntoView()),
           Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
           Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
@@ -145,7 +145,7 @@ describe('Combobox.Multi', () => {
           Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
           Story.message(SelectedItem({ item: 'apple', displayText: 'Apple' })),
           Story.message(Closed()),
-          Story.resolve(FocusInput, CompletedFocusInput()),
+          Story.Command.resolve(FocusInput, CompletedFocusInput()),
           Story.model(model => {
             expect(model.selectedItems).toStrictEqual([])
             expect(model.isOpen).toBe(false)
@@ -170,7 +170,7 @@ describe('Combobox.Multi', () => {
               }),
             }),
           ),
-          Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Story.Command.resolve(ScrollIntoView, CompletedScrollIntoView()),
           Story.model(model => {
             expect(model.selectedItems).toStrictEqual(['apple'])
           }),
@@ -184,7 +184,7 @@ describe('Combobox.Multi', () => {
               }),
             }),
           ),
-          Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Story.Command.resolve(ScrollIntoView, CompletedScrollIntoView()),
           Story.model(model => {
             expect(model.selectedItems).toStrictEqual([])
           }),

@@ -98,7 +98,7 @@ describe('DatePicker', () => {
           update,
           withClosed,
           Story.message(Opened()),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
         )
       })
 
@@ -109,7 +109,7 @@ describe('DatePicker', () => {
           Story.message(
             GotCalendarMessage({ message: UiCalendar.ClickedHeading() }),
           ),
-          Story.resolve(
+          Story.Command.resolve(
             UiCalendar.FocusGrid,
             UiCalendar.CompletedFocusGrid(),
             message => GotCalendarMessage({ message }),
@@ -117,7 +117,7 @@ describe('DatePicker', () => {
           Story.message(
             GotCalendarMessage({ message: UiCalendar.ClickedHeading() }),
           ),
-          Story.resolve(
+          Story.Command.resolve(
             UiCalendar.FocusGrid,
             UiCalendar.CompletedFocusGrid(),
             message => GotCalendarMessage({ message }),
@@ -126,7 +126,7 @@ describe('DatePicker', () => {
             expect(model.calendar.viewMode).toBe('Years')
           }),
           Story.message(Closed()),
-          Story.resolve(
+          Story.Command.resolve(
             Popover.FocusButton,
             Popover.CompletedFocusButton(),
             message => GotPopoverMessage({ message }),
@@ -145,7 +145,7 @@ describe('DatePicker', () => {
           update,
           withOpen,
           Story.message(Closed()),
-          Story.resolve(
+          Story.Command.resolve(
             Popover.FocusButton,
             Popover.CompletedFocusButton(),
             message => GotPopoverMessage({ message }),
@@ -164,7 +164,7 @@ describe('DatePicker', () => {
           Story.message(
             GotCalendarMessage({ message: UiCalendar.ClickedHeading() }),
           ),
-          Story.resolve(
+          Story.Command.resolve(
             UiCalendar.FocusGrid,
             UiCalendar.CompletedFocusGrid(),
             message => GotCalendarMessage({ message }),
@@ -172,7 +172,7 @@ describe('DatePicker', () => {
           Story.message(
             GotCalendarMessage({ message: UiCalendar.ClickedHeading() }),
           ),
-          Story.resolve(
+          Story.Command.resolve(
             UiCalendar.FocusGrid,
             UiCalendar.CompletedFocusGrid(),
             message => GotCalendarMessage({ message }),
@@ -181,7 +181,7 @@ describe('DatePicker', () => {
             expect(model.calendar.viewMode).toBe('Years')
           }),
           Story.message(Closed()),
-          Story.resolve(
+          Story.Command.resolve(
             Popover.FocusButton,
             Popover.CompletedFocusButton(),
             message => GotPopoverMessage({ message }),
@@ -199,7 +199,7 @@ describe('DatePicker', () => {
           Story.message(
             GotCalendarMessage({ message: UiCalendar.ClickedHeading() }),
           ),
-          Story.resolve(
+          Story.Command.resolve(
             UiCalendar.FocusGrid,
             UiCalendar.CompletedFocusGrid(),
             message => GotCalendarMessage({ message }),
@@ -207,7 +207,7 @@ describe('DatePicker', () => {
           Story.message(
             GotCalendarMessage({ message: UiCalendar.ClickedHeading() }),
           ),
-          Story.resolve(
+          Story.Command.resolve(
             UiCalendar.FocusGrid,
             UiCalendar.CompletedFocusGrid(),
             message => GotCalendarMessage({ message }),
@@ -218,7 +218,7 @@ describe('DatePicker', () => {
             }),
           ),
           Story.message(Closed()),
-          Story.resolve(
+          Story.Command.resolve(
             Popover.FocusButton,
             Popover.CompletedFocusButton(),
             message => GotPopoverMessage({ message }),
@@ -243,7 +243,7 @@ describe('DatePicker', () => {
           withOpen,
           Story.message(SelectedDate({ date: target })),
           Story.expectNoOutMessage(),
-          Story.resolve(
+          Story.Command.resolve(
             Popover.FocusButton,
             Popover.CompletedFocusButton(),
             message => GotPopoverMessage({ message }),
@@ -267,7 +267,7 @@ describe('DatePicker', () => {
           update,
           withOpen,
           Story.message(SelectedDate({ date: target })),
-          Story.resolve(
+          Story.Command.resolve(
             Popover.FocusButton,
             Popover.CompletedFocusButton(),
             message => GotPopoverMessage({ message }),
@@ -291,7 +291,7 @@ describe('DatePicker', () => {
           update,
           flow(Story.with(seeded), Story.message(Opened())),
           Story.message(Cleared()),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
           Story.model(model => {
             expect(model.maybeSelectedDate).toStrictEqual(Option.none())
             expect(model.popover.isOpen).toBe(true)
@@ -345,7 +345,7 @@ describe('DatePicker', () => {
           update,
           withOpen,
           Story.message(GotPopoverMessage({ message: Popover.Closed() })),
-          Story.resolve(
+          Story.Command.resolve(
             Popover.FocusButton,
             Popover.CompletedFocusButton(),
             message => GotPopoverMessage({ message }),

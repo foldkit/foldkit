@@ -673,12 +673,12 @@ export const update = (model: Model, message: Message): UpdateReturn => {
 }
 
 /** The anchor-positioning Mount this Menu renders on its panel. Exposed so
- *  Scene tests can call `Scene.resolveMount(MenuAnchor, CompletedAnchorMount())`
+ *  Scene tests can call `Scene.Mount.resolve(MenuAnchor, CompletedAnchorMount())`
  *  to acknowledge the mount produced by the rendered panel. */
 export const MenuAnchor = Mount.define('MenuAnchor', CompletedAnchorMount)
 /** The Mount this Menu renders to focus its first item on open. Exposed so
  *  Scene tests can call
- *  `Scene.resolveMount(MenuFocusItemsOnMount, CompletedFocusItemsOnMount())`. */
+ *  `Scene.Mount.resolve(MenuFocusItemsOnMount, CompletedFocusItemsOnMount())`. */
 export const MenuFocusItemsOnMount = Mount.define(
   'MenuFocusItemsOnMount',
   CompletedFocusItemsOnMount,

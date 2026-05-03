@@ -54,7 +54,7 @@ describe('Job Application', () => {
         update,
         withInitial,
         Story.message(ClickedNext()),
-        Story.expectNoCommands(),
+        Story.Command.expectNone(),
         Story.model(model => {
           expect(model.currentStep).toBe('WorkHistory')
         }),
@@ -164,8 +164,8 @@ describe('Job Application', () => {
             message: PersonalInfo.UpdatedEmail({ value: 'jane@example.com' }),
           }),
         ),
-        Story.expectHasCommands(PersonalInfo.ValidateEmailAsync),
-        Story.resolve(
+        Story.Command.expectHas(PersonalInfo.ValidateEmailAsync),
+        Story.Command.resolve(
           PersonalInfo.ValidateEmailAsync,
           PersonalInfo.ValidatedEmail({
             validationId: 1,
@@ -188,7 +188,7 @@ describe('Job Application', () => {
             message: PersonalInfo.UpdatedEmail({ value: 'not-email' }),
           }),
         ),
-        Story.expectNoCommands(),
+        Story.Command.expectNone(),
         Story.model(model => {
           expect(model.personalInfo.email._tag).toBe('Invalid')
         }),
@@ -509,8 +509,8 @@ describe('Job Application', () => {
         update,
         Story.with({ ...initialModel, currentStep: 'Review' }),
         Story.message(SubmittedApplication()),
-        Story.expectExactCommands(SubmitApplication),
-        Story.resolve(SubmitApplication, SucceededSubmitApplication()),
+        Story.Command.expectExact(SubmitApplication),
+        Story.Command.resolve(SubmitApplication, SucceededSubmitApplication()),
         Story.model(model => {
           expect(model.submission._tag).toBe('SubmitSuccess')
         }),

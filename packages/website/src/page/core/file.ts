@@ -197,9 +197,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' Command, scene tests use ',
         inlineCode('Scene.click'),
         ' on the button and then ',
-        inlineCode('Scene.resolve'),
+        inlineCode('Scene.Command.resolve'),
         ' to synthesize the result, bypassing the native file picker entirely. Use ',
-        inlineCode('Scene.resolveAll'),
+        inlineCode('Scene.Command.resolveAll'),
         ' when an update returns multiple Commands at once, or when resolving one Command cascades into others, like reading a preview immediately after a successful selection.',
       ),
       highlightedCodeBlock(

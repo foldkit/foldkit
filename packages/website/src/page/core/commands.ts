@@ -158,7 +158,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Send Messages with ',
         inlineCode('Story.message'),
         ', resolve Commands inline with ',
-        inlineCode('Story.resolve'),
+        inlineCode('Story.Command.resolve'),
         ', and assert with ',
         inlineCode('Story.model'),
         '. See the ',

@@ -12,7 +12,7 @@ import {
   view,
 } from './index.js'
 
-const acknowledgeAnchor = Scene.resolveMount(
+const acknowledgeAnchor = Scene.Mount.resolve(
   PopoverAnchor,
   CompletedAnchorMount(),
 )

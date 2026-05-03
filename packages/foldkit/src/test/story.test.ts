@@ -45,8 +45,11 @@ describe('message', () => {
       update,
       Story.with({ count: 0 }),
       Story.message(ClickedFetch()),
-      Story.expectHasCommands(FetchCount),
-      Story.resolveAll([FetchCount, SucceededFetchCount({ count: 42 })]),
+      Story.Command.expectHas(FetchCount),
+      Story.Command.resolveAll([
+        FetchCount,
+        SucceededFetchCount({ count: 42 }),
+      ]),
     )
   })
 })
@@ -58,7 +61,7 @@ describe('resolve', () => {
         update,
         Story.with({ count: 0 }),
         Story.message(ClickedIncrement()),
-        Story.resolve(FetchCount, SucceededFetchCount({ count: 42 })),
+        Story.Command.resolve(FetchCount, SucceededFetchCount({ count: 42 })),
       ),
     ).toThrow(
       'I tried to resolve "FetchCount" but it wasn\'t in the pending Commands',
@@ -71,7 +74,7 @@ describe('resolve', () => {
         update,
         Story.with({ count: 0 }),
         Story.message(ClickedFetch()),
-        Story.resolve(SubmitForm, SucceededSubmit({ id: 'abc' })),
+        Story.Command.resolve(SubmitForm, SucceededSubmit({ id: 'abc' })),
       ),
     ).toThrow(
       'I tried to resolve "SubmitForm" but it wasn\'t in the pending Commands',
@@ -86,7 +89,7 @@ describe('resolve', () => {
       Story.model(model => {
         expect(model.count).toBe(0)
       }),
-      Story.resolve(FetchCount, SucceededFetchCount({ count: 42 })),
+      Story.Command.resolve(FetchCount, SucceededFetchCount({ count: 42 })),
       Story.model(model => {
         expect(model.count).toBe(42)
       }),
@@ -100,7 +103,10 @@ describe('resolveAll', () => {
       update,
       Story.with({ count: 0 }),
       Story.message(ClickedFetch()),
-      Story.resolveAll([FetchCount, SucceededFetchCount({ count: 42 })]),
+      Story.Command.resolveAll([
+        FetchCount,
+        SucceededFetchCount({ count: 42 }),
+      ]),
       Story.model(model => {
         expect(model.count).toBe(42)
       }),
@@ -112,7 +118,7 @@ describe('resolveAll', () => {
       childUpdate,
       Story.with({ status: 'Idle' }),
       Story.message(SubmittedForm()),
-      Story.resolveAll(
+      Story.Command.resolveAll(
         [SubmitForm, SucceededSubmit({ id: 'abc' })],
         [ResetForm, CompletedReset()],
       ),
@@ -129,8 +135,11 @@ describe('expectExactCommands', () => {
       update,
       Story.with({ count: 0 }),
       Story.message(ClickedFetch()),
-      Story.expectExactCommands(FetchCount),
-      Story.resolveAll([FetchCount, SucceededFetchCount({ count: 42 })]),
+      Story.Command.expectExact(FetchCount),
+      Story.Command.resolveAll([
+        FetchCount,
+        SucceededFetchCount({ count: 42 }),
+      ]),
     )
   })
 
@@ -140,8 +149,11 @@ describe('expectExactCommands', () => {
         update,
         Story.with({ count: 0 }),
         Story.message(ClickedFetch()),
-        Story.expectExactCommands(FetchCount, SubmitForm),
-        Story.resolveAll([FetchCount, SucceededFetchCount({ count: 42 })]),
+        Story.Command.expectExact(FetchCount, SubmitForm),
+        Story.Command.resolveAll([
+          FetchCount,
+          SucceededFetchCount({ count: 42 }),
+        ]),
       ),
     ).toThrow('Expected exactly these Commands')
   })
@@ -152,8 +164,11 @@ describe('expectExactCommands', () => {
         update,
         Story.with({ count: 0 }),
         Story.message(ClickedFetch()),
-        Story.expectExactCommands(),
-        Story.resolveAll([FetchCount, SucceededFetchCount({ count: 42 })]),
+        Story.Command.expectExact(),
+        Story.Command.resolveAll([
+          FetchCount,
+          SucceededFetchCount({ count: 42 }),
+        ]),
       ),
     ).toThrow('Expected exactly these Commands')
   })
@@ -189,7 +204,7 @@ describe('story', () => {
       Story.model(model => {
         expect(model.count).toBe(1)
       }),
-      Story.expectNoCommands(),
+      Story.Command.expectNone(),
     )
   })
 })
@@ -201,9 +216,9 @@ describe('outMessage', () => {
       Story.with({ status: 'Idle' }),
       Story.message(SubmittedForm()),
       Story.expectNoOutMessage(),
-      Story.resolve(SubmitForm, SucceededSubmit({ id: 'abc' })),
+      Story.Command.resolve(SubmitForm, SucceededSubmit({ id: 'abc' })),
       Story.expectOutMessage(RequestedSave({ id: 'abc' })),
-      Story.resolve(ResetForm, CompletedReset()),
+      Story.Command.resolve(ResetForm, CompletedReset()),
       Story.expectNoOutMessage(),
     )
   })
@@ -227,15 +242,17 @@ describe('resolve with toParentMessage', () => {
       Story.model(model => {
         expect(model.child.status).toBe('Submitting')
       }),
-      Story.expectHasCommands(SubmitForm),
-      Story.resolve(SubmitForm, SucceededSubmit({ id: 'abc' }), message =>
-        GotChildMessage({ message }),
+      Story.Command.expectHas(SubmitForm),
+      Story.Command.resolve(
+        SubmitForm,
+        SucceededSubmit({ id: 'abc' }),
+        message => GotChildMessage({ message }),
       ),
       Story.model(model => {
         expect(model.child.status).toBe('Submitted')
         expect(model.savedIds).toEqual(['abc'])
       }),
-      Story.resolve(ResetForm, CompletedReset(), message =>
+      Story.Command.resolve(ResetForm, CompletedReset(), message =>
         GotChildMessage({ message }),
       ),
       Story.model(model => {
@@ -255,7 +272,7 @@ describe('resolveAll with toParentMessage', () => {
       Story.model(model => {
         expect(model.child.status).toBe('Submitting')
       }),
-      Story.resolveAll(
+      Story.Command.resolveAll(
         [
           SubmitForm,
           SucceededSubmit({ id: 'abc' }),
@@ -286,7 +303,7 @@ describe('type safety', () => {
   })
 
   test('resolve constrains the result Message to the Command definition', () => {
-    const resolver = Story.resolve(
+    const resolver = Story.Command.resolve(
       FetchCount,
       SucceededFetchCount({ count: 0 }),
     )

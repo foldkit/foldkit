@@ -7,10 +7,10 @@ Story.with(model)
 Story.message(ClickedSubmit())
 
 // Resolve one Command with its result.
-Story.resolve(FetchWeather, SucceededFetchWeather({ data }))
+Story.Command.resolve(FetchWeather, SucceededFetchWeather({ data }))
 
 // Resolve many Commands at once.
-Story.resolveAll([
+Story.Command.resolveAll([
   [FocusInput, CompletedFocusInput()],
   [ScrollToTop, CompletedScroll()],
 ])
@@ -21,13 +21,13 @@ Story.model(model => {
 })
 
 // Assert these Commands were produced.
-Story.expectHasCommands(FetchWeather)
+Story.Command.expectHas(FetchWeather)
 
 // Assert exactly these Commands were produced.
-Story.expectExactCommands(FetchWeather, SaveBoard)
+Story.Command.expectExact(FetchWeather, SaveBoard)
 
 // Assert no Commands were produced.
-Story.expectNoCommands()
+Story.Command.expectNone()
 
 // Assert on the OutMessage.
 Story.expectOutMessage(SucceededLogin({ session }))
@@ -37,8 +37,8 @@ Story.story(
   update,
   Story.with(model),
   Story.message(ClickedSubmit()),
-  Story.expectHasCommands(FetchData),
-  Story.resolve(FetchData, SucceededFetch({ data })),
+  Story.Command.expectHas(FetchData),
+  Story.Command.resolve(FetchData, SucceededFetch({ data })),
   Story.model(model => {
     expect(model.status).toBe('loaded')
   }),

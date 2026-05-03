@@ -52,8 +52,11 @@ import type { Message, Model, ViewConfig } from './index.js'
 const animationToMenuMessage = (message: Animation.Message) =>
   GotAnimationMessage({ message })
 
-const acknowledgeAnchor = Scene.resolveMount(MenuAnchor, CompletedAnchorMount())
-const acknowledgeFocus = Scene.resolveMount(
+const acknowledgeAnchor = Scene.Mount.resolve(
+  MenuAnchor,
+  CompletedAnchorMount(),
+)
+const acknowledgeFocus = Scene.Mount.resolve(
   MenuFocusItemsOnMount,
   CompletedFocusItemsOnMount(),
 )
@@ -76,7 +79,7 @@ const withClosedAnimated = Story.with(init({ id: 'test', isAnimated: true }))
 const withOpenAnimated = flow(
   withClosedAnimated,
   Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-  Story.resolveAll(
+  Story.Command.resolveAll(
     [
       Animation.RequestFrame,
       Animation.AdvancedAnimationFrame(),
@@ -203,7 +206,7 @@ describe('Menu', () => {
           update,
           withOpen,
           Story.message(Closed()),
-          Story.resolve(FocusButton, CompletedFocusButton()),
+          Story.Command.resolve(FocusButton, CompletedFocusButton()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
@@ -320,7 +323,7 @@ describe('Menu', () => {
               timeStamp: 1000,
             }),
           ),
-          Story.resolve(FocusButton, CompletedFocusButton()),
+          Story.Command.resolve(FocusButton, CompletedFocusButton()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
@@ -403,7 +406,7 @@ describe('Menu', () => {
               timeStamp: 1000,
             }),
           ),
-          Story.resolve(FocusButton, CompletedFocusButton()),
+          Story.Command.resolve(FocusButton, CompletedFocusButton()),
           Story.model(model => {
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('mouse'),
@@ -507,7 +510,7 @@ describe('Menu', () => {
               timeStamp: 2000,
             }),
           ),
-          Story.resolve(ClickItem, CompletedClickItem()),
+          Story.Command.resolve(ClickItem, CompletedClickItem()),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
@@ -523,7 +526,7 @@ describe('Menu', () => {
           Story.message(
             ActivatedItem({ index: 3, activationTrigger: 'Keyboard' }),
           ),
-          Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Story.Command.resolve(ScrollIntoView, CompletedScrollIntoView()),
           Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(3))
           }),
@@ -537,11 +540,11 @@ describe('Menu', () => {
           Story.message(
             ActivatedItem({ index: 1, activationTrigger: 'Keyboard' }),
           ),
-          Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Story.Command.resolve(ScrollIntoView, CompletedScrollIntoView()),
           Story.message(
             ActivatedItem({ index: 4, activationTrigger: 'Keyboard' }),
           ),
-          Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Story.Command.resolve(ScrollIntoView, CompletedScrollIntoView()),
           Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(4))
           }),
@@ -568,7 +571,7 @@ describe('Menu', () => {
           Story.message(
             ActivatedItem({ index: 2, activationTrigger: 'Keyboard' }),
           ),
-          Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Story.Command.resolve(ScrollIntoView, CompletedScrollIntoView()),
           Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
           }),
@@ -608,7 +611,7 @@ describe('Menu', () => {
           Story.message(
             ActivatedItem({ index: 2, activationTrigger: 'Keyboard' }),
           ),
-          Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Story.Command.resolve(ScrollIntoView, CompletedScrollIntoView()),
           Story.message(DeactivatedItem()),
           Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
@@ -711,7 +714,7 @@ describe('Menu', () => {
           update,
           withOpen,
           Story.message(SelectedItem({ index: 2 })),
-          Story.resolve(FocusButton, CompletedFocusButton()),
+          Story.Command.resolve(FocusButton, CompletedFocusButton()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
@@ -726,7 +729,7 @@ describe('Menu', () => {
           update,
           withOpen,
           Story.message(RequestedItemClick({ index: 2 })),
-          Story.resolve(ClickItem, CompletedClickItem()),
+          Story.Command.resolve(ClickItem, CompletedClickItem()),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
@@ -742,7 +745,7 @@ describe('Menu', () => {
           Story.message(
             Searched({ key: 'a', maybeTargetIndex: Option.none() }),
           ),
-          Story.resolve(
+          Story.Command.resolve(
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
@@ -752,7 +755,7 @@ describe('Menu', () => {
           Story.message(
             Searched({ key: 'b', maybeTargetIndex: Option.none() }),
           ),
-          Story.resolve(
+          Story.Command.resolve(
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
@@ -769,7 +772,7 @@ describe('Menu', () => {
           Story.message(
             Searched({ key: 'x', maybeTargetIndex: Option.none() }),
           ),
-          Story.resolve(
+          Story.Command.resolve(
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
@@ -779,7 +782,7 @@ describe('Menu', () => {
           Story.message(
             Searched({ key: 'y', maybeTargetIndex: Option.none() }),
           ),
-          Story.resolve(
+          Story.Command.resolve(
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
@@ -796,7 +799,7 @@ describe('Menu', () => {
           Story.message(
             Searched({ key: 'd', maybeTargetIndex: Option.some(3) }),
           ),
-          Story.resolve(
+          Story.Command.resolve(
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
@@ -813,7 +816,7 @@ describe('Menu', () => {
           Story.message(
             Searched({ key: 'z', maybeTargetIndex: Option.none() }),
           ),
-          Story.resolve(
+          Story.Command.resolve(
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
@@ -830,7 +833,7 @@ describe('Menu', () => {
           Story.message(
             Searched({ key: 'a', maybeTargetIndex: Option.none() }),
           ),
-          Story.resolve(
+          Story.Command.resolve(
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
@@ -849,7 +852,7 @@ describe('Menu', () => {
           Story.message(
             Searched({ key: 'a', maybeTargetIndex: Option.none() }),
           ),
-          Story.resolve(
+          Story.Command.resolve(
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
@@ -870,14 +873,14 @@ describe('Menu', () => {
           Story.message(
             Searched({ key: 'a', maybeTargetIndex: Option.none() }),
           ),
-          Story.resolve(
+          Story.Command.resolve(
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
           Story.message(
             Searched({ key: 'b', maybeTargetIndex: Option.none() }),
           ),
-          Story.resolve(
+          Story.Command.resolve(
             DelayClearSearch,
             ClearedSearch({ version: STALE_CLEAR_SEARCH_VERSION }),
           ),
@@ -916,7 +919,7 @@ describe('Menu', () => {
               expect(model.isOpen).toBe(true)
               expect(model.animation.transitionState).toBe('EnterStart')
             }),
-            Story.resolveAll(
+            Story.Command.resolveAll(
               [
                 Animation.RequestFrame,
                 Animation.AdvancedAnimationFrame(),
@@ -937,7 +940,7 @@ describe('Menu', () => {
             update,
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-            Story.resolve(
+            Story.Command.resolve(
               Animation.RequestFrame,
               Animation.AdvancedAnimationFrame(),
               animationToMenuMessage,
@@ -945,7 +948,7 @@ describe('Menu', () => {
             Story.model(model => {
               expect(model.animation.transitionState).toBe('EnterAnimating')
             }),
-            Story.resolveAll(
+            Story.Command.resolveAll(
               [
                 Animation.WaitForAnimationSettled,
                 Animation.EndedAnimation(),
@@ -961,7 +964,7 @@ describe('Menu', () => {
             update,
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-            Story.resolveAll(
+            Story.Command.resolveAll(
               [
                 Animation.RequestFrame,
                 Animation.AdvancedAnimationFrame(),
@@ -991,7 +994,7 @@ describe('Menu', () => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')
             }),
-            Story.resolveAll(
+            Story.Command.resolveAll(
               [FocusButton, CompletedFocusButton()],
               [
                 Animation.RequestFrame,
@@ -1017,7 +1020,7 @@ describe('Menu', () => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')
             }),
-            Story.resolveAll(
+            Story.Command.resolveAll(
               [
                 Animation.RequestFrame,
                 Animation.AdvancedAnimationFrame(),
@@ -1042,7 +1045,7 @@ describe('Menu', () => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')
             }),
-            Story.resolveAll(
+            Story.Command.resolveAll(
               [FocusButton, CompletedFocusButton()],
               [
                 Animation.RequestFrame,
@@ -1064,7 +1067,7 @@ describe('Menu', () => {
             update,
             withOpenAnimated,
             Story.message(Closed()),
-            Story.resolve(
+            Story.Command.resolve(
               Animation.RequestFrame,
               Animation.AdvancedAnimationFrame(),
               animationToMenuMessage,
@@ -1072,7 +1075,7 @@ describe('Menu', () => {
             Story.model(model => {
               expect(model.animation.transitionState).toBe('LeaveAnimating')
             }),
-            Story.resolveAll(
+            Story.Command.resolveAll(
               [FocusButton, CompletedFocusButton()],
               [
                 Animation.WaitForAnimationSettled,
@@ -1089,7 +1092,7 @@ describe('Menu', () => {
             update,
             withOpenAnimated,
             Story.message(Closed()),
-            Story.resolveAll(
+            Story.Command.resolveAll(
               [FocusButton, CompletedFocusButton()],
               [
                 Animation.RequestFrame,
@@ -1127,7 +1130,7 @@ describe('Menu', () => {
             update,
             withOpen,
             Story.message(Closed()),
-            Story.resolve(FocusButton, CompletedFocusButton()),
+            Story.Command.resolve(FocusButton, CompletedFocusButton()),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
             }),
@@ -1171,7 +1174,7 @@ describe('Menu', () => {
             update,
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-            Story.resolveAll(
+            Story.Command.resolveAll(
               [
                 Animation.RequestFrame,
                 Animation.AdvancedAnimationFrame(),
@@ -1189,7 +1192,7 @@ describe('Menu', () => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')
             }),
-            Story.resolveAll(
+            Story.Command.resolveAll(
               [FocusButton, CompletedFocusButton()],
               [
                 Animation.RequestFrame,
@@ -1211,7 +1214,7 @@ describe('Menu', () => {
             update,
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-            Story.resolveAll(
+            Story.Command.resolveAll(
               [
                 Animation.RequestFrame,
                 Animation.AdvancedAnimationFrame(),
@@ -1229,7 +1232,7 @@ describe('Menu', () => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')
             }),
-            Story.resolveAll(
+            Story.Command.resolveAll(
               [FocusButton, CompletedFocusButton()],
               [
                 Animation.RequestFrame,
@@ -1255,7 +1258,7 @@ describe('Menu', () => {
     const withOpenModal = flow(
       withClosedModal,
       Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-      Story.resolveAll(
+      Story.Command.resolveAll(
         [LockScroll, CompletedLockScroll()],
         [InertOthers, CompletedSetupInert()],
       ),
@@ -1266,7 +1269,7 @@ describe('Menu', () => {
         update,
         withClosedModal,
         Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-        Story.resolveAll(
+        Story.Command.resolveAll(
           [LockScroll, CompletedLockScroll()],
           [InertOthers, CompletedSetupInert()],
         ),
@@ -1281,7 +1284,7 @@ describe('Menu', () => {
         update,
         withOpenModal,
         Story.message(Closed()),
-        Story.resolveAll(
+        Story.Command.resolveAll(
           [FocusButton, CompletedFocusButton()],
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],
@@ -1297,7 +1300,7 @@ describe('Menu', () => {
         update,
         withOpenModal,
         Story.message(BlurredItems()),
-        Story.resolveAll(
+        Story.Command.resolveAll(
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],
         ),
@@ -1312,7 +1315,7 @@ describe('Menu', () => {
         update,
         withOpenModal,
         Story.message(SelectedItem({ index: 0 })),
-        Story.resolveAll(
+        Story.Command.resolveAll(
           [FocusButton, CompletedFocusButton()],
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],
@@ -1332,7 +1335,7 @@ describe('Menu', () => {
           expect(model.isOpen).toBe(true)
         }),
         Story.message(Closed()),
-        Story.resolve(FocusButton, CompletedFocusButton()),
+        Story.Command.resolve(FocusButton, CompletedFocusButton()),
         Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),

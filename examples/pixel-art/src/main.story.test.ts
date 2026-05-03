@@ -89,7 +89,7 @@ describe('brush tool', () => {
       Story.message(EnteredCell({ x: 1, y: 0 })),
       Story.message(EnteredCell({ x: 2, y: 0 })),
       Story.message(ReleasedMouse()),
-      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
         expect(model.grid[0]?.[1]).toEqual(Option.some(0))
@@ -108,13 +108,13 @@ describe('undo and redo', () => {
       Story.with(emptyModel),
       Story.message(PressedCell({ x: 0, y: 0 })),
       Story.message(ReleasedMouse()),
-      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
         expect(model.undoStack).toHaveLength(1)
       }),
       Story.message(ClickedUndo()),
-      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.none())
         expect(model.undoStack).toHaveLength(0)
@@ -129,11 +129,11 @@ describe('undo and redo', () => {
       Story.with(emptyModel),
       Story.message(PressedCell({ x: 0, y: 0 })),
       Story.message(ReleasedMouse()),
-      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.message(ClickedUndo()),
-      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.message(ClickedRedo()),
-      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
         expect(model.undoStack).toHaveLength(1)
@@ -148,15 +148,15 @@ describe('undo and redo', () => {
       Story.with(emptyModel),
       Story.message(PressedCell({ x: 0, y: 0 })),
       Story.message(ReleasedMouse()),
-      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.message(ClickedUndo()),
-      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.model(model => {
         expect(model.redoStack).toHaveLength(1)
       }),
       Story.message(PressedCell({ x: 1, y: 1 })),
       Story.message(ReleasedMouse()),
-      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.model(model => {
         expect(model.redoStack).toHaveLength(0)
         expect(model.undoStack).toHaveLength(1)
@@ -194,30 +194,30 @@ describe('undo and redo', () => {
       Story.with(emptyModel),
       Story.message(PressedCell({ x: 0, y: 0 })),
       Story.message(ReleasedMouse()),
-      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.message(SelectedColor({ colorIndex: 1 })),
-      Story.resolve(
+      Story.Command.resolve(
         Ui.RadioGroup.FocusOption,
         Ui.RadioGroup.CompletedFocusOption(),
         radioMessage => GotPaletteRadioGroupMessage({ message: radioMessage }),
       ),
-      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.message(PressedCell({ x: 1, y: 1 })),
       Story.message(ReleasedMouse()),
-      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
         expect(model.grid[1]?.[1]).toEqual(Option.some(1))
         expect(model.undoStack).toHaveLength(2)
       }),
       Story.message(ClickedUndo()),
-      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
         expect(model.grid[1]?.[1]).toEqual(Option.none())
       }),
       Story.message(ClickedUndo()),
-      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.none())
         expect(model.grid[1]?.[1]).toEqual(Option.none())
@@ -277,13 +277,13 @@ describe('fill tool', () => {
       update,
       Story.with(emptyModel),
       Story.message(SelectedTool({ tool: 'Fill' })),
-      Story.resolve(
+      Story.Command.resolve(
         Ui.RadioGroup.FocusOption,
         Ui.RadioGroup.CompletedFocusOption(),
         radioMessage => GotToolRadioGroupMessage({ message: radioMessage }),
       ),
       Story.message(PressedCell({ x: 0, y: 0 })),
-      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.model(model => {
         const allPainted = model.grid.every(row =>
           row.every(cell => Equal.equals(cell, Option.some(0))),
@@ -307,13 +307,13 @@ describe('fill tool', () => {
       update,
       Story.with(modelWithBarrier),
       Story.message(SelectedTool({ tool: 'Fill' })),
-      Story.resolve(
+      Story.Command.resolve(
         Ui.RadioGroup.FocusOption,
         Ui.RadioGroup.CompletedFocusOption(),
         radioMessage => GotToolRadioGroupMessage({ message: radioMessage }),
       ),
       Story.message(PressedCell({ x: 0, y: 0 })),
-      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
         expect(model.grid[0]?.[1]).toEqual(Option.some(0))
@@ -330,7 +330,7 @@ describe('grid size', () => {
       update,
       Story.with(emptyModel),
       Story.message(SelectedGridSize({ size: 8 })),
-      Story.resolve(
+      Story.Command.resolve(
         Ui.RadioGroup.FocusOption,
         Ui.RadioGroup.CompletedFocusOption(),
         radioMessage => GotGridSizeRadioGroupMessage({ message: radioMessage }),
@@ -358,7 +358,7 @@ describe('grid size', () => {
       update,
       Story.with(paintedModel),
       Story.message(SelectedGridSize({ size: 8 })),
-      Story.resolve(
+      Story.Command.resolve(
         Ui.Dialog.ShowDialog,
         Ui.Dialog.CompletedShowDialog(),
         dialogMessage =>
@@ -387,13 +387,13 @@ describe('grid size', () => {
       update,
       Story.with(modelWithPending),
       Story.message(ConfirmedGridSizeChange()),
-      Story.resolve(
+      Story.Command.resolve(
         Ui.Dialog.CloseDialog,
         Ui.Dialog.CompletedCloseDialog(),
         dialogMessage =>
           GotGridSizeConfirmDialogMessage({ message: dialogMessage }),
       ),
-      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.model(model => {
         expect(model.gridSize).toBe(8)
         expect(model.grid).toHaveLength(8)
@@ -424,15 +424,15 @@ describe('clear canvas', () => {
       Story.with(emptyModel),
       Story.message(PressedCell({ x: 0, y: 0 })),
       Story.message(ReleasedMouse()),
-      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.message(ClickedClear()),
-      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.none())
         expect(model.undoStack).toHaveLength(2)
       }),
       Story.message(ClickedUndo()),
-      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
       }),
@@ -446,13 +446,13 @@ describe('export', () => {
       update,
       Story.with(emptyModel),
       Story.message(ClickedExport()),
-      Story.expectHasCommands(ExportPng),
-      Story.resolve(ExportPng, SucceededExportPng()),
+      Story.Command.expectHas(ExportPng),
+      Story.Command.resolve(ExportPng, SucceededExportPng()),
       Story.model(model => {
         expect(model.grid).toEqual(emptyModel.grid)
         expect(model.maybeExportError).toEqual(Option.none())
       }),
-      Story.expectNoCommands(),
+      Story.Command.expectNone(),
     )
   })
 })
@@ -489,19 +489,19 @@ describe('eraser tool', () => {
       Story.with(emptyModel),
       Story.message(PressedCell({ x: 0, y: 0 })),
       Story.message(ReleasedMouse()),
-      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.some(0))
       }),
       Story.message(SelectedTool({ tool: 'Eraser' })),
-      Story.resolve(
+      Story.Command.resolve(
         Ui.RadioGroup.FocusOption,
         Ui.RadioGroup.CompletedFocusOption(),
         radioMessage => GotToolRadioGroupMessage({ message: radioMessage }),
       ),
       Story.message(PressedCell({ x: 0, y: 0 })),
       Story.message(ReleasedMouse()),
-      Story.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Story.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Story.model(model => {
         expect(model.grid[0]?.[0]).toEqual(Option.none())
         expect(model.undoStack).toHaveLength(2)
@@ -518,7 +518,7 @@ describe('export failure', () => {
       Story.message(
         FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
-      Story.resolve(
+      Story.Command.resolve(
         Ui.Dialog.ShowDialog,
         Ui.Dialog.CompletedShowDialog(),
         dialogMessage => GotErrorDialogMessage({ message: dialogMessage }),
@@ -539,13 +539,13 @@ describe('export failure', () => {
       Story.message(
         FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
-      Story.resolve(
+      Story.Command.resolve(
         Ui.Dialog.ShowDialog,
         Ui.Dialog.CompletedShowDialog(),
         dialogMessage => GotErrorDialogMessage({ message: dialogMessage }),
       ),
       Story.message(DismissedErrorDialog()),
-      Story.resolve(
+      Story.Command.resolve(
         Ui.Dialog.CloseDialog,
         Ui.Dialog.CompletedCloseDialog(),
         dialogMessage => GotErrorDialogMessage({ message: dialogMessage }),

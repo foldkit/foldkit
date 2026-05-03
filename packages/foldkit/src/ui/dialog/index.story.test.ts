@@ -63,7 +63,7 @@ describe('Dialog', () => {
           update,
           Story.with(init({ id: 'test' })),
           Story.message(Opened()),
-          Story.resolve(ShowDialog, CompletedShowDialog()),
+          Story.Command.resolve(ShowDialog, CompletedShowDialog()),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
@@ -86,7 +86,7 @@ describe('Dialog', () => {
           update,
           Story.with(init({ id: 'test', isOpen: true })),
           Story.message(Closed()),
-          Story.resolve(CloseDialog, CompletedCloseDialog()),
+          Story.Command.resolve(CloseDialog, CompletedCloseDialog()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
           }),
@@ -123,8 +123,8 @@ describe('Dialog', () => {
           update,
           Story.with(init({ id: 'test', isAnimated: true })),
           Story.message(Opened()),
-          Story.expectHasCommands(ShowDialog, Animation.RequestFrame),
-          Story.resolveAll(
+          Story.Command.expectHas(ShowDialog, Animation.RequestFrame),
+          Story.Command.resolveAll(
             [ShowDialog, CompletedShowDialog()],
             [
               Animation.RequestFrame,
@@ -153,7 +153,7 @@ describe('Dialog', () => {
             expect(model.isOpen).toBe(false)
             expect(model.animation.transitionState).toBe('LeaveStart')
           }),
-          Story.resolveAll(
+          Story.Command.resolveAll(
             [
               Animation.RequestFrame,
               Animation.AdvancedAnimationFrame(),
@@ -189,7 +189,7 @@ describe('Dialog', () => {
           Story.model(model => {
             expect(model).toBe(leavingModel)
           }),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
         )
       })
 
@@ -210,7 +210,7 @@ describe('Dialog', () => {
           Story.model(model => {
             expect(model).toBe(leavingModel)
           }),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
         )
       })
     })

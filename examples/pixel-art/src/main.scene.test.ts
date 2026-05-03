@@ -76,9 +76,9 @@ describe('export workflow', () => {
       { update, view },
       Scene.with(createTestModel()),
       Scene.click(Scene.role('button', { name: 'Export PNG' })),
-      Scene.expectExactCommands(ExportPng),
-      Scene.resolve(ExportPng, SucceededExportPng()),
-      Scene.expectNoCommands(),
+      Scene.Command.expectExact(ExportPng),
+      Scene.Command.resolve(ExportPng, SucceededExportPng()),
+      Scene.Command.expectNone(),
     )
   })
 
@@ -87,11 +87,11 @@ describe('export workflow', () => {
       { update, view },
       Scene.with(createTestModel()),
       Scene.click(Scene.role('button', { name: 'Export PNG' })),
-      Scene.resolve(
+      Scene.Command.resolve(
         ExportPng,
         FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
-      Scene.resolve(
+      Scene.Command.resolve(
         Ui.Dialog.ShowDialog,
         Ui.Dialog.CompletedShowDialog(),
         errorDialogMessageToMessage,
@@ -107,18 +107,18 @@ describe('export workflow', () => {
       { update, view },
       Scene.with(createTestModel()),
       Scene.click(Scene.role('button', { name: 'Export PNG' })),
-      Scene.resolve(
+      Scene.Command.resolve(
         ExportPng,
         FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
-      Scene.resolve(
+      Scene.Command.resolve(
         Ui.Dialog.ShowDialog,
         Ui.Dialog.CompletedShowDialog(),
         errorDialogMessageToMessage,
       ),
       Scene.expect(Scene.text('Export Failed')).toExist(),
       Scene.click(Scene.role('button', { name: 'Dismiss' })),
-      Scene.resolve(
+      Scene.Command.resolve(
         Ui.Dialog.CloseDialog,
         Ui.Dialog.CompletedCloseDialog(),
         errorDialogMessageToMessage,
@@ -171,7 +171,7 @@ describe('toolbar', () => {
       { update, view },
       Scene.with(createTestModel()),
       Scene.click(Scene.role('radio', { name: /^Fill/ })),
-      Scene.resolve(
+      Scene.Command.resolve(
         Ui.RadioGroup.FocusOption,
         Ui.RadioGroup.CompletedFocusOption(),
         toolRadioGroupMessageToMessage,
@@ -193,7 +193,7 @@ describe('toolbar', () => {
         Scene.role('button', { name: 'Clear Canvas' }),
       ).toBeEnabled(),
       Scene.click(Scene.role('button', { name: 'Clear Canvas' })),
-      Scene.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Scene.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Scene.expect(
         Scene.role('button', { name: 'Clear Canvas' }),
       ).toBeDisabled(),
@@ -236,7 +236,7 @@ describe('history panel', () => {
       Scene.expect(Scene.role('button', { name: /^Undo/ })).toBeEnabled(),
       Scene.expect(Scene.role('button', { name: /^Redo/ })).toBeDisabled(),
       Scene.click(Scene.role('button', { name: /^Undo/ })),
-      Scene.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Scene.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Scene.expect(Scene.role('button', { name: /^Undo/ })).toBeDisabled(),
       Scene.expect(Scene.role('button', { name: /^Redo/ })).toBeEnabled(),
     )
@@ -249,7 +249,7 @@ describe('grid size change', () => {
       { update, view },
       Scene.with(createPaintedModel()),
       Scene.click(Scene.role('radio', { name: '8' })),
-      Scene.resolve(
+      Scene.Command.resolve(
         Ui.Dialog.ShowDialog,
         Ui.Dialog.CompletedShowDialog(),
         confirmDialogMessageToMessage,
@@ -281,12 +281,12 @@ describe('grid size change', () => {
       Scene.with(modelWithPendingResize),
       Scene.expect(Scene.text('Change to 8\u00d78?')).toExist(),
       Scene.click(Scene.role('button', { name: 'Clear and Resize' })),
-      Scene.resolve(
+      Scene.Command.resolve(
         Ui.Dialog.CloseDialog,
         Ui.Dialog.CompletedCloseDialog(),
         confirmDialogMessageToMessage,
       ),
-      Scene.resolve(SaveCanvas, CompletedSaveCanvas()),
+      Scene.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
       Scene.expect(Scene.text('Change to 8\u00d78?')).toBeAbsent(),
     )
   })
@@ -306,7 +306,7 @@ describe('grid size change', () => {
       Scene.with(modelWithPendingResize),
       Scene.expect(Scene.text('Change to 8\u00d78?')).toExist(),
       Scene.click(Scene.role('button', { name: 'Cancel' })),
-      Scene.resolve(
+      Scene.Command.resolve(
         Ui.Dialog.CloseDialog,
         Ui.Dialog.CompletedCloseDialog(),
         confirmDialogMessageToMessage,

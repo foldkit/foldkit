@@ -138,7 +138,7 @@ const withUpdateReturn = M.withReturnType<UpdateReturn>()
 export const ShowAfterDelay = Command.define('ShowAfterDelay', ElapsedShowDelay)
 
 /** The anchor-positioning Mount this Tooltip renders on its panel. Exposed so
- *  Scene tests can call `Scene.resolveMount(TooltipAnchor, CompletedAnchorMount())`
+ *  Scene tests can call `Scene.Mount.resolve(TooltipAnchor, CompletedAnchorMount())`
  *  to acknowledge the mount produced by the rendered panel. */
 export const TooltipAnchor = Mount.define('TooltipAnchor', CompletedAnchorMount)
 

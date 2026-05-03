@@ -19,15 +19,15 @@ import {
 } from './main'
 import { initialModel, mountedModel } from './main.fixtures'
 
-const acknowledgeSearchFocus = Scene.resolveMount(
+const acknowledgeSearchFocus = Scene.Mount.resolve(
   FocusSearchInput,
   CompletedFocusSearchInput(),
 )
-const acknowledgeMapMount = Scene.resolveMount(
+const acknowledgeMapMount = Scene.Mount.resolve(
   MountMap,
   SucceededMountMap({ hostId: 'test-map-host' }),
 )
-const acknowledgeBodyLock = Scene.resolveMount(
+const acknowledgeBodyLock = Scene.Mount.resolve(
   LockBodyScroll,
   CompletedLockBodyScroll(),
 )
@@ -70,8 +70,8 @@ describe('scene', () => {
       acknowledgeMapMount,
       acknowledgeSearchFocus,
       Scene.click(Scene.role('button', { name: /Eiffel Tower/ })),
-      Scene.expectHasCommands(FlyTo),
-      Scene.resolve(FlyTo, SucceededFlyTo()),
+      Scene.Command.expectHas(FlyTo),
+      Scene.Command.resolve(FlyTo, SucceededFlyTo()),
     )
   })
 
@@ -84,7 +84,10 @@ describe('scene', () => {
       Scene.click(Scene.role('button', { name: 'Find my location' })),
       Scene.expect(Scene.role('button', { name: 'Locating…' })).toExist(),
       acknowledgeBodyLock,
-      Scene.resolve(Geolocate, FailedGeolocate({ reason: 'Test cleanup' })),
+      Scene.Command.resolve(
+        Geolocate,
+        FailedGeolocate({ reason: 'Test cleanup' }),
+      ),
     )
   })
 
