@@ -42,7 +42,7 @@ Every Foldkit application is an [Effect](https://effect.website/) program. Your 
 `create-foldkit-app` is the recommended way to start a new project. It scaffolds a complete setup with Tailwind, TypeScript, ESLint, Prettier, and the Vite plugin for state-preserving HMR — and lets you choose from a set of examples as your starting point.
 
 ```bash
-npx create-foldkit-app@latest --wizard
+npx create-foldkit-app@latest
 ```
 
 ## Counter

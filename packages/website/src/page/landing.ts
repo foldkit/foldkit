@@ -126,7 +126,7 @@ export const view = (
 
 // HERO
 
-const INSTALL_COMMAND = 'npx create-foldkit-app@latest --wizard'
+const INSTALL_COMMAND = 'npx create-foldkit-app@latest'
 
 const heroSection = (
   copiedSnippets: CopiedSnippets,

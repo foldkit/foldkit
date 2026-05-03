@@ -255,10 +255,10 @@ This step is frequently tempting to skip because the agent "knows what it's doin
 Before generating code, scaffold a runnable project using `create-foldkit-app`:
 
 ```bash
-npx create-foldkit-app@latest --wizard
+npx create-foldkit-app@latest
 ```
 
-Use the wizard to select the counter example as the base (simplest starting point) and the user's preferred package manager. The generated project includes:
+Run with no flags to drop into the interactive prompts; pick the counter example as the base (simplest starting point) and the user's preferred package manager. The generated project includes:
 
 - `package.json` with all Foldkit and Effect dependencies
 - `vite.config.ts` with Tailwind and the Foldkit Vite plugin

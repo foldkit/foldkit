@@ -5,14 +5,14 @@ Scaffolding CLI for new Foldkit applications. Creates a ready-to-run project wit
 ## Usage
 
 ```bash
-npx create-foldkit-app --wizard
+npx create-foldkit-app
 # or
-pnpm create foldkit-app --wizard
+pnpm create foldkit-app
 # or
-yarn create foldkit-app --wizard
+yarn create foldkit-app
 ```
 
-The CLI will prompt you for a project name, starter example, and package manager.
+The CLI prompts you for a project name, starter example, and package manager. Pass `--name`, `--example`, and/or `--package-manager` to skip the matching prompts.
 
 ## Examples
 

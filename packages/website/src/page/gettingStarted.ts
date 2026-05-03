@@ -20,7 +20,7 @@ import {
 import { type CopiedSnippets, codeBlock } from '../view/codeBlock'
 import { comparisonTable } from '../view/table'
 
-const CREATE_FOLDKIT_APP_COMMAND = 'npx create-foldkit-app@latest --wizard'
+const CREATE_FOLDKIT_APP_COMMAND = 'npx create-foldkit-app@latest'
 const DEV_PNPM = 'pnpm dev'
 const DEV_NPM = 'npm run dev'
 const DEV_YARN = 'yarn dev'
