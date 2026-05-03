@@ -118,6 +118,8 @@ export type HistoryEntry = Readonly<{
   tag: string
   message: unknown
   commandNames: ReadonlyArray<string>
+  mountStartNames: ReadonlyArray<string>
+  mountEndNames: ReadonlyArray<string>
   timestamp: number
   isModelChanged: boolean
   diff: DiffResult
@@ -128,6 +130,7 @@ export type StoreState = Readonly<{
   keyframes: HashMap.HashMap<number, unknown>
   maybeInitModel: Option.Option<unknown>
   initCommandNames: ReadonlyArray<string>
+  initMountStartNames: ReadonlyArray<string>
   startIndex: number
   isPaused: boolean
   pausedAtIndex: number
@@ -144,6 +147,7 @@ const emptyState: StoreState = {
   keyframes: HashMap.empty(),
   maybeInitModel: Option.none(),
   initCommandNames: [],
+  initMountStartNames: [],
   startIndex: 0,
   isPaused: false,
   pausedAtIndex: 0,
@@ -205,11 +209,16 @@ export const createDevToolsStore = (
       }
     }
 
-    const recordInit = (model: unknown, commandNames: ReadonlyArray<string>) =>
+    const recordInit = (
+      model: unknown,
+      commandNames: ReadonlyArray<string>,
+      mountStartNames: ReadonlyArray<string> = [],
+    ) =>
       SubscriptionRef.update(stateRef, state => ({
         ...state,
         maybeInitModel: Option.some(model),
         initCommandNames: commandNames,
+        initMountStartNames: mountStartNames,
         keyframes: HashMap.set(state.keyframes, 0, model),
       }))
 
@@ -219,6 +228,8 @@ export const createDevToolsStore = (
       modelAfterUpdate: unknown,
       commandNames: ReadonlyArray<string>,
       isModelChanged: boolean,
+      mountStartNames: ReadonlyArray<string> = [],
+      mountEndNames: ReadonlyArray<string> = [],
     ) =>
       SubscriptionRef.update(stateRef, state => {
         const absoluteIndex = state.startIndex + state.entries.length
@@ -235,6 +246,8 @@ export const createDevToolsStore = (
             tag: message._tag,
             message,
             commandNames,
+            mountStartNames,
+            mountEndNames,
             timestamp: performance.now(),
             isModelChanged: hasChangedFields,
             diff,
@@ -302,6 +315,7 @@ export const createDevToolsStore = (
       ...emptyState,
       maybeInitModel: state.maybeInitModel,
       initCommandNames: state.initCommandNames,
+      initMountStartNames: state.initMountStartNames,
       keyframes: Option.match(state.maybeInitModel, {
         onNone: () => HashMap.empty(),
         onSome: model =>
@@ -344,6 +358,7 @@ export type DevToolsStore = Readonly<{
   recordInit: (
     model: unknown,
     commandNames: ReadonlyArray<string>,
+    mountStartNames?: ReadonlyArray<string>,
   ) => Effect.Effect<void>
   recordMessage: (
     message: Readonly<{ _tag: string }>,
@@ -351,6 +366,8 @@ export type DevToolsStore = Readonly<{
     modelAfterUpdate: unknown,
     commandNames: ReadonlyArray<string>,
     isModelChanged: boolean,
+    mountStartNames?: ReadonlyArray<string>,
+    mountEndNames?: ReadonlyArray<string>,
   ) => Effect.Effect<void>
   getModelAtIndex: (index: number) => Effect.Effect<unknown>
   getMessageAtIndex: (index: number) => Effect.Effect<Option.Option<unknown>>

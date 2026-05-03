@@ -19,6 +19,8 @@ export {
   CompletedClickItem,
   CompletedAnchorMount,
   CompletedFocusItemsOnMount,
+  MenuAnchor,
+  MenuFocusItemsOnMount,
   ClearedSearch,
   GotAnimationMessage,
   LockScroll,

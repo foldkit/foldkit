@@ -11,9 +11,11 @@ import {
   ClearedSearch,
   ClickItem,
   Closed,
+  CompletedAnchorMount,
   CompletedClickItem,
   CompletedFocusButton,
   CompletedFocusItems,
+  CompletedFocusItemsOnMount,
   CompletedLockScroll,
   CompletedScrollIntoView,
   CompletedSetupInert,
@@ -27,6 +29,8 @@ import {
   IgnoredMouseClick,
   InertOthers,
   LockScroll,
+  MenuAnchor,
+  MenuFocusItemsOnMount,
   MovedPointerOverItem,
   Opened,
   PressedPointerOnButton,
@@ -47,6 +51,12 @@ import type { Message, Model, ViewConfig } from './index.js'
 
 const animationToMenuMessage = (message: Animation.Message) =>
   GotAnimationMessage({ message })
+
+const acknowledgeAnchor = Scene.resolveMount(MenuAnchor, CompletedAnchorMount())
+const acknowledgeFocus = Scene.resolveMount(
+  MenuFocusItemsOnMount,
+  CompletedFocusItemsOnMount(),
+)
 
 const animationEndMessage = GotAnimationMessage({
   message: Animation.EndedAnimation(),
@@ -1683,6 +1693,7 @@ describe('Menu', () => {
             expect(itemsContainer).toHaveHook('insert')
             expect(itemsContainer).toHaveHook('destroy')
           }),
+          acknowledgeAnchor,
         )
       })
 
@@ -1702,6 +1713,7 @@ describe('Menu', () => {
             expect(itemsContainer).toHaveHook('insert')
             expect(itemsContainer).toHaveHook('destroy')
           }),
+          acknowledgeFocus,
         )
       })
 
@@ -1724,6 +1736,7 @@ describe('Menu', () => {
             expect(itemsContainer).toHaveHook('insert')
             expect(itemsContainer).toHaveHook('destroy')
           }),
+          acknowledgeAnchor,
         )
       })
 
@@ -1746,6 +1759,7 @@ describe('Menu', () => {
               Scene.find(html, '[key="test-button"]'),
             )
           }),
+          acknowledgeAnchor,
         )
 
         Scene.scene(
@@ -1759,6 +1773,7 @@ describe('Menu', () => {
               Scene.find(html, '[key="test-button"]'),
             )
           }),
+          acknowledgeFocus,
         )
 
         expect(buttonWithAnchor!.data?.attrs).toStrictEqual(

@@ -607,12 +607,25 @@ export const makeUpdate = <Model extends BaseModel>(
   }
 }
 
-const ComboboxAnchor = Mount.define('ComboboxAnchor', CompletedAnchorMount)
-const ComboboxAttachPreventBlur = Mount.define(
+/** The anchor-positioning Mount this Combobox renders when an anchor is
+ *  configured. Exposed so Scene tests can call
+ *  `Scene.resolveMount(ComboboxAnchor, CompletedAnchorMount())`. */
+export const ComboboxAnchor = Mount.define(
+  'ComboboxAnchor',
+  CompletedAnchorMount,
+)
+/** The Mount this Combobox renders to install a `pointerdown`-cancelling
+ *  capture listener that prevents blur on item presses. Exposed so Scene
+ *  tests can call
+ *  `Scene.resolveMount(ComboboxAttachPreventBlur, CompletedAttachPreventBlur())`. */
+export const ComboboxAttachPreventBlur = Mount.define(
   'ComboboxAttachPreventBlur',
   CompletedAttachPreventBlur,
 )
-const ComboboxAttachSelectOnFocus = Mount.define(
+/** The Mount this Combobox renders to install the input's select-on-focus
+ *  behavior. Exposed so Scene tests can call
+ *  `Scene.resolveMount(ComboboxAttachSelectOnFocus, CompletedAttachSelectOnFocus())`. */
+export const ComboboxAttachSelectOnFocus = Mount.define(
   'ComboboxAttachSelectOnFocus',
   CompletedAttachSelectOnFocus,
 )

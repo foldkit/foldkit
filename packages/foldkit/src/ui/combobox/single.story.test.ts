@@ -11,6 +11,10 @@ import {
   BlurredInput,
   ClickItem,
   Closed,
+  ComboboxAnchor,
+  ComboboxAttachPreventBlur,
+  CompletedAnchorMount,
+  CompletedAttachPreventBlur,
   CompletedClickItem,
   CompletedFocusInput,
   CompletedLockScroll,
@@ -39,6 +43,15 @@ import type { Model, ViewConfig } from './single.js'
 
 const animationToComboboxMessage = (message: Animation.Message) =>
   GotAnimationMessage({ message })
+
+const acknowledgePreventBlur = Scene.resolveMount(
+  ComboboxAttachPreventBlur,
+  CompletedAttachPreventBlur(),
+)
+const acknowledgeAnchor = Scene.resolveMount(
+  ComboboxAnchor,
+  CompletedAnchorMount(),
+)
 
 const animationEndMessage = GotAnimationMessage({
   message: Animation.EndedAnimation(),
@@ -1049,6 +1062,7 @@ describe('Combobox', () => {
             'listbox',
           )
         }),
+        acknowledgePreventBlur,
       )
     })
 
@@ -1060,6 +1074,7 @@ describe('Combobox', () => {
           expect(Scene.find(html, '[key="test-items-container"]')).toExist()
           expect(Scene.findAll(html, '[key^="test-item-"]')).toHaveLength(2)
         }),
+        acknowledgePreventBlur,
       )
     })
 
@@ -1089,6 +1104,7 @@ describe('Combobox', () => {
             '',
           )
         }),
+        acknowledgePreventBlur,
       )
     })
 
@@ -1108,6 +1124,7 @@ describe('Combobox', () => {
             '',
           )
         }),
+        acknowledgePreventBlur,
       )
     })
 
@@ -1149,6 +1166,7 @@ describe('Combobox', () => {
             expect(Option.some(item)).toHaveAttr('role', 'option')
           })
         }),
+        acknowledgePreventBlur,
       )
     })
 
@@ -1165,6 +1183,7 @@ describe('Combobox', () => {
             'true',
           )
         }),
+        acknowledgePreventBlur,
       )
     })
 
@@ -1181,6 +1200,7 @@ describe('Combobox', () => {
             'false',
           )
         }),
+        acknowledgePreventBlur,
       )
     })
 
@@ -1193,6 +1213,7 @@ describe('Combobox', () => {
             Scene.find(html, '[key="test-items-container"]'),
           ).not.toHaveAttr('aria-multiselectable')
         }),
+        acknowledgePreventBlur,
       )
     })
 
@@ -1203,6 +1224,7 @@ describe('Combobox', () => {
         Scene.tap(({ html }) => {
           expect(Scene.find(html, 'input')).toHaveAttr('aria-expanded', 'true')
         }),
+        acknowledgePreventBlur,
       )
     })
 
@@ -1287,6 +1309,7 @@ describe('Combobox', () => {
             expect(itemsContainer).toHaveHook('insert')
             expect(itemsContainer).toHaveHook('destroy')
           }),
+          acknowledgeAnchor,
         )
       })
 
@@ -1299,6 +1322,7 @@ describe('Combobox', () => {
               Scene.find(html, '[key="test-items-container"]'),
             ).not.toHaveStyle('position')
           }),
+          acknowledgePreventBlur,
         )
       })
     })
@@ -1336,6 +1360,7 @@ describe('Combobox', () => {
           Scene.tap(() => {
             expect(contexts[0]?.isSelected).toBe(true)
           }),
+          acknowledgePreventBlur,
         )
       })
 
@@ -1371,6 +1396,7 @@ describe('Combobox', () => {
           Scene.tap(() => {
             expect(contexts[1]?.isSelected).toBe(false)
           }),
+          acknowledgePreventBlur,
         )
       })
     })

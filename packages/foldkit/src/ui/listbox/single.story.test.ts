@@ -11,9 +11,11 @@ import {
   ClearedSearch,
   ClickItem,
   Closed,
+  CompletedAnchorMount,
   CompletedClickItem,
   CompletedFocusButton,
   CompletedFocusItems,
+  CompletedFocusItemsOnMount,
   CompletedLockScroll,
   CompletedScrollIntoView,
   CompletedSetupInert,
@@ -27,6 +29,8 @@ import {
   GotAnimationMessage,
   IgnoredMouseClick,
   InertOthers,
+  ListboxAnchor,
+  ListboxFocusItemsOnMount,
   LockScroll,
   MovedPointerOverItem,
   Opened,
@@ -45,6 +49,15 @@ import type { Model, ViewConfig } from './single.js'
 
 const animationToListboxMessage = (message: Animation.Message) =>
   GotAnimationMessage({ message })
+
+const acknowledgeAnchor = Scene.resolveMount(
+  ListboxAnchor,
+  CompletedAnchorMount(),
+)
+const acknowledgeFocus = Scene.resolveMount(
+  ListboxFocusItemsOnMount,
+  CompletedFocusItemsOnMount(),
+)
 
 const animationEndMessage = GotAnimationMessage({
   message: Animation.EndedAnimation(),
@@ -1289,6 +1302,7 @@ describe('Listbox', () => {
               'listbox',
             )
           }),
+          acknowledgeFocus,
         )
       })
 
@@ -1302,6 +1316,7 @@ describe('Listbox', () => {
               'listbox',
             )
           }),
+          acknowledgeFocus,
         )
       })
 
@@ -1319,6 +1334,7 @@ describe('Listbox', () => {
               'option',
             )
           }),
+          acknowledgeFocus,
         )
       })
 
@@ -1336,6 +1352,7 @@ describe('Listbox', () => {
               'true',
             )
           }),
+          acknowledgeFocus,
         )
       })
 
@@ -1353,6 +1370,7 @@ describe('Listbox', () => {
               'false',
             )
           }),
+          acknowledgeFocus,
         )
       })
 
@@ -1373,6 +1391,7 @@ describe('Listbox', () => {
               '',
             )
           }),
+          acknowledgeFocus,
         )
       })
 
@@ -1385,6 +1404,7 @@ describe('Listbox', () => {
               Scene.find(html, '[key="test-items-container"]'),
             ).not.toHaveAttr('aria-multiselectable')
           }),
+          acknowledgeFocus,
         )
       })
     })
@@ -1476,6 +1496,7 @@ describe('Listbox', () => {
           Scene.tap(() => {
             expect(contexts[0]?.isSelected).toBe(true)
           }),
+          acknowledgeFocus,
         )
       })
 
@@ -1512,6 +1533,7 @@ describe('Listbox', () => {
           Scene.tap(() => {
             expect(contexts[1]?.isSelected).toBe(false)
           }),
+          acknowledgeFocus,
         )
       })
     })
@@ -1537,6 +1559,7 @@ describe('Listbox', () => {
             expect(itemsContainer).toHaveHook('insert')
             expect(itemsContainer).toHaveHook('destroy')
           }),
+          acknowledgeAnchor,
         )
       })
 
@@ -1553,6 +1576,7 @@ describe('Listbox', () => {
             expect(itemsContainer).toHaveHook('insert')
             expect(itemsContainer).toHaveHook('destroy')
           }),
+          acknowledgeFocus,
         )
       })
     })
@@ -1568,6 +1592,7 @@ describe('Listbox', () => {
               'vertical',
             )
           }),
+          acknowledgeFocus,
         )
       })
 
@@ -1582,6 +1607,7 @@ describe('Listbox', () => {
               'horizontal',
             )
           }),
+          acknowledgeFocus,
         )
       })
     })
@@ -1742,6 +1768,7 @@ describe('Listbox', () => {
               'click',
             )
           }),
+          acknowledgeFocus,
         )
       })
 
@@ -1760,6 +1787,7 @@ describe('Listbox', () => {
               '',
             )
           }),
+          acknowledgeFocus,
         )
       })
 
@@ -1777,6 +1805,7 @@ describe('Listbox', () => {
               'data-selected',
             )
           }),
+          acknowledgeFocus,
         )
       })
 

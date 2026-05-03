@@ -11,12 +11,19 @@ import type { Message } from './shared.js'
 import {
   ActivatedItem,
   CompletedFocusItems,
+  CompletedFocusItemsOnMount,
   CompletedScrollIntoView,
   FocusItems,
+  ListboxFocusItemsOnMount,
   Opened,
   ScrollIntoView,
   SelectedItem,
 } from './shared.js'
+
+const acknowledgeFocus = Scene.resolveMount(
+  ListboxFocusItemsOnMount,
+  CompletedFocusItemsOnMount(),
+)
 
 const withClosed = Story.with(init({ id: 'test' }))
 
@@ -170,6 +177,7 @@ describe('Listbox.Multi', () => {
               'true',
             )
           }),
+          acknowledgeFocus,
         )
       })
     })
@@ -193,6 +201,7 @@ describe('Listbox.Multi', () => {
               '',
             )
           }),
+          acknowledgeFocus,
         )
       })
     })

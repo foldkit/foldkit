@@ -290,7 +290,11 @@ const init: Runtime.ProgramInit<Model, Message> = () => [
 
 // MAP MOUNT
 
-const MountMap = Mount.define('MountMap', SucceededMountMap, FailedMountMap)
+export const MountMap = Mount.define(
+  'MountMap',
+  SucceededMountMap,
+  FailedMountMap,
+)
 
 const mountMap = (hostId: string) =>
   MountMap(
@@ -433,7 +437,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
 
 // LIFECYCLE ACTIONS
 
-const FocusSearchInput = Mount.define(
+export const FocusSearchInput = Mount.define(
   'FocusSearchInput',
   CompletedFocusSearchInput,
 )
@@ -453,7 +457,10 @@ const focusSearchInput = FocusSearchInput(
     }),
 )
 
-const LockBodyScroll = Mount.define('LockBodyScroll', CompletedLockBodyScroll)
+export const LockBodyScroll = Mount.define(
+  'LockBodyScroll',
+  CompletedLockBodyScroll,
+)
 
 const lockBodyScroll = LockBodyScroll(
   (): Effect.Effect<MountResult<typeof CompletedLockBodyScroll.Type>> =>

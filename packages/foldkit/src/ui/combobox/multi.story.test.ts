@@ -10,6 +10,8 @@ import type { Model, ViewConfig } from './multi.js'
 import {
   ActivatedItem,
   Closed,
+  ComboboxAttachPreventBlur,
+  CompletedAttachPreventBlur,
   CompletedFocusInput,
   CompletedScrollIntoView,
   FocusInput,
@@ -18,6 +20,11 @@ import {
   SelectedItem,
 } from './shared.js'
 import type { Message } from './shared.js'
+
+const acknowledgePreventBlur = Scene.resolveMount(
+  ComboboxAttachPreventBlur,
+  CompletedAttachPreventBlur(),
+)
 
 const withClosed = Story.with(init({ id: 'test' }))
 
@@ -232,6 +239,7 @@ describe('Combobox.Multi', () => {
               'true',
             )
           }),
+          acknowledgePreventBlur,
         )
       })
     })
@@ -255,6 +263,7 @@ describe('Combobox.Multi', () => {
               '',
             )
           }),
+          acknowledgePreventBlur,
         )
       })
     })

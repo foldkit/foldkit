@@ -11,19 +11,33 @@ import { dual } from 'effect/Function'
 
 import type { CommandDefinition } from '../command/index.js'
 import type { File } from '../file/index.js'
-import { FileHandlerSymbol } from '../html/index.js'
+import type { FoldkitMountMarker } from '../html/index.js'
+import { FOLDKIT_MOUNT_KEY, FileHandlerSymbol } from '../html/index.js'
 import type { Document, Html, KeyboardModifiers } from '../html/index.js'
+import type { MountDefinition } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
 import type { VNode } from '../vdom.js'
-import type { AnyCommand, BaseInternal, Resolver } from './internal.js'
+import type {
+  AnyCommand,
+  BaseInternal,
+  MountResolver,
+  PendingMount,
+  Resolver,
+} from './internal.js'
 import {
   assertAllCommandsResolved,
+  assertAllMountsResolved,
   assertExactCommands,
+  assertExactMounts,
   assertHasCommands,
+  assertHasMounts,
   assertNoUnresolvedCommands,
+  assertNoUnresolvedMounts,
   assertZeroCommands,
+  assertZeroMounts,
   resolveAllInternal,
   resolveByName,
+  resolveMountByName,
 } from './internal.js'
 import type { Locator, LocatorAll } from './query.js'
 import {
@@ -48,7 +62,7 @@ import {
   allTitle,
 } from './query.js'
 
-export type { AnyCommand, Resolver }
+export type { AnyCommand, MountResolver, PendingMount, Resolver }
 
 export {
   find,
@@ -111,6 +125,7 @@ export type SceneSimulation<Model, Message, OutMessage = undefined> = Readonly<{
   /** @internal Phantom type — preserves Model and Message for step chain inference. */
   _phantom: [Model, Message]
   commands: ReadonlyArray<AnyCommand>
+  mounts: ReadonlyArray<PendingMount>
   outMessage: OutMessage
   html: VNode
 }>
@@ -145,6 +160,13 @@ type UpdateResult<Model, OutMessage> =
   | readonly [Model, ReadonlyArray<AnyCommand>]
   | readonly [Model, ReadonlyArray<AnyCommand>, OutMessage]
 
+type MountStatus = 'Pending' | 'Resolved'
+
+type MountSlotState = Readonly<{
+  slot: PendingMount
+  status: MountStatus
+}>
+
 type InternalSceneSimulation<
   Model,
   Message,
@@ -161,7 +183,60 @@ type InternalSceneSimulation<
     viewFn: (model: Model) => Html | Document
     capturingDispatch: CapturingDispatch
     scope: Option.Option<Locator>
+    mountSlots: ReadonlyArray<MountSlotState>
   }>
+
+const slotKey = ({ name, occurrence }: PendingMount): string =>
+  `${name}#${occurrence}`
+
+const collectRenderedSlots = (vnode: VNode): ReadonlyArray<PendingMount> => {
+  const counts = new Map<string, number>()
+  const slots: Array<PendingMount> = []
+  const walk = (node: VNode): void => {
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const marker = node.data?.[FOLDKIT_MOUNT_KEY] as
+      | FoldkitMountMarker
+      | undefined
+    if (marker !== undefined) {
+      const occurrence = counts.get(marker.name) ?? 0
+      counts.set(marker.name, occurrence + 1)
+      slots.push({ name: marker.name, occurrence })
+    }
+    for (const child of node.children ?? []) {
+      if (typeof child !== 'string') {
+        walk(child)
+      }
+    }
+  }
+  walk(vnode)
+  return slots
+}
+
+const reconcileMountSlots = (
+  previous: ReadonlyArray<MountSlotState>,
+  rendered: VNode,
+): ReadonlyArray<MountSlotState> => {
+  const previousByKey = new Map(
+    Array.map(previous, state => [slotKey(state.slot), state] as const),
+  )
+  return Array.map(collectRenderedSlots(rendered), slot => {
+    const existing = previousByKey.get(slotKey(slot))
+    if (existing !== undefined) {
+      return existing
+    }
+    const fresh: MountSlotState = { slot, status: 'Pending' }
+    return fresh
+  })
+}
+
+const pendingMountsOf = (
+  mountSlots: ReadonlyArray<MountSlotState>,
+): ReadonlyArray<PendingMount> =>
+  pipe(
+    mountSlots,
+    Array.filter(({ status }) => status === 'Pending'),
+    Array.map(({ slot }) => slot),
+  )
 
 const UNINITIALIZED = Symbol('uninitialized')
 
@@ -299,6 +374,10 @@ const captureFromElement = <Model, Message, OutMessage>(
 
   assertNoUnresolvedCommands(
     internal.commands,
+    'when an interaction dispatched a new Message',
+  )
+  assertNoUnresolvedMounts(
+    internal.mounts,
     'when an interaction dispatched a new Message',
   )
 
@@ -545,6 +624,140 @@ export const expectNoCommands =
     return simulation
   }
 
+/** Resolves a specific pending Mount with the given result Message. The first
+ *  pending mount with the matching name is resolved. Mirrors `resolve` for
+ *  Commands; the optional `toParentMessage` lifter matches `Mount.mapMessage`
+ *  when a child Submodel mount is observed in a parent's view. */
+export const resolveMount: {
+  <Name extends string, ResultMessage>(
+    definition: MountDefinition<Name, ResultMessage>,
+    resultMessage: ResultMessage,
+  ): <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ) => SceneSimulation<Model, Message, OutMessage>
+  <Name extends string, ResultMessage, ParentMessage>(
+    definition: MountDefinition<Name, ResultMessage>,
+    resultMessage: ResultMessage,
+    toParentMessage: (message: ResultMessage) => ParentMessage,
+  ): <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ) => SceneSimulation<Model, Message, OutMessage>
+} =
+  <Name extends string, ResultMessage>(
+    definition: MountDefinition<Name, ResultMessage>,
+    resultMessage: ResultMessage,
+    toParentMessage?: (message: ResultMessage) => unknown,
+  ) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    /* eslint-disable @typescript-eslint/consistent-type-assertions */
+    const internal = toInternal(simulation)
+    const messageForUpdate = (Predicate.isUndefined(toParentMessage)
+      ? resultMessage
+      : toParentMessage(resultMessage)) as unknown as Message
+    const next = resolveMountByName(
+      internal as BaseInternal<Model, Message, unknown>,
+      internal.mounts,
+      definition.name,
+      messageForUpdate,
+    )
+
+    if (Predicate.isUndefined(next)) {
+      throw new Error(
+        `I tried to resolve Mount "${definition.name}" but it wasn't in the pending Mounts.\n\n` +
+          `Pending Mounts:\n${
+            Array.isReadonlyArrayNonEmpty(internal.mounts)
+              ? pipe(
+                  internal.mounts,
+                  Array.map(({ name }) => `    ${name}`),
+                  Array.join('\n'),
+                )
+              : '    (none)'
+          }\n\n` +
+          'Make sure the rendered view contains an OnMount with this name.',
+      )
+    }
+
+    const resolvedKeys = new Set(
+      Array.map(next.pendingMounts, slot => slotKey(slot)),
+    )
+    const updatedSlots = Array.map(
+      internal.mountSlots,
+      (state): MountSlotState => {
+        if (state.status !== 'Pending') {
+          return state
+        }
+        const key = slotKey(state.slot)
+        return resolvedKeys.has(key)
+          ? state
+          : state.slot.name === definition.name
+            ? { slot: state.slot, status: 'Resolved' }
+            : state
+      },
+    )
+
+    return {
+      ...next.internal,
+      mountSlots: updatedSlots,
+      mounts: next.pendingMounts,
+    } as unknown as SceneSimulation<Model, Message, OutMessage>
+    /* eslint-enable @typescript-eslint/consistent-type-assertions */
+  }
+
+/** Resolves all listed Mounts with their result Messages. Mirrors
+ *  `resolveAll` for Commands. Mounts are resolved in the order listed; each
+ *  resolution feeds its Message through update before the next is resolved. */
+export const resolveAllMounts =
+  <R extends ReadonlyArray<unknown>>(
+    ...resolvers: { [K in keyof R]: MountResolver<R[K]> }
+  ) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> =>
+    Array.reduce(resolvers, simulation, (current, resolver) => {
+      const [definition, resultMessage] = resolver
+      const lift =
+        resolver.length === 3
+          ? /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+            (resolver[2] as (message: unknown) => unknown)
+          : undefined
+      return Predicate.isUndefined(lift)
+        ? resolveMount(definition, resultMessage)(current)
+        : resolveMount(definition, resultMessage, lift)(current)
+    })
+
+/** Asserts that every given Mount is among the pending Mounts. */
+export const expectHasMounts =
+  (...definitions: ReadonlyArray<MountDefinition<string, unknown>>) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    assertHasMounts(toInternal(simulation).mounts, definitions)
+    return simulation
+  }
+
+/** Asserts that the pending Mounts match the given definitions exactly
+ *  (order-independent, by name). */
+export const expectExactMounts =
+  (...definitions: ReadonlyArray<MountDefinition<string, unknown>>) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    assertExactMounts(toInternal(simulation).mounts, definitions)
+    return simulation
+  }
+
+/** Asserts that there are no pending Mounts. */
+export const expectNoMounts =
+  () =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    assertZeroMounts(toInternal(simulation).mounts)
+    return simulation
+  }
+
 /** Runs a function for side effects (e.g. assertions) without breaking the step chain. */
 export const tap =
   <Model, Message, OutMessage = undefined>(
@@ -577,7 +790,9 @@ const runSteps = <Model, Message, OutMessage>(
         internal.model,
         internal.capturingDispatch.dispatch,
       )
-      return { ...internal, html } as SceneSimulation<
+      const mountSlots = reconcileMountSlots(internal.mountSlots, html)
+      const mounts = pendingMountsOf(mountSlots)
+      return { ...internal, html, mountSlots, mounts } as SceneSimulation<
         Model,
         Message,
         OutMessage
@@ -1612,6 +1827,8 @@ export const scene: {
     model: UNINITIALIZED as unknown,
     message: undefined,
     commands: [],
+    mounts: [],
+    mountSlots: [],
     outMessage: undefined as unknown,
     updateFn: config.update,
     resolvers: {},
@@ -1626,4 +1843,5 @@ export const scene: {
 
   const internal = toInternal(result)
   assertAllCommandsResolved(internal.commands)
+  assertAllMountsResolved(internal.mounts)
 }

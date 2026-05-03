@@ -374,7 +374,10 @@ export const update = (model: Model, message: Message): UpdateReturn => {
   )
 }
 
-const PopoverAnchor = Mount.define('PopoverAnchor', CompletedAnchorMount)
+/** The anchor-positioning Mount this Popover renders on its panel. Exposed so
+ *  Scene tests can call `Scene.resolveMount(PopoverAnchor, CompletedAnchorMount())`
+ *  to acknowledge the mount produced by the rendered panel. */
+export const PopoverAnchor = Mount.define('PopoverAnchor', CompletedAnchorMount)
 
 /** Programmatically opens the popover, updating the model and returning
  *  focus and modal commands. Use this in domain-event handlers when the popover uses `onOpened`. */

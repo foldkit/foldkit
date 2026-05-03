@@ -308,7 +308,7 @@ export const buildTools = (
   {
     name: 'foldkit_get_message',
     description:
-      'Read a single Message history entry by absolute index. The response carries the SerializedEntry (tag, message body, commandNames, timestamp, `isModelChanged`, `changedPaths` for leaf-level mutations, `affectedPaths` adding their ancestor paths). For Submodel-routed entries (tag matches `Got*Message`), the entry also carries `submodelPath` listing wrapper tags from outer to inner and `maybeLeafTag` naming the innermost child Message. Model snapshots are not included; call foldkit_get_model_at with `index - 1` (before) and `index` (after) to inspect Model state around the entry.',
+      'Read a single Message history entry by absolute index. The response carries the SerializedEntry (tag, message body, commandNames, mountStartNames, mountEndNames, timestamp, `isModelChanged`, `changedPaths` for leaf-level mutations, `affectedPaths` adding their ancestor paths). `mountStartNames` lists Mounts that fired during the render after this Message; `mountEndNames` lists Mounts whose elements were unmounted during that render. For Submodel-routed entries (tag matches `Got*Message`), the entry also carries `submodelPath` listing wrapper tags from outer to inner and `maybeLeafTag` naming the innermost child Message. Model snapshots are not included; call foldkit_get_model_at with `index - 1` (before) and `index` (after) to inspect Model state around the entry.',
     inputSchema: toInputSchema(GetMessageInput),
     handle: runRuntimeTool(
       GetMessageInput,

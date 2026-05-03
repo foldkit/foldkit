@@ -4,12 +4,14 @@ import { ts } from '../schema/index.js'
 
 // SHARED
 
-/** A serialized history entry as it appears on the wire. `submodelPath` lists `Got<Child>Message` wrapper tags from outer to inner when the entry came up through a Submodel chain; `maybeLeafTag` is `Some` with the innermost child Message tag when one exists. */
+/** A serialized history entry as it appears on the wire. `submodelPath` lists `Got<Child>Message` wrapper tags from outer to inner when the entry came up through a Submodel chain; `maybeLeafTag` is `Some` with the innermost child Message tag when one exists. `mountStartNames` lists Mounts that fired during the render after this Message; `mountEndNames` lists Mounts whose elements were unmounted during that render. The Messages dispatched by mount Effects appear as their own entries elsewhere in history. */
 export const SerializedEntry = S.Struct({
   index: S.Number,
   tag: S.String,
   message: S.Unknown,
   commandNames: S.Array(S.String),
+  mountStartNames: S.Array(S.String),
+  mountEndNames: S.Array(S.String),
   timestamp: S.Number,
   isModelChanged: S.Boolean,
   changedPaths: S.Array(S.String),
@@ -147,10 +149,11 @@ export const ResponseRuntimes = ts('ResponseRuntimes', {
   runtimes: S.Array(RuntimeInfo),
 })
 
-/** Response carrying the recorded init data. `maybeModel` is `None` until the runtime has finished its first render and recorded init; once set it stays set for the rest of the runtime's life. `commandNames` lists the Commands returned from the application's `init` function in the order they were produced. */
+/** Response carrying the recorded init data. `maybeModel` is `None` until the runtime has finished its first render and recorded init; once set it stays set for the rest of the runtime's life. `commandNames` lists the Commands returned from the application's `init` function in the order they were produced. `mountStartNames` lists the Mounts that fired during the initial render. */
 export const ResponseInit = ts('ResponseInit', {
   maybeModel: S.OptionFromNullOr(S.Unknown),
   commandNames: S.Array(S.String),
+  mountStartNames: S.Array(S.String),
 })
 
 /** Response carrying a snapshot of the runtime's DevTools state. `currentIndex` is the absolute index of the most recently recorded Message, or -1 when no Messages have been recorded yet. `startIndex` is the earliest absolute index still retained in the rolling buffer (older entries are evicted past `maxEntries`). `totalEntries` is the number of retained entries. `isPaused` is true while the runtime is paused at a replayed snapshot; `maybePausedAtIndex` is `Some(index)` then and `None` otherwise. `hasInitModel` is true once the runtime has finished initialising. */

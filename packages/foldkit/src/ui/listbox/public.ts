@@ -23,6 +23,8 @@ export {
   CompletedClickItem,
   CompletedAnchorMount,
   CompletedFocusItemsOnMount,
+  ListboxAnchor,
+  ListboxFocusItemsOnMount,
   ClearedSearch,
   GotAnimationMessage,
   LockScroll,

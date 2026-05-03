@@ -137,7 +137,10 @@ const withUpdateReturn = M.withReturnType<UpdateReturn>()
 /** Waits for the tooltip's show delay before emitting `ElapsedShowDelay`. The version is echoed back so a stale timer is ignored when the user leaves before the delay fires. */
 export const ShowAfterDelay = Command.define('ShowAfterDelay', ElapsedShowDelay)
 
-const TooltipAnchor = Mount.define('TooltipAnchor', CompletedAnchorMount)
+/** The anchor-positioning Mount this Tooltip renders on its panel. Exposed so
+ *  Scene tests can call `Scene.resolveMount(TooltipAnchor, CompletedAnchorMount())`
+ *  to acknowledge the mount produced by the rendered panel. */
+export const TooltipAnchor = Mount.define('TooltipAnchor', CompletedAnchorMount)
 
 /** Processes a tooltip message and returns the next model and commands. */
 export const update = (model: Model, message: Message): UpdateReturn =>

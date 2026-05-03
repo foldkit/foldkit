@@ -27,6 +27,7 @@ import { createOverlay } from '../devTools/overlay.js'
 import { type DevToolsStore, createDevToolsStore } from '../devTools/store.js'
 import { startWebSocketBridge } from '../devTools/webSocketBridge.js'
 import { Document } from '../html/index.js'
+import { MountTracker } from '../mount/index.js'
 import { Url, fromString as urlFromString } from '../url/index.js'
 import { VNode, patch, toVNode } from '../vdom.js'
 import {
@@ -656,6 +657,27 @@ const makeRuntime = <
 
         const dispatch = { dispatchAsync, dispatchSync }
 
+        const mountStartBuffer: Array<string> = []
+        const mountEndBuffer: Array<string> = []
+        const mountTracker: typeof MountTracker.Service = {
+          started: name => {
+            mountStartBuffer.push(name)
+          },
+          ended: name => {
+            mountEndBuffer.push(name)
+          },
+        }
+        const drainMountEvents = (): Readonly<{
+          starts: ReadonlyArray<string>
+          ends: ReadonlyArray<string>
+        }> => {
+          const starts = mountStartBuffer.slice()
+          const ends = mountEndBuffer.slice()
+          mountStartBuffer.length = 0
+          mountEndBuffer.length = 0
+          return { starts, ends }
+        }
+
         const processMessage = (message: Message): Effect.Effect<void> =>
           Effect.gen(function* () {
             const currentModel = yield* Ref.get(modelRef)
@@ -705,6 +727,8 @@ const makeRuntime = <
                 ),
             )
 
+            const mountEvents = drainMountEvents()
+
             const maybeDevToolsStore = yield* Ref.get(maybeDevToolsStoreRef)
             yield* Option.match(maybeDevToolsStore, {
               onNone: () => Effect.void,
@@ -720,6 +744,8 @@ const makeRuntime = <
                     command => command.name,
                   ),
                   currentModel !== nextModel,
+                  mountEvents.starts,
+                  mountEvents.ends,
                 ),
             })
           })
@@ -755,7 +781,10 @@ const makeRuntime = <
             yield* Effect.sync(() =>
               applyDocumentMetadata(nextDocument, container),
             )
-          }).pipe(Effect.provideService(Dispatch, dispatch))
+          }).pipe(
+            Effect.provideService(Dispatch, dispatch),
+            Effect.provideService(MountTracker, mountTracker),
+          )
 
         const isInIframe = window.self !== window.top
         const resolvedDevTools = pipe(
@@ -789,10 +818,9 @@ const makeRuntime = <
             getCurrentModel: Ref.get(modelRef),
           })
           yield* Ref.set(maybeDevToolsStoreRef, Option.some(devToolsStore))
-          yield* devToolsStore.recordInit(
-            initModel,
-            Array.map(initCommands, ({ name }) => name),
-          )
+          // The init render runs below; capture the events it produces. We
+          // record init AFTER that render so the buffer reflects the mounts
+          // that fired on the first paint.
           yield* createOverlay(devToolsStore, position, mode, maybeBanner)
 
           if (import.meta.hot) {
@@ -812,6 +840,18 @@ const makeRuntime = <
         }
 
         yield* render(initModel, Option.none())
+
+        const initMountEvents = drainMountEvents()
+        const maybeStoreForInit = yield* Ref.get(maybeDevToolsStoreRef)
+        yield* Option.match(maybeStoreForInit, {
+          onNone: () => Effect.void,
+          onSome: store =>
+            store.recordInit(
+              initModel,
+              Array.map(initCommands, ({ name }) => name),
+              initMountEvents.starts,
+            ),
+        })
 
         addBfcacheRestoreListener()
 

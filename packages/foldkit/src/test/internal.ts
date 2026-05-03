@@ -1,9 +1,20 @@
 import { Array, Equivalence, Option, Order, Predicate, pipe } from 'effect'
 
 import type { CommandDefinition } from '../command/index.js'
+import type { MountDefinition } from '../mount/index.js'
 
 /** A Command in a test simulation, identified by name. */
 export type AnyCommand = Readonly<{ name: string }>
+
+/** A pending Mount in a Scene simulation. Identified by `name` and an
+ *  `occurrence` index that disambiguates same-named mounts in the rendered
+ *  tree (e.g. two open popovers each contributing a `PopoverAnchor`). The
+ *  occurrence is the 0-based position among same-named markers in
+ *  tree-traversal order. */
+export type PendingMount = Readonly<{
+  name: string
+  occurrence: number
+}>
 
 type UpdateResult<Model, OutMessage> =
   | readonly [Model, ReadonlyArray<AnyCommand>]
@@ -14,6 +25,17 @@ export type Resolver<ResultMessage = unknown> =
   | readonly [CommandDefinition<string, ResultMessage>, ResultMessage]
   | readonly [
       CommandDefinition<string, ResultMessage>,
+      ResultMessage,
+      (message: ResultMessage) => unknown,
+    ]
+
+/** A Mount definition with the result Message to resolve it with. Mirrors
+ *  `Resolver` for Commands. The optional third element lifts a child Mount
+ *  result into the parent's Message universe (mirrors `Mount.mapMessage`). */
+export type MountResolver<ResultMessage = unknown> =
+  | readonly [MountDefinition<string, ResultMessage>, ResultMessage]
+  | readonly [
+      MountDefinition<string, ResultMessage>,
       ResultMessage,
       (message: ResultMessage) => unknown,
     ]
@@ -229,6 +251,155 @@ export const assertAllCommandsResolved = (
         'Every Command produced by update needs to be resolved.\n' +
         'Use resolve(Definition, ResultMessage) for each one,\n' +
         'or resolveAll(...resolvers) to resolve them all at once.',
+    )
+  }
+}
+
+const formatMountList = (mounts: ReadonlyArray<PendingMount>): string =>
+  Array.isReadonlyArrayNonEmpty(mounts)
+    ? pipe(
+        mounts,
+        Array.map(({ name, occurrence }) =>
+          occurrence === 0 ? `    ${name}` : `    ${name} (#${occurrence + 1})`,
+        ),
+        Array.join('\n'),
+      )
+    : '    (none)'
+
+/** Resolves the first pending Mount with the given name by feeding `message`
+ *  through update. Returns the updated internal simulation, or `undefined`
+ *  when no pending mount with that name exists. */
+export const resolveMountByName = <Model, Message>(
+  internal: BaseInternal<Model, Message, unknown>,
+  pendingMounts: ReadonlyArray<PendingMount>,
+  mountName: string,
+  resolverMessage: Message,
+):
+  | Readonly<{
+      internal: BaseInternal<Model, Message, unknown>
+      pendingMounts: ReadonlyArray<PendingMount>
+    }>
+  | undefined =>
+  pipe(
+    pendingMounts,
+    Array.findFirstIndex(({ name }) => name === mountName),
+    Option.match({
+      onNone: () => undefined,
+      onSome: index => {
+        const remaining = Array.remove(pendingMounts, index)
+        const [nextModel, newCommands, ...rest] = internal.updateFn(
+          internal.model,
+          resolverMessage,
+        )
+        const outMessage = Array.isReadonlyArrayNonEmpty(rest)
+          ? rest[0]
+          : internal.outMessage
+        return {
+          internal: {
+            ...internal,
+            model: nextModel,
+            message: resolverMessage,
+            commands: Array.appendAll(internal.commands, newCommands),
+            outMessage,
+          },
+          pendingMounts: remaining,
+        }
+      },
+    }),
+  )
+
+/** Throws if any of the given mount definitions are missing from the pending
+ *  mount list. */
+export const assertHasMounts = (
+  pendingMounts: ReadonlyArray<PendingMount>,
+  definitions: ReadonlyArray<MountDefinition<string, unknown>>,
+): void => {
+  const pendingNames = Array.map(pendingMounts, ({ name }) => name)
+  const missing = Array.filter(
+    definitions,
+    ({ name }) => !Array.contains(pendingNames, name),
+  )
+
+  if (Array.isReadonlyArrayNonEmpty(missing)) {
+    const missingNames = pipe(
+      missing,
+      Array.map(({ name }) => `    ${name}`),
+      Array.join('\n'),
+    )
+    throw new Error(
+      `Expected to find Mounts:\n\n${missingNames}\n\n` +
+        `But the pending Mounts are:\n\n${formatMountList(pendingMounts)}`,
+    )
+  }
+}
+
+/** Throws if the pending Mounts don't match the given definitions exactly
+ *  (order-independent, by name). */
+export const assertExactMounts = (
+  pendingMounts: ReadonlyArray<PendingMount>,
+  definitions: ReadonlyArray<MountDefinition<string, unknown>>,
+): void => {
+  const expectedNames = pipe(
+    definitions,
+    Array.map(({ name }) => name),
+    Array.sort(Order.String),
+  )
+  const actualNames = pipe(
+    pendingMounts,
+    Array.map(({ name }) => name),
+    Array.sort(Order.String),
+  )
+
+  if (!Array.makeEquivalence(Equivalence.String)(expectedNames, actualNames)) {
+    const expected = pipe(
+      expectedNames,
+      Array.map(name => `    ${name}`),
+      Array.join('\n'),
+    )
+    throw new Error(
+      `Expected exactly these Mounts:\n\n${expected}\n\n` +
+        `But found:\n\n${formatMountList(pendingMounts)}`,
+    )
+  }
+}
+
+/** Throws if there are any pending Mounts. */
+export const assertZeroMounts = (
+  pendingMounts: ReadonlyArray<PendingMount>,
+): void => {
+  if (Array.isReadonlyArrayNonEmpty(pendingMounts)) {
+    throw new Error(
+      `Expected no Mounts but found:\n\n${formatMountList(pendingMounts)}`,
+    )
+  }
+}
+
+/** Throws when trying to send a Message with unresolved Mounts in the
+ *  rendered view. */
+export const assertNoUnresolvedMounts = (
+  pendingMounts: ReadonlyArray<PendingMount>,
+  context: string,
+): void => {
+  if (Array.isReadonlyArrayNonEmpty(pendingMounts)) {
+    throw new Error(
+      `I found unresolved Mounts ${context}:\n\n${formatMountList(pendingMounts)}\n\n` +
+        'Resolve all Mounts before sending the next Message.\n' +
+        'Use resolveMount(Definition, ResultMessage) for each one,\n' +
+        'or resolveAllMounts(...resolvers) to resolve them all at once.',
+    )
+  }
+}
+
+/** Throws when Mounts remain at the end of a test. */
+export const assertAllMountsResolved = (
+  pendingMounts: ReadonlyArray<PendingMount>,
+): void => {
+  if (Array.isReadonlyArrayNonEmpty(pendingMounts)) {
+    throw new Error(
+      `I found Mounts without resolvers:\n\n${formatMountList(pendingMounts)}\n\n` +
+        'Every OnMount in the rendered view needs to be resolved.\n' +
+        'Use resolveMount(Definition, ResultMessage) for each one,\n' +
+        'or resolveAllMounts(...resolvers) to resolve them all at once.',
     )
   }
 }
