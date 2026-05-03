@@ -5,7 +5,7 @@
 '@foldkit/devtools-mcp': minor
 ---
 
-Foldkit now targets Effect 4. Pin `effect@4.0.0-beta.59` (the version foldkit is built against). For Effect 4's own breaking changes (Schema, Stream, Context.Service, etc.), see Effect's release notes.
+Foldkit now targets Effect 4. **This is a breaking change.** For Effect 4's own breaking changes (Schema, Stream, Context.Service, etc.), see Effect's release notes.
 
 ## Upgrade
 
@@ -14,19 +14,19 @@ pnpm add effect@4.0.0-beta.59 foldkit@latest
 pnpm add -D @foldkit/vite-plugin@latest @foldkit/devtools-mcp@latest
 ```
 
+Pin `effect` to the exact version foldkit declares (`4.0.0-beta.59`). The pin is intentional during the v4 beta window — letting `effect` drift to a newer beta can break foldkit's runtime until foldkit re-pins.
+
 ## Foldkit changes
 
-### `container.id` is now required
+### Container element needs an `id`
 
-`Runtime.makeProgram` errors at startup if its `container` has no `id`. Most apps already pass `<div id="root"></div>`; if yours doesn't, add an id.
+The DOM element you pass as `container` to `Runtime.makeProgram` must have a non-empty `id` attribute. `Runtime.run` errors with a clear message if it's missing. Most apps already use `<div id="root"></div>`; if yours doesn't, add an id.
 
-The id is used to scope HMR model preservation per-runtime, so multiple Foldkit runtimes mounted in the same page (your app and the DevTools overlay) no longer clobber each other on hot-reload. Each runtime's id only needs to be unique among runtimes mounted in the same page.
+The id scopes HMR model preservation per-runtime. Foldkit's DevTools overlay manages its own container internally, so it doesn't conflict with your app. If you mount multiple Foldkit runtimes in the same page yourself, give each container a unique id.
 
 ### `@foldkit/vite-plugin` auto-includes Effect namespaces
 
-The plugin now adds the full set of `effect/*` namespaces foldkit references to `optimizeDeps.include`. v4 promoted previously nested names (`SchemaIssue`, `SchemaTransformation`, `Result`, `Cause`) to top-level exports that consumers rarely mention by name, and Vite's optimizer scans only your source. Without the force-include, foldkit's transitive imports were missing from the prebundle and crashed at runtime in dev.
-
-If you added `optimizeDeps.include` entries as a workaround, remove them. The plugin handles it.
+The plugin now adds the full set of `effect/*` namespaces foldkit references to `optimizeDeps.include`. v4 promoted previously nested names (`SchemaIssue`, `SchemaTransformation`, `Result`, `Cause`) to top-level exports that consumers rarely mention by name, and Vite's optimizer scans only your source. Without the force-include, foldkit's transitive imports would be missing from the prebundle and crash at runtime in dev. The plugin handles it transparently — no `optimizeDeps.include` entries needed in your config.
 
 ### `@foldkit/devtools-mcp` resilience
 
@@ -39,7 +39,3 @@ Tool schemas now register correctly with strict MCP hosts (Claude Code, Cursor).
 ### `create-foldkit-app` optional flags
 
 The `--name`, `--example`, and `--package-manager` CLI flags are now optional. Running with no flags drops into an interactive picker for each. Pass any subset of flags to skip the matching prompts.
-
-### `m` / `r` / `ts` callable wrappers (transparent)
-
-The `m`, `r`, `ts` wrappers from `foldkit/message`, `foldkit/route`, `foldkit/schema` now return a Proxy targeting a function so callable construction (`Foo({ ... })`) keeps working under v4 — `S.TaggedStruct` is no longer directly callable in Effect 4. No code change required if you used these wrappers. If you used `S.TaggedStruct` directly as a constructor, switch to `Foo.make({ ... })` or wrap with `m()` / `ts()`.
