@@ -44,7 +44,7 @@ export const comparisonTable = (
   div(
     [
       Class(
-        'overflow-x-auto mb-6 border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden',
+        'overflow-x-auto overscroll-x-none mb-6 border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden',
       ),
     ],
     [
