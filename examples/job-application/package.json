@@ -23,7 +23,7 @@
     "@typescript-eslint/eslint-plugin": "^8.58.2",
     "@typescript-eslint/parser": "^8.58.2",
     "eslint": "^9.39.2",
-    "happy-dom": "^18.0.1",
+    "happy-dom": "^20.0.0",
     "prettier": "^3.8.1",
     "typescript": "^6.0.2",
     "vite": "^7.3.1",

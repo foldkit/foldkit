@@ -200,7 +200,7 @@
     "@effect/platform-browser": "4.0.0-beta.59",
     "@effect/vitest": "4.0.0-beta.59",
     "effect": "4.0.0-beta.59",
-    "happy-dom": "^18.0.1",
+    "happy-dom": "^20.0.0",
     "typescript": "^6.0.2",
     "vitest": "^3.2.4"
   },
