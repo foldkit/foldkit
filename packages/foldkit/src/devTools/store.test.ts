@@ -281,6 +281,33 @@ describe('DevToolsStore', () => {
       expect(model).toEqual({ count: 6 })
       expect(replaySpy).toHaveBeenCalledTimes(6)
     })
+
+    it('skips replay entirely when reading the latest recorded model', () => {
+      const { bridge, store } = makeStore()
+      const replaySpy = vi.spyOn(bridge, 'replay')
+
+      recordIncrements(store, 35)
+      replaySpy.mockClear()
+
+      const latestIndex = 34
+      const model = run(store.getModelAtIndex(latestIndex))
+      expect(model).toEqual({ count: 35 })
+      expect(replaySpy).not.toHaveBeenCalled()
+    })
+
+    it('preserves the latest-model fast path across eviction', () => {
+      const { bridge, store } = makeStore(undefined, 50)
+      const replaySpy = vi.spyOn(bridge, 'replay')
+
+      recordIncrements(store, 55)
+      replaySpy.mockClear()
+
+      const state = getState(store)
+      const latestIndex = state.startIndex + state.entries.length - 1
+      const model = run(store.getModelAtIndex(latestIndex))
+      expect(model).toEqual({ count: 55 })
+      expect(replaySpy).not.toHaveBeenCalled()
+    })
   })
 
   describe('eviction', () => {

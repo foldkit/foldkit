@@ -3,6 +3,7 @@ import {
   Effect,
   HashMap,
   HashSet,
+  Match,
   Option,
   Predicate,
   Record,
@@ -130,6 +131,7 @@ export type StoreState = Readonly<{
   startIndex: number
   isPaused: boolean
   pausedAtIndex: number
+  maybeLatestModel: Option.Option<unknown>
 }>
 
 export type Bridge = Readonly<{
@@ -146,6 +148,7 @@ const emptyState: StoreState = {
   startIndex: 0,
   isPaused: false,
   pausedAtIndex: 0,
+  maybeLatestModel: Option.none(),
 }
 
 export const createDevToolsStore = (
@@ -210,6 +213,7 @@ export const createDevToolsStore = (
         maybeInitModel: Option.some(model),
         initCommandNames: commandNames,
         keyframes: HashMap.set(state.keyframes, 0, model),
+        maybeLatestModel: Option.some(model),
       }))
 
     const recordMessage = (
@@ -243,6 +247,7 @@ export const createDevToolsStore = (
             absoluteIndex + 1,
             modelAfterUpdate,
           ),
+          maybeLatestModel: Option.some(modelAfterUpdate),
         }
 
         return nextState.entries.length > maxEntries
@@ -250,10 +255,23 @@ export const createDevToolsStore = (
           : nextState
       })
 
+    const latestEntryIndex = (state: StoreState): number =>
+      Array.match(state.entries, {
+        onEmpty: () => INIT_INDEX,
+        onNonEmpty: entries => state.startIndex + entries.length - 1,
+      })
+
+    // NOTE: maybeLatestModel must be stamped atomically with the entries
+    // append in recordMessage. The follow-latest fast-path below depends on
+    // that invariant.
     const resolveModel = (state: StoreState, index: number): unknown =>
-      index === INIT_INDEX
-        ? Option.getOrThrow(state.maybeInitModel)
-        : replayToIndex(state, index)
+      Match.value(index).pipe(
+        Match.when(INIT_INDEX, () => Option.getOrThrow(state.maybeInitModel)),
+        Match.when(latestEntryIndex(state), () =>
+          Option.getOrThrow(state.maybeLatestModel),
+        ),
+        Match.orElse(() => replayToIndex(state, index)),
+      )
 
     const getModelAtIndex = (index: number) =>
       pipe(
@@ -306,6 +324,7 @@ export const createDevToolsStore = (
         onSome: model =>
           HashMap.set(HashMap.empty<number, unknown>(), 0, model),
       }),
+      maybeLatestModel: state.maybeInitModel,
     }))
 
     const getDiffAtIndex = (index: number) =>
