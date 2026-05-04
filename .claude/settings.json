@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "test -x node_modules/.bin/simple-git-hooks && node_modules/.bin/simple-git-hooks || pnpm install"
+            "command": "bash scripts/cloud-session-setup.sh"
           }
         ]
       }
