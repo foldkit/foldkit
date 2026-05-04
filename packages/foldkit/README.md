@@ -25,7 +25,7 @@ Built on [Effect](https://effect.website/). Architected like [Elm](https://guide
 
 ## Who It's For
 
-Foldkit is for developers who want their architecture to prevent bugs, not just catch them. If you want a single pattern that scales from a counter to a multiplayer game without complexity creep, this is it.
+Foldkit is for developers who want to build their product with confidence instead of fighting their architecture. If you want a single pattern that scales from a counter to a multiplayer game without complexity creep, this is it.
 
 It's not incremental. There's no React interop, no escape hatch from Effect, no way to "just use hooks for this one part." You're all in or you're not.
 
