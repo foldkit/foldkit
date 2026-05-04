@@ -172,6 +172,9 @@ importers:
 
   examples/counter:
     dependencies:
+      '@effect/platform-browser':
+        specifier: 4.0.0-beta.59
+        version: 4.0.0-beta.59(effect@4.0.0-beta.59)
       '@tailwindcss/vite':
         specifier: ^4.1.18
         version: 4.1.18(vite@7.3.1(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.3))
@@ -215,6 +218,9 @@ importers:
 
   examples/crash-view:
     dependencies:
+      '@effect/platform-browser':
+        specifier: 4.0.0-beta.59
+        version: 4.0.0-beta.59(effect@4.0.0-beta.59)
       '@tailwindcss/vite':
         specifier: ^4.1.18
         version: 4.1.18(vite@7.3.1(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.3))
@@ -258,6 +264,9 @@ importers:
 
   examples/form:
     dependencies:
+      '@effect/platform-browser':
+        specifier: 4.0.0-beta.59
+        version: 4.0.0-beta.59(effect@4.0.0-beta.59)
       '@tailwindcss/vite':
         specifier: ^4.1.18
         version: 4.1.18(vite@7.3.1(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.3))
@@ -310,6 +319,9 @@ importers:
 
   examples/job-application:
     dependencies:
+      '@effect/platform-browser':
+        specifier: 4.0.0-beta.59
+        version: 4.0.0-beta.59(effect@4.0.0-beta.59)
       '@tailwindcss/vite':
         specifier: ^4.1.18
         version: 4.1.18(vite@7.3.1(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.3))
@@ -420,6 +432,9 @@ importers:
 
   examples/map:
     dependencies:
+      '@effect/platform-browser':
+        specifier: 4.0.0-beta.59
+        version: 4.0.0-beta.59(effect@4.0.0-beta.59)
       '@tailwindcss/vite':
         specifier: ^4.1.18
         version: 4.1.18(vite@7.3.1(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.3))
@@ -527,6 +542,9 @@ importers:
 
   examples/query-sync:
     dependencies:
+      '@effect/platform-browser':
+        specifier: 4.0.0-beta.59
+        version: 4.0.0-beta.59(effect@4.0.0-beta.59)
       '@tailwindcss/vite':
         specifier: ^4.1.18
         version: 4.1.18(vite@7.3.1(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.3))
@@ -573,6 +591,9 @@ importers:
 
   examples/routing:
     dependencies:
+      '@effect/platform-browser':
+        specifier: 4.0.0-beta.59
+        version: 4.0.0-beta.59(effect@4.0.0-beta.59)
       '@tailwindcss/vite':
         specifier: ^4.1.18
         version: 4.1.18(vite@7.3.1(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.3))
@@ -616,6 +637,9 @@ importers:
 
   examples/shopping-cart:
     dependencies:
+      '@effect/platform-browser':
+        specifier: 4.0.0-beta.59
+        version: 4.0.0-beta.59(effect@4.0.0-beta.59)
       '@tailwindcss/vite':
         specifier: ^4.1.18
         version: 4.1.18(vite@7.3.1(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.3))
@@ -659,6 +683,9 @@ importers:
 
   examples/snake:
     dependencies:
+      '@effect/platform-browser':
+        specifier: 4.0.0-beta.59
+        version: 4.0.0-beta.59(effect@4.0.0-beta.59)
       '@tailwindcss/vite':
         specifier: ^4.1.18
         version: 4.1.18(vite@7.3.1(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.3))
@@ -702,6 +729,9 @@ importers:
 
   examples/stopwatch:
     dependencies:
+      '@effect/platform-browser':
+        specifier: 4.0.0-beta.59
+        version: 4.0.0-beta.59(effect@4.0.0-beta.59)
       '@tailwindcss/vite':
         specifier: ^4.1.18
         version: 4.1.18(vite@7.3.1(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.3))
@@ -797,6 +827,9 @@ importers:
 
   examples/ui-showcase:
     dependencies:
+      '@effect/platform-browser':
+        specifier: 4.0.0-beta.59
+        version: 4.0.0-beta.59(effect@4.0.0-beta.59)
       '@tailwindcss/vite':
         specifier: ^4.1.18
         version: 4.1.18(vite@7.3.1(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.3))
@@ -843,6 +876,9 @@ importers:
 
   examples/weather:
     dependencies:
+      '@effect/platform-browser':
+        specifier: 4.0.0-beta.59
+        version: 4.0.0-beta.59(effect@4.0.0-beta.59)
       '@tailwindcss/vite':
         specifier: ^4.1.18
         version: 4.1.18(vite@7.3.1(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.3))
@@ -892,6 +928,9 @@ importers:
 
   examples/websocket-chat:
     dependencies:
+      '@effect/platform-browser':
+        specifier: 4.0.0-beta.59
+        version: 4.0.0-beta.59(effect@4.0.0-beta.59)
       '@tailwindcss/vite':
         specifier: ^4.1.18
         version: 4.1.18(vite@7.3.1(@types/node@25.1.0)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.3))
