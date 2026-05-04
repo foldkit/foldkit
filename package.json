@@ -14,7 +14,7 @@
     "check:no-major-changesets": "bash scripts/check-no-major-changesets.sh",
     "check:no-claude-comments": "bash scripts/check-no-claude-comments.sh",
     "check:circular-deps": "bash scripts/check-circular-deps.sh",
-    "pre-push": "pnpm check:no-claude-comments && pnpm build && pnpm format:check && pnpm check && pnpm test && pnpm --filter website test:e2e && pnpm check:circular-deps && pnpm check:changeset-ignore && pnpm check:skill-version && pnpm check:no-major-changesets && pnpm changeset status --since=origin/main",
+    "pre-push": "pnpm check:no-claude-comments && pnpm format:check && pnpm check:skill-version && pnpm check:no-major-changesets && pnpm check:changeset-ignore && pnpm changeset status --since=origin/main && pnpm lint && pnpm check:effect-prebundle && pnpm check:circular-deps && pnpm build && pnpm -r typecheck && pnpm test && pnpm --filter website test:e2e",
     "test": "pnpm -r --filter './examples/*' --filter './packages/*' run --if-present test",
     "test:e2e": "pnpm --filter website test:e2e",
     "format": "prettier -w .",
