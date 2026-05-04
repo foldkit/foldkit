@@ -89,7 +89,25 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('BrowserKeyValueStore'),
         ' should be provided per-command with ',
         inlineCode('Effect.provide'),
-        ' instead.',
+        ' instead. Per-command provision keeps the dependency in the Command’s type signature, so readers can tell at a glance which Commands hit the network. Hoisting these into resources erases that signal.',
+      ),
+      para(
+        'The convenience argument for hoisting is real but has a cheap answer: a one-line helper that applies the layer wherever it’s needed. Define ',
+        inlineCode('withHttp'),
+        ' once, wrap the HTTP-using portion of each Command, and the boilerplate collapses to a single function call per call site.',
+      ),
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.resourcesPerCommandHttpHighlighted),
+          ],
+          [],
+        ),
+        Snippets.resourcesPerCommandHttpRaw,
+        'Copy per-command HTTP helper to clipboard',
+        copiedSnippets,
+        'mb-8',
       ),
       tableOfContentsEntryToHeader(providingMultipleServicesHeader),
       para(
