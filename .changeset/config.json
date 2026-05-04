@@ -32,6 +32,7 @@
     "kanban-example",
     "job-application-example",
     "map-example",
-    "pixel-art-react-comparison"
+    "pixel-art-react-comparison",
+    "@foldkit/performance-harness"
   ]
 }

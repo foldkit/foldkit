@@ -1,0 +1,22 @@
+{
+  "name": "@foldkit/performance-harness",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@effect/platform-browser": "4.0.0-beta.59",
+    "@tailwindcss/vite": "^4.1.18",
+    "effect": "4.0.0-beta.59",
+    "foldkit": "workspace:*",
+    "tailwindcss": "^4.1.18"
+  },
+  "devDependencies": {
+    "@foldkit/vite-plugin": "workspace:*",
+    "typescript": "^6.0.2",
+    "vite": "^7.3.1"
+  }
+}

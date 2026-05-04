@@ -65,6 +65,21 @@ const InspectorTabsModel = S.Struct({
   activationMode: S.Literals(['Automatic', 'Manual']),
 })
 
+/**
+ * `S.Unknown` whose equivalence is reference equality. Effect 4's default
+ * equivalence for `S.Unknown` is `Equal.equals`, which walks the value
+ * structurally (hash + compareRecords) instead of falling back to `===` like
+ * Effect 3. The DevTools overlay holds whole user Model and Message snapshots
+ * in fields typed as `S.Unknown`, so the runtime's per-dispatch
+ * `modelEquivalence` check would otherwise walk the entire payload three
+ * times every time the user dispatches a Message. The snapshots are
+ * through-traffic (different reference per frame iff different content),
+ * which makes reference equality the correct comparison.
+ */
+const UnknownByReference = S.Unknown.pipe(
+  S.overrideToEquivalence(() => (a, b) => a === b),
+)
+
 const Model = S.Struct({
   isOpen: S.Boolean,
   isMobile: S.Boolean,
@@ -75,8 +90,8 @@ const Model = S.Struct({
   pausedAtIndex: S.Number,
   selectedIndex: S.Number,
   isFollowingLatest: S.Boolean,
-  maybeInspectedModel: S.Option(S.Unknown),
-  maybeInspectedMessage: S.Option(S.Unknown),
+  maybeInspectedModel: S.Option(UnknownByReference),
+  maybeInspectedMessage: S.Option(UnknownByReference),
   submodelTags: S.Array(S.String),
   maybeSubmodelFilter: S.Option(S.String),
   submodelFilterListbox: Listbox.Model,
@@ -166,6 +181,7 @@ const MOBILE_BREAKPOINT_QUERY = `(max-width: ${MOBILE_BREAKPOINT}px)`
 const TREE_INDENT_PX = 12
 const MAX_PREVIEW_KEYS = 3
 const ALL_MESSAGES_VALUE = ''
+const NO_COMMANDS: ReadonlyArray<string> = []
 
 const formatTimeDelta = (deltaMs: number): string =>
   M.value(deltaMs).pipe(
@@ -210,7 +226,7 @@ const toDisplayState = (state: StoreState) => ({
   pausedAtIndex: state.pausedAtIndex,
 })
 
-const isExpandable = (value: unknown): boolean => Predicate.isObject(value)
+const isExpandable = Predicate.isObjectOrArray
 
 const objectPreview = (value: Record<string, unknown>): string =>
   pipe(
@@ -644,6 +660,7 @@ const makeView = (
 
   const lazyTreeNode = createKeyedLazy()
   const lazyMessageRow = createKeyedLazy()
+  const lazyTabContent = createKeyedLazy()
 
   // JSON TREE
 
@@ -966,22 +983,30 @@ const makeView = (
     ['init — no Message'],
   )
 
-  const modelTabContent = (model: Model, inspectedModel: unknown): Html =>
+  const modelTabContent = (
+    inspectedModel: unknown,
+    expandedPaths: HashSet.HashSet<string>,
+    changedPaths: HashSet.HashSet<string>,
+    affectedPaths: HashSet.HashSet<string>,
+  ): Html =>
     treeView(
       inspectedModel,
       'root',
-      model.expandedPaths,
-      model.changedPaths,
-      model.affectedPaths,
+      expandedPaths,
+      changedPaths,
+      affectedPaths,
       Option.none(),
       true,
     )
 
-  const unwrapIfFiltered = (message: unknown, model: Model): unknown => {
-    if (Option.isNone(model.maybeSubmodelFilter)) {
+  const unwrapIfFiltered = (
+    message: unknown,
+    maybeSubmodelFilter: Option.Option<string>,
+  ): unknown => {
+    if (Option.isNone(maybeSubmodelFilter)) {
       return message
     }
-    const { value: filterTag } = model.maybeSubmodelFilter
+    const { value: filterTag } = maybeSubmodelFilter
 
     let current = message
     let matched = false
@@ -1003,11 +1028,16 @@ const makeView = (
     return current
   }
 
-  const messageTabContent = (model: Model): Html =>
-    Option.match(model.maybeInspectedMessage, {
+  const messageTabContent = (
+    maybeInspectedMessage: Option.Option<unknown>,
+    maybeSubmodelFilter: Option.Option<string>,
+    expandedPaths: HashSet.HashSet<string>,
+    timestamp: string,
+  ): Html =>
+    Option.match(maybeInspectedMessage, {
       onNone: () => noMessageView,
       onSome: rawMessage => {
-        const message = unwrapIfFiltered(rawMessage, model)
+        const message = unwrapIfFiltered(rawMessage, maybeSubmodelFilter)
 
         return div(
           [Class('flex flex-col flex-1 min-h-0 min-w-0')],
@@ -1018,7 +1048,7 @@ const makeView = (
                   'px-2 py-1 border-b text-2xs text-dt-muted font-mono shrink-0',
                 ),
               ],
-              [inspectedTimestamp(model)],
+              [timestamp],
             ),
             div(
               [Class('flex flex-col flex-1 min-h-0 min-w-0 pt-1 pl-1')],
@@ -1026,7 +1056,7 @@ const makeView = (
                 treeView(
                   message,
                   'root',
-                  model.expandedPaths,
+                  expandedPaths,
                   HashSet.empty(),
                   HashSet.empty(),
                   Option.none(),
@@ -1055,12 +1085,12 @@ const makeView = (
     return pipe(
       Array_.get(model.entries, selectedIndex - model.startIndex),
       Option.map(entry => entry.commandNames),
-      Option.getOrElse(() => []),
+      Option.getOrElse(() => NO_COMMANDS),
     )
   }
 
-  const commandsTabContent = (model: Model): Html =>
-    Array_.match(selectedCommandNames(model), {
+  const commandsTabContent = (commandNames: ReadonlyArray<string>): Html =>
+    Array_.match(commandNames, {
       onEmpty: () =>
         div(
           [
@@ -1099,9 +1129,27 @@ const makeView = (
     inspectedModel: unknown,
   ): Html =>
     M.value(tab).pipe(
-      M.when('Model', () => modelTabContent(model, inspectedModel)),
-      M.when('Message', () => messageTabContent(model)),
-      M.when('Commands', () => commandsTabContent(model)),
+      M.when('Model', () =>
+        lazyTabContent('Model', modelTabContent, [
+          inspectedModel,
+          model.expandedPaths,
+          model.changedPaths,
+          model.affectedPaths,
+        ]),
+      ),
+      M.when('Message', () =>
+        lazyTabContent('Message', messageTabContent, [
+          model.maybeInspectedMessage,
+          model.maybeSubmodelFilter,
+          model.expandedPaths,
+          inspectedTimestamp(model),
+        ]),
+      ),
+      M.when('Commands', () =>
+        lazyTabContent('Commands', commandsTabContent, [
+          selectedCommandNames(model),
+        ]),
+      ),
       M.exhaustive,
     )
 
@@ -1119,6 +1167,7 @@ const makeView = (
             GotInspectorTabsMessage({ message: tabsMessage }),
           tabs: INSPECTOR_TABS,
           tabListAriaLabel: 'Inspector tabs',
+          persistPanels: true,
           attributes: [Class('flex flex-col flex-1 min-h-0')],
           tabListAttributes: [Class('flex border-b shrink-0')],
           tabToConfig: (tab, { isActive }) => ({
@@ -1645,6 +1694,7 @@ export const createOverlay = (
       container,
       subscriptions: makeOverlaySubscriptions(store),
       devTools: false,
+      freezeModel: false,
     })
 
     yield* Effect.forkDetach(overlayRuntime.start())

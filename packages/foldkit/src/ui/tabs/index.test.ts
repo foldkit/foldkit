@@ -581,6 +581,28 @@ describe('Tabs', () => {
           }),
         )
       })
+
+      it('applies inline display: none to inactive persisted panels and not to the active one', () => {
+        const panelZero = Scene.selector('[key="test-panel-0"]')
+        const panelOne = Scene.selector('[key="test-panel-1"]')
+        const panelTwo = Scene.selector('[key="test-panel-2"]')
+        Scene.scene(
+          {
+            update,
+            view: sceneView({
+              persistPanels: true,
+              tabToConfig: () => ({
+                buttonContent: Effect.succeed(null),
+                panelContent: Effect.succeed(null),
+              }),
+            }),
+          },
+          Scene.with(init({ id: 'test', activeIndex: 1 })),
+          Scene.expect(panelZero).toHaveStyle('display', 'none'),
+          Scene.expect(panelOne).not.toHaveStyle('display'),
+          Scene.expect(panelTwo).toHaveStyle('display', 'none'),
+        )
+      })
     })
   })
 })

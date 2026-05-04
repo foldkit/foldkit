@@ -27,8 +27,7 @@ export const emptyDiff: DiffResult = {
   affectedPaths: HashSet.empty(),
 }
 
-const isExpandable = (value: unknown): boolean =>
-  Predicate.isNotNull(value) && typeof value === 'object'
+const isExpandable = Predicate.isObjectOrArray
 
 export const computeDiff = (
   previous: unknown,

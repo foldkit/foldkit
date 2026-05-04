@@ -160,6 +160,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     Id,
     OnClick,
     OnKeyDownPreventDefault,
+    Style,
     Tabindex,
     Type,
     keyed,
@@ -227,7 +228,11 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
 
   const persistedPanel = keyed(panelElement)(
     panelId(id),
-    [...resolvedPanelAttributes, Hidden(!isOpen)],
+    [
+      ...resolvedPanelAttributes,
+      Hidden(!isOpen),
+      ...(isOpen ? [] : [Style({ display: 'none' })]),
+    ],
     [panelContent],
   )
 

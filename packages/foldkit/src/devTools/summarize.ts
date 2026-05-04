@@ -43,10 +43,7 @@ const PathResolution = S.Union([Found, NotFound])
  */
 export type PathResolution = typeof PathResolution.Type
 
-const isExpandable = (
-  value: unknown,
-): value is Readonly<Record<string, unknown>> | ReadonlyArray<unknown> =>
-  Predicate.isObject(value) || Array.isArray(value)
+const isExpandable = Predicate.isObjectOrArray
 
 const keysOf = (value: unknown): ReadonlyArray<string> =>
   M.value(value).pipe(

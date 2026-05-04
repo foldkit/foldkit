@@ -75,6 +75,13 @@ describe('toInspectableValue', () => {
       ],
     })
   })
+
+  it('returns the same reference when called twice with the same input', () => {
+    const input = { items: [{ id: 1 }, { id: 2 }] }
+    const first = toInspectableValue(input)
+    const second = toInspectableValue(input)
+    expect(first).toBe(second)
+  })
 })
 
 describe('toSerializedEntry', () => {

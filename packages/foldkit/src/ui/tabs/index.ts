@@ -200,6 +200,7 @@ export const view = <Message, Tab extends string>(
     OnClick,
     OnKeyDownPreventDefault,
     Role,
+    Style,
     Tabindex,
     Type,
     keyed,
@@ -335,6 +336,7 @@ export const view = <Message, Tab extends string>(
           ? [Class(panelConfig.panelClassName)]
           : []),
         ...(panelConfig.panelAttributes ?? []),
+        ...(isActive ? [] : [Style({ display: 'none' })]),
       ],
       [panelConfig.panelContent],
     )
