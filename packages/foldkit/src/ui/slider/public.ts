@@ -4,6 +4,7 @@ export {
   view,
   lazy,
   subscriptions,
+  subscriptionsForRoot,
   fractionOfValue,
   Model,
   Message,

@@ -34,6 +34,7 @@ import { makeSubscriptions } from '../runtime/subscription.js'
 import { evo } from '../struct/index.js'
 import { lockScroll, unlockScroll } from '../task/scrollLock.js'
 import * as Listbox from '../ui/listbox/public.js'
+import * as Slider from '../ui/slider/public.js'
 import * as Tabs from '../ui/tabs/public.js'
 import { overlayStyles } from './overlay-styles.js'
 import { toInspectableValue } from './serialize.js'
@@ -57,6 +58,7 @@ const DisplayEntry = S.Struct({
 
 const INSPECTOR_TABS_ID = 'dt-inspector'
 const SUBMODEL_FILTER_ID = 'dt-submodel-filter'
+const SCRUBBER_SLIDER_ID = 'dt-scrubber'
 
 const InspectorTabsModel = S.Struct({
   id: S.String,
@@ -84,6 +86,7 @@ const Model = S.Struct({
   changedPaths: S.HashSet(S.String),
   affectedPaths: S.HashSet(S.String),
   inspectorTabs: InspectorTabsModel,
+  scrubberSlider: S.suspend((): typeof Slider.Model => Slider.Model),
 })
 type Model = typeof Model.Type
 
@@ -135,6 +138,9 @@ const GotSubmodelFilterMessage = m('GotSubmodelFilterMessage', {
 const SelectedSubmodelFilter = m('SelectedSubmodelFilter', {
   tag: S.String,
 })
+const GotScrubberSliderMessage = m('GotScrubberSliderMessage', {
+  message: S.suspend((): typeof Slider.Message => Slider.Message),
+})
 
 const Message = S.Union([
   ClickedToggle,
@@ -155,6 +161,7 @@ const Message = S.Union([
   ReceivedStoreUpdate,
   GotSubmodelFilterMessage,
   SelectedSubmodelFilter,
+  GotScrubberSliderMessage,
 ])
 type Message = typeof Message.Type
 
@@ -483,6 +490,15 @@ const makeUpdate = (
                   : current,
               selectedIndex: current =>
                 shouldFollowLatest ? latestIndex : current,
+              scrubberSlider: current => {
+                const isScrubbing = current.dragState._tag === 'Dragging'
+                const targetValue = isPaused ? pausedAtIndex : latestIndex
+                return evo(current, {
+                  max: () => latestIndex,
+                  value: previousValue =>
+                    isScrubbing ? previousValue : targetValue,
+                })
+              },
             }),
             shouldFollowLatest ? [scrollToTop, inspectLatest] : [],
           ]
@@ -527,6 +543,30 @@ const makeUpdate = (
             ),
           ]
         },
+        GotScrubberSliderMessage: ({ message: sliderMessage }) => {
+          const [nextSlider, sliderCommands, maybeOutMessage] = Slider.update(
+            model.scrubberSlider,
+            sliderMessage,
+          )
+
+          const mappedSliderCommands = sliderCommands.map(
+            Command.mapEffect(
+              Effect.map(innerMessage =>
+                GotScrubberSliderMessage({ message: innerMessage }),
+              ),
+            ),
+          )
+
+          const additionalCommands = Option.match(maybeOutMessage, {
+            onNone: () => [],
+            onSome: ({ value }) => [jumpTo(value), inspectState(value)],
+          })
+
+          return [
+            evo(model, { scrubberSlider: () => nextSlider }),
+            [...mappedSliderCommands, ...additionalCommands],
+          ]
+        },
       }),
       M.tag(
         'CompletedJump',
@@ -543,13 +583,26 @@ const makeUpdate = (
 
 // SUBSCRIPTION
 
+const ScrubberDragActivity = S.Literals(['Idle', 'Active'])
+
 const SubscriptionDeps = S.Struct({
   storeUpdates: S.Boolean,
   mobileBreakpoint: S.Null,
+  scrubberPointer: S.Struct({
+    dragActivity: ScrubberDragActivity,
+    id: S.String,
+    min: S.Number,
+    max: S.Number,
+  }),
+  scrubberEscape: S.Struct({
+    dragActivity: ScrubberDragActivity,
+  }),
 })
 
-const makeOverlaySubscriptions = (store: DevToolsStore) =>
-  makeSubscriptions(SubscriptionDeps)<Model, Message>({
+const makeOverlaySubscriptions = (store: DevToolsStore, shadow: ShadowRoot) => {
+  const sliderSubscriptions = Slider.subscriptionsForRoot(() => shadow)
+
+  return makeSubscriptions(SubscriptionDeps)<Model, Message>({
     storeUpdates: {
       modelToDependencies: () => true,
       dependenciesToStream: () =>
@@ -587,7 +640,36 @@ const makeOverlaySubscriptions = (store: DevToolsStore) =>
           ).pipe(Effect.flatMap(() => Effect.never)),
         ),
     },
+    scrubberPointer: {
+      modelToDependencies: model =>
+        sliderSubscriptions.documentPointer.modelToDependencies(
+          model.scrubberSlider,
+        ),
+      dependenciesToStream: (deps, readDeps) =>
+        Stream.map(
+          sliderSubscriptions.documentPointer.dependenciesToStream(
+            deps,
+            readDeps,
+          ),
+          message => GotScrubberSliderMessage({ message }),
+        ),
+    },
+    scrubberEscape: {
+      modelToDependencies: model =>
+        sliderSubscriptions.documentEscape.modelToDependencies(
+          model.scrubberSlider,
+        ),
+      dependenciesToStream: (deps, readDeps) =>
+        Stream.map(
+          sliderSubscriptions.documentEscape.dependenciesToStream(
+            deps,
+            readDeps,
+          ),
+          message => GotScrubberSliderMessage({ message }),
+        ),
+    },
   })
+}
 
 // VIEW
 
@@ -616,6 +698,7 @@ const PANEL_POSITION_CLASS: Record<DevToolsPosition, string> = {
 const makeView = (
   position: DevToolsPosition,
   mode: DevToolsMode,
+  shadow: ShadowRoot,
   maybeBanner: Option.Option<string>,
 ): ((model: Model) => Document) => {
   const {
@@ -1502,7 +1585,66 @@ const makeView = (
     )
   }
 
+  // SCRUBBER
+
+  const scrubberPositionLabel = (model: Model): string => {
+    const lastIndex = Array_.match(model.entries, {
+      onEmpty: () => INIT_INDEX,
+      onNonEmpty: () => model.startIndex + model.entries.length - 1,
+    })
+    const currentValue = model.scrubberSlider.value
+    if (currentValue === INIT_INDEX) {
+      return `init / ${lastIndex + 1}`
+    }
+    return `${currentValue + 1} / ${lastIndex + 1}`
+  }
+
+  const scrubberView = (model: Model): Html =>
+    Slider.view<Message>({
+      model: model.scrubberSlider,
+      toParentMessage: message => GotScrubberSliderMessage({ message }),
+      ariaLabel: 'Session scrubber',
+      getTrackRoot: () => shadow,
+      formatValue: value =>
+        value === INIT_INDEX ? 'init' : `Message ${String(value + 1)}`,
+      toView: attributes =>
+        div(
+          [
+            Class(
+              'dt-scrubber-row flex items-center gap-3 px-3 py-2 border-t shrink-0',
+            ),
+          ],
+          [
+            div(
+              [
+                ...attributes.root,
+                Class('dt-scrubber-control flex-1 flex items-center'),
+              ],
+              [
+                div(
+                  [...attributes.track, Class('dt-scrubber-track')],
+                  [
+                    div(
+                      [...attributes.filledTrack, Class('dt-scrubber-fill')],
+                      [],
+                    ),
+                  ],
+                ),
+                div([...attributes.thumb, Class('dt-scrubber-thumb')], []),
+              ],
+            ),
+            span(
+              [Class('text-2xs text-dt-muted font-mono shrink-0 tabular-nums')],
+              [scrubberPositionLabel(model)],
+            ),
+          ],
+        ),
+    })
+
   // PANEL
+
+  const isScrubberVisible = (model: Model): boolean =>
+    mode === 'TimeTravel' && !Array_.isReadonlyArrayEmpty(model.entries)
 
   const panelView = (model: Model): Html =>
     keyed('div')(
@@ -1542,6 +1684,9 @@ const makeView = (
             ),
             inspectorPaneView(model),
           ],
+        ),
+        ...OptionExt.when(isScrubberVisible(model), scrubberView(model)).pipe(
+          Option.toArray,
         ),
       ],
     )
@@ -1613,27 +1758,44 @@ export const createOverlay = (
 
     const init = (
       flags: typeof Flags.Type,
-    ): readonly [Model, ReadonlyArray<Command.Command<Message>>] => [
-      {
-        isOpen: false,
-        ...flags,
-        selectedIndex: INIT_INDEX,
-        isFollowingLatest: true,
-        submodelTags: computeSubmodelTags(flags.entries),
-        maybeSubmodelFilter: Option.none(),
-        submodelFilterListbox: Listbox.init({
-          id: SUBMODEL_FILTER_ID,
-          selectedItem: ALL_MESSAGES_VALUE,
-        }),
-        maybeInspectedModel: Option.none(),
-        maybeInspectedMessage: Option.none(),
-        expandedPaths: HashSet.empty(),
-        changedPaths: HashSet.empty(),
-        affectedPaths: HashSet.empty(),
-        inspectorTabs: Tabs.init({ id: INSPECTOR_TABS_ID }),
-      },
-      [],
-    ]
+    ): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
+      const latestIndex = Array_.match(flags.entries, {
+        onEmpty: () => INIT_INDEX,
+        onNonEmpty: () => flags.startIndex + flags.entries.length - 1,
+      })
+      const initialScrubberValue = flags.isPaused
+        ? flags.pausedAtIndex
+        : latestIndex
+
+      return [
+        {
+          isOpen: false,
+          ...flags,
+          selectedIndex: INIT_INDEX,
+          isFollowingLatest: true,
+          submodelTags: computeSubmodelTags(flags.entries),
+          maybeSubmodelFilter: Option.none(),
+          submodelFilterListbox: Listbox.init({
+            id: SUBMODEL_FILTER_ID,
+            selectedItem: ALL_MESSAGES_VALUE,
+          }),
+          maybeInspectedModel: Option.none(),
+          maybeInspectedMessage: Option.none(),
+          expandedPaths: HashSet.empty(),
+          changedPaths: HashSet.empty(),
+          affectedPaths: HashSet.empty(),
+          inspectorTabs: Tabs.init({ id: INSPECTOR_TABS_ID }),
+          scrubberSlider: Slider.init({
+            id: SCRUBBER_SLIDER_ID,
+            min: INIT_INDEX,
+            max: latestIndex,
+            step: 1,
+            initialValue: initialScrubberValue,
+          }),
+        },
+        [],
+      ]
+    }
 
     const overlayRuntime = makeProgram({
       Model,
@@ -1641,9 +1803,9 @@ export const createOverlay = (
       flags,
       init,
       update: makeUpdate(store, shadow, mode),
-      view: makeView(position, mode, maybeBanner),
+      view: makeView(position, mode, shadow, maybeBanner),
       container,
-      subscriptions: makeOverlaySubscriptions(store),
+      subscriptions: makeOverlaySubscriptions(store, shadow),
       devTools: false,
     })
 

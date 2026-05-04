@@ -334,9 +334,12 @@ const dragActivityFromModel = (model: Model): typeof DragActivity.Type =>
     M.orElse(() => 'Idle'),
   )
 
-const trackElement = (id: string): Option.Option<HTMLElement> =>
+const trackElement = (
+  id: string,
+  root: Document | ShadowRoot,
+): Option.Option<HTMLElement> =>
   Option.fromNullishOr(
-    document.querySelector<HTMLElement>(`[data-slider-track-id="${id}"]`),
+    root.querySelector<HTMLElement>(`[data-slider-track-id="${id}"]`),
   )
 
 const valueFromClientX = (
@@ -368,86 +371,92 @@ export const SubscriptionDeps = S.Struct({
   }),
 })
 
-/** Document-level subscriptions for pointer and keyboard events during slider
- *  drag. */
-export const subscriptions = makeSubscriptions(SubscriptionDeps)<
-  Model,
-  Message
->({
-  documentPointer: {
-    modelToDependencies: model => ({
-      dragActivity: dragActivityFromModel(model),
-      id: model.id,
-      min: model.min,
-      max: model.max,
-    }),
-    dependenciesToStream: ({ dragActivity, id, min, max }) => {
-      const pointerEvents = Stream.merge(
-        Stream.fromEventListener<PointerEvent>(document, 'pointermove').pipe(
-          Stream.mapEffect(event =>
-            Effect.sync(() =>
-              Option.map(trackElement(id), element =>
-                MovedDragPointer({
-                  value: valueFromClientX(event.clientX, element, min, max),
-                }),
+/** Builds document-level subscriptions for slider drag, looking up the track
+ *  element through the supplied root resolver. Use this when the slider is
+ *  rendered inside a Shadow DOM. The root is read lazily so consumers can
+ *  resolve it at subscription time. */
+export const subscriptionsForRoot = (
+  getTrackRoot: () => Document | ShadowRoot,
+) =>
+  makeSubscriptions(SubscriptionDeps)<Model, Message>({
+    documentPointer: {
+      modelToDependencies: model => ({
+        dragActivity: dragActivityFromModel(model),
+        id: model.id,
+        min: model.min,
+        max: model.max,
+      }),
+      dependenciesToStream: ({ dragActivity, id, min, max }) => {
+        const pointerEvents = Stream.merge(
+          Stream.fromEventListener<PointerEvent>(document, 'pointermove').pipe(
+            Stream.mapEffect(event =>
+              Effect.sync(() =>
+                Option.map(trackElement(id, getTrackRoot()), element =>
+                  MovedDragPointer({
+                    value: valueFromClientX(event.clientX, element, min, max),
+                  }),
+                ),
               ),
             ),
+            Stream.filter(Option.isSome),
+            Stream.map(option => option.value),
           ),
-          Stream.filter(Option.isSome),
-          Stream.map(option => option.value),
-        ),
-        Stream.fromEventListener<PointerEvent>(document, 'pointerup').pipe(
-          Stream.map(() => ReleasedDragPointer()),
-        ),
-      )
+          Stream.fromEventListener<PointerEvent>(document, 'pointerup').pipe(
+            Stream.map(() => ReleasedDragPointer()),
+          ),
+        )
 
-      // NOTE: prevents text selection and locks cursor to grabbing while the
-      // user drags the thumb. Matches the approach used in drag-and-drop.
-      const documentDragStyles = Stream.callback<never>(() =>
-        Effect.acquireRelease(
-          Effect.sync(() => {
-            document.documentElement.style.setProperty('user-select', 'none')
-            document.documentElement.style.setProperty(
-              '-webkit-user-select',
-              'none',
-            )
-            const cursorStyle = document.createElement('style')
-            cursorStyle.textContent = '* { cursor: grabbing !important; }'
-            document.head.appendChild(cursorStyle)
-            return cursorStyle
-          }),
-          cursorStyle =>
+        // NOTE: prevents text selection and locks cursor to grabbing while the
+        // user drags the thumb. Matches the approach used in drag-and-drop.
+        const documentDragStyles = Stream.callback<never>(() =>
+          Effect.acquireRelease(
             Effect.sync(() => {
-              document.documentElement.style.removeProperty('user-select')
-              document.documentElement.style.removeProperty(
+              document.documentElement.style.setProperty('user-select', 'none')
+              document.documentElement.style.setProperty(
                 '-webkit-user-select',
+                'none',
               )
-              cursorStyle.remove()
+              const cursorStyle = document.createElement('style')
+              cursorStyle.textContent = '* { cursor: grabbing !important; }'
+              document.head.appendChild(cursorStyle)
+              return cursorStyle
             }),
-        ).pipe(Effect.flatMap(() => Effect.never)),
-      )
+            cursorStyle =>
+              Effect.sync(() => {
+                document.documentElement.style.removeProperty('user-select')
+                document.documentElement.style.removeProperty(
+                  '-webkit-user-select',
+                )
+                cursorStyle.remove()
+              }),
+          ).pipe(Effect.flatMap(() => Effect.never)),
+        )
 
-      return Stream.when(
-        Stream.merge(pointerEvents, documentDragStyles),
-        Effect.sync(() => dragActivity === 'Active'),
-      )
+        return Stream.when(
+          Stream.merge(pointerEvents, documentDragStyles),
+          Effect.sync(() => dragActivity === 'Active'),
+        )
+      },
     },
-  },
 
-  documentEscape: {
-    modelToDependencies: model => ({
-      dragActivity: dragActivityFromModel(model),
-    }),
-    dependenciesToStream: ({ dragActivity }) =>
-      Stream.when(
-        Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
-          Stream.filter(({ key }) => key === 'Escape'),
-          Stream.map(() => CancelledDrag()),
+    documentEscape: {
+      modelToDependencies: model => ({
+        dragActivity: dragActivityFromModel(model),
+      }),
+      dependenciesToStream: ({ dragActivity }) =>
+        Stream.when(
+          Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
+            Stream.filter(({ key }) => key === 'Escape'),
+            Stream.map(() => CancelledDrag()),
+          ),
+          Effect.sync(() => dragActivity === 'Active'),
         ),
-        Effect.sync(() => dragActivity === 'Active'),
-      ),
-  },
-})
+    },
+  })
+
+/** Document-level subscriptions for pointer and keyboard events during slider
+ *  drag. */
+export const subscriptions = subscriptionsForRoot(() => document)
 
 // VIEW
 
@@ -501,6 +510,11 @@ export type ViewConfig<Message> = Readonly<{
   formatValue?: (value: number) => string
   isDisabled?: boolean
   name?: string
+  /** Resolves the root that holds the slider track when looking it up by its
+   *  `data-slider-track-id` attribute. Defaults to `document`. Provide a
+   *  ShadowRoot when rendering the slider inside a shadow tree so pointer
+   *  events on the track can map clientX into a value. */
+  getTrackRoot?: () => Document | ShadowRoot
 }>
 
 /** Renders an accessible slider by building ARIA attribute groups and
@@ -537,6 +551,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     formatValue,
     isDisabled = false,
     name,
+    getTrackRoot = () => document,
   } = config
   const { id, value, min, max } = model
   const isDragging = model.dragState._tag === 'Dragging'
@@ -548,7 +563,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     )
 
   const pointerAtClientX = (clientX: number): Option.Option<Message> =>
-    Option.map(trackElement(id), element =>
+    Option.map(trackElement(id, getTrackRoot()), element =>
       toParentMessage(
         PressedPointer({
           value: valueFromClientX(clientX, element, min, max),
