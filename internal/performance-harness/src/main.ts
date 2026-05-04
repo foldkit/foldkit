@@ -27,26 +27,31 @@ const ClickedTick = m('ClickedTick')
 const ClickedDispatchLargeMessage = m('ClickedDispatchLargeMessage')
 const ClickedFillLargeModel = m('ClickedFillLargeModel')
 const ClickedClearLargeModel = m('ClickedClearLargeModel')
+const ClickedFillHistory = m('ClickedFillHistory')
 const ReceivedLargePayload = m('ReceivedLargePayload', {
   payload: S.Array(HeavyItem),
 })
 const FilledLargeModel = m('FilledLargeModel', {
   items: S.Array(HeavyItem),
 })
+const FilledHistoryStep = m('FilledHistoryStep', { remaining: S.Number })
 
 const Message = S.Union([
   ClickedTick,
   ClickedDispatchLargeMessage,
   ClickedFillLargeModel,
   ClickedClearLargeModel,
+  ClickedFillHistory,
   ReceivedLargePayload,
   FilledLargeModel,
+  FilledHistoryStep,
 ])
 type Message = typeof Message.Type
 
 // CONSTANTS
 
 const HEAVY_ITEM_COUNT = 10_000
+const HISTORY_FILL_COUNT = 500
 
 const makeHeavyArray = (count: number): ReadonlyArray<HeavyItem> =>
   Array.makeBy(count, index => ({
@@ -78,6 +83,10 @@ const buildLargeModelArray = BuildLargeModelArray(
   ),
 )
 
+const FillHistoryStep = Command.define('FillHistoryStep', FilledHistoryStep)
+const fillHistoryStep = (remaining: number) =>
+  FillHistoryStep(Effect.sync(() => FilledHistoryStep({ remaining })))
+
 // UPDATE
 
 const update = (
@@ -96,6 +105,7 @@ const update = (
       ClickedDispatchLargeMessage: () => [model, [buildLargePayload]],
       ClickedFillLargeModel: () => [model, [buildLargeModelArray]],
       ClickedClearLargeModel: () => [evo(model, { largeArray: () => [] }), []],
+      ClickedFillHistory: () => [model, [fillHistoryStep(HISTORY_FILL_COUNT)]],
       ReceivedLargePayload: ({ payload }) => [
         evo(model, { lastReceivedPayloadSize: () => payload.length }),
         [],
@@ -103,6 +113,10 @@ const update = (
       FilledLargeModel: ({ items }) => [
         evo(model, { largeArray: () => items }),
         [],
+      ],
+      FilledHistoryStep: ({ remaining }) => [
+        evo(model, { tickCount: tickCount => tickCount + 1 }),
+        remaining > 1 ? [fillHistoryStep(remaining - 1)] : [],
       ],
     }),
   )
@@ -200,6 +214,28 @@ const view = (model: Model): Document => ({
           div(
             [Class(stateStyle)],
             [`largeArray.length: ${model.largeArray.length}`],
+          ),
+        ],
+      ),
+
+      h2([Class(headingStyle)], ['Scenario: deep history']),
+      p(
+        [Class(blurbStyle)],
+        [
+          'Dispatch 500 small Messages so the DevTools store fills its history. ',
+          'The follow-latest path used to replay up to KEYFRAME_INTERVAL user updates ',
+          'on every dispatch to recover the model the inspector pane shows. After ',
+          'filling, click ',
+          code([], ['Tick']),
+          ' rapidly. If the regression returns, every Tick will hang on the replay walk.',
+        ],
+      ),
+      div(
+        [Class(rowStyle)],
+        [
+          button(
+            [OnClick(ClickedFillHistory()), Class(buttonStyle)],
+            [`Fill history (${HISTORY_FILL_COUNT} Messages)`],
           ),
         ],
       ),
