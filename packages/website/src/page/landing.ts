@@ -133,7 +133,11 @@ const heroSection = (
   playgroundMenuView: Html,
 ): Html =>
   section(
-    [Id(HERO_SECTION_ID), Class('landing-section relative overflow-hidden')],
+    [
+      Id(HERO_SECTION_ID),
+      AriaLabel('Hero'),
+      Class('landing-section relative overflow-hidden'),
+    ],
     [
       div(
         [Class('landing-section-narrow relative')],

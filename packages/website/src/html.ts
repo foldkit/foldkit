@@ -59,6 +59,7 @@ export const {
   AriaHasPopup,
   AriaHidden,
   AriaLabel,
+  AriaLabelledBy,
   AriaLive,
   AriaPressed,
   AriaSelected,

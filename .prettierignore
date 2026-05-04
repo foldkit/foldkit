@@ -3,3 +3,5 @@ dist
 **/public/example-apps-embed
 *.tsbuildinfo
 pnpm-lock.yaml
+playwright-report/
+test-results/

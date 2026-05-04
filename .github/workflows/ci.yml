@@ -54,6 +54,12 @@ jobs:
       - name: Test
         run: pnpm test
 
+      - name: Install Playwright browsers
+        run: pnpm --filter website exec playwright install --with-deps chromium
+
+      - name: E2E smoke test
+        run: pnpm --filter website test:e2e
+
       - name: Check circular dependencies
         run: pnpm check:circular-deps
 

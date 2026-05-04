@@ -8,3 +8,5 @@ dist
 packages/foldkit/src/devTools/overlay-styles.ts
 packages/website/src/generated/
 .playwright-mcp/
+playwright-report/
+test-results/

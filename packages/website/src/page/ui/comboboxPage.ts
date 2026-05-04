@@ -1,6 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
+import { AriaLabelledBy, Class, InnerHTML, div, section } from '../../html'
 import { uiShowcaseViewSourceHref } from '../../link'
 import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
@@ -307,8 +307,13 @@ export const view = (
         inlineCode('model.inputValue'),
         '.',
       ),
-      demoContainer(
-        ...Combobox.comboboxDemo(model.comboboxDemo, toParentMessage),
+      section(
+        [AriaLabelledBy(Combobox.singleSelectHeader.id)],
+        [
+          demoContainer(
+            ...Combobox.comboboxDemo(model.comboboxDemo, toParentMessage),
+          ),
+        ],
       ),
       highlightedCodeBlock(
         div(
@@ -330,8 +335,16 @@ export const view = (
         inlineCode('nullable: true'),
         ' at init to allow clearing the selection by clicking the selected item again.',
       ),
-      demoContainer(
-        ...Combobox.nullableDemo(model.comboboxNullableDemo, toParentMessage),
+      section(
+        [AriaLabelledBy(Combobox.nullableHeader.id)],
+        [
+          demoContainer(
+            ...Combobox.nullableDemo(
+              model.comboboxNullableDemo,
+              toParentMessage,
+            ),
+          ),
+        ],
       ),
       heading(
         Combobox.selectOnFocusHeader.level,
@@ -343,11 +356,16 @@ export const view = (
         inlineCode('selectInputOnFocus: true'),
         ' at init to highlight the input text when the combobox receives focus. Typing immediately replaces the current value, making it easy to start a new search.',
       ),
-      demoContainer(
-        ...Combobox.selectOnFocusDemo(
-          model.comboboxSelectOnFocusDemo,
-          toParentMessage,
-        ),
+      section(
+        [AriaLabelledBy(Combobox.selectOnFocusHeader.id)],
+        [
+          demoContainer(
+            ...Combobox.selectOnFocusDemo(
+              model.comboboxSelectOnFocusDemo,
+              toParentMessage,
+            ),
+          ),
+        ],
       ),
       heading(
         Combobox.multiHeader.level,
@@ -361,8 +379,13 @@ export const view = (
         inlineCode('model.selectedItems'),
         '.',
       ),
-      demoContainer(
-        ...Combobox.multiDemo(model.comboboxMultiDemo, toParentMessage),
+      section(
+        [AriaLabelledBy(Combobox.multiHeader.id)],
+        [
+          demoContainer(
+            ...Combobox.multiDemo(model.comboboxMultiDemo, toParentMessage),
+          ),
+        ],
       ),
       highlightedCodeBlock(
         div(

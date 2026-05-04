@@ -47,6 +47,8 @@ export default [
       'vite.config.ts',
       '**/*.config.js',
       '**/*.config.mjs',
+      'playwright-report/',
+      'test-results/',
       'src/snippet/',
     ],
   },
