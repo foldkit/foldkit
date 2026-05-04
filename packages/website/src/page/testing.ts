@@ -88,7 +88,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       tableOfContentsEntryToHeader(sceneHeader),
       para(
         inlineCode('Scene.scene'),
-        ' exercises the view. Locators find elements the way users do: by role, label, or placeholder. Interactions dispatch Messages through the rendered event handlers. Inline assertions check the HTML between steps. See the ',
+        ' exercises the view. Locators find elements the way users do: by role, label, or placeholder. Interactions dispatch Messages through the rendered event handlers. Inline assertions check the HTML between steps. Scene also tracks the Mount lifecycle: the side effects declared by ',
+        inlineCode('OnMount'),
+        ' attributes in the view must be acknowledged via ',
+        inlineCode('Scene.Mount.resolve'),
+        ', mirroring how Commands are resolved. See the ',
         link(testingSceneRouter(), 'Scene'),
         ' page for the full API.',
       ),
