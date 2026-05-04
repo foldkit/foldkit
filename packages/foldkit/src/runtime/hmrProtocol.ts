@@ -15,10 +15,10 @@ export const RequestModelMessage = S.Struct({
 /** Browser → plugin: the runtime requests its previously-preserved Model on startup. */
 export type RequestModelMessage = typeof RequestModelMessage.Type
 
-/** Plugin → browser: the plugin returns the preserved Model for a given runtime id. `model` is `undefined` when nothing is preserved (cold start, manual refresh). */
+/** Plugin → browser: the plugin returns the preserved Model for a given runtime id. `model` is omitted when nothing is preserved (cold start, manual refresh). */
 export const RestoreModelMessage = S.Struct({
   id: S.String,
-  model: S.Unknown,
+  model: S.optional(S.Unknown),
 })
 /** Plugin → browser: the plugin returns the preserved Model for a given runtime id. */
 export type RestoreModelMessage = typeof RestoreModelMessage.Type

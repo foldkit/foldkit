@@ -1415,8 +1415,8 @@ export const run = (program: MakeRuntimeReturn): void => {
       Effect.timeout(PLUGIN_RESPONSE_TIMEOUT_MS),
       Effect.catchTag('TimeoutError', () => {
         console.warn(
-          '[foldkit] No response from vite-plugin-foldkit. Add it to your vite.config.ts for HMR model preservation:\n\n' +
-            "  import foldkit from 'vite-plugin-foldkit'\n\n" +
+          '[foldkit] No response from @foldkit/vite-plugin. Add it to your vite.config.ts for HMR model preservation:\n\n' +
+            "  import { foldkit } from '@foldkit/vite-plugin'\n\n" +
             '  export default defineConfig({ plugins: [foldkit()] })\n\n' +
             'Starting without HMR support.',
         )
