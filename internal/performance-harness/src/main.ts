@@ -1,4 +1,4 @@
-import { Array, Effect, Match as M, Schema as S } from 'effect'
+import { Array, Effect, Match as M, Number, Schema as S } from 'effect'
 import { Command, Runtime } from 'foldkit'
 import { Document, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -24,16 +24,14 @@ type Model = typeof Model.Type
 // MESSAGE
 
 const ClickedTick = m('ClickedTick')
-const ClickedDispatchLargeMessage = m('ClickedDispatchLargeMessage')
-const ClickedFillLargeModel = m('ClickedFillLargeModel')
-const ClickedClearLargeModel = m('ClickedClearLargeModel')
-const ClickedFillHistory = m('ClickedFillHistory')
-const ReceivedLargePayload = m('ReceivedLargePayload', {
+const ClickedDispatchLargeMessage = m('ClickedDispatchLargeMessage', {
   payload: S.Array(HeavyItem),
 })
-const FilledLargeModel = m('FilledLargeModel', {
+const ClickedFillLargeModel = m('ClickedFillLargeModel', {
   items: S.Array(HeavyItem),
 })
+const ClickedClearLargeModel = m('ClickedClearLargeModel')
+const ClickedFillHistory = m('ClickedFillHistory')
 const FilledHistoryStep = m('FilledHistoryStep', { remaining: S.Number })
 
 const Message = S.Union([
@@ -42,8 +40,6 @@ const Message = S.Union([
   ClickedFillLargeModel,
   ClickedClearLargeModel,
   ClickedFillHistory,
-  ReceivedLargePayload,
-  FilledLargeModel,
   FilledHistoryStep,
 ])
 type Message = typeof Message.Type
@@ -61,27 +57,9 @@ const makeHeavyArray = (count: number): ReadonlyArray<HeavyItem> =>
     isActive: index % 3 === 0,
   }))
 
+const heavyPayload = makeHeavyArray(HEAVY_ITEM_COUNT)
+
 // COMMAND
-
-const BuildLargePayload = Command.define(
-  'BuildLargePayload',
-  ReceivedLargePayload,
-)
-const buildLargePayload = BuildLargePayload(
-  Effect.sync(() =>
-    ReceivedLargePayload({ payload: makeHeavyArray(HEAVY_ITEM_COUNT) }),
-  ),
-)
-
-const BuildLargeModelArray = Command.define(
-  'BuildLargeModelArray',
-  FilledLargeModel,
-)
-const buildLargeModelArray = BuildLargeModelArray(
-  Effect.sync(() =>
-    FilledLargeModel({ items: makeHeavyArray(HEAVY_ITEM_COUNT) }),
-  ),
-)
 
 const FillHistoryStep = Command.define('FillHistoryStep', FilledHistoryStep)
 const fillHistoryStep = (remaining: number) =>
@@ -102,21 +80,19 @@ const update = (
         evo(model, { tickCount: tickCount => tickCount + 1 }),
         [],
       ],
-      ClickedDispatchLargeMessage: () => [model, [buildLargePayload]],
-      ClickedFillLargeModel: () => [model, [buildLargeModelArray]],
-      ClickedClearLargeModel: () => [evo(model, { largeArray: () => [] }), []],
-      ClickedFillHistory: () => [model, [fillHistoryStep(HISTORY_FILL_COUNT)]],
-      ReceivedLargePayload: ({ payload }) => [
+      ClickedDispatchLargeMessage: ({ payload }) => [
         evo(model, { lastReceivedPayloadSize: () => payload.length }),
         [],
       ],
-      FilledLargeModel: ({ items }) => [
+      ClickedFillLargeModel: ({ items }) => [
         evo(model, { largeArray: () => items }),
         [],
       ],
+      ClickedClearLargeModel: () => [evo(model, { largeArray: () => [] }), []],
+      ClickedFillHistory: () => [model, [fillHistoryStep(HISTORY_FILL_COUNT)]],
       FilledHistoryStep: ({ remaining }) => [
-        evo(model, { tickCount: tickCount => tickCount + 1 }),
-        remaining > 1 ? [fillHistoryStep(remaining - 1)] : [],
+        evo(model, { tickCount: tickCount => Number.increment(tickCount) }),
+        remaining > 1 ? [fillHistoryStep(Number.decrement(remaining))] : [],
       ],
     }),
   )
@@ -181,7 +157,10 @@ const view = (model: Model): Document => ({
         [Class(rowStyle)],
         [
           button(
-            [OnClick(ClickedDispatchLargeMessage()), Class(buttonStyle)],
+            [
+              OnClick(ClickedDispatchLargeMessage({ payload: heavyPayload })),
+              Class(buttonStyle),
+            ],
             ['Dispatch large Message'],
           ),
           div(
@@ -204,7 +183,10 @@ const view = (model: Model): Document => ({
         [Class(rowStyle)],
         [
           button(
-            [OnClick(ClickedFillLargeModel()), Class(buttonStyle)],
+            [
+              OnClick(ClickedFillLargeModel({ items: heavyPayload })),
+              Class(buttonStyle),
+            ],
             ['Fill Model (10k items)'],
           ),
           button(

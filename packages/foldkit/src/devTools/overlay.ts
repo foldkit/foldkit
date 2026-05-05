@@ -25,6 +25,7 @@ import {
   type Document,
   type Html,
   createKeyedLazy,
+  createLazy,
   html,
 } from '../html/index.js'
 import { m } from '../message/index.js'
@@ -661,6 +662,7 @@ const makeView = (
   const lazyTreeNode = createKeyedLazy()
   const lazyMessageRow = createKeyedLazy()
   const lazyTabContent = createKeyedLazy()
+  const lazyMessageList = createLazy()
 
   // JSON TREE
 
@@ -1464,9 +1466,16 @@ const makeView = (
       ],
     )
 
-  const messageListView = (model: Model): Html => {
+  const messageListBody = (
+    entries: ReadonlyArray<typeof DisplayEntry.Type>,
+    startIndex: number,
+    selectedIndex: number,
+    isPaused: boolean,
+    pausedAtIndex: number,
+    maybeFilterTag: Option.Option<string>,
+  ): Html => {
     const baseTimestamp = pipe(
-      model.entries,
+      entries,
       Array_.head,
       Option.match({
         onNone: () => 0,
@@ -1474,19 +1483,7 @@ const makeView = (
       }),
     )
 
-    const lastIndex = Array_.isReadonlyArrayEmpty(model.entries)
-      ? INIT_INDEX
-      : model.startIndex + model.entries.length - 1
-
-    const selectedIndex = M.value(mode).pipe(
-      M.when('TimeTravel', () =>
-        model.isPaused ? model.pausedAtIndex : lastIndex,
-      ),
-      M.when('Inspect', () => model.selectedIndex),
-      M.exhaustive,
-    )
     const isInitSelected = selectedIndex === INIT_INDEX
-    const { maybeSubmodelFilter: maybeFilterTag } = model
     const isFiltered = Option.isSome(maybeFilterTag)
 
     const indexedEntries: ReadonlyArray<
@@ -1495,10 +1492,10 @@ const makeView = (
         absoluteIndex: number
       }>
     > = pipe(
-      model.entries,
+      entries,
       Array_.map((entry, arrayIndex) => ({
         entry,
-        absoluteIndex: model.startIndex + arrayIndex,
+        absoluteIndex: startIndex + arrayIndex,
       })),
       isFiltered
         ? Array_.filter(({ entry }) =>
@@ -1511,8 +1508,7 @@ const makeView = (
       indexedEntries,
       Array_.map(({ entry, absoluteIndex }) => {
         const isSelected = selectedIndex === absoluteIndex
-        const isPausedHere =
-          model.isPaused && model.pausedAtIndex === absoluteIndex
+        const isPausedHere = isPaused && pausedAtIndex === absoluteIndex
         const displayTag = isFiltered
           ? pipe(
               entry.submodelPath,
@@ -1545,10 +1541,34 @@ const makeView = (
             ...messageRows,
             initRowView(
               isInitSelected,
-              model.isPaused && model.pausedAtIndex === INIT_INDEX,
+              isPaused && pausedAtIndex === INIT_INDEX,
             ),
           ],
     )
+  }
+
+  const messageListView = (model: Model): Html => {
+    const lastIndex = Array_.match(model.entries, {
+      onEmpty: () => INIT_INDEX,
+      onNonEmpty: () => model.startIndex + model.entries.length - 1,
+    })
+
+    const selectedIndex = M.value(mode).pipe(
+      M.when('TimeTravel', () =>
+        model.isPaused ? model.pausedAtIndex : lastIndex,
+      ),
+      M.when('Inspect', () => model.selectedIndex),
+      M.exhaustive,
+    )
+
+    return lazyMessageList(messageListBody, [
+      model.entries,
+      model.startIndex,
+      selectedIndex,
+      model.isPaused,
+      model.pausedAtIndex,
+      model.maybeSubmodelFilter,
+    ])
   }
 
   // PANEL

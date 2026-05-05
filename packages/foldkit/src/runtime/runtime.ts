@@ -496,6 +496,31 @@ const makeRuntime = <
 
   const runtimeId = container?.id ?? ''
 
+  // NOTE: When the message queue drains a chain of dispatches (e.g. recursive
+  // Commands, websocket bursts), processing all of them inside one macrotask
+  // blocks the browser from painting. Yield via MessageChannel once the
+  // current burst exceeds FRAME_BUDGET_MS so the browser gets a frame.
+  // setTimeout(0) is clamped to 4ms+; MessageChannel delivers in ~0.5ms.
+  const FRAME_BUDGET_MS = 5
+
+  const yieldToBrowser: Effect.Effect<void> = Effect.callback<void>(resume => {
+    const channel = new MessageChannel()
+    channel.port2.onmessage = () => resume(Effect.void)
+    channel.port1.postMessage(null)
+    return Effect.sync(() => channel.port2.close())
+  })
+
+  // NOTE: render coalescing relies on this firing once per frame. Multiple
+  // Messages dispatched between frames all flag the renderLoop dirty; the
+  // next rAF tick reads the latest model and renders once. Without this,
+  // every Message would call render() inline, and during high-rate streams
+  // (drag pointermove, websocket bursts) the runtime would paint each
+  // intermediate frame with the cursor leading the rendered position.
+  const awaitNextFrame: Effect.Effect<void> = Effect.callback<void>(resume => {
+    const handle = requestAnimationFrame(() => resume(Effect.void))
+    return Effect.sync(() => cancelAnimationFrame(handle))
+  })
+
   const start = (hmrModel?: unknown): Effect.Effect<void> =>
     Effect.scoped(
       Effect.gen(function* () {
@@ -656,6 +681,22 @@ const makeRuntime = <
 
         const dispatch = { dispatchAsync, dispatchSync }
 
+        const isRenderPendingRef = yield* Ref.make(false)
+        const lastDirtyMessageRef = yield* Ref.make<Option.Option<Message>>(
+          Option.none(),
+        )
+
+        const isPausedEffect: Effect.Effect<boolean> = Effect.gen(function* () {
+          const maybeStore = yield* Ref.get(maybeDevToolsStoreRef)
+          return yield* Option.match(maybeStore, {
+            onNone: () => Effect.succeed(false),
+            onSome: ({ stateRef }) =>
+              SubscriptionRef.get(stateRef).pipe(
+                Effect.map(({ isPaused }) => isPaused),
+              ),
+          })
+        })
+
         const processMessage = (message: Message): Effect.Effect<void> =>
           Effect.gen(function* () {
             const currentModel = yield* Ref.get(modelRef)
@@ -665,24 +706,8 @@ const makeRuntime = <
 
             if (currentModel !== nextModel) {
               yield* Ref.set(modelRef, nextModel)
-
-              const isPaused = yield* pipe(
-                maybeDevToolsStoreRef,
-                Ref.get,
-                Effect.flatMap(
-                  Option.match({
-                    onNone: () => Effect.succeed(false),
-                    onSome: ({ stateRef }) =>
-                      SubscriptionRef.get(stateRef).pipe(
-                        Effect.map(({ isPaused }) => isPaused),
-                      ),
-                  }),
-                ),
-              )
-
-              if (!isPaused) {
-                yield* render(nextModel, Option.some(message))
-              }
+              yield* Ref.set(isRenderPendingRef, true)
+              yield* Ref.set(lastDirtyMessageRef, Option.some(message))
 
               if (!modelEquivalence(currentModel, nextModel)) {
                 PubSub.publishUnsafe(modelPubSub, nextModel)
@@ -812,6 +837,35 @@ const makeRuntime = <
         }
 
         yield* render(initModel, Option.none())
+
+        // NOTE: lastDirtyMessageRef holds the most recent dirtying Message, so
+        // slow-view callbacks during high-rate bursts attribute to the last
+        // Message in the frame batch, not the specific one that pushed the
+        // view past threshold. Acceptable for a debug callback; full
+        // attribution would require correlating each message with its render
+        // contribution, which isn't worth the complexity.
+        const renderLoop = Effect.forever(
+          Effect.gen(function* () {
+            yield* awaitNextFrame
+
+            const isPending = yield* Ref.get(isRenderPendingRef)
+            if (!isPending) {
+              return
+            }
+
+            const isPaused = yield* isPausedEffect
+            if (isPaused) {
+              return
+            }
+
+            yield* Ref.set(isRenderPendingRef, false)
+            const model = yield* Ref.get(modelRef)
+            const maybeMessage = yield* Ref.get(lastDirtyMessageRef)
+            yield* render(model, maybeMessage)
+          }),
+        )
+
+        yield* Effect.forkDetach(renderLoop)
 
         addBfcacheRestoreListener()
 
@@ -955,18 +1009,38 @@ const makeRuntime = <
           },
         )
 
+        const burstStartedAtRef = yield* Ref.make(0)
+
+        const processWithBudget = (message: Message): Effect.Effect<void> =>
+          Effect.gen(function* () {
+            yield* Ref.set(currentMessageRef, Option.some(message))
+            yield* processMessage(message)
+
+            const burstStartedAt = yield* Ref.get(burstStartedAtRef)
+            if (performance.now() - burstStartedAt < FRAME_BUDGET_MS) {
+              return
+            }
+
+            yield* yieldToBrowser
+            yield* Ref.set(burstStartedAtRef, performance.now())
+          })
+
+        const drainQueue: Effect.Effect<void> = Effect.gen(function* () {
+          const batch = yield* Queue.takeAll(messageQueue)
+          if (Array.isReadonlyArrayEmpty(batch)) {
+            return
+          }
+          yield* Effect.forEach(batch, processWithBudget, { discard: true })
+          yield* drainQueue
+        })
+
         yield* pipe(
           Effect.forever(
             Effect.gen(function* () {
               const first = yield* Queue.take(messageQueue)
-              yield* Ref.set(currentMessageRef, Option.some(first))
-              yield* processMessage(first)
-
-              const more = yield* Queue.takeAll(messageQueue)
-              for (const message of more) {
-                yield* Ref.set(currentMessageRef, Option.some(message))
-                yield* processMessage(message)
-              }
+              yield* Ref.set(burstStartedAtRef, performance.now())
+              yield* processWithBudget(first)
+              yield* drainQueue
             }),
           ),
           Effect.catchCause(cause =>
