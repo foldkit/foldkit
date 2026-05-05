@@ -44,6 +44,7 @@ import type {
   ManagedResourceConfig,
   ManagedResources,
 } from './managedResource.js'
+import { type EnvelopedMessage, orderByPriority } from './messagePriority.js'
 import type { Subscriptions } from './subscription.js'
 import { UrlRequest } from './urlRequest.js'
 
@@ -607,9 +608,23 @@ const makeRuntime = <
         const decodeHmrModel = Schema.decodeUnknownExit(ModelJsonCodec)
         const encodeHmrModel = Schema.encodeUnknownSync(ModelJsonCodec)
 
-        const messageQueue = yield* Queue.unbounded<Message>()
-        const enqueueMessage = (message: Message) =>
-          Queue.offer(messageQueue, message)
+        // NOTE: Each enqueued Message carries a priority. Within a single
+        // takeAll batch the drain loop processes all High before any Normal,
+        // so user input (view dispatch, navigation, subscription events,
+        // managed-resource events, external dispatchers) lands ahead of
+        // chain-derived work (Command results) when they share a frame.
+        // FIFO order is preserved within a priority class.
+        const messageQueue = yield* Queue.unbounded<EnvelopedMessage<Message>>()
+
+        const enqueueHigh = (message: Message) =>
+          Queue.offer(messageQueue, { priority: 'High', message })
+
+        const enqueueNormal = (message: Message) =>
+          Queue.offer(messageQueue, { priority: 'Normal', message })
+
+        const enqueueHighUnsafe = (message: Message): void => {
+          Queue.offerUnsafe(messageQueue, { priority: 'High', message })
+        }
 
         const currentUrl: Option.Option<Url> = Option.fromNullishOr(
           routingConfig,
@@ -647,13 +662,13 @@ const makeRuntime = <
               command.effect.pipe(
                 Effect.withSpan(command.name),
                 provideAllResources,
-                Effect.flatMap(enqueueMessage),
+                Effect.flatMap(enqueueNormal),
               ),
             ),
         )
 
         if (routingConfig) {
-          addNavigationEventListeners(messageQueue, routingConfig)
+          addNavigationEventListeners(enqueueHighUnsafe, routingConfig)
         }
 
         const modelRef = yield* Ref.make<Model>(initModel)
@@ -672,12 +687,12 @@ const makeRuntime = <
 
         const dispatchSync = (message: unknown): void => {
           /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-          Queue.offerUnsafe(messageQueue, message as Message)
+          enqueueHighUnsafe(message as Message)
         }
 
         const dispatchAsync = (message: unknown): Effect.Effect<void> =>
           /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-          enqueueMessage(message as Message)
+          enqueueHigh(message as Message)
 
         const dispatch = { dispatchAsync, dispatchSync }
 
@@ -725,7 +740,7 @@ const makeRuntime = <
                   command.effect.pipe(
                     Effect.withSpan(command.name),
                     provideAllResources,
-                    Effect.flatMap(enqueueMessage),
+                    Effect.flatMap(enqueueNormal),
                   ),
                 ),
             )
@@ -829,7 +844,7 @@ const makeRuntime = <
               devToolsStore,
               import.meta.hot,
               /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-              message => enqueueMessage(message as Message),
+              message => enqueueHigh(message as Message),
               /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
               maybeMessageSchema as Option.Option<Schema.Codec<any, any>>,
             )
@@ -911,7 +926,7 @@ const makeRuntime = <
                     ),
                     Stream.runForEach(message =>
                       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                      enqueueMessage(message as Message),
+                      enqueueHigh(message as Message),
                     ),
                     provideAllResources,
                   ),
@@ -954,7 +969,7 @@ const makeRuntime = <
               Effect.gen(function* () {
                 yield* config.release(value)
                 yield* Ref.set(resourceRef, Option.none())
-                yield* enqueueMessage(config.onReleased())
+                yield* enqueueHigh(config.onReleased())
               }).pipe(Effect.catchCause(() => Effect.void))
 
             return pipe(
@@ -995,7 +1010,7 @@ const makeRuntime = <
                 Stream.switchMap(
                   maybeRequirementsToLifecycle(config, resourceRef),
                 ),
-                Stream.runForEach(Effect.flatMap(enqueueMessage)),
+                Stream.runForEach(Effect.flatMap(enqueueHigh)),
               ),
             )
           })
@@ -1025,12 +1040,19 @@ const makeRuntime = <
             yield* Ref.set(burstStartedAtRef, performance.now())
           })
 
+        const processBatch = (
+          batch: ReadonlyArray<EnvelopedMessage<Message>>,
+        ): Effect.Effect<void> =>
+          Effect.forEach(orderByPriority(batch), processWithBudget, {
+            discard: true,
+          })
+
         const drainQueue: Effect.Effect<void> = Effect.gen(function* () {
           const batch = yield* Queue.takeAll(messageQueue)
           if (Array.isReadonlyArrayEmpty(batch)) {
             return
           }
-          yield* Effect.forEach(batch, processWithBudget, { discard: true })
+          yield* processBatch(batch)
           yield* drainQueue
         })
 
@@ -1038,8 +1060,9 @@ const makeRuntime = <
           Effect.forever(
             Effect.gen(function* () {
               const first = yield* Queue.take(messageQueue)
+              const rest = yield* Queue.takeAll(messageQueue)
               yield* Ref.set(burstStartedAtRef, performance.now())
-              yield* processWithBudget(first)
+              yield* processBatch(Array.prepend(rest, first))
               yield* drainQueue
             }),
           ),

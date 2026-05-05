@@ -1,4 +1,4 @@
-import { Option, Queue, String } from 'effect'
+import { Option, String } from 'effect'
 
 import { OptionExt, StringExt } from '../effectExtensions/index.js'
 import { Url } from '../url/index.js'
@@ -6,27 +6,27 @@ import { RoutingConfig } from './runtime.js'
 import { External, Internal } from './urlRequest.js'
 
 export const addNavigationEventListeners = <Message>(
-  messageQueue: Queue.Queue<Message>,
+  dispatch: (message: Message) => void,
   routingConfig: RoutingConfig<Message>,
 ) => {
-  addPopStateListener(messageQueue, routingConfig)
-  addLinkClickListener(messageQueue, routingConfig)
-  addProgrammaticNavigationListener(messageQueue, routingConfig)
+  addPopStateListener(dispatch, routingConfig)
+  addLinkClickListener(dispatch, routingConfig)
+  addProgrammaticNavigationListener(dispatch, routingConfig)
 }
 
 const addPopStateListener = <Message>(
-  messageQueue: Queue.Queue<Message>,
+  dispatch: (message: Message) => void,
   routingConfig: RoutingConfig<Message>,
 ) => {
   const onPopState = () => {
-    Queue.offerUnsafe(messageQueue, routingConfig.onUrlChange(locationToUrl()))
+    dispatch(routingConfig.onUrlChange(locationToUrl()))
   }
 
   window.addEventListener('popstate', onPopState)
 }
 
 const addLinkClickListener = <Message>(
-  messageQueue: Queue.Queue<Message>,
+  dispatch: (message: Message) => void,
   routingConfig: RoutingConfig<Message>,
 ) => {
   const onLinkClick = (event: Event) => {
@@ -51,15 +51,11 @@ const addLinkClickListener = <Message>(
     const currentUrl = new URL(window.location.href)
 
     if (linkUrl.origin !== currentUrl.origin) {
-      Queue.offerUnsafe(
-        messageQueue,
-        routingConfig.onUrlRequest(External({ href })),
-      )
+      dispatch(routingConfig.onUrlRequest(External({ href })))
       return
     }
 
-    Queue.offerUnsafe(
-      messageQueue,
+    dispatch(
       routingConfig.onUrlRequest(Internal({ url: urlToFoldkitUrl(linkUrl) })),
     )
   }
@@ -68,11 +64,11 @@ const addLinkClickListener = <Message>(
 }
 
 const addProgrammaticNavigationListener = <Message>(
-  messageQueue: Queue.Queue<Message>,
+  dispatch: (message: Message) => void,
   routingConfig: RoutingConfig<Message>,
 ) => {
   const onProgrammaticNavigation = () => {
-    Queue.offerUnsafe(messageQueue, routingConfig.onUrlChange(locationToUrl()))
+    dispatch(routingConfig.onUrlChange(locationToUrl()))
   }
 
   window.addEventListener('foldkit:urlchange', onProgrammaticNavigation)
