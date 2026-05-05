@@ -1,5 +1,11 @@
 # foldkit
 
+## 0.82.6
+
+### Patch Changes
+
+- 3d915aa: Suspend the runtime's render loop when nothing is dirty so idle apps schedule zero rAF callbacks. Previously the loop fired ~60 no-op rAF callbacks per second when the app had no Messages to process. The loop now subscribes to the dirty-bit's changes Stream and suspends entirely until the next dispatch.
+
 ## 0.82.5
 
 ### Patch Changes
