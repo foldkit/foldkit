@@ -1,6 +1,6 @@
 {
   "name": "@foldkit/vite-plugin",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Vite plugin for Foldkit hot module reloading with state preservation",
   "type": "module",
   "main": "./dist/index.js",
