@@ -179,7 +179,7 @@ export const activeSection: Subscription<
       Effect.acquireRelease(
         Effect.sync(() => {
           if (!Array.isReadonlyArrayNonEmpty(sections)) {
-            return null
+            return { observer: null, frameHandle: null }
           }
           const visibleSections = MutableRef.make(HashSet.empty<string>())
           const observer = new IntersectionObserver(
@@ -208,16 +208,29 @@ export const activeSection: Subscription<
             },
           )
 
-          Array.forEach(sections, sectionId => {
-            const element = document.getElementById(sectionId)
-            if (element) {
-              observer.observe(element)
-            }
+          // NOTE: defers observe() to the next animation frame so the runtime
+          // has rendered the new route's section elements into the DOM before
+          // we look them up. Without this, navigating between docs pages
+          // resolves document.getElementById() to null and the observer never
+          // tracks the new sections.
+          const frameHandle = requestAnimationFrame(() => {
+            Array.forEach(sections, sectionId => {
+              const element = document.getElementById(sectionId)
+              if (element) {
+                observer.observe(element)
+              }
+            })
           })
 
-          return observer
+          return { observer, frameHandle }
         }),
-        observer => Effect.sync(() => observer?.disconnect()),
+        ({ observer, frameHandle }) =>
+          Effect.sync(() => {
+            if (frameHandle !== null) {
+              cancelAnimationFrame(frameHandle)
+            }
+            observer?.disconnect()
+          }),
       ).pipe(Effect.flatMap(() => Effect.never)),
     ),
 }
