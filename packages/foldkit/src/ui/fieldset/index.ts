@@ -5,16 +5,16 @@ import type { Html } from '../../html/index.js'
 // VIEW
 
 /** Attribute groups the fieldset component provides to the consumer's `toView` callback. */
-export type FieldsetAttributes<Message> = Readonly<{
-  fieldset: ReadonlyArray<Attribute<Message>>
-  legend: ReadonlyArray<Attribute<Message>>
-  description: ReadonlyArray<Attribute<Message>>
+export type FieldsetAttributes<ParentMessage> = Readonly<{
+  fieldset: ReadonlyArray<Attribute<ParentMessage>>
+  legend: ReadonlyArray<Attribute<ParentMessage>>
+  description: ReadonlyArray<Attribute<ParentMessage>>
 }>
 
 /** Configuration for rendering a fieldset with `view`. */
-export type ViewConfig<Message> = Readonly<{
+export type ViewConfig<ParentMessage> = Readonly<{
   id: string
-  toView: (attributes: FieldsetAttributes<Message>) => Html
+  toView: (attributes: FieldsetAttributes<ParentMessage>) => Html
   isDisabled?: boolean
 }>
 
@@ -25,8 +25,10 @@ export const legendId = (id: string): string => `${id}-legend`
 export const descriptionId = (id: string): string => `${id}-description`
 
 /** Renders an accessible fieldset by building ARIA attribute groups and delegating layout to the consumer's `toView` callback. */
-export const view = <Message>(config: ViewConfig<Message>): Html => {
-  const { AriaDescribedBy, DataAttribute, Disabled, Id } = html<Message>()
+export const view = <ParentMessage>(
+  config: ViewConfig<ParentMessage>,
+): Html => {
+  const { AriaDescribedBy, DataAttribute, Disabled, Id } = html<ParentMessage>()
 
   const { toView, id, isDisabled = false } = config
 

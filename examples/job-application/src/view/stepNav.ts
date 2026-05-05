@@ -27,7 +27,7 @@ import {
   span,
   ul,
 } from '../html'
-import { GotStepMenuMessage, type Message, NavigatedToStep } from '../message'
+import type { Message } from '../message'
 import { type Model } from '../model'
 import { chevronDown } from './icon'
 
@@ -106,6 +106,7 @@ const stepButtonClass = (status: StepStatus, hasErrors: boolean): string =>
 export const stepList = (
   currentStep: Step.Step,
   stepsWithErrors: HashSet.HashSet<Step.Step>,
+  onSelectedStep: (step: Step.Step) => Message,
 ): Html =>
   nav(
     [AriaLabel('Application steps'), Class('space-y-1')],
@@ -126,7 +127,7 @@ export const stepList = (
                   Type('button'),
                   ...(status === 'Current' ? [AriaCurrent('step')] : []),
                   ...(clickable
-                    ? [OnClick(NavigatedToStep({ step }))]
+                    ? [OnClick(onSelectedStep(step))]
                     : [AriaDisabled(true)]),
                   Class(stepButtonClass(status, hasErrors)),
                 ],
@@ -168,19 +169,21 @@ const stepMenuTrigger = (currentStep: Step.Step): Html =>
 export const stepMenu = (
   model: Model,
   stepsWithErrors: HashSet.HashSet<Step.Step>,
+  toParentMessage: (message: Ui.Menu.Message) => Message,
+  onSelectedStep: (step: Step.Step) => Message,
 ): Html =>
   Ui.Menu.view<Message, Step.Step>({
     model: model.stepMenu,
-    toParentMessage: message => GotStepMenuMessage({ message }),
+    toParentMessage,
     items: Step.all,
     onSelectedItem: index =>
-      NavigatedToStep({
-        step: pipe(
+      onSelectedStep(
+        pipe(
           Step.all,
           Array.get(index),
           Option.getOrElse(() => model.currentStep),
         ),
-      }),
+      ),
     buttonContent: stepMenuTrigger(model.currentStep),
     buttonClassName:
       'flex items-center w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-gray-300 cursor-pointer',

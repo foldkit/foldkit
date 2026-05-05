@@ -5,7 +5,7 @@ import { type Html } from 'foldkit/html'
 
 import { PronounOption } from '../domain'
 import { Class, div, label, span } from '../html'
-import { GotPersonalInfoMessage } from '../message'
+import type { Message } from '../message'
 import { PersonalInfo } from '../step'
 import {
   backdropClassName,
@@ -17,16 +17,19 @@ import {
 import { inputField } from './field'
 import { chevronDown } from './icon'
 
-export const personalInfoView = ({
-  firstName,
-  lastName,
-  email,
-  phone,
-  pronouns,
-  customPronouns,
-  portfolioUrl,
-  availableDate,
-}: PersonalInfo.Model): Html => {
+export const personalInfoView = (
+  {
+    firstName,
+    lastName,
+    email,
+    phone,
+    pronouns,
+    customPronouns,
+    portfolioUrl,
+    availableDate,
+  }: PersonalInfo.Model,
+  toParentMessage: (message: PersonalInfo.Message) => Message,
+): Html => {
   const isOtherSelected = Option.exists(
     pronouns.maybeSelectedItem,
     Equal.equals('Other'),
@@ -48,9 +51,7 @@ export const personalInfoView = ({
             label: 'First Name',
             field: firstName,
             onInput: value =>
-              GotPersonalInfoMessage({
-                message: PersonalInfo.UpdatedFirstName({ value }),
-              }),
+              toParentMessage(PersonalInfo.UpdatedFirstName({ value })),
             placeholder: 'Jane',
           }),
           inputField({
@@ -58,9 +59,7 @@ export const personalInfoView = ({
             label: 'Last Name',
             field: lastName,
             onInput: value =>
-              GotPersonalInfoMessage({
-                message: PersonalInfo.UpdatedLastName({ value }),
-              }),
+              toParentMessage(PersonalInfo.UpdatedLastName({ value })),
             placeholder: 'Doe',
           }),
         ],
@@ -69,10 +68,7 @@ export const personalInfoView = ({
         id: 'email',
         label: 'Email',
         field: email,
-        onInput: value =>
-          GotPersonalInfoMessage({
-            message: PersonalInfo.UpdatedEmail({ value }),
-          }),
+        onInput: value => toParentMessage(PersonalInfo.UpdatedEmail({ value })),
         type: 'email',
         placeholder: 'jane@example.com',
       }),
@@ -80,10 +76,7 @@ export const personalInfoView = ({
         id: 'phone',
         label: 'Phone (optional)',
         field: phone,
-        onInput: value =>
-          GotPersonalInfoMessage({
-            message: PersonalInfo.UpdatedPhone({ value }),
-          }),
+        onInput: value => toParentMessage(PersonalInfo.UpdatedPhone({ value })),
         type: 'tel',
         placeholder: '+1 (555) 123-4567',
       }),
@@ -97,9 +90,7 @@ export const personalInfoView = ({
           Ui.Listbox.view({
             model: pronouns,
             toParentMessage: message =>
-              GotPersonalInfoMessage({
-                message: PersonalInfo.GotPronounsMessage({ message }),
-              }),
+              toParentMessage(PersonalInfo.GotPronounsMessage({ message })),
             anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
             items: PronounOption.all,
             itemToConfig: (pronoun, { isSelected }) => ({
@@ -157,9 +148,7 @@ export const personalInfoView = ({
               label: 'Custom Pronouns',
               field: Valid({ value: customPronouns }),
               onInput: value =>
-                GotPersonalInfoMessage({
-                  message: PersonalInfo.UpdatedCustomPronouns({ value }),
-                }),
+                toParentMessage(PersonalInfo.UpdatedCustomPronouns({ value })),
               placeholder: 'Enter your pronouns',
             }),
           ]
@@ -169,17 +158,18 @@ export const personalInfoView = ({
         label: 'Portfolio URL (optional)',
         field: portfolioUrl,
         onInput: value =>
-          GotPersonalInfoMessage({
-            message: PersonalInfo.UpdatedPortfolioUrl({ value }),
-          }),
+          toParentMessage(PersonalInfo.UpdatedPortfolioUrl({ value })),
         type: 'url',
       }),
-      availableDatePicker(availableDate),
+      availableDatePicker(availableDate, toParentMessage),
     ],
   )
 }
 
-const availableDatePicker = (model: Ui.DatePicker.Model): Html =>
+const availableDatePicker = (
+  model: Ui.DatePicker.Model,
+  toParentMessage: (message: PersonalInfo.Message) => Message,
+): Html =>
   div(
     [Class('space-y-1')],
     [
@@ -190,9 +180,7 @@ const availableDatePicker = (model: Ui.DatePicker.Model): Html =>
       Ui.DatePicker.view({
         model,
         toParentMessage: message =>
-          GotPersonalInfoMessage({
-            message: PersonalInfo.GotAvailableDateMessage({ message }),
-          }),
+          toParentMessage(PersonalInfo.GotAvailableDateMessage({ message })),
         anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
         triggerContent: maybeDate => triggerContent(maybeDate, 'Pick a date'),
         triggerClassName,

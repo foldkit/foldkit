@@ -2,7 +2,7 @@ import { Ui } from 'foldkit'
 import { type Html } from 'foldkit/html'
 
 import { Class, OnClick, Type, button, div, keyed, label, span } from '../html'
-import { GotWorkHistoryMessage } from '../message'
+import type { Message } from '../message'
 import { WorkHistory } from '../step'
 import {
   backdropClassName,
@@ -15,12 +15,11 @@ import { inputField, textareaField } from './field'
 
 const ANCHOR = { placement: 'bottom-start' as const, gap: 4, padding: 8 }
 
-export const workEntryView = (model: WorkHistory.Entry.Model): Html => {
-  const toEntryMessage = (message: WorkHistory.Entry.Message) =>
-    GotWorkHistoryMessage({
-      message: WorkHistory.GotEntryMessage({ entryId: model.id, message }),
-    })
-
+export const workEntryView = (
+  model: WorkHistory.Entry.Model,
+  toParentMessage: (message: WorkHistory.Entry.Message) => Message,
+  onRemove: Message,
+): Html => {
   const showEndDate = !model.isCurrentlyEmployed.isChecked
 
   const startDatePicker = keyed('div')(
@@ -31,9 +30,9 @@ export const workEntryView = (model: WorkHistory.Entry.Model): Html => {
       Ui.DatePicker.view({
         model: model.startDate,
         toParentMessage: message =>
-          toEntryMessage(WorkHistory.Entry.GotStartDateMessage({ message })),
+          toParentMessage(WorkHistory.Entry.GotStartDateMessage({ message })),
         onSelectedDate: date =>
-          toEntryMessage(WorkHistory.Entry.SelectedStartDate({ date })),
+          toParentMessage(WorkHistory.Entry.SelectedStartDate({ date })),
         anchor: ANCHOR,
         triggerContent: maybeDate =>
           triggerContent(maybeDate, 'Select start date'),
@@ -53,9 +52,9 @@ export const workEntryView = (model: WorkHistory.Entry.Model): Html => {
       Ui.DatePicker.view({
         model: model.endDate,
         toParentMessage: message =>
-          toEntryMessage(WorkHistory.Entry.GotEndDateMessage({ message })),
+          toParentMessage(WorkHistory.Entry.GotEndDateMessage({ message })),
         onSelectedDate: date =>
-          toEntryMessage(WorkHistory.Entry.SelectedEndDate({ date })),
+          toParentMessage(WorkHistory.Entry.SelectedEndDate({ date })),
         anchor: ANCHOR,
         triggerContent: maybeDate =>
           triggerContent(maybeDate, 'Select end date'),
@@ -79,7 +78,7 @@ export const workEntryView = (model: WorkHistory.Entry.Model): Html => {
             label: 'Company',
             field: model.company,
             onInput: value =>
-              toEntryMessage(WorkHistory.Entry.UpdatedCompany({ value })),
+              toParentMessage(WorkHistory.Entry.UpdatedCompany({ value })),
             placeholder: 'e.g. Acme Corp',
           }),
           inputField({
@@ -87,7 +86,7 @@ export const workEntryView = (model: WorkHistory.Entry.Model): Html => {
             label: 'Job Title',
             field: model.title,
             onInput: value =>
-              toEntryMessage(WorkHistory.Entry.UpdatedTitle({ value })),
+              toParentMessage(WorkHistory.Entry.UpdatedTitle({ value })),
             placeholder: 'e.g. Senior Engineer',
           }),
         ],
@@ -99,7 +98,7 @@ export const workEntryView = (model: WorkHistory.Entry.Model): Html => {
       Ui.Checkbox.view({
         model: model.isCurrentlyEmployed,
         toParentMessage: message =>
-          toEntryMessage(
+          toParentMessage(
             WorkHistory.Entry.GotIsCurrentlyEmployedMessage({ message }),
           ),
         toView: attributes =>
@@ -138,7 +137,7 @@ export const workEntryView = (model: WorkHistory.Entry.Model): Html => {
         label: 'Description',
         value: model.description,
         onInput: value =>
-          toEntryMessage(WorkHistory.Entry.UpdatedDescription({ value })),
+          toParentMessage(WorkHistory.Entry.UpdatedDescription({ value })),
         rows: 3,
         placeholder: 'Describe your role and key accomplishments...',
       }),
@@ -148,11 +147,7 @@ export const workEntryView = (model: WorkHistory.Entry.Model): Html => {
           button(
             [
               Type('button'),
-              OnClick(
-                GotWorkHistoryMessage({
-                  message: WorkHistory.RemovedEntry({ entryId: model.id }),
-                }),
-              ),
+              OnClick(onRemove),
               Class(
                 'text-sm text-gray-400 hover:text-red-500 transition cursor-pointer',
               ),

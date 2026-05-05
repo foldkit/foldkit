@@ -15,7 +15,20 @@ import {
   keyed,
   p,
 } from '../html'
-import { ClickedNext, ClickedPrevious, ToggledPreview } from '../message'
+import {
+  ClickedNext,
+  ClickedPrevious,
+  GotAttachmentsMessage,
+  GotCoverLetterMessage,
+  GotEducationMessage,
+  GotPersonalInfoMessage,
+  GotSkillsMessage,
+  GotStepMenuMessage,
+  GotWorkHistoryMessage,
+  NavigatedToStep,
+  SubmittedApplication,
+  ToggledPreview,
+} from '../message'
 import { type Model } from '../model'
 import * as Education from '../step/education'
 import * as PersonalInfo from '../step/personalInfo'
@@ -47,13 +60,35 @@ const stepsWithErrors = (model: Model): HashSet.HashSet<Step.Step> =>
 
 const stepContent = (model: Model): Html =>
   M.value(model.currentStep).pipe(
-    M.when('PersonalInfo', () => personalInfoView(model.personalInfo)),
-    M.when('WorkHistory', () => workHistoryView(model.workHistory)),
-    M.when('Education', () => educationView(model.education)),
-    M.when('Skills', () => skillsView(model.skills)),
-    M.when('CoverLetter', () => coverLetterView(model.coverLetter)),
-    M.when('Attachments', () => attachmentsView(model.attachments)),
-    M.when('Review', () => review(model)),
+    M.when('PersonalInfo', () =>
+      personalInfoView(model.personalInfo, message =>
+        GotPersonalInfoMessage({ message }),
+      ),
+    ),
+    M.when('WorkHistory', () =>
+      workHistoryView(model.workHistory, message =>
+        GotWorkHistoryMessage({ message }),
+      ),
+    ),
+    M.when('Education', () =>
+      educationView(model.education, message =>
+        GotEducationMessage({ message }),
+      ),
+    ),
+    M.when('Skills', () =>
+      skillsView(model.skills, message => GotSkillsMessage({ message })),
+    ),
+    M.when('CoverLetter', () =>
+      coverLetterView(model.coverLetter, message =>
+        GotCoverLetterMessage({ message }),
+      ),
+    ),
+    M.when('Attachments', () =>
+      attachmentsView(model.attachments, message =>
+        GotAttachmentsMessage({ message }),
+      ),
+    ),
+    M.when('Review', () => review(model, SubmittedApplication())),
     M.exhaustive,
   )
 
@@ -141,7 +176,16 @@ const desktopStepSidebar = (
   keyed('div')(
     'desktop-sidebar',
     [Class('hidden w-60 shrink-0 lg:block')],
-    [div([Class('sticky top-8')], [stepList(model.currentStep, errorSteps)])],
+    [
+      div(
+        [Class('sticky top-8')],
+        [
+          stepList(model.currentStep, errorSteps, step =>
+            NavigatedToStep({ step }),
+          ),
+        ],
+      ),
+    ],
   )
 
 const desktopPreviewSidebar = (model: Model): Html =>
@@ -213,7 +257,17 @@ export const view = (model: Model): Document => {
         [Class('mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8')],
         [
           pageHeader,
-          div([Class('mb-6 lg:hidden')], [stepMenu(model, errorSteps)]),
+          div(
+            [Class('mb-6 lg:hidden')],
+            [
+              stepMenu(
+                model,
+                errorSteps,
+                message => GotStepMenuMessage({ message }),
+                step => NavigatedToStep({ step }),
+              ),
+            ],
+          ),
           div(
             [Class('lg:flex lg:gap-8')],
             [

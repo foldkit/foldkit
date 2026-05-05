@@ -60,18 +60,18 @@ export const update = (
 // VIEW
 
 /** Attribute groups the checkbox component provides to the consumer's `toView` callback. */
-export type CheckboxAttributes<Message> = Readonly<{
-  checkbox: ReadonlyArray<Attribute<Message>>
-  label: ReadonlyArray<Attribute<Message>>
-  description: ReadonlyArray<Attribute<Message>>
-  hiddenInput: ReadonlyArray<Attribute<Message>>
+export type CheckboxAttributes<ParentMessage> = Readonly<{
+  checkbox: ReadonlyArray<Attribute<ParentMessage>>
+  label: ReadonlyArray<Attribute<ParentMessage>>
+  description: ReadonlyArray<Attribute<ParentMessage>>
+  hiddenInput: ReadonlyArray<Attribute<ParentMessage>>
 }>
 
 /** Configuration for rendering a checkbox with `view`. */
-export type ViewConfig<Message> = Readonly<{
+export type ViewConfig<ParentMessage> = Readonly<{
   model: Model
-  toParentMessage: (message: Toggled) => Message
-  toView: (attributes: CheckboxAttributes<Message>) => Html
+  toParentMessage: (message: Toggled) => ParentMessage
+  toView: (attributes: CheckboxAttributes<ParentMessage>) => Html
   isDisabled?: boolean
   isIndeterminate?: boolean
   name?: string
@@ -82,7 +82,9 @@ const labelId = (id: string): string => `${id}-label`
 const descriptionId = (id: string): string => `${id}-description`
 
 /** Renders an accessible checkbox by building ARIA attribute groups and delegating layout to the consumer's `toView` callback. */
-export const view = <Message>(config: ViewConfig<Message>): Html => {
+export const view = <ParentMessage>(
+  config: ViewConfig<ParentMessage>,
+): Html => {
   const {
     AriaChecked,
     AriaDescribedBy,
@@ -97,7 +99,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     Tabindex,
     Type,
     Value,
-  } = html<Message>()
+  } = html<ParentMessage>()
 
   const {
     model: { id, isChecked },
@@ -108,7 +110,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     value: formValue = 'on',
   } = config
 
-  const handleKeyUp = (key: string): Option.Option<Message> =>
+  const handleKeyUp = (key: string): Option.Option<ParentMessage> =>
     M.value(key).pipe(
       M.when(' ', () => Option.some(toParentMessage(Toggled()))),
       M.orElse(() => Option.none()),
@@ -161,11 +163,11 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
 
 /** Creates a memoized checkbox view. Static config is captured in a closure;
  *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
-export const lazy = <Message>(
-  staticConfig: Omit<ViewConfig<Message>, 'model' | 'toParentMessage'>,
+export const lazy = <ParentMessage>(
+  staticConfig: Omit<ViewConfig<ParentMessage>, 'model' | 'toParentMessage'>,
 ): ((
   model: Model,
-  toParentMessage: ViewConfig<Message>['toParentMessage'],
+  toParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
 ) => Html) => {
   const lazyView = createLazy()
 
@@ -173,12 +175,12 @@ export const lazy = <Message>(
     lazyView(
       (
         currentModel: Model,
-        currentToMessage: ViewConfig<Message>['toParentMessage'],
+        currentToParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
       ) =>
         view({
           ...staticConfig,
           model: currentModel,
-          toParentMessage: currentToMessage,
+          toParentMessage: currentToParentMessage,
         }),
       [model, toParentMessage],
     )

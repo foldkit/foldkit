@@ -670,7 +670,7 @@ export type GroupHeading = Readonly<{
 
 /** Configuration for rendering a combobox with `view`. */
 export type BaseViewConfig<
-  Message,
+  ParentMessage,
   Item extends string,
   Model extends BaseModel,
 > = Readonly<{
@@ -690,8 +690,8 @@ export type BaseViewConfig<
       | typeof CompletedAnchorMount.Type
       | typeof CompletedAttachPreventBlur.Type
       | typeof CompletedAttachSelectOnFocus.Type,
-  ) => Message
-  onSelectedItem?: (value: string) => Message
+  ) => ParentMessage
+  onSelectedItem?: (value: string) => ParentMessage
   items: ReadonlyArray<Item>
   itemToConfig: (
     item: Item,
@@ -705,21 +705,21 @@ export type BaseViewConfig<
   itemToDisplayText: (item: Item, index: number) => string
   isItemDisabled?: (item: Item, index: number) => boolean
   inputClassName?: string
-  inputAttributes?: ReadonlyArray<Attribute<Message>>
+  inputAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   inputPlaceholder?: string
   inputWrapperClassName?: string
-  inputWrapperAttributes?: ReadonlyArray<Attribute<Message>>
+  inputWrapperAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   itemsClassName?: string
-  itemsAttributes?: ReadonlyArray<Attribute<Message>>
+  itemsAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   itemsScrollClassName?: string
-  itemsScrollAttributes?: ReadonlyArray<Attribute<Message>>
+  itemsScrollAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   backdropClassName?: string
-  backdropAttributes?: ReadonlyArray<Attribute<Message>>
+  backdropAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   className?: string
-  attributes?: ReadonlyArray<Attribute<Message>>
+  attributes?: ReadonlyArray<Attribute<ParentMessage>>
   buttonContent?: Html
   buttonClassName?: string
-  buttonAttributes?: ReadonlyArray<Attribute<Message>>
+  buttonAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   formName?: string
   isDisabled?: boolean
   isInvalid?: boolean
@@ -727,9 +727,9 @@ export type BaseViewConfig<
   itemGroupKey?: (item: Item, index: number) => string
   groupToHeading?: (groupKey: string) => GroupHeading | undefined
   groupClassName?: string
-  groupAttributes?: ReadonlyArray<Attribute<Message>>
+  groupAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   separatorClassName?: string
-  separatorAttributes?: ReadonlyArray<Attribute<Message>>
+  separatorAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   anchor?: AnchorConfig
 }>
 
@@ -744,8 +744,8 @@ export type ViewBehavior<Model extends BaseModel> = Readonly<{
 /** Creates a combobox view function from variant-specific behavior. Shared rendering logic (input, items, transitions, keyboard navigation) is handled internally; only selection display varies by variant. */
 export const makeView =
   <Model extends BaseModel>(behavior: ViewBehavior<Model>) =>
-  <Message, Item extends string>(
-    config: BaseViewConfig<Message, Item, Model>,
+  <ParentMessage, Item extends string>(
+    config: BaseViewConfig<ParentMessage, Item, Model>,
   ): Html => {
     const {
       div,
@@ -779,7 +779,7 @@ export const makeView =
       Type,
       Value,
       keyed,
-    } = html<Message>()
+    } = html<ParentMessage>()
 
     const {
       model: {
@@ -825,7 +825,7 @@ export const makeView =
       anchor,
     } = config
 
-    const dispatchSelectedItem = (item: Item, index: number): Message =>
+    const dispatchSelectedItem = (item: Item, index: number): ParentMessage =>
       onSelectedItem
         ? onSelectedItem(itemToValue(item, index))
         : toParentMessage(
@@ -908,7 +908,7 @@ export const makeView =
         ),
       )
 
-    const handleInputKeyDown = (key: string): Option.Option<Message> =>
+    const handleInputKeyDown = (key: string): Option.Option<ParentMessage> =>
       M.value(key).pipe(
         M.when('ArrowDown', () => {
           if (!isOpen) {

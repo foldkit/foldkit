@@ -3,6 +3,7 @@ import { Ui } from 'foldkit'
 import type { Document, Html } from 'foldkit/html'
 
 import { AriaHidden, AriaLive, Class, Style, div, empty, h1 } from '../html'
+import { GotDragAndDropMessage } from '../message'
 import type { Model } from '../model'
 import { ghostCardView } from './card'
 import { columnView } from './column'
@@ -51,7 +52,11 @@ export const view = (model: Model): Document => ({
             'flex-1 p-6 grid grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] gap-6 items-start',
           ),
         ],
-        Array.map(model.columns, column => columnView(model, column)),
+        Array.map(model.columns, column =>
+          columnView(model, column, message =>
+            GotDragAndDropMessage({ message }),
+          ),
+        ),
       ),
       ghostElement(model),
       div([Class('sr-only'), AriaLive('assertive')], [model.announcement]),

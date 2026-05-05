@@ -241,19 +241,19 @@ export const titleId = (model: Model): string => `${model.id}-title`
 export const descriptionId = (model: Model): string => `${model.id}-description`
 
 /** Configuration for rendering a dialog with `view`. */
-export type ViewConfig<Message> = Readonly<{
+export type ViewConfig<ParentMessage> = Readonly<{
   model: Model
   toParentMessage: (
     message: Closed | CompletedShowDialog | CompletedCloseDialog,
-  ) => Message
-  onClosed?: () => Message
+  ) => ParentMessage
+  onClosed?: () => ParentMessage
   panelContent: Html
   panelClassName?: string
-  panelAttributes?: ReadonlyArray<Attribute<Message>>
+  panelAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   backdropClassName?: string
-  backdropAttributes?: ReadonlyArray<Attribute<Message>>
+  backdropAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   className?: string
-  attributes?: ReadonlyArray<Attribute<Message>>
+  attributes?: ReadonlyArray<Attribute<ParentMessage>>
 }>
 
 /** Programmatically opens the dialog, updating the model and returning
@@ -271,7 +271,9 @@ export const close = (
   update(model, Closed())
 
 /** Renders a headless dialog component backed by the native `<dialog>` element with `showModal()`. */
-export const view = <Message>(config: ViewConfig<Message>): Html => {
+export const view = <ParentMessage>(
+  config: ViewConfig<ParentMessage>,
+): Html => {
   const {
     AriaDescribedBy,
     AriaLabelledBy,
@@ -283,7 +285,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     Open,
     Style,
     keyed,
-  } = html<Message>()
+  } = html<ParentMessage>()
 
   const {
     model: {
@@ -302,7 +304,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     attributes = [],
   } = config
 
-  const dispatchClosed = (): Message =>
+  const dispatchClosed = (): ParentMessage =>
     onClosed ? onClosed() : toParentMessage(Closed())
 
   const isLeaving =
@@ -388,14 +390,14 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
  *  and `panelContent` — are compared by reference per render via `createLazy`.
  *  When any of them change, the view re-renders; otherwise the cached VNode is
  *  reused and snabbdom skips the entire subtree. */
-export const lazy = <Message>(
+export const lazy = <ParentMessage>(
   staticConfig: Omit<
-    ViewConfig<Message>,
+    ViewConfig<ParentMessage>,
     'model' | 'toParentMessage' | 'onClosed' | 'panelContent'
   >,
 ): ((
   model: Model,
-  toParentMessage: ViewConfig<Message>['toParentMessage'],
+  toParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
   panelContent: Html,
 ) => Html) => {
   const lazyView = createLazy()
@@ -404,13 +406,13 @@ export const lazy = <Message>(
     lazyView(
       (
         currentModel: Model,
-        currentToMessage: ViewConfig<Message>['toParentMessage'],
+        currentToParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
         currentPanelContent: Html,
       ) =>
         view({
           ...staticConfig,
           model: currentModel,
-          toParentMessage: currentToMessage,
+          toParentMessage: currentToParentMessage,
           panelContent: currentPanelContent,
         }),
       [model, toParentMessage, panelContent],

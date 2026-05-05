@@ -483,12 +483,12 @@ export const lazy = <ParentMessage>(
     lazyView(
       (
         currentModel: Model,
-        currentToMessage: ViewConfig<ParentMessage>['toParentMessage'],
+        currentToParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
       ) =>
         view({
           ...staticConfig,
           model: currentModel,
-          toParentMessage: currentToMessage,
+          toParentMessage: currentToParentMessage,
         }),
       [model, toParentMessage],
     )

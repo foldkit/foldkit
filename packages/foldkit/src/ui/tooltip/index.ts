@@ -288,7 +288,7 @@ export const setShowDelay = (
 // VIEW
 
 /** Configuration for rendering a tooltip with `view`. */
-export type ViewConfig<Message> = Readonly<{
+export type ViewConfig<ParentMessage> = Readonly<{
   model: Model
   toParentMessage: (
     message:
@@ -299,21 +299,23 @@ export type ViewConfig<Message> = Readonly<{
       | PressedEscape
       | PressedPointerOnTrigger
       | typeof CompletedAnchorMount.Type,
-  ) => Message
+  ) => ParentMessage
   anchor: AnchorConfig
   triggerContent: Html
   triggerClassName?: string
-  triggerAttributes?: ReadonlyArray<Attribute<Message>>
+  triggerAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   content: Html
   panelClassName?: string
-  panelAttributes?: ReadonlyArray<Attribute<Message>>
+  panelAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   isDisabled?: boolean
   className?: string
-  attributes?: ReadonlyArray<Attribute<Message>>
+  attributes?: ReadonlyArray<Attribute<ParentMessage>>
 }>
 
 /** Renders a headless tooltip with an anchored non-interactive panel. Shows on hover (after delay) or focus (from keyboard, touch, or pen; mouse-click focus is excluded); hides on leave, blur, Escape, or left-click of the trigger. Uses `role="tooltip"` and links the trigger via `aria-describedby`. */
-export const view = <Message>(config: ViewConfig<Message>): Html => {
+export const view = <ParentMessage>(
+  config: ViewConfig<ParentMessage>,
+): Html => {
   const {
     div,
     AriaDescribedBy,
@@ -332,7 +334,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     Style,
     Type,
     keyed,
-  } = html<Message>()
+  } = html<ParentMessage>()
 
   const {
     model: { id, isOpen },
@@ -349,7 +351,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     attributes = [],
   } = config
 
-  const handleTriggerKeyDown = (key: string): Option.Option<Message> =>
+  const handleTriggerKeyDown = (key: string): Option.Option<ParentMessage> =>
     M.value(key).pipe(
       M.when('Escape', () =>
         OptionExt.when(isOpen, toParentMessage(PressedEscape())),
@@ -360,7 +362,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
   const handleTriggerPointerDown = (
     pointerType: string,
     button: number,
-  ): Option.Option<Message> =>
+  ): Option.Option<ParentMessage> =>
     Option.some(
       toParentMessage(PressedPointerOnTrigger({ pointerType, button })),
     )
@@ -435,11 +437,11 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
 
 /** Creates a memoized tooltip view. Static config is captured in a closure;
  *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
-export const lazy = <Message>(
-  staticConfig: Omit<ViewConfig<Message>, 'model' | 'toParentMessage'>,
+export const lazy = <ParentMessage>(
+  staticConfig: Omit<ViewConfig<ParentMessage>, 'model' | 'toParentMessage'>,
 ): ((
   model: Model,
-  toParentMessage: ViewConfig<Message>['toParentMessage'],
+  toParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
 ) => Html) => {
   const lazyView = createLazy()
 
@@ -447,12 +449,12 @@ export const lazy = <Message>(
     lazyView(
       (
         currentModel: Model,
-        currentToMessage: ViewConfig<Message>['toParentMessage'],
+        currentToParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
       ) =>
         view({
           ...staticConfig,
           model: currentModel,
-          toParentMessage: currentToMessage,
+          toParentMessage: currentToParentMessage,
         }),
       [model, toParentMessage],
     )

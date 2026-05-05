@@ -474,17 +474,17 @@ const percentString = (fraction: number): string =>
 
 /** Attribute groups the slider component provides to the consumer's `toView`
  *  callback. */
-export type SliderAttributes<Message> = Readonly<{
-  root: ReadonlyArray<Attribute<Message>>
-  track: ReadonlyArray<Attribute<Message>>
-  filledTrack: ReadonlyArray<Attribute<Message>>
-  thumb: ReadonlyArray<Attribute<Message>>
-  label: ReadonlyArray<Attribute<Message>>
-  hiddenInput: ReadonlyArray<Attribute<Message>>
+export type SliderAttributes<ParentMessage> = Readonly<{
+  root: ReadonlyArray<Attribute<ParentMessage>>
+  track: ReadonlyArray<Attribute<ParentMessage>>
+  filledTrack: ReadonlyArray<Attribute<ParentMessage>>
+  thumb: ReadonlyArray<Attribute<ParentMessage>>
+  label: ReadonlyArray<Attribute<ParentMessage>>
+  hiddenInput: ReadonlyArray<Attribute<ParentMessage>>
 }>
 
 /** Configuration for rendering a slider with `view`. */
-export type ViewConfig<Message> = Readonly<{
+export type ViewConfig<ParentMessage> = Readonly<{
   model: Model
   toParentMessage: (
     message:
@@ -494,8 +494,8 @@ export type ViewConfig<Message> = Readonly<{
       | ReleasedDragPointer
       | CancelledDrag
       | PressedKeyboardNavigation,
-  ) => Message
-  toView: (attributes: SliderAttributes<Message>) => Html
+  ) => ParentMessage
+  toView: (attributes: SliderAttributes<ParentMessage>) => Html
   ariaLabel?: string
   ariaLabelledBy?: string
   formatValue?: (value: number) => string
@@ -509,7 +509,9 @@ export type ViewConfig<Message> = Readonly<{
  *  aria-valuemax / aria-valuenow, keyboard navigation by step / page / home /
  *  end. Pointer drag is handled by the component's document-level
  *  subscriptions. */
-export const view = <Message>(config: ViewConfig<Message>): Html => {
+export const view = <ParentMessage>(
+  config: ViewConfig<ParentMessage>,
+): Html => {
   const {
     AriaDisabled,
     AriaLabel,
@@ -529,7 +531,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     Tabindex,
     Type,
     Value,
-  } = html<Message>()
+  } = html<ParentMessage>()
 
   const {
     model,
@@ -542,12 +544,12 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
   const isDragging = model.dragState._tag === 'Dragging'
   const fraction = fractionOfValue(model)
 
-  const handleKeyDown = (key: string): Option.Option<Message> =>
+  const handleKeyDown = (key: string): Option.Option<ParentMessage> =>
     Option.map(keyToDirection(key), direction =>
       toParentMessage(PressedKeyboardNavigation({ direction })),
     )
 
-  const pointerAtClientX = (clientX: number): Option.Option<Message> =>
+  const pointerAtClientX = (clientX: number): Option.Option<ParentMessage> =>
     Option.map(trackElement(id), element =>
       toParentMessage(
         PressedPointer({
@@ -563,7 +565,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     _screenY: number,
     _timeStamp: number,
     clientX: number,
-  ): Option.Option<Message> =>
+  ): Option.Option<ParentMessage> =>
     pipe(
       button,
       Option.liftPredicate(Equal.equals(LEFT_MOUSE_BUTTON)),
@@ -573,7 +575,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
   const thumbPointerHandler = (
     _pointerType: string,
     button: number,
-  ): Option.Option<Message> =>
+  ): Option.Option<ParentMessage> =>
     pipe(
       button,
       Option.liftPredicate(Equal.equals(LEFT_MOUSE_BUTTON)),
@@ -614,7 +616,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     ...stateAttributes,
   ]
 
-  const resolveThumbLabel = (): ReadonlyArray<Attribute<Message>> => {
+  const resolveThumbLabel = (): ReadonlyArray<Attribute<ParentMessage>> => {
     if (config.ariaLabel !== undefined) {
       return [AriaLabel(config.ariaLabel)]
     } else if (config.ariaLabelledBy !== undefined) {
@@ -675,11 +677,11 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
 
 /** Creates a memoized slider view. Static config is captured in a closure;
  *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
-export const lazy = <Message>(
-  staticConfig: Omit<ViewConfig<Message>, 'model' | 'toParentMessage'>,
+export const lazy = <ParentMessage>(
+  staticConfig: Omit<ViewConfig<ParentMessage>, 'model' | 'toParentMessage'>,
 ): ((
   model: Model,
-  toParentMessage: ViewConfig<Message>['toParentMessage'],
+  toParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
 ) => Html) => {
   const lazyView = createLazy()
 
@@ -687,12 +689,12 @@ export const lazy = <Message>(
     lazyView(
       (
         currentModel: Model,
-        currentToMessage: ViewConfig<Message>['toParentMessage'],
+        currentToParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
       ) =>
         view({
           ...staticConfig,
           model: currentModel,
-          toParentMessage: currentToMessage,
+          toParentMessage: currentToParentMessage,
         }),
       [model, toParentMessage],
     )

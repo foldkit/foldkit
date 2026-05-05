@@ -16,7 +16,7 @@ import {
   p,
   span,
 } from '../html'
-import { GotAttachmentsMessage } from '../message'
+import type { Message } from '../message'
 import { Attachments } from '../step'
 
 const BYTES_PER_KB = 1024
@@ -38,7 +38,10 @@ const dropZoneClassName =
 const fileKey = (file: File.File): string =>
   `${File.name(file)}:${File.size(file)}:${file.lastModified}`
 
-const resumeView = (resume: File.File): Html =>
+const resumeView = (
+  resume: File.File,
+  toParentMessage: (message: Attachments.Message) => Message,
+): Html =>
   keyed('div')(
     'resume-filled',
     [
@@ -69,9 +72,7 @@ const resumeView = (resume: File.File): Html =>
       button(
         [
           Type('button'),
-          OnClick(
-            GotAttachmentsMessage({ message: Attachments.RemovedResume() }),
-          ),
+          OnClick(toParentMessage(Attachments.RemovedResume())),
           Class(
             'text-sm text-gray-400 hover:text-red-500 transition cursor-pointer',
           ),
@@ -81,7 +82,11 @@ const resumeView = (resume: File.File): Html =>
     ],
   )
 
-const additionalFileView = (file: File.File, fileIndex: number): Html =>
+const additionalFileView = (
+  file: File.File,
+  fileIndex: number,
+  toParentMessage: (message: Attachments.Message) => Message,
+): Html =>
   keyed('div')(
     fileKey(file),
     [
@@ -105,9 +110,7 @@ const additionalFileView = (file: File.File, fileIndex: number): Html =>
         [
           Type('button'),
           OnClick(
-            GotAttachmentsMessage({
-              message: Attachments.RemovedAdditionalFile({ fileIndex }),
-            }),
+            toParentMessage(Attachments.RemovedAdditionalFile({ fileIndex })),
           ),
           Class(
             'text-xs text-gray-400 hover:text-red-500 transition cursor-pointer',
@@ -118,12 +121,15 @@ const additionalFileView = (file: File.File, fileIndex: number): Html =>
     ],
   )
 
-export const attachmentsView = ({
-  resumeDrop,
-  maybeResume,
-  additionalFilesDrop,
-  additionalFiles,
-}: Attachments.Model): Html => {
+export const attachmentsView = (
+  {
+    resumeDrop,
+    maybeResume,
+    additionalFilesDrop,
+    additionalFiles,
+  }: Attachments.Model,
+  toParentMessage: (message: Attachments.Message) => Message,
+): Html => {
   const resumeSection = div(
     [Class('space-y-2')],
     [
@@ -133,9 +139,7 @@ export const attachmentsView = ({
           Ui.FileDrop.view({
             model: resumeDrop,
             toParentMessage: message =>
-              GotAttachmentsMessage({
-                message: Attachments.GotResumeDropMessage({ message }),
-              }),
+              toParentMessage(Attachments.GotResumeDropMessage({ message })),
             accept: ['application/pdf', '.doc', '.docx'],
             toView: attributes =>
               keyed('label')(
@@ -154,7 +158,7 @@ export const attachmentsView = ({
                 ],
               ),
           }),
-        onSome: resumeView,
+        onSome: resume => resumeView(resume, toParentMessage),
       }),
     ],
   )
@@ -169,9 +173,9 @@ export const attachmentsView = ({
       Ui.FileDrop.view({
         model: additionalFilesDrop,
         toParentMessage: message =>
-          GotAttachmentsMessage({
-            message: Attachments.GotAdditionalFilesDropMessage({ message }),
-          }),
+          toParentMessage(
+            Attachments.GotAdditionalFilesDropMessage({ message }),
+          ),
         multiple: true,
         toView: attributes =>
           label(
@@ -192,7 +196,12 @@ export const attachmentsView = ({
       ...Array.match(additionalFiles, {
         onEmpty: () => [],
         onNonEmpty: files => [
-          div([Class('space-y-2')], files.map(additionalFileView)),
+          div(
+            [Class('space-y-2')],
+            files.map((file, fileIndex) =>
+              additionalFileView(file, fileIndex, toParentMessage),
+            ),
+          ),
         ],
       }),
     ],

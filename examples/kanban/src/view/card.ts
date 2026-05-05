@@ -5,7 +5,7 @@ import type { Html } from 'foldkit/html'
 
 import { Card } from '../domain'
 import { Class, div, keyed, span } from '../html'
-import { GotDragAndDropMessage } from '../message'
+import type { Message } from '../message'
 import type { Model } from '../model'
 
 const cardContent = (card: Card.Card): ReadonlyArray<Html> => [
@@ -25,6 +25,7 @@ export const cardView = (
   card: Card.Card,
   columnId: string,
   index: number,
+  toParentMessage: (message: Ui.DragAndDrop.Message) => Message,
 ): Html => {
   const isThisCardBeingDragged = Option.exists(
     Ui.DragAndDrop.maybeDraggedItemId(model.dragAndDrop),
@@ -50,7 +51,7 @@ export const cardView = (
       ),
       ...Ui.DragAndDrop.draggable({
         model: model.dragAndDrop,
-        toParentMessage: message => GotDragAndDropMessage({ message }),
+        toParentMessage,
         itemId: card.id,
         containerId: columnId,
         index,

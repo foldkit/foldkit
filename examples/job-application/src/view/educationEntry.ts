@@ -5,7 +5,7 @@ import { type CalendarDate } from 'foldkit/calendar'
 import { type Html } from 'foldkit/html'
 
 import { Class, OnClick, Type, button, div, keyed, label, span } from '../html'
-import { GotEducationMessage } from '../message'
+import type { Message } from '../message'
 import { Education } from '../step'
 import { inputField } from './field'
 import { chevronDown } from './icon'
@@ -21,12 +21,9 @@ const graduationYears = (today: CalendarDate): ReadonlyArray<string> =>
 export const educationEntryView = (
   model: Education.Entry.Model,
   today: CalendarDate,
+  toParentMessage: (message: Education.Entry.Message) => Message,
+  onRemove: Message,
 ): Html => {
-  const toEntryMessage = (message: Education.Entry.Message) =>
-    GotEducationMessage({
-      message: Education.GotEntryMessage({ entryId: model.id, message }),
-    })
-
   const showGraduationYear = !model.isCurrentlyEnrolled.isChecked
 
   const graduationYearField = keyed('div')(
@@ -40,11 +37,11 @@ export const educationEntryView = (
       Ui.Listbox.view({
         model: model.graduationYearListbox,
         toParentMessage: message =>
-          toEntryMessage(
+          toParentMessage(
             Education.Entry.GotGraduationYearListboxMessage({ message }),
           ),
         onSelectedItem: value =>
-          toEntryMessage(Education.Entry.UpdatedGraduationYear({ value })),
+          toParentMessage(Education.Entry.UpdatedGraduationYear({ value })),
         items: graduationYears(today),
         buttonContent: div(
           [Class('flex w-full items-center justify-between gap-2')],
@@ -91,7 +88,7 @@ export const educationEntryView = (
             label: 'School',
             field: model.school,
             onInput: value =>
-              toEntryMessage(Education.Entry.UpdatedSchool({ value })),
+              toParentMessage(Education.Entry.UpdatedSchool({ value })),
             placeholder: 'e.g. MIT',
           }),
           inputField({
@@ -99,7 +96,7 @@ export const educationEntryView = (
             label: 'Degree',
             field: model.degree,
             onInput: value =>
-              toEntryMessage(Education.Entry.UpdatedDegree({ value })),
+              toParentMessage(Education.Entry.UpdatedDegree({ value })),
             placeholder: "e.g. Bachelor's, Master's",
           }),
         ],
@@ -109,13 +106,13 @@ export const educationEntryView = (
         label: 'Field of Study',
         field: model.fieldOfStudy,
         onInput: value =>
-          toEntryMessage(Education.Entry.UpdatedFieldOfStudy({ value })),
+          toParentMessage(Education.Entry.UpdatedFieldOfStudy({ value })),
         placeholder: 'e.g. Computer Science',
       }),
       Ui.Checkbox.view({
         model: model.isCurrentlyEnrolled,
         toParentMessage: message =>
-          toEntryMessage(
+          toParentMessage(
             Education.Entry.GotIsCurrentlyEnrolledMessage({ message }),
           ),
         toView: attributes =>
@@ -156,11 +153,7 @@ export const educationEntryView = (
           button(
             [
               Type('button'),
-              OnClick(
-                GotEducationMessage({
-                  message: Education.RemovedEntry({ entryId: model.id }),
-                }),
-              ),
+              OnClick(onRemove),
               Class(
                 'text-sm text-gray-400 hover:text-red-500 transition cursor-pointer',
               ),

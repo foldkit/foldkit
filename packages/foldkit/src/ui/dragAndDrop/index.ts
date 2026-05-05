@@ -803,18 +803,18 @@ export type DraggableMessage =
   | typeof ActivatedKeyboardDrag.Type
 
 /** Configuration for creating draggable attributes with `draggable`. */
-export type DraggableConfig<Message> = Readonly<{
+export type DraggableConfig<ParentMessage> = Readonly<{
   model: Model
-  toParentMessage: (message: DraggableMessage) => Message
+  toParentMessage: (message: DraggableMessage) => ParentMessage
   itemId: string
   containerId: string
   index: number
 }>
 
 /** Returns attributes the parent attaches to a draggable element. Handles pointer-down, keyboard activation, and ARIA. */
-export const draggable = <Message>(
-  config: DraggableConfig<Message>,
-): ReadonlyArray<Attribute<Message>> => {
+export const draggable = <ParentMessage>(
+  config: DraggableConfig<ParentMessage>,
+): ReadonlyArray<Attribute<ParentMessage>> => {
   const {
     AriaRoleDescription,
     DataAttribute,
@@ -823,12 +823,12 @@ export const draggable = <Message>(
     Role,
     Style,
     Tabindex,
-  } = html<Message>()
+  } = html<ParentMessage>()
 
   const isKeyboardDragActivationKey = (key: string): boolean =>
     key === ' ' || key === 'Enter'
 
-  const handleKeyDown = (key: string): Option.Option<Message> => {
+  const handleKeyDown = (key: string): Option.Option<ParentMessage> => {
     if (
       isKeyboardDragActivationKey(key) &&
       config.model.dragState._tag === 'Idle'
@@ -886,11 +886,11 @@ export const draggable = <Message>(
 }
 
 /** Returns attributes the parent attaches to a droppable container element. */
-export const droppable = <Message>(
+export const droppable = <ParentMessage>(
   containerId: string,
   label?: string,
-): ReadonlyArray<Attribute<Message>> => {
-  const { AriaLabel, DataAttribute, Role } = html<Message>()
+): ReadonlyArray<Attribute<ParentMessage>> => {
+  const { AriaLabel, DataAttribute, Role } = html<ParentMessage>()
   return [
     DataAttribute('droppable-id', containerId),
     Role('listbox'),
@@ -899,10 +899,10 @@ export const droppable = <Message>(
 }
 
 /** Returns attributes the parent attaches to a sortable item element. Typically combined with `draggable`. */
-export const sortable = <Message>(
+export const sortable = <ParentMessage>(
   itemId: string,
-): ReadonlyArray<Attribute<Message>> => {
-  const { DataAttribute } = html<Message>()
+): ReadonlyArray<Attribute<ParentMessage>> => {
+  const { DataAttribute } = html<ParentMessage>()
   return [DataAttribute('sortable-id', itemId)]
 }
 

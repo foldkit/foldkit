@@ -47,11 +47,11 @@ export { RequestFrame, WaitForAnimationSettled, defaultLeaveCommand, update }
 // VIEW
 
 /** Configuration for rendering an animation with `view`. */
-export type ViewConfig<Message> = Readonly<{
+export type ViewConfig<ParentMessage> = Readonly<{
   model: Model
   content: Html
   className?: string
-  attributes?: ReadonlyArray<Attribute<Message>>
+  attributes?: ReadonlyArray<Attribute<ParentMessage>>
   element?: TagName
   /** When true, wraps content in a CSS grid container that smoothly animates
    *  height via `grid-template-rows: 0fr → 1fr`. The element stays in the DOM
@@ -68,9 +68,11 @@ export type ViewConfig<Message> = Readonly<{
  *  - `data-leave` — leave animation is active
  *  - `data-transition` — any animation is active
  */
-export const view = <Message>(config: ViewConfig<Message>): Html => {
+export const view = <ParentMessage>(
+  config: ViewConfig<ParentMessage>,
+): Html => {
   const { AriaHidden, Class, DataAttribute, Id, Style, div, empty, keyed } =
-    html<Message>()
+    html<ParentMessage>()
 
   const {
     model: { id, isShowing, transitionState },
@@ -168,8 +170,8 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
 /** Creates a memoized animation view. Static config (className, element, etc.)
  *  is captured in a closure. Dynamic fields — `model` and `content` — are
  *  compared by reference per render via `createLazy`. */
-export const lazy = <Message>(
-  staticConfig: Omit<ViewConfig<Message>, 'model' | 'content'>,
+export const lazy = <ParentMessage>(
+  staticConfig: Omit<ViewConfig<ParentMessage>, 'model' | 'content'>,
 ): ((model: Model, content: Html) => Html) => {
   const lazyView = createLazy()
 

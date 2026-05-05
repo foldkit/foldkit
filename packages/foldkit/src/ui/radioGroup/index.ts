@@ -127,20 +127,20 @@ export const select = (
 // VIEW
 
 /** Attribute groups the radio group component provides for each option's `content` callback. */
-export type OptionAttributes<Message> = Readonly<{
-  option: ReadonlyArray<Attribute<Message>>
-  label: ReadonlyArray<Attribute<Message>>
-  description: ReadonlyArray<Attribute<Message>>
+export type OptionAttributes<ParentMessage> = Readonly<{
+  option: ReadonlyArray<Attribute<ParentMessage>>
+  label: ReadonlyArray<Attribute<ParentMessage>>
+  description: ReadonlyArray<Attribute<ParentMessage>>
 }>
 
 /** Configuration for an individual radio option. The `value` field carries the generic `RadioOption` type
  *  so it flows through to `toParentMessage` callbacks without widening to `string`. */
 export type OptionConfig<
-  Message,
+  ParentMessage,
   RadioOption extends string = string,
 > = Readonly<{
   value: RadioOption
-  content: (attributes: OptionAttributes<Message>) => Html
+  content: (attributes: OptionAttributes<ParentMessage>) => Html
 }>
 
 /** The `SelectedOption` message as seen by `toParentMessage` callbacks, with `value` narrowed
@@ -152,12 +152,12 @@ export type NarrowedSelectedOption<RadioOption extends string> = Readonly<{
 }>
 
 /** Configuration for rendering a radio group with `view`. */
-export type ViewConfig<Message, RadioOption extends string> = Readonly<{
+export type ViewConfig<ParentMessage, RadioOption extends string> = Readonly<{
   model: Model
   toParentMessage: (
     message: NarrowedSelectedOption<RadioOption> | CompletedFocusOption,
-  ) => Message
-  onSelected?: (value: RadioOption, index: number) => Message
+  ) => ParentMessage
+  onSelected?: (value: RadioOption, index: number) => ParentMessage
   options: ReadonlyArray<RadioOption>
   optionToConfig: (
     option: RadioOption,
@@ -166,12 +166,12 @@ export type ViewConfig<Message, RadioOption extends string> = Readonly<{
       isActive: boolean
       isDisabled: boolean
     }>,
-  ) => OptionConfig<Message, RadioOption>
+  ) => OptionConfig<ParentMessage, RadioOption>
   isOptionDisabled?: (option: RadioOption, index: number) => boolean
   orientation?: Orientation
   ariaLabel: string
   className?: string
-  attributes?: ReadonlyArray<Attribute<Message>>
+  attributes?: ReadonlyArray<Attribute<ParentMessage>>
   name?: string
   isDisabled?: boolean
 }>
@@ -183,8 +183,8 @@ const descriptionId = (id: string, index: number): string =>
   `${id}-option-${index}-description`
 
 /** Renders an accessible radio group by building ARIA attribute groups and delegating layout to the consumer's `optionToConfig` callback. */
-export const view = <Message, RadioOption extends string>(
-  config: ViewConfig<Message, RadioOption>,
+export const view = <ParentMessage, RadioOption extends string>(
+  config: ViewConfig<ParentMessage, RadioOption>,
 ): Html => {
   const {
     div,
@@ -205,7 +205,7 @@ export const view = <Message, RadioOption extends string>(
     Tabindex,
     Type,
     Value,
-  } = html<Message>()
+  } = html<ParentMessage>()
 
   const {
     model,
@@ -223,7 +223,10 @@ export const view = <Message, RadioOption extends string>(
     isDisabled: isGroupDisabled = false,
   } = config
 
-  const dispatchSelected = (value: RadioOption, index: number): Message =>
+  const dispatchSelected = (
+    value: RadioOption,
+    index: number,
+  ): ParentMessage =>
     onSelected
       ? onSelected(value, index)
       : toParentMessage({ _tag: 'SelectedOption', value, index })
@@ -303,7 +306,7 @@ export const view = <Message, RadioOption extends string>(
 
   const handleKeyDown =
     (currentIndex: number) =>
-    (key: string): Option.Option<Message> =>
+    (key: string): Option.Option<ParentMessage> =>
       M.value(key).pipe(
         M.whenOr(
           nextKey,
@@ -351,7 +354,7 @@ export const view = <Message, RadioOption extends string>(
       ? [AriaDisabled(true), DataAttribute('disabled', '')]
       : []
 
-    const optionAttributes: ReadonlyArray<Attribute<Message>> = [
+    const optionAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
       Id(optionId(id, index)),
       Role('radio'),
       AriaChecked(isSelected),
@@ -369,11 +372,11 @@ export const view = <Message, RadioOption extends string>(
           ]),
     ]
 
-    const labelAttributes: ReadonlyArray<Attribute<Message>> = [
+    const labelAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
       Id(labelId(id, index)),
     ]
 
-    const descriptionAttributes: ReadonlyArray<Attribute<Message>> = [
+    const descriptionAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
       Id(descriptionId(id, index)),
     ]
 
@@ -414,14 +417,14 @@ export const view = <Message, RadioOption extends string>(
 
 /** Creates a memoized radio group view. Static config is captured in a closure;
  *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
-export const lazy = <Message, RadioOption extends string>(
+export const lazy = <ParentMessage, RadioOption extends string>(
   staticConfig: Omit<
-    ViewConfig<Message, RadioOption>,
+    ViewConfig<ParentMessage, RadioOption>,
     'model' | 'toParentMessage' | 'onSelected'
   >,
 ): ((
   model: Model,
-  toParentMessage: ViewConfig<Message, RadioOption>['toParentMessage'],
+  toParentMessage: ViewConfig<ParentMessage, RadioOption>['toParentMessage'],
 ) => Html) => {
   const lazyView = createLazy()
 
@@ -429,12 +432,15 @@ export const lazy = <Message, RadioOption extends string>(
     lazyView(
       (
         currentModel: Model,
-        currentToMessage: ViewConfig<Message, RadioOption>['toParentMessage'],
+        currentToParentMessage: ViewConfig<
+          ParentMessage,
+          RadioOption
+        >['toParentMessage'],
       ) =>
         view({
           ...staticConfig,
           model: currentModel,
-          toParentMessage: currentToMessage,
+          toParentMessage: currentToParentMessage,
         }),
       [model, toParentMessage],
     )

@@ -276,13 +276,13 @@ export const make = <A, I>(payloadSchema: S.Codec<A, I>) => {
       lazyView(
         (
           currentModel: typeof runtime.Model.Type,
-          currentToMessage: ViewConfig<ParentMessage>['toParentMessage'],
+          currentToParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
           currentRenderEntry: ViewConfig<ParentMessage>['renderEntry'],
         ) =>
           view({
             ...staticConfig,
             model: currentModel,
-            toParentMessage: currentToMessage,
+            toParentMessage: currentToParentMessage,
             renderEntry: currentRenderEntry,
           }),
         [model, toParentMessage, renderEntry],

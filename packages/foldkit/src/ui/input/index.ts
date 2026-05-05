@@ -7,17 +7,17 @@ import type { Html } from '../../html/index.js'
 // VIEW
 
 /** Attribute groups the input component provides to the consumer's `toView` callback. */
-export type InputAttributes<Message> = Readonly<{
-  input: ReadonlyArray<Attribute<Message>>
-  label: ReadonlyArray<Attribute<Message>>
-  description: ReadonlyArray<Attribute<Message>>
+export type InputAttributes<ParentMessage> = Readonly<{
+  input: ReadonlyArray<Attribute<ParentMessage>>
+  label: ReadonlyArray<Attribute<ParentMessage>>
+  description: ReadonlyArray<Attribute<ParentMessage>>
 }>
 
 /** Configuration for rendering an input with `view`. */
-export type ViewConfig<Message> = Readonly<{
+export type ViewConfig<ParentMessage> = Readonly<{
   id: string
-  toView: (attributes: InputAttributes<Message>) => Html
-  onInput?: (value: string) => Message
+  toView: (attributes: InputAttributes<ParentMessage>) => Html
+  onInput?: (value: string) => ParentMessage
   value?: string
   isDisabled?: boolean
   isInvalid?: boolean
@@ -31,7 +31,9 @@ export type ViewConfig<Message> = Readonly<{
 export const descriptionId = (id: string): string => `${id}-description`
 
 /** Renders an accessible input by building ARIA attribute groups and delegating layout to the consumer's `toView` callback. */
-export const view = <Message>(config: ViewConfig<Message>): Html => {
+export const view = <ParentMessage>(
+  config: ViewConfig<ParentMessage>,
+): Html => {
   const {
     AriaDescribedBy,
     AriaDisabled,
@@ -46,7 +48,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     Placeholder,
     Type,
     Value,
-  } = html<Message>()
+  } = html<ParentMessage>()
 
   const {
     toView,

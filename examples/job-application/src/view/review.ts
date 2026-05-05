@@ -18,7 +18,7 @@ import {
   span,
   strong,
 } from '../html'
-import { SubmittedApplication } from '../message'
+import type { Message } from '../message'
 import type { Model } from '../model'
 import * as Education from '../step/education'
 import * as PersonalInfo from '../step/personalInfo'
@@ -213,6 +213,7 @@ const blockedNotice = keyed('p')(
 const submissionSection = (
   submission: Model['submission'],
   isSubmittable: boolean,
+  onSubmit: Message,
 ): Html =>
   M.value(submission).pipe(
     M.tagsExhaustive({
@@ -226,9 +227,7 @@ const submissionSection = (
               'submit',
               [
                 Type('button'),
-                ...(isSubmittable
-                  ? [OnClick(SubmittedApplication())]
-                  : [Disabled(true)]),
+                ...(isSubmittable ? [OnClick(onSubmit)] : [Disabled(true)]),
                 Class(submitButtonClass(isSubmittable)),
               ],
               ['Submit Application'],
@@ -291,9 +290,7 @@ const submissionSection = (
               'submit',
               [
                 Type('button'),
-                ...(isSubmittable
-                  ? [OnClick(SubmittedApplication())]
-                  : [Disabled(true)]),
+                ...(isSubmittable ? [OnClick(onSubmit)] : [Disabled(true)]),
                 Class(submitButtonClass(isSubmittable)),
               ],
               ['Try Again'],
@@ -303,7 +300,7 @@ const submissionSection = (
     }),
   )
 
-export const review = (model: Model): Html => {
+export const review = (model: Model, onSubmit: Message): Html => {
   const pronounLabel = Option.match(
     model.personalInfo.pronouns.maybeSelectedItem,
     {
@@ -328,6 +325,7 @@ export const review = (model: Model): Html => {
           WorkHistory.isComplete(model.workHistory) &&
           Education.isComplete(model.education) &&
           Skills.isComplete(model.skills),
+        onSubmit,
       ),
     ],
   )

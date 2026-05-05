@@ -75,7 +75,11 @@ export const selectItem = (
 // VIEW
 
 /** Configuration for rendering a multi-select listbox with `view`. */
-export type ViewConfig<Message, Item> = BaseViewConfig<Message, Item, Model>
+export type ViewConfig<ParentMessage, Item> = BaseViewConfig<
+  ParentMessage,
+  Item,
+  Model
+>
 
 /** Renders a headless multi-select listbox with typeahead search, keyboard navigation, selection tracking, and aria-activedescendant focus management. */
 export const view = makeView<Model>({
@@ -94,14 +98,18 @@ export const view = makeView<Model>({
 
 /** Creates a memoized multi-select listbox view. Static config is captured in a closure;
  *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
-export const lazy = <Message, Item>(
+export const lazy = <ParentMessage, Item>(
   staticConfig: Omit<
-    ViewConfig<Message, Item>,
+    ViewConfig<ParentMessage, Item>,
     'model' | 'toParentMessage' | 'onSelectedItem'
   >,
 ): ((
   model: Model,
-  toParentMessage: BaseViewConfig<Message, Item, Model>['toParentMessage'],
+  toParentMessage: BaseViewConfig<
+    ParentMessage,
+    Item,
+    Model
+  >['toParentMessage'],
 ) => Html) => {
   const lazyView = createLazy()
 
@@ -109,8 +117,8 @@ export const lazy = <Message, Item>(
     lazyView(
       (
         currentModel: Model,
-        currentToMessage: BaseViewConfig<
-          Message,
+        currentToParentMessage: BaseViewConfig<
+          ParentMessage,
           Item,
           Model
         >['toParentMessage'],
@@ -118,7 +126,7 @@ export const lazy = <Message, Item>(
         view({
           ...staticConfig,
           model: currentModel,
-          toParentMessage: currentToMessage,
+          toParentMessage: currentToParentMessage,
         }),
       [model, toParentMessage],
     )

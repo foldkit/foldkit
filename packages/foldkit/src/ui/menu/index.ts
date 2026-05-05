@@ -730,7 +730,7 @@ export type GroupHeading = Readonly<{
 }>
 
 /** Configuration for rendering a menu with `view`. */
-export type ViewConfig<Message, Item extends string> = Readonly<{
+export type ViewConfig<ParentMessage, Item extends string> = Readonly<{
   model: Model
   toParentMessage: (
     message:
@@ -749,8 +749,8 @@ export type ViewConfig<Message, Item extends string> = Readonly<{
       | SuppressedSpaceScroll
       | typeof CompletedAnchorMount.Type
       | typeof CompletedFocusItemsOnMount.Type,
-  ) => Message
-  onSelectedItem?: (index: number) => Message
+  ) => ParentMessage
+  onSelectedItem?: (index: number) => ParentMessage
   items: ReadonlyArray<Item>
   itemToConfig: (
     item: Item,
@@ -761,21 +761,21 @@ export type ViewConfig<Message, Item extends string> = Readonly<{
   isButtonDisabled?: boolean
   buttonContent: Html
   buttonClassName?: string
-  buttonAttributes?: ReadonlyArray<Attribute<Message>>
+  buttonAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   itemsClassName?: string
-  itemsAttributes?: ReadonlyArray<Attribute<Message>>
+  itemsAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   itemsScrollClassName?: string
-  itemsScrollAttributes?: ReadonlyArray<Attribute<Message>>
+  itemsScrollAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   backdropClassName?: string
-  backdropAttributes?: ReadonlyArray<Attribute<Message>>
+  backdropAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   className?: string
-  attributes?: ReadonlyArray<Attribute<Message>>
+  attributes?: ReadonlyArray<Attribute<ParentMessage>>
   itemGroupKey?: (item: Item, index: number) => string
   groupToHeading?: (groupKey: string) => GroupHeading | undefined
   groupClassName?: string
-  groupAttributes?: ReadonlyArray<Attribute<Message>>
+  groupAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   separatorClassName?: string
-  separatorAttributes?: ReadonlyArray<Attribute<Message>>
+  separatorAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   anchor?: AnchorConfig
 }>
 
@@ -784,8 +784,8 @@ export { groupContiguous, resolveTypeaheadMatch }
 const itemId = (id: string, index: number): string => `${id}-item-${index}`
 
 /** Renders a headless menu with typeahead search, keyboard navigation, and aria-activedescendant focus management. */
-export const view = <Message, Item extends string>(
-  config: ViewConfig<Message, Item>,
+export const view = <ParentMessage, Item extends string>(
+  config: ViewConfig<ParentMessage, Item>,
 ): Html => {
   const {
     div,
@@ -812,7 +812,7 @@ export const view = <Message, Item extends string>(
     Tabindex,
     Type,
     keyed,
-  } = html<Message>()
+  } = html<ParentMessage>()
 
   const {
     model: {
@@ -850,7 +850,7 @@ export const view = <Message, Item extends string>(
     anchor,
   } = config
 
-  const dispatchSelectedItem = (index: number): Message =>
+  const dispatchSelectedItem = (index: number): ParentMessage =>
     onSelectedItem
       ? onSelectedItem(index)
       : toParentMessage(SelectedItem({ index }))
@@ -902,7 +902,7 @@ export const view = <Message, Item extends string>(
     isDisabled,
   )(items.length - 1, -1)
 
-  const handleButtonKeyDown = (key: string): Option.Option<Message> => {
+  const handleButtonKeyDown = (key: string): Option.Option<ParentMessage> => {
     if (isOpen) {
       return handleItemsKeyDown(key)
     }
@@ -936,7 +936,7 @@ export const view = <Message, Item extends string>(
     screenX: number,
     screenY: number,
     timeStamp: number,
-  ): Option.Option<Message> =>
+  ): Option.Option<ParentMessage> =>
     Option.some(
       toParentMessage(
         PressedPointerOnButton({
@@ -949,7 +949,7 @@ export const view = <Message, Item extends string>(
       ),
     )
 
-  const handleButtonClick = (): Message => {
+  const handleButtonClick = (): ParentMessage => {
     const isMouse = Option.exists(
       maybeLastButtonPointerType,
       type => type === 'mouse',
@@ -964,7 +964,7 @@ export const view = <Message, Item extends string>(
     }
   }
 
-  const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
+  const handleSpaceKeyUp = (key: string): Option.Option<ParentMessage> =>
     OptionExt.when(key === ' ', toParentMessage(SuppressedSpaceScroll()))
 
   const resolveActiveIndex = keyToIndex(
@@ -975,7 +975,7 @@ export const view = <Message, Item extends string>(
     isDisabled,
   )
 
-  const searchForKey = (key: string): Option.Option<Message> => {
+  const searchForKey = (key: string): Option.Option<ParentMessage> => {
     const nextQuery = searchQuery + key
     const maybeTargetIndex = resolveTypeaheadMatch(
       items,
@@ -988,7 +988,7 @@ export const view = <Message, Item extends string>(
     return Option.some(toParentMessage(Searched({ key, maybeTargetIndex })))
   }
 
-  const handleItemsKeyDown = (key: string): Option.Option<Message> =>
+  const handleItemsKeyDown = (key: string): Option.Option<ParentMessage> =>
     M.value(key).pipe(
       M.when('Escape', () => Option.some(toParentMessage(Closed()))),
       M.when('Enter', () =>
@@ -1029,7 +1029,7 @@ export const view = <Message, Item extends string>(
     screenY: number,
     pointerType: string,
     timeStamp: number,
-  ): Option.Option<Message> =>
+  ): Option.Option<ParentMessage> =>
     OptionExt.when(
       pointerType === 'mouse',
       toParentMessage(ReleasedPointerOnItems({ screenX, screenY, timeStamp })),
@@ -1277,14 +1277,14 @@ export const view = <Message, Item extends string>(
 
 /** Creates a memoized menu view. Static config is captured in a closure;
  *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
-export const lazy = <Message, Item extends string>(
+export const lazy = <ParentMessage, Item extends string>(
   staticConfig: Omit<
-    ViewConfig<Message, Item>,
+    ViewConfig<ParentMessage, Item>,
     'model' | 'toParentMessage' | 'onSelectedItem'
   >,
 ): ((
   model: Model,
-  toParentMessage: ViewConfig<Message, Item>['toParentMessage'],
+  toParentMessage: ViewConfig<ParentMessage, Item>['toParentMessage'],
 ) => Html) => {
   const lazyView = createLazy()
 
@@ -1292,12 +1292,15 @@ export const lazy = <Message, Item extends string>(
     lazyView(
       (
         currentModel: Model,
-        currentToMessage: ViewConfig<Message, Item>['toParentMessage'],
+        currentToParentMessage: ViewConfig<
+          ParentMessage,
+          Item
+        >['toParentMessage'],
       ) =>
         view({
           ...staticConfig,
           model: currentModel,
-          toParentMessage: currentToMessage,
+          toParentMessage: currentToParentMessage,
         }),
       [model, toParentMessage],
     )

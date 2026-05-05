@@ -113,22 +113,24 @@ export const update = (
 // VIEW
 
 /** Configuration for rendering a disclosure with `view`. */
-export type ViewConfig<Message> = Readonly<{
+export type ViewConfig<ParentMessage> = Readonly<{
   model: Model
-  toParentMessage: (message: Toggled | Closed | CompletedFocusButton) => Message
-  onToggled?: () => Message
+  toParentMessage: (
+    message: Toggled | Closed | CompletedFocusButton,
+  ) => ParentMessage
+  onToggled?: () => ParentMessage
   buttonClassName?: string
-  buttonAttributes?: ReadonlyArray<Attribute<Message>>
+  buttonAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   buttonContent: Html
   panelClassName?: string
-  panelAttributes?: ReadonlyArray<Attribute<Message>>
+  panelAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   panelContent: Html
   isDisabled?: boolean
   persistPanel?: boolean
   buttonElement?: TagName
   panelElement?: TagName
   className?: string
-  attributes?: ReadonlyArray<Attribute<Message>>
+  attributes?: ReadonlyArray<Attribute<ParentMessage>>
 }>
 
 /** Programmatically toggles the disclosure, updating the model and returning
@@ -146,7 +148,9 @@ export const close = (
   update(model, Closed())
 
 /** Renders a headless disclosure component with accessible ARIA attributes and keyboard support. */
-export const view = <Message>(config: ViewConfig<Message>): Html => {
+export const view = <ParentMessage>(
+  config: ViewConfig<ParentMessage>,
+): Html => {
   const {
     div,
     empty,
@@ -164,7 +168,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     Tabindex,
     Type,
     keyed,
-  } = html<Message>()
+  } = html<ParentMessage>()
 
   const {
     model: { id, isOpen },
@@ -184,12 +188,12 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     attributes = [],
   } = config
 
-  const dispatchToggled = (): Message =>
+  const dispatchToggled = (): ParentMessage =>
     onToggled ? onToggled() : toParentMessage(Toggled())
 
   const isNativeButton = buttonElement === 'button'
 
-  const handleKeyDown = (key: string): Option.Option<Message> =>
+  const handleKeyDown = (key: string): Option.Option<ParentMessage> =>
     M.value(key).pipe(
       M.whenOr('Enter', ' ', () => Option.some(dispatchToggled())),
       M.orElse(() => Option.none()),
@@ -255,14 +259,14 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
 
 /** Creates a memoized disclosure view. Static config is captured in a closure;
  *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
-export const lazy = <Message>(
+export const lazy = <ParentMessage>(
   staticConfig: Omit<
-    ViewConfig<Message>,
+    ViewConfig<ParentMessage>,
     'model' | 'toParentMessage' | 'onToggled'
   >,
 ): ((
   model: Model,
-  toParentMessage: ViewConfig<Message>['toParentMessage'],
+  toParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
 ) => Html) => {
   const lazyView = createLazy()
 
@@ -270,12 +274,12 @@ export const lazy = <Message>(
     lazyView(
       (
         currentModel: Model,
-        currentToMessage: ViewConfig<Message>['toParentMessage'],
+        currentToParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
       ) =>
         view({
           ...staticConfig,
           model: currentModel,
-          toParentMessage: currentToMessage,
+          toParentMessage: currentToParentMessage,
         }),
       [model, toParentMessage],
     )

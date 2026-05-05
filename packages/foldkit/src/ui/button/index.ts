@@ -7,23 +7,25 @@ import type { Html } from '../../html/index.js'
 // VIEW
 
 /** Attribute groups the button component provides to the consumer's `toView` callback. */
-export type ButtonAttributes<Message> = Readonly<{
-  button: ReadonlyArray<Attribute<Message>>
+export type ButtonAttributes<ParentMessage> = Readonly<{
+  button: ReadonlyArray<Attribute<ParentMessage>>
 }>
 
 /** Configuration for rendering a button with `view`. */
-export type ViewConfig<Message> = Readonly<{
-  toView: (attributes: ButtonAttributes<Message>) => Html
-  onClick?: Message
+export type ViewConfig<ParentMessage> = Readonly<{
+  toView: (attributes: ButtonAttributes<ParentMessage>) => Html
+  onClick?: ParentMessage
   isDisabled?: boolean
   type?: 'button' | 'submit' | 'reset'
   isAutofocus?: boolean
 }>
 
 /** Renders an accessible button by building attribute groups and delegating layout to the consumer's `toView` callback. */
-export const view = <Message>(config: ViewConfig<Message>): Html => {
+export const view = <ParentMessage>(
+  config: ViewConfig<ParentMessage>,
+): Html => {
   const { Autofocus, AriaDisabled, DataAttribute, OnClick, Tabindex, Type } =
-    html<Message>()
+    html<ParentMessage>()
 
   const {
     toView,

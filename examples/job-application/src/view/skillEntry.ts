@@ -4,28 +4,27 @@ import { type Html } from 'foldkit/html'
 
 import { ProficiencyLevel } from '../domain'
 import { Class, OnClick, Type, button, div, input, keyed, span } from '../html'
-import { GotSkillsMessage } from '../message'
+import type { Message } from '../message'
 import { Skills } from '../step'
 import { inputField } from './field'
 
-export const skillEntryView = (model: Skills.Entry.Model): Html => {
-  const toEntryMessage = (message: Skills.Entry.Message) =>
-    GotSkillsMessage({
-      message: Skills.GotEntryMessage({ entryId: model.id, message }),
-    })
-
+export const skillEntryView = (
+  model: Skills.Entry.Model,
+  toParentMessage: (message: Skills.Entry.Message) => Message,
+  onRemove: Message,
+): Html => {
   const nameView = inputField({
     id: `${model.id}-name`,
     label: 'Skill',
     field: model.name,
-    onInput: value => toEntryMessage(Skills.Entry.UpdatedName({ value })),
+    onInput: value => toParentMessage(Skills.Entry.UpdatedName({ value })),
     placeholder: 'e.g. TypeScript, React, Effect-TS',
   })
 
   const proficiencyView = Ui.RadioGroup.view({
     model: model.proficiency,
     toParentMessage: message =>
-      toEntryMessage(Skills.Entry.GotProficiencyMessage({ message })),
+      toParentMessage(Skills.Entry.GotProficiencyMessage({ message })),
     options: ProficiencyLevel.all,
     orientation: 'Horizontal',
     className: 'inline-flex flex-wrap gap-2',
@@ -71,11 +70,7 @@ export const skillEntryView = (model: Skills.Entry.Model): Html => {
           button(
             [
               Type('button'),
-              OnClick(
-                GotSkillsMessage({
-                  message: Skills.RemovedEntry({ entryId: model.id }),
-                }),
-              ),
+              OnClick(onRemove),
               Class(
                 'text-sm text-gray-400 hover:text-red-500 transition cursor-pointer',
               ),

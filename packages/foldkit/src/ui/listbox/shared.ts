@@ -698,7 +698,11 @@ export type GroupHeading = Readonly<{
 }>
 
 /** Configuration for rendering a listbox with `view`. */
-export type BaseViewConfig<Message, Item, Model extends BaseModel> = Readonly<{
+export type BaseViewConfig<
+  ParentMessage,
+  Item,
+  Model extends BaseModel,
+> = Readonly<{
   model: Model
   toParentMessage: (
     message:
@@ -716,8 +720,8 @@ export type BaseViewConfig<Message, Item, Model extends BaseModel> = Readonly<{
       | SuppressedSpaceScroll
       | typeof CompletedAnchorMount.Type
       | typeof CompletedFocusItemsOnMount.Type,
-  ) => Message
-  onSelectedItem?: (value: string) => Message
+  ) => ParentMessage
+  onSelectedItem?: (value: string) => ParentMessage
   items: ReadonlyArray<Item>
   itemToConfig: (
     item: Item,
@@ -733,21 +737,21 @@ export type BaseViewConfig<Message, Item, Model extends BaseModel> = Readonly<{
   isButtonDisabled?: boolean
   buttonContent: Html
   buttonClassName?: string
-  buttonAttributes?: ReadonlyArray<Attribute<Message>>
+  buttonAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   itemsClassName?: string
-  itemsAttributes?: ReadonlyArray<Attribute<Message>>
+  itemsAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   itemsScrollClassName?: string
-  itemsScrollAttributes?: ReadonlyArray<Attribute<Message>>
+  itemsScrollAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   backdropClassName?: string
-  backdropAttributes?: ReadonlyArray<Attribute<Message>>
+  backdropAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   className?: string
-  attributes?: ReadonlyArray<Attribute<Message>>
+  attributes?: ReadonlyArray<Attribute<ParentMessage>>
   itemGroupKey?: (item: Item, index: number) => string
   groupToHeading?: (groupKey: string) => GroupHeading | undefined
   groupClassName?: string
-  groupAttributes?: ReadonlyArray<Attribute<Message>>
+  groupAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   separatorClassName?: string
-  separatorAttributes?: ReadonlyArray<Attribute<Message>>
+  separatorAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   anchor?: AnchorConfig
   name?: string
   form?: string
@@ -769,7 +773,9 @@ type ViewBehavior<Model extends BaseModel> = Readonly<{
 
 export const makeView =
   <Model extends BaseModel>(behavior: ViewBehavior<Model>) =>
-  <Message, Item>(config: BaseViewConfig<Message, Item, Model>): Html => {
+  <ParentMessage, Item>(
+    config: BaseViewConfig<ParentMessage, Item, Model>,
+  ): Html => {
     const {
       div,
       input,
@@ -801,7 +807,7 @@ export const makeView =
       Type,
       Value,
       keyed,
-    } = html<Message>()
+    } = html<ParentMessage>()
 
     const {
       model: {
@@ -847,7 +853,7 @@ export const makeView =
     const itemToSearchText =
       config.itemToSearchText ?? (item => itemToValue(item))
 
-    const dispatchSelectedItem = (value: string): Message =>
+    const dispatchSelectedItem = (value: string): ParentMessage =>
       onSelectedItem
         ? onSelectedItem(value)
         : toParentMessage(SelectedItem({ item: value }))
@@ -921,7 +927,7 @@ export const makeView =
       itemToValue,
     )
 
-    const handleButtonKeyDown = (key: string): Option.Option<Message> => {
+    const handleButtonKeyDown = (key: string): Option.Option<ParentMessage> => {
       if (isOpen) {
         return handleItemsKeyDown(key)
       }
@@ -956,7 +962,7 @@ export const makeView =
     const handleButtonPointerDown = (
       pointerType: string,
       button: number,
-    ): Option.Option<Message> =>
+    ): Option.Option<ParentMessage> =>
       Option.some(
         toParentMessage(
           PressedPointerOnButton({
@@ -966,7 +972,7 @@ export const makeView =
         ),
       )
 
-    const handleButtonClick = (): Message => {
+    const handleButtonClick = (): ParentMessage => {
       const isMouse = Option.exists(
         maybeLastButtonPointerType,
         type => type === 'mouse',
@@ -981,7 +987,7 @@ export const makeView =
       }
     }
 
-    const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
+    const handleSpaceKeyUp = (key: string): Option.Option<ParentMessage> =>
       OptionExt.when(key === ' ', toParentMessage(SuppressedSpaceScroll()))
 
     const resolveActiveIndex = (key: string): number =>
@@ -1001,7 +1007,7 @@ export const makeView =
           )(key),
       })
 
-    const searchForKey = (key: string): Option.Option<Message> => {
+    const searchForKey = (key: string): Option.Option<ParentMessage> => {
       const nextQuery = searchQuery + key
       const maybeTargetIndex = resolveTypeaheadMatch(
         items,
@@ -1014,7 +1020,7 @@ export const makeView =
       return Option.some(toParentMessage(Searched({ key, maybeTargetIndex })))
     }
 
-    const handleItemsKeyDown = (key: string): Option.Option<Message> =>
+    const handleItemsKeyDown = (key: string): Option.Option<ParentMessage> =>
       M.value(key).pipe(
         M.when('Escape', () => Option.some(toParentMessage(Closed()))),
         M.when('Enter', () =>

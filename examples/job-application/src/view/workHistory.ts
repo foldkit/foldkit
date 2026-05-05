@@ -1,11 +1,14 @@
 import { type Html } from 'foldkit/html'
 
 import { Class, OnClick, Type, button, div, p } from '../html'
-import { GotWorkHistoryMessage } from '../message'
+import type { Message } from '../message'
 import { WorkHistory } from '../step'
 import { workEntryView } from './workEntry'
 
-export const workHistoryView = (model: WorkHistory.Model): Html =>
+export const workHistoryView = (
+  model: WorkHistory.Model,
+  toParentMessage: (message: WorkHistory.Message) => Message,
+): Html =>
   div(
     [Class('space-y-6')],
     [
@@ -15,16 +18,21 @@ export const workHistoryView = (model: WorkHistory.Model): Html =>
       ),
       div(
         [Class('divide-y divide-gray-200')],
-        model.entries.map(workEntryView),
+        model.entries.map(entry =>
+          workEntryView(
+            entry,
+            message =>
+              toParentMessage(
+                WorkHistory.GotEntryMessage({ entryId: entry.id, message }),
+              ),
+            toParentMessage(WorkHistory.RemovedEntry({ entryId: entry.id })),
+          ),
+        ),
       ),
       button(
         [
           Type('button'),
-          OnClick(
-            GotWorkHistoryMessage({
-              message: WorkHistory.ClickedAddEntry(),
-            }),
-          ),
+          OnClick(toParentMessage(WorkHistory.ClickedAddEntry())),
           Class(
             'w-full rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 text-sm font-medium text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition cursor-pointer',
           ),

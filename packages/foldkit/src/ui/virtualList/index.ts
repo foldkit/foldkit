@@ -541,7 +541,7 @@ const DEFAULT_OVERSCAN = 5
  *  `containerEvents` Subscription, not through view-bound handlers.
  *  Consumers wrap the subscription's stream into their parent Message in
  *  their own `subscriptions` definition. */
-export type ViewConfig<Message, Item> = Readonly<{
+export type ViewConfig<ParentMessage, Item> = Readonly<{
   model: Model
   items: ReadonlyArray<Item>
   itemToKey: (item: Item, index: number) => string
@@ -561,7 +561,7 @@ export type ViewConfig<Message, Item> = Readonly<{
   overscan?: number
   rowElement?: TagName
   className?: string
-  attributes?: ReadonlyArray<Attribute<Message>>
+  attributes?: ReadonlyArray<Attribute<ParentMessage>>
 }>
 
 /** Renders a virtualized list. Only items inside the viewport (plus an
@@ -581,8 +581,8 @@ export type ViewConfig<Message, Item> = Readonly<{
  *  (1-based logical row index) so screen readers announce the full list
  *  size and each row's position within it, rather than the much smaller
  *  count of currently mounted rows. */
-export const view = <Message, Item>(
-  config: ViewConfig<Message, Item>,
+export const view = <ParentMessage, Item>(
+  config: ViewConfig<ParentMessage, Item>,
 ): Html => {
   const {
     AriaPosinset,
@@ -593,7 +593,7 @@ export const view = <Message, Item>(
     Role,
     Style,
     keyed,
-  } = html<Message>()
+  } = html<ParentMessage>()
 
   const {
     model,
@@ -607,7 +607,7 @@ export const view = <Message, Item>(
     attributes = [],
   } = config
 
-  const containerAttributes: ReadonlyArray<Attribute<Message>> = [
+  const containerAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
     Id(model.id),
     Role('list'),
     DataAttribute('virtual-list-id', model.id),
@@ -678,8 +678,8 @@ export const view = <Message, Item>(
 /** Creates a memoized virtual list view. Static config is captured in a
  *  closure; only `model` and `items` are compared per render via
  *  `createLazy`. */
-export const lazy = <Message, Item>(
-  staticConfig: Omit<ViewConfig<Message, Item>, 'model' | 'items'>,
+export const lazy = <ParentMessage, Item>(
+  staticConfig: Omit<ViewConfig<ParentMessage, Item>, 'model' | 'items'>,
 ): ((model: Model, items: ReadonlyArray<Item>) => Html) => {
   const lazyView = createLazy()
 

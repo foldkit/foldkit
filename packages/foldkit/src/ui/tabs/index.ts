@@ -138,22 +138,25 @@ export const update = (
 // VIEW
 
 /** Configuration for an individual tab's button and panel content. */
-export type TabConfig<Message = unknown> = Readonly<{
+export type TabConfig<ParentMessage = unknown> = Readonly<{
   buttonClassName?: string
-  buttonAttributes?: ReadonlyArray<Attribute<Message>>
+  buttonAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   buttonContent: Html
   panelClassName?: string
-  panelAttributes?: ReadonlyArray<Attribute<Message>>
+  panelAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   panelContent: Html
 }>
 
 /** Configuration for rendering a tab group with `view`. */
-export type ViewConfig<Message, Tab extends string> = Readonly<{
+export type ViewConfig<ParentMessage, Tab extends string> = Readonly<{
   model: Model
-  toParentMessage: (message: TabSelected | TabFocused) => Message
-  onTabSelected?: (index: number) => Message
+  toParentMessage: (message: TabSelected | TabFocused) => ParentMessage
+  onTabSelected?: (index: number) => ParentMessage
   tabs: ReadonlyArray<Tab>
-  tabToConfig: (tab: Tab, context: { isActive: boolean }) => TabConfig<Message>
+  tabToConfig: (
+    tab: Tab,
+    context: { isActive: boolean },
+  ) => TabConfig<ParentMessage>
   isTabDisabled?: (tab: Tab, index: number) => boolean
   persistPanels?: boolean
   orientation?: Orientation
@@ -161,9 +164,9 @@ export type ViewConfig<Message, Tab extends string> = Readonly<{
   tabElement?: TagName
   panelElement?: TagName
   className?: string
-  attributes?: ReadonlyArray<Attribute<Message>>
+  attributes?: ReadonlyArray<Attribute<ParentMessage>>
   tabListClassName?: string
-  tabListAttributes?: ReadonlyArray<Attribute<Message>>
+  tabListAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   tabListAriaLabel: string
 }>
 
@@ -180,8 +183,8 @@ export const selectTab = (
   update(model, TabSelected({ index }))
 
 /** Renders a headless tab group with accessible ARIA roles, roving tabindex, and keyboard navigation. */
-export const view = <Message, Tab extends string>(
-  config: ViewConfig<Message, Tab>,
+export const view = <ParentMessage, Tab extends string>(
+  config: ViewConfig<ParentMessage, Tab>,
 ): Html => {
   const {
     div,
@@ -204,7 +207,7 @@ export const view = <Message, Tab extends string>(
     Tabindex,
     Type,
     keyed,
-  } = html<Message>()
+  } = html<ParentMessage>()
 
   const {
     model,
@@ -226,7 +229,7 @@ export const view = <Message, Tab extends string>(
     tabListAriaLabel,
   } = config
 
-  const dispatchTabSelected = (index: number): Message =>
+  const dispatchTabSelected = (index: number): ParentMessage =>
     onTabSelected
       ? onTabSelected(index)
       : toParentMessage(TabSelected({ index }))
@@ -259,7 +262,7 @@ export const view = <Message, Tab extends string>(
     isDisabled,
   )
 
-  const handleAutomaticKeyDown = (key: string): Option.Option<Message> =>
+  const handleAutomaticKeyDown = (key: string): Option.Option<ParentMessage> =>
     M.value(key).pipe(
       M.whenOr(nextKey, previousKey, 'Home', 'End', 'PageUp', 'PageDown', () =>
         Option.some(dispatchTabSelected(resolveKeyIndex(key))),
@@ -270,7 +273,7 @@ export const view = <Message, Tab extends string>(
       M.orElse(() => Option.none()),
     )
 
-  const handleManualKeyDown = (key: string): Option.Option<Message> =>
+  const handleManualKeyDown = (key: string): Option.Option<ParentMessage> =>
     M.value(key).pipe(
       M.whenOr(nextKey, previousKey, 'Home', 'End', 'PageUp', 'PageDown', () =>
         Option.some(
@@ -283,7 +286,7 @@ export const view = <Message, Tab extends string>(
       M.orElse(() => Option.none()),
     )
 
-  const handleKeyDown = (key: string): Option.Option<Message> =>
+  const handleKeyDown = (key: string): Option.Option<ParentMessage> =>
     M.value(activationMode).pipe(
       M.when('Automatic', () => handleAutomaticKeyDown(key)),
       M.when('Manual', () => handleManualKeyDown(key)),
@@ -394,14 +397,14 @@ export const view = <Message, Tab extends string>(
 
 /** Creates a memoized tabs view. Static config is captured in a closure;
  *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
-export const lazy = <Message, Tab extends string>(
+export const lazy = <ParentMessage, Tab extends string>(
   staticConfig: Omit<
-    ViewConfig<Message, Tab>,
+    ViewConfig<ParentMessage, Tab>,
     'model' | 'toParentMessage' | 'onTabSelected'
   >,
 ): ((
   model: Model,
-  toParentMessage: ViewConfig<Message, Tab>['toParentMessage'],
+  toParentMessage: ViewConfig<ParentMessage, Tab>['toParentMessage'],
 ) => Html) => {
   const lazyView = createLazy()
 
@@ -409,12 +412,15 @@ export const lazy = <Message, Tab extends string>(
     lazyView(
       (
         currentModel: Model,
-        currentToMessage: ViewConfig<Message, Tab>['toParentMessage'],
+        currentToParentMessage: ViewConfig<
+          ParentMessage,
+          Tab
+        >['toParentMessage'],
       ) =>
         view({
           ...staticConfig,
           model: currentModel,
-          toParentMessage: currentToMessage,
+          toParentMessage: currentToParentMessage,
         }),
       [model, toParentMessage],
     )

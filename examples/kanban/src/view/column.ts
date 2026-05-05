@@ -153,21 +153,23 @@ const findDraggedCard = (
 const defaultCardElements = (
   model: Model,
   column: Column.Column,
+  toParentMessage: (message: Ui.DragAndDrop.Message) => Message,
 ): ReadonlyArray<Html> =>
   Array.map(column.cards, (card, index) =>
-    cardView(model, card, column.id, index),
+    cardView(model, card, column.id, index, toParentMessage),
   )
 
 const previewCardElements = (
   model: Model,
   column: Column.Column,
+  toParentMessage: (message: Ui.DragAndDrop.Message) => Message,
 ): ReadonlyArray<Html> => {
   if (!Ui.DragAndDrop.isDragging(model.dragAndDrop)) {
-    return defaultCardElements(model, column)
+    return defaultCardElements(model, column, toParentMessage)
   }
 
   return Option.match(Ui.DragAndDrop.maybeDraggedItemId(model.dragAndDrop), {
-    onNone: () => defaultCardElements(model, column),
+    onNone: () => defaultCardElements(model, column, toParentMessage),
     onSome: draggedId => {
       const maybeTarget = Ui.DragAndDrop.maybeDropTarget(model.dragAndDrop)
       const visibleCards = Array.filter(
@@ -175,7 +177,7 @@ const previewCardElements = (
         ({ id }) => id !== draggedId,
       )
       const cardElements = Array.map(visibleCards, (card, index) =>
-        cardView(model, card, column.id, index),
+        cardView(model, card, column.id, index, toParentMessage),
       )
 
       const isTargetColumn = Option.exists(
@@ -197,7 +199,8 @@ const previewCardElements = (
         ? dropPlaceholder()
         : Option.match(findDraggedCard(model, draggedId), {
             onNone: () => dropPlaceholder(),
-            onSome: card => cardView(model, card, column.id, targetIndex),
+            onSome: card =>
+              cardView(model, card, column.id, targetIndex, toParentMessage),
           })
 
       return pipe(
@@ -209,7 +212,11 @@ const previewCardElements = (
   })
 }
 
-export const columnView = (model: Model, column: Column.Column): Html => {
+export const columnView = (
+  model: Model,
+  column: Column.Column,
+  toParentMessage: (message: Ui.DragAndDrop.Message) => Message,
+): Html => {
   const maybeCurrentDropTarget = Ui.DragAndDrop.maybeDropTarget(
     model.dragAndDrop,
   )
@@ -256,7 +263,7 @@ export const columnView = (model: Model, column: Column.Column): Html => {
           Class('flex flex-col gap-2 flex-1 overflow-y-auto min-h-0'),
           ...Ui.DragAndDrop.droppable<Message>(column.id, column.name),
         ],
-        previewCardElements(model, column),
+        previewCardElements(model, column, toParentMessage),
       ),
       div(
         [Class('mt-3 pt-2 border-t border-gray-200')],

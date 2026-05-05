@@ -393,7 +393,7 @@ export const close = (
 // VIEW
 
 /** Configuration for rendering a popover with `view`. */
-export type ViewConfig<Message> = Readonly<{
+export type ViewConfig<ParentMessage> = Readonly<{
   model: Model
   toParentMessage: (
     message:
@@ -404,26 +404,28 @@ export type ViewConfig<Message> = Readonly<{
       | IgnoredMouseClick
       | SuppressedSpaceScroll
       | typeof CompletedAnchorMount.Type,
-  ) => Message
-  onOpened?: () => Message
-  onClosed?: () => Message
+  ) => ParentMessage
+  onOpened?: () => ParentMessage
+  onClosed?: () => ParentMessage
   anchor: AnchorConfig
   buttonContent: Html
   buttonClassName?: string
-  buttonAttributes?: ReadonlyArray<Attribute<Message>>
+  buttonAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   panelContent: Html
   panelClassName?: string
-  panelAttributes?: ReadonlyArray<Attribute<Message>>
+  panelAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   backdropClassName?: string
-  backdropAttributes?: ReadonlyArray<Attribute<Message>>
+  backdropAttributes?: ReadonlyArray<Attribute<ParentMessage>>
   isDisabled?: boolean
   focusSelector?: string
   className?: string
-  attributes?: ReadonlyArray<Attribute<Message>>
+  attributes?: ReadonlyArray<Attribute<ParentMessage>>
 }>
 
 /** Renders a headless popover with a trigger button and a floating panel. Uses the disclosure ARIA pattern (aria-expanded + aria-controls) with no role on the panel. */
-export const view = <Message>(config: ViewConfig<Message>): Html => {
+export const view = <ParentMessage>(
+  config: ViewConfig<ParentMessage>,
+): Html => {
   const {
     div,
     AriaControls,
@@ -442,7 +444,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     Tabindex,
     Type,
     keyed,
-  } = html<Message>()
+  } = html<ParentMessage>()
 
   const {
     model: {
@@ -470,10 +472,10 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     attributes = [],
   } = config
 
-  const dispatchOpened = (): Message =>
+  const dispatchOpened = (): ParentMessage =>
     onOpened ? onOpened() : toParentMessage(Opened())
 
-  const dispatchClosed = (): Message =>
+  const dispatchClosed = (): ParentMessage =>
     onClosed ? onClosed() : toParentMessage(Closed())
 
   const isLeaving =
@@ -503,7 +505,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
       M.orElse(() => []),
     )
 
-  const handleButtonKeyDown = (key: string): Option.Option<Message> =>
+  const handleButtonKeyDown = (key: string): Option.Option<ParentMessage> =>
     M.value(key).pipe(
       M.whenOr('Enter', ' ', 'ArrowDown', () =>
         Option.some(isOpen ? dispatchClosed() : dispatchOpened()),
@@ -515,7 +517,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
   const handleButtonPointerDown = (
     pointerType: string,
     button: number,
-  ): Option.Option<Message> =>
+  ): Option.Option<ParentMessage> =>
     Option.some(
       toParentMessage(
         PressedPointerOnButton({
@@ -525,7 +527,7 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
       ),
     )
 
-  const handleButtonClick = (): Message => {
+  const handleButtonClick = (): ParentMessage => {
     const isMouse = Option.exists(
       maybeLastButtonPointerType,
       type => type === 'mouse',
@@ -540,10 +542,10 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
     }
   }
 
-  const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
+  const handleSpaceKeyUp = (key: string): Option.Option<ParentMessage> =>
     OptionExt.when(key === ' ', toParentMessage(SuppressedSpaceScroll()))
 
-  const handlePanelKeyDown = (key: string): Option.Option<Message> =>
+  const handlePanelKeyDown = (key: string): Option.Option<ParentMessage> =>
     M.value(key).pipe(
       M.when('Escape', () => Option.some(dispatchClosed())),
       M.orElse(() => Option.none()),
@@ -640,14 +642,14 @@ export const view = <Message>(config: ViewConfig<Message>): Html => {
 
 /** Creates a memoized popover view. Static config is captured in a closure;
  *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
-export const lazy = <Message>(
+export const lazy = <ParentMessage>(
   staticConfig: Omit<
-    ViewConfig<Message>,
+    ViewConfig<ParentMessage>,
     'model' | 'toParentMessage' | 'onOpened' | 'onClosed'
   >,
 ): ((
   model: Model,
-  toParentMessage: ViewConfig<Message>['toParentMessage'],
+  toParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
 ) => Html) => {
   const lazyView = createLazy()
 
@@ -655,12 +657,12 @@ export const lazy = <Message>(
     lazyView(
       (
         currentModel: Model,
-        currentToMessage: ViewConfig<Message>['toParentMessage'],
+        currentToParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
       ) =>
         view({
           ...staticConfig,
           model: currentModel,
-          toParentMessage: currentToMessage,
+          toParentMessage: currentToParentMessage,
         }),
       [model, toParentMessage],
     )

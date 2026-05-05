@@ -104,8 +104,8 @@ export const selectItem = (
 // VIEW
 
 /** Configuration for rendering a multi-select combobox with `view`. */
-export type ViewConfig<Message, Item extends string> = BaseViewConfig<
-  Message,
+export type ViewConfig<ParentMessage, Item extends string> = BaseViewConfig<
+  ParentMessage,
   Item,
   Model
 >
@@ -119,14 +119,18 @@ export const view = makeView<Model>({
 
 /** Creates a memoized multi-select combobox view. Static config is captured in a closure;
  *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
-export const lazy = <Message, Item extends string>(
+export const lazy = <ParentMessage, Item extends string>(
   staticConfig: Omit<
-    ViewConfig<Message, Item>,
+    ViewConfig<ParentMessage, Item>,
     'model' | 'toParentMessage' | 'onSelectedItem'
   >,
 ): ((
   model: Model,
-  toParentMessage: BaseViewConfig<Message, Item, Model>['toParentMessage'],
+  toParentMessage: BaseViewConfig<
+    ParentMessage,
+    Item,
+    Model
+  >['toParentMessage'],
 ) => Html) => {
   const lazyView = createLazy()
 
@@ -134,8 +138,8 @@ export const lazy = <Message, Item extends string>(
     lazyView(
       (
         currentModel: Model,
-        currentToMessage: BaseViewConfig<
-          Message,
+        currentToParentMessage: BaseViewConfig<
+          ParentMessage,
           Item,
           Model
         >['toParentMessage'],
@@ -143,7 +147,7 @@ export const lazy = <Message, Item extends string>(
         view({
           ...staticConfig,
           model: currentModel,
-          toParentMessage: currentToMessage,
+          toParentMessage: currentToParentMessage,
         }),
       [model, toParentMessage],
     )

@@ -3,13 +3,16 @@ import { Ui } from 'foldkit'
 import { type Html } from 'foldkit/html'
 
 import { Class, div, label, p, span, textarea } from '../html'
-import { GotCoverLetterMessage } from '../message'
+import type { Message } from '../message'
 import { CoverLetter } from '../step'
 
 const MAX_COVER_LETTER_LENGTH = 2000
 const WARNING_THRESHOLD_CHARS = 200
 
-export const coverLetterView = (model: CoverLetter.Model): Html => {
+export const coverLetterView = (
+  model: CoverLetter.Model,
+  toParentMessage: (message: CoverLetter.Message) => Message,
+): Html => {
   const remaining = MAX_COVER_LETTER_LENGTH - model.content.length
   const isOverLimit = remaining < 0
   const isWarning = !isOverLimit && remaining <= WARNING_THRESHOLD_CHARS
@@ -17,10 +20,7 @@ export const coverLetterView = (model: CoverLetter.Model): Html => {
   return Ui.Textarea.view({
     id: 'cover-letter',
     value: model.content,
-    onInput: value =>
-      GotCoverLetterMessage({
-        message: CoverLetter.UpdatedContent({ value }),
-      }),
+    onInput: value => toParentMessage(CoverLetter.UpdatedContent({ value })),
     rows: 12,
     placeholder:
       'Tell us why you want to work on Foldkit and what excites you about the Elm Architecture...',
