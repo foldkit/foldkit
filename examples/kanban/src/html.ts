@@ -20,6 +20,7 @@ export const {
   Class,
   For,
   OnKeyDownPreventDefault,
+  OnMount,
   OnSubmit,
   Role,
   Style,

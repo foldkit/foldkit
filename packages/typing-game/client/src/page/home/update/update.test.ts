@@ -6,8 +6,6 @@ import { CreateRoom, JoinRoom } from '../command'
 import {
   ChangedRoomId,
   ChangedUsername,
-  CompletedFocusRoomIdInput,
-  CompletedFocusUsernameInput,
   FailedJoinRoom,
   PressedKey,
   SubmittedJoinRoomForm,
@@ -16,7 +14,6 @@ import {
   SucceededJoinRoom,
 } from '../message'
 import { EnterRoomId, EnterUsername, SelectAction } from '../model'
-import { FocusRoomIdInput, FocusUsernameInput } from './handleKeyPressed'
 import { update } from './update'
 
 const alice = { id: 'p1', username: 'alice' }
@@ -134,7 +131,6 @@ describe('selecting an action', () => {
       withSelectActionStep(),
       Story.message(PressedKey({ key: 'ArrowDown' })),
       Story.message(PressedKey({ key: 'Enter' })),
-      Story.resolve(FocusRoomIdInput, CompletedFocusRoomIdInput()),
       Story.model(model => {
         expect(model.homeStep).toMatchObject({
           _tag: 'EnterRoomId',
@@ -152,7 +148,6 @@ describe('selecting an action', () => {
       Story.message(PressedKey({ key: 'ArrowDown' })),
       Story.message(PressedKey({ key: 'ArrowDown' })),
       Story.message(PressedKey({ key: 'Enter' })),
-      Story.resolve(FocusUsernameInput, CompletedFocusUsernameInput()),
       Story.model(model => {
         expect(model.homeStep._tag).toBe('EnterUsername')
       }),

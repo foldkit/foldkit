@@ -1,12 +1,14 @@
 import { BrowserKeyValueStore } from '@effect/platform-browser'
-import { Effect, Option, Schema as S } from 'effect'
+import { Effect, Function, Option, Schema as S } from 'effect'
 import { KeyValueStore } from 'effect/unstable/persistence'
-import { Command, Task } from 'foldkit'
+import { Command, Mount, Task } from 'foldkit'
 
 import { ROOM_PLAYER_SESSION_KEY } from '../../constant'
 import { RoomsClient, RoomsClientLive } from '../../rpc.js'
 import {
   CompletedClearSession,
+  CompletedFocusRoomPageUsernameInput,
+  CompletedFocusUserGameTextInput,
   CompletedRequestGameStart,
   CompletedSaveSession,
   CompletedUpdatePlayerProgress,
@@ -192,3 +194,39 @@ export const clearSession = () =>
       Effect.provide(BrowserKeyValueStore.layerSessionStorage),
     ),
   )
+
+// MOUNT
+
+export const FocusRoomPageUsernameInput = Mount.define(
+  'FocusRoomPageUsernameInput',
+  CompletedFocusRoomPageUsernameInput,
+)
+
+export const focusRoomPageUsernameInput = FocusRoomPageUsernameInput(element =>
+  Effect.sync(() => {
+    if (element instanceof HTMLInputElement) {
+      element.focus()
+    }
+    return {
+      message: CompletedFocusRoomPageUsernameInput(),
+      cleanup: Function.constVoid,
+    }
+  }),
+)
+
+export const FocusUserGameTextInput = Mount.define(
+  'FocusUserGameTextInput',
+  CompletedFocusUserGameTextInput,
+)
+
+export const focusUserGameTextInput = FocusUserGameTextInput(element =>
+  Effect.sync(() => {
+    if (element instanceof HTMLTextAreaElement) {
+      element.focus()
+    }
+    return {
+      message: CompletedFocusUserGameTextInput(),
+      cleanup: Function.constVoid,
+    }
+  }),
+)

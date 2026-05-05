@@ -2,14 +2,10 @@ import { Option } from 'effect'
 import { Scene, Ui } from 'foldkit'
 import { describe, test } from 'vitest'
 
-import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
+import { GenerateCardId, SaveBoard } from './command'
 import type { Card } from './domain/card'
 import type { Column } from './domain/column'
-import {
-  CompletedFocusAddCardInput,
-  CompletedSaveBoard,
-  GeneratedCardId,
-} from './message'
+import { CompletedSaveBoard, GeneratedCardId } from './message'
 import type { Model } from './model'
 import { update } from './update'
 import { view } from './view/index'
@@ -89,8 +85,6 @@ describe('scene', () => {
       Scene.inside(
         toDoColumn,
         Scene.click(Scene.role('button', { name: '+ Add card' })),
-        Scene.expectExactCommands(FocusAddCardInput),
-        Scene.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
         Scene.expect(Scene.label('New card title')).toExist(),
       ),
     )
@@ -103,8 +97,6 @@ describe('scene', () => {
       Scene.click(
         Scene.within(toDoColumn, Scene.role('button', { name: '+ Add card' })),
       ),
-      Scene.expectExactCommands(FocusAddCardInput),
-      Scene.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
       Scene.type(Scene.label('New card title'), 'Buy groceries'),
       Scene.expect(Scene.label('New card title')).toHaveValue('Buy groceries'),
     )
@@ -117,8 +109,6 @@ describe('scene', () => {
       Scene.inside(
         toDoColumn,
         Scene.click(Scene.role('button', { name: '+ Add card' })),
-        Scene.expectExactCommands(FocusAddCardInput),
-        Scene.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
         Scene.type(Scene.label('New card title'), 'Buy groceries'),
         Scene.submit(Scene.role('form')),
         Scene.expectExactCommands(GenerateCardId),
@@ -144,8 +134,6 @@ describe('scene', () => {
       Scene.click(
         Scene.within(toDoColumn, Scene.role('button', { name: '+ Add card' })),
       ),
-      Scene.expectExactCommands(FocusAddCardInput),
-      Scene.resolve(FocusAddCardInput, CompletedFocusAddCardInput()),
       Scene.expect(Scene.label('New card title')).toExist(),
       Scene.click(Scene.role('button', { name: 'Cancel' })),
       Scene.expect(Scene.label('New card title')).toBeAbsent(),

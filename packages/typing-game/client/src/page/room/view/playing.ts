@@ -1,5 +1,6 @@
 import { clsx } from 'clsx'
 import { Array, Number, Option, Order, String as Str, pipe } from 'effect'
+import { Mount } from 'foldkit'
 import { Html } from 'foldkit/html'
 
 import { USER_GAME_TEXT_INPUT_ID } from '../../../constant'
@@ -10,6 +11,7 @@ import {
   Class,
   Id,
   OnInput,
+  OnMount,
   Spellcheck,
   Value,
   div,
@@ -18,6 +20,7 @@ import {
   span,
   textarea,
 } from '../../../view/html'
+import { focusUserGameTextInput } from '../command'
 import { ChangedUserText } from '../message'
 import type { Message } from '../message'
 
@@ -36,6 +39,7 @@ const typing = (
           Value(userGameText),
           Class('absolute inset-0 opacity-0 z-10 resize-none'),
           OnInput(value => toParentMessage(ChangedUserText({ value }))),
+          OnMount(Mount.mapMessage(focusUserGameTextInput, toParentMessage)),
           Spellcheck(false),
           Autocorrect('off'),
           Autocapitalize('none'),

@@ -6,7 +6,6 @@ import { Home, Room } from './page'
 
 export const CompletedNavigateInternal = m('CompletedNavigateInternal')
 export const CompletedLoadExternal = m('CompletedLoadExternal')
-export const CompletedFocusUsernameInput = m('CompletedFocusUsernameInput')
 export const CompletedNavigateRoom = m('CompletedNavigateRoom')
 export const CompletedSaveSession = m('CompletedSaveSession')
 export const CompletedClearSession = m('CompletedClearSession')
@@ -25,7 +24,6 @@ export const GotRoomMessage = m('GotRoomMessage', {
 export const Message = S.Union([
   CompletedNavigateInternal,
   CompletedLoadExternal,
-  CompletedFocusUsernameInput,
   CompletedNavigateRoom,
   CompletedSaveSession,
   CompletedClearSession,

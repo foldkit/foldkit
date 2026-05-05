@@ -1,8 +1,10 @@
-import { Effect } from 'effect'
-import { Command } from 'foldkit'
+import { Effect, Function } from 'effect'
+import { Command, Mount } from 'foldkit'
 
 import { RoomsClient, RoomsClientLive } from '../../rpc.js'
 import {
+  CompletedFocusRoomIdInput,
+  CompletedFocusUsernameInput,
   FailedJoinRoom,
   SucceededCreateRoom,
   SucceededJoinRoom,
@@ -47,3 +49,37 @@ export const joinRoom = (username: string, roomId: string) =>
       Effect.provide(RoomsClientLive),
     ),
   )
+
+export const FocusUsernameInput = Mount.define(
+  'FocusUsernameInput',
+  CompletedFocusUsernameInput,
+)
+
+export const focusUsernameInput = FocusUsernameInput(element =>
+  Effect.sync(() => {
+    if (element instanceof HTMLInputElement) {
+      element.focus()
+    }
+    return {
+      message: CompletedFocusUsernameInput(),
+      cleanup: Function.constVoid,
+    }
+  }),
+)
+
+export const FocusRoomIdInput = Mount.define(
+  'FocusRoomIdInput',
+  CompletedFocusRoomIdInput,
+)
+
+export const focusRoomIdInput = FocusRoomIdInput(element =>
+  Effect.sync(() => {
+    if (element instanceof HTMLInputElement) {
+      element.focus()
+    }
+    return {
+      message: CompletedFocusRoomIdInput(),
+      cleanup: Function.constVoid,
+    }
+  }),
+)

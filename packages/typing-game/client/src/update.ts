@@ -1,13 +1,11 @@
 import * as Shared from '@typing-game/shared'
-import { Array, Effect, Match as M, Option } from 'effect'
-import { Command, Task, Url } from 'foldkit'
+import { Effect, Match as M, Option } from 'effect'
+import { Command, Url } from 'foldkit'
 import { load, pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 
 import { navigateToRoom } from './command'
-import { USERNAME_INPUT_ID } from './constant'
 import {
-  CompletedFocusUsernameInput,
   CompletedLoadExternal,
   CompletedNavigateInternal,
   GotHomeMessage,
@@ -24,10 +22,6 @@ const NavigateInternal = Command.define(
   CompletedNavigateInternal,
 )
 const LoadExternal = Command.define('LoadExternal', CompletedLoadExternal)
-const FocusUsernameInput = Command.define(
-  'FocusUsernameInput',
-  CompletedFocusUsernameInput,
-)
 
 export type UpdateReturn<Model, Message> = [
   Model,
@@ -67,26 +61,12 @@ export const update = (
           }),
         ),
 
-      ChangedUrl: ({ url }) => {
-        const nextRoute = urlToAppRoute(url)
-        const maybeFocusUsernameInput = M.value(nextRoute).pipe(
-          M.tag('Home', () =>
-            FocusUsernameInput(
-              Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
-                Effect.ignore,
-                Effect.as(CompletedFocusUsernameInput()),
-              ),
-            ),
-          ),
-          M.option,
-        )
-        return [
-          evo(model, {
-            route: () => nextRoute,
-          }),
-          Array.fromOption(maybeFocusUsernameInput),
-        ]
-      },
+      ChangedUrl: ({ url }) => [
+        evo(model, {
+          route: () => urlToAppRoute(url),
+        }),
+        [],
+      ],
 
       GotHomeMessage: ({ message }) => {
         const [nextHomeModel, homeCommands, maybeOutMessage] = Home.update(
@@ -146,7 +126,6 @@ export const update = (
     M.tag(
       'CompletedNavigateInternal',
       'CompletedLoadExternal',
-      'CompletedFocusUsernameInput',
       'CompletedNavigateRoom',
       'CompletedSaveSession',
       'CompletedClearSession',

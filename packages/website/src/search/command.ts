@@ -1,9 +1,10 @@
-import { Array, Context, Effect, Layer } from 'effect'
-import { Command } from 'foldkit'
+import { Array, Context, Effect, Function as Function_, Layer } from 'effect'
+import { Command, Mount } from 'foldkit'
 import { pushUrl } from 'foldkit/navigation'
 import * as Task from 'foldkit/task'
 
 import {
+  CompletedFocusSearchInput,
   CompletedNavigateSearch,
   CompletedScrollToResult,
   ReceivedSearchResults,
@@ -64,6 +65,22 @@ export const ScrollToResult = Command.define(
 export const NavigateToResult = Command.define(
   'NavigateToResult',
   CompletedNavigateSearch,
+)
+export const FocusSearchInput = Mount.define(
+  'FocusSearchInput',
+  CompletedFocusSearchInput,
+)
+
+export const focusSearchInput = FocusSearchInput(element =>
+  Effect.sync(() => {
+    if (element instanceof HTMLInputElement) {
+      element.focus()
+    }
+    return {
+      message: CompletedFocusSearchInput(),
+      cleanup: Function_.constVoid,
+    }
+  }),
 )
 
 export const searchPagefind = (query: string) =>

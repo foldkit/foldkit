@@ -27,8 +27,37 @@ const FOCUSABLE_SELECTOR = Array.join(
   ', ',
 )
 
+// NOTE: DOM tasks await one rAF before walking the tree. The runtime defers
+// renders to the next animation frame and forks Commands on the microtask
+// queue, so without this wait a Task that runs immediately after a dirtying
+// Message would query the DOM before the matching VDOM patch has committed.
+const awaitNextFrame: Effect.Effect<void> = Effect.callback<void>(resume => {
+  const handle = requestAnimationFrame(() => resume(Effect.void))
+  return Effect.sync(() => cancelAnimationFrame(handle))
+})
+
+const queryHTMLElement = (
+  selector: string,
+): Effect.Effect<HTMLElement, ElementNotFound> =>
+  Effect.suspend(() => {
+    const element = document.querySelector(selector)
+    return element instanceof HTMLElement
+      ? Effect.succeed(element)
+      : Effect.fail(new ElementNotFound({ selector }))
+  })
+
 /**
- * Focuses an element matching the given selector.
+ * Focuses an element matching the given selector after the next render has
+ * committed.
+ *
+ * For focus that should happen because an element just appeared (an input
+ * mounting, a dialog opening), prefer `OnMount` with a `Mount.define`'d
+ * action — focus is then a consequence of the element's lifecycle and runs
+ * synchronously inside the snabbdom insert hook with no race window.
+ * Reserve `Task.focus` for the post-Message case (returning focus to a
+ * trigger button after a popover closes, refocusing on blur, keyboard
+ * navigation across a stable layout).
+ *
  * Fails with `ElementNotFound` if the selector does not match an `HTMLElement`.
  *
  * @example
@@ -37,13 +66,10 @@ const FOCUSABLE_SELECTOR = Array.join(
  * ```
  */
 export const focus = (selector: string): Effect.Effect<void, ElementNotFound> =>
-  Effect.suspend(() => {
-    const element = document.querySelector(selector)
-    if (element instanceof HTMLElement) {
-      element.focus()
-      return Effect.void
-    }
-    return Effect.fail(new ElementNotFound({ selector }))
+  Effect.gen(function* () {
+    yield* awaitNextFrame
+    const element = yield* queryHTMLElement(selector)
+    element.focus()
   })
 
 /**
@@ -65,11 +91,13 @@ export const showModal = (
   selector: string,
   options?: Readonly<{ focusSelector?: string }>,
 ): Effect.Effect<void, ElementNotFound> =>
-  Effect.suspend(() => {
+  Effect.gen(function* () {
+    yield* awaitNextFrame
+
     const element = document.querySelector(selector)
 
     if (!(element instanceof HTMLDialogElement)) {
-      return Effect.fail(new ElementNotFound({ selector }))
+      return yield* Effect.fail(new ElementNotFound({ selector }))
     }
 
     element.style.position = 'fixed'
@@ -110,8 +138,6 @@ export const showModal = (
         focusTarget.focus()
       }
     }
-
-    return Effect.void
   })
 
 const trapFocusWithinDialog = (
@@ -175,13 +201,10 @@ export const closeModal = (
 export const clickElement = (
   selector: string,
 ): Effect.Effect<void, ElementNotFound> =>
-  Effect.suspend(() => {
-    const element = document.querySelector(selector)
-    if (element instanceof HTMLElement) {
-      element.click()
-      return Effect.void
-    }
-    return Effect.fail(new ElementNotFound({ selector }))
+  Effect.gen(function* () {
+    yield* awaitNextFrame
+    const element = yield* queryHTMLElement(selector)
+    element.click()
   })
 
 /**
@@ -196,13 +219,10 @@ export const clickElement = (
 export const scrollIntoView = (
   selector: string,
 ): Effect.Effect<void, ElementNotFound> =>
-  Effect.suspend(() => {
-    const element = document.querySelector(selector)
-    if (element instanceof HTMLElement) {
-      element.scrollIntoView({ block: 'nearest' })
-      return Effect.void
-    }
-    return Effect.fail(new ElementNotFound({ selector }))
+  Effect.gen(function* () {
+    yield* awaitNextFrame
+    const element = yield* queryHTMLElement(selector)
+    element.scrollIntoView({ block: 'nearest' })
   })
 
 /** Direction for focus advancement — forward or backward in tab order. */
@@ -221,12 +241,10 @@ export const advanceFocus = (
   selector: string,
   direction: FocusDirection,
 ): Effect.Effect<void, ElementNotFound> =>
-  Effect.suspend(() => {
-    const reference = document.querySelector(selector)
+  Effect.gen(function* () {
+    yield* awaitNextFrame
 
-    if (!(reference instanceof HTMLElement)) {
-      return Effect.fail(new ElementNotFound({ selector }))
-    }
+    const reference = yield* queryHTMLElement(selector)
 
     const focusableElements = Array.fromIterable(
       document.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
@@ -238,7 +256,7 @@ export const advanceFocus = (
     )
 
     if (Option.isNone(referenceElementIndex)) {
-      return Effect.fail(new ElementNotFound({ selector }))
+      return yield* Effect.fail(new ElementNotFound({ selector }))
     }
 
     const offsetReferenceElementIndex = M.value(direction).pipe(
@@ -255,6 +273,4 @@ export const advanceFocus = (
     if (Option.isSome(nextElement)) {
       nextElement.value.focus()
     }
-
-    return Effect.void
   })

@@ -1,19 +1,11 @@
 import * as Shared from '@typing-game/shared'
-import { Array, Data, Effect, Match as M, Option, String as Str } from 'effect'
-import { Command, Task } from 'foldkit'
+import { Array, Data, Match as M, Option, String as Str } from 'effect'
 import { evo } from 'foldkit/struct'
 
-import { USER_GAME_TEXT_INPUT_ID } from '../../../constant'
 import { optionWhen } from '../../../optionWhen'
 import { tickExitCountdown } from '../command'
-import { CompletedFocusUserGameTextInput } from '../message'
 import { Model, RoomRemoteData } from '../model'
 import type { UpdateReturn } from './update'
-
-const FocusUserGameTextInput = Command.define(
-  'FocusUserGameTextInput',
-  CompletedFocusUserGameTextInput,
-)
 
 const EXIT_COUNTDOWN_SECONDS = 3
 
@@ -68,20 +60,6 @@ export const handleRoomUpdated =
           Restore: ({ progress }) => progress.charsTyped,
         })
 
-    const isFirstRoomUpdate = !hadRoom
-    const hasGame = Option.isSome(room.maybeGame)
-
-    const shouldFocus = (gameJustStarted || isFirstRoomUpdate) && hasGame
-
-    const mabyeFocusUserGameTextInput = optionWhen(shouldFocus, () =>
-      FocusUserGameTextInput(
-        Task.focus(`#${USER_GAME_TEXT_INPUT_ID}`).pipe(
-          Effect.ignore,
-          Effect.as(CompletedFocusUserGameTextInput()),
-        ),
-      ),
-    )
-
     const maybeExitCountdown = optionWhen(
       gameJustFinished,
       () => tickExitCountdown,
@@ -97,7 +75,7 @@ export const handleRoomUpdated =
             ? EXIT_COUNTDOWN_SECONDS
             : model.exitCountdownSecondsLeft,
       }),
-      Array.getSomes([mabyeFocusUserGameTextInput, maybeExitCountdown]),
+      Array.fromOption(maybeExitCountdown),
     ]
   }
 

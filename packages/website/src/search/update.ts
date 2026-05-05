@@ -137,5 +137,6 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       CompletedNavigateSearch: () => [model, []],
       CompletedScrollToResult: () => [model, []],
+      CompletedFocusSearchInput: () => [model, []],
     }),
   )

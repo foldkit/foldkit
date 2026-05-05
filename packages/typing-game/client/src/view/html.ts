@@ -17,6 +17,7 @@ export const {
   OnBlur,
   OnClick,
   OnInput,
+  OnMount,
   OnSubmit,
   Spellcheck,
   Stroke,

@@ -1,14 +1,9 @@
-import { Array, Effect, Match as M, Number, Option, flow, pipe } from 'effect'
-import { Command, Task } from 'foldkit'
+import { Array, Match as M, Number, Option, flow, pipe } from 'effect'
+import { Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
-import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../../constant'
 import { createRoom } from '../command'
-import {
-  CompletedFocusRoomIdInput,
-  CompletedFocusUsernameInput,
-  Message,
-} from '../message'
+import { Message } from '../message'
 import {
   EnterRoomId,
   EnterUsername,
@@ -17,15 +12,6 @@ import {
   Model,
   SelectAction,
 } from '../model'
-
-export const FocusRoomIdInput = Command.define(
-  'FocusRoomIdInput',
-  CompletedFocusRoomIdInput,
-)
-export const FocusUsernameInput = Command.define(
-  'FocusUsernameInput',
-  CompletedFocusUsernameInput,
-)
 
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
@@ -101,27 +87,13 @@ const confirmSelection =
               roomId: '',
             }),
         }),
-        [
-          FocusRoomIdInput(
-            Task.focus(`#${ROOM_ID_INPUT_ID}`).pipe(
-              Effect.ignore,
-              Effect.as(CompletedFocusRoomIdInput()),
-            ),
-          ),
-        ],
+        [],
       ]),
       M.when('ChangeUsername', () => [
         evo(model, {
           homeStep: () => EnterUsername({ username: '' }),
         }),
-        [
-          FocusUsernameInput(
-            Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
-              Effect.ignore,
-              Effect.as(CompletedFocusUsernameInput()),
-            ),
-          ),
-        ],
+        [],
       ]),
       M.exhaustive,
     )

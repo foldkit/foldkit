@@ -1,4 +1,5 @@
 import { Array, Match as M, Option } from 'effect'
+import { Mount } from 'foldkit'
 import { Html } from 'foldkit/html'
 
 import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../constant'
@@ -14,6 +15,7 @@ import {
   Name,
   OnBlur,
   OnInput,
+  OnMount,
   OnSubmit,
   Spellcheck,
   Type,
@@ -24,9 +26,11 @@ import {
   h1,
   h2,
   input,
+  keyed,
   label,
   span,
 } from '../../view/html'
+import { focusRoomIdInput, focusUsernameInput } from './command'
 import {
   BlurredRoomIdInput,
   BlurredUsernameInput,
@@ -69,12 +73,18 @@ export const view = (
       h1([Class('mb-6 uppercase')], ['Typing Terminal']),
       welcomeText,
 
-      M.value(model.homeStep).pipe(
-        M.tagsExhaustive({
-          EnterUsername: enterUsername(toParentMessage),
-          SelectAction: selectAction,
-          EnterRoomId: enterRoomId(toParentMessage),
-        }),
+      keyed('div')(
+        model.homeStep._tag,
+        [],
+        [
+          M.value(model.homeStep).pipe(
+            M.tagsExhaustive({
+              EnterUsername: enterUsername(toParentMessage),
+              SelectAction: selectAction,
+              EnterRoomId: enterRoomId(toParentMessage),
+            }),
+          ),
+        ],
       ),
 
       maybeErrorMessage(model.formError),
@@ -104,6 +114,9 @@ const enterUsername =
                   Class('bg-transparent px-0 py-2 outline-none w-full'),
                   OnInput(value => toParentMessage(ChangedUsername({ value }))),
                   OnBlur(toParentMessage(BlurredUsernameInput())),
+                  OnMount(
+                    Mount.mapMessage(focusUsernameInput, toParentMessage),
+                  ),
                   Autocapitalize('none'),
                   Spellcheck(false),
                   Autocorrect('off'),
@@ -163,6 +176,7 @@ const enterRoomId =
                   Class('bg-transparent px-0 py-2 outline-none w-full'),
                   OnInput(value => toParentMessage(ChangedRoomId({ value }))),
                   OnBlur(toParentMessage(BlurredRoomIdInput())),
+                  OnMount(Mount.mapMessage(focusRoomIdInput, toParentMessage)),
                   Autocapitalize('none'),
                   Spellcheck(false),
                   Autocorrect('off'),

@@ -3,6 +3,7 @@ import { Array, Equal, Option, flow, pipe } from 'effect'
 import { Ui } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
+import { focusAddCardInput } from '../command'
 import { ADD_CARD_INPUT_ID } from '../constant'
 import { Card, Column } from '../domain'
 import {
@@ -11,6 +12,7 @@ import {
   Class,
   For,
   OnKeyDownPreventDefault,
+  OnMount,
   OnSubmit,
   Role,
   button,
@@ -40,73 +42,86 @@ const addCardForm = (model: Model, columnId: string): Html => {
   )
 
   if (!isAddingToThisColumn) {
-    return Ui.Button.view({
-      onClick: ClickedAddCard({ columnId }),
-      toView: attributes =>
-        button(
-          [
-            ...attributes.button,
-            Class(
-              'w-full rounded-lg border border-dashed border-gray-300 p-2 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors cursor-pointer',
+    return keyed('div')(
+      'idle',
+      [],
+      [
+        Ui.Button.view({
+          onClick: ClickedAddCard({ columnId }),
+          toView: attributes =>
+            button(
+              [
+                ...attributes.button,
+                Class(
+                  'w-full rounded-lg border border-dashed border-gray-300 p-2 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors cursor-pointer',
+                ),
+              ],
+              ['+ Add card'],
             ),
-          ],
-          ['+ Add card'],
-        ),
-    })
+        }),
+      ],
+    )
   }
 
-  return form(
-    [Class('flex flex-col gap-2'), OnSubmit(SubmittedNewCard())],
+  return keyed('div')(
+    'adding',
+    [],
     [
-      label([For(ADD_CARD_INPUT_ID), Class('sr-only')], ['New card title']),
-      Ui.Input.view({
-        id: ADD_CARD_INPUT_ID,
-        onInput: value => ChangedNewCardTitle({ value }),
-        value: model.newCardTitle,
-        placeholder: 'Card title...',
-        toView: attributes =>
-          input([
-            ...attributes.input,
-            Class(
-              'rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none',
-            ),
-            OnKeyDownPreventDefault(
-              flow(
-                Option.liftPredicate(Equal.equals('Escape')),
-                Option.map(() => CancelledNewCard()),
-              ),
-            ),
-          ]),
-      }),
-      div(
-        [Class('flex gap-2 justify-end')],
+      form(
+        [Class('flex flex-col gap-2'), OnSubmit(SubmittedNewCard())],
         [
-          Ui.Button.view({
-            onClick: CancelledNewCard(),
+          label([For(ADD_CARD_INPUT_ID), Class('sr-only')], ['New card title']),
+          Ui.Input.view({
+            id: ADD_CARD_INPUT_ID,
+            onInput: value => ChangedNewCardTitle({ value }),
+            value: model.newCardTitle,
+            placeholder: 'Card title...',
             toView: attributes =>
-              button(
-                [
-                  ...attributes.button,
-                  Class(
-                    'rounded-lg px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 transition-colors cursor-pointer',
+              input([
+                ...attributes.input,
+                Class(
+                  'rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none',
+                ),
+                OnMount(focusAddCardInput),
+                OnKeyDownPreventDefault(
+                  flow(
+                    Option.liftPredicate(Equal.equals('Escape')),
+                    Option.map(() => CancelledNewCard()),
                   ),
-                ],
-                ['Cancel'],
-              ),
+                ),
+              ]),
           }),
-          Ui.Button.view<Message>({
-            type: 'submit',
-            toView: attributes =>
-              button(
-                [
-                  ...attributes.button,
-                  Class(
-                    'rounded-lg bg-blue-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-600 transition-colors cursor-pointer',
+          div(
+            [Class('flex gap-2 justify-end')],
+            [
+              Ui.Button.view({
+                onClick: CancelledNewCard(),
+                toView: attributes =>
+                  button(
+                    [
+                      ...attributes.button,
+                      Class(
+                        'rounded-lg px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 transition-colors cursor-pointer',
+                      ),
+                    ],
+                    ['Cancel'],
                   ),
-                ],
-                ['Add'],
-              ),
-          }),
+              }),
+              Ui.Button.view<Message>({
+                type: 'submit',
+                toView: attributes =>
+                  button(
+                    [
+                      ...attributes.button,
+                      Class(
+                        'rounded-lg bg-blue-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-600 transition-colors cursor-pointer',
+                      ),
+                    ],
+                    ['Add'],
+                  ),
+              }),
+            ],
+          ),
         ],
       ),
     ],

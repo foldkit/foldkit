@@ -33,8 +33,8 @@ import { Model, RoomRemoteData } from '../model'
 import { validateUserTextInput } from '../userGameText'
 import { handleRoomUpdated } from './handleRoomUpdates'
 
-const FocusRoomUsernameInput = Command.define(
-  'FocusRoomUsernameInput',
+const RefocusRoomUsernameInput = Command.define(
+  'RefocusRoomUsernameInput',
   CompletedFocusRoomPageUsernameInput,
 )
 const NavigateHome = Command.define('NavigateHome', CompletedNavigateHome)
@@ -98,7 +98,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       BlurredRoomPageUsernameInput: () => [
         model,
         [
-          FocusRoomUsernameInput(
+          RefocusRoomUsernameInput(
             Task.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(
               Effect.ignore,
               Effect.as(CompletedFocusRoomPageUsernameInput()),
@@ -140,27 +140,12 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [],
       ],
 
-      SucceededFetchRoom: ({ room }) => {
-        const maybeFocusRoomUsernameInput = Option.match(model.maybeSession, {
-          onNone: () =>
-            Option.some(
-              FocusRoomUsernameInput(
-                Task.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(
-                  Effect.ignore,
-                  Effect.as(CompletedFocusRoomPageUsernameInput()),
-                ),
-              ),
-            ),
-          onSome: () => Option.none(),
-        })
-
-        return [
-          evo(model, {
-            roomRemoteData: () => RoomRemoteData.Ok({ data: room }),
-          }),
-          Array.fromOption(maybeFocusRoomUsernameInput),
-        ]
-      },
+      SucceededFetchRoom: ({ room }) => [
+        evo(model, {
+          roomRemoteData: () => RoomRemoteData.Ok({ data: room }),
+        }),
+        [],
+      ],
 
       FailedFetchRoom: () => [
         evo(model, {

@@ -1,5 +1,6 @@
 import * as Shared from '@typing-game/shared'
 import { Match as M, Option } from 'effect'
+import { Mount } from 'foldkit'
 import { Html } from 'foldkit/html'
 
 import { ROOM_PAGE_USERNAME_INPUT_ID } from '../../../constant'
@@ -18,6 +19,7 @@ import {
   OnBlur,
   OnClick,
   OnInput,
+  OnMount,
   OnSubmit,
   Spellcheck,
   Type,
@@ -29,10 +31,12 @@ import {
   h2,
   h3,
   input,
+  keyed,
   label,
   span,
 } from '../../../view/html'
 import { Icon } from '../../../view/icon'
+import { focusRoomPageUsernameInput } from '../command'
 import {
   BlurredRoomPageUsernameInput,
   ChangedRoomPageUsername,
@@ -125,23 +129,38 @@ export const view =
     )
   }
 
+const contentKey = (
+  roomRemoteData: Model['roomRemoteData'],
+  maybeSession: Option.Option<RoomPlayerSession>,
+): string =>
+  M.value(roomRemoteData).pipe(
+    M.tag('Ok', () => (Option.isSome(maybeSession) ? 'game' : 'join')),
+    M.orElse(({ _tag }) => _tag.toLowerCase()),
+  )
+
 const content = (
   { roomRemoteData, maybeSession, userGameText, username }: Model,
   roomId: string,
   toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
-  M.value(roomRemoteData).pipe(
-    M.tagsExhaustive({
-      Idle: () => div([], ['Loading...']),
-      Loading: () => div([], ['Loading...']),
-      Error: () => empty,
-      Ok: ({ data: room }) =>
-        Option.match(maybeSession, {
-          onNone: () => joinForm(username, roomId, toParentMessage),
-          onSome: () =>
-            gameContent(room, maybeSession, userGameText, toParentMessage),
+  keyed('div')(
+    contentKey(roomRemoteData, maybeSession),
+    [],
+    [
+      M.value(roomRemoteData).pipe(
+        M.tagsExhaustive({
+          Idle: () => div([], ['Loading...']),
+          Loading: () => div([], ['Loading...']),
+          Error: () => empty,
+          Ok: ({ data: room }) =>
+            Option.match(maybeSession, {
+              onNone: () => joinForm(username, roomId, toParentMessage),
+              onSome: () =>
+                gameContent(room, maybeSession, userGameText, toParentMessage),
+            }),
         }),
-    }),
+      ),
+    ],
   )
 
 const gameContent = (
@@ -156,21 +175,28 @@ const gameContent = (
     findFirstWrongCharIndex(userGameText),
   )
 
-  return M.value(room.status).pipe(
-    M.tagsExhaustive({
-      Waiting: () => waiting(room.players, room.hostId, maybeSession),
-      GetReady: () => getReady(maybeGameText),
-      Countdown: ({ secondsLeft }) => countdown(secondsLeft, maybeGameText),
-      Playing: ({ secondsLeft }) =>
-        playing(
-          secondsLeft,
-          maybeGameText,
-          userGameText,
-          maybeWrongCharIndex,
-          toParentMessage,
-        ),
-      Finished: () => finished(room.maybeScoreboard, room.hostId, maybeSession),
-    }),
+  return keyed('div')(
+    room.status._tag,
+    [],
+    [
+      M.value(room.status).pipe(
+        M.tagsExhaustive({
+          Waiting: () => waiting(room.players, room.hostId, maybeSession),
+          GetReady: () => getReady(maybeGameText),
+          Countdown: ({ secondsLeft }) => countdown(secondsLeft, maybeGameText),
+          Playing: ({ secondsLeft }) =>
+            playing(
+              secondsLeft,
+              maybeGameText,
+              userGameText,
+              maybeWrongCharIndex,
+              toParentMessage,
+            ),
+          Finished: () =>
+            finished(room.maybeScoreboard, room.hostId, maybeSession),
+        }),
+      ),
+    ],
   )
 }
 
@@ -200,6 +226,9 @@ const joinForm = (
                   toParentMessage(ChangedRoomPageUsername({ value })),
                 ),
                 OnBlur(toParentMessage(BlurredRoomPageUsernameInput())),
+                OnMount(
+                  Mount.mapMessage(focusRoomPageUsernameInput, toParentMessage),
+                ),
                 Autocapitalize('none'),
                 Spellcheck(false),
                 Autocorrect('off'),
