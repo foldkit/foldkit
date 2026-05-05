@@ -5,6 +5,7 @@ import {
   Array,
   DateTime,
   Effect,
+  Equal,
   HashSet,
   Layer,
   Match as M,
@@ -482,6 +483,20 @@ const update = (
         ),
 
       ChangedUrl: ({ url }) => {
+        const isHashOnlyChange =
+          url.pathname === model.url.pathname &&
+          Equal.equals(url.search, model.url.search)
+
+        if (isHashOnlyChange) {
+          return [
+            evo(model, { url: () => url }),
+            Option.match(url.hash, {
+              onNone: () => [scrollToTop],
+              onSome: hash => [scrollToHashAfterRender(hash)],
+            }),
+          ]
+        }
+
         const nextRoute = urlToAppRoute(url)
         const [closedMobileMenu, closeMobileMenuCommands] = Ui.Dialog.update(
           model.mobileMenuDialog,
