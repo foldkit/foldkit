@@ -184,6 +184,8 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           href: coreInitAndFlagsRouter(),
           label: 'Init & Flags',
         },
+      ],
+      [
         {
           _tag: 'CoreTask',
           href: coreTaskRouter(),
