@@ -76,6 +76,7 @@ export default [
     ignores: [
       'dist/',
       'node_modules/',
+      'repos/',
       '**/*.d.ts',
       'eslint.config.mjs',
       'vite.config.ts',

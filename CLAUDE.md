@@ -189,6 +189,12 @@ Command definitions live where they're produced — colocated with the update fu
 
 - When making multi-file edits or refactors, apply changes to ALL relevant files — not just a subset. After refactoring, verify that spacing, margins, and visual formatting haven't regressed from the original.
 
+## Reference repos
+
+`repos/` holds git submodules of external projects we depend on, pinned to the version we use. Read from these directly when API signatures, behavior, or implementation details matter. Faster and more authoritative than docs or `.d.ts` files.
+
+- `repos/effect-smol/` — Effect-TS source. Reference for any Effect / Schema / Stream / Match / Result question before falling back to docs or guessing from types.
+
 ## Debugging Example Apps
 
 Apps in `examples/` ship with the `@foldkit/devtools-mcp` relay wired up. When debugging behavior in a running example, reach for the `foldkit_*` MCP tools before adding logs. If they aren't visible, see `packages/devtools-mcp/README.md` for setup.

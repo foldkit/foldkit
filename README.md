@@ -188,7 +188,7 @@ This is what makes Foldkit unusually AI-friendly. The same property that makes t
 ## Development
 
 ```bash
-git clone https://github.com/foldkit/foldkit.git
+git clone --recurse-submodules https://github.com/foldkit/foldkit.git
 cd foldkit
 pnpm install
 
@@ -198,6 +198,8 @@ pnpm dev:core
 # Run an example (in a separate terminal)
 pnpm dev:example:counter
 ```
+
+If you cloned without `--recurse-submodules`, run `git submodule update --init --recursive` to pull the source under `repos/` (used as agent reference; see CLAUDE.md).
 
 ## License
 
