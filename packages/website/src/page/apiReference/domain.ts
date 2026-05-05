@@ -324,3 +324,9 @@ const pascalToKebab = (text: string): string =>
 
 export const moduleNameToSlug = (name: string): string =>
   pipe(name, String.replaceAll('/', '-'), pascalToKebab)
+
+const capitalize = (word: string): string =>
+  word.charAt(0).toUpperCase() + word.slice(1)
+
+export const slugToModuleName = (slug: string): string =>
+  pipe(slug, String.split('-'), Array.map(capitalize), Array.join(''))

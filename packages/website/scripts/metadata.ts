@@ -1,5 +1,6 @@
 import { Match as M, Option } from 'effect'
 
+import { slugToModuleName } from '../src/page/apiReference/domain'
 import { findBySlug } from '../src/page/example/meta'
 import { type AppRoute } from '../src/route'
 
@@ -339,13 +340,14 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
 export const routeToMetadata = (route: AppRoute): PageMetadata =>
   M.value(route).pipe(
     M.withReturnType<PageMetadata>(),
-    M.tag('ApiModule', ({ moduleSlug }) =>
-      docs(
-        moduleSlug,
-        `API documentation for the ${moduleSlug} module.`,
+    M.tag('ApiModule', ({ moduleSlug }) => {
+      const moduleName = slugToModuleName(moduleSlug)
+      return docs(
+        moduleName,
+        `API documentation for the ${moduleName} module.`,
         'API Reference',
-      ),
-    ),
+      )
+    }),
     M.tag('ExampleDetail', ({ exampleSlug }) =>
       Option.match(findBySlug(exampleSlug), {
         onNone: () =>
