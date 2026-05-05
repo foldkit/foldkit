@@ -696,7 +696,7 @@ const makeRuntime = <
 
         const dispatch = { dispatchAsync, dispatchSync }
 
-        const isRenderPendingRef = yield* Ref.make(false)
+        const isRenderPendingRef = yield* SubscriptionRef.make(false)
         const lastDirtyMessageRef = yield* Ref.make<Option.Option<Message>>(
           Option.none(),
         )
@@ -721,7 +721,7 @@ const makeRuntime = <
 
             if (currentModel !== nextModel) {
               yield* Ref.set(modelRef, nextModel)
-              yield* Ref.set(isRenderPendingRef, true)
+              yield* SubscriptionRef.set(isRenderPendingRef, true)
               yield* Ref.set(lastDirtyMessageRef, Option.some(message))
 
               if (!modelEquivalence(currentModel, nextModel)) {
@@ -823,9 +823,16 @@ const makeRuntime = <
               const [updatedModel] = update(model as Model, message as Message)
               return maybeFreezeModel(updatedModel)
             },
+            // NOTE: clears the dirty bit on direct DevTools renders (jumpTo,
+            // resume) so the renderLoop's Stream.changes sees the next
+            // dispatch as a real false-to-true transition rather than a
+            // deduped no-op.
             render: model =>
-              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-              render(model as Model, Option.none()),
+              Effect.gen(function* () {
+                yield* SubscriptionRef.set(isRenderPendingRef, false)
+                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                yield* render(model as Model, Option.none())
+              }),
             getCurrentModel: Ref.get(modelRef),
           })
           yield* Ref.set(maybeDevToolsStoreRef, Option.some(devToolsStore))
@@ -859,25 +866,32 @@ const makeRuntime = <
         // view past threshold. Acceptable for a debug callback; full
         // attribution would require correlating each message with its render
         // contribution, which isn't worth the complexity.
-        const renderLoop = Effect.forever(
-          Effect.gen(function* () {
-            yield* awaitNextFrame
 
-            const isPending = yield* Ref.get(isRenderPendingRef)
-            if (!isPending) {
-              return
-            }
+        const renderAtNextFrame = Effect.gen(function* () {
+          yield* awaitNextFrame
+          yield* SubscriptionRef.set(isRenderPendingRef, false)
+          const isPaused = yield* isPausedEffect
+          if (isPaused) {
+            return
+          }
+          const model = yield* Ref.get(modelRef)
+          const maybeMessage = yield* Ref.get(lastDirtyMessageRef)
+          yield* render(model, maybeMessage)
+        })
 
-            const isPaused = yield* isPausedEffect
-            if (isPaused) {
-              return
-            }
-
-            yield* Ref.set(isRenderPendingRef, false)
-            const model = yield* Ref.get(modelRef)
-            const maybeMessage = yield* Ref.get(lastDirtyMessageRef)
-            yield* render(model, maybeMessage)
-          }),
+        // NOTE: The loop suspends on the SubscriptionRef's changes Stream when
+        // isRenderPending stays false, so an idle app schedules zero rAF
+        // callbacks. Stream.changes filters consecutive equals so multiple
+        // dispatches inside one frame produce a single render. The bit is
+        // cleared on every body run, including the paused early-return, so
+        // any future false-to-true transition wakes the loop again. This
+        // self-recovery covers indirect unpause paths in the DevTools store
+        // (rolling-buffer eviction past pausedAtIndex, and the clear action)
+        // that bypass bridge.render.
+        const renderLoop = SubscriptionRef.changes(isRenderPendingRef).pipe(
+          Stream.changes,
+          Stream.filter(isPending => isPending),
+          Stream.runForEach(() => renderAtNextFrame),
         )
 
         yield* Effect.forkDetach(renderLoop)
