@@ -1046,8 +1046,26 @@ const makeRuntime = <
             discard: true,
           })
 
+        // NOTE: Effect 4's `Queue.takeAll` blocks until at least one message
+        // arrives (it's `takeBetween(self, 1, ∞)`, not a non-blocking
+        // snapshot). For batching we want "give me whatever is currently in
+        // the queue, possibly nothing" so we drain via repeated `Queue.poll`
+        // until it returns `None`.
+        const pollAvailable: Effect.Effect<
+          ReadonlyArray<EnvelopedMessage<Message>>
+        > = Effect.gen(function* () {
+          const accumulated: Array<EnvelopedMessage<Message>> = []
+          while (true) {
+            const next = yield* Queue.poll(messageQueue)
+            if (Option.isNone(next)) {
+              return accumulated
+            }
+            accumulated.push(next.value)
+          }
+        })
+
         const drainQueue: Effect.Effect<void> = Effect.gen(function* () {
-          const batch = yield* Queue.takeAll(messageQueue)
+          const batch = yield* pollAvailable
           if (Array.isReadonlyArrayEmpty(batch)) {
             return
           }
@@ -1059,7 +1077,7 @@ const makeRuntime = <
           Effect.forever(
             Effect.gen(function* () {
               const first = yield* Queue.take(messageQueue)
-              const rest = yield* Queue.takeAll(messageQueue)
+              const rest = yield* pollAvailable
               yield* Ref.set(burstStartedAtRef, performance.now())
               yield* processBatch(Array.prepend(rest, first))
               yield* drainQueue
