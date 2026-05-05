@@ -319,6 +319,7 @@ const sidebarViewInner = (
             [Class('flex items-center justify-center gap-8')],
             [
               iconLink(Link.github, 'GitHub', Icon.github('w-6 h-6')),
+              iconLink(Link.discord, 'Discord', Icon.discord('w-6 h-6')),
               iconLink(Link.npm, 'npm', Icon.npm('w-8 h-8')),
             ],
           ),
