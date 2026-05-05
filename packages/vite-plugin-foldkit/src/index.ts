@@ -162,10 +162,18 @@ const handlePreserveModelReceived = (state: State, payload: unknown) =>
         '[foldkit:hmr] failed to decode preserve-model payload',
         error,
       ),
-    onSuccess: ({ id, model }) => {
-      const entry: PreservedEntry = { model, isHmrReload: false }
-      return Ref.update(state.preservedModels, HashMap.set(id, entry))
-    },
+    onSuccess: ({ id, model, isHmrReload }) =>
+      Ref.update(state.preservedModels, current => {
+        const existingFlag = Option.exists(
+          HashMap.get(current, id),
+          ({ isHmrReload }) => isHmrReload,
+        )
+        const entry: PreservedEntry = {
+          model,
+          isHmrReload: isHmrReload === true || existingFlag,
+        }
+        return HashMap.set(current, id, entry)
+      }),
   })
 
 const handleRequestModelReceived = (

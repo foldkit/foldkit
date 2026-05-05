@@ -3,6 +3,7 @@ import {
   Array,
   Cause,
   Context,
+  Duration,
   Effect,
   Exit,
   Function,
@@ -45,6 +46,7 @@ import type {
   ManagedResources,
 } from './managedResource.js'
 import { type EnvelopedMessage, orderByPriority } from './messagePriority.js'
+import { makePreserveScheduler } from './preserveScheduler.js'
 import { makeRenderLoop } from './renderLoop.js'
 import type { Subscriptions } from './subscription.js'
 import { UrlRequest } from './urlRequest.js'
@@ -600,14 +602,58 @@ const makeRuntime = <
 
         const flags = yield* resolveFlags
 
-        const modelEquivalence = Schema.toEquivalence(Model)
-
         const ModelJsonCodec = Schema.toCodecJson(
           /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
           Model as Schema.Codec<Model>,
         )
         const decodeHmrModel = Schema.decodeUnknownExit(ModelJsonCodec)
         const encodeHmrModel = Schema.encodeUnknownSync(ModelJsonCodec)
+
+        // NOTE: keep `encodeHmrModel` off the dispatch hot path. It walks
+        // the entire Model graph (O(modelSize) per call) and blocks input
+        // on large Models. The scheduler defers encoding to a quiet window
+        // and the `vite:beforeFullReload` flush covers the HMR boundary.
+        const PRESERVE_DEBOUNCE = Duration.millis(200)
+        const preserveScheduler = yield* makePreserveScheduler<Model>(
+          {
+            onDebounce: model =>
+              Effect.sync(() =>
+                preserveModel(runtimeId, encodeHmrModel(model), false),
+              ),
+            onFlush: model =>
+              Effect.sync(() =>
+                preserveModel(runtimeId, encodeHmrModel(model), true),
+              ),
+          },
+          PRESERVE_DEBOUNCE,
+        )
+
+        const hot = import.meta.hot
+        if (hot) {
+          yield* Effect.acquireRelease(
+            Effect.sync(() => {
+              // NOTE: Effect.runSync requires `flush` to have no async
+              // suspensions. The scheduler is built to satisfy that: flush
+              // clears pending atomically and runs `onFlush` without
+              // interrupting the in-flight timer fiber, which keeps the
+              // whole effect synchronous. If a future change adds an async
+              // step (interrupt-await, sleep, fork) on this path, Vite may
+              // race ahead to location.reload() before the encoded model
+              // reaches the plugin.
+              const handler = (): void => {
+                Effect.runSync(preserveScheduler.flush)
+              }
+              hot.on('vite:beforeFullReload', handler)
+              return handler
+            }),
+            handler =>
+              Effect.sync(() => hot.off('vite:beforeFullReload', handler)),
+          )
+          yield* Effect.addFinalizer(() => preserveScheduler.cancel)
+        }
+
+        const schedulePreserveModel = (model: Model): Effect.Effect<void> =>
+          hot ? preserveScheduler.schedule(model) : Effect.void
 
         // NOTE: Each enqueued Message carries a priority. Within a single
         // takeAll batch the drain loop processes all High before any Normal,
@@ -725,10 +771,8 @@ const makeRuntime = <
               yield* SubscriptionRef.set(isRenderPendingRef, true)
               yield* Ref.set(lastDirtyMessageRef, Option.some(message))
 
-              if (!modelEquivalence(currentModel, nextModel)) {
-                PubSub.publishUnsafe(modelPubSub, nextModel)
-                preserveModel(runtimeId, encodeHmrModel(nextModel))
-              }
+              PubSub.publishUnsafe(modelPubSub, nextModel)
+              yield* schedulePreserveModel(nextModel)
             }
 
             yield* Effect.forEach(
@@ -896,41 +940,49 @@ const makeRuntime = <
                   equivalence: customEquivalence,
                   dependenciesToStream,
                 },
-              ]) => {
-                let latestDependencies = modelToDependencies(initModel)
-                const equivalence =
-                  customEquivalence ?? Schema.toEquivalence(schema)
+              ]) =>
+                Effect.gen(function* () {
+                  const latestDependenciesRef = yield* Ref.make(
+                    modelToDependencies(initModel),
+                  )
+                  const equivalence =
+                    customEquivalence ?? Schema.toEquivalence(schema)
 
-                const modelStream = Stream.concat(
-                  Stream.make(initModel),
-                  Stream.fromPubSub(modelPubSub),
-                )
+                  const modelStream = Stream.concat(
+                    Stream.make(initModel),
+                    Stream.fromPubSub(modelPubSub),
+                  )
 
-                return Effect.forkDetach(
-                  modelStream.pipe(
-                    // NOTE: updates latestDependencies on every model change so
-                    // readDependencies() returns current values even when the
-                    // stream hasn't restarted (when equivalence filters the change).
-                    Stream.map(model => {
-                      const dependencies = modelToDependencies(model)
-                      latestDependencies = dependencies
-                      return dependencies
-                    }),
-                    Stream.changesWith(equivalence),
-                    Stream.switchMap(dependencies =>
-                      dependenciesToStream(
-                        dependencies,
-                        () => latestDependencies,
+                  yield* Effect.forkDetach(
+                    modelStream.pipe(
+                      // NOTE: Ref.set runs upstream of Stream.changesWith on
+                      // every model change, so readDependencies() returns
+                      // current values even when the equivalence filter
+                      // doesn't emit. Moving this into a tap after
+                      // changesWith would silently break subscribers whose
+                      // dependencies are equivalence-stable across model
+                      // changes.
+                      Stream.mapEffect(model =>
+                        Effect.gen(function* () {
+                          const dependencies = modelToDependencies(model)
+                          yield* Ref.set(latestDependenciesRef, dependencies)
+                          return dependencies
+                        }),
                       ),
+                      Stream.changesWith(equivalence),
+                      Stream.switchMap(dependencies =>
+                        dependenciesToStream(dependencies, () =>
+                          Ref.getUnsafe(latestDependenciesRef),
+                        ),
+                      ),
+                      Stream.runForEach(message =>
+                        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                        enqueueHigh(message as Message),
+                      ),
+                      provideAllResources,
                     ),
-                    Stream.runForEach(message =>
-                      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                      enqueueHigh(message as Message),
-                    ),
-                    provideAllResources,
-                  ),
-                )
-              },
+                  )
+                }),
               {
                 concurrency: 'unbounded',
                 discard: true,
@@ -1073,12 +1125,27 @@ const makeRuntime = <
           yield* drainQueue
         })
 
+        // NOTE: only reset the burst timer when `Queue.take` actually blocked
+        // (queue was empty). With Command-chained dispatches each forever
+        // iteration handles a single message, so resetting unconditionally
+        // would keep the per-iteration cost under FRAME_BUDGET_MS forever
+        // and the runtime would never yield to the browser. Polling first
+        // distinguishes "continuing a burst" (poll returns Some) from
+        // "waking from idle" (poll returns None, take blocks).
         yield* pipe(
           Effect.forever(
             Effect.gen(function* () {
-              const first = yield* Queue.take(messageQueue)
+              const maybeFirst = yield* Queue.poll(messageQueue)
+              const first = yield* Option.match(maybeFirst, {
+                onNone: () =>
+                  Effect.gen(function* () {
+                    const message = yield* Queue.take(messageQueue)
+                    yield* Ref.set(burstStartedAtRef, performance.now())
+                    return message
+                  }),
+                onSome: Effect.succeed,
+              })
               const rest = yield* pollAvailable
-              yield* Ref.set(burstStartedAtRef, performance.now())
               yield* processBatch(Array.prepend(rest, first))
               yield* drainQueue
             }),
@@ -1461,11 +1528,17 @@ const encodePreserveModelMessage =
 const encodeRequestModelMessage = Schema.encodeUnknownSync(RequestModelMessage)
 const decodeRestoreModelMessage = Schema.decodeUnknownExit(RestoreModelMessage)
 
-const preserveModel = (id: string, model: unknown): void => {
+const preserveModel = (
+  id: string,
+  encodedModel: unknown,
+  isHmrReload: boolean,
+): void => {
   if (import.meta.hot) {
     import.meta.hot.send(
       'foldkit:preserve-model',
-      encodePreserveModelMessage(PreserveModelMessage.make({ id, model })),
+      encodePreserveModelMessage(
+        PreserveModelMessage.make({ id, model: encodedModel, isHmrReload }),
+      ),
     )
   }
 }
