@@ -45,6 +45,7 @@ import type {
   ManagedResources,
 } from './managedResource.js'
 import { type EnvelopedMessage, orderByPriority } from './messagePriority.js'
+import { makeRenderLoop } from './renderLoop.js'
 import type { Subscriptions } from './subscription.js'
 import { UrlRequest } from './urlRequest.js'
 
@@ -867,32 +868,16 @@ const makeRuntime = <
         // attribution would require correlating each message with its render
         // contribution, which isn't worth the complexity.
 
-        const renderAtNextFrame = Effect.gen(function* () {
-          yield* awaitNextFrame
-          yield* SubscriptionRef.set(isRenderPendingRef, false)
-          const isPaused = yield* isPausedEffect
-          if (isPaused) {
-            return
-          }
-          const model = yield* Ref.get(modelRef)
-          const maybeMessage = yield* Ref.get(lastDirtyMessageRef)
-          yield* render(model, maybeMessage)
+        const renderLoop = makeRenderLoop({
+          pendingRef: isRenderPendingRef,
+          awaitNextFrame,
+          isPaused: isPausedEffect,
+          render: Effect.gen(function* () {
+            const model = yield* Ref.get(modelRef)
+            const maybeMessage = yield* Ref.get(lastDirtyMessageRef)
+            yield* render(model, maybeMessage)
+          }),
         })
-
-        // NOTE: The loop suspends on the SubscriptionRef's changes Stream when
-        // isRenderPending stays false, so an idle app schedules zero rAF
-        // callbacks. Stream.changes filters consecutive equals so multiple
-        // dispatches inside one frame produce a single render. The bit is
-        // cleared on every body run, including the paused early-return, so
-        // any future false-to-true transition wakes the loop again. This
-        // self-recovery covers indirect unpause paths in the DevTools store
-        // (rolling-buffer eviction past pausedAtIndex, and the clear action)
-        // that bypass bridge.render.
-        const renderLoop = SubscriptionRef.changes(isRenderPendingRef).pipe(
-          Stream.changes,
-          Stream.filter(isPending => isPending),
-          Stream.runForEach(() => renderAtNextFrame),
-        )
 
         yield* Effect.forkDetach(renderLoop)
 
