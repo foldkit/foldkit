@@ -6,8 +6,12 @@ import * as Snake from './snake'
 
 export const generatePosition = (snake: Snake.Snake) =>
   Effect.gen(function* () {
-    const x = yield* Random.nextIntBetween(0, GAME.GRID_SIZE)
-    const y = yield* Random.nextIntBetween(0, GAME.GRID_SIZE)
+    const x = yield* Random.nextIntBetween(0, GAME.GRID_SIZE, {
+      halfOpen: true,
+    })
+    const y = yield* Random.nextIntBetween(0, GAME.GRID_SIZE, {
+      halfOpen: true,
+    })
     const pos: Position = { x, y }
 
     if (Snake.contains(snake, pos)) {

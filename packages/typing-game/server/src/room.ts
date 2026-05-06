@@ -32,7 +32,7 @@ export const generateUniqueId = (
   })
 
 const generateRoomId = (words: ReadonlyArray<string>) =>
-  Random.nextIntBetween(0, Array.length(words)).pipe(
+  Random.nextIntBetween(0, Array.length(words), { halfOpen: true }).pipe(
     Effect.replicateEffect(NUM_WORDS_IN_ID),
     Effect.map(indicesToRoomId(words)),
   )
