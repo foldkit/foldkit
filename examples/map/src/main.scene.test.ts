@@ -3,33 +3,33 @@ import { Scene } from 'foldkit'
 import { describe, test } from 'vitest'
 
 import {
-  CompletedFocusSearchInput,
   CompletedLockBodyScroll,
+  CompletedUnlockBodyScroll,
   FailedGeolocate,
   FlyTo,
-  FocusSearchInput,
   Geolocate,
   GeolocateFailed,
   LockBodyScroll,
   MountMap,
   SucceededFlyTo,
   SucceededMountMap,
+  UnlockBodyScroll,
   update,
   view,
 } from './main'
 import { initialModel, mountedModel } from './main.fixtures'
 
-const acknowledgeSearchFocus = Scene.Mount.resolve(
-  FocusSearchInput,
-  CompletedFocusSearchInput(),
-)
 const acknowledgeMapMount = Scene.Mount.resolve(
   MountMap,
   SucceededMountMap({ hostId: 'test-map-host' }),
 )
-const acknowledgeBodyLock = Scene.Mount.resolve(
+const acknowledgeBodyLock = Scene.Command.resolve(
   LockBodyScroll,
   CompletedLockBodyScroll(),
+)
+const acknowledgeBodyUnlock = Scene.Command.resolve(
+  UnlockBodyScroll,
+  CompletedUnlockBodyScroll(),
 )
 
 describe('scene', () => {
@@ -45,7 +45,6 @@ describe('scene', () => {
         Scene.role('button', { name: 'Find my location' }),
       ).toExist(),
       acknowledgeMapMount,
-      acknowledgeSearchFocus,
     )
   })
 
@@ -54,7 +53,6 @@ describe('scene', () => {
       { update, view },
       Scene.with(initialModel),
       acknowledgeMapMount,
-      acknowledgeSearchFocus,
       Scene.type(Scene.label('Filter locations'), 'Paris'),
       Scene.expect(Scene.role('button', { name: /Eiffel Tower/ })).toExist(),
       Scene.expect(
@@ -68,7 +66,6 @@ describe('scene', () => {
       { update, view },
       Scene.with(mountedModel),
       acknowledgeMapMount,
-      acknowledgeSearchFocus,
       Scene.click(Scene.role('button', { name: /Eiffel Tower/ })),
       Scene.Command.expectHas(FlyTo),
       Scene.Command.resolve(FlyTo, SucceededFlyTo()),
@@ -80,7 +77,6 @@ describe('scene', () => {
       { update, view },
       Scene.with(mountedModel),
       acknowledgeMapMount,
-      acknowledgeSearchFocus,
       Scene.click(Scene.role('button', { name: 'Find my location' })),
       Scene.expect(Scene.role('button', { name: 'Locating…' })).toExist(),
       acknowledgeBodyLock,
@@ -99,10 +95,9 @@ describe('scene', () => {
         geolocateState: GeolocateFailed({ reason: 'Permission denied' }),
       }),
       acknowledgeMapMount,
-      acknowledgeSearchFocus,
-      acknowledgeBodyLock,
       Scene.expect(Scene.role('button', { name: 'Dismiss' })).toExist(),
       Scene.click(Scene.role('button', { name: 'Dismiss' })),
+      acknowledgeBodyUnlock,
       Scene.expect(Scene.role('button', { name: 'Dismiss' })).toBeAbsent(),
     )
   })
@@ -117,7 +112,6 @@ describe('scene', () => {
       Scene.expect(Scene.label('Map failed to load')).toExist(),
       Scene.expect(Scene.text('Network timeout')).toExist(),
       acknowledgeMapMount,
-      acknowledgeSearchFocus,
     )
   })
 
@@ -136,7 +130,6 @@ describe('scene', () => {
       Scene.expect(Scene.text('N 85.00')).toExist(),
       Scene.expect(Scene.text('S -85.00')).toExist(),
       acknowledgeMapMount,
-      acknowledgeSearchFocus,
     )
   })
 })

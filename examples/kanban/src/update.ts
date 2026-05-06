@@ -2,7 +2,7 @@ import { Array, Effect, Match as M, Option, String, pipe } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
-import { generateCardId, saveBoard } from './command'
+import { focusAddCardInput, generateCardId, saveBoard } from './command'
 import { Column } from './domain'
 import { GotDragAndDropMessage, type Message } from './message'
 import type { Model } from './model'
@@ -168,7 +168,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           maybeNewCardColumnId: () => Option.some(columnId),
           newCardTitle: () => '',
         }),
-        [],
+        [focusAddCardInput],
       ],
 
       ChangedNewCardTitle: ({ value }) => [

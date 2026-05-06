@@ -7,17 +7,17 @@ import * as Story from '../../test/story.js'
 import * as Animation from '../animation/index.js'
 import {
   ActivatedItem,
+  AnchorListbox,
   BlurredItems,
   ClearedSearch,
   ClickItem,
   Closed,
-  CompletedAnchorMount,
-  CompletedBackdropPortal,
+  CompletedAnchorListbox,
   CompletedClickItem,
   CompletedFocusButton,
   CompletedFocusItems,
-  CompletedFocusItemsOnMount,
   CompletedLockScroll,
+  CompletedPortalListboxBackdrop,
   CompletedScrollIntoView,
   CompletedSetupInert,
   CompletedTeardownInert,
@@ -30,12 +30,10 @@ import {
   GotAnimationMessage,
   IgnoredMouseClick,
   InertOthers,
-  ListboxAnchor,
-  ListboxBackdropPortal,
-  ListboxFocusItemsOnMount,
   LockScroll,
   MovedPointerOverItem,
   Opened,
+  PortalListboxBackdrop,
   PressedPointerOnButton,
   RequestedItemClick,
   RestoreInert,
@@ -53,16 +51,12 @@ const animationToListboxMessage = (message: Animation.Message) =>
   GotAnimationMessage({ message })
 
 const acknowledgeAnchor = Scene.Mount.resolve(
-  ListboxAnchor,
-  CompletedAnchorMount(),
-)
-const acknowledgeFocus = Scene.Mount.resolve(
-  ListboxFocusItemsOnMount,
-  CompletedFocusItemsOnMount(),
+  AnchorListbox,
+  CompletedAnchorListbox(),
 )
 const acknowledgeBackdrop = Scene.Mount.resolve(
-  ListboxBackdropPortal,
-  CompletedBackdropPortal(),
+  PortalListboxBackdrop,
+  CompletedPortalListboxBackdrop(),
 )
 
 const animationEndMessage = GotAnimationMessage({
@@ -1308,7 +1302,6 @@ describe('Listbox', () => {
               'listbox',
             )
           }),
-          acknowledgeFocus,
           acknowledgeBackdrop,
         )
       })
@@ -1323,7 +1316,6 @@ describe('Listbox', () => {
               'listbox',
             )
           }),
-          acknowledgeFocus,
           acknowledgeBackdrop,
         )
       })
@@ -1342,7 +1334,6 @@ describe('Listbox', () => {
               'option',
             )
           }),
-          acknowledgeFocus,
           acknowledgeBackdrop,
         )
       })
@@ -1361,7 +1352,6 @@ describe('Listbox', () => {
               'true',
             )
           }),
-          acknowledgeFocus,
           acknowledgeBackdrop,
         )
       })
@@ -1380,7 +1370,6 @@ describe('Listbox', () => {
               'false',
             )
           }),
-          acknowledgeFocus,
           acknowledgeBackdrop,
         )
       })
@@ -1402,7 +1391,6 @@ describe('Listbox', () => {
               '',
             )
           }),
-          acknowledgeFocus,
           acknowledgeBackdrop,
         )
       })
@@ -1416,7 +1404,6 @@ describe('Listbox', () => {
               Scene.find(html, '[key="test-items-container"]'),
             ).not.toHaveAttr('aria-multiselectable')
           }),
-          acknowledgeFocus,
           acknowledgeBackdrop,
         )
       })
@@ -1509,7 +1496,6 @@ describe('Listbox', () => {
           Scene.tap(() => {
             expect(contexts[0]?.isSelected).toBe(true)
           }),
-          acknowledgeFocus,
           acknowledgeBackdrop,
         )
       })
@@ -1547,7 +1533,6 @@ describe('Listbox', () => {
           Scene.tap(() => {
             expect(contexts[1]?.isSelected).toBe(false)
           }),
-          acknowledgeFocus,
           acknowledgeBackdrop,
         )
       })
@@ -1579,7 +1564,7 @@ describe('Listbox', () => {
         )
       })
 
-      it('adds focus mount hook but no positioning styles when anchor is absent', () => {
+      it('does not add positioning styles when anchor is absent', () => {
         Scene.scene(
           { update, view: sceneView() },
           Scene.with(openModel()),
@@ -1589,10 +1574,7 @@ describe('Listbox', () => {
               '[key="test-items-container"]',
             )
             expect(itemsContainer).not.toHaveStyle('position')
-            expect(itemsContainer).toHaveHook('insert')
-            expect(itemsContainer).toHaveHook('destroy')
           }),
-          acknowledgeFocus,
           acknowledgeBackdrop,
         )
       })
@@ -1609,7 +1591,6 @@ describe('Listbox', () => {
               'vertical',
             )
           }),
-          acknowledgeFocus,
           acknowledgeBackdrop,
         )
       })
@@ -1625,7 +1606,6 @@ describe('Listbox', () => {
               'horizontal',
             )
           }),
-          acknowledgeFocus,
           acknowledgeBackdrop,
         )
       })
@@ -1787,7 +1767,6 @@ describe('Listbox', () => {
               'click',
             )
           }),
-          acknowledgeFocus,
           acknowledgeBackdrop,
         )
       })
@@ -1807,7 +1786,6 @@ describe('Listbox', () => {
               '',
             )
           }),
-          acknowledgeFocus,
           acknowledgeBackdrop,
         )
       })
@@ -1826,7 +1804,6 @@ describe('Listbox', () => {
               'data-selected',
             )
           }),
-          acknowledgeFocus,
           acknowledgeBackdrop,
         )
       })

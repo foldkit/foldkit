@@ -1,9 +1,9 @@
 import { BrowserKeyValueStore } from '@effect/platform-browser'
-import { Effect, Function, Schema as S } from 'effect'
+import { Effect, Schema as S } from 'effect'
 import { KeyValueStore } from 'effect/unstable/persistence'
-import { Command, Mount } from 'foldkit'
+import { Command, Task } from 'foldkit'
 
-import { STORAGE_KEY } from './constant'
+import { ADD_CARD_INPUT_ID, STORAGE_KEY } from './constant'
 import { Column } from './domain'
 import {
   CompletedFocusAddCardInput,
@@ -16,21 +16,16 @@ export const GenerateCardId = Command.define('GenerateCardId', GeneratedCardId)
 
 export const SaveBoard = Command.define('SaveBoard', CompletedSaveBoard)
 
-export const FocusAddCardInput = Mount.define(
+export const FocusAddCardInput = Command.define(
   'FocusAddCardInput',
   CompletedFocusAddCardInput,
 )
 
-export const focusAddCardInput = FocusAddCardInput(element =>
-  Effect.sync(() => {
-    if (element instanceof HTMLInputElement) {
-      element.focus()
-    }
-    return {
-      message: CompletedFocusAddCardInput(),
-      cleanup: Function.constVoid,
-    }
-  }),
+export const focusAddCardInput = FocusAddCardInput(
+  Task.focus(`#${ADD_CARD_INPUT_ID}`).pipe(
+    Effect.ignore,
+    Effect.as(CompletedFocusAddCardInput()),
+  ),
 )
 
 export const generateCardId = (columnId: string, title: string) =>

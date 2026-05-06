@@ -27,10 +27,12 @@ import type {
 import {
   assertAllCommandsResolved,
   assertAllMountsResolved,
+  assertAllUnmountsAcknowledged,
   assertExactCommands,
   assertExactMounts,
   assertHasCommands,
   assertHasMounts,
+  assertNoUnacknowledgedUnmounts,
   assertNoUnresolvedCommands,
   assertNoUnresolvedMounts,
   assertZeroCommands,
@@ -160,12 +162,20 @@ type UpdateResult<Model, OutMessage> =
   | readonly [Model, ReadonlyArray<AnyCommand>]
   | readonly [Model, ReadonlyArray<AnyCommand>, OutMessage]
 
-type MountStatus = 'Pending' | 'Resolved'
+type MountStatus =
+  | Readonly<{ _tag: 'Pending' }>
+  | Readonly<{ _tag: 'Resolved' }>
+  | Readonly<{ _tag: 'Ended'; acknowledged: boolean }>
 
 type MountSlotState = Readonly<{
   slot: PendingMount
   status: MountStatus
 }>
+
+const PENDING: MountStatus = { _tag: 'Pending' }
+const RESOLVED: MountStatus = { _tag: 'Resolved' }
+const ENDED_ACKNOWLEDGED: MountStatus = { _tag: 'Ended', acknowledged: true }
+const ENDED_UNACKNOWLEDGED: MountStatus = { _tag: 'Ended', acknowledged: false }
 
 type InternalSceneSimulation<
   Model,
@@ -219,14 +229,40 @@ const reconcileMountSlots = (
   const previousByKey = new Map(
     Array.map(previous, state => [slotKey(state.slot), state] as const),
   )
-  return Array.map(collectRenderedSlots(rendered), slot => {
+  const renderedSlots = collectRenderedSlots(rendered)
+  const renderedKeys = new Set(Array.map(renderedSlots, slotKey))
+  const fromRendered = Array.map(renderedSlots, slot => {
     const existing = previousByKey.get(slotKey(slot))
-    if (existing !== undefined) {
+    if (existing !== undefined && existing.status._tag !== 'Ended') {
       return existing
     }
-    const fresh: MountSlotState = { slot, status: 'Pending' }
-    return fresh
+    return { slot, status: PENDING }
   })
+  const fromVanished = pipe(
+    previous,
+    Array.filter(state => !renderedKeys.has(slotKey(state.slot))),
+    Array.map(state => endStatus(state)),
+  )
+  const unacknowledgedRevived = pipe(
+    previous,
+    Array.filter(
+      state =>
+        renderedKeys.has(slotKey(state.slot)) &&
+        state.status._tag === 'Ended' &&
+        !state.status.acknowledged,
+    ),
+  )
+  return Array.appendAll(
+    fromRendered,
+    Array.appendAll(fromVanished, unacknowledgedRevived),
+  )
+}
+
+const endStatus = (state: MountSlotState): MountSlotState => {
+  if (state.status._tag === 'Ended') {
+    return state
+  }
+  return { slot: state.slot, status: ENDED_UNACKNOWLEDGED }
 }
 
 const pendingMountsOf = (
@@ -234,7 +270,18 @@ const pendingMountsOf = (
 ): ReadonlyArray<PendingMount> =>
   pipe(
     mountSlots,
-    Array.filter(({ status }) => status === 'Pending'),
+    Array.filter(({ status }) => status._tag === 'Pending'),
+    Array.map(({ slot }) => slot),
+  )
+
+const unacknowledgedEndedMountsOf = (
+  mountSlots: ReadonlyArray<MountSlotState>,
+): ReadonlyArray<PendingMount> =>
+  pipe(
+    mountSlots,
+    Array.filter(
+      ({ status }) => status._tag === 'Ended' && !status.acknowledged,
+    ),
     Array.map(({ slot }) => slot),
   )
 
@@ -378,6 +425,10 @@ const captureFromElement = <Model, Message, OutMessage>(
   )
   assertNoUnresolvedMounts(
     internal.mounts,
+    'when an interaction dispatched a new Message',
+  )
+  assertNoUnacknowledgedUnmounts(
+    unacknowledgedEndedMountsOf(internal.mountSlots),
     'when an interaction dispatched a new Message',
   )
 
@@ -685,14 +736,14 @@ const resolveMount: {
     const updatedSlots = Array.map(
       internal.mountSlots,
       (state): MountSlotState => {
-        if (state.status !== 'Pending') {
+        if (state.status._tag !== 'Pending') {
           return state
         }
         const key = slotKey(state.slot)
         return resolvedKeys.has(key)
           ? state
           : state.slot.name === definition.name
-            ? { slot: state.slot, status: 'Resolved' }
+            ? { slot: state.slot, status: RESOLVED }
             : state
       },
     )
@@ -758,6 +809,50 @@ const expectNoMountsStep =
     return simulation
   }
 
+/** Acknowledges that the given Mounts disappeared from the rendered tree.
+ *  Required for every Mount that fires and then unmounts during a scene,
+ *  whether or not it was resolved first. Without this, the scene throws at
+ *  the end of the test for any unacknowledged unmount. */
+const expectEndedMountsStep =
+  (...definitions: ReadonlyArray<MountDefinition<string, unknown>>) =>
+  <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ): SceneSimulation<Model, Message, OutMessage> => {
+    /* eslint-disable @typescript-eslint/consistent-type-assertions */
+    const internal = toInternal(simulation)
+    const remainingNames = Array.map(definitions, ({ name }) => name)
+    const updatedSlots: Array<MountSlotState> = []
+    for (const state of internal.mountSlots) {
+      if (
+        state.status._tag === 'Ended' &&
+        !state.status.acknowledged &&
+        remainingNames.includes(state.slot.name)
+      ) {
+        const index = remainingNames.indexOf(state.slot.name)
+        remainingNames.splice(index, 1)
+        updatedSlots.push({ slot: state.slot, status: ENDED_ACKNOWLEDGED })
+      } else {
+        updatedSlots.push(state)
+      }
+    }
+    if (Array.isReadonlyArrayNonEmpty(remainingNames)) {
+      throw new Error(
+        `I tried to acknowledge ended Mounts but some haven't unmounted:\n\n` +
+          pipe(
+            remainingNames,
+            Array.map(name => `    ${name}`),
+            Array.join('\n'),
+          ) +
+          '\n\nUse Scene.Mount.expectEnded only after the Mount has disappeared from the rendered tree.',
+      )
+    }
+    return {
+      ...internal,
+      mountSlots: updatedSlots,
+    } as unknown as SceneSimulation<Model, Message, OutMessage>
+    /* eslint-enable @typescript-eslint/consistent-type-assertions */
+  }
+
 /** Steps that operate on the pending Commands of a scene simulation.
  *  Destructure as `const { Command } = Scene` for concise call sites. */
 export const Command = {
@@ -786,6 +881,9 @@ export const Mount = {
   expectExact: expectExactMountsStep,
   /** Asserts that there are no pending Mounts. */
   expectNone: expectNoMountsStep,
+  /** Acknowledges Mounts that disappeared from the rendered tree. Required for
+   *  every Mount that fires and then unmounts during a scene. */
+  expectEnded: expectEndedMountsStep,
 } as const
 
 /** Runs a function for side effects (e.g. assertions) without breaking the step chain. */
@@ -1874,4 +1972,7 @@ export const scene: {
   const internal = toInternal(result)
   assertAllCommandsResolved(internal.commands)
   assertAllMountsResolved(internal.mounts)
+  assertAllUnmountsAcknowledged(
+    unacknowledgedEndedMountsOf(internal.mountSlots),
+  )
 }

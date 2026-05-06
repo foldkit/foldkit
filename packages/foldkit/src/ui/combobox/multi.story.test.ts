@@ -9,27 +9,27 @@ import { init, update, view } from './multi.js'
 import type { Model, ViewConfig } from './multi.js'
 import {
   ActivatedItem,
+  AttachComboboxPreventBlur,
   Closed,
-  ComboboxAttachPreventBlur,
-  ComboboxBackdropPortal,
-  CompletedAttachPreventBlur,
-  CompletedBackdropPortal,
+  CompletedAttachComboboxPreventBlur,
   CompletedFocusInput,
+  CompletedPortalComboboxBackdrop,
   CompletedScrollIntoView,
   FocusInput,
   Opened,
+  PortalComboboxBackdrop,
   ScrollIntoView,
   SelectedItem,
 } from './shared.js'
 import type { Message } from './shared.js'
 
 const acknowledgePreventBlur = Scene.Mount.resolve(
-  ComboboxAttachPreventBlur,
-  CompletedAttachPreventBlur(),
+  AttachComboboxPreventBlur,
+  CompletedAttachComboboxPreventBlur(),
 )
 const acknowledgeBackdrop = Scene.Mount.resolve(
-  ComboboxBackdropPortal,
-  CompletedBackdropPortal(),
+  PortalComboboxBackdrop,
+  CompletedPortalComboboxBackdrop(),
 )
 
 const withClosed = Story.with(init({ id: 'test' }))

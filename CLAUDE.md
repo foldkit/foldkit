@@ -140,6 +140,33 @@ Command definitions live where they're produced — colocated with the update fu
 - **Shared Commands** — define in the module that owns the concept, import from there
 - **Never centralize** all Command definitions in a single file
 
+### Mount, Command, ManagedResource: pick by what causes the side effect
+
+Three lifecycle-bearing primitives. Pick by **what causes the side effect**, not by what's most ergonomic.
+
+- **Command.** A one-time side effect fired by `update`'s return. The cause is a Message that just dispatched. Examples: `FocusInput` after `OpenedDialog`, `FetchWeather` after `ClickedRefresh`, `SaveTodos` after `EditedTodo`. Navigation, network, storage, analytics, focus-on-state-change all belong here.
+
+- **Mount.** A per-instance lifecycle effect bound to a VNode existing in the rendered tree. The cause is the element's appearance, and the author needs the live `Element` handle. Examples: anchor positioning for floating panels, backdrop portaling, attaching observers to a specific element, third-party library instantiation that takes the element as a host.
+
+- **ManagedResource.** A stateful runtime object (websocket connection, camera stream, audio context, third-party library instance) whose lifetime is tied to a Model condition AND whose handle is consumed by Commands via `yield*`. The condition determines lifetime; Commands do the work on the resource. Not a generic "lifecycle on a Model condition" rule. There must be a handle for Commands to use.
+
+**Two practical rules for Mount.** Both must hold:
+
+1. **Use the element parameter.** Mount provides the live `Element` handle. If your Effect doesn't read or write the element, you're misusing Mount. The lifecycle binding alone is not enough.
+2. **The work is DOM measurement or DOM manipulation on that element.** Read its geometry, mutate its CSS, attach observers/listeners to it, portal it, hand it to a third-party library. Anything else (network, storage, analytics, focus-on-transition, library instantiation keyed on Model rather than element) is a Command from update or a ManagedResource.
+
+**Replay safety.** Mount Effects re-run during DevTools time-travel renders. The two practical rules above keep Mount work inherently replay-safe: DOM measurement is read-only, DOM manipulation on an element that exists in both live and time-travel views is idempotent, observer attachment paired with cleanup is self-balancing. Anything that mutates external state (network calls, storage writes, focus-on-transition, scroll lock for the page, library instantiation) is unsafe to re-run during time-travel and therefore not a Mount.
+
+**Decision rule when the rules above are ambiguous.** Ask _"what causes this side effect?"_
+
+- _"A Message just dispatched."_ → Command.
+- _"This element exists in the rendered tree, per-instance."_ → Mount.
+- _"A Model condition holds AND I need Commands to operate on a stateful handle."_ → ManagedResource.
+
+**Don't reach for Mount just because the work happens to coincide with an element appearing.** Check what causes the work. If a Message just dispatched (like `Opened`), the cause is the Message, not the element. Use a Command returned from `update`'s handler instead. Example: focusing a search input when its dialog opens. The cause is `Opened`, not the input's existence; return a `FocusInput` Command from the `Opened` handler.
+
+**Mount naming.** Verb-first imperatives, mirroring Command convention. `AnchorPopover`, `PortalPopoverBackdrop`, `AttachComboboxPreventBlur`, not `PopoverAnchor` or `ComboboxPreventBlurAttachment`. Mount Definitions are imperative instructions to the runtime ("when this element mounts, do X"), same as Commands. Result Messages follow Foldkit's existing Message convention (verb-first past-tense): `CompletedAnchorPopover` for the mount-completion fact.
+
 ### General Preferences
 
 - **Never use nested ternaries.** `a ? x : b ? y : z` is dense at two levels and unreadable past three. Extract to an `if`/`return` chain, a `Match.value`, or a named helper function that encodes the decision in one place. A ternary is fine for a single boolean branch; nesting is not.

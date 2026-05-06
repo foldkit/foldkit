@@ -66,7 +66,7 @@ export const ChangedShowDelay = m('ChangedShowDelay', {
   showDelay: S.DurationFromMillis,
 })
 /** Sent when the tooltip panel mounts and Floating UI has positioned it. Update no-ops; the side effect is the act of positioning, surfaced for DevTools observability. */
-export const CompletedAnchorMount = m('CompletedAnchorMount')
+export const CompletedAnchorTooltip = m('CompletedAnchorTooltip')
 
 /** Union of all messages the tooltip component can produce. */
 export const Message: S.Union<
@@ -79,7 +79,7 @@ export const Message: S.Union<
     typeof PressedPointerOnTrigger,
     typeof ElapsedShowDelay,
     typeof ChangedShowDelay,
-    typeof CompletedAnchorMount,
+    typeof CompletedAnchorTooltip,
   ]
 > = S.Union([
   EnteredTrigger,
@@ -90,7 +90,7 @@ export const Message: S.Union<
   PressedPointerOnTrigger,
   ElapsedShowDelay,
   ChangedShowDelay,
-  CompletedAnchorMount,
+  CompletedAnchorTooltip,
 ])
 
 export type EnteredTrigger = typeof EnteredTrigger.Type
@@ -138,9 +138,12 @@ const withUpdateReturn = M.withReturnType<UpdateReturn>()
 export const ShowAfterDelay = Command.define('ShowAfterDelay', ElapsedShowDelay)
 
 /** The anchor-positioning Mount this Tooltip renders on its panel. Exposed so
- *  Scene tests can call `Scene.Mount.resolve(TooltipAnchor, CompletedAnchorMount())`
+ *  Scene tests can call `Scene.Mount.resolve(AnchorTooltip, CompletedAnchorTooltip())`
  *  to acknowledge the mount produced by the rendered panel. */
-export const TooltipAnchor = Mount.define('TooltipAnchor', CompletedAnchorMount)
+export const AnchorTooltip = Mount.define(
+  'AnchorTooltip',
+  CompletedAnchorTooltip,
+)
 
 /** Processes a tooltip message and returns the next model and commands. */
 export const update = (model: Model, message: Message): UpdateReturn =>
@@ -274,7 +277,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [],
       ],
 
-      CompletedAnchorMount: () => [model, []],
+      CompletedAnchorTooltip: () => [model, []],
     }),
   )
 
@@ -301,7 +304,7 @@ export type ViewConfig<ParentMessage> = Readonly<{
       | BlurredTrigger
       | PressedEscape
       | PressedPointerOnTrigger
-      | typeof CompletedAnchorMount.Type,
+      | typeof CompletedAnchorTooltip.Type,
   ) => ParentMessage
   anchor: AnchorConfig
   triggerContent: Html
@@ -389,17 +392,17 @@ export const view = <ParentMessage>(
     ...triggerAttributes,
   ]
 
-  const anchorAction = Mount.mapMessage(
-    TooltipAnchor(
-      (items): Effect.Effect<MountResult<typeof CompletedAnchorMount.Type>> =>
-        Effect.sync(() => ({
-          message: CompletedAnchorMount(),
-          cleanup: anchorSetup({
+  const anchorTooltip = Mount.mapMessage(
+    AnchorTooltip(
+      (items): Effect.Effect<MountResult<typeof CompletedAnchorTooltip.Type>> =>
+        Effect.sync(() => {
+          const cleanup = anchorSetup({
             buttonId: `${id}-trigger`,
             anchor,
             interceptTab: false,
-          })(items),
-        })),
+          })(items)
+          return { message: CompletedAnchorTooltip(), cleanup }
+        }),
     ),
     toParentMessage,
   )
@@ -411,7 +414,7 @@ export const view = <ParentMessage>(
       visibility: 'hidden',
       pointerEvents: 'none',
     }),
-    OnMount(anchorAction),
+    OnMount(anchorTooltip),
   ]
 
   const resolvedPanelAttributes = [

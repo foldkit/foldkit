@@ -2,7 +2,6 @@ import {
   Array,
   Effect,
   Equal,
-  Function,
   Match as M,
   Option,
   Predicate,
@@ -158,11 +157,11 @@ export const IgnoredMouseClick = m('IgnoredMouseClick')
 /** Sent when a Space key-up is captured to prevent page scrolling. */
 export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
 /** Sent when the listbox items panel mounts and Floating UI has positioned it. Update no-ops; surfaces the positioning side effect for DevTools. */
-export const CompletedAnchorMount = m('CompletedAnchorMount')
-/** Sent when the listbox items panel mounts and the no-anchor focus fallback runs. Update no-ops; surfaces the focus side effect for DevTools. */
-export const CompletedFocusItemsOnMount = m('CompletedFocusItemsOnMount')
+export const CompletedAnchorListbox = m('CompletedAnchorListbox')
 /** Sent when the listbox backdrop mounts and is portaled to the document body. Update no-ops; surfaces the portal side effect for DevTools. */
-export const CompletedBackdropPortal = m('CompletedBackdropPortal')
+export const CompletedPortalListboxBackdrop = m(
+  'CompletedPortalListboxBackdrop',
+)
 /** Wraps an Animation submodel message for delegation. */
 export const GotAnimationMessage = m('GotAnimationMessage', {
   message: AnimationMessage,
@@ -196,9 +195,8 @@ export const Message: S.Union<
     typeof CompletedClickItem,
     typeof IgnoredMouseClick,
     typeof SuppressedSpaceScroll,
-    typeof CompletedAnchorMount,
-    typeof CompletedFocusItemsOnMount,
-    typeof CompletedBackdropPortal,
+    typeof CompletedAnchorListbox,
+    typeof CompletedPortalListboxBackdrop,
     typeof GotAnimationMessage,
     typeof PressedPointerOnButton,
   ]
@@ -223,9 +221,8 @@ export const Message: S.Union<
   CompletedClickItem,
   IgnoredMouseClick,
   SuppressedSpaceScroll,
-  CompletedAnchorMount,
-  CompletedFocusItemsOnMount,
-  CompletedBackdropPortal,
+  CompletedAnchorListbox,
+  CompletedPortalListboxBackdrop,
   GotAnimationMessage,
   PressedPointerOnButton,
 ])
@@ -459,8 +456,8 @@ export const makeUpdate = <Model extends BaseModel>(
     )
 
     const openCommands = [
-      focusItems,
       ...Array.getSomes([maybeLockScroll, maybeInertOthers]),
+      focusItems,
     ]
 
     const closeWithFocusCommands = [
@@ -659,9 +656,8 @@ export const makeUpdate = <Model extends BaseModel>(
           [],
         ],
         SuppressedSpaceScroll: () => [model, []],
-        CompletedAnchorMount: () => [model, []],
-        CompletedFocusItemsOnMount: () => [model, []],
-        CompletedBackdropPortal: () => [model, []],
+        CompletedAnchorListbox: () => [model, []],
+        CompletedPortalListboxBackdrop: () => [model, []],
       }),
     )
   }
@@ -669,44 +665,27 @@ export const makeUpdate = <Model extends BaseModel>(
 
 /** The anchor-positioning Mount this Listbox renders when an anchor is
  *  configured. Exposed so Scene tests can call
- *  `Scene.Mount.resolve(ListboxAnchor, CompletedAnchorMount())`. */
-export const ListboxAnchor = Mount.define('ListboxAnchor', CompletedAnchorMount)
-/** The Mount this Listbox renders to focus its items container on open.
- *  Exposed so Scene tests can call
- *  `Scene.Mount.resolve(ListboxFocusItemsOnMount, CompletedFocusItemsOnMount())`. */
-export const ListboxFocusItemsOnMount = Mount.define(
-  'ListboxFocusItemsOnMount',
-  CompletedFocusItemsOnMount,
+ *  `Scene.Mount.resolve(AnchorListbox, CompletedAnchorListbox())`. */
+export const AnchorListbox = Mount.define(
+  'AnchorListbox',
+  CompletedAnchorListbox,
 )
 /** The backdrop-portaling Mount this Listbox renders. Exposed so Scene tests can
- *  call `Scene.Mount.resolve(ListboxBackdropPortal, CompletedBackdropPortal())` to
+ *  call `Scene.Mount.resolve(PortalListboxBackdrop, CompletedPortalListboxBackdrop())` to
  *  acknowledge the mount produced by the rendered backdrop. */
-export const ListboxBackdropPortal = Mount.define(
-  'ListboxBackdropPortal',
-  CompletedBackdropPortal,
+export const PortalListboxBackdrop = Mount.define(
+  'PortalListboxBackdrop',
+  CompletedPortalListboxBackdrop,
 )
 
-const focusItemsOnMount = ListboxFocusItemsOnMount(
+const portalListboxBackdrop = PortalListboxBackdrop(
   (
     element,
-  ): Effect.Effect<MountResult<typeof CompletedFocusItemsOnMount.Type>> =>
+  ): Effect.Effect<MountResult<typeof CompletedPortalListboxBackdrop.Type>> =>
     Effect.sync(() => {
-      if (element instanceof HTMLElement) {
-        element.focus()
-      }
-      return {
-        message: CompletedFocusItemsOnMount(),
-        cleanup: Function.constVoid,
-      }
+      const cleanup = portalToBody(element)
+      return { message: CompletedPortalListboxBackdrop(), cleanup }
     }),
-)
-
-const portalBackdropOnMount = ListboxBackdropPortal(
-  (element): Effect.Effect<MountResult<typeof CompletedBackdropPortal.Type>> =>
-    Effect.sync(() => ({
-      message: CompletedBackdropPortal(),
-      cleanup: portalToBody(element),
-    })),
 )
 
 // VIEW TYPES
@@ -744,9 +723,8 @@ export type BaseViewConfig<
       | PressedPointerOnButton
       | IgnoredMouseClick
       | SuppressedSpaceScroll
-      | typeof CompletedAnchorMount.Type
-      | typeof CompletedFocusItemsOnMount.Type
-      | typeof CompletedBackdropPortal.Type,
+      | typeof CompletedAnchorListbox.Type
+      | typeof CompletedPortalListboxBackdrop.Type,
   ) => ParentMessage
   onSelectedItem?: (value: string) => ParentMessage
   items: ReadonlyArray<Item>
@@ -1111,26 +1089,25 @@ export const makeView =
           Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
           OnMount(
             Mount.mapMessage(
-              ListboxAnchor(
+              AnchorListbox(
                 (
                   items,
                 ): Effect.Effect<
-                  MountResult<typeof CompletedAnchorMount.Type>
+                  MountResult<typeof CompletedAnchorListbox.Type>
                 > =>
-                  Effect.sync(() => ({
-                    message: CompletedAnchorMount(),
-                    cleanup: anchorSetup({
+                  Effect.sync(() => {
+                    const cleanup = anchorSetup({
                       buttonId: `${id}-button`,
                       anchor,
-                      focusAfterPosition: true,
-                    })(items),
-                  })),
+                    })(items)
+                    return { message: CompletedAnchorListbox(), cleanup }
+                  }),
               ),
               toParentMessage,
             ),
           ),
         ]
-      : [OnMount(Mount.mapMessage(focusItemsOnMount, toParentMessage))]
+      : []
 
     const itemsContainerAttributes = [
       Id(`${id}-items`),
@@ -1282,7 +1259,7 @@ export const makeView =
     const backdrop = keyed('div')(
       `${id}-backdrop`,
       [
-        OnMount(Mount.mapMessage(portalBackdropOnMount, toParentMessage)),
+        OnMount(Mount.mapMessage(portalListboxBackdrop, toParentMessage)),
         ...(isLeaving ? [] : [OnClick(toParentMessage(Closed()))]),
         ...(backdropClassName ? [Class(backdropClassName)] : []),
         ...backdropAttributes,

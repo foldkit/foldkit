@@ -10,25 +10,19 @@ import type { Model, ViewConfig } from './multi.js'
 import type { Message } from './shared.js'
 import {
   ActivatedItem,
-  CompletedBackdropPortal,
   CompletedFocusItems,
-  CompletedFocusItemsOnMount,
+  CompletedPortalListboxBackdrop,
   CompletedScrollIntoView,
   FocusItems,
-  ListboxBackdropPortal,
-  ListboxFocusItemsOnMount,
   Opened,
+  PortalListboxBackdrop,
   ScrollIntoView,
   SelectedItem,
 } from './shared.js'
 
-const acknowledgeFocus = Scene.Mount.resolve(
-  ListboxFocusItemsOnMount,
-  CompletedFocusItemsOnMount(),
-)
 const acknowledgeBackdrop = Scene.Mount.resolve(
-  ListboxBackdropPortal,
-  CompletedBackdropPortal(),
+  PortalListboxBackdrop,
+  CompletedPortalListboxBackdrop(),
 )
 
 const withClosed = Story.with(init({ id: 'test' }))
@@ -183,7 +177,6 @@ describe('Listbox.Multi', () => {
               'true',
             )
           }),
-          acknowledgeFocus,
           acknowledgeBackdrop,
         )
       })
@@ -208,7 +201,6 @@ describe('Listbox.Multi', () => {
               '',
             )
           }),
-          acknowledgeFocus,
           acknowledgeBackdrop,
         )
       })

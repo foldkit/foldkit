@@ -157,7 +157,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Commands',
     'Model side effects as values returned from update. Commands replace useEffect with explicit, testable Effect-TS operations.',
   ),
-  CoreLifecycleHooks: core(
+  CoreMount: core(
     'Mount',
     'OnMount: the single mount-time DOM hook for integrating third-party libraries with paired cleanup. Keeps imperative work confined to the seam where the virtual DOM meets the real one.',
   ),

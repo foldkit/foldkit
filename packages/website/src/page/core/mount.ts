@@ -9,8 +9,11 @@ import {
   pageTitle,
   para,
   tableOfContentsEntryToHeader,
+  warningCallout,
 } from '../../prose'
 import {
+  coreCommandsRouter,
+  coreManagedResourcesRouter,
   coreSubscriptionsRouter,
   coreViewRouter,
   exampleDetailRouter,
@@ -23,6 +26,12 @@ const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'overview',
   text: 'Overview',
+}
+
+const whenToReachForMountHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'when-to-reach-for-mount',
+  text: 'When to Reach for Mount',
 }
 
 const sideEffectsOnMountHeader: TableOfContentsEntry = {
@@ -45,6 +54,7 @@ const subscriptionsHeader: TableOfContentsEntry = {
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
+  whenToReachForMountHeader,
   sideEffectsOnMountHeader,
   thirdPartyLibrariesHeader,
   subscriptionsHeader,
@@ -88,26 +98,81 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         link(testingSceneRouter(), 'Scene'),
         ' for the full contract.',
       ),
+      tableOfContentsEntryToHeader(whenToReachForMountHeader),
+      para(
+        'Mount is one of three lifecycle-bearing primitives Foldkit offers. Pick by what causes the side effect, not by what feels most ergonomic.',
+      ),
+      para(
+        link(coreCommandsRouter(), 'Command'),
+        ' fires a one-time side effect because ',
+        inlineCode('update'),
+        ' just returned it. The cause is a Message that just dispatched. ',
+        inlineCode('FocusInput'),
+        ' after ',
+        inlineCode('OpenedDialog'),
+        ', ',
+        inlineCode('FetchWeather'),
+        ' after ',
+        inlineCode('ClickedRefresh'),
+        ', ',
+        inlineCode('SaveTodos'),
+        ' after ',
+        inlineCode('EditedTodo'),
+        '. Navigation, network, storage, analytics, and focus-on-state-change all belong in Commands.',
+      ),
+      para(
+        'Mount fires a per-instance lifecycle effect bound to a VNode existing in the rendered tree. The cause is the element appearing, and the author needs the live ',
+        inlineCode('Element'),
+        ' handle. Anchor positioning for floating panels, backdrop portaling, attaching observers to a specific element, handing the element to a third-party library: these are Mount cases.',
+      ),
+      para(
+        link(coreManagedResourcesRouter(), 'ManagedResource'),
+        ' holds a stateful runtime object (a websocket, a camera stream, a third-party library instance) whose lifetime is tied to a Model condition AND whose handle is consumed by Commands via ',
+        inlineCode('yield*'),
+        '. The condition determines lifetime; Commands do the work on the resource.',
+      ),
+      infoCallout(
+        'Don’t reach for Mount just because the work happens to coincide with an element appearing',
+        'Check what causes the work. If a Message just dispatched (like ',
+        inlineCode('Opened'),
+        '), the cause is the Message, not the element. The element’s appearance is coincidentally co-timed with the Message but isn’t what causes the work. Use a Command returned from ',
+        inlineCode('update'),
+        '’s handler instead. For example, focusing a search input when its dialog opens: the element appears, but the cause is ',
+        inlineCode('Opened'),
+        ', not the input’s existence. A ',
+        inlineCode('FocusInput'),
+        ' Command returned from the ',
+        inlineCode('Opened'),
+        ' handler is the right shape.',
+      ),
       tableOfContentsEntryToHeader(sideEffectsOnMountHeader),
       para(
-        'The simplest mount-time work is setup that runs once and needs no teardown: focusing an input as soon as it enters the page, scrolling to a saved position, firing an analytics event. Pass ',
-        inlineCode('Function.constVoid'),
-        ' as the cleanup; the ',
-        inlineCode('Completed*'),
-        ' Message marks the lifecycle without forcing a meaningful response in update.',
+        'A typical Mount uses the element parameter to do DOM work that should pair with the element existing. Portal-to-body is the canonical small example: when this overlay element appears, move it to ',
+        inlineCode('document.body'),
+        ' so it escapes any clipping ancestor; when it unmounts, remove it. The Effect uses the element directly, the work is DOM manipulation, the cleanup mirrors the setup.',
       ),
       highlightedCodeBlock(
         div(
-          [
-            Class('text-sm'),
-            InnerHTML(Snippets.lifecycleHooksFocusInputHighlighted),
-          ],
+          [Class('text-sm'), InnerHTML(Snippets.mountPortalToBodyHighlighted)],
           [],
         ),
-        Snippets.lifecycleHooksFocusInputRaw,
-        'Copy focus on mount example to clipboard',
+        Snippets.mountPortalToBodyRaw,
+        'Copy portal-to-body example to clipboard',
         copiedSnippets,
         'mb-8',
+      ),
+      para(
+        'The cleanup is a function value, not a separate hook. The runtime invokes it when Snabbdom destroys the element. Pair the setup and the cleanup as one expression so the "do the thing" and "undo the thing" stay together.',
+      ),
+      infoCallout(
+        'Two practical rules for Mount',
+        'Both must hold. First, the Effect uses the element parameter. Mount provides the live element handle, and that handle is what makes Mount distinct from the alternatives. If your Effect doesn’t read or write the element, pick a different primitive. Second, the work is DOM measurement or DOM manipulation on that element: read its geometry, mutate its CSS, attach an observer to it, portal it, hand it to a third-party library. Anything else (network, storage, analytics, focus-on-transition, scroll lock for the page) is a Command from update or a ManagedResource keyed on Model.',
+      ),
+      warningCallout(
+        'Mount Effects re-run during DevTools time-travel',
+        'When a user scrubs through history with the DevTools timeline, Foldkit re-renders the historical Model. Elements that carry ',
+        inlineCode('OnMount'),
+        ' fire their Effects again as their VNodes are inserted, and the cleanup runs as they are destroyed. The two rules above are what keep Mount work inherently replay-safe: DOM measurement is read-only, DOM manipulation on an element that exists in both live and time-travel views is idempotent, observer attachment paired with cleanup is self-balancing. Anything that mutates external state (network calls, storage writes, focus-on-transition, scroll lock for the page, library instantiation keyed on Model rather than element) is unsafe to re-run during replay and therefore not a Mount.',
       ),
       tableOfContentsEntryToHeader(thirdPartyLibrariesHeader),
       para(
@@ -129,11 +194,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         div(
           [
             Class('text-sm'),
-            InnerHTML(Snippets.lifecycleHooksThirdPartyChartHighlighted),
+            InnerHTML(Snippets.mountThirdPartyChartHighlighted),
           ],
           [],
         ),
-        Snippets.lifecycleHooksThirdPartyChartRaw,
+        Snippets.mountThirdPartyChartRaw,
         'Copy OnMount example to clipboard',
         copiedSnippets,
         'mb-8',
@@ -143,7 +208,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       infoCallout(
         'What if the Effect is still in flight when the element is removed?',
-        'The runtime tracks both states. If unmount happens before the Effect resolves, the cleanup runs as soon as it arrives and the Message is suppressed. The chart never leaks, the Model never sees a mounted Message for an element that’s already gone.',
+        'The runtime handles this. When the Effect resolves, it checks whether the element is still mounted. If the element was removed while the Effect was in flight, the runtime runs the returned cleanup function immediately and suppresses the result Message. The Model never sees a mount Message for an element that no longer exists, and any library teardown the cleanup performs still runs.',
       ),
       tableOfContentsEntryToHeader(subscriptionsHeader),
       para(

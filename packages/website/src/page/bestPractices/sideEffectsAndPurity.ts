@@ -14,8 +14,8 @@ import {
   apiModuleRouter,
   coreCommandsRouter,
   coreInitAndFlagsRouter,
-  coreLifecycleHooksRouter,
   coreManagedResourcesRouter,
+  coreMountRouter,
   coreResourcesRouter,
   coreSubscriptionsRouter,
   testingRouter,
@@ -128,10 +128,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           li(
             [],
             [
-              link(coreLifecycleHooksRouter(), 'Mount'),
+              link(coreMountRouter(), 'Mount'),
               ': an Effect run with the live ',
               inlineCode('Element'),
-              ' when a view element enters the DOM, paired with cleanup that fires when it unmounts. The seam where view code reaches a real DOM node, like focusing an input or handing it to a third-party library that owns its own DOM.',
+              ' when a view element enters the DOM, paired with cleanup that fires when it unmounts. The seam where view code reaches a real DOM node, like portaling an overlay to the body or handing the element to a third-party library that owns its own DOM.',
             ],
           ),
           li(

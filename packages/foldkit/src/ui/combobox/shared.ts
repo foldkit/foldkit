@@ -142,13 +142,19 @@ export const CompletedScrollIntoView = m('CompletedScrollIntoView')
 /** Sent when the programmatic item click command completes. */
 export const CompletedClickItem = m('CompletedClickItem')
 /** Sent when the items panel mounts and Floating UI has positioned it. Update no-ops; surfaces the positioning side effect for DevTools. */
-export const CompletedAnchorMount = m('CompletedAnchorMount')
+export const CompletedAnchorCombobox = m('CompletedAnchorCombobox')
 /** Sent when the items panel mounts and the capture-phase pointerdown listener is attached (with or without anchor). Update no-ops; surfaces the listener-attach side effect for DevTools. */
-export const CompletedAttachPreventBlur = m('CompletedAttachPreventBlur')
+export const CompletedAttachComboboxPreventBlur = m(
+  'CompletedAttachComboboxPreventBlur',
+)
 /** Sent when the input mounts and the focus listener that auto-selects on focus is attached. Update no-ops; surfaces the listener-attach side effect for DevTools. */
-export const CompletedAttachSelectOnFocus = m('CompletedAttachSelectOnFocus')
+export const CompletedAttachComboboxSelectOnFocus = m(
+  'CompletedAttachComboboxSelectOnFocus',
+)
 /** Sent when the combobox backdrop mounts and is portaled to the document body. Update no-ops; surfaces the portal side effect for DevTools. */
-export const CompletedBackdropPortal = m('CompletedBackdropPortal')
+export const CompletedPortalComboboxBackdrop = m(
+  'CompletedPortalComboboxBackdrop',
+)
 /** Wraps an Animation submodel message for delegation. */
 export const GotAnimationMessage = m('GotAnimationMessage', {
   message: AnimationMessage,
@@ -178,10 +184,10 @@ export const Message: S.Union<
     typeof CompletedFocusInput,
     typeof CompletedScrollIntoView,
     typeof CompletedClickItem,
-    typeof CompletedAnchorMount,
-    typeof CompletedAttachPreventBlur,
-    typeof CompletedAttachSelectOnFocus,
-    typeof CompletedBackdropPortal,
+    typeof CompletedAnchorCombobox,
+    typeof CompletedAttachComboboxPreventBlur,
+    typeof CompletedAttachComboboxSelectOnFocus,
+    typeof CompletedPortalComboboxBackdrop,
     typeof GotAnimationMessage,
     typeof UpdatedInputValue,
     typeof PressedToggleButton,
@@ -202,10 +208,10 @@ export const Message: S.Union<
   CompletedFocusInput,
   CompletedScrollIntoView,
   CompletedClickItem,
-  CompletedAnchorMount,
-  CompletedAttachPreventBlur,
-  CompletedAttachSelectOnFocus,
-  CompletedBackdropPortal,
+  CompletedAnchorCombobox,
+  CompletedAttachComboboxPreventBlur,
+  CompletedAttachComboboxSelectOnFocus,
+  CompletedPortalComboboxBackdrop,
   GotAnimationMessage,
   UpdatedInputValue,
   PressedToggleButton,
@@ -603,10 +609,10 @@ export const makeUpdate = <Model extends BaseModel>(
         CompletedFocusInput: () => [model, []],
         CompletedScrollIntoView: () => [model, []],
         CompletedClickItem: () => [model, []],
-        CompletedAnchorMount: () => [model, []],
-        CompletedAttachPreventBlur: () => [model, []],
-        CompletedAttachSelectOnFocus: () => [model, []],
-        CompletedBackdropPortal: () => [model, []],
+        CompletedAnchorCombobox: () => [model, []],
+        CompletedAttachComboboxPreventBlur: () => [model, []],
+        CompletedAttachComboboxSelectOnFocus: () => [model, []],
+        CompletedPortalComboboxBackdrop: () => [model, []],
       }),
     )
   }
@@ -614,45 +620,47 @@ export const makeUpdate = <Model extends BaseModel>(
 
 /** The anchor-positioning Mount this Combobox renders when an anchor is
  *  configured. Exposed so Scene tests can call
- *  `Scene.Mount.resolve(ComboboxAnchor, CompletedAnchorMount())`. */
-export const ComboboxAnchor = Mount.define(
-  'ComboboxAnchor',
-  CompletedAnchorMount,
+ *  `Scene.Mount.resolve(AnchorCombobox, CompletedAnchorCombobox())`. */
+export const AnchorCombobox = Mount.define(
+  'AnchorCombobox',
+  CompletedAnchorCombobox,
 )
 /** The Mount this Combobox renders to install a `pointerdown`-cancelling
  *  capture listener that prevents blur on item presses. Exposed so Scene
  *  tests can call
- *  `Scene.Mount.resolve(ComboboxAttachPreventBlur, CompletedAttachPreventBlur())`. */
-export const ComboboxAttachPreventBlur = Mount.define(
-  'ComboboxAttachPreventBlur',
-  CompletedAttachPreventBlur,
+ *  `Scene.Mount.resolve(AttachComboboxPreventBlur, CompletedAttachComboboxPreventBlur())`. */
+export const AttachComboboxPreventBlur = Mount.define(
+  'AttachComboboxPreventBlur',
+  CompletedAttachComboboxPreventBlur,
 )
 /** The Mount this Combobox renders to install the input's select-on-focus
  *  behavior. Exposed so Scene tests can call
- *  `Scene.Mount.resolve(ComboboxAttachSelectOnFocus, CompletedAttachSelectOnFocus())`. */
-export const ComboboxAttachSelectOnFocus = Mount.define(
-  'ComboboxAttachSelectOnFocus',
-  CompletedAttachSelectOnFocus,
+ *  `Scene.Mount.resolve(AttachComboboxSelectOnFocus, CompletedAttachComboboxSelectOnFocus())`. */
+export const AttachComboboxSelectOnFocus = Mount.define(
+  'AttachComboboxSelectOnFocus',
+  CompletedAttachComboboxSelectOnFocus,
 )
 /** The backdrop-portaling Mount this Combobox renders. Exposed so Scene tests can
- *  call `Scene.Mount.resolve(ComboboxBackdropPortal, CompletedBackdropPortal())` to
+ *  call `Scene.Mount.resolve(PortalComboboxBackdrop, CompletedPortalComboboxBackdrop())` to
  *  acknowledge the mount produced by the rendered backdrop. */
-export const ComboboxBackdropPortal = Mount.define(
-  'ComboboxBackdropPortal',
-  CompletedBackdropPortal,
+export const PortalComboboxBackdrop = Mount.define(
+  'PortalComboboxBackdrop',
+  CompletedPortalComboboxBackdrop,
 )
 
-const attachPreventBlurOnPointerDown = ComboboxAttachPreventBlur(
+const attachComboboxPreventBlur = AttachComboboxPreventBlur(
   (
     element,
-  ): Effect.Effect<MountResult<typeof CompletedAttachPreventBlur.Type>> =>
+  ): Effect.Effect<
+    MountResult<typeof CompletedAttachComboboxPreventBlur.Type>
+  > =>
     Effect.sync(() => {
       const handler = (event: Event) => {
         event.preventDefault()
       }
       element.addEventListener('pointerdown', handler, { capture: true })
       return {
-        message: CompletedAttachPreventBlur(),
+        message: CompletedAttachComboboxPreventBlur(),
         cleanup: () =>
           element.removeEventListener('pointerdown', handler, {
             capture: true,
@@ -661,10 +669,12 @@ const attachPreventBlurOnPointerDown = ComboboxAttachPreventBlur(
     }),
 )
 
-const attachSelectOnFocus = ComboboxAttachSelectOnFocus(
+const attachComboboxSelectOnFocus = AttachComboboxSelectOnFocus(
   (
     element,
-  ): Effect.Effect<MountResult<typeof CompletedAttachSelectOnFocus.Type>> =>
+  ): Effect.Effect<
+    MountResult<typeof CompletedAttachComboboxSelectOnFocus.Type>
+  > =>
     Effect.sync(() => {
       const handler = () => {
         if (element instanceof HTMLInputElement) {
@@ -673,18 +683,20 @@ const attachSelectOnFocus = ComboboxAttachSelectOnFocus(
       }
       element.addEventListener('focus', handler)
       return {
-        message: CompletedAttachSelectOnFocus(),
+        message: CompletedAttachComboboxSelectOnFocus(),
         cleanup: () => element.removeEventListener('focus', handler),
       }
     }),
 )
 
-const portalBackdropOnMount = ComboboxBackdropPortal(
-  (element): Effect.Effect<MountResult<typeof CompletedBackdropPortal.Type>> =>
-    Effect.sync(() => ({
-      message: CompletedBackdropPortal(),
-      cleanup: portalToBody(element),
-    })),
+const portalComboboxBackdrop = PortalComboboxBackdrop(
+  (
+    element,
+  ): Effect.Effect<MountResult<typeof CompletedPortalComboboxBackdrop.Type>> =>
+    Effect.sync(() => {
+      const cleanup = portalToBody(element)
+      return { message: CompletedPortalComboboxBackdrop(), cleanup }
+    }),
 )
 
 // VIEW TYPES
@@ -720,10 +732,10 @@ export type BaseViewConfig<
       | RequestedItemClick
       | UpdatedInputValue
       | PressedToggleButton
-      | typeof CompletedAnchorMount.Type
-      | typeof CompletedAttachPreventBlur.Type
-      | typeof CompletedAttachSelectOnFocus.Type
-      | typeof CompletedBackdropPortal.Type,
+      | typeof CompletedAnchorCombobox.Type
+      | typeof CompletedAttachComboboxPreventBlur.Type
+      | typeof CompletedAttachComboboxSelectOnFocus.Type
+      | typeof CompletedPortalComboboxBackdrop.Type,
   ) => ParentMessage
   onSelectedItem?: (value: string) => ParentMessage
   items: ReadonlyArray<Item>
@@ -1053,7 +1065,11 @@ export const makeView =
       ...(isInvalid ? [AriaInvalid(true), DataAttribute('invalid', '')] : []),
       ...(isVisible ? [DataAttribute('open', '')] : []),
       ...(config.model.selectInputOnFocus
-        ? [OnMount(Mount.mapMessage(attachSelectOnFocus, toParentMessage))]
+        ? [
+            OnMount(
+              Mount.mapMessage(attachComboboxSelectOnFocus, toParentMessage),
+            ),
+          ]
         : []),
       ...(inputClassName ? [Class(inputClassName)] : []),
       ...inputAttributes,
@@ -1064,11 +1080,11 @@ export const makeView =
           Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
           OnMount(
             Mount.mapMessage(
-              ComboboxAnchor(
+              AnchorCombobox(
                 (
                   items,
                 ): Effect.Effect<
-                  MountResult<typeof CompletedAnchorMount.Type>
+                  MountResult<typeof CompletedAnchorCombobox.Type>
                 > =>
                   Effect.sync(() => {
                     const preventBlur = (event: Event) => {
@@ -1083,7 +1099,7 @@ export const makeView =
                       interceptTab: false,
                     })(items)
                     return {
-                      message: CompletedAnchorMount(),
+                      message: CompletedAnchorCombobox(),
                       cleanup: () => {
                         items.removeEventListener('pointerdown', preventBlur, {
                           capture: true,
@@ -1097,11 +1113,7 @@ export const makeView =
             ),
           ),
         ]
-      : [
-          OnMount(
-            Mount.mapMessage(attachPreventBlurOnPointerDown, toParentMessage),
-          ),
-        ]
+      : [OnMount(Mount.mapMessage(attachComboboxPreventBlur, toParentMessage))]
 
     const itemsContainerAttributes = [
       Id(`${id}-items`),
@@ -1246,7 +1258,7 @@ export const makeView =
     const backdrop = keyed('div')(
       `${id}-backdrop`,
       [
-        OnMount(Mount.mapMessage(portalBackdropOnMount, toParentMessage)),
+        OnMount(Mount.mapMessage(portalComboboxBackdrop, toParentMessage)),
         ...(isLeaving ? [] : [OnClick(toParentMessage(Closed()))]),
         ...(backdropClassName ? [Class(backdropClassName)] : []),
         ...backdropAttributes,
@@ -1300,10 +1312,7 @@ export const makeView =
                 ? [AriaDisabled(true), DataAttribute('disabled', '')]
                 : [OnClick(toParentMessage(PressedToggleButton()))]),
               OnMount(
-                Mount.mapMessage(
-                  attachPreventBlurOnPointerDown,
-                  toParentMessage,
-                ),
+                Mount.mapMessage(attachComboboxPreventBlur, toParentMessage),
               ),
               ...(buttonClassName ? [Class(buttonClassName)] : []),
               ...buttonAttributes,

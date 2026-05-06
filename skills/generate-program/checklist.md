@@ -114,6 +114,29 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 - [ ] Factory functions named by action: `fetchWeather`, not `fetchWeatherCommand`
 - [ ] Fire-and-forget Commands return `Completed*` Messages
 
+## Mount, Command, ManagedResource — pick by what causes the side effect
+
+- [ ] **One-time effect after a Message dispatched** → Command. Focus-on-open, navigation, network, storage, analytics, scroll lock paired with a modal opening/closing — all belong in `update`'s return, not in `OnMount`.
+- [ ] **Per-instance lifecycle bound to a VNode existing**, where the live `Element` handle is needed → Mount. Anchor positioning, backdrop portaling, attaching observers/listeners to a specific element, third-party library instantiation that takes the element as host.
+- [ ] **Stateful runtime object** (websocket, camera stream, library instance) keyed on a Model condition, with Commands consuming the handle via `yield*` → ManagedResource. Not a generic "lifecycle on Model condition" — there must be a handle for Commands to use.
+
+### Two practical rules for Mount (both must hold)
+
+- [ ] **The Effect uses the element parameter.** If the Effect doesn't read or write the element, Mount is the wrong primitive. Pick Command (transition-driven) or paired Commands (lifecycle-bound but element-handle-not-used).
+- [ ] **The work is DOM measurement or DOM manipulation on that element.** Read geometry, mutate CSS, attach an observer/listener, portal the element, hand it to a third-party library. Anything else — network, storage, analytics, focus-on-transition, scroll lock for the page — is a Command.
+
+### Replay safety
+
+- [ ] Mount Effects re-run during DevTools time-travel renders. The two rules above keep Mount work inherently replay-safe (read-only DOM measurement, idempotent DOM mutation, paired observer attachment+cleanup). If your Mount touches the live world in a way that disrupts replay (focus stealing, scroll locking the live page, library re-instantiation), it shouldn't be a Mount.
+
+### Smell check
+
+- [ ] **Don't reach for Mount just because the work happens to coincide with an element appearing.** Check what causes the work. If a Message just dispatched (e.g. `Opened*`, `Submitted*`), the cause is the Message, not the element. Use a Command returned from `update`'s handler. Example: focusing a search input when its dialog opens. The cause is `Opened`, not the input's existence; return a `FocusInput` Command from the `Opened` handler.
+
+### Naming
+
+- [ ] Mount Definition names are verb-first imperatives: `AnchorPopover`, `PortalPopoverBackdrop`, `AttachComboboxPreventBlur` — not `PopoverAnchor` or `ComboboxPreventBlurAttachment`. Mount result Messages are verb-first past-tense: `CompletedAnchorPopover`.
+
 ## Naming
 
 - [ ] Messages are past-tense, verb-first

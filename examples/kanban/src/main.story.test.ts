@@ -3,13 +3,14 @@ import { Story, Ui } from 'foldkit'
 import { generateKeyBetween } from 'fractional-indexing'
 import { describe, expect, test } from 'vitest'
 
-import { GenerateCardId, SaveBoard } from './command'
+import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
 import { Column } from './domain'
 import type { Card } from './domain/card'
 import {
   CancelledNewCard,
   ChangedNewCardTitle,
   ClickedAddCard,
+  CompletedFocusAddCardInput,
   CompletedSaveBoard,
   GeneratedCardId,
   GotDragAndDropMessage,
@@ -66,11 +67,17 @@ const emptyModel: Model = {
 
 describe('kanban update', () => {
   describe('add card', () => {
+    const acknowledgeFocusInput = Story.Command.resolve(
+      FocusAddCardInput,
+      CompletedFocusAddCardInput(),
+    )
+
     test('ClickedAddCard opens the add card form for the column', () => {
       Story.story(
         update,
         Story.with(emptyModel),
         Story.message(ClickedAddCard({ columnId: 'todo' })),
+        acknowledgeFocusInput,
         Story.model(model => {
           expect(model.maybeNewCardColumnId).toStrictEqual(Option.some('todo'))
           expect(model.newCardTitle).toBe('')
@@ -83,6 +90,7 @@ describe('kanban update', () => {
         update,
         Story.with(emptyModel),
         Story.message(ClickedAddCard({ columnId: 'todo' })),
+        acknowledgeFocusInput,
         Story.message(ChangedNewCardTitle({ value: 'New task' })),
         Story.model(model => {
           expect(model.newCardTitle).toBe('New task')
@@ -95,6 +103,7 @@ describe('kanban update', () => {
         update,
         Story.with(emptyModel),
         Story.message(ClickedAddCard({ columnId: 'done' })),
+        acknowledgeFocusInput,
         Story.message(ChangedNewCardTitle({ value: 'Ship it' })),
         Story.message(SubmittedNewCard()),
         Story.Command.resolve(
@@ -121,6 +130,7 @@ describe('kanban update', () => {
         update,
         Story.with(emptyModel),
         Story.message(ClickedAddCard({ columnId: 'todo' })),
+        acknowledgeFocusInput,
         Story.message(SubmittedNewCard()),
         Story.model(model => {
           expect(model.maybeNewCardColumnId).toStrictEqual(Option.some('todo'))
@@ -133,6 +143,7 @@ describe('kanban update', () => {
         update,
         Story.with(emptyModel),
         Story.message(ClickedAddCard({ columnId: 'todo' })),
+        acknowledgeFocusInput,
         Story.message(ChangedNewCardTitle({ value: 'Draft' })),
         Story.message(CancelledNewCard()),
         Story.model(model => {

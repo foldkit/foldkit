@@ -9,13 +9,13 @@ import * as Popover from '../popover/public.js'
 import type { Message, Model, ViewConfig } from './index.js'
 import { GotPopoverMessage, Opened, init, update, view } from './index.js'
 
-const acknowledgePopoverAnchor = Scene.Mount.resolve(
-  Popover.PopoverAnchor,
-  GotPopoverMessage({ message: Popover.CompletedAnchorMount() }),
+const acknowledgeAnchorPopover = Scene.Mount.resolve(
+  Popover.AnchorPopover,
+  GotPopoverMessage({ message: Popover.CompletedAnchorPopover() }),
 )
 const acknowledgePopoverBackdrop = Scene.Mount.resolve(
-  Popover.PopoverBackdropPortal,
-  GotPopoverMessage({ message: Popover.CompletedBackdropPortal() }),
+  Popover.PortalPopoverBackdrop,
+  GotPopoverMessage({ message: Popover.CompletedPortalPopoverBackdrop() }),
 )
 
 const { button, div, h2, span, Id } = html<Message>()
@@ -177,7 +177,7 @@ describe('DatePicker scene', () => {
         Scene.with(openModel),
         Scene.expect(panel).toExist(),
         Scene.expect(grid).toExist(),
-        acknowledgePopoverAnchor,
+        acknowledgeAnchorPopover,
         acknowledgePopoverBackdrop,
       )
     })
@@ -189,7 +189,7 @@ describe('DatePicker scene', () => {
         { update, view: sceneView() },
         Scene.with(openModel),
         Scene.expect(panel).not.toHaveAttr('tabIndex'),
-        acknowledgePopoverAnchor,
+        acknowledgeAnchorPopover,
         acknowledgePopoverBackdrop,
       )
     })
@@ -199,7 +199,7 @@ describe('DatePicker scene', () => {
         { update, view: sceneView() },
         Scene.with(openModel),
         Scene.expect(panel).not.toHaveHandler('blur'),
-        acknowledgePopoverAnchor,
+        acknowledgeAnchorPopover,
         acknowledgePopoverBackdrop,
       )
     })
@@ -212,7 +212,7 @@ describe('DatePicker scene', () => {
         { update, view: sceneView() },
         Scene.with(openModel),
         Scene.expect(panel).toHaveHandler('keydown'),
-        acknowledgePopoverAnchor,
+        acknowledgeAnchorPopover,
         acknowledgePopoverBackdrop,
       )
     })

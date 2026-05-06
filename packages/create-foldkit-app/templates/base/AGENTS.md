@@ -89,30 +89,37 @@ Command definitions live where they're produced — colocated with the update fu
 
 ### Mount
 
-For per-element DOM work — focusing an input, handing the live `Element` to a third-party library — define a Mount with `Mount.define` and attach it to a view element with `OnMount`. The runtime runs the Effect when the element mounts, dispatches its result Message back through `update`, and runs the paired cleanup on unmount.
+For per-element DOM work that needs the live `Element` handle (anchor positioning, portaling an overlay, attaching observers, handing the element to a third-party library), define a Mount with `Mount.define` and attach it to a view element with `OnMount`. The runtime runs the Effect when the element mounts, dispatches its result Message back through `update`, and runs the paired cleanup on unmount.
 
 ```ts
-const CompletedFocusInput = m('CompletedFocusInput')
+const CompletedPortalToBody = m('CompletedPortalToBody')
 
-const FocusInput = Mount.define('FocusInput', CompletedFocusInput)
+const PortalToBody = Mount.define('PortalToBody', CompletedPortalToBody)
 
-const focusInput = FocusInput(element =>
+const portalToBody = PortalToBody(element =>
   Effect.sync(() => {
-    if (element instanceof HTMLInputElement) {
-      element.focus()
-    }
+    document.body.appendChild(element)
     return {
-      message: CompletedFocusInput(),
-      cleanup: Function.constVoid,
+      message: CompletedPortalToBody(),
+      cleanup: () => element.remove(),
     }
   }),
 )
 
 // In view:
-input([Type('search'), OnMount(focusInput)])
+div([Class('fixed inset-0 bg-black/50'), OnMount(portalToBody)])
 ```
 
 Cleanup is data, paired with setup as a single value. For setup with no cleanup, pass `Function.constVoid`. The `Completed*` Message marks the lifecycle without forcing a meaningful response in update.
+
+Two rules for Mount, both must hold:
+
+1. **The Effect uses the element parameter.** Mount provides the live element handle, and that handle is what makes Mount distinct from Command. If your Effect doesn't read or write the element, pick a different primitive.
+2. **The work is DOM measurement or DOM manipulation on that element.** Read its geometry, mutate its CSS, attach an observer to it, portal it, hand it to a third-party library. Anything else (network, storage, focus-on-transition, scroll lock for the page) belongs in a Command returned from `update`.
+
+Mount Effects re-run during DevTools time-travel renders. The two rules above keep Mount work inherently replay-safe (read-only measurement, idempotent DOM mutation, paired observer attach + cleanup).
+
+Don't reach for Mount just because the work happens to coincide with an element appearing. Check what causes the work. If a Message just dispatched (like `Opened`), the cause is the Message, not the element. Use a Command returned from `update`'s handler instead. Example: focusing a search input when its dialog opens. The cause is `Opened`, not the input's existence; return a `FocusInput` Command from the `Opened` handler.
 
 ### File Organization
 
@@ -187,7 +194,7 @@ Use `typeof ClickedSubmit` in type positions to reference a schema value's type.
 - Avoid `let`. Use `const` and prefer immutable patterns.
 - Always use braces for control flow. `if (foo) { return true }` not `if (foo) return true`.
 - Use `is*` for boolean naming e.g. `isPlaying`, `isValid`.
-- Don't add inline or block comments to explain code — if code needs explanation, refactor for clarity or use better names. Exceptions: section headers (see File Organization above) and TSDoc (`/** ... */`) on public exports.
+- Don't add inline or block comments to explain code. If code needs explanation, refactor for clarity or use better names. Exceptions: section headers (see File Organization above), TSDoc (`/** ... */`) on public exports, and `// NOTE:` comments. Reserve `// NOTE:` for behavior that would mislead a careful reader into breaking things: a timing dependency that's silent if violated, a workaround for an upstream bug, a browser quirk that costs real debugging time to rediscover. The bar is high. When in doubt, delete it.
 - Use capitalized string literals for Schema literal types: `S.Literals(['Horizontal', 'Vertical'])` not `S.Literals(['horizontal', 'vertical'])`.
 - Capitalize namespace imports: `import * as Command from './command'` not `import * as command from './command'`.
 - Extract magic numbers to named constants. No raw numeric literals in logic.

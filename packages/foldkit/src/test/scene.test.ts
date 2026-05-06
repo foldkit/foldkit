@@ -35,13 +35,13 @@ import {
   view as logoutView,
 } from './apps/logoutButton.js'
 import {
-  ButtonFocus,
   CompletedFocusButton,
   FailedMountSidebar,
+  FocusButton,
+  MeasurePanel,
   MeasuredPanel,
   ClickedIncrement as MountClickedIncrement,
   ClickedToggle as MountClickedToggle,
-  PanelMeasure,
   initialModel as mountInitialModel,
   twoPanelView as mountTwoPanelView,
   update as mountUpdate,
@@ -2703,8 +2703,8 @@ describe('scene with pointer events', () => {
 })
 
 describe('scene mounts', () => {
-  const acknowledgeButtonFocus = Scene.Mount.resolve(
-    ButtonFocus,
+  const acknowledgeFocusButton = Scene.Mount.resolve(
+    FocusButton,
     CompletedFocusButton(),
   )
 
@@ -2712,8 +2712,8 @@ describe('scene mounts', () => {
     Scene.scene(
       { update: mountUpdate, view: mountView },
       Scene.with(mountInitialModel),
-      Scene.Mount.expectHas(ButtonFocus),
-      acknowledgeButtonFocus,
+      Scene.Mount.expectHas(FocusButton),
+      acknowledgeFocusButton,
     )
   })
 
@@ -2722,8 +2722,8 @@ describe('scene mounts', () => {
       Scene.scene(
         { update: mountUpdate, view: mountView },
         Scene.with(mountInitialModel),
-        Scene.Mount.expectHas(PanelMeasure),
-        acknowledgeButtonFocus,
+        Scene.Mount.expectHas(MeasurePanel),
+        acknowledgeFocusButton,
       ),
     ).toThrow(/Expected to find Mounts/)
   })
@@ -2732,8 +2732,8 @@ describe('scene mounts', () => {
     Scene.scene(
       { update: mountUpdate, view: mountView },
       Scene.with(mountInitialModel),
-      Scene.Mount.expectExact(ButtonFocus),
-      acknowledgeButtonFocus,
+      Scene.Mount.expectExact(FocusButton),
+      acknowledgeFocusButton,
     )
   })
 
@@ -2743,7 +2743,7 @@ describe('scene mounts', () => {
       Scene.scene(
         { update: mountUpdate, view: mountView },
         Scene.with(openModel),
-        Scene.Mount.expectExact(ButtonFocus),
+        Scene.Mount.expectExact(FocusButton),
       ),
     ).toThrow(/Expected exactly these Mounts/)
   })
@@ -2777,12 +2777,12 @@ describe('scene mounts', () => {
     Scene.scene(
       { update: mountUpdate, view: mountView },
       Scene.with(openModel),
-      Scene.Mount.expectHas(PanelMeasure, ButtonFocus),
-      Scene.Mount.resolve(PanelMeasure, MeasuredPanel({ width: 200 })),
+      Scene.Mount.expectHas(MeasurePanel, FocusButton),
+      Scene.Mount.resolve(MeasurePanel, MeasuredPanel({ width: 200 })),
       Scene.tap(({ html }) => {
         expect(textContent(html)).toContain('width: 200')
       }),
-      acknowledgeButtonFocus,
+      acknowledgeFocusButton,
     )
   })
 
@@ -2791,9 +2791,9 @@ describe('scene mounts', () => {
       Scene.scene(
         { update: mountUpdate, view: mountView },
         Scene.with(mountInitialModel),
-        Scene.Mount.resolve(PanelMeasure, MeasuredPanel({ width: 0 })),
+        Scene.Mount.resolve(MeasurePanel, MeasuredPanel({ width: 0 })),
       ),
-    ).toThrow(/I tried to resolve Mount "PanelMeasure"/)
+    ).toThrow(/I tried to resolve Mount "MeasurePanel"/)
   })
 
   test('resolveAllMounts resolves a batch in order', () => {
@@ -2802,8 +2802,8 @@ describe('scene mounts', () => {
       { update: mountUpdate, view: mountView },
       Scene.with(openModel),
       Scene.Mount.resolveAll(
-        [ButtonFocus, CompletedFocusButton()],
-        [PanelMeasure, MeasuredPanel({ width: 100 })],
+        [FocusButton, CompletedFocusButton()],
+        [MeasurePanel, MeasuredPanel({ width: 100 })],
       ),
       Scene.tap(({ html }) => {
         expect(textContent(html)).toContain('width: 100')
@@ -2811,15 +2811,16 @@ describe('scene mounts', () => {
     )
   })
 
-  test('a mount that disappears between renders is silently dropped', () => {
+  test('resolved mounts that disappear between renders must be acknowledged with expectEnded', () => {
     const openModel = { ...mountInitialModel, isOpen: true }
     Scene.scene(
       { update: mountUpdate, view: mountView },
       Scene.with(openModel),
-      Scene.Mount.expectHas(PanelMeasure, ButtonFocus),
-      Scene.Mount.resolve(PanelMeasure, MeasuredPanel({ width: 400 })),
-      acknowledgeButtonFocus,
+      Scene.Mount.expectHas(MeasurePanel, FocusButton),
+      Scene.Mount.resolve(MeasurePanel, MeasuredPanel({ width: 400 })),
+      acknowledgeFocusButton,
       Scene.click(Scene.role('button')),
+      Scene.Mount.expectEnded(MeasurePanel),
       Scene.Mount.expectNone(),
     )
   })
@@ -2849,8 +2850,8 @@ describe('scene mounts', () => {
     Scene.scene(
       { update: mountUpdate, view: mountView },
       Scene.with(openModel),
-      acknowledgeButtonFocus,
-      Scene.Mount.resolve(PanelMeasure, MeasuredPanel({ width: 50 })),
+      acknowledgeFocusButton,
+      Scene.Mount.resolve(MeasurePanel, MeasuredPanel({ width: 50 })),
       Scene.Mount.expectNone(),
     )
   })
@@ -2861,11 +2862,11 @@ describe('scene mounts', () => {
       Scene.with(mountInitialModel),
       Scene.tap(({ mounts }) => {
         expect(mounts).toHaveLength(2)
-        expect(mounts[0]).toEqual({ name: 'PanelMeasure', occurrence: 0 })
-        expect(mounts[1]).toEqual({ name: 'PanelMeasure', occurrence: 1 })
+        expect(mounts[0]).toEqual({ name: 'MeasurePanel', occurrence: 0 })
+        expect(mounts[1]).toEqual({ name: 'MeasurePanel', occurrence: 1 })
       }),
-      Scene.Mount.resolve(PanelMeasure, MeasuredPanel({ width: 1 })),
-      Scene.Mount.resolve(PanelMeasure, MeasuredPanel({ width: 2 })),
+      Scene.Mount.resolve(MeasurePanel, MeasuredPanel({ width: 1 })),
+      Scene.Mount.resolve(MeasurePanel, MeasuredPanel({ width: 2 })),
     )
   })
 
@@ -2896,12 +2897,12 @@ describe('scene mounts', () => {
     Scene.scene(
       { update: parentUpdate, view: parentView },
       Scene.with({ count: 0 }),
-      Scene.Mount.resolve(ButtonFocus, CompletedFocusButton(), message => ({
+      Scene.Mount.resolve(FocusButton, CompletedFocusButton(), message => ({
         _tag: 'GotPanelMessage' as const,
         message,
       })),
       Scene.Mount.resolve(
-        PanelMeasure,
+        MeasurePanel,
         MeasuredPanel({ width: 7 }),
         message => ({
           _tag: 'GotPanelMessage' as const,
@@ -2929,16 +2930,12 @@ describe('scene mounts', () => {
     Scene.scene(
       { update: mountUpdate, view: documentView },
       Scene.with(mountInitialModel),
-      Scene.Mount.expectHas(ButtonFocus),
-      acknowledgeButtonFocus,
+      Scene.Mount.expectHas(FocusButton),
+      acknowledgeFocusButton,
     )
   })
 
-  test('a pending mount whose element disappears before resolution is dropped', () => {
-    // When resolving Mount A's result Message removes Mount B's element from
-    // the tree, Mount B is silently dropped on the next render. The unmount
-    // case mirrors what would happen in the real runtime when an element
-    // gets ripped out before its OnMount Effect produces a Message.
+  test('a pending mount whose element disappears must be acknowledged with expectEnded', () => {
     const openModel = { ...mountInitialModel, isOpen: true }
     type Message =
       | typeof MountClickedToggle.Type
@@ -2958,8 +2955,9 @@ describe('scene mounts', () => {
     Scene.scene(
       { update: closingUpdate, view: mountView },
       Scene.with(openModel),
-      Scene.Mount.expectHas(PanelMeasure, ButtonFocus),
-      acknowledgeButtonFocus,
+      Scene.Mount.expectHas(MeasurePanel, FocusButton),
+      acknowledgeFocusButton,
+      Scene.Mount.expectEnded(MeasurePanel),
       Scene.Mount.expectNone(),
     )
   })
@@ -2968,14 +2966,92 @@ describe('scene mounts', () => {
     Scene.scene(
       { update: mountUpdate, view: mountView },
       Scene.with(mountInitialModel),
-      Scene.Mount.expectExact(ButtonFocus),
-      acknowledgeButtonFocus,
+      Scene.Mount.expectExact(FocusButton),
+      acknowledgeFocusButton,
       Scene.click(Scene.role('button')),
-      Scene.Mount.expectExact(PanelMeasure),
-      Scene.Mount.resolve(PanelMeasure, MeasuredPanel({ width: 256 })),
+      Scene.Mount.expectExact(MeasurePanel),
+      Scene.Mount.resolve(MeasurePanel, MeasuredPanel({ width: 256 })),
       Scene.tap(({ html }) => {
         expect(textContent(html)).toContain('width: 256')
       }),
+    )
+  })
+
+  test('an unacknowledged unmount throws at end of scene', () => {
+    const openModel = { ...mountInitialModel, isOpen: true }
+    type Message =
+      | typeof MountClickedToggle.Type
+      | typeof CompletedFocusButton.Type
+      | typeof MeasuredPanel.Type
+      | typeof FailedMountSidebar.Type
+      | typeof MountClickedIncrement.Type
+
+    const closingUpdate = (
+      model: typeof mountInitialModel,
+      message: Message,
+    ): readonly [typeof mountInitialModel, ReadonlyArray<never>] =>
+      message._tag === 'CompletedFocusButton'
+        ? [{ ...model, isOpen: false }, []]
+        : mountUpdate(model, message)
+
+    expect(() => {
+      Scene.scene(
+        { update: closingUpdate, view: mountView },
+        Scene.with(openModel),
+        acknowledgeFocusButton,
+      )
+    }).toThrow(/MeasurePanel/)
+  })
+
+  test('a previously resolved mount whose element disappears must still be acknowledged', () => {
+    const openModel = { ...mountInitialModel, isOpen: true }
+    expect(() => {
+      Scene.scene(
+        { update: mountUpdate, view: mountView },
+        Scene.with(openModel),
+        Scene.Mount.resolve(MeasurePanel, MeasuredPanel({ width: 200 })),
+        acknowledgeFocusButton,
+        Scene.click(Scene.role('button')),
+      )
+    }).toThrow(/MeasurePanel/)
+  })
+
+  test('expectEnded throws when the named Mount has not unmounted', () => {
+    expect(() => {
+      Scene.scene(
+        { update: mountUpdate, view: mountView },
+        Scene.with(mountInitialModel),
+        Scene.Mount.expectEnded(MeasurePanel),
+      )
+    }).toThrow(/MeasurePanel/)
+  })
+
+  test('an interaction throws when a previous unmount was not acknowledged', () => {
+    const openModel = { ...mountInitialModel, isOpen: true }
+    expect(() => {
+      Scene.scene(
+        { update: mountUpdate, view: mountView },
+        Scene.with(openModel),
+        Scene.Mount.resolve(MeasurePanel, MeasuredPanel({ width: 200 })),
+        acknowledgeFocusButton,
+        Scene.click(Scene.role('button')),
+        Scene.click(Scene.role('button')),
+      )
+    }).toThrow(/unacknowledged unmounts/)
+  })
+
+  test('a same-key mount that disappears and reappears starts fresh as pending', () => {
+    const openModel = { ...mountInitialModel, isOpen: true }
+    Scene.scene(
+      { update: mountUpdate, view: mountView },
+      Scene.with(openModel),
+      Scene.Mount.resolve(MeasurePanel, MeasuredPanel({ width: 200 })),
+      acknowledgeFocusButton,
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectEnded(MeasurePanel),
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectExact(MeasurePanel),
+      Scene.Mount.resolve(MeasurePanel, MeasuredPanel({ width: 320 })),
     )
   })
 })

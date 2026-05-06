@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { Array, Match as M, Option, String, pipe } from 'effect'
-import { Mount, Ui } from 'foldkit'
+import { Ui } from 'foldkit'
 import { Html } from 'foldkit/html'
 
 import {
@@ -20,7 +20,6 @@ import {
   OnClick,
   OnInput,
   OnKeyDownPreventDefault,
-  OnMount,
   Placeholder,
   Role,
   Tabindex,
@@ -35,7 +34,7 @@ import {
 } from '../html'
 import { Icon } from '../icon'
 import type { Message as ParentMessage } from '../main'
-import { SEARCH_INPUT_ID, focusSearchInput } from './command'
+import { SEARCH_INPUT_ID } from './command'
 import {
   ClearedSearchQuery,
   GotSearchDialogMessage,
@@ -110,7 +109,6 @@ const searchInputView = (model: Model, toParentMessage: ToMessage): Html => {
         AriaHasPopup('listbox'),
         Autocomplete('off'),
         AriaLabel('Search documentation'),
-        OnMount(Mount.mapMessage(focusSearchInput, toParentMessage)),
         ...(model.activeResultIndex >= 0
           ? [AriaActiveDescendant(resultItemId(model.activeResultIndex))]
           : []),

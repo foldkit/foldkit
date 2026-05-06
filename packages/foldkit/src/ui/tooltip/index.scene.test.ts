@@ -4,17 +4,17 @@ import { Effect } from 'effect'
 import * as Scene from '../../test/scene.js'
 import type { Message, Model, ViewConfig } from './index.js'
 import {
-  CompletedAnchorMount,
+  AnchorTooltip,
+  CompletedAnchorTooltip,
   FocusedTrigger,
-  TooltipAnchor,
   init,
   update,
   view,
 } from './index.js'
 
 const acknowledgeAnchor = Scene.Mount.resolve(
-  TooltipAnchor,
-  CompletedAnchorMount(),
+  AnchorTooltip,
+  CompletedAnchorTooltip(),
 )
 
 const sceneView =
