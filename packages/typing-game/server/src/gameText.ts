@@ -54,7 +54,7 @@ export const generateGameText = (
     }),
   )
 
-  return Random.nextIntBetween(0, Array.length(availableTexts)).pipe(
-    Effect.map(index => Array.getUnsafe(availableTexts, index)),
-  )
+  return Random.nextIntBetween(0, Array.length(availableTexts), {
+    halfOpen: true,
+  }).pipe(Effect.map(index => Array.getUnsafe(availableTexts, index)))
 }

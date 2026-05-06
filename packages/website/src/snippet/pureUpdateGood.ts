@@ -20,8 +20,8 @@ const GenerateApplePosition = Command.define(
 
 const generateApplePosition = GenerateApplePosition(
   Effect.gen(function* () {
-    const x = yield* Random.nextIntBetween(0, GRID_SIZE)
-    const y = yield* Random.nextIntBetween(0, GRID_SIZE)
+    const x = yield* Random.nextIntBetween(0, GRID_SIZE, { halfOpen: true })
+    const y = yield* Random.nextIntBetween(0, GRID_SIZE, { halfOpen: true })
     return GeneratedApple({ position: { x, y } })
   }),
 )
