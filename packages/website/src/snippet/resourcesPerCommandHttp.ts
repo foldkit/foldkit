@@ -13,14 +13,13 @@ const FetchWeather = Command.define(
 
 const fetchWeather = (city: string) =>
   FetchWeather(
-    withHttp(
-      Effect.gen(function* () {
-        const client = yield* HttpClient.HttpClient
-        const response = yield* client.get(`https://api.weather.com/${city}`)
-        const json = yield* response.json
-        return SucceededFetchWeather({ data: json })
-      }),
-    ).pipe(
+    Effect.gen(function* () {
+      const client = yield* HttpClient.HttpClient
+      const response = yield* client.get(`https://api.weather.com/${city}`)
+      const json = yield* response.json
+      return SucceededFetchWeather({ data: json })
+    }).pipe(
+      withHttp,
       Effect.catch(() =>
         Effect.succeed(FailedFetchWeather({ error: 'Request failed' })),
       ),
