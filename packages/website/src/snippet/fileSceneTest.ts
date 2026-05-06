@@ -22,7 +22,7 @@ describe('resume upload flow', () => {
       { update, view },
       Scene.with(initialModel),
       Scene.click(Scene.role('button', { name: 'Choose resume' })),
-      Scene.resolveAll(
+      Scene.Command.resolveAll(
         [SelectResume, SelectedResume({ files: [resume] })],
         [ReadResumePreview, SucceededReadPreview({ dataUrl: previewDataUrl })],
       ),

@@ -368,6 +368,7 @@ const dispatchRequest = (
           return ResponseInit({
             maybeModel: Option.map(state.maybeInitModel, toInspectableValue),
             commandNames: state.initCommandNames,
+            mountStartNames: state.initMountStartNames,
           })
         }),
 

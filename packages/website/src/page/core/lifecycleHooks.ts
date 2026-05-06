@@ -14,6 +14,7 @@ import {
   coreSubscriptionsRouter,
   coreViewRouter,
   exampleDetailRouter,
+  testingSceneRouter,
 } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
@@ -78,6 +79,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' describes what to do at the boundary where the virtual DOM meets the real one. Mount-time async work stays expressed as an ',
         inlineCode('Effect'),
         ', so its outcome flows back through update like any other Message. The cleanup is data, not a separate hook: paired with the setup as a single value the runtime owns.',
+      ),
+      infoCallout(
+        'Mounts surface in tests',
+        'Scene tracks every ',
+        inlineCode('OnMount'),
+        ' in the rendered view as a pending mount and requires the test to acknowledge each one with the result Message its Effect would resolve to at runtime. See ',
+        link(testingSceneRouter(), 'Scene'),
+        ' for the full contract.',
       ),
       tableOfContentsEntryToHeader(sideEffectsOnMountHeader),
       para(

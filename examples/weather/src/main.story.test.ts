@@ -26,7 +26,7 @@ test('submitting the weather form fetches weather and shows result', () => {
     Story.model(model => {
       expect(model.weather._tag).toBe('WeatherLoading')
     }),
-    Story.resolve(
+    Story.Command.resolve(
       FetchWeather,
       SucceededFetchWeather({ weather: weatherData }),
     ),
@@ -45,7 +45,10 @@ test('failed fetch shows failure state', () => {
     update,
     Story.with(weatherModel),
     Story.message(SubmittedWeatherForm()),
-    Story.resolve(FetchWeather, FailedFetchWeather({ error: 'Network error' })),
+    Story.Command.resolve(
+      FetchWeather,
+      FailedFetchWeather({ error: 'Network error' }),
+    ),
     Story.model(model => {
       expect(model.weather._tag).toBe('WeatherFailure')
       if (model.weather._tag === 'WeatherFailure') {

@@ -5,8 +5,18 @@ import * as Calendar from '../../calendar/index.js'
 import { html } from '../../html/index.js'
 import * as Scene from '../../test/scene.js'
 import * as UiCalendar from '../calendar/index.js'
+import * as Popover from '../popover/public.js'
 import type { Message, Model, ViewConfig } from './index.js'
-import { Opened, init, update, view } from './index.js'
+import { GotPopoverMessage, Opened, init, update, view } from './index.js'
+
+const acknowledgePopoverAnchor = Scene.Mount.resolve(
+  Popover.PopoverAnchor,
+  GotPopoverMessage({ message: Popover.CompletedAnchorMount() }),
+)
+const acknowledgePopoverBackdrop = Scene.Mount.resolve(
+  Popover.PopoverBackdropPortal,
+  GotPopoverMessage({ message: Popover.CompletedBackdropPortal() }),
+)
 
 const { button, div, h2, span, Id } = html<Message>()
 
@@ -167,6 +177,8 @@ describe('DatePicker scene', () => {
         Scene.with(openModel),
         Scene.expect(panel).toExist(),
         Scene.expect(grid).toExist(),
+        acknowledgePopoverAnchor,
+        acknowledgePopoverBackdrop,
       )
     })
   })
@@ -177,6 +189,8 @@ describe('DatePicker scene', () => {
         { update, view: sceneView() },
         Scene.with(openModel),
         Scene.expect(panel).not.toHaveAttr('tabIndex'),
+        acknowledgePopoverAnchor,
+        acknowledgePopoverBackdrop,
       )
     })
 
@@ -185,6 +199,8 @@ describe('DatePicker scene', () => {
         { update, view: sceneView() },
         Scene.with(openModel),
         Scene.expect(panel).not.toHaveHandler('blur'),
+        acknowledgePopoverAnchor,
+        acknowledgePopoverBackdrop,
       )
     })
 
@@ -196,6 +212,8 @@ describe('DatePicker scene', () => {
         { update, view: sceneView() },
         Scene.with(openModel),
         Scene.expect(panel).toHaveHandler('keydown'),
+        acknowledgePopoverAnchor,
+        acknowledgePopoverBackdrop,
       )
     })
   })

@@ -3,7 +3,25 @@ import { Effect } from 'effect'
 
 import * as Scene from '../../test/scene.js'
 import type { Message, Model, ViewConfig } from './index.js'
-import { Opened, init, update, view } from './index.js'
+import {
+  CompletedAnchorMount,
+  CompletedBackdropPortal,
+  Opened,
+  PopoverAnchor,
+  PopoverBackdropPortal,
+  init,
+  update,
+  view,
+} from './index.js'
+
+const acknowledgeAnchor = Scene.Mount.resolve(
+  PopoverAnchor,
+  CompletedAnchorMount(),
+)
+const acknowledgeBackdrop = Scene.Mount.resolve(
+  PopoverBackdropPortal,
+  CompletedBackdropPortal(),
+)
 
 const sceneView =
   (
@@ -49,6 +67,8 @@ describe('Popover', () => {
         { update, view: sceneView() },
         Scene.with(openModel),
         Scene.expect(button).toHaveAttr('aria-expanded', 'true'),
+        acknowledgeAnchor,
+        acknowledgeBackdrop,
       )
     })
 
@@ -58,6 +78,8 @@ describe('Popover', () => {
         Scene.with(openModel),
         Scene.expect(panel).toExist(),
         Scene.expect(panel).toHaveAttr('tabIndex', '0'),
+        acknowledgeAnchor,
+        acknowledgeBackdrop,
       )
     })
 
@@ -74,6 +96,8 @@ describe('Popover', () => {
         { update, view: sceneView() },
         Scene.with(openModel),
         Scene.expect(backdrop).toExist(),
+        acknowledgeAnchor,
+        acknowledgeBackdrop,
       )
     })
 
@@ -92,6 +116,8 @@ describe('Popover', () => {
         Scene.with(openModel),
         Scene.expect(panel).toExist(),
         Scene.expect(panel).not.toHaveAttr('role'),
+        acknowledgeAnchor,
+        acknowledgeBackdrop,
       )
     })
 
@@ -104,6 +130,8 @@ describe('Popover', () => {
         Scene.expect(panel).toHaveStyle('visibility', 'hidden'),
         Scene.expect(panel).toHaveHook('insert'),
         Scene.expect(panel).toHaveHook('destroy'),
+        acknowledgeAnchor,
+        acknowledgeBackdrop,
       )
     })
 
@@ -114,6 +142,8 @@ describe('Popover', () => {
           Scene.with(openContentFocusModel),
           Scene.expect(panel).toExist(),
           Scene.expect(panel).not.toHaveAttr('tabIndex'),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
         )
       })
 
@@ -122,6 +152,8 @@ describe('Popover', () => {
           { update, view: sceneView() },
           Scene.with(openContentFocusModel),
           Scene.expect(panel).not.toHaveHandler('blur'),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
         )
       })
 
@@ -130,6 +162,8 @@ describe('Popover', () => {
           { update, view: sceneView() },
           Scene.with(openContentFocusModel),
           Scene.expect(panel).toHaveHandler('keydown'),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
         )
       })
     })

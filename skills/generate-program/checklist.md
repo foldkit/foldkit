@@ -46,10 +46,10 @@ grep -rn "^\s*return div(" src/   # same for div-based rows
 
 # Scene tests without assertions — Scene.scene(...) calls that only do Scene.with()
 # and nothing else verify only that the view doesn't throw. Each test needs at least
-# one Scene.expect(...) OR a Scene.click/type/submit followed by Scene.resolve(...).
-# Eyeball every Scene.scene block — if it contains no "Scene.expect" and no "Scene.resolve",
+# one Scene.expect(...) OR a Scene.click/type/submit followed by Scene.Command.resolve(...).
+# Eyeball every Scene.scene block — if it contains no "Scene.expect" and no "Scene.Command.resolve",
 # it's a no-op test.
-grep -rn "Scene.scene(" src/ -A 3 | grep -B 2 "Scene.with" | grep -v "Scene.expect\|Scene.resolve\|Scene.click\|Scene.type" || echo "(all Scene.scene blocks appear to contain assertions)"
+grep -rn "Scene.scene(" src/ -A 3 | grep -B 2 "Scene.with" | grep -v "Scene.expect\|Scene.Command\|Scene.Mount\|Scene.click\|Scene.type" || echo "(all Scene.scene blocks appear to contain assertions)"
 
 # Single-op pipe — pipe(x, Option.match(...)) should be Option.match(x, ...)
 # These are common patterns; eyeball each hit.
@@ -231,7 +231,7 @@ Each confirmed miss is a concrete a11y bug a screen reader user would hit.
 - [ ] Every fallible Command (`Succeeded*`/`Failed*` pair) tested for both outcomes
 - [ ] At least one multi-step test that chains Messages and Command resolutions
 - [ ] Submodel tests assert `outMessage` when the child signals to parent
-- [ ] Tests use `Story.resolve(Definition, resultMessage)` — never run Command Effects directly in story tests
+- [ ] Tests use `Story.Command.resolve(Definition, resultMessage)` — never run Command Effects directly in story tests
 - [ ] All tests pass with `npx vitest run`
 
 **Scene tests** (REQUIRED at Tier 3+; strongly encouraged at Tier 2):
@@ -328,7 +328,7 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 - [ ] Test names state the behavior being tested: `it('surfaces a validation error when email is malformed')`, not `it('tests validation')` or `it('handles the reported bug')`.
 - [ ] Each `Story.story` pipeline reads as a narrative — initial model → action → assert → action → assert. Not a dump of unrelated assertions.
 - [ ] Scene tests use accessible locators — `Scene.role('button', { name: /submit/i })`, `Scene.label('Email')` — over `Scene.placeholder` or CSS selectors.
-- [ ] Commands in tests are resolved with `Story.resolve(Definition, resultMessage)`. Never run Command Effects directly.
+- [ ] Commands in tests are resolved with `Story.Command.resolve(Definition, resultMessage)`. Never run Command Effects directly.
 
 ## Residual code smells (each is a fail)
 

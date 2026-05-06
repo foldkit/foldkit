@@ -667,12 +667,21 @@ export const makeUpdate = <Model extends BaseModel>(
   }
 }
 
-const ListboxAnchor = Mount.define('ListboxAnchor', CompletedAnchorMount)
-const ListboxFocusItemsOnMount = Mount.define(
+/** The anchor-positioning Mount this Listbox renders when an anchor is
+ *  configured. Exposed so Scene tests can call
+ *  `Scene.Mount.resolve(ListboxAnchor, CompletedAnchorMount())`. */
+export const ListboxAnchor = Mount.define('ListboxAnchor', CompletedAnchorMount)
+/** The Mount this Listbox renders to focus its items container on open.
+ *  Exposed so Scene tests can call
+ *  `Scene.Mount.resolve(ListboxFocusItemsOnMount, CompletedFocusItemsOnMount())`. */
+export const ListboxFocusItemsOnMount = Mount.define(
   'ListboxFocusItemsOnMount',
   CompletedFocusItemsOnMount,
 )
-const ListboxBackdropPortal = Mount.define(
+/** The backdrop-portaling Mount this Listbox renders. Exposed so Scene tests can
+ *  call `Scene.Mount.resolve(ListboxBackdropPortal, CompletedBackdropPortal())` to
+ *  acknowledge the mount produced by the rendered backdrop. */
+export const ListboxBackdropPortal = Mount.define(
   'ListboxBackdropPortal',
   CompletedBackdropPortal,
 )

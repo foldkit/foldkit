@@ -73,8 +73,8 @@ test('clicking a sidebar location selects it and emits a fly Command', () => {
         Option.some(eiffelTower.id),
       )
     }),
-    Story.expectHasCommands(FlyTo),
-    Story.resolve(FlyTo, SucceededFlyTo()),
+    Story.Command.expectHas(FlyTo),
+    Story.Command.resolve(FlyTo, SucceededFlyTo()),
   )
 })
 
@@ -89,8 +89,8 @@ test('clicking a sidebar location before the map mounts still emits FlyTo', () =
       )
       expect(model.maybeMapHostId).toStrictEqual(Option.none())
     }),
-    Story.expectHasCommands(FlyTo),
-    Story.resolve(FlyTo, SucceededFlyTo()),
+    Story.Command.expectHas(FlyTo),
+    Story.Command.resolve(FlyTo, SucceededFlyTo()),
   )
 })
 
@@ -113,7 +113,7 @@ test('clicking a sidebar location with an unknown id is a no-op', () => {
     Story.model(model => {
       expect(model.maybeSelectedLocationId).toStrictEqual(Option.none())
     }),
-    Story.expectNoCommands(),
+    Story.Command.expectNone(),
   )
 })
 
@@ -136,8 +136,11 @@ test('clicking find-me transitions to the locating state and emits Geolocate', (
     Story.model(model => {
       expect(model.geolocateState._tag).toBe('GeolocateLocating')
     }),
-    Story.expectHasCommands(Geolocate),
-    Story.resolve(Geolocate, FailedGeolocate({ reason: 'Test cleanup' })),
+    Story.Command.expectHas(Geolocate),
+    Story.Command.resolve(
+      Geolocate,
+      FailedGeolocate({ reason: 'Test cleanup' }),
+    ),
   )
 })
 
@@ -155,8 +158,8 @@ test('a successful geolocation result clears the locating state and flies the ma
         Option.some({ lng: 2.35, lat: 48.85 }),
       )
     }),
-    Story.expectHasCommands(FlyTo),
-    Story.resolve(FlyTo, SucceededFlyTo()),
+    Story.Command.expectHas(FlyTo),
+    Story.Command.resolve(FlyTo, SucceededFlyTo()),
   )
 })
 

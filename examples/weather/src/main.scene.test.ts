@@ -37,8 +37,8 @@ describe('scene', () => {
       Scene.with(weatherModel),
       Scene.submit(Scene.role('form')),
       Scene.expect(Scene.role('button', { name: 'Loading...' })).toExist(),
-      Scene.expectExactCommands(FetchWeather),
-      Scene.resolve(
+      Scene.Command.expectExact(FetchWeather),
+      Scene.Command.resolve(
         FetchWeather,
         SucceededFetchWeather({ weather: weatherData }),
       ),
@@ -50,8 +50,8 @@ describe('scene', () => {
       { update, view },
       Scene.with(weatherModel),
       Scene.submit(Scene.role('form')),
-      Scene.expectExactCommands(FetchWeather),
-      Scene.resolve(
+      Scene.Command.expectExact(FetchWeather),
+      Scene.Command.resolve(
         FetchWeather,
         SucceededFetchWeather({ weather: weatherData }),
       ),
@@ -72,8 +72,8 @@ describe('scene', () => {
       { update, view },
       Scene.with(weatherModel),
       Scene.submit(Scene.role('form')),
-      Scene.expectExactCommands(FetchWeather),
-      Scene.resolve(
+      Scene.Command.expectExact(FetchWeather),
+      Scene.Command.resolve(
         FetchWeather,
         FailedFetchWeather({ error: 'Network error' }),
       ),
@@ -89,8 +89,8 @@ describe('scene', () => {
       Scene.type(Scene.label('Zip code'), '90210'),
       Scene.click(Scene.role('button', { name: 'Get Weather' })),
       Scene.expect(Scene.role('button', { name: 'Loading...' })).toExist(),
-      Scene.expectExactCommands(FetchWeather),
-      Scene.resolve(
+      Scene.Command.expectExact(FetchWeather),
+      Scene.Command.resolve(
         FetchWeather,
         SucceededFetchWeather({ weather: weatherData }),
       ),

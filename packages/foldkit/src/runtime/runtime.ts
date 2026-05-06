@@ -28,6 +28,7 @@ import { createOverlay } from '../devTools/overlay.js'
 import { type DevToolsStore, createDevToolsStore } from '../devTools/store.js'
 import { startWebSocketBridge } from '../devTools/webSocketBridge.js'
 import { Document } from '../html/index.js'
+import { MountTracker } from '../mount/index.js'
 import { Url, fromString as urlFromString } from '../url/index.js'
 import { VNode, patch, toVNode } from '../vdom.js'
 import {
@@ -759,6 +760,27 @@ const makeRuntime = <
           })
         })
 
+        const mountStartBuffer: Array<string> = []
+        const mountEndBuffer: Array<string> = []
+        const mountTracker: typeof MountTracker.Service = {
+          started: name => {
+            mountStartBuffer.push(name)
+          },
+          ended: name => {
+            mountEndBuffer.push(name)
+          },
+        }
+        const drainMountEvents = (): Readonly<{
+          starts: ReadonlyArray<string>
+          ends: ReadonlyArray<string>
+        }> => {
+          const starts = mountStartBuffer.slice()
+          const ends = mountEndBuffer.slice()
+          mountStartBuffer.length = 0
+          mountEndBuffer.length = 0
+          return { starts, ends }
+        }
+
         const processMessage = (message: Message): Effect.Effect<void> =>
           Effect.gen(function* () {
             const currentModel = yield* Ref.get(modelRef)
@@ -840,7 +862,10 @@ const makeRuntime = <
             yield* Effect.sync(() =>
               applyDocumentMetadata(nextDocument, container),
             )
-          }).pipe(Effect.provideService(Dispatch, dispatch))
+          }).pipe(
+            Effect.provideService(Dispatch, dispatch),
+            Effect.provideService(MountTracker, mountTracker),
+          )
 
         const isInIframe = window.self !== window.top
         const resolvedDevTools = pipe(
@@ -871,20 +896,22 @@ const makeRuntime = <
             // NOTE: clears the dirty bit on direct DevTools renders (jumpTo,
             // resume) so the renderLoop's Stream.changes sees the next
             // dispatch as a real false-to-true transition rather than a
-            // deduped no-op.
+            // deduped no-op. Also discards mount events fired during the
+            // time-travel render so they don't get attributed to the next
+            // user-initiated dispatch.
             render: model =>
               Effect.gen(function* () {
                 yield* SubscriptionRef.set(isRenderPendingRef, false)
                 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
                 yield* render(model as Model, Option.none())
+                drainMountEvents()
               }),
             getCurrentModel: Ref.get(modelRef),
           })
           yield* Ref.set(maybeDevToolsStoreRef, Option.some(devToolsStore))
-          yield* devToolsStore.recordInit(
-            initModel,
-            Array.map(initCommands, ({ name }) => name),
-          )
+          // The init render runs below; capture the events it produces. We
+          // record init AFTER that render so the buffer reflects the mounts
+          // that fired on the first paint.
           yield* createOverlay(devToolsStore, position, mode, maybeBanner)
 
           if (import.meta.hot) {
@@ -905,6 +932,18 @@ const makeRuntime = <
 
         yield* render(initModel, Option.none())
 
+        const initMountEvents = drainMountEvents()
+        const maybeStoreForInit = yield* Ref.get(maybeDevToolsStoreRef)
+        yield* Option.match(maybeStoreForInit, {
+          onNone: () => Effect.void,
+          onSome: store =>
+            store.recordInit(
+              initModel,
+              Array.map(initCommands, ({ name }) => name),
+              initMountEvents.starts,
+            ),
+        })
+
         // NOTE: lastDirtyMessageRef holds the most recent dirtying Message, so
         // slow-view callbacks during high-rate bursts attribute to the last
         // Message in the frame batch, not the specific one that pushed the
@@ -920,6 +959,17 @@ const makeRuntime = <
             const model = yield* Ref.get(modelRef)
             const maybeMessage = yield* Ref.get(lastDirtyMessageRef)
             yield* render(model, maybeMessage)
+
+            const mountEvents = drainMountEvents()
+            const maybeStore = yield* Ref.get(maybeDevToolsStoreRef)
+            yield* Option.match(maybeStore, {
+              onNone: () => Effect.void,
+              onSome: store =>
+                store.attachRenderedMounts(
+                  mountEvents.starts,
+                  mountEvents.ends,
+                ),
+            })
           }),
         })
 

@@ -30,7 +30,7 @@ import {
 
 const today = Calendar.make(2026, 4, 13)
 
-const resolveFocusGrid = Story.resolve(FocusGrid, CompletedFocusGrid())
+const resolveFocusGrid = Story.Command.resolve(FocusGrid, CompletedFocusGrid())
 
 describe('Calendar', () => {
   describe('init', () => {
@@ -335,7 +335,7 @@ describe('Calendar', () => {
           Story.message(PressedKeyOnGrid({ key: 'x', isShift: false })),
           expectFocus(today),
           Story.expectNoOutMessage(),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
         )
       })
     })

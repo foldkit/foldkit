@@ -17,6 +17,8 @@ export {
   CompletedTeardownInert,
   CompletedAnchorMount,
   CompletedBackdropPortal,
+  PopoverAnchor,
+  PopoverBackdropPortal,
   GotAnimationMessage,
   LockScroll,
   UnlockScroll,

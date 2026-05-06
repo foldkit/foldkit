@@ -52,6 +52,8 @@ const DisplayEntry = S.Struct({
   submodelPath: S.Array(S.String),
   maybeLeafTag: S.Option(S.String),
   commandNames: S.Array(S.String),
+  mountStartNames: S.Array(S.String),
+  mountEndNames: S.Array(S.String),
   timestamp: S.Number,
   isModelChanged: S.Boolean,
 })
@@ -86,6 +88,7 @@ const Model = S.Struct({
   isMobile: S.Boolean,
   entries: S.Array(DisplayEntry),
   initCommandNames: S.Array(S.String),
+  initMountStartNames: S.Array(S.String),
   startIndex: S.Number,
   isPaused: S.Boolean,
   pausedAtIndex: S.Number,
@@ -107,6 +110,7 @@ const Flags = S.Struct({
   isMobile: S.Boolean,
   entries: S.Array(DisplayEntry),
   initCommandNames: S.Array(S.String),
+  initMountStartNames: S.Array(S.String),
   startIndex: S.Number,
   isPaused: S.Boolean,
   pausedAtIndex: S.Number,
@@ -141,6 +145,7 @@ const GotInspectorTabsMessage = m('GotInspectorTabsMessage', {
 const ReceivedStoreUpdate = m('ReceivedStoreUpdate', {
   entries: S.Array(DisplayEntry),
   initCommandNames: S.Array(S.String),
+  initMountStartNames: S.Array(S.String),
   startIndex: S.Number,
   isPaused: S.Boolean,
   pausedAtIndex: S.Number,
@@ -183,6 +188,7 @@ const TREE_INDENT_PX = 12
 const MAX_PREVIEW_KEYS = 3
 const ALL_MESSAGES_VALUE = ''
 const NO_COMMANDS: ReadonlyArray<string> = []
+const NO_MOUNTS: ReadonlyArray<string> = []
 
 const formatTimeDelta = (deltaMs: number): string =>
   M.value(deltaMs).pipe(
@@ -214,6 +220,8 @@ const toDisplayEntries = ({ entries }: StoreState) =>
       submodelPath,
       maybeLeafTag,
       commandNames: entry.commandNames,
+      mountStartNames: entry.mountStartNames,
+      mountEndNames: entry.mountEndNames,
       timestamp: entry.timestamp,
       isModelChanged: entry.isModelChanged,
     }
@@ -222,6 +230,7 @@ const toDisplayEntries = ({ entries }: StoreState) =>
 const toDisplayState = (state: StoreState) => ({
   entries: toDisplayEntries(state),
   initCommandNames: state.initCommandNames,
+  initMountStartNames: state.initMountStartNames,
   startIndex: state.startIndex,
   isPaused: state.isPaused,
   pausedAtIndex: state.pausedAtIndex,
@@ -461,6 +470,7 @@ const makeUpdate = (
         ReceivedStoreUpdate: ({
           entries,
           initCommandNames,
+          initMountStartNames,
           startIndex,
           isPaused,
           pausedAtIndex,
@@ -486,6 +496,7 @@ const makeUpdate = (
             evo(model, {
               entries: () => entries,
               initCommandNames: () => initCommandNames,
+              initMountStartNames: () => initMountStartNames,
               startIndex: () => startIndex,
               isPaused: () => isPaused,
               pausedAtIndex: () => pausedAtIndex,
@@ -969,11 +980,12 @@ const makeView = (
     ['Click a message to inspect'],
   )
 
-  type InspectorTab = 'Model' | 'Message' | 'Commands'
+  type InspectorTab = 'Model' | 'Message' | 'Commands' | 'Mounts'
   const INSPECTOR_TABS: ReadonlyArray<InspectorTab> = [
     'Model',
     'Message',
     'Commands',
+    'Mounts',
   ]
 
   const noMessageView: Html = div(
@@ -1071,8 +1083,8 @@ const makeView = (
       },
     })
 
-  const selectedCommandNames = (model: Model): ReadonlyArray<string> => {
-    const selectedIndex = M.value(mode).pipe(
+  const selectedHistoryIndex = (model: Model): number =>
+    M.value(mode).pipe(
       M.when('TimeTravel', () =>
         model.isPaused ? model.pausedAtIndex : INIT_INDEX,
       ),
@@ -1080,15 +1092,19 @@ const makeView = (
       M.exhaustive,
     )
 
+  const selectedCommandNames = (model: Model): ReadonlyArray<string> => {
+    const selectedIndex = selectedHistoryIndex(model)
+
     if (selectedIndex === INIT_INDEX) {
       return model.initCommandNames
+    } else {
+      return pipe(
+        model.entries,
+        Array_.get(selectedIndex - model.startIndex),
+        Option.map(entry => entry.commandNames),
+        Option.getOrElse(() => NO_COMMANDS),
+      )
     }
-
-    return pipe(
-      Array_.get(model.entries, selectedIndex - model.startIndex),
-      Option.map(entry => entry.commandNames),
-      Option.getOrElse(() => NO_COMMANDS),
-    )
   }
 
   const commandsTabContent = (commandNames: ReadonlyArray<string>): Html =>
@@ -1125,6 +1141,98 @@ const makeView = (
         ),
     })
 
+  type SelectedMountActivity = Readonly<{
+    starts: ReadonlyArray<string>
+    ends: ReadonlyArray<string>
+  }>
+
+  const selectedMountActivity = (model: Model): SelectedMountActivity => {
+    const selectedIndex = selectedHistoryIndex(model)
+
+    if (selectedIndex === INIT_INDEX) {
+      return { starts: model.initMountStartNames, ends: NO_MOUNTS }
+    } else {
+      return pipe(
+        model.entries,
+        Array_.get(selectedIndex - model.startIndex),
+        Option.match({
+          onNone: () => ({ starts: NO_MOUNTS, ends: NO_MOUNTS }),
+          onSome: entry => ({
+            starts: entry.mountStartNames,
+            ends: entry.mountEndNames,
+          }),
+        }),
+      )
+    }
+  }
+
+  const mountListSection = (
+    label: string,
+    names: ReadonlyArray<string>,
+  ): Html =>
+    div(
+      [Class('flex flex-col shrink-0')],
+      [
+        div(
+          [
+            Class(
+              'px-2 py-1 border-b text-2xs text-dt-muted font-mono shrink-0',
+            ),
+          ],
+          [label],
+        ),
+        ...Array_.map(names, (name, index) =>
+          div(
+            [
+              Class(
+                'flex items-center px-2 py-1 text-base font-mono text-dt border-b gap-1.5',
+              ),
+            ],
+            [
+              span([Class(indexClass)], [String(index + 1)]),
+              span([Class('json-tag')], [name]),
+            ],
+          ),
+        ),
+      ],
+    )
+
+  const mountsTabContent = (
+    starts: ReadonlyArray<string>,
+    ends: ReadonlyArray<string>,
+  ): Html => {
+    const hasAny =
+      Array_.isReadonlyArrayNonEmpty(starts) ||
+      Array_.isReadonlyArrayNonEmpty(ends)
+
+    if (!hasAny) {
+      return div(
+        [
+          Class(
+            'flex-1 flex items-center justify-center text-dt-muted text-2xs font-mono min-w-0',
+          ),
+        ],
+        ['No Mounts during this render'],
+      )
+    }
+
+    return div(
+      [
+        Class(
+          'flex flex-col flex-1 min-h-0 min-w-0 overflow-auto overscroll-none',
+        ),
+      ],
+      [
+        ...(Array_.isReadonlyArrayNonEmpty(starts)
+          ? [mountListSection('Started', starts)]
+          : []),
+        ...(Array_.isReadonlyArrayNonEmpty(ends)
+          ? [mountListSection('Ended', ends)]
+          : []),
+      ],
+    )
+  }
+
   const inspectorTabContent = (
     model: Model,
     tab: InspectorTab,
@@ -1152,6 +1260,10 @@ const makeView = (
           selectedCommandNames(model),
         ]),
       ),
+      M.when('Mounts', () => {
+        const { starts, ends } = selectedMountActivity(model)
+        return lazyTabContent('Mounts', mountsTabContent, [starts, ends])
+      }),
       M.exhaustive,
     )
 

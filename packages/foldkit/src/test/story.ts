@@ -111,7 +111,7 @@ export const message =
   }
 
 /** Resolves a specific pending Command with the given result Message. */
-export const resolve: {
+const resolveCommand: {
   <Name extends string, ResultMessage>(
     definition: CommandDefinition<Name, ResultMessage>,
     resultMessage: ResultMessage,
@@ -165,7 +165,7 @@ export const resolve: {
   }
 
 /** Resolves all listed Commands with their result Messages. Handles cascading resolution. */
-export const resolveAll =
+const resolveAllCommands =
   <R extends ReadonlyArray<unknown>>(
     ...resolvers: { [K in keyof R]: Resolver<R[K]> }
   ) =>
@@ -190,7 +190,7 @@ export const model =
   }
 
 /** Asserts that every given Command is among the pending Commands. */
-export const expectHasCommands =
+const expectHasCommandsStep =
   (...definitions: ReadonlyArray<CommandDefinition<string, unknown>>) =>
   <Model, Message, OutMessage = undefined>(
     simulation: StorySimulation<Model, Message, OutMessage>,
@@ -200,7 +200,7 @@ export const expectHasCommands =
   }
 
 /** Asserts that the pending Commands match the given definitions exactly (order-independent). */
-export const expectExactCommands =
+const expectExactCommandsStep =
   (...definitions: ReadonlyArray<CommandDefinition<string, unknown>>) =>
   <Model, Message, OutMessage = undefined>(
     simulation: StorySimulation<Model, Message, OutMessage>,
@@ -210,7 +210,7 @@ export const expectExactCommands =
   }
 
 /** Asserts that there are no pending Commands. */
-export const expectNoCommands =
+const expectNoCommandsStep =
   () =>
   <Model, Message, OutMessage = undefined>(
     simulation: StorySimulation<Model, Message, OutMessage>,
@@ -219,6 +219,21 @@ export const expectNoCommands =
 
     return simulation
   }
+
+/** Steps that operate on the pending Commands of a story simulation.
+ *  Destructure as `const { Command } = Story` for concise call sites. */
+export const Command = {
+  /** Resolves a specific pending Command with the given result Message. */
+  resolve: resolveCommand,
+  /** Resolves all listed Commands with their result Messages. Handles cascading resolution. */
+  resolveAll: resolveAllCommands,
+  /** Asserts that every given Command is among the pending Commands. */
+  expectHas: expectHasCommandsStep,
+  /** Asserts that the pending Commands match the given definitions exactly (order-independent). */
+  expectExact: expectExactCommandsStep,
+  /** Asserts that there are no pending Commands. */
+  expectNone: expectNoCommandsStep,
+} as const
 
 /** Asserts that the OutMessage is Some with the expected value. */
 export const expectOutMessage =

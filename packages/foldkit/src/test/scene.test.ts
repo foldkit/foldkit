@@ -1,4 +1,4 @@
-import { Option, pipe } from 'effect'
+import { Effect, Option, pipe } from 'effect'
 import { h } from 'snabbdom'
 import type { VNode } from 'snabbdom'
 import { describe, expect, test } from 'vitest'
@@ -34,6 +34,19 @@ import {
   update as logoutUpdate,
   view as logoutView,
 } from './apps/logoutButton.js'
+import {
+  ButtonFocus,
+  CompletedFocusButton,
+  FailedMountSidebar,
+  MeasuredPanel,
+  ClickedIncrement as MountClickedIncrement,
+  ClickedToggle as MountClickedToggle,
+  PanelMeasure,
+  initialModel as mountInitialModel,
+  twoPanelView as mountTwoPanelView,
+  update as mountUpdate,
+  view as mountView,
+} from './apps/mountPanel.js'
 import {
   initialModel as multiRoleInitialModel,
   update as multiRoleUpdate,
@@ -1389,7 +1402,10 @@ describe('scene', () => {
         expect(commands).toHaveLength(1)
         expect(commands[0]?.name).toBe(Authenticate.name)
       }),
-      Scene.resolve(Authenticate, SucceededAuthenticate({ username: 'alice' })),
+      Scene.Command.resolve(
+        Authenticate,
+        SucceededAuthenticate({ username: 'alice' }),
+      ),
       Scene.expect(Scene.role('status')).toHaveText('Welcome, alice!'),
     )
   })
@@ -1419,7 +1435,10 @@ describe('scene', () => {
       Scene.type(Scene.label('Password'), 'secret'),
       Scene.click(Scene.role('button', { name: 'Sign in' })),
       Scene.expect(Scene.role('button')).toHaveText('Signing in...'),
-      Scene.resolve(Authenticate, SucceededAuthenticate({ username: 'alice' })),
+      Scene.Command.resolve(
+        Authenticate,
+        SucceededAuthenticate({ username: 'alice' }),
+      ),
       Scene.expect(Scene.role('status')).toHaveText('Welcome, alice!'),
     )
   })
@@ -1449,7 +1468,7 @@ describe('scene', () => {
       Scene.with(initialModel),
       Scene.submit(Scene.role('form')),
       Scene.expect(Scene.role('button')).toHaveText('Signing in...'),
-      Scene.resolve(
+      Scene.Command.resolve(
         Authenticate,
         FailedAuthenticate({ error: 'Invalid credentials' }),
       ),
@@ -1529,7 +1548,10 @@ describe('scene with locators', () => {
       Scene.type(Scene.label('Password'), 'secret'),
       Scene.submit(Scene.role('form')),
       Scene.expect(Scene.role('button')).toHaveText('Signing in...'),
-      Scene.resolve(Authenticate, SucceededAuthenticate({ username: 'alice' })),
+      Scene.Command.resolve(
+        Authenticate,
+        SucceededAuthenticate({ username: 'alice' }),
+      ),
     )
   })
 
@@ -1660,7 +1682,10 @@ describe('scene with expect', () => {
       Scene.type(Scene.label('Password'), 'secret'),
       Scene.submit(Scene.role('form')),
       Scene.expect(Scene.role('button')).toHaveText('Signing in...'),
-      Scene.resolve(Authenticate, SucceededAuthenticate({ username: 'alice' })),
+      Scene.Command.resolve(
+        Authenticate,
+        SucceededAuthenticate({ username: 'alice' }),
+      ),
       Scene.expect(Scene.role('status')).toHaveText('Welcome, alice!'),
     )
   })
@@ -1984,10 +2009,13 @@ describe('scene with Command-based file upload flow', () => {
       Scene.with(resumeInitialModel),
       Scene.expect(chooseButton).toExist(),
       Scene.click(chooseButton),
-      Scene.resolve(SelectResume, SelectedResume({ files: [resumePdf] })),
+      Scene.Command.resolve(
+        SelectResume,
+        SelectedResume({ files: [resumePdf] }),
+      ),
       Scene.expect(Scene.text('resume.pdf')).toExist(),
       Scene.expect(readingStatus).toHaveText('Reading preview...'),
-      Scene.resolve(
+      Scene.Command.resolve(
         ReadResumePreview,
         SucceededReadPreview({ dataUrl: previewDataUrl }),
       ),
@@ -2002,7 +2030,7 @@ describe('scene with Command-based file upload flow', () => {
       { update: resumeUpdate, view: resumeView },
       Scene.with(resumeInitialModel),
       Scene.click(chooseButton),
-      Scene.resolve(SelectResume, CancelledSelectResume()),
+      Scene.Command.resolve(SelectResume, CancelledSelectResume()),
       Scene.expect(chooseButton).toExist(),
       Scene.expect(Scene.text('resume.pdf')).toBeAbsent(),
     )
@@ -2013,7 +2041,7 @@ describe('scene with Command-based file upload flow', () => {
       { update: resumeUpdate, view: resumeView },
       Scene.with(resumeInitialModel),
       Scene.click(chooseButton),
-      Scene.resolve(SelectResume, SelectedResume({ files: [] })),
+      Scene.Command.resolve(SelectResume, SelectedResume({ files: [] })),
       Scene.expect(chooseButton).toExist(),
     )
   })
@@ -2023,8 +2051,11 @@ describe('scene with Command-based file upload flow', () => {
       { update: resumeUpdate, view: resumeView },
       Scene.with(resumeInitialModel),
       Scene.click(chooseButton),
-      Scene.resolve(SelectResume, SelectedResume({ files: [resumePdf] })),
-      Scene.resolve(ReadResumePreview, FailedReadPreview()),
+      Scene.Command.resolve(
+        SelectResume,
+        SelectedResume({ files: [resumePdf] }),
+      ),
+      Scene.Command.resolve(ReadResumePreview, FailedReadPreview()),
       Scene.expect(Scene.text('resume.pdf')).toExist(),
       Scene.expect(errorAlert).toHaveText('Could not read preview'),
       Scene.expect(previewImage).toBeAbsent(),
@@ -2055,7 +2086,7 @@ describe('scene with Command-based file upload flow', () => {
       { update: resumeUpdate, view: resumeView },
       Scene.with(resumeInitialModel),
       Scene.click(chooseButton),
-      Scene.resolveAll(
+      Scene.Command.resolveAll(
         [SelectResume, SelectedResume({ files: [resumePdf] })],
         [ReadResumePreview, SucceededReadPreview({ dataUrl: previewDataUrl })],
       ),
@@ -2063,7 +2094,7 @@ describe('scene with Command-based file upload flow', () => {
       Scene.click(removeButton),
       Scene.expect(chooseButton).toExist(),
       Scene.click(chooseButton),
-      Scene.resolveAll(
+      Scene.Command.resolveAll(
         [SelectResume, SelectedResume({ files: [secondResume] })],
         [ReadResumePreview, SucceededReadPreview({ dataUrl: secondDataUrl })],
       ),
@@ -2180,7 +2211,7 @@ describe('scene with resolveAll', () => {
       { update, view },
       Scene.with(initialModel),
       Scene.submit(Scene.role('form')),
-      Scene.resolveAll([
+      Scene.Command.resolveAll([
         Authenticate,
         SucceededAuthenticate({ username: 'bob' }),
       ]),
@@ -2668,5 +2699,283 @@ describe('scene with pointer events', () => {
         Scene.pointerUp(Scene.label('no handler')),
       ),
     ).toThrow(/neither it nor any ancestor has a pointerup handler/)
+  })
+})
+
+describe('scene mounts', () => {
+  const acknowledgeButtonFocus = Scene.Mount.resolve(
+    ButtonFocus,
+    CompletedFocusButton(),
+  )
+
+  test('expectHasMounts succeeds when the named mount is rendered', () => {
+    Scene.scene(
+      { update: mountUpdate, view: mountView },
+      Scene.with(mountInitialModel),
+      Scene.Mount.expectHas(ButtonFocus),
+      acknowledgeButtonFocus,
+    )
+  })
+
+  test('expectHasMounts fails when a mount is missing from the view', () => {
+    expect(() =>
+      Scene.scene(
+        { update: mountUpdate, view: mountView },
+        Scene.with(mountInitialModel),
+        Scene.Mount.expectHas(PanelMeasure),
+        acknowledgeButtonFocus,
+      ),
+    ).toThrow(/Expected to find Mounts/)
+  })
+
+  test('expectExactMounts succeeds when the rendered mounts match', () => {
+    Scene.scene(
+      { update: mountUpdate, view: mountView },
+      Scene.with(mountInitialModel),
+      Scene.Mount.expectExact(ButtonFocus),
+      acknowledgeButtonFocus,
+    )
+  })
+
+  test('expectExactMounts fails when an unexpected mount is rendered', () => {
+    const openModel = { ...mountInitialModel, isOpen: true }
+    expect(() =>
+      Scene.scene(
+        { update: mountUpdate, view: mountView },
+        Scene.with(openModel),
+        Scene.Mount.expectExact(ButtonFocus),
+      ),
+    ).toThrow(/Expected exactly these Mounts/)
+  })
+
+  test('expectNoMounts succeeds when no OnMount nodes are rendered', () => {
+    Scene.scene(
+      {
+        update: (): readonly [
+          typeof mountInitialModel,
+          ReadonlyArray<never>,
+        ] => [mountInitialModel, []],
+        view: () => Effect.succeed(h('div', {}, [])),
+      },
+      Scene.with(mountInitialModel),
+      Scene.Mount.expectNone(),
+    )
+  })
+
+  test('expectNoMounts fails when a mount is pending', () => {
+    expect(() =>
+      Scene.scene(
+        { update: mountUpdate, view: mountView },
+        Scene.with(mountInitialModel),
+        Scene.Mount.expectNone(),
+      ),
+    ).toThrow(/Expected no Mounts/)
+  })
+
+  test('resolveMount feeds the result Message through update', () => {
+    const openModel = { ...mountInitialModel, isOpen: true }
+    Scene.scene(
+      { update: mountUpdate, view: mountView },
+      Scene.with(openModel),
+      Scene.Mount.expectHas(PanelMeasure, ButtonFocus),
+      Scene.Mount.resolve(PanelMeasure, MeasuredPanel({ width: 200 })),
+      Scene.tap(({ html }) => {
+        expect(textContent(html)).toContain('width: 200')
+      }),
+      acknowledgeButtonFocus,
+    )
+  })
+
+  test('resolveMount throws when no pending mount matches the name', () => {
+    expect(() =>
+      Scene.scene(
+        { update: mountUpdate, view: mountView },
+        Scene.with(mountInitialModel),
+        Scene.Mount.resolve(PanelMeasure, MeasuredPanel({ width: 0 })),
+      ),
+    ).toThrow(/I tried to resolve Mount "PanelMeasure"/)
+  })
+
+  test('resolveAllMounts resolves a batch in order', () => {
+    const openModel = { ...mountInitialModel, isOpen: true }
+    Scene.scene(
+      { update: mountUpdate, view: mountView },
+      Scene.with(openModel),
+      Scene.Mount.resolveAll(
+        [ButtonFocus, CompletedFocusButton()],
+        [PanelMeasure, MeasuredPanel({ width: 100 })],
+      ),
+      Scene.tap(({ html }) => {
+        expect(textContent(html)).toContain('width: 100')
+      }),
+    )
+  })
+
+  test('a mount that disappears between renders is silently dropped', () => {
+    const openModel = { ...mountInitialModel, isOpen: true }
+    Scene.scene(
+      { update: mountUpdate, view: mountView },
+      Scene.with(openModel),
+      Scene.Mount.expectHas(PanelMeasure, ButtonFocus),
+      Scene.Mount.resolve(PanelMeasure, MeasuredPanel({ width: 400 })),
+      acknowledgeButtonFocus,
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectNone(),
+    )
+  })
+
+  test('an interaction with an unresolved mount throws a clear error', () => {
+    const openModel = { ...mountInitialModel, isOpen: true }
+    expect(() =>
+      Scene.scene(
+        { update: mountUpdate, view: mountView },
+        Scene.with(openModel),
+        Scene.click(Scene.role('button')),
+      ),
+    ).toThrow(/I found unresolved Mounts/)
+  })
+
+  test('a mount left unresolved at the end of the scene throws', () => {
+    expect(() =>
+      Scene.scene(
+        { update: mountUpdate, view: mountView },
+        Scene.with(mountInitialModel),
+      ),
+    ).toThrow(/I found Mounts without resolvers/)
+  })
+
+  test('a resolved mount stays resolved across re-renders', () => {
+    const openModel = { ...mountInitialModel, isOpen: true }
+    Scene.scene(
+      { update: mountUpdate, view: mountView },
+      Scene.with(openModel),
+      acknowledgeButtonFocus,
+      Scene.Mount.resolve(PanelMeasure, MeasuredPanel({ width: 50 })),
+      Scene.Mount.expectNone(),
+    )
+  })
+
+  test('two same-named mounts get distinct occurrence indices', () => {
+    Scene.scene(
+      { update: mountUpdate, view: mountTwoPanelView },
+      Scene.with(mountInitialModel),
+      Scene.tap(({ mounts }) => {
+        expect(mounts).toHaveLength(2)
+        expect(mounts[0]).toEqual({ name: 'PanelMeasure', occurrence: 0 })
+        expect(mounts[1]).toEqual({ name: 'PanelMeasure', occurrence: 1 })
+      }),
+      Scene.Mount.resolve(PanelMeasure, MeasuredPanel({ width: 1 })),
+      Scene.Mount.resolve(PanelMeasure, MeasuredPanel({ width: 2 })),
+    )
+  })
+
+  test('resolveMount accepts a toParentMessage lifter', () => {
+    type ParentMessage = Readonly<{
+      _tag: 'GotPanelMessage'
+      message:
+        | typeof MeasuredPanel.Type
+        | typeof FailedMountSidebar.Type
+        | typeof CompletedFocusButton.Type
+        | typeof MountClickedToggle.Type
+        | typeof MountClickedIncrement.Type
+    }>
+
+    const seen: Array<ParentMessage> = []
+
+    const parentUpdate = (
+      _model: { count: number },
+      message: ParentMessage,
+    ): readonly [{ count: number }, ReadonlyArray<never>] => {
+      seen.push(message)
+      return [{ count: 0 }, []]
+    }
+
+    const openModel = { ...mountInitialModel, isOpen: true }
+    const parentView = (_model: { count: number }) => mountView(openModel)
+
+    Scene.scene(
+      { update: parentUpdate, view: parentView },
+      Scene.with({ count: 0 }),
+      Scene.Mount.resolve(ButtonFocus, CompletedFocusButton(), message => ({
+        _tag: 'GotPanelMessage' as const,
+        message,
+      })),
+      Scene.Mount.resolve(
+        PanelMeasure,
+        MeasuredPanel({ width: 7 }),
+        message => ({
+          _tag: 'GotPanelMessage' as const,
+          message,
+        }),
+      ),
+    )
+
+    expect(seen).toContainEqual({
+      _tag: 'GotPanelMessage',
+      message: { _tag: 'CompletedFocusButton' },
+    })
+    expect(seen).toContainEqual({
+      _tag: 'GotPanelMessage',
+      message: { _tag: 'MeasuredPanel', width: 7 },
+    })
+  })
+
+  test('mounts on view returning Document are tracked', () => {
+    const documentView = (model: typeof mountInitialModel) => ({
+      head: [],
+      body: mountView(model),
+    })
+
+    Scene.scene(
+      { update: mountUpdate, view: documentView },
+      Scene.with(mountInitialModel),
+      Scene.Mount.expectHas(ButtonFocus),
+      acknowledgeButtonFocus,
+    )
+  })
+
+  test('a pending mount whose element disappears before resolution is dropped', () => {
+    // When resolving Mount A's result Message removes Mount B's element from
+    // the tree, Mount B is silently dropped on the next render. The unmount
+    // case mirrors what would happen in the real runtime when an element
+    // gets ripped out before its OnMount Effect produces a Message.
+    const openModel = { ...mountInitialModel, isOpen: true }
+    type Message =
+      | typeof MountClickedToggle.Type
+      | typeof CompletedFocusButton.Type
+      | typeof MeasuredPanel.Type
+      | typeof FailedMountSidebar.Type
+      | typeof MountClickedIncrement.Type
+
+    const closingUpdate = (
+      model: typeof mountInitialModel,
+      message: Message,
+    ): readonly [typeof mountInitialModel, ReadonlyArray<never>] =>
+      message._tag === 'CompletedFocusButton'
+        ? [{ ...model, isOpen: false }, []]
+        : mountUpdate(model, message)
+
+    Scene.scene(
+      { update: closingUpdate, view: mountView },
+      Scene.with(openModel),
+      Scene.Mount.expectHas(PanelMeasure, ButtonFocus),
+      acknowledgeButtonFocus,
+      Scene.Mount.expectNone(),
+    )
+  })
+
+  test('a mount that appears mid-scene becomes pending', () => {
+    Scene.scene(
+      { update: mountUpdate, view: mountView },
+      Scene.with(mountInitialModel),
+      Scene.Mount.expectExact(ButtonFocus),
+      acknowledgeButtonFocus,
+      Scene.click(Scene.role('button')),
+      Scene.Mount.expectExact(PanelMeasure),
+      Scene.Mount.resolve(PanelMeasure, MeasuredPanel({ width: 256 })),
+      Scene.tap(({ html }) => {
+        expect(textContent(html)).toContain('width: 256')
+      }),
+    )
   })
 })

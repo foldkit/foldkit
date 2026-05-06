@@ -47,6 +47,14 @@
       "types": "./dist/runtime/public.d.ts",
       "import": "./dist/runtime/public.js"
     },
+    "./scene": {
+      "types": "./dist/scene/public.d.ts",
+      "import": "./dist/scene/public.js"
+    },
+    "./story": {
+      "types": "./dist/story/public.d.ts",
+      "import": "./dist/story/public.js"
+    },
     "./hmr-protocol": {
       "types": "./dist/runtime/hmrProtocolPublic.d.ts",
       "import": "./dist/runtime/hmrProtocolPublic.js"

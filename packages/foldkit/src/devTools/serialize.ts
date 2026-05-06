@@ -81,6 +81,8 @@ export const toSerializedEntry = (
     tag: entry.tag,
     message: toInspectableValue(entry.message),
     commandNames: entry.commandNames,
+    mountStartNames: entry.mountStartNames,
+    mountEndNames: entry.mountEndNames,
     timestamp: entry.timestamp,
     isModelChanged: entry.isModelChanged,
     changedPaths: Array_.fromIterable(entry.diff.changedPaths),

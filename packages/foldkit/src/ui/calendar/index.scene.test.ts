@@ -7,7 +7,7 @@ import * as Scene from '../../test/scene.js'
 import type { CalendarAttributes, Message, Model, ViewConfig } from './index.js'
 import { CompletedFocusGrid, FocusGrid, init, update, view } from './index.js'
 
-const resolveFocusGrid = Scene.resolve(FocusGrid, CompletedFocusGrid())
+const resolveFocusGrid = Scene.Command.resolve(FocusGrid, CompletedFocusGrid())
 
 const { div, button, h2, Id } = html<Message>()
 

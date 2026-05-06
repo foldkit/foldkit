@@ -63,7 +63,7 @@ describe('login', () => {
       Story.model(model => {
         expect(model.isSubmitting).toBe(false)
       }),
-      Story.expectNoCommands(),
+      Story.Command.expectNone(),
     )
   })
 
@@ -75,8 +75,8 @@ describe('login', () => {
       Story.model(model => {
         expect(model.isSubmitting).toBe(true)
       }),
-      Story.expectHasCommands(SimulateAuthRequest),
-      Story.resolve(
+      Story.Command.expectHas(SimulateAuthRequest),
+      Story.Command.resolve(
         SimulateAuthRequest,
         SucceededSimulateAuthRequest({ session: aliceSession }),
       ),
@@ -92,7 +92,7 @@ describe('login', () => {
       Story.model(model => {
         expect(model.isSubmitting).toBe(true)
       }),
-      Story.resolve(
+      Story.Command.resolve(
         SimulateAuthRequest,
         FailedSimulateAuthRequest({ error: 'Invalid credentials' }),
       ),

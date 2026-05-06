@@ -1,6 +1,6 @@
 import { Html } from 'foldkit/html'
 
-import { Class, InnerHTML, code, div } from '../html'
+import { Class, InnerHTML, code, div, li, ul } from '../html'
 import type { TableOfContentsEntry } from '../main'
 import {
   inlineCode,
@@ -14,6 +14,87 @@ import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 import { comparisonTable } from '../view/table'
 
 const plainCode = (text: string): Html => code([Class('text-sm')], [text])
+
+const commandSemanticsList: Html = ul(
+  [Class('list-disc mb-8 space-y-2 pl-6')],
+  [
+    li(
+      [],
+      [
+        'Pending Commands accumulate in the order ',
+        inlineCode('update'),
+        ' returns them, across as many steps as the test takes.',
+      ],
+    ),
+    li(
+      [],
+      [
+        'Resolving a Command feeds its result Message through ',
+        inlineCode('update'),
+        '; new Commands produced by that update join the pending list.',
+      ],
+    ),
+    li(
+      [],
+      [
+        inlineCode('Scene.Command.resolveAll'),
+        ' walks cascades within the batch. If resolving Command A produces Command B and B’s resolver is in the same call, B resolves without a separate step.',
+      ],
+    ),
+    li(
+      [],
+      [
+        'Interactions throw if there are unresolved Commands when they try to dispatch a Message.',
+      ],
+    ),
+    li(
+      [],
+      [
+        inlineCode('Scene.scene'),
+        ' throws at the end if any Command remains unresolved.',
+      ],
+    ),
+  ],
+)
+
+const mountSemanticsList: Html = ul(
+  [Class('list-disc mb-8 space-y-2 pl-6')],
+  [
+    li(
+      [],
+      [
+        'Pending mounts persist across re-renders. Resolving a mount does not re-pend it on the next render.',
+      ],
+    ),
+    li(
+      [],
+      [
+        'If resolving a Command or Mount changes the Model in a way that removes a pending mount’s element, the mount is silently dropped. The test does not need to acknowledge it.',
+      ],
+    ),
+    li(
+      [],
+      [
+        'Same-named mounts in the tree are disambiguated by occurrence. ',
+        inlineCode('Scene.Mount.resolve'),
+        ' resolves the first pending occurrence; a second call resolves the next.',
+      ],
+    ),
+    li(
+      [],
+      [
+        'Interactions throw if there are unresolved mounts when they try to dispatch a Message. Same contract as Commands.',
+      ],
+    ),
+    li(
+      [],
+      [
+        inlineCode('Scene.scene'),
+        ' throws at the end if any mount remains unresolved.',
+      ],
+    ),
+  ],
+)
 
 const whyHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -57,10 +138,16 @@ const assertionsHeader: TableOfContentsEntry = {
   text: 'Assertions',
 }
 
-const commandAssertionsHeader: TableOfContentsEntry = {
+const commandsHeader: TableOfContentsEntry = {
   level: 'h2',
-  id: 'command-assertions',
-  text: 'Command Assertions',
+  id: 'commands',
+  text: 'Commands',
+}
+
+const mountsHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'mounts',
+  text: 'Mounts',
 }
 
 const exampleHeader: TableOfContentsEntry = {
@@ -83,7 +170,8 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   multiMatchHeader,
   interactionsHeader,
   assertionsHeader,
-  commandAssertionsHeader,
+  commandsHeader,
+  mountsHeader,
   exampleHeader,
   storyVsSceneHeader,
 ]
@@ -477,34 +565,18 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           [[plainCode('.toBeEmpty()')], ['The locator matches zero elements']],
         ],
       ),
-      tableOfContentsEntryToHeader(commandAssertionsHeader),
+      tableOfContentsEntryToHeader(commandsHeader),
       para(
-        'Scene can also assert on pending Commands. Use these steps to verify that an interaction produced the Commands you expect before resolving them:',
+        'When ',
+        inlineCode('update'),
+        ' returns Commands (see ',
+        link('/core/commands', 'Commands'),
+        '), Scene tracks each as pending until the test resolves it with the result Message its Effect would resolve to at runtime. ',
+        inlineCode('update'),
+        ' declares the Command, the test declares its outcome.',
       ),
-      comparisonTable(
-        ['Step', 'Asserts that'],
-        [
-          [
-            [plainCode('expectExactCommands(A, B)')],
-            ['The pending Commands are exactly A and B (order-independent)'],
-          ],
-          [
-            [plainCode('expectHasCommands(A)')],
-            ['A is among the pending Commands (subset check)'],
-          ],
-          [
-            [plainCode('expectNoCommands()')],
-            ['There are no pending Commands'],
-          ],
-        ],
-      ),
-      para(
-        'Prefer ',
-        inlineCode('expectExactCommands'),
-        ' as the default. It catches bugs where an interaction produces unexpected Commands. Use ',
-        inlineCode('expectHasCommands'),
-        ' when you only care about a subset of the pending Commands.',
-      ),
+      para('Command tracking has a few semantics worth knowing:'),
+      commandSemanticsList,
       highlightedCodeBlock(
         div(
           [
@@ -517,6 +589,120 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Copy command assertions example to clipboard',
         copiedSnippets,
         'mb-8',
+      ),
+      comparisonTable(
+        ['Step', 'Effect'],
+        [
+          [
+            [plainCode('Scene.Command.resolve(Def, ResultMessage)')],
+            [
+              'Resolves the first pending Command with the given name by feeding ',
+              plainCode('ResultMessage'),
+              ' through update. Accepts an optional ',
+              plainCode('toParentMessage'),
+              ' lifter for child Submodel Commands.',
+            ],
+          ],
+          [
+            [plainCode('Scene.Command.resolveAll([Def, ResultMessage], ...)')],
+            [
+              'Resolves a batch of pending Commands in order, walking cascades.',
+            ],
+          ],
+          [
+            [plainCode('Scene.Command.expectExact(A, B)')],
+            ['The pending Commands are exactly A and B (order-independent).'],
+          ],
+          [
+            [plainCode('Scene.Command.expectHas(A)')],
+            ['A is among the pending Commands (subset check).'],
+          ],
+          [
+            [plainCode('Scene.Command.expectNone()')],
+            ['There are no pending Commands.'],
+          ],
+        ],
+      ),
+      para(
+        'Prefer ',
+        inlineCode('Scene.Command.expectExact'),
+        ' as the default. It catches bugs where an interaction produces unexpected Commands. Use ',
+        inlineCode('Scene.Command.expectHas'),
+        ' when you only care about a subset of the pending Commands.',
+      ),
+      tableOfContentsEntryToHeader(mountsHeader),
+      para(
+        'When a rendered view contains an ',
+        inlineCode('OnMount'),
+        ' attribute (see ',
+        link('/core/mount', 'Mount'),
+        '), Scene tracks the mount as pending until the test acknowledges it with the result Message its Effect would resolve to at runtime. The mechanic mirrors Command resolution: the view declares the Mount, the test declares its outcome.',
+      ),
+      para(
+        'Many UI components in ',
+        inlineCode('foldkit/ui'),
+        ' declare mounts internally (popovers positioning their panels, listboxes focusing items, components that hand the live element to a third-party library). When the test renders any of these, the same ',
+        inlineCode('OnMount'),
+        ' shows up in the VNode tree, and Scene treats it as a pending mount. Acknowledging it advances the test through the same path the user takes: the view renders, the mount fires, the result Message updates the Model.',
+      ),
+      para('Mount tracking has a few semantics worth knowing:'),
+      mountSemanticsList,
+      highlightedCodeBlock(
+        div(
+          [
+            Class('text-sm'),
+            InnerHTML(Snippets.sceneMountAssertionsHighlighted),
+          ],
+          [],
+        ),
+        Snippets.sceneMountAssertionsRaw,
+        'Copy mount assertions example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      comparisonTable(
+        ['Step', 'Effect'],
+        [
+          [
+            [plainCode('Scene.Mount.resolve(Def, ResultMessage)')],
+            [
+              'Resolves the first pending mount with the given name by feeding ',
+              plainCode('ResultMessage'),
+              ' through update. Accepts an optional ',
+              plainCode('toParentMessage'),
+              ' lifter, mirroring ',
+              plainCode('Scene.Command.resolve'),
+              '.',
+            ],
+          ],
+          [
+            [plainCode('Scene.Mount.resolveAll([Def, ResultMessage], ...)')],
+            ['Resolves a batch of pending mounts in order.'],
+          ],
+          [
+            [plainCode('Scene.Mount.expectExact(A, B)')],
+            [
+              'The pending mounts are exactly A and B (order-independent, by name).',
+            ],
+          ],
+          [
+            [plainCode('Scene.Mount.expectHas(A)')],
+            ['A is among the pending mounts (subset check).'],
+          ],
+          [
+            [plainCode('Scene.Mount.expectNone()')],
+            ['There are no pending mounts.'],
+          ],
+        ],
+      ),
+      para(
+        'UI components export their Mount definitions (',
+        inlineCode('Ui.Popover.PopoverAnchor'),
+        ', ',
+        inlineCode('Ui.Listbox.ListboxAnchor'),
+        ', and so on) so consumer tests can name them in ',
+        inlineCode('Scene.Mount.resolve'),
+        '.',
       ),
       tableOfContentsEntryToHeader(exampleHeader),
       para(

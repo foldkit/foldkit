@@ -67,7 +67,7 @@ describe('Tabs', () => {
         update,
         Story.with(init({ id: 'test' })),
         Story.message(TabSelected({ index: 3 })),
-        Story.resolve(FocusTab, CompletedFocusTab()),
+        Story.Command.resolve(FocusTab, CompletedFocusTab()),
         Story.model(model => {
           expect(model.activeIndex).toBe(3)
           expect(model.focusedIndex).toBe(3)
@@ -80,7 +80,7 @@ describe('Tabs', () => {
         update,
         Story.with(init({ id: 'test', activeIndex: 1 })),
         Story.message(TabSelected({ index: 0 })),
-        Story.resolve(FocusTab, CompletedFocusTab()),
+        Story.Command.resolve(FocusTab, CompletedFocusTab()),
         Story.model(model => {
           expect(model.activeIndex).toBe(0)
           expect(model.focusedIndex).toBe(0)
@@ -93,7 +93,7 @@ describe('Tabs', () => {
         update,
         Story.with(init({ id: 'test', activationMode: 'Manual' })),
         Story.message(TabFocused({ index: 2 })),
-        Story.resolve(FocusTab, CompletedFocusTab()),
+        Story.Command.resolve(FocusTab, CompletedFocusTab()),
         Story.model(model => {
           expect(model.activeIndex).toBe(0)
           expect(model.focusedIndex).toBe(2)
@@ -112,7 +112,7 @@ describe('Tabs', () => {
           }),
         ),
         Story.message(TabFocused({ index: 3 })),
-        Story.resolve(FocusTab, CompletedFocusTab()),
+        Story.Command.resolve(FocusTab, CompletedFocusTab()),
         Story.model(model => {
           expect(model.activeIndex).toBe(1)
           expect(model.focusedIndex).toBe(3)
@@ -128,7 +128,7 @@ describe('Tabs', () => {
           focusedIndex: 2,
         }),
         Story.message(TabSelected({ index: 2 })),
-        Story.resolve(FocusTab, CompletedFocusTab()),
+        Story.Command.resolve(FocusTab, CompletedFocusTab()),
         Story.model(model => {
           expect(model.activeIndex).toBe(2)
           expect(model.focusedIndex).toBe(2)

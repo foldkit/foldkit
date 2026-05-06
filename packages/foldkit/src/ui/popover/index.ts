@@ -379,8 +379,15 @@ export const update = (model: Model, message: Message): UpdateReturn => {
   )
 }
 
-const PopoverAnchor = Mount.define('PopoverAnchor', CompletedAnchorMount)
-const PopoverBackdropPortal = Mount.define(
+/** The anchor-positioning Mount this Popover renders on its panel. Exposed so
+ *  Scene tests can call `Scene.Mount.resolve(PopoverAnchor, CompletedAnchorMount())`
+ *  to acknowledge the mount produced by the rendered panel. */
+export const PopoverAnchor = Mount.define('PopoverAnchor', CompletedAnchorMount)
+
+/** The backdrop-portaling Mount this Popover renders. Exposed so Scene tests can
+ *  call `Scene.Mount.resolve(PopoverBackdropPortal, CompletedBackdropPortal())` to
+ *  acknowledge the mount produced by the rendered backdrop. */
+export const PopoverBackdropPortal = Mount.define(
   'PopoverBackdropPortal',
   CompletedBackdropPortal,
 )

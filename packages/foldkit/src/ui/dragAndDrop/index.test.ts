@@ -519,7 +519,7 @@ describe('DragAndDrop', () => {
         Story.with(defaultInit()),
         Story.message(activatedKeyboardDrag),
         Story.message(PressedArrowKey({ direction: 'Down' })),
-        Story.resolve(
+        Story.Command.resolve(
           ResolveKeyboardMove,
           ResolvedKeyboardMove({ targetContainerId: 'list-1', targetIndex: 1 }),
         ),
@@ -577,7 +577,7 @@ describe('DragAndDrop', () => {
             toIndex: 1,
           }),
         ),
-        Story.resolve(FocusItem, CompletedFocusItem()),
+        Story.Command.resolve(FocusItem, CompletedFocusItem()),
       )
     })
 
@@ -591,7 +591,7 @@ describe('DragAndDrop', () => {
           expect(model.dragState._tag).toBe('Idle')
         }),
         Story.expectOutMessage(Cancelled()),
-        Story.resolve(FocusItem, CompletedFocusItem()),
+        Story.Command.resolve(FocusItem, CompletedFocusItem()),
       )
     })
 

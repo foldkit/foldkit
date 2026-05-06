@@ -45,12 +45,12 @@ describe('Animation', () => {
             expect(model.isShowing).toBe(true)
             expect(model.transitionState).toBe('EnterStart')
           }),
-          Story.expectHasCommands(RequestFrame),
-          Story.resolve(RequestFrame, AdvancedAnimationFrame()),
+          Story.Command.expectHas(RequestFrame),
+          Story.Command.resolve(RequestFrame, AdvancedAnimationFrame()),
           Story.model(model => {
             expect(model.transitionState).toBe('EnterAnimating')
           }),
-          Story.resolve(WaitForAnimationSettled, EndedAnimation()),
+          Story.Command.resolve(WaitForAnimationSettled, EndedAnimation()),
           Story.model(model => {
             expect(model.transitionState).toBe('Idle')
           }),
@@ -67,7 +67,7 @@ describe('Animation', () => {
             expect(model.isShowing).toBe(true)
             expect(model.transitionState).toBe('Idle')
           }),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
           Story.expectNoOutMessage(),
         )
       })
@@ -83,12 +83,12 @@ describe('Animation', () => {
             expect(model.isShowing).toBe(false)
             expect(model.transitionState).toBe('LeaveStart')
           }),
-          Story.expectHasCommands(RequestFrame),
-          Story.resolve(RequestFrame, AdvancedAnimationFrame()),
+          Story.Command.expectHas(RequestFrame),
+          Story.Command.resolve(RequestFrame, AdvancedAnimationFrame()),
           Story.model(model => {
             expect(model.transitionState).toBe('LeaveAnimating')
           }),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
           Story.expectOutMessage(StartedLeaveAnimating()),
           Story.message(EndedAnimation()),
           Story.model(model => {
@@ -106,7 +106,7 @@ describe('Animation', () => {
           Story.model(model => {
             expect(model.isShowing).toBe(false)
           }),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
           Story.expectNoOutMessage(),
         )
       })
@@ -116,18 +116,18 @@ describe('Animation', () => {
           update,
           Story.with(init({ id: 'test', isShowing: true })),
           Story.message(Hid()),
-          Story.expectHasCommands(RequestFrame),
-          Story.resolve(RequestFrame, AdvancedAnimationFrame()),
+          Story.Command.expectHas(RequestFrame),
+          Story.Command.resolve(RequestFrame, AdvancedAnimationFrame()),
           Story.model(model => {
             expect(model.transitionState).toBe('LeaveAnimating')
           }),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
           Story.expectOutMessage(StartedLeaveAnimating()),
           Story.message(Hid()),
           Story.model(model => {
             expect(model.transitionState).toBe('LeaveAnimating')
           }),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
           Story.expectNoOutMessage(),
         )
       })
@@ -142,7 +142,7 @@ describe('Animation', () => {
           Story.model(model => {
             expect(model.transitionState).toBe('Idle')
           }),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
         )
       })
     })
@@ -156,7 +156,7 @@ describe('Animation', () => {
           Story.model(model => {
             expect(model.transitionState).toBe('Idle')
           }),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
         )
       })
     })

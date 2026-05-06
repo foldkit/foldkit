@@ -171,7 +171,7 @@ describe('Toast', () => {
           Story.model((next: Model) => {
             expect(next.entries[0]?.animation.transitionState).toBe('Idle')
           }),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
         )
       })
 
@@ -190,7 +190,7 @@ describe('Toast', () => {
               'LeaveStart',
             )
           }),
-          Story.resolveAll(
+          Story.Command.resolveAll(
             [
               Animation.RequestFrame,
               Animation.AdvancedAnimationFrame(),
@@ -210,7 +210,7 @@ describe('Toast', () => {
           Toast.update,
           withEmpty,
           Story.message(ElapsedDuration({ entryId: 'nope', version: 0 })),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
         )
       })
     })
@@ -231,7 +231,7 @@ describe('Toast', () => {
             expect(entry?.isHovered).toBe(true)
             expect(entry?.pendingDismissVersion).toBe(1)
           }),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
         )
       })
 
@@ -254,8 +254,8 @@ describe('Toast', () => {
             expect(entry?.isHovered).toBe(false)
             expect(entry?.pendingDismissVersion).toBe(2)
           }),
-          Story.expectHasCommands(DismissAfter),
-          Story.resolve(
+          Story.Command.expectHas(DismissAfter),
+          Story.Command.resolve(
             DismissAfter,
             ElapsedDuration({ entryId: firstEntryId, version: STALE_VERSION }),
           ),
@@ -276,7 +276,7 @@ describe('Toast', () => {
           Toast.update,
           Story.with(model),
           Story.message(LeftEntry({ entryId: firstEntryId })),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
         )
       })
 
@@ -298,7 +298,7 @@ describe('Toast', () => {
             expect(next.entries[0]?.animation.transitionState).toBe('Idle')
             expect(next.entries[0]?.isHovered).toBe(true)
           }),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
         )
       })
     })
@@ -309,7 +309,7 @@ describe('Toast', () => {
           Toast.update,
           withEmpty,
           Story.message(Dismissed({ entryId: 'nope' })),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
         )
       })
 
@@ -318,7 +318,7 @@ describe('Toast', () => {
           Toast.update,
           withEmpty,
           Story.message(HoveredEntry({ entryId: 'nope' })),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
         )
       })
 
@@ -327,7 +327,7 @@ describe('Toast', () => {
           Toast.update,
           withEmpty,
           Story.message(LeftEntry({ entryId: 'nope' })),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
         )
       })
     })
@@ -348,7 +348,7 @@ describe('Toast', () => {
               'LeaveStart',
             )
           }),
-          Story.resolveAll(
+          Story.Command.resolveAll(
             [
               Animation.RequestFrame,
               Animation.AdvancedAnimationFrame(),
@@ -383,7 +383,7 @@ describe('Toast', () => {
           Toast.update,
           Story.with(model),
           Story.message(Dismissed({ entryId: firstEntryId })),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
           Story.model((next: Model) => {
             expect(next).toBe(model)
           }),
@@ -450,22 +450,22 @@ describe('Toast', () => {
               'LeaveStart',
             )
           }),
-          Story.resolve(
+          Story.Command.resolve(
             Animation.RequestFrame,
             Animation.AdvancedAnimationFrame(),
             animationToToastMessage('test-entry-0'),
           ),
-          Story.resolve(
+          Story.Command.resolve(
             Animation.RequestFrame,
             Animation.AdvancedAnimationFrame(),
             animationToToastMessage('test-entry-1'),
           ),
-          Story.resolve(
+          Story.Command.resolve(
             Animation.WaitForAnimationSettled,
             Animation.EndedAnimation(),
             animationToToastMessage('test-entry-0'),
           ),
-          Story.resolve(
+          Story.Command.resolve(
             Animation.WaitForAnimationSettled,
             Animation.EndedAnimation(),
             animationToToastMessage('test-entry-1'),
@@ -487,7 +487,7 @@ describe('Toast', () => {
         Toast.update,
         withEmpty,
         Story.message(Toast.Added({ entry })),
-        Story.resolveAll(
+        Story.Command.resolveAll(
           [
             Animation.RequestFrame,
             Animation.AdvancedAnimationFrame(),
@@ -502,14 +502,14 @@ describe('Toast', () => {
         Story.model((next: Model) => {
           expect(next.entries[0]?.animation.transitionState).toBe('Idle')
         }),
-        Story.resolve(
+        Story.Command.resolve(
           DismissAfter,
           ElapsedDuration({ entryId: firstEntryId, version: 0 }),
         ),
         Story.model((next: Model) => {
           expect(next.entries[0]?.animation.transitionState).toBe('LeaveStart')
         }),
-        Story.resolveAll(
+        Story.Command.resolveAll(
           [
             Animation.RequestFrame,
             Animation.AdvancedAnimationFrame(),

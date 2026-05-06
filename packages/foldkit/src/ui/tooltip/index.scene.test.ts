@@ -3,7 +3,19 @@ import { Effect } from 'effect'
 
 import * as Scene from '../../test/scene.js'
 import type { Message, Model, ViewConfig } from './index.js'
-import { FocusedTrigger, init, update, view } from './index.js'
+import {
+  CompletedAnchorMount,
+  FocusedTrigger,
+  TooltipAnchor,
+  init,
+  update,
+  view,
+} from './index.js'
+
+const acknowledgeAnchor = Scene.Mount.resolve(
+  TooltipAnchor,
+  CompletedAnchorMount(),
+)
 
 const sceneView =
   (
@@ -54,6 +66,7 @@ describe('Tooltip', () => {
         Scene.expect(panel).toExist(),
         Scene.expect(panel).toHaveAttr('role', 'tooltip'),
         Scene.expect(panel).toHaveAttr('id', 'test-panel'),
+        acknowledgeAnchor,
       )
     })
 
@@ -62,6 +75,7 @@ describe('Tooltip', () => {
         { update, view: sceneView() },
         Scene.with(openModel),
         Scene.expect(trigger).toHaveAttr('data-open', ''),
+        acknowledgeAnchor,
       )
     })
 
@@ -75,6 +89,7 @@ describe('Tooltip', () => {
         Scene.expect(panel).toHaveStyle('pointerEvents', 'none'),
         Scene.expect(panel).toHaveHook('insert'),
         Scene.expect(panel).toHaveHook('destroy'),
+        acknowledgeAnchor,
       )
     })
 

@@ -452,9 +452,9 @@ export const view = (
             ' tests the state machine. You feed Messages into update, resolve Commands inline by providing the Message they would return, and assert on the Model at any step. The test reads as a chronological user story: ',
             inlineCode('Story.message'),
             ' to dispatch, ',
-            inlineCode('Story.resolve'),
+            inlineCode('Story.Command.resolve'),
             ' to settle a Command, ',
-            inlineCode('Story.expectExactCommands'),
+            inlineCode('Story.Command.expectExact'),
             ' to assert which Commands were produced.',
           ),
           para(

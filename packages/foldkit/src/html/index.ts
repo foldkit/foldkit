@@ -1,5 +1,6 @@
 import {
   Array,
+  Context,
   Data,
   Effect,
   Function,
@@ -16,6 +17,7 @@ import type { Attrs, On, Props, VNodeData } from 'snabbdom'
 
 import type { File } from '../file/index.js'
 import type { MountAction } from '../mount/index.js'
+import { MountTracker } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
 import { VNode } from '../vdom.js'
 import {
@@ -316,6 +318,17 @@ type OnMountState = {
 }
 
 const onMountStates = new WeakMap<Element, OnMountState>()
+
+/** Key under which the OnMount attribute stamps a `{ name }` marker on the
+ *  snabbdom `VNodeData`. Snabbdom passes unknown data fields through without
+ *  rendering them to the DOM, so the marker is invisible at runtime but
+ *  observable by VNode walkers (Scene tests). */
+export const FOLDKIT_MOUNT_KEY = 'foldkitMount' as const
+
+/** Marker stamped on `VNodeData[FOLDKIT_MOUNT_KEY]` for any element with an
+ *  `OnMount` attribute. Carries the Mount Definition's name so test
+ *  introspection can identify pending mounts. */
+export type FoldkitMountMarker = Readonly<{ name: string }>
 
 /** Union of all HTML, SVG, and MathML attributes a virtual DOM element can carry. */
 export type Attribute<Message> = Data.TaggedEnum<{
@@ -1497,9 +1510,21 @@ const buildVNodeData = <Message>(
             updateDataAttrs({ 'stroke-dasharray': value }),
           StrokeDashoffset: ({ value }) =>
             updateDataAttrs({ 'stroke-dashoffset': value }),
-          OnMount: ({ action }) =>
-            Ref.update(dataRef, data => ({
+          OnMount: ({ action }) => {
+            const maybeTracker = Context.getOption(
+              capturedContext,
+              MountTracker,
+            )
+            const notifyStarted = Option.isSome(maybeTracker)
+              ? () => maybeTracker.value.started(action.name)
+              : Function.constVoid
+            const notifyEnded = Option.isSome(maybeTracker)
+              ? () => maybeTracker.value.ended(action.name)
+              : Function.constVoid
+            const marker: FoldkitMountMarker = { name: action.name }
+            return Ref.update(dataRef, data => ({
               ...data,
+              [FOLDKIT_MOUNT_KEY]: marker,
               hook: {
                 ...data.hook,
                 insert: vnode => {
@@ -1510,6 +1535,7 @@ const buildVNodeData = <Message>(
                       cleanup: Option.none(),
                     }
                     onMountStates.set(element, state)
+                    notifyStarted()
                     Effect.runForkWith(capturedContext)(
                       Effect.gen(function* () {
                         const { message, cleanup } = yield* action.f(element)
@@ -1542,11 +1568,13 @@ const buildVNodeData = <Message>(
                         onSome: cleanup => cleanup(),
                       })
                       onMountStates.delete(vnode.elm)
+                      notifyEnded()
                     }
                   }
                 },
               },
-            })),
+            }))
+          },
         }),
       ),
     )

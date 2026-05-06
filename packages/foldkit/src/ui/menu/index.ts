@@ -677,12 +677,21 @@ export const update = (model: Model, message: Message): UpdateReturn => {
   )
 }
 
-const MenuAnchor = Mount.define('MenuAnchor', CompletedAnchorMount)
-const MenuFocusItemsOnMount = Mount.define(
+/** The anchor-positioning Mount this Menu renders on its panel. Exposed so
+ *  Scene tests can call `Scene.Mount.resolve(MenuAnchor, CompletedAnchorMount())`
+ *  to acknowledge the mount produced by the rendered panel. */
+export const MenuAnchor = Mount.define('MenuAnchor', CompletedAnchorMount)
+/** The Mount this Menu renders to focus its first item on open. Exposed so
+ *  Scene tests can call
+ *  `Scene.Mount.resolve(MenuFocusItemsOnMount, CompletedFocusItemsOnMount())`. */
+export const MenuFocusItemsOnMount = Mount.define(
   'MenuFocusItemsOnMount',
   CompletedFocusItemsOnMount,
 )
-const MenuBackdropPortal = Mount.define(
+/** The backdrop-portaling Mount this Menu renders. Exposed so Scene tests can
+ *  call `Scene.Mount.resolve(MenuBackdropPortal, CompletedBackdropPortal())` to
+ *  acknowledge the mount produced by the rendered backdrop. */
+export const MenuBackdropPortal = Mount.define(
   'MenuBackdropPortal',
   CompletedBackdropPortal,
 )

@@ -2,10 +2,14 @@ import { Option } from 'effect'
 import { Scene, Ui } from 'foldkit'
 import { describe, test } from 'vitest'
 
-import { GenerateCardId, SaveBoard } from './command'
+import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
 import type { Card } from './domain/card'
 import type { Column } from './domain/column'
-import { CompletedSaveBoard, GeneratedCardId } from './message'
+import {
+  CompletedFocusAddCardInput,
+  CompletedSaveBoard,
+  GeneratedCardId,
+} from './message'
 import type { Model } from './model'
 import { update } from './update'
 import { view } from './view/index'
@@ -42,6 +46,11 @@ const testModel: Model = {
 const toDoColumn = Scene.role('region', { name: 'To Do' })
 const inProgressColumn = Scene.role('region', { name: 'In Progress' })
 const doneColumn = Scene.role('region', { name: 'Done' })
+
+const acknowledgeFocusInput = Scene.Mount.resolve(
+  FocusAddCardInput,
+  CompletedFocusAddCardInput(),
+)
 
 describe('scene', () => {
   test('board renders columns with correct names', () => {
@@ -85,6 +94,7 @@ describe('scene', () => {
       Scene.inside(
         toDoColumn,
         Scene.click(Scene.role('button', { name: '+ Add card' })),
+        acknowledgeFocusInput,
         Scene.expect(Scene.label('New card title')).toExist(),
       ),
     )
@@ -97,6 +107,7 @@ describe('scene', () => {
       Scene.click(
         Scene.within(toDoColumn, Scene.role('button', { name: '+ Add card' })),
       ),
+      acknowledgeFocusInput,
       Scene.type(Scene.label('New card title'), 'Buy groceries'),
       Scene.expect(Scene.label('New card title')).toHaveValue('Buy groceries'),
     )
@@ -109,10 +120,11 @@ describe('scene', () => {
       Scene.inside(
         toDoColumn,
         Scene.click(Scene.role('button', { name: '+ Add card' })),
+        acknowledgeFocusInput,
         Scene.type(Scene.label('New card title'), 'Buy groceries'),
         Scene.submit(Scene.role('form')),
-        Scene.expectExactCommands(GenerateCardId),
-        Scene.resolve(
+        Scene.Command.expectExact(GenerateCardId),
+        Scene.Command.resolve(
           GenerateCardId,
           GeneratedCardId({
             cardId: 'test-uuid',
@@ -120,8 +132,8 @@ describe('scene', () => {
             title: 'Buy groceries',
           }),
         ),
-        Scene.expectExactCommands(SaveBoard),
-        Scene.resolve(SaveBoard, CompletedSaveBoard()),
+        Scene.Command.expectExact(SaveBoard),
+        Scene.Command.resolve(SaveBoard, CompletedSaveBoard()),
         Scene.expect(Scene.text('Buy groceries')).toExist(),
       ),
     )
@@ -134,6 +146,7 @@ describe('scene', () => {
       Scene.click(
         Scene.within(toDoColumn, Scene.role('button', { name: '+ Add card' })),
       ),
+      acknowledgeFocusInput,
       Scene.expect(Scene.label('New card title')).toExist(),
       Scene.click(Scene.role('button', { name: 'Cancel' })),
       Scene.expect(Scene.label('New card title')).toBeAbsent(),

@@ -1,6 +1,20 @@
-import { Effect, Schema } from 'effect'
+import { Context, Effect, Schema } from 'effect'
 
 import type { MountResult } from '../html/index.js'
+
+/** Effect service tag that observes Mount lifecycle events. The runtime
+ *  provides an implementation that buffers events for DevTools history;
+ *  the OnMount snabbdom hooks call `started` synchronously when an element
+ *  with an OnMount attribute is inserted and `ended` when it is destroyed.
+ *  Test renderers do not provide this service, since snabbdom hooks never
+ *  fire in their VNode-only environment. */
+export class MountTracker extends Context.Service<
+  MountTracker,
+  {
+    readonly started: (name: string) => void
+    readonly ended: (name: string) => void
+  }
+>()('@foldkit/MountTracker') {}
 
 /** Type-level brand for MountDefinition values. */
 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */

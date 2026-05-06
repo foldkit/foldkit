@@ -159,7 +159,7 @@ describe('selecting an action', () => {
       update,
       withSelectActionStep(),
       Story.message(PressedKey({ key: 'Enter' })),
-      Story.resolve(
+      Story.Command.resolve(
         CreateRoom,
         SucceededCreateRoom({ roomId: 'r1', player: alice }),
       ),
@@ -205,7 +205,7 @@ describe('joining a room', () => {
       withEnterRoomIdStep(),
       Story.message(ChangedRoomId({ value: 'r1' })),
       Story.message(SubmittedJoinRoomForm()),
-      Story.resolve(
+      Story.Command.resolve(
         JoinRoom,
         SucceededJoinRoom({ roomId: 'r1', player: alice }),
       ),

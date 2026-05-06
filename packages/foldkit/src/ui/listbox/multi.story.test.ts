@@ -10,20 +10,33 @@ import type { Model, ViewConfig } from './multi.js'
 import type { Message } from './shared.js'
 import {
   ActivatedItem,
+  CompletedBackdropPortal,
   CompletedFocusItems,
+  CompletedFocusItemsOnMount,
   CompletedScrollIntoView,
   FocusItems,
+  ListboxBackdropPortal,
+  ListboxFocusItemsOnMount,
   Opened,
   ScrollIntoView,
   SelectedItem,
 } from './shared.js'
+
+const acknowledgeFocus = Scene.Mount.resolve(
+  ListboxFocusItemsOnMount,
+  CompletedFocusItemsOnMount(),
+)
+const acknowledgeBackdrop = Scene.Mount.resolve(
+  ListboxBackdropPortal,
+  CompletedBackdropPortal(),
+)
 
 const withClosed = Story.with(init({ id: 'test' }))
 
 const withOpenMulti = flow(
   withClosed,
   Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
-  Story.resolve(FocusItems, CompletedFocusItems()),
+  Story.Command.resolve(FocusItems, CompletedFocusItems()),
 )
 
 describe('Listbox.Multi', () => {
@@ -115,7 +128,7 @@ describe('Listbox.Multi', () => {
           Story.message(
             ActivatedItem({ index: 2, activationTrigger: 'Keyboard' }),
           ),
-          Story.resolve(ScrollIntoView, CompletedScrollIntoView()),
+          Story.Command.resolve(ScrollIntoView, CompletedScrollIntoView()),
           Story.message(SelectedItem({ item: 'apple' })),
           Story.model(model => {
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
@@ -170,6 +183,8 @@ describe('Listbox.Multi', () => {
               'true',
             )
           }),
+          acknowledgeFocus,
+          acknowledgeBackdrop,
         )
       })
     })
@@ -193,6 +208,8 @@ describe('Listbox.Multi', () => {
               '',
             )
           }),
+          acknowledgeFocus,
+          acknowledgeBackdrop,
         )
       })
     })

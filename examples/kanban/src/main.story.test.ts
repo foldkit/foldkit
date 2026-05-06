@@ -97,7 +97,7 @@ describe('kanban update', () => {
         Story.message(ClickedAddCard({ columnId: 'done' })),
         Story.message(ChangedNewCardTitle({ value: 'Ship it' })),
         Story.message(SubmittedNewCard()),
-        Story.resolve(
+        Story.Command.resolve(
           GenerateCardId,
           GeneratedCardId({
             cardId: 'test-uuid',
@@ -105,7 +105,7 @@ describe('kanban update', () => {
             title: 'Ship it',
           }),
         ),
-        Story.resolve(SaveBoard, CompletedSaveBoard()),
+        Story.Command.resolve(SaveBoard, CompletedSaveBoard()),
         Story.model(model => {
           const doneColumn = model.columns.find(column => column.id === 'done')
           const lastCard = doneColumn?.cards[doneColumn.cards.length - 1]
@@ -176,7 +176,7 @@ describe('kanban update', () => {
             message: Ui.DragAndDrop.ReleasedPointer(),
           }),
         ),
-        Story.resolve(SaveBoard, CompletedSaveBoard()),
+        Story.Command.resolve(SaveBoard, CompletedSaveBoard()),
         Story.model(model => {
           const todoColumn = model.columns.find(column => column.id === 'todo')
           const cardIds = todoColumn?.cards.map(card => card.id)
@@ -220,7 +220,7 @@ describe('kanban update', () => {
             message: Ui.DragAndDrop.ReleasedPointer(),
           }),
         ),
-        Story.resolve(SaveBoard, CompletedSaveBoard()),
+        Story.Command.resolve(SaveBoard, CompletedSaveBoard()),
         Story.model(model => {
           const todoCards = model.columns
             .find(column => column.id === 'todo')
@@ -261,12 +261,12 @@ describe('kanban update', () => {
             message: Ui.DragAndDrop.ConfirmedKeyboardDrop(),
           }),
         ),
-        Story.resolve(
+        Story.Command.resolve(
           Ui.DragAndDrop.FocusItem,
           Ui.DragAndDrop.CompletedFocusItem(),
           message => GotDragAndDropMessage({ message }),
         ),
-        Story.resolve(SaveBoard, CompletedSaveBoard()),
+        Story.Command.resolve(SaveBoard, CompletedSaveBoard()),
         Story.model(model => {
           const todoColumn = model.columns.find(column => column.id === 'todo')
           const cardIds = todoColumn?.cards.map(card => card.id)
@@ -302,12 +302,12 @@ describe('kanban update', () => {
             message: Ui.DragAndDrop.ConfirmedKeyboardDrop(),
           }),
         ),
-        Story.resolve(
+        Story.Command.resolve(
           Ui.DragAndDrop.FocusItem,
           Ui.DragAndDrop.CompletedFocusItem(),
           message => GotDragAndDropMessage({ message }),
         ),
-        Story.resolve(SaveBoard, CompletedSaveBoard()),
+        Story.Command.resolve(SaveBoard, CompletedSaveBoard()),
         Story.model(model => {
           const todoCards = model.columns
             .find(column => column.id === 'todo')
@@ -339,7 +339,7 @@ describe('kanban update', () => {
             message: Ui.DragAndDrop.CancelledDrag(),
           }),
         ),
-        Story.resolve(
+        Story.Command.resolve(
           Ui.DragAndDrop.FocusItem,
           Ui.DragAndDrop.CompletedFocusItem(),
           message => GotDragAndDropMessage({ message }),

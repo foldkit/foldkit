@@ -95,7 +95,7 @@ describe('VirtualList', () => {
         update,
         Story.with(defaultInit()),
         Story.message(MeasuredContainer({ containerHeight: 600 })),
-        Story.expectNoCommands(),
+        Story.Command.expectNone(),
       )
     })
 
@@ -106,7 +106,7 @@ describe('VirtualList', () => {
           init({ id: 'test', rowHeightPx: 30, initialScrollTop: 600 }),
         ),
         Story.message(MeasuredContainer({ containerHeight: 300 })),
-        Story.expectHasCommands(ApplyScroll),
+        Story.Command.expectHas(ApplyScroll),
         Story.model(model => {
           expect(model.pendingScroll._tag).toBe('ScrollingToIndex')
           if (model.pendingScroll._tag === 'ScrollingToIndex') {
@@ -114,7 +114,10 @@ describe('VirtualList', () => {
           }
           expect(model.pendingScrollVersion).toBe(1)
         }),
-        Story.resolve(ApplyScroll, CompletedApplyScroll({ version: 1 })),
+        Story.Command.resolve(
+          ApplyScroll,
+          CompletedApplyScroll({ version: 1 }),
+        ),
       )
     })
 
@@ -125,9 +128,12 @@ describe('VirtualList', () => {
           init({ id: 'test', rowHeightPx: 30, initialScrollTop: 600 }),
         ),
         Story.message(MeasuredContainer({ containerHeight: 300 })),
-        Story.resolve(ApplyScroll, CompletedApplyScroll({ version: 1 })),
+        Story.Command.resolve(
+          ApplyScroll,
+          CompletedApplyScroll({ version: 1 }),
+        ),
         Story.message(MeasuredContainer({ containerHeight: 320 })),
-        Story.expectNoCommands(),
+        Story.Command.expectNone(),
       )
     })
   })

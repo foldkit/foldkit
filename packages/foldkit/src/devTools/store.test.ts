@@ -598,4 +598,104 @@ describe('DevToolsStore', () => {
       expect(state.isPaused).toBe(false)
     })
   })
+
+  describe('attachRenderedMounts', () => {
+    it('attaches starts to init when no entries are recorded yet', () => {
+      const { store } = makeStore()
+
+      run(store.attachRenderedMounts(['MountA', 'MountB'], []))
+
+      const state = getState(store)
+      expect(state.initMountStartNames).toEqual(['MountA', 'MountB'])
+      expect(state.entries.length).toBe(0)
+    })
+
+    it('attaches starts and ends to the latest entry', () => {
+      const { store } = makeStore()
+
+      run(
+        store.recordMessage(
+          clickedIncrement,
+          initialModel,
+          { count: 1 },
+          [],
+          true,
+        ),
+      )
+      run(store.attachRenderedMounts(['MountA'], ['MountB']))
+
+      const state = getState(store)
+      expect(state.entries[0]?.mountStartNames).toEqual(['MountA'])
+      expect(state.entries[0]?.mountEndNames).toEqual(['MountB'])
+    })
+
+    it('attaches to the most recent entry, not earlier ones', () => {
+      const { store } = makeStore()
+
+      run(
+        store.recordMessage(
+          clickedIncrement,
+          initialModel,
+          { count: 1 },
+          [],
+          true,
+        ),
+      )
+      run(
+        store.recordMessage(
+          clickedDecrement,
+          { count: 1 },
+          { count: 0 },
+          [],
+          true,
+        ),
+      )
+      run(store.attachRenderedMounts(['MountA'], []))
+
+      const state = getState(store)
+      expect(state.entries[0]?.mountStartNames).toEqual([])
+      expect(state.entries[0]?.mountEndNames).toEqual([])
+      expect(state.entries[1]?.mountStartNames).toEqual(['MountA'])
+    })
+
+    it('appends to existing names on repeat calls', () => {
+      const { store } = makeStore()
+
+      run(
+        store.recordMessage(
+          clickedIncrement,
+          initialModel,
+          { count: 1 },
+          [],
+          true,
+        ),
+      )
+      run(store.attachRenderedMounts(['MountA'], []))
+      run(store.attachRenderedMounts(['MountB'], ['MountC']))
+
+      const state = getState(store)
+      expect(state.entries[0]?.mountStartNames).toEqual(['MountA', 'MountB'])
+      expect(state.entries[0]?.mountEndNames).toEqual(['MountC'])
+    })
+
+    it('is a no-op when both arrays are empty', () => {
+      const { store } = makeStore()
+
+      run(
+        store.recordMessage(
+          clickedIncrement,
+          initialModel,
+          { count: 1 },
+          [],
+          true,
+        ),
+      )
+      const stateBefore = getState(store)
+
+      run(store.attachRenderedMounts([], []))
+
+      const stateAfter = getState(store)
+      expect(stateAfter).toBe(stateBefore)
+    })
+  })
 })

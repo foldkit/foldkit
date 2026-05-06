@@ -118,6 +118,8 @@ export type HistoryEntry = Readonly<{
   tag: string
   message: unknown
   commandNames: ReadonlyArray<string>
+  mountStartNames: ReadonlyArray<string>
+  mountEndNames: ReadonlyArray<string>
   timestamp: number
   isModelChanged: boolean
   diff: DiffResult
@@ -128,6 +130,7 @@ export type StoreState = Readonly<{
   keyframes: HashMap.HashMap<number, unknown>
   maybeInitModel: Option.Option<unknown>
   initCommandNames: ReadonlyArray<string>
+  initMountStartNames: ReadonlyArray<string>
   startIndex: number
   isPaused: boolean
   pausedAtIndex: number
@@ -145,6 +148,7 @@ const emptyState: StoreState = {
   keyframes: HashMap.empty(),
   maybeInitModel: Option.none(),
   initCommandNames: [],
+  initMountStartNames: [],
   startIndex: 0,
   isPaused: false,
   pausedAtIndex: 0,
@@ -207,11 +211,16 @@ export const createDevToolsStore = (
       }
     }
 
-    const recordInit = (model: unknown, commandNames: ReadonlyArray<string>) =>
+    const recordInit = (
+      model: unknown,
+      commandNames: ReadonlyArray<string>,
+      mountStartNames: ReadonlyArray<string> = [],
+    ) =>
       SubscriptionRef.update(stateRef, state => ({
         ...state,
         maybeInitModel: Option.some(model),
         initCommandNames: commandNames,
+        initMountStartNames: mountStartNames,
         keyframes: HashMap.set(state.keyframes, 0, model),
         maybeLatestModel: Option.some(model),
       }))
@@ -238,6 +247,8 @@ export const createDevToolsStore = (
             tag: message._tag,
             message,
             commandNames,
+            mountStartNames: [],
+            mountEndNames: [],
             timestamp: performance.now(),
             isModelChanged: hasChangedFields,
             diff,
@@ -253,6 +264,56 @@ export const createDevToolsStore = (
         return nextState.entries.length > maxEntries
           ? evictOldestSegment(nextState)
           : nextState
+      })
+
+    /** Attaches Mount lifecycle events from the most recent render to the
+     *  history entry that triggered the render. Mount events fire during
+     *  snabbdom's `patch` (inside `render`), but the runtime's render loop
+     *  is gated by `requestAnimationFrame`, so a render may fire after the
+     *  Message that dirtied it has already been recorded. The runtime drains
+     *  its mount buffer after each render and calls this to associate the
+     *  events with the correct entry. When called before any Message has been
+     *  recorded (only possible from the init render path), the starts attach
+     *  to `initMountStartNames`; init has no `ends` because nothing existed
+     *  to unmount. */
+    const attachRenderedMounts = (
+      mountStartNames: ReadonlyArray<string>,
+      mountEndNames: ReadonlyArray<string>,
+    ) =>
+      SubscriptionRef.update(stateRef, state => {
+        if (
+          Array.isReadonlyArrayEmpty(mountStartNames) &&
+          Array.isReadonlyArrayEmpty(mountEndNames)
+        ) {
+          return state
+        }
+
+        return Array.match(state.entries, {
+          onEmpty: () => ({
+            ...state,
+            initMountStartNames: Array.appendAll(
+              state.initMountStartNames,
+              mountStartNames,
+            ),
+          }),
+          onNonEmpty: entries => ({
+            ...state,
+            entries: Array.modifyLastNonEmpty(
+              entries,
+              (last): HistoryEntry => ({
+                ...last,
+                mountStartNames: Array.appendAll(
+                  last.mountStartNames,
+                  mountStartNames,
+                ),
+                mountEndNames: Array.appendAll(
+                  last.mountEndNames,
+                  mountEndNames,
+                ),
+              }),
+            ),
+          }),
+        })
       })
 
     const latestEntryIndex = (state: StoreState): number =>
@@ -319,6 +380,7 @@ export const createDevToolsStore = (
       ...emptyState,
       maybeInitModel: state.maybeInitModel,
       initCommandNames: state.initCommandNames,
+      initMountStartNames: state.initMountStartNames,
       keyframes: Option.match(state.maybeInitModel, {
         onNone: () => HashMap.empty(),
         onSome: model =>
@@ -348,6 +410,7 @@ export const createDevToolsStore = (
     return {
       recordInit,
       recordMessage,
+      attachRenderedMounts,
       getModelAtIndex,
       getMessageAtIndex,
       getDiffAtIndex,
@@ -362,6 +425,7 @@ export type DevToolsStore = Readonly<{
   recordInit: (
     model: unknown,
     commandNames: ReadonlyArray<string>,
+    mountStartNames?: ReadonlyArray<string>,
   ) => Effect.Effect<void>
   recordMessage: (
     message: Readonly<{ _tag: string }>,
@@ -369,6 +433,10 @@ export type DevToolsStore = Readonly<{
     modelAfterUpdate: unknown,
     commandNames: ReadonlyArray<string>,
     isModelChanged: boolean,
+  ) => Effect.Effect<void>
+  attachRenderedMounts: (
+    mountStartNames: ReadonlyArray<string>,
+    mountEndNames: ReadonlyArray<string>,
   ) => Effect.Effect<void>
   getModelAtIndex: (index: number) => Effect.Effect<unknown>
   getMessageAtIndex: (index: number) => Effect.Effect<Option.Option<unknown>>

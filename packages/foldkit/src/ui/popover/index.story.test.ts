@@ -43,7 +43,7 @@ const withClosedAnimated = Story.with(init({ id: 'test', isAnimated: true }))
 const withOpenAnimated = flow(
   withClosedAnimated,
   Story.message(Opened()),
-  Story.resolveAll(
+  Story.Command.resolveAll(
     [
       Animation.RequestFrame,
       Animation.AdvancedAnimationFrame(),
@@ -116,7 +116,7 @@ describe('Popover', () => {
           update,
           withClosed,
           Story.message(Opened()),
-          Story.expectNoCommands(),
+          Story.Command.expectNone(),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
           }),
@@ -130,7 +130,7 @@ describe('Popover', () => {
           update,
           withOpen,
           Story.message(Closed()),
-          Story.resolve(FocusButton, CompletedFocusButton()),
+          Story.Command.resolve(FocusButton, CompletedFocusButton()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
@@ -145,7 +145,7 @@ describe('Popover', () => {
           update,
           withClosed,
           Story.message(Closed()),
-          Story.resolve(FocusButton, CompletedFocusButton()),
+          Story.Command.resolve(FocusButton, CompletedFocusButton()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
           }),
@@ -225,7 +225,7 @@ describe('Popover', () => {
           Story.message(
             PressedPointerOnButton({ pointerType: 'mouse', button: 0 }),
           ),
-          Story.resolve(FocusButton, CompletedFocusButton()),
+          Story.Command.resolve(FocusButton, CompletedFocusButton()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeLastButtonPointerType).toStrictEqual(
@@ -283,7 +283,7 @@ describe('Popover', () => {
           Story.message(
             PressedPointerOnButton({ pointerType: 'mouse', button: 0 }),
           ),
-          Story.resolve(FocusButton, CompletedFocusButton()),
+          Story.Command.resolve(FocusButton, CompletedFocusButton()),
           Story.model(model => {
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('mouse'),
@@ -324,8 +324,8 @@ describe('Popover', () => {
               expect(model.isOpen).toBe(true)
               expect(model.animation.transitionState).toBe('EnterStart')
             }),
-            Story.expectHasCommands(Animation.RequestFrame),
-            Story.resolveAll(
+            Story.Command.expectHas(Animation.RequestFrame),
+            Story.Command.resolveAll(
               [
                 Animation.RequestFrame,
                 Animation.AdvancedAnimationFrame(),
@@ -345,7 +345,7 @@ describe('Popover', () => {
             update,
             withClosedAnimated,
             Story.message(Opened()),
-            Story.resolve(
+            Story.Command.resolve(
               Animation.RequestFrame,
               Animation.AdvancedAnimationFrame(),
               animationToPopoverMessage,
@@ -353,7 +353,7 @@ describe('Popover', () => {
             Story.model(model => {
               expect(model.animation.transitionState).toBe('EnterAnimating')
             }),
-            Story.resolve(
+            Story.Command.resolve(
               Animation.WaitForAnimationSettled,
               Animation.EndedAnimation(),
               animationToPopoverMessage,
@@ -366,7 +366,7 @@ describe('Popover', () => {
             update,
             withClosedAnimated,
             Story.message(Opened()),
-            Story.resolveAll(
+            Story.Command.resolveAll(
               [
                 Animation.RequestFrame,
                 Animation.AdvancedAnimationFrame(),
@@ -395,7 +395,7 @@ describe('Popover', () => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')
             }),
-            Story.resolveAll(
+            Story.Command.resolveAll(
               [FocusButton, CompletedFocusButton()],
               [
                 Animation.RequestFrame,
@@ -416,7 +416,7 @@ describe('Popover', () => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')
             }),
-            Story.resolveAll(
+            Story.Command.resolveAll(
               [
                 Animation.RequestFrame,
                 Animation.AdvancedAnimationFrame(),
@@ -432,7 +432,7 @@ describe('Popover', () => {
             update,
             withOpenAnimated,
             Story.message(Closed()),
-            Story.resolve(
+            Story.Command.resolve(
               Animation.RequestFrame,
               Animation.AdvancedAnimationFrame(),
               animationToPopoverMessage,
@@ -440,8 +440,8 @@ describe('Popover', () => {
             Story.model(model => {
               expect(model.animation.transitionState).toBe('LeaveAnimating')
             }),
-            Story.expectHasCommands(DetectMovementOrAnimationEnd),
-            Story.resolveAll(
+            Story.Command.expectHas(DetectMovementOrAnimationEnd),
+            Story.Command.resolveAll(
               [FocusButton, CompletedFocusButton()],
               [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
@@ -453,7 +453,7 @@ describe('Popover', () => {
             update,
             withOpenAnimated,
             Story.message(Closed()),
-            Story.resolveAll(
+            Story.Command.resolveAll(
               [FocusButton, CompletedFocusButton()],
               [
                 Animation.RequestFrame,
@@ -486,7 +486,7 @@ describe('Popover', () => {
             update,
             withOpen,
             Story.message(Closed()),
-            Story.resolve(FocusButton, CompletedFocusButton()),
+            Story.Command.resolve(FocusButton, CompletedFocusButton()),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
             }),
@@ -530,7 +530,7 @@ describe('Popover', () => {
             update,
             withClosedAnimated,
             Story.message(Opened()),
-            Story.resolveAll(
+            Story.Command.resolveAll(
               [
                 Animation.RequestFrame,
                 Animation.AdvancedAnimationFrame(),
@@ -547,7 +547,7 @@ describe('Popover', () => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')
             }),
-            Story.resolveAll(
+            Story.Command.resolveAll(
               [FocusButton, CompletedFocusButton()],
               [
                 Animation.RequestFrame,
@@ -568,7 +568,7 @@ describe('Popover', () => {
     const withOpenModal = flow(
       withClosedModal,
       Story.message(Opened()),
-      Story.resolveAll(
+      Story.Command.resolveAll(
         [LockScroll, CompletedLockScroll()],
         [InertOthers, CompletedSetupInert()],
       ),
@@ -579,7 +579,7 @@ describe('Popover', () => {
         update,
         withClosedModal,
         Story.message(Opened()),
-        Story.resolveAll(
+        Story.Command.resolveAll(
           [LockScroll, CompletedLockScroll()],
           [InertOthers, CompletedSetupInert()],
         ),
@@ -594,7 +594,7 @@ describe('Popover', () => {
         update,
         withOpenModal,
         Story.message(Closed()),
-        Story.resolveAll(
+        Story.Command.resolveAll(
           [FocusButton, CompletedFocusButton()],
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],
@@ -610,7 +610,7 @@ describe('Popover', () => {
         update,
         withOpenModal,
         Story.message(BlurredPanel()),
-        Story.resolveAll(
+        Story.Command.resolveAll(
           [UnlockScroll, CompletedUnlockScroll()],
           [RestoreInert, CompletedTeardownInert()],
         ),
@@ -629,7 +629,7 @@ describe('Popover', () => {
           expect(model.isOpen).toBe(true)
         }),
         Story.message(Closed()),
-        Story.resolve(FocusButton, CompletedFocusButton()),
+        Story.Command.resolve(FocusButton, CompletedFocusButton()),
         Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),

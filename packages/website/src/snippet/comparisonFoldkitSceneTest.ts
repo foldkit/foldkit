@@ -6,11 +6,11 @@ test('failed export shows error dialog that can be dismissed', () => {
     Scene.click(Scene.role('button', { name: 'Export PNG' })),
     // Resolve the Command with a failure — the update function opens
     // the error dialog in response.
-    Scene.resolve(
+    Scene.Command.resolve(
       ExportPng,
       FailedExportPng({ error: 'Canvas 2D context not available' }),
     ),
-    Scene.resolve(
+    Scene.Command.resolve(
       Ui.Dialog.ShowDialog,
       Ui.Dialog.CompletedShowDialog(),
       errorDialogMessageToMessage,
@@ -23,8 +23,8 @@ test('failed export shows error dialog that can be dismissed', () => {
     // DOM node, dispatches the Message, and feeds it through update.
     Scene.click(Scene.role('button', { name: 'Dismiss' })),
     // The update function returned a CloseDialog Command. Resolve it
-    // the same way Story.resolve does — synchronously, inline.
-    Scene.resolve(
+    // the same way Story.Command.resolve does — synchronously, inline.
+    Scene.Command.resolve(
       Ui.Dialog.CloseDialog,
       Ui.Dialog.CompletedCloseDialog(),
       errorDialogMessageToMessage,

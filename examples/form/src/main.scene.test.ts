@@ -68,8 +68,8 @@ describe('form scene', () => {
       Scene.expect(
         Scene.role('button', { name: 'Join Waitlist' }),
       ).toBeDisabled(),
-      Scene.expectExactCommands(ValidateEmail),
-      Scene.resolve(
+      Scene.Command.expectExact(ValidateEmail),
+      Scene.Command.resolve(
         ValidateEmail,
         ValidatedEmail({
           validationId: 1,
@@ -87,8 +87,8 @@ describe('form scene', () => {
       { update, view },
       Scene.with(initialModel),
       Scene.type(Scene.label('Email'), 'test@example.com'),
-      Scene.expectExactCommands(ValidateEmail),
-      Scene.resolve(
+      Scene.Command.expectExact(ValidateEmail),
+      Scene.Command.resolve(
         ValidateEmail,
         ValidatedEmail({
           validationId: 1,
@@ -132,8 +132,8 @@ describe('form scene', () => {
       Scene.with(validModel),
       Scene.click(Scene.role('button', { name: 'Join Waitlist' })),
       Scene.expect(Scene.role('button', { name: 'Joining...' })).toBeDisabled(),
-      Scene.expectExactCommands(SubmitForm),
-      Scene.resolve(
+      Scene.Command.expectExact(SubmitForm),
+      Scene.Command.resolve(
         SubmitForm,
         SubmittedForm({
           success: true,
@@ -160,8 +160,8 @@ describe('form scene', () => {
       { update, view },
       Scene.with(validModel),
       Scene.submit(Scene.role('form')),
-      Scene.expectExactCommands(SubmitForm),
-      Scene.resolve(
+      Scene.Command.expectExact(SubmitForm),
+      Scene.Command.resolve(
         SubmitForm,
         SubmittedForm({
           success: false,
