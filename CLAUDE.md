@@ -199,6 +199,10 @@ Command definitions live where they're produced — colocated with the update fu
 
 Apps in `examples/` ship with the `@foldkit/devtools-mcp` relay wired up. When debugging behavior in a running example, reach for the `foldkit_*` MCP tools before adding logs. If they aren't visible, see `packages/devtools-mcp/README.md` for setup.
 
+## Workspace Setup Errors Are Not Pre-Existing
+
+If `pnpm typecheck`, `pnpm lint`, `pnpm build`, or the pre-push hook surfaces errors like `Cannot find module 'foldkit'`, `Cannot find module 'foldkit/html'`, or `Property X does not exist on type Y` against an Effect API, the workspace itself is out of sync. These are not pre-existing branch failures. Run `bash scripts/cloud-session-setup.sh` to reconcile `node_modules` to the lockfile and build the prerequisite packages (`foldkit`, `@foldkit/vite-plugin`, `@typing-game/shared`). The SessionStart hook runs this automatically, so this is only relevant if dependencies drift mid-session.
+
 ## Communication
 
 - When I ask a question or make a comment that sounds rhetorical, opinion-based, or conversational (e.g., 'what do you think about X?', 'im asking you'), respond with discussion — not code edits. Only make code changes when explicitly asked to.
