@@ -22,6 +22,7 @@ export {
   CompletedAnchorMount,
   CompletedAttachPreventBlur,
   CompletedAttachSelectOnFocus,
+  CompletedBackdropPortal,
   GotAnimationMessage,
   LockScroll,
   UnlockScroll,

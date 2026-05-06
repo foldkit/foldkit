@@ -29,7 +29,32 @@ const getOrCreatePortalRoot = (): HTMLElement => {
   const root = document.createElement('div')
   root.id = PORTAL_ROOT_ID
 
-  return document.body.appendChild(root)
+  // NOTE: prepended (not appended) so portaled overlays sit BEFORE the page's
+  // listbox/popover/menu wrappers in tree order. Those wrappers are
+  // `position: relative; z-index: auto` and paint at CSS step 8 in tree order;
+  // a backdrop appended after them would paint on top of every button on the
+  // page, breaking click-outside detection. Prepending makes wrappers paint
+  // above the backdrop, while panels (z-10) still win via step 9.
+  document.body.insertBefore(root, document.body.firstChild)
+  return root
+}
+
+/** Relocates an element into the shared `foldkit-portal-root` div appended to
+ *  `document.body`, escaping any ancestor stacking context. Returns a cleanup
+ *  function that removes the element from the portal root. Designed to be
+ *  called from inside an `OnMount` action: the consumer wraps the call in
+ *  `Effect.sync` and stashes the returned cleanup in the `Mount` result. */
+export const portalToBody = (element: Element): (() => void) => {
+  getOrCreatePortalRoot().appendChild(element)
+  return () => {
+    try {
+      element.remove()
+    } catch {
+      // NOTE: a re-render may unmount the element before this cleanup fires,
+      // so the remove() call can throw on a node that's already been removed.
+      // Swallow the error.
+    }
+  }
 }
 
 /** Positions a floating element relative to its button using Floating UI, then
@@ -59,10 +84,7 @@ export const anchorSetup =
     }
 
     const isPortal = config.anchor.portal ?? true
-
-    if (isPortal) {
-      getOrCreatePortalRoot().appendChild(items)
-    }
+    const portalCleanup = isPortal ? portalToBody(items) : undefined
 
     const { placement, gap, offset: crossAxis, padding } = config.anchor
     const shouldInterceptTab = config.interceptTab ?? true
@@ -114,18 +136,6 @@ export const anchorSetup =
         }
       })
     })
-
-    const portalCleanup = isPortal
-      ? () => {
-          try {
-            items.remove()
-          } catch {
-            // NOTE: a blur-triggered re-render may unmount the items element
-            // before this cleanup runs, so the remove() call can throw on a
-            // node that's already been removed. Swallow the error.
-          }
-        }
-      : undefined
 
     if (isPortal && shouldInterceptTab) {
       const handleTabKey = (event: Event): void => {

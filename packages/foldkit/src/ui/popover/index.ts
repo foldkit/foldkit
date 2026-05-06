@@ -13,7 +13,7 @@ import { m } from '../../message/index.js'
 import * as Mount from '../../mount/index.js'
 import { evo } from '../../struct/index.js'
 import * as Task from '../../task/index.js'
-import { anchorSetup } from '../anchor.js'
+import { anchorSetup, portalToBody } from '../anchor.js'
 import type { AnchorConfig } from '../anchor.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → popover → animation.
@@ -75,6 +75,8 @@ export const IgnoredMouseClick = m('IgnoredMouseClick')
 export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
 /** Sent when the popover panel mounts and Floating UI has positioned it. Update no-ops; the side effect is the act of positioning, surfaced for DevTools observability. */
 export const CompletedAnchorMount = m('CompletedAnchorMount')
+/** Sent when the popover backdrop mounts and is portaled to the document body. Update no-ops; surfaces the portal side effect for DevTools. */
+export const CompletedBackdropPortal = m('CompletedBackdropPortal')
 /** Wraps an Animation submodel message for delegation. */
 export const GotAnimationMessage = m('GotAnimationMessage', {
   message: AnimationMessage,
@@ -96,6 +98,7 @@ export const Message: S.Union<
     typeof IgnoredMouseClick,
     typeof SuppressedSpaceScroll,
     typeof CompletedAnchorMount,
+    typeof CompletedBackdropPortal,
     typeof GotAnimationMessage,
   ]
 > = S.Union([
@@ -112,6 +115,7 @@ export const Message: S.Union<
   IgnoredMouseClick,
   SuppressedSpaceScroll,
   CompletedAnchorMount,
+  CompletedBackdropPortal,
   GotAnimationMessage,
 ])
 
@@ -370,11 +374,24 @@ export const update = (model: Model, message: Message): UpdateReturn => {
       ],
       SuppressedSpaceScroll: () => [model, []],
       CompletedAnchorMount: () => [model, []],
+      CompletedBackdropPortal: () => [model, []],
     }),
   )
 }
 
 const PopoverAnchor = Mount.define('PopoverAnchor', CompletedAnchorMount)
+const PopoverBackdropPortal = Mount.define(
+  'PopoverBackdropPortal',
+  CompletedBackdropPortal,
+)
+
+const portalBackdropOnMount = PopoverBackdropPortal(
+  (element): Effect.Effect<MountResult<typeof CompletedBackdropPortal.Type>> =>
+    Effect.sync(() => ({
+      message: CompletedBackdropPortal(),
+      cleanup: portalToBody(element),
+    })),
+)
 
 /** Programmatically opens the popover, updating the model and returning
  *  focus and modal commands. Use this in domain-event handlers when the popover uses `onOpened`. */
@@ -403,7 +420,8 @@ export type ViewConfig<ParentMessage> = Readonly<{
       | PressedPointerOnButton
       | IgnoredMouseClick
       | SuppressedSpaceScroll
-      | typeof CompletedAnchorMount.Type,
+      | typeof CompletedAnchorMount.Type
+      | typeof CompletedBackdropPortal.Type,
   ) => ParentMessage
   onOpened?: () => ParentMessage
   onClosed?: () => ParentMessage
@@ -614,6 +632,7 @@ export const view = <ParentMessage>(
   const backdrop = keyed('div')(
     `${id}-backdrop`,
     [
+      OnMount(Mount.mapMessage(portalBackdropOnMount, toParentMessage)),
       ...(isLeaving ? [] : [OnClick(dispatchClosed())]),
       ...(backdropClassName ? [Class(backdropClassName)] : []),
       ...backdropAttributes,

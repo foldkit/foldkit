@@ -24,7 +24,7 @@ import { m } from '../../message/index.js'
 import * as Mount from '../../mount/index.js'
 import { evo } from '../../struct/index.js'
 import * as Task from '../../task/index.js'
-import { anchorSetup } from '../anchor.js'
+import { anchorSetup, portalToBody } from '../anchor.js'
 import type { AnchorConfig } from '../anchor.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → menu → animation.
@@ -141,6 +141,8 @@ export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
 export const CompletedAnchorMount = m('CompletedAnchorMount')
 /** Sent when the menu items panel mounts and the no-anchor focus fallback runs. Update no-ops; the side effect is the focus call, surfaced for DevTools observability. */
 export const CompletedFocusItemsOnMount = m('CompletedFocusItemsOnMount')
+/** Sent when the menu backdrop mounts and is portaled to the document body. Update no-ops; surfaces the portal side effect for DevTools. */
+export const CompletedBackdropPortal = m('CompletedBackdropPortal')
 /** Wraps an Animation submodel message for delegation. */
 export const GotAnimationMessage = m('GotAnimationMessage', {
   message: AnimationMessage,
@@ -186,6 +188,7 @@ export const Message: S.Union<
     typeof SuppressedSpaceScroll,
     typeof CompletedAnchorMount,
     typeof CompletedFocusItemsOnMount,
+    typeof CompletedBackdropPortal,
     typeof GotAnimationMessage,
     typeof PressedPointerOnButton,
     typeof ReleasedPointerOnItems,
@@ -214,6 +217,7 @@ export const Message: S.Union<
   SuppressedSpaceScroll,
   CompletedAnchorMount,
   CompletedFocusItemsOnMount,
+  CompletedBackdropPortal,
   GotAnimationMessage,
   PressedPointerOnButton,
   ReleasedPointerOnItems,
@@ -668,6 +672,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
       SuppressedSpaceScroll: () => [model, []],
       CompletedAnchorMount: () => [model, []],
       CompletedFocusItemsOnMount: () => [model, []],
+      CompletedBackdropPortal: () => [model, []],
     }),
   )
 }
@@ -676,6 +681,10 @@ const MenuAnchor = Mount.define('MenuAnchor', CompletedAnchorMount)
 const MenuFocusItemsOnMount = Mount.define(
   'MenuFocusItemsOnMount',
   CompletedFocusItemsOnMount,
+)
+const MenuBackdropPortal = Mount.define(
+  'MenuBackdropPortal',
+  CompletedBackdropPortal,
 )
 
 const focusItemsOnMount = MenuFocusItemsOnMount(
@@ -691,6 +700,14 @@ const focusItemsOnMount = MenuFocusItemsOnMount(
         cleanup: Function.constVoid,
       }
     }),
+)
+
+const portalBackdropOnMount = MenuBackdropPortal(
+  (element): Effect.Effect<MountResult<typeof CompletedBackdropPortal.Type>> =>
+    Effect.sync(() => ({
+      message: CompletedBackdropPortal(),
+      cleanup: portalToBody(element),
+    })),
 )
 
 /** Programmatically opens the menu, updating the model and returning
@@ -748,7 +765,8 @@ export type ViewConfig<ParentMessage, Item extends string> = Readonly<{
       | IgnoredMouseClick
       | SuppressedSpaceScroll
       | typeof CompletedAnchorMount.Type
-      | typeof CompletedFocusItemsOnMount.Type,
+      | typeof CompletedFocusItemsOnMount.Type
+      | typeof CompletedBackdropPortal.Type,
   ) => ParentMessage
   onSelectedItem?: (index: number) => ParentMessage
   items: ReadonlyArray<Item>
@@ -1232,6 +1250,7 @@ export const view = <ParentMessage, Item extends string>(
   const backdrop = keyed('div')(
     `${id}-backdrop`,
     [
+      OnMount(Mount.mapMessage(portalBackdropOnMount, toParentMessage)),
       ...(isLeaving ? [] : [OnClick(toParentMessage(Closed()))]),
       ...(backdropClassName ? [Class(backdropClassName)] : []),
       ...backdropAttributes,

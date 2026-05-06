@@ -21,7 +21,7 @@ import { m } from '../../message/index.js'
 import * as Mount from '../../mount/index.js'
 import { makeConstrainedEvo } from '../../struct/index.js'
 import * as Task from '../../task/index.js'
-import { anchorSetup } from '../anchor.js'
+import { anchorSetup, portalToBody } from '../anchor.js'
 import type { AnchorConfig } from '../anchor.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → combobox → animation.
@@ -147,6 +147,8 @@ export const CompletedAnchorMount = m('CompletedAnchorMount')
 export const CompletedAttachPreventBlur = m('CompletedAttachPreventBlur')
 /** Sent when the input mounts and the focus listener that auto-selects on focus is attached. Update no-ops; surfaces the listener-attach side effect for DevTools. */
 export const CompletedAttachSelectOnFocus = m('CompletedAttachSelectOnFocus')
+/** Sent when the combobox backdrop mounts and is portaled to the document body. Update no-ops; surfaces the portal side effect for DevTools. */
+export const CompletedBackdropPortal = m('CompletedBackdropPortal')
 /** Wraps an Animation submodel message for delegation. */
 export const GotAnimationMessage = m('GotAnimationMessage', {
   message: AnimationMessage,
@@ -179,6 +181,7 @@ export const Message: S.Union<
     typeof CompletedAnchorMount,
     typeof CompletedAttachPreventBlur,
     typeof CompletedAttachSelectOnFocus,
+    typeof CompletedBackdropPortal,
     typeof GotAnimationMessage,
     typeof UpdatedInputValue,
     typeof PressedToggleButton,
@@ -202,6 +205,7 @@ export const Message: S.Union<
   CompletedAnchorMount,
   CompletedAttachPreventBlur,
   CompletedAttachSelectOnFocus,
+  CompletedBackdropPortal,
   GotAnimationMessage,
   UpdatedInputValue,
   PressedToggleButton,
@@ -602,6 +606,7 @@ export const makeUpdate = <Model extends BaseModel>(
         CompletedAnchorMount: () => [model, []],
         CompletedAttachPreventBlur: () => [model, []],
         CompletedAttachSelectOnFocus: () => [model, []],
+        CompletedBackdropPortal: () => [model, []],
       }),
     )
   }
@@ -615,6 +620,10 @@ const ComboboxAttachPreventBlur = Mount.define(
 const ComboboxAttachSelectOnFocus = Mount.define(
   'ComboboxAttachSelectOnFocus',
   CompletedAttachSelectOnFocus,
+)
+const ComboboxBackdropPortal = Mount.define(
+  'ComboboxBackdropPortal',
+  CompletedBackdropPortal,
 )
 
 const attachPreventBlurOnPointerDown = ComboboxAttachPreventBlur(
@@ -654,6 +663,14 @@ const attachSelectOnFocus = ComboboxAttachSelectOnFocus(
     }),
 )
 
+const portalBackdropOnMount = ComboboxBackdropPortal(
+  (element): Effect.Effect<MountResult<typeof CompletedBackdropPortal.Type>> =>
+    Effect.sync(() => ({
+      message: CompletedBackdropPortal(),
+      cleanup: portalToBody(element),
+    })),
+)
+
 // VIEW TYPES
 
 /** Configuration for an individual combobox item's appearance. */
@@ -689,7 +706,8 @@ export type BaseViewConfig<
       | PressedToggleButton
       | typeof CompletedAnchorMount.Type
       | typeof CompletedAttachPreventBlur.Type
-      | typeof CompletedAttachSelectOnFocus.Type,
+      | typeof CompletedAttachSelectOnFocus.Type
+      | typeof CompletedBackdropPortal.Type,
   ) => ParentMessage
   onSelectedItem?: (value: string) => ParentMessage
   items: ReadonlyArray<Item>
@@ -1212,6 +1230,7 @@ export const makeView =
     const backdrop = keyed('div')(
       `${id}-backdrop`,
       [
+        OnMount(Mount.mapMessage(portalBackdropOnMount, toParentMessage)),
         ...(isLeaving ? [] : [OnClick(toParentMessage(Closed()))]),
         ...(backdropClassName ? [Class(backdropClassName)] : []),
         ...backdropAttributes,

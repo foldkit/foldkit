@@ -23,6 +23,7 @@ export {
   CompletedClickItem,
   CompletedAnchorMount,
   CompletedFocusItemsOnMount,
+  CompletedBackdropPortal,
   ClearedSearch,
   GotAnimationMessage,
   LockScroll,

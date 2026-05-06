@@ -23,7 +23,7 @@ import { m } from '../../message/index.js'
 import * as Mount from '../../mount/index.js'
 import { makeConstrainedEvo } from '../../struct/index.js'
 import * as Task from '../../task/index.js'
-import { anchorSetup } from '../anchor.js'
+import { anchorSetup, portalToBody } from '../anchor.js'
 import type { AnchorConfig } from '../anchor.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → listbox → animation.
@@ -161,6 +161,8 @@ export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
 export const CompletedAnchorMount = m('CompletedAnchorMount')
 /** Sent when the listbox items panel mounts and the no-anchor focus fallback runs. Update no-ops; surfaces the focus side effect for DevTools. */
 export const CompletedFocusItemsOnMount = m('CompletedFocusItemsOnMount')
+/** Sent when the listbox backdrop mounts and is portaled to the document body. Update no-ops; surfaces the portal side effect for DevTools. */
+export const CompletedBackdropPortal = m('CompletedBackdropPortal')
 /** Wraps an Animation submodel message for delegation. */
 export const GotAnimationMessage = m('GotAnimationMessage', {
   message: AnimationMessage,
@@ -196,6 +198,7 @@ export const Message: S.Union<
     typeof SuppressedSpaceScroll,
     typeof CompletedAnchorMount,
     typeof CompletedFocusItemsOnMount,
+    typeof CompletedBackdropPortal,
     typeof GotAnimationMessage,
     typeof PressedPointerOnButton,
   ]
@@ -222,6 +225,7 @@ export const Message: S.Union<
   SuppressedSpaceScroll,
   CompletedAnchorMount,
   CompletedFocusItemsOnMount,
+  CompletedBackdropPortal,
   GotAnimationMessage,
   PressedPointerOnButton,
 ])
@@ -657,6 +661,7 @@ export const makeUpdate = <Model extends BaseModel>(
         SuppressedSpaceScroll: () => [model, []],
         CompletedAnchorMount: () => [model, []],
         CompletedFocusItemsOnMount: () => [model, []],
+        CompletedBackdropPortal: () => [model, []],
       }),
     )
   }
@@ -666,6 +671,10 @@ const ListboxAnchor = Mount.define('ListboxAnchor', CompletedAnchorMount)
 const ListboxFocusItemsOnMount = Mount.define(
   'ListboxFocusItemsOnMount',
   CompletedFocusItemsOnMount,
+)
+const ListboxBackdropPortal = Mount.define(
+  'ListboxBackdropPortal',
+  CompletedBackdropPortal,
 )
 
 const focusItemsOnMount = ListboxFocusItemsOnMount(
@@ -681,6 +690,14 @@ const focusItemsOnMount = ListboxFocusItemsOnMount(
         cleanup: Function.constVoid,
       }
     }),
+)
+
+const portalBackdropOnMount = ListboxBackdropPortal(
+  (element): Effect.Effect<MountResult<typeof CompletedBackdropPortal.Type>> =>
+    Effect.sync(() => ({
+      message: CompletedBackdropPortal(),
+      cleanup: portalToBody(element),
+    })),
 )
 
 // VIEW TYPES
@@ -719,7 +736,8 @@ export type BaseViewConfig<
       | IgnoredMouseClick
       | SuppressedSpaceScroll
       | typeof CompletedAnchorMount.Type
-      | typeof CompletedFocusItemsOnMount.Type,
+      | typeof CompletedFocusItemsOnMount.Type
+      | typeof CompletedBackdropPortal.Type,
   ) => ParentMessage
   onSelectedItem?: (value: string) => ParentMessage
   items: ReadonlyArray<Item>
@@ -1255,6 +1273,7 @@ export const makeView =
     const backdrop = keyed('div')(
       `${id}-backdrop`,
       [
+        OnMount(Mount.mapMessage(portalBackdropOnMount, toParentMessage)),
         ...(isLeaving ? [] : [OnClick(toParentMessage(Closed()))]),
         ...(backdropClassName ? [Class(backdropClassName)] : []),
         ...backdropAttributes,

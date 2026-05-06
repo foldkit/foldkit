@@ -16,6 +16,7 @@ export {
   CompletedSetupInert,
   CompletedTeardownInert,
   CompletedAnchorMount,
+  CompletedBackdropPortal,
   GotAnimationMessage,
   LockScroll,
   UnlockScroll,
