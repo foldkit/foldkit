@@ -1829,5 +1829,7 @@ export const createOverlay = (
       freezeModel: false,
     })
 
-    yield* Effect.forkDetach(overlayRuntime.start())
+    if (overlayRuntime._tag === 'Active') {
+      yield* Effect.forkDetach(overlayRuntime.start())
+    }
   })

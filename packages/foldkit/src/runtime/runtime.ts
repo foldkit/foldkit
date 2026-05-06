@@ -442,11 +442,26 @@ export type RoutingProgramInit<
       >,
     ]
 
-/** A configured Foldkit runtime returned by `makeProgram`, passed to `run` to start the application. */
-export type MakeRuntimeReturn = Readonly<{
-  runtimeId: string
-  start: (hmrModel?: unknown) => Effect.Effect<void>
-}>
+/**
+ * A configured Foldkit runtime returned by `makeProgram`, passed to `run` to
+ * start the application.
+ *
+ * `Active` is the normal case: the host page has a mount target, so the
+ * runtime is fully wired up.
+ *
+ * `Inactive` is returned when `makeProgram` was called without a DOM mount
+ * target (e.g. the entry module was imported by a vitest scene test that
+ * doesn't render the app HTML). `run` becomes a no-op so test output stays
+ * clean instead of logging a misleading container-id error and a vite-plugin
+ * timeout warning.
+ */
+export type MakeRuntimeReturn =
+  | Readonly<{
+      _tag: 'Active'
+      runtimeId: string
+      start: (hmrModel?: unknown) => Effect.Effect<void>
+    }>
+  | Readonly<{ _tag: 'Inactive' }>
 
 const makeRuntime = <
   Model,
@@ -477,7 +492,7 @@ const makeRuntime = <
   Flags,
   Resources,
   ManagedResourceServices
->): MakeRuntimeReturn => {
+>): Extract<MakeRuntimeReturn, { _tag: 'Active' }> => {
   const resolvedSlowView = pipe(
     slowView ?? {},
     Option.liftPredicate(config => config !== false),
@@ -499,7 +514,7 @@ const makeRuntime = <
   const maybeFreezeModel = (model: Model): Model =>
     isFreezeModelActive ? deepFreeze(model) : model
 
-  const runtimeId = container?.id ?? ''
+  const runtimeId = container.id
 
   // NOTE: When the message queue drains a chain of dispatches (e.g. recursive
   // Commands, websocket bursts), processing all of them inside one macrotask
@@ -529,14 +544,6 @@ const makeRuntime = <
   const start = (hmrModel?: unknown): Effect.Effect<void> =>
     Effect.scoped(
       Effect.gen(function* () {
-        if (runtimeId === '') {
-          return yield* Effect.die(
-            new Error(
-              '[foldkit] Runtime container must have an `id` for HMR model preservation. ' +
-                'Set `container.id = "app"` (or any unique string) before passing it to makeProgram.',
-            ),
-          )
-        }
         const maybeResourceLayer = resources
           ? Option.some(resources)
           : Option.none()
@@ -1225,7 +1232,7 @@ const makeRuntime = <
       }),
     )
 
-  return { runtimeId, start }
+  return { _tag: 'Active', runtimeId, start }
 }
 
 const patchVNode = (
@@ -1444,6 +1451,17 @@ export function makeProgram<
         ManagedResourceServices
       >,
 ): MakeRuntimeReturn {
+  const container: HTMLElement | null | undefined = config.container
+  if (container === null || container === undefined) {
+    return { _tag: 'Inactive' }
+  }
+  if (container.id === '') {
+    throw new Error(
+      '[foldkit] Runtime container must have an `id` for HMR model preservation. ' +
+        'Set `container.id = "app"` (or any unique string) before passing it to makeProgram.',
+    )
+  }
+
   const hasRouting = 'routing' in config
   const hasFlags = 'Flags' in config
 
@@ -1623,9 +1641,14 @@ const provideBrowserScheduler = <A, E, R>(
 
 /** Starts a Foldkit runtime, with HMR support for development. */
 export const run = (program: MakeRuntimeReturn): void => {
+  if (program._tag === 'Inactive') {
+    return
+  }
+
+  const { runtimeId, start } = program
+
   if (import.meta.hot) {
     const hot = import.meta.hot
-    const { runtimeId, start } = program
 
     const requestPreservedModel = pipe(
       Effect.callback<unknown>(resume => {
@@ -1664,6 +1687,6 @@ export const run = (program: MakeRuntimeReturn): void => {
 
     BrowserRuntime.runMain(provideBrowserScheduler(requestPreservedModel))
   } else {
-    BrowserRuntime.runMain(provideBrowserScheduler(program.start()))
+    BrowserRuntime.runMain(provideBrowserScheduler(start()))
   }
 }
