@@ -569,12 +569,10 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           lazyDocsContent(Page.Core.Commands.view, [model.copiedSnippets]),
           Page.Core.Commands.tableOfContents,
         ),
-      CoreLifecycleHooks: () =>
+      CoreMount: () =>
         withTableOfContents(
-          lazyDocsContent(Page.Core.LifecycleHooks.view, [
-            model.copiedSnippets,
-          ]),
-          Page.Core.LifecycleHooks.tableOfContents,
+          lazyDocsContent(Page.Core.Mount.view, [model.copiedSnippets]),
+          Page.Core.Mount.tableOfContents,
         ),
       CoreSubscriptions: () =>
         withTableOfContents(

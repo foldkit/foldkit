@@ -8,18 +8,17 @@ import * as Animation from '../animation/index.js'
 import type { Message } from './shared.js'
 import {
   ActivatedItem,
+  AnchorCombobox,
+  AttachComboboxPreventBlur,
   BlurredInput,
   ClickItem,
   Closed,
-  ComboboxAnchor,
-  ComboboxAttachPreventBlur,
-  ComboboxBackdropPortal,
-  CompletedAnchorMount,
-  CompletedAttachPreventBlur,
-  CompletedBackdropPortal,
+  CompletedAnchorCombobox,
+  CompletedAttachComboboxPreventBlur,
   CompletedClickItem,
   CompletedFocusInput,
   CompletedLockScroll,
+  CompletedPortalComboboxBackdrop,
   CompletedScrollIntoView,
   CompletedSetupInert,
   CompletedTeardownInert,
@@ -32,6 +31,7 @@ import {
   LockScroll,
   MovedPointerOverItem,
   Opened,
+  PortalComboboxBackdrop,
   PressedToggleButton,
   RequestedItemClick,
   RestoreInert,
@@ -47,16 +47,16 @@ const animationToComboboxMessage = (message: Animation.Message) =>
   GotAnimationMessage({ message })
 
 const acknowledgePreventBlur = Scene.Mount.resolve(
-  ComboboxAttachPreventBlur,
-  CompletedAttachPreventBlur(),
+  AttachComboboxPreventBlur,
+  CompletedAttachComboboxPreventBlur(),
 )
 const acknowledgeAnchor = Scene.Mount.resolve(
-  ComboboxAnchor,
-  CompletedAnchorMount(),
+  AnchorCombobox,
+  CompletedAnchorCombobox(),
 )
 const acknowledgeBackdrop = Scene.Mount.resolve(
-  ComboboxBackdropPortal,
-  CompletedBackdropPortal(),
+  PortalComboboxBackdrop,
+  CompletedPortalComboboxBackdrop(),
 )
 
 const animationEndMessage = GotAnimationMessage({

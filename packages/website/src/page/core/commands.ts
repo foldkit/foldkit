@@ -12,7 +12,7 @@ import {
 } from '../../prose'
 import {
   coreArchitectureRouter,
-  coreLifecycleHooksRouter,
+  coreMountRouter,
   exampleDetailRouter,
   testingRouter,
 } from '../../route'
@@ -234,7 +234,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para(
         'Commands fire once and produce a single Message when they finish. For one-shot work bound to a specific DOM element, Foldkit has ',
-        link(coreLifecycleHooksRouter(), 'Mount'),
+        link(coreMountRouter(), 'Mount'),
         '. For effects that run continuously (a timer that ticks every second, a ',
         inlineCode('WebSocket'),
         ' that stays open, keyboard input), Foldkit has Subscriptions.',

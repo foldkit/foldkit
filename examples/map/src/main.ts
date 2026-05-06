@@ -16,6 +16,7 @@ import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
+import * as Task from 'foldkit/task'
 import type { Map as MapInstance } from 'maplibre-gl'
 
 import { Location, featuredLocations } from './locations'
@@ -83,6 +84,7 @@ export const SucceededFlyTo = m('SucceededFlyTo')
 export const FailedFlyTo = m('FailedFlyTo', { reason: S.String })
 export const CompletedFocusSearchInput = m('CompletedFocusSearchInput')
 export const CompletedLockBodyScroll = m('CompletedLockBodyScroll')
+export const CompletedUnlockBodyScroll = m('CompletedUnlockBodyScroll')
 
 export const Message = S.Union([
   SucceededMountMap,
@@ -99,6 +101,7 @@ export const Message = S.Union([
   FailedFlyTo,
   CompletedFocusSearchInput,
   CompletedLockBodyScroll,
+  CompletedUnlockBodyScroll,
 ])
 export type Message = typeof Message.Type
 
@@ -189,6 +192,44 @@ const geolocate = Geolocate(
   ),
 )
 
+const SEARCH_INPUT_ID = 'map-search-input'
+
+export const FocusSearchInput = Command.define(
+  'FocusSearchInput',
+  CompletedFocusSearchInput,
+)
+
+const focusSearchInput = FocusSearchInput(
+  Task.focus(`#${SEARCH_INPUT_ID}`).pipe(
+    Effect.ignore,
+    Effect.as(CompletedFocusSearchInput()),
+  ),
+)
+
+export const LockBodyScroll = Command.define(
+  'LockBodyScroll',
+  CompletedLockBodyScroll,
+)
+
+const lockBodyScroll = LockBodyScroll(
+  Effect.sync(() => {
+    document.body.classList.add('overflow-hidden')
+    return CompletedLockBodyScroll()
+  }),
+)
+
+export const UnlockBodyScroll = Command.define(
+  'UnlockBodyScroll',
+  CompletedUnlockBodyScroll,
+)
+
+const unlockBodyScroll = UnlockBodyScroll(
+  Effect.sync(() => {
+    document.body.classList.remove('overflow-hidden')
+    return CompletedUnlockBodyScroll()
+  }),
+)
+
 // UPDATE
 
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
@@ -244,12 +285,12 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       ClickedFindMe: () => [
         evo(model, { geolocateState: () => GeolocateLocating() }),
-        [geolocate],
+        [lockBodyScroll, geolocate],
       ],
 
       DismissedGeolocate: () => [
         evo(model, { geolocateState: () => GeolocateIdle() }),
-        [],
+        [unlockBodyScroll],
       ],
 
       SucceededGeolocate: ({ lng, lat }) => [
@@ -257,7 +298,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           maybeUserLocation: () => Option.some({ lng, lat }),
           geolocateState: () => GeolocateIdle(),
         }),
-        [flyTo(model.maybeMapHostId, lng, lat, USER_LOCATION_ZOOM)],
+        [
+          unlockBodyScroll,
+          flyTo(model.maybeMapHostId, lng, lat, USER_LOCATION_ZOOM),
+        ],
       ],
 
       FailedGeolocate: ({ reason }) => [
@@ -269,6 +313,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       FailedFlyTo: () => [model, []],
       CompletedFocusSearchInput: () => [model, []],
       CompletedLockBodyScroll: () => [model, []],
+      CompletedUnlockBodyScroll: () => [model, []],
     }),
   )
 
@@ -285,7 +330,7 @@ const init: Runtime.ProgramInit<Model, Message> = () => [
     maybeUserLocation: Option.none(),
     geolocateState: GeolocateIdle(),
   },
-  [],
+  [focusSearchInput],
 ]
 
 // MAP MOUNT
@@ -435,46 +480,6 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
   },
 })
 
-// LIFECYCLE ACTIONS
-
-export const FocusSearchInput = Mount.define(
-  'FocusSearchInput',
-  CompletedFocusSearchInput,
-)
-
-const focusSearchInput = FocusSearchInput(
-  (
-    element,
-  ): Effect.Effect<MountResult<typeof CompletedFocusSearchInput.Type>> =>
-    Effect.sync(() => {
-      if (element instanceof HTMLElement) {
-        element.focus()
-      }
-      return {
-        message: CompletedFocusSearchInput(),
-        cleanup: Function.constVoid,
-      }
-    }),
-)
-
-export const LockBodyScroll = Mount.define(
-  'LockBodyScroll',
-  CompletedLockBodyScroll,
-)
-
-const lockBodyScroll = LockBodyScroll(
-  (): Effect.Effect<MountResult<typeof CompletedLockBodyScroll.Type>> =>
-    Effect.sync(() => {
-      document.body.classList.add('overflow-hidden')
-      return {
-        message: CompletedLockBodyScroll(),
-        cleanup: () => {
-          document.body.classList.remove('overflow-hidden')
-        },
-      }
-    }),
-)
-
 // VIEW
 
 const {
@@ -496,6 +501,7 @@ const {
   AriaPressed,
   Class,
   Disabled,
+  Id,
   OnClick,
   OnInput,
   OnMount,
@@ -558,6 +564,7 @@ const sidebarView = (model: Model): Html => {
         [Class('px-5 py-3 border-b border-slate-200')],
         [
           input([
+            Id(SEARCH_INPUT_ID),
             Type('search'),
             Placeholder('Filter locations'),
             AriaLabel('Filter locations'),
@@ -566,7 +573,6 @@ const sidebarView = (model: Model): Html => {
             ),
             Value(model.searchQuery),
             OnInput(value => UpdatedSearchQuery({ value })),
-            OnMount(focusSearchInput),
           ]),
         ],
       ),
@@ -718,7 +724,6 @@ const geolocateOverlayShellView = (content: Html): Html =>
         'fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40',
       ),
       AriaLabel('Geolocation'),
-      OnMount(lockBodyScroll),
     ],
     [content],
   )

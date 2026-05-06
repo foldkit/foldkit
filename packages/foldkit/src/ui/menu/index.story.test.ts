@@ -7,17 +7,17 @@ import * as Story from '../../test/story.js'
 import * as Animation from '../animation/index.js'
 import {
   ActivatedItem,
+  AnchorMenu,
   BlurredItems,
   ClearedSearch,
   ClickItem,
   Closed,
-  CompletedAnchorMount,
-  CompletedBackdropPortal,
+  CompletedAnchorMenu,
   CompletedClickItem,
   CompletedFocusButton,
   CompletedFocusItems,
-  CompletedFocusItemsOnMount,
   CompletedLockScroll,
+  CompletedPortalMenuBackdrop,
   CompletedScrollIntoView,
   CompletedSetupInert,
   CompletedTeardownInert,
@@ -26,15 +26,14 @@ import {
   DelayClearSearch,
   DetectMovementOrAnimationEnd,
   FocusButton,
+  FocusItems,
   GotAnimationMessage,
   IgnoredMouseClick,
   InertOthers,
   LockScroll,
-  MenuAnchor,
-  MenuBackdropPortal,
-  MenuFocusItemsOnMount,
   MovedPointerOverItem,
   Opened,
+  PortalMenuBackdrop,
   PressedPointerOnButton,
   ReleasedPointerOnItems,
   RequestedItemClick,
@@ -54,17 +53,14 @@ import type { Message, Model, ViewConfig } from './index.js'
 const animationToMenuMessage = (message: Animation.Message) =>
   GotAnimationMessage({ message })
 
-const acknowledgeAnchor = Scene.Mount.resolve(
-  MenuAnchor,
-  CompletedAnchorMount(),
-)
-const acknowledgeFocus = Scene.Mount.resolve(
-  MenuFocusItemsOnMount,
-  CompletedFocusItemsOnMount(),
+const acknowledgeAnchor = Scene.Mount.resolve(AnchorMenu, CompletedAnchorMenu())
+const acknowledgeFocusItems = Story.Command.resolve(
+  FocusItems,
+  CompletedFocusItems(),
 )
 const acknowledgeBackdrop = Scene.Mount.resolve(
-  MenuBackdropPortal,
-  CompletedBackdropPortal(),
+  PortalMenuBackdrop,
+  CompletedPortalMenuBackdrop(),
 )
 
 const animationEndMessage = GotAnimationMessage({
@@ -78,6 +74,7 @@ const withClosed = Story.with(init({ id: 'test' }))
 const withOpen = flow(
   withClosed,
   Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+  acknowledgeFocusItems,
 )
 
 const withClosedAnimated = Story.with(init({ id: 'test', isAnimated: true }))
@@ -85,6 +82,7 @@ const withClosedAnimated = Story.with(init({ id: 'test', isAnimated: true }))
 const withOpenAnimated = flow(
   withClosedAnimated,
   Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+  acknowledgeFocusItems,
   Story.Command.resolveAll(
     [
       Animation.RequestFrame,
@@ -142,6 +140,7 @@ describe('Menu', () => {
           update,
           withClosed,
           Story.message(Opened({ maybeActiveItemIndex: Option.some(2) })),
+          acknowledgeFocusItems,
           Story.model(model => {
             expect(model.isOpen).toBe(true)
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
@@ -158,6 +157,7 @@ describe('Menu', () => {
             searchVersion: 1,
           }),
           Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+          acknowledgeFocusItems,
           Story.model(model => {
             expect(model.searchQuery).toBe('')
             expect(model.searchVersion).toBe(0)
@@ -170,6 +170,7 @@ describe('Menu', () => {
           update,
           withClosed,
           Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+          acknowledgeFocusItems,
           Story.model(model => {
             expect(model.activationTrigger).toBe('Keyboard')
           }),
@@ -181,6 +182,7 @@ describe('Menu', () => {
           update,
           withClosed,
           Story.message(Opened({ maybeActiveItemIndex: Option.none() })),
+          acknowledgeFocusItems,
           Story.model(model => {
             expect(model.activationTrigger).toBe('Pointer')
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
@@ -199,6 +201,7 @@ describe('Menu', () => {
             }),
           }),
           Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+          acknowledgeFocusItems,
           Story.model(model => {
             expect(model.maybeLastPointerPosition).toStrictEqual(Option.none())
           }),
@@ -302,6 +305,7 @@ describe('Menu', () => {
               timeStamp: 1000,
             }),
           ),
+          acknowledgeFocusItems,
           Story.model(model => {
             expect(model.isOpen).toBe(true)
             expect(model.activationTrigger).toBe('Pointer')
@@ -389,6 +393,7 @@ describe('Menu', () => {
               timeStamp: 0,
             }),
           ),
+          acknowledgeFocusItems,
           Story.model(model => {
             expect(model.maybeLastButtonPointerType).toStrictEqual(
               Option.some('mouse'),
@@ -441,6 +446,7 @@ describe('Menu', () => {
             timeStamp: 1000,
           }),
         ),
+        acknowledgeFocusItems,
       )
 
       it('no-ops when no pointer origin', () => {
@@ -921,6 +927,7 @@ describe('Menu', () => {
             update,
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+            acknowledgeFocusItems,
             Story.model(model => {
               expect(model.isOpen).toBe(true)
               expect(model.animation.transitionState).toBe('EnterStart')
@@ -946,6 +953,7 @@ describe('Menu', () => {
             update,
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+            acknowledgeFocusItems,
             Story.Command.resolve(
               Animation.RequestFrame,
               Animation.AdvancedAnimationFrame(),
@@ -971,6 +979,7 @@ describe('Menu', () => {
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.Command.resolveAll(
+              [FocusItems, CompletedFocusItems()],
               [
                 Animation.RequestFrame,
                 Animation.AdvancedAnimationFrame(),
@@ -1125,6 +1134,7 @@ describe('Menu', () => {
             update,
             withClosed,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+            acknowledgeFocusItems,
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
             }),
@@ -1181,6 +1191,7 @@ describe('Menu', () => {
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.Command.resolveAll(
+              [FocusItems, CompletedFocusItems()],
               [
                 Animation.RequestFrame,
                 Animation.AdvancedAnimationFrame(),
@@ -1221,6 +1232,7 @@ describe('Menu', () => {
             withClosedAnimated,
             Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
             Story.Command.resolveAll(
+              [FocusItems, CompletedFocusItems()],
               [
                 Animation.RequestFrame,
                 Animation.AdvancedAnimationFrame(),
@@ -1267,6 +1279,7 @@ describe('Menu', () => {
       Story.Command.resolveAll(
         [LockScroll, CompletedLockScroll()],
         [InertOthers, CompletedSetupInert()],
+        [FocusItems, CompletedFocusItems()],
       ),
     )
 
@@ -1278,6 +1291,7 @@ describe('Menu', () => {
         Story.Command.resolveAll(
           [LockScroll, CompletedLockScroll()],
           [InertOthers, CompletedSetupInert()],
+          [FocusItems, CompletedFocusItems()],
         ),
         Story.model(model => {
           expect(model.isOpen).toBe(true)
@@ -1337,6 +1351,7 @@ describe('Menu', () => {
         update,
         withClosed,
         Story.message(Opened({ maybeActiveItemIndex: Option.some(0) })),
+        acknowledgeFocusItems,
         Story.model(model => {
           expect(model.isOpen).toBe(true)
         }),
@@ -1707,7 +1722,7 @@ describe('Menu', () => {
         )
       })
 
-      it('adds focus mount hook but no positioning styles when anchor is absent', () => {
+      it('does not add positioning styles when anchor is absent', () => {
         Scene.scene(
           {
             update,
@@ -1720,10 +1735,7 @@ describe('Menu', () => {
               '[key="test-items-container"]',
             )
             expect(itemsContainer).not.toHaveStyle('position')
-            expect(itemsContainer).toHaveHook('insert')
-            expect(itemsContainer).toHaveHook('destroy')
           }),
-          acknowledgeFocus,
           acknowledgeBackdrop,
         )
       })
@@ -1786,7 +1798,6 @@ describe('Menu', () => {
               Scene.find(html, '[key="test-button"]'),
             )
           }),
-          acknowledgeFocus,
           acknowledgeBackdrop,
         )
 

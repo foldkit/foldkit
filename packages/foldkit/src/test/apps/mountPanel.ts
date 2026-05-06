@@ -33,13 +33,13 @@ export type Message = typeof Message.Type
 
 // MOUNT
 
-export const PanelMeasure = Mount.define(
-  'PanelMeasure',
+export const MeasurePanel = Mount.define(
+  'MeasurePanel',
   MeasuredPanel,
   FailedMountSidebar,
 )
 
-export const ButtonFocus = Mount.define('ButtonFocus', CompletedFocusButton)
+export const FocusButton = Mount.define('FocusButton', CompletedFocusButton)
 
 // INIT
 
@@ -73,14 +73,14 @@ export const update = (
 
 const { div, button, span, OnMount, OnClick, Class, Key } = html<Message>()
 
-const panelMount = PanelMeasure(() =>
+const measurePanel = MeasurePanel(() =>
   Effect.succeed({
     message: MeasuredPanel({ width: 320 }),
     cleanup: () => {},
   }),
 )
 
-const buttonFocusMount = ButtonFocus(() =>
+const focusButton = FocusButton(() =>
   Effect.succeed({
     message: CompletedFocusButton(),
     cleanup: () => {},
@@ -92,13 +92,13 @@ export const view = (model: Model): Html =>
     [Class('panel-test')],
     [
       button(
-        [Key('toggle'), OnClick(ClickedToggle()), OnMount(buttonFocusMount)],
+        [Key('toggle'), OnClick(ClickedToggle()), OnMount(focusButton)],
         [model.isOpen ? 'Close' : 'Open'],
       ),
       ...(model.isOpen
         ? [
             div(
-              [Key('panel'), OnMount(panelMount)],
+              [Key('panel'), OnMount(measurePanel)],
               [
                 span(
                   [],
@@ -117,14 +117,14 @@ export const view = (model: Model): Html =>
   )
 
 /** A view that always renders both the toggle button and the panel, exposing
- *  two PanelMeasure mounts simultaneously so we can exercise the (name,
+ *  two MeasurePanel mounts simultaneously so we can exercise the (name,
  *  occurrence) tracking. */
 export const twoPanelView = (model: Model): Html =>
   div(
     [Class('two-panels')],
     [
-      div([Key('panel-a'), OnMount(panelMount)], [span([], ['A'])]),
-      div([Key('panel-b'), OnMount(panelMount)], [span([], ['B'])]),
+      div([Key('panel-a'), OnMount(measurePanel)], [span([], ['A'])]),
+      div([Key('panel-b'), OnMount(measurePanel)], [span([], ['B'])]),
       button(
         [Key('inc'), OnClick(ClickedIncrement())],
         [`count: ${model.count}`],

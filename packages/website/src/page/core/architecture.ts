@@ -95,7 +95,7 @@ export const view = (): Html =>
               strong([], ['Mount:']),
               ' the moment an element from the view enters the live DOM. ',
               inlineCode('OnMount'),
-              ' is the seam where view code can drop down to imperative work at that moment, like focusing an input or handing a real ',
+              ' is the seam where view code can drop down to imperative work at that moment, like portaling an overlay to the document body or handing a real ',
               inlineCode('Element'),
               ' to a third-party library that owns its own DOM. The runtime runs an Effect with the live element, dispatches its Message back through ',
               inlineCode('update'),

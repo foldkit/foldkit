@@ -8,7 +8,7 @@ export type AnyCommand = Readonly<{ name: string }>
 
 /** A pending Mount in a Scene simulation. Identified by `name` and an
  *  `occurrence` index that disambiguates same-named mounts in the rendered
- *  tree (e.g. two open popovers each contributing a `PopoverAnchor`). The
+ *  tree (e.g. two open popovers each contributing an `AnchorPopover`). The
  *  occurrence is the 0-based position among same-named markers in
  *  tree-traversal order. */
 export type PendingMount = Readonly<{
@@ -393,6 +393,21 @@ export const assertNoUnresolvedMounts = (
   }
 }
 
+/** Throws when trying to send a Message with unacknowledged unmounts
+ *  from previous renders. */
+export const assertNoUnacknowledgedUnmounts = (
+  unacknowledgedEnded: ReadonlyArray<PendingMount>,
+  context: string,
+): void => {
+  if (Array.isReadonlyArrayNonEmpty(unacknowledgedEnded)) {
+    throw new Error(
+      `I found unacknowledged unmounts ${context}:\n\n${formatMountList(unacknowledgedEnded)}\n\n` +
+        'Acknowledge unmounts before sending the next Message.\n' +
+        'Use Scene.Mount.expectEnded(Definition) for each one.',
+    )
+  }
+}
+
 /** Throws when Mounts remain at the end of a test. */
 export const assertAllMountsResolved = (
   pendingMounts: ReadonlyArray<PendingMount>,
@@ -403,6 +418,20 @@ export const assertAllMountsResolved = (
         'Every OnMount in the rendered view needs to be resolved.\n' +
         'Use resolveMount(Definition, ResultMessage) for each one,\n' +
         'or resolveAllMounts(...resolvers) to resolve them all at once.',
+    )
+  }
+}
+
+/** Throws when Mounts ended (unmounted) without being acknowledged. */
+export const assertAllUnmountsAcknowledged = (
+  unacknowledgedEnded: ReadonlyArray<PendingMount>,
+): void => {
+  if (Array.isReadonlyArrayNonEmpty(unacknowledgedEnded)) {
+    throw new Error(
+      `I found Mounts that ended without being acknowledged:\n\n${formatMountList(unacknowledgedEnded)}\n\n` +
+        'Every Mount that fires and then unmounts during a scene must be\n' +
+        'acknowledged with Scene.Mount.expectEnded(Definition), even if it\n' +
+        'was previously resolved.',
     )
   }
 }

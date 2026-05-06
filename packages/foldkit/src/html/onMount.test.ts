@@ -14,6 +14,7 @@ import { afterEach, beforeEach, expect, vi } from 'vitest'
 import { m } from '../message/index.js'
 import * as Mount from '../mount/index.js'
 import { propsModule } from '../propsModule.js'
+import { noOpDispatch } from '../runtime/crashUI.js'
 import { Dispatch } from '../runtime/index.js'
 import type { VNode } from '../vdom.js'
 import { html } from './index.js'
@@ -90,6 +91,38 @@ describe('OnMount', () => {
 
     await vi.waitFor(() => {
       expect(dispatched).toStrictEqual([MountedRoot()])
+    })
+  })
+
+  it('does not dispatch the result Message when rendered with a no-op dispatch', async () => {
+    const { div, span, OnMount } = html<typeof MountedRoot.Type>()
+    let effectRan = false
+
+    const view = div(
+      [],
+      [
+        span(
+          [
+            OnMount(
+              Mounted(() => {
+                effectRan = true
+                return Effect.succeed({
+                  message: MountedRoot(),
+                  cleanup: () => {},
+                })
+              }),
+            ),
+          ],
+          [],
+        ),
+      ],
+    )
+    const vnode = renderView(view, Dispatch.of(noOpDispatch))
+
+    patch(toVNode(makeRootContainer()), vnode)
+
+    await vi.waitFor(() => {
+      expect(effectRan).toBe(true)
     })
   })
 

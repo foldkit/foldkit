@@ -15,8 +15,8 @@ export {
   ElapsedShowDelay,
   ChangedShowDelay,
   ShowAfterDelay,
-  CompletedAnchorMount,
-  TooltipAnchor,
+  CompletedAnchorTooltip,
+  AnchorTooltip,
 } from './index.js'
 
 export type { InitConfig, ViewConfig } from './index.js'

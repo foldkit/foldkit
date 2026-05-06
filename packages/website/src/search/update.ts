@@ -4,6 +4,7 @@ import { evo } from 'foldkit/struct'
 
 import {
   type PagefindService,
+  focusSearchInput,
   navigateToResult,
   scrollActiveResultIntoView,
   searchPagefind,
@@ -88,6 +89,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               }
             : {}
 
+        const focusOnOpen = message._tag === 'Opened' ? [focusSearchInput] : []
+
         const mappedDialogCommands = dialogCommands.map(
           Command.mapEffect(
             Effect.map(
@@ -98,7 +101,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
         return [
           evo(model, { dialog: () => nextDialog, ...resetOnClose }),
-          mappedDialogCommands,
+          [...mappedDialogCommands, ...focusOnOpen],
         ]
       },
 

@@ -74,9 +74,11 @@ export const IgnoredMouseClick = m('IgnoredMouseClick')
 /** Sent when a Space key-up is captured to prevent page scrolling. */
 export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
 /** Sent when the popover panel mounts and Floating UI has positioned it. Update no-ops; the side effect is the act of positioning, surfaced for DevTools observability. */
-export const CompletedAnchorMount = m('CompletedAnchorMount')
+export const CompletedAnchorPopover = m('CompletedAnchorPopover')
 /** Sent when the popover backdrop mounts and is portaled to the document body. Update no-ops; surfaces the portal side effect for DevTools. */
-export const CompletedBackdropPortal = m('CompletedBackdropPortal')
+export const CompletedPortalPopoverBackdrop = m(
+  'CompletedPortalPopoverBackdrop',
+)
 /** Wraps an Animation submodel message for delegation. */
 export const GotAnimationMessage = m('GotAnimationMessage', {
   message: AnimationMessage,
@@ -97,8 +99,8 @@ export const Message: S.Union<
     typeof CompletedTeardownInert,
     typeof IgnoredMouseClick,
     typeof SuppressedSpaceScroll,
-    typeof CompletedAnchorMount,
-    typeof CompletedBackdropPortal,
+    typeof CompletedAnchorPopover,
+    typeof CompletedPortalPopoverBackdrop,
     typeof GotAnimationMessage,
   ]
 > = S.Union([
@@ -114,8 +116,8 @@ export const Message: S.Union<
   CompletedTeardownInert,
   IgnoredMouseClick,
   SuppressedSpaceScroll,
-  CompletedAnchorMount,
-  CompletedBackdropPortal,
+  CompletedAnchorPopover,
+  CompletedPortalPopoverBackdrop,
   GotAnimationMessage,
 ])
 
@@ -373,31 +375,36 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         [],
       ],
       SuppressedSpaceScroll: () => [model, []],
-      CompletedAnchorMount: () => [model, []],
-      CompletedBackdropPortal: () => [model, []],
+      CompletedAnchorPopover: () => [model, []],
+      CompletedPortalPopoverBackdrop: () => [model, []],
     }),
   )
 }
 
 /** The anchor-positioning Mount this Popover renders on its panel. Exposed so
- *  Scene tests can call `Scene.Mount.resolve(PopoverAnchor, CompletedAnchorMount())`
+ *  Scene tests can call `Scene.Mount.resolve(AnchorPopover, CompletedAnchorPopover())`
  *  to acknowledge the mount produced by the rendered panel. */
-export const PopoverAnchor = Mount.define('PopoverAnchor', CompletedAnchorMount)
-
-/** The backdrop-portaling Mount this Popover renders. Exposed so Scene tests can
- *  call `Scene.Mount.resolve(PopoverBackdropPortal, CompletedBackdropPortal())` to
- *  acknowledge the mount produced by the rendered backdrop. */
-export const PopoverBackdropPortal = Mount.define(
-  'PopoverBackdropPortal',
-  CompletedBackdropPortal,
+export const AnchorPopover = Mount.define(
+  'AnchorPopover',
+  CompletedAnchorPopover,
 )
 
-const portalBackdropOnMount = PopoverBackdropPortal(
-  (element): Effect.Effect<MountResult<typeof CompletedBackdropPortal.Type>> =>
-    Effect.sync(() => ({
-      message: CompletedBackdropPortal(),
-      cleanup: portalToBody(element),
-    })),
+/** The backdrop-portaling Mount this Popover renders. Exposed so Scene tests can
+ *  call `Scene.Mount.resolve(PortalPopoverBackdrop, CompletedPortalPopoverBackdrop())` to
+ *  acknowledge the mount produced by the rendered backdrop. */
+export const PortalPopoverBackdrop = Mount.define(
+  'PortalPopoverBackdrop',
+  CompletedPortalPopoverBackdrop,
+)
+
+const portalPopoverBackdrop = PortalPopoverBackdrop(
+  (
+    element,
+  ): Effect.Effect<MountResult<typeof CompletedPortalPopoverBackdrop.Type>> =>
+    Effect.sync(() => {
+      const cleanup = portalToBody(element)
+      return { message: CompletedPortalPopoverBackdrop(), cleanup }
+    }),
 )
 
 /** Programmatically opens the popover, updating the model and returning
@@ -427,8 +434,8 @@ export type ViewConfig<ParentMessage> = Readonly<{
       | PressedPointerOnButton
       | IgnoredMouseClick
       | SuppressedSpaceScroll
-      | typeof CompletedAnchorMount.Type
-      | typeof CompletedBackdropPortal.Type,
+      | typeof CompletedAnchorPopover.Type
+      | typeof CompletedPortalPopoverBackdrop.Type,
   ) => ParentMessage
   onOpened?: () => ParentMessage
   onClosed?: () => ParentMessage
@@ -599,26 +606,26 @@ export const view = <ParentMessage>(
     ...buttonAttributes,
   ]
 
-  const anchorAction = Mount.mapMessage(
-    PopoverAnchor(
-      (items): Effect.Effect<MountResult<typeof CompletedAnchorMount.Type>> =>
-        Effect.sync(() => ({
-          message: CompletedAnchorMount(),
-          cleanup: anchorSetup({
+  const anchorPopover = Mount.mapMessage(
+    AnchorPopover(
+      (items): Effect.Effect<MountResult<typeof CompletedAnchorPopover.Type>> =>
+        Effect.sync(() => {
+          const cleanup = anchorSetup({
             buttonId: `${id}-button`,
             anchor,
             interceptTab: false,
             focusAfterPosition: true,
             ...(focusSelector !== undefined && { focusSelector }),
-          })(items),
-        })),
+          })(items)
+          return { message: CompletedAnchorPopover(), cleanup }
+        }),
     ),
     toParentMessage,
   )
 
   const anchorAttributes = [
     Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
-    OnMount(anchorAction),
+    OnMount(anchorPopover),
   ]
 
   const resolvedPanelAttributes = [
@@ -639,7 +646,7 @@ export const view = <ParentMessage>(
   const backdrop = keyed('div')(
     `${id}-backdrop`,
     [
-      OnMount(Mount.mapMessage(portalBackdropOnMount, toParentMessage)),
+      OnMount(Mount.mapMessage(portalPopoverBackdrop, toParentMessage)),
       ...(isLeaving ? [] : [OnClick(dispatchClosed())]),
       ...(backdropClassName ? [Class(backdropClassName)] : []),
       ...backdropAttributes,

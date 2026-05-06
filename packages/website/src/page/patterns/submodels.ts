@@ -12,7 +12,7 @@ import {
   warningCallout,
 } from '../../prose'
 import {
-  coreLifecycleHooksRouter,
+  coreMountRouter,
   exampleDetailRouter,
   patternsOutMessageRouter,
 } from '../../route'
@@ -184,7 +184,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         inlineCode('Mount.mapMessage'),
         ' does the same lift for ',
-        link(coreLifecycleHooksRouter(), 'OnMount'),
+        link(coreMountRouter(), 'OnMount'),
         ' actions. When the child attaches mount-time work via ',
         inlineCode('OnMount'),
         ', the action\u2019s result Message starts in the child\u2019s Message type; ',

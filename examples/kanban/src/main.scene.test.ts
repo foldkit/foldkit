@@ -47,7 +47,7 @@ const toDoColumn = Scene.role('region', { name: 'To Do' })
 const inProgressColumn = Scene.role('region', { name: 'In Progress' })
 const doneColumn = Scene.role('region', { name: 'Done' })
 
-const acknowledgeFocusInput = Scene.Mount.resolve(
+const acknowledgeFocusInput = Scene.Command.resolve(
   FocusAddCardInput,
   CompletedFocusAddCardInput(),
 )

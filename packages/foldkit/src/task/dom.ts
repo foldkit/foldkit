@@ -50,13 +50,17 @@ const queryHTMLElement = (
  * Focuses an element matching the given selector after the next render has
  * committed.
  *
- * For focus that should happen because an element just appeared (an input
- * mounting, a dialog opening), prefer `OnMount` with a `Mount.define`'d
- * action — focus is then a consequence of the element's lifecycle and runs
- * synchronously inside the snabbdom insert hook with no race window.
- * Reserve `Task.focus` for the post-Message case (returning focus to a
- * trigger button after a popover closes, refocusing on blur, keyboard
- * navigation across a stable layout).
+ * Use `Task.focus` inside a Command for focus that's caused by a Message
+ * dispatching: a dialog opening, an input becoming the active step in a
+ * form, returning focus to a trigger button after a popover closes,
+ * keyboard navigation across a stable layout. The Command fires from
+ * `update`'s return; the focus runs after the next render commits, so the
+ * element is in place by the time `.focus()` runs.
+ *
+ * Do not use `OnMount` for focus. The cause of focus-on-open is the
+ * Message, not the element appearing. Mount is for per-instance lifecycle
+ * effects bound to a VNode existing where the live element handle is
+ * needed (positioning, portaling, observer attachment, library setup).
  *
  * Fails with `ElementNotFound` if the selector does not match an `HTMLElement`.
  *

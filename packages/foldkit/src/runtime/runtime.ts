@@ -831,7 +831,19 @@ const makeRuntime = <
             })
           })
 
-        const render = (model: Model, message: Option.Option<Message>) =>
+        // NOTE: `dispatchService` defaults to the live dispatch but is
+        // overridable so the DevTools time-travel render path can pass
+        // `noOpDispatch`. Mount Effects forked during a replay render still
+        // execute (so the rendered DOM looks correct: positioning,
+        // observer attachment, library setup), but their result Messages
+        // reach a no-op dispatchSync and never enter the runtime queue.
+        // This prevents mount-derived Messages from polluting history when
+        // the user is just inspecting past state.
+        const render = (
+          model: Model,
+          message: Option.Option<Message>,
+          dispatchService: typeof Dispatch.Service = dispatch,
+        ) =>
           Effect.gen(function* () {
             const viewStart = performance.now()
             const nextDocument = view(model)
@@ -863,7 +875,7 @@ const makeRuntime = <
               applyDocumentMetadata(nextDocument, container),
             )
           }).pipe(
-            Effect.provideService(Dispatch, dispatch),
+            Effect.provideService(Dispatch, dispatchService),
             Effect.provideService(MountTracker, mountTracker),
           )
 
@@ -896,14 +908,16 @@ const makeRuntime = <
             // NOTE: clears the dirty bit on direct DevTools renders (jumpTo,
             // resume) so the renderLoop's Stream.changes sees the next
             // dispatch as a real false-to-true transition rather than a
-            // deduped no-op. Also discards mount events fired during the
-            // time-travel render so they don't get attributed to the next
-            // user-initiated dispatch.
+            // deduped no-op. Passes `noOpDispatch` so mount Effects forked
+            // during the replay render dispatch their result Messages into
+            // a no-op (instead of enqueueing them as new history entries).
+            // Also discards mount events fired during the render so they
+            // don't get attributed to the next user-initiated dispatch.
             render: model =>
               Effect.gen(function* () {
                 yield* SubscriptionRef.set(isRenderPendingRef, false)
                 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                yield* render(model as Model, Option.none())
+                yield* render(model as Model, Option.none(), noOpDispatch)
                 drainMountEvents()
               }),
             getCurrentModel: Ref.get(modelRef),

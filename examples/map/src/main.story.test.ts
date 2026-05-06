@@ -6,6 +6,8 @@ import {
   ClickedFindMe,
   ClickedLocation,
   ClickedMarker,
+  CompletedLockBodyScroll,
+  CompletedUnlockBodyScroll,
   DismissedGeolocate,
   FailedGeolocate,
   FailedMountMap,
@@ -13,10 +15,12 @@ import {
   Geolocate,
   GeolocateFailed,
   GeolocateLocating,
+  LockBodyScroll,
   MovedMap,
   SucceededFlyTo,
   SucceededGeolocate,
   SucceededMountMap,
+  UnlockBodyScroll,
   UpdatedSearchQuery,
   update,
 } from './main'
@@ -136,7 +140,8 @@ test('clicking find-me transitions to the locating state and emits Geolocate', (
     Story.model(model => {
       expect(model.geolocateState._tag).toBe('GeolocateLocating')
     }),
-    Story.Command.expectHas(Geolocate),
+    Story.Command.expectHas(LockBodyScroll, Geolocate),
+    Story.Command.resolve(LockBodyScroll, CompletedLockBodyScroll()),
     Story.Command.resolve(
       Geolocate,
       FailedGeolocate({ reason: 'Test cleanup' }),
@@ -158,7 +163,8 @@ test('a successful geolocation result clears the locating state and flies the ma
         Option.some({ lng: 2.35, lat: 48.85 }),
       )
     }),
-    Story.Command.expectHas(FlyTo),
+    Story.Command.expectHas(UnlockBodyScroll, FlyTo),
+    Story.Command.resolve(UnlockBodyScroll, CompletedUnlockBodyScroll()),
     Story.Command.resolve(FlyTo, SucceededFlyTo()),
   )
 })
@@ -191,5 +197,6 @@ test('dismissing the geolocate overlay returns to idle', () => {
     Story.model(model => {
       expect(model.geolocateState._tag).toBe('GeolocateIdle')
     }),
+    Story.Command.resolve(UnlockBodyScroll, CompletedUnlockBodyScroll()),
   )
 })

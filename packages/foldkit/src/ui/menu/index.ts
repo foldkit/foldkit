@@ -2,7 +2,6 @@ import {
   Array,
   Effect,
   Equal,
-  Function,
   Match as M,
   Option,
   Predicate,
@@ -138,11 +137,9 @@ export const IgnoredMouseClick = m('IgnoredMouseClick')
 /** Sent when a Space key-up is captured to prevent page scrolling. */
 export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
 /** Sent when the menu items panel mounts and Floating UI has positioned it. Update no-ops; the side effect is the act of positioning, surfaced for DevTools observability. */
-export const CompletedAnchorMount = m('CompletedAnchorMount')
-/** Sent when the menu items panel mounts and the no-anchor focus fallback runs. Update no-ops; the side effect is the focus call, surfaced for DevTools observability. */
-export const CompletedFocusItemsOnMount = m('CompletedFocusItemsOnMount')
+export const CompletedAnchorMenu = m('CompletedAnchorMenu')
 /** Sent when the menu backdrop mounts and is portaled to the document body. Update no-ops; surfaces the portal side effect for DevTools. */
-export const CompletedBackdropPortal = m('CompletedBackdropPortal')
+export const CompletedPortalMenuBackdrop = m('CompletedPortalMenuBackdrop')
 /** Wraps an Animation submodel message for delegation. */
 export const GotAnimationMessage = m('GotAnimationMessage', {
   message: AnimationMessage,
@@ -186,9 +183,8 @@ export const Message: S.Union<
     typeof CompletedAdvanceFocus,
     typeof IgnoredMouseClick,
     typeof SuppressedSpaceScroll,
-    typeof CompletedAnchorMount,
-    typeof CompletedFocusItemsOnMount,
-    typeof CompletedBackdropPortal,
+    typeof CompletedAnchorMenu,
+    typeof CompletedPortalMenuBackdrop,
     typeof GotAnimationMessage,
     typeof PressedPointerOnButton,
     typeof ReleasedPointerOnItems,
@@ -215,9 +211,8 @@ export const Message: S.Union<
   CompletedAdvanceFocus,
   IgnoredMouseClick,
   SuppressedSpaceScroll,
-  CompletedAnchorMount,
-  CompletedFocusItemsOnMount,
-  CompletedBackdropPortal,
+  CompletedAnchorMenu,
+  CompletedPortalMenuBackdrop,
   GotAnimationMessage,
   PressedPointerOnButton,
   ReleasedPointerOnItems,
@@ -411,7 +406,17 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     ),
   )
 
-  const openCommands = Array.getSomes([maybeLockScroll, maybeInertOthers])
+  const focusItems = FocusItems(
+    Task.focus(itemsSelector(model.id)).pipe(
+      Effect.ignore,
+      Effect.as(CompletedFocusItems()),
+    ),
+  )
+
+  const openCommands = [
+    ...Array.getSomes([maybeLockScroll, maybeInertOthers]),
+    focusItems,
+  ]
 
   const closeWithFocusCommands = [
     focusButton,
@@ -670,53 +675,32 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         [],
       ],
       SuppressedSpaceScroll: () => [model, []],
-      CompletedAnchorMount: () => [model, []],
-      CompletedFocusItemsOnMount: () => [model, []],
-      CompletedBackdropPortal: () => [model, []],
+      CompletedAnchorMenu: () => [model, []],
+      CompletedPortalMenuBackdrop: () => [model, []],
     }),
   )
 }
 
 /** The anchor-positioning Mount this Menu renders on its panel. Exposed so
- *  Scene tests can call `Scene.Mount.resolve(MenuAnchor, CompletedAnchorMount())`
+ *  Scene tests can call `Scene.Mount.resolve(AnchorMenu, CompletedAnchorMenu())`
  *  to acknowledge the mount produced by the rendered panel. */
-export const MenuAnchor = Mount.define('MenuAnchor', CompletedAnchorMount)
-/** The Mount this Menu renders to focus its first item on open. Exposed so
- *  Scene tests can call
- *  `Scene.Mount.resolve(MenuFocusItemsOnMount, CompletedFocusItemsOnMount())`. */
-export const MenuFocusItemsOnMount = Mount.define(
-  'MenuFocusItemsOnMount',
-  CompletedFocusItemsOnMount,
-)
+export const AnchorMenu = Mount.define('AnchorMenu', CompletedAnchorMenu)
 /** The backdrop-portaling Mount this Menu renders. Exposed so Scene tests can
- *  call `Scene.Mount.resolve(MenuBackdropPortal, CompletedBackdropPortal())` to
+ *  call `Scene.Mount.resolve(PortalMenuBackdrop, CompletedPortalMenuBackdrop())` to
  *  acknowledge the mount produced by the rendered backdrop. */
-export const MenuBackdropPortal = Mount.define(
-  'MenuBackdropPortal',
-  CompletedBackdropPortal,
+export const PortalMenuBackdrop = Mount.define(
+  'PortalMenuBackdrop',
+  CompletedPortalMenuBackdrop,
 )
 
-const focusItemsOnMount = MenuFocusItemsOnMount(
+const portalMenuBackdrop = PortalMenuBackdrop(
   (
     element,
-  ): Effect.Effect<MountResult<typeof CompletedFocusItemsOnMount.Type>> =>
+  ): Effect.Effect<MountResult<typeof CompletedPortalMenuBackdrop.Type>> =>
     Effect.sync(() => {
-      if (element instanceof HTMLElement) {
-        element.focus()
-      }
-      return {
-        message: CompletedFocusItemsOnMount(),
-        cleanup: Function.constVoid,
-      }
+      const cleanup = portalToBody(element)
+      return { message: CompletedPortalMenuBackdrop(), cleanup }
     }),
-)
-
-const portalBackdropOnMount = MenuBackdropPortal(
-  (element): Effect.Effect<MountResult<typeof CompletedBackdropPortal.Type>> =>
-    Effect.sync(() => ({
-      message: CompletedBackdropPortal(),
-      cleanup: portalToBody(element),
-    })),
 )
 
 /** Programmatically opens the menu, updating the model and returning
@@ -773,9 +757,8 @@ export type ViewConfig<ParentMessage, Item extends string> = Readonly<{
       | ReleasedPointerOnItems
       | IgnoredMouseClick
       | SuppressedSpaceScroll
-      | typeof CompletedAnchorMount.Type
-      | typeof CompletedFocusItemsOnMount.Type
-      | typeof CompletedBackdropPortal.Type,
+      | typeof CompletedAnchorMenu.Type
+      | typeof CompletedPortalMenuBackdrop.Type,
   ) => ParentMessage
   onSelectedItem?: (index: number) => ParentMessage
   items: ReadonlyArray<Item>
@@ -1096,24 +1079,23 @@ export const view = <ParentMessage, Item extends string>(
         Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
         OnMount(
           Mount.mapMessage(
-            MenuAnchor(
+            AnchorMenu(
               (
                 items,
-              ): Effect.Effect<MountResult<typeof CompletedAnchorMount.Type>> =>
-                Effect.sync(() => ({
-                  message: CompletedAnchorMount(),
-                  cleanup: anchorSetup({
+              ): Effect.Effect<MountResult<typeof CompletedAnchorMenu.Type>> =>
+                Effect.sync(() => {
+                  const cleanup = anchorSetup({
                     buttonId: `${id}-button`,
                     anchor,
-                    focusAfterPosition: true,
-                  })(items),
-                })),
+                  })(items)
+                  return { message: CompletedAnchorMenu(), cleanup }
+                }),
             ),
             toParentMessage,
           ),
         ),
       ]
-    : [OnMount(Mount.mapMessage(focusItemsOnMount, toParentMessage))]
+    : []
 
   const itemsContainerAttributes = [
     Id(`${id}-items`),
@@ -1259,7 +1241,7 @@ export const view = <ParentMessage, Item extends string>(
   const backdrop = keyed('div')(
     `${id}-backdrop`,
     [
-      OnMount(Mount.mapMessage(portalBackdropOnMount, toParentMessage)),
+      OnMount(Mount.mapMessage(portalMenuBackdrop, toParentMessage)),
       ...(isLeaving ? [] : [OnClick(toParentMessage(Closed()))]),
       ...(backdropClassName ? [Class(backdropClassName)] : []),
       ...backdropAttributes,

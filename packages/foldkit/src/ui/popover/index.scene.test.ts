@@ -4,23 +4,23 @@ import { Effect } from 'effect'
 import * as Scene from '../../test/scene.js'
 import type { Message, Model, ViewConfig } from './index.js'
 import {
-  CompletedAnchorMount,
-  CompletedBackdropPortal,
+  AnchorPopover,
+  CompletedAnchorPopover,
+  CompletedPortalPopoverBackdrop,
   Opened,
-  PopoverAnchor,
-  PopoverBackdropPortal,
+  PortalPopoverBackdrop,
   init,
   update,
   view,
 } from './index.js'
 
 const acknowledgeAnchor = Scene.Mount.resolve(
-  PopoverAnchor,
-  CompletedAnchorMount(),
+  AnchorPopover,
+  CompletedAnchorPopover(),
 )
 const acknowledgeBackdrop = Scene.Mount.resolve(
-  PopoverBackdropPortal,
-  CompletedBackdropPortal(),
+  PortalPopoverBackdrop,
+  CompletedPortalPopoverBackdrop(),
 )
 
 const sceneView =

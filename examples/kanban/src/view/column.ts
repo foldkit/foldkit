@@ -3,7 +3,6 @@ import { Array, Equal, Option, flow, pipe } from 'effect'
 import { Ui } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
-import { focusAddCardInput } from '../command'
 import { ADD_CARD_INPUT_ID } from '../constant'
 import { Card, Column } from '../domain'
 import {
@@ -12,7 +11,6 @@ import {
   Class,
   For,
   OnKeyDownPreventDefault,
-  OnMount,
   OnSubmit,
   Role,
   button,
@@ -82,7 +80,6 @@ const addCardForm = (model: Model, columnId: string): Html => {
                 Class(
                   'rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none',
                 ),
-                OnMount(focusAddCardInput),
                 OnKeyDownPreventDefault(
                   flow(
                     Option.liftPredicate(Equal.equals('Escape')),
