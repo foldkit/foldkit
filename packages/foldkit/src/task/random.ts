@@ -1,7 +1,8 @@
-import { Effect } from 'effect'
+import { Effect, Random } from 'effect'
 
 /**
- * Generates a random integer between min (inclusive) and max (exclusive).
+ * Generates a random integer between min (inclusive) and max (exclusive)
+ * via Effect's `Random` service. Seedable in tests with `Random.withSeed`.
  *
  * @example
  * ```typescript
@@ -9,17 +10,15 @@ import { Effect } from 'effect'
  * ```
  */
 export const randomInt = (min: number, max: number): Effect.Effect<number> =>
-  Effect.sync(() => Math.floor(Math.random() * (max - min)) + min)
+  Random.nextIntBetween(min, max, { halfOpen: true })
 
 /**
- * Generates a RFC 4122 version 4 UUID via the platform's
- * `crypto.randomUUID()`.
+ * Generates a RFC 4122 version 4 UUID via Effect's `Random` service.
+ * Seedable in tests with `Random.withSeed`.
  *
  * @example
  * ```typescript
  * Task.uuid.pipe(Effect.map(id => CreatedCard({ id, title })))
  * ```
  */
-export const uuid: Effect.Effect<string> = Effect.sync(() =>
-  crypto.randomUUID(),
-)
+export const uuid: Effect.Effect<string> = Random.nextUUIDv4
