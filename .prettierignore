@@ -6,3 +6,5 @@ pnpm-lock.yaml
 playwright-report/
 test-results/
 repos/
+packages/prettier-plugin-foldkit-view/artifacts/
+packages/prettier-plugin-foldkit-view/test/fixtures/

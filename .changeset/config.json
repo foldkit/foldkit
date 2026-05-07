@@ -33,6 +33,7 @@
     "job-application-example",
     "map-example",
     "pixel-art-react-comparison",
-    "@foldkit/performance-harness"
+    "@foldkit/performance-harness",
+    "@foldkit/prettier-plugin-view"
   ]
 }

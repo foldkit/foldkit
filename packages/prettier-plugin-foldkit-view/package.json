@@ -1,0 +1,48 @@
+{
+  "name": "@foldkit/prettier-plugin-view",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Prettier plugin that formats Foldkit view-DSL call expressions with hugging brackets and leading commas (PoC).",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "rimraf dist *.tsbuildinfo",
+    "build": "pnpm run clean && tsc -b",
+    "watch": "tsc -b --watch",
+    "typecheck": "tsc -b --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src",
+    "spike:capture": "tsx scripts/capture.ts"
+  },
+  "peerDependencies": {
+    "prettier": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/estree": "^1.0.5",
+    "@types/node": "^22.0.0",
+    "happy-dom": "^20.0.0",
+    "prettier": "^3.8.1",
+    "rimraf": "^6.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2",
+    "vitest": "^3.2.4"
+  },
+  "keywords": [
+    "prettier",
+    "prettier-plugin",
+    "foldkit"
+  ],
+  "author": "Foldkit",
+  "license": "MIT"
+}
