@@ -212,9 +212,11 @@
     "@effect/platform-browser": "4.0.0-beta.59",
     "@effect/vitest": "4.0.0-beta.59",
     "effect": "4.0.0-beta.59",
-    "happy-dom": "^20.0.0",
-    "typescript": "^6.0.2",
-    "vitest": "^3.2.4"
+    "happy-dom": "^20.9.0",
+    "rimraf": "^6.1.3",
+    "typedoc": "^0.28.19",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
   },
   "keywords": [
     "effect",
@@ -231,7 +233,7 @@
     "directory": "packages/foldkit"
   },
   "dependencies": {
-    "@floating-ui/dom": "^1.7.5",
+    "@floating-ui/dom": "^1.7.6",
     "clsx": "^2.1.1",
     "snabbdom": "^3.6.3"
   },
