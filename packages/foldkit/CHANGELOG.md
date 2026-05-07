@@ -1,5 +1,63 @@
 # foldkit
 
+## 0.85.0
+
+### Minor Changes
+
+- 588e37c: Menu and Listbox now focus their items container via the `FocusItems` Command on `Opened`, not via an `OnMount` hook on the items container. The Mount path was a misclassification: the cause of the focus side effect is the `Opened` Message, not the existence of the items element. Returning a Command from `update` makes the cause explicit, lines up with how the rest of Foldkit handles "do X when Y happens" effects, and keeps mounts reserved for cases where the author needs the live `Element` handle.
+
+  The following exports are removed:
+  - `Menu.MenuFocusItemsOnMount`, `Menu.CompletedFocusItemsOnMount`
+  - `Listbox.ListboxFocusItemsOnMount`, `Listbox.CompletedFocusItemsOnMount`
+
+  Scene and Story tests that previously acknowledged the focus mount via `Scene.Mount.resolve(MenuFocusItemsOnMount, ...)` should drop the line. The items container no longer renders that Mount. Tests that dispatch `Opened` (or trigger it indirectly via `PressedPointerOnButton`) now receive a `FocusItems` Command and need `Story.Command.resolve(FocusItems, CompletedFocusItems())` to acknowledge it.
+
+- 588e37c: Rename Mount Definitions and their result Messages to verb-first imperatives, mirroring how Commands are named. Mount Definitions are imperative instructions to the runtime ("when this element mounts, do X"), so the verb leads. Result Messages mirror the new Definition name in past tense.
+
+  Mount renames per component:
+  - Tooltip: `TooltipAnchor` → `AnchorTooltip`
+  - Popover: `PopoverAnchor` → `AnchorPopover`; `PopoverBackdropPortal` → `PortalPopoverBackdrop`
+  - Menu: `MenuAnchor` → `AnchorMenu`; `MenuBackdropPortal` → `PortalMenuBackdrop`
+  - Listbox: `ListboxAnchor` → `AnchorListbox`; `ListboxBackdropPortal` → `PortalListboxBackdrop`
+  - Combobox: `ComboboxAnchor` → `AnchorCombobox`; `ComboboxAttachPreventBlur` → `AttachComboboxPreventBlur`; `ComboboxAttachSelectOnFocus` → `AttachComboboxSelectOnFocus`; `ComboboxBackdropPortal` → `PortalComboboxBackdrop`
+
+  Result Messages now disambiguate per component instead of sharing a generic name. For example, `CompletedAnchorMount` becomes `CompletedAnchorPopover`, `CompletedAnchorMenu`, `CompletedAnchorListbox`, etc., depending on the component. The same pattern applies to `CompletedBackdropPortal` (now `CompletedPortalPopoverBackdrop`, `CompletedPortalMenuBackdrop`, etc.) and the Combobox attach completions.
+
+  Scene tests that called `Scene.Mount.resolve(PopoverAnchor, CompletedAnchorMount())` should update to `Scene.Mount.resolve(AnchorPopover, CompletedAnchorPopover())`. The acknowledgement helper pattern is unchanged; only the names move.
+
+- 588e37c: Add `Scene.Mount.expectEnded` for declaring that a Mount disappeared from the rendered tree. Every Mount that fires and then unmounts during a scene must be acknowledged with `expectEnded`, regardless of whether it was previously resolved. The scene throws at the end of the test for any unacknowledged unmount.
+
+  ```ts
+  Scene.scene(
+    { update, view },
+    Scene.with(closedModel),
+    Scene.click(Scene.role('button', { name: 'Open' })),
+    Scene.Mount.resolve(AnchorPopover, CompletedAnchorPopover()),
+    Scene.Mount.resolve(
+      PortalPopoverBackdrop,
+      CompletedPortalPopoverBackdrop(),
+    ),
+    Scene.click(Scene.role('button', { name: 'Done' })),
+    Scene.Mount.expectEnded(AnchorPopover, PortalPopoverBackdrop),
+  )
+  ```
+
+  Mount lifecycle now surfaces as deliberate test steps so the test reads as a precise account of what happened during the simulation. `resolve` handles a Mount's result Message; `expectEnded` handles its unmount. The two are independent test steps.
+
+  The throw fires at two points: at the end of the scene for any unacknowledged unmount, and at the next interaction that dispatches a Message (so the error points to the offending step rather than waiting for scene end).
+
+  Existing tests that previously relied on the silent-drop behavior for unmounted Mounts will now throw and need an `expectEnded` step for each Mount that fired and disappeared during the scene.
+
+### Patch Changes
+
+- 588e37c: Fix DevTools time-travel polluting history with mount-derived Messages.
+
+  When DevTools renders a historical Model (e.g. via `jumpTo` or the timeline scrubber), Snabbdom inserts elements that may carry `OnMount` attributes. Until now, those mount Effects fired and their result Messages were dispatched into the live runtime, which recorded them as new history entries. The result: clicking through history caused new entries like `CompletedAnchorPopover` and `CompletedPortalPopoverBackdrop` to appear at the live end of history, polluting the timeline with replay-induced activity.
+
+  The fix routes the DevTools render through a no-op dispatch. Mount Effects still execute (so the rendered DOM looks correct: positioning, observer attachment, library setup are preserved), but their result Messages are silenced and no new history entries are produced. Cleanup behaviour is unchanged.
+
+  This is defense-in-depth alongside the convention that Mount Effects should only do replay-safe DOM measurement and manipulation. Convention is the primary mechanism; this fix is the safety net for misjudged Mounts.
+
 ## 0.84.0
 
 ### Minor Changes
