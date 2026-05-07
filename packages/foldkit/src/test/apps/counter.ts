@@ -13,6 +13,7 @@ export type Model = typeof Model.Type
 export const ClickedIncrement = m('ClickedIncrement')
 export const ClickedDecrement = m('ClickedDecrement')
 export const ClickedFetch = m('ClickedFetch')
+export const ClickedFetchById = m('ClickedFetchById', { id: S.Number })
 export const SucceededFetchCount = m('SucceededFetchCount', { count: S.Number })
 export const FailedFetchCount = m('FailedFetchCount', { error: S.String })
 
@@ -20,6 +21,7 @@ export const Message = S.Union([
   ClickedIncrement,
   ClickedDecrement,
   ClickedFetch,
+  ClickedFetchById,
   SucceededFetchCount,
   FailedFetchCount,
 ])
@@ -31,11 +33,14 @@ export const FetchCount = Command.define(
   'FetchCount',
   SucceededFetchCount,
   FailedFetchCount,
-)
+)(Effect.sync(() => SucceededFetchCount({ count: 0 })))
 
-export const fetchCount = FetchCount(
-  Effect.sync(() => SucceededFetchCount({ count: 0 })),
-)
+export const FetchCountById = Command.define(
+  'FetchCountById',
+  { id: S.Number },
+  SucceededFetchCount,
+  FailedFetchCount,
+)(({ id }) => Effect.sync(() => SucceededFetchCount({ count: id })))
 
 // INIT
 
@@ -54,7 +59,8 @@ export const update = (
     M.tagsExhaustive({
       ClickedIncrement: () => [{ count: model.count + 1 }, []],
       ClickedDecrement: () => [{ count: model.count - 1 }, []],
-      ClickedFetch: () => [model, [fetchCount]],
+      ClickedFetch: () => [model, [FetchCount()]],
+      ClickedFetchById: ({ id }) => [model, [FetchCountById({ id })]],
       SucceededFetchCount: ({ count }) => [{ count }, []],
       FailedFetchCount: () => [model, []],
     }),

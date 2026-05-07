@@ -8,7 +8,7 @@ import { Model } from './model'
 const update = (model: Model, message: Message) =>
   Match.value(message).pipe(
     Match.tagsExhaustive({
-      RequestedApple: () => [model, [generateApplePosition]],
+      RequestedApple: () => [model, [GenerateApplePosition()]],
       GeneratedApple: ({ position }) => [{ ...model, apple: position }, []],
     }),
   )
@@ -16,9 +16,7 @@ const update = (model: Model, message: Message) =>
 const GenerateApplePosition = Command.define(
   'GenerateApplePosition',
   GeneratedApple,
-)
-
-const generateApplePosition = GenerateApplePosition(
+)(
   Effect.gen(function* () {
     const x = yield* Random.nextIntBetween(0, GRID_SIZE, { halfOpen: true })
     const y = yield* Random.nextIntBetween(0, GRID_SIZE, { halfOpen: true })

@@ -20,7 +20,7 @@ Messages use past-tense, verb-first naming. The verb prefix acts as a category m
 | `Completed*` | Fire-and-forget acknowledged                | `CompletedFocusInput`, `CompletedLockScroll`        |
 | `Got*`       | Child module OutMessage                     | `GotHomeMessage`, `GotRoomMessage`                  |
 | `Loaded*`    | Data restored                               | `LoadedSession`, `LoadedPreferences`                |
-| `Hidden*`    | UI element dismissed                        | `HiddenToast`, `HiddenCopiedIndicator`              |
+| `Hid*`       | UI element dismissed                        | `HidToast`, `HidCopiedIndicator`                    |
 | `Ticked*`    | Timer/interval tick                         | `TickedCountdown`, `TickedExitCountdown`            |
 
 `Updated*` covers both user input changes (`UpdatedEmail`, `UpdatedNewTodo`) and external state updates from subscriptions (`UpdatedRoom`, `UpdatedPlayerProgress`). The prefix describes the fact ("the value was updated") — whether it came from a keystroke or a WebSocket doesn't change the Message category.

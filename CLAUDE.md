@@ -110,28 +110,29 @@ Individual `type A = typeof A.Type` declarations are not needed — use `typeof 
 
 ### Command Definitions
 
-Create Commands with `Command.define`, which returns a `CommandDefinition` — the only way to construct a Command. Result Message schemas are required — pass every Message the Command can return after the name. Always assign definitions to PascalCase constants; never use `Command.define` inline in a pipe chain.
+Create Commands with `Command.define`, which is curried: the first call binds the name and result Message schemas (and optionally an args Schema record), and the second call binds the Effect (or effect builder, when args are declared). The resulting `CommandDefinition` is callable — with no args for argless Commands, or with the declared args record otherwise — to produce a Command instance. Always assign definitions to PascalCase constants; never use `Command.define` inline in a pipe chain.
 
 ```ts
-// Good — definition wraps the Effect (direct call, name leads)
-const FetchWeather = Command.define('FetchWeather', SucceededFetchWeather, FailedFetchWeather)
-const ScrollToTop = Command.define('ScrollToTop', CompletedScroll)
-const scrollToTop = ScrollToTop(
-  Effect.sync(() => { ... return CompletedScroll() }),
-)
+// Argless — Command.define(name, ...results)(effect)
+const ScrollToTop = Command.define(
+  'ScrollToTop',
+  CompletedScrollToTop,
+)(Dom.scrollToTop.pipe(Effect.as(CompletedScrollToTop())))
 
-// Also fine — pipe-last when composing with an existing Effect pipeline
-const fetchWeather = (city: string) =>
-  Effect.gen(function* () { ... }).pipe(
-    Effect.catch(() => Effect.succeed(FailedFetchWeather())),
-    FetchWeather,
-  )
+ScrollToTop() // → Command instance
 
-// Bad — definition created and discarded (same as the old Command.make)
-someEffect.pipe(Command.define('FetchWeather', SucceededFetchWeather, FailedFetchWeather))
+// With args — Command.define(name, args, ...results)(({ ...args }) => effect)
+const FetchWeather = Command.define(
+  'FetchWeather',
+  { zipCode: S.String },
+  SucceededFetchWeather,
+  FailedFetchWeather,
+)(({ zipCode }) => Effect.gen(function* () { ... }))
+
+FetchWeather({ zipCode: '90210' }) // → Command instance, args inspectable on the value
 ```
 
-Prefer the direct-call style (`Definition(effect)`) over pipe-last (`effect.pipe(Definition)`). The definition wraps the Effect — it's a type boundary (Effect → Command), not a pipeline step. The name leading makes Commands scannable in the COMMAND section.
+The two-step shape is: `Command.define(name, args?, ...results)` returns a binder; calling that binder with an Effect (or effect builder) returns the `CommandDefinition`. Always express both steps in a single declaration as shown above. The name leads, making Commands scannable in the COMMAND section.
 
 Command definitions live where they're produced — colocated with the update function that returns them:
 
@@ -171,7 +172,7 @@ Three lifecycle-bearing primitives. Pick by **what causes the side effect**, not
 
 - **Never use nested ternaries.** `a ? x : b ? y : z` is dense at two levels and unreadable past three. Extract to an `if`/`return` chain, a `Match.value`, or a named helper function that encodes the decision in one place. A ternary is fine for a single boolean branch; nesting is not.
 - Never abbreviate names. Use full, descriptive names everywhere — variables, types, functions, parameters, including callback parameters. e.g. `signature` not `sig`, `cart` not `c`, `Message` not `Msg`, `(tickCount) => tickCount + 1` not `(t) => t + 1`.
-- Don't suffix Command variables with `Command`. Name them by what they do: `focusButton` not `focusButtonCommand`, `scrollToItem` not `scrollToItemCommand`. The type already communicates that it's a Command. Command definitions are PascalCase (`FocusButton`, `ScrollToItem`); Command instances and factory functions are camelCase (`focusButton`, `scrollToItem`).
+- Don't suffix Command variables with `Command`. Name them by what they do: `focusButton` not `focusButtonCommand`, `scrollToItem` not `scrollToItemCommand`. The type already communicates that it's a Command. Command definitions are PascalCase (`FocusButton`, `ScrollToItem`) and called directly at the use site (`FocusButton({ id })`). The camelCase form is reserved for _wrappers_ — typically a closure produced by `Command.mapEffect` to provide context or remap to a parent Message — and lives where it's needed (e.g. inside a `makeUpdate`).
 - Avoid `let`. Use `const` and prefer immutable patterns. Only use `let` when mutation is truly unavoidable.
 - Always use braces for control flow. `if (foo) { return true }` not `if (foo) return true`.
 - Use `is*` for boolean naming e.g. `isPlaying`, `isValid`

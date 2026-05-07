@@ -5,8 +5,13 @@ import { m } from 'foldkit/message'
 const ClickedResetAfterDelay = m('ClickedResetAfterDelay')
 const CompletedDelayReset = m('CompletedDelayReset')
 
-const DelayReset = Command.define('DelayReset', CompletedDelayReset)
-const delayReset = DelayReset(
+const DelayReset = Command.define(
+  // The identifier for the Command, surfaces in DevTools and Story/Scene tests
+  'DelayReset',
+  // The returned Message (can be more than one)
+  CompletedDelayReset,
+)(
+  // The Effect
   Effect.sleep('1 second').pipe(Effect.as(CompletedDelayReset())),
 )
 
@@ -19,7 +24,7 @@ const update = (
       readonly [Model, ReadonlyArray<Command.Command<Message>>]
     >(),
     M.tagsExhaustive({
-      ClickedResetAfterDelay: () => [model, [delayReset]],
+      ClickedResetAfterDelay: () => [model, [DelayReset()]],
       CompletedDelayReset: () => [{ count: 0 }, []],
     }),
   )

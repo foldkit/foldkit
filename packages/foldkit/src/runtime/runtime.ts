@@ -25,7 +25,11 @@ import { h } from 'snabbdom'
 
 import type { Command } from '../command/index.js'
 import { createOverlay } from '../devTools/overlay.js'
-import { type DevToolsStore, createDevToolsStore } from '../devTools/store.js'
+import {
+  type CommandRecord,
+  type DevToolsStore,
+  createDevToolsStore,
+} from '../devTools/store.js'
 import { startWebSocketBridge } from '../devTools/webSocketBridge.js'
 import { Document } from '../html/index.js'
 import { MountTracker } from '../mount/index.js'
@@ -54,8 +58,16 @@ import { UrlRequest } from './urlRequest.js'
 
 type AnyCommand<T, E = never, R = never> = {
   readonly name: string
+  readonly args?: Record<string, unknown>
   readonly effect: Effect.Effect<T, E, R>
 }
+
+const toCommandRecord = (
+  command: Readonly<{ name: string; args?: Record<string, unknown> }>,
+): CommandRecord =>
+  command.args !== undefined
+    ? { name: command.name, args: command.args }
+    : { name: command.name }
 
 /** Position of the DevTools badge and panel on screen. */
 export type DevToolsPosition =
@@ -708,7 +720,9 @@ const makeRuntime = <
           command =>
             Effect.forkDetach(
               command.effect.pipe(
-                Effect.withSpan(command.name),
+                Effect.withSpan(command.name, {
+                  attributes: command.args ?? {},
+                }),
                 provideAllResources,
                 Effect.flatMap(enqueueNormal),
               ),
@@ -805,7 +819,9 @@ const makeRuntime = <
               command =>
                 Effect.forkDetach(
                   command.effect.pipe(
-                    Effect.withSpan(command.name),
+                    Effect.withSpan(command.name, {
+                      attributes: command.args ?? {},
+                    }),
                     provideAllResources,
                     Effect.flatMap(enqueueNormal),
                   ),
@@ -824,7 +840,7 @@ const makeRuntime = <
                   Array.map(
                     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
                     commands as ReadonlyArray<AnyCommand<Message>>,
-                    command => command.name,
+                    toCommandRecord,
                   ),
                   currentModel !== nextModel,
                 ),
@@ -953,7 +969,7 @@ const makeRuntime = <
           onSome: store =>
             store.recordInit(
               initModel,
-              Array.map(initCommands, ({ name }) => name),
+              Array.map(initCommands, toCommandRecord),
               initMountEvents.starts,
             ),
         })

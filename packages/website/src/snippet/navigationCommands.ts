@@ -3,52 +3,56 @@ import { Command, Navigation } from 'foldkit'
 import { m } from 'foldkit/message'
 
 const CompletedNavigateInternal = m('CompletedNavigateInternal')
+const CompletedReplaceUrl = m('CompletedReplaceUrl')
+const CompletedGoBack = m('CompletedGoBack')
+const CompletedGoForward = m('CompletedGoForward')
 const CompletedLoadExternal = m('CompletedLoadExternal')
 const CompletedOpenUrl = m('CompletedOpenUrl')
-const CompletedNavigateHistory = m('CompletedNavigateHistory')
 
 const Message = S.Union([
   CompletedNavigateInternal,
+  CompletedReplaceUrl,
+  CompletedGoBack,
+  CompletedGoForward,
   CompletedLoadExternal,
   CompletedOpenUrl,
-  CompletedNavigateHistory,
 ])
 type Message = typeof Message.Type
 
 const NavigateInternal = Command.define(
   'NavigateInternal',
+  { url: S.String },
   CompletedNavigateInternal,
-)
-const ReplaceUrl = Command.define('ReplaceUrl', CompletedNavigateInternal)
-const GoBack = Command.define('GoBack', CompletedNavigateHistory)
-const GoForward = Command.define('GoForward', CompletedNavigateHistory)
-const LoadExternal = Command.define('LoadExternal', CompletedLoadExternal)
-const OpenUrl = Command.define('OpenUrl', CompletedOpenUrl)
-
-const pushUrl = NavigateInternal(
-  Navigation.pushUrl('/people/42').pipe(Effect.as(CompletedNavigateInternal())),
+)(({ url }) =>
+  Navigation.pushUrl(url).pipe(Effect.as(CompletedNavigateInternal())),
 )
 
-const replaceUrl = ReplaceUrl(
-  Navigation.replaceUrl('/people/42').pipe(
-    Effect.as(CompletedNavigateInternal()),
-  ),
+const ReplaceUrl = Command.define(
+  'ReplaceUrl',
+  { url: S.String },
+  CompletedReplaceUrl,
+)(({ url }) =>
+  Navigation.replaceUrl(url).pipe(Effect.as(CompletedReplaceUrl())),
 )
 
-const goBack = GoBack(
-  Navigation.back().pipe(Effect.as(CompletedNavigateHistory())),
-)
+const GoBack = Command.define(
+  'GoBack',
+  CompletedGoBack,
+)(Navigation.back().pipe(Effect.as(CompletedGoBack())))
 
-const goForward = GoForward(
-  Navigation.forward().pipe(Effect.as(CompletedNavigateHistory())),
-)
+const GoForward = Command.define(
+  'GoForward',
+  CompletedGoForward,
+)(Navigation.forward().pipe(Effect.as(CompletedGoForward())))
 
-const loadUrl = LoadExternal(
-  Navigation.load('https://example.com').pipe(
-    Effect.as(CompletedLoadExternal()),
-  ),
-)
+const LoadExternal = Command.define(
+  'LoadExternal',
+  { href: S.String },
+  CompletedLoadExternal,
+)(({ href }) => Navigation.load(href).pipe(Effect.as(CompletedLoadExternal())))
 
-const openUrl = OpenUrl(
-  Navigation.openUrl('https://example.com').pipe(Effect.as(CompletedOpenUrl())),
-)
+const OpenUrl = Command.define(
+  'OpenUrl',
+  { url: S.String },
+  CompletedOpenUrl,
+)(({ url }) => Navigation.openUrl(url).pipe(Effect.as(CompletedOpenUrl())))

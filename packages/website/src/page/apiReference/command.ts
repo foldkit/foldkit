@@ -9,9 +9,7 @@ export const LoadApiData = Command.define(
   'LoadApiData',
   SucceededLoadApiData,
   FailedLoadApiData,
-)
-
-export const loadApiData = LoadApiData(
+)(
   Effect.gen(function* () {
     const [apiJsonModule, highlightsModule] = yield* Effect.tryPromise({
       try: () =>

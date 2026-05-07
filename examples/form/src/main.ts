@@ -119,27 +119,28 @@ const isEmailOnWaitlist = (email: string): Effect.Effect<boolean> =>
     return Array.contains(EMAILS_ON_WAITLIST, email.toLowerCase())
   })
 
-export const ValidateEmail = Command.define('ValidateEmail', ValidatedEmail)
-
-const validateEmailAsync = (email: string, validationId: number) =>
-  ValidateEmail(
-    Effect.gen(function* () {
-      if (yield* isEmailOnWaitlist(email)) {
-        return ValidatedEmail({
-          validationId,
-          field: Invalid({
-            value: email,
-            errors: ['This email is already on our waitlist'],
-          }),
-        })
-      } else {
-        return ValidatedEmail({
-          validationId,
-          field: Valid({ value: email }),
-        })
-      }
-    }),
-  )
+export const ValidateEmail = Command.define(
+  'ValidateEmail',
+  { email: S.String, validationId: S.Number },
+  ValidatedEmail,
+)(({ email, validationId }) =>
+  Effect.gen(function* () {
+    if (yield* isEmailOnWaitlist(email)) {
+      return ValidatedEmail({
+        validationId,
+        field: Invalid({
+          value: email,
+          errors: ['This email is already on our waitlist'],
+        }),
+      })
+    } else {
+      return ValidatedEmail({
+        validationId,
+        field: Valid({ value: email }),
+      })
+    }
+  }),
+)
 
 const validateName = validate(nameRules)
 const validateEmail = validate(emailRules)
@@ -178,7 +179,7 @@ export const update = (
               email: () => Validating({ value }),
               emailValidationId: () => validationId,
             }),
-            [validateEmailAsync(value, validationId)],
+            [ValidateEmail({ email: value, validationId })],
           ]
         } else {
           return [
@@ -220,7 +221,13 @@ export const update = (
           evo(model, {
             submission: () => Submitting(),
           }),
-          [submitForm(model)],
+          [
+            SubmitForm({
+              name: model.name.value,
+              email: model.name.value,
+              message: model.message.value,
+            }),
+          ],
         ]
       },
 
@@ -255,23 +262,24 @@ export const update = (
 
 const FAKE_API_DELAY_MS = 500
 
-export const SubmitForm = Command.define('SubmitForm', SubmittedForm)
+export const SubmitForm = Command.define(
+  'SubmitForm',
+  { name: S.String, email: S.String, message: S.String },
+  SubmittedForm,
+)(({ name, email, message }) =>
+  Effect.gen(function* () {
+    yield* Effect.sleep(`${FAKE_API_DELAY_MS} millis`)
 
-const submitForm = (model: Model) =>
-  SubmitForm(
-    Effect.gen(function* () {
-      yield* Effect.sleep(`${FAKE_API_DELAY_MS} millis`)
+    const success = yield* Random.nextBoolean
 
-      const success = yield* Random.nextBoolean
-
-      return SubmittedForm({
-        success,
-        name: model.name.value,
-        email: model.name.value,
-        message: model.message.value,
-      })
-    }),
-  )
+    return SubmittedForm({
+      success,
+      name,
+      email,
+      message,
+    })
+  }),
+)
 
 // VIEW
 

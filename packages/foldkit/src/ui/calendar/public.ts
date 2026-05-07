@@ -3,7 +3,6 @@ export {
   update,
   view,
   lazy,
-  focusGrid,
   selectDate,
   setMinDate,
   setMaxDate,

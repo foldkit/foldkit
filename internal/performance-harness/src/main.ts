@@ -61,9 +61,11 @@ const heavyPayload = makeHeavyArray(HEAVY_ITEM_COUNT)
 
 // COMMAND
 
-const FillHistoryStep = Command.define('FillHistoryStep', FilledHistoryStep)
-const fillHistoryStep = (remaining: number) =>
-  FillHistoryStep(Effect.sync(() => FilledHistoryStep({ remaining })))
+const FillHistoryStep = Command.define(
+  'FillHistoryStep',
+  { remaining: S.Number },
+  FilledHistoryStep,
+)(({ remaining }) => Effect.sync(() => FilledHistoryStep({ remaining })))
 
 // UPDATE
 
@@ -89,10 +91,15 @@ const update = (
         [],
       ],
       ClickedClearLargeModel: () => [evo(model, { largeArray: () => [] }), []],
-      ClickedFillHistory: () => [model, [fillHistoryStep(HISTORY_FILL_COUNT)]],
+      ClickedFillHistory: () => [
+        model,
+        [FillHistoryStep({ remaining: HISTORY_FILL_COUNT })],
+      ],
       FilledHistoryStep: ({ remaining }) => [
         evo(model, { tickCount: tickCount => Number.increment(tickCount) }),
-        remaining > 1 ? [fillHistoryStep(Number.decrement(remaining))] : [],
+        remaining > 1
+          ? [FillHistoryStep({ remaining: Number.decrement(remaining) })]
+          : [],
       ],
     }),
   )

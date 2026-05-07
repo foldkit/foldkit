@@ -85,8 +85,19 @@ export const init = (config: InitConfig): Model => {
 
 // UPDATE
 
+const tabId = (id: string, index: number): string => `${id}-tab-${index}`
+
 /** Moves focus to the tab at the given index. */
-export const FocusTab = Command.define('FocusTab', CompletedFocusTab)
+export const FocusTab = Command.define(
+  'FocusTab',
+  { id: S.String, index: S.Number },
+  CompletedFocusTab,
+)(({ id, index }) =>
+  Dom.focus(`#${tabId(id, index)}`).pipe(
+    Effect.ignore,
+    Effect.as(CompletedFocusTab()),
+  ),
+)
 
 /** Processes a tabs message and returns the next model and commands. */
 export const update = (
@@ -98,39 +109,17 @@ export const update = (
       readonly [Model, ReadonlyArray<Command.Command<Message>>]
     >(),
     M.tagsExhaustive({
-      TabSelected: ({ index }) => {
-        const tabSelector = `#${tabId(model.id, index)}`
-
-        return [
-          evo(model, {
-            activeIndex: () => index,
-            focusedIndex: () => index,
-          }),
-          [
-            FocusTab(
-              Dom.focus(tabSelector).pipe(
-                Effect.ignore,
-                Effect.as(CompletedFocusTab()),
-              ),
-            ),
-          ],
-        ]
-      },
-      TabFocused: ({ index }) => {
-        const tabSelector = `#${tabId(model.id, index)}`
-
-        return [
-          evo(model, { focusedIndex: () => index }),
-          [
-            FocusTab(
-              Dom.focus(tabSelector).pipe(
-                Effect.ignore,
-                Effect.as(CompletedFocusTab()),
-              ),
-            ),
-          ],
-        ]
-      },
+      TabSelected: ({ index }) => [
+        evo(model, {
+          activeIndex: () => index,
+          focusedIndex: () => index,
+        }),
+        [FocusTab({ id: model.id, index })],
+      ],
+      TabFocused: ({ index }) => [
+        evo(model, { focusedIndex: () => index }),
+        [FocusTab({ id: model.id, index })],
+      ],
       CompletedFocusTab: () => [model, []],
     }),
   )
@@ -171,8 +160,6 @@ export type ViewConfig<ParentMessage, Tab extends string> = Readonly<{
 }>
 
 const tabPanelId = (id: string, index: number): string => `${id}-panel-${index}`
-
-const tabId = (id: string, index: number): string => `${id}-tab-${index}`
 
 /** Programmatically selects a tab at the given index, updating the model and returning
  *  focus commands. Use this in domain-event handlers when the tab group uses `onTabSelected`. */

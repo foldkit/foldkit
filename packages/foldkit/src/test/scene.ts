@@ -20,9 +20,11 @@ import type { VNode } from '../vdom.js'
 import type {
   AnyCommand,
   BaseInternal,
+  CommandMatcher,
   MountResolver,
   PendingMount,
   Resolver,
+  ResolverEntry,
 } from './internal.js'
 import {
   assertAllCommandsResolved,
@@ -38,7 +40,7 @@ import {
   assertZeroCommands,
   assertZeroMounts,
   resolveAllInternal,
-  resolveByName,
+  resolveByMatcher,
   resolveMountByName,
 } from './internal.js'
 import type { Locator, LocatorAll } from './query.js'
@@ -189,12 +191,21 @@ type InternalSceneSimulation<
       model: Model,
       message: Message,
     ) => UpdateResult<Model, OutMessage>
-    resolvers: Record<string, Message>
+    resolvers: ReadonlyArray<ResolverEntry<Message>>
     viewFn: (model: Model) => Html | Document
     capturingDispatch: CapturingDispatch
     scope: Option.Option<Locator>
     mountSlots: ReadonlyArray<MountSlotState>
   }>
+
+/** A typed Command instance carrying the result Message type via its
+ *  `effect` field, so passing `FetchWeather({ zipCode })` to `Scene.Command.resolve`
+ *  preserves the link between the Command and its declared result Message. */
+type SceneCommandInstance<ResultMessage = unknown> = Readonly<{
+  name: string
+  args?: Record<string, unknown>
+  effect: Effect.Effect<ResultMessage, any, any>
+}>
 
 const slotKey = ({ name, occurrence }: PendingMount): string =>
   `${name}#${occurrence}`
@@ -577,7 +588,9 @@ const with_ = <Model>(model: Model): WithStep<Model> => {
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
 }
 
-/** Resolves a specific pending Command with the given result Message. */
+/** Resolves a pending Command with the given result Message. Accepts either
+ *  a Command Definition (matches by name; any pending Command of that name)
+ *  or a Command instance (matches by name AND args; strict). */
 const resolveCommand: {
   <Name extends string, ResultMessage>(
     definition: CommandDefinition<Name, ResultMessage>,
@@ -592,9 +605,22 @@ const resolveCommand: {
   ): <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
   ) => SceneSimulation<Model, Message, OutMessage>
+  <ResultMessage>(
+    instance: SceneCommandInstance<ResultMessage>,
+    resultMessage: ResultMessage,
+  ): <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ) => SceneSimulation<Model, Message, OutMessage>
+  <ResultMessage, ParentMessage>(
+    instance: SceneCommandInstance<ResultMessage>,
+    resultMessage: ResultMessage,
+    toParentMessage: (message: ResultMessage) => ParentMessage,
+  ): <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ) => SceneSimulation<Model, Message, OutMessage>
 } =
-  <Name extends string, ResultMessage>(
-    definition: CommandDefinition<Name, ResultMessage>,
+  <ResultMessage>(
+    matcher: CommandMatcher,
     resultMessage: ResultMessage,
     toParentMessage?: (message: ResultMessage) => unknown,
   ) =>
@@ -606,9 +632,9 @@ const resolveCommand: {
     const messageForUpdate = (Predicate.isUndefined(toParentMessage)
       ? resultMessage
       : toParentMessage(resultMessage)) as unknown as Message
-    const next = resolveByName(
+    const next = resolveByMatcher(
       internal as BaseInternal<Model, Message, unknown>,
-      definition.name,
+      matcher,
       messageForUpdate,
     )
 
@@ -616,12 +642,21 @@ const resolveCommand: {
       const pending = Array.isReadonlyArrayNonEmpty(internal.commands)
         ? pipe(
             internal.commands,
-            Array.map(({ name }) => `    ${name}`),
+            Array.map(command => {
+              const args = command.args
+              return args === undefined
+                ? `    ${command.name}`
+                : `    ${command.name} ${JSON.stringify(args)}`
+            }),
             Array.join('\n'),
           )
         : '    (none)'
+      const matcherLabel =
+        'args' in matcher && matcher.args !== undefined
+          ? `${matcher.name} ${JSON.stringify(matcher.args)}`
+          : matcher.name
       throw new Error(
-        `I tried to resolve "${definition.name}" but it wasn't in the pending Commands.\n\n` +
+        `I tried to resolve "${matcherLabel}" but no matching pending Command was found.\n\n` +
           `Pending Commands:\n${pending}\n\n` +
           'Make sure the previous Message produced this Command.',
       )
@@ -645,23 +680,26 @@ const resolveAllCommands =
       resolvers,
     ) as unknown as SceneSimulation<Model, Message, OutMessage>
 
-/** Asserts that every given Command is among the pending Commands. */
+/** Asserts that every given matcher matches a pending Command. Definition
+ *  matchers match by name only; Instance matchers match by name + args. */
 const expectHasCommandsStep =
-  (...definitions: ReadonlyArray<CommandDefinition<string, unknown>>) =>
+  (...matchers: ReadonlyArray<CommandMatcher>) =>
   <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
   ): SceneSimulation<Model, Message, OutMessage> => {
-    assertHasCommands(toInternal(simulation).commands, definitions)
+    assertHasCommands(toInternal(simulation).commands, matchers)
     return simulation
   }
 
-/** Asserts that the pending Commands match the given definitions exactly (order-independent). */
+/** Asserts that the pending Commands match the given matchers exactly
+ *  (order-independent). Definition matchers compare by name; Instance
+ *  matchers compare by name + args. */
 const expectExactCommandsStep =
-  (...definitions: ReadonlyArray<CommandDefinition<string, unknown>>) =>
+  (...matchers: ReadonlyArray<CommandMatcher>) =>
   <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
   ): SceneSimulation<Model, Message, OutMessage> => {
-    assertExactCommands(toInternal(simulation).commands, definitions)
+    assertExactCommands(toInternal(simulation).commands, matchers)
     return simulation
   }
 
@@ -1959,7 +1997,7 @@ export const scene: {
     mountSlots: [],
     outMessage: undefined as unknown,
     updateFn: config.update,
-    resolvers: {},
+    resolvers: [],
     html: undefined as unknown,
     viewFn: config.view,
     capturingDispatch,

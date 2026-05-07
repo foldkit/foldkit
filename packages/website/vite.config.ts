@@ -409,7 +409,17 @@ const CompletedDelayReset = m('CompletedDelayReset')
 
 // COMMAND
 
-const DelayReset = Command.define('DelayReset', CompletedDelayReset)
+const DelayReset = Command.define(
+  // The identifier for the Command, surfaces in DevTools and Story/Scene tests
+  'DelayReset',
+  // The args record (Schema-typed, optional — omit for argless Commands)
+  { seconds: S.Number },
+  // The returned Message (can be more than one)
+  CompletedDelayReset,
+)(({ seconds }) =>
+  // The Effect builder, called with the typed args
+  Effect.sleep(\`\${seconds} seconds\`).pipe(Effect.as(CompletedDelayReset())),
+)
 
 // UPDATE
 
@@ -424,11 +434,7 @@ M.tagsExhaustive({
   ],
   ClickedReset: () => [
     evo(model, { isResetting: () => true }),
-    [DelayReset(
-      Effect.sleep(\`\${model.resetDuration} seconds\`).pipe(
-        Effect.as(CompletedDelayReset()),
-      ),
-    )],
+    [DelayReset({ seconds: model.resetDuration })],
   ],
   CompletedDelayReset: () => [
     evo(model, { count: () => 0, isResetting: () => false }),
@@ -542,24 +548,25 @@ class AudioContextService extends Context.Service<
 
 // COMMAND
 
-const PlayNote = Command.define('PlayNote', CompletedPlayNote)
+const PlayNote = Command.define(
+  'PlayNote',
+  { note: Note, duration: S.Number, noteIndex: S.Number },
+  CompletedPlayNote,
+)(({ note, duration, noteIndex }) =>
+  Effect.gen(function* () {
+    const audioContext = yield* AudioContextService
 
-const playNote = (note, duration, noteIndex) =>
-  PlayNote(
-    Effect.gen(function* () {
-      const audioContext = yield* AudioContextService
-
-      return yield* Effect.callback(resume => {
-        const oscillator = audioContext.createOscillator()
-        oscillator.frequency.setValueAtTime(NOTE_FREQUENCIES[note])
-        oscillator.connect(audioContext.destination)
-        oscillator.start()
-        oscillator.stop(audioContext.currentTime + duration)
-        oscillator.onended = () =>
-          resume(Effect.succeed(CompletedPlayNote({ noteIndex })))
-      })
-    }),
-  )`
+    return yield* Effect.callback(resume => {
+      const oscillator = audioContext.createOscillator()
+      oscillator.frequency.setValueAtTime(NOTE_FREQUENCIES[note])
+      oscillator.connect(audioContext.destination)
+      oscillator.start()
+      oscillator.stop(audioContext.currentTime + duration)
+      oscillator.onended = () =>
+        resume(Effect.succeed(CompletedPlayNote({ noteIndex })))
+    })
+  }),
+)`
 
 const notePlayerDemoCodePlugin = (): Plugin => ({
   name: 'note-player-demo-code',

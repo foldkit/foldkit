@@ -22,11 +22,12 @@ export const CompletedNavigateInternal = m('CompletedNavigateInternal')
 export const CompletedLoadExternal = m('CompletedLoadExternal')
 export const CompletedInjectAnalytics = m('CompletedInjectAnalytics')
 export const CompletedInjectSpeedInsights = m('CompletedInjectSpeedInsights')
-export const CompletedScroll = m('CompletedScroll')
+export const CompletedScrollToTop = m('CompletedScrollToTop')
+export const CompletedScrollToAnchor = m('CompletedScrollToAnchor')
 export const CompletedApplyTheme = m('CompletedApplyTheme')
 export const CompletedSaveThemePreference = m('CompletedSaveThemePreference')
 export const SucceededCopyLink = m('SucceededCopyLink')
-export const FailedCopy = m('FailedCopy')
+export const FailedCopyLink = m('FailedCopyLink')
 export const ClickedLink = m('ClickedLink', {
   request: UrlRequest,
 })
@@ -37,14 +38,19 @@ export const ClickedCopySnippet = m('ClickedCopySnippet', {
 export const ClickedCopyLink = m('ClickedCopyLink', {
   hash: S.String,
 })
-export const SucceededCopy = m('SucceededCopy', { text: S.String })
-export const HiddenCopiedIndicator = m('HiddenCopiedIndicator', {
+export const SucceededCopySnippet = m('SucceededCopySnippet', {
+  text: S.String,
+})
+export const FailedCopySnippet = m('FailedCopySnippet')
+export const HidCopiedIndicator = m('HidCopiedIndicator', {
   text: S.String,
 })
 export const UpdatedEmailField = m('UpdatedEmailField', { value: S.String })
 export const SubmittedEmailForm = m('SubmittedEmailForm')
-export const SucceededSubscribeEmail = m('SucceededSubscribeEmail')
-export const FailedSubscribeEmail = m('FailedSubscribeEmail')
+export const SucceededSubscribeToNewsletter = m(
+  'SucceededSubscribeToNewsletter',
+)
+export const FailedSubscribeToNewsletter = m('FailedSubscribeToNewsletter')
 export const GotMobileMenuDialogMessage = m('GotMobileMenuDialogMessage', {
   message: Ui.Dialog.Message,
 })
@@ -147,21 +153,23 @@ export const Message = S.Union([
   CompletedLoadExternal,
   CompletedInjectAnalytics,
   CompletedInjectSpeedInsights,
-  CompletedScroll,
+  CompletedScrollToTop,
+  CompletedScrollToAnchor,
   CompletedApplyTheme,
   CompletedSaveThemePreference,
   SucceededCopyLink,
-  FailedCopy,
+  FailedCopyLink,
   ClickedLink,
   ChangedUrl,
   ClickedCopySnippet,
   ClickedCopyLink,
-  SucceededCopy,
-  HiddenCopiedIndicator,
+  SucceededCopySnippet,
+  FailedCopySnippet,
+  HidCopiedIndicator,
   UpdatedEmailField,
   SubmittedEmailForm,
-  SucceededSubscribeEmail,
-  FailedSubscribeEmail,
+  SucceededSubscribeToNewsletter,
+  FailedSubscribeToNewsletter,
   GotMobileMenuDialogMessage,
   ToggledMobileTableOfContents,
   ClickedMobileTableOfContentsLink,

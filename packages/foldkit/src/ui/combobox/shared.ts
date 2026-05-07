@@ -271,32 +271,78 @@ export type SelectedItemContext = Readonly<{
 }>
 
 /** Prevents page scrolling while the combobox popup is open in modal mode. */
-export const LockScroll = Command.define('LockScroll', CompletedLockScroll)
+export const LockScroll = Command.define(
+  'LockScroll',
+  CompletedLockScroll,
+)(Dom.lockScroll.pipe(Effect.as(CompletedLockScroll())))
 /** Re-enables page scrolling after the combobox popup closes. */
 export const UnlockScroll = Command.define(
   'UnlockScroll',
   CompletedUnlockScroll,
-)
+)(Dom.unlockScroll.pipe(Effect.as(CompletedUnlockScroll())))
 /** Marks all elements outside the combobox as inert for modal behavior. */
-export const InertOthers = Command.define('InertOthers', CompletedSetupInert)
+export const InertOthers = Command.define(
+  'InertOthers',
+  { id: S.String },
+  CompletedSetupInert,
+)(({ id }) =>
+  Dom.inertOthers(id, [inputWrapperSelector(id), itemsSelector(id)]).pipe(
+    Effect.as(CompletedSetupInert()),
+  ),
+)
 /** Removes the inert attribute from elements outside the combobox. */
 export const RestoreInert = Command.define(
   'RestoreInert',
+  { id: S.String },
   CompletedTeardownInert,
-)
+)(({ id }) => Dom.restoreInert(id).pipe(Effect.as(CompletedTeardownInert())))
 /** Moves focus to the combobox input after selection or close. */
-export const FocusInput = Command.define('FocusInput', CompletedFocusInput)
+export const FocusInput = Command.define(
+  'FocusInput',
+  { id: S.String },
+  CompletedFocusInput,
+)(({ id }) =>
+  Dom.focus(inputSelector(id)).pipe(
+    Effect.ignore,
+    Effect.as(CompletedFocusInput()),
+  ),
+)
 /** Scrolls the active combobox item into view after keyboard navigation. */
 export const ScrollIntoView = Command.define(
   'ScrollIntoView',
+  { id: S.String, index: S.Number },
   CompletedScrollIntoView,
+)(({ id, index }) =>
+  Dom.scrollIntoView(itemSelector(id, index)).pipe(
+    Effect.ignore,
+    Effect.as(CompletedScrollIntoView()),
+  ),
 )
 /** Programmatically clicks the active combobox item's DOM element. */
-export const ClickItem = Command.define('ClickItem', CompletedClickItem)
-/** Detects whether the combobox input wrapper moved or the leave animation ended — whichever comes first. Both outcomes signal the Animation submodel that leave is complete. */
+export const ClickItem = Command.define(
+  'ClickItem',
+  { id: S.String, index: S.Number },
+  CompletedClickItem,
+)(({ id, index }) =>
+  Dom.clickElement(itemSelector(id, index)).pipe(
+    Effect.ignore,
+    Effect.as(CompletedClickItem()),
+  ),
+)
+/** Detects whether the combobox input wrapper moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation submodel that leave is complete. */
 export const DetectMovementOrAnimationEnd = Command.define(
   'DetectMovementOrAnimationEnd',
+  { id: S.String },
   GotAnimationMessage,
+)(({ id }) =>
+  Effect.raceFirst(
+    Dom.detectElementMovement(inputWrapperSelector(id)).pipe(
+      Effect.as(GotAnimationMessage({ message: AnimationEndedAnimation() })),
+    ),
+    Dom.waitForAnimationSettled(itemsSelector(id)).pipe(
+      Effect.as(GotAnimationMessage({ message: AnimationEndedAnimation() })),
+    ),
+  ),
 )
 
 const delegateToAnimation = <Model extends BaseModel>(
@@ -317,24 +363,7 @@ const delegateToAnimation = <Model extends BaseModel>(
     onSome: M.type<AnimationOutMessage>().pipe(
       M.tagsExhaustive({
         StartedLeaveAnimating: () => [
-          DetectMovementOrAnimationEnd(
-            Effect.raceFirst(
-              Dom.detectElementMovement(inputWrapperSelector(model.id)).pipe(
-                Effect.as(
-                  GotAnimationMessage({
-                    message: AnimationEndedAnimation(),
-                  }),
-                ),
-              ),
-              Dom.waitForAnimationSettled(itemsSelector(model.id)).pipe(
-                Effect.as(
-                  GotAnimationMessage({
-                    message: AnimationEndedAnimation(),
-                  }),
-                ),
-              ),
-            ),
-          ),
+          DetectMovementOrAnimationEnd({ id: model.id }),
         ],
         TransitionedOut: () => [],
       }),
@@ -368,39 +397,18 @@ export const makeUpdate = <Model extends BaseModel>(
   const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
   return (model: Model, message: Message): UpdateReturn => {
-    const maybeLockScroll = OptionExt.when(
-      model.isModal,
-      LockScroll(Dom.lockScroll.pipe(Effect.as(CompletedLockScroll()))),
-    )
-
-    const maybeUnlockScroll = OptionExt.when(
-      model.isModal,
-      UnlockScroll(Dom.unlockScroll.pipe(Effect.as(CompletedUnlockScroll()))),
-    )
-
+    const maybeLockScroll = OptionExt.when(model.isModal, LockScroll())
+    const maybeUnlockScroll = OptionExt.when(model.isModal, UnlockScroll())
     const maybeInertOthers = OptionExt.when(
       model.isModal,
-      InertOthers(
-        Dom.inertOthers(model.id, [
-          inputWrapperSelector(model.id),
-          itemsSelector(model.id),
-        ]).pipe(Effect.as(CompletedSetupInert())),
-      ),
+      InertOthers({ id: model.id }),
     )
-
     const maybeRestoreInert = OptionExt.when(
       model.isModal,
-      RestoreInert(
-        Dom.restoreInert(model.id).pipe(Effect.as(CompletedTeardownInert())),
-      ),
+      RestoreInert({ id: model.id }),
     )
 
-    const focusInput = FocusInput(
-      Dom.focus(inputSelector(model.id)).pipe(
-        Effect.ignore,
-        Effect.as(CompletedFocusInput()),
-      ),
-    )
+    const focusInput = FocusInput({ id: model.id })
 
     const openCombobox = (baseModel: Model): UpdateReturn => {
       if (model.isAnimated) {
@@ -483,14 +491,7 @@ export const makeUpdate = <Model extends BaseModel>(
           return [
             nextModel,
             activationTrigger === 'Keyboard'
-              ? [
-                  ScrollIntoView(
-                    Dom.scrollIntoView(itemSelector(model.id, index)).pipe(
-                      Effect.ignore,
-                      Effect.as(CompletedScrollIntoView()),
-                    ),
-                  ),
-                ]
+              ? [ScrollIntoView({ id: model.id, index })]
               : [],
           ]
         },
@@ -551,14 +552,7 @@ export const makeUpdate = <Model extends BaseModel>(
 
         RequestedItemClick: ({ index }) => [
           model,
-          [
-            ClickItem(
-              Dom.clickElement(itemSelector(model.id, index)).pipe(
-                Effect.ignore,
-                Effect.as(CompletedClickItem()),
-              ),
-            ),
-          ],
+          [ClickItem({ id: model.id, index })],
         ],
 
         UpdatedInputValue: ({ value }) => {

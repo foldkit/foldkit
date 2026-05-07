@@ -54,7 +54,11 @@ export const init = (products: ReadonlyArray<Item.Item>): Model => ({
 
 // COMMAND
 
-const ReplaceSearchUrl = Command.define('ReplaceSearchUrl', CompletedReplaceUrl)
+const ReplaceSearchUrl = Command.define(
+  'ReplaceSearchUrl',
+  { url: S.String },
+  CompletedReplaceUrl,
+)(({ url }) => replaceUrl(url).pipe(Effect.as(CompletedReplaceUrl())))
 
 // UPDATE
 
@@ -76,13 +80,11 @@ export const update =
             searchText: () => value,
           }),
           [
-            ReplaceSearchUrl(
-              replaceUrl(
-                productsRouter({
-                  searchText: Option.fromNullishOr(value || null),
-                }),
-              ).pipe(Effect.as(CompletedReplaceUrl())),
-            ),
+            ReplaceSearchUrl({
+              url: productsRouter({
+                searchText: Option.fromNullishOr(value || null),
+              }),
+            }),
           ],
         ],
       }),

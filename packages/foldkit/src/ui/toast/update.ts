@@ -50,9 +50,19 @@ export type ShowInput<A> = Readonly<{
 
 /** Schedules an auto-dismiss timer for an entry. The result Message carries a
  *  version so stale timers (from hover or manual dismiss) are discarded in
- *  the update function. Static — the Command definition doesn't depend on
+ *  the update function. Static. The Command definition doesn't depend on
  *  payload. */
-export const DismissAfter = Command.define('DismissAfter', ElapsedDuration)
+export const DismissAfter = Command.define(
+  'DismissAfter',
+  {
+    entryId: S.String,
+    version: S.Number,
+    duration: S.DurationFromMillis,
+  },
+  ElapsedDuration,
+)(({ entryId, version, duration }) =>
+  Effect.sleep(duration).pipe(Effect.as(ElapsedDuration({ entryId, version }))),
+)
 
 const DEFAULT_VARIANT: Variant = 'Info'
 
@@ -101,12 +111,7 @@ export const makeRuntime = <A, I>(payloadSchema: S.Codec<A, I>) => {
     entryId: string,
     version: number,
     duration: Duration.Duration,
-  ): Command.Command<Message> =>
-    DismissAfter(
-      Effect.sleep(duration).pipe(
-        Effect.as(ElapsedDuration({ entryId, version })),
-      ),
-    )
+  ): Command.Command<Message> => DismissAfter({ entryId, version, duration })
 
   const rescheduleDismissCommands = (
     entry: Entry,

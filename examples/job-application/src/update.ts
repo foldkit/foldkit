@@ -2,7 +2,7 @@ import { Array, Effect, Match as M, Option, pipe } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
-import { submitApplication } from './command'
+import { SubmitApplication } from './command'
 import { Step } from './domain'
 import {
   GotAttachmentsMessage,
@@ -171,7 +171,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       SubmittedApplication: () => [
         evo(model, { submission: () => Submitting() }),
-        [submitApplication],
+        [SubmitApplication()],
       ],
 
       SucceededSubmitApplication: () => [

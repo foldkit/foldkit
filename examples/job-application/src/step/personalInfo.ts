@@ -150,27 +150,25 @@ const isEmailTaken = (emailInput: string): Effect.Effect<boolean> =>
 
 export const ValidateEmailAsync = Command.define(
   'ValidateEmailAsync',
+  { emailInput: S.String, validationId: S.Number },
   ValidatedEmail,
-)
-
-const validateEmailAsync = (emailInput: string, validationId: number) =>
-  ValidateEmailAsync(
-    Effect.gen(function* () {
-      if (yield* isEmailTaken(emailInput)) {
-        return ValidatedEmail({
-          validationId,
-          field: Invalid({
-            value: emailInput,
-            errors: ['This email is already in use'],
-          }),
-        })
-      }
+)(({ emailInput, validationId }) =>
+  Effect.gen(function* () {
+    if (yield* isEmailTaken(emailInput)) {
       return ValidatedEmail({
         validationId,
-        field: Valid({ value: emailInput }),
+        field: Invalid({
+          value: emailInput,
+          errors: ['This email is already in use'],
+        }),
       })
-    }),
-  )
+    }
+    return ValidatedEmail({
+      validationId,
+      field: Valid({ value: emailInput }),
+    })
+  }),
+)
 
 // UPDATE
 
@@ -199,7 +197,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               email: () => Validating({ value }),
               emailValidationId: () => validationId,
             }),
-            [validateEmailAsync(value, validationId)],
+            [ValidateEmailAsync({ emailInput: value, validationId })],
           ]),
           M.orElse(syncResult => [
             evo(model, {

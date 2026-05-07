@@ -6,16 +6,14 @@ const describeFile = (file: File.File): string =>
 
 const ReadAvatarPreview = Command.define(
   'ReadAvatarPreview',
+  { file: File.File },
   SucceededReadAvatarPreview,
   FailedReadAvatarPreview,
-)
-
-const readAvatarPreview = (file: File.File) =>
-  ReadAvatarPreview(
-    File.readAsDataUrl(file).pipe(
-      Effect.map(dataUrl => SucceededReadAvatarPreview({ dataUrl })),
-      Effect.catch(error =>
-        Effect.succeed(FailedReadAvatarPreview({ reason: error.reason })),
-      ),
+)(({ file }) =>
+  File.readAsDataUrl(file).pipe(
+    Effect.map(dataUrl => SucceededReadAvatarPreview({ dataUrl })),
+    Effect.catch(error =>
+      Effect.succeed(FailedReadAvatarPreview({ reason: error.reason })),
     ),
-  )
+  ),
+)

@@ -1,7 +1,7 @@
 import { Runtime } from 'foldkit'
 
 import { init } from './init'
-import { ChangedUrl, ClickedLink } from './message'
+import { ChangedUrl, ClickedLink, Message } from './message'
 import { Model } from './model'
 import { subscriptions } from './subscription'
 import { update } from './update'
@@ -14,6 +14,10 @@ const program = Runtime.makeProgram({
   view,
   subscriptions,
   container: document.getElementById('root')!,
+  devTools: {
+    Message,
+    mode: 'TimeTravel',
+  },
   routing: {
     onUrlRequest: request => ClickedLink({ request }),
     onUrlChange: url => ChangedUrl({ url }),

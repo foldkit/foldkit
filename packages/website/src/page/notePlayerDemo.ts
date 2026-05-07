@@ -202,15 +202,13 @@ const prependToLog =
 
 const DelayAdvancePhase = Command.define(
   'DelayAdvancePhase',
+  { generation: S.Number },
   ProgressedNotePhase,
+)(({ generation }) =>
+  Effect.sleep(PHASE_DURATION).pipe(
+    Effect.as(ProgressedNotePhase({ generation })),
+  ),
 )
-
-const delayAdvancePhase = (generation: number) =>
-  DelayAdvancePhase(
-    Effect.sleep(PHASE_DURATION).pipe(
-      Effect.as(ProgressedNotePhase({ generation })),
-    ),
-  )
 
 const enterNoteCommandPhase = (
   model: Model,
@@ -226,11 +224,11 @@ const enterNoteCommandPhase = (
     highlightPhase: () => 'NoteCommand',
   }),
   [
-    playNote(
-      Array.getUnsafe(noteSequence, noteIndex),
-      model.noteDuration,
+    PlayNote({
+      note: Array.getUnsafe(noteSequence, noteIndex),
+      duration: model.noteDuration,
       noteIndex,
-    ),
+    }),
   ],
 ]
 
@@ -321,7 +319,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                 generation: () => nextGeneration,
                 messageLog: prependToLog('ClickedPlay'),
               }),
-              [delayAdvancePhase(nextGeneration)],
+              [DelayAdvancePhase({ generation: nextGeneration })],
             ]
           }),
           M.tag('Idle', () => {
@@ -347,7 +345,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                 generation: () => nextGeneration,
                 messageLog: prependToLog('ClickedPlay'),
               }),
-              [delayAdvancePhase(nextGeneration)],
+              [DelayAdvancePhase({ generation: nextGeneration })],
             ]
           }),
           M.exhaustive,
@@ -370,7 +368,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                 generation: () => nextGeneration,
                 messageLog: prependToLog('ClickedPause'),
               }),
-              [delayAdvancePhase(nextGeneration)],
+              [DelayAdvancePhase({ generation: nextGeneration })],
             ]
           }),
           M.orElse(() => [model, []]),
@@ -401,7 +399,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             generation: () => nextGeneration,
             messageLog: prependToLog(`CompletedPlayNote(${noteIndex})`),
           }),
-          [delayAdvancePhase(nextGeneration)],
+          [DelayAdvancePhase({ generation: nextGeneration })],
         ]
       },
 
@@ -414,7 +412,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           withUpdateReturn,
           M.when('PlayMessage', () => [
             evo(model, { highlightPhase: () => 'PlayUpdate' }),
-            [delayAdvancePhase(generation)],
+            [DelayAdvancePhase({ generation: generation })],
           ]),
           M.when('PauseMessage', () => [
             evo(model, { highlightPhase: () => 'Idle' }),
@@ -422,7 +420,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           ]),
           M.when('PlayUpdate', () => [
             evo(model, { highlightPhase: () => 'PlayModel' }),
-            [delayAdvancePhase(generation)],
+            [DelayAdvancePhase({ generation: generation })],
           ]),
           M.when('PlayModel', () => {
             if (model.playbackState._tag !== 'Playing') {
@@ -435,11 +433,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           }),
           M.when('NoteMessage', () => [
             evo(model, { highlightPhase: () => 'NoteUpdate' }),
-            [delayAdvancePhase(generation)],
+            [DelayAdvancePhase({ generation: generation })],
           ]),
           M.when('NoteUpdate', () => [
             evo(model, { highlightPhase: () => 'NoteModel' }),
-            [delayAdvancePhase(generation)],
+            [DelayAdvancePhase({ generation: generation })],
           ]),
           M.when('NoteModel', () => {
             if (model.playbackState._tag !== 'Playing') {
@@ -477,47 +475,48 @@ export class AudioContextService extends Context.Service<
   static readonly Default = Layer.sync(this, () => new AudioContext())
 }
 
-const PlayNote = Command.define('PlayNote', CompletedPlayNote)
+const PlayNote = Command.define(
+  'PlayNote',
+  { note: Note, duration: NoteDuration, noteIndex: S.Number },
+  CompletedPlayNote,
+)(({ note, duration, noteIndex }) =>
+  Effect.gen(function* () {
+    const audioContext = yield* AudioContextService
 
-const playNote = (note: Note, duration: NoteDuration, noteIndex: number) =>
-  PlayNote(
-    Effect.gen(function* () {
-      const audioContext = yield* AudioContextService
+    return yield* Effect.callback<typeof CompletedPlayNote.Type>(resume => {
+      const oscillator = audioContext.createOscillator()
+      const gainNode = audioContext.createGain()
+      const durationSeconds = DURATION_MILLISECONDS[duration] / 1000
 
-      return yield* Effect.callback<typeof CompletedPlayNote.Type>(resume => {
-        const oscillator = audioContext.createOscillator()
-        const gainNode = audioContext.createGain()
-        const durationSeconds = DURATION_MILLISECONDS[duration] / 1000
+      oscillator.type = 'triangle'
+      oscillator.frequency.setValueAtTime(
+        NOTE_FREQUENCIES[note],
+        audioContext.currentTime,
+      )
 
-        oscillator.type = 'triangle'
-        oscillator.frequency.setValueAtTime(
-          NOTE_FREQUENCIES[note],
-          audioContext.currentTime,
-        )
+      const releaseEnd =
+        audioContext.currentTime + durationSeconds - GAIN_RELEASE_TIME
 
-        const releaseEnd =
-          audioContext.currentTime + durationSeconds - GAIN_RELEASE_TIME
+      gainNode.gain.setValueAtTime(0, audioContext.currentTime)
+      gainNode.gain.linearRampToValueAtTime(
+        0.1,
+        audioContext.currentTime + GAIN_ATTACK_TIME,
+      )
+      gainNode.gain.exponentialRampToValueAtTime(GAIN_NEAR_SILENT, releaseEnd)
 
-        gainNode.gain.setValueAtTime(0, audioContext.currentTime)
-        gainNode.gain.linearRampToValueAtTime(
-          0.1,
-          audioContext.currentTime + GAIN_ATTACK_TIME,
-        )
-        gainNode.gain.exponentialRampToValueAtTime(GAIN_NEAR_SILENT, releaseEnd)
+      oscillator.connect(gainNode)
+      gainNode.connect(audioContext.destination)
 
-        oscillator.connect(gainNode)
-        gainNode.connect(audioContext.destination)
+      oscillator.start()
+      oscillator.stop(audioContext.currentTime + durationSeconds)
 
-        oscillator.start()
-        oscillator.stop(audioContext.currentTime + durationSeconds)
-
-        oscillator.onended = () => {
-          gainNode.disconnect()
-          resume(Effect.succeed(CompletedPlayNote({ noteIndex })))
-        }
-      })
-    }),
-  )
+      oscillator.onended = () => {
+        gainNode.disconnect()
+        resume(Effect.succeed(CompletedPlayNote({ noteIndex })))
+      }
+    })
+  }),
+)
 
 // VIEW
 

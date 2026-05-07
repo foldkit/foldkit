@@ -134,7 +134,13 @@ type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 /** Waits for the tooltip's show delay before emitting `ElapsedShowDelay`. The version is echoed back so a stale timer is ignored when the user leaves before the delay fires. */
-export const ShowAfterDelay = Command.define('ShowAfterDelay', ElapsedShowDelay)
+export const ShowAfterDelay = Command.define(
+  'ShowAfterDelay',
+  { delay: S.DurationFromMillis, version: S.Number },
+  ElapsedShowDelay,
+)(({ delay, version }) =>
+  Effect.sleep(delay).pipe(Effect.as(ElapsedShowDelay({ version }))),
+)
 
 /** The anchor-positioning Mount this Tooltip renders on its panel. Exposed so
  *  Scene tests can call `Scene.Mount.resolve(AnchorTooltip, CompletedAnchorTooltip())`
@@ -160,13 +166,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             isHovered: () => true,
             pendingShowVersion: () => nextVersion,
           }),
-          [
-            ShowAfterDelay(
-              Effect.sleep(model.showDelay).pipe(
-                Effect.as(ElapsedShowDelay({ version: nextVersion })),
-              ),
-            ),
-          ],
+          [ShowAfterDelay({ delay: model.showDelay, version: nextVersion })],
         ]
       },
 

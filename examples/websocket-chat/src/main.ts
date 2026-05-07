@@ -16,12 +16,12 @@ import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
 
+const WS_URL = 'wss://ws.postman-echo.com/raw'
+const CONNECTION_TIMEOUT_MS = 5000
+
 const getZonedTime = DateTime.now.pipe(
   Effect.map(utc => DateTime.setZone(utc, DateTime.zoneMakeLocal())),
 )
-
-const WS_URL = 'wss://ws.postman-echo.com/raw'
-const CONNECTION_TIMEOUT_MS = 5000
 
 // MODEL
 
@@ -154,7 +154,7 @@ const update = (
             evo(model, {
               messageInput: () => '',
             }),
-            [sendMessage(trimmedMessage)],
+            [SendMessage({ text: trimmedMessage })],
           ]),
           M.orElse(() => [model, []]),
         )
@@ -162,28 +162,12 @@ const update = (
 
       SucceededSendMessage: ({ text }) => [
         model,
-        [
-          TimestampSentMessage(
-            getZonedTime.pipe(
-              Effect.map(zoned =>
-                TimestampedMessage({ text, zoned, isSent: true }),
-              ),
-            ),
-          ),
-        ],
+        [TimestampSentMessage({ text })],
       ],
 
       ReceivedMessage: ({ text }) => [
         model,
-        [
-          TimestampReceivedMessage(
-            getZonedTime.pipe(
-              Effect.map(zoned =>
-                TimestampedMessage({ text, zoned, isSent: false }),
-              ),
-            ),
-          ),
-        ],
+        [TimestampReceivedMessage({ text })],
       ],
 
       TimestampedMessage: ({ text, zoned, isSent }) => {
@@ -214,32 +198,42 @@ const init: Runtime.ProgramInit<Model, Message> = () => [
 
 const TimestampSentMessage = Command.define(
   'TimestampSentMessage',
+  { text: S.String },
   TimestampedMessage,
-)
-const TimestampReceivedMessage = Command.define(
-  'TimestampReceivedMessage',
-  TimestampedMessage,
-)
-const SendMessage = Command.define(
-  'SendMessage',
-  SucceededSendMessage,
-  FailedConnect,
+)(({ text }) =>
+  getZonedTime.pipe(
+    Effect.map(zoned => TimestampedMessage({ text, zoned, isSent: true })),
+  ),
 )
 
-const sendMessage = (text: string) =>
-  SendMessage(
-    ChatSocket.get.pipe(
-      Effect.flatMap(socket =>
-        Effect.sync(() => {
-          socket.send(text)
-          return SucceededSendMessage({ text })
-        }),
-      ),
-      Effect.catchTag('ResourceNotAvailable', () =>
-        Effect.succeed(FailedConnect({ error: 'Socket unavailable' })),
-      ),
+const TimestampReceivedMessage = Command.define(
+  'TimestampReceivedMessage',
+  { text: S.String },
+  TimestampedMessage,
+)(({ text }) =>
+  getZonedTime.pipe(
+    Effect.map(zoned => TimestampedMessage({ text, zoned, isSent: false })),
+  ),
+)
+
+const SendMessage = Command.define(
+  'SendMessage',
+  { text: S.String },
+  SucceededSendMessage,
+  FailedConnect,
+)(({ text }) =>
+  ChatSocket.get.pipe(
+    Effect.flatMap(socket =>
+      Effect.sync(() => {
+        socket.send(text)
+        return SucceededSendMessage({ text })
+      }),
     ),
-  )
+    Effect.catchTag('ResourceNotAvailable', () =>
+      Effect.succeed(FailedConnect({ error: 'Socket unavailable' })),
+    ),
+  ),
+)
 
 // MANAGED RESOURCE
 

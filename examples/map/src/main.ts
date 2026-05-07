@@ -10,7 +10,8 @@ import {
   Stream,
   String,
 } from 'effect'
-import { Command, Dom, Mount, Runtime, Subscription } from 'foldkit'
+import { Command, Mount, Runtime, Subscription } from 'foldkit'
+import * as Dom from 'foldkit/dom'
 import type { Document, Html, MountResult } from 'foldkit/html'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -106,8 +107,6 @@ export type Message = typeof Message.Type
 
 // COMMAND
 
-export const FlyTo = Command.define('FlyTo', SucceededFlyTo, FailedFlyTo)
-
 const flyToMap = (
   hostId: string,
   lng: number,
@@ -128,31 +127,33 @@ const flyToMap = (
       }),
   })
 
-const flyTo = (
-  maybeHostId: Option.Option<string>,
-  lng: number,
-  lat: number,
-  zoom: number,
-) =>
-  FlyTo(
-    Option.match(maybeHostId, {
-      onNone: () =>
-        Effect.succeed(
-          FailedFlyTo({
-            reason: 'FlyTo dispatched before the map mounted.',
-          }),
-        ),
-      onSome: hostId => flyToMap(hostId, lng, lat, zoom),
-    }),
-  )
+export const FlyTo = Command.define(
+  'FlyTo',
+  {
+    maybeHostId: S.Option(S.String),
+    lng: S.Number,
+    lat: S.Number,
+    zoom: S.Number,
+  },
+  SucceededFlyTo,
+  FailedFlyTo,
+)(({ maybeHostId, lng, lat, zoom }) =>
+  Option.match(maybeHostId, {
+    onNone: () =>
+      Effect.succeed(
+        FailedFlyTo({
+          reason: 'FlyTo dispatched before the map mounted.',
+        }),
+      ),
+    onSome: hostId => flyToMap(hostId, lng, lat, zoom),
+  }),
+)
 
 export const Geolocate = Command.define(
   'Geolocate',
   SucceededGeolocate,
   FailedGeolocate,
-)
-
-const geolocate = Geolocate(
+)(
   Effect.gen(function* () {
     const position = yield* Effect.callback<GeolocationPosition, Error>(
       resume => {
@@ -196,9 +197,7 @@ const SEARCH_INPUT_ID = 'map-search-input'
 export const FocusSearchInput = Command.define(
   'FocusSearchInput',
   CompletedFocusSearchInput,
-)
-
-const focusSearchInput = FocusSearchInput(
+)(
   Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
     Effect.ignore,
     Effect.as(CompletedFocusSearchInput()),
@@ -208,9 +207,7 @@ const focusSearchInput = FocusSearchInput(
 export const LockBodyScroll = Command.define(
   'LockBodyScroll',
   CompletedLockBodyScroll,
-)
-
-const lockBodyScroll = LockBodyScroll(
+)(
   Effect.sync(() => {
     document.body.classList.add('overflow-hidden')
     return CompletedLockBodyScroll()
@@ -220,9 +217,7 @@ const lockBodyScroll = LockBodyScroll(
 export const UnlockBodyScroll = Command.define(
   'UnlockBodyScroll',
   CompletedUnlockBodyScroll,
-)
-
-const unlockBodyScroll = UnlockBodyScroll(
+)(
   Effect.sync(() => {
     document.body.classList.remove('overflow-hidden')
     return CompletedUnlockBodyScroll()
@@ -273,7 +268,14 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             evo(model, {
               maybeSelectedLocationId: () => Option.some(locationId),
             }),
-            [flyTo(model.maybeMapHostId, lng, lat, SELECTED_LOCATION_ZOOM)],
+            [
+              FlyTo({
+                maybeHostId: model.maybeMapHostId,
+                lng: lng,
+                lat: lat,
+                zoom: SELECTED_LOCATION_ZOOM,
+              }),
+            ],
           ],
         }),
 
@@ -284,12 +286,12 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       ClickedFindMe: () => [
         evo(model, { geolocateState: () => GeolocateLocating() }),
-        [lockBodyScroll, geolocate],
+        [LockBodyScroll(), Geolocate()],
       ],
 
       DismissedGeolocate: () => [
         evo(model, { geolocateState: () => GeolocateIdle() }),
-        [unlockBodyScroll],
+        [UnlockBodyScroll()],
       ],
 
       SucceededGeolocate: ({ lng, lat }) => [
@@ -298,8 +300,13 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           geolocateState: () => GeolocateIdle(),
         }),
         [
-          unlockBodyScroll,
-          flyTo(model.maybeMapHostId, lng, lat, USER_LOCATION_ZOOM),
+          UnlockBodyScroll(),
+          FlyTo({
+            maybeHostId: model.maybeMapHostId,
+            lng: lng,
+            lat: lat,
+            zoom: USER_LOCATION_ZOOM,
+          }),
         ],
       ],
 
@@ -329,7 +336,7 @@ const init: Runtime.ProgramInit<Model, Message> = () => [
     maybeUserLocation: Option.none(),
     geolocateState: GeolocateIdle(),
   },
-  [focusSearchInput],
+  [FocusSearchInput()],
 ]
 
 // MAP MOUNT
@@ -717,7 +724,7 @@ const geolocateOverlayView = (state: GeolocateState): Html =>
 
 const geolocateOverlayShellView = (content: Html): Html =>
   keyed('div')(
-    'geolocate-overlay',
+    'Geolocate()-overlay',
     [
       Class(
         'fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40',
@@ -729,7 +736,7 @@ const geolocateOverlayShellView = (content: Html): Html =>
 
 const geolocateLocatingContentView = (): Html =>
   keyed('article')(
-    'geolocate-locating',
+    'Geolocate()-locating',
     [
       Class(
         'bg-white rounded-lg shadow-lg max-w-sm w-full mx-4 px-6 py-5 text-center',
@@ -747,7 +754,7 @@ const geolocateLocatingContentView = (): Html =>
 
 const geolocateFailedContentView = (reason: string): Html =>
   keyed('article')(
-    'geolocate-failed',
+    'Geolocate()-failed',
     [
       Class(
         'bg-white rounded-lg shadow-lg max-w-sm w-full mx-4 px-6 py-5 text-center',

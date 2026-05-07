@@ -255,17 +255,30 @@ const selectionToParam = <A extends string>(
   )
 }
 
-const ReplaceFilters = Command.define('ReplaceFilters', CompletedReplaceUrl)
+const ReplaceFilters = Command.define(
+  'ReplaceFilters',
+  {
+    search: S.Option(S.String),
+    sorting: Sorting,
+    diet: S.Option(Diet),
+    period: S.Option(Period),
+  },
+  CompletedReplaceUrl,
+)(fields =>
+  replaceUrl(browseRouter(fields)).pipe(Effect.as(CompletedReplaceUrl())),
+)
+
 const NavigateInternal = Command.define(
   'NavigateInternal',
+  { url: S.String },
   CompletedNavigateInternal,
-)
-const LoadExternal = Command.define('LoadExternal', CompletedLoadExternal)
+)(({ url }) => pushUrl(url).pipe(Effect.as(CompletedNavigateInternal())))
 
-const replaceFilters = (fields: BrowseFields) =>
-  ReplaceFilters(
-    replaceUrl(browseRouter(fields)).pipe(Effect.as(CompletedReplaceUrl())),
-  )
+const LoadExternal = Command.define(
+  'LoadExternal',
+  { href: S.String },
+  CompletedLoadExternal,
+)(({ href }) => load(href).pipe(Effect.as(CompletedLoadExternal())))
 
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
@@ -284,22 +297,9 @@ const update = (model: Model, message: Message): UpdateReturn =>
           M.tagsExhaustive({
             Internal: ({ url }) => [
               model,
-              [
-                NavigateInternal(
-                  pushUrl(urlToString(url)).pipe(
-                    Effect.as(CompletedNavigateInternal()),
-                  ),
-                ),
-              ],
+              [NavigateInternal({ url: urlToString(url) })],
             ],
-            External: ({ href }) => [
-              model,
-              [
-                LoadExternal(
-                  load(href).pipe(Effect.as(CompletedLoadExternal())),
-                ),
-              ],
-            ],
+            External: ({ href }) => [model, [LoadExternal({ href })]],
           }),
         ),
 
@@ -331,7 +331,7 @@ const update = (model: Model, message: Message): UpdateReturn =>
         return [
           model,
           [
-            replaceFilters({
+            ReplaceFilters({
               ...fields,
               search: Option.liftPredicate(value, String.isNonEmpty),
             }),
@@ -345,7 +345,7 @@ const update = (model: Model, message: Message): UpdateReturn =>
         return [
           model,
           [
-            replaceFilters({
+            ReplaceFilters({
               ...fields,
               sorting: nextSorting(fields.sorting, column),
             }),
@@ -400,7 +400,7 @@ const update = (model: Model, message: Message): UpdateReturn =>
                 Effect.map(message => GotDietListboxMessage({ message })),
               ),
             ),
-            replaceFilters({
+            ReplaceFilters({
               ...fields,
               diet: selectionToParam(nextDietListbox.maybeSelectedItem, Diet),
             }),
@@ -423,7 +423,7 @@ const update = (model: Model, message: Message): UpdateReturn =>
                 Effect.map(message => GotPeriodListboxMessage({ message })),
               ),
             ),
-            replaceFilters({
+            ReplaceFilters({
               ...fields,
               period: selectionToParam(
                 nextPeriodListbox.maybeSelectedItem,

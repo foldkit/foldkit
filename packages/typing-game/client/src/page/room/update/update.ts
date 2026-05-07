@@ -15,14 +15,15 @@ import { evo } from 'foldkit/struct'
 import { ROOM_PAGE_USERNAME_INPUT_ID } from '../../../constant'
 import { optionWhen } from '../../../optionWhen'
 import { homeRouter } from '../../../route'
-import { clearSession, savePlayerSession } from '../command'
 import {
-  copyRoomIdToClipboard,
-  hideRoomIdCopiedIndicator,
-  joinRoom,
-  startGame,
-  tickExitCountdown,
-  updatePlayerProgress,
+  ClearSession,
+  CopyRoomId,
+  HideRoomIdCopiedIndicator,
+  JoinRoom,
+  SavePlayerSession,
+  StartGame,
+  TickExitCountdown,
+  UpdatePlayerProgress,
 } from '../command'
 import {
   CompletedFocusRoomPageUsernameInput,
@@ -36,8 +37,16 @@ import { handleRoomUpdated } from './handleRoomUpdates'
 const RefocusRoomUsernameInput = Command.define(
   'RefocusRoomUsernameInput',
   CompletedFocusRoomPageUsernameInput,
+)(
+  Dom.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(
+    Effect.ignore,
+    Effect.as(CompletedFocusRoomPageUsernameInput()),
+  ),
 )
-const NavigateHome = Command.define('NavigateHome', CompletedNavigateHome)
+const NavigateHome = Command.define(
+  'NavigateHome',
+  CompletedNavigateHome,
+)(pushUrl(homeRouter()).pipe(Effect.as(CompletedNavigateHome())))
 
 export type UpdateReturn = readonly [
   Model,
@@ -77,12 +86,12 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             Option.flatMap(maybeRoom, ({ maybeGame }) => maybeGame),
           ]),
           Option.map(([session, game]) =>
-            updatePlayerProgress(
-              session.player.id,
-              game.id,
+            UpdatePlayerProgress({
+              playerId: session.player.id,
+              gameId: game.id,
               userGameText,
-              nextCharsTyped,
-            ),
+              charsTyped: nextCharsTyped,
+            }),
           ),
         )
 
@@ -95,17 +104,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ]
       },
 
-      BlurredRoomPageUsernameInput: () => [
-        model,
-        [
-          RefocusRoomUsernameInput(
-            Dom.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(
-              Effect.ignore,
-              Effect.as(CompletedFocusRoomPageUsernameInput()),
-            ),
-          ),
-        ],
-      ],
+      BlurredRoomPageUsernameInput: () => [model, [RefocusRoomUsernameInput()]],
 
       ChangedRoomPageUsername: ({ value }) => [
         evo(model, {
@@ -116,7 +115,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       SubmittedJoinRoomFromPage: ({ roomId }) => {
         const maybeJoinRoom = optionWhen(Str.isNonEmpty(model.username), () =>
-          joinRoom(model.username, roomId),
+          JoinRoom({ username: model.username, roomId }),
         )
 
         return [model, Array.fromOption(maybeJoinRoom)]
@@ -130,7 +129,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       RequestedStartGame: ({ roomId, playerId }) => [
         model,
-        [startGame(roomId, playerId)],
+        [StartGame({ roomId, playerId })],
       ],
 
       LoadedSession: ({ maybeSession }) => [
@@ -155,10 +154,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         [],
       ],
 
-      ClickedCopyRoomId: ({ roomId }) => [
-        model,
-        [copyRoomIdToClipboard(roomId)],
-      ],
+      ClickedCopyRoomId: ({ roomId }) => [model, [CopyRoomId({ roomId })]],
 
       SucceededCopyRoomId: () =>
         model.isRoomIdCopyIndicatorVisible
@@ -167,10 +163,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               evo(model, {
                 isRoomIdCopyIndicatorVisible: () => true,
               }),
-              [hideRoomIdCopiedIndicator()],
+              [HideRoomIdCopiedIndicator()],
             ],
 
-      HiddenRoomIdCopiedIndicator: () => [
+      HidRoomIdCopiedIndicator: () => [
         evo(model, {
           isRoomIdCopyIndicatorVisible: () => false,
         }),
@@ -179,9 +175,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       TickedExitCountdown: () => {
         const nextSecondsLeft = Number.decrement(model.exitCountdownSecondsLeft)
-        const maybeTick = optionWhen(
-          nextSecondsLeft > 0,
-          () => tickExitCountdown,
+        const maybeTick = optionWhen(nextSecondsLeft > 0, () =>
+          TickExitCountdown(),
         )
 
         return [
@@ -198,7 +193,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           evo(model, {
             maybeSession: () => Option.some(session),
           }),
-          [savePlayerSession(session)],
+          [SavePlayerSession({ session })],
         ]
       },
     }),
@@ -206,7 +201,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       'CompletedFocusRoomPageUsernameInput',
       'CompletedFocusUserGameTextInput',
       'CompletedNavigateHome',
-      'CompletedRequestGameStart',
+      'SucceededStartGame',
+      'FailedStartGame',
       'CompletedUpdatePlayerProgress',
       'CompletedSaveSession',
       'CompletedClearSession',
@@ -264,12 +260,7 @@ const leaveRoom = (model: Model): UpdateReturn => [
     maybeSession: () => Option.none(),
     roomRemoteData: () => RoomRemoteData.Loading(),
   }),
-  [
-    clearSession(),
-    NavigateHome(
-      pushUrl(homeRouter()).pipe(Effect.as(CompletedNavigateHome())),
-    ),
-  ],
+  [ClearSession(), NavigateHome()],
 ]
 
 const handleStartGame = (model: Model, room: Shared.Room) => (): UpdateReturn =>
@@ -277,7 +268,7 @@ const handleStartGame = (model: Model, room: Shared.Room) => (): UpdateReturn =>
     onSome: session => {
       const isHost = session.player.id === room.hostId
       const maybeStartGame = optionWhen(isHost, () =>
-        startGame(room.id, session.player.id),
+        StartGame({ roomId: room.id, playerId: session.player.id }),
       )
       return [model, Array.fromOption(maybeStartGame)]
     },

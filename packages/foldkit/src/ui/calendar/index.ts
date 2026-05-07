@@ -175,19 +175,18 @@ const withUpdateReturn = M.withReturnType<UpdateReturn>()
 const gridId = (modelId: string): string => `${modelId}-grid`
 const gridSelector = (modelId: string): string => `#${gridId(modelId)}`
 
-/** Focuses the calendar grid container. */
-export const FocusGrid = Command.define('FocusGrid', CompletedFocusGrid)
-
-/** Builds a command that focuses the calendar grid container. Parent
- * components like DatePicker dispatch this after opening to hand focus to
- * the grid's keyboard layer. */
-export const focusGrid = (modelId: string): Command.Command<Message> =>
-  FocusGrid(
-    Dom.focus(gridSelector(modelId)).pipe(
-      Effect.ignore,
-      Effect.as(CompletedFocusGrid()),
-    ),
-  )
+/** Focuses the calendar grid container. Parent components like DatePicker
+ * dispatch this after opening to hand focus to the grid's keyboard layer. */
+export const FocusGrid = Command.define(
+  'FocusGrid',
+  { id: S.String },
+  CompletedFocusGrid,
+)(({ id }) =>
+  Dom.focus(gridSelector(id)).pipe(
+    Effect.ignore,
+    Effect.as(CompletedFocusGrid()),
+  ),
+)
 
 /** Programmatically selects a date on the calendar, committing it as the
  * chosen value and moving the cursor onto it. Use this in controlled-mode
@@ -595,12 +594,12 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           withUpdateReturn,
           M.when('Days', () => [
             evo(model, { viewMode: () => 'Months' }),
-            [focusGrid(model.id)],
+            [FocusGrid({ id: model.id })],
             Option.none(),
           ]),
           M.when('Months', () => [
             evo(model, { viewMode: () => 'Years' }),
-            [focusGrid(model.id)],
+            [FocusGrid({ id: model.id })],
             Option.none(),
           ]),
           M.when('Years', () => [model, [], Option.none()]),
@@ -619,7 +618,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           )
           return [
             evo(nextModel, { viewMode: () => 'Days' }),
-            [...commands, focusGrid(model.id)],
+            [...commands, FocusGrid({ id: model.id })],
             maybeOutMessage,
           ]
         }
@@ -637,7 +636,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           )
           return [
             evo(nextModel, { viewMode: () => 'Months' }),
-            [...commands, focusGrid(model.id)],
+            [...commands, FocusGrid({ id: model.id })],
             maybeOutMessage,
           ]
         }

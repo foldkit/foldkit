@@ -168,27 +168,67 @@ type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 /** Prevents page scrolling while the popover is open in modal mode. */
-export const LockScroll = Command.define('LockScroll', CompletedLockScroll)
+export const LockScroll = Command.define(
+  'LockScroll',
+  CompletedLockScroll,
+)(Dom.lockScroll.pipe(Effect.as(CompletedLockScroll())))
 /** Re-enables page scrolling after the popover closes. */
 export const UnlockScroll = Command.define(
   'UnlockScroll',
   CompletedUnlockScroll,
-)
+)(Dom.unlockScroll.pipe(Effect.as(CompletedUnlockScroll())))
 /** Marks all elements outside the popover as inert for modal behavior. */
-export const InertOthers = Command.define('InertOthers', CompletedSetupInert)
+export const InertOthers = Command.define(
+  'InertOthers',
+  { id: S.String },
+  CompletedSetupInert,
+)(({ id }) =>
+  Dom.inertOthers(id, [buttonSelector(id), panelSelector(id)]).pipe(
+    Effect.as(CompletedSetupInert()),
+  ),
+)
 /** Removes the inert attribute from elements outside the popover. */
 export const RestoreInert = Command.define(
   'RestoreInert',
+  { id: S.String },
   CompletedTeardownInert,
-)
+)(({ id }) => Dom.restoreInert(id).pipe(Effect.as(CompletedTeardownInert())))
 /** Moves focus to the popover panel after opening. */
-export const FocusPanel = Command.define('FocusPanel', CompletedFocusPanel)
+export const FocusPanel = Command.define(
+  'FocusPanel',
+  { id: S.String },
+  CompletedFocusPanel,
+)(({ id }) =>
+  Dom.focus(panelSelector(id)).pipe(
+    Effect.ignore,
+    Effect.as(CompletedFocusPanel()),
+  ),
+)
 /** Moves focus back to the popover button after closing. */
-export const FocusButton = Command.define('FocusButton', CompletedFocusButton)
-/** Detects whether the popover button moved or the leave animation ended — whichever comes first. Both outcomes signal the Animation submodel that leave is complete. */
+export const FocusButton = Command.define(
+  'FocusButton',
+  { id: S.String },
+  CompletedFocusButton,
+)(({ id }) =>
+  Dom.focus(buttonSelector(id)).pipe(
+    Effect.ignore,
+    Effect.as(CompletedFocusButton()),
+  ),
+)
+/** Detects whether the popover button moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation submodel that leave is complete. */
 export const DetectMovementOrAnimationEnd = Command.define(
   'DetectMovementOrAnimationEnd',
+  { id: S.String },
   GotAnimationMessage,
+)(({ id }) =>
+  Effect.raceFirst(
+    Dom.detectElementMovement(buttonSelector(id)).pipe(
+      Effect.as(GotAnimationMessage({ message: AnimationEndedAnimation() })),
+    ),
+    Dom.waitForAnimationSettled(panelSelector(id)).pipe(
+      Effect.as(GotAnimationMessage({ message: AnimationEndedAnimation() })),
+    ),
+  ),
 )
 
 const delegateToAnimation = (
@@ -209,24 +249,7 @@ const delegateToAnimation = (
     onSome: M.type<AnimationOutMessage>().pipe(
       M.tagsExhaustive({
         StartedLeaveAnimating: () => [
-          DetectMovementOrAnimationEnd(
-            Effect.raceFirst(
-              Dom.detectElementMovement(buttonSelector(model.id)).pipe(
-                Effect.as(
-                  GotAnimationMessage({
-                    message: AnimationEndedAnimation(),
-                  }),
-                ),
-              ),
-              Dom.waitForAnimationSettled(panelSelector(model.id)).pipe(
-                Effect.as(
-                  GotAnimationMessage({
-                    message: AnimationEndedAnimation(),
-                  }),
-                ),
-              ),
-            ),
-          ),
+          DetectMovementOrAnimationEnd({ id: model.id }),
         ],
         TransitionedOut: () => [],
       }),
@@ -241,39 +264,18 @@ const delegateToAnimation = (
 
 /** Processes a popover message and returns the next model and commands. */
 export const update = (model: Model, message: Message): UpdateReturn => {
-  const maybeLockScroll = OptionExt.when(
-    model.isModal,
-    LockScroll(Dom.lockScroll.pipe(Effect.as(CompletedLockScroll()))),
-  )
-
-  const maybeUnlockScroll = OptionExt.when(
-    model.isModal,
-    UnlockScroll(Dom.unlockScroll.pipe(Effect.as(CompletedUnlockScroll()))),
-  )
-
+  const maybeLockScroll = OptionExt.when(model.isModal, LockScroll())
+  const maybeUnlockScroll = OptionExt.when(model.isModal, UnlockScroll())
   const maybeInertOthers = OptionExt.when(
     model.isModal,
-    InertOthers(
-      Dom.inertOthers(model.id, [
-        buttonSelector(model.id),
-        panelSelector(model.id),
-      ]).pipe(Effect.as(CompletedSetupInert())),
-    ),
+    InertOthers({ id: model.id }),
   )
-
   const maybeRestoreInert = OptionExt.when(
     model.isModal,
-    RestoreInert(
-      Dom.restoreInert(model.id).pipe(Effect.as(CompletedTeardownInert())),
-    ),
+    RestoreInert({ id: model.id }),
   )
 
-  const focusButton = FocusButton(
-    Dom.focus(buttonSelector(model.id)).pipe(
-      Effect.ignore,
-      Effect.as(CompletedFocusButton()),
-    ),
-  )
+  const focusButton = FocusButton({ id: model.id })
 
   const openCommands = Array.getSomes([maybeLockScroll, maybeInertOthers])
 

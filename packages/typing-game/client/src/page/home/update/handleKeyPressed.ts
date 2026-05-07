@@ -2,7 +2,7 @@ import { Array, Match as M, Number, Option, flow, pipe } from 'effect'
 import { Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
-import { createRoom } from '../command'
+import { CreateRoom } from '../command'
 import { Message } from '../message'
 import {
   EnterRoomId,
@@ -78,7 +78,10 @@ const confirmSelection =
   (selectAction: SelectAction): UpdateReturn =>
     M.value(selectAction.selectedAction).pipe(
       withUpdateReturn,
-      M.when('CreateRoom', () => [model, [createRoom(selectAction.username)]]),
+      M.when('CreateRoom', () => [
+        model,
+        [CreateRoom({ username: selectAction.username })],
+      ]),
       M.when('JoinRoom', () => [
         evo(model, {
           homeStep: () =>

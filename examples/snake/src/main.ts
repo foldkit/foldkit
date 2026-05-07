@@ -70,7 +70,7 @@ const init: Runtime.ProgramInit<Model, Message> = () => {
       points: 0,
       highScore: 0,
     },
-    [generateApplePosition(snake)],
+    [GenerateApplePosition({ snake: snake })],
   ]
 }
 
@@ -148,7 +148,7 @@ const update = (
                 gameState: () => 'NotStarted',
                 points: () => 0,
               }),
-              [generateApplePosition(nextSnake)],
+              [GenerateApplePosition({ snake: nextSnake })],
             ]
           }),
           M.orElse(() => [model, []]),
@@ -183,7 +183,9 @@ const update = (
           ]
         }
 
-        const commands = willEatApple ? [generateApplePosition(nextSnake)] : []
+        const commands = willEatApple
+          ? [GenerateApplePosition({ snake: nextSnake })]
+          : []
 
         return [
           evo(model, {
@@ -216,7 +218,7 @@ const update = (
             gameState: () => 'NotStarted',
             points: () => 0,
           }),
-          [generateApplePosition(nextSnake)],
+          [GenerateApplePosition({ snake: nextSnake })],
         ]
       },
 
@@ -233,15 +235,13 @@ const update = (
 
 const GenerateApplePosition = Command.define(
   'GenerateApplePosition',
+  { snake: Snake.Snake },
   GeneratedApplePosition,
+)(({ snake }) =>
+  Apple.generatePosition(snake).pipe(
+    Effect.map(position => GeneratedApplePosition({ position })),
+  ),
 )
-
-const generateApplePosition = (snake: Snake.Snake) =>
-  GenerateApplePosition(
-    Apple.generatePosition(snake).pipe(
-      Effect.map(position => GeneratedApplePosition({ position })),
-    ),
-  )
 
 // SUBSCRIPTION
 

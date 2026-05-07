@@ -9,9 +9,7 @@ export const SubmitApplication = Command.define(
   'SubmitApplication',
   SucceededSubmitApplication,
   FailedSubmitApplication,
-)
-
-export const submitApplication = SubmitApplication(
+)(
   Effect.gen(function* () {
     yield* Effect.sleep(Duration.millis(1500))
     return SucceededSubmitApplication()

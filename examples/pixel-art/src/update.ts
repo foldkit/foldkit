@@ -2,7 +2,7 @@ import { Array, Effect, Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
-import { exportPng, saveCanvas } from './command'
+import { ExportPng, saveCanvas } from './command'
 import { DEFAULT_COLOR_INDEX, GRID_SIZE_STRINGS } from './constant'
 import {
   createEmptyGrid,
@@ -328,7 +328,13 @@ export const update = (
 
       ClickedExport: () => [
         model,
-        [exportPng(model.grid, model.gridSize, currentPaletteTheme(model))],
+        [
+          ExportPng({
+            grid: model.grid,
+            gridSize: model.gridSize,
+            paletteThemeIndex: model.paletteThemeIndex,
+          }),
+        ],
       ],
 
       SucceededExportPng: () => [model, []],

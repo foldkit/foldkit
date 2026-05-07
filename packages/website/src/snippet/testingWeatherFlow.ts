@@ -11,7 +11,8 @@ test('weather search: success then failure', () => {
       expect(model.zipCode).toBe('90210')
     }),
     Story.message(SubmittedWeatherForm()),
-    Story.Command.expectHas(FetchWeather),
+    // Instance form: locks in the zipCode the runtime captured.
+    Story.Command.expectHas(FetchWeather({ zipCode: '90210' })),
     Story.Command.resolve(
       FetchWeather,
       SucceededFetchWeather({ weather: beverlyHillsWeather }),
@@ -26,7 +27,7 @@ test('weather search: success then failure', () => {
       expect(model.zipCode).toBe('00000')
     }),
     Story.message(SubmittedWeatherForm()),
-    Story.Command.expectHas(FetchWeather),
+    Story.Command.expectHas(FetchWeather({ zipCode: '00000' })),
     Story.Command.resolve(
       FetchWeather,
       FailedFetchWeather({ error: 'Not found' }),

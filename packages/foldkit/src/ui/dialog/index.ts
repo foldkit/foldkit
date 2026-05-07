@@ -108,18 +108,38 @@ type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 /** Locks page scroll and calls `showModal()` on the native dialog element. */
-export const ShowDialog = Command.define('ShowDialog', CompletedShowDialog)
-/** Calls `close()` on the native dialog element and unlocks page scroll. */
-export const CloseDialog = Command.define('CloseDialog', CompletedCloseDialog)
-
-const closeDialog = (id: string): Command.Command<Message> =>
-  CloseDialog(
-    Dom.closeModal(dialogSelector(id)).pipe(
-      Effect.andThen(() => Dom.unlockScroll),
-      Effect.ignore,
-      Effect.as(CompletedCloseDialog()),
+export const ShowDialog = Command.define(
+  'ShowDialog',
+  { id: S.String, maybeFocusSelector: S.Option(S.String) },
+  CompletedShowDialog,
+)(({ id, maybeFocusSelector }) =>
+  Dom.lockScroll.pipe(
+    Effect.andThen(() =>
+      Dom.showModal(
+        dialogSelector(id),
+        Option.match(maybeFocusSelector, {
+          onNone: () => undefined,
+          onSome: focusSelector => ({ focusSelector }),
+        }),
+      ),
     ),
-  )
+    Effect.ignore,
+    Effect.as(CompletedShowDialog()),
+  ),
+)
+
+/** Calls `close()` on the native dialog element and unlocks page scroll. */
+export const CloseDialog = Command.define(
+  'CloseDialog',
+  { id: S.String },
+  CompletedCloseDialog,
+)(({ id }) =>
+  Dom.closeModal(dialogSelector(id)).pipe(
+    Effect.andThen(() => Dom.unlockScroll),
+    Effect.ignore,
+    Effect.as(CompletedCloseDialog()),
+  ),
+)
 
 const toParentMessage = (message: AnimationMessage): Message =>
   GotAnimationMessage({ message })
@@ -147,7 +167,7 @@ const delegateToAnimation = (
             Effect.map(toParentMessage),
           ),
         ],
-        TransitionedOut: () => [closeDialog(model.id)],
+        TransitionedOut: () => [CloseDialog({ id: model.id })],
       }),
     ),
   })
@@ -164,21 +184,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     withUpdateReturn,
     M.tagsExhaustive({
       Opened: () => {
-        const focusOptions = Option.match(model.maybeFocusSelector, {
-          onNone: () => undefined,
-          onSome: focusSelector => ({ focusSelector }),
-        })
-
         const maybeShow = Option.liftPredicate(
-          ShowDialog(
-            Dom.lockScroll.pipe(
-              Effect.andThen(() =>
-                Dom.showModal(dialogSelector(model.id), focusOptions),
-              ),
-              Effect.ignore,
-              Effect.as(CompletedShowDialog()),
-            ),
-          ),
+          ShowDialog({
+            id: model.id,
+            maybeFocusSelector: model.maybeFocusSelector,
+          }),
           () => !model.isOpen,
         )
 
@@ -217,7 +227,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         }
 
         const maybeClose = Option.liftPredicate(
-          closeDialog(model.id),
+          CloseDialog({ id: model.id }),
           () => model.isOpen,
         )
 

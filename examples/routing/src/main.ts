@@ -115,12 +115,24 @@ const init: Runtime.RoutingProgramInit<Model, Message> = (url: Url) => {
 
 const NavigateInternal = Command.define(
   'NavigateInternal',
+  { url: S.String },
   CompletedNavigateInternal,
-)
-const LoadExternal = Command.define('LoadExternal', CompletedLoadExternal)
+)(({ url }) => pushUrl(url).pipe(Effect.as(CompletedNavigateInternal())))
+
+const LoadExternal = Command.define(
+  'LoadExternal',
+  { href: S.String },
+  CompletedLoadExternal,
+)(({ href }) => load(href).pipe(Effect.as(CompletedLoadExternal())))
+
 const ReplaceSearchUrl = Command.define(
   'ReplaceSearchUrl',
+  { searchText: S.Option(S.String) },
   CompletedNavigateInternal,
+)(({ searchText }) =>
+  replaceUrl(peopleRouter({ searchText })).pipe(
+    Effect.as(CompletedNavigateInternal()),
+  ),
 )
 
 // UPDATE
@@ -145,29 +157,13 @@ const update = (
             }): [
               Model,
               ReadonlyArray<Command.Command<typeof CompletedNavigateInternal>>,
-            ] => [
-              model,
-              [
-                NavigateInternal(
-                  pushUrl(urlToString(url)).pipe(
-                    Effect.as(CompletedNavigateInternal()),
-                  ),
-                ),
-              ],
-            ],
+            ] => [model, [NavigateInternal({ url: urlToString(url) })]],
             External: ({
               href,
             }): [
               Model,
               ReadonlyArray<Command.Command<typeof CompletedLoadExternal>>,
-            ] => [
-              model,
-              [
-                LoadExternal(
-                  load(href).pipe(Effect.as(CompletedLoadExternal())),
-                ),
-              ],
-            ],
+            ] => [model, [LoadExternal({ href })]],
           }),
         ),
 
@@ -181,13 +177,9 @@ const update = (
       ChangedSearchInput: ({ value }) => [
         model,
         [
-          ReplaceSearchUrl(
-            replaceUrl(
-              peopleRouter({
-                searchText: Option.fromNullishOr(value || null),
-              }),
-            ).pipe(Effect.as(CompletedNavigateInternal())),
-          ),
+          ReplaceSearchUrl({
+            searchText: Option.fromNullishOr(value || null),
+          }),
         ],
       ],
     }),

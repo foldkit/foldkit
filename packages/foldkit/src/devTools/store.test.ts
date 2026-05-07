@@ -208,7 +208,7 @@ describe('DevToolsStore', () => {
       expect(run(store.getModelAtIndex(2))).toEqual({ count: 1 })
     })
 
-    it('records command tags', () => {
+    it('records Command names and args', () => {
       const { store } = makeStore()
 
       run(
@@ -216,16 +216,20 @@ describe('DevToolsStore', () => {
           clickedIncrement,
           initialModel,
           { count: 1 },
-          ['FetchData', 'LockScroll', 'FocusButton'],
+          [
+            { name: 'FetchData', args: { id: 7 } },
+            { name: 'LockScroll' },
+            { name: 'FocusButton' },
+          ],
           true,
         ),
       )
 
       const state = getState(store)
-      expect(state.entries[0]?.commandNames).toEqual([
-        'FetchData',
-        'LockScroll',
-        'FocusButton',
+      expect(state.entries[0]?.commands).toEqual([
+        { name: 'FetchData', args: { id: 7 } },
+        { name: 'LockScroll' },
+        { name: 'FocusButton' },
       ])
     })
 

@@ -107,13 +107,11 @@ const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 const DelayAdvancePhase = Command.define(
   'DelayAdvancePhase',
+  { generation: S.Number, duration: S.DurationFromMillis },
   ProgressedDemoPhase,
+)(({ generation, duration }) =>
+  Effect.sleep(duration).pipe(Effect.as(ProgressedDemoPhase({ generation }))),
 )
-
-const delayAdvancePhase = (generation: number, duration: Duration.Input) =>
-  DelayAdvancePhase(
-    Effect.sleep(duration).pipe(Effect.as(ProgressedDemoPhase({ generation }))),
-  )
 
 const prependToLog =
   (entry: string) =>
@@ -134,7 +132,12 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             generation: () => nextGeneration,
             messageLog: prependToLog('ClickedIncrement'),
           }),
-          [delayAdvancePhase(nextGeneration, PHASE_DURATION)],
+          [
+            DelayAdvancePhase({
+              generation: nextGeneration,
+              duration: Duration.fromInputUnsafe(PHASE_DURATION),
+            }),
+          ],
         ]
       },
 
@@ -157,7 +160,12 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             generation: () => nextGeneration,
             messageLog: prependToLog('ClickedReset'),
           }),
-          [delayAdvancePhase(nextGeneration, PHASE_DURATION)],
+          [
+            DelayAdvancePhase({
+              generation: nextGeneration,
+              duration: Duration.fromInputUnsafe(PHASE_DURATION),
+            }),
+          ],
         ]
       },
 
@@ -169,11 +177,21 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             withUpdateReturn,
             M.when('IncrementMessage', () => [
               evo(model, { phase: () => 'IncrementUpdate' }),
-              [delayAdvancePhase(generation, PHASE_DURATION)],
+              [
+                DelayAdvancePhase({
+                  generation,
+                  duration: Duration.fromInputUnsafe(PHASE_DURATION),
+                }),
+              ],
             ]),
             M.when('IncrementUpdate', () => [
               evo(model, { phase: () => 'IncrementModel' }),
-              [delayAdvancePhase(generation, PHASE_DURATION)],
+              [
+                DelayAdvancePhase({
+                  generation,
+                  duration: Duration.fromInputUnsafe(PHASE_DURATION),
+                }),
+              ],
             ]),
             M.when('IncrementModel', () => [
               evo(model, { phase: () => 'Idle' }),
@@ -181,27 +199,44 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             ]),
             M.when('ResetMessage', () => [
               evo(model, { phase: () => 'ResetUpdate' }),
-              [delayAdvancePhase(generation, PHASE_DURATION)],
+              [
+                DelayAdvancePhase({
+                  generation,
+                  duration: Duration.fromInputUnsafe(PHASE_DURATION),
+                }),
+              ],
             ]),
             M.when('ResetUpdate', () => [
               evo(model, { phase: () => 'ResetCommand' }),
               [
-                delayAdvancePhase(
+                DelayAdvancePhase({
                   generation,
-                  `${N.clamp(model.resetDuration, { minimum: MIN_RESET_DURATION, maximum: MAX_RESET_DURATION })} seconds`,
-                ),
+                  duration: Duration.fromInputUnsafe(
+                    `${N.clamp(model.resetDuration, { minimum: MIN_RESET_DURATION, maximum: MAX_RESET_DURATION })} seconds`,
+                  ),
+                }),
               ],
             ]),
             M.when('ResetCommand', () => [
               evo(model, { phase: () => 'ResetCommandMessage' }),
-              [delayAdvancePhase(generation, PHASE_DURATION)],
+              [
+                DelayAdvancePhase({
+                  generation,
+                  duration: Duration.fromInputUnsafe(PHASE_DURATION),
+                }),
+              ],
             ]),
             M.when('ResetCommandMessage', () => [
               evo(model, {
                 phase: () => 'ResetCommandUpdate',
                 messageLog: prependToLog('CompletedDelayReset'),
               }),
-              [delayAdvancePhase(generation, PHASE_DURATION)],
+              [
+                DelayAdvancePhase({
+                  generation,
+                  duration: Duration.fromInputUnsafe(PHASE_DURATION),
+                }),
+              ],
             ]),
             M.when('ResetCommandUpdate', () => [
               evo(model, {
@@ -209,7 +244,12 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                 isResetting: () => false,
                 phase: () => 'ResetModel',
               }),
-              [delayAdvancePhase(generation, PHASE_DURATION)],
+              [
+                DelayAdvancePhase({
+                  generation,
+                  duration: Duration.fromInputUnsafe(PHASE_DURATION),
+                }),
+              ],
             ]),
             M.when('ResetModel', () => [
               evo(model, { phase: () => 'Idle' }),

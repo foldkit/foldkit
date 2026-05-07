@@ -45,15 +45,7 @@ export const SelectResume = Command.define(
   'SelectResume',
   SelectedResume,
   CancelledSelectResume,
-)
-
-export const ReadResumePreview = Command.define(
-  'ReadResumePreview',
-  SucceededReadPreview,
-  FailedReadPreview,
-)
-
-const selectResume = SelectResume(
+)(
   File.select(['application/pdf']).pipe(
     Effect.map(
       Array.match({
@@ -64,13 +56,17 @@ const selectResume = SelectResume(
   ),
 )
 
-const readResumePreview = (file: File.File) =>
-  ReadResumePreview(
-    File.readAsDataUrl(file).pipe(
-      Effect.map(dataUrl => SucceededReadPreview({ dataUrl })),
-      Effect.catch(() => Effect.succeed(FailedReadPreview())),
-    ),
-  )
+export const ReadResumePreview = Command.define(
+  'ReadResumePreview',
+  { file: File.File },
+  SucceededReadPreview,
+  FailedReadPreview,
+)(({ file }) =>
+  File.readAsDataUrl(file).pipe(
+    Effect.map(dataUrl => SucceededReadPreview({ dataUrl })),
+    Effect.catch(() => Effect.succeed(FailedReadPreview())),
+  ),
+)
 
 // INIT
 
@@ -88,7 +84,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     M.withReturnType<UpdateReturn>(),
     M.tagsExhaustive({
-      ClickedChooseResume: () => [model, [selectResume]],
+      ClickedChooseResume: () => [model, [SelectResume()]],
       SelectedResume: ({ files }) =>
         Option.match(Array.head(files), {
           onNone: () => [model, []],
@@ -98,7 +94,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               maybePreviewDataUrl: () => Option.none(),
               readStatus: () => 'Reading',
             }),
-            [readResumePreview(firstFile)],
+            [ReadResumePreview({ file: firstFile })],
           ],
         }),
       CancelledSelectResume: () => [model, []],

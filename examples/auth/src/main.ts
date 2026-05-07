@@ -54,11 +54,12 @@ type Flags = typeof Flags.Type
 const RedirectToLogin = Command.define(
   'RedirectToLogin',
   CompletedNavigateInternal,
-)
+)(replaceUrl(loginRouter()).pipe(Effect.as(CompletedNavigateInternal())))
+
 const RedirectToDashboard = Command.define(
   'RedirectToDashboard',
   CompletedNavigateInternal,
-)
+)(replaceUrl(dashboardRouter()).pipe(Effect.as(CompletedNavigateInternal())))
 
 // INIT
 
@@ -79,16 +80,7 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags> = (
           LoggedOut.init(route),
           [],
         ]),
-        M.orElse(() => [
-          LoggedOut.init(LoginRoute()),
-          [
-            RedirectToLogin(
-              replaceUrl(loginRouter()).pipe(
-                Effect.as(CompletedNavigateInternal()),
-              ),
-            ),
-          ],
-        ]),
+        M.orElse(() => [LoggedOut.init(LoginRoute()), [RedirectToLogin()]]),
       ),
 
     onSome: session =>
@@ -100,13 +92,7 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags> = (
         ]),
         M.orElse(() => [
           LoggedIn.init(DashboardRoute(), session),
-          [
-            RedirectToDashboard(
-              replaceUrl(dashboardRouter()).pipe(
-                Effect.as(CompletedNavigateInternal()),
-              ),
-            ),
-          ],
+          [RedirectToDashboard()],
         ]),
       ),
   })
