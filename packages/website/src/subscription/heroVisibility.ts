@@ -1,4 +1,5 @@
 import { Effect, Queue, Stream } from 'effect'
+import { Task } from 'foldkit'
 import { Subscription } from 'foldkit/subscription'
 
 import { type Model, type SubscriptionDeps } from '../main'
@@ -16,31 +17,38 @@ export const heroVisibility: Subscription<
   dependenciesToStream: ({ isLandingPage }) =>
     Stream.when(
       Stream.callback<typeof ChangedHeroVisibility.Type>(queue =>
-        Effect.acquireRelease(
-          Effect.sync(() => {
-            const heroElement = document.getElementById(HERO_SECTION_ID)
-            if (!heroElement) {
-              return null
-            }
-            const observer = new IntersectionObserver(
-              entries => {
-                const entry = entries[0]
-                if (entry) {
-                  Queue.offerUnsafe(
-                    queue,
-                    ChangedHeroVisibility({
-                      isVisible: entry.isIntersecting,
-                    }),
-                  )
-                }
-              },
-              { threshold: 0 },
-            )
-            observer.observe(heroElement)
-            return observer
-          }),
-          observer => Effect.sync(() => observer?.disconnect()),
-        ).pipe(Effect.flatMap(() => Effect.never)),
+        Effect.gen(function* () {
+          yield* Task.afterRender
+
+          const heroElement = document.getElementById(HERO_SECTION_ID)
+          if (!heroElement) {
+            return yield* Effect.never
+          }
+
+          yield* Effect.acquireRelease(
+            Effect.sync(() => {
+              const observer = new IntersectionObserver(
+                entries => {
+                  const entry = entries[0]
+                  if (entry) {
+                    Queue.offerUnsafe(
+                      queue,
+                      ChangedHeroVisibility({
+                        isVisible: entry.isIntersecting,
+                      }),
+                    )
+                  }
+                },
+                { threshold: 0 },
+              )
+              observer.observe(heroElement)
+              return observer
+            }),
+            observer => Effect.sync(() => observer.disconnect()),
+          )
+
+          return yield* Effect.never
+        }),
       ),
       Effect.sync(() => isLandingPage),
     ),

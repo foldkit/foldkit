@@ -9,6 +9,7 @@ import {
 } from 'effect'
 
 import { ElementNotFound } from './error.js'
+import { afterRender } from './timing.js'
 
 const BASE_DIALOG_Z_INDEX = 2147483600
 let openDialogCount = 0
@@ -26,15 +27,6 @@ const FOCUSABLE_SELECTOR = Array.join(
   ],
   ', ',
 )
-
-// NOTE: DOM tasks await one rAF before walking the tree. The runtime defers
-// renders to the next animation frame and forks Commands on the microtask
-// queue, so without this wait a Task that runs immediately after a dirtying
-// Message would query the DOM before the matching VDOM patch has committed.
-const awaitNextFrame: Effect.Effect<void> = Effect.callback<void>(resume => {
-  const handle = requestAnimationFrame(() => resume(Effect.void))
-  return Effect.sync(() => cancelAnimationFrame(handle))
-})
 
 const queryHTMLElement = (
   selector: string,
@@ -71,7 +63,7 @@ const queryHTMLElement = (
  */
 export const focus = (selector: string): Effect.Effect<void, ElementNotFound> =>
   Effect.gen(function* () {
-    yield* awaitNextFrame
+    yield* afterRender
     const element = yield* queryHTMLElement(selector)
     element.focus()
   })
@@ -96,7 +88,7 @@ export const showModal = (
   options?: Readonly<{ focusSelector?: string }>,
 ): Effect.Effect<void, ElementNotFound> =>
   Effect.gen(function* () {
-    yield* awaitNextFrame
+    yield* afterRender
 
     const element = document.querySelector(selector)
 
@@ -206,7 +198,7 @@ export const clickElement = (
   selector: string,
 ): Effect.Effect<void, ElementNotFound> =>
   Effect.gen(function* () {
-    yield* awaitNextFrame
+    yield* afterRender
     const element = yield* queryHTMLElement(selector)
     element.click()
   })
@@ -224,7 +216,7 @@ export const scrollIntoView = (
   selector: string,
 ): Effect.Effect<void, ElementNotFound> =>
   Effect.gen(function* () {
-    yield* awaitNextFrame
+    yield* afterRender
     const element = yield* queryHTMLElement(selector)
     element.scrollIntoView({ block: 'nearest' })
   })
@@ -246,7 +238,7 @@ export const advanceFocus = (
   direction: FocusDirection,
 ): Effect.Effect<void, ElementNotFound> =>
   Effect.gen(function* () {
-    yield* awaitNextFrame
+    yield* afterRender
 
     const reference = yield* queryHTMLElement(selector)
 

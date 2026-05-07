@@ -19,7 +19,7 @@ import {
   HttpClientRequest,
 } from 'effect/unstable/http'
 import { KeyValueStore } from 'effect/unstable/persistence'
-import { Calendar, Command, FieldValidation, Runtime, Ui } from 'foldkit'
+import { Calendar, Command, FieldValidation, Runtime, Task, Ui } from 'foldkit'
 import type { Document } from 'foldkit/html'
 import { load, pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
@@ -1201,11 +1201,10 @@ const scrollToHash = (hash: string) =>
 
 const scrollToHashAfterRender = (hash: string) =>
   ScrollToAnchor(
-    Effect.callback<typeof CompletedScroll.Type>(resume => {
-      requestAnimationFrame(() => {
-        focusAndScrollToHash(hash)
-        resume(Effect.succeed(CompletedScroll()))
-      })
+    Effect.gen(function* () {
+      yield* Task.afterRender
+      focusAndScrollToHash(hash)
+      return CompletedScroll()
     }),
   )
 

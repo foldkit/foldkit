@@ -1,5 +1,7 @@
 import { Effect } from 'effect'
 
+import { afterRender } from './timing.js'
+
 const rectToPosition = (rect: DOMRect): string => `${rect.x},${rect.y}`
 
 /**
@@ -21,12 +23,10 @@ const rectToPosition = (rect: DOMRect): string => `${rect.x},${rect.y}`
  * ```
  */
 export const detectElementMovement = (selector: string): Effect.Effect<void> =>
-  Effect.callback<void>((resume, signal) => {
-    requestAnimationFrame(() => {
-      if (signal.aborted) {
-        return
-      }
+  Effect.gen(function* () {
+    yield* afterRender
 
+    return yield* Effect.callback<void>((resume, signal) => {
       const element = document.querySelector(selector)
 
       if (!(element instanceof HTMLElement)) {

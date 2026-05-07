@@ -13,6 +13,35 @@ export const delay = (duration: Duration.Input): Effect.Effect<void> =>
   Effect.sleep(duration)
 
 /**
+ * Completes after the runtime's next render commits. The runtime batches
+ * renders to `requestAnimationFrame`, so a Command, Subscription, or other
+ * Effect that runs immediately after a dirtying Message would otherwise
+ * query the DOM before the matching VDOM patch has applied. Yield this
+ * before any DOM read or write whose target was just brought into existence
+ * (or moved, or had its attributes changed) by the same Message.
+ *
+ * The Task DOM helpers (`focus`, `clickElement`, `scrollIntoView`, etc.)
+ * already gate themselves with this internally; reach for `afterRender`
+ * directly when building custom Commands or DOM-observing Subscriptions
+ * that need the same guarantee.
+ *
+ * @example
+ * ```typescript
+ * Effect.gen(function* () {
+ *   yield* Task.afterRender
+ *   const element = document.getElementById(id)
+ *   // element reflects the post-Message DOM
+ * })
+ * ```
+ */
+export const afterRender: Effect.Effect<void> = Effect.callback<void>(
+  resume => {
+    const handle = requestAnimationFrame(() => resume(Effect.void))
+    return Effect.sync(() => cancelAnimationFrame(handle))
+  },
+)
+
+/**
  * Completes after two animation frames, ensuring the browser has painted
  * the current state before proceeding. Used for CSS transition orchestration —
  * the double-rAF guarantees the "from" state is visible before transitioning
