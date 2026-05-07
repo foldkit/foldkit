@@ -68,8 +68,21 @@ const keyboardModifiers = (event: KeyboardEvent): KeyboardModifiers => ({
   metaKey: event.metaKey,
 })
 
-/** A virtual DOM element represented as an `Effect` that produces a `VNode`. */
-export type Html = Effect.Effect<VNode | null, never, Dispatch>
+/** A virtual DOM element represented as an `Effect` that produces a `VNode`.
+ *
+ *  The `Message` type parameter records which Message variants the element's
+ *  event handlers can dispatch. It is a phantom (`_phantomMessage` exists at
+ *  the type level only). Threading the parameter lets `mapMessage` carry
+ *  inference across submodel boundaries and lets view signatures document
+ *  their intent. Defaults to `unknown` so existing unparameterized `Html`
+ *  annotations continue to compile. */
+export type Html<Message = unknown> = Effect.Effect<
+  VNode | null,
+  never,
+  Dispatch
+> & {
+  readonly _phantomMessage?: Message
+}
 type Child = Html | string
 
 /** A view's complete output for the runtime: title, body, and optional document
@@ -1617,7 +1630,7 @@ const createElement = <Message>(
   tagName: TagName,
   attributes: ReadonlyArray<Attribute<Message>> = [],
   children: ReadonlyArray<Child> = [],
-): Html =>
+): Html<Message> =>
   Effect.gen(function* () {
     const vnodeData = yield* buildVNodeData(attributes)
     const vnodeChildren = yield* processVNodeChildren(children)
@@ -1631,13 +1644,13 @@ const element =
   (
     attributes: ReadonlyArray<Attribute<Message>> = [],
     children: ReadonlyArray<Child> = [],
-  ): Html =>
+  ): Html<Message> =>
     createElement(tagName, attributes, children)
 
 const voidElement =
   <Message>() =>
   (tagName: TagName) =>
-  (attributes: ReadonlyArray<Attribute<Message>> = []): Html =>
+  (attributes: ReadonlyArray<Attribute<Message>> = []): Html<Message> =>
     createElement(tagName, attributes, [])
 
 const keyed =
@@ -1647,17 +1660,17 @@ const keyed =
     key: string,
     attributes: ReadonlyArray<Attribute<Message>> = [],
     children: ReadonlyArray<Child> = [],
-  ): Html =>
+  ): Html<Message> =>
     element<Message>()(tagName)([...attributes, Key({ value: key })], children)
 
 type ElementFunction<Message> = (
   attributes: ReadonlyArray<Attribute<Message>>,
   children: ReadonlyArray<Child>,
-) => Html
+) => Html<Message>
 
 type VoidElementFunction<Message> = (
   attributes: ReadonlyArray<Attribute<Message>>,
-) => Html
+) => Html<Message>
 
 type HtmlElements<Message> = {
   a: ElementFunction<Message>
@@ -3237,3 +3250,36 @@ export const html = <Message = never>() => {
     keyed: keyed<Message>(),
   }
 }
+
+/**
+ * Remaps the Messages a child view dispatches into the parent's Message type,
+ * the Html-layer counterpart to `Command.mapEffect` and `Mount.mapMessage`.
+ *
+ * Lets a reusable component author write `view: (model) => Html<ChildMessage>`
+ * with no parent generics, and lets internal helpers stay non-generic. The
+ * parent embeds it with `Html.mapMessage(GotChildMessage)(childView(model))`.
+ *
+ * Implemented by providing a wrapped `Dispatch` service to the child Effect:
+ * every `dispatchSync(message)` call inside the child runs through
+ * `toParentMessage` before reaching the runtime. There is no VNode tree walk;
+ * Effect's context propagation handles the rewiring.
+ */
+export const mapMessage =
+  <ChildMessage, ParentMessage>(
+    toParentMessage: (message: ChildMessage) => ParentMessage,
+  ) =>
+  (childHtml: Html<ChildMessage>): Html<ParentMessage> =>
+    Dispatch.use(parentDispatch => {
+      /* eslint-disable @typescript-eslint/consistent-type-assertions */
+      const wrap = (message: unknown) =>
+        toParentMessage(message as ChildMessage)
+      /* eslint-enable @typescript-eslint/consistent-type-assertions */
+      return Effect.provideService(
+        childHtml,
+        Dispatch,
+        Dispatch.of({
+          dispatchSync: message => parentDispatch.dispatchSync(wrap(message)),
+          dispatchAsync: message => parentDispatch.dispatchAsync(wrap(message)),
+        }),
+      )
+    })

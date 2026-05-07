@@ -1,4 +1,4 @@
-export { createKeyedLazy, createLazy, html } from './index.js'
+export { createKeyedLazy, createLazy, html, mapMessage } from './index.js'
 
 export type {
   Attribute,
