@@ -1,4 +1,4 @@
-import { Effect, Function } from 'effect'
+import { Effect, Function, Schema as S } from 'effect'
 import { Command, Mount } from 'foldkit'
 
 import { RoomsClient, RoomsClientLive } from '../../rpc.js'
@@ -12,43 +12,39 @@ import {
 
 export const CreateRoom = Command.define(
   'CreateRoom',
+  { username: S.String },
   SucceededCreateRoom,
   FailedJoinRoom,
+)(({ username }) =>
+  Effect.gen(function* () {
+    const client = yield* RoomsClient
+    const { player, room } = yield* client.createRoom({ username })
+    return SucceededCreateRoom({ roomId: room.id, player })
+  }).pipe(
+    Effect.catch(error =>
+      Effect.succeed(FailedJoinRoom({ error: String(error) })),
+    ),
+    Effect.provide(RoomsClientLive),
+  ),
 )
 
 export const JoinRoom = Command.define(
   'JoinRoom',
+  { username: S.String, roomId: S.String },
   SucceededJoinRoom,
   FailedJoinRoom,
+)(({ username, roomId }) =>
+  Effect.gen(function* () {
+    const client = yield* RoomsClient
+    const { player, room } = yield* client.joinRoom({ username, roomId })
+    return SucceededJoinRoom({ roomId: room.id, player })
+  }).pipe(
+    Effect.catch(error =>
+      Effect.succeed(FailedJoinRoom({ error: String(error) })),
+    ),
+    Effect.provide(RoomsClientLive),
+  ),
 )
-
-export const createRoom = (username: string) =>
-  CreateRoom(
-    Effect.gen(function* () {
-      const client = yield* RoomsClient
-      const { player, room } = yield* client.createRoom({ username })
-      return SucceededCreateRoom({ roomId: room.id, player })
-    }).pipe(
-      Effect.catch(error =>
-        Effect.succeed(FailedJoinRoom({ error: String(error) })),
-      ),
-      Effect.provide(RoomsClientLive),
-    ),
-  )
-
-export const joinRoom = (username: string, roomId: string) =>
-  JoinRoom(
-    Effect.gen(function* () {
-      const client = yield* RoomsClient
-      const { player, room } = yield* client.joinRoom({ username, roomId })
-      return SucceededJoinRoom({ roomId: room.id, player })
-    }).pipe(
-      Effect.catch(error =>
-        Effect.succeed(FailedJoinRoom({ error: String(error) })),
-      ),
-      Effect.provide(RoomsClientLive),
-    ),
-  )
 
 export const FocusUsernameInput = Mount.define(
   'FocusUsernameInput',

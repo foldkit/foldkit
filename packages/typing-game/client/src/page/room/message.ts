@@ -11,7 +11,8 @@ export const CompletedFocusUserGameTextInput = m(
   'CompletedFocusUserGameTextInput',
 )
 export const CompletedNavigateHome = m('CompletedNavigateHome')
-export const CompletedRequestGameStart = m('CompletedRequestGameStart')
+export const SucceededStartGame = m('SucceededStartGame')
+export const FailedStartGame = m('FailedStartGame')
 export const CompletedUpdatePlayerProgress = m('CompletedUpdatePlayerProgress')
 export const CompletedSaveSession = m('CompletedSaveSession')
 export const CompletedClearSession = m('CompletedClearSession')
@@ -42,7 +43,7 @@ export const SucceededFetchRoom = m('SucceededFetchRoom', { room: Shared.Room })
 export const FailedFetchRoom = m('FailedFetchRoom', { roomId: S.String })
 export const ClickedCopyRoomId = m('ClickedCopyRoomId', { roomId: S.String })
 export const SucceededCopyRoomId = m('SucceededCopyRoomId')
-export const HiddenRoomIdCopiedIndicator = m('HiddenRoomIdCopiedIndicator')
+export const HidRoomIdCopiedIndicator = m('HidRoomIdCopiedIndicator')
 export const TickedExitCountdown = m('TickedExitCountdown')
 export const SucceededJoinRoom = m('SucceededJoinRoom', {
   roomId: S.String,
@@ -53,7 +54,8 @@ export const Message = S.Union([
   CompletedFocusRoomPageUsernameInput,
   CompletedFocusUserGameTextInput,
   CompletedNavigateHome,
-  CompletedRequestGameStart,
+  SucceededStartGame,
+  FailedStartGame,
   CompletedUpdatePlayerProgress,
   CompletedSaveSession,
   CompletedClearSession,
@@ -72,7 +74,7 @@ export const Message = S.Union([
   FailedFetchRoom,
   ClickedCopyRoomId,
   SucceededCopyRoomId,
-  HiddenRoomIdCopiedIndicator,
+  HidRoomIdCopiedIndicator,
   TickedExitCountdown,
   SucceededJoinRoom,
 ])

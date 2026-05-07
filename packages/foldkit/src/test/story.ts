@@ -1,18 +1,35 @@
-import { Array, Option, Predicate, pipe } from 'effect'
+import { Array, Effect, Option, Predicate, pipe } from 'effect'
 
 import type { CommandDefinition } from '../command/index.js'
-import type { AnyCommand, BaseInternal, Resolver } from './internal.js'
+import type {
+  AnyCommand,
+  BaseInternal,
+  CommandMatcher,
+  Resolver,
+  ResolverEntry,
+} from './internal.js'
 import {
   assertAllCommandsResolved,
   assertExactCommands,
   assertHasCommands,
   assertNoUnresolvedCommands,
   assertZeroCommands,
+  formatCommand,
+  formatMatcher,
   resolveAllInternal,
-  resolveByName,
+  resolveByMatcher,
 } from './internal.js'
 
-export type { AnyCommand, Resolver }
+export type { AnyCommand, CommandMatcher, Resolver }
+
+/** A typed Command instance carrying the result Message type via its
+ *  `effect` field, so passing `FetchWeather({ zipCode })` to `Story.Command.resolve`
+ *  preserves the link between the Command and its declared result Message. */
+type AnyCommandInstance<ResultMessage = unknown> = Readonly<{
+  name: string
+  args?: Record<string, unknown>
+  effect: Effect.Effect<ResultMessage, any, any>
+}>
 
 /** An immutable test simulation of a Foldkit program. */
 export type StorySimulation<Model, Message, OutMessage = undefined> = Readonly<{
@@ -53,7 +70,7 @@ type InternalStorySimulation<
       model: Model,
       message: Message,
     ) => UpdateResult<Model, OutMessage>
-    resolvers: Record<string, Message>
+    resolvers: ReadonlyArray<ResolverEntry<Message>>
   }>
 
 const toInternal = <Model, Message, OutMessage>(
@@ -110,7 +127,9 @@ export const message =
     } as StorySimulation<Model, Message, OutMessage>
   }
 
-/** Resolves a specific pending Command with the given result Message. */
+/** Resolves a pending Command with the given result Message. Accepts either
+ *  a Command Definition (matches by name; any pending Command of that name)
+ *  or a Command instance (matches by name AND args; strict). */
 const resolveCommand: {
   <Name extends string, ResultMessage>(
     definition: CommandDefinition<Name, ResultMessage>,
@@ -125,9 +144,22 @@ const resolveCommand: {
   ): <Model, Message, OutMessage = undefined>(
     simulation: StorySimulation<Model, Message, OutMessage>,
   ) => StorySimulation<Model, Message, OutMessage>
+  <ResultMessage>(
+    instance: AnyCommandInstance<ResultMessage>,
+    resultMessage: ResultMessage,
+  ): <Model, Message, OutMessage = undefined>(
+    simulation: StorySimulation<Model, Message, OutMessage>,
+  ) => StorySimulation<Model, Message, OutMessage>
+  <ResultMessage, ParentMessage>(
+    instance: AnyCommandInstance<ResultMessage>,
+    resultMessage: ResultMessage,
+    toParentMessage: (message: ResultMessage) => ParentMessage,
+  ): <Model, Message, OutMessage = undefined>(
+    simulation: StorySimulation<Model, Message, OutMessage>,
+  ) => StorySimulation<Model, Message, OutMessage>
 } =
-  <Name extends string, ResultMessage>(
-    definition: CommandDefinition<Name, ResultMessage>,
+  <ResultMessage>(
+    matcher: CommandMatcher,
     resultMessage: ResultMessage,
     toParentMessage?: (message: ResultMessage) => unknown,
   ) =>
@@ -139,22 +171,24 @@ const resolveCommand: {
     const messageForUpdate = (Predicate.isUndefined(toParentMessage)
       ? resultMessage
       : toParentMessage(resultMessage)) as unknown as Message
-    const next = resolveByName(
+    const next = resolveByMatcher(
       internal as BaseInternal<Model, Message, unknown>,
-      definition.name,
+      matcher,
       messageForUpdate,
     )
 
     if (Predicate.isUndefined(next)) {
-      const pending = Array.isReadonlyArrayNonEmpty(internal.commands)
-        ? pipe(
-            internal.commands,
-            Array.map(({ name }) => `    ${name}`),
+      const pending = Array.match(internal.commands, {
+        onEmpty: () => '    (none)',
+        onNonEmpty: nonEmpty =>
+          pipe(
+            nonEmpty,
+            Array.map(command => `    ${formatCommand(command)}`),
             Array.join('\n'),
-          )
-        : '    (none)'
+          ),
+      })
       throw new Error(
-        `I tried to resolve "${definition.name}" but it wasn't in the pending Commands.\n\n` +
+        `I tried to resolve "${formatMatcher(matcher)}" but no matching pending Command was found.\n\n` +
           `Pending Commands:\n${pending}\n\n` +
           'Make sure the previous Message produced this Command.',
       )
@@ -189,23 +223,27 @@ export const model =
     return simulation
   }
 
-/** Asserts that every given Command is among the pending Commands. */
+/** Asserts that every given matcher matches a pending Command. Definition
+ *  matchers match by name only; Instance matchers match by name + args. */
 const expectHasCommandsStep =
-  (...definitions: ReadonlyArray<CommandDefinition<string, unknown>>) =>
+  (...matchers: ReadonlyArray<CommandMatcher>) =>
   <Model, Message, OutMessage = undefined>(
     simulation: StorySimulation<Model, Message, OutMessage>,
   ): StorySimulation<Model, Message, OutMessage> => {
-    assertHasCommands(toInternal(simulation).commands, definitions)
+    assertHasCommands(toInternal(simulation).commands, matchers)
     return simulation
   }
 
-/** Asserts that the pending Commands match the given definitions exactly (order-independent). */
+/** Asserts that the pending Commands match the given matchers exactly
+ *  (order-independent). Definition matchers compare by name; Instance
+ *  matchers compare by name + args. Each matcher must consume exactly one
+ *  pending Command. */
 const expectExactCommandsStep =
-  (...definitions: ReadonlyArray<CommandDefinition<string, unknown>>) =>
+  (...matchers: ReadonlyArray<CommandMatcher>) =>
   <Model, Message, OutMessage = undefined>(
     simulation: StorySimulation<Model, Message, OutMessage>,
   ): StorySimulation<Model, Message, OutMessage> => {
-    assertExactCommands(toInternal(simulation).commands, definitions)
+    assertExactCommands(toInternal(simulation).commands, matchers)
     return simulation
   }
 
@@ -307,7 +345,7 @@ export const story: {
     commands: [],
     outMessage: undefined as unknown,
     updateFn,
-    resolvers: {},
+    resolvers: [],
   } as unknown as StorySimulation<Model, Message, OutMessage>
 
   const result = steps.reduce(

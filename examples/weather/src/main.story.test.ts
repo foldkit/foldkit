@@ -8,7 +8,7 @@ import {
   FetchWeather,
   SubmittedWeatherForm,
   SucceededFetchWeather,
-  fetchWeather,
+  fetchWeatherEffect,
   update,
 } from './main'
 import {
@@ -77,7 +77,7 @@ test('fetchWeather returns SucceededFetchWeather with data on success', async ()
 
   const HttpClientTest = Layer.succeed(HttpClient.HttpClient, mockClient)
 
-  const message = await fetchWeather('90210').effect.pipe(
+  const message = await fetchWeatherEffect('90210').pipe(
     Effect.provide(HttpClientTest),
     Effect.runPromise,
   )
@@ -100,7 +100,7 @@ test('fetchWeather returns FailedFetchWeather on HTTP failure', async () => {
 
   const HttpClientTest = Layer.succeed(HttpClient.HttpClient, mockClient)
 
-  const message = await fetchWeather('invalid').effect.pipe(
+  const message = await fetchWeatherEffect('invalid').pipe(
     Effect.provide(HttpClientTest),
     Effect.runPromise,
   )
@@ -120,7 +120,7 @@ test('fetchWeather returns FailedFetchWeather when no results found', async () =
 
   const HttpClientTest = Layer.succeed(HttpClient.HttpClient, mockClient)
 
-  const message = await fetchWeather('00000').effect.pipe(
+  const message = await fetchWeatherEffect('00000').pipe(
     Effect.provide(HttpClientTest),
     Effect.runPromise,
   )

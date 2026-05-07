@@ -197,22 +197,17 @@ export const init = (config: InitConfig): Model => ({
 
 type Direction = (typeof PressedArrowKey.Type)['direction']
 
-/** Resolves the next keyboard drag position by querying the DOM for adjacent sortable items and containers. */
-export const ResolveKeyboardMove = Command.define(
-  'ResolveKeyboardMove',
-  ResolvedKeyboardMove,
-)
-
 /** Focuses a draggable item by ID after keyboard drop or cancel. */
-export const FocusItem = Command.define('FocusItem', CompletedFocusItem)
-
-const focusItem = (itemId: string) =>
-  FocusItem(
-    Dom.focus(`[data-draggable-id="${itemId}"]`).pipe(
-      Effect.ignore,
-      Effect.as(CompletedFocusItem()),
-    ),
-  )
+export const FocusItem = Command.define(
+  'FocusItem',
+  { itemId: S.String },
+  CompletedFocusItem,
+)(({ itemId }) =>
+  Dom.focus(`[data-draggable-id="${itemId}"]`).pipe(
+    Effect.ignore,
+    Effect.as(CompletedFocusItem()),
+  ),
+)
 
 const resolveWithinContainer = (
   config: Readonly<{
@@ -323,6 +318,25 @@ const resolveKeyboardMoveTarget = (
     ),
   )
 
+/** Resolves the next keyboard drag position by querying the DOM for adjacent sortable items and containers. */
+export const ResolveKeyboardMove = Command.define(
+  'ResolveKeyboardMove',
+  {
+    itemId: S.String,
+    currentContainerId: S.String,
+    currentIndex: S.Number,
+    direction: S.Literals([
+      'Up',
+      'Down',
+      'Left',
+      'Right',
+      'NextContainer',
+      'PreviousContainer',
+    ]),
+  },
+  ResolvedKeyboardMove,
+)(resolveKeyboardMoveTarget)
+
 // UPDATE
 
 type UpdateReturn = readonly [
@@ -431,7 +445,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         const maybeFocusCommand = Option.liftPredicate(
           model.dragState,
           dragState => dragState._tag === 'KeyboardDragging',
-        ).pipe(Option.map(({ itemId }) => focusItem(itemId)))
+        ).pipe(Option.map(({ itemId }) => FocusItem({ itemId })))
 
         const maybeOutMessage = Option.liftPredicate(
           model.dragState._tag,
@@ -483,7 +497,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           withUpdateReturn,
           M.tag('KeyboardDragging', keyboardDragging => [
             evo(model, { dragState: () => Idle() }),
-            [focusItem(keyboardDragging.itemId)],
+            [FocusItem({ itemId: keyboardDragging.itemId })],
             Option.some(
               Reordered({
                 itemId: keyboardDragging.itemId,
@@ -503,14 +517,12 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           M.tag('KeyboardDragging', keyboardDragging => [
             model,
             [
-              ResolveKeyboardMove(
-                resolveKeyboardMoveTarget({
-                  itemId: keyboardDragging.itemId,
-                  currentContainerId: keyboardDragging.targetContainerId,
-                  currentIndex: keyboardDragging.targetIndex,
-                  direction,
-                }),
-              ),
+              ResolveKeyboardMove({
+                itemId: keyboardDragging.itemId,
+                currentContainerId: keyboardDragging.targetContainerId,
+                currentIndex: keyboardDragging.targetIndex,
+                direction,
+              }),
             ],
             Option.none(),
           ]),

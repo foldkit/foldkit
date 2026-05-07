@@ -1,6 +1,7 @@
 import { clsx } from 'clsx'
 import {
   Array as Array_,
+  Context,
   Effect,
   Equal,
   Function,
@@ -38,7 +39,12 @@ import * as Listbox from '../ui/listbox/public.js'
 import * as Tabs from '../ui/tabs/public.js'
 import { overlayStyles } from './overlay-styles.js'
 import { toInspectableValue } from './serialize.js'
-import { type DevToolsStore, INIT_INDEX, type StoreState } from './store.js'
+import {
+  type CommandRecord,
+  type DevToolsStore,
+  INIT_INDEX,
+  type StoreState,
+} from './store.js'
 import {
   GOT_MESSAGE_PATTERN,
   extractSubmodelInfo,
@@ -47,11 +53,16 @@ import {
 
 // MODEL
 
+const DisplayCommand = S.Struct({
+  name: S.String,
+  args: S.Option(S.Record(S.String, S.Unknown)),
+})
+
 const DisplayEntry = S.Struct({
   tag: S.String,
   submodelPath: S.Array(S.String),
   maybeLeafTag: S.Option(S.String),
-  commandNames: S.Array(S.String),
+  commands: S.Array(DisplayCommand),
   mountStartNames: S.Array(S.String),
   mountEndNames: S.Array(S.String),
   timestamp: S.Number,
@@ -87,7 +98,7 @@ const Model = S.Struct({
   isOpen: S.Boolean,
   isMobile: S.Boolean,
   entries: S.Array(DisplayEntry),
-  initCommandNames: S.Array(S.String),
+  initCommands: S.Array(DisplayCommand),
   initMountStartNames: S.Array(S.String),
   startIndex: S.Number,
   isPaused: S.Boolean,
@@ -109,7 +120,7 @@ type Model = typeof Model.Type
 const Flags = S.Struct({
   isMobile: S.Boolean,
   entries: S.Array(DisplayEntry),
-  initCommandNames: S.Array(S.String),
+  initCommands: S.Array(DisplayCommand),
   initMountStartNames: S.Array(S.String),
   startIndex: S.Number,
   isPaused: S.Boolean,
@@ -144,7 +155,7 @@ const GotInspectorTabsMessage = m('GotInspectorTabsMessage', {
 })
 const ReceivedStoreUpdate = m('ReceivedStoreUpdate', {
   entries: S.Array(DisplayEntry),
-  initCommandNames: S.Array(S.String),
+  initCommands: S.Array(DisplayCommand),
   initMountStartNames: S.Array(S.String),
   startIndex: S.Number,
   isPaused: S.Boolean,
@@ -187,7 +198,7 @@ const MOBILE_BREAKPOINT_QUERY = `(max-width: ${MOBILE_BREAKPOINT}px)`
 const TREE_INDENT_PX = 12
 const MAX_PREVIEW_KEYS = 3
 const ALL_MESSAGES_VALUE = ''
-const NO_COMMANDS: ReadonlyArray<string> = []
+const NO_COMMANDS: ReadonlyArray<typeof DisplayCommand.Type> = []
 const NO_MOUNTS: ReadonlyArray<string> = []
 
 const formatTimeDelta = (deltaMs: number): string =>
@@ -209,6 +220,13 @@ const computeSubmodelTags = (
     Array_.sort(Order.String),
   )
 
+const toDisplayCommand = (
+  command: CommandRecord,
+): typeof DisplayCommand.Type => ({
+  name: command.name,
+  args: Option.fromNullishOr(command.args),
+})
+
 const toDisplayEntries = ({ entries }: StoreState) =>
   Array_.map(entries, entry => {
     const { submodelPath, maybeLeafTag } = extractSubmodelInfo(
@@ -219,7 +237,7 @@ const toDisplayEntries = ({ entries }: StoreState) =>
       tag: entry.tag,
       submodelPath,
       maybeLeafTag,
-      commandNames: entry.commandNames,
+      commands: Array_.map(entry.commands, toDisplayCommand),
       mountStartNames: entry.mountStartNames,
       mountEndNames: entry.mountEndNames,
       timestamp: entry.timestamp,
@@ -229,7 +247,7 @@ const toDisplayEntries = ({ entries }: StoreState) =>
 
 const toDisplayState = (state: StoreState) => ({
   entries: toDisplayEntries(state),
-  initCommandNames: state.initCommandNames,
+  initCommands: Array_.map(state.initCommands, toDisplayCommand),
   initMountStartNames: state.initMountStartNames,
   startIndex: state.startIndex,
   isPaused: state.isPaused,
@@ -267,84 +285,127 @@ const collapsedPreview = (value: unknown): string =>
 
 // UPDATE
 
-export const JumpTo = Command.define('JumpTo', CompletedJump)
+class StoreService extends Context.Service<StoreService, DevToolsStore>()(
+  'foldkit/DevToolsStore',
+) {}
+
+class ShadowRootService extends Context.Service<
+  ShadowRootService,
+  ShadowRoot
+>()('foldkit/DevToolsShadowRoot') {}
+
+export const LockScroll = Command.define(
+  'LockScroll',
+  LockedScroll,
+)(lockScroll.pipe(Effect.as(LockedScroll())))
+
+export const UnlockScroll = Command.define(
+  'UnlockScroll',
+  UnlockedScroll,
+)(unlockScroll.pipe(Effect.as(UnlockedScroll())))
+
+const buildInspectionEffect = (index: number) =>
+  Effect.gen(function* () {
+    const store = yield* StoreService
+    const model = yield* store.getModelAtIndex(index)
+    const maybeMessage = yield* store.getMessageAtIndex(index)
+    const diff = yield* store.getDiffAtIndex(index)
+    return ReceivedInspectedState({ model, maybeMessage, ...diff })
+  })
+
+export const JumpTo = Command.define(
+  'JumpTo',
+  { index: S.Number },
+  CompletedJump,
+)(({ index }) =>
+  Effect.gen(function* () {
+    const store = yield* StoreService
+    yield* store.jumpTo(index)
+    return CompletedJump()
+  }),
+)
+
 export const InspectState = Command.define(
   'InspectState',
+  { index: S.Number },
   ReceivedInspectedState,
-)
+)(({ index }) => buildInspectionEffect(index))
+
 export const InspectLatest = Command.define(
   'InspectLatest',
   ReceivedInspectedState,
+)(
+  Effect.gen(function* () {
+    const store = yield* StoreService
+    const state = yield* SubscriptionRef.get(store.stateRef)
+    const latestIndex = Array_.isReadonlyArrayEmpty(state.entries)
+      ? INIT_INDEX
+      : state.startIndex + state.entries.length - 1
+    return yield* buildInspectionEffect(latestIndex)
+  }),
 )
-export const Resume = Command.define('Resume', CompletedResume)
-export const Clear = Command.define('Clear', CompletedClear)
-export const LockScroll = Command.define('LockScroll', LockedScroll)
-export const UnlockScroll = Command.define('UnlockScroll', UnlockedScroll)
-export const ScrollToTop = Command.define('ScrollToTop', ScrolledToTop)
+
+export const Resume = Command.define(
+  'Resume',
+  CompletedResume,
+)(
+  Effect.gen(function* () {
+    const store = yield* StoreService
+    yield* store.resume
+    return CompletedResume()
+  }),
+)
+
+export const Clear = Command.define(
+  'Clear',
+  CompletedClear,
+)(
+  Effect.gen(function* () {
+    const store = yield* StoreService
+    yield* store.clear
+    return CompletedClear()
+  }),
+)
+
+export const ScrollToTop = Command.define(
+  'ScrollToTop',
+  ScrolledToTop,
+)(
+  Effect.gen(function* () {
+    const shadow = yield* ShadowRootService
+    const messageList = shadow.querySelector(MESSAGE_LIST_SELECTOR)
+    if (messageList instanceof HTMLElement) {
+      messageList.scrollTop = 0
+    }
+    return ScrolledToTop()
+  }),
+)
 
 const makeUpdate = (
   store: DevToolsStore,
   shadow: ShadowRoot,
   mode: DevToolsMode,
 ) => {
+  const provideContext = <A, E>(
+    effect: Effect.Effect<A, E, StoreService | ShadowRootService>,
+  ): Effect.Effect<A, E, never> =>
+    effect.pipe(
+      Effect.provideService(StoreService, store),
+      Effect.provideService(ShadowRootService, shadow),
+    )
+
+  const inspectLatest = Command.mapEffect(InspectLatest(), provideContext)
+  const resume = Command.mapEffect(Resume(), provideContext)
+  const clear = Command.mapEffect(Clear(), provideContext)
+  const scrollToTop = Command.mapEffect(ScrollToTop(), provideContext)
+
   const jumpTo = (index: number) =>
-    JumpTo(
-      Effect.gen(function* () {
-        yield* store.jumpTo(index)
-        return CompletedJump()
-      }),
-    )
-
+    Command.mapEffect(JumpTo({ index }), provideContext)
   const inspectState = (index: number) =>
-    InspectState(
-      Effect.gen(function* () {
-        const model = yield* store.getModelAtIndex(index)
-        const maybeMessage = yield* store.getMessageAtIndex(index)
-        const diff = yield* store.getDiffAtIndex(index)
-
-        return ReceivedInspectedState({ model, maybeMessage, ...diff })
-      }),
-    )
-
-  const inspectLatest = InspectLatest(
-    Effect.gen(function* () {
-      const state = yield* SubscriptionRef.get(store.stateRef)
-      const latestIndex = Array_.isReadonlyArrayEmpty(state.entries)
-        ? INIT_INDEX
-        : state.startIndex + state.entries.length - 1
-
-      return yield* inspectState(latestIndex).effect
-    }),
-  )
-
-  const resume = Resume(
-    Effect.gen(function* () {
-      yield* store.resume
-      return CompletedResume()
-    }),
-  )
-
-  const clear = Clear(
-    Effect.gen(function* () {
-      yield* store.clear
-      return CompletedClear()
-    }),
-  )
+    Command.mapEffect(InspectState({ index }), provideContext)
 
   const toggleScrollLock = (shouldLock: boolean) =>
-    shouldLock
-      ? LockScroll(lockScroll.pipe(Effect.as(LockedScroll())))
-      : UnlockScroll(unlockScroll.pipe(Effect.as(UnlockedScroll())))
-
-  const scrollToTop = ScrollToTop(
-    Effect.sync(() => {
-      const messageList = shadow.querySelector(MESSAGE_LIST_SELECTOR)
-      if (messageList instanceof HTMLElement) {
-        messageList.scrollTop = 0
-      }
-      return ScrolledToTop()
-    }),
-  )
+    shouldLock ? LockScroll() : UnlockScroll()
 
   return (
     model: Model,
@@ -469,7 +530,7 @@ const makeUpdate = (
         ],
         ReceivedStoreUpdate: ({
           entries,
-          initCommandNames,
+          initCommands,
           initMountStartNames,
           startIndex,
           isPaused,
@@ -495,7 +556,7 @@ const makeUpdate = (
           return [
             evo(model, {
               entries: () => entries,
-              initCommandNames: () => initCommandNames,
+              initCommands: () => initCommands,
               initMountStartNames: () => initMountStartNames,
               startIndex: () => startIndex,
               isPaused: () => isPaused,
@@ -742,12 +803,14 @@ const makeView = (
     isExpanded: boolean
     isChanged: boolean
     isAffected: boolean
+    isRoot: boolean
     tag: string
   }>
 
   type FlattenConfig = Readonly<{
     value: unknown
     treePath: string
+    rootPath: string
     expandedPaths: HashSet.HashSet<string>
     changedPaths: HashSet.HashSet<string>
     affectedPaths: HashSet.HashSet<string>
@@ -765,13 +828,14 @@ const makeView = (
     ...shared
   }: FlattenConfig): void => {
     const {
+      rootPath,
       expandedPaths,
       changedPaths,
       affectedPaths,
       accumulator,
       indentRootChildren,
     } = shared
-    const isRoot = treePath === 'root'
+    const isRoot = treePath === rootPath
     const nodeIsExpandable = isExpandable(value)
     const isExpanded =
       nodeIsExpandable && (isRoot || HashSet.has(expandedPaths, treePath))
@@ -786,6 +850,7 @@ const makeView = (
       isExpanded,
       isChanged: HashSet.has(changedPaths, treePath),
       isAffected: HashSet.has(affectedPaths, treePath),
+      isRoot,
       tag,
     })
 
@@ -832,6 +897,7 @@ const makeView = (
     isExpanded: boolean,
     isChanged: boolean,
     isAffected: boolean,
+    isRoot: boolean,
     tag: string,
   ): Html => {
     const indent = Style({ paddingLeft: `${depth * TREE_INDENT_PX}px` })
@@ -855,8 +921,6 @@ const makeView = (
         ],
       )
     }
-
-    const isRoot = treePath === 'root'
 
     const preview = isExpanded
       ? Array.isArray(value)
@@ -886,6 +950,20 @@ const makeView = (
     )
   }
 
+  const renderFlatNode = (node: FlatNode): Html =>
+    lazyTreeNode(node.treePath, flatNodeView, [
+      node.value,
+      node.treePath,
+      node.depth,
+      node.key,
+      node.isExpandable,
+      node.isExpanded,
+      node.isChanged,
+      node.isAffected,
+      node.isRoot,
+      node.tag,
+    ])
+
   const treeView = (
     value: unknown,
     rootPath: string,
@@ -899,6 +977,7 @@ const makeView = (
     flattenTree({
       value: toInspectableValue(value),
       treePath: rootPath,
+      rootPath,
       expandedPaths,
       changedPaths,
       affectedPaths,
@@ -914,19 +993,7 @@ const makeView = (
           'inspector-tree flex-1 overflow-auto min-h-0 min-w-0 overscroll-none',
         ),
       ],
-      nodes.map(node =>
-        lazyTreeNode(node.treePath, flatNodeView, [
-          node.value,
-          node.treePath,
-          node.depth,
-          node.key,
-          node.isExpandable,
-          node.isExpanded,
-          node.isChanged,
-          node.isAffected,
-          node.tag,
-        ]),
-      ),
+      nodes.map(renderFlatNode),
     )
   }
 
@@ -1092,23 +1159,54 @@ const makeView = (
       M.exhaustive,
     )
 
-  const selectedCommandNames = (model: Model): ReadonlyArray<string> => {
+  const selectedCommands = (
+    model: Model,
+  ): ReadonlyArray<typeof DisplayCommand.Type> => {
     const selectedIndex = selectedHistoryIndex(model)
 
     if (selectedIndex === INIT_INDEX) {
-      return model.initCommandNames
+      return model.initCommands
     } else {
       return pipe(
         model.entries,
         Array_.get(selectedIndex - model.startIndex),
-        Option.map(entry => entry.commandNames),
+        Option.map(entry => entry.commands),
         Option.getOrElse(() => NO_COMMANDS),
       )
     }
   }
 
-  const commandsTabContent = (commandNames: ReadonlyArray<string>): Html =>
-    Array_.match(commandNames, {
+  const flattenCommand = (
+    command: typeof DisplayCommand.Type,
+    index: number,
+    expandedPaths: HashSet.HashSet<string>,
+  ): ReadonlyArray<FlatNode> => {
+    const taggedValue = Option.match(command.args, {
+      onNone: () => ({ _tag: command.name }),
+      onSome: argsValue => ({ ...argsValue, _tag: command.name }),
+    })
+    const rootPath = `command-${index}`
+    const nodes: Array<FlatNode> = []
+    flattenTree({
+      value: toInspectableValue(taggedValue),
+      treePath: rootPath,
+      rootPath,
+      expandedPaths,
+      changedPaths: HashSet.empty(),
+      affectedPaths: HashSet.empty(),
+      depth: 0,
+      key: '',
+      accumulator: nodes,
+      indentRootChildren: false,
+    })
+    return nodes
+  }
+
+  const commandsTabContent = (
+    commands: ReadonlyArray<typeof DisplayCommand.Type>,
+    expandedPaths: HashSet.HashSet<string>,
+  ): Html =>
+    Array_.match(commands, {
       onEmpty: () =>
         div(
           [
@@ -1118,23 +1216,25 @@ const makeView = (
           ],
           ['No Commands returned'],
         ),
-      onNonEmpty: names =>
+      onNonEmpty: commandList =>
         div(
           [
             Class(
               'flex flex-col flex-1 min-h-0 min-w-0 overflow-auto overscroll-none',
             ),
           ],
-          Array_.map(names, (name, index) =>
+          Array_.map(commandList, (command, index) =>
             div(
-              [
-                Class(
-                  'flex items-center px-2 py-1 text-base font-mono text-dt border-b gap-1.5',
-                ),
-              ],
+              [Class('flex items-start px-2 py-1 border-b gap-1.5')],
               [
                 span([Class(indexClass)], [String(index + 1)]),
-                span([Class('json-tag')], [name]),
+                div(
+                  [Class('flex flex-col flex-1 min-w-0')],
+                  Array_.map(
+                    flattenCommand(command, index, expandedPaths),
+                    renderFlatNode,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1257,7 +1357,8 @@ const makeView = (
       ),
       M.when('Commands', () =>
         lazyTabContent('Commands', commandsTabContent, [
-          selectedCommandNames(model),
+          selectedCommands(model),
+          model.expandedPaths,
         ]),
       ),
       M.when('Mounts', () => {

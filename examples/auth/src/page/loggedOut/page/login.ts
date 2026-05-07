@@ -123,31 +123,29 @@ const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 export const SimulateAuthRequest = Command.define(
   'SimulateAuthRequest',
+  { email: S.String, password: S.String },
   SucceededSimulateAuthRequest,
   FailedSimulateAuthRequest,
+)(({ email, password }) =>
+  Effect.gen(function* () {
+    yield* Effect.sleep(Duration.seconds(1))
+
+    if (password !== 'password') {
+      return FailedSimulateAuthRequest({ error: 'Invalid credentials' })
+    }
+
+    const name = pipe(
+      email,
+      String.split('@'),
+      Array.head,
+      Option.getOrElse(() => email),
+    )
+
+    const session: Session = { userId: '1', email, name }
+
+    return SucceededSimulateAuthRequest({ session })
+  }),
 )
-
-const simulateAuthRequest = (email: string, password: string) =>
-  SimulateAuthRequest(
-    Effect.gen(function* () {
-      yield* Effect.sleep(Duration.seconds(1))
-
-      if (password !== 'password') {
-        return FailedSimulateAuthRequest({ error: 'Invalid credentials' })
-      }
-
-      const name = pipe(
-        email,
-        String.split('@'),
-        Array.head,
-        Option.getOrElse(() => email),
-      )
-
-      const session: Session = { userId: '1', email, name }
-
-      return SucceededSimulateAuthRequest({ session })
-    }),
-  )
 
 export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
@@ -172,7 +170,12 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
         return [
           evo(model, { isSubmitting: () => true }),
-          [simulateAuthRequest(model.email.value, model.password.value)],
+          [
+            SimulateAuthRequest({
+              email: model.email.value,
+              password: model.password.value,
+            }),
+          ],
           Option.none(),
         ]
       },

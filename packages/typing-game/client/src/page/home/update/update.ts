@@ -4,7 +4,7 @@ import { evo } from 'foldkit/struct'
 
 import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../../constant'
 import { optionWhen } from '../../../optionWhen'
-import { createRoom, joinRoom } from '../command'
+import { CreateRoom, JoinRoom } from '../command'
 import {
   CompletedFocusRoomIdInput,
   CompletedFocusUsernameInput,
@@ -17,10 +17,20 @@ import { handleKeyPressed } from './handleKeyPressed'
 const RefocusUsernameInput = Command.define(
   'RefocusUsernameInput',
   CompletedFocusUsernameInput,
+)(
+  Dom.focus(`#${USERNAME_INPUT_ID}`).pipe(
+    Effect.ignore,
+    Effect.as(CompletedFocusUsernameInput()),
+  ),
 )
 const RefocusRoomIdInput = Command.define(
   'RefocusRoomIdInput',
   CompletedFocusRoomIdInput,
+)(
+  Dom.focus(`#${ROOM_ID_INPUT_ID}`).pipe(
+    Effect.ignore,
+    Effect.as(CompletedFocusRoomIdInput()),
+  ),
 )
 
 export type UpdateReturn = readonly [
@@ -75,29 +85,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       BlurredUsernameInput: () => [
         model,
-        [
-          RefocusUsernameInput(
-            Dom.focus(`#${USERNAME_INPUT_ID}`).pipe(
-              Effect.ignore,
-              Effect.as(CompletedFocusUsernameInput()),
-            ),
-          ),
-        ],
+        [RefocusUsernameInput()],
         Option.none(),
       ],
 
-      BlurredRoomIdInput: () => [
-        model,
-        [
-          RefocusRoomIdInput(
-            Dom.focus(`#${ROOM_ID_INPUT_ID}`).pipe(
-              Effect.ignore,
-              Effect.as(CompletedFocusRoomIdInput()),
-            ),
-          ),
-        ],
-        Option.none(),
-      ],
+      BlurredRoomIdInput: () => [model, [RefocusRoomIdInput()], Option.none()],
 
       ChangedRoomId: ({ value }) =>
         M.value(model.homeStep).pipe(
@@ -122,7 +114,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           withUpdateReturn,
           M.tag('SelectAction', ({ username }) => [
             model,
-            [createRoom(username)],
+            [CreateRoom({ username })],
             Option.none(),
           ]),
           M.orElse(() => [model, [], Option.none()]),
@@ -144,7 +136,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             }
 
             const maybeJoin = optionWhen(Str.isNonEmpty(roomId), () =>
-              joinRoom(username, roomId),
+              JoinRoom({ username, roomId }),
             )
 
             return [model, Array.fromOption(maybeJoin), Option.none()]

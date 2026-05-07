@@ -104,6 +104,17 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         copiedSnippets,
         'mb-8',
       ),
+      para(
+        'Command matchers (',
+        inlineCode('expectHas'),
+        ', ',
+        inlineCode('expectExact'),
+        ', and ',
+        inlineCode('resolve'),
+        ') accept either a Command Definition (matches by name) or a Command instance (matches by name AND structural-equal args). Pass a Definition when the test only cares that the Command was dispatched. Pass an instance like ',
+        inlineCode("FetchWeather({ zipCode: '90210' })"),
+        ' when the args are part of what the test is verifying. Strict matching catches regressions where a Command fires with wrong inputs, which a name-only match would silently pass.',
+      ),
       infoCallout(
         'Mount lifecycle is a Scene concern',
         'Story does not render the view, so the OnMount lifecycle is not observable from a Story test. Tests that need to acknowledge mounts use ',

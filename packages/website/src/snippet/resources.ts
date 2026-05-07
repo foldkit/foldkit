@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from 'effect'
+import { Context, Effect, Layer, Schema as S } from 'effect'
 import { Command, Runtime } from 'foldkit'
 
 class AudioContextService extends Context.Service<
@@ -8,20 +8,21 @@ class AudioContextService extends Context.Service<
   static readonly Default = Layer.sync(this, () => new AudioContext())
 }
 
-const PlayNote = Command.define('PlayNote', CompletedPlayNote)
-
-const playNote = (frequency: number, duration: number) =>
-  PlayNote(
-    Effect.gen(function* () {
-      const audioContext = yield* AudioContextService
-      const oscillator = audioContext.createOscillator()
-      oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime)
-      oscillator.connect(audioContext.destination)
-      oscillator.start()
-      oscillator.stop(audioContext.currentTime + duration)
-      return CompletedPlayNote()
-    }),
-  )
+const PlayNote = Command.define(
+  'PlayNote',
+  { frequency: S.Number, duration: S.Number },
+  CompletedPlayNote,
+)(({ frequency, duration }) =>
+  Effect.gen(function* () {
+    const audioContext = yield* AudioContextService
+    const oscillator = audioContext.createOscillator()
+    oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime)
+    oscillator.connect(audioContext.destination)
+    oscillator.start()
+    oscillator.stop(audioContext.currentTime + duration)
+    return CompletedPlayNote()
+  }),
+)
 
 // 3. Pass the service's default layer to makeProgram
 const program = Runtime.makeProgram({

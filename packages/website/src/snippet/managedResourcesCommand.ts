@@ -7,26 +7,23 @@ const TakePhoto = Command.define(
   'TakePhoto',
   SucceededTakePhoto,
   CameraUnavailable,
-)
+)(
+  Effect.gen(function* () {
+    const stream = yield* CameraStream.get
 
-const takePhoto = () =>
-  TakePhoto(
-    Effect.gen(function* () {
-      const stream = yield* CameraStream.get
+    const maybeTrack = Array.head(stream.getVideoTracks())
+    const bitmap = yield* Option.match(maybeTrack, {
+      onNone: () => Effect.fail(new Error('No video track available')),
+      onSome: track => {
+        const imageCapture = new ImageCapture(track)
+        return Effect.promise(() => imageCapture.grabFrame())
+      },
+    })
 
-      const maybeTrack = Array.head(stream.getVideoTracks())
-      const bitmap = yield* Option.match(maybeTrack, {
-        onNone: () => Effect.fail(new Error('No video track available')),
-        onSome: track => {
-          const imageCapture = new ImageCapture(track)
-          return Effect.promise(() => imageCapture.grabFrame())
-        },
-      })
-
-      return SucceededTakePhoto({ width: bitmap.width, height: bitmap.height })
-    }).pipe(
-      Effect.catchTag('ResourceNotAvailable', () =>
-        Effect.succeed(CameraUnavailable()),
-      ),
+    return SucceededTakePhoto({ width: bitmap.width, height: bitmap.height })
+  }).pipe(
+    Effect.catchTag('ResourceNotAvailable', () =>
+      Effect.succeed(CameraUnavailable()),
     ),
-  )
+  ),
+)

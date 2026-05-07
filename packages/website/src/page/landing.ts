@@ -687,7 +687,7 @@ const devToolsSection = (): Html =>
                   '/devtools-overlay-1x.webp 1x, /devtools-overlay.webp 2x',
                 ),
                 Alt(
-                  'Foldkit DevTools overlay inspecting the Foldkit website: a numbered Message timeline on the left with entries like ClickedLink, ChangedUrl, and CompletedScroll, and an expandable Model state tree on the right showing route, url, and theme fields.',
+                  'Foldkit DevTools overlay inspecting the Foldkit website: a numbered Message timeline on the left with entries like ClickedLink, ChangedUrl, and CompletedScrollToTop, and an expandable Model state tree on the right showing route, url, and theme fields.',
                 ),
                 Width('972'),
                 Height('637'),

@@ -81,7 +81,7 @@ export const update = (
         evo(model, {
           weather: () => WeatherLoading(),
         }),
-        [fetchWeatherLive(model.zipCodeInput)],
+        [FetchWeather({ zipCode: model.zipCodeInput })],
       ],
 
       SucceededFetchWeather: ({ weather }) => [
@@ -111,12 +111,6 @@ const init: Runtime.ProgramInit<Model, Message> = () => [
 ]
 
 // COMMAND
-
-export const FetchWeather = Command.define(
-  'FetchWeather',
-  SucceededFetchWeather,
-  FailedFetchWeather,
-)
 
 const GEOCODING_API = 'https://geocoding-api.open-meteo.com/v1/search'
 const WEATHER_API = 'https://api.open-meteo.com/v1/forecast'
@@ -156,97 +150,98 @@ const weatherCodeToDescription = (code: number): string =>
     M.orElse(() => 'Unknown'),
   )
 
-export const fetchWeather = (zipCode: string) =>
-  FetchWeather(
-    Effect.gen(function* () {
-      if (String.isEmpty(zipCode.trim())) {
-        return yield* Effect.fail(
-          FailedFetchWeather({ error: 'Zip code required' }),
-        )
-      }
-
-      const client = yield* HttpClient.HttpClient
-
-      const geocodeRequest = HttpClientRequest.get(GEOCODING_API).pipe(
-        HttpClientRequest.setUrlParams({
-          name: zipCode,
-          count: '1',
-          language: 'en',
-          format: 'json',
-        }),
+export const fetchWeatherEffect = (zipCode: string) =>
+  Effect.gen(function* () {
+    if (String.isEmpty(zipCode.trim())) {
+      return yield* Effect.fail(
+        FailedFetchWeather({ error: 'Zip code required' }),
       )
-      const geocodeResponse = yield* client.execute(geocodeRequest)
+    }
 
-      if (geocodeResponse.status !== 200) {
-        return yield* Effect.fail(
-          FailedFetchWeather({ error: 'Location not found' }),
-        )
-      }
+    const client = yield* HttpClient.HttpClient
 
-      const geocodeData = yield* S.decodeUnknownEffect(GeocodingResponse)(
-        yield* geocodeResponse.json,
+    const geocodeRequest = HttpClientRequest.get(GEOCODING_API).pipe(
+      HttpClientRequest.setUrlParams({
+        name: zipCode,
+        count: '1',
+        language: 'en',
+        format: 'json',
+      }),
+    )
+    const geocodeResponse = yield* client.execute(geocodeRequest)
+
+    if (geocodeResponse.status !== 200) {
+      return yield* Effect.fail(
+        FailedFetchWeather({ error: 'Location not found' }),
       )
+    }
 
-      const geoResult = yield* geocodeData.results.pipe(
-        Option.flatMap(Array.head),
-        Option.match({
-          onNone: () =>
-            Effect.fail(FailedFetchWeather({ error: 'Location not found' })),
-          onSome: Effect.succeed,
-        }),
+    const geocodeData = yield* S.decodeUnknownEffect(GeocodingResponse)(
+      yield* geocodeResponse.json,
+    )
+
+    const geoResult = yield* geocodeData.results.pipe(
+      Option.flatMap(Array.head),
+      Option.match({
+        onNone: () =>
+          Effect.fail(FailedFetchWeather({ error: 'Location not found' })),
+        onSome: Effect.succeed,
+      }),
+    )
+
+    const weatherRequest = HttpClientRequest.get(WEATHER_API).pipe(
+      HttpClientRequest.setUrlParams({
+        latitude: geoResult.latitude.toString(),
+        longitude: geoResult.longitude.toString(),
+        current:
+          'temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code',
+        temperature_unit: 'fahrenheit',
+        wind_speed_unit: 'mph',
+      }),
+    )
+    const weatherResponse = yield* client.execute(weatherRequest)
+
+    if (weatherResponse.status !== 200) {
+      return yield* Effect.fail(
+        FailedFetchWeather({ error: 'Failed to fetch weather data' }),
       )
+    }
 
-      const weatherRequest = HttpClientRequest.get(WEATHER_API).pipe(
-        HttpClientRequest.setUrlParams({
-          latitude: geoResult.latitude.toString(),
-          longitude: geoResult.longitude.toString(),
-          current:
-            'temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code',
-          temperature_unit: 'fahrenheit',
-          wind_speed_unit: 'mph',
-        }),
-      )
-      const weatherResponse = yield* client.execute(weatherRequest)
+    const weatherData = yield* S.decodeUnknownEffect(WeatherResponse)(
+      yield* weatherResponse.json,
+    )
 
-      if (weatherResponse.status !== 200) {
-        return yield* Effect.fail(
-          FailedFetchWeather({ error: 'Failed to fetch weather data' }),
-        )
-      }
+    const weather = WeatherData.make({
+      zipCode,
+      temperature: Math.round(weatherData.current.temperature_2m),
+      description: weatherCodeToDescription(weatherData.current.weather_code),
+      humidity: weatherData.current.relative_humidity_2m,
+      windSpeed: Math.round(weatherData.current.wind_speed_10m),
+      locationName: geoResult.name,
+      region: Option.getOrElse(geoResult.admin1, () => ''),
+    })
 
-      const weatherData = yield* S.decodeUnknownEffect(WeatherResponse)(
-        yield* weatherResponse.json,
-      )
-
-      const weather = WeatherData.make({
-        zipCode,
-        temperature: Math.round(weatherData.current.temperature_2m),
-        description: weatherCodeToDescription(weatherData.current.weather_code),
-        humidity: weatherData.current.relative_humidity_2m,
-        windSpeed: Math.round(weatherData.current.wind_speed_10m),
-        locationName: geoResult.name,
-        region: Option.getOrElse(geoResult.admin1, () => ''),
-      })
-
-      return SucceededFetchWeather({ weather })
-    }).pipe(
-      Effect.scoped,
-      Effect.catchTag('FailedFetchWeather', error => Effect.succeed(error)),
-      Effect.catch(() =>
-        Effect.succeed(
-          FailedFetchWeather({ error: 'Failed to fetch weather data' }),
-        ),
+    return SucceededFetchWeather({ weather })
+  }).pipe(
+    Effect.catchTag('FailedFetchWeather', error => Effect.succeed(error)),
+    Effect.catch(() =>
+      Effect.succeed(
+        FailedFetchWeather({ error: 'Failed to fetch weather data' }),
       ),
     ),
   )
 
-const fetchWeatherLive = (zipCode: string) =>
-  Command.mapEffect(fetchWeather(zipCode), effect =>
-    effect.pipe(
-      Effect.provideService(HttpClient.TracerPropagationEnabled, false),
-      Effect.provide(FetchHttpClient.layer),
-    ),
-  )
+export const FetchWeather = Command.define(
+  'FetchWeather',
+  { zipCode: S.String },
+  SucceededFetchWeather,
+  FailedFetchWeather,
+)(({ zipCode }) =>
+  fetchWeatherEffect(zipCode).pipe(
+    Effect.provideService(HttpClient.TracerPropagationEnabled, false),
+    Effect.provide(FetchHttpClient.layer),
+  ),
+)
 
 // VIEW
 

@@ -35,13 +35,15 @@ export type ChildOutMessage = typeof ChildOutMessage.Type
 
 // CHILD COMMAND
 
-export const SubmitForm = Command.define('SubmitForm', SucceededSubmit)
-export const submitForm = SubmitForm(
-  Effect.sync(() => SucceededSubmit({ id: 'abc' })),
-)
+export const SubmitForm = Command.define(
+  'SubmitForm',
+  SucceededSubmit,
+)(Effect.sync(() => SucceededSubmit({ id: 'abc' })))
 
-export const ResetForm = Command.define('ResetForm', CompletedReset)
-export const resetForm = ResetForm(Effect.sync(() => CompletedReset()))
+export const ResetForm = Command.define(
+  'ResetForm',
+  CompletedReset,
+)(Effect.sync(() => CompletedReset()))
 
 // CHILD INIT
 
@@ -68,12 +70,12 @@ export const childUpdate = (
     M.tagsExhaustive({
       SubmittedForm: () => [
         { status: 'Submitting' },
-        [submitForm],
+        [SubmitForm()],
         Option.none(),
       ],
       SucceededSubmit: ({ id }) => [
         { status: 'Submitted' },
-        [resetForm],
+        [ResetForm()],
         Option.some(RequestedSave({ id })),
       ],
       CancelledForm: () => [

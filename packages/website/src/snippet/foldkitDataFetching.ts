@@ -34,24 +34,22 @@ type Message = typeof Message.Type
 
 const FetchUser = Command.define(
   'FetchUser',
+  { userId: S.String },
   SucceededFetchUser,
   FailedFetchUser,
-)
-
-const fetchUser = (userId: string) =>
-  FetchUser(
-    Effect.gen(function* () {
-      const response = yield* Effect.tryPromise(() =>
-        fetch(`/api/users/${userId}`).then(response => response.json()),
-      )
-      const data = yield* S.decodeUnknownEffect(UserSchema)(response)
-      return SucceededFetchUser({ data })
-    }).pipe(
-      Effect.catch(error =>
-        Effect.succeed(FailedFetchUser({ error: String(error) })),
-      ),
+)(({ userId }) =>
+  Effect.gen(function* () {
+    const response = yield* Effect.tryPromise(() =>
+      fetch(`/api/users/${userId}`).then(response => response.json()),
+    )
+    const data = yield* S.decodeUnknownEffect(UserSchema)(response)
+    return SucceededFetchUser({ data })
+  }).pipe(
+    Effect.catch(error =>
+      Effect.succeed(FailedFetchUser({ error: String(error) })),
     ),
-  )
+  ),
+)
 
 // UPDATE
 
@@ -66,7 +64,7 @@ const update = (
     M.tagsExhaustive({
       ClickedFetchUser: ({ userId }) => [
         evo(model, { user: () => UserLoading() }),
-        [fetchUser(userId)],
+        [FetchUser({ userId })],
       ],
       SucceededFetchUser: ({ data }) => [
         evo(model, { user: () => UserSuccess({ data }) }),

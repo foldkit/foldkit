@@ -43,9 +43,11 @@ import {
   CompletedLoadExternal,
   CompletedNavigateInternal,
   CompletedSaveThemePreference,
-  CompletedScroll,
-  FailedCopy,
-  FailedSubscribeEmail,
+  CompletedScrollToAnchor,
+  CompletedScrollToTop,
+  FailedCopyLink,
+  FailedCopySnippet,
+  FailedSubscribeToNewsletter,
   GotAiGroupMessage,
   GotApiReferenceGroupMessage,
   GotApiReferenceMessage,
@@ -67,12 +69,12 @@ import {
   GotSearchMessage,
   GotTestingGroupMessage,
   GotUiPageMessage,
-  HiddenCopiedIndicator,
+  HidCopiedIndicator,
   Message,
   ResolvedTheme,
-  SucceededCopy,
   SucceededCopyLink,
-  SucceededSubscribeEmail,
+  SucceededCopySnippet,
+  SucceededSubscribeToNewsletter,
   ThemePreference,
 } from './message'
 import * as Page from './page'
@@ -419,9 +421,9 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
       search: Search.init()[0],
     },
     [
-      injectAnalytics,
-      injectSpeedInsights,
-      applyThemeToDocument(resolvedTheme),
+      InjectAnalytics(),
+      InjectSpeedInsights(),
+      ApplyTheme({ theme: resolvedTheme }),
       ...mappedAsyncCounterDemoCommands,
       ...mappedNotePlayerDemoCommands,
       ...mappedUiPagesCommands,
@@ -430,7 +432,7 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
       ...mappedExampleDetailCommands,
       ...Option.match(url.hash, {
         onNone: () => [],
-        onSome: hash => [scrollToHashAfterRender(hash)],
+        onSome: hash => [ScrollToAnchor({ hash, afterRender: true })],
       }),
     ],
   ]
@@ -461,30 +463,13 @@ const update = (
             }): [
               Model,
               ReadonlyArray<Command.Command<typeof CompletedNavigateInternal>>,
-            ] => [
-              model,
-              [
-                NavigateInternal(
-                  pushUrl(urlToString(url)).pipe(
-                    Effect.as(CompletedNavigateInternal()),
-                  ),
-                ),
-              ],
-            ],
+            ] => [model, [NavigateInternal({ url: urlToString(url) })]],
             External: ({
               href,
             }): [
               Model,
               ReadonlyArray<Command.Command<typeof CompletedLoadExternal>>,
-            ] => [
-              model,
-              [
-                load(href).pipe(
-                  Effect.as(CompletedLoadExternal()),
-                  LoadExternal,
-                ),
-              ],
-            ],
+            ] => [model, [LoadExternal({ href })]],
           }),
         ),
 
@@ -577,35 +562,35 @@ const update = (
               ),
             ),
             ...Option.match(url.hash, {
-              onNone: () => [scrollToTop],
-              onSome: hash => [scrollToHash(hash)],
+              onNone: () => [ScrollToTop()],
+              onSome: hash => [ScrollToAnchor({ hash, afterRender: false })],
             }),
           ],
         ]
       },
 
-      ClickedCopySnippet: ({ text }) => [model, [copySnippetToClipboard(text)]],
+      ClickedCopySnippet: ({ text }) => [model, [CopySnippet({ text })]],
 
       ClickedCopyLink: ({ hash }) => [
         model,
         [
-          copyLinkToClipboard(
-            urlToString({ ...model.url, hash: Option.some(hash) }),
-          ),
+          CopyLink({
+            url: urlToString({ ...model.url, hash: Option.some(hash) }),
+          }),
         ],
       ],
 
-      SucceededCopy: ({ text }) =>
+      SucceededCopySnippet: ({ text }) =>
         HashSet.has(model.copiedSnippets, text)
           ? [model, []]
           : [
               evo(model, {
                 copiedSnippets: HashSet.add(text),
               }),
-              [hideIndicator(text)],
+              [HideCopiedIndicator({ text })],
             ],
 
-      HiddenCopiedIndicator: ({ text }) => [
+      HidCopiedIndicator: ({ text }) => [
         evo(model, {
           copiedSnippets: HashSet.remove(text),
         }),
@@ -629,12 +614,12 @@ const update = (
                 emailField: () => result,
                 emailSubscriptionStatus: () => 'Submitting',
               }),
-              [subscribeToNewsletter(model.emailField.value)],
+              [SubscribeToNewsletter({ email: model.emailField.value })],
             ]
           : [evo(model, { emailField: () => result }), []]
       },
 
-      SucceededSubscribeEmail: () => [
+      SucceededSubscribeToNewsletter: () => [
         evo(model, {
           emailField: () => FieldValidation.NotValidated({ value: '' }),
           emailSubscriptionStatus: () => 'Succeeded',
@@ -642,7 +627,7 @@ const update = (
         [],
       ],
 
-      FailedSubscribeEmail: () => [
+      FailedSubscribeToNewsletter: () => [
         evo(model, {
           emailSubscriptionStatus: () => 'Failed',
         }),
@@ -711,8 +696,8 @@ const update = (
             resolvedTheme: () => resolvedTheme,
           }),
           [
-            applyThemeToDocument(resolvedTheme),
-            saveThemePreference(preference),
+            ApplyTheme({ theme: resolvedTheme }),
+            SaveThemePreference({ preference }),
           ],
         ]
       },
@@ -762,11 +747,9 @@ const update = (
                 Effect.map(message => GotPlaygroundMenuMessage({ message })),
               ),
             ),
-            NavigateInternal(
-              pushUrl(playgroundRouter({ exampleSlug: slug })).pipe(
-                Effect.as(CompletedNavigateInternal()),
-              ),
-            ),
+            NavigateInternal({
+              url: playgroundRouter({ exampleSlug: slug }),
+            }),
           ],
         ]
       },
@@ -811,7 +794,7 @@ const update = (
             systemTheme: () => theme,
             resolvedTheme: () => resolvedTheme,
           }),
-          [applyThemeToDocument(resolvedTheme)],
+          [ApplyTheme({ theme: resolvedTheme })],
         ]
       },
 
@@ -1091,11 +1074,13 @@ const update = (
       'CompletedLoadExternal',
       'CompletedInjectAnalytics',
       'CompletedInjectSpeedInsights',
-      'CompletedScroll',
+      'CompletedScrollToTop',
+      'CompletedScrollToAnchor',
       'CompletedApplyTheme',
       'CompletedSaveThemePreference',
       'SucceededCopyLink',
-      'FailedCopy',
+      'FailedCopyLink',
+      'FailedCopySnippet',
       'SucceededPlaygroundEmbed',
       () => [model, []],
     ),
@@ -1107,80 +1092,66 @@ const update = (
 const InjectAnalytics = Command.define(
   'InjectAnalytics',
   CompletedInjectAnalytics,
-)
+)(Effect.sync(() => inject()).pipe(Effect.as(CompletedInjectAnalytics())))
+
 const InjectSpeedInsights = Command.define(
   'InjectSpeedInsights',
   CompletedInjectSpeedInsights,
-)
-const CopySnippet = Command.define('CopySnippet', SucceededCopy, FailedCopy)
-const CopyLink = Command.define('CopyLink', SucceededCopyLink, FailedCopy)
-const HideCopiedIndicator = Command.define(
-  'HideCopiedIndicator',
-  HiddenCopiedIndicator,
-)
-const ScrollToTop = Command.define('ScrollToTop', CompletedScroll)
-const ScrollToAnchor = Command.define('ScrollToAnchor', CompletedScroll)
-const ApplyTheme = Command.define('ApplyTheme', CompletedApplyTheme)
-const SubscribeToNewsletter = Command.define(
-  'SubscribeToNewsletter',
-  SucceededSubscribeEmail,
-  FailedSubscribeEmail,
-)
-const SaveThemePreference = Command.define(
-  'SaveThemePreference',
-  CompletedSaveThemePreference,
-)
-const NavigateInternal = Command.define(
-  'NavigateInternal',
-  CompletedNavigateInternal,
-)
-const LoadExternal = Command.define('LoadExternal', CompletedLoadExternal)
-
-const injectAnalytics = InjectAnalytics(
-  Effect.sync(() => inject()).pipe(Effect.as(CompletedInjectAnalytics())),
-)
-
-const injectSpeedInsights = InjectSpeedInsights(
+)(
   Effect.sync(() => SpeedInsights.injectSpeedInsights()).pipe(
     Effect.as(CompletedInjectSpeedInsights()),
   ),
 )
 
-const copySnippetToClipboard = (text: string) =>
-  CopySnippet(
-    Effect.tryPromise({
-      try: () => navigator.clipboard.writeText(text),
-      catch: () => new Error('Failed to copy to clipboard'),
-    }).pipe(
-      Effect.as(SucceededCopy({ text })),
-      Effect.catch(() => Effect.succeed(FailedCopy())),
-    ),
-  )
+const CopySnippet = Command.define(
+  'CopySnippet',
+  { text: S.String },
+  SucceededCopySnippet,
+  FailedCopySnippet,
+)(({ text }) =>
+  Effect.tryPromise({
+    try: () => navigator.clipboard.writeText(text),
+    catch: () => new Error('Failed to copy to clipboard'),
+  }).pipe(
+    Effect.as(SucceededCopySnippet({ text })),
+    Effect.catch(() => Effect.succeed(FailedCopySnippet())),
+  ),
+)
 
-const copyLinkToClipboard = (url: string) =>
-  CopyLink(
-    Effect.tryPromise({
-      try: () => navigator.clipboard.writeText(url),
-      catch: () => new Error('Failed to copy link to clipboard'),
-    }).pipe(
-      Effect.as(SucceededCopyLink()),
-      Effect.catch(() => Effect.succeed(FailedCopy())),
-    ),
-  )
+const CopyLink = Command.define(
+  'CopyLink',
+  { url: S.String },
+  SucceededCopyLink,
+  FailedCopyLink,
+)(({ url }) =>
+  Effect.tryPromise({
+    try: () => navigator.clipboard.writeText(url),
+    catch: () => new Error('Failed to copy link to clipboard'),
+  }).pipe(
+    Effect.as(SucceededCopyLink()),
+    Effect.catch(() => Effect.succeed(FailedCopyLink())),
+  ),
+)
 
 const COPY_INDICATOR_DURATION = '2 seconds'
 
-const hideIndicator = (text: string) =>
-  HideCopiedIndicator(
-    Effect.sleep(COPY_INDICATOR_DURATION).pipe(
-      Effect.as(HiddenCopiedIndicator({ text })),
-    ),
-  )
+const HideCopiedIndicator = Command.define(
+  'HideCopiedIndicator',
+  { text: S.String },
+  HidCopiedIndicator,
+)(({ text }) =>
+  Effect.sleep(COPY_INDICATOR_DURATION).pipe(
+    Effect.as(HidCopiedIndicator({ text })),
+  ),
+)
 
-const scrollToTop = ScrollToTop(
+const ScrollToTop = Command.define(
+  'ScrollToTop',
+  CompletedScrollToTop,
+)(
   Effect.sync(() => {
     window.scrollTo({ top: 0, behavior: 'instant' })
-    return CompletedScroll()
+    return CompletedScrollToTop()
   }),
 )
 
@@ -1198,75 +1169,91 @@ const focusAndScrollToHash = (hash: string): void => {
   }
 }
 
-const scrollToHash = (hash: string) =>
-  ScrollToAnchor(
-    Effect.sync(() => {
-      focusAndScrollToHash(hash)
-      return CompletedScroll()
-    }),
-  )
+const ScrollToAnchor = Command.define(
+  'ScrollToAnchor',
+  { hash: S.String, afterRender: S.Boolean },
+  CompletedScrollToAnchor,
+)(({ hash, afterRender }) =>
+  Effect.gen(function* () {
+    if (afterRender) {
+      yield* Render.afterPaint
+    }
+    focusAndScrollToHash(hash)
+    return CompletedScrollToAnchor()
+  }),
+)
 
-const scrollToHashAfterRender = (hash: string) =>
-  ScrollToAnchor(
-    Effect.gen(function* () {
-      yield* Render.afterCommit
-      focusAndScrollToHash(hash)
-      return CompletedScroll()
-    }),
-  )
-
-const applyThemeToDocument = (theme: typeof ResolvedTheme.Type) =>
-  ApplyTheme(
-    Effect.sync(() => {
-      M.value(theme).pipe(
-        M.when('Dark', () => document.documentElement.classList.add('dark')),
-        M.when('Light', () =>
-          document.documentElement.classList.remove('dark'),
-        ),
-        M.exhaustive,
-      )
-      return CompletedApplyTheme()
-    }),
-  )
+const ApplyTheme = Command.define(
+  'ApplyTheme',
+  { theme: ResolvedTheme },
+  CompletedApplyTheme,
+)(({ theme }) =>
+  Effect.sync(() => {
+    M.value(theme).pipe(
+      M.when('Dark', () => document.documentElement.classList.add('dark')),
+      M.when('Light', () => document.documentElement.classList.remove('dark')),
+      M.exhaustive,
+    )
+    return CompletedApplyTheme()
+  }),
+)
 
 const BUTTONDOWN_SUBSCRIBE_URL =
   'https://buttondown.com/api/emails/embed-subscribe/foldkit'
 
 const validateEmail = FieldValidation.validate(emailRules)
 
-const subscribeToNewsletter = (email: string) =>
-  SubscribeToNewsletter(
-    Effect.gen(function* () {
-      const client = yield* HttpClient.HttpClient
-      const request = HttpClientRequest.post(BUTTONDOWN_SUBSCRIBE_URL).pipe(
-        HttpClientRequest.bodyUrlParams({ email }),
-      )
-      const response = yield* client.execute(request)
+const SubscribeToNewsletter = Command.define(
+  'SubscribeToNewsletter',
+  { email: S.String },
+  SucceededSubscribeToNewsletter,
+  FailedSubscribeToNewsletter,
+)(({ email }) =>
+  Effect.gen(function* () {
+    const client = yield* HttpClient.HttpClient
+    const request = HttpClientRequest.post(BUTTONDOWN_SUBSCRIBE_URL).pipe(
+      HttpClientRequest.bodyUrlParams({ email }),
+    )
+    const response = yield* client.execute(request)
 
-      if (response.status >= 400) {
-        return yield* Effect.fail('Subscription failed')
-      }
+    if (response.status >= 400) {
+      return yield* Effect.fail('Subscription failed')
+    }
 
-      return SucceededSubscribeEmail()
-    }).pipe(
-      Effect.scoped,
-      Effect.catch(() => Effect.succeed(FailedSubscribeEmail())),
-      Effect.provideService(HttpClient.TracerPropagationEnabled, false),
-      Effect.provide(FetchHttpClient.layer),
-    ),
-  )
+    return SucceededSubscribeToNewsletter()
+  }).pipe(
+    Effect.catch(() => Effect.succeed(FailedSubscribeToNewsletter())),
+    Effect.provideService(HttpClient.TracerPropagationEnabled, false),
+    Effect.provide(FetchHttpClient.layer),
+  ),
+)
 
-const saveThemePreference = (preference: typeof ThemePreference.Type) =>
-  SaveThemePreference(
-    Effect.gen(function* () {
-      const store = yield* KeyValueStore.KeyValueStore
-      yield* store.set(THEME_STORAGE_KEY, JSON.stringify(preference))
-      return CompletedSaveThemePreference()
-    }).pipe(
-      Effect.catch(() => Effect.succeed(CompletedSaveThemePreference())),
-      Effect.provide(BrowserKeyValueStore.layerLocalStorage),
-    ),
-  )
+const SaveThemePreference = Command.define(
+  'SaveThemePreference',
+  { preference: ThemePreference },
+  CompletedSaveThemePreference,
+)(({ preference }) =>
+  Effect.gen(function* () {
+    const store = yield* KeyValueStore.KeyValueStore
+    yield* store.set(THEME_STORAGE_KEY, JSON.stringify(preference))
+    return CompletedSaveThemePreference()
+  }).pipe(
+    Effect.catch(() => Effect.succeed(CompletedSaveThemePreference())),
+    Effect.provide(BrowserKeyValueStore.layerLocalStorage),
+  ),
+)
+
+const NavigateInternal = Command.define(
+  'NavigateInternal',
+  { url: S.String },
+  CompletedNavigateInternal,
+)(({ url }) => pushUrl(url).pipe(Effect.as(CompletedNavigateInternal())))
+
+const LoadExternal = Command.define(
+  'LoadExternal',
+  { href: S.String },
+  CompletedLoadExternal,
+)(({ href }) => load(href).pipe(Effect.as(CompletedLoadExternal())))
 
 // VIEW
 

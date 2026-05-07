@@ -35,7 +35,11 @@ import {
   ResponseRuntimeState,
   RuntimeInfo,
 } from './protocol.js'
-import { toInspectableValue, toSerializedEntry } from './serialize.js'
+import {
+  toInspectableValue,
+  toSerializedCommand,
+  toSerializedEntry,
+} from './serialize.js'
 import { type DevToolsStore, INIT_INDEX } from './store.js'
 import {
   type PathResolution,
@@ -367,7 +371,7 @@ const dispatchRequest = (
           const state = yield* SubscriptionRef.get(store.stateRef)
           return ResponseInit({
             maybeModel: Option.map(state.maybeInitModel, toInspectableValue),
-            commandNames: state.initCommandNames,
+            commands: Array.map(state.initCommands, toSerializedCommand),
             mountStartNames: state.initMountStartNames,
           })
         }),

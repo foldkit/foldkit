@@ -3,8 +3,10 @@ import { describe, expect, expectTypeOf, test } from 'vitest'
 import {
   ClickedDecrement,
   ClickedFetch,
+  ClickedFetchById,
   ClickedIncrement,
   FetchCount,
+  FetchCountById,
   SucceededFetchCount,
   update,
 } from './apps/counter.js'
@@ -64,7 +66,7 @@ describe('resolve', () => {
         Story.Command.resolve(FetchCount, SucceededFetchCount({ count: 42 })),
       ),
     ).toThrow(
-      'I tried to resolve "FetchCount" but it wasn\'t in the pending Commands',
+      'I tried to resolve "FetchCount" but no matching pending Command was found',
     )
   })
 
@@ -77,7 +79,7 @@ describe('resolve', () => {
         Story.Command.resolve(SubmitForm, SucceededSubmit({ id: 'abc' })),
       ),
     ).toThrow(
-      'I tried to resolve "SubmitForm" but it wasn\'t in the pending Commands',
+      'I tried to resolve "SubmitForm" but no matching pending Command was found',
     )
   })
 
@@ -171,6 +173,115 @@ describe('expectExactCommands', () => {
         ]),
       ),
     ).toThrow('Expected exactly these Commands')
+  })
+})
+
+describe('instance-strict Command matching', () => {
+  test('expectHas with a Command instance matches by name AND args', () => {
+    Story.story(
+      update,
+      Story.with({ count: 0 }),
+      Story.message(ClickedFetchById({ id: 7 })),
+      Story.Command.expectHas(FetchCountById({ id: 7 })),
+      Story.Command.resolveAll([
+        FetchCountById,
+        SucceededFetchCount({ count: 7 }),
+      ]),
+    )
+  })
+
+  test('expectHas with a Command instance fails when args differ', () => {
+    expect(() =>
+      Story.story(
+        update,
+        Story.with({ count: 0 }),
+        Story.message(ClickedFetchById({ id: 7 })),
+        Story.Command.expectHas(FetchCountById({ id: 99 })),
+        Story.Command.resolveAll([
+          FetchCountById,
+          SucceededFetchCount({ count: 7 }),
+        ]),
+      ),
+    ).toThrow('Expected to find Commands')
+  })
+
+  test('expectExact with a Command instance asserts the exact args', () => {
+    Story.story(
+      update,
+      Story.with({ count: 0 }),
+      Story.message(ClickedFetchById({ id: 42 })),
+      Story.Command.expectExact(FetchCountById({ id: 42 })),
+      Story.Command.resolveAll([
+        FetchCountById,
+        SucceededFetchCount({ count: 42 }),
+      ]),
+    )
+  })
+
+  test('resolve with a Command instance only resolves matching args', () => {
+    expect(() =>
+      Story.story(
+        update,
+        Story.with({ count: 0 }),
+        Story.message(ClickedFetchById({ id: 7 })),
+        Story.Command.resolve(
+          FetchCountById({ id: 99 }),
+          SucceededFetchCount({ count: 99 }),
+        ),
+      ),
+    ).toThrow(
+      'I tried to resolve "FetchCountById {"id":99}" but no matching pending Command was found',
+    )
+  })
+
+  test('resolve with a Command instance feeds the result through update', () => {
+    Story.story(
+      update,
+      Story.with({ count: 0 }),
+      Story.message(ClickedFetchById({ id: 42 })),
+      Story.Command.resolve(
+        FetchCountById({ id: 42 }),
+        SucceededFetchCount({ count: 42 }),
+      ),
+      Story.model(model => {
+        expect(model.count).toBe(42)
+      }),
+    )
+  })
+
+  test('resolveAll keeps Instance matchers distinct across Messages', () => {
+    Story.story(
+      update,
+      Story.with({ count: 0 }),
+      Story.message(ClickedFetchById({ id: 1 })),
+      Story.Command.resolveAll([
+        FetchCountById({ id: 1 }),
+        SucceededFetchCount({ count: 100 }),
+      ]),
+      Story.message(ClickedFetchById({ id: 2 })),
+      Story.Command.resolveAll([
+        FetchCountById({ id: 2 }),
+        SucceededFetchCount({ count: 200 }),
+      ]),
+      Story.model(model => {
+        expect(model.count).toBe(200)
+      }),
+    )
+  })
+
+  test('mixed Definition and Instance matchers in resolveAll', () => {
+    Story.story(
+      update,
+      Story.with({ count: 0 }),
+      Story.message(ClickedFetchById({ id: 5 })),
+      Story.Command.resolveAll([
+        FetchCountById,
+        SucceededFetchCount({ count: 5 }),
+      ]),
+      Story.model(model => {
+        expect(model.count).toBe(5)
+      }),
+    )
   })
 })
 

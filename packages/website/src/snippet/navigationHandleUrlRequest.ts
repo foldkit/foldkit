@@ -45,9 +45,17 @@ type Message = typeof Message.Type
 
 const NavigateInternal = Command.define(
   'NavigateInternal',
+  { url: S.String },
   CompletedNavigateInternal,
+)(({ url }) =>
+  Navigation.pushUrl(url).pipe(Effect.as(CompletedNavigateInternal())),
 )
-const LoadExternal = Command.define('LoadExternal', CompletedLoadExternal)
+
+const LoadExternal = Command.define(
+  'LoadExternal',
+  { href: S.String },
+  CompletedLoadExternal,
+)(({ href }) => Navigation.load(href).pipe(Effect.as(CompletedLoadExternal())))
 
 // UPDATE
 
@@ -67,25 +75,13 @@ const update = (model: Model, message: Message) =>
               url,
             }): readonly [Model, ReadonlyArray<Command.Command<Message>>] => [
               model,
-              [
-                NavigateInternal(
-                  Navigation.pushUrl(Url.toString(url)).pipe(
-                    Effect.as(CompletedNavigateInternal()),
-                  ),
-                ),
-              ],
+              [NavigateInternal({ url: Url.toString(url) })],
             ],
             External: ({
               href,
             }): readonly [Model, ReadonlyArray<Command.Command<Message>>] => [
               model,
-              [
-                LoadExternal(
-                  Navigation.load(href).pipe(
-                    Effect.as(CompletedLoadExternal()),
-                  ),
-                ),
-              ],
+              [LoadExternal({ href })],
             ],
           }),
         ),

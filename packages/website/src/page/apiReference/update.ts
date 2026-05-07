@@ -2,7 +2,7 @@ import { Array, Effect, Match as M, Option, Record, pipe } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
-import { loadApiData } from './command'
+import { LoadApiData } from './command'
 import {
   SIGNATURE_COLLAPSE_THRESHOLD,
   scopedId,
@@ -50,7 +50,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           withUpdateReturn,
           M.tag('NotAsked', 'Failure', () => [
             evo(model, { apiData: () => ApiDataRemoteData.Loading() }),
-            [loadApiData],
+            [LoadApiData()],
           ]),
           M.orElse(() => [model, []]),
         ),

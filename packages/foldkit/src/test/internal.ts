@@ -1,10 +1,106 @@
 import { Array, Equivalence, Option, Order, Predicate, pipe } from 'effect'
 
-import type { CommandDefinition } from '../command/index.js'
+import {
+  type CommandDefinition,
+  CommandDefinitionTypeId,
+} from '../command/index.js'
 import type { MountDefinition } from '../mount/index.js'
 
-/** A Command in a test simulation, identified by name. */
-export type AnyCommand = Readonly<{ name: string }>
+/** A Command in a test simulation. Carries `name` and optionally the `args`
+ *  the runtime captured at construction. Instance matchers (Command values
+ *  produced by calling a Definition) are matched against this shape; the
+ *  `effect` field on a real Command is irrelevant for matching, so we only
+ *  retain `name + args`. */
+export type AnyCommand = Readonly<{
+  name: string
+  args?: Record<string, unknown>
+}>
+
+/** Pattern for matching a Command in test assertions. A Definition matches
+ *  by name only ("a Command with this identity was dispatched"); an Instance
+ *  matches by name AND structural-equal args ("a Command with this identity
+ *  AND these args was dispatched"). Choose the form per assertion based on
+ *  whether the test cares about the args value.
+ *
+ *  Two modes only: name-only or name + full args. Partial-args matching is
+ *  intentionally unsupported. If a subset of args carries the meaning the
+ *  test is verifying, the right assertion is usually against the Model that
+ *  the Command's result fed through update, not a partial Command shape. */
+export type CommandMatcher = CommandDefinition<string, unknown> | AnyCommand
+
+const isCommandDefinitionMatcher = (
+  matcher: CommandMatcher,
+): matcher is CommandDefinition<string, unknown> =>
+  Predicate.hasProperty(matcher, CommandDefinitionTypeId)
+
+/** Structural deep-equal for Command args. Args are constrained to
+ *  Schema-typed values (Record<string, unknown>), so primitives, arrays,
+ *  nested records, and Date values are the value space. Date instances
+ *  compare by timestamp because Schema's `S.Date` decodes ISO strings to
+ *  Date objects with no enumerable keys, which would otherwise compare equal
+ *  for any two distinct timestamps. */
+const argsEqual = (a: unknown, b: unknown): boolean => {
+  if (a === b) {
+    return true
+  }
+  if (!Predicate.isObjectOrArray(a) || !Predicate.isObjectOrArray(b)) {
+    return false
+  }
+  if (a instanceof Date) {
+    return b instanceof Date && a.getTime() === b.getTime()
+  }
+  if (b instanceof Date) {
+    return false
+  }
+  if (Array.isArray(a)) {
+    if (!Array.isArray(b) || a.length !== b.length) {
+      return false
+    }
+    return a.every((item, index) => argsEqual(item, b[index]))
+  }
+  if (Array.isArray(b)) {
+    return false
+  }
+  /* eslint-disable @typescript-eslint/consistent-type-assertions */
+  const aRecord = a as Record<string, unknown>
+  const bRecord = b as Record<string, unknown>
+  /* eslint-enable @typescript-eslint/consistent-type-assertions */
+  const aKeys = Object.keys(aRecord)
+  const bKeys = Object.keys(bRecord)
+  if (aKeys.length !== bKeys.length) {
+    return false
+  }
+  return aKeys.every(
+    key => key in bRecord && argsEqual(aRecord[key], bRecord[key]),
+  )
+}
+
+/** Whether a `matcher` matches a pending Command. Definition matchers match
+ *  by name. Instance matchers (with declared args) match by name + structural
+ *  args equality; instance matchers without args match by name. */
+const commandMatches = (
+  matcher: CommandMatcher,
+  command: AnyCommand,
+): boolean =>
+  matcher.name === command.name &&
+  (isCommandDefinitionMatcher(matcher) ||
+    matcher.args === undefined ||
+    argsEqual(matcher.args, command.args))
+
+const formatArgs = (args: Record<string, unknown> | undefined): string =>
+  args === undefined ? '' : ` ${JSON.stringify(args)}`
+
+/** Formats a Command matcher for display in error messages. Definition
+ *  matchers render as just the name; Instance matchers append the args. */
+export const formatMatcher = (matcher: CommandMatcher): string =>
+  isCommandDefinitionMatcher(matcher)
+    ? matcher.name
+    : `${matcher.name}${formatArgs(matcher.args)}`
+
+/** Formats a pending Command for display in error messages. Same shape as
+ *  `formatMatcher` so failure messages diff visually at a glance. */
+export const formatCommand = (command: AnyCommand): string =>
+  `${command.name}${formatArgs(command.args)}`
 
 /** A pending Mount in a Scene simulation. Identified by `name` and an
  *  `occurrence` index that disambiguates same-named mounts in the rendered
@@ -20,11 +116,14 @@ type UpdateResult<Model, OutMessage> =
   | readonly [Model, ReadonlyArray<AnyCommand>]
   | readonly [Model, ReadonlyArray<AnyCommand>, OutMessage]
 
-/** A Command definition with the result Message to resolve it with. */
+/** A Command matcher (Definition or Instance) with the result Message to
+ *  resolve a pending Command with. Definition matchers resolve by name; an
+ *  Instance matcher resolves only the pending Command whose name AND args
+ *  match. */
 export type Resolver<ResultMessage = unknown> =
-  | readonly [CommandDefinition<string, ResultMessage>, ResultMessage]
+  | readonly [CommandMatcher, ResultMessage]
   | readonly [
-      CommandDefinition<string, ResultMessage>,
+      CommandMatcher,
       ResultMessage,
       (message: ResultMessage) => unknown,
     ]
@@ -40,6 +139,15 @@ export type MountResolver<ResultMessage = unknown> =
       (message: ResultMessage) => unknown,
     ]
 
+/** A resolver entry pairs a Command matcher with the Message that should be
+ *  fed back through update when a pending Command matches. Stored as a list
+ *  (not a name-keyed map) so Instance matchers with the same name but
+ *  different args can coexist. */
+export type ResolverEntry<Message> = Readonly<{
+  matcher: CommandMatcher
+  message: Message
+}>
+
 /** Base shape of an internal simulation — shared between Story and Scene. */
 export type BaseInternal<Model, Message, OutMessage = undefined> = Readonly<{
   model: Model
@@ -47,18 +155,21 @@ export type BaseInternal<Model, Message, OutMessage = undefined> = Readonly<{
   commands: ReadonlyArray<AnyCommand>
   outMessage: OutMessage
   updateFn: (model: Model, message: Message) => UpdateResult<Model, OutMessage>
-  resolvers: Record<string, Message>
+  resolvers: ReadonlyArray<ResolverEntry<Message>>
 }>
 
-/** Resolves a single command by name and feeds its result through update. */
-export const resolveByName = <Model, Message>(
+/** Resolves the first pending Command that matches the given matcher and
+ *  feeds its result through update. Returns `undefined` when no pending
+ *  Command matches. Definition matchers match by name; Instance matchers
+ *  match by name + args. */
+export const resolveByMatcher = <Model, Message>(
   internal: BaseInternal<Model, Message, unknown>,
-  commandName: string,
+  matcher: CommandMatcher,
   resolverMessage: Message,
 ): BaseInternal<Model, Message, unknown> | undefined =>
   pipe(
     internal.commands,
-    Array.findFirstIndex(({ name }) => name === commandName),
+    Array.findFirstIndex(command => commandMatches(matcher, command)),
     Option.match({
       onNone: () => undefined,
       onSome: commandIndex => {
@@ -84,39 +195,69 @@ export const resolveByName = <Model, Message>(
 
 const MAX_CASCADE_DEPTH = 100
 
-/** Resolves all listed Commands, cascading through any Commands produced by the result. */
+/** A fingerprint identifying a matcher's match space. Two matchers with the
+ *  same fingerprint resolve the same set of Commands; the newer one wins. */
+const matcherFingerprint = (matcher: CommandMatcher): string =>
+  isCommandDefinitionMatcher(matcher)
+    ? `def:${matcher.name}`
+    : `inst:${matcher.name}:${JSON.stringify(matcher.args ?? null)}`
+
+/** Resolves all listed Commands, cascading through any Commands produced by
+ *  the result. Resolvers stay applicable across the cascade so multiple
+ *  Commands matching the same matcher reuse it. When a new resolver shares a
+ *  fingerprint with an existing one (same Definition, or same Instance shape),
+ *  the new resolver replaces the old. Mirrors the prior name-keyed semantics
+ *  where the latest wins. */
 export const resolveAllInternal = <Model, Message, OutMessage>(
   internal: BaseInternal<Model, Message, OutMessage>,
   resolvers: ReadonlyArray<Resolver>,
 ): BaseInternal<Model, Message, OutMessage> => {
-  const resolverMap: Record<string, Message> = {}
-  for (const resolver of resolvers) {
-    const [definition, resultMessage] = resolver
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    resolverMap[definition.name] = (
-      resolver.length === 3 ? resolver[2](resultMessage) : resultMessage
-    ) as Message
-  }
+  const newEntries: ReadonlyArray<ResolverEntry<Message>> = Array.map(
+    resolvers,
+    resolver => {
+      const [matcher, resultMessage] = resolver
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      const message = (
+        resolver.length === 3 ? resolver[2](resultMessage) : resultMessage
+      ) as Message
+      return { matcher, message }
+    },
+  )
+
+  const newFingerprints = new Set(
+    Array.map(newEntries, ({ matcher }) => matcherFingerprint(matcher)),
+  )
+  const survivingExisting = Array.filter(
+    internal.resolvers,
+    ({ matcher }) => !newFingerprints.has(matcherFingerprint(matcher)),
+  )
 
   /* eslint-disable @typescript-eslint/consistent-type-assertions */
   let current = {
     ...internal,
-    resolvers: { ...internal.resolvers, ...resolverMap },
+    resolvers: [...survivingExisting, ...newEntries],
   } as BaseInternal<Model, Message, unknown>
 
-  for (let depth = 0; depth < MAX_CASCADE_DEPTH; depth++) {
-    const resolvable = current.commands.find(
-      ({ name }) => name in current.resolvers,
+  const findNextMatch = (
+    state: BaseInternal<Model, Message, unknown>,
+  ): Option.Option<ResolverEntry<Message>> =>
+    Array.findFirst(state.commands, command =>
+      Array.findFirst(state.resolvers, ({ matcher }) =>
+        commandMatches(matcher, command),
+      ),
     )
 
-    if (Predicate.isUndefined(resolvable)) {
+  for (let depth = 0; depth < MAX_CASCADE_DEPTH; depth++) {
+    const matched = findNextMatch(current)
+
+    if (Option.isNone(matched)) {
       break
     }
 
-    const next = resolveByName(
+    const next = resolveByMatcher(
       current,
-      resolvable.name,
-      current.resolvers[resolvable.name]!,
+      matched.value.matcher,
+      matched.value.message,
     )
 
     if (Predicate.isUndefined(next)) {
@@ -137,65 +278,85 @@ export const resolveAllInternal = <Model, Message, OutMessage>(
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
 }
 
-/** Throws if any of the given definitions are missing from the pending Commands. */
+const formatCommandList = (commands: ReadonlyArray<AnyCommand>): string =>
+  Array.match(commands, {
+    onEmpty: () => '    (none)',
+    onNonEmpty: nonEmpty =>
+      pipe(
+        nonEmpty,
+        Array.map(command => `    ${formatCommand(command)}`),
+        Array.join('\n'),
+      ),
+  })
+
+const formatMatcherList = (matchers: ReadonlyArray<CommandMatcher>): string =>
+  pipe(
+    matchers,
+    Array.map(matcher => `    ${formatMatcher(matcher)}`),
+    Array.join('\n'),
+  )
+
+/** Throws if any of the given matchers fail to match a pending Command.
+ *  Definition matchers match by name; Instance matchers match by name + args. */
 export const assertHasCommands = (
   commands: ReadonlyArray<AnyCommand>,
-  definitions: ReadonlyArray<CommandDefinition<string, unknown>>,
+  matchers: ReadonlyArray<CommandMatcher>,
 ): void => {
-  const pendingNames = Array.map(commands, ({ name }) => name)
   const missing = Array.filter(
-    definitions,
-    ({ name }) => !Array.contains(pendingNames, name),
+    matchers,
+    matcher => !commands.some(command => commandMatches(matcher, command)),
   )
 
   if (Array.isReadonlyArrayNonEmpty(missing)) {
-    const missingNames = pipe(
-      missing,
-      Array.map(({ name }) => `    ${name}`),
-      Array.join('\n'),
-    )
-    const pending = Array.isReadonlyArrayNonEmpty(commands)
-      ? pipe(
-          commands,
-          Array.map(({ name }) => `    ${name}`),
-          Array.join('\n'),
-        )
-      : '    (none)'
     throw new Error(
-      `Expected to find Commands:\n\n${missingNames}\n\nBut the pending Commands are:\n\n${pending}`,
+      `Expected to find Commands:\n\n${formatMatcherList(missing)}\n\nBut the pending Commands are:\n\n${formatCommandList(commands)}`,
     )
   }
 }
 
-/** Throws if the pending Commands don't match the given definitions exactly (order-independent). */
+/** Throws if the pending Commands don't match the given matchers exactly
+ *  (order-independent). Definition matchers compare by name; Instance
+ *  matchers compare by name + args. Each matcher must consume exactly one
+ *  pending Command. */
 export const assertExactCommands = (
   commands: ReadonlyArray<AnyCommand>,
-  definitions: ReadonlyArray<CommandDefinition<string, unknown>>,
+  matchers: ReadonlyArray<CommandMatcher>,
 ): void => {
-  const expectedNames = pipe(
-    definitions,
-    Array.map(({ name }) => name),
-    Array.sort(Order.String),
-  )
-  const actualNames = pipe(
-    commands,
-    Array.map(({ name }) => name),
-    Array.sort(Order.String),
-  )
+  const remaining: Array<AnyCommand> = [...commands]
+  const unmatched: Array<CommandMatcher> = []
 
-  if (!Array.makeEquivalence(Equivalence.String)(expectedNames, actualNames)) {
-    const expected = pipe(
-      expectedNames,
-      Array.map(name => `    ${name}`),
-      Array.join('\n'),
+  for (const matcher of matchers) {
+    const index = remaining.findIndex(command =>
+      commandMatches(matcher, command),
     )
-    const actual = Array.isReadonlyArrayNonEmpty(actualNames)
-      ? pipe(
-          actualNames,
-          Array.map(name => `    ${name}`),
-          Array.join('\n'),
-        )
-      : '    (none)'
+    if (index === -1) {
+      unmatched.push(matcher)
+    } else {
+      remaining.splice(index, 1)
+    }
+  }
+
+  if (
+    Array.isReadonlyArrayNonEmpty(unmatched) ||
+    Array.isReadonlyArrayNonEmpty(remaining)
+  ) {
+    const expected = formatMatcherList(
+      pipe(
+        matchers,
+        Array.map(matcher => formatMatcher(matcher)),
+        Array.sort(Order.String),
+        Array.map((line): CommandMatcher => ({ name: line })),
+      ),
+    )
+    const actual = formatCommandList(
+      pipe(
+        commands,
+        Array.map(command => formatCommand(command)),
+        Array.sort(Order.String),
+        Array.map((line): AnyCommand => ({ name: line })),
+      ),
+    )
+
     throw new Error(
       `Expected exactly these Commands:\n\n${expected}\n\nBut found:\n\n${actual}`,
     )
@@ -207,12 +368,9 @@ export const assertZeroCommands = (
   commands: ReadonlyArray<AnyCommand>,
 ): void => {
   if (Array.isReadonlyArrayNonEmpty(commands)) {
-    const pending = pipe(
-      commands,
-      Array.map(({ name }) => `    ${name}`),
-      Array.join('\n'),
+    throw new Error(
+      `Expected no Commands but found:\n\n${formatCommandList(commands)}`,
     )
-    throw new Error(`Expected no Commands but found:\n\n${pending}`)
   }
 }
 
@@ -222,15 +380,10 @@ export const assertNoUnresolvedCommands = (
   context: string,
 ): void => {
   if (Array.isReadonlyArrayNonEmpty(commands)) {
-    const names = pipe(
-      commands,
-      Array.map(({ name }) => `    ${name}`),
-      Array.join('\n'),
-    )
     throw new Error(
-      `I found unresolved Commands ${context}:\n\n${names}\n\n` +
+      `I found unresolved Commands ${context}:\n\n${formatCommandList(commands)}\n\n` +
         'Resolve all Commands before sending the next Message.\n' +
-        'Use resolve(Definition, ResultMessage) for each one,\n' +
+        'Use resolve(Definition | instance, ResultMessage) for each one,\n' +
         'or resolveAll(...resolvers) to resolve them all at once.',
     )
   }
@@ -241,15 +394,10 @@ export const assertAllCommandsResolved = (
   commands: ReadonlyArray<AnyCommand>,
 ): void => {
   if (Array.isReadonlyArrayNonEmpty(commands)) {
-    const names = pipe(
-      commands,
-      Array.map(({ name }) => `    ${name}`),
-      Array.join('\n'),
-    )
     throw new Error(
-      `I found Commands without resolvers:\n\n${names}\n\n` +
+      `I found Commands without resolvers:\n\n${formatCommandList(commands)}\n\n` +
         'Every Command produced by update needs to be resolved.\n' +
-        'Use resolve(Definition, ResultMessage) for each one,\n' +
+        'Use resolve(Definition | instance, ResultMessage) for each one,\n' +
         'or resolveAll(...resolvers) to resolve them all at once.',
     )
   }

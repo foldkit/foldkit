@@ -16,7 +16,7 @@ export {
   StartedLoadApiData,
   SucceededLoadApiData,
 } from './message'
-export { LoadApiData, loadApiData } from './command'
+export { LoadApiData } from './command'
 export { init } from './init'
 export { update } from './update'
 export { failureView, skeletonView, view } from './view'

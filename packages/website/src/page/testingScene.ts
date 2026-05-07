@@ -636,6 +636,17 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Scene.Command.expectHas'),
         ' when you only care about a subset of the pending Commands.',
       ),
+      para(
+        'Each matcher accepts either a Command Definition (matches by name) or a Command instance (matches by name AND structural-equal args). Pass a Definition when the test only cares that the Command was dispatched; pass an instance when the args are part of what the test is verifying. ',
+        inlineCode(
+          "Scene.Command.expectExact(FetchWeather({ zipCode: '90210' }))",
+        ),
+        ' fails if the runtime dispatched ',
+        inlineCode("FetchWeather({ zipCode: '99999' })"),
+        ', where the same call with just ',
+        inlineCode('FetchWeather'),
+        ' would pass.',
+      ),
       tableOfContentsEntryToHeader(mountsHeader),
       para(
         'When a rendered view contains an ',

@@ -2,12 +2,13 @@ import {
   Array as Array_,
   Function,
   Match as M,
+  Option,
   Predicate,
   Record,
 } from 'effect'
 
-import type { SerializedEntry } from './protocol.js'
-import type { HistoryEntry } from './store.js'
+import type { SerializedCommand, SerializedEntry } from './protocol.js'
+import type { CommandRecord, HistoryEntry } from './store.js'
 import { extractSubmodelInfo } from './submodelPath.js'
 
 const inspectableCache = new WeakMap<object, unknown>()
@@ -62,6 +63,18 @@ export const toInspectableValue = (value: unknown): unknown => {
 }
 
 /**
+ * Convert a runtime `CommandRecord` to its wire shape. Args are wrapped in an
+ * `Option` so `None` cleanly distinguishes argless Commands from Commands that
+ * happen to have an empty args record.
+ */
+export const toSerializedCommand = (
+  command: CommandRecord,
+): SerializedCommand => ({
+  name: command.name,
+  args: Option.fromNullishOr(command.args),
+})
+
+/**
  * Convert a `HistoryEntry` plus its absolute index into the wire-friendly
  * `SerializedEntry` shape. Flattens the diff's `HashSet` path collections to
  * plain string arrays for JSON transmission and runs the message body through
@@ -80,7 +93,7 @@ export const toSerializedEntry = (
     index,
     tag: entry.tag,
     message: toInspectableValue(entry.message),
-    commandNames: entry.commandNames,
+    commands: Array_.map(entry.commands, toSerializedCommand),
     mountStartNames: entry.mountStartNames,
     mountEndNames: entry.mountEndNames,
     timestamp: entry.timestamp,

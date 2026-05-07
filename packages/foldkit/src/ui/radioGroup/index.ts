@@ -77,7 +77,16 @@ export const init = (config: InitConfig): Model => ({
 const optionId = (id: string, index: number): string => `${id}-option-${index}`
 
 /** Moves focus to the radio option at the given index. */
-export const FocusOption = Command.define('FocusOption', CompletedFocusOption)
+export const FocusOption = Command.define(
+  'FocusOption',
+  { id: S.String, index: S.Number },
+  CompletedFocusOption,
+)(({ id, index }) =>
+  Dom.focus(`#${optionId(id, index)}`).pipe(
+    Effect.ignore,
+    Effect.as(CompletedFocusOption()),
+  ),
+)
 
 /** Processes a radio group message and returns the next model and commands. */
 export const update = (
@@ -89,21 +98,10 @@ export const update = (
       readonly [Model, ReadonlyArray<Command.Command<Message>>]
     >(),
     M.tagsExhaustive({
-      SelectedOption: ({ value, index }) => {
-        const selector = `#${optionId(model.id, index)}`
-
-        return [
-          evo(model, { selectedValue: () => Option.some(value) }),
-          [
-            FocusOption(
-              Dom.focus(selector).pipe(
-                Effect.ignore,
-                Effect.as(CompletedFocusOption()),
-              ),
-            ),
-          ],
-        ]
-      },
+      SelectedOption: ({ value, index }) => [
+        evo(model, { selectedValue: () => Option.some(value) }),
+        [FocusOption({ id: model.id, index })],
+      ],
       CompletedFocusOption: () => [model, []],
     }),
   )

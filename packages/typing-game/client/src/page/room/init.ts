@@ -2,7 +2,7 @@ import { Array, Option, pipe } from 'effect'
 import { Command } from 'foldkit'
 
 import { AppRoute } from '../../route'
-import { getRoomById, loadSessionFromStorage } from './command'
+import { FetchRoom, LoadSession } from './command'
 import { Message } from './message'
 import { Model, RoomRemoteData } from './model'
 
@@ -12,8 +12,8 @@ export const init = (route: AppRoute): InitReturn => {
     route,
     Option.liftPredicate(route => route._tag === 'Room'),
     Option.map(({ roomId }) => [
-      loadSessionFromStorage(roomId),
-      getRoomById(roomId),
+      LoadSession({ roomId }),
+      FetchRoom({ roomId }),
     ]),
     Array.fromOption,
     Array.flatten,

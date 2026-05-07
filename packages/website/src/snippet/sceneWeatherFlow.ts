@@ -10,7 +10,8 @@ test('type a zip code, click get weather, see the forecast', () => {
     Scene.click(Scene.role('button', { name: 'Get Weather' })),
     Scene.expect(Scene.role('button', { name: 'Loading...' })).toExist(),
 
-    Scene.Command.expectExact(FetchWeather),
+    // Instance form: locks in the zipCode the runtime captured.
+    Scene.Command.expectExact(FetchWeather({ zipCode: '90210' })),
     Scene.Command.resolve(
       FetchWeather,
       SucceededFetchWeather({ weather: beverlyHillsWeather }),

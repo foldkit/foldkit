@@ -114,22 +114,19 @@ export const init = (config: InitConfig): Model => ({
 
 // UPDATE
 
-export const ApplyScroll = Command.define('ApplyScroll', CompletedApplyScroll)
-
-const applyScroll = (
-  id: string,
-  scrollTop: number,
-  version: number,
-): Command.Command<Message> =>
-  ApplyScroll(
-    Effect.sync(() => {
-      const element = document.getElementById(id)
-      if (element !== null) {
-        element.scrollTop = scrollTop
-      }
-      return CompletedApplyScroll({ version })
-    }),
-  )
+export const ApplyScroll = Command.define(
+  'ApplyScroll',
+  { id: S.String, scrollTop: S.Number, version: S.Number },
+  CompletedApplyScroll,
+)(({ id, scrollTop, version }) =>
+  Effect.sync(() => {
+    const element = document.getElementById(id)
+    if (element !== null) {
+      element.scrollTop = scrollTop
+    }
+    return CompletedApplyScroll({ version })
+  }),
+)
 
 /** Processes a virtual list message and returns the next model and commands. */
 export const update = (
@@ -162,7 +159,13 @@ export const update = (
                   version: nextVersion,
                 }),
             }),
-            [applyScroll(model.id, model.scrollTop, nextVersion)],
+            [
+              ApplyScroll({
+                id: model.id,
+                scrollTop: model.scrollTop,
+                version: nextVersion,
+              }),
+            ],
           ]
         } else {
           return [
@@ -193,7 +196,13 @@ const buildScrollToIndex = (
       pendingScrollVersion: () => nextVersion,
       pendingScroll: () => ScrollingToIndex({ index, version: nextVersion }),
     }),
-    [applyScroll(model.id, targetScrollTop, nextVersion)],
+    [
+      ApplyScroll({
+        id: model.id,
+        scrollTop: targetScrollTop,
+        version: nextVersion,
+      }),
+    ],
   ]
 }
 

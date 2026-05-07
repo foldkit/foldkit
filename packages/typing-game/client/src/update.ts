@@ -1,10 +1,10 @@
 import * as Shared from '@typing-game/shared'
-import { Effect, Match as M, Option } from 'effect'
+import { Effect, Match as M, Option, Schema as S } from 'effect'
 import { Command, Url } from 'foldkit'
 import { load, pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 
-import { navigateToRoom } from './command'
+import { NavigateToRoom } from './command'
 import {
   CompletedLoadExternal,
   CompletedNavigateInternal,
@@ -14,14 +14,19 @@ import {
 } from './message'
 import { Model } from './model'
 import { Home, Room } from './page'
-import { savePlayerSession } from './page/room/command'
 import { urlToAppRoute } from './route'
 
 const NavigateInternal = Command.define(
   'NavigateInternal',
+  { url: S.String },
   CompletedNavigateInternal,
-)
-const LoadExternal = Command.define('LoadExternal', CompletedLoadExternal)
+)(({ url }) => pushUrl(url).pipe(Effect.as(CompletedNavigateInternal())))
+
+const LoadExternal = Command.define(
+  'LoadExternal',
+  { href: S.String },
+  CompletedLoadExternal,
+)(({ href }) => load(href).pipe(Effect.as(CompletedLoadExternal())))
 
 export type UpdateReturn<Model, Message> = [
   Model,
@@ -42,22 +47,9 @@ export const update = (
           M.tagsExhaustive({
             Internal: ({ url }) => [
               model,
-              [
-                NavigateInternal(
-                  pushUrl(Url.toString(url)).pipe(
-                    Effect.as(CompletedNavigateInternal()),
-                  ),
-                ),
-              ],
+              [NavigateInternal({ url: Url.toString(url) })],
             ],
-            External: ({ href }) => [
-              model,
-              [
-                LoadExternal(
-                  load(href).pipe(Effect.as(CompletedLoadExternal())),
-                ),
-              ],
-            ],
+            External: ({ href }) => [model, [LoadExternal({ href })]],
           }),
         ),
 
@@ -140,7 +132,6 @@ const handleRoomJoined = (
   roomId: string,
   player: Shared.Player,
 ): UpdateReturn<Model, Message> => {
-  const session = { roomId, player }
   const [nextRoomModel, roomCommands] = Room.update(
     model.room,
     Room.Message.SucceededJoinRoom({ roomId, player }),
@@ -149,8 +140,7 @@ const handleRoomJoined = (
   return [
     evo(model, { room: () => nextRoomModel }),
     [
-      navigateToRoom(roomId),
-      savePlayerSession(session),
+      NavigateToRoom({ roomId }),
       ...roomCommands.map(
         Command.mapEffect(Effect.map(message => GotRoomMessage({ message }))),
       ),

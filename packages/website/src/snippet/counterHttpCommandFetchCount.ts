@@ -1,25 +1,34 @@
-import { Effect } from 'effect'
+import { Effect, Schema as S } from 'effect'
+import {
+  FetchHttpClient,
+  HttpClient,
+  HttpClientRequest,
+} from 'effect/unstable/http'
 import { Command } from 'foldkit'
+
+const CountResponse = S.Struct({ count: S.Number })
 
 const FetchCount = Command.define(
   'FetchCount',
   SucceededFetchCount,
   FailedFetchCount,
-)
-
-const fetchCount = FetchCount(
+)(
   Effect.gen(function* () {
-    const result = yield* Effect.tryPromise(() =>
-      fetch('/api/count').then(res => {
-        if (!res.ok) throw new Error('API request failed')
-        return res.json() as unknown as { count: number }
-      }),
-    )
+    const client = yield* HttpClient.HttpClient
+    const response = yield* client.execute(HttpClientRequest.get('/api/count'))
 
-    return SucceededFetchCount({ count: result.count })
+    if (response.status !== 200) {
+      return yield* Effect.fail('API request failed')
+    }
+
+    const { count } = yield* S.decodeUnknownEffect(CountResponse)(
+      yield* response.json,
+    )
+    return SucceededFetchCount({ count })
   }).pipe(
     Effect.catch(error =>
-      Effect.succeed(FailedFetchCount({ error: error.message })),
+      Effect.succeed(FailedFetchCount({ error: String(error) })),
     ),
+    Effect.provide(FetchHttpClient.layer),
   ),
 )

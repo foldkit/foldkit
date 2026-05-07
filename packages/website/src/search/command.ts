@@ -1,10 +1,11 @@
-import { Array, Context, Effect, Layer } from 'effect'
-import { Command, Dom } from 'foldkit'
+import { Array, Context, Effect, Layer, Schema as S } from 'effect'
+import { Command } from 'foldkit'
+import * as Dom from 'foldkit/dom'
 import { pushUrl } from 'foldkit/navigation'
 
 import {
   CompletedFocusSearchInput,
-  CompletedNavigateSearch,
+  CompletedNavigateToResult,
   CompletedScrollToResult,
   ReceivedSearchResults,
   SearchResult,
@@ -55,71 +56,66 @@ export class PagefindService extends Context.Service<
 
 export const FetchSearchResults = Command.define(
   'FetchSearchResults',
+  { query: S.String },
   ReceivedSearchResults,
+)(({ query }) =>
+  Effect.gen(function* () {
+    const pagefind = yield* PagefindService
+
+    const searchResponse = yield* Effect.tryPromise({
+      try: () => pagefind.search(query),
+      catch: () => new Error('Pagefind search failed'),
+    })
+
+    const topResults = Array.take(searchResponse.results, MAX_RESULTS)
+
+    const loadedResults = yield* Effect.tryPromise({
+      try: () => Promise.all(topResults.map(result => result.data())),
+      catch: () => new Error('Failed to load result data'),
+    })
+
+    const results = Array.map(loadedResults, data =>
+      SearchResult.make({
+        url: data.url,
+        title: data.meta?.title ?? 'Untitled',
+        excerpt: data.excerpt,
+        section: data.meta?.section ?? '',
+      }),
+    )
+
+    return ReceivedSearchResults({ results, query })
+  }).pipe(
+    Effect.catch(() =>
+      Effect.succeed(ReceivedSearchResults({ results: [], query })),
+    ),
+  ),
 )
+
 export const ScrollToResult = Command.define(
   'ScrollToResult',
+  { index: S.Number },
   CompletedScrollToResult,
+)(({ index }) =>
+  Dom.scrollIntoView(`${SEARCH_RESULT_SELECTOR}"${index}"]`).pipe(
+    Effect.ignore,
+    Effect.as(CompletedScrollToResult()),
+  ),
 )
+
 export const NavigateToResult = Command.define(
   'NavigateToResult',
-  CompletedNavigateSearch,
-)
+  { url: S.String },
+  CompletedNavigateToResult,
+)(({ url }) => pushUrl(url).pipe(Effect.as(CompletedNavigateToResult())))
+
 export const FocusSearchInput = Command.define(
   'FocusSearchInput',
   CompletedFocusSearchInput,
-)
-
-export const focusSearchInput = FocusSearchInput(
+)(
   Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
     Effect.ignore,
     Effect.as(CompletedFocusSearchInput()),
   ),
 )
-
-export const searchPagefind = (query: string) =>
-  FetchSearchResults(
-    Effect.gen(function* () {
-      const pagefind = yield* PagefindService
-
-      const searchResponse = yield* Effect.tryPromise({
-        try: () => pagefind.search(query),
-        catch: () => new Error('Pagefind search failed'),
-      })
-
-      const topResults = Array.take(searchResponse.results, MAX_RESULTS)
-
-      const loadedResults = yield* Effect.tryPromise({
-        try: () => Promise.all(topResults.map(result => result.data())),
-        catch: () => new Error('Failed to load result data'),
-      })
-
-      const results = Array.map(loadedResults, data =>
-        SearchResult.make({
-          url: data.url,
-          title: data.meta?.title ?? 'Untitled',
-          excerpt: data.excerpt,
-          section: data.meta?.section ?? '',
-        }),
-      )
-
-      return ReceivedSearchResults({ results, query })
-    }).pipe(
-      Effect.catch(() =>
-        Effect.succeed(ReceivedSearchResults({ results: [], query })),
-      ),
-    ),
-  )
-
-export const scrollActiveResultIntoView = (index: number) =>
-  ScrollToResult(
-    Dom.scrollIntoView(`${SEARCH_RESULT_SELECTOR}"${index}"]`).pipe(
-      Effect.ignore,
-      Effect.as(CompletedScrollToResult()),
-    ),
-  )
-
-export const navigateToResult = (url: string) =>
-  NavigateToResult(pushUrl(url).pipe(Effect.as(CompletedNavigateSearch())))
 
 export { SEARCH_INPUT_ID }

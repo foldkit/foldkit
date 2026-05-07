@@ -78,23 +78,19 @@ export type Message = typeof Message.Type
 
 export const LoadExampleSources = Command.define(
   'LoadExampleSources',
+  { slug: S.String },
   SucceededLoadExampleSources,
   FailedLoadExampleSources,
+)(({ slug }) =>
+  Effect.tryPromise({
+    try: () => loadSourcesForSlug(slug),
+    catch: error =>
+      error instanceof Error ? error.message : `Unknown example: ${slug}`,
+  }).pipe(
+    Effect.map(sources => SucceededLoadExampleSources({ sources })),
+    Effect.catch(error => Effect.succeed(FailedLoadExampleSources({ error }))),
+  ),
 )
-
-const loadExampleSources = (slug: string) =>
-  LoadExampleSources(
-    Effect.tryPromise({
-      try: () => loadSourcesForSlug(slug),
-      catch: error =>
-        error instanceof Error ? error.message : `Unknown example: ${slug}`,
-    }).pipe(
-      Effect.map(sources => SucceededLoadExampleSources({ sources })),
-      Effect.catch(error =>
-        Effect.succeed(FailedLoadExampleSources({ error })),
-      ),
-    ),
-  )
 
 // INIT
 
@@ -166,7 +162,7 @@ export const update = (
           maybeExampleUrl: () => Option.none(),
           currentSources: () => CurrentSourcesRemoteData.Loading(),
         }),
-        [loadExampleSources(slug)],
+        [LoadExampleSources({ slug })],
       ],
 
       SucceededLoadExampleSources: ({ sources }) => [

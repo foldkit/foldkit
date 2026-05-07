@@ -114,10 +114,15 @@ export const computeDiff = (
 
 // STORE
 
+export type CommandRecord = Readonly<{
+  name: string
+  args?: Record<string, unknown>
+}>
+
 export type HistoryEntry = Readonly<{
   tag: string
   message: unknown
-  commandNames: ReadonlyArray<string>
+  commands: ReadonlyArray<CommandRecord>
   mountStartNames: ReadonlyArray<string>
   mountEndNames: ReadonlyArray<string>
   timestamp: number
@@ -129,7 +134,7 @@ export type StoreState = Readonly<{
   entries: ReadonlyArray<HistoryEntry>
   keyframes: HashMap.HashMap<number, unknown>
   maybeInitModel: Option.Option<unknown>
-  initCommandNames: ReadonlyArray<string>
+  initCommands: ReadonlyArray<CommandRecord>
   initMountStartNames: ReadonlyArray<string>
   startIndex: number
   isPaused: boolean
@@ -147,7 +152,7 @@ const emptyState: StoreState = {
   entries: [],
   keyframes: HashMap.empty(),
   maybeInitModel: Option.none(),
-  initCommandNames: [],
+  initCommands: [],
   initMountStartNames: [],
   startIndex: 0,
   isPaused: false,
@@ -213,13 +218,13 @@ export const createDevToolsStore = (
 
     const recordInit = (
       model: unknown,
-      commandNames: ReadonlyArray<string>,
+      commands: ReadonlyArray<CommandRecord>,
       mountStartNames: ReadonlyArray<string> = [],
     ) =>
       SubscriptionRef.update(stateRef, state => ({
         ...state,
         maybeInitModel: Option.some(model),
-        initCommandNames: commandNames,
+        initCommands: commands,
         initMountStartNames: mountStartNames,
         keyframes: HashMap.set(state.keyframes, 0, model),
         maybeLatestModel: Option.some(model),
@@ -229,7 +234,7 @@ export const createDevToolsStore = (
       message: Readonly<{ _tag: string }>,
       modelBeforeUpdate: unknown,
       modelAfterUpdate: unknown,
-      commandNames: ReadonlyArray<string>,
+      commands: ReadonlyArray<CommandRecord>,
       isModelChanged: boolean,
     ) =>
       SubscriptionRef.update(stateRef, state => {
@@ -246,7 +251,7 @@ export const createDevToolsStore = (
           entries: Array.append(state.entries, {
             tag: message._tag,
             message,
-            commandNames,
+            commands,
             mountStartNames: [],
             mountEndNames: [],
             timestamp: performance.now(),
@@ -379,7 +384,7 @@ export const createDevToolsStore = (
     const clear = SubscriptionRef.update(stateRef, state => ({
       ...emptyState,
       maybeInitModel: state.maybeInitModel,
-      initCommandNames: state.initCommandNames,
+      initCommands: state.initCommands,
       initMountStartNames: state.initMountStartNames,
       keyframes: Option.match(state.maybeInitModel, {
         onNone: () => HashMap.empty(),
@@ -424,14 +429,14 @@ export const createDevToolsStore = (
 export type DevToolsStore = Readonly<{
   recordInit: (
     model: unknown,
-    commandNames: ReadonlyArray<string>,
+    commands: ReadonlyArray<CommandRecord>,
     mountStartNames?: ReadonlyArray<string>,
   ) => Effect.Effect<void>
   recordMessage: (
     message: Readonly<{ _tag: string }>,
     modelBeforeUpdate: unknown,
     modelAfterUpdate: unknown,
-    commandNames: ReadonlyArray<string>,
+    commands: ReadonlyArray<CommandRecord>,
     isModelChanged: boolean,
   ) => Effect.Effect<void>
   attachRenderedMounts: (

@@ -283,39 +283,99 @@ type SelectedItemContext<Model extends BaseModel> = Readonly<{
 }>
 
 /** Prevents page scrolling while the listbox is open in modal mode. */
-export const LockScroll = Command.define('LockScroll', CompletedLockScroll)
+export const LockScroll = Command.define(
+  'LockScroll',
+  CompletedLockScroll,
+)(Dom.lockScroll.pipe(Effect.as(CompletedLockScroll())))
 /** Re-enables page scrolling after the listbox closes. */
 export const UnlockScroll = Command.define(
   'UnlockScroll',
   CompletedUnlockScroll,
-)
+)(Dom.unlockScroll.pipe(Effect.as(CompletedUnlockScroll())))
 /** Marks all elements outside the listbox as inert for modal behavior. */
-export const InertOthers = Command.define('InertOthers', CompletedSetupInert)
+export const InertOthers = Command.define(
+  'InertOthers',
+  { id: S.String },
+  CompletedSetupInert,
+)(({ id }) =>
+  Dom.inertOthers(id, [buttonSelector(id), itemsSelector(id)]).pipe(
+    Effect.as(CompletedSetupInert()),
+  ),
+)
 /** Removes the inert attribute from elements outside the listbox. */
 export const RestoreInert = Command.define(
   'RestoreInert',
+  { id: S.String },
   CompletedTeardownInert,
-)
+)(({ id }) => Dom.restoreInert(id).pipe(Effect.as(CompletedTeardownInert())))
 /** Moves focus back to the listbox button after closing. */
-export const FocusButton = Command.define('FocusButton', CompletedFocusButton)
+export const FocusButton = Command.define(
+  'FocusButton',
+  { id: S.String },
+  CompletedFocusButton,
+)(({ id }) =>
+  Dom.focus(buttonSelector(id)).pipe(
+    Effect.ignore,
+    Effect.as(CompletedFocusButton()),
+  ),
+)
 /** Moves focus to the listbox items container after opening. */
-export const FocusItems = Command.define('FocusItems', CompletedFocusItems)
+export const FocusItems = Command.define(
+  'FocusItems',
+  { id: S.String },
+  CompletedFocusItems,
+)(({ id }) =>
+  Dom.focus(itemsSelector(id)).pipe(
+    Effect.ignore,
+    Effect.as(CompletedFocusItems()),
+  ),
+)
 /** Scrolls the active listbox item into view after keyboard navigation. */
 export const ScrollIntoView = Command.define(
   'ScrollIntoView',
+  { id: S.String, index: S.Number },
   CompletedScrollIntoView,
+)(({ id, index }) =>
+  Dom.scrollIntoView(itemSelector(id, index)).pipe(
+    Effect.ignore,
+    Effect.as(CompletedScrollIntoView()),
+  ),
 )
 /** Programmatically clicks the active listbox item's DOM element. */
-export const ClickItem = Command.define('ClickItem', CompletedClickItem)
+export const ClickItem = Command.define(
+  'ClickItem',
+  { id: S.String, index: S.Number },
+  CompletedClickItem,
+)(({ id, index }) =>
+  Dom.clickElement(itemSelector(id, index)).pipe(
+    Effect.ignore,
+    Effect.as(CompletedClickItem()),
+  ),
+)
 /** Waits for the typeahead search debounce period before clearing the query. */
 export const DelayClearSearch = Command.define(
   'DelayClearSearch',
+  { version: S.Number },
   ClearedSearch,
+)(({ version }) =>
+  Effect.sleep(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
+    Effect.as(ClearedSearch({ version })),
+  ),
 )
-/** Detects whether the listbox button moved or the leave animation ended — whichever comes first. Both outcomes signal the Animation submodel that leave is complete. */
+/** Detects whether the listbox button moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation submodel that leave is complete. */
 export const DetectMovementOrAnimationEnd = Command.define(
   'DetectMovementOrAnimationEnd',
+  { id: S.String },
   GotAnimationMessage,
+)(({ id }) =>
+  Effect.raceFirst(
+    Dom.detectElementMovement(buttonSelector(id)).pipe(
+      Effect.as(GotAnimationMessage({ message: AnimationEndedAnimation() })),
+    ),
+    Dom.waitForAnimationSettled(itemsSelector(id)).pipe(
+      Effect.as(GotAnimationMessage({ message: AnimationEndedAnimation() })),
+    ),
+  ),
 )
 
 export const makeUpdate = <Model extends BaseModel>(
@@ -348,24 +408,7 @@ export const makeUpdate = <Model extends BaseModel>(
       onSome: M.type<AnimationOutMessage>().pipe(
         M.tagsExhaustive({
           StartedLeaveAnimating: () => [
-            DetectMovementOrAnimationEnd(
-              Effect.raceFirst(
-                Dom.detectElementMovement(buttonSelector(model.id)).pipe(
-                  Effect.as(
-                    GotAnimationMessage({
-                      message: AnimationEndedAnimation(),
-                    }),
-                  ),
-                ),
-                Dom.waitForAnimationSettled(itemsSelector(model.id)).pipe(
-                  Effect.as(
-                    GotAnimationMessage({
-                      message: AnimationEndedAnimation(),
-                    }),
-                  ),
-                ),
-              ),
-            ),
+            DetectMovementOrAnimationEnd({ id: model.id }),
           ],
           TransitionedOut: () => [],
         }),
@@ -414,46 +457,19 @@ export const makeUpdate = <Model extends BaseModel>(
   }
 
   return (model: Model, message: Message): UpdateReturn => {
-    const maybeLockScroll = OptionExt.when(
-      model.isModal,
-      LockScroll(Dom.lockScroll.pipe(Effect.as(CompletedLockScroll()))),
-    )
-
-    const maybeUnlockScroll = OptionExt.when(
-      model.isModal,
-      UnlockScroll(Dom.unlockScroll.pipe(Effect.as(CompletedUnlockScroll()))),
-    )
-
+    const maybeLockScroll = OptionExt.when(model.isModal, LockScroll())
+    const maybeUnlockScroll = OptionExt.when(model.isModal, UnlockScroll())
     const maybeInertOthers = OptionExt.when(
       model.isModal,
-      InertOthers(
-        Dom.inertOthers(model.id, [
-          buttonSelector(model.id),
-          itemsSelector(model.id),
-        ]).pipe(Effect.as(CompletedSetupInert())),
-      ),
+      InertOthers({ id: model.id }),
     )
-
     const maybeRestoreInert = OptionExt.when(
       model.isModal,
-      RestoreInert(
-        Dom.restoreInert(model.id).pipe(Effect.as(CompletedTeardownInert())),
-      ),
+      RestoreInert({ id: model.id }),
     )
 
-    const focusButton = FocusButton(
-      Dom.focus(buttonSelector(model.id)).pipe(
-        Effect.ignore,
-        Effect.as(CompletedFocusButton()),
-      ),
-    )
-
-    const focusItems = FocusItems(
-      Dom.focus(itemsSelector(model.id)).pipe(
-        Effect.ignore,
-        Effect.as(CompletedFocusItems()),
-      ),
-    )
+    const focusButton = FocusButton({ id: model.id })
+    const focusItems = FocusItems({ id: model.id })
 
     const openCommands = [
       ...Array.getSomes([maybeLockScroll, maybeInertOthers]),
@@ -510,14 +526,7 @@ export const makeUpdate = <Model extends BaseModel>(
             activationTrigger: () => activationTrigger,
           }),
           activationTrigger === 'Keyboard'
-            ? [
-                ScrollIntoView(
-                  Dom.scrollIntoView(itemSelector(model.id, index)).pipe(
-                    Effect.ignore,
-                    Effect.as(CompletedScrollIntoView()),
-                  ),
-                ),
-              ]
+            ? [ScrollIntoView({ id: model.id, index })]
             : [],
         ],
 
@@ -562,14 +571,7 @@ export const makeUpdate = <Model extends BaseModel>(
 
         RequestedItemClick: ({ index }) => [
           model,
-          [
-            ClickItem(
-              Dom.clickElement(itemSelector(model.id, index)).pipe(
-                Effect.ignore,
-                Effect.as(CompletedClickItem()),
-              ),
-            ),
-          ],
+          [ClickItem({ id: model.id, index })],
         ],
 
         Searched: ({ key, maybeTargetIndex }) => {
@@ -586,13 +588,7 @@ export const makeUpdate = <Model extends BaseModel>(
                   () => model.maybeActiveItemIndex,
                 ),
             }),
-            [
-              DelayClearSearch(
-                Effect.sleep(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
-                  Effect.as(ClearedSearch({ version: nextSearchVersion })),
-                ),
-              ),
-            ],
+            [DelayClearSearch({ version: nextSearchVersion })],
           ]
         },
 

@@ -5,7 +5,7 @@ import { FetchSearchResults, NavigateToResult, ScrollToResult } from './command'
 import { init } from './init'
 import {
   ClearedSearchQuery,
-  CompletedNavigateSearch,
+  CompletedNavigateToResult,
   CompletedScrollToResult,
   PressedArrowKey,
   ReceivedSearchResults,
@@ -130,7 +130,7 @@ describe('search', () => {
         expect(model.searchState._tag).toBe('Idle')
       }),
       Story.Command.expectHas(NavigateToResult),
-      Story.Command.resolve(NavigateToResult, CompletedNavigateSearch()),
+      Story.Command.resolve(NavigateToResult, CompletedNavigateToResult()),
       Story.model(model => {
         expect(model.query).toBe('')
       }),

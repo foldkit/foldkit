@@ -88,7 +88,9 @@ describe('toSerializedEntry', () => {
   const baseEntry: HistoryEntry = {
     tag: 'ClickedButton',
     message: { _tag: 'ClickedButton', label: 'Submit' },
-    commandNames: ['SubmitForm'],
+    commands: [{ name: 'SubmitForm' }],
+    mountStartNames: [],
+    mountEndNames: [],
     timestamp: 1700000000000,
     isModelChanged: true,
     diff: {
@@ -97,13 +99,30 @@ describe('toSerializedEntry', () => {
     },
   }
 
-  it('preserves the tag, commandNames, timestamp, and isModelChanged fields', () => {
+  it('preserves the tag, commands, timestamp, and isModelChanged fields', () => {
     const result = toSerializedEntry(baseEntry, 7)
     expect(result.index).toBe(7)
     expect(result.tag).toBe('ClickedButton')
-    expect(result.commandNames).toEqual(['SubmitForm'])
+    expect(result.commands).toEqual([
+      { name: 'SubmitForm', args: Option.none() },
+    ])
     expect(result.timestamp).toBe(1700000000000)
     expect(result.isModelChanged).toBe(true)
+  })
+
+  it('serializes Command args alongside the name', () => {
+    const entryWithArgs: HistoryEntry = {
+      ...baseEntry,
+      commands: [
+        { name: 'FetchWeather', args: { zipCode: '90210' } },
+        { name: 'LockScroll' },
+      ],
+    }
+    const result = toSerializedEntry(entryWithArgs, 0)
+    expect(result.commands).toEqual([
+      { name: 'FetchWeather', args: Option.some({ zipCode: '90210' }) },
+      { name: 'LockScroll', args: Option.none() },
+    ])
   })
 
   it('flattens the diff HashSets to plain string arrays', () => {

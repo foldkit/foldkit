@@ -131,9 +131,15 @@ const init: Runtime.RoutingProgramInit<Model, Message> = (url: Url) => {
 
 const NavigateInternal = Command.define(
   'NavigateInternal',
+  { url: S.String },
   CompletedNavigateInternal,
-)
-const LoadExternal = Command.define('LoadExternal', CompletedLoadExternal)
+)(({ url }) => pushUrl(url).pipe(Effect.as(CompletedNavigateInternal())))
+
+const LoadExternal = Command.define(
+  'LoadExternal',
+  { href: S.String },
+  CompletedLoadExternal,
+)(({ href }) => load(href).pipe(Effect.as(CompletedLoadExternal())))
 
 // UPDATE
 
@@ -165,23 +171,10 @@ const update = (
           M.tagsExhaustive({
             Internal: ({ url }) => [
               model,
-              [
-                NavigateInternal(
-                  pushUrl(urlToString(url)).pipe(
-                    Effect.as(CompletedNavigateInternal()),
-                  ),
-                ),
-              ],
+              [NavigateInternal({ url: urlToString(url) })],
             ],
 
-            External: ({ href }) => [
-              model,
-              [
-                LoadExternal(
-                  load(href).pipe(Effect.as(CompletedLoadExternal())),
-                ),
-              ],
-            ],
+            External: ({ href }) => [model, [LoadExternal({ href })]],
           }),
         ),
 

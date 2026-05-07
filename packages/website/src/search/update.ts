@@ -3,11 +3,11 @@ import { Command, Ui } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import {
+  FetchSearchResults,
+  FocusSearchInput,
+  NavigateToResult,
   type PagefindService,
-  focusSearchInput,
-  navigateToResult,
-  scrollActiveResultIntoView,
-  searchPagefind,
+  ScrollToResult,
 } from './command'
 import { GotSearchDialogMessage, type Message } from './message'
 import type { Model } from './model'
@@ -47,7 +47,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             searchState: () => Loading({ results: previousResults }),
             activeResultIndex: () => -1,
           }),
-          [searchPagefind(query)],
+          [FetchSearchResults({ query })],
         ]
       },
 
@@ -71,7 +71,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           searchState: () => Idle(),
           activeResultIndex: () => -1,
         }),
-        [navigateToResult(url)],
+        [NavigateToResult({ url })],
       ],
 
       GotSearchDialogMessage: ({ message }) => {
@@ -89,7 +89,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               }
             : {}
 
-        const focusOnOpen = message._tag === 'Opened' ? [focusSearchInput] : []
+        const focusOnOpen =
+          message._tag === 'Opened' ? [FocusSearchInput()] : []
 
         const mappedDialogCommands = dialogCommands.map(
           Command.mapEffect(
@@ -134,11 +135,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
         return [
           evo(model, { activeResultIndex: () => nextIndex }),
-          [scrollActiveResultIntoView(nextIndex)],
+          [ScrollToResult({ index: nextIndex })],
         ]
       },
 
-      CompletedNavigateSearch: () => [model, []],
+      CompletedNavigateToResult: () => [model, []],
       CompletedScrollToResult: () => [model, []],
       CompletedFocusSearchInput: () => [model, []],
     }),

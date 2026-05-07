@@ -43,11 +43,7 @@ export const Authenticate = Command.define(
   'Authenticate',
   SucceededAuthenticate,
   FailedAuthenticate,
-)
-
-const authenticate = Authenticate(
-  Effect.sync(() => SucceededAuthenticate({ username: 'alice' })),
-)
+)(Effect.sync(() => SucceededAuthenticate({ username: 'alice' })))
 
 // INIT
 
@@ -74,7 +70,7 @@ export const update = (
       UpdatedPassword: ({ value }) => [{ ...model, password: value }, []],
       SubmittedLogin: () => [
         { ...model, status: 'Submitting' },
-        [authenticate],
+        [Authenticate()],
       ],
       SucceededAuthenticate: ({ username }) => [
         { ...model, status: 'LoggedIn', username },

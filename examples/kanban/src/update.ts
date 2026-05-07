@@ -2,7 +2,7 @@ import { Array, Effect, Match as M, Option, String, pipe } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
-import { focusAddCardInput, generateCardId, saveBoard } from './command'
+import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
 import { Column } from './domain'
 import { GotDragAndDropMessage, type Message } from './message'
 import type { Model } from './model'
@@ -147,7 +147,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
                       announcement: () =>
                         screenReaderTextForDrop(model, outMessage),
                     }),
-                    [...mappedCommands, saveBoard(nextColumns)],
+                    [...mappedCommands, SaveBoard({ columns: nextColumns })],
                   ]
                 },
                 Cancelled: () => [
@@ -168,7 +168,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           maybeNewCardColumnId: () => Option.some(columnId),
           newCardTitle: () => '',
         }),
-        [focusAddCardInput],
+        [FocusAddCardInput()],
       ],
 
       ChangedNewCardTitle: ({ value }) => [
@@ -185,7 +185,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               return [model, []]
             }
 
-            return [model, [generateCardId(columnId, title)]]
+            return [
+              model,
+              [GenerateCardId({ columnId: columnId, title: title })],
+            ]
           },
         }),
 
@@ -208,7 +211,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             maybeNewCardColumnId: () => Option.none(),
             newCardTitle: () => '',
           }),
-          [saveBoard(nextColumns)],
+          [SaveBoard({ columns: nextColumns })],
         ]
       },
 

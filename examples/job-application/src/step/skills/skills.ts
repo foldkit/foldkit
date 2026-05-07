@@ -46,11 +46,10 @@ export const init = (initialEntryId: string): Model => ({
 
 // COMMAND
 
-export const AddEntry = Command.define('AddEntry', AddedEntry)
-
-const addEntry = AddEntry(
-  Random.nextUUIDv4.pipe(Effect.map(entryId => AddedEntry({ entryId }))),
-)
+export const AddEntry = Command.define(
+  'AddEntry',
+  AddedEntry,
+)(Random.nextUUIDv4.pipe(Effect.map(entryId => AddedEntry({ entryId }))))
 
 // UPDATE
 
@@ -70,7 +69,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     M.withReturnType<UpdateReturn>(),
     M.tagsExhaustive({
-      ClickedAddEntry: () => [model, [addEntry]],
+      ClickedAddEntry: () => [model, [AddEntry()]],
 
       AddedEntry: ({ entryId }) => [
         evo(model, {

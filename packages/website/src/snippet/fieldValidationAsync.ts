@@ -1,4 +1,4 @@
-import { Effect, Match as M, Number } from 'effect'
+import { Effect, Match as M, Number, Schema as S } from 'effect'
 import { Command } from 'foldkit'
 import { Invalid, Valid, Validating, validate } from 'foldkit/fieldValidation'
 import { evo } from 'foldkit/struct'
@@ -7,24 +7,22 @@ const validateEmail = validate(emailRules)
 
 const CheckEmailAvailable = Command.define(
   'CheckEmailAvailable',
+  { email: S.String, validationId: S.Number },
   ValidatedEmail,
+)(({ email, validationId }) =>
+  Effect.gen(function* () {
+    const isAvailable = yield* apiCheckEmail(email)
+    return ValidatedEmail({
+      validationId,
+      field: isAvailable
+        ? Valid({ value: email })
+        : Invalid({
+            value: email,
+            errors: ['This email is already taken'],
+          }),
+    })
+  }),
 )
-
-const checkEmailAvailable = (email: string, validationId: number) =>
-  CheckEmailAvailable(
-    Effect.gen(function* () {
-      const isAvailable = yield* apiCheckEmail(email)
-      return ValidatedEmail({
-        validationId,
-        field: isAvailable
-          ? Valid({ value: email })
-          : Invalid({
-              value: email,
-              errors: ['This email is already taken'],
-            }),
-      })
-    }),
-  )
 
 const update = (model: Model, message: Message) =>
   M.value(message).pipe(
@@ -39,7 +37,7 @@ const update = (model: Model, message: Message) =>
               email: () => Validating({ value }),
               emailValidationId: () => validationId,
             }),
-            [checkEmailAvailable(value, validationId)],
+            [CheckEmailAvailable({ email: value, validationId })],
           ]),
           M.orElse(() => [
             evo(model, {
