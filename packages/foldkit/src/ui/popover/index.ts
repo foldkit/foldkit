@@ -1,6 +1,7 @@
 import { Array, Effect, Equal, Match as M, Option, Schema as S } from 'effect'
 
 import * as Command from '../../command/index.js'
+import * as Dom from '../../dom/index.js'
 import { OptionExt } from '../../effectExtensions/index.js'
 import {
   type Attribute,
@@ -12,7 +13,6 @@ import {
 import { m } from '../../message/index.js'
 import * as Mount from '../../mount/index.js'
 import { evo } from '../../struct/index.js'
-import * as Task from '../../task/index.js'
 import { anchorSetup, portalToBody } from '../anchor.js'
 import type { AnchorConfig } from '../anchor.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
@@ -211,14 +211,14 @@ const delegateToAnimation = (
         StartedLeaveAnimating: () => [
           DetectMovementOrAnimationEnd(
             Effect.raceFirst(
-              Task.detectElementMovement(buttonSelector(model.id)).pipe(
+              Dom.detectElementMovement(buttonSelector(model.id)).pipe(
                 Effect.as(
                   GotAnimationMessage({
                     message: AnimationEndedAnimation(),
                   }),
                 ),
               ),
-              Task.waitForAnimationSettled(panelSelector(model.id)).pipe(
+              Dom.waitForAnimationSettled(panelSelector(model.id)).pipe(
                 Effect.as(
                   GotAnimationMessage({
                     message: AnimationEndedAnimation(),
@@ -243,18 +243,18 @@ const delegateToAnimation = (
 export const update = (model: Model, message: Message): UpdateReturn => {
   const maybeLockScroll = OptionExt.when(
     model.isModal,
-    LockScroll(Task.lockScroll.pipe(Effect.as(CompletedLockScroll()))),
+    LockScroll(Dom.lockScroll.pipe(Effect.as(CompletedLockScroll()))),
   )
 
   const maybeUnlockScroll = OptionExt.when(
     model.isModal,
-    UnlockScroll(Task.unlockScroll.pipe(Effect.as(CompletedUnlockScroll()))),
+    UnlockScroll(Dom.unlockScroll.pipe(Effect.as(CompletedUnlockScroll()))),
   )
 
   const maybeInertOthers = OptionExt.when(
     model.isModal,
     InertOthers(
-      Task.inertOthers(model.id, [
+      Dom.inertOthers(model.id, [
         buttonSelector(model.id),
         panelSelector(model.id),
       ]).pipe(Effect.as(CompletedSetupInert())),
@@ -264,12 +264,12 @@ export const update = (model: Model, message: Message): UpdateReturn => {
   const maybeRestoreInert = OptionExt.when(
     model.isModal,
     RestoreInert(
-      Task.restoreInert(model.id).pipe(Effect.as(CompletedTeardownInert())),
+      Dom.restoreInert(model.id).pipe(Effect.as(CompletedTeardownInert())),
     ),
   )
 
   const focusButton = FocusButton(
-    Task.focus(buttonSelector(model.id)).pipe(
+    Dom.focus(buttonSelector(model.id)).pipe(
       Effect.ignore,
       Effect.as(CompletedFocusButton()),
     ),

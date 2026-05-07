@@ -13,7 +13,7 @@ import {
   String as Str,
   pipe,
 } from 'effect'
-import { Command, FieldValidation, Task, Ui } from 'foldkit'
+import { Command, FieldValidation, Ui } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
@@ -207,7 +207,7 @@ const DelayAdvancePhase = Command.define(
 
 const delayAdvancePhase = (generation: number) =>
   DelayAdvancePhase(
-    Task.delay(PHASE_DURATION).pipe(
+    Effect.sleep(PHASE_DURATION).pipe(
       Effect.as(ProgressedNotePhase({ generation })),
     ),
   )

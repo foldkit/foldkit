@@ -1,6 +1,7 @@
 import { Effect, Match as M, Option, Schema as S } from 'effect'
 
 import * as Command from '../../command/index.js'
+import * as Dom from '../../dom/index.js'
 import {
   type Attribute,
   type Html,
@@ -9,7 +10,6 @@ import {
 } from '../../html/index.js'
 import { m } from '../../message/index.js'
 import { evo } from '../../struct/index.js'
-import * as Task from '../../task/index.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → dialog → animation.
 // The barrel (../animation) imports from html, which starts the cycle.
@@ -114,8 +114,8 @@ export const CloseDialog = Command.define('CloseDialog', CompletedCloseDialog)
 
 const closeDialog = (id: string): Command.Command<Message> =>
   CloseDialog(
-    Task.closeModal(dialogSelector(id)).pipe(
-      Effect.andThen(() => Task.unlockScroll),
+    Dom.closeModal(dialogSelector(id)).pipe(
+      Effect.andThen(() => Dom.unlockScroll),
       Effect.ignore,
       Effect.as(CompletedCloseDialog()),
     ),
@@ -171,9 +171,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
         const maybeShow = Option.liftPredicate(
           ShowDialog(
-            Task.lockScroll.pipe(
+            Dom.lockScroll.pipe(
               Effect.andThen(() =>
-                Task.showModal(dialogSelector(model.id), focusOptions),
+                Dom.showModal(dialogSelector(model.id), focusOptions),
               ),
               Effect.ignore,
               Effect.as(CompletedShowDialog()),

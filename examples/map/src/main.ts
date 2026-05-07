@@ -10,13 +10,12 @@ import {
   Stream,
   String,
 } from 'effect'
-import { Command, Mount, Runtime, Subscription } from 'foldkit'
+import { Command, Dom, Mount, Runtime, Subscription } from 'foldkit'
 import type { Document, Html, MountResult } from 'foldkit/html'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
-import * as Task from 'foldkit/task'
 import type { Map as MapInstance } from 'maplibre-gl'
 
 import { Location, featuredLocations } from './locations'
@@ -200,7 +199,7 @@ export const FocusSearchInput = Command.define(
 )
 
 const focusSearchInput = FocusSearchInput(
-  Task.focus(`#${SEARCH_INPUT_ID}`).pipe(
+  Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
     Effect.ignore,
     Effect.as(CompletedFocusSearchInput()),
   ),

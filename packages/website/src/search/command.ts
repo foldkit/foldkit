@@ -1,7 +1,6 @@
 import { Array, Context, Effect, Layer } from 'effect'
-import { Command } from 'foldkit'
+import { Command, Dom } from 'foldkit'
 import { pushUrl } from 'foldkit/navigation'
-import * as Task from 'foldkit/task'
 
 import {
   CompletedFocusSearchInput,
@@ -72,7 +71,7 @@ export const FocusSearchInput = Command.define(
 )
 
 export const focusSearchInput = FocusSearchInput(
-  Task.focus(`#${SEARCH_INPUT_ID}`).pipe(
+  Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
     Effect.ignore,
     Effect.as(CompletedFocusSearchInput()),
   ),
@@ -114,7 +113,7 @@ export const searchPagefind = (query: string) =>
 
 export const scrollActiveResultIntoView = (index: number) =>
   ScrollToResult(
-    Task.scrollIntoView(`${SEARCH_RESULT_SELECTOR}"${index}"]`).pipe(
+    Dom.scrollIntoView(`${SEARCH_RESULT_SELECTOR}"${index}"]`).pipe(
       Effect.ignore,
       Effect.as(CompletedScrollToResult()),
     ),

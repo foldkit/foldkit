@@ -1,5 +1,5 @@
 import { Effect, Queue, Stream } from 'effect'
-import { Task } from 'foldkit'
+import { Render } from 'foldkit'
 import { Subscription } from 'foldkit/subscription'
 
 import { type Model, type SubscriptionDeps } from '../main'
@@ -18,7 +18,7 @@ export const heroVisibility: Subscription<
     Stream.when(
       Stream.callback<typeof ChangedHeroVisibility.Type>(queue =>
         Effect.gen(function* () {
-          yield* Task.afterRender
+          yield* Render.afterCommit
 
           const heroElement = document.getElementById(HERO_SECTION_ID)
           if (!heroElement) {

@@ -1,4 +1,12 @@
-import { Array, Effect, Match as M, Option, Schema as S, pipe } from 'effect'
+import {
+  Array,
+  Effect,
+  Match as M,
+  Option,
+  Random,
+  Schema as S,
+  pipe,
+} from 'effect'
 import { Command } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -32,8 +40,8 @@ export type Message = typeof Message.Type
 
 // INIT
 
-export const init = (): Model => ({
-  entries: [Entry.init(crypto.randomUUID())],
+export const init = (initialEntryId: string): Model => ({
+  entries: [Entry.init(initialEntryId)],
 })
 
 // COMMAND
@@ -41,7 +49,7 @@ export const init = (): Model => ({
 export const AddEntry = Command.define('AddEntry', AddedEntry)
 
 const addEntry = AddEntry(
-  Effect.sync(() => AddedEntry({ entryId: crypto.randomUUID() })),
+  Random.nextUUIDv4.pipe(Effect.map(entryId => AddedEntry({ entryId }))),
 )
 
 // UPDATE

@@ -12,12 +12,12 @@ import {
 } from 'effect'
 
 import * as Command from '../../command/index.js'
+import * as Dom from '../../dom/index.js'
 import { type Attribute, html } from '../../html/index.js'
 import { m } from '../../message/index.js'
 import { makeSubscriptions } from '../../runtime/subscription.js'
 import { ts } from '../../schema/index.js'
 import { evo } from '../../struct/index.js'
-import * as Task from '../../task/index.js'
 
 // MODEL
 
@@ -208,7 +208,7 @@ export const FocusItem = Command.define('FocusItem', CompletedFocusItem)
 
 const focusItem = (itemId: string) =>
   FocusItem(
-    Task.focus(`[data-draggable-id="${itemId}"]`).pipe(
+    Dom.focus(`[data-draggable-id="${itemId}"]`).pipe(
       Effect.ignore,
       Effect.as(CompletedFocusItem()),
     ),

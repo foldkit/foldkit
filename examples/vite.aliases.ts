@@ -10,6 +10,7 @@ export const foldkitAliases = (dirname: string) => ({
     dirname,
     '../../packages/foldkit/src/command',
   ),
+  'foldkit/dom': path.resolve(dirname, '../../packages/foldkit/src/dom'),
   'foldkit/fieldValidation': path.resolve(
     dirname,
     '../../packages/foldkit/src/fieldValidation',
@@ -27,6 +28,7 @@ export const foldkitAliases = (dirname: string) => ({
     dirname,
     '../../packages/foldkit/src/navigation',
   ),
+  'foldkit/render': path.resolve(dirname, '../../packages/foldkit/src/render'),
   'foldkit/route': path.resolve(dirname, '../../packages/foldkit/src/route'),
   'foldkit/runtime': path.resolve(
     dirname,
@@ -38,7 +40,6 @@ export const foldkitAliases = (dirname: string) => ({
     dirname,
     '../../packages/foldkit/src/subscription',
   ),
-  'foldkit/task': path.resolve(dirname, '../../packages/foldkit/src/task'),
   'foldkit/ui/dialog': path.resolve(
     dirname,
     '../../packages/foldkit/src/ui/dialog',

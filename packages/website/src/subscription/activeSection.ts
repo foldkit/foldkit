@@ -10,7 +10,7 @@ import {
   Stream,
   pipe,
 } from 'effect'
-import { Task } from 'foldkit'
+import { Render } from 'foldkit'
 import { Subscription } from 'foldkit/subscription'
 
 import { Model, SubscriptionDeps } from '../main'
@@ -87,7 +87,8 @@ export const activeSection: Subscription<
           () => Page.Core.Subscriptions.tableOfContents,
         ),
         M.tag('CoreInitAndFlags', () => Page.Core.InitAndFlags.tableOfContents),
-        M.tag('CoreTask', () => Page.Core.CoreTask.tableOfContents),
+        M.tag('CoreDom', () => Page.Core.CoreDom.tableOfContents),
+        M.tag('CoreRender', () => Page.Core.CoreRender.tableOfContents),
         M.tag('CoreFile', () => Page.Core.CoreFile.tableOfContents),
         M.tag(
           'CoreRunningYourApp',
@@ -179,7 +180,7 @@ export const activeSection: Subscription<
           return yield* Effect.never
         }
 
-        yield* Task.afterRender
+        yield* Render.afterCommit
 
         yield* Effect.acquireRelease(
           Effect.sync(() => {

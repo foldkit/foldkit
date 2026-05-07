@@ -169,9 +169,13 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Init & Flags',
     'Set up the initial Model, pass external data via flags, and run startup Commands.',
   ),
-  CoreTask: core(
-    'Task',
-    'Utility functions for common side effects like time, focus, and randomness.',
+  CoreDom: core(
+    'Dom',
+    'Effects for common DOM operations like focus, scroll, dialog open/close, scroll lock, and inert isolation.',
+  ),
+  CoreRender: core(
+    'Render',
+    'Primitives for synchronizing with the browser render cycle so DOM reads and CSS transitions land on the right frame.',
   ),
   CoreFile: core(
     'File',

@@ -8,8 +8,8 @@ import {
   Option,
 } from 'effect'
 
+import { afterCommit } from '../render/render.js'
 import { ElementNotFound } from './error.js'
-import { afterRender } from './timing.js'
 
 const BASE_DIALOG_Z_INDEX = 2147483600
 let openDialogCount = 0
@@ -42,7 +42,7 @@ const queryHTMLElement = (
  * Focuses an element matching the given selector after the next render has
  * committed.
  *
- * Use `Task.focus` inside a Command for focus that's caused by a Message
+ * Use `Dom.focus` inside a Command for focus that's caused by a Message
  * dispatching: a dialog opening, an input becoming the active step in a
  * form, returning focus to a trigger button after a popover closes,
  * keyboard navigation across a stable layout. The Command fires from
@@ -58,12 +58,12 @@ const queryHTMLElement = (
  *
  * @example
  * ```typescript
- * Task.focus('#email-input').pipe(Effect.ignore, Effect.as(CompletedFocusInput()))
+ * Dom.focus('#email-input').pipe(Effect.ignore, Effect.as(CompletedFocusInput()))
  * ```
  */
 export const focus = (selector: string): Effect.Effect<void, ElementNotFound> =>
   Effect.gen(function* () {
-    yield* afterRender
+    yield* afterCommit
     const element = yield* queryHTMLElement(selector)
     element.focus()
   })
@@ -71,7 +71,7 @@ export const focus = (selector: string): Effect.Effect<void, ElementNotFound> =>
 /**
  * Opens a dialog element using `show()` with high z-index, focus trapping,
  * and Escape key handling. Uses `show()` instead of `showModal()` so that
- * DevTools (and any other high-z-index overlay) remains interactive — the
+ * DevTools (and any other high-z-index overlay) remains interactive. The
  * Dialog component provides its own backdrop, scroll locking, and transitions.
  * Fails with `ElementNotFound` if the selector does not match an `HTMLDialogElement`.
  *
@@ -79,8 +79,8 @@ export const focus = (selector: string): Effect.Effect<void, ElementNotFound> =>
  *
  * @example
  * ```typescript
- * Task.showModal('#my-dialog').pipe(Effect.ignore, Effect.as(CompletedShowDialog()))
- * Task.showModal('#my-dialog', { focusSelector: '#search-input' }).pipe(Effect.ignore, Effect.as(CompletedShowDialog()))
+ * Dom.showModal('#my-dialog').pipe(Effect.ignore, Effect.as(CompletedShowDialog()))
+ * Dom.showModal('#my-dialog', { focusSelector: '#search-input' }).pipe(Effect.ignore, Effect.as(CompletedShowDialog()))
  * ```
  */
 export const showModal = (
@@ -88,7 +88,7 @@ export const showModal = (
   options?: Readonly<{ focusSelector?: string }>,
 ): Effect.Effect<void, ElementNotFound> =>
   Effect.gen(function* () {
-    yield* afterRender
+    yield* afterCommit
 
     const element = document.querySelector(selector)
 
@@ -164,7 +164,7 @@ const trapFocusWithinDialog = (
  *
  * @example
  * ```typescript
- * Task.closeModal('#my-dialog').pipe(Effect.ignore, Effect.as(CompletedCloseDialog()))
+ * Dom.closeModal('#my-dialog').pipe(Effect.ignore, Effect.as(CompletedCloseDialog()))
  * ```
  */
 export const closeModal = (
@@ -191,14 +191,14 @@ export const closeModal = (
  *
  * @example
  * ```typescript
- * Task.clickElement('#menu-item-2').pipe(Effect.ignore, Effect.as(CompletedClickItem()))
+ * Dom.clickElement('#menu-item-2').pipe(Effect.ignore, Effect.as(CompletedClickItem()))
  * ```
  */
 export const clickElement = (
   selector: string,
 ): Effect.Effect<void, ElementNotFound> =>
   Effect.gen(function* () {
-    yield* afterRender
+    yield* afterCommit
     const element = yield* queryHTMLElement(selector)
     element.click()
   })
@@ -209,19 +209,19 @@ export const clickElement = (
  *
  * @example
  * ```typescript
- * Task.scrollIntoView('#active-item').pipe(Effect.ignore, Effect.as(CompletedScrollIntoView()))
+ * Dom.scrollIntoView('#active-item').pipe(Effect.ignore, Effect.as(CompletedScrollIntoView()))
  * ```
  */
 export const scrollIntoView = (
   selector: string,
 ): Effect.Effect<void, ElementNotFound> =>
   Effect.gen(function* () {
-    yield* afterRender
+    yield* afterCommit
     const element = yield* queryHTMLElement(selector)
     element.scrollIntoView({ block: 'nearest' })
   })
 
-/** Direction for focus advancement — forward or backward in tab order. */
+/** Direction for focus advancement: forward or backward in tab order. */
 export type FocusDirection = 'Next' | 'Previous'
 
 /**
@@ -230,7 +230,7 @@ export type FocusDirection = 'Next' | 'Previous'
  *
  * @example
  * ```typescript
- * Task.advanceFocus('#menu-button', 'Next').pipe(Effect.ignore, Effect.as(CompletedAdvanceFocus()))
+ * Dom.advanceFocus('#menu-button', 'Next').pipe(Effect.ignore, Effect.as(CompletedAdvanceFocus()))
  * ```
  */
 export const advanceFocus = (
@@ -238,7 +238,7 @@ export const advanceFocus = (
   direction: FocusDirection,
 ): Effect.Effect<void, ElementNotFound> =>
   Effect.gen(function* () {
-    yield* afterRender
+    yield* afterCommit
 
     const reference = yield* queryHTMLElement(selector)
 

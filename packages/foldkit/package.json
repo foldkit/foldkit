@@ -19,6 +19,10 @@
       "types": "./dist/command/public.d.ts",
       "import": "./dist/command/public.js"
     },
+    "./dom": {
+      "types": "./dist/dom/public.d.ts",
+      "import": "./dist/dom/public.js"
+    },
     "./html": {
       "types": "./dist/html/public.d.ts",
       "import": "./dist/html/public.js"
@@ -38,6 +42,10 @@
     "./navigation": {
       "types": "./dist/navigation/public.d.ts",
       "import": "./dist/navigation/public.js"
+    },
+    "./render": {
+      "types": "./dist/render/public.d.ts",
+      "import": "./dist/render/public.js"
     },
     "./route": {
       "types": "./dist/route/public.d.ts",
@@ -78,10 +86,6 @@
     "./subscription": {
       "types": "./dist/subscription/public.d.ts",
       "import": "./dist/subscription/public.js"
-    },
-    "./task": {
-      "types": "./dist/task/public.d.ts",
-      "import": "./dist/task/public.js"
     },
     "./test": {
       "types": "./dist/test/public.d.ts",

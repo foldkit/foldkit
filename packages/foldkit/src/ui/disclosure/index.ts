@@ -1,6 +1,7 @@
 import { Effect, Match as M, Option, Schema as S } from 'effect'
 
 import * as Command from '../../command/index.js'
+import * as Dom from '../../dom/index.js'
 import {
   type Attribute,
   type Html,
@@ -10,7 +11,6 @@ import {
 } from '../../html/index.js'
 import { m } from '../../message/index.js'
 import { evo } from '../../struct/index.js'
-import * as Task from '../../task/index.js'
 
 // MODEL
 
@@ -80,7 +80,7 @@ export const update = (
       Toggled: () => {
         const maybeFocus = Option.liftPredicate(
           FocusButton(
-            Task.focus(buttonSelector(model.id)).pipe(
+            Dom.focus(buttonSelector(model.id)).pipe(
               Effect.ignore,
               Effect.as(CompletedFocusButton()),
             ),
@@ -96,7 +96,7 @@ export const update = (
       Closed: () => {
         const maybeFocus = Option.liftPredicate(
           FocusButton(
-            Task.focus(buttonSelector(model.id)).pipe(
+            Dom.focus(buttonSelector(model.id)).pipe(
               Effect.ignore,
               Effect.as(CompletedFocusButton()),
             ),

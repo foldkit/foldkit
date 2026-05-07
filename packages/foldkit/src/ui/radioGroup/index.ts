@@ -10,6 +10,7 @@ import {
 } from 'effect'
 
 import * as Command from '../../command/index.js'
+import * as Dom from '../../dom/index.js'
 import {
   type Attribute,
   type Html,
@@ -18,7 +19,6 @@ import {
 } from '../../html/index.js'
 import { m } from '../../message/index.js'
 import { evo } from '../../struct/index.js'
-import * as Task from '../../task/index.js'
 import { keyToIndex } from '../keyboard.js'
 
 // MODEL
@@ -96,7 +96,7 @@ export const update = (
           evo(model, { selectedValue: () => Option.some(value) }),
           [
             FocusOption(
-              Task.focus(selector).pipe(
+              Dom.focus(selector).pipe(
                 Effect.ignore,
                 Effect.as(CompletedFocusOption()),
               ),

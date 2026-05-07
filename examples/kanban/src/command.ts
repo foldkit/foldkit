@@ -1,7 +1,7 @@
 import { BrowserKeyValueStore } from '@effect/platform-browser'
-import { Effect, Schema as S } from 'effect'
+import { Effect, Random, Schema as S } from 'effect'
 import { KeyValueStore } from 'effect/unstable/persistence'
-import { Command, Task } from 'foldkit'
+import { Command, Dom } from 'foldkit'
 
 import { ADD_CARD_INPUT_ID, STORAGE_KEY } from './constant'
 import { Column } from './domain'
@@ -22,7 +22,7 @@ export const FocusAddCardInput = Command.define(
 )
 
 export const focusAddCardInput = FocusAddCardInput(
-  Task.focus(`#${ADD_CARD_INPUT_ID}`).pipe(
+  Dom.focus(`#${ADD_CARD_INPUT_ID}`).pipe(
     Effect.ignore,
     Effect.as(CompletedFocusAddCardInput()),
   ),
@@ -30,8 +30,8 @@ export const focusAddCardInput = FocusAddCardInput(
 
 export const generateCardId = (columnId: string, title: string) =>
   GenerateCardId(
-    Effect.sync(() =>
-      GeneratedCardId({ cardId: crypto.randomUUID(), columnId, title }),
+    Random.nextUUIDv4.pipe(
+      Effect.map(cardId => GeneratedCardId({ cardId, columnId, title })),
     ),
   )
 

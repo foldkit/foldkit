@@ -425,7 +425,7 @@ M.tagsExhaustive({
   ClickedReset: () => [
     evo(model, { isResetting: () => true }),
     [DelayReset(
-      Task.delay(\`\${model.resetDuration} seconds\`).pipe(
+      Effect.sleep(\`\${model.resetDuration} seconds\`).pipe(
         Effect.as(CompletedDelayReset()),
       ),
     )],

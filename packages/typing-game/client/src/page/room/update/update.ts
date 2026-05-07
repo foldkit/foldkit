@@ -8,7 +8,7 @@ import {
   String as Str,
   pipe,
 } from 'effect'
-import { Command, Task } from 'foldkit'
+import { Command, Dom } from 'foldkit'
 import { pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 
@@ -99,7 +99,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         model,
         [
           RefocusRoomUsernameInput(
-            Task.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(
+            Dom.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(
               Effect.ignore,
               Effect.as(CompletedFocusRoomPageUsernameInput()),
             ),

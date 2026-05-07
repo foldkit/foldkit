@@ -1,5 +1,5 @@
 import { Effect, Match as M } from 'effect'
-import { Command, Task } from 'foldkit'
+import { Command } from 'foldkit'
 import { m } from 'foldkit/message'
 
 const ClickedResetAfterDelay = m('ClickedResetAfterDelay')
@@ -7,7 +7,7 @@ const CompletedDelayReset = m('CompletedDelayReset')
 
 const DelayReset = Command.define('DelayReset', CompletedDelayReset)
 const delayReset = DelayReset(
-  Task.delay('1 second').pipe(Effect.as(CompletedDelayReset())),
+  Effect.sleep('1 second').pipe(Effect.as(CompletedDelayReset())),
 )
 
 const update = (

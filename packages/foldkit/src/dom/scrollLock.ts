@@ -48,12 +48,12 @@ const handleTouchMove = (event: TouchEvent): void => {
  * Compensates for scrollbar width with padding to prevent layout shift.
  * On iOS Safari, intercepts `touchmove` events to prevent page scroll
  * while allowing scrolling within overflow containers.
- * Uses reference counting so nested locks are safe — the page only unlocks
+ * Uses reference counting so nested locks are safe. The page only unlocks
  * when every lock has been released.
  *
  * @example
  * ```typescript
- * Task.lockScroll.pipe(Effect.as(CompletedLockScroll()))
+ * Dom.lockScroll.pipe(Effect.as(CompletedLockScroll()))
  * ```
  */
 export const lockScroll: Effect.Effect<void> = Effect.sync(() => {
@@ -89,7 +89,7 @@ export const lockScroll: Effect.Effect<void> = Effect.sync(() => {
  *
  * @example
  * ```typescript
- * Task.unlockScroll.pipe(Effect.as(CompletedUnlockScroll()))
+ * Dom.unlockScroll.pipe(Effect.as(CompletedUnlockScroll()))
  * ```
  */
 export const unlockScroll: Effect.Effect<void> = Effect.sync(() => {
