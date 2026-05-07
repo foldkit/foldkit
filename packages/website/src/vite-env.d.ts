@@ -30,6 +30,11 @@ declare module 'virtual:api-module-index' {
   export default index
 }
 
+declare module 'virtual:parsed-api' {
+  const data: unknown
+  export default data
+}
+
 declare module 'virtual:landing-data' {
   export const foldkitVersion: string
 }

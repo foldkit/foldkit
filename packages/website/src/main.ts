@@ -266,18 +266,11 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
   const initialRoute = urlToAppRoute(url)
 
   const [initApiReference, apiReferenceInitCommands] = Page.ApiReference.init()
-  const [apiReference, apiReferenceStartLoadCommands] = M.value(
-    initialRoute,
-  ).pipe(
-    M.withReturnType<ReturnType<typeof Page.ApiReference.update>>(),
-    M.tag('ApiModule', () =>
-      Page.ApiReference.update(
-        initApiReference,
-        Page.ApiReference.StartedLoadApiData(),
-      ),
-    ),
-    M.orElse(() => [initApiReference, []]),
-  )
+  const [apiReference, apiReferenceStartLoadCommands] =
+    Page.ApiReference.update(
+      initApiReference,
+      Page.ApiReference.StartedLoadApiData(),
+    )
   const apiReferenceCommands = [
     ...apiReferenceInitCommands,
     ...apiReferenceStartLoadCommands,
