@@ -1,4 +1,12 @@
-import { Array, Effect, Match as M, Option, Schema as S, pipe } from 'effect'
+import {
+  Array,
+  Effect,
+  Match as M,
+  Option,
+  Random,
+  Schema as S,
+  pipe,
+} from 'effect'
 import { Calendar, Command } from 'foldkit'
 import { type CalendarDate } from 'foldkit/calendar'
 import { m } from 'foldkit/message'
@@ -34,8 +42,8 @@ export type Message = typeof Message.Type
 
 // INIT
 
-export const init = (today: CalendarDate): Model => ({
-  entries: [Entry.init(crypto.randomUUID())],
+export const init = (today: CalendarDate, initialEntryId: string): Model => ({
+  entries: [Entry.init(initialEntryId)],
   today,
 })
 
@@ -44,7 +52,7 @@ export const init = (today: CalendarDate): Model => ({
 export const AddEntry = Command.define('AddEntry', AddedEntry)
 
 const addEntry = AddEntry(
-  Effect.sync(() => AddedEntry({ entryId: crypto.randomUUID() })),
+  Random.nextUUIDv4.pipe(Effect.map(entryId => AddedEntry({ entryId }))),
 )
 
 // UPDATE

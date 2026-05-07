@@ -8,7 +8,7 @@ import {
   Schema as S,
   pipe,
 } from 'effect'
-import { Command, Task, Ui } from 'foldkit'
+import { Command, Ui } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -112,7 +112,7 @@ const DelayAdvancePhase = Command.define(
 
 const delayAdvancePhase = (generation: number, duration: Duration.Input) =>
   DelayAdvancePhase(
-    Task.delay(duration).pipe(Effect.as(ProgressedDemoPhase({ generation }))),
+    Effect.sleep(duration).pipe(Effect.as(ProgressedDemoPhase({ generation }))),
   )
 
 const prependToLog =

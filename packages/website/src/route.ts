@@ -48,7 +48,8 @@ export const CoreCommandsRoute = r('CoreCommands')
 export const CoreMountRoute = r('CoreMount')
 export const CoreSubscriptionsRoute = r('CoreSubscriptions')
 export const CoreInitAndFlagsRoute = r('CoreInitAndFlags')
-export const CoreTaskRoute = r('CoreTask')
+export const CoreDomRoute = r('CoreDom')
+export const CoreRenderRoute = r('CoreRender')
 export const CoreFileRoute = r('CoreFile')
 export const CoreRunningYourAppRoute = r('CoreRunningYourApp')
 export const CoreResourcesRoute = r('CoreResources')
@@ -126,7 +127,8 @@ export const DocsRoute = S.Union([
   CoreMountRoute,
   CoreSubscriptionsRoute,
   CoreInitAndFlagsRoute,
-  CoreTaskRoute,
+  CoreDomRoute,
+  CoreRenderRoute,
   CoreFileRoute,
   CoreRunningYourAppRoute,
   CoreResourcesRoute,
@@ -313,10 +315,15 @@ export const coreInitAndFlagsRouter = pipe(
   slash(literal('init-and-flags')),
   mapTo(CoreInitAndFlagsRoute),
 )
-export const coreTaskRouter = pipe(
+export const coreDomRouter = pipe(
   literal('core'),
-  slash(literal('task')),
-  mapTo(CoreTaskRoute),
+  slash(literal('dom')),
+  mapTo(CoreDomRoute),
+)
+export const coreRenderRouter = pipe(
+  literal('core'),
+  slash(literal('render')),
+  mapTo(CoreRenderRoute),
 )
 export const coreFileRouter = pipe(
   literal('core'),
@@ -554,7 +561,8 @@ const coreParser = oneOf(
   coreMountRouter,
   coreSubscriptionsRouter,
   coreInitAndFlagsRouter,
-  coreTaskRouter,
+  coreDomRouter,
+  coreRenderRouter,
   coreFileRouter,
   coreRunningYourAppRouter,
   coreResourcesRouter,

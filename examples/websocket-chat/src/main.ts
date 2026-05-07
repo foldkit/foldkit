@@ -10,11 +10,15 @@ import {
   Stream,
   String,
 } from 'effect'
-import { Command, ManagedResource, Runtime, Subscription, Task } from 'foldkit'
+import { Command, ManagedResource, Runtime, Subscription } from 'foldkit'
 import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
+
+const getZonedTime = DateTime.now.pipe(
+  Effect.map(utc => DateTime.setZone(utc, DateTime.zoneMakeLocal())),
+)
 
 const WS_URL = 'wss://ws.postman-echo.com/raw'
 const CONNECTION_TIMEOUT_MS = 5000
@@ -160,7 +164,7 @@ const update = (
         model,
         [
           TimestampSentMessage(
-            Task.getZonedTime.pipe(
+            getZonedTime.pipe(
               Effect.map(zoned =>
                 TimestampedMessage({ text, zoned, isSent: true }),
               ),
@@ -173,7 +177,7 @@ const update = (
         model,
         [
           TimestampReceivedMessage(
-            Task.getZonedTime.pipe(
+            getZonedTime.pipe(
               Effect.map(zoned =>
                 TimestampedMessage({ text, zoned, isSent: false }),
               ),

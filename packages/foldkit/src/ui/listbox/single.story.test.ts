@@ -823,7 +823,7 @@ describe('Listbox', () => {
 
     describe('transitions', () => {
       describe('enter flow', () => {
-        it('sets EnterStart and emits focus + nextFrame on Opened', () => {
+        it('sets EnterStart and emits focus + afterPaint on Opened', () => {
           Story.story(
             update,
             withClosedAnimated,

@@ -1,7 +1,7 @@
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Effect, Function, Option, Schema as S } from 'effect'
 import { KeyValueStore } from 'effect/unstable/persistence'
-import { Command, Mount, Task } from 'foldkit'
+import { Command, Mount } from 'foldkit'
 
 import { ROOM_PLAYER_SESSION_KEY } from '../../constant'
 import { RoomsClient, RoomsClientLive } from '../../rpc.js'
@@ -149,7 +149,7 @@ export const copyRoomIdToClipboard = (roomId: string) =>
   )
 
 export const tickExitCountdown = TickExitCountdown(
-  Task.delay('1 second').pipe(Effect.as(TickedExitCountdown())),
+  Effect.sleep('1 second').pipe(Effect.as(TickedExitCountdown())),
 )
 
 const COPY_INDICATOR_DURATION = '2 seconds'

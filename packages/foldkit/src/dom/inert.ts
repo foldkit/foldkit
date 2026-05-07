@@ -93,7 +93,7 @@ const inertableSiblings = (
  *
  * @example
  * ```typescript
- * Task.inertOthers('my-menu', ['#menu-button', '#menu-items']).pipe(
+ * Dom.inertOthers('my-menu', ['#menu-button', '#menu-items']).pipe(
  *   Effect.as(CompletedSetupInert()),
  * )
  * ```
@@ -118,11 +118,12 @@ export const inertOthers = (
 
 /**
  * Restores all elements previously marked inert by `inertOthers` for the
- * given ID. Safe to call without a preceding `inertOthers` — acts as a no-op.
+ * given ID. Safe to call without a preceding `inertOthers`. Acts as a no-op
+ * in that case.
  *
  * @example
  * ```typescript
- * Task.restoreInert('my-menu').pipe(Effect.as(CompletedTeardownInert()))
+ * Dom.restoreInert('my-menu').pipe(Effect.as(CompletedTeardownInert()))
  * ```
  */
 export const restoreInert = (id: string): Effect.Effect<void> =>

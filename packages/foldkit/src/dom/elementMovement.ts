@@ -1,6 +1,6 @@
 import { Effect } from 'effect'
 
-import { afterRender } from './timing.js'
+import { afterCommit } from '../render/render.js'
 
 const rectToPosition = (rect: DOMRect): string => `${rect.x},${rect.y}`
 
@@ -17,14 +17,14 @@ const rectToPosition = (rect: DOMRect): string => `${rect.x},${rect.y}`
  *
  * @example
  * ```typescript
- * Task.detectElementMovement('#menu-button').pipe(
+ * Dom.detectElementMovement('#menu-button').pipe(
  *   Effect.as(DetectedButtonMovement()),
  * )
  * ```
  */
 export const detectElementMovement = (selector: string): Effect.Effect<void> =>
   Effect.gen(function* () {
-    yield* afterRender
+    yield* afterCommit
 
     return yield* Effect.callback<void>((resume, signal) => {
       const element = document.querySelector(selector)

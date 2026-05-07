@@ -11,7 +11,6 @@ import {
 import * as Command from '../../command/index.js'
 import { OptionExt } from '../../effectExtensions/index.js'
 import { evo } from '../../struct/index.js'
-import * as Task from '../../task/index.js'
 import {
   Hid as AnimationHid,
   type Message as AnimationMessage,
@@ -104,7 +103,7 @@ export const makeRuntime = <A, I>(payloadSchema: S.Codec<A, I>) => {
     duration: Duration.Duration,
   ): Command.Command<Message> =>
     DismissAfter(
-      Task.delay(duration).pipe(
+      Effect.sleep(duration).pipe(
         Effect.as(ElapsedDuration({ entryId, version })),
       ),
     )

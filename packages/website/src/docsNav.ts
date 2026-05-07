@@ -15,6 +15,7 @@ import {
   coreCounterExampleRouter,
   coreCrashViewRouter,
   coreDevToolsRouter,
+  coreDomRouter,
   coreFileRouter,
   coreFreezeModelRouter,
   coreInitAndFlagsRouter,
@@ -22,11 +23,11 @@ import {
   coreMessagesRouter,
   coreModelRouter,
   coreMountRouter,
+  coreRenderRouter,
   coreResourcesRouter,
   coreRunningYourAppRouter,
   coreSlowViewRouter,
   coreSubscriptionsRouter,
-  coreTaskRouter,
   coreUpdateRouter,
   coreViewMemoizationRouter,
   coreViewRouter,
@@ -187,9 +188,14 @@ export const docsSections: ReadonlyArray<DocsSection> = [
       ],
       [
         {
-          _tag: 'CoreTask',
-          href: coreTaskRouter(),
-          label: 'Task',
+          _tag: 'CoreDom',
+          href: coreDomRouter(),
+          label: 'Dom',
+        },
+        {
+          _tag: 'CoreRender',
+          href: coreRenderRouter(),
+          label: 'Render',
         },
         {
           _tag: 'CoreFile',

@@ -35,9 +35,9 @@ const today = Calendar.make(2026, 4, 16)
 const initialModel: Model = {
   currentStep: 'PersonalInfo',
   personalInfo: PersonalInfo.init(today),
-  workHistory: WorkHistory.init(today),
-  education: Education.init(today),
-  skills: Skills.init(),
+  workHistory: WorkHistory.init(today, 'work-history-entry-1'),
+  education: Education.init(today, 'education-entry-1'),
+  skills: Skills.init('skills-entry-1'),
   coverLetter: CoverLetter.init(),
   attachments: Attachments.init(),
   isPreviewVisible: false,

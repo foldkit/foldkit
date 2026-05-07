@@ -5,11 +5,12 @@ import {
   Effect,
   Match as M,
   Option,
+  Random,
   Schema as S,
   String,
 } from 'effect'
 import { KeyValueStore } from 'effect/unstable/persistence'
-import { Command, Runtime, Task } from 'foldkit'
+import { Command, Runtime } from 'foldkit'
 import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
@@ -305,9 +306,9 @@ export const SaveTodos = Command.define('SaveTodos', SavedTodos)
 const generateTodo = (text: string) =>
   GenerateTodo(
     Effect.gen(function* () {
-      const id = yield* Task.randomInt(0, Number.MAX_SAFE_INTEGER).pipe(
-        Effect.map(value => value.toString(36)),
-      )
+      const id = yield* Random.nextIntBetween(0, Number.MAX_SAFE_INTEGER, {
+        halfOpen: true,
+      }).pipe(Effect.map(value => value.toString(36)))
       const timestamp = yield* Clock.currentTimeMillis
       return GeneratedTodo({ id, timestamp, text })
     }),

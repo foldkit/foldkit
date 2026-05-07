@@ -1,8 +1,9 @@
 import { Effect, Match as M, Option } from 'effect'
 
 import * as Command from '../../command/index.js'
+import * as Dom from '../../dom/index.js'
+import * as Render from '../../render/index.js'
 import { evo } from '../../struct/index.js'
-import * as Task from '../../task/index.js'
 import {
   AdvancedAnimationFrame,
   EndedAnimation,
@@ -38,7 +39,7 @@ export const WaitForAnimationSettled = Command.define(
 /** Processes an animation message and returns the next model, commands, and optional OutMessage. */
 export const update = (model: Model, message: Message): UpdateReturn => {
   const maybeNextFrame = RequestFrame(
-    Task.nextFrame.pipe(Effect.as(AdvancedAnimationFrame())),
+    Render.afterPaint.pipe(Effect.as(AdvancedAnimationFrame())),
   )
 
   return M.value(message).pipe(
@@ -85,7 +86,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
             evo(model, { transitionState: () => 'EnterAnimating' }),
             [
               WaitForAnimationSettled(
-                Task.waitForAnimationSettled(elementSelector(model.id)).pipe(
+                Dom.waitForAnimationSettled(elementSelector(model.id)).pipe(
                   Effect.as(EndedAnimation()),
                 ),
               ),
@@ -122,7 +123,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
 /** Creates the standard leave-phase command that waits for CSS animations on the element to settle. Use this when handling the `StartedLeaveAnimating` OutMessage for components that don't need custom leave behavior. */
 export const defaultLeaveCommand = (model: Model): Command.Command<Message> =>
   WaitForAnimationSettled(
-    Task.waitForAnimationSettled(elementSelector(model.id)).pipe(
+    Dom.waitForAnimationSettled(elementSelector(model.id)).pipe(
       Effect.as(EndedAnimation()),
     ),
   )

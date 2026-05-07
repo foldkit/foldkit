@@ -1,109 +1,15 @@
 import { describe, it } from '@effect/vitest'
-import { DateTime, Effect } from 'effect'
+import { Effect } from 'effect'
 import { expect } from 'vitest'
 
 import {
   ElementNotFound,
-  TimeZoneError,
   focus,
-  getTime,
-  getTimeZone,
-  getZonedTime,
-  getZonedTimeIn,
   inertOthers,
   lockScroll,
-  randomInt,
   restoreInert,
   unlockScroll,
-  uuid,
 } from './index.js'
-
-describe('getTime', () => {
-  it.effect('returns a UTC time', () =>
-    Effect.gen(function* () {
-      const utc = yield* getTime
-      expect(DateTime.isUtc(utc)).toBe(true)
-    }),
-  )
-})
-
-describe('getTimeZone', () => {
-  it.effect('returns a timezone', () =>
-    Effect.gen(function* () {
-      const zone = yield* getTimeZone
-      expect(DateTime.isTimeZone(zone)).toBe(true)
-    }),
-  )
-})
-
-describe('getZonedTime', () => {
-  it.effect('returns a zoned datetime', () =>
-    Effect.gen(function* () {
-      const zoned = yield* getZonedTime
-      expect(DateTime.isZoned(zoned)).toBe(true)
-    }),
-  )
-})
-
-describe('getZonedTimeIn', () => {
-  it.effect('succeeds with a valid timezone', () =>
-    Effect.gen(function* () {
-      const zoned = yield* getZonedTimeIn('America/New_York')
-      expect(DateTime.isZoned(zoned)).toBe(true)
-    }),
-  )
-
-  it.effect('fails with an invalid timezone', () =>
-    Effect.gen(function* () {
-      const error = yield* Effect.flip(getZonedTimeIn('Invalid/Zone'))
-      expect(error).toBeInstanceOf(TimeZoneError)
-      expect(error.zoneId).toBe('Invalid/Zone')
-    }),
-  )
-})
-
-describe('randomInt', () => {
-  it.effect('produces a value within the specified range', () =>
-    Effect.gen(function* () {
-      const results: Array<number> = []
-      for (let index = 0; index < 50; index++) {
-        const result = yield* randomInt(0, 10)
-        results.push(result)
-      }
-      for (const result of results) {
-        expect(result).toBeGreaterThanOrEqual(0)
-        expect(result).toBeLessThan(10)
-      }
-    }),
-  )
-
-  it.effect('returns the raw number value', () =>
-    Effect.gen(function* () {
-      const value = yield* randomInt(5, 15)
-      expect(value).toBeGreaterThanOrEqual(5)
-      expect(value).toBeLessThan(15)
-    }),
-  )
-})
-
-describe('uuid', () => {
-  it.effect('returns a RFC 4122 v4 UUID string', () =>
-    Effect.gen(function* () {
-      const value = yield* uuid
-      expect(value).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
-      )
-    }),
-  )
-
-  it.effect('produces a distinct value on each call', () =>
-    Effect.gen(function* () {
-      const first = yield* uuid
-      const second = yield* uuid
-      expect(first).not.toBe(second)
-    }),
-  )
-})
 
 describe('focus', () => {
   it.effect('fails with ElementNotFound when element is not found', () =>

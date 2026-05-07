@@ -584,10 +584,15 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           lazyDocsContent(Page.Core.InitAndFlags.view, [model.copiedSnippets]),
           Page.Core.InitAndFlags.tableOfContents,
         ),
-      CoreTask: () =>
+      CoreDom: () =>
         withTableOfContents(
-          lazyDocsContent(Page.Core.CoreTask.view, [model.copiedSnippets]),
-          Page.Core.CoreTask.tableOfContents,
+          lazyDocsContent(Page.Core.CoreDom.view, [model.copiedSnippets]),
+          Page.Core.CoreDom.tableOfContents,
+        ),
+      CoreRender: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.Core.CoreRender.view, [model.copiedSnippets]),
+          Page.Core.CoreRender.tableOfContents,
         ),
       CoreFile: () =>
         withTableOfContents(

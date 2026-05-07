@@ -20,7 +20,6 @@ import {
 import { m } from '../../message/index.js'
 import * as Mount from '../../mount/index.js'
 import { evo } from '../../struct/index.js'
-import * as Task from '../../task/index.js'
 import { anchorSetup } from '../anchor.js'
 import type { AnchorConfig } from '../anchor.js'
 
@@ -163,7 +162,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           }),
           [
             ShowAfterDelay(
-              Task.delay(model.showDelay).pipe(
+              Effect.sleep(model.showDelay).pipe(
                 Effect.as(ElapsedShowDelay({ version: nextVersion })),
               ),
             ),

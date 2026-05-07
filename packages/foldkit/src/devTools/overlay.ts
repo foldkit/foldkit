@@ -20,6 +20,7 @@ import {
 } from 'effect'
 
 import * as Command from '../command/index.js'
+import { lockScroll, unlockScroll } from '../dom/scrollLock.js'
 import { OptionExt } from '../effectExtensions/index.js'
 import {
   type Document,
@@ -33,7 +34,6 @@ import { makeProgram } from '../runtime/runtime.js'
 import type { DevToolsMode, DevToolsPosition } from '../runtime/runtime.js'
 import { makeSubscriptions } from '../runtime/subscription.js'
 import { evo } from '../struct/index.js'
-import { lockScroll, unlockScroll } from '../task/scrollLock.js'
 import * as Listbox from '../ui/listbox/public.js'
 import * as Tabs from '../ui/tabs/public.js'
 import { overlayStyles } from './overlay-styles.js'

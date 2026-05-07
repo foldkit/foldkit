@@ -3,6 +3,7 @@ import { Array, Effect, Match as M, Option, Schema as S, pipe } from 'effect'
 import * as Calendar from '../../calendar/index.js'
 import type { CalendarDate } from '../../calendar/index.js'
 import * as Command from '../../command/index.js'
+import * as Dom from '../../dom/index.js'
 import { OptionExt } from '../../effectExtensions/index.js'
 import {
   type Attribute,
@@ -12,7 +13,6 @@ import {
 } from '../../html/index.js'
 import { m } from '../../message/index.js'
 import { evo } from '../../struct/index.js'
-import * as Task from '../../task/index.js'
 
 // MODEL
 
@@ -183,7 +183,7 @@ export const FocusGrid = Command.define('FocusGrid', CompletedFocusGrid)
  * the grid's keyboard layer. */
 export const focusGrid = (modelId: string): Command.Command<Message> =>
   FocusGrid(
-    Task.focus(gridSelector(modelId)).pipe(
+    Dom.focus(gridSelector(modelId)).pipe(
       Effect.ignore,
       Effect.as(CompletedFocusGrid()),
     ),

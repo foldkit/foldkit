@@ -1,5 +1,5 @@
 import { Array, Effect, Match as M, Option, String as Str } from 'effect'
-import { Command, Task } from 'foldkit'
+import { Command, Dom } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../../constant'
@@ -77,7 +77,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         model,
         [
           RefocusUsernameInput(
-            Task.focus(`#${USERNAME_INPUT_ID}`).pipe(
+            Dom.focus(`#${USERNAME_INPUT_ID}`).pipe(
               Effect.ignore,
               Effect.as(CompletedFocusUsernameInput()),
             ),
@@ -90,7 +90,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         model,
         [
           RefocusRoomIdInput(
-            Task.focus(`#${ROOM_ID_INPUT_ID}`).pipe(
+            Dom.focus(`#${ROOM_ID_INPUT_ID}`).pipe(
               Effect.ignore,
               Effect.as(CompletedFocusRoomIdInput()),
             ),
