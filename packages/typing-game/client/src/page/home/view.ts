@@ -1,10 +1,29 @@
 import { Array, Match as M, Option } from 'effect'
-import { Mount } from 'foldkit'
-import { Html } from 'foldkit/html'
+import { html } from 'foldkit/html'
+import type { Html } from 'foldkit/html'
 
 import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../constant'
-import type { Message as ParentMessage } from '../../message'
+import { focusRoomIdInput, focusUsernameInput } from './command'
 import {
+  BlurredRoomIdInput,
+  BlurredUsernameInput,
+  ChangedRoomId,
+  ChangedUsername,
+  SubmittedJoinRoomForm,
+  SubmittedUsernameForm,
+} from './message'
+import type { Message } from './message'
+import {
+  EnterRoomId,
+  EnterUsername,
+  HOME_ACTIONS,
+  HomeAction,
+  Model,
+  SelectAction,
+  homeActionToLabel,
+} from './model'
+
+const {
   Autocapitalize,
   Autocomplete,
   Autocorrect,
@@ -29,31 +48,9 @@ import {
   keyed,
   label,
   span,
-} from '../../view/html'
-import { focusRoomIdInput, focusUsernameInput } from './command'
-import {
-  BlurredRoomIdInput,
-  BlurredUsernameInput,
-  ChangedRoomId,
-  ChangedUsername,
-  SubmittedJoinRoomForm,
-  SubmittedUsernameForm,
-} from './message'
-import type { Message } from './message'
-import {
-  EnterRoomId,
-  EnterUsername,
-  HOME_ACTIONS,
-  HomeAction,
-  Model,
-  SelectAction,
-  homeActionToLabel,
-} from './model'
+} = html<Message>()
 
-export const view = (
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-): Html => {
+export const view = (model: Model): Html<Message> => {
   const maybeUsername = M.value(model.homeStep).pipe(
     M.tagsExhaustive({
       EnterUsername: () => Option.none(),
@@ -79,9 +76,9 @@ export const view = (
         [
           M.value(model.homeStep).pipe(
             M.tagsExhaustive({
-              EnterUsername: enterUsername(toParentMessage),
+              EnterUsername: enterUsername,
               SelectAction: selectAction,
-              EnterRoomId: enterRoomId(toParentMessage),
+              EnterRoomId: enterRoomId,
             }),
           ),
         ],
@@ -92,45 +89,41 @@ export const view = (
   )
 }
 
-const enterUsername =
-  (toParentMessage: (message: Message) => ParentMessage) =>
-  ({ username }: EnterUsername): Html =>
-    form(
-      [OnSubmit(toParentMessage(SubmittedUsernameForm()))],
-      [
-        div(
-          [Class('flex items-center gap-2')],
-          [
-            label([For(USERNAME_INPUT_ID)], ['Enter username: ']),
-            div(
-              [Class('flex items-center gap-2 flex-1')],
-              [
-                // Safari ignores fields named "search" for password autofill
-                input([
-                  Id(USERNAME_INPUT_ID),
-                  Name('search'),
-                  Type('text'),
-                  Value(username),
-                  Class('bg-transparent px-0 py-2 outline-none w-full'),
-                  OnInput(value => toParentMessage(ChangedUsername({ value }))),
-                  OnBlur(toParentMessage(BlurredUsernameInput())),
-                  OnMount(
-                    Mount.mapMessage(focusUsernameInput, toParentMessage),
-                  ),
-                  Autocapitalize('none'),
-                  Spellcheck(false),
-                  Autocorrect('off'),
-                  Autocomplete('off'),
-                  Maxlength(24),
-                ]),
-              ],
-            ),
-          ],
-        ),
-      ],
-    )
+const enterUsername = ({ username }: EnterUsername): Html<Message> =>
+  form(
+    [OnSubmit(SubmittedUsernameForm())],
+    [
+      div(
+        [Class('flex items-center gap-2')],
+        [
+          label([For(USERNAME_INPUT_ID)], ['Enter username: ']),
+          div(
+            [Class('flex items-center gap-2 flex-1')],
+            [
+              // Safari ignores fields named "search" for password autofill
+              input([
+                Id(USERNAME_INPUT_ID),
+                Name('search'),
+                Type('text'),
+                Value(username),
+                Class('bg-transparent px-0 py-2 outline-none w-full'),
+                OnInput(value => ChangedUsername({ value })),
+                OnBlur(BlurredUsernameInput()),
+                OnMount(focusUsernameInput),
+                Autocapitalize('none'),
+                Spellcheck(false),
+                Autocorrect('off'),
+                Autocomplete('off'),
+                Maxlength(24),
+              ]),
+            ],
+          ),
+        ],
+      ),
+    ],
+  )
 
-const selectAction = ({ selectedAction }: SelectAction): Html =>
+const selectAction = ({ selectedAction }: SelectAction): Html<Message> =>
   div(
     [Class('space-y-4')],
     [
@@ -144,7 +137,7 @@ const selectAction = ({ selectedAction }: SelectAction): Html =>
 
 const action =
   (selectedAction: HomeAction) =>
-  (homeAction: HomeAction): Html =>
+  (homeAction: HomeAction): Html<Message> =>
     div(
       [Class('whitespace-pre-wrap')],
       [
@@ -153,43 +146,43 @@ const action =
       ],
     )
 
-const enterRoomId =
-  (toParentMessage: (message: Message) => ParentMessage) =>
-  ({ roomId }: EnterRoomId): Html =>
-    form(
-      [OnSubmit(toParentMessage(SubmittedJoinRoomForm()))],
-      [
-        div(
-          [Class('flex items-center gap-2')],
-          [
-            label(
-              [For(ROOM_ID_INPUT_ID)],
-              ['Enter room ID (or "exit" to go back): '],
-            ),
-            div(
-              [Class('flex items-center gap-2 flex-1')],
-              [
-                input([
-                  Id(ROOM_ID_INPUT_ID),
-                  Type('text'),
-                  Value(roomId),
-                  Class('bg-transparent px-0 py-2 outline-none w-full'),
-                  OnInput(value => toParentMessage(ChangedRoomId({ value }))),
-                  OnBlur(toParentMessage(BlurredRoomIdInput())),
-                  OnMount(Mount.mapMessage(focusRoomIdInput, toParentMessage)),
-                  Autocapitalize('none'),
-                  Spellcheck(false),
-                  Autocorrect('off'),
-                  Autocomplete('off'),
-                ]),
-              ],
-            ),
-          ],
-        ),
-      ],
-    )
+const enterRoomId = ({ roomId }: EnterRoomId): Html<Message> =>
+  form(
+    [OnSubmit(SubmittedJoinRoomForm())],
+    [
+      div(
+        [Class('flex items-center gap-2')],
+        [
+          label(
+            [For(ROOM_ID_INPUT_ID)],
+            ['Enter room ID (or "exit" to go back): '],
+          ),
+          div(
+            [Class('flex items-center gap-2 flex-1')],
+            [
+              input([
+                Id(ROOM_ID_INPUT_ID),
+                Type('text'),
+                Value(roomId),
+                Class('bg-transparent px-0 py-2 outline-none w-full'),
+                OnInput(value => ChangedRoomId({ value })),
+                OnBlur(BlurredRoomIdInput()),
+                OnMount(focusRoomIdInput),
+                Autocapitalize('none'),
+                Spellcheck(false),
+                Autocorrect('off'),
+                Autocomplete('off'),
+              ]),
+            ],
+          ),
+        ],
+      ),
+    ],
+  )
 
-const maybeErrorMessage = (maybeRoomFormError: Option.Option<string>) =>
+const maybeErrorMessage = (
+  maybeRoomFormError: Option.Option<string>,
+): Html<Message> =>
   Option.match(maybeRoomFormError, {
     onNone: () => empty,
     onSome: errorMessage =>
