@@ -50,23 +50,19 @@
     "release": "pnpm -r build && changeset publish"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.8",
-    "@effect/platform-node": "4.0.0-beta.59",
-    "@eslint/js": "^9.39.2",
+    "@changesets/cli": "^2.31.0",
+    "@eslint/js": "^10.0.1",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
-    "@types/node": "^25.1.0",
-    "@typescript-eslint/eslint-plugin": "^8.58.2",
-    "@typescript-eslint/parser": "^8.58.2",
-    "effect": "4.0.0-beta.59",
-    "eslint": "^9.39.2",
+    "@types/node": "^25.6.0",
+    "@typescript-eslint/eslint-plugin": "^8.59.2",
+    "@typescript-eslint/parser": "^8.59.2",
+    "eslint": "^10.3.0",
     "madge": "^8.0.0",
-    "prettier": "^3.8.1",
-    "rimraf": "^6.1.2",
+    "prettier": "^3.8.3",
     "simple-git-hooks": "^2.13.1",
     "tsx": "^4.21.0",
-    "typedoc": "^0.28.19",
-    "typescript": "^6.0.2",
-    "vite": "^7.3.1"
+    "typescript": "^6.0.3",
+    "vite": "^8.0.10"
   },
   "simple-git-hooks": {
     "commit-msg": "if grep -q 'Co-Authored-By.*[Cc]laude' \"$1\"; then echo '\\n❌ Commit message contains a Claude Co-Authored-By line. Remove it and try again.' && exit 1; fi",
