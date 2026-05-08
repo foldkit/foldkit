@@ -3,32 +3,16 @@
 '@foldkit/devtools-mcp': minor
 ---
 
-Take Command args as data in `Command.define` and surface them through to DevTools and the MCP wire protocol.
+Take Command args as data in `Command.define`.
 
-`Command.define` now collapses the definition + factory pattern into a single declaration whose args are Schema-typed and visible at the value level. The Effect (or effect builder) is bound at definition time; the returned Definition is callable with the declared args (or with no args for argless Commands). Args hang off the resulting Command instance and flow through to OpenTelemetry span attributes attached to the Command's Effect.
+`Command.define` is now a curried call. The first call binds the name and result Message schemas (and optionally an args Schema record); the second binds the Effect, or an effect builder when args are declared. The returned Definition is callable to produce a Command instance: pass the declared args, or call with no args for argless Commands.
 
-```ts
-// No args:
-const LockScroll = Command.define('LockScroll', CompletedLockScroll)(
-  Dom.lockScroll.pipe(Effect.as(CompletedLockScroll())),
-)
-LockScroll() // → Command
+Each Command instance carries its args as a field, and the runtime surfaces that field through:
 
-// With args:
-const FetchWeather = Command.define(
-  'FetchWeather',
-  { zipCode: S.String },
-  SucceededFetchWeather,
-  FailedFetchWeather,
-)(({ zipCode }) =>
-  Effect.gen(function* () { ... }),
-)
-FetchWeather({ zipCode: '90210' }) // → Command, args inspectable on the value
-```
-
-The DevTools panel's Commands tab now renders each Command using the same tree the Messages tab uses: the Command name appears as the tag at the top of its row and declared args appear as a data tree below, with chevrons for nested fields. Argless Commands show only the name.
-
-`Story.Command` and `Scene.Command` matchers (`expectHas`, `expectExact`, `resolve`, `resolveAll`) now accept either a Command Definition (matches by name; the existing lax behavior) or a Command instance (matches by name AND structural-equal args; new strict behavior). Pass a Definition when the test only cares that some Command was dispatched; pass an instance when the test should verify the args the runtime captured.
+- **OpenTelemetry span attributes**: the args record is attached to the span wrapping the Command's Effect.
+- **The DevTools Commands tab**: each Command renders as a tag at the top of its row with the declared args as a data tree below (chevrons for nested fields). Argless Commands show only the name.
+- **The MCP wire protocol** consumed by `@foldkit/devtools-mcp`: `SerializedEntry.commandNames` and `ResponseInit.commandNames` are replaced by `commands: Array<{ name: string; args: Option<Record<string, unknown>> }>`.
+- **`Story.Command` / `Scene.Command` matchers** (`expectHas`, `expectExact`, `resolve`, `resolveAll`): each now accepts either a Command Definition (matches by name; existing lax behavior) or a Command instance (matches by name AND structural-equal args; new strict behavior). Pass a Definition when the test only cares that the Command was dispatched; pass an instance when the test should verify the args the runtime captured.
 
 ```ts
 // Lax: matches any FetchWeather, regardless of args
@@ -38,7 +22,7 @@ Scene.Command.expectExact(FetchWeather)
 Scene.Command.expectExact(FetchWeather({ zipCode: '90210' }))
 ```
 
-Failure messages now show the args that were dispatched alongside the args that were expected, so a wrong-args mismatch reads like `FetchWeather {"zipCode":"99999"}` vs `FetchWeather {"zipCode":"90210"}` rather than just `FetchWeather`.
+Failure messages now show the args dispatched alongside the args expected, so a wrong-args mismatch reads `FetchWeather {"zipCode":"99999"}` vs `FetchWeather {"zipCode":"90210"}` rather than just `FetchWeather`.
 
 ## Migration
 
@@ -108,8 +92,6 @@ const FetchWeather = Command.define(
 // At the call site:
 return [model, [FetchWeather({ zipCode: '90210' })]]
 ```
-
-The args record now flows through to OTel span attributes, the DevTools Commands tab, the MCP wire shape, and Story/Scene matchers, instead of being invisible closure state.
 
 Only values that vary per dispatch should become args. Module-level constants stay in lexical scope. Runtime dependencies stay where they live: app-wide ones in `Resources`, model-driven ones in `ManagedResources`, anything else as a service tag on the Effect's context channel. The Effect pulls them all with `yield*`.
 
