@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.7.1
+
+### Patch Changes
+
+- 61dc3fb: Bump `rimraf` to `^6.1.3` and `typescript` to `^6.0.3`.
+
 ## 0.7.0
 
 ### Minor Changes

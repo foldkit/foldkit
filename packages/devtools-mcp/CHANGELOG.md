@@ -1,5 +1,11 @@
 # @foldkit/devtools-mcp
 
+## 0.5.1
+
+### Patch Changes
+
+- 61dc3fb: Bump `ws` to `^8.20.0`.
+
 ## 0.5.0
 
 ### Minor Changes
