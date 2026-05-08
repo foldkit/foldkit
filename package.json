@@ -66,7 +66,7 @@
     "tsx": "^4.21.0",
     "typedoc": "^0.28.19",
     "typescript": "^6.0.2",
-    "vite": "^7.3.1"
+    "vite": "^6.4.2"
   },
   "simple-git-hooks": {
     "commit-msg": "if grep -q 'Co-Authored-By.*[Cc]laude' \"$1\"; then echo '\\n❌ Commit message contains a Claude Co-Authored-By line. Remove it and try again.' && exit 1; fi",

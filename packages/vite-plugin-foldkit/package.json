@@ -34,7 +34,7 @@
     "effect": "4.0.0-beta.59",
     "foldkit": "workspace:*",
     "typescript": "^6.0.2",
-    "vite": "^7.3.1"
+    "vite": "^6.4.2"
   },
   "keywords": [
     "vite",
