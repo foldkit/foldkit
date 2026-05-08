@@ -28,15 +28,23 @@ const generateProgramHeader: TableOfContentsEntry = {
   text: 'generate-program',
 }
 
+const auditProgramHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'audit-program',
+  text: 'audit-program',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   availableSkillsHeader,
   generateProgramHeader,
+  auditProgramHeader,
 ]
 
 const ADD_MARKETPLACE_COMMAND = '/plugin marketplace add foldkit/foldkit'
 const INSTALL_COMMAND = '/plugin install foldkit-skills@foldkit'
 const GENERATE_PROGRAM_COMMAND = '/foldkit-skills:generate-program'
+const AUDIT_PROGRAM_COMMAND = '/foldkit-skills:audit-program'
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
   div(
@@ -77,8 +85,18 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Generate a complete, idiomatic Foldkit application from a natural language description. Produces correct-by-construction apps with proper Model schemas, Message naming, Commands with error handling, and Foldkit UI component integration.',
       ),
+      tableOfContentsEntryToHeader(auditProgramHeader),
+      codeBlock(
+        AUDIT_PROGRAM_COMMAND,
+        'Copy audit-program command',
+        copiedSnippets,
+        'mb-4',
+      ),
       para(
-        'More skills are in development, including message scaffolding, Submodel extraction, and architecture auditing.',
+        'Audit an existing Foldkit program against the architecture, conventions, and quality bar. Surfaces structural issues, naming drift, accessibility gaps, dead code, and idiom violations as a structured BLOCKERS / QUALITY / NICE-TO-HAVE report. Read-only by default; fixes are opt-in and require explicit approval per item or batch.',
+      ),
+      para(
+        'More skills are in development, including message scaffolding and Submodel extraction.',
       ),
     ],
   )
