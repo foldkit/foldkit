@@ -181,6 +181,16 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' is a scene check: \u201Cthe weather is showing.\u201D',
       ),
       infoCallout(
+        'Sticky vs queued resolvers',
+        'A single ',
+        inlineCode('[Def, ResultMessage]'),
+        ' entry in ',
+        inlineCode('resolveAll'),
+        ' is sticky: it resolves every matching dispatch in the cascade with the same Message. Pass two or more entries sharing the same Definition (or instance shape) to form a queue, where each entry is consumed by exactly one matching dispatch in declaration order. ',
+        inlineCode('[FetchCount, m1], [FetchCount, m2], [FetchCount, m3]'),
+        ' reads as three responses to three dispatches. Resolvers carry across calls: unused queue entries can match later dispatches, and a new entry with the same Definition or instance shape replaces any existing resolver (latest wins).',
+      ),
+      infoCallout(
         'Unresolved Commands',
         inlineCode('Story.message'),
         ' throws if there are pending Commands from a previous step. Resolve all Commands before sending the next Message. ',

@@ -14,11 +14,13 @@ Story.Command.resolve(
   SucceededFetchWeather({ data }),
 )
 
-// Resolve many Commands at once.
-Story.Command.resolveAll([
+// Resolve many Commands at once. A single entry per Definition or instance
+// is sticky (reused for every matching dispatch); repeated entries sharing
+// a Definition or instance form a queue (consumed in declaration order).
+Story.Command.resolveAll(
   [FocusInput, CompletedFocusInput()],
   [ScrollToTop, CompletedScrollToTop()],
-])
+)
 
 // Assert on the Model.
 Story.model(model => {

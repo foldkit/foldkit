@@ -142,10 +142,14 @@ export type MountResolver<ResultMessage = unknown> =
 /** A resolver entry pairs a Command matcher with the Message that should be
  *  fed back through update when a pending Command matches. Stored as a list
  *  (not a name-keyed map) so Instance matchers with the same name but
- *  different args can coexist. */
+ *  different args can coexist. `isQueued` is `true` when the entry was
+ *  declared alongside one or more sibling entries sharing its fingerprint in
+ *  the same `resolveAll` call. Queued entries are consumed on first match;
+ *  non-queued entries are sticky and reused for every matching dispatch. */
 export type ResolverEntry<Message> = Readonly<{
   matcher: CommandMatcher
   message: Message
+  isQueued: boolean
 }>
 
 /** Base shape of an internal simulation — shared between Story and Scene. */
@@ -203,15 +207,26 @@ const matcherFingerprint = (matcher: CommandMatcher): string =>
     : `inst:${matcher.name}:${JSON.stringify(matcher.args ?? null)}`
 
 /** Resolves all listed Commands, cascading through any Commands produced by
- *  the result. Resolvers stay applicable across the cascade so multiple
- *  Commands matching the same matcher reuse it. When a new resolver shares a
- *  fingerprint with an existing one (same Definition, or same Instance shape),
- *  the new resolver replaces the old. Mirrors the prior name-keyed semantics
- *  where the latest wins. */
+ *  the result. Single-fingerprint resolvers are sticky: one entry covers every
+ *  matching dispatch in the cascade. When the same call declares 2+ entries
+ *  sharing a fingerprint, those entries form a queue: each is consumed by
+ *  exactly one matching dispatch in declaration order. Across calls, a new
+ *  resolver evicts any existing one with the same fingerprint (latest wins). */
 export const resolveAllInternal = <Model, Message, OutMessage>(
   internal: BaseInternal<Model, Message, OutMessage>,
   resolvers: ReadonlyArray<Resolver>,
 ): BaseInternal<Model, Message, OutMessage> => {
+  const seenFingerprints = new Set<string>()
+  const queuedFingerprints = new Set<string>()
+  for (const [matcher] of resolvers) {
+    const fingerprint = matcherFingerprint(matcher)
+    if (seenFingerprints.has(fingerprint)) {
+      queuedFingerprints.add(fingerprint)
+    } else {
+      seenFingerprints.add(fingerprint)
+    }
+  }
+
   const newEntries: ReadonlyArray<ResolverEntry<Message>> = Array.map(
     resolvers,
     resolver => {
@@ -220,7 +235,8 @@ export const resolveAllInternal = <Model, Message, OutMessage>(
       const message = (
         resolver.length === 3 ? resolver[2](resultMessage) : resultMessage
       ) as Message
-      return { matcher, message }
+      const isQueued = queuedFingerprints.has(matcherFingerprint(matcher))
+      return { matcher, message, isQueued }
     },
   )
 
@@ -240,10 +256,18 @@ export const resolveAllInternal = <Model, Message, OutMessage>(
 
   const findNextMatch = (
     state: BaseInternal<Model, Message, unknown>,
-  ): Option.Option<ResolverEntry<Message>> =>
+  ): Option.Option<{ entry: ResolverEntry<Message>; resolverIndex: number }> =>
     Array.findFirst(state.commands, command =>
-      Array.findFirst(state.resolvers, ({ matcher }) =>
-        commandMatches(matcher, command),
+      pipe(
+        state.resolvers,
+        Array.findFirstIndex(({ matcher }) => commandMatches(matcher, command)),
+        Option.flatMap(resolverIndex =>
+          pipe(
+            state.resolvers,
+            Array.get(resolverIndex),
+            Option.map(entry => ({ entry, resolverIndex })),
+          ),
+        ),
       ),
     )
 
@@ -256,15 +280,20 @@ export const resolveAllInternal = <Model, Message, OutMessage>(
 
     const next = resolveByMatcher(
       current,
-      matched.value.matcher,
-      matched.value.message,
+      matched.value.entry.matcher,
+      matched.value.entry.message,
     )
 
     if (Predicate.isUndefined(next)) {
       break
     }
 
-    current = next
+    current = matched.value.entry.isQueued
+      ? {
+          ...next,
+          resolvers: Array.remove(next.resolvers, matched.value.resolverIndex),
+        }
+      : next
 
     if (depth === MAX_CASCADE_DEPTH - 1) {
       throw new Error(

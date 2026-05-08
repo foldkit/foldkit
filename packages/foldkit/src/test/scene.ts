@@ -661,7 +661,15 @@ const resolveCommand: {
     /* eslint-enable @typescript-eslint/consistent-type-assertions */
   }
 
-/** Resolves all listed Commands with their result Messages. Handles cascading resolution. */
+/** Resolves listed Commands with their result Messages, cascading through any
+ *  Commands the result produces. A single entry for a Command Definition or
+ *  instance is sticky: it resolves every matching dispatch in the cascade with
+ *  the same Message. Two or more entries sharing a Definition or instance form
+ *  a queue: each is consumed by exactly one matching dispatch in declaration
+ *  order, so `[Def, m1], [Def, m2], [Def, m3]` reads as a sequence of three
+ *  responses. Resolvers carry across `resolveAll` calls: unused queue entries
+ *  can match later dispatches, and a new entry whose Definition or instance
+ *  shape matches an existing resolver replaces it (latest wins). */
 const resolveAllCommands =
   <R extends ReadonlyArray<unknown>>(
     ...resolvers: { [K in keyof R]: Resolver<R[K]> }
@@ -891,7 +899,12 @@ const expectEndedMountsStep =
 export const Command = {
   /** Resolves a specific pending Command with the given result Message. */
   resolve: resolveCommand,
-  /** Resolves all listed Commands with their result Messages. Handles cascading resolution. */
+  /** Resolves listed Commands with their result Messages, cascading through any
+   *  Commands the result produces. Single entries are sticky (reused for every
+   *  matching dispatch); repeated entries sharing a Definition or instance form
+   *  a queue (consumed in declaration order, one per dispatch). Resolvers
+   *  carry across calls; a new entry with the same Definition or instance
+   *  shape replaces an existing one (latest wins). */
   resolveAll: resolveAllCommands,
   /** Asserts that every given Command is among the pending Commands. */
   expectHas: expectHasCommandsStep,

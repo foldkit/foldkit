@@ -612,7 +612,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           [
             [plainCode('Scene.Command.resolveAll([Def, ResultMessage], ...)')],
             [
-              'Resolves a batch of pending Commands in order, walking cascades.',
+              'Resolves a batch of pending Commands, walking cascades. A single entry per Definition or instance is sticky (reused for every matching dispatch); repeated entries sharing a Definition or instance form a queue (consumed in declaration order, one per dispatch).',
             ],
           ],
           [
