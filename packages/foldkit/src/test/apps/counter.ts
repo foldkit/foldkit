@@ -5,7 +5,10 @@ import { m } from '../../message/index.js'
 
 // MODEL
 
-export const Model = S.Struct({ count: S.Number })
+export const Model = S.Struct({
+  count: S.Number,
+  log: S.Array(S.Number),
+})
 export type Model = typeof Model.Type
 
 // MESSAGE
@@ -14,6 +17,9 @@ export const ClickedIncrement = m('ClickedIncrement')
 export const ClickedDecrement = m('ClickedDecrement')
 export const ClickedFetch = m('ClickedFetch')
 export const ClickedFetchById = m('ClickedFetchById', { id: S.Number })
+export const StartedThreeFetches = m('StartedThreeFetches')
+export const StartedTwoFetchesById = m('StartedTwoFetchesById')
+export const StartedMixedFetches = m('StartedMixedFetches')
 export const SucceededFetchCount = m('SucceededFetchCount', { count: S.Number })
 export const FailedFetchCount = m('FailedFetchCount', { error: S.String })
 
@@ -22,6 +28,9 @@ export const Message = S.Union([
   ClickedDecrement,
   ClickedFetch,
   ClickedFetchById,
+  StartedThreeFetches,
+  StartedTwoFetchesById,
+  StartedMixedFetches,
   SucceededFetchCount,
   FailedFetchCount,
 ])
@@ -44,7 +53,7 @@ export const FetchCountById = Command.define(
 
 // INIT
 
-export const initialModel: Model = { count: 0 }
+export const initialModel: Model = { count: 0, log: [] }
 
 // UPDATE
 
@@ -57,11 +66,31 @@ export const update = (
       readonly [Model, ReadonlyArray<Command.Command<Message>>]
     >(),
     M.tagsExhaustive({
-      ClickedIncrement: () => [{ count: model.count + 1 }, []],
-      ClickedDecrement: () => [{ count: model.count - 1 }, []],
+      ClickedIncrement: () => [{ ...model, count: model.count + 1 }, []],
+      ClickedDecrement: () => [{ ...model, count: model.count - 1 }, []],
       ClickedFetch: () => [model, [FetchCount()]],
       ClickedFetchById: ({ id }) => [model, [FetchCountById({ id })]],
-      SucceededFetchCount: ({ count }) => [{ count }, []],
+      StartedThreeFetches: () => [
+        model,
+        [FetchCount(), FetchCount(), FetchCount()],
+      ],
+      StartedTwoFetchesById: () => [
+        model,
+        [FetchCountById({ id: 5 }), FetchCountById({ id: 5 })],
+      ],
+      StartedMixedFetches: () => [
+        model,
+        [
+          FetchCount(),
+          FetchCount(),
+          FetchCountById({ id: 99 }),
+          FetchCountById({ id: 99 }),
+        ],
+      ],
+      SucceededFetchCount: ({ count }) => [
+        { count, log: [...model.log, count] },
+        [],
+      ],
       FailedFetchCount: () => [model, []],
     }),
   )

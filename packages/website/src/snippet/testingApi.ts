@@ -1,3 +1,4 @@
+import { Array } from 'effect'
 import { Story } from 'foldkit'
 
 // Set the initial Model.
@@ -14,11 +15,17 @@ Story.Command.resolve(
   SucceededFetchWeather({ data }),
 )
 
-// Resolve many Commands at once.
-Story.Command.resolveAll([
+// Resolve many Commands at once. Each entry resolves exactly one matching
+// dispatch in declaration order.
+Story.Command.resolveAll(
   [FocusInput, CompletedFocusInput()],
   [ScrollToTop, CompletedScrollToTop()],
-])
+)
+
+// For N identical responses, compose with Array.makeBy.
+Story.Command.resolveAll(
+  ...Array.makeBy(3, () => [AnimationTick, CompletedTick()] as const),
+)
 
 // Assert on the Model.
 Story.model(model => {

@@ -142,7 +142,8 @@ export type MountResolver<ResultMessage = unknown> =
 /** A resolver entry pairs a Command matcher with the Message that should be
  *  fed back through update when a pending Command matches. Stored as a list
  *  (not a name-keyed map) so Instance matchers with the same name but
- *  different args can coexist. */
+ *  different args can coexist. Each entry is consumed on its first matching
+ *  dispatch. */
 export type ResolverEntry<Message> = Readonly<{
   matcher: CommandMatcher
   message: Message
@@ -203,11 +204,10 @@ const matcherFingerprint = (matcher: CommandMatcher): string =>
     : `inst:${matcher.name}:${JSON.stringify(matcher.args ?? null)}`
 
 /** Resolves all listed Commands, cascading through any Commands produced by
- *  the result. Resolvers stay applicable across the cascade so multiple
- *  Commands matching the same matcher reuse it. When a new resolver shares a
- *  fingerprint with an existing one (same Definition, or same Instance shape),
- *  the new resolver replaces the old. Mirrors the prior name-keyed semantics
- *  where the latest wins. */
+ *  the result. Each entry is consumed by exactly one matching dispatch in
+ *  declaration order; for N identical responses, compose with
+ *  `Array.makeBy(n, () => [Def, message])`. Across calls, new entries replace
+ *  any leftover resolvers sharing their fingerprint (latest wins). */
 export const resolveAllInternal = <Model, Message, OutMessage>(
   internal: BaseInternal<Model, Message, OutMessage>,
   resolvers: ReadonlyArray<Resolver>,
@@ -240,10 +240,18 @@ export const resolveAllInternal = <Model, Message, OutMessage>(
 
   const findNextMatch = (
     state: BaseInternal<Model, Message, unknown>,
-  ): Option.Option<ResolverEntry<Message>> =>
+  ): Option.Option<{ entry: ResolverEntry<Message>; resolverIndex: number }> =>
     Array.findFirst(state.commands, command =>
-      Array.findFirst(state.resolvers, ({ matcher }) =>
-        commandMatches(matcher, command),
+      pipe(
+        state.resolvers,
+        Array.findFirstIndex(({ matcher }) => commandMatches(matcher, command)),
+        Option.flatMap(resolverIndex =>
+          pipe(
+            state.resolvers,
+            Array.get(resolverIndex),
+            Option.map(entry => ({ entry, resolverIndex })),
+          ),
+        ),
       ),
     )
 
@@ -256,15 +264,18 @@ export const resolveAllInternal = <Model, Message, OutMessage>(
 
     const next = resolveByMatcher(
       current,
-      matched.value.matcher,
-      matched.value.message,
+      matched.value.entry.matcher,
+      matched.value.entry.message,
     )
 
     if (Predicate.isUndefined(next)) {
       break
     }
 
-    current = next
+    current = {
+      ...next,
+      resolvers: Array.remove(next.resolvers, matched.value.resolverIndex),
+    }
 
     if (depth === MAX_CASCADE_DEPTH - 1) {
       throw new Error(

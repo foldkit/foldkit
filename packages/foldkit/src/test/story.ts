@@ -198,7 +198,15 @@ const resolveCommand: {
     /* eslint-enable @typescript-eslint/consistent-type-assertions */
   }
 
-/** Resolves all listed Commands with their result Messages. Handles cascading resolution. */
+/** Resolves listed Commands with their result Messages, cascading through any
+ *  Commands the result produces. Each entry is consumed by exactly one
+ *  matching dispatch in declaration order, so
+ *  `[Def, m1], [Def, m2], [Def, m3]` reads as a sequence of three responses.
+ *  For N identical responses, compose with
+ *  `Array.makeBy(n, () => [Def, message])`. Resolvers carry across
+ *  `resolveAll` calls: unused entries can match later dispatches, and a new
+ *  entry replaces any leftover resolvers sharing its Definition or Instance
+ *  shape (latest wins). */
 const resolveAllCommands =
   <R extends ReadonlyArray<unknown>>(
     ...resolvers: { [K in keyof R]: Resolver<R[K]> }
@@ -263,7 +271,11 @@ const expectNoCommandsStep =
 export const Command = {
   /** Resolves a specific pending Command with the given result Message. */
   resolve: resolveCommand,
-  /** Resolves all listed Commands with their result Messages. Handles cascading resolution. */
+  /** Resolves listed Commands with their result Messages, cascading through any
+   *  Commands the result produces. Each entry resolves exactly one matching
+   *  dispatch in declaration order; compose with `Array.makeBy` for N
+   *  identical responses. Resolvers carry across calls; a new entry replaces
+   *  any leftovers sharing its Definition or Instance shape (latest wins). */
   resolveAll: resolveAllCommands,
   /** Asserts that every given Command is among the pending Commands. */
   expectHas: expectHasCommandsStep,

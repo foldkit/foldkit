@@ -181,6 +181,16 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' is a scene check: \u201Cthe weather is showing.\u201D',
       ),
       infoCallout(
+        'Resolvers are a queue',
+        'Each entry in ',
+        inlineCode('resolveAll'),
+        ' resolves exactly one matching dispatch in declaration order. ',
+        inlineCode('[FetchCount, m1], [FetchCount, m2], [FetchCount, m3]'),
+        ' reads as three responses to three dispatches. For N identical responses, compose with ',
+        inlineCode('Array.makeBy(n, () => [Def, message])'),
+        '. Resolvers carry across calls: unused entries can match later dispatches, and a new entry replaces any leftover resolvers sharing its Definition or Instance shape (latest wins).',
+      ),
+      infoCallout(
         'Unresolved Commands',
         inlineCode('Story.message'),
         ' throws if there are pending Commands from a previous step. Resolve all Commands before sending the next Message. ',
