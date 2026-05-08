@@ -1,5 +1,11 @@
 # @foldkit/vite-plugin
 
+## 0.5.0
+
+### Minor Changes
+
+- 61dc3fb: Drop Vite 7 from peer dependencies. The plugin now requires Vite ^8.0.0; consumers on Vite 7 must upgrade.
+
 ## 0.4.1
 
 ### Patch Changes

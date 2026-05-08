@@ -1,5 +1,11 @@
 # foldkit
 
+## 0.88.1
+
+### Patch Changes
+
+- 61dc3fb: Bump `@floating-ui/dom` to `^1.7.6`.
+
 ## 0.88.0
 
 ### Minor Changes
