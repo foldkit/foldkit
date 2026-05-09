@@ -262,9 +262,9 @@ export const oneOf = <Parsers extends ReadonlyArray<ParserInput>>(
             message: `No parsers provided for path: /${Array.join(segments, '/')}`,
           }),
         ),
-      onNonEmpty: (head, tail) =>
-        Array.reduce(tail, head.parse(segments, search), (acc, parser) =>
-          acc.pipe(Effect.catch(() => parser.parse(segments, search))),
+      onNonEmpty: () =>
+        Effect.firstSuccessOf(
+          Array.map(parsers, parser => parser.parse(segments, search)),
         ),
     }),
 })

@@ -78,10 +78,10 @@
       "simple-git-hooks"
     ],
     "overrides": {
-      "effect": "4.0.0-beta.59",
-      "@effect/platform-browser": "4.0.0-beta.59",
-      "@effect/platform-node": "4.0.0-beta.59",
-      "@effect/vitest": "4.0.0-beta.59"
+      "effect": "4.0.0-beta.64",
+      "@effect/platform-browser": "4.0.0-beta.64",
+      "@effect/platform-node": "4.0.0-beta.64",
+      "@effect/vitest": "4.0.0-beta.64"
     }
   },
   "engines": {

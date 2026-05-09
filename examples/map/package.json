@@ -9,9 +9,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.0.0-beta.59",
+    "@effect/platform-browser": "4.0.0-beta.64",
     "@tailwindcss/vite": "^4.2.4",
-    "effect": "4.0.0-beta.59",
+    "effect": "4.0.0-beta.64",
     "foldkit": "workspace:*",
     "maplibre-gl": "^5.24.0",
     "tailwindcss": "^4.2.4"
