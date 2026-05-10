@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.7.2
+
+### Patch Changes
+
+- 1e6cb6c: Update the View section of the scaffolded `AGENTS.md` template to teach the new dotted-html convention: bind `const h = html<Message>()` per module (or `html<ParentMessage>()` inside a generic child view) and reach for elements, attributes, and event handlers via `h.div`, `h.OnClick`, etc. The previous template instructed users to call `html<Message>()` once in a dedicated `html.ts` file and re-export the destructured helpers, which contradicts the convention used in every Foldkit example.
+
 ## 0.7.1
 
 ### Patch Changes
