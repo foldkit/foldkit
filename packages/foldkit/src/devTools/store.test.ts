@@ -136,9 +136,20 @@ const run = <A>(effect: Effect.Effect<A>): A => Effect.runSync(effect)
 const getState = (store: DevToolsStore) =>
   run(SubscriptionRef.get(store.stateRef))
 
-const makeStore = (overrides?: Partial<Bridge>, maxEntries?: number) => {
+const makeStore = (
+  overrides?: Partial<Bridge>,
+  maxEntries?: number,
+  keyframeInterval?: number,
+) => {
   const { bridge, rendered } = makeBridge(overrides)
-  const store = run(createDevToolsStore(bridge, maxEntries))
+  const store = run(
+    createDevToolsStore(
+      bridge,
+      maxEntries === undefined && keyframeInterval === undefined
+        ? undefined
+        : { maxEntries, keyframeInterval },
+    ),
+  )
   run(store.recordInit(initialModel))
   return { bridge, store, rendered }
 }
@@ -261,6 +272,41 @@ describe('DevToolsStore', () => {
     })
   })
 
+  describe('updateLatestModel', () => {
+    it('updates maybeLatestModel without appending an entry or keyframe', () => {
+      const { store } = makeStore()
+      const stateBefore = getState(store)
+
+      run(store.updateLatestModel({ count: 42 }))
+
+      const stateAfter = getState(store)
+      expect(stateAfter.entries.length).toBe(0)
+      expect(stateAfter.keyframes).toEqual(stateBefore.keyframes)
+      expect(Option.getOrThrow(stateAfter.maybeLatestModel)).toEqual({
+        count: 42,
+      })
+    })
+
+    it('feeds the latest-model fast path on top of recorded entries', () => {
+      const { store } = makeStore()
+
+      run(
+        store.recordMessage(
+          clickedIncrement,
+          initialModel,
+          { count: 1 },
+          [],
+          true,
+        ),
+      )
+      run(store.updateLatestModel({ count: 99 }))
+
+      const state = getState(store)
+      const latestIndex = state.startIndex + state.entries.length - 1
+      expect(run(store.getModelAtIndex(latestIndex))).toEqual({ count: 99 })
+    })
+  })
+
   describe('keyframes', () => {
     it('creates keyframes at interval boundaries for fast replay', () => {
       const { bridge, store } = makeStore()
@@ -272,6 +318,19 @@ describe('DevToolsStore', () => {
       const model = run(store.getModelAtIndex(33))
       expect(model).toEqual({ count: 34 })
       expect(replaySpy).toHaveBeenCalledTimes(3)
+    })
+
+    it('snapshots every entry when keyframeInterval is 1, never replaying', () => {
+      const { bridge, store } = makeStore(undefined, undefined, 1)
+      const replaySpy = vi.spyOn(bridge, 'replay')
+
+      recordIncrements(store, 35)
+      replaySpy.mockClear()
+
+      expect(run(store.getModelAtIndex(0))).toEqual({ count: 1 })
+      expect(run(store.getModelAtIndex(17))).toEqual({ count: 18 })
+      expect(run(store.getModelAtIndex(34))).toEqual({ count: 35 })
+      expect(replaySpy).not.toHaveBeenCalled()
     })
 
     it('replays from init keyframe for early indices', () => {

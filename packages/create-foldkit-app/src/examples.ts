@@ -10,6 +10,7 @@ export const EXAMPLE_VALUES = [
   'query-sync',
   'snake',
   'canvas-art',
+  'generative-art',
   'auth',
   'shopping-cart',
   'pixel-art',
@@ -82,6 +83,12 @@ export const examples: ReadonlyArray<{
     title: 'canvas-art',
     description:
       'Declarative 2D canvas with shapes, animation-frame Subscriptions, and pointer events',
+  },
+  {
+    value: 'generative-art',
+    title: 'generative-art',
+    description:
+      'Perlin-noise flow field with hundreds of evolving particle trails, mouse vortex, and DevTools history exclusion for high-frequency Messages',
   },
   {
     value: 'auth',

@@ -1,0 +1,88 @@
+import { Schema as S, Stream } from 'effect'
+import { Subscription, Ui } from 'foldkit'
+
+import {
+  GotFlowStrengthSliderMessage,
+  GotNoiseScaleSliderMessage,
+  TickedFrame,
+} from './message'
+import type { Message } from './message'
+import type { Model } from './model'
+
+const sliderFields = Ui.Slider.SubscriptionDeps.fields
+
+const SubscriptionDeps = S.Struct({
+  frame: S.Boolean,
+  flowStrengthSliderPointer: sliderFields['documentPointer'],
+  flowStrengthSliderEscape: sliderFields['documentEscape'],
+  noiseScaleSliderPointer: sliderFields['documentPointer'],
+  noiseScaleSliderEscape: sliderFields['documentEscape'],
+})
+
+const mapFlowStrengthStream = (stream: Stream.Stream<Ui.Slider.Message>) =>
+  stream.pipe(Stream.map(message => GotFlowStrengthSliderMessage({ message })))
+
+const mapNoiseScaleStream = (stream: Stream.Stream<Ui.Slider.Message>) =>
+  stream.pipe(Stream.map(message => GotNoiseScaleSliderMessage({ message })))
+
+export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
+  Model,
+  Message
+>({
+  frame: Subscription.animationFrame({
+    isActive: model => model.isRunning,
+    toMessage: deltaTimeMs => TickedFrame({ deltaTimeMs }),
+  }),
+  flowStrengthSliderPointer: {
+    modelToDependencies: model =>
+      Ui.Slider.subscriptions.documentPointer.modelToDependencies(
+        model.flowStrengthSlider,
+      ),
+    dependenciesToStream: (dependencies, readDependencies) =>
+      mapFlowStrengthStream(
+        Ui.Slider.subscriptions.documentPointer.dependenciesToStream(
+          dependencies,
+          readDependencies,
+        ),
+      ),
+  },
+  flowStrengthSliderEscape: {
+    modelToDependencies: model =>
+      Ui.Slider.subscriptions.documentEscape.modelToDependencies(
+        model.flowStrengthSlider,
+      ),
+    dependenciesToStream: (dependencies, readDependencies) =>
+      mapFlowStrengthStream(
+        Ui.Slider.subscriptions.documentEscape.dependenciesToStream(
+          dependencies,
+          readDependencies,
+        ),
+      ),
+  },
+  noiseScaleSliderPointer: {
+    modelToDependencies: model =>
+      Ui.Slider.subscriptions.documentPointer.modelToDependencies(
+        model.noiseScaleSlider,
+      ),
+    dependenciesToStream: (dependencies, readDependencies) =>
+      mapNoiseScaleStream(
+        Ui.Slider.subscriptions.documentPointer.dependenciesToStream(
+          dependencies,
+          readDependencies,
+        ),
+      ),
+  },
+  noiseScaleSliderEscape: {
+    modelToDependencies: model =>
+      Ui.Slider.subscriptions.documentEscape.modelToDependencies(
+        model.noiseScaleSlider,
+      ),
+    dependenciesToStream: (dependencies, readDependencies) =>
+      mapNoiseScaleStream(
+        Ui.Slider.subscriptions.documentEscape.dependenciesToStream(
+          dependencies,
+          readDependencies,
+        ),
+      ),
+  },
+})

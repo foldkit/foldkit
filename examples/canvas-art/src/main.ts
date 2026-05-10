@@ -221,7 +221,7 @@ const controlsView = (model: Model): Html =>
       h.button(
         [
           h.Class(
-            'px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500',
+            'min-w-20 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500',
           ),
           h.OnClick(ClickedTogglePlay()),
         ],
@@ -229,14 +229,22 @@ const controlsView = (model: Model): Html =>
       ),
       h.button(
         [
-          h.Class('px-4 py-2 bg-zinc-700 text-white rounded hover:bg-zinc-600'),
+          h.Class(
+            'min-w-20 px-4 py-2 bg-zinc-700 text-white rounded hover:bg-zinc-600',
+          ),
           h.OnClick(ClickedClear()),
         ],
         ['Clear'],
       ),
       h.p(
         [h.Class('px-4 py-2 text-zinc-400 text-sm self-center')],
-        [`${model.balls.length} balls`],
+        [
+          h.span(
+            [h.Class('inline-block tabular-nums text-right min-w-8')],
+            [`${model.balls.length}`],
+          ),
+          ' balls',
+        ],
       ),
     ],
   )

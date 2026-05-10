@@ -12,9 +12,11 @@ import {
   pipe,
 } from 'effect'
 
+import { evo } from '../struct/index.js'
+
 export const INIT_INDEX = -1
-const KEYFRAME_INTERVAL = 31
-const DEFAULT_MAX_ENTRIES = 500
+const DEFAULT_KEYFRAME_INTERVAL = 31
+const DEFAULT_MAX_ENTRIES = 100
 
 // DIFF
 
@@ -165,16 +167,42 @@ const emptyState: StoreState = {
   maybeLatestModel: Option.none(),
 }
 
+/**
+ * Options for `createDevToolsStore`.
+ *
+ * - `maxEntries`: Maximum number of history entries to retain before evicting the oldest segment. Defaults to 100.
+ * - `keyframeInterval`: Number of recorded entries between full model snapshots. Smaller values use more memory but make time-travel a constant-time lookup instead of a replay. Set to `1` to snapshot every entry, which keeps time-travel correct under exclusion-from-history (since excluded Messages are never replayed). Defaults to 31.
+ */
+export type CreateDevToolsStoreOptions = Readonly<{
+  maxEntries?: number
+  keyframeInterval?: number
+}>
+
 export const createDevToolsStore = (
   bridge: Bridge,
-  maxEntries = DEFAULT_MAX_ENTRIES,
+  options: CreateDevToolsStoreOptions = {},
 ): Effect.Effect<DevToolsStore> =>
   Effect.gen(function* () {
+    const maxEntries = options.maxEntries ?? DEFAULT_MAX_ENTRIES
+    const keyframeInterval =
+      options.keyframeInterval ?? DEFAULT_KEYFRAME_INTERVAL
     const stateRef = yield* SubscriptionRef.make(emptyState)
 
     const replayToIndex = (state: StoreState, index: number): unknown => {
+      // NOTE: the keyframe stored at `index + 1` represents the model
+      // state immediately after entry `index` was processed, per the
+      // convention `recordMessage` uses. Looking it up first short-circuits
+      // replay entirely; this hits on every index when keyframeInterval is
+      // 1 and at segment boundaries otherwise. Don't "simplify" to
+      // `keyframes[index]` — that's the model BEFORE entry `index`, which
+      // would require replaying the entry to land at the right state.
+      const directSnapshot = HashMap.get(state.keyframes, index + 1)
+      if (Option.isSome(directSnapshot)) {
+        return directSnapshot.value
+      }
+
       const segmentStart =
-        Math.floor(index / KEYFRAME_INTERVAL) * KEYFRAME_INTERVAL
+        Math.floor(index / keyframeInterval) * keyframeInterval
 
       const keyframeIndex = HashMap.has(state.keyframes, segmentStart)
         ? segmentStart
@@ -202,19 +230,19 @@ export const createDevToolsStore = (
       nextAbsoluteIndex: number,
       modelAfterUpdate: unknown,
     ): HashMap.HashMap<number, unknown> =>
-      nextAbsoluteIndex % KEYFRAME_INTERVAL === 0
+      nextAbsoluteIndex % keyframeInterval === 0
         ? HashMap.set(keyframes, nextAbsoluteIndex, modelAfterUpdate)
         : keyframes
 
     const evictOldestSegment = (state: StoreState): StoreState => {
-      const nextStartIndex = state.startIndex + KEYFRAME_INTERVAL
+      const nextStartIndex = state.startIndex + keyframeInterval
       const isPausedAtRetainedIndex =
         state.pausedAtIndex >= nextStartIndex ||
         state.pausedAtIndex === INIT_INDEX
 
       return {
         ...state,
-        entries: Array.drop(state.entries, KEYFRAME_INTERVAL),
+        entries: Array.drop(state.entries, keyframeInterval),
         keyframes: HashMap.remove(state.keyframes, state.startIndex),
         startIndex: nextStartIndex,
         isPaused: state.isPaused && isPausedAtRetainedIndex,
@@ -410,9 +438,16 @@ export const createDevToolsStore = (
         )
       })
 
+    const updateLatestModel = (model: unknown) =>
+      SubscriptionRef.update(
+        stateRef,
+        evo({ maybeLatestModel: () => Option.some(model) }),
+      )
+
     return {
       recordInit,
       recordMessage,
+      updateLatestModel,
       attachRenderedMounts,
       getModelAtIndex,
       getMessageAtIndex,
@@ -437,6 +472,7 @@ export type DevToolsStore = Readonly<{
     commands: ReadonlyArray<CommandRecord>,
     isModelChanged: boolean,
   ) => Effect.Effect<void>
+  updateLatestModel: (model: unknown) => Effect.Effect<void>
   attachRenderedMounts: (
     mountStarts: ReadonlyArray<MountRecord>,
     mountEnds: ReadonlyArray<MountRecord>,

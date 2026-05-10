@@ -51,6 +51,18 @@ const bannerHeader: TableOfContentsEntry = {
   text: 'banner',
 }
 
+const excludeFromHistoryHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'exclude-from-history',
+  text: 'excludeFromHistory',
+}
+
+const maxEntriesHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'max-entries',
+  text: 'maxEntries',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   configurationHeader,
@@ -58,6 +70,8 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   positionHeader,
   modeHeader,
   bannerHeader,
+  excludeFromHistoryHeader,
+  maxEntriesHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
@@ -147,6 +161,46 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       tableOfContentsEntryToHeader(bannerHeader),
       para(
         'An optional string displayed as a banner at the top of the panel. Useful for welcoming visitors or leaving a note for your team.',
+      ),
+      tableOfContentsEntryToHeader(excludeFromHistoryHeader),
+      para(
+        'A list of Message ',
+        inlineCode('_tag'),
+        ' values whose dispatches should not be recorded in DevTools history. The Messages still drive ',
+        inlineCode('update'),
+        ' and the runtime as usual; they just don’t appear in the history panel and don’t pay the per-Message diff cost. Reach for this when an animation-frame Subscription, pointer-move handler, scroll listener, or other high-frequency dispatcher would otherwise flood history with entries that all look the same.',
+      ),
+      para(
+        'When ',
+        inlineCode('excludeFromHistory'),
+        ' is set, DevTools also switches to a per-entry snapshot strategy so time-travel jumps to recorded entries reflect the real live state at the moment they were recorded. Without this, replay would walk only the kept Messages and miss any cumulative state the excluded ones would have produced. The "Live" model view stays in sync as well: excluded Messages still update the latest-model snapshot, they just don’t append a history entry or compute a diff.',
+      ),
+      tableOfContentsEntryToHeader(maxEntriesHeader),
+      para(
+        'Maximum number of recorded Messages retained in history before the oldest is evicted. Defaults to ',
+        inlineCode('100'),
+        '. Clamped to the range ',
+        inlineCode('20'),
+        ' to ',
+        inlineCode('500'),
+        ': smaller values keep the panel snappy under high message rates, larger values give you more scroll-back. Each retained entry is one append + diff in the regular case, or one append + full Model snapshot when ',
+        inlineCode('excludeFromHistory'),
+        ' is active, so memory cost scales with both ',
+        inlineCode('maxEntries'),
+        ' and your Model size.',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.devtoolsExcludeFromHistoryHighlighted),
+          ],
+          [],
+        ),
+        Snippets.devtoolsExcludeFromHistoryRaw,
+        'Excluding high-frequency Messages from history',
+        copiedSnippets,
+        'mb-8',
       ),
     ],
   )

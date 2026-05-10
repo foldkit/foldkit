@@ -96,6 +96,8 @@ export type DevToolsMode = 'Inspect' | 'TimeTravel'
  * - `position`: Where the badge and panel appear. Defaults to `'BottomRight'`.
  * - `mode`: `'TimeTravel'` (default) enables full time-travel debugging. `'Inspect'` allows browsing state snapshots without pausing the app.
  * - `banner`: Optional text shown as a banner at the top of the panel.
+ * - `excludeFromHistory`: Message `_tag` values whose dispatches should not be recorded in DevTools history. The Messages still drive `update` and the runtime as usual; they just don't appear in the history panel and don't pay the per-Message diff cost. Use for high-frequency Messages (animation frames, pointer moves, scroll events) that would flood history without adding insight.
+ * - `maxEntries`: Maximum number of recorded Messages retained in history before the oldest is evicted. Defaults to 100. Clamped to the range 20-500: smaller values keep the panel snappy under high message rates, larger values give you more scroll-back. Each retained entry stores a full Model snapshot, so memory cost scales linearly with both `maxEntries` and your Model size.
  */
 export type DevToolsConfig =
   | false
@@ -104,6 +106,8 @@ export type DevToolsConfig =
       position?: DevToolsPosition
       mode?: DevToolsMode
       banner?: string
+      excludeFromHistory?: ReadonlyArray<string>
+      maxEntries?: number
       /**
        * The application's `Message` Schema. When provided and the running app
        * is connected to the Foldkit DevTools MCP server, AI agents can dispatch
@@ -119,6 +123,8 @@ export type DevToolsConfig =
 const DEFAULT_DEV_TOOLS_SHOW: Visibility = 'Development'
 const DEFAULT_DEV_TOOLS_POSITION: DevToolsPosition = 'BottomRight'
 const DEFAULT_DEV_TOOLS_MODE: DevToolsMode = 'TimeTravel'
+const DEV_TOOLS_MAX_ENTRIES_MIN = 20
+const DEV_TOOLS_MAX_ENTRIES_MAX = 500
 
 /** Context provided to the slow view callback when a view exceeds the time budget. */
 export type SlowViewContext<Model, Message> = Readonly<{
@@ -509,6 +515,29 @@ const makeRuntime = <
 
   const isFreezeModelActive = freezeModel !== false && !!import.meta.hot
 
+  const excludeFromHistoryTags: ReadonlySet<string> = pipe(
+    devTools ?? {},
+    Option.liftPredicate(config => config !== false),
+    Option.flatMapNullishOr(config => config.excludeFromHistory),
+    Option.match({
+      onNone: () => new Set<string>(),
+      onSome: tags => new Set(tags),
+    }),
+  )
+
+  const devToolsMaxEntries: number | undefined = pipe(
+    devTools ?? {},
+    Option.liftPredicate(config => config !== false),
+    Option.flatMapNullishOr(config => config.maxEntries),
+    Option.map(value =>
+      Math.max(
+        DEV_TOOLS_MAX_ENTRIES_MIN,
+        Math.min(DEV_TOOLS_MAX_ENTRIES_MAX, value),
+      ),
+    ),
+    Option.getOrUndefined,
+  )
+
   const maybeFreezeModel = (model: Model): Model =>
     isFreezeModelActive ? deepFreeze(model) : model
 
@@ -832,21 +861,35 @@ const makeRuntime = <
             )
 
             const maybeDevToolsStore = yield* Ref.get(maybeDevToolsStoreRef)
+            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+            const messageTag = (message as { _tag: string })._tag
+            const isModelChanged = currentModel !== nextModel
+            const isExcludedFromHistory = excludeFromHistoryTags.has(messageTag)
+
             yield* Option.match(maybeDevToolsStore, {
               onNone: () => Effect.void,
-              onSome: store =>
-                store.recordMessage(
-                  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                  message as Message & { _tag: string },
-                  currentModel,
-                  nextModel,
-                  Array.map(
+              onSome: store => {
+                if (!isExcludedFromHistory) {
+                  return store.recordMessage(
                     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                    commands as ReadonlyArray<AnyCommand<Message>>,
-                    toCommandRecord,
-                  ),
-                  currentModel !== nextModel,
-                ),
+                    message as Message & { _tag: string },
+                    currentModel,
+                    nextModel,
+                    Array.map(
+                      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                      commands as ReadonlyArray<AnyCommand<Message>>,
+                      toCommandRecord,
+                    ),
+                    isModelChanged,
+                  )
+                }
+
+                if (isModelChanged) {
+                  return store.updateLatestModel(nextModel)
+                }
+
+                return Effect.void
+              },
             })
           })
 
@@ -918,34 +961,56 @@ const makeRuntime = <
 
         if (Option.isSome(resolvedDevTools)) {
           const { position, mode, maybeBanner } = resolvedDevTools.value
-          const devToolsStore = yield* createDevToolsStore({
-            replay: (model, message) => {
-              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-              const [updatedModel] = update(model as Model, message as Message)
-              return maybeFreezeModel(updatedModel)
+          // NOTE: when excludeFromHistory is active, the runtime drops
+          // excluded Messages from the recorded history. Replay walks the
+          // recorded entries forward from the nearest keyframe — but with
+          // exclusion, the dropped Messages aren't in that walk, so any
+          // cumulative state they would have produced is missing from the
+          // replayed model. Setting keyframeInterval to 1 stores a full
+          // snapshot on every recorded entry, so time-travel becomes a
+          // direct lookup that reflects the real live state at the moment
+          // the entry was recorded.
+          const isExcludingMessages = excludeFromHistoryTags.size > 0
+          const devToolsStore = yield* createDevToolsStore(
+            {
+              /* eslint-disable @typescript-eslint/consistent-type-assertions */
+              replay: (model, message) => {
+                const [updatedModel] = update(
+                  model as Model,
+                  message as Message,
+                )
+                return maybeFreezeModel(updatedModel)
+              },
+              /* eslint-enable @typescript-eslint/consistent-type-assertions */
+              // NOTE: clears the dirty bit on the jumpTo render so the
+              // renderLoop's Stream.changes sees the next dispatch as a real
+              // false-to-true transition rather than a deduped no-op. Passes
+              // `noOpDispatch` so mount Effects forked during the replay
+              // render dispatch their result Messages into a no-op (instead
+              // of enqueueing them as new history entries). Also discards
+              // mount events fired during the render so they don't get
+              // attributed to the next user-initiated dispatch.
+              render: model =>
+                Effect.gen(function* () {
+                  yield* SubscriptionRef.set(isRenderPendingRef, false)
+                  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                  yield* render(model as Model, Option.none(), noOpDispatch)
+                  drainMountEvents()
+                }),
+              // NOTE: `resume` calls this to wake the renderLoop after a
+              // jumpTo render attached DOM listeners to `noOpDispatch`. The
+              // false-to-true transition triggers one tick on the next
+              // animation frame, which renders the live model with live
+              // dispatch and rebinds listeners.
+              markRenderPending: SubscriptionRef.set(isRenderPendingRef, true),
             },
-            // NOTE: clears the dirty bit on the jumpTo render so the
-            // renderLoop's Stream.changes sees the next dispatch as a real
-            // false-to-true transition rather than a deduped no-op. Passes
-            // `noOpDispatch` so mount Effects forked during the replay
-            // render dispatch their result Messages into a no-op (instead
-            // of enqueueing them as new history entries). Also discards
-            // mount events fired during the render so they don't get
-            // attributed to the next user-initiated dispatch.
-            render: model =>
-              Effect.gen(function* () {
-                yield* SubscriptionRef.set(isRenderPendingRef, false)
-                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                yield* render(model as Model, Option.none(), noOpDispatch)
-                drainMountEvents()
+            {
+              ...(isExcludingMessages && { keyframeInterval: 1 }),
+              ...(devToolsMaxEntries !== undefined && {
+                maxEntries: devToolsMaxEntries,
               }),
-            // NOTE: `resume` calls this to wake the renderLoop after a
-            // jumpTo render attached DOM listeners to `noOpDispatch`. The
-            // false-to-true transition triggers one tick on the next
-            // animation frame, which renders the live model with live
-            // dispatch and rebinds listeners.
-            markRenderPending: SubscriptionRef.set(isRenderPendingRef, true),
-          })
+            },
+          )
           yield* Ref.set(maybeDevToolsStoreRef, Option.some(devToolsStore))
           // The init render runs below; capture the events it produces. We
           // record init AFTER that render so the buffer reflects the mounts

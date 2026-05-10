@@ -183,6 +183,7 @@ This is what makes Foldkit unusually AI-friendly. The same property that makes t
 - **[Kanban](https://foldkit.dev/example-apps/kanban)** — Drag-and-drop kanban board with cross-column reordering and keyboard navigation
 - **[Pixel Art](https://foldkit.dev/example-apps/pixel-art)** — Grid-based pixel editor with painting, erasing, and palette selection
 - **[Canvas Art](https://foldkit.dev/example-apps/canvas-art)** — Declarative 2D canvas with shapes, animation-frame Subscriptions, and pointer events
+- **[Generative Art](https://foldkit.dev/example-apps/generative-art)** — Prismatic flow-field particles steered by Perlin noise; move to stir, click to bloom
 - **[UI Showcase](https://foldkit.dev/example-apps/ui-showcase)** — Interactive showcase of every Foldkit UI component
 - **[Typing Game](packages/typing-game)** — Multiplayer typing game with Effect RPC backend ([play it live](https://typingterminal.com))
 
