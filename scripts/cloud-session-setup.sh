@@ -11,7 +11,7 @@
 #   * Missing dist/      -> downstream typecheck fails with "Cannot find module
 #     'foldkit'" because foldkit's package.json `exports` map points at dist/.
 #
-# Reconciling node_modules to the lockfile and building the three prerequisite
+# Reconciling node_modules to the lockfile and building the prerequisite
 # packages eliminates both classes of phantom error before the agent runs any
 # checks.
 
@@ -25,6 +25,7 @@ pnpm install --frozen-lockfile
 prerequisite_packages=(
   'foldkit:packages/foldkit'
   '@foldkit/vite-plugin:packages/vite-plugin-foldkit'
+  '@foldkit/oxlint-plugin:packages/oxlint-plugin-foldkit'
   '@typing-game/shared:packages/typing-game/shared'
 )
 

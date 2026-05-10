@@ -11,6 +11,7 @@
     "onlyUpdatePeerDependentsWhenOutOfRange": true
   },
   "ignore": [
+    "@foldkit/oxlint-plugin",
     "website",
     "@typing-game/client",
     "@typing-game/server",
