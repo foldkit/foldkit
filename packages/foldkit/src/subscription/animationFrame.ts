@@ -65,7 +65,7 @@ const makeAnimationFrameStream = <Message>(
  *   Model,
  *   Message
  * >({
- *   frame: Canvas.animationFrame({
+ *   frame: Subscription.animationFrame({
  *     isActive: model => model.isPlaying,
  *     toMessage: deltaTime => Tick({ deltaTime }),
  *   }),

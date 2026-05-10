@@ -25,6 +25,12 @@ const overviewHeader: TableOfContentsEntry = {
   text: 'Overview',
 }
 
+const animationFramesHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'animation-frames',
+  text: 'Animation Frames',
+}
+
 const advancedHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'advanced',
@@ -45,6 +51,7 @@ const readDependenciesHeader: TableOfContentsEntry = {
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
+  animationFramesHeader,
   advancedHeader,
   equivalenceHeader,
   readDependenciesHeader,
@@ -153,6 +160,52 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         '), use ',
         inlineCode('Stream.mapEffect'),
         '.',
+      ),
+
+      // ANIMATION FRAMES
+
+      tableOfContentsEntryToHeader(animationFramesHeader),
+      para(
+        'For Subscriptions tied to the browser’s paint clock, ',
+        inlineCode('Subscription.animationFrame'),
+        ' is a ready-made helper. It emits a Message every ',
+        inlineCode('requestAnimationFrame'),
+        ' tick with the inter-frame delta in milliseconds, and tears the loop down when its ',
+        inlineCode('isActive'),
+        ' gate returns ',
+        inlineCode('false'),
+        '. The helper returns a Subscription field config, so it slots into ',
+        inlineCode('makeSubscriptions'),
+        ' alongside any other dependency. Pair with ',
+        inlineCode('S.Boolean'),
+        ' in your ',
+        inlineCode('SubscriptionDeps'),
+        ' schema.',
+      ),
+      para(
+        'Reach for it whenever you want smooth, time-based motion driven by Model updates: physics simulations, generative art, parallax scrolling, custom interpolations. The ',
+        inlineCode('deltaTime'),
+        ' payload makes simulation speed independent of frame rate. Multiply per-second velocities by it and motion stays consistent on 60Hz, 120Hz, or after a tab regains focus.',
+      ),
+      para(
+        'For discrete game ticks (where the simulation steps once every N ms regardless of refresh rate), reach for ',
+        inlineCode('Stream.tick'),
+        ' instead. Wall-clock cadence and display-coupled cadence are different problems: ',
+        inlineCode('Stream.tick'),
+        ' suits the first, ',
+        inlineCode('Subscription.animationFrame'),
+        ' the second. The ',
+        link(exampleDetailRouter({ exampleSlug: 'snake' }), 'snake example'),
+        ' uses ',
+        inlineCode('Stream.tick'),
+        ' for its game cadence; the ',
+        link(
+          exampleDetailRouter({ exampleSlug: 'canvas-art' }),
+          'canvas-art example',
+        ),
+        ' uses ',
+        inlineCode('Subscription.animationFrame'),
+        ' for per-frame physics.',
       ),
 
       // ADVANCED

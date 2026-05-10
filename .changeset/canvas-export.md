@@ -7,7 +7,7 @@ Add `foldkit/canvas` subpath export for declarative 2D canvas rendering.
 `Canvas.view` produces a `<canvas>` VNode whose pixel state is a pure function of a `shapes` prop. The canvas re-paints on every patch with the latest shapes, so time-travel through DevTools reproduces past frames exactly.
 
 ```ts
-import { Canvas, Subscription } from 'foldkit'
+import { Canvas } from 'foldkit'
 
 // In view:
 Canvas.view<Message>({
@@ -57,25 +57,7 @@ Canvas.view<Message>({
 
 `onPointerDown` / `onPointerMove` / `onPointerUp` are config args on `Canvas.view`. They receive a `Point` already translated to the canvas's internal coordinate space (independent of CSS sizing).
 
-## Animation
-
-`Canvas.animationFrame` builds a Subscription field config that emits a Message every `requestAnimationFrame` tick:
-
-```ts
-const SubscriptionDeps = S.Struct({ frame: S.Boolean })
-
-const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
-  Model,
-  Message
->({
-  frame: Canvas.animationFrame({
-    isActive: model => model.isPlaying,
-    toMessage: deltaTime => TickedFrame({ deltaTime }),
-  }),
-})
-```
-
-`isActive` returning `false` tears down the rAF loop entirely (e.g. while a game is paused or a scene is static).
+For continuous animation (physics simulations, generative scenes, time-based motion), pair `Canvas.view` with `Subscription.animationFrame`.
 
 ## Out of scope for this release
 

@@ -163,7 +163,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreSubscriptions: core(
     'Subscriptions',
-    'Declarative streams that start and stop based on Model state. Foldkit Subscriptions replace useEffect cleanup patterns with automatic lifecycle management.',
+    'Declarative streams that start and stop based on Model state, with built-in helpers like Subscription.animationFrame for requestAnimationFrame-driven motion. Foldkit Subscriptions replace useEffect cleanup patterns with automatic lifecycle management.',
   ),
   CoreInitAndFlags: core(
     'Init & Flags',
@@ -183,7 +183,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreCanvas: core(
     'Canvas',
-    'Declarative 2D rendering with a Schema-defined Shape AST, an animation-frame Subscription helper, and pointer events translated to canvas-local coordinates.',
+    'Declarative 2D rendering with a Schema-defined Shape AST and pointer events translated to canvas-local coordinates.',
   ),
   CoreRunningYourApp: core(
     'Running Your App',

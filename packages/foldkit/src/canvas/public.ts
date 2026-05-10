@@ -1,5 +1,4 @@
 export {
-  animationFrame,
   BezierTo,
   Circle,
   Close,
@@ -19,9 +18,4 @@ export {
   view,
 } from './index.js'
 
-export type {
-  AnimationFrameConfig,
-  AnimationFrameSubscription,
-  Shape,
-  ViewConfig,
-} from './index.js'
+export type { Shape, ViewConfig } from './index.js'

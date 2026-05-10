@@ -183,7 +183,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
   Model,
   Message
 >({
-  frame: Canvas.animationFrame({
+  frame: Subscription.animationFrame({
     isActive: model => model.isRunning,
     toMessage: deltaTime => TickedFrame({ deltaTime }),
   }),
