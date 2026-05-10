@@ -120,52 +120,124 @@ const DEFAULT_DEV_TOOLS_SHOW: Visibility = 'Development'
 const DEFAULT_DEV_TOOLS_POSITION: DevToolsPosition = 'BottomRight'
 const DEFAULT_DEV_TOOLS_MODE: DevToolsMode = 'TimeTravel'
 
-/** Context provided to the slow view callback when a view exceeds the time budget. */
-export type SlowViewContext<Model, Message> = Readonly<{
+type SlowViewContext<Model, Message> = Readonly<{
+  _tag: 'View'
   model: Model
   message: Option.Option<Message>
   durationMs: number
   thresholdMs: number
 }>
 
+type SlowUpdateContext<Model, Message> = Readonly<{
+  _tag: 'Update'
+  previousModel: Model
+  nextModel: Model
+  message: Message
+  durationMs: number
+  thresholdMs: number
+}>
+
+type SlowPatchContext<Model, Message> = Readonly<{
+  _tag: 'Patch'
+  model: Model
+  message: Option.Option<Message>
+  durationMs: number
+  thresholdMs: number
+}>
+
+type SlowSubscriptionsContext<Model> = Readonly<{
+  _tag: 'Subscriptions'
+  subscriptionKey: string
+  model: Model
+  durationMs: number
+  thresholdMs: number
+}>
+
 /**
- * Slow view warning configuration.
- *
- * Pass `false` to disable warnings entirely.
- *
- * - `show`: `'Development'` (default) enables in dev mode only, `'Always'` enables in all environments.
- * - `thresholdMs`: Duration in ms above which a view is considered slow. Defaults to 16 (one frame at 60fps).
- * - `onSlowView`: Custom callback invoked when a slow view is detected. Defaults to `console.warn`.
+ * Tagged union of every slow-phase context, passed to `slow.onSlow`.
+ * Discriminate on `_tag` to handle each phase. TypeScript narrows the rest
+ * of the fields automatically.
  */
-export type SlowViewConfig<Model, Message> =
+export type SlowContext<Model, Message> =
+  | SlowViewContext<Model, Message>
+  | SlowUpdateContext<Model, Message>
+  | SlowPatchContext<Model, Message>
+  | SlowSubscriptionsContext<Model>
+
+type SlowPhaseConfig = false | Readonly<{ thresholdMs?: number }>
+
+/**
+ * Slow-phase warning configuration. The runtime measures four synchronous
+ * phases of the update cycle (`view`, `update`, `patch`, `subscriptions`) and
+ * fires `onSlow` when any exceeds its threshold.
+ *
+ * Treat these warnings as signals to investigate, not problems to silence.
+ * Default thresholds are intentionally generous; crossing them in dev mode
+ * with HMR overhead is often fine in production. Profile before optimizing,
+ * and prefer clear code over speculative memoization.
+ *
+ * Pass `false` to disable every phase globally. Pass an object to opt
+ * phases in individually. Each phase opts in by setting its key to `{}`
+ * (defaults) or `{ thresholdMs }` (override). A phase set to `false`, or
+ * left `undefined`, is disabled. So `slow: { view: {} }` produces only
+ * view warnings.
+ *
+ * - `show`: `'Development'` (default) enables warnings only when Vite HMR is active. `'Always'` enables them in every environment.
+ * - `onSlow`: Receives the tagged `SlowContext` union. Discriminate on `_tag` to route per phase. Defaults to a `console.warn` per phase with a remediation hint.
+ * - `view.thresholdMs`: Default `16` (one frame at 60fps).
+ * - `update.thresholdMs`: Default `4` (a quarter-frame).
+ * - `patch.thresholdMs`: Default `8` (half a frame).
+ * - `subscriptions.thresholdMs`: Default `2`. Measured per subscription.
+ */
+export type SlowConfig<Model, Message> =
   | false
   | Readonly<{
       show?: Visibility
-      thresholdMs?: number
-      onSlowView?: (context: SlowViewContext<Model, Message>) => void
+      onSlow?: (context: SlowContext<Model, Message>) => void
+      view?: SlowPhaseConfig
+      update?: SlowPhaseConfig
+      patch?: SlowPhaseConfig
+      subscriptions?: SlowPhaseConfig
     }>
 
-const DEFAULT_SLOW_VIEW_SHOW: Visibility = 'Development'
+const DEFAULT_SLOW_SHOW: Visibility = 'Development'
 const DEFAULT_SLOW_VIEW_THRESHOLD_MS = 16
+const DEFAULT_SLOW_UPDATE_THRESHOLD_MS = 4
+const DEFAULT_SLOW_PATCH_THRESHOLD_MS = 8
+const DEFAULT_SLOW_SUBSCRIPTIONS_THRESHOLD_MS = 2
 
-const defaultSlowViewCallback = (
-  context: SlowViewContext<unknown, unknown>,
-): void => {
-  const trigger = Option.match(context.message, {
+const messageTag = (message: unknown): string =>
+  Predicate.isObject(message) && '_tag' in message
+    ? String(message['_tag'])
+    : 'unknown'
+
+const optionMessageTrigger = (message: Option.Option<unknown>): string =>
+  Option.match(message, {
     onNone: () => 'init',
-    onSome: message => {
-      const tag =
-        Predicate.isObject(message) && '_tag' in message
-          ? String(message['_tag'])
-          : 'unknown'
-      return tag
-    },
+    onSome: messageTag,
   })
 
-  console.warn(
-    `[foldkit] Slow view: ${context.durationMs.toFixed(1)}ms (budget: ${context.thresholdMs}ms), triggered by ${trigger}. Consider moving computation to update or memoizing with createLazy.`,
-    ...Option.toArray(context.message),
+const TUNING_HINT =
+  'Adjust thresholds or disable warnings via the slow runtime option.'
+
+const defaultSlowCallback = (context: SlowContext<unknown, unknown>): void => {
+  const duration = context.durationMs.toFixed(1)
+  const budget = context.thresholdMs
+
+  const summary = Match.value(context).pipe(
+    Match.tagsExhaustive({
+      View: ({ message }) =>
+        `Slow view: ${duration}ms (budget: ${budget}ms), triggered by ${optionMessageTrigger(message)}. Consider memoizing expensive subtrees with createLazy or createKeyedLazy.`,
+      Update: ({ message }) =>
+        `Slow update: ${duration}ms (budget: ${budget}ms), triggered by ${messageTag(message)}. Consider memoizing the computation by its inputs, narrowing what runs per Message, or splitting the Model so unrelated changes don't trigger the expensive path.`,
+      Patch: ({ message }) =>
+        `Slow patch: ${duration}ms (budget: ${budget}ms), triggered by ${optionMessageTrigger(message)}. Consider keying mapped lists by a stable id, splitting large views, or memoizing stable subtrees with createLazy.`,
+      Subscriptions: ({ subscriptionKey }) =>
+        `Slow subscriptions: ${duration}ms (budget: ${budget}ms) for subscription "${subscriptionKey}". Consider narrowing modelToDependencies, supplying a custom equivalence, or moving derived data into the Model.`,
+    }),
   )
+
+  console.warn(`[foldkit] ${summary} ${TUNING_HINT}`, context)
 }
 
 /** Effect service tag that provides message dispatching to the view layer. */
@@ -234,7 +306,7 @@ type RuntimeConfig<
   container: HTMLElement
   routing?: RoutingConfig<Message>
   crash?: CrashConfig<Model, Message>
-  slowView?: SlowViewConfig<Model, Message>
+  slow?: SlowConfig<Model, Message>
   /**
    * Deep-freezes the Model after `init` and after every `update`, so accidental
    * mutations (e.g. `model.items.push(...)`) throw a `TypeError` at the exact
@@ -292,7 +364,7 @@ type BaseProgramConfig<
   >
   container: HTMLElement
   crash?: CrashConfig<Model, Message>
-  slowView?: SlowViewConfig<Model, Message>
+  slow?: SlowConfig<Model, Message>
   freezeModel?: boolean
   resources?: Layer.Layer<Resources>
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
@@ -478,7 +550,7 @@ const makeRuntime = <
   container,
   routing: routingConfig,
   crash,
-  slowView,
+  slow,
   freezeModel,
   resources,
   managedResources,
@@ -491,20 +563,60 @@ const makeRuntime = <
   Resources,
   ManagedResourceServices
 >): MakeRuntimeReturn => {
-  const resolvedSlowView = pipe(
-    slowView ?? {},
-    Option.liftPredicate(config => config !== false),
+  const resolvedSlow = pipe(
+    Option.fromNullishOr(slow),
+    Option.flatMap(config =>
+      config === false ? Option.none() : Option.some(config),
+    ),
     Option.filter(config =>
-      Match.value(config.show ?? DEFAULT_SLOW_VIEW_SHOW).pipe(
+      Match.value(config.show ?? DEFAULT_SLOW_SHOW).pipe(
         Match.when('Always', () => true),
         Match.when('Development', () => !!import.meta.hot),
         Match.exhaustive,
       ),
     ),
-    Option.map(config => ({
-      thresholdMs: config.thresholdMs ?? DEFAULT_SLOW_VIEW_THRESHOLD_MS,
-      onSlowView: config.onSlowView ?? defaultSlowViewCallback,
-    })),
+    Option.map(config => {
+      const onSlow: (context: SlowContext<Model, Message>) => void =
+        config.onSlow ?? defaultSlowCallback
+
+      const resolvePhase = (
+        phase: SlowPhaseConfig | undefined,
+        defaultThreshold: number,
+      ): Option.Option<{
+        thresholdMs: number
+        onSlow: (context: SlowContext<Model, Message>) => void
+      }> => {
+        if (phase === undefined || phase === false) {
+          return Option.none()
+        } else {
+          return Option.some({
+            thresholdMs: phase.thresholdMs ?? defaultThreshold,
+            onSlow,
+          })
+        }
+      }
+
+      return {
+        view: resolvePhase(config.view, DEFAULT_SLOW_VIEW_THRESHOLD_MS),
+        update: resolvePhase(config.update, DEFAULT_SLOW_UPDATE_THRESHOLD_MS),
+        patch: resolvePhase(config.patch, DEFAULT_SLOW_PATCH_THRESHOLD_MS),
+        subscriptions: resolvePhase(
+          config.subscriptions,
+          DEFAULT_SLOW_SUBSCRIPTIONS_THRESHOLD_MS,
+        ),
+      }
+    }),
+  )
+
+  const resolvedSlowView = Option.flatMap(resolvedSlow, ({ view }) => view)
+  const resolvedSlowUpdate = Option.flatMap(
+    resolvedSlow,
+    ({ update }) => update,
+  )
+  const resolvedSlowPatch = Option.flatMap(resolvedSlow, ({ patch }) => patch)
+  const resolvedSlowSubscriptions = Option.flatMap(
+    resolvedSlow,
+    ({ subscriptions }) => subscriptions,
   )
 
   const isFreezeModelActive = freezeModel !== false && !!import.meta.hot
@@ -802,8 +914,26 @@ const makeRuntime = <
           Effect.gen(function* () {
             const currentModel = yield* Ref.get(modelRef)
 
+            const updateStart = performance.now()
             const [nextModelRaw, commands] = update(currentModel, message)
+            const updateDuration = performance.now() - updateStart
             const nextModel = maybeFreezeModel(nextModelRaw)
+
+            Option.match(resolvedSlowUpdate, {
+              onNone: Function.constVoid,
+              onSome: ({ thresholdMs, onSlow }) => {
+                if (updateDuration > thresholdMs) {
+                  onSlow({
+                    _tag: 'Update',
+                    previousModel: currentModel,
+                    nextModel,
+                    message,
+                    durationMs: updateDuration,
+                    thresholdMs,
+                  })
+                }
+              },
+            })
 
             if (currentModel !== nextModel) {
               yield* Ref.set(modelRef, nextModel)
@@ -858,10 +988,20 @@ const makeRuntime = <
         // reach a no-op dispatchSync and never enter the runtime queue.
         // This prevents mount-derived Messages from polluting history when
         // the user is just inspecting past state.
+        //
+        // NOTE: `phase` discriminates live renders from DevTools replay
+        // renders. Slow view/patch callbacks are silenced during replay
+        // because the user has parked the JS thread to inspect; reporting
+        // those durations as application slowness is misleading and would
+        // attribute the warning to "init" (since the replay render passes
+        // `Option.none()` for the message). Update and subscriptions are
+        // unaffected by replay by construction (processMessage and the
+        // subscription PubSub stream are not driven during jumpTo).
         const render = (
           model: Model,
           message: Option.Option<Message>,
           dispatchService: typeof Dispatch.Service = dispatch,
+          phase: 'Live' | 'Replay' = 'Live',
         ) =>
           Effect.gen(function* () {
             const viewStart = performance.now()
@@ -869,26 +1009,48 @@ const makeRuntime = <
             const nullableNextVNode = yield* nextDocument.body
             const viewDuration = performance.now() - viewStart
 
-            Option.match(resolvedSlowView, {
-              onNone: Function.constVoid,
-              onSome: ({ thresholdMs, onSlowView }) => {
-                if (viewDuration > thresholdMs) {
-                  onSlowView({
-                    model,
-                    message,
-                    durationMs: viewDuration,
-                    thresholdMs,
-                  })
-                }
-              },
-            })
+            if (phase === 'Live') {
+              Option.match(resolvedSlowView, {
+                onNone: Function.constVoid,
+                onSome: ({ thresholdMs, onSlow }) => {
+                  if (viewDuration > thresholdMs) {
+                    onSlow({
+                      _tag: 'View',
+                      model,
+                      message,
+                      durationMs: viewDuration,
+                      thresholdMs,
+                    })
+                  }
+                },
+              })
+            }
 
             const maybeCurrentVNode = yield* Ref.get(maybeCurrentVNodeRef)
 
+            const patchStart = performance.now()
             const patchedVNode = yield* Effect.sync(() =>
               patchVNode(maybeCurrentVNode, nullableNextVNode, container),
             )
+            const patchDuration = performance.now() - patchStart
             yield* Ref.set(maybeCurrentVNodeRef, Option.some(patchedVNode))
+
+            if (phase === 'Live') {
+              Option.match(resolvedSlowPatch, {
+                onNone: Function.constVoid,
+                onSome: ({ thresholdMs, onSlow }) => {
+                  if (patchDuration > thresholdMs) {
+                    onSlow({
+                      _tag: 'Patch',
+                      model,
+                      message,
+                      durationMs: patchDuration,
+                      thresholdMs,
+                    })
+                  }
+                },
+              })
+            }
 
             yield* Effect.sync(() =>
               applyDocumentMetadata(nextDocument, container),
@@ -935,8 +1097,13 @@ const makeRuntime = <
             render: model =>
               Effect.gen(function* () {
                 yield* SubscriptionRef.set(isRenderPendingRef, false)
-                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                yield* render(model as Model, Option.none(), noOpDispatch)
+                yield* render(
+                  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                  model as Model,
+                  Option.none(),
+                  noOpDispatch,
+                  'Replay',
+                )
                 drainMountEvents()
               }),
             // NOTE: `resume` calls this to wake the renderLoop after a
@@ -983,9 +1150,9 @@ const makeRuntime = <
         })
 
         // NOTE: lastDirtyMessageRef holds the most recent dirtying Message, so
-        // slow-view callbacks during high-rate bursts attribute to the last
-        // Message in the frame batch, not the specific one that pushed the
-        // view past threshold. Acceptable for a debug callback; full
+        // slow view/patch callbacks during high-rate bursts attribute to the
+        // last Message in the frame batch, not the specific one that pushed
+        // the render past threshold. Acceptable for a debug callback; full
         // attribution would require correlating each message with its render
         // contribution, which isn't worth the complexity.
 
@@ -1021,7 +1188,7 @@ const makeRuntime = <
             Record.toEntries,
             Effect.forEach(
               ([
-                _key,
+                key,
                 {
                   schema,
                   modelToDependencies,
@@ -1052,7 +1219,26 @@ const makeRuntime = <
                       // changes.
                       Stream.mapEffect(model =>
                         Effect.gen(function* () {
+                          const dependenciesStart = performance.now()
                           const dependencies = modelToDependencies(model)
+                          const dependenciesDuration =
+                            performance.now() - dependenciesStart
+
+                          Option.match(resolvedSlowSubscriptions, {
+                            onNone: Function.constVoid,
+                            onSome: ({ thresholdMs, onSlow }) => {
+                              if (dependenciesDuration > thresholdMs) {
+                                onSlow({
+                                  _tag: 'Subscriptions',
+                                  subscriptionKey: key,
+                                  model,
+                                  durationMs: dependenciesDuration,
+                                  thresholdMs,
+                                })
+                              }
+                            },
+                          })
+
                           yield* Ref.set(latestDependenciesRef, dependencies)
                           return dependencies
                         }),
@@ -1497,8 +1683,8 @@ export function makeProgram<
     container: config.container,
     ...(hasRouting && { routing: config.routing }),
     ...(config.crash && { crash: config.crash }),
-    ...(Predicate.isNotUndefined(config.slowView) && {
-      slowView: config.slowView,
+    ...(Predicate.isNotUndefined(config.slow) && {
+      slow: config.slow,
     }),
     ...(Predicate.isNotUndefined(config.freezeModel) && {
       freezeModel: config.freezeModel,

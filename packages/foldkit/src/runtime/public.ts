@@ -12,8 +12,8 @@ export type {
   RoutingProgramInit,
   MakeRuntimeReturn,
   Visibility,
-  SlowViewContext,
-  SlowViewConfig,
+  SlowConfig,
+  SlowContext,
   DevToolsConfig,
 } from './runtime.js'
 
