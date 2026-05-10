@@ -157,7 +157,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
 
 // VIEW
 
-const { div, button, Class, OnClick } = html<Message>()
+const h = html<Message>()
 
 const formatTime = (ms: number): string => {
   const minutes = pipe(Duration.millis(ms), Duration.toMinutes, floorAndPad)
@@ -182,23 +182,23 @@ const floorAndPad = flow(Math.floor, v => v.toString(), String.padStart(2, '0'))
 
 const view = (model: Model): Document => ({
   title: `Stopwatch ${formatTime(model.elapsedMs)}`,
-  body: div(
-    [Class('min-h-screen bg-gray-200 flex items-center justify-center')],
+  body: h.div(
+    [h.Class('min-h-screen bg-gray-200 flex items-center justify-center')],
     [
-      div(
-        [Class('bg-white text-center')],
+      h.div(
+        [h.Class('bg-white text-center')],
         [
-          div(
-            [Class('text-6xl font-mono font-bold text-gray-800 p-8')],
+          h.div(
+            [h.Class('text-6xl font-mono font-bold text-gray-800 p-8')],
             [formatTime(model.elapsedMs)],
           ),
-          div(
-            [Class('flex')],
+          h.div(
+            [h.Class('flex')],
             [
-              button(
+              h.button(
                 [
-                  OnClick(ClickedReset()),
-                  Class(buttonStyle + ' bg-gray-500 hover:bg-gray-600'),
+                  h.OnClick(ClickedReset()),
+                  h.Class(buttonStyle + ' bg-gray-500 hover:bg-gray-600'),
                 ],
                 ['Reset'],
               ),
@@ -213,17 +213,17 @@ const view = (model: Model): Document => ({
 
 const startStopButton = (isRunning: boolean): Html =>
   isRunning
-    ? button(
+    ? h.button(
         [
-          OnClick(ClickedStop()),
-          Class(buttonStyle + ' bg-red-500 hover:bg-red-600'),
+          h.OnClick(ClickedStop()),
+          h.Class(buttonStyle + ' bg-red-500 hover:bg-red-600'),
         ],
         ['Stop'],
       )
-    : button(
+    : h.button(
         [
-          OnClick(ClickedStart()),
-          Class(buttonStyle + ' bg-green-500 hover:bg-green-600'),
+          h.OnClick(ClickedStart()),
+          h.Class(buttonStyle + ' bg-green-500 hover:bg-green-600'),
         ],
         ['Start'],
       )

@@ -15,7 +15,7 @@ type Message = typeof Toast.Message.Type
 type Model = typeof Toast.Model.Type
 type Entry = typeof Toast.Entry.Type
 
-const { div, span } = html<Message>()
+const h = html<Message>()
 
 const makeSettledEntry = (overrides: Partial<Entry> = {}): Entry => ({
   id: 'test-entry-0',
@@ -29,13 +29,13 @@ const makeSettledEntry = (overrides: Partial<Entry> = {}): Entry => ({
 })
 
 const defaultRenderEntry = (entry: Entry, _handlers: EntryHandlers<Message>) =>
-  div([], [span([], [entry.payload.body])])
+  h.div([], [h.span([], [entry.payload.body])])
 
 type ViewOverrides = {
   renderEntry?: (
     entry: Entry,
     handlers: EntryHandlers<Message>,
-  ) => ReturnType<typeof div>
+  ) => ReturnType<typeof h.div>
   ariaLabel?: string
   className?: string
   entryClassName?: string

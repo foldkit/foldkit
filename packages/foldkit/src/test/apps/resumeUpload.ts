@@ -119,53 +119,39 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
 // VIEW
 
-const {
-  div,
-  section,
-  p,
-  img,
-  button,
-  empty,
-  keyed,
-  Alt,
-  AriaLabel,
-  Class,
-  OnClick,
-  Role,
-  Src,
-} = html<Message>()
+const h = html<Message>()
 
 const previewView = (model: Model): Html =>
   Option.match(model.maybePreviewDataUrl, {
-    onSome: dataUrl => img([Src(dataUrl), Alt('Resume preview')]),
+    onSome: dataUrl => h.img([h.Src(dataUrl), h.Alt('Resume preview')]),
     onNone: () =>
       M.value(model.readStatus).pipe(
         M.withReturnType<Html>(),
         M.when('Reading', () =>
-          keyed('p')('reading', [Role('status')], ['Reading preview...']),
+          h.keyed('p')('reading', [h.Role('status')], ['Reading preview...']),
         ),
         M.when('Failed', () =>
-          keyed('p')('failed', [Role('alert')], ['Could not read preview']),
+          h.keyed('p')('failed', [h.Role('alert')], ['Could not read preview']),
         ),
-        M.when('Idle', () => empty),
+        M.when('Idle', () => h.empty),
         M.exhaustive,
       ),
   })
 
 export const view = (model: Model): Html =>
-  div(
-    [Class('resume-upload')],
+  h.div(
+    [h.Class('resume-upload')],
     [
       Option.match(model.maybeResume, {
         onNone: () =>
-          button([OnClick(ClickedChooseResume())], ['Choose resume']),
+          h.button([h.OnClick(ClickedChooseResume())], ['Choose resume']),
         onSome: file =>
-          section(
-            [AriaLabel('Selected resume')],
+          h.section(
+            [h.AriaLabel('Selected resume')],
             [
-              p([Class('resume-name')], [File.name(file)]),
+              h.p([h.Class('resume-name')], [File.name(file)]),
               previewView(model),
-              button([OnClick(ClickedRemoveResume())], ['Remove']),
+              h.button([h.OnClick(ClickedRemoveResume())], ['Remove']),
             ],
           ),
       }),

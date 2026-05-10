@@ -3,10 +3,11 @@
 // update, and view definitions.
 import { Effect, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Class, div, span } from './html'
+const h = html<Message>()
 
 // Add a field to your Model for the Listbox Submodel, plus a field for
 // the selected value your app actually cares about:
@@ -76,7 +77,7 @@ Ui.Listbox.view({
   toParentMessage: message => GotListboxMessage({ message }),
   onSelectedItem: value => SelectedPerson({ value }),
   items: people,
-  buttonContent: span(
+  buttonContent: h.span(
     [],
     [Option.getOrElse(model.maybePerson, () => 'Select a person')],
   ),
@@ -84,11 +85,11 @@ Ui.Listbox.view({
   itemsClassName: 'rounded-lg border shadow-lg',
   itemToConfig: (person, { isSelected, isActive }) => ({
     className: isActive ? 'bg-blue-100' : '',
-    content: div(
-      [Class('flex items-center gap-2 px-3 py-2')],
+    content: h.div(
+      [h.Class('flex items-center gap-2 px-3 py-2')],
       [
-        isSelected ? span([], ['✓']) : span([Class('w-4')], []),
-        span([], [person]),
+        isSelected ? h.span([], ['✓']) : h.span([h.Class('w-4')], []),
+        h.span([], [person]),
       ],
     ),
   }),

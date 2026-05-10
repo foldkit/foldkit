@@ -1,7 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
-import type { TableOfContentsEntry } from '../../main'
+import { Message, type TableOfContentsEntry } from '../../main'
 import {
   infoCallout,
   inlineCode,
@@ -13,6 +12,8 @@ import {
 import { coreArchitectureRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
+
+const h = html<Message>()
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -39,13 +40,13 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('core/view', 'View'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'The view function turns your Model into HTML. The user doesn\u2019t see the Model directly. They see what view renders from it.',
+        'The view function turns your Model into HTML. The user doesn’t see the Model directly. They see what view renders from it.',
       ),
       para(
         'In the ',
@@ -53,13 +54,16 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           `${coreArchitectureRouter()}#the-restaurant-analogy`,
           'restaurant analogy',
         ),
-        ', the waiter\u2019s notebook says \u201Ctable 3: salmon, ready.\u201D The view is what\u2019s actually on the table: the plate in front of the customer.',
+        ', the waiter’s notebook says “table 3: salmon, ready.” The view is what’s actually on the table: the plate in front of the customer.',
       ),
       para(
         'Given the same Model, view always produces the same HTML. It never modifies state directly. Instead, it dispatches Messages through event handlers, feeding them back into the loop.',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.counterViewHighlighted)], []),
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.counterViewHighlighted)],
+          [],
+        ),
         Snippets.counterViewRaw,
         'Copy view example to clipboard',
         copiedSnippets,
@@ -67,16 +71,23 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       infoCallout(
         'No hook rules',
-        'In React, functional components can hold local state and run effects via hooks, which come with ordering rules you have to follow. In Foldkit, view is guaranteed pure: no hooks, no effects, no local state. It\u2019s a function from Model to Html.',
+        'In React, functional components can hold local state and run effects via hooks, which come with ordering rules you have to follow. In Foldkit, view is guaranteed pure: no hooks, no effects, no local state. It’s a function from Model to Html.',
       ),
       tableOfContentsEntryToHeader(typedHtmlHelpersHeader),
       para(
-        'Foldkit\u2019s HTML functions are typed to your Message type. This ensures event handlers only accept valid Messages from your application. You create these helpers by calling ',
+        'Foldkit’s HTML functions are typed to your Message type. This ensures event handlers only accept valid Messages from your application. Bind the factory once per module by calling ',
         inlineCode('html<Message>()'),
-        ' and destructuring the elements and attributes you need:',
+        ', then reach for ',
+        inlineCode('h.div'),
+        ', ',
+        inlineCode('h.OnClick'),
+        ', and the rest off the returned record:',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.htmlHelpersHighlighted)], []),
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.htmlHelpersHighlighted)],
+          [],
+        ),
         Snippets.htmlHelpersRaw,
         'Copy HTML helpers example to clipboard',
         copiedSnippets,
@@ -84,18 +95,27 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para(
         'This gives you strong type safety: if you try to pass an invalid Message to ',
-        inlineCode('OnClick'),
-        ', TypeScript catches it at compile time. You only need to do this once per module. Most apps create a single ',
-        inlineCode('html.ts'),
-        ' file and import from there.',
+        inlineCode('h.OnClick'),
+        ', TypeScript catches it at compile time. Each view module binds its own ',
+        inlineCode('h'),
+        ' against the Message type it dispatches.',
+      ),
+      para(
+        'In a child view that should be agnostic to its parent, take ',
+        inlineCode('ParentMessage'),
+        ' as a function generic and bind ',
+        inlineCode('html<ParentMessage>()'),
+        ' inside. The view stays decoupled from any particular parent and composes through the ',
+        inlineCode('toParentMessage'),
+        ' callback the parent supplies.',
       ),
       tableOfContentsEntryToHeader(eventHandlingHeader),
       para(
-        'When the customer flags the waiter, that\u2019s a Message. In the view, event handlers work the same way. Instead of imperative callbacks that modify state, you pass a Message, or a function that maps an event to a Message.',
+        'When the customer flags the waiter, that’s a Message. In the view, event handlers work the same way. Instead of imperative callbacks that modify state, you pass a Message, or a function that maps an event to a Message.',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.eventHandlingHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.eventHandlingHighlighted)],
           [],
         ),
         Snippets.eventHandlingRaw,
@@ -107,7 +127,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'For simple events like clicks, you pass the Message directly. For events that carry data (like input changes), you pass a function that receives the event and returns a Message. This keeps your view declarative. It describes what Messages should be sent, not how to handle them.',
       ),
       para(
-        'So far everything has been synchronous. The user clicks a button, update produces a new Model, the view rerenders. But real apps need side effects: HTTP requests, timers, browser APIs. That\u2019s where Commands come in.',
+        'So far everything has been synchronous. The user clicks a button, update produces a new Model, the view rerenders. But real apps need side effects: HTTP requests, timers, browser APIs. That’s where Commands come in.',
       ),
     ],
   )

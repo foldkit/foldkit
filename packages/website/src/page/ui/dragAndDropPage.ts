@@ -1,8 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
 import { exampleSourceHref, uiShowcaseViewSourceHref } from '../../link'
-import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
   demoContainer,
@@ -202,12 +200,14 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
 
 // VIEW
 
-export const view = (
+export const view = <ParentMessage>(
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
   copiedSnippets: CopiedSnippets,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
       pageTitle('ui/drag-and-drop', 'Drag and Drop'),
@@ -216,7 +216,7 @@ export const view = (
         'Sortable lists and cross-container movement with pointer tracking, keyboard navigation, collision detection, auto-scrolling, and screen reader announcements.',
       ),
       para(
-        'DragAndDrop is different from other Foldkit UI components in two ways. First, it doesn\u2019t have a ',
+        'DragAndDrop is different from other Foldkit UI components in two ways. First, it doesn’t have a ',
         inlineCode('view()'),
         ' function. Instead, you spread ',
         inlineCode('draggable()'),
@@ -262,8 +262,11 @@ export const view = (
       ),
       demoContainer(...DragAndDrop.demo(model, toParentMessage)),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippet.uiDragAndDropBasicHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.uiDragAndDropBasicHighlighted),
+          ],
           [],
         ),
         Snippet.uiDragAndDropBasicRaw,
@@ -330,3 +333,4 @@ export const view = (
       propTable(viewHelperProps),
     ],
   )
+}

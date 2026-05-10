@@ -1,8 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div, pre } from '../../html'
 import { uiShowcaseViewSourceHref } from '../../link'
-import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
   demoContainer,
@@ -182,12 +180,14 @@ const dataAttributes: ReadonlyArray<DataAttributeEntry> = [
 
 // VIEW
 
-export const view = (
+export const view = <ParentMessage>(
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
   copiedSnippets: CopiedSnippets,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
       pageTitle('ui/animation', 'Animation'),
@@ -268,8 +268,11 @@ export const view = (
         ...Animation.animationDemo(model.animationDemo, toParentMessage),
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippet.uiAnimationBasicHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.uiAnimationBasicHighlighted),
+          ],
           [],
         ),
         Snippet.uiAnimationBasicRaw,
@@ -285,9 +288,9 @@ export const view = (
         link(uiPopoverRouter(), 'Popover'),
         ' races CSS against the anchor button scrolling off-screen. The asymmetry exists because leave detection varies by consumer, while enter detection does not.',
       ),
-      pre(
+      h.pre(
         [
-          Class(
+          h.Class(
             'mb-4 mx-auto w-fit max-w-full text-[#403d4a] dark:text-[#E0DEE6] text-sm p-4 overflow-x-auto rounded-lg bg-gray-100 dark:bg-[#1c1a20] border border-gray-200 dark:border-gray-700/50',
           ),
         ],
@@ -415,3 +418,4 @@ export const view = (
       propTable(outMessageProps),
     ],
   )
+}

@@ -1,7 +1,7 @@
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, code, div, li, ul } from '../html'
 import type { TableOfContentsEntry } from '../main'
+import type { Message } from '../message'
 import {
   inlineCode,
   link,
@@ -13,12 +13,14 @@ import * as Snippets from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 import { comparisonTable } from '../view/table'
 
-const plainCode = (text: string): Html => code([Class('text-sm')], [text])
+const h = html<Message>()
 
-const commandSemanticsList: Html = ul(
-  [Class('list-disc mb-8 space-y-2 pl-6')],
+const plainCode = (text: string): Html => h.code([h.Class('text-sm')], [text])
+
+const commandSemanticsList: Html = h.ul(
+  [h.Class('list-disc mb-8 space-y-2 pl-6')],
   [
-    li(
+    h.li(
       [],
       [
         'Pending Commands accumulate in the order ',
@@ -26,7 +28,7 @@ const commandSemanticsList: Html = ul(
         ' returns them, across as many steps as the test takes.',
       ],
     ),
-    li(
+    h.li(
       [],
       [
         'Resolving a Command feeds its result Message through ',
@@ -34,20 +36,20 @@ const commandSemanticsList: Html = ul(
         '; new Commands produced by that update join the pending list.',
       ],
     ),
-    li(
+    h.li(
       [],
       [
         inlineCode('Scene.Command.resolveAll'),
         ' walks cascades within the batch. If resolving Command A produces Command B and B’s resolver is in the same call, B resolves without a separate step.',
       ],
     ),
-    li(
+    h.li(
       [],
       [
         'Interactions throw if there are unresolved Commands when they try to dispatch a Message.',
       ],
     ),
-    li(
+    h.li(
       [],
       [
         inlineCode('Scene.scene'),
@@ -57,16 +59,16 @@ const commandSemanticsList: Html = ul(
   ],
 )
 
-const mountSemanticsList: Html = ul(
-  [Class('list-disc mb-8 space-y-2 pl-6')],
+const mountSemanticsList: Html = h.ul(
+  [h.Class('list-disc mb-8 space-y-2 pl-6')],
   [
-    li(
+    h.li(
       [],
       [
         'Pending mounts persist across re-renders. Resolving a mount does not re-pend it on the next render.',
       ],
     ),
-    li(
+    h.li(
       [],
       [
         'Every mount that fires and unmounts during a scene must be acknowledged with ',
@@ -78,7 +80,7 @@ const mountSemanticsList: Html = ul(
         ' handles its unmount. Unacknowledged unmounts throw at the end of the scene.',
       ],
     ),
-    li(
+    h.li(
       [],
       [
         'Same-named mounts in the tree are disambiguated by occurrence. ',
@@ -86,13 +88,13 @@ const mountSemanticsList: Html = ul(
         ' resolves the first pending occurrence; a second call resolves the next.',
       ],
     ),
-    li(
+    h.li(
       [],
       [
         'Interactions throw if there are unresolved mounts or unacknowledged unmounts when they try to dispatch a Message. Same contract as Commands.',
       ],
     ),
-    li(
+    h.li(
       [],
       [
         inlineCode('Scene.scene'),
@@ -183,7 +185,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('testing-scene', 'Scene'),
@@ -204,8 +206,8 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' that resolves to a single match; interactions and assertions accept either a Locator or a raw CSS selector string.',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.sceneLocatorsHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.sceneLocatorsHighlighted)],
           [],
         ),
         Snippets.sceneLocatorsRaw,
@@ -271,7 +273,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' is the most common locator. It accepts a second argument of state options that narrow the match. All options are optional:',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.sceneRoleHighlighted)], []),
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.sceneRoleHighlighted)],
+          [],
+        ),
         Snippets.sceneRoleRaw,
         'Copy Scene.role examples to clipboard',
         copiedSnippets,
@@ -316,7 +321,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Scene.within(parent, child)'),
         ' scopes a single locator to a parent element. ',
         inlineCode('Scene.inside(parent, ...steps)'),
-        ' scopes a whole block of steps. Every assertion or interaction inside the block resolves within the parent\u2019s subtree. Use ',
+        ' scopes a whole block of steps. Every assertion or interaction inside the block resolves within the parent’s subtree. Use ',
         inlineCode('within'),
         ' for one-off scoped queries; use ',
         inlineCode('inside'),
@@ -325,8 +330,8 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' calls compose.',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.sceneScopingHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.sceneScopingHighlighted)],
           [],
         ),
         Snippets.sceneScopingRaw,
@@ -357,8 +362,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ':',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.sceneMultiMatchHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.sceneMultiMatchHighlighted),
+          ],
           [],
         ),
         Snippets.sceneMultiMatchRaw,
@@ -379,11 +387,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           ],
           [
             [plainCode('hasText')],
-            ['The element\u2019s text content includes the given substring'],
+            ['The element’s text content includes the given substring'],
           ],
           [
             [plainCode('hasNotText')],
-            ['The element\u2019s text content does not include the substring'],
+            ['The element’s text content does not include the substring'],
           ],
         ],
       ),
@@ -392,8 +400,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Interactions exercise the view by invoking event handlers on matched elements. Each one captures the dispatched Message, feeds it through update, and re-renders. They accept either a Locator or a CSS selector string.',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.sceneInteractionsHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.sceneInteractionsHighlighted),
+          ],
           [],
         ),
         Snippets.sceneInteractionsRaw,
@@ -479,8 +490,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' variant that inverts the assertion.',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.sceneAssertionsHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.sceneAssertionsHighlighted),
+          ],
           [],
         ),
         Snippets.sceneAssertionsRaw,
@@ -584,10 +598,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para('Command tracking has a few semantics worth knowing:'),
       commandSemanticsList,
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.sceneCommandAssertionsHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.sceneCommandAssertionsHighlighted),
           ],
           [],
         ),
@@ -665,10 +679,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para('Mount tracking has a few semantics worth knowing:'),
       mountSemanticsList,
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.sceneMountAssertionsHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.sceneMountAssertionsHighlighted),
           ],
           [],
         ),
@@ -729,11 +743,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(exampleHeader),
       para(
-        'Here\u2019s a Scene test for a weather app. The user types a zip code, clicks Get Weather, sees a loading state, and then the forecast appears:',
+        'Here’s a Scene test for a weather app. The user types a zip code, clicks Get Weather, sees a loading state, and then the forecast appears:',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.sceneWeatherFlowHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.sceneWeatherFlowHighlighted),
+          ],
           [],
         ),
         Snippets.sceneWeatherFlowRaw,
@@ -746,7 +763,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(storyVsSceneHeader),
       para(
-        'Story and Scene are complementary. Story tests the state machine: does this sequence of Messages produce the right Model? Scene tests the contract: does this feature work from the user\u2019s perspective?',
+        'Story and Scene are complementary. Story tests the state machine: does this sequence of Messages produce the right Model? Scene tests the contract: does this feature work from the user’s perspective?',
       ),
       para(
         'Use Story for update logic, edge cases, and Command wiring. Use Scene for user flows, view rendering, and accessibility. A well-tested app uses both.',

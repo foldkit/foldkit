@@ -1,8 +1,6 @@
 import { Ui } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, OnClick, button, div, h2, p } from '../html'
-import type { Message as ParentMessage } from '../main'
 import { ToggledAnimationDemo, type UiMessage } from '../message'
 import type { UiModel } from '../model'
 
@@ -12,35 +10,37 @@ const triggerClassName =
 const contentClassName =
   'rounded-lg bg-indigo-50 border border-indigo-200 p-4 transition duration-200 ease-out data-[closed]:opacity-0 data-[closed]:scale-95 data-[closed]:-translate-y-2'
 
-export const view = (
+export const view = <ParentMessage>(
   model: UiModel,
   toParentMessage: (message: UiMessage) => ParentMessage,
 ): Html => {
-  return div(
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
-      h2([Class('text-2xl font-bold text-gray-900 mb-6')], ['Animation']),
-      div(
-        [Class('flex gap-3')],
+      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Animation']),
+      h.div(
+        [h.Class('flex gap-3')],
         [
-          button(
+          h.button(
             [
-              Class(triggerClassName),
-              OnClick(toParentMessage(ToggledAnimationDemo())),
+              h.Class(triggerClassName),
+              h.OnClick(toParentMessage(ToggledAnimationDemo())),
             ],
             [model.isAnimationDemoShowing ? 'Hide Content' : 'Show Content'],
           ),
         ],
       ),
-      div(
-        [Class('mt-4')],
+      h.div(
+        [h.Class('mt-4')],
         [
           Ui.Animation.view({
             model: model.animationDemo,
             className: contentClassName,
             animateSize: true,
-            content: p(
-              [Class('text-indigo-800')],
+            content: h.p(
+              [h.Class('text-indigo-800')],
               [
                 'This content smoothly animates in and out. The Animation component coordinates CSS enter/leave lifecycles via data attributes, while animateSize uses a CSS grid wrapper for smooth height animation.',
               ],

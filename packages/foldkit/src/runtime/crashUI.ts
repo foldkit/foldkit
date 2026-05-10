@@ -28,9 +28,9 @@ export const defaultCrashView = (
   context: Readonly<{ error: Error }>,
   viewError?: unknown,
 ): Document => {
-  const { div, h1, p, span, button, Style, Attribute } = html()
+  const h = html()
 
-  const codeBlockStyle = Style({
+  const codeBlockStyle = h.Style({
     fontFamily: monoStack,
     color: colors.textPrimary,
     margin: '0',
@@ -41,14 +41,14 @@ export const defaultCrashView = (
     borderRadius: '0.375rem',
   })
 
-  const labelStyle = Style({
+  const labelStyle = h.Style({
     color: colors.textSecondary,
     margin: '0 0 0.5rem 0',
     fontSize: '0.875rem',
     fontWeight: '500',
   })
 
-  const inlineCodeStyle = Style({
+  const inlineCodeStyle = h.Style({
     fontFamily: monoStack,
     backgroundColor: colors.codeBg,
     padding: '0.125rem 0.375rem',
@@ -61,7 +61,7 @@ export const defaultCrashView = (
   const introText = viewError
     ? [
         'Your custom ',
-        span([inlineCodeStyle], ['crash.view']),
+        h.span([inlineCodeStyle], ['crash.view']),
         ' threw an error while rendering.',
       ]
     : [
@@ -70,25 +70,25 @@ export const defaultCrashView = (
 
   const errorContent = viewError
     ? [
-        div(
-          [Style({ margin: '0 0 1rem 0' })],
+        h.div(
+          [h.Style({ margin: '0 0 1rem 0' })],
           [
-            p([labelStyle], ['Original error']),
-            p([codeBlockStyle], [context.error.message]),
+            h.p([labelStyle], ['Original error']),
+            h.p([codeBlockStyle], [context.error.message]),
           ],
         ),
-        div(
-          [Style({ margin: '0 0 1.25rem 0' })],
+        h.div(
+          [h.Style({ margin: '0 0 1.25rem 0' })],
           [
-            p([labelStyle], ['crash.view error']),
-            p([codeBlockStyle], [viewErrorMessage]),
+            h.p([labelStyle], ['crash.view error']),
+            h.p([codeBlockStyle], [viewErrorMessage]),
           ],
         ),
       ]
     : [
-        p(
+        h.p(
           [
-            Style({
+            h.Style({
               fontFamily: monoStack,
               color: colors.textPrimary,
               margin: '0 0 1.25rem 0',
@@ -106,9 +106,9 @@ export const defaultCrashView = (
   const footerText = viewError
     ? []
     : [
-        p(
+        h.p(
           [
-            Style({
+            h.Style({
               color: colors.textSecondary,
               margin: '1.5rem 0 0 0',
               fontSize: '0.875rem',
@@ -119,17 +119,17 @@ export const defaultCrashView = (
           ],
           [
             'This is the default crash view. You can customize it by providing a ',
-            span([inlineCodeStyle], ['crash.view']),
+            h.span([inlineCodeStyle], ['crash.view']),
             ' function to ',
-            span([inlineCodeStyle], ['makeProgram']),
+            h.span([inlineCodeStyle], ['makeProgram']),
             '.',
           ],
         ),
       ]
 
-  const body = div(
+  const body = h.div(
     [
-      Style({
+      h.Style({
         fontFamily: fontStack,
         padding: '2rem',
         minHeight: '100vh',
@@ -140,9 +140,9 @@ export const defaultCrashView = (
       }),
     ],
     [
-      div(
+      h.div(
         [
-          Style({
+          h.Style({
             width: '100%',
             maxWidth: '960px',
             margin: '0 auto',
@@ -154,9 +154,9 @@ export const defaultCrashView = (
           }),
         ],
         [
-          h1(
+          h.h1(
             [
-              Style({
+              h.Style({
                 color: colors.errorAccent,
                 margin: '0 0 0.75rem 0',
                 fontSize: '1.25rem',
@@ -166,9 +166,9 @@ export const defaultCrashView = (
             ],
             ['Application Crash'],
           ),
-          p(
+          h.p(
             [
-              Style({
+              h.Style({
                 color: colors.textPrimary,
                 margin: '0 0 1rem 0',
                 fontSize: '1rem',
@@ -178,9 +178,9 @@ export const defaultCrashView = (
             introText,
           ),
           ...errorContent,
-          p(
+          h.p(
             [
-              Style({
+              h.Style({
                 color: colors.textPrimary,
                 margin: '0 0 1.5rem 0',
                 fontSize: '1rem',
@@ -191,9 +191,9 @@ export const defaultCrashView = (
               '→ Check the browser console for the full stack trace with source-mapped line numbers.',
             ],
           ),
-          button(
+          h.button(
             [
-              Style({
+              h.Style({
                 fontFamily: fontStack,
                 backgroundColor: colors.buttonBg,
                 color: colors.buttonText,
@@ -204,7 +204,7 @@ export const defaultCrashView = (
                 fontWeight: '500',
                 cursor: 'pointer',
               }),
-              Attribute('onclick', 'location.reload()'),
+              h.Attribute('onclick', 'location.reload()'),
             ],
             ['Reload'],
           ),

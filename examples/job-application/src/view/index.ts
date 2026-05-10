@@ -1,20 +1,8 @@
 import clsx from 'clsx'
 import { Array, Equal, HashSet, Match as M, Option, pipe } from 'effect'
-import { type Document, type Html } from 'foldkit/html'
+import { type Document, type Html, html } from 'foldkit/html'
 
 import { Step } from '../domain'
-import {
-  Class,
-  OnClick,
-  Type,
-  button,
-  div,
-  empty,
-  h1,
-  h2,
-  keyed,
-  p,
-} from '../html'
 import {
   ClickedNext,
   ClickedPrevious,
@@ -25,6 +13,7 @@ import {
   GotSkillsMessage,
   GotStepMenuMessage,
   GotWorkHistoryMessage,
+  Message,
   NavigatedToStep,
   SubmittedApplication,
   ToggledPreview,
@@ -44,6 +33,8 @@ import { skillsView } from './skills'
 import { stepList, stepMenu } from './stepNav'
 import { workHistoryView } from './workHistory'
 
+const h = html<Message>()
+
 const stepHasErrors =
   (model: Model) =>
   (step: Step.Step): boolean =>
@@ -61,34 +52,36 @@ const stepsWithErrors = (model: Model): HashSet.HashSet<Step.Step> =>
 const stepContent = (model: Model): Html =>
   M.value(model.currentStep).pipe(
     M.when('PersonalInfo', () =>
-      personalInfoView(model.personalInfo, message =>
+      personalInfoView<Message>(model.personalInfo, message =>
         GotPersonalInfoMessage({ message }),
       ),
     ),
     M.when('WorkHistory', () =>
-      workHistoryView(model.workHistory, message =>
+      workHistoryView<Message>(model.workHistory, message =>
         GotWorkHistoryMessage({ message }),
       ),
     ),
     M.when('Education', () =>
-      educationView(model.education, message =>
+      educationView<Message>(model.education, message =>
         GotEducationMessage({ message }),
       ),
     ),
     M.when('Skills', () =>
-      skillsView(model.skills, message => GotSkillsMessage({ message })),
+      skillsView<Message>(model.skills, message =>
+        GotSkillsMessage({ message }),
+      ),
     ),
     M.when('CoverLetter', () =>
-      coverLetterView(model.coverLetter, message =>
+      coverLetterView<Message>(model.coverLetter, message =>
         GotCoverLetterMessage({ message }),
       ),
     ),
     M.when('Attachments', () =>
-      attachmentsView(model.attachments, message =>
+      attachmentsView<Message>(model.attachments, message =>
         GotAttachmentsMessage({ message }),
       ),
     ),
-    M.when('Review', () => review(model, SubmittedApplication())),
+    M.when('Review', () => review<Message>(model, SubmittedApplication())),
     M.exhaustive,
   )
 
@@ -99,70 +92,71 @@ const isLastStep = (model: Model): boolean =>
   pipe(Step.all, Array.last, Option.exists(Equal.equals(model.currentStep)))
 
 const navigationButtons = (model: Model): Html =>
-  keyed('div')(
+  h.keyed('div')(
     'navigation',
-    [Class('flex justify-between pt-6 mt-8 border-t border-gray-200')],
+    [h.Class('flex justify-between pt-6 mt-8 border-t border-gray-200')],
     [
       ...(isFirstStep(model)
-        ? [empty]
+        ? [h.empty]
         : [
-            keyed('button')(
+            h.keyed('button')(
               'previous',
               [
-                Type('button'),
-                OnClick(ClickedPrevious()),
-                Class(
+                h.Type('button'),
+                h.OnClick(ClickedPrevious()),
+                h.Class(
                   'rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition cursor-pointer',
                 ),
               ],
-              ['\u2190 Previous'],
+              ['← Previous'],
             ),
           ]),
       ...(isLastStep(model)
         ? []
         : [
-            keyed('button')(
+            h.keyed('button')(
               'next',
               [
-                Type('button'),
-                OnClick(ClickedNext()),
-                Class(
+                h.Type('button'),
+                h.OnClick(ClickedNext()),
+                h.Class(
                   'rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition cursor-pointer',
                 ),
               ],
-              ['Next \u2192'],
+              ['Next →'],
             ),
           ]),
     ],
   )
 
-const pageHeader: Html = div(
-  [Class('mb-6')],
-  [
-    h1(
-      [Class('text-2xl font-bold text-gray-900')],
-      ['Apply to Work on Foldkit'],
-    ),
-    p(
-      [Class('text-sm text-gray-500 mt-1')],
-      ['Fill out the form below and watch your resume build in real time.'],
-    ),
-  ],
-)
+const pageHeader = (): Html =>
+  h.div(
+    [h.Class('mb-6')],
+    [
+      h.h1(
+        [h.Class('text-2xl font-bold text-gray-900')],
+        ['Apply to Work on Foldkit'],
+      ),
+      h.p(
+        [h.Class('text-sm text-gray-500 mt-1')],
+        ['Fill out the form below and watch your resume build in real time.'],
+      ),
+    ],
+  )
 
 const stepContentPanel = (model: Model): Html =>
-  keyed('div')(
+  h.keyed('div')(
     'step-content-panel',
-    [Class('flex-1 min-w-0')],
+    [h.Class('flex-1 min-w-0')],
     [
-      keyed('h2')(
+      h.keyed('h2')(
         'step-heading',
-        [Class('text-lg font-semibold text-gray-900 mb-6')],
+        [h.Class('text-lg font-semibold text-gray-900 mb-6')],
         [Step.show(model.currentStep)],
       ),
-      keyed('div')(
+      h.keyed('div')(
         `step-content-${model.currentStep}`,
-        [Class('min-h-[400px]')],
+        [h.Class('min-h-[400px]')],
         [stepContent(model)],
       ),
       ...(model.currentStep !== 'Review' ? [navigationButtons(model)] : []),
@@ -173,14 +167,14 @@ const desktopStepSidebar = (
   model: Model,
   errorSteps: HashSet.HashSet<Step.Step>,
 ): Html =>
-  keyed('div')(
+  h.keyed('div')(
     'desktop-sidebar',
-    [Class('hidden w-60 shrink-0 lg:block')],
+    [h.Class('hidden w-60 shrink-0 lg:block')],
     [
-      div(
-        [Class('sticky top-8')],
+      h.div(
+        [h.Class('sticky top-8')],
         [
-          stepList(model.currentStep, errorSteps, step =>
+          stepList<Message>(model.currentStep, errorSteps, step =>
             NavigatedToStep({ step }),
           ),
         ],
@@ -189,25 +183,29 @@ const desktopStepSidebar = (
   )
 
 const desktopPreviewSidebar = (model: Model): Html =>
-  keyed('div')(
+  h.keyed('div')(
     'desktop-preview',
-    [Class('hidden w-80 shrink-0 xl:block')],
+    [h.Class('hidden w-80 shrink-0 xl:block')],
     [
-      div(
-        [Class('sticky top-8')],
+      h.div(
+        [h.Class('sticky top-8')],
         [
-          div(
-            [Class('mb-2 flex items-center justify-between')],
+          h.div(
+            [h.Class('mb-2 flex items-center justify-between')],
             [
-              h2(
-                [Class('text-sm font-semibold text-gray-700')],
+              h.h2(
+                [h.Class('text-sm font-semibold text-gray-700')],
                 ['Live Preview'],
               ),
             ],
           ),
-          div(
-            [Class('rounded-xl border border-gray-200 bg-white p-6 shadow-sm')],
-            [preview(model)],
+          h.div(
+            [
+              h.Class(
+                'rounded-xl border border-gray-200 bg-white p-6 shadow-sm',
+              ),
+            ],
+            [preview<Message>(model)],
           ),
         ],
       ),
@@ -215,15 +213,15 @@ const desktopPreviewSidebar = (model: Model): Html =>
   )
 
 const mobilePreviewToggle = (model: Model): Html =>
-  keyed('div')(
+  h.keyed('div')(
     'mobile-toggle',
-    [Class('fixed bottom-4 right-4 xl:hidden')],
+    [h.Class('fixed bottom-4 right-4 xl:hidden')],
     [
-      button(
+      h.button(
         [
-          Type('button'),
-          OnClick(ToggledPreview()),
-          Class(
+          h.Type('button'),
+          h.OnClick(ToggledPreview()),
+          h.Class(
             clsx(
               'rounded-full px-4 py-2 text-sm font-medium shadow-lg transition cursor-pointer',
               model.isPreviewVisible
@@ -238,29 +236,29 @@ const mobilePreviewToggle = (model: Model): Html =>
   )
 
 const mobilePreviewOverlay = (model: Model): Html =>
-  keyed('div')(
+  h.keyed('div')(
     'mobile-overlay',
     [
-      Class(
+      h.Class(
         'fixed inset-x-4 bottom-16 top-4 overflow-y-auto rounded-xl border border-gray-200 bg-white p-6 shadow-2xl xl:hidden',
       ),
     ],
-    [preview(model)],
+    [preview<Message>(model)],
   )
 
 export const view = (model: Model): Document => {
   const errorSteps = stepsWithErrors(model)
-  const body = div(
-    [Class('min-h-screen bg-gray-50')],
+  const body = h.div(
+    [h.Class('min-h-screen bg-gray-50')],
     [
-      div(
-        [Class('mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8')],
+      h.div(
+        [h.Class('mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8')],
         [
-          pageHeader,
-          div(
-            [Class('mb-6 lg:hidden')],
+          pageHeader(),
+          h.div(
+            [h.Class('mb-6 lg:hidden')],
             [
-              stepMenu(
+              stepMenu<Message>(
                 model,
                 errorSteps,
                 message => GotStepMenuMessage({ message }),
@@ -268,8 +266,8 @@ export const view = (model: Model): Document => {
               ),
             ],
           ),
-          div(
-            [Class('lg:flex lg:gap-8')],
+          h.div(
+            [h.Class('lg:flex lg:gap-8')],
             [
               desktopStepSidebar(model, errorSteps),
               stepContentPanel(model),

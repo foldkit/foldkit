@@ -1,8 +1,8 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, Href, a, div, p } from '../html'
 import { Link } from '../link'
 import type { TableOfContentsEntry } from '../main'
+import type { Message } from '../message'
 import {
   bullets,
   inlineCode,
@@ -16,6 +16,8 @@ import {
   coreSubscriptionsRouter,
   exampleDetailRouter,
 } from '../route'
+
+const h = html<Message>()
 
 const fullStackEffectHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -37,22 +39,22 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 const ctaLinkClassName =
   'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500 font-medium'
 
-const ctaRow: Html = p(
-  [Class('mb-8 flex flex-wrap gap-x-6 gap-y-2')],
+const ctaRow: Html = h.p(
+  [h.Class('mb-8 flex flex-wrap gap-x-6 gap-y-2')],
   [
-    a(
-      [Href(Link.typingTerminal), Class(ctaLinkClassName)],
+    h.a(
+      [h.Href(Link.typingTerminal), h.Class(ctaLinkClassName)],
       ['Race your friends →'],
     ),
-    a(
-      [Href(Link.typingTerminalSource), Class(ctaLinkClassName)],
+    h.a(
+      [h.Href(Link.typingTerminalSource), h.Class(ctaLinkClassName)],
       ['View source on GitHub →'],
     ),
   ],
 )
 
 export const view = (): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('typing-terminal', 'Typing Terminal'),
@@ -68,7 +70,7 @@ export const view = (): Html =>
       tableOfContentsEntryToHeader(fullStackEffectHeader),
       para('The repo splits into three packages.'),
       bullets(
-        p(
+        h.p(
           [],
           [
             inlineCode('shared/'),
@@ -87,7 +89,7 @@ export const view = (): Html =>
             '. Both client and server import from here. There is no codegen step. Adding a field to a payload schema produces type errors on both sides at the same time.',
           ],
         ),
-        p(
+        h.p(
           [],
           [
             inlineCode('server/'),
@@ -100,7 +102,7 @@ export const view = (): Html =>
             ' stores provided as Effect Services. The streaming subscription RPC pushes room updates and per-player progress to every connected client over NDJSON.',
           ],
         ),
-        p(
+        h.p(
           [],
           [
             inlineCode('client/'),
@@ -122,7 +124,7 @@ export const view = (): Html =>
       tableOfContentsEntryToHeader(whatsInItHeader),
       bullets(
         'Multiplayer rooms with hosts and joiners, joined by a short room code',
-        p(
+        h.p(
           [],
           [
             'A ',

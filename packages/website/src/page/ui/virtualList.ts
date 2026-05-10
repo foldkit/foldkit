@@ -1,8 +1,7 @@
 import { Array, Match as M, Option, pipe } from 'effect'
 import { Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 
-import { Class, OnClick, button, div, span } from '../../html'
-import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
   ClickedVirtualListScrollToMiddle,
@@ -156,53 +155,60 @@ const buttonClassName =
 const headerClassName =
   'flex items-end justify-between text-sm text-gray-600 dark:text-gray-400'
 
-export const virtualListDemo = (
+export const virtualListDemo = <ParentMessage>(
   model: Ui.VirtualList.Model,
   toParentMessage: (message: Message) => ParentMessage,
-) => [
-  div(
-    [Class('flex flex-col gap-4 w-full')],
-    [
-      div(
-        [Class(headerClassName)],
-        [
-          span([], [`${ROW_COUNT.toLocaleString()} activity events`]),
-          button(
-            [
-              Class(buttonClassName),
-              OnClick(toParentMessage(ClickedVirtualListScrollToMiddle())),
-            ],
-            ['Jump to middle'],
-          ),
-        ],
-      ),
-      Ui.VirtualList.view({
-        model,
-        items: sampleActivities,
-        itemToKey: row => String(row.id),
-        itemToView: row =>
-          div(
-            [Class(rowClassName)],
-            [
-              div([Class(avatarClassName(row.colorClass))], [row.initial]),
-              div(
-                [Class(activityTextClassName)],
-                [
-                  span([Class(actorClassName)], [row.actor]),
-                  ' ',
-                  row.verb,
-                  ' ',
-                  span([Class(targetClassName)], [row.target]),
-                ],
-              ),
-              div([Class(timeAgoClassName)], [row.timeAgo]),
-            ],
-          ),
-        className: containerClassName,
-      }),
-    ],
-  ),
-]
+) => {
+  const h = html<ParentMessage>()
+
+  return [
+    h.div(
+      [h.Class('flex flex-col gap-4 w-full')],
+      [
+        h.div(
+          [h.Class(headerClassName)],
+          [
+            h.span([], [`${ROW_COUNT.toLocaleString()} activity events`]),
+            h.button(
+              [
+                h.Class(buttonClassName),
+                h.OnClick(toParentMessage(ClickedVirtualListScrollToMiddle())),
+              ],
+              ['Jump to middle'],
+            ),
+          ],
+        ),
+        Ui.VirtualList.view({
+          model,
+          items: sampleActivities,
+          itemToKey: row => String(row.id),
+          itemToView: row =>
+            h.div(
+              [h.Class(rowClassName)],
+              [
+                h.div(
+                  [h.Class(avatarClassName(row.colorClass))],
+                  [row.initial],
+                ),
+                h.div(
+                  [h.Class(activityTextClassName)],
+                  [
+                    h.span([h.Class(actorClassName)], [row.actor]),
+                    ' ',
+                    row.verb,
+                    ' ',
+                    h.span([h.Class(targetClassName)], [row.target]),
+                  ],
+                ),
+                h.div([h.Class(timeAgoClassName)], [row.timeAgo]),
+              ],
+            ),
+          className: containerClassName,
+        }),
+      ],
+    ),
+  ]
+}
 
 // VARIABLE-HEIGHT DEMO
 
@@ -273,90 +279,94 @@ const variableSummaryBodyClassName =
 const variableArtifactClassName =
   'mt-1 inline-flex w-fit rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 font-mono text-[10px] text-gray-600 dark:text-gray-300'
 
-const variableTallRow = (row: Activity, summary: Summary) =>
-  div(
-    [Class(variableTallRowClassName)],
-    [
-      div([Class(avatarClassName(row.colorClass))], [row.initial]),
-      div(
-        [Class('min-w-0')],
-        [
-          div(
-            [Class(activityTextClassName)],
-            [
-              span([Class(actorClassName)], [row.actor]),
-              ' ',
-              row.verb,
-              ' ',
-              span([Class(targetClassName)], [row.target]),
-            ],
-          ),
-          div([Class(variableSummaryTitleClassName)], [summary.title]),
-          div([Class(variableSummaryBodyClassName)], [summary.body]),
-          div([Class(variableArtifactClassName)], [summary.artifact]),
-        ],
-      ),
-      div([Class(timeAgoClassName)], [row.timeAgo]),
-    ],
-  )
-
-const variableShortRow = (row: Activity) =>
-  div(
-    [Class(rowClassName)],
-    [
-      div([Class(avatarClassName(row.colorClass))], [row.initial]),
-      div(
-        [Class(activityTextClassName)],
-        [
-          span([Class(actorClassName)], [row.actor]),
-          ' ',
-          row.verb,
-          ' ',
-          span([Class(targetClassName)], [row.target]),
-        ],
-      ),
-      div([Class(timeAgoClassName)], [row.timeAgo]),
-    ],
-  )
-
-export const virtualListVariableDemo = (
+export const virtualListVariableDemo = <ParentMessage>(
   model: Ui.VirtualList.Model,
   toParentMessage: (message: Message) => ParentMessage,
-) => [
-  div(
-    [Class('flex flex-col gap-4 w-full')],
-    [
-      div(
-        [Class(headerClassName)],
-        [
-          span(
-            [],
-            [
-              'Mixed-height rows: every fourth row is taller and shows a summary',
-            ],
-          ),
-          button(
-            [
-              Class(buttonClassName),
-              OnClick(
-                toParentMessage(ClickedVirtualListVariableScrollToMiddle()),
-              ),
-            ],
-            ['Jump to middle'],
-          ),
-        ],
-      ),
-      Ui.VirtualList.view({
-        model,
-        items: variableActivities,
-        itemToKey: row => String(row.id),
-        itemToRowHeightPx: variableRowHeightPx,
-        itemToView: (row, index) =>
-          row.hasSummary
-            ? variableTallRow(row, summaryFor(index))
-            : variableShortRow(row),
-        className: containerClassName,
-      }),
-    ],
-  ),
-]
+) => {
+  const h = html<ParentMessage>()
+
+  const variableTallRow = (row: Activity, summary: Summary) =>
+    h.div(
+      [h.Class(variableTallRowClassName)],
+      [
+        h.div([h.Class(avatarClassName(row.colorClass))], [row.initial]),
+        h.div(
+          [h.Class('min-w-0')],
+          [
+            h.div(
+              [h.Class(activityTextClassName)],
+              [
+                h.span([h.Class(actorClassName)], [row.actor]),
+                ' ',
+                row.verb,
+                ' ',
+                h.span([h.Class(targetClassName)], [row.target]),
+              ],
+            ),
+            h.div([h.Class(variableSummaryTitleClassName)], [summary.title]),
+            h.div([h.Class(variableSummaryBodyClassName)], [summary.body]),
+            h.div([h.Class(variableArtifactClassName)], [summary.artifact]),
+          ],
+        ),
+        h.div([h.Class(timeAgoClassName)], [row.timeAgo]),
+      ],
+    )
+
+  const variableShortRow = (row: Activity) =>
+    h.div(
+      [h.Class(rowClassName)],
+      [
+        h.div([h.Class(avatarClassName(row.colorClass))], [row.initial]),
+        h.div(
+          [h.Class(activityTextClassName)],
+          [
+            h.span([h.Class(actorClassName)], [row.actor]),
+            ' ',
+            row.verb,
+            ' ',
+            h.span([h.Class(targetClassName)], [row.target]),
+          ],
+        ),
+        h.div([h.Class(timeAgoClassName)], [row.timeAgo]),
+      ],
+    )
+
+  return [
+    h.div(
+      [h.Class('flex flex-col gap-4 w-full')],
+      [
+        h.div(
+          [h.Class(headerClassName)],
+          [
+            h.span(
+              [],
+              [
+                'Mixed-height rows: every fourth row is taller and shows a summary',
+              ],
+            ),
+            h.button(
+              [
+                h.Class(buttonClassName),
+                h.OnClick(
+                  toParentMessage(ClickedVirtualListVariableScrollToMiddle()),
+                ),
+              ],
+              ['Jump to middle'],
+            ),
+          ],
+        ),
+        Ui.VirtualList.view({
+          model,
+          items: variableActivities,
+          itemToKey: row => String(row.id),
+          itemToRowHeightPx: variableRowHeightPx,
+          itemToView: (row, index) =>
+            row.hasSummary
+              ? variableTallRow(row, summaryFor(index))
+              : variableShortRow(row),
+          className: containerClassName,
+        }),
+      ],
+    ),
+  ]
+}

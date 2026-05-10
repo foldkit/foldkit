@@ -3,10 +3,11 @@
 // update, view, and subscription definitions.
 import { Effect, Schema as S, Stream } from 'effect'
 import { Command, Subscription, Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Class, div, span } from './html'
+const h = html<Message>()
 
 // Add a field to your Model for the VirtualList Submodel. The list items
 // stay in your domain Model (your own `activities`, `messages`, `rows`,
@@ -91,16 +92,16 @@ Ui.VirtualList.view({
   items: model.activities,
   itemToKey: activity => String(activity.id),
   itemToView: activity =>
-    div(
-      [Class('grid grid-cols-[2rem_1fr_5rem] items-center gap-3 px-4')],
+    h.div(
+      [h.Class('grid grid-cols-[2rem_1fr_5rem] items-center gap-3 px-4')],
       [
-        div(
-          [Class('flex h-7 w-7 items-center justify-center rounded-full')],
+        h.div(
+          [h.Class('flex h-7 w-7 items-center justify-center rounded-full')],
           [activity.initial],
         ),
-        span([Class('truncate text-sm')], [activity.label]),
-        span(
-          [Class('text-right text-xs text-gray-500 tabular-nums')],
+        h.span([h.Class('truncate text-sm')], [activity.label]),
+        h.span(
+          [h.Class('text-right text-xs text-gray-500 tabular-nums')],
           [activity.timeAgo],
         ),
       ],

@@ -365,57 +365,40 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
 
 // VIEW
 
-const {
-  button,
-  div,
-  form,
-  input,
-  li,
-  p,
-  span,
-  ul,
-  Class,
-  Disabled,
-  OnClick,
-  OnInput,
-  OnSubmit,
-  Placeholder,
-  Type,
-  Value,
-} = html<Message>()
+const h = html<Message>()
 
 const view = (model: Model): Document => ({
   title: 'WebSocket Chat',
-  body: div(
+  body: h.div(
     [
-      Class(
+      h.Class(
         'min-h-screen bg-gradient-to-br from-purple-100 to-blue-100 flex flex-col items-center justify-center p-6',
       ),
     ],
     [
-      div(
+      h.div(
         [
-          Class(
+          h.Class(
             'bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col h-[600px]',
           ),
         ],
         [
-          div(
+          h.div(
             [
-              Class(
+              h.Class(
                 'p-6 border-b border-gray-200 flex items-center justify-between',
               ),
             ],
             [
-              div(
+              h.div(
                 [],
                 [
-                  div(
-                    [Class('text-2xl font-bold text-gray-800')],
+                  h.div(
+                    [h.Class('text-2xl font-bold text-gray-800')],
                     ['WebSocket Chat'],
                   ),
-                  div(
-                    [Class('text-sm text-gray-500 mt-1')],
+                  h.div(
+                    [h.Class('text-sm text-gray-500 mt-1')],
                     ['Echo server demo'],
                   ),
                 ],
@@ -441,34 +424,34 @@ const view = (model: Model): Document => ({
 })
 
 const connectionStatusView = (connection: ConnectionState): Html =>
-  div(
-    [Class('flex items-center gap-2')],
+  h.div(
+    [h.Class('flex items-center gap-2')],
     [
       M.value(connection).pipe(
         M.tagsExhaustive({
           ConnectionDisconnected: () =>
-            div([Class('w-3 h-3 rounded-full bg-red-500')], []),
+            h.div([h.Class('w-3 h-3 rounded-full bg-red-500')], []),
           ConnectionConnecting: () =>
-            div(
-              [Class('w-3 h-3 rounded-full bg-yellow-500 animate-pulse')],
+            h.div(
+              [h.Class('w-3 h-3 rounded-full bg-yellow-500 animate-pulse')],
               [],
             ),
           ConnectionConnected: () =>
-            div([Class('w-3 h-3 rounded-full bg-green-500')], []),
+            h.div([h.Class('w-3 h-3 rounded-full bg-green-500')], []),
           ConnectionError: () =>
-            div([Class('w-3 h-3 rounded-full bg-red-500')], []),
+            h.div([h.Class('w-3 h-3 rounded-full bg-red-500')], []),
         }),
       ),
       M.value(connection).pipe(
         M.tagsExhaustive({
           ConnectionDisconnected: () =>
-            span([Class('text-sm text-gray-600')], ['Disconnected']),
+            h.span([h.Class('text-sm text-gray-600')], ['Disconnected']),
           ConnectionConnecting: () =>
-            span([Class('text-sm text-gray-600')], ['Connecting...']),
+            h.span([h.Class('text-sm text-gray-600')], ['Connecting...']),
           ConnectionConnected: () =>
-            span([Class('text-sm text-gray-600')], ['Connected']),
+            h.span([h.Class('text-sm text-gray-600')], ['Connected']),
           ConnectionError: () =>
-            span([Class('text-sm text-red-600')], ['Error']),
+            h.span([h.Class('text-sm text-red-600')], ['Error']),
         }),
       ),
     ],
@@ -477,45 +460,49 @@ const connectionStatusView = (connection: ConnectionState): Html =>
 const messagesView = (messages: ReadonlyArray<ChatMessage>): Html =>
   Array.match(messages, {
     onEmpty: () =>
-      div(
-        [Class('flex-1 p-6 overflow-y-auto flex items-center justify-center')],
+      h.div(
         [
-          div(
-            [Class('text-center text-gray-400')],
+          h.Class(
+            'flex-1 p-6 overflow-y-auto flex items-center justify-center',
+          ),
+        ],
+        [
+          h.div(
+            [h.Class('text-center text-gray-400')],
             [
-              p([Class('text-lg mb-2')], ['No messages yet']),
-              p([Class('text-sm')], ['Send a message to get started!']),
+              h.p([h.Class('text-lg mb-2')], ['No messages yet']),
+              h.p([h.Class('text-sm')], ['Send a message to get started!']),
             ],
           ),
         ],
       ),
     onNonEmpty: messages =>
-      div(
-        [Class('flex-1 p-6 overflow-y-auto')],
+      h.div(
+        [h.Class('flex-1 p-6 overflow-y-auto')],
         [
-          ul(
-            [Class('space-y-3')],
+          h.ul(
+            [h.Class('space-y-3')],
             messages.map(message => {
-              return li(
+              return h.li(
                 [
-                  Class(
+                  h.Class(
                     message.isSent ? 'flex justify-end' : 'flex justify-start',
                   ),
                 ],
                 [
-                  div(
+                  h.div(
                     [
-                      Class(
+                      h.Class(
                         message.isSent
                           ? 'bg-blue-500 text-white rounded-lg px-4 py-2 max-w-xs'
                           : 'bg-gray-200 text-gray-800 rounded-lg px-4 py-2 max-w-xs',
                       ),
                     ],
                     [
-                      p([Class('break-words')], [message.text]),
-                      p(
+                      h.p([h.Class('break-words')], [message.text]),
+                      h.p(
                         [
-                          Class(
+                          h.Class(
                             message.isSent
                               ? 'text-blue-100 text-xs mt-1'
                               : 'text-gray-500 text-xs mt-1',
@@ -540,13 +527,13 @@ const messagesView = (messages: ReadonlyArray<ChatMessage>): Html =>
   })
 
 const connectButtonView = (): Html =>
-  div(
-    [Class('p-6 border-t border-gray-200 flex items-center justify-center')],
+  h.div(
+    [h.Class('p-6 border-t border-gray-200 flex items-center justify-center')],
     [
-      button(
+      h.button(
         [
-          OnClick(ClickedConnect()),
-          Class(
+          h.OnClick(ClickedConnect()),
+          h.Class(
             'bg-blue-500 hover:bg-blue-600 text-white font-semibold px-8 py-3 rounded-lg transition',
           ),
         ],
@@ -556,32 +543,32 @@ const connectButtonView = (): Html =>
   )
 
 const connectingView = (): Html =>
-  div(
-    [Class('p-6 border-t border-gray-200 flex items-center justify-center')],
-    [div([Class('text-gray-600 font-semibold')], ['Connecting...'])],
+  h.div(
+    [h.Class('p-6 border-t border-gray-200 flex items-center justify-center')],
+    [h.div([h.Class('text-gray-600 font-semibold')], ['Connecting...'])],
   )
 
 const messageInputView = (messageInput: string): Html =>
-  form(
-    [Class('p-6 border-t border-gray-200'), OnSubmit(SubmittedMessage())],
+  h.form(
+    [h.Class('p-6 border-t border-gray-200'), h.OnSubmit(SubmittedMessage())],
     [
-      div(
-        [Class('flex gap-3')],
+      h.div(
+        [h.Class('flex gap-3')],
         [
-          input([
-            Type('text'),
-            Value(messageInput),
-            Placeholder('Type a message...'),
-            OnInput(value => UpdatedMessageInput({ value })),
-            Class(
+          h.input([
+            h.Type('text'),
+            h.Value(messageInput),
+            h.Placeholder('Type a message...'),
+            h.OnInput(value => UpdatedMessageInput({ value })),
+            h.Class(
               'flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
             ),
           ]),
-          button(
+          h.button(
             [
-              Type('submit'),
-              Disabled(String.isEmpty(messageInput.trim())),
-              Class(
+              h.Type('submit'),
+              h.Disabled(String.isEmpty(messageInput.trim())),
+              h.Class(
                 'bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-lg transition',
               ),
             ],
@@ -593,20 +580,23 @@ const messageInputView = (messageInput: string): Html =>
   )
 
 const errorView = (error: string): Html =>
-  div(
-    [Class('p-6 border-t border-gray-200')],
+  h.div(
+    [h.Class('p-6 border-t border-gray-200')],
     [
-      div(
-        [Class('bg-red-50 border border-red-200 rounded-lg p-4 mb-4')],
+      h.div(
+        [h.Class('bg-red-50 border border-red-200 rounded-lg p-4 mb-4')],
         [
-          p([Class('text-red-800 font-semibold mb-1')], ['Connection Error']),
-          p([Class('text-red-600 text-sm')], [error]),
+          h.p(
+            [h.Class('text-red-800 font-semibold mb-1')],
+            ['Connection Error'],
+          ),
+          h.p([h.Class('text-red-600 text-sm')], [error]),
         ],
       ),
-      button(
+      h.button(
         [
-          OnClick(ClickedConnect()),
-          Class(
+          h.OnClick(ClickedConnect()),
+          h.Class(
             'w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg transition',
           ),
         ],

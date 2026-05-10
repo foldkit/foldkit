@@ -1,8 +1,8 @@
 import { Array } from 'effect'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, Href, a, div, table, tbody, td, th, thead, tr } from '../html'
 import { Link } from '../link'
+import type { Message } from '../message'
 import { pageTitle, para } from '../prose'
 import {
   exampleDetailRouter,
@@ -11,59 +11,61 @@ import {
 } from '../route'
 import { type ExampleMeta, examples as exampleMetas } from './example/meta'
 
+const h = html<Message>()
+
 export const exampleAppCount = exampleMetas.length + 1
 
 const nameClassName =
   'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500 font-medium'
 
 const exampleRow = (example: ExampleMeta): Html =>
-  tr(
-    [Class('border-b border-gray-200 dark:border-gray-700/50')],
+  h.tr(
+    [h.Class('border-b border-gray-200 dark:border-gray-700/50')],
     [
-      td(
-        [Class('py-2.5 pr-4 whitespace-nowrap align-top')],
+      h.td(
+        [h.Class('py-2.5 pr-4 whitespace-nowrap align-top')],
         [
-          a(
+          h.a(
             [
-              Href(exampleDetailRouter({ exampleSlug: example.slug })),
-              Class(nameClassName),
+              h.Href(exampleDetailRouter({ exampleSlug: example.slug })),
+              h.Class(nameClassName),
             ],
             [example.title],
           ),
         ],
       ),
-      td(
-        [Class('py-2.5 text-gray-600 dark:text-gray-400')],
+      h.td(
+        [h.Class('py-2.5 text-gray-600 dark:text-gray-400')],
         [example.description],
       ),
     ],
   )
 
-const typingTerminalRow: Html = tr(
-  [Class('border-b border-gray-200 dark:border-gray-700/50')],
+const typingTerminalRow: Html = h.tr(
+  [h.Class('border-b border-gray-200 dark:border-gray-700/50')],
   [
-    td(
-      [Class('py-2.5 pr-4 whitespace-nowrap align-top')],
+    h.td(
+      [h.Class('py-2.5 pr-4 whitespace-nowrap align-top')],
       [
-        a(
-          [Href(typingTerminalRouter()), Class(nameClassName)],
+        h.a(
+          [h.Href(typingTerminalRouter()), h.Class(nameClassName)],
           ['Typing Terminal'],
         ),
       ],
     ),
-    td(
-      [Class('py-2.5 text-gray-600 dark:text-gray-400')],
+    h.td(
+      [h.Class('py-2.5 text-gray-600 dark:text-gray-400')],
       [
-        div(
+        h.div(
           [],
           [
             'A production real-time multiplayer typing speed game. Full stack Effect app with RPC backend and Foldkit frontend.',
           ],
         ),
-        a(
+        h.a(
           [
-            Href(Link.typingTerminal),
-            Class(
+            h.Href(Link.typingTerminal),
+            h.Class(
               'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500 mt-1 inline-block',
             ),
           ],
@@ -77,51 +79,54 @@ const typingTerminalRow: Html = tr(
 const headerCellClassName =
   'py-2 pr-4 text-left font-medium text-gray-900 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700/50'
 
-const examplesTable: Html = div(
-  [Class('mb-8')],
+const examplesTable: Html = h.div(
+  [h.Class('mb-8')],
   [
-    table(
-      [Class('w-full text-sm')],
+    h.table(
+      [h.Class('w-full text-sm')],
       [
-        thead(
+        h.thead(
           [],
           [
-            tr(
+            h.tr(
               [],
               [
-                th([Class(headerCellClassName)], ['Example']),
-                th([Class(headerCellClassName)], ['Description']),
+                h.th([h.Class(headerCellClassName)], ['Example']),
+                h.th([h.Class(headerCellClassName)], ['Description']),
               ],
             ),
           ],
         ),
-        tbody([], [...Array.map(exampleMetas, exampleRow), typingTerminalRow]),
+        h.tbody(
+          [],
+          [...Array.map(exampleMetas, exampleRow), typingTerminalRow],
+        ),
       ],
     ),
   ],
 )
 
 export const view = (): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('examples', 'Examples'),
       para(
         'Each example is available as a starter template via ',
-        a(
+        h.a(
           [
-            Href(Link.createFoldkitApp),
-            Class(
+            h.Href(Link.createFoldkitApp),
+            h.Class(
               'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500',
             ),
           ],
           ['Create Foldkit App'],
         ),
-        '. Pick one that matches what you\u2019re building, or start with Counter and work your way up. See ',
-        a(
+        '. Pick one that matches what you’re building, or start with Counter and work your way up. See ',
+        h.a(
           [
-            Href(gettingStartedRouter()),
-            Class(
+            h.Href(gettingStartedRouter()),
+            h.Class(
               'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500',
             ),
           ],

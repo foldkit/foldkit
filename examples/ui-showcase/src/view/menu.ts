@@ -1,10 +1,8 @@
 import { Match as M } from 'effect'
 import { Ui } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, div, h2, h3, span } from '../html'
 import * as Icon from '../icon'
-import type { Message as ParentMessage } from '../main'
 import {
   GotMenuAnimatedDemoMessage,
   GotMenuBasicDemoMessage,
@@ -43,13 +41,13 @@ const MENU_ITEMS: ReadonlyArray<MenuItem> = [
   'Delete',
 ]
 
-const menuItemIcon = (item: MenuItem): Html =>
+const menuItemIcon = <ParentMessage>(item: MenuItem): Html =>
   M.value(item).pipe(
-    M.when('Edit', () => Icon.pencil(ICON_SIZE)),
-    M.when('Duplicate', () => Icon.documentDuplicate(ICON_SIZE)),
-    M.when('Archive', () => Icon.archiveBox(ICON_SIZE)),
-    M.when('Move', () => Icon.arrowRight(ICON_SIZE)),
-    M.when('Delete', () => Icon.trash(ICON_SIZE)),
+    M.when('Edit', () => Icon.pencil<ParentMessage>(ICON_SIZE)),
+    M.when('Duplicate', () => Icon.documentDuplicate<ParentMessage>(ICON_SIZE)),
+    M.when('Archive', () => Icon.archiveBox<ParentMessage>(ICON_SIZE)),
+    M.when('Move', () => Icon.arrowRight<ParentMessage>(ICON_SIZE)),
+    M.when('Delete', () => Icon.trash<ParentMessage>(ICON_SIZE)),
     M.exhaustive,
   )
 
@@ -61,14 +59,19 @@ const itemGroupKey = (item: MenuItem): string =>
     M.orElse(() => 'Actions'),
   )
 
-const groupToHeading = (groupKey: string): Ui.Menu.GroupHeading | undefined =>
-  M.value(groupKey).pipe(
+const groupToHeading = <ParentMessage>(
+  groupKey: string,
+): Ui.Menu.GroupHeading | undefined => {
+  const h = html<ParentMessage>()
+
+  return M.value(groupKey).pipe(
     M.when('Danger', () => ({
-      content: span([], ['Danger Zone']),
+      content: h.span([], ['Danger Zone']),
       className: headingClassName,
     })),
     M.orElse(() => undefined),
   )
+}
 
 const MENU_ANCHOR = {
   placement: 'bottom-start' as const,
@@ -76,65 +79,76 @@ const MENU_ANCHOR = {
   padding: 8,
 }
 
-const menuViewConfig = (itemsClassNameValue: string) => ({
-  anchor: MENU_ANCHOR,
-  items: MENU_ITEMS,
-  itemToConfig: (item: MenuItem) => ({
-    className: itemClassName,
-    content: div(
-      [Class('flex items-center gap-2.5')],
-      [menuItemIcon(item), span([], [item])],
-    ),
-  }),
-  isItemDisabled,
-  buttonContent: div(
-    [Class('flex items-center gap-4')],
-    [span([], ['Actions']), Icon.chevronDown('w-4 h-4')],
-  ),
-  buttonAttributes: [Class(triggerClassName)],
-  itemsAttributes: [Class(itemsClassNameValue)],
-  backdropAttributes: [Class(backdropClassName)],
-  attributes: [Class(wrapperClassName)],
-  itemGroupKey,
-  groupToHeading,
-})
+const menuViewConfig = <ParentMessage>(itemsClassNameValue: string) => {
+  const h = html<ParentMessage>()
 
-export const view = (
+  return {
+    anchor: MENU_ANCHOR,
+    items: MENU_ITEMS,
+    itemToConfig: (item: MenuItem) => ({
+      className: itemClassName,
+      content: h.div(
+        [h.Class('flex items-center gap-2.5')],
+        [menuItemIcon<ParentMessage>(item), h.span([], [item])],
+      ),
+    }),
+    isItemDisabled,
+    buttonContent: h.div(
+      [h.Class('flex items-center gap-4')],
+      [h.span([], ['Actions']), Icon.chevronDown<ParentMessage>('w-4 h-4')],
+    ),
+    buttonAttributes: [h.Class(triggerClassName)],
+    itemsAttributes: [h.Class(itemsClassNameValue)],
+    backdropAttributes: [h.Class(backdropClassName)],
+    attributes: [h.Class(wrapperClassName)],
+    itemGroupKey,
+    groupToHeading: (groupKey: string) =>
+      groupToHeading<ParentMessage>(groupKey),
+  }
+}
+
+export const view = <ParentMessage>(
   model: UiModel,
   toParentMessage: (message: UiMessage) => ParentMessage,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
-      h2([Class('text-2xl font-bold text-gray-900 mb-6')], ['Menu']),
+      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Menu']),
 
-      h3([Class('text-lg font-semibold text-gray-900 mt-8 mb-4')], ['Basic']),
-      div(
-        [Class('relative')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+        ['Basic'],
+      ),
+      h.div(
+        [h.Class('relative')],
         [
           Ui.Menu.view({
             model: model.menuBasicDemo,
             toParentMessage: message =>
               toParentMessage(GotMenuBasicDemoMessage({ message })),
-            ...menuViewConfig(basicItemsClassName),
+            ...menuViewConfig<ParentMessage>(basicItemsClassName),
           }),
         ],
       ),
 
-      h3(
-        [Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Animated'],
       ),
-      div(
-        [Class('relative')],
+      h.div(
+        [h.Class('relative')],
         [
           Ui.Menu.view({
             model: model.menuAnimatedDemo,
             toParentMessage: message =>
               toParentMessage(GotMenuAnimatedDemoMessage({ message })),
-            ...menuViewConfig(animatedItemsClassName),
+            ...menuViewConfig<ParentMessage>(animatedItemsClassName),
           }),
         ],
       ),
     ],
   )
+}

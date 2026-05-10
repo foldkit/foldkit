@@ -801,32 +801,7 @@ const itemId = (id: string, index: number): string => `${id}-item-${index}`
 export const view = <ParentMessage, Item extends string>(
   config: ViewConfig<ParentMessage, Item>,
 ): Html => {
-  const {
-    div,
-    AriaActiveDescendant,
-    AriaControls,
-    AriaDisabled,
-    AriaExpanded,
-    AriaHasPopup,
-    AriaLabelledBy,
-    Class,
-    DataAttribute,
-    Id,
-    OnBlur,
-    OnClick,
-    OnKeyDownPreventDefault,
-    OnKeyUpPreventDefault,
-    OnMount,
-    OnPointerDown,
-    OnPointerLeave,
-    OnPointerMove,
-    OnPointerUp,
-    Role,
-    Style,
-    Tabindex,
-    Type,
-    keyed,
-  } = html<ParentMessage>()
+  const h = html<ParentMessage>()
 
   const {
     model: {
@@ -873,25 +848,25 @@ export const view = <ParentMessage, Item extends string>(
     transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
   const isVisible = isOpen || isLeaving
 
-  const animationAttributes: ReadonlyArray<ReturnType<typeof DataAttribute>> =
+  const animationAttributes: ReadonlyArray<ReturnType<typeof h.DataAttribute>> =
     M.value(transitionState).pipe(
       M.when('EnterStart', () => [
-        DataAttribute('closed', ''),
-        DataAttribute('enter', ''),
-        DataAttribute('transition', ''),
+        h.DataAttribute('closed', ''),
+        h.DataAttribute('enter', ''),
+        h.DataAttribute('transition', ''),
       ]),
       M.when('EnterAnimating', () => [
-        DataAttribute('enter', ''),
-        DataAttribute('transition', ''),
+        h.DataAttribute('enter', ''),
+        h.DataAttribute('transition', ''),
       ]),
       M.when('LeaveStart', () => [
-        DataAttribute('leave', ''),
-        DataAttribute('transition', ''),
+        h.DataAttribute('leave', ''),
+        h.DataAttribute('transition', ''),
       ]),
       M.when('LeaveAnimating', () => [
-        DataAttribute('closed', ''),
-        DataAttribute('leave', ''),
-        DataAttribute('transition', ''),
+        h.DataAttribute('closed', ''),
+        h.DataAttribute('leave', ''),
+        h.DataAttribute('transition', ''),
       ]),
       M.orElse(() => []),
     )
@@ -1050,38 +1025,38 @@ export const view = <ParentMessage, Item extends string>(
     )
 
   const resolvedButtonAttributes = [
-    Id(`${id}-button`),
-    Type('button'),
-    AriaHasPopup('menu'),
-    AriaExpanded(isVisible),
-    AriaControls(`${id}-items`),
+    h.Id(`${id}-button`),
+    h.Type('button'),
+    h.AriaHasPopup('menu'),
+    h.AriaExpanded(isVisible),
+    h.AriaControls(`${id}-items`),
     ...(isButtonDisabled
-      ? [AriaDisabled(true), DataAttribute('disabled', '')]
+      ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
       : [
-          OnPointerDown(handleButtonPointerDown),
-          OnKeyDownPreventDefault(handleButtonKeyDown),
-          OnKeyUpPreventDefault(handleSpaceKeyUp),
-          OnClick(handleButtonClick()),
+          h.OnPointerDown(handleButtonPointerDown),
+          h.OnKeyDownPreventDefault(handleButtonKeyDown),
+          h.OnKeyUpPreventDefault(handleSpaceKeyUp),
+          h.OnClick(handleButtonClick()),
         ]),
     ...(isVisible
       ? [
-          DataAttribute('open', ''),
-          Style({ position: 'relative', zIndex: '1' }),
+          h.DataAttribute('open', ''),
+          h.Style({ position: 'relative', zIndex: '1' }),
         ]
       : []),
-    ...(buttonClassName ? [Class(buttonClassName)] : []),
+    ...(buttonClassName ? [h.Class(buttonClassName)] : []),
     ...buttonAttributes,
   ]
 
   const maybeActiveDescendant = Option.match(maybeActiveItemIndex, {
     onNone: () => [],
-    onSome: index => [AriaActiveDescendant(itemId(id, index))],
+    onSome: index => [h.AriaActiveDescendant(itemId(id, index))],
   })
 
   const anchorAttributes = anchor
     ? [
-        Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
-        OnMount(
+        h.Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
+        h.OnMount(
           Mount.mapMessage(
             AnchorMenu({ buttonId: `${id}-button`, anchor }),
             toParentMessage,
@@ -1091,22 +1066,22 @@ export const view = <ParentMessage, Item extends string>(
     : []
 
   const itemsContainerAttributes = [
-    Id(`${id}-items`),
-    Role('menu'),
-    AriaLabelledBy(`${id}-button`),
+    h.Id(`${id}-items`),
+    h.Role('menu'),
+    h.AriaLabelledBy(`${id}-button`),
     ...maybeActiveDescendant,
-    Tabindex(0),
+    h.Tabindex(0),
     ...anchorAttributes,
     ...animationAttributes,
     ...(isLeaving
       ? []
       : [
-          OnKeyDownPreventDefault(handleItemsKeyDown),
-          OnKeyUpPreventDefault(handleSpaceKeyUp),
-          OnPointerUp(handleItemsPointerUp),
-          OnBlur(toParentMessage(BlurredItems())),
+          h.OnKeyDownPreventDefault(handleItemsKeyDown),
+          h.OnKeyUpPreventDefault(handleSpaceKeyUp),
+          h.OnPointerUp(handleItemsPointerUp),
+          h.OnBlur(toParentMessage(BlurredItems())),
         ]),
-    ...(itemsClassName ? [Class(itemsClassName)] : []),
+    ...(itemsClassName ? [h.Class(itemsClassName)] : []),
     ...itemsAttributes,
   ]
 
@@ -1123,22 +1098,22 @@ export const view = <ParentMessage, Item extends string>(
 
     const isInteractive = !isDisabledItem && !isLeaving
 
-    return keyed('div')(
+    return h.keyed('div')(
       itemId(id, index),
       [
-        Id(itemId(id, index)),
-        Role('menuitem'),
-        ...(isActiveItem ? [DataAttribute('active', '')] : []),
+        h.Id(itemId(id, index)),
+        h.Role('menuitem'),
+        ...(isActiveItem ? [h.DataAttribute('active', '')] : []),
         ...(isDisabledItem
-          ? [AriaDisabled(true), DataAttribute('disabled', '')]
+          ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
           : []),
         ...(isInteractive
           ? [
-              OnClick(dispatchSelectedItem(index)),
+              h.OnClick(dispatchSelectedItem(index)),
               ...(isActiveItem
                 ? []
                 : [
-                    OnPointerMove((screenX, screenY, pointerType) =>
+                    h.OnPointerMove((screenX, screenY, pointerType) =>
                       OptionExt.when(
                         pointerType !== 'touch',
                         toParentMessage(
@@ -1147,7 +1122,7 @@ export const view = <ParentMessage, Item extends string>(
                       ),
                     ),
                   ]),
-              OnPointerLeave(pointerType =>
+              h.OnPointerLeave(pointerType =>
                 OptionExt.when(
                   pointerType !== 'touch',
                   toParentMessage(DeactivatedItem()),
@@ -1155,7 +1130,7 @@ export const view = <ParentMessage, Item extends string>(
               ),
             ]
           : []),
-        ...(itemConfig.className ? [Class(itemConfig.className)] : []),
+        ...(itemConfig.className ? [h.Class(itemConfig.className)] : []),
       ],
       [itemConfig.content],
     )
@@ -1185,12 +1160,12 @@ export const view = <ParentMessage, Item extends string>(
       const headingElement = Option.match(maybeHeading, {
         onNone: () => [],
         onSome: heading => [
-          keyed('div')(
+          h.keyed('div')(
             headingId,
             [
-              Id(headingId),
-              Role('presentation'),
-              ...(heading.className ? [Class(heading.className)] : []),
+              h.Id(headingId),
+              h.Role('presentation'),
+              ...(heading.className ? [h.Class(heading.className)] : []),
             ],
             [heading.content],
           ),
@@ -1199,12 +1174,12 @@ export const view = <ParentMessage, Item extends string>(
 
       const groupContent = [...headingElement, ...segment.items]
 
-      const groupElement = keyed('div')(
+      const groupElement = h.keyed('div')(
         `${id}-group-${segment.key}`,
         [
-          Role('group'),
-          ...(Option.isSome(maybeHeading) ? [AriaLabelledBy(headingId)] : []),
-          ...(groupClassName ? [Class(groupClassName)] : []),
+          h.Role('group'),
+          ...(Option.isSome(maybeHeading) ? [h.AriaLabelledBy(headingId)] : []),
+          ...(groupClassName ? [h.Class(groupClassName)] : []),
           ...groupAttributes,
         ],
         groupContent,
@@ -1215,11 +1190,11 @@ export const view = <ParentMessage, Item extends string>(
         (separatorClassName ||
           Array.isReadonlyArrayNonEmpty(separatorAttributes))
           ? [
-              keyed('div')(
+              h.keyed('div')(
                 `${id}-separator-${segmentIndex}`,
                 [
-                  Role('separator'),
-                  ...(separatorClassName ? [Class(separatorClassName)] : []),
+                  h.Role('separator'),
+                  ...(separatorClassName ? [h.Class(separatorClassName)] : []),
                   ...separatorAttributes,
                 ],
                 [],
@@ -1231,12 +1206,12 @@ export const view = <ParentMessage, Item extends string>(
     })
   }
 
-  const backdrop = keyed('div')(
+  const backdrop = h.keyed('div')(
     `${id}-backdrop`,
     [
-      OnMount(Mount.mapMessage(PortalMenuBackdrop(), toParentMessage)),
-      ...(isLeaving ? [] : [OnClick(toParentMessage(Closed()))]),
-      ...(backdropClassName ? [Class(backdropClassName)] : []),
+      h.OnMount(Mount.mapMessage(PortalMenuBackdrop(), toParentMessage)),
+      ...(isLeaving ? [] : [h.OnClick(toParentMessage(Closed()))]),
+      ...(backdropClassName ? [h.Class(backdropClassName)] : []),
       ...backdropAttributes,
     ],
     [],
@@ -1247,9 +1222,9 @@ export const view = <ParentMessage, Item extends string>(
   const scrollableItems =
     itemsScrollClassName || Array.isReadonlyArrayNonEmpty(itemsScrollAttributes)
       ? [
-          div(
+          h.div(
             [
-              ...(itemsScrollClassName ? [Class(itemsScrollClassName)] : []),
+              ...(itemsScrollClassName ? [h.Class(itemsScrollClassName)] : []),
               ...itemsScrollAttributes,
             ],
             renderedItems,
@@ -1259,7 +1234,7 @@ export const view = <ParentMessage, Item extends string>(
 
   const visibleContent = [
     backdrop,
-    keyed('div')(
+    h.keyed('div')(
       `${id}-items-container`,
       itemsContainerAttributes,
       scrollableItems,
@@ -1267,13 +1242,15 @@ export const view = <ParentMessage, Item extends string>(
   ]
 
   const wrapperAttributes = [
-    ...(className ? [Class(className)] : []),
+    ...(className ? [h.Class(className)] : []),
     ...attributes,
-    ...(isVisible ? [DataAttribute('open', '')] : []),
+    ...(isVisible ? [h.DataAttribute('open', '')] : []),
   ]
 
-  return div(wrapperAttributes, [
-    keyed('button')(`${id}-button`, resolvedButtonAttributes, [buttonContent]),
+  return h.div(wrapperAttributes, [
+    h.keyed('button')(`${id}-button`, resolvedButtonAttributes, [
+      buttonContent,
+    ]),
     ...(isVisible ? visibleContent : []),
   ])
 }

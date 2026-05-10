@@ -3,10 +3,11 @@
 // update, and view definitions.
 import { Effect, Match as M, Option } from 'effect'
 import { Calendar, Command, Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Class, Id, button, div, h2 } from './html'
+const h = html<Message>()
 
 // Add a field to your Model for the Calendar Submodel:
 const Model = S.Struct({
@@ -105,67 +106,70 @@ Ui.Calendar.view({
     M.value(attributes).pipe(
       M.tagsExhaustive({
         Days: days =>
-          div(
-            [...days.root, Class('flex flex-col gap-3 rounded-xl border p-4')],
+          h.div(
             [
-              div(
-                [Class('flex items-center justify-between')],
+              ...days.root,
+              h.Class('flex flex-col gap-3 rounded-xl border p-4'),
+            ],
+            [
+              h.div(
+                [h.Class('flex items-center justify-between')],
                 [
-                  button(
-                    [...days.previousMonthButton, Class('rounded px-2')],
+                  h.button(
+                    [...days.previousMonthButton, h.Class('rounded px-2')],
                     ['‹'],
                   ),
                   // The heading is a button: clicking it switches to the
                   // months grid for fast navigation. Pair the text with a
                   // chevron so the button reads as interactive at rest.
-                  button(
+                  h.button(
                     [
-                      Id(days.heading.id),
+                      h.Id(days.heading.id),
                       ...days.headingButton,
-                      Class(
+                      h.Class(
                         'inline-flex items-center gap-2 rounded px-2 text-sm font-semibold',
                       ),
                     ],
                     [days.heading.text, ' ▾'],
                   ),
-                  button(
-                    [...days.nextMonthButton, Class('rounded px-2')],
+                  h.button(
+                    [...days.nextMonthButton, h.Class('rounded px-2')],
                     ['›'],
                   ),
                 ],
               ),
-              div(
-                [...days.grid, Class('flex flex-col gap-1 outline-none')],
+              h.div(
+                [...days.grid, h.Class('flex flex-col gap-1 outline-none')],
                 [
-                  div(
-                    [...days.headerRow, Class('grid grid-cols-7 gap-1')],
+                  h.div(
+                    [...days.headerRow, h.Class('grid grid-cols-7 gap-1')],
                     days.columnHeaders.map(header =>
-                      div(
+                      h.div(
                         [
                           ...header.attributes,
-                          Class('text-center text-xs uppercase'),
+                          h.Class('text-center text-xs uppercase'),
                         ],
                         [header.name],
                       ),
                     ),
                   ),
                   ...days.weeks.map(week =>
-                    div(
-                      [...week.attributes, Class('grid grid-cols-7 gap-1')],
+                    h.div(
+                      [...week.attributes, h.Class('grid grid-cols-7 gap-1')],
                       week.cells.map(cell =>
-                        div(
+                        h.div(
                           // `group` lets day buttons react to parent state
                           // via group-data-[today], group-data-[selected],
                           // etc.
                           [
                             ...cell.cellAttributes,
-                            Class('group flex items-center justify-center'),
+                            h.Class('group flex items-center justify-center'),
                           ],
                           [
-                            button(
+                            h.button(
                               [
                                 ...cell.buttonAttributes,
-                                Class(
+                                h.Class(
                                   'h-9 w-9 rounded-full text-sm group-data-[today]:ring-1 group-data-[selected]:bg-accent-600 group-data-[selected]:text-white group-data-[outside-month]:text-gray-400 group-data-[disabled]:opacity-40',
                                 ),
                               ],
@@ -183,20 +187,20 @@ Ui.Calendar.view({
         // The months grid renders 12 cells (one per month). Clicking the
         // heading again drills further into the years grid.
         Months: months =>
-          div(
+          h.div(
             [
               ...months.root,
-              Class('flex flex-col gap-3 rounded-xl border p-4'),
+              h.Class('flex flex-col gap-3 rounded-xl border p-4'),
             ],
             [
-              div(
-                [Class('flex items-center justify-center')],
+              h.div(
+                [h.Class('flex items-center justify-center')],
                 [
-                  button(
+                  h.button(
                     [
-                      Id(months.heading.id),
+                      h.Id(months.heading.id),
                       ...months.headingButton,
-                      Class(
+                      h.Class(
                         'inline-flex items-center gap-2 rounded px-2 text-sm font-semibold',
                       ),
                     ],
@@ -204,19 +208,22 @@ Ui.Calendar.view({
                   ),
                 ],
               ),
-              div(
-                [...months.grid, Class('grid grid-cols-3 gap-1 outline-none')],
+              h.div(
+                [
+                  ...months.grid,
+                  h.Class('grid grid-cols-3 gap-1 outline-none'),
+                ],
                 months.cells.map(cell =>
-                  div(
+                  h.div(
                     [
                       ...cell.cellAttributes,
-                      Class('group flex items-center justify-center'),
+                      h.Class('group flex items-center justify-center'),
                     ],
                     [
-                      button(
+                      h.button(
                         [
                           ...cell.buttonAttributes,
-                          Class(
+                          h.Class(
                             'h-12 w-full rounded-md text-sm group-data-[selected]:bg-accent-600 group-data-[selected]:text-white group-data-[disabled]:opacity-40',
                           ),
                         ],
@@ -232,39 +239,42 @@ Ui.Calendar.view({
         // page through 12-year windows; clicking a year drills back to
         // the months grid for that year.
         Years: years =>
-          div(
-            [...years.root, Class('flex flex-col gap-3 rounded-xl border p-4')],
+          h.div(
             [
-              div(
-                [Class('flex items-center justify-between')],
+              ...years.root,
+              h.Class('flex flex-col gap-3 rounded-xl border p-4'),
+            ],
+            [
+              h.div(
+                [h.Class('flex items-center justify-between')],
                 [
-                  button(
-                    [...years.previousPageButton, Class('rounded px-2')],
+                  h.button(
+                    [...years.previousPageButton, h.Class('rounded px-2')],
                     ['‹'],
                   ),
-                  h2(
-                    [Id(years.heading.id), Class('text-sm font-semibold')],
+                  h.h2(
+                    [h.Id(years.heading.id), h.Class('text-sm font-semibold')],
                     [years.heading.text],
                   ),
-                  button(
-                    [...years.nextPageButton, Class('rounded px-2')],
+                  h.button(
+                    [...years.nextPageButton, h.Class('rounded px-2')],
                     ['›'],
                   ),
                 ],
               ),
-              div(
-                [...years.grid, Class('grid grid-cols-3 gap-1 outline-none')],
+              h.div(
+                [...years.grid, h.Class('grid grid-cols-3 gap-1 outline-none')],
                 years.cells.map(cell =>
-                  div(
+                  h.div(
                     [
                       ...cell.cellAttributes,
-                      Class('group flex items-center justify-center'),
+                      h.Class('group flex items-center justify-center'),
                     ],
                     [
-                      button(
+                      h.button(
                         [
                           ...cell.buttonAttributes,
-                          Class(
+                          h.Class(
                             'h-12 w-full rounded-md text-sm group-data-[selected]:bg-accent-600 group-data-[selected]:text-white group-data-[disabled]:opacity-40',
                           ),
                         ],

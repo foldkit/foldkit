@@ -1,8 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
 import { uiShowcaseViewSourceHref } from '../../link'
-import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
   demoContainer,
@@ -229,12 +227,14 @@ const dataAttributes: ReadonlyArray<DataAttributeEntry> = [
 
 // VIEW
 
-export const view = (
+export const view = <ParentMessage>(
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
   copiedSnippets: CopiedSnippets,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
       pageTitle('ui/toast', 'Toast'),
@@ -269,7 +269,10 @@ export const view = (
       ),
       demoContainer(...Toast.demo(model.toastDemo, toParentMessage)),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippet.uiToastBasicHighlighted)], []),
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippet.uiToastBasicHighlighted)],
+          [],
+        ),
         Snippet.uiToastBasicRaw,
         'Copy toast example to clipboard',
         copiedSnippets,
@@ -346,3 +349,4 @@ export const view = (
       propTable(programmaticHelpers),
     ],
   )
+}

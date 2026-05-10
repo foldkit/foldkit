@@ -1,11 +1,9 @@
 import { Match as M } from 'effect'
 import { Ui } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 import type { AnchorConfig } from 'foldkit/ui/menu'
 
-import { Class, div, span } from '../../html'
 import { Icon } from '../../icon'
-import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
   GotMenuAnimatedDemoMessage,
@@ -84,15 +82,6 @@ const itemGroupKey = (item: MenuItem): string =>
     M.orElse(() => 'Actions'),
   )
 
-const groupToHeading = (groupKey: string) =>
-  M.value(groupKey).pipe(
-    M.when('Danger', () => ({
-      content: span([], ['Danger Zone']),
-      className: headingClassName,
-    })),
-    M.orElse(() => undefined),
-  )
-
 // VIEW
 
 const MENU_ANCHOR: AnchorConfig = {
@@ -101,59 +90,80 @@ const MENU_ANCHOR: AnchorConfig = {
   padding: 8,
 }
 
-const menuViewConfig = (itemsClassName: string) => ({
-  anchor: MENU_ANCHOR,
-  items: MENU_ITEMS,
-  itemToConfig: (item: MenuItem) => ({
-    className: itemClassName,
-    content: div(
-      [Class('flex items-center gap-2.5')],
-      [menuItemIcon(item), span([], [item])],
+const menuViewConfig = <ParentMessage>(itemsClassName: string) => {
+  const h = html<ParentMessage>()
+
+  const groupToHeading = (groupKey: string) =>
+    M.value(groupKey).pipe(
+      M.when('Danger', () => ({
+        content: h.span([], ['Danger Zone']),
+        className: headingClassName,
+      })),
+      M.orElse(() => undefined),
+    )
+
+  return {
+    anchor: MENU_ANCHOR,
+    items: MENU_ITEMS,
+    itemToConfig: (item: MenuItem) => ({
+      className: itemClassName,
+      content: h.div(
+        [h.Class('flex items-center gap-2.5')],
+        [menuItemIcon(item), h.span([], [item])],
+      ),
+    }),
+    isItemDisabled,
+    buttonContent: h.div(
+      [h.Class('flex items-center gap-4')],
+      [h.span([], ['Actions']), Icon.chevronDown('w-4 h-4')],
     ),
-  }),
-  isItemDisabled,
-  buttonContent: div(
-    [Class('flex items-center gap-4')],
-    [span([], ['Actions']), Icon.chevronDown('w-4 h-4')],
-  ),
-  buttonAttributes: [Class(triggerClassName)],
-  itemsAttributes: [Class(itemsClassName)],
-  backdropAttributes: [Class(backdropClassName)],
-  attributes: [Class(wrapperClassName)],
-  itemGroupKey,
-  groupToHeading,
-})
+    buttonAttributes: [h.Class(triggerClassName)],
+    itemsAttributes: [h.Class(itemsClassName)],
+    backdropAttributes: [h.Class(backdropClassName)],
+    attributes: [h.Class(wrapperClassName)],
+    itemGroupKey,
+    groupToHeading,
+  }
+}
 
-export const basicDemo = (
+export const basicDemo = <ParentMessage>(
   menuModel: Ui.Menu.Model,
   toParentMessage: (message: Message) => ParentMessage,
-) => [
-  div(
-    [Class('relative')],
-    [
-      Ui.Menu.view({
-        model: menuModel,
-        toParentMessage: message =>
-          toParentMessage(GotMenuBasicDemoMessage({ message })),
-        ...menuViewConfig(basicItemsClassName),
-      }),
-    ],
-  ),
-]
+) => {
+  const h = html<ParentMessage>()
 
-export const animatedDemo = (
+  return [
+    h.div(
+      [h.Class('relative')],
+      [
+        Ui.Menu.view({
+          model: menuModel,
+          toParentMessage: message =>
+            toParentMessage(GotMenuBasicDemoMessage({ message })),
+          ...menuViewConfig<ParentMessage>(basicItemsClassName),
+        }),
+      ],
+    ),
+  ]
+}
+
+export const animatedDemo = <ParentMessage>(
   menuModel: Ui.Menu.Model,
   toParentMessage: (message: Message) => ParentMessage,
-) => [
-  div(
-    [Class('relative')],
-    [
-      Ui.Menu.view({
-        model: menuModel,
-        toParentMessage: message =>
-          toParentMessage(GotMenuAnimatedDemoMessage({ message })),
-        ...menuViewConfig(animatedItemsClassName),
-      }),
-    ],
-  ),
-]
+) => {
+  const h = html<ParentMessage>()
+
+  return [
+    h.div(
+      [h.Class('relative')],
+      [
+        Ui.Menu.view({
+          model: menuModel,
+          toParentMessage: message =>
+            toParentMessage(GotMenuAnimatedDemoMessage({ message })),
+          ...menuViewConfig<ParentMessage>(animatedItemsClassName),
+        }),
+      ],
+    ),
+  ]
+}

@@ -2,9 +2,10 @@
 // basic tabs; only the view config changes to set orientation and use flex
 // + flex-col for layout.
 import { Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 
-import { Class, p, span } from './html'
+const h = html<Message>()
 
 const GotTabsMessage = m('GotTabsMessage', {
   message: Ui.Tabs.Message,
@@ -30,10 +31,10 @@ Ui.Tabs.view<Message, Framework>({
   tabToConfig: (tab, { isActive }) => ({
     buttonClassName:
       'px-4 py-2 text-left rounded-l-lg border mr-[-1px] data-[selected]:bg-white data-[selected]:border-r-0',
-    buttonContent: span([], [tab]),
+    buttonContent: h.span([], [tab]),
     panelClassName: 'flex-1 p-6 border rounded-r-lg',
-    panelContent: p([], [descriptions[tab]]),
+    panelContent: h.p([], [descriptions[tab]]),
   }),
-  attributes: [Class('flex')],
-  tabListAttributes: [Class('flex flex-col')],
+  attributes: [h.Class('flex')],
+  tabListAttributes: [h.Class('flex flex-col')],
 })

@@ -1,24 +1,16 @@
 import { Effect, Function, Match as M, Option, Schema as S } from 'effect'
 import { Mount } from 'foldkit'
 import type { MountResult } from 'foldkit/html'
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import filesBySlug from 'virtual:playground-files'
 
-import {
-  AriaLabel,
-  Class,
-  Href,
-  Id,
-  OnMount,
-  a,
-  div,
-  keyed,
-  main,
-} from '../html'
 import { Icon } from '../icon'
+import type { Message } from '../message'
 import { exampleDetailRouter, examplesRouter } from '../route'
 import { type ExampleMeta, findBySlug } from './example/meta'
+
+const h = html<Message>()
 
 export const SucceededPlaygroundEmbed = m('SucceededPlaygroundEmbed')
 export const FailedPlaygroundEmbed = m('FailedPlaygroundEmbed', {
@@ -90,15 +82,15 @@ const PlaygroundEmbed = Mount.define(
 const backToExampleButton = (maybeMeta: Option.Option<ExampleMeta>): Html =>
   Option.match(maybeMeta, {
     onNone: () =>
-      a(
-        [Href(examplesRouter()), Class('cta-secondary')],
+      h.a(
+        [h.Href(examplesRouter()), h.Class('cta-secondary')],
         [Icon.chevronLeft('w-4 h-4'), 'All Examples'],
       ),
     onSome: meta =>
-      a(
+      h.a(
         [
-          Href(exampleDetailRouter({ exampleSlug: meta.slug })),
-          Class('cta-secondary'),
+          h.Href(exampleDetailRouter({ exampleSlug: meta.slug })),
+          h.Class('cta-secondary'),
         ],
         [Icon.chevronLeft('w-4 h-4'), `Back to ${meta.title}`],
       ),
@@ -109,21 +101,24 @@ const messageView = (
   body: string,
   maybeMeta: Option.Option<ExampleMeta>,
 ): Html =>
-  div(
-    [Class('flex-1 flex items-center justify-center px-6 py-20 text-center')],
+  h.div(
+    [h.Class('flex-1 flex items-center justify-center px-6 py-20 text-center')],
     [
-      div(
-        [Class('max-w-md flex flex-col items-center')],
+      h.div(
+        [h.Class('max-w-md flex flex-col items-center')],
         [
-          div(
+          h.div(
             [
-              Class(
+              h.Class(
                 'text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2',
               ),
             ],
             [heading],
           ),
-          div([Class('text-sm text-gray-600 dark:text-gray-400 mb-6')], [body]),
+          h.div(
+            [h.Class('text-sm text-gray-600 dark:text-gray-400 mb-6')],
+            [body],
+          ),
           backToExampleButton(maybeMeta),
         ],
       ),
@@ -137,12 +132,12 @@ const messageView = (
 // SDK accepts. The resulting per-visit leak is a few KB of JS state — negligible
 // for a docs site, tracked as a follow-up to request a public teardown method.
 const embedView = (meta: ExampleMeta, files: Record<string, string>): Html =>
-  div(
-    [Class('flex-1 min-h-0')],
+  h.div(
+    [h.Class('flex-1 min-h-0')],
     [
-      div(
+      h.div(
         [
-          OnMount(
+          h.OnMount(
             PlaygroundEmbed({
               title: meta.title,
               description: meta.description,
@@ -201,15 +196,15 @@ export const view = (
     ),
   )
 
-  return keyed('div')(
+  return h.keyed('div')(
     `playground-${slug}`,
-    [Class('flex flex-col h-screen')],
+    [h.Class('flex flex-col h-screen')],
     [
-      main(
+      h.main(
         [
-          Id('main-content'),
-          Class('flex-1 flex flex-col min-h-0'),
-          AriaLabel('Playground'),
+          h.Id('main-content'),
+          h.Class('flex-1 flex flex-col min-h-0'),
+          h.AriaLabel('Playground'),
         ],
         [content],
       ),

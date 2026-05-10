@@ -1,18 +1,6 @@
 import { Array } from 'effect'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import {
-  Class,
-  Href,
-  a,
-  div,
-  table,
-  tbody,
-  td,
-  th,
-  thead,
-  tr,
-} from '../../html'
 import type { TableOfContentsEntry } from '../../main'
 import { heading, link, pageTitle, para } from '../../prose'
 import {
@@ -215,7 +203,7 @@ const components: ReadonlyArray<ComponentEntry> = [
     href: uiDatePickerRouter(),
     category: 'Date',
     description:
-      'Input paired with a popover Calendar. Inherits the calendar\u2019s constraint and keyboard-navigation support, with programmatic open/close and setters.',
+      'Input paired with a popover Calendar. Inherits the calendar’s constraint and keyboard-navigation support, with programmatic open/close and setters.',
   },
   {
     name: 'Animation',
@@ -229,52 +217,59 @@ const components: ReadonlyArray<ComponentEntry> = [
 const componentNameClassName =
   'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500 font-medium'
 
-const componentRow = (entry: ComponentEntry): Html =>
-  tr(
-    [Class('border-b border-gray-200 dark:border-gray-700/50')],
+const headerCellClassName =
+  'py-2 pr-4 text-left font-medium text-gray-900 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700/50'
+
+// VIEW
+
+export const view = <ParentMessage>(): Html => {
+  const h = html<ParentMessage>()
+
+  const componentRow = (entry: ComponentEntry): Html =>
+    h.tr(
+      [h.Class('border-b border-gray-200 dark:border-gray-700/50')],
+      [
+        h.td(
+          [h.Class('py-2.5 pr-4 whitespace-nowrap align-top')],
+          [
+            h.a(
+              [h.Href(entry.href), h.Class(componentNameClassName)],
+              [entry.name],
+            ),
+          ],
+        ),
+        h.td(
+          [h.Class('py-2.5 text-gray-600 dark:text-gray-400')],
+          [entry.description],
+        ),
+      ],
+    )
+
+  const componentTable: Html = h.div(
+    [h.Class('mb-8')],
     [
-      td(
-        [Class('py-2.5 pr-4 whitespace-nowrap align-top')],
-        [a([Href(entry.href), Class(componentNameClassName)], [entry.name])],
-      ),
-      td(
-        [Class('py-2.5 text-gray-600 dark:text-gray-400')],
-        [entry.description],
+      h.table(
+        [h.Class('w-full text-sm')],
+        [
+          h.thead(
+            [],
+            [
+              h.tr(
+                [],
+                [
+                  h.th([h.Class(headerCellClassName)], ['Component']),
+                  h.th([h.Class(headerCellClassName)], ['Description']),
+                ],
+              ),
+            ],
+          ),
+          h.tbody([], Array.map(components, componentRow)),
+        ],
       ),
     ],
   )
 
-const headerCellClassName =
-  'py-2 pr-4 text-left font-medium text-gray-900 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700/50'
-
-const componentTable: Html = div(
-  [Class('mb-8')],
-  [
-    table(
-      [Class('w-full text-sm')],
-      [
-        thead(
-          [],
-          [
-            tr(
-              [],
-              [
-                th([Class(headerCellClassName)], ['Component']),
-                th([Class(headerCellClassName)], ['Description']),
-              ],
-            ),
-          ],
-        ),
-        tbody([], Array.map(components, componentRow)),
-      ],
-    ),
-  ],
-)
-
-// VIEW
-
-export const view = (): Html =>
-  div(
+  return h.div(
     [],
     [
       pageTitle('ui/overview', 'Foldkit UI'),
@@ -304,7 +299,8 @@ export const view = (): Html =>
           exampleDetailRouter({ exampleSlug: 'ui-showcase' }),
           'UI Showcase',
         ),
-        ' example demonstrates every component with styled, interactive examples. It\u2019s a good reference for how to wire up component state, handle Messages, and compose views.',
+        ' example demonstrates every component with styled, interactive examples. It’s a good reference for how to wire up component state, handle Messages, and compose views.',
       ),
     ],
   )
+}

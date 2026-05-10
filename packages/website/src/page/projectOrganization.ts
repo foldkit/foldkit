@@ -1,8 +1,8 @@
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../html'
 import { Link } from '../link'
 import type { TableOfContentsEntry } from '../main'
+import type { Message } from '../message'
 import {
   inlineCode,
   link,
@@ -17,6 +17,8 @@ import {
   codeBlock,
   highlightedCodeBlock,
 } from '../view/codeBlock'
+
+const h = html<Message>()
 
 const startingSimpleHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -50,14 +52,14 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('project-organization', 'Project Organization'),
       para(
         'Foldkit apps can start in a single ',
         inlineCode('main.ts'),
-        ' and split into modules as they grow. Here\u2019s how to organize your code as complexity increases.',
+        ' and split into modules as they grow. Here’s how to organize your code as complexity increases.',
       ),
       tableOfContentsEntryToHeader(startingSimpleHeader),
       para(
@@ -71,7 +73,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' is a good reference.',
       ),
       para(
-        'This is fine for small apps. You don\u2019t need to split into multiple files until the single file becomes hard to navigate.',
+        'This is fine for small apps. You don’t need to split into multiple files until the single file becomes hard to navigate.',
       ),
       tableOfContentsEntryToHeader(fileLayoutHeader),
       para(
@@ -104,8 +106,8 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' folder. Each file represents a domain concept with its schema and pure functions:',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.domainModuleHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.domainModuleHighlighted)],
           [],
         ),
         Snippets.domainModuleRaw,
@@ -127,8 +129,8 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' files to create clean namespace imports:',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.indexReexportsHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.indexReexportsHighlighted)],
           [],
         ),
         Snippets.indexReexportsRaw,
@@ -138,7 +140,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para('Then import and use the namespace:'),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.indexUsageHighlighted)], []),
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.indexUsageHighlighted)],
+          [],
+        ),
         Snippets.indexUsageRaw,
         'Copy namespace usage to clipboard',
         copiedSnippets,

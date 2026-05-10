@@ -1,8 +1,7 @@
 import * as Shared from '@typing-game/shared'
 import { Array, Match, Option, flow, pipe } from 'effect'
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, div, h3, span } from '../../../view/html'
 import { RoomPlayerSession } from '../model'
 
 type Badge = 'Host' | 'You'
@@ -19,12 +18,14 @@ const isLocalPlayer = (
 ): boolean =>
   Option.exists(maybeSession, session => session.player.id === player.id)
 
-const player = (
+const player = <ParentMessage>(
   players: ReadonlyArray<Shared.Player>,
   hostId: string,
   maybeSession: Option.Option<RoomPlayerSession>,
-): Html[] =>
-  Array.map(players, player => {
+): Array<Html> => {
+  const h = html<ParentMessage>()
+
+  return Array.map(players, player => {
     const badges = pipe(
       allBadges,
       Array.filter(
@@ -36,29 +37,34 @@ const player = (
         ),
       ),
       Array.map(badge =>
-        span([Class('uppercase')], [` [${badgeToString(badge)}]`]),
+        h.span([h.Class('uppercase')], [` [${badgeToString(badge)}]`]),
       ),
     )
 
-    return div([], [span([], [player.username]), ...badges])
+    return h.div([], [h.span([], [player.username]), ...badges])
   })
+}
 
-export const waiting = (
+export const waiting = <ParentMessage>(
   players: ReadonlyArray<Shared.Player>,
   hostId: string,
   maybeSession: Option.Option<RoomPlayerSession>,
 ): Html => {
+  const h = html<ParentMessage>()
   const isLocalPlayerHost = Option.exists(
     maybeSession,
     session => session.player.id === hostId,
   )
 
-  return div(
+  return h.div(
     [],
     [
-      h3([Class('uppercase mb-2')], ['[Connected users]']),
-      div([Class('space-y-2 mb-12')], player(players, hostId, maybeSession)),
-      ...(isLocalPlayerHost ? [div([], ['> Enter to start game'])] : []),
+      h.h3([h.Class('uppercase mb-2')], ['[Connected users]']),
+      h.div(
+        [h.Class('space-y-2 mb-12')],
+        player<ParentMessage>(players, hostId, maybeSession),
+      ),
+      ...(isLocalPlayerHost ? [h.div([], ['> Enter to start game'])] : []),
     ],
   )
 }

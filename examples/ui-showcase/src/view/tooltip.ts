@@ -1,9 +1,7 @@
 import { Ui } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 import type { AnchorConfig } from 'foldkit/ui/tooltip'
 
-import { Class, div, h2, h3, span } from '../html'
-import type { Message as ParentMessage } from '../main'
 import {
   GotTooltipBasicDemoMessage,
   GotTooltipNoDelayDemoMessage,
@@ -25,52 +23,58 @@ const TOOLTIP_ANCHOR: AnchorConfig = {
   padding: 8,
 }
 
-export const view = (
+export const view = <ParentMessage>(
   model: UiModel,
   toParentMessage: (message: UiMessage) => ParentMessage,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
-      h2([Class('text-2xl font-bold text-gray-900 mb-6')], ['Tooltip']),
+      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Tooltip']),
 
-      h3([Class('text-lg font-semibold text-gray-900 mt-8 mb-4')], ['Basic']),
-      div(
-        [Class('relative')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+        ['Basic'],
+      ),
+      h.div(
+        [h.Class('relative')],
         [
           Ui.Tooltip.view({
             model: model.tooltipBasicDemo,
             toParentMessage: message =>
               toParentMessage(GotTooltipBasicDemoMessage({ message })),
             anchor: TOOLTIP_ANCHOR,
-            triggerContent: span([], ['Hover or focus me']),
-            triggerAttributes: [Class(triggerClassName)],
-            content: span([], ['This is a tooltip']),
-            panelAttributes: [Class(panelClassName)],
-            attributes: [Class(wrapperClassName)],
+            triggerContent: h.span([], ['Hover or focus me']),
+            triggerAttributes: [h.Class(triggerClassName)],
+            content: h.span([], ['This is a tooltip']),
+            panelAttributes: [h.Class(panelClassName)],
+            attributes: [h.Class(wrapperClassName)],
           }),
         ],
       ),
 
-      h3(
-        [Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['No delay'],
       ),
-      div(
-        [Class('relative')],
+      h.div(
+        [h.Class('relative')],
         [
           Ui.Tooltip.view({
             model: model.tooltipNoDelayDemo,
             toParentMessage: message =>
               toParentMessage(GotTooltipNoDelayDemoMessage({ message })),
             anchor: TOOLTIP_ANCHOR,
-            triggerContent: span([], ['No delay']),
-            triggerAttributes: [Class(triggerClassName)],
-            content: span([], ['Shows immediately']),
-            panelAttributes: [Class(panelClassName)],
-            attributes: [Class(wrapperClassName)],
+            triggerContent: h.span([], ['No delay']),
+            triggerAttributes: [h.Class(triggerClassName)],
+            content: h.span([], ['Shows immediately']),
+            panelAttributes: [h.Class(panelClassName)],
+            attributes: [h.Class(wrapperClassName)],
           }),
         ],
       ),
     ],
   )
+}

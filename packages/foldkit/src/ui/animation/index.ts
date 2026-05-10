@@ -71,8 +71,7 @@ export type ViewConfig<ParentMessage> = Readonly<{
 export const view = <ParentMessage>(
   config: ViewConfig<ParentMessage>,
 ): Html => {
-  const { AriaHidden, Class, DataAttribute, Id, Style, div, empty, keyed } =
-    html<ParentMessage>()
+  const h = html<ParentMessage>()
 
   const {
     model: { id, isShowing, transitionState },
@@ -87,28 +86,29 @@ export const view = <ParentMessage>(
     transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
   const isVisible = isShowing || isLeaving
 
-  const transitionAttributes: ReadonlyArray<ReturnType<typeof DataAttribute>> =
-    M.value(transitionState).pipe(
-      M.when('EnterStart', () => [
-        DataAttribute('closed', ''),
-        DataAttribute('enter', ''),
-        DataAttribute('transition', ''),
-      ]),
-      M.when('EnterAnimating', () => [
-        DataAttribute('enter', ''),
-        DataAttribute('transition', ''),
-      ]),
-      M.when('LeaveStart', () => [
-        DataAttribute('leave', ''),
-        DataAttribute('transition', ''),
-      ]),
-      M.when('LeaveAnimating', () => [
-        DataAttribute('closed', ''),
-        DataAttribute('leave', ''),
-        DataAttribute('transition', ''),
-      ]),
-      M.orElse(() => []),
-    )
+  const transitionAttributes: ReadonlyArray<
+    ReturnType<typeof h.DataAttribute>
+  > = M.value(transitionState).pipe(
+    M.when('EnterStart', () => [
+      h.DataAttribute('closed', ''),
+      h.DataAttribute('enter', ''),
+      h.DataAttribute('transition', ''),
+    ]),
+    M.when('EnterAnimating', () => [
+      h.DataAttribute('enter', ''),
+      h.DataAttribute('transition', ''),
+    ]),
+    M.when('LeaveStart', () => [
+      h.DataAttribute('leave', ''),
+      h.DataAttribute('transition', ''),
+    ]),
+    M.when('LeaveAnimating', () => [
+      h.DataAttribute('closed', ''),
+      h.DataAttribute('leave', ''),
+      h.DataAttribute('transition', ''),
+    ]),
+    M.orElse(() => []),
+  )
 
   if (animateSize) {
     const isClosed =
@@ -116,9 +116,9 @@ export const view = <ParentMessage>(
       transitionState === 'LeaveAnimating' ||
       !isVisible
 
-    return div(
+    return h.div(
       [
-        Style({
+        h.Style({
           display: 'grid',
           gridTemplateRows: isClosed ? '0fr' : '1fr',
           transition: 'grid-template-rows 200ms ease-out',
@@ -126,21 +126,21 @@ export const view = <ParentMessage>(
         }),
       ],
       [
-        div(
+        h.div(
           [
-            Style({ minHeight: '0px', overflow: 'hidden' }),
-            ...(!isVisible ? [AriaHidden(true)] : []),
+            h.Style({ minHeight: '0px', overflow: 'hidden' }),
+            ...(!isVisible ? [h.AriaHidden(true)] : []),
           ],
           [
-            keyed(element)(
+            h.keyed(element)(
               id,
               [
-                Id(id),
+                h.Id(id),
                 ...(isClosed && transitionState === 'Idle'
-                  ? [DataAttribute('closed', '')]
+                  ? [h.DataAttribute('closed', '')]
                   : []),
                 ...transitionAttributes,
-                ...(className ? [Class(className)] : []),
+                ...(className ? [h.Class(className)] : []),
                 ...attributes,
               ],
               [content],
@@ -152,15 +152,15 @@ export const view = <ParentMessage>(
   }
 
   if (!isVisible) {
-    return empty
+    return h.empty
   }
 
-  return keyed(element)(
+  return h.keyed(element)(
     id,
     [
-      Id(id),
+      h.Id(id),
       ...transitionAttributes,
-      ...(className ? [Class(className)] : []),
+      ...(className ? [h.Class(className)] : []),
       ...attributes,
     ],
     [content],

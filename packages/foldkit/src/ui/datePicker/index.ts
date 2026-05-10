@@ -397,7 +397,7 @@ export type ViewConfig<ParentMessage> = Readonly<{
 export const view = <ParentMessage>(
   config: ViewConfig<ParentMessage>,
 ): Html => {
-  const { Class, Name, Type, Value, div, input } = html<ParentMessage>()
+  const h = html<ParentMessage>()
 
   const {
     model,
@@ -458,15 +458,15 @@ export const view = <ParentMessage>(
 
   const maybeHiddenInput: ReadonlyArray<Html> =
     name !== undefined
-      ? [input([Type('hidden'), Name(name), Value(hiddenInputValue)])]
+      ? [h.input([h.Type('hidden'), h.Name(name), h.Value(hiddenInputValue)])]
       : []
 
   const wrapperAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-    ...(className !== undefined ? [Class(className)] : []),
+    ...(className !== undefined ? [h.Class(className)] : []),
     ...attributes,
   ]
 
-  return div(wrapperAttributes, [popoverVNode, ...maybeHiddenInput])
+  return h.div(wrapperAttributes, [popoverVNode, ...maybeHiddenInput])
 }
 
 /** Creates a memoized date picker view. Static config is captured in a closure;

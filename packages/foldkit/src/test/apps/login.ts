@@ -89,87 +89,77 @@ export const update = (
 
 // VIEW
 
-const {
-  div,
-  form,
-  input,
-  button,
-  span,
-  label,
-  p,
-  OnInput,
-  OnSubmit,
-  OnClick,
-  Id,
-  For,
-  Class,
-  Type,
-  Value,
-  Placeholder,
-  Role,
-  AriaExpanded,
-  AriaLabel,
-  Disabled,
-} = html<Message>()
+const h = html<Message>()
 
 export const view = (model: Model): Html =>
-  div(
-    [Id('app')],
+  h.div(
+    [h.Id('app')],
     [
       M.value(model.status).pipe(
         M.withReturnType<Html>(),
         M.when('Submitting', () =>
-          form(
-            [Class('login-form'), Disabled(true)],
-            [button([Type('submit'), Disabled(true)], ['Signing in...'])],
+          h.form(
+            [h.Class('login-form'), h.Disabled(true)],
+            [h.button([h.Type('submit'), h.Disabled(true)], ['Signing in...'])],
           ),
         ),
         M.when('LoggedIn', () =>
-          div(
-            [Class('logged-in'), Role('region'), AriaLabel('User session')],
+          h.div(
             [
-              span(
-                [Class('greeting'), Role('status')],
+              h.Class('logged-in'),
+              h.Role('region'),
+              h.AriaLabel('User session'),
+            ],
+            [
+              h.span(
+                [h.Class('greeting'), h.Role('status')],
                 [`Welcome, ${model.username}!`],
               ),
-              button(
-                [OnClick(ClickedLogout()), Role('button'), AriaExpanded(false)],
+              h.button(
+                [
+                  h.OnClick(ClickedLogout()),
+                  h.Role('button'),
+                  h.AriaExpanded(false),
+                ],
                 ['Log out'],
               ),
             ],
           ),
         ),
         M.when('Error', () =>
-          div(
+          h.div(
             [],
             [
-              p([Class('error'), Role('alert')], [model.error]),
-              button([OnClick(SubmittedLogin()), Class('retry')], ['Retry']),
+              h.p([h.Class('error'), h.Role('alert')], [model.error]),
+              h.button(
+                [h.OnClick(SubmittedLogin()), h.Class('retry')],
+                ['Retry'],
+              ),
             ],
           ),
         ),
         M.when('Idle', () =>
-          form(
-            [OnSubmit(SubmittedLogin()), Class('login-form')],
+          h.form(
+            [h.OnSubmit(SubmittedLogin()), h.Class('login-form')],
             [
-              label([For('email'), Class('sr-only')], ['Email']),
-              input([
-                Id('email'),
-                Type('email'),
-                Placeholder('Email'),
-                Value(model.email),
-                OnInput(value => UpdatedEmail({ value })),
+              h.label([h.For('email'), h.Class('sr-only')], ['Email']),
+              h.input([
+                h.Id('email'),
+                h.Type('email'),
+                h.Placeholder('Email'),
+                h.Value(model.email),
+                h.OnInput(value => UpdatedEmail({ value })),
               ]),
-              label([For('password'), Class('sr-only')], ['Password']),
-              input([
-                Id('password'),
-                Type('password'),
-                Placeholder('Password'),
-                Value(model.password),
-                OnInput(value => UpdatedPassword({ value })),
+              h.label([h.For('password'), h.Class('sr-only')], ['Password']),
+              h.input([
+                h.Id('password'),
+                h.Type('password'),
+                h.Placeholder('Password'),
+                h.Value(model.password),
+                h.OnInput(value => UpdatedPassword({ value })),
               ]),
-              button(
-                [Type('submit'), Class('primary'), Disabled(false)],
+              h.button(
+                [h.Type('submit'), h.Class('primary'), h.Disabled(false)],
                 ['Sign in'],
               ),
             ],

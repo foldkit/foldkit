@@ -1,7 +1,6 @@
 import { Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 
-import { Class, div, label, span } from '../../html'
-import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
   GotSliderRatingDemoMessage,
@@ -47,100 +46,104 @@ const ratingFormatted = (value: number): string => `${String(value)} of 10`
 const volumeFormatted = (value: number): string =>
   `${String(Math.round(value * 100))}%`
 
-export const sliderDemo = (
+export const sliderDemo = <ParentMessage>(
   ratingModel: Ui.Slider.Model,
   volumeModel: Ui.Slider.Model,
   toParentMessage: (message: Message) => ParentMessage,
-) => [
-  div(
-    [Class('flex flex-col gap-8 w-full max-w-sm')],
-    [
-      Ui.Slider.view({
-        model: ratingModel,
-        toParentMessage: message =>
-          toParentMessage(GotSliderRatingDemoMessage({ message })),
-        formatValue: value => `${String(value)} of 10`,
-        toView: attributes =>
-          div(
-            [Class(rowClassName)],
-            [
-              div(
-                [Class(headerClassName)],
-                [
-                  label(
-                    [...attributes.label, Class(labelClassName)],
-                    ['Rating'],
-                  ),
-                  span(
-                    [Class(valueClassName)],
-                    [ratingFormatted(ratingModel.value)],
-                  ),
-                ],
-              ),
-              div(
-                [...attributes.root, Class(rootClassName)],
-                [
-                  div(
-                    [...attributes.track, Class(trackClassName)],
-                    [
-                      div(
-                        [
-                          ...attributes.filledTrack,
-                          Class(filledTrackClassName),
-                        ],
-                        [],
-                      ),
-                    ],
-                  ),
-                  div([...attributes.thumb, Class(thumbClassName)], []),
-                ],
-              ),
-            ],
-          ),
-      }),
-      Ui.Slider.view({
-        model: volumeModel,
-        toParentMessage: message =>
-          toParentMessage(GotSliderVolumeDemoMessage({ message })),
-        formatValue: value => `${String(Math.round(value * 100))} percent`,
-        toView: attributes =>
-          div(
-            [Class(rowClassName)],
-            [
-              div(
-                [Class(headerClassName)],
-                [
-                  label(
-                    [...attributes.label, Class(labelClassName)],
-                    ['Volume'],
-                  ),
-                  span(
-                    [Class(valueClassName)],
-                    [volumeFormatted(volumeModel.value)],
-                  ),
-                ],
-              ),
-              div(
-                [...attributes.root, Class(rootClassName)],
-                [
-                  div(
-                    [...attributes.track, Class(trackClassName)],
-                    [
-                      div(
-                        [
-                          ...attributes.filledTrack,
-                          Class(filledTrackClassName),
-                        ],
-                        [],
-                      ),
-                    ],
-                  ),
-                  div([...attributes.thumb, Class(thumbClassName)], []),
-                ],
-              ),
-            ],
-          ),
-      }),
-    ],
-  ),
-]
+) => {
+  const h = html<ParentMessage>()
+
+  return [
+    h.div(
+      [h.Class('flex flex-col gap-8 w-full max-w-sm')],
+      [
+        Ui.Slider.view({
+          model: ratingModel,
+          toParentMessage: message =>
+            toParentMessage(GotSliderRatingDemoMessage({ message })),
+          formatValue: value => `${String(value)} of 10`,
+          toView: attributes =>
+            h.div(
+              [h.Class(rowClassName)],
+              [
+                h.div(
+                  [h.Class(headerClassName)],
+                  [
+                    h.label(
+                      [...attributes.label, h.Class(labelClassName)],
+                      ['Rating'],
+                    ),
+                    h.span(
+                      [h.Class(valueClassName)],
+                      [ratingFormatted(ratingModel.value)],
+                    ),
+                  ],
+                ),
+                h.div(
+                  [...attributes.root, h.Class(rootClassName)],
+                  [
+                    h.div(
+                      [...attributes.track, h.Class(trackClassName)],
+                      [
+                        h.div(
+                          [
+                            ...attributes.filledTrack,
+                            h.Class(filledTrackClassName),
+                          ],
+                          [],
+                        ),
+                      ],
+                    ),
+                    h.div([...attributes.thumb, h.Class(thumbClassName)], []),
+                  ],
+                ),
+              ],
+            ),
+        }),
+        Ui.Slider.view({
+          model: volumeModel,
+          toParentMessage: message =>
+            toParentMessage(GotSliderVolumeDemoMessage({ message })),
+          formatValue: value => `${String(Math.round(value * 100))} percent`,
+          toView: attributes =>
+            h.div(
+              [h.Class(rowClassName)],
+              [
+                h.div(
+                  [h.Class(headerClassName)],
+                  [
+                    h.label(
+                      [...attributes.label, h.Class(labelClassName)],
+                      ['Volume'],
+                    ),
+                    h.span(
+                      [h.Class(valueClassName)],
+                      [volumeFormatted(volumeModel.value)],
+                    ),
+                  ],
+                ),
+                h.div(
+                  [...attributes.root, h.Class(rootClassName)],
+                  [
+                    h.div(
+                      [...attributes.track, h.Class(trackClassName)],
+                      [
+                        h.div(
+                          [
+                            ...attributes.filledTrack,
+                            h.Class(filledTrackClassName),
+                          ],
+                          [],
+                        ),
+                      ],
+                    ),
+                    h.div([...attributes.thumb, h.Class(thumbClassName)], []),
+                  ],
+                ),
+              ],
+            ),
+        }),
+      ],
+    ),
+  ]
+}

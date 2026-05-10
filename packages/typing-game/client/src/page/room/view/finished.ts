@@ -1,21 +1,8 @@
 import * as Shared from '@typing-game/shared'
 import { clsx } from 'clsx'
 import { Array, Number, Option, Order, pipe } from 'effect'
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import {
-  Class,
-  div,
-  empty,
-  h3,
-  span,
-  table,
-  tbody,
-  td,
-  th,
-  thead,
-  tr,
-} from '../../../view/html'
 import { RoomPlayerSession } from '../model'
 
 const byHighestWpm = pipe(
@@ -24,45 +11,49 @@ const byHighestWpm = pipe(
   Order.flip,
 )
 
-const scoreboardView = (scoreboard: Shared.Scoreboard, hostId: string) => {
+const scoreboardView = <ParentMessage>(
+  scoreboard: Shared.Scoreboard,
+  hostId: string,
+): Html => {
+  const h = html<ParentMessage>()
   const sortedScoreboard = Array.sort(scoreboard, byHighestWpm)
 
-  return table(
-    [Class('border-2 border-terminal-green box-glow w-full border-collapse')],
+  return h.table(
+    [h.Class('border-2 border-terminal-green box-glow w-full border-collapse')],
     [
-      thead(
+      h.thead(
         [],
         [
-          tr(
+          h.tr(
             [],
             [
-              th(
+              h.th(
                 [
-                  Class(
+                  h.Class(
                     'p-4 border-b-2 border-terminal-green uppercase text-left',
                   ),
                 ],
                 ['Player'],
               ),
-              th(
+              h.th(
                 [
-                  Class(
+                  h.Class(
                     'p-4 border-b-2 border-terminal-green uppercase text-right',
                   ),
                 ],
                 ['WPM'],
               ),
-              th(
+              h.th(
                 [
-                  Class(
+                  h.Class(
                     'p-4 border-b-2 border-terminal-green uppercase text-right',
                   ),
                 ],
                 ['Accuracy'],
               ),
-              th(
+              h.th(
                 [
-                  Class(
+                  h.Class(
                     'p-4 border-b-2 border-terminal-green uppercase text-right',
                   ),
                 ],
@@ -72,18 +63,18 @@ const scoreboardView = (scoreboard: Shared.Scoreboard, hostId: string) => {
           ),
         ],
       ),
-      tbody(
+      h.tbody(
         [],
         Array.map(sortedScoreboard, (score, index) => {
           const isFirst = index === 0
           const isHost = score.playerId === hostId
 
-          return tr(
+          return h.tr(
             [],
             [
-              td(
+              h.td(
                 [
-                  Class(
+                  h.Class(
                     clsx('p-4', {
                       'border-b-2 border-terminal-green':
                         index < Number.decrement(sortedScoreboard.length),
@@ -93,12 +84,14 @@ const scoreboardView = (scoreboard: Shared.Scoreboard, hostId: string) => {
                 [
                   isFirst ? '> ' : '  ',
                   score.username,
-                  ...(isHost ? [span([Class('uppercase')], [' [host]'])] : []),
+                  ...(isHost
+                    ? [h.span([h.Class('uppercase')], [' [host]'])]
+                    : []),
                 ],
               ),
-              td(
+              h.td(
                 [
-                  Class(
+                  h.Class(
                     clsx('p-4 text-right', {
                       'border-b-2 border-terminal-green':
                         index < Number.decrement(sortedScoreboard.length),
@@ -107,9 +100,9 @@ const scoreboardView = (scoreboard: Shared.Scoreboard, hostId: string) => {
                 ],
                 [score.wpm.toFixed(1)],
               ),
-              td(
+              h.td(
                 [
-                  Class(
+                  h.Class(
                     clsx('p-4 text-right', {
                       'border-b-2 border-terminal-green':
                         index < Number.decrement(sortedScoreboard.length),
@@ -118,9 +111,9 @@ const scoreboardView = (scoreboard: Shared.Scoreboard, hostId: string) => {
                 ],
                 [score.accuracy.toFixed(1) + '%'],
               ),
-              td(
+              h.td(
                 [
-                  Class(
+                  h.Class(
                     clsx('p-4 text-right', {
                       'border-b-2 border-terminal-green':
                         index < Number.decrement(sortedScoreboard.length),
@@ -137,26 +130,27 @@ const scoreboardView = (scoreboard: Shared.Scoreboard, hostId: string) => {
   )
 }
 
-export const finished = (
+export const finished = <ParentMessage>(
   maybeScoreboard: Option.Option<Shared.Scoreboard>,
   hostId: string,
   maybeSession: Option.Option<RoomPlayerSession>,
 ): Html => {
+  const h = html<ParentMessage>()
   const isLocalPlayerHost = Option.exists(
     maybeSession,
     session => session.player.id === hostId,
   )
 
-  return div(
-    [Class('space-y-6')],
+  return h.div(
+    [h.Class('space-y-6')],
     [
-      h3([Class('uppercase')], ['[Game complete]']),
+      h.h3([h.Class('uppercase')], ['[Game complete]']),
       Option.match(maybeScoreboard, {
-        onNone: () => empty,
-        onSome: scoreboard => scoreboardView(scoreboard, hostId),
+        onNone: () => h.empty,
+        onSome: scoreboard => scoreboardView<ParentMessage>(scoreboard, hostId),
       }),
       ...(isLocalPlayerHost
-        ? [div([Class('mt-4')], ['> Enter to play again'])]
+        ? [h.div([h.Class('mt-4')], ['> Enter to play again'])]
         : []),
     ],
   )

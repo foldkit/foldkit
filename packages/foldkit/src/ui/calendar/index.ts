@@ -901,26 +901,7 @@ const isYearDisabled = (model: Model, year: number): boolean =>
 const buildDaysAttributes = <ParentMessage>(
   config: ViewConfig<ParentMessage>,
 ): DaysModeAttributes<ParentMessage> => {
-  const {
-    AriaActiveDescendant,
-    AriaColcount,
-    AriaColindex,
-    AriaDisabled,
-    AriaLabel,
-    AriaRowcount,
-    AriaRowindex,
-    AriaSelected,
-    DataAttribute,
-    Id,
-    Key,
-    OnBlur,
-    OnClick,
-    OnFocus,
-    OnKeyDownPreventDefault,
-    Role,
-    Tabindex,
-    Type,
-  } = html<ParentMessage>()
+  const h = html<ParentMessage>()
 
   const { model, toParentMessage, onSelectedDate } = config
   const {
@@ -962,26 +943,26 @@ const buildDaysAttributes = <ParentMessage>(
   )
 
   const rootAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-    Id(id),
-    Key('Days'),
+    h.Id(id),
+    h.Key('Days'),
   ]
 
   const previousMonthButton: ReadonlyArray<Attribute<ParentMessage>> = [
-    Type('button'),
-    AriaLabel(previousMonthLabel),
-    OnClick(toParentMessage(ClickedPreviousMonthButton())),
+    h.Type('button'),
+    h.AriaLabel(previousMonthLabel),
+    h.OnClick(toParentMessage(ClickedPreviousMonthButton())),
   ]
 
   const nextMonthButton: ReadonlyArray<Attribute<ParentMessage>> = [
-    Type('button'),
-    AriaLabel(nextMonthLabel),
-    OnClick(toParentMessage(ClickedNextMonthButton())),
+    h.Type('button'),
+    h.AriaLabel(nextMonthLabel),
+    h.OnClick(toParentMessage(ClickedNextMonthButton())),
   ]
 
   const headingButton: ReadonlyArray<Attribute<ParentMessage>> = [
-    Type('button'),
-    AriaLabel(headingButtonLabel),
-    OnClick(toParentMessage(ClickedHeading())),
+    h.Type('button'),
+    h.AriaLabel(headingButtonLabel),
+    h.OnClick(toParentMessage(ClickedHeading())),
   ]
 
   const handleKeyDown = (
@@ -1006,26 +987,26 @@ const buildDaysAttributes = <ParentMessage>(
   const activeDescendantAttributes: ReadonlyArray<Attribute<ParentMessage>> =
     pipe(
       maybeFocusedDate,
-      Option.map(date => AriaActiveDescendant(dayCellId(id, date))),
+      Option.map(date => h.AriaActiveDescendant(dayCellId(id, date))),
       Option.toArray,
     )
 
   const gridAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-    Id(gridId(id)),
-    Role('grid'),
-    AriaLabel(`Calendar, ${headingText}`),
-    AriaRowcount(WEEKS_IN_GRID + 1),
-    AriaColcount(DAYS_IN_WEEK),
-    Tabindex(0),
-    OnFocus(toParentMessage(FocusedGrid())),
-    OnBlur(toParentMessage(BlurredGrid())),
-    OnKeyDownPreventDefault(handleKeyDown),
+    h.Id(gridId(id)),
+    h.Role('grid'),
+    h.AriaLabel(`Calendar, ${headingText}`),
+    h.AriaRowcount(WEEKS_IN_GRID + 1),
+    h.AriaColcount(DAYS_IN_WEEK),
+    h.Tabindex(0),
+    h.OnFocus(toParentMessage(FocusedGrid())),
+    h.OnBlur(toParentMessage(BlurredGrid())),
+    h.OnKeyDownPreventDefault(handleKeyDown),
     ...activeDescendantAttributes,
   ]
 
   const headerRowAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-    Role('row'),
-    AriaRowindex(1),
+    h.Role('row'),
+    h.AriaRowindex(1),
   ]
 
   const columnHeaders: ReadonlyArray<ColumnHeader<ParentMessage>> =
@@ -1035,9 +1016,9 @@ const buildDaysAttributes = <ParentMessage>(
     })).map(({ name, fullName }, columnIndex) => ({
       name,
       attributes: [
-        Role('columnheader'),
-        AriaLabel(fullName),
-        AriaColindex(columnIndex + 1),
+        h.Role('columnheader'),
+        h.AriaLabel(fullName),
+        h.AriaColindex(columnIndex + 1),
       ],
     }))
 
@@ -1053,30 +1034,30 @@ const buildDaysAttributes = <ParentMessage>(
 
     const stateDataAttributes: ReadonlyArray<Attribute<ParentMessage>> =
       Array.getSomes([
-        OptionExt.when(isToday, DataAttribute('today', '')),
-        OptionExt.when(isSelected, DataAttribute('selected', '')),
+        OptionExt.when(isToday, h.DataAttribute('today', '')),
+        OptionExt.when(isSelected, h.DataAttribute('selected', '')),
         OptionExt.when(
           isFocused && isGridFocused,
-          DataAttribute('focused', ''),
+          h.DataAttribute('focused', ''),
         ),
-        OptionExt.when(!isInViewMonth, DataAttribute('outside-month', '')),
-        OptionExt.when(isDisabled, DataAttribute('disabled', '')),
+        OptionExt.when(!isInViewMonth, h.DataAttribute('outside-month', '')),
+        OptionExt.when(isDisabled, h.DataAttribute('disabled', '')),
       ])
 
     const cellAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-      Id(dayCellId(id, date)),
-      Role('gridcell'),
-      AriaSelected(isSelected),
-      AriaColindex(columnIndex + 1),
+      h.Id(dayCellId(id, date)),
+      h.Role('gridcell'),
+      h.AriaSelected(isSelected),
+      h.AriaColindex(columnIndex + 1),
       ...stateDataAttributes,
     ]
 
     const buttonAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-      Type('button'),
-      Tabindex(-1),
-      AriaLabel(Calendar.formatAriaLabel(date, locale)),
-      AriaDisabled(isDisabled),
-      ...(isDisabled ? [] : [OnClick(dispatchSelectedDate(date))]),
+      h.Type('button'),
+      h.Tabindex(-1),
+      h.AriaLabel(Calendar.formatAriaLabel(date, locale)),
+      h.AriaDisabled(isDisabled),
+      ...(isDisabled ? [] : [h.OnClick(dispatchSelectedDate(date))]),
     ]
 
     return {
@@ -1097,9 +1078,9 @@ const buildDaysAttributes = <ParentMessage>(
       const weekStart = Calendar.addDays(gridStart, weekIndex * DAYS_IN_WEEK)
       return {
         attributes: [
-          Role('row'),
-          AriaRowindex(weekIndex + 2),
-          AriaLabel(`Week of ${Calendar.formatLong(weekStart, locale)}`),
+          h.Role('row'),
+          h.AriaRowindex(weekIndex + 2),
+          h.AriaLabel(`Week of ${Calendar.formatLong(weekStart, locale)}`),
         ],
         cells: weekDates.map(buildDayCell),
       }
@@ -1123,22 +1104,7 @@ const buildDaysAttributes = <ParentMessage>(
 const buildMonthsAttributes = <ParentMessage>(
   config: ViewConfig<ParentMessage>,
 ): MonthsModeAttributes<ParentMessage> => {
-  const {
-    AriaActiveDescendant,
-    AriaDisabled,
-    AriaLabel,
-    AriaSelected,
-    DataAttribute,
-    Id,
-    Key,
-    OnBlur,
-    OnClick,
-    OnFocus,
-    OnKeyDownPreventDefault,
-    Role,
-    Tabindex,
-    Type,
-  } = html<ParentMessage>()
+  const h = html<ParentMessage>()
 
   const { model, toParentMessage } = config
   const {
@@ -1157,14 +1123,14 @@ const buildMonthsAttributes = <ParentMessage>(
   const headingText = `${viewYear}`
 
   const rootAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-    Id(id),
-    Key('Months'),
+    h.Id(id),
+    h.Key('Months'),
   ]
 
   const headingButton: ReadonlyArray<Attribute<ParentMessage>> = [
-    Type('button'),
-    AriaLabel(headingButtonLabel),
-    OnClick(toParentMessage(ClickedHeading())),
+    h.Type('button'),
+    h.AriaLabel(headingButtonLabel),
+    h.OnClick(toParentMessage(ClickedHeading())),
   ]
 
   const focusedMonth = Option.match(maybeFocusedDate, {
@@ -1191,17 +1157,17 @@ const buildMonthsAttributes = <ParentMessage>(
   }
 
   const activeDescendantAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-    AriaActiveDescendant(monthCellId(id, focusedMonth)),
+    h.AriaActiveDescendant(monthCellId(id, focusedMonth)),
   ]
 
   const gridAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-    Id(gridId(id)),
-    Role('grid'),
-    AriaLabel(`Month picker, ${headingText}`),
-    Tabindex(0),
-    OnFocus(toParentMessage(FocusedGrid())),
-    OnBlur(toParentMessage(BlurredGrid())),
-    OnKeyDownPreventDefault(handleKeyDown),
+    h.Id(gridId(id)),
+    h.Role('grid'),
+    h.AriaLabel(`Month picker, ${headingText}`),
+    h.Tabindex(0),
+    h.OnFocus(toParentMessage(FocusedGrid())),
+    h.OnBlur(toParentMessage(BlurredGrid())),
+    h.OnKeyDownPreventDefault(handleKeyDown),
     ...activeDescendantAttributes,
   ]
 
@@ -1215,30 +1181,30 @@ const buildMonthsAttributes = <ParentMessage>(
 
     const stateDataAttributes: ReadonlyArray<Attribute<ParentMessage>> =
       Array.getSomes([
-        OptionExt.when(isCurrentMonth, DataAttribute('today', '')),
-        OptionExt.when(isSelected, DataAttribute('selected', '')),
+        OptionExt.when(isCurrentMonth, h.DataAttribute('today', '')),
+        OptionExt.when(isSelected, h.DataAttribute('selected', '')),
         OptionExt.when(
           isFocused && isGridFocused,
-          DataAttribute('focused', ''),
+          h.DataAttribute('focused', ''),
         ),
-        OptionExt.when(isDisabled, DataAttribute('disabled', '')),
+        OptionExt.when(isDisabled, h.DataAttribute('disabled', '')),
       ])
 
     const cellAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-      Id(monthCellId(id, month)),
-      Role('gridcell'),
-      AriaSelected(isSelected),
+      h.Id(monthCellId(id, month)),
+      h.Role('gridcell'),
+      h.AriaSelected(isSelected),
       ...stateDataAttributes,
     ]
 
     const buttonAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-      Type('button'),
-      Tabindex(-1),
-      AriaLabel(`${label} ${viewYear}`),
-      AriaDisabled(isDisabled),
+      h.Type('button'),
+      h.Tabindex(-1),
+      h.AriaLabel(`${label} ${viewYear}`),
+      h.AriaDisabled(isDisabled),
       ...(isDisabled
         ? []
-        : [OnClick(toParentMessage(SelectedMonth({ month })))]),
+        : [h.OnClick(toParentMessage(SelectedMonth({ month })))]),
     ]
 
     return {
@@ -1271,22 +1237,7 @@ const buildMonthsAttributes = <ParentMessage>(
 const buildYearsAttributes = <ParentMessage>(
   config: ViewConfig<ParentMessage>,
 ): YearsModeAttributes<ParentMessage> => {
-  const {
-    AriaActiveDescendant,
-    AriaDisabled,
-    AriaLabel,
-    AriaSelected,
-    DataAttribute,
-    Id,
-    Key,
-    OnBlur,
-    OnClick,
-    OnFocus,
-    OnKeyDownPreventDefault,
-    Role,
-    Tabindex,
-    Type,
-  } = html<ParentMessage>()
+  const h = html<ParentMessage>()
 
   const { model, toParentMessage } = config
   const { id, viewYear, maybeFocusedDate, today, isGridFocused } = model
@@ -1304,20 +1255,20 @@ const buildYearsAttributes = <ParentMessage>(
   const headingText = `${pageStart}–${pageEnd}`
 
   const rootAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-    Id(id),
-    Key('Years'),
+    h.Id(id),
+    h.Key('Years'),
   ]
 
   const previousPageButton: ReadonlyArray<Attribute<ParentMessage>> = [
-    Type('button'),
-    AriaLabel(previousYearsPageLabel),
-    OnClick(toParentMessage(PagedYears({ direction: -1 }))),
+    h.Type('button'),
+    h.AriaLabel(previousYearsPageLabel),
+    h.OnClick(toParentMessage(PagedYears({ direction: -1 }))),
   ]
 
   const nextPageButton: ReadonlyArray<Attribute<ParentMessage>> = [
-    Type('button'),
-    AriaLabel(nextYearsPageLabel),
-    OnClick(toParentMessage(PagedYears({ direction: 1 }))),
+    h.Type('button'),
+    h.AriaLabel(nextYearsPageLabel),
+    h.OnClick(toParentMessage(PagedYears({ direction: 1 }))),
   ]
 
   const focusedYear = cursorYear
@@ -1341,17 +1292,17 @@ const buildYearsAttributes = <ParentMessage>(
   }
 
   const activeDescendantAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-    AriaActiveDescendant(yearCellId(id, focusedYear)),
+    h.AriaActiveDescendant(yearCellId(id, focusedYear)),
   ]
 
   const gridAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-    Id(gridId(id)),
-    Role('grid'),
-    AriaLabel(`Year picker, ${headingText}`),
-    Tabindex(0),
-    OnFocus(toParentMessage(FocusedGrid())),
-    OnBlur(toParentMessage(BlurredGrid())),
-    OnKeyDownPreventDefault(handleKeyDown),
+    h.Id(gridId(id)),
+    h.Role('grid'),
+    h.AriaLabel(`Year picker, ${headingText}`),
+    h.Tabindex(0),
+    h.OnFocus(toParentMessage(FocusedGrid())),
+    h.OnBlur(toParentMessage(BlurredGrid())),
+    h.OnKeyDownPreventDefault(handleKeyDown),
     ...activeDescendantAttributes,
   ]
 
@@ -1364,28 +1315,30 @@ const buildYearsAttributes = <ParentMessage>(
 
     const stateDataAttributes: ReadonlyArray<Attribute<ParentMessage>> =
       Array.getSomes([
-        OptionExt.when(isCurrentYear, DataAttribute('today', '')),
-        OptionExt.when(isSelected, DataAttribute('selected', '')),
+        OptionExt.when(isCurrentYear, h.DataAttribute('today', '')),
+        OptionExt.when(isSelected, h.DataAttribute('selected', '')),
         OptionExt.when(
           isFocused && isGridFocused,
-          DataAttribute('focused', ''),
+          h.DataAttribute('focused', ''),
         ),
-        OptionExt.when(isDisabled, DataAttribute('disabled', '')),
+        OptionExt.when(isDisabled, h.DataAttribute('disabled', '')),
       ])
 
     const cellAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-      Id(yearCellId(id, year)),
-      Role('gridcell'),
-      AriaSelected(isSelected),
+      h.Id(yearCellId(id, year)),
+      h.Role('gridcell'),
+      h.AriaSelected(isSelected),
       ...stateDataAttributes,
     ]
 
     const buttonAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-      Type('button'),
-      Tabindex(-1),
-      AriaLabel(label),
-      AriaDisabled(isDisabled),
-      ...(isDisabled ? [] : [OnClick(toParentMessage(SelectedYear({ year })))]),
+      h.Type('button'),
+      h.Tabindex(-1),
+      h.AriaLabel(label),
+      h.AriaDisabled(isDisabled),
+      ...(isDisabled
+        ? []
+        : [h.OnClick(toParentMessage(SelectedYear({ year })))]),
     ]
 
     return {

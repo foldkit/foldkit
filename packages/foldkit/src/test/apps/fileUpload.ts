@@ -34,33 +34,32 @@ export const update = (
 
 // VIEW
 
-const { div, input, AriaLabel, Key, Type, OnFileChange, OnDropFiles } =
-  html<Message>()
+const h = html<Message>()
 
 export const view = (model: Model): Html =>
-  div(
+  h.div(
     [],
     [
-      input([
-        Key('file-input'),
-        AriaLabel('resume'),
-        Type('file'),
-        OnFileChange(files => ReceivedFiles({ files })),
+      h.input([
+        h.Key('file-input'),
+        h.AriaLabel('resume'),
+        h.Type('file'),
+        h.OnFileChange(files => ReceivedFiles({ files })),
       ]),
-      div(
+      h.div(
         [
-          Key('drop-zone'),
-          AriaLabel('attachments'),
-          OnDropFiles(files => ReceivedFiles({ files })),
+          h.Key('drop-zone'),
+          h.AriaLabel('attachments'),
+          h.OnDropFiles(files => ReceivedFiles({ files })),
         ],
         ['Drop files here'],
       ),
-      div(
-        [Key('received-count')],
+      h.div(
+        [h.Key('received-count')],
         [`count=${String(model.receivedFiles.length)}`],
       ),
-      div(
-        [Key('received-names')],
+      h.div(
+        [h.Key('received-names')],
         [`names=${model.receivedFiles.map(file => file.name).join(',')}`],
       ),
     ],

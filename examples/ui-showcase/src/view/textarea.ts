@@ -1,8 +1,6 @@
 import { Ui } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, div, h2, h3, label, span, textarea } from '../html'
-import type { Message as ParentMessage } from '../main'
 import { type UiMessage, UpdatedTextareaDemoValue } from '../message'
 import type { UiModel } from '../model'
 
@@ -13,18 +11,23 @@ const labelClassName = 'block text-sm font-medium text-gray-700'
 
 const descriptionClassName = 'text-sm text-gray-500'
 
-export const view = (
+export const view = <ParentMessage>(
   model: UiModel,
   toParentMessage: (message: UiMessage) => ParentMessage,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
-      h2([Class('text-2xl font-bold text-gray-900 mb-6')], ['Textarea']),
+      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Textarea']),
 
-      h3([Class('text-lg font-semibold text-gray-900 mt-8 mb-4')], ['Basic']),
-      div(
-        [Class('flex flex-col items-start gap-2 max-w-sm')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+        ['Basic'],
+      ),
+      h.div(
+        [h.Class('flex flex-col items-start gap-2 max-w-sm')],
         [
           Ui.Textarea.view({
             id: 'textarea-basic-demo',
@@ -34,16 +37,19 @@ export const view = (
             placeholder: 'Tell us about yourself...',
             rows: 4,
             toView: attributes =>
-              div(
-                [Class('flex flex-col gap-1.5 w-full')],
+              h.div(
+                [h.Class('flex flex-col gap-1.5 w-full')],
                 [
-                  label([...attributes.label, Class(labelClassName)], ['Bio']),
-                  textarea(
-                    [...attributes.textarea, Class(textareaClassName)],
+                  h.label(
+                    [...attributes.label, h.Class(labelClassName)],
+                    ['Bio'],
+                  ),
+                  h.textarea(
+                    [...attributes.textarea, h.Class(textareaClassName)],
                     [],
                   ),
-                  span(
-                    [...attributes.description, Class(descriptionClassName)],
+                  h.span(
+                    [...attributes.description, h.Class(descriptionClassName)],
                     ['A brief introduction about yourself.'],
                   ),
                 ],
@@ -52,8 +58,8 @@ export const view = (
         ],
       ),
 
-      h3(
-        [Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Disabled'],
       ),
       Ui.Textarea.view<ParentMessage>({
@@ -63,13 +69,16 @@ export const view = (
           "Mathematician and writer, known for work on Charles Babbage's Analytical Engine.",
         rows: 3,
         toView: attributes =>
-          div(
-            [Class('flex flex-col gap-1.5 max-w-sm')],
+          h.div(
+            [h.Class('flex flex-col gap-1.5 max-w-sm')],
             [
-              label([...attributes.label, Class(labelClassName)], ['Bio']),
-              textarea([...attributes.textarea, Class(textareaClassName)], []),
-              span(
-                [...attributes.description, Class(descriptionClassName)],
+              h.label([...attributes.label, h.Class(labelClassName)], ['Bio']),
+              h.textarea(
+                [...attributes.textarea, h.Class(textareaClassName)],
+                [],
+              ),
+              h.span(
+                [...attributes.description, h.Class(descriptionClassName)],
                 ['This textarea is disabled.'],
               ),
             ],
@@ -77,3 +86,4 @@ export const view = (
       }),
     ],
   )
+}

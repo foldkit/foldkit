@@ -168,19 +168,7 @@ export const make = <A, I>(payloadSchema: S.Codec<A, I>) => {
    *  `data-transition`, `data-closed`) and `data-variant` reflecting the
    *  entry's variant. */
   const view = <ParentMessage>(config: ViewConfig<ParentMessage>): Html => {
-    const {
-      AriaAtomic,
-      AriaLabel,
-      AriaLive,
-      Class,
-      DataAttribute,
-      Id,
-      OnMouseEnter,
-      OnMouseLeave,
-      Role,
-      Style,
-      keyed,
-    } = html<ParentMessage>()
+    const h = html<ParentMessage>()
 
     const {
       model: { id, entries },
@@ -195,12 +183,12 @@ export const make = <A, I>(payloadSchema: S.Codec<A, I>) => {
     } = config
 
     const containerAttributes = [
-      Id(id),
-      Role('region'),
-      AriaLabel(ariaLabel),
-      AriaLive('polite'),
-      Style(positionToContainerStyle(position)),
-      ...(className ? [Class(className)] : []),
+      h.Id(id),
+      h.Role('region'),
+      h.AriaLabel(ariaLabel),
+      h.AriaLive('polite'),
+      h.Style(positionToContainerStyle(position)),
+      ...(className ? [h.Class(className)] : []),
       ...attributes,
     ]
 
@@ -208,25 +196,25 @@ export const make = <A, I>(payloadSchema: S.Codec<A, I>) => {
       const { transitionState } = entry.animation
 
       const animationAttributes: ReadonlyArray<
-        ReturnType<typeof DataAttribute>
+        ReturnType<typeof h.DataAttribute>
       > = M.value(transitionState).pipe(
         M.when('EnterStart', () => [
-          DataAttribute('closed', ''),
-          DataAttribute('enter', ''),
-          DataAttribute('transition', ''),
+          h.DataAttribute('closed', ''),
+          h.DataAttribute('enter', ''),
+          h.DataAttribute('transition', ''),
         ]),
         M.when('EnterAnimating', () => [
-          DataAttribute('enter', ''),
-          DataAttribute('transition', ''),
+          h.DataAttribute('enter', ''),
+          h.DataAttribute('transition', ''),
         ]),
         M.when('LeaveStart', () => [
-          DataAttribute('leave', ''),
-          DataAttribute('transition', ''),
+          h.DataAttribute('leave', ''),
+          h.DataAttribute('transition', ''),
         ]),
         M.when('LeaveAnimating', () => [
-          DataAttribute('closed', ''),
-          DataAttribute('leave', ''),
-          DataAttribute('transition', ''),
+          h.DataAttribute('closed', ''),
+          h.DataAttribute('leave', ''),
+          h.DataAttribute('transition', ''),
         ]),
         M.orElse(() => []),
       )
@@ -236,24 +224,24 @@ export const make = <A, I>(payloadSchema: S.Codec<A, I>) => {
       }
 
       const itemAttributes = [
-        Id(entry.id),
-        Role(variantToRole(entry.variant)),
-        AriaAtomic(true),
-        DataAttribute('variant', entry.variant),
-        Style({ pointerEvents: 'auto' }),
-        OnMouseEnter(toParentMessage(HoveredEntry({ entryId: entry.id }))),
-        OnMouseLeave(toParentMessage(LeftEntry({ entryId: entry.id }))),
+        h.Id(entry.id),
+        h.Role(variantToRole(entry.variant)),
+        h.AriaAtomic(true),
+        h.DataAttribute('variant', entry.variant),
+        h.Style({ pointerEvents: 'auto' }),
+        h.OnMouseEnter(toParentMessage(HoveredEntry({ entryId: entry.id }))),
+        h.OnMouseLeave(toParentMessage(LeftEntry({ entryId: entry.id }))),
         ...animationAttributes,
-        ...(entryClassName ? [Class(entryClassName)] : []),
+        ...(entryClassName ? [h.Class(entryClassName)] : []),
         ...entryAttributes,
       ]
 
-      return keyed('li')(entry.id, itemAttributes, [
+      return h.keyed('li')(entry.id, itemAttributes, [
         renderEntry(entry, handlers),
       ])
     }
 
-    return keyed('ol')(id, containerAttributes, entries.map(renderEntryItem))
+    return h.keyed('ol')(id, containerAttributes, entries.map(renderEntryItem))
   }
 
   /** Creates a memoized toast container view. Static config (className,

@@ -1,8 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
 import { uiShowcaseViewSourceHref } from '../../link'
-import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
   demoContainer,
@@ -136,12 +134,14 @@ const dataAttributes: ReadonlyArray<DataAttributeEntry> = [
 
 // VIEW
 
-export const view = (
+export const view = <ParentMessage>(
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
   copiedSnippets: CopiedSnippets,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
       pageTitle('ui/fieldset', 'Fieldset'),
@@ -176,8 +176,8 @@ export const view = (
       ),
       demoContainer(...Fieldset.basicDemo(model, toParentMessage)),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippet.uiFieldsetBasicHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippet.uiFieldsetBasicHighlighted)],
           [],
         ),
         Snippet.uiFieldsetBasicRaw,
@@ -195,12 +195,15 @@ export const view = (
         inlineCode('isDisabled: true'),
         ' to disable the entire group. The native ',
         inlineCode('<fieldset disabled>'),
-        ' attribute propagates to all child inputs, textareas, buttons, and selects. You don\u2019t need to disable each control individually.',
+        ' attribute propagates to all child inputs, textareas, buttons, and selects. You don’t need to disable each control individually.',
       ),
       demoContainer(...Fieldset.disabledDemo(model, toParentMessage)),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippet.uiFieldsetDisabledHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.uiFieldsetDisabledHighlighted),
+          ],
           [],
         ),
         Snippet.uiFieldsetDisabledRaw,
@@ -262,3 +265,4 @@ export const view = (
       propTable(fieldsetAttributesProps),
     ],
   )
+}

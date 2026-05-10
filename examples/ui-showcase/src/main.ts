@@ -310,27 +310,7 @@ const update = (
 
 // VIEW
 
-const {
-  a,
-  button,
-  div,
-  h1,
-  header,
-  keyed,
-  li,
-  main,
-  nav,
-  p,
-  span,
-  ul,
-  AriaExpanded,
-  AriaLabel,
-  Autofocus,
-  Class,
-  Href,
-  OnClick,
-  Tabindex,
-} = html<Message>()
+const h = html<Message>()
 
 type NavItem = Readonly<{
   label: string
@@ -390,33 +370,38 @@ const mobileNavLinkClassName = (isActive: boolean): string =>
   )
 
 const sidebarView = (currentRoute: AppRoute): Html =>
-  nav(
+  h.nav(
     [
-      Class(
+      h.Class(
         'hidden md:flex w-56 shrink-0 border-r border-gray-200 bg-gray-50 p-4 flex-col',
       ),
     ],
     [
-      div(
-        [Class('mb-6')],
+      h.div(
+        [h.Class('mb-6')],
         [
-          a(
-            [Href(homeRouter()), Class('block')],
-            [h1([Class('text-lg font-bold text-gray-900')], ['Foldkit UI'])],
+          h.a(
+            [h.Href(homeRouter()), h.Class('block')],
+            [
+              h.h1(
+                [h.Class('text-lg font-bold text-gray-900')],
+                ['Foldkit UI'],
+              ),
+            ],
           ),
-          span([Class('text-xs text-gray-500')], ['Component Showcase']),
+          h.span([h.Class('text-xs text-gray-500')], ['Component Showcase']),
         ],
       ),
-      ul(
-        [Class('flex flex-col gap-0.5')],
+      h.ul(
+        [h.Class('flex flex-col gap-0.5')],
         NAV_ITEMS.map(navItem =>
-          li(
+          h.li(
             [],
             [
-              a(
+              h.a(
                 [
-                  Href(navItem.href),
-                  Class(
+                  h.Href(navItem.href),
+                  h.Class(
                     navLinkClassName(currentRoute._tag === navItem.routeTag),
                   ),
                 ],
@@ -430,63 +415,63 @@ const sidebarView = (currentRoute: AppRoute): Html =>
   )
 
 const mobileMenuContent = (currentRoute: AppRoute): Html =>
-  div(
-    [Class('flex flex-col h-full')],
+  h.div(
+    [h.Class('flex flex-col h-full')],
     [
-      div(
+      h.div(
         [
-          Class(
+          h.Class(
             'flex items-center justify-between border-b border-gray-200 px-4 py-3',
           ),
         ],
         [
-          a(
-            [Href(homeRouter()), Class('block')],
+          h.a(
+            [h.Href(homeRouter()), h.Class('block')],
             [
-              div(
-                [Class('flex flex-col')],
+              h.div(
+                [h.Class('flex flex-col')],
                 [
-                  span(
-                    [Class('text-base font-bold text-gray-900')],
+                  h.span(
+                    [h.Class('text-base font-bold text-gray-900')],
                     ['Foldkit UI'],
                   ),
-                  span(
-                    [Class('text-xs text-gray-500')],
+                  h.span(
+                    [h.Class('text-xs text-gray-500')],
                     ['Component Showcase'],
                   ),
                 ],
               ),
             ],
           ),
-          button(
+          h.button(
             [
-              Class(
+              h.Class(
                 'p-2 rounded-md hover:bg-gray-200 transition text-gray-700 cursor-pointer',
               ),
-              AriaLabel('Close menu'),
-              OnClick(toMobileMenuDialogMessage(Ui.Dialog.Closed())),
+              h.AriaLabel('Close menu'),
+              h.OnClick(toMobileMenuDialogMessage(Ui.Dialog.Closed())),
             ],
-            [Icon.xMark('w-6 h-6')],
+            [Icon.xMark<Message>('w-6 h-6')],
           ),
         ],
       ),
-      nav(
+      h.nav(
         [
-          Class('flex-1 overflow-y-auto min-h-0 p-4'),
-          Tabindex(-1),
-          Autofocus(true),
+          h.Class('flex-1 overflow-y-auto min-h-0 p-4'),
+          h.Tabindex(-1),
+          h.Autofocus(true),
         ],
         [
-          ul(
-            [Class('flex flex-col gap-0.5')],
+          h.ul(
+            [h.Class('flex flex-col gap-0.5')],
             NAV_ITEMS.map(navItem =>
-              li(
+              h.li(
                 [],
                 [
-                  a(
+                  h.a(
                     [
-                      Href(navItem.href),
-                      Class(
+                      h.Href(navItem.href),
+                      h.Class(
                         mobileNavLinkClassName(
                           currentRoute._tag === navItem.routeTag,
                         ),
@@ -504,38 +489,41 @@ const mobileMenuContent = (currentRoute: AppRoute): Html =>
   )
 
 const mobileHeaderView = (model: Model): Html =>
-  header(
+  h.header(
     [
-      Class(
+      h.Class(
         'md:hidden sticky top-0 z-40 flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3',
       ),
     ],
     [
-      a(
-        [Href(homeRouter()), Class('block')],
+      h.a(
+        [h.Href(homeRouter()), h.Class('block')],
         [
-          div(
-            [Class('flex flex-col')],
+          h.div(
+            [h.Class('flex flex-col')],
             [
-              span(
-                [Class('text-base font-bold text-gray-900')],
+              h.span(
+                [h.Class('text-base font-bold text-gray-900')],
                 ['Foldkit UI'],
               ),
-              span([Class('text-xs text-gray-500')], ['Component Showcase']),
+              h.span(
+                [h.Class('text-xs text-gray-500')],
+                ['Component Showcase'],
+              ),
             ],
           ),
         ],
       ),
-      button(
+      h.button(
         [
-          Class(
+          h.Class(
             'p-2 rounded-md hover:bg-gray-200 transition text-gray-700 cursor-pointer',
           ),
-          AriaExpanded(model.uiModel.mobileMenuDialog.isOpen),
-          AriaLabel('Toggle menu'),
-          OnClick(toMobileMenuDialogMessage(Ui.Dialog.Opened())),
+          h.AriaExpanded(model.uiModel.mobileMenuDialog.isOpen),
+          h.AriaLabel('Toggle menu'),
+          h.OnClick(toMobileMenuDialogMessage(Ui.Dialog.Opened())),
         ],
-        [Icon.menu('w-6 h-6')],
+        [Icon.menu<Message>('w-6 h-6')],
       ),
     ],
   )
@@ -545,27 +533,27 @@ const mobileMenuView = (model: Model): Html =>
     model: model.uiModel.mobileMenuDialog,
     toParentMessage: toMobileMenuDialogMessage,
     panelContent: mobileMenuContent(model.route),
-    panelAttributes: [Class('fixed inset-0 z-[60] bg-white flex flex-col')],
-    backdropAttributes: [Class('fixed inset-0 z-[59]')],
-    attributes: [Class('md:hidden')],
+    panelAttributes: [h.Class('fixed inset-0 z-[60] bg-white flex flex-col')],
+    backdropAttributes: [h.Class('fixed inset-0 z-[59]')],
+    attributes: [h.Class('md:hidden')],
   })
 
 const homeView = (): Html =>
-  div(
-    [Class('max-w-2xl')],
+  h.div(
+    [h.Class('max-w-2xl')],
     [
-      h1(
-        [Class('text-2xl md:text-3xl font-bold text-gray-900 mb-4')],
+      h.h1(
+        [h.Class('text-2xl md:text-3xl font-bold text-gray-900 mb-4')],
         ['Foldkit UI Showcase'],
       ),
-      p(
-        [Class('text-gray-600 mb-4')],
+      h.p(
+        [h.Class('text-gray-600 mb-4')],
         [
           'This is a showcase of every Foldkit UI component. Select a component from the menu to see it in action.',
         ],
       ),
-      p(
-        [Class('text-gray-600')],
+      h.p(
+        [h.Class('text-gray-600')],
         [
           'Each component is headless — you provide the markup and styling via a callback, and Foldkit handles accessibility, keyboard navigation, and state management.',
         ],
@@ -574,16 +562,19 @@ const homeView = (): Html =>
   )
 
 const notFoundView = (path: string): Html =>
-  div(
-    [Class('max-w-2xl')],
+  h.div(
+    [h.Class('max-w-2xl')],
     [
-      h1(
-        [Class('text-2xl md:text-3xl font-bold text-red-600 mb-4')],
+      h.h1(
+        [h.Class('text-2xl md:text-3xl font-bold text-red-600 mb-4')],
         ['404 — Page Not Found'],
       ),
-      p([Class('text-gray-600 mb-4')], [`The path "${path}" was not found.`]),
-      a(
-        [Href(homeRouter()), Class('text-accent-600 hover:underline')],
+      h.p(
+        [h.Class('text-gray-600 mb-4')],
+        [`The path "${path}" was not found.`],
+      ),
+      h.a(
+        [h.Href(homeRouter()), h.Class('text-accent-600 hover:underline')],
         ['Go Home'],
       ),
     ],
@@ -629,15 +620,15 @@ const routeTitle = (route: Model['route']): string =>
 
 const view = (model: Model): Document => ({
   title: routeTitle(model.route),
-  body: div(
-    [Class('flex flex-col md:flex-row min-h-screen bg-white')],
+  body: h.div(
+    [h.Class('flex flex-col md:flex-row min-h-screen bg-white')],
     [
       mobileHeaderView(model),
       mobileMenuView(model),
       sidebarView(model.route),
-      main(
-        [Class('flex-1 p-4 md:p-8 overflow-auto')],
-        [keyed('div')(model.route._tag, [], [contentView(model)])],
+      h.main(
+        [h.Class('flex-1 p-4 md:p-8 overflow-auto')],
+        [h.keyed('div')(model.route._tag, [], [contentView(model)])],
       ),
     ],
   ),

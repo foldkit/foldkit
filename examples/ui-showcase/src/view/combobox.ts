@@ -1,11 +1,9 @@
 import clsx from 'clsx'
 import { Array } from 'effect'
 import { Ui } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, Placeholder, div, h2, h3, span } from '../html'
 import * as Icon from '../icon'
-import type { Message as ParentMessage } from '../main'
 import {
   GotComboboxDemoMessage,
   GotComboboxMultiDemoMessage,
@@ -68,10 +66,11 @@ const filterCities = (inputValue: string): ReadonlyArray<City> =>
         city.toLowerCase().includes(inputValue.toLowerCase()),
       )
 
-const comboboxConfig = (
+const comboboxConfig = <ParentMessage>(
   model: Ui.Combobox.Model,
   toParentMessage: (message: Ui.Combobox.Message) => ParentMessage,
 ) => {
+  const h = html<ParentMessage>()
   const filteredCities = filterCities(model.inputValue)
 
   return {
@@ -80,101 +79,112 @@ const comboboxConfig = (
     items: filteredCities,
     itemToConfig: (city: City, context: { isSelected: boolean }) => ({
       className: itemClassName,
-      content: div(
-        [Class('flex items-center gap-2')],
+      content: h.div(
+        [h.Class('flex items-center gap-2')],
         [
-          Icon.check(
+          Icon.check<ParentMessage>(
             clsx(
               'w-4 h-4 shrink-0 text-gray-900',
               context.isSelected ? 'visible' : 'invisible',
             ),
           ),
-          span([], [city]),
+          h.span([], [city]),
         ],
       ),
     }),
     itemToValue: (city: City) => city,
     itemToDisplayText: (city: City) => city,
-    inputAttributes: [Class(inputClassName), Placeholder('Search cities...')],
-    itemsAttributes: [Class(itemsClassName)],
-    backdropAttributes: [Class(backdropClassName)],
-    attributes: [Class(wrapperClassName)],
-    inputWrapperAttributes: [Class('relative')],
-    buttonContent: Icon.chevronDown('w-4 h-4'),
-    buttonAttributes: [Class(buttonClassName)],
+    inputAttributes: [
+      h.Class(inputClassName),
+      h.Placeholder('Search cities...'),
+    ],
+    itemsAttributes: [h.Class(itemsClassName)],
+    backdropAttributes: [h.Class(backdropClassName)],
+    attributes: [h.Class(wrapperClassName)],
+    inputWrapperAttributes: [h.Class('relative')],
+    buttonContent: Icon.chevronDown<ParentMessage>('w-4 h-4'),
+    buttonAttributes: [h.Class(buttonClassName)],
     anchor: COMBOBOX_ANCHOR,
   }
 }
 
-export const view = (
+export const view = <ParentMessage>(
   model: UiModel,
   toParentMessage: (message: UiMessage) => ParentMessage,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
-      h2([Class('text-2xl font-bold text-gray-900 mb-6')], ['Combobox']),
+      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Combobox']),
 
-      h3(
-        [Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Single-Select'],
       ),
-      div(
-        [Class('relative')],
+      h.div(
+        [h.Class('relative')],
         [
           Ui.Combobox.view(
-            comboboxConfig(model.comboboxDemo, message =>
+            comboboxConfig<ParentMessage>(model.comboboxDemo, message =>
               toParentMessage(GotComboboxDemoMessage({ message })),
             ),
           ),
         ],
       ),
 
-      h3(
-        [Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Nullable'],
       ),
-      div(
-        [Class('relative')],
+      h.div(
+        [h.Class('relative')],
         [
           Ui.Combobox.view(
-            comboboxConfig(model.comboboxNullableDemo, message =>
+            comboboxConfig<ParentMessage>(model.comboboxNullableDemo, message =>
               toParentMessage(GotComboboxNullableDemoMessage({ message })),
             ),
           ),
         ],
       ),
 
-      h3(
-        [Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Select on Focus'],
       ),
-      div(
-        [Class('relative')],
+      h.div(
+        [h.Class('relative')],
         [
           Ui.Combobox.view(
-            comboboxConfig(model.comboboxSelectOnFocusDemo, message =>
-              toParentMessage(GotComboboxSelectOnFocusDemoMessage({ message })),
+            comboboxConfig<ParentMessage>(
+              model.comboboxSelectOnFocusDemo,
+              message =>
+                toParentMessage(
+                  GotComboboxSelectOnFocusDemoMessage({ message }),
+                ),
             ),
           ),
         ],
       ),
 
-      h3(
-        [Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Multi-Select'],
       ),
-      div(
-        [Class('relative')],
+      h.div(
+        [h.Class('relative')],
         [
-          div(
-            [Class('flex flex-wrap gap-1.5 mb-2')],
+          h.div(
+            [h.Class('flex flex-wrap gap-1.5 mb-2')],
             Array.match(model.comboboxMultiDemo.selectedItems, {
               onEmpty: () => [
-                span([Class(emptyTagClassName)], ['No selection']),
+                h.span([h.Class(emptyTagClassName)], ['No selection']),
               ],
               onNonEmpty: selectedItems =>
-                selectedItems.map(item => span([Class(tagClassName)], [item])),
+                selectedItems.map(item =>
+                  h.span([h.Class(tagClassName)], [item]),
+                ),
             }),
           ),
           Ui.Combobox.Multi.view({
@@ -184,34 +194,35 @@ export const view = (
             items: filterCities(model.comboboxMultiDemo.inputValue),
             itemToConfig: (city: City, context: { isSelected: boolean }) => ({
               className: itemClassName,
-              content: div(
-                [Class('flex items-center gap-2')],
+              content: h.div(
+                [h.Class('flex items-center gap-2')],
                 [
-                  Icon.check(
+                  Icon.check<ParentMessage>(
                     clsx(
                       'w-4 h-4 shrink-0 text-gray-900',
                       context.isSelected ? 'visible' : 'invisible',
                     ),
                   ),
-                  span([], [city]),
+                  h.span([], [city]),
                 ],
               ),
             }),
             itemToValue: (city: City) => city,
             itemToDisplayText: (city: City) => city,
             inputAttributes: [
-              Class(inputClassName),
-              Placeholder('Search cities...'),
+              h.Class(inputClassName),
+              h.Placeholder('Search cities...'),
             ],
-            itemsAttributes: [Class(itemsClassName)],
-            backdropAttributes: [Class(backdropClassName)],
-            attributes: [Class(wrapperClassName)],
-            inputWrapperAttributes: [Class('relative')],
-            buttonContent: Icon.chevronDown('w-4 h-4'),
-            buttonAttributes: [Class(buttonClassName)],
+            itemsAttributes: [h.Class(itemsClassName)],
+            backdropAttributes: [h.Class(backdropClassName)],
+            attributes: [h.Class(wrapperClassName)],
+            inputWrapperAttributes: [h.Class('relative')],
+            buttonContent: Icon.chevronDown<ParentMessage>('w-4 h-4'),
+            buttonAttributes: [h.Class(buttonClassName)],
             anchor: COMBOBOX_ANCHOR,
           }),
         ],
       ),
     ],
   )
+}

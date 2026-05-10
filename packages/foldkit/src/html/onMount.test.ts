@@ -76,15 +76,15 @@ describe('OnMount', () => {
   })
 
   it('dispatches the returned Message when the element mounts', async () => {
-    const { div, span, OnMount } = html<typeof MountedRoot.Type>()
+    const h = html<typeof MountedRoot.Type>()
     const { dispatch, dispatched } = createCapturingDispatch()
 
-    const view = div(
+    const view = h.div(
       [],
       [
-        span(
+        h.span(
           [
-            OnMount(
+            h.OnMount(
               makeMounted(() =>
                 Effect.succeed({ message: MountedRoot(), cleanup: () => {} }),
               ),
@@ -104,15 +104,15 @@ describe('OnMount', () => {
   })
 
   it('does not dispatch the result Message when rendered with a no-op dispatch', async () => {
-    const { div, span, OnMount } = html<typeof MountedRoot.Type>()
+    const h = html<typeof MountedRoot.Type>()
     let effectRan = false
 
-    const view = div(
+    const view = h.div(
       [],
       [
-        span(
+        h.span(
           [
-            OnMount(
+            h.OnMount(
               makeMounted(() => {
                 effectRan = true
                 return Effect.succeed({
@@ -136,17 +136,17 @@ describe('OnMount', () => {
   })
 
   it('passes the inserted Element into the Effect factory', async () => {
-    const { div, span, Id, OnMount } = html<typeof MountedRoot.Type>()
+    const h = html<typeof MountedRoot.Type>()
     const { dispatch, dispatched } = createCapturingDispatch()
     const seenIds: Array<string> = []
 
-    const view = div(
+    const view = h.div(
       [],
       [
-        span(
+        h.span(
           [
-            Id('mounted'),
-            OnMount(
+            h.Id('mounted'),
+            h.OnMount(
               makeMounted(element => {
                 seenIds.push(element.id)
                 return Effect.succeed({
@@ -171,18 +171,18 @@ describe('OnMount', () => {
   })
 
   it('runs the cleanup when the element is removed by a key change', async () => {
-    const { div, span, Key, OnMount } = html<typeof MountedRoot.Type>()
+    const h = html<typeof MountedRoot.Type>()
     const { dispatch, dispatched } = createCapturingDispatch()
     let cleanupCalls = 0
 
     const buildView = (key: string) =>
-      div(
+      h.div(
         [],
         [
-          span(
+          h.span(
             [
-              Key(key),
-              OnMount(
+              h.Key(key),
+              h.OnMount(
                 makeMounted(() =>
                   Effect.succeed({
                     message: MountedRoot(),
@@ -213,16 +213,16 @@ describe('OnMount', () => {
   })
 
   it('runs the cleanup when the element is removed by a parent re-render', async () => {
-    const { div, span, OnMount } = html<typeof MountedRoot.Type>()
+    const h = html<typeof MountedRoot.Type>()
     const { dispatch, dispatched } = createCapturingDispatch()
     let cleanupCalls = 0
 
-    const withChild = div(
+    const withChild = h.div(
       [],
       [
-        span(
+        h.span(
           [
-            OnMount(
+            h.OnMount(
               makeMounted(() =>
                 Effect.succeed({
                   message: MountedRoot(),
@@ -237,7 +237,7 @@ describe('OnMount', () => {
         ),
       ],
     )
-    const withoutChild = div([], [])
+    const withoutChild = h.div([], [])
 
     const mounted = patch(
       toVNode(makeRootContainer()),
@@ -254,12 +254,17 @@ describe('OnMount', () => {
   })
 
   it('logs a failing Effect and dispatches nothing', async () => {
-    const { div, span, OnMount } = html<typeof MountedRoot.Type>()
+    const h = html<typeof MountedRoot.Type>()
     const { dispatch, dispatched } = createCapturingDispatch()
 
-    const view = div(
+    const view = h.div(
       [],
-      [span([OnMount(makeMounted(() => Effect.fail(new Error('boom'))))], [])],
+      [
+        h.span(
+          [h.OnMount(makeMounted(() => Effect.fail(new Error('boom'))))],
+          [],
+        ),
+      ],
     )
     const vnode = renderView(view, dispatch)
 
@@ -275,7 +280,7 @@ describe('OnMount', () => {
   })
 
   it('runs cleanup immediately if the Effect resolves after the element is destroyed', async () => {
-    const { div, span, OnMount } = html<typeof MountedRoot.Type>()
+    const h = html<typeof MountedRoot.Type>()
     const { dispatch, dispatched } = createCapturingDispatch()
     let cleanupCalls = 0
 
@@ -284,12 +289,12 @@ describe('OnMount', () => {
       resolveMount = resolve
     })
 
-    const withChild = div(
+    const withChild = h.div(
       [],
       [
-        span(
+        h.span(
           [
-            OnMount(
+            h.OnMount(
               makeMounted(() =>
                 Effect.tryPromise(() => mountGate).pipe(
                   Effect.map(() => ({
@@ -306,7 +311,7 @@ describe('OnMount', () => {
         ),
       ],
     )
-    const withoutChild = div([], [])
+    const withoutChild = h.div([], [])
 
     const mounted = patch(
       toVNode(makeRootContainer()),
@@ -323,18 +328,18 @@ describe('OnMount', () => {
   })
 
   it('runs exactly once across repeated patches of the same element', async () => {
-    const { div, span, OnMount } = html<typeof MountedRoot.Type>()
+    const h = html<typeof MountedRoot.Type>()
     const { dispatch, dispatched } = createCapturingDispatch()
     let mountRunCount = 0
     let cleanupRunCount = 0
 
     const buildView = () =>
-      div(
+      h.div(
         [],
         [
-          span(
+          h.span(
             [
-              OnMount(
+              h.OnMount(
                 makeMounted(() => {
                   mountRunCount += 1
                   return Effect.succeed({
@@ -372,17 +377,17 @@ describe('OnMount', () => {
   })
 
   it('runs cleanup on unmount even after multiple re-renders', async () => {
-    const { div, span, OnMount } = html<typeof MountedRoot.Type>()
+    const h = html<typeof MountedRoot.Type>()
     const { dispatch, dispatched } = createCapturingDispatch()
     let cleanupRunCount = 0
 
     const withChild = () =>
-      div(
+      h.div(
         [],
         [
-          span(
+          h.span(
             [
-              OnMount(
+              h.OnMount(
                 makeMounted(() =>
                   Effect.succeed({
                     message: MountedRoot(),
@@ -397,7 +402,7 @@ describe('OnMount', () => {
           ),
         ],
       )
-    const withoutChild = div([], [])
+    const withoutChild = h.div([], [])
 
     const mounted = patch(
       toVNode(makeRootContainer()),

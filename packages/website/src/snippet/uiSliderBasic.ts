@@ -3,10 +3,11 @@
 // update, view, and subscription definitions.
 import { Effect, Schema as S, Stream } from 'effect'
 import { Command, Subscription, Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Class, div, label, span } from './html'
+const h = html<Message>()
 
 // Add a field to your Model for the Slider Submodel:
 const Model = S.Struct({
@@ -92,41 +93,44 @@ Ui.Slider.view({
   toParentMessage: message => GotSliderMessage({ message }),
   formatValue: value => `${String(value)} of 10`,
   toView: attributes =>
-    div(
-      [Class('flex flex-col gap-2 w-full max-w-sm')],
+    h.div(
+      [h.Class('flex flex-col gap-2 w-full max-w-sm')],
       [
-        div(
-          [Class('flex items-center justify-between text-sm')],
+        h.div(
+          [h.Class('flex items-center justify-between text-sm')],
           [
-            label([...attributes.label, Class('font-medium')], ['Rating']),
-            span(
-              [Class('tabular-nums text-gray-600')],
+            h.label([...attributes.label, h.Class('font-medium')], ['Rating']),
+            h.span(
+              [h.Class('tabular-nums text-gray-600')],
               [`${String(model.ratingDemo.value)} / 10`],
             ),
           ],
         ),
-        div(
-          [...attributes.root, Class('relative h-6 w-full flex items-center')],
+        h.div(
           [
-            div(
+            ...attributes.root,
+            h.Class('relative h-6 w-full flex items-center'),
+          ],
+          [
+            h.div(
               [
                 ...attributes.track,
-                Class('h-1.5 w-full rounded-full bg-gray-200'),
+                h.Class('h-1.5 w-full rounded-full bg-gray-200'),
               ],
               [
-                div(
+                h.div(
                   [
                     ...attributes.filledTrack,
-                    Class('h-full rounded-full bg-blue-600'),
+                    h.Class('h-full rounded-full bg-blue-600'),
                   ],
                   [],
                 ),
               ],
             ),
-            div(
+            h.div(
               [
                 ...attributes.thumb,
-                Class(
+                h.Class(
                   'h-5 w-5 rounded-full bg-white border-2 border-blue-600 shadow cursor-grab focus-visible:ring-2 focus-visible:ring-blue-600 data-[dragging]:cursor-grabbing',
                 ),
               ],

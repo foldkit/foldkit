@@ -1,21 +1,6 @@
 import { Ui } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import {
-  Class,
-  button,
-  div,
-  fieldset,
-  h2,
-  h3,
-  input,
-  label,
-  legend,
-  p,
-  span,
-  textarea,
-} from '../html'
-import type { Message as ParentMessage } from '../main'
 import {
   GotFieldsetCheckboxDemoMessage,
   type UiMessage,
@@ -47,37 +32,42 @@ const checkboxLabelClassName =
 
 const checkboxDescriptionClassName = 'text-sm text-gray-500'
 
-const checkmark = span([Class('text-white text-xs')], ['\u2713'])
-
-export const view = (
+export const view = <ParentMessage>(
   model: UiModel,
   toParentMessage: (message: UiMessage) => ParentMessage,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  const checkmark = h.span([h.Class('text-white text-xs')], ['✓'])
+
+  return h.div(
     [],
     [
-      h2([Class('text-2xl font-bold text-gray-900 mb-6')], ['Fieldset']),
+      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Fieldset']),
 
-      h3([Class('text-lg font-semibold text-gray-900 mt-8 mb-4')], ['Basic']),
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+        ['Basic'],
+      ),
       Ui.Fieldset.view<ParentMessage>({
         id: 'fieldset-basic-demo',
         toView: attributes =>
-          fieldset(
-            [...attributes.fieldset, Class(fieldsetClassName)],
+          h.fieldset(
+            [...attributes.fieldset, h.Class(fieldsetClassName)],
             [
-              legend(
-                [...attributes.legend, Class(legendClassName)],
+              h.legend(
+                [...attributes.legend, h.Class(legendClassName)],
                 ['Personal Information'],
               ),
-              span(
+              h.span(
                 [
                   ...attributes.description,
-                  Class(`${descriptionClassName} mt-1`),
+                  h.Class(`${descriptionClassName} mt-1`),
                 ],
                 ['We just need a few details.'],
               ),
-              div(
-                [Class('mt-4 flex flex-col gap-4')],
+              h.div(
+                [h.Class('mt-4 flex flex-col gap-4')],
                 [
                   Ui.Input.view({
                     id: 'fieldset-name-input',
@@ -86,21 +76,21 @@ export const view = (
                       toParentMessage(UpdatedFieldsetInputValue({ value })),
                     placeholder: 'Enter your full name',
                     toView: inputAttributes =>
-                      div(
-                        [Class('flex flex-col gap-1.5')],
+                      h.div(
+                        [h.Class('flex flex-col gap-1.5')],
                         [
-                          label(
-                            [...inputAttributes.label, Class(labelClassName)],
+                          h.label(
+                            [...inputAttributes.label, h.Class(labelClassName)],
                             ['Name'],
                           ),
-                          input([
+                          h.input([
                             ...inputAttributes.input,
-                            Class(inputClassName),
+                            h.Class(inputClassName),
                           ]),
-                          span(
+                          h.span(
                             [
                               ...inputAttributes.description,
-                              Class(descriptionClassName),
+                              h.Class(descriptionClassName),
                             ],
                             ['As it appears on your government-issued ID.'],
                           ),
@@ -115,27 +105,27 @@ export const view = (
                     placeholder: 'Tell us about yourself...',
                     rows: 3,
                     toView: textareaAttributes =>
-                      div(
-                        [Class('flex flex-col gap-1.5')],
+                      h.div(
+                        [h.Class('flex flex-col gap-1.5')],
                         [
-                          label(
+                          h.label(
                             [
                               ...textareaAttributes.label,
-                              Class(labelClassName),
+                              h.Class(labelClassName),
                             ],
                             ['Bio'],
                           ),
-                          textarea(
+                          h.textarea(
                             [
                               ...textareaAttributes.textarea,
-                              Class(textareaClassName),
+                              h.Class(textareaClassName),
                             ],
                             [],
                           ),
-                          span(
+                          h.span(
                             [
                               ...textareaAttributes.description,
-                              Class(descriptionClassName),
+                              h.Class(descriptionClassName),
                             ],
                             ['A brief introduction about yourself.'],
                           ),
@@ -149,34 +139,34 @@ export const view = (
                         GotFieldsetCheckboxDemoMessage({ message }),
                       ),
                     toView: checkboxAttributes =>
-                      div(
-                        [Class('flex flex-col gap-1')],
+                      h.div(
+                        [h.Class('flex flex-col gap-1')],
                         [
-                          div(
-                            [Class('flex items-center gap-2')],
+                          h.div(
+                            [h.Class('flex items-center gap-2')],
                             [
-                              button(
+                              h.button(
                                 [
                                   ...checkboxAttributes.checkbox,
-                                  Class(checkboxClassName),
+                                  h.Class(checkboxClassName),
                                 ],
                                 model.fieldsetCheckboxDemo.isChecked
                                   ? [checkmark]
                                   : [],
                               ),
-                              label(
+                              h.label(
                                 [
                                   ...checkboxAttributes.label,
-                                  Class(checkboxLabelClassName),
+                                  h.Class(checkboxLabelClassName),
                                 ],
                                 ['I agree to the terms and conditions'],
                               ),
                             ],
                           ),
-                          p(
+                          h.p(
                             [
                               ...checkboxAttributes.description,
-                              Class(checkboxDescriptionClassName),
+                              h.Class(checkboxDescriptionClassName),
                             ],
                             [
                               'You agree to our Terms of Service and Privacy Policy.',
@@ -191,46 +181,46 @@ export const view = (
           ),
       }),
 
-      h3(
-        [Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Disabled'],
       ),
       Ui.Fieldset.view<ParentMessage>({
         id: 'fieldset-disabled-demo',
         isDisabled: true,
         toView: attributes =>
-          fieldset(
-            [...attributes.fieldset, Class(fieldsetClassName)],
+          h.fieldset(
+            [...attributes.fieldset, h.Class(fieldsetClassName)],
             [
-              legend(
-                [...attributes.legend, Class(legendClassName)],
+              h.legend(
+                [...attributes.legend, h.Class(legendClassName)],
                 ['Personal Information'],
               ),
-              span(
+              h.span(
                 [
                   ...attributes.description,
-                  Class(`${descriptionClassName} mt-1`),
+                  h.Class(`${descriptionClassName} mt-1`),
                 ],
                 ['This fieldset is disabled.'],
               ),
-              div(
-                [Class('mt-4 flex flex-col gap-4')],
+              h.div(
+                [h.Class('mt-4 flex flex-col gap-4')],
                 [
                   Ui.Input.view<ParentMessage>({
                     id: 'fieldset-disabled-name-input',
                     isDisabled: true,
                     value: 'Ada Lovelace',
                     toView: inputAttributes =>
-                      div(
-                        [Class('flex flex-col gap-1.5')],
+                      h.div(
+                        [h.Class('flex flex-col gap-1.5')],
                         [
-                          label(
-                            [...inputAttributes.label, Class(labelClassName)],
+                          h.label(
+                            [...inputAttributes.label, h.Class(labelClassName)],
                             ['Name'],
                           ),
-                          input([
+                          h.input([
                             ...inputAttributes.input,
-                            Class(inputClassName),
+                            h.Class(inputClassName),
                           ]),
                         ],
                       ),
@@ -242,20 +232,20 @@ export const view = (
                       "Mathematician and writer, known for work on Charles Babbage's Analytical Engine.",
                     rows: 3,
                     toView: textareaAttributes =>
-                      div(
-                        [Class('flex flex-col gap-1.5')],
+                      h.div(
+                        [h.Class('flex flex-col gap-1.5')],
                         [
-                          label(
+                          h.label(
                             [
                               ...textareaAttributes.label,
-                              Class(labelClassName),
+                              h.Class(labelClassName),
                             ],
                             ['Bio'],
                           ),
-                          textarea(
+                          h.textarea(
                             [
                               ...textareaAttributes.textarea,
-                              Class(textareaClassName),
+                              h.Class(textareaClassName),
                             ],
                             [],
                           ),
@@ -273,20 +263,20 @@ export const view = (
                         GotFieldsetCheckboxDemoMessage({ message }),
                       ),
                     toView: checkboxAttributes =>
-                      div(
-                        [Class('flex items-center gap-2')],
+                      h.div(
+                        [h.Class('flex items-center gap-2')],
                         [
-                          button(
+                          h.button(
                             [
                               ...checkboxAttributes.checkbox,
-                              Class(checkboxClassName),
+                              h.Class(checkboxClassName),
                             ],
                             [checkmark],
                           ),
-                          label(
+                          h.label(
                             [
                               ...checkboxAttributes.label,
-                              Class(checkboxLabelClassName),
+                              h.Class(checkboxLabelClassName),
                             ],
                             ['I agree to the terms and conditions'],
                           ),
@@ -300,3 +290,4 @@ export const view = (
       }),
     ],
   )
+}

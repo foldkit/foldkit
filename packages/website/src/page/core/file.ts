@@ -1,7 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
-import type { TableOfContentsEntry } from '../../main'
+import { Message, type TableOfContentsEntry } from '../../main'
 import {
   inlineCode,
   pageTitle,
@@ -10,6 +9,8 @@ import {
 } from '../../prose'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
+
+const h = html<Message>()
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -50,7 +51,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('core/file', 'File'),
@@ -58,7 +59,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'The ',
         inlineCode('File'),
-        ' module wraps the browser file APIs as Effects you can run from a Command. It mirrors the design of Elm\u2019s ',
+        ' module wraps the browser file APIs as Effects you can run from a Command. It mirrors the design of Elm’s ',
         inlineCode('elm/file'),
         ' package: file values are opaque, file selection happens imperatively through a Command (not a form event), and file contents are read asynchronously via ',
         inlineCode('FileReader'),
@@ -67,7 +68,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'A ',
         inlineCode('File'),
-        ' is a direct alias for the browser\u2019s native ',
+        ' is a direct alias for the browser’s native ',
         inlineCode('File'),
         ' type. You can hold one in your Model with ',
         inlineCode('S.Option(File.File)'),
@@ -86,7 +87,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('File.readAsDataUrl'),
         ', and ',
         inlineCode('File.readAsArrayBuffer'),
-        ' wrap the browser\u2019s ',
+        ' wrap the browser’s ',
         inlineCode('FileReader'),
         ' as Effects that can fail with a ',
         inlineCode('FileReadError'),
@@ -95,10 +96,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' when you want a preview thumbnail without uploading the file first.',
       ),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.fileMetadataAndReadHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.fileMetadataAndReadHighlighted),
           ],
           [],
         ),
@@ -112,7 +113,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('File.select'),
         ' and ',
         inlineCode('File.selectMultiple'),
-        ' open the native file picker and resolve with the files the user chose. Both take a list of accepted MIME types or extensions and resolve with an empty array if the user cancels. Mirrors Elm\u2019s ',
+        ' open the native file picker and resolve with the files the user chose. Both take a list of accepted MIME types or extensions and resolve with an empty array if the user cancels. Mirrors Elm’s ',
         inlineCode('File.Select.file'),
         ' and ',
         inlineCode('File.Select.files'),
@@ -126,7 +127,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' module never defines Messages, so you keep full control of your domain vocabulary.',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.fileSelectHighlighted)], []),
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.fileSelectHighlighted)],
+          [],
+        ),
         Snippets.fileSelectRaw,
         'Copy file select example to clipboard',
         copiedSnippets,
@@ -160,8 +164,8 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' for visual feedback. The latter pair only fire on true entry and exit. Bubbled events from transitions between child elements of the zone are filtered out internally.',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.fileFormEventsHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.fileFormEventsHighlighted)],
           [],
         ),
         Snippets.fileFormEventsRaw,
@@ -181,7 +185,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Scene.dropFiles'),
         ' dispatches a synthetic drop event on a drop zone. Both accept a target locator and a ',
         inlineCode('ReadonlyArray<File>'),
-        '. Both helpers throw a clear error if the target element\u2019s change or drop handler was not registered via ',
+        '. Both helpers throw a clear error if the target element’s change or drop handler was not registered via ',
         inlineCode('OnFileChange'),
         ' or ',
         inlineCode('OnDropFiles'),
@@ -203,8 +207,8 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' when an update returns multiple Commands at once, or when resolving one Command cascades into others, like reading a preview immediately after a successful selection.',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.fileSceneTestHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.fileSceneTestHighlighted)],
           [],
         ),
         Snippets.fileSceneTestRaw,

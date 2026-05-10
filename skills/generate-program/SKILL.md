@@ -346,7 +346,7 @@ Record these in the crib and keep them visible while generating:
 - **`input` and `br` and other void elements take ONLY attributes** — `input([...])`, never `input([...], [])`. `textarea` and `button` DO take children.
 - **`UrlRequest` tags are `Internal` and `External`**, not `InternalUrl` / `ExternalUrl`.
 - **`OnClick` and `OnSubmit` take a Message directly**, not a `() => Message`. Only `OnInput` takes `(value) => Message` because it needs the input value.
-- **`keyed`, `empty` are destructured from `html<M>()`** — not top-level exports of `foldkit/html`.
+- **`keyed`, `empty` are properties on the record returned by `html<M>()`** — accessed as `h.keyed` and `h.empty` after `const h = html<M>()`. They are not top-level exports of `foldkit/html`.
 - **Attribute helpers are specific** — `Value(...)`, `Type(...)`, `Placeholder(...)`, `Href(...)`, `Target(...)`, `Rel(...)`, `Rows(n)`, `Id(...)`, `For(...)`, `Role(...)`, `AriaLabel(...)`. There is no generic `Attr('...', '...')`.
 - **`ProgramInit<Model, Message, Flags>` has no URL parameter.** For routed apps, use `RoutingProgramInit<Model, Message, Flags>` — the second arg is `url: Url`.
 - **`Route.mapTo` takes the route schema, not a factory function.** `pipe(literal('new'), Route.mapTo(NewLinkRoute))` — NOT `Route.mapTo(() => NewLinkRoute())`.
@@ -501,14 +501,14 @@ For file uploads (resumes, images, attachments):
 
 ### View
 
-- Destructure html elements: `const { div, span, button, input } = html<Message>()`
-- Use `Class(...)` for Tailwind classes
-- Use `clsx` from the `clsx` package for conditional class composition: `Class(clsx('base-classes', { 'active-class': isActive, 'bg-blue-500': variant === 'Primary' }))`. Use `clsx` whenever classes depend on model state, boolean flags, or discriminated union tags — never string concatenation, template literals, or `&&` expressions
+- Bind the html factory once per module: `const h = html<Message>()`. Reach for elements, attributes, and event handlers off `h`: `h.div`, `h.Class`, `h.OnClick`. For child views generic over a parent's Message, take `<ParentMessage>` as a function generic and bind `const h = html<ParentMessage>()` inside the function body.
+- Use `h.Class(...)` for Tailwind classes
+- Use `clsx` from the `clsx` package for conditional class composition: `h.Class(clsx('base-classes', { 'active-class': isActive, 'bg-blue-500': variant === 'Primary' }))`. Use `clsx` whenever classes depend on model state, boolean flags, or discriminated union tags. Never string concatenation, template literals, or `&&` expressions.
 - Pattern match on model state: `M.value(model.state).pipe(M.tagsExhaustive({...}))`
 - Use `Option.match` for conditional rendering based on Option fields
-- Use `keyed('div')(routeOrStateTag, attrs, children)` on layout branches
+- Use `h.keyed('div')(routeOrStateTag, attrs, children)` on layout branches
 - Delegate complex sections to extracted view functions
-- Wire events to messages: `OnClick(() => ClickedSubmit())`, `OnInput(value => UpdatedEmail({ value }))`
+- Wire events to messages: `h.OnClick(ClickedSubmit())` (Message directly, not a callback), `h.OnInput(value => UpdatedEmail({ value }))` (callback that maps the value to a Message)
 - Use Foldkit UI components when the interaction matches (Dialog for modals, Tabs for tabbed content, etc.)
 
 ### Runtime Wiring

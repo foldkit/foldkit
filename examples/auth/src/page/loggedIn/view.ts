@@ -1,10 +1,8 @@
 import { clsx } from 'clsx'
 import { Match as M } from 'effect'
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
 import { Session } from '../../domain/session'
-import { Class, Href, a, div, li, main, nav, ul } from '../../html'
-import type { Message as ParentMessage } from '../../message'
 import { notFoundView } from '../../notFoundView'
 import { dashboardRouter, settingsRouter } from '../../route'
 import { GotSettingsMessage, Message } from './message'
@@ -17,35 +15,42 @@ const navLinkClassName = (isActive: boolean) =>
     'bg-blue-700 bg-opacity-50': isActive,
   })
 
-const navigationView = (session: Session, currentRouteTag: string): Html =>
-  nav(
-    [Class('bg-blue-500 text-white p-4')],
+const navigationView = <ParentMessage>(
+  session: Session,
+  currentRouteTag: string,
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.nav(
+    [h.Class('bg-blue-500 text-white p-4')],
     [
-      div(
-        [Class('max-w-4xl mx-auto flex justify-between items-center')],
+      h.div(
+        [h.Class('max-w-4xl mx-auto flex justify-between items-center')],
         [
-          ul(
-            [Class('flex gap-6 list-none')],
+          h.ul(
+            [h.Class('flex gap-6 list-none')],
             [
-              li(
+              h.li(
                 [],
                 [
-                  a(
+                  h.a(
                     [
-                      Href(dashboardRouter()),
-                      Class(navLinkClassName(currentRouteTag === 'Dashboard')),
+                      h.Href(dashboardRouter()),
+                      h.Class(
+                        navLinkClassName(currentRouteTag === 'Dashboard'),
+                      ),
                     ],
                     ['Dashboard'],
                   ),
                 ],
               ),
-              li(
+              h.li(
                 [],
                 [
-                  a(
+                  h.a(
                     [
-                      Href(settingsRouter()),
-                      Class(navLinkClassName(currentRouteTag === 'Settings')),
+                      h.Href(settingsRouter()),
+                      h.Class(navLinkClassName(currentRouteTag === 'Settings')),
                     ],
                     ['Settings'],
                   ),
@@ -53,35 +58,43 @@ const navigationView = (session: Session, currentRouteTag: string): Html =>
               ),
             ],
           ),
-          div([Class('text-sm')], [`Signed in as ${session.email}`]),
+          h.div([h.Class('text-sm')], [`Signed in as ${session.email}`]),
         ],
       ),
     ],
   )
+}
 
-export const view = (
+export const view = <ParentMessage>(
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
-): Html =>
-  div(
-    [Class('min-h-screen')],
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [h.Class('min-h-screen')],
     [
-      navigationView(model.session, model.route._tag),
-      main(
-        [Class('py-8')],
+      navigationView<ParentMessage>(model.session, model.route._tag),
+      h.main(
+        [h.Class('py-8')],
         [
           M.value(model.route).pipe(
             M.tagsExhaustive({
-              Dashboard: () => Dashboard.view(model.session),
+              Dashboard: () => Dashboard.view<ParentMessage>(model.session),
               Settings: () =>
-                Settings.view(model.session, message =>
+                Settings.view<ParentMessage>(model.session, message =>
                   toParentMessage(GotSettingsMessage({ message })),
                 ),
               NotFound: ({ path }) =>
-                notFoundView(path, dashboardRouter(), 'Go to Dashboard'),
+                notFoundView<ParentMessage>(
+                  path,
+                  dashboardRouter(),
+                  'Go to Dashboard',
+                ),
             }),
           ),
         ],
       ),
     ],
   )
+}

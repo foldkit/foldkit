@@ -783,38 +783,7 @@ export const makeView =
   <ParentMessage, Item>(
     config: BaseViewConfig<ParentMessage, Item, Model>,
   ): Html => {
-    const {
-      div,
-      input,
-      AriaActiveDescendant,
-      AriaControls,
-      AriaDisabled,
-      AriaExpanded,
-      AriaHasPopup,
-      AriaLabelledBy,
-      AriaMultiSelectable,
-      AriaOrientation,
-      AriaSelected,
-      Attribute,
-      Class,
-      DataAttribute,
-      Id,
-      Name,
-      OnBlur,
-      OnClick,
-      OnKeyDownPreventDefault,
-      OnKeyUpPreventDefault,
-      OnMount,
-      OnPointerDown,
-      OnPointerLeave,
-      OnPointerMove,
-      Role,
-      Style,
-      Tabindex,
-      Type,
-      Value,
-      keyed,
-    } = html<ParentMessage>()
+    const h = html<ParentMessage>()
 
     const {
       model: {
@@ -869,28 +838,29 @@ export const makeView =
       transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
     const isVisible = isOpen || isLeaving
 
-    const animationAttributes: ReadonlyArray<ReturnType<typeof DataAttribute>> =
-      M.value(transitionState).pipe(
-        M.when('EnterStart', () => [
-          DataAttribute('closed', ''),
-          DataAttribute('enter', ''),
-          DataAttribute('transition', ''),
-        ]),
-        M.when('EnterAnimating', () => [
-          DataAttribute('enter', ''),
-          DataAttribute('transition', ''),
-        ]),
-        M.when('LeaveStart', () => [
-          DataAttribute('leave', ''),
-          DataAttribute('transition', ''),
-        ]),
-        M.when('LeaveAnimating', () => [
-          DataAttribute('closed', ''),
-          DataAttribute('leave', ''),
-          DataAttribute('transition', ''),
-        ]),
-        M.orElse(() => []),
-      )
+    const animationAttributes: ReadonlyArray<
+      ReturnType<typeof h.DataAttribute>
+    > = M.value(transitionState).pipe(
+      M.when('EnterStart', () => [
+        h.DataAttribute('closed', ''),
+        h.DataAttribute('enter', ''),
+        h.DataAttribute('transition', ''),
+      ]),
+      M.when('EnterAnimating', () => [
+        h.DataAttribute('enter', ''),
+        h.DataAttribute('transition', ''),
+      ]),
+      M.when('LeaveStart', () => [
+        h.DataAttribute('leave', ''),
+        h.DataAttribute('transition', ''),
+      ]),
+      M.when('LeaveAnimating', () => [
+        h.DataAttribute('closed', ''),
+        h.DataAttribute('leave', ''),
+        h.DataAttribute('transition', ''),
+      ]),
+      M.orElse(() => []),
+    )
 
     const isItemDisabledByIndex = (index: number): boolean =>
       Predicate.isNotUndefined(isItemDisabled) &&
@@ -1057,39 +1027,39 @@ export const makeView =
       )
 
     const resolvedButtonAttributes = [
-      Id(`${id}-button`),
-      Type('button'),
-      AriaHasPopup('listbox'),
-      AriaExpanded(isVisible),
-      AriaControls(`${id}-items`),
+      h.Id(`${id}-button`),
+      h.Type('button'),
+      h.AriaHasPopup('listbox'),
+      h.AriaExpanded(isVisible),
+      h.AriaControls(`${id}-items`),
       ...(isButtonEffectivelyDisabled
-        ? [AriaDisabled(true), DataAttribute('disabled', '')]
+        ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
         : [
-            OnPointerDown(handleButtonPointerDown),
-            OnKeyDownPreventDefault(handleButtonKeyDown),
-            OnKeyUpPreventDefault(handleSpaceKeyUp),
-            OnClick(handleButtonClick()),
+            h.OnPointerDown(handleButtonPointerDown),
+            h.OnKeyDownPreventDefault(handleButtonKeyDown),
+            h.OnKeyUpPreventDefault(handleSpaceKeyUp),
+            h.OnClick(handleButtonClick()),
           ]),
       ...(isVisible
         ? [
-            DataAttribute('open', ''),
-            Style({ position: 'relative', zIndex: '1' }),
+            h.DataAttribute('open', ''),
+            h.Style({ position: 'relative', zIndex: '1' }),
           ]
         : []),
-      ...(isInvalid ? [DataAttribute('invalid', '')] : []),
-      ...(buttonClassName ? [Class(buttonClassName)] : []),
+      ...(isInvalid ? [h.DataAttribute('invalid', '')] : []),
+      ...(buttonClassName ? [h.Class(buttonClassName)] : []),
       ...buttonAttributes,
     ]
 
     const maybeActiveDescendant = Option.match(maybeActiveItemIndex, {
       onNone: () => [],
-      onSome: index => [AriaActiveDescendant(itemId(id, index))],
+      onSome: index => [h.AriaActiveDescendant(itemId(id, index))],
     })
 
     const anchorAttributes = anchor
       ? [
-          Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
-          OnMount(
+          h.Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
+          h.OnMount(
             Mount.mapMessage(
               AnchorListbox({ buttonId: `${id}-button`, anchor }),
               toParentMessage,
@@ -1099,23 +1069,23 @@ export const makeView =
       : []
 
     const itemsContainerAttributes = [
-      Id(`${id}-items`),
-      Role('listbox'),
-      AriaOrientation(Str.toLowerCase(orientation)),
-      ...(behavior.ariaMultiSelectable ? [AriaMultiSelectable(true)] : []),
-      AriaLabelledBy(`${id}-button`),
+      h.Id(`${id}-items`),
+      h.Role('listbox'),
+      h.AriaOrientation(Str.toLowerCase(orientation)),
+      ...(behavior.ariaMultiSelectable ? [h.AriaMultiSelectable(true)] : []),
+      h.AriaLabelledBy(`${id}-button`),
       ...maybeActiveDescendant,
-      Tabindex(0),
+      h.Tabindex(0),
       ...anchorAttributes,
       ...animationAttributes,
       ...(isLeaving
         ? []
         : [
-            OnKeyDownPreventDefault(handleItemsKeyDown),
-            OnKeyUpPreventDefault(handleSpaceKeyUp),
-            OnBlur(toParentMessage(BlurredItems())),
+            h.OnKeyDownPreventDefault(handleItemsKeyDown),
+            h.OnKeyUpPreventDefault(handleSpaceKeyUp),
+            h.OnBlur(toParentMessage(BlurredItems())),
           ]),
-      ...(itemsClassName ? [Class(itemsClassName)] : []),
+      ...(itemsClassName ? [h.Class(itemsClassName)] : []),
       ...itemsAttributes,
     ]
 
@@ -1137,24 +1107,24 @@ export const makeView =
 
       const isInteractive = !isDisabledItem && !isLeaving
 
-      return keyed('div')(
+      return h.keyed('div')(
         itemId(id, index),
         [
-          Id(itemId(id, index)),
-          Role('option'),
-          AriaSelected(isSelectedItem),
-          ...(isActiveItem ? [DataAttribute('active', '')] : []),
-          ...(isSelectedItem ? [DataAttribute('selected', '')] : []),
+          h.Id(itemId(id, index)),
+          h.Role('option'),
+          h.AriaSelected(isSelectedItem),
+          ...(isActiveItem ? [h.DataAttribute('active', '')] : []),
+          ...(isSelectedItem ? [h.DataAttribute('selected', '')] : []),
           ...(isDisabledItem
-            ? [AriaDisabled(true), DataAttribute('disabled', '')]
+            ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
             : []),
           ...(isInteractive
             ? [
-                OnClick(dispatchSelectedItem(itemToValue(item))),
+                h.OnClick(dispatchSelectedItem(itemToValue(item))),
                 ...(isActiveItem
                   ? []
                   : [
-                      OnPointerMove((screenX, screenY, pointerType) =>
+                      h.OnPointerMove((screenX, screenY, pointerType) =>
                         OptionExt.when(
                           pointerType !== 'touch',
                           toParentMessage(
@@ -1163,7 +1133,7 @@ export const makeView =
                         ),
                       ),
                     ]),
-                OnPointerLeave(pointerType =>
+                h.OnPointerLeave(pointerType =>
                   OptionExt.when(
                     pointerType !== 'touch',
                     toParentMessage(DeactivatedItem()),
@@ -1171,7 +1141,7 @@ export const makeView =
                 ),
               ]
             : []),
-          ...(itemConfig.className ? [Class(itemConfig.className)] : []),
+          ...(itemConfig.className ? [h.Class(itemConfig.className)] : []),
         ],
         [itemConfig.content],
       )
@@ -1199,12 +1169,12 @@ export const makeView =
         const headingElement = Option.match(maybeHeading, {
           onNone: () => [],
           onSome: heading => [
-            keyed('div')(
+            h.keyed('div')(
               headingId,
               [
-                Id(headingId),
-                Role('presentation'),
-                ...(heading.className ? [Class(heading.className)] : []),
+                h.Id(headingId),
+                h.Role('presentation'),
+                ...(heading.className ? [h.Class(heading.className)] : []),
               ],
               [heading.content],
             ),
@@ -1213,12 +1183,14 @@ export const makeView =
 
         const groupContent = [...headingElement, ...segment.items]
 
-        const groupElement = keyed('div')(
+        const groupElement = h.keyed('div')(
           `${id}-group-${segment.key}`,
           [
-            Role('group'),
-            ...(Option.isSome(maybeHeading) ? [AriaLabelledBy(headingId)] : []),
-            ...(groupClassName ? [Class(groupClassName)] : []),
+            h.Role('group'),
+            ...(Option.isSome(maybeHeading)
+              ? [h.AriaLabelledBy(headingId)]
+              : []),
+            ...(groupClassName ? [h.Class(groupClassName)] : []),
             ...groupAttributes,
           ],
           groupContent,
@@ -1229,11 +1201,13 @@ export const makeView =
           (separatorClassName ||
             Array.isReadonlyArrayNonEmpty(separatorAttributes))
             ? [
-                keyed('div')(
+                h.keyed('div')(
                   `${id}-separator-${segmentIndex}`,
                   [
-                    Role('separator'),
-                    ...(separatorClassName ? [Class(separatorClassName)] : []),
+                    h.Role('separator'),
+                    ...(separatorClassName
+                      ? [h.Class(separatorClassName)]
+                      : []),
                     ...separatorAttributes,
                   ],
                   [],
@@ -1245,12 +1219,12 @@ export const makeView =
       })
     }
 
-    const backdrop = keyed('div')(
+    const backdrop = h.keyed('div')(
       `${id}-backdrop`,
       [
-        OnMount(Mount.mapMessage(PortalListboxBackdrop(), toParentMessage)),
-        ...(isLeaving ? [] : [OnClick(toParentMessage(Closed()))]),
-        ...(backdropClassName ? [Class(backdropClassName)] : []),
+        h.OnMount(Mount.mapMessage(PortalListboxBackdrop(), toParentMessage)),
+        ...(isLeaving ? [] : [h.OnClick(toParentMessage(Closed()))]),
+        ...(backdropClassName ? [h.Class(backdropClassName)] : []),
         ...backdropAttributes,
       ],
       [],
@@ -1262,9 +1236,11 @@ export const makeView =
       itemsScrollClassName ||
       Array.isReadonlyArrayNonEmpty(itemsScrollAttributes)
         ? [
-            div(
+            h.div(
               [
-                ...(itemsScrollClassName ? [Class(itemsScrollClassName)] : []),
+                ...(itemsScrollClassName
+                  ? [h.Class(itemsScrollClassName)]
+                  : []),
                 ...itemsScrollAttributes,
               ],
               renderedItems,
@@ -1274,14 +1250,14 @@ export const makeView =
 
     const visibleContent = [
       backdrop,
-      keyed('div')(
+      h.keyed('div')(
         `${id}-items-container`,
         itemsContainerAttributes,
         scrollableItems,
       ),
     ]
 
-    const formAttribute = form ? [Attribute('form', form)] : []
+    const formAttribute = form ? [h.Attribute('form', form)] : []
 
     const selectedValues = pipe(
       items,
@@ -1294,13 +1270,13 @@ export const makeView =
     const hiddenInputs = name
       ? Array.match(selectedValues, {
           onEmpty: () => [
-            input([Type('hidden'), Name(name), ...formAttribute]),
+            h.input([h.Type('hidden'), h.Name(name), ...formAttribute]),
           ],
           onNonEmpty: Array.map(selectedValue =>
-            input([
-              Type('hidden'),
-              Name(name),
-              Value(selectedValue),
+            h.input([
+              h.Type('hidden'),
+              h.Name(name),
+              h.Value(selectedValue),
               ...formAttribute,
             ]),
           ),
@@ -1308,15 +1284,15 @@ export const makeView =
       : []
 
     const wrapperAttributes = [
-      ...(className ? [Class(className)] : []),
+      ...(className ? [h.Class(className)] : []),
       ...attributes,
-      ...(isVisible ? [DataAttribute('open', '')] : []),
-      ...(isDisabled ? [DataAttribute('disabled', '')] : []),
-      ...(isInvalid ? [DataAttribute('invalid', '')] : []),
+      ...(isVisible ? [h.DataAttribute('open', '')] : []),
+      ...(isDisabled ? [h.DataAttribute('disabled', '')] : []),
+      ...(isInvalid ? [h.DataAttribute('invalid', '')] : []),
     ]
 
-    return div(wrapperAttributes, [
-      keyed('button')(`${id}-button`, resolvedButtonAttributes, [
+    return h.div(wrapperAttributes, [
+      h.keyed('button')(`${id}-button`, resolvedButtonAttributes, [
         buttonContent,
       ]),
       ...hiddenInputs,

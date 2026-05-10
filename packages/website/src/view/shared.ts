@@ -1,59 +1,39 @@
 import { clsx } from 'clsx'
 import { Array, Match as M } from 'effect'
 import type { Field } from 'foldkit/fieldValidation'
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import {
-  AriaLabel,
-  AriaLive,
-  Class,
-  Disabled,
-  Href,
-  Id,
-  OnInput,
-  OnSubmit,
-  Placeholder,
-  Type,
-  Value,
-  a,
-  button,
-  div,
-  empty,
-  form,
-  h2,
-  input,
-  p,
-  span,
-} from '../html'
 import { type EmailSubscriptionStatus } from '../main'
-import { SubmittedEmailForm, UpdatedEmailField } from '../message'
+import { type Message, SubmittedEmailForm, UpdatedEmailField } from '../message'
 
-export const betaTag: Html = span(
+const h = html<Message>()
+
+export const betaTag: Html = h.span(
   [
-    Class(
+    h.Class(
       'hidden sm:inline-block -rotate-6 rounded bg-accent-700 dark:bg-accent-500 px-1.5 py-0.5 text-[10px] font-extrabold uppercase leading-none tracking-wider text-white dark:text-accent-900 select-none',
     ),
-    AriaLabel('Beta'),
+    h.AriaLabel('Beta'),
   ],
   ['Beta'],
 )
 
 export const iconLink = (link: string, ariaLabel: string, icon: Html) =>
-  a(
+  h.a(
     [
-      Href(link),
-      Class(
+      h.Href(link),
+      h.Class(
         'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition',
       ),
-      AriaLabel(ariaLabel),
+      h.AriaLabel(ariaLabel),
     ],
     [icon],
   )
 
-export const skipNavLink: Html = a(
+export const skipNavLink: Html = h.a(
   [
-    Href('#main-content'),
-    Class(
+    h.Href('#main-content'),
+    h.Class(
       'sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-accent-600 dark:focus:bg-accent-500 focus:text-white focus:text-sm focus:font-normal',
     ),
   ],
@@ -67,23 +47,23 @@ export const emailFormView = (
 ): Html => {
   const isSubmitting = status === 'Submitting'
 
-  return div(
+  return h.div(
     [],
     [
-      form(
-        [OnSubmit(SubmittedEmailForm()), Class(formClassName)],
+      h.form(
+        [h.OnSubmit(SubmittedEmailForm()), h.Class(formClassName)],
         [
-          div(
-            [Class('flex-1')],
+          h.div(
+            [h.Class('flex-1')],
             [
-              input([
-                Type('email'),
-                AriaLabel('Email address'),
-                Placeholder('you@example.com'),
-                Value(emailField.value),
-                OnInput(value => UpdatedEmailField({ value })),
-                Disabled(isSubmitting),
-                Class(
+              h.input([
+                h.Type('email'),
+                h.AriaLabel('Email address'),
+                h.Placeholder('you@example.com'),
+                h.Value(emailField.value),
+                h.OnInput(value => UpdatedEmailField({ value })),
+                h.Disabled(isSubmitting),
+                h.Class(
                   clsx(
                     'w-full px-4 py-2.5 rounded-lg border bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent-500 dark:focus:ring-accent-400 disabled:opacity-60',
                     emailField._tag === 'Invalid'
@@ -93,21 +73,21 @@ export const emailFormView = (
                 ),
               ]),
               emailField._tag === 'Invalid'
-                ? p(
+                ? h.p(
                     [
-                      AriaLive('polite'),
-                      Class('mt-1.5 text-sm text-red-600 dark:text-red-400'),
+                      h.AriaLive('polite'),
+                      h.Class('mt-1.5 text-sm text-red-600 dark:text-red-400'),
                     ],
                     [Array.headNonEmpty(emailField.errors)],
                   )
-                : empty,
+                : h.empty,
             ],
           ),
-          button(
+          h.button(
             [
-              Type('submit'),
-              Disabled(isSubmitting),
-              Class(
+              h.Type('submit'),
+              h.Disabled(isSubmitting),
+              h.Class(
                 'px-6 py-2.5 rounded-lg bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 font-normal transition hover:bg-accent-700 dark:hover:bg-accent-600 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer',
               ),
             ],
@@ -116,14 +96,14 @@ export const emailFormView = (
         ],
       ),
       status === 'Failed'
-        ? p(
+        ? h.p(
             [
-              AriaLive('polite'),
-              Class('mt-3 text-sm text-red-600 dark:text-red-400'),
+              h.AriaLive('polite'),
+              h.Class('mt-3 text-sm text-red-600 dark:text-red-400'),
             ],
             ['Something went wrong. Please try again.'],
           )
-        : empty,
+        : h.empty,
     ],
   )
 }
@@ -132,30 +112,30 @@ export const emailSignupContentView = (
   emailField: Field,
   emailSubscriptionStatus: EmailSubscriptionStatus,
 ): Html =>
-  div(
-    [Id('newsletter')],
+  h.div(
+    [h.Id('newsletter')],
     [
-      h2(
+      h.h2(
         [
-          Class(
+          h.Class(
             'text-3xl md:text-4xl font-normal text-gray-900 dark:text-white mb-4 text-balance',
           ),
         ],
         ['Stay in the update loop.'],
       ),
-      p(
-        [Class('text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-xl')],
+      h.p(
+        [h.Class('text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-xl')],
         ['New releases, patterns, and the occasional deep dive.'],
       ),
       M.value(emailSubscriptionStatus).pipe(
         M.withReturnType<Html>(),
         M.when('Succeeded', () =>
-          p(
+          h.p(
             [
-              AriaLive('polite'),
-              Class('text-accent-600 dark:text-accent-400 font-normal'),
+              h.AriaLive('polite'),
+              h.Class('text-accent-600 dark:text-accent-400 font-normal'),
             ],
-            ['You\u2019re in! Check your email for confirmation.'],
+            ['You’re in! Check your email for confirmation.'],
           ),
         ),
         M.orElse(status =>

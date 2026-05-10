@@ -1,7 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
-import type { TableOfContentsEntry } from '../../main'
+import { Message, type TableOfContentsEntry } from '../../main'
 import {
   infoCallout,
   inlineCode,
@@ -13,6 +12,8 @@ import {
 import { aiMcpRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
+
+const h = html<Message>()
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -60,13 +61,13 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('core/devtools', 'DevTools'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'Foldkit includes a built-in DevTools overlay that displays every Message flowing through your app and lets you inspect the Model, Message, and Commands at any point in time. It renders inside a shadow DOM so it won\u2019t interfere with your styles or layout.',
+        'Foldkit includes a built-in DevTools overlay that displays every Message flowing through your app and lets you inspect the Model, Message, and Commands at any point in time. It renders inside a shadow DOM so it won’t interfere with your styles or layout.',
       ),
       para(
         'You can see it in action right now. Look for the tab on the bottom right edge of this page.',
@@ -85,8 +86,8 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' to configure behavior:',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.devtoolsBasicHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.devtoolsBasicHighlighted)],
           [],
         ),
         Snippets.devtoolsBasicRaw,
@@ -131,8 +132,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' lets you browse state snapshots without pausing the app, which is useful when showing DevTools to visitors in production or staging environments.',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.devtoolsInspectHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.devtoolsInspectHighlighted),
+          ],
           [],
         ),
         Snippets.devtoolsInspectRaw,

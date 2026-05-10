@@ -1,24 +1,7 @@
 import { Match as M, Option } from 'effect'
 import { File } from 'foldkit'
-import { type Html } from 'foldkit/html'
+import { type Html, html } from 'foldkit/html'
 
-import {
-  Class,
-  Disabled,
-  OnClick,
-  Role,
-  Type,
-  button,
-  div,
-  empty,
-  h3,
-  keyed,
-  p,
-  section,
-  span,
-  strong,
-} from '../html'
-import type { Message } from '../message'
 import type { Model } from '../model'
 import * as Education from '../step/education'
 import * as PersonalInfo from '../step/personalInfo'
@@ -26,59 +9,75 @@ import * as Skills from '../step/skills'
 import * as WorkHistory from '../step/workHistory'
 import { employmentRange, pluralize } from './format'
 
-const reviewSection = (title: string, content: Html): Html =>
-  section(
-    [Class('rounded-lg border border-gray-200 p-4')],
-    [h3([Class('text-sm font-semibold text-gray-900 mb-2')], [title]), content],
-  )
+const reviewSection = <ParentMessage>(title: string, content: Html): Html => {
+  const h = html<ParentMessage>()
 
-const fieldRow = (label: string, value: string): Html =>
-  value
-    ? div(
-        [Class('flex justify-between py-1')],
+  return h.section(
+    [h.Class('rounded-lg border border-gray-200 p-4')],
+    [
+      h.h3([h.Class('text-sm font-semibold text-gray-900 mb-2')], [title]),
+      content,
+    ],
+  )
+}
+
+const fieldRow = <ParentMessage>(label: string, value: string): Html => {
+  const h = html<ParentMessage>()
+
+  return value
+    ? h.div(
+        [h.Class('flex justify-between py-1')],
         [
-          span([Class('text-sm text-gray-500')], [label]),
-          span([Class('text-sm text-gray-900')], [value]),
+          h.span([h.Class('text-sm text-gray-500')], [label]),
+          h.span([h.Class('text-sm text-gray-900')], [value]),
         ],
       )
-    : empty
+    : h.empty
+}
 
-const personalInfoSection = (
+const personalInfoSection = <ParentMessage>(
   personalInfo: Model['personalInfo'],
   pronounLabel: string,
-): Html =>
-  reviewSection(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return reviewSection<ParentMessage>(
     'Personal Information',
-    div(
-      [Class('divide-y divide-gray-100')],
+    h.div(
+      [h.Class('divide-y divide-gray-100')],
       [
-        fieldRow(
+        fieldRow<ParentMessage>(
           'Name',
           `${personalInfo.firstName.value} ${personalInfo.lastName.value}`.trim(),
         ),
-        fieldRow('Email', personalInfo.email.value),
-        fieldRow('Phone', personalInfo.phone.value),
-        fieldRow('Pronouns', pronounLabel),
-        fieldRow('Portfolio', personalInfo.portfolioUrl.value),
+        fieldRow<ParentMessage>('Email', personalInfo.email.value),
+        fieldRow<ParentMessage>('Phone', personalInfo.phone.value),
+        fieldRow<ParentMessage>('Pronouns', pronounLabel),
+        fieldRow<ParentMessage>('Portfolio', personalInfo.portfolioUrl.value),
       ],
     ),
   )
+}
 
-const workEntryReview = (entry: WorkHistory.Entry.Model): Html => {
+const workEntryReview = <ParentMessage>(
+  entry: WorkHistory.Entry.Model,
+): Html => {
+  const h = html<ParentMessage>()
+
   const title = entry.company.value
     ? `${entry.title.value} at ${entry.company.value}`
     : entry.title.value
 
-  return keyed('div')(
+  return h.keyed('div')(
     entry.id,
-    [Class('py-1')],
+    [h.Class('py-1')],
     [
-      strong([Class('text-sm text-gray-900')], [title]),
+      h.strong([h.Class('text-sm text-gray-900')], [title]),
       ...Option.match(entry.startDate.maybeSelectedDate, {
         onNone: () => [],
         onSome: start => [
-          p(
-            [Class('text-xs text-gray-500')],
+          h.p(
+            [h.Class('text-xs text-gray-500')],
             [
               employmentRange(
                 start,
@@ -93,58 +92,82 @@ const workEntryReview = (entry: WorkHistory.Entry.Model): Html => {
   )
 }
 
-const workHistorySection = (workHistory: Model['workHistory']): Html =>
-  reviewSection(
+const workHistorySection = <ParentMessage>(
+  workHistory: Model['workHistory'],
+): Html => {
+  const h = html<ParentMessage>()
+
+  return reviewSection<ParentMessage>(
     `Work History (${pluralize(workHistory.entries.length, 'position', 'positions')})`,
-    div([Class('space-y-2')], workHistory.entries.map(workEntryReview)),
+    h.div(
+      [h.Class('space-y-2')],
+      workHistory.entries.map(entry => workEntryReview<ParentMessage>(entry)),
+    ),
   )
+}
 
 const educationTimeline = (entry: Education.Entry.Model): string => {
   if (entry.isCurrentlyEnrolled.isChecked) {
     return ' (Currently enrolled)'
   }
   if (entry.graduationYear) {
-    return ` \u2013 ${entry.graduationYear}`
+    return ` – ${entry.graduationYear}`
   }
   return ''
 }
 
-const educationEntryReview = (entry: Education.Entry.Model): Html => {
+const educationEntryReview = <ParentMessage>(
+  entry: Education.Entry.Model,
+): Html => {
+  const h = html<ParentMessage>()
+
   const title = entry.fieldOfStudy.value
     ? `${entry.degree.value} in ${entry.fieldOfStudy.value}`
     : entry.degree.value
 
-  return keyed('div')(
+  return h.keyed('div')(
     entry.id,
-    [Class('py-1')],
+    [h.Class('py-1')],
     [
-      strong([Class('text-sm text-gray-900')], [title]),
-      p(
-        [Class('text-xs text-gray-500')],
+      h.strong([h.Class('text-sm text-gray-900')], [title]),
+      h.p(
+        [h.Class('text-xs text-gray-500')],
         [entry.school.value + educationTimeline(entry)],
       ),
     ],
   )
 }
 
-const educationSection = (education: Model['education']): Html =>
-  reviewSection(
-    `Education (${pluralize(education.entries.length, 'entry', 'entries')})`,
-    div([Class('space-y-2')], education.entries.map(educationEntryReview)),
-  )
+const educationSection = <ParentMessage>(
+  education: Model['education'],
+): Html => {
+  const h = html<ParentMessage>()
 
-const skillsSection = (skills: Model['skills']): Html =>
-  reviewSection(
+  return reviewSection<ParentMessage>(
+    `Education (${pluralize(education.entries.length, 'entry', 'entries')})`,
+    h.div(
+      [h.Class('space-y-2')],
+      education.entries.map(entry =>
+        educationEntryReview<ParentMessage>(entry),
+      ),
+    ),
+  )
+}
+
+const skillsSection = <ParentMessage>(skills: Model['skills']): Html => {
+  const h = html<ParentMessage>()
+
+  return reviewSection<ParentMessage>(
     `Skills (${skills.entries.length})`,
-    div(
-      [Class('flex flex-wrap gap-1.5')],
+    h.div(
+      [h.Class('flex flex-wrap gap-1.5')],
       skills.entries
         .filter(entry => entry.name.value)
         .map(entry =>
-          keyed('span')(
+          h.keyed('span')(
             entry.id,
             [
-              Class(
+              h.Class(
                 'rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700',
               ),
             ],
@@ -153,96 +176,116 @@ const skillsSection = (skills: Model['skills']): Html =>
         ),
     ),
   )
+}
 
-const coverLetterSection = (coverLetter: Model['coverLetter']): Html =>
-  reviewSection(
+const coverLetterSection = <ParentMessage>(
+  coverLetter: Model['coverLetter'],
+): Html => {
+  const h = html<ParentMessage>()
+
+  return reviewSection<ParentMessage>(
     'Cover Letter',
     coverLetter.content
-      ? p(
-          [Class('text-sm text-gray-700 whitespace-pre-wrap')],
+      ? h.p(
+          [h.Class('text-sm text-gray-700 whitespace-pre-wrap')],
           [coverLetter.content],
         )
-      : p(
-          [Class('text-sm text-gray-400 italic')],
+      : h.p(
+          [h.Class('text-sm text-gray-400 italic')],
           ['No cover letter provided'],
         ),
   )
+}
 
-const attachmentsSection = (attachments: Model['attachments']): Html =>
-  reviewSection(
+const attachmentsSection = <ParentMessage>(
+  attachments: Model['attachments'],
+): Html => {
+  const h = html<ParentMessage>()
+
+  return reviewSection<ParentMessage>(
     'Attachments',
-    div(
-      [Class('space-y-1')],
+    h.div(
+      [h.Class('space-y-1')],
       [
         Option.match(attachments.maybeResume, {
           onNone: () =>
-            p([Class('text-sm text-gray-400 italic')], ['No resume uploaded']),
+            h.p(
+              [h.Class('text-sm text-gray-400 italic')],
+              ['No resume uploaded'],
+            ),
           onSome: resume =>
-            div(
-              [Class('flex items-center gap-2')],
+            h.div(
+              [h.Class('flex items-center gap-2')],
               [
-                span([], ['\uD83D\uDCC4']),
-                span([Class('text-sm text-gray-700')], [File.name(resume)]),
+                h.span([], ['📄']),
+                h.span([h.Class('text-sm text-gray-700')], [File.name(resume)]),
               ],
             ),
         }),
         ...attachments.additionalFiles.map(file =>
-          div(
-            [Class('flex items-center gap-2')],
+          h.div(
+            [h.Class('flex items-center gap-2')],
             [
-              span([], ['\uD83D\uDCCE']),
-              span([Class('text-sm text-gray-700')], [File.name(file)]),
+              h.span([], ['📎']),
+              h.span([h.Class('text-sm text-gray-700')], [File.name(file)]),
             ],
           ),
         ),
       ],
     ),
   )
+}
 
 const submitButtonClass = (isEnabled: boolean): string =>
   isEnabled
     ? 'w-full rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition cursor-pointer'
     : 'w-full rounded-lg bg-indigo-300 px-4 py-3 text-sm font-semibold text-white cursor-not-allowed'
 
-const blockedNotice = keyed('p')(
-  'blocked-notice',
-  [Class('text-sm text-red-600 text-center')],
-  ['Fix the errors in the highlighted steps before submitting.'],
-)
+const blockedNotice = <ParentMessage>(): Html => {
+  const h = html<ParentMessage>()
 
-const submissionSection = (
+  return h.keyed('p')(
+    'blocked-notice',
+    [h.Class('text-sm text-red-600 text-center')],
+    ['Fix the errors in the highlighted steps before submitting.'],
+  )
+}
+
+const submissionSection = <ParentMessage>(
   submission: Model['submission'],
   isSubmittable: boolean,
-  onSubmit: Message,
-): Html =>
-  M.value(submission).pipe(
+  onSubmit: ParentMessage,
+): Html => {
+  const h = html<ParentMessage>()
+
+  return M.value(submission).pipe(
     M.tagsExhaustive({
       NotSubmitted: () =>
-        keyed('div')(
+        h.keyed('div')(
           'submit-idle',
-          [Class('pt-4 space-y-2')],
+          [h.Class('pt-4 space-y-2')],
           [
-            ...(isSubmittable ? [] : [blockedNotice]),
-            keyed('button')(
+            ...(isSubmittable ? [] : [blockedNotice<ParentMessage>()]),
+            h.keyed('button')(
               'submit',
               [
-                Type('button'),
-                ...(isSubmittable ? [OnClick(onSubmit)] : [Disabled(true)]),
-                Class(submitButtonClass(isSubmittable)),
+                h.Type('button'),
+                ...(isSubmittable ? [h.OnClick(onSubmit)] : [h.Disabled(true)]),
+                h.Class(submitButtonClass(isSubmittable)),
               ],
               ['Submit Application'],
             ),
           ],
         ),
       Submitting: () =>
-        keyed('div')(
+        h.keyed('div')(
           'submit-pending',
-          [Class('pt-4')],
+          [h.Class('pt-4')],
           [
-            button(
+            h.button(
               [
-                Type('button'),
-                Class(
+                h.Type('button'),
+                h.Class(
                   'w-full rounded-lg bg-indigo-400 px-4 py-3 text-sm font-semibold text-white cursor-wait',
                 ),
               ],
@@ -251,47 +294,47 @@ const submissionSection = (
           ],
         ),
       SubmitSuccess: () =>
-        keyed('div')(
+        h.keyed('div')(
           'submit-success',
           [
-            Role('status'),
-            Class(
+            h.Role('status'),
+            h.Class(
               'mt-4 rounded-lg border border-green-200 bg-green-50 p-4 text-center',
             ),
           ],
           [
-            p(
-              [Class('text-lg font-semibold text-green-800')],
+            h.p(
+              [h.Class('text-lg font-semibold text-green-800')],
               ['Application Submitted!'],
             ),
-            p(
-              [Class('text-sm text-green-600 mt-1')],
+            h.p(
+              [h.Class('text-sm text-green-600 mt-1')],
               ["Thank you for applying to work on Foldkit. We'll be in touch!"],
             ),
           ],
         ),
       SubmitError: ({ error }) =>
-        keyed('div')(
+        h.keyed('div')(
           'submit-error',
-          [Class('space-y-3 pt-4')],
+          [h.Class('space-y-3 pt-4')],
           [
-            keyed('div')(
+            h.keyed('div')(
               'error-alert',
               [
-                Role('alert'),
-                Class(
+                h.Role('alert'),
+                h.Class(
                   'rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700',
                 ),
               ],
               [error],
             ),
-            ...(isSubmittable ? [] : [blockedNotice]),
-            keyed('button')(
+            ...(isSubmittable ? [] : [blockedNotice<ParentMessage>()]),
+            h.keyed('button')(
               'submit',
               [
-                Type('button'),
-                ...(isSubmittable ? [OnClick(onSubmit)] : [Disabled(true)]),
-                Class(submitButtonClass(isSubmittable)),
+                h.Type('button'),
+                ...(isSubmittable ? [h.OnClick(onSubmit)] : [h.Disabled(true)]),
+                h.Class(submitButtonClass(isSubmittable)),
               ],
               ['Try Again'],
             ),
@@ -299,8 +342,14 @@ const submissionSection = (
         ),
     }),
   )
+}
 
-export const review = (model: Model, onSubmit: Message): Html => {
+export const review = <ParentMessage>(
+  model: Model,
+  onSubmit: ParentMessage,
+): Html => {
+  const h = html<ParentMessage>()
+
   const pronounLabel = Option.match(
     model.personalInfo.pronouns.maybeSelectedItem,
     {
@@ -310,16 +359,16 @@ export const review = (model: Model, onSubmit: Message): Html => {
     },
   )
 
-  return div(
-    [Class('space-y-4')],
+  return h.div(
+    [h.Class('space-y-4')],
     [
-      personalInfoSection(model.personalInfo, pronounLabel),
-      workHistorySection(model.workHistory),
-      educationSection(model.education),
-      skillsSection(model.skills),
-      coverLetterSection(model.coverLetter),
-      attachmentsSection(model.attachments),
-      submissionSection(
+      personalInfoSection<ParentMessage>(model.personalInfo, pronounLabel),
+      workHistorySection<ParentMessage>(model.workHistory),
+      educationSection<ParentMessage>(model.education),
+      skillsSection<ParentMessage>(model.skills),
+      coverLetterSection<ParentMessage>(model.coverLetter),
+      attachmentsSection<ParentMessage>(model.attachments),
+      submissionSection<ParentMessage>(
         model.submission,
         PersonalInfo.isComplete(model.personalInfo) &&
           WorkHistory.isComplete(model.workHistory) &&

@@ -1,8 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { AriaLabelledBy, Class, InnerHTML, div, section } from '../../html'
 import { uiShowcaseViewSourceHref } from '../../link'
-import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
   demoContainer,
@@ -258,12 +256,14 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
 
 // VIEW
 
-export const view = (
+export const view = <ParentMessage>(
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
   copiedSnippets: CopiedSnippets,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
       pageTitle('ui/combobox', 'Combobox'),
@@ -307,8 +307,8 @@ export const view = (
         inlineCode('model.inputValue'),
         '.',
       ),
-      section(
-        [AriaLabelledBy(Combobox.singleSelectHeader.id)],
+      h.section(
+        [h.AriaLabelledBy(Combobox.singleSelectHeader.id)],
         [
           demoContainer(
             ...Combobox.comboboxDemo(model.comboboxDemo, toParentMessage),
@@ -316,8 +316,8 @@ export const view = (
         ],
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippet.uiComboboxBasicHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippet.uiComboboxBasicHighlighted)],
           [],
         ),
         Snippet.uiComboboxBasicRaw,
@@ -335,8 +335,8 @@ export const view = (
         inlineCode('nullable: true'),
         ' at init to allow clearing the selection by clicking the selected item again.',
       ),
-      section(
-        [AriaLabelledBy(Combobox.nullableHeader.id)],
+      h.section(
+        [h.AriaLabelledBy(Combobox.nullableHeader.id)],
         [
           demoContainer(
             ...Combobox.nullableDemo(
@@ -356,8 +356,8 @@ export const view = (
         inlineCode('selectInputOnFocus: true'),
         ' at init to highlight the input text when the combobox receives focus. Typing immediately replaces the current value, making it easy to start a new search.',
       ),
-      section(
-        [AriaLabelledBy(Combobox.selectOnFocusHeader.id)],
+      h.section(
+        [h.AriaLabelledBy(Combobox.selectOnFocusHeader.id)],
         [
           demoContainer(
             ...Combobox.selectOnFocusDemo(
@@ -379,8 +379,8 @@ export const view = (
         inlineCode('model.selectedItems'),
         '.',
       ),
-      section(
-        [AriaLabelledBy(Combobox.multiHeader.id)],
+      h.section(
+        [h.AriaLabelledBy(Combobox.multiHeader.id)],
         [
           demoContainer(
             ...Combobox.multiDemo(model.comboboxMultiDemo, toParentMessage),
@@ -388,8 +388,8 @@ export const view = (
         ],
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippet.uiComboboxMultiHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippet.uiComboboxMultiHighlighted)],
           [],
         ),
         Snippet.uiComboboxMultiRaw,
@@ -466,3 +466,4 @@ export const view = (
       propTable(viewConfigProps),
     ],
   )
+}

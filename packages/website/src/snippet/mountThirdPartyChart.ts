@@ -1,9 +1,9 @@
 import { Effect, Function, Schema as S } from 'effect'
 import { Mount } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { type Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 
-import { Class, OnMount, div } from '../html'
+const h = html<Message>()
 
 const SucceededMountChart = m('SucceededMountChart')
 const FailedMountChart = m('FailedMountChart', { reason: S.String })
@@ -47,4 +47,4 @@ const MountChart = Mount.define(
 )
 
 const chartView = (data: ChartData): Html =>
-  div([Class('w-[480px] h-[320px]'), OnMount(MountChart({ data }))], [])
+  h.div([h.Class('w-[480px] h-[320px]'), h.OnMount(MountChart({ data }))], [])

@@ -9,18 +9,18 @@ const Loaded = S.TaggedStruct('Loaded', { greeting: S.String })
 const Status = S.Union([Idle, Loading, Failed, Loaded])
 type Status = typeof Status.Type
 
-const { div, p, empty } = html()
+const h = html()
 
 const greetingView = (status: Status) =>
-  div(
+  h.div(
     [],
     [
       M.value(status).pipe(
         M.tagsExhaustive({
-          Idle: () => empty,
-          Loading: () => p([], ['Loading…']),
-          Failed: ({ error }) => p([], [`Sorry: ${error}`]),
-          Loaded: ({ greeting }) => p([], [greeting]),
+          Idle: () => h.empty,
+          Loading: () => h.p([], ['Loading…']),
+          Failed: ({ error }) => h.p([], [`Sorry: ${error}`]),
+          Loaded: ({ greeting }) => h.p([], [greeting]),
         }),
       ),
     ],

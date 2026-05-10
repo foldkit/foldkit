@@ -1,7 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, div, li, ul } from '../../html'
-import type { TableOfContentsEntry } from '../../main'
+import { Message, type TableOfContentsEntry } from '../../main'
 import {
   inlineCode,
   link,
@@ -10,6 +9,8 @@ import {
   tableOfContentsEntryToHeader,
 } from '../../prose'
 import { patternsOutMessageRouter } from '../../route'
+
+const h = html<Message>()
 
 const messagesAsEventsHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -43,7 +44,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('best-practices/messages', 'Messages'),
@@ -78,21 +79,21 @@ export const view = (): Html =>
         '.',
       ),
       tableOfContentsEntryToHeader(goodMessageNamesHeader),
-      ul(
-        [Class('list-disc mb-4 space-y-1 font-mono text-sm')],
+      h.ul(
+        [h.Class('list-disc mb-4 space-y-1 font-mono text-sm')],
         [
-          li([], ['ClickedAddToCart']),
-          li([], ['ChangedSearchInput']),
-          li([], ['ReceivedUserData']),
+          h.li([], ['ClickedAddToCart']),
+          h.li([], ['ChangedSearchInput']),
+          h.li([], ['ReceivedUserData']),
         ],
       ),
       tableOfContentsEntryToHeader(avoidTheseHeader),
-      ul(
-        [Class('list-disc mb-6 space-y-1 font-mono text-sm')],
+      h.ul(
+        [h.Class('list-disc mb-6 space-y-1 font-mono text-sm')],
         [
-          li([], ['SetCartItems']),
-          li([], ['UpdateSearchText']),
-          li([], ['MutateUserState']),
+          h.li([], ['SetCartItems']),
+          h.li([], ['UpdateSearchText']),
+          h.li([], ['MutateUserState']),
         ],
       ),
       para(
@@ -133,13 +134,13 @@ export const view = (): Html =>
         inlineCode('CompletedFocusButton'),
         ', ',
         inlineCode('CompletedShowDialog'),
-        '. Verb-first naming aligns with Command names, making Command\u2192Message pairs instantly recognizable: Command ',
+        '. Verb-first naming aligns with Command names, making Command→Message pairs instantly recognizable: Command ',
         inlineCode('FocusButton'),
-        ' \u2192 Message ',
+        ' → Message ',
         inlineCode('CompletedFocusButton'),
         ', Command ',
         inlineCode('LockScroll'),
-        ' \u2192 Message ',
+        ' → Message ',
         inlineCode('CompletedLockScroll'),
         '.',
       ),
@@ -148,7 +149,7 @@ export const view = (): Html =>
         inlineCode('NoOp'),
         ' entries into a readable narrative: ',
         inlineCode('Opened'),
-        ' \u2192 ',
+        ' → ',
         inlineCode('CompletedFocusItems'),
         ', ',
         inlineCode('CompletedLockScroll'),

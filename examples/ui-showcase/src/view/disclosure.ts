@@ -1,10 +1,8 @@
 import clsx from 'clsx'
 import { Ui } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, div, h2, p, span } from '../html'
 import * as Icon from '../icon'
-import type { Message as ParentMessage } from '../main'
 import { GotDisclosureDemoMessage, type UiMessage } from '../message'
 import type { UiModel } from '../model'
 
@@ -14,35 +12,40 @@ const buttonClassName =
 const panelClassName =
   'px-4 py-3 border-x border-b border-gray-300 rounded-b-lg text-gray-800'
 
-const chevron = (isOpen: boolean) =>
-  span(
-    [Class(clsx('text-gray-600', { 'rotate-180': isOpen }))],
-    [Icon.chevronDown('w-4 h-4')],
-  )
+const chevron = <ParentMessage>(isOpen: boolean): Html => {
+  const h = html<ParentMessage>()
 
-export const view = (
+  return h.span(
+    [h.Class(clsx('text-gray-600', { 'rotate-180': isOpen }))],
+    [Icon.chevronDown<ParentMessage>('w-4 h-4')],
+  )
+}
+
+export const view = <ParentMessage>(
   model: UiModel,
   toParentMessage: (message: UiMessage) => ParentMessage,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
-      h2([Class('text-2xl font-bold text-gray-900 mb-6')], ['Disclosure']),
+      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Disclosure']),
       Ui.Disclosure.view({
         model: model.disclosureDemo,
         toParentMessage: message =>
           toParentMessage(GotDisclosureDemoMessage({ message })),
-        buttonAttributes: [Class(buttonClassName)],
-        buttonContent: div(
-          [Class('flex items-center justify-between w-full')],
+        buttonAttributes: [h.Class(buttonClassName)],
+        buttonContent: h.div(
+          [h.Class('flex items-center justify-between w-full')],
           [
-            span([], ['What is Foldkit?']),
-            chevron(model.disclosureDemo.isOpen),
+            h.span([], ['What is Foldkit?']),
+            chevron<ParentMessage>(model.disclosureDemo.isOpen),
           ],
         ),
-        panelAttributes: [Class(panelClassName)],
-        panelContent: p(
-          [Class('text-gray-800')],
+        panelAttributes: [h.Class(panelClassName)],
+        panelContent: h.p(
+          [h.Class('text-gray-800')],
           [
             'Foldkit is an Elm-inspired UI framework powered by Effect. It brings the Model-View-Update architecture to TypeScript with Schema-typed state, explicit side effects via commands, and composable headless UI components.',
           ],
@@ -50,3 +53,4 @@ export const view = (
       }),
     ],
   )
+}

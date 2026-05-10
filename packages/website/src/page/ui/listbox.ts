@@ -1,10 +1,9 @@
 import { Array, Option } from 'effect'
 import { Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import type { AnchorConfig } from 'foldkit/ui/listbox'
 
-import { Class, div, span } from '../../html'
 import { Icon } from '../../icon'
-import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
   GotListboxDemoMessage,
@@ -110,18 +109,20 @@ const LISTBOX_ANCHOR: AnchorConfig = {
 
 // VIEW
 
-export const basicDemo = (
+export const basicDemo = <ParentMessage>(
   listboxModel: Ui.Listbox.Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => {
+  const h = html<ParentMessage>()
+
   const buttonLabel = Option.getOrElse(
     listboxModel.maybeSelectedItem,
     () => 'Select a Bluth',
   )
 
   return [
-    div(
-      [Class('relative')],
+    h.div(
+      [h.Class('relative')],
       [
         Ui.Listbox.view({
           model: listboxModel,
@@ -131,34 +132,36 @@ export const basicDemo = (
           items: LISTBOX_ITEMS,
           itemToConfig: item => ({
             className: itemClassName,
-            content: div(
-              [Class('flex items-center gap-2')],
+            content: h.div(
+              [h.Class('flex items-center gap-2')],
               [
                 Icon.check(
                   'w-4 h-4 shrink-0 invisible group-data-[selected]:visible text-gray-900 dark:text-white',
                 ),
-                span([], [item]),
+                h.span([], [item]),
               ],
             ),
           }),
-          buttonContent: div(
-            [Class('flex w-full items-center justify-between gap-4')],
-            [span([], [buttonLabel]), Icon.chevronDown('w-4 h-4')],
+          buttonContent: h.div(
+            [h.Class('flex w-full items-center justify-between gap-4')],
+            [h.span([], [buttonLabel]), Icon.chevronDown('w-4 h-4')],
           ),
-          buttonAttributes: [Class(triggerClassName)],
-          itemsAttributes: [Class(itemsClassName)],
-          backdropAttributes: [Class(backdropClassName)],
-          attributes: [Class(wrapperClassName)],
+          buttonAttributes: [h.Class(triggerClassName)],
+          itemsAttributes: [h.Class(itemsClassName)],
+          backdropAttributes: [h.Class(backdropClassName)],
+          attributes: [h.Class(wrapperClassName)],
         }),
       ],
     ),
   ]
 }
 
-export const multiSelectDemo = (
+export const multiSelectDemo = <ParentMessage>(
   listboxModel: Ui.Listbox.Multi.Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => {
+  const h = html<ParentMessage>()
+
   const { selectedItems } = listboxModel
   const buttonLabel = Array.match(selectedItems, {
     onEmpty: () => 'Select Bluths',
@@ -167,8 +170,8 @@ export const multiSelectDemo = (
   })
 
   return [
-    div(
-      [Class('relative')],
+    h.div(
+      [h.Class('relative')],
       [
         Ui.Listbox.Multi.view({
           model: listboxModel,
@@ -178,42 +181,44 @@ export const multiSelectDemo = (
           items: LISTBOX_ITEMS,
           itemToConfig: item => ({
             className: itemClassName,
-            content: div(
-              [Class('flex items-center gap-2')],
+            content: h.div(
+              [h.Class('flex items-center gap-2')],
               [
                 Icon.check(
                   'w-4 h-4 shrink-0 invisible group-data-[selected]:visible text-gray-900 dark:text-white',
                 ),
-                span([], [item]),
+                h.span([], [item]),
               ],
             ),
           }),
-          buttonContent: div(
-            [Class('flex w-full items-center justify-between gap-4')],
-            [span([], [buttonLabel]), Icon.chevronDown('w-4 h-4')],
+          buttonContent: h.div(
+            [h.Class('flex w-full items-center justify-between gap-4')],
+            [h.span([], [buttonLabel]), Icon.chevronDown('w-4 h-4')],
           ),
-          buttonAttributes: [Class(triggerClassName)],
-          itemsAttributes: [Class(itemsClassName)],
-          backdropAttributes: [Class(backdropClassName)],
-          attributes: [Class(wrapperClassName)],
+          buttonAttributes: [h.Class(triggerClassName)],
+          itemsAttributes: [h.Class(itemsClassName)],
+          backdropAttributes: [h.Class(backdropClassName)],
+          attributes: [h.Class(wrapperClassName)],
         }),
       ],
     ),
   ]
 }
 
-export const groupedDemo = (
+export const groupedDemo = <ParentMessage>(
   listboxModel: Ui.Listbox.Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => {
+  const h = html<ParentMessage>()
+
   const buttonLabel = Option.getOrElse(
     listboxModel.maybeSelectedItem,
     () => 'Select a character',
   )
 
   return [
-    div(
-      [Class('relative')],
+    h.div(
+      [h.Class('relative')],
       [
         Ui.Listbox.view({
           model: listboxModel,
@@ -224,30 +229,30 @@ export const groupedDemo = (
           itemToValue: characterName,
           itemGroupKey: character => character.lastName,
           groupToHeading: lastName => ({
-            content: span([], [`${lastName}s`]),
+            content: h.span([], [`${lastName}s`]),
             className: groupHeadingClassName,
           }),
-          separatorAttributes: [Class(separatorClassName)],
+          separatorAttributes: [h.Class(separatorClassName)],
           itemToConfig: character => ({
             className: groupedItemClassName,
-            content: div(
-              [Class('flex items-center gap-2')],
+            content: h.div(
+              [h.Class('flex items-center gap-2')],
               [
                 Icon.check(
                   'w-4 h-4 shrink-0 invisible group-data-[selected]:visible text-gray-900 dark:text-white',
                 ),
-                span([], [characterName(character)]),
+                h.span([], [characterName(character)]),
               ],
             ),
           }),
-          buttonContent: div(
-            [Class('flex w-full items-center justify-between gap-4')],
-            [span([], [buttonLabel]), Icon.chevronDown('w-4 h-4')],
+          buttonContent: h.div(
+            [h.Class('flex w-full items-center justify-between gap-4')],
+            [h.span([], [buttonLabel]), Icon.chevronDown('w-4 h-4')],
           ),
-          buttonAttributes: [Class(triggerClassName)],
-          itemsAttributes: [Class(itemsClassName)],
-          backdropAttributes: [Class(backdropClassName)],
-          attributes: [Class(wrapperClassName)],
+          buttonAttributes: [h.Class(triggerClassName)],
+          itemsAttributes: [h.Class(itemsClassName)],
+          backdropAttributes: [h.Class(backdropClassName)],
+          attributes: [h.Class(wrapperClassName)],
         }),
       ],
     ),

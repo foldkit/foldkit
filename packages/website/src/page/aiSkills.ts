@@ -1,7 +1,7 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { div } from '../html'
 import type { TableOfContentsEntry } from '../main'
+import type { Message } from '../message'
 import {
   inlineCode,
   pageTitle,
@@ -9,6 +9,8 @@ import {
   tableOfContentsEntryToHeader,
 } from '../prose'
 import { type CopiedSnippets, codeBlock } from '../view/codeBlock'
+
+const h = html<Message>()
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -47,7 +49,7 @@ const GENERATE_PROGRAM_COMMAND = '/foldkit-skills:generate-program'
 const AUDIT_PROGRAM_COMMAND = '/foldkit-skills:audit-program'
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('ai/skills', 'Skills'),

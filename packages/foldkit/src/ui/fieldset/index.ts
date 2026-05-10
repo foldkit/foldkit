@@ -28,23 +28,23 @@ export const descriptionId = (id: string): string => `${id}-description`
 export const view = <ParentMessage>(
   config: ViewConfig<ParentMessage>,
 ): Html => {
-  const { AriaDescribedBy, DataAttribute, Disabled, Id } = html<ParentMessage>()
+  const h = html<ParentMessage>()
 
   const { toView, id, isDisabled = false } = config
 
   const disabledAttributes = isDisabled
-    ? [Disabled(true), DataAttribute('disabled', '')]
+    ? [h.Disabled(true), h.DataAttribute('disabled', '')]
     : []
 
   const allFieldsetAttributes = [
-    Id(id),
-    AriaDescribedBy(descriptionId(id)),
+    h.Id(id),
+    h.AriaDescribedBy(descriptionId(id)),
     ...disabledAttributes,
   ]
 
-  const legendAttributes = [Id(legendId(id))]
+  const legendAttributes = [h.Id(legendId(id))]
 
-  const descriptionAttributes = [Id(descriptionId(id))]
+  const descriptionAttributes = [h.Id(descriptionId(id))]
 
   return toView({
     fieldset: allFieldsetAttributes,

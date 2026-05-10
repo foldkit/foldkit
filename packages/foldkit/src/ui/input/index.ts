@@ -34,21 +34,7 @@ export const descriptionId = (id: string): string => `${id}-description`
 export const view = <ParentMessage>(
   config: ViewConfig<ParentMessage>,
 ): Html => {
-  const {
-    AriaDescribedBy,
-    AriaDisabled,
-    AriaInvalid,
-    Autofocus,
-    DataAttribute,
-    Disabled,
-    For,
-    Id,
-    Name,
-    OnInput,
-    Placeholder,
-    Type,
-    Value,
-  } = html<ParentMessage>()
+  const h = html<ParentMessage>()
 
   const {
     toView,
@@ -64,30 +50,32 @@ export const view = <ParentMessage>(
   } = config
 
   const disabledAttributes = isDisabled
-    ? [AriaDisabled(true), Disabled(true), DataAttribute('disabled', '')]
+    ? [h.AriaDisabled(true), h.Disabled(true), h.DataAttribute('disabled', '')]
     : []
 
   const invalidAttributes = isInvalid
-    ? [AriaInvalid(true), DataAttribute('invalid', '')]
+    ? [h.AriaInvalid(true), h.DataAttribute('invalid', '')]
     : []
 
   const inputAttributes =
-    Predicate.isNotUndefined(onInput) && !isDisabled ? [OnInput(onInput)] : []
+    Predicate.isNotUndefined(onInput) && !isDisabled ? [h.OnInput(onInput)] : []
 
-  const valueAttributes = Predicate.isNotUndefined(value) ? [Value(value)] : []
+  const valueAttributes = Predicate.isNotUndefined(value)
+    ? [h.Value(value)]
+    : []
 
-  const autofocusAttributes = isAutofocus ? [Autofocus(true)] : []
+  const autofocusAttributes = isAutofocus ? [h.Autofocus(true)] : []
 
-  const nameAttributes = Predicate.isNotUndefined(name) ? [Name(name)] : []
+  const nameAttributes = Predicate.isNotUndefined(name) ? [h.Name(name)] : []
 
   const placeholderAttributes = Predicate.isNotUndefined(placeholder)
-    ? [Placeholder(placeholder)]
+    ? [h.Placeholder(placeholder)]
     : []
 
   const allInputAttributes = [
-    Id(id),
-    Type(type),
-    AriaDescribedBy(descriptionId(id)),
+    h.Id(id),
+    h.Type(type),
+    h.AriaDescribedBy(descriptionId(id)),
     ...disabledAttributes,
     ...invalidAttributes,
     ...inputAttributes,
@@ -97,9 +85,9 @@ export const view = <ParentMessage>(
     ...placeholderAttributes,
   ]
 
-  const labelAttributes = [For(id)]
+  const labelAttributes = [h.For(id)]
 
-  const descriptionAttributes = [Id(descriptionId(id))]
+  const descriptionAttributes = [h.Id(descriptionId(id))]
 
   return toView({
     input: allInputAttributes,

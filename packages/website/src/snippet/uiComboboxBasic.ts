@@ -3,10 +3,11 @@
 // update, and view definitions.
 import { Array, Effect, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Class, Placeholder, div, span } from './html'
+const h = html<Message>()
 
 // Add a field to your Model for the Combobox Submodel, plus a field for
 // the selected value your app actually cares about:
@@ -99,19 +100,19 @@ Ui.Combobox.view({
   itemToDisplayText: city => city,
   itemToConfig: (city, { isSelected }) => ({
     className: 'px-3 py-2 cursor-pointer data-[active]:bg-blue-100',
-    content: div(
-      [Class('flex items-center gap-2')],
+    content: h.div(
+      [h.Class('flex items-center gap-2')],
       [
-        isSelected ? span([], ['✓']) : span([Class('w-4')], []),
-        span([], [city]),
+        isSelected ? h.span([], ['✓']) : h.span([h.Class('w-4')], []),
+        h.span([], [city]),
       ],
     ),
   }),
   inputAttributes: [
-    Class('w-full rounded-lg border px-3 py-2'),
-    Placeholder('Search cities...'),
+    h.Class('w-full rounded-lg border px-3 py-2'),
+    h.Placeholder('Search cities...'),
   ],
-  itemsAttributes: [Class('rounded-lg border shadow-lg')],
-  backdropAttributes: [Class('fixed inset-0')],
+  itemsAttributes: [h.Class('rounded-lg border shadow-lg')],
+  backdropAttributes: [h.Class('fixed inset-0')],
   anchor: { placement: 'bottom-start', gap: 8, padding: 8 },
 })

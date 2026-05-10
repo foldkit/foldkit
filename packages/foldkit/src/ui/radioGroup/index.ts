@@ -184,26 +184,7 @@ const descriptionId = (id: string, index: number): string =>
 export const view = <ParentMessage, RadioOption extends string>(
   config: ViewConfig<ParentMessage, RadioOption>,
 ): Html => {
-  const {
-    div,
-    input,
-    AriaChecked,
-    AriaDescribedBy,
-    AriaDisabled,
-    AriaLabel,
-    AriaLabelledBy,
-    AriaOrientation,
-    Class,
-    DataAttribute,
-    Id,
-    Name,
-    OnClick,
-    OnKeyDownPreventDefault,
-    Role,
-    Tabindex,
-    Type,
-    Value,
-  } = html<ParentMessage>()
+  const h = html<ParentMessage>()
 
   const {
     model,
@@ -345,37 +326,37 @@ export const view = <ParentMessage, RadioOption extends string>(
       isDisabled: isOptionDisabled,
     })
 
-    const checkedAttributes = isSelected ? [DataAttribute('checked', '')] : []
-    const activeAttributes = isFocusable ? [DataAttribute('active', '')] : []
+    const checkedAttributes = isSelected ? [h.DataAttribute('checked', '')] : []
+    const activeAttributes = isFocusable ? [h.DataAttribute('active', '')] : []
 
     const disabledAttributes = isOptionDisabled
-      ? [AriaDisabled(true), DataAttribute('disabled', '')]
+      ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
       : []
 
     const optionAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-      Id(optionId(id, index)),
-      Role('radio'),
-      AriaChecked(isSelected),
-      AriaLabelledBy(labelId(id, index)),
-      AriaDescribedBy(descriptionId(id, index)),
-      Tabindex(isFocusable ? 0 : -1),
+      h.Id(optionId(id, index)),
+      h.Role('radio'),
+      h.AriaChecked(isSelected),
+      h.AriaLabelledBy(labelId(id, index)),
+      h.AriaDescribedBy(descriptionId(id, index)),
+      h.Tabindex(isFocusable ? 0 : -1),
       ...checkedAttributes,
       ...activeAttributes,
       ...disabledAttributes,
       ...(isOptionDisabled
         ? []
         : [
-            OnClick(dispatchSelected(optionConfig.value, index)),
-            OnKeyDownPreventDefault(handleKeyDown(index)),
+            h.OnClick(dispatchSelected(optionConfig.value, index)),
+            h.OnKeyDownPreventDefault(handleKeyDown(index)),
           ]),
     ]
 
     const labelAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-      Id(labelId(id, index)),
+      h.Id(labelId(id, index)),
     ]
 
     const descriptionAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-      Id(descriptionId(id, index)),
+      h.Id(descriptionId(id, index)),
     ]
 
     return optionConfig.content({
@@ -392,7 +373,7 @@ export const view = <ParentMessage, RadioOption extends string>(
       pipe(
         selectedValue,
         Option.map(value =>
-          input([Type('hidden'), Name(inputName), Value(value)]),
+          h.input([h.Type('hidden'), h.Name(inputName), h.Value(value)]),
         ),
       ),
     ),
@@ -403,14 +384,14 @@ export const view = <ParentMessage, RadioOption extends string>(
   )
 
   const groupAttributes = [
-    Role('radiogroup'),
-    AriaOrientation(String.toLowerCase(orientation)),
-    AriaLabel(ariaLabel),
-    ...(className ? [Class(className)] : []),
+    h.Role('radiogroup'),
+    h.AriaOrientation(String.toLowerCase(orientation)),
+    h.AriaLabel(ariaLabel),
+    ...(className ? [h.Class(className)] : []),
     ...attributes,
   ]
 
-  return div(groupAttributes, [...renderedOptions, ...hiddenInputs])
+  return h.div(groupAttributes, [...renderedOptions, ...hiddenInputs])
 }
 
 /** Creates a memoized radio group view. Static config is captured in a closure;

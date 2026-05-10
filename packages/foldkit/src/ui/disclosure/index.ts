@@ -150,24 +150,7 @@ export const close = (
 export const view = <ParentMessage>(
   config: ViewConfig<ParentMessage>,
 ): Html => {
-  const {
-    div,
-    empty,
-    AriaControls,
-    AriaDisabled,
-    AriaExpanded,
-    Class,
-    DataAttribute,
-    Disabled,
-    Hidden,
-    Id,
-    OnClick,
-    OnKeyDownPreventDefault,
-    Style,
-    Tabindex,
-    Type,
-    keyed,
-  } = html<ParentMessage>()
+  const h = html<ParentMessage>()
 
   const {
     model: { id, isOpen },
@@ -199,56 +182,58 @@ export const view = <ParentMessage>(
     )
 
   const disabledAttributes = [
-    Disabled(true),
-    AriaDisabled(true),
-    DataAttribute('disabled', ''),
+    h.Disabled(true),
+    h.AriaDisabled(true),
+    h.DataAttribute('disabled', ''),
   ]
 
   const interactionAttributes = isDisabled
     ? disabledAttributes
     : [
-        OnClick(dispatchToggled()),
-        ...(!isNativeButton ? [OnKeyDownPreventDefault(handleKeyDown)] : []),
+        h.OnClick(dispatchToggled()),
+        ...(!isNativeButton ? [h.OnKeyDownPreventDefault(handleKeyDown)] : []),
       ]
 
   const resolvedButtonAttributes = [
-    Id(buttonId(id)),
-    AriaExpanded(isOpen),
-    AriaControls(panelId(id)),
-    ...(isNativeButton ? [Type('button')] : [Tabindex(0)]),
-    ...(isOpen ? [DataAttribute('open', '')] : []),
+    h.Id(buttonId(id)),
+    h.AriaExpanded(isOpen),
+    h.AriaControls(panelId(id)),
+    ...(isNativeButton ? [h.Type('button')] : [h.Tabindex(0)]),
+    ...(isOpen ? [h.DataAttribute('open', '')] : []),
     ...interactionAttributes,
-    ...(buttonClassName ? [Class(buttonClassName)] : []),
+    ...(buttonClassName ? [h.Class(buttonClassName)] : []),
     ...buttonAttributes,
   ]
 
   const resolvedPanelAttributes = [
-    Id(panelId(id)),
-    ...(isOpen ? [DataAttribute('open', '')] : []),
-    ...(panelClassName ? [Class(panelClassName)] : []),
+    h.Id(panelId(id)),
+    ...(isOpen ? [h.DataAttribute('open', '')] : []),
+    ...(panelClassName ? [h.Class(panelClassName)] : []),
     ...panelAttributes,
   ]
 
-  const persistedPanel = keyed(panelElement)(
+  const persistedPanel = h.keyed(panelElement)(
     panelId(id),
     [
       ...resolvedPanelAttributes,
-      Hidden(!isOpen),
-      ...(isOpen ? [] : [Style({ display: 'none' })]),
+      h.Hidden(!isOpen),
+      ...(isOpen ? [] : [h.Style({ display: 'none' })]),
     ],
     [panelContent],
   )
 
   const activePanel = isOpen
-    ? keyed(panelElement)(panelId(id), resolvedPanelAttributes, [panelContent])
-    : empty
+    ? h.keyed(panelElement)(panelId(id), resolvedPanelAttributes, [
+        panelContent,
+      ])
+    : h.empty
 
   const panel = persistPanel ? persistedPanel : activePanel
 
-  return div(
-    [...(className ? [Class(className)] : []), ...attributes],
+  return h.div(
+    [...(className ? [h.Class(className)] : []), ...attributes],
     [
-      keyed(buttonElement)(buttonId(id), resolvedButtonAttributes, [
+      h.keyed(buttonElement)(buttonId(id), resolvedButtonAttributes, [
         buttonContent,
       ]),
       panel,

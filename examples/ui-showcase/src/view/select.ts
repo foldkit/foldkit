@@ -1,9 +1,7 @@
 import { Ui } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, Value, div, h2, h3, label, option, select, span } from '../html'
 import * as Icon from '../icon'
-import type { Message as ParentMessage } from '../main'
 import { type UiMessage, UpdatedSelectDemoValue } from '../message'
 import type { UiModel } from '../model'
 
@@ -19,18 +17,23 @@ const labelClassName = 'block text-sm font-medium text-gray-700'
 
 const descriptionClassName = 'text-sm text-gray-500'
 
-export const view = (
+export const view = <ParentMessage>(
   model: UiModel,
   toParentMessage: (message: UiMessage) => ParentMessage,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
-      h2([Class('text-2xl font-bold text-gray-900 mb-6')], ['Select']),
+      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Select']),
 
-      h3([Class('text-lg font-semibold text-gray-900 mt-8 mb-4')], ['Basic']),
-      div(
-        [Class('flex flex-col items-start gap-2 max-w-sm')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+        ['Basic'],
+      ),
+      h.div(
+        [h.Class('flex flex-col items-start gap-2 max-w-sm')],
         [
           Ui.Select.view({
             id: 'select-basic-demo',
@@ -38,33 +41,33 @@ export const view = (
             onChange: value =>
               toParentMessage(UpdatedSelectDemoValue({ value })),
             toView: attributes =>
-              div(
-                [Class('flex flex-col gap-1.5 w-full')],
+              h.div(
+                [h.Class('flex flex-col gap-1.5 w-full')],
                 [
-                  label(
-                    [...attributes.label, Class(labelClassName)],
+                  h.label(
+                    [...attributes.label, h.Class(labelClassName)],
                     ['Country'],
                   ),
-                  div(
-                    [Class(selectWrapperClassName)],
+                  h.div(
+                    [h.Class(selectWrapperClassName)],
                     [
-                      select(
-                        [...attributes.select, Class(selectClassName)],
+                      h.select(
+                        [...attributes.select, h.Class(selectClassName)],
                         [
-                          option([Value('us')], ['United States']),
-                          option([Value('ca')], ['Canada']),
-                          option([Value('gb')], ['United Kingdom']),
-                          option([Value('au')], ['Australia']),
+                          h.option([h.Value('us')], ['United States']),
+                          h.option([h.Value('ca')], ['Canada']),
+                          h.option([h.Value('gb')], ['United Kingdom']),
+                          h.option([h.Value('au')], ['Australia']),
                         ],
                       ),
-                      span(
-                        [Class(chevronClassName)],
-                        [Icon.chevronDown('w-4 h-4')],
+                      h.span(
+                        [h.Class(chevronClassName)],
+                        [Icon.chevronDown<ParentMessage>('w-4 h-4')],
                       ),
                     ],
                   ),
-                  span(
-                    [...attributes.description, Class(descriptionClassName)],
+                  h.span(
+                    [...attributes.description, h.Class(descriptionClassName)],
                     ['Where you currently reside.'],
                   ),
                 ],
@@ -73,8 +76,8 @@ export const view = (
         ],
       ),
 
-      h3(
-        [Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Disabled'],
       ),
       Ui.Select.view<ParentMessage>({
@@ -82,30 +85,33 @@ export const view = (
         isDisabled: true,
         value: 'us',
         toView: attributes =>
-          div(
-            [Class('flex flex-col gap-1.5 max-w-sm')],
+          h.div(
+            [h.Class('flex flex-col gap-1.5 max-w-sm')],
             [
-              label([...attributes.label, Class(labelClassName)], ['Country']),
-              div(
-                [Class(selectWrapperClassName)],
+              h.label(
+                [...attributes.label, h.Class(labelClassName)],
+                ['Country'],
+              ),
+              h.div(
+                [h.Class(selectWrapperClassName)],
                 [
-                  select(
-                    [...attributes.select, Class(selectClassName)],
+                  h.select(
+                    [...attributes.select, h.Class(selectClassName)],
                     [
-                      option([Value('us')], ['United States']),
-                      option([Value('ca')], ['Canada']),
-                      option([Value('gb')], ['United Kingdom']),
-                      option([Value('au')], ['Australia']),
+                      h.option([h.Value('us')], ['United States']),
+                      h.option([h.Value('ca')], ['Canada']),
+                      h.option([h.Value('gb')], ['United Kingdom']),
+                      h.option([h.Value('au')], ['Australia']),
                     ],
                   ),
-                  span(
-                    [Class(chevronClassName)],
-                    [Icon.chevronDown('w-4 h-4')],
+                  h.span(
+                    [h.Class(chevronClassName)],
+                    [Icon.chevronDown<ParentMessage>('w-4 h-4')],
                   ),
                 ],
               ),
-              span(
-                [...attributes.description, Class(descriptionClassName)],
+              h.span(
+                [...attributes.description, h.Class(descriptionClassName)],
                 ['This select is disabled.'],
               ),
             ],
@@ -113,3 +119,4 @@ export const view = (
       }),
     ],
   )
+}

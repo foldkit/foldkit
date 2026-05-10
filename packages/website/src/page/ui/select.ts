@@ -1,8 +1,7 @@
 import { Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 
-import { Class, Value, div, label, option, select, span } from '../../html'
 import { Icon } from '../../icon'
-import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import { type Message, UpdatedSelectDemoValue } from './message'
 import type { Model } from './model'
@@ -38,84 +37,101 @@ const descriptionClassName = 'text-sm text-gray-500 dark:text-gray-400'
 
 // VIEW
 
-export const basicDemo = (
+export const basicDemo = <ParentMessage>(
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
-) => [
-  div(
-    [Class('flex flex-col items-start gap-2 w-full max-w-md')],
-    [
-      Ui.Select.view({
-        id: 'select-basic-demo',
-        value: model.selectDemoValue,
-        onChange: value => toParentMessage(UpdatedSelectDemoValue({ value })),
-        toView: attributes =>
-          div(
-            [Class('flex flex-col gap-1.5 w-full')],
-            [
-              label([...attributes.label, Class(labelClassName)], ['Country']),
-              div(
-                [Class(selectWrapperClassName)],
-                [
-                  select(
-                    [...attributes.select, Class(selectClassName)],
-                    [
-                      option([Value('us')], ['United States']),
-                      option([Value('ca')], ['Canada']),
-                      option([Value('gb')], ['United Kingdom']),
-                      option([Value('au')], ['Australia']),
-                    ],
-                  ),
-                  span(
-                    [Class(chevronClassName)],
-                    [Icon.chevronDown('w-4 h-4')],
-                  ),
-                ],
-              ),
-              span(
-                [...attributes.description, Class(descriptionClassName)],
-                ['Where you currently reside.'],
-              ),
-            ],
-          ),
-      }),
-    ],
-  ),
-]
+) => {
+  const h = html<ParentMessage>()
 
-export const disabledDemo = (
+  return [
+    h.div(
+      [h.Class('flex flex-col items-start gap-2 w-full max-w-md')],
+      [
+        Ui.Select.view({
+          id: 'select-basic-demo',
+          value: model.selectDemoValue,
+          onChange: value => toParentMessage(UpdatedSelectDemoValue({ value })),
+          toView: attributes =>
+            h.div(
+              [h.Class('flex flex-col gap-1.5 w-full')],
+              [
+                h.label(
+                  [...attributes.label, h.Class(labelClassName)],
+                  ['Country'],
+                ),
+                h.div(
+                  [h.Class(selectWrapperClassName)],
+                  [
+                    h.select(
+                      [...attributes.select, h.Class(selectClassName)],
+                      [
+                        h.option([h.Value('us')], ['United States']),
+                        h.option([h.Value('ca')], ['Canada']),
+                        h.option([h.Value('gb')], ['United Kingdom']),
+                        h.option([h.Value('au')], ['Australia']),
+                      ],
+                    ),
+                    h.span(
+                      [h.Class(chevronClassName)],
+                      [Icon.chevronDown('w-4 h-4')],
+                    ),
+                  ],
+                ),
+                h.span(
+                  [...attributes.description, h.Class(descriptionClassName)],
+                  ['Where you currently reside.'],
+                ),
+              ],
+            ),
+        }),
+      ],
+    ),
+  ]
+}
+
+export const disabledDemo = <ParentMessage>(
   _model: Model,
   _toParentMessage: (message: Message) => ParentMessage,
-) => [
-  Ui.Select.view<ParentMessage>({
-    id: 'select-disabled-demo',
-    isDisabled: true,
-    value: 'us',
-    toView: attributes =>
-      div(
-        [Class('flex flex-col gap-1.5 w-full max-w-md')],
-        [
-          label([...attributes.label, Class(labelClassName)], ['Country']),
-          div(
-            [Class(selectWrapperClassName)],
-            [
-              select(
-                [...attributes.select, Class(selectClassName)],
-                [
-                  option([Value('us')], ['United States']),
-                  option([Value('ca')], ['Canada']),
-                  option([Value('gb')], ['United Kingdom']),
-                  option([Value('au')], ['Australia']),
-                ],
-              ),
-              span([Class(chevronClassName)], [Icon.chevronDown('w-4 h-4')]),
-            ],
-          ),
-          span(
-            [...attributes.description, Class(descriptionClassName)],
-            ['This select is disabled.'],
-          ),
-        ],
-      ),
-  }),
-]
+) => {
+  const h = html<ParentMessage>()
+
+  return [
+    Ui.Select.view<ParentMessage>({
+      id: 'select-disabled-demo',
+      isDisabled: true,
+      value: 'us',
+      toView: attributes =>
+        h.div(
+          [h.Class('flex flex-col gap-1.5 w-full max-w-md')],
+          [
+            h.label(
+              [...attributes.label, h.Class(labelClassName)],
+              ['Country'],
+            ),
+            h.div(
+              [h.Class(selectWrapperClassName)],
+              [
+                h.select(
+                  [...attributes.select, h.Class(selectClassName)],
+                  [
+                    h.option([h.Value('us')], ['United States']),
+                    h.option([h.Value('ca')], ['Canada']),
+                    h.option([h.Value('gb')], ['United Kingdom']),
+                    h.option([h.Value('au')], ['Australia']),
+                  ],
+                ),
+                h.span(
+                  [h.Class(chevronClassName)],
+                  [Icon.chevronDown('w-4 h-4')],
+                ),
+              ],
+            ),
+            h.span(
+              [...attributes.description, h.Class(descriptionClassName)],
+              ['This select is disabled.'],
+            ),
+          ],
+        ),
+    }),
+  ]
+}

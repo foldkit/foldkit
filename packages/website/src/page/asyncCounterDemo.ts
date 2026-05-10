@@ -9,27 +9,15 @@ import {
   pipe,
 } from 'effect'
 import { Command, Ui } from 'foldkit'
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 import demoCodeHtml from 'virtual:counter-demo-code'
 
-import {
-  AriaHidden,
-  AriaLabel,
-  Class,
-  For,
-  Max,
-  Min,
-  Style,
-  button,
-  div,
-  input,
-  label,
-  p,
-} from '../html'
 import type { Message as ParentMessage } from '../message'
 import * as DemoView from './demoView'
+
+const h = html<ParentMessage>()
 
 // CONSTANTS
 
@@ -327,11 +315,11 @@ const appPanel = (
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
-  div(
-    [Class('relative')],
+  h.div(
+    [h.Class('relative')],
     [
-      div(
-        [Class('lg:absolute lg:inset-0 flex flex-col gap-4 overflow-hidden')],
+      h.div(
+        [h.Class('lg:absolute lg:inset-0 flex flex-col gap-4 overflow-hidden')],
         [
           viewAndControlsView(model, toParentMessage),
           DemoView.modelStateView([
@@ -367,22 +355,22 @@ const viewAndControlsView = (
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
-  div(
-    [Class('flex flex-col gap-3')],
+  h.div(
+    [h.Class('flex flex-col gap-3')],
     [
-      div(
-        [Class('pb-3 border-b border-gray-300 dark:border-gray-800')],
+      h.div(
+        [h.Class('pb-3 border-b border-gray-300 dark:border-gray-800')],
         [
-          div(
+          h.div(
             [
-              Class(
+              h.Class(
                 'flex items-center justify-center py-4 rounded-lg bg-gray-200 dark:bg-gray-800',
               ),
             ],
             [
-              p(
+              h.p(
                 [
-                  Class(
+                  h.Class(
                     'text-3xl font-bold text-gray-800 dark:text-gray-200 font-mono',
                   ),
                 ],
@@ -395,10 +383,10 @@ const viewAndControlsView = (
       Ui.Button.view<ParentMessage>({
         onClick: toParentMessage(ClickedDemoIncrement()),
         toView: attributes =>
-          button(
+          h.button(
             [
               ...attributes.button,
-              Class(
+              h.Class(
                 'px-4 py-2 rounded-lg bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 text-sm font-normal transition hover:bg-accent-700 dark:hover:bg-accent-600 active:bg-accent-800 dark:active:bg-accent-700 cursor-pointer',
               ),
             ],
@@ -416,27 +404,27 @@ const viewAndControlsView = (
           ),
         type: 'number',
         toView: attributes =>
-          div(
-            [Class('flex flex-col gap-1')],
+          h.div(
+            [h.Class('flex flex-col gap-1')],
             [
-              label(
+              h.label(
                 [
                   ...attributes.label,
-                  For('demo-reset-duration'),
-                  Class('text-xs text-gray-500 dark:text-gray-400'),
+                  h.For('demo-reset-duration'),
+                  h.Class('text-xs text-gray-500 dark:text-gray-400'),
                 ],
                 ['Reset Delay (seconds)'],
               ),
-              div(
-                [Class('flex gap-1')],
+              h.div(
+                [h.Class('flex gap-1')],
                 [
-                  input([
+                  h.input([
                     ...attributes.input,
-                    Class(
+                    h.Class(
                       'flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-sm text-gray-800 dark:text-gray-200 font-mono',
                     ),
-                    Min(String(MIN_RESET_DURATION)),
-                    Max(String(MAX_RESET_DURATION)),
+                    h.Min(String(MIN_RESET_DURATION)),
+                    h.Max(String(MAX_RESET_DURATION)),
                   ]),
                   Ui.Button.view<ParentMessage>({
                     onClick: toParentMessage(
@@ -449,17 +437,17 @@ const viewAndControlsView = (
                     ),
                     isDisabled: model.resetDuration <= MIN_RESET_DURATION,
                     toView: buttonAttributes =>
-                      button(
+                      h.button(
                         [
                           ...buttonAttributes.button,
-                          Class(
+                          h.Class(
                             stepperButtonClass(
                               model.resetDuration <= MIN_RESET_DURATION,
                             ),
                           ),
-                          AriaLabel('Decrease reset delay'),
+                          h.AriaLabel('Decrease reset delay'),
                         ],
-                        ['\u2212'],
+                        ['−'],
                       ),
                   }),
                   Ui.Button.view<ParentMessage>({
@@ -473,15 +461,15 @@ const viewAndControlsView = (
                     ),
                     isDisabled: model.resetDuration >= MAX_RESET_DURATION,
                     toView: buttonAttributes =>
-                      button(
+                      h.button(
                         [
                           ...buttonAttributes.button,
-                          Class(
+                          h.Class(
                             stepperButtonClass(
                               model.resetDuration >= MAX_RESET_DURATION,
                             ),
                           ),
-                          AriaLabel('Increase reset delay'),
+                          h.AriaLabel('Increase reset delay'),
                         ],
                         ['+'],
                       ),
@@ -495,10 +483,10 @@ const viewAndControlsView = (
         onClick: toParentMessage(ClickedDemoReset()),
         isDisabled: model.isResetting,
         toView: attributes =>
-          button(
+          h.button(
             [
               ...attributes.button,
-              Class(
+              h.Class(
                 clsx('px-4 py-2 rounded-lg text-sm font-normal transition', {
                   'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed':
                     model.isResetting,
@@ -528,10 +516,10 @@ const phaseIndicatorView = (model: Model): Html => {
 }
 
 const progressBarView = (model: Model, isCommand: boolean): Html =>
-  div(
+  h.div(
     [
-      AriaHidden(true),
-      Class(
+      h.AriaHidden(true),
+      h.Class(
         clsx(
           'flex-1 h-2 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden transition-opacity duration-200',
           {
@@ -542,9 +530,9 @@ const progressBarView = (model: Model, isCommand: boolean): Html =>
       ),
     ],
     [
-      div(
+      h.div(
         [
-          Class(
+          h.Class(
             clsx(
               'demo-progress-bar h-full rounded-full bg-violet-600 dark:bg-violet-400',
               {
@@ -552,7 +540,7 @@ const progressBarView = (model: Model, isCommand: boolean): Html =>
               },
             ),
           ),
-          Style({
+          h.Style({
             '--reset-duration': String(model.resetDuration),
           }),
         ],

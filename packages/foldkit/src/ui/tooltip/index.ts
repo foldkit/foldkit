@@ -332,25 +332,7 @@ export type ViewConfig<ParentMessage> = Readonly<{
 export const view = <ParentMessage>(
   config: ViewConfig<ParentMessage>,
 ): Html => {
-  const {
-    div,
-    AriaDescribedBy,
-    AriaDisabled,
-    Class,
-    DataAttribute,
-    Id,
-    OnBlur,
-    OnFocus,
-    OnKeyDownPreventDefault,
-    OnMount,
-    OnMouseEnter,
-    OnMouseLeave,
-    OnPointerDown,
-    Role,
-    Style,
-    Type,
-    keyed,
-  } = html<ParentMessage>()
+  const h = html<ParentMessage>()
 
   const {
     model: { id, isOpen },
@@ -384,21 +366,21 @@ export const view = <ParentMessage>(
     )
 
   const resolvedTriggerAttributes = [
-    Id(`${id}-trigger`),
-    Type('button'),
-    AriaDescribedBy(`${id}-panel`),
-    ...(isOpen ? [DataAttribute('open', '')] : []),
+    h.Id(`${id}-trigger`),
+    h.Type('button'),
+    h.AriaDescribedBy(`${id}-panel`),
+    ...(isOpen ? [h.DataAttribute('open', '')] : []),
     ...(isDisabled
-      ? [AriaDisabled(true), DataAttribute('disabled', '')]
+      ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
       : [
-          OnMouseEnter(toParentMessage(EnteredTrigger())),
-          OnMouseLeave(toParentMessage(LeftTrigger())),
-          OnFocus(toParentMessage(FocusedTrigger())),
-          OnBlur(toParentMessage(BlurredTrigger())),
-          OnKeyDownPreventDefault(handleTriggerKeyDown),
-          OnPointerDown(handleTriggerPointerDown),
+          h.OnMouseEnter(toParentMessage(EnteredTrigger())),
+          h.OnMouseLeave(toParentMessage(LeftTrigger())),
+          h.OnFocus(toParentMessage(FocusedTrigger())),
+          h.OnBlur(toParentMessage(BlurredTrigger())),
+          h.OnKeyDownPreventDefault(handleTriggerKeyDown),
+          h.OnPointerDown(handleTriggerPointerDown),
         ]),
-    ...(triggerClassName ? [Class(triggerClassName)] : []),
+    ...(triggerClassName ? [h.Class(triggerClassName)] : []),
     ...triggerAttributes,
   ]
 
@@ -408,35 +390,35 @@ export const view = <ParentMessage>(
   )
 
   const anchorAttributes = [
-    Style({
+    h.Style({
       position: 'absolute',
       margin: '0',
       visibility: 'hidden',
       pointerEvents: 'none',
     }),
-    OnMount(anchorTooltip),
+    h.OnMount(anchorTooltip),
   ]
 
   const resolvedPanelAttributes = [
-    Id(`${id}-panel`),
-    Role('tooltip'),
+    h.Id(`${id}-panel`),
+    h.Role('tooltip'),
     ...anchorAttributes,
-    ...(isOpen ? [DataAttribute('open', '')] : []),
-    ...(panelClassName ? [Class(panelClassName)] : []),
+    ...(isOpen ? [h.DataAttribute('open', '')] : []),
+    ...(panelClassName ? [h.Class(panelClassName)] : []),
     ...panelAttributes,
   ]
 
   const wrapperAttributes = [
-    ...(className ? [Class(className)] : []),
+    ...(className ? [h.Class(className)] : []),
     ...attributes,
   ]
 
-  return div(wrapperAttributes, [
-    keyed('button')(`${id}-trigger`, resolvedTriggerAttributes, [
+  return h.div(wrapperAttributes, [
+    h.keyed('button')(`${id}-trigger`, resolvedTriggerAttributes, [
       triggerContent,
     ]),
     ...(isOpen
-      ? [keyed('div')(`${id}-panel`, resolvedPanelAttributes, [content])]
+      ? [h.keyed('div')(`${id}-panel`, resolvedPanelAttributes, [content])]
       : []),
   ])
 }

@@ -1,24 +1,21 @@
 import { clsx } from 'clsx'
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import {
-  AriaLabel,
-  AriaPressed,
-  Class,
-  OnClick,
-  Role,
-  button,
-  div,
-} from '../html'
 import { Icon } from '../icon'
-import { SelectedThemePreference, type ThemePreference } from '../message'
+import {
+  type Message,
+  SelectedThemePreference,
+  type ThemePreference,
+} from '../message'
+
+const h = html<Message>()
 
 export const themeSelector = (activePreference: ThemePreference): Html =>
-  div(
+  h.div(
     [
-      Role('group'),
-      AriaLabel('Theme preference'),
-      Class(
+      h.Role('group'),
+      h.AriaLabel('Theme preference'),
+      h.Class(
         'flex items-center gap-0.5 p-0.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700',
       ),
     ],
@@ -52,10 +49,10 @@ const themeSelectorButton = (
 ) => {
   const isActive = preference === activePreference
 
-  return button(
+  return h.button(
     [
-      AriaPressed(isActive.toString()),
-      Class(
+      h.AriaPressed(isActive.toString()),
+      h.Class(
         clsx(
           'p-2 rounded-md transition cursor-pointer',
           isActive
@@ -63,8 +60,8 @@ const themeSelectorButton = (
             : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200',
         ),
       ),
-      AriaLabel(label),
-      OnClick(SelectedThemePreference({ preference })),
+      h.AriaLabel(label),
+      h.OnClick(SelectedThemePreference({ preference })),
     ],
     [icon],
   )

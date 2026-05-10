@@ -1,7 +1,6 @@
 import { Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 
-import { Class, div, input, label, span } from '../../html'
-import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import { type Message, UpdatedInputDemoValue } from './message'
 import type { Model } from './model'
@@ -32,54 +31,65 @@ const descriptionClassName = 'text-sm text-gray-500 dark:text-gray-400'
 
 // VIEW
 
-export const basicDemo = (
+export const basicDemo = <ParentMessage>(
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
-) => [
-  div(
-    [Class('flex flex-col items-start gap-2 w-full max-w-md')],
-    [
-      Ui.Input.view({
-        id: 'input-basic-demo',
-        value: model.inputDemoValue,
-        onInput: value => toParentMessage(UpdatedInputDemoValue({ value })),
-        placeholder: 'Enter your full name',
-        toView: attributes =>
-          div(
-            [Class('flex flex-col gap-1.5 w-full')],
-            [
-              label([...attributes.label, Class(labelClassName)], ['Name']),
-              input([...attributes.input, Class(inputClassName)]),
-              span(
-                [...attributes.description, Class(descriptionClassName)],
-                ['As it appears on your government-issued ID.'],
-              ),
-            ],
-          ),
-      }),
-    ],
-  ),
-]
+) => {
+  const h = html<ParentMessage>()
 
-export const disabledDemo = (
+  return [
+    h.div(
+      [h.Class('flex flex-col items-start gap-2 w-full max-w-md')],
+      [
+        Ui.Input.view({
+          id: 'input-basic-demo',
+          value: model.inputDemoValue,
+          onInput: value => toParentMessage(UpdatedInputDemoValue({ value })),
+          placeholder: 'Enter your full name',
+          toView: attributes =>
+            h.div(
+              [h.Class('flex flex-col gap-1.5 w-full')],
+              [
+                h.label(
+                  [...attributes.label, h.Class(labelClassName)],
+                  ['Name'],
+                ),
+                h.input([...attributes.input, h.Class(inputClassName)]),
+                h.span(
+                  [...attributes.description, h.Class(descriptionClassName)],
+                  ['As it appears on your government-issued ID.'],
+                ),
+              ],
+            ),
+        }),
+      ],
+    ),
+  ]
+}
+
+export const disabledDemo = <ParentMessage>(
   _model: Model,
   _toParentMessage: (message: Message) => ParentMessage,
-) => [
-  Ui.Input.view<ParentMessage>({
-    id: 'input-disabled-demo',
-    isDisabled: true,
-    value: 'Ada Lovelace',
-    toView: attributes =>
-      div(
-        [Class('flex flex-col gap-1.5 w-full max-w-md')],
-        [
-          label([...attributes.label, Class(labelClassName)], ['Name']),
-          input([...attributes.input, Class(inputClassName)]),
-          span(
-            [...attributes.description, Class(descriptionClassName)],
-            ['This input is disabled.'],
-          ),
-        ],
-      ),
-  }),
-]
+) => {
+  const h = html<ParentMessage>()
+
+  return [
+    Ui.Input.view<ParentMessage>({
+      id: 'input-disabled-demo',
+      isDisabled: true,
+      value: 'Ada Lovelace',
+      toView: attributes =>
+        h.div(
+          [h.Class('flex flex-col gap-1.5 w-full max-w-md')],
+          [
+            h.label([...attributes.label, h.Class(labelClassName)], ['Name']),
+            h.input([...attributes.input, h.Class(inputClassName)]),
+            h.span(
+              [...attributes.description, h.Class(descriptionClassName)],
+              ['This input is disabled.'],
+            ),
+          ],
+        ),
+    }),
+  ]
+}

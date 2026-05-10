@@ -1,8 +1,7 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
 import { Link } from '../../link'
-import type { TableOfContentsEntry } from '../../main'
+import { Message, type TableOfContentsEntry } from '../../main'
 import {
   inlineCode,
   link,
@@ -13,6 +12,8 @@ import {
 import { coreArchitectureRouter, coreCommandsRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
+
+const h = html<Message>()
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -25,13 +26,13 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('core/update', 'Update'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'The update function is the heart of your application logic. It\u2019s a pure function that takes the current Model and a Message, and returns a new Model along with any Commands to execute.',
+        'The update function is the heart of your application logic. It’s a pure function that takes the current Model and a Message, and returns a new Model along with any Commands to execute.',
       ),
       para(
         'In the ',
@@ -39,7 +40,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           `${coreArchitectureRouter()}#the-restaurant-analogy`,
           'restaurant analogy',
         ),
-        ', the update function is the waiter. Something happens (a customer flags them down, the kitchen rings the bell) and the waiter decides what to do next. Update the notebook, maybe write a slip for the kitchen. The waiter doesn\u2019t cook the food or serve it directly. They take in what happened and decide on next steps.',
+        ', the update function is the waiter. Something happens (a customer flags them down, the kitchen rings the bell) and the waiter decides what to do next. Update the notebook, maybe write a slip for the kitchen. The waiter doesn’t cook the food or serve it directly. They take in what happened and decide on next steps.',
       ),
       para(
         'Pure means predictable: given the same Model and the same Message, update always returns the same result. No hidden state, no ambient mutation, no surprises. This makes every state transition easy to reason about and trivial to test: pass in a Model and a Message, assert on the output.',
@@ -55,8 +56,8 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' branches silently swallowing new Messages (unless you explicitly opt into a catch-all).',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.counterUpdateHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.counterUpdateHighlighted)],
           [],
         ),
         Snippets.counterUpdateRaw,
@@ -70,7 +71,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' page, that will change.',
       ),
       para(
-        'Before we get to side effects, there\u2019s one more piece of the counter to understand: the view function, which turns your Model into what the user sees on screen.',
+        'Before we get to side effects, there’s one more piece of the counter to understand: the view function, which turns your Model into what the user sees on screen.',
       ),
     ],
   )

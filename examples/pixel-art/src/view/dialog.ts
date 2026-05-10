@@ -11,7 +11,7 @@ import {
   type Message,
 } from '../message'
 
-const { button, div, empty, h2, p, Class, Id } = html<Message>()
+const h = html<Message>()
 
 const errorDialogMessageToMessage = (message: Ui.Dialog.Message): Message =>
   GotErrorDialogMessage({ message })
@@ -28,43 +28,43 @@ export const errorDialogView = (
     toParentMessage: errorDialogMessageToMessage,
     onClosed: () => DismissedErrorDialog(),
     attributes: [
-      Class(
+      h.Class(
         'backdrop:bg-transparent bg-transparent p-0 open:flex items-center justify-center',
       ),
     ],
-    backdropAttributes: [Class('fixed inset-0 bg-black/60')],
+    backdropAttributes: [h.Class('fixed inset-0 bg-black/60')],
     panelAttributes: [
-      Class(
+      h.Class(
         'bg-gray-900 border border-gray-700 rounded-lg p-6 max-w-sm relative shadow-xl',
       ),
     ],
     panelContent: Option.match(maybeExportError, {
-      onNone: () => empty,
+      onNone: () => h.empty,
       onSome: error =>
-        div(
+        h.div(
           [],
           [
-            h2(
+            h.h2(
               [
-                Class('text-lg font-semibold text-red-400 mb-2'),
-                Id(Ui.Dialog.titleId(errorDialog)),
+                h.Class('text-lg font-semibold text-red-400 mb-2'),
+                h.Id(Ui.Dialog.titleId(errorDialog)),
               ],
               ['Export Failed'],
             ),
-            p(
+            h.p(
               [
-                Class('text-sm text-gray-400 mb-4'),
-                Id(Ui.Dialog.descriptionId(errorDialog)),
+                h.Class('text-sm text-gray-400 mb-4'),
+                h.Id(Ui.Dialog.descriptionId(errorDialog)),
               ],
               [error],
             ),
             Ui.Button.view({
               onClick: DismissedErrorDialog(),
               toView: attributes =>
-                button(
+                h.button(
                   [
                     ...attributes.button,
-                    Class(
+                    h.Class(
                       'w-full px-4 py-2 bg-gray-800 text-gray-200 rounded hover:bg-gray-700 transition motion-reduce:transition-none cursor-pointer',
                     ),
                   ],
@@ -85,46 +85,46 @@ export const gridSizeConfirmDialogView = (
     toParentMessage: confirmDialogMessageToMessage,
     onClosed: () => DismissedGridSizeConfirmDialog(),
     attributes: [
-      Class(
+      h.Class(
         'backdrop:bg-transparent bg-transparent p-0 open:flex items-center justify-center',
       ),
     ],
-    backdropAttributes: [Class('fixed inset-0 bg-black/60')],
+    backdropAttributes: [h.Class('fixed inset-0 bg-black/60')],
     panelAttributes: [
-      Class(
+      h.Class(
         'bg-gray-900 border border-gray-700 rounded-lg p-6 max-w-sm relative shadow-xl',
       ),
     ],
     panelContent: Option.match(maybePendingGridSize, {
-      onNone: () => empty,
+      onNone: () => h.empty,
       onSome: pendingSize =>
-        div(
+        h.div(
           [],
           [
-            h2(
+            h.h2(
               [
-                Class('text-lg font-semibold text-gray-100 mb-2'),
-                Id(Ui.Dialog.titleId(gridSizeConfirmDialog)),
+                h.Class('text-lg font-semibold text-gray-100 mb-2'),
+                h.Id(Ui.Dialog.titleId(gridSizeConfirmDialog)),
               ],
-              [`Change to ${pendingSize}\u00d7${pendingSize}?`],
+              [`Change to ${pendingSize}×${pendingSize}?`],
             ),
-            p(
+            h.p(
               [
-                Class('text-sm text-gray-400 mb-5'),
-                Id(Ui.Dialog.descriptionId(gridSizeConfirmDialog)),
+                h.Class('text-sm text-gray-400 mb-5'),
+                h.Id(Ui.Dialog.descriptionId(gridSizeConfirmDialog)),
               ],
               ['This will clear your canvas and reset undo history.'],
             ),
-            div(
-              [Class('flex gap-3')],
+            h.div(
+              [h.Class('flex gap-3')],
               [
                 Ui.Button.view({
                   onClick: DismissedGridSizeConfirmDialog(),
                   toView: attributes =>
-                    button(
+                    h.button(
                       [
                         ...attributes.button,
-                        Class(
+                        h.Class(
                           'flex-1 px-4 py-2 bg-gray-800 text-gray-200 rounded hover:bg-gray-700 transition motion-reduce:transition-none cursor-pointer',
                         ),
                       ],
@@ -134,10 +134,10 @@ export const gridSizeConfirmDialogView = (
                 Ui.Button.view({
                   onClick: ConfirmedGridSizeChange(),
                   toView: attributes =>
-                    button(
+                    h.button(
                       [
                         ...attributes.button,
-                        Class(
+                        h.Class(
                           'flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-500 transition motion-reduce:transition-none cursor-pointer',
                         ),
                       ],

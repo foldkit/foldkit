@@ -42,27 +42,36 @@ const init: Runtime.ProgramInit<Model, Message> = () => [{ count: 0 }, []]
 
 // VIEW
 
-const { div, button, Class, OnClick } = html<Message>()
+const h = html<Message>()
 
 const view = (model: Model): Document => ({
   title: `Counter: ${model.count}`,
-  body: div(
+  body: h.div(
     [
-      Class(
+      h.Class(
         'min-h-screen bg-white flex flex-col items-center justify-center gap-6 p-6',
       ),
     ],
     [
-      div(
-        [Class('text-6xl font-bold text-gray-800')],
+      h.div(
+        [h.Class('text-6xl font-bold text-gray-800')],
         [model.count.toString()],
       ),
-      div(
-        [Class('flex flex-wrap justify-center gap-4')],
+      h.div(
+        [h.Class('flex flex-wrap justify-center gap-4')],
         [
-          button([OnClick(ClickedDecrement()), Class(buttonStyle)], ['-']),
-          button([OnClick(ClickedReset()), Class(buttonStyle)], ['Reset']),
-          button([OnClick(ClickedIncrement()), Class(buttonStyle)], ['+']),
+          h.button(
+            [h.OnClick(ClickedDecrement()), h.Class(buttonStyle)],
+            ['-'],
+          ),
+          h.button(
+            [h.OnClick(ClickedReset()), h.Class(buttonStyle)],
+            ['Reset'],
+          ),
+          h.button(
+            [h.OnClick(ClickedIncrement()), h.Class(buttonStyle)],
+            ['+'],
+          ),
         ],
       ),
     ],

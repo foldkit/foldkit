@@ -1,9 +1,9 @@
 import { Effect } from 'effect'
 import { Mount } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { type Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 
-import { Class, OnMount, div } from '../html'
+const h = html<Message>()
 
 const CompletedPortalToBody = m('CompletedPortalToBody')
 
@@ -27,4 +27,4 @@ const PortalToBody = Mount.define(
 )
 
 const overlayView = (): Html =>
-  div([Class('fixed inset-0 bg-black/50'), OnMount(PortalToBody())])
+  h.div([h.Class('fixed inset-0 bg-black/50'), h.OnMount(PortalToBody())])

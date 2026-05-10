@@ -1,10 +1,8 @@
 import { Schema as S } from 'effect'
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 
 import { Session } from '../../../domain/session'
-import { Class, OnClick, button, div, h1, h2, p } from '../../../html'
-import type { Message as ParentMessage } from '../../../message'
 
 // MESSAGE
 
@@ -14,48 +12,60 @@ export type Message = typeof Message.Type
 
 // VIEW
 
-const infoRow = (label: string, value: string): Html =>
-  div(
-    [Class('flex justify-between items-center py-2 border-b border-gray-100')],
+const infoRow = <ParentMessage>(label: string, value: string): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [
-      p([Class('text-gray-600')], [label]),
-      p([Class('font-medium text-gray-800')], [value]),
+      h.Class(
+        'flex justify-between items-center py-2 border-b border-gray-100',
+      ),
+    ],
+    [
+      h.p([h.Class('text-gray-600')], [label]),
+      h.p([h.Class('font-medium text-gray-800')], [value]),
     ],
   )
+}
 
-export const view = (
+export const view = <ParentMessage>(
   session: Session,
   toParentMessage: (message: Message) => ParentMessage,
-): Html =>
-  div(
-    [Class('max-w-4xl mx-auto px-4')],
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [h.Class('max-w-4xl mx-auto px-4')],
     [
-      h1([Class('text-4xl font-bold text-gray-800 mb-6')], ['Settings']),
-      div(
-        [Class('bg-white rounded-lg shadow-md p-6 mb-6')],
+      h.h1([h.Class('text-4xl font-bold text-gray-800 mb-6')], ['Settings']),
+      h.div(
+        [h.Class('bg-white rounded-lg shadow-md p-6 mb-6')],
         [
-          h2(
-            [Class('text-xl font-semibold text-gray-800 mb-4')],
+          h.h2(
+            [h.Class('text-xl font-semibold text-gray-800 mb-4')],
             ['Account Information'],
           ),
-          div(
-            [Class('space-y-4')],
+          h.div(
+            [h.Class('space-y-4')],
             [
-              infoRow('User ID', session.userId),
-              infoRow('Email', session.email),
-              infoRow('Name', session.name),
+              infoRow<ParentMessage>('User ID', session.userId),
+              infoRow<ParentMessage>('Email', session.email),
+              infoRow<ParentMessage>('Name', session.name),
             ],
           ),
         ],
       ),
-      div(
-        [Class('bg-white rounded-lg shadow-md p-6')],
+      h.div(
+        [h.Class('bg-white rounded-lg shadow-md p-6')],
         [
-          h2([Class('text-xl font-semibold text-gray-800 mb-4')], ['Actions']),
-          button(
+          h.h2(
+            [h.Class('text-xl font-semibold text-gray-800 mb-4')],
+            ['Actions'],
+          ),
+          h.button(
             [
-              OnClick(toParentMessage(ClickedLogout())),
-              Class(
+              h.OnClick(toParentMessage(ClickedLogout())),
+              h.Class(
                 'px-6 py-3 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition cursor-pointer',
               ),
             ],
@@ -65,3 +75,4 @@ export const view = (
       ),
     ],
   )
+}

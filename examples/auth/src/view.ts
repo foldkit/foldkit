@@ -1,9 +1,10 @@
 import { Match as M } from 'effect'
-import type { Document } from 'foldkit/html'
+import { type Document, html } from 'foldkit/html'
 
-import { Class, div, keyed } from './html'
-import { GotLoggedInMessage, GotLoggedOutMessage } from './message'
+import { GotLoggedInMessage, GotLoggedOutMessage, Message } from './message'
 import { LoggedIn, LoggedOut, Model } from './model'
+
+const h = html<Message>()
 
 const title = (model: Model): string =>
   M.value(model.route).pipe(
@@ -13,21 +14,21 @@ const title = (model: Model): string =>
 
 export const view = (model: Model): Document => ({
   title: title(model),
-  body: div(
-    [Class('min-h-screen bg-gray-100')],
+  body: h.div(
+    [h.Class('min-h-screen bg-gray-100')],
     [
-      keyed('div')(
+      h.keyed('div')(
         model._tag,
         [],
         [
           M.value(model).pipe(
             M.tagsExhaustive({
               LoggedOut: loggedOutModel =>
-                LoggedOut.view(loggedOutModel, message =>
+                LoggedOut.view<Message>(loggedOutModel, message =>
                   GotLoggedOutMessage({ message }),
                 ),
               LoggedIn: loggedInModel =>
-                LoggedIn.view(loggedInModel, message =>
+                LoggedIn.view<Message>(loggedInModel, message =>
                   GotLoggedInMessage({ message }),
                 ),
             }),

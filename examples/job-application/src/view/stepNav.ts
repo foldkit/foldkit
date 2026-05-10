@@ -10,24 +10,9 @@ import {
   pipe,
 } from 'effect'
 import { Ui } from 'foldkit'
-import { type Html } from 'foldkit/html'
+import { type Html, html } from 'foldkit/html'
 
 import { Step } from '../domain'
-import {
-  AriaCurrent,
-  AriaDisabled,
-  AriaLabel,
-  Class,
-  OnClick,
-  Type,
-  button,
-  div,
-  keyed,
-  nav,
-  span,
-  ul,
-} from '../html'
-import type { Message } from '../message'
 import { type Model } from '../model'
 import { chevronDown } from './icon'
 
@@ -55,20 +40,22 @@ const stepMarkerGlyph = (
   if (hasErrors) {
     return '!'
   } else if (status === 'Completed') {
-    return '\u2713'
+    return '✓'
   } else {
     return String(Number.increment(index))
   }
 }
 
-const stepMarker = (
+const stepMarker = <ParentMessage>(
   status: StepStatus,
   index: number,
   hasErrors: boolean,
-): Html =>
-  span(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.span(
     [
-      Class(
+      h.Class(
         clsx(
           'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold',
           hasErrors
@@ -85,6 +72,7 @@ const stepMarker = (
     ],
     [stepMarkerGlyph(status, index, hasErrors)],
   )
+}
 
 const stepButtonClass = (status: StepStatus, hasErrors: boolean): string =>
   clsx(
@@ -103,37 +91,39 @@ const stepButtonClass = (status: StepStatus, hasErrors: boolean): string =>
         ),
   )
 
-export const stepList = (
+export const stepList = <ParentMessage>(
   currentStep: Step.Step,
   stepsWithErrors: HashSet.HashSet<Step.Step>,
-  onSelectedStep: (step: Step.Step) => Message,
-): Html =>
-  nav(
-    [AriaLabel('Application steps'), Class('space-y-1')],
+  onSelectedStep: (step: Step.Step) => ParentMessage,
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.nav(
+    [h.AriaLabel('Application steps'), h.Class('space-y-1')],
     [
-      ul(
-        [Class('space-y-0.5')],
+      h.ul(
+        [h.Class('space-y-0.5')],
         Step.all.map((step, index) => {
           const status = stepToStatus(step, currentStep)
           const hasErrors = HashSet.has(stepsWithErrors, step)
           const clickable = isClickable(status, hasErrors)
 
-          return keyed('li')(
+          return h.keyed('li')(
             step,
             [],
             [
-              button(
+              h.button(
                 [
-                  Type('button'),
-                  ...(status === 'Current' ? [AriaCurrent('step')] : []),
+                  h.Type('button'),
+                  ...(status === 'Current' ? [h.AriaCurrent('step')] : []),
                   ...(clickable
-                    ? [OnClick(onSelectedStep(step))]
-                    : [AriaDisabled(true)]),
-                  Class(stepButtonClass(status, hasErrors)),
+                    ? [h.OnClick(onSelectedStep(step))]
+                    : [h.AriaDisabled(true)]),
+                  h.Class(stepButtonClass(status, hasErrors)),
                 ],
                 [
-                  stepMarker(status, index, hasErrors),
-                  span([], [Step.show(step)]),
+                  stepMarker<ParentMessage>(status, index, hasErrors),
+                  h.span([], [Step.show(step)]),
                 ],
               ),
             ],
@@ -142,37 +132,46 @@ export const stepList = (
       ),
     ],
   )
+}
 
-const stepMenuTrigger = (currentStep: Step.Step): Html =>
-  div(
-    [Class('flex items-center justify-between w-full gap-3')],
+const stepMenuTrigger = <ParentMessage>(currentStep: Step.Step): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [h.Class('flex items-center justify-between w-full gap-3')],
     [
-      div(
-        [Class('flex items-center gap-2 min-w-0')],
+      h.div(
+        [h.Class('flex items-center gap-2 min-w-0')],
         [
-          span(
-            [Class('text-xs font-medium text-gray-500 shrink-0')],
+          h.span(
+            [h.Class('text-xs font-medium text-gray-500 shrink-0')],
             [
               `Step ${Number.increment(Step.indexOf(currentStep))} of ${Step.all.length}`,
             ],
           ),
-          span(
-            [Class('text-sm font-semibold text-gray-900 truncate')],
+          h.span(
+            [h.Class('text-sm font-semibold text-gray-900 truncate')],
             [Step.show(currentStep)],
           ),
         ],
       ),
-      span([Class('text-gray-400 shrink-0')], [chevronDown()]),
+      h.span(
+        [h.Class('text-gray-400 shrink-0')],
+        [chevronDown<ParentMessage>()],
+      ),
     ],
   )
+}
 
-export const stepMenu = (
+export const stepMenu = <ParentMessage>(
   model: Model,
   stepsWithErrors: HashSet.HashSet<Step.Step>,
-  toParentMessage: (message: Ui.Menu.Message) => Message,
-  onSelectedStep: (step: Step.Step) => Message,
-): Html =>
-  Ui.Menu.view<Message, Step.Step>({
+  toParentMessage: (message: Ui.Menu.Message) => ParentMessage,
+  onSelectedStep: (step: Step.Step) => ParentMessage,
+): Html => {
+  const h = html<ParentMessage>()
+
+  return Ui.Menu.view<ParentMessage, Step.Step>({
     model: model.stepMenu,
     toParentMessage,
     items: Step.all,
@@ -184,7 +183,7 @@ export const stepMenu = (
           Option.getOrElse(() => model.currentStep),
         ),
       ),
-    buttonContent: stepMenuTrigger(model.currentStep),
+    buttonContent: stepMenuTrigger<ParentMessage>(model.currentStep),
     buttonClassName:
       'flex items-center w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-gray-300 cursor-pointer',
     itemsClassName:
@@ -208,9 +207,12 @@ export const stepMenu = (
                 Match.exhaustive,
               ),
         ),
-        content: div(
-          [Class('flex items-center gap-3')],
-          [stepMarker(status, index, hasErrors), span([], [Step.show(step)])],
+        content: h.div(
+          [h.Class('flex items-center gap-3')],
+          [
+            stepMarker<ParentMessage>(status, index, hasErrors),
+            h.span([], [Step.show(step)]),
+          ],
         ),
       }
     },
@@ -222,3 +224,4 @@ export const stepMenu = (
     backdropClassName: 'fixed inset-0',
     anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
   })
+}

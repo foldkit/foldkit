@@ -1,8 +1,6 @@
 import { Ui } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, div, h2, h3, p, span } from '../html'
-import type { Message as ParentMessage } from '../main'
 import {
   GotPopoverAnimatedDemoMessage,
   GotPopoverBasicDemoMessage,
@@ -29,39 +27,44 @@ const POPOVER_ANCHOR = {
   padding: 8,
 }
 
-const panelContent = div(
-  [],
-  [
-    p([Class('text-sm font-semibold text-gray-900 mb-2')], ['Analytics']),
-    p(
-      [Class('text-sm text-gray-600')],
-      ['Get a better understanding of where your traffic is coming from.'],
-    ),
-  ],
-)
-
-const popoverViewConfig = (panelClassNameValue: string) => ({
-  anchor: POPOVER_ANCHOR,
-  buttonContent: span([], ['Solutions']),
-  buttonAttributes: [Class(triggerClassName)],
-  panelContent,
-  panelAttributes: [Class(panelClassNameValue)],
-  backdropAttributes: [Class(backdropClassName)],
-  attributes: [Class(wrapperClassName)],
-})
-
-export const view = (
+export const view = <ParentMessage>(
   model: UiModel,
   toParentMessage: (message: UiMessage) => ParentMessage,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  const panelContent = h.div(
     [],
     [
-      h2([Class('text-2xl font-bold text-gray-900 mb-6')], ['Popover']),
+      h.p([h.Class('text-sm font-semibold text-gray-900 mb-2')], ['Analytics']),
+      h.p(
+        [h.Class('text-sm text-gray-600')],
+        ['Get a better understanding of where your traffic is coming from.'],
+      ),
+    ],
+  )
 
-      h3([Class('text-lg font-semibold text-gray-900 mt-8 mb-4')], ['Basic']),
-      div(
-        [Class('relative')],
+  const popoverViewConfig = (panelClassNameValue: string) => ({
+    anchor: POPOVER_ANCHOR,
+    buttonContent: h.span([], ['Solutions']),
+    buttonAttributes: [h.Class(triggerClassName)],
+    panelContent,
+    panelAttributes: [h.Class(panelClassNameValue)],
+    backdropAttributes: [h.Class(backdropClassName)],
+    attributes: [h.Class(wrapperClassName)],
+  })
+
+  return h.div(
+    [],
+    [
+      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Popover']),
+
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+        ['Basic'],
+      ),
+      h.div(
+        [h.Class('relative')],
         [
           Ui.Popover.view({
             model: model.popoverBasicDemo,
@@ -72,12 +75,12 @@ export const view = (
         ],
       ),
 
-      h3(
-        [Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Animated'],
       ),
-      div(
-        [Class('relative')],
+      h.div(
+        [h.Class('relative')],
         [
           Ui.Popover.view({
             model: model.popoverAnimatedDemo,
@@ -89,3 +92,4 @@ export const view = (
       ),
     ],
   )
+}

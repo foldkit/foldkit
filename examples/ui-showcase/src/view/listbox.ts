@@ -1,10 +1,8 @@
 import { Array, Option } from 'effect'
 import { Ui } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, div, h2, h3, span } from '../html'
 import * as Icon from '../icon'
-import type { Message as ParentMessage } from '../main'
 import {
   GotListboxDemoMessage,
   GotListboxGroupedDemoMessage,
@@ -77,10 +75,12 @@ const LISTBOX_ANCHOR = {
   padding: 8,
 }
 
-export const view = (
+export const view = <ParentMessage>(
   model: UiModel,
   toParentMessage: (message: UiMessage) => ParentMessage,
 ): Html => {
+  const h = html<ParentMessage>()
+
   const singleButtonLabel = Option.getOrElse(
     model.listboxDemo.maybeSelectedItem,
     () => 'Select a Bluth',
@@ -97,17 +97,17 @@ export const view = (
     () => 'Select a character',
   )
 
-  return div(
+  return h.div(
     [],
     [
-      h2([Class('text-2xl font-bold text-gray-900 mb-6')], ['Listbox']),
+      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Listbox']),
 
-      h3(
-        [Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Single-Select'],
       ),
-      div(
-        [Class('relative')],
+      h.div(
+        [h.Class('relative')],
         [
           Ui.Listbox.view({
             model: model.listboxDemo,
@@ -117,34 +117,37 @@ export const view = (
             items: LISTBOX_ITEMS,
             itemToConfig: item => ({
               className: itemClassName,
-              content: div(
-                [Class('flex items-center gap-2')],
+              content: h.div(
+                [h.Class('flex items-center gap-2')],
                 [
-                  Icon.check(
+                  Icon.check<ParentMessage>(
                     'w-4 h-4 shrink-0 invisible group-data-[selected]:visible text-gray-900',
                   ),
-                  span([], [item]),
+                  h.span([], [item]),
                 ],
               ),
             }),
-            buttonContent: div(
-              [Class('flex w-full items-center justify-between gap-4')],
-              [span([], [singleButtonLabel]), Icon.chevronDown('w-4 h-4')],
+            buttonContent: h.div(
+              [h.Class('flex w-full items-center justify-between gap-4')],
+              [
+                h.span([], [singleButtonLabel]),
+                Icon.chevronDown<ParentMessage>('w-4 h-4'),
+              ],
             ),
-            buttonAttributes: [Class(triggerClassName)],
-            itemsAttributes: [Class(itemsClassName)],
-            backdropAttributes: [Class(backdropClassName)],
-            attributes: [Class(wrapperClassName)],
+            buttonAttributes: [h.Class(triggerClassName)],
+            itemsAttributes: [h.Class(itemsClassName)],
+            backdropAttributes: [h.Class(backdropClassName)],
+            attributes: [h.Class(wrapperClassName)],
           }),
         ],
       ),
 
-      h3(
-        [Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Multi-Select'],
       ),
-      div(
-        [Class('relative')],
+      h.div(
+        [h.Class('relative')],
         [
           Ui.Listbox.Multi.view({
             model: model.listboxMultiDemo,
@@ -154,31 +157,37 @@ export const view = (
             items: LISTBOX_ITEMS,
             itemToConfig: item => ({
               className: itemClassName,
-              content: div(
-                [Class('flex items-center gap-2')],
+              content: h.div(
+                [h.Class('flex items-center gap-2')],
                 [
-                  Icon.check(
+                  Icon.check<ParentMessage>(
                     'w-4 h-4 shrink-0 invisible group-data-[selected]:visible text-gray-900',
                   ),
-                  span([], [item]),
+                  h.span([], [item]),
                 ],
               ),
             }),
-            buttonContent: div(
-              [Class('flex w-full items-center justify-between gap-4')],
-              [span([], [multiButtonLabel]), Icon.chevronDown('w-4 h-4')],
+            buttonContent: h.div(
+              [h.Class('flex w-full items-center justify-between gap-4')],
+              [
+                h.span([], [multiButtonLabel]),
+                Icon.chevronDown<ParentMessage>('w-4 h-4'),
+              ],
             ),
-            buttonAttributes: [Class(triggerClassName)],
-            itemsAttributes: [Class(itemsClassName)],
-            backdropAttributes: [Class(backdropClassName)],
-            attributes: [Class(wrapperClassName)],
+            buttonAttributes: [h.Class(triggerClassName)],
+            itemsAttributes: [h.Class(itemsClassName)],
+            backdropAttributes: [h.Class(backdropClassName)],
+            attributes: [h.Class(wrapperClassName)],
           }),
         ],
       ),
 
-      h3([Class('text-lg font-semibold text-gray-900 mt-8 mb-4')], ['Grouped']),
-      div(
-        [Class('relative')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+        ['Grouped'],
+      ),
+      h.div(
+        [h.Class('relative')],
         [
           Ui.Listbox.view({
             model: model.listboxGroupedDemo,
@@ -189,30 +198,33 @@ export const view = (
             itemToValue: characterName,
             itemGroupKey: character => character.lastName,
             groupToHeading: lastName => ({
-              content: span([], [`${lastName}s`]),
+              content: h.span([], [`${lastName}s`]),
               className: groupHeadingClassName,
             }),
-            separatorAttributes: [Class(separatorClassName)],
+            separatorAttributes: [h.Class(separatorClassName)],
             itemToConfig: character => ({
               className: itemClassName,
-              content: div(
-                [Class('flex items-center gap-2')],
+              content: h.div(
+                [h.Class('flex items-center gap-2')],
                 [
-                  Icon.check(
+                  Icon.check<ParentMessage>(
                     'w-4 h-4 shrink-0 invisible group-data-[selected]:visible text-gray-900',
                   ),
-                  span([], [characterName(character)]),
+                  h.span([], [characterName(character)]),
                 ],
               ),
             }),
-            buttonContent: div(
-              [Class('flex w-full items-center justify-between gap-4')],
-              [span([], [groupedButtonLabel]), Icon.chevronDown('w-4 h-4')],
+            buttonContent: h.div(
+              [h.Class('flex w-full items-center justify-between gap-4')],
+              [
+                h.span([], [groupedButtonLabel]),
+                Icon.chevronDown<ParentMessage>('w-4 h-4'),
+              ],
             ),
-            buttonAttributes: [Class(triggerClassName)],
-            itemsAttributes: [Class(itemsClassName)],
-            backdropAttributes: [Class(backdropClassName)],
-            attributes: [Class(wrapperClassName)],
+            buttonAttributes: [h.Class(triggerClassName)],
+            itemsAttributes: [h.Class(itemsClassName)],
+            backdropAttributes: [h.Class(backdropClassName)],
+            attributes: [h.Class(wrapperClassName)],
           }),
         ],
       ),

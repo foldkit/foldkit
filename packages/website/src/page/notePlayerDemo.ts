@@ -14,29 +14,17 @@ import {
   pipe,
 } from 'effect'
 import { Command, FieldValidation, Ui } from 'foldkit'
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { ts } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
 import notePlayerDemoCodeHtml from 'virtual:note-player-demo-code'
 
-import {
-  AriaLabel,
-  Autocomplete,
-  Class,
-  For,
-  Maxlength,
-  button,
-  div,
-  input,
-  keyed,
-  label,
-  p,
-  span,
-} from '../html'
 import { Icon } from '../icon'
 import type { Message as ParentMessage } from '../message'
 import * as DemoView from './demoView'
+
+const h = html<ParentMessage>()
 
 // CONSTANTS
 
@@ -566,14 +554,14 @@ const appPanel = (
   const isValid = model.noteInput._tag === 'Valid'
   const canPlay = isValid && !isPlaying
 
-  return div(
-    [Class('relative')],
+  return h.div(
+    [h.Class('relative')],
     [
-      div(
-        [Class('lg:absolute lg:inset-0 flex flex-col gap-4 overflow-hidden')],
+      h.div(
+        [h.Class('lg:absolute lg:inset-0 flex flex-col gap-4 overflow-hidden')],
         [
-          div(
-            [Class('flex flex-col gap-3')],
+          h.div(
+            [h.Class('flex flex-col gap-3')],
             [
               noteSequenceView(model),
               noteInputView(model, isInputLocked, toParentMessage),
@@ -610,51 +598,54 @@ const noteInputView = (
     isInvalid: model.noteInput._tag === 'Invalid',
     placeholder: 'CDEFGAB',
     toView: attributes =>
-      div(
+      h.div(
         [
-          Class(
+          h.Class(
             clsx('flex flex-col gap-1.5 transition-opacity', {
               'opacity-50': isInputLocked,
             }),
           ),
         ],
         [
-          label(
+          h.label(
             [
               ...attributes.label,
-              For('note-input'),
-              Class('text-xs text-gray-500 dark:text-gray-400'),
+              h.For('note-input'),
+              h.Class('text-xs text-gray-500 dark:text-gray-400'),
             ],
             ['Note Sequence'],
           ),
-          input([
+          h.input([
             ...attributes.input,
-            Class(
+            h.Class(
               clsx(
                 'w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border text-sm text-gray-800 dark:text-gray-200 font-mono tracking-widest uppercase transition',
                 inputBorderClass(model.noteInput),
               ),
             ),
-            Maxlength(MAX_NOTES),
-            Autocomplete('off'),
+            h.Maxlength(MAX_NOTES),
+            h.Autocomplete('off'),
           ]),
           M.value(model.noteInput).pipe(
             M.tagsExhaustive({
               NotValidated: () =>
-                p(
-                  [Class('text-xs text-gray-400 dark:text-gray-500')],
-                  [`${MIN_NOTES}\u2013${MAX_NOTES} notes, A through G`],
+                h.p(
+                  [h.Class('text-xs text-gray-400 dark:text-gray-500')],
+                  [`${MIN_NOTES}–${MAX_NOTES} notes, A through G`],
                 ),
               Validating: () =>
-                p([Class('text-xs text-gray-400 dark:text-gray-500')], ['']),
+                h.p(
+                  [h.Class('text-xs text-gray-400 dark:text-gray-500')],
+                  [''],
+                ),
               Valid: () =>
-                p(
-                  [Class('text-xs text-gray-500 dark:text-gray-400')],
+                h.p(
+                  [h.Class('text-xs text-gray-500 dark:text-gray-400')],
                   [`${parseNotes(model.noteInput.value).length} notes`],
                 ),
               Invalid: ({ errors }) =>
-                p(
-                  [Class('text-xs text-red-600 dark:text-red-400')],
+                h.p(
+                  [h.Class('text-xs text-red-600 dark:text-red-400')],
                   [Array.headNonEmpty(errors)],
                 ),
             }),
@@ -670,11 +661,11 @@ const durationSelectorView = (
   isInputLocked: boolean,
   toParentMessage: (message: Message) => ParentMessage,
 ): Html =>
-  div(
-    [Class('flex flex-col gap-1.5')],
+  h.div(
+    [h.Class('flex flex-col gap-1.5')],
     [
-      label(
-        [Class('text-xs text-gray-500 dark:text-gray-400')],
+      h.label(
+        [h.Class('text-xs text-gray-500 dark:text-gray-400')],
         ['Note Length'],
       ),
       Ui.RadioGroup.view<ParentMessage, NoteDuration>({
@@ -698,10 +689,10 @@ const durationSelectorView = (
         optionToConfig: (duration, { isSelected, isDisabled }) => ({
           value: duration,
           content: attributes =>
-            div(
+            h.div(
               [
                 ...attributes.option,
-                Class(durationButtonClass(isSelected, isDisabled)),
+                h.Class(durationButtonClass(isSelected, isDisabled)),
               ],
               [duration],
             ),
@@ -718,20 +709,20 @@ const playbackControlView = (
   const isPlaying = model.playbackState._tag === 'Playing'
   const isActive = isPlaying || model.playbackState._tag === 'Paused'
 
-  return div(
-    [Class('flex gap-2')],
+  return h.div(
+    [h.Class('flex gap-2')],
     [
       isPlaying
         ? Ui.Button.view<ParentMessage>({
             onClick: toParentMessage(ClickedPause()),
             toView: attributes =>
-              button(
+              h.button(
                 [
                   ...attributes.button,
-                  Class(
+                  h.Class(
                     'flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-normal transition bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 hover:bg-accent-700 dark:hover:bg-accent-600 active:bg-accent-800 dark:active:bg-accent-700 cursor-pointer',
                   ),
-                  AriaLabel('Pause'),
+                  h.AriaLabel('Pause'),
                 ],
                 [Icon.pause('w-4 h-4'), 'Pause'],
               ),
@@ -740,10 +731,10 @@ const playbackControlView = (
             onClick: toParentMessage(ClickedPlay()),
             isDisabled: !canPlay,
             toView: attributes =>
-              button(
+              h.button(
                 [
                   ...attributes.button,
-                  Class(
+                  h.Class(
                     clsx(
                       'flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-normal transition',
                       {
@@ -754,7 +745,7 @@ const playbackControlView = (
                       },
                     ),
                   ),
-                  AriaLabel('Play'),
+                  h.AriaLabel('Play'),
                 ],
                 [Icon.play('w-4 h-4'), 'Play'],
               ),
@@ -763,10 +754,10 @@ const playbackControlView = (
         onClick: toParentMessage(ClickedStop()),
         isDisabled: !isActive,
         toView: attributes =>
-          button(
+          h.button(
             [
               ...attributes.button,
-              Class(
+              h.Class(
                 clsx(
                   'flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-normal transition',
                   {
@@ -777,7 +768,7 @@ const playbackControlView = (
                   },
                 ),
               ),
-              AriaLabel('Stop'),
+              h.AriaLabel('Stop'),
             ],
             [Icon.stop('w-4 h-4'), 'Stop'],
           ),
@@ -786,17 +777,17 @@ const playbackControlView = (
   )
 }
 
-const placeholderVisualizerView: Html = div(
-  [Class('flex gap-2')],
+const placeholderVisualizerView: Html = h.div(
+  [h.Class('flex gap-2')],
   Array.makeBy(MIN_NOTES, index =>
-    keyed('div')(
+    h.keyed('div')(
       `placeholder-${index}`,
       [
-        Class(
+        h.Class(
           'flex-1 h-10 rounded-lg flex items-center justify-center text-sm font-bold bg-gray-200 dark:bg-gray-800 text-gray-300 dark:text-gray-600',
         ),
       ],
-      [span([], ['\u2013'])],
+      [h.span([], ['–'])],
     ),
   ),
 )
@@ -804,9 +795,9 @@ const placeholderVisualizerView: Html = div(
 const noteSequenceView = (model: Model): Html => {
   const notes = parseNotes(model.noteInput.value)
 
-  return div(
+  return h.div(
     [
-      Class(
+      h.Class(
         'flex flex-col gap-2 pb-3 border-b border-gray-300 dark:border-gray-800',
       ),
     ],
@@ -828,8 +819,8 @@ const noteVisualizerView = (model: Model, notes: ReadonlyArray<Note>): Html => {
     M.exhaustive,
   )
 
-  return div(
-    [Class('flex gap-2')],
+  return h.div(
+    [h.Class('flex gap-2')],
     Array.map(notes, (note, index) => {
       const isCurrentNote = Option.exists(
         maybeCurrentIndex,
@@ -837,10 +828,10 @@ const noteVisualizerView = (model: Model, notes: ReadonlyArray<Note>): Html => {
       )
       const key = `${note}-${index}`
 
-      return keyed('div')(
+      return h.keyed('div')(
         key,
         [
-          Class(
+          h.Class(
             clsx(
               'flex-1 h-10 rounded-lg flex items-center justify-center text-sm font-bold transition-colors duration-150',
               {
@@ -852,7 +843,7 @@ const noteVisualizerView = (model: Model, notes: ReadonlyArray<Note>): Html => {
             ),
           ),
         ],
-        [span([], [note])],
+        [h.span([], [note])],
       )
     }),
   )

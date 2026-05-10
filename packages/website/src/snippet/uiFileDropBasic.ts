@@ -3,10 +3,11 @@
 // update, and view definitions.
 import { Effect, Match as M, Option } from 'effect'
 import { Command, File, Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Class, input, label, p, span } from './html'
+const h = html<Message>()
 
 // Add the FileDrop Submodel to your Model, plus a list of accepted files:
 const Model = S.Struct({
@@ -72,17 +73,17 @@ Ui.FileDrop.view({
   multiple: true,
   accept: ['application/pdf', '.doc', '.docx'],
   toView: attributes =>
-    label(
+    h.label(
       [
         ...attributes.root,
-        Class(
+        h.Class(
           'flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-gray-300 p-8 text-center hover:border-accent-400 data-[drag-over]:border-accent-500 data-[drag-over]:bg-accent-50',
         ),
       ],
       [
-        p([], ['Drop files or click to browse']),
-        span([Class('text-sm text-gray-500')], ['PDF, DOC, or DOCX']),
-        input(attributes.input),
+        h.p([], ['Drop files or click to browse']),
+        h.span([h.Class('text-sm text-gray-500')], ['PDF, DOC, or DOCX']),
+        h.input(attributes.input),
       ],
     ),
 })

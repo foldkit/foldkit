@@ -1,8 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
 import { uiShowcaseViewSourceHref } from '../../link'
-import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
   demoContainer,
@@ -200,12 +198,14 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
 
 // VIEW
 
-export const view = (
+export const view = <ParentMessage>(
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
   copiedSnippets: CopiedSnippets,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
       pageTitle('ui/tooltip', 'Tooltip'),
@@ -238,8 +238,8 @@ export const view = (
       ),
       demoContainer(...Tooltip.demo(model.tooltipDemo, toParentMessage)),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippet.uiTooltipBasicHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippet.uiTooltipBasicHighlighted)],
           [],
         ),
         Snippet.uiTooltipBasicRaw,
@@ -312,3 +312,4 @@ export const view = (
       propTable(programmaticHelpers),
     ],
   )
+}

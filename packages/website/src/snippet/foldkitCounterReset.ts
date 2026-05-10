@@ -67,17 +67,17 @@ const update = (model: Model, message: Message): UpdateReturn =>
 
 // VIEW
 
-const { div, button, p, OnClick } = html<Message>()
+const h = html<Message>()
 
 const view = (model: Model): Document => ({
   title: `Count: ${model.count}`,
-  body: div(
+  body: h.div(
     [],
     [
-      p([], [`Count: ${model.count}`]),
-      button([OnClick(ClickedIncrement())], ['Increment']),
-      button(
-        [OnClick(ClickedToggleAutoCount())],
+      h.p([], [`Count: ${model.count}`]),
+      h.button([h.OnClick(ClickedIncrement())], ['Increment']),
+      h.button(
+        [h.OnClick(ClickedToggleAutoCount())],
         [model.isAutoCounting ? 'Stop' : 'Auto-Count'],
       ),
     ],

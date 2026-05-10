@@ -49,12 +49,22 @@ Don't add type annotations to `evo` callbacks when the type can be inferred.
 
 ### View
 
-Call `html<Message>()` once in a dedicated `html.ts` file and import the destructured helpers everywhere else:
+Bind the `html` factory once per module by calling `html<Message>()`, then reach for `h.div`, `h.OnClick`, and the rest off the returned record. Each view module binds its own `h` against the Message type it dispatches:
 
 ```ts
-// html.ts
-export const { div, button, span, Class, OnClick } = html<Message>()
+const h = html<Message>()
+
+export const view = (model: Model): Html =>
+  h.div(
+    [h.Class('flex flex-col gap-2')],
+    [
+      h.h1([], [`Hello, ${model.name}`]),
+      h.button([h.OnClick(ClickedRefresh())], ['Refresh']),
+    ],
+  )
 ```
+
+For child views that should be agnostic to their parent, take `ParentMessage` as a function generic and bind `html<ParentMessage>()` inside. The view stays decoupled from any particular parent and composes through the `toParentMessage` callback the parent supplies.
 
 Use `empty` (not `null`) for conditional rendering. Use `M.value().pipe(M.tagsExhaustive({...}))` for rendering discriminated unions and `Array.match` for rendering lists that may be empty.
 

@@ -1,22 +1,10 @@
 import { clsx } from 'clsx'
 import { Array, Option, Record, Result, pipe } from 'effect'
 import { Ui } from 'foldkit'
-import { Html, createKeyedLazy } from 'foldkit/html'
+import { Html, createKeyedLazy, html } from 'foldkit/html'
 import { Disclosure } from 'foldkit/ui'
 
-import {
-  AriaLabel,
-  Class,
-  Href,
-  Id,
-  InnerHTML,
-  a,
-  div,
-  h3,
-  span,
-} from '../../html'
 import { Icon } from '../../icon'
-import type { Message as ParentMessage } from '../../main'
 import { heading, headingLinkButton, pageTitle } from '../../prose'
 import {
   type ApiFunction,
@@ -32,74 +20,81 @@ import type { ApiData, Disclosures } from './model'
 
 type Highlights = ApiData['highlights']
 
-const sourceLink = (
+const sourceLink = <ParentMessage>(
   sourceUrl: Option.Option<string>,
   name: string,
-): ReadonlyArray<Html> =>
-  Option.match(sourceUrl, {
+): ReadonlyArray<Html> => {
+  const h = html<ParentMessage>()
+
+  return Option.match(sourceUrl, {
     onNone: () => [],
     onSome: url => [
-      a(
+      h.a(
         [
-          Class(
+          h.Class(
             'text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300',
           ),
-          AriaLabel(`View source for ${name}`),
-          Href(url),
+          h.AriaLabel(`View source for ${name}`),
+          h.Href(url),
         ],
         ['source'],
       ),
     ],
   })
+}
 
 const lazyItem = createKeyedLazy()
 
-const functionView = (
+const functionView = <ParentMessage>(
   moduleName: string,
   apiFunction: ApiFunction,
   maybeDisclosure: Disclosure.Model | undefined,
   highlights: Highlights,
   toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
+  const h = html<ParentMessage>()
   const id = scopedId('function', moduleName, apiFunction.name)
 
-  return div(
-    [Class('mb-8')],
+  return h.div(
+    [h.Class('mb-8')],
     [
-      div(
+      h.div(
         [
-          Class(
+          h.Class(
             'group flex items-center gap-1 md:hover-capable:gap-0 mb-2 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
           ),
         ],
         [
-          div(
-            [Class('flex items-center gap-2')],
+          h.div(
+            [h.Class('flex items-center gap-2')],
             [
-              h3(
+              h.h3(
                 [
-                  Class(
+                  h.Class(
                     'text-base font-mono font-code text-gray-900 dark:text-white scroll-mt-6',
                   ),
-                  Id(id),
+                  h.Id(id),
                 ],
                 [apiFunction.name],
               ),
-              span(
+              h.span(
                 [
-                  Class(
+                  h.Class(
                     'text-xs px-2 py-0.5 rounded bg-accent-100 dark:bg-accent-900 text-accent-700 dark:text-accent-300',
                   ),
                 ],
                 ['function'],
               ),
-              ...sourceLink(apiFunction.sourceUrl, apiFunction.name),
+              ...sourceLink<ParentMessage>(
+                apiFunction.sourceUrl,
+                apiFunction.name,
+              ),
             ],
           ),
           headingLinkButton(id, apiFunction.name),
         ],
       ),
-      signaturesView(
+      signaturesView<ParentMessage>(
         id,
         apiFunction,
         maybeDisclosure,
@@ -110,24 +105,26 @@ const functionView = (
   )
 }
 
-const allParameterDescriptions = (
+const allParameterDescriptions = <ParentMessage>(
   apiFunction: ApiFunction,
-): ReadonlyArray<Html> =>
-  pipe(
+): ReadonlyArray<Html> => {
+  const h = html<ParentMessage>()
+
+  return pipe(
     Array.flatMap(apiFunction.signatures, signature => signature.parameters),
     Array.dedupeWith((a, b) => a.name === b.name),
     Array.filterMap(parameter =>
       Result.fromOption(
         Option.map(parameter.description, description =>
-          div(
-            [Class('mb-1')],
+          h.div(
+            [h.Class('mb-1')],
             [
-              span(
-                [Class('font-normal text-gray-900 dark:text-gray-200')],
+              h.span(
+                [h.Class('font-normal text-gray-900 dark:text-gray-200')],
                 [parameter.name],
               ),
-              span(
-                [Class('text-gray-500 dark:text-gray-400')],
+              h.span(
+                [h.Class('text-gray-500 dark:text-gray-400')],
                 [` — ${description}`],
               ),
             ],
@@ -139,9 +136,9 @@ const allParameterDescriptions = (
     Array.match({
       onEmpty: () => [],
       onNonEmpty: items => [
-        div(
+        h.div(
           [
-            Class(
+            h.Class(
               'mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-sm',
             ),
           ],
@@ -150,11 +147,14 @@ const allParameterDescriptions = (
       ],
     }),
   )
+}
 
-const chevron = (isOpen: boolean) =>
-  span(
+const chevron = <ParentMessage>(isOpen: boolean): Html => {
+  const h = html<ParentMessage>()
+
+  return h.span(
     [
-      Class(
+      h.Class(
         clsx('text-gray-500 dark:text-gray-400', {
           'rotate-180': isOpen,
         }),
@@ -162,19 +162,21 @@ const chevron = (isOpen: boolean) =>
     ],
     [Icon.chevronDown('w-4 h-4')],
   )
+}
 
 const disclosureButtonClassName =
   'w-full flex items-center justify-between px-3 py-2 text-left text-base cursor-pointer transition border border-gray-200 dark:border-gray-700/50 text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-800 rounded-lg data-[open]:rounded-b-none select-none'
 
 const disclosurePanelClassName = 'rounded-b-lg overflow-x-auto'
 
-const signaturesView = (
+const signaturesView = <ParentMessage>(
   key: string,
   apiFunction: ApiFunction,
   maybeDisclosure: Disclosure.Model | undefined,
   highlights: Highlights,
   toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
+  const h = html<ParentMessage>()
   const maybeHighlighted = Record.get(highlights, key)
   const isInDisclosure = maybeDisclosure !== undefined
 
@@ -189,8 +191,8 @@ const signaturesView = (
         },
       ),
       content: [
-        div([InnerHTML(highlighted)], []),
-        ...allParameterDescriptions(apiFunction),
+        h.div([h.InnerHTML(highlighted)], []),
+        ...allParameterDescriptions<ParentMessage>(apiFunction),
       ],
     }),
     onNone: () => ({
@@ -199,9 +201,9 @@ const signaturesView = (
         'rounded-b-lg rounded-t-none': isInDisclosure,
       }),
       content: [
-        ...descriptionCommentFallback(apiFunction.description),
+        ...descriptionCommentFallback<ParentMessage>(apiFunction.description),
         ...Array.flatMap(apiFunction.signatures, signature =>
-          signatureChildrenFallback(signature),
+          signatureChildrenFallback<ParentMessage>(signature),
         ),
       ],
     }),
@@ -212,34 +214,39 @@ const signaturesView = (
         model: maybeDisclosure,
         toParentMessage: message =>
           toParentMessage(GotDisclosureMessage({ id: key, message })),
-        buttonAttributes: [Class(disclosureButtonClassName)],
-        buttonContent: div(
-          [Class('flex items-center justify-between w-full')],
-          [span([], ['Show signature']), chevron(maybeDisclosure.isOpen)],
+        buttonAttributes: [h.Class(disclosureButtonClassName)],
+        buttonContent: h.div(
+          [h.Class('flex items-center justify-between w-full')],
+          [
+            h.span([], ['Show signature']),
+            chevron<ParentMessage>(maybeDisclosure.isOpen),
+          ],
         ),
-        panelAttributes: [Class(disclosurePanelClassName)],
-        panelContent: div([Class(wrapperClass)], content),
+        panelAttributes: [h.Class(disclosurePanelClassName)],
+        panelContent: h.div([h.Class(wrapperClass)], content),
       })
-    : div([Class(wrapperClass)], content)
+    : h.div([h.Class(wrapperClass)], content)
 }
 
-const parameterDescriptions = (
+const parameterDescriptions = <ParentMessage>(
   parameters: ReadonlyArray<ApiParameter>,
-): ReadonlyArray<Html> =>
-  pipe(
+): ReadonlyArray<Html> => {
+  const h = html<ParentMessage>()
+
+  return pipe(
     parameters,
     Array.filterMap(parameter =>
       Result.fromOption(
         Option.map(parameter.description, description =>
-          div(
-            [Class('mb-1')],
+          h.div(
+            [h.Class('mb-1')],
             [
-              span(
-                [Class('font-normal text-gray-900 dark:text-gray-200')],
+              h.span(
+                [h.Class('font-normal text-gray-900 dark:text-gray-200')],
                 [parameter.name],
               ),
-              span(
-                [Class('text-gray-500 dark:text-gray-400')],
+              h.span(
+                [h.Class('text-gray-500 dark:text-gray-400')],
                 [` — ${description}`],
               ),
             ],
@@ -251,9 +258,9 @@ const parameterDescriptions = (
     Array.match({
       onEmpty: () => [],
       onNonEmpty: items => [
-        div(
+        h.div(
           [
-            Class(
+            h.Class(
               'mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-sm',
             ),
           ],
@@ -262,120 +269,146 @@ const parameterDescriptions = (
       ],
     }),
   )
+}
 
-const punctuation = (text: string): Html =>
-  span([Class('text-gray-500')], [text])
+const punctuation = <ParentMessage>(text: string): Html => {
+  const h = html<ParentMessage>()
 
-const parameterView = (parameter: ApiParameter): ReadonlyArray<Html> => [
-  span(
-    [Class('font-normal text-gray-900 dark:text-gray-200')],
-    [parameter.name],
-  ),
-  ...(parameter.isOptional ? [punctuation('?')] : []),
-  punctuation(': '),
-  span([Class('whitespace-pre-wrap')], [parameter.type]),
-]
+  return h.span([h.Class('text-gray-500')], [text])
+}
 
-const parameterListView = (
+const parameterView = <ParentMessage>(
+  parameter: ApiParameter,
+): ReadonlyArray<Html> => {
+  const h = html<ParentMessage>()
+
+  return [
+    h.span(
+      [h.Class('font-normal text-gray-900 dark:text-gray-200')],
+      [parameter.name],
+    ),
+    ...(parameter.isOptional ? [punctuation<ParentMessage>('?')] : []),
+    punctuation<ParentMessage>(': '),
+    h.span([h.Class('whitespace-pre-wrap')], [parameter.type]),
+  ]
+}
+
+const parameterListView = <ParentMessage>(
   parameters: ReadonlyArray<ApiParameter>,
-): ReadonlyArray<Html> =>
-  Array.match(parameters, {
-    onEmpty: () => [div([Class('mb-2')], [punctuation('()')])],
+): ReadonlyArray<Html> => {
+  const h = html<ParentMessage>()
+
+  return Array.match(parameters, {
+    onEmpty: () => [
+      h.div([h.Class('mb-2')], [punctuation<ParentMessage>('()')]),
+    ],
     onNonEmpty: nonEmpty => [
-      div(
-        [Class('mb-2')],
+      h.div(
+        [h.Class('mb-2')],
         [
-          punctuation('('),
+          punctuation<ParentMessage>('('),
           ...Array.flatMap(nonEmpty, (parameter, index) => [
-            ...(index > 0 ? [punctuation(', ')] : []),
-            ...parameterView(parameter),
+            ...(index > 0 ? [punctuation<ParentMessage>(', ')] : []),
+            ...parameterView<ParentMessage>(parameter),
           ]),
-          punctuation(')'),
+          punctuation<ParentMessage>(')'),
         ],
       ),
-      ...parameterDescriptions(nonEmpty),
+      ...parameterDescriptions<ParentMessage>(nonEmpty),
     ],
   })
+}
 
-const returnTypeView = (returnType: string): Html =>
-  div(
-    [Class('whitespace-pre-wrap')],
+const returnTypeView = <ParentMessage>(returnType: string): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [h.Class('whitespace-pre-wrap')],
     [
-      punctuation('→ '),
-      span([Class('text-accent-600 dark:text-accent-400')], [returnType]),
+      punctuation<ParentMessage>('→ '),
+      h.span([h.Class('text-accent-600 dark:text-accent-400')], [returnType]),
     ],
   )
+}
 
-const descriptionCommentFallback = (
+const descriptionCommentFallback = <ParentMessage>(
   maybeDescription: Option.Option<string>,
-): ReadonlyArray<Html> =>
-  Option.match(maybeDescription, {
+): ReadonlyArray<Html> => {
+  const h = html<ParentMessage>()
+
+  return Option.match(maybeDescription, {
     onNone: () => [],
     onSome: description => [
-      div(
-        [Class('text-gray-500 dark:text-gray-400 mb-3 whitespace-pre-wrap')],
+      h.div(
+        [h.Class('text-gray-500 dark:text-gray-400 mb-3 whitespace-pre-wrap')],
         [`/** ${description} */`],
       ),
     ],
   })
+}
 
-const signatureChildrenFallback = (signature: {
+const signatureChildrenFallback = <ParentMessage>(signature: {
   readonly parameters: ReadonlyArray<ApiParameter>
   readonly returnType: string
   readonly typeParameters: ReadonlyArray<string>
-}): ReadonlyArray<Html> => [
-  ...Array.match(signature.typeParameters, {
-    onEmpty: () => [],
-    onNonEmpty: typeParameters => [
-      div(
-        [Class('text-gray-500 mb-2')],
-        [`<${Array.join(typeParameters, ', ')}>`],
-      ),
-    ],
-  }),
-  ...parameterListView(signature.parameters),
-  returnTypeView(signature.returnType),
-]
+}): ReadonlyArray<Html> => {
+  const h = html<ParentMessage>()
 
-const typeView = (
+  return [
+    ...Array.match(signature.typeParameters, {
+      onEmpty: () => [],
+      onNonEmpty: typeParameters => [
+        h.div(
+          [h.Class('text-gray-500 mb-2')],
+          [`<${Array.join(typeParameters, ', ')}>`],
+        ),
+      ],
+    }),
+    ...parameterListView<ParentMessage>(signature.parameters),
+    returnTypeView<ParentMessage>(signature.returnType),
+  ]
+}
+
+const typeView = <ParentMessage>(
   moduleName: string,
   type: ApiType,
   highlights: Highlights,
 ): Html => {
+  const h = html<ParentMessage>()
   const id = scopedId('type', moduleName, type.name)
   const maybeHighlighted = Record.get(highlights, id)
 
-  return div(
-    [Class('mb-6')],
+  return h.div(
+    [h.Class('mb-6')],
     [
-      div(
+      h.div(
         [
-          Class(
+          h.Class(
             'group flex items-center gap-1 md:hover-capable:gap-0 mb-2 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
           ),
         ],
         [
-          div(
-            [Class('flex items-center gap-2')],
+          h.div(
+            [h.Class('flex items-center gap-2')],
             [
-              h3(
+              h.h3(
                 [
-                  Class(
+                  h.Class(
                     'text-base font-mono font-code text-gray-900 dark:text-white scroll-mt-6',
                   ),
-                  Id(id),
+                  h.Id(id),
                 ],
                 [type.name],
               ),
-              span(
+              h.span(
                 [
-                  Class(
+                  h.Class(
                     'text-xs px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300',
                   ),
                 ],
                 ['type'],
               ),
-              ...sourceLink(type.sourceUrl, type.name),
+              ...sourceLink<ParentMessage>(type.sourceUrl, type.name),
             ],
           ),
           headingLinkButton(id, type.name),
@@ -383,25 +416,25 @@ const typeView = (
       ),
       ...Option.match(maybeHighlighted, {
         onSome: highlighted => [
-          div(
+          h.div(
             [
-              Class(
+              h.Class(
                 'rounded text-sm [&_pre]:!rounded [&_pre]:!py-4 [&_pre]:!pl-4 [&_pre]:!pr-0 [&_code]:block [&_code]:w-fit [&_code]:min-w-full [&_code]:pr-4',
               ),
-              InnerHTML(highlighted),
+              h.InnerHTML(highlighted),
             ],
             [],
           ),
         ],
         onNone: () => [
-          div(
+          h.div(
             [
-              Class(
+              h.Class(
                 'block bg-gray-50 dark:bg-gray-800 rounded p-4 font-mono text-sm whitespace-pre-wrap',
               ),
             ],
             [
-              ...descriptionCommentFallback(type.description),
+              ...descriptionCommentFallback<ParentMessage>(type.description),
               type.typeDefinition,
             ],
           ),
@@ -411,45 +444,49 @@ const typeView = (
   )
 }
 
-const interfaceView = (
+const interfaceView = <ParentMessage>(
   moduleName: string,
   apiInterface: ApiInterface,
   highlights: Highlights,
 ): Html => {
+  const h = html<ParentMessage>()
   const id = scopedId('interface', moduleName, apiInterface.name)
   const maybeHighlighted = Record.get(highlights, id)
 
-  return div(
-    [Class('mb-6')],
+  return h.div(
+    [h.Class('mb-6')],
     [
-      div(
+      h.div(
         [
-          Class(
+          h.Class(
             'group flex items-center gap-1 md:hover-capable:gap-0 mb-2 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
           ),
         ],
         [
-          div(
-            [Class('flex items-center gap-2')],
+          h.div(
+            [h.Class('flex items-center gap-2')],
             [
-              h3(
+              h.h3(
                 [
-                  Class(
+                  h.Class(
                     'text-base font-mono font-code text-gray-900 dark:text-white scroll-mt-6',
                   ),
-                  Id(id),
+                  h.Id(id),
                 ],
                 [apiInterface.name],
               ),
-              span(
+              h.span(
                 [
-                  Class(
+                  h.Class(
                     'text-xs px-2 py-0.5 rounded bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-300',
                   ),
                 ],
                 ['interface'],
               ),
-              ...sourceLink(apiInterface.sourceUrl, apiInterface.name),
+              ...sourceLink<ParentMessage>(
+                apiInterface.sourceUrl,
+                apiInterface.name,
+              ),
             ],
           ),
           headingLinkButton(id, apiInterface.name),
@@ -457,25 +494,27 @@ const interfaceView = (
       ),
       ...Option.match(maybeHighlighted, {
         onSome: highlighted => [
-          div(
+          h.div(
             [
-              Class(
+              h.Class(
                 'rounded text-sm [&_pre]:!rounded [&_pre]:!py-4 [&_pre]:!pl-4 [&_pre]:!pr-0 [&_code]:block [&_code]:w-fit [&_code]:min-w-full [&_code]:pr-4',
               ),
-              InnerHTML(highlighted),
+              h.InnerHTML(highlighted),
             ],
             [],
           ),
         ],
         onNone: () => [
-          div(
+          h.div(
             [
-              Class(
+              h.Class(
                 'block bg-gray-50 dark:bg-gray-800 rounded p-4 font-mono text-sm whitespace-pre-wrap',
               ),
             ],
             [
-              ...descriptionCommentFallback(apiInterface.description),
+              ...descriptionCommentFallback<ParentMessage>(
+                apiInterface.description,
+              ),
               apiInterface.typeDefinition,
             ],
           ),
@@ -485,45 +524,46 @@ const interfaceView = (
   )
 }
 
-const variableView = (
+const variableView = <ParentMessage>(
   moduleName: string,
   variable: ApiVariable,
   highlights: Highlights,
 ): Html => {
+  const h = html<ParentMessage>()
   const id = scopedId('const', moduleName, variable.name)
   const maybeHighlighted = Record.get(highlights, id)
 
-  return div(
-    [Class('mb-6')],
+  return h.div(
+    [h.Class('mb-6')],
     [
-      div(
+      h.div(
         [
-          Class(
+          h.Class(
             'group flex items-center gap-1 md:hover-capable:gap-0 mb-2 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
           ),
         ],
         [
-          div(
-            [Class('flex items-center gap-2')],
+          h.div(
+            [h.Class('flex items-center gap-2')],
             [
-              h3(
+              h.h3(
                 [
-                  Class(
+                  h.Class(
                     'text-base font-mono font-code text-gray-900 dark:text-white scroll-mt-6',
                   ),
-                  Id(id),
+                  h.Id(id),
                 ],
                 [variable.name],
               ),
-              span(
+              h.span(
                 [
-                  Class(
+                  h.Class(
                     'text-xs px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300',
                   ),
                 ],
                 ['const'],
               ),
-              ...sourceLink(variable.sourceUrl, variable.name),
+              ...sourceLink<ParentMessage>(variable.sourceUrl, variable.name),
             ],
           ),
           headingLinkButton(id, variable.name),
@@ -531,25 +571,27 @@ const variableView = (
       ),
       ...Option.match(maybeHighlighted, {
         onSome: highlighted => [
-          div(
+          h.div(
             [
-              Class(
+              h.Class(
                 'rounded text-sm [&_pre]:!rounded [&_pre]:!py-4 [&_pre]:!pl-4 [&_pre]:!pr-0 [&_code]:block [&_code]:w-fit [&_code]:min-w-full [&_code]:pr-4',
               ),
-              InnerHTML(highlighted),
+              h.InnerHTML(highlighted),
             ],
             [],
           ),
         ],
         onNone: () => [
-          div(
+          h.div(
             [
-              Class(
+              h.Class(
                 'block bg-gray-50 dark:bg-gray-800 rounded p-4 font-mono text-sm whitespace-pre-wrap',
               ),
             ],
             [
-              ...descriptionCommentFallback(variable.description),
+              ...descriptionCommentFallback<ParentMessage>(
+                variable.description,
+              ),
               variable.type,
             ],
           ),
@@ -572,19 +614,21 @@ const section = <T extends { readonly name: string }>(
     ],
   })
 
-export const view = (
+export const view = <ParentMessage>(
   module: ApiModule,
   disclosures: Disclosures,
   highlights: Highlights,
   toParentMessage: (message: Message) => ParentMessage,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
       pageTitle(module.name, module.name),
       ...section('Functions', module.functions, apiFunction => {
         const key = scopedId('function', module.name, apiFunction.name)
-        return lazyItem(key, functionView, [
+        return lazyItem(key, functionView<ParentMessage>, [
           module.name,
           apiFunction,
           disclosures[key],
@@ -594,11 +638,15 @@ export const view = (
       }),
       ...section('Types', module.types, type => {
         const key = scopedId('type', module.name, type.name)
-        return lazyItem(key, typeView, [module.name, type, highlights])
+        return lazyItem(key, typeView<ParentMessage>, [
+          module.name,
+          type,
+          highlights,
+        ])
       }),
       ...section('Interfaces', module.interfaces, apiInterface => {
         const key = scopedId('interface', module.name, apiInterface.name)
-        return lazyItem(key, interfaceView, [
+        return lazyItem(key, interfaceView<ParentMessage>, [
           module.name,
           apiInterface,
           highlights,
@@ -606,10 +654,15 @@ export const view = (
       }),
       ...section('Constants', module.variables, variable => {
         const key = scopedId('const', module.name, variable.name)
-        return lazyItem(key, variableView, [module.name, variable, highlights])
+        return lazyItem(key, variableView<ParentMessage>, [
+          module.name,
+          variable,
+          highlights,
+        ])
       }),
     ],
   )
+}
 
 const skeletonFunctionBlocks: ReadonlyArray<{
   readonly labelWidth: string
@@ -625,22 +678,28 @@ const skeletonFunctionBlocks: ReadonlyArray<{
 
 const skeletonSurfaceClass = 'bg-gray-200 dark:bg-gray-800'
 
-export const skeletonView = (): Html =>
-  div(
-    [Class('animate-pulse')],
+export const skeletonView = <ParentMessage>(): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [h.Class('animate-pulse')],
     [
-      div([Class(`h-10 w-72 mb-10 rounded ${skeletonSurfaceClass}`)], []),
-      div([Class(`h-7 w-36 mb-6 rounded ${skeletonSurfaceClass}`)], []),
+      h.div([h.Class(`h-10 w-72 mb-10 rounded ${skeletonSurfaceClass}`)], []),
+      h.div([h.Class(`h-7 w-36 mb-6 rounded ${skeletonSurfaceClass}`)], []),
       ...Array.map(skeletonFunctionBlocks, ({ labelWidth, bodyHeight }) =>
-        div(
-          [Class('mb-8')],
+        h.div(
+          [h.Class('mb-8')],
           [
-            div(
-              [Class(`h-5 ${labelWidth} mb-3 rounded ${skeletonSurfaceClass}`)],
+            h.div(
+              [
+                h.Class(
+                  `h-5 ${labelWidth} mb-3 rounded ${skeletonSurfaceClass}`,
+                ),
+              ],
               [],
             ),
-            div(
-              [Class(`${bodyHeight} w-full rounded ${skeletonSurfaceClass}`)],
+            h.div(
+              [h.Class(`${bodyHeight} w-full rounded ${skeletonSurfaceClass}`)],
               [],
             ),
           ],
@@ -648,15 +707,23 @@ export const skeletonView = (): Html =>
       ),
     ],
   )
+}
 
-export const failureView = (error: string): Html =>
-  div(
-    [Class('rounded-lg border border-red-300 dark:border-red-800 p-6')],
+export const failureView = <ParentMessage>(error: string): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [h.Class('rounded-lg border border-red-300 dark:border-red-800 p-6')],
     [
-      h3(
-        [Class('text-base font-semibold text-red-700 dark:text-red-400 mb-2')],
+      h.h3(
+        [
+          h.Class(
+            'text-base font-semibold text-red-700 dark:text-red-400 mb-2',
+          ),
+        ],
         ['Failed to load API reference'],
       ),
-      div([Class('text-sm text-gray-600 dark:text-gray-400')], [error]),
+      h.div([h.Class('text-sm text-gray-600 dark:text-gray-400')], [error]),
     ],
   )
+}

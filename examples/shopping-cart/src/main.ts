@@ -1,6 +1,6 @@
 import { Effect, Match as M, Option, Schema as S, pipe } from 'effect'
 import { Command, Route, Runtime } from 'foldkit'
-import { Document, Html } from 'foldkit/html'
+import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { load, pushUrl } from 'foldkit/navigation'
 import { literal, r } from 'foldkit/route'
@@ -9,20 +9,6 @@ import { Url, toString as urlToString } from 'foldkit/url'
 
 import { products } from './data/products'
 import { Cart, Item } from './domain'
-import {
-  Class,
-  Href,
-  a,
-  div,
-  h1,
-  header,
-  keyed,
-  li,
-  main,
-  nav,
-  p,
-  ul,
-} from './html'
 import { Cart as CartPage, Checkout, Products } from './page'
 
 // ROUTE
@@ -258,47 +244,49 @@ const update = (
 
 // VIEW
 
+const h = html<Message>()
+
 const navigationView = (currentRoute: AppRoute, cartCount: number): Html => {
   const navLinkClassName = (isActive: boolean) =>
     `hover:bg-blue-600 font-medium px-3 py-1 rounded transition ${isActive ? 'bg-blue-700 bg-opacity-50' : ''}`
 
-  return nav(
-    [Class('bg-blue-500 text-white p-4 mb-6')],
+  return h.nav(
+    [h.Class('bg-blue-500 text-white p-4 mb-6')],
     [
-      ul(
-        [Class('max-w-6xl mx-auto flex gap-6 justify-center list-none')],
+      h.ul(
+        [h.Class('max-w-6xl mx-auto flex gap-6 justify-center list-none')],
         [
-          li(
+          h.li(
             [],
             [
-              a(
+              h.a(
                 [
-                  Href(productsRouter({ searchText: Option.none() })),
-                  Class(navLinkClassName(currentRoute._tag === 'Products')),
+                  h.Href(productsRouter({ searchText: Option.none() })),
+                  h.Class(navLinkClassName(currentRoute._tag === 'Products')),
                 ],
                 ['Products'],
               ),
             ],
           ),
-          li(
+          h.li(
             [],
             [
-              a(
+              h.a(
                 [
-                  Href(cartRouter()),
-                  Class(navLinkClassName(currentRoute._tag === 'Cart')),
+                  h.Href(cartRouter()),
+                  h.Class(navLinkClassName(currentRoute._tag === 'Cart')),
                 ],
                 cartCount > 0 ? [`Cart (${cartCount})`] : ['Cart'],
               ),
             ],
           ),
-          li(
+          h.li(
             [],
             [
-              a(
+              h.a(
                 [
-                  Href(checkoutRouter()),
-                  Class(navLinkClassName(currentRoute._tag === 'Checkout')),
+                  h.Href(checkoutRouter()),
+                  h.Class(navLinkClassName(currentRoute._tag === 'Checkout')),
                 ],
                 ['Checkout'],
               ),
@@ -311,7 +299,7 @@ const navigationView = (currentRoute: AppRoute, cartCount: number): Html => {
 }
 
 const productsView = (model: Model): Html => {
-  return Products.view(
+  return Products.view<Message>(
     model.productsPage,
     model.cart,
     cartRouter,
@@ -336,21 +324,21 @@ const checkoutView = (model: Model): Html => {
 }
 
 const notFoundView = (path: string): Html =>
-  div(
-    [Class('max-w-4xl mx-auto px-4 text-center')],
+  h.div(
+    [h.Class('max-w-4xl mx-auto px-4 text-center')],
     [
-      h1(
-        [Class('text-4xl font-bold text-red-600 mb-6')],
+      h.h1(
+        [h.Class('text-4xl font-bold text-red-600 mb-6')],
         ['404 - Page Not Found'],
       ),
-      p(
-        [Class('text-lg text-gray-600 mb-4')],
+      h.p(
+        [h.Class('text-lg text-gray-600 mb-4')],
         [`The path "${path}" was not found.`],
       ),
-      a(
+      h.a(
         [
-          Href(productsRouter({ searchText: Option.none() })),
-          Class('text-blue-500 hover:underline'),
+          h.Href(productsRouter({ searchText: Option.none() })),
+          h.Class('text-blue-500 hover:underline'),
         ],
         ['← Go to Products'],
       ),
@@ -375,13 +363,16 @@ const view = (model: Model): Document => {
 
   return {
     title: routeTitle(model.route),
-    body: div(
-      [Class('min-h-screen bg-gray-100')],
+    body: h.div(
+      [h.Class('min-h-screen bg-gray-100')],
       [
-        header([], [navigationView(model.route, Cart.totalItems(model.cart))]),
-        main(
-          [Class('py-8')],
-          [keyed('div')(model.route._tag, [], [routeContent])],
+        h.header(
+          [],
+          [navigationView(model.route, Cart.totalItems(model.cart))],
+        ),
+        h.main(
+          [h.Class('py-8')],
+          [h.keyed('div')(model.route._tag, [], [routeContent])],
         ),
       ],
     ),

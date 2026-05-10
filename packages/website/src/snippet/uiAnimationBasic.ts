@@ -3,10 +3,11 @@
 // update, and view definitions.
 import { Effect, Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { OnClick, button, p } from './html'
+const h = html<Message>()
 
 // Add a field to your Model for the Animation Submodel. Animation tracks
 // its own visibility and lifecycle state. No need for a separate flag:
@@ -85,9 +86,9 @@ GotAnimationMessage: ({ message }) => {
 // Inside your view function, toggle visibility by dispatching Ui.Animation.Showed()
 // or Hid() wrapped in your parent Message. model.animation.isShowing is your
 // source of truth for whether content is currently visible:
-button(
+h.button(
   [
-    OnClick(
+    h.OnClick(
       GotAnimationMessage({
         message: model.animation.isShowing
           ? Ui.Animation.Hid()
@@ -105,5 +106,5 @@ Ui.Animation.view({
   animateSize: true,
   className:
     'transition duration-200 ease-out data-[closed]:opacity-0 data-[closed]:scale-95',
-  content: p([], ['This content animates in and out.']),
+  content: h.p([], ['This content animates in and out.']),
 })

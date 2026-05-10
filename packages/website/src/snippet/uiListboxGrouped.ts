@@ -3,10 +3,11 @@
 // update, and view definitions.
 import { Effect, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Class, div, span } from './html'
+const h = html<Message>()
 
 // Add a field to your Model for the Listbox Submodel, plus a field for
 // the selected value your app actually cares about:
@@ -97,20 +98,20 @@ Ui.Listbox.view({
   itemGroupKey: character => character.lastName,
   // Render a heading for each group:
   groupToHeading: lastName => ({
-    content: span([], [`${lastName}s`]),
+    content: h.span([], [`${lastName}s`]),
     className: 'px-3 py-1 text-xs font-semibold uppercase text-gray-500',
   }),
   // Optional separator between groups:
-  separatorAttributes: [Class('my-1 border-t')],
+  separatorAttributes: [h.Class('my-1 border-t')],
   itemToConfig: character => ({
     className:
       'px-3 py-2 cursor-pointer data-[active]:bg-blue-100 data-[selected]:font-semibold',
-    content: div(
-      [Class('flex items-center gap-2')],
-      [span([], [characterName(character)])],
+    content: h.div(
+      [h.Class('flex items-center gap-2')],
+      [h.span([], [characterName(character)])],
     ),
   }),
-  buttonContent: span(
+  buttonContent: h.span(
     [],
     [Option.getOrElse(model.maybeCharacter, () => 'Select a character')],
   ),

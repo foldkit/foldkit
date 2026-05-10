@@ -18,7 +18,7 @@ const acknowledgePopoverBackdrop = Scene.Mount.resolve(
   GotPopoverMessage({ message: Popover.CompletedPortalPopoverBackdrop() }),
 )
 
-const { button, div, h2, span, Id } = html<Message>()
+const h = html<Message>()
 
 const today = Calendar.make(2026, 4, 13)
 
@@ -26,31 +26,31 @@ const testToCalendarView = (attrs: UiCalendar.CalendarAttributes<Message>) =>
   M.value(attrs).pipe(
     M.tagsExhaustive({
       Days: days =>
-        div(days.root, [
-          div(
+        h.div(days.root, [
+          h.div(
             [],
             [
-              button(days.previousMonthButton, ['prev']),
-              button(
-                [Id(days.heading.id), ...days.headingButton],
+              h.button(days.previousMonthButton, ['prev']),
+              h.button(
+                [h.Id(days.heading.id), ...days.headingButton],
                 [days.heading.text],
               ),
-              button(days.nextMonthButton, ['next']),
+              h.button(days.nextMonthButton, ['next']),
             ],
           ),
-          div(days.grid, [
-            div(
+          h.div(days.grid, [
+            h.div(
               days.headerRow,
               days.columnHeaders.map(header =>
-                div(header.attributes, [header.name]),
+                h.div(header.attributes, [header.name]),
               ),
             ),
             ...days.weeks.map(week =>
-              div(
+              h.div(
                 week.attributes,
                 week.cells.map(cell =>
-                  div(cell.cellAttributes, [
-                    button(cell.buttonAttributes, [cell.label]),
+                  h.div(cell.cellAttributes, [
+                    h.button(cell.buttonAttributes, [cell.label]),
                   ]),
                 ),
               ),
@@ -58,40 +58,40 @@ const testToCalendarView = (attrs: UiCalendar.CalendarAttributes<Message>) =>
           ]),
         ]),
       Months: months =>
-        div(months.root, [
-          div(
+        h.div(months.root, [
+          h.div(
             [],
             [
-              button(
-                [Id(months.heading.id), ...months.headingButton],
+              h.button(
+                [h.Id(months.heading.id), ...months.headingButton],
                 [months.heading.text],
               ),
             ],
           ),
-          div(
+          h.div(
             months.grid,
             months.cells.map(cell =>
-              div(cell.cellAttributes, [
-                button(cell.buttonAttributes, [cell.label]),
+              h.div(cell.cellAttributes, [
+                h.button(cell.buttonAttributes, [cell.label]),
               ]),
             ),
           ),
         ]),
       Years: years =>
-        div(years.root, [
-          div(
+        h.div(years.root, [
+          h.div(
             [],
             [
-              button(years.previousPageButton, ['prev page']),
-              h2([Id(years.heading.id)], [years.heading.text]),
-              button(years.nextPageButton, ['next page']),
+              h.button(years.previousPageButton, ['prev page']),
+              h.h2([h.Id(years.heading.id)], [years.heading.text]),
+              h.button(years.nextPageButton, ['next page']),
             ],
           ),
-          div(
+          h.div(
             years.grid,
             years.cells.map(cell =>
-              div(cell.cellAttributes, [
-                button(cell.buttonAttributes, [cell.label]),
+              h.div(cell.cellAttributes, [
+                h.button(cell.buttonAttributes, [cell.label]),
               ]),
             ),
           ),
@@ -100,7 +100,7 @@ const testToCalendarView = (attrs: UiCalendar.CalendarAttributes<Message>) =>
   )
 
 const triggerContent = (maybeDate: Option.Option<Calendar.CalendarDate>) =>
-  span(
+  h.span(
     [],
     [
       Option.match(maybeDate, {

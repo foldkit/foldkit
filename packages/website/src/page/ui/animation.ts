@@ -1,7 +1,7 @@
 import { Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 
-import { Class, OnClick, button, div, p } from '../../html'
-import type { Message as ParentMessage, TableOfContentsEntry } from '../../main'
+import type { TableOfContentsEntry } from '../../main'
 import { GotAnimationDemoMessage, type Message } from './message'
 
 // TABLE OF CONTENTS
@@ -22,22 +22,24 @@ const contentClassName =
 
 // VIEW
 
-export const animationDemo = (
+export const animationDemo = <ParentMessage>(
   animationModel: Ui.Animation.Model,
   toParentMessage: (message: Message) => ParentMessage,
 ) => {
+  const h = html<ParentMessage>()
+
   const toggleMessage = animationModel.isShowing
     ? Ui.Animation.Hid()
     : Ui.Animation.Showed()
 
   return [
-    div(
-      [Class('flex flex-col items-center')],
+    h.div(
+      [h.Class('flex flex-col items-center')],
       [
-        button(
+        h.button(
           [
-            Class(triggerClassName),
-            OnClick(
+            h.Class(triggerClassName),
+            h.OnClick(
               toParentMessage(
                 GotAnimationDemoMessage({ message: toggleMessage }),
               ),
@@ -49,8 +51,8 @@ export const animationDemo = (
           model: animationModel,
           className: contentClassName,
           animateSize: true,
-          content: p(
-            [Class('text-accent-800 dark:text-accent-200')],
+          content: h.p(
+            [h.Class('text-accent-800 dark:text-accent-200')],
             [
               'This content fades in and out using CSS transitions coordinated by the Animation component. The data attributes (data-closed, data-enter, data-leave, data-transition) drive the animation via Tailwind selectors.',
             ],

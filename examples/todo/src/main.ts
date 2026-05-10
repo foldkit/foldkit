@@ -334,29 +334,7 @@ export const SaveTodos = Command.define(
 
 // VIEW
 
-const {
-  button,
-  div,
-  empty,
-  form,
-  h1,
-  input,
-  label,
-  li,
-  span,
-  ul,
-  AriaLabel,
-  Class,
-  For,
-  Id,
-  OnClick,
-  OnInput,
-  OnSubmit,
-  Placeholder,
-  Role,
-  Type,
-  Value,
-} = html<Message>()
+const h = html<Message>()
 
 const todoItemView =
   (model: Model) =>
@@ -372,30 +350,32 @@ const todoItemView =
     )
 
 const editingTodoView = (todo: Todo, text: string): Html =>
-  li(
-    [Class('flex items-center gap-3 p-3 bg-gray-50 rounded-lg')],
+  h.li(
+    [h.Class('flex items-center gap-3 p-3 bg-gray-50 rounded-lg')],
     [
-      input([
-        Type('text'),
-        Id(`edit-${todo.id}`),
-        AriaLabel('Edit todo'),
-        Value(text),
-        Class(
+      h.input([
+        h.Type('text'),
+        h.Id(`edit-${todo.id}`),
+        h.AriaLabel('Edit todo'),
+        h.Value(text),
+        h.Class(
           'flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500',
         ),
-        OnInput(text => UpdatedEditingTodo({ text })),
+        h.OnInput(text => UpdatedEditingTodo({ text })),
       ]),
-      button(
+      h.button(
         [
-          OnClick(SavedEdit()),
-          Class('px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600'),
+          h.OnClick(SavedEdit()),
+          h.Class(
+            'px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600',
+          ),
         ],
         ['Save'],
       ),
-      button(
+      h.button(
         [
-          OnClick(CancelledEdit()),
-          Class('px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600'),
+          h.OnClick(CancelledEdit()),
+          h.Class('px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600'),
         ],
         ['Cancel'],
       ),
@@ -403,35 +383,35 @@ const editingTodoView = (todo: Todo, text: string): Html =>
   )
 
 const nonEditingTodoView = (todo: Todo): Html =>
-  li(
-    [Class('flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg group')],
+  h.li(
+    [h.Class('flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg group')],
     [
-      input([
-        Type('checkbox'),
-        Id(`todo-${todo.id}`),
-        AriaLabel(todo.text),
-        Value(todo.completed ? 'on' : ''),
-        Class('w-4 h-4 text-blue-600 rounded focus:ring-blue-500'),
-        OnClick(ToggledTodo({ id: todo.id })),
+      h.input([
+        h.Type('checkbox'),
+        h.Id(`todo-${todo.id}`),
+        h.AriaLabel(todo.text),
+        h.Value(todo.completed ? 'on' : ''),
+        h.Class('w-4 h-4 text-blue-600 rounded focus:ring-blue-500'),
+        h.OnClick(ToggledTodo({ id: todo.id })),
       ]),
-      span(
+      h.span(
         [
-          Class(
+          h.Class(
             `flex-1 ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`,
           ),
-          OnClick(StartedEditing({ id: todo.id })),
+          h.OnClick(StartedEditing({ id: todo.id })),
         ],
         [todo.text],
       ),
-      button(
+      h.button(
         [
-          OnClick(DeletedTodo({ id: todo.id })),
-          AriaLabel(`Delete ${todo.text}`),
-          Class(
+          h.OnClick(DeletedTodo({ id: todo.id })),
+          h.AriaLabel(`Delete ${todo.text}`),
+          h.Class(
             'px-2 py-1 text-red-600 opacity-0 group-hover:opacity-100 hover:bg-red-100 rounded transition-opacity',
           ),
         ],
-        ['\u00d7'],
+        ['×'],
       ),
     ],
   )
@@ -439,10 +419,10 @@ const nonEditingTodoView = (todo: Todo): Html =>
 const filterButtonView =
   (model: Model) =>
   (filter: Filter, label: string): Html =>
-    button(
+    h.button(
       [
-        OnClick(SelectedFilter({ filter })),
-        Class(
+        h.OnClick(SelectedFilter({ filter })),
+        h.Class(
           `px-3 py-1 rounded ${
             model.filter === filter
               ? 'bg-blue-500 text-white'
@@ -459,18 +439,18 @@ const footerView = (
   completedCount: number,
 ): Html =>
   Array.match(model.todos, {
-    onEmpty: () => empty,
+    onEmpty: () => h.empty,
     onNonEmpty: () =>
-      div(
-        [Class('flex flex-col gap-4')],
+      h.div(
+        [h.Class('flex flex-col gap-4')],
         [
-          div(
-            [Class('text-sm text-gray-600 text-center'), Role('status')],
+          h.div(
+            [h.Class('text-sm text-gray-600 text-center'), h.Role('status')],
             [`${activeCount} active, ${completedCount} completed`],
           ),
 
-          div(
-            [Class('flex justify-center gap-2')],
+          h.div(
+            [h.Class('flex justify-center gap-2')],
             [
               filterButtonView(model)('All', 'All'),
               filterButtonView(model)('Active', 'Active'),
@@ -478,16 +458,16 @@ const footerView = (
             ],
           ),
 
-          div(
-            [Class('flex justify-center gap-2')],
+          h.div(
+            [h.Class('flex justify-center gap-2')],
             [
               Array.match(model.todos, {
-                onEmpty: () => empty,
+                onEmpty: () => h.empty,
                 onNonEmpty: todos =>
-                  button(
+                  h.button(
                     [
-                      OnClick(ToggledAll()),
-                      Class(
+                      h.OnClick(ToggledAll()),
+                      h.Class(
                         'px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300',
                       ),
                     ],
@@ -500,16 +480,16 @@ const footerView = (
               }),
 
               completedCount > 0
-                ? button(
+                ? h.button(
                     [
-                      OnClick(ClearedCompleted()),
-                      Class(
+                      h.OnClick(ClearedCompleted()),
+                      h.Class(
                         'px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200',
                       ),
                     ],
                     [`Clear ${completedCount} completed`],
                   )
-                : empty,
+                : h.empty,
             ],
           ),
         ],
@@ -531,37 +511,37 @@ export const view = (model: Model): Document => {
   )
   const completedCount = Array.length(model.todos) - activeCount
 
-  const body = div(
-    [Class('min-h-screen bg-gray-100 py-8')],
+  const body = h.div(
+    [h.Class('min-h-screen bg-gray-100 py-8')],
     [
-      div(
-        [Class('max-w-md mx-auto bg-white rounded-xl shadow-lg p-6')],
+      h.div(
+        [h.Class('max-w-md mx-auto bg-white rounded-xl shadow-lg p-6')],
         [
-          h1(
-            [Class('text-3xl font-bold text-gray-800 text-center mb-8')],
+          h.h1(
+            [h.Class('text-3xl font-bold text-gray-800 text-center mb-8')],
             ['Todo App'],
           ),
 
-          form(
-            [Class('mb-6'), OnSubmit(AddedTodo())],
+          h.form(
+            [h.Class('mb-6'), h.OnSubmit(AddedTodo())],
             [
-              label([For('new-todo'), Class('sr-only')], ['New todo']),
-              div(
-                [Class('flex gap-3')],
+              h.label([h.For('new-todo'), h.Class('sr-only')], ['New todo']),
+              h.div(
+                [h.Class('flex gap-3')],
                 [
-                  input([
-                    Id('new-todo'),
-                    Value(model.newTodoText),
-                    Placeholder('What needs to be done?'),
-                    Class(
+                  h.input([
+                    h.Id('new-todo'),
+                    h.Value(model.newTodoText),
+                    h.Placeholder('What needs to be done?'),
+                    h.Class(
                       'flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
                     ),
-                    OnInput(text => UpdatedNewTodo({ text })),
+                    h.OnInput(text => UpdatedNewTodo({ text })),
                   ]),
-                  button(
+                  h.button(
                     [
-                      Type('submit'),
-                      Class(
+                      h.Type('submit'),
+                      h.Class(
                         'px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500',
                       ),
                     ],
@@ -574,8 +554,8 @@ export const view = (model: Model): Document => {
 
           Array.match(filteredTodos, {
             onEmpty: () =>
-              div(
-                [Class('text-center text-gray-500 py-8')],
+              h.div(
+                [h.Class('text-center text-gray-500 py-8')],
                 [
                   M.value(model.filter).pipe(
                     M.when('All', () => 'No todos yet. Add one above!'),
@@ -586,8 +566,8 @@ export const view = (model: Model): Document => {
                 ],
               ),
             onNonEmpty: todos =>
-              ul(
-                [Class('space-y-2 mb-6')],
+              h.ul(
+                [h.Class('space-y-2 mb-6')],
                 Array.map(todos, todoItemView(model)),
               ),
           }),

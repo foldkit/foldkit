@@ -1,8 +1,7 @@
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
 import { Link } from '../../link'
-import type { TableOfContentsEntry } from '../../main'
+import { Message, type TableOfContentsEntry } from '../../main'
 import {
   bulletPoint,
   bullets,
@@ -15,6 +14,8 @@ import {
 } from '../../prose'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
+
+const h = html<Message>()
 
 const keyingHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -48,7 +49,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('best-practices/keying', 'Keying'),
@@ -85,10 +86,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       tableOfContentsEntryToHeader(branchingViewsHeader),
       para('Use a discriminating string as the key, typically a tag:'),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.keyingBranchingViewsHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.keyingBranchingViewsHighlighted),
           ],
           [],
         ),
@@ -109,8 +110,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Key list items by a stable model identifier (an id, a UUID), never by array position:',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.keyingListItemsHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.keyingListItemsHighlighted),
+          ],
           [],
         ),
         Snippets.keyingListItemsRaw,
@@ -119,7 +123,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        'Positional diffing looks correct until an entry is removed from the middle of the list or the list is reordered. Snabbdom then patches the old row\u2019s DOM into what should be a different row.',
+        'Positional diffing looks correct until an entry is removed from the middle of the list or the list is reordered. Snabbdom then patches the old row’s DOM into what should be a different row.',
       ),
       tableOfContentsEntryToHeader(conditionalInsertsHeader),
       para(
@@ -128,10 +132,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ', give all three a key:',
       ),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.keyingConditionalInsertsHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.keyingConditionalInsertsHighlighted),
           ],
           [],
         ),
@@ -141,7 +145,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        'Snabbdom\u2019s diff can often handle conditional inserts correctly by matching elements on their tag and classes, but that is implicit behavior. Explicit keys make the intent clear and stay correct across refactors.',
+        'Snabbdom’s diff can often handle conditional inserts correctly by matching elements on their tag and classes, but that is implicit behavior. Explicit keys make the intent clear and stay correct across refactors.',
       ),
     ],
   )

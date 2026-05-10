@@ -1,7 +1,6 @@
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
-import type { TableOfContentsEntry } from '../../main'
+import { Message, type TableOfContentsEntry } from '../../main'
 import {
   inlineCode,
   pageTitle,
@@ -10,6 +9,8 @@ import {
 } from '../../prose'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
+
+const h = html<Message>()
 
 const immutableUpdatesHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -22,7 +23,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('best-practices/immutability', 'Immutability'),
@@ -35,7 +36,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' with stricter type checking. If you remove or rename a key from your Model, you’ll get type errors everywhere you try to update it.',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.evoExampleHighlighted)], []),
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.evoExampleHighlighted)],
+          [],
+        ),
         Snippets.evoExampleRaw,
         'Copy evo example to clipboard',
         copiedSnippets,

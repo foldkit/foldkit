@@ -1,19 +1,19 @@
 import clsx from 'clsx'
 import { Ui } from 'foldkit'
-import { type Html } from 'foldkit/html'
+import { type Html, html } from 'foldkit/html'
 
 import { ProficiencyLevel } from '../domain'
-import { Class, OnClick, Type, button, div, input, keyed, span } from '../html'
-import type { Message } from '../message'
 import { Skills } from '../step'
 import { inputField } from './field'
 
-export const skillEntryView = (
+export const skillEntryView = <ParentMessage>(
   model: Skills.Entry.Model,
-  toParentMessage: (message: Skills.Entry.Message) => Message,
-  onRemove: Message,
+  toParentMessage: (message: Skills.Entry.Message) => ParentMessage,
+  onRemove: ParentMessage,
 ): Html => {
-  const nameView = inputField({
+  const h = html<ParentMessage>()
+
+  const nameView = inputField<ParentMessage>({
     id: `${model.id}-name`,
     label: 'Skill',
     field: model.name,
@@ -31,10 +31,10 @@ export const skillEntryView = (
     optionToConfig: (level, { isSelected }) => ({
       value: level,
       content: attributes =>
-        div(
+        h.div(
           [
             ...attributes.option,
-            Class(
+            h.Class(
               clsx(
                 'cursor-pointer rounded-full border px-3 py-1 text-sm transition select-none',
                 isSelected
@@ -43,35 +43,38 @@ export const skillEntryView = (
               ),
             ),
           ],
-          [input([...attributes.label, Class('sr-only')]), span([], [level])],
+          [
+            h.input([...attributes.label, h.Class('sr-only')]),
+            h.span([], [level]),
+          ],
         ),
     }),
     ariaLabel: 'Proficiency level',
   })
 
-  return keyed('div')(
+  return h.keyed('div')(
     model.id,
-    [Class('py-6 space-y-4 first:pt-0')],
+    [h.Class('py-6 space-y-4 first:pt-0')],
     [
       nameView,
-      div(
-        [Class('space-y-2')],
+      h.div(
+        [h.Class('space-y-2')],
         [
-          span(
-            [Class('block text-sm font-medium text-gray-700')],
+          h.span(
+            [h.Class('block text-sm font-medium text-gray-700')],
             ['Proficiency'],
           ),
           proficiencyView,
         ],
       ),
-      div(
-        [Class('flex justify-end')],
+      h.div(
+        [h.Class('flex justify-end')],
         [
-          button(
+          h.button(
             [
-              Type('button'),
-              OnClick(onRemove),
-              Class(
+              h.Type('button'),
+              h.OnClick(onRemove),
+              h.Class(
                 'text-sm text-gray-400 hover:text-red-500 transition cursor-pointer',
               ),
             ],

@@ -1,11 +1,10 @@
 import { Option, Record } from 'effect'
 import { Ui } from 'foldkit'
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div, p, span } from '../../html'
 import { Icon } from '../../icon'
 import { Link } from '../../link'
-import type { Message as ParentMessage, TableOfContentsEntry } from '../../main'
+import type { TableOfContentsEntry } from '../../main'
 import {
   infoCallout,
   inlineCode,
@@ -125,15 +124,18 @@ const patternMappingTable = (): Html =>
     ],
   )
 
-const chevron = (isOpen: boolean) =>
-  span(
+const chevron = <ParentMessage>(isOpen: boolean): Html => {
+  const h = html<ParentMessage>()
+
+  return h.span(
     [
-      Class(
+      h.Class(
         `text-gray-600 dark:text-gray-300 transition-transform ${isOpen ? 'rotate-180' : ''}`,
       ),
     ],
     [Icon.chevronDown('w-4 h-4')],
   )
+}
 
 const faqButtonClassName =
   'w-full flex items-center justify-between px-4 py-3 text-left text-base font-normal cursor-pointer transition border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white hover:bg-gray-200/50 dark:hover:bg-gray-800 rounded-lg data-[open]:rounded-b-none select-none'
@@ -141,38 +143,43 @@ const faqButtonClassName =
 const faqPanelClassName =
   'px-4 py-3 border-x border-b border-gray-300 dark:border-gray-700 rounded-b-lg text-gray-800 dark:text-gray-200 [&_p]:mb-2 [&_p]:last:mb-0 [&_p]:leading-normal'
 
-const faqItem = (
+const faqItem = <ParentMessage>(
   id: string,
   question: string,
   answerContent: ReadonlyArray<Html>,
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
-): Html =>
-  Option.match(Record.get(model, id), {
+): Html => {
+  const h = html<ParentMessage>()
+
+  return Option.match(Record.get(model, id), {
     onSome: disclosure =>
       Ui.Disclosure.view({
         model: disclosure,
         toParentMessage: message =>
           toParentMessage(GotFaqDisclosureMessage({ id, message })),
-        buttonAttributes: [Class(faqButtonClassName)],
-        buttonContent: div(
-          [Class('flex items-center justify-between w-full')],
-          [span([], [question]), chevron(disclosure.isOpen)],
+        buttonAttributes: [h.Class(faqButtonClassName)],
+        buttonContent: h.div(
+          [h.Class('flex items-center justify-between w-full')],
+          [h.span([], [question]), chevron<ParentMessage>(disclosure.isOpen)],
         ),
-        panelAttributes: [Class(faqPanelClassName)],
-        panelContent: div([], answerContent),
-        attributes: [Class('mb-2')],
+        panelAttributes: [h.Class(faqPanelClassName)],
+        panelContent: h.div([], answerContent),
+        attributes: [h.Class('mb-2')],
       }),
     onNone: () =>
-      div([], [p([Class('font-bold')], [question]), ...answerContent]),
+      h.div([], [h.p([h.Class('font-bold')], [question]), ...answerContent]),
   })
+}
 
-export const view = (
+export const view = <ParentMessage>(
   copiedSnippets: CopiedSnippets,
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
       pageTitle('coming-from-react', 'Coming from React'),
@@ -188,8 +195,8 @@ export const view = (
       tableOfContentsEntryToHeader(simpleCounterHeader),
       para('A counter in React:'),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.reactCounterHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.reactCounterHighlighted)],
           [],
         ),
         Snippets.reactCounterRaw,
@@ -199,8 +206,8 @@ export const view = (
       ),
       para('The same counter in Foldkit:'),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.foldkitCounterHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.foldkitCounterHighlighted)],
           [],
         ),
         Snippets.foldkitCounterRaw,
@@ -209,7 +216,7 @@ export const view = (
         'mb-6',
       ),
       para(
-        'More lines, same result. At this scale, Foldkit\u2019s structure (Model, Message, update, view) looks like overhead. The benefits come with scale. Every piece earns its place as more complex behavior is introduced.',
+        'More lines, same result. At this scale, Foldkit’s structure (Model, Message, update, view) looks like overhead. The benefits come with scale. Every piece earns its place as more complex behavior is introduced.',
       ),
       tableOfContentsEntryToHeader(autoCountHeader),
       para(
@@ -221,8 +228,11 @@ export const view = (
         ' to start and stop the interval:',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.reactCounterResetHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.reactCounterResetHighlighted),
+          ],
           [],
         ),
         Snippets.reactCounterResetRaw,
@@ -231,14 +241,14 @@ export const view = (
         'mb-4',
       ),
       para(
-        'The interval state lives outside React\u2019s state system (in a ref) because the effect needs to clear the previous interval before starting a new one. The cleanup function is critical: miss it and you leak intervals.',
+        'The interval state lives outside React’s state system (in a ref) because the effect needs to clear the previous interval before starting a new one. The cleanup function is critical: miss it and you leak intervals.',
       ),
       para('Foldkit adds a Subscription and a Message:'),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.foldkitCounterResetHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.foldkitCounterResetHighlighted),
           ],
           [],
         ),
@@ -266,10 +276,10 @@ export const view = (
         ' at creation time. If you change the step while playing, the interval keeps using the old value: a stale closure. The fix is a ref and a sync effect to keep it current:',
       ),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.reactCounterAutoPlayHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.reactCounterAutoPlayHighlighted),
           ],
           [],
         ),
@@ -283,10 +293,10 @@ export const view = (
       ),
       para('In Foldkit, there is no stale closure:'),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.foldkitCounterAutoPlayHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.foldkitCounterAutoPlayHighlighted),
           ],
           [],
         ),
@@ -306,11 +316,11 @@ export const view = (
         ' and it just works. No refs, no sync effects, no runtime surprises.',
       ),
       para(
-        'Read the update function top to bottom. Every behavior in the app is right there. Each case is independent. They don\u2019t interact through shared mutable state or overlapping effect dependencies. Adding a feature meant adding cases, not restructuring existing ones.',
+        'Read the update function top to bottom. Every behavior in the app is right there. Each case is independent. They don’t interact through shared mutable state or overlapping effect dependencies. Adding a feature meant adding cases, not restructuring existing ones.',
       ),
       infoCallout(
         'The pattern',
-        'In React, complexity compounds. Each feature interacts with existing effects, refs, and closures. In Foldkit, complexity scales linearly. Each feature adds Messages, update cases, and possibly Commands or Subscriptions, but they don\u2019t interact with each other through shared mutable state.',
+        'In React, complexity compounds. Each feature interacts with existing effects, refs, and closures. In Foldkit, complexity scales linearly. Each feature adds Messages, update cases, and possibly Commands or Subscriptions, but they don’t interact with each other through shared mutable state.',
       ),
       para(
         'This structure also makes testing trivial. Your update function is pure. Pass a Model and a Message, assert on the returned Model. No rendering, no mocking ',
@@ -318,22 +328,22 @@ export const view = (
         ', no wrapping in providers.',
       ),
       para(
-        'This is a toy example. Consider what happens at real scale: a multiplayer game with WebSocket streams, a mix of client and server state, handling keyboard events, animations, and reconnection logic. In React, every feature adds effects that interact with every other effect. In Foldkit, the architecture is the same as the counter: Messages come in, the update function decides what to do, Commands and Subscriptions handle the rest. The complexity of your domain grows, but the complexity of your architecture doesn\u2019t.',
+        'This is a toy example. Consider what happens at real scale: a multiplayer game with WebSocket streams, a mix of client and server state, handling keyboard events, animations, and reconnection logic. In React, every feature adds effects that interact with every other effect. In Foldkit, the architecture is the same as the counter: Messages come in, the update function decides what to do, Commands and Subscriptions handle the rest. The complexity of your domain grows, but the complexity of your architecture doesn’t.',
       ),
       tableOfContentsEntryToHeader(translatingConceptsHeader),
-      para('Here\u2019s how React patterns map to Foldkit:'),
+      para('Here’s how React patterns map to Foldkit:'),
       patternMappingTable(),
       infoCallout(
         'If you know Redux...',
         'The Model-View-Update pattern will feel familiar. Think of the Model as your Redux store, Messages as actions, and update as your reducer, but without action creators, selectors, or middleware.',
       ),
       tableOfContentsEntryToHeader(faqHeader),
-      faqItem(
+      faqItem<ParentMessage>(
         faqReusableComponents,
-        'How do I make reusable \u201Ccomponents\u201D?',
+        'How do I make reusable “components”?',
         [
           para(
-            'Create functions that take parts of your Model and return Html. They\u2019re not components in the React sense (they don\u2019t have their own state or lifecycle), but they\u2019re reusable view logic. For complex features that need their own state, use the ',
+            'Create functions that take parts of your Model and return Html. They’re not components in the React sense (they don’t have their own state or lifecycle), but they’re reusable view logic. For complex features that need their own state, use the ',
             link(patternsSubmodelsRouter(), 'Submodels'),
             ' pattern: the child module gets its own Model, Message, and update, and the parent embeds and delegates to it.',
           ),
@@ -341,7 +351,7 @@ export const view = (
         model,
         toParentMessage,
       ),
-      faqItem(
+      faqItem<ParentMessage>(
         faqMultipleInstances,
         'How do I create multiple components with their own state?',
         [
@@ -349,10 +359,10 @@ export const view = (
             'State always lives in your Model, and views are functions from Model to Html. For multiple instances with independent state, model each one explicitly:',
           ),
           highlightedCodeBlock(
-            div(
+            h.div(
               [
-                Class('text-sm'),
-                InnerHTML(Snippets.multipleInstancesHighlighted),
+                h.Class('text-sm'),
+                h.InnerHTML(Snippets.multipleInstancesHighlighted),
               ],
               [],
             ),
@@ -375,7 +385,7 @@ export const view = (
         model,
         toParentMessage,
       ),
-      faqItem(
+      faqItem<ParentMessage>(
         faqRouting,
         'How does routing work?',
         [
@@ -388,7 +398,7 @@ export const view = (
         model,
         toParentMessage,
       ),
-      faqItem(
+      faqItem<ParentMessage>(
         faqForms,
         'What about forms?',
         [
@@ -413,7 +423,7 @@ export const view = (
         model,
         toParentMessage,
       ),
-      faqItem(
+      faqItem<ParentMessage>(
         faqUiComponents,
         'What about Headless UI, Radix, or Shadcn?',
         [
@@ -425,7 +435,7 @@ export const view = (
         model,
         toParentMessage,
       ),
-      faqItem(
+      faqItem<ParentMessage>(
         faqDataFetching,
         'How do I fetch data?',
         [
@@ -440,7 +450,7 @@ export const view = (
         model,
         toParentMessage,
       ),
-      faqItem(
+      faqItem<ParentMessage>(
         faqTesting,
         'How do I test my app?',
         [
@@ -473,9 +483,9 @@ export const view = (
         model,
         toParentMessage,
       ),
-      faqItem(
+      faqItem<ParentMessage>(
         faqWhereToStart,
-        'I\u2019m sold. Where do I start?',
+        'I’m sold. Where do I start?',
         [
           para(
             'Head to ',
@@ -490,3 +500,4 @@ export const view = (
       ),
     ],
   )
+}

@@ -1,15 +1,15 @@
 import { html } from 'foldkit/html'
 
-const { div, keyed } = html<Message>()
+const h = html<Message>()
 
 const cartView = (model: Model): Html =>
-  div(
+  h.div(
     [],
     [
-      keyed('div')('summary', [], [summaryView(model)]),
+      h.keyed('div')('summary', [], [summaryView(model)]),
       ...(model.hasDiscount
-        ? [keyed('div')('discount', [], [discountView(model)])]
+        ? [h.keyed('div')('discount', [], [discountView(model)])]
         : []),
-      keyed('div')('checkout', [], [checkoutView(model)]),
+      h.keyed('div')('checkout', [], [checkoutView(model)]),
     ],
   )

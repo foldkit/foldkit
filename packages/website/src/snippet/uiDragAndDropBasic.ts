@@ -3,10 +3,11 @@
 // update, subscriptions, and view definitions.
 import { Effect, Match as M, Option, Stream } from 'effect'
 import { Command, Subscription, Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Class, li, span, ul } from './html'
+const h = html<Message>()
 
 // Add a field to your Model for the DragAndDrop Submodel plus the items being sorted:
 const Model = S.Struct({
@@ -130,13 +131,13 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)({
 
 // Inside your view function, spread draggable() onto items and droppable()
 // onto containers:
-ul(
+h.ul(
   [
     ...Ui.DragAndDrop.droppable('list', 'Sortable items'),
-    Class('flex flex-col gap-2'),
+    h.Class('flex flex-col gap-2'),
   ],
   model.items.map((item, index) =>
-    li(
+    h.li(
       [
         ...Ui.DragAndDrop.draggable({
           model: model.dragAndDrop,
@@ -145,9 +146,9 @@ ul(
           containerId: 'list',
           index,
         }),
-        Class('p-3 rounded-lg border cursor-grab'),
+        h.Class('p-3 rounded-lg border cursor-grab'),
       ],
-      [span([], [item.label])],
+      [h.span([], [item.label])],
     ),
   ),
 )

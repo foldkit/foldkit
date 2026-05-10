@@ -1,8 +1,8 @@
-import { Document, html } from 'foldkit/html'
+import { type Document, html } from 'foldkit/html'
 
 import { Model } from './model'
 
-const { div } = html()
+const h = html()
 
 // ❌ Don't do this in view
 const view = (model: Model): Document => {
@@ -15,5 +15,5 @@ const view = (model: Model): Document => {
   // Subscriptions
   window.addEventListener('resize', handleResize)
 
-  return { title: 'Hello', body: div([], ['Hello']) }
+  return { title: 'Hello', body: h.div([], ['Hello']) }
 }

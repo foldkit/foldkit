@@ -66,47 +66,32 @@ export const update = (
 
 // VIEW
 
-const {
-  div,
-  button,
-  input,
-  select,
-  option,
-  OnClick,
-  OnDoubleClick,
-  OnMouseEnter,
-  OnFocus,
-  OnBlur,
-  OnChange,
-  Role,
-  AriaLabel,
-  Value,
-} = html<Message>()
+const h = html<Message>()
 
 export const view = (model: Model): Html =>
-  div(
+  h.div(
     [],
     [
-      button(
+      h.button(
         [
-          OnClick(ClickedButton()),
-          OnDoubleClick(DoubleClickedButton()),
-          OnMouseEnter(HoveredTarget()),
-          AriaLabel('action'),
+          h.OnClick(ClickedButton()),
+          h.OnDoubleClick(DoubleClickedButton()),
+          h.OnMouseEnter(HoveredTarget()),
+          h.AriaLabel('action'),
         ],
         [`clicks=${model.clicks} dbl=${model.doubleClicks}`],
       ),
-      input([
-        Role('textbox'),
-        AriaLabel('name'),
-        OnFocus(FocusedInput()),
-        OnBlur(BlurredInput()),
+      h.input([
+        h.Role('textbox'),
+        h.AriaLabel('name'),
+        h.OnFocus(FocusedInput()),
+        h.OnBlur(BlurredInput()),
       ]),
-      select(
-        [AriaLabel('fruit'), OnChange(value => ChangedSelect({ value }))],
+      h.select(
+        [h.AriaLabel('fruit'), h.OnChange(value => ChangedSelect({ value }))],
         [
-          option([Value('apple')], ['Apple']),
-          option([Value('banana')], ['Banana']),
+          h.option([h.Value('apple')], ['Apple']),
+          h.option([h.Value('banana')], ['Banana']),
         ],
       ),
     ],

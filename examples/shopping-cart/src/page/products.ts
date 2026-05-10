@@ -1,33 +1,13 @@
 import { Array, Effect, Match as M, Option, Schema as S } from 'effect'
 import { ExtractTag } from 'effect/Types'
 import { Command, Route } from 'foldkit'
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { replaceUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 
 import { Cart, Item } from '../domain'
-import {
-  Class,
-  Href,
-  OnClick,
-  OnInput,
-  Placeholder,
-  Value,
-  a,
-  article,
-  button,
-  div,
-  empty,
-  h1,
-  h3,
-  input,
-  p,
-  search,
-  section,
-  span,
-} from '../html'
-import type { AppRoute, CartRoute, Message as ParentMessage } from '../main'
+import type { AppRoute, CartRoute } from '../main'
 
 // MODEL
 
@@ -92,7 +72,7 @@ export const update =
 
 // VIEW
 
-export const view = (
+export const view = <ParentMessage>(
   model: Model,
   cart: Cart.Cart,
   cartRouter: Route.Router<CartRoute>,
@@ -100,76 +80,78 @@ export const view = (
   onAddToCart: (item: Item.Item) => ParentMessage,
   onQuantityChange: (itemId: string, quantity: number) => ParentMessage,
 ): Html => {
+  const h = html<ParentMessage>()
+
   const filteredProducts = model.searchText
     ? model.products.filter(product =>
         product.name.toLowerCase().includes(model.searchText.toLowerCase()),
       )
     : model.products
 
-  return div(
-    [Class('max-w-4xl mx-auto px-4')],
+  return h.div(
+    [h.Class('max-w-4xl mx-auto px-4')],
     [
-      h1([Class('text-4xl font-bold text-gray-800 mb-8')], ['Products']),
-      div(
-        [Class('bg-white rounded-lg shadow p-6')],
+      h.h1([h.Class('text-4xl font-bold text-gray-800 mb-8')], ['Products']),
+      h.div(
+        [h.Class('bg-white rounded-lg shadow p-6')],
         [
-          search(
-            [Class('mb-6')],
+          h.search(
+            [h.Class('mb-6')],
             [
-              input([
-                Value(model.searchText),
-                Placeholder('Search products...'),
-                Class(
+              h.input([
+                h.Value(model.searchText),
+                h.Placeholder('Search products...'),
+                h.Class(
                   'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
                 ),
-                OnInput((value: string) =>
+                h.OnInput((value: string) =>
                   toParentMessage(ChangedSearchInput({ value })),
                 ),
               ]),
             ],
           ),
-          section(
-            [Class('grid gap-4')],
+          h.section(
+            [h.Class('grid gap-4')],
             filteredProducts.map(product =>
-              article(
+              h.article(
                 [
-                  Class(
+                  h.Class(
                     'flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50',
                   ),
                 ],
                 [
-                  div(
+                  h.div(
                     [],
                     [
-                      h3(
-                        [Class('font-semibold text-gray-800')],
+                      h.h3(
+                        [h.Class('font-semibold text-gray-800')],
                         [product.name],
                       ),
-                      p(
-                        [Class('text-gray-600')],
+                      h.p(
+                        [h.Class('text-gray-600')],
                         [`$${product.price.toFixed(2)}`],
                       ),
                     ],
                   ),
                   Cart.itemQuantity(product.id)(cart) === 0
-                    ? button(
+                    ? h.button(
                         [
-                          Class(
+                          h.Class(
                             'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium',
                           ),
-                          OnClick(onAddToCart(product)),
+                          h.OnClick(onAddToCart(product)),
                         ],
                         ['Add to Cart'],
                       )
-                    : div(
-                        [Class('flex items-center gap-2')],
+                    : h.div(
+                        [h.Class('flex items-center gap-2')],
                         [
-                          button(
+                          h.button(
                             [
-                              Class(
+                              h.Class(
                                 'bg-gray-200 hover:bg-gray-300 text-gray-800 w-8 h-8 rounded flex items-center justify-center',
                               ),
-                              OnClick(
+                              h.OnClick(
                                 onQuantityChange(
                                   product.id,
                                   Cart.itemQuantity(product.id)(cart) - 1,
@@ -178,20 +160,20 @@ export const view = (
                             ],
                             ['-'],
                           ),
-                          span(
+                          h.span(
                             [
-                              Class(
+                              h.Class(
                                 'px-3 py-1 font-medium min-w-[2rem] text-center font-mono',
                               ),
                             ],
                             [String(Cart.itemQuantity(product.id)(cart))],
                           ),
-                          button(
+                          h.button(
                             [
-                              Class(
+                              h.Class(
                                 'bg-gray-200 hover:bg-gray-300 text-gray-800 w-8 h-8 rounded flex items-center justify-center',
                               ),
-                              OnClick(
+                              h.OnClick(
                                 onQuantityChange(
                                   product.id,
                                   Cart.itemQuantity(product.id)(cart) + 1,
@@ -207,15 +189,15 @@ export const view = (
             ),
           ),
           Array.match(cart, {
-            onEmpty: () => empty,
+            onEmpty: () => h.empty,
             onNonEmpty: cart =>
-              div(
-                [Class('mt-6 text-center')],
+              h.div(
+                [h.Class('mt-6 text-center')],
                 [
-                  a(
+                  h.a(
                     [
-                      Href(cartRouter()),
-                      Class(
+                      h.Href(cartRouter()),
+                      h.Class(
                         'bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium inline-block',
                       ),
                     ],

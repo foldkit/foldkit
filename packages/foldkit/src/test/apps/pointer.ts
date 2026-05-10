@@ -58,34 +58,33 @@ export const update = (
 
 // VIEW
 
-const { div, span, button, OnPointerDown, OnPointerUp, AriaLabel } =
-  html<Message>()
+const h = html<Message>()
 
 export const view = (model: Model): Html =>
-  div(
+  h.div(
     [],
     [
-      button(
+      h.button(
         [
-          AriaLabel('pointer target'),
-          OnPointerDown(pointerType =>
+          h.AriaLabel('pointer target'),
+          h.OnPointerDown(pointerType =>
             Option.some(PressedPointerDown({ pointerType })),
           ),
-          OnPointerUp((_screenX, _screenY, pointerType, _timeStamp) =>
+          h.OnPointerUp((_screenX, _screenY, pointerType, _timeStamp) =>
             Option.some(ReleasedPointerUp({ pointerType })),
           ),
         ],
         [`down=${model.pointerDownCount} up=${model.pointerUpCount}`],
       ),
-      div(
+      h.div(
         [
-          AriaLabel('nested target'),
-          OnPointerDown(pointerType =>
+          h.AriaLabel('nested target'),
+          h.OnPointerDown(pointerType =>
             Option.some(PressedPointerDown({ pointerType })),
           ),
         ],
-        [span([], [`type=${model.lastPointerType}`])],
+        [h.span([], [`type=${model.lastPointerType}`])],
       ),
-      span([AriaLabel('no handler')], ['orphan']),
+      h.span([h.AriaLabel('no handler')], ['orphan']),
     ],
   )

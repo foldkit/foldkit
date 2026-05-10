@@ -1,8 +1,6 @@
 import { Match as M } from 'effect'
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, div } from '../../html'
-import type { Message as ParentMessage } from '../../message'
 import { notFoundView } from '../../notFoundView'
 import { homeRouter } from '../../route'
 import { GotLoginMessage, Message } from './message'
@@ -10,22 +8,26 @@ import { Model } from './model'
 import * as Home from './page/home'
 import * as Login from './page/login'
 
-export const view = (
+export const view = <ParentMessage>(
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
-): Html =>
-  div(
-    [Class('py-8')],
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [h.Class('py-8')],
     [
       M.value(model.route).pipe(
         M.tagsExhaustive({
-          Home: () => Home.view(),
+          Home: () => Home.view<ParentMessage>(),
           Login: () =>
-            Login.view(model.loginModel, message =>
+            Login.view<ParentMessage>(model.loginModel, message =>
               toParentMessage(GotLoginMessage({ message })),
             ),
-          NotFound: ({ path }) => notFoundView(path, homeRouter(), 'Go Home'),
+          NotFound: ({ path }) =>
+            notFoundView<ParentMessage>(path, homeRouter(), 'Go Home'),
         }),
       ),
     ],
   )
+}

@@ -1,29 +1,8 @@
 import { clsx } from 'clsx'
 import { Array, Match as M, Option } from 'effect'
 import { Ui } from 'foldkit'
-import { Html, createLazy } from 'foldkit/html'
+import { Html, createLazy, html } from 'foldkit/html'
 
-import {
-  Alt,
-  AriaLabel,
-  Class,
-  Height,
-  Href,
-  Id,
-  PagefindBody,
-  Src,
-  Width,
-  a,
-  div,
-  footer,
-  header,
-  img,
-  keyed,
-  main,
-  nav,
-  p,
-  span,
-} from '../html'
 import { Icon } from '../icon'
 import { Link } from '../link'
 import { type Model } from '../main'
@@ -46,12 +25,16 @@ import { coreArchitectureRouter, homeRouter } from '../route'
 import { betaTag, emailSignupContentView, skipNavLink } from './shared'
 import { themeSelector } from './themeSelector'
 
+const h = html<Message>()
+
+const PagefindBody = h.DataAttribute('pagefind-body', '')
+
 // LANDING HEADER
 
 const landingHeaderView = (model: Model) =>
-  header(
+  h.header(
     [
-      Class(
+      h.Class(
         clsx(
           'fixed top-0 inset-x-0 z-50 h-[var(--header-height)] pt-[env(safe-area-inset-top,0px)] bg-cream/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-4 md:px-6 flex items-center justify-between transition-transform duration-300',
           {
@@ -62,30 +45,30 @@ const landingHeaderView = (model: Model) =>
       ),
     ],
     [
-      a(
-        [Href(homeRouter()), Class('flex items-center gap-2')],
+      h.a(
+        [h.Href(homeRouter()), h.Class('flex items-center gap-2')],
         [
-          img([
-            Src('/logo.svg'),
-            Alt('Foldkit'),
-            Width('801'),
-            Height('200'),
-            Class('h-6 md:h-8 w-auto dark:invert'),
+          h.img([
+            h.Src('/logo.svg'),
+            h.Alt('Foldkit'),
+            h.Width('801'),
+            h.Height('200'),
+            h.Class('h-6 md:h-8 w-auto dark:invert'),
           ]),
           betaTag,
         ],
       ),
-      nav(
-        [AriaLabel('Main'), Class('flex items-center gap-3')],
+      h.nav(
+        [h.AriaLabel('Main'), h.Class('flex items-center gap-3')],
         [
-          div(
-            [Class('hidden md:flex')],
+          h.div(
+            [h.Class('hidden md:flex')],
             [themeSelector(model.themePreference)],
           ),
-          a(
+          h.a(
             [
-              Href(coreArchitectureRouter()),
-              Class(
+              h.Href(coreArchitectureRouter()),
+              h.Class(
                 'inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900 text-sm font-normal transition hover:bg-accent-700 dark:hover:bg-accent-600',
               ),
             ],
@@ -99,21 +82,21 @@ const landingHeaderView = (model: Model) =>
 // LANDING FOOTER
 
 const landingFooter = (currentYear: number): Html =>
-  footer(
+  h.footer(
     [
-      Class(
+      h.Class(
         'px-6 py-8 md:px-12 lg:px-20 border-t border-gray-300 dark:border-gray-800 text-sm text-gray-500 dark:text-gray-400',
       ),
     ],
     [
-      p(
+      h.p(
         [],
         [
           'Built with ',
-          a(
+          h.a(
             [
-              Href(`${Link.websiteSource}/src/main.ts`),
-              Class(
+              h.Href(`${Link.websiteSource}/src/main.ts`),
+              h.Class(
                 'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500',
               ),
             ],
@@ -122,7 +105,7 @@ const landingFooter = (currentYear: number): Html =>
           '.',
         ],
       ),
-      p([Class('mt-1')], [`\u00A9 ${currentYear} Devin Jameson`]),
+      h.p([h.Class('mt-1')], [`© ${currentYear} Devin Jameson`]),
     ],
   )
 
@@ -167,30 +150,30 @@ const playgroundItemClassName =
 
 const playgroundBackdropClassName = 'fixed inset-0 z-10'
 
-const chromeRecommendedHint: Html = p(
-  [Class('text-xs text-gray-500 dark:text-gray-400')],
+const chromeRecommendedHint: Html = h.p(
+  [h.Class('text-xs text-gray-500 dark:text-gray-400')],
   ['Requires a Chromium browser'],
 )
 
 const withChromeRecommendedHint = (menu: Html, isChromium: boolean): Html =>
   isChromium
     ? menu
-    : div(
-        [Class('flex flex-col items-start gap-1')],
+    : h.div(
+        [h.Class('flex flex-col items-start gap-1')],
         [menu, chromeRecommendedHint],
       )
 
 const playgroundItemContent = (meta: ExampleMeta): Html =>
-  div(
+  h.div(
     [],
     [
-      div(
-        [Class('font-medium text-gray-900 dark:text-white text-sm mb-0.5')],
+      h.div(
+        [h.Class('font-medium text-gray-900 dark:text-white text-sm mb-0.5')],
         [meta.title],
       ),
-      p(
+      h.p(
         [
-          Class(
+          h.Class(
             'text-xs text-gray-600 dark:text-gray-400 leading-snug line-clamp-2',
           ),
         ],
@@ -213,7 +196,7 @@ const playgroundMenuView = (
     itemToConfig: slug => ({
       className: playgroundItemClassName,
       content: Option.match(findBySlug(slug), {
-        onNone: () => span([], [slug]),
+        onNone: () => h.span([], [slug]),
         onSome: playgroundItemContent,
       }),
     }),
@@ -222,26 +205,26 @@ const playgroundMenuView = (
     groupToHeading: () => ({
       className:
         'px-4 pt-3 pb-2 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800 leading-snug',
-      content: span(
+      content: h.span(
         [],
         [
           'Run an example ',
-          span(
-            [Class('text-gray-700 dark:text-gray-200 font-medium')],
+          h.span(
+            [h.Class('text-gray-700 dark:text-gray-200 font-medium')],
             ['live in your browser'],
           ),
           '. No install.',
         ],
       ),
     }),
-    buttonContent: span(
-      [Class('inline-flex items-center gap-2')],
+    buttonContent: h.span(
+      [h.Class('inline-flex items-center gap-2')],
       [Icon.bolt('w-5 h-5'), 'Launch Playground'],
     ),
-    buttonAttributes: [Class(playgroundButtonClassName)],
-    itemsAttributes: [Class(playgroundItemsClassName)],
-    backdropAttributes: [Class(playgroundBackdropClassName)],
-    attributes: [Class('relative inline-block')],
+    buttonAttributes: [h.Class(playgroundButtonClassName)],
+    itemsAttributes: [h.Class(playgroundItemsClassName)],
+    backdropAttributes: [h.Class(playgroundBackdropClassName)],
+    attributes: [h.Class('relative inline-block')],
   })
 
 // VIEW
@@ -278,32 +261,32 @@ export const landingView = (model: Model) => {
       M.value(tab).pipe(
         M.when('Architecture', () => ({
           buttonClassName: demoTabButtonClassName,
-          buttonContent: span([], ['Async Counter']),
+          buttonContent: h.span([], ['Async Counter']),
           panelClassName: demoTabPanelClassName,
           panelContent: asyncCounterDemoView,
         })),
         M.when('Note Player', () => ({
           buttonClassName: demoTabButtonClassName,
-          buttonContent: span([], ['Note Player']),
+          buttonContent: h.span([], ['Note Player']),
           panelClassName: demoTabPanelClassName,
           panelContent: notePlayerDemoView,
         })),
         M.exhaustive,
       ),
     orientation: model.isNarrowViewport ? 'Horizontal' : 'Vertical',
-    attributes: [Class('lg:flex')],
-    tabListAttributes: [Class('flex lg:flex-col gap-1')],
+    attributes: [h.Class('lg:flex')],
+    tabListAttributes: [h.Class('flex lg:flex-col gap-1')],
     tabListAriaLabel: 'Demo tabs',
   })
 
-  return keyed('div')(
+  return h.keyed('div')(
     'landing',
-    [Class('flex flex-col min-h-screen')],
+    [h.Class('flex flex-col min-h-screen')],
     [
       skipNavLink,
       landingHeaderView(model),
-      main(
-        [Id('main-content'), PagefindBody, Class('flex-1')],
+      h.main(
+        [h.Id('main-content'), PagefindBody, h.Class('flex-1')],
         [
           Page.Landing.view(
             model.copiedSnippets,
@@ -320,16 +303,16 @@ export const landingView = (model: Model) => {
 }
 
 export const newsletterView = (model: Model) =>
-  keyed('div')(
+  h.keyed('div')(
     'newsletter',
-    [Class('flex flex-col min-h-screen')],
+    [h.Class('flex flex-col min-h-screen')],
     [
       skipNavLink,
       landingHeaderView(model),
-      main(
+      h.main(
         [
-          Id('main-content'),
-          Class(
+          h.Id('main-content'),
+          h.Class(
             'flex-1 flex items-center justify-center px-6 py-20 md:px-12 lg:px-20',
           ),
         ],

@@ -1,7 +1,7 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../html'
 import type { TableOfContentsEntry } from '../main'
+import type { Message } from '../message'
 import {
   inlineCode,
   link,
@@ -12,6 +12,8 @@ import {
 import { apiModuleRouter, coreViewRouter } from '../route'
 import * as Snippets from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
+
+const h = html<Message>()
 
 const familiarityHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -59,7 +61,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('why-no-jsx', 'Why no JSX?'),
@@ -109,10 +111,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       tableOfContentsEntryToHeader(buttonHeader),
       para('A button with a click handler in JSX:'),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.comparisonJsxButtonHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.comparisonJsxButtonHighlighted),
           ],
           [],
         ),
@@ -123,10 +125,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para('The same button in the Foldkit DSL:'),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.comparisonDslButtonHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.comparisonDslButtonHighlighted),
           ],
           [],
         ),
@@ -145,8 +147,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       tableOfContentsEntryToHeader(inputHeader),
       para('An email input in JSX:'),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.comparisonJsxInputHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.comparisonJsxInputHighlighted),
+          ],
           [],
         ),
         Snippets.comparisonJsxInputRaw,
@@ -156,8 +161,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para('The same input in the DSL:'),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.comparisonDslInputHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.comparisonDslInputHighlighted),
+          ],
           [],
         ),
         Snippets.comparisonDslInputRaw,
@@ -196,10 +204,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       tableOfContentsEntryToHeader(conditionalHeader),
       para('Four-way dispatch in JSX:'),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.comparisonJsxConditionalHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.comparisonJsxConditionalHighlighted),
           ],
           [],
         ),
@@ -210,10 +218,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para('The same dispatch in the DSL:'),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.comparisonDslConditionalHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.comparisonDslConditionalHighlighted),
           ],
           [],
         ),

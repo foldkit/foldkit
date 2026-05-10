@@ -1,7 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
-import type { TableOfContentsEntry } from '../../main'
+import { Message, type TableOfContentsEntry } from '../../main'
 import {
   inlineCode,
   link,
@@ -16,6 +15,8 @@ import {
 } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
+
+const h = html<Message>()
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -44,7 +45,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 const renderApiHref = apiModuleRouter({ moduleSlug: 'render' })
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('core/render', 'Render'),
@@ -91,7 +92,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' commits the DOM but the pixels have not been painted yet. A second one resumes after that paint is visible, so the from-state is on screen and the to-state can transition smoothly to it.',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.renderBasicHighlighted)], []),
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.renderBasicHighlighted)],
+          [],
+        ),
         Snippets.renderBasicRaw,
         'Copy Render examples to clipboard',
         copiedSnippets,

@@ -7,8 +7,12 @@ const ClickedSave = m('ClickedSave')
 const Message = S.Union([ClickedSave])
 type Message = typeof Message.Type
 
-// In a real app, this destructure lives once in html.ts and is imported everywhere.
-const { button, Type, Disabled, OnClick } = html<Message>()
+// In a real app, only saveButton is per-view code. The Message and the h
+// binding sit once at the top of the module.
+const h = html<Message>()
 
 const saveButton = (isSaving: boolean) =>
-  button([Type('button'), Disabled(isSaving), OnClick(ClickedSave())], ['Save'])
+  h.button(
+    [h.Type('button'), h.Disabled(isSaving), h.OnClick(ClickedSave())],
+    ['Save'],
+  )

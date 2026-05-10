@@ -1,10 +1,8 @@
 import { Match as M, Option } from 'effect'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 import type { EntryHandlers, Variant } from 'foldkit/ui/toast'
 
-import { Class, OnClick, button, div, h2, h3, p, span } from '../html'
 import * as Icon from '../icon'
-import type { Message as ParentMessage } from '../main'
 import {
   ClickedDismissAllToasts,
   ClickedShowErrorToast,
@@ -34,118 +32,126 @@ const variantClassName = (variant: Variant): string =>
 
 const entryClassName = 'w-80'
 
-const renderToastEntry = (
+const renderToastEntry = <ParentMessage>(
   entry: Entry,
   handlers: EntryHandlers<ParentMessage>,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [
-      Class(
+      h.Class(
         `relative rounded-lg border shadow-sm p-3 pr-9 ${variantClassName(entry.variant)}`,
       ),
     ],
     [
-      p([Class('font-semibold text-sm')], [entry.payload.title]),
+      h.p([h.Class('font-semibold text-sm')], [entry.payload.title]),
       ...Option.match(entry.payload.maybeDescription, {
         onNone: () => [],
         onSome: description => [
-          p([Class('text-sm text-gray-700 mt-0.5')], [description]),
+          h.p([h.Class('text-sm text-gray-700 mt-0.5')], [description]),
         ],
       }),
-      button(
+      h.button(
         [
-          Class(
+          h.Class(
             'absolute top-2 right-2 text-gray-500 hover:text-gray-900 cursor-pointer rounded-md p-1 transition-colors',
           ),
-          OnClick(handlers.dismiss),
+          h.OnClick(handlers.dismiss),
         ],
-        [Icon.xMark('w-4 h-4')],
+        [Icon.xMark<ParentMessage>('w-4 h-4')],
       ),
     ],
   )
+}
 
 const demoButtonClassName =
   'inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
 
-export const view = (
+export const view = <ParentMessage>(
   model: UiModel,
   toParentMessage: (message: UiMessage) => ParentMessage,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
-      h2([Class('text-2xl font-bold text-gray-900 mb-2')], ['Toast']),
-      p(
-        [Class('text-gray-600 mb-6 max-w-prose')],
+      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-2')], ['Toast']),
+      h.p(
+        [h.Class('text-gray-600 mb-6 max-w-prose')],
         [
           'A stack of transient notifications that auto-dismiss. Hover over a toast to pause its timer.',
         ],
       ),
 
-      h3(
-        [Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Variants'],
       ),
-      div(
-        [Class('flex flex-wrap gap-2')],
+      h.div(
+        [h.Class('flex flex-wrap gap-2')],
         [
-          button(
+          h.button(
             [
-              Class(demoButtonClassName),
-              OnClick(toParentMessage(ClickedShowInfoToast())),
+              h.Class(demoButtonClassName),
+              h.OnClick(toParentMessage(ClickedShowInfoToast())),
             ],
             ['Info'],
           ),
-          button(
+          h.button(
             [
-              Class(demoButtonClassName),
-              OnClick(toParentMessage(ClickedShowSuccessToast())),
+              h.Class(demoButtonClassName),
+              h.OnClick(toParentMessage(ClickedShowSuccessToast())),
             ],
             ['Success'],
           ),
-          button(
+          h.button(
             [
-              Class(demoButtonClassName),
-              OnClick(toParentMessage(ClickedShowWarningToast())),
+              h.Class(demoButtonClassName),
+              h.OnClick(toParentMessage(ClickedShowWarningToast())),
             ],
             ['Warning'],
           ),
-          button(
+          h.button(
             [
-              Class(demoButtonClassName),
-              OnClick(toParentMessage(ClickedShowErrorToast())),
+              h.Class(demoButtonClassName),
+              h.OnClick(toParentMessage(ClickedShowErrorToast())),
             ],
             ['Error'],
           ),
         ],
       ),
 
-      h3([Class('text-lg font-semibold text-gray-900 mt-8 mb-4')], ['Sticky']),
-      p(
-        [Class('text-gray-600 mb-4 max-w-prose')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+        ['Sticky'],
+      ),
+      h.p(
+        [h.Class('text-gray-600 mb-4 max-w-prose')],
         [
           'Pass ',
-          span(
-            [Class('font-mono text-sm bg-gray-100 px-1 rounded')],
+          h.span(
+            [h.Class('font-mono text-sm bg-gray-100 px-1 rounded')],
             ['sticky: true'],
           ),
           ' to skip the auto-dismiss timer. The user must close it manually.',
         ],
       ),
-      div(
-        [Class('flex flex-wrap gap-2')],
+      h.div(
+        [h.Class('flex flex-wrap gap-2')],
         [
-          button(
+          h.button(
             [
-              Class(demoButtonClassName),
-              OnClick(toParentMessage(ClickedShowStickyToast())),
+              h.Class(demoButtonClassName),
+              h.OnClick(toParentMessage(ClickedShowStickyToast())),
             ],
             ['Show sticky toast'],
           ),
-          button(
+          h.button(
             [
-              Class(demoButtonClassName),
-              OnClick(toParentMessage(ClickedDismissAllToasts())),
+              h.Class(demoButtonClassName),
+              h.OnClick(toParentMessage(ClickedDismissAllToasts())),
             ],
             ['Dismiss all'],
           ),
@@ -157,8 +163,10 @@ export const view = (
         position: 'BottomRight',
         toParentMessage: message =>
           toParentMessage(GotToastDemoMessage({ message })),
-        renderEntry: renderToastEntry,
+        renderEntry: (entry, handlers) =>
+          renderToastEntry<ParentMessage>(entry, handlers),
         entryClassName,
       }),
     ],
   )
+}

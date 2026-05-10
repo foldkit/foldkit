@@ -1,19 +1,7 @@
 import { Array } from 'effect'
 import { File, Ui } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import {
-  Class,
-  OnClick,
-  Type,
-  button,
-  div,
-  input,
-  label,
-  p,
-  span,
-} from '../../html'
-import type { Message as ParentMessage } from '../../main'
 import {
   ClickedRemoveFileDropDemoFile,
   GotFileDropBasicDemoMessage,
@@ -57,67 +45,71 @@ const formatFileSize = (bytes: number): string => {
 
 // VIEW
 
-export const basicDemo = (
+export const basicDemo = <ParentMessage>(
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
-): ReadonlyArray<Html> => [
-  div(
-    [Class('flex flex-col gap-3 w-full max-w-md')],
-    [
-      Ui.FileDrop.view({
-        model: model.fileDropBasicDemo,
-        toParentMessage: message =>
-          toParentMessage(GotFileDropBasicDemoMessage({ message })),
-        multiple: true,
-        toView: attributes =>
-          label(
-            [...attributes.root, Class(dropZoneClassName)],
-            [
-              p(
-                [Class(primaryTextClassName)],
-                ['Drop files or click to browse'],
-              ),
-              p(
-                [Class(secondaryTextClassName)],
-                ['Any file type. This demo just lists them.'],
-              ),
-              input(attributes.input),
-            ],
-          ),
-      }),
-      ...Array.match(model.fileDropBasicDemoFiles, {
-        onEmpty: () => [],
-        onNonEmpty: files =>
-          files.map((file, fileIndex) =>
-            div(
-              [Class(fileRowClassName)],
+): ReadonlyArray<Html> => {
+  const h = html<ParentMessage>()
+
+  return [
+    h.div(
+      [h.Class('flex flex-col gap-3 w-full max-w-md')],
+      [
+        Ui.FileDrop.view({
+          model: model.fileDropBasicDemo,
+          toParentMessage: message =>
+            toParentMessage(GotFileDropBasicDemoMessage({ message })),
+          multiple: true,
+          toView: attributes =>
+            h.label(
+              [...attributes.root, h.Class(dropZoneClassName)],
               [
-                div(
-                  [Class('flex flex-col min-w-0')],
-                  [
-                    span([Class(fileNameClassName)], [File.name(file)]),
-                    span(
-                      [Class(fileSizeClassName)],
-                      [formatFileSize(File.size(file))],
-                    ),
-                  ],
+                h.p(
+                  [h.Class(primaryTextClassName)],
+                  ['Drop files or click to browse'],
                 ),
-                button(
-                  [
-                    Type('button'),
-                    OnClick(
-                      toParentMessage(
-                        ClickedRemoveFileDropDemoFile({ fileIndex }),
-                      ),
-                    ),
-                    Class(removeButtonClassName),
-                  ],
-                  ['Remove'],
+                h.p(
+                  [h.Class(secondaryTextClassName)],
+                  ['Any file type. This demo just lists them.'],
                 ),
+                h.input(attributes.input),
               ],
             ),
-          ),
-      }),
-    ],
-  ),
-]
+        }),
+        ...Array.match(model.fileDropBasicDemoFiles, {
+          onEmpty: () => [],
+          onNonEmpty: files =>
+            files.map((file, fileIndex) =>
+              h.div(
+                [h.Class(fileRowClassName)],
+                [
+                  h.div(
+                    [h.Class('flex flex-col min-w-0')],
+                    [
+                      h.span([h.Class(fileNameClassName)], [File.name(file)]),
+                      h.span(
+                        [h.Class(fileSizeClassName)],
+                        [formatFileSize(File.size(file))],
+                      ),
+                    ],
+                  ),
+                  h.button(
+                    [
+                      h.Type('button'),
+                      h.OnClick(
+                        toParentMessage(
+                          ClickedRemoveFileDropDemoFile({ fileIndex }),
+                        ),
+                      ),
+                      h.Class(removeButtonClassName),
+                    ],
+                    ['Remove'],
+                  ),
+                ],
+              ),
+            ),
+        }),
+      ],
+    ),
+  ]
+}

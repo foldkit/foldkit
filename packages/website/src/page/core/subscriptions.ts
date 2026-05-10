@@ -1,8 +1,7 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div, li, ul } from '../../html'
 import { Link } from '../../link'
-import type { TableOfContentsEntry } from '../../main'
+import { Message, type TableOfContentsEntry } from '../../main'
 import {
   inlineCode,
   link,
@@ -17,6 +16,8 @@ import {
 } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
+
+const h = html<Message>()
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -50,7 +51,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('core/subscriptions', 'Subscriptions'),
@@ -66,10 +67,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           `${coreArchitectureRouter()}#the-restaurant-analogy`,
           'restaurant analogy',
         ),
-        ', a Subscription is a standing order: \u201Ckeep the coffee coming for table 5.\u201D The waiter doesn\u2019t keep walking back to repeat the order. The kitchen knows to keep pouring until the table says stop.',
+        ', a Subscription is a standing order: “keep the coffee coming for table 5.” The waiter doesn’t keep walking back to repeat the order. The kitchen knows to keep pouring until the table says stop.',
       ),
       para(
-        'Commands handle one-off side effects: a slip to the kitchen that comes back with a single result. Subscriptions handle the ongoing kind. Here\u2019s how we add auto-counting to the counter: when ',
+        'Commands handle one-off side effects: a slip to the kitchen that comes back with a single result. Subscriptions handle the ongoing kind. Here’s how we add auto-counting to the counter: when ',
         inlineCode('isAutoCounting'),
         ' is ',
         inlineCode('true'),
@@ -78,8 +79,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ', the stream stops.',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.counterAutoCountHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.counterAutoCountHighlighted),
+          ],
           [],
         ),
         Snippets.counterAutoCountRaw,
@@ -92,17 +96,17 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('SubscriptionDeps'),
         '. This schema defines what parts of the Model your Subscriptions depend on. Each Subscription has two functions:',
       ),
-      ul(
-        [Class('list-disc mb-8 space-y-2')],
+      h.ul(
+        [h.Class('list-disc mb-8 space-y-2')],
         [
-          li(
+          h.li(
             [],
             [
               inlineCode('modelToDependencies'),
               ' extracts the relevant dependencies from the Model.',
             ],
           ),
-          li(
+          h.li(
             [],
             [
               inlineCode('dependenciesToStream'),
@@ -166,10 +170,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' loop each time.',
       ),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.subscriptionEquivalenceHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.subscriptionEquivalenceHighlighted),
           ],
           [],
         ),
@@ -200,7 +204,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
 
       tableOfContentsEntryToHeader(readDependenciesHeader),
       para(
-        'If the stream doesn\u2019t restart when ',
+        'If the stream doesn’t restart when ',
         inlineCode('clientY'),
         ' changes, how does the rAF loop read the latest pointer position? The second argument to ',
         inlineCode('dependenciesToStream'),
@@ -218,7 +222,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'In most Subscriptions, use ',
         inlineCode('deps'),
-        ' directly. The stream restarts whenever they change, so they\u2019re always current. ',
+        ' directly. The stream restarts whenever they change, so they’re always current. ',
         inlineCode('readDependencies'),
         ' is for the case where ',
         inlineCode('equivalence'),
@@ -229,7 +233,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         '.',
       ),
       para(
-        'You\u2019ve now seen how state changes flow through update, how one-off side effects work as Commands, how view code reaches the live DOM with Mount, and how ongoing streams are managed with Subscriptions. But where do the first Model and Commands come from? That\u2019s ',
+        'You’ve now seen how state changes flow through update, how one-off side effects work as Commands, how view code reaches the live DOM with Mount, and how ongoing streams are managed with Subscriptions. But where do the first Model and Commands come from? That’s ',
         inlineCode('init'),
         '.',
       ),

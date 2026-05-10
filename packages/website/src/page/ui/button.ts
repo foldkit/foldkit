@@ -1,7 +1,6 @@
 import { Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 
-import { Class, button, div, span } from '../../html'
-import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import { ClickedButtonDemo, type Message } from './message'
 import type { Model } from './model'
@@ -27,35 +26,49 @@ const buttonClassName =
 
 // VIEW
 
-export const basicDemo = (
+export const basicDemo = <ParentMessage>(
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
-) => [
-  div(
-    [Class('flex flex-col items-center gap-2')],
-    [
-      Ui.Button.view({
-        onClick: toParentMessage(ClickedButtonDemo()),
-        toView: attributes =>
-          button([...attributes.button, Class(buttonClassName)], ['Click me']),
-      }),
-      span(
-        [Class('text-sm text-gray-600 dark:text-gray-400')],
-        [
-          `Clicked ${model.buttonClickCount} time${model.buttonClickCount === 1 ? '' : 's'}`,
-        ],
-      ),
-    ],
-  ),
-]
+) => {
+  const h = html<ParentMessage>()
 
-export const disabledDemo = (
+  return [
+    h.div(
+      [h.Class('flex flex-col items-center gap-2')],
+      [
+        Ui.Button.view({
+          onClick: toParentMessage(ClickedButtonDemo()),
+          toView: attributes =>
+            h.button(
+              [...attributes.button, h.Class(buttonClassName)],
+              ['Click me'],
+            ),
+        }),
+        h.span(
+          [h.Class('text-sm text-gray-600 dark:text-gray-400')],
+          [
+            `Clicked ${model.buttonClickCount} time${model.buttonClickCount === 1 ? '' : 's'}`,
+          ],
+        ),
+      ],
+    ),
+  ]
+}
+
+export const disabledDemo = <ParentMessage>(
   _model: Model,
   _toParentMessage: (message: Message) => ParentMessage,
-) => [
-  Ui.Button.view<ParentMessage>({
-    isDisabled: true,
-    toView: attributes =>
-      button([...attributes.button, Class(buttonClassName)], ['Disabled']),
-  }),
-]
+) => {
+  const h = html<ParentMessage>()
+
+  return [
+    Ui.Button.view<ParentMessage>({
+      isDisabled: true,
+      toView: attributes =>
+        h.button(
+          [...attributes.button, h.Class(buttonClassName)],
+          ['Disabled'],
+        ),
+    }),
+  ]
+}

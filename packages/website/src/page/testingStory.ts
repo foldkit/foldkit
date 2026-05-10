@@ -1,7 +1,7 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../html'
 import type { TableOfContentsEntry } from '../main'
+import type { Message } from '../message'
 import {
   infoCallout,
   inlineCode,
@@ -13,6 +13,8 @@ import {
 import { coreCommandsRouter } from '../route'
 import * as Snippets from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
+
+const h = html<Message>()
 
 const whyHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -53,7 +55,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('testing-story', 'Story'),
@@ -98,7 +100,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         '.',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.testingApiHighlighted)], []),
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.testingApiHighlighted)],
+          [],
+        ),
         Snippets.testingApiRaw,
         'Copy API reference to clipboard',
         copiedSnippets,
@@ -125,15 +130,15 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(simpleExampleHeader),
       para(
-        'Here\u2019s a test for the delayed reset from the ',
+        'Here’s a test for the delayed reset from the ',
         link(coreCommandsRouter(), 'Commands'),
         ' page. When the user clicks reset, a one-second delay fires, then the count resets to zero:',
       ),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.counterCommandsTestHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.counterCommandsTestHighlighted),
           ],
           [],
         ),
@@ -160,8 +165,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' let you resolve Commands inline at any point in the story. This keeps the resolution next to the step that produced the Command, so the test reads chronologically:',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.testingWeatherFlowHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.testingWeatherFlowHighlighted),
+          ],
           [],
         ),
         Snippets.testingWeatherFlowRaw,
@@ -172,13 +180,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Every ',
         inlineCode('Story.message'),
-        ' is a user action: \u201Cthe user submitted the form.\u201D Every ',
+        ' is a user action: “the user submitted the form.” Every ',
         inlineCode('Story.Command.resolve'),
         ' or ',
         inlineCode('Story.Command.resolveAll'),
-        ' is world-building: \u201Cthe weather API succeeded.\u201D Every ',
+        ' is world-building: “the weather API succeeded.” Every ',
         inlineCode('Story.model'),
-        ' is a scene check: \u201Cthe weather is showing.\u201D',
+        ' is a scene check: “the weather is showing.”',
       ),
       infoCallout(
         'Resolvers are a queue',
@@ -202,15 +210,15 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'The simulation tests the state machine. Messages go in, Model changes come out, Commands are resolved declaratively. It does not run the actual Effects inside Commands.',
       ),
       para(
-        'To test that a Command\u2019s Effect works correctly (for example, that an HTTP request parses the response right), test it separately with ',
+        'To test that a Command’s Effect works correctly (for example, that an HTTP request parses the response right), test it separately with ',
         inlineCode('Effect.provide'),
         ' and a mock service layer:',
       ),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.testingCommandEffectHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.testingCommandEffectHighlighted),
           ],
           [],
         ),

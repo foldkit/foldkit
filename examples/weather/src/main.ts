@@ -245,64 +245,42 @@ export const FetchWeather = Command.define(
 
 // VIEW
 
-const {
-  article,
-  button,
-  div,
-  empty,
-  form,
-  h1,
-  h2,
-  input,
-  label,
-  p,
-  Class,
-  Disabled,
-  For,
-  Id,
-  OnInput,
-  OnSubmit,
-  Autocomplete,
-  DataAttribute,
-  Placeholder,
-  Type,
-  Value,
-} = html<Message>()
+const h = html<Message>()
 
 export const view = (model: Model): Document => ({
   title: 'Weather',
-  body: div(
+  body: h.div(
     [
-      Class(
+      h.Class(
         'min-h-screen bg-gradient-to-br from-blue-100 to-blue-300 flex flex-col items-center justify-center gap-6 p-6',
       ),
     ],
     [
-      h1([Class('text-4xl font-bold text-blue-900 mb-8')], ['Weather']),
+      h.h1([h.Class('text-4xl font-bold text-blue-900 mb-8')], ['Weather']),
 
-      form(
+      h.form(
         [
-          Class('flex flex-col gap-4 items-center w-full max-w-md'),
-          OnSubmit(SubmittedWeatherForm()),
+          h.Class('flex flex-col gap-4 items-center w-full max-w-md'),
+          h.OnSubmit(SubmittedWeatherForm()),
         ],
         [
-          label([For('location'), Class('sr-only')], ['Zip code']),
-          input([
-            Id('location'),
-            Class(
+          h.label([h.For('location'), h.Class('sr-only')], ['Zip code']),
+          h.input([
+            h.Id('location'),
+            h.Class(
               'w-full px-4 py-2 rounded-lg border-2 border-blue-300 focus:border-blue-500 outline-none',
             ),
-            Autocomplete('off'),
-            DataAttribute('1p-ignore', ''),
-            Placeholder('Enter a zip code'),
-            Value(model.zipCodeInput),
-            OnInput(value => UpdatedZipCodeInput({ value })),
+            h.Autocomplete('off'),
+            h.DataAttribute('1p-ignore', ''),
+            h.Placeholder('Enter a zip code'),
+            h.Value(model.zipCodeInput),
+            h.OnInput(value => UpdatedZipCodeInput({ value })),
           ]),
-          button(
+          h.button(
             [
-              Type('submit'),
-              Disabled(model.weather._tag === 'WeatherLoading'),
-              Class(
+              h.Type('submit'),
+              h.Disabled(model.weather._tag === 'WeatherLoading'),
+              h.Class(
                 'px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition disabled:opacity-50',
               ),
             ],
@@ -317,16 +295,16 @@ export const view = (model: Model): Document => ({
 
       M.value(model.weather).pipe(
         M.tagsExhaustive({
-          WeatherInit: () => empty,
+          WeatherInit: () => h.empty,
           WeatherLoading: () =>
-            div(
-              [Class('text-blue-600 font-semibold text-center')],
+            h.div(
+              [h.Class('text-blue-600 font-semibold text-center')],
               ['Fetching weather...'],
             ),
           WeatherFailure: ({ error }) =>
-            div(
+            h.div(
               [
-                Class(
+                h.Class(
                   'p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg',
                 ),
               ],
@@ -340,45 +318,48 @@ export const view = (model: Model): Document => ({
 })
 
 const weatherView = (weather: WeatherData): Html =>
-  article(
-    [Class('bg-white rounded-xl shadow-lg p-8 max-w-md w-full')],
+  h.article(
+    [h.Class('bg-white rounded-xl shadow-lg p-8 max-w-md w-full')],
     [
-      h2(
-        [Class('text-2xl font-bold text-gray-800 mb-3 text-center')],
+      h.h2(
+        [h.Class('text-2xl font-bold text-gray-800 mb-3 text-center')],
         [weather.zipCode],
       ),
-      p(
-        [Class('text-center text-gray-600 mb-6')],
+      h.p(
+        [h.Class('text-center text-gray-600 mb-6')],
         [weather.locationName + ', ' + weather.region],
       ),
 
-      div(
-        [Class('text-center mb-6')],
+      h.div(
+        [h.Class('text-center mb-6')],
         [
-          div(
-            [Class('text-6xl font-bold text-blue-600')],
+          h.div(
+            [h.Class('text-6xl font-bold text-blue-600')],
             [`${weather.temperature}°F`],
           ),
-          div([Class('text-xl text-gray-600 mt-2')], [weather.description]),
+          h.div([h.Class('text-xl text-gray-600 mt-2')], [weather.description]),
         ],
       ),
 
-      div(
-        [Class('grid grid-cols-2 gap-4 text-center')],
+      h.div(
+        [h.Class('grid grid-cols-2 gap-4 text-center')],
         [
-          div(
-            [Class('bg-blue-50 p-4 rounded-lg')],
+          h.div(
+            [h.Class('bg-blue-50 p-4 rounded-lg')],
             [
-              div([Class('text-sm text-gray-600')], ['Humidity']),
-              div([Class('text-lg font-semibold')], [`${weather.humidity}%`]),
+              h.div([h.Class('text-sm text-gray-600')], ['Humidity']),
+              h.div(
+                [h.Class('text-lg font-semibold')],
+                [`${weather.humidity}%`],
+              ),
             ],
           ),
-          div(
-            [Class('bg-blue-50 p-4 rounded-lg')],
+          h.div(
+            [h.Class('bg-blue-50 p-4 rounded-lg')],
             [
-              div([Class('text-sm text-gray-600')], ['Wind Speed']),
-              div(
-                [Class('text-lg font-semibold')],
+              h.div([h.Class('text-sm text-gray-600')], ['Wind Speed']),
+              h.div(
+                [h.Class('text-lg font-semibold')],
                 [`${weather.windSpeed} mph`],
               ),
             ],

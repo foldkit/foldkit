@@ -1,32 +1,35 @@
 import clsx from 'clsx'
 import { Option, String } from 'effect'
 import { Ui } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
 import { Card } from '../domain'
-import { Class, div, keyed, span } from '../html'
-import type { Message } from '../message'
 import type { Model } from '../model'
 
-const cardContent = (card: Card.Card): ReadonlyArray<Html> => [
-  span([Class('text-sm font-medium text-gray-900')], [card.title]),
-  ...(String.isNonEmpty(card.description)
-    ? [
-        div(
-          [Class('mt-1 text-xs text-gray-500 line-clamp-2')],
-          [card.description],
-        ),
-      ]
-    : []),
-]
+const cardContent = <ParentMessage>(card: Card.Card): ReadonlyArray<Html> => {
+  const h = html<ParentMessage>()
+  return [
+    h.span([h.Class('text-sm font-medium text-gray-900')], [card.title]),
+    ...(String.isNonEmpty(card.description)
+      ? [
+          h.div(
+            [h.Class('mt-1 text-xs text-gray-500 line-clamp-2')],
+            [card.description],
+          ),
+        ]
+      : []),
+  ]
+}
 
-export const cardView = (
+export const cardView = <ParentMessage>(
   model: Model,
   card: Card.Card,
   columnId: string,
   index: number,
-  toParentMessage: (message: Ui.DragAndDrop.Message) => Message,
+  toParentMessage: (message: Ui.DragAndDrop.Message) => ParentMessage,
 ): Html => {
+  const h = html<ParentMessage>()
+
   const isThisCardBeingDragged = Option.exists(
     Ui.DragAndDrop.maybeDraggedItemId(model.dragAndDrop),
     id => id === card.id,
@@ -37,10 +40,10 @@ export const cardView = (
     model.dragAndDrop.dragState._tag === 'KeyboardDragging' &&
     isThisCardBeingDragged
 
-  return keyed('li')(
+  return h.keyed('li')(
     card.id,
     [
-      Class(
+      h.Class(
         clsx('rounded-lg p-3 border-2 outline-none', {
           'bg-gray-100 border-dashed border-gray-300 opacity-50':
             isPointerDragged,
@@ -57,16 +60,18 @@ export const cardView = (
         index,
       }),
     ],
-    cardContent(card),
+    cardContent<ParentMessage>(card),
   )
 }
 
-export const ghostCardView = (card: Card.Card): Html =>
-  div(
+export const ghostCardView = <ParentMessage>(card: Card.Card): Html => {
+  const h = html<ParentMessage>()
+  return h.div(
     [
-      Class(
+      h.Class(
         'rounded-lg bg-white shadow-lg p-3 border border-gray-200 scale-105 rotate-2',
       ),
     ],
-    cardContent(card),
+    cardContent<ParentMessage>(card),
   )
+}

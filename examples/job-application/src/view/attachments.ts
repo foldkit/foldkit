@@ -1,22 +1,8 @@
 import clsx from 'clsx'
 import { Array, Match as M, Number, Option } from 'effect'
 import { File, Ui } from 'foldkit'
-import { type Html } from 'foldkit/html'
+import { type Html, html } from 'foldkit/html'
 
-import {
-  Class,
-  OnClick,
-  Type,
-  button,
-  div,
-  h3,
-  input,
-  keyed,
-  label,
-  p,
-  span,
-} from '../html'
-import type { Message } from '../message'
 import { Attachments } from '../step'
 
 const BYTES_PER_KB = 1024
@@ -38,42 +24,44 @@ const dropZoneClassName =
 const fileKey = (file: File.File): string =>
   `${File.name(file)}:${File.size(file)}:${file.lastModified}`
 
-const resumeView = (
+const resumeView = <ParentMessage>(
   resume: File.File,
-  toParentMessage: (message: Attachments.Message) => Message,
-): Html =>
-  keyed('div')(
+  toParentMessage: (message: Attachments.Message) => ParentMessage,
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.keyed('div')(
     'resume-filled',
     [
-      Class(
+      h.Class(
         'flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3',
       ),
     ],
     [
-      div(
-        [Class('flex items-center gap-3')],
+      h.div(
+        [h.Class('flex items-center gap-3')],
         [
-          span([Class('text-lg')], ['\uD83D\uDCC4']),
-          div(
+          h.span([h.Class('text-lg')], ['📄']),
+          h.div(
             [],
             [
-              p(
-                [Class('text-sm font-medium text-gray-900')],
+              h.p(
+                [h.Class('text-sm font-medium text-gray-900')],
                 [File.name(resume)],
               ),
-              p(
-                [Class('text-xs text-gray-500')],
+              h.p(
+                [h.Class('text-xs text-gray-500')],
                 [formatFileSize(File.size(resume))],
               ),
             ],
           ),
         ],
       ),
-      button(
+      h.button(
         [
-          Type('button'),
-          OnClick(toParentMessage(Attachments.RemovedResume())),
-          Class(
+          h.Type('button'),
+          h.OnClick(toParentMessage(Attachments.RemovedResume())),
+          h.Class(
             'text-sm text-gray-400 hover:text-red-500 transition cursor-pointer',
           ),
         ],
@@ -81,38 +69,41 @@ const resumeView = (
       ),
     ],
   )
+}
 
-const additionalFileView = (
+const additionalFileView = <ParentMessage>(
   file: File.File,
   fileIndex: number,
-  toParentMessage: (message: Attachments.Message) => Message,
-): Html =>
-  keyed('div')(
+  toParentMessage: (message: Attachments.Message) => ParentMessage,
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.keyed('div')(
     fileKey(file),
     [
-      Class(
+      h.Class(
         'flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2',
       ),
     ],
     [
-      div(
-        [Class('flex items-center gap-2')],
+      h.div(
+        [h.Class('flex items-center gap-2')],
         [
-          span([Class('text-sm')], ['\uD83D\uDCCE']),
-          span([Class('text-sm text-gray-700')], [File.name(file)]),
-          span(
-            [Class('text-xs text-gray-400')],
+          h.span([h.Class('text-sm')], ['📎']),
+          h.span([h.Class('text-sm text-gray-700')], [File.name(file)]),
+          h.span(
+            [h.Class('text-xs text-gray-400')],
             [formatFileSize(File.size(file))],
           ),
         ],
       ),
-      button(
+      h.button(
         [
-          Type('button'),
-          OnClick(
+          h.Type('button'),
+          h.OnClick(
             toParentMessage(Attachments.RemovedAdditionalFile({ fileIndex })),
           ),
-          Class(
+          h.Class(
             'text-xs text-gray-400 hover:text-red-500 transition cursor-pointer',
           ),
         ],
@@ -120,20 +111,23 @@ const additionalFileView = (
       ),
     ],
   )
+}
 
-export const attachmentsView = (
+export const attachmentsView = <ParentMessage>(
   {
     resumeDrop,
     maybeResume,
     additionalFilesDrop,
     additionalFiles,
   }: Attachments.Model,
-  toParentMessage: (message: Attachments.Message) => Message,
+  toParentMessage: (message: Attachments.Message) => ParentMessage,
 ): Html => {
-  const resumeSection = div(
-    [Class('space-y-2')],
+  const h = html<ParentMessage>()
+
+  const resumeSection = h.div(
+    [h.Class('space-y-2')],
     [
-      h3([Class('text-sm font-medium text-gray-700')], ['Resume (PDF)']),
+      h.h3([h.Class('text-sm font-medium text-gray-700')], ['Resume (PDF)']),
       Option.match(maybeResume, {
         onNone: () =>
           Ui.FileDrop.view({
@@ -142,32 +136,32 @@ export const attachmentsView = (
               toParentMessage(Attachments.GotResumeDropMessage({ message })),
             accept: ['application/pdf', '.doc', '.docx'],
             toView: attributes =>
-              keyed('label')(
+              h.keyed('label')(
                 'resume-empty',
-                [...attributes.root, Class(clsx(dropZoneClassName, 'py-6'))],
+                [...attributes.root, h.Class(clsx(dropZoneClassName, 'py-6'))],
                 [
-                  p(
-                    [Class('text-sm text-gray-600')],
+                  h.p(
+                    [h.Class('text-sm text-gray-600')],
                     ['Drop your resume or click to upload'],
                   ),
-                  p(
-                    [Class('text-xs text-gray-400 mt-1')],
+                  h.p(
+                    [h.Class('text-xs text-gray-400 mt-1')],
                     ['PDF, DOC, or DOCX up to 10MB'],
                   ),
-                  input(attributes.input),
+                  h.input(attributes.input),
                 ],
               ),
           }),
-        onSome: resume => resumeView(resume, toParentMessage),
+        onSome: resume => resumeView<ParentMessage>(resume, toParentMessage),
       }),
     ],
   )
 
-  const additionalSection = div(
-    [Class('space-y-2')],
+  const additionalSection = h.div(
+    [h.Class('space-y-2')],
     [
-      h3(
-        [Class('text-sm font-medium text-gray-700')],
+      h.h3(
+        [h.Class('text-sm font-medium text-gray-700')],
         ['Additional Files (optional)'],
       ),
       Ui.FileDrop.view({
@@ -178,28 +172,32 @@ export const attachmentsView = (
           ),
         multiple: true,
         toView: attributes =>
-          label(
-            [...attributes.root, Class(clsx(dropZoneClassName, 'py-8'))],
+          h.label(
+            [...attributes.root, h.Class(clsx(dropZoneClassName, 'py-8'))],
             [
-              p(
-                [Class('text-sm text-gray-500')],
+              h.p(
+                [h.Class('text-sm text-gray-500')],
                 ['Drag and drop files here, or click to browse'],
               ),
-              p(
-                [Class('text-xs text-gray-400 mt-1')],
+              h.p(
+                [h.Class('text-xs text-gray-400 mt-1')],
                 ['Cover letters, certifications, portfolios, etc.'],
               ),
-              input(attributes.input),
+              h.input(attributes.input),
             ],
           ),
       }),
       ...Array.match(additionalFiles, {
         onEmpty: () => [],
         onNonEmpty: files => [
-          div(
-            [Class('space-y-2')],
+          h.div(
+            [h.Class('space-y-2')],
             files.map((file, fileIndex) =>
-              additionalFileView(file, fileIndex, toParentMessage),
+              additionalFileView<ParentMessage>(
+                file,
+                fileIndex,
+                toParentMessage,
+              ),
             ),
           ),
         ],
@@ -207,5 +205,5 @@ export const attachmentsView = (
     ],
   )
 
-  return div([Class('space-y-6')], [resumeSection, additionalSection])
+  return h.div([h.Class('space-y-6')], [resumeSection, additionalSection])
 }

@@ -1,18 +1,18 @@
 import clsx from 'clsx'
 import { Ui } from 'foldkit'
-import { type Html } from 'foldkit/html'
+import { type Html, html } from 'foldkit/html'
 
-import { Class, div, label, p, span, textarea } from '../html'
-import type { Message } from '../message'
 import { CoverLetter } from '../step'
 
 const MAX_COVER_LETTER_LENGTH = 2000
 const WARNING_THRESHOLD_CHARS = 200
 
-export const coverLetterView = (
+export const coverLetterView = <ParentMessage>(
   model: CoverLetter.Model,
-  toParentMessage: (message: CoverLetter.Message) => Message,
+  toParentMessage: (message: CoverLetter.Message) => ParentMessage,
 ): Html => {
+  const h = html<ParentMessage>()
+
   const remaining = MAX_COVER_LETTER_LENGTH - model.content.length
   const isOverLimit = remaining < 0
   const isWarning = !isOverLimit && remaining <= WARNING_THRESHOLD_CHARS
@@ -26,35 +26,35 @@ export const coverLetterView = (
       'Tell us why you want to work on Foldkit and what excites you about the Elm Architecture...',
     isInvalid: isOverLimit,
     toView: attributes =>
-      div(
-        [Class('space-y-2')],
+      h.div(
+        [h.Class('space-y-2')],
         [
-          label(
+          h.label(
             [
               ...attributes.label,
-              Class('block text-sm font-medium text-gray-700'),
+              h.Class('block text-sm font-medium text-gray-700'),
             ],
             ['Cover Letter'],
           ),
-          textarea(
+          h.textarea(
             [
               ...attributes.textarea,
-              Class(
+              h.Class(
                 'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 data-[invalid]:border-red-500',
               ),
             ],
             [],
           ),
-          div(
-            [Class('flex justify-between text-sm')],
+          h.div(
+            [h.Class('flex justify-between text-sm')],
             [
-              p(
-                [Class('text-gray-500')],
+              h.p(
+                [h.Class('text-gray-500')],
                 ['A strong cover letter helps your application stand out.'],
               ),
-              span(
+              h.span(
                 [
-                  Class(
+                  h.Class(
                     clsx(
                       isOverLimit && 'font-medium text-red-600',
                       isWarning && 'font-medium text-amber-600',

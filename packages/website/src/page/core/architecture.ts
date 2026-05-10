@@ -1,8 +1,7 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, div, li, pre, strong, ul } from '../../html'
 import { Link } from '../../link'
-import type { TableOfContentsEntry } from '../../main'
+import { Message, type TableOfContentsEntry } from '../../main'
 import {
   infoCallout,
   inlineCode,
@@ -13,6 +12,8 @@ import {
 } from '../../prose'
 import { coreDevToolsRouter, testingRouter } from '../../route'
 import { comparisonTable } from '../../view/table'
+
+const h = html<Message>()
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -46,18 +47,18 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('core/architecture', 'Architecture'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'In most TypeScript UI frameworks, each component manages its own state and effects. In Foldkit, there\u2019s a single state tree. Every change flows in one direction through the same loop.',
+        'In most TypeScript UI frameworks, each component manages its own state and effects. In Foldkit, there’s a single state tree. Every change flows in one direction through the same loop.',
       ),
       para(
         'This pattern is called ',
         link(Link.elmArchitecture, 'The Elm Architecture'),
-        '. You don\u2019t need to know Elm. Foldkit adapts it for TypeScript and Effect.',
+        '. You don’t need to know Elm. Foldkit adapts it for TypeScript and Effect.',
       ),
       tableOfContentsEntryToHeader(theLoopHeader),
       para(
@@ -73,13 +74,13 @@ export const view = (): Html =>
         inlineCode('view'),
         ' function renders the new Model as HTML. When the user interacts with the view, it produces another Message, and the loop continues.',
       ),
-      ul(
-        [Class('list-disc mb-4 space-y-3 ml-6')],
+      h.ul(
+        [h.Class('list-disc mb-4 space-y-3 ml-6')],
         [
-          li(
+          h.li(
             [],
             [
-              strong([], ['Commands:']),
+              h.strong([], ['Commands:']),
               ' descriptions of one-shot side effects: HTTP requests, focus operations, ',
               inlineCode('localStorage'),
               ' writes, navigation calls. The Foldkit runtime executes them and sends their results back as new Messages, feeding them into the same loop. Each Command carries a name, which surfaces in ',
@@ -89,10 +90,10 @@ export const view = (): Html =>
               ', and tracing.',
             ],
           ),
-          li(
+          h.li(
             [],
             [
-              strong([], ['Mount:']),
+              h.strong([], ['Mount:']),
               ' the moment an element from the view enters the live DOM. ',
               inlineCode('OnMount'),
               ' is the seam where view code can drop down to imperative work at that moment, like portaling an overlay to the document body or handing a real ',
@@ -102,19 +103,19 @@ export const view = (): Html =>
               ', and runs the paired cleanup when the element unmounts.',
             ],
           ),
-          li(
+          h.li(
             [],
             [
-              strong([], ['Subscriptions:']),
+              h.strong([], ['Subscriptions:']),
               ' continuous streams of Messages from external sources: keypresses, recurring timers, ',
               inlineCode('WebSocket'),
               ' frames, window resize events. Where a Command runs once and reports back, a Subscription stays active for as long as the Model says it should, and the stream decides which source events become Messages.',
             ],
           ),
-          li(
+          h.li(
             [],
             [
-              strong([], ['ManagedResources:']),
+              h.strong([], ['ManagedResources:']),
               ' acquire/release lifecycles tied to Model state: a camera stream during a video call, a ',
               inlineCode('WebSocket'),
               ' connection while the user is on a chat page. The runtime acquires them when the Model enters the relevant state, releases them when it leaves, and dispatches Messages for each transition.',
@@ -123,26 +124,26 @@ export const view = (): Html =>
         ],
       ),
       para(
-        'That\u2019s it. Every state transition in your app flows through a single loop. There\u2019s no action-at-a-distance, no hidden state mutation, no effect that runs outside the cycle. If you want to know how the app got into its current state, you follow the Messages.',
+        'That’s it. Every state transition in your app flows through a single loop. There’s no action-at-a-distance, no hidden state mutation, no effect that runs outside the cycle. If you want to know how the app got into its current state, you follow the Messages.',
       ),
       para('The complete cycle looks like this:'),
-      pre(
+      h.pre(
         [
-          Class(
+          h.Class(
             'mb-4 mx-auto w-fit max-w-full text-[#403d4a] dark:text-[#E0DEE6] text-sm p-4 overflow-x-auto rounded-lg bg-gray-100 dark:bg-[#1c1a20] border border-gray-200 dark:border-gray-700/50',
           ),
         ],
         [
           '          +------------------------------------------------------+\n' +
             '          |                                                      |\n' +
-            '          \u2193                                                      |\n' +
+            '          ↓                                                      |\n' +
             '       Message                                                   |\n' +
             '          |                                                      |\n' +
-            '          \u2193                                                      |\n' +
+            '          ↓                                                      |\n' +
             '  +---------------+                                              |\n' +
             '  |    update     |                                              |\n' +
             '  +-------+-------+                                              |\n' +
-            '  \u2193               \u2193                                              |\n' +
+            '  ↓               ↓                                              |\n' +
             'Model    Command<Message>[]                                      |\n' +
             '  |               |                                              |\n' +
             '  |               +-> Runtime -----------------------------------+\n' +
@@ -168,7 +169,7 @@ export const view = (): Html =>
         inlineCode('RTCPeerConnection'),
         ', or ',
         inlineCode('CanvasRenderingContext2D'),
-        ' that Commands draw on. Resources don\u2019t produce Messages themselves. They\u2019re the ambient dependencies the Message-producing parts need to do their work.',
+        ' that Commands draw on. Resources don’t produce Messages themselves. They’re the ambient dependencies the Message-producing parts need to do their work.',
       ),
       tableOfContentsEntryToHeader(definitionsHeader),
       para('Each concept in one place, in plain terms:'),
@@ -226,7 +227,7 @@ export const view = (): Html =>
           [
             ['ManagedResource'],
             [
-              'Like a Resource, but scoped to a window of Model state instead of the app lifetime: a WebSocket connection while the user is on a chat page, a camera stream during a video call. Commands access it as a typed service while it\u2019s live; the runtime acquires it on entry, releases it on exit, and dispatches Messages for each lifecycle transition.',
+              'Like a Resource, but scoped to a window of Model state instead of the app lifetime: a WebSocket connection while the user is on a chat page, a camera stream during a video call. Commands access it as a typed service while it’s live; the runtime acquires it on entry, releases it on exit, and dispatches Messages for each lifecycle transition.',
             ],
           ],
           [
@@ -239,25 +240,25 @@ export const view = (): Html =>
       ),
       tableOfContentsEntryToHeader(theRestaurantAnalogyHeader),
       para(
-        'Think of a Foldkit app like a restaurant. The waiter keeps a notebook: a running picture of everything happening right now. Table 3 ordered the salmon. Table 5 is waiting for dessert. When something happens (a customer flags the waiter, the kitchen rings the bell), the waiter hears about it, updates their notebook, and maybe writes a slip for the kitchen. The waiter doesn\u2019t cook the salmon. They hand the slip to the kitchen, and the kitchen reports back when it\u2019s done.',
+        'Think of a Foldkit app like a restaurant. The waiter keeps a notebook: a running picture of everything happening right now. Table 3 ordered the salmon. Table 5 is waiting for dessert. When something happens (a customer flags the waiter, the kitchen rings the bell), the waiter hears about it, updates their notebook, and maybe writes a slip for the kitchen. The waiter doesn’t cook the salmon. They hand the slip to the kitchen, and the kitchen reports back when it’s done.',
       ),
       para(
-        'Messages work the same way. \u201CTable 3 asked for the check\u201D is a fact given to the waiter, not an instruction. The waiter decides what to do: maybe bring the check immediately, maybe offer dessert first. The message stays the same either way.',
+        'Messages work the same way. “Table 3 asked for the check” is a fact given to the waiter, not an instruction. The waiter decides what to do: maybe bring the check immediately, maybe offer dessert first. The message stays the same either way.',
       ),
       infoCallout(
         'The restaurant analogy',
-        'This analogy maps to every concept you\u2019ll encounter in Core Concepts. The table below is a reference you can come back to as you read.',
+        'This analogy maps to every concept you’ll encounter in Core Concepts. The table below is a reference you can come back to as you read.',
       ),
       comparisonTable(
         ['Foldkit', 'Restaurant'],
         [
           [
             ['Model'],
-            ['The waiter\u2019s notebook: the current state of everything'],
+            ['The waiter’s notebook: the current state of everything'],
           ],
           [
             ['Message'],
-            ['Something that happens: \u201Ctable 3 asked for the check\u201D'],
+            ['Something that happens: “table 3 asked for the check”'],
           ],
           [
             ['update'],
@@ -271,21 +272,16 @@ export const view = (): Html =>
               'What the customers actually see: plates on the table, the check arriving',
             ],
           ],
-          [
-            ['Command'],
-            ['A slip for the kitchen: \u201Cprepare the salmon\u201D'],
-          ],
+          [['Command'], ['A slip for the kitchen: “prepare the salmon”']],
           [
             ['Mount'],
             [
-              'Tableside flamb\u00E9: rolled out to a specific table the moment its dish arrives, rolled away when the plate is cleared',
+              'Tableside flambé: rolled out to a specific table the moment its dish arrives, rolled away when the plate is cleared',
             ],
           ],
           [
             ['Subscription'],
-            [
-              'A standing order: \u201Ckeep the coffee coming for table 5\u201D',
-            ],
+            ['A standing order: “keep the coffee coming for table 5”'],
           ],
           [
             ['Resource'],
@@ -303,7 +299,7 @@ export const view = (): Html =>
         ],
       ),
       para(
-        'That\u2019s the architecture in the abstract. The next page shows a complete counter application, and you\u2019ll see each of these pieces in the code.',
+        'That’s the architecture in the abstract. The next page shows a complete counter application, and you’ll see each of these pieces in the code.',
       ),
     ],
   )

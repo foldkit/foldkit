@@ -34,14 +34,14 @@ export const update = (
 
 // VIEW
 
-const { div, OnClick, Role } = html<Message>()
+const h = html<Message>()
 
 export const view = (model: Model): Html =>
-  div(
+  h.div(
     [],
     [
-      div(
-        [Role('doc-subtitle heading'), OnClick(ClickedFallback())],
+      h.div(
+        [h.Role('doc-subtitle heading'), h.OnClick(ClickedFallback())],
         [`Fallback element clicks=${model.clicks}`],
       ),
     ],

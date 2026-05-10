@@ -1,8 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
 import { uiShowcaseViewSourceHref } from '../../link'
-import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
   demoContainer,
@@ -226,18 +224,20 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
 
 // VIEW
 
-export const view = (
+export const view = <ParentMessage>(
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
   copiedSnippets: CopiedSnippets,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
       pageTitle('ui/menu', 'Menu'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'A dropdown menu for actions, like a macOS context menu. Menu is fire-and-forget: it doesn\u2019t track a selected value (use Listbox for persistent selection). It supports typeahead search, drag-to-select, keyboard navigation, grouped items, and anchor positioning.',
+        'A dropdown menu for actions, like a macOS context menu. Menu is fire-and-forget: it doesn’t track a selected value (use Listbox for persistent selection). It supports typeahead search, drag-to-select, keyboard navigation, grouped items, and anchor positioning.',
       ),
       para(
         'For programmatic control in update functions, use ',
@@ -269,7 +269,10 @@ export const view = (
       ),
       demoContainer(...Menu.basicDemo(model.menuBasicDemo, toParentMessage)),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippet.uiMenuBasicHighlighted)], []),
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippet.uiMenuBasicHighlighted)],
+          [],
+        ),
         Snippet.uiMenuBasicRaw,
         'Copy menu example to clipboard',
         copiedSnippets,
@@ -289,8 +292,8 @@ export const view = (
         ...Menu.animatedDemo(model.menuAnimatedDemo, toParentMessage),
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippet.uiMenuAnimatedHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippet.uiMenuAnimatedHighlighted)],
           [],
         ),
         Snippet.uiMenuAnimatedRaw,
@@ -366,3 +369,4 @@ export const view = (
       propTable(viewConfigProps),
     ],
   )
+}

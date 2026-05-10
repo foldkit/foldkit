@@ -1,8 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
 import { uiShowcaseViewSourceHref } from '../../link'
-import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
   demoContainer,
@@ -196,12 +194,14 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
 
 // VIEW
 
-export const view = (
+export const view = <ParentMessage>(
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
   copiedSnippets: CopiedSnippets,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
       pageTitle('ui/input', 'Input'),
@@ -248,7 +248,10 @@ export const view = (
       ),
       demoContainer(...Input.basicDemo(model, toParentMessage)),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippet.uiInputBasicHighlighted)], []),
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippet.uiInputBasicHighlighted)],
+          [],
+        ),
         Snippet.uiInputBasicRaw,
         'Copy basic input example to clipboard',
         copiedSnippets,
@@ -270,8 +273,8 @@ export const view = (
       ),
       demoContainer(...Input.disabledDemo(model, toParentMessage)),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippet.uiInputDisabledHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippet.uiInputDisabledHighlighted)],
           [],
         ),
         Snippet.uiInputDisabledRaw,
@@ -357,3 +360,4 @@ export const view = (
       propTable(inputAttributesProps),
     ],
   )
+}

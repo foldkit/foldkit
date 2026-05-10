@@ -1,23 +1,12 @@
 import { Match as M } from 'effect'
-import { Document, Html } from 'foldkit/html'
+import { Document, Html, html } from 'foldkit/html'
 
-import { GotHomeMessage, GotRoomMessage } from '../message'
+import { GotHomeMessage, GotRoomMessage, Message } from '../message'
 import { Model } from '../model'
 import { Home, Room } from '../page'
 import { NotFoundRoute } from '../route'
-import {
-  Class,
-  Href,
-  a,
-  div,
-  footer,
-  h1,
-  keyed,
-  main,
-  p,
-  section,
-  span,
-} from './html'
+
+const h = html<Message>()
 
 const routeTitle = (route: Model['route']): string =>
   M.value(route).pipe(
@@ -31,39 +20,42 @@ const routeTitle = (route: Model['route']): string =>
 export const view = (model: Model): Document => {
   const content = M.value(model.route).pipe(
     M.tagsExhaustive({
-      Home: () => Home.view(model.home, message => GotHomeMessage({ message })),
-      Room: Room.view(model.room, message => GotRoomMessage({ message })),
+      Home: () =>
+        Home.view<Message>(model.home, message => GotHomeMessage({ message })),
+      Room: Room.view<Message>(model.room, message =>
+        GotRoomMessage({ message }),
+      ),
       NotFound: notFound,
     }),
   )
 
-  const footerElement = footer(
-    [Class('mt-auto pt-8')],
+  const footerElement = h.footer(
+    [h.Class('mt-auto pt-8')],
     [
       'Made with ',
-      span([Class('text-terminal-red')], ['♥']),
+      h.span([h.Class('text-terminal-red')], ['♥']),
       ' with ',
-      a(
+      h.a(
         [
-          Href('https://foldkit.dev/example-apps/typing-terminal'),
-          Class('underline'),
+          h.Href('https://foldkit.dev/example-apps/typing-terminal'),
+          h.Class('underline'),
         ],
         ['Foldkit'],
       ),
       ' and ',
-      a([Href('https://effect.website'), Class('underline')], ['Effect']),
+      h.a([h.Href('https://effect.website'), h.Class('underline')], ['Effect']),
       '.',
     ],
   )
 
   return {
     title: routeTitle(model.route),
-    body: div(
-      [Class('min-h-screen flex flex-col p-16')],
+    body: h.div(
+      [h.Class('min-h-screen flex flex-col p-16')],
       [
-        main(
-          [Class('flex-1 flex flex-col')],
-          [keyed('div')(model.route._tag, [], [content])],
+        h.main(
+          [h.Class('flex-1 flex flex-col')],
+          [h.keyed('div')(model.route._tag, [], [content])],
         ),
         footerElement,
       ],
@@ -72,11 +64,11 @@ export const view = (model: Model): Document => {
 }
 
 const notFound = ({ path }: NotFoundRoute): Html =>
-  section(
-    [Class('max-w-4xl')],
+  h.section(
+    [h.Class('max-w-4xl')],
     [
-      h1([Class('mb-6 uppercase')], ['404 - Not Found']),
-      p([Class('mb-6')], [`The path "${path}" was not found.`]),
-      div([], ['> Enter to go home']),
+      h.h1([h.Class('mb-6 uppercase')], ['404 - Not Found']),
+      h.p([h.Class('mb-6')], [`The path "${path}" was not found.`]),
+      h.div([], ['> Enter to go home']),
     ],
   )

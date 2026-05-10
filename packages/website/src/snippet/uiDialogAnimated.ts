@@ -3,10 +3,11 @@
 // update, and view definitions.
 import { Effect } from 'effect'
 import { Command, Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Class, Id, OnClick, button, div, h2, p } from './html'
+const h = html<Message>()
 
 // Add a field to your Model for the Dialog Submodel:
 const Model = S.Struct({
@@ -51,29 +52,29 @@ Ui.Dialog.view({
   model: model.dialog,
   toParentMessage: dialogToParentMessage,
   backdropAttributes: [
-    Class(
+    h.Class(
       'fixed inset-0 bg-black/50 transition duration-150 ease-out data-[closed]:opacity-0',
     ),
   ],
-  panelContent: div(
+  panelContent: h.div(
     [],
     [
-      h2([Id(Ui.Dialog.titleId(model.dialog))], ['Confirm Action']),
-      p([], ['Are you sure you want to proceed?']),
-      div(
-        [Class('flex gap-2 justify-end mt-4')],
+      h.h2([h.Id(Ui.Dialog.titleId(model.dialog))], ['Confirm Action']),
+      h.p([], ['Are you sure you want to proceed?']),
+      h.div(
+        [h.Class('flex gap-2 justify-end mt-4')],
         [
-          button(
+          h.button(
             [
-              OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
-              Class('px-4 py-2 rounded-lg border'),
+              h.OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
+              h.Class('px-4 py-2 rounded-lg border'),
             ],
             ['Cancel'],
           ),
-          button(
+          h.button(
             [
-              OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
-              Class('px-4 py-2 rounded-lg bg-blue-600 text-white'),
+              h.OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
+              h.Class('px-4 py-2 rounded-lg bg-blue-600 text-white'),
             ],
             ['Confirm'],
           ),
@@ -82,12 +83,12 @@ Ui.Dialog.view({
     ],
   ),
   panelAttributes: [
-    Class(
+    h.Class(
       'rounded-lg p-6 max-w-md mx-auto shadow-xl transition duration-150 ease-out data-[closed]:opacity-0 data-[closed]:scale-95',
     ),
   ],
   attributes: [
-    Class(
+    h.Class(
       'backdrop:bg-transparent bg-transparent p-0 open:flex items-center justify-center',
     ),
   ],
