@@ -1,5 +1,98 @@
 # foldkit
 
+## 0.91.0
+
+### Minor Changes
+
+- ef45ed5: Add `foldkit/canvas` subpath export for declarative 2D canvas rendering.
+
+  `Canvas.view` produces a `<canvas>` VNode whose pixel state is a pure function of a `shapes` prop. The canvas re-paints on every patch with the latest shapes, so time-travel through DevTools reproduces past frames exactly.
+
+  ```ts
+  import { Canvas } from 'foldkit'
+
+  // In view:
+  Canvas.view<Message>({
+    width: 600,
+    height: 400,
+    shapes: [
+      Canvas.Rect({ x: 0, y: 0, width: 600, height: 400, fill: '#0a0a0f' }),
+      Canvas.Circle({ x: 100, y: 100, radius: 25, fill: '#ff2d55' }),
+      Canvas.Group({
+        translate: { x: 300, y: 200 },
+        rotate: model.angle,
+        shapes: [
+          Canvas.Path({
+            instructions: [
+              Canvas.MoveTo({ x: 0, y: 0 }),
+              Canvas.LineTo({ x: 50, y: 0 }),
+              Canvas.LineTo({ x: 25, y: 43 }),
+              Canvas.Close(),
+            ],
+            fill: '#ffcc00',
+          }),
+        ],
+      }),
+      Canvas.Text({
+        x: 10,
+        y: 30,
+        content: `Score: ${model.score}`,
+        font: '24px sans-serif',
+        fill: 'white',
+      }),
+    ],
+    onPointerDown: ({ x, y }) => ClickedCanvas({ x, y }),
+  })
+  ```
+
+  ## Shapes
+  - `Canvas.Rect`: axis-aligned rectangle with `fill` / `stroke` / `lineWidth`.
+  - `Canvas.Circle`: filled or stroked circle.
+  - `Canvas.Path`: sequence of `MoveTo` / `LineTo` / `QuadTo` / `BezierTo` / `Close` instructions, with `lineCap` / `lineJoin`.
+  - `Canvas.Text`: single line of text with `font` / `align` / `baseline`.
+  - `Canvas.Group`: wraps children in a 2D transform (`translate`, `rotate`, `scale`, `opacity`); composes recursively.
+
+  `Canvas.Shape` is a discriminated union over the variants. Pattern-match with `Match.tagsExhaustive` if you need to inspect or transform shapes.
+
+  ## Pointer events
+
+  `onPointerDown` / `onPointerMove` / `onPointerUp` are config args on `Canvas.view`. They receive a `Point` already translated to the canvas's internal coordinate space (independent of CSS sizing).
+
+  For continuous animation (physics simulations, generative scenes, time-based motion), pair `Canvas.view` with `Subscription.animationFrame`.
+
+  ## Out of scope for this release
+
+  No imperative escape hatch (`DrawFrame((ctx) => ...)`-style Commands), no images / textures, no gradients, no patterns, no WebGL. The declarative path covers pixel art, board games, card games, 2D puzzlers, generative art, charts, and dataviz. The escape hatch is intentionally deferred until a real use case demands it; opting into imperative drawing breaks pixel-level time travel and that tradeoff should be made explicitly.
+
+- f004d31: Add `Subscription.animationFrame`, a Subscription helper that emits a Message every `requestAnimationFrame` tick with the inter-frame delta in milliseconds.
+
+  ```ts
+  import { Subscription } from 'foldkit'
+
+  const SubscriptionDeps = S.Struct({ frame: S.Boolean })
+
+  const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
+    Model,
+    Message
+  >({
+    frame: Subscription.animationFrame({
+      isActive: model => model.isPlaying,
+      toMessage: deltaTime => TickedFrame({ deltaTime }),
+    }),
+  })
+  ```
+
+  `isActive` returning `false` tears the rAF loop down entirely (game paused, scene static, animation finished); the loop restarts when the gate flips back. Pair with `S.Boolean` in your `SubscriptionDeps` schema.
+
+  Reach for `Subscription.animationFrame` whenever you want smooth, time-based motion driven by Model updates: physics simulations, generative art, parallax scrolling, custom interpolations. The `deltaTime` payload makes simulation speed independent of frame rate. For discrete game ticks (one step every N ms regardless of refresh rate), `Stream.tick` is still the right primitive.
+
+### Patch Changes
+
+- 0d4a522: Fix beveled appearance of DevTools inspector tabs, the resume button, and the filter button. A find-and-replace during a recent refactor accidentally inlined `h.` into three CSS class strings (`dt-tab-h.button`, `dt-resume-h.button`, `dt-filter-h.button`), so each button fell back to UA-default styling (white background, system bevel). The class names are restored to `dt-tab-button`, `dt-resume-button`, and `dt-filter-button`.
+- 827bbf2: Fix DevTools resume leaving DOM event handlers bound to a no-op dispatch. After time-traveling and resuming, every event handler on the rebuilt DOM (any `On*` attribute produced by the html factory, plus pointer handlers attached via `Canvas.view` and any other listener built on the runtime's `Dispatch` service) silently dropped Messages until a Subscription emission happened to trigger an internal re-render.
+
+  The jumpTo render path intentionally uses `noOpDispatch` so mount Effects fired during inspection don't pollute history. Resume was reusing the same render path, so the rebuilt DOM had every listener bound to the no-op even after the user returned to live state. Resume now flips `isPaused` to false and asks the render loop to tick once with the live dispatch, which rebinds listeners on the next animation frame.
+
 ## 0.90.1
 
 ### Patch Changes

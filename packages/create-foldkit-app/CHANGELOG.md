@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.8.0
+
+### Minor Changes
+
+- ef45ed5: Add `canvas-art` to the scaffold prompt. Selecting it produces a project that uses `foldkit/canvas` to render shapes into a `<canvas>` element, with `Subscription.animationFrame` and pointer events wired up.
+
 ## 0.7.2
 
 ### Patch Changes
