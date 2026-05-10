@@ -7,7 +7,7 @@ const InputtedEmail = m('InputtedEmail', { value: S.String })
 const Message = S.Union([InputtedEmail])
 type Message = typeof Message.Type
 
-// In a real app, this lives once at module level and is imported everywhere.
+// In a real app, each view module binds its own h once at the top.
 const h = html<Message>()
 
 const emailInput = (email: string) =>

@@ -7,7 +7,7 @@ const ClickedSave = m('ClickedSave')
 const Message = S.Union([ClickedSave])
 type Message = typeof Message.Type
 
-// In a real app, this lives once at module level and is imported everywhere.
+// In a real app, each view module binds its own h once at the top.
 const h = html<Message>()
 
 const saveButton = (isSaving: boolean) =>
