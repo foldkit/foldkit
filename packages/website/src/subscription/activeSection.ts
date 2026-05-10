@@ -90,6 +90,7 @@ export const activeSection: Subscription<
         M.tag('CoreDom', () => Page.Core.CoreDom.tableOfContents),
         M.tag('CoreRender', () => Page.Core.CoreRender.tableOfContents),
         M.tag('CoreFile', () => Page.Core.CoreFile.tableOfContents),
+        M.tag('CoreCanvas', () => Page.Core.CoreCanvas.tableOfContents),
         M.tag(
           'CoreRunningYourApp',
           () => Page.Core.RunningYourApp.tableOfContents,

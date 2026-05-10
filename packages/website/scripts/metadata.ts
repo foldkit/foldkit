@@ -181,6 +181,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'File',
     'Read and select files from the browser using an opaque File type and event attributes for inputs and drop zones.',
   ),
+  CoreCanvas: core(
+    'Canvas',
+    'Declarative 2D rendering with a Schema-defined Shape AST, an animation-frame Subscription helper, and pointer events translated to canvas-local coordinates.',
+  ),
   CoreRunningYourApp: core(
     'Running Your App',
     'Mount and run a Foldkit application in the browser.',

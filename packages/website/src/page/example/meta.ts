@@ -14,6 +14,7 @@ export const ExampleSlug = S.Literals([
   'query-sync',
   'snake',
   'auth',
+  'canvas-art',
   'shopping-cart',
   'pixel-art',
   'websocket-chat',
@@ -112,6 +113,15 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'The classic snake game. Keyboard input, game loop, and collision detection.',
     difficulty: 'Advanced',
     tags: ['Game'],
+    hasRouting: false,
+  },
+  {
+    slug: 'canvas-art',
+    title: 'Canvas Art',
+    description:
+      'Click the canvas to spawn bouncing balls. Demonstrates declarative 2D rendering with Canvas.view, animation-frame Subscriptions, and pointer events translated to canvas-local coordinates.',
+    difficulty: 'Intermediate',
+    tags: ['Canvas', 'Animation', 'Subscriptions'],
     hasRouting: false,
   },
   {

@@ -15,6 +15,10 @@
       "types": "./dist/calendar/public.d.ts",
       "import": "./dist/calendar/public.js"
     },
+    "./canvas": {
+      "types": "./dist/canvas/public.d.ts",
+      "import": "./dist/canvas/public.js"
+    },
     "./command": {
       "types": "./dist/command/public.d.ts",
       "import": "./dist/command/public.js"

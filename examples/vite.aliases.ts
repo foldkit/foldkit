@@ -6,6 +6,7 @@ export const foldkitAliases = (dirname: string) => ({
     dirname,
     '../../packages/foldkit/src/calendar',
   ),
+  'foldkit/canvas': path.resolve(dirname, '../../packages/foldkit/src/canvas'),
   'foldkit/command': path.resolve(
     dirname,
     '../../packages/foldkit/src/command',
