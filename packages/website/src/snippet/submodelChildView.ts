@@ -6,7 +6,7 @@ import type { Model } from './model'
 
 // The child's view is generic over <ParentMessage>. It binds h locally
 // from html<ParentMessage>(), so its tags and event constructors are
-// typed against whatever Message union the parent dispatches against —
+// typed against whatever Message union the parent dispatches against,
 // not against the child's own Message. The toParentMessage callback is
 // how child Messages cross the boundary.
 export const view = <ParentMessage>(

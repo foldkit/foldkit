@@ -1,7 +1,7 @@
 import { html } from 'foldkit/html'
 
 // Bind the html factory to your Message type once. Reach for `h.` to access
-// elements, attributes, and event handlers — every callback is typed against
+// elements, attributes, and event handlers. Every callback is typed against
 // your Message union, so `h.OnClick(...)` only accepts your variants.
 const h = html<Message>()
 
