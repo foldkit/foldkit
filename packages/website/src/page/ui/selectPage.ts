@@ -1,8 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
 import { uiShowcaseViewSourceHref } from '../../link'
-import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
   demoContainer,
@@ -193,12 +191,14 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
 
 // VIEW
 
-export const view = (
+export const view = <ParentMessage>(
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
   copiedSnippets: CopiedSnippets,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
       pageTitle('ui/select', 'Select'),
@@ -223,7 +223,7 @@ export const view = (
       para(
         'Pass an ',
         inlineCode('onChange'),
-        ' handler that receives the selected option\u2019s value as a string. You provide the ',
+        ' handler that receives the selected option’s value as a string. You provide the ',
         inlineCode('<option>'),
         ' elements inside the ',
         inlineCode('<select>'),
@@ -233,8 +233,8 @@ export const view = (
       ),
       demoContainer(...Select.basicDemo(model, toParentMessage)),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippet.uiSelectBasicHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippet.uiSelectBasicHighlighted)],
           [],
         ),
         Snippet.uiSelectBasicRaw,
@@ -250,8 +250,11 @@ export const view = (
       para('Set ', inlineCode('isDisabled: true'), ' to disable the select.'),
       demoContainer(...Select.disabledDemo(model, toParentMessage)),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippet.uiSelectDisabledHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.uiSelectDisabledHighlighted),
+          ],
           [],
         ),
         Snippet.uiSelectDisabledRaw,
@@ -324,3 +327,4 @@ export const view = (
       propTable(selectAttributesProps),
     ],
   )
+}

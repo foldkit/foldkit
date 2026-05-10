@@ -1,27 +1,12 @@
 import { Array, Effect, Match as M, Option, Schema as S } from 'effect'
 import { Command, Ui } from 'foldkit'
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import {
-  AriaLabel,
-  Class,
-  Href,
-  InnerHTML,
-  Src,
-  a,
-  div,
-  empty,
-  h3,
-  iframe,
-  keyed,
-  p,
-  span,
-} from '../../html'
 import { Icon } from '../../icon'
 import { exampleSourceHref } from '../../link'
-import type { Message as ParentMessage, TableOfContentsEntry } from '../../main'
+import type { TableOfContentsEntry } from '../../main'
 import { makeRemoteData } from '../../makeRemoteData'
 import { pageTitle, para } from '../../prose'
 import { examplesRouter, playgroundRouter } from '../../route'
@@ -183,47 +168,62 @@ export const update = (
 
 // VIEW
 
-const featureTag = (text: string): Html =>
-  div(
+const featureTag = <ParentMessage>(text: string): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [
-      Class(
+      h.Class(
         'text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300',
       ),
     ],
     [text],
   )
+}
 
-const chromeRecommendedHint: Html = p(
-  [Class('text-xs text-gray-500 dark:text-gray-400')],
-  ['Requires a Chromium browser'],
-)
+const chromeRecommendedHint = <ParentMessage>(): Html => {
+  const h = html<ParentMessage>()
 
-const launchPlaygroundSection = (
+  return h.p(
+    [h.Class('text-xs text-gray-500 dark:text-gray-400')],
+    ['Requires a Chromium browser'],
+  )
+}
+
+const launchPlaygroundSection = <ParentMessage>(
   meta: ExampleMeta,
   isChromium: boolean,
-): Html =>
-  div(
-    [Class('flex flex-col items-start gap-1')],
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [h.Class('flex flex-col items-start gap-1')],
     [
-      a(
+      h.a(
         [
-          Href(playgroundRouter({ exampleSlug: meta.slug })),
-          Class('cta-amber-sm'),
+          h.Href(playgroundRouter({ exampleSlug: meta.slug })),
+          h.Class('cta-amber-sm'),
         ],
         [Icon.bolt('w-4 h-4'), 'Launch Playground'],
       ),
-      ...(isChromium ? [] : [chromeRecommendedHint]),
+      ...(isChromium ? [] : [chromeRecommendedHint<ParentMessage>()]),
     ],
   )
+}
 
-const headerView = (meta: ExampleMeta, isChromium: boolean): Html =>
-  div(
-    [Class('mb-6')],
+const headerView = <ParentMessage>(
+  meta: ExampleMeta,
+  isChromium: boolean,
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [h.Class('mb-6')],
     [
-      a(
+      h.a(
         [
-          Href(examplesRouter()),
-          Class(
+          h.Href(examplesRouter()),
+          h.Class(
             'inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-4',
           ),
         ],
@@ -231,18 +231,18 @@ const headerView = (meta: ExampleMeta, isChromium: boolean): Html =>
       ),
       pageTitle('example-detail', meta.title),
       para(meta.description),
-      div(
-        [Class('flex flex-wrap items-center gap-2 mt-3')],
-        Array.map(meta.tags, featureTag),
+      h.div(
+        [h.Class('flex flex-wrap items-center gap-2 mt-3')],
+        Array.map(meta.tags, text => featureTag<ParentMessage>(text)),
       ),
-      div(
-        [Class('flex flex-col items-start gap-3 mt-3')],
+      h.div(
+        [h.Class('flex flex-col items-start gap-3 mt-3')],
         [
-          launchPlaygroundSection(meta, isChromium),
-          a(
+          launchPlaygroundSection<ParentMessage>(meta, isChromium),
+          h.a(
             [
-              Href(exampleSourceHref(meta.slug)),
-              Class(
+              h.Href(exampleSourceHref(meta.slug)),
+              h.Class(
                 'text-sm text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500',
               ),
             ],
@@ -252,6 +252,7 @@ const headerView = (meta: ExampleMeta, isChromium: boolean): Html =>
       ),
     ],
   )
+}
 
 const urlBarContent = (
   meta: ExampleMeta,
@@ -259,17 +260,27 @@ const urlBarContent = (
 ): string =>
   meta.hasRouting ? Option.getOrElse(maybeExampleUrl, () => '/') : '/'
 
-const trafficLightDots: Html = div(
-  [Class('flex gap-1.5')],
-  [
-    div([Class('w-3 h-3 rounded-full bg-red-400 dark:bg-red-500/60')], []),
-    div(
-      [Class('w-3 h-3 rounded-full bg-yellow-400 dark:bg-yellow-500/60')],
-      [],
-    ),
-    div([Class('w-3 h-3 rounded-full bg-green-400 dark:bg-green-500/60')], []),
-  ],
-)
+const trafficLightDots = <ParentMessage>(): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [h.Class('flex gap-1.5')],
+    [
+      h.div(
+        [h.Class('w-3 h-3 rounded-full bg-red-400 dark:bg-red-500/60')],
+        [],
+      ),
+      h.div(
+        [h.Class('w-3 h-3 rounded-full bg-yellow-400 dark:bg-yellow-500/60')],
+        [],
+      ),
+      h.div(
+        [h.Class('w-3 h-3 rounded-full bg-green-400 dark:bg-green-500/60')],
+        [],
+      ),
+    ],
+  )
+}
 
 const DISCLOSURE_BUTTON_CLASS =
   'w-full flex items-center justify-between px-4 py-3 text-left text-sm font-medium cursor-pointer transition border border-gray-200 dark:border-gray-700/50 text-gray-700 dark:text-gray-300 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 rounded-xl data-[open]:rounded-b-none select-none'
@@ -277,47 +288,55 @@ const DISCLOSURE_BUTTON_CLASS =
 const DISCLOSURE_PANEL_CLASS =
   'rounded-b-xl overflow-hidden border-x border-b border-gray-200 dark:border-gray-700/50 shadow-sm'
 
-const disclosureChevron = (isOpen: boolean): Html =>
-  span(
+const disclosureChevron = <ParentMessage>(isOpen: boolean): Html => {
+  const h = html<ParentMessage>()
+
+  return h.span(
     [
-      Class(
+      h.Class(
         `transition-transform text-gray-400 dark:text-gray-500 ${isOpen ? 'rotate-180' : ''}`,
       ),
     ],
     [Icon.chevronDown('w-4 h-4')],
   )
+}
 
-const livePreviewDisclosureView = (
+const livePreviewDisclosureView = <ParentMessage>(
   disclosureModel: Ui.Disclosure.Model,
   meta: ExampleMeta,
   slug: string,
   maybeExampleUrl: Option.Option<string>,
   toParentMessage: (message: Message) => ParentMessage,
-): Html =>
-  Ui.Disclosure.view({
+): Html => {
+  const h = html<ParentMessage>()
+
+  return Ui.Disclosure.view({
     model: disclosureModel,
     toParentMessage: message =>
       toParentMessage(GotLivePreviewDisclosureMessage({ message })),
-    buttonAttributes: [Class(DISCLOSURE_BUTTON_CLASS)],
-    buttonContent: div(
-      [Class('flex items-center justify-between w-full')],
-      [span([], ['Live Preview']), disclosureChevron(disclosureModel.isOpen)],
+    buttonAttributes: [h.Class(DISCLOSURE_BUTTON_CLASS)],
+    buttonContent: h.div(
+      [h.Class('flex items-center justify-between w-full')],
+      [
+        h.span([], ['Live Preview']),
+        disclosureChevron<ParentMessage>(disclosureModel.isOpen),
+      ],
     ),
-    panelAttributes: [Class(DISCLOSURE_PANEL_CLASS)],
-    panelContent: div(
+    panelAttributes: [h.Class(DISCLOSURE_PANEL_CLASS)],
+    panelContent: h.div(
       [],
       [
-        div(
+        h.div(
           [
-            Class(
+            h.Class(
               'flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700/50',
             ),
           ],
           [
-            trafficLightDots,
-            div(
+            trafficLightDots<ParentMessage>(),
+            h.div(
               [
-                Class(
+                h.Class(
                   'flex-1 text-xs font-mono text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 rounded px-3 py-1 text-center truncate',
                 ),
               ],
@@ -325,11 +344,11 @@ const livePreviewDisclosureView = (
             ),
           ],
         ),
-        iframe(
+        h.iframe(
           [
-            Src(`/example-apps-embed/${slug}/index.html?embedded`),
-            Class('w-full bg-white h-[40rem]'),
-            AriaLabel(`${meta.title} example running live`),
+            h.Src(`/example-apps-embed/${slug}/index.html?embedded`),
+            h.Class('w-full bg-white h-[40rem]'),
+            h.AriaLabel(`${meta.title} example running live`),
           ],
           [],
         ),
@@ -337,6 +356,7 @@ const livePreviewDisclosureView = (
     ),
     persistPanel: true,
   })
+}
 
 const TAB_BUTTON_BASE =
   'px-3 py-2 lg:py-1.5 whitespace-nowrap lg:whitespace-normal lg:w-full lg:text-left text-xs font-mono transition cursor-pointer'
@@ -349,13 +369,15 @@ const TAB_BUTTON_INACTIVE =
   TAB_BUTTON_BASE +
   ' text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/50 dark:hover:bg-gray-800/50'
 
-const sourceCodeView = (
+const sourceCodeView = <ParentMessage>(
   files: ReadonlyArray<ExampleSourceFile>,
   tabsModel: Ui.Tabs.Model,
   copiedSnippets: CopiedSnippets,
   isNarrowViewport: boolean,
   toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
+  const h = html<ParentMessage>()
+
   const filePaths = Array.map(files, file => file.path)
 
   return Ui.Tabs.view({
@@ -368,17 +390,17 @@ const sourceCodeView = (
 
       return {
         buttonClassName: isActive ? TAB_BUTTON_ACTIVE : TAB_BUTTON_INACTIVE,
-        buttonContent: span([], [filePath.replaceAll('/', '/\u200B')]),
+        buttonContent: h.span([], [filePath.replaceAll('/', '/​')]),
         panelClassName: 'code-embed-panel',
         panelContent: Option.match(maybeFile, {
-          onNone: () => empty,
+          onNone: () => h.empty,
           onSome: file =>
-            div(
-              [Class('code-embed-scroll')],
+            h.div(
+              [h.Class('code-embed-scroll')],
               [
                 highlightedCodeBlock(
-                  div(
-                    [Class('code-embed'), InnerHTML(file.highlightedHtml)],
+                  h.div(
+                    [h.Class('code-embed'), h.InnerHTML(file.highlightedHtml)],
                     [],
                   ),
                   file.rawCode,
@@ -393,13 +415,13 @@ const sourceCodeView = (
     },
     orientation: isNarrowViewport ? 'Horizontal' : 'Vertical',
     attributes: [
-      Class(
+      h.Class(
         'flex flex-col lg:flex-row overflow-hidden max-h-[80vh] border border-gray-200 dark:border-gray-700/50',
       ),
     ],
     tabListAriaLabel: 'Source files',
     tabListAttributes: [
-      Class(
+      h.Class(
         'flex flex-shrink-0 overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto lg:w-44 lg:flex-col border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700/50 bg-gray-200 dark:bg-gray-800/50 divide-x lg:divide-x-0 lg:divide-y divide-gray-200 dark:divide-gray-700/50',
       ),
     ],
@@ -413,89 +435,123 @@ const skeletonFileRowClasses: ReadonlyArray<string> = [
   'w-36',
 ]
 
-const sourcesSkeletonView = (): Html =>
-  div(
+const sourcesSkeletonView = <ParentMessage>(): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [
-      Class(
+      h.Class(
         'flex flex-col lg:flex-row overflow-hidden max-h-[80vh] border border-gray-200 dark:border-gray-700/50 animate-pulse',
       ),
     ],
     [
-      div(
+      h.div(
         [
-          Class(
+          h.Class(
             'flex flex-shrink-0 overflow-hidden lg:w-44 lg:flex-col bg-gray-200 dark:bg-gray-800/50 p-3 gap-2',
           ),
         ],
         Array.map(skeletonFileRowClasses, widthClass =>
-          div(
-            [Class(`h-5 ${widthClass} rounded bg-gray-300 dark:bg-gray-700`)],
+          h.div(
+            [h.Class(`h-5 ${widthClass} rounded bg-gray-300 dark:bg-gray-700`)],
             [],
           ),
         ),
       ),
-      div(
+      h.div(
         [
-          Class(
+          h.Class(
             'flex-1 min-h-[24rem] bg-gray-100 dark:bg-gray-800/30 p-6 space-y-3',
           ),
         ],
         [
-          div([Class('h-4 w-11/12 rounded bg-gray-300 dark:bg-gray-700')], []),
-          div([Class('h-4 w-10/12 rounded bg-gray-300 dark:bg-gray-700')], []),
-          div([Class('h-4 w-8/12 rounded bg-gray-300 dark:bg-gray-700')], []),
-          div([Class('h-4 w-11/12 rounded bg-gray-300 dark:bg-gray-700')], []),
-          div([Class('h-4 w-9/12 rounded bg-gray-300 dark:bg-gray-700')], []),
-          div([Class('h-4 w-10/12 rounded bg-gray-300 dark:bg-gray-700')], []),
+          h.div(
+            [h.Class('h-4 w-11/12 rounded bg-gray-300 dark:bg-gray-700')],
+            [],
+          ),
+          h.div(
+            [h.Class('h-4 w-10/12 rounded bg-gray-300 dark:bg-gray-700')],
+            [],
+          ),
+          h.div(
+            [h.Class('h-4 w-8/12 rounded bg-gray-300 dark:bg-gray-700')],
+            [],
+          ),
+          h.div(
+            [h.Class('h-4 w-11/12 rounded bg-gray-300 dark:bg-gray-700')],
+            [],
+          ),
+          h.div(
+            [h.Class('h-4 w-9/12 rounded bg-gray-300 dark:bg-gray-700')],
+            [],
+          ),
+          h.div(
+            [h.Class('h-4 w-10/12 rounded bg-gray-300 dark:bg-gray-700')],
+            [],
+          ),
         ],
       ),
     ],
   )
+}
 
-const sourcesFailureView = (error: string): Html =>
-  div(
-    [Class('rounded-lg border border-red-300 dark:border-red-800 p-6')],
+const sourcesFailureView = <ParentMessage>(error: string): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [h.Class('rounded-lg border border-red-300 dark:border-red-800 p-6')],
     [
-      h3(
-        [Class('text-base font-semibold text-red-700 dark:text-red-400 mb-2')],
+      h.h3(
+        [
+          h.Class(
+            'text-base font-semibold text-red-700 dark:text-red-400 mb-2',
+          ),
+        ],
         ['Failed to load example sources'],
       ),
-      div([Class('text-sm text-gray-600 dark:text-gray-400')], [error]),
+      h.div([h.Class('text-sm text-gray-600 dark:text-gray-400')], [error]),
     ],
   )
+}
 
-export const view = (
+export const view = <ParentMessage>(
   model: Model,
   slug: string,
   copiedSnippets: CopiedSnippets,
   isNarrowViewport: boolean,
   isChromium: boolean,
   toParentMessage: (message: Message) => ParentMessage,
-): Html =>
-  Option.match(findBySlug(slug), {
-    onNone: () => div([], ['Example not found']),
+): Html => {
+  const h = html<ParentMessage>()
+
+  return Option.match(findBySlug(slug), {
+    onNone: () => h.div([], ['Example not found']),
     onSome: meta =>
-      keyed('div')(
+      h.keyed('div')(
         slug,
         [],
         [
-          headerView(meta, isChromium),
-          livePreviewDisclosureView(
+          headerView<ParentMessage>(meta, isChromium),
+          livePreviewDisclosureView<ParentMessage>(
             model.livePreviewDisclosure,
             meta,
             slug,
             model.maybeExampleUrl,
             toParentMessage,
           ),
-          div(
-            [Class('mt-6')],
+          h.div(
+            [h.Class('mt-6')],
             [
               M.value(model.currentSources).pipe(
                 M.withReturnType<Html>(),
-                M.tag('NotAsked', 'Loading', () => sourcesSkeletonView()),
-                M.tag('Failure', ({ error }) => sourcesFailureView(error)),
+                M.tag('NotAsked', 'Loading', () =>
+                  sourcesSkeletonView<ParentMessage>(),
+                ),
+                M.tag('Failure', ({ error }) =>
+                  sourcesFailureView<ParentMessage>(error),
+                ),
                 M.tag('Ok', ({ data: sources }) =>
-                  sourceCodeView(
+                  sourceCodeView<ParentMessage>(
                     sources.files,
                     model.sourceFileTabs,
                     copiedSnippets,
@@ -510,5 +566,6 @@ export const view = (
         ],
       ),
   })
+}
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = []

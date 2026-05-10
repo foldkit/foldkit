@@ -1,40 +1,10 @@
 import * as Shared from '@typing-game/shared'
 import { Match as M, Option } from 'effect'
 import { Mount } from 'foldkit'
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
 import { ROOM_PAGE_USERNAME_INPUT_ID } from '../../../constant'
-import type { Message as ParentMessage } from '../../../message'
 import { RoomRoute } from '../../../route'
-import {
-  AriaLabel,
-  Autocapitalize,
-  Autocomplete,
-  Autocorrect,
-  Class,
-  For,
-  Id,
-  Maxlength,
-  Name,
-  OnBlur,
-  OnClick,
-  OnInput,
-  OnMount,
-  OnSubmit,
-  Spellcheck,
-  Type,
-  Value,
-  button,
-  div,
-  empty,
-  form,
-  h2,
-  h3,
-  input,
-  keyed,
-  label,
-  span,
-} from '../../../view/html'
 import { Icon } from '../../../view/icon'
 import { FocusRoomPageUsernameInput } from '../command'
 import {
@@ -53,39 +23,44 @@ import { playing } from './playing'
 import { waiting } from './waiting'
 
 export const view =
-  (model: Model, toParentMessage: (message: Message) => ParentMessage) =>
+  <ParentMessage>(
+    model: Model,
+    toParentMessage: (message: Message) => ParentMessage,
+  ) =>
   ({ roomId }: RoomRoute): Html => {
+    const h = html<ParentMessage>()
+
     const maybeError = M.value(model.roomRemoteData).pipe(
       M.tag('Error', ({ error }) => error),
       M.option,
     )
 
     const welcomeText = Option.match(model.maybeSession, {
-      onNone: () => empty,
+      onNone: () => h.empty,
       onSome: ({ player }) =>
-        h2([Class('mb-6')], [`Welcome, ${player.username}!`]),
+        h.h2([h.Class('mb-6')], [`Welcome, ${player.username}!`]),
     })
 
     const copiedIndicator = model.isRoomIdCopyIndicatorVisible
-      ? div(
+      ? h.div(
           [
-            Class(
+            h.Class(
               'text-lg rounded py-1 px-2 font-medium bg-terminal-green-dim text-terminal-bg uppercase',
             ),
           ],
           ['Copied'],
         )
-      : empty
+      : h.empty
 
-    const copyButton = button(
+    const copyButton = h.button(
       [
-        Class(
+        h.Class(
           'p-2 rounded hover:bg-terminal-green-dim hover:text-terminal-bg transition text-terminal-green',
         ),
-        AriaLabel('Copy room ID'),
-        OnClick(toParentMessage(ClickedCopyRoomId({ roomId }))),
+        h.AriaLabel('Copy room ID'),
+        h.OnClick(toParentMessage(ClickedCopyRoomId({ roomId }))),
       ],
-      [Icon.copy()],
+      [Icon.copy<ParentMessage>()],
     )
 
     const isInLeavableState = M.value(model.roomRemoteData).pipe(
@@ -100,31 +75,31 @@ export const view =
     const isExitCountingDown = model.exitCountdownSecondsLeft > 0
 
     const leaveRoomContent = isExitCountingDown
-      ? div(
-          [Class('opacity-30')],
+      ? h.div(
+          [h.Class('opacity-30')],
           [`< Backspace to leave room (${model.exitCountdownSecondsLeft})`],
         )
-      : div([], ['< Backspace to leave room'])
+      : h.div([], ['< Backspace to leave room'])
 
-    const leaveRoomText = isInLeavableState ? leaveRoomContent : empty
+    const leaveRoomText = isInLeavableState ? leaveRoomContent : h.empty
 
-    return div(
-      [Class('max-w-4xl flex-1 flex flex-col justify-between')],
+    return h.div(
+      [h.Class('max-w-4xl flex-1 flex flex-col justify-between')],
       [
-        div(
+        h.div(
           [],
           [
             welcomeText,
-            h3([Class('uppercase')], ['[Room id]']),
-            div(
-              [Class('mb-12 flex items-center gap-2')],
-              [span([], [roomId]), copyButton, copiedIndicator],
+            h.h3([h.Class('uppercase')], ['[Room id]']),
+            h.div(
+              [h.Class('mb-12 flex items-center gap-2')],
+              [h.span([], [roomId]), copyButton, copiedIndicator],
             ),
-            content(model, roomId, toParentMessage),
-            maybeErrorMessage(maybeError),
+            content<ParentMessage>(model, roomId, toParentMessage),
+            maybeErrorMessage<ParentMessage>(maybeError),
           ],
         ),
-        div([], [leaveRoomText]),
+        h.div([], [leaveRoomText]),
       ],
     )
   }
@@ -138,54 +113,66 @@ const contentKey = (
     M.orElse(({ _tag }) => _tag.toLowerCase()),
   )
 
-const content = (
+const content = <ParentMessage>(
   { roomRemoteData, maybeSession, userGameText, username }: Model,
   roomId: string,
   toParentMessage: (message: Message) => ParentMessage,
-): Html =>
-  keyed('div')(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.keyed('div')(
     contentKey(roomRemoteData, maybeSession),
     [],
     [
       M.value(roomRemoteData).pipe(
         M.tagsExhaustive({
-          Idle: () => div([], ['Loading...']),
-          Loading: () => div([], ['Loading...']),
-          Error: () => empty,
+          Idle: () => h.div([], ['Loading...']),
+          Loading: () => h.div([], ['Loading...']),
+          Error: () => h.empty,
           Ok: ({ data: room }) =>
             Option.match(maybeSession, {
-              onNone: () => joinForm(username, roomId, toParentMessage),
+              onNone: () =>
+                joinForm<ParentMessage>(username, roomId, toParentMessage),
               onSome: () =>
-                gameContent(room, maybeSession, userGameText, toParentMessage),
+                gameContent<ParentMessage>(
+                  room,
+                  maybeSession,
+                  userGameText,
+                  toParentMessage,
+                ),
             }),
         }),
       ),
     ],
   )
+}
 
-const gameContent = (
+const gameContent = <ParentMessage>(
   room: Shared.Room,
   maybeSession: Option.Option<RoomPlayerSession>,
   userGameText: string,
   toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
+  const h = html<ParentMessage>()
   const maybeGameText = Option.map(room.maybeGame, ({ text }) => text)
   const maybeWrongCharIndex = Option.flatMap(
     maybeGameText,
     findFirstWrongCharIndex(userGameText),
   )
 
-  return keyed('div')(
+  return h.keyed('div')(
     room.status._tag,
     [],
     [
       M.value(room.status).pipe(
         M.tagsExhaustive({
-          Waiting: () => waiting(room.players, room.hostId, maybeSession),
-          GetReady: () => getReady(maybeGameText),
-          Countdown: ({ secondsLeft }) => countdown(secondsLeft, maybeGameText),
+          Waiting: () =>
+            waiting<ParentMessage>(room.players, room.hostId, maybeSession),
+          GetReady: () => getReady<ParentMessage>(maybeGameText),
+          Countdown: ({ secondsLeft }) =>
+            countdown<ParentMessage>(secondsLeft, maybeGameText),
           Playing: ({ secondsLeft }) =>
-            playing(
+            playing<ParentMessage>(
               secondsLeft,
               maybeGameText,
               userGameText,
@@ -193,50 +180,56 @@ const gameContent = (
               toParentMessage,
             ),
           Finished: () =>
-            finished(room.maybeScoreboard, room.hostId, maybeSession),
+            finished<ParentMessage>(
+              room.maybeScoreboard,
+              room.hostId,
+              maybeSession,
+            ),
         }),
       ),
     ],
   )
 }
 
-const joinForm = (
+const joinForm = <ParentMessage>(
   username: string,
   roomId: string,
   toParentMessage: (message: Message) => ParentMessage,
-): Html =>
-  form(
-    [OnSubmit(toParentMessage(SubmittedJoinRoomFromPage({ roomId })))],
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.form(
+    [h.OnSubmit(toParentMessage(SubmittedJoinRoomFromPage({ roomId })))],
     [
-      div(
-        [Class('flex items-center gap-2')],
+      h.div(
+        [h.Class('flex items-center gap-2')],
         [
-          label([For(ROOM_PAGE_USERNAME_INPUT_ID)], ['Enter username: ']),
-          div(
-            [Class('flex items-center gap-2 flex-1')],
+          h.label([h.For(ROOM_PAGE_USERNAME_INPUT_ID)], ['Enter username: ']),
+          h.div(
+            [h.Class('flex items-center gap-2 flex-1')],
             [
               // Safari ignores fields named "search" for password autofill
-              input([
-                Id(ROOM_PAGE_USERNAME_INPUT_ID),
-                Name('search'),
-                Type('text'),
-                Value(username),
-                Class('bg-transparent px-0 py-2 outline-none w-full'),
-                OnInput(value =>
+              h.input([
+                h.Id(ROOM_PAGE_USERNAME_INPUT_ID),
+                h.Name('search'),
+                h.Type('text'),
+                h.Value(username),
+                h.Class('bg-transparent px-0 py-2 outline-none w-full'),
+                h.OnInput(value =>
                   toParentMessage(ChangedRoomPageUsername({ value })),
                 ),
-                OnBlur(toParentMessage(BlurredRoomPageUsernameInput())),
-                OnMount(
+                h.OnBlur(toParentMessage(BlurredRoomPageUsernameInput())),
+                h.OnMount(
                   Mount.mapMessage(
                     FocusRoomPageUsernameInput(),
                     toParentMessage,
                   ),
                 ),
-                Autocapitalize('none'),
-                Spellcheck(false),
-                Autocorrect('off'),
-                Autocomplete('off'),
-                Maxlength(24),
+                h.Autocapitalize('none'),
+                h.Spellcheck(false),
+                h.Autocorrect('off'),
+                h.Autocomplete('off'),
+                h.Maxlength(24),
               ]),
             ],
           ),
@@ -244,16 +237,22 @@ const joinForm = (
       ),
     ],
   )
+}
 
-const maybeErrorMessage = (maybeRoomFormError: Option.Option<string>) =>
-  Option.match(maybeRoomFormError, {
-    onNone: () => empty,
+const maybeErrorMessage = <ParentMessage>(
+  maybeRoomFormError: Option.Option<string>,
+) => {
+  const h = html<ParentMessage>()
+
+  return Option.match(maybeRoomFormError, {
+    onNone: () => h.empty,
     onSome: errorMessage =>
-      div(
-        [Class('mt-6')],
+      h.div(
+        [h.Class('mt-6')],
         [
-          span([Class('text-terminal-red uppercase')], ['[Error] ']),
-          span([Class('text-terminal-red')], [errorMessage]),
+          h.span([h.Class('text-terminal-red uppercase')], ['[Error] ']),
+          h.span([h.Class('text-terminal-red')], [errorMessage]),
         ],
       ),
   })
+}

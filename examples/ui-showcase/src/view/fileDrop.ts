@@ -1,21 +1,7 @@
 import { Array, Match as M, Number } from 'effect'
 import { File, Ui } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import {
-  Class,
-  OnClick,
-  Type,
-  button,
-  div,
-  h2,
-  input,
-  keyed,
-  label,
-  p,
-  span,
-} from '../html'
-import type { Message as ParentMessage } from '../main'
 import {
   ClickedRemoveFileDropDemoFile,
   GotFileDropBasicDemoMessage,
@@ -56,16 +42,18 @@ const formatFileSize = (bytes: number): string =>
 const fileKey = (file: File.File): string =>
   `${File.name(file)}:${File.size(file)}:${file.lastModified}`
 
-export const view = (
+export const view = <ParentMessage>(
   model: UiModel,
   toParentMessage: (message: UiMessage) => ParentMessage,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
-      h2([Class('text-2xl font-bold text-gray-900 mb-6')], ['File Drop']),
-      div(
-        [Class('flex flex-col gap-3 w-full max-w-md')],
+      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['File Drop']),
+      h.div(
+        [h.Class('flex flex-col gap-3 w-full max-w-md')],
         [
           Ui.FileDrop.view({
             model: model.fileDropBasicDemo,
@@ -73,18 +61,18 @@ export const view = (
               toParentMessage(GotFileDropBasicDemoMessage({ message })),
             multiple: true,
             toView: attributes =>
-              label(
-                [...attributes.root, Class(dropZoneClassName)],
+              h.label(
+                [...attributes.root, h.Class(dropZoneClassName)],
                 [
-                  p(
-                    [Class(primaryTextClassName)],
+                  h.p(
+                    [h.Class(primaryTextClassName)],
                     ['Drop files or click to browse'],
                   ),
-                  p(
-                    [Class(secondaryTextClassName)],
+                  h.p(
+                    [h.Class(secondaryTextClassName)],
                     ['Any file type. This demo just lists them.'],
                   ),
-                  input(attributes.input),
+                  h.input(attributes.input),
                 ],
               ),
           }),
@@ -92,29 +80,29 @@ export const view = (
             onEmpty: () => [],
             onNonEmpty: files =>
               files.map((file, fileIndex) =>
-                keyed('div')(
+                h.keyed('div')(
                   fileKey(file),
-                  [Class(fileRowClassName)],
+                  [h.Class(fileRowClassName)],
                   [
-                    div(
-                      [Class('flex flex-col min-w-0')],
+                    h.div(
+                      [h.Class('flex flex-col min-w-0')],
                       [
-                        span([Class(fileNameClassName)], [File.name(file)]),
-                        span(
-                          [Class(fileSizeClassName)],
+                        h.span([h.Class(fileNameClassName)], [File.name(file)]),
+                        h.span(
+                          [h.Class(fileSizeClassName)],
                           [formatFileSize(File.size(file))],
                         ),
                       ],
                     ),
-                    button(
+                    h.button(
                       [
-                        Type('button'),
-                        OnClick(
+                        h.Type('button'),
+                        h.OnClick(
                           toParentMessage(
                             ClickedRemoveFileDropDemoFile({ fileIndex }),
                           ),
                         ),
-                        Class(removeButtonClassName),
+                        h.Class(removeButtonClassName),
                       ],
                       ['Remove'],
                     ),
@@ -126,3 +114,4 @@ export const view = (
       ),
     ],
   )
+}

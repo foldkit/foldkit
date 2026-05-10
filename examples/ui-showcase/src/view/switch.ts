@@ -1,9 +1,7 @@
 import clsx from 'clsx'
 import { Ui } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, button, div, h2, label, p, span } from '../html'
-import type { Message as ParentMessage } from '../main'
 import { GotSwitchDemoMessage, type UiMessage } from '../message'
 import type { UiModel } from '../model'
 
@@ -17,10 +15,12 @@ const labelClassName =
 
 const descriptionClassName = 'text-sm text-gray-500'
 
-const knob = (isChecked: boolean) =>
-  span(
+const knob = <ParentMessage>(isChecked: boolean): Html => {
+  const h = html<ParentMessage>()
+
+  return h.span(
     [
-      Class(
+      h.Class(
         clsx(
           'pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transition-transform',
           isChecked ? 'translate-x-6' : 'translate-x-1',
@@ -29,41 +29,44 @@ const knob = (isChecked: boolean) =>
     ],
     [],
   )
+}
 
-export const view = (
+export const view = <ParentMessage>(
   model: UiModel,
   toParentMessage: (message: UiMessage) => ParentMessage,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
-      h2([Class('text-2xl font-bold text-gray-900 mb-6')], ['Switch']),
-      div(
-        [Class('mt-4')],
+      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Switch']),
+      h.div(
+        [h.Class('mt-4')],
         [
           Ui.Switch.view({
             model: model.switchDemo,
             toParentMessage: message =>
               toParentMessage(GotSwitchDemoMessage({ message })),
             toView: attributes =>
-              div(
-                [Class(wrapperClassName)],
+              h.div(
+                [h.Class(wrapperClassName)],
                 [
-                  button(
-                    [...attributes.button, Class(buttonClassName)],
-                    [knob(model.switchDemo.isChecked)],
+                  h.button(
+                    [...attributes.button, h.Class(buttonClassName)],
+                    [knob<ParentMessage>(model.switchDemo.isChecked)],
                   ),
-                  div(
+                  h.div(
                     [],
                     [
-                      label(
-                        [...attributes.label, Class(labelClassName)],
+                      h.label(
+                        [...attributes.label, h.Class(labelClassName)],
                         ['Enable notifications'],
                       ),
-                      p(
+                      h.p(
                         [
                           ...attributes.description,
-                          Class(descriptionClassName),
+                          h.Class(descriptionClassName),
                         ],
                         ['Get notified when something important happens.'],
                       ),
@@ -76,3 +79,4 @@ export const view = (
       ),
     ],
   )
+}

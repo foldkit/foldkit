@@ -1,18 +1,18 @@
 import { html } from 'foldkit/html'
 
-const { input, ul, keyed, Value, OnInput } = html<Message>()
+const h = html<Message>()
 
 const entryListView = (entries: ReadonlyArray<Entry>): Html =>
-  ul(
+  h.ul(
     [],
     entries.map(entry =>
-      keyed('li')(
+      h.keyed('li')(
         entry.id,
         [],
         [
-          input([
-            Value(entry.text),
-            OnInput(text => EditedEntry({ id: entry.id, text })),
+          h.input([
+            h.Value(entry.text),
+            h.OnInput(text => EditedEntry({ id: entry.id, text })),
           ]),
         ],
       ),

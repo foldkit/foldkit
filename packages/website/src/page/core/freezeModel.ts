@@ -1,13 +1,14 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { div } from '../../html'
-import type { TableOfContentsEntry } from '../../main'
+import { Message, type TableOfContentsEntry } from '../../main'
 import {
   inlineCode,
   pageTitle,
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
+
+const h = html<Message>()
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -27,7 +28,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('core/freeze-model', 'Freeze Model'),

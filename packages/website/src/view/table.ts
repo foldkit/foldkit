@@ -1,15 +1,17 @@
 import { clsx } from 'clsx'
 import { Array } from 'effect'
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, div, table, tbody, td, th, thead, tr } from '../html'
+import { type Message } from '../message'
+
+const h = html<Message>()
 
 const columnBorder = 'border-r border-gray-300 dark:border-gray-700'
 
 const headerCell = (text: string, isLastColumn: boolean): Html =>
-  th(
+  h.th(
     [
-      Class(
+      h.Class(
         clsx(
           'px-4 py-3 text-left text-base font-semibold text-gray-900 dark:text-white',
           { [columnBorder]: !isLastColumn },
@@ -24,9 +26,9 @@ const cell = (
   isFirstColumn: boolean,
   isLastColumn: boolean,
 ): Html =>
-  td(
+  h.td(
     [
-      Class(
+      h.Class(
         clsx(
           'px-4 py-3 text-base min-w-[12rem] text-gray-800 dark:text-gray-200',
           { 'font-normal': isFirstColumn },
@@ -41,24 +43,24 @@ export const comparisonTable = (
   headers: ReadonlyArray<string>,
   rows: ReadonlyArray<ReadonlyArray<ReadonlyArray<string | Html>>>,
 ): Html =>
-  div(
+  h.div(
     [
-      Class(
+      h.Class(
         'overflow-x-auto mb-6 border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden',
       ),
     ],
     [
-      table(
-        [Class('w-full min-w-[40rem]')],
+      h.table(
+        [h.Class('w-full min-w-[40rem]')],
         [
-          thead(
+          h.thead(
             [
-              Class(
+              h.Class(
                 'bg-cream dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700',
               ),
             ],
             [
-              tr(
+              h.tr(
                 [],
                 Array.map(headers, (header, index) =>
                   headerCell(header, index === headers.length - 1),
@@ -66,12 +68,12 @@ export const comparisonTable = (
               ),
             ],
           ),
-          tbody(
-            [Class('bg-cream dark:bg-gray-900')],
+          h.tbody(
+            [h.Class('bg-cream dark:bg-gray-900')],
             Array.map(rows, row =>
-              tr(
+              h.tr(
                 [
-                  Class(
+                  h.Class(
                     'border-b border-gray-300 dark:border-gray-700 last:border-b-0',
                   ),
                 ],

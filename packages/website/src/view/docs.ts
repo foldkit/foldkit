@@ -2,39 +2,9 @@ import { clsx } from 'clsx'
 import { Match as M, Option, String as S } from 'effect'
 import { Ui } from 'foldkit'
 import type { Field } from 'foldkit/fieldValidation'
-import { Html, createLazy } from 'foldkit/html'
+import { Html, createLazy, html } from 'foldkit/html'
 
 import { pageNeighbors } from '../docsNav'
-import {
-  Alt,
-  AriaExpanded,
-  AriaHidden,
-  AriaLabel,
-  AriaLive,
-  Class,
-  DataAttribute,
-  Height,
-  Href,
-  Id,
-  OnClick,
-  PagefindBody,
-  PagefindIgnore,
-  Src,
-  Width,
-  a,
-  button,
-  div,
-  empty,
-  footer,
-  header,
-  hr,
-  img,
-  keyed,
-  main,
-  nav,
-  p,
-  span,
-} from '../html'
 import { Icon } from '../icon'
 import { Link } from '../link'
 import {
@@ -62,44 +32,49 @@ import {
 } from './tableOfContents'
 import { themeSelector } from './themeSelector'
 
+const h = html<Message>()
+
+const PagefindBody = h.DataAttribute('pagefind-body', '')
+const PagefindIgnore = h.DataAttribute('pagefind-ignore', '')
+
 // DOCS HEADER
 
 const docsHeaderView = (model: Model) =>
-  header(
+  h.header(
     [
-      Class(
+      h.Class(
         'fixed top-0 inset-x-0 z-50 h-[var(--header-height)] pt-[env(safe-area-inset-top,0px)] bg-cream dark:bg-gray-900 border-b border-gray-300 dark:border-gray-800 px-3 md:px-6 flex items-center justify-between transform-gpu',
       ),
     ],
     [
-      div(
-        [Class('flex items-center gap-2')],
+      h.div(
+        [h.Class('flex items-center gap-2')],
         [
-          a(
-            [Href(homeRouter()), Class('flex items-center gap-2')],
+          h.a(
+            [h.Href(homeRouter()), h.Class('flex items-center gap-2')],
             [
-              img([
-                Src('/logo.svg'),
-                Alt('Foldkit'),
-                Width('801'),
-                Height('200'),
-                Class('h-6 md:h-8 w-auto dark:invert'),
+              h.img([
+                h.Src('/logo.svg'),
+                h.Alt('Foldkit'),
+                h.Width('801'),
+                h.Height('200'),
+                h.Class('h-6 md:h-8 w-auto dark:invert'),
               ]),
               betaTag,
             ],
           ),
         ],
       ),
-      div(
-        [Class('flex items-center gap-3 md:gap-8')],
+      h.div(
+        [h.Class('flex items-center gap-3 md:gap-8')],
         [
-          button(
+          h.button(
             [
-              Class(
+              h.Class(
                 'hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-sm hover:border-gray-400 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-300 transition cursor-pointer',
               ),
-              AriaLabel('Search documentation'),
-              OnClick(
+              h.AriaLabel('Search documentation'),
+              h.OnClick(
                 GotSearchMessage({
                   message: Search.GotSearchDialogMessage({
                     message: Ui.Dialog.Opened(),
@@ -109,21 +84,21 @@ const docsHeaderView = (model: Model) =>
             ],
             [
               Icon.magnifyingGlass('w-4 h-4'),
-              span([Class('mr-4')], ['Search...']),
-              span(
+              h.span([h.Class('mr-4')], ['Search...']),
+              h.span(
                 [
-                  AriaHidden(true),
-                  Class(
+                  h.AriaHidden(true),
+                  h.Class(
                     'text-xs text-gray-400 dark:text-gray-500 border border-gray-300 dark:border-gray-700 rounded px-1.5 py-px font-mono',
                   ),
                 ],
-                ['\u2318K'],
+                ['⌘K'],
               ),
             ],
           ),
           themeSelector(model.themePreference),
-          div(
-            [Class('hidden md:flex items-center gap-3 md:gap-4')],
+          h.div(
+            [h.Class('hidden md:flex items-center gap-3 md:gap-4')],
             [
               iconLink(
                 Link.github,
@@ -138,13 +113,13 @@ const docsHeaderView = (model: Model) =>
               iconLink(Link.npm, 'npm', Icon.npm('w-6 h-6 md:w-8 md:h-8')),
             ],
           ),
-          button(
+          h.button(
             [
-              Class(
+              h.Class(
                 'md:hidden p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 cursor-pointer',
               ),
-              AriaLabel('Search documentation'),
-              OnClick(
+              h.AriaLabel('Search documentation'),
+              h.OnClick(
                 GotSearchMessage({
                   message: Search.GotSearchDialogMessage({
                     message: Ui.Dialog.Opened(),
@@ -154,14 +129,14 @@ const docsHeaderView = (model: Model) =>
             ],
             [Icon.magnifyingGlass('w-5 h-5')],
           ),
-          button(
+          h.button(
             [
-              Class(
+              h.Class(
                 'md:hidden p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 cursor-pointer',
               ),
-              AriaExpanded(model.mobileMenuDialog.isOpen),
-              AriaLabel('Toggle menu'),
-              OnClick(
+              h.AriaExpanded(model.mobileMenuDialog.isOpen),
+              h.AriaLabel('Toggle menu'),
+              h.OnClick(
                 GotMobileMenuDialogMessage({
                   message: Ui.Dialog.Opened(),
                 }),
@@ -181,30 +156,30 @@ const docsFooterView = (
   emailSubscriptionStatus: EmailSubscriptionStatus,
   currentYear: number,
 ): Html =>
-  footer(
+  h.footer(
     [
-      Class(
+      h.Class(
         'px-4 py-6 md:px-6 mt-6 border-t border-gray-300 dark:border-gray-800',
       ),
     ],
     [
-      p(
-        [Class('text-base font-normal text-gray-900 dark:text-white mb-1')],
+      h.p(
+        [h.Class('text-base font-normal text-gray-900 dark:text-white mb-1')],
         ['Stay in the update loop.'],
       ),
-      p(
-        [Class('text-sm text-gray-600 dark:text-gray-300 mb-4')],
+      h.p(
+        [h.Class('text-sm text-gray-600 dark:text-gray-300 mb-4')],
         ['New releases, patterns, and the occasional deep dive.'],
       ),
       M.value(emailSubscriptionStatus).pipe(
         M.withReturnType<Html>(),
         M.when('Succeeded', () =>
-          p(
+          h.p(
             [
-              AriaLive('polite'),
-              Class('text-accent-600 dark:text-accent-400 font-normal'),
+              h.AriaLive('polite'),
+              h.Class('text-accent-600 dark:text-accent-400 font-normal'),
             ],
-            ['You\u2019re in! Check your email for confirmation.'],
+            ['You’re in! Check your email for confirmation.'],
           ),
         ),
         M.orElse(status =>
@@ -215,22 +190,22 @@ const docsFooterView = (
           ),
         ),
       ),
-      hr([
-        Class(
+      h.hr([
+        h.Class(
           'my-6 -mx-4 md:-mx-6 border-t border-gray-300 dark:border-gray-800',
         ),
       ]),
-      div(
-        [Class('text-sm text-gray-500 dark:text-gray-400')],
+      h.div(
+        [h.Class('text-sm text-gray-500 dark:text-gray-400')],
         [
-          p(
+          h.p(
             [],
             [
               'Built with ',
-              a(
+              h.a(
                 [
-                  Href(`${Link.websiteSource}/src/main.ts`),
-                  Class(
+                  h.Href(`${Link.websiteSource}/src/main.ts`),
+                  h.Class(
                     'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500',
                   ),
                 ],
@@ -239,7 +214,7 @@ const docsFooterView = (
               '.',
             ],
           ),
-          p([Class('mt-1')], [`\u00A9 ${currentYear} Devin Jameson`]),
+          h.p([h.Class('mt-1')], [`© ${currentYear} Devin Jameson`]),
         ],
       ),
     ],
@@ -255,10 +230,10 @@ const neighborLink = (
     direction: 'Previous' | 'Next'
   }>,
 ) =>
-  a(
+  h.a(
     [
-      Href(config.page.href),
-      Class(
+      h.Href(config.page.href),
+      h.Class(
         clsx('group flex flex-col gap-1', {
           'items-start text-left': config.direction === 'Previous',
           'items-end text-right ml-auto': config.direction === 'Next',
@@ -266,28 +241,28 @@ const neighborLink = (
       ),
     ],
     [
-      span(
+      h.span(
         [
-          Class(
+          h.Class(
             'text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider',
           ),
         ],
         [config.direction],
       ),
-      span(
+      h.span(
         [
-          Class(
+          h.Class(
             'text-sm font-medium text-accent-600 dark:text-accent-400 group-hover:underline',
           ),
         ],
         config.direction === 'Previous'
           ? [
-              span([Class('mr-1'), AriaHidden(true)], ['\u2190']),
+              h.span([h.Class('mr-1'), h.AriaHidden(true)], ['←']),
               config.page.label,
             ]
           : [
               config.page.label,
-              span([Class('ml-1'), AriaHidden(true)], ['\u2192']),
+              h.span([h.Class('ml-1'), h.AriaHidden(true)], ['→']),
             ],
       ),
     ],
@@ -297,23 +272,23 @@ const pageNavigationView = (tag: string) => {
   const { maybePrevious, maybeNext } = pageNeighbors(tag)
 
   if (Option.isNone(maybePrevious) && Option.isNone(maybeNext)) {
-    return empty
+    return h.empty
   }
 
-  return nav(
+  return h.nav(
     [
-      AriaLabel('Page navigation'),
-      Class(
+      h.AriaLabel('Page navigation'),
+      h.Class(
         'flex items-stretch justify-between gap-4 mt-12 pt-6 border-t border-gray-300 dark:border-gray-800',
       ),
     ],
     [
       Option.match(maybePrevious, {
-        onNone: () => empty,
+        onNone: () => h.empty,
         onSome: page => neighborLink({ page, direction: 'Previous' }),
       }),
       Option.match(maybeNext, {
-        onNone: () => empty,
+        onNone: () => h.empty,
         onSome: page => neighborLink({ page, direction: 'Next' }),
       }),
     ],
@@ -901,21 +876,21 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
   const toParentMessage = (message: Search.Message): Message =>
     GotSearchMessage({ message })
 
-  return keyed('div')(
+  return h.keyed('div')(
     'docs',
-    [Class('flex flex-col min-h-screen')],
+    [h.Class('flex flex-col min-h-screen')],
     [
       skipNavLink,
       docsHeaderView(model),
       Search.view(model.search, toParentMessage),
-      div(
-        [Class('flex flex-1 pt-[var(--header-height)] md:pl-64')],
+      h.div(
+        [h.Class('flex flex-1 pt-[var(--header-height)] md:pl-64')],
         [
           sidebarView(model),
-          main(
+          h.main(
             [
-              Id('main-content'),
-              Class(
+              h.Id('main-content'),
+              h.Class(
                 clsx('flex-1 min-w-0 flex flex-col bg-cream dark:bg-gray-900', {
                   'pt-[var(--mobile-toc-height)]': Option.isSome(
                     currentPageTableOfContents,
@@ -931,9 +906,9 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
                     model.activeSection,
                     model.isMobileTableOfContentsOpen,
                   ),
-                onNone: () => empty,
+                onNone: () => h.empty,
               }),
-              keyed('div')(
+              h.keyed('div')(
                 M.value(docsRoute).pipe(
                   M.tag(
                     'ApiModule',
@@ -943,20 +918,20 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
                 ),
                 [
                   PagefindBody,
-                  DataAttribute(
+                  h.DataAttribute(
                     'pagefind-weight',
                     searchWeight(docsRoute._tag),
                   ),
-                  Class(
+                  h.Class(
                     'flex-1 w-full px-4 py-6 md:px-6 2xl:py-10 max-w-4xl mx-auto min-w-0',
                   ),
                 ],
                 [
                   content,
-                  div([PagefindIgnore], [pageNavigationView(docsRoute._tag)]),
+                  h.div([PagefindIgnore], [pageNavigationView(docsRoute._tag)]),
                 ],
               ),
-              div(
+              h.div(
                 [PagefindIgnore],
                 [
                   docsFooterView(
@@ -971,7 +946,7 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           Option.match(currentPageTableOfContents, {
             onSome: tableOfContents =>
               tableOfContentsView(tableOfContents, model.activeSection),
-            onNone: () => empty,
+            onNone: () => h.empty,
           }),
         ],
       ),

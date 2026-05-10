@@ -1,8 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
 import { uiShowcaseViewSourceHref } from '../../link'
-import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
   demoContainer,
@@ -155,12 +153,14 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
 
 // VIEW
 
-export const view = (
+export const view = <ParentMessage>(
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
   copiedSnippets: CopiedSnippets,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
       pageTitle('ui/button', 'Button'),
@@ -191,8 +191,8 @@ export const view = (
       ),
       demoContainer(...Button.basicDemo(model, toParentMessage)),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippet.uiButtonBasicHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippet.uiButtonBasicHighlighted)],
           [],
         ),
         Snippet.uiButtonBasicRaw,
@@ -217,8 +217,11 @@ export const view = (
       ),
       demoContainer(...Button.disabledDemo(model, toParentMessage)),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippet.uiButtonDisabledHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.uiButtonDisabledHighlighted),
+          ],
           [],
         ),
         Snippet.uiButtonDisabledRaw,
@@ -292,3 +295,4 @@ export const view = (
       propTable(buttonAttributesProps),
     ],
   )
+}

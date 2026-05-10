@@ -512,26 +512,7 @@ export type ViewConfig<ParentMessage> = Readonly<{
 export const view = <ParentMessage>(
   config: ViewConfig<ParentMessage>,
 ): Html => {
-  const {
-    AriaDisabled,
-    AriaLabel,
-    AriaLabelledBy,
-    AriaOrientation,
-    AriaValuemax,
-    AriaValuemin,
-    AriaValuenow,
-    AriaValuetext,
-    DataAttribute,
-    Id,
-    Name,
-    OnKeyDownPreventDefault,
-    OnPointerDown,
-    Role,
-    Style,
-    Tabindex,
-    Type,
-    Value,
-  } = html<ParentMessage>()
+  const h = html<ParentMessage>()
 
   const {
     model,
@@ -583,29 +564,29 @@ export const view = <ParentMessage>(
     )
 
   const stateAttributes = [
-    ...(isDragging ? [DataAttribute('dragging', '')] : []),
-    ...(isDisabled ? [DataAttribute('disabled', '')] : []),
+    ...(isDragging ? [h.DataAttribute('dragging', '')] : []),
+    ...(isDisabled ? [h.DataAttribute('disabled', '')] : []),
   ]
 
   const rootAttributes = [
-    DataAttribute('slider-id', id),
-    DataAttribute('orientation', 'horizontal'),
+    h.DataAttribute('slider-id', id),
+    h.DataAttribute('orientation', 'horizontal'),
     ...stateAttributes,
   ]
 
   const trackInteractionAttributes = isDisabled
     ? []
-    : [OnPointerDown(trackPointerHandler)]
+    : [h.OnPointerDown(trackPointerHandler)]
 
   const trackAttributes = [
-    DataAttribute('slider-track-id', id),
-    Style({ position: 'relative', 'touch-action': 'none' }),
+    h.DataAttribute('slider-track-id', id),
+    h.Style({ position: 'relative', 'touch-action': 'none' }),
     ...stateAttributes,
     ...trackInteractionAttributes,
   ]
 
   const filledTrackAttributes = [
-    Style({
+    h.Style({
       position: 'absolute',
       left: '0',
       top: '0',
@@ -618,37 +599,37 @@ export const view = <ParentMessage>(
 
   const resolveThumbLabel = (): ReadonlyArray<Attribute<ParentMessage>> => {
     if (config.ariaLabel !== undefined) {
-      return [AriaLabel(config.ariaLabel)]
+      return [h.AriaLabel(config.ariaLabel)]
     } else if (config.ariaLabelledBy !== undefined) {
-      return [AriaLabelledBy(config.ariaLabelledBy)]
+      return [h.AriaLabelledBy(config.ariaLabelledBy)]
     } else {
-      return [AriaLabelledBy(labelId(id))]
+      return [h.AriaLabelledBy(labelId(id))]
     }
   }
 
   const thumbLabelAttributes = resolveThumbLabel()
   const maybeAriaValuetext =
-    formatValue !== undefined ? [AriaValuetext(formatValue(value))] : []
+    formatValue !== undefined ? [h.AriaValuetext(formatValue(value))] : []
 
   const thumbInteractionAttributes = isDisabled
     ? []
     : [
-        OnPointerDown(thumbPointerHandler),
-        OnKeyDownPreventDefault(handleKeyDown),
+        h.OnPointerDown(thumbPointerHandler),
+        h.OnKeyDownPreventDefault(handleKeyDown),
       ]
 
   const thumbAttributes = [
-    Id(`${id}-thumb`),
-    Role('slider'),
-    Tabindex(0),
-    AriaOrientation('horizontal'),
-    AriaValuemin(min),
-    AriaValuemax(max),
-    AriaValuenow(value),
+    h.Id(`${id}-thumb`),
+    h.Role('slider'),
+    h.Tabindex(0),
+    h.AriaOrientation('horizontal'),
+    h.AriaValuemin(min),
+    h.AriaValuemax(max),
+    h.AriaValuenow(value),
     ...maybeAriaValuetext,
     ...thumbLabelAttributes,
-    ...(isDisabled ? [AriaDisabled(true)] : []),
-    Style({
+    ...(isDisabled ? [h.AriaDisabled(true)] : []),
+    h.Style({
       position: 'absolute',
       left: percentString(fraction),
       transform: 'translateX(-50%)',
@@ -658,11 +639,11 @@ export const view = <ParentMessage>(
     ...thumbInteractionAttributes,
   ]
 
-  const labelAttributes = [Id(labelId(id))]
+  const labelAttributes = [h.Id(labelId(id))]
 
   const hiddenInputAttributes =
     name !== undefined
-      ? [Type('hidden'), Name(name), Value(value.toString())]
+      ? [h.Type('hidden'), h.Name(name), h.Value(value.toString())]
       : []
 
   return config.toView({

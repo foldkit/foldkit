@@ -1,7 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
-import type { TableOfContentsEntry } from '../../main'
+import { Message, type TableOfContentsEntry } from '../../main'
 import {
   inlineCode,
   link,
@@ -12,6 +11,8 @@ import {
 import { routingAndNavigationRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
+
+const h = html<Message>()
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -45,7 +46,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('core/running-your-app', 'Running the App'),
@@ -71,8 +72,8 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         " config, the program doesn't manage the URL bar. This is the default for most programs.",
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.runMakeElementHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.runMakeElementHighlighted)],
           [],
         ),
         Snippets.runMakeElementRaw,
@@ -87,8 +88,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' config, the program manages the URL bar. The init function receives the current URL so it can set the initial route.',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.runMakeApplicationHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.runMakeApplicationHighlighted),
+          ],
           [],
         ),
         Snippets.runMakeApplicationRaw,

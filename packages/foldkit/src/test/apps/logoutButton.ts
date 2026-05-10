@@ -46,7 +46,10 @@ export const update = (
 
 // VIEW
 
-const { div, button, OnClick, Role } = html<Message>()
+const h = html<Message>()
 
 export const view = (model: Model): Html =>
-  div([], [button([OnClick(ClickedLogout()), Role('button')], [model.label])])
+  h.div(
+    [],
+    [h.button([h.OnClick(ClickedLogout()), h.Role('button')], [model.label])],
+  )

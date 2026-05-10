@@ -289,7 +289,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
 
 // VIEW
 
-const { div, h1, p, Class } = html<Message>()
+const h = html<Message>()
 
 const cellView = (x: number, y: number, model: Model): Html => {
   const isSnakeHead = Position.equivalence({ x, y }, model.snake[0])
@@ -307,15 +307,15 @@ const cellView = (x: number, y: number, model: Model): Html => {
     M.orElse(() => 'bg-gray-800'),
   )
 
-  return div([Class(`w-6 h-6 ${cellClass}`)], [])
+  return h.div([h.Class(`w-6 h-6 ${cellClass}`)], [])
 }
 
 const gridView = (model: Model): Html =>
-  div(
-    [Class('inline-block border-2 border-gray-600')],
+  h.div(
+    [h.Class('inline-block border-2 border-gray-600')],
     Array.makeBy(GAME.GRID_SIZE, y =>
-      div(
-        [Class('flex')],
+      h.div(
+        [h.Class('flex')],
         Array.makeBy(GAME.GRID_SIZE, x => cellView(x, y, model)),
       ),
     ),
@@ -331,33 +331,33 @@ const gameStateView = (gameState: GameState): string =>
   )
 
 const instructionsView = (): Html =>
-  div(
-    [Class('mt-4 text-sm text-gray-400')],
+  h.div(
+    [h.Class('mt-4 text-sm text-gray-400')],
     [
-      p([], ['Use ARROW KEYS or WASD to move']),
-      p([], ['SPACE to pause/start']),
-      p([], ['R to restart']),
+      h.p([], ['Use ARROW KEYS or WASD to move']),
+      h.p([], ['SPACE to pause/start']),
+      h.p([], ['R to restart']),
     ],
   )
 
 const view = (model: Model): Document => ({
   title: `Snake — ${model.points} pts`,
-  body: div(
+  body: h.div(
     [
-      Class(
+      h.Class(
         'flex flex-col items-center justify-center min-h-screen bg-black text-white p-8',
       ),
     ],
     [
-      h1([Class('text-4xl font-bold mb-4')], ['Snake Game']),
-      div(
-        [Class('flex gap-8 mb-4')],
+      h.h1([h.Class('text-4xl font-bold mb-4')], ['Snake Game']),
+      h.div(
+        [h.Class('flex gap-8 mb-4')],
         [
-          p([Class('text-xl')], [`Score: ${model.points}`]),
-          p([Class('text-xl')], [`High Score: ${model.highScore}`]),
+          h.p([h.Class('text-xl')], [`Score: ${model.points}`]),
+          h.p([h.Class('text-xl')], [`High Score: ${model.highScore}`]),
         ],
       ),
-      p([Class('text-lg mb-4')], [gameStateView(model.gameState)]),
+      h.p([h.Class('text-lg mb-4')], [gameStateView(model.gameState)]),
       gridView(model),
       instructionsView(),
     ],

@@ -1,16 +1,16 @@
 import { Array, Option } from 'effect'
 import { createKeyedLazy, html } from 'foldkit/html'
 
-const { div, li, span, ul } = html<Message>()
+const h = html<Message>()
 
 // Define the per-item view at module level
 const contactView = (name: string, email: string, isSelected: boolean) =>
-  li(
+  h.li(
     [],
     [
-      span([], [name]),
-      span([], [email]),
-      ...(isSelected ? [span([], ['✓'])] : []),
+      h.span([], [name]),
+      h.span([], [email]),
+      ...(isSelected ? [h.span([], ['✓'])] : []),
     ],
   )
 
@@ -25,7 +25,7 @@ const contactListView = (
   contacts: ReadonlyArray<Contact>,
   maybeSelectedId: Option.Option<string>,
 ) =>
-  ul(
+  h.ul(
     [],
     Array.map(contacts, contact => {
       const isSelected = Option.exists(

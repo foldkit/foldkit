@@ -1,24 +1,6 @@
 import { Ui } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import {
-  Class,
-  D,
-  Fill,
-  Stroke,
-  StrokeLinecap,
-  StrokeLinejoin,
-  StrokeWidth,
-  ViewBox,
-  div,
-  h2,
-  h3,
-  p,
-  path,
-  span,
-  svg,
-} from '../html'
-import type { Message as ParentMessage } from '../main'
 import {
   GotHorizontalRadioGroupDemoMessage,
   GotVerticalRadioGroupDemoMessage,
@@ -58,35 +40,45 @@ const descriptionClassName = 'text-sm text-gray-600'
 
 const priceClassName = 'text-sm font-semibold text-accent-600'
 
-const checkIcon = svg(
-  [ViewBox('0 0 24 24'), Fill('none'), Class('size-5 text-accent-600')],
-  [
-    path(
-      [
-        D('M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z'),
-        Stroke('currentColor'),
-        StrokeWidth('1.5'),
-        StrokeLinecap('round'),
-        StrokeLinejoin('round'),
-      ],
-      [],
-    ),
-  ],
-)
+const checkIcon = <ParentMessage>(): Html => {
+  const h = html<ParentMessage>()
 
-const checkPlaceholder = div([Class('size-5')], [])
+  return h.svg(
+    [h.ViewBox('0 0 24 24'), h.Fill('none'), h.Class('size-5 text-accent-600')],
+    [
+      h.path(
+        [
+          h.D('M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z'),
+          h.Stroke('currentColor'),
+          h.StrokeWidth('1.5'),
+          h.StrokeLinecap('round'),
+          h.StrokeLinejoin('round'),
+        ],
+        [],
+      ),
+    ],
+  )
+}
 
-export const view = (
+const checkPlaceholder = <ParentMessage>(): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div([h.Class('size-5')], [])
+}
+
+export const view = <ParentMessage>(
   model: UiModel,
   toParentMessage: (message: UiMessage) => ParentMessage,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
-      h2([Class('text-2xl font-bold text-gray-900 mb-6')], ['Radio Group']),
+      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Radio Group']),
 
-      h3(
-        [Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Vertical'],
       ),
       Ui.RadioGroup.view<ParentMessage, Plan>({
@@ -98,33 +90,35 @@ export const view = (
         optionToConfig: (plan, { isSelected }) => ({
           value: plan,
           content: attributes =>
-            div(
-              [...attributes.option, Class(verticalOptionClassName)],
+            h.div(
+              [...attributes.option, h.Class(verticalOptionClassName)],
               [
-                div(
-                  [Class('flex w-full items-center justify-between')],
+                h.div(
+                  [h.Class('flex w-full items-center justify-between')],
                   [
-                    div(
+                    h.div(
                       [],
                       [
-                        span(
-                          [...attributes.label, Class(labelClassName)],
+                        h.span(
+                          [...attributes.label, h.Class(labelClassName)],
                           [plan],
                         ),
-                        p(
+                        h.p(
                           [
                             ...attributes.description,
-                            Class(descriptionClassName),
+                            h.Class(descriptionClassName),
                           ],
                           [planDescriptions[plan]],
                         ),
                       ],
                     ),
-                    div(
-                      [Class('flex items-center gap-3')],
+                    h.div(
+                      [h.Class('flex items-center gap-3')],
                       [
-                        span([Class(priceClassName)], [planPrices[plan]]),
-                        isSelected ? checkIcon : checkPlaceholder,
+                        h.span([h.Class(priceClassName)], [planPrices[plan]]),
+                        isSelected
+                          ? checkIcon<ParentMessage>()
+                          : checkPlaceholder<ParentMessage>(),
                       ],
                     ),
                   ],
@@ -132,11 +126,11 @@ export const view = (
               ],
             ),
         }),
-        attributes: [Class(verticalGroupClassName)],
+        attributes: [h.Class(verticalGroupClassName)],
       }),
 
-      h3(
-        [Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Horizontal'],
       ),
       Ui.RadioGroup.view<ParentMessage, Plan>({
@@ -148,37 +142,40 @@ export const view = (
         optionToConfig: (plan, { isSelected }) => ({
           value: plan,
           content: attributes =>
-            div(
-              [...attributes.option, Class(horizontalOptionClassName)],
+            h.div(
+              [...attributes.option, h.Class(horizontalOptionClassName)],
               [
-                div(
-                  [Class('flex w-full items-center justify-between')],
+                h.div(
+                  [h.Class('flex w-full items-center justify-between')],
                   [
-                    div(
+                    h.div(
                       [],
                       [
-                        span(
-                          [...attributes.label, Class(labelClassName)],
+                        h.span(
+                          [...attributes.label, h.Class(labelClassName)],
                           [plan],
                         ),
-                        p(
+                        h.p(
                           [
                             ...attributes.description,
-                            Class(descriptionClassName),
+                            h.Class(descriptionClassName),
                           ],
                           [planDescriptions[plan]],
                         ),
                       ],
                     ),
-                    isSelected ? checkIcon : checkPlaceholder,
+                    isSelected
+                      ? checkIcon<ParentMessage>()
+                      : checkPlaceholder<ParentMessage>(),
                   ],
                 ),
-                span([Class(priceClassName + ' mt-2')], [planPrices[plan]]),
+                h.span([h.Class(priceClassName + ' mt-2')], [planPrices[plan]]),
               ],
             ),
         }),
         orientation: 'Horizontal',
-        attributes: [Class(horizontalGroupClassName)],
+        attributes: [h.Class(horizontalGroupClassName)],
       }),
     ],
   )
+}

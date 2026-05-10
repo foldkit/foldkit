@@ -1,29 +1,18 @@
 import { Array, Number, Option } from 'effect'
 import { Route } from 'foldkit'
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
 import { Cart } from '../domain'
-import {
-  Class,
-  Href,
-  OnClick,
-  a,
-  article,
-  button,
-  div,
-  h1,
-  h3,
-  p,
-  section,
-  span,
-} from '../html'
 import {
   type CheckoutRoute,
   ClickedCartQuantityChange,
   ClickedClearCart,
   ClickedRemoveCartItem,
+  Message,
   type ProductsRoute,
 } from '../main'
+
+const h = html<Message>()
 
 // VIEW
 
@@ -32,28 +21,31 @@ export const view = (
   productsRouter: Route.Router<ProductsRoute>,
   checkoutRouter: Route.Router<CheckoutRoute>,
 ): Html =>
-  div(
-    [Class('max-w-4xl mx-auto px-4')],
+  h.div(
+    [h.Class('max-w-4xl mx-auto px-4')],
     [
-      h1([Class('text-4xl font-bold text-gray-800 mb-8')], ['Shopping Cart']),
-      div(
-        [Class('bg-white rounded-lg shadow p-6')],
+      h.h1(
+        [h.Class('text-4xl font-bold text-gray-800 mb-8')],
+        ['Shopping Cart'],
+      ),
+      h.div(
+        [h.Class('bg-white rounded-lg shadow p-6')],
         [
-          div(
+          h.div(
             [],
             Array.match(cart, {
               onEmpty: () => [
-                p(
-                  [Class('text-gray-500 text-center py-8')],
+                h.p(
+                  [h.Class('text-gray-500 text-center py-8')],
                   ['Your cart is empty'],
                 ),
-                div(
-                  [Class('text-center mt-4')],
+                h.div(
+                  [h.Class('text-center mt-4')],
                   [
-                    a(
+                    h.a(
                       [
-                        Href(productsRouter({ searchText: Option.none() })),
-                        Class(
+                        h.Href(productsRouter({ searchText: Option.none() })),
+                        h.Class(
                           'bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium inline-block',
                         ),
                       ],
@@ -63,38 +55,38 @@ export const view = (
                 ),
               ],
               onNonEmpty: cart => [
-                section(
-                  [Class('space-y-4 mb-6')],
+                h.section(
+                  [h.Class('space-y-4 mb-6')],
                   cart.map(cartItem =>
-                    article(
+                    h.article(
                       [
-                        Class(
+                        h.Class(
                           'flex items-center justify-between p-4 border rounded-lg',
                         ),
                       ],
                       [
-                        div(
+                        h.div(
                           [],
                           [
-                            h3(
-                              [Class('font-semibold text-gray-800')],
+                            h.h3(
+                              [h.Class('font-semibold text-gray-800')],
                               [cartItem.item.name],
                             ),
-                            p(
-                              [Class('text-gray-600')],
+                            h.p(
+                              [h.Class('text-gray-600')],
                               [`$${cartItem.item.price.toFixed(2)} each`],
                             ),
                           ],
                         ),
-                        div(
-                          [Class('flex items-center gap-2')],
+                        h.div(
+                          [h.Class('flex items-center gap-2')],
                           [
-                            button(
+                            h.button(
                               [
-                                Class(
+                                h.Class(
                                   'bg-gray-200 hover:bg-gray-300 text-gray-800 w-8 h-8 rounded flex items-center justify-center',
                                 ),
-                                OnClick(
+                                h.OnClick(
                                   ClickedCartQuantityChange({
                                     itemId: cartItem.item.id,
                                     quantity: Number.decrement(
@@ -105,16 +97,16 @@ export const view = (
                               ],
                               ['-'],
                             ),
-                            span(
-                              [Class('px-3 py-1 font-medium')],
+                            h.span(
+                              [h.Class('px-3 py-1 font-medium')],
                               [String(cartItem.quantity)],
                             ),
-                            button(
+                            h.button(
                               [
-                                Class(
+                                h.Class(
                                   'bg-gray-200 hover:bg-gray-300 text-gray-800 w-8 h-8 rounded flex items-center justify-center',
                                 ),
-                                OnClick(
+                                h.OnClick(
                                   ClickedCartQuantityChange({
                                     itemId: cartItem.item.id,
                                     quantity: cartItem.quantity + 1,
@@ -123,12 +115,12 @@ export const view = (
                               ],
                               ['+'],
                             ),
-                            button(
+                            h.button(
                               [
-                                Class(
+                                h.Class(
                                   'bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded ml-2',
                                 ),
-                                OnClick(
+                                h.OnClick(
                                   ClickedRemoveCartItem({
                                     itemId: cartItem.item.id,
                                   }),
@@ -142,18 +134,18 @@ export const view = (
                     ),
                   ),
                 ),
-                div(
-                  [Class('border-t pt-4 mb-6')],
+                h.div(
+                  [h.Class('border-t pt-4 mb-6')],
                   [
-                    div(
-                      [Class('flex justify-between items-center')],
+                    h.div(
+                      [h.Class('flex justify-between items-center')],
                       [
-                        h3(
-                          [Class('text-xl font-bold text-gray-800')],
+                        h.h3(
+                          [h.Class('text-xl font-bold text-gray-800')],
                           ['Total'],
                         ),
-                        p(
-                          [Class('text-xl font-bold text-gray-800')],
+                        h.p(
+                          [h.Class('text-xl font-bold text-gray-800')],
                           [
                             `$${cart.reduce((total, item) => total + item.item.price * item.quantity, 0).toFixed(2)}`,
                           ],
@@ -162,31 +154,31 @@ export const view = (
                     ),
                   ],
                 ),
-                div(
-                  [Class('flex gap-4 justify-center')],
+                h.div(
+                  [h.Class('flex gap-4 justify-center')],
                   [
-                    a(
+                    h.a(
                       [
-                        Href(productsRouter({ searchText: Option.none() })),
-                        Class(
+                        h.Href(productsRouter({ searchText: Option.none() })),
+                        h.Class(
                           'bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium',
                         ),
                       ],
                       ['Continue Shopping'],
                     ),
-                    button(
+                    h.button(
                       [
-                        Class(
+                        h.Class(
                           'bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-medium',
                         ),
-                        OnClick(ClickedClearCart()),
+                        h.OnClick(ClickedClearCart()),
                       ],
                       ['Clear Cart'],
                     ),
-                    a(
+                    h.a(
                       [
-                        Href(checkoutRouter()),
-                        Class(
+                        h.Href(checkoutRouter()),
+                        h.Class(
                           'bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium',
                         ),
                       ],

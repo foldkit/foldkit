@@ -7,13 +7,13 @@ const InputtedEmail = m('InputtedEmail', { value: S.String })
 const Message = S.Union([InputtedEmail])
 type Message = typeof Message.Type
 
-// In a real app, this destructure lives once in html.ts and is imported everywhere.
-const { input, Type, Value, Placeholder, OnInput } = html<Message>()
+// In a real app, this lives once at module level and is imported everywhere.
+const h = html<Message>()
 
 const emailInput = (email: string) =>
-  input([
-    Type('email'),
-    Value(email),
-    Placeholder('you@example.com'),
-    OnInput(value => InputtedEmail({ value })),
+  h.input([
+    h.Type('email'),
+    h.Value(email),
+    h.Placeholder('you@example.com'),
+    h.OnInput(value => InputtedEmail({ value })),
   ])

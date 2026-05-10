@@ -1,7 +1,6 @@
 import { Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 
-import { Class, button, div, label, p, span } from '../../html'
-import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import { GotSwitchDemoMessage, type Message } from './message'
 
@@ -25,48 +24,52 @@ const labelClassName =
 
 const descriptionClassName = 'text-sm text-gray-500 dark:text-gray-400'
 
-const knob = (isChecked: boolean) =>
-  span(
-    [
-      Class(
-        `pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${isChecked ? 'translate-x-6' : 'translate-x-1'}`,
-      ),
-    ],
-    [],
-  )
-
 // VIEW
 
-export const switchDemo = (
+export const switchDemo = <ParentMessage>(
   switchModel: Ui.Switch.Model,
   toParentMessage: (message: Message) => ParentMessage,
-) => [
-  Ui.Switch.view({
-    model: switchModel,
-    toParentMessage: message =>
-      toParentMessage(GotSwitchDemoMessage({ message })),
-    toView: attributes =>
-      div(
-        [Class(wrapperClassName)],
-        [
-          button(
-            [...attributes.button, Class(buttonClassName)],
-            [knob(switchModel.isChecked)],
-          ),
-          div(
-            [],
-            [
-              label(
-                [...attributes.label, Class(labelClassName)],
-                ['Enable notifications'],
-              ),
-              p(
-                [...attributes.description, Class(descriptionClassName)],
-                ['Get notified when something important happens.'],
-              ),
-            ],
-          ),
-        ],
-      ),
-  }),
-]
+) => {
+  const h = html<ParentMessage>()
+
+  const knob = (isChecked: boolean) =>
+    h.span(
+      [
+        h.Class(
+          `pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${isChecked ? 'translate-x-6' : 'translate-x-1'}`,
+        ),
+      ],
+      [],
+    )
+
+  return [
+    Ui.Switch.view({
+      model: switchModel,
+      toParentMessage: message =>
+        toParentMessage(GotSwitchDemoMessage({ message })),
+      toView: attributes =>
+        h.div(
+          [h.Class(wrapperClassName)],
+          [
+            h.button(
+              [...attributes.button, h.Class(buttonClassName)],
+              [knob(switchModel.isChecked)],
+            ),
+            h.div(
+              [],
+              [
+                h.label(
+                  [...attributes.label, h.Class(labelClassName)],
+                  ['Enable notifications'],
+                ),
+                h.p(
+                  [...attributes.description, h.Class(descriptionClassName)],
+                  ['Get notified when something important happens.'],
+                ),
+              ],
+            ),
+          ],
+        ),
+    }),
+  ]
+}

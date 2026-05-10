@@ -40,7 +40,7 @@ export const LeftDragZone = m('LeftDragZone')
 export const DroppedFiles = m('DroppedFiles', {
   files: S.NonEmptyArray(File.File),
 })
-/** Sent when a drop or input-change event fires without any files \u2014
+/** Sent when a drop or input-change event fires without any files —
  * typically a drag of non-file data (text, URLs, images from another
  * page). Resets `isDragOver` and emits `DroppedWithoutFiles` as an
  * OutMessage so the consumer can surface a message (e.g. "Only files are
@@ -67,7 +67,7 @@ export const ReceivedFiles = m('ReceivedFiles', {
 
 /** The file-drop component's OutMessages: `ReceivedFiles` on the happy
  * path and `DroppedWithoutFiles` when a drop event fires without files.
- * `DroppedWithoutFiles` is reused from the Message definitions \u2014 the
+ * `DroppedWithoutFiles` is reused from the Message definitions — the
  * fact is the same whether the component is handling it or reporting it
  * up. */
 export const OutMessage = S.Union([ReceivedFiles, DroppedWithoutFiles])
@@ -169,20 +169,7 @@ export type ViewConfig<ParentMessage> = Readonly<{
 export const view = <ParentMessage>(
   config: ViewConfig<ParentMessage>,
 ): Html => {
-  const {
-    Accept,
-    AllowDrop,
-    Class,
-    DataAttribute,
-    Disabled,
-    Id,
-    Multiple,
-    OnDragEnter,
-    OnDragLeave,
-    OnDropFiles,
-    OnFileChange,
-    Type,
-  } = html<ParentMessage>()
+  const h = html<ParentMessage>()
 
   const {
     model: { id, isDragOver },
@@ -193,18 +180,18 @@ export const view = <ParentMessage>(
   } = config
 
   const stateAttributes = [
-    ...(isDragOver ? [DataAttribute('drag-over', '')] : []),
-    ...(isDisabled ? [DataAttribute('disabled', '')] : []),
+    ...(isDragOver ? [h.DataAttribute('drag-over', '')] : []),
+    ...(isDisabled ? [h.DataAttribute('disabled', '')] : []),
   ]
 
   const rootAttributes = isDisabled
     ? stateAttributes
     : [
         ...stateAttributes,
-        OnDragEnter(toParentMessage(EnteredDragZone())),
-        OnDragLeave(toParentMessage(LeftDragZone())),
-        AllowDrop(),
-        OnDropFiles(files =>
+        h.OnDragEnter(toParentMessage(EnteredDragZone())),
+        h.OnDragLeave(toParentMessage(LeftDragZone())),
+        h.AllowDrop(),
+        h.OnDropFiles(files =>
           toParentMessage(
             Array.match(files, {
               onEmpty: () => DroppedWithoutFiles(),
@@ -216,17 +203,17 @@ export const view = <ParentMessage>(
       ]
 
   const inputAttributes = [
-    Id(id),
-    Type('file'),
-    Class('sr-only'),
-    ...(multiple ? [Multiple(true)] : []),
+    h.Id(id),
+    h.Type('file'),
+    h.Class('sr-only'),
+    ...(multiple ? [h.Multiple(true)] : []),
     ...(accept !== undefined && accept.length > 0
-      ? [Accept(accept.join(','))]
+      ? [h.Accept(accept.join(','))]
       : []),
     ...(isDisabled
-      ? [Disabled(true)]
+      ? [h.Disabled(true)]
       : [
-          OnFileChange(files =>
+          h.OnFileChange(files =>
             toParentMessage(
               Array.match(files, {
                 onEmpty: () => DroppedWithoutFiles(),

@@ -1,18 +1,9 @@
 import { Array } from 'effect'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import {
-  Class,
-  code,
-  div,
-  span,
-  table,
-  tbody,
-  td,
-  th,
-  thead,
-  tr,
-} from '../html'
+import { type Message } from '../message'
+
+const h = html<Message>()
 
 // SHARED STYLES
 
@@ -33,10 +24,11 @@ const codeClassName =
 const wrappingCodeClassName =
   'bg-gray-200/70 dark:bg-gray-800 px-1 py-px rounded text-sm border border-gray-300/50 dark:border-gray-700/50 whitespace-pre-wrap break-normal'
 
-const inlineCode = (text: string): Html => code([Class(codeClassName)], [text])
+const inlineCode = (text: string): Html =>
+  h.code([h.Class(codeClassName)], [text])
 
 const wrappingInlineCode = (text: string): Html =>
-  code([Class(wrappingCodeClassName)], [text])
+  h.code([h.Class(wrappingCodeClassName)], [text])
 
 // PROP TABLE
 
@@ -48,45 +40,48 @@ export type PropEntry = Readonly<{
 }>
 
 const propRow = (entry: PropEntry): Html =>
-  tr(
-    [Class(rowClassName)],
+  h.tr(
+    [h.Class(rowClassName)],
     [
-      td([Class(cellClassName)], [inlineCode(entry.name)]),
-      td([Class(typeCellClassName)], [wrappingInlineCode(entry.type)]),
-      td(
-        [Class(cellClassName)],
+      h.td([h.Class(cellClassName)], [inlineCode(entry.name)]),
+      h.td([h.Class(typeCellClassName)], [wrappingInlineCode(entry.type)]),
+      h.td(
+        [h.Class(cellClassName)],
         [
           entry.default !== undefined
             ? inlineCode(entry.default)
-            : span([Class('text-gray-400 dark:text-gray-500 text-sm')], ['-']),
+            : h.span(
+                [h.Class('text-gray-400 dark:text-gray-500 text-sm')],
+                ['-'],
+              ),
         ],
       ),
-      td([Class(descriptionCellClassName)], [entry.description]),
+      h.td([h.Class(descriptionCellClassName)], [entry.description]),
     ],
   )
 
 export const propTable = (entries: ReadonlyArray<PropEntry>): Html =>
-  div(
-    [Class('mb-8 overflow-x-auto')],
+  h.div(
+    [h.Class('mb-8 overflow-x-auto')],
     [
-      table(
-        [Class('w-full text-sm')],
+      h.table(
+        [h.Class('w-full text-sm')],
         [
-          thead(
+          h.thead(
             [],
             [
-              tr(
+              h.tr(
                 [],
                 [
-                  th([Class(headerCellClassName)], ['Name']),
-                  th([Class(headerCellClassName)], ['Type']),
-                  th([Class(headerCellClassName)], ['Default']),
-                  th([Class(headerCellClassName)], ['Description']),
+                  h.th([h.Class(headerCellClassName)], ['Name']),
+                  h.th([h.Class(headerCellClassName)], ['Type']),
+                  h.th([h.Class(headerCellClassName)], ['Default']),
+                  h.th([h.Class(headerCellClassName)], ['Description']),
                 ],
               ),
             ],
           ),
-          tbody([], Array.map(entries, propRow)),
+          h.tbody([], Array.map(entries, propRow)),
         ],
       ),
     ],
@@ -103,37 +98,37 @@ const keyboardKeyClassName =
   'inline-flex items-center justify-center min-w-[1.5rem] px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-sm font-mono text-gray-700 dark:text-gray-300'
 
 const keyboardRow = (entry: KeyboardEntry): Html =>
-  tr(
-    [Class(rowClassName)],
+  h.tr(
+    [h.Class(rowClassName)],
     [
-      td(
-        [Class(cellClassName)],
-        [span([Class(keyboardKeyClassName)], [entry.key])],
+      h.td(
+        [h.Class(cellClassName)],
+        [h.span([h.Class(keyboardKeyClassName)], [entry.key])],
       ),
-      td([Class(descriptionCellClassName)], [entry.description]),
+      h.td([h.Class(descriptionCellClassName)], [entry.description]),
     ],
   )
 
 export const keyboardTable = (entries: ReadonlyArray<KeyboardEntry>): Html =>
-  div(
-    [Class('mb-8 overflow-x-auto')],
+  h.div(
+    [h.Class('mb-8 overflow-x-auto')],
     [
-      table(
-        [Class('w-full text-sm')],
+      h.table(
+        [h.Class('w-full text-sm')],
         [
-          thead(
+          h.thead(
             [],
             [
-              tr(
+              h.tr(
                 [],
                 [
-                  th([Class(headerCellClassName)], ['Key']),
-                  th([Class(headerCellClassName)], ['Description']),
+                  h.th([h.Class(headerCellClassName)], ['Key']),
+                  h.th([h.Class(headerCellClassName)], ['Description']),
                 ],
               ),
             ],
           ),
-          tbody([], Array.map(entries, keyboardRow)),
+          h.tbody([], Array.map(entries, keyboardRow)),
         ],
       ),
     ],
@@ -147,36 +142,36 @@ export type DataAttributeEntry = Readonly<{
 }>
 
 const dataAttributeRow = (entry: DataAttributeEntry): Html =>
-  tr(
-    [Class(rowClassName)],
+  h.tr(
+    [h.Class(rowClassName)],
     [
-      td([Class(cellClassName)], [inlineCode(entry.attribute)]),
-      td([Class(descriptionCellClassName)], [entry.condition]),
+      h.td([h.Class(cellClassName)], [inlineCode(entry.attribute)]),
+      h.td([h.Class(descriptionCellClassName)], [entry.condition]),
     ],
   )
 
 export const dataAttributeTable = (
   entries: ReadonlyArray<DataAttributeEntry>,
 ): Html =>
-  div(
-    [Class('mb-8 overflow-x-auto')],
+  h.div(
+    [h.Class('mb-8 overflow-x-auto')],
     [
-      table(
-        [Class('w-full text-sm')],
+      h.table(
+        [h.Class('w-full text-sm')],
         [
-          thead(
+          h.thead(
             [],
             [
-              tr(
+              h.tr(
                 [],
                 [
-                  th([Class(headerCellClassName)], ['Attribute']),
-                  th([Class(headerCellClassName)], ['Condition']),
+                  h.th([h.Class(headerCellClassName)], ['Attribute']),
+                  h.th([h.Class(headerCellClassName)], ['Condition']),
                 ],
               ),
             ],
           ),
-          tbody([], Array.map(entries, dataAttributeRow)),
+          h.tbody([], Array.map(entries, dataAttributeRow)),
         ],
       ),
     ],

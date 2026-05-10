@@ -13,7 +13,7 @@ import {
   view,
 } from './index.js'
 
-const { div, span } = html<Message>()
+const h = html<Message>()
 
 type DemoItem = Readonly<{ id: number; label: string }>
 
@@ -43,7 +43,7 @@ const sceneView =
     view({
       items: demoItems,
       itemToKey: item => String(item.id),
-      itemToView: item => div([], [span([], [item.label])]),
+      itemToView: item => h.div([], [h.span([], [item.label])]),
       overscan: 0,
       ...overrides,
       model,

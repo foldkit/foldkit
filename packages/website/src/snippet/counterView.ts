@@ -1,27 +1,36 @@
-import type { Document } from 'foldkit/html'
+import { type Document, html } from 'foldkit/html'
 
-import { Class, OnClick, button, div } from '../html'
+const h = html<Message>()
 
 // VIEW
 
 const view = (model: Model): Document => ({
   title: `Counter: ${model.count}`,
-  body: div(
-    [Class(containerStyle)],
+  body: h.div(
+    [h.Class(containerStyle)],
     [
-      div(
-        [Class('text-6xl font-bold text-gray-800')],
+      h.div(
+        [h.Class('text-6xl font-bold text-gray-800')],
         [model.count.toString()],
       ),
-      div(
-        [Class('flex flex-wrap justify-center gap-4')],
+      h.div(
+        [h.Class('flex flex-wrap justify-center gap-4')],
         [
           // OnClick takes a Message, not a callback. The Message doesn't
           // execute anything. It just declares what should happen on click.
           // Foldkit dispatches it to your update function.
-          button([OnClick(ClickedDecrement()), Class(buttonStyle)], ['-']),
-          button([OnClick(ClickedReset()), Class(buttonStyle)], ['Reset']),
-          button([OnClick(ClickedIncrement()), Class(buttonStyle)], ['+']),
+          h.button(
+            [h.OnClick(ClickedDecrement()), h.Class(buttonStyle)],
+            ['-'],
+          ),
+          h.button(
+            [h.OnClick(ClickedReset()), h.Class(buttonStyle)],
+            ['Reset'],
+          ),
+          h.button(
+            [h.OnClick(ClickedIncrement()), h.Class(buttonStyle)],
+            ['+'],
+          ),
         ],
       ),
     ],

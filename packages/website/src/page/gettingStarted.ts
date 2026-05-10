@@ -1,8 +1,8 @@
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, div } from '../html'
 import { Link } from '../link'
 import type { TableOfContentsEntry } from '../main'
+import type { Message } from '../message'
 import {
   infoCallout,
   inlineCode,
@@ -19,6 +19,8 @@ import {
 } from '../route'
 import { type CopiedSnippets, codeBlock } from '../view/codeBlock'
 import { comparisonTable } from '../view/table'
+
+const h = html<Message>()
 
 const CREATE_FOLDKIT_APP_COMMAND = 'npx create-foldkit-app@latest'
 const DEV_PNPM = 'pnpm dev'
@@ -43,25 +45,25 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('getting-started', 'Getting Started'),
       para(
-        'Built on Effect. Architected like Elm. Written in TypeScript. Let\u2019s get your first application running.',
+        'Built on Effect. Architected like Elm. Written in TypeScript. Let’s get your first application running.',
       ),
       infoCallout(
         'New to Foldkit?',
-        'If you\u2019d like to learn about Foldkit\u2019s architecture before starting a project, head to ',
+        'If you’d like to learn about Foldkit’s architecture before starting a project, head to ',
         link(coreArchitectureRouter(), 'Architecture and Concepts'),
         '.',
       ),
       tableOfContentsEntryToHeader(quickStartHeader),
       para(
         link(Link.createFoldkitApp, 'Create Foldkit app'),
-        ' is the recommended way to get started. You\u2019ll select an ',
+        ' is the recommended way to get started. You’ll select an ',
         link(examplesRouter(), 'example'),
-        ' to start with and the package manager you\u2019d like to use.',
+        ' to start with and the package manager you’d like to use.',
       ),
       codeBlock(
         CREATE_FOLDKIT_APP_COMMAND,
@@ -72,8 +74,8 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Once the project is created, navigate to the project directory and start the dev server:',
       ),
-      div(
-        [Class('flex gap-2 flex-wrap mb-8')],
+      h.div(
+        [h.Class('flex gap-2 flex-wrap mb-8')],
         [
           codeBlock(DEV_PNPM, 'Copy pnpm command', copiedSnippets),
           codeBlock(DEV_NPM, 'Copy npm command', copiedSnippets),
@@ -82,7 +84,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       infoCallout(
         'Coming from React?',
-        'If you\u2019re familiar with React, check out the ',
+        'If you’re familiar with React, check out the ',
         link(comingFromReactRouter(), 'Coming from React'),
         ' guide to understand how your existing knowledge applies.',
       ),
@@ -109,13 +111,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' is the entry point for your application. Some starter examples keep everything in one file, while others split the Model, Messages, update, and view into separate modules.',
       ),
       para(
-        'When you\u2019re ready to dig in, head to ',
+        'When you’re ready to dig in, head to ',
         link(coreArchitectureRouter(), 'Architecture and Concepts'),
         ' to understand how the pieces fit together.',
       ),
       infoCallout(
         'Using AI?',
-        'Foldkit\u2019s architecture makes AI-assisted development uniquely effective. See ',
+        'Foldkit’s architecture makes AI-assisted development uniquely effective. See ',
         link(aiOverviewRouter(), 'AI'),
         ' for setup.',
       ),

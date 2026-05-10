@@ -1,8 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
 import { uiShowcaseViewSourceHref } from '../../link'
-import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
   demoContainer,
@@ -274,12 +272,14 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
 
 // VIEW
 
-export const view = (
+export const view = <ParentMessage>(
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
   copiedSnippets: CopiedSnippets,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
       pageTitle('ui/listbox', 'Listbox'),
@@ -321,8 +321,8 @@ export const view = (
       ),
       demoContainer(...Listbox.basicDemo(model.listboxDemo, toParentMessage)),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippet.uiListboxBasicHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippet.uiListboxBasicHighlighted)],
           [],
         ),
         Snippet.uiListboxBasicRaw,
@@ -346,8 +346,8 @@ export const view = (
         ...Listbox.multiSelectDemo(model.listboxMultiDemo, toParentMessage),
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippet.uiListboxMultiHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippet.uiListboxMultiHighlighted)],
           [],
         ),
         Snippet.uiListboxMultiRaw,
@@ -371,8 +371,11 @@ export const view = (
         ...Listbox.groupedDemo(model.listboxGroupedDemo, toParentMessage),
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippet.uiListboxGroupedHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.uiListboxGroupedHighlighted),
+          ],
           [],
         ),
         Snippet.uiListboxGroupedRaw,
@@ -395,7 +398,7 @@ export const view = (
         inlineCode('width: var(--button-width)'),
         ' (or Tailwind ',
         inlineCode('w-(--button-width)'),
-        ') on the items class. The anchor system writes the trigger button\u2019s measured width to this CSS variable on the items element every time it positions the panel, so the panel always matches the button even as content or viewport sizes change. Without it, the items panel sizes to its content.',
+        ') on the items class. The anchor system writes the trigger button’s measured width to this CSS variable on the items element every time it positions the panel, so the panel always matches the button even as content or viewport sizes change. Without it, the items panel sizes to its content.',
       ),
       dataAttributeTable(dataAttributes),
       heading(
@@ -460,3 +463,4 @@ export const view = (
       propTable(viewConfigProps),
     ],
   )
+}

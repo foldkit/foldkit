@@ -30,17 +30,17 @@ const init: Runtime.ProgramInit<Model, Message> = () => [null, []]
 
 // VIEW
 
-const { div, button, Class, OnClick } = html<Message>()
+const h = html<Message>()
 
 const view = (_model: Model): Document => ({
   title: 'Crash View Example',
-  body: div(
-    [Class('min-h-screen bg-white flex items-center justify-center')],
+  body: h.div(
+    [h.Class('min-h-screen bg-white flex items-center justify-center')],
     [
-      button(
+      h.button(
         [
-          OnClick(ClickedCrash()),
-          Class(
+          h.OnClick(ClickedCrash()),
+          h.Class(
             'bg-red-600 text-white text-lg font-semibold hover:bg-red-700 px-6 py-3 rounded transition cursor-pointer',
           ),
         ],
@@ -55,31 +55,34 @@ const view = (_model: Model): Document => ({
 const crashView = ({
   error,
 }: Runtime.CrashContext<Model, Message>): Document => {
-  const { div, h1, p, button, Class, Attribute } = html<never>()
+  const h = html<never>()
 
   return {
     title: 'Crash View Example — crashed',
-    body: div(
-      [Class('min-h-screen flex items-center justify-center bg-red-50 p-8')],
+    body: h.div(
+      [h.Class('min-h-screen flex items-center justify-center bg-red-50 p-8')],
       [
-        div(
+        h.div(
           [
-            Class(
+            h.Class(
               'max-w-md w-full bg-white rounded-lg border border-red-200 p-8 text-center',
             ),
           ],
           [
-            h1(
-              [Class('text-red-600 text-2xl font-semibold mb-4')],
+            h.h1(
+              [h.Class('text-red-600 text-2xl font-semibold mb-4')],
               ['Something went wrong'],
             ),
-            p([Class('text-gray-700 mb-6 leading-relaxed')], [error.message]),
-            button(
+            h.p(
+              [h.Class('text-gray-700 mb-6 leading-relaxed')],
+              [error.message],
+            ),
+            h.button(
               [
-                Class(
+                h.Class(
                   'bg-red-600 text-white border-none px-6 py-2.5 rounded-md text-sm font-medium cursor-pointer hover:bg-red-700 transition',
                 ),
-                Attribute('onclick', 'location.reload()'),
+                h.Attribute('onclick', 'location.reload()'),
               ],
               ['Reload'],
             ),

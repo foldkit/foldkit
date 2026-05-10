@@ -1,7 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
-import type { TableOfContentsEntry } from '../../main'
+import { Message, type TableOfContentsEntry } from '../../main'
 import {
   infoCallout,
   inlineCode,
@@ -21,6 +20,8 @@ import {
 } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
+
+const h = html<Message>()
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -68,7 +69,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('core/mount', 'Mount'),
@@ -159,8 +160,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' so it escapes any clipping ancestor; when it unmounts, remove it. The Effect uses the element directly, the work is DOM manipulation, the cleanup mirrors the setup.',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.mountPortalToBodyHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.mountPortalToBodyHighlighted),
+          ],
           [],
         ),
         Snippets.mountPortalToBodyRaw,
@@ -235,10 +239,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' as the cleanup.',
       ),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.mountThirdPartyChartHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.mountThirdPartyChartHighlighted),
           ],
           [],
         ),

@@ -24,8 +24,7 @@ export type ViewConfig<ParentMessage> = Readonly<{
 export const view = <ParentMessage>(
   config: ViewConfig<ParentMessage>,
 ): Html => {
-  const { Autofocus, AriaDisabled, DataAttribute, OnClick, Tabindex, Type } =
-    html<ParentMessage>()
+  const h = html<ParentMessage>()
 
   const {
     toView,
@@ -36,17 +35,17 @@ export const view = <ParentMessage>(
   } = config
 
   const disabledAttributes = isDisabled
-    ? [AriaDisabled(true), DataAttribute('disabled', '')]
+    ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
     : []
 
   const clickAttributes =
-    Predicate.isNotUndefined(onClick) && !isDisabled ? [OnClick(onClick)] : []
+    Predicate.isNotUndefined(onClick) && !isDisabled ? [h.OnClick(onClick)] : []
 
-  const autofocusAttributes = isAutofocus ? [Autofocus(true)] : []
+  const autofocusAttributes = isAutofocus ? [h.Autofocus(true)] : []
 
   const buttonAttributes = [
-    Type(type),
-    Tabindex(0),
+    h.Type(type),
+    h.Tabindex(0),
     ...disabledAttributes,
     ...clickAttributes,
     ...autofocusAttributes,

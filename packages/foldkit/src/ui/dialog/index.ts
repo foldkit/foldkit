@@ -284,18 +284,7 @@ export const close = (
 export const view = <ParentMessage>(
   config: ViewConfig<ParentMessage>,
 ): Html => {
-  const {
-    AriaDescribedBy,
-    AriaLabelledBy,
-    Class,
-    DataAttribute,
-    Id,
-    OnCancel,
-    OnClick,
-    Open,
-    Style,
-    keyed,
-  } = html<ParentMessage>()
+  const h = html<ParentMessage>()
 
   const {
     model: {
@@ -321,36 +310,36 @@ export const view = <ParentMessage>(
     transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
   const isVisible = isOpen || isLeaving
 
-  const animationAttributes: ReadonlyArray<ReturnType<typeof DataAttribute>> =
+  const animationAttributes: ReadonlyArray<ReturnType<typeof h.DataAttribute>> =
     M.value(transitionState).pipe(
       M.when('EnterStart', () => [
-        DataAttribute('closed', ''),
-        DataAttribute('enter', ''),
-        DataAttribute('transition', ''),
+        h.DataAttribute('closed', ''),
+        h.DataAttribute('enter', ''),
+        h.DataAttribute('transition', ''),
       ]),
       M.when('EnterAnimating', () => [
-        DataAttribute('enter', ''),
-        DataAttribute('transition', ''),
+        h.DataAttribute('enter', ''),
+        h.DataAttribute('transition', ''),
       ]),
       M.when('LeaveStart', () => [
-        DataAttribute('leave', ''),
-        DataAttribute('transition', ''),
+        h.DataAttribute('leave', ''),
+        h.DataAttribute('transition', ''),
       ]),
       M.when('LeaveAnimating', () => [
-        DataAttribute('closed', ''),
-        DataAttribute('leave', ''),
-        DataAttribute('transition', ''),
+        h.DataAttribute('closed', ''),
+        h.DataAttribute('leave', ''),
+        h.DataAttribute('transition', ''),
       ]),
       M.orElse(() => []),
     )
 
   const dialogAttributes = [
-    Id(id),
-    AriaLabelledBy(`${id}-title`),
-    AriaDescribedBy(`${id}-description`),
-    OnCancel(dispatchClosed()),
-    Open(isVisible),
-    Style({
+    h.Id(id),
+    h.AriaLabelledBy(`${id}-title`),
+    h.AriaDescribedBy(`${id}-description`),
+    h.OnCancel(dispatchClosed()),
+    h.Open(isVisible),
+    h.Style({
       width: '100%',
       height: '100%',
       maxWidth: '100%',
@@ -362,29 +351,29 @@ export const view = <ParentMessage>(
         ? { position: 'fixed', inset: '0', zIndex: '2147483600' }
         : {}),
     }),
-    ...(isVisible ? [DataAttribute('open', '')] : []),
-    ...(className ? [Class(className)] : []),
+    ...(isVisible ? [h.DataAttribute('open', '')] : []),
+    ...(className ? [h.Class(className)] : []),
     ...attributes,
   ]
 
-  const backdrop = keyed('div')(
+  const backdrop = h.keyed('div')(
     `${id}-backdrop`,
     [
-      Style({ minHeight: '100vh' }),
+      h.Style({ minHeight: '100vh' }),
       ...animationAttributes,
-      ...(isLeaving ? [] : [OnClick(dispatchClosed())]),
-      ...(backdropClassName ? [Class(backdropClassName)] : []),
+      ...(isLeaving ? [] : [h.OnClick(dispatchClosed())]),
+      ...(backdropClassName ? [h.Class(backdropClassName)] : []),
       ...backdropAttributes,
     ],
     [],
   )
 
-  const panel = keyed('div')(
+  const panel = h.keyed('div')(
     `${id}-panel`,
     [
-      Id(`${id}-panel`),
+      h.Id(`${id}-panel`),
       ...animationAttributes,
-      ...(panelClassName ? [Class(panelClassName)] : []),
+      ...(panelClassName ? [h.Class(panelClassName)] : []),
       ...panelAttributes,
     ],
     [panelContent],
@@ -392,7 +381,7 @@ export const view = <ParentMessage>(
 
   const content = isVisible ? [backdrop, panel] : []
 
-  return keyed('dialog')(id, dialogAttributes, content)
+  return h.keyed('dialog')(id, dialogAttributes, content)
 }
 
 /** Creates a memoized dialog view. Static config (className, panelClassName,

@@ -1,9 +1,10 @@
 // Pseudocode walkthrough — same Model, Messages, and update as the basic
 // menu; only init and view change. Each labeled block below is an excerpt.
 import { Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 
-import { Class, div, span } from './html'
+const h = html<Message>()
 
 // Only init and view differ from the basic menu: init adds isAnimated, the
 // view uses data-[closed] selectors for enter/leave transitions.
@@ -28,13 +29,13 @@ Ui.Menu.view({
   toParentMessage: message => GotMenuMessage({ message }),
   items: actions,
   onSelectedItem: value => SelectedAction({ value }),
-  buttonContent: span([], ['Options']),
+  buttonContent: h.span([], ['Options']),
   buttonClassName: 'rounded-lg border px-3 py-2 cursor-pointer',
   itemsClassName:
     'rounded-lg border shadow-lg transition duration-150 ease-out data-[closed]:opacity-0 data-[closed]:scale-95',
   itemToConfig: (action, { isActive }) => ({
     className: isActive ? 'bg-blue-100' : '',
-    content: div([Class('px-3 py-2')], [action]),
+    content: h.div([h.Class('px-3 py-2')], [action]),
   }),
   backdropClassName: 'fixed inset-0',
   anchor: { placement: 'bottom-start', gap: 4, padding: 8 },

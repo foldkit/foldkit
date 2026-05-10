@@ -1,16 +1,19 @@
 import { Option } from 'effect'
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, div, empty, h3 } from '../../../view/html'
+export const getReady = <ParentMessage>(
+  maybeGameText: Option.Option<string>,
+): Html => {
+  const h = html<ParentMessage>()
 
-export const getReady = (maybeGameText: Option.Option<string>): Html =>
-  div(
-    [Class('space-y-6')],
+  return h.div(
+    [h.Class('space-y-6')],
     [
-      h3([Class('uppercase')], ['Preparing game...']),
+      h.h3([h.Class('uppercase')], ['Preparing game...']),
       Option.match(maybeGameText, {
-        onNone: () => empty,
-        onSome: text => div([], [text]),
+        onNone: () => h.empty,
+        onSome: text => h.div([], [text]),
       }),
     ],
   )
+}

@@ -593,16 +593,7 @@ export type ViewConfig<ParentMessage, Item> = Readonly<{
 export const view = <ParentMessage, Item>(
   config: ViewConfig<ParentMessage, Item>,
 ): Html => {
-  const {
-    AriaPosinset,
-    AriaSetsize,
-    Class,
-    DataAttribute,
-    Id,
-    Role,
-    Style,
-    keyed,
-  } = html<ParentMessage>()
+  const h = html<ParentMessage>()
 
   const {
     model,
@@ -617,21 +608,21 @@ export const view = <ParentMessage, Item>(
   } = config
 
   const containerAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-    Id(model.id),
-    Role('list'),
-    DataAttribute('virtual-list-id', model.id),
-    Style({
+    h.Id(model.id),
+    h.Role('list'),
+    h.DataAttribute('virtual-list-id', model.id),
+    h.Style({
       overflow: 'auto',
       'list-style': 'none',
       margin: '0',
       padding: '0',
     }),
-    ...(className !== undefined ? [Class(className)] : []),
+    ...(className !== undefined ? [h.Class(className)] : []),
     ...attributes,
   ]
 
   const renderContainer = (children: ReadonlyArray<Html>): Html =>
-    keyed('ul')(model.id, containerAttributes, children)
+    h.keyed('ul')(model.id, containerAttributes, children)
 
   const maybeWindow =
     itemToRowHeightPx !== undefined
@@ -649,28 +640,31 @@ export const view = <ParentMessage, Item>(
     onSome: ({ startIndex, endIndex, topSpacerHeight, bottomSpacerHeight }) => {
       const visibleItems = items.slice(startIndex, endIndex)
 
-      const topSpacer = keyed('li')(
+      const topSpacer = h.keyed('li')(
         `${model.id}-top-spacer`,
-        [Role('presentation'), Style({ height: `${topSpacerHeight}px` })],
+        [h.Role('presentation'), h.Style({ height: `${topSpacerHeight}px` })],
         [],
       )
 
-      const bottomSpacer = keyed('li')(
+      const bottomSpacer = h.keyed('li')(
         `${model.id}-bottom-spacer`,
-        [Role('presentation'), Style({ height: `${bottomSpacerHeight}px` })],
+        [
+          h.Role('presentation'),
+          h.Style({ height: `${bottomSpacerHeight}px` }),
+        ],
         [],
       )
 
       const renderedRows = Array.map(visibleItems, (item, sliceIndex) => {
         const dataIndex = startIndex + sliceIndex
-        return keyed(rowElement)(
+        return h.keyed(rowElement)(
           itemToKey(item, dataIndex),
           [
-            Role('listitem'),
-            DataAttribute('virtual-list-item-index', String(dataIndex)),
-            AriaSetsize(items.length),
-            AriaPosinset(dataIndex + 1),
-            Style({
+            h.Role('listitem'),
+            h.DataAttribute('virtual-list-item-index', String(dataIndex)),
+            h.AriaSetsize(items.length),
+            h.AriaPosinset(dataIndex + 1),
+            h.Style({
               height: `${rowHeightFor(item, dataIndex)}px`,
               display: 'grid',
             }),

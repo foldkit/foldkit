@@ -1,39 +1,27 @@
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import {
-  AriaHidden,
-  Class,
-  D,
-  Fill,
-  Stroke,
-  StrokeLinecap,
-  StrokeLinejoin,
-  StrokeWidth,
-  ViewBox,
-  Xmlns,
-  path,
-  svg,
-} from '../html'
+export const check = <ParentMessage>(className: string = 'w-6 h-6'): Html => {
+  const h = html<ParentMessage>()
 
-export const check = (className: string = 'w-6 h-6'): Html =>
-  svg(
+  return h.svg(
     [
-      AriaHidden(true),
-      Class(className),
-      Xmlns('http://www.w3.org/2000/svg'),
-      Fill('none'),
-      ViewBox('0 0 24 24'),
-      StrokeWidth('2'),
-      Stroke('currentColor'),
+      h.AriaHidden(true),
+      h.Class(className),
+      h.Xmlns('http://www.w3.org/2000/svg'),
+      h.Fill('none'),
+      h.ViewBox('0 0 24 24'),
+      h.StrokeWidth('2'),
+      h.Stroke('currentColor'),
     ],
     [
-      path(
+      h.path(
         [
-          StrokeLinecap('round'),
-          StrokeLinejoin('round'),
-          D('M4.5 12.75l6 6 9-13.5'),
+          h.StrokeLinecap('round'),
+          h.StrokeLinejoin('round'),
+          h.D('M4.5 12.75l6 6 9-13.5'),
         ],
         [],
       ),
     ],
   )
+}

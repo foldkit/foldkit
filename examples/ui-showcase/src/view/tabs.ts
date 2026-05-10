@@ -1,9 +1,7 @@
 import { Match as M } from 'effect'
 import { Ui } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, div, h2, h3, p, span } from '../html'
-import type { Message as ParentMessage } from '../main'
 import {
   GotHorizontalTabsDemoMessage,
   GotVerticalTabsDemoMessage,
@@ -27,104 +25,126 @@ const verticalButtonClassName =
 const verticalPanelClassName =
   'flex-1 p-6 bg-white rounded-r-lg rounded-bl-lg border border-gray-200'
 
-const foldkitPanel = div(
-  [],
-  [
-    p(
-      [Class('text-gray-700 mb-3')],
-      [
-        span([Class('text-gray-900')], ['Model-View-Update']),
-        ' with Effect. A single immutable model holds all state, messages describe what happened, and a pure update function produces the next state.',
-      ],
-    ),
-    p(
-      [Class('text-gray-500 text-sm')],
-      [
-        'Composable Elm Architecture modules, Schema-typed state, and controlled side effects via Effect.',
-      ],
-    ),
-  ],
-)
+const foldkitPanel = <ParentMessage>(): Html => {
+  const h = html<ParentMessage>()
 
-const reactPanel = div(
-  [],
-  [
-    p(
-      [Class('text-gray-700 mb-3')],
-      [
-        span([Class('text-gray-900')], ['Component-based']),
-        ' with hooks for state and effects. Each component manages its own local state via useState and useReducer.',
-      ],
-    ),
-    p(
-      [Class('text-gray-500 text-sm')],
-      [
-        'JSX views, hooks-driven state, and implicit side effects via useEffect.',
-      ],
-    ),
-  ],
-)
-
-const elmPanel = div(
-  [],
-  [
-    p(
-      [Class('text-gray-700 mb-3')],
-      [
-        span([Class('text-gray-900')], ['The original Elm Architecture']),
-        '. Elm pioneered the Model-View-Update architecture with a pure functional language. Foldkit brings these ideas to TypeScript.',
-      ],
-    ),
-    p(
-      [Class('text-gray-500 text-sm')],
-      [
-        'Pure functional language, Cmd/Sub for effects, and compiler-guaranteed correctness.',
-      ],
-    ),
-  ],
-)
-
-const horizontalTabToConfig = (
-  tab: DemoTab,
-  _context: { isActive: boolean },
-): Ui.Tabs.TabConfig => ({
-  buttonClassName: horizontalButtonClassName,
-  buttonContent: span([], [tab]),
-  panelClassName: horizontalPanelClassName,
-  panelContent: M.value(tab).pipe(
-    M.when('Foldkit', () => foldkitPanel),
-    M.when('React', () => reactPanel),
-    M.when('Elm', () => elmPanel),
-    M.exhaustive,
-  ),
-})
-
-const verticalTabToConfig = (
-  tab: DemoTab,
-  _context: { isActive: boolean },
-): Ui.Tabs.TabConfig => ({
-  buttonClassName: verticalButtonClassName,
-  buttonContent: span([], [tab]),
-  panelClassName: verticalPanelClassName,
-  panelContent: M.value(tab).pipe(
-    M.when('Foldkit', () => foldkitPanel),
-    M.when('React', () => reactPanel),
-    M.when('Elm', () => elmPanel),
-    M.exhaustive,
-  ),
-})
-
-export const view = (
-  model: UiModel,
-  toParentMessage: (message: UiMessage) => ParentMessage,
-): Html =>
-  div(
+  return h.div(
     [],
     [
-      h2([Class('text-2xl font-bold text-gray-900 mb-6')], ['Tabs']),
+      h.p(
+        [h.Class('text-gray-700 mb-3')],
+        [
+          h.span([h.Class('text-gray-900')], ['Model-View-Update']),
+          ' with Effect. A single immutable model holds all state, messages describe what happened, and a pure update function produces the next state.',
+        ],
+      ),
+      h.p(
+        [h.Class('text-gray-500 text-sm')],
+        [
+          'Composable Elm Architecture modules, Schema-typed state, and controlled side effects via Effect.',
+        ],
+      ),
+    ],
+  )
+}
 
-      h3(
-        [Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+const reactPanel = <ParentMessage>(): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [],
+    [
+      h.p(
+        [h.Class('text-gray-700 mb-3')],
+        [
+          h.span([h.Class('text-gray-900')], ['Component-based']),
+          ' with hooks for state and effects. Each component manages its own local state via useState and useReducer.',
+        ],
+      ),
+      h.p(
+        [h.Class('text-gray-500 text-sm')],
+        [
+          'JSX views, hooks-driven state, and implicit side effects via useEffect.',
+        ],
+      ),
+    ],
+  )
+}
+
+const elmPanel = <ParentMessage>(): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [],
+    [
+      h.p(
+        [h.Class('text-gray-700 mb-3')],
+        [
+          h.span([h.Class('text-gray-900')], ['The original Elm Architecture']),
+          '. Elm pioneered the Model-View-Update architecture with a pure functional language. Foldkit brings these ideas to TypeScript.',
+        ],
+      ),
+      h.p(
+        [h.Class('text-gray-500 text-sm')],
+        [
+          'Pure functional language, Cmd/Sub for effects, and compiler-guaranteed correctness.',
+        ],
+      ),
+    ],
+  )
+}
+
+const horizontalTabToConfig = <ParentMessage>(
+  tab: DemoTab,
+  _context: { isActive: boolean },
+): Ui.Tabs.TabConfig => {
+  const h = html<ParentMessage>()
+
+  return {
+    buttonClassName: horizontalButtonClassName,
+    buttonContent: h.span([], [tab]),
+    panelClassName: horizontalPanelClassName,
+    panelContent: M.value(tab).pipe(
+      M.when('Foldkit', () => foldkitPanel<ParentMessage>()),
+      M.when('React', () => reactPanel<ParentMessage>()),
+      M.when('Elm', () => elmPanel<ParentMessage>()),
+      M.exhaustive,
+    ),
+  }
+}
+
+const verticalTabToConfig = <ParentMessage>(
+  tab: DemoTab,
+  _context: { isActive: boolean },
+): Ui.Tabs.TabConfig => {
+  const h = html<ParentMessage>()
+
+  return {
+    buttonClassName: verticalButtonClassName,
+    buttonContent: h.span([], [tab]),
+    panelClassName: verticalPanelClassName,
+    panelContent: M.value(tab).pipe(
+      M.when('Foldkit', () => foldkitPanel<ParentMessage>()),
+      M.when('React', () => reactPanel<ParentMessage>()),
+      M.when('Elm', () => elmPanel<ParentMessage>()),
+      M.exhaustive,
+    ),
+  }
+}
+
+export const view = <ParentMessage>(
+  model: UiModel,
+  toParentMessage: (message: UiMessage) => ParentMessage,
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [],
+    [
+      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Tabs']),
+
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Horizontal'],
       ),
       Ui.Tabs.view({
@@ -132,13 +152,14 @@ export const view = (
         toParentMessage: message =>
           toParentMessage(GotHorizontalTabsDemoMessage({ message })),
         tabs: demoTabs,
-        tabToConfig: horizontalTabToConfig,
-        tabListAttributes: [Class('flex')],
+        tabToConfig: (tab, context) =>
+          horizontalTabToConfig<ParentMessage>(tab, context),
+        tabListAttributes: [h.Class('flex')],
         tabListAriaLabel: 'Framework comparison tabs',
       }),
 
-      h3(
-        [Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Vertical'],
       ),
       Ui.Tabs.view({
@@ -146,11 +167,13 @@ export const view = (
         toParentMessage: message =>
           toParentMessage(GotVerticalTabsDemoMessage({ message })),
         tabs: demoTabs,
-        tabToConfig: verticalTabToConfig,
+        tabToConfig: (tab, context) =>
+          verticalTabToConfig<ParentMessage>(tab, context),
         orientation: 'Vertical',
-        attributes: [Class('flex')],
-        tabListAttributes: [Class('flex flex-col')],
+        attributes: [h.Class('flex')],
+        tabListAttributes: [h.Class('flex flex-col')],
         tabListAriaLabel: 'Framework comparison tabs',
       }),
     ],
   )
+}

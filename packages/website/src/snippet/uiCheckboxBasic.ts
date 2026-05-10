@@ -3,10 +3,11 @@
 // update, and view definitions.
 import { Effect } from 'effect'
 import { Command, Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Class, button, div, label, p } from './html'
+const h = html<Message>()
 
 // Add a field to your Model for the Checkbox Submodel:
 const Model = S.Struct({
@@ -50,24 +51,24 @@ Ui.Checkbox.view({
   model: model.checkboxDemo,
   toParentMessage: message => GotCheckboxMessage({ message }),
   toView: attributes =>
-    div(
-      [Class('flex flex-col gap-1')],
+    h.div(
+      [h.Class('flex flex-col gap-1')],
       [
-        div(
-          [Class('flex items-center gap-2')],
+        h.div(
+          [h.Class('flex items-center gap-2')],
           [
-            button(
-              [...attributes.checkbox, Class('h-5 w-5 rounded border')],
+            h.button(
+              [...attributes.checkbox, h.Class('h-5 w-5 rounded border')],
               model.checkboxDemo.isChecked ? ['✓'] : [],
             ),
-            label(
-              [...attributes.label, Class('text-sm')],
+            h.label(
+              [...attributes.label, h.Class('text-sm')],
               ['Accept terms and conditions'],
             ),
           ],
         ),
-        p(
-          [...attributes.description, Class('text-sm text-gray-500')],
+        h.p(
+          [...attributes.description, h.Class('text-sm text-gray-500')],
           ['You agree to our Terms of Service.'],
         ),
       ],

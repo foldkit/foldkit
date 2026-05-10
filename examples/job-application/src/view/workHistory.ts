@@ -1,25 +1,25 @@
-import { type Html } from 'foldkit/html'
+import { type Html, html } from 'foldkit/html'
 
-import { Class, OnClick, Type, button, div, p } from '../html'
-import type { Message } from '../message'
 import { WorkHistory } from '../step'
 import { workEntryView } from './workEntry'
 
-export const workHistoryView = (
+export const workHistoryView = <ParentMessage>(
   model: WorkHistory.Model,
-  toParentMessage: (message: WorkHistory.Message) => Message,
-): Html =>
-  div(
-    [Class('space-y-6')],
+  toParentMessage: (message: WorkHistory.Message) => ParentMessage,
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [h.Class('space-y-6')],
     [
-      p(
-        [Class('text-sm text-gray-500')],
+      h.p(
+        [h.Class('text-sm text-gray-500')],
         ['Add your relevant work experience, starting with the most recent.'],
       ),
-      div(
-        [Class('divide-y divide-gray-200')],
+      h.div(
+        [h.Class('divide-y divide-gray-200')],
         model.entries.map(entry =>
-          workEntryView(
+          workEntryView<ParentMessage>(
             entry,
             message =>
               toParentMessage(
@@ -29,11 +29,11 @@ export const workHistoryView = (
           ),
         ),
       ),
-      button(
+      h.button(
         [
-          Type('button'),
-          OnClick(toParentMessage(WorkHistory.ClickedAddEntry())),
-          Class(
+          h.Type('button'),
+          h.OnClick(toParentMessage(WorkHistory.ClickedAddEntry())),
+          h.Class(
             'w-full rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 text-sm font-medium text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition cursor-pointer',
           ),
         ],
@@ -41,3 +41,4 @@ export const workHistoryView = (
       ),
     ],
   )
+}

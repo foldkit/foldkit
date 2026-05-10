@@ -809,39 +809,7 @@ export const makeView =
   <ParentMessage, Item extends string>(
     config: BaseViewConfig<ParentMessage, Item, Model>,
   ): Html => {
-    const {
-      div,
-      input,
-      AriaActiveDescendant,
-      AriaControls,
-      AriaDisabled,
-      AriaExpanded,
-      AriaInvalid,
-      AriaLabelledBy,
-      AriaMultiSelectable,
-      AriaSelected,
-      Attribute,
-      Autocomplete,
-      Class,
-      DataAttribute,
-      Id,
-      Name,
-      OnBlur,
-      OnClick,
-      OnFocus,
-      OnInput,
-      OnKeyDownPreventDefault,
-      OnMount,
-      OnPointerLeave,
-      OnPointerMove,
-      Placeholder,
-      Role,
-      Style,
-      Tabindex,
-      Type,
-      Value,
-      keyed,
-    } = html<ParentMessage>()
+    const h = html<ParentMessage>()
 
     const {
       model: {
@@ -901,28 +869,29 @@ export const makeView =
       transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
     const isVisible = isOpen || isLeaving
 
-    const animationAttributes: ReadonlyArray<ReturnType<typeof DataAttribute>> =
-      M.value(transitionState).pipe(
-        M.when('EnterStart', () => [
-          DataAttribute('closed', ''),
-          DataAttribute('enter', ''),
-          DataAttribute('transition', ''),
-        ]),
-        M.when('EnterAnimating', () => [
-          DataAttribute('enter', ''),
-          DataAttribute('transition', ''),
-        ]),
-        M.when('LeaveStart', () => [
-          DataAttribute('leave', ''),
-          DataAttribute('transition', ''),
-        ]),
-        M.when('LeaveAnimating', () => [
-          DataAttribute('closed', ''),
-          DataAttribute('leave', ''),
-          DataAttribute('transition', ''),
-        ]),
-        M.orElse(() => []),
-      )
+    const animationAttributes: ReadonlyArray<
+      ReturnType<typeof h.DataAttribute>
+    > = M.value(transitionState).pipe(
+      M.when('EnterStart', () => [
+        h.DataAttribute('closed', ''),
+        h.DataAttribute('enter', ''),
+        h.DataAttribute('transition', ''),
+      ]),
+      M.when('EnterAnimating', () => [
+        h.DataAttribute('enter', ''),
+        h.DataAttribute('transition', ''),
+      ]),
+      M.when('LeaveStart', () => [
+        h.DataAttribute('leave', ''),
+        h.DataAttribute('transition', ''),
+      ]),
+      M.when('LeaveAnimating', () => [
+        h.DataAttribute('closed', ''),
+        h.DataAttribute('leave', ''),
+        h.DataAttribute('transition', ''),
+      ]),
+      M.orElse(() => []),
+    )
 
     const isDisabledAtIndex = (index: number): boolean =>
       Predicate.isNotUndefined(isItemDisabled) &&
@@ -1048,29 +1017,29 @@ export const makeView =
 
     const maybeActiveDescendant = Option.match(maybeActiveItemIndex, {
       onNone: () => [],
-      onSome: index => [AriaActiveDescendant(itemId(id, index))],
+      onSome: index => [h.AriaActiveDescendant(itemId(id, index))],
     })
 
     const resolvedInputAttributes = [
-      Id(`${id}-input`),
-      Role('combobox'),
-      AriaExpanded(isVisible),
-      AriaControls(`${id}-items`),
-      Attribute('aria-autocomplete', 'list'),
-      Attribute('aria-haspopup', 'listbox'),
-      Autocomplete('off'),
-      Value(config.model.inputValue),
+      h.Id(`${id}-input`),
+      h.Role('combobox'),
+      h.AriaExpanded(isVisible),
+      h.AriaControls(`${id}-items`),
+      h.Attribute('aria-autocomplete', 'list'),
+      h.Attribute('aria-haspopup', 'listbox'),
+      h.Autocomplete('off'),
+      h.Value(config.model.inputValue),
       ...maybeActiveDescendant,
-      ...(inputPlaceholder ? [Placeholder(inputPlaceholder)] : []),
+      ...(inputPlaceholder ? [h.Placeholder(inputPlaceholder)] : []),
       ...(isDisabled
-        ? [AriaDisabled(true), DataAttribute('disabled', '')]
+        ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
         : [
-            OnInput(value => toParentMessage(UpdatedInputValue({ value }))),
-            OnKeyDownPreventDefault(handleInputKeyDown),
-            OnBlur(toParentMessage(BlurredInput())),
+            h.OnInput(value => toParentMessage(UpdatedInputValue({ value }))),
+            h.OnKeyDownPreventDefault(handleInputKeyDown),
+            h.OnBlur(toParentMessage(BlurredInput())),
             ...(openOnFocus
               ? [
-                  OnFocus(
+                  h.OnFocus(
                     toParentMessage(
                       Opened({ maybeActiveItemIndex: Option.none() }),
                     ),
@@ -1078,23 +1047,25 @@ export const makeView =
                 ]
               : []),
           ]),
-      ...(isInvalid ? [AriaInvalid(true), DataAttribute('invalid', '')] : []),
-      ...(isVisible ? [DataAttribute('open', '')] : []),
+      ...(isInvalid
+        ? [h.AriaInvalid(true), h.DataAttribute('invalid', '')]
+        : []),
+      ...(isVisible ? [h.DataAttribute('open', '')] : []),
       ...(config.model.selectInputOnFocus
         ? [
-            OnMount(
+            h.OnMount(
               Mount.mapMessage(AttachComboboxSelectOnFocus(), toParentMessage),
             ),
           ]
         : []),
-      ...(inputClassName ? [Class(inputClassName)] : []),
+      ...(inputClassName ? [h.Class(inputClassName)] : []),
       ...inputAttributes,
     ]
 
     const anchorAttributes = anchor
       ? [
-          Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
-          OnMount(
+          h.Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
+          h.OnMount(
             Mount.mapMessage(
               AnchorCombobox({
                 buttonId: `${id}-input-wrapper`,
@@ -1105,20 +1076,20 @@ export const makeView =
           ),
         ]
       : [
-          OnMount(
+          h.OnMount(
             Mount.mapMessage(AttachComboboxPreventBlur(), toParentMessage),
           ),
         ]
 
     const itemsContainerAttributes = [
-      Id(`${id}-items`),
-      Role('listbox'),
-      ...(behavior.ariaMultiSelectable ? [AriaMultiSelectable(true)] : []),
-      AriaLabelledBy(`${id}-input`),
-      Tabindex(-1),
+      h.Id(`${id}-items`),
+      h.Role('listbox'),
+      ...(behavior.ariaMultiSelectable ? [h.AriaMultiSelectable(true)] : []),
+      h.AriaLabelledBy(`${id}-input`),
+      h.Tabindex(-1),
       ...anchorAttributes,
       ...animationAttributes,
-      ...(itemsClassName ? [Class(itemsClassName)] : []),
+      ...(itemsClassName ? [h.Class(itemsClassName)] : []),
       ...itemsAttributes,
     ]
 
@@ -1140,24 +1111,24 @@ export const makeView =
 
       const isInteractive = !isDisabledItem && !isLeaving
 
-      return keyed('div')(
+      return h.keyed('div')(
         itemId(id, index),
         [
-          Id(itemId(id, index)),
-          Role('option'),
-          AriaSelected(isSelectedItem),
-          ...(isActiveItem ? [DataAttribute('active', '')] : []),
-          ...(isSelectedItem ? [DataAttribute('selected', '')] : []),
+          h.Id(itemId(id, index)),
+          h.Role('option'),
+          h.AriaSelected(isSelectedItem),
+          ...(isActiveItem ? [h.DataAttribute('active', '')] : []),
+          ...(isSelectedItem ? [h.DataAttribute('selected', '')] : []),
           ...(isDisabledItem
-            ? [AriaDisabled(true), DataAttribute('disabled', '')]
+            ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
             : []),
           ...(isInteractive
             ? [
-                OnClick(dispatchSelectedItem(item, index)),
+                h.OnClick(dispatchSelectedItem(item, index)),
                 ...(isActiveItem
                   ? []
                   : [
-                      OnPointerMove((screenX, screenY, pointerType) =>
+                      h.OnPointerMove((screenX, screenY, pointerType) =>
                         OptionExt.when(
                           pointerType !== 'touch',
                           toParentMessage(
@@ -1166,7 +1137,7 @@ export const makeView =
                         ),
                       ),
                     ]),
-                OnPointerLeave(pointerType =>
+                h.OnPointerLeave(pointerType =>
                   OptionExt.when(
                     pointerType !== 'touch',
                     toParentMessage(DeactivatedItem()),
@@ -1174,7 +1145,7 @@ export const makeView =
                 ),
               ]
             : []),
-          ...(itemConfig.className ? [Class(itemConfig.className)] : []),
+          ...(itemConfig.className ? [h.Class(itemConfig.className)] : []),
         ],
         [itemConfig.content],
       )
@@ -1204,12 +1175,12 @@ export const makeView =
         const headingElement = Option.match(maybeHeading, {
           onNone: () => [],
           onSome: heading => [
-            keyed('div')(
+            h.keyed('div')(
               headingId,
               [
-                Id(headingId),
-                Role('presentation'),
-                ...(heading.className ? [Class(heading.className)] : []),
+                h.Id(headingId),
+                h.Role('presentation'),
+                ...(heading.className ? [h.Class(heading.className)] : []),
               ],
               [heading.content],
             ),
@@ -1218,12 +1189,14 @@ export const makeView =
 
         const groupContent = [...headingElement, ...segment.items]
 
-        const groupElement = keyed('div')(
+        const groupElement = h.keyed('div')(
           `${id}-group-${segment.key}`,
           [
-            Role('group'),
-            ...(Option.isSome(maybeHeading) ? [AriaLabelledBy(headingId)] : []),
-            ...(groupClassName ? [Class(groupClassName)] : []),
+            h.Role('group'),
+            ...(Option.isSome(maybeHeading)
+              ? [h.AriaLabelledBy(headingId)]
+              : []),
+            ...(groupClassName ? [h.Class(groupClassName)] : []),
             ...groupAttributes,
           ],
           groupContent,
@@ -1234,11 +1207,13 @@ export const makeView =
           (separatorClassName ||
             Array.isReadonlyArrayNonEmpty(separatorAttributes))
             ? [
-                keyed('div')(
+                h.keyed('div')(
                   `${id}-separator-${segmentIndex}`,
                   [
-                    Role('separator'),
-                    ...(separatorClassName ? [Class(separatorClassName)] : []),
+                    h.Role('separator'),
+                    ...(separatorClassName
+                      ? [h.Class(separatorClassName)]
+                      : []),
                     ...separatorAttributes,
                   ],
                   [],
@@ -1250,12 +1225,12 @@ export const makeView =
       })
     }
 
-    const backdrop = keyed('div')(
+    const backdrop = h.keyed('div')(
       `${id}-backdrop`,
       [
-        OnMount(Mount.mapMessage(PortalComboboxBackdrop(), toParentMessage)),
-        ...(isLeaving ? [] : [OnClick(toParentMessage(Closed()))]),
-        ...(backdropClassName ? [Class(backdropClassName)] : []),
+        h.OnMount(Mount.mapMessage(PortalComboboxBackdrop(), toParentMessage)),
+        ...(isLeaving ? [] : [h.OnClick(toParentMessage(Closed()))]),
+        ...(backdropClassName ? [h.Class(backdropClassName)] : []),
         ...backdropAttributes,
       ],
       [],
@@ -1267,9 +1242,11 @@ export const makeView =
       itemsScrollClassName ||
       Array.isReadonlyArrayNonEmpty(itemsScrollAttributes)
         ? [
-            div(
+            h.div(
               [
-                ...(itemsScrollClassName ? [Class(itemsScrollClassName)] : []),
+                ...(itemsScrollClassName
+                  ? [h.Class(itemsScrollClassName)]
+                  : []),
                 ...itemsScrollAttributes,
               ],
               renderedItems,
@@ -1279,7 +1256,7 @@ export const makeView =
 
     const visibleContent = [
       backdrop,
-      keyed('div')(
+      h.keyed('div')(
         `${id}-items-container`,
         itemsContainerAttributes,
         scrollableItems,
@@ -1287,29 +1264,29 @@ export const makeView =
     ]
 
     const resolvedInputWrapperAttributes = [
-      Id(`${id}-input-wrapper`),
-      ...(inputWrapperClassName ? [Class(inputWrapperClassName)] : []),
+      h.Id(`${id}-input-wrapper`),
+      ...(inputWrapperClassName ? [h.Class(inputWrapperClassName)] : []),
       ...inputWrapperAttributes,
     ]
 
     const toggleButton = buttonContent
       ? [
-          keyed('button')(
+          h.keyed('button')(
             `${id}-button`,
             [
-              Id(`${id}-button`),
-              Type('button'),
-              Tabindex(-1),
-              AriaControls(`${id}-items`),
-              AriaExpanded(isVisible),
-              Attribute('aria-haspopup', 'listbox'),
+              h.Id(`${id}-button`),
+              h.Type('button'),
+              h.Tabindex(-1),
+              h.AriaControls(`${id}-items`),
+              h.AriaExpanded(isVisible),
+              h.Attribute('aria-haspopup', 'listbox'),
               ...(isDisabled
-                ? [AriaDisabled(true), DataAttribute('disabled', '')]
-                : [OnClick(toParentMessage(PressedToggleButton()))]),
-              OnMount(
+                ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
+                : [h.OnClick(toParentMessage(PressedToggleButton()))]),
+              h.OnMount(
                 Mount.mapMessage(AttachComboboxPreventBlur(), toParentMessage),
               ),
-              ...(buttonClassName ? [Class(buttonClassName)] : []),
+              ...(buttonClassName ? [h.Class(buttonClassName)] : []),
               ...buttonAttributes,
             ],
             [buttonContent],
@@ -1330,24 +1307,28 @@ export const makeView =
 
     const hiddenInputs = formName
       ? Array.match(selectedValues, {
-          onEmpty: () => [input([Type('hidden'), Name(formName)])],
+          onEmpty: () => [h.input([h.Type('hidden'), h.Name(formName)])],
           onNonEmpty: Array.map(selectedValue =>
-            input([Type('hidden'), Name(formName), Value(selectedValue)]),
+            h.input([
+              h.Type('hidden'),
+              h.Name(formName),
+              h.Value(selectedValue),
+            ]),
           ),
         })
       : []
 
     const wrapperAttributes = [
-      ...(className ? [Class(className)] : []),
+      ...(className ? [h.Class(className)] : []),
       ...attributes,
-      ...(isVisible ? [DataAttribute('open', '')] : []),
-      ...(isDisabled ? [DataAttribute('disabled', '')] : []),
-      ...(isInvalid ? [DataAttribute('invalid', '')] : []),
+      ...(isVisible ? [h.DataAttribute('open', '')] : []),
+      ...(isDisabled ? [h.DataAttribute('disabled', '')] : []),
+      ...(isInvalid ? [h.DataAttribute('invalid', '')] : []),
     ]
 
-    return div(wrapperAttributes, [
-      div(resolvedInputWrapperAttributes, [
-        input(resolvedInputAttributes),
+    return h.div(wrapperAttributes, [
+      h.div(resolvedInputWrapperAttributes, [
+        h.input(resolvedInputAttributes),
         ...toggleButton,
       ]),
       ...(isVisible && Array.isReadonlyArrayNonEmpty(items)

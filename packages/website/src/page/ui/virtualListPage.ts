@@ -1,8 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
 import { uiShowcaseViewSourceHref } from '../../link'
-import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
   heading,
@@ -197,12 +195,14 @@ const dataAttributes: ReadonlyArray<DataAttributeEntry> = [
 
 // VIEW
 
-export const view = (
+export const view = <ParentMessage>(
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
   copiedSnippets: CopiedSnippets,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
       pageTitle('ui/virtualList', 'VirtualList'),
@@ -232,8 +232,11 @@ export const view = (
       ),
       ...VirtualList.virtualListDemo(model.virtualListDemo, toParentMessage),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippet.uiVirtualListBasicHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.uiVirtualListBasicHighlighted),
+          ],
           [],
         ),
         Snippet.uiVirtualListBasicRaw,
@@ -267,10 +270,10 @@ export const view = (
         toParentMessage,
       ),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippet.uiVirtualListVariableHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippet.uiVirtualListVariableHighlighted),
           ],
           [],
         ),
@@ -362,3 +365,4 @@ export const view = (
       propTable(viewConfigProps),
     ],
   )
+}

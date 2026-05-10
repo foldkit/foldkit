@@ -3,10 +3,11 @@
 // update, and view definitions.
 import { Effect } from 'effect'
 import { Command, Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Class, button, div, label, p } from './html'
+const h = html<Message>()
 
 // Add a field to your Model for the Switch Submodel:
 const Model = S.Struct({
@@ -47,20 +48,20 @@ Ui.Switch.view({
   model: model.switchDemo,
   toParentMessage: message => GotSwitchMessage({ message }),
   toView: attributes =>
-    div(
-      [Class('flex items-center gap-3')],
+    h.div(
+      [h.Class('flex items-center gap-3')],
       [
-        button(
+        h.button(
           [
             ...attributes.button,
-            Class(
+            h.Class(
               'relative h-6 w-11 rounded-full transition-colors data-[checked]:bg-blue-600 bg-gray-200',
             ),
           ],
           [
-            div(
+            h.div(
               [
-                Class(
+                h.Class(
                   'absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform',
                 ),
               ],
@@ -68,15 +69,15 @@ Ui.Switch.view({
             ),
           ],
         ),
-        div(
+        h.div(
           [],
           [
-            label(
-              [...attributes.label, Class('text-sm font-medium')],
+            h.label(
+              [...attributes.label, h.Class('text-sm font-medium')],
               ['Enable notifications'],
             ),
-            p(
-              [...attributes.description, Class('text-sm text-gray-500')],
+            h.p(
+              [...attributes.description, h.Class('text-sm text-gray-500')],
               ['Get notified when something important happens.'],
             ),
           ],

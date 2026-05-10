@@ -475,25 +475,7 @@ export type ViewConfig<ParentMessage> = Readonly<{
 export const view = <ParentMessage>(
   config: ViewConfig<ParentMessage>,
 ): Html => {
-  const {
-    div,
-    AriaControls,
-    AriaDisabled,
-    AriaExpanded,
-    Class,
-    DataAttribute,
-    Id,
-    OnBlur,
-    OnClick,
-    OnKeyDownPreventDefault,
-    OnKeyUpPreventDefault,
-    OnMount,
-    OnPointerDown,
-    Style,
-    Tabindex,
-    Type,
-    keyed,
-  } = html<ParentMessage>()
+  const h = html<ParentMessage>()
 
   const {
     model: {
@@ -531,25 +513,25 @@ export const view = <ParentMessage>(
     transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
   const isVisible = isOpen || isLeaving
 
-  const animationAttributes: ReadonlyArray<ReturnType<typeof DataAttribute>> =
+  const animationAttributes: ReadonlyArray<ReturnType<typeof h.DataAttribute>> =
     M.value(transitionState).pipe(
       M.when('EnterStart', () => [
-        DataAttribute('closed', ''),
-        DataAttribute('enter', ''),
-        DataAttribute('transition', ''),
+        h.DataAttribute('closed', ''),
+        h.DataAttribute('enter', ''),
+        h.DataAttribute('transition', ''),
       ]),
       M.when('EnterAnimating', () => [
-        DataAttribute('enter', ''),
-        DataAttribute('transition', ''),
+        h.DataAttribute('enter', ''),
+        h.DataAttribute('transition', ''),
       ]),
       M.when('LeaveStart', () => [
-        DataAttribute('leave', ''),
-        DataAttribute('transition', ''),
+        h.DataAttribute('leave', ''),
+        h.DataAttribute('transition', ''),
       ]),
       M.when('LeaveAnimating', () => [
-        DataAttribute('closed', ''),
-        DataAttribute('leave', ''),
-        DataAttribute('transition', ''),
+        h.DataAttribute('closed', ''),
+        h.DataAttribute('leave', ''),
+        h.DataAttribute('transition', ''),
       ]),
       M.orElse(() => []),
     )
@@ -601,25 +583,25 @@ export const view = <ParentMessage>(
     )
 
   const resolvedButtonAttributes = [
-    Id(`${id}-button`),
-    Type('button'),
-    AriaExpanded(isVisible),
-    AriaControls(`${id}-panel`),
+    h.Id(`${id}-button`),
+    h.Type('button'),
+    h.AriaExpanded(isVisible),
+    h.AriaControls(`${id}-panel`),
     ...(isDisabled
-      ? [AriaDisabled(true), DataAttribute('disabled', '')]
+      ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
       : [
-          OnPointerDown(handleButtonPointerDown),
-          OnKeyDownPreventDefault(handleButtonKeyDown),
-          OnKeyUpPreventDefault(handleSpaceKeyUp),
-          OnClick(handleButtonClick()),
+          h.OnPointerDown(handleButtonPointerDown),
+          h.OnKeyDownPreventDefault(handleButtonKeyDown),
+          h.OnKeyUpPreventDefault(handleSpaceKeyUp),
+          h.OnClick(handleButtonClick()),
         ]),
     ...(isVisible
       ? [
-          DataAttribute('open', ''),
-          Style({ position: 'relative', zIndex: '1' }),
+          h.DataAttribute('open', ''),
+          h.Style({ position: 'relative', zIndex: '1' }),
         ]
       : []),
-    ...(buttonClassName ? [Class(buttonClassName)] : []),
+    ...(buttonClassName ? [h.Class(buttonClassName)] : []),
     ...buttonAttributes,
   ]
 
@@ -633,31 +615,31 @@ export const view = <ParentMessage>(
   )
 
   const anchorAttributes = [
-    Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
-    OnMount(anchorPopover),
+    h.Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
+    h.OnMount(anchorPopover),
   ]
 
   const resolvedPanelAttributes = [
-    Id(`${id}-panel`),
-    ...(contentFocus ? [] : [Tabindex(0)]),
+    h.Id(`${id}-panel`),
+    ...(contentFocus ? [] : [h.Tabindex(0)]),
     ...anchorAttributes,
     ...animationAttributes,
     ...(isLeaving
       ? []
       : [
-          OnKeyDownPreventDefault(handlePanelKeyDown),
-          ...(contentFocus ? [] : [OnBlur(toParentMessage(BlurredPanel()))]),
+          h.OnKeyDownPreventDefault(handlePanelKeyDown),
+          ...(contentFocus ? [] : [h.OnBlur(toParentMessage(BlurredPanel()))]),
         ]),
-    ...(panelClassName ? [Class(panelClassName)] : []),
+    ...(panelClassName ? [h.Class(panelClassName)] : []),
     ...panelAttributes,
   ]
 
-  const backdrop = keyed('div')(
+  const backdrop = h.keyed('div')(
     `${id}-backdrop`,
     [
-      OnMount(Mount.mapMessage(PortalPopoverBackdrop(), toParentMessage)),
-      ...(isLeaving ? [] : [OnClick(dispatchClosed())]),
-      ...(backdropClassName ? [Class(backdropClassName)] : []),
+      h.OnMount(Mount.mapMessage(PortalPopoverBackdrop(), toParentMessage)),
+      ...(isLeaving ? [] : [h.OnClick(dispatchClosed())]),
+      ...(backdropClassName ? [h.Class(backdropClassName)] : []),
       ...backdropAttributes,
     ],
     [],
@@ -665,19 +647,21 @@ export const view = <ParentMessage>(
 
   const visibleContent = [
     backdrop,
-    keyed('div')(`${id}-panel-container`, resolvedPanelAttributes, [
+    h.keyed('div')(`${id}-panel-container`, resolvedPanelAttributes, [
       panelContent,
     ]),
   ]
 
   const wrapperAttributes = [
-    ...(className ? [Class(className)] : []),
+    ...(className ? [h.Class(className)] : []),
     ...attributes,
-    ...(isVisible ? [DataAttribute('open', '')] : []),
+    ...(isVisible ? [h.DataAttribute('open', '')] : []),
   ]
 
-  return div(wrapperAttributes, [
-    keyed('button')(`${id}-button`, resolvedButtonAttributes, [buttonContent]),
+  return h.div(wrapperAttributes, [
+    h.keyed('button')(`${id}-button`, resolvedButtonAttributes, [
+      buttonContent,
+    ]),
     ...(isVisible ? visibleContent : []),
   ])
 }

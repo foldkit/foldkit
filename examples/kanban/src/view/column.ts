@@ -1,56 +1,45 @@
 import clsx from 'clsx'
 import { Array, Equal, Option, flow, pipe } from 'effect'
 import { Ui } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
 import { ADD_CARD_INPUT_ID } from '../constant'
 import { Card, Column } from '../domain'
 import {
-  AriaHidden,
-  AriaLabel,
-  Class,
-  For,
-  OnKeyDownPreventDefault,
-  OnSubmit,
-  Role,
-  button,
-  div,
-  form,
-  h2,
-  input,
-  keyed,
-  label,
-  span,
-  ul,
-} from '../html'
-import type { Message } from '../message'
-import {
   CancelledNewCard,
   ChangedNewCardTitle,
   ClickedAddCard,
+  GotDragAndDropMessage,
+  type Message,
   SubmittedNewCard,
 } from '../message'
 import type { Model } from '../model'
 import { cardView } from './card'
 
-const addCardForm = (model: Model, columnId: string): Html => {
+const addCardForm = <ParentMessage>(
+  model: Model,
+  columnId: string,
+  toParentMessage: (message: Message) => ParentMessage,
+): Html => {
+  const h = html<ParentMessage>()
+
   const isAddingToThisColumn = Option.exists(
     model.maybeNewCardColumnId,
     id => id === columnId,
   )
 
   if (!isAddingToThisColumn) {
-    return keyed('div')(
+    return h.keyed('div')(
       'idle',
       [],
       [
         Ui.Button.view({
-          onClick: ClickedAddCard({ columnId }),
+          onClick: toParentMessage(ClickedAddCard({ columnId })),
           toView: attributes =>
-            button(
+            h.button(
               [
                 ...attributes.button,
-                Class(
+                h.Class(
                   'w-full rounded-lg border border-dashed border-gray-300 p-2 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors cursor-pointer',
                 ),
               ],
@@ -61,56 +50,62 @@ const addCardForm = (model: Model, columnId: string): Html => {
     )
   }
 
-  return keyed('div')(
+  return h.keyed('div')(
     'adding',
     [],
     [
-      form(
-        [Class('flex flex-col gap-2'), OnSubmit(SubmittedNewCard())],
+      h.form(
         [
-          label([For(ADD_CARD_INPUT_ID), Class('sr-only')], ['New card title']),
+          h.Class('flex flex-col gap-2'),
+          h.OnSubmit(toParentMessage(SubmittedNewCard())),
+        ],
+        [
+          h.label(
+            [h.For(ADD_CARD_INPUT_ID), h.Class('sr-only')],
+            ['New card title'],
+          ),
           Ui.Input.view({
             id: ADD_CARD_INPUT_ID,
-            onInput: value => ChangedNewCardTitle({ value }),
+            onInput: value => toParentMessage(ChangedNewCardTitle({ value })),
             value: model.newCardTitle,
             placeholder: 'Card title...',
             toView: attributes =>
-              input([
+              h.input([
                 ...attributes.input,
-                Class(
+                h.Class(
                   'rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none',
                 ),
-                OnKeyDownPreventDefault(
+                h.OnKeyDownPreventDefault(
                   flow(
                     Option.liftPredicate(Equal.equals('Escape')),
-                    Option.map(() => CancelledNewCard()),
+                    Option.map(() => toParentMessage(CancelledNewCard())),
                   ),
                 ),
               ]),
           }),
-          div(
-            [Class('flex gap-2 justify-end')],
+          h.div(
+            [h.Class('flex gap-2 justify-end')],
             [
               Ui.Button.view({
-                onClick: CancelledNewCard(),
+                onClick: toParentMessage(CancelledNewCard()),
                 toView: attributes =>
-                  button(
+                  h.button(
                     [
                       ...attributes.button,
-                      Class(
+                      h.Class(
                         'rounded-lg px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 transition-colors cursor-pointer',
                       ),
                     ],
                     ['Cancel'],
                   ),
               }),
-              Ui.Button.view<Message>({
+              Ui.Button.view<ParentMessage>({
                 type: 'submit',
                 toView: attributes =>
-                  button(
+                  h.button(
                     [
                       ...attributes.button,
-                      Class(
+                      h.Class(
                         'rounded-lg bg-blue-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-600 transition-colors cursor-pointer',
                       ),
                     ],
@@ -125,17 +120,19 @@ const addCardForm = (model: Model, columnId: string): Html => {
   )
 }
 
-const dropPlaceholder = (): Html =>
-  keyed('li')(
+const dropPlaceholder = <ParentMessage>(): Html => {
+  const h = html<ParentMessage>()
+  return h.keyed('li')(
     'drop-placeholder',
     [
-      Class(
+      h.Class(
         'rounded-lg border-2 border-dashed border-blue-300 bg-blue-50 h-12',
       ),
-      AriaHidden(true),
+      h.AriaHidden(true),
     ],
     [],
   )
+}
 
 const findDraggedCard = (
   model: Model,
@@ -147,26 +144,29 @@ const findDraggedCard = (
     Array.findFirst(({ id }) => id === draggedId),
   )
 
-const defaultCardElements = (
+const defaultCardElements = <ParentMessage>(
   model: Model,
   column: Column.Column,
-  toParentMessage: (message: Ui.DragAndDrop.Message) => Message,
+  toParentMessage: (message: Message) => ParentMessage,
 ): ReadonlyArray<Html> =>
   Array.map(column.cards, (card, index) =>
-    cardView(model, card, column.id, index, toParentMessage),
+    cardView<ParentMessage>(model, card, column.id, index, message =>
+      toParentMessage(GotDragAndDropMessage({ message })),
+    ),
   )
 
-const previewCardElements = (
+const previewCardElements = <ParentMessage>(
   model: Model,
   column: Column.Column,
-  toParentMessage: (message: Ui.DragAndDrop.Message) => Message,
+  toParentMessage: (message: Message) => ParentMessage,
 ): ReadonlyArray<Html> => {
   if (!Ui.DragAndDrop.isDragging(model.dragAndDrop)) {
-    return defaultCardElements(model, column, toParentMessage)
+    return defaultCardElements<ParentMessage>(model, column, toParentMessage)
   }
 
   return Option.match(Ui.DragAndDrop.maybeDraggedItemId(model.dragAndDrop), {
-    onNone: () => defaultCardElements(model, column, toParentMessage),
+    onNone: () =>
+      defaultCardElements<ParentMessage>(model, column, toParentMessage),
     onSome: draggedId => {
       const maybeTarget = Ui.DragAndDrop.maybeDropTarget(model.dragAndDrop)
       const visibleCards = Array.filter(
@@ -174,7 +174,9 @@ const previewCardElements = (
         ({ id }) => id !== draggedId,
       )
       const cardElements = Array.map(visibleCards, (card, index) =>
-        cardView(model, card, column.id, index, toParentMessage),
+        cardView<ParentMessage>(model, card, column.id, index, message =>
+          toParentMessage(GotDragAndDropMessage({ message })),
+        ),
       )
 
       const isTargetColumn = Option.exists(
@@ -193,11 +195,17 @@ const previewCardElements = (
 
       const isPointerDrag = model.dragAndDrop.dragState._tag === 'Dragging'
       const insertElement = isPointerDrag
-        ? dropPlaceholder()
+        ? dropPlaceholder<ParentMessage>()
         : Option.match(findDraggedCard(model, draggedId), {
-            onNone: () => dropPlaceholder(),
+            onNone: () => dropPlaceholder<ParentMessage>(),
             onSome: card =>
-              cardView(model, card, column.id, targetIndex, toParentMessage),
+              cardView<ParentMessage>(
+                model,
+                card,
+                column.id,
+                targetIndex,
+                message => toParentMessage(GotDragAndDropMessage({ message })),
+              ),
           })
 
       return pipe(
@@ -209,11 +217,13 @@ const previewCardElements = (
   })
 }
 
-export const columnView = (
+export const columnView = <ParentMessage>(
   model: Model,
   column: Column.Column,
-  toParentMessage: (message: Ui.DragAndDrop.Message) => Message,
+  toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
+  const h = html<ParentMessage>()
+
   const maybeCurrentDropTarget = Ui.DragAndDrop.maybeDropTarget(
     model.dragAndDrop,
   )
@@ -224,12 +234,12 @@ export const columnView = (
       target => target.containerId === column.id,
     )
 
-  return keyed('div')(
+  return h.keyed('div')(
     column.id,
     [
-      Role('region'),
-      AriaLabel(column.name),
-      Class(
+      h.Role('region'),
+      h.AriaLabel(column.name),
+      h.Class(
         clsx('bg-gray-50 rounded-lg p-3 flex flex-col min-h-0 border-2', {
           'border-dashed border-blue-300': isDropTarget,
           'border-transparent': !isDropTarget,
@@ -237,34 +247,37 @@ export const columnView = (
       ),
     ],
     [
-      div(
+      h.div(
         [
-          Class(
+          h.Class(
             'flex items-center justify-between border-b border-gray-200 pb-2 mb-3',
           ),
         ],
         [
-          h2(
+          h.h2(
             [
-              Class(
+              h.Class(
                 'text-xs font-semibold uppercase tracking-wide text-gray-500',
               ),
             ],
             [column.name],
           ),
-          span([Class('text-xs text-gray-400')], [`${column.cards.length}`]),
+          h.span(
+            [h.Class('text-xs text-gray-400')],
+            [`${column.cards.length}`],
+          ),
         ],
       ),
-      ul(
+      h.ul(
         [
-          Class('flex flex-col gap-2 flex-1 overflow-y-auto min-h-0'),
-          ...Ui.DragAndDrop.droppable<Message>(column.id, column.name),
+          h.Class('flex flex-col gap-2 flex-1 overflow-y-auto min-h-0'),
+          ...Ui.DragAndDrop.droppable<ParentMessage>(column.id, column.name),
         ],
-        previewCardElements(model, column, toParentMessage),
+        previewCardElements<ParentMessage>(model, column, toParentMessage),
       ),
-      div(
-        [Class('mt-3 pt-2 border-t border-gray-200')],
-        [addCardForm(model, column.id)],
+      h.div(
+        [h.Class('mt-3 pt-2 border-t border-gray-200')],
+        [addCardForm<ParentMessage>(model, column.id, toParentMessage)],
       ),
     ],
   )

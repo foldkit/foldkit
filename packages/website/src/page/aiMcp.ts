@@ -1,7 +1,7 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div, table, tbody, td, th, thead, tr } from '../html'
 import type { TableOfContentsEntry } from '../main'
+import type { Message } from '../message'
 import {
   inlineCode,
   link,
@@ -20,6 +20,8 @@ import {
   codeBlock,
   highlightedCodeBlock,
 } from '../view/codeBlock'
+
+const h = html<Message>()
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -186,43 +188,43 @@ const tools: ReadonlyArray<ToolRowSpec> = [
 ]
 
 const toolRow = ({ name, description }: ToolRowSpec): Html =>
-  tr(
-    [Class('border-b border-gray-200 dark:border-gray-700/50')],
+  h.tr(
+    [h.Class('border-b border-gray-200 dark:border-gray-700/50')],
     [
-      td(
-        [Class(toolNameCellClassName)],
-        [div([Class(toolNameClassName)], [name])],
+      h.td(
+        [h.Class(toolNameCellClassName)],
+        [h.div([h.Class(toolNameClassName)], [name])],
       ),
-      td([Class(toolDescriptionCellClassName)], description),
+      h.td([h.Class(toolDescriptionCellClassName)], description),
     ],
   )
 
-const toolsTable: Html = div(
-  [Class('mb-6')],
+const toolsTable: Html = h.div(
+  [h.Class('mb-6')],
   [
-    table(
-      [Class('w-full text-sm')],
+    h.table(
+      [h.Class('w-full text-sm')],
       [
-        thead(
+        h.thead(
           [],
           [
-            tr(
+            h.tr(
               [],
               [
-                th([Class(toolHeaderCellClassName)], ['Tool']),
-                th([Class(toolHeaderCellClassName)], ['Description']),
+                h.th([h.Class(toolHeaderCellClassName)], ['Tool']),
+                h.th([h.Class(toolHeaderCellClassName)], ['Description']),
               ],
             ),
           ],
         ),
-        tbody([], tools.map(toolRow)),
+        h.tbody([], tools.map(toolRow)),
       ],
     ),
   ],
 )
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('ai/mcp', 'DevTools MCP Server'),
@@ -277,8 +279,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' to the Foldkit plugin so it opens the WebSocket relay:',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.aiMcpViteConfigHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.aiMcpViteConfigHighlighted),
+          ],
           [],
         ),
         Snippets.aiMcpViteConfigRaw,
@@ -294,8 +299,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' Schema. The runtime decodes every dispatched Message against it before reaching your update function:',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.aiMcpProgramConfigHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.aiMcpProgramConfigHighlighted),
+          ],
           [],
         ),
         Snippets.aiMcpProgramConfigRaw,

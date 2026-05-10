@@ -3,10 +3,11 @@
 // update, and view definitions.
 import { Effect } from 'effect'
 import { Command, Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Class, div, p, span } from './html'
+const h = html<Message>()
 
 // Add a field to your Model for the RadioGroup Submodel:
 const Model = S.Struct({
@@ -65,21 +66,21 @@ Ui.RadioGroup.view<Message, Plan>({
   optionToConfig: (plan, { isSelected }) => ({
     value: plan,
     content: attributes =>
-      div(
+      h.div(
         [
           ...attributes.option,
-          Class(
+          h.Class(
             'rounded-lg border p-4 cursor-pointer data-[checked]:border-blue-600',
           ),
         ],
         [
-          span([...attributes.label, Class('text-sm font-medium')], [plan]),
-          p(
-            [...attributes.description, Class('text-sm text-gray-500')],
+          h.span([...attributes.label, h.Class('text-sm font-medium')], [plan]),
+          h.p(
+            [...attributes.description, h.Class('text-sm text-gray-500')],
             [descriptions[plan]],
           ),
         ],
       ),
   }),
-  attributes: [Class('flex flex-col gap-3')],
+  attributes: [h.Class('flex flex-col gap-3')],
 })

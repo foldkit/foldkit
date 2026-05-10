@@ -1,8 +1,6 @@
 import { Ui } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, Id, OnClick, button, div, h2, h3, p } from '../html'
-import type { Message as ParentMessage } from '../main'
 import {
   GotDialogAnimatedDemoMessage,
   GotDialogDemoMessage,
@@ -35,37 +33,39 @@ const cancelButtonClassName =
 const confirmButtonClassName =
   'px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg bg-accent-600 text-white hover:bg-accent-700'
 
-const dialogPanel = (
+const dialogPanel = <ParentMessage>(
   dialogModel: Ui.Dialog.Model,
   toDialogMessage: (message: Ui.Dialog.Message) => ParentMessage,
-) =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
-      h2(
-        [Class(titleClassName), Id(Ui.Dialog.titleId(dialogModel))],
+      h.h2(
+        [h.Class(titleClassName), h.Id(Ui.Dialog.titleId(dialogModel))],
         ['Confirm Action'],
       ),
-      p(
-        [Class('text-gray-600 mb-4')],
+      h.p(
+        [h.Class('text-gray-600 mb-4')],
         [
           'Are you sure you want to proceed? This action demonstrates the Dialog component with focus trapping, backdrop click, and Escape key handling.',
         ],
       ),
-      div(
-        [Class('flex gap-2 justify-end')],
+      h.div(
+        [h.Class('flex gap-2 justify-end')],
         [
-          button(
+          h.button(
             [
-              Class(cancelButtonClassName),
-              OnClick(toDialogMessage(Ui.Dialog.Closed())),
+              h.Class(cancelButtonClassName),
+              h.OnClick(toDialogMessage(Ui.Dialog.Closed())),
             ],
             ['Cancel'],
           ),
-          button(
+          h.button(
             [
-              Class(confirmButtonClassName),
-              OnClick(toDialogMessage(Ui.Dialog.Closed())),
+              h.Class(confirmButtonClassName),
+              h.OnClick(toDialogMessage(Ui.Dialog.Closed())),
             ],
             ['Confirm'],
           ),
@@ -73,30 +73,36 @@ const dialogPanel = (
       ),
     ],
   )
+}
 
-export const view = (
+export const view = <ParentMessage>(
   model: UiModel,
   toParentMessage: (message: UiMessage) => ParentMessage,
 ): Html => {
+  const h = html<ParentMessage>()
+
   const toDialogMessage = (message: Ui.Dialog.Message) =>
     toParentMessage(GotDialogDemoMessage({ message }))
 
   const toAnimatedDialogMessage = (message: Ui.Dialog.Message) =>
     toParentMessage(GotDialogAnimatedDemoMessage({ message }))
 
-  return div(
+  return h.div(
     [],
     [
-      h2([Class('text-2xl font-bold text-gray-900 mb-6')], ['Dialog']),
+      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Dialog']),
 
-      h3([Class('text-lg font-semibold text-gray-900 mt-8 mb-4')], ['Basic']),
-      div(
-        [Class('flex gap-3')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+        ['Basic'],
+      ),
+      h.div(
+        [h.Class('flex gap-3')],
         [
-          button(
+          h.button(
             [
-              Class(triggerClassName),
-              OnClick(toDialogMessage(Ui.Dialog.Opened())),
+              h.Class(triggerClassName),
+              h.OnClick(toDialogMessage(Ui.Dialog.Opened())),
             ],
             ['Open Dialog'],
           ),
@@ -105,23 +111,26 @@ export const view = (
       Ui.Dialog.view({
         model: model.dialogDemo,
         toParentMessage: toDialogMessage,
-        panelContent: dialogPanel(model.dialogDemo, toDialogMessage),
-        panelAttributes: [Class(panelClassName)],
-        backdropAttributes: [Class(backdropClassName)],
-        attributes: [Class(dialogClassName)],
+        panelContent: dialogPanel<ParentMessage>(
+          model.dialogDemo,
+          toDialogMessage,
+        ),
+        panelAttributes: [h.Class(panelClassName)],
+        backdropAttributes: [h.Class(backdropClassName)],
+        attributes: [h.Class(dialogClassName)],
       }),
 
-      h3(
-        [Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+      h.h3(
+        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Animated'],
       ),
-      div(
-        [Class('flex gap-3')],
+      h.div(
+        [h.Class('flex gap-3')],
         [
-          button(
+          h.button(
             [
-              Class(triggerClassName),
-              OnClick(toAnimatedDialogMessage(Ui.Dialog.Opened())),
+              h.Class(triggerClassName),
+              h.OnClick(toAnimatedDialogMessage(Ui.Dialog.Opened())),
             ],
             ['Open Animated Dialog'],
           ),
@@ -130,13 +139,13 @@ export const view = (
       Ui.Dialog.view({
         model: model.dialogAnimatedDemo,
         toParentMessage: toAnimatedDialogMessage,
-        panelContent: dialogPanel(
+        panelContent: dialogPanel<ParentMessage>(
           model.dialogAnimatedDemo,
           toAnimatedDialogMessage,
         ),
-        panelAttributes: [Class(animatedPanelClassName)],
-        backdropAttributes: [Class(animatedBackdropClassName)],
-        attributes: [Class(dialogClassName)],
+        panelAttributes: [h.Class(animatedPanelClassName)],
+        backdropAttributes: [h.Class(animatedBackdropClassName)],
+        attributes: [h.Class(dialogClassName)],
       }),
     ],
   )

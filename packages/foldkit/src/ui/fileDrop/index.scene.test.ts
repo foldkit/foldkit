@@ -5,7 +5,7 @@ import * as Scene from '../../test/scene.js'
 import type { Message, Model, ViewConfig } from './index.js'
 import { EnteredDragZone, init, update, view } from './index.js'
 
-const { input, label, p } = html<Message>()
+const h = html<Message>()
 
 const sceneView =
   (overrides: Partial<ViewConfig<Message>> = {}) =>
@@ -14,9 +14,9 @@ const sceneView =
       model,
       toParentMessage: message => message,
       toView: attrs =>
-        label(attrs.root, [
-          p([], ['Drop files or click to upload']),
-          input(attrs.input),
+        h.label(attrs.root, [
+          h.p([], ['Drop files or click to upload']),
+          h.input(attrs.input),
         ]),
       ...overrides,
     })

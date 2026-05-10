@@ -3,10 +3,11 @@
 // update, and view definitions.
 import { Effect } from 'effect'
 import { Command, Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Class, p, span } from './html'
+const h = html<Message>()
 
 // Add a field to your Model for the Tabs Submodel:
 const Model = S.Struct({
@@ -60,9 +61,9 @@ Ui.Tabs.view<Message, Framework>({
   tabToConfig: (tab, { isActive }) => ({
     buttonClassName:
       'px-4 py-2 rounded-t-lg border data-[selected]:bg-white data-[selected]:border-b-0',
-    buttonContent: span([], [tab]),
+    buttonContent: h.span([], [tab]),
     panelClassName: 'p-6 border rounded-b-lg',
-    panelContent: p([], [descriptions[tab]]),
+    panelContent: h.p([], [descriptions[tab]]),
   }),
-  tabListAttributes: [Class('flex')],
+  tabListAttributes: [h.Class('flex')],
 })

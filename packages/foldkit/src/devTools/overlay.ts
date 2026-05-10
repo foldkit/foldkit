@@ -719,29 +719,7 @@ const makeView = (
   mode: DevToolsMode,
   maybeBanner: Option.Option<string>,
 ): ((model: Model) => Document) => {
-  const {
-    div,
-    header,
-    span,
-    ul,
-    button,
-    svg,
-    path,
-    keyed,
-    Key,
-    Class,
-    Style,
-    OnClick,
-    AriaHidden,
-    Xmlns,
-    Fill,
-    ViewBox,
-    StrokeWidth,
-    Stroke,
-    StrokeLinecap,
-    StrokeLinejoin,
-    D,
-  } = html<Message>()
+  const h = html<Message>()
 
   const lazyTreeNode = createKeyedLazy()
   const lazyMessageRow = createKeyedLazy()
@@ -753,58 +731,59 @@ const makeView = (
   const leafValueView = (value: unknown): Html =>
     M.value(value).pipe(
       M.when(Predicate.isNull, () =>
-        span([Class('json-null italic')], ['null']),
+        h.span([h.Class('json-null italic')], ['null']),
       ),
       M.when(Predicate.isUndefined, () =>
-        span([Class('json-null italic')], ['undefined']),
+        h.span([h.Class('json-null italic')], ['undefined']),
       ),
       M.when(Predicate.isString, stringValue =>
-        span([Class('json-string')], [`"${stringValue}"`]),
+        h.span([h.Class('json-string')], [`"${stringValue}"`]),
       ),
       M.when(Predicate.isNumber, numberValue =>
-        span([Class('json-number')], [String(numberValue)]),
+        h.span([h.Class('json-number')], [String(numberValue)]),
       ),
       M.when(Predicate.isBoolean, booleanValue =>
-        span([Class('json-boolean')], [String(booleanValue)]),
+        h.span([h.Class('json-boolean')], [String(booleanValue)]),
       ),
       M.orElse(unknownValue =>
-        span([Class('json-null')], [String(unknownValue)]),
+        h.span([h.Class('json-null')], [String(unknownValue)]),
       ),
     )
 
   const keyView = (key: string): Html =>
-    span([Class('json-key')], [`${key}:\u00a0`])
+    h.span([h.Class('json-key')], [`${key}:\u00a0`])
 
   const CHEVRON_RIGHT = 'M8.25 4.5l7.5 7.5-7.5 7.5'
   const CHEVRON_DOWN = 'M19.5 8.25l-7.5 7.5-7.5-7.5'
 
   const arrowView = (isExpanded: boolean): Html =>
-    svg(
+    h.svg(
       [
-        AriaHidden(true),
-        Class('json-arrow shrink-0'),
-        Xmlns('http://www.w3.org/2000/svg'),
-        Fill('none'),
-        ViewBox('0 0 24 24'),
-        StrokeWidth('2'),
-        Stroke('currentColor'),
+        h.AriaHidden(true),
+        h.Class('json-arrow shrink-0'),
+        h.Xmlns('http://www.w3.org/2000/h.svg'),
+        h.Fill('none'),
+        h.ViewBox('0 0 24 24'),
+        h.StrokeWidth('2'),
+        h.Stroke('currentColor'),
       ],
       [
-        path(
+        h.path(
           [
-            StrokeLinecap('round'),
-            StrokeLinejoin('round'),
-            D(isExpanded ? CHEVRON_DOWN : CHEVRON_RIGHT),
+            h.StrokeLinecap('round'),
+            h.StrokeLinejoin('round'),
+            h.D(isExpanded ? CHEVRON_DOWN : CHEVRON_RIGHT),
           ],
           [],
         ),
       ],
     )
 
-  const tagLabelView = (tag: string): Html => span([Class('json-tag')], [tag])
+  const tagLabelView = (tag: string): Html =>
+    h.span([h.Class('json-tag')], [tag])
 
-  const diffDotView: Html = span([Class('diff-dot')], [])
-  const inlineDiffDotView: Html = span([Class('diff-dot-inline')], [])
+  const diffDotView: Html = h.span([h.Class('diff-dot')], [])
+  const inlineDiffDotView: Html = h.span([h.Class('diff-dot-inline')], [])
 
   type FlatNode = Readonly<{
     value: unknown
@@ -912,14 +891,14 @@ const makeView = (
     isRoot: boolean,
     tag: string,
   ): Html => {
-    const indent = Style({ paddingLeft: `${depth * TREE_INDENT_PX}px` })
+    const indent = h.Style({ paddingLeft: `${depth * TREE_INDENT_PX}px` })
     const hasDiffDot = isChanged || isAffected
 
     if (!nodeIsExpandable) {
-      return div(
+      return h.div(
         [
-          Key(treePath),
-          Class(
+          h.Key(treePath),
+          h.Class(
             clsx('tree-row flex items-center gap-px font-mono text-2xs', {
               'diff-changed': isChanged,
             }),
@@ -940,24 +919,24 @@ const makeView = (
         : ''
       : collapsedPreview(value)
 
-    return div(
+    return h.div(
       [
-        Key(treePath),
-        Class(
+        h.Key(treePath),
+        h.Class(
           clsx('tree-row flex items-center gap-px font-mono text-2xs', {
             'tree-row-expandable cursor-pointer': !isRoot,
             'diff-changed': isChanged,
           }),
         ),
         indent,
-        ...(isRoot ? [] : [OnClick(ToggledTreeNode({ path: treePath }))]),
+        ...(isRoot ? [] : [h.OnClick(ToggledTreeNode({ path: treePath }))]),
       ],
       [
         ...(isRoot ? [] : [arrowView(isExpanded)]),
         ...(!isRoot && hasDiffDot ? [diffDotView] : []),
         ...(String_.isNonEmpty(key) ? [keyView(key)] : []),
         ...(String_.isNonEmpty(tag) ? [tagLabelView(tag)] : []),
-        span([Class('json-preview')], [preview]),
+        h.span([h.Class('json-preview')], [preview]),
       ],
     )
   }
@@ -999,9 +978,9 @@ const makeView = (
       indentRootChildren,
     })
 
-    return div(
+    return h.div(
       [
-        Class(
+        h.Class(
           'inspector-tree flex-1 overflow-auto min-h-0 min-w-0 overscroll-none',
         ),
       ],
@@ -1050,9 +1029,9 @@ const makeView = (
     )
   }
 
-  const emptyInspectorView: Html = div(
+  const emptyInspectorView: Html = h.div(
     [
-      Class(
+      h.Class(
         'flex-1 flex items-center justify-center text-dt-muted text-2xs font-mono min-w-0',
       ),
     ],
@@ -1067,9 +1046,9 @@ const makeView = (
     'Mounts',
   ]
 
-  const noMessageView: Html = div(
+  const noMessageView: Html = h.div(
     [
-      Class(
+      h.Class(
         'flex-1 flex items-center justify-center text-dt-muted text-2xs font-mono min-w-0',
       ),
     ],
@@ -1132,19 +1111,19 @@ const makeView = (
       onSome: rawMessage => {
         const message = unwrapIfFiltered(rawMessage, maybeSubmodelFilter)
 
-        return div(
-          [Class('flex flex-col flex-1 min-h-0 min-w-0')],
+        return h.div(
+          [h.Class('flex flex-col flex-1 min-h-0 min-w-0')],
           [
-            div(
+            h.div(
               [
-                Class(
+                h.Class(
                   'px-2 py-1 border-b text-2xs text-dt-muted font-mono shrink-0',
                 ),
               ],
               [timestamp],
             ),
-            div(
-              [Class('flex flex-col flex-1 min-h-0 min-w-0 pt-1 pl-1')],
+            h.div(
+              [h.Class('flex flex-col flex-1 min-h-0 min-w-0 pt-1 pl-1')],
               [
                 treeView(
                   message,
@@ -1220,28 +1199,28 @@ const makeView = (
   ): Html =>
     Array_.match(commands, {
       onEmpty: () =>
-        div(
+        h.div(
           [
-            Class(
+            h.Class(
               'flex-1 flex items-center justify-center text-dt-muted text-2xs font-mono min-w-0',
             ),
           ],
           ['No Commands returned'],
         ),
       onNonEmpty: commandList =>
-        div(
+        h.div(
           [
-            Class(
+            h.Class(
               'flex flex-col flex-1 min-h-0 min-w-0 overflow-auto overscroll-none',
             ),
           ],
           Array_.map(commandList, (command, index) =>
-            div(
-              [Class('flex items-start px-2 py-1 border-b gap-1.5')],
+            h.div(
+              [h.Class('flex items-start px-2 py-1 border-b gap-1.5')],
               [
-                span([Class(indexClass)], [String(index + 1)]),
-                div(
-                  [Class('flex flex-col flex-1 min-w-0')],
+                h.span([h.Class(indexClass)], [String(index + 1)]),
+                h.div(
+                  [h.Class('flex flex-col flex-1 min-w-0')],
                   Array_.map(
                     flattenCommand(command, index, expandedPaths),
                     renderFlatNode,
@@ -1310,24 +1289,24 @@ const makeView = (
     mounts: ReadonlyArray<typeof DisplayMount.Type>,
     expandedPaths: HashSet.HashSet<string>,
   ): Html =>
-    div(
-      [Class('flex flex-col shrink-0')],
+    h.div(
+      [h.Class('flex flex-col shrink-0')],
       [
-        div(
+        h.div(
           [
-            Class(
+            h.Class(
               'px-2 py-1 border-b text-2xs text-dt-muted font-mono shrink-0',
             ),
           ],
           [label],
         ),
         ...Array_.map(mounts, (mount, index) =>
-          div(
-            [Class('flex items-start px-2 py-1 border-b gap-1.5')],
+          h.div(
+            [h.Class('flex items-start px-2 py-1 border-b gap-1.5')],
             [
-              span([Class(indexClass)], [String(index + 1)]),
-              div(
-                [Class('flex flex-col flex-1 min-w-0')],
+              h.span([h.Class(indexClass)], [String(index + 1)]),
+              h.div(
+                [h.Class('flex flex-col flex-1 min-w-0')],
                 Array_.map(
                   flattenMount(mount, label, index, expandedPaths),
                   renderFlatNode,
@@ -1349,9 +1328,9 @@ const makeView = (
       Array_.isReadonlyArrayNonEmpty(ends)
 
     if (!hasAny) {
-      return div(
+      return h.div(
         [
-          Class(
+          h.Class(
             'flex-1 flex items-center justify-center text-dt-muted text-2xs font-mono min-w-0',
           ),
         ],
@@ -1359,9 +1338,9 @@ const makeView = (
       )
     }
 
-    return div(
+    return h.div(
       [
-        Class(
+        h.Class(
           'flex flex-col flex-1 min-h-0 min-w-0 overflow-auto overscroll-none',
         ),
       ],
@@ -1416,9 +1395,9 @@ const makeView = (
     )
 
   const inspectorPaneView = (model: Model): Html =>
-    div(
+    h.div(
       [
-        Class(
+        h.Class(
           'flex flex-col border-l min-w-0 min-h-0 flex-1 dt-inspector-pane',
         ),
       ],
@@ -1430,19 +1409,19 @@ const makeView = (
           tabs: INSPECTOR_TABS,
           tabListAriaLabel: 'Inspector tabs',
           persistPanels: true,
-          attributes: [Class('flex flex-col flex-1 min-h-0')],
-          tabListAttributes: [Class('flex border-b shrink-0')],
+          attributes: [h.Class('flex flex-col flex-1 min-h-0')],
+          tabListAttributes: [h.Class('flex border-b shrink-0')],
           tabToConfig: (tab, { isActive }) => ({
             buttonAttributes: [
-              Class(
+              h.Class(
                 clsx(
-                  'dt-tab-button cursor-pointer text-base font-mono px-3 py-1',
+                  'dt-tab-h.button cursor-pointer text-base font-mono px-3 py-1',
                   isActive ? 'text-dt dt-tab-active' : 'text-dt-muted',
                 ),
               ),
             ],
-            buttonContent: span([], [tab]),
-            panelAttributes: [Class('flex flex-col flex-1 min-h-0 min-w-0')],
+            buttonContent: h.span([], [tab]),
+            panelAttributes: [h.Class('flex flex-col flex-1 min-h-0 min-w-0')],
             panelContent: Option.match(model.maybeInspectedModel, {
               onNone: () => emptyInspectorView,
               onSome: inspectedModel =>
@@ -1456,51 +1435,51 @@ const makeView = (
   // MESSAGE LIST
 
   const badgeView = (model: Model): Html =>
-    button(
+    h.button(
       [
-        Class(
+        h.Class(
           clsx(
             'fixed bg-dt-bg text-dt cursor-pointer flex flex-col items-center justify-center font-mono outline-none dt-badge',
             BADGE_POSITION_CLASS[position],
             model.isPaused ? 'dt-badge-paused' : 'dt-badge-accent',
           ),
         ),
-        Style({ width: '22px', height: '56px', fontSize: '10px' }),
-        OnClick(ClickedToggle()),
+        h.Style({ width: '22px', height: '56px', fontSize: '10px' }),
+        h.OnClick(ClickedToggle()),
       ],
       [
         model.isOpen
-          ? svg(
+          ? h.svg(
               [
-                AriaHidden(true),
-                Xmlns('http://www.w3.org/2000/svg'),
-                Fill('none'),
-                ViewBox('0 0 24 24'),
-                StrokeWidth('1.5'),
-                Stroke('currentColor'),
-                Style({ width: '12px', height: '12px' }),
+                h.AriaHidden(true),
+                h.Xmlns('http://www.w3.org/2000/h.svg'),
+                h.Fill('none'),
+                h.ViewBox('0 0 24 24'),
+                h.StrokeWidth('1.5'),
+                h.Stroke('currentColor'),
+                h.Style({ width: '12px', height: '12px' }),
               ],
               [
-                path(
+                h.path(
                   [
-                    StrokeLinecap('round'),
-                    StrokeLinejoin('round'),
-                    D('M6 18L18 6M6 6l12 12'),
+                    h.StrokeLinecap('round'),
+                    h.StrokeLinejoin('round'),
+                    h.D('M6 18L18 6M6 6l12 12'),
                   ],
                   [],
                 ),
               ],
             )
-          : div(
+          : h.div(
               [
-                Class(
+                h.Class(
                   clsx(
                     'flex flex-col items-center gap-0.5 font-semibold tracking-wider leading-none',
                     model.isPaused ? 'text-dt-bg' : 'text-dt-muted',
                   ),
                 ),
               ],
-              [span([], ['D']), span([], ['E']), span([], ['V'])],
+              [h.span([], ['D']), h.span([], ['E']), h.span([], ['V'])],
             ),
       ],
     )
@@ -1509,12 +1488,12 @@ const makeView = (
     'flex items-center justify-between px-3 py-1.5 border-b shrink-0'
 
   const actionButtonClass =
-    'dt-resume-button bg-transparent border-none text-dt-live cursor-pointer text-base font-mono font-medium'
+    'dt-resume-h.button bg-transparent border-none text-dt-live cursor-pointer text-base font-mono font-medium'
 
   const statusClass = 'text-base font-mono'
 
-  const clearHistoryButton: Html = button(
-    [Class(headerButtonClass), OnClick(ClickedClear())],
+  const clearHistoryButton: Html = h.button(
+    [h.Class(headerButtonClass), h.OnClick(ClickedClear())],
     ['Clear history'],
   )
 
@@ -1523,19 +1502,19 @@ const makeView = (
 
   const CHECK_ICON = 'M4.5 12.75l6 6 9-13.5'
 
-  const checkIconView: Html = svg(
+  const checkIconView: Html = h.svg(
     [
-      AriaHidden(true),
-      Class('dt-filter-check shrink-0'),
-      Xmlns('http://www.w3.org/2000/svg'),
-      Fill('none'),
-      ViewBox('0 0 24 24'),
-      StrokeWidth('2'),
-      Stroke('currentColor'),
+      h.AriaHidden(true),
+      h.Class('dt-filter-check shrink-0'),
+      h.Xmlns('http://www.w3.org/2000/h.svg'),
+      h.Fill('none'),
+      h.ViewBox('0 0 24 24'),
+      h.StrokeWidth('2'),
+      h.Stroke('currentColor'),
     ],
     [
-      path(
-        [D(CHECK_ICON), StrokeLinecap('round'), StrokeLinejoin('round')],
+      h.path(
+        [h.D(CHECK_ICON), h.StrokeLinecap('round'), h.StrokeLinejoin('round')],
         [],
       ),
     ],
@@ -1557,31 +1536,31 @@ const makeView = (
       items: [ALL_MESSAGES_VALUE, ...model.submodelTags],
       itemToConfig: item => ({
         className: 'dt-filter-item',
-        content: div(
-          [Class('flex items-center gap-2')],
-          [checkIconView, span([], [filterItemLabel(item)])],
+        content: h.div(
+          [h.Class('flex items-center gap-2')],
+          [checkIconView, h.span([], [filterItemLabel(item)])],
         ),
       }),
-      buttonContent: span(
-        [Class('flex flex-1 items-center justify-between')],
+      buttonContent: h.span(
+        [h.Class('flex flex-1 items-center justify-between')],
         [
-          span([], [buttonLabel]),
-          svg(
+          h.span([], [buttonLabel]),
+          h.svg(
             [
-              AriaHidden(true),
-              Class('json-arrow shrink-0'),
-              Xmlns('http://www.w3.org/2000/svg'),
-              Fill('none'),
-              ViewBox('0 0 24 24'),
-              StrokeWidth('2'),
-              Stroke('currentColor'),
+              h.AriaHidden(true),
+              h.Class('json-arrow shrink-0'),
+              h.Xmlns('http://www.w3.org/2000/h.svg'),
+              h.Fill('none'),
+              h.ViewBox('0 0 24 24'),
+              h.StrokeWidth('2'),
+              h.Stroke('currentColor'),
             ],
             [
-              path(
+              h.path(
                 [
-                  D(CHEVRON_DOWN),
-                  StrokeLinecap('round'),
-                  StrokeLinejoin('round'),
+                  h.D(CHEVRON_DOWN),
+                  h.StrokeLinecap('round'),
+                  h.StrokeLinejoin('round'),
                 ],
                 [],
               ),
@@ -1589,7 +1568,7 @@ const makeView = (
           ),
         ],
       ),
-      buttonClassName: 'dt-filter-button',
+      buttonClassName: 'dt-filter-h.button',
       itemsClassName: 'dt-filter-items',
       className: 'dt-filter-wrapper',
       backdropClassName: 'dt-filter-backdrop',
@@ -1604,8 +1583,8 @@ const makeView = (
       M.when('TimeTravel', () =>
         model.isPaused
           ? {
-              status: span(
-                [Class(`${statusClass} text-dt-paused`)],
+              status: h.span(
+                [h.Class(`${statusClass} text-dt-paused`)],
                 [
                   model.pausedAtIndex === INIT_INDEX
                     ? 'Paused (init)'
@@ -1613,23 +1592,23 @@ const makeView = (
                 ],
               ),
               maybeAction: Option.some(
-                button(
-                  [Class(actionButtonClass), OnClick(ClickedResume())],
+                h.button(
+                  [h.Class(actionButtonClass), h.OnClick(ClickedResume())],
                   ['Resume →'],
                 ),
               ),
             }
           : {
-              status: span(
-                [Class(`${statusClass} text-dt-live font-medium`)],
+              status: h.span(
+                [h.Class(`${statusClass} text-dt-live font-medium`)],
                 ['Live'],
               ),
               maybeAction: Option.none(),
             },
       ),
       M.when('Inspect', () => ({
-        status: span(
-          [Class(`${statusClass} text-dt-accent`)],
+        status: h.span(
+          [h.Class(`${statusClass} text-dt-accent`)],
           [
             model.selectedIndex === INIT_INDEX
               ? 'Inspecting (init)'
@@ -1638,8 +1617,8 @@ const makeView = (
         ),
         maybeAction: OptionExt.when(
           !model.isFollowingLatest,
-          button(
-            [Class(actionButtonClass), OnClick(ClickedFollowLatest())],
+          h.button(
+            [h.Class(actionButtonClass), h.OnClick(ClickedFollowLatest())],
             ['Follow Latest →'],
           ),
         ),
@@ -1647,46 +1626,49 @@ const makeView = (
       M.exhaustive,
     )
 
-    return header(
-      [Class(headerClass)],
+    return h.header(
+      [h.Class(headerClass)],
       [status, ...Option.toArray(maybeAction), clearHistoryButton],
     )
   }
 
   const initRowView = (isSelected: boolean, isPausedHere: boolean): Html =>
-    keyed('li')(
+    h.keyed('li')(
       'init',
       [
-        Class(clsx(ROW_BASE, { selected: isSelected })),
-        OnClick(ClickedRow({ index: INIT_INDEX })),
+        h.Class(clsx(ROW_BASE, { selected: isSelected })),
+        h.OnClick(ClickedRow({ index: INIT_INDEX })),
       ],
       [
         ...OptionExt.when(
           mode === 'TimeTravel',
-          span([Class('pause-column')], isPausedHere ? [pauseIconView] : []),
+          h.span(
+            [h.Class('pause-column')],
+            isPausedHere ? [pauseIconView] : [],
+          ),
         ).pipe(Option.toArray),
-        span([Class('dot-column')], []),
-        span([Class(indexClass)], []),
-        span([Class('text-base text-dt-muted font-mono')], ['init']),
+        h.span([h.Class('dot-column')], []),
+        h.span([h.Class(indexClass)], []),
+        h.span([h.Class('text-base text-dt-muted font-mono')], ['init']),
       ],
     )
 
-  const pauseIconView: Html = svg(
+  const pauseIconView: Html = h.svg(
     [
-      AriaHidden(true),
-      Class('dt-pause-icon'),
-      Xmlns('http://www.w3.org/2000/svg'),
-      Fill('none'),
-      ViewBox('0 0 24 24'),
-      StrokeWidth('2.5'),
-      Stroke('currentColor'),
+      h.AriaHidden(true),
+      h.Class('dt-pause-icon'),
+      h.Xmlns('http://www.w3.org/2000/h.svg'),
+      h.Fill('none'),
+      h.ViewBox('0 0 24 24'),
+      h.StrokeWidth('2.5'),
+      h.Stroke('currentColor'),
     ],
     [
-      path(
+      h.path(
         [
-          StrokeLinecap('round'),
-          StrokeLinejoin('round'),
-          D('M5.75 3v18M18.25 3v18'),
+          h.StrokeLinecap('round'),
+          h.StrokeLinejoin('round'),
+          h.D('M5.75 3v18M18.25 3v18'),
         ],
         [],
       ),
@@ -1701,23 +1683,29 @@ const makeView = (
     timeDelta: number,
     isModelChanged: boolean,
   ): Html =>
-    keyed('li')(
+    h.keyed('li')(
       String(absoluteIndex),
       [
-        Class(clsx(ROW_BASE, { selected: isSelected })),
-        OnClick(ClickedRow({ index: absoluteIndex })),
+        h.Class(clsx(ROW_BASE, { selected: isSelected })),
+        h.OnClick(ClickedRow({ index: absoluteIndex })),
       ],
       [
         ...OptionExt.when(
           mode === 'TimeTravel',
-          span([Class('pause-column')], isPausedHere ? [pauseIconView] : []),
+          h.span(
+            [h.Class('pause-column')],
+            isPausedHere ? [pauseIconView] : [],
+          ),
         ).pipe(Option.toArray),
-        span([Class('dot-column')], isModelChanged ? [inlineDiffDotView] : []),
-        span([Class(indexClass)], [String(absoluteIndex + 1)]),
-        span([Class('text-base text-dt font-mono flex-1 truncate')], [tag]),
-        span(
+        h.span(
+          [h.Class('dot-column')],
+          isModelChanged ? [inlineDiffDotView] : [],
+        ),
+        h.span([h.Class(indexClass)], [String(absoluteIndex + 1)]),
+        h.span([h.Class('text-base text-dt font-mono flex-1 truncate')], [tag]),
+        h.span(
           [
-            Class(
+            h.Class(
               'text-2xs text-dt-muted font-mono shrink-0 text-right min-w-5',
             ),
           ],
@@ -1793,8 +1781,8 @@ const makeView = (
       Array_.reverse,
     )
 
-    return ul(
-      [Class('message-list flex-1 overflow-y-auto min-h-0 overscroll-none')],
+    return h.ul(
+      [h.Class('message-list flex-1 overflow-y-auto min-h-0 overscroll-none')],
       isFiltered
         ? messageRows
         : [
@@ -1834,10 +1822,10 @@ const makeView = (
   // PANEL
 
   const panelView = (model: Model): Html =>
-    keyed('div')(
+    h.keyed('div')(
       'dt-panel',
       [
-        Class(
+        h.Class(
           clsx(
             'fixed dt-panel dt-panel-wide bg-dt-bg border rounded-lg flex flex-col overflow-hidden font-mono text-dt',
             PANEL_POSITION_CLASS[position],
@@ -1846,9 +1834,9 @@ const makeView = (
       ],
       [
         ...Option.map(maybeBanner, banner =>
-          div(
+          h.div(
             [
-              Class(
+              h.Class(
                 'px-3 py-2 border-b text-sm text-dt-muted font-mono shrink-0 leading-snug',
               ),
             ],
@@ -1856,11 +1844,11 @@ const makeView = (
           ),
         ).pipe(Option.toArray),
         headerView(model),
-        div(
-          [Class('flex flex-1 min-h-0 dt-content')],
+        h.div(
+          [h.Class('flex flex-1 min-h-0 dt-content')],
           [
-            div(
-              [Class('flex flex-col min-h-0 dt-message-pane')],
+            h.div(
+              [h.Class('flex flex-col min-h-0 dt-message-pane')],
               [
                 ...Array_.match(model.submodelTags, {
                   onEmpty: () => [],
@@ -1875,11 +1863,11 @@ const makeView = (
       ],
     )
 
-  const interactionBlocker = div([Class('dt-interaction-blocker')], [])
+  const interactionBlocker = h.div([h.Class('dt-interaction-blocker')], [])
 
   return (model: Model): Document => ({
     title: 'Foldkit DevTools',
-    body: div(
+    body: h.div(
       [],
       [
         ...OptionExt.when(

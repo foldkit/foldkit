@@ -3,10 +3,11 @@
 // update, and view definitions.
 import { Effect } from 'effect'
 import { Command, Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Class, div, h3, p, span } from './html'
+const h = html<Message>()
 
 // Add a field to your Model for the Popover Submodel:
 const Model = S.Struct({
@@ -46,14 +47,14 @@ GotPopoverMessage: ({ message }) => {
 Ui.Popover.view({
   model: model.popover,
   toParentMessage: message => GotPopoverMessage({ message }),
-  buttonContent: span([], ['Solutions']),
+  buttonContent: h.span([], ['Solutions']),
   buttonClassName: 'rounded-lg border px-3 py-2 cursor-pointer',
-  panelContent: div(
+  panelContent: h.div(
     [],
     [
-      h3([Class('font-medium')], ['Analytics']),
-      p(
-        [Class('text-sm text-gray-500')],
+      h.h3([h.Class('font-medium')], ['Analytics']),
+      h.p(
+        [h.Class('text-sm text-gray-500')],
         ['Get a better understanding of where your traffic is coming from.'],
       ),
     ],

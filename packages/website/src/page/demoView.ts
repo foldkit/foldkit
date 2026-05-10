@@ -1,21 +1,14 @@
 import { Array } from 'effect'
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import {
-  AriaHidden,
-  Class,
-  DataAttribute,
-  InnerHTML,
-  div,
-  keyed,
-  p,
-  span,
-} from '../html'
+import type { Message } from '../message'
+
+const h = html<Message>()
 
 export const sectionLabel = (label: string): Html =>
-  p(
+  h.p(
     [
-      Class(
+      h.Class(
         'text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2',
       ),
     ],
@@ -23,23 +16,23 @@ export const sectionLabel = (label: string): Html =>
   )
 
 export const modelStateField = (name: string, value: string): Html =>
-  div(
+  h.div(
     [],
     [
-      span([Class('text-accent-700 dark:text-accent-400')], [name]),
-      span([Class('text-gray-400 dark:text-gray-500')], [': ']),
-      span([Class('text-amber-800 dark:text-amber-300')], [value]),
+      h.span([h.Class('text-accent-700 dark:text-accent-400')], [name]),
+      h.span([h.Class('text-gray-400 dark:text-gray-500')], [': ']),
+      h.span([h.Class('text-amber-800 dark:text-amber-300')], [value]),
     ],
   )
 
 export const modelStateView = (fields: ReadonlyArray<Html>): Html =>
-  div(
-    [Class('pt-3 border-t border-gray-300 dark:border-gray-800')],
+  h.div(
+    [h.Class('pt-3 border-t border-gray-300 dark:border-gray-800')],
     [
       sectionLabel('Model State'),
-      div(
+      h.div(
         [
-          Class(
+          h.Class(
             'font-mono text-xs bg-gray-200 dark:bg-gray-800 rounded-lg p-3 text-gray-700 dark:text-gray-300 leading-relaxed',
           ),
         ],
@@ -49,21 +42,25 @@ export const modelStateView = (fields: ReadonlyArray<Html>): Html =>
   )
 
 export const eventLogView = (messageLog: ReadonlyArray<string>): Html =>
-  div(
-    [Class('flex-1 flex flex-col min-h-0')],
+  h.div(
+    [h.Class('flex-1 flex flex-col min-h-0')],
     [
       sectionLabel('Message Log'),
-      div(
+      h.div(
         [
-          Class(
+          h.Class(
             'font-mono text-xs bg-gray-200 dark:bg-gray-800 rounded-lg p-3 flex-1 min-h-0 overflow-y-auto',
           ),
         ],
         Array.map(messageLog, (entry, index) =>
-          keyed('div')(
+          h.keyed('div')(
             `${entry}-${index}`,
-            [Class('py-0.5 text-emerald-600 dark:text-emerald-400 break-all')],
-            [span([], [entry])],
+            [
+              h.Class(
+                'py-0.5 text-emerald-600 dark:text-emerald-400 break-all',
+              ),
+            ],
+            [h.span([], [entry])],
           ),
         ),
       ),
@@ -75,19 +72,19 @@ export const phaseIndicatorView = (
   colorClass: string,
   extraChildren: ReadonlyArray<Html>,
 ): Html =>
-  div(
+  h.div(
     [],
     [
       sectionLabel('Phase'),
-      div(
+      h.div(
         [
-          Class(
+          h.Class(
             'flex items-center gap-2 text-xs font-semibold uppercase tracking-wider',
           ),
         ],
         [
-          div([Class('w-2 h-2 rounded-full bg-current ' + colorClass)], []),
-          span([Class(colorClass)], [label]),
+          h.div([h.Class('w-2 h-2 rounded-full bg-current ' + colorClass)], []),
+          h.span([h.Class(colorClass)], [label]),
           ...extraChildren,
         ],
       ),
@@ -98,38 +95,38 @@ export const codePanelView = (
   panelClassName: string,
   dataAttributeName: string,
   phase: string,
-  html: string,
+  htmlString: string,
 ): Html =>
-  div(
+  h.div(
     [
-      Class(
+      h.Class(
         panelClassName +
           ' rounded-xl order-last lg:order-none bg-gray-100 dark:bg-[#1c1a20] min-w-0',
       ),
-      DataAttribute(dataAttributeName, phase),
+      h.DataAttribute(dataAttributeName, phase),
     ],
     [
-      div(
-        [Class('demo-code-scroll overflow-auto')],
-        [div([InnerHTML(html)], [])],
+      h.div(
+        [h.Class('demo-code-scroll overflow-auto')],
+        [h.div([h.InnerHTML(htmlString)], [])],
       ),
     ],
   )
 
 export const demoViewShell = (codePanel: Html, appPanel: Html): Html =>
-  div(
+  h.div(
     [
-      Class(
+      h.Class(
         'demo-container grid grid-cols-1 lg:grid-cols-[1fr_22rem] lg:grid-rows-[minmax(0,1fr)] gap-4 lg:gap-6',
       ),
     ],
     [
-      p(
+      h.p(
         [
-          Class(
+          h.Class(
             'text-sm text-gray-500 dark:text-gray-500 text-center text-balance lg:hidden',
           ),
-          AriaHidden(true),
+          h.AriaHidden(true),
         ],
         [
           'On a larger screen, you can see the relevant code highlight in real time as your action runs.',

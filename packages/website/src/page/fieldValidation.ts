@@ -1,8 +1,8 @@
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, code, div } from '../html'
 import { Link } from '../link'
 import type { TableOfContentsEntry } from '../main'
+import type { Message } from '../message'
 import {
   inlineCode,
   link,
@@ -15,7 +15,9 @@ import * as Snippets from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 import { comparisonTable } from '../view/table'
 
-const plainCode = (text: string): Html => code([Class('text-sm')], [text])
+const h = html<Message>()
+
+const plainCode = (text: string): Html => h.code([h.Class('text-sm')], [text])
 
 const definingAFieldHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -77,7 +79,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('field-validation', 'Field Validation'),
@@ -103,10 +105,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' is the four-state schema you put in your Model.',
       ),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.fieldValidationMakeRulesHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.fieldValidationMakeRulesHighlighted),
           ],
           [],
         ),
@@ -118,7 +120,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'The four states: ',
         inlineCode('NotValidated'),
-        ' for fields the user hasn\u2019t interacted with yet, ',
+        ' for fields the user hasn’t interacted with yet, ',
         inlineCode('Validating'),
         ' for async checks in flight, ',
         inlineCode('Valid'),
@@ -169,10 +171,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' bundle is just data, so build it from model state via a plain function.',
       ),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.fieldValidationConditionalHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.fieldValidationConditionalHighlighted),
           ],
           [],
         ),
@@ -193,10 +195,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' to set the field state.',
       ),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.fieldValidationApplyHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.fieldValidationApplyHighlighted),
           ],
           [],
         ),
@@ -217,7 +219,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Match exhaustively on the four tags to derive border colors, status indicators, and error messages. For form-level submit gates, use ',
         inlineCode('allValid'),
-        ' to fold across every field\u2019s state and rules; for a single field, use ',
+        ' to fold across every field’s state and rules; for a single field, use ',
         inlineCode('isValid(rules)(state)'),
         '. If the rules are required, only ',
         inlineCode('Valid'),
@@ -226,10 +228,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' also passes.',
       ),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.fieldValidationViewHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.fieldValidationViewHighlighted),
           ],
           [],
         ),
@@ -246,7 +248,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
 
       tableOfContentsEntryToHeader(asyncValidationHeader),
       para(
-        'For server-side checks like \u201CIs this email taken?\u201D, use the ',
+        'For server-side checks like “Is this email taken?”, use the ',
         inlineCode('Validating'),
         ' state as a bridge: run sync ',
         inlineCode('validate'),
@@ -255,10 +257,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ', fire a Command, and handle the result message.',
       ),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.fieldValidationAsyncHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.fieldValidationAsyncHighlighted),
           ],
           [],
         ),
@@ -282,10 +284,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' tuple. Write your own by pairing any predicate with an error message (a static string, or a function that receives the value).',
       ),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.fieldValidationCustomRuleHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.fieldValidationCustomRuleHighlighted),
           ],
           [],
         ),
@@ -304,13 +306,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'A ',
         inlineCode('Rule'),
-        ' only sees a single value. For checks that compare fields against each other (like \u201Cconfirm password must match password\u201D), handle the logic directly in your update function where you have access to the full model.',
+        ' only sees a single value. For checks that compare fields against each other (like “confirm password must match password”), handle the logic directly in your update function where you have access to the full model.',
       ),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.fieldValidationCrossFieldHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.fieldValidationCrossFieldHighlighted),
           ],
           [],
         ),
@@ -329,7 +331,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
 
       tableOfContentsEntryToHeader(builtInRulesHeader),
       para(
-        'Required-ness is not a rule. It\u2019s a ',
+        'Required-ness is not a rule. It’s a ',
         inlineCode('makeRules'),
         ' option: pass ',
         inlineCode('required: message'),

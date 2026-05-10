@@ -1,22 +1,25 @@
-import { type Html } from 'foldkit/html'
+import { type Html, html } from 'foldkit/html'
 
-import { Class, OnClick, Type, button, div, p } from '../html'
-import type { Message } from '../message'
 import { Education } from '../step'
 import { educationEntryView } from './educationEntry'
 
-export const educationView = (
+export const educationView = <ParentMessage>(
   model: Education.Model,
-  toParentMessage: (message: Education.Message) => Message,
-): Html =>
-  div(
-    [Class('space-y-6')],
+  toParentMessage: (message: Education.Message) => ParentMessage,
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [h.Class('space-y-6')],
     [
-      p([Class('text-sm text-gray-500')], ['Add your educational background.']),
-      div(
-        [Class('divide-y divide-gray-200')],
+      h.p(
+        [h.Class('text-sm text-gray-500')],
+        ['Add your educational background.'],
+      ),
+      h.div(
+        [h.Class('divide-y divide-gray-200')],
         model.entries.map(entry =>
-          educationEntryView(
+          educationEntryView<ParentMessage>(
             entry,
             model.today,
             message =>
@@ -27,11 +30,11 @@ export const educationView = (
           ),
         ),
       ),
-      button(
+      h.button(
         [
-          Type('button'),
-          OnClick(toParentMessage(Education.ClickedAddEntry())),
-          Class(
+          h.Type('button'),
+          h.OnClick(toParentMessage(Education.ClickedAddEntry())),
+          h.Class(
             'w-full rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 text-sm font-medium text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition cursor-pointer',
           ),
         ],
@@ -39,3 +42,4 @@ export const educationView = (
       ),
     ],
   )
+}

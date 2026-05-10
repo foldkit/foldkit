@@ -1,8 +1,7 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
 import { Link } from '../../link'
-import type { TableOfContentsEntry } from '../../main'
+import { Message, type TableOfContentsEntry } from '../../main'
 import {
   infoCallout,
   inlineCode,
@@ -13,6 +12,8 @@ import {
 } from '../../prose'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
+
+const h = html<Message>()
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -32,7 +33,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('core/resources', 'Resources'),
@@ -44,13 +45,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('RTCPeerConnection'),
         ', or ',
         inlineCode('CanvasRenderingContext2D'),
-        ' need a single long-lived instance shared across commands. That\u2019s what ',
+        ' need a single long-lived instance shared across commands. That’s what ',
         inlineCode('resources'),
         ' is for.',
       ),
       infoCallout(
         'Think of it like a restaurant kitchen',
-        'Resources are kitchen equipment: the oven, the stand mixer, the deep fryer. They\u2019re turned on when the kitchen opens and run all night. Every dish (Command) can use them. You don\u2019t buy a new oven per order. ',
+        'Resources are kitchen equipment: the oven, the stand mixer, the deep fryer. They’re turned on when the kitchen opens and run all night. Every dish (Command) can use them. You don’t buy a new oven per order. ',
         inlineCode('AudioContext'),
         ' and ',
         inlineCode('CanvasRenderingContext2D'),
@@ -68,7 +69,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' config field. The runtime creates the layer once and makes it available to every Command. Commands access it by yielding the service tag.',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.resourcesHighlighted)], []),
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.resourcesHighlighted)],
+          [],
+        ),
         Snippets.resourcesRaw,
         'Copy resources example to clipboard',
         copiedSnippets,
@@ -77,9 +81,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Commands declare their resource requirements in the type signature via the third type parameter of ',
         inlineCode('Command'),
-        '. This makes dependencies explicit and type-checked. If a command requires a service that isn\u2019t provided via ',
+        '. This makes dependencies explicit and type-checked. If a command requires a service that isn’t provided via ',
         inlineCode('resources'),
-        ', you\u2019ll get a compile error.',
+        ', you’ll get a compile error.',
       ),
       infoCallout(
         'When not to use resources',
@@ -102,8 +106,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' to combine multiple service layers into one.',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.resourcesMultipleHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.resourcesMultipleHighlighted),
+          ],
           [],
         ),
         Snippets.resourcesMultipleRaw,
@@ -114,7 +121,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Resources live for the entire application. But what if a resource should only exist while the model is in a certain state, like a camera stream during a video call, or a ',
         inlineCode('WebSocket'),
-        ' while on a chat page? That\u2019s what Managed Resources are for.',
+        ' while on a chat page? That’s what Managed Resources are for.',
       ),
     ],
   )

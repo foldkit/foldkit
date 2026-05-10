@@ -1,7 +1,7 @@
 import { Match as M } from 'effect'
 import { Document, html } from 'foldkit/html'
 
-const { div, header, main, keyed } = html<Message>()
+const h = html<Message>()
 
 const view = (model: Model): Document => {
   const routeContent = M.value(model.route).pipe(
@@ -15,11 +15,11 @@ const view = (model: Model): Document => {
 
   return {
     title: `${model.route._tag} — Shop`,
-    body: div(
+    body: h.div(
       [],
       [
-        header([], [navigationView(model.route)]),
-        main([], [keyed('div')(model.route._tag, [], [routeContent])]),
+        h.header([], [navigationView(model.route)]),
+        h.main([], [h.keyed('div')(model.route._tag, [], [routeContent])]),
       ],
     ),
   }

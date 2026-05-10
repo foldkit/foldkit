@@ -1,7 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
-import type { TableOfContentsEntry } from '../../main'
+import { Message, type TableOfContentsEntry } from '../../main'
 import {
   infoCallout,
   inlineCode,
@@ -17,6 +16,8 @@ import {
 } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
+
+const h = html<Message>()
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -50,13 +51,13 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('core/commands', 'Commands'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'A Command is a description of a side effect: an HTTP request, a one-shot delay, a DOM focus call. The update function doesn\u2019t actually do anything on its own. It returns data, and the Foldkit runtime reads the Commands and carries them out.',
+        'A Command is a description of a side effect: an HTTP request, a one-shot delay, a DOM focus call. The update function doesn’t actually do anything on its own. It returns data, and the Foldkit runtime reads the Commands and carries them out.',
       ),
       para(
         'In the ',
@@ -64,7 +65,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           `${coreArchitectureRouter()}#the-restaurant-analogy`,
           'restaurant analogy',
         ),
-        ', Commands are the slips the waiter hands to the kitchen. The waiter doesn\u2019t cook. They describe what\u2019s needed and hand it off. The kitchen does the work and reports back when it\u2019s done.',
+        ', Commands are the slips the waiter hands to the kitchen. The waiter doesn’t cook. They describe what’s needed and hand it off. The kitchen does the work and reports back when it’s done.',
       ),
       para(
         'When update runs, no HTTP request fires, no timer starts, no DOM changes. It returns a new Model and a list of Commands that describe what should happen, and the runtime executes them.',
@@ -78,11 +79,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         '. In Foldkit, update is pure. It describes what should happen and the runtime does it.',
       ),
       para(
-        'So far, update has been returning an empty Commands array. Let\u2019s put it to use. Say we want a delayed reset: when the user clicks reset, the count resets after one second:',
+        'So far, update has been returning an empty Commands array. Let’s put it to use. Say we want a delayed reset: when the user clicks reset, the count resets after one second:',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.counterCommandsHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.counterCommandsHighlighted),
+          ],
           [],
         ),
         Snippets.counterCommandsRaw,
@@ -96,9 +100,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('ClickedResetAfterDelay'),
         ' arrives: it returns the Model unchanged, along with ',
         inlineCode('DelayReset()'),
-        ', a Command that describes a one-second delay. The update function didn\u2019t start a timer. It handed the runtime a description that says \u201Cwait one second, then send me ',
+        ', a Command that describes a one-second delay. The update function didn’t start a timer. It handed the runtime a description that says “wait one second, then send me ',
         inlineCode('CompletedDelayReset'),
-        '.\u201D The runtime does the waiting. When the delay fires, ',
+        '.” The runtime does the waiting. When the delay fires, ',
         inlineCode('CompletedDelayReset'),
         ' arrives as a new Message, and update resets the count to zero.',
       ),
@@ -118,7 +122,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('m()'),
         ' gives a Message a name that the type system knows, ',
         inlineCode('Command.define'),
-        ' gives a Command a name and shape that DevTools can display, tests can reference, and traces can track. The name and args aren\u2019t debug strings. They\u2019re first-class values.',
+        ' gives a Command a name and shape that DevTools can display, tests can reference, and traces can track. The name and args aren’t debug strings. They’re first-class values.',
       ),
       para(
         'Names are verb-first imperatives: ',
@@ -140,13 +144,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(testableByDesignHeader),
       para(
-        'Commands aren\u2019t just a fancy way to organize side effects. They\u2019re the reason Foldkit programs are easy to test. Because update is pure and Commands are data, you can simulate the entire update loop without running any Effects. Send a Message, check that the right Command was produced, resolve it with a result, and verify the Model.',
+        'Commands aren’t just a fancy way to organize side effects. They’re the reason Foldkit programs are easy to test. Because update is pure and Commands are data, you can simulate the entire update loop without running any Effects. Send a Message, check that the right Command was produced, resolve it with a result, and verify the Model.',
       ),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.counterCommandsTestHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.counterCommandsTestHighlighted),
           ],
           [],
         ),
@@ -180,8 +184,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Now, what if we want to get the next count from an API instead of incrementing locally? We can create a Command that performs the HTTP request and returns a Message when it completes:',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.counterHttpCommandHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.counterHttpCommandHighlighted),
+          ],
           [],
         ),
         Snippets.counterHttpCommandRaw,
@@ -190,7 +197,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        'Let\u2019s zoom in on ',
+        'Let’s zoom in on ',
         inlineCode('FetchCount'),
         ' to see how an HTTP-backed Command takes shape. The Effect pulls ',
         inlineCode('HttpClient'),
@@ -205,10 +212,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' wires the live implementation; tests can swap it for a mock.',
       ),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.counterHttpCommandFetchCountHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.counterHttpCommandFetchCountHighlighted),
           ],
           [],
         ),
@@ -219,7 +226,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       infoCallout(
         'Errors are tracked, not hidden',
-        'Commands use Effect\u2019s typed error channel: if a Command can fail, the type signature tells you. ',
+        'Commands use Effect’s typed error channel: if a Command can fail, the type signature tells you. ',
         inlineCode('Effect.catch'),
         ' turns failures into Messages like ',
         inlineCode('FailedFetchCount'),

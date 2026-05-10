@@ -480,33 +480,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
 
 // VIEW
 
-const {
-  aside,
-  button,
-  div,
-  empty,
-  h1,
-  h2,
-  header,
-  input,
-  keyed,
-  li,
-  main,
-  p,
-  span,
-  ul,
-  AriaLabel,
-  AriaPressed,
-  Class,
-  Disabled,
-  Id,
-  OnClick,
-  OnInput,
-  OnMount,
-  Placeholder,
-  Type,
-  Value,
-} = html<Message>()
+const h = html<Message>()
 
 const HOST_ID = nextHostId()
 
@@ -529,8 +503,8 @@ const filterLocations = (
 
 export const view = (model: Model): Document => ({
   title: 'Foldkit Map',
-  body: div(
-    [Class('h-screen w-screen flex bg-slate-100 text-slate-900')],
+  body: h.div(
+    [h.Class('h-screen w-screen flex bg-slate-100 text-slate-900')],
     [
       sidebarView(model),
       mapPaneView(model),
@@ -541,41 +515,44 @@ export const view = (model: Model): Document => ({
 
 const sidebarView = (model: Model): Html => {
   const visible = filterLocations(model.locations, model.searchQuery)
-  return aside(
+  return h.aside(
     [
-      Class(
+      h.Class(
         'w-80 shrink-0 border-r border-slate-200 bg-white flex flex-col h-full',
       ),
     ],
     [
-      header(
-        [Class('px-5 py-4 border-b border-slate-200')],
+      h.header(
+        [h.Class('px-5 py-4 border-b border-slate-200')],
         [
-          h1([Class('text-lg font-semibold tracking-tight')], ['Foldkit Map']),
-          p(
-            [Class('text-xs text-slate-500 mt-1')],
+          h.h1(
+            [h.Class('text-lg font-semibold tracking-tight')],
+            ['Foldkit Map'],
+          ),
+          h.p(
+            [h.Class('text-xs text-slate-500 mt-1')],
             ['Pan, zoom, and click a marker.'],
           ),
         ],
       ),
-      div(
-        [Class('px-5 py-3 border-b border-slate-200')],
+      h.div(
+        [h.Class('px-5 py-3 border-b border-slate-200')],
         [
-          input([
-            Id(SEARCH_INPUT_ID),
-            Type('search'),
-            Placeholder('Filter locations'),
-            AriaLabel('Filter locations'),
-            Class(
+          h.input([
+            h.Id(SEARCH_INPUT_ID),
+            h.Type('search'),
+            h.Placeholder('Filter locations'),
+            h.AriaLabel('Filter locations'),
+            h.Class(
               'w-full px-3 py-2 text-sm rounded-md border border-slate-300 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200',
             ),
-            Value(model.searchQuery),
-            OnInput(value => UpdatedSearchQuery({ value })),
+            h.Value(model.searchQuery),
+            h.OnInput(value => UpdatedSearchQuery({ value })),
           ]),
         ],
       ),
-      ul(
-        [Class('flex-1 overflow-y-auto'), AriaLabel('Locations')],
+      h.ul(
+        [h.Class('flex-1 overflow-y-auto'), h.AriaLabel('Locations')],
         Array.match(visible, {
           onEmpty: () => [emptySidebarView(model.searchQuery)],
           onNonEmpty: Array.map(
@@ -589,8 +566,8 @@ const sidebarView = (model: Model): Html => {
 }
 
 const emptySidebarView = (searchQuery: string): Html =>
-  li(
-    [Class('px-5 py-6 text-sm text-slate-500')],
+  h.li(
+    [h.Class('px-5 py-6 text-sm text-slate-500')],
     [
       String.isEmpty(searchQuery.trim())
         ? 'No locations available.'
@@ -602,23 +579,26 @@ const locationListItemView =
   (maybeSelectedId: Option.Option<string>) =>
   (location: Location): Html => {
     const isSelected = Option.exists(maybeSelectedId, Equal.equals(location.id))
-    return li(
+    return h.li(
       [],
       [
-        button(
+        h.button(
           [
-            Type('button'),
-            AriaPressed(isSelected ? 'true' : 'false'),
-            OnClick(ClickedLocation({ locationId: location.id })),
-            Class(
+            h.Type('button'),
+            h.AriaPressed(isSelected ? 'true' : 'false'),
+            h.OnClick(ClickedLocation({ locationId: location.id })),
+            h.Class(
               isSelected
                 ? 'w-full text-left px-5 py-3 cursor-pointer bg-slate-100 border-l-2 border-slate-900'
                 : 'w-full text-left px-5 py-3 cursor-pointer hover:bg-slate-100 border-l-2 border-transparent',
             ),
           ],
           [
-            div([Class('text-sm font-medium')], [location.name]),
-            div([Class('text-xs text-slate-500 mt-0.5')], [location.region]),
+            h.div([h.Class('text-sm font-medium')], [location.name]),
+            h.div(
+              [h.Class('text-xs text-slate-500 mt-0.5')],
+              [location.region],
+            ),
           ],
         ),
       ],
@@ -627,25 +607,25 @@ const locationListItemView =
 
 const footerView = (model: Model): Html => {
   const isLocating = model.geolocateState._tag === 'GeolocateLocating'
-  return div(
-    [Class('border-t border-slate-200 px-5 py-3 space-y-2')],
+  return h.div(
+    [h.Class('border-t border-slate-200 px-5 py-3 space-y-2')],
     [
-      button(
+      h.button(
         [
-          Type('button'),
-          OnClick(ClickedFindMe()),
-          Disabled(isLocating),
-          Class(
+          h.Type('button'),
+          h.OnClick(ClickedFindMe()),
+          h.Disabled(isLocating),
+          h.Class(
             'w-full px-3 py-2 text-sm font-medium rounded-md bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed',
           ),
         ],
         [isLocating ? 'Locating…' : 'Find my location'],
       ),
       Option.match(model.maybeUserLocation, {
-        onNone: () => empty,
+        onNone: () => h.empty,
         onSome: ({ lng, lat }) =>
-          p(
-            [Class('text-xs text-slate-500')],
+          h.p(
+            [h.Class('text-xs text-slate-500')],
             [`You are near ${lat.toFixed(3)}, ${lng.toFixed(3)}.`],
           ),
       }),
@@ -654,14 +634,14 @@ const footerView = (model: Model): Html => {
 }
 
 const mapPaneView = (model: Model): Html =>
-  main(
-    [Class('flex-1 relative')],
+  h.main(
+    [h.Class('flex-1 relative')],
     [
-      div(
+      h.div(
         [
-          Class('h-full w-full'),
-          AriaLabel('Map'),
-          OnMount(MountMap({ hostId: HOST_ID })),
+          h.Class('h-full w-full'),
+          h.AriaLabel('Map'),
+          h.OnMount(MountMap({ hostId: HOST_ID })),
         ],
         [],
       ),
@@ -672,37 +652,37 @@ const mapPaneView = (model: Model): Html =>
 
 const mapErrorBannerView = (maybeReason: Option.Option<string>): Html =>
   Option.match(maybeReason, {
-    onNone: () => empty,
+    onNone: () => h.empty,
     onSome: reason =>
-      div(
+      h.div(
         [
-          AriaLabel('Map failed to load'),
-          Class(
+          h.AriaLabel('Map failed to load'),
+          h.Class(
             'absolute top-3 left-1/2 -translate-x-1/2 max-w-md bg-rose-50 border border-rose-200 text-rose-900 rounded-md shadow-sm px-4 py-3 text-sm',
           ),
         ],
         [
-          div([Class('font-semibold mb-0.5')], ['Could not load the map.']),
-          div([Class('text-xs text-rose-700')], [reason]),
+          h.div([h.Class('font-semibold mb-0.5')], ['Could not load the map.']),
+          h.div([h.Class('text-xs text-rose-700')], [reason]),
         ],
       ),
   })
 
 const boundsBadgeView = (maybeBounds: Option.Option<Bounds>): Html =>
   Option.match(maybeBounds, {
-    onNone: () => empty,
+    onNone: () => h.empty,
     onSome: bounds =>
-      div(
+      h.div(
         [
-          Class(
+          h.Class(
             'absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm rounded-md shadow-sm px-3 py-2 text-xs font-mono text-slate-700 border border-slate-200',
           ),
         ],
         [
-          div([], [`N ${bounds.north.toFixed(2)}`]),
-          div([], [`S ${bounds.south.toFixed(2)}`]),
-          div([], [`E ${bounds.east.toFixed(2)}`]),
-          div([], [`W ${bounds.west.toFixed(2)}`]),
+          h.div([], [`N ${bounds.north.toFixed(2)}`]),
+          h.div([], [`S ${bounds.south.toFixed(2)}`]),
+          h.div([], [`E ${bounds.east.toFixed(2)}`]),
+          h.div([], [`W ${bounds.west.toFixed(2)}`]),
         ],
       ),
   })
@@ -710,7 +690,7 @@ const boundsBadgeView = (maybeBounds: Option.Option<Bounds>): Html =>
 const geolocateOverlayView = (state: GeolocateState): Html =>
   M.value(state).pipe(
     M.tagsExhaustive({
-      GeolocateIdle: () => empty,
+      GeolocateIdle: () => h.empty,
       GeolocateLocating: () =>
         geolocateOverlayShellView(geolocateLocatingContentView()),
       GeolocateFailed: ({ reason }) =>
@@ -719,29 +699,29 @@ const geolocateOverlayView = (state: GeolocateState): Html =>
   )
 
 const geolocateOverlayShellView = (content: Html): Html =>
-  keyed('div')(
+  h.keyed('div')(
     'Geolocate()-overlay',
     [
-      Class(
+      h.Class(
         'fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40',
       ),
-      AriaLabel('Geolocation'),
+      h.AriaLabel('Geolocation'),
     ],
     [content],
   )
 
 const geolocateLocatingContentView = (): Html =>
-  keyed('article')(
+  h.keyed('article')(
     'Geolocate()-locating',
     [
-      Class(
+      h.Class(
         'bg-white rounded-lg shadow-lg max-w-sm w-full mx-4 px-6 py-5 text-center',
       ),
     ],
     [
-      h2([Class('text-base font-semibold mb-1')], ['Locating you…']),
-      p(
-        [Class('text-sm text-slate-500')],
+      h.h2([h.Class('text-base font-semibold mb-1')], ['Locating you…']),
+      h.p(
+        [h.Class('text-sm text-slate-500')],
         ['Asking your browser for permission to use your location.'],
       ),
       spinnerView(),
@@ -749,24 +729,24 @@ const geolocateLocatingContentView = (): Html =>
   )
 
 const geolocateFailedContentView = (reason: string): Html =>
-  keyed('article')(
+  h.keyed('article')(
     'Geolocate()-failed',
     [
-      Class(
+      h.Class(
         'bg-white rounded-lg shadow-lg max-w-sm w-full mx-4 px-6 py-5 text-center',
       ),
     ],
     [
-      h2(
-        [Class('text-base font-semibold mb-1 text-rose-700')],
+      h.h2(
+        [h.Class('text-base font-semibold mb-1 text-rose-700')],
         ['Could not locate you'],
       ),
-      p([Class('text-sm text-slate-600')], [reason]),
-      button(
+      h.p([h.Class('text-sm text-slate-600')], [reason]),
+      h.button(
         [
-          Type('button'),
-          OnClick(DismissedGeolocate()),
-          Class(
+          h.Type('button'),
+          h.OnClick(DismissedGeolocate()),
+          h.Class(
             'mt-4 px-4 py-2 text-sm font-medium rounded-md bg-slate-900 text-white hover:bg-slate-800',
           ),
         ],
@@ -776,15 +756,15 @@ const geolocateFailedContentView = (reason: string): Html =>
   )
 
 const spinnerView = (): Html =>
-  div(
-    [Class('flex justify-center mt-4')],
+  h.div(
+    [h.Class('flex justify-center mt-4')],
     [
-      span(
+      h.span(
         [
-          Class(
+          h.Class(
             'inline-block w-6 h-6 border-2 border-slate-300 border-t-slate-900 rounded-full motion-safe:animate-spin',
           ),
-          AriaLabel('Loading'),
+          h.AriaLabel('Loading'),
         ],
         [],
       ),

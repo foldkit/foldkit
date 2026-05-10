@@ -1,8 +1,8 @@
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div, li, ul } from '../html'
 import { Link } from '../link'
 import type { TableOfContentsEntry } from '../main'
+import type { Message } from '../message'
 import {
   inlineCode,
   link,
@@ -14,6 +14,8 @@ import {
 import { bestPracticesKeyingRouter, exampleDetailRouter } from '../route'
 import * as Snippets from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
+
+const h = html<Message>()
 
 const biparserHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -75,7 +77,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('routing-and-navigation', 'Routing & Navigation'),
@@ -87,12 +89,12 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Most routers make you define routes twice: once for matching URLs, and again for generating them. This leads to duplication and bugs when they get out of sync.',
       ),
       para(
-        'Foldkit\u2019s routing is based on biparsers: parsers that work in both directions. A single route definition handles:',
+        'Foldkit’s routing is based on biparsers: parsers that work in both directions. A single route definition handles:',
       ),
-      ul(
-        [Class('list-disc mb-6 space-y-2')],
+      h.ul(
+        [h.Class('list-disc mb-6 space-y-2')],
         [
-          li(
+          h.li(
             [],
             [
               inlineCode('/people/42'),
@@ -101,7 +103,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
               ' (parsing)',
             ],
           ),
-          li(
+          h.li(
             [],
             [
               inlineCode('PersonRoute { personId: 42 }'),
@@ -122,10 +124,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         '. Each route variant carries the data extracted from the URL.',
       ),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.routingDefineRoutesHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.routingDefineRoutesHighlighted),
           ],
           [],
         ),
@@ -134,11 +136,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         copiedSnippets,
         'mb-8',
       ),
-      ul(
-        [Class('list-none mb-6 space-y-2')],
+      h.ul(
+        [h.Class('list-none mb-6 space-y-2')],
         [
-          li([], [inlineCode('HomeRoute'), ': no parameters']),
-          li(
+          h.li([], [inlineCode('HomeRoute'), ': no parameters']),
+          h.li(
             [],
             [
               inlineCode('PersonRoute'),
@@ -146,7 +148,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
               inlineCode('personId: number'),
             ],
           ),
-          li(
+          h.li(
             [],
             [
               inlineCode('PeopleRoute'),
@@ -154,7 +156,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
               inlineCode('searchText: Option<string>'),
             ],
           ),
-          li(
+          h.li(
             [],
             [
               inlineCode('NotFoundRoute'),
@@ -169,10 +171,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Routers are built by composing small primitives. Each primitive is a biparser that handles one part of the URL.',
       ),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.routingBuildRoutersHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.routingBuildRoutersHighlighted),
           ],
           [],
         ),
@@ -182,10 +184,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para('The primitives:'),
-      ul(
-        [Class('list-nonw mb-6 space-y-2')],
+      h.ul(
+        [h.Class('list-nonw mb-6 space-y-2')],
         [
-          li(
+          h.li(
             [],
             [
               inlineCode("literal('people')"),
@@ -193,23 +195,26 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
               inlineCode('people'),
             ],
           ),
-          li(
+          h.li(
             [],
             [inlineCode("int('personId')"), ': captures an integer parameter'],
           ),
-          li(
+          h.li(
             [],
             [inlineCode("string('name')"), ': captures a string parameter'],
           ),
-          li([], [inlineCode('slash(...)'), ': chains path segments together']),
-          li(
+          h.li(
+            [],
+            [inlineCode('slash(...)'), ': chains path segments together'],
+          ),
+          h.li(
             [],
             [
               inlineCode('Route.query(Schema)'),
               ': adds query parameter parsing',
             ],
           ),
-          li(
+          h.li(
             [],
             [
               inlineCode('Route.mapTo(RouteType)'),
@@ -225,8 +230,8 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' and create a parser with a fallback for unmatched URLs.',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.routingParsingHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.routingParsingHighlighted)],
           [],
         ),
         Snippets.routingParsingRaw,
@@ -245,11 +250,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(buildingUrlsHeader),
       para(
-        'Here\u2019s where the biparser pays off. The same router that parses URLs can build them:',
+        'Here’s where the biparser pays off. The same router that parses URLs can build them:',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.routingBuildingHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.routingBuildingHighlighted),
+          ],
           [],
         ),
         Snippets.routingBuildingRaw,
@@ -262,7 +270,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('personRouter'),
         ' expects ',
         inlineCode('{ personId: number }'),
-        ', you can\u2019t accidentally pass a string or forget the parameter.',
+        ', you can’t accidentally pass a string or forget the parameter.',
       ),
       tableOfContentsEntryToHeader(queryParametersHeader),
       para(
@@ -271,8 +279,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' for validation. This gives you type-safe parsing, optional parameters, and automatic encoding/decoding.',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.routingQueryParamsHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.routingQueryParamsHighlighted),
+          ],
           [],
         ),
         Snippets.routingQueryParamsRaw,
@@ -304,7 +315,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       tableOfContentsEntryToHeader(keyingRouteViewsHeader),
       warningCallout(
         'Always key your route content.',
-        'Without a key, the virtual DOM will try to patch one route\u2019s DOM into another instead of replacing it. This causes stale input state, mismatched event handlers, and bugs that are extremely hard to track down.',
+        'Without a key, the virtual DOM will try to patch one route’s DOM into another instead of replacing it. This causes stale input state, mismatched event handlers, and bugs that are extremely hard to track down.',
       ),
       para(
         'Wrap your route content in a ',
@@ -314,8 +325,8 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' as the key. This tells Snabbdom that each route is a distinct tree that should be fully replaced on navigation.',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.routingKeyedHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.routingKeyedHighlighted)],
           [],
         ),
         Snippets.routingKeyedRaw,
@@ -333,8 +344,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Foldkit provides navigation Commands for programmatically changing the URL. These are returned from your update function like any other Command.',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.navigationCommandsHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.navigationCommandsHighlighted),
+          ],
           [],
         ),
         Snippets.navigationCommandsRaw,
@@ -342,24 +356,24 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         copiedSnippets,
         'mb-8',
       ),
-      ul(
-        [Class('list-none mb-6 space-y-2')],
+      h.ul(
+        [h.Class('list-none mb-6 space-y-2')],
         [
-          li(
+          h.li(
             [],
             [
               inlineCode('Navigation.pushUrl'),
               ': adds a new entry to browser history',
             ],
           ),
-          li(
+          h.li(
             [],
             [
               inlineCode('Navigation.replaceUrl'),
               ': replaces the current history entry (no back button)',
             ],
           ),
-          li(
+          h.li(
             [],
             [
               inlineCode('Navigation.back'),
@@ -368,14 +382,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
               ': navigate through browser history',
             ],
           ),
-          li(
+          h.li(
             [],
             [
               inlineCode('Navigation.load'),
               ': full page load (for external URLs)',
             ],
           ),
-          li(
+          h.li(
             [],
             [
               inlineCode('Navigation.openUrl'),
@@ -394,10 +408,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ':',
       ),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.navigationHandleUrlRequestHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.navigationHandleUrlRequestHighlighted),
           ],
           [],
         ),

@@ -1,7 +1,7 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../html'
 import type { TableOfContentsEntry } from '../main'
+import type { Message } from '../message'
 import {
   inlineCode,
   link,
@@ -16,6 +16,8 @@ import {
 } from '../route'
 import * as Snippets from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
+
+const h = html<Message>()
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -42,7 +44,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('testing', 'Testing'),
@@ -70,13 +72,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Story tests are flexible about testing level. Because Story sends Messages directly to ',
         inlineCode('update'),
-        ' and asserts on the Model, testing a child\u2019s update in isolation is valid: the function signature is the contract, and it works the same whether the parent calls it or the test does.',
+        ' and asserts on the Model, testing a child’s update in isolation is valid: the function signature is the contract, and it works the same whether the parent calls it or the test does.',
       ),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.counterCommandsTestHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.counterCommandsTestHighlighted),
           ],
           [],
         ),
@@ -109,11 +111,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Scene.scene'),
         ' expects. Every level below takes a ',
         inlineCode('toParentMessage'),
-        ' adapter. Testing a child view in isolation means inventing a code path that never runs in production: the parent\u2019s Command mapping, OutMessage handling, and Model transitions would all be invisible. Test what users see, through the same code path they use.',
+        ' adapter. Testing a child view in isolation means inventing a code path that never runs in production: the parent’s Command mapping, OutMessage handling, and Model transitions would all be invisible. Test what users see, through the same code path they use.',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.sceneWeatherFlowHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.sceneWeatherFlowHighlighted),
+          ],
           [],
         ),
         Snippets.sceneWeatherFlowRaw,

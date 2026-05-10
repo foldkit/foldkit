@@ -3,10 +3,11 @@
 // update, and view definitions.
 import { Effect } from 'effect'
 import { Command, Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Class, div, span } from './html'
+const h = html<Message>()
 
 // Add a field to your Model for the Menu Submodel:
 const Model = S.Struct({
@@ -59,12 +60,12 @@ Ui.Menu.view({
   toParentMessage: message => GotMenuMessage({ message }),
   items: actions,
   onSelectedItem: value => SelectedAction({ value }),
-  buttonContent: span([], ['Options']),
+  buttonContent: h.span([], ['Options']),
   buttonClassName: 'rounded-lg border px-3 py-2 cursor-pointer',
   itemsClassName: 'rounded-lg border shadow-lg',
   itemToConfig: (action, { isActive }) => ({
     className: isActive ? 'bg-blue-100' : '',
-    content: div([Class('px-3 py-2')], [action]),
+    content: h.div([h.Class('px-3 py-2')], [action]),
   }),
   isItemDisabled: action => action === 'Archive',
   backdropClassName: 'fixed inset-0',

@@ -1,7 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
-import type { TableOfContentsEntry } from '../../main'
+import { Message, type TableOfContentsEntry } from '../../main'
 import {
   infoCallout,
   inlineCode,
@@ -11,6 +10,8 @@ import {
 } from '../../prose'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
+
+const h = html<Message>()
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -30,7 +31,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('core/managed-resources', 'Managed Resources'),
@@ -43,7 +44,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       infoCallout(
         'The restaurant analogy',
-        'If resources are kitchen equipment (permanent, always on), managed resources are specialty ingredients sourced on demand. When the menu shifts to a seafood special (model state changes), the kitchen orders in fresh lobster and sets up the shellfish station. When the special ends, the lobster goes back to the supplier and the station is broken down. If the chef (Command) tries to plate lobster when it\u2019s not in season, they get a clear signal: ',
+        'If resources are kitchen equipment (permanent, always on), managed resources are specialty ingredients sourced on demand. When the menu shifts to a seafood special (model state changes), the kitchen orders in fresh lobster and sets up the shellfish station. When the special ends, the lobster goes back to the supplier and the station is broken down. If the chef (Command) tries to plate lobster when it’s not in season, they get a clear signal: ',
         inlineCode('ResourceNotAvailable'),
         '. And if the special changes from Maine lobster to king crab (params change), the old stock is returned and new stock is sourced, just like switching camera resolutions triggers release and reacquire.',
       ),
@@ -61,8 +62,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' when it should be released.',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.managedResourcesHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.managedResourcesHighlighted),
+          ],
           [],
         ),
         Snippets.managedResourcesRaw,
@@ -98,13 +102,13 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('.get'),
         ' can fail with ',
         inlineCode('ResourceNotAvailable'),
-        '. The type system enforces this: your Command won\u2019t compile unless you handle the error.',
+        '. The type system enforces this: your Command won’t compile unless you handle the error.',
       ),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.managedResourcesCommandHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.managedResourcesCommandHighlighted),
           ],
           [],
         ),

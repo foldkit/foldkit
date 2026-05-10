@@ -5,7 +5,7 @@ import * as Scene from '../../test/scene.js'
 import type { Message, Model, ViewConfig } from './index.js'
 import { PressedThumb, init, update, view } from './index.js'
 
-const { div, label, span } = html<Message>()
+const h = html<Message>()
 
 const sceneView =
   (
@@ -17,14 +17,17 @@ const sceneView =
   (model: Model) =>
     view({
       toView: attributes =>
-        div(
+        h.div(
           [...attributes.root],
           [
-            label([...attributes.label], ['Test']),
-            div([...attributes.track], [div([...attributes.filledTrack], [])]),
-            div([...attributes.thumb], []),
+            h.label([...attributes.label], ['Test']),
+            h.div(
+              [...attributes.track],
+              [h.div([...attributes.filledTrack], [])],
+            ),
+            h.div([...attributes.thumb], []),
             ...(attributes.hiddenInput.length > 0
-              ? [span(attributes.hiddenInput, [])]
+              ? [h.span(attributes.hiddenInput, [])]
               : []),
           ],
         ),

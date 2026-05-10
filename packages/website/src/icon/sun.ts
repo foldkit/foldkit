@@ -1,35 +1,23 @@
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import {
-  AriaHidden,
-  Class,
-  D,
-  Fill,
-  Stroke,
-  StrokeLinecap,
-  StrokeLinejoin,
-  StrokeWidth,
-  ViewBox,
-  path,
-  svg,
-} from '../html'
+export const sun = <ParentMessage>(className = 'w-5 h-5'): Html => {
+  const h = html<ParentMessage>()
 
-export const sun = (className = 'w-5 h-5'): Html =>
-  svg(
+  return h.svg(
     [
-      AriaHidden(true),
-      Class(className),
-      ViewBox('0 0 24 24'),
-      Fill('none'),
-      Stroke('currentColor'),
-      StrokeWidth('1.5'),
+      h.AriaHidden(true),
+      h.Class(className),
+      h.ViewBox('0 0 24 24'),
+      h.Fill('none'),
+      h.Stroke('currentColor'),
+      h.StrokeWidth('1.5'),
     ],
     [
-      path(
+      h.path(
         [
-          StrokeLinecap('round'),
-          StrokeLinejoin('round'),
-          D(
+          h.StrokeLinecap('round'),
+          h.StrokeLinejoin('round'),
+          h.D(
             'M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z',
           ),
         ],
@@ -37,3 +25,4 @@ export const sun = (className = 'w-5 h-5'): Html =>
       ),
     ],
   )
+}

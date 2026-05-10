@@ -1,7 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
-import type { TableOfContentsEntry } from '../../main'
+import { Message, type TableOfContentsEntry } from '../../main'
 import {
   infoCallout,
   inlineCode,
@@ -13,6 +12,8 @@ import {
 import { exampleDetailRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
+
+const h = html<Message>()
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -32,7 +33,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('core/crash-view', 'Crash View'),
@@ -60,8 +61,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' being processed:',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.crashViewCustomHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.crashViewCustomHighlighted),
+          ],
           [],
         ),
         Snippets.crashViewCustomRaw,
@@ -81,11 +85,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' from being used.',
       ),
       para(
-        'Foldkit\u2019s event handlers like ',
+        'Foldkit’s event handlers like ',
         inlineCode('OnClick'),
         ' work by dispatching Messages to the runtime. Since the runtime has stopped, those handlers are silently ignored. For interactivity, like a reload button, use ',
         inlineCode("Attribute('onclick', 'location.reload()')"),
-        '. This sets a raw DOM event handler directly on the element, bypassing Foldkit\u2019s dispatch system entirely.',
+        '. This sets a raw DOM event handler directly on the element, bypassing Foldkit’s dispatch system entirely.',
       ),
       infoCallout(
         'Only in crash.view',
@@ -113,7 +117,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ', giving you access to the error, Model, and Message:',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.crashReportHighlighted)], []),
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.crashReportHighlighted)],
+          [],
+        ),
         Snippets.crashReportRaw,
         'Crash reporting example',
         copiedSnippets,

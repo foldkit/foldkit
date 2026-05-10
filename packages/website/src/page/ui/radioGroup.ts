@@ -1,21 +1,6 @@
 import { Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 
-import {
-  Class,
-  D,
-  Fill,
-  Stroke,
-  StrokeLinecap,
-  StrokeLinejoin,
-  StrokeWidth,
-  ViewBox,
-  div,
-  p,
-  path,
-  span,
-  svg,
-} from '../../html'
-import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import {
   GotHorizontalRadioGroupDemoMessage,
@@ -72,112 +57,154 @@ const descriptionClassName = 'text-sm text-gray-600 dark:text-gray-300'
 const priceClassName =
   'text-sm font-semibold text-accent-600 dark:text-accent-400'
 
-const checkIcon = svg(
-  [
-    ViewBox('0 0 24 24'),
-    Fill('none'),
-    Class('size-5 text-accent-600 dark:text-accent-400'),
-  ],
-  [
-    path(
-      [
-        D('M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z'),
-        Stroke('currentColor'),
-        StrokeWidth('1.5'),
-        StrokeLinecap('round'),
-        StrokeLinejoin('round'),
-      ],
-      [],
-    ),
-  ],
-)
-
-const checkPlaceholder = div([Class('size-5')], [])
-
 // VIEW
 
-export const verticalDemo = (
+export const verticalDemo = <ParentMessage>(
   radioGroupModel: Ui.RadioGroup.Model,
   toParentMessage: (message: Message) => ParentMessage,
-) => [
-  Ui.RadioGroup.view<ParentMessage, Plan>({
-    model: radioGroupModel,
-    toParentMessage: message =>
-      toParentMessage(GotVerticalRadioGroupDemoMessage({ message })),
-    options: plans,
-    ariaLabel: 'Server plan',
-    optionToConfig: (plan, { isSelected }) => ({
-      value: plan,
-      content: attributes =>
-        div(
-          [...attributes.option, Class(verticalOptionClassName)],
-          [
-            div(
-              [Class('flex w-full items-center justify-between')],
-              [
-                div(
-                  [],
-                  [
-                    span([...attributes.label, Class(labelClassName)], [plan]),
-                    p(
-                      [...attributes.description, Class(descriptionClassName)],
-                      [planDescriptions[plan]],
-                    ),
-                  ],
-                ),
-                div(
-                  [Class('flex items-center gap-3')],
-                  [
-                    span([Class(priceClassName)], [planPrices[plan]]),
-                    isSelected ? checkIcon : checkPlaceholder,
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
-    }),
-    attributes: [Class(verticalGroupClassName)],
-  }),
-]
+) => {
+  const h = html<ParentMessage>()
 
-export const horizontalDemo = (
+  const checkIcon = h.svg(
+    [
+      h.ViewBox('0 0 24 24'),
+      h.Fill('none'),
+      h.Class('size-5 text-accent-600 dark:text-accent-400'),
+    ],
+    [
+      h.path(
+        [
+          h.D('M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z'),
+          h.Stroke('currentColor'),
+          h.StrokeWidth('1.5'),
+          h.StrokeLinecap('round'),
+          h.StrokeLinejoin('round'),
+        ],
+        [],
+      ),
+    ],
+  )
+
+  const checkPlaceholder = h.div([h.Class('size-5')], [])
+
+  return [
+    Ui.RadioGroup.view<ParentMessage, Plan>({
+      model: radioGroupModel,
+      toParentMessage: message =>
+        toParentMessage(GotVerticalRadioGroupDemoMessage({ message })),
+      options: plans,
+      ariaLabel: 'Server plan',
+      optionToConfig: (plan, { isSelected }) => ({
+        value: plan,
+        content: attributes =>
+          h.div(
+            [...attributes.option, h.Class(verticalOptionClassName)],
+            [
+              h.div(
+                [h.Class('flex w-full items-center justify-between')],
+                [
+                  h.div(
+                    [],
+                    [
+                      h.span(
+                        [...attributes.label, h.Class(labelClassName)],
+                        [plan],
+                      ),
+                      h.p(
+                        [
+                          ...attributes.description,
+                          h.Class(descriptionClassName),
+                        ],
+                        [planDescriptions[plan]],
+                      ),
+                    ],
+                  ),
+                  h.div(
+                    [h.Class('flex items-center gap-3')],
+                    [
+                      h.span([h.Class(priceClassName)], [planPrices[plan]]),
+                      isSelected ? checkIcon : checkPlaceholder,
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+      }),
+      attributes: [h.Class(verticalGroupClassName)],
+    }),
+  ]
+}
+
+export const horizontalDemo = <ParentMessage>(
   radioGroupModel: Ui.RadioGroup.Model,
   toParentMessage: (message: Message) => ParentMessage,
-) => [
-  Ui.RadioGroup.view<ParentMessage, Plan>({
-    model: radioGroupModel,
-    toParentMessage: message =>
-      toParentMessage(GotHorizontalRadioGroupDemoMessage({ message })),
-    options: plans,
-    ariaLabel: 'Server plan',
-    optionToConfig: (plan, { isSelected }) => ({
-      value: plan,
-      content: attributes =>
-        div(
-          [...attributes.option, Class(horizontalOptionClassName)],
-          [
-            div(
-              [Class('flex w-full items-center justify-between')],
-              [
-                div(
-                  [],
-                  [
-                    span([...attributes.label, Class(labelClassName)], [plan]),
-                    p(
-                      [...attributes.description, Class(descriptionClassName)],
-                      [planDescriptions[plan]],
-                    ),
-                  ],
-                ),
-                isSelected ? checkIcon : checkPlaceholder,
-              ],
-            ),
-            span([Class(priceClassName + ' mt-2')], [planPrices[plan]]),
-          ],
-        ),
+) => {
+  const h = html<ParentMessage>()
+
+  const checkIcon = h.svg(
+    [
+      h.ViewBox('0 0 24 24'),
+      h.Fill('none'),
+      h.Class('size-5 text-accent-600 dark:text-accent-400'),
+    ],
+    [
+      h.path(
+        [
+          h.D('M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z'),
+          h.Stroke('currentColor'),
+          h.StrokeWidth('1.5'),
+          h.StrokeLinecap('round'),
+          h.StrokeLinejoin('round'),
+        ],
+        [],
+      ),
+    ],
+  )
+
+  const checkPlaceholder = h.div([h.Class('size-5')], [])
+
+  return [
+    Ui.RadioGroup.view<ParentMessage, Plan>({
+      model: radioGroupModel,
+      toParentMessage: message =>
+        toParentMessage(GotHorizontalRadioGroupDemoMessage({ message })),
+      options: plans,
+      ariaLabel: 'Server plan',
+      optionToConfig: (plan, { isSelected }) => ({
+        value: plan,
+        content: attributes =>
+          h.div(
+            [...attributes.option, h.Class(horizontalOptionClassName)],
+            [
+              h.div(
+                [h.Class('flex w-full items-center justify-between')],
+                [
+                  h.div(
+                    [],
+                    [
+                      h.span(
+                        [...attributes.label, h.Class(labelClassName)],
+                        [plan],
+                      ),
+                      h.p(
+                        [
+                          ...attributes.description,
+                          h.Class(descriptionClassName),
+                        ],
+                        [planDescriptions[plan]],
+                      ),
+                    ],
+                  ),
+                  isSelected ? checkIcon : checkPlaceholder,
+                ],
+              ),
+              h.span([h.Class(priceClassName + ' mt-2')], [planPrices[plan]]),
+            ],
+          ),
+      }),
+      orientation: 'Horizontal',
+      attributes: [h.Class(horizontalGroupClassName)],
     }),
-    orientation: 'Horizontal',
-    attributes: [Class(horizontalGroupClassName)],
-  }),
-]
+  ]
+}

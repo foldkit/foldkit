@@ -1,8 +1,7 @@
 import { Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import type { AnchorConfig } from 'foldkit/ui/tooltip'
 
-import { Class, div, span } from '../../html'
-import type { Message as ParentMessage } from '../../main'
 import { GotTooltipDemoMessage, type Message } from './message'
 
 // DEMO CONTENT
@@ -23,24 +22,28 @@ const TOOLTIP_ANCHOR: AnchorConfig = {
   padding: 8,
 }
 
-export const demo = (
+export const demo = <ParentMessage>(
   tooltipModel: Ui.Tooltip.Model,
   toParentMessage: (message: Message) => ParentMessage,
-) => [
-  div(
-    [Class('relative')],
-    [
-      Ui.Tooltip.view({
-        model: tooltipModel,
-        toParentMessage: message =>
-          toParentMessage(GotTooltipDemoMessage({ message })),
-        anchor: TOOLTIP_ANCHOR,
-        triggerContent: span([], ['Hover or focus me']),
-        triggerAttributes: [Class(triggerClassName)],
-        content: span([], ['This is a tooltip']),
-        panelAttributes: [Class(panelClassName)],
-        attributes: [Class(wrapperClassName)],
-      }),
-    ],
-  ),
-]
+) => {
+  const h = html<ParentMessage>()
+
+  return [
+    h.div(
+      [h.Class('relative')],
+      [
+        Ui.Tooltip.view({
+          model: tooltipModel,
+          toParentMessage: message =>
+            toParentMessage(GotTooltipDemoMessage({ message })),
+          anchor: TOOLTIP_ANCHOR,
+          triggerContent: h.span([], ['Hover or focus me']),
+          triggerAttributes: [h.Class(triggerClassName)],
+          content: h.span([], ['This is a tooltip']),
+          panelAttributes: [h.Class(panelClassName)],
+          attributes: [h.Class(wrapperClassName)],
+        }),
+      ],
+    ),
+  ]
+}

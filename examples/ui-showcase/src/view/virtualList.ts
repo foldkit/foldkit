@@ -1,9 +1,7 @@
 import { Array, Match as M, Option, pipe } from 'effect'
 import { Ui } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, OnClick, button, div, h2, h3, span } from '../html'
-import type { Message as ParentMessage } from '../main'
 import {
   ClickedVirtualListScrollToMiddle,
   ClickedVirtualListVariableScrollToMiddle,
@@ -214,75 +212,86 @@ const variableArtifactClassName =
 
 const subsectionHeadingClassName = 'text-lg font-semibold text-gray-900 mt-2'
 
-const shortRow = (row: Activity) =>
-  div(
-    [Class(rowClassName)],
+const shortRow = <ParentMessage>(row: Activity): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [h.Class(rowClassName)],
     [
-      div([Class(avatarClassName(row.colorClass))], [row.initial]),
-      div(
-        [Class(activityTextClassName)],
+      h.div([h.Class(avatarClassName(row.colorClass))], [row.initial]),
+      h.div(
+        [h.Class(activityTextClassName)],
         [
-          span([Class(actorClassName)], [row.actor]),
+          h.span([h.Class(actorClassName)], [row.actor]),
           ' ',
           row.verb,
           ' ',
-          span([Class(targetClassName)], [row.target]),
+          h.span([h.Class(targetClassName)], [row.target]),
         ],
       ),
-      div([Class(timeAgoClassName)], [row.timeAgo]),
+      h.div([h.Class(timeAgoClassName)], [row.timeAgo]),
     ],
   )
+}
 
-const tallRow = (row: Activity, summary: Summary) =>
-  div(
-    [Class(variableTallRowClassName)],
+const tallRow = <ParentMessage>(row: Activity, summary: Summary): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [h.Class(variableTallRowClassName)],
     [
-      div([Class(avatarClassName(row.colorClass))], [row.initial]),
-      div(
-        [Class('min-w-0')],
+      h.div([h.Class(avatarClassName(row.colorClass))], [row.initial]),
+      h.div(
+        [h.Class('min-w-0')],
         [
-          div(
-            [Class(activityTextClassName)],
+          h.div(
+            [h.Class(activityTextClassName)],
             [
-              span([Class(actorClassName)], [row.actor]),
+              h.span([h.Class(actorClassName)], [row.actor]),
               ' ',
               row.verb,
               ' ',
-              span([Class(targetClassName)], [row.target]),
+              h.span([h.Class(targetClassName)], [row.target]),
             ],
           ),
-          div([Class(variableSummaryTitleClassName)], [summary.title]),
-          div([Class(variableSummaryBodyClassName)], [summary.body]),
-          div([Class(variableArtifactClassName)], [summary.artifact]),
+          h.div([h.Class(variableSummaryTitleClassName)], [summary.title]),
+          h.div([h.Class(variableSummaryBodyClassName)], [summary.body]),
+          h.div([h.Class(variableArtifactClassName)], [summary.artifact]),
         ],
       ),
-      div([Class(timeAgoClassName)], [row.timeAgo]),
+      h.div([h.Class(timeAgoClassName)], [row.timeAgo]),
     ],
   )
+}
 
-export const view = (
+export const view = <ParentMessage>(
   model: UiModel,
   toParentMessage: (message: UiMessage) => ParentMessage,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
-      h2([Class('text-2xl font-bold text-gray-900 mb-6')], ['Virtual List']),
-      div(
-        [Class('flex flex-col gap-8 max-w-2xl')],
+      h.h2(
+        [h.Class('text-2xl font-bold text-gray-900 mb-6')],
+        ['Virtual List'],
+      ),
+      h.div(
+        [h.Class('flex flex-col gap-8 max-w-2xl')],
         [
-          div(
-            [Class('flex flex-col gap-4')],
+          h.div(
+            [h.Class('flex flex-col gap-4')],
             [
-              h3([Class(subsectionHeadingClassName)], ['Basic']),
-              div(
-                [Class(headerClassName)],
+              h.h3([h.Class(subsectionHeadingClassName)], ['Basic']),
+              h.div(
+                [h.Class(headerClassName)],
                 [
-                  span([], [`${ROW_COUNT.toLocaleString()} activity events`]),
-                  button(
+                  h.span([], [`${ROW_COUNT.toLocaleString()} activity events`]),
+                  h.button(
                     [
-                      Class(buttonClassName),
-                      OnClick(
+                      h.Class(buttonClassName),
+                      h.OnClick(
                         toParentMessage(ClickedVirtualListScrollToMiddle()),
                       ),
                     ],
@@ -294,26 +303,29 @@ export const view = (
                 model: model.virtualListDemo,
                 items: sampleActivities,
                 itemToKey: row => String(row.id),
-                itemToView: row => shortRow(row),
+                itemToView: row => shortRow<ParentMessage>(row),
                 className: containerClassName,
               }),
             ],
           ),
-          div(
-            [Class('flex flex-col gap-4')],
+          h.div(
+            [h.Class('flex flex-col gap-4')],
             [
-              h3([Class(subsectionHeadingClassName)], ['Variable row heights']),
-              div(
-                [Class(headerClassName)],
+              h.h3(
+                [h.Class(subsectionHeadingClassName)],
+                ['Variable row heights'],
+              ),
+              h.div(
+                [h.Class(headerClassName)],
                 [
-                  span(
+                  h.span(
                     [],
                     ['Every fourth row is taller and shows a summary block'],
                   ),
-                  button(
+                  h.button(
                     [
-                      Class(buttonClassName),
-                      OnClick(
+                      h.Class(buttonClassName),
+                      h.OnClick(
                         toParentMessage(
                           ClickedVirtualListVariableScrollToMiddle(),
                         ),
@@ -330,8 +342,8 @@ export const view = (
                 itemToRowHeightPx: variableRowHeightPx,
                 itemToView: (row, index) =>
                   row.hasSummary
-                    ? tallRow(row, summaryFor(index))
-                    : shortRow(row),
+                    ? tallRow<ParentMessage>(row, summaryFor(index))
+                    : shortRow<ParentMessage>(row),
                 className: containerClassName,
               }),
             ],
@@ -340,3 +352,4 @@ export const view = (
       ),
     ],
   )
+}

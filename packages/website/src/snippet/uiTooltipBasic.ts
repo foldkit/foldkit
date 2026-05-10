@@ -3,10 +3,11 @@
 // update, and view definitions.
 import { Effect } from 'effect'
 import { Command, Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Class, span } from './html'
+const h = html<Message>()
 
 // Add a field to your Model for the Tooltip Submodel:
 const Model = S.Struct({
@@ -47,9 +48,9 @@ Ui.Tooltip.view({
   model: model.tooltip,
   toParentMessage: message => GotTooltipMessage({ message }),
   anchor: { placement: 'top', gap: 6, padding: 8 },
-  triggerContent: span([], ['Save']),
+  triggerContent: h.span([], ['Save']),
   triggerClassName: 'rounded-lg border px-3 py-2 cursor-pointer',
-  content: span([], ['Save your changes (⌘S)']),
+  content: h.span([], ['Save your changes (⌘S)']),
   panelClassName:
     'rounded-md bg-gray-900 px-3 py-1.5 text-sm text-white shadow-lg',
 })

@@ -1,32 +1,10 @@
 import { clsx } from 'clsx'
 import { Array, Option, pipe } from 'effect'
 import { Ui } from 'foldkit'
-import { Html, createLazy } from 'foldkit/html'
+import { Html, createLazy, html } from 'foldkit/html'
 import apiModuleIndex from 'virtual:api-module-index'
 
 import { type NavPage, docsSections, isNavPageActive } from '../docsNav'
-import {
-  Alt,
-  AriaCurrent,
-  AriaLabel,
-  Autofocus,
-  Class,
-  Height,
-  Href,
-  OnClick,
-  Src,
-  Tabindex,
-  Width,
-  a,
-  aside,
-  button,
-  div,
-  img,
-  li,
-  nav,
-  span,
-  ul,
-} from '../html'
 import { Icon } from '../icon'
 import { Link } from '../link'
 import { type Model } from '../main'
@@ -48,20 +26,22 @@ import {
 import { ExampleDetailRoute, apiModuleRouter, homeRouter } from '../route'
 import { betaTag, iconLink } from './shared'
 
+const h = html<Message>()
+
 const sidebarGroup = (config: {
   readonly label: string
   readonly model: Ui.Disclosure.Model
   readonly toParentMessage: (message: Ui.Disclosure.Message) => Message
   readonly children: Html
 }): Html =>
-  li(
+  h.li(
     [],
     [
       Ui.Disclosure.view({
         model: config.model,
         toParentMessage: config.toParentMessage,
         buttonAttributes: [
-          Class(
+          h.Class(
             clsx(
               'w-full flex items-center justify-between cursor-pointer transition',
               'px-4 py-2.5 md:py-2',
@@ -73,13 +53,13 @@ const sidebarGroup = (config: {
             ),
           ),
         ],
-        buttonContent: div(
-          [Class('flex items-center justify-between w-full')],
+        buttonContent: h.div(
+          [h.Class('flex items-center justify-between w-full')],
           [
-            span([], [config.label]),
-            span(
+            h.span([], [config.label]),
+            h.span(
               [
-                Class(
+                h.Class(
                   clsx({
                     'rotate-180': config.model.isOpen,
                   }),
@@ -89,7 +69,7 @@ const sidebarGroup = (config: {
             ),
           ],
         ),
-        panelAttributes: [Class('px-4 py-2')],
+        panelAttributes: [h.Class('px-4 py-2')],
         panelContent: config.children,
       }),
     ],
@@ -132,14 +112,14 @@ const sidebarViewInner = (
     )
 
   const navLink = (href: string, isActive: boolean, label: string) =>
-    li(
+    h.li(
       [],
       [
-        a(
+        h.a(
           [
-            Href(href),
-            Class(linkClass(isActive)),
-            ...(isActive ? [AriaCurrent('page')] : []),
+            h.Href(href),
+            h.Class(linkClass(isActive)),
+            ...(isActive ? [h.AriaCurrent('page')] : []),
           ],
           [label],
         ),
@@ -196,8 +176,8 @@ const sidebarViewInner = (
   ]
 
   const pageGroupList = (pages: ReadonlyArray<NavPage>): Html =>
-    ul(
-      [Class('space-y-0.5')],
+    h.ul(
+      [h.Class('space-y-0.5')],
       Array.map(pages, page =>
         navLink(
           page.href,
@@ -207,8 +187,8 @@ const sidebarViewInner = (
       ),
     )
 
-  const navLinks = ul(
-    [Class('space-y-0.5')],
+  const navLinks = h.ul(
+    [h.Class('space-y-0.5')],
     [
       ...Array.zipWith(
         docsSections,
@@ -218,11 +198,11 @@ const sidebarViewInner = (
             label: section.label,
             model: disclosure.model,
             toParentMessage: disclosure.toParentMessage,
-            children: div(
-              [Class('divide-y divide-gray-200 dark:divide-gray-800')],
+            children: h.div(
+              [h.Class('divide-y divide-gray-200 dark:divide-gray-800')],
               Array.map(section.pageGroups, group =>
-                div(
-                  [Class('py-2 first:pt-0 last:pb-0')],
+                h.div(
+                  [h.Class('py-2 first:pt-0 last:pb-0')],
                   [pageGroupList(group)],
                 ),
               ),
@@ -233,8 +213,8 @@ const sidebarViewInner = (
         label: 'API Reference',
         model: apiReferenceGroup,
         toParentMessage: message => GotApiReferenceGroupMessage({ message }),
-        children: ul(
-          [Class('space-y-0.5')],
+        children: h.ul(
+          [h.Class('space-y-0.5')],
           Array.map(apiModuleIndex, ({ slug, name }) =>
             navLink(
               apiModuleRouter({
@@ -249,51 +229,51 @@ const sidebarViewInner = (
     ],
   )
 
-  const desktopSidebar = aside(
+  const desktopSidebar = h.aside(
     [
-      AriaLabel('Documentation sidebar'),
-      Class(
+      h.AriaLabel('Documentation sidebar'),
+      h.Class(
         'hidden md:flex fixed top-[var(--header-height)] bottom-0 left-0 z-40 w-64 bg-cream dark:bg-gray-900 border-r border-gray-300 dark:border-gray-800 flex-col',
       ),
     ],
     [
-      nav(
-        [AriaLabel('Documentation'), Class('flex-1 overflow-y-auto pb-4')],
+      h.nav(
+        [h.AriaLabel('Documentation'), h.Class('flex-1 overflow-y-auto pb-4')],
         [navLinks],
       ),
     ],
   )
 
-  const mobileMenuContent = div(
-    [Class('flex flex-col h-full')],
+  const mobileMenuContent = h.div(
+    [h.Class('flex flex-col h-full')],
     [
-      div(
+      h.div(
         [
-          Class(
+          h.Class(
             'flex justify-between items-center h-[var(--header-height)] pt-[env(safe-area-inset-top,0px)] px-3 border-b border-gray-300 dark:border-gray-800 shrink-0',
           ),
         ],
         [
-          a(
-            [Href(homeRouter()), Class('flex items-center gap-2')],
+          h.a(
+            [h.Href(homeRouter()), h.Class('flex items-center gap-2')],
             [
-              img([
-                Src('/logo.svg'),
-                Alt('Foldkit'),
-                Width('801'),
-                Height('200'),
-                Class('h-6 w-auto dark:invert'),
+              h.img([
+                h.Src('/logo.svg'),
+                h.Alt('Foldkit'),
+                h.Width('801'),
+                h.Height('200'),
+                h.Class('h-6 w-auto dark:invert'),
               ]),
               betaTag,
             ],
           ),
-          button(
+          h.button(
             [
-              Class(
+              h.Class(
                 'p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 cursor-pointer',
               ),
-              AriaLabel('Close menu'),
-              OnClick(
+              h.AriaLabel('Close menu'),
+              h.OnClick(
                 GotMobileMenuDialogMessage({
                   message: Ui.Dialog.Closed(),
                 }),
@@ -303,20 +283,20 @@ const sidebarViewInner = (
           ),
         ],
       ),
-      nav(
+      h.nav(
         [
-          AriaLabel('Documentation'),
-          Class('flex-1 overflow-y-auto'),
-          Tabindex(-1),
-          Autofocus(true),
+          h.AriaLabel('Documentation'),
+          h.Class('flex-1 overflow-y-auto'),
+          h.Tabindex(-1),
+          h.Autofocus(true),
         ],
         [navLinks],
       ),
-      div(
-        [Class('p-4 border-t border-gray-300 dark:border-gray-800 shrink-0')],
+      h.div(
+        [h.Class('p-4 border-t border-gray-300 dark:border-gray-800 shrink-0')],
         [
-          div(
-            [Class('flex items-center justify-center gap-8')],
+          h.div(
+            [h.Class('flex items-center justify-center gap-8')],
             [
               iconLink(Link.github, 'GitHub', Icon.github('w-6 h-6')),
               iconLink(Link.discord, 'Discord', Icon.discord('w-6 h-6')),
@@ -333,13 +313,13 @@ const sidebarViewInner = (
     toParentMessage: message => GotMobileMenuDialogMessage({ message }),
     panelContent: mobileMenuContent,
     panelAttributes: [
-      Class('fixed inset-0 z-[60] bg-cream dark:bg-gray-900 flex flex-col'),
+      h.Class('fixed inset-0 z-[60] bg-cream dark:bg-gray-900 flex flex-col'),
     ],
-    backdropAttributes: [Class('fixed inset-0 z-[59]')],
-    attributes: [Class('md:hidden')],
+    backdropAttributes: [h.Class('fixed inset-0 z-[59]')],
+    attributes: [h.Class('md:hidden')],
   })
 
-  return div([], [desktopSidebar, mobileMenu])
+  return h.div([], [desktopSidebar, mobileMenu])
 }
 
 const lazySidebar = createLazy()

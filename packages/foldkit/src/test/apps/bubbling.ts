@@ -45,19 +45,19 @@ export const update = (
 
 // VIEW
 
-const { div, span, OnClick, OnDoubleClick, Role } = html<Message>()
+const h = html<Message>()
 
 export const view = (model: Model): Html =>
-  div(
+  h.div(
     [],
     [
-      div(
-        [Role('option'), OnClick(ClickedContainer())],
-        [span([], [`clicks=${model.clicks}`])],
+      h.div(
+        [h.Role('option'), h.OnClick(ClickedContainer())],
+        [h.span([], [`clicks=${model.clicks}`])],
       ),
-      div(
-        [Role('listitem'), OnDoubleClick(DoubleClickedContainer())],
-        [span([], [`dbl=${model.doubleClicks}`])],
+      h.div(
+        [h.Role('listitem'), h.OnDoubleClick(DoubleClickedContainer())],
+        [h.span([], [`dbl=${model.doubleClicks}`])],
       ),
     ],
   )

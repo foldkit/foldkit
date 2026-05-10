@@ -1,72 +1,72 @@
 import { clsx } from 'clsx'
 import { Array, Number, Option, Order, String as Str, pipe } from 'effect'
 import { Mount } from 'foldkit'
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
 import { USER_GAME_TEXT_INPUT_ID } from '../../../constant'
-import type { Message as ParentMessage } from '../../../message'
-import {
-  Autocapitalize,
-  Autocorrect,
-  Class,
-  Id,
-  OnInput,
-  OnMount,
-  Spellcheck,
-  Value,
-  div,
-  empty,
-  h3,
-  span,
-  textarea,
-} from '../../../view/html'
 import { FocusUserGameTextInput } from '../command'
 import { ChangedUserText } from '../message'
 import type { Message } from '../message'
 
-const typing = (
+const typing = <ParentMessage>(
   gameText: string,
   userGameText: string,
   maybeWrongCharIndex: Option.Option<number>,
   toParentMessage: (message: Message) => ParentMessage,
-): Html =>
-  div(
-    [Class('relative')],
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [h.Class('relative')],
     [
-      textarea(
+      h.textarea(
         [
-          Id(USER_GAME_TEXT_INPUT_ID),
-          Value(userGameText),
-          Class('absolute inset-0 opacity-0 z-10 resize-none'),
-          OnInput(value => toParentMessage(ChangedUserText({ value }))),
-          OnMount(Mount.mapMessage(FocusUserGameTextInput(), toParentMessage)),
-          Spellcheck(false),
-          Autocorrect('off'),
-          Autocapitalize('none'),
+          h.Id(USER_GAME_TEXT_INPUT_ID),
+          h.Value(userGameText),
+          h.Class('absolute inset-0 opacity-0 z-10 resize-none'),
+          h.OnInput(value => toParentMessage(ChangedUserText({ value }))),
+          h.OnMount(
+            Mount.mapMessage(FocusUserGameTextInput(), toParentMessage),
+          ),
+          h.Spellcheck(false),
+          h.Autocorrect('off'),
+          h.Autocapitalize('none'),
         ],
         [],
       ),
-      gameTextWithProgress(gameText, userGameText, maybeWrongCharIndex),
+      gameTextWithProgress<ParentMessage>(
+        gameText,
+        userGameText,
+        maybeWrongCharIndex,
+      ),
     ],
   )
+}
 
-const gameTextWithProgress = (
+const gameTextWithProgress = <ParentMessage>(
   gameText: string,
   userGameText: string,
   maybeWrongCharIndex: Option.Option<number>,
-): Html =>
-  div(
-    [Class('whitespace-pre-wrap')],
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [h.Class('whitespace-pre-wrap')],
     pipe(
       gameText,
       Str.split(''),
-      Array.map(char(userGameText, maybeWrongCharIndex)),
+      Array.map(char<ParentMessage>(userGameText, maybeWrongCharIndex)),
     ),
   )
+}
 
 const char =
-  (userGameText: string, maybeWrongCharIndex: Option.Option<number>) =>
+  <ParentMessage>(
+    userGameText: string,
+    maybeWrongCharIndex: Option.Option<number>,
+  ) =>
   (char: string, index: number): Html => {
+    const h = html<ParentMessage>()
     const userGameTextLength = Str.length(userGameText)
     const hasNoInput = userGameTextLength === 0
     const isNext =
@@ -94,29 +94,37 @@ const char =
 
     const displayChar = isNextNewline ? '↵' : char
 
-    return span([Class(charClassName)], [displayChar])
+    return h.span([h.Class(charClassName)], [displayChar])
   }
 
-export const playing = (
+export const playing = <ParentMessage>(
   secondsLeft: number,
   maybeGameText: Option.Option<string>,
   userGameText: string,
   maybeWrongCharIndex: Option.Option<number>,
   toParentMessage: (message: Message) => ParentMessage,
-): Html =>
-  div(
-    [Class('space-y-6')],
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [h.Class('space-y-6')],
     [
-      h3(
-        [Class('uppercase')],
+      h.h3(
+        [h.Class('uppercase')],
         [
           `[Time remaining] ${secondsLeft} ${secondsLeft === 1 ? 'second' : 'seconds'}`,
         ],
       ),
       Option.match(maybeGameText, {
-        onNone: () => empty,
+        onNone: () => h.empty,
         onSome: gameText =>
-          typing(gameText, userGameText, maybeWrongCharIndex, toParentMessage),
+          typing<ParentMessage>(
+            gameText,
+            userGameText,
+            maybeWrongCharIndex,
+            toParentMessage,
+          ),
       }),
     ],
   )
+}

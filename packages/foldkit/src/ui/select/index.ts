@@ -32,19 +32,7 @@ export const descriptionId = (id: string): string => `${id}-description`
 export const view = <ParentMessage>(
   config: ViewConfig<ParentMessage>,
 ): Html => {
-  const {
-    AriaDescribedBy,
-    AriaDisabled,
-    AriaInvalid,
-    Autofocus,
-    DataAttribute,
-    Disabled,
-    For,
-    Id,
-    Name,
-    OnChange,
-    Value,
-  } = html<ParentMessage>()
+  const h = html<ParentMessage>()
 
   const {
     toView,
@@ -58,27 +46,29 @@ export const view = <ParentMessage>(
   } = config
 
   const disabledAttributes = isDisabled
-    ? [AriaDisabled(true), Disabled(true), DataAttribute('disabled', '')]
+    ? [h.AriaDisabled(true), h.Disabled(true), h.DataAttribute('disabled', '')]
     : []
 
   const invalidAttributes = isInvalid
-    ? [AriaInvalid(true), DataAttribute('invalid', '')]
+    ? [h.AriaInvalid(true), h.DataAttribute('invalid', '')]
     : []
 
   const changeAttributes =
     Predicate.isNotUndefined(onChange) && !isDisabled
-      ? [OnChange(onChange)]
+      ? [h.OnChange(onChange)]
       : []
 
-  const valueAttributes = Predicate.isNotUndefined(value) ? [Value(value)] : []
+  const valueAttributes = Predicate.isNotUndefined(value)
+    ? [h.Value(value)]
+    : []
 
-  const autofocusAttributes = isAutofocus ? [Autofocus(true)] : []
+  const autofocusAttributes = isAutofocus ? [h.Autofocus(true)] : []
 
-  const nameAttributes = Predicate.isNotUndefined(name) ? [Name(name)] : []
+  const nameAttributes = Predicate.isNotUndefined(name) ? [h.Name(name)] : []
 
   const allSelectAttributes = [
-    Id(id),
-    AriaDescribedBy(descriptionId(id)),
+    h.Id(id),
+    h.AriaDescribedBy(descriptionId(id)),
     ...disabledAttributes,
     ...invalidAttributes,
     ...changeAttributes,
@@ -87,9 +77,9 @@ export const view = <ParentMessage>(
     ...nameAttributes,
   ]
 
-  const labelAttributes = [For(id)]
+  const labelAttributes = [h.For(id)]
 
-  const descriptionAttributes = [Id(descriptionId(id))]
+  const descriptionAttributes = [h.Id(descriptionId(id))]
 
   return toView({
     select: allSelectAttributes,

@@ -258,7 +258,7 @@ describe('Tabs', () => {
     const tabs = ['Alpha', 'Beta', 'Gamma'] as const
     type Tab = (typeof tabs)[number]
 
-    const { DataAttribute } = html<Message>()
+    const h = html<Message>()
 
     const sceneView =
       (
@@ -286,7 +286,7 @@ describe('Tabs', () => {
           {
             update,
             view: sceneView({
-              attributes: [DataAttribute('testid', 'tabs-wrapper')],
+              attributes: [h.DataAttribute('testid', 'tabs-wrapper')],
             }),
           },
           Scene.with(init({ id: 'test' })),
@@ -302,7 +302,7 @@ describe('Tabs', () => {
             update,
             view: sceneView({
               className: 'wrapper-class',
-              attributes: [DataAttribute('testid', 'tabs-wrapper')],
+              attributes: [h.DataAttribute('testid', 'tabs-wrapper')],
             }),
           },
           Scene.with(init({ id: 'test' })),
@@ -321,7 +321,7 @@ describe('Tabs', () => {
           {
             update,
             view: sceneView({
-              tabListAttributes: [DataAttribute('testid', 'tab-list')],
+              tabListAttributes: [h.DataAttribute('testid', 'tab-list')],
             }),
           },
           Scene.with(init({ id: 'test' })),
@@ -340,7 +340,7 @@ describe('Tabs', () => {
             update,
             view: sceneView({
               tabListClassName: 'tab-list-class',
-              tabListAttributes: [DataAttribute('testid', 'tab-list')],
+              tabListAttributes: [h.DataAttribute('testid', 'tab-list')],
             }),
           },
           Scene.with(init({ id: 'test' })),
@@ -363,7 +363,7 @@ describe('Tabs', () => {
                 buttonContent: Effect.succeed(null),
                 panelContent: Effect.succeed(null),
                 buttonAttributes: [
-                  DataAttribute('active', isActive ? 'true' : 'false'),
+                  h.DataAttribute('active', isActive ? 'true' : 'false'),
                 ],
               }),
             }),
@@ -395,7 +395,7 @@ describe('Tabs', () => {
                 buttonContent: Effect.succeed(null),
                 panelContent: Effect.succeed(null),
                 buttonClassName: 'tab-button',
-                buttonAttributes: [DataAttribute('testid', 'btn')],
+                buttonAttributes: [h.DataAttribute('testid', 'btn')],
               }),
             }),
           },
@@ -418,7 +418,7 @@ describe('Tabs', () => {
               tabToConfig: () => ({
                 buttonContent: Effect.succeed(null),
                 panelContent: Effect.succeed(null),
-                panelAttributes: [DataAttribute('testid', 'panel')],
+                panelAttributes: [h.DataAttribute('testid', 'panel')],
               }),
             }),
           },
@@ -441,7 +441,7 @@ describe('Tabs', () => {
                 buttonContent: Effect.succeed(null),
                 panelContent: Effect.succeed(null),
                 panelClassName: 'panel-class',
-                panelAttributes: [DataAttribute('testid', 'panel')],
+                panelAttributes: [h.DataAttribute('testid', 'panel')],
               }),
             }),
           },
@@ -464,7 +464,7 @@ describe('Tabs', () => {
                 buttonContent: Effect.succeed(null),
                 panelContent: Effect.succeed(null),
                 panelAttributes: [
-                  DataAttribute('active', isActive ? 'true' : 'false'),
+                  h.DataAttribute('active', isActive ? 'true' : 'false'),
                 ],
               }),
             }),
@@ -497,7 +497,7 @@ describe('Tabs', () => {
                 buttonContent: Effect.succeed(null),
                 panelContent: Effect.succeed(null),
                 panelClassName: 'panel-class',
-                panelAttributes: [DataAttribute('testid', 'panel')],
+                panelAttributes: [h.DataAttribute('testid', 'panel')],
               }),
             }),
           },
@@ -531,7 +531,7 @@ describe('Tabs', () => {
                 buttonContent: Effect.succeed(null),
                 panelContent: Effect.succeed(null),
                 panelAttributes: [
-                  DataAttribute('active', isActive ? 'true' : 'false'),
+                  h.DataAttribute('active', isActive ? 'true' : 'false'),
                 ],
               }),
             }),
@@ -558,7 +558,7 @@ describe('Tabs', () => {
                 buttonContent: Effect.succeed(null),
                 panelContent: Effect.succeed(null),
                 panelAttributes: [
-                  DataAttribute('active', isActive ? 'true' : 'false'),
+                  h.DataAttribute('active', isActive ? 'true' : 'false'),
                 ],
               }),
             }),

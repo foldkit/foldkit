@@ -1,19 +1,20 @@
 import { Option } from 'effect'
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, div, empty, h3 } from '../../../view/html'
-
-export const countdown = (
+export const countdown = <ParentMessage>(
   secondsLeft: number,
   maybeGameText: Option.Option<string>,
-): Html =>
-  div(
-    [Class('space-y-6')],
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [h.Class('space-y-6')],
     [
-      h3([Class('uppercase')], [`Starting in ${secondsLeft}...`]),
+      h.h3([h.Class('uppercase')], [`Starting in ${secondsLeft}...`]),
       Option.match(maybeGameText, {
-        onNone: () => empty,
-        onSome: text => div([], [text]),
+        onNone: () => h.empty,
+        onSome: text => h.div([], [text]),
       }),
     ],
   )
+}

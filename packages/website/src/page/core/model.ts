@@ -1,8 +1,7 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
 import { Link } from '../../link'
-import type { TableOfContentsEntry } from '../../main'
+import { Message, type TableOfContentsEntry } from '../../main'
 import {
   infoCallout,
   link,
@@ -13,6 +12,8 @@ import {
 import { coreArchitectureRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
+
+const h = html<Message>()
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -25,7 +26,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('core/model', 'Model'),
@@ -41,14 +42,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           `${coreArchitectureRouter()}#the-restaurant-analogy`,
           'restaurant analogy',
         ),
-        ', the Model is the waiter\u2019s notebook: the running picture of everything happening right now. Orders in flight, tables seated, who\u2019s waiting for dessert. Every fact about the current state of the restaurant lives in one place.',
+        ', the Model is the waiter’s notebook: the running picture of everything happening right now. Orders in flight, tables seated, who’s waiting for dessert. Every fact about the current state of the restaurant lives in one place.',
       ),
       para(
         'In the counter example, the Model is a Struct with a single field:',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.counterModelHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.counterModelHighlighted)],
           [],
         ),
         Snippets.counterModelRaw,
@@ -57,16 +58,16 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        'TypeScript types disappear when your code compiles. They help the compiler check your code, but they don\u2019t exist at runtime. Schema keeps that type information alive as a value. This gives Foldkit knowledge of your Model at runtime: it can compare models for equality, decode state from unknown sources, and manage resource lifecycles, things that require knowing the shape of your data, not just its type. You\u2019ll see these capabilities pay off as the counter grows, especially on the Subscriptions page.',
+        'TypeScript types disappear when your code compiles. They help the compiler check your code, but they don’t exist at runtime. Schema keeps that type information alive as a value. This gives Foldkit knowledge of your Model at runtime: it can compare models for equality, decode state from unknown sources, and manage resource lifecycles, things that require knowing the shape of your data, not just its type. You’ll see these capabilities pay off as the counter grows, especially on the Subscriptions page.',
       ),
       para(
         'The counter starts with a single field, but models grow with your app. When we add auto-counting later, the Model will expand:',
       ),
       highlightedCodeBlock(
-        div(
+        h.div(
           [
-            Class('text-sm'),
-            InnerHTML(Snippets.counterModelPreviewHighlighted),
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.counterModelPreviewHighlighted),
           ],
           [],
         ),

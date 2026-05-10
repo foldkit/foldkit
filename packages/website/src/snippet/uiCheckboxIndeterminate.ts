@@ -3,10 +3,11 @@
 // update, and view definitions.
 import { Array } from 'effect'
 import { Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Class, button, div, label } from './html'
+const h = html<Message>()
 
 // Add multiple Checkbox Submodels to your Model for the parent and children:
 const Model = S.Struct({
@@ -66,14 +67,17 @@ Ui.Checkbox.view({
   isIndeterminate,
   toParentMessage: message => GotSelectAllMessage({ message }),
   toView: attributes =>
-    div(
-      [Class('flex items-center gap-2')],
+    h.div(
+      [h.Class('flex items-center gap-2')],
       [
-        button(
-          [...attributes.checkbox, Class('h-5 w-5 rounded border')],
+        h.button(
+          [...attributes.checkbox, h.Class('h-5 w-5 rounded border')],
           isIndeterminate ? ['—'] : isAllChecked ? ['✓'] : [],
         ),
-        label([...attributes.label, Class('text-sm')], ['All notifications']),
+        h.label(
+          [...attributes.label, h.Class('text-sm')],
+          ['All notifications'],
+        ),
       ],
     ),
 })

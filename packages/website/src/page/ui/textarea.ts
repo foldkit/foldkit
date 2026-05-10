@@ -1,7 +1,6 @@
 import { Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 
-import { Class, div, label, span, textarea } from '../../html'
-import type { Message as ParentMessage } from '../../main'
 import type { TableOfContentsEntry } from '../../main'
 import { type Message, UpdatedTextareaDemoValue } from './message'
 import type { Model } from './model'
@@ -32,57 +31,75 @@ const descriptionClassName = 'text-sm text-gray-500 dark:text-gray-400'
 
 // VIEW
 
-export const basicDemo = (
+export const basicDemo = <ParentMessage>(
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
-) => [
-  div(
-    [Class('flex flex-col items-start gap-2 w-full max-w-md')],
-    [
-      Ui.Textarea.view({
-        id: 'textarea-basic-demo',
-        value: model.textareaDemoValue,
-        onInput: value => toParentMessage(UpdatedTextareaDemoValue({ value })),
-        placeholder: 'Tell us about yourself...',
-        rows: 4,
-        toView: attributes =>
-          div(
-            [Class('flex flex-col gap-1.5 w-full')],
-            [
-              label([...attributes.label, Class(labelClassName)], ['Bio']),
-              textarea([...attributes.textarea, Class(textareaClassName)], []),
-              span(
-                [...attributes.description, Class(descriptionClassName)],
-                ['A brief introduction about yourself.'],
-              ),
-            ],
-          ),
-      }),
-    ],
-  ),
-]
+) => {
+  const h = html<ParentMessage>()
 
-export const disabledDemo = (
+  return [
+    h.div(
+      [h.Class('flex flex-col items-start gap-2 w-full max-w-md')],
+      [
+        Ui.Textarea.view({
+          id: 'textarea-basic-demo',
+          value: model.textareaDemoValue,
+          onInput: value =>
+            toParentMessage(UpdatedTextareaDemoValue({ value })),
+          placeholder: 'Tell us about yourself...',
+          rows: 4,
+          toView: attributes =>
+            h.div(
+              [h.Class('flex flex-col gap-1.5 w-full')],
+              [
+                h.label(
+                  [...attributes.label, h.Class(labelClassName)],
+                  ['Bio'],
+                ),
+                h.textarea(
+                  [...attributes.textarea, h.Class(textareaClassName)],
+                  [],
+                ),
+                h.span(
+                  [...attributes.description, h.Class(descriptionClassName)],
+                  ['A brief introduction about yourself.'],
+                ),
+              ],
+            ),
+        }),
+      ],
+    ),
+  ]
+}
+
+export const disabledDemo = <ParentMessage>(
   _model: Model,
   _toParentMessage: (message: Message) => ParentMessage,
-) => [
-  Ui.Textarea.view<ParentMessage>({
-    id: 'textarea-disabled-demo',
-    isDisabled: true,
-    value:
-      'Mathematician and writer, known for work on Charles Babbage\u2019s Analytical Engine.',
-    rows: 3,
-    toView: attributes =>
-      div(
-        [Class('flex flex-col gap-1.5 w-full max-w-md')],
-        [
-          label([...attributes.label, Class(labelClassName)], ['Bio']),
-          textarea([...attributes.textarea, Class(textareaClassName)], []),
-          span(
-            [...attributes.description, Class(descriptionClassName)],
-            ['This textarea is disabled.'],
-          ),
-        ],
-      ),
-  }),
-]
+) => {
+  const h = html<ParentMessage>()
+
+  return [
+    Ui.Textarea.view<ParentMessage>({
+      id: 'textarea-disabled-demo',
+      isDisabled: true,
+      value:
+        'Mathematician and writer, known for work on Charles Babbage’s Analytical Engine.',
+      rows: 3,
+      toView: attributes =>
+        h.div(
+          [h.Class('flex flex-col gap-1.5 w-full max-w-md')],
+          [
+            h.label([...attributes.label, h.Class(labelClassName)], ['Bio']),
+            h.textarea(
+              [...attributes.textarea, h.Class(textareaClassName)],
+              [],
+            ),
+            h.span(
+              [...attributes.description, h.Class(descriptionClassName)],
+              ['This textarea is disabled.'],
+            ),
+          ],
+        ),
+    }),
+  ]
+}

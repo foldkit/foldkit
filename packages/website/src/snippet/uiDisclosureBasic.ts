@@ -3,10 +3,11 @@
 // update, and view definitions.
 import { Effect } from 'effect'
 import { Command, Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { p, span } from './html'
+const h = html<Message>()
 
 // Add a field to your Model for the Disclosure Submodel:
 const Model = S.Struct({
@@ -51,8 +52,8 @@ GotDisclosureMessage: ({ message }) => {
 Ui.Disclosure.view({
   model: model.disclosure,
   toParentMessage: message => GotDisclosureMessage({ message }),
-  buttonContent: span([], ['What is Foldkit?']),
-  panelContent: p([], ['A functional UI framework built on Effect-TS.']),
+  buttonContent: h.span([], ['What is Foldkit?']),
+  panelContent: h.p([], ['A functional UI framework built on Effect-TS.']),
   buttonClassName:
     'flex items-center justify-between w-full p-4 border rounded-lg data-[open]:rounded-b-none',
   panelClassName: 'p-4 border-x border-b rounded-b-lg',

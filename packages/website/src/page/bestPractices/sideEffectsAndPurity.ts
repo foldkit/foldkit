@@ -1,8 +1,7 @@
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div, li, ul } from '../../html'
 import { Link } from '../../link'
-import type { TableOfContentsEntry } from '../../main'
+import { Message, type TableOfContentsEntry } from '../../main'
 import {
   inlineCode,
   link,
@@ -21,6 +20,8 @@ import {
 } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
+
+const h = html<Message>()
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -67,7 +68,7 @@ const requestingValuesHeader: TableOfContentsEntry = {
 const dontComputeInUpdateHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'dont-compute-in-update',
-  text: 'Don\u2019t Compute in Update',
+  text: 'Don’t Compute in Update',
 }
 
 const requestViaCommandHeader: TableOfContentsEntry = {
@@ -92,7 +93,7 @@ const effectModuleLink = (label: string) =>
   link('https://effect.website/docs/data-types/datetime/', label)
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle(
@@ -114,17 +115,17 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' are pure functions. They take inputs and return outputs without touching the outside world.',
       ),
       para('You encapsulate side effects in exactly six places:'),
-      ul(
-        [Class('list-disc mb-6 space-y-2')],
+      h.ul(
+        [h.Class('list-disc mb-6 space-y-2')],
         [
-          li(
+          h.li(
             [],
             [
               link(coreCommandsRouter(), 'Commands'),
               ': an Effect that performs a side effect and returns a Message. HTTP requests, DOM operations, reading from storage. This is where most of your side effects live.',
             ],
           ),
-          li(
+          h.li(
             [],
             [
               link(coreMountRouter(), 'Mount'),
@@ -133,14 +134,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
               ' when a view element enters the DOM, paired with cleanup that fires when it unmounts. The seam where view code reaches a real DOM node, like portaling an overlay to the body or handing the element to a third-party library that owns its own DOM.',
             ],
           ),
-          li(
+          h.li(
             [],
             [
               link(`${coreInitAndFlagsRouter()}#flags`, 'flags'),
               ': an Effect that returns the initial data your program needs to start. Reading from local storage, detecting browser capabilities, or fetching configuration.',
             ],
           ),
-          li(
+          h.li(
             [],
             [
               link(coreSubscriptionsRouter(), 'Subscription'),
@@ -153,14 +154,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
               '. The runtime controls when streams subscribe and unsubscribe based on your Model.',
             ],
           ),
-          li(
+          h.li(
             [],
             [
               link(coreResourcesRouter(), 'Resources'),
               ': an Effect Layer that provides long-lived services to your Commands. One-time setup like creating an AudioContext or opening a database connection.',
             ],
           ),
-          li(
+          h.li(
             [],
             [
               link(coreManagedResourcesRouter(), 'Managed Resources'),
@@ -174,30 +175,30 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ],
       ),
       para(
-        'That\u2019s it. Every side effect in your program is an Effect value, managed by the runtime. Your logic is pure.',
+        'That’s it. Every side effect in your program is an Effect value, managed by the runtime. Your logic is pure.',
       ),
       tableOfContentsEntryToHeader(whySideEffectsFreeHeader),
       para('Foldkit gains powerful guarantees from zero side effects:'),
-      ul(
-        [Class('list-disc mb-6 space-y-2')],
+      h.ul(
+        [h.Class('list-disc mb-6 space-y-2')],
         [
-          li(
+          h.li(
             [],
             [
               'DevTools replay: the DevTools can replay any sequence of Messages against your ',
               inlineCode('update'),
-              ' function because it\u2019s pure. If ',
+              ' function because it’s pure. If ',
               inlineCode('update'),
               ' had side effects, replaying would double-fire them.',
             ],
           ),
-          li(
+          h.li(
             [],
             [
-              'Time-travel debugging: you can jump to any point in your app\u2019s history and see exactly what the Model looked like, because each state is a deterministic function of the previous state plus the Message.',
+              'Time-travel debugging: you can jump to any point in your app’s history and see exactly what the Model looked like, because each state is a deterministic function of the previous state plus the Message.',
             ],
           ),
-          li(
+          h.li(
             [],
             [
               'Predictability: reading ',
@@ -208,10 +209,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ],
       ),
       tableOfContentsEntryToHeader(commonMistakesHeader),
-      ul(
-        [Class('list-disc mb-6 space-y-2')],
+      h.ul(
+        [h.Class('list-disc mb-6 space-y-2')],
         [
-          li(
+          h.li(
             [],
             [
               inlineCode('console.log'),
@@ -222,7 +223,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
               ' during development is fine for quick debugging. But production logging or error monitoring is a side effect that belongs in a Command. It will fire again during DevTools replay, and you want structured control over what gets reported.',
             ],
           ),
-          li(
+          h.li(
             [],
             [
               inlineCode('Date.now()'),
@@ -235,7 +236,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
               ' module and return it as a Message.',
             ],
           ),
-          li(
+          h.li(
             [],
             [
               inlineCode('fetch'),
@@ -246,7 +247,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
               ' that fetches your data and returns a Message. Handle the Message to update your Model.',
             ],
           ),
-          li(
+          h.li(
             [],
             [
               'DOM access anywhere: reading ',
@@ -260,24 +261,27 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(pureFunctionsHeader),
       tableOfContentsEntryToHeader(viewIsPureHeader),
-      ul(
-        [Class('list-disc mb-6 space-y-2')],
+      h.ul(
+        [h.Class('list-disc mb-6 space-y-2')],
         [
-          li([], ['No hooks, no lifecycle methods']),
-          li([], ['No fetching data, no timers, no subscriptions']),
-          li([], ['Given the same Model, always returns the same Html']),
+          h.li([], ['No hooks, no lifecycle methods']),
+          h.li([], ['No fetching data, no timers, no subscriptions']),
+          h.li([], ['Given the same Model, always returns the same Html']),
         ],
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.viewPureBadHighlighted)], []),
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.viewPureBadHighlighted)],
+          [],
+        ),
         Snippets.viewPureBadRaw,
         'Copy bad view example to clipboard',
         copiedSnippets,
         'mb-4',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.viewPureGoodHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.viewPureGoodHighlighted)],
           [],
         ),
         Snippets.viewPureGoodRaw,
@@ -286,17 +290,17 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       tableOfContentsEntryToHeader(updateIsPureHeader),
-      ul(
-        [Class('list-disc mb-6 space-y-2')],
+      h.ul(
+        [h.Class('list-disc mb-6 space-y-2')],
         [
-          li(
+          h.li(
             [],
             [
-              'Returns a new Model and a list of Commands. It doesn\u2019t execute anything. Each Command carries a name for tracing and testing. Foldkit runs the provided Commands.',
+              'Returns a new Model and a list of Commands. It doesn’t execute anything. Each Command carries a name for tracing and testing. Foldkit runs the provided Commands.',
             ],
           ),
-          li([], ['No mutations, no side effects']),
-          li(
+          h.li([], ['No mutations, no side effects']),
+          h.li(
             [],
             [
               'Given the same Model and Message, always returns the same result',
@@ -305,8 +309,8 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ],
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.updatePureBadHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.updatePureBadHighlighted)],
           [],
         ),
         Snippets.updatePureBadRaw,
@@ -315,8 +319,8 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-4',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.updatePureGoodHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.updatePureGoodHighlighted)],
           [],
         ),
         Snippets.updatePureGoodRaw,
@@ -339,8 +343,8 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(dontComputeInUpdateHeader),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.pureUpdateBadHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.pureUpdateBadHighlighted)],
           [],
         ),
         Snippets.pureUpdateBadRaw,
@@ -353,8 +357,8 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Instead, return a Command that generates the value and sends it back as a Message:',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.pureUpdateGoodHighlighted)],
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.pureUpdateGoodHighlighted)],
           [],
         ),
         Snippets.pureUpdateGoodRaw,
@@ -363,7 +367,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        'This \u201Crequest/response\u201D pattern keeps ',
+        'This “request/response” pattern keeps ',
         inlineCode('update'),
         ' pure. The ',
         inlineCode('RequestedApple'),

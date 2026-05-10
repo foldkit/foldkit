@@ -85,21 +85,7 @@ const descriptionId = (id: string): string => `${id}-description`
 export const view = <ParentMessage>(
   config: ViewConfig<ParentMessage>,
 ): Html => {
-  const {
-    AriaChecked,
-    AriaDescribedBy,
-    AriaDisabled,
-    AriaLabelledBy,
-    DataAttribute,
-    Id,
-    Name,
-    OnClick,
-    OnKeyUpPreventDefault,
-    Role,
-    Tabindex,
-    Type,
-    Value,
-  } = html<ParentMessage>()
+  const h = html<ParentMessage>()
 
   const {
     model: { id, isChecked },
@@ -117,40 +103,40 @@ export const view = <ParentMessage>(
     )
 
   const stateAttributes = isIndeterminate
-    ? [DataAttribute('indeterminate', '')]
+    ? [h.DataAttribute('indeterminate', '')]
     : isChecked
-      ? [DataAttribute('checked', '')]
+      ? [h.DataAttribute('checked', '')]
       : []
 
   const disabledAttributes = isDisabled
-    ? [AriaDisabled(true), DataAttribute('disabled', '')]
+    ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
     : []
 
   const checkboxAttributes = [
-    Role('checkbox'),
-    AriaChecked(isIndeterminate ? 'mixed' : isChecked),
-    AriaLabelledBy(labelId(id)),
-    AriaDescribedBy(descriptionId(id)),
-    Tabindex(0),
+    h.Role('checkbox'),
+    h.AriaChecked(isIndeterminate ? 'mixed' : isChecked),
+    h.AriaLabelledBy(labelId(id)),
+    h.AriaDescribedBy(descriptionId(id)),
+    h.Tabindex(0),
     ...stateAttributes,
     ...disabledAttributes,
     ...(isDisabled
       ? []
       : [
-          OnClick(toParentMessage(Toggled())),
-          OnKeyUpPreventDefault(handleKeyUp),
+          h.OnClick(toParentMessage(Toggled())),
+          h.OnKeyUpPreventDefault(handleKeyUp),
         ]),
   ]
 
   const labelAttributes = [
-    Id(labelId(id)),
-    ...(isDisabled ? [] : [OnClick(toParentMessage(Toggled()))]),
+    h.Id(labelId(id)),
+    ...(isDisabled ? [] : [h.OnClick(toParentMessage(Toggled()))]),
   ]
 
-  const descriptionAttributes = [Id(descriptionId(id))]
+  const descriptionAttributes = [h.Id(descriptionId(id))]
 
   const hiddenInputAttributes = name
-    ? [Type('hidden'), Name(name), Value(isChecked ? formValue : '')]
+    ? [h.Type('hidden'), h.Name(name), h.Value(isChecked ? formValue : '')]
     : []
 
   return config.toView({

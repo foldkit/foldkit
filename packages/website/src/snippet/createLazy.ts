@@ -1,6 +1,6 @@
 import { createLazy, html } from 'foldkit/html'
 
-const { div, h2, p, ul, li } = html<Message>()
+const h = html<Message>()
 
 // Define the view function at module level for a stable reference.
 // If defined inside the view, a new function is created each render,
@@ -10,15 +10,15 @@ const statsView = (
   orderCount: number,
   topProducts: ReadonlyArray<string>,
 ) =>
-  div(
+  h.div(
     [],
     [
-      h2([], ['Dashboard']),
-      p([], [`Revenue: $${revenue}`]),
-      p([], [`Orders: ${orderCount}`]),
-      ul(
+      h.h2([], ['Dashboard']),
+      h.p([], [`Revenue: $${revenue}`]),
+      h.p([], [`Orders: ${orderCount}`]),
+      h.ul(
         [],
-        topProducts.map(name => li([], [name])),
+        topProducts.map(name => h.li([], [name])),
       ),
     ],
   )
@@ -32,7 +32,7 @@ const lazyStats = createLazy()
 // both VNode construction and subtree diffing are skipped.
 const view = (model: Model) => ({
   title: 'Dashboard',
-  body: div(
+  body: h.div(
     [],
     [
       headerView(model),

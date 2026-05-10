@@ -173,28 +173,7 @@ export const selectTab = (
 export const view = <ParentMessage, Tab extends string>(
   config: ViewConfig<ParentMessage, Tab>,
 ): Html => {
-  const {
-    div,
-    empty,
-    AriaControls,
-    AriaDisabled,
-    AriaLabel,
-    AriaLabelledBy,
-    AriaOrientation,
-    AriaSelected,
-    Class,
-    DataAttribute,
-    Disabled,
-    Hidden,
-    Id,
-    OnClick,
-    OnKeyDownPreventDefault,
-    Role,
-    Style,
-    Tabindex,
-    Type,
-    keyed,
-  } = html<ParentMessage>()
+  const h = html<ParentMessage>()
 
   const {
     model,
@@ -286,22 +265,26 @@ export const view = <ParentMessage, Tab extends string>(
     const isTabDisabledAtIndex = isDisabled(index)
     const tabConfig = tabToConfig(tab, { isActive })
 
-    return keyed(tabElement)(
+    return h.keyed(tabElement)(
       tabId(id, index),
       [
-        Id(tabId(id, index)),
-        Role('tab'),
-        Type('button'),
-        AriaSelected(isActive),
-        AriaControls(tabPanelId(id, index)),
-        Tabindex(isFocused ? 0 : -1),
-        ...(isActive ? [DataAttribute('selected', '')] : []),
+        h.Id(tabId(id, index)),
+        h.Role('tab'),
+        h.Type('button'),
+        h.AriaSelected(isActive),
+        h.AriaControls(tabPanelId(id, index)),
+        h.Tabindex(isFocused ? 0 : -1),
+        ...(isActive ? [h.DataAttribute('selected', '')] : []),
         ...(isTabDisabledAtIndex
-          ? [Disabled(true), AriaDisabled(true), DataAttribute('disabled', '')]
-          : [OnClick(dispatchTabSelected(index))]),
-        OnKeyDownPreventDefault(handleKeyDown),
+          ? [
+              h.Disabled(true),
+              h.AriaDisabled(true),
+              h.DataAttribute('disabled', ''),
+            ]
+          : [h.OnClick(dispatchTabSelected(index))]),
+        h.OnKeyDownPreventDefault(handleKeyDown),
         ...(tabConfig.buttonClassName
-          ? [Class(tabConfig.buttonClassName)]
+          ? [h.Class(tabConfig.buttonClassName)]
           : []),
         ...(tabConfig.buttonAttributes ?? []),
       ],
@@ -313,20 +296,20 @@ export const view = <ParentMessage, Tab extends string>(
     const isActive = index === model.activeIndex
     const panelConfig = tabToConfig(tab, { isActive })
 
-    return keyed(panelElement)(
+    return h.keyed(panelElement)(
       tabPanelId(id, index),
       [
-        Id(tabPanelId(id, index)),
-        Role('tabpanel'),
-        AriaLabelledBy(tabId(id, index)),
-        Tabindex(isActive ? 0 : -1),
-        Hidden(!isActive),
-        ...(isActive ? [DataAttribute('selected', '')] : []),
+        h.Id(tabPanelId(id, index)),
+        h.Role('tabpanel'),
+        h.AriaLabelledBy(tabId(id, index)),
+        h.Tabindex(isActive ? 0 : -1),
+        h.Hidden(!isActive),
+        ...(isActive ? [h.DataAttribute('selected', '')] : []),
         ...(panelConfig.panelClassName
-          ? [Class(panelConfig.panelClassName)]
+          ? [h.Class(panelConfig.panelClassName)]
           : []),
         ...(panelConfig.panelAttributes ?? []),
-        ...(isActive ? [] : [Style({ display: 'none' })]),
+        ...(isActive ? [] : [h.Style({ display: 'none' })]),
       ],
       [panelConfig.panelContent],
     )
@@ -336,20 +319,20 @@ export const view = <ParentMessage, Tab extends string>(
     tabs,
     Array.get(model.activeIndex),
     Option.match({
-      onNone: () => empty,
+      onNone: () => h.empty,
       onSome: tab => {
         const activeConfig = tabToConfig(tab, { isActive: true })
 
-        return keyed(panelElement)(
+        return h.keyed(panelElement)(
           tabPanelId(id, model.activeIndex),
           [
-            Id(tabPanelId(id, model.activeIndex)),
-            Role('tabpanel'),
-            AriaLabelledBy(tabId(id, model.activeIndex)),
-            Tabindex(0),
-            DataAttribute('selected', ''),
+            h.Id(tabPanelId(id, model.activeIndex)),
+            h.Role('tabpanel'),
+            h.AriaLabelledBy(tabId(id, model.activeIndex)),
+            h.Tabindex(0),
+            h.DataAttribute('selected', ''),
             ...(activeConfig.panelClassName
-              ? [Class(activeConfig.panelClassName)]
+              ? [h.Class(activeConfig.panelClassName)]
               : []),
             ...(activeConfig.panelAttributes ?? []),
           ],
@@ -362,17 +345,17 @@ export const view = <ParentMessage, Tab extends string>(
   const tabPanels = persistPanels ? allPanels : [activePanelOnly]
 
   const resolvedTabListAttributes = [
-    Role('tablist'),
-    AriaOrientation(String.toLowerCase(orientation)),
-    AriaLabel(tabListAriaLabel),
-    ...(tabListClassName ? [Class(tabListClassName)] : []),
+    h.Role('tablist'),
+    h.AriaOrientation(String.toLowerCase(orientation)),
+    h.AriaLabel(tabListAriaLabel),
+    ...(tabListClassName ? [h.Class(tabListClassName)] : []),
     ...tabListAttributes,
   ]
 
-  return div(
-    [...(className ? [Class(className)] : []), ...attributes],
+  return h.div(
+    [...(className ? [h.Class(className)] : []), ...attributes],
     [
-      keyed(tabListElement)(
+      h.keyed(tabListElement)(
         `${id}-tablist`,
         resolvedTabListAttributes,
         tabButtons,

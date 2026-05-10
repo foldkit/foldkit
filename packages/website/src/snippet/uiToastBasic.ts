@@ -3,10 +3,11 @@
 // update, and view definitions.
 import { Option, Schema as S } from 'effect'
 import { Command, Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-import { Class, Href, OnClick, a, button, div, p } from './html'
+const h = html<Message>()
 
 // Define the payload shape for your toast. The Toast component owns only
 // lifecycle + a11y fields (id, variant, transition, dismiss timer, hover
@@ -78,22 +79,22 @@ Toast.view({
   position: 'BottomRight',
   toParentMessage: message => GotToastMessage({ message }),
   renderEntry: (entry, handlers) =>
-    div(
-      [Class('flex items-start gap-3 rounded-lg border bg-white p-3 shadow')],
+    h.div(
+      [h.Class('flex items-start gap-3 rounded-lg border bg-white p-3 shadow')],
       [
-        div(
-          [Class('flex-1')],
+        h.div(
+          [h.Class('flex-1')],
           [
-            p([Class('font-semibold text-sm')], [entry.payload.bodyText]),
+            h.p([h.Class('font-semibold text-sm')], [entry.payload.bodyText]),
             ...Option.match(entry.payload.maybeLink, {
               onNone: () => [],
               onSome: ({ href, text }) => [
-                a([Class('text-sm underline'), Href(href)], [text]),
+                h.a([h.Class('text-sm underline'), h.Href(href)], [text]),
               ],
             }),
           ],
         ),
-        button([OnClick(handlers.dismiss)], ['Close']),
+        h.button([h.OnClick(handlers.dismiss)], ['Close']),
       ],
     ),
   entryClassName: 'w-80',

@@ -1,8 +1,7 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
 import { Link } from '../../link'
-import type { TableOfContentsEntry } from '../../main'
+import { Message, type TableOfContentsEntry } from '../../main'
 import {
   bullets,
   infoCallout,
@@ -15,6 +14,8 @@ import {
 import { bestPracticesImmutabilityRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
+
+const h = html<Message>()
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -48,7 +49,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('core/view-memoization', 'View Memoization'),
@@ -76,7 +77,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' creates a single memoization slot. Call it at module level to create a cache, then use it in your view to wrap an expensive subtree:',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.createLazyHighlighted)], []),
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.createLazyHighlighted)],
+          [],
+        ),
         Snippets.createLazyRaw,
         'Copy createLazy example to clipboard',
         copiedSnippets,
@@ -90,7 +94,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'Arguments are compared by reference, not by value. This works naturally with ',
         link(`${bestPracticesImmutabilityRouter()}#immutable-updates`, 'evo'),
-        ': when a model field isn\u2019t updated, ',
+        ': when a model field isn’t updated, ',
         inlineCode('evo'),
         ' preserves its reference. Only fields that actually changed get new references, so unchanged arguments automatically pass the ',
         inlineCode('==='),
@@ -104,8 +108,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         '-backed cache where each key gets its own independent memoization slot. This is designed for lists where individual items change independently:',
       ),
       highlightedCodeBlock(
-        div(
-          [Class('text-sm'), InnerHTML(Snippets.createKeyedLazyHighlighted)],
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.createKeyedLazyHighlighted),
+          ],
           [],
         ),
         Snippets.createKeyedLazyRaw,
@@ -132,7 +139,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       infoCallout(
         'How it works under the hood',
-        'Foldkit\u2019s virtual DOM library (',
+        'Foldkit’s virtual DOM library (',
         link(Link.snabbdom, 'Snabbdom'),
         ') compares the old and new VNode by reference before diffing. When ',
         inlineCode('oldVnode === newVnode'),

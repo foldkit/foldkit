@@ -50,22 +50,22 @@ export const update = (
 
 // VIEW
 
-const { div, span, Id, Class, AriaLabel, Role, OnKeyDown } = html<Message>()
+const h = html<Message>()
 
 export const view = (model: Model): Html =>
-  div(
+  h.div(
     [
-      Id('key-app'),
-      Role('application'),
-      AriaLabel('Key press area'),
-      OnKeyDown((key, modifiers) =>
+      h.Id('key-app'),
+      h.Role('application'),
+      h.AriaLabel('Key press area'),
+      h.OnKeyDown((key, modifiers) =>
         modifiers.shiftKey ? PressedShiftKey({ key }) : PressedKey({ key }),
       ),
     ],
     [
-      span([Class('last-key'), AriaLabel('Last key')], [model.lastKey]),
-      span(
-        [Class('shifted'), AriaLabel('Shift pressed')],
+      h.span([h.Class('last-key'), h.AriaLabel('Last key')], [model.lastKey]),
+      h.span(
+        [h.Class('shifted'), h.AriaLabel('Shift pressed')],
         [model.isShifted ? 'true' : 'false'],
       ),
     ],

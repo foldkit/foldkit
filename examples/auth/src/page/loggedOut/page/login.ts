@@ -19,34 +19,11 @@ import {
   makeRules,
   validate,
 } from 'foldkit/fieldValidation'
-import { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Session } from '../../../domain/session'
-import {
-  Class,
-  Disabled,
-  For,
-  Href,
-  Id,
-  OnInput,
-  OnSubmit,
-  Placeholder,
-  Type,
-  Value,
-  a,
-  button,
-  div,
-  empty,
-  form,
-  h1,
-  input,
-  label,
-  p,
-  span,
-} from '../../../html'
-import type { Message as ParentMessage } from '../../../message'
 import { homeRouter } from '../../../route'
 
 // MODEL
@@ -213,7 +190,7 @@ const fieldToBorderClass = (field: Field) =>
     }),
   )
 
-const fieldView = (
+const fieldView = <ParentMessage>(
   id: string,
   labelText: string,
   field: Field,
@@ -221,47 +198,50 @@ const fieldView = (
   type: 'text' | 'email' | 'password' = 'text',
   placeholder = '',
 ): Html => {
+  const h = html<ParentMessage>()
+
   const inputClass = clsx(
     'w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
     fieldToBorderClass(field),
   )
 
-  return div(
+  return h.div(
     [],
     [
-      div(
-        [Class('flex items-center gap-2 mb-1')],
+      h.div(
+        [h.Class('flex items-center gap-2 mb-1')],
         [
-          label(
-            [For(id), Class('block text-sm font-medium text-gray-700')],
+          h.label(
+            [h.For(id), h.Class('block text-sm font-medium text-gray-700')],
             [labelText],
           ),
           M.value(field).pipe(
             M.tagsExhaustive({
-              NotValidated: () => empty,
-              Validating: () => span([Class('text-blue-600 text-sm')], ['...']),
-              Valid: () => span([Class('text-green-600 text-sm')], ['✓']),
-              Invalid: () => empty,
+              NotValidated: () => h.empty,
+              Validating: () =>
+                h.span([h.Class('text-blue-600 text-sm')], ['...']),
+              Valid: () => h.span([h.Class('text-green-600 text-sm')], ['✓']),
+              Invalid: () => h.empty,
             }),
           ),
         ],
       ),
-      input([
-        Id(id),
-        Type(type),
-        Value(field.value),
-        Placeholder(placeholder),
-        Class(inputClass),
-        OnInput(onUpdate),
+      h.input([
+        h.Id(id),
+        h.Type(type),
+        h.Value(field.value),
+        h.Placeholder(placeholder),
+        h.Class(inputClass),
+        h.OnInput(onUpdate),
       ]),
       M.value(field).pipe(
         M.tagsExhaustive({
-          NotValidated: () => empty,
-          Validating: () => empty,
-          Valid: () => empty,
+          NotValidated: () => h.empty,
+          Validating: () => h.empty,
+          Valid: () => h.empty,
           Invalid: ({ errors }) =>
-            div(
-              [Class('text-red-600 text-sm mt-1')],
+            h.div(
+              [h.Class('text-red-600 text-sm mt-1')],
               [Array.headNonEmpty(errors)],
             ),
         }),
@@ -270,35 +250,40 @@ const fieldView = (
   )
 }
 
-export const view = (
+export const view = <ParentMessage>(
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
+  const h = html<ParentMessage>()
+
   const canSubmit = isFormValid(model) && !model.isSubmitting
 
-  return div(
-    [Class('max-w-md mx-auto px-4')],
+  return h.div(
+    [h.Class('max-w-md mx-auto px-4')],
     [
-      div(
-        [Class('bg-white rounded-xl shadow-lg p-8')],
+      h.div(
+        [h.Class('bg-white rounded-xl shadow-lg p-8')],
         [
-          h1(
-            [Class('text-3xl font-bold text-gray-800 text-center mb-8')],
+          h.h1(
+            [h.Class('text-3xl font-bold text-gray-800 text-center mb-8')],
             ['Sign In'],
           ),
-          div(
-            [Class('mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg')],
+          h.div(
+            [h.Class('mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg')],
             [
-              p(
-                [Class('text-sm text-blue-700')],
+              h.p(
+                [h.Class('text-sm text-blue-700')],
                 ['Hint: Use any email with password "password"'],
               ),
             ],
           ),
-          form(
-            [Class('space-y-6'), OnSubmit(toParentMessage(SubmittedForm()))],
+          h.form(
             [
-              fieldView(
+              h.Class('space-y-6'),
+              h.OnSubmit(toParentMessage(SubmittedForm())),
+            ],
+            [
+              fieldView<ParentMessage>(
                 'email',
                 'Email',
                 model.email,
@@ -306,7 +291,7 @@ export const view = (
                 'email',
                 'you@example.com',
               ),
-              fieldView(
+              fieldView<ParentMessage>(
                 'password',
                 'Password',
                 model.password,
@@ -314,11 +299,11 @@ export const view = (
                 'password',
                 'Enter your password',
               ),
-              button(
+              h.button(
                 [
-                  Type('submit'),
-                  Disabled(!canSubmit),
-                  Class(
+                  h.Type('submit'),
+                  h.Disabled(!canSubmit),
+                  h.Class(
                     clsx(
                       'w-full py-3 font-medium rounded-lg transition',
                       canSubmit
@@ -331,12 +316,15 @@ export const view = (
               ),
             ],
           ),
-          div(
-            [Class('mt-6 text-center')],
+          h.div(
+            [h.Class('mt-6 text-center')],
             [
-              span([Class('text-gray-600')], ['Back to ']),
-              a(
-                [Href(homeRouter()), Class('text-blue-500 hover:underline')],
+              h.span([h.Class('text-gray-600')], ['Back to ']),
+              h.a(
+                [
+                  h.Href(homeRouter()),
+                  h.Class('text-blue-500 hover:underline'),
+                ],
                 ['Home'],
               ),
             ],

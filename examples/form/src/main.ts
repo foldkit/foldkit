@@ -283,22 +283,7 @@ export const SubmitForm = Command.define(
 
 // VIEW
 
-const {
-  button,
-  div,
-  empty,
-  form,
-  h1,
-  input,
-  label,
-  span,
-  textarea,
-  Class,
-  Disabled,
-  OnSubmit,
-  Role,
-  Type,
-} = html<Message>()
+const h = html<Message>()
 
 const LABEL_CLASS = 'text-sm font-medium text-gray-700'
 const DESCRIPTION_CLASS = 'text-sm mt-1'
@@ -322,11 +307,11 @@ const inputClassName = (field: Field): string =>
 const statusIndicator = (field: Field): Html =>
   M.value(field).pipe(
     M.tagsExhaustive({
-      NotValidated: () => empty,
+      NotValidated: () => h.empty,
       Validating: () =>
-        span([Class('text-blue-600 text-sm animate-spin')], ['◐']),
-      Valid: () => span([Class('text-green-600 text-sm')], ['✓']),
-      Invalid: () => empty,
+        h.span([h.Class('text-blue-600 text-sm animate-spin')], ['◐']),
+      Valid: () => h.span([h.Class('text-green-600 text-sm')], ['✓']),
+      Invalid: () => h.empty,
     }),
   )
 
@@ -336,21 +321,21 @@ const descriptionView = (
 ): Html =>
   M.value(field).pipe(
     M.tagsExhaustive({
-      NotValidated: () => empty,
+      NotValidated: () => h.empty,
       Validating: () =>
-        span(
+        h.span(
           [
             ...descriptionAttributes,
-            Class(clsx(DESCRIPTION_CLASS, 'text-blue-600')),
+            h.Class(clsx(DESCRIPTION_CLASS, 'text-blue-600')),
           ],
           ['Checking...'],
         ),
-      Valid: () => empty,
+      Valid: () => h.empty,
       Invalid: ({ errors }) =>
-        span(
+        h.span(
           [
             ...descriptionAttributes,
-            Class(clsx(DESCRIPTION_CLASS, 'text-red-600')),
+            h.Class(clsx(DESCRIPTION_CLASS, 'text-red-600')),
           ],
           [Array.headNonEmpty(errors)],
         ),
@@ -371,17 +356,17 @@ const inputFieldView = (
     isInvalid: field._tag === 'Invalid',
     type,
     toView: attributes =>
-      div(
-        [Class('mb-4')],
+      h.div(
+        [h.Class('mb-4')],
         [
-          div(
-            [Class('flex items-center gap-2 mb-2')],
+          h.div(
+            [h.Class('flex items-center gap-2 mb-2')],
             [
-              label([...attributes.label, Class(LABEL_CLASS)], [labelText]),
+              h.label([...attributes.label, h.Class(LABEL_CLASS)], [labelText]),
               statusIndicator(field),
             ],
           ),
-          input([...attributes.input, Class(inputClassName(field))]),
+          h.input([...attributes.input, h.Class(inputClassName(field))]),
           descriptionView(field, attributes.description),
         ],
       ),
@@ -399,17 +384,20 @@ const textareaFieldView = (
     onInput: onUpdate,
     isInvalid: field._tag === 'Invalid',
     toView: attributes =>
-      div(
-        [Class('mb-4')],
+      h.div(
+        [h.Class('mb-4')],
         [
-          div(
-            [Class('flex items-center gap-2 mb-2')],
+          h.div(
+            [h.Class('flex items-center gap-2 mb-2')],
             [
-              label([...attributes.label, Class(LABEL_CLASS)], [labelText]),
+              h.label([...attributes.label, h.Class(LABEL_CLASS)], [labelText]),
               statusIndicator(field),
             ],
           ),
-          textarea([...attributes.textarea, Class(inputClassName(field))], []),
+          h.textarea(
+            [...attributes.textarea, h.Class(inputClassName(field))],
+            [],
+          ),
           descriptionView(field, attributes.description),
         ],
       ),
@@ -418,19 +406,19 @@ const textareaFieldView = (
 export const view = (model: Model): Document => {
   const canSubmit = isFormValid(model) && model.submission._tag !== 'Submitting'
 
-  const body = div(
-    [Class('min-h-screen bg-gray-100 py-8')],
+  const body = h.div(
+    [h.Class('min-h-screen bg-gray-100 py-8')],
     [
-      div(
-        [Class('max-w-md mx-auto bg-white rounded-xl shadow-lg p-6')],
+      h.div(
+        [h.Class('max-w-md mx-auto bg-white rounded-xl shadow-lg p-6')],
         [
-          h1(
-            [Class('text-3xl font-bold text-gray-800 text-center mb-8')],
+          h.h1(
+            [h.Class('text-3xl font-bold text-gray-800 text-center mb-8')],
             ['Join Our Waitlist'],
           ),
 
-          form(
-            [Class('space-y-4'), OnSubmit(ClickedFormSubmit())],
+          h.form(
+            [h.Class('space-y-4'), h.OnSubmit(ClickedFormSubmit())],
             [
               inputFieldView('name', 'Name', model.name, value =>
                 UpdatedName({ value }),
@@ -449,11 +437,11 @@ export const view = (model: Model): Document => {
                 value => UpdatedMessage({ value }),
               ),
 
-              button(
+              h.button(
                 [
-                  Type('submit'),
-                  Disabled(!canSubmit),
-                  Class(
+                  h.Type('submit'),
+                  h.Disabled(!canSubmit),
+                  h.Class(
                     clsx(
                       'w-full py-2 px-4 rounded-md transition',
                       canSubmit
@@ -473,23 +461,23 @@ export const view = (model: Model): Document => {
 
           M.value(model.submission).pipe(
             M.tagsExhaustive({
-              NotSubmitted: () => empty,
-              Submitting: () => empty,
+              NotSubmitted: () => h.empty,
+              Submitting: () => h.empty,
               SubmitSuccess: ({ message }) =>
-                div(
+                h.div(
                   [
-                    Role('status'),
-                    Class(
+                    h.Role('status'),
+                    h.Class(
                       'mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg',
                     ),
                   ],
                   [message],
                 ),
               SubmitError: ({ error }) =>
-                div(
+                h.div(
                   [
-                    Role('alert'),
-                    Class(
+                    h.Role('alert'),
+                    h.Class(
                       'mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg',
                     ),
                   ],

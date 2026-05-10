@@ -4,31 +4,31 @@ import { Document, html } from 'foldkit/html'
 const crashView = ({
   error,
 }: Runtime.CrashContext<Model, Message>): Document => {
-  const { div, h1, p, button, Class, Attribute } = html<never>()
+  const h = html<never>()
 
   return {
     title: 'Something went wrong',
-    body: div(
-      [Class('min-h-screen flex items-center justify-center bg-red-50 p-8')],
+    body: h.div(
+      [h.Class('min-h-screen flex items-center justify-center bg-red-50 p-8')],
       [
-        div(
+        h.div(
           [
-            Class(
+            h.Class(
               'max-w-md w-full bg-cream rounded-lg border border-red-200 p-8 text-center',
             ),
           ],
           [
-            h1(
-              [Class('text-red-600 text-2xl font-semibold mb-4')],
+            h.h1(
+              [h.Class('text-red-600 text-2xl font-semibold mb-4')],
               ['Something went wrong'],
             ),
-            p([Class('text-gray-700 mb-6')], [error.message]),
-            button(
+            h.p([h.Class('text-gray-700 mb-6')], [error.message]),
+            h.button(
               [
-                Class(
+                h.Class(
                   'bg-red-600 text-white px-6 py-2.5 rounded-md text-sm font-normal cursor-pointer',
                 ),
-                Attribute('onclick', 'location.reload()'),
+                h.Attribute('onclick', 'location.reload()'),
               ],
               ['Reload'],
             ),

@@ -1,7 +1,6 @@
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, InnerHTML, div } from '../../html'
-import type { TableOfContentsEntry } from '../../main'
+import { Message, type TableOfContentsEntry } from '../../main'
 import {
   inlineCode,
   link,
@@ -12,6 +11,8 @@ import {
 import { apiModuleRouter, coreCommandsRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
+
+const h = html<Message>()
 
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -40,7 +41,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 const domApiHref = apiModuleRouter({ moduleSlug: 'dom' })
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
-  div(
+  h.div(
     [],
     [
       pageTitle('core/dom', 'Dom'),
@@ -70,7 +71,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'Wrap a Dom helper in a Command at the call site. The helper produces a value (or fails with a typed error), and you map that into one of your Messages.',
       ),
       highlightedCodeBlock(
-        div([Class('text-sm'), InnerHTML(Snippets.domFocusHighlighted)], []),
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.domFocusHighlighted)],
+          [],
+        ),
         Snippets.domFocusRaw,
         'Copy Dom.focus example to clipboard',
         copiedSnippets,

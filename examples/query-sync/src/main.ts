@@ -438,44 +438,7 @@ const update = (model: Model, message: Message): UpdateReturn =>
 
 // VIEW
 
-const {
-  a,
-  button,
-  div,
-  h1,
-  header,
-  input,
-  keyed,
-  main,
-  p,
-  path,
-  span,
-  svg,
-  table,
-  tbody,
-  td,
-  th,
-  thead,
-  tr,
-  AriaHidden,
-  AriaLabel,
-  AriaSort,
-  Class,
-  D,
-  Fill,
-  Href,
-  OnClick,
-  OnInput,
-  Placeholder,
-  Stroke,
-  StrokeLinecap,
-  StrokeLinejoin,
-  StrokeWidth,
-  Type,
-  Value,
-  ViewBox,
-  Xmlns,
-} = html<Message>()
+const h = html<Message>()
 
 const columnOrders: Record<SortColumn, Order.Order<Dinosaur>> = {
   Name: Order.mapInput(Order.String, ({ name }: Dinosaur) => name),
@@ -531,8 +494,8 @@ const filterAndSort = (fields: BrowseFields): ReadonlyArray<Dinosaur> =>
 const sortIndicator = (column: SortColumn, sorting: Sorting): string =>
   M.value(columnSortDirection(sorting, column)).pipe(
     M.when('Unsorted', () => ''),
-    M.when('Ascending', () => '\u2191'),
-    M.when('Descending', () => '\u2193'),
+    M.when('Ascending', () => '↑'),
+    M.when('Descending', () => '↓'),
     M.exhaustive,
   )
 
@@ -581,22 +544,22 @@ const sortableColumnHeader = (
   fields: BrowseFields,
   isRightAligned: boolean,
 ): Html => {
-  const indicator = span(
-    [Class(clsx(SORT_INDICATOR_WIDTH, 'inline-block text-center'))],
+  const indicator = h.span(
+    [h.Class(clsx(SORT_INDICATOR_WIDTH, 'inline-block text-center'))],
     [sortIndicator(column, fields.sorting)],
   )
-  const label = span([], [displayLabel])
+  const label = h.span([], [displayLabel])
   const alignment = isRightAligned ? 'text-right' : 'text-left'
 
-  return th(
-    [AriaSort(ariaSortValue(column, fields.sorting))],
+  return h.th(
+    [h.AriaSort(ariaSortValue(column, fields.sorting))],
     [
-      button(
+      h.button(
         [
-          Type('button'),
-          OnClick(ClickedColumnHeader({ column })),
-          AriaLabel(sortAriaLabel(column, fields.sorting)),
-          Class(clsx(headerButtonClass, alignment)),
+          h.Type('button'),
+          h.OnClick(ClickedColumnHeader({ column })),
+          h.AriaLabel(sortAriaLabel(column, fields.sorting)),
+          h.Class(clsx(headerButtonClass, alignment)),
         ],
         isRightAligned ? [indicator, label] : [label, indicator],
       ),
@@ -625,39 +588,39 @@ const listboxWrapperClassName = 'relative inline-block'
 
 const filterItemConfig = (label: string): Ui.Listbox.ItemConfig => ({
   className: listboxItemClassName,
-  content: div(
-    [Class('flex items-center gap-2')],
+  content: h.div(
+    [h.Class('flex items-center gap-2')],
     [
-      span(
+      h.span(
         [
-          Class(
+          h.Class(
             'w-4 text-center text-emerald-600 invisible group-data-[selected]:visible',
           ),
         ],
-        ['\u2713'],
+        ['✓'],
       ),
-      span([], [label]),
+      h.span([], [label]),
     ],
   ),
 })
 
 const chevronDown = (className: string): Html =>
-  svg(
+  h.svg(
     [
-      AriaHidden(true),
-      Class(className),
-      Xmlns('http://www.w3.org/2000/svg'),
-      Fill('none'),
-      ViewBox('0 0 24 24'),
-      StrokeWidth('1.5'),
-      Stroke('currentColor'),
+      h.AriaHidden(true),
+      h.Class(className),
+      h.Xmlns('http://www.w3.org/2000/svg'),
+      h.Fill('none'),
+      h.ViewBox('0 0 24 24'),
+      h.StrokeWidth('1.5'),
+      h.Stroke('currentColor'),
     ],
     [
-      path(
+      h.path(
         [
-          StrokeLinecap('round'),
-          StrokeLinejoin('round'),
-          D('M19.5 8.25l-7.5 7.5-7.5-7.5'),
+          h.StrokeLinecap('round'),
+          h.StrokeLinejoin('round'),
+          h.D('M19.5 8.25l-7.5 7.5-7.5-7.5'),
         ],
         [],
       ),
@@ -665,9 +628,9 @@ const chevronDown = (className: string): Html =>
   )
 
 const filterButtonContent = (label: string): Html =>
-  div(
-    [Class('flex w-full items-center justify-between gap-4')],
-    [span([], [label]), chevronDown('w-4 h-4 text-gray-400')],
+  h.div(
+    [h.Class('flex w-full items-center justify-between gap-4')],
+    [h.span([], [label]), chevronDown('w-4 h-4 text-gray-400')],
   )
 
 const filterButtonLabel = (
@@ -690,28 +653,28 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
   const fields = routeToBrowseFields(route)
   const results = filterAndSort(fields)
 
-  return div(
-    [Class('max-w-6xl mx-auto px-4')],
+  return h.div(
+    [h.Class('max-w-6xl mx-auto px-4')],
     [
-      h1(
-        [Class('text-3xl font-bold text-gray-800 mb-2')],
+      h.h1(
+        [h.Class('text-3xl font-bold text-gray-800 mb-2')],
         ['Dinosaur Explorer'],
       ),
-      p(
-        [Class('text-gray-500 mb-6')],
+      h.p(
+        [h.Class('text-gray-500 mb-6')],
         [
-          'Filter, sort, and search \u2014 every control syncs to the URL. Try changing the filters, then copy the URL or hit the back button.',
+          'Filter, sort, and search — every control syncs to the URL. Try changing the filters, then copy the URL or hit the back button.',
         ],
       ),
 
-      div(
-        [Class('flex flex-wrap items-start gap-3 mb-6')],
+      h.div(
+        [h.Class('flex flex-wrap items-start gap-3 mb-6')],
         [
-          input([
-            Value(Option.getOrElse(fields.search, () => '')),
-            Placeholder('Search by name\u2026'),
-            OnInput(value => ChangedSearchInput({ value })),
-            Class(
+          h.input([
+            h.Value(Option.getOrElse(fields.search, () => '')),
+            h.Placeholder('Search by name…'),
+            h.OnInput(value => ChangedSearchInput({ value })),
+            h.Class(
               'flex-1 min-w-48 px-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500',
             ),
           ]),
@@ -729,10 +692,10 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
                 'All Diets',
               ),
             ),
-            buttonAttributes: [Class(listboxButtonClassName)],
-            itemsAttributes: [Class(listboxItemsClassName)],
-            backdropAttributes: [Class(listboxBackdropClassName)],
-            attributes: [Class(listboxWrapperClassName)],
+            buttonAttributes: [h.Class(listboxButtonClassName)],
+            itemsAttributes: [h.Class(listboxItemsClassName)],
+            backdropAttributes: [h.Class(listboxBackdropClassName)],
+            attributes: [h.Class(listboxWrapperClassName)],
           }),
           Ui.Listbox.view<Message, string>({
             model: model.periodListbox,
@@ -748,16 +711,16 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
                 'All Periods',
               ),
             ),
-            buttonAttributes: [Class(listboxButtonClassName)],
-            itemsAttributes: [Class(listboxItemsClassName)],
-            backdropAttributes: [Class(listboxBackdropClassName)],
-            attributes: [Class(listboxWrapperClassName)],
+            buttonAttributes: [h.Class(listboxButtonClassName)],
+            itemsAttributes: [h.Class(listboxItemsClassName)],
+            backdropAttributes: [h.Class(listboxBackdropClassName)],
+            attributes: [h.Class(listboxWrapperClassName)],
           }),
         ],
       ),
 
-      p(
-        [Class('text-sm text-gray-500 mb-3')],
+      h.p(
+        [h.Class('text-sm text-gray-500 mb-3')],
         [
           `Showing ${Array.length(results)} of ${Array.length(dinosaurs)} dinosaurs`,
         ],
@@ -765,27 +728,27 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
 
       Array.match(results, {
         onEmpty: () =>
-          div(
-            [Class('text-center py-12 text-gray-400')],
+          h.div(
+            [h.Class('text-center py-12 text-gray-400')],
             [
-              p([Class('text-lg')], ['No dinosaurs match your filters.']),
-              p(
-                [Class('text-sm mt-2')],
+              h.p([h.Class('text-lg')], ['No dinosaurs match your filters.']),
+              h.p(
+                [h.Class('text-sm mt-2')],
                 ['Try broadening your search or removing filters.'],
               ),
             ],
           ),
         onNonEmpty: rows =>
-          div(
-            [Class('overflow-x-auto rounded-lg border border-gray-200')],
+          h.div(
+            [h.Class('overflow-x-auto rounded-lg border border-gray-200')],
             [
-              table(
-                [Class('w-full')],
+              h.table(
+                [h.Class('w-full')],
                 [
-                  thead(
-                    [Class('bg-gray-50 border-b border-gray-200')],
+                  h.thead(
+                    [h.Class('bg-gray-50 border-b border-gray-200')],
                     [
-                      tr(
+                      h.tr(
                         [],
                         [
                           sortableColumnHeader('Name', 'Name', fields, false),
@@ -812,19 +775,19 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
                       ),
                     ],
                   ),
-                  tbody(
+                  h.tbody(
                     [],
                     Array.map(rows, dinosaur =>
-                      tr(
+                      h.tr(
                         [
-                          Class(
+                          h.Class(
                             'border-b border-gray-100 hover:bg-gray-50 transition',
                           ),
                         ],
                         [
-                          td(
+                          h.td(
                             [
-                              Class(
+                              h.Class(
                                 clsx(
                                   bodyCellClass,
                                   'font-medium text-gray-900',
@@ -833,35 +796,35 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
                             ],
                             [dinosaur.name],
                           ),
-                          td(
-                            [Class(bodyCellClass)],
+                          h.td(
+                            [h.Class(bodyCellClass)],
                             [
-                              span(
-                                [Class(periodBadgeClass(dinosaur.period))],
+                              h.span(
+                                [h.Class(periodBadgeClass(dinosaur.period))],
                                 [dinosaur.period],
                               ),
                             ],
                           ),
-                          td(
-                            [Class(bodyCellClass)],
+                          h.td(
+                            [h.Class(bodyCellClass)],
                             [
-                              span(
-                                [Class(dietBadgeClass(dinosaur.diet))],
+                              h.span(
+                                [h.Class(dietBadgeClass(dinosaur.diet))],
                                 [dinosaur.diet],
                               ),
                             ],
                           ),
-                          td(
+                          h.td(
                             [
-                              Class(
+                              h.Class(
                                 clsx(bodyCellClass, 'text-right tabular-nums'),
                               ),
                             ],
                             [dinosaur.lengthMeters.toString()],
                           ),
-                          td(
+                          h.td(
                             [
-                              Class(
+                              h.Class(
                                 clsx(bodyCellClass, 'text-right tabular-nums'),
                               ),
                             ],
@@ -877,8 +840,8 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
           ),
       }),
 
-      p(
-        [Class('text-xs text-gray-400 mt-6 text-center')],
+      h.p(
+        [h.Class('text-xs text-gray-400 mt-6 text-center')],
         [
           'All filter and sort state lives in the URL. Share it or bookmark it.',
         ],
@@ -888,23 +851,23 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
 }
 
 const notFoundView = (path: string): Html =>
-  div(
-    [Class('max-w-4xl mx-auto px-4 text-center')],
+  h.div(
+    [h.Class('max-w-4xl mx-auto px-4 text-center')],
     [
-      h1(
-        [Class('text-4xl font-bold text-red-600 mb-6')],
-        ['404 \u2014 Page Not Found'],
+      h.h1(
+        [h.Class('text-4xl font-bold text-red-600 mb-6')],
+        ['404 — Page Not Found'],
       ),
-      p(
-        [Class('text-lg text-gray-600 mb-4')],
+      h.p(
+        [h.Class('text-lg text-gray-600 mb-4')],
         [`The path "${path}" was not found.`],
       ),
-      a(
+      h.a(
         [
-          Href(browseRouter(emptyBrowseFields)),
-          Class('text-emerald-600 hover:underline'),
+          h.Href(browseRouter(emptyBrowseFields)),
+          h.Class('text-emerald-600 hover:underline'),
         ],
-        ['\u2190 Back to Dinosaur Explorer'],
+        ['← Back to Dinosaur Explorer'],
       ),
     ],
   )
@@ -923,24 +886,27 @@ const view = (model: Model): Document => {
     }),
   )
 
-  const body = div(
-    [Class('min-h-screen bg-gray-50')],
+  const body = h.div(
+    [h.Class('min-h-screen bg-gray-50')],
     [
-      header(
-        [Class('bg-emerald-600 text-white px-6 py-4 mb-8 shadow-sm')],
+      h.header(
+        [h.Class('bg-emerald-600 text-white px-6 py-4 mb-8 shadow-sm')],
         [
-          div(
-            [Class('max-w-6xl mx-auto flex items-center gap-3')],
+          h.div(
+            [h.Class('max-w-6xl mx-auto flex items-center gap-3')],
             [
-              span([Class('text-lg font-semibold')], ['foldkit']),
-              span([Class('text-emerald-200 text-sm')], ['query-sync example']),
+              h.span([h.Class('text-lg font-semibold')], ['foldkit']),
+              h.span(
+                [h.Class('text-emerald-200 text-sm')],
+                ['query-sync example'],
+              ),
             ],
           ),
         ],
       ),
-      main(
-        [Class('pb-12')],
-        [keyed('div')(model.route._tag, [], [routeContent])],
+      h.main(
+        [h.Class('pb-12')],
+        [h.keyed('div')(model.route._tag, [], [routeContent])],
       ),
     ],
   )

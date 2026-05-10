@@ -827,15 +827,7 @@ export type DraggableConfig<ParentMessage> = Readonly<{
 export const draggable = <ParentMessage>(
   config: DraggableConfig<ParentMessage>,
 ): ReadonlyArray<Attribute<ParentMessage>> => {
-  const {
-    AriaRoleDescription,
-    DataAttribute,
-    OnKeyDownPreventDefault,
-    OnPointerDown,
-    Role,
-    Style,
-    Tabindex,
-  } = html<ParentMessage>()
+  const h = html<ParentMessage>()
 
   const isKeyboardDragActivationKey = (key: string): boolean =>
     key === ' ' || key === 'Enter'
@@ -860,12 +852,12 @@ export const draggable = <ParentMessage>(
   }
 
   return [
-    DataAttribute('draggable-id', config.itemId),
-    DataAttribute('sortable-id', config.itemId),
-    Role('option'),
-    AriaRoleDescription('draggable'),
-    Tabindex(0),
-    OnPointerDown(
+    h.DataAttribute('draggable-id', config.itemId),
+    h.DataAttribute('sortable-id', config.itemId),
+    h.Role('option'),
+    h.AriaRoleDescription('draggable'),
+    h.Tabindex(0),
+    h.OnPointerDown(
       (
         _pointerType: string,
         button: number,
@@ -888,8 +880,8 @@ export const draggable = <ParentMessage>(
           ),
         ),
     ),
-    OnKeyDownPreventDefault(handleKeyDown),
-    Style({
+    h.OnKeyDownPreventDefault(handleKeyDown),
+    h.Style({
       'touch-action': 'none',
       'user-select': 'none',
       '-webkit-user-select': 'none',
@@ -902,11 +894,11 @@ export const droppable = <ParentMessage>(
   containerId: string,
   label?: string,
 ): ReadonlyArray<Attribute<ParentMessage>> => {
-  const { AriaLabel, DataAttribute, Role } = html<ParentMessage>()
+  const h = html<ParentMessage>()
   return [
-    DataAttribute('droppable-id', containerId),
-    Role('listbox'),
-    ...(label ? [AriaLabel(label)] : []),
+    h.DataAttribute('droppable-id', containerId),
+    h.Role('listbox'),
+    ...(label ? [h.AriaLabel(label)] : []),
   ]
 }
 
@@ -914,8 +906,8 @@ export const droppable = <ParentMessage>(
 export const sortable = <ParentMessage>(
   itemId: string,
 ): ReadonlyArray<Attribute<ParentMessage>> => {
-  const { DataAttribute } = html<ParentMessage>()
-  return [DataAttribute('sortable-id', itemId)]
+  const h = html<ParentMessage>()
+  return [h.DataAttribute('sortable-id', itemId)]
 }
 
 const ghostTransform = (clientX: number, clientY: number): string =>

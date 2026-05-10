@@ -1,10 +1,8 @@
 import clsx from 'clsx'
 import { Array, Option, pipe } from 'effect'
 import { Ui } from 'foldkit'
-import type { Html } from 'foldkit/html'
+import { Html, html } from 'foldkit/html'
 
-import { Class, Style, div, empty, h2, keyed } from '../html'
-import type { Message as ParentMessage } from '../main'
 import { GotDragAndDropDemoMessage, type UiMessage } from '../message'
 import type { DemoCard, DemoColumn, UiModel } from '../model'
 
@@ -26,13 +24,14 @@ const findDraggedCard = (
     ),
   )
 
-const cardView = (
+const cardView = <ParentMessage>(
   card: DemoCard,
   index: number,
   containerId: string,
   dragAndDropModel: Ui.DragAndDrop.Model,
   toParentMessage: (message: UiMessage) => ParentMessage,
 ): Html => {
+  const h = html<ParentMessage>()
   const maybeItemId = Ui.DragAndDrop.maybeDraggedItemId(dragAndDropModel)
   const isBeingDragged = Option.exists(maybeItemId, id => id === card.id)
 
@@ -41,10 +40,10 @@ const cardView = (
   const isPointerDragged =
     isBeingDragged && dragAndDropModel.dragState._tag === 'Dragging'
 
-  return keyed('div')(
+  return h.keyed('div')(
     card.id,
     [
-      Class(
+      h.Class(
         clsx(cardClassName, {
           'opacity-40': isPointerDragged,
           'ring-2 ring-accent-500': isKeyboardDragged,
@@ -64,37 +63,42 @@ const cardView = (
   )
 }
 
-const dropPlaceholder: Html = keyed('div')(
-  'drop-placeholder',
-  [Class('rounded-lg border-2 border-dashed border-accent-400/50 h-9')],
-  [],
-)
+const dropPlaceholder = <ParentMessage>(): Html => {
+  const h = html<ParentMessage>()
 
-const renderColumn = (
+  return h.keyed('div')(
+    'drop-placeholder',
+    [h.Class('rounded-lg border-2 border-dashed border-accent-400/50 h-9')],
+    [],
+  )
+}
+
+const renderColumn = <ParentMessage>(
   column: DemoColumn,
   dragAndDropModel: Ui.DragAndDrop.Model,
   children: ReadonlyArray<Html>,
 ): Html => {
+  const h = html<ParentMessage>()
   const maybeTarget = Ui.DragAndDrop.maybeDropTarget(dragAndDropModel)
   const isDropTarget =
     Ui.DragAndDrop.isDragging(dragAndDropModel) &&
     Option.exists(maybeTarget, ({ containerId }) => containerId === column.id)
 
-  return keyed('div')(
+  return h.keyed('div')(
     column.id,
-    [Class('flex flex-col gap-1')],
+    [h.Class('flex flex-col gap-1')],
     [
-      div(
+      h.div(
         [
-          Class(
+          h.Class(
             'text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1',
           ),
         ],
         [column.label],
       ),
-      div(
+      h.div(
         [
-          Class(
+          h.Class(
             clsx(
               'flex flex-col gap-1.5 rounded-lg border-2 bg-gray-50 p-2 min-h-[120px] transition-colors',
               isDropTarget
@@ -110,7 +114,7 @@ const renderColumn = (
   )
 }
 
-const columnView = (
+const columnView = <ParentMessage>(
   columns: ReadonlyArray<DemoColumn>,
   column: DemoColumn,
   dragAndDropModel: Ui.DragAndDrop.Model,
@@ -134,11 +138,17 @@ const columnView = (
   })
 
   const cardElements = Array.map(visibleCards, (card, index) =>
-    cardView(card, index, column.id, dragAndDropModel, toParentMessage),
+    cardView<ParentMessage>(
+      card,
+      index,
+      column.id,
+      dragAndDropModel,
+      toParentMessage,
+    ),
   )
 
   if (!isTargetColumn) {
-    return renderColumn(column, dragAndDropModel, cardElements)
+    return renderColumn<ParentMessage>(column, dragAndDropModel, cardElements)
   }
 
   const targetIndex = Option.match(maybeTarget, {
@@ -147,11 +157,11 @@ const columnView = (
   })
 
   const insertElement = isPointerDragging
-    ? dropPlaceholder
+    ? dropPlaceholder<ParentMessage>()
     : Option.match(findDraggedCard(columns, maybeItemId), {
-        onNone: () => dropPlaceholder,
+        onNone: () => dropPlaceholder<ParentMessage>(),
         onSome: card =>
-          cardView(
+          cardView<ParentMessage>(
             card,
             targetIndex,
             column.id,
@@ -166,13 +176,14 @@ const columnView = (
     Option.getOrElse(() => [...cardElements, insertElement]),
   )
 
-  return renderColumn(column, dragAndDropModel, withInsert)
+  return renderColumn<ParentMessage>(column, dragAndDropModel, withInsert)
 }
 
-const ghostView = (
+const ghostView = <ParentMessage>(
   columns: ReadonlyArray<DemoColumn>,
   dragAndDropModel: Ui.DragAndDrop.Model,
 ): Html => {
+  const h = html<ParentMessage>()
   const maybeItemId = Ui.DragAndDrop.maybeDraggedItemId(dragAndDropModel)
 
   return pipe(
@@ -184,12 +195,12 @@ const ghostView = (
       })),
     ),
     Option.match({
-      onNone: () => empty,
+      onNone: () => h.empty,
       onSome: ({ ghostStyle, card }) =>
-        div(
+        h.div(
           [
-            Style(ghostStyle),
-            Class(
+            h.Style(ghostStyle),
+            h.Class(
               'rounded-lg border border-accent-400 bg-white px-3 py-2 text-sm text-gray-900 shadow-lg',
             ),
           ],
@@ -199,21 +210,26 @@ const ghostView = (
   )
 }
 
-export const view = (
+export const view = <ParentMessage>(
   model: UiModel,
   toParentMessage: (message: UiMessage) => ParentMessage,
-): Html =>
-  div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [],
     [
-      h2([Class('text-2xl font-bold text-gray-900 mb-6')], ['Drag and Drop']),
-      div(
-        [Class('w-full max-w-md')],
+      h.h2(
+        [h.Class('text-2xl font-bold text-gray-900 mb-6')],
+        ['Drag and Drop'],
+      ),
+      h.div(
+        [h.Class('w-full max-w-md')],
         [
-          div(
-            [Class('grid grid-cols-2 gap-4')],
+          h.div(
+            [h.Class('grid grid-cols-2 gap-4')],
             Array.map(model.dragAndDropDemoColumns, column =>
-              columnView(
+              columnView<ParentMessage>(
                 model.dragAndDropDemoColumns,
                 column,
                 model.dragAndDropDemo,
@@ -221,8 +237,12 @@ export const view = (
               ),
             ),
           ),
-          ghostView(model.dragAndDropDemoColumns, model.dragAndDropDemo),
+          ghostView<ParentMessage>(
+            model.dragAndDropDemoColumns,
+            model.dragAndDropDemo,
+          ),
         ],
       ),
     ],
   )
+}

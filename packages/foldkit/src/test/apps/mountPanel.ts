@@ -112,22 +112,22 @@ export const update = (
 
 // VIEW
 
-const { div, button, span, OnMount, OnClick, Class, Key } = html<Message>()
+const h = html<Message>()
 
 export const view = (model: Model): Html =>
-  div(
-    [Class('panel-test')],
+  h.div(
+    [h.Class('panel-test')],
     [
-      button(
-        [Key('toggle'), OnClick(ClickedToggle()), OnMount(FocusButton())],
+      h.button(
+        [h.Key('toggle'), h.OnClick(ClickedToggle()), h.OnMount(FocusButton())],
         [model.isOpen ? 'Close' : 'Open'],
       ),
       ...(model.isOpen
         ? [
-            div(
-              [Key('panel'), OnMount(MeasurePanel())],
+            h.div(
+              [h.Key('panel'), h.OnMount(MeasurePanel())],
               [
-                span(
+                h.span(
                   [],
                   [
                     Option.match(model.measuredWidth, {
@@ -147,13 +147,13 @@ export const view = (model: Model): Html =>
  *  two MeasurePanel mounts simultaneously so we can exercise the (name,
  *  occurrence) tracking. */
 export const twoPanelView = (model: Model): Html =>
-  div(
-    [Class('two-panels')],
+  h.div(
+    [h.Class('two-panels')],
     [
-      div([Key('panel-a'), OnMount(MeasurePanel())], [span([], ['A'])]),
-      div([Key('panel-b'), OnMount(MeasurePanel())], [span([], ['B'])]),
-      button(
-        [Key('inc'), OnClick(ClickedIncrement())],
+      h.div([h.Key('panel-a'), h.OnMount(MeasurePanel())], [h.span([], ['A'])]),
+      h.div([h.Key('panel-b'), h.OnMount(MeasurePanel())], [h.span([], ['B'])]),
+      h.button(
+        [h.Key('inc'), h.OnClick(ClickedIncrement())],
         [`count: ${model.count}`],
       ),
     ],
@@ -164,7 +164,7 @@ export const twoPanelView = (model: Model): Html =>
  *  pending Mount's args). The chosen `offset` flows through `ScrollList`'s
  *  args and is observable on the rendered Mount marker. */
 export const scrollListView = (offset: number): Html =>
-  div(
-    [Class('scroll-list')],
-    [div([Key('list'), OnMount(ScrollList({ offset }))], [])],
+  h.div(
+    [h.Class('scroll-list')],
+    [h.div([h.Key('list'), h.OnMount(ScrollList({ offset }))], [])],
   )

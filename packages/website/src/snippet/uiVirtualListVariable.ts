@@ -3,8 +3,9 @@
 // difference is in the view and in how `scrollToIndex` is called. Fit the
 // excerpts into your own definitions.
 import { Ui } from 'foldkit'
+import { html } from 'foldkit/html'
 
-import { Class, div, span } from './html'
+const h = html<Message>()
 
 // Model and init are unchanged from the basic example. Pass any
 // `rowHeightPx` to `init`; it remains the uniform default for the
@@ -33,26 +34,33 @@ Ui.VirtualList.view({
   itemToRowHeightPx: (activity, index) => (activity.hasSummary ? 104 : 56),
   itemToView: activity =>
     activity.hasSummary
-      ? div(
-          [Class('grid grid-cols-[2rem_1fr_5rem] items-start gap-3 px-4 py-3')],
+      ? h.div(
           [
-            div([Class('h-7 w-7 rounded-full')], [activity.initial]),
-            div(
+            h.Class(
+              'grid grid-cols-[2rem_1fr_5rem] items-start gap-3 px-4 py-3',
+            ),
+          ],
+          [
+            h.div([h.Class('h-7 w-7 rounded-full')], [activity.initial]),
+            h.div(
               [],
               [
-                span([], [activity.label]),
-                div([Class('mt-1 text-xs text-gray-500')], [activity.summary]),
+                h.span([], [activity.label]),
+                h.div(
+                  [h.Class('mt-1 text-xs text-gray-500')],
+                  [activity.summary],
+                ),
               ],
             ),
-            span([Class('text-right text-xs')], [activity.timeAgo]),
+            h.span([h.Class('text-right text-xs')], [activity.timeAgo]),
           ],
         )
-      : div(
-          [Class('grid grid-cols-[2rem_1fr_5rem] items-center gap-3 px-4')],
+      : h.div(
+          [h.Class('grid grid-cols-[2rem_1fr_5rem] items-center gap-3 px-4')],
           [
-            div([Class('h-7 w-7 rounded-full')], [activity.initial]),
-            span([], [activity.label]),
-            span([Class('text-right text-xs')], [activity.timeAgo]),
+            h.div([h.Class('h-7 w-7 rounded-full')], [activity.initial]),
+            h.span([], [activity.label]),
+            h.span([h.Class('text-right text-xs')], [activity.timeAgo]),
           ],
         ),
   className: 'h-96 w-full rounded-lg bg-white ring-1 ring-gray-200',
