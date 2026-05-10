@@ -231,6 +231,28 @@ ul {
 .dt-resume-button:hover {
   opacity: 0.7;
 }
+.dt-scroll-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 6px 12px;
+  background-color: var(--dt-surface-selected);
+  border: none;
+  border-bottom: 1px solid var(--dt-border);
+  color: var(--dt-accent);
+  font-family:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 13px;
+  cursor: pointer;
+}
+.dt-scroll-pill:hover {
+  background-color: var(--dt-tree-hover);
+}
+.dt-scroll-pill:focus-visible {
+  outline: 1px solid var(--dt-accent);
+  outline-offset: -1px;
+}
 .dt-filter-wrapper {
   position: relative;
   flex-shrink: 0;

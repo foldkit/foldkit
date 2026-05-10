@@ -426,7 +426,7 @@ export type Attribute<Message> = Data.TaggedEnum<{
   OnFileChange: { readonly f: (files: ReadonlyArray<File>) => Message }
   OnSubmit: { readonly message: Message }
   OnReset: { readonly message: Message }
-  OnScroll: { readonly message: Message }
+  OnScroll: { readonly f: (scrollTop: number) => Message }
   OnWheel: { readonly message: Message }
   OnCopy: { readonly message: Message }
   OnCut: { readonly message: Message }
@@ -1125,9 +1125,13 @@ const buildVNodeData = <Message>(
             updateDataOn({
               reset: () => dispatchSync(message),
             }),
-          OnScroll: ({ message }) =>
+          OnScroll: ({ f }) =>
             updateDataOn({
-              scroll: () => dispatchSync(message),
+              scroll: (event: Event) => {
+                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                const target = event.target as HTMLElement
+                dispatchSync(f(target.scrollTop))
+              },
             }),
           OnWheel: ({ message }) =>
             updateDataOn({
@@ -2321,9 +2325,9 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnReset'
     readonly message: Message
   }
-  OnScroll: (message: Message) => {
+  OnScroll: (f: (scrollTop: number) => Message) => {
     readonly _tag: 'OnScroll'
-    readonly message: Message
+    readonly f: (scrollTop: number) => Message
   }
   OnWheel: (message: Message) => {
     readonly _tag: 'OnWheel'
@@ -3048,7 +3052,7 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
     OnFileChange({ f }),
   OnSubmit: (message: Message) => OnSubmit({ message }),
   OnReset: (message: Message) => OnReset({ message }),
-  OnScroll: (message: Message) => OnScroll({ message }),
+  OnScroll: (f: (scrollTop: number) => Message) => OnScroll({ f }),
   OnWheel: (message: Message) => OnWheel({ message }),
   OnCopy: (message: Message) => OnCopy({ message }),
   OnCut: (message: Message) => OnCut({ message }),

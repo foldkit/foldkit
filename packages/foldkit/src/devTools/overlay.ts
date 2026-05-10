@@ -112,6 +112,7 @@ const Model = S.Struct({
   pausedAtIndex: S.Number,
   selectedIndex: S.Number,
   isFollowingLatest: S.Boolean,
+  isScrollFollowing: S.Boolean,
   maybeInspectedModel: S.Option(UnknownByReference),
   maybeInspectedMessage: S.Option(UnknownByReference),
   submodelTags: S.Array(S.String),
@@ -143,6 +144,8 @@ const ClickedClear = m('ClickedClear')
 const CompletedJump = m('CompletedJump')
 const CompletedResume = m('CompletedResume')
 const ClickedFollowLatest = m('ClickedFollowLatest')
+const ClickedScrollToTopPill = m('ClickedScrollToTopPill')
+const ScrolledMessageList = m('ScrolledMessageList', { scrollTop: S.Number })
 const CompletedClear = m('CompletedClear')
 const LockedScroll = m('LockedScroll')
 const UnlockedScroll = m('UnlockedScroll')
@@ -181,6 +184,8 @@ const Message = S.Union([
   ClickedResume,
   ClickedClear,
   ClickedFollowLatest,
+  ClickedScrollToTopPill,
+  ScrolledMessageList,
   CompletedJump,
   CompletedResume,
   CompletedClear,
@@ -216,6 +221,8 @@ const formatTimeDelta = (deltaMs: number): string =>
   )
 
 const MESSAGE_LIST_SELECTOR = '.message-list'
+
+const SCROLL_FOLLOW_THRESHOLD_PX = 8
 
 const computeSubmodelTags = (
   entries: ReadonlyArray<typeof DisplayEntry.Type>,
@@ -463,22 +470,24 @@ const makeUpdate = (
           ),
         ClickedResume: () => [
           evo(model, {
+            isScrollFollowing: () => true,
             expandedPaths: () => HashSet.empty<string>(),
             changedPaths: () => HashSet.empty<string>(),
             affectedPaths: () => HashSet.empty<string>(),
           }),
-          [resume, inspectLatest],
+          [resume, inspectLatest, scrollToTop],
         ],
         ClickedClear: () => [
           evo(model, {
             selectedIndex: () => INIT_INDEX,
             isFollowingLatest: () => true,
+            isScrollFollowing: () => true,
             maybeSubmodelFilter: () => Option.none(),
             expandedPaths: () => HashSet.empty<string>(),
             changedPaths: () => HashSet.empty<string>(),
             affectedPaths: () => HashSet.empty<string>(),
           }),
-          [clear, inspectLatest],
+          [clear, inspectLatest, scrollToTop],
         ],
         ClickedFollowLatest: () => {
           const latestIndex = Array_.match(model.entries, {
@@ -490,12 +499,25 @@ const makeUpdate = (
             evo(model, {
               selectedIndex: () => latestIndex,
               isFollowingLatest: () => true,
+              isScrollFollowing: () => true,
               expandedPaths: () => HashSet.empty<string>(),
               changedPaths: () => HashSet.empty<string>(),
               affectedPaths: () => HashSet.empty<string>(),
             }),
             [inspectLatest, scrollToTop],
           ]
+        },
+        ClickedScrollToTopPill: () => [
+          evo(model, {
+            isScrollFollowing: () => true,
+          }),
+          [scrollToTop],
+        ],
+        ScrolledMessageList: ({ scrollTop }) => {
+          const isAtTop = scrollTop <= SCROLL_FOLLOW_THRESHOLD_PX
+          return isAtTop === model.isScrollFollowing
+            ? [model, []]
+            : [evo(model, { isScrollFollowing: () => isAtTop }), []]
         },
         ReceivedInspectedState: ({
           model: inspectedModel,
@@ -548,9 +570,15 @@ const makeUpdate = (
           isPaused,
           pausedAtIndex,
         }) => {
-          const shouldFollowLatest = M.value(mode).pipe(
+          const shouldFollowSelection = M.value(mode).pipe(
             M.when('TimeTravel', () => !isPaused),
             M.when('Inspect', () => model.isFollowingLatest),
+            M.exhaustive,
+          )
+
+          const shouldFollowScroll = M.value(mode).pipe(
+            M.when('TimeTravel', () => !isPaused && model.isScrollFollowing),
+            M.when('Inspect', () => model.isScrollFollowing),
             M.exhaustive,
           )
 
@@ -583,9 +611,12 @@ const makeUpdate = (
                     })
                   : current,
               selectedIndex: current =>
-                shouldFollowLatest ? latestIndex : current,
+                shouldFollowSelection ? latestIndex : current,
             }),
-            shouldFollowLatest ? [scrollToTop, inspectLatest] : [],
+            [
+              ...(shouldFollowSelection ? [inspectLatest] : []),
+              ...(shouldFollowScroll ? [scrollToTop] : []),
+            ],
           ]
         },
         GotSubmodelFilterMessage: ({ message: listboxMessage }) => {
@@ -1523,6 +1554,11 @@ const makeView = (
   const filterItemLabel = (item: string): string =>
     String_.isNonEmpty(item) ? submodelLabel(item) : 'All Messages'
 
+  const scrollToTopPillView: Html = h.button(
+    [h.Class('dt-scroll-pill'), h.OnClick(ClickedScrollToTopPill())],
+    ['↑ Jump to top'],
+  )
+
   const submodelFilterView = (model: Model): Html => {
     const buttonLabel = Option.match(model.maybeSubmodelFilter, {
       onNone: () => 'All Messages',
@@ -1782,7 +1818,10 @@ const makeView = (
     )
 
     return h.ul(
-      [h.Class('message-list flex-1 overflow-y-auto min-h-0 overscroll-none')],
+      [
+        h.Class('message-list flex-1 overflow-y-auto min-h-0 overscroll-none'),
+        h.OnScroll(scrollTop => ScrolledMessageList({ scrollTop })),
+      ],
       isFiltered
         ? messageRows
         : [
@@ -1854,6 +1893,10 @@ const makeView = (
                   onEmpty: () => [],
                   onNonEmpty: () => [submodelFilterView(model)],
                 }),
+                ...OptionExt.when(
+                  !model.isScrollFollowing,
+                  scrollToTopPillView,
+                ).pipe(Option.toArray),
                 messageListView(model),
               ],
             ),
@@ -1948,6 +1991,7 @@ export const createOverlay = (
         ...flags,
         selectedIndex: INIT_INDEX,
         isFollowingLatest: true,
+        isScrollFollowing: true,
         submodelTags: computeSubmodelTags(flags.entries),
         maybeSubmodelFilter: Option.none(),
         submodelFilterListbox: Listbox.init({
