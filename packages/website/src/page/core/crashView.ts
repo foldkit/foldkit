@@ -146,7 +146,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' for a working demonstration.',
       ),
       para(
-        'The next two pages cover how Foldkit warns you about slow views during development and how to memoize expensive subtrees.',
+        'The next two pages cover how Foldkit warns you about slow synchronous phases during development and how to memoize expensive subtrees.',
       ),
     ],
   )

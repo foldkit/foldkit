@@ -283,7 +283,7 @@ export const docsSections: ReadonlyArray<DocsSection> = [
         {
           _tag: 'CoreSlowView',
           href: coreSlowViewRouter(),
-          label: 'Slow View',
+          label: 'Slow Warnings',
         },
         {
           _tag: 'CoreFreezeModel',

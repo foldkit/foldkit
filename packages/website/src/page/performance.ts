@@ -176,8 +176,8 @@ export const view = (): Html => {
           [],
           [
             'The ',
-            link(coreSlowViewRouter(), 'slow view warning'),
-            ' times every view call against the frame budget.',
+            link(coreSlowViewRouter(), 'Slow Warnings'),
+            ' can time update, subscriptions, view, and patch work against phase budgets.',
           ],
         ),
         'HMR Model preservation encodes the Model so state survives hot reloads.',
@@ -196,8 +196,8 @@ export const view = (): Html => {
           [],
           [
             'Let the ',
-            link(coreSlowViewRouter(), 'slow view warning'),
-            ' tell you whether the view is actually the problem before optimizing anything.',
+            link(coreSlowViewRouter(), 'Slow Warnings'),
+            ' tell you which synchronous phase is actually slow before optimizing anything.',
           ],
         ),
         h.span(

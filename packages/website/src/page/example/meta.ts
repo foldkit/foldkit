@@ -8,6 +8,7 @@ export const ExampleSlug = S.Literals([
   'todo',
   'stopwatch',
   'crash-view',
+  'slow-warnings',
   'form',
   'job-application',
   'weather',
@@ -82,6 +83,15 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'Custom crash fallback UI. Demonstrates crash.view and crash.report with a crash button and reload.',
     difficulty: 'Beginner',
     tags: ['Fallback UI'],
+    hasRouting: false,
+  },
+  {
+    slug: 'slow-warnings',
+    title: 'Slow Warnings',
+    description:
+      'Interactive lab for triggering slow update, view, patch, and Subscriptions warnings with default thresholds and a visible warning log.',
+    difficulty: 'Intermediate',
+    tags: ['Performance', 'Diagnostics'],
     hasRouting: false,
   },
   {

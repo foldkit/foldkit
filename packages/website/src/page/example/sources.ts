@@ -31,6 +31,7 @@ const loadersBySlug: Readonly<Record<string, SourceLoader | undefined>> = {
   'pixel-art': () => import('virtual:example-sources/pixel-art'),
   snake: () => import('virtual:example-sources/snake'),
   'crash-view': () => import('virtual:example-sources/crash-view'),
+  'slow-warnings': () => import('virtual:example-sources/slow-warnings'),
   'websocket-chat': () => import('virtual:example-sources/websocket-chat'),
   map: () => import('virtual:example-sources/map'),
   'canvas-art': () => import('virtual:example-sources/canvas-art'),

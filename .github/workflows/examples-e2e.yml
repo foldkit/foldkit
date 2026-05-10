@@ -25,6 +25,7 @@ jobs:
           - todo
           - stopwatch
           - crash-view
+          - slow-warnings
           - form
           - job-application
           - weather

@@ -184,7 +184,7 @@ Foldkit is a complete system, not a collection of libraries you stitch together.
 - **Crash View and Reporting**: Configure `crash.view` to render a custom fallback UI when the update loop throws. A `crash.report` callback fires first with the error, Model, and triggering Message, so you can ship it straight to Sentry or your logger.
 - **Story Testing**: Exercise the update function directly. Send Messages, resolve Commands inline with `Story.Command.resolve` and `Story.Command.resolveAll`, and assert with focused helpers: `Story.model`, `Story.Command.expectHas`, `Story.Command.expectExact`, `Story.Command.expectNone`, and `Story.expectOutMessage`. No mocking libraries, no fake timers.
 - **Scene Testing**: Drive your app the way a user does. Scene renders your real view, then clicks buttons, types into inputs, presses keys, and asserts on what's on screen — with accessible locators and Vitest matchers, no browser required.
-- **Slow-View Monitoring**: Wire `slowView` on `makeApplication` to catch renders that exceed a threshold you set. The callback fires with the current Model, the triggering Message, and the render duration, so you can log it, sample it, or ship it to your observability tool.
+- **Slow Warnings**: Foldkit warns in development when update, view, patch, or Subscription dependency extraction exceeds its default threshold. Configure `slow` on `makeApplication` to tune phase thresholds, disable phases, or forward slow-phase contexts to your observability tool.
 - **HMR**: Vite plugin with state-preserving hot module replacement. Change your view, keep your state.
 
 ## Correctness You (And Your LLM) Can See
@@ -200,6 +200,7 @@ This is what makes Foldkit unusually AI-friendly. The same property that makes t
 - **[Todo](https://foldkit.dev/example-apps/todo)** — CRUD operations with localStorage persistence
 - **[Stopwatch](https://foldkit.dev/example-apps/stopwatch)** — Timer with start/stop/reset
 - **[Crash View](https://foldkit.dev/example-apps/crash-view)** — Custom crash fallback UI with crash reporting
+- **[Slow Warnings](https://foldkit.dev/example-apps/slow-warnings)** — Trigger slow update, view, patch, and Subscriptions warnings with a visible warning log
 - **[Form](https://foldkit.dev/example-apps/form)** — Form validation with async email checking
 - **[Job Application](https://foldkit.dev/example-apps/job-application)** — Multi-step form with cross-field validation, file uploads, and per-step error indicators
 - **[Weather](https://foldkit.dev/example-apps/weather)** — HTTP requests with async state handling

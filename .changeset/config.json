@@ -28,6 +28,7 @@
     "websocket-chat-example",
     "snake-example",
     "crash-view-example",
+    "slow-warnings-example",
     "query-sync-example",
     "ui-showcase",
     "pixel-art-example",
