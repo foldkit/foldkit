@@ -33,6 +33,7 @@
     "job-application-example",
     "map-example",
     "canvas-art-example",
+    "generative-art-example",
     "pixel-art-react-comparison",
     "@foldkit/performance-harness"
   ]

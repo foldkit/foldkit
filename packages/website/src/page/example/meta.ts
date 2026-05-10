@@ -20,6 +20,7 @@ export const ExampleSlug = S.Literals([
   'kanban',
   'map',
   'canvas-art',
+  'generative-art',
   'ui-showcase',
 ])
 export type ExampleSlug = typeof ExampleSlug.Type
@@ -185,6 +186,15 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'Click the canvas to spawn bouncing balls. Demonstrates declarative 2D rendering with Canvas.view, animation-frame Subscriptions, and pointer events translated to canvas-local coordinates.',
     difficulty: 'Intermediate',
     tags: ['Canvas', 'Animation', 'Subscriptions'],
+    hasRouting: false,
+  },
+  {
+    slug: 'generative-art',
+    title: 'Generative Art',
+    description:
+      'Move the mouse to stir a Perlin-noise flow field, click to bloom prismatic particle bursts. Demonstrates Canvas.view with hundreds of evolving Path strokes per frame, Effect Random for spawning, and tunable simulation knobs wired through Messages.',
+    difficulty: 'Advanced',
+    tags: ['Canvas', 'Animation', 'Subscriptions', 'Generative'],
     hasRouting: false,
   },
   {
