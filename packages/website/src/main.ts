@@ -432,7 +432,7 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
       ...mappedExampleDetailCommands,
       ...Option.match(url.hash, {
         onNone: () => [],
-        onSome: hash => [ScrollToAnchor({ hash, afterRender: true })],
+        onSome: hash => [ScrollToAnchor({ hash })],
       }),
     ],
   ]
@@ -563,7 +563,7 @@ const update = (
             ),
             ...Option.match(url.hash, {
               onNone: () => [ScrollToTop()],
-              onSome: hash => [ScrollToAnchor({ hash, afterRender: false })],
+              onSome: hash => [ScrollToAnchor({ hash })],
             }),
           ],
         ]
@@ -1171,13 +1171,11 @@ const focusAndScrollToHash = (hash: string): void => {
 
 const ScrollToAnchor = Command.define(
   'ScrollToAnchor',
-  { hash: S.String, afterRender: S.Boolean },
+  { hash: S.String },
   CompletedScrollToAnchor,
-)(({ hash, afterRender }) =>
+)(({ hash }) =>
   Effect.gen(function* () {
-    if (afterRender) {
-      yield* Render.afterPaint
-    }
+    yield* Render.afterPaint
     focusAndScrollToHash(hash)
     return CompletedScrollToAnchor()
   }),
