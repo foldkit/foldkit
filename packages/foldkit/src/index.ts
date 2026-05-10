@@ -1,4 +1,5 @@
 export * as Calendar from './calendar/public.js'
+export * as Canvas from './canvas/public.js'
 export * as Command from './command/public.js'
 export * as Dom from './dom/public.js'
 export * as ManagedResource from './managedResource/public.js'

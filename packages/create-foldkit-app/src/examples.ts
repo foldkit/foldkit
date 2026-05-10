@@ -9,6 +9,7 @@ export const EXAMPLE_VALUES = [
   'routing',
   'query-sync',
   'snake',
+  'canvas-art',
   'auth',
   'shopping-cart',
   'pixel-art',
@@ -75,6 +76,12 @@ export const examples: ReadonlyArray<{
     value: 'snake',
     title: 'snake',
     description: 'Classic game built with subscriptions',
+  },
+  {
+    value: 'canvas-art',
+    title: 'canvas-art',
+    description:
+      'Declarative 2D canvas with shapes, animation-frame Subscriptions, and pointer events',
   },
   {
     value: 'auth',

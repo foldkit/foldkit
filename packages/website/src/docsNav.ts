@@ -11,6 +11,7 @@ import {
   bestPracticesSideEffectsRouter,
   comingFromReactRouter,
   coreArchitectureRouter,
+  coreCanvasRouter,
   coreCommandsRouter,
   coreCounterExampleRouter,
   coreCrashViewRouter,
@@ -201,6 +202,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'CoreFile',
           href: coreFileRouter(),
           label: 'File',
+        },
+        {
+          _tag: 'CoreCanvas',
+          href: coreCanvasRouter(),
+          label: 'Canvas',
         },
       ],
       [

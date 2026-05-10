@@ -157,6 +157,7 @@ Foldkit is a complete system, not a collection of libraries you stitch together.
 - **Submodels**: A pattern for composing nested modules. A child owns its own Model, Messages, update function, and view; the parent embeds it and wraps child Messages in a `Got*Message` envelope. The pattern scales unchanged from a login form to a multi-page app.
 - **OutMessage**: A typed channel for a child Submodel to emit domain events up to its parent, so the parent reacts to meaningful facts instead of internal child Messages.
 - **UI Components**: Accessible, keyboard-friendly primitives covering Button, Checkbox, Combobox, Dialog, Disclosure, DragAndDrop, Fieldset, Input, Listbox, Menu, Popover, RadioGroup, Select, Switch, Tabs, Textarea, and Transition. Every component is a Submodel with a typed `ViewConfig`, domain-event callbacks like `onSelected`, `onClosed`, and `onToggled`, and `className` plus `attributes` props on every slot for styling and extension. Animated components share a `Transition` Submodel that coordinates CSS enter and leave animations.
+- **Canvas**: Declarative 2D rendering. Describe a scene as a tree of `Shape` values (Rect, Circle, Path, Text, plus Group, which composes children under translate / rotate / scale / opacity), pass them to `Canvas.view`, and the runtime re-paints on every patch. The canvas pixels are a pure function of the shapes, so DevTools time-travel reproduces past frames exactly. Pair with `Canvas.animationFrame` for `requestAnimationFrame`-driven Subscriptions.
 - **Field Validation**: Per-field validation state modeled as a discriminated union. Define rules as data, apply them in update, and the Model tracks the result.
 - **Virtual DOM**: Declarative views powered by [Snabbdom](https://github.com/snabbdom/snabbdom), with lazy memoization and fast, keyed diffing. Views are plain functions of your Model.
 - **DevTools**: Built-in overlay for inspecting Messages, Model state, and Commands. Time-travel mode rewinds your UI to any past Model, Inspect mode browses snapshots without pausing, and Submodel drill-in filtering scopes the Message list to any nested module.
@@ -191,6 +192,7 @@ This is what makes Foldkit unusually AI-friendly. The same property that makes t
 - **[WebSocket Chat](https://foldkit.dev/example-apps/websocket-chat)** — Managed Resources with WebSocket integration
 - **[Kanban](https://foldkit.dev/example-apps/kanban)** — Drag-and-drop kanban board with cross-column reordering and keyboard navigation
 - **[Pixel Art](https://foldkit.dev/example-apps/pixel-art)** — Grid-based pixel editor with painting, erasing, and palette selection
+- **[Canvas Art](https://foldkit.dev/example-apps/canvas-art)** — Declarative 2D canvas with shapes, animation-frame Subscriptions, and pointer events
 - **[UI Showcase](https://foldkit.dev/example-apps/ui-showcase)** — Interactive showcase of every Foldkit UI component
 - **[Typing Game](https://github.com/foldkit/foldkit/tree/main/packages/typing-game)** — Multiplayer typing game with Effect RPC backend ([play it live](https://typingterminal.com))
 
