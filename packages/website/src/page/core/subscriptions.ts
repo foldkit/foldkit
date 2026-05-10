@@ -187,6 +187,19 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('deltaTime'),
         ' payload makes simulation speed independent of frame rate. Multiply per-second velocities by it and motion stays consistent on 60Hz, 120Hz, or after a tab regains focus.',
       ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.subscriptionAnimationFrameHighlighted),
+          ],
+          [],
+        ),
+        Snippets.subscriptionAnimationFrameRaw,
+        'Copy animation frame example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
       para(
         'For discrete game ticks (where the simulation steps once every N ms regardless of refresh rate), reach for ',
         inlineCode('Stream.tick'),
