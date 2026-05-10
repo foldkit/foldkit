@@ -236,14 +236,19 @@ Child views accept a `toParentMessage` function to wrap their messages for the p
 Child.view(model.child, message => GotChildMessage({ message }))
 
 // Child view signature
-const view = (
+const view = <ParentMessage>(
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
-  const { div, button } = html<ParentMessage>()
-  return div(
+  const h = html<ParentMessage>()
+  return h.div(
     [],
-    [button([OnClick(() => toParentMessage(ClickedSubmit()))], ['Submit'])],
+    [
+      h.button(
+        [h.OnClick(toParentMessage(ClickedSubmit()))],
+        ['Submit'],
+      ),
+    ],
   )
 }
 ```

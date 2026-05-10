@@ -439,4 +439,4 @@ Notes:
 - `Ui` from `foldkit` gives access to all UI components: `Ui.Dialog`, `Ui.Tabs`, `Ui.Menu`, `Ui.DatePicker`, `Ui.FileDrop`, `Ui.Toast`, `Ui.Tooltip`, etc.
 - `Calendar` provides `Calendar.CalendarDate`, `Calendar.today.local`, `Calendar.make`, `Calendar.addDays` etc. — used with `Ui.Calendar` and `Ui.DatePicker`
 - `File` provides file upload primitives used with `Ui.FileDrop`
-- `empty` and `keyed` can be imported from `foldkit/html` directly or destructured from `html<Message>()`
+- `empty` and `keyed` can be imported from `foldkit/html` directly or accessed off `h` after binding `const h = html<Message>()`

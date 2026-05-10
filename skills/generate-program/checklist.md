@@ -71,8 +71,8 @@ grep -rn "label(\[" src/ | grep -v "For("
 grep -rn "maybe[A-Z][a-zA-Z]*: [A-Z][a-zA-Z]* | undefined" src/
 grep -rn "maybe[A-Z][a-zA-Z]*: string\b\|maybe[A-Z][a-zA-Z]*: number\b\|maybe[A-Z][a-zA-Z]*: boolean\b" src/
 
-# span([], []) — use empty from html<M>()
-grep -rn "span(\[\], \[\])" src/
+# h.span([], []) — use h.empty (the empty value off h = html<M>())
+grep -rn "\.span(\[\], \[\])\|^span(\[\], \[\])" src/
 
 # Effect.ignore on infallible Effects (pushUrl, load, back, forward)
 grep -rn "pushUrl.*Effect\.ignore\|load(.*)\.pipe.*Effect\.ignore" src/
