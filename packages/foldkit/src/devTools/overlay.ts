@@ -1415,7 +1415,7 @@ const makeView = (
             buttonAttributes: [
               h.Class(
                 clsx(
-                  'dt-tab-h.button cursor-pointer text-base font-mono px-3 py-1',
+                  'dt-tab-button cursor-pointer text-base font-mono px-3 py-1',
                   isActive ? 'text-dt dt-tab-active' : 'text-dt-muted',
                 ),
               ),
@@ -1488,7 +1488,7 @@ const makeView = (
     'flex items-center justify-between px-3 py-1.5 border-b shrink-0'
 
   const actionButtonClass =
-    'dt-resume-h.button bg-transparent border-none text-dt-live cursor-pointer text-base font-mono font-medium'
+    'dt-resume-button bg-transparent border-none text-dt-live cursor-pointer text-base font-mono font-medium'
 
   const statusClass = 'text-base font-mono'
 
@@ -1568,7 +1568,7 @@ const makeView = (
           ),
         ],
       ),
-      buttonClassName: 'dt-filter-h.button',
+      buttonClassName: 'dt-filter-button',
       itemsClassName: 'dt-filter-items',
       className: 'dt-filter-wrapper',
       backdropClassName: 'dt-filter-backdrop',
