@@ -313,6 +313,7 @@ const searchWeight = (tag: string): string =>
       'ComingFromReact',
       'ReactComparison',
       'WhyNoJsx',
+      'OnSsr',
       S.startsWith('Testing'),
       () => '6',
     ),
@@ -377,6 +378,8 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           lazyDocsContent(Page.WhyNoJsx.view, [model.copiedSnippets]),
           Page.WhyNoJsx.tableOfContents,
         ),
+      OnSsr: () =>
+        withTableOfContents(Page.OnSsr.view(), Page.OnSsr.tableOfContents),
       ComingFromReact: () =>
         withTableOfContents(
           Page.ComingFromReact.view(

@@ -43,6 +43,8 @@ export const Link = {
   npm: 'https://www.npmjs.com/package/foldkit',
   websiteSource:
     'https://github.com/foldkit/foldkit/tree/main/packages/website',
+  prerenderScript:
+    'https://github.com/foldkit/foldkit/blob/main/packages/website/scripts/prerender.ts',
   changelog:
     'https://github.com/foldkit/foldkit/blob/main/packages/foldkit/CHANGELOG.md',
 }
