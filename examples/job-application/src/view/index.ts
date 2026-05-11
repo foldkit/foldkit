@@ -173,7 +173,7 @@ const desktopPreviewSidebar = (model: Model): Html =>
 const mobilePreviewToggle = (model: Model): Html =>
   keyed('div')(
     'mobile-toggle',
-    [Class('fixed bottom-4 right-4 xl:hidden')],
+    [Class('fixed top-4 right-4 xl:hidden')],
     [
       button(
         [
@@ -198,7 +198,7 @@ const mobilePreviewOverlay = (model: Model): Html =>
     'mobile-overlay',
     [
       Class(
-        'fixed inset-x-4 bottom-16 top-4 overflow-y-auto rounded-xl border border-gray-200 bg-white p-6 shadow-2xl xl:hidden',
+        'fixed inset-x-4 top-16 bottom-4 overflow-y-auto rounded-xl border border-gray-200 bg-white p-6 shadow-2xl xl:hidden',
       ),
     ],
     [preview(model)],
