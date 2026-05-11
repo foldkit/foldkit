@@ -11,12 +11,6 @@ import {
 
 // TABLE OF CONTENTS
 
-export const popoverHeader: TableOfContentsEntry = {
-  level: 'h2',
-  id: 'popover',
-  text: 'Popover',
-}
-
 export const basicHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'basic-popover',

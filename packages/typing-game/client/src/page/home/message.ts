@@ -9,7 +9,6 @@ export const ChangedUsername = m('ChangedUsername', { value: S.String })
 export const BlurredUsernameInput = m('BlurredUsernameInput')
 export const ChangedRoomId = m('ChangedRoomId', { value: S.String })
 export const BlurredRoomIdInput = m('BlurredRoomIdInput')
-export const ClickedCreateRoom = m('ClickedCreateRoom')
 export const SubmittedJoinRoomForm = m('SubmittedJoinRoomForm')
 export const SucceededCreateRoom = m('SucceededCreateRoom', {
   roomId: S.String,
@@ -30,7 +29,6 @@ export const Message = S.Union([
   BlurredUsernameInput,
   ChangedRoomId,
   BlurredRoomIdInput,
-  ClickedCreateRoom,
   SubmittedJoinRoomForm,
   SucceededCreateRoom,
   SucceededJoinRoom,

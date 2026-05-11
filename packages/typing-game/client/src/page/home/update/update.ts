@@ -4,7 +4,7 @@ import { evo } from 'foldkit/struct'
 
 import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../../constant'
 import { optionWhen } from '../../../optionWhen'
-import { CreateRoom, JoinRoom } from '../command'
+import { JoinRoom } from '../command'
 import {
   CompletedFocusRoomIdInput,
   CompletedFocusUsernameInput,
@@ -104,17 +104,6 @@ export const update = (model: Model, message: Message): UpdateReturn =>
               formError: () => Option.none(),
             }),
             [],
-            Option.none(),
-          ]),
-          M.orElse(() => [model, [], Option.none()]),
-        ),
-
-      ClickedCreateRoom: () =>
-        M.value(model.homeStep).pipe(
-          withUpdateReturn,
-          M.tag('SelectAction', ({ username }) => [
-            model,
-            [CreateRoom({ username })],
             Option.none(),
           ]),
           M.orElse(() => [model, [], Option.none()]),

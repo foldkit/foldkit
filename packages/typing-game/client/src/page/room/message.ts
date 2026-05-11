@@ -32,10 +32,6 @@ export const UpdatedRoom = m('UpdatedRoom', {
   maybePlayerProgress: S.Option(Shared.PlayerProgress),
 })
 export const FailedStreamRoom = m('FailedStreamRoom', { error: S.String })
-export const RequestedStartGame = m('RequestedStartGame', {
-  roomId: S.String,
-  playerId: S.String,
-})
 export const LoadedSession = m('LoadedSession', {
   maybeSession: S.Option(RoomPlayerSession),
 })
@@ -68,7 +64,6 @@ export const Message = S.Union([
   SubmittedJoinRoomFromPage,
   UpdatedRoom,
   FailedStreamRoom,
-  RequestedStartGame,
   LoadedSession,
   SucceededFetchRoom,
   FailedFetchRoom,

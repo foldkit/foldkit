@@ -17,12 +17,6 @@ import {
 
 // TABLE OF CONTENTS
 
-export const comboboxHeader: TableOfContentsEntry = {
-  level: 'h2',
-  id: 'combobox',
-  text: 'Combobox',
-}
-
 export const singleSelectHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'combobox-single-select',

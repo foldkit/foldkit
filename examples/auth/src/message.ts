@@ -3,7 +3,6 @@ import { Runtime } from 'foldkit'
 import { m } from 'foldkit/message'
 import { Url } from 'foldkit/url'
 
-import { Session } from './domain/session'
 import { LoggedIn, LoggedOut } from './page'
 
 export const CompletedNavigateInternal = m('CompletedNavigateInternal')
@@ -11,7 +10,6 @@ export const CompletedLoadExternal = m('CompletedLoadExternal')
 export const CompletedLogError = m('CompletedLogError')
 export const ClickedLink = m('ClickedLink', { request: Runtime.UrlRequest })
 export const ChangedUrl = m('ChangedUrl', { url: Url })
-export const LoadedSession = m('LoadedSession', { session: S.Option(Session) })
 export const SucceededSaveSession = m('SucceededSaveSession')
 export const FailedSaveSession = m('FailedSaveSession', { error: S.String })
 export const SucceededClearSession = m('SucceededClearSession')
@@ -29,7 +27,6 @@ export const Message = S.Union([
   CompletedLogError,
   ClickedLink,
   ChangedUrl,
-  LoadedSession,
   SucceededSaveSession,
   FailedSaveSession,
   SucceededClearSession,
