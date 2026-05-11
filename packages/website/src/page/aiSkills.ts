@@ -24,6 +24,12 @@ const availableSkillsHeader: TableOfContentsEntry = {
   text: 'Available Skills',
 }
 
+const foldkitHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'foldkit',
+  text: 'foldkit',
+}
+
 const generateProgramHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'generate-program',
@@ -39,12 +45,14 @@ const auditProgramHeader: TableOfContentsEntry = {
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   availableSkillsHeader,
+  foldkitHeader,
   generateProgramHeader,
   auditProgramHeader,
 ]
 
 const ADD_MARKETPLACE_COMMAND = '/plugin marketplace add foldkit/foldkit'
 const INSTALL_COMMAND = '/plugin install foldkit-skills@foldkit'
+const FOLDKIT_COMMAND = '/foldkit-skills:foldkit'
 const GENERATE_PROGRAM_COMMAND = '/foldkit-skills:generate-program'
 const AUDIT_PROGRAM_COMMAND = '/foldkit-skills:audit-program'
 
@@ -77,6 +85,16 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-4',
       ),
       tableOfContentsEntryToHeader(availableSkillsHeader),
+      tableOfContentsEntryToHeader(foldkitHeader),
+      codeBlock(
+        FOLDKIT_COMMAND,
+        'Copy foldkit command',
+        copiedSnippets,
+        'mb-4',
+      ),
+      para(
+        "Always-on framing for working in a Foldkit codebase. Auto-loads when Foldkit context is detected (imports, files, or prompt mentions) and sets the agent's posture: pattern-match against Foldkit's own apps (the examples, the website, the typing-game), treat the architecture as non-negotiable, use what the Foldkit and Effect stack already ships before reaching for outside libraries, and prefer the canonical source over memory. Points the agent at the foldkit submodule for the conventions, source code, and examples themselves.",
+      ),
       tableOfContentsEntryToHeader(generateProgramHeader),
       codeBlock(
         GENERATE_PROGRAM_COMMAND,
