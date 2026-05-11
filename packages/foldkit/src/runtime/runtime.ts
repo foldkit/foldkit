@@ -87,6 +87,15 @@ export type Visibility = 'Development' | 'Always'
  */
 export type DevToolsMode = 'Inspect' | 'TimeTravel'
 
+/** Mode value for the DevTools panel. Either a single mode used in every
+ *  environment, or an object selecting different modes for development and
+ *  production. Use the object form to keep `'TimeTravel'` for local debugging
+ *  while shipping the safer `'Inspect'` mode to users. `'TimeTravel'` in
+ *  production pauses the user's app when a history row is clicked. */
+export type DevToolsModeConfig =
+  | DevToolsMode
+  | Readonly<{ development: DevToolsMode; production: DevToolsMode }>
+
 /**
  * DevTools configuration.
  *
@@ -94,7 +103,7 @@ export type DevToolsMode = 'Inspect' | 'TimeTravel'
  *
  * - `show`: `'Development'` (default) enables in dev mode only, `'Always'` enables in all environments including production.
  * - `position`: Where the badge and panel appear. Defaults to `'BottomRight'`.
- * - `mode`: `'TimeTravel'` (default) enables full time-travel debugging. `'Inspect'` allows browsing state snapshots without pausing the app.
+ * - `mode`: `'TimeTravel'` (default) enables full time-travel debugging. `'Inspect'` allows browsing state snapshots without pausing the app. Pass `{ development, production }` to use different modes per environment. Useful when DevTools is shown in production (`show: 'Always'`) and you want `'TimeTravel'` only in local development.
  * - `banner`: Optional text shown as a banner at the top of the panel.
  * - `excludeFromHistory`: Message `_tag` values whose dispatches should not be recorded in DevTools history. The Messages still drive `update` and the runtime as usual; they just don't appear in the history panel and don't pay the per-Message diff cost. Use for high-frequency Messages (animation frames, pointer moves, scroll events) that would flood history without adding insight.
  * - `maxEntries`: Maximum number of recorded Messages retained in history before the oldest is evicted. Defaults to 100. Clamped to the range 20-500: smaller values keep the panel snappy under high message rates, larger values give you more scroll-back. Each retained entry stores a full Model snapshot, so memory cost scales linearly with both `maxEntries` and your Model size.
@@ -104,7 +113,7 @@ export type DevToolsConfig =
   | Readonly<{
       show?: Visibility
       position?: DevToolsPosition
-      mode?: DevToolsMode
+      mode?: DevToolsModeConfig
       banner?: string
       excludeFromHistory?: ReadonlyArray<string>
       maxEntries?: number
@@ -123,6 +132,14 @@ export type DevToolsConfig =
 const DEFAULT_DEV_TOOLS_SHOW: Visibility = 'Development'
 const DEFAULT_DEV_TOOLS_POSITION: DevToolsPosition = 'BottomRight'
 const DEFAULT_DEV_TOOLS_MODE: DevToolsMode = 'TimeTravel'
+
+const resolveDevToolsMode = (config: DevToolsModeConfig): DevToolsMode => {
+  if (typeof config === 'string') {
+    return config
+  } else {
+    return import.meta.hot ? config.development : config.production
+  }
+}
 const DEV_TOOLS_MAX_ENTRIES_MIN = 20
 const DEV_TOOLS_MAX_ENTRIES_MAX = 500
 
@@ -954,7 +971,7 @@ const makeRuntime = <
           ),
           Option.map(config => ({
             position: config.position ?? DEFAULT_DEV_TOOLS_POSITION,
-            mode: config.mode ?? DEFAULT_DEV_TOOLS_MODE,
+            mode: resolveDevToolsMode(config.mode ?? DEFAULT_DEV_TOOLS_MODE),
             maybeBanner: Option.fromNullishOr(config.banner),
           })),
         )

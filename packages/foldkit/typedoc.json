@@ -26,7 +26,6 @@
     "InferParsed",
     "ParserInput",
     "CompletedAdvanceFocus",
-    "DevToolsMode",
     "DevToolsPosition",
     "ResolveMessage",
     "WithStep",

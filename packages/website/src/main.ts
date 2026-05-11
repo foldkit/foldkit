@@ -1410,7 +1410,7 @@ const program = Runtime.makeProgram({
   ),
   devTools: {
     show: 'Always',
-    mode: 'Inspect',
+    mode: { development: 'TimeTravel', production: 'Inspect' },
     banner:
       'Welcome to Foldkit DevTools. This site runs on Foldkit \u2014 navigate around or interact with the page and every action appears here as a Message. Click any row to see the Model state it produced.',
     Message,

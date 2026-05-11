@@ -1,9 +1,12 @@
 export {
   init,
   update,
+  setRange,
+  setValue,
   view,
   lazy,
   subscriptions,
+  subscriptionsForRoot,
   fractionOfValue,
   Model,
   Message,

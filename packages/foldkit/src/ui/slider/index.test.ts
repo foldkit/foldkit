@@ -11,6 +11,8 @@ import {
   ReleasedDragPointer,
   fractionOfValue,
   init,
+  setRange,
+  setValue,
   update,
 } from './index.js'
 
@@ -532,6 +534,119 @@ describe('Slider', () => {
         initialValue: 5,
       })
       expect(fractionOfValue(model)).toBe(0)
+    })
+  })
+
+  describe('setRange', () => {
+    it('updates min and max', () => {
+      const before = init({
+        id: 'test',
+        min: 0,
+        max: 10,
+        step: 1,
+        initialValue: 5,
+      })
+      const after = setRange(before, { min: 100, max: 200 })
+      expect(after.min).toBe(100)
+      expect(after.max).toBe(200)
+    })
+
+    it('clamps the current value when the new range no longer contains it', () => {
+      const before = init({
+        id: 'test',
+        min: 0,
+        max: 10,
+        step: 1,
+        initialValue: 5,
+      })
+      const narrower = setRange(before, { min: 7, max: 10 })
+      expect(narrower.value).toBe(7)
+
+      const higher = setRange(before, { min: 0, max: 3 })
+      expect(higher.value).toBe(3)
+    })
+
+    it('snaps the clamped value to the current step', () => {
+      const before = init({
+        id: 'test',
+        min: 0,
+        max: 1,
+        step: 0.1,
+        initialValue: 0.4,
+      })
+      const after = setRange(before, { min: 0.5, max: 1 })
+      expect(after.value).toBeCloseTo(0.5)
+    })
+
+    it('clamps even while Dragging, since a structural range update must keep the value in bounds', () => {
+      const idle = init({
+        id: 'test',
+        min: 0,
+        max: 10,
+        step: 1,
+        initialValue: 5,
+      })
+      const [draggingModel] = update(idle, PressedThumb())
+      expect(draggingModel.dragState._tag).toBe('Dragging')
+
+      const clamped = setRange(draggingModel, { min: 7, max: 10 })
+      expect(clamped.value).toBe(7)
+      expect(clamped.dragState._tag).toBe('Dragging')
+    })
+  })
+
+  describe('setValue', () => {
+    it('updates the value while Idle', () => {
+      const before = init({
+        id: 'test',
+        min: 0,
+        max: 10,
+        step: 1,
+        initialValue: 5,
+      })
+      const after = setValue(before, 8)
+      expect(after.value).toBe(8)
+    })
+
+    it('snaps the value to the current step', () => {
+      const before = init({
+        id: 'test',
+        min: 0,
+        max: 1,
+        step: 0.1,
+        initialValue: 0.5,
+      })
+      const after = setValue(before, 0.47)
+      expect(after.value).toBeCloseTo(0.5)
+    })
+
+    it('clamps the value into the current range', () => {
+      const before = init({
+        id: 'test',
+        min: 0,
+        max: 10,
+        step: 1,
+        initialValue: 5,
+      })
+      expect(setValue(before, -3).value).toBe(0)
+      expect(setValue(before, 99).value).toBe(10)
+    })
+
+    it('is a no-op while the user is Dragging, since drag state owns the value', () => {
+      const idle = init({
+        id: 'test',
+        min: 0,
+        max: 10,
+        step: 1,
+        initialValue: 5,
+      })
+      const [dragging] = update(idle, PressedThumb())
+      expect(dragging.dragState._tag).toBe('Dragging')
+      expect(dragging.value).toBe(5)
+
+      const after = setValue(dragging, 8)
+      expect(after.value).toBe(5)
+      expect(after.dragState._tag).toBe('Dragging')
     })
   })
 })

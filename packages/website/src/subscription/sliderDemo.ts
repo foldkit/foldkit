@@ -11,10 +11,10 @@ import {
 const sliderFields = Ui.Slider.SubscriptionDeps.fields
 
 export const SubscriptionDeps = S.Struct({
-  ratingPointer: sliderFields['documentPointer'],
-  ratingEscape: sliderFields['documentEscape'],
-  volumePointer: sliderFields['documentPointer'],
-  volumeEscape: sliderFields['documentEscape'],
+  ratingPointer: sliderFields['dragPointer'],
+  ratingEscape: sliderFields['dragEscape'],
+  volumePointer: sliderFields['dragPointer'],
+  volumeEscape: sliderFields['dragEscape'],
 })
 
 const sliderSubscriptions = Ui.Slider.subscriptions
@@ -46,12 +46,12 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
 >({
   ratingPointer: {
     modelToDependencies: model =>
-      sliderSubscriptions.documentPointer.modelToDependencies(
+      sliderSubscriptions.dragPointer.modelToDependencies(
         getRatingModel(model),
       ),
     dependenciesToStream: (dependencies, readDependencies) =>
       mapRatingStream(
-        sliderSubscriptions.documentPointer.dependenciesToStream(
+        sliderSubscriptions.dragPointer.dependenciesToStream(
           dependencies,
           readDependencies,
         ),
@@ -59,12 +59,10 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
   },
   ratingEscape: {
     modelToDependencies: model =>
-      sliderSubscriptions.documentEscape.modelToDependencies(
-        getRatingModel(model),
-      ),
+      sliderSubscriptions.dragEscape.modelToDependencies(getRatingModel(model)),
     dependenciesToStream: (dependencies, readDependencies) =>
       mapRatingStream(
-        sliderSubscriptions.documentEscape.dependenciesToStream(
+        sliderSubscriptions.dragEscape.dependenciesToStream(
           dependencies,
           readDependencies,
         ),
@@ -72,12 +70,12 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
   },
   volumePointer: {
     modelToDependencies: model =>
-      sliderSubscriptions.documentPointer.modelToDependencies(
+      sliderSubscriptions.dragPointer.modelToDependencies(
         getVolumeModel(model),
       ),
     dependenciesToStream: (dependencies, readDependencies) =>
       mapVolumeStream(
-        sliderSubscriptions.documentPointer.dependenciesToStream(
+        sliderSubscriptions.dragPointer.dependenciesToStream(
           dependencies,
           readDependencies,
         ),
@@ -85,12 +83,10 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
   },
   volumeEscape: {
     modelToDependencies: model =>
-      sliderSubscriptions.documentEscape.modelToDependencies(
-        getVolumeModel(model),
-      ),
+      sliderSubscriptions.dragEscape.modelToDependencies(getVolumeModel(model)),
     dependenciesToStream: (dependencies, readDependencies) =>
       mapVolumeStream(
-        sliderSubscriptions.documentEscape.dependenciesToStream(
+        sliderSubscriptions.dragEscape.dependenciesToStream(
           dependencies,
           readDependencies,
         ),

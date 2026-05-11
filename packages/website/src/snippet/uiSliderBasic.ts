@@ -50,14 +50,14 @@ GotSliderMessage: ({ message }) => {
   ]
 }
 
-// Wire the Slider's document-level drag subscriptions into your app's
-// SubscriptionDeps and subscriptions. This is what powers pointer drag and
-// Escape-to-cancel:
+// NOTE: wire BOTH dragPointer and dragEscape. Without dragEscape, pressing
+// Escape during a drag won't cancel back to the origin value, but every
+// other drag mechanic still works. Silent partial breakage.
 const sliderFields = Ui.Slider.SubscriptionDeps.fields
 
 const SubscriptionDeps = S.Struct({
-  sliderPointer: sliderFields['documentPointer'],
-  sliderEscape: sliderFields['documentEscape'],
+  sliderPointer: sliderFields['dragPointer'],
+  sliderEscape: sliderFields['dragEscape'],
   // ...your other subscription deps
 })
 
@@ -69,17 +69,17 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
 >({
   sliderPointer: {
     modelToDependencies: model =>
-      sliderSubscriptions.documentPointer.modelToDependencies(model.ratingDemo),
+      sliderSubscriptions.dragPointer.modelToDependencies(model.ratingDemo),
     dependenciesToStream: (dependencies, readDependencies) =>
-      sliderSubscriptions.documentPointer
+      sliderSubscriptions.dragPointer
         .dependenciesToStream(dependencies, readDependencies)
         .pipe(Stream.map(message => GotSliderMessage({ message }))),
   },
   sliderEscape: {
     modelToDependencies: model =>
-      sliderSubscriptions.documentEscape.modelToDependencies(model.ratingDemo),
+      sliderSubscriptions.dragEscape.modelToDependencies(model.ratingDemo),
     dependenciesToStream: (dependencies, readDependencies) =>
-      sliderSubscriptions.documentEscape
+      sliderSubscriptions.dragEscape
         .dependenciesToStream(dependencies, readDependencies)
         .pipe(Stream.map(message => GotSliderMessage({ message }))),
   },

@@ -145,6 +145,17 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode("'Inspect'"),
         ' lets you browse state snapshots without pausing the app, which is useful when showing DevTools to visitors in production or staging environments.',
       ),
+      para(
+        'You can also pass ',
+        inlineCode('{ development, production }'),
+        ' to select a different mode per environment. This is the recommended pattern when ',
+        inlineCode("show: 'Always'"),
+        ' keeps DevTools available in production: keep ',
+        inlineCode("'TimeTravel'"),
+        ' for local debugging and ship ',
+        inlineCode("'Inspect'"),
+        ' to your users so clicking a row never pauses their app.',
+      ),
       highlightedCodeBlock(
         h.div(
           [
@@ -154,7 +165,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           [],
         ),
         Snippets.devtoolsInspectRaw,
-        'Inspect mode for production',
+        'TimeTravel locally, Inspect in production',
         copiedSnippets,
         'mb-8',
       ),

@@ -8,7 +8,7 @@ const program = Runtime.makeProgram({
   container: document.getElementById('root')!,
   devTools: {
     show: 'Always',
-    mode: 'Inspect',
+    mode: { development: 'TimeTravel', production: 'Inspect' },
     banner: 'Welcome to our app! Browse the state tree to see how it works.',
   },
 })

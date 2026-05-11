@@ -13,10 +13,10 @@ const sliderFields = Ui.Slider.SubscriptionDeps.fields
 
 const SubscriptionDeps = S.Struct({
   frame: S.Boolean,
-  flowStrengthSliderPointer: sliderFields['documentPointer'],
-  flowStrengthSliderEscape: sliderFields['documentEscape'],
-  noiseScaleSliderPointer: sliderFields['documentPointer'],
-  noiseScaleSliderEscape: sliderFields['documentEscape'],
+  flowStrengthSliderPointer: sliderFields['dragPointer'],
+  flowStrengthSliderEscape: sliderFields['dragEscape'],
+  noiseScaleSliderPointer: sliderFields['dragPointer'],
+  noiseScaleSliderEscape: sliderFields['dragEscape'],
 })
 
 const mapFlowStrengthStream = (stream: Stream.Stream<Ui.Slider.Message>) =>
@@ -35,12 +35,12 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
   }),
   flowStrengthSliderPointer: {
     modelToDependencies: model =>
-      Ui.Slider.subscriptions.documentPointer.modelToDependencies(
+      Ui.Slider.subscriptions.dragPointer.modelToDependencies(
         model.flowStrengthSlider,
       ),
     dependenciesToStream: (dependencies, readDependencies) =>
       mapFlowStrengthStream(
-        Ui.Slider.subscriptions.documentPointer.dependenciesToStream(
+        Ui.Slider.subscriptions.dragPointer.dependenciesToStream(
           dependencies,
           readDependencies,
         ),
@@ -48,12 +48,12 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
   },
   flowStrengthSliderEscape: {
     modelToDependencies: model =>
-      Ui.Slider.subscriptions.documentEscape.modelToDependencies(
+      Ui.Slider.subscriptions.dragEscape.modelToDependencies(
         model.flowStrengthSlider,
       ),
     dependenciesToStream: (dependencies, readDependencies) =>
       mapFlowStrengthStream(
-        Ui.Slider.subscriptions.documentEscape.dependenciesToStream(
+        Ui.Slider.subscriptions.dragEscape.dependenciesToStream(
           dependencies,
           readDependencies,
         ),
@@ -61,12 +61,12 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
   },
   noiseScaleSliderPointer: {
     modelToDependencies: model =>
-      Ui.Slider.subscriptions.documentPointer.modelToDependencies(
+      Ui.Slider.subscriptions.dragPointer.modelToDependencies(
         model.noiseScaleSlider,
       ),
     dependenciesToStream: (dependencies, readDependencies) =>
       mapNoiseScaleStream(
-        Ui.Slider.subscriptions.documentPointer.dependenciesToStream(
+        Ui.Slider.subscriptions.dragPointer.dependenciesToStream(
           dependencies,
           readDependencies,
         ),
@@ -74,12 +74,12 @@ export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
   },
   noiseScaleSliderEscape: {
     modelToDependencies: model =>
-      Ui.Slider.subscriptions.documentEscape.modelToDependencies(
+      Ui.Slider.subscriptions.dragEscape.modelToDependencies(
         model.noiseScaleSlider,
       ),
     dependenciesToStream: (dependencies, readDependencies) =>
       mapNoiseScaleStream(
-        Ui.Slider.subscriptions.documentEscape.dependenciesToStream(
+        Ui.Slider.subscriptions.dragEscape.dependenciesToStream(
           dependencies,
           readDependencies,
         ),

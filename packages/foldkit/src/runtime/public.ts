@@ -15,6 +15,8 @@ export type {
   SlowViewContext,
   SlowViewConfig,
   DevToolsConfig,
+  DevToolsMode,
+  DevToolsModeConfig,
 } from './runtime.js'
 
 export { UrlRequest } from './urlRequest.js'
