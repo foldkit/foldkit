@@ -1,5 +1,46 @@
 # foldkit
 
+## 0.93.0
+
+### Minor Changes
+
+- ba61bf6: Add a session scrubber to the DevTools panel. In TimeTravel mode, a horizontal slider sits at the bottom of the panel and lets you drag through the message history. Each step replays the host app to that point, so you can watch the UI evolve over the session instead of clicking message rows one at a time. Keyboard navigation works the same as any Foldkit slider (arrows, Page Up/Down, Home, End). The scrubber is hidden in Inspect mode.
+
+  The DevTools `mode` config now accepts `{ development, production }` to select different modes per environment. Useful when `show: 'Always'` keeps DevTools available in production but you want `'TimeTravel'` only in local development. `'TimeTravel'` in production pauses the user's actual app when a history row is clicked, so the per-environment form makes shipping the safer `'Inspect'` mode to users opt-in by design.
+
+  The Slider component now accepts an optional `getTrackRoot: () => Document | ShadowRoot` in `ViewConfig`, plus a `subscriptionsForRoot(getTrackRoot)` factory next to the existing `subscriptions` value. Both default to `document`. Pass a `ShadowRoot` when rendering the slider inside a shadow tree so pointer events on the track can find their bounding rect.
+
+  The Slider's `SubscriptionDeps` fields are renamed from `documentPointer` / `documentEscape` to `dragPointer` / `dragEscape`. The names now describe the activity (drag) rather than the listener attachment point, since the track lookup is configurable per the change above. Update every callsite that references the old names:
+
+  ```ts
+  // Before
+  Slider.SubscriptionDeps.fields['documentPointer']
+  Slider.SubscriptionDeps.fields['documentEscape']
+  sliderSubscriptions.documentPointer.modelToDependencies(model)
+  sliderSubscriptions.documentEscape.dependenciesToStream(...)
+
+  // After
+  Slider.SubscriptionDeps.fields['dragPointer']
+  Slider.SubscriptionDeps.fields['dragEscape']
+  sliderSubscriptions.dragPointer.modelToDependencies(model)
+  sliderSubscriptions.dragEscape.dependenciesToStream(...)
+  ```
+
+  Slider also adds `setRange(model, { min, max })` and `setValue(model, value)` helpers for parents that need to sync slider state from external state. Both snap and clamp the resulting value to the new range. `setValue` is a no-op while the user is actively dragging, so external updates don't fight pointer input.
+
+### Patch Changes
+
+- dbfb1ec: Bump Effect to `4.0.0-beta.64` (from `4.0.0-beta.59`) across the workspace, and replace the hand-rolled fallback cascade in `route/parser.ts:oneOf` with `Effect.firstSuccessOf`, which was reintroduced in beta.61 ([effect-smol#2120](https://github.com/Effect-TS/effect-smol/pull/2120)).
+
+  Consumers should align their `effect`, `@effect/platform-browser`, `@effect/platform-node`, and `@effect/vitest` pins to `4.0.0-beta.64`.
+
+  ```bash
+  pnpm add effect@4.0.0-beta.64
+  pnpm add -D @effect/platform-browser@4.0.0-beta.64 @effect/platform-node@4.0.0-beta.64 @effect/vitest@4.0.0-beta.64
+  ```
+
+  Behavior is unchanged. The `oneOf` route parser still tries each parser in order and returns the first success (or the last failure if all fail).
+
 ## 0.92.0
 
 ### Minor Changes
