@@ -166,6 +166,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Mount',
     'OnMount: the single mount-time DOM hook for integrating third-party libraries with paired cleanup. Keeps imperative work confined to the seam where the virtual DOM meets the real one.',
   ),
+  CoreCustomElement: core(
+    'CustomElement',
+    'Bind native web components to Foldkit with CustomElement.define. Declare properties and events with Schema once and get a typed builder back.',
+  ),
   CoreSubscriptions: core(
     'Subscriptions',
     'Declarative streams that start and stop based on Model state, with built-in helpers like Subscription.animationFrame for requestAnimationFrame-driven motion. Foldkit Subscriptions replace useEffect cleanup patterns with automatic lifecycle management.',

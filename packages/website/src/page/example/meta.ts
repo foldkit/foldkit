@@ -21,6 +21,7 @@ export const ExampleSlug = S.Literals([
   'map',
   'canvas-art',
   'generative-art',
+  'web-components',
   'ui-showcase',
 ])
 export type ExampleSlug = typeof ExampleSlug.Type
@@ -195,6 +196,15 @@ export const examples: ReadonlyArray<ExampleMeta> = [
       'Move the mouse to stir a Perlin-noise flow field, click to bloom prismatic particle bursts. Demonstrates Canvas.view with hundreds of evolving Path strokes per frame, Effect Random for spawning, and tunable simulation knobs wired through Messages.',
     difficulty: 'Advanced',
     tags: ['Canvas', 'Animation', 'Subscriptions', 'Generative'],
+    hasRouting: false,
+  },
+  {
+    slug: 'web-components',
+    title: 'Web Components',
+    description:
+      'QR code designer wiring two real third-party web components into Foldkit with CustomElement.define. A hex color picker from vanilla-colorful emits color-changed CustomEvents that flow back as Messages, and the sl-qr-code element from Shoelace accepts typed properties. The picker and the QR never touch each other directly; they share state through the Model.',
+    difficulty: 'Advanced',
+    tags: ['Web Components', 'CustomElement', 'Third-Party Library'],
     hasRouting: false,
   },
   {

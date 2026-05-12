@@ -65,6 +65,7 @@ export const activeSection: Subscription<
         TestingScene: () => Page.TestingScene.tableOfContents,
         CoreCommands: () => Page.Core.Commands.tableOfContents,
         CoreMount: () => Page.Core.Mount.tableOfContents,
+        CoreCustomElement: () => Page.Core.CustomElement.tableOfContents,
         CoreSubscriptions: () => Page.Core.Subscriptions.tableOfContents,
         CoreInitAndFlags: () => Page.Core.InitAndFlags.tableOfContents,
         CoreDom: () => Page.Core.CoreDom.tableOfContents,

@@ -23,6 +23,10 @@
       "types": "./dist/command/public.d.ts",
       "import": "./dist/command/public.js"
     },
+    "./customElement": {
+      "types": "./dist/customElement/public.d.ts",
+      "import": "./dist/customElement/public.js"
+    },
     "./dom": {
       "types": "./dist/dom/public.d.ts",
       "import": "./dist/dom/public.js"

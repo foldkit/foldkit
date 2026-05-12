@@ -79,7 +79,7 @@ const keyboardModifiers = (event: KeyboardEvent): KeyboardModifiers => ({
 
 /** A virtual DOM element represented as an `Effect` that produces a `VNode`. */
 export type Html = Effect.Effect<VNode | null, never, Dispatch>
-type Child = Html | string
+export type Child = Html | string
 
 /** A view's complete output for the runtime: title, body, and optional document
  *  metadata. The runtime applies `title` to `document.title`, syncs `canonical`
@@ -621,6 +621,11 @@ export type Attribute<Message> = Data.TaggedEnum<{
   Opacity: { readonly value: string }
   StrokeDasharray: { readonly value: string }
   StrokeDashoffset: { readonly value: string }
+  Prop: { readonly key: string; readonly value: unknown }
+  OnCustomEvent: {
+    readonly name: string
+    readonly f: (event: CustomEvent<any>) => Message
+  }
   OnMount: {
     readonly action: MountAction<Message, any>
   }
@@ -867,8 +872,12 @@ const {
   Opacity,
   StrokeDasharray,
   StrokeDashoffset,
+  Prop,
+  OnCustomEvent,
   OnMount,
 } = Data.taggedEnum<AttributeDefinition>()
+
+export { Prop, OnCustomEvent }
 
 const buildVNodeData = <Message>(
   attributes: ReadonlyArray<Attribute<Message>>,
@@ -1530,6 +1539,15 @@ const buildVNodeData = <Message>(
             updateDataAttrs({ 'stroke-dasharray': value }),
           StrokeDashoffset: ({ value }) =>
             updateDataAttrs({ 'stroke-dashoffset': value }),
+          Prop: ({ key, value }) => updateDataProps({ [key]: value }),
+          OnCustomEvent: ({ name, f }) =>
+            updateDataOn({
+              [name]: (event: Event) => {
+                if (event instanceof CustomEvent) {
+                  dispatchSync(f(event))
+                }
+              },
+            }),
           OnMount: ({ action }) => {
             const maybeTracker = Context.getOption(
               capturedContext,
@@ -1637,7 +1655,7 @@ const processVNodeChildren = (
   ).pipe(Effect.map(Array.filter(Predicate.isNotNull)))
 
 const createElement = <Message>(
-  tagName: TagName,
+  tagName: string,
   attributes: ReadonlyArray<Attribute<Message>> = [],
   children: ReadonlyArray<Child> = [],
 ): Html =>
@@ -1651,6 +1669,15 @@ const createElement = <Message>(
 const element =
   <Message>() =>
   (tagName: TagName) =>
+  (
+    attributes: ReadonlyArray<Attribute<Message>> = [],
+    children: ReadonlyArray<Child> = [],
+  ): Html =>
+    createElement(tagName, attributes, children)
+
+export const customElement =
+  <Message>() =>
+  (tagName: string) =>
   (
     attributes: ReadonlyArray<Attribute<Message>> = [],
     children: ReadonlyArray<Child> = [],
