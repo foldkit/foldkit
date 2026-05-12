@@ -267,18 +267,19 @@ Run with no flags to drop into the interactive prompts; pick the counter example
 - `src/styles.css` with Tailwind import
 - `AGENTS.md` with Foldkit conventions
 
-### Offer the Foldkit submodule
+### Offer the Foldkit subtree
 
-After scaffolding, offer to add Foldkit as a git submodule so future AI sessions can reference the full source, examples, and docs directly from the user's project:
+After scaffolding, offer to vendor Foldkit in as a git subtree so future AI sessions can reference the full source, examples, and docs directly from the user's project:
 
 ```bash
 git init          # if not already a git repo
-git submodule add https://github.com/foldkit/foldkit.git repos/foldkit
+git commit --allow-empty -m "chore: initial commit"   # subtree requires at least one commit
+git subtree add --prefix=repos/foldkit https://github.com/foldkit/foldkit.git main --squash
 ```
 
-This is optional but strongly recommended. The scaffolded `AGENTS.md` includes a `submodule_prompted: false` line that agents check on future sessions — if the submodule is absent and this flag is false, the agent offers to add it. Handling it up front here means the user's next AI session already has full context. If the user declines, update the line to `submodule_prompted: true` so they aren't asked again.
+This is optional but strongly recommended. The scaffolded `AGENTS.md` includes a `subtree_prompted: false` line that agents check on future sessions. If the subtree is absent and this flag is false, the agent offers to add it. Handling it up front here means the user's next AI session already has full context. If the user declines, update the line to `subtree_prompted: true` so they aren't asked again.
 
-To refresh the submodule later: `git submodule update --remote repos/foldkit`.
+To refresh the subtree later: `git subtree pull --prefix=repos/foldkit https://github.com/foldkit/foldkit.git main --squash`.
 
 ### Replace the scaffold
 

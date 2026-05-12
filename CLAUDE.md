@@ -223,7 +223,7 @@ Four lifecycle/binding primitives. Pick by **what causes the side effect**, not 
 
 ## Reference repos
 
-`repos/` holds git submodules of external projects we depend on, pinned to the version we use. Read from these directly when API signatures, behavior, or implementation details matter. Faster and more authoritative than docs or `.d.ts` files.
+`repos/` holds vendored snapshots of external projects we depend on, pulled in as git subtrees and pinned to the version we use. They come down with a normal clone. Read from these directly when API signatures, behavior, or implementation details matter. Faster and more authoritative than docs or `.d.ts` files.
 
 - `repos/effect-smol/` — Effect-TS source. Reference for any Effect / Schema / Stream / Match / Result question before falling back to docs or guessing from types.
 

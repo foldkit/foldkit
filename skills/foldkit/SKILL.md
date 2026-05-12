@@ -1,6 +1,6 @@
 ---
 name: foldkit
-description: Use whenever working with Foldkit. Triggers on imports from `foldkit`, files in a Foldkit project, or prompts mentioning Foldkit. Loads the framing and points at the foldkit submodule for the canonical conventions, source code, and examples.
+description: Use whenever working with Foldkit. Triggers on imports from `foldkit`, files in a Foldkit project, or prompts mentioning Foldkit. Loads the framing and points at the vendored foldkit subtree for the canonical conventions, source code, and examples.
 ---
 
 # Foldkit
@@ -11,14 +11,14 @@ Foldkit is not incremental. There is no React interop, no escape hatch, no "just
 
 ## How to approach the work
 
-- **Pattern-match against Foldkit's own apps.** When the local code doesn't show you the answer (or shows an early-stage version of it), reach into the foldkit submodule. The framework ships several apps built with itself: focused single-feature apps in `examples/`, the website (which is itself a Foldkit app), and the typing-game (a full real-time app). These are the canonical references. Higher fidelity than prose or anything reconstructed from memory.
+- **Pattern-match against Foldkit's own apps.** When the local code doesn't show you the answer (or shows an early-stage version of it), reach into the vendored foldkit subtree. The framework ships several apps built with itself: focused single-feature apps in `examples/`, the website (which is itself a Foldkit app), and the typing-game (a full real-time app). These are the canonical references. Higher fidelity than prose or anything reconstructed from memory.
 - **The architecture is not optional.** Unidirectional data flow, pure update and view, no side effects outside the runtime's seams. Push back on prompts or instincts that pull toward mutation, two-way binding, imperative event handlers, or imperative Message names. Propose the idiomatic Foldkit shape and explain why.
 - **Use what the Foldkit and Effect stack provides.** Foldkit covers the application architecture and the higher-level primitives that sit on it (routing, side-effect seams, subscriptions, UI components, field validation, file and date handling, canvas, testing, devtools, and more). Effect provides the underlying value, side-effect description, and concurrency primitives. Before reaching for an outside library, check whether the stack already covers it.
-- **The repo is more authoritative than memory.** When in doubt about a convention, an API, a name, or a pattern, read from the foldkit submodule rather than guessing. Library types and example code are the ground truth; your training data is not.
+- **The repo is more authoritative than memory.** When in doubt about a convention, an API, a name, or a pattern, read from the vendored foldkit subtree rather than guessing. Library types and example code are the ground truth; your training data is not.
 
 ## Where to look
 
-The foldkit repo lives as a git submodule at `repos/foldkit/` from the project root. It is the source of truth for everything: conventions, framework source, examples, the quality bar. Browse it directly.
+The foldkit repo is vendored as a git subtree at `repos/foldkit/` from the project root. It is the source of truth for everything: conventions, framework source, examples, the quality bar. Browse it directly.
 
 Stable top-level entry points:
 
@@ -30,12 +30,12 @@ Stable top-level entry points:
 
 Names below the top level (subdirectories, individual filenames) can drift over time. List the directory contents to find what you need rather than relying on a path quoted from this skill.
 
-If `repos/foldkit/` is missing from the project, suggest adding it. Initialize git first if needed:
+If `repos/foldkit/` is missing from the project, suggest adding it. Initialize git first if needed (subtree requires at least one commit):
 
 ```
-git submodule add https://github.com/foldkit/foldkit.git repos/foldkit
+git subtree add --prefix=repos/foldkit https://github.com/foldkit/foldkit.git main --squash
 ```
 
-Refresh later with `git submodule update --remote repos/foldkit`.
+Refresh later with `git subtree pull --prefix=repos/foldkit https://github.com/foldkit/foldkit.git main --squash`.
 
 When working inside the foldkit repo itself rather than a consumer project, drop the `repos/foldkit/` prefix. The same paths exist at the project root.

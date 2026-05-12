@@ -25,10 +25,10 @@ const overviewHeader: TableOfContentsEntry = {
   text: 'Overview',
 }
 
-const submoduleHeader: TableOfContentsEntry = {
+const subtreeHeader: TableOfContentsEntry = {
   level: 'h2',
-  id: 'submodule-setup',
-  text: 'Submodule Setup',
+  id: 'subtree-setup',
+  text: 'Subtree Setup',
 }
 
 const skillsPluginHeader: TableOfContentsEntry = {
@@ -45,15 +45,16 @@ const devToolsMcpHeader: TableOfContentsEntry = {
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
-  submoduleHeader,
+  subtreeHeader,
   skillsPluginHeader,
   devToolsMcpHeader,
 ]
 
-const SUBMODULE_COMMAND =
-  'git submodule add https://github.com/foldkit/foldkit.git repos/foldkit'
+const SUBTREE_ADD_COMMAND =
+  'git subtree add --prefix=repos/foldkit https://github.com/foldkit/foldkit.git main --squash'
 
-const UPDATE_COMMAND = 'git submodule update --remote repos/foldkit'
+const SUBTREE_UPDATE_COMMAND =
+  'git subtree pull --prefix=repos/foldkit https://github.com/foldkit/foldkit.git main --squash'
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
   h.div(
@@ -75,27 +76,30 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' pattern right.',
       ),
       para('This isn’t a bolt-on. It’s a consequence of the architecture.'),
-      tableOfContentsEntryToHeader(submoduleHeader),
+      tableOfContentsEntryToHeader(subtreeHeader),
       para(
-        'For the best experience, clone the Foldkit repository as a git submodule in your project:',
+        'For the best experience, vendor the Foldkit repository into your project as a git subtree:',
       ),
       codeBlock(
-        SUBMODULE_COMMAND,
-        'Copy submodule command',
+        SUBTREE_ADD_COMMAND,
+        'Copy subtree add command',
         copiedSnippets,
         'mb-4',
       ),
       para(
-        'This gives the AI access to the Foldkit source code, the examples, and this documentation site: real patterns it can learn from and apply to your code. The starter template includes an ',
+        'This gives the AI access to the Foldkit source code, the examples, and this documentation site: real patterns it can learn from and apply to your code. Unlike a submodule, a subtree is checked into your repository, so a fresh clone (your teammate, a CI runner, a cloud agent) has the source on disk immediately. The starter template includes an ',
         inlineCode('AGENTS.md'),
         ' with Foldkit conventions and a ',
         inlineCode('.ignore'),
-        ' file that keeps the submodule out of your editor’s file tree.',
+        ' file that keeps the vendored source out of your editor’s file tree.',
       ),
-      para(
-        'To update the submodule and pull the latest source, examples, and docs:',
+      para('To pull the latest source, examples, and docs into the subtree:'),
+      codeBlock(
+        SUBTREE_UPDATE_COMMAND,
+        'Copy subtree update command',
+        copiedSnippets,
+        'mb-4',
       ),
-      codeBlock(UPDATE_COMMAND, 'Copy update command', copiedSnippets, 'mb-4'),
       tableOfContentsEntryToHeader(skillsPluginHeader),
       para(
         'Foldkit ships a ',

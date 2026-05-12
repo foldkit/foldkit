@@ -136,14 +136,17 @@ const displaySuccessMessage = (name: string, packageManager: PackageManager) =>
     yield* Console.log(chalk.bold('AI-Assisted Development'))
     yield* Console.log('')
     yield* Console.log(
-      '  Clone Foldkit as a submodule so your AI assistant can\n' +
+      '  Vendor Foldkit in as a git subtree so your AI assistant can\n' +
         '  reference the source, examples, and documentation:',
     )
     yield* Console.log('')
     yield* Console.log(`  > ${chalk.cyan('cd')} ${name}`)
     yield* Console.log(`  > ${chalk.cyan('git init')}`)
     yield* Console.log(
-      `  > ${chalk.cyan('git submodule add https://github.com/foldkit/foldkit.git repos/foldkit')}`,
+      `  > ${chalk.cyan('git commit --allow-empty -m "chore: initial commit"')}`,
+    )
+    yield* Console.log(
+      `  > ${chalk.cyan('git subtree add --prefix=repos/foldkit https://github.com/foldkit/foldkit.git main --squash')}`,
     )
     yield* Console.log('')
     yield* Console.log(`  Details: ${chalk.cyan('foldkit.dev/ai/overview')}`)

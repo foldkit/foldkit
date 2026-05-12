@@ -93,7 +93,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-4',
       ),
       para(
-        "Always-on framing for working in a Foldkit codebase. Auto-loads when Foldkit context is detected (imports, files, or prompt mentions) and sets the agent's posture: pattern-match against Foldkit's own apps (the examples, the website, the typing-game), treat the architecture as non-negotiable, use what the Foldkit and Effect stack already ships before reaching for outside libraries, and prefer the canonical source over memory. Points the agent at the foldkit submodule for the conventions, source code, and examples themselves.",
+        "Always-on framing for working in a Foldkit codebase. Auto-loads when Foldkit context is detected (imports, files, or prompt mentions) and sets the agent's posture: pattern-match against Foldkit's own apps (the examples, the website, the typing-game), treat the architecture as non-negotiable, use what the Foldkit and Effect stack already ships before reaching for outside libraries, and prefer the canonical source over memory. Points the agent at the vendored foldkit subtree for the conventions, source code, and examples themselves.",
       ),
       tableOfContentsEntryToHeader(generateProgramHeader),
       codeBlock(

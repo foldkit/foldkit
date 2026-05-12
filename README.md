@@ -190,7 +190,7 @@ This is what makes Foldkit unusually AI-friendly. The same property that makes t
 ## Development
 
 ```bash
-git clone --recurse-submodules https://github.com/foldkit/foldkit.git
+git clone https://github.com/foldkit/foldkit.git
 cd foldkit
 pnpm install
 
@@ -201,7 +201,7 @@ pnpm dev:core
 pnpm dev:example:counter
 ```
 
-If you cloned without `--recurse-submodules`, run `git submodule update --init --recursive` to pull the source under `repos/` (used as agent reference; see CLAUDE.md).
+External reference repositories under `repos/` are vendored in as git subtrees, so they come down with the clone. To refresh one later: `git subtree pull --prefix=repos/effect-smol https://github.com/Effect-TS/effect-smol.git main --squash`.
 
 ## License
 

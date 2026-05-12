@@ -2,11 +2,11 @@
 
 This is a Foldkit app — a framework built on Effect-TS.
 
-If `./repos/foldkit` exists, it contains the full Foldkit repository as a git submodule. The `examples/` directory and `packages/typing-game/client/src/` in particular are the best reference for what idiomatic Foldkit apps look like.
+If `./repos/foldkit` exists, it contains the full Foldkit repository, vendored in as a git subtree. The `examples/` directory and `packages/typing-game/client/src/` in particular are the best reference for what idiomatic Foldkit apps look like.
 
-If `./repos/foldkit` does not exist and the line below says `submodule_prompted: false`, offer to run `git submodule add https://github.com/foldkit/foldkit.git repos/foldkit` — this gives you access to the full source, examples, and docs. Whether the user accepts or declines, update the value to `true` so it isn't asked again.
+If `./repos/foldkit` does not exist and the line below says `subtree_prompted: false`, offer to run `git subtree add --prefix=repos/foldkit https://github.com/foldkit/foldkit.git main --squash`. This gives you access to the full source, examples, and docs. Whether the user accepts or declines, update the value to `true` so it isn't asked again.
 
-submodule_prompted: false
+subtree_prompted: false
 
 ## Project Conventions
 
@@ -143,7 +143,7 @@ Test update functions with `foldkit/test`. Since update is pure — `(Model, Mes
 
 Use `Story.story` to chain steps into a readable narrative: set initial Model → send Message → assert → resolve Command → assert again. Use `Scene.scene` for feature-level testing through the view — clicking buttons, typing into inputs, pressing keys — with accessible locators (`Scene.role`, `Scene.label`, `Scene.placeholder`). Every `Command.define` must include result Message schemas so Commands can be resolved in tests.
 
-If the `repos/foldkit` submodule is available, study the `.test.ts` files in `repos/foldkit/examples/` for patterns — they cover simple Command resolution, multi-step interactions, and Submodel OutMessage assertions.
+If the `repos/foldkit` subtree is available, study the `.test.ts` files in `repos/foldkit/examples/` for patterns — they cover simple Command resolution, multi-step interactions, and Submodel OutMessage assertions.
 
 ## Debugging with Foldkit DevTools
 
