@@ -65,7 +65,15 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'The simplest Foldkit apps keep everything in ',
         inlineCode('main.ts'),
-        ': Model, Messages, init, update, and view. The ',
+        ': Model, Messages, init, update, and view. A separate ',
+        inlineCode('entry.ts'),
+        ' imports those definitions and boots the runtime with ',
+        inlineCode('Runtime.makeProgram'),
+        ' and ',
+        inlineCode('Runtime.run'),
+        '. The split keeps ',
+        inlineCode('main.ts'),
+        ' importable from tests without booting a runtime as a side effect. The ',
         link(
           exampleDetailRouter({ exampleSlug: 'counter' }),
           'Counter example',
@@ -73,7 +81,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' is a good reference.',
       ),
       para(
-        'This is fine for small apps. You don’t need to split into multiple files until the single file becomes hard to navigate.',
+        'This is fine for small apps. You don’t need to split ',
+        inlineCode('main.ts'),
+        ' into multiple definition files until the single file becomes hard to navigate.',
       ),
       tableOfContentsEntryToHeader(fileLayoutHeader),
       para(

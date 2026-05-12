@@ -1,5 +1,6 @@
 src/
-├── main.ts              App entry point
+├── entry.ts             Runtime bootstrap
+├── main.ts              App-level init
 ├── model.ts             App-level state
 ├── message.ts           App-level messages
 ├── route.ts             Route definitions

@@ -16,15 +16,15 @@ import { view } from './view'
 
 // FLAGS
 
-const Flags = S.Struct({
+export const Flags = S.Struct({
   today: Calendar.CalendarDate,
   initialWorkHistoryEntryId: S.String,
   initialEducationEntryId: S.String,
   initialSkillsEntryId: S.String,
 })
-type Flags = typeof Flags.Type
+export type Flags = typeof Flags.Type
 
-const flags: Effect.Effect<Flags> = Effect.gen(function* () {
+export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   const today = yield* Calendar.today.local
   const initialWorkHistoryEntryId = yield* Random.nextUUIDv4
   const initialEducationEntryId = yield* Random.nextUUIDv4
@@ -39,7 +39,7 @@ const flags: Effect.Effect<Flags> = Effect.gen(function* () {
 
 // INIT
 
-const init: Runtime.ProgramInit<Model, Message, Flags> = ({
+export const init: Runtime.ProgramInit<Model, Message, Flags> = ({
   today,
   initialWorkHistoryEntryId,
   initialEducationEntryId,
@@ -60,19 +60,4 @@ const init: Runtime.ProgramInit<Model, Message, Flags> = ({
   [],
 ]
 
-// RUN
-
-const program = Runtime.makeProgram({
-  Model,
-  Flags,
-  flags,
-  init,
-  update,
-  view,
-  container: document.getElementById('root')!,
-  devTools: {
-    Message,
-  },
-})
-
-Runtime.run(program)
+export { Message, Model, update, view }

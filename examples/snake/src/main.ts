@@ -25,7 +25,7 @@ export const GameState = S.Literals([
 ])
 export type GameState = typeof GameState.Type
 
-const Model = S.Struct({
+export const Model = S.Struct({
   snake: Snake.Snake,
   apple: Position.Position,
   direction: Direction.Direction,
@@ -34,7 +34,7 @@ const Model = S.Struct({
   points: S.Number,
   highScore: S.Number,
 })
-type Model = typeof Model.Type
+export type Model = typeof Model.Type
 
 // MESSAGE
 
@@ -57,7 +57,7 @@ export type Message = typeof Message.Type
 
 // INIT
 
-const init: Runtime.ProgramInit<Model, Message> = () => {
+export const init: Runtime.ProgramInit<Model, Message> = () => {
   const snake = Snake.create(GAME.INITIAL_POSITION)
 
   return [
@@ -76,7 +76,7 @@ const init: Runtime.ProgramInit<Model, Message> = () => {
 
 // UPDATE
 
-const update = (
+export const update = (
   model: Model,
   message: Message,
 ): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
@@ -253,7 +253,7 @@ const SubscriptionDeps = S.Struct({
   keyboard: S.Null,
 })
 
-const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
+export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
   Model,
   Message
 >({
@@ -340,7 +340,7 @@ const instructionsView = (): Html =>
     ],
   )
 
-const view = (model: Model): Document => ({
+export const view = (model: Model): Document => ({
   title: `Snake — ${model.points} pts`,
   body: h.div(
     [
@@ -363,19 +363,3 @@ const view = (model: Model): Document => ({
     ],
   ),
 })
-
-// RUN
-
-const program = Runtime.makeProgram({
-  Model,
-  init,
-  update,
-  view,
-  subscriptions,
-  container: document.getElementById('root')!,
-  devTools: {
-    Message,
-  },
-})
-
-Runtime.run(program)

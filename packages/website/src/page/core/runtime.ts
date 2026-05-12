@@ -49,14 +49,22 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
   h.div(
     [],
     [
-      pageTitle('core/running-your-app', 'Running the App'),
+      pageTitle('core/runtime', 'Runtime'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'To run a Foldkit application, create a runtime with ',
+        'A Foldkit app lives in two files. ',
+        inlineCode('src/main.ts'),
+        ' holds the pure definitions: Model, Messages, update, init, and view. ',
+        inlineCode('src/entry.ts'),
+        ' imports them, creates a runtime with ',
         inlineCode('makeProgram'),
-        ', then call ',
+        ', and calls ',
         inlineCode('Runtime.run'),
-        '.',
+        '. ',
+        inlineCode('entry.ts'),
+        ' is the only place runtime side effects happen, which keeps ',
+        inlineCode('main.ts'),
+        ' importable from tests.',
       ),
       tableOfContentsEntryToHeader(makeProgramHeader),
       para(

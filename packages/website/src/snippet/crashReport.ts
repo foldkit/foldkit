@@ -12,7 +12,7 @@ const program = Runtime.makeProgram({
       })
     },
   },
-  container: document.getElementById('root')!,
+  container: document.getElementById('root'),
 })
 
 Runtime.run(program)

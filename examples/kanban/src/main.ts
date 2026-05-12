@@ -12,12 +12,12 @@ import { view } from './view'
 
 // FLAGS
 
-const Flags = S.Struct({
+export const Flags = S.Struct({
   maybeSavedBoard: S.Option(SavedBoard),
 })
-type Flags = typeof Flags.Type
+export type Flags = typeof Flags.Type
 
-const flags: Effect.Effect<Flags> = Effect.gen(function* () {
+export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   const store = yield* KeyValueStore.KeyValueStore
   const json = yield* Effect.fromOption(
     Option.fromNullishOr(yield* store.get(STORAGE_KEY)),
@@ -33,7 +33,7 @@ const flags: Effect.Effect<Flags> = Effect.gen(function* () {
 
 // INIT
 
-const init: Runtime.ProgramInit<Model, Message, Flags> = flags => {
+export const init: Runtime.ProgramInit<Model, Message, Flags> = flags => {
   const columns = Option.match(flags.maybeSavedBoard, {
     onNone: () => DEFAULT_COLUMNS,
     onSome: ({ columns }) => columns,
@@ -51,20 +51,4 @@ const init: Runtime.ProgramInit<Model, Message, Flags> = flags => {
   ]
 }
 
-// RUN
-
-const program = Runtime.makeProgram({
-  Model,
-  Flags,
-  flags,
-  init,
-  update,
-  view,
-  subscriptions,
-  container: document.getElementById('root')!,
-  devTools: {
-    Message,
-  },
-})
-
-Runtime.run(program)
+export { Message, Model, subscriptions, update, view }

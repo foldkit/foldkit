@@ -15,7 +15,7 @@ import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-const init: Runtime.ProgramInit<Model, Message> = () => [
+export const init: Runtime.ProgramInit<Model, Message> = () => [
   {
     particles: [],
     nextId: 0,
@@ -40,21 +40,4 @@ const init: Runtime.ProgramInit<Model, Message> = () => [
   Array.makeBy(INITIAL_PARTICLE_COUNT, () => SpawnAmbientParticle()),
 ]
 
-const program = Runtime.makeProgram({
-  Model,
-  init,
-  update,
-  view,
-  subscriptions,
-  container: document.getElementById('root')!,
-  devTools: {
-    Message,
-    excludeFromHistory: [
-      'TickedFrame',
-      'MovedPointer',
-      'SpawnedAmbientParticle',
-    ],
-  },
-})
-
-Runtime.run(program)
+export { Message, Model, subscriptions, update, view }

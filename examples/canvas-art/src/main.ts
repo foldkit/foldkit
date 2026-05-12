@@ -46,12 +46,12 @@ const Ball = S.Struct({
 })
 type Ball = typeof Ball.Type
 
-const Model = S.Struct({
+export const Model = S.Struct({
   balls: S.Array(Ball),
   nextId: S.Number,
   isRunning: S.Boolean,
 })
-type Model = typeof Model.Type
+export type Model = typeof Model.Type
 
 // MESSAGE
 
@@ -68,18 +68,18 @@ const SpawnedBall = m('SpawnedBall', {
 const ClickedClear = m('ClickedClear')
 const ClickedTogglePlay = m('ClickedTogglePlay')
 
-const Message = S.Union([
+export const Message = S.Union([
   TickedFrame,
   ClickedCanvas,
   SpawnedBall,
   ClickedClear,
   ClickedTogglePlay,
 ])
-type Message = typeof Message.Type
+export type Message = typeof Message.Type
 
 // INIT
 
-const init: Runtime.ProgramInit<Model, Message> = () => [
+export const init: Runtime.ProgramInit<Model, Message> = () => [
   { balls: [], nextId: 0, isRunning: true },
   [],
 ]
@@ -135,7 +135,7 @@ const advanceBall =
     })
   }
 
-const update = (
+export const update = (
   model: Model,
   message: Message,
 ): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
@@ -179,7 +179,7 @@ const SubscriptionDeps = S.Struct({
   frame: S.Boolean,
 })
 
-const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
+export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
   Model,
   Message
 >({
@@ -249,7 +249,7 @@ const controlsView = (model: Model): Html =>
     ],
   )
 
-const view = (model: Model): Document => ({
+export const view = (model: Model): Document => ({
   title: `Canvas Art (${model.balls.length} balls)`,
   body: h.div(
     [
@@ -274,20 +274,3 @@ const view = (model: Model): Document => ({
     ],
   ),
 })
-
-// RUN
-
-const program = Runtime.makeProgram({
-  Model,
-  init,
-  update,
-  view,
-  subscriptions,
-  /* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */
-  container: document.getElementById('root')!,
-  devTools: {
-    Message,
-  },
-})
-
-Runtime.run(program)

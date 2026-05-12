@@ -55,7 +55,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       infoCallout(
         'New to Foldkit?',
         'If you’d like to learn about Foldkit’s architecture before starting a project, head to ',
-        link(coreArchitectureRouter(), 'Architecture and Concepts'),
+        link(coreArchitectureRouter(), 'Architecture'),
         '.',
       ),
       tableOfContentsEntryToHeader(quickStartHeader),
@@ -94,6 +94,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ['File', 'Description'],
         [
           [[inlineCode('src/main.ts')], ['Your application code']],
+          [
+            [inlineCode('src/entry.ts')],
+            ['Runtime bootstrap, referenced from index.html'],
+          ],
           [[inlineCode('src/styles.css')], ['Tailwind CSS entry point']],
           [[inlineCode('index.html')], ['HTML entry point']],
           [
@@ -108,11 +112,19 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para(
         inlineCode('src/main.ts'),
-        ' is the entry point for your application. Some starter examples keep everything in one file, while others split the Model, Messages, update, and view into separate modules.',
+        ' holds the pure definitions for your application: Model, Messages, update, init, and view. ',
+        inlineCode('src/entry.ts'),
+        ' imports them and boots the runtime with ',
+        inlineCode('Runtime.makeProgram'),
+        ' and ',
+        inlineCode('Runtime.run'),
+        '. Some starter examples keep ',
+        inlineCode('main.ts'),
+        ' in one file, while others split the Model, Messages, update, and view into separate modules.',
       ),
       para(
         'When you’re ready to dig in, head to ',
-        link(coreArchitectureRouter(), 'Architecture and Concepts'),
+        link(coreArchitectureRouter(), 'Architecture'),
         ' to understand how the pieces fit together.',
       ),
       infoCallout(

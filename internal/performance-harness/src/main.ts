@@ -14,7 +14,7 @@ const HeavyItem = S.Struct({
 })
 type HeavyItem = typeof HeavyItem.Type
 
-const Model = S.Struct({
+export const Model = S.Struct({
   tickCount: S.Number,
   lastReceivedPayloadSize: S.Number,
   largeArray: S.Array(HeavyItem),
@@ -34,7 +34,7 @@ const ClickedClearLargeModel = m('ClickedClearLargeModel')
 const ClickedFillHistory = m('ClickedFillHistory')
 const FilledHistoryStep = m('FilledHistoryStep', { remaining: S.Number })
 
-const Message = S.Union([
+export const Message = S.Union([
   ClickedTick,
   ClickedDispatchLargeMessage,
   ClickedFillLargeModel,
@@ -69,7 +69,7 @@ const FillHistoryStep = Command.define(
 
 // UPDATE
 
-const update = (
+export const update = (
   model: Model,
   message: Message,
 ): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
@@ -106,7 +106,7 @@ const update = (
 
 // INIT
 
-const init: Runtime.ProgramInit<Model, Message> = () => [
+export const init: Runtime.ProgramInit<Model, Message> = () => [
   {
     tickCount: 0,
     lastReceivedPayloadSize: 0,
@@ -127,7 +127,7 @@ const blurbStyle = 'text-sm text-neutral-600 mb-3'
 const rowStyle = 'flex items-center gap-3'
 const stateStyle = 'text-sm text-neutral-700'
 
-const view = (model: Model): Document => ({
+export const view = (model: Model): Document => ({
   title: 'Foldkit performance harness',
   body: div(
     [Class('min-h-screen bg-white text-black p-8 font-mono max-w-3xl')],
@@ -231,18 +231,3 @@ const view = (model: Model): Document => ({
     ],
   ),
 })
-
-// RUN
-
-const program = Runtime.makeProgram({
-  Model,
-  init,
-  update,
-  view,
-  container: document.getElementById('root')!,
-  devTools: {
-    Message,
-  },
-})
-
-Runtime.run(program)

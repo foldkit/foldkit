@@ -49,13 +49,13 @@ const ConnectionState = S.Union([
 ])
 type ConnectionState = typeof ConnectionState.Type
 
-const Model = S.Struct({
+export const Model = S.Struct({
   connection: ConnectionState,
   messages: S.Array(ChatMessage),
   messageInput: S.String,
 })
 
-type Model = typeof Model.Type
+export type Model = typeof Model.Type
 
 // MESSAGE
 
@@ -73,7 +73,7 @@ const TimestampedMessage = m('TimestampedMessage', {
   isSent: S.Boolean,
 })
 
-const Message = S.Union([
+export const Message = S.Union([
   ClickedConnect,
   Connected,
   Disconnected,
@@ -84,11 +84,11 @@ const Message = S.Union([
   ReceivedMessage,
   TimestampedMessage,
 ])
-type Message = typeof Message.Type
+export type Message = typeof Message.Type
 
 // UPDATE
 
-const update = (
+export const update = (
   model: Model,
   message: Message,
 ): readonly [
@@ -185,7 +185,7 @@ const update = (
 
 // INIT
 
-const init: Runtime.ProgramInit<Model, Message> = () => [
+export const init: Runtime.ProgramInit<Model, Message> = () => [
   {
     connection: ConnectionDisconnected(),
     messages: [],
@@ -241,7 +241,7 @@ const ManagedResourceDeps = S.Struct({
   chatSocket: S.Option(S.Null),
 })
 
-const managedResources = ManagedResource.makeManagedResources(
+export const managedResources = ManagedResource.makeManagedResources(
   ManagedResourceDeps,
 )<Model, Message>({
   chatSocket: {
@@ -298,7 +298,7 @@ const SubscriptionDeps = S.Struct({
   isConnected: S.Boolean,
 })
 
-const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
+export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
   Model,
   Message,
   ChatSocketService
@@ -367,7 +367,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
 
 const h = html<Message>()
 
-const view = (model: Model): Document => ({
+export const view = (model: Model): Document => ({
   title: 'WebSocket Chat',
   body: h.div(
     [
@@ -604,20 +604,3 @@ const errorView = (error: string): Html =>
       ),
     ],
   )
-
-// RUN
-
-const program = Runtime.makeProgram({
-  Model,
-  init,
-  update,
-  view,
-  subscriptions,
-  managedResources,
-  container: document.getElementById('root')!,
-  devTools: {
-    Message,
-  },
-})
-
-Runtime.run(program)

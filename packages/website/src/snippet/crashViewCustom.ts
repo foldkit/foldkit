@@ -45,7 +45,7 @@ const program = Runtime.makeProgram({
   update,
   view,
   crash: { view: crashView },
-  container: document.getElementById('root')!,
+  container: document.getElementById('root'),
 })
 
 Runtime.run(program)
