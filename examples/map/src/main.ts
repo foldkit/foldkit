@@ -325,7 +325,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
 // INIT
 
-const init: Runtime.ProgramInit<Model, Message> = () => [
+export const init: Runtime.ProgramInit<Model, Message> = () => [
   {
     locations: featuredLocations,
     searchQuery: '',
@@ -409,7 +409,7 @@ const boundsFromMap = (map: MapInstance): Bounds => {
   }
 }
 
-const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
+export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
   Model,
   Message
 >({
@@ -775,19 +775,3 @@ const spinnerView = (): Html =>
 
 const markerStyle =
   'block w-3.5 h-3.5 rounded-full bg-rose-500 ring-2 ring-white shadow cursor-pointer hover:bg-rose-600 transition'
-
-// RUN
-
-const program = Runtime.makeProgram({
-  Model,
-  init,
-  update,
-  view,
-  subscriptions,
-  container: document.getElementById('root')!,
-  devTools: {
-    Message,
-  },
-})
-
-Runtime.run(program)

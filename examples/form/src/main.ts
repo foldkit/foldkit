@@ -55,16 +55,14 @@ type SubmitSuccess = typeof SubmitSuccess.Type
 type SubmitError = typeof SubmitError.Type
 type Submission = typeof Submission.Type
 
-const Model = S.Struct({
+export const Model = S.Struct({
   name: Field,
   email: Field,
   emailValidationId: S.Number,
   message: Field,
   submission: Submission,
 })
-type Model = typeof Model.Type
-
-export type { Model }
+export type Model = typeof Model.Type
 
 // MESSAGE
 
@@ -83,7 +81,7 @@ export const SubmittedForm = m('SubmittedForm', {
   message: S.String,
 })
 
-const Message = S.Union([
+export const Message = S.Union([
   UpdatedName,
   UpdatedEmail,
   ValidatedEmail,
@@ -91,7 +89,7 @@ const Message = S.Union([
   ClickedFormSubmit,
   SubmittedForm,
 ])
-type Message = typeof Message.Type
+export type Message = typeof Message.Type
 
 // INIT
 
@@ -103,7 +101,10 @@ export const initialModel: Model = {
   submission: NotSubmitted(),
 }
 
-const init: Runtime.ProgramInit<Model, Message> = () => [initialModel, []]
+export const init: Runtime.ProgramInit<Model, Message> = () => [
+  initialModel,
+  [],
+]
 
 // FIELD VALIDATION
 
@@ -492,18 +493,3 @@ export const view = (model: Model): Document => {
 
   return { title: 'Foldkit Form Example', body }
 }
-
-// RUN
-
-const program = Runtime.makeProgram({
-  Model,
-  init,
-  update,
-  view,
-  container: document.getElementById('root')!,
-  devTools: {
-    Message,
-  },
-})
-
-Runtime.run(program)

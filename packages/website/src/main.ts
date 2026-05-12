@@ -1398,7 +1398,7 @@ const program = Runtime.makeProgram({
   update,
   view,
   subscriptions,
-  container: document.getElementById('root')!,
+  container: document.getElementById('root'),
   routing: {
     onUrlRequest: request => ClickedLink({ request }),
     onUrlChange: url => ChangedUrl({ url }),

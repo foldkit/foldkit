@@ -5,19 +5,19 @@ import { m } from 'foldkit/message'
 
 // MODEL
 
-const Model = Schema.Null
-type Model = typeof Model.Type
+export const Model = Schema.Null
+export type Model = typeof Model.Type
 
 // MESSAGE
 
 const ClickedCrash = m('ClickedCrash')
 
-const Message = Schema.Union([ClickedCrash])
+export const Message = Schema.Union([ClickedCrash])
 export type Message = typeof Message.Type
 
 // UPDATE
 
-const update = (
+export const update = (
   _model: Model,
   _message: Message,
 ): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
@@ -26,13 +26,13 @@ const update = (
 
 // INIT
 
-const init: Runtime.ProgramInit<Model, Message> = () => [null, []]
+export const init: Runtime.ProgramInit<Model, Message> = () => [null, []]
 
 // VIEW
 
 const h = html<Message>()
 
-const view = (_model: Model): Document => ({
+export const view = (_model: Model): Document => ({
   title: 'Crash View Example',
   body: h.div(
     [h.Class('min-h-screen bg-white flex items-center justify-center')],
@@ -52,7 +52,7 @@ const view = (_model: Model): Document => ({
 
 // CRASH
 
-const crashView = ({
+export const crashView = ({
   error,
 }: Runtime.CrashContext<Model, Message>): Document => {
   const h = html<never>()
@@ -92,25 +92,3 @@ const crashView = ({
     ),
   }
 }
-
-// RUN
-
-const program = Runtime.makeProgram({
-  Model,
-  init,
-  update,
-  view,
-  // Remove me to see the default crash view
-  crash: {
-    view: crashView,
-    report: ({ error, model, message }) => {
-      console.log('Crash report:', { error, model, message })
-    },
-  },
-  container: document.getElementById('root')!,
-  devTools: {
-    Message,
-  },
-})
-
-Runtime.run(program)

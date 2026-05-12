@@ -133,6 +133,8 @@ Don't reach for Mount just because the work happens to coincide with an element 
 
 ### File Organization
 
+A Foldkit app lives in two files. `src/main.ts` holds the pure definitions: Model, Messages, init, update, view. `src/entry.ts` imports them and boots the runtime with `Runtime.makeProgram` and `Runtime.run`. `index.html` references `entry.ts`. The split keeps `main.ts` importable from tests without booting a runtime as a side effect. Never call `Runtime.run` from `main.ts`.
+
 Use uppercase section headers (`// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`, `// COMMAND`, `// VIEW`) to make files easier to skim. These are for wayfinding — they make it clear where things live and where new code should go. Use domain-specific headers too when it helps (e.g. `// PHYSICS`, `// ROUTING`).
 
 Even after extracting some sections to their own files (e.g. `message.ts`), the remaining file may still benefit from headers. Extract to separate files when it helps with organization.

@@ -2,6 +2,7 @@ import { Html, html } from 'foldkit/html'
 
 import { Message, type TableOfContentsEntry } from '../../main'
 import {
+  inlineCode,
   link,
   pageTitle,
   para,
@@ -34,13 +35,40 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         link(coreArchitectureRouter(), 'Architecture'),
         ' page (a Model, Messages, update, init, and view) wired together and running.',
       ),
+      para(
+        'A Foldkit app lives in two files. ',
+        inlineCode('src/main.ts'),
+        ' holds the pure definitions: Model, Messages, update, init, and view. ',
+        inlineCode('src/entry.ts'),
+        ' imports them and boots the runtime. The split keeps ',
+        inlineCode('main.ts'),
+        ' importable from tests without booting a runtime as a side effect.',
+      ),
       highlightedCodeBlock(
         h.div(
           [h.Class('text-sm'), h.InnerHTML(Snippets.counterHighlighted)],
           [],
         ),
         Snippets.counterRaw,
-        'Copy counter example to clipboard',
+        'Copy counter main.ts to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        inlineCode('entry.ts'),
+        ' is the only place runtime side effects happen. ',
+        inlineCode('Runtime.makeProgram'),
+        ' bundles the pieces together. ',
+        inlineCode('Runtime.run'),
+        ' starts the app.',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippets.counterEntryHighlighted)],
+          [],
+        ),
+        Snippets.counterEntryRaw,
+        'Copy counter entry.ts to clipboard',
         copiedSnippets,
         'mb-8',
       ),

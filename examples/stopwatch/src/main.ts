@@ -18,12 +18,12 @@ const TICK_INTERVAL_MS = 10
 
 // MODEL
 
-const Model = S.Struct({
+export const Model = S.Struct({
   elapsedMs: S.Number,
   isRunning: S.Boolean,
   startTime: S.Number,
 })
-type Model = typeof Model.Type
+export type Model = typeof Model.Type
 
 // MESSAGE
 
@@ -70,7 +70,7 @@ const DetermineTickTime = Command.define(
 
 // UPDATE
 
-const update = (
+export const update = (
   model: Model,
   message: Message,
 ): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
@@ -124,7 +124,7 @@ const update = (
 
 // INIT
 
-const init: Runtime.ProgramInit<Model, Message> = () => [
+export const init: Runtime.ProgramInit<Model, Message> = () => [
   {
     elapsedMs: 0,
     isRunning: false,
@@ -141,7 +141,7 @@ const SubscriptionDeps = S.Struct({
   }),
 })
 
-const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
+export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
   Model,
   Message
 >({
@@ -180,7 +180,7 @@ const formatTime = (ms: number): string => {
 
 const floorAndPad = flow(Math.floor, v => v.toString(), String.padStart(2, '0'))
 
-const view = (model: Model): Document => ({
+export const view = (model: Model): Document => ({
   title: `Stopwatch ${formatTime(model.elapsedMs)}`,
   body: h.div(
     [h.Class('min-h-screen bg-gray-200 flex items-center justify-center')],
@@ -232,19 +232,3 @@ const startStopButton = (isRunning: boolean): Html =>
 
 const buttonStyle =
   'px-6 py-4 flex-1 font-semibold text-white transition-colors'
-
-// RUN
-
-const program = Runtime.makeProgram({
-  Model,
-  init,
-  update,
-  view,
-  subscriptions,
-  container: document.getElementById('root')!,
-  devTools: {
-    Message,
-  },
-})
-
-Runtime.run(program)

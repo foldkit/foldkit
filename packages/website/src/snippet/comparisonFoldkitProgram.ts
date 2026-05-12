@@ -1,4 +1,6 @@
-const init: Runtime.ProgramInit<Model, Message, Flags> = flags => [
+// src/main.ts
+
+export const init: Runtime.ProgramInit<Model, Message, Flags> = flags => [
   {
     grid: Option.match(flags.maybeSavedCanvas, {
       onNone: () => createEmptyGrid(DEFAULT_GRID_SIZE),
@@ -21,6 +23,8 @@ const init: Runtime.ProgramInit<Model, Message, Flags> = flags => [
   [],
 ]
 
+// src/entry.ts (imports Model, Flags, flags, init, update, view, subscriptions from ./main)
+
 const program = Runtime.makeProgram({
   Model,
   Flags,
@@ -29,7 +33,7 @@ const program = Runtime.makeProgram({
   update,
   view,
   subscriptions,
-  container: document.getElementById('root')!,
+  container: document.getElementById('root'),
 })
 
 Runtime.run(program)

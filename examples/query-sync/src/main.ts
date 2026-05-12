@@ -139,20 +139,20 @@ const urlToAppRoute = Route.parseUrlWithFallback(routeParser, NotFoundRoute)
 
 // MODEL
 
-const Model = S.Struct({
+export const Model = S.Struct({
   route: AppRoute,
   dietListbox: Ui.Listbox.Model,
   periodListbox: Ui.Listbox.Model,
 })
-type Model = typeof Model.Type
+export type Model = typeof Model.Type
 
 // MESSAGE
 
 const CompletedNavigateInternal = m('CompletedNavigateInternal')
 const CompletedLoadExternal = m('CompletedLoadExternal')
 const CompletedReplaceUrl = m('CompletedReplaceUrl')
-const ClickedLink = m('ClickedLink', { request: Runtime.UrlRequest })
-const ChangedUrl = m('ChangedUrl', { url: Url })
+export const ClickedLink = m('ClickedLink', { request: Runtime.UrlRequest })
+export const ChangedUrl = m('ChangedUrl', { url: Url })
 const ChangedSearchInput = m('ChangedSearchInput', { value: S.String })
 const ClickedColumnHeader = m('ClickedColumnHeader', { column: SortColumn })
 const GotDietListboxMessage = m('GotDietListboxMessage', {
@@ -164,7 +164,7 @@ const GotPeriodListboxMessage = m('GotPeriodListboxMessage', {
 const SelectedDietFilter = m('SelectedDietFilter', { value: S.String })
 const SelectedPeriodFilter = m('SelectedPeriodFilter', { value: S.String })
 
-const Message = S.Union([
+export const Message = S.Union([
   CompletedNavigateInternal,
   CompletedLoadExternal,
   CompletedReplaceUrl,
@@ -177,7 +177,7 @@ const Message = S.Union([
   SelectedDietFilter,
   SelectedPeriodFilter,
 ])
-type Message = typeof Message.Type
+export type Message = typeof Message.Type
 
 // INIT
 
@@ -196,7 +196,7 @@ const routeToBrowseFields = (route: AppRoute): BrowseFields =>
     M.orElse(() => emptyBrowseFields),
   )
 
-const init: Runtime.RoutingProgramInit<Model, Message> = (url: Url) => {
+export const init: Runtime.RoutingProgramInit<Model, Message> = (url: Url) => {
   const route = urlToAppRoute(url)
   const fields = routeToBrowseFields(route)
 
@@ -283,7 +283,7 @@ const LoadExternal = Command.define(
 type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
-const update = (model: Model, message: Message): UpdateReturn =>
+export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
@@ -878,7 +878,7 @@ const routeTitle = (route: Model['route']): string =>
     M.orElse(() => 'Not Found — Dinosaur Explorer'),
   )
 
-const view = (model: Model): Document => {
+export const view = (model: Model): Document => {
   const routeContent = M.value(model.route).pipe(
     M.tagsExhaustive({
       Browse: route => browseView(model, route),
@@ -913,22 +913,3 @@ const view = (model: Model): Document => {
 
   return { title: routeTitle(model.route), body }
 }
-
-// RUN
-
-const program = Runtime.makeProgram({
-  Model,
-  init,
-  update,
-  view,
-  container: document.getElementById('root')!,
-  routing: {
-    onUrlRequest: request => ClickedLink({ request }),
-    onUrlChange: url => ChangedUrl({ url }),
-  },
-  devTools: {
-    Message,
-  },
-})
-
-Runtime.run(program)

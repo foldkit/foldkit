@@ -72,7 +72,7 @@ export const activeSection: Subscription<
         CoreRender: () => Page.Core.CoreRender.tableOfContents,
         CoreFile: () => Page.Core.CoreFile.tableOfContents,
         CoreCanvas: () => Page.Core.CoreCanvas.tableOfContents,
-        CoreRunningYourApp: () => Page.Core.RunningYourApp.tableOfContents,
+        CoreRuntime: () => Page.Core.Runtime.tableOfContents,
         CoreResources: () => Page.Core.Resources.tableOfContents,
         CoreManagedResources: () => Page.Core.ManagedResources.tableOfContents,
         CoreCrashView: () => Page.Core.CrashView.tableOfContents,

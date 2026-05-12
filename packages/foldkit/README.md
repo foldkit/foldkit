@@ -49,16 +49,19 @@ npx create-foldkit-app@latest
 
 This is a complete Foldkit program. State lives in a single Model. Events become Messages. A pure function handles every transition.
 
+`src/main.ts` defines the program. `src/entry.ts` boots the runtime. The split keeps `main.ts` importable from tests without booting a runtime as a side effect.
+
 ```ts
+// src/main.ts
 import { Match as M, Schema as S } from 'effect'
 import { Command, Runtime } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import { Document, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 
 // MODEL
 
-const Model = S.Struct({ count: S.Number })
-type Model = typeof Model.Type
+export const Model = S.Struct({ count: S.Number })
+export type Model = typeof Model.Type
 
 // MESSAGE
 
@@ -66,12 +69,16 @@ const ClickedDecrement = m('ClickedDecrement')
 const ClickedIncrement = m('ClickedIncrement')
 const ClickedReset = m('ClickedReset')
 
-const Message = S.Union([ClickedDecrement, ClickedIncrement, ClickedReset])
-type Message = typeof Message.Type
+export const Message = S.Union([
+  ClickedDecrement,
+  ClickedIncrement,
+  ClickedReset,
+])
+export type Message = typeof Message.Type
 
 // UPDATE
 
-const update = (
+export const update = (
   model: Model,
   message: Message,
 ): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
@@ -88,14 +95,18 @@ const update = (
 
 // INIT
 
-const init: Runtime.ProgramInit<Model, Message> = () => [{ count: 0 }, []]
+export const init: Runtime.ProgramInit<Model, Message> = () => [
+  { count: 0 },
+  [],
+]
 
 // VIEW
 
 const h = html<Message>()
 
-const view = (model: Model): Html =>
-  h.div(
+export const view = (model: Model): Document => ({
+  title: `Counter: ${model.count}`,
+  body: h.div(
     [
       h.Class(
         'min-h-screen bg-white flex flex-col items-center justify-center gap-6 p-6',
@@ -124,26 +135,32 @@ const view = (model: Model): Html =>
         ],
       ),
     ],
-  )
+  ),
+})
 
 // STYLE
 
 const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
+```
 
-// RUN
+```ts
+// src/entry.ts
+import { Runtime } from 'foldkit'
+
+import { Model, init, update, view } from './main'
 
 const program = Runtime.makeProgram({
   Model,
   init,
   update,
   view,
-  container: document.getElementById('root')!,
+  container: document.getElementById('root'),
 })
 
 Runtime.run(program)
 ```
 
-Source: [examples/counter/src/main.ts](https://github.com/foldkit/foldkit/blob/main/examples/counter/src/main.ts)
+Source: [examples/counter/src/main.ts](https://github.com/foldkit/foldkit/blob/main/examples/counter/src/main.ts), [examples/counter/src/entry.ts](https://github.com/foldkit/foldkit/blob/main/examples/counter/src/entry.ts)
 
 ## What Ships With Foldkit
 

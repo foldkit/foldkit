@@ -7,12 +7,7 @@ import { Url } from 'foldkit/url'
 
 import { SESSION_STORAGE_KEY } from './constant'
 import { Session } from './domain/session'
-import {
-  ChangedUrl,
-  ClickedLink,
-  CompletedNavigateInternal,
-  Message,
-} from './message'
+import { CompletedNavigateInternal, Message } from './message'
 import { LoggedIn, LoggedOut, Model } from './model'
 import {
   DashboardRoute,
@@ -21,16 +16,14 @@ import {
   loginRouter,
   urlToAppRoute,
 } from './route'
-import { update } from './update'
-import { view } from './view'
 
 // FLAGS
 
-const Flags = S.Struct({
+export const Flags = S.Struct({
   maybeSession: S.Option(Session),
 })
 
-const flags: Effect.Effect<Flags> = Effect.gen(function* () {
+export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   const store = yield* KeyValueStore.KeyValueStore
   const sessionJson = yield* Effect.fromOption(
     Option.fromNullishOr(yield* store.get(SESSION_STORAGE_KEY)),
@@ -47,7 +40,7 @@ const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   Effect.provide(BrowserKeyValueStore.layerLocalStorage),
 )
 
-type Flags = typeof Flags.Type
+export type Flags = typeof Flags.Type
 
 // COMMAND
 
@@ -66,7 +59,7 @@ const RedirectToDashboard = Command.define(
 type InitReturn = [Model, ReadonlyArray<Command.Command<Message>>]
 const withInitReturn = M.withReturnType<InitReturn>()
 
-const init: Runtime.RoutingProgramInit<Model, Message, Flags> = (
+export const init: Runtime.RoutingProgramInit<Model, Message, Flags> = (
   flags: Flags,
   url: Url,
 ): InitReturn => {
@@ -97,24 +90,3 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags> = (
       ),
   })
 }
-
-// RUN
-
-const program = Runtime.makeProgram({
-  Model,
-  Flags,
-  flags,
-  init,
-  update,
-  view,
-  container: document.getElementById('root')!,
-  routing: {
-    onUrlRequest: request => ClickedLink({ request }),
-    onUrlChange: url => ChangedUrl({ url }),
-  },
-  devTools: {
-    Message,
-  },
-})
-
-Runtime.run(program)

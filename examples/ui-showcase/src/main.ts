@@ -163,21 +163,21 @@ const urlToAppRoute = Route.parseUrlWithFallback(routeParser, NotFoundRoute)
 
 // MODEL
 
-const Model = S.Struct({
+export const Model = S.Struct({
   route: AppRoute,
   uiModel: UiModel,
 })
 
-type Model = typeof Model.Type
+export type Model = typeof Model.Type
 
 // MESSAGE
 
 const CompletedNavigateInternal = m('CompletedNavigateInternal')
 const CompletedLoadExternal = m('CompletedLoadExternal')
-const ClickedLink = m('ClickedLink', {
+export const ClickedLink = m('ClickedLink', {
   request: Runtime.UrlRequest,
 })
-const ChangedUrl = m('ChangedUrl', { url: Url })
+export const ChangedUrl = m('ChangedUrl', { url: Url })
 const GotUiMessage = m('GotUiMessage', {
   message: UiMessage,
 })
@@ -207,18 +207,18 @@ const LoadExternal = Command.define(
 
 // INIT
 
-const Flags = S.Struct({
+export const Flags = S.Struct({
   today: Calendar.CalendarDate,
 })
 
-type Flags = typeof Flags.Type
+export type Flags = typeof Flags.Type
 
-const flags: Effect.Effect<Flags> = Effect.gen(function* () {
+export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   const today = yield* Calendar.today.local
   return { today }
 })
 
-const init: Runtime.RoutingProgramInit<Model, Message, Flags> = (
+export const init: Runtime.RoutingProgramInit<Model, Message, Flags> = (
   flags: Flags,
   url: Url,
 ) => {
@@ -243,7 +243,7 @@ const toUiMessage = (message: typeof UiMessage.Type): Message =>
 const toMobileMenuDialogMessage = (message: Ui.Dialog.Message): Message =>
   GotUiMessage({ message: GotMobileMenuDialogMessage({ message }) })
 
-const update = (
+export const update = (
   model: Model,
   message: Message,
 ): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
@@ -618,7 +618,7 @@ const routeTitle = (route: Model['route']): string =>
     M.orElse(({ _tag }) => `${_tag} — Foldkit UI Showcase`),
   )
 
-const view = (model: Model): Document => ({
+export const view = (model: Model): Document => ({
   title: routeTitle(model.route),
   body: h.div(
     [h.Class('flex flex-col md:flex-row min-h-screen bg-white')],
@@ -678,7 +678,7 @@ const mapDragStream = (stream: Stream.Stream<Ui.DragAndDrop.Message>) =>
     ),
   )
 
-const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
+export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
   Model,
   Message
 >({
@@ -820,25 +820,3 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
         ),
   },
 })
-
-// RUN
-
-const program = Runtime.makeProgram({
-  Model,
-  Flags,
-  flags,
-  init,
-  update,
-  view,
-  subscriptions,
-  container: document.getElementById('root')!,
-  routing: {
-    onUrlRequest: request => ClickedLink({ request }),
-    onUrlChange: url => ChangedUrl({ url }),
-  },
-  devTools: {
-    Message,
-  },
-})
-
-Runtime.run(program)
