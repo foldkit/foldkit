@@ -33,10 +33,17 @@ const eventHandlingHeader: TableOfContentsEntry = {
   text: 'Event Handling',
 }
 
+const eventHandlerSideEffectsHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'event-handler-side-effects',
+  text: 'Event Handler Side Effects',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   typedHtmlHelpersHeader,
   eventHandlingHeader,
+  eventHandlerSideEffectsHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
@@ -125,6 +132,50 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para(
         'For simple events like clicks, you pass the Message directly. For events that carry data (like input changes), you pass a function that receives the event and returns a Message. This keeps your view declarative. It describes what Messages should be sent, not how to handle them.',
+      ),
+      tableOfContentsEntryToHeader(eventHandlerSideEffectsHeader),
+      para(
+        'Almost every side effect in a Foldkit app belongs in a Command. The view stays pure, it dispatches a Message, and the runtime decides what to do next. There is one narrow exception: side effects the browser requires to run synchronously inside the originating user-gesture event handler. A Command runs after the gesture has already returned, so the browser ignores it.',
+      ),
+      para(
+        'Two cases show up in practice. ',
+        inlineCode('event.preventDefault()'),
+        ' must run synchronously to suppress a default browser action like form submission or scroll. ',
+        inlineCode('.focus()'),
+        ' on iOS Safari only opens the on-screen keyboard if it runs inside the gesture; the same call from a Command resolves a frame later and the keyboard never appears.',
+      ),
+      para(
+        'Foldkit exposes these as attribute primitives. ',
+        inlineCode('OnKeyDownPreventDefault'),
+        ' takes a function returning ',
+        inlineCode('Option<Message>'),
+        '. When the function returns ',
+        inlineCode('Some'),
+        ', the framework calls ',
+        inlineCode('preventDefault'),
+        ' and dispatches the Message. ',
+        inlineCode('OnClickFocus'),
+        ' takes a selector and a Message; it synchronously focuses the element matching the selector and then dispatches.',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.eventHandlerSideEffectsHighlighted),
+          ],
+          [],
+        ),
+        Snippets.eventHandlerSideEffectsRaw,
+        'Copy event handler side effects example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      infoCallout(
+        'Pair OnClickFocus with an always-rendered input',
+        'For the iOS keyboard case, the input you focus must already exist in the DOM when the click fires. If a dialog conditionally renders its content, render a hidden text input outside the dialog and point OnClickFocus at it. A follow-up Dom.focus Command can transfer focus to the real input once the dialog mounts. iOS keeps the keyboard up across a programmatic focus transfer between two text inputs.',
+      ),
+      para(
+        'The architectural principle holds. The side effect is encapsulated inside the framework, not scattered across view code. Your callbacks remain pure and your Messages remain facts. Reach for these primitives only when the browser requires a synchronous side effect inside the gesture. Anything that can wait belongs in a Command.',
       ),
       para(
         'So far everything has been synchronous. The user clicks a button, update produces a new Model, the view rerenders. But real apps need side effects: HTTP requests, timers, browser APIs. That’s where Commands come in.',
