@@ -126,6 +126,9 @@ export const scopedId = (
   name: string,
 ): string => `${kind}-${moduleName}/${name}`
 
+export const sectionId = (moduleName: string, label: string): string =>
+  `${moduleName}-${label.toLowerCase()}`
+
 // NAMED SCHEMA
 
 const isEffectStructReference = (type: TypeDocType): boolean =>
@@ -374,40 +377,46 @@ const parseItemsAsModule = (
   ),
 })
 
-const parseModule = (
+const collectModules = (
   namedSchemas: NamedSchemas,
-  module: TypeDocModule,
+  qualifiedName: string,
+  children: ReadonlyArray<TypeDocItem>,
 ): ReadonlyArray<ApiModule> => {
   const namespaces = Array.filter(
-    module.children,
+    children,
     ({ kind }) => kind === Kind.Namespace,
   )
   const directChildren = Array.filter(
-    module.children,
+    children,
     ({ kind }) => kind !== Kind.Namespace,
   )
 
-  const namespaceModules = Array.flatMap(namespaces, namespace =>
+  const nestedModules = Array.flatMap(namespaces, namespace =>
     Option.match(namespace.children, {
       onNone: () => [],
-      onSome: children => [
-        parseItemsAsModule(
+      onSome: namespaceChildren =>
+        collectModules(
           namedSchemas,
-          `${module.name}/${namespace.name}`,
-          children,
+          `${qualifiedName}/${namespace.name}`,
+          namespaceChildren,
         ),
-      ],
     }),
   )
 
   return Array.match(directChildren, {
-    onEmpty: () => namespaceModules,
+    onEmpty: () => nestedModules,
     onNonEmpty: () => [
-      parseItemsAsModule(namedSchemas, module.name, directChildren),
-      ...namespaceModules,
+      parseItemsAsModule(namedSchemas, qualifiedName, directChildren),
+      ...nestedModules,
     ],
   })
 }
+
+const parseModule = (
+  namedSchemas: NamedSchemas,
+  module: TypeDocModule,
+): ReadonlyArray<ApiModule> =>
+  collectModules(namedSchemas, module.name, module.children)
 
 export const parseTypedocJson = (json: TypeDocJson): ParsedApiReference => {
   const namedSchemas = collectNamedSchemas(json)
@@ -439,7 +448,7 @@ const sectionEntries = <T extends { readonly name: string }>(
     onEmpty: () => [],
     onNonEmpty: () => [
       {
-        id: `${moduleName}-${label.toLowerCase()}`,
+        id: sectionId(moduleName, label),
         text: label,
         level: 'h2' as const,
       },
