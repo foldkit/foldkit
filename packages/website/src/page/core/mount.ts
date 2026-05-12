@@ -12,6 +12,7 @@ import {
 } from '../../prose'
 import {
   coreCommandsRouter,
+  coreCustomElementRouter,
   coreManagedResourcesRouter,
   coreSubscriptionsRouter,
   coreViewRouter,
@@ -108,7 +109,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(whenToReachForMountHeader),
       para(
-        'Mount is one of three lifecycle-bearing primitives Foldkit offers. Pick by what causes the side effect, not by what feels most ergonomic.',
+        'Mount is one of four lifecycle-bearing primitives Foldkit offers. Pick by what causes the side effect, not by what feels most ergonomic.',
       ),
       para(
         link(coreCommandsRouter(), 'Command'),
@@ -138,6 +139,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' holds a stateful runtime object (a websocket, a camera stream, a third-party library instance) whose lifetime is tied to a Model condition AND whose handle is consumed by Commands via ',
         inlineCode('yield*'),
         '. The condition determines lifetime; Commands do the work on the resource.',
+      ),
+      para(
+        link(coreCustomElementRouter(), 'CustomElement'),
+        ' covers the special case where the foreign DOM is a declarative web component: a hyphenated tag that exposes typed JS properties going in and dispatches ',
+        inlineCode('CustomEvent'),
+        's coming out. Shoelace, UI5, Spectrum, Lit, Stencil elements, and most modern web component libraries fit that shape. Declare the binding once with ',
+        inlineCode('CustomElement.define'),
+        ' and the element slots into the view like any other tag. Mount is the right reach only when the foreign element’s API is imperative instead.',
       ),
       infoCallout(
         'Don’t reach for Mount just because the work happens to coincide with an element appearing',
