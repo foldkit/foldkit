@@ -6,7 +6,7 @@ const program = Runtime.makeProgram({
   init,
   update,
   view,
-  container: document.getElementById('root')!,
+  container: document.getElementById('root'),
   slowView: {
     thresholdMs: 50,
     onSlowView: ({ model, message, durationMs, thresholdMs }) => {

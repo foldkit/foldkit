@@ -54,7 +54,7 @@ export const CoreDomRoute = r('CoreDom')
 export const CoreRenderRoute = r('CoreRender')
 export const CoreFileRoute = r('CoreFile')
 export const CoreCanvasRoute = r('CoreCanvas')
-export const CoreRunningYourAppRoute = r('CoreRunningYourApp')
+export const CoreRuntimeRoute = r('CoreRuntime')
 export const CoreResourcesRoute = r('CoreResources')
 export const CoreManagedResourcesRoute = r('CoreManagedResources')
 export const CoreDevToolsRoute = r('CoreDevTools')
@@ -136,7 +136,7 @@ export const DocsRoute = S.Union([
   CoreRenderRoute,
   CoreFileRoute,
   CoreCanvasRoute,
-  CoreRunningYourAppRoute,
+  CoreRuntimeRoute,
   CoreResourcesRoute,
   CoreManagedResourcesRoute,
   CoreDevToolsRoute,
@@ -347,10 +347,10 @@ export const coreCanvasRouter = pipe(
   slash(literal('canvas')),
   mapTo(CoreCanvasRoute),
 )
-export const coreRunningYourAppRouter = pipe(
+export const coreRuntimeRouter = pipe(
   literal('core'),
-  slash(literal('running-your-app')),
-  mapTo(CoreRunningYourAppRoute),
+  slash(literal('runtime')),
+  mapTo(CoreRuntimeRoute),
 )
 export const coreResourcesRouter = pipe(
   literal('core'),
@@ -584,7 +584,7 @@ const coreParser = oneOf(
   coreRenderRouter,
   coreFileRouter,
   coreCanvasRouter,
-  coreRunningYourAppRouter,
+  coreRuntimeRouter,
   coreResourcesRouter,
   coreManagedResourcesRouter,
   coreDevToolsRouter,

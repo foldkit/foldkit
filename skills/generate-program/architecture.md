@@ -371,7 +371,7 @@ const program = Runtime.makeProgram({
   init,
   update,
   view,
-  container: document.getElementById('root')!,
+  container: document.getElementById('root'),
 })
 
 Runtime.run(program)
@@ -388,7 +388,7 @@ const program = Runtime.makeProgram({
   update,
   view,
   title: model => routeTitle(model.route),
-  container: document.getElementById('root')!,
+  container: document.getElementById('root'),
   routing: {
     onUrlRequest: request => ClickedLink({ request }),
     onUrlChange: url => ChangedUrl({ url }),

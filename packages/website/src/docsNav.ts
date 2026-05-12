@@ -27,7 +27,7 @@ import {
   coreMountRouter,
   coreRenderRouter,
   coreResourcesRouter,
-  coreRunningYourAppRouter,
+  coreRuntimeRouter,
   coreSlowViewRouter,
   coreSubscriptionsRouter,
   coreUpdateRouter,
@@ -188,6 +188,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           href: coreInitAndFlagsRouter(),
           label: 'Init & Flags',
         },
+        {
+          _tag: 'CoreRuntime',
+          href: coreRuntimeRouter(),
+          label: 'Runtime',
+        },
       ],
       [
         {
@@ -217,11 +222,6 @@ export const docsSections: ReadonlyArray<DocsSection> = [
         },
       ],
       [
-        {
-          _tag: 'CoreRunningYourApp',
-          href: coreRunningYourAppRouter(),
-          label: 'Running Your App',
-        },
         {
           _tag: 'CoreResources',
           href: coreResourcesRouter(),

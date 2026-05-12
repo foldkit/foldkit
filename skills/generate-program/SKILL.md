@@ -86,7 +86,7 @@ Read `${CLAUDE_SKILL_DIR}/../../examples/shopping-cart/src/main.ts` (nested doma
 Read `${CLAUDE_SKILL_DIR}/../../examples/auth/src/main.ts` (login/signup with Submodels, OutMessage, protected routes) and `${CLAUDE_SKILL_DIR}/../../examples/job-application/src/main.ts` (multi-step form with deeply nested Submodels in `step/`, `Ui.DatePicker`, `Ui.FileDrop`, `Ui.Menu`, `Calendar` module for date handling)
 
 **Tier 7 — Real-time, WebSocket, managed resources, production-grade:**
-Read `${CLAUDE_SKILL_DIR}/../../packages/typing-game/client/src/main.ts`, then explore its `page/home/` and `page/room/` directories for the full Submodel/OutMessage pattern.
+Read `${CLAUDE_SKILL_DIR}/../../packages/typing-game/client/src/update.ts`, then explore its `page/home/` and `page/room/` directories for the full Submodel/OutMessage pattern.
 
 Read examples from the target tier AND all lower tiers. A Tier 4 app should reflect patterns from Tiers 1-3 as well.
 
@@ -159,13 +159,15 @@ A common mistake (because kanban colocates `SavedBoard` in `model.ts`): putting 
 **Single file** (Tier 1-2, under ~300 lines):
 
 ```
-src/main.ts          ← Model, Message, init, update, view all inline
+src/main.ts          ← Model, Message, init, update, view
+src/entry.ts         ← Runtime.makeProgram + Runtime.run
 ```
 
 **Split commands + messages** (Tier 3, has async operations):
 
 ```
 src/main.ts          ← Model, init, update, view
+src/entry.ts         ← Runtime.makeProgram + Runtime.run
 src/message.ts       ← Message definitions
 src/command.ts       ← Command functions
 ```
@@ -175,7 +177,8 @@ src/command.ts       ← Command functions
 **Full split** (Tier 4-5, multiple concerns):
 
 ```
-src/main.ts          ← init, update, view, app entry
+src/main.ts          ← init, update, view
+src/entry.ts         ← Runtime.makeProgram + Runtime.run
 src/model.ts         ← Model schema
 src/message.ts       ← Message definitions
 src/command.ts       ← Command functions
@@ -188,6 +191,7 @@ src/domain/          ← Shared domain schemas (if multiple entities)
 
 ```
 src/main.ts          ← Root init, update, view
+src/entry.ts         ← Runtime.makeProgram + Runtime.run
 src/model.ts         ← Root model (contains submodels)
 src/message.ts       ← Root messages + Got* bridging
 src/command.ts       ← Shared commands
@@ -220,7 +224,7 @@ Example for a Tier 4 link saver:
 ### Sketch
 
 Files:
-  src/main.ts, model.ts, message.ts, command.ts, route.ts
+  src/main.ts, entry.ts, model.ts, message.ts, command.ts, route.ts
   src/domain/link.ts, index.ts
   src/main.story.test.ts, main.scene.test.ts
 

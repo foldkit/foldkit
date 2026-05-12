@@ -129,7 +129,7 @@ export type EmailSubscriptionStatus = typeof EmailSubscriptionStatus.Type
 
 // FLAGS
 
-const Flags = S.Struct({
+export const Flags = S.Struct({
   themePreference: S.Option(ThemePreference),
   systemTheme: ResolvedTheme,
   isNarrowViewport: S.Boolean,
@@ -151,7 +151,7 @@ const detectChromium = (): boolean =>
     onSome: brands => brands.some(({ brand }) => CHROMIUM_BRANDS.has(brand)),
   })
 
-const flags: Effect.Effect<Flags> = Effect.gen(function* () {
+export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   const themePreference: Option.Option<typeof ThemePreference.Type> =
     yield* Effect.gen(function* () {
       const store = yield* KeyValueStore.KeyValueStore
@@ -247,10 +247,12 @@ type AppResources =
   | Page.NotePlayerDemo.AudioContextService
   | Search.PagefindService
 
-const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
-  flags: Flags,
-  url: Url,
-) => {
+export const init: Runtime.RoutingProgramInit<
+  Model,
+  Message,
+  Flags,
+  AppResources
+> = (flags: Flags, url: Url) => {
   const themePreference = Option.getOrElse(
     flags.themePreference,
     () => 'System' as const,
@@ -440,7 +442,7 @@ const init: Runtime.RoutingProgramInit<Model, Message, Flags, AppResources> = (
 
 // UPDATE
 
-const update = (
+export const update = (
   model: Model,
   message: Message,
 ): readonly [
@@ -1255,7 +1257,7 @@ const LoadExternal = Command.define(
 
 // VIEW
 
-const view = (model: Model): Document => ({
+export const view = (model: Model): Document => ({
   title: routeTitle(model.route),
   body: M.value(model.route).pipe(
     M.tag('Home', () => landingView(model)),
@@ -1360,7 +1362,10 @@ const SubscriptionDeps = S.Struct({
 
 export type SubscriptionDeps = typeof SubscriptionDeps.Type
 
-const subscriptions = makeSubscriptions(SubscriptionDeps)<Model, Message>({
+export const subscriptions = makeSubscriptions(SubscriptionDeps)<
+  Model,
+  Message
+>({
   aiHeading: Subscription.aiHeading,
   activeSection: Subscription.activeSection,
   dragPointer: Subscription.DragAndDropDemo.subscriptions.dragPointer,
@@ -1383,38 +1388,7 @@ const subscriptions = makeSubscriptions(SubscriptionDeps)<Model, Message>({
 })
 
 // TRACER
-// NOTE: Custom dev tracer disabled pending Effect 4 Tracer/Layer API rewrite.
-// v4 removed Layer.setTracer and changed Tracer.make's signature; restore
+// NOTE: Custom dev tracer disabled pending Effect v4 beta Tracer/Layer API rewrite.
+// v4 beta removed Layer.setTracer and changed Tracer.make's signature; restore
 // once we adopt the new Tracer construction pattern.
-const devTracerLayer: Layer.Layer<never> = Layer.empty
-
-// RUN
-
-const program = Runtime.makeProgram({
-  Model,
-  Flags,
-  flags,
-  init,
-  update,
-  view,
-  subscriptions,
-  container: document.getElementById('root')!,
-  routing: {
-    onUrlRequest: request => ClickedLink({ request }),
-    onUrlChange: url => ChangedUrl({ url }),
-  },
-  resources: Layer.mergeAll(
-    Page.NotePlayerDemo.AudioContextService.Default,
-    Search.PagefindService.Default,
-    devTracerLayer,
-  ),
-  devTools: {
-    show: 'Always',
-    mode: { development: 'TimeTravel', production: 'Inspect' },
-    banner:
-      'Welcome to Foldkit DevTools. This site runs on Foldkit \u2014 navigate around or interact with the page and every action appears here as a Message. Click any row to see the Model state it produced.',
-    Message,
-  },
-})
-
-Runtime.run(program)
+export const devTracerLayer: Layer.Layer<never> = Layer.empty

@@ -9,12 +9,12 @@ import 'vanilla-colorful/hex-color-picker.js'
 
 // MODEL
 
-const Model = S.Struct({
+export const Model = S.Struct({
   content: S.String,
   fillColor: S.String,
   backgroundColor: S.String,
 })
-type Model = typeof Model.Type
+export type Model = typeof Model.Type
 
 // MESSAGE
 
@@ -22,12 +22,12 @@ const UpdatedContent = m('UpdatedContent', { value: S.String })
 const ChangedFillColor = m('ChangedFillColor', { value: S.String })
 const ChangedBackgroundColor = m('ChangedBackgroundColor', { value: S.String })
 
-const Message = S.Union([
+export const Message = S.Union([
   UpdatedContent,
   ChangedFillColor,
   ChangedBackgroundColor,
 ])
-type Message = typeof Message.Type
+export type Message = typeof Message.Type
 
 // INIT
 
@@ -35,7 +35,7 @@ const DEFAULT_CONTENT = 'https://foldkit.dev'
 const DEFAULT_FILL_COLOR = '#1e1b4b'
 const DEFAULT_BACKGROUND_COLOR = '#fef3c7'
 
-const init: Runtime.ProgramInit<Model, Message> = () => [
+export const init: Runtime.ProgramInit<Model, Message> = () => [
   {
     content: DEFAULT_CONTENT,
     fillColor: DEFAULT_FILL_COLOR,
@@ -97,7 +97,7 @@ const qr = qrCode.withMessage<Message>()
 
 const h = html<Message>()
 
-const view = (model: Model): Document => ({
+export const view = (model: Model): Document => ({
   title: 'Foldkit QR Designer',
   body: h.div(
     [
@@ -313,18 +313,3 @@ const previewView = (model: Model): Html =>
       ),
     ],
   )
-
-// RUN
-
-const program = Runtime.makeProgram({
-  Model,
-  init,
-  update,
-  view,
-  container: document.getElementById('root')!,
-  devTools: {
-    Message,
-  },
-})
-
-Runtime.run(program)

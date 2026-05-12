@@ -527,7 +527,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       tableOfContentsEntryToHeader(foldkitProgramHeader),
       para(
-        'The Foldkit entry point declares the initial Model and hands the runtime the pieces that make up the program:',
+        'A Foldkit app splits across two files. ',
+        inlineCode('src/main.ts'),
+        ' holds the pure definitions (Model, Messages, init, update, view, subscriptions). ',
+        inlineCode('src/entry.ts'),
+        ' imports them and hands the runtime the pieces that make up the program:',
       ),
       highlightedCodeBlock(
         h.div(

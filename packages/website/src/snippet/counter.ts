@@ -5,10 +5,10 @@ import { m } from 'foldkit/message'
 
 // MODEL
 
-const Model = S.Struct({
+export const Model = S.Struct({
   count: S.Number,
 })
-type Model = typeof Model.Type
+export type Model = typeof Model.Type
 
 // MESSAGE
 
@@ -16,12 +16,16 @@ const ClickedDecrement = m('ClickedDecrement')
 const ClickedIncrement = m('ClickedIncrement')
 const ClickedReset = m('ClickedReset')
 
-const Message = S.Union([ClickedDecrement, ClickedIncrement, ClickedReset])
-type Message = typeof Message.Type
+export const Message = S.Union([
+  ClickedDecrement,
+  ClickedIncrement,
+  ClickedReset,
+])
+export type Message = typeof Message.Type
 
 // UPDATE
 
-const update = (
+export const update = (
   model: Model,
   message: Message,
 ): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
@@ -38,13 +42,16 @@ const update = (
 
 // INIT
 
-const init: Runtime.ProgramInit<Model, Message> = () => [{ count: 0 }, []]
+export const init: Runtime.ProgramInit<Model, Message> = () => [
+  { count: 0 },
+  [],
+]
 
 // VIEW
 
 const h = html<Message>()
 
-const view = (model: Model): Document => ({
+export const view = (model: Model): Document => ({
   title: `Counter: ${model.count}`,
   body: h.div(
     [
@@ -81,15 +88,3 @@ const view = (model: Model): Document => ({
 // STYLE
 
 const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
-
-// RUN
-
-const program = Runtime.makeProgram({
-  Model,
-  init,
-  update,
-  view,
-  container: document.getElementById('root')!,
-})
-
-Runtime.run(program)

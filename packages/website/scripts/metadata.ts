@@ -194,8 +194,8 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Canvas',
     'Declarative 2D rendering with a Schema-defined Shape AST and pointer events translated to canvas-local coordinates.',
   ),
-  CoreRunningYourApp: core(
-    'Running Your App',
+  CoreRuntime: core(
+    'Runtime',
     'Mount and run a Foldkit application in the browser.',
   ),
   CoreResources: core(

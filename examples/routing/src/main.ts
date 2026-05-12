@@ -80,20 +80,20 @@ const findPerson = (id: number) =>
 
 // MODEL
 
-const Model = S.Struct({
+export const Model = S.Struct({
   route: AppRoute,
 })
 
-type Model = typeof Model.Type
+export type Model = typeof Model.Type
 
 // MESSAGE
 
 const CompletedNavigateInternal = m('CompletedNavigateInternal')
 const CompletedLoadExternal = m('CompletedLoadExternal')
-const ClickedLink = m('ClickedLink', {
+export const ClickedLink = m('ClickedLink', {
   request: Runtime.UrlRequest,
 })
-const ChangedUrl = m('ChangedUrl', { url: Url })
+export const ChangedUrl = m('ChangedUrl', { url: Url })
 const ChangedSearchInput = m('ChangedSearchInput', { value: S.String })
 
 export const Message = S.Union([
@@ -107,7 +107,7 @@ export type Message = typeof Message.Type
 
 // INIT
 
-const init: Runtime.RoutingProgramInit<Model, Message> = (url: Url) => {
+export const init: Runtime.RoutingProgramInit<Model, Message> = (url: Url) => {
   return [{ route: urlToAppRoute(url) }, []]
 }
 
@@ -137,7 +137,7 @@ const ReplaceSearchUrl = Command.define(
 
 // UPDATE
 
-const update = (
+export const update = (
   model: Model,
   message: Message,
 ): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
@@ -475,7 +475,7 @@ const routeTitle = (route: Model['route']): string =>
     M.orElse(({ _tag }) => `${_tag} — Routing`),
   )
 
-const view = (model: Model): Document => {
+export const view = (model: Model): Document => {
   const routeContent = M.value(model.route).pipe(
     M.tagsExhaustive({
       Home: homeView,
@@ -500,22 +500,3 @@ const view = (model: Model): Document => {
     ),
   }
 }
-
-// RUN
-
-const program = Runtime.makeProgram({
-  Model,
-  init,
-  update,
-  view,
-  container: document.getElementById('root')!,
-  routing: {
-    onUrlRequest: request => ClickedLink({ request }),
-    onUrlChange: url => ChangedUrl({ url }),
-  },
-  devTools: {
-    Message,
-  },
-})
-
-Runtime.run(program)

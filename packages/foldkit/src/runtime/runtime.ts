@@ -313,7 +313,7 @@ type BaseProgramConfig<
     StreamDepsMap,
     Resources | ManagedResourceServices
   >
-  container: HTMLElement
+  container: HTMLElement | null
   crash?: CrashConfig<Model, Message>
   slowView?: SlowViewConfig<Model, Message>
   freezeModel?: boolean
@@ -1564,6 +1564,15 @@ export function makeProgram<
         ManagedResourceServices
       >,
 ): MakeRuntimeReturn {
+  const { container } = config
+  if (container === null) {
+    throw new Error(
+      '[foldkit] Container is null. Make sure the element exists in the DOM ' +
+        'before calling makeProgram (e.g. that your <div id="root"></div> has ' +
+        'rendered, and your script runs after it).',
+    )
+  }
+
   const hasRouting = 'routing' in config
   const hasFlags = 'Flags' in config
 
@@ -1576,7 +1585,7 @@ export function makeProgram<
     update: config.update,
     view: config.view,
     ...(config.subscriptions && { subscriptions: config.subscriptions }),
-    container: config.container,
+    container,
     ...(hasRouting && { routing: config.routing }),
     ...(config.crash && { crash: config.crash }),
     ...(Predicate.isNotUndefined(config.slowView) && {

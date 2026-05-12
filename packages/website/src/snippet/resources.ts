@@ -30,6 +30,6 @@ const program = Runtime.makeProgram({
   init,
   update,
   view,
-  container: document.getElementById('root')!,
+  container: document.getElementById('root'),
   resources: AudioContextService.Default,
 })

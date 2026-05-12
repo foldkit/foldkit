@@ -53,13 +53,13 @@ export const SucceededFetchWeather = m('SucceededFetchWeather', {
 })
 export const FailedFetchWeather = m('FailedFetchWeather', { error: S.String })
 
-const Message = S.Union([
+export const Message = S.Union([
   UpdatedZipCodeInput,
   SubmittedWeatherForm,
   SucceededFetchWeather,
   FailedFetchWeather,
 ])
-type Message = typeof Message.Type
+export type Message = typeof Message.Type
 
 export const update = (
   model: Model,
@@ -102,7 +102,7 @@ export const update = (
 
 // INIT
 
-const init: Runtime.ProgramInit<Model, Message> = () => [
+export const init: Runtime.ProgramInit<Model, Message> = () => [
   {
     zipCodeInput: '',
     weather: WeatherInit(),
@@ -368,18 +368,3 @@ const weatherView = (weather: WeatherData): Html =>
       ),
     ],
   )
-
-// RUN
-
-const program = Runtime.makeProgram({
-  Model,
-  init,
-  update,
-  view,
-  container: document.getElementById('root')!,
-  devTools: {
-    Message,
-  },
-})
-
-Runtime.run(program)

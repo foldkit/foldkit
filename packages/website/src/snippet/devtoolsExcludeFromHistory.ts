@@ -6,7 +6,7 @@ const program = Runtime.makeProgram({
   update,
   view,
   subscriptions,
-  container: document.getElementById('root')!,
+  container: document.getElementById('root'),
   devTools: {
     Message,
     excludeFromHistory: ['TickedFrame', 'MovedPointer'],

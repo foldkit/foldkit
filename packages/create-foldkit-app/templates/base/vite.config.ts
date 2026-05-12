@@ -5,6 +5,6 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [tailwindcss(), foldkit({ devToolsMcpPort: 9988 })],
   optimizeDeps: {
-    entries: ['src/main.ts'],
+    entries: ['src/entry.ts'],
   },
 })
