@@ -14,6 +14,7 @@ import {
   type ApiType,
   type ApiVariable,
   scopedId,
+  sectionId,
 } from './domain'
 import { GotDisclosureMessage, type Message } from './message'
 import type { ApiData, Disclosures } from './model'
@@ -602,6 +603,7 @@ const variableView = <ParentMessage>(
 }
 
 const section = <T extends { readonly name: string }>(
+  moduleName: string,
   label: string,
   items: ReadonlyArray<T>,
   itemView: (item: T) => Html,
@@ -609,7 +611,7 @@ const section = <T extends { readonly name: string }>(
   Array.match(items, {
     onEmpty: () => [],
     onNonEmpty: items => [
-      heading('h2', label.toLowerCase(), label),
+      heading('h2', sectionId(moduleName, label), label),
       ...Array.map(items, itemView),
     ],
   })
@@ -626,7 +628,7 @@ export const view = <ParentMessage>(
     [],
     [
       pageTitle(module.name, module.name),
-      ...section('Functions', module.functions, apiFunction => {
+      ...section(module.name, 'Functions', module.functions, apiFunction => {
         const key = scopedId('function', module.name, apiFunction.name)
         return lazyItem(key, functionView<ParentMessage>, [
           module.name,
@@ -636,7 +638,7 @@ export const view = <ParentMessage>(
           toParentMessage,
         ])
       }),
-      ...section('Types', module.types, type => {
+      ...section(module.name, 'Types', module.types, type => {
         const key = scopedId('type', module.name, type.name)
         return lazyItem(key, typeView<ParentMessage>, [
           module.name,
@@ -644,7 +646,7 @@ export const view = <ParentMessage>(
           highlights,
         ])
       }),
-      ...section('Interfaces', module.interfaces, apiInterface => {
+      ...section(module.name, 'Interfaces', module.interfaces, apiInterface => {
         const key = scopedId('interface', module.name, apiInterface.name)
         return lazyItem(key, interfaceView<ParentMessage>, [
           module.name,
@@ -652,7 +654,7 @@ export const view = <ParentMessage>(
           highlights,
         ])
       }),
-      ...section('Constants', module.variables, variable => {
+      ...section(module.name, 'Constants', module.variables, variable => {
         const key = scopedId('const', module.name, variable.name)
         return lazyItem(key, variableView<ParentMessage>, [
           module.name,
