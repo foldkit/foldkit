@@ -37,22 +37,11 @@ const h = html<Message>()
 const PagefindBody = h.DataAttribute('pagefind-body', '')
 const PagefindIgnore = h.DataAttribute('pagefind-ignore', '')
 
-// NOTE: iOS Safari only opens the on-screen keyboard if `.focus()` runs
-// synchronously inside the originating user-gesture event handler. Foldkit's
-// `Dom.focus` defers through `Effect.forkDetach` + `requestAnimationFrame`,
-// so by the time `FocusSearchInput` focuses the real search input the
-// gesture has expired and iOS silently refuses to open the keyboard.
-// Focusing the always-rendered keyboard warmup input on `pointerdown` runs
-// inside the gesture and opens the keyboard; `FocusSearchInput` then
-// transfers focus to the real input once the dialog renders, and iOS keeps
-// the keyboard up across a programmatic focus transfer between text inputs.
-const handleSearchPointerDown = (): Option.Option<Message> => {
-  const warmup = document.getElementById(Search.KEYBOARD_WARMUP_INPUT_ID)
-  if (warmup instanceof HTMLInputElement) {
-    warmup.focus()
-  }
-  return Option.none()
-}
+const openSearchDialog: Message = GotSearchMessage({
+  message: Search.GotSearchDialogMessage({ message: Ui.Dialog.Opened() }),
+})
+
+const searchKeyboardWarmupSelector = `#${Search.KEYBOARD_WARMUP_INPUT_ID}`
 
 // DOCS HEADER
 
@@ -91,14 +80,7 @@ const docsHeaderView = (model: Model) =>
                 'hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-sm hover:border-gray-400 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-300 transition cursor-pointer',
               ),
               h.AriaLabel('Search documentation'),
-              h.OnPointerDown(handleSearchPointerDown),
-              h.OnClick(
-                GotSearchMessage({
-                  message: Search.GotSearchDialogMessage({
-                    message: Ui.Dialog.Opened(),
-                  }),
-                }),
-              ),
+              h.OnClickFocus(searchKeyboardWarmupSelector, openSearchDialog),
             ],
             [
               Icon.magnifyingGlass('w-4 h-4'),
@@ -137,14 +119,7 @@ const docsHeaderView = (model: Model) =>
                 'md:hidden p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 cursor-pointer',
               ),
               h.AriaLabel('Search documentation'),
-              h.OnPointerDown(handleSearchPointerDown),
-              h.OnClick(
-                GotSearchMessage({
-                  message: Search.GotSearchDialogMessage({
-                    message: Ui.Dialog.Opened(),
-                  }),
-                }),
-              ),
+              h.OnClickFocus(searchKeyboardWarmupSelector, openSearchDialog),
             ],
             [Icon.magnifyingGlass('w-5 h-5')],
           ),

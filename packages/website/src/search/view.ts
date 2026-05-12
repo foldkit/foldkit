@@ -247,15 +247,14 @@ const resultCountAnnouncement = (model: Model): Html => {
 }
 
 // NOTE: iOS Safari only shows the on-screen keyboard if `.focus()` runs
-// synchronously inside the originating user-gesture event handler. Foldkit's
-// `Dom.focus` defers to `afterCommit` (requestAnimationFrame), so by the time
-// the real search input exists in the DOM and gets focused, the gesture
-// context is gone and the keyboard never opens. This always-rendered hidden
-// input is focused synchronously on `pointerdown` against the search trigger
-// (see the `OnPointerDown` handler in `view/docs.ts`), which opens the
-// keyboard; the existing `FocusSearchInput` Command then transfers focus to
-// the real input once the dialog renders. iOS keeps the keyboard up across a
-// programmatic focus transfer between two text inputs.
+// synchronously inside the originating user-gesture event handler. The real
+// search input doesn't exist in the DOM until the dialog renders, so it
+// can't be focused inside the gesture. This always-rendered hidden input
+// gives `h.OnClickFocus` (used on the search trigger buttons in
+// `view/docs.ts`) something to focus inside the click handler, which opens
+// the keyboard; the `FocusSearchInput` Command then transfers focus to the
+// real input once the dialog renders, and iOS keeps the keyboard up across
+// a programmatic focus transfer between two text inputs.
 const keyboardWarmupInput: Html = h.input([
   h.Id(KEYBOARD_WARMUP_INPUT_ID),
   h.Type('text'),
