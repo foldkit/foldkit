@@ -7,8 +7,12 @@ import { codeToHtml } from 'shiki'
 import { type Plugin, defineConfig } from 'vite'
 
 import { playgroundFilesPlugin } from './scripts/playgroundFilesPlugin'
-import { moduleNameToSlug } from './src/page/apiReference/domain'
 import {
+  collectNamedSchemas,
+  moduleNameToSlug,
+} from './src/page/apiReference/domain'
+import {
+  type NamedSchemas,
   typeDefFromChildren,
   typeToString,
 } from './src/page/apiReference/typeToString'
@@ -71,66 +75,76 @@ const RESOLVED_VIRTUAL_MODULE_ID = '\0' + VIRTUAL_MODULE_ID
 const API_MODULE_INDEX_ID = 'virtual:api-module-index'
 const RESOLVED_API_MODULE_INDEX_ID = '\0' + API_MODULE_INDEX_ID
 
-const formatTypeParam = (typeParam: TypeDocTypeParam): string => {
-  const constraint = Option.match(typeParam.type, {
-    onNone: () => '',
-    onSome: () => ` extends ${typeToString(typeParam.type)}`,
-  })
-  const defaultValue = Option.match(typeParam.default, {
-    onNone: () => '',
-    onSome: () => ` = ${typeToString(typeParam.default)}`,
-  })
-  return `${typeParam.name}${constraint}${defaultValue}`
-}
+const formatTypeParam =
+  (namedSchemas: NamedSchemas) =>
+  (typeParam: TypeDocTypeParam): string => {
+    const constraint = Option.match(typeParam.type, {
+      onNone: () => '',
+      onSome: () => ` extends ${typeToString(typeParam.type, 0, namedSchemas)}`,
+    })
+    const defaultValue = Option.match(typeParam.default, {
+      onNone: () => '',
+      onSome: () => ` = ${typeToString(typeParam.default, 0, namedSchemas)}`,
+    })
+    return `${typeParam.name}${constraint}${defaultValue}`
+  }
 
-const formatParam = (parameter: TypeDocParam, depth: number): string => {
-  const optionalSuffix = parameter.flags.isOptional ? '?' : ''
-  return `${parameter.name}${optionalSuffix}: ${typeToString(parameter.type, depth)}`
-}
+const formatParam =
+  (namedSchemas: NamedSchemas) =>
+  (parameter: TypeDocParam, depth: number): string => {
+    const optionalSuffix = parameter.flags.isOptional ? '?' : ''
+    return `${parameter.name}${optionalSuffix}: ${typeToString(parameter.type, depth, namedSchemas)}`
+  }
 
-const formatParams = (parameters: ReadonlyArray<TypeDocParam>): string =>
-  Array.matchLeft(parameters, {
-    onEmpty: () => '()',
-    onNonEmpty: (first, rest) =>
-      Array.match(rest, {
-        onEmpty: () => `(${formatParam(first, 0)})`,
-        onNonEmpty: () =>
+const formatParams =
+  (namedSchemas: NamedSchemas) =>
+  (parameters: ReadonlyArray<TypeDocParam>): string => {
+    const format = formatParam(namedSchemas)
+    return Array.matchLeft(parameters, {
+      onEmpty: () => '()',
+      onNonEmpty: (first, rest) =>
+        Array.match(rest, {
+          onEmpty: () => `(${format(first, 0)})`,
+          onNonEmpty: () =>
+            pipe(
+              parameters,
+              Array.map(parameter => `  ${format(parameter, 1)}`),
+              Array.join(',\n'),
+              joined => `(\n${joined}\n)`,
+            ),
+        }),
+    })
+  }
+
+const buildFunctionSignatureString =
+  (namedSchemas: NamedSchemas) =>
+  (signature: TypeDocSignature): string => {
+    const typeParamString = pipe(
+      signature.typeParameters,
+      Option.filter(Array.isReadonlyArrayNonEmpty),
+      Option.match({
+        onNone: () => '',
+        onSome: typeParams =>
           pipe(
-            parameters,
-            Array.map(parameter => `  ${formatParam(parameter, 1)}`),
-            Array.join(',\n'),
-            joined => `(\n${joined}\n)`,
+            typeParams,
+            Array.map(formatTypeParam(namedSchemas)),
+            Array.join(', '),
+            joined => `<${joined}>`,
           ),
       }),
-  })
+    )
 
-const buildFunctionSignatureString = (signature: TypeDocSignature): string => {
-  const typeParamString = pipe(
-    signature.typeParameters,
-    Option.filter(Array.isReadonlyArrayNonEmpty),
-    Option.match({
-      onNone: () => '',
-      onSome: typeParams =>
-        pipe(
-          typeParams,
-          Array.map(formatTypeParam),
-          Array.join(', '),
-          joined => `<${joined}>`,
-        ),
-    }),
-  )
+    const paramString = pipe(
+      signature.parameters,
+      Option.filter(Array.isReadonlyArrayNonEmpty),
+      Option.match({
+        onNone: () => '()',
+        onSome: formatParams(namedSchemas),
+      }),
+    )
 
-  const paramString = pipe(
-    signature.parameters,
-    Option.filter(Array.isReadonlyArrayNonEmpty),
-    Option.match({
-      onNone: () => '()',
-      onSome: formatParams,
-    }),
-  )
-
-  return `${typeParamString}${paramString}: ${typeToString(signature.type)}`
-}
+    return `${typeParamString}${paramString}: ${typeToString(signature.type, 0, namedSchemas)}`
+  }
 
 const partsToText = (
   parts: ReadonlyArray<TypeDocCommentPart>,
@@ -175,93 +189,110 @@ const prependDescription = (
     onSome: description => `${formatAsDocComment(description)}\n${code}`,
   })
 
-const functionEntries = (
-  prefix: string,
-  item: TypeDocItem,
-): ReadonlyArray<readonly [string, string]> =>
-  pipe(
-    item.signatures,
-    Option.filter(Array.isReadonlyArrayNonEmpty),
-    Option.match({
-      onNone: () => [],
-      onSome: signatures => [
-        [
-          `function-${prefix}${item.name}`,
-          prependDescription(
-            pipe(
-              signatures,
-              Array.map(
-                signature =>
-                  `declare function _${buildFunctionSignatureString(signature)}`,
+const functionEntries =
+  (namedSchemas: NamedSchemas) =>
+  (
+    prefix: string,
+    item: TypeDocItem,
+  ): ReadonlyArray<readonly [string, string]> => {
+    const buildSignature = buildFunctionSignatureString(namedSchemas)
+    return pipe(
+      item.signatures,
+      Option.filter(Array.isReadonlyArrayNonEmpty),
+      Option.match({
+        onNone: () => [],
+        onSome: signatures => [
+          [
+            `function-${prefix}${item.name}`,
+            prependDescription(
+              pipe(
+                signatures,
+                Array.map(
+                  signature => `declare function _${buildSignature(signature)}`,
+                ),
+                Array.join('\n\n'),
               ),
-              Array.join('\n\n'),
+              signatureDescription(item),
             ),
-            signatureDescription(item),
-          ),
-        ] as const,
-      ],
-    }),
-  )
+          ] as const,
+        ],
+      }),
+    )
+  }
 
 const isExtractedTypeAlias = (item: TypeDocItem): boolean =>
   Option.exists(item.type, ({ type }) => type === 'query')
 
-const typeAliasEntries = (
-  prefix: string,
-  item: TypeDocItem,
-): ReadonlyArray<readonly [string, string]> => {
-  if (isExtractedTypeAlias(item)) {
-    return []
+const typeAliasEntries =
+  (namedSchemas: NamedSchemas) =>
+  (
+    prefix: string,
+    item: TypeDocItem,
+  ): ReadonlyArray<readonly [string, string]> => {
+    if (isExtractedTypeAlias(item)) {
+      return []
+    }
+    const tsString = Option.match(item.type, {
+      onNone: () =>
+        `type ${item.name} = ${typeDefFromChildren(item.children, namedSchemas)}`,
+      onSome: () =>
+        `type ${item.name} = ${typeToString(item.type, 0, namedSchemas)}`,
+    })
+    return [
+      [
+        `type-${prefix}${item.name}`,
+        prependDescription(tsString, itemDescription(item)),
+      ] as const,
+    ]
   }
-  const tsString = Option.match(item.type, {
-    onNone: () => `type ${item.name} = ${typeDefFromChildren(item.children)}`,
-    onSome: () => `type ${item.name} = ${typeToString(item.type)}`,
-  })
-  return [
+
+const interfaceEntries =
+  (namedSchemas: NamedSchemas) =>
+  (
+    prefix: string,
+    item: TypeDocItem,
+  ): ReadonlyArray<readonly [string, string]> => [
     [
-      `type-${prefix}${item.name}`,
-      prependDescription(tsString, itemDescription(item)),
+      `interface-${prefix}${item.name}`,
+      prependDescription(
+        `interface ${item.name} ${typeDefFromChildren(item.children, namedSchemas)}`,
+        itemDescription(item),
+      ),
     ] as const,
   ]
+
+const variableEntries =
+  (namedSchemas: NamedSchemas) =>
+  (
+    prefix: string,
+    item: TypeDocItem,
+  ): ReadonlyArray<readonly [string, string]> => [
+    [
+      `const-${prefix}${item.name}`,
+      prependDescription(
+        `const ${item.name}: ${typeToString(item.type, 0, namedSchemas)}`,
+        itemDescription(item),
+      ),
+    ] as const,
+  ]
+
+const itemToEntries = (namedSchemas: NamedSchemas) => {
+  const fnEntries = functionEntries(namedSchemas)
+  const typeEntries = typeAliasEntries(namedSchemas)
+  const ifaceEntries = interfaceEntries(namedSchemas)
+  const varEntries = variableEntries(namedSchemas)
+  return (
+    prefix: string,
+    item: TypeDocItem,
+  ): ReadonlyArray<readonly [string, string]> =>
+    M.value(item.kind).pipe(
+      M.when(Kind.Function, () => fnEntries(prefix, item)),
+      M.when(Kind.TypeAlias, () => typeEntries(prefix, item)),
+      M.when(Kind.Interface, () => ifaceEntries(prefix, item)),
+      M.when(Kind.Variable, () => varEntries(prefix, item)),
+      M.orElse(() => []),
+    )
 }
-
-const interfaceEntries = (
-  prefix: string,
-  item: TypeDocItem,
-): ReadonlyArray<readonly [string, string]> => [
-  [
-    `interface-${prefix}${item.name}`,
-    prependDescription(
-      `interface ${item.name} ${typeDefFromChildren(item.children)}`,
-      itemDescription(item),
-    ),
-  ] as const,
-]
-
-const variableEntries = (
-  prefix: string,
-  item: TypeDocItem,
-): ReadonlyArray<readonly [string, string]> => [
-  [
-    `const-${prefix}${item.name}`,
-    prependDescription(
-      `const ${item.name}: ${typeToString(item.type)}`,
-      itemDescription(item),
-    ),
-  ] as const,
-]
-
-const itemToEntries = (
-  prefix: string,
-  item: TypeDocItem,
-): ReadonlyArray<readonly [string, string]> =>
-  M.value(item.kind).pipe(
-    M.when(Kind.Function, () => functionEntries(prefix, item)),
-    M.when(Kind.TypeAlias, () => typeAliasEntries(prefix, item)),
-    M.when(Kind.Interface, () => interfaceEntries(prefix, item)),
-    M.when(Kind.Variable, () => variableEntries(prefix, item)),
-    M.orElse(() => []),
-  )
 
 // NOTE: Signatures are wrapped as `declare function _<sig>` so Shiki highlights them
 // as valid TypeScript. This strips the wrapper from the highlighted HTML output.
@@ -288,6 +319,8 @@ const highlightApiSignaturesPlugin = (): Plugin => ({
     const jsonPath = resolve(__dirname, 'src/generated/api.json')
     const raw = await readFile(jsonPath, 'utf-8')
     const json = S.decodeUnknownSync(TypeDocJson)(JSON.parse(raw))
+    const namedSchemas = collectNamedSchemas(json)
+    const toEntries = itemToEntries(namedSchemas)
 
     const itemsToEntries = (
       prefix: string,
@@ -300,7 +333,7 @@ const highlightApiSignaturesPlugin = (): Plugin => ({
               onSome: namespaceChildren =>
                 itemsToEntries(`${prefix}${item.name}/`, namespaceChildren),
             })
-          : itemToEntries(prefix, item),
+          : toEntries(prefix, item),
       )
 
     const entries = Array.flatMap(json.children, ({ name, children }) =>

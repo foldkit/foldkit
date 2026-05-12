@@ -1,6 +1,21 @@
-import { Array, Option, Order, Schema as S, String, pipe } from 'effect'
+import {
+  Array,
+  Match as M,
+  Option,
+  Order,
+  Predicate,
+  Schema as S,
+  String,
+  flow,
+  pipe,
+} from 'effect'
 
-import { typeDefFromChildren, typeToString } from './typeToString'
+import {
+  type NamedSchemas,
+  reflectionFingerprint,
+  typeDefFromChildren,
+  typeToString,
+} from './typeToString'
 import {
   Kind,
   TypeDocCommentPart,
@@ -8,6 +23,7 @@ import {
   type TypeDocJson,
   type TypeDocModule,
   type TypeDocParam,
+  type TypeDocType,
 } from './typedoc'
 
 // SCHEMA
@@ -110,6 +126,111 @@ export const scopedId = (
   name: string,
 ): string => `${kind}-${moduleName}/${name}`
 
+// NAMED SCHEMA
+
+const isEffectStructReference = (type: TypeDocType): boolean =>
+  type.type === 'reference' &&
+  Predicate.isObject(type.target) &&
+  type.target.qualifiedName === 'Struct' &&
+  Predicate.isString(type.target.packagePath) &&
+  type.target.packagePath.endsWith('Schema.ts')
+
+const isReflectionType = (
+  type: TypeDocType,
+): type is Extract<TypeDocType, { type: 'reflection' }> =>
+  type.type === 'reflection'
+
+const findStructReflection = (
+  type: TypeDocType,
+): Option.Option<TypeDocItem> => {
+  if (type.type !== 'reference') {
+    return Option.none()
+  }
+  const arguments_ = type.typeArguments ?? []
+  const direct = isEffectStructReference(type)
+    ? pipe(
+        arguments_,
+        Array.head,
+        Option.filter(isReflectionType),
+        Option.flatMap(({ declaration }) => declaration),
+      )
+    : Option.none()
+  return Option.orElse(direct, () =>
+    pipe(
+      arguments_,
+      Array.flatMap(flow(findStructReflection, Array.fromOption)),
+      Array.head,
+    ),
+  )
+}
+
+const variableQualifiedName = (
+  modulePath: string,
+  variableName: string,
+): string =>
+  pipe(
+    modulePath,
+    String.split('/'),
+    Array.last,
+    Option.getOrElse(() => modulePath),
+    namespace => `${namespace}.${variableName}`,
+  )
+
+type FingerprintEntry = readonly [string, string]
+
+const itemFingerprintEntries = (
+  qualifiedName: string,
+  item: TypeDocItem,
+): ReadonlyArray<FingerprintEntry> =>
+  pipe(
+    item.type,
+    Option.flatMap(findStructReflection),
+    Option.flatMap(({ children }) => children),
+    Option.filter(Array.isReadonlyArrayNonEmpty),
+    Option.match({
+      onNone: () => [],
+      onSome: children => [[reflectionFingerprint(children), qualifiedName]],
+    }),
+  )
+
+const collectFromItems = (
+  modulePath: string,
+  items: ReadonlyArray<TypeDocItem>,
+): ReadonlyArray<FingerprintEntry> =>
+  Array.flatMap(items, item =>
+    M.value(item.kind).pipe(
+      M.when(Kind.Variable, () =>
+        itemFingerprintEntries(
+          variableQualifiedName(modulePath, item.name),
+          item,
+        ),
+      ),
+      M.when(Kind.Namespace, () =>
+        Option.match(item.children, {
+          onNone: () => [],
+          onSome: children =>
+            collectFromItems(`${modulePath}/${item.name}`, children),
+        }),
+      ),
+      M.orElse(() => []),
+    ),
+  )
+
+export const collectNamedSchemas = (json: TypeDocJson): NamedSchemas => {
+  const entries = Array.flatMap(json.children, module =>
+    collectFromItems(module.name, module.children),
+  )
+  const counts = Array.reduce(
+    entries,
+    new Map<string, number>(),
+    (acc, [fingerprint]) =>
+      acc.set(fingerprint, (acc.get(fingerprint) ?? 0) + 1),
+  )
+  return new Map(
+    Array.filter(entries, ([fingerprint]) => counts.get(fingerprint) === 1),
+  )
+}
+
 // PARSE
 
 const partsToSummaryText = (
@@ -145,19 +266,22 @@ const signatureToDescription = (item: TypeDocItem): Option.Option<string> =>
     Option.flatMap(partsToSummaryText),
   )
 
-const parseParameter = (parameter: TypeDocParam): ApiParameter => ({
-  name: parameter.name,
-  type: typeToString(parameter.type),
-  isOptional: parameter.flags.isOptional,
-  defaultValue: parameter.defaultValue,
-  description: pipe(
-    parameter.comment,
-    Option.flatMap(comment => comment.summary),
-    Option.flatMap(partsToSummaryText),
-  ),
-})
+const parseParameter =
+  (namedSchemas: NamedSchemas) =>
+  (parameter: TypeDocParam): ApiParameter => ({
+    name: parameter.name,
+    type: typeToString(parameter.type, 0, namedSchemas),
+    isOptional: parameter.flags.isOptional,
+    defaultValue: parameter.defaultValue,
+    description: pipe(
+      parameter.comment,
+      Option.flatMap(comment => comment.summary),
+      Option.flatMap(partsToSummaryText),
+    ),
+  })
 
 const parseSignatures = (
+  namedSchemas: NamedSchemas,
   item: TypeDocItem,
 ): ReadonlyArray<ApiFunctionSignature> =>
   Option.match(item.signatures, {
@@ -165,9 +289,9 @@ const parseSignatures = (
     onSome: Array.map(signature => ({
       parameters: Option.match(signature.parameters, {
         onNone: () => [],
-        onSome: Array.map(parseParameter),
+        onSome: Array.map(parseParameter(namedSchemas)),
       }),
-      returnType: typeToString(signature.type),
+      returnType: typeToString(signature.type, 0, namedSchemas),
       typeParameters: Option.match(signature.typeParameters, {
         onNone: () => [],
         onSome: Array.map(({ name }) => name),
@@ -175,38 +299,47 @@ const parseSignatures = (
     })),
   })
 
-const parseFunction = (item: TypeDocItem): ApiFunction => ({
-  name: item.name,
-  description: signatureToDescription(item),
-  sourceUrl: itemToSourceUrl(item),
-  signatures: parseSignatures(item),
-})
+const parseFunction =
+  (namedSchemas: NamedSchemas) =>
+  (item: TypeDocItem): ApiFunction => ({
+    name: item.name,
+    description: signatureToDescription(item),
+    sourceUrl: itemToSourceUrl(item),
+    signatures: parseSignatures(namedSchemas, item),
+  })
 
-const parseType = (item: TypeDocItem): ApiType => ({
-  name: item.name,
-  description: itemToDescription(item),
-  typeDefinition: Option.match(item.type, {
-    onNone: () => typeDefFromChildren(item.children),
-    onSome: () => typeToString(item.type),
-  }),
-  sourceUrl: itemToSourceUrl(item),
-})
+const parseType =
+  (namedSchemas: NamedSchemas) =>
+  (item: TypeDocItem): ApiType => ({
+    name: item.name,
+    description: itemToDescription(item),
+    typeDefinition: Option.match(item.type, {
+      onNone: () => typeDefFromChildren(item.children, namedSchemas),
+      onSome: () => typeToString(item.type, 0, namedSchemas),
+    }),
+    sourceUrl: itemToSourceUrl(item),
+  })
 
-const parseInterface = (item: TypeDocItem): ApiInterface => ({
-  name: item.name,
-  description: itemToDescription(item),
-  typeDefinition: typeDefFromChildren(item.children),
-  sourceUrl: itemToSourceUrl(item),
-})
+const parseInterface =
+  (namedSchemas: NamedSchemas) =>
+  (item: TypeDocItem): ApiInterface => ({
+    name: item.name,
+    description: itemToDescription(item),
+    typeDefinition: typeDefFromChildren(item.children, namedSchemas),
+    sourceUrl: itemToSourceUrl(item),
+  })
 
-const parseVariable = (item: TypeDocItem): ApiVariable => ({
-  name: item.name,
-  description: itemToDescription(item),
-  type: typeToString(item.type),
-  sourceUrl: itemToSourceUrl(item),
-})
+const parseVariable =
+  (namedSchemas: NamedSchemas) =>
+  (item: TypeDocItem): ApiVariable => ({
+    name: item.name,
+    description: itemToDescription(item),
+    type: typeToString(item.type, 0, namedSchemas),
+    sourceUrl: itemToSourceUrl(item),
+  })
 
 const parseItemsAsModule = (
+  namedSchemas: NamedSchemas,
   name: string,
   children: ReadonlyArray<TypeDocItem>,
 ): ApiModule => ({
@@ -214,7 +347,7 @@ const parseItemsAsModule = (
   functions: pipe(
     children,
     Array.filter(item => item.kind === Kind.Function),
-    Array.map(parseFunction),
+    Array.map(parseFunction(namedSchemas)),
     Array.sort(byName()),
   ),
   types: pipe(
@@ -224,24 +357,27 @@ const parseItemsAsModule = (
         kind === Kind.TypeAlias &&
         !Option.exists(type, ({ type }) => type === 'query'),
     ),
-    Array.map(parseType),
+    Array.map(parseType(namedSchemas)),
     Array.sort(byName()),
   ),
   interfaces: pipe(
     children,
     Array.filter(item => item.kind === Kind.Interface),
-    Array.map(parseInterface),
+    Array.map(parseInterface(namedSchemas)),
     Array.sort(byName()),
   ),
   variables: pipe(
     children,
     Array.filter(item => item.kind === Kind.Variable),
-    Array.map(parseVariable),
+    Array.map(parseVariable(namedSchemas)),
     Array.sort(byName()),
   ),
 })
 
-const parseModule = (module: TypeDocModule): ReadonlyArray<ApiModule> => {
+const parseModule = (
+  namedSchemas: NamedSchemas,
+  module: TypeDocModule,
+): ReadonlyArray<ApiModule> => {
   const namespaces = Array.filter(
     module.children,
     ({ kind }) => kind === Kind.Namespace,
@@ -255,7 +391,11 @@ const parseModule = (module: TypeDocModule): ReadonlyArray<ApiModule> => {
     Option.match(namespace.children, {
       onNone: () => [],
       onSome: children => [
-        parseItemsAsModule(`${module.name}/${namespace.name}`, children),
+        parseItemsAsModule(
+          namedSchemas,
+          `${module.name}/${namespace.name}`,
+          children,
+        ),
       ],
     }),
   )
@@ -263,15 +403,20 @@ const parseModule = (module: TypeDocModule): ReadonlyArray<ApiModule> => {
   return Array.match(directChildren, {
     onEmpty: () => namespaceModules,
     onNonEmpty: () => [
-      parseItemsAsModule(module.name, directChildren),
+      parseItemsAsModule(namedSchemas, module.name, directChildren),
       ...namespaceModules,
     ],
   })
 }
 
-export const parseTypedocJson = (json: TypeDocJson): ParsedApiReference => ({
-  modules: Array.flatMap(json.children, parseModule),
-})
+export const parseTypedocJson = (json: TypeDocJson): ParsedApiReference => {
+  const namedSchemas = collectNamedSchemas(json)
+  return {
+    modules: Array.flatMap(json.children, module =>
+      parseModule(namedSchemas, module),
+    ),
+  }
+}
 
 export type TableOfContentsEntry = {
   readonly id: string
