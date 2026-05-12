@@ -411,7 +411,7 @@ const playwrightBrowserResource = Effect.acquireRelease(
   browser => Effect.promise(() => browser.close()),
 )
 
-const captureRouteHtml = (browser: Browser, url: string) =>
+const captureRouteHtml = (browser: Browser, url: string, route: AppRoute) =>
   Effect.acquireUseRelease(
     Effect.tryPromise(() => browser.newPage()),
     page =>
@@ -432,6 +432,11 @@ const captureRouteHtml = (browser: Browser, url: string) =>
             )
           }),
         )
+        if (route._tag === 'ApiModule') {
+          yield* Effect.tryPromise(() =>
+            page.waitForSelector('h1[data-pagefind-meta="section"]'),
+          )
+        }
         return yield* Effect.tryPromise(() =>
           page.evaluate(() => document.body.firstElementChild?.outerHTML ?? ''),
         )
@@ -462,7 +467,7 @@ const prerenderRoute =
       const url = `${PREVIEW_BASE_URL}${urlPath}`
       const outputFilePath = resolve(DIST_DIR, outputPath)
 
-      const renderedHtml = yield* captureRouteHtml(browser, url)
+      const renderedHtml = yield* captureRouteHtml(browser, url, route)
       const injectedHtml = injectHtml(baseHtml, renderedHtml)
       const outputHtml = injectMetaTags(injectedHtml, route, urlPath)
 
