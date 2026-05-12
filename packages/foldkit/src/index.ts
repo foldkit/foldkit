@@ -1,6 +1,7 @@
 export * as Calendar from './calendar/public.js'
 export * as Canvas from './canvas/public.js'
 export * as Command from './command/public.js'
+export * as CustomElement from './customElement/public.js'
 export * as Dom from './dom/public.js'
 export * as ManagedResource from './managedResource/public.js'
 export * as FieldValidation from './fieldValidation/public.js'

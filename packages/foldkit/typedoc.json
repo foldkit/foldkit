@@ -30,6 +30,8 @@
     "ResolveMessage",
     "WithStep",
     "FilterOptions",
-    "ViewConfig"
+    "ViewConfig",
+    "PropertyFactories",
+    "EventFactories"
   ]
 }

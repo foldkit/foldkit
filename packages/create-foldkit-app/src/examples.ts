@@ -16,6 +16,7 @@ export const EXAMPLE_VALUES = [
   'pixel-art',
   'websocket-chat',
   'kanban',
+  'web-components',
   'ui-showcase',
 ] as const
 
@@ -117,6 +118,12 @@ export const examples: ReadonlyArray<{
     title: 'kanban',
     description:
       'Drag-and-drop board with fractional indexing, keyboard navigation, and screen reader announcements',
+  },
+  {
+    value: 'web-components',
+    title: 'web-components',
+    description:
+      'QR code designer wiring two real third-party web components into Foldkit with CustomElement.define (vanilla-colorful and Shoelace)',
   },
   {
     value: 'ui-showcase',

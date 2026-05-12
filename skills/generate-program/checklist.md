@@ -114,11 +114,12 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 - [ ] Factory functions named by action: `fetchWeather`, not `fetchWeatherCommand`
 - [ ] Fire-and-forget Commands return `Completed*` Messages
 
-## Mount, Command, ManagedResource — pick by what causes the side effect
+## Mount, Command, ManagedResource, CustomElement — pick by what causes the side effect
 
 - [ ] **One-time effect after a Message dispatched** → Command. Focus-on-open, navigation, network, storage, analytics, scroll lock paired with a modal opening/closing — all belong in `update`'s return, not in `OnMount`.
 - [ ] **Per-instance lifecycle bound to a VNode existing**, where the live `Element` handle is needed → Mount. Anchor positioning, backdrop portaling, attaching observers/listeners to a specific element, third-party library instantiation that takes the element as host.
 - [ ] **Stateful runtime object** (websocket, camera stream, library instance) keyed on a Model condition, with Commands consuming the handle via `yield*` → ManagedResource. Not a generic "lifecycle on Model condition" — there must be a handle for Commands to use.
+- [ ] **Native web component** (Shoelace, vanilla-colorful, emoji-picker-element, anything that speaks typed JS properties + observed attributes + dispatched `CustomEvent`s) → CustomElement. Side-effect-import the package to register the element with the browser, then declare its surface with `CustomElement.define({ tag, properties, events })` to get a typed inline builder. Do NOT reach for Mount + Subscription + tag-name registry to wrap a web component; `CustomElement.define` is the higher-level fit when those three surfaces are available.
 
 ### Two practical rules for Mount (both must hold)
 

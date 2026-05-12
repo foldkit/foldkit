@@ -141,15 +141,17 @@ Command definitions live where they're produced — colocated with the update fu
 - **Shared Commands** — define in the module that owns the concept, import from there
 - **Never centralize** all Command definitions in a single file
 
-### Mount, Command, ManagedResource: pick by what causes the side effect
+### Mount, Command, ManagedResource, CustomElement: pick by what causes the side effect
 
-Three lifecycle-bearing primitives. Pick by **what causes the side effect**, not by what's most ergonomic.
+Four lifecycle/binding primitives. Pick by **what causes the side effect**, not by what's most ergonomic.
 
 - **Command.** A one-time side effect fired by `update`'s return. The cause is a Message that just dispatched. Examples: `FocusInput` after `OpenedDialog`, `FetchWeather` after `ClickedRefresh`, `SaveTodos` after `EditedTodo`. Navigation, network, storage, analytics, focus-on-state-change all belong here.
 
 - **Mount.** A per-instance lifecycle effect bound to a VNode existing in the rendered tree. The cause is the element's appearance, and the author needs the live `Element` handle. Examples: anchor positioning for floating panels, backdrop portaling, attaching observers to a specific element, third-party library instantiation that takes the element as a host.
 
 - **ManagedResource.** A stateful runtime object (websocket connection, camera stream, audio context, third-party library instance) whose lifetime is tied to a Model condition AND whose handle is consumed by Commands via `yield*`. The condition determines lifetime; Commands do the work on the resource. Not a generic "lifecycle on a Model condition" rule. There must be a handle for Commands to use.
+
+- **CustomElement.** A typed binding to a native web component. The foreign element registers itself with the browser via `customElements.define('your-tag', YourClass)` (usually as a side-effect import from a third-party package); `CustomElement.define` declares its properties and events as Schema and yields a typed builder you call inline in views. Examples: Shoelace's `<sl-qr-code>`, vanilla-colorful's `<hex-color-picker>`, an `<emoji-picker>` element. Use this whenever the foreign DOM speaks the three regular web-component surfaces (typed JS properties, observed attributes, dispatched `CustomEvent`s); reach for Mount only when the element does not.
 
 **Two practical rules for Mount.** Both must hold:
 
@@ -163,6 +165,7 @@ Three lifecycle-bearing primitives. Pick by **what causes the side effect**, not
 - _"A Message just dispatched."_ → Command.
 - _"This element exists in the rendered tree, per-instance."_ → Mount.
 - _"A Model condition holds AND I need Commands to operate on a stateful handle."_ → ManagedResource.
+- _"I want to render a native web component into my view tree."_ → CustomElement. If you find yourself reaching for Mount to attach listeners to a web component's `CustomEvent`s, or for a Subscription to bridge them back as Messages, you're rebuilding what `CustomElement.define` provides for free.
 
 **Don't reach for Mount just because the work happens to coincide with an element appearing.** Check what causes the work. If a Message just dispatched (like `Opened`), the cause is the Message, not the element. Use a Command returned from `update`'s handler instead. Example: focusing a search input when its dialog opens. The cause is `Opened`, not the input's existence; return a `FocusInput` Command from the `Opened` handler.
 

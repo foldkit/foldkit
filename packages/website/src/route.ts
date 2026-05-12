@@ -47,6 +47,7 @@ export const CoreUpdateRoute = r('CoreUpdate')
 export const CoreViewRoute = r('CoreView')
 export const CoreCommandsRoute = r('CoreCommands')
 export const CoreMountRoute = r('CoreMount')
+export const CoreCustomElementRoute = r('CoreCustomElement')
 export const CoreSubscriptionsRoute = r('CoreSubscriptions')
 export const CoreInitAndFlagsRoute = r('CoreInitAndFlags')
 export const CoreDomRoute = r('CoreDom')
@@ -128,6 +129,7 @@ export const DocsRoute = S.Union([
   CoreViewRoute,
   CoreCommandsRoute,
   CoreMountRoute,
+  CoreCustomElementRoute,
   CoreSubscriptionsRoute,
   CoreInitAndFlagsRoute,
   CoreDomRoute,
@@ -309,6 +311,11 @@ export const coreMountRouter = pipe(
   literal('core'),
   slash(literal('mount')),
   mapTo(CoreMountRoute),
+)
+export const coreCustomElementRouter = pipe(
+  literal('core'),
+  slash(literal('custom-element')),
+  mapTo(CoreCustomElementRoute),
 )
 export const coreSubscriptionsRouter = pipe(
   literal('core'),
@@ -570,6 +577,7 @@ const coreParser = oneOf(
   coreViewRouter,
   coreCommandsRouter,
   coreMountRouter,
+  coreCustomElementRouter,
   coreSubscriptionsRouter,
   coreInitAndFlagsRouter,
   coreDomRouter,

@@ -15,6 +15,7 @@ import {
   coreCommandsRouter,
   coreCounterExampleRouter,
   coreCrashViewRouter,
+  coreCustomElementRouter,
   coreDevToolsRouter,
   coreDomRouter,
   coreFileRouter,
@@ -200,14 +201,19 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           label: 'Render',
         },
         {
-          _tag: 'CoreFile',
-          href: coreFileRouter(),
-          label: 'File',
+          _tag: 'CoreCustomElement',
+          href: coreCustomElementRouter(),
+          label: 'CustomElement',
         },
         {
           _tag: 'CoreCanvas',
           href: coreCanvasRouter(),
           label: 'Canvas',
+        },
+        {
+          _tag: 'CoreFile',
+          href: coreFileRouter(),
+          label: 'File',
         },
       ],
       [

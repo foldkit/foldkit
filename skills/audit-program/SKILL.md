@@ -40,7 +40,7 @@ Skip this confirmation only when the scope is unambiguous (single file, single f
 
 Read these in order. Every audit, no shortcuts. They're the spec the audit grades against.
 
-1. [Architecture guide](../generate-program/architecture.md): TEA invariants, Submodel and OutMessage pattern, Flags, Subscriptions, Mount / Command / ManagedResource selection
+1. [Architecture guide](../generate-program/architecture.md): TEA invariants, Submodel and OutMessage pattern, Flags, Subscriptions, Mount / Command / ManagedResource / CustomElement selection
 2. [Conventions guide](../generate-program/conventions.md): naming, Effect-TS idioms, Schema patterns, view conventions
 3. [Verification checklist](../generate-program/checklist.md): the canonical mechanical-check + quality-bar reference
 
@@ -93,7 +93,7 @@ For non-trivial audits, parallelize. Spawn subagents in a single message so they
 
 Use `Agent` with `subagent_type: general-purpose`. Suggested fan-out:
 
-- **Subagent A (Structural correctness)**. Model schema completeness, Message union coverage, `M.tagsExhaustive` exhaustiveness, every `Succeeded*` paired with `Failed*`, every Command identity defined as a PascalCase constant via `Command.define`, every route variant rendered, no dead state variants.
+- **Subagent A (Structural correctness)**. Model schema completeness, Message union coverage, `M.tagsExhaustive` exhaustiveness, every `Succeeded*` paired with `Failed*`, every Command identity defined as a PascalCase constant via `Command.define`, every route variant rendered, no dead state variants. Native web components bound via `CustomElement.define`, not via `OnMount` + Subscription + tag-name registry — flag any custom element wired through `OnMount` when its surface is just typed properties + observed attributes + dispatched `CustomEvent`s.
 - **Subagent B (Effect-TS idioms)**. `pipe` only for multi-step (no single-op pipes), `Option.match` over `Option.map(...).pipe(Option.getOrElse(...))`, `Array.match` for empty/non-empty branching, `Array.isEmptyArray` over `.length === 0`, `evo` over spread, callable constructors over `as Type`, `Array.fromOption` for "zero or one Command", `Equal.equals` in predicates, no `Effect.ignore` on infallible Effects.
 - **Subagent C (Naming and decomposition)**. `maybe*` reserved for `Option<T>`, `nullable*` for `T | undefined`, `is*` for booleans, no abbreviations, `Updated*` not `Changed*`, `Completed*` mirrors Command name verb-first, named helpers use specific verbs not generic ones, handlers over ~15 lines extracted, view branches over ~30 lines extracted, no function exceeds ~40 lines.
 - **Subagent D (Foldkit UI and accessibility)**. Hand-rolled `input` / `textarea` / `button` / `dialog` flagged unless NOTE-justified, label/input pairing via `For(id)` + `Id(id)`, dynamic errors announce via `Role('alert')` or `AriaLive('polite')`, icon-only buttons have `AriaLabel`, external links carry `Rel('noopener noreferrer')`, exactly one `h1` per route, semantic landmarks (`main`, `nav`, `header`, `footer`) over `div` soup, focus visibility preserved (no `outline-none` without `focus-visible:` replacement).

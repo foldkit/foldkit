@@ -552,6 +552,11 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           lazyDocsContent(Page.Core.Mount.view, [model.copiedSnippets]),
           Page.Core.Mount.tableOfContents,
         ),
+      CoreCustomElement: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.Core.CustomElement.view, [model.copiedSnippets]),
+          Page.Core.CustomElement.tableOfContents,
+        ),
       CoreSubscriptions: () =>
         withTableOfContents(
           lazyDocsContent(Page.Core.Subscriptions.view, [model.copiedSnippets]),
