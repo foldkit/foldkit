@@ -186,7 +186,7 @@ const defaultSlowViewCallback = (
   })
 
   console.warn(
-    `[foldkit] Slow view: ${context.durationMs.toFixed(1)}ms (budget: ${context.thresholdMs}ms), triggered by ${trigger}. Consider moving computation to update or memoizing with createLazy.`,
+    `[foldkit] Slow view: ${context.durationMs.toFixed(1)}ms (budget: ${context.thresholdMs}ms), triggered by ${trigger}. Consider memoizing expensive subtrees with createLazy or createKeyedLazy. You can also adjust the threshold or disable these warnings via the slowView option.`,
     ...Option.toArray(context.message),
   )
 }
