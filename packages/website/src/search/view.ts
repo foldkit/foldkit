@@ -5,7 +5,7 @@ import { Html, html } from 'foldkit/html'
 
 import { Icon } from '../icon'
 import type { Message as ParentMessage } from '../main'
-import { SEARCH_INPUT_ID } from './command'
+import { KEYBOARD_WARMUP_INPUT_ID, SEARCH_INPUT_ID } from './command'
 import {
   ClearedSearchQuery,
   GotSearchDialogMessage,
@@ -246,33 +246,57 @@ const resultCountAnnouncement = (model: Model): Html => {
   )
 }
 
+// NOTE: iOS Safari only shows the on-screen keyboard if `.focus()` runs
+// synchronously inside the originating user-gesture event handler. Foldkit's
+// `Dom.focus` defers to `afterCommit` (requestAnimationFrame), so by the time
+// the real search input exists in the DOM and gets focused, the gesture
+// context is gone and the keyboard never opens. This always-rendered hidden
+// input is focused synchronously on `pointerdown` against the search trigger
+// (see the `OnPointerDown` handler in `view/docs.ts`), which opens the
+// keyboard; the existing `FocusSearchInput` Command then transfers focus to
+// the real input once the dialog renders. iOS keeps the keyboard up across a
+// programmatic focus transfer between two text inputs.
+const keyboardWarmupInput: Html = h.input([
+  h.Id(KEYBOARD_WARMUP_INPUT_ID),
+  h.Type('text'),
+  h.AriaHidden(true),
+  h.Tabindex(-1),
+  h.Class('fixed top-0 left-0 w-px h-px opacity-0 pointer-events-none -z-10'),
+])
+
 export const view = (model: Model, toParentMessage: ToMessage): Html =>
-  Ui.Dialog.view({
-    model: model.dialog,
-    toParentMessage: message =>
-      toParentMessage(GotSearchDialogMessage({ message })),
-    panelContent: h.div(
-      [
-        h.Class(
-          'w-full max-w-xl mx-auto mt-[15vh] bg-white dark:bg-gray-900 rounded-xl shadow-2xl dark:shadow-black/50 border border-gray-200 dark:border-gray-700 overflow-hidden',
+  h.div(
+    [],
+    [
+      keyboardWarmupInput,
+      Ui.Dialog.view({
+        model: model.dialog,
+        toParentMessage: message =>
+          toParentMessage(GotSearchDialogMessage({ message })),
+        panelContent: h.div(
+          [
+            h.Class(
+              'w-full max-w-xl mx-auto mt-[15vh] bg-white dark:bg-gray-900 rounded-xl shadow-2xl dark:shadow-black/50 border border-gray-200 dark:border-gray-700 overflow-hidden',
+            ),
+          ],
+          [
+            h.span(
+              [h.Id('search-dialog-title'), h.Class('sr-only')],
+              ['Search documentation'],
+            ),
+            searchInputView(model, toParentMessage),
+            resultsListView(model, toParentMessage),
+            resultCountAnnouncement(model),
+          ],
         ),
-      ],
-      [
-        h.span(
-          [h.Id('search-dialog-title'), h.Class('sr-only')],
-          ['Search documentation'],
-        ),
-        searchInputView(model, toParentMessage),
-        resultsListView(model, toParentMessage),
-        resultCountAnnouncement(model),
-      ],
-    ),
-    panelAttributes: [
-      h.Class(
-        'fixed inset-0 z-[60] overflow-y-auto px-4 sm:px-6 pointer-events-none [&>*]:pointer-events-auto',
-      ),
+        panelAttributes: [
+          h.Class(
+            'fixed inset-0 z-[60] overflow-y-auto px-4 sm:px-6 pointer-events-none [&>*]:pointer-events-auto',
+          ),
+        ],
+        backdropAttributes: [
+          h.Class('fixed inset-0 z-[59] bg-black/50 dark:bg-black/70'),
+        ],
+      }),
     ],
-    backdropAttributes: [
-      h.Class('fixed inset-0 z-[59] bg-black/50 dark:bg-black/70'),
-    ],
-  })
+  )
