@@ -7,8 +7,6 @@ const ClickedSave = m('ClickedSave')
 const Message = S.Union([ClickedSave])
 type Message = typeof Message.Type
 
-// In a real app, only saveButton is per-view code. The Message and the h
-// binding sit once at the top of the module.
 const h = html<Message>()
 
 const saveButton = (isSaving: boolean) =>
