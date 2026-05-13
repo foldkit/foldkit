@@ -2,16 +2,7 @@ import { Ui } from 'foldkit'
 import { html } from 'foldkit/html'
 
 import { Icon } from '../../icon'
-import type { TableOfContentsEntry } from '../../main'
 import { GotDisclosureDemoMessage, type Message } from './message'
-
-// TABLE OF CONTENTS
-
-export const disclosureHeader: TableOfContentsEntry = {
-  level: 'h2',
-  id: 'disclosure',
-  text: 'Disclosure',
-}
 
 // DEMO CONTENT
 

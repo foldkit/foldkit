@@ -1,0 +1,82 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/*.{ts,js,sh}", "eslint.config.mjs"],
+      "project": ["scripts/**", "eslint.config.mjs"]
+    },
+    "packages/foldkit": {
+      "entry": [
+        "src/index.ts",
+        "src/html.ts",
+        "src/devTools/public.ts",
+        "src/runtime/hmrProtocolPublic.ts",
+        "src/scene/public.ts",
+        "src/story/public.ts",
+        "src/test/public.ts",
+        "src/test/apps/**/*.ts",
+        "vitest.config.ts"
+      ]
+    },
+    "packages/devtools-mcp": {
+      "entry": ["src/index.ts"]
+    },
+    "packages/vite-plugin-foldkit": {
+      "entry": ["src/index.ts"]
+    },
+    "packages/create-foldkit-app": {
+      "entry": ["src/index.ts"],
+      "ignore": ["templates/**"]
+    },
+    "packages/website": {
+      "entry": [
+        "src/main.ts",
+        "src/prerender.ts",
+        "vite.config.ts",
+        "vitest.config.ts"
+      ],
+      "ignore": ["src/snippet/**", "public/**"]
+    },
+    "packages/typing-game/*": {
+      "entry": [
+        "src/main.ts",
+        "src/index.ts",
+        "src/server.ts",
+        "vite.config.ts"
+      ]
+    },
+    "examples/*": {
+      "entry": [
+        "src/main.ts",
+        "src/index.ts",
+        "vite.config.ts",
+        "vitest.config.ts"
+      ],
+      "ignoreDependencies": [
+        "@eslint/js",
+        "@trivago/prettier-plugin-sort-imports",
+        "@typescript-eslint/eslint-plugin",
+        "@typescript-eslint/parser",
+        "eslint",
+        "prettier",
+        "tailwindcss"
+      ]
+    },
+    "comparisons/*": {
+      "entry": ["src/main.tsx", "src/index.tsx", "vite.config.ts"],
+      "ignoreDependencies": ["tailwindcss"]
+    },
+    "internal/*": {
+      "entry": ["src/main.ts", "vite.config.ts"],
+      "ignoreDependencies": ["tailwindcss"]
+    }
+  },
+  "ignore": [
+    "**/*.css",
+    "packages/website/public/**",
+    "placeholders/**",
+    "repos/**"
+  ],
+  "ignoreDependencies": ["tailwindcss", "madge"],
+  "ignoreBinaries": ["typecheck", "vercel"]
+}

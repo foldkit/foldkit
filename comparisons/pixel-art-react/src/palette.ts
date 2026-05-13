@@ -119,7 +119,3 @@ export const resolveColor = (cell: Cell, theme: PaletteTheme): string =>
 
 export const currentPaletteTheme = (paletteThemeIndex: number): PaletteTheme =>
   PALETTE_THEMES[paletteThemeIndex] ?? PALETTE_THEMES[0]!
-
-export const currentPaletteColors = (
-  paletteThemeIndex: number,
-): ReadonlyArray<string> => currentPaletteTheme(paletteThemeIndex).colors

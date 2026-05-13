@@ -9,16 +9,3 @@ export const GAME_SPEED = {
   MIN_INTERVAL: 80,
   BASE_INTERVAL: 150,
 } as const
-
-export const CONTROLS = {
-  SPACE: ' ',
-  RESTART: 'r',
-  ARROW_UP: 'ArrowUp',
-  ARROW_DOWN: 'ArrowDown',
-  ARROW_LEFT: 'ArrowLeft',
-  ARROW_RIGHT: 'ArrowRight',
-  W: 'w',
-  A: 'a',
-  S: 's',
-  D: 'd',
-} as const

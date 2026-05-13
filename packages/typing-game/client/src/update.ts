@@ -119,8 +119,6 @@ export const update = (
       'CompletedNavigateInternal',
       'CompletedLoadExternal',
       'CompletedNavigateRoom',
-      'CompletedSaveSession',
-      'CompletedClearSession',
       'IgnoredKeyPress',
       () => [model, []],
     ),

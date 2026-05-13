@@ -2,20 +2,11 @@ import { Array, Match as M, Option, pipe } from 'effect'
 import { Ui } from 'foldkit'
 import { html } from 'foldkit/html'
 
-import type { TableOfContentsEntry } from '../../main'
 import {
   ClickedVirtualListScrollToMiddle,
   ClickedVirtualListVariableScrollToMiddle,
   type Message,
 } from './message'
-
-// TABLE OF CONTENTS
-
-export const virtualListHeader: TableOfContentsEntry = {
-  level: 'h2',
-  id: 'virtual-list',
-  text: 'VirtualList',
-}
 
 // SAMPLE DATA
 

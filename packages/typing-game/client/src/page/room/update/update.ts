@@ -127,11 +127,6 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         return [model, []]
       },
 
-      RequestedStartGame: ({ roomId, playerId }) => [
-        model,
-        [StartGame({ roomId, playerId })],
-      ],
-
       LoadedSession: ({ maybeSession }) => [
         evo(model, {
           maybeSession: () => maybeSession,

@@ -132,7 +132,3 @@ export const currentPaletteTheme = (
     Array.get(model.paletteThemeIndex),
     Option.getOrElse(() => Array.headNonEmpty(PALETTE_THEMES)),
   )
-
-export const currentPaletteColors = (
-  model: Readonly<{ paletteThemeIndex: number }>,
-): ReadonlyArray<HexColor> => currentPaletteTheme(model).colors

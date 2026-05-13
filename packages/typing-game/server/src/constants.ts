@@ -1,5 +1,3 @@
-export const MAX_PLAYERS = 10
-
 export const ROOM_ID_WORDS = [
   'azure',
   'bold',
