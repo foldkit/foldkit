@@ -21,7 +21,7 @@ type PagefindResult = Readonly<{
     Readonly<{
       url: string
       excerpt: string
-      meta?: Readonly<{ title?: string; section?: string }>
+      meta?: Readonly<{ title?: string; section?: string; kind?: string }>
     }>
   >
 }>
@@ -80,6 +80,7 @@ export const FetchSearchResults = Command.define(
         title: data.meta?.title ?? 'Untitled',
         excerpt: data.excerpt,
         section: data.meta?.section ?? '',
+        kind: data.meta?.kind ?? '',
       }),
     )
 

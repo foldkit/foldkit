@@ -39,7 +39,7 @@ export const ChangedExampleUrl = m('ChangedExampleUrl', { url: S.String })
 const GotLivePreviewDisclosureMessage = m('GotLivePreviewDisclosureMessage', {
   message: Ui.Disclosure.Message,
 })
-export const StartedLoadExampleSources = m('StartedLoadExampleSources', {
+export const RequestedExampleSources = m('RequestedExampleSources', {
   slug: S.String,
 })
 export const SucceededLoadExampleSources = m('SucceededLoadExampleSources', {
@@ -53,7 +53,7 @@ export const Message = S.Union([
   GotSourceFileTabsMessage,
   ChangedExampleUrl,
   GotLivePreviewDisclosureMessage,
-  StartedLoadExampleSources,
+  RequestedExampleSources,
   SucceededLoadExampleSources,
   FailedLoadExampleSources,
 ])
@@ -141,7 +141,7 @@ export const update = (
         ]
       },
 
-      StartedLoadExampleSources: ({ slug }) => [
+      RequestedExampleSources: ({ slug }) => [
         evo(model, {
           sourceFileTabs: () => Ui.Tabs.init({ id: 'source-file-tabs' }),
           maybeExampleUrl: () => Option.none(),

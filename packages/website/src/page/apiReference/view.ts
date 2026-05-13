@@ -126,7 +126,7 @@ const allParameterDescriptions = <ParentMessage>(
               ),
               h.span(
                 [h.Class('text-gray-500 dark:text-gray-400')],
-                [` — ${description}`],
+                [`: ${description}`],
               ),
             ],
           ),
@@ -248,7 +248,7 @@ const parameterDescriptions = <ParentMessage>(
               ),
               h.span(
                 [h.Class('text-gray-500 dark:text-gray-400')],
-                [` — ${description}`],
+                [`: ${description}`],
               ),
             ],
           ),
@@ -625,7 +625,7 @@ export const view = <ParentMessage>(
   const h = html<ParentMessage>()
 
   return h.div(
-    [],
+    [h.DataAttribute('pagefind-meta', 'kind:API Reference')],
     [
       pageTitle(module.name, module.name),
       ...section(module.name, 'Functions', module.functions, apiFunction => {

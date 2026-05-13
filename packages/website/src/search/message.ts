@@ -7,6 +7,7 @@ export const SearchResult = S.Struct({
   title: S.String,
   excerpt: S.String,
   section: S.String,
+  kind: S.String,
 })
 
 export const UpdatedSearchQuery = m('UpdatedSearchQuery', {

@@ -275,33 +275,23 @@ export const init: Runtime.RoutingProgramInit<
   const initialRoute = urlToAppRoute(url)
 
   const [initApiReference, apiReferenceInitCommands] = Page.ApiReference.init()
-  const [apiReference, apiReferenceStartLoadCommands] = M.value(
-    initialRoute,
-  ).pipe(
-    M.withReturnType<ReturnType<typeof Page.ApiReference.update>>(),
-    M.tag('ApiModule', () =>
-      Page.ApiReference.update(
-        initApiReference,
-        Page.ApiReference.StartedLoadApiData(),
-      ),
-    ),
-    M.orElse(() => [initApiReference, []]),
+  const [apiReference, apiReferenceLoadCommands] = Page.ApiReference.update(
+    initApiReference,
+    Page.ApiReference.RequestedApiData(),
   )
   const apiReferenceCommands = [
     ...apiReferenceInitCommands,
-    ...apiReferenceStartLoadCommands,
+    ...apiReferenceLoadCommands,
   ]
 
   const [initExampleDetail, exampleDetailInitCommands] =
     Page.Example.ExampleDetail.init()
-  const [exampleDetail, exampleDetailStartLoadCommands] = M.value(
-    initialRoute,
-  ).pipe(
+  const [exampleDetail, exampleDetailLoadCommands] = M.value(initialRoute).pipe(
     M.withReturnType<ReturnType<typeof Page.Example.ExampleDetail.update>>(),
     M.tag('ExampleDetail', ({ exampleSlug }) =>
       Page.Example.ExampleDetail.update(
         initExampleDetail,
-        Page.Example.ExampleDetail.StartedLoadExampleSources({
+        Page.Example.ExampleDetail.RequestedExampleSources({
           slug: exampleSlug,
         }),
       ),
@@ -310,7 +300,7 @@ export const init: Runtime.RoutingProgramInit<
   )
   const exampleDetailCommands = [
     ...exampleDetailInitCommands,
-    ...exampleDetailStartLoadCommands,
+    ...exampleDetailLoadCommands,
   ]
 
   const mappedAsyncCounterDemoCommands = asyncCounterDemoCommands.map(
@@ -481,19 +471,19 @@ export const update = (
         )
         const [closedSearchDialog, closeSearchDialogCommands] =
           Ui.Dialog.update(model.search.dialog, Ui.Dialog.Closed())
-        const [nextApiReference, apiReferenceStartLoadCommands] = M.value(
+        const [nextApiReference, apiReferenceLoadCommands] = M.value(
           nextRoute,
         ).pipe(
           M.withReturnType<ReturnType<typeof Page.ApiReference.update>>(),
           M.tag('ApiModule', () =>
             Page.ApiReference.update(
               model.apiReference,
-              Page.ApiReference.StartedLoadApiData(),
+              Page.ApiReference.RequestedApiData(),
             ),
           ),
           M.orElse(() => [model.apiReference, []]),
         )
-        const [nextExampleDetail, exampleDetailStartLoadCommands] = M.value(
+        const [nextExampleDetail, exampleDetailLoadCommands] = M.value(
           nextRoute,
         ).pipe(
           M.withReturnType<
@@ -502,7 +492,7 @@ export const update = (
           M.tag('ExampleDetail', ({ exampleSlug }) =>
             Page.Example.ExampleDetail.update(
               model.exampleDetail,
-              Page.Example.ExampleDetail.StartedLoadExampleSources({
+              Page.Example.ExampleDetail.RequestedExampleSources({
                 slug: exampleSlug,
               }),
             ),
@@ -547,14 +537,14 @@ export const update = (
                 ),
               ),
             ),
-            ...apiReferenceStartLoadCommands.map(command =>
+            ...apiReferenceLoadCommands.map(command =>
               Command.mapEffect(command, effect =>
                 Effect.map(effect, message =>
                   GotApiReferenceMessage({ message }),
                 ),
               ),
             ),
-            ...exampleDetailStartLoadCommands.map(command =>
+            ...exampleDetailLoadCommands.map(command =>
               Command.mapEffect(command, effect =>
                 Effect.map(effect, message =>
                   GotExampleDetailMessage({ message }),

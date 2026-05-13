@@ -28,12 +28,16 @@ import {
 
 // SCHEMA
 
+const NullableString = S.OptionFromNullishOr(S.String, {
+  onNoneEncoding: null,
+})
+
 export const ApiParameter = S.Struct({
   name: S.String,
   type: S.String,
   isOptional: S.Boolean,
-  defaultValue: S.Option(S.String),
-  description: S.Option(S.String),
+  defaultValue: NullableString,
+  description: NullableString,
 })
 
 export type ApiParameter = typeof ApiParameter.Type
@@ -48,36 +52,36 @@ export type ApiFunctionSignature = typeof ApiFunctionSignature.Type
 
 export const ApiFunction = S.Struct({
   name: S.String,
-  description: S.Option(S.String),
+  description: NullableString,
   signatures: S.Array(ApiFunctionSignature),
-  sourceUrl: S.Option(S.String),
+  sourceUrl: NullableString,
 })
 
 export type ApiFunction = typeof ApiFunction.Type
 
 export const ApiType = S.Struct({
   name: S.String,
-  description: S.Option(S.String),
+  description: NullableString,
   typeDefinition: S.String,
-  sourceUrl: S.Option(S.String),
+  sourceUrl: NullableString,
 })
 
 export type ApiType = typeof ApiType.Type
 
 export const ApiVariable = S.Struct({
   name: S.String,
-  description: S.Option(S.String),
+  description: NullableString,
   type: S.String,
-  sourceUrl: S.Option(S.String),
+  sourceUrl: NullableString,
 })
 
 export type ApiVariable = typeof ApiVariable.Type
 
 export const ApiInterface = S.Struct({
   name: S.String,
-  description: S.Option(S.String),
+  description: NullableString,
   typeDefinition: S.String,
-  sourceUrl: S.Option(S.String),
+  sourceUrl: NullableString,
 })
 
 export type ApiInterface = typeof ApiInterface.Type

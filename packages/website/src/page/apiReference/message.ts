@@ -4,7 +4,7 @@ import { m } from 'foldkit/message'
 
 import { ApiData } from './model'
 
-export const StartedLoadApiData = m('StartedLoadApiData')
+export const RequestedApiData = m('RequestedApiData')
 export const SucceededLoadApiData = m('SucceededLoadApiData', {
   apiData: ApiData,
 })
@@ -17,7 +17,7 @@ export const GotDisclosureMessage = m('GotDisclosureMessage', {
 })
 
 export const Message = S.Union([
-  StartedLoadApiData,
+  RequestedApiData,
   SucceededLoadApiData,
   FailedLoadApiData,
   GotDisclosureMessage,

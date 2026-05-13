@@ -101,6 +101,19 @@ const searchInputView = (model: Model, toParentMessage: ToMessage): Html => {
   )
 }
 
+const labelPillClassName =
+  'text-xs text-gray-500 dark:text-gray-400 bg-gray-200/70 dark:bg-gray-700/50 px-1.5 py-px rounded'
+
+const resultLabel = (result: typeof SearchResult.Type): ReadonlyArray<Html> => {
+  if (String.isNonEmpty(result.kind)) {
+    return [h.span([h.Class(labelPillClassName)], [result.kind])]
+  }
+  if (String.isNonEmpty(result.section) && result.section !== result.title) {
+    return [h.span([h.Class(labelPillClassName)], [result.section])]
+  }
+  return []
+}
+
 const resultItemView = (
   result: typeof SearchResult.Type,
   index: number,
@@ -131,19 +144,7 @@ const resultItemView = (
             [h.Class('text-sm font-medium text-gray-900 dark:text-white')],
             [result.title],
           ),
-          ...(String.isNonEmpty(result.section) &&
-          result.section !== result.title
-            ? [
-                h.span(
-                  [
-                    h.Class(
-                      'text-xs text-gray-500 dark:text-gray-400 bg-gray-200/70 dark:bg-gray-700/50 px-1.5 py-px rounded',
-                    ),
-                  ],
-                  [result.section],
-                ),
-              ]
-            : []),
+          ...resultLabel(result),
         ],
       ),
       h.div(

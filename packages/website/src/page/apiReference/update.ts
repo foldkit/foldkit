@@ -45,7 +45,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
-      StartedLoadApiData: () =>
+      RequestedApiData: () =>
         M.value(model.apiData).pipe(
           withUpdateReturn,
           M.tag('NotAsked', 'Failure', () => [

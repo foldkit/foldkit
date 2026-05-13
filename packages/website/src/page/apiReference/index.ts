@@ -13,7 +13,7 @@ export {
   FailedLoadApiData,
   GotDisclosureMessage,
   Message,
-  StartedLoadApiData,
+  RequestedApiData,
   SucceededLoadApiData,
 } from './message'
 export { LoadApiData } from './command'

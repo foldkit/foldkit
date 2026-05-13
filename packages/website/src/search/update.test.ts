@@ -23,12 +23,14 @@ const searchResults = [
     title: 'Commands',
     excerpt: 'Side effects...',
     section: 'Core',
+    kind: '',
   },
   {
     url: '/docs/testing',
     title: 'Testing',
     excerpt: 'Pure tests...',
     section: 'Core',
+    kind: '',
   },
 ]
 

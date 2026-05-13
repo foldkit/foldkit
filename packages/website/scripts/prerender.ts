@@ -17,7 +17,11 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { type Browser, chromium } from 'playwright'
 
-import { moduleNameToSlug } from '../src/page/apiReference/domain'
+import {
+  moduleNameToSlug,
+  parseTypedocJson,
+} from '../src/page/apiReference/domain'
+import { TypeDocJson } from '../src/page/apiReference/typedoc'
 import { exampleSlugs } from '../src/page/example/meta'
 import {
   AiMcpRoute,
@@ -349,12 +353,12 @@ export const injectHtml = (baseHtml: string, renderedHtml: string): string =>
   baseHtml.replace(ROOT_PLACEHOLDER, `<div id="root">${renderedHtml}</div>`)
 
 export const enumerateRoutes = (
-  apiModuleNames: ReadonlyArray<string>,
+  apiModuleSlugs: ReadonlyArray<string>,
 ): ReadonlyArray<AppRoute> =>
   pipe(
     STATIC_ROUTES,
     Array.appendAll(
-      Array.map(apiModuleNames, moduleSlug => ApiModuleRoute({ moduleSlug })),
+      Array.map(apiModuleSlugs, moduleSlug => ApiModuleRoute({ moduleSlug })),
     ),
   )
 
@@ -446,17 +450,15 @@ const captureRouteHtml = (browser: Browser, url: string, route: AppRoute) =>
 
 // PRERENDER
 
-const ApiDocJson = S.fromJsonString(
-  S.Struct({
-    children: S.Array(S.Struct({ name: S.String })),
-  }),
-)
+const ApiDocJson = S.fromJsonString(TypeDocJson)
 
-const readApiModuleNames = Effect.gen(function* () {
+const readApiModuleSlugs = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem
   const raw = yield* fs.readFileString(API_JSON_PATH)
   const apiDoc = yield* S.decodeUnknownEffect(ApiDocJson)(raw)
-  return Array.map(apiDoc.children, ({ name }) => moduleNameToSlug(name))
+  return Array.map(parseTypedocJson(apiDoc).modules, ({ name }) =>
+    moduleNameToSlug(name),
+  )
 })
 
 const prerenderRoute =
@@ -529,8 +531,8 @@ const program = Effect.scoped(
     yield* previewServerResource
     const browser = yield* playwrightBrowserResource
 
-    const apiModuleNames = yield* readApiModuleNames
-    const routes = enumerateRoutes(apiModuleNames)
+    const apiModuleSlugs = yield* readApiModuleSlugs
+    const routes = enumerateRoutes(apiModuleSlugs)
 
     yield* generateOgImages(routes, routeToUrlPath, DIST_DIR)
 
