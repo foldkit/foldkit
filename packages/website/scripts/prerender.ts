@@ -432,11 +432,14 @@ const captureRouteHtml = (browser: Browser, url: string, route: AppRoute) =>
             )
           }),
         )
-        if (route._tag === 'ApiModule') {
-          yield* Effect.tryPromise(() =>
-            page.waitForSelector('h1[data-pagefind-meta="section"]'),
-          )
-        }
+        yield* M.value(route).pipe(
+          M.tag('ApiModule', () =>
+            Effect.tryPromise(() =>
+              page.waitForSelector('h1[data-pagefind-meta="section"]'),
+            ),
+          ),
+          M.orElse(() => Effect.void),
+        )
         return yield* Effect.tryPromise(() =>
           page.evaluate(() => document.body.firstElementChild?.outerHTML ?? ''),
         )
