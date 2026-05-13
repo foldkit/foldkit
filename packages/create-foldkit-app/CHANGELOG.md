@@ -1,5 +1,26 @@
 # create-foldkit-app
 
+## 0.10.1
+
+### Patch Changes
+
+- 0a08c07: Recommend `git subtree` instead of `git submodule` for vendoring the Foldkit repo into a project so AI assistants can reference its source, examples, and docs.
+
+  The post-scaffold success message now prints subtree commands, and the scaffolded `AGENTS.md` ships with a `subtree_prompted: false` flag (renamed from `submodule_prompted`) for agents to check on future sessions. The template also tells agents to treat the vendored `repos/foldkit/` as read-only reference and to import only from the `foldkit` npm package, not from relative paths into the subtree.
+
+  ```bash
+  git subtree add --prefix=repos/foldkit \
+    https://github.com/foldkit/foldkit.git main --squash
+  ```
+
+  Unlike a submodule, a subtree is checked into the user's repository, so a fresh clone (a teammate, a CI runner, a cloud agent) has the Foldkit source on disk immediately with no `--recurse-submodules` step to remember.
+
+- 209e074: Scaffold projects with a `main.ts` / `entry.ts` split.
+
+  `src/main.ts` now holds the pure definitions (Model, Messages, init, update, view). A new `src/entry.ts` imports them and boots the runtime with `Runtime.makeProgram` + `Runtime.run`. `index.html` references `entry.ts`. The split keeps `main.ts` importable from tests without booting a runtime as a side effect, eliminating the runtime-container error noise that appeared in test output when entry files were imported by Vitest.
+
+  Existing scaffolded apps are unaffected. The runtime API is unchanged.
+
 ## 0.10.0
 
 ### Minor Changes

@@ -1,5 +1,57 @@
 # foldkit
 
+## 0.95.0
+
+### Minor Changes
+
+- 209e074: Widen `makeProgram`'s `container` input to `HTMLElement | null`.
+
+  ```ts
+  // Before
+  container: document.getElementById('root')!,
+
+  // After (the `!` is no longer required)
+  container: document.getElementById('root'),
+  ```
+
+  If the element is missing, the runtime throws a clear error at the `makeProgram` call site.
+
+- 94e940c: Move `UrlRequest`, `Internal`, and `External` from the `Runtime` namespace to `Navigation`.
+
+  ```ts
+  // Before
+  import { Runtime } from 'foldkit'
+  const ClickedLink = m('ClickedLink', { request: Runtime.UrlRequest })
+
+  // After
+  import { UrlRequest } from 'foldkit/navigation'
+  const ClickedLink = m('ClickedLink', { request: UrlRequest })
+  ```
+
+  The namespaced form is also available via the main barrel:
+
+  ```ts
+  import { Navigation } from 'foldkit'
+
+  const ClickedLink = m('ClickedLink', { request: Navigation.UrlRequest })
+  ```
+
+  A `UrlRequest` is a navigation primitive that pairs with the Commands (`pushUrl`, `load`) that consume it, so it now lives in the same namespace.
+
+  `Internal` and `External` are now exported as callable Schema constructors in addition to types, so you can build a `UrlRequest` directly (useful for tests):
+
+  ```ts
+  import { External, Internal } from 'foldkit/navigation'
+
+  const request = Internal({ url: someUrl })
+  ```
+
+### Patch Changes
+
+- 209e074: Update README to document the `main.ts` / `entry.ts` split and `Document` view return type.
+
+  The counter example now shows `src/main.ts` exporting Model, Message, init, update, and view, and `src/entry.ts` importing them to boot the runtime with `Runtime.makeProgram` + `Runtime.run`. The view returns a `Document` (`{ title, body }`) so the program can set the document title declaratively.
+
 ## 0.94.0
 
 ### Minor Changes
