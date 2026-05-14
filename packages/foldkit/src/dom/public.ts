@@ -9,6 +9,7 @@ export {
   lockScroll,
   restoreInert,
   scrollIntoView,
+  scrollIntoViewAfterPaint,
   showModal,
   unlockScroll,
   waitForAnimationSettled,

@@ -19,14 +19,7 @@ import {
   HttpClientRequest,
 } from 'effect/unstable/http'
 import { KeyValueStore } from 'effect/unstable/persistence'
-import {
-  Calendar,
-  Command,
-  FieldValidation,
-  Render,
-  Runtime,
-  Ui,
-} from 'foldkit'
+import { Calendar, Command, Dom, FieldValidation, Runtime, Ui } from 'foldkit'
 import type { Document } from 'foldkit/html'
 import { load, pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
@@ -1126,30 +1119,16 @@ const ScrollToTop = Command.define(
   }),
 )
 
-const focusAndScrollToHash = (hash: string): void => {
-  const element = document.getElementById(hash)
-
-  if (element) {
-    element.scrollIntoView({ behavior: 'instant' })
-
-    if (!element.hasAttribute('tabindex')) {
-      element.setAttribute('tabindex', '-1')
-    }
-
-    element.focus({ preventScroll: true })
-  }
-}
-
 const ScrollToAnchor = Command.define(
   'ScrollToAnchor',
   { hash: S.String },
   CompletedScrollToAnchor,
 )(({ hash }) =>
   Effect.gen(function* () {
-    yield* Render.afterPaint
-    focusAndScrollToHash(hash)
-    return CompletedScrollToAnchor()
-  }),
+    const target = `#${hash}`
+    yield* Dom.scrollIntoViewAfterPaint(target, { block: 'start' })
+    yield* Dom.focus(target, { preventScroll: true, makeFocusable: true })
+  }).pipe(Effect.ignore, Effect.as(CompletedScrollToAnchor())),
 )
 
 const ApplyTheme = Command.define(

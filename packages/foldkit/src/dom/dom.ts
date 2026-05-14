@@ -8,7 +8,7 @@ import {
   Option,
 } from 'effect'
 
-import { afterCommit } from '../render/render.js'
+import { afterCommit, afterPaint } from '../render/render.js'
 import { ElementNotFound } from './error.js'
 
 const BASE_DIALOG_Z_INDEX = 2147483600
@@ -54,18 +54,36 @@ const queryHTMLElement = (
  * effects bound to a VNode existing where the live element handle is
  * needed (positioning, portaling, observer attachment, library setup).
  *
+ * Section headings, articles, and other non-natively-focusable elements
+ * are common URL fragment targets, but `.focus()` is a no-op on them
+ * without a `tabindex`. Pass `makeFocusable: true` to inject
+ * `tabindex="-1"` on the target if it has none, making programmatic
+ * focus actually land. Pass `preventScroll: true` to suppress the
+ * browser's default scroll-on-focus, useful when the focus call follows
+ * a deliberate scroll that should not be undone. The two options compose
+ * with `scrollIntoViewAfterPaint` for URL-fragment-navigation
+ * accessibility: scroll the section into view, then focus the same
+ * selector so keyboard users start Tab navigation from the target.
+ *
  * Fails with `ElementNotFound` if the selector does not match an `HTMLElement`.
  *
  * @example
  * ```typescript
  * Dom.focus('#email-input').pipe(Effect.ignore, Effect.as(CompletedFocusInput()))
+ * Dom.focus('#section', { preventScroll: true, makeFocusable: true })
  * ```
  */
-export const focus = (selector: string): Effect.Effect<void, ElementNotFound> =>
+export const focus = (
+  selector: string,
+  options?: Readonly<{ preventScroll?: boolean; makeFocusable?: boolean }>,
+): Effect.Effect<void, ElementNotFound> =>
   Effect.gen(function* () {
     yield* afterCommit
     const element = yield* queryHTMLElement(selector)
-    element.focus()
+    if (options?.makeFocusable && !element.hasAttribute('tabindex')) {
+      element.setAttribute('tabindex', '-1')
+    }
+    element.focus({ preventScroll: options?.preventScroll ?? false })
   })
 
 /**
@@ -204,21 +222,62 @@ export const clickElement = (
   })
 
 /**
- * Scrolls an element into view by selector using `{ block: 'nearest' }`.
+ * Scrolls an element into view by selector. Resolves the selector after
+ * `Render.afterCommit`. Defaults to `{ block: 'nearest' }`; pass a different
+ * `block` for use cases like URL-fragment landing where `'start'` is right.
+ * For a target the same Message just brought into the DOM,
+ * `scrollIntoViewAfterPaint` is the right choice.
+ *
  * Fails with `ElementNotFound` if the selector does not match an `HTMLElement`.
  *
  * @example
  * ```typescript
  * Dom.scrollIntoView('#active-item').pipe(Effect.ignore, Effect.as(CompletedScrollIntoView()))
+ * Dom.scrollIntoView('#section-2', { block: 'start' })
  * ```
  */
 export const scrollIntoView = (
   selector: string,
+  options?: Readonly<{ block?: ScrollLogicalPosition }>,
 ): Effect.Effect<void, ElementNotFound> =>
   Effect.gen(function* () {
     yield* afterCommit
     const element = yield* queryHTMLElement(selector)
-    element.scrollIntoView({ block: 'nearest' })
+    element.scrollIntoView({ block: options?.block ?? 'nearest' })
+  })
+
+/**
+ * Like `scrollIntoView`, but waits for `Render.afterPaint` instead of
+ * `Render.afterCommit` before resolving the selector.
+ *
+ * Reach for this when the target was just brought into the DOM by the same
+ * Message that dispatches the scroll, such as a routing flow landing at a
+ * URL fragment. The two-frame wait gives the runtime time to commit the new
+ * Model and the browser time to lay it out before the scroll runs. For a
+ * target that's already on screen, `scrollIntoView` is the lighter choice.
+ *
+ * Defaults to `{ block: 'nearest' }`; pass `{ block: 'start' }` for URL
+ * fragment landings where the target should sit at the top of the viewport.
+ *
+ * Fails with `ElementNotFound` if the selector does not match an `HTMLElement`.
+ *
+ * @example
+ * ```typescript
+ * Dom.scrollIntoViewAfterPaint('#overview').pipe(
+ *   Effect.ignore,
+ *   Effect.as(CompletedScrollIntoViewAfterPaint()),
+ * )
+ * Dom.scrollIntoViewAfterPaint(`#${hash}`, { block: 'start' })
+ * ```
+ */
+export const scrollIntoViewAfterPaint = (
+  selector: string,
+  options?: Readonly<{ block?: ScrollLogicalPosition }>,
+): Effect.Effect<void, ElementNotFound> =>
+  Effect.gen(function* () {
+    yield* afterPaint
+    const element = yield* queryHTMLElement(selector)
+    element.scrollIntoView({ block: options?.block ?? 'nearest' })
   })
 
 /** Direction for focus advancement: forward or backward in tab order. */

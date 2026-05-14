@@ -1,6 +1,6 @@
 import { describe, it } from '@effect/vitest'
 import { Effect } from 'effect'
-import { expect } from 'vitest'
+import { expect, vi } from 'vitest'
 
 import {
   ElementNotFound,
@@ -8,6 +8,8 @@ import {
   inertOthers,
   lockScroll,
   restoreInert,
+  scrollIntoView,
+  scrollIntoViewAfterPaint,
   unlockScroll,
 } from './index.js'
 
@@ -17,6 +19,159 @@ describe('focus', () => {
       const error = yield* Effect.flip(focus('#nonexistent'))
       expect(error).toBeInstanceOf(ElementNotFound)
       expect(error.selector).toBe('#nonexistent')
+    }),
+  )
+
+  it.effect('focuses the matching element', () =>
+    Effect.gen(function* () {
+      const input = document.createElement('input')
+      input.id = 'target'
+      document.body.appendChild(input)
+
+      yield* focus('#target')
+
+      expect(document.activeElement).toBe(input)
+
+      document.body.innerHTML = ''
+    }),
+  )
+
+  it.effect(
+    'injects tabindex="-1" when makeFocusable is true and the target has none',
+    () =>
+      Effect.gen(function* () {
+        const section = document.createElement('section')
+        section.id = 'target'
+        document.body.appendChild(section)
+
+        yield* focus('#target', { makeFocusable: true })
+
+        expect(section.getAttribute('tabindex')).toBe('-1')
+        expect(document.activeElement).toBe(section)
+
+        document.body.innerHTML = ''
+      }),
+  )
+
+  it.effect(
+    'leaves an existing tabindex untouched when makeFocusable is true',
+    () =>
+      Effect.gen(function* () {
+        const section = document.createElement('section')
+        section.id = 'target'
+        section.setAttribute('tabindex', '0')
+        document.body.appendChild(section)
+
+        yield* focus('#target', { makeFocusable: true })
+
+        expect(section.getAttribute('tabindex')).toBe('0')
+
+        document.body.innerHTML = ''
+      }),
+  )
+
+  it.effect('forwards preventScroll to the focus call', () =>
+    Effect.gen(function* () {
+      const input = document.createElement('input')
+      input.id = 'target'
+      document.body.appendChild(input)
+
+      const focusSpy = vi.fn()
+      input.focus = focusSpy
+
+      yield* focus('#target', { preventScroll: true })
+
+      expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true })
+
+      document.body.innerHTML = ''
+    }),
+  )
+})
+
+describe('scrollIntoView', () => {
+  it.effect('fails with ElementNotFound when the selector does not match', () =>
+    Effect.gen(function* () {
+      const error = yield* Effect.flip(scrollIntoView('#missing'))
+      expect(error).toBeInstanceOf(ElementNotFound)
+      expect(error.selector).toBe('#missing')
+    }),
+  )
+
+  it.effect('defaults to { block: "nearest" }', () =>
+    Effect.gen(function* () {
+      const section = document.createElement('section')
+      section.id = 'target'
+      document.body.appendChild(section)
+
+      const scrollIntoViewSpy = vi.fn()
+      section.scrollIntoView = scrollIntoViewSpy
+
+      yield* scrollIntoView('#target')
+
+      expect(scrollIntoViewSpy).toHaveBeenCalledWith({ block: 'nearest' })
+
+      document.body.innerHTML = ''
+    }),
+  )
+
+  it.effect('forwards the block option', () =>
+    Effect.gen(function* () {
+      const section = document.createElement('section')
+      section.id = 'target'
+      document.body.appendChild(section)
+
+      const scrollIntoViewSpy = vi.fn()
+      section.scrollIntoView = scrollIntoViewSpy
+
+      yield* scrollIntoView('#target', { block: 'start' })
+
+      expect(scrollIntoViewSpy).toHaveBeenCalledWith({ block: 'start' })
+
+      document.body.innerHTML = ''
+    }),
+  )
+})
+
+describe('scrollIntoViewAfterPaint', () => {
+  it.effect('fails with ElementNotFound when the selector does not match', () =>
+    Effect.gen(function* () {
+      const error = yield* Effect.flip(scrollIntoViewAfterPaint('#missing'))
+      expect(error).toBeInstanceOf(ElementNotFound)
+      expect(error.selector).toBe('#missing')
+    }),
+  )
+
+  it.effect('defaults to { block: "nearest" }', () =>
+    Effect.gen(function* () {
+      const section = document.createElement('section')
+      section.id = 'target'
+      document.body.appendChild(section)
+
+      const scrollIntoViewSpy = vi.fn()
+      section.scrollIntoView = scrollIntoViewSpy
+
+      yield* scrollIntoViewAfterPaint('#target')
+
+      expect(scrollIntoViewSpy).toHaveBeenCalledWith({ block: 'nearest' })
+
+      document.body.innerHTML = ''
+    }),
+  )
+
+  it.effect('forwards the block option', () =>
+    Effect.gen(function* () {
+      const section = document.createElement('section')
+      section.id = 'target'
+      document.body.appendChild(section)
+
+      const scrollIntoViewSpy = vi.fn()
+      section.scrollIntoView = scrollIntoViewSpy
+
+      yield* scrollIntoViewAfterPaint('#target', { block: 'start' })
+
+      expect(scrollIntoViewSpy).toHaveBeenCalledWith({ block: 'start' })
+
+      document.body.innerHTML = ''
     }),
   )
 })
