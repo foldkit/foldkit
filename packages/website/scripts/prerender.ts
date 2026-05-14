@@ -6,6 +6,8 @@ import {
   Deferred,
   Effect,
   Match as M,
+  Option,
+  Record,
   Schema as S,
   String as Str,
   Stream,
@@ -18,8 +20,10 @@ import { fileURLToPath } from 'node:url'
 import { type Browser, chromium } from 'playwright'
 
 import {
+  type ApiModule,
   moduleNameToSlug,
   parseTypedocJson,
+  slugToModuleName,
 } from '../src/page/apiReference/domain'
 import { TypeDocJson } from '../src/page/apiReference/typedoc'
 import { exampleSlugs } from '../src/page/example/meta'
@@ -177,6 +181,7 @@ import {
   uiVirtualListRouter,
   whyNoJsxRouter,
 } from '../src/route'
+import { type ApiModuleNameResolver } from './metadata'
 import { generateOgImages, injectMetaTags } from './og-image'
 
 // ROUTES
@@ -452,17 +457,35 @@ const captureRouteHtml = (browser: Browser, url: string, route: AppRoute) =>
 
 const ApiDocJson = S.fromJsonString(TypeDocJson)
 
-const readApiModuleSlugs = Effect.gen(function* () {
+const readApiModules = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem
   const raw = yield* fs.readFileString(API_JSON_PATH)
   const apiDoc = yield* S.decodeUnknownEffect(ApiDocJson)(raw)
-  return Array.map(parseTypedocJson(apiDoc).modules, ({ name }) =>
-    moduleNameToSlug(name),
-  )
+  return parseTypedocJson(apiDoc).modules
 })
 
+const buildApiModuleNameResolver = (
+  modules: ReadonlyArray<ApiModule>,
+): ApiModuleNameResolver => {
+  const nameBySlug: Record<string, string> = pipe(
+    modules,
+    Array.map(({ name }) => [moduleNameToSlug(name), name] as const),
+    Record.fromEntries,
+  )
+  return slug =>
+    pipe(
+      Record.get(nameBySlug, slug),
+      Option.getOrElse(() => slugToModuleName(slug)),
+    )
+}
+
 const prerenderRoute =
-  (browser: Browser, baseHtml: string) => (route: AppRoute) =>
+  (
+    browser: Browser,
+    baseHtml: string,
+    resolveApiModuleName: ApiModuleNameResolver,
+  ) =>
+  (route: AppRoute) =>
     Effect.gen(function* () {
       const urlPath = routeToUrlPath(route)
       const outputPath = routeToOutputPath(route)
@@ -471,7 +494,12 @@ const prerenderRoute =
 
       const renderedHtml = yield* captureRouteHtml(browser, url, route)
       const injectedHtml = injectHtml(baseHtml, renderedHtml)
-      const outputHtml = injectMetaTags(injectedHtml, route, urlPath)
+      const outputHtml = injectMetaTags(
+        injectedHtml,
+        route,
+        urlPath,
+        resolveApiModuleName,
+      )
 
       const fs = yield* FileSystem.FileSystem
       yield* fs.makeDirectory(dirname(outputFilePath), {
@@ -531,17 +559,28 @@ const program = Effect.scoped(
     yield* previewServerResource
     const browser = yield* playwrightBrowserResource
 
-    const apiModuleSlugs = yield* readApiModuleSlugs
+    const apiModules = yield* readApiModules
+    const apiModuleSlugs = Array.map(apiModules, ({ name }) =>
+      moduleNameToSlug(name),
+    )
+    const resolveApiModuleName = buildApiModuleNameResolver(apiModules)
     const routes = enumerateRoutes(apiModuleSlugs)
 
-    yield* generateOgImages(routes, routeToUrlPath, DIST_DIR)
+    yield* generateOgImages(
+      routes,
+      routeToUrlPath,
+      DIST_DIR,
+      resolveApiModuleName,
+    )
 
     const fs = yield* FileSystem.FileSystem
     const baseHtml = yield* fs.readFileString(resolve(DIST_DIR, 'index.html'))
 
-    yield* Effect.forEach(routes, prerenderRoute(browser, baseHtml), {
-      concurrency: 4,
-    })
+    yield* Effect.forEach(
+      routes,
+      prerenderRoute(browser, baseHtml, resolveApiModuleName),
+      { concurrency: 4 },
+    )
 
     const lastModification = formatDateIso(yield* DateTime.now)
     yield* fs.writeFileString(
