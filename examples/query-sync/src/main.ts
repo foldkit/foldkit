@@ -28,9 +28,9 @@ const Period = S.Literals(['Triassic', 'Jurassic', 'Cretaceous'])
 const SortColumn = S.Literals(['Name', 'Period', 'Diet', 'Length', 'Weight'])
 type SortColumn = typeof SortColumn.Type
 
-const Unsorted = ts('Unsorted')
-const Ascending = ts('Ascending', { column: SortColumn })
-const Descending = ts('Descending', { column: SortColumn })
+export const Unsorted = ts('Unsorted')
+export const Ascending = ts('Ascending', { column: SortColumn })
+export const Descending = ts('Descending', { column: SortColumn })
 const Sorting = S.Union([Unsorted, Ascending, Descending])
 type Sorting = typeof Sorting.Type
 
@@ -113,14 +113,14 @@ const sortingFromParam = (() => {
   )
 })()
 
-const BrowseRoute = r('Browse', {
+export const BrowseRoute = r('Browse', {
   search: S.Option(S.String),
   sorting: Sorting,
   diet: S.Option(Diet),
   period: S.Option(Period),
 })
 
-const NotFoundRoute = r('NotFound', { path: S.String })
+export const NotFoundRoute = r('NotFound', { path: S.String })
 
 const AppRoute = S.Union([BrowseRoute, NotFoundRoute])
 type AppRoute = typeof AppRoute.Type
@@ -152,21 +152,25 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-const CompletedNavigateInternal = m('CompletedNavigateInternal')
-const CompletedLoadExternal = m('CompletedLoadExternal')
-const CompletedReplaceUrl = m('CompletedReplaceUrl')
+export const CompletedNavigateInternal = m('CompletedNavigateInternal')
+export const CompletedLoadExternal = m('CompletedLoadExternal')
+export const CompletedReplaceUrl = m('CompletedReplaceUrl')
 export const ClickedLink = m('ClickedLink', { request: UrlRequest })
 export const ChangedUrl = m('ChangedUrl', { url: Url })
-const ChangedSearchInput = m('ChangedSearchInput', { value: S.String })
-const ClickedColumnHeader = m('ClickedColumnHeader', { column: SortColumn })
-const GotDietListboxMessage = m('GotDietListboxMessage', {
+export const ChangedSearchInput = m('ChangedSearchInput', { value: S.String })
+export const ClickedColumnHeader = m('ClickedColumnHeader', {
+  column: SortColumn,
+})
+export const GotDietListboxMessage = m('GotDietListboxMessage', {
   message: Ui.Listbox.Message,
 })
-const GotPeriodListboxMessage = m('GotPeriodListboxMessage', {
+export const GotPeriodListboxMessage = m('GotPeriodListboxMessage', {
   message: Ui.Listbox.Message,
 })
-const SelectedDietFilter = m('SelectedDietFilter', { value: S.String })
-const SelectedPeriodFilter = m('SelectedPeriodFilter', { value: S.String })
+export const SelectedDietFilter = m('SelectedDietFilter', { value: S.String })
+export const SelectedPeriodFilter = m('SelectedPeriodFilter', {
+  value: S.String,
+})
 
 export const Message = S.Union([
   CompletedNavigateInternal,
@@ -259,7 +263,7 @@ const selectionToParam = <A extends string>(
   )
 }
 
-const ReplaceFilters = Command.define(
+export const ReplaceFilters = Command.define(
   'ReplaceFilters',
   {
     search: S.Option(S.String),

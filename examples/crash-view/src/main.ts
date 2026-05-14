@@ -10,7 +10,7 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-const ClickedCrash = m('ClickedCrash')
+export const ClickedCrash = m('ClickedCrash')
 
 export const Message = Schema.Union([ClickedCrash])
 export type Message = typeof Message.Type

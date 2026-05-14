@@ -191,6 +191,9 @@ importers:
       eslint:
         specifier: ^10.3.0
         version: 10.3.0(jiti@2.7.0)
+      happy-dom:
+        specifier: ^20.9.0
+        version: 20.9.0
       prettier:
         specifier: ^3.8.3
         version: 3.8.3
@@ -200,6 +203,9 @@ importers:
       vite:
         specifier: ^8.0.10
         version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.4)
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.5(@types/node@25.6.0)(happy-dom@20.9.0)(jsdom@29.1.1)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.4))
 
   examples/counter:
     dependencies:
@@ -237,6 +243,9 @@ importers:
       eslint:
         specifier: ^10.3.0
         version: 10.3.0(jiti@2.7.0)
+      happy-dom:
+        specifier: ^20.9.0
+        version: 20.9.0
       prettier:
         specifier: ^3.8.3
         version: 3.8.3
@@ -246,6 +255,9 @@ importers:
       vite:
         specifier: ^8.0.10
         version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.4)
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.5(@types/node@25.6.0)(happy-dom@20.9.0)(jsdom@29.1.1)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.4))
 
   examples/crash-view:
     dependencies:
@@ -283,6 +295,9 @@ importers:
       eslint:
         specifier: ^10.3.0
         version: 10.3.0(jiti@2.7.0)
+      happy-dom:
+        specifier: ^20.9.0
+        version: 20.9.0
       prettier:
         specifier: ^3.8.3
         version: 3.8.3
@@ -292,6 +307,9 @@ importers:
       vite:
         specifier: ^8.0.10
         version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.4)
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.5(@types/node@25.6.0)(happy-dom@20.9.0)(jsdom@29.1.1)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.4))
 
   examples/form:
     dependencies:
@@ -662,6 +680,9 @@ importers:
       eslint:
         specifier: ^10.3.0
         version: 10.3.0(jiti@2.7.0)
+      happy-dom:
+        specifier: ^20.9.0
+        version: 20.9.0
       prettier:
         specifier: ^3.8.3
         version: 3.8.3
@@ -671,6 +692,9 @@ importers:
       vite:
         specifier: ^8.0.10
         version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.4)
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.5(@types/node@25.6.0)(happy-dom@20.9.0)(jsdom@29.1.1)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.4))
 
   examples/routing:
     dependencies:
@@ -708,6 +732,9 @@ importers:
       eslint:
         specifier: ^10.3.0
         version: 10.3.0(jiti@2.7.0)
+      happy-dom:
+        specifier: ^20.9.0
+        version: 20.9.0
       prettier:
         specifier: ^3.8.3
         version: 3.8.3
@@ -717,6 +744,9 @@ importers:
       vite:
         specifier: ^8.0.10
         version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.4)
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.5(@types/node@25.6.0)(happy-dom@20.9.0)(jsdom@29.1.1)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.4))
 
   examples/shopping-cart:
     dependencies:
@@ -754,6 +784,9 @@ importers:
       eslint:
         specifier: ^10.3.0
         version: 10.3.0(jiti@2.7.0)
+      happy-dom:
+        specifier: ^20.9.0
+        version: 20.9.0
       prettier:
         specifier: ^3.8.3
         version: 3.8.3
@@ -763,6 +796,9 @@ importers:
       vite:
         specifier: ^8.0.10
         version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.4)
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.5(@types/node@25.6.0)(happy-dom@20.9.0)(jsdom@29.1.1)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.4))
 
   examples/snake:
     dependencies:
@@ -800,6 +836,9 @@ importers:
       eslint:
         specifier: ^10.3.0
         version: 10.3.0(jiti@2.7.0)
+      happy-dom:
+        specifier: ^20.9.0
+        version: 20.9.0
       prettier:
         specifier: ^3.8.3
         version: 3.8.3
@@ -809,6 +848,9 @@ importers:
       vite:
         specifier: ^8.0.10
         version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.4)
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.5(@types/node@25.6.0)(happy-dom@20.9.0)(jsdom@29.1.1)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.4))
 
   examples/stopwatch:
     dependencies:
@@ -846,6 +888,9 @@ importers:
       eslint:
         specifier: ^10.3.0
         version: 10.3.0(jiti@2.7.0)
+      happy-dom:
+        specifier: ^20.9.0
+        version: 20.9.0
       prettier:
         specifier: ^3.8.3
         version: 3.8.3
@@ -855,6 +900,9 @@ importers:
       vite:
         specifier: ^8.0.10
         version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.4)
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.5(@types/node@25.6.0)(happy-dom@20.9.0)(jsdom@29.1.1)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.4))
 
   examples/todo:
     dependencies:
@@ -947,6 +995,9 @@ importers:
       eslint:
         specifier: ^10.3.0
         version: 10.3.0(jiti@2.7.0)
+      happy-dom:
+        specifier: ^20.9.0
+        version: 20.9.0
       prettier:
         specifier: ^3.8.3
         version: 3.8.3
@@ -956,6 +1007,9 @@ importers:
       vite:
         specifier: ^8.0.10
         version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.4)
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.5(@types/node@25.6.0)(happy-dom@20.9.0)(jsdom@29.1.1)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.4))
 
   examples/weather:
     dependencies:
@@ -1054,6 +1108,9 @@ importers:
       eslint:
         specifier: ^10.3.0
         version: 10.3.0(jiti@2.7.0)
+      happy-dom:
+        specifier: ^20.9.0
+        version: 20.9.0
       prettier:
         specifier: ^3.8.3
         version: 3.8.3
@@ -1063,6 +1120,9 @@ importers:
       vite:
         specifier: ^8.0.10
         version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.4)
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.5(@types/node@25.6.0)(happy-dom@20.9.0)(jsdom@29.1.1)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.4))
 
   examples/websocket-chat:
     dependencies:
@@ -1100,6 +1160,9 @@ importers:
       eslint:
         specifier: ^10.3.0
         version: 10.3.0(jiti@2.7.0)
+      happy-dom:
+        specifier: ^20.9.0
+        version: 20.9.0
       prettier:
         specifier: ^3.8.3
         version: 3.8.3
@@ -1109,6 +1172,9 @@ importers:
       vite:
         specifier: ^8.0.10
         version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.4)
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.5(@types/node@25.6.0)(happy-dom@20.9.0)(jsdom@29.1.1)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.4))
 
   internal/performance-harness:
     dependencies:

@@ -36,10 +36,10 @@ type ChatMessage = typeof ChatMessage.Type
 const ChatSocket = ManagedResource.tag<WebSocket>()('ChatSocket')
 type ChatSocketService = ManagedResource.ServiceOf<typeof ChatSocket>
 
-const ConnectionDisconnected = ts('ConnectionDisconnected')
-const ConnectionConnecting = ts('ConnectionConnecting')
-const ConnectionConnected = ts('ConnectionConnected')
-const ConnectionError = ts('ConnectionError', { error: S.String })
+export const ConnectionDisconnected = ts('ConnectionDisconnected')
+export const ConnectionConnecting = ts('ConnectionConnecting')
+export const ConnectionConnected = ts('ConnectionConnected')
+export const ConnectionError = ts('ConnectionError', { error: S.String })
 
 const ConnectionState = S.Union([
   ConnectionDisconnected,
@@ -59,15 +59,19 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-const ClickedConnect = m('ClickedConnect')
-const Connected = m('Connected')
-const Disconnected = m('Disconnected')
-const FailedConnect = m('FailedConnect', { error: S.String })
-const UpdatedMessageInput = m('UpdatedMessageInput', { value: S.String })
-const SubmittedMessage = m('SubmittedMessage')
-const SucceededSendMessage = m('SucceededSendMessage', { text: S.String })
-const ReceivedMessage = m('ReceivedMessage', { text: S.String })
-const TimestampedMessage = m('TimestampedMessage', {
+export const ClickedConnect = m('ClickedConnect')
+export const Connected = m('Connected')
+export const Disconnected = m('Disconnected')
+export const FailedConnect = m('FailedConnect', { error: S.String })
+export const UpdatedMessageInput = m('UpdatedMessageInput', {
+  value: S.String,
+})
+export const SubmittedMessage = m('SubmittedMessage')
+export const SucceededSendMessage = m('SucceededSendMessage', {
+  text: S.String,
+})
+export const ReceivedMessage = m('ReceivedMessage', { text: S.String })
+export const TimestampedMessage = m('TimestampedMessage', {
   text: S.String,
   zoned: S.DateTimeZoned,
   isSent: S.Boolean,
@@ -196,7 +200,7 @@ export const init: Runtime.ProgramInit<Model, Message> = () => [
 
 // COMMAND
 
-const TimestampSentMessage = Command.define(
+export const TimestampSentMessage = Command.define(
   'TimestampSentMessage',
   { text: S.String },
   TimestampedMessage,
@@ -206,7 +210,7 @@ const TimestampSentMessage = Command.define(
   ),
 )
 
-const TimestampReceivedMessage = Command.define(
+export const TimestampReceivedMessage = Command.define(
   'TimestampReceivedMessage',
   { text: S.String },
   TimestampedMessage,
@@ -216,7 +220,7 @@ const TimestampReceivedMessage = Command.define(
   ),
 )
 
-const SendMessage = Command.define(
+export const SendMessage = Command.define(
   'SendMessage',
   { text: S.String },
   SucceededSendMessage,

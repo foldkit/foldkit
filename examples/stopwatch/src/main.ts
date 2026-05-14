@@ -27,12 +27,16 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-const ClickedStart = m('ClickedStart')
-const DeterminedStartTime = m('DeterminedStartTime', { startTime: S.Number })
-const ClickedStop = m('ClickedStop')
-const ClickedReset = m('ClickedReset')
-const Ticked = m('Ticked')
-const DeterminedTickTime = m('DeterminedTickTime', { elapsedMs: S.Number })
+export const ClickedStart = m('ClickedStart')
+export const DeterminedStartTime = m('DeterminedStartTime', {
+  startTime: S.Number,
+})
+export const ClickedStop = m('ClickedStop')
+export const ClickedReset = m('ClickedReset')
+export const Ticked = m('Ticked')
+export const DeterminedTickTime = m('DeterminedTickTime', {
+  elapsedMs: S.Number,
+})
 
 export const Message = S.Union([
   ClickedStart,
@@ -46,7 +50,7 @@ export type Message = typeof Message.Type
 
 // COMMAND
 
-const DetermineStartTime = Command.define(
+export const DetermineStartTime = Command.define(
   'DetermineStartTime',
   { elapsedMs: S.Number },
   DeterminedStartTime,
@@ -57,7 +61,7 @@ const DetermineStartTime = Command.define(
   }),
 )
 
-const DetermineTickTime = Command.define(
+export const DetermineTickTime = Command.define(
   'DetermineTickTime',
   { startTime: S.Number },
   DeterminedTickTime,

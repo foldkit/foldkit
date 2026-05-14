@@ -57,7 +57,7 @@ const modelWithTodos: Model = {
   todos: [buyMilk, walkDog, doneTask],
 }
 
-describe('todo update', () => {
+describe('update', () => {
   describe('add todo', () => {
     test('AddedTodo with text produces a GenerateTodo Command', () => {
       Story.story(

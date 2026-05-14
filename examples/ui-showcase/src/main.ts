@@ -32,32 +32,32 @@ import * as View from './view'
 
 // ROUTE
 
-const HomeRoute = r('Home')
-const ButtonRoute = r('Button')
-const CalendarRoute = r('Calendar')
-const CheckboxRoute = r('Checkbox')
-const ComboboxRoute = r('Combobox')
-const DatePickerRoute = r('DatePicker')
-const DialogRoute = r('Dialog')
-const DisclosureRoute = r('Disclosure')
-const DragAndDropRoute = r('DragAndDrop')
-const FieldsetRoute = r('Fieldset')
-const FileDropRoute = r('FileDrop')
-const InputRoute = r('Input')
-const ListboxRoute = r('Listbox')
-const MenuRoute = r('Menu')
-const PopoverRoute = r('Popover')
-const RadioGroupRoute = r('RadioGroup')
-const SelectRoute = r('Select')
-const SliderRoute = r('Slider')
-const SwitchRoute = r('Switch')
-const TabsRoute = r('Tabs')
-const TextareaRoute = r('Textarea')
-const ToastRoute = r('Toast')
-const TooltipRoute = r('Tooltip')
-const AnimationRoute = r('Animation')
-const VirtualListRoute = r('VirtualList')
-const NotFoundRoute = r('NotFound', { path: S.String })
+export const HomeRoute = r('Home')
+export const ButtonRoute = r('Button')
+export const CalendarRoute = r('Calendar')
+export const CheckboxRoute = r('Checkbox')
+export const ComboboxRoute = r('Combobox')
+export const DatePickerRoute = r('DatePicker')
+export const DialogRoute = r('Dialog')
+export const DisclosureRoute = r('Disclosure')
+export const DragAndDropRoute = r('DragAndDrop')
+export const FieldsetRoute = r('Fieldset')
+export const FileDropRoute = r('FileDrop')
+export const InputRoute = r('Input')
+export const ListboxRoute = r('Listbox')
+export const MenuRoute = r('Menu')
+export const PopoverRoute = r('Popover')
+export const RadioGroupRoute = r('RadioGroup')
+export const SelectRoute = r('Select')
+export const SliderRoute = r('Slider')
+export const SwitchRoute = r('Switch')
+export const TabsRoute = r('Tabs')
+export const TextareaRoute = r('Textarea')
+export const ToastRoute = r('Toast')
+export const TooltipRoute = r('Tooltip')
+export const AnimationRoute = r('Animation')
+export const VirtualListRoute = r('VirtualList')
+export const NotFoundRoute = r('NotFound', { path: S.String })
 
 const AppRoute = S.Union([
   HomeRoute,
@@ -172,13 +172,13 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-const CompletedNavigateInternal = m('CompletedNavigateInternal')
-const CompletedLoadExternal = m('CompletedLoadExternal')
+export const CompletedNavigateInternal = m('CompletedNavigateInternal')
+export const CompletedLoadExternal = m('CompletedLoadExternal')
 export const ClickedLink = m('ClickedLink', {
   request: UrlRequest,
 })
 export const ChangedUrl = m('ChangedUrl', { url: Url })
-const GotUiMessage = m('GotUiMessage', {
+export const GotUiMessage = m('GotUiMessage', {
   message: UiMessage,
 })
 

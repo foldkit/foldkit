@@ -55,16 +55,16 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-const CompletedNavigateInternal = m('CompletedNavigateInternal')
-const CompletedLoadExternal = m('CompletedLoadExternal')
+export const CompletedNavigateInternal = m('CompletedNavigateInternal')
+export const CompletedLoadExternal = m('CompletedLoadExternal')
 export const ClickedLink = m('ClickedLink', {
   request: UrlRequest,
 })
 export const ChangedUrl = m('ChangedUrl', { url: Url })
-const GotProductsMessage = m('GotProductsMessage', {
+export const GotProductsMessage = m('GotProductsMessage', {
   message: Products.Message,
 })
-const ClickedAddToCart = m('ClickedAddToCart', { item: Item.Item })
+export const ClickedAddToCart = m('ClickedAddToCart', { item: Item.Item })
 const ClickedQuantityChange = m('ClickedQuantityChange', {
   itemId: S.String,
   quantity: S.Number,

@@ -65,7 +65,7 @@ const emptyModel: Model = {
   announcement: '',
 }
 
-describe('kanban update', () => {
+describe('update', () => {
   describe('add card', () => {
     const acknowledgeFocusInput = Story.Command.resolve(
       FocusAddCardInput,

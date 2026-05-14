@@ -10,9 +10,9 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-const ClickedDecrement = m('ClickedDecrement')
-const ClickedIncrement = m('ClickedIncrement')
-const ClickedReset = m('ClickedReset')
+export const ClickedDecrement = m('ClickedDecrement')
+export const ClickedIncrement = m('ClickedIncrement')
+export const ClickedReset = m('ClickedReset')
 
 export const Message = S.Union([
   ClickedDecrement,
