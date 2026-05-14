@@ -274,8 +274,8 @@ type RuntimeConfig<
   /**
    * An Effect Layer providing long-lived resources that persist across command
    * invocations. Use this for browser resources with lifecycle (AudioContext,
-   * RTCPeerConnection, CanvasRenderingContext2D) — not for stateless utilities
-   * (HttpClient, JSON encoding) which should be provided per-command.
+   * RTCPeerConnection, CanvasRenderingContext2D). Stateless utilities like
+   * HttpClient or BrowserKeyValueStore should be provided per-command instead.
    *
    * The runtime memoizes the layer, ensuring a single shared instance for all
    * commands and subscriptions throughout the application's lifetime.
