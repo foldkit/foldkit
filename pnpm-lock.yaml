@@ -1209,6 +1209,9 @@ importers:
       '@effect/platform-node':
         specifier: 4.0.0-beta.64
         version: 4.0.0-beta.64(effect@4.0.0-beta.64)(ioredis@5.10.1)
+      '@effect/platform-node-shared':
+        specifier: 4.0.0-beta.64
+        version: 4.0.0-beta.64(effect@4.0.0-beta.64)
       chalk:
         specifier: ^5.6.2
         version: 5.6.2
@@ -1677,8 +1680,8 @@ packages:
     peerDependencies:
       effect: 4.0.0-beta.64
 
-  '@effect/platform-node-shared@4.0.0-beta.65':
-    resolution: {integrity: sha512-3rY8F3WLEax6Hj08GI/OvDIH+KqjfxH7RM2bAMfgR75NgRmwDtny1P49PtPkoRjH5dcdtThThtsvE4X9OTZkpQ==}
+  '@effect/platform-node-shared@4.0.0-beta.64':
+    resolution: {integrity: sha512-F5hVnPZbgKzxy2TijjhNZKqj7tQi60dx1W/JinnsNxYKGuspvW2gDUeqmNw7sP2bEA5ToeGDPqRCRdpHj3sZxg==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       effect: 4.0.0-beta.64
@@ -5135,7 +5138,7 @@ snapshots:
       effect: 4.0.0-beta.64
       multipasta: 0.2.7
 
-  '@effect/platform-node-shared@4.0.0-beta.65(effect@4.0.0-beta.64)':
+  '@effect/platform-node-shared@4.0.0-beta.64(effect@4.0.0-beta.64)':
     dependencies:
       '@types/ws': 8.18.1
       effect: 4.0.0-beta.64
@@ -5146,7 +5149,7 @@ snapshots:
 
   '@effect/platform-node@4.0.0-beta.64(effect@4.0.0-beta.64)(ioredis@5.10.1)':
     dependencies:
-      '@effect/platform-node-shared': 4.0.0-beta.65(effect@4.0.0-beta.64)
+      '@effect/platform-node-shared': 4.0.0-beta.64(effect@4.0.0-beta.64)
       effect: 4.0.0-beta.64
       ioredis: 5.10.1
       mime: 4.1.0
