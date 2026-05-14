@@ -949,7 +949,7 @@ const makeRuntime = <
             yield* Ref.set(maybeCurrentVNodeRef, Option.some(patchedVNode))
 
             yield* Effect.sync(() =>
-              applyDocumentMetadata(nextDocument, container),
+              applyDocumentMetadata(nextDocument, patchedVNode.elm),
             )
           }).pipe(
             Effect.provideService(Dispatch, dispatchService),
@@ -1381,9 +1381,9 @@ const upsertHeadElement = <K extends keyof HTMLElementTagNameMap>(
 
 const applyDocumentMetadata = (
   nextDocument: Document,
-  container: HTMLElement,
+  mountedRoot: Node | undefined,
 ): void => {
-  if (!document.body.contains(container)) {
+  if (!mountedRoot || !document.body.contains(mountedRoot)) {
     return
   }
 
@@ -1432,8 +1432,8 @@ const renderCrashView = <Model, Message>(
       Effect.runSync,
     )
 
-    patchVNode(maybeCurrentVNode, vnode, container)
-    applyDocumentMetadata(crashDocument, container)
+    const patchedVNode = patchVNode(maybeCurrentVNode, vnode, container)
+    applyDocumentMetadata(crashDocument, patchedVNode.elm)
   } catch (viewError) {
     console.error('[foldkit] crash.view failed:', viewError)
 
@@ -1448,8 +1448,8 @@ const renderCrashView = <Model, Message>(
       Effect.runSync,
     )
 
-    patchVNode(maybeCurrentVNode, vnode, container)
-    applyDocumentMetadata(fallbackDocument, container)
+    const patchedVNode = patchVNode(maybeCurrentVNode, vnode, container)
+    applyDocumentMetadata(fallbackDocument, patchedVNode.elm)
   }
 }
 
