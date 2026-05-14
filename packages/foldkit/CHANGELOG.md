@@ -1,5 +1,58 @@
 # foldkit
 
+## 0.96.0
+
+### Minor Changes
+
+- b76e3b2: Add `Dom.scrollIntoViewAfterPaint`, a sibling of `Dom.scrollIntoView` that waits for `Render.afterPaint` instead of `Render.afterCommit` before resolving the selector. Reach for it when the scroll target was just brought into the DOM by the same Message that dispatches the scroll, such as a routing flow landing at a URL fragment.
+
+  Extend `Dom.scrollIntoView` and `Dom.scrollIntoViewAfterPaint` with a `{ block?: ScrollLogicalPosition }` option, defaulting to `'nearest'`.
+
+  Extend `Dom.focus` with `{ preventScroll?: boolean; makeFocusable?: boolean }` options. `makeFocusable` injects `tabindex="-1"` on the target when it has no `tabindex`. `preventScroll` suppresses the browser's default scroll-on-focus.
+
+  The three helpers compose for URL-fragment-navigation accessibility:
+
+  ```ts
+  const ScrollToAnchor = Command.define(
+    'ScrollToAnchor',
+    { hash: S.String },
+    CompletedScrollToAnchor,
+  )(({ hash }) =>
+    Effect.gen(function* () {
+      const target = `#${hash}`
+      yield* Dom.scrollIntoViewAfterPaint(target, { block: 'start' })
+      yield* Dom.focus(target, { preventScroll: true, makeFocusable: true })
+      return CompletedScrollToAnchor()
+    }),
+  )
+  ```
+
+  `scrollIntoViewAfterPaint` waits for the new Model to commit and the browser to lay it out. `focus` with `makeFocusable: true` makes non-natively-focusable targets (like `<h2>` section headings) receive keyboard focus. `preventScroll: true` keeps the focus call from undoing the scroll.
+
+- 7e2726e: **Breaking:** Rename the exported `SubscriptionDeps` struct on UI components to `SubscriptionDependencies`. Affects `Ui.Slider`, `Ui.VirtualList`, and `Ui.DragAndDrop`. Update every callsite that references the old name:
+
+  ```ts
+  // before
+  Ui.Slider.SubscriptionDeps.fields['dragPointer']
+  Ui.VirtualList.SubscriptionDeps.fields['containerEvents']
+  Ui.DragAndDrop.SubscriptionDeps.fields['documentPointer']
+
+  // after
+  Ui.Slider.SubscriptionDependencies.fields['dragPointer']
+  Ui.VirtualList.SubscriptionDependencies.fields['containerEvents']
+  Ui.DragAndDrop.SubscriptionDependencies.fields['documentPointer']
+  ```
+
+  By convention application code that names a local subscription dependency schema should also rename it from `SubscriptionDeps` to `SubscriptionDependencies` to match. The runtime API (`Subscription.makeSubscriptions`) accepts any schema name, so this convention change is not enforced by the types.
+
+### Patch Changes
+
+- 2547569: Fix `document.title`, `<link rel="canonical">`, and `<meta property="og:url">` not updating across renders.
+
+  The runtime cached the container element passed to it at startup and used `document.body.contains(container)` to guard document metadata updates. Snabbdom replaces the container element on the first patch whenever the root VNode's selector doesn't match the container's. A common case: mounting on `<div id="root">` with a top-level view of `<div class="...">`. That detached the cached reference, the guard short-circuited every subsequent render, and document metadata stayed pinned to whatever the static HTML provided.
+
+  The runtime now checks the patched VNode's live element instead, so metadata updates work regardless of selector mismatches between the container and the root view.
+
 ## 0.95.1
 
 ### Patch Changes
