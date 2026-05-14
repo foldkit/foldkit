@@ -46,6 +46,9 @@ jobs:
       - name: Verify changeset ignore list
         run: pnpm check:changeset-ignore
 
+      - name: Smoke test create-foldkit-app
+        run: pnpm check:create-foldkit-app-smoke
+
       - name: Create Release Pull Request or Publish
         id: changesets
         uses: changesets/action@v1

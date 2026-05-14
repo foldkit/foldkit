@@ -1,6 +1,7 @@
 node_modules
 dist
 *.tsbuildinfo
+*.tgz
 .vercel
 **/.claude/*
 !/.claude/commands/
