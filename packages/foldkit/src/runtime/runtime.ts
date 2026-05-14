@@ -596,9 +596,7 @@ const makeRuntime = <
             ),
           )
         }
-        const maybeResourceLayer = resources
-          ? Option.some(resources)
-          : Option.none()
+        const maybeResourceLayer = Option.fromNullishOr(resources)
 
         const managedResourceEntries: ReadonlyArray<
           [string, ManagedResourceConfig<Model, Message>]
