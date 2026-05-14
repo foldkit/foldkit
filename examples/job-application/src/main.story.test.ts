@@ -47,7 +47,7 @@ const initialModel: Model = {
 
 const withInitial = Story.with(initialModel)
 
-describe('Job Application', () => {
+describe('update', () => {
   describe('navigation', () => {
     test('ClickedNext advances to the next step', () => {
       Story.story(

@@ -38,11 +38,11 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-const TickedClock = m('TickedClock')
-const PressedKey = m('PressedKey', { key: S.String })
-const PausedGame = m('PausedGame')
-const RestartedGame = m('RestartedGame')
-const GeneratedApplePosition = m('GeneratedApplePosition', {
+export const TickedClock = m('TickedClock')
+export const PressedKey = m('PressedKey', { key: S.String })
+export const PausedGame = m('PausedGame')
+export const RestartedGame = m('RestartedGame')
+export const GeneratedApplePosition = m('GeneratedApplePosition', {
   position: Position.Position,
 })
 
@@ -233,7 +233,7 @@ export const update = (
 
 // COMMAND
 
-const GenerateApplePosition = Command.define(
+export const GenerateApplePosition = Command.define(
   'GenerateApplePosition',
   { snake: Snake.Snake },
   GeneratedApplePosition,

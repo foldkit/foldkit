@@ -55,9 +55,9 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-const TickedFrame = m('TickedFrame', { deltaTime: S.Number })
-const ClickedCanvas = m('ClickedCanvas', { x: S.Number, y: S.Number })
-const SpawnedBall = m('SpawnedBall', {
+export const TickedFrame = m('TickedFrame', { deltaTime: S.Number })
+export const ClickedCanvas = m('ClickedCanvas', { x: S.Number, y: S.Number })
+export const SpawnedBall = m('SpawnedBall', {
   x: S.Number,
   y: S.Number,
   vx: S.Number,
@@ -65,8 +65,8 @@ const SpawnedBall = m('SpawnedBall', {
   radius: S.Number,
   color: S.String,
 })
-const ClickedClear = m('ClickedClear')
-const ClickedTogglePlay = m('ClickedTogglePlay')
+export const ClickedClear = m('ClickedClear')
+export const ClickedTogglePlay = m('ClickedTogglePlay')
 
 export const Message = S.Union([
   TickedFrame,
@@ -86,7 +86,7 @@ export const init: Runtime.ProgramInit<Model, Message> = () => [
 
 // COMMAND
 
-const SpawnBall = Command.define(
+export const SpawnBall = Command.define(
   'SpawnBall',
   { x: S.Number, y: S.Number },
   SpawnedBall,

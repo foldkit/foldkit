@@ -9,11 +9,11 @@ import { Url, toString as urlToString } from 'foldkit/url'
 
 // ROUTE
 
-const HomeRoute = r('Home')
-const NestedRoute = r('Nested')
-const PeopleRoute = r('People', { searchText: S.Option(S.String) })
-const PersonRoute = r('Person', { personId: S.Number })
-const NotFoundRoute = r('NotFound', { path: S.String })
+export const HomeRoute = r('Home')
+export const NestedRoute = r('Nested')
+export const PeopleRoute = r('People', { searchText: S.Option(S.String) })
+export const PersonRoute = r('Person', { personId: S.Number })
+export const NotFoundRoute = r('NotFound', { path: S.String })
 
 export const AppRoute = S.Union([
   HomeRoute,
@@ -88,13 +88,13 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-const CompletedNavigateInternal = m('CompletedNavigateInternal')
-const CompletedLoadExternal = m('CompletedLoadExternal')
+export const CompletedNavigateInternal = m('CompletedNavigateInternal')
+export const CompletedLoadExternal = m('CompletedLoadExternal')
 export const ClickedLink = m('ClickedLink', {
   request: UrlRequest,
 })
 export const ChangedUrl = m('ChangedUrl', { url: Url })
-const ChangedSearchInput = m('ChangedSearchInput', { value: S.String })
+export const ChangedSearchInput = m('ChangedSearchInput', { value: S.String })
 
 export const Message = S.Union([
   CompletedNavigateInternal,
@@ -125,7 +125,7 @@ const LoadExternal = Command.define(
   CompletedLoadExternal,
 )(({ href }) => load(href).pipe(Effect.as(CompletedLoadExternal())))
 
-const ReplaceSearchUrl = Command.define(
+export const ReplaceSearchUrl = Command.define(
   'ReplaceSearchUrl',
   { searchText: S.Option(S.String) },
   CompletedNavigateInternal,

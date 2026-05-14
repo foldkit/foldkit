@@ -18,9 +18,11 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-const UpdatedContent = m('UpdatedContent', { value: S.String })
-const ChangedFillColor = m('ChangedFillColor', { value: S.String })
-const ChangedBackgroundColor = m('ChangedBackgroundColor', { value: S.String })
+export const UpdatedContent = m('UpdatedContent', { value: S.String })
+export const ChangedFillColor = m('ChangedFillColor', { value: S.String })
+export const ChangedBackgroundColor = m('ChangedBackgroundColor', {
+  value: S.String,
+})
 
 export const Message = S.Union([
   UpdatedContent,
