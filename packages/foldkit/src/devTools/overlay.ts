@@ -723,7 +723,7 @@ const makeUpdate = (
 
 const ScrubberDragActivity = S.Literals(['Idle', 'Active'])
 
-const SubscriptionDeps = S.Struct({
+const SubscriptionDependencies = S.Struct({
   storeUpdates: S.Boolean,
   mobileBreakpoint: S.Null,
   scrubberPointer: S.Struct({
@@ -740,7 +740,7 @@ const SubscriptionDeps = S.Struct({
 const makeOverlaySubscriptions = (store: DevToolsStore, shadow: ShadowRoot) => {
   const sliderSubscriptions = Slider.subscriptionsForRoot(() => shadow)
 
-  return makeSubscriptions(SubscriptionDeps)<Model, Message>({
+  return makeSubscriptions(SubscriptionDependencies)<Model, Message>({
     storeUpdates: {
       modelToDependencies: () => true,
       dependenciesToStream: () =>

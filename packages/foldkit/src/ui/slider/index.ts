@@ -388,7 +388,7 @@ const valueFromClientX = (
 }
 
 /** Schema describing the subscription dependencies for slider drag. */
-export const SubscriptionDeps = S.Struct({
+export const SubscriptionDependencies = S.Struct({
   dragPointer: S.Struct({
     dragActivity: DragActivity,
     id: S.String,
@@ -407,7 +407,7 @@ export const SubscriptionDeps = S.Struct({
 export const subscriptionsForRoot = (
   getTrackRoot: () => Document | ShadowRoot,
 ) =>
-  makeSubscriptions(SubscriptionDeps)<Model, Message>({
+  makeSubscriptions(SubscriptionDependencies)<Model, Message>({
     dragPointer: {
       modelToDependencies: model => ({
         dragActivity: dragActivityFromModel(model),

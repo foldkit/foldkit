@@ -2,14 +2,14 @@ import { Effect, Queue, Stream } from 'effect'
 import { Render } from 'foldkit'
 import { Subscription } from 'foldkit/subscription'
 
-import { type Model, type SubscriptionDeps } from '../main'
+import { type Model, type SubscriptionDependencies } from '../main'
 import { ChangedHeroVisibility } from '../message'
 import { HERO_SECTION_ID } from '../page/landing'
 
 export const heroVisibility: Subscription<
   Model,
   typeof ChangedHeroVisibility,
-  SubscriptionDeps['heroVisibility']
+  SubscriptionDependencies['heroVisibility']
 > = {
   modelToDependencies: (model: Model) => ({
     isLandingPage: model.route._tag === 'Home',

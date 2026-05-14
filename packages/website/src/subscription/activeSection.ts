@@ -13,14 +13,14 @@ import {
 import { Render } from 'foldkit'
 import { Subscription } from 'foldkit/subscription'
 
-import { Model, SubscriptionDeps } from '../main'
+import { Model, SubscriptionDependencies } from '../main'
 import { ChangedActiveSection } from '../message'
 import * as Page from '../page'
 
 export const activeSection: Subscription<
   Model,
   typeof ChangedActiveSection,
-  SubscriptionDeps['activeSection']
+  SubscriptionDependencies['activeSection']
 > = {
   modelToDependencies: (model: Model) => {
     const currentPageTableOfContents = M.value(model.route).pipe(

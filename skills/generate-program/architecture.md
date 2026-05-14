@@ -286,14 +286,13 @@ When Model state changes such that `modelToDependencies` returns `None`, the Sub
 Some Subscriptions are always active (e.g., keyboard listeners, window resize). Use `S.Null` for the dependency type:
 
 ```ts
-const SubscriptionDeps = S.Struct({
+const SubscriptionDependencies = S.Struct({
   keyboard: S.Null,
 })
 
-export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
-  Model,
-  Message
->({
+export const subscriptions = Subscription.makeSubscriptions(
+  SubscriptionDependencies,
+)<Model, Message>({
   keyboard: {
     modelToDependencies: () => null,
     dependenciesToStream: () =>

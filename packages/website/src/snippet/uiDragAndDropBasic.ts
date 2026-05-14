@@ -85,16 +85,16 @@ const dragAndDropSubs = Ui.DragAndDrop.subscriptions
 const mapDragStream = stream =>
   stream.pipe(Stream.map(message => GotDragAndDropMessage({ message })))
 
-const dragFields = Ui.DragAndDrop.SubscriptionDeps.fields
+const dragFields = Ui.DragAndDrop.SubscriptionDependencies.fields
 
-const SubscriptionDeps = S.Struct({
+const SubscriptionDependencies = S.Struct({
   dragPointer: dragFields['documentPointer'],
   dragEscape: dragFields['documentEscape'],
   dragKeyboard: dragFields['documentKeyboard'],
   autoScroll: dragFields['autoScroll'],
 })
 
-const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)({
+const subscriptions = Subscription.makeSubscriptions(SubscriptionDependencies)({
   dragPointer: {
     modelToDependencies: model =>
       dragAndDropSubs.documentPointer.modelToDependencies(model.dragAndDrop),

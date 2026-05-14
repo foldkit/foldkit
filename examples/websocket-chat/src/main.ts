@@ -298,15 +298,13 @@ export const managedResources = ManagedResource.makeManagedResources(
 
 // SUBSCRIPTION
 
-const SubscriptionDeps = S.Struct({
+const SubscriptionDependencies = S.Struct({
   isConnected: S.Boolean,
 })
 
-export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
-  Model,
-  Message,
-  ChatSocketService
->({
+export const subscriptions = Subscription.makeSubscriptions(
+  SubscriptionDependencies,
+)<Model, Message, ChatSocketService>({
   isConnected: {
     modelToDependencies: model =>
       model.connection._tag === 'ConnectionConnected',

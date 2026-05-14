@@ -636,10 +636,10 @@ export const view = (model: Model): Document => ({
 
 // SUBSCRIPTION
 
-const sliderFields = Ui.Slider.SubscriptionDeps.fields
-const dragAndDropFields = Ui.DragAndDrop.SubscriptionDeps.fields
+const sliderFields = Ui.Slider.SubscriptionDependencies.fields
+const dragAndDropFields = Ui.DragAndDrop.SubscriptionDependencies.fields
 
-const SubscriptionDeps = S.Struct({
+const SubscriptionDependencies = S.Struct({
   sliderRatingPointer: sliderFields['dragPointer'],
   sliderRatingEscape: sliderFields['dragEscape'],
   sliderVolumePointer: sliderFields['dragPointer'],
@@ -649,9 +649,9 @@ const SubscriptionDeps = S.Struct({
   dragKeyboard: dragAndDropFields['documentKeyboard'],
   autoScroll: dragAndDropFields['autoScroll'],
   virtualListContainerEvents:
-    Ui.VirtualList.SubscriptionDeps.fields['containerEvents'],
+    Ui.VirtualList.SubscriptionDependencies.fields['containerEvents'],
   virtualListVariableContainerEvents:
-    Ui.VirtualList.SubscriptionDeps.fields['containerEvents'],
+    Ui.VirtualList.SubscriptionDependencies.fields['containerEvents'],
 })
 
 const sliderSubscriptions = Ui.Slider.subscriptions
@@ -678,10 +678,9 @@ const mapDragStream = (stream: Stream.Stream<Ui.DragAndDrop.Message>) =>
     ),
   )
 
-export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
-  Model,
-  Message
->({
+export const subscriptions = Subscription.makeSubscriptions(
+  SubscriptionDependencies,
+)<Model, Message>({
   sliderRatingPointer: {
     modelToDependencies: model =>
       sliderSubscriptions.dragPointer.modelToDependencies(

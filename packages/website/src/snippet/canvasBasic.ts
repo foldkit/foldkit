@@ -1,9 +1,9 @@
 import { Schema as S } from 'effect'
 import { Canvas, Subscription } from 'foldkit'
 
-const SubscriptionDeps = S.Struct({ frame: S.Boolean })
+const SubscriptionDependencies = S.Struct({ frame: S.Boolean })
 
-const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
+const subscriptions = Subscription.makeSubscriptions(SubscriptionDependencies)<
   Model,
   Message
 >({

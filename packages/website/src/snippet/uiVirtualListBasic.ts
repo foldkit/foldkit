@@ -54,18 +54,18 @@ GotActivityListMessage: ({ message }) => {
 }
 
 // Wire the VirtualList container subscription into your app's
-// SubscriptionDeps and subscriptions. This powers scroll tracking and
+// SubscriptionDependencies and subscriptions. This powers scroll tracking and
 // container resize observation:
-const virtualListFields = Ui.VirtualList.SubscriptionDeps.fields
+const virtualListFields = Ui.VirtualList.SubscriptionDependencies.fields
 
-const SubscriptionDeps = S.Struct({
+const SubscriptionDependencies = S.Struct({
   activityListEvents: virtualListFields['containerEvents'],
-  // ...your other subscription deps
+  // ...your other subscription dependencies
 })
 
 const virtualListSubscriptions = Ui.VirtualList.subscriptions
 
-const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
+const subscriptions = Subscription.makeSubscriptions(SubscriptionDependencies)<
   Model,
   Message
 >({

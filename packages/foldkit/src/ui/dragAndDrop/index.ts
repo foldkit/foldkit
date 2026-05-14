@@ -626,7 +626,7 @@ const keyboardDragActivityFromModel = (
   )
 
 /** Schema describing the subscription dependencies for document-level drag tracking. */
-export const SubscriptionDeps = S.Struct({
+export const SubscriptionDependencies = S.Struct({
   documentPointer: S.Struct({
     dragActivity: PointerDragActivity,
     orientation: Orientation,
@@ -640,7 +640,7 @@ export const SubscriptionDeps = S.Struct({
 })
 
 /** Document-level subscriptions for pointer and keyboard events during drag operations. */
-export const subscriptions = makeSubscriptions(SubscriptionDeps)<
+export const subscriptions = makeSubscriptions(SubscriptionDependencies)<
   Model,
   Message
 >({

@@ -11,7 +11,7 @@ export {
   Model,
   Message,
   OutMessage,
-  SubscriptionDeps,
+  SubscriptionDependencies,
 } from './index.js'
 
 export type {

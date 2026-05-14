@@ -1290,14 +1290,14 @@ const routeTitle = (route: AppRoute): string =>
 // SUBSCRIPTION
 
 const dragAndDropDemoFields =
-  Subscription.DragAndDropDemo.SubscriptionDeps.fields
+  Subscription.DragAndDropDemo.SubscriptionDependencies.fields
 
-const sliderDemoFields = Subscription.SliderDemo.SubscriptionDeps.fields
+const sliderDemoFields = Subscription.SliderDemo.SubscriptionDependencies.fields
 
 const virtualListDemoFields =
-  Subscription.VirtualListDemo.SubscriptionDeps.fields
+  Subscription.VirtualListDemo.SubscriptionDependencies.fields
 
-const SubscriptionDeps = S.Struct({
+const SubscriptionDependencies = S.Struct({
   aiHeading: S.Struct({
     isLandingPage: S.Boolean,
   }),
@@ -1329,9 +1329,9 @@ const SubscriptionDeps = S.Struct({
   viewportWidth: S.Null,
 })
 
-export type SubscriptionDeps = typeof SubscriptionDeps.Type
+export type SubscriptionDependencies = typeof SubscriptionDependencies.Type
 
-export const subscriptions = makeSubscriptions(SubscriptionDeps)<
+export const subscriptions = makeSubscriptions(SubscriptionDependencies)<
   Model,
   Message
 >({

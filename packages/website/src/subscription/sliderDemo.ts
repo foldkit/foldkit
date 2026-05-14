@@ -8,9 +8,9 @@ import {
   GotSliderVolumeDemoMessage,
 } from '../page/ui/message'
 
-const sliderFields = Ui.Slider.SubscriptionDeps.fields
+const sliderFields = Ui.Slider.SubscriptionDependencies.fields
 
-export const SubscriptionDeps = S.Struct({
+export const SubscriptionDependencies = S.Struct({
   ratingPointer: sliderFields['dragPointer'],
   ratingEscape: sliderFields['dragEscape'],
   volumePointer: sliderFields['dragPointer'],
@@ -40,10 +40,9 @@ const mapVolumeStream = (stream: Stream.Stream<Ui.Slider.Message>) =>
     ),
   )
 
-export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
-  Model,
-  Message
->({
+export const subscriptions = Subscription.makeSubscriptions(
+  SubscriptionDependencies,
+)<Model, Message>({
   ratingPointer: {
     modelToDependencies: model =>
       sliderSubscriptions.dragPointer.modelToDependencies(

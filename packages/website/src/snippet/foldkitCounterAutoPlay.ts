@@ -32,11 +32,11 @@ type Message = typeof Message.Type
 
 // SUBSCRIPTION
 
-const SubscriptionDeps = S.Struct({
+const SubscriptionDependencies = S.Struct({
   tick: S.Struct({ isAutoCounting: S.Boolean }),
 })
 
-const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
+const subscriptions = Subscription.makeSubscriptions(SubscriptionDependencies)<
   Model,
   Message
 >({

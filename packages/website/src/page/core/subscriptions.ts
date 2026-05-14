@@ -100,7 +100,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
       para(
         'The key concept is ',
-        inlineCode('SubscriptionDeps'),
+        inlineCode('SubscriptionDependencies'),
         '. This schema defines what parts of the Model your Subscriptions depend on. Each Subscription has two functions:',
       ),
       h.ul(
@@ -179,7 +179,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' alongside any other dependency. Pair with ',
         inlineCode('S.Boolean'),
         ' in your ',
-        inlineCode('SubscriptionDeps'),
+        inlineCode('SubscriptionDependencies'),
         ' schema.',
       ),
       para(
