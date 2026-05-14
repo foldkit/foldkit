@@ -8,16 +8,16 @@ import {
   GotVirtualListVariableDemoMessage,
 } from '../page/ui/message'
 
-export const SubscriptionDeps = S.Struct({
-  containerEvents: Ui.VirtualList.SubscriptionDeps.fields['containerEvents'],
+export const SubscriptionDependencies = S.Struct({
+  containerEvents:
+    Ui.VirtualList.SubscriptionDependencies.fields['containerEvents'],
   variableContainerEvents:
-    Ui.VirtualList.SubscriptionDeps.fields['containerEvents'],
+    Ui.VirtualList.SubscriptionDependencies.fields['containerEvents'],
 })
 
-export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
-  Model,
-  Message
->({
+export const subscriptions = Subscription.makeSubscriptions(
+  SubscriptionDependencies,
+)<Model, Message>({
   containerEvents: {
     modelToDependencies: model =>
       Ui.VirtualList.subscriptions.containerEvents.modelToDependencies(

@@ -9,7 +9,7 @@ export {
   maybeDraggedItemId,
   maybeDropTarget,
   subscriptions,
-  SubscriptionDeps,
+  SubscriptionDependencies,
   Model,
   Message,
   OutMessage,

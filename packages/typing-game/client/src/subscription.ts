@@ -12,7 +12,7 @@ import { Home, Room } from './page'
 import { AppRoute } from './route'
 import { RoomsClient, RoomsClientLive } from './rpc.js'
 
-const SubscriptionDeps = S.Struct({
+const SubscriptionDependencies = S.Struct({
   roomSubscription: S.Option(
     S.Struct({ roomId: S.String, playerId: S.String }),
   ),
@@ -22,10 +22,9 @@ const SubscriptionDeps = S.Struct({
   }),
 })
 
-export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
-  Model,
-  Message
->({
+export const subscriptions = Subscription.makeSubscriptions(
+  SubscriptionDependencies,
+)<Model, Message>({
   roomSubscription: {
     modelToDependencies: (model: Model) =>
       M.value(model.route).pipe(

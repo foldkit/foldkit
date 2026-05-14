@@ -395,7 +395,7 @@ export const MountMap = Mount.define(
 
 // SUBSCRIPTIONS
 
-const SubscriptionDeps = S.Struct({
+const SubscriptionDependencies = S.Struct({
   mapEvents: S.Option(S.String),
 })
 
@@ -409,10 +409,9 @@ const boundsFromMap = (map: MapInstance): Bounds => {
   }
 }
 
-export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
-  Model,
-  Message
->({
+export const subscriptions = Subscription.makeSubscriptions(
+  SubscriptionDependencies,
+)<Model, Message>({
   mapEvents: {
     modelToDependencies: model => model.maybeMapHostId,
     dependenciesToStream: maybeHostId =>

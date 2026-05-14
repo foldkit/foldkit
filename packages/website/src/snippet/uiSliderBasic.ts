@@ -53,17 +53,17 @@ GotSliderMessage: ({ message }) => {
 // NOTE: wire BOTH dragPointer and dragEscape. Without dragEscape, pressing
 // Escape during a drag won't cancel back to the origin value, but every
 // other drag mechanic still works. Silent partial breakage.
-const sliderFields = Ui.Slider.SubscriptionDeps.fields
+const sliderFields = Ui.Slider.SubscriptionDependencies.fields
 
-const SubscriptionDeps = S.Struct({
+const SubscriptionDependencies = S.Struct({
   sliderPointer: sliderFields['dragPointer'],
   sliderEscape: sliderFields['dragEscape'],
-  // ...your other subscription deps
+  // ...your other subscription dependencies
 })
 
 const sliderSubscriptions = Ui.Slider.subscriptions
 
-const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
+const subscriptions = Subscription.makeSubscriptions(SubscriptionDependencies)<
   Model,
   Message
 >({

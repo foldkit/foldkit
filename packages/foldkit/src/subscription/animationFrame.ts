@@ -53,15 +53,15 @@ const makeAnimationFrameStream = <Message>(
  * Build a Subscription field config that emits a Message on every
  * `requestAnimationFrame` tick, with the inter-frame delta in milliseconds.
  *
- * Pair with `S.Boolean` in the `SubscriptionDeps` schema:
+ * Pair with `S.Boolean` in the `SubscriptionDependencies` schema:
  *
  * @example
  * ```typescript
- * const SubscriptionDeps = S.Struct({
+ * const SubscriptionDependencies = S.Struct({
  *   frame: S.Boolean,
  * })
  *
- * const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
+ * const subscriptions = Subscription.makeSubscriptions(SubscriptionDependencies)<
  *   Model,
  *   Message
  * >({

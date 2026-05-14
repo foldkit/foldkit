@@ -4,14 +4,14 @@ import { Subscription } from 'foldkit/subscription'
 import {
   type Model,
   NARROW_VIEWPORT_QUERY,
-  type SubscriptionDeps,
+  type SubscriptionDependencies,
 } from '../main'
 import { ChangedViewportWidth } from '../message'
 
 export const viewportWidth: Subscription<
   Model,
   typeof ChangedViewportWidth,
-  SubscriptionDeps['viewportWidth']
+  SubscriptionDependencies['viewportWidth']
 > = {
   modelToDependencies: () => null,
   dependenciesToStream: () =>

@@ -21,11 +21,11 @@ type Model = typeof Model.Type
 
 // SUBSCRIPTION
 
-const SubscriptionDeps = S.Struct({
+const SubscriptionDependencies = S.Struct({
   frame: S.Boolean,
 })
 
-const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
+const subscriptions = Subscription.makeSubscriptions(SubscriptionDependencies)<
   Model,
   Message
 >({

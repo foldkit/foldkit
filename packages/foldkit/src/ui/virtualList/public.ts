@@ -13,7 +13,7 @@ export {
   ScrolledContainer,
   MeasuredContainer,
   CompletedApplyScroll,
-  SubscriptionDeps,
+  SubscriptionDependencies,
 } from './index.js'
 
 export type { InitConfig, ViewConfig, VisibleWindow } from './index.js'

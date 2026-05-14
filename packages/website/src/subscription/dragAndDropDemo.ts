@@ -5,9 +5,9 @@ import type { Model } from '../main'
 import { GotUiPageMessage, type Message } from '../message'
 import { GotDragAndDropDemoMessage } from '../page/ui/message'
 
-const dragAndDropFields = Ui.DragAndDrop.SubscriptionDeps.fields
+const dragAndDropFields = Ui.DragAndDrop.SubscriptionDependencies.fields
 
-export const SubscriptionDeps = S.Struct({
+export const SubscriptionDependencies = S.Struct({
   dragPointer: dragAndDropFields['documentPointer'],
   dragEscape: dragAndDropFields['documentEscape'],
   dragKeyboard: dragAndDropFields['documentKeyboard'],
@@ -27,10 +27,9 @@ const mapDragStream = (stream: Stream.Stream<Ui.DragAndDrop.Message>) =>
 
 const getDragAndDropModel = (model: Model) => model.uiPages.dragAndDropDemo
 
-export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
-  Model,
-  Message
->({
+export const subscriptions = Subscription.makeSubscriptions(
+  SubscriptionDependencies,
+)<Model, Message>({
   dragPointer: {
     modelToDependencies: model =>
       dragAndDropSubscriptions.documentPointer.modelToDependencies(

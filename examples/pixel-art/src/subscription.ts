@@ -40,15 +40,14 @@ export const handleKeyboardEvent = (
     return Option.none()
   })
 
-export const SubscriptionDeps = S.Struct({
+export const SubscriptionDependencies = S.Struct({
   keyboard: S.Null,
   mouseRelease: S.Struct({ isDrawing: S.Boolean }),
 })
 
-export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
-  Model,
-  Message
->({
+export const subscriptions = Subscription.makeSubscriptions(
+  SubscriptionDependencies,
+)<Model, Message>({
   keyboard: {
     modelToDependencies: () => null,
     dependenciesToStream: () =>

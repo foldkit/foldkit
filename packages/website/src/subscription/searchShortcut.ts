@@ -2,14 +2,14 @@ import { Effect, Queue, Stream } from 'effect'
 import { Ui } from 'foldkit'
 import { Subscription } from 'foldkit/subscription'
 
-import type { Model, SubscriptionDeps } from '../main'
+import type { Model, SubscriptionDependencies } from '../main'
 import { GotSearchMessage } from '../message'
 import { GotSearchDialogMessage } from '../search'
 
 export const searchShortcut: Subscription<
   Model,
   typeof GotSearchMessage,
-  SubscriptionDeps['searchShortcut']
+  SubscriptionDependencies['searchShortcut']
 > = {
   modelToDependencies: model => ({
     isDocsPage:

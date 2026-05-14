@@ -1,7 +1,7 @@
 import { Duration, Effect, Stream } from 'effect'
 import { Subscription } from 'foldkit/subscription'
 
-import { type Model, type SubscriptionDeps } from '../main'
+import { type Model, type SubscriptionDependencies } from '../main'
 import { ToggledAiHeading } from '../message'
 
 const TOGGLE_INTERVAL_MS = 3000
@@ -14,7 +14,7 @@ const isPrerender = window.__FOLDKIT_PRERENDER__ === true
 export const aiHeading: Subscription<
   Model,
   typeof ToggledAiHeading,
-  SubscriptionDeps['aiHeading']
+  SubscriptionDependencies['aiHeading']
 > = {
   modelToDependencies: (model: Model) => ({
     isLandingPage: model.route._tag === 'Home',

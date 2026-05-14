@@ -9,9 +9,9 @@ import {
 import type { Message } from './message'
 import type { Model } from './model'
 
-const sliderFields = Ui.Slider.SubscriptionDeps.fields
+const sliderFields = Ui.Slider.SubscriptionDependencies.fields
 
-const SubscriptionDeps = S.Struct({
+const SubscriptionDependencies = S.Struct({
   frame: S.Boolean,
   flowStrengthSliderPointer: sliderFields['dragPointer'],
   flowStrengthSliderEscape: sliderFields['dragEscape'],
@@ -25,10 +25,9 @@ const mapFlowStrengthStream = (stream: Stream.Stream<Ui.Slider.Message>) =>
 const mapNoiseScaleStream = (stream: Stream.Stream<Ui.Slider.Message>) =>
   stream.pipe(Stream.map(message => GotNoiseScaleSliderMessage({ message })))
 
-export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
-  Model,
-  Message
->({
+export const subscriptions = Subscription.makeSubscriptions(
+  SubscriptionDependencies,
+)<Model, Message>({
   frame: Subscription.animationFrame({
     isActive: model => model.isRunning,
     toMessage: deltaTimeMs => TickedFrame({ deltaTimeMs }),

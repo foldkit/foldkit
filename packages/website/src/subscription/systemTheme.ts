@@ -1,13 +1,13 @@
 import { Effect, Queue, Stream } from 'effect'
 import { Subscription } from 'foldkit/subscription'
 
-import { type Model, type SubscriptionDeps } from '../main'
+import { type Model, type SubscriptionDependencies } from '../main'
 import { ChangedSystemTheme } from '../message'
 
 export const systemTheme: Subscription<
   Model,
   typeof ChangedSystemTheme,
-  SubscriptionDeps['systemTheme']
+  SubscriptionDependencies['systemTheme']
 > = {
   modelToDependencies: (model: Model) => ({
     isSystemPreference: model.themePreference === 'System',

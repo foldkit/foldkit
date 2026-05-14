@@ -175,14 +175,13 @@ export const update = (
 
 // SUBSCRIPTION
 
-const SubscriptionDeps = S.Struct({
+const SubscriptionDependencies = S.Struct({
   frame: S.Boolean,
 })
 
-export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
-  Model,
-  Message
->({
+export const subscriptions = Subscription.makeSubscriptions(
+  SubscriptionDependencies,
+)<Model, Message>({
   frame: Subscription.animationFrame({
     isActive: model => model.isRunning,
     toMessage: deltaTime => TickedFrame({ deltaTime }),

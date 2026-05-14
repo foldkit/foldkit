@@ -245,7 +245,7 @@ export const GenerateApplePosition = Command.define(
 
 // SUBSCRIPTION
 
-const SubscriptionDeps = S.Struct({
+const SubscriptionDependencies = S.Struct({
   gameClock: S.Struct({
     isPlaying: S.Boolean,
     interval: S.Number,
@@ -253,10 +253,9 @@ const SubscriptionDeps = S.Struct({
   keyboard: S.Null,
 })
 
-export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
-  Model,
-  Message
->({
+export const subscriptions = Subscription.makeSubscriptions(
+  SubscriptionDependencies,
+)<Model, Message>({
   gameClock: {
     modelToDependencies: (model: Model) => ({
       isPlaying: model.gameState === 'Playing',

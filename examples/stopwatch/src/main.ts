@@ -139,16 +139,15 @@ export const init: Runtime.ProgramInit<Model, Message> = () => [
 
 // SUBSCRIPTION
 
-const SubscriptionDeps = S.Struct({
+const SubscriptionDependencies = S.Struct({
   tick: S.Struct({
     isRunning: S.Boolean,
   }),
 })
 
-export const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
-  Model,
-  Message
->({
+export const subscriptions = Subscription.makeSubscriptions(
+  SubscriptionDependencies,
+)<Model, Message>({
   tick: {
     modelToDependencies: (model: Model) => ({ isRunning: model.isRunning }),
     dependenciesToStream: ({ isRunning }) =>

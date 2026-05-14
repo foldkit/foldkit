@@ -20,44 +20,51 @@ type SubscriptionConfig<Model, Message, StreamDeps, Resources = never> = {
 export type Subscriptions<
   Model,
   Message,
-  SubscriptionDeps extends Schema.Struct<any>,
+  SubscriptionDependencies extends Schema.Struct<any>,
   Resources = never,
 > = {
-  readonly [K in keyof Schema.Schema.Type<SubscriptionDeps>]: SubscriptionConfig<
+  readonly [K in keyof Schema.Schema.Type<SubscriptionDependencies>]: SubscriptionConfig<
     Model,
     Message,
-    Schema.Schema.Type<SubscriptionDeps>[K],
+    Schema.Schema.Type<SubscriptionDependencies>[K],
     Resources
   >
 }
 
 /** Creates type-safe subscription configurations from a dependency schema. */
 export const makeSubscriptions =
-  <SubscriptionDeps extends Schema.Struct<any>>(
-    SubscriptionDeps: SubscriptionDeps,
+  <SubscriptionDependencies extends Schema.Struct<any>>(
+    SubscriptionDependencies: SubscriptionDependencies,
   ) =>
   <Model, Message, Resources = never>(configs: {
-    readonly [K in keyof Schema.Schema.Type<SubscriptionDeps>]: {
+    readonly [K in keyof Schema.Schema.Type<SubscriptionDependencies>]: {
       readonly modelToDependencies: (
         model: Model,
-      ) => Schema.Schema.Type<SubscriptionDeps>[K]
+      ) => Schema.Schema.Type<SubscriptionDependencies>[K]
       readonly equivalence?:
-        | Equivalence.Equivalence<Schema.Schema.Type<SubscriptionDeps>[K]>
+        | Equivalence.Equivalence<
+            Schema.Schema.Type<SubscriptionDependencies>[K]
+          >
         | undefined
       readonly dependenciesToStream: (
-        deps: Schema.Schema.Type<SubscriptionDeps>[K],
-        readDependencies: () => Schema.Schema.Type<SubscriptionDeps>[K],
+        deps: Schema.Schema.Type<SubscriptionDependencies>[K],
+        readDependencies: () => Schema.Schema.Type<SubscriptionDependencies>[K],
       ) => Stream.Stream<ResolveMessage<Message>, never, Resources>
     }
-  }): Subscriptions<Model, Message, SubscriptionDeps, Resources> =>
+  }): Subscriptions<Model, Message, SubscriptionDependencies, Resources> =>
     /* eslint-disable @typescript-eslint/consistent-type-assertions */
     Record.map(
       configs,
       ({ modelToDependencies, equivalence, dependenciesToStream }, key) => ({
-        schema: SubscriptionDeps.fields[key],
+        schema: SubscriptionDependencies.fields[key],
         modelToDependencies,
         equivalence,
         dependenciesToStream,
       }),
-    ) as unknown as Subscriptions<Model, Message, SubscriptionDeps, Resources>
+    ) as unknown as Subscriptions<
+      Model,
+      Message,
+      SubscriptionDependencies,
+      Resources
+    >
 /* eslint-enable @typescript-eslint/consistent-type-assertions */

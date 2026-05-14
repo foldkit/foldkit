@@ -14,14 +14,14 @@ const Model = S.Struct({
 
 type Model = typeof Model.Type
 
-const SubscriptionDeps = S.Struct({
+const SubscriptionDependencies = S.Struct({
   autoScroll: S.Struct({
     isDragging: S.Boolean,
     clientY: S.Number,
   }),
 })
 
-const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
+const subscriptions = Subscription.makeSubscriptions(SubscriptionDependencies)<
   Model,
   Message
 >({

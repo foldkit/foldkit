@@ -403,7 +403,7 @@ const containerElement = (id: string): Option.Option<HTMLElement> =>
 
 /** Schema describing the subscription dependencies for container scroll and
  *  resize tracking. */
-export const SubscriptionDeps = S.Struct({
+export const SubscriptionDependencies = S.Struct({
   containerEvents: S.Struct({
     id: S.String,
   }),
@@ -422,7 +422,7 @@ export const SubscriptionDeps = S.Struct({
  *  makes the subscription robust across SPA route changes: navigating to a
  *  page that mounts the list, away, and back all reattach correctly without
  *  the consumer having to teach the framework about navigation. */
-export const subscriptions = makeSubscriptions(SubscriptionDeps)<
+export const subscriptions = makeSubscriptions(SubscriptionDependencies)<
   Model,
   Message
 >({
