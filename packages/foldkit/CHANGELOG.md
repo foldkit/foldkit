@@ -1,5 +1,11 @@
 # foldkit
 
+## 0.95.1
+
+### Patch Changes
+
+- b784821: Internal: replace a ternary that wrapped the optional `resources` Layer in `Option.some`/`Option.none` with `Option.fromNullishOr`, the idiomatic primitive for `T | undefined` → `Option<T>`.
+
 ## 0.95.0
 
 ### Minor Changes
