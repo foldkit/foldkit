@@ -6,6 +6,8 @@ argument-hint: '[optional: path or focus area like a11y/effects/naming/decomposi
 
 Audit an existing Foldkit program against the same bar `generate-program` targets: this code should be **indistinguishable in quality from hand-written code in `packages/typing-game/client/src/` or `packages/website/src/`**. Not "works." Not "structurally valid." Typing-game quality.
 
+> **Recommended setup:** the audit is dramatically higher fidelity when `repos/foldkit/` is vendored as a git subtree in the audited project. Without it, you grade against the snapshots in `generate-program/architecture.md` and `conventions.md`. With it, you grade against the live exemplars (`examples/`, `packages/typing-game/`, `packages/website/`), which is what those snapshots are summarizing in the first place. If the subtree is missing, recommend adding it with `git subtree add --prefix=repos/foldkit https://github.com/foldkit/foldkit.git main --squash` before the audit begins.
+
 ## Operating principle: report first, change nothing without consent
 
 The audit is **read-only through Phase 6**. The output is a structured report. **Never edit a file before the user has seen the report and explicitly approved fixes**, no matter how unambiguous a finding seems, no matter how trivial the change, no matter how confident you are. Phase 7 (Offer fixes) is opt-in and gated on user consent per item or per batch.
@@ -59,7 +61,7 @@ Before deep review, build a model of the audited code:
    - **Tier 5**: nested domain, CRUD
    - **Tier 6**: Submodels, OutMessage, multi-step flows
    - **Tier 7**: real-time, WebSocket, ManagedResources
-3. **Foldkit modules used**. Grep imports for `Calendar`, `File`, `fieldValidation`, `Ui.*`, `Subscription`, `Command`, `Task`, `HttpClient`, etc. Tells you which checklist sections apply.
+3. **Foldkit modules used**. Grep imports for `Calendar`, `File`, `FieldValidation`, `Ui.*`, `Subscription`, `Command`, `Mount`, `ManagedResource`, `CustomElement`, `Dom`, `HttpClient`, etc. Tells you which checklist sections apply.
 4. **Tier-matching exemplar**. Pick at least one to read alongside the audited code:
    - Tier 1-2 → `${CLAUDE_SKILL_DIR}/../../examples/counter/src/main.ts`, `${CLAUDE_SKILL_DIR}/../../examples/stopwatch/src/main.ts`
    - Tier 3 → `${CLAUDE_SKILL_DIR}/../../examples/weather/src/main.ts`, `${CLAUDE_SKILL_DIR}/../../examples/form/src/main.ts`
@@ -93,7 +95,7 @@ For non-trivial audits, parallelize. Spawn subagents in a single message so they
 
 Use `Agent` with `subagent_type: general-purpose`. Suggested fan-out:
 
-- **Subagent A (Structural correctness)**. Model schema completeness, Message union coverage, `M.tagsExhaustive` exhaustiveness, every `Succeeded*` paired with `Failed*`, every Command identity defined as a PascalCase constant via `Command.define`, every route variant rendered, no dead state variants. Native web components bound via `CustomElement.define`, not via `OnMount` + Subscription + tag-name registry — flag any custom element wired through `OnMount` when its surface is just typed properties + observed attributes + dispatched `CustomEvent`s.
+- **Subagent A (Structural correctness)**. Model schema completeness, Message union coverage, `M.tagsExhaustive` exhaustiveness, every `Succeeded*` paired with `Failed*`, every Command identity defined as a PascalCase constant via `Command.define`, every route variant rendered, no dead state variants. Native web components bound via `CustomElement.define`, not via `OnMount` + Subscription + tag-name registry. Flag any custom element wired through `OnMount` when its surface is just typed properties + observed attributes + dispatched `CustomEvent`s.
 - **Subagent B (Effect-TS idioms)**. `pipe` only for multi-step (no single-op pipes), `Option.match` over `Option.map(...).pipe(Option.getOrElse(...))`, `Array.match` for empty/non-empty branching, `Array.isEmptyArray` over `.length === 0`, `evo` over spread, callable constructors over `as Type`, `Array.fromOption` for "zero or one Command", `Equal.equals` in predicates, no `Effect.ignore` on infallible Effects.
 - **Subagent C (Naming and decomposition)**. `maybe*` reserved for `Option<T>`, `nullable*` for `T | undefined`, `is*` for booleans, no abbreviations, `Updated*` not `Changed*`, `Completed*` mirrors Command name verb-first, named helpers use specific verbs not generic ones, handlers over ~15 lines extracted, view branches over ~30 lines extracted, no function exceeds ~40 lines.
 - **Subagent D (Foldkit UI and accessibility)**. Hand-rolled `input` / `textarea` / `button` / `dialog` flagged unless NOTE-justified, label/input pairing via `For(id)` + `Id(id)`, dynamic errors announce via `Role('alert')` or `AriaLive('polite')`, icon-only buttons have `AriaLabel`, external links carry `Rel('noopener noreferrer')`, exactly one `h1` per route, semantic landmarks (`main`, `nav`, `header`, `footer`) over `div` soup, focus visibility preserved (no `outline-none` without `focus-visible:` replacement).

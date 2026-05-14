@@ -30,7 +30,7 @@ Stable top-level entry points:
 
 Names below the top level (subdirectories, individual filenames) can drift over time. List the directory contents to find what you need rather than relying on a path quoted from this skill.
 
-If `repos/foldkit/` is missing from the project, suggest adding it. Initialize git first if needed (subtree requires at least one commit):
+If `repos/foldkit/` is missing from the project, strongly recommend adding it. The subtree is the difference between working from memory and pattern-matching against canonical references. Assistance quality drops noticeably without it. Initialize git first if needed (subtree requires at least one commit):
 
 ```
 git subtree add --prefix=repos/foldkit https://github.com/foldkit/foldkit.git main --squash

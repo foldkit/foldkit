@@ -2,20 +2,20 @@
 
 Run through each category after generating an app. Fix any issues before presenting the result.
 
-> **This is the canonical reference for mechanical checks.** `SKILL.md` phases 4.5, 5, and 5.5 point here rather than duplicating the grep commands inline, to prevent drift. If you update a grep or add a new one, update it here — the phases will inherit the change.
+> **This is the canonical reference for mechanical checks.** `SKILL.md` phases 4.5, 5, and 5.5 point here rather than duplicating the grep commands inline, to prevent drift. If you update a grep or add a new one, update it here. The phases will inherit the change.
 
 ## Gate commands (run ALL FOUR; fix everything they surface)
 
-- [ ] `npm run format` (or `npx prettier -w .`) — run FIRST; rewrites files so subsequent gates see the committed shape.
-- [ ] `npm run lint` (or `npx eslint .`) — output clean. Catches unused imports, unused vars, style-rule violations that `tsc` does not.
-- [ ] `npm run typecheck` (or `npx tsc --noEmit`) — no errors.
-- [ ] `npm run test` (or `npx vitest run`) — all tests pass.
+- [ ] `npm run format` (or `npx prettier -w .`): run FIRST; rewrites files so subsequent gates see the committed shape.
+- [ ] `npm run lint` (or `npx eslint .`): output clean. Catches unused imports, unused vars, style-rule violations that `tsc` does not.
+- [ ] `npm run typecheck` (or `npx tsc --noEmit`): no errors.
+- [ ] `npm run test` (or `npx vitest run`): all tests pass.
 
 "Typecheck clean and tests pass" is NOT sufficient. Generated code is rarely Prettier-exact out of the box, and frequently has unused imports (`Invalid`, `NotValidated`, `Valid` imported as values when only used as string-literal tag keys in `M.tag(...)`) that only the linter catches. Skipping either means the user's first `git commit` produces a cascade of formatting/lint fixes they have to clean up.
 
 ## Mechanical scans (run on every file before tsc)
 
-These are the fast greps that catch the common write-time violations. Run them against `src/`. Each hit is either a fix or a `// NOTE:` justification — silent hits aren't allowed. Phase 4.5 of SKILL.md runs this block; the reviewer in Phase 6 runs it again as sanity.
+These are the fast greps that catch the common write-time violations. Run them against `src/`. Each hit is either a fix or a `// NOTE:` justification. Silent hits aren't allowed. Phase 4.5 of SKILL.md runs this block; the reviewer in Phase 6 runs it again as sanity.
 
 ```bash
 # Empty-object constructor calls — no-field tagged structs should call with no arg
@@ -84,7 +84,7 @@ grep -rn "Target('_blank')" src/ -A 2 | grep -B 1 "Rel(" || echo "(all _blank ha
 grep -rn "outline-none" src/ | grep -v "focus-visible:"
 ```
 
-Alongside the greps, eyeball each file's imports. Every symbol you imported should be called. ESLint flags this, but so do you — at write-time.
+Alongside the greps, eyeball each file's imports. Every symbol you imported should be called. ESLint flags this, but so do you, at write-time.
 
 ## Structural completeness
 
@@ -107,24 +107,24 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 
 - [ ] Every Command identity defined with `Command.define` and assigned to a PascalCase constant
 - [ ] Every `Command.define` includes result Message schemas after the name
-- [ ] No inline `Command.define` in pipe chains — always stored as a constant
+- [ ] No inline `Command.define` in pipe chains. Always stored as a constant
 - [ ] Definitions colocated with the update that produces them
-- [ ] Every _fallible_ Command catches all errors: `Effect.catch(() => Effect.succeed(FailedX(...)))`. Infallible Effects (Clock, Random, Task.uuid, Task.getTime) do NOT need catch — if the type system shows no error channel, there's nothing to catch, and no paired `Failed*` Message is needed either.
-- [ ] Return types inferred — no explicit `Command<typeof A>` annotations
+- [ ] Every _fallible_ Command catches all errors: `Effect.catch(() => Effect.succeed(FailedX(...)))`. Infallible Effects (`Clock.currentTimeMillis`, `Random.nextIntBetween`, `Effect.uuid`, `Calendar.today.local`) do NOT need catch. If the type system shows no error channel, there's nothing to catch, and no paired `Failed*` Message is needed either.
+- [ ] Return types inferred. No explicit `Command<typeof A>` annotations
 - [ ] Factory functions named by action: `fetchWeather`, not `fetchWeatherCommand`
 - [ ] Fire-and-forget Commands return `Completed*` Messages
 
-## Mount, Command, ManagedResource, CustomElement — pick by what causes the side effect
+## Mount, Command, ManagedResource, CustomElement: pick by what causes the side effect
 
-- [ ] **One-time effect after a Message dispatched** → Command. Focus-on-open, navigation, network, storage, analytics, scroll lock paired with a modal opening/closing — all belong in `update`'s return, not in `OnMount`.
+- [ ] **One-time effect after a Message dispatched** → Command. Focus-on-open, navigation, network, storage, analytics, scroll lock paired with a modal opening/closing all belong in `update`'s return, not in `OnMount`.
 - [ ] **Per-instance lifecycle bound to a VNode existing**, where the live `Element` handle is needed → Mount. Anchor positioning, backdrop portaling, attaching observers/listeners to a specific element, third-party library instantiation that takes the element as host.
-- [ ] **Stateful runtime object** (websocket, camera stream, library instance) keyed on a Model condition, with Commands consuming the handle via `yield*` → ManagedResource. Not a generic "lifecycle on Model condition" — there must be a handle for Commands to use.
+- [ ] **Stateful runtime object** (websocket, camera stream, library instance) keyed on a Model condition, with Commands consuming the handle via `yield*` → ManagedResource. Not a generic "lifecycle on Model condition". There must be a handle for Commands to use.
 - [ ] **Native web component** (Shoelace, vanilla-colorful, emoji-picker-element, anything that speaks typed JS properties + observed attributes + dispatched `CustomEvent`s) → CustomElement. Side-effect-import the package to register the element with the browser, then declare its surface with `CustomElement.define({ tag, properties, events })` to get a typed inline builder. Do NOT reach for Mount + Subscription + tag-name registry to wrap a web component; `CustomElement.define` is the higher-level fit when those three surfaces are available.
 
 ### Two practical rules for Mount (both must hold)
 
 - [ ] **The Effect uses the element parameter.** If the Effect doesn't read or write the element, Mount is the wrong primitive. Pick Command (transition-driven) or paired Commands (lifecycle-bound but element-handle-not-used).
-- [ ] **The work is DOM measurement or DOM manipulation on that element.** Read geometry, mutate CSS, attach an observer/listener, portal the element, hand it to a third-party library. Anything else — network, storage, analytics, focus-on-transition, scroll lock for the page — is a Command.
+- [ ] **The work is DOM measurement or DOM manipulation on that element.** Read geometry, mutate CSS, attach an observer/listener, portal the element, hand it to a third-party library. Anything else (network, storage, analytics, focus-on-transition, scroll lock for the page) is a Command.
 
 ### Replay safety
 
@@ -136,7 +136,7 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 
 ### Naming
 
-- [ ] Mount Definition names are verb-first imperatives: `AnchorPopover`, `PortalPopoverBackdrop`, `AttachComboboxPreventBlur` — not `PopoverAnchor` or `ComboboxPreventBlurAttachment`. Mount result Messages are verb-first past-tense: `CompletedAnchorPopover`.
+- [ ] Mount Definition names are verb-first imperatives: `AnchorPopover`, `PortalPopoverBackdrop`, `AttachComboboxPreventBlur`, not `PopoverAnchor` or `ComboboxPreventBlurAttachment`. Mount result Messages are verb-first past-tense: `CompletedAnchorPopover`.
 
 ## Naming
 
@@ -164,7 +164,7 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 - [ ] `Array.isEmptyArray` / `Array.isNonEmptyArray` (not `.length === 0` or `.length > 0`)
 - [ ] `evo()` for Model updates (not spread)
 - [ ] Callable constructors (not `as` casts or manual `_tag` objects)
-- [ ] No-field tagged structs called with NO argument: `Idle()`, `Work()`, `ClickedSubmit()` — never `Idle({})`, `Work({})`, `ClickedSubmit({})`
+- [ ] No-field tagged structs called with NO argument: `Idle()`, `Work()`, `ClickedSubmit()`. Never `Idle({})`, `Work({})`, `ClickedSubmit({})`
 - [ ] `Option.match` preferred over `Option.map` + `Option.getOrElse`
 
 ## View
@@ -175,7 +175,7 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 
 ## Foldkit UI
 
-- [ ] Foldkit UI components used where interaction matches (Dialog, Tabs, Menu, Combobox, DatePicker, FileDrop, Toast, Tooltip, DragAndDrop, etc.) — never hand-roll accessible widgets
+- [ ] Foldkit UI components used where interaction matches (Dialog, Tabs, Menu, Combobox, DatePicker, FileDrop, Toast, Tooltip, DragAndDrop, etc.). Never hand-roll accessible widgets
 - [ ] **Form inputs use `Ui.Input.view`, `Ui.Textarea.view`, `Ui.Button`.** Hand-rolled `input`/`textarea`/`button` elements in a form are a fail unless the file has a NOTE comment explaining why the component couldn't be used.
 - [ ] Each UI component has its Model in the app Model, a `Got*` Message, init in init, and delegation in update
 - [ ] `Ui.Toast` uses `Ui.Toast.make(PayloadSchema)` to bind to a consumer-defined payload type
@@ -192,13 +192,13 @@ grep -rn "OnClick(.*) .*button(" src/   # raw <button> with click handler — sh
 grep -rn "role.*dialog\|role.*menu" src/  # hand-rolled ARIA — should use Ui.Dialog / Ui.Menu
 ```
 
-The rule: **if the interaction pattern appears in the Ui.\* component table (Phase 2.5 of SKILL.md), use the component.** Hand-rolling is permitted only when: (a) the component doesn't exist yet, AND (b) you add a `// NOTE: hand-rolling because <specific reason>` comment above the element. Without the NOTE, the reviewer treats hand-rolling as a BLOCKER — not a style preference.
+The rule: **if the interaction pattern appears in the Ui.\* component table (Phase 2.5 of SKILL.md), use the component.** Hand-rolling is permitted only when: (a) the component doesn't exist yet, AND (b) you add a `// NOTE: hand-rolling because <specific reason>` comment above the element. Without the NOTE, the reviewer treats hand-rolling as a BLOCKER, not a style preference.
 
 **A NOTE is not a free pass.** Before writing one, read the component's `.d.ts` and confirm the concern is real. Common false-justifications to avoid:
 
-- _"Using the Ui component would require a per-row Model instance and duplicate state"_ — check the component's Model shape. Most Ui components (Checkbox, Switch) have small Models (`{ id, isChecked }`) that can be constructed inline from derived state: `Ui.Checkbox.view({ model: { id: ..., isChecked: derivedFromState }, toParentMessage: () => MyMessage(...), ... })`. No app-Model entry needed. The component's internal `update` is never called; your update dispatches your own Message when `toParentMessage` fires.
-- _"The component needs a toParentMessage and I don't want to wire one"_ — that's always the wiring cost. The whole point of Ui components is that you pay it once per use and get a11y for free.
-- _"The interaction is too custom for the component"_ — check the `toView` callback signature. It lets you render whatever HTML you want inside the component's attribute-scaffolding. Custom visual = fine, custom a11y = never needed.
+- _"Using the Ui component would require a per-row Model instance and duplicate state"_: check the component's Model shape. Most Ui components (Checkbox, Switch) have small Models (`{ id, isChecked }`) that can be constructed inline from derived state: `Ui.Checkbox.view({ model: { id: ..., isChecked: derivedFromState }, toParentMessage: () => MyMessage(...), ... })`. No app-Model entry needed. The component's internal `update` is never called; your update dispatches your own Message when `toParentMessage` fires.
+- _"The component needs a toParentMessage and I don't want to wire one"_: that's always the wiring cost. The whole point of Ui components is that you pay it once per use and get a11y for free.
+- _"The interaction is too custom for the component"_: check the `toView` callback signature. It lets you render whatever HTML you want inside the component's attribute-scaffolding. Custom visual = fine, custom a11y = never needed.
 
 Reviewers should challenge every NOTE: "Is this justification actually true, or is it defensive rationalization? What does the `.d.ts` say?" Look up the component's actual API before accepting the NOTE.
 
@@ -213,16 +213,16 @@ Foldkit UI components ARE the a11y pass for their covered patterns. These checks
 - [ ] Icon-only buttons have `AriaLabel(...)` describing the action. `button([OnClick(...)], ['★'])` without an aria label is unreadable to screen readers.
 - [ ] Dynamic error messages wrap in `role="alert"` (for immediate errors) or `aria-live="polite"` (for non-urgent updates). Validation errors that appear after blur should be announced. Example: `p([Role('alert'), ...], [errorMessage])`. Grep for error-class CSS (e.g. `text-red`) and verify each error container has `Role('alert')` or a parent with `AriaLive('polite')`.
 - [ ] External links (`Target('_blank')`) also have `Rel('noopener noreferrer')`.
-- [ ] Images have `Alt(...)`. Decorative images use `Alt('')` explicitly — never omitted.
+- [ ] Images have `Alt(...)`. Decorative images use `Alt('')` explicitly. Never omitted.
 - [ ] Interactive lists (navigable items, selectable rows) use `ul`/`ol` + `li`, not `div` stacks. Screen readers announce "list with N items" for real lists.
 - [ ] Required form fields are marked `AriaRequired(true)` OR the `Ui.Input` `required: true` is set. The `required` HTML attribute alone is not enough for every screen reader.
-- [ ] Focus is visible — either via Tailwind's `focus-visible:` classes or the browser default. If you've reset outline, you must replace it. Grep for `outline-none` without a paired `focus-visible:` class.
+- [ ] Focus is visible, either via Tailwind's `focus-visible:` classes or the browser default. If you've reset outline, you must replace it. Grep for `outline-none` without a paired `focus-visible:` class.
 - [ ] Color is not the only carrier of meaning. A red border on an invalid input needs an accompanying error message or icon. Don't ship "invalid = red only."
 - [ ] Page `<title>` is set via `Runtime.makeProgram`'s `title: model => ...` for routed apps. Each route returns a distinct title.
 
 ### Mechanical check: a11y
 
-The greps below are **fast starting scans**, not authoritative. Attributes often span multiple lines (`Target('_blank')` on line N, `Rel('noopener noreferrer')` on line N+1), so line-only matches can false-positive. Every hit should be eyeballed in context before flagging it as a bug — but every hit DOES need to be eyeballed.
+The greps below are **fast starting scans**, not authoritative. Attributes often span multiple lines (`Target('_blank')` on line N, `Rel('noopener noreferrer')` on line N+1), so line-only matches can false-positive. Every hit should be eyeballed in context before flagging it as a bug, but every hit DOES need to be eyeballed.
 
 ```bash
 grep -rn "label(\[" src/ | grep -v "For("                # labels without For
@@ -236,9 +236,9 @@ Each confirmed miss is a concrete a11y bug a screen reader user would hit.
 
 ## Forms, dates, and files
 
-- [ ] Form validation uses `foldkit/fieldValidation` (`Field`, `makeRules`, `validate`, `allValid`) — no hand-rolled `Valid | Invalid` unions when validation is the concern
-- [ ] Date handling uses the `Calendar` module (`Calendar.CalendarDate`, `Calendar.today.local`) — no raw `Date` objects in Model
-- [ ] File handling uses the `File` module with `Ui.FileDrop` — no direct `File` API usage in update/view
+- [ ] Form validation uses `foldkit/fieldValidation` (`Field`, `makeRules`, `validate`, `allValid`). No hand-rolled `Valid | Invalid` unions when validation is the concern
+- [ ] Date handling uses the `Calendar` module (`Calendar.CalendarDate`, `Calendar.today.local`). No raw `Date` objects in Model
+- [ ] File handling uses the `File` module with `Ui.FileDrop`. No direct `File` API usage in update/view
 
 ## File organization
 
@@ -255,16 +255,16 @@ Each confirmed miss is a concrete a11y bug a screen reader user would hit.
 - [ ] Every fallible Command (`Succeeded*`/`Failed*` pair) tested for both outcomes
 - [ ] At least one multi-step test that chains Messages and Command resolutions
 - [ ] Submodel tests assert `outMessage` when the child signals to parent
-- [ ] Tests use `Story.Command.resolve(Definition, resultMessage)` — never run Command Effects directly in story tests
+- [ ] Tests use `Story.Command.resolve(Definition, resultMessage)`. Never run Command Effects directly in story tests
 - [ ] All tests pass with `npx vitest run`
 
 **Scene tests** (REQUIRED at Tier 3+; strongly encouraged at Tier 2):
 
-For Tier 3+ apps (routing, async Commands, forms), missing `main.scene.test.ts` is a **BLOCKER** — the app has not been tested from the user's perspective without it.
+For Tier 3+ apps (routing, async Commands, forms), missing `main.scene.test.ts` is a **BLOCKER**. The app has not been tested from the user's perspective without it.
 
 - [ ] `main.scene.test.ts` exists
-- [ ] View rendering test — initial view has expected elements (headings, inputs, buttons)
-- [ ] User interactions test — click, type, submit produce visible changes
+- [ ] View rendering test: initial view has expected elements (headings, inputs, buttons)
+- [ ] User interactions test: click, type, submit produce visible changes
 - [ ] At minimum one test per discriminated-union state that has distinct view output (loading, error, empty, populated)
 - [ ] Uses accessible locators: `Scene.role(...)`, `Scene.label(...)`, `Scene.text(...)`. Not `Scene.placeholder` or CSS selectors.
 - [ ] Scoped queries with `Scene.within` or `Scene.inside` when a parent container contains multiple similar elements
@@ -277,17 +277,17 @@ The sections above cover correctness. The sections below cover the craft details
 
 **Tier-aware:** every item below applies at every tier UNLESS marked otherwise:
 
-- `[T2+]` — applies once the app has subscriptions or persisted state
-- `[T3+]` — applies once the app has async Commands or routing
-- `[T5+]` — applies once the app has nested domain state, multiple entities, or submodels
+- `[T2+]`: applies once the app has subscriptions or persisted state
+- `[T3+]`: applies once the app has async Commands or routing
+- `[T5+]`: applies once the app has nested domain state, multiple entities, or submodels
 
 Items without a tier marker apply universally (even to a 50-line counter). When in doubt, assume universal.
 
 ## Decomposition
 
-- [ ] Every function operates at a single abstraction level — orchestrators delegate, implementations implement. If a function reads like it's doing two things, extract one.
+- [ ] Every function operates at a single abstraction level: orchestrators delegate, implementations implement. If a function reads like it's doing two things, extract one.
 - [ ] **Update handlers over ~15 lines are extracted** to named functions in the same file. [T3+] If a handler exceeds ~50 lines, extract to its own file under `src/update/` (e.g. `update/handleRoomUpdates.ts`).
-- [ ] **Extracted handlers are curried `(model: Model) => (message: M) => UpdateReturn`** so they compose in pipelines — not `(model, message) => UpdateReturn`. See `packages/typing-game/client/src/page/home/update/handleKeyPressed.ts:33-40`.
+- [ ] **Extracted handlers are curried `(model: Model) => (message: M) => UpdateReturn`** so they compose in pipelines, not `(model, message) => UpdateReturn`. See `packages/typing-game/client/src/page/home/update/handleKeyPressed.ts:33-40`.
 - [ ] **View branches over ~30 lines are extracted** to named view functions (e.g. `enterUsernameView`, `selectActionView`). [T5+] If the view for a single route/state exceeds ~100 lines, extract to `src/view/` or `src/page/*/view.ts`.
 - [ ] No function exceeds ~40 lines without extraction. Long functions are the primary smell.
 
@@ -295,12 +295,12 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 
 - [ ] Native methods replaced with Effect equivalents _in pipe chains_: `Array.map(items, f)` not `items.map(f)` when composing; `String.startsWith(s, 'foo')` in a pipe not `s.startsWith('foo')`.
 - [ ] `Option.match({ onNone, onSome })` preferred over `Option.map(...).pipe(Option.getOrElse(...))`. The labeled branches are self-documenting.
-- [ ] `Array.match({ onEmpty, onNonEmpty })` when handling both empty and non-empty cases. Not `isEmptyArray ? ... : ...` ternaries. Grep for `.length > 0` and `.length === 0` on arrays and strings — should be zero. Use `Array.isNonEmptyArray` / `String.isNonEmpty` for pure checks, `Array.match` for branching renders.
+- [ ] `Array.match({ onEmpty, onNonEmpty })` when handling both empty and non-empty cases. Not `isEmptyArray ? ... : ...` ternaries. Grep for `.length > 0` and `.length === 0` on arrays and strings; should be zero. Use `Array.isNonEmptyArray` / `String.isNonEmpty` for pure checks, `Array.match` for branching renders.
 - [ ] `Equal.equals(target)` in predicates: `Array.findFirst(items, Equal.equals('Other'))` not `item => item === 'Other'`.
-- [ ] `Array.fromOption(maybeCommand)` for "zero or one command based on Option" — not `Option.match` that returns `[]` vs `[cmd]`.
+- [ ] `Array.fromOption(maybeCommand)` for "zero or one command based on Option", not `Option.match` that returns `[]` vs `[cmd]`.
 - [ ] `OptionExt.when(condition, value)` instead of `condition ? Option.some(value) : Option.none()`.
-- [ ] `pipe(...)` is multi-step only. Never `pipe(x, singleOp(...))` — call `singleOp(x, ...)` directly. (Exception: `.pipe(Effect.catch(...))` as a tail suffix is fine.)
-- [ ] When piping, data leads on its own line: `pipe(\n  data,\n  Array.map(f),\n  ...\n)` — not `pipe(data, Array.map(f), ...)`.
+- [ ] `pipe(...)` is multi-step only. Never `pipe(x, singleOp(...))`; call `singleOp(x, ...)` directly. (Exception: `.pipe(Effect.catch(...))` as a tail suffix is fine.)
+- [ ] When piping, data leads on its own line: `pipe(\n  data,\n  Array.map(f),\n  ...\n)`, not `pipe(data, Array.map(f), ...)`.
 - [ ] Callback destructuring when accessing a single field: `({ id }) => id === cardId` not `card => card.id === cardId`.
 
 ## Domain organization [T5+]
@@ -314,7 +314,7 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 ## Naming precision
 
 - [ ] Every Option-typed value is prefixed `maybe*`: `maybeCurrentUser`, `maybeFocusUsernameInput`, `maybeOutMessage`, `maybeNewCardColumnId`. No exceptions.
-- [ ] Every native `T | undefined` is prefixed `nullable*`. No `maybe*` for nullable; that's reserved for `Option`. Grep `maybe[A-Z]` against function signatures and variable types — each hit should be `Option<T>`, not `T | undefined`.
+- [ ] Every native `T | undefined` is prefixed `nullable*`. No `maybe*` for nullable; that's reserved for `Option`. Grep `maybe[A-Z]` against function signatures and variable types; each hit should be `Option<T>`, not `T | undefined`.
 - [ ] Internal API boundaries (helper function configs, view builders, domain operations) use `Option<T>` for optional fields, not `T | undefined`. Call sites then read `Option.some(x)` / `Option.none()` instead of `x` / `undefined`. The `T | undefined` form is only acceptable at framework boundaries (React props, vendored library configs, JSON decoding) that already use it.
 - [ ] Boolean fields prefixed `is*`: `isPlaying`, `isDismissed`, `isMenuOpen`.
 - [ ] Command function names are verbs describing the action: `fetchWeather`, `focusButton`, `scrollToItem`. Never `fetchWeatherCommand` or `weatherFetcher`.
@@ -335,14 +335,14 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 ## Submodel and Command extraction [T5+]
 
 - [ ] [T5+] If the app has multiple Submodels, each has its own directory with at minimum `main.ts` (init/update/view), `message.ts` (messages + OutMessage schema), and optionally `command.ts` (submodel Commands).
-- [ ] [T3+] If update returns Commands across multiple handlers AND the Commands involve non-trivial Effect pipelines (HTTP, Task compositions), Commands are defined in their own `command.ts` file, not inline in update.
+- [ ] [T3+] If update returns Commands across multiple handlers AND the Commands involve non-trivial Effect pipelines (HTTP, Dom compositions), Commands are defined in their own `command.ts` file, not inline in update.
 - [ ] Command factories are pre-wrapped and named by action: `const fetchWeather = (city) => ...` returns the Command-wrapped Effect. Call sites read as `[fetchWeather(city)]`, not `[FetchWeather(Effect.gen(...))]`.
 - [ ] [T5+] OutMessage unions are explicitly tagged with `// OUT MESSAGE` section comment when they appear in a submodel `message.ts`.
 
 ## Subscriptions [T2+]
 
 - [ ] Subscriptions use `Subscription.makeSubscriptions(Deps)<Model, Message>` with a dedicated `Deps` Schema.
-- [ ] `modelToDependencies` extracts exactly the data the stream needs from Model — not the full Model. Returns `Option.none()` when the subscription should stop.
+- [ ] `modelToDependencies` extracts exactly the data the stream needs from Model, not the full Model. Returns `Option.none()` when the subscription should stop.
 - [ ] Always-active subscriptions use `S.Null` as the Deps type and return `null` from `modelToDependencies`.
 - [ ] Message mapping happens inside `Stream.map(event => Effect.succeed(UpdatedX({ data: event })))`, not scattered through update.
 - [ ] Subscription files live at `src/subscription.ts` (or `src/subscription/` directory for multiple), never inline in `main.ts`.
@@ -350,8 +350,8 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 ## Testing quality
 
 - [ ] Test names state the behavior being tested: `it('surfaces a validation error when email is malformed')`, not `it('tests validation')` or `it('handles the reported bug')`.
-- [ ] Each `Story.story` pipeline reads as a narrative — initial model → action → assert → action → assert. Not a dump of unrelated assertions.
-- [ ] Scene tests use accessible locators — `Scene.role('button', { name: /submit/i })`, `Scene.label('Email')` — over `Scene.placeholder` or CSS selectors.
+- [ ] Each `Story.story` pipeline reads as a narrative: initial model → action → assert → action → assert. Not a dump of unrelated assertions.
+- [ ] Scene tests use accessible locators (`Scene.role('button', { name: /submit/i })`, `Scene.label('Email')`) over `Scene.placeholder` or CSS selectors.
 - [ ] Commands in tests are resolved with `Story.Command.resolve(Definition, resultMessage)`. Never run Command Effects directly.
 
 ## Residual code smells (each is a fail)
@@ -360,7 +360,7 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 - [ ] No commented-out code blocks. Delete, don't comment.
 - [ ] No TODO/FIXME/XXX comments in generated code. If something's incomplete, it shouldn't ship.
 - [ ] No `any` types. No `as` casts except where Schema decoders require them at boundaries (and those should be vanishingly rare).
-- [ ] No `let` outside tight imperative loops where mutation is genuinely unavoidable (rare — usually `Array.reduce` or `Array.makeBy` replaces it).
+- [ ] No `let` outside tight imperative loops where mutation is genuinely unavoidable (rare; usually `Array.reduce` or `Array.makeBy` replaces it).
 - [ ] No inline magic numbers in logic: `if (count > 5)` → `const FINAL_PHOTO_INDEX = 5; if (count > FINAL_PHOTO_INDEX)`.
 - [ ] No dead code, unused imports, unused exports, or stub types (`type Foo = {}`).
 - [ ] No `globalThis.*` references. Use Effect equivalents.

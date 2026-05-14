@@ -1,5 +1,7 @@
 # Foldkit Conventions Guide
 
+> **Note:** This file is a snapshot of the conventions practiced in the live Foldkit codebase. If anything here contradicts what `repos/foldkit/examples/` or `repos/foldkit/packages/foldkit/src/` actually do, the live code is canonical. The duplication is intentional so the skill works in downstream projects that haven't vendored the foldkit subtree.
+
 ## Naming
 
 ### Messages
@@ -23,7 +25,7 @@ Messages use past-tense, verb-first naming. The verb prefix acts as a category m
 | `Hid*`       | UI element dismissed                        | `HidToast`, `HidCopiedIndicator`                    |
 | `Ticked*`    | Timer/interval tick                         | `TickedCountdown`, `TickedExitCountdown`            |
 
-`Updated*` covers both user input changes (`UpdatedEmail`, `UpdatedNewTodo`) and external state updates from subscriptions (`UpdatedRoom`, `UpdatedPlayerProgress`). The prefix describes the fact ("the value was updated") — whether it came from a keystroke or a WebSocket doesn't change the Message category.
+`Updated*` covers both user input changes (`UpdatedEmail`, `UpdatedNewTodo`) and external state updates from subscriptions (`UpdatedRoom`, `UpdatedPlayerProgress`). The prefix describes the fact ("the value was updated"). Whether it came from a keystroke or a WebSocket doesn't change the Message category.
 
 #### Completed\* naming
 
@@ -56,7 +58,7 @@ const FailedFetchWeather = m('FailedFetchWeather', { error: S.String })
 
 - Never abbreviate: `signature` not `sig`, `username` not `user`, `message` not `msg`
 - Full names in callbacks: `(tickCount) => tickCount + 1` not `(t) => t + 1`
-- Prefix Option values with `maybe`: `maybeCurrentUser`, `maybeSession`, `maybeError`. **`maybe*` is reserved for `Option<T>` specifically.** Use `nullable*` for native `T | undefined`. A helper named `maybePlaceholder` whose type is `string | undefined` is wrong on both counts: rename to `nullablePlaceholder` or change the type to `Option<string>` (usually the better fix — optional fields at internal API boundaries should be `Option<T>` so the call site reads `Option.some(...)` / `Option.none()`, not bare `undefined`).
+- Prefix Option values with `maybe`: `maybeCurrentUser`, `maybeSession`, `maybeError`. **`maybe*` is reserved for `Option<T>` specifically.** Use `nullable*` for native `T | undefined`. A helper named `maybePlaceholder` whose type is `string | undefined` is wrong on both counts: rename to `nullablePlaceholder` or change the type to `Option<string>` (usually the better fix: optional fields at internal API boundaries should be `Option<T>` so the call site reads `Option.some(...)` / `Option.none()`, not bare `undefined`).
 - Boolean fields use `is*`: `isPlaying`, `isVisible`, `isMenuOpen`
 - Command variables named by action: `fetchWeather`, not `fetchWeatherCommand`
 - Command names are verb-first imperatives: `FetchWeather`, `FocusButton`, `LockScroll`, `Tick`
@@ -148,7 +150,7 @@ Array.take(items, count)              // not .slice(0, n)
 
 ### String module
 
-Effect's `String` module is **data-last curried only** — there is no data-first overload. Use it inside `pipe`/`flow`, not as a direct call:
+Effect's `String` module is **data-last curried only**. There is no data-first overload. Use it inside `pipe`/`flow`, not as a direct call:
 
 ```ts
 // WRONG — Effect String functions don't take data-first
@@ -183,11 +185,11 @@ Effect.gen(function* () {
 )
 ```
 
-The `.pipe(Effect.catch(...), FetchWeather)` is multi-step (two tail operators) and even if it were one, suffix-style `.pipe` on a yielded Effect is the canonical shape. Don't mechanically flatten it to `FetchWeather(Effect.catch(Effect.gen(...), ...))` — that reads inside-out and obscures the pipeline.
+The `.pipe(Effect.catch(...), FetchWeather)` is multi-step (two tail operators) and even if it were one, suffix-style `.pipe` on a yielded Effect is the canonical shape. Don't mechanically flatten it to `FetchWeather(Effect.catch(Effect.gen(...), ...))`. That reads inside-out and obscures the pipeline.
 
 ### Effect.ignore only when there's an error channel
 
-`Effect.ignore` discards both the success value AND any error. If the Effect is infallible at the type level (`Effect.Effect<A>` with no error parameter), there's nothing to discard — `Effect.as(Message())` alone is enough.
+`Effect.ignore` discards both the success value AND any error. If the Effect is infallible at the type level (`Effect.Effect<A>` with no error parameter), there's nothing to discard. `Effect.as(Message())` alone is enough.
 
 ```ts
 // WRONG — pushUrl returns Effect.Effect<void>, no error to ignore
@@ -203,7 +205,7 @@ httpClient.get(url).pipe(
 )
 ```
 
-Same goes for `Task` primitives: `Task.focus` can fail (element may not exist), so `Task.focus(selector).pipe(Effect.ignore, Effect.as(CompletedFocusInput()))` is correct. But `pushUrl`, `load`, `back`, and `forward` from `foldkit/navigation` all return `Effect.Effect<void>` — skip the `ignore`.
+Same goes for `Dom` primitives: `Dom.focus` can fail (element may not exist), so `Dom.focus(selector).pipe(Effect.ignore, Effect.as(CompletedFocusInput()))` is correct. But `pushUrl`, `load`, `back`, and `forward` from `foldkit/navigation` all return `Effect.Effect<void>`. Skip the `ignore`.
 
 ### Iteration
 
@@ -245,7 +247,7 @@ evo(model, {
 })
 ```
 
-Never mutate the model directly. **Never use spread syntax for updates** — `evo` is the canonical pattern. This applies to nested updates too: `evo(model, { newLinkForm: () => ({ ...model.newLinkForm, title: value }) })` is wrong. Use a nested `evo`: `evo(model, { newLinkForm: () => evo(model.newLinkForm, { title: () => value }) })`. The spread-inside-evo pattern is a common mistake — you're using `evo` at the outer level but bypassing it inside, which loses the invariant that all updates go through one codepath.
+Never mutate the model directly. **Never use spread syntax for updates.** `evo` is the canonical pattern. This applies to nested updates too: `evo(model, { newLinkForm: () => ({ ...model.newLinkForm, title: value }) })` is wrong. Use a nested `evo`: `evo(model, { newLinkForm: () => evo(model.newLinkForm, { title: () => value }) })`. The spread-inside-evo pattern is a common mistake. You're using `evo` at the outer level but bypassing it inside, which loses the invariant that all updates go through one codepath.
 
 ## Schema Constructors
 
@@ -268,7 +270,7 @@ Loading()
 SucceededFetch({ data: response })
 ```
 
-**No-field tagged structs take no argument — not an empty object.** `ts('Work')` (and `m('Clicked')`) produces a callable that accepts no argument when the struct has no fields:
+**No-field tagged structs take no argument, not an empty object.** `ts('Work')` (and `m('Clicked')`) produces a callable that accepts no argument when the struct has no fields:
 
 ```ts
 const Work = ts('Work')
@@ -290,7 +292,7 @@ SucceededFetch({ data: response })
 Paused({ remainingMs: 400_000 })
 ```
 
-This matters for readability: `Work()` reads as "a Work value," while `Work({})` reads as "a Work value with some object in it" and makes the reader wonder what's in the object. The empty-object form compiles and works — but every exemplar in the codebase uses the no-arg form for no-field tagged structs.
+This matters for readability: `Work()` reads as "a Work value," while `Work({})` reads as "a Work value with some object in it" and makes the reader wonder what's in the object. The empty-object form compiles and works, but every exemplar in the codebase uses the no-arg form for no-field tagged structs.
 
 ## Discriminated Unions for State
 
@@ -340,17 +342,17 @@ const SignupStep = S.Union([EnterEmail, EnterPassword, Confirming])
 
 ## Code Style
 
-- No inline or block comments — if code needs explanation, use better names
+- No inline or block comments. If code needs explanation, use better names
 - Section headers are allowed: `// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`, `// VIEW`
 - TSDoc (`/** ... */`) on public exports
 - Always use braces for control flow: `if (foo) { return true }` not `if (foo) return true`
-- Use `const` exclusively — `let` only when mutation is truly unavoidable
+- Use `const` exclusively. `let` only when mutation is truly unavoidable
 - Prefer curried, data-last functions that compose in `pipe` chains
 - No dead code, no empty catch blocks, no placeholder types
 
 ## Conditional Styles with clsx
 
-Use `clsx` for conditional class composition — never string concatenation, template literals, or `&&` expressions. Use the object syntax `{ 'class-name': condition }` for conditional classes:
+Use `clsx` for conditional class composition. Never string concatenation, template literals, or `&&` expressions. Use the object syntax `{ 'class-name': condition }` for conditional classes:
 
 ```ts
 import clsx from 'clsx'
@@ -378,7 +380,7 @@ const borderClass = (field: FieldState): string =>
 Class(clsx('w-full px-3 py-2 border rounded-md', borderClass(field)))
 ```
 
-`clsx` is a project dependency — add it to `package.json` when generating apps that use conditional styles.
+`clsx` is a project dependency. Add it to `package.json` when generating apps that use conditional styles.
 
 ## Imports
 
@@ -400,10 +402,10 @@ import {
 import {
   Calendar,
   Command,
+  Dom,
   File,
   Runtime,
   Subscription,
-  Task,
   Ui,
   Url,
 } from 'foldkit'
@@ -433,10 +435,10 @@ import {
 
 Notes:
 
-- Only import what you use. `Calendar`, `File`, and `foldkit/fieldValidation` are only needed when the app has dates, file uploads, or form validation respectively
-- When an Effect module name collides with a global, alias the Effect import with a trailing underscore: `String as String_`, `Array as Array_`, `Number as Number_`
-- `Match as M` is Effect's Match module — Foldkit re-exports `M.value`, `M.tagsExhaustive`, `M.withReturnType` etc. through Effect's `Match`
+- Only import what you actually use in the file. The lint pass catches unused imports.
+- Module-by-module reminders, for example: `Calendar` for `Calendar.CalendarDate`, `Calendar.today.local`, `Calendar.make`, `Calendar.addDays` etc., paired with `Ui.Calendar` or `Ui.DatePicker`. `Dom` for DOM-side-effect helpers (`Dom.focus`, `Dom.scrollIntoView`, `Dom.showModal`, `Dom.closeModal`, `Dom.lockScroll`, `Dom.unlockScroll`, `Dom.waitForAnimationSettled`, etc.). `File` for file upload primitives paired with `Ui.FileDrop`. `foldkit/fieldValidation` for form validation.
+- For time, randomness, UUIDs, or delays, use Effect's built-ins directly rather than reaching for a Foldkit module: `Clock.currentTimeMillis`, `Random.nextIntBetween`, `Effect.uuid`, `Effect.sleep(Duration.millis(...))`.
+- When an Effect module name collides with a global, alias the Effect import with a trailing underscore: `String as String_`, `Array as Array_`, `Number as Number_`.
+- `Match as M` is Effect's Match module. Foldkit re-exports `M.value`, `M.tagsExhaustive`, `M.withReturnType` etc. through Effect's `Match`.
 - `Ui` from `foldkit` gives access to all UI components: `Ui.Dialog`, `Ui.Tabs`, `Ui.Menu`, `Ui.DatePicker`, `Ui.FileDrop`, `Ui.Toast`, `Ui.Tooltip`, etc.
-- `Calendar` provides `Calendar.CalendarDate`, `Calendar.today.local`, `Calendar.make`, `Calendar.addDays` etc. — used with `Ui.Calendar` and `Ui.DatePicker`
-- `File` provides file upload primitives used with `Ui.FileDrop`
-- `empty` and `keyed` can be imported from `foldkit/html` directly or accessed off `h` after binding `const h = html<Message>()`
+- `empty` and `keyed` can be imported from `foldkit/html` directly or accessed off `h` after binding `const h = html<Message>()`.
