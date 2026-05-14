@@ -304,10 +304,10 @@
     border-left-color: theme(--color-emerald-400);
   }
 
-  .demo-code-panel[data-demo-phase='IncrementUpdate'] [data-line='25'],
-  .demo-code-panel[data-demo-phase='IncrementUpdate'] [data-line='26'],
-  .demo-code-panel[data-demo-phase='IncrementUpdate'] [data-line='27'],
-  .demo-code-panel[data-demo-phase='IncrementUpdate'] [data-line='28'] {
+  .demo-code-panel[data-demo-phase='IncrementUpdate'] [data-line='33'],
+  .demo-code-panel[data-demo-phase='IncrementUpdate'] [data-line='34'],
+  .demo-code-panel[data-demo-phase='IncrementUpdate'] [data-line='35'],
+  .demo-code-panel[data-demo-phase='IncrementUpdate'] [data-line='36'] {
     @apply bg-amber-500/15;
     border-left-color: theme(--color-amber-400);
   }
@@ -326,24 +326,24 @@
     border-left-color: theme(--color-emerald-400);
   }
 
-  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='33'],
-  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='34'],
-  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='35'],
-  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='36'],
-  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='37'],
-  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='38'],
-  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='39'],
-  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='40'] {
+  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='41'],
+  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='42'],
+  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='43'],
+  .demo-code-panel[data-demo-phase='ResetUpdate'] [data-line='44'] {
     @apply bg-amber-500/15;
     border-left-color: theme(--color-amber-400);
   }
 
   .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='20'],
-  .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='35'],
-  .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='36'],
-  .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='37'],
-  .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='38'],
-  .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='39'] {
+  .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='21'],
+  .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='22'],
+  .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='23'],
+  .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='24'],
+  .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='25'],
+  .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='26'],
+  .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='27'],
+  .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='28'],
+  .demo-code-panel[data-demo-phase='ResetCommand'] [data-line='43'] {
     @apply bg-violet-500/15;
     border-left-color: theme(--color-violet-400);
     animation: demo-pulse 1s ease-in-out infinite;
@@ -354,10 +354,10 @@
     border-left-color: theme(--color-emerald-400);
   }
 
-  .demo-code-panel[data-demo-phase='ResetCommandUpdate'] [data-line='41'],
-  .demo-code-panel[data-demo-phase='ResetCommandUpdate'] [data-line='42'],
-  .demo-code-panel[data-demo-phase='ResetCommandUpdate'] [data-line='43'],
-  .demo-code-panel[data-demo-phase='ResetCommandUpdate'] [data-line='44'] {
+  .demo-code-panel[data-demo-phase='ResetCommandUpdate'] [data-line='45'],
+  .demo-code-panel[data-demo-phase='ResetCommandUpdate'] [data-line='46'],
+  .demo-code-panel[data-demo-phase='ResetCommandUpdate'] [data-line='47'],
+  .demo-code-panel[data-demo-phase='ResetCommandUpdate'] [data-line='48'] {
     @apply bg-amber-500/15;
     border-left-color: theme(--color-amber-400);
   }

@@ -472,15 +472,13 @@ const CompletedDelayReset = m('CompletedDelayReset')
 // COMMAND
 
 const DelayReset = Command.define(
-  // The identifier for the Command, surfaces in DevTools and Story/Scene tests
   'DelayReset',
-  // The args record (Schema-typed, optional — omit for argless Commands)
   { seconds: S.Number },
-  // The returned Message (can be more than one)
   CompletedDelayReset,
 )(({ seconds }) =>
-  // The Effect builder, called with the typed args
-  Effect.sleep(\`\${seconds} seconds\`).pipe(Effect.as(CompletedDelayReset())),
+  Effect.sleep(\`\${seconds} seconds\`).pipe(
+    Effect.as(CompletedDelayReset()),
+  ),
 )
 
 // UPDATE
