@@ -1,21 +1,33 @@
 # Agent Development Notes
 
-This is a Foldkit app — a framework built on Effect-TS.
+This is a Foldkit app, a framework built on Effect-TS, architected like Elm.
 
-If `./repos/foldkit` exists, it contains the full Foldkit repository, vendored in as a git subtree. The `examples/` directory and `packages/typing-game/client/src/` in particular are the best reference for what idiomatic Foldkit apps look like. Treat the subtree as read-only reference: never import from `repos/foldkit/` in your project source. Imports must come from the `foldkit` npm package.
+## Getting the canonical references
+
+The live Foldkit code is the canonical reference for everything: which APIs exist, what idiomatic apps look like, what the current conventions are. Written docs (including this one) can drift; the code can't.
+
+If `./repos/foldkit` exists, it contains the full Foldkit repository, vendored in as a git subtree. Read from it directly:
+
+- `repos/foldkit/examples/`: runnable example apps spanning every complexity tier. Usually your first stop when looking for a precedent for how to write something.
+- `repos/foldkit/packages/foldkit/src/`: framework source. Ground truth for API signatures.
+- `repos/foldkit/packages/typing-game/client/src/` and `repos/foldkit/packages/website/src/`: production apps built with Foldkit. Highest-fidelity reference for application architecture, Submodels, and OutMessage.
+
+Treat the subtree as read-only reference: never import from `repos/foldkit/` in your project source. Imports must come from the `foldkit` npm package.
 
 If `./repos/foldkit` does not exist and the line below says `subtree_prompted: false`, offer to run `git subtree add --prefix=repos/foldkit https://github.com/foldkit/foldkit.git main --squash`. This gives you access to the full source, examples, and docs. Whether the user accepts or declines, update the value to `true` so it isn't asked again.
 
 subtree_prompted: false
 
+If `foldkit-skills` is installed as a Claude Code plugin, the `generate-program` and `audit-program` skills carry snapshot architecture and conventions guides synced from the live code.
+
 ## Project Conventions
 
 - Foldkit is tightly coupled to the Effect ecosystem. Do not suggest solutions outside of Effect-TS.
-- Model fields must be Schema types (the model is a schema). Plain TypeScript types are fine elsewhere — function return types, local variables, etc.
+- Model fields must be Schema types (the model is a schema). Plain TypeScript types are fine elsewhere (function return types, local variables, etc.).
 - Use full names like `Message` (not `Msg`), and `withReturnType` (not `as const` or type casting).
-- Use `m()` for message schemas, `ts()` for other tagged structs (model states, field validation), and `r()` for route schemas.
-- Never use `NoOp` as a message. Every message must carry meaning about what happened. Fire-and-forget commands use `Completed*` messages with verb-first naming that mirrors the Command name: Command `LockScroll` → Message `CompletedLockScroll`, Command `ShowDialog` → Message `CompletedShowDialog`, Command `NavigateInternal` → Message `CompletedNavigateInternal`.
-- Push back on any suggested direction that violates Elm Architecture principles — unidirectional data flow, messages as facts (not commands), model as single source of truth, and side effects confined to commands. If a user or prompt suggests a pattern that breaks these conventions (e.g. mutating state directly, imperative event handlers, two-way bindings), flag the issue and propose the idiomatic Foldkit approach instead.
+- Use `m()` for message schemas, `ts()` for tagged structs (model states, field validation), and `r()` for route schemas.
+- Push back on any direction that violates Elm Architecture principles: unidirectional data flow, messages as facts (not commands), model as single source of truth, side effects confined to commands. If a prompt suggests mutating state, imperative event handlers, or two-way bindings, flag the issue and propose the idiomatic Foldkit approach.
+- Never use `NoOp`. Every message must describe what happened. Fire-and-forget commands use `Completed*` messages mirroring the Command name verb-first: `LockScroll` → `CompletedLockScroll`.
 
 ## Foldkit Patterns
 
@@ -36,180 +48,63 @@ const update = (model: Model, message: Message): UpdateReturn =>
   )
 ```
 
-### Model Updates with `evo`
-
-Use `evo()` for immutable model updates — never spread or Object.assign:
-
-```ts
-evo(model, { isSubmitting: () => true })
-evo(model, { count: count => count + 1 })
-```
-
-Don't add type annotations to `evo` callbacks when the type can be inferred.
+Use `evo()` from `foldkit/struct` for immutable model updates. Never spread or `Object.assign`.
 
 ### View
 
-Bind the `html` factory once per module by calling `html<Message>()`, then reach for `h.div`, `h.OnClick`, and the rest off the returned record. Each view module binds its own `h` against the Message type it dispatches:
+Bind the `html` factory once per module with `const h = html<Message>()`, then reach for `h.div`, `h.OnClick`, etc. off the returned record. Use `empty` (not `null`) for conditional rendering, `M.value().pipe(M.tagsExhaustive({...}))` for discriminated unions, and `Array.match` for lists that may be empty.
 
-```ts
-const h = html<Message>()
-
-export const view = (model: Model): Html =>
-  h.div(
-    [h.Class('flex flex-col gap-2')],
-    [
-      h.h1([], [`Hello, ${model.name}`]),
-      h.button([h.OnClick(ClickedRefresh())], ['Refresh']),
-    ],
-  )
-```
-
-For child views that should be agnostic to their parent, take `ParentMessage` as a function generic and bind `html<ParentMessage>()` inside. The view stays decoupled from any particular parent and composes through the `toParentMessage` callback the parent supplies.
-
-Use `empty` (not `null`) for conditional rendering. Use `M.value().pipe(M.tagsExhaustive({...}))` for rendering discriminated unions and `Array.match` for rendering lists that may be empty.
-
-Use `keyed` wrappers whenever the view branches into structurally different layouts based on route or model state. Without keying, the virtual DOM will try to diff one layout into another (e.g. a full-width landing page into a sidebar docs layout), which causes stale DOM, mismatched event handlers, and subtle rendering bugs. Key the outermost container of each layout branch with a stable string (e.g. `keyed('div')('landing', ...)` vs `keyed('div')('docs', ...)`). Within a single layout, key the content area on the route tag (e.g. `keyed('div')(model.route._tag, ...)`) so page transitions replace rather than patch.
+Use `keyed` wrappers whenever the view branches into structurally different layouts based on route or model state. Without keying, the virtual DOM tries to diff one layout into another, causing stale DOM and event handler mismatches.
 
 ### Commands
 
-Define Command identities with `Command.define`, passing the result Message schemas after the name — result types are required. Always assign definitions to PascalCase constants — never use `Command.define` inline in a pipe chain:
+Define a Command with `Command.define`, which is curried: the first call binds the name (and optionally args + result Message schemas), and the second call binds the Effect. Assign definitions to PascalCase constants. Never inline in pipe chains. Commands catch all errors via `Effect.catch(() => Effect.succeed(FailedX(...)))` so side effects never crash the app. Definitions live colocated with the update function that returns them.
 
-```ts
-const FetchWeather = Command.define(
-  'FetchWeather',
-  SucceededFetchWeather,
-  FailedFetchWeather,
-)
+For the with-args shape, see `repos/foldkit/examples/weather/src/main.ts` or `repos/foldkit/examples/kanban/src/command.ts`. For an argless DOM-side-effect Command, the argless form in `kanban/src/command.ts` (`FocusAddCardInput`) is the canonical reference.
 
-const fetchWeather = (city: string) =>
-  Effect.gen(function* () {
-    // ...
-    return SucceededFetchWeather({ data })
-  }).pipe(
-    Effect.catch(error =>
-      Effect.succeed(FailedFetchWeather({ error: String(error) })),
-    ),
-    FetchWeather,
-  )
-```
-
-Commands catch all errors and return Messages — side effects never crash the app. Let TypeScript infer Command return types from the Effect — the result Message schemas passed to `Command.define` constrain the Effect's return type at the type level.
-
-Command definitions live where they're produced — colocated with the update function that returns them. Don't centralize all definitions in one file.
-
-### Mount
-
-For per-element DOM work that needs the live `Element` handle (anchor positioning, portaling an overlay, attaching observers, handing the element to a third-party library), define a Mount with `Mount.define` and attach it to a view element with `OnMount`. The runtime runs the Effect when the element mounts, dispatches its result Message back through `update`, and runs the paired cleanup on unmount.
-
-```ts
-const CompletedPortalToBody = m('CompletedPortalToBody')
-
-const PortalToBody = Mount.define('PortalToBody', CompletedPortalToBody)
-
-const portalToBody = PortalToBody(element =>
-  Effect.sync(() => {
-    document.body.appendChild(element)
-    return {
-      message: CompletedPortalToBody(),
-      cleanup: () => element.remove(),
-    }
-  }),
-)
-
-// In view:
-div([Class('fixed inset-0 bg-black/50'), OnMount(portalToBody)])
-```
-
-Cleanup is data, paired with setup as a single value. For setup with no cleanup, pass `Function.constVoid`. The `Completed*` Message marks the lifecycle without forcing a meaningful response in update.
-
-Two rules for Mount, both must hold:
-
-1. **The Effect uses the element parameter.** Mount provides the live element handle, and that handle is what makes Mount distinct from Command. If your Effect doesn't read or write the element, pick a different primitive.
-2. **The work is DOM measurement or DOM manipulation on that element.** Read its geometry, mutate its CSS, attach an observer to it, portal it, hand it to a third-party library. Anything else (network, storage, focus-on-transition, scroll lock for the page) belongs in a Command returned from `update`.
-
-Mount Effects re-run during DevTools time-travel renders. The two rules above keep Mount work inherently replay-safe (read-only measurement, idempotent DOM mutation, paired observer attach + cleanup).
-
-Don't reach for Mount just because the work happens to coincide with an element appearing. Check what causes the work. If a Message just dispatched (like `Opened`), the cause is the Message, not the element. Use a Command returned from `update`'s handler instead. Example: focusing a search input when its dialog opens. The cause is `Opened`, not the input's existence; return a `FocusInput` Command from the `Opened` handler.
+For DOM operations (focus, scroll, modals, scroll lock), Foldkit ships a `Dom` module. For time, randomness, UUIDs, and delays, use Effect's built-ins directly (`Clock`, `Random`, `Effect.uuid`, `Effect.sleep`). Don't reach for raw `document.querySelector`, `setTimeout`, `Date.now()`, or `Math.random()`.
 
 ### File Organization
 
-A Foldkit app lives in two files. `src/main.ts` holds the pure definitions: Model, Messages, init, update, view. `src/entry.ts` imports them and boots the runtime with `Runtime.makeProgram` and `Runtime.run`. `index.html` references `entry.ts`. The split keeps `main.ts` importable from tests without booting a runtime as a side effect. Never call `Runtime.run` from `main.ts`.
+A Foldkit app lives in two files. `src/main.ts` holds the pure definitions (Model, Messages, init, update, view). `src/entry.ts` imports them and boots the runtime with `Runtime.makeProgram` and `Runtime.run`. `index.html` references `entry.ts`. The split keeps `main.ts` importable from tests without booting a runtime as a side effect. Never call `Runtime.run` from `main.ts`.
 
-Use uppercase section headers (`// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`, `// COMMAND`, `// VIEW`) to make files easier to skim. These are for wayfinding — they make it clear where things live and where new code should go. Use domain-specific headers too when it helps (e.g. `// PHYSICS`, `// ROUTING`).
-
-Even after extracting some sections to their own files (e.g. `message.ts`), the remaining file may still benefit from headers. Extract to separate files when it helps with organization.
+Use uppercase section headers (`// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`, `// COMMAND`, `// VIEW`) for wayfinding.
 
 ### Testing
 
-Test update functions with `foldkit/test`. Since update is pure — `(Model, Message) → [Model, Commands]` — tests run without a runtime, DOM, or side effects.
+Test update functions with `foldkit/test`. Since update is pure, tests run without a runtime, DOM, or side effects. Use `Story.story` for update-level tests (send Messages, assert on Model and Commands) and `Scene.scene` for feature-level testing through the view with accessible locators. If the `repos/foldkit` subtree is available, study the `.story.test.ts` and `.scene.test.ts` files in `repos/foldkit/examples/`.
 
-Use `Story.story` to chain steps into a readable narrative: set initial Model → send Message → assert → resolve Command → assert again. Use `Scene.scene` for feature-level testing through the view — clicking buttons, typing into inputs, pressing keys — with accessible locators (`Scene.role`, `Scene.label`, `Scene.placeholder`). Every `Command.define` must include result Message schemas so Commands can be resolved in tests.
+## Code Style
 
-If the `repos/foldkit` subtree is available, study the `.test.ts` files in `repos/foldkit/examples/` for patterns — they cover simple Command resolution, multi-step interactions, and Submodel OutMessage assertions.
+- Encode state in discriminated unions, not booleans or nullable fields. `Idle | Loading | Error | Ok`, not `isLoading: boolean`. Make impossible states unrepresentable.
+- Use `Option` instead of `null` or `undefined`. Prefix Option-typed values with `maybe*`. Match with `Option.match`; don't unwrap with `Option.map(...)` + `Option.getOrElse(...)` when you can just match.
+- Use Effect modules over native methods in `pipe` chains (`Array.map`, `String.startsWith`, `Array.findFirst`). Native methods are fine when calling directly on a named variable.
+- Never cast Schema values with `as Type`. Use the callable constructor: `SucceededLogin({ sessionId })`, not `{ _tag: 'SucceededLogin', sessionId } as Message`.
+- Always `Array.isEmptyArray` / `Array.isNonEmptyArray` (not `.length === 0`). Use `Array.match` when handling both empty and non-empty cases.
+- Never use `for` loops or `let` for iteration. Reach for `Array.map`, `Array.filterMap`, `Array.makeBy`, `Array.reduce`.
+- Never use `T[]`. Always `Array<T>` or `ReadonlyArray<T>`.
+- Always use `Effect.Match`, never `switch`.
+- Always use braces for control flow: `if (foo) { return true }`.
+- Don't add inline comments to explain code. Use better names instead. Reserve `// NOTE:` for behavior that would mislead a careful reader.
 
-## Debugging with Foldkit DevTools
+## Message Layout
 
-This project ships with `@foldkit/devtools-mcp` pre-wired. When the dev server is running and the app is open in a browser tab, `foldkit_*` MCP tools are available for inspecting Model, Message history, and time-travel. Reach for them before adding `console.log` whenever the question is about state or Message flow.
-
-If the `foldkit_*` tools aren't visible, see `@foldkit/devtools-mcp` on npm for setup.
-
-## Code Quality Standards
-
-- Every name should eliminate ambiguity. Prefix Option-typed values with `maybe` (e.g. `maybeSession`). Name functions by their precise effect (e.g. `enqueueMessage` not `addMessage`). A reader should never need to check a type signature to understand what a name refers to.
-- Each function should operate at a single abstraction level. Orchestrators delegate to focused helpers — they don't mix coordination with implementation. If a function reads like it's doing two things, extract one.
-- Encode state in discriminated unions, not booleans or nullable fields. Use `Idle | Loading | Error | Ok` instead of `isLoading: boolean`. Make impossible states unrepresentable.
-- Name messages as verb-first, past-tense events describing what happened (`SubmittedUsernameForm`, `CreatedRoom`, `PressedKey`), not imperative commands. The verb prefix acts as a category marker: `Clicked*` for button presses, `Updated*` for input changes, `Succeeded*`/`Failed*` for command results that can meaningfully fail (e.g. `SucceededFetchWeather`, `FailedFetchWeather`), `Completed*` for fire-and-forget command acknowledgments where the result is uninteresting and the update function is a no-op (e.g. `CompletedLockScroll`, `CompletedShowDialog`, `CompletedNavigateInternal`), `Got*` exclusively for receiving child module results via the OutMessage pattern (e.g. `GotProductsMessage`). Never use `NoOp` — every message must describe what happened. The update function decides what to do — messages are facts.
-- Use `Option` instead of `null` or `undefined`. Match explicitly with `Option.match` or chain with `Option.map`/`Option.flatMap`. No `if (x != null)` checks. Prefer `Option.match` over `Option.map` + `Option.getOrElse` — if you're unwrapping at the end, just match.
-- Prefer curried, data-last functions that compose in `pipe` chains.
-- Every line should serve a purpose. No dead code, no empty catch blocks, no placeholder types, no defensive code for impossible cases.
-
-## Code Style Conventions
-
-### Effect-TS Patterns
-
-- Prefer `pipe()` for multi-step data flow. Never use `pipe` with a single operation — call the function directly instead: `Option.match(value, {...})` not `pipe(value, Option.match({...}))`.
-- Use `Effect.gen()` for imperative-style async operations.
-- Always use Effect.Match instead of switch.
-- Prefer Effect module functions over native methods when available — e.g. `Array.map`, `Array.filter`, `Option.map`, `String.startsWith` from Effect instead of their native equivalents. This includes Effect's `String` module: use `String.includes`, `String.indexOf` (returns `Option<number>`), `String.slice`, `String.startsWith`, `String.replaceAll`, `String.length`, `String.isNonEmpty`, `String.trim` etc. in `pipe` chains. Exception: native `.map`, `.filter`, `.indexOf()`, `.slice()`, etc. are fine when calling directly on a named variable — use Effect's curried, data-last forms in `pipe` chains where they compose naturally.
-- Never use `for` loops or `let` for iteration. Use `Array.makeBy` for index-based construction, `Array.range` + `Array.findFirst`/`Array.findLast` for searches, and `Array.filterMap`/`Array.flatMap` for transforms.
-- Never cast Schema values with `as Type`. Use callable constructors: `LoginSucceeded({ sessionId })` not `{ _tag: 'LoginSucceeded', sessionId } as Message`.
-- Use `Option` for model fields that may be absent — not empty strings or zero values. `loginError: S.Option(S.String)` not `loginError: S.String` with `''` as the "none" state. Use `Option.match` in views to conditionally render.
-- Use `Array.take` instead of `.slice(0, n)`.
-- Always use `Array.isEmptyArray(foo)` instead of `foo.length === 0`. Use `Array.isNonEmptyArray(foo)` for non-empty checks. When handling both cases, prefer `Array.match`.
-
-### Message Layout
-
-Message definitions follow a strict layout:
+Group all `m()` declarations together with no blank lines between them, then put `S.Union([...])` and `type Message = typeof Message.Type` on adjacent lines:
 
 ```ts
 const ClickedSubmit = m('ClickedSubmit')
-const ChangedEmail = m('ChangedEmail', { value: S.String })
-const CompletedNavigateInternal = m('CompletedNavigateInternal')
+const UpdatedEmail = m('UpdatedEmail', { value: S.String })
 
-const Message = S.Union([
-  ClickedSubmit,
-  ChangedEmail,
-  CompletedNavigateInternal,
-])
+const Message = S.Union([ClickedSubmit, UpdatedEmail])
 type Message = typeof Message.Type
 ```
 
-1. **Values** — all `m()` declarations, no blank lines between them
-2. **Union + type** — `S.Union([...])` followed by `type Message = typeof Message.Type` on adjacent lines (no blank line between them)
+Messages are verb-first past-tense. Common prefixes: `Clicked*`, `Updated*` (input changes and external state updates), `Submitted*`, `Pressed*`, `Selected*`, `Succeeded*` / `Failed*` (paired async results), `Completed*` (fire-and-forget), `Got*` (child OutMessage in the Submodel pattern).
 
-Use `typeof ClickedSubmit` in type positions to reference a schema value's type.
+## Debugging
 
-### General Preferences
+This project ships with `@foldkit/devtools-mcp` pre-wired. When the dev server is running and the app is open in a browser, `foldkit_*` MCP tools let you inspect Model, Message history, and time-travel. Reach for them before adding `console.log` whenever the question is about state or Message flow.
 
-- Never abbreviate names. Use full, descriptive names everywhere — variables, types, functions, parameters, including callback parameters. e.g. `signature` not `sig`, `Message` not `Msg`, `(tickCount) => tickCount + 1` not `(t) => t + 1`.
-- Don't suffix Command variables with `Command`. Name them by what they do: `focusButton` not `focusButtonCommand`, `scrollToItem` not `scrollToItemCommand`. The type already communicates that it's a Command. Command definitions are PascalCase (`FocusButton`, `ScrollToItem`); Command instances and factory functions are camelCase (`focusButton`, `scrollToItem`).
-- Avoid `let`. Use `const` and prefer immutable patterns.
-- Always use braces for control flow. `if (foo) { return true }` not `if (foo) return true`.
-- Use `is*` for boolean naming e.g. `isPlaying`, `isValid`.
-- Don't add inline or block comments to explain code. If code needs explanation, refactor for clarity or use better names. Exceptions: section headers (see File Organization above), TSDoc (`/** ... */`) on public exports, and `// NOTE:` comments. Reserve `// NOTE:` for behavior that would mislead a careful reader into breaking things: a timing dependency that's silent if violated, a workaround for an upstream bug, a browser quirk that costs real debugging time to rediscover. The bar is high. When in doubt, delete it.
-- Use capitalized string literals for Schema literal types: `S.Literals(['Horizontal', 'Vertical'])` not `S.Literals(['horizontal', 'vertical'])`.
-- Capitalize namespace imports: `import * as Command from './command'` not `import * as command from './command'`.
-- Extract magic numbers to named constants. No raw numeric literals in logic.
-- Never use `T[]` syntax. Always use `Array<T>` or `ReadonlyArray<T>`.
-- For inline object types in `ReadonlyArray`, put `Readonly<{...}>` on the element type rather than `ReadonlyArray<{ readonly a: ...; readonly b: ... }>`. e.g. `ReadonlyArray<Readonly<{ model: Foo; toParentMessage: (m: Bar) => Baz }>>` not `ReadonlyArray<{ readonly model: Foo; readonly toParentMessage: ... }>`.
-- Extract repeated inline style values (colors, shadows) to constants. Use Tailwind `@theme` for colors that map to utility classes (e.g. `--color-valentine: #ff2d55` → `text-valentine`). Use a `theme.ts` for values Tailwind can't express as utilities (textShadow, boxShadow).
+## Going Deeper
+
+For Submodels and OutMessage, Subscriptions, Mount / ManagedResource / CustomElement, field validation, routing, accessibility, and the full convention set, read the live Foldkit code in `repos/foldkit/`. The `examples/` directory and the production apps (`packages/typing-game/`, `packages/website/`) are the highest-fidelity references for any specific pattern. The `foldkit-skills` plugin's `generate-program` and `audit-program` skills carry written snapshot guides if you want a structured walkthrough.

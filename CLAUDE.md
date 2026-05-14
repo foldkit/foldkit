@@ -5,7 +5,7 @@ This file contains preferences and conventions for Claude when working on this c
 ## Project Conventions
 
 - "Foldkit" is always capitalized in prose — in READMEs, docs, commit messages, comments, and conversation. The only exception is the npm package name (`foldkit`) and import paths (`from 'foldkit/html'`).
-- In prose (docs, comments, conversation), capitalize Foldkit architecture concepts that correspond to actual types or named patterns: Model, Message, Command, Subscription, Task, Submodel, OutMessage. Keep lowercase for concepts that are just functions with no corresponding type or pattern: view, update, init.
+- In prose (docs, comments, conversation), capitalize Foldkit architecture concepts that correspond to actual types or named patterns: Model, Message, Command, Subscription, Mount, ManagedResource, CustomElement, Submodel, OutMessage. Keep lowercase for concepts that are just functions with no corresponding type or pattern: view, update, init.
 - This is a Foldkit project — a framework built on Effect-TS. Always use Schema types (not plain TypeScript types), full names like `Message` (not `Msg`), and `withReturnType` (not `as const` or type casting). Follow the Submodels and OutMessage patterns used throughout the codebase.
 - Foldkit is tightly coupled to the Effect ecosystem. Do not suggest solutions outside of Effect-TS. The project already has a `create-foldkit-app` scaffolding tool — check existing features before suggesting new ones.
 - Push back on any suggested direction that violates Elm Architecture principles — unidirectional data flow, Messages as facts (not commands), Model as single source of truth, and side effects confined to Commands. If a user or prompt suggests a pattern that breaks these conventions (e.g. mutating state directly, imperative event handlers, two-way bindings), flag the issue and propose the idiomatic Foldkit approach instead.
@@ -17,11 +17,11 @@ Before writing code, read the exemplar files to internalize the level of care ex
 Library internals (when working in `packages/foldkit/src/`):
 
 - `packages/foldkit/src/runtime/runtime.ts` — orchestration, state management, error recovery
-- `packages/foldkit/src/parser.ts` — bidirectional combinators, type-safe composition
+- `packages/foldkit/src/route/parser.ts` — bidirectional combinators, type-safe composition
 
 Application architecture (when working in `packages/website/`, examples, or apps built with Foldkit):
 
-- `examples/typing-game/client/src/` — Submodels, OutMessage, update/Message patterns, view decomposition, Commands
+- `packages/typing-game/client/src/` — Submodels, OutMessage, update/Message patterns, view decomposition, Commands
 
 Match the quality and thoughtfulness of these files. The principles below apply broadly, but calibrate to the right context — library design when building Foldkit internals, application architecture when building with Foldkit:
 
@@ -201,7 +201,7 @@ Four lifecycle/binding primitives. Pick by **what causes the side effect**, not 
 - **`index.ts` is always a barrel; real code lives in a named file.** For a module `foo/`, the shape is `foo/foo.ts` for the code and `foo/index.ts` for the barrel. `index.ts` re-exports via `export * from './foo'` and nests child modules as namespaces via `export * as Child from './child'`. Never put implementation code in `index.ts`. This applies everywhere — domain modules (`domain/step.ts` + `domain/index.ts` re-exports), submodels with children (`step/education/education.ts` + `step/education/entry.ts` + `step/education/index.ts` barrel), nested UI components. Consumer imports read as `import { Education } from '../step'` → `Education.Model`, `Education.Entry.Model`. The hierarchy is visible in the file tree AND in the namespace.
 - Extract Messages to a dedicated `message.ts` file when Commands need Message constructors — this breaks the circular dependency between command.ts and main.ts. Export all schemas individually and as the `Message` union type.
 - **Expose a `boot()` helper alongside `init()` when a submodel applies a boot-time Message.** `init()` returns clean state with no boot effects (use it from tests, stories, and scenes that want to inspect state without triggering side effects). `boot()` calls `init()`, applies any boot-time Message via `update`, and returns the consolidated `[Model, Commands]` tuple. The parent's `init` calls `boot()` instead of inlining the init + update + concat dance. The benefit is that the state transition for "we just decided to start loading" goes through the same `update` handler whether it's triggered at boot, on a route change, or by a user action — one source of truth for the loading rules (NotAsked → Loading transition, dedupe via the state machine, DevTools message log entry). If the boot Message is conditional (e.g. only fire if the initial route matches), `boot()` takes the discriminator as an argument (typically `Option<T>`) and routes internally. Submodels with no boot-time Message just expose `init()` and skip `boot()`.
-- Use the `ViteEnvConfig` Context.Service pattern for environment variables in RPC layers (see `examples/typing-game/client/src/config.ts`). For values needed synchronously in views (e.g. photo URLs), keep a simple module-level `const` alongside the service.
+- Use the `ViteEnvConfig` Context.Service pattern for environment variables in RPC layers (see `packages/typing-game/client/src/config.ts`). For values needed synchronously in views (e.g. photo URLs), keep a simple module-level `const` alongside the service.
 - Extract repeated inline style values (colors, shadows) to constants. Use Tailwind `@theme` for colors that map to utility classes (e.g. `--color-valentine: #ff2d55` → `text-valentine`). Use a `theme.ts` for values Tailwind can't express as utilities (textShadow, boxShadow).
 
 ### Commits and Releases
