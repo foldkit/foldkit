@@ -10,6 +10,8 @@ npx create-foldkit-app
 pnpm create foldkit-app
 # or
 yarn create foldkit-app
+# or
+bun create foldkit-app
 ```
 
 The CLI prompts you for a project name, starter example, and package manager. Pass `--name`, `--example`, and/or `--package-manager` to skip the matching prompts.
