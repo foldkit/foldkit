@@ -114,6 +114,7 @@ const Model = S.Struct({
   pausedAtIndex: S.Number,
   selectedIndex: S.Number,
   isFollowingLatest: S.Boolean,
+  isFollowingTop: S.Boolean,
   maybeInspectedModel: S.Option(UnknownByReference),
   maybeInspectedMessage: S.Option(UnknownByReference),
   submodelTags: S.Array(S.String),
@@ -154,6 +155,8 @@ const ClickedClear = m('ClickedClear')
 const CompletedJump = m('CompletedJump')
 const CompletedResume = m('CompletedResume')
 const ClickedFollowLatest = m('ClickedFollowLatest')
+const ClickedScrollToTopPill = m('ClickedScrollToTopPill')
+const ScrolledMessageList = m('ScrolledMessageList', { scrollTop: S.Number })
 const CompletedClear = m('CompletedClear')
 const LockedScroll = m('LockedScroll')
 const UnlockedScroll = m('UnlockedScroll')
@@ -196,6 +199,8 @@ const Message = S.Union([
   ClickedResume,
   ClickedClear,
   ClickedFollowLatest,
+  ClickedScrollToTopPill,
+  ScrolledMessageList,
   CompletedJump,
   CompletedResume,
   CompletedClear,
@@ -248,6 +253,8 @@ const sliderValueToHostIndex = (
   sliderValue: number,
   startIndex: number,
 ): number => (sliderValue === 0 ? INIT_INDEX : startIndex + sliderValue - 1)
+
+const SCROLL_FOLLOW_THRESHOLD_PX = 8
 
 const computeSubmodelTags = (
   entries: ReadonlyArray<typeof DisplayEntry.Type>,
@@ -495,22 +502,24 @@ const makeUpdate = (
           ),
         ClickedResume: () => [
           evo(model, {
+            isFollowingTop: () => true,
             expandedPaths: () => HashSet.empty<string>(),
             changedPaths: () => HashSet.empty<string>(),
             affectedPaths: () => HashSet.empty<string>(),
           }),
-          [resume, inspectLatest],
+          [resume, inspectLatest, scrollToTop],
         ],
         ClickedClear: () => [
           evo(model, {
             selectedIndex: () => INIT_INDEX,
             isFollowingLatest: () => true,
+            isFollowingTop: () => true,
             maybeSubmodelFilter: () => Option.none(),
             expandedPaths: () => HashSet.empty<string>(),
             changedPaths: () => HashSet.empty<string>(),
             affectedPaths: () => HashSet.empty<string>(),
           }),
-          [clear, inspectLatest],
+          [clear, inspectLatest, scrollToTop],
         ],
         ClickedFollowLatest: () => {
           const latestIndex = Array_.match(model.entries, {
@@ -522,12 +531,25 @@ const makeUpdate = (
             evo(model, {
               selectedIndex: () => latestIndex,
               isFollowingLatest: () => true,
+              isFollowingTop: () => true,
               expandedPaths: () => HashSet.empty<string>(),
               changedPaths: () => HashSet.empty<string>(),
               affectedPaths: () => HashSet.empty<string>(),
             }),
             [inspectLatest, scrollToTop],
           ]
+        },
+        ClickedScrollToTopPill: () => [
+          evo(model, {
+            isFollowingTop: () => true,
+          }),
+          [scrollToTop],
+        ],
+        ScrolledMessageList: ({ scrollTop }) => {
+          const isAtTop = scrollTop <= SCROLL_FOLLOW_THRESHOLD_PX
+          return isAtTop === model.isFollowingTop
+            ? [model, []]
+            : [evo(model, { isFollowingTop: () => isAtTop }), []]
         },
         ReceivedInspectedState: ({
           model: inspectedModel,
@@ -580,9 +602,15 @@ const makeUpdate = (
           isPaused,
           pausedAtIndex,
         }) => {
-          const shouldFollowLatest = M.value(mode).pipe(
+          const shouldFollowSelection = M.value(mode).pipe(
             M.when('TimeTravel', () => !isPaused),
             M.when('Inspect', () => model.isFollowingLatest),
+            M.exhaustive,
+          )
+
+          const shouldFollowScroll = M.value(mode).pipe(
+            M.when('TimeTravel', () => !isPaused && model.isFollowingTop),
+            M.when('Inspect', () => model.isFollowingTop),
             M.exhaustive,
           )
 
@@ -615,7 +643,7 @@ const makeUpdate = (
                     })
                   : current,
               selectedIndex: current =>
-                shouldFollowLatest ? latestIndex : current,
+                shouldFollowSelection ? latestIndex : current,
               scrubberSlider: current => {
                 const sliderMax = entries.length
                 const targetSliderValue = isPaused
@@ -627,7 +655,10 @@ const makeUpdate = (
                 )
               },
             }),
-            shouldFollowLatest ? [scrollToTop, inspectLatest] : [],
+            [
+              ...(shouldFollowSelection ? [inspectLatest] : []),
+              ...(shouldFollowScroll ? [scrollToTop] : []),
+            ],
           ]
         },
         GotSubmodelFilterMessage: ({ message: listboxMessage }) => {
@@ -1637,6 +1668,38 @@ const makeView = (
   const filterItemLabel = (item: string): string =>
     String_.isNonEmpty(item) ? submodelLabel(item) : 'All Messages'
 
+  const ARROW_UP = 'M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18'
+
+  const arrowUpIconView: Html = h.svg(
+    [
+      h.AriaHidden(true),
+      h.Class('dt-scroll-pill-icon shrink-0'),
+      h.Xmlns('http://www.w3.org/2000/h.svg'),
+      h.Fill('none'),
+      h.ViewBox('0 0 24 24'),
+      h.StrokeWidth('2'),
+      h.Stroke('currentColor'),
+    ],
+    [
+      h.path(
+        [h.D(ARROW_UP), h.StrokeLinecap('round'), h.StrokeLinejoin('round')],
+        [],
+      ),
+    ],
+  )
+
+  const scrollToTopPillView: Html = h.button(
+    [
+      h.Key('scroll-pill'),
+      h.Class('dt-scroll-pill'),
+      h.OnClick(ClickedScrollToTopPill()),
+    ],
+    [
+      arrowUpIconView,
+      h.span([h.Class('dt-scroll-pill-text')], ['Jump to top']),
+    ],
+  )
+
   const submodelFilterView = (model: Model): Html => {
     const buttonLabel = Option.match(model.maybeSubmodelFilter, {
       onNone: () => 'All Messages',
@@ -1685,6 +1748,7 @@ const makeView = (
       buttonClassName: 'dt-filter-button',
       itemsClassName: 'dt-filter-items',
       className: 'dt-filter-wrapper',
+      attributes: [h.Key('submodel-filter')],
       backdropClassName: 'dt-filter-backdrop',
     })
   }
@@ -1896,7 +1960,11 @@ const makeView = (
     )
 
     return h.ul(
-      [h.Class('message-list flex-1 overflow-y-auto min-h-0 overscroll-none')],
+      [
+        h.Key('message-list'),
+        h.Class('message-list flex-1 overflow-y-auto min-h-0 overscroll-none'),
+        h.OnScroll(scrollTop => ScrolledMessageList({ scrollTop })),
+      ],
       isFiltered
         ? messageRows
         : [
@@ -2026,6 +2094,10 @@ const makeView = (
                   onEmpty: () => [],
                   onNonEmpty: () => [submodelFilterView(model)],
                 }),
+                ...OptionExt.when(
+                  !model.isFollowingTop,
+                  scrollToTopPillView,
+                ).pipe(Option.toArray),
                 messageListView(model),
               ],
             ),
@@ -2129,6 +2201,7 @@ export const createOverlay = (
           ...flags,
           selectedIndex: INIT_INDEX,
           isFollowingLatest: true,
+          isFollowingTop: true,
           submodelTags: computeSubmodelTags(flags.entries),
           maybeSubmodelFilter: Option.none(),
           submodelFilterListbox: Listbox.init({
