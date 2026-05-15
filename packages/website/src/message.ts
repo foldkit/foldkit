@@ -26,6 +26,9 @@ export const CompletedScrollToTop = m('CompletedScrollToTop')
 export const CompletedScrollToAnchor = m('CompletedScrollToAnchor')
 export const CompletedApplyTheme = m('CompletedApplyTheme')
 export const CompletedSaveThemePreference = m('CompletedSaveThemePreference')
+export const CompletedSaveSidebarState = m('CompletedSaveSidebarState')
+export const CompletedRestoreSidebarScroll = m('CompletedRestoreSidebarScroll')
+export const ScrolledSidebar = m('ScrolledSidebar', { scroll: S.Number })
 export const SucceededCopyLink = m('SucceededCopyLink')
 export const FailedCopyLink = m('FailedCopyLink')
 export const ClickedLink = m('ClickedLink', {
@@ -157,6 +160,9 @@ export const Message = S.Union([
   CompletedScrollToAnchor,
   CompletedApplyTheme,
   CompletedSaveThemePreference,
+  CompletedSaveSidebarState,
+  CompletedRestoreSidebarScroll,
+  ScrolledSidebar,
   SucceededCopyLink,
   FailedCopyLink,
   ClickedLink,

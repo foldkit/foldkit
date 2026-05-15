@@ -9,10 +9,10 @@ test('selects an item from the combobox', async ({ page }) => {
     .click()
   await expect(page).toHaveURL(/\/core\/architecture$/)
 
-  await page
-    .getByRole('navigation', { name: 'Documentation' })
-    .getByRole('link', { name: 'Combobox', exact: true })
-    .click()
+  const docsNav = page.getByRole('navigation', { name: 'Documentation' })
+
+  await docsNav.getByRole('button', { name: 'Foldkit UI' }).click()
+  await docsNav.getByRole('link', { name: 'Combobox', exact: true }).click()
   await expect(page).toHaveURL(/\/ui\/combobox$/)
 
   const combobox = page

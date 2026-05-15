@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
-import { Array, Option, pipe } from 'effect'
-import { Ui } from 'foldkit'
+import { Array, Effect, Function, Option, Schema as S, pipe } from 'effect'
+import { Mount, Ui } from 'foldkit'
 import { Html, createLazy, html } from 'foldkit/html'
 import apiModuleIndex from 'virtual:api-module-index'
 
@@ -9,6 +9,7 @@ import { Icon } from '../icon'
 import { Link } from '../link'
 import { type Model } from '../main'
 import {
+  CompletedRestoreSidebarScroll,
   GotAiGroupMessage,
   GotApiReferenceGroupMessage,
   GotBestPracticesGroupMessage,
@@ -27,6 +28,24 @@ import { ExampleDetailRoute, apiModuleRouter, homeRouter } from '../route'
 import { betaTag, iconLink } from './shared'
 
 const h = html<Message>()
+
+export const DOCS_SIDEBAR_NAV_ID = 'docs-sidebar-nav'
+
+const RestoreSidebarScroll = Mount.define(
+  'RestoreSidebarScroll',
+  { scroll: S.Number },
+  CompletedRestoreSidebarScroll,
+)(
+  ({ scroll }) =>
+    element =>
+      Effect.sync(() => {
+        element.scrollTop = scroll
+        return {
+          message: CompletedRestoreSidebarScroll(),
+          cleanup: Function.constVoid,
+        }
+      }),
+)
 
 const sidebarGroup = (config: {
   readonly label: string
@@ -75,7 +94,7 @@ const sidebarGroup = (config: {
     ],
   )
 
-const sidebarViewInner = (
+const computeNavLinks = (
   route: Model['route'],
   getStartedGroup: Ui.Disclosure.Model,
   coreConceptsGroup: Ui.Disclosure.Model,
@@ -88,7 +107,6 @@ const sidebarViewInner = (
   foldkitUiGroup: Ui.Disclosure.Model,
   aiGroup: Ui.Disclosure.Model,
   apiReferenceGroup: Ui.Disclosure.Model,
-  mobileMenuDialog: Ui.Dialog.Model,
 ): Html => {
   const isOnApiModulePage = route._tag === 'ApiModule'
   const maybeExampleSlug = pipe(
@@ -187,7 +205,7 @@ const sidebarViewInner = (
       ),
     )
 
-  const navLinks = h.ul(
+  return h.ul(
     [h.Class('space-y-0.5')],
     [
       ...Array.zipWith(
@@ -228,6 +246,25 @@ const sidebarViewInner = (
       }),
     ],
   )
+}
+
+const lazyNavLinks = createLazy()
+
+export const sidebarView = (model: Model): Html => {
+  const navLinks = lazyNavLinks(computeNavLinks, [
+    model.route,
+    model.getStartedGroup,
+    model.coreConceptsGroup,
+    model.forReactDevelopersGroup,
+    model.guidesGroup,
+    model.testingGroup,
+    model.bestPracticesGroup,
+    model.patternsGroup,
+    model.examplesGroup,
+    model.foldkitUiGroup,
+    model.aiGroup,
+    model.apiReferenceGroup,
+  ])
 
   const desktopSidebar = h.aside(
     [
@@ -238,7 +275,12 @@ const sidebarViewInner = (
     ],
     [
       h.nav(
-        [h.AriaLabel('Documentation'), h.Class('flex-1 overflow-y-auto pb-4')],
+        [
+          h.AriaLabel('Documentation'),
+          h.Id(DOCS_SIDEBAR_NAV_ID),
+          h.Class('flex-1 overflow-y-auto pb-4'),
+          h.OnMount(RestoreSidebarScroll({ scroll: model.sidebarScroll })),
+        ],
         [navLinks],
       ),
     ],
@@ -310,7 +352,7 @@ const sidebarViewInner = (
   )
 
   const mobileMenu = Ui.Dialog.view({
-    model: mobileMenuDialog,
+    model: model.mobileMenuDialog,
     toParentMessage: message => GotMobileMenuDialogMessage({ message }),
     panelContent: mobileMenuContent,
     panelAttributes: [
@@ -322,22 +364,3 @@ const sidebarViewInner = (
 
   return h.div([], [desktopSidebar, mobileMenu])
 }
-
-const lazySidebar = createLazy()
-
-export const sidebarView = (model: Model): Html =>
-  lazySidebar(sidebarViewInner, [
-    model.route,
-    model.getStartedGroup,
-    model.coreConceptsGroup,
-    model.forReactDevelopersGroup,
-    model.guidesGroup,
-    model.testingGroup,
-    model.bestPracticesGroup,
-    model.patternsGroup,
-    model.examplesGroup,
-    model.foldkitUiGroup,
-    model.aiGroup,
-    model.apiReferenceGroup,
-    model.mobileMenuDialog,
-  ])

@@ -33,6 +33,7 @@ import {
   CompletedInjectSpeedInsights,
   CompletedLoadExternal,
   CompletedNavigateInternal,
+  CompletedSaveSidebarState,
   CompletedSaveThemePreference,
   CompletedScrollToAnchor,
   CompletedScrollToTop,
@@ -76,6 +77,14 @@ import {
   urlToAppRoute,
 } from './route'
 import * as Search from './search'
+import {
+  DEFAULT_OPEN_GROUPS,
+  type GroupKey,
+  INITIAL_SIDEBAR_SCROLL,
+  SIDEBAR_STORAGE_KEY,
+  SidebarState,
+  SidebarStateJsonString,
+} from './sidebarStorage'
 import * as Subscription from './subscription'
 import { docsView, landingView, newsletterView } from './view'
 
@@ -122,6 +131,7 @@ export type EmailSubscriptionStatus = typeof EmailSubscriptionStatus.Type
 
 export const Flags = S.Struct({
   themePreference: S.Option(ThemePreference),
+  maybeSidebarState: S.Option(SidebarState),
   systemTheme: ResolvedTheme,
   isNarrowViewport: S.Boolean,
   isChromium: S.Boolean,
@@ -160,6 +170,20 @@ export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
       Effect.provide(BrowserKeyValueStore.layerLocalStorage),
     )
 
+  const maybeSidebarState: Option.Option<SidebarState> = yield* Effect.gen(
+    function* () {
+      const store = yield* KeyValueStore.KeyValueStore
+      const json = yield* Effect.fromOption(
+        Option.fromNullishOr(yield* store.get(SIDEBAR_STORAGE_KEY)),
+      )
+      const state = yield* S.decodeEffect(SidebarStateJsonString)(json)
+      return Option.some(state)
+    },
+  ).pipe(
+    Effect.catch(() => Effect.succeed(Option.none<SidebarState>())),
+    Effect.provide(BrowserKeyValueStore.layerSessionStorage),
+  )
+
   const systemTheme: typeof ResolvedTheme.Type = yield* Effect.sync(() =>
     window.matchMedia('(prefers-color-scheme: dark)').matches
       ? 'Dark'
@@ -180,6 +204,7 @@ export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
 
   return {
     themePreference,
+    maybeSidebarState,
     systemTheme,
     isNarrowViewport,
     isChromium,
@@ -215,6 +240,7 @@ export const Model = S.Struct({
   aiGroup: Ui.Disclosure.Model,
   examplesGroup: Ui.Disclosure.Model,
   apiReferenceGroup: Ui.Disclosure.Model,
+  sidebarScroll: S.Number,
   aiHeadingToggleCount: S.Number,
   themePreference: ThemePreference,
   systemTheme: ResolvedTheme,
@@ -237,6 +263,15 @@ export type Model = typeof Model.Type
 type AppResources =
   | Page.NotePlayerDemo.AudioContextService
   | Search.PagefindService
+
+const isGroupOpenOnBoot = (
+  maybeSidebarState: Option.Option<SidebarState>,
+  key: GroupKey,
+): boolean =>
+  Option.match(maybeSidebarState, {
+    onNone: () => Array.contains(DEFAULT_OPEN_GROUPS, key),
+    onSome: ({ open }) => open[key] ?? false,
+  })
 
 export const init: Runtime.RoutingProgramInit<
   Model,
@@ -327,50 +362,57 @@ export const init: Runtime.RoutingProgramInit<
       isNarrowViewport: flags.isNarrowViewport,
       isChromium: flags.isChromium,
       playgroundError: Option.none(),
-      getStartedGroup: {
-        ...Ui.Disclosure.init({ id: 'get-started-group' }),
-        isOpen: true,
-      },
-      coreConceptsGroup: {
-        ...Ui.Disclosure.init({ id: 'core-concepts-group' }),
-        isOpen: true,
-      },
-      forReactDevelopersGroup: {
-        ...Ui.Disclosure.init({ id: 'for-react-developers-group' }),
-        isOpen: true,
-      },
-      guidesGroup: {
-        ...Ui.Disclosure.init({ id: 'guides-group' }),
-        isOpen: true,
-      },
-      testingGroup: {
-        ...Ui.Disclosure.init({ id: 'testing-group' }),
-        isOpen: true,
-      },
-      bestPracticesGroup: {
-        ...Ui.Disclosure.init({ id: 'best-practices-group' }),
-        isOpen: true,
-      },
-      patternsGroup: {
-        ...Ui.Disclosure.init({ id: 'patterns-group' }),
-        isOpen: true,
-      },
-      foldkitUiGroup: {
-        ...Ui.Disclosure.init({ id: 'foldkit-ui-group' }),
-        isOpen: true,
-      },
-      aiGroup: {
-        ...Ui.Disclosure.init({ id: 'ai-group' }),
-        isOpen: true,
-      },
-      examplesGroup: {
-        ...Ui.Disclosure.init({ id: 'examples-group' }),
-        isOpen: true,
-      },
-      apiReferenceGroup: {
-        ...Ui.Disclosure.init({ id: 'api-reference-group' }),
-        isOpen: true,
-      },
+      getStartedGroup: Ui.Disclosure.init({
+        id: 'get-started-group',
+        isOpen: isGroupOpenOnBoot(flags.maybeSidebarState, 'getStarted'),
+      }),
+      coreConceptsGroup: Ui.Disclosure.init({
+        id: 'core-concepts-group',
+        isOpen: isGroupOpenOnBoot(flags.maybeSidebarState, 'coreConcepts'),
+      }),
+      forReactDevelopersGroup: Ui.Disclosure.init({
+        id: 'for-react-developers-group',
+        isOpen: isGroupOpenOnBoot(
+          flags.maybeSidebarState,
+          'forReactDevelopers',
+        ),
+      }),
+      guidesGroup: Ui.Disclosure.init({
+        id: 'guides-group',
+        isOpen: isGroupOpenOnBoot(flags.maybeSidebarState, 'guides'),
+      }),
+      testingGroup: Ui.Disclosure.init({
+        id: 'testing-group',
+        isOpen: isGroupOpenOnBoot(flags.maybeSidebarState, 'testing'),
+      }),
+      bestPracticesGroup: Ui.Disclosure.init({
+        id: 'best-practices-group',
+        isOpen: isGroupOpenOnBoot(flags.maybeSidebarState, 'bestPractices'),
+      }),
+      patternsGroup: Ui.Disclosure.init({
+        id: 'patterns-group',
+        isOpen: isGroupOpenOnBoot(flags.maybeSidebarState, 'patterns'),
+      }),
+      foldkitUiGroup: Ui.Disclosure.init({
+        id: 'foldkit-ui-group',
+        isOpen: isGroupOpenOnBoot(flags.maybeSidebarState, 'foldkitUi'),
+      }),
+      aiGroup: Ui.Disclosure.init({
+        id: 'ai-group',
+        isOpen: isGroupOpenOnBoot(flags.maybeSidebarState, 'ai'),
+      }),
+      examplesGroup: Ui.Disclosure.init({
+        id: 'examples-group',
+        isOpen: isGroupOpenOnBoot(flags.maybeSidebarState, 'examples'),
+      }),
+      apiReferenceGroup: Ui.Disclosure.init({
+        id: 'api-reference-group',
+        isOpen: isGroupOpenOnBoot(flags.maybeSidebarState, 'apiReference'),
+      }),
+      sidebarScroll: Option.match(flags.maybeSidebarState, {
+        onNone: () => INITIAL_SIDEBAR_SCROLL,
+        onSome: ({ scroll }) => scroll,
+      }),
       themePreference,
       systemTheme,
       resolvedTheme,
@@ -403,6 +445,26 @@ export const init: Runtime.RoutingProgramInit<
 }
 
 // UPDATE
+
+const handleSidebarGroup = (
+  prev: Ui.Disclosure.Model,
+  message: Ui.Disclosure.Message,
+  toModel: (next: Ui.Disclosure.Model) => Model,
+  toParentMessage: (message: Ui.Disclosure.Message) => Message,
+): readonly [
+  Model,
+  ReadonlyArray<Command.Command<Message, never, AppResources>>,
+] => {
+  const [next, commands] = Ui.Disclosure.update(prev, message)
+  const nextModel = toModel(next)
+  return [
+    nextModel,
+    [
+      ...commands.map(Command.mapEffect(Effect.map(toParentMessage))),
+      saveSidebarState(nextModel),
+    ],
+  ]
+}
 
 export const update = (
   model: Model,
@@ -808,192 +870,97 @@ export const update = (
         ]
       },
 
-      GotGetStartedGroupMessage: ({ message }) => {
-        const [nextGetStartedGroup, getStartedGroupCommands] =
-          Ui.Disclosure.update(model.getStartedGroup, message)
+      GotGetStartedGroupMessage: ({ message }) =>
+        handleSidebarGroup(
+          model.getStartedGroup,
+          message,
+          next => evo(model, { getStartedGroup: () => next }),
+          message => GotGetStartedGroupMessage({ message }),
+        ),
 
-        return [
-          evo(model, {
-            getStartedGroup: () => nextGetStartedGroup,
-          }),
-          getStartedGroupCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotGetStartedGroupMessage({ message })),
-            ),
-          ),
-        ]
-      },
+      GotCoreConceptsGroupMessage: ({ message }) =>
+        handleSidebarGroup(
+          model.coreConceptsGroup,
+          message,
+          next => evo(model, { coreConceptsGroup: () => next }),
+          message => GotCoreConceptsGroupMessage({ message }),
+        ),
 
-      GotCoreConceptsGroupMessage: ({ message }) => {
-        const [nextCoreConceptsGroup, coreConceptsGroupCommands] =
-          Ui.Disclosure.update(model.coreConceptsGroup, message)
+      GotForReactDevelopersGroupMessage: ({ message }) =>
+        handleSidebarGroup(
+          model.forReactDevelopersGroup,
+          message,
+          next => evo(model, { forReactDevelopersGroup: () => next }),
+          message => GotForReactDevelopersGroupMessage({ message }),
+        ),
 
-        return [
-          evo(model, {
-            coreConceptsGroup: () => nextCoreConceptsGroup,
-          }),
-          coreConceptsGroupCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotCoreConceptsGroupMessage({ message })),
-            ),
-          ),
-        ]
-      },
-
-      GotForReactDevelopersGroupMessage: ({ message }) => {
-        const [nextForReactDevelopersGroup, forReactDevelopersGroupCommands] =
-          Ui.Disclosure.update(model.forReactDevelopersGroup, message)
-
-        return [
-          evo(model, {
-            forReactDevelopersGroup: () => nextForReactDevelopersGroup,
-          }),
-          forReactDevelopersGroupCommands.map(
-            Command.mapEffect(
-              Effect.map(message =>
-                GotForReactDevelopersGroupMessage({ message }),
-              ),
-            ),
-          ),
-        ]
-      },
-
-      GotGuidesGroupMessage: ({ message }) => {
-        const [nextGuidesGroup, guidesGroupCommands] = Ui.Disclosure.update(
+      GotGuidesGroupMessage: ({ message }) =>
+        handleSidebarGroup(
           model.guidesGroup,
           message,
-        )
+          next => evo(model, { guidesGroup: () => next }),
+          message => GotGuidesGroupMessage({ message }),
+        ),
 
-        return [
-          evo(model, {
-            guidesGroup: () => nextGuidesGroup,
-          }),
-          guidesGroupCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotGuidesGroupMessage({ message })),
-            ),
-          ),
-        ]
-      },
-
-      GotTestingGroupMessage: ({ message }) => {
-        const [nextTestingGroup, testingGroupCommands] = Ui.Disclosure.update(
+      GotTestingGroupMessage: ({ message }) =>
+        handleSidebarGroup(
           model.testingGroup,
           message,
-        )
+          next => evo(model, { testingGroup: () => next }),
+          message => GotTestingGroupMessage({ message }),
+        ),
 
-        return [
-          evo(model, {
-            testingGroup: () => nextTestingGroup,
-          }),
-          testingGroupCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotTestingGroupMessage({ message })),
-            ),
-          ),
-        ]
-      },
+      GotBestPracticesGroupMessage: ({ message }) =>
+        handleSidebarGroup(
+          model.bestPracticesGroup,
+          message,
+          next => evo(model, { bestPracticesGroup: () => next }),
+          message => GotBestPracticesGroupMessage({ message }),
+        ),
 
-      GotBestPracticesGroupMessage: ({ message }) => {
-        const [nextBestPracticesGroup, bestPracticesGroupCommands] =
-          Ui.Disclosure.update(model.bestPracticesGroup, message)
-
-        return [
-          evo(model, {
-            bestPracticesGroup: () => nextBestPracticesGroup,
-          }),
-          bestPracticesGroupCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotBestPracticesGroupMessage({ message })),
-            ),
-          ),
-        ]
-      },
-
-      GotPatternsGroupMessage: ({ message }) => {
-        const [nextPatternsGroup, patternsGroupCommands] = Ui.Disclosure.update(
+      GotPatternsGroupMessage: ({ message }) =>
+        handleSidebarGroup(
           model.patternsGroup,
           message,
-        )
+          next => evo(model, { patternsGroup: () => next }),
+          message => GotPatternsGroupMessage({ message }),
+        ),
 
-        return [
-          evo(model, {
-            patternsGroup: () => nextPatternsGroup,
-          }),
-          patternsGroupCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotPatternsGroupMessage({ message })),
-            ),
-          ),
-        ]
-      },
+      GotFoldkitUiGroupMessage: ({ message }) =>
+        handleSidebarGroup(
+          model.foldkitUiGroup,
+          message,
+          next => evo(model, { foldkitUiGroup: () => next }),
+          message => GotFoldkitUiGroupMessage({ message }),
+        ),
 
-      GotFoldkitUiGroupMessage: ({ message }) => {
-        const [nextFoldkitUiGroup, foldkitUiGroupCommands] =
-          Ui.Disclosure.update(model.foldkitUiGroup, message)
-
-        return [
-          evo(model, {
-            foldkitUiGroup: () => nextFoldkitUiGroup,
-          }),
-          foldkitUiGroupCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotFoldkitUiGroupMessage({ message })),
-            ),
-          ),
-        ]
-      },
-
-      GotAiGroupMessage: ({ message }) => {
-        const [nextAiGroup, aiGroupCommands] = Ui.Disclosure.update(
+      GotAiGroupMessage: ({ message }) =>
+        handleSidebarGroup(
           model.aiGroup,
           message,
-        )
+          next => evo(model, { aiGroup: () => next }),
+          message => GotAiGroupMessage({ message }),
+        ),
 
-        return [
-          evo(model, {
-            aiGroup: () => nextAiGroup,
-          }),
-          aiGroupCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotAiGroupMessage({ message })),
-            ),
-          ),
-        ]
-      },
-
-      GotExamplesGroupMessage: ({ message }) => {
-        const [nextExamplesGroup, examplesGroupCommands] = Ui.Disclosure.update(
+      GotExamplesGroupMessage: ({ message }) =>
+        handleSidebarGroup(
           model.examplesGroup,
           message,
-        )
+          next => evo(model, { examplesGroup: () => next }),
+          message => GotExamplesGroupMessage({ message }),
+        ),
 
-        return [
-          evo(model, {
-            examplesGroup: () => nextExamplesGroup,
-          }),
-          examplesGroupCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotExamplesGroupMessage({ message })),
-            ),
-          ),
-        ]
-      },
+      GotApiReferenceGroupMessage: ({ message }) =>
+        handleSidebarGroup(
+          model.apiReferenceGroup,
+          message,
+          next => evo(model, { apiReferenceGroup: () => next }),
+          message => GotApiReferenceGroupMessage({ message }),
+        ),
 
-      GotApiReferenceGroupMessage: ({ message }) => {
-        const [nextApiReferenceGroup, apiReferenceGroupCommands] =
-          Ui.Disclosure.update(model.apiReferenceGroup, message)
-
-        return [
-          evo(model, {
-            apiReferenceGroup: () => nextApiReferenceGroup,
-          }),
-          apiReferenceGroupCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotApiReferenceGroupMessage({ message })),
-            ),
-          ),
-        ]
+      ScrolledSidebar: ({ scroll }) => {
+        const nextModel = evo(model, { sidebarScroll: () => scroll })
+        return [nextModel, [saveSidebarState(nextModel)]]
       },
 
       GotExampleDetailMessage: ({ message }) => {
@@ -1042,6 +1009,8 @@ export const update = (
       'CompletedScrollToAnchor',
       'CompletedApplyTheme',
       'CompletedSaveThemePreference',
+      'CompletedSaveSidebarState',
+      'CompletedRestoreSidebarScroll',
       'SucceededCopyLink',
       'FailedCopyLink',
       'FailedCopySnippet',
@@ -1191,6 +1160,42 @@ const SaveThemePreference = Command.define(
   ),
 )
 
+const SaveSidebarState = Command.define(
+  'SaveSidebarState',
+  { state: SidebarState },
+  CompletedSaveSidebarState,
+)(({ state }) =>
+  Effect.gen(function* () {
+    const store = yield* KeyValueStore.KeyValueStore
+    const json = yield* S.encodeEffect(SidebarStateJsonString)(state)
+    yield* store.set(SIDEBAR_STORAGE_KEY, json)
+    return CompletedSaveSidebarState()
+  }).pipe(
+    Effect.catch(() => Effect.succeed(CompletedSaveSidebarState())),
+    Effect.provide(BrowserKeyValueStore.layerSessionStorage),
+  ),
+)
+
+const modelToSidebarState = (model: Model): SidebarState => ({
+  open: {
+    getStarted: model.getStartedGroup.isOpen,
+    coreConcepts: model.coreConceptsGroup.isOpen,
+    forReactDevelopers: model.forReactDevelopersGroup.isOpen,
+    guides: model.guidesGroup.isOpen,
+    testing: model.testingGroup.isOpen,
+    bestPractices: model.bestPracticesGroup.isOpen,
+    patterns: model.patternsGroup.isOpen,
+    foldkitUi: model.foldkitUiGroup.isOpen,
+    ai: model.aiGroup.isOpen,
+    examples: model.examplesGroup.isOpen,
+    apiReference: model.apiReferenceGroup.isOpen,
+  } satisfies Record<GroupKey, boolean>,
+  scroll: model.sidebarScroll,
+})
+
+const saveSidebarState = (model: Model) =>
+  SaveSidebarState({ state: modelToSidebarState(model) })
+
 const NavigateInternal = Command.define(
   'NavigateInternal',
   { url: S.String },
@@ -1323,6 +1328,9 @@ const SubscriptionDependencies = S.Struct({
   searchShortcut: S.Struct({
     isDocsPage: S.Boolean,
   }),
+  sidebarScroll: S.Struct({
+    hasSidebar: S.Boolean,
+  }),
   systemTheme: S.Struct({
     isSystemPreference: S.Boolean,
   }),
@@ -1352,6 +1360,7 @@ export const subscriptions = makeSubscriptions(SubscriptionDependencies)<
   exampleUrl: Subscription.exampleUrl,
   heroVisibility: Subscription.heroVisibility,
   searchShortcut: Subscription.searchShortcut,
+  sidebarScroll: Subscription.sidebarScroll,
   systemTheme: Subscription.systemTheme,
   viewportWidth: Subscription.viewportWidth,
 })
