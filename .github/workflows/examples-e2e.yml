@@ -1,0 +1,78 @@
+name: Examples E2E
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  examples-e2e:
+    name: ${{ matrix.example }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        example:
+          - counter
+          - todo
+          - stopwatch
+          - crash-view
+          - form
+          - job-application
+          - weather
+          - routing
+          - query-sync
+          - snake
+          - auth
+          - shopping-cart
+          - pixel-art
+          - websocket-chat
+          - kanban
+          - map
+          - canvas-art
+          - generative-art
+          - web-components
+          - ui-showcase
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build workspace packages
+        run: pnpm -r --filter './packages/**' build
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @foldkit/examples-e2e exec playwright install --with-deps chromium
+
+      - name: Run examples e2e for ${{ matrix.example }}
+        env:
+          EXAMPLE_SLUG: ${{ matrix.example }}
+        run: pnpm --filter @foldkit/examples-e2e test:e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.example }}
+          path: packages/examples-e2e/playwright-report/
+          retention-days: 7

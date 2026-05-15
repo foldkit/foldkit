@@ -209,7 +209,7 @@ Four lifecycle/binding primitives. Pick by **what causes the side effect**, not 
 - Use Conventional Commits. Add `!` after the scope for breaking changes (e.g. `refactor(schema)!:` when renaming or removing a public export)
 - **Commit messages are historical records, not live docs.** Time-bound claims ("first component to X", "replaces the old Y approach", "before this, Z") are appropriate in commit bodies — they describe the state of the world at the moment the commit landed. A reader of `git log` already understands they're reading through time. Don't flag such claims as "will rot" during commit review; rotting is a concern for TSDoc, README, and live documentation, not the git log.
 - Scope must identify the **package, example, or top-level tooling directory**, not an internal module. Valid scopes:
-  - Packages: `foldkit`, `create-foldkit-app`, `vite-plugin`, `devtools-mcp`, `website`, `typing-game`
+  - Packages: `foldkit`, `create-foldkit-app`, `vite-plugin`, `devtools-mcp`, `website`, `typing-game`, `examples-e2e`
   - Examples: the directory name — `pixel-art`, `auth`, `weather`, `counter`, etc.
   - Tooling: `skills` (for `skills/`)
   - Infrastructure: `ci`, `release`

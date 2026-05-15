@@ -36,6 +36,7 @@
     "generative-art-example",
     "web-components-example",
     "pixel-art-react-comparison",
-    "@foldkit/performance-harness"
+    "@foldkit/performance-harness",
+    "@foldkit/examples-e2e"
   ]
 }
