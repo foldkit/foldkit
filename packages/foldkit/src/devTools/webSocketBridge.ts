@@ -75,7 +75,11 @@ const currentAbsoluteIndex = (
  *
  * `dispatch` enqueues a Message into the runtime's message queue; the bridge
  * uses it to fulfill `RequestDispatchMessage` after decoding the payload
- * against `maybeMessageSchema`. When `maybeMessageSchema` is `None`, dispatch
+ * against a JSON-canonical derivation of `maybeMessageSchema` (via
+ * `Schema.toCodecJson`). The derivation reconstructs runtime values like
+ * `Option`, `Date`, `Map`, and `Set` from their JSON-tagged shapes, so
+ * application Message Schemas using stdlib types Just Work over dispatch
+ * without author-side changes. When `maybeMessageSchema` is `None`, dispatch
  * requests are rejected with an informative error.
  *
  * Production-safe: callers must check `import.meta.hot` is defined before
@@ -90,6 +94,8 @@ export const startWebSocketBridge = (
   Effect.gen(function* () {
     const connectionId = generateConnectionId()
     const capturedContext = yield* Effect.context<never>()
+
+    const maybeDispatchSchema = Option.map(maybeMessageSchema, S.toCodecJson)
 
     const encodeEventFrame = S.encodeUnknownSync(EventFrame)
     const encodeResponseFrame = S.encodeUnknownSync(ResponseFrame)
@@ -123,7 +129,7 @@ export const startWebSocketBridge = (
         const response = yield* dispatchRequest(
           store,
           dispatch,
-          maybeMessageSchema,
+          maybeDispatchSchema,
           request,
         )
         sendResponse(id, response)
@@ -210,7 +216,7 @@ const readModelResponse = (
 const dispatchRequest = (
   store: DevToolsStore,
   dispatch: (message: unknown) => Effect.Effect<void>,
-  maybeMessageSchema: Option.Option<S.Codec<any, any>>,
+  maybeDispatchSchema: Option.Option<S.Codec<any, any>>,
   request: Request,
 ): Effect.Effect<Response> =>
   Match.value(request).pipe(
@@ -331,7 +337,7 @@ const dispatchRequest = (
         ),
 
       RequestDispatchMessage: ({ message }) =>
-        Option.match(maybeMessageSchema, {
+        Option.match(maybeDispatchSchema, {
           onNone: () =>
             Effect.succeed(
               ResponseError({
@@ -339,10 +345,10 @@ const dispatchRequest = (
                   'Cannot dispatch: DevToolsConfig.Message not configured. Pass your Message Schema to enable dispatch.',
               }),
             ),
-          onSome: messageSchema =>
+          onSome: dispatchSchema =>
             Effect.gen(function* () {
               const decodedMessage =
-                yield* S.decodeUnknownEffect(messageSchema)(message)
+                yield* S.decodeUnknownEffect(dispatchSchema)(message)
               const stateBefore = yield* SubscriptionRef.get(store.stateRef)
               const acceptedAtIndex =
                 stateBefore.startIndex + stateBefore.entries.length
