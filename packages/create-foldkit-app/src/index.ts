@@ -44,6 +44,7 @@ const packageManager = Flag.choice('package-manager', [
   'pnpm',
   'npm',
   'yarn',
+  'bun',
 ]).pipe(
   Flag.withAlias('p'),
   Flag.withDescription(

@@ -8,7 +8,7 @@ import { createProject } from '../utils/files.js'
 import { installDependencies } from '../utils/packages.js'
 import { validateProjectName } from '../validateName.js'
 
-type PackageManager = 'pnpm' | 'npm' | 'yarn'
+type PackageManager = 'pnpm' | 'npm' | 'yarn' | 'bun'
 
 type CreateInput = Readonly<{
   name: Option.Option<string>
@@ -42,6 +42,7 @@ const promptForPackageManager = Prompt.select<PackageManager>({
     { value: 'pnpm', title: 'pnpm' },
     { value: 'npm', title: 'npm' },
     { value: 'yarn', title: 'yarn' },
+    { value: 'bun', title: 'bun' },
   ],
 })
 
@@ -123,6 +124,7 @@ const runDevServerCommand = (packageManager: PackageManager) =>
     Match.when('pnpm', () => 'pnpm dev'),
     Match.when('npm', () => 'npm run dev'),
     Match.when('yarn', () => 'yarn dev'),
+    Match.when('bun', () => 'bun dev'),
     Match.exhaustive,
   )
 

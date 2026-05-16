@@ -2,7 +2,7 @@ import { Array, Effect, Match, Record, Schema, pipe } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/unstable/http'
 import { spawn } from 'node:child_process'
 
-type PackageManager = 'pnpm' | 'npm' | 'yarn'
+type PackageManager = 'pnpm' | 'npm' | 'yarn' | 'bun'
 
 const GITHUB_RAW_BASE_URL =
   'https://raw.githubusercontent.com/foldkit/foldkit/main/examples'
@@ -18,6 +18,7 @@ const getInstallArgs = (
     Match.when('npm', () => ['install']),
     Match.when('yarn', () => ['add']),
     Match.when('pnpm', () => ['add']),
+    Match.when('bun', () => ['add']),
     Match.exhaustive,
     args => (isDev ? [...args, '-D'] : args),
   )

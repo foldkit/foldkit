@@ -26,6 +26,7 @@ const CREATE_FOLDKIT_APP_COMMAND = 'npx create-foldkit-app@latest'
 const DEV_PNPM = 'pnpm dev'
 const DEV_NPM = 'npm run dev'
 const DEV_YARN = 'yarn dev'
+const DEV_BUN = 'bun dev'
 
 const quickStartHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -80,6 +81,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
           codeBlock(DEV_PNPM, 'Copy pnpm command', copiedSnippets),
           codeBlock(DEV_NPM, 'Copy npm command', copiedSnippets),
           codeBlock(DEV_YARN, 'Copy yarn command', copiedSnippets),
+          codeBlock(DEV_BUN, 'Copy bun command', copiedSnippets),
         ],
       ),
       infoCallout(
