@@ -6,7 +6,11 @@ import { resolve } from 'node:path'
 import satori, { type Font } from 'satori'
 
 import { type AppRoute } from '../src/route'
-import { type PageMetadata, routeToMetadata } from './metadata'
+import {
+  type ApiModuleNameResolver,
+  type PageMetadata,
+  routeToMetadata,
+} from './metadata'
 
 // LOGO
 
@@ -188,11 +192,12 @@ const renderOgImage =
     fonts: Array<Font>,
     ogDir: string,
     routeToUrlPath: (route: AppRoute) => string,
+    resolveApiModuleName: ApiModuleNameResolver,
   ) =>
   (route: AppRoute) =>
     pipe(
       Effect.gen(function* () {
-        const metadata = routeToMetadata(route)
+        const metadata = routeToMetadata(route, resolveApiModuleName)
         const template = ogTemplate(metadata)
         const slug = urlPathToSlug(routeToUrlPath(route))
 
@@ -225,6 +230,7 @@ export const generateOgImages = (
   routes: ReadonlyArray<AppRoute>,
   routeToUrlPath: (route: AppRoute) => string,
   distDir: string,
+  resolveApiModuleName: ApiModuleNameResolver,
 ) =>
   Effect.gen(function* () {
     yield* Console.log('Generating OG images...')
@@ -234,9 +240,11 @@ export const generateOgImages = (
     const ogDir = resolve(distDir, 'og')
     yield* fs.makeDirectory(ogDir, { recursive: true })
 
-    yield* Effect.forEach(routes, renderOgImage(fonts, ogDir, routeToUrlPath), {
-      concurrency: 8,
-    })
+    yield* Effect.forEach(
+      routes,
+      renderOgImage(fonts, ogDir, routeToUrlPath, resolveApiModuleName),
+      { concurrency: 8 },
+    )
 
     yield* Console.log(`Generated ${Array.length(routes)} OG images.`)
   })
@@ -283,8 +291,9 @@ export const injectMetaTags = (
   html: string,
   route: AppRoute,
   urlPath: string,
+  resolveApiModuleName: ApiModuleNameResolver,
 ): string => {
-  const metadata = routeToMetadata(route)
+  const metadata = routeToMetadata(route, resolveApiModuleName)
   const slug = urlPathToSlug(urlPath)
   const ogImageUrl = `${SITE_URL}/og/${slug}.png`
   const pageUrl = `${SITE_URL}${urlPath}`
