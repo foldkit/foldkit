@@ -2,6 +2,7 @@ export { Idle, Model, resultsFromState } from './model'
 export { Message, GotSearchDialogMessage } from './message'
 export {
   FetchSearchResults,
+  KEYBOARD_WARMUP_INPUT_ID,
   NavigateToResult,
   PagefindService,
   ScrollToResult,

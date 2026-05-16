@@ -37,6 +37,12 @@ const h = html<Message>()
 const PagefindBody = h.DataAttribute('pagefind-body', '')
 const PagefindIgnore = h.DataAttribute('pagefind-ignore', '')
 
+const openSearchDialog: Message = GotSearchMessage({
+  message: Search.GotSearchDialogMessage({ message: Ui.Dialog.Opened() }),
+})
+
+const searchKeyboardWarmupSelector = `#${Search.KEYBOARD_WARMUP_INPUT_ID}`
+
 // DOCS HEADER
 
 const docsHeaderView = (model: Model) =>
@@ -74,13 +80,7 @@ const docsHeaderView = (model: Model) =>
                 'hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-sm hover:border-gray-400 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-300 transition cursor-pointer',
               ),
               h.AriaLabel('Search documentation'),
-              h.OnClick(
-                GotSearchMessage({
-                  message: Search.GotSearchDialogMessage({
-                    message: Ui.Dialog.Opened(),
-                  }),
-                }),
-              ),
+              h.OnClickFocus(searchKeyboardWarmupSelector, openSearchDialog),
             ],
             [
               Icon.magnifyingGlass('w-4 h-4'),
@@ -124,13 +124,7 @@ const docsHeaderView = (model: Model) =>
                 'md:hidden p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 cursor-pointer',
               ),
               h.AriaLabel('Search documentation'),
-              h.OnClick(
-                GotSearchMessage({
-                  message: Search.GotSearchDialogMessage({
-                    message: Ui.Dialog.Opened(),
-                  }),
-                }),
-              ),
+              h.OnClickFocus(searchKeyboardWarmupSelector, openSearchDialog),
             ],
             [Icon.magnifyingGlass('w-5 h-5')],
           ),
