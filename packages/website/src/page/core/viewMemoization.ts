@@ -10,6 +10,7 @@ import {
   pageTitle,
   para,
   tableOfContentsEntryToHeader,
+  warningCallout,
 } from '../../prose'
 import { bestPracticesImmutabilityRouter } from '../../route'
 import * as Snippets from '../../snippet'
@@ -126,6 +127,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' view rebuild into ',
         inlineCode('O(1)'),
         ' for the common case where only one or two items change.',
+      ),
+      warningCallout(
+        'One slot per position',
+        "A cached VNode can only be rendered at one position in the tree. Snabbdom uses each VNode's identity to track its real DOM element, so rendering the same cached VNode at two positions causes patches to collide and can duplicate or misplace DOM nodes. If the same content needs to appear in multiple positions (for example, the same navigation in a desktop sidebar and a mobile menu), create a separate lazy slot for each position.",
       ),
       tableOfContentsEntryToHeader(whenToUseLazyHeader),
       para('Lazy views help most when:'),

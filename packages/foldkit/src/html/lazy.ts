@@ -45,7 +45,14 @@ const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
  *  equal (`===`) to the previous call, the cached VNode is returned without
  *  re-running the view function. Snabbdom's `patchVnode` short-circuits when
  *  it sees the same VNode reference, so both VNode construction and subtree
- *  diffing are skipped. */
+ *  diffing are skipped.
+ *
+ *  The cached VNode must be rendered at a single position in the tree.
+ *  Snabbdom tracks the real DOM through each VNode's mutable `.elm` field
+ *  and assumes one VNode per position. Rendering the same cached VNode at
+ *  two positions causes patches to collide and can duplicate or misplace
+ *  DOM nodes. If the same content needs to appear in multiple positions,
+ *  create one slot per position. */
 export const createLazy = (): (<Args extends ReadonlyArray<unknown>>(
   fn: (...args: Args) => Html,
   args: Args,
@@ -64,7 +71,11 @@ export const createLazy = (): (<Args extends ReadonlyArray<unknown>>(
 /** Creates a keyed memoization map for view functions rendered in a loop. Each
  *  key gets its own independent cache slot. On each render, only entries whose
  *  function reference, dispatch context, or arguments have changed by reference
- *  are recomputed. */
+ *  are recomputed.
+ *
+ *  Like `createLazy`, each key's cached VNode must be rendered at a single
+ *  position in the tree. If the same item needs to appear in multiple
+ *  positions, create one keyed lazy per position. */
 export const createKeyedLazy = (): (<Args extends ReadonlyArray<unknown>>(
   key: string,
   fn: (...args: Args) => Html,
