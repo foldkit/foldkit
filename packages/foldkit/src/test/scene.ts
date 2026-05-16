@@ -39,6 +39,7 @@ import {
   assertNoUnacknowledgedUnmounts,
   assertNoUnresolvedCommands,
   assertNoUnresolvedMounts,
+  assertResolveUnambiguous,
   assertZeroCommands,
   assertZeroMounts,
   formatCommand,
@@ -647,6 +648,7 @@ const resolveCommand: {
   ): SceneSimulation<Model, Message, OutMessage> => {
     /* eslint-disable @typescript-eslint/consistent-type-assertions */
     const internal = toInternal(simulation)
+    assertResolveUnambiguous(internal.commands, matcher)
     const messageForUpdate = (Predicate.isUndefined(toParentMessage)
       ? resultMessage
       : toParentMessage(resultMessage)) as unknown as Message

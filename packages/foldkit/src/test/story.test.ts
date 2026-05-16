@@ -101,6 +101,35 @@ describe('resolve', () => {
       }),
     )
   })
+
+  test('throws when multiple pending Commands match a Definition matcher', () => {
+    expect(() =>
+      Story.story(
+        update,
+        Story.with({ count: 0, log: [] }),
+        Story.message(StartedThreeFetches()),
+        Story.Command.resolve(FetchCount, SucceededFetchCount({ count: 42 })),
+      ),
+    ).toThrow(
+      'I tried to resolve "FetchCount" but multiple pending Commands match',
+    )
+  })
+
+  test('throws when multiple pending Commands match an Instance matcher', () => {
+    expect(() =>
+      Story.story(
+        update,
+        Story.with({ count: 0, log: [] }),
+        Story.message(StartedTwoFetchesById()),
+        Story.Command.resolve(
+          FetchCountById({ id: 5 }),
+          SucceededFetchCount({ count: 10 }),
+        ),
+      ),
+    ).toThrow(
+      'I tried to resolve "FetchCountById {"id":5}" but multiple pending Commands match',
+    )
+  })
 })
 
 describe('resolveAll', () => {

@@ -450,25 +450,27 @@ describe('Toast', () => {
               'LeaveStart',
             )
           }),
-          Story.Command.resolve(
-            Animation.RequestFrame,
-            Animation.AdvancedAnimationFrame(),
-            animationToToastMessage('test-entry-0'),
-          ),
-          Story.Command.resolve(
-            Animation.RequestFrame,
-            Animation.AdvancedAnimationFrame(),
-            animationToToastMessage('test-entry-1'),
-          ),
-          Story.Command.resolve(
-            Animation.WaitForAnimationSettled,
-            Animation.EndedAnimation(),
-            animationToToastMessage('test-entry-0'),
-          ),
-          Story.Command.resolve(
-            Animation.WaitForAnimationSettled,
-            Animation.EndedAnimation(),
-            animationToToastMessage('test-entry-1'),
+          Story.Command.resolveAll(
+            [
+              Animation.RequestFrame,
+              Animation.AdvancedAnimationFrame(),
+              animationToToastMessage('test-entry-0'),
+            ],
+            [
+              Animation.RequestFrame,
+              Animation.AdvancedAnimationFrame(),
+              animationToToastMessage('test-entry-1'),
+            ],
+            [
+              Animation.WaitForAnimationSettled({ id: 'test-entry-0' }),
+              Animation.EndedAnimation(),
+              animationToToastMessage('test-entry-0'),
+            ],
+            [
+              Animation.WaitForAnimationSettled({ id: 'test-entry-1' }),
+              Animation.EndedAnimation(),
+              animationToToastMessage('test-entry-1'),
+            ],
           ),
           Story.model((next: Model) => {
             expect(next.entries).toHaveLength(0)

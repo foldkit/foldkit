@@ -9,6 +9,14 @@ import {
   view as bubblingView,
 } from './apps/bubbling.js'
 import {
+  FetchCount,
+  FetchCountById,
+  SucceededFetchCount,
+  initialModel as counterInitialModel,
+  update as counterUpdate,
+  view as counterView,
+} from './apps/counter.js'
+import {
   initialModel as fileUploadInitialModel,
   update as fileUploadUpdate,
   view as fileUploadView,
@@ -2219,6 +2227,37 @@ describe('scene with resolveAll', () => {
         SucceededAuthenticate({ username: 'bob' }),
       ]),
       Scene.expect(Scene.role('status')).toHaveText('Welcome, bob!'),
+    )
+  })
+})
+
+describe('scene with resolve ambiguity', () => {
+  test('throws when multiple pending Commands match a Definition matcher', () => {
+    expect(() =>
+      Scene.scene(
+        { update: counterUpdate, view: counterView },
+        Scene.with(counterInitialModel),
+        Scene.click(Scene.role('button', { name: 'Start three fetches' })),
+        Scene.Command.resolve(FetchCount, SucceededFetchCount({ count: 42 })),
+      ),
+    ).toThrow(
+      'I tried to resolve "FetchCount" but multiple pending Commands match',
+    )
+  })
+
+  test('throws when multiple pending Commands match an Instance matcher', () => {
+    expect(() =>
+      Scene.scene(
+        { update: counterUpdate, view: counterView },
+        Scene.with(counterInitialModel),
+        Scene.click(Scene.role('button', { name: 'Start two fetches by id' })),
+        Scene.Command.resolve(
+          FetchCountById({ id: 5 }),
+          SucceededFetchCount({ count: 10 }),
+        ),
+      ),
+    ).toThrow(
+      'I tried to resolve "FetchCountById {"id":5}" but multiple pending Commands match',
     )
   })
 })

@@ -13,6 +13,7 @@ import {
   assertExactCommands,
   assertHasCommands,
   assertNoUnresolvedCommands,
+  assertResolveUnambiguous,
   assertZeroCommands,
   formatCommand,
   formatMatcher,
@@ -168,6 +169,7 @@ const resolveCommand: {
   ): StorySimulation<Model, Message, OutMessage> => {
     /* eslint-disable @typescript-eslint/consistent-type-assertions */
     const internal = toInternal(simulation)
+    assertResolveUnambiguous(internal.commands, matcher)
     const messageForUpdate = (Predicate.isUndefined(toParentMessage)
       ? resultMessage
       : toParentMessage(resultMessage)) as unknown as Message

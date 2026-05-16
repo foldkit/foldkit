@@ -303,6 +303,29 @@ const formatMatcherList = (matchers: ReadonlyArray<CommandMatcher>): string =>
     Array.join('\n'),
   )
 
+/** Throws if more than one pending Command matches the given matcher. Used
+ *  by single-resolve paths (`Story.Command.resolve`, `Scene.Command.resolve`)
+ *  where ambiguity is a bug. The test author can't have intended one specific
+ *  Command if multiple match. `resolveAll` consumes ordered pairings and
+ *  skips this check. */
+export const assertResolveUnambiguous = (
+  commands: ReadonlyArray<AnyCommand>,
+  matcher: CommandMatcher,
+): void => {
+  const matches = Array.filter(commands, command =>
+    commandMatches(matcher, command),
+  )
+
+  if (matches.length > 1) {
+    throw new Error(
+      `I tried to resolve "${formatMatcher(matcher)}" but multiple pending Commands match.\n\n` +
+        `Matches:\n${formatCommandList(matches)}\n\n` +
+        'To disambiguate, pass a Command instance with specific args, ' +
+        'or use resolveAll for ordered consumption.',
+    )
+  }
+}
+
 /** Throws if any of the given matchers fail to match a pending Command.
  *  Definition matchers match by name; Instance matchers match by name + args. */
 export const assertHasCommands = (
