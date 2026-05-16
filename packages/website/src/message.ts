@@ -27,7 +27,6 @@ export const CompletedScrollToAnchor = m('CompletedScrollToAnchor')
 export const CompletedApplyTheme = m('CompletedApplyTheme')
 export const CompletedSaveThemePreference = m('CompletedSaveThemePreference')
 export const CompletedSaveSidebarState = m('CompletedSaveSidebarState')
-export const CompletedRestoreSidebarScroll = m('CompletedRestoreSidebarScroll')
 export const ScrolledSidebar = m('ScrolledSidebar', { scroll: S.Number })
 export const SucceededCopyLink = m('SucceededCopyLink')
 export const FailedCopyLink = m('FailedCopyLink')
@@ -75,9 +74,7 @@ export const SelectedThemePreference = m('SelectedThemePreference', {
 export const ChangedSystemTheme = m('ChangedSystemTheme', {
   theme: ResolvedTheme,
 })
-export const ChangedHeroVisibility = m('ChangedHeroVisibility', {
-  isVisible: S.Boolean,
-})
+export const { ChangedHeroVisibility } = Page.Landing
 export const ChangedViewportWidth = m('ChangedViewportWidth', {
   isNarrow: S.Boolean,
 })
@@ -161,7 +158,6 @@ export const Message = S.Union([
   CompletedApplyTheme,
   CompletedSaveThemePreference,
   CompletedSaveSidebarState,
-  CompletedRestoreSidebarScroll,
   ScrolledSidebar,
   SucceededCopyLink,
   FailedCopyLink,

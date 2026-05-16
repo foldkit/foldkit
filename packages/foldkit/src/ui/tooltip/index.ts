@@ -5,7 +5,9 @@ import {
   Match as M,
   Number,
   Option,
+  Queue,
   Schema as S,
+  Stream,
 } from 'effect'
 
 import * as Command from '../../command/index.js'
@@ -13,7 +15,6 @@ import { OptionExt } from '../../effectExtensions/index.js'
 import {
   type Attribute,
   type Html,
-  type MountResult,
   createLazy,
   html,
 } from '../../html/index.js'
@@ -150,15 +151,24 @@ export const AnchorTooltip = Mount.define(
   CompletedAnchorTooltip,
 )(
   ({ buttonId, anchor }) =>
-    (element): Effect.Effect<MountResult<typeof CompletedAnchorTooltip.Type>> =>
-      Effect.sync(() => {
-        const cleanup = anchorSetup({
-          buttonId,
-          anchor,
-          interceptTab: false,
-        })(element)
-        return { message: CompletedAnchorTooltip(), cleanup }
-      }),
+    element =>
+      Stream.callback<typeof CompletedAnchorTooltip.Type>(queue =>
+        Effect.gen(function* () {
+          yield* Effect.acquireRelease(
+            Effect.sync(() => {
+              const cleanup = anchorSetup({
+                buttonId,
+                anchor,
+                interceptTab: false,
+              })(element)
+              Queue.offerUnsafe(queue, CompletedAnchorTooltip())
+              return cleanup
+            }),
+            cleanup => Effect.sync(cleanup),
+          )
+          return yield* Effect.never
+        }),
+      ),
 )
 
 /** Processes a tooltip message and returns the next model and commands. */

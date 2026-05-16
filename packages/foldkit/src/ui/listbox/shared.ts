@@ -5,20 +5,17 @@ import {
   Match as M,
   Option,
   Predicate,
+  Queue,
   Schema as S,
   String as Str,
+  Stream,
   pipe,
 } from 'effect'
 
 import * as Command from '../../command/index.js'
 import * as Dom from '../../dom/index.js'
 import { OptionExt } from '../../effectExtensions/index.js'
-import {
-  type Attribute,
-  type Html,
-  type MountResult,
-  html,
-} from '../../html/index.js'
+import { type Attribute, type Html, html } from '../../html/index.js'
 import { m } from '../../message/index.js'
 import * as Mount from '../../mount/index.js'
 import { makeConstrainedEvo } from '../../struct/index.js'
@@ -667,11 +664,20 @@ export const AnchorListbox = Mount.define(
   CompletedAnchorListbox,
 )(
   ({ buttonId, anchor }) =>
-    (element): Effect.Effect<MountResult<typeof CompletedAnchorListbox.Type>> =>
-      Effect.sync(() => {
-        const cleanup = anchorSetup({ buttonId, anchor })(element)
-        return { message: CompletedAnchorListbox(), cleanup }
-      }),
+    element =>
+      Stream.callback<typeof CompletedAnchorListbox.Type>(queue =>
+        Effect.gen(function* () {
+          yield* Effect.acquireRelease(
+            Effect.sync(() => {
+              const cleanup = anchorSetup({ buttonId, anchor })(element)
+              Queue.offerUnsafe(queue, CompletedAnchorListbox())
+              return cleanup
+            }),
+            cleanup => Effect.sync(cleanup),
+          )
+          return yield* Effect.never
+        }),
+      ),
 )
 
 /** The backdrop-portaling Mount this Listbox renders. Exposed so Scene tests can
@@ -680,14 +686,20 @@ export const AnchorListbox = Mount.define(
 export const PortalListboxBackdrop = Mount.define(
   'PortalListboxBackdrop',
   CompletedPortalListboxBackdrop,
-)(
-  (
-    element,
-  ): Effect.Effect<MountResult<typeof CompletedPortalListboxBackdrop.Type>> =>
-    Effect.sync(() => {
-      const cleanup = portalToBody(element)
-      return { message: CompletedPortalListboxBackdrop(), cleanup }
+)(element =>
+  Stream.callback<typeof CompletedPortalListboxBackdrop.Type>(queue =>
+    Effect.gen(function* () {
+      yield* Effect.acquireRelease(
+        Effect.sync(() => {
+          const cleanup = portalToBody(element)
+          Queue.offerUnsafe(queue, CompletedPortalListboxBackdrop())
+          return cleanup
+        }),
+        cleanup => Effect.sync(cleanup),
+      )
+      return yield* Effect.never
     }),
+  ),
 )
 
 // VIEW TYPES

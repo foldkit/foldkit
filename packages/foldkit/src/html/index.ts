@@ -3,12 +3,14 @@ import {
   Context,
   Data,
   Effect,
+  Fiber,
   Function,
   Match,
   Option,
   Predicate,
   Record,
   Ref,
+  Stream,
   String,
   pipe,
 } from 'effect'
@@ -312,18 +314,8 @@ export type TagName =
   | 'munderover'
   | 'semantics'
 
-/**
- * Result of an `OnMount` Effect: a Message announcing the mount, plus a
- * synchronous cleanup function the runtime invokes when the element unmounts.
- */
-export type MountResult<Message> = Readonly<{
-  message: Message
-  cleanup: () => void
-}>
-
 type OnMountState = {
-  destroyed: boolean
-  cleanup: Option.Option<() => void>
+  fiber: Fiber.Fiber<void>
 }
 
 const onMountStates = new WeakMap<Element, OnMountState>()
@@ -1573,22 +1565,11 @@ const buildVNodeData = <Message>(
                 insert: vnode => {
                   if (vnode.elm instanceof Element) {
                     const element = vnode.elm
-                    const state: OnMountState = {
-                      destroyed: false,
-                      cleanup: Option.none(),
-                    }
-                    onMountStates.set(element, state)
                     notifyStarted()
-                    Effect.runForkWith(capturedContext)(
-                      Effect.gen(function* () {
-                        const { message, cleanup } = yield* action.f(element)
-                        if (state.destroyed) {
-                          cleanup()
-                        } else {
-                          state.cleanup = Option.some(cleanup)
-                          dispatchSync(message)
-                        }
-                      }).pipe(
+                    const fiber = Effect.runForkWith(capturedContext)(
+                      Stream.runForEach(action.f(element), message =>
+                        Effect.sync(() => dispatchSync(message)),
+                      ).pipe(
                         Effect.catchCause(cause =>
                           Effect.sync(() => {
                             console.error(
@@ -1599,17 +1580,14 @@ const buildVNodeData = <Message>(
                         ),
                       ),
                     )
+                    onMountStates.set(element, { fiber })
                   }
                 },
                 destroy: vnode => {
                   if (vnode.elm instanceof Element) {
                     const state = onMountStates.get(vnode.elm)
                     if (state) {
-                      state.destroyed = true
-                      Option.match(state.cleanup, {
-                        onNone: Function.constVoid,
-                        onSome: cleanup => cleanup(),
-                      })
+                      Effect.runFork(Fiber.interrupt(state.fiber))
                       onMountStates.delete(vnode.elm)
                       notifyEnded()
                     }

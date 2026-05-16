@@ -5,6 +5,5 @@ export type {
   Document,
   Html,
   KeyboardModifiers,
-  MountResult,
   TagName,
 } from './index.js'

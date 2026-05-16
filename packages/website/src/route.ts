@@ -1,4 +1,4 @@
-import { Match as M, Schema as S, pipe } from 'effect'
+import { Schema as S, pipe } from 'effect'
 import {
   literal,
   mapTo,
@@ -652,9 +652,3 @@ export const urlToAppRoute = parseUrlWithFallback(routeParser, NotFoundRoute)
 
 export const isLandingHeaderAlwaysVisible = (route: AppRoute) =>
   route._tag === 'Newsletter'
-
-export const routeHasSidebar = (route: AppRoute): boolean =>
-  M.value(route).pipe(
-    M.tag('Home', 'Newsletter', 'Playground', () => false),
-    M.orElse(() => true),
-  )

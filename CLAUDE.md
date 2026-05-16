@@ -147,7 +147,7 @@ Four lifecycle/binding primitives. Pick by **what causes the side effect**, not 
 
 - **Command.** A one-time side effect fired by `update`'s return. The cause is a Message that just dispatched. Examples: `FocusInput` after `OpenedDialog`, `FetchWeather` after `ClickedRefresh`, `SaveTodos` after `EditedTodo`. Navigation, network, storage, analytics, focus-on-state-change all belong here.
 
-- **Mount.** A per-instance lifecycle effect bound to a VNode existing in the rendered tree. The cause is the element's appearance, and the author needs the live `Element` handle. Examples: anchor positioning for floating panels, backdrop portaling, attaching observers to a specific element, third-party library instantiation that takes the element as a host.
+- **Mount.** A per-instance lifecycle binding tied to a VNode existing in the rendered tree. The cause is the element's appearance, and the author needs the live `Element` handle. The factory returns a `Stream<Message>` whose lifetime is bound to the element's lifetime: each emitted Message is dispatched, and the Stream's scope is closed (running any registered `acquireRelease` finalizers) when the element unmounts. Examples: anchor positioning for floating panels, backdrop portaling, IntersectionObservers on a specific element, scroll listeners on a specific scrollable container, third-party library instantiation that takes the element as a host.
 
 - **ManagedResource.** A stateful runtime object (websocket connection, camera stream, audio context, third-party library instance) whose lifetime is tied to a Model condition AND whose handle is consumed by Commands via `yield*`. The condition determines lifetime; Commands do the work on the resource. Not a generic "lifecycle on a Model condition" rule. There must be a handle for Commands to use.
 
@@ -155,10 +155,18 @@ Four lifecycle/binding primitives. Pick by **what causes the side effect**, not 
 
 **Two practical rules for Mount.** Both must hold:
 
-1. **Use the element parameter.** Mount provides the live `Element` handle. If your Effect doesn't read or write the element, you're misusing Mount. The lifecycle binding alone is not enough.
+1. **Use the element parameter.** Mount provides the live `Element` handle. If your Stream's setup doesn't read or write the element, you're misusing Mount. The lifecycle binding alone is not enough.
 2. **The work is DOM measurement or DOM manipulation on that element.** Read its geometry, mutate its CSS, attach observers/listeners to it, portal it, hand it to a third-party library. Anything else (network, storage, analytics, focus-on-transition, library instantiation keyed on Model rather than element) is a Command from update or a ManagedResource.
 
-**Replay safety.** Mount Effects re-run during DevTools time-travel renders. The two practical rules above keep Mount work inherently replay-safe: DOM measurement is read-only, DOM manipulation on an element that exists in both live and time-travel views is idempotent, observer attachment paired with cleanup is self-balancing. Anything that mutates external state (network calls, storage writes, focus-on-transition, scroll lock for the page, library instantiation) is unsafe to re-run during time-travel and therefore not a Mount.
+**One-shot vs. streaming output.** Mount's output is a `Stream`, but the stream's cardinality is your choice:
+
+- **One-shot, no cleanup**: `Stream.fromEffect(Effect.sync(() => message))`. Emits once, completes. Use for fire-and-forget setup like focus.
+- **One-shot with cleanup**: `Stream.callback(queue => Effect.gen(function*() { yield* Effect.acquireRelease(setup, cleanup); return yield* Effect.never }))`. Emits once via `Queue.offerUnsafe` inside acquire, then keeps the scope open until interrupted on unmount so cleanup runs. Use for portal-to-body, anchor setup, library instantiation.
+- **Streaming**: same `Stream.callback` shape, but emit multiple times from event handlers or observer callbacks registered inside acquire. Use for scroll listeners, IntersectionObservers, MutationObservers — anything that produces a continuum of element-scoped events.
+
+The output-shape choice is independent of the cause-rule: the cause is always "this element exists, per-instance". Stream cardinality is incidental.
+
+**Replay safety.** Mount Streams re-run during DevTools time-travel renders. The two practical rules above keep Mount work inherently replay-safe: DOM measurement is read-only, DOM manipulation on an element that exists in both live and time-travel views is idempotent, observer attachment paired with cleanup is self-balancing. Anything that mutates external state (network calls, storage writes, focus-on-transition, scroll lock for the page, library instantiation) is unsafe to re-run during time-travel and therefore not a Mount.
 
 **Decision rule when the rules above are ambiguous.** Ask _"what causes this side effect?"_
 
@@ -169,7 +177,7 @@ Four lifecycle/binding primitives. Pick by **what causes the side effect**, not 
 
 **Don't reach for Mount just because the work happens to coincide with an element appearing.** Check what causes the work. If a Message just dispatched (like `Opened`), the cause is the Message, not the element. Use a Command returned from `update`'s handler instead. Example: focusing a search input when its dialog opens. The cause is `Opened`, not the input's existence; return a `FocusInput` Command from the `Opened` handler.
 
-**Mount naming.** Verb-first imperatives, mirroring Command convention. `AnchorPopover`, `PortalPopoverBackdrop`, `AttachComboboxPreventBlur`, not `PopoverAnchor` or `ComboboxPreventBlurAttachment`. Mount Definitions are imperative instructions to the runtime ("when this element mounts, do X"), same as Commands. Result Messages follow Foldkit's existing Message convention (verb-first past-tense): `CompletedAnchorPopover` for the mount-completion fact.
+**Mount naming.** Verb-first imperatives, mirroring Command convention. `AnchorPopover`, `PortalPopoverBackdrop`, `AttachComboboxPreventBlur`, `ObserveHeroVisibility`, `SyncSidebarScroll`, not `PopoverAnchor` or `ComboboxPreventBlurAttachment`. Mount Definitions are imperative instructions to the runtime ("when this element mounts, do X for its lifetime"), same as Commands. Result Messages follow Foldkit's existing Message convention (verb-first past-tense): `CompletedAnchorPopover` for one-shot completion facts, `ChangedHeroVisibility` / `ScrolledSidebar` for ongoing event facts.
 
 ### General Preferences
 

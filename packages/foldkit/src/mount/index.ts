@@ -1,6 +1,4 @@
-import { Context, Effect, Function, Predicate, Schema } from 'effect'
-
-import type { MountResult } from '../html/index.js'
+import { Context, Function, Predicate, Schema, Stream } from 'effect'
 
 /** Effect service tag that observes Mount lifecycle events. The runtime
  *  provides an implementation that buffers events for DevTools history;
@@ -25,15 +23,16 @@ export const MountDefinitionTypeId: unique symbol = Symbol.for(
 /** Type-level brand for MountDefinition values. */
 export type MountDefinitionTypeId = typeof MountDefinitionTypeId
 
-/** A named, type-constrained mount-time side effect with paired cleanup,
- *  optionally carrying the args used to construct it. The runtime invokes `f`
- *  with the live `Element` when the element mounts; the Effect resolves to a
- *  `{ message, cleanup }` record. The Message is dispatched and the cleanup is
- *  invoked automatically when the element unmounts. */
+/** A named, type-constrained per-element side effect, optionally carrying the
+ *  args used to construct it. The runtime invokes `f` with the live `Element`
+ *  when the element mounts, and dispatches each Message emitted by the
+ *  returned Stream. The Stream's scope is tied to the element's lifetime: when
+ *  the element unmounts, the runtime interrupts the fiber, which closes the
+ *  Stream's scope and runs any registered `acquireRelease` finalizers. */
 export type MountAction<Message, E = never> = Readonly<{
   name: string
   args?: Record<string, unknown>
-  f: (element: Element) => Effect.Effect<MountResult<Message>, E>
+  f: (element: Element) => Stream.Stream<Message, E>
 }>
 
 /** A Mount definition for a Mount with no declared args. Call as `Definition()` to produce a MountAction. */
@@ -42,7 +41,7 @@ export interface MountDefinitionNoArgs<Name extends string, ResultMessage> {
   readonly name: Name;
   (): Readonly<{
     name: Name
-    f: (element: Element) => Effect.Effect<MountResult<ResultMessage>>
+    f: (element: Element) => Stream.Stream<ResultMessage>
   }>
 }
 
@@ -57,7 +56,7 @@ export interface MountDefinitionWithArgs<
   (args: Schema.Schema.Type<Schema.Struct<Fields>>): Readonly<{
     name: Name
     args: Schema.Schema.Type<Schema.Struct<Fields>>
-    f: (element: Element) => Effect.Effect<MountResult<ResultMessage>>
+    f: (element: Element) => Stream.Stream<ResultMessage>
   }>
 }
 
@@ -76,18 +75,70 @@ export type MountDefinition<
  *
  * The factory (or factory builder) is bound at definition time. The returned
  * Definition is callable: with no args for a Mount that doesn't declare any,
- * or with the declared args record otherwise.
+ * or with the declared args record otherwise. The factory must return a
+ * `Stream<Message>` whose lifetime is bound to the element's lifetime: each
+ * emitted Message is dispatched, and the Stream's scope is closed (running
+ * any registered `acquireRelease` finalizers or `Stream.async` cleanup
+ * Effects) when the element unmounts.
  *
- * @example No args
+ * @example Streaming (continuous scroll events from an element)
+ * ```ts
+ * const ListenSidebarScroll = Mount.define(
+ *   'ListenSidebarScroll',
+ *   ScrolledSidebar,
+ * )(element =>
+ *   Stream.callback<typeof ScrolledSidebar.Type>(queue =>
+ *     Effect.gen(function* () {
+ *       yield* Effect.acquireRelease(
+ *         Effect.sync(() => {
+ *           const handler = () =>
+ *             Queue.offerUnsafe(
+ *               queue,
+ *               ScrolledSidebar({ scroll: element.scrollTop }),
+ *             )
+ *           element.addEventListener('scroll', handler, { passive: true })
+ *           return handler
+ *         }),
+ *         handler =>
+ *           Effect.sync(() =>
+ *             element.removeEventListener('scroll', handler),
+ *           ),
+ *       )
+ *       return yield* Effect.never
+ *     }),
+ *   ),
+ * )
+ * ```
+ *
+ * @example One-shot, no cleanup (focus on appearance)
  * ```ts
  * const FocusInput = Mount.define('FocusInput', CompletedFocusInput)(element =>
- *   Effect.sync(() => {
- *     if (element instanceof HTMLInputElement) element.focus()
- *     return { message: CompletedFocusInput(), cleanup: Function.constVoid }
- *   }),
+ *   Stream.fromEffect(
+ *     Effect.sync(() => {
+ *       if (element instanceof HTMLInputElement) element.focus()
+ *       return CompletedFocusInput()
+ *     }),
+ *   ),
  * )
- * // Call site:
- * OnMount(FocusInput())
+ * ```
+ *
+ * @example One-shot with cleanup (portal-to-body)
+ * ```ts
+ * const PortalToBody = Mount.define('PortalToBody', CompletedPortalToBody)(
+ *   element =>
+ *     Stream.callback<typeof CompletedPortalToBody.Type>(queue =>
+ *       Effect.gen(function* () {
+ *         yield* Effect.acquireRelease(
+ *           Effect.sync(() => {
+ *             document.body.appendChild(element)
+ *             Queue.offerUnsafe(queue, CompletedPortalToBody())
+ *           }),
+ *           () => Effect.sync(() => element.remove()),
+ *         )
+ *         return yield* Effect.never
+ *       }),
+ *     ),
+ * )
  * ```
  *
  * @example With args
@@ -97,13 +148,20 @@ export type MountDefinition<
  *   { buttonId: S.String, anchor: AnchorConfig },
  *   CompletedAnchorPopover,
  * )(({ buttonId, anchor }) => element =>
- *   Effect.sync(() => {
- *     const cleanup = anchorSetup({ buttonId, anchor })(element)
- *     return { message: CompletedAnchorPopover(), cleanup }
- *   }),
+ *   Stream.callback<typeof CompletedAnchorPopover.Type>(queue =>
+ *     Effect.gen(function* () {
+ *       yield* Effect.acquireRelease(
+ *         Effect.sync(() => {
+ *           const cleanup = anchorSetup({ buttonId, anchor })(element)
+ *           Queue.offerUnsafe(queue, CompletedAnchorPopover())
+ *           return cleanup
+ *         }),
+ *         cleanup => Effect.sync(cleanup),
+ *       )
+ *       return yield* Effect.never
+ *     }),
+ *   ),
  * )
- * // Call site:
- * AnchorPopover({ buttonId: `${id}-button`, anchor })
  * ```
  */
 export function define<
@@ -115,11 +173,7 @@ export function define<
 ): (
   factory: (
     element: Element,
-  ) => Effect.Effect<
-    MountResult<Schema.Schema.Type<Results[number]>>,
-    never,
-    never
-  >,
+  ) => Stream.Stream<Schema.Schema.Type<Results[number]>, never, never>,
 ) => MountDefinitionNoArgs<Name, Schema.Schema.Type<Results[number]>>
 
 export function define<
@@ -135,11 +189,7 @@ export function define<
     args: Schema.Schema.Type<Schema.Struct<Fields>>,
   ) => (
     element: Element,
-  ) => Effect.Effect<
-    MountResult<Schema.Schema.Type<Results[number]>>,
-    never,
-    never
-  >,
+  ) => Stream.Stream<Schema.Schema.Type<Results[number]>, never, never>,
 ) => MountDefinitionWithArgs<Name, Fields, Schema.Schema.Type<Results[number]>>
 
 export function define(name: string, ...rest: ReadonlyArray<unknown>): unknown {
@@ -152,7 +202,7 @@ export function define(name: string, ...rest: ReadonlyArray<unknown>): unknown {
     return (
       factoryBuilder: (
         args: any,
-      ) => (element: Element) => Effect.Effect<any, any, any>,
+      ) => (element: Element) => Stream.Stream<any, any, any>,
     ): MountDefinitionWithArgs<string, any, any> => {
       const definition = (args: any) => ({
         name,
@@ -172,7 +222,7 @@ export function define(name: string, ...rest: ReadonlyArray<unknown>): unknown {
   }
 
   return (
-    factory: (element: Element) => Effect.Effect<any, any, any>,
+    factory: (element: Element) => Stream.Stream<any, any, any>,
   ): MountDefinitionNoArgs<string, any> => {
     const definition = () => ({ name, f: factory })
     Object.defineProperty(definition, 'name', {
@@ -188,7 +238,7 @@ export function define(name: string, ...rest: ReadonlyArray<unknown>): unknown {
 }
 
 /** Lifts a `MountAction` from one Message universe to another by mapping its
- *  dispatched Message through a transform. Used by Submodel components to
+ *  dispatched Messages through a transform. Used by Submodel components to
  *  emit lifecycle action results into the parent's Message union via the
  *  consumer-supplied `toParentMessage` lift. Preserves `name` and `args`. */
 export const mapMessage: {
@@ -203,12 +253,6 @@ export const mapMessage: {
     f: (message: A) => B,
   ): MountAction<B, E> => ({
     ...action,
-    f: (element: Element) =>
-      action.f(element).pipe(
-        Effect.map(({ message, cleanup }) => ({
-          message: f(message),
-          cleanup,
-        })),
-      ),
+    f: (element: Element) => action.f(element).pipe(Stream.map(f)),
   }),
 )

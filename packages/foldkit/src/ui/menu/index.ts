@@ -5,8 +5,10 @@ import {
   Match as M,
   Option,
   Predicate,
+  Queue,
   Schema as S,
   String as Str,
+  Stream,
   pipe,
 } from 'effect'
 
@@ -16,7 +18,6 @@ import { OptionExt } from '../../effectExtensions/index.js'
 import {
   type Attribute,
   type Html,
-  type MountResult,
   createLazy,
   html,
 } from '../../html/index.js'
@@ -684,11 +685,20 @@ export const AnchorMenu = Mount.define(
   CompletedAnchorMenu,
 )(
   ({ buttonId, anchor }) =>
-    (element): Effect.Effect<MountResult<typeof CompletedAnchorMenu.Type>> =>
-      Effect.sync(() => {
-        const cleanup = anchorSetup({ buttonId, anchor })(element)
-        return { message: CompletedAnchorMenu(), cleanup }
-      }),
+    element =>
+      Stream.callback<typeof CompletedAnchorMenu.Type>(queue =>
+        Effect.gen(function* () {
+          yield* Effect.acquireRelease(
+            Effect.sync(() => {
+              const cleanup = anchorSetup({ buttonId, anchor })(element)
+              Queue.offerUnsafe(queue, CompletedAnchorMenu())
+              return cleanup
+            }),
+            cleanup => Effect.sync(cleanup),
+          )
+          return yield* Effect.never
+        }),
+      ),
 )
 
 /** The backdrop-portaling Mount this Menu renders. Exposed so Scene tests can
@@ -697,14 +707,20 @@ export const AnchorMenu = Mount.define(
 export const PortalMenuBackdrop = Mount.define(
   'PortalMenuBackdrop',
   CompletedPortalMenuBackdrop,
-)(
-  (
-    element,
-  ): Effect.Effect<MountResult<typeof CompletedPortalMenuBackdrop.Type>> =>
-    Effect.sync(() => {
-      const cleanup = portalToBody(element)
-      return { message: CompletedPortalMenuBackdrop(), cleanup }
+)(element =>
+  Stream.callback<typeof CompletedPortalMenuBackdrop.Type>(queue =>
+    Effect.gen(function* () {
+      yield* Effect.acquireRelease(
+        Effect.sync(() => {
+          const cleanup = portalToBody(element)
+          Queue.offerUnsafe(queue, CompletedPortalMenuBackdrop())
+          return cleanup
+        }),
+        cleanup => Effect.sync(cleanup),
+      )
+      return yield* Effect.never
     }),
+  ),
 )
 
 /** Programmatically opens the menu, updating the model and returning

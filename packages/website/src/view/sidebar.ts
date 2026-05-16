@@ -1,5 +1,14 @@
 import { clsx } from 'clsx'
-import { Array, Effect, Function, Option, Schema as S, pipe } from 'effect'
+import {
+  Array,
+  Duration,
+  Effect,
+  Option,
+  Queue,
+  Schema as S,
+  Stream,
+  pipe,
+} from 'effect'
 import { Mount, Ui } from 'foldkit'
 import { Html, createLazy, html } from 'foldkit/html'
 import apiModuleIndex from 'virtual:api-module-index'
@@ -9,7 +18,6 @@ import { Icon } from '../icon'
 import { Link } from '../link'
 import { type Model } from '../main'
 import {
-  CompletedRestoreSidebarScroll,
   GotAiGroupMessage,
   GotApiReferenceGroupMessage,
   GotBestPracticesGroupMessage,
@@ -23,6 +31,7 @@ import {
   GotPatternsGroupMessage,
   GotTestingGroupMessage,
   type Message,
+  ScrolledSidebar,
 } from '../message'
 import { ExampleDetailRoute, apiModuleRouter, homeRouter } from '../route'
 import { betaTag, iconLink } from './shared'
@@ -31,20 +40,40 @@ const h = html<Message>()
 
 export const DOCS_SIDEBAR_NAV_ID = 'docs-sidebar-nav'
 
-const RestoreSidebarScroll = Mount.define(
-  'RestoreSidebarScroll',
-  { scroll: S.Number },
-  CompletedRestoreSidebarScroll,
+const SCROLL_DEBOUNCE_DURATION = Duration.millis(150)
+
+/** Combined Mount that restores the sidebar's scroll position on first mount
+ *  and emits debounced `ScrolledSidebar` Messages over the element's lifetime.
+ *  Bundling restore + listen into one Mount is forced by snabbdom's one-Mount-
+ *  per-element constraint; the scroll restore is a side effect of `acquire`,
+ *  and the scroll listener is the persistent work the Mount performs over the
+ *  element's lifetime. */
+const SyncSidebarScroll = Mount.define(
+  'SyncSidebarScroll',
+  { initialScroll: S.Number },
+  ScrolledSidebar,
 )(
-  ({ scroll }) =>
+  ({ initialScroll }) =>
     element =>
-      Effect.sync(() => {
-        element.scrollTop = scroll
-        return {
-          message: CompletedRestoreSidebarScroll(),
-          cleanup: Function.constVoid,
-        }
-      }),
+      Stream.callback<typeof ScrolledSidebar.Type>(queue =>
+        Effect.gen(function* () {
+          yield* Effect.acquireRelease(
+            Effect.sync(() => {
+              element.scrollTop = initialScroll
+              const handler = () =>
+                Queue.offerUnsafe(
+                  queue,
+                  ScrolledSidebar({ scroll: element.scrollTop }),
+                )
+              element.addEventListener('scroll', handler, { passive: true })
+              return handler
+            }),
+            handler =>
+              Effect.sync(() => element.removeEventListener('scroll', handler)),
+          )
+          return yield* Effect.never
+        }),
+      ).pipe(Stream.debounce(SCROLL_DEBOUNCE_DURATION)),
 )
 
 const sidebarGroup = (config: {
@@ -294,7 +323,7 @@ export const sidebarView = (model: Model): Html => {
           h.AriaLabel('Documentation'),
           h.Id(DOCS_SIDEBAR_NAV_ID),
           h.Class('flex-1 overflow-y-auto pb-4'),
-          h.OnMount(RestoreSidebarScroll({ scroll: model.sidebarScroll })),
+          h.OnMount(SyncSidebarScroll({ initialScroll: model.sidebarScroll })),
         ],
         [desktopNavLinks],
       ),

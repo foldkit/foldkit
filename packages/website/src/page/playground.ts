@@ -1,6 +1,5 @@
-import { Effect, Function, Match as M, Option, Schema as S } from 'effect'
+import { Effect, Match as M, Option, Schema as S, Stream } from 'effect'
 import { Mount } from 'foldkit'
-import type { MountResult } from 'foldkit/html'
 import { Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import filesBySlug from 'virtual:playground-files'
@@ -17,10 +16,6 @@ export const FailedPlaygroundEmbed = m('FailedPlaygroundEmbed', {
   reason: S.String,
 })
 
-type PlaygroundEmbedMessage =
-  | typeof SucceededPlaygroundEmbed.Type
-  | typeof FailedPlaygroundEmbed.Type
-
 const PlaygroundEmbed = Mount.define(
   'PlaygroundEmbed',
   {
@@ -32,51 +27,45 @@ const PlaygroundEmbed = Mount.define(
   FailedPlaygroundEmbed,
 )(
   ({ title, description, files }) =>
-    (element: Element): Effect.Effect<MountResult<PlaygroundEmbedMessage>> => {
-      if (!(element instanceof HTMLElement)) {
-        return Effect.succeed({
-          message: FailedPlaygroundEmbed({
-            reason: 'Playground requires an HTMLElement host.',
-          }),
-          cleanup: Function.constVoid,
-        })
-      }
-      return Effect.gen(function* () {
-        yield* Effect.tryPromise(() =>
-          import('@stackblitz/sdk').then(({ default: sdk }) =>
-            sdk.embedProject(
-              element,
-              {
-                title,
-                description,
-                template: 'node',
-                files,
-              },
-              {
-                height: '100%',
-                hideNavigation: true,
-                openFile: 'src/main.ts',
-                showSidebar: true,
-                view: 'default',
-              },
+    element =>
+      Stream.fromEffect(
+        Effect.gen(function* () {
+          if (!(element instanceof HTMLElement)) {
+            return FailedPlaygroundEmbed({
+              reason: 'Playground requires an HTMLElement host.',
+            })
+          }
+          yield* Effect.tryPromise(() =>
+            import('@stackblitz/sdk').then(({ default: sdk }) =>
+              sdk.embedProject(
+                element,
+                {
+                  title,
+                  description,
+                  template: 'node',
+                  files,
+                },
+                {
+                  height: '100%',
+                  hideNavigation: true,
+                  openFile: 'src/main.ts',
+                  showSidebar: true,
+                  view: 'default',
+                },
+              ),
+            ),
+          )
+          return SucceededPlaygroundEmbed()
+        }).pipe(
+          Effect.catch(error =>
+            Effect.succeed(
+              FailedPlaygroundEmbed({
+                reason: error instanceof Error ? error.message : String(error),
+              }),
             ),
           ),
-        )
-        return {
-          message: SucceededPlaygroundEmbed(),
-          cleanup: Function.constVoid,
-        }
-      }).pipe(
-        Effect.catch(error =>
-          Effect.succeed({
-            message: FailedPlaygroundEmbed({
-              reason: error instanceof Error ? error.message : String(error),
-            }),
-            cleanup: Function.constVoid,
-          }),
         ),
-      )
-    },
+      ),
 )
 
 const backToExampleButton = (maybeMeta: Option.Option<ExampleMeta>): Html =>

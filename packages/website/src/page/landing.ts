@@ -1,11 +1,22 @@
 import { clsx } from 'clsx'
-import { Array, Function, String as String_, pipe } from 'effect'
+import {
+  Array,
+  Effect,
+  Function,
+  Queue,
+  Schema as S,
+  Stream,
+  String as String_,
+  pipe,
+} from 'effect'
+import { Mount } from 'foldkit'
 import { Html, html } from 'foldkit/html'
+import { m } from 'foldkit/message'
 import { foldkitVersion } from 'virtual:landing-data'
 
 import { Icon } from '../icon'
 import { Link } from '../link'
-import type { Message } from '../message'
+import { type Message } from '../message'
 import {
   aiOverviewRouter,
   comingFromReactRouter,
@@ -100,7 +111,45 @@ export const view = (
     ],
   )
 
+// MESSAGE
+
+export const ChangedHeroVisibility = m('ChangedHeroVisibility', {
+  isVisible: S.Boolean,
+})
+
 // HERO
+
+const ObserveHeroVisibility = Mount.define(
+  'ObserveHeroVisibility',
+  ChangedHeroVisibility,
+)(element =>
+  Stream.callback<typeof ChangedHeroVisibility.Type>(queue =>
+    Effect.gen(function* () {
+      yield* Effect.acquireRelease(
+        Effect.sync(() => {
+          const observer = new IntersectionObserver(
+            entries => {
+              const entry = entries[0]
+              if (entry) {
+                Queue.offerUnsafe(
+                  queue,
+                  ChangedHeroVisibility({
+                    isVisible: entry.isIntersecting,
+                  }),
+                )
+              }
+            },
+            { threshold: 0 },
+          )
+          observer.observe(element)
+          return observer
+        }),
+        observer => Effect.sync(() => observer.disconnect()),
+      )
+      return yield* Effect.never
+    }),
+  ),
+)
 
 const INSTALL_COMMAND = 'npx create-foldkit-app@latest'
 
@@ -113,6 +162,7 @@ const heroSection = (
       h.Id(HERO_SECTION_ID),
       h.AriaLabel('Hero'),
       h.Class('landing-section relative overflow-hidden'),
+      h.OnMount(ObserveHeroVisibility()),
     ],
     [
       h.div(

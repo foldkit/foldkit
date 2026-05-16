@@ -1,4 +1,4 @@
-import { Effect, Function, Schema as S } from 'effect'
+import { Effect, Queue, Schema as S, Stream } from 'effect'
 import { Mount } from 'foldkit'
 import { type Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -10,9 +10,10 @@ const FailedMountChart = m('FailedMountChart', { reason: S.String })
 
 // Mount.define gives the action a name and constrains what Messages it can
 // produce, plus an args record so the chart's per-instance data flows through
-// declared values rather than a closure. The runtime invokes the bound
-// factory on insert, dispatches the Message, and stashes the cleanup. When
-// Snabbdom unmounts the element, OnMount calls the cleanup automatically.
+// declared values rather than a closure. The runtime invokes the bound factory
+// on insert, runs the Stream until the element unmounts, dispatches each
+// emitted Message, and closes the stream's scope on destroy (firing any
+// acquireRelease finalizers).
 
 const ChartData = S.Array(S.Number)
 type ChartData = typeof ChartData.Type
@@ -25,24 +26,36 @@ const MountChart = Mount.define(
 )(
   ({ data }) =>
     element =>
-      Effect.gen(function* () {
-        const { Chart } = yield* Effect.tryPromise(
-          () => import('some-chart-library'),
-        )
-        const chart = new Chart(element, { data })
-        return {
-          message: SucceededMountChart(),
-          cleanup: () => chart.destroy(),
-        }
-      }).pipe(
-        Effect.catch(error =>
-          Effect.succeed({
-            message: FailedMountChart({
-              reason: error instanceof Error ? error.message : String(error),
-            }),
-            cleanup: Function.constVoid,
-          }),
-        ),
+      Stream.callback<
+        typeof SucceededMountChart.Type | typeof FailedMountChart.Type
+      >(queue =>
+        Effect.gen(function* () {
+          yield* Effect.acquireRelease(
+            Effect.gen(function* () {
+              const { Chart } = yield* Effect.tryPromise(
+                () => import('some-chart-library'),
+              )
+              const chart = new Chart(element, { data })
+              Queue.offerUnsafe(queue, SucceededMountChart())
+              return chart
+            }).pipe(
+              Effect.catch(error =>
+                Effect.gen(function* () {
+                  Queue.offerUnsafe(
+                    queue,
+                    FailedMountChart({
+                      reason:
+                        error instanceof Error ? error.message : String(error),
+                    }),
+                  )
+                  return null
+                }),
+              ),
+            ),
+            chart => Effect.sync(() => chart?.destroy()),
+          )
+          return yield* Effect.never
+        }),
       ),
 )
 

@@ -1010,7 +1010,6 @@ export const update = (
       'CompletedApplyTheme',
       'CompletedSaveThemePreference',
       'CompletedSaveSidebarState',
-      'CompletedRestoreSidebarScroll',
       'SucceededCopyLink',
       'FailedCopyLink',
       'FailedCopySnippet',
@@ -1322,14 +1321,8 @@ const SubscriptionDependencies = S.Struct({
   virtualListVariableContainerEvents:
     virtualListDemoFields['variableContainerEvents'],
   exampleUrl: S.Option(S.String),
-  heroVisibility: S.Struct({
-    isLandingPage: S.Boolean,
-  }),
   searchShortcut: S.Struct({
     isDocsPage: S.Boolean,
-  }),
-  sidebarScroll: S.Struct({
-    hasSidebar: S.Boolean,
   }),
   systemTheme: S.Struct({
     isSystemPreference: S.Boolean,
@@ -1358,9 +1351,7 @@ export const subscriptions = makeSubscriptions(SubscriptionDependencies)<
   virtualListVariableContainerEvents:
     Subscription.VirtualListDemo.subscriptions.variableContainerEvents,
   exampleUrl: Subscription.exampleUrl,
-  heroVisibility: Subscription.heroVisibility,
   searchShortcut: Subscription.searchShortcut,
-  sidebarScroll: Subscription.sidebarScroll,
   systemTheme: Subscription.systemTheme,
   viewportWidth: Subscription.viewportWidth,
 })

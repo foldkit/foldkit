@@ -4,20 +4,17 @@ import {
   Match as M,
   Option,
   Predicate,
+  Queue,
   Result,
   Schema as S,
+  Stream,
   pipe,
 } from 'effect'
 
 import * as Command from '../../command/index.js'
 import * as Dom from '../../dom/index.js'
 import { OptionExt } from '../../effectExtensions/index.js'
-import {
-  type Attribute,
-  type Html,
-  type MountResult,
-  html,
-} from '../../html/index.js'
+import { type Attribute, type Html, html } from '../../html/index.js'
 import { m } from '../../message/index.js'
 import * as Mount from '../../mount/index.js'
 import { makeConstrainedEvo } from '../../struct/index.js'
@@ -620,29 +617,35 @@ export const AnchorCombobox = Mount.define(
   CompletedAnchorCombobox,
 )(
   ({ buttonId, anchor }) =>
-    (
-      element,
-    ): Effect.Effect<MountResult<typeof CompletedAnchorCombobox.Type>> =>
-      Effect.sync(() => {
-        const preventBlur = (event: Event) => {
-          event.preventDefault()
-        }
-        element.addEventListener('pointerdown', preventBlur, { capture: true })
-        const teardownAnchor = anchorSetup({
-          buttonId,
-          anchor,
-          interceptTab: false,
-        })(element)
-        return {
-          message: CompletedAnchorCombobox(),
-          cleanup: () => {
-            element.removeEventListener('pointerdown', preventBlur, {
-              capture: true,
-            })
-            teardownAnchor()
-          },
-        }
-      }),
+    element =>
+      Stream.callback<typeof CompletedAnchorCombobox.Type>(queue =>
+        Effect.gen(function* () {
+          yield* Effect.acquireRelease(
+            Effect.sync(() => {
+              const preventBlur = (event: Event) => {
+                event.preventDefault()
+              }
+              element.addEventListener('pointerdown', preventBlur, {
+                capture: true,
+              })
+              const teardownAnchor = anchorSetup({
+                buttonId,
+                anchor,
+                interceptTab: false,
+              })(element)
+              Queue.offerUnsafe(queue, CompletedAnchorCombobox())
+              return () => {
+                element.removeEventListener('pointerdown', preventBlur, {
+                  capture: true,
+                })
+                teardownAnchor()
+              }
+            }),
+            cleanup => Effect.sync(cleanup),
+          )
+          return yield* Effect.never
+        }),
+      ),
 )
 
 /** The Mount this Combobox renders to install a `pointerdown`-cancelling
@@ -652,25 +655,28 @@ export const AnchorCombobox = Mount.define(
 export const AttachComboboxPreventBlur = Mount.define(
   'AttachComboboxPreventBlur',
   CompletedAttachComboboxPreventBlur,
-)(
-  (
-    element,
-  ): Effect.Effect<
-    MountResult<typeof CompletedAttachComboboxPreventBlur.Type>
-  > =>
-    Effect.sync(() => {
-      const handler = (event: Event) => {
-        event.preventDefault()
-      }
-      element.addEventListener('pointerdown', handler, { capture: true })
-      return {
-        message: CompletedAttachComboboxPreventBlur(),
-        cleanup: () =>
-          element.removeEventListener('pointerdown', handler, {
-            capture: true,
-          }),
-      }
+)(element =>
+  Stream.callback<typeof CompletedAttachComboboxPreventBlur.Type>(queue =>
+    Effect.gen(function* () {
+      yield* Effect.acquireRelease(
+        Effect.sync(() => {
+          const handler = (event: Event) => {
+            event.preventDefault()
+          }
+          element.addEventListener('pointerdown', handler, { capture: true })
+          Queue.offerUnsafe(queue, CompletedAttachComboboxPreventBlur())
+          return handler
+        }),
+        handler =>
+          Effect.sync(() =>
+            element.removeEventListener('pointerdown', handler, {
+              capture: true,
+            }),
+          ),
+      )
+      return yield* Effect.never
     }),
+  ),
 )
 
 /** The Mount this Combobox renders to install the input's select-on-focus
@@ -679,24 +685,26 @@ export const AttachComboboxPreventBlur = Mount.define(
 export const AttachComboboxSelectOnFocus = Mount.define(
   'AttachComboboxSelectOnFocus',
   CompletedAttachComboboxSelectOnFocus,
-)(
-  (
-    element,
-  ): Effect.Effect<
-    MountResult<typeof CompletedAttachComboboxSelectOnFocus.Type>
-  > =>
-    Effect.sync(() => {
-      const handler = () => {
-        if (element instanceof HTMLInputElement) {
-          element.select()
-        }
-      }
-      element.addEventListener('focus', handler)
-      return {
-        message: CompletedAttachComboboxSelectOnFocus(),
-        cleanup: () => element.removeEventListener('focus', handler),
-      }
+)(element =>
+  Stream.callback<typeof CompletedAttachComboboxSelectOnFocus.Type>(queue =>
+    Effect.gen(function* () {
+      yield* Effect.acquireRelease(
+        Effect.sync(() => {
+          const handler = () => {
+            if (element instanceof HTMLInputElement) {
+              element.select()
+            }
+          }
+          element.addEventListener('focus', handler)
+          Queue.offerUnsafe(queue, CompletedAttachComboboxSelectOnFocus())
+          return handler
+        }),
+        handler =>
+          Effect.sync(() => element.removeEventListener('focus', handler)),
+      )
+      return yield* Effect.never
     }),
+  ),
 )
 
 /** The backdrop-portaling Mount this Combobox renders. Exposed so Scene tests can
@@ -705,14 +713,20 @@ export const AttachComboboxSelectOnFocus = Mount.define(
 export const PortalComboboxBackdrop = Mount.define(
   'PortalComboboxBackdrop',
   CompletedPortalComboboxBackdrop,
-)(
-  (
-    element,
-  ): Effect.Effect<MountResult<typeof CompletedPortalComboboxBackdrop.Type>> =>
-    Effect.sync(() => {
-      const cleanup = portalToBody(element)
-      return { message: CompletedPortalComboboxBackdrop(), cleanup }
+)(element =>
+  Stream.callback<typeof CompletedPortalComboboxBackdrop.Type>(queue =>
+    Effect.gen(function* () {
+      yield* Effect.acquireRelease(
+        Effect.sync(() => {
+          const cleanup = portalToBody(element)
+          Queue.offerUnsafe(queue, CompletedPortalComboboxBackdrop())
+          return cleanup
+        }),
+        cleanup => Effect.sync(cleanup),
+      )
+      return yield* Effect.never
     }),
+  ),
 )
 
 // VIEW TYPES

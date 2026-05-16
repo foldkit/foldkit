@@ -11,6 +11,8 @@ import {
 } from '../../prose'
 import {
   coreArchitectureRouter,
+  coreManagedResourcesRouter,
+  coreMountRouter,
   exampleDetailRouter,
   uiDragAndDropRouter,
 } from '../../route'
@@ -64,9 +66,16 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       pageTitle('core/subscriptions', 'Subscriptions'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'A Subscription is a reactive binding between your Model and a long-running stream: timers, ',
+        'A Subscription is a reactive binding between your Model and a long-running stream of Messages: timers, window-scoped keyboard input, system theme changes, message streams flowing through a ',
         inlineCode('WebSocket'),
-        ' connections, keyboard input, resize observers, anything that produces a continuous stream of events. You declare which part of the Model the Subscription depends on, and Foldkit manages the stream lifecycle automatically, starting it when dependencies are met and stopping it when they change.',
+        ', anything keyed to a Model condition that produces continuous events. You declare which part of the Model the Subscription depends on, and Foldkit manages the stream lifecycle automatically, starting it when dependencies are met and stopping it when they change.',
+      ),
+      para(
+        'For events tied to a specific element’s existence — scroll listeners, IntersectionObservers, ResizeObservers on a particular element — prefer ',
+        link(coreMountRouter(), 'Mount'),
+        '. Mount provides the element handle directly and binds the Stream’s scope to element lifetime. For stateful long-lived handles your Commands consume (the WebSocket connection itself, a camera stream, a third-party library instance), prefer ',
+        link(coreManagedResourcesRouter(), 'ManagedResource'),
+        '.',
       ),
       para(
         'In the ',
@@ -137,9 +146,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ', the stream stops. Foldkit handles all the lifecycle management for you.',
       ),
       para(
-        'For a more complex example using ',
+        'For a more complex example consuming a ',
         inlineCode('WebSocket'),
-        ' connections, see the ',
+        ' message stream, see the ',
         link(
           exampleDetailRouter({ exampleSlug: 'websocket-chat' }),
           'websocket-chat example',

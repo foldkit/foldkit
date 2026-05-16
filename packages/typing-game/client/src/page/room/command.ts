@@ -1,5 +1,5 @@
 import { BrowserKeyValueStore } from '@effect/platform-browser'
-import { Effect, Function, Option, Schema as S } from 'effect'
+import { Effect, Option, Schema as S, Stream } from 'effect'
 import { KeyValueStore } from 'effect/unstable/persistence'
 import { Command, Mount } from 'foldkit'
 
@@ -200,28 +200,26 @@ export const FocusRoomPageUsernameInput = Mount.define(
   'FocusRoomPageUsernameInput',
   CompletedFocusRoomPageUsernameInput,
 )(element =>
-  Effect.sync(() => {
-    if (element instanceof HTMLInputElement) {
-      element.focus()
-    }
-    return {
-      message: CompletedFocusRoomPageUsernameInput(),
-      cleanup: Function.constVoid,
-    }
-  }),
+  Stream.fromEffect(
+    Effect.sync(() => {
+      if (element instanceof HTMLInputElement) {
+        element.focus()
+      }
+      return CompletedFocusRoomPageUsernameInput()
+    }),
+  ),
 )
 
 export const FocusUserGameTextInput = Mount.define(
   'FocusUserGameTextInput',
   CompletedFocusUserGameTextInput,
 )(element =>
-  Effect.sync(() => {
-    if (element instanceof HTMLTextAreaElement) {
-      element.focus()
-    }
-    return {
-      message: CompletedFocusUserGameTextInput(),
-      cleanup: Function.constVoid,
-    }
-  }),
+  Stream.fromEffect(
+    Effect.sync(() => {
+      if (element instanceof HTMLTextAreaElement) {
+        element.focus()
+      }
+      return CompletedFocusUserGameTextInput()
+    }),
+  ),
 )

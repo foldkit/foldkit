@@ -1,4 +1,13 @@
-import { Array, Effect, Equal, Match as M, Option, Schema as S } from 'effect'
+import {
+  Array,
+  Effect,
+  Equal,
+  Match as M,
+  Option,
+  Queue,
+  Schema as S,
+  Stream,
+} from 'effect'
 
 import * as Command from '../../command/index.js'
 import * as Dom from '../../dom/index.js'
@@ -6,7 +15,6 @@ import { OptionExt } from '../../effectExtensions/index.js'
 import {
   type Attribute,
   type Html,
-  type MountResult,
   createLazy,
   html,
 } from '../../html/index.js'
@@ -395,17 +403,26 @@ export const AnchorPopover = Mount.define(
   CompletedAnchorPopover,
 )(
   ({ buttonId, anchor, focusSelector }) =>
-    (element): Effect.Effect<MountResult<typeof CompletedAnchorPopover.Type>> =>
-      Effect.sync(() => {
-        const cleanup = anchorSetup({
-          buttonId,
-          anchor,
-          interceptTab: false,
-          focusAfterPosition: true,
-          ...(focusSelector !== undefined && { focusSelector }),
-        })(element)
-        return { message: CompletedAnchorPopover(), cleanup }
-      }),
+    element =>
+      Stream.callback<typeof CompletedAnchorPopover.Type>(queue =>
+        Effect.gen(function* () {
+          yield* Effect.acquireRelease(
+            Effect.sync(() => {
+              const cleanup = anchorSetup({
+                buttonId,
+                anchor,
+                interceptTab: false,
+                focusAfterPosition: true,
+                ...(focusSelector !== undefined && { focusSelector }),
+              })(element)
+              Queue.offerUnsafe(queue, CompletedAnchorPopover())
+              return cleanup
+            }),
+            cleanup => Effect.sync(cleanup),
+          )
+          return yield* Effect.never
+        }),
+      ),
 )
 
 /** The backdrop-portaling Mount this Popover renders. Exposed so Scene tests can
@@ -414,14 +431,20 @@ export const AnchorPopover = Mount.define(
 export const PortalPopoverBackdrop = Mount.define(
   'PortalPopoverBackdrop',
   CompletedPortalPopoverBackdrop,
-)(
-  (
-    element,
-  ): Effect.Effect<MountResult<typeof CompletedPortalPopoverBackdrop.Type>> =>
-    Effect.sync(() => {
-      const cleanup = portalToBody(element)
-      return { message: CompletedPortalPopoverBackdrop(), cleanup }
+)(element =>
+  Stream.callback<typeof CompletedPortalPopoverBackdrop.Type>(queue =>
+    Effect.gen(function* () {
+      yield* Effect.acquireRelease(
+        Effect.sync(() => {
+          const cleanup = portalToBody(element)
+          Queue.offerUnsafe(queue, CompletedPortalPopoverBackdrop())
+          return cleanup
+        }),
+        cleanup => Effect.sync(cleanup),
+      )
+      return yield* Effect.never
     }),
+  ),
 )
 
 /** Programmatically opens the popover, updating the model and returning

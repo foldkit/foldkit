@@ -1,4 +1,4 @@
-import { Effect, Function, Schema as S } from 'effect'
+import { Effect, Schema as S, Stream } from 'effect'
 import { Command, Mount } from 'foldkit'
 
 import { RoomsClient, RoomsClientLive } from '../../rpc.js'
@@ -50,28 +50,26 @@ export const FocusUsernameInput = Mount.define(
   'FocusUsernameInput',
   CompletedFocusUsernameInput,
 )(element =>
-  Effect.sync(() => {
-    if (element instanceof HTMLInputElement) {
-      element.focus()
-    }
-    return {
-      message: CompletedFocusUsernameInput(),
-      cleanup: Function.constVoid,
-    }
-  }),
+  Stream.fromEffect(
+    Effect.sync(() => {
+      if (element instanceof HTMLInputElement) {
+        element.focus()
+      }
+      return CompletedFocusUsernameInput()
+    }),
+  ),
 )
 
 export const FocusRoomIdInput = Mount.define(
   'FocusRoomIdInput',
   CompletedFocusRoomIdInput,
 )(element =>
-  Effect.sync(() => {
-    if (element instanceof HTMLInputElement) {
-      element.focus()
-    }
-    return {
-      message: CompletedFocusRoomIdInput(),
-      cleanup: Function.constVoid,
-    }
-  }),
+  Stream.fromEffect(
+    Effect.sync(() => {
+      if (element instanceof HTMLInputElement) {
+        element.focus()
+      }
+      return CompletedFocusRoomIdInput()
+    }),
+  ),
 )
