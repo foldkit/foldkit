@@ -49,6 +49,7 @@
     "dev:example:generative-art": "pnpm --filter generative-art-example dev",
     "dev:example:web-components": "pnpm --filter web-components-example dev",
     "dev:example:ui-showcase": "pnpm --filter ui-showcase dev",
+    "dev:example:snake-terminal": "pnpm --filter snake-terminal-example start",
     "changeset": "changeset",
     "version-packages": "changeset version && tsx scripts/reset-peer-deps.ts && pnpm install --no-frozen-lockfile",
     "release": "pnpm -r build && changeset publish"

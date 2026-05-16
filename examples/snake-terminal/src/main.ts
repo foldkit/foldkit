@@ -243,7 +243,7 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDeps)<
 // VIEW
 
 const CELL = '  '
-const emptyCellStyle = Ansi.bgBrightBlack
+const emptyCellStyle = Ansi.bgBlack
 const snakeHeadStyle = Ansi.bgGreen
 const snakeBodyStyle = Ansi.bgBrightGreen
 const appleStyle = Ansi.bgRed

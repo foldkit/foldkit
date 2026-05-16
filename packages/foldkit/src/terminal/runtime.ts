@@ -87,7 +87,7 @@ const altScreenLeave = `${ESC}?1049l`
 
 const renderToString = (view: TerminalView): Effect.Effect<string> =>
   Renderer.render()(view).pipe(
-    Effect.map(body => eraseScreen + cursorHome + body),
+    Effect.map(body => cursorHome + body),
     Effect.provide(Renderer.AnsiRendererLive),
   )
 
@@ -169,11 +169,10 @@ const makeRuntime = <
           Effect.gen(function* () {
             const view = config.view(model)
             const frame = yield* renderToString(view)
-            process.stdout.write(frame)
-
-            if (config.title) {
-              process.stdout.write(`\x1b]2;${config.title(model)}\x07`)
-            }
+            const titleSequence = config.title
+              ? `\x1b]2;${config.title(model)}\x07`
+              : ''
+            process.stdout.write(frame + titleSequence)
           })
 
         yield* render(initModel)
@@ -366,7 +365,7 @@ export function makeTerminalProgram<
  * the original screen before the process exits.
  */
 export const runTerminal = (program: TerminalProgram): void => {
-  process.stdout.write(altScreenEnter + cursorHide)
+  process.stdout.write(altScreenEnter + cursorHide + eraseScreen)
 
   const cleanup = () => {
     process.stdout.write(cursorShow + altScreenLeave)
