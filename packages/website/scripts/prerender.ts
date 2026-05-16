@@ -6,6 +6,7 @@ import {
   Deferred,
   Effect,
   Match as M,
+  Option,
   Schema as S,
   String as Str,
   Stream,
@@ -177,6 +178,16 @@ import {
   uiVirtualListRouter,
   whyNoJsxRouter,
 } from '../src/route'
+import {
+  type LlmsFullEntry,
+  type LlmsIndexEntry,
+  buildLlmsFull,
+  buildLlmsIndex,
+  extractPageMarkdown,
+  shouldExportMarkdown,
+  urlPathToMarkdownPath,
+} from './markdown'
+import { routeToMetadata } from './metadata'
 import { generateOgImages, injectMetaTags } from './og-image'
 
 // ROUTES
@@ -415,16 +426,29 @@ const playwrightBrowserResource = Effect.acquireRelease(
   browser => Effect.promise(() => browser.close()),
 )
 
-const captureRouteHtml = (browser: Browser, url: string, route: AppRoute) =>
+type CapturedPage = Readonly<{ html: string; markdown: string }>
+
+// NOTE: tsx/esbuild wraps named arrow functions with a `__name(fn, "name")`
+// helper to preserve debug names. When Playwright ships our extraction
+// function to the page via `fn.toString()`, the body still references
+// `__name`, which doesn't exist in browser scope. The no-op polyfill keeps
+// `page.evaluate` calls from crashing without touching the foldkit bundle
+// (Vite scopes its own `__name` per module, so the global shim is never
+// reached by app code).
+const PAGE_INIT_SCRIPT = `
+  Object.defineProperty(window, "__FOLDKIT_PRERENDER__", {
+    value: true,
+    writable: false,
+  });
+  window.__name = (target) => target;
+`
+
+const captureRoutePage = (browser: Browser, url: string, route: AppRoute) =>
   Effect.acquireUseRelease(
     Effect.tryPromise(() => browser.newPage()),
     page =>
       Effect.gen(function* () {
-        yield* Effect.tryPromise(() =>
-          page.addInitScript(
-            'Object.defineProperty(window, "__FOLDKIT_PRERENDER__", { value: true, writable: false })',
-          ),
-        )
+        yield* Effect.tryPromise(() => page.addInitScript(PAGE_INIT_SCRIPT))
         yield* Effect.tryPromise(() => page.goto(url))
         yield* Effect.tryPromise(() =>
           page.waitForFunction(() => {
@@ -441,9 +465,14 @@ const captureRouteHtml = (browser: Browser, url: string, route: AppRoute) =>
             page.waitForSelector('h1[data-pagefind-meta="section"]'),
           )
         }
-        return yield* Effect.tryPromise(() =>
+        const html = yield* Effect.tryPromise(() =>
           page.evaluate(() => document.body.firstElementChild?.outerHTML ?? ''),
         )
+        const markdown = shouldExportMarkdown(route)
+          ? yield* extractPageMarkdown(page)
+          : ''
+        const captured: CapturedPage = { html, markdown }
+        return captured
       }),
     page => Effect.promise(() => page.close()),
   )
@@ -461,6 +490,12 @@ const readApiModuleSlugs = Effect.gen(function* () {
   )
 })
 
+type PrerenderResult = Readonly<{
+  route: AppRoute
+  urlPath: string
+  markdown: string
+}>
+
 const prerenderRoute =
   (browser: Browser, baseHtml: string) => (route: AppRoute) =>
     Effect.gen(function* () {
@@ -469,8 +504,8 @@ const prerenderRoute =
       const url = `${PREVIEW_BASE_URL}${urlPath}`
       const outputFilePath = resolve(DIST_DIR, outputPath)
 
-      const renderedHtml = yield* captureRouteHtml(browser, url, route)
-      const injectedHtml = injectHtml(baseHtml, renderedHtml)
+      const captured = yield* captureRoutePage(browser, url, route)
+      const injectedHtml = injectHtml(baseHtml, captured.html)
       const outputHtml = injectMetaTags(injectedHtml, route, urlPath)
 
       const fs = yield* FileSystem.FileSystem
@@ -478,10 +513,30 @@ const prerenderRoute =
         recursive: true,
       })
       yield* fs.writeFileString(outputFilePath, outputHtml)
+
+      if (shouldExportMarkdown(route) && captured.markdown.length > 0) {
+        const markdownFilePath = resolve(
+          DIST_DIR,
+          urlPathToMarkdownPath(urlPath),
+        )
+        yield* fs.makeDirectory(dirname(markdownFilePath), {
+          recursive: true,
+        })
+        yield* fs.writeFileString(markdownFilePath, captured.markdown)
+      }
+
       yield* Console.log(`  ✓ ${urlPath}`)
+      return Option.some<PrerenderResult>({
+        route,
+        urlPath,
+        markdown: captured.markdown,
+      })
     }).pipe(
       Effect.catch(error =>
-        Console.warn(`  ✗ ${routeToUrlPath(route)}: ${String(error)}`),
+        Effect.as(
+          Console.warn(`  ✗ ${routeToUrlPath(route)}: ${String(error)}`),
+          Option.none<PrerenderResult>(),
+        ),
       ),
     )
 
@@ -524,6 +579,21 @@ ${entries}
 
 // PROGRAM
 
+const resultToIndexEntry = (result: PrerenderResult): LlmsIndexEntry => ({
+  urlPath: result.urlPath,
+  metadata: routeToMetadata(result.route),
+})
+
+const resultToFullEntry = (
+  result: PrerenderResult,
+  orderIndex: number,
+): LlmsFullEntry => ({
+  urlPath: result.urlPath,
+  metadata: routeToMetadata(result.route),
+  markdown: result.markdown,
+  orderIndex,
+})
+
 const program = Effect.scoped(
   Effect.gen(function* () {
     yield* Console.log('Starting prerender...')
@@ -539,9 +609,17 @@ const program = Effect.scoped(
     const fs = yield* FileSystem.FileSystem
     const baseHtml = yield* fs.readFileString(resolve(DIST_DIR, 'index.html'))
 
-    yield* Effect.forEach(routes, prerenderRoute(browser, baseHtml), {
-      concurrency: 4,
-    })
+    const results = yield* Effect.forEach(
+      routes,
+      prerenderRoute(browser, baseHtml),
+      { concurrency: 4 },
+    )
+
+    const successfulResults = Array.getSomes(results)
+    const markdownResults = Array.filter(
+      successfulResults,
+      result => result.markdown.length > 0,
+    )
 
     const lastModification = formatDateIso(yield* DateTime.now)
     yield* fs.writeFileString(
@@ -549,7 +627,21 @@ const program = Effect.scoped(
       buildSitemap(routes, lastModification),
     )
 
-    yield* Console.log(`Prerendered ${routes.length} routes.`)
+    const indexEntries = Array.map(markdownResults, resultToIndexEntry)
+    const fullEntries = Array.map(markdownResults, resultToFullEntry)
+
+    yield* fs.writeFileString(
+      resolve(DIST_DIR, 'llms.txt'),
+      buildLlmsIndex(indexEntries),
+    )
+    yield* fs.writeFileString(
+      resolve(DIST_DIR, 'llms-full.txt'),
+      buildLlmsFull(fullEntries, lastModification),
+    )
+
+    yield* Console.log(
+      `Prerendered ${routes.length} routes; emitted ${markdownResults.length} markdown pages.`,
+    )
   }),
 )
 

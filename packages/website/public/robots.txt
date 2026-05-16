@@ -3,3 +3,8 @@ Allow: /
 Content-Signal: ai-train=yes, search=yes, ai-input=yes
 
 Sitemap: https://foldkit.dev/sitemap.xml
+
+# Agent-friendly digests. Every page is also available as Markdown by
+# appending `.md` to its URL (e.g. https://foldkit.dev/getting-started.md).
+# https://foldkit.dev/llms.txt
+# https://foldkit.dev/llms-full.txt

@@ -34,6 +34,7 @@ import { themeSelector } from './themeSelector'
 
 const PagefindBody = html<Message>().DataAttribute('pagefind-body', '')
 const PagefindIgnore = html<Message>().DataAttribute('pagefind-ignore', '')
+const LlmIgnore = html<Message>().DataAttribute('llm-ignore', '')
 
 // DOCS HEADER
 
@@ -955,7 +956,10 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
                 ],
                 [
                   content,
-                  h.div([PagefindIgnore], [pageNavigationView(docsRoute._tag)]),
+                  h.div(
+                    [PagefindIgnore, LlmIgnore],
+                    [pageNavigationView(docsRoute._tag)],
+                  ),
                 ],
               ),
               h.div(
