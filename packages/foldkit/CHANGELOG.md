@@ -1,5 +1,21 @@
 # foldkit
 
+## 0.97.0
+
+### Minor Changes
+
+- 83e4204: DevTools no longer auto-scrolls the message list back to the top when the user has manually scrolled away. A "Jump to top" pill appears at the top of the list when scrolled, and clicking it (or scrolling back to within 8px of the top) re-engages auto-scroll. Selection-follow ("Follow Latest") and scroll-follow are now independent: clicking a row stops selection-follow without affecting scroll, and the new pill controls scroll without affecting selection. Clicking Resume or Clear re-engages both follows and jumps the list to the top.
+
+  **Breaking:** `h.OnScroll` now takes `(scrollTop: number) => Message` instead of a fixed `Message`, matching the `h.OnInput` / `h.OnChange` extractor pattern. Migration: `h.OnScroll(MyMessage())` becomes `h.OnScroll(() => MyMessage())`, or use the `scrollTop` argument to build a richer Message.
+
+- 360e062: `Story.Command.resolve` and `Scene.Command.resolve` now throw when more than one pending Command matches the matcher, surfacing what was previously a silent first-match-wins behavior. Ambiguous resolves are almost always a test bug: the test author intended one specific Command but happened to hit the first of several identical pending matches, often coincidentally.
+
+  **Breaking:** Tests that relied on issuing N successive `resolve` calls for N same-named pending Commands now throw. Switch those call sites to `Story.Command.resolveAll` (or `Scene.Command.resolveAll`), which consumes ordered resolver pairings in declaration order. Where the colliding Commands have distinguishing args, pass a Command instance (e.g. `FetchById({ id: 5 })`) for type-checked disambiguation.
+
+### Patch Changes
+
+- f4611f9: Tidy the `resources` TSDoc on `Runtime.makeProgram`'s config into two sentences. Behavior is unchanged. The guidance still steers stateless utilities like `HttpClient` and JSON encoding away from `resources` and toward per-command `Effect.provide`.
+
 ## 0.96.0
 
 ### Minor Changes
