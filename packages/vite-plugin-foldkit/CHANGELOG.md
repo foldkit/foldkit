@@ -1,5 +1,11 @@
 # @foldkit/vite-plugin
 
+## 0.5.2
+
+### Patch Changes
+
+- e81110d: Pre-bundle `effect/Scope` so dev mode does not crash on foldkit internals that reference `Scope.Scope` in Effect signatures.
+
 ## 0.5.1
 
 ### Patch Changes
