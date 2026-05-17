@@ -25,23 +25,41 @@ const addPopStateListener = <Message>(
   window.addEventListener('popstate', onPopState)
 }
 
-const addLinkClickListener = <Message>(
+export const addLinkClickListener = <Message>(
   dispatch: (message: Message) => void,
   routingConfig: RoutingConfig<Message>,
 ) => {
-  const onLinkClick = (event: Event) => {
-    const target = event.target
-    if (!(target instanceof Element)) {
+  const onLinkClick = (event: MouseEvent) => {
+    const isNonPrimaryButton = event.button !== 0
+    const isModifierKeyPressed =
+      event.metaKey || event.ctrlKey || event.shiftKey || event.altKey
+    const isDefaultPrevented = event.defaultPrevented
+
+    if (isNonPrimaryButton || isModifierKeyPressed || isDefaultPrevented) {
       return
     }
 
-    const maybeLink = Option.fromNullishOr(target.closest('a'))
+    const eventTarget = event.target
+    if (!(eventTarget instanceof Element)) {
+      return
+    }
+
+    const maybeLink = Option.fromNullishOr(eventTarget.closest('a'))
     if (Option.isNone(maybeLink)) {
       return
     }
 
-    const { href } = maybeLink.value
+    const link = maybeLink.value
+    const { href } = link
     if (String.isEmpty(href)) {
+      return
+    }
+
+    const isNonSelfTarget =
+      !String.isEmpty(link.target) && link.target !== '_self'
+    const isDownloadLink = link.hasAttribute('download')
+
+    if (isNonSelfTarget || isDownloadLink) {
       return
     }
 
