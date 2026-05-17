@@ -12,16 +12,16 @@ import {
   type ProductsRoute,
 } from '../main'
 
-const h = html<Message>()
-
 // VIEW
 
 export const view = (
   cart: Cart.Cart,
   productsRouter: Route.Router<ProductsRoute>,
   checkoutRouter: Route.Router<CheckoutRoute>,
-): Html =>
-  h.div(
+): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
     [
       h.h1(
@@ -193,3 +193,4 @@ export const view = (
       ),
     ],
   )
+}

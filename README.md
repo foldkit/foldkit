@@ -102,32 +102,43 @@ export const init: Runtime.ProgramInit<Model, Message> = () => [
 
 // VIEW
 
-const { div, button, Class, OnClick } = html<Message>()
+export const view = (model: Model): Document => {
+  const h = html<Message>()
 
-export const view = (model: Model): Document => ({
-  title: `Counter: ${model.count}`,
-  body: div(
-    [
-      Class(
-        'min-h-screen bg-white flex flex-col items-center justify-center gap-6 p-6',
-      ),
-    ],
-    [
-      div(
-        [Class('text-6xl font-bold text-gray-800')],
-        [model.count.toString()],
-      ),
-      div(
-        [Class('flex flex-wrap justify-center gap-4')],
-        [
-          button([OnClick(ClickedDecrement()), Class(buttonStyle)], ['-']),
-          button([OnClick(ClickedReset()), Class(buttonStyle)], ['Reset']),
-          button([OnClick(ClickedIncrement()), Class(buttonStyle)], ['+']),
-        ],
-      ),
-    ],
-  ),
-})
+  return {
+    title: `Counter: ${model.count}`,
+    body: h.div(
+      [
+        h.Class(
+          'min-h-screen bg-white flex flex-col items-center justify-center gap-6 p-6',
+        ),
+      ],
+      [
+        h.div(
+          [h.Class('text-6xl font-bold text-gray-800')],
+          [model.count.toString()],
+        ),
+        h.div(
+          [h.Class('flex flex-wrap justify-center gap-4')],
+          [
+            h.button(
+              [h.OnClick(ClickedDecrement()), h.Class(buttonStyle)],
+              ['-'],
+            ),
+            h.button(
+              [h.OnClick(ClickedReset()), h.Class(buttonStyle)],
+              ['Reset'],
+            ),
+            h.button(
+              [h.OnClick(ClickedIncrement()), h.Class(buttonStyle)],
+              ['+'],
+            ),
+          ],
+        ),
+      ],
+    ),
+  }
+}
 
 // STYLE
 

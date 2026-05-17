@@ -30,15 +30,17 @@ const update = (model: Model, message: Message): UpdateReturn =>
 
 // VIEW - A pure function from Model to a Document
 
-const h = html<Message>()
+const view = (model: Model): Document => {
+  const h = html<Message>()
 
-const view = (model: Model): Document => ({
-  title: `Count: ${model}`,
-  body: h.div(
-    [],
-    [
-      h.p([], [`Count: ${model}`]),
-      h.button([h.OnClick(ClickedIncrement())], ['Increment']),
-    ],
-  ),
-})
+  return {
+    title: `Count: ${model}`,
+    body: h.div(
+      [],
+      [
+        h.p([], [`Count: ${model}`]),
+        h.button([h.OnClick(ClickedIncrement())], ['Increment']),
+      ],
+    ),
+  }
+}

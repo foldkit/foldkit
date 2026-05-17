@@ -244,9 +244,9 @@ export const update = (
 
 // VIEW
 
-const h = html<Message>()
-
 const navigationView = (currentRoute: AppRoute, cartCount: number): Html => {
+  const h = html<Message>()
+
   const navLinkClassName = (isActive: boolean) =>
     `hover:bg-blue-600 font-medium px-3 py-1 rounded transition ${isActive ? 'bg-blue-700 bg-opacity-50' : ''}`
 
@@ -323,8 +323,10 @@ const checkoutView = (model: Model): Html => {
   )
 }
 
-const notFoundView = (path: string): Html =>
-  h.div(
+const notFoundView = (path: string): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('max-w-4xl mx-auto px-4 text-center')],
     [
       h.h1(
@@ -344,6 +346,7 @@ const notFoundView = (path: string): Html =>
       ),
     ],
   )
+}
 
 const routeTitle = (route: Model['route']): string =>
   M.value(route).pipe(
@@ -352,6 +355,8 @@ const routeTitle = (route: Model['route']): string =>
   )
 
 export const view = (model: Model): Document => {
+  const h = html<Message>()
+
   const routeContent = M.value(model.route).pipe(
     M.tagsExhaustive({
       Products: () => productsView(model),

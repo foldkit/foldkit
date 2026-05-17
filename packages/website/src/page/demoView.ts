@@ -3,10 +3,10 @@ import { Html, html } from 'foldkit/html'
 
 import type { Message } from '../message'
 
-const h = html<Message>()
+export const sectionLabel = (label: string): Html => {
+  const h = html<Message>()
 
-export const sectionLabel = (label: string): Html =>
-  h.p(
+  return h.p(
     [
       h.Class(
         'text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2',
@@ -14,9 +14,12 @@ export const sectionLabel = (label: string): Html =>
     ],
     [label],
   )
+}
 
-export const modelStateField = (name: string, value: string): Html =>
-  h.div(
+export const modelStateField = (name: string, value: string): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       h.span([h.Class('text-accent-700 dark:text-accent-400')], [name]),
@@ -24,9 +27,12 @@ export const modelStateField = (name: string, value: string): Html =>
       h.span([h.Class('text-amber-800 dark:text-amber-300')], [value]),
     ],
   )
+}
 
-export const modelStateView = (fields: ReadonlyArray<Html>): Html =>
-  h.div(
+export const modelStateView = (fields: ReadonlyArray<Html>): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('pt-3 border-t border-gray-300 dark:border-gray-800')],
     [
       sectionLabel('Model State'),
@@ -40,9 +46,12 @@ export const modelStateView = (fields: ReadonlyArray<Html>): Html =>
       ),
     ],
   )
+}
 
-export const eventLogView = (messageLog: ReadonlyArray<string>): Html =>
-  h.div(
+export const eventLogView = (messageLog: ReadonlyArray<string>): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('flex-1 flex flex-col min-h-0')],
     [
       sectionLabel('Message Log'),
@@ -66,13 +75,16 @@ export const eventLogView = (messageLog: ReadonlyArray<string>): Html =>
       ),
     ],
   )
+}
 
 export const phaseIndicatorView = (
   label: string,
   colorClass: string,
   extraChildren: ReadonlyArray<Html>,
-): Html =>
-  h.div(
+): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       sectionLabel('Phase'),
@@ -90,14 +102,17 @@ export const phaseIndicatorView = (
       ),
     ],
   )
+}
 
 export const codePanelView = (
   panelClassName: string,
   dataAttributeName: string,
   phase: string,
   htmlString: string,
-): Html =>
-  h.div(
+): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [
       h.Class(
         panelClassName +
@@ -112,9 +127,12 @@ export const codePanelView = (
       ),
     ],
   )
+}
 
-export const demoViewShell = (codePanel: Html, appPanel: Html): Html =>
-  h.div(
+export const demoViewShell = (codePanel: Html, appPanel: Html): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [
       h.Class(
         'demo-container grid grid-cols-1 lg:grid-cols-[1fr_22rem] lg:grid-rows-[minmax(0,1fr)] gap-4 lg:gap-6',
@@ -136,3 +154,4 @@ export const demoViewShell = (codePanel: Html, appPanel: Html): Html =>
       appPanel,
     ],
   )
+}

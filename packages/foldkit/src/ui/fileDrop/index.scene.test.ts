@@ -5,12 +5,12 @@ import * as Scene from '../../test/scene.js'
 import type { Message, Model, ViewConfig } from './index.js'
 import { EnteredDragZone, init, update, view } from './index.js'
 
-const h = html<Message>()
-
 const sceneView =
   (overrides: Partial<ViewConfig<Message>> = {}) =>
-  (model: Model) =>
-    view({
+  (model: Model) => {
+    const h = html<Message>()
+
+    return view({
       model,
       toParentMessage: message => message,
       toView: attrs =>
@@ -20,6 +20,7 @@ const sceneView =
         ]),
       ...overrides,
     })
+  }
 
 const dropZone = Scene.selector('label')
 const fileInput = Scene.selector('input[type="file"]')

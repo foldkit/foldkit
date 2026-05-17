@@ -13,8 +13,6 @@ import { apiModuleRouter, coreViewRouter } from '../route'
 import * as Snippets from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 
-const h = html<Message>()
-
 const familiarityHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'recognition-speed-vs-readability',
@@ -60,8 +58,10 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   conditionalHeader,
 ]
 
-export const view = (copiedSnippets: CopiedSnippets): Html =>
-  h.div(
+export const view = (copiedSnippets: CopiedSnippets): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       pageTitle('why-no-jsx', 'Why no JSX?'),
@@ -248,3 +248,4 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
     ],
   )
+}

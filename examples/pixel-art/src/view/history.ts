@@ -14,10 +14,10 @@ import {
 import type { Grid } from '../model'
 import { type PaletteTheme, resolveColor } from '../palette'
 
-const h = html<Message>()
+const sectionLabel = (text: string): Html => {
+  const h = html<Message>()
 
-const sectionLabel = (text: string): Html =>
-  h.div(
+  return h.div(
     [
       h.Class(
         'text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2',
@@ -25,6 +25,7 @@ const sectionLabel = (text: string): Html =>
     ],
     [text],
   )
+}
 
 export const historyPanelView = (
   undoStack: ReadonlyArray<Grid>,
@@ -33,6 +34,8 @@ export const historyPanelView = (
   gridSize: number,
   theme: PaletteTheme,
 ): Html => {
+  const h = html<Message>()
+
   const undoCount = undoStack.length
   const redoCount = redoStack.length
   const visibleUndoEntries = Array.takeRight(undoStack, VISIBLE_HISTORY_COUNT)
@@ -146,8 +149,10 @@ const thumbnailEntry = (
   label: string,
   maybeOnClick: Option.Option<Message>,
   theme: PaletteTheme,
-): Html =>
-  h.div(
+): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [
       h.Class(
         clsx('flex items-center gap-2 px-2 py-1.5 rounded', {
@@ -204,3 +209,4 @@ const thumbnailEntry = (
       ),
     ],
   )
+}

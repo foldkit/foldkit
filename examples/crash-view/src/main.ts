@@ -30,25 +30,27 @@ export const init: Runtime.ProgramInit<Model, Message> = () => [null, []]
 
 // VIEW
 
-const h = html<Message>()
+export const view = (_model: Model): Document => {
+  const h = html<Message>()
 
-export const view = (_model: Model): Document => ({
-  title: 'Crash View Example',
-  body: h.div(
-    [h.Class('min-h-screen bg-white flex items-center justify-center')],
-    [
-      h.button(
-        [
-          h.OnClick(ClickedCrash()),
-          h.Class(
-            'bg-red-600 text-white text-lg font-semibold hover:bg-red-700 px-6 py-3 rounded transition cursor-pointer',
-          ),
-        ],
-        ['Crash'],
-      ),
-    ],
-  ),
-})
+  return {
+    title: 'Crash View Example',
+    body: h.div(
+      [h.Class('min-h-screen bg-white flex items-center justify-center')],
+      [
+        h.button(
+          [
+            h.OnClick(ClickedCrash()),
+            h.Class(
+              'bg-red-600 text-white text-lg font-semibold hover:bg-red-700 px-6 py-3 rounded transition cursor-pointer',
+            ),
+          ],
+          ['Crash'],
+        ),
+      ],
+    ),
+  }
+}
 
 // CRASH
 

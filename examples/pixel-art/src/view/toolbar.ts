@@ -21,8 +21,6 @@ import {
 import type { MirrorMode, PaletteIndex, Tool } from '../model'
 import { PALETTE_THEMES, type PaletteTheme } from '../palette'
 
-const h = html<Message>()
-
 const TOOLS: ReadonlyArray<Tool> = ['Brush', 'Fill', 'Eraser']
 
 const TOOL_SHORTCUTS: Record<Tool, string> = {
@@ -39,8 +37,10 @@ export const THEME_LISTBOX_ANCHOR: Ui.Listbox.AnchorConfig = {
   padding: 8,
 }
 
-const sectionLabel = (text: string): Html =>
-  h.div(
+const sectionLabel = (text: string): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [
       h.Class(
         'text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2',
@@ -48,9 +48,12 @@ const sectionLabel = (text: string): Html =>
     ],
     [text],
   )
+}
 
-const trashIcon = (className: string): Html =>
-  h.svg(
+const trashIcon = (className: string): Html => {
+  const h = html<Message>()
+
+  return h.svg(
     [
       h.AriaHidden(true),
       h.Class(className),
@@ -73,9 +76,12 @@ const trashIcon = (className: string): Html =>
       ),
     ],
   )
+}
 
-const chevronDownIcon = (className: string): Html =>
-  h.svg(
+const chevronDownIcon = (className: string): Html => {
+  const h = html<Message>()
+
+  return h.svg(
     [
       h.AriaHidden(true),
       h.Class(className),
@@ -96,6 +102,7 @@ const chevronDownIcon = (className: string): Html =>
       ),
     ],
   )
+}
 
 export const toolPanelView = (
   mirrorMode: MirrorMode,
@@ -108,8 +115,10 @@ export const toolPanelView = (
   mirrorVerticalSwitch: typeof Ui.Switch.Model.Type,
   theme: PaletteTheme,
   themeListbox: typeof Ui.Listbox.Model.Type,
-): Html =>
-  h.div(
+): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('w-full md:w-44 flex flex-col gap-5 flex-shrink-0')],
     [
       toolSectionView(toolRadioGroup),
@@ -128,11 +137,14 @@ export const toolPanelView = (
       clearCanvasView(isCanvasEmpty),
     ],
   )
+}
 
 const toolSectionView = (
   toolRadioGroup: typeof Ui.RadioGroup.Model.Type,
-): Html =>
-  h.div(
+): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       sectionLabel('Tools'),
@@ -172,12 +184,15 @@ const toolSectionView = (
       }),
     ],
   )
+}
 
 const mirrorSectionView = (
   mirrorMode: MirrorMode,
   mirrorHorizontalSwitch: typeof Ui.Switch.Model.Type,
   mirrorVerticalSwitch: typeof Ui.Switch.Model.Type,
 ): Html => {
+  const h = html<Message>()
+
   const isMirrorHorizontal =
     mirrorMode === 'Horizontal' || mirrorMode === 'Both'
   const isMirrorVertical = mirrorMode === 'Vertical' || mirrorMode === 'Both'
@@ -259,8 +274,10 @@ const mirrorSectionView = (
 
 const sizeSectionView = (
   gridSizeRadioGroup: typeof Ui.RadioGroup.Model.Type,
-): Html =>
-  h.div(
+): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       sectionLabel('Grid Size'),
@@ -296,6 +313,7 @@ const sizeSectionView = (
       }),
     ],
   )
+}
 
 const paletteSectionView = (
   selectedColorIndex: PaletteIndex,
@@ -303,6 +321,8 @@ const paletteSectionView = (
   theme: PaletteTheme,
   themeListbox: typeof Ui.Listbox.Model.Type,
 ): Html => {
+  const h = html<Message>()
+
   const paletteIndexStrings = theme.colors.map((_, index) => index.toString())
   const selectedHexColor = theme.colors[selectedColorIndex] ?? EMPTY_COLOR
 
@@ -357,8 +377,10 @@ const paletteSectionView = (
 const themeListboxView = (
   themeListbox: typeof Ui.Listbox.Model.Type,
   theme: PaletteTheme,
-): Html =>
-  Ui.Listbox.view<Message, string>({
+): Html => {
+  const h = html<Message>()
+
+  return Ui.Listbox.view<Message, string>({
     model: themeListbox,
     toParentMessage: message => GotThemeListboxMessage({ message }),
     onSelectedItem: value =>
@@ -400,9 +422,12 @@ const themeListboxView = (
     backdropAttributes: [h.Class('fixed inset-0 z-0')],
     attributes: [h.Class('relative w-full mt-3')],
   })
+}
 
-const clearCanvasView = (isCanvasEmpty: boolean): Html =>
-  Ui.Button.view({
+const clearCanvasView = (isCanvasEmpty: boolean): Html => {
+  const h = html<Message>()
+
+  return Ui.Button.view({
     onClick: ClickedClear(),
     isDisabled: isCanvasEmpty,
     toView: attributes =>
@@ -422,3 +447,4 @@ const clearCanvasView = (isCanvasEmpty: boolean): Html =>
         [trashIcon('w-4 h-4'), h.span([], ['Clear Canvas'])],
       ),
   })
+}

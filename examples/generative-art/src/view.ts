@@ -34,8 +34,6 @@ import {
 } from './message'
 import type { Model, Particle, Point } from './model'
 
-const h = html<Message>()
-
 const fadeAlpha = (particle: Particle): number => {
   const remainingMs = particle.lifespanMs - particle.ageMs
   const fadeIn = Math.min(1, particle.ageMs / FADE_IN_MS)
@@ -356,8 +354,10 @@ const controlButton = <ParentMessage>(
   })
 }
 
-const controlsView = (model: Model): Html =>
-  h.div(
+const controlsView = (model: Model): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [
       h.Class(
         'flex flex-wrap items-end gap-6 mt-6 px-6 py-4 rounded-xl ' +
@@ -394,9 +394,12 @@ const controlsView = (model: Model): Html =>
       ),
     ],
   )
+}
 
-const headerView = (): Html =>
-  h.div(
+const headerView = (): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('flex flex-col items-center mb-6 text-center')],
     [
       h.h1(
@@ -415,30 +418,35 @@ const headerView = (): Html =>
       ),
     ],
   )
+}
 
-export const view = (model: Model): Document => ({
-  title: `Prism Field · ${model.particles.length} particles`,
-  body: h.div(
-    [
-      h.Class(
-        'flex flex-col items-center justify-center min-h-screen p-8 ' +
-          'bg-[radial-gradient(ellipse_at_top,_#1a0a2c_0%,_#04010a_55%,_#000_100%)] ' +
-          'text-white font-mono select-none',
-      ),
-    ],
-    [
-      headerView(),
-      Canvas.view<Message>({
-        width: CANVAS_WIDTH,
-        height: CANVAS_HEIGHT,
-        shapes: sceneShapes(model),
-        className:
-          'rounded-2xl shadow-[0_0_120px_rgba(80,30,140,0.35)] ' +
-          'border border-white/10 cursor-crosshair',
-        onPointerDown: ({ x, y }) => PressedCanvas({ x, y }),
-        onPointerMove: ({ x, y }) => MovedPointer({ x, y }),
-      }),
-      controlsView(model),
-    ],
-  ),
-})
+export const view = (model: Model): Document => {
+  const h = html<Message>()
+
+  return {
+    title: `Prism Field · ${model.particles.length} particles`,
+    body: h.div(
+      [
+        h.Class(
+          'flex flex-col items-center justify-center min-h-screen p-8 ' +
+            'bg-[radial-gradient(ellipse_at_top,_#1a0a2c_0%,_#04010a_55%,_#000_100%)] ' +
+            'text-white font-mono select-none',
+        ),
+      ],
+      [
+        headerView(),
+        Canvas.view<Message>({
+          width: CANVAS_WIDTH,
+          height: CANVAS_HEIGHT,
+          shapes: sceneShapes(model),
+          className:
+            'rounded-2xl shadow-[0_0_120px_rgba(80,30,140,0.35)] ' +
+            'border border-white/10 cursor-crosshair',
+          onPointerDown: ({ x, y }) => PressedCanvas({ x, y }),
+          onPointerMove: ({ x, y }) => MovedPointer({ x, y }),
+        }),
+        controlsView(model),
+      ],
+    ),
+  }
+}

@@ -78,26 +78,28 @@ const update = (model: Model, message: Message): UpdateReturn =>
 
 // VIEW
 
-const h = html<Message>()
+const view = (model: Model): Document => {
+  const h = html<Message>()
 
-const view = (model: Model): Document => ({
-  title: `Count: ${model.count}`,
-  body: h.div(
-    [],
-    [
-      h.p([], [`Count: ${model.count}`]),
-      h.label(
-        [],
-        [
-          'Step: ',
-          h.input([h.OnInput(value => ChangedStep({ step: Number(value) }))]),
-        ],
-      ),
-      h.button([h.OnClick(ClickedIncrement())], ['Increment']),
-      h.button(
-        [h.OnClick(ClickedToggleAutoCount())],
-        [model.isAutoCounting ? 'Stop' : 'Auto-Count'],
-      ),
-    ],
-  ),
-})
+  return {
+    title: `Count: ${model.count}`,
+    body: h.div(
+      [],
+      [
+        h.p([], [`Count: ${model.count}`]),
+        h.label(
+          [],
+          [
+            'Step: ',
+            h.input([h.OnInput(value => ChangedStep({ step: Number(value) }))]),
+          ],
+        ),
+        h.button([h.OnClick(ClickedIncrement())], ['Increment']),
+        h.button(
+          [h.OnClick(ClickedToggleAutoCount())],
+          [model.isAutoCounting ? 'Stop' : 'Auto-Count'],
+        ),
+      ],
+    ),
+  }
+}

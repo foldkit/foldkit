@@ -19,8 +19,6 @@ import {
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
-const h = html<Message>()
-
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'overview',
@@ -59,8 +57,10 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   readDependenciesHeader,
 ]
 
-export const view = (copiedSnippets: CopiedSnippets): Html =>
-  h.div(
+export const view = (copiedSnippets: CopiedSnippets): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       pageTitle('core/subscriptions', 'Subscriptions'),
@@ -344,3 +344,4 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
     ],
   )
+}

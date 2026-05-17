@@ -39,14 +39,14 @@ import {
 } from '../view/codeBlock'
 import { exampleAppCount } from './examples'
 
-const h = html<Message>()
-
 // CONSTANTS
 
 export const HERO_SECTION_ID = 'hero'
 
-const glyph = (symbol: string, offsetY?: string): Html =>
-  h.div(
+const glyph = (symbol: string, offsetY?: string): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [
       h.Class(
         '-my-[9rem] md:-my-[13.5rem] px-6 md:px-12 lg:px-20 select-none pointer-events-none',
@@ -73,6 +73,7 @@ const glyph = (symbol: string, offsetY?: string): Html =>
       ),
     ],
   )
+}
 
 // VIEW
 
@@ -82,8 +83,10 @@ export const view = (
   emailSignupView: Html,
   playgroundMenuView: Html,
   aiHeadingToggleCount: number,
-): Html =>
-  h.div(
+): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('isolate overflow-x-hidden')],
     [
       heroSection(copiedSnippets, playgroundMenuView),
@@ -111,6 +114,7 @@ export const view = (
       finalCtaSection(emailSignupView),
     ],
   )
+}
 
 // MESSAGE
 
@@ -157,8 +161,10 @@ const INSTALL_COMMAND = 'npx create-foldkit-app@latest'
 const heroSection = (
   copiedSnippets: CopiedSnippets,
   playgroundMenuView: Html,
-): Html =>
-  h.section(
+): Html => {
+  const h = html<Message>()
+
+  return h.section(
     [
       h.Id(HERO_SECTION_ID),
       h.AriaLabel('Hero'),
@@ -241,11 +247,14 @@ const heroSection = (
       ),
     ],
   )
+}
 
 // POWERED BY
 
-const poweredByItem = (text: string): Html =>
-  h.li(
+const poweredByItem = (text: string): Html => {
+  const h = html<Message>()
+
+  return h.li(
     [h.Class('flex items-start gap-3')],
     [
       h.div(
@@ -255,9 +264,12 @@ const poweredByItem = (text: string): Html =>
       h.span([h.Class('font-normal text-gray-600 dark:text-gray-300')], [text]),
     ],
   )
+}
 
-const poweredBySection = (): Html =>
-  h.section(
+const poweredBySection = (): Html => {
+  const h = html<Message>()
+
+  return h.section(
     [h.Id('powered-by-effect'), h.Class('landing-section py-10 md:py-14')],
     [
       h.div(
@@ -312,11 +324,14 @@ const poweredBySection = (): Html =>
       ),
     ],
   )
+}
 
 // THE PROMISE
 
-const pillarCard = (icon: Html, title: string, description: string): Html =>
-  h.div(
+const pillarCard = (icon: Html, title: string, description: string): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('landing-card')],
     [
       h.div([h.Class('mb-3 text-accent-600 dark:text-accent-500')], [icon]),
@@ -330,9 +345,12 @@ const pillarCard = (icon: Html, title: string, description: string): Html =>
       ),
     ],
   )
+}
 
-const promiseSection = (): Html =>
-  h.section(
+const promiseSection = (): Html => {
+  const h = html<Message>()
+
+  return h.section(
     [h.Id('the-promise'), h.Class('landing-section')],
     [
       h.div(
@@ -380,11 +398,14 @@ const promiseSection = (): Html =>
       ),
     ],
   )
+}
 
 // DEMOS
 
-const demoSection = (demoTabsView: Html): Html =>
-  h.section(
+const demoSection = (demoTabsView: Html): Html => {
+  const h = html<Message>()
+
+  return h.section(
     [h.Id('peek-inside'), h.Class('landing-section')],
     [
       h.div(
@@ -413,6 +434,7 @@ const demoSection = (demoTabsView: Html): Html =>
       ),
     ],
   )
+}
 
 // WHAT'S INCLUDED
 
@@ -421,8 +443,10 @@ const includedFeature = (
   title: string,
   description: ReadonlyArray<string | Html>,
   link?: Readonly<{ href: string; label: string }>,
-): Html =>
-  h.div(
+): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('landing-card')],
     [
       h.div([h.Class('mb-3 text-accent-600 dark:text-accent-500')], [icon]),
@@ -462,9 +486,12 @@ const includedFeature = (
         : []),
     ],
   )
+}
 
-const includedSection = (): Html =>
-  h.section(
+const includedSection = (): Html => {
+  const h = html<Message>()
+
+  return h.section(
     [h.Id('batteries-included'), h.Class('landing-section')],
     [
       h.div(
@@ -594,11 +621,14 @@ const includedSection = (): Html =>
       ),
     ],
   )
+}
 
 // TESTING
 
-const testingSection = (copiedSnippets: CopiedSnippets): Html =>
-  h.section(
+const testingSection = (copiedSnippets: CopiedSnippets): Html => {
+  const h = html<Message>()
+
+  return h.section(
     [h.Id('testing'), h.Class('landing-section')],
     [
       h.div(
@@ -649,11 +679,14 @@ const testingSection = (copiedSnippets: CopiedSnippets): Html =>
       ),
     ],
   )
+}
 
 // DEVTOOLS
 
-const devToolsSection = (): Html =>
-  h.section(
+const devToolsSection = (): Html => {
+  const h = html<Message>()
+
+  return h.section(
     [h.Id('devtools'), h.Class('landing-section')],
     [
       h.div(
@@ -732,11 +765,14 @@ const devToolsSection = (): Html =>
       ),
     ],
   )
+}
 
 // TRADE-OFFS & COMPARISON
 
-const tradeOffsSection = (): Html =>
-  h.section(
+const tradeOffsSection = (): Html => {
+  const h = html<Message>()
+
+  return h.section(
     [h.Id('whats-the-catch'), h.Class('landing-section')],
     [
       h.div(
@@ -822,11 +858,14 @@ const tradeOffsSection = (): Html =>
       ),
     ],
   )
+}
 
 // AUDIENCE
 
-const audienceSection = (): Html =>
-  h.section(
+const audienceSection = (): Html => {
+  const h = html<Message>()
+
+  return h.section(
     [h.Id('who-its-for'), h.Class('landing-section')],
     [
       h.div(
@@ -909,9 +948,12 @@ const audienceSection = (): Html =>
       ),
     ],
   )
+}
 
-const audienceForItem = (title: string, description: string): Html =>
-  h.li(
+const audienceForItem = (title: string, description: string): Html => {
+  const h = html<Message>()
+
+  return h.li(
     [h.Class('mb-5 flex gap-3')],
     [
       h.div(
@@ -937,9 +979,12 @@ const audienceForItem = (title: string, description: string): Html =>
       ),
     ],
   )
+}
 
-const audienceNotItem = (title: string, description: string): Html =>
-  h.li(
+const audienceNotItem = (title: string, description: string): Html => {
+  const h = html<Message>()
+
+  return h.li(
     [h.Class('mb-5 flex gap-3')],
     [
       h.div(
@@ -965,11 +1010,14 @@ const audienceNotItem = (title: string, description: string): Html =>
       ),
     ],
   )
+}
 
 // TRUST & MATURITY
 
-const trustSection = (): Html =>
-  h.section(
+const trustSection = (): Html => {
+  const h = html<Message>()
+
+  return h.section(
     [h.Id('trust'), h.Class('landing-section py-10 md:py-14')],
     [
       h.div(
@@ -1007,9 +1055,12 @@ const trustSection = (): Html =>
       ),
     ],
   )
+}
 
-const trustItem = (label: string, value: string): Html =>
-  h.li(
+const trustItem = (label: string, value: string): Html => {
+  const h = html<Message>()
+
+  return h.li(
     [h.Class('landing-card')],
     [
       h.p(
@@ -1026,13 +1077,16 @@ const trustItem = (label: string, value: string): Html =>
       ),
     ],
   )
+}
 
 const trustItemWithLink = (
   label: string,
   linkText: string,
   href: string,
-): Html =>
-  h.li(
+): Html => {
+  const h = html<Message>()
+
+  return h.li(
     [h.Class('landing-card')],
     [
       h.p(
@@ -1060,6 +1114,7 @@ const trustItemWithLink = (
       ),
     ],
   )
+}
 
 // AI
 
@@ -1068,6 +1123,8 @@ const AI_HEADING_B = 'Built for AI. Readable by humans.'
 const STATIC_PREFIX_LENGTH = 10
 
 const solariHeading = (toggleCount: number): Html => {
+  const h = html<Message>()
+
   const isSwapped = toggleCount % 2 === 1
 
   return h.h2(
@@ -1142,8 +1199,10 @@ const solariHeading = (toggleCount: number): Html => {
   )
 }
 
-const aiSection = (aiHeadingToggleCount: number): Html =>
-  h.section(
+const aiSection = (aiHeadingToggleCount: number): Html => {
+  const h = html<Message>()
+
+  return h.section(
     [h.Id('ai'), h.Class('landing-section py-10 md:py-14 relative')],
     [
       h.div(
@@ -1178,11 +1237,14 @@ const aiSection = (aiHeadingToggleCount: number): Html =>
       ),
     ],
   )
+}
 
 // FINAL CTA
 
-const finalCtaSection = (emailSignupView: Html): Html =>
-  h.section(
+const finalCtaSection = (emailSignupView: Html): Html => {
+  const h = html<Message>()
+
+  return h.section(
     [h.Id('get-started'), h.Class('landing-section')],
     [
       h.div(
@@ -1239,3 +1301,4 @@ const finalCtaSection = (emailSignupView: Html): Html =>
       ),
     ],
   )
+}

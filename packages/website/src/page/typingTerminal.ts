@@ -17,8 +17,6 @@ import {
   exampleDetailRouter,
 } from '../route'
 
-const h = html<Message>()
-
 const fullStackEffectHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'a-full-stack-effect-app',
@@ -39,22 +37,28 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
 const ctaLinkClassName =
   'text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500 font-medium'
 
-const ctaRow: Html = h.p(
-  [h.Class('mb-8 flex flex-wrap gap-x-6 gap-y-2')],
-  [
-    h.a(
-      [h.Href(Link.typingTerminal), h.Class(ctaLinkClassName)],
-      ['Race your friends →'],
-    ),
-    h.a(
-      [h.Href(Link.typingTerminalSource), h.Class(ctaLinkClassName)],
-      ['View source on GitHub →'],
-    ),
-  ],
-)
+const ctaRow = (): Html => {
+  const h = html<Message>()
 
-export const view = (): Html =>
-  h.div(
+  return h.p(
+    [h.Class('mb-8 flex flex-wrap gap-x-6 gap-y-2')],
+    [
+      h.a(
+        [h.Href(Link.typingTerminal), h.Class(ctaLinkClassName)],
+        ['Race your friends →'],
+      ),
+      h.a(
+        [h.Href(Link.typingTerminalSource), h.Class(ctaLinkClassName)],
+        ['View source on GitHub →'],
+      ),
+    ],
+  )
+}
+
+export const view = (): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       pageTitle('typing-terminal', 'Typing Terminal'),
@@ -66,7 +70,7 @@ export const view = (): Html =>
       para(
         'The other entries in this section are single-process apps that show one feature at a time. Typing Terminal is the full picture: a Foldkit client, an Effect-based RPC server, and a shared schema package that both ends import directly.',
       ),
-      ctaRow,
+      ctaRow(),
       tableOfContentsEntryToHeader(fullStackEffectHeader),
       para('The repo splits into three packages.'),
       bullets(
@@ -138,3 +142,4 @@ export const view = (): Html =>
       ),
     ],
   )
+}

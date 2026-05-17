@@ -15,9 +15,11 @@ import * as Snippets from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 import { comparisonTable } from '../view/table'
 
-const h = html<Message>()
+const plainCode = (text: string): Html => {
+  const h = html<Message>()
 
-const plainCode = (text: string): Html => h.code([h.Class('text-sm')], [text])
+  return h.code([h.Class('text-sm')], [text])
+}
 
 const definingAFieldHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -78,8 +80,10 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   builtInRulesHeader,
 ]
 
-export const view = (copiedSnippets: CopiedSnippets): Html =>
-  h.div(
+export const view = (copiedSnippets: CopiedSnippets): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       pageTitle('field-validation', 'Field Validation'),
@@ -384,3 +388,4 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
     ],
   )
+}

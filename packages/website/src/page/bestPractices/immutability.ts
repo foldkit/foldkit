@@ -10,8 +10,6 @@ import {
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
-const h = html<Message>()
-
 const immutableUpdatesHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'immutable-updates',
@@ -22,8 +20,10 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   immutableUpdatesHeader,
 ]
 
-export const view = (copiedSnippets: CopiedSnippets): Html =>
-  h.div(
+export const view = (copiedSnippets: CopiedSnippets): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       pageTitle('best-practices/immutability', 'Immutability'),
@@ -50,3 +50,4 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
     ],
   )
+}

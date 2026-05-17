@@ -13,8 +13,6 @@ import {
 import { coreDevToolsRouter, testingRouter } from '../../route'
 import { comparisonTable } from '../../view/table'
 
-const h = html<Message>()
-
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'overview',
@@ -46,8 +44,10 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   theRestaurantAnalogyHeader,
 ]
 
-export const view = (): Html =>
-  h.div(
+export const view = (): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       pageTitle('core/architecture', 'Architecture'),
@@ -315,3 +315,4 @@ export const view = (): Html =>
       ),
     ],
   )
+}

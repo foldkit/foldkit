@@ -7,8 +7,6 @@ import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-const h = html<Message>()
-
 // Add a field to your Model for the DragAndDrop Submodel plus the items being sorted:
 const Model = S.Struct({
   items: S.Array(S.Struct({ id: S.String, label: S.String })),
@@ -131,24 +129,28 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDependencies)({
 
 // Inside your view function, spread draggable() onto items and droppable()
 // onto containers:
-h.ul(
-  [
-    ...Ui.DragAndDrop.droppable('list', 'Sortable items'),
-    h.Class('flex flex-col gap-2'),
-  ],
-  model.items.map((item, index) =>
-    h.li(
-      [
-        ...Ui.DragAndDrop.draggable({
-          model: model.dragAndDrop,
-          toParentMessage: message => GotDragAndDropMessage({ message }),
-          itemId: item.id,
-          containerId: 'list',
-          index,
-        }),
-        h.Class('p-3 rounded-lg border cursor-grab'),
-      ],
-      [h.span([], [item.label])],
+const view = (model: Model) => {
+  const h = html<Message>()
+
+  return h.ul(
+    [
+      ...Ui.DragAndDrop.droppable('list', 'Sortable items'),
+      h.Class('flex flex-col gap-2'),
+    ],
+    model.items.map((item, index) =>
+      h.li(
+        [
+          ...Ui.DragAndDrop.draggable({
+            model: model.dragAndDrop,
+            toParentMessage: message => GotDragAndDropMessage({ message }),
+            itemId: item.id,
+            containerId: 'list',
+            index,
+          }),
+          h.Class('p-3 rounded-lg border cursor-grab'),
+        ],
+        [h.span([], [item.label])],
+      ),
     ),
-  ),
-)
+  )
+}

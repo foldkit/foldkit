@@ -119,10 +119,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
 // VIEW
 
-const h = html<Message>()
+const previewView = (model: Model): Html => {
+  const h = html<Message>()
 
-const previewView = (model: Model): Html =>
-  Option.match(model.maybePreviewDataUrl, {
+  return Option.match(model.maybePreviewDataUrl, {
     onSome: dataUrl => h.img([h.Src(dataUrl), h.Alt('Resume preview')]),
     onNone: () =>
       M.value(model.readStatus).pipe(
@@ -137,9 +137,12 @@ const previewView = (model: Model): Html =>
         M.exhaustive,
       ),
   })
+}
 
-export const view = (model: Model): Html =>
-  h.div(
+export const view = (model: Model): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('resume-upload')],
     [
       Option.match(model.maybeResume, {
@@ -157,3 +160,4 @@ export const view = (model: Model): Html =>
       }),
     ],
   )
+}

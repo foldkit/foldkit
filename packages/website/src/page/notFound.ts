@@ -3,10 +3,10 @@ import { Html, html } from 'foldkit/html'
 import type { Message } from '../message'
 import { link, para } from '../prose'
 
-const h = html<Message>()
+export const view = (path: string, introductionRoute: string): Html => {
+  const h = html<Message>()
 
-export const view = (path: string, introductionRoute: string): Html =>
-  h.div(
+  return h.div(
     [],
     [
       h.h1(
@@ -17,3 +17,4 @@ export const view = (path: string, introductionRoute: string): Html =>
       link(introductionRoute, '← Go Home'),
     ],
   )
+}

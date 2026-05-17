@@ -1,18 +1,21 @@
 import { File } from 'foldkit'
 import { html } from 'foldkit/html'
 
-const h = html<Message>()
+const resumePicker = (model: Model) => {
+  const h = html<Message>()
 
-const resumePicker = (model: Model) =>
-  h.input([
+  return h.input([
     h.Key('resume-input'),
     h.Type('file'),
     h.Accept('application/pdf'),
     h.OnFileChange(files => SelectedResume({ files })),
   ])
+}
 
-const attachmentsDropZone = (model: Model) =>
-  h.div(
+const attachmentsDropZone = (model: Model) => {
+  const h = html<Message>()
+
+  return h.div(
     [
       h.Key('attachments-drop-zone'),
       h.Class(
@@ -27,3 +30,4 @@ const attachmentsDropZone = (model: Model) =>
     ],
     ['Drop files here, or use the Browse button below.'],
   )
+}

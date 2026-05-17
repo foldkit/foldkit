@@ -18,12 +18,12 @@ const acknowledgePopoverBackdrop = Scene.Mount.resolve(
   GotPopoverMessage({ message: Popover.CompletedPortalPopoverBackdrop() }),
 )
 
-const h = html<Message>()
-
 const today = Calendar.make(2026, 4, 13)
 
-const testToCalendarView = (attrs: UiCalendar.CalendarAttributes<Message>) =>
-  M.value(attrs).pipe(
+const testToCalendarView = (attrs: UiCalendar.CalendarAttributes<Message>) => {
+  const h = html<Message>()
+
+  return M.value(attrs).pipe(
     M.tagsExhaustive({
       Days: days =>
         h.div(days.root, [
@@ -98,9 +98,12 @@ const testToCalendarView = (attrs: UiCalendar.CalendarAttributes<Message>) =>
         ]),
     }),
   )
+}
 
-const triggerContent = (maybeDate: Option.Option<Calendar.CalendarDate>) =>
-  h.span(
+const triggerContent = (maybeDate: Option.Option<Calendar.CalendarDate>) => {
+  const h = html<Message>()
+
+  return h.span(
     [],
     [
       Option.match(maybeDate, {
@@ -109,6 +112,7 @@ const triggerContent = (maybeDate: Option.Option<Calendar.CalendarDate>) =>
       }),
     ],
   )
+}
 
 const sceneView =
   (overrides: Partial<ViewConfig<Message>> = {}) =>

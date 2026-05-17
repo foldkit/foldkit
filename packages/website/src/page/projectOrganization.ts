@@ -18,8 +18,6 @@ import {
   highlightedCodeBlock,
 } from '../view/codeBlock'
 
-const h = html<Message>()
-
 const startingSimpleHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'starting-simple',
@@ -51,8 +49,10 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   indexReexportsHeader,
 ]
 
-export const view = (copiedSnippets: CopiedSnippets): Html =>
-  h.div(
+export const view = (copiedSnippets: CopiedSnippets): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       pageTitle('project-organization', 'Project Organization'),
@@ -166,3 +166,4 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
     ],
   )
+}

@@ -7,8 +7,6 @@ import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-const h = html<Message>()
-
 // Add a field to your Model for the Dialog Submodel:
 const Model = S.Struct({
   dialog: Ui.Dialog.Model,
@@ -47,30 +45,38 @@ GotDialogMessage: ({ message }) => {
 const dialogToParentMessage = (message: Ui.Dialog.Message): Message =>
   GotDialogMessage({ message })
 
-// Inside your view function, open the dialog by dispatching Ui.Dialog.Opened():
-h.button(
-  [h.OnClick(dialogToParentMessage(Ui.Dialog.Opened()))],
-  ['Open Dialog'],
-)
+// Inside your view function, open the dialog by dispatching Ui.Dialog.Opened()
+// and render the dialog — backed by native <dialog> with showModal():
+const view = () => {
+  const h = html<Message>()
 
-// And render the dialog — backed by native <dialog> with showModal():
-Ui.Dialog.view({
-  model: model.dialog,
-  toParentMessage: dialogToParentMessage,
-  backdropAttributes: [h.Class('fixed inset-0 bg-black/50')],
-  panelContent: h.div(
+  return h.div(
     [],
     [
-      h.h2([h.Id(Ui.Dialog.titleId(model.dialog))], ['Confirm Action']),
-      h.p([], ['Are you sure you want to proceed?']),
       h.button(
-        [
-          h.OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
-          h.Class('px-4 py-2 rounded-lg border'),
-        ],
-        ['Close'],
+        [h.OnClick(dialogToParentMessage(Ui.Dialog.Opened()))],
+        ['Open Dialog'],
       ),
+      Ui.Dialog.view({
+        model: model.dialog,
+        toParentMessage: dialogToParentMessage,
+        backdropAttributes: [h.Class('fixed inset-0 bg-black/50')],
+        panelContent: h.div(
+          [],
+          [
+            h.h2([h.Id(Ui.Dialog.titleId(model.dialog))], ['Confirm Action']),
+            h.p([], ['Are you sure you want to proceed?']),
+            h.button(
+              [
+                h.OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
+                h.Class('px-4 py-2 rounded-lg border'),
+              ],
+              ['Close'],
+            ),
+          ],
+        ),
+        panelAttributes: [h.Class('rounded-lg p-6 max-w-md mx-auto shadow-xl')],
+      }),
     ],
-  ),
-  panelAttributes: [h.Class('rounded-lg p-6 max-w-md mx-auto shadow-xl')],
-})
+  )
+}

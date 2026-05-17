@@ -7,8 +7,6 @@ import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-const h = html<Message>()
-
 // Add a field to your Model for the Listbox Submodel, plus a field for
 // the selected value your app actually cares about:
 const Model = S.Struct({
@@ -88,35 +86,39 @@ const characters: ReadonlyArray<Character> = [
 // Inside your view function, group items by a key and render a heading for
 // each group. Items are grouped in the order they appear — make sure items
 // with the same key are contiguous in the items array:
-Ui.Listbox.view({
-  model: model.listbox,
-  toParentMessage: message => GotListboxMessage({ message }),
-  onSelectedItem: value => SelectedCharacter({ value }),
-  items: characters,
-  itemToValue: characterName,
-  // Group contiguous items by a shared key:
-  itemGroupKey: character => character.lastName,
-  // Render a heading for each group:
-  groupToHeading: lastName => ({
-    content: h.span([], [`${lastName}s`]),
-    className: 'px-3 py-1 text-xs font-semibold uppercase text-gray-500',
-  }),
-  // Optional separator between groups:
-  separatorAttributes: [h.Class('my-1 border-t')],
-  itemToConfig: character => ({
-    className:
-      'px-3 py-2 cursor-pointer data-[active]:bg-blue-100 data-[selected]:font-semibold',
-    content: h.div(
-      [h.Class('flex items-center gap-2')],
-      [h.span([], [characterName(character)])],
+const view = (model: Model) => {
+  const h = html<Message>()
+
+  return Ui.Listbox.view({
+    model: model.listbox,
+    toParentMessage: message => GotListboxMessage({ message }),
+    onSelectedItem: value => SelectedCharacter({ value }),
+    items: characters,
+    itemToValue: characterName,
+    // Group contiguous items by a shared key:
+    itemGroupKey: character => character.lastName,
+    // Render a heading for each group:
+    groupToHeading: lastName => ({
+      content: h.span([], [`${lastName}s`]),
+      className: 'px-3 py-1 text-xs font-semibold uppercase text-gray-500',
+    }),
+    // Optional separator between groups:
+    separatorAttributes: [h.Class('my-1 border-t')],
+    itemToConfig: character => ({
+      className:
+        'px-3 py-2 cursor-pointer data-[active]:bg-blue-100 data-[selected]:font-semibold',
+      content: h.div(
+        [h.Class('flex items-center gap-2')],
+        [h.span([], [characterName(character)])],
+      ),
+    }),
+    buttonContent: h.span(
+      [],
+      [Option.getOrElse(model.maybeCharacter, () => 'Select a character')],
     ),
-  }),
-  buttonContent: h.span(
-    [],
-    [Option.getOrElse(model.maybeCharacter, () => 'Select a character')],
-  ),
-  buttonClassName: 'w-full rounded-lg border px-3 py-2 text-left',
-  itemsClassName: 'rounded-lg border shadow-lg',
-  backdropClassName: 'fixed inset-0',
-  anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
-})
+    buttonClassName: 'w-full rounded-lg border px-3 py-2 text-left',
+    itemsClassName: 'rounded-lg border shadow-lg',
+    backdropClassName: 'fixed inset-0',
+    anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+  })
+}

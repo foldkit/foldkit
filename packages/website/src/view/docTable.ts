@@ -3,8 +3,6 @@ import { Html, html } from 'foldkit/html'
 
 import { type Message } from '../message'
 
-const h = html<Message>()
-
 // SHARED STYLES
 
 const headerCellClassName =
@@ -24,11 +22,17 @@ const codeClassName =
 const wrappingCodeClassName =
   'bg-gray-200/70 dark:bg-gray-800 px-1 py-px rounded text-sm border border-gray-300/50 dark:border-gray-700/50 whitespace-pre-wrap break-normal'
 
-const inlineCode = (text: string): Html =>
-  h.code([h.Class(codeClassName)], [text])
+const inlineCode = (text: string): Html => {
+  const h = html<Message>()
 
-const wrappingInlineCode = (text: string): Html =>
-  h.code([h.Class(wrappingCodeClassName)], [text])
+  return h.code([h.Class(codeClassName)], [text])
+}
+
+const wrappingInlineCode = (text: string): Html => {
+  const h = html<Message>()
+
+  return h.code([h.Class(wrappingCodeClassName)], [text])
+}
 
 // PROP TABLE
 
@@ -39,8 +43,10 @@ export type PropEntry = Readonly<{
   description: string | Html
 }>
 
-const propRow = (entry: PropEntry): Html =>
-  h.tr(
+const propRow = (entry: PropEntry): Html => {
+  const h = html<Message>()
+
+  return h.tr(
     [h.Class(rowClassName)],
     [
       h.td([h.Class(cellClassName)], [inlineCode(entry.name)]),
@@ -59,9 +65,12 @@ const propRow = (entry: PropEntry): Html =>
       h.td([h.Class(descriptionCellClassName)], [entry.description]),
     ],
   )
+}
 
-export const propTable = (entries: ReadonlyArray<PropEntry>): Html =>
-  h.div(
+export const propTable = (entries: ReadonlyArray<PropEntry>): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('mb-8 overflow-x-auto')],
     [
       h.table(
@@ -86,6 +95,7 @@ export const propTable = (entries: ReadonlyArray<PropEntry>): Html =>
       ),
     ],
   )
+}
 
 // KEYBOARD TABLE
 
@@ -97,8 +107,10 @@ export type KeyboardEntry = Readonly<{
 const keyboardKeyClassName =
   'inline-flex items-center justify-center min-w-[1.5rem] px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-sm font-mono text-gray-700 dark:text-gray-300'
 
-const keyboardRow = (entry: KeyboardEntry): Html =>
-  h.tr(
+const keyboardRow = (entry: KeyboardEntry): Html => {
+  const h = html<Message>()
+
+  return h.tr(
     [h.Class(rowClassName)],
     [
       h.td(
@@ -108,9 +120,12 @@ const keyboardRow = (entry: KeyboardEntry): Html =>
       h.td([h.Class(descriptionCellClassName)], [entry.description]),
     ],
   )
+}
 
-export const keyboardTable = (entries: ReadonlyArray<KeyboardEntry>): Html =>
-  h.div(
+export const keyboardTable = (entries: ReadonlyArray<KeyboardEntry>): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('mb-8 overflow-x-auto')],
     [
       h.table(
@@ -133,6 +148,7 @@ export const keyboardTable = (entries: ReadonlyArray<KeyboardEntry>): Html =>
       ),
     ],
   )
+}
 
 // DATA ATTRIBUTE TABLE
 
@@ -141,19 +157,24 @@ export type DataAttributeEntry = Readonly<{
   condition: string
 }>
 
-const dataAttributeRow = (entry: DataAttributeEntry): Html =>
-  h.tr(
+const dataAttributeRow = (entry: DataAttributeEntry): Html => {
+  const h = html<Message>()
+
+  return h.tr(
     [h.Class(rowClassName)],
     [
       h.td([h.Class(cellClassName)], [inlineCode(entry.attribute)]),
       h.td([h.Class(descriptionCellClassName)], [entry.condition]),
     ],
   )
+}
 
 export const dataAttributeTable = (
   entries: ReadonlyArray<DataAttributeEntry>,
-): Html =>
-  h.div(
+): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('mb-8 overflow-x-auto')],
     [
       h.table(
@@ -176,3 +197,4 @@ export const dataAttributeTable = (
       ),
     ],
   )
+}

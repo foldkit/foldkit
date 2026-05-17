@@ -7,8 +7,6 @@ import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-const h = html<Message>()
-
 // Add a field to your Model for the Listbox Submodel, plus a field for
 // the selected value your app actually cares about:
 const Model = S.Struct({
@@ -72,27 +70,31 @@ const people = ['Michael Bluth', 'Lindsay Funke', 'Tobias Funke']
 
 // Inside your view function, pass onSelectedItem to fire your SelectedPerson
 // Message on selection:
-Ui.Listbox.view({
-  model: model.listbox,
-  toParentMessage: message => GotListboxMessage({ message }),
-  onSelectedItem: value => SelectedPerson({ value }),
-  items: people,
-  buttonContent: h.span(
-    [],
-    [Option.getOrElse(model.maybePerson, () => 'Select a person')],
-  ),
-  buttonClassName: 'w-full rounded-lg border px-3 py-2 text-left',
-  itemsClassName: 'rounded-lg border shadow-lg',
-  itemToConfig: (person, { isSelected, isActive }) => ({
-    className: isActive ? 'bg-blue-100' : '',
-    content: h.div(
-      [h.Class('flex items-center gap-2 px-3 py-2')],
-      [
-        isSelected ? h.span([], ['✓']) : h.span([h.Class('w-4')], []),
-        h.span([], [person]),
-      ],
+const view = (model: Model) => {
+  const h = html<Message>()
+
+  return Ui.Listbox.view({
+    model: model.listbox,
+    toParentMessage: message => GotListboxMessage({ message }),
+    onSelectedItem: value => SelectedPerson({ value }),
+    items: people,
+    buttonContent: h.span(
+      [],
+      [Option.getOrElse(model.maybePerson, () => 'Select a person')],
     ),
-  }),
-  backdropClassName: 'fixed inset-0',
-  anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
-})
+    buttonClassName: 'w-full rounded-lg border px-3 py-2 text-left',
+    itemsClassName: 'rounded-lg border shadow-lg',
+    itemToConfig: (person, { isSelected, isActive }) => ({
+      className: isActive ? 'bg-blue-100' : '',
+      content: h.div(
+        [h.Class('flex items-center gap-2 px-3 py-2')],
+        [
+          isSelected ? h.span([], ['✓']) : h.span([h.Class('w-4')], []),
+          h.span([], [person]),
+        ],
+      ),
+    }),
+    backdropClassName: 'fixed inset-0',
+    anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+  })
+}

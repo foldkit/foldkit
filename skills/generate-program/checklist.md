@@ -71,7 +71,7 @@ grep -rn "label(\[" src/ | grep -v "For("
 grep -rn "maybe[A-Z][a-zA-Z]*: [A-Z][a-zA-Z]* | undefined" src/
 grep -rn "maybe[A-Z][a-zA-Z]*: string\b\|maybe[A-Z][a-zA-Z]*: number\b\|maybe[A-Z][a-zA-Z]*: boolean\b" src/
 
-# h.span([], []): use h.empty (the empty value off h = html<M>())
+# h.span([], []): use h.empty (the empty value off h = html<Message>(), bound inside the view function)
 grep -rn "\.span(\[\], \[\])\|^span(\[\], \[\])" src/
 
 # Effect.ignore on infallible Effects (pushUrl, load, back, forward)

@@ -13,8 +13,6 @@ import {
 } from '../prose'
 import { coreViewRouter } from '../route'
 
-const h = html<Message>()
-
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'overview',
@@ -60,8 +58,10 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   noPerRequestHeader,
 ]
 
-export const view = (): Html =>
-  h.div(
+export const view = (): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       pageTitle('on-ssr', 'On SSR'),
@@ -146,3 +146,4 @@ export const view = (): Html =>
       ),
     ],
   )
+}

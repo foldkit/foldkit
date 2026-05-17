@@ -20,8 +20,6 @@ import {
 import { type CopiedSnippets, codeBlock } from '../view/codeBlock'
 import { comparisonTable } from '../view/table'
 
-const h = html<Message>()
-
 const CREATE_FOLDKIT_APP_COMMAND = 'npx create-foldkit-app@latest'
 const DEV_PNPM = 'pnpm dev'
 const DEV_NPM = 'npm run dev'
@@ -45,8 +43,10 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   projectStructureHeader,
 ]
 
-export const view = (copiedSnippets: CopiedSnippets): Html =>
-  h.div(
+export const view = (copiedSnippets: CopiedSnippets): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       pageTitle('getting-started', 'Getting Started'),
@@ -137,3 +137,4 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
     ],
   )
+}

@@ -1,7 +1,7 @@
 import { describe, it } from '@effect/vitest'
 import { Duration, Option, Schema as S } from 'effect'
 
-import { html } from '../../html/index.js'
+import { type Html, html } from '../../html/index.js'
 import * as Scene from '../../test/scene.js'
 import * as Animation from '../animation/index.js'
 import { type EntryHandlers, type Variant, make } from './index.js'
@@ -15,8 +15,6 @@ type Message = typeof Toast.Message.Type
 type Model = typeof Toast.Model.Type
 type Entry = typeof Toast.Entry.Type
 
-const h = html<Message>()
-
 const makeSettledEntry = (overrides: Partial<Entry> = {}): Entry => ({
   id: 'test-entry-0',
   variant: 'Info',
@@ -28,14 +26,17 @@ const makeSettledEntry = (overrides: Partial<Entry> = {}): Entry => ({
   ...overrides,
 })
 
-const defaultRenderEntry = (entry: Entry, _handlers: EntryHandlers<Message>) =>
-  h.div([], [h.span([], [entry.payload.body])])
+const defaultRenderEntry = (
+  entry: Entry,
+  _handlers: EntryHandlers<Message>,
+) => {
+  const h = html<Message>()
+
+  return h.div([], [h.span([], [entry.payload.body])])
+}
 
 type ViewOverrides = {
-  renderEntry?: (
-    entry: Entry,
-    handlers: EntryHandlers<Message>,
-  ) => ReturnType<typeof h.div>
+  renderEntry?: (entry: Entry, handlers: EntryHandlers<Message>) => Html
   ariaLabel?: string
   className?: string
   entryClassName?: string

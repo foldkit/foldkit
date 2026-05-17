@@ -7,8 +7,6 @@ import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-const h = html<Message>()
-
 // Add a field to your Model for the Listbox.Multi Submodel, plus a field
 // for the selected values your app actually cares about:
 const Model = S.Struct({
@@ -78,31 +76,35 @@ const people = ['Michael Bluth', 'Lindsay Funke', 'Tobias Funke']
 
 // Inside your view function, pass onSelectedItem to fire your ToggledPerson
 // Message on selection — selectedItems is an array:
-Ui.Listbox.Multi.view({
-  model: model.listboxMulti,
-  toParentMessage: message => GotListboxMultiMessage({ message }),
-  onSelectedItem: value => ToggledPerson({ value }),
-  items: people,
-  buttonContent: h.span(
-    [],
-    [
-      Array.isReadonlyArrayNonEmpty(model.selectedPeople)
-        ? `${model.selectedPeople.length} selected`
-        : 'Select people',
-    ],
-  ),
-  buttonClassName: 'w-full rounded-lg border px-3 py-2 text-left',
-  itemsClassName: 'rounded-lg border shadow-lg',
-  itemToConfig: (person, { isSelected, isActive }) => ({
-    className: isActive ? 'bg-blue-100' : '',
-    content: h.div(
-      [h.Class('flex items-center gap-2 px-3 py-2')],
+const view = (model: Model) => {
+  const h = html<Message>()
+
+  return Ui.Listbox.Multi.view({
+    model: model.listboxMulti,
+    toParentMessage: message => GotListboxMultiMessage({ message }),
+    onSelectedItem: value => ToggledPerson({ value }),
+    items: people,
+    buttonContent: h.span(
+      [],
       [
-        isSelected ? h.span([], ['✓']) : h.span([h.Class('w-4')], []),
-        h.span([], [person]),
+        Array.isReadonlyArrayNonEmpty(model.selectedPeople)
+          ? `${model.selectedPeople.length} selected`
+          : 'Select people',
       ],
     ),
-  }),
-  backdropClassName: 'fixed inset-0',
-  anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
-})
+    buttonClassName: 'w-full rounded-lg border px-3 py-2 text-left',
+    itemsClassName: 'rounded-lg border shadow-lg',
+    itemToConfig: (person, { isSelected, isActive }) => ({
+      className: isActive ? 'bg-blue-100' : '',
+      content: h.div(
+        [h.Class('flex items-center gap-2 px-3 py-2')],
+        [
+          isSelected ? h.span([], ['✓']) : h.span([h.Class('w-4')], []),
+          h.span([], [person]),
+        ],
+      ),
+    }),
+    backdropClassName: 'fixed inset-0',
+    anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+  })
+}

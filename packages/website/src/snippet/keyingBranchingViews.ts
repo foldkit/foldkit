@@ -1,9 +1,9 @@
 import { Match as M } from 'effect'
 import { Document, html } from 'foldkit/html'
 
-const h = html<Message>()
-
 const view = (model: Model): Document => {
+  const h = html<Message>()
+
   const routeContent = M.value(model.route).pipe(
     M.tagsExhaustive({
       Products: () => productsView(model),

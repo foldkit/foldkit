@@ -44,7 +44,7 @@ Enter plan mode and design the component following these integration touchpoints
 - Use `evo()` from `foldkit/struct` for model updates
 - Use `Effect.Match` with `M.tagsExhaustive` in update — never switch statements
 - Use `M.withReturnType<[Model, ReadonlyArray<Command<Message>>]>()`
-- Destructure html elements/attributes from `html<Message>()` in view functions
+- Bind `const h = html<Message>()` inside each view function (never at module level), then reach for elements/attributes/events off `h`
 - Use `Option` for optional model fields, not null/undefined
 - Use `DataAttribute` for state-reflecting data attributes (data-open, data-active, data-disabled)
 - Disabled items: no event handlers, `AriaDisabled(true)`, `DataAttribute('disabled', '')`

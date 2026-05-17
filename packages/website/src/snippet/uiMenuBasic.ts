@@ -7,8 +7,6 @@ import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-const h = html<Message>()
-
 // Add a field to your Model for the Menu Submodel:
 const Model = S.Struct({
   menu: Ui.Menu.Model,
@@ -55,19 +53,23 @@ const actions: ReadonlyArray<Action> = [
 ]
 
 // Inside your view function, render the menu:
-Ui.Menu.view({
-  model: model.menu,
-  toParentMessage: message => GotMenuMessage({ message }),
-  items: actions,
-  onSelectedItem: value => SelectedAction({ value }),
-  buttonContent: h.span([], ['Options']),
-  buttonClassName: 'rounded-lg border px-3 py-2 cursor-pointer',
-  itemsClassName: 'rounded-lg border shadow-lg',
-  itemToConfig: (action, { isActive }) => ({
-    className: isActive ? 'bg-blue-100' : '',
-    content: h.div([h.Class('px-3 py-2')], [action]),
-  }),
-  isItemDisabled: action => action === 'Archive',
-  backdropClassName: 'fixed inset-0',
-  anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
-})
+const view = () => {
+  const h = html<Message>()
+
+  return Ui.Menu.view({
+    model: model.menu,
+    toParentMessage: message => GotMenuMessage({ message }),
+    items: actions,
+    onSelectedItem: value => SelectedAction({ value }),
+    buttonContent: h.span([], ['Options']),
+    buttonClassName: 'rounded-lg border px-3 py-2 cursor-pointer',
+    itemsClassName: 'rounded-lg border shadow-lg',
+    itemToConfig: (action, { isActive }) => ({
+      className: isActive ? 'bg-blue-100' : '',
+      content: h.div([h.Class('px-3 py-2')], [action]),
+    }),
+    isItemDisabled: action => action === 'Archive',
+    backdropClassName: 'fixed inset-0',
+    anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+  })
+}

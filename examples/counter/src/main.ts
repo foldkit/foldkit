@@ -47,41 +47,43 @@ export const init: Runtime.ProgramInit<Model, Message> = () => [
 
 // VIEW
 
-const h = html<Message>()
+export const view = (model: Model): Document => {
+  const h = html<Message>()
 
-export const view = (model: Model): Document => ({
-  title: `Counter: ${model.count}`,
-  body: h.div(
-    [
-      h.Class(
-        'min-h-screen bg-white flex flex-col items-center justify-center gap-6 p-6',
-      ),
-    ],
-    [
-      h.div(
-        [h.Class('text-6xl font-bold text-gray-800')],
-        [model.count.toString()],
-      ),
-      h.div(
-        [h.Class('flex flex-wrap justify-center gap-4')],
-        [
-          h.button(
-            [h.OnClick(ClickedDecrement()), h.Class(buttonStyle)],
-            ['-'],
-          ),
-          h.button(
-            [h.OnClick(ClickedReset()), h.Class(buttonStyle)],
-            ['Reset'],
-          ),
-          h.button(
-            [h.OnClick(ClickedIncrement()), h.Class(buttonStyle)],
-            ['+'],
-          ),
-        ],
-      ),
-    ],
-  ),
-})
+  return {
+    title: `Counter: ${model.count}`,
+    body: h.div(
+      [
+        h.Class(
+          'min-h-screen bg-white flex flex-col items-center justify-center gap-6 p-6',
+        ),
+      ],
+      [
+        h.div(
+          [h.Class('text-6xl font-bold text-gray-800')],
+          [model.count.toString()],
+        ),
+        h.div(
+          [h.Class('flex flex-wrap justify-center gap-4')],
+          [
+            h.button(
+              [h.OnClick(ClickedDecrement()), h.Class(buttonStyle)],
+              ['-'],
+            ),
+            h.button(
+              [h.OnClick(ClickedReset()), h.Class(buttonStyle)],
+              ['Reset'],
+            ),
+            h.button(
+              [h.OnClick(ClickedIncrement()), h.Class(buttonStyle)],
+              ['+'],
+            ),
+          ],
+        ),
+      ],
+    ),
+  }
+}
 
 // STYLE
 

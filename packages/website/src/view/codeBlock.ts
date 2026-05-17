@@ -5,9 +5,7 @@ import { Html, html } from 'foldkit/html'
 import { Icon } from '../icon'
 import { ClickedCopySnippet, type Message } from '../message'
 
-const h = html<Message>()
-
-const PagefindIgnore = h.DataAttribute('pagefind-ignore', '')
+const PagefindIgnore = html<Message>().DataAttribute('pagefind-ignore', '')
 
 export type CopiedSnippets = HashSet.HashSet<string>
 
@@ -17,6 +15,8 @@ const copyButtonWithIndicator = (
   copiedSnippets: CopiedSnippets,
   positionClass = 'top-2 right-2',
 ) => {
+  const h = html<Message>()
+
   const isCopied = HashSet.has(copiedSnippets, textToCopy)
 
   const copiedIndicator = isCopied
@@ -58,6 +58,8 @@ export const codeBlock = (
   copiedSnippets: CopiedSnippets,
   className?: string,
 ) => {
+  const h = html<Message>()
+
   const content = h.pre(
     [
       h.Class(
@@ -95,8 +97,11 @@ export const highlightedCodeBlock = (
   ariaLabel: string,
   copiedSnippets: CopiedSnippets,
   className?: string,
-) =>
-  h.div(
+) => {
+  const h = html<Message>()
+
+  return h.div(
     [PagefindIgnore, h.Class(clsx('relative min-w-0 mt-8', className))],
     [content, copyButtonWithIndicator(rawCode, ariaLabel, copiedSnippets)],
   )
+}

@@ -21,8 +21,6 @@ import {
   highlightedCodeBlock,
 } from '../view/codeBlock'
 
-const h = html<Message>()
-
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'overview',
@@ -201,8 +199,10 @@ const tools: ReadonlyArray<ToolRowSpec> = [
   },
 ]
 
-const toolRow = ({ name, description }: ToolRowSpec): Html =>
-  h.tr(
+const toolRow = ({ name, description }: ToolRowSpec): Html => {
+  const h = html<Message>()
+
+  return h.tr(
     [h.Class('border-b border-gray-200 dark:border-gray-700/50')],
     [
       h.td(
@@ -212,33 +212,40 @@ const toolRow = ({ name, description }: ToolRowSpec): Html =>
       h.td([h.Class(toolDescriptionCellClassName)], description),
     ],
   )
+}
 
-const toolsTable: Html = h.div(
-  [h.Class('mb-6')],
-  [
-    h.table(
-      [h.Class('w-full text-sm')],
-      [
-        h.thead(
-          [],
-          [
-            h.tr(
-              [],
-              [
-                h.th([h.Class(toolHeaderCellClassName)], ['Tool']),
-                h.th([h.Class(toolHeaderCellClassName)], ['Description']),
-              ],
-            ),
-          ],
-        ),
-        h.tbody([], tools.map(toolRow)),
-      ],
-    ),
-  ],
-)
+const toolsTable = (): Html => {
+  const h = html<Message>()
 
-export const view = (copiedSnippets: CopiedSnippets): Html =>
-  h.div(
+  return h.div(
+    [h.Class('mb-6')],
+    [
+      h.table(
+        [h.Class('w-full text-sm')],
+        [
+          h.thead(
+            [],
+            [
+              h.tr(
+                [],
+                [
+                  h.th([h.Class(toolHeaderCellClassName)], ['Tool']),
+                  h.th([h.Class(toolHeaderCellClassName)], ['Description']),
+                ],
+              ),
+            ],
+          ),
+          h.tbody([], tools.map(toolRow)),
+        ],
+      ),
+    ],
+  )
+}
+
+export const view = (copiedSnippets: CopiedSnippets): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       pageTitle('ai/mcp', 'DevTools MCP Server'),
@@ -344,7 +351,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('runtime_id'),
         '. When omitted, the most recently connected runtime is used.',
       ),
-      toolsTable,
+      toolsTable(),
 
       tableOfContentsEntryToHeader(howItWorksHeader),
       para(
@@ -386,3 +393,4 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
     ],
   )
+}

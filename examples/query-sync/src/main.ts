@@ -446,8 +446,6 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
 // VIEW
 
-const h = html<Message>()
-
 const columnOrders: Record<SortColumn, Order.Order<Dinosaur>> = {
   Name: Order.mapInput(Order.String, ({ name }: Dinosaur) => name),
   Period: Order.mapInput(Order.String, ({ period }: Dinosaur) => period),
@@ -552,6 +550,8 @@ const sortableColumnHeader = (
   fields: BrowseFields,
   isRightAligned: boolean,
 ): Html => {
+  const h = html<Message>()
+
   const indicator = h.span(
     [h.Class(clsx(SORT_INDICATOR_WIDTH, 'inline-block text-center'))],
     [sortIndicator(column, fields.sorting)],
@@ -594,26 +594,32 @@ const listboxBackdropClassName = 'fixed inset-0 z-0'
 
 const listboxWrapperClassName = 'relative inline-block'
 
-const filterItemConfig = (label: string): Ui.Listbox.ItemConfig => ({
-  className: listboxItemClassName,
-  content: h.div(
-    [h.Class('flex items-center gap-2')],
-    [
-      h.span(
-        [
-          h.Class(
-            'w-4 text-center text-emerald-600 invisible group-data-[selected]:visible',
-          ),
-        ],
-        ['✓'],
-      ),
-      h.span([], [label]),
-    ],
-  ),
-})
+const filterItemConfig = (label: string): Ui.Listbox.ItemConfig => {
+  const h = html<Message>()
 
-const chevronDown = (className: string): Html =>
-  h.svg(
+  return {
+    className: listboxItemClassName,
+    content: h.div(
+      [h.Class('flex items-center gap-2')],
+      [
+        h.span(
+          [
+            h.Class(
+              'w-4 text-center text-emerald-600 invisible group-data-[selected]:visible',
+            ),
+          ],
+          ['✓'],
+        ),
+        h.span([], [label]),
+      ],
+    ),
+  }
+}
+
+const chevronDown = (className: string): Html => {
+  const h = html<Message>()
+
+  return h.svg(
     [
       h.AriaHidden(true),
       h.Class(className),
@@ -634,12 +640,16 @@ const chevronDown = (className: string): Html =>
       ),
     ],
   )
+}
 
-const filterButtonContent = (label: string): Html =>
-  h.div(
+const filterButtonContent = (label: string): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('flex w-full items-center justify-between gap-4')],
     [h.span([], [label]), chevronDown('w-4 h-4 text-gray-400')],
   )
+}
 
 const filterButtonLabel = (
   maybeSelectedItem: Option.Option<string>,
@@ -658,6 +668,8 @@ const periodLabel = (item: string): string =>
   String.isEmpty(item) ? 'All Periods' : item
 
 const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
+  const h = html<Message>()
+
   const fields = routeToBrowseFields(route)
   const results = filterAndSort(fields)
 
@@ -858,8 +870,10 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
   )
 }
 
-const notFoundView = (path: string): Html =>
-  h.div(
+const notFoundView = (path: string): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('max-w-4xl mx-auto px-4 text-center')],
     [
       h.h1(
@@ -879,6 +893,7 @@ const notFoundView = (path: string): Html =>
       ),
     ],
   )
+}
 
 const routeTitle = (route: Model['route']): string =>
   M.value(route).pipe(
@@ -887,6 +902,8 @@ const routeTitle = (route: Model['route']): string =>
   )
 
 export const view = (model: Model): Document => {
+  const h = html<Message>()
+
   const routeContent = M.value(model.route).pipe(
     M.tagsExhaustive({
       Browse: route => browseView(model, route),

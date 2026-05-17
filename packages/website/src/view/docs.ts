@@ -32,15 +32,15 @@ import {
 } from './tableOfContents'
 import { themeSelector } from './themeSelector'
 
-const h = html<Message>()
-
-const PagefindBody = h.DataAttribute('pagefind-body', '')
-const PagefindIgnore = h.DataAttribute('pagefind-ignore', '')
+const PagefindBody = html<Message>().DataAttribute('pagefind-body', '')
+const PagefindIgnore = html<Message>().DataAttribute('pagefind-ignore', '')
 
 // DOCS HEADER
 
-const docsHeaderView = (model: Model) =>
-  h.header(
+const docsHeaderView = (model: Model) => {
+  const h = html<Message>()
+
+  return h.header(
     [
       h.Class(
         'fixed top-0 inset-x-0 z-50 h-[var(--header-height)] pt-[env(safe-area-inset-top,0px)] bg-cream dark:bg-gray-900 border-b border-gray-300 dark:border-gray-800 px-3 md:px-6 flex items-center justify-between transform-gpu',
@@ -153,6 +153,7 @@ const docsHeaderView = (model: Model) =>
       ),
     ],
   )
+}
 
 // DOCS FOOTER
 
@@ -160,8 +161,10 @@ const docsFooterView = (
   emailField: Field,
   emailSubscriptionStatus: EmailSubscriptionStatus,
   currentYear: number,
-): Html =>
-  h.footer(
+): Html => {
+  const h = html<Message>()
+
+  return h.footer(
     [
       h.Class(
         'px-4 py-6 md:px-6 mt-6 border-t border-gray-300 dark:border-gray-800',
@@ -224,6 +227,7 @@ const docsFooterView = (
       ),
     ],
   )
+}
 
 // PAGE NAVIGATION
 
@@ -234,8 +238,10 @@ const neighborLink = (
     page: NavPage
     direction: 'Previous' | 'Next'
   }>,
-) =>
-  h.a(
+) => {
+  const h = html<Message>()
+
+  return h.a(
     [
       h.Href(config.page.href),
       h.Class(
@@ -272,8 +278,11 @@ const neighborLink = (
       ),
     ],
   )
+}
 
 const pageNavigationView = (tag: string) => {
+  const h = html<Message>()
+
   const { maybePrevious, maybeNext } = pageNeighbors(tag)
 
   if (Option.isNone(maybePrevious) && Option.isNone(maybeNext)) {
@@ -368,6 +377,8 @@ const lazyApiReferenceSkeleton = createLazy()
 // VIEW
 
 export const docsView = (model: Model, docsRoute: DocsRoute) => {
+  const h = html<Message>()
+
   const { content, tableOfContents: currentPageTableOfContents } = M.value(
     docsRoute,
   ).pipe(

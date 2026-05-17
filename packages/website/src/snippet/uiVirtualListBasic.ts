@@ -7,8 +7,6 @@ import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-const h = html<Message>()
-
 // Add a field to your Model for the VirtualList Submodel. The list items
 // stay in your domain Model (your own `activities`, `messages`, `rows`,
 // whatever you call them); only scroll and measurement state live here:
@@ -87,27 +85,31 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDependencies)<
 // fixed height the container grows to fit its children and never scrolls.
 // The component sets only `overflow: auto` inline; everything else is
 // yours:
-Ui.VirtualList.view({
-  model: model.activityList,
-  items: model.activities,
-  itemToKey: activity => String(activity.id),
-  itemToView: activity =>
-    h.div(
-      [h.Class('grid grid-cols-[2rem_1fr_5rem] items-center gap-3 px-4')],
-      [
-        h.div(
-          [h.Class('flex h-7 w-7 items-center justify-center rounded-full')],
-          [activity.initial],
-        ),
-        h.span([h.Class('truncate text-sm')], [activity.label]),
-        h.span(
-          [h.Class('text-right text-xs text-gray-500 tabular-nums')],
-          [activity.timeAgo],
-        ),
-      ],
-    ),
-  className: 'h-96 w-full rounded-lg bg-white ring-1 ring-gray-200',
-})
+const view = (model: Model) => {
+  const h = html<Message>()
+
+  return Ui.VirtualList.view({
+    model: model.activityList,
+    items: model.activities,
+    itemToKey: activity => String(activity.id),
+    itemToView: activity =>
+      h.div(
+        [h.Class('grid grid-cols-[2rem_1fr_5rem] items-center gap-3 px-4')],
+        [
+          h.div(
+            [h.Class('flex h-7 w-7 items-center justify-center rounded-full')],
+            [activity.initial],
+          ),
+          h.span([h.Class('truncate text-sm')], [activity.label]),
+          h.span(
+            [h.Class('text-right text-xs text-gray-500 tabular-nums')],
+            [activity.timeAgo],
+          ),
+        ],
+      ),
+    className: 'h-96 w-full rounded-lg bg-white ring-1 ring-gray-200',
+  })
+}
 
 // Programmatic scrolling. Returns [Model, Commands] in the same shape as
 // update. Stale completions are version-cancelled, so rapid successive

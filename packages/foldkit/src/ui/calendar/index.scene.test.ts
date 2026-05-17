@@ -9,15 +9,15 @@ import { CompletedFocusGrid, FocusGrid, init, update, view } from './index.js'
 
 const resolveFocusGrid = Scene.Command.resolve(FocusGrid, CompletedFocusGrid())
 
-const h = html<Message>()
-
 const today = Calendar.make(2026, 4, 13)
 
 /** Wires Calendar attribute groups into actual HTML elements so the scene
  * can query them. Pattern-matches on `_tag` so each viewMode renders the
  * appropriate grid (days, months, years). */
-const testToView = (attrs: CalendarAttributes<Message>) =>
-  M.value(attrs).pipe(
+const testToView = (attrs: CalendarAttributes<Message>) => {
+  const h = html<Message>()
+
+  return M.value(attrs).pipe(
     M.tagsExhaustive({
       Days: days =>
         h.div(days.root, [
@@ -92,6 +92,7 @@ const testToView = (attrs: CalendarAttributes<Message>) =>
         ]),
     }),
   )
+}
 
 const sceneView =
   (overrides: Partial<ViewConfig<Message>> = {}) =>

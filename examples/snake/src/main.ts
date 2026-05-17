@@ -288,9 +288,7 @@ export const subscriptions = Subscription.makeSubscriptions(
 
 // VIEW
 
-const h = html<Message>()
-
-const cellView = (x: number, y: number, model: Model): Html => {
+const cellClass = (x: number, y: number, model: Model): string => {
   const isSnakeHead = Position.equivalence({ x, y }, model.snake[0])
   const isSnakeTail = pipe(
     model.snake,
@@ -299,26 +297,29 @@ const cellView = (x: number, y: number, model: Model): Html => {
   )
   const isApple = Position.equivalence({ x, y }, model.apple)
 
-  const cellClass = M.value({ isSnakeHead, isSnakeTail, isApple }).pipe(
+  return M.value({ isSnakeHead, isSnakeTail, isApple }).pipe(
     M.when({ isSnakeHead: true }, () => 'bg-green-700'),
     M.when({ isSnakeTail: true }, () => 'bg-green-500'),
     M.when({ isApple: true }, () => 'bg-red-500'),
     M.orElse(() => 'bg-gray-800'),
   )
-
-  return h.div([h.Class(`w-6 h-6 ${cellClass}`)], [])
 }
 
-const gridView = (model: Model): Html =>
-  h.div(
+const gridView = (model: Model): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('inline-block border-2 border-gray-600')],
     Array.makeBy(GAME.GRID_SIZE, y =>
       h.div(
         [h.Class('flex')],
-        Array.makeBy(GAME.GRID_SIZE, x => cellView(x, y, model)),
+        Array.makeBy(GAME.GRID_SIZE, x =>
+          h.div([h.Class(`w-6 h-6 ${cellClass(x, y, model)}`)], []),
+        ),
       ),
     ),
   )
+}
 
 const gameStateView = (gameState: GameState): string =>
   M.value(gameState).pipe(
@@ -329,8 +330,10 @@ const gameStateView = (gameState: GameState): string =>
     M.exhaustive,
   )
 
-const instructionsView = (): Html =>
-  h.div(
+const instructionsView = (): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('mt-4 text-sm text-gray-400')],
     [
       h.p([], ['Use ARROW KEYS or WASD to move']),
@@ -338,27 +341,32 @@ const instructionsView = (): Html =>
       h.p([], ['R to restart']),
     ],
   )
+}
 
-export const view = (model: Model): Document => ({
-  title: `Snake — ${model.points} pts`,
-  body: h.div(
-    [
-      h.Class(
-        'flex flex-col items-center justify-center min-h-screen bg-black text-white p-8',
-      ),
-    ],
-    [
-      h.h1([h.Class('text-4xl font-bold mb-4')], ['Snake Game']),
-      h.div(
-        [h.Class('flex gap-8 mb-4')],
-        [
-          h.p([h.Class('text-xl')], [`Score: ${model.points}`]),
-          h.p([h.Class('text-xl')], [`High Score: ${model.highScore}`]),
-        ],
-      ),
-      h.p([h.Class('text-lg mb-4')], [gameStateView(model.gameState)]),
-      gridView(model),
-      instructionsView(),
-    ],
-  ),
-})
+export const view = (model: Model): Document => {
+  const h = html<Message>()
+
+  return {
+    title: `Snake — ${model.points} pts`,
+    body: h.div(
+      [
+        h.Class(
+          'flex flex-col items-center justify-center min-h-screen bg-black text-white p-8',
+        ),
+      ],
+      [
+        h.h1([h.Class('text-4xl font-bold mb-4')], ['Snake Game']),
+        h.div(
+          [h.Class('flex gap-8 mb-4')],
+          [
+            h.p([h.Class('text-xl')], [`Score: ${model.points}`]),
+            h.p([h.Class('text-xl')], [`High Score: ${model.highScore}`]),
+          ],
+        ),
+        h.p([h.Class('text-lg mb-4')], [gameStateView(model.gameState)]),
+        gridView(model),
+        instructionsView(),
+      ],
+    ),
+  }
+}

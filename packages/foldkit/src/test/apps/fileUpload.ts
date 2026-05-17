@@ -34,10 +34,10 @@ export const update = (
 
 // VIEW
 
-const h = html<Message>()
+export const view = (model: Model): Html => {
+  const h = html<Message>()
 
-export const view = (model: Model): Html =>
-  h.div(
+  return h.div(
     [],
     [
       h.input([
@@ -64,3 +64,4 @@ export const view = (model: Model): Html =>
       ),
     ],
   )
+}

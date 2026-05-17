@@ -17,8 +17,6 @@ import {
 } from '../route'
 import { type CopiedSnippets, codeBlock } from '../view/codeBlock'
 
-const h = html<Message>()
-
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'overview',
@@ -56,8 +54,10 @@ const SUBTREE_ADD_COMMAND =
 const SUBTREE_UPDATE_COMMAND =
   'git subtree pull --prefix=repos/foldkit https://github.com/foldkit/foldkit.git main --squash'
 
-export const view = (copiedSnippets: CopiedSnippets): Html =>
-  h.div(
+export const view = (copiedSnippets: CopiedSnippets): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       pageTitle('ai/overview', 'AI'),
@@ -114,3 +114,4 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
     ],
   )
+}

@@ -10,8 +10,6 @@ import {
 } from '../prose'
 import { type CopiedSnippets, codeBlock } from '../view/codeBlock'
 
-const h = html<Message>()
-
 const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'overview',
@@ -56,8 +54,10 @@ const FOLDKIT_COMMAND = '/foldkit-skills:foldkit'
 const GENERATE_PROGRAM_COMMAND = '/foldkit-skills:generate-program'
 const AUDIT_PROGRAM_COMMAND = '/foldkit-skills:audit-program'
 
-export const view = (copiedSnippets: CopiedSnippets): Html =>
-  h.div(
+export const view = (copiedSnippets: CopiedSnippets): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       pageTitle('ai/skills', 'Skills'),
@@ -120,3 +120,4 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
     ],
   )
+}

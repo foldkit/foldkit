@@ -13,8 +13,6 @@ import {
   view,
 } from './index.js'
 
-const h = html<Message>()
-
 type DemoItem = Readonly<{ id: number; label: string }>
 
 const demoItems: ReadonlyArray<DemoItem> = [
@@ -39,8 +37,10 @@ const sceneView =
       'model' | 'items' | 'itemToKey' | 'itemToView'
     > = {},
   ) =>
-  (model: Model) =>
-    view({
+  (model: Model) => {
+    const h = html<Message>()
+
+    return view({
       items: demoItems,
       itemToKey: item => String(item.id),
       itemToView: item => h.div([], [h.span([], [item.label])]),
@@ -48,6 +48,7 @@ const sceneView =
       ...overrides,
       model,
     })
+  }
 
 const unmeasuredModel = init({ id: 'test', rowHeightPx: ROW_HEIGHT })
 

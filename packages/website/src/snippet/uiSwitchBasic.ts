@@ -7,8 +7,6 @@ import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-const h = html<Message>()
-
 // Add a field to your Model for the Switch Submodel:
 const Model = S.Struct({
   switchDemo: Ui.Switch.Model,
@@ -44,44 +42,48 @@ GotSwitchMessage: ({ message }) => {
 }
 
 // Inside your view function, render the switch:
-Ui.Switch.view({
-  model: model.switchDemo,
-  toParentMessage: message => GotSwitchMessage({ message }),
-  toView: attributes =>
-    h.div(
-      [h.Class('flex items-center gap-3')],
-      [
-        h.button(
-          [
-            ...attributes.button,
-            h.Class(
-              'relative h-6 w-11 rounded-full transition-colors data-[checked]:bg-blue-600 bg-gray-200',
-            ),
-          ],
-          [
-            h.div(
-              [
-                h.Class(
-                  'absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform',
-                ),
-              ],
-              [],
-            ),
-          ],
-        ),
-        h.div(
-          [],
-          [
-            h.label(
-              [...attributes.label, h.Class('text-sm font-medium')],
-              ['Enable notifications'],
-            ),
-            h.p(
-              [...attributes.description, h.Class('text-sm text-gray-500')],
-              ['Get notified when something important happens.'],
-            ),
-          ],
-        ),
-      ],
-    ),
-})
+const view = () => {
+  const h = html<Message>()
+
+  return Ui.Switch.view({
+    model: model.switchDemo,
+    toParentMessage: message => GotSwitchMessage({ message }),
+    toView: attributes =>
+      h.div(
+        [h.Class('flex items-center gap-3')],
+        [
+          h.button(
+            [
+              ...attributes.button,
+              h.Class(
+                'relative h-6 w-11 rounded-full transition-colors data-[checked]:bg-blue-600 bg-gray-200',
+              ),
+            ],
+            [
+              h.div(
+                [
+                  h.Class(
+                    'absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform',
+                  ),
+                ],
+                [],
+              ),
+            ],
+          ),
+          h.div(
+            [],
+            [
+              h.label(
+                [...attributes.label, h.Class('text-sm font-medium')],
+                ['Enable notifications'],
+              ),
+              h.p(
+                [...attributes.description, h.Class('text-sm text-gray-500')],
+                ['Get notified when something important happens.'],
+              ),
+            ],
+          ),
+        ],
+      ),
+  })
+}

@@ -25,14 +25,14 @@ import { coreArchitectureRouter, homeRouter } from '../route'
 import { betaTag, emailSignupContentView, skipNavLink } from './shared'
 import { themeSelector } from './themeSelector'
 
-const h = html<Message>()
-
-const PagefindBody = h.DataAttribute('pagefind-body', '')
+const PagefindBody = html<Message>().DataAttribute('pagefind-body', '')
 
 // LANDING HEADER
 
-const landingHeaderView = (model: Model) =>
-  h.header(
+const landingHeaderView = (model: Model) => {
+  const h = html<Message>()
+
+  return h.header(
     [
       h.Class(
         clsx(
@@ -78,11 +78,14 @@ const landingHeaderView = (model: Model) =>
       ),
     ],
   )
+}
 
 // LANDING FOOTER
 
-const landingFooter = (currentYear: number): Html =>
-  h.footer(
+const landingFooter = (currentYear: number): Html => {
+  const h = html<Message>()
+
+  return h.footer(
     [
       h.Class(
         'px-6 py-8 md:px-12 lg:px-20 border-t border-gray-300 dark:border-gray-800 text-sm text-gray-500 dark:text-gray-400',
@@ -108,6 +111,7 @@ const landingFooter = (currentYear: number): Html =>
       h.p([h.Class('mt-1')], [`© ${currentYear} Devin Jameson`]),
     ],
   )
+}
 
 // DEMO TABS
 
@@ -150,21 +154,30 @@ const playgroundItemClassName =
 
 const playgroundBackdropClassName = 'fixed inset-0 z-10'
 
-const chromeRecommendedHint: Html = h.p(
-  [h.Class('text-xs text-gray-500 dark:text-gray-400')],
-  ['Requires a Chromium browser'],
-)
+const chromeRecommendedHint: Html = (() => {
+  const h = html<Message>()
 
-const withChromeRecommendedHint = (menu: Html, isChromium: boolean): Html =>
-  isChromium
+  return h.p(
+    [h.Class('text-xs text-gray-500 dark:text-gray-400')],
+    ['Requires a Chromium browser'],
+  )
+})()
+
+const withChromeRecommendedHint = (menu: Html, isChromium: boolean): Html => {
+  const h = html<Message>()
+
+  return isChromium
     ? menu
     : h.div(
         [h.Class('flex flex-col items-start gap-1')],
         [menu, chromeRecommendedHint],
       )
+}
 
-const playgroundItemContent = (meta: ExampleMeta): Html =>
-  h.div(
+const playgroundItemContent = (meta: ExampleMeta): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       h.div(
@@ -181,12 +194,15 @@ const playgroundItemContent = (meta: ExampleMeta): Html =>
       ),
     ],
   )
+}
 
 const playgroundMenuView = (
   menuModel: Ui.Menu.Model,
   slugs: ReadonlyArray<ExampleSlug>,
-): Html =>
-  Ui.Menu.view<Message, ExampleSlug>({
+): Html => {
+  const h = html<Message>()
+
+  return Ui.Menu.view<Message, ExampleSlug>({
     model: menuModel,
     toParentMessage: message => GotPlaygroundMenuMessage({ message }),
     onSelectedItem: index =>
@@ -226,10 +242,13 @@ const playgroundMenuView = (
     backdropAttributes: [h.Class(playgroundBackdropClassName)],
     attributes: [h.Class('relative inline-block')],
   })
+}
 
 // VIEW
 
 export const landingView = (model: Model) => {
+  const h = html<Message>()
+
   const asyncCounterDemoView = lazyAsyncCounterDemo(
     Page.AsyncCounterDemo.view,
     [model.asyncCounterDemo, toAsyncCounterDemoMessage],
@@ -302,8 +321,10 @@ export const landingView = (model: Model) => {
   )
 }
 
-export const newsletterView = (model: Model) =>
-  h.keyed('div')(
+export const newsletterView = (model: Model) => {
+  const h = html<Message>()
+
+  return h.keyed('div')(
     'newsletter',
     [h.Class('flex flex-col min-h-screen')],
     [
@@ -326,3 +347,4 @@ export const newsletterView = (model: Model) =>
       landingFooter(model.currentYear),
     ],
   )
+}

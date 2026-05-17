@@ -10,8 +10,6 @@ import {
 } from '../../prose'
 import { patternsOutMessageRouter } from '../../route'
 
-const h = html<Message>()
-
 const messagesAsEventsHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'messages-as-events',
@@ -43,8 +41,10 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   everyMessageCarriesMeaningHeader,
 ]
 
-export const view = (): Html =>
-  h.div(
+export const view = (): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       pageTitle('best-practices/messages', 'Messages'),
@@ -170,3 +170,4 @@ export const view = (): Html =>
       ),
     ],
   )
+}

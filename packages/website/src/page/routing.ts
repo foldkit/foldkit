@@ -15,8 +15,6 @@ import { bestPracticesKeyingRouter, exampleDetailRouter } from '../route'
 import * as Snippets from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 
-const h = html<Message>()
-
 const biparserHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'biparser',
@@ -76,8 +74,10 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   navigationHeader,
 ]
 
-export const view = (copiedSnippets: CopiedSnippets): Html =>
-  h.div(
+export const view = (copiedSnippets: CopiedSnippets): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       pageTitle('routing-and-navigation', 'Routing & Navigation'),
@@ -431,3 +431,4 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
     ],
   )
+}
