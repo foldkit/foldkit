@@ -196,6 +196,18 @@ export const docsSections: ReadonlyArray<DocsSection> = [
       ],
       [
         {
+          _tag: 'RoutingAndNavigation',
+          href: routingAndNavigationRouter(),
+          label: 'Routing & Navigation',
+        },
+        {
+          _tag: 'FieldValidation',
+          href: fieldValidationRouter(),
+          label: 'Field Validation',
+        },
+      ],
+      [
+        {
           _tag: 'CoreDom',
           href: coreDomRouter(),
           label: 'Dom',
@@ -290,23 +302,23 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     ],
   },
   {
-    label: 'Guides',
+    label: 'Patterns',
     pageGroups: [
       [
-        {
-          _tag: 'RoutingAndNavigation',
-          href: routingAndNavigationRouter(),
-          label: 'Routing & Navigation',
-        },
-        {
-          _tag: 'FieldValidation',
-          href: fieldValidationRouter(),
-          label: 'Field Validation',
-        },
         {
           _tag: 'ProjectOrganization',
           href: projectOrganizationRouter(),
           label: 'Project Organization',
+        },
+        {
+          _tag: 'PatternsSubmodels',
+          href: patternsSubmodelsRouter(),
+          label: 'Submodels',
+        },
+        {
+          _tag: 'PatternsOutMessage',
+          href: patternsOutMessageRouter(),
+          label: 'OutMessage',
         },
       ],
     ],
@@ -356,23 +368,6 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'BestPracticesImmutability',
           href: bestPracticesImmutabilityRouter(),
           label: 'Immutability',
-        },
-      ],
-    ],
-  },
-  {
-    label: 'Patterns',
-    pageGroups: [
-      [
-        {
-          _tag: 'PatternsSubmodels',
-          href: patternsSubmodelsRouter(),
-          label: 'Submodels',
-        },
-        {
-          _tag: 'PatternsOutMessage',
-          href: patternsOutMessageRouter(),
-          label: 'OutMessage',
         },
       ],
     ],

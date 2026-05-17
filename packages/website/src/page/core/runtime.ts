@@ -138,12 +138,5 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('title'),
         ' on every render, and syncs the canonical and og:url meta tags so platform share menus copy the right link as you navigate. Both meta fields default to the current URL when omitted.',
       ),
-      para(
-        'Most apps can start with just these runtime options. The next page covers Resources: long-lived browser singletons like ',
-        inlineCode('AudioContext'),
-        ' or ',
-        inlineCode('CanvasRenderingContext2D'),
-        ' that are shared across Commands.',
-      ),
     ],
   )

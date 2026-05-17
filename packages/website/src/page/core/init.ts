@@ -3,10 +3,12 @@ import { Html, html } from 'foldkit/html'
 import { Message, type TableOfContentsEntry } from '../../main'
 import {
   inlineCode,
+  link,
   pageTitle,
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
+import { coreRuntimeRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
@@ -95,7 +97,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        'You’ve now seen the full Foldkit architecture: the Model holds your state, Messages describe events, update transitions state, the view renders it, Commands handle one-off side effects, Mount reaches the live DOM, Subscriptions manage ongoing streams, and init bootstraps everything. The remaining pages cover utilities, runtime configuration, and advanced topics you’ll reach for as your app grows.',
+        'The next page covers the ',
+        link(coreRuntimeRouter(), 'Runtime'),
+        ': the engine that executes Commands, runs Subscriptions, manages Mount and ManagedResource lifecycles, and routes Messages back into update.',
       ),
     ],
   )

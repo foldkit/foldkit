@@ -43,11 +43,18 @@ const httpRequestsHeader: TableOfContentsEntry = {
   text: 'HTTP Requests',
 }
 
+const commandsWithArgsHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'commands-with-args',
+  text: 'Commands with Args',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   anatomyHeader,
   testableByDesignHeader,
   httpRequestsHeader,
+  commandsWithArgsHeader,
 ]
 
 export const view = (copiedSnippets: CopiedSnippets): Html =>
@@ -211,19 +218,6 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('Effect.provide(FetchHttpClient.layer)'),
         ' wires the live implementation; tests can swap it for a mock.',
       ),
-      highlightedCodeBlock(
-        h.div(
-          [
-            h.Class('text-sm'),
-            h.InnerHTML(Snippets.counterHttpCommandFetchCountHighlighted),
-          ],
-          [],
-        ),
-        Snippets.counterHttpCommandFetchCountRaw,
-        'Copy HTTP command fetchCount example to clipboard',
-        copiedSnippets,
-        'mb-8',
-      ),
       infoCallout(
         'Errors are tracked, not hidden',
         'Commands use Effect’s typed error channel: if a Command can fail, the type signature tells you. ',
@@ -232,12 +226,34 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('FailedFetchCount'),
         ', and once all errors are handled, the type confirms it. The update function handles errors the same way it handles success: as facts about what happened.',
       ),
+      tableOfContentsEntryToHeader(commandsWithArgsHeader),
       para(
-        'Commands fire once and produce a single Message when they finish. For one-shot work bound to a specific DOM element, Foldkit has ',
+        'The Commands so far have taken no inputs. But many Commands need values that vary per dispatch: the zip code for a weather lookup, the element id for a focus call, the duration for a delay. Declare those values as an args schema between the Command name and the result Messages. The factory then receives them as a typed record, and call sites pass them in when dispatching.',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.commandWithArgsHighlighted),
+          ],
+          [],
+        ),
+        Snippets.commandWithArgsRaw,
+        'Copy command with args example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      para(
+        'Args appear in DevTools alongside the Command name and let Story/Scene tests assert on the exact dispatch with ',
+        inlineCode(
+          "Scene.Command.expectExact(FetchWeather({ zipCode: '90210' }))",
+        ),
+        '.',
+      ),
+      para(
+        'Commands fire once and produce one result Message when they finish (chosen from the result Messages they declare). For work bound to a specific DOM element’s lifetime, Foldkit has ',
         link(coreMountRouter(), 'Mount'),
-        '. For effects that run continuously (a timer that ticks every second, a ',
-        inlineCode('WebSocket'),
-        ' that stays open, keyboard input), Foldkit has Subscriptions.',
+        '.',
       ),
     ],
   )

@@ -94,31 +94,37 @@ export const view = (): Html =>
             [],
             [
               h.strong([], ['Mount:']),
-              ' the moment an element from the view enters the live DOM. ',
-              inlineCode('OnMount'),
-              ' is the seam where view code can drop down to imperative work at that moment, like portaling an overlay to the document body or handing a real ',
-              inlineCode('Element'),
-              ' to a third-party library that owns its own DOM. The runtime runs an Effect with the live element, dispatches its Message back through ',
+              ' the moment an element from the view enters the live DOM. Mount is the seam where view code can drop down to imperative work with the live element: portaling an overlay to the document body, attaching observers, handing the element to a third-party library that owns its own DOM. ',
+              inlineCode('Mount.define'),
+              ' runs an Effect that emits a single Message at acquire; ',
+              inlineCode('Mount.defineStream'),
+              ' runs a Stream of Messages from observers or listeners on the element. The runtime dispatches results back through ',
               inlineCode('update'),
-              ', and runs the paired cleanup when the element unmounts.',
+              ' and runs the paired cleanup when the element unmounts.',
             ],
           ),
           h.li(
             [],
             [
               h.strong([], ['Subscriptions:']),
-              ' continuous streams of Messages from external sources: keypresses, recurring timers, ',
+              ' a scoped Effect gated by a slice of your Model. You are subscribed to the Model, not to an external event source. The runtime keeps the Effect alive while the slice holds its value and starts a fresh scope when the slice changes. The body usually plugs an external source (timer ticks, keypresses, ',
               inlineCode('WebSocket'),
-              ' frames, window resize events. Where a Command runs once and reports back, a Subscription stays active for as long as the Model says it should, and the stream decides which source events become Messages.',
+              ' frames, system theme changes) into a Stream that flows back through ',
+              inlineCode('update'),
+              ' as Messages. Some Subscriptions emit no Messages and instead maintain DOM state for their lifetime, like setting ',
+              inlineCode('user-select: none'),
+              ' while a drag is active.',
             ],
           ),
           h.li(
             [],
             [
               h.strong([], ['ManagedResources:']),
-              ' acquire/release lifecycles tied to Model state: a camera stream during a video call, a ',
+              ' declarations of a resource (a camera stream, a ',
               inlineCode('WebSocket'),
-              ' connection while the user is on a chat page. The runtime acquires them when the Model enters the relevant state, releases them when it leaves, and dispatches Messages for each transition.',
+              ' connection, a Web Worker pool) made available to Commands and Subscriptions while a slice of the Model holds a particular value. The runtime acquires the resource when the slice says it should be alive, releases it when the slice says it should not, and dispatches Messages for each lifecycle transition. Commands and Subscriptions consume the resource as a typed handle (capturing a photo from the camera, sending a frame on the socket), with ',
+              inlineCode('ResourceNotAvailable'),
+              ' rather than a crash if the handle is not currently available.',
             ],
           ),
         ],
@@ -203,19 +209,19 @@ export const view = (): Html =>
           [
             ['Command'],
             [
-              'A description of a one-shot side effect. The runtime executes it and sends the result back as a Message.',
+              'A description of a one-shot side effect. The runtime executes it and sends the result back as one of its declared Messages.',
             ],
           ],
           [
             ['Mount'],
             [
-              'The seam where view code reaches a live DOM element. The runtime runs an Effect with the Element, dispatches its Message, and runs the paired cleanup on unmount.',
+              'The seam where view code reaches a live DOM element. Mount.define runs an Effect that emits a single Message at acquire; Mount.defineStream runs a Stream of Messages from observers on the element. The runtime dispatches results through update and runs the paired cleanup on unmount.',
             ],
           ],
           [
             ['Subscription'],
             [
-              'A continuous stream of Messages from an external source, active for as long as the Model says it should be.',
+              'A scoped Effect gated by a slice of your Model. The runtime keeps it alive while the slice holds its value and starts a fresh scope when the slice changes. The body usually pipes external events back as Messages; some Subscriptions emit nothing and just maintain DOM state for the subscription’s lifetime.',
             ],
           ],
           [
@@ -227,7 +233,7 @@ export const view = (): Html =>
           [
             ['ManagedResource'],
             [
-              'Like a Resource, but scoped to a window of Model state instead of the app lifetime: a WebSocket connection while the user is on a chat page, a camera stream during a video call. Commands access it as a typed service while it’s live; the runtime acquires it on entry, releases it on exit, and dispatches Messages for each lifecycle transition.',
+              'Like a Resource, but scoped to a window of Model state instead of the app lifetime: a WebSocket connection while the user is on a chat page, a camera stream during a video call. Commands and Subscriptions consume it as a typed handle while it’s live; the runtime acquires it on entry, releases it on exit, and dispatches Messages for each lifecycle transition.',
             ],
           ],
           [
@@ -299,7 +305,13 @@ export const view = (): Html =>
         ],
       ),
       para(
-        'That’s the architecture in the abstract. The next page shows a complete counter application, and you’ll see each of these pieces in the code.',
+        'That’s the architecture in the abstract. The next page shows a complete counter application: the core of the loop (a Model, Messages, ',
+        inlineCode('update'),
+        ', ',
+        inlineCode('init'),
+        ', and ',
+        inlineCode('view'),
+        ') wired together and running.',
       ),
     ],
   )

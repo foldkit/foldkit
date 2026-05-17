@@ -58,7 +58,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'mb-8',
       ),
       para(
-        'TypeScript types disappear when your code compiles. They help the compiler check your code, but they don’t exist at runtime. Schema keeps that type information alive as a value. This gives Foldkit knowledge of your Model at runtime: it can compare models for equality, decode state from unknown sources, and manage resource lifecycles, things that require knowing the shape of your data, not just its type. You’ll see these capabilities pay off as the counter grows, especially on the Subscriptions page.',
+        'TypeScript types disappear when your code compiles. They help the compiler check your code, but they don’t exist at runtime. Schema keeps that type information alive as a value. This gives Foldkit knowledge of your Model at runtime: it can compare models for equality, decode state from unknown sources, and manage resource lifecycles, things that need the Model’s shape as a value, not just a compile-time annotation. You’ll see these capabilities pay off as the counter grows, especially on the Subscriptions page.',
       ),
       para(
         'The counter starts with a single field, but models grow with your app. When we add auto-counting later, the Model will expand:',
