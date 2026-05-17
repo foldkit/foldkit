@@ -1800,9 +1800,18 @@ const makeView = (
       M.exhaustive,
     )
 
+    const maybeClearHistoryButton = OptionExt.when(
+      !model.isPaused,
+      clearHistoryButton,
+    )
+
     return h.header(
       [h.Class(headerClass)],
-      [status, ...Option.toArray(maybeAction), clearHistoryButton],
+      [
+        status,
+        ...Option.toArray(maybeAction),
+        ...Option.toArray(maybeClearHistoryButton),
+      ],
     )
   }
 
