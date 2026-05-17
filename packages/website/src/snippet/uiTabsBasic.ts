@@ -7,8 +7,6 @@ import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-const h = html<Message>()
-
 // Add a field to your Model for the Tabs Submodel:
 const Model = S.Struct({
   tabs: Ui.Tabs.Model,
@@ -53,17 +51,21 @@ const descriptions: Record<Framework, string> = {
 }
 
 // Inside your view function, render the tabs:
-Ui.Tabs.view<Message, Framework>({
-  model: model.tabs,
-  toParentMessage: message => GotTabsMessage({ message }),
-  tabs: frameworks,
-  tabListAriaLabel: 'Framework comparison',
-  tabToConfig: (tab, { isActive }) => ({
-    buttonClassName:
-      'px-4 py-2 rounded-t-lg border data-[selected]:bg-white data-[selected]:border-b-0',
-    buttonContent: h.span([], [tab]),
-    panelClassName: 'p-6 border rounded-b-lg',
-    panelContent: h.p([], [descriptions[tab]]),
-  }),
-  tabListAttributes: [h.Class('flex')],
-})
+const view = () => {
+  const h = html<Message>()
+
+  return Ui.Tabs.view<Message, Framework>({
+    model: model.tabs,
+    toParentMessage: message => GotTabsMessage({ message }),
+    tabs: frameworks,
+    tabListAriaLabel: 'Framework comparison',
+    tabToConfig: (tab, { isActive }) => ({
+      buttonClassName:
+        'px-4 py-2 rounded-t-lg border data-[selected]:bg-white data-[selected]:border-b-0',
+      buttonContent: h.span([], [tab]),
+      panelClassName: 'p-6 border rounded-b-lg',
+      panelContent: h.p([], [descriptions[tab]]),
+    }),
+    tabListAttributes: [h.Class('flex')],
+  })
+}

@@ -1,11 +1,11 @@
 import { Array, Option } from 'effect'
 import { createKeyedLazy, html } from 'foldkit/html'
 
-const h = html<Message>()
-
 // Define the per-item view at module level
-const contactView = (name: string, email: string, isSelected: boolean) =>
-  h.li(
+const contactView = (name: string, email: string, isSelected: boolean) => {
+  const h = html<Message>()
+
+  return h.li(
     [],
     [
       h.span([], [name]),
@@ -13,6 +13,7 @@ const contactView = (name: string, email: string, isSelected: boolean) =>
       ...(isSelected ? [h.span([], ['✓'])] : []),
     ],
   )
+}
 
 // Create the keyed lazy map at module level.
 // Each key gets its own independent cache slot.
@@ -24,8 +25,10 @@ const lazyContact = createKeyedLazy()
 const contactListView = (
   contacts: ReadonlyArray<Contact>,
   maybeSelectedId: Option.Option<string>,
-) =>
-  h.ul(
+) => {
+  const h = html<Message>()
+
+  return h.ul(
     [],
     Array.map(contacts, contact => {
       const isSelected = Option.exists(
@@ -40,3 +43,4 @@ const contactListView = (
       ])
     }),
   )
+}

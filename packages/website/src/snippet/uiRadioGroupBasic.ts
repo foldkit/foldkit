@@ -7,8 +7,6 @@ import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-const h = html<Message>()
-
 // Add a field to your Model for the RadioGroup Submodel:
 const Model = S.Struct({
   radioGroup: Ui.RadioGroup.Model,
@@ -58,29 +56,36 @@ const descriptions: Record<Plan, string> = {
 }
 
 // Inside your view function, render the radio group:
-Ui.RadioGroup.view<Message, Plan>({
-  model: model.radioGroup,
-  toParentMessage: message => GotRadioGroupMessage({ message }),
-  options: plans,
-  ariaLabel: 'Server plan',
-  optionToConfig: (plan, { isSelected }) => ({
-    value: plan,
-    content: attributes =>
-      h.div(
-        [
-          ...attributes.option,
-          h.Class(
-            'rounded-lg border p-4 cursor-pointer data-[checked]:border-blue-600',
-          ),
-        ],
-        [
-          h.span([...attributes.label, h.Class('text-sm font-medium')], [plan]),
-          h.p(
-            [...attributes.description, h.Class('text-sm text-gray-500')],
-            [descriptions[plan]],
-          ),
-        ],
-      ),
-  }),
-  attributes: [h.Class('flex flex-col gap-3')],
-})
+const view = () => {
+  const h = html<Message>()
+
+  return Ui.RadioGroup.view<Message, Plan>({
+    model: model.radioGroup,
+    toParentMessage: message => GotRadioGroupMessage({ message }),
+    options: plans,
+    ariaLabel: 'Server plan',
+    optionToConfig: (plan, { isSelected }) => ({
+      value: plan,
+      content: attributes =>
+        h.div(
+          [
+            ...attributes.option,
+            h.Class(
+              'rounded-lg border p-4 cursor-pointer data-[checked]:border-blue-600',
+            ),
+          ],
+          [
+            h.span(
+              [...attributes.label, h.Class('text-sm font-medium')],
+              [plan],
+            ),
+            h.p(
+              [...attributes.description, h.Class('text-sm text-gray-500')],
+              [descriptions[plan]],
+            ),
+          ],
+        ),
+    }),
+    attributes: [h.Class('flex flex-col gap-3')],
+  })
+}

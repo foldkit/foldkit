@@ -6,10 +6,10 @@ import { Icon } from './icon'
 import { type TableOfContentsEntry } from './main'
 import { ClickedCopyLink, type Message } from './message'
 
-const h = html<Message>()
+export const headingLinkButton = (id: string, text: string): Html => {
+  const h = html<Message>()
 
-export const headingLinkButton = (id: string, text: string): Html =>
-  h.a(
+  return h.a(
     [
       h.Href(`#${id}`),
       h.Class(
@@ -20,9 +20,12 @@ export const headingLinkButton = (id: string, text: string): Html =>
     ],
     [Icon.link('w-5 h-5')],
   )
+}
 
-export const link = (href: string, text: string): Html =>
-  h.a(
+export const link = (href: string, text: string): Html => {
+  const h = html<Message>()
+
+  return h.a(
     [
       h.Href(href),
       h.Class(
@@ -31,9 +34,12 @@ export const link = (href: string, text: string): Html =>
     ],
     [text],
   )
+}
 
-export const pageTitle = (id: string, text: string): Html =>
-  h.h1(
+export const pageTitle = (id: string, text: string): Html => {
+  const h = html<Message>()
+
+  return h.h1(
     [
       h.Class(
         'text-3xl md:text-[2.5rem] leading-normal font-normal text-gray-900 dark:text-white mb-4',
@@ -43,6 +49,7 @@ export const pageTitle = (id: string, text: string): Html =>
     ],
     [text],
   )
+}
 
 const sectionHeadingConfig = {
   h2: {
@@ -70,6 +77,8 @@ export const heading = (
   id: string,
   text: string,
 ): Html => {
+  const h = html<Message>()
+
   const tag = { h2: h.h2, h3: h.h3, h4: h.h4 }
   const config = sectionHeadingConfig[level]
 
@@ -82,44 +91,64 @@ export const heading = (
   )
 }
 
-export const para = (...content: ReadonlyArray<string | Html>): Html =>
-  h.p([h.Class('mb-4 leading-relaxed')], content)
+export const para = (...content: ReadonlyArray<string | Html>): Html => {
+  const h = html<Message>()
 
-export const subPara = (...content: ReadonlyArray<string | Html>): Html =>
-  h.p(
+  return h.p([h.Class('mb-4 leading-relaxed')], content)
+}
+
+export const subPara = (...content: ReadonlyArray<string | Html>): Html => {
+  const h = html<Message>()
+
+  return h.p(
     [h.Class('mb-4 text-sm leading-6 text-gray-800 dark:text-gray-400')],
     content,
   )
+}
 
 export const paragraphs = (
   ...contents: ReadonlyArray<string>
-): ReadonlyArray<Html> =>
-  Array.map(contents, text => h.p([h.Class('mb-4')], [text]))
+): ReadonlyArray<Html> => {
+  const h = html<Message>()
+
+  return Array.map(contents, text => h.p([h.Class('mb-4')], [text]))
+}
 
 export const tableOfContentsEntryToHeader = (
   entry: TableOfContentsEntry,
 ): Html => heading(entry.level, entry.id, entry.text)
 
-export const bullets = (...items: ReadonlyArray<string | Html>): Html =>
-  h.ul(
+export const bullets = (...items: ReadonlyArray<string | Html>): Html => {
+  const h = html<Message>()
+
+  return h.ul(
     [h.Class('list-disc mb-8 space-y-2')],
     Array.map(items, item => h.li([], [item])),
   )
+}
 
-export const bulletPoint = (label: string, description: string): Html =>
-  h.li([], [h.strong([], [`${label}:`]), ` ${description}`])
+export const bulletPoint = (label: string, description: string): Html => {
+  const h = html<Message>()
+
+  return h.li([], [h.strong([], [`${label}:`]), ` ${description}`])
+}
 
 const inlineCodeClassName =
   'bg-gray-200/70 dark:bg-gray-800 px-1 py-px rounded text-sm border border-gray-300/50 dark:border-gray-700/50'
 
-export const inlineCode = (text: string, className?: string): Html =>
-  h.code([h.Class(twMerge(inlineCodeClassName, className))], [text])
+export const inlineCode = (text: string, className?: string): Html => {
+  const h = html<Message>()
+
+  return h.code([h.Class(twMerge(inlineCodeClassName, className))], [text])
+}
 
 export const infoCallout = (
   label: string,
   ...content: ReadonlyArray<string | Html>
-): Html =>
-  h.div(
+): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [
       h.Class(
         'border border-gray-300 dark:border-gray-700 bg-gray-200/40 dark:bg-gray-800/40 py-3.5 px-5 mb-6 rounded-lg',
@@ -137,9 +166,12 @@ export const infoCallout = (
       h.p([h.Class('text-gray-700 dark:text-gray-300 leading-7')], content),
     ],
   )
+}
 
-export const demoContainer = (...content: ReadonlyArray<Html>): Html =>
-  h.div(
+export const demoContainer = (...content: ReadonlyArray<Html>): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [
       h.Class(
         'rounded-xl border border-gray-200 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/20 p-8 mb-6 flex flex-col items-center',
@@ -147,12 +179,15 @@ export const demoContainer = (...content: ReadonlyArray<Html>): Html =>
     ],
     content,
   )
+}
 
 export const warningCallout = (
   label: string,
   ...content: ReadonlyArray<string | Html>
-): Html =>
-  h.div(
+): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [
       h.Class(
         'border border-amber-400 dark:border-amber-500/50 py-3.5 px-5 mb-6 rounded-lg',
@@ -170,3 +205,4 @@ export const warningCallout = (
       h.p([h.Class('text-gray-700 dark:text-gray-300 leading-7')], content),
     ],
   )
+}

@@ -5,8 +5,6 @@ import * as Scene from '../../test/scene.js'
 import type { Message, Model, ViewConfig } from './index.js'
 import { PressedThumb, init, update, view } from './index.js'
 
-const h = html<Message>()
-
 const sceneView =
   (
     overrides: Omit<
@@ -14,8 +12,10 @@ const sceneView =
       'model' | 'toParentMessage'
     > = {},
   ) =>
-  (model: Model) =>
-    view({
+  (model: Model) => {
+    const h = html<Message>()
+
+    return view({
       toView: attributes =>
         h.div(
           [...attributes.root],
@@ -35,6 +35,7 @@ const sceneView =
       model,
       toParentMessage: message => message,
     })
+  }
 
 const defaultModel = init({
   id: 'test',

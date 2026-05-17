@@ -7,8 +7,6 @@ import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-const h = html<Message>()
-
 // Add the FileDrop Submodel to your Model, plus a list of accepted files:
 const Model = S.Struct({
   uploader: Ui.FileDrop.Model,
@@ -67,23 +65,27 @@ GotFileDropMessage: ({ message }) => {
 // Spread `root` onto a <label> so clicking opens the picker, and spread
 // `input` onto a hidden <input type="file"> nested inside. Style the
 // drag-over state via `data-drag-over`.
-Ui.FileDrop.view({
-  model: model.uploader,
-  toParentMessage: message => GotFileDropMessage({ message }),
-  multiple: true,
-  accept: ['application/pdf', '.doc', '.docx'],
-  toView: attributes =>
-    h.label(
-      [
-        ...attributes.root,
-        h.Class(
-          'flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-gray-300 p-8 text-center hover:border-accent-400 data-[drag-over]:border-accent-500 data-[drag-over]:bg-accent-50',
-        ),
-      ],
-      [
-        h.p([], ['Drop files or click to browse']),
-        h.span([h.Class('text-sm text-gray-500')], ['PDF, DOC, or DOCX']),
-        h.input(attributes.input),
-      ],
-    ),
-})
+const view = (model: Model) => {
+  const h = html<Message>()
+
+  return Ui.FileDrop.view({
+    model: model.uploader,
+    toParentMessage: message => GotFileDropMessage({ message }),
+    multiple: true,
+    accept: ['application/pdf', '.doc', '.docx'],
+    toView: attributes =>
+      h.label(
+        [
+          ...attributes.root,
+          h.Class(
+            'flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-gray-300 p-8 text-center hover:border-accent-400 data-[drag-over]:border-accent-500 data-[drag-over]:bg-accent-50',
+          ),
+        ],
+        [
+          h.p([], ['Drop files or click to browse']),
+          h.span([h.Class('text-sm text-gray-500')], ['PDF, DOC, or DOCX']),
+          h.input(attributes.input),
+        ],
+      ),
+  })
+}

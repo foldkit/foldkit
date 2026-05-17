@@ -44,7 +44,6 @@ const ChangedFillColor = m('ChangedFillColor', { value: S.String })
 const Message = S.Union([ChangedFillColor])
 type Message = typeof Message.Type
 
-const h = html<Message>()
 const fillPicker = hexColorPicker.withMessage<Message>()
 const qr = qrCode.withMessage<Message>()
 
@@ -56,8 +55,10 @@ const qr = qrCode.withMessage<Message>()
 export const designerView = (model: {
   content: string
   fillColor: string
-}): Html =>
-  h.div(
+}): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('flex gap-6')],
     [
       fillPicker([
@@ -74,3 +75,4 @@ export const designerView = (model: {
       ]),
     ],
   )
+}

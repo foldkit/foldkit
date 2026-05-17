@@ -89,10 +89,10 @@ export const update = (
 
 // VIEW
 
-const h = html<Message>()
+export const view = (model: Model): Html => {
+  const h = html<Message>()
 
-export const view = (model: Model): Html =>
-  h.div(
+  return h.div(
     [h.Id('app')],
     [
       M.value(model.status).pipe(
@@ -169,3 +169,4 @@ export const view = (model: Model): Html =>
       ),
     ],
   )
+}

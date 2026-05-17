@@ -6,20 +6,24 @@ import { Html, html } from 'foldkit/html'
 import { type EmailSubscriptionStatus } from '../main'
 import { type Message, SubmittedEmailForm, UpdatedEmailField } from '../message'
 
-const h = html<Message>()
+export const betaTag: Html = (() => {
+  const h = html<Message>()
 
-export const betaTag: Html = h.span(
-  [
-    h.Class(
-      'hidden sm:inline-block -rotate-6 rounded bg-accent-700 dark:bg-accent-500 px-1.5 py-0.5 text-[10px] font-extrabold uppercase leading-none tracking-wider text-white dark:text-accent-900 select-none',
-    ),
-    h.AriaLabel('Beta'),
-  ],
-  ['Beta'],
-)
+  return h.span(
+    [
+      h.Class(
+        'hidden sm:inline-block -rotate-6 rounded bg-accent-700 dark:bg-accent-500 px-1.5 py-0.5 text-[10px] font-extrabold uppercase leading-none tracking-wider text-white dark:text-accent-900 select-none',
+      ),
+      h.AriaLabel('Beta'),
+    ],
+    ['Beta'],
+  )
+})()
 
-export const iconLink = (link: string, ariaLabel: string, icon: Html) =>
-  h.a(
+export const iconLink = (link: string, ariaLabel: string, icon: Html) => {
+  const h = html<Message>()
+
+  return h.a(
     [
       h.Href(link),
       h.Class(
@@ -29,22 +33,29 @@ export const iconLink = (link: string, ariaLabel: string, icon: Html) =>
     ],
     [icon],
   )
+}
 
-export const skipNavLink: Html = h.a(
-  [
-    h.Href('#main-content'),
-    h.Class(
-      'sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-accent-600 dark:focus:bg-accent-500 focus:text-white focus:text-sm focus:font-normal',
-    ),
-  ],
-  ['Skip to main content'],
-)
+export const skipNavLink: Html = (() => {
+  const h = html<Message>()
+
+  return h.a(
+    [
+      h.Href('#main-content'),
+      h.Class(
+        'sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-accent-600 dark:focus:bg-accent-500 focus:text-white focus:text-sm focus:font-normal',
+      ),
+    ],
+    ['Skip to main content'],
+  )
+})()
 
 export const emailFormView = (
   emailField: Field,
   status: 'Idle' | 'Submitting' | 'Failed',
   formClassName: string,
 ): Html => {
+  const h = html<Message>()
+
   const isSubmitting = status === 'Submitting'
 
   return h.div(
@@ -111,8 +122,10 @@ export const emailFormView = (
 export const emailSignupContentView = (
   emailField: Field,
   emailSubscriptionStatus: EmailSubscriptionStatus,
-): Html =>
-  h.div(
+): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Id('newsletter')],
     [
       h.h2(
@@ -148,3 +161,4 @@ export const emailSignupContentView = (
       ),
     ],
   )
+}

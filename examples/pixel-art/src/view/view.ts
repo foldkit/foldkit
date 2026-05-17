@@ -12,10 +12,10 @@ import { errorDialogView, gridSizeConfirmDialogView } from './dialog'
 import { historyPanelView } from './history'
 import { toolPanelView } from './toolbar'
 
-const h = html<Message>()
+const downloadIcon = (className: string): Html => {
+  const h = html<Message>()
 
-const downloadIcon = (className: string): Html =>
-  h.svg(
+  return h.svg(
     [
       h.AriaHidden(true),
       h.Class(className),
@@ -38,6 +38,7 @@ const downloadIcon = (className: string): Html =>
       ),
     ],
   )
+}
 
 const secondaryButtonStyle =
   'px-3 py-1.5 rounded text-sm bg-gray-800 text-gray-200 transition motion-reduce:transition-none'
@@ -48,27 +49,33 @@ const lazyHistoryPanel = createLazy()
 const lazyErrorDialog = createLazy()
 const lazyGridSizeConfirmDialog = createLazy()
 
-export const view = (model: Model): Document => ({
-  title: 'Pixel Art',
-  body: h.div(
-    [h.Class('min-h-screen bg-gray-900 text-gray-100 flex flex-col')],
-    [
-      lazyHeader(headerView, []),
-      contentView(model),
-      lazyErrorDialog(errorDialogView, [
-        model.errorDialog,
-        model.maybeExportError,
-      ]),
-      lazyGridSizeConfirmDialog(gridSizeConfirmDialogView, [
-        model.gridSizeConfirmDialog,
-        model.maybePendingGridSize,
-      ]),
-    ],
-  ),
-})
+export const view = (model: Model): Document => {
+  const h = html<Message>()
 
-const headerView = (): Html =>
-  h.div(
+  return {
+    title: 'Pixel Art',
+    body: h.div(
+      [h.Class('min-h-screen bg-gray-900 text-gray-100 flex flex-col')],
+      [
+        lazyHeader(headerView, []),
+        contentView(model),
+        lazyErrorDialog(errorDialogView, [
+          model.errorDialog,
+          model.maybeExportError,
+        ]),
+        lazyGridSizeConfirmDialog(gridSizeConfirmDialogView, [
+          model.gridSizeConfirmDialog,
+          model.maybePendingGridSize,
+        ]),
+      ],
+    ),
+  }
+}
+
+const headerView = (): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [
       h.Class(
         'flex items-center justify-between px-4 py-3 border-b border-gray-800',
@@ -133,8 +140,11 @@ const headerView = (): Html =>
       ),
     ],
   )
+}
 
 const contentView = (model: Model): Html => {
+  const h = html<Message>()
+
   const theme = currentPaletteTheme(model)
 
   return h.div(

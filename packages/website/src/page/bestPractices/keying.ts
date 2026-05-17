@@ -15,8 +15,6 @@ import {
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
-const h = html<Message>()
-
 const keyingHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'keying',
@@ -48,8 +46,10 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   conditionalInsertsHeader,
 ]
 
-export const view = (copiedSnippets: CopiedSnippets): Html =>
-  h.div(
+export const view = (copiedSnippets: CopiedSnippets): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       pageTitle('best-practices/keying', 'Keying'),
@@ -149,3 +149,4 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
     ],
   )
+}

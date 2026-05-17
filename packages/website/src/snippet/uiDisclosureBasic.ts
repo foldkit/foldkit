@@ -7,8 +7,6 @@ import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-const h = html<Message>()
-
 // Add a field to your Model for the Disclosure Submodel:
 const Model = S.Struct({
   disclosure: Ui.Disclosure.Model,
@@ -49,12 +47,16 @@ GotDisclosureMessage: ({ message }) => {
 }
 
 // Inside your view function, render the disclosure:
-Ui.Disclosure.view({
-  model: model.disclosure,
-  toParentMessage: message => GotDisclosureMessage({ message }),
-  buttonContent: h.span([], ['What is Foldkit?']),
-  panelContent: h.p([], ['A functional UI framework built on Effect-TS.']),
-  buttonClassName:
-    'flex items-center justify-between w-full p-4 border rounded-lg data-[open]:rounded-b-none',
-  panelClassName: 'p-4 border-x border-b rounded-b-lg',
-})
+const view = (model: Model) => {
+  const h = html<Message>()
+
+  return Ui.Disclosure.view({
+    model: model.disclosure,
+    toParentMessage: message => GotDisclosureMessage({ message }),
+    buttonContent: h.span([], ['What is Foldkit?']),
+    panelContent: h.p([], ['A functional UI framework built on Effect-TS.']),
+    buttonClassName:
+      'flex items-center justify-between w-full p-4 border rounded-lg data-[open]:rounded-b-none',
+    panelClassName: 'p-4 border-x border-b rounded-b-lg',
+  })
+}

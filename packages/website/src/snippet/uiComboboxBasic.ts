@@ -7,8 +7,6 @@ import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-const h = html<Message>()
-
 // Add a field to your Model for the Combobox Submodel, plus a field for
 // the selected value your app actually cares about:
 const Model = S.Struct({
@@ -91,28 +89,32 @@ const filteredCities =
 
 // Inside your view function, pass onSelectedItem to fire your SelectedCity
 // Message on selection:
-Ui.Combobox.view({
-  model: model.combobox,
-  toParentMessage: message => GotComboboxMessage({ message }),
-  onSelectedItem: value => SelectedCity({ value }),
-  items: filteredCities,
-  itemToValue: city => city,
-  itemToDisplayText: city => city,
-  itemToConfig: (city, { isSelected }) => ({
-    className: 'px-3 py-2 cursor-pointer data-[active]:bg-blue-100',
-    content: h.div(
-      [h.Class('flex items-center gap-2')],
-      [
-        isSelected ? h.span([], ['✓']) : h.span([h.Class('w-4')], []),
-        h.span([], [city]),
-      ],
-    ),
-  }),
-  inputAttributes: [
-    h.Class('w-full rounded-lg border px-3 py-2'),
-    h.Placeholder('Search cities...'),
-  ],
-  itemsAttributes: [h.Class('rounded-lg border shadow-lg')],
-  backdropAttributes: [h.Class('fixed inset-0')],
-  anchor: { placement: 'bottom-start', gap: 8, padding: 8 },
-})
+const view = () => {
+  const h = html<Message>()
+
+  return Ui.Combobox.view({
+    model: model.combobox,
+    toParentMessage: message => GotComboboxMessage({ message }),
+    onSelectedItem: value => SelectedCity({ value }),
+    items: filteredCities,
+    itemToValue: city => city,
+    itemToDisplayText: city => city,
+    itemToConfig: (city, { isSelected }) => ({
+      className: 'px-3 py-2 cursor-pointer data-[active]:bg-blue-100',
+      content: h.div(
+        [h.Class('flex items-center gap-2')],
+        [
+          isSelected ? h.span([], ['✓']) : h.span([h.Class('w-4')], []),
+          h.span([], [city]),
+        ],
+      ),
+    }),
+    inputAttributes: [
+      h.Class('w-full rounded-lg border px-3 py-2'),
+      h.Placeholder('Search cities...'),
+    ],
+    itemsAttributes: [h.Class('rounded-lg border shadow-lg')],
+    backdropAttributes: [h.Class('fixed inset-0')],
+    anchor: { placement: 'bottom-start', gap: 8, padding: 8 },
+  })
+}

@@ -7,12 +7,13 @@ const InputtedEmail = m('InputtedEmail', { value: S.String })
 const Message = S.Union([InputtedEmail])
 type Message = typeof Message.Type
 
-const h = html<Message>()
+const emailInput = (email: string) => {
+  const h = html<Message>()
 
-const emailInput = (email: string) =>
-  h.input([
+  return h.input([
     h.Type('email'),
     h.Value(email),
     h.Placeholder('you@example.com'),
     h.OnInput(value => InputtedEmail({ value })),
   ])
+}

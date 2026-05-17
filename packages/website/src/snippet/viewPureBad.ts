@@ -2,10 +2,10 @@ import { type Document, html } from 'foldkit/html'
 
 import { Model } from './model'
 
-const h = html()
-
 // ❌ Don't do this in view
 const view = (model: Model): Document => {
+  const h = html()
+
   // Fetching data in view
   fetch('/api/user').then(res => res.json())
 

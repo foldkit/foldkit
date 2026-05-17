@@ -1,9 +1,9 @@
 import { html } from 'foldkit/html'
 
-const h = html<Message>()
+const entryListView = (entries: ReadonlyArray<Entry>): Html => {
+  const h = html<Message>()
 
-const entryListView = (entries: ReadonlyArray<Entry>): Html =>
-  h.ul(
+  return h.ul(
     [],
     entries.map(entry =>
       h.keyed('li')(
@@ -18,3 +18,4 @@ const entryListView = (entries: ReadonlyArray<Entry>): Html =>
       ),
     ),
   )
+}

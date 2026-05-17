@@ -18,8 +18,6 @@ import {
 import type { Model } from './model'
 import { resultsFromState } from './model'
 
-const h = html<ParentMessage>()
-
 type ToMessage = (message: Message) => ParentMessage
 
 const RESULTS_LIST_ID = 'search-results'
@@ -62,6 +60,8 @@ const handleSearchInputKeyDown = (
   )
 
 const searchInputView = (model: Model, toParentMessage: ToMessage): Html => {
+  const h = html<ParentMessage>()
+
   const isListboxVisible =
     model.searchState._tag === 'Ok' || model.searchState._tag === 'Loading'
 
@@ -115,19 +115,24 @@ const resultLabelText = (
     ),
   ])
 
-const resultLabel = (result: typeof SearchResult.Type): ReadonlyArray<Html> =>
-  Option.match(resultLabelText(result), {
+const resultLabel = (result: typeof SearchResult.Type): ReadonlyArray<Html> => {
+  const h = html<ParentMessage>()
+
+  return Option.match(resultLabelText(result), {
     onSome: text => [h.span([h.Class(labelPillClassName)], [text])],
     onNone: () => [],
   })
+}
 
 const resultItemView = (
   result: typeof SearchResult.Type,
   index: number,
   isActive: boolean,
   toParentMessage: ToMessage,
-): Html =>
-  h.a(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.a(
     [
       h.Id(resultItemId(index)),
       h.Href(result.url),
@@ -165,29 +170,40 @@ const resultItemView = (
       ),
     ],
   )
+}
 
-const emptyPrompt: Html = h.div(
-  [h.Class('px-4 py-12 text-center')],
-  [
-    h.p(
-      [h.Class('text-sm text-gray-500 dark:text-gray-400')],
-      ['Type to search the documentation...'],
-    ),
-  ],
-)
+const emptyPrompt: Html = (() => {
+  const h = html<ParentMessage>()
 
-const searchingIndicator: Html = h.div(
-  [h.Class('px-4 py-12 text-center'), h.AriaLive('polite')],
-  [
-    h.p(
-      [h.Class('text-sm text-gray-500 dark:text-gray-400')],
-      ['Searching...'],
-    ),
-  ],
-)
+  return h.div(
+    [h.Class('px-4 py-12 text-center')],
+    [
+      h.p(
+        [h.Class('text-sm text-gray-500 dark:text-gray-400')],
+        ['Type to search the documentation...'],
+      ),
+    ],
+  )
+})()
 
-const noResultsView = (query: string): Html =>
-  h.div(
+const searchingIndicator: Html = (() => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [h.Class('px-4 py-12 text-center'), h.AriaLive('polite')],
+    [
+      h.p(
+        [h.Class('text-sm text-gray-500 dark:text-gray-400')],
+        ['Searching...'],
+      ),
+    ],
+  )
+})()
+
+const noResultsView = (query: string): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [h.Class('px-4 py-12 text-center'), h.AriaLive('polite')],
     [
       h.p(
@@ -196,13 +212,16 @@ const noResultsView = (query: string): Html =>
       ),
     ],
   )
+}
 
 const resultListView = (
   results: ReadonlyArray<typeof SearchResult.Type>,
   activeResultIndex: number,
   toParentMessage: ToMessage,
-): Html =>
-  Array.match(results, {
+): Html => {
+  const h = html<ParentMessage>()
+
+  return Array.match(results, {
     onEmpty: () => h.empty,
     onNonEmpty: nonEmptyResults =>
       h.div(
@@ -222,6 +241,7 @@ const resultListView = (
         ),
       ),
   })
+}
 
 const resultsListView = (model: Model, toParentMessage: ToMessage): Html =>
   M.value(model.searchState).pipe(
@@ -245,6 +265,8 @@ const resultsListView = (model: Model, toParentMessage: ToMessage): Html =>
   )
 
 const resultCountAnnouncement = (model: Model): Html => {
+  const h = html<ParentMessage>()
+
   const results = resultsFromState(model.searchState)
   const count = results.length
 
@@ -254,8 +276,10 @@ const resultCountAnnouncement = (model: Model): Html => {
   )
 }
 
-export const view = (model: Model, toParentMessage: ToMessage): Html =>
-  Ui.Dialog.view({
+export const view = (model: Model, toParentMessage: ToMessage): Html => {
+  const h = html<ParentMessage>()
+
+  return Ui.Dialog.view({
     model: model.dialog,
     toParentMessage: message =>
       toParentMessage(GotSearchDialogMessage({ message })),
@@ -284,3 +308,4 @@ export const view = (model: Model, toParentMessage: ToMessage): Html =>
       h.Class('fixed inset-0 z-[59] bg-black/50 dark:bg-black/70'),
     ],
   })
+}

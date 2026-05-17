@@ -9,8 +9,6 @@ import type { Message } from '../message'
 import { exampleDetailRouter, examplesRouter } from '../route'
 import { type ExampleMeta, findBySlug } from './example/meta'
 
-const h = html<Message>()
-
 export const SucceededPlaygroundEmbed = m('SucceededPlaygroundEmbed')
 export const FailedPlaygroundEmbed = m('FailedPlaygroundEmbed', {
   reason: S.String,
@@ -66,8 +64,10 @@ const PlaygroundEmbed = Mount.define(
       ),
 )
 
-const backToExampleButton = (maybeMeta: Option.Option<ExampleMeta>): Html =>
-  Option.match(maybeMeta, {
+const backToExampleButton = (maybeMeta: Option.Option<ExampleMeta>): Html => {
+  const h = html<Message>()
+
+  return Option.match(maybeMeta, {
     onNone: () =>
       h.a(
         [h.Href(examplesRouter()), h.Class('cta-secondary')],
@@ -82,13 +82,16 @@ const backToExampleButton = (maybeMeta: Option.Option<ExampleMeta>): Html =>
         [Icon.chevronLeft('w-4 h-4'), `Back to ${meta.title}`],
       ),
   })
+}
 
 const messageView = (
   heading: string,
   body: string,
   maybeMeta: Option.Option<ExampleMeta>,
-): Html =>
-  h.div(
+): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('flex-1 flex items-center justify-center px-6 py-20 text-center')],
     [
       h.div(
@@ -111,6 +114,7 @@ const messageView = (
       ),
     ],
   )
+}
 
 // NOTE: this Mount registers no acquireRelease finalizer. The StackBlitz
 // SDK maintains an internal `connections` array that isn't exposed for
@@ -119,8 +123,10 @@ const messageView = (
 // unmount; there is no additional cleanup hook the SDK accepts. The
 // resulting per-visit leak is a few KB of JS state, negligible for a docs
 // site, tracked as a follow-up to request a public teardown method.
-const embedView = (meta: ExampleMeta, files: Record<string, string>): Html =>
-  h.div(
+const embedView = (meta: ExampleMeta, files: Record<string, string>): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('flex-1 min-h-0')],
     [
       h.div(
@@ -137,12 +143,15 @@ const embedView = (meta: ExampleMeta, files: Record<string, string>): Html =>
       ),
     ],
   )
+}
 
 export const view = (
   slug: string,
   isChromium: boolean,
   playgroundError: Option.Option<string>,
 ): Html => {
+  const h = html<Message>()
+
   const maybeMeta = findBySlug(slug)
   const maybeFiles = Option.fromNullishOr(filesBySlug[slug])
 

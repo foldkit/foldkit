@@ -65,30 +65,36 @@ export const update = (
 
 // VIEW
 
-const h = html<Message>()
+const submitButton = (isEnabled: boolean): Html => {
+  const h = html<Message>()
 
-const submitButton = (isEnabled: boolean): Html =>
-  h.button(
+  return h.button(
     [
       h.Class('submit'),
       ...(isEnabled ? [h.OnClick(ClickedSubmit())] : [h.Disabled(true)]),
     ],
     ['Submit'],
   )
+}
 
 /** Plain view — no dialog wrapper. */
-export const view = (model: Model): Html =>
-  h.div(
+export const view = (model: Model): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       h.button([h.OnClick(ClickedToggle())], ['Toggle']),
       submitButton(model.isEnabled),
     ],
   )
+}
 
 /** View with submit button inside a dialog's panelContent. */
-export const viewWithDialog = (model: Model): Html =>
-  h.div(
+export const viewWithDialog = (model: Model): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       h.button([h.OnClick(ClickedToggle())], ['Toggle']),
@@ -100,12 +106,15 @@ export const viewWithDialog = (model: Model): Html =>
       }),
     ],
   )
+}
 
 /** View using Dialog.lazy with panelContent passed dynamically. */
 const lazyDialogView = Dialog.lazy<Message>({})
 
-export const viewWithLazyDialog = (model: Model): Html =>
-  h.div(
+export const viewWithLazyDialog = (model: Model): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       h.button([h.OnClick(ClickedToggle())], ['Toggle']),
@@ -117,3 +126,4 @@ export const viewWithLazyDialog = (model: Model): Html =>
       ),
     ],
   )
+}

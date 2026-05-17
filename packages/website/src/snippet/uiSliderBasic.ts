@@ -7,8 +7,6 @@ import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-const h = html<Message>()
-
 // Add a field to your Model for the Slider Submodel:
 const Model = S.Struct({
   ratingDemo: Ui.Slider.Model,
@@ -88,56 +86,63 @@ const subscriptions = Subscription.makeSubscriptions(SubscriptionDependencies)<
 // Inside your view function, render the slider. You control every element's
 // markup and classes through the `toView` callback. The `attributes` groups
 // provide ARIA, pointer, and keyboard wiring:
-Ui.Slider.view({
-  model: model.ratingDemo,
-  toParentMessage: message => GotSliderMessage({ message }),
-  formatValue: value => `${String(value)} of 10`,
-  toView: attributes =>
-    h.div(
-      [h.Class('flex flex-col gap-2 w-full max-w-sm')],
-      [
-        h.div(
-          [h.Class('flex items-center justify-between text-sm')],
-          [
-            h.label([...attributes.label, h.Class('font-medium')], ['Rating']),
-            h.span(
-              [h.Class('tabular-nums text-gray-600')],
-              [`${String(model.ratingDemo.value)} / 10`],
-            ),
-          ],
-        ),
-        h.div(
-          [
-            ...attributes.root,
-            h.Class('relative h-6 w-full flex items-center'),
-          ],
-          [
-            h.div(
-              [
-                ...attributes.track,
-                h.Class('h-1.5 w-full rounded-full bg-gray-200'),
-              ],
-              [
-                h.div(
-                  [
-                    ...attributes.filledTrack,
-                    h.Class('h-full rounded-full bg-blue-600'),
-                  ],
-                  [],
-                ),
-              ],
-            ),
-            h.div(
-              [
-                ...attributes.thumb,
-                h.Class(
-                  'h-5 w-5 rounded-full bg-white border-2 border-blue-600 shadow cursor-grab focus-visible:ring-2 focus-visible:ring-blue-600 data-[dragging]:cursor-grabbing',
-                ),
-              ],
-              [],
-            ),
-          ],
-        ),
-      ],
-    ),
-})
+const view = (model: Model) => {
+  const h = html<Message>()
+
+  return Ui.Slider.view({
+    model: model.ratingDemo,
+    toParentMessage: message => GotSliderMessage({ message }),
+    formatValue: value => `${String(value)} of 10`,
+    toView: attributes =>
+      h.div(
+        [h.Class('flex flex-col gap-2 w-full max-w-sm')],
+        [
+          h.div(
+            [h.Class('flex items-center justify-between text-sm')],
+            [
+              h.label(
+                [...attributes.label, h.Class('font-medium')],
+                ['Rating'],
+              ),
+              h.span(
+                [h.Class('tabular-nums text-gray-600')],
+                [`${String(model.ratingDemo.value)} / 10`],
+              ),
+            ],
+          ),
+          h.div(
+            [
+              ...attributes.root,
+              h.Class('relative h-6 w-full flex items-center'),
+            ],
+            [
+              h.div(
+                [
+                  ...attributes.track,
+                  h.Class('h-1.5 w-full rounded-full bg-gray-200'),
+                ],
+                [
+                  h.div(
+                    [
+                      ...attributes.filledTrack,
+                      h.Class('h-full rounded-full bg-blue-600'),
+                    ],
+                    [],
+                  ),
+                ],
+              ),
+              h.div(
+                [
+                  ...attributes.thumb,
+                  h.Class(
+                    'h-5 w-5 rounded-full bg-white border-2 border-blue-600 shadow cursor-grab focus-visible:ring-2 focus-visible:ring-blue-600 data-[dragging]:cursor-grabbing',
+                  ),
+                ],
+                [],
+              ),
+            ],
+          ),
+        ],
+      ),
+  })
+}

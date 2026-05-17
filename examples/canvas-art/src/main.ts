@@ -190,8 +190,6 @@ export const subscriptions = Subscription.makeSubscriptions(
 
 // VIEW
 
-const h = html<Message>()
-
 const backgroundShape = Canvas.Rect({
   x: 0,
   y: 0,
@@ -213,8 +211,10 @@ const sceneShapes = (model: Model): ReadonlyArray<Canvas.Shape> => [
   ...Array.map(model.balls, ballShape),
 ]
 
-const controlsView = (model: Model): Html =>
-  h.div(
+const controlsView = (model: Model): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('flex gap-3 mt-4')],
     [
       h.button(
@@ -247,29 +247,34 @@ const controlsView = (model: Model): Html =>
       ),
     ],
   )
+}
 
-export const view = (model: Model): Document => ({
-  title: `Canvas Art (${model.balls.length} balls)`,
-  body: h.div(
-    [
-      h.Class(
-        'flex flex-col items-center justify-center min-h-screen bg-black text-white p-8',
-      ),
-    ],
-    [
-      h.h1([h.Class('text-4xl font-bold mb-2')], ['Canvas Art']),
-      h.p(
-        [h.Class('text-zinc-400 mb-6')],
-        ['Click the canvas to spawn a ball.'],
-      ),
-      Canvas.view<Message>({
-        width: CANVAS_WIDTH,
-        height: CANVAS_HEIGHT,
-        shapes: sceneShapes(model),
-        className: 'rounded-lg shadow-2xl cursor-crosshair',
-        onPointerDown: ({ x, y }) => ClickedCanvas({ x, y }),
-      }),
-      controlsView(model),
-    ],
-  ),
-})
+export const view = (model: Model): Document => {
+  const h = html<Message>()
+
+  return {
+    title: `Canvas Art (${model.balls.length} balls)`,
+    body: h.div(
+      [
+        h.Class(
+          'flex flex-col items-center justify-center min-h-screen bg-black text-white p-8',
+        ),
+      ],
+      [
+        h.h1([h.Class('text-4xl font-bold mb-2')], ['Canvas Art']),
+        h.p(
+          [h.Class('text-zinc-400 mb-6')],
+          ['Click the canvas to spawn a ball.'],
+        ),
+        Canvas.view<Message>({
+          width: CANVAS_WIDTH,
+          height: CANVAS_HEIGHT,
+          shapes: sceneShapes(model),
+          className: 'rounded-lg shadow-2xl cursor-crosshair',
+          onPointerDown: ({ x, y }) => ClickedCanvas({ x, y }),
+        }),
+        controlsView(model),
+      ],
+    ),
+  }
+}

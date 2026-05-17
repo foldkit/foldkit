@@ -441,4 +441,4 @@ Notes:
 - When an Effect module name collides with a global, alias the Effect import with a trailing underscore: `String as String_`, `Array as Array_`, `Number as Number_`.
 - `Match as M` is Effect's Match module. Foldkit re-exports `M.value`, `M.tagsExhaustive`, `M.withReturnType` etc. through Effect's `Match`.
 - `Ui` from `foldkit` gives access to all UI components: `Ui.Dialog`, `Ui.Tabs`, `Ui.Menu`, `Ui.DatePicker`, `Ui.FileDrop`, `Ui.Toast`, `Ui.Tooltip`, etc.
-- `empty` and `keyed` can be imported from `foldkit/html` directly or accessed off `h` after binding `const h = html<Message>()`.
+- `empty` and `keyed` are properties on `h` after binding `const h = html<Message>()` inside the view function. They are not top-level exports of `foldkit/html`.

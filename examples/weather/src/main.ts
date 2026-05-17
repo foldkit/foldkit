@@ -245,80 +245,84 @@ export const FetchWeather = Command.define(
 
 // VIEW
 
-const h = html<Message>()
+export const view = (model: Model): Document => {
+  const h = html<Message>()
 
-export const view = (model: Model): Document => ({
-  title: 'Weather',
-  body: h.div(
-    [
-      h.Class(
-        'min-h-screen bg-gradient-to-br from-blue-100 to-blue-300 flex flex-col items-center justify-center gap-6 p-6',
-      ),
-    ],
-    [
-      h.h1([h.Class('text-4xl font-bold text-blue-900 mb-8')], ['Weather']),
+  return {
+    title: 'Weather',
+    body: h.div(
+      [
+        h.Class(
+          'min-h-screen bg-gradient-to-br from-blue-100 to-blue-300 flex flex-col items-center justify-center gap-6 p-6',
+        ),
+      ],
+      [
+        h.h1([h.Class('text-4xl font-bold text-blue-900 mb-8')], ['Weather']),
 
-      h.form(
-        [
-          h.Class('flex flex-col gap-4 items-center w-full max-w-md'),
-          h.OnSubmit(SubmittedWeatherForm()),
-        ],
-        [
-          h.label([h.For('location'), h.Class('sr-only')], ['Zip code']),
-          h.input([
-            h.Id('location'),
-            h.Class(
-              'w-full px-4 py-2 rounded-lg border-2 border-blue-300 focus:border-blue-500 outline-none',
-            ),
-            h.Autocomplete('off'),
-            h.DataAttribute('1p-ignore', ''),
-            h.Placeholder('Enter a zip code'),
-            h.Value(model.zipCodeInput),
-            h.OnInput(value => UpdatedZipCodeInput({ value })),
-          ]),
-          h.button(
-            [
-              h.Type('submit'),
-              h.Disabled(model.weather._tag === 'WeatherLoading'),
+        h.form(
+          [
+            h.Class('flex flex-col gap-4 items-center w-full max-w-md'),
+            h.OnSubmit(SubmittedWeatherForm()),
+          ],
+          [
+            h.label([h.For('location'), h.Class('sr-only')], ['Zip code']),
+            h.input([
+              h.Id('location'),
               h.Class(
-                'px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition disabled:opacity-50',
+                'w-full px-4 py-2 rounded-lg border-2 border-blue-300 focus:border-blue-500 outline-none',
               ),
-            ],
-            [
-              model.weather._tag === 'WeatherLoading'
-                ? 'Loading...'
-                : 'Get Weather',
-            ],
-          ),
-        ],
-      ),
-
-      M.value(model.weather).pipe(
-        M.tagsExhaustive({
-          WeatherInit: () => h.empty,
-          WeatherLoading: () =>
-            h.div(
-              [h.Class('text-blue-600 font-semibold text-center')],
-              ['Fetching weather...'],
-            ),
-          WeatherFailure: ({ error }) =>
-            h.div(
+              h.Autocomplete('off'),
+              h.DataAttribute('1p-ignore', ''),
+              h.Placeholder('Enter a zip code'),
+              h.Value(model.zipCodeInput),
+              h.OnInput(value => UpdatedZipCodeInput({ value })),
+            ]),
+            h.button(
               [
+                h.Type('submit'),
+                h.Disabled(model.weather._tag === 'WeatherLoading'),
                 h.Class(
-                  'p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg',
+                  'px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition disabled:opacity-50',
                 ),
               ],
-              [error],
+              [
+                model.weather._tag === 'WeatherLoading'
+                  ? 'Loading...'
+                  : 'Get Weather',
+              ],
             ),
-          WeatherSuccess: ({ data: weather }) => weatherView(weather),
-        }),
-      ),
-    ],
-  ),
-})
+          ],
+        ),
 
-const weatherView = (weather: WeatherData): Html =>
-  h.article(
+        M.value(model.weather).pipe(
+          M.tagsExhaustive({
+            WeatherInit: () => h.empty,
+            WeatherLoading: () =>
+              h.div(
+                [h.Class('text-blue-600 font-semibold text-center')],
+                ['Fetching weather...'],
+              ),
+            WeatherFailure: ({ error }) =>
+              h.div(
+                [
+                  h.Class(
+                    'p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg',
+                  ),
+                ],
+                [error],
+              ),
+            WeatherSuccess: ({ data: weather }) => weatherView(weather),
+          }),
+        ),
+      ],
+    ),
+  }
+}
+
+const weatherView = (weather: WeatherData): Html => {
+  const h = html<Message>()
+
+  return h.article(
     [h.Class('bg-white rounded-xl shadow-lg p-8 max-w-md w-full')],
     [
       h.h2(
@@ -368,3 +372,4 @@ const weatherView = (weather: WeatherData): Html =>
       ),
     ],
   )
+}

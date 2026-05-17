@@ -310,8 +310,6 @@ export const update = (
 
 // VIEW
 
-const h = html<Message>()
-
 type NavItem = Readonly<{
   label: string
   routeTag: string
@@ -369,8 +367,10 @@ const mobileNavLinkClassName = (isActive: boolean): string =>
       : 'text-gray-700 hover:bg-gray-200',
   )
 
-const sidebarView = (currentRoute: AppRoute): Html =>
-  h.nav(
+const sidebarView = (currentRoute: AppRoute): Html => {
+  const h = html<Message>()
+
+  return h.nav(
     [
       h.Class(
         'hidden md:flex w-56 shrink-0 border-r border-gray-200 bg-gray-50 p-4 flex-col',
@@ -413,9 +413,12 @@ const sidebarView = (currentRoute: AppRoute): Html =>
       ),
     ],
   )
+}
 
-const mobileMenuContent = (currentRoute: AppRoute): Html =>
-  h.div(
+const mobileMenuContent = (currentRoute: AppRoute): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('flex flex-col h-full')],
     [
       h.div(
@@ -487,9 +490,12 @@ const mobileMenuContent = (currentRoute: AppRoute): Html =>
       ),
     ],
   )
+}
 
-const mobileHeaderView = (model: Model): Html =>
-  h.header(
+const mobileHeaderView = (model: Model): Html => {
+  const h = html<Message>()
+
+  return h.header(
     [
       h.Class(
         'md:hidden sticky top-0 z-40 flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3',
@@ -527,9 +533,12 @@ const mobileHeaderView = (model: Model): Html =>
       ),
     ],
   )
+}
 
-const mobileMenuView = (model: Model): Html =>
-  Ui.Dialog.view({
+const mobileMenuView = (model: Model): Html => {
+  const h = html<Message>()
+
+  return Ui.Dialog.view({
     model: model.uiModel.mobileMenuDialog,
     toParentMessage: toMobileMenuDialogMessage,
     panelContent: mobileMenuContent(model.route),
@@ -537,9 +546,12 @@ const mobileMenuView = (model: Model): Html =>
     backdropAttributes: [h.Class('fixed inset-0 z-[59]')],
     attributes: [h.Class('md:hidden')],
   })
+}
 
-const homeView = (): Html =>
-  h.div(
+const homeView = (): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('max-w-2xl')],
     [
       h.h1(
@@ -560,9 +572,12 @@ const homeView = (): Html =>
       ),
     ],
   )
+}
 
-const notFoundView = (path: string): Html =>
-  h.div(
+const notFoundView = (path: string): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('max-w-2xl')],
     [
       h.h1(
@@ -579,6 +594,7 @@ const notFoundView = (path: string): Html =>
       ),
     ],
   )
+}
 
 const contentView = (model: Model): Html =>
   M.value(model.route).pipe(
@@ -618,21 +634,25 @@ const routeTitle = (route: Model['route']): string =>
     M.orElse(({ _tag }) => `${_tag} — Foldkit UI Showcase`),
   )
 
-export const view = (model: Model): Document => ({
-  title: routeTitle(model.route),
-  body: h.div(
-    [h.Class('flex flex-col md:flex-row min-h-screen bg-white')],
-    [
-      mobileHeaderView(model),
-      mobileMenuView(model),
-      sidebarView(model.route),
-      h.main(
-        [h.Class('flex-1 p-4 md:p-8 overflow-auto')],
-        [h.keyed('div')(model.route._tag, [], [contentView(model)])],
-      ),
-    ],
-  ),
-})
+export const view = (model: Model): Document => {
+  const h = html<Message>()
+
+  return {
+    title: routeTitle(model.route),
+    body: h.div(
+      [h.Class('flex flex-col md:flex-row min-h-screen bg-white')],
+      [
+        mobileHeaderView(model),
+        mobileMenuView(model),
+        sidebarView(model.route),
+        h.main(
+          [h.Class('flex-1 p-4 md:p-8 overflow-auto')],
+          [h.keyed('div')(model.route._tag, [], [contentView(model)])],
+        ),
+      ],
+    ),
+  }
+}
 
 // SUBSCRIPTION
 

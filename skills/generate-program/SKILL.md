@@ -301,7 +301,7 @@ For each Foldkit module you plan to use, read the `.d.ts` at the paths below. Re
 ```
 # Every app
 <project>/node_modules/foldkit/dist/index.d.ts          # top-level re-exports
-<project>/node_modules/foldkit/dist/html/index.d.ts     # html<M>(), element signatures, Attribute<M>, empty, keyed
+<project>/node_modules/foldkit/dist/html/index.d.ts     # html<Message>(), element signatures, Attribute<Message>, empty, keyed
 <project>/node_modules/foldkit/dist/message/index.d.ts  # m()
 <project>/node_modules/foldkit/dist/schema/index.d.ts   # ts(), r()
 <project>/node_modules/foldkit/dist/struct/index.d.ts   # evo(): check nested-update signature
@@ -341,7 +341,7 @@ For each Foldkit module you plan to use, read the `.d.ts` at the paths below. Re
 For each symbol you'll call, write one line:
 
 ```
-html<M>(): { div, input (VOID), textarea, button, Class, Href, For, Id, Role, OnClick(M), OnInput(value=>M), OnBlur(M), OnSubmit(M), keyed, empty, ... }
+html<Message>(): { div, input (VOID), textarea, button, Class, Href, For, Id, Role, OnClick(Message), OnInput(value=>Message), OnBlur(Message), OnSubmit(Message), keyed, empty, ... }
 Route.mapTo(schema)(parser): curried
 pushUrl(path): Effect<void>  // NOT fallible, no Effect.ignore needed
 urlToString(url: Url): string
@@ -357,7 +357,7 @@ Record these in the crib and keep them visible while generating:
 - **`input` and `br` and other void elements take ONLY attributes**: `input([...])`, never `input([...], [])`. `textarea` and `button` DO take children.
 - **`UrlRequest` tags are `Internal` and `External`**, not `InternalUrl` / `ExternalUrl`.
 - **`OnClick` and `OnSubmit` take a Message directly**, not a `() => Message`. Only `OnInput` takes `(value) => Message` because it needs the input value.
-- **`keyed`, `empty` are properties on the record returned by `html<M>()`**: accessed as `h.keyed` and `h.empty` after `const h = html<M>()`. They are not top-level exports of `foldkit/html`.
+- **`keyed`, `empty` are properties on the record returned by `html<Message>()`**: accessed as `h.keyed` and `h.empty` after `const h = html<Message>()`. They are not top-level exports of `foldkit/html`.
 - **Attribute helpers are specific**: `Value(...)`, `Type(...)`, `Placeholder(...)`, `Href(...)`, `Target(...)`, `Rel(...)`, `Rows(n)`, `Id(...)`, `For(...)`, `Role(...)`, `AriaLabel(...)`. There is no generic `Attr('...', '...')`.
 - **`ProgramInit<Model, Message, Flags>` has no URL parameter.** For routed apps, use `RoutingProgramInit<Model, Message, Flags>`: the second arg is `url: Url`.
 - **`Route.mapTo` takes the route schema, not a factory function.** `pipe(literal('new'), Route.mapTo(NewLinkRoute))`. NOT `Route.mapTo(() => NewLinkRoute())`.
@@ -512,7 +512,7 @@ For file uploads (resumes, images, attachments):
 
 ### View
 
-- Bind the html factory once per module: `const h = html<Message>()`. Reach for elements, attributes, and event handlers off `h`: `h.div`, `h.Class`, `h.OnClick`. For child views generic over a parent's Message, take `<ParentMessage>` as a function generic and bind `const h = html<ParentMessage>()` inside the function body.
+- Bind the html factory inside each view function (never at module level): `const h = html<Message>()` as the first line of the function body. Reach for elements, attributes, and event handlers off `h`: `h.div`, `h.Class`, `h.OnClick`. For child views generic over a parent's Message, take `<ParentMessage>` as a function generic and bind `const h = html<ParentMessage>()` inside the function body.
 - Use `h.Class(...)` for Tailwind classes
 - Use `clsx` from the `clsx` package for conditional class composition: `h.Class(clsx('base-classes', { 'active-class': isActive, 'bg-blue-500': variant === 'Primary' }))`. Use `clsx` whenever classes depend on model state, boolean flags, or discriminated union tags. Never string concatenation, template literals, or `&&` expressions.
 - Pattern match on model state: `M.value(model.state).pipe(M.tagsExhaustive({...}))`

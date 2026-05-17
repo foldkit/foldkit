@@ -99,10 +99,10 @@ export const update = (
 
 // VIEW
 
-const h = html<Message>()
+export const view = (model: Model): Html => {
+  const h = html<Message>()
 
-export const view = (model: Model): Html =>
-  h.div(
+  return h.div(
     [h.Class('panel-test')],
     [
       h.button(
@@ -129,12 +129,15 @@ export const view = (model: Model): Html =>
         : []),
     ],
   )
+}
 
 /** A view that always renders both the toggle button and the panel, exposing
  *  two MeasurePanel mounts simultaneously so we can exercise the (name,
  *  occurrence) tracking. */
-export const twoPanelView = (model: Model): Html =>
-  h.div(
+export const twoPanelView = (model: Model): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('two-panels')],
     [
       h.div([h.Key('panel-a'), h.OnMount(MeasurePanel())], [h.span([], ['A'])]),
@@ -145,13 +148,17 @@ export const twoPanelView = (model: Model): Html =>
       ),
     ],
   )
+}
 
 /** A view that renders an arg-bearing Mount so Scene tests can exercise
  *  Instance-based mount matching (matcher's args structurally equal the
  *  pending Mount's args). The chosen `offset` flows through `ScrollList`'s
  *  args and is observable on the rendered Mount marker. */
-export const scrollListView = (offset: number): Html =>
-  h.div(
+export const scrollListView = (offset: number): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('scroll-list')],
     [h.div([h.Key('list'), h.OnMount(ScrollList({ offset }))], [])],
   )
+}

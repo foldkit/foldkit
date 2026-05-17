@@ -9,10 +9,10 @@ const Loaded = S.TaggedStruct('Loaded', { greeting: S.String })
 const Status = S.Union([Idle, Loading, Failed, Loaded])
 type Status = typeof Status.Type
 
-const h = html()
+const greetingView = (status: Status) => {
+  const h = html()
 
-const greetingView = (status: Status) =>
-  h.div(
+  return h.div(
     [],
     [
       M.value(status).pipe(
@@ -25,3 +25,4 @@ const greetingView = (status: Status) =>
       ),
     ],
   )
+}

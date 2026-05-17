@@ -33,8 +33,6 @@ import { skillsView } from './skills'
 import { stepList, stepMenu } from './stepNav'
 import { workHistoryView } from './workHistory'
 
-const h = html<Message>()
-
 const stepHasErrors =
   (model: Model) =>
   (step: Step.Step): boolean =>
@@ -91,8 +89,10 @@ const isFirstStep = (model: Model): boolean =>
 const isLastStep = (model: Model): boolean =>
   pipe(Step.all, Array.last, Option.exists(Equal.equals(model.currentStep)))
 
-const navigationButtons = (model: Model): Html =>
-  h.keyed('div')(
+const navigationButtons = (model: Model): Html => {
+  const h = html<Message>()
+
+  return h.keyed('div')(
     'navigation',
     [h.Class('flex justify-between pt-6 mt-8 border-t border-gray-200')],
     [
@@ -128,9 +128,12 @@ const navigationButtons = (model: Model): Html =>
           ]),
     ],
   )
+}
 
-const pageHeader = (): Html =>
-  h.div(
+const pageHeader = (): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('mb-6')],
     [
       h.h1(
@@ -143,9 +146,12 @@ const pageHeader = (): Html =>
       ),
     ],
   )
+}
 
-const stepContentPanel = (model: Model): Html =>
-  h.keyed('div')(
+const stepContentPanel = (model: Model): Html => {
+  const h = html<Message>()
+
+  return h.keyed('div')(
     'step-content-panel',
     [h.Class('flex-1 min-w-0')],
     [
@@ -162,12 +168,15 @@ const stepContentPanel = (model: Model): Html =>
       ...(model.currentStep !== 'Review' ? [navigationButtons(model)] : []),
     ],
   )
+}
 
 const desktopStepSidebar = (
   model: Model,
   errorSteps: HashSet.HashSet<Step.Step>,
-): Html =>
-  h.keyed('div')(
+): Html => {
+  const h = html<Message>()
+
+  return h.keyed('div')(
     'desktop-sidebar',
     [h.Class('hidden w-60 shrink-0 lg:block')],
     [
@@ -181,9 +190,12 @@ const desktopStepSidebar = (
       ),
     ],
   )
+}
 
-const desktopPreviewSidebar = (model: Model): Html =>
-  h.keyed('div')(
+const desktopPreviewSidebar = (model: Model): Html => {
+  const h = html<Message>()
+
+  return h.keyed('div')(
     'desktop-preview',
     [h.Class('hidden w-80 shrink-0 xl:block')],
     [
@@ -211,9 +223,12 @@ const desktopPreviewSidebar = (model: Model): Html =>
       ),
     ],
   )
+}
 
-const mobilePreviewToggle = (model: Model): Html =>
-  h.keyed('div')(
+const mobilePreviewToggle = (model: Model): Html => {
+  const h = html<Message>()
+
+  return h.keyed('div')(
     'mobile-toggle',
     [h.Class('fixed bottom-4 right-4 xl:hidden')],
     [
@@ -234,9 +249,12 @@ const mobilePreviewToggle = (model: Model): Html =>
       ),
     ],
   )
+}
 
-const mobilePreviewOverlay = (model: Model): Html =>
-  h.keyed('div')(
+const mobilePreviewOverlay = (model: Model): Html => {
+  const h = html<Message>()
+
+  return h.keyed('div')(
     'mobile-overlay',
     [
       h.Class(
@@ -245,8 +263,11 @@ const mobilePreviewOverlay = (model: Model): Html =>
     ],
     [preview<Message>(model)],
   )
+}
 
 export const view = (model: Model): Document => {
+  const h = html<Message>()
+
   const errorSteps = stepsWithErrors(model)
   const body = h.div(
     [h.Class('min-h-screen bg-gray-50')],

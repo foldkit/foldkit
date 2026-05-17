@@ -4,12 +4,12 @@ import { Html, html } from 'foldkit/html'
 
 import { type Message } from '../message'
 
-const h = html<Message>()
-
 const columnBorder = 'border-r border-gray-300 dark:border-gray-700'
 
-const headerCell = (text: string, isLastColumn: boolean): Html =>
-  h.th(
+const headerCell = (text: string, isLastColumn: boolean): Html => {
+  const h = html<Message>()
+
+  return h.th(
     [
       h.Class(
         clsx(
@@ -20,13 +20,16 @@ const headerCell = (text: string, isLastColumn: boolean): Html =>
     ],
     [text],
   )
+}
 
 const cell = (
   content: ReadonlyArray<string | Html>,
   isFirstColumn: boolean,
   isLastColumn: boolean,
-): Html =>
-  h.td(
+): Html => {
+  const h = html<Message>()
+
+  return h.td(
     [
       h.Class(
         clsx(
@@ -38,12 +41,15 @@ const cell = (
     ],
     content,
   )
+}
 
 export const comparisonTable = (
   headers: ReadonlyArray<string>,
   rows: ReadonlyArray<ReadonlyArray<ReadonlyArray<string | Html>>>,
-): Html =>
-  h.div(
+): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [
       h.Class(
         'overflow-x-auto mb-6 border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden',
@@ -87,3 +93,4 @@ export const comparisonTable = (
       ),
     ],
   )
+}

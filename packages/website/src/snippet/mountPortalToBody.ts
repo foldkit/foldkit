@@ -3,8 +3,6 @@ import { Mount } from 'foldkit'
 import { type Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 
-const h = html<Message>()
-
 const CompletedPortalToBody = m('CompletedPortalToBody')
 
 // Portal-to-body is a per-instance lifecycle effect that uses the element
@@ -26,5 +24,11 @@ const PortalToBody = Mount.define(
   }),
 )
 
-const overlayView = (): Html =>
-  h.div([h.Class('fixed inset-0 bg-black/50'), h.OnMount(PortalToBody())])
+const overlayView = (): Html => {
+  const h = html<Message>()
+
+  return h.div([
+    h.Class('fixed inset-0 bg-black/50'),
+    h.OnMount(PortalToBody()),
+  ])
+}

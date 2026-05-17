@@ -7,8 +7,6 @@ import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-const h = html<Message>()
-
 // Add a field to your Model for the Animation Submodel. Animation tracks
 // its own visibility and lifecycle state. No need for a separate flag:
 const Model = S.Struct({
@@ -85,26 +83,34 @@ GotAnimationMessage: ({ message }) => {
 
 // Inside your view function, toggle visibility by dispatching Ui.Animation.Showed()
 // or Hid() wrapped in your parent Message. model.animation.isShowing is your
-// source of truth for whether content is currently visible:
-h.button(
-  [
-    h.OnClick(
-      GotAnimationMessage({
-        message: model.animation.isShowing
-          ? Ui.Animation.Hid()
-          : Ui.Animation.Showed(),
-      }),
-    ),
-  ],
-  [model.animation.isShowing ? 'Hide' : 'Show'],
-)
+// source of truth for whether content is currently visible. The Animation
+// view wraps your content. Data attributes drive the CSS transitions or
+// keyframe animations defined in className:
+const view = () => {
+  const h = html<Message>()
 
-// The Animation view wraps your content. Data attributes drive the CSS
-// transitions or keyframe animations defined in className:
-Ui.Animation.view({
-  model: model.animation,
-  animateSize: true,
-  className:
-    'transition duration-200 ease-out data-[closed]:opacity-0 data-[closed]:scale-95',
-  content: h.p([], ['This content animates in and out.']),
-})
+  return h.div(
+    [],
+    [
+      h.button(
+        [
+          h.OnClick(
+            GotAnimationMessage({
+              message: model.animation.isShowing
+                ? Ui.Animation.Hid()
+                : Ui.Animation.Showed(),
+            }),
+          ),
+        ],
+        [model.animation.isShowing ? 'Hide' : 'Show'],
+      ),
+      Ui.Animation.view({
+        model: model.animation,
+        animateSize: true,
+        className:
+          'transition duration-200 ease-out data-[closed]:opacity-0 data-[closed]:scale-95',
+        content: h.p([], ['This content animates in and out.']),
+      }),
+    ],
+  )
+}

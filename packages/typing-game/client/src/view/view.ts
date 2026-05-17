@@ -6,8 +6,6 @@ import { Model } from '../model'
 import { Home, Room } from '../page'
 import { NotFoundRoute } from '../route'
 
-const h = html<Message>()
-
 const routeTitle = (route: Model['route']): string =>
   M.value(route).pipe(
     M.tagsExhaustive({
@@ -18,6 +16,8 @@ const routeTitle = (route: Model['route']): string =>
   )
 
 export const view = (model: Model): Document => {
+  const h = html<Message>()
+
   const content = M.value(model.route).pipe(
     M.tagsExhaustive({
       Home: () =>
@@ -63,8 +63,10 @@ export const view = (model: Model): Document => {
   }
 }
 
-const notFound = ({ path }: NotFoundRoute): Html =>
-  h.section(
+const notFound = ({ path }: NotFoundRoute): Html => {
+  const h = html<Message>()
+
+  return h.section(
     [h.Class('max-w-4xl')],
     [
       h.h1([h.Class('mb-6 uppercase')], ['404 - Not Found']),
@@ -72,3 +74,4 @@ const notFound = ({ path }: NotFoundRoute): Html =>
       h.div([], ['> Enter to go home']),
     ],
   )
+}

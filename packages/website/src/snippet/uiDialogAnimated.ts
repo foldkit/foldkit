@@ -7,8 +7,6 @@ import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-const h = html<Message>()
-
 // Add a field to your Model for the Dialog Submodel:
 const Model = S.Struct({
   dialog: Ui.Dialog.Model,
@@ -48,48 +46,52 @@ const dialogToParentMessage = (message: Ui.Dialog.Message): Message =>
   GotDialogMessage({ message })
 
 // Inside your view function, use data-[closed] for enter/leave transitions:
-Ui.Dialog.view({
-  model: model.dialog,
-  toParentMessage: dialogToParentMessage,
-  backdropAttributes: [
-    h.Class(
-      'fixed inset-0 bg-black/50 transition duration-150 ease-out data-[closed]:opacity-0',
-    ),
-  ],
-  panelContent: h.div(
-    [],
-    [
-      h.h2([h.Id(Ui.Dialog.titleId(model.dialog))], ['Confirm Action']),
-      h.p([], ['Are you sure you want to proceed?']),
-      h.div(
-        [h.Class('flex gap-2 justify-end mt-4')],
-        [
-          h.button(
-            [
-              h.OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
-              h.Class('px-4 py-2 rounded-lg border'),
-            ],
-            ['Cancel'],
-          ),
-          h.button(
-            [
-              h.OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
-              h.Class('px-4 py-2 rounded-lg bg-blue-600 text-white'),
-            ],
-            ['Confirm'],
-          ),
-        ],
+const view = (model: Model) => {
+  const h = html<Message>()
+
+  return Ui.Dialog.view({
+    model: model.dialog,
+    toParentMessage: dialogToParentMessage,
+    backdropAttributes: [
+      h.Class(
+        'fixed inset-0 bg-black/50 transition duration-150 ease-out data-[closed]:opacity-0',
       ),
     ],
-  ),
-  panelAttributes: [
-    h.Class(
-      'rounded-lg p-6 max-w-md mx-auto shadow-xl transition duration-150 ease-out data-[closed]:opacity-0 data-[closed]:scale-95',
+    panelContent: h.div(
+      [],
+      [
+        h.h2([h.Id(Ui.Dialog.titleId(model.dialog))], ['Confirm Action']),
+        h.p([], ['Are you sure you want to proceed?']),
+        h.div(
+          [h.Class('flex gap-2 justify-end mt-4')],
+          [
+            h.button(
+              [
+                h.OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
+                h.Class('px-4 py-2 rounded-lg border'),
+              ],
+              ['Cancel'],
+            ),
+            h.button(
+              [
+                h.OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
+                h.Class('px-4 py-2 rounded-lg bg-blue-600 text-white'),
+              ],
+              ['Confirm'],
+            ),
+          ],
+        ),
+      ],
     ),
-  ],
-  attributes: [
-    h.Class(
-      'backdrop:bg-transparent bg-transparent p-0 open:flex items-center justify-center',
-    ),
-  ],
-})
+    panelAttributes: [
+      h.Class(
+        'rounded-lg p-6 max-w-md mx-auto shadow-xl transition duration-150 ease-out data-[closed]:opacity-0 data-[closed]:scale-95',
+      ),
+    ],
+    attributes: [
+      h.Class(
+        'backdrop:bg-transparent bg-transparent p-0 open:flex items-center justify-center',
+      ),
+    ],
+  })
+}

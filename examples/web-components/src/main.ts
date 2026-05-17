@@ -97,30 +97,40 @@ const qr = qrCode.withMessage<Message>()
 
 // VIEW
 
-const h = html<Message>()
+export const view = (model: Model): Document => {
+  const h = html<Message>()
 
-export const view = (model: Model): Document => ({
-  title: 'Foldkit QR Designer',
-  body: h.div(
-    [
-      h.Class(
-        'min-h-screen bg-slate-50 text-slate-900 px-6 py-10 flex flex-col items-center',
-      ),
-    ],
-    [
-      h.div(
-        [h.Class('w-full max-w-3xl flex flex-col gap-8')],
-        [headerView(), designerView(model)],
-      ),
-    ],
-  ),
-})
+  return {
+    title: 'Foldkit QR Designer',
+    body: h.div(
+      [
+        h.Class(
+          'min-h-screen bg-slate-50 text-slate-900 px-6 py-10 flex flex-col items-center',
+        ),
+      ],
+      [
+        h.div(
+          [h.Class('w-full max-w-3xl flex flex-col gap-8')],
+          [headerView(), designerView(model)],
+        ),
+      ],
+    ),
+  }
+}
 
-const codeView = (text: string): Html =>
-  h.code([h.Class('px-1 py-0.5 rounded bg-slate-200 text-[0.8em]')], [text])
+const codeView = (text: string): Html => {
+  const h = html<Message>()
 
-const headerView = (): Html =>
-  h.header(
+  return h.code(
+    [h.Class('px-1 py-0.5 rounded bg-slate-200 text-[0.8em]')],
+    [text],
+  )
+}
+
+const headerView = (): Html => {
+  const h = html<Message>()
+
+  return h.header(
     [h.Class('flex flex-col gap-2')],
     [
       h.h1([h.Class('text-3xl font-bold tracking-tight')], ['QR Designer']),
@@ -154,14 +164,17 @@ const headerView = (): Html =>
       ),
     ],
   )
+}
 
 const FIELD_LABEL_CLASS =
   'text-xs font-semibold uppercase tracking-wide text-slate-600'
 const FIELD_CONTROL_CLASS =
   'px-3 py-2 text-sm rounded-md border border-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200'
 
-const designerView = (model: Model): Html =>
-  h.div(
+const designerView = (model: Model): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [
       h.Class(
         'grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 bg-white rounded-xl shadow-sm border border-slate-200 p-6',
@@ -169,9 +182,12 @@ const designerView = (model: Model): Html =>
     ],
     [controlsView(model), previewView(model)],
   )
+}
 
-const controlsView = (model: Model): Html =>
-  h.div(
+const controlsView = (model: Model): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('flex flex-col gap-5')],
     [
       contentFieldView(model),
@@ -189,9 +205,12 @@ const controlsView = (model: Model): Html =>
       }),
     ],
   )
+}
 
-const contentFieldView = (model: Model): Html =>
-  Ui.Input.view({
+const contentFieldView = (model: Model): Html => {
+  const h = html<Message>()
+
+  return Ui.Input.view({
     id: 'qr-content',
     value: model.content,
     onInput: value => UpdatedContent({ value }),
@@ -214,6 +233,7 @@ const contentFieldView = (model: Model): Html =>
         ],
       ),
   })
+}
 
 const colorFieldView = (
   config: Readonly<{
@@ -222,8 +242,10 @@ const colorFieldView = (
     value: string
     onChange: (value: string) => Message
   }>,
-): Html =>
-  h.div(
+): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('flex flex-col gap-1.5')],
     [
       h.label([h.For(config.id), h.Class(FIELD_LABEL_CLASS)], [config.label]),
@@ -250,6 +272,7 @@ const colorFieldView = (
       ),
     ],
   )
+}
 
 const PRESET_COLORS: ReadonlyArray<string> = [
   '#1e1b4b',
@@ -269,8 +292,10 @@ const swatchClass = (isActive: boolean): string =>
 const swatchRow = (
   active: string,
   onChange: (value: string) => Message,
-): Html =>
-  h.div(
+): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('flex flex-wrap gap-1.5 max-w-[10rem]')],
     PRESET_COLORS.map(color =>
       h.button(
@@ -286,11 +311,14 @@ const swatchRow = (
       ),
     ),
   )
+}
 
 const QR_SIZE = 220
 
-const previewView = (model: Model): Html =>
-  h.div(
+const previewView = (model: Model): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [
       h.Class(
         'flex flex-col items-center gap-3 self-start p-4 rounded-md bg-slate-50 border border-slate-200',
@@ -315,3 +343,4 @@ const previewView = (model: Model): Html =>
       ),
     ],
   )
+}

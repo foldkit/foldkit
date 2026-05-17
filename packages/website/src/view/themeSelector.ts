@@ -8,10 +8,10 @@ import {
   type ThemePreference,
 } from '../message'
 
-const h = html<Message>()
+export const themeSelector = (activePreference: ThemePreference): Html => {
+  const h = html<Message>()
 
-export const themeSelector = (activePreference: ThemePreference): Html =>
-  h.div(
+  return h.div(
     [
       h.Role('group'),
       h.AriaLabel('Theme preference'),
@@ -40,6 +40,7 @@ export const themeSelector = (activePreference: ThemePreference): Html =>
       ),
     ],
   )
+}
 
 const themeSelectorButton = (
   preference: ThemePreference,
@@ -47,6 +48,8 @@ const themeSelectorButton = (
   icon: Html,
   label: string,
 ) => {
+  const h = html<Message>()
+
   const isActive = preference === activePreference
 
   return h.button(

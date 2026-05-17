@@ -7,8 +7,6 @@ import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-const h = html<Message>()
-
 // Add a field to your Model for the Checkbox Submodel:
 const Model = S.Struct({
   checkboxDemo: Ui.Checkbox.Model,
@@ -47,30 +45,34 @@ GotCheckboxMessage: ({ message }) => {
 }
 
 // Inside your view function, render the checkbox:
-Ui.Checkbox.view({
-  model: model.checkboxDemo,
-  toParentMessage: message => GotCheckboxMessage({ message }),
-  toView: attributes =>
-    h.div(
-      [h.Class('flex flex-col gap-1')],
-      [
-        h.div(
-          [h.Class('flex items-center gap-2')],
-          [
-            h.button(
-              [...attributes.checkbox, h.Class('h-5 w-5 rounded border')],
-              model.checkboxDemo.isChecked ? ['✓'] : [],
-            ),
-            h.label(
-              [...attributes.label, h.Class('text-sm')],
-              ['Accept terms and conditions'],
-            ),
-          ],
-        ),
-        h.p(
-          [...attributes.description, h.Class('text-sm text-gray-500')],
-          ['You agree to our Terms of Service.'],
-        ),
-      ],
-    ),
-})
+const view = () => {
+  const h = html<Message>()
+
+  return Ui.Checkbox.view({
+    model: model.checkboxDemo,
+    toParentMessage: message => GotCheckboxMessage({ message }),
+    toView: attributes =>
+      h.div(
+        [h.Class('flex flex-col gap-1')],
+        [
+          h.div(
+            [h.Class('flex items-center gap-2')],
+            [
+              h.button(
+                [...attributes.checkbox, h.Class('h-5 w-5 rounded border')],
+                model.checkboxDemo.isChecked ? ['✓'] : [],
+              ),
+              h.label(
+                [...attributes.label, h.Class('text-sm')],
+                ['Accept terms and conditions'],
+              ),
+            ],
+          ),
+          h.p(
+            [...attributes.description, h.Class('text-sm text-gray-500')],
+            ['You agree to our Terms of Service.'],
+          ),
+        ],
+      ),
+  })
+}

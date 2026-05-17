@@ -7,8 +7,6 @@ import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-const h = html<Message>()
-
 // Add a field to your Model for the Popover Submodel:
 const Model = S.Struct({
   popover: Ui.Popover.Model,
@@ -44,22 +42,26 @@ GotPopoverMessage: ({ message }) => {
 }
 
 // Inside your view function, render the popover:
-Ui.Popover.view({
-  model: model.popover,
-  toParentMessage: message => GotPopoverMessage({ message }),
-  buttonContent: h.span([], ['Solutions']),
-  buttonClassName: 'rounded-lg border px-3 py-2 cursor-pointer',
-  panelContent: h.div(
-    [],
-    [
-      h.h3([h.Class('font-medium')], ['Analytics']),
-      h.p(
-        [h.Class('text-sm text-gray-500')],
-        ['Get a better understanding of where your traffic is coming from.'],
-      ),
-    ],
-  ),
-  panelClassName: 'rounded-lg border shadow-lg p-4 w-80',
-  backdropClassName: 'fixed inset-0',
-  anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
-})
+const view = () => {
+  const h = html<Message>()
+
+  return Ui.Popover.view({
+    model: model.popover,
+    toParentMessage: message => GotPopoverMessage({ message }),
+    buttonContent: h.span([], ['Solutions']),
+    buttonClassName: 'rounded-lg border px-3 py-2 cursor-pointer',
+    panelContent: h.div(
+      [],
+      [
+        h.h3([h.Class('font-medium')], ['Analytics']),
+        h.p(
+          [h.Class('text-sm text-gray-500')],
+          ['Get a better understanding of where your traffic is coming from.'],
+        ),
+      ],
+    ),
+    panelClassName: 'rounded-lg border shadow-lg p-4 w-80',
+    backdropClassName: 'fixed inset-0',
+    anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+  })
+}

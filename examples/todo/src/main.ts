@@ -334,8 +334,6 @@ export const SaveTodos = Command.define(
 
 // VIEW
 
-const h = html<Message>()
-
 const todoItemView =
   (model: Model) =>
   (todo: Todo): Html =>
@@ -349,8 +347,10 @@ const todoItemView =
       }),
     )
 
-const editingTodoView = (todo: Todo, text: string): Html =>
-  h.li(
+const editingTodoView = (todo: Todo, text: string): Html => {
+  const h = html<Message>()
+
+  return h.li(
     [h.Class('flex items-center gap-3 p-3 bg-gray-50 rounded-lg')],
     [
       h.input([
@@ -381,9 +381,12 @@ const editingTodoView = (todo: Todo, text: string): Html =>
       ),
     ],
   )
+}
 
-const nonEditingTodoView = (todo: Todo): Html =>
-  h.li(
+const nonEditingTodoView = (todo: Todo): Html => {
+  const h = html<Message>()
+
+  return h.li(
     [h.Class('flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg group')],
     [
       h.input([
@@ -415,11 +418,14 @@ const nonEditingTodoView = (todo: Todo): Html =>
       ),
     ],
   )
+}
 
 const filterButtonView =
   (model: Model) =>
-  (filter: Filter, label: string): Html =>
-    h.button(
+  (filter: Filter, label: string): Html => {
+    const h = html<Message>()
+
+    return h.button(
       [
         h.OnClick(SelectedFilter({ filter })),
         h.Class(
@@ -432,13 +438,16 @@ const filterButtonView =
       ],
       [label],
     )
+  }
 
 const footerView = (
   model: Model,
   activeCount: number,
   completedCount: number,
-): Html =>
-  Array.match(model.todos, {
+): Html => {
+  const h = html<Message>()
+
+  return Array.match(model.todos, {
     onEmpty: () => h.empty,
     onNonEmpty: () =>
       h.div(
@@ -495,6 +504,7 @@ const footerView = (
         ],
       ),
   })
+}
 
 const filterTodos = (todos: Todos, filter: Filter): Todos =>
   M.value(filter).pipe(
@@ -505,6 +515,8 @@ const filterTodos = (todos: Todos, filter: Filter): Todos =>
   )
 
 export const view = (model: Model): Document => {
+  const h = html<Message>()
+
   const filteredTodos = filterTodos(model.todos, model.filter)
   const activeCount = Array.length(
     Array.filter(model.todos, todo => !todo.completed),

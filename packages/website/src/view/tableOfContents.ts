@@ -11,15 +11,15 @@ import {
   ToggledMobileTableOfContents,
 } from '../message'
 
-const h = html<Message>()
-
 const tableOfContentsEntryView = (
   level: TableOfContentsEntry['level'],
   id: string,
   text: string,
   isActive: boolean,
-): Html =>
-  h.keyed('li')(
+): Html => {
+  const h = html<Message>()
+
+  return h.keyed('li')(
     id,
     [
       h.Class(
@@ -47,14 +47,17 @@ const tableOfContentsEntryView = (
       ),
     ],
   )
+}
 
 const lazyTableOfContentsEntry = createKeyedLazy()
 
 export const tableOfContentsView = (
   entries: ReadonlyArray<TableOfContentsEntry>,
   maybeActiveSectionId: Option.Option<string>,
-) =>
-  h.aside(
+) => {
+  const h = html<Message>()
+
+  return h.aside(
     [
       h.Class(
         'hidden xl:block sticky top-[var(--header-height)] min-w-64 w-fit h-[calc(100vh-var(--header-height))] shrink-0 overflow-y-auto border-l border-gray-300 dark:border-gray-800 p-4',
@@ -93,12 +96,15 @@ export const tableOfContentsView = (
       ),
     ],
   )
+}
 
 export const mobileTableOfContentsView = (
   entries: ReadonlyArray<TableOfContentsEntry>,
   maybeActiveSectionId: Option.Option<string>,
   isOpen: boolean,
 ) => {
+  const h = html<Message>()
+
   const firstEntryText = Array.head(entries).pipe(
     Option.match({
       onNone: () => '',

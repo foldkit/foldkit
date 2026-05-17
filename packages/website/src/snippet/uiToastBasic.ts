@@ -7,8 +7,6 @@ import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-const h = html<Message>()
-
 // Define the payload shape for your toast. The Toast component owns only
 // lifecycle + a11y fields (id, variant, transition, dismiss timer, hover
 // state). The payload is yours — whatever you can encode in a Schema:
@@ -74,28 +72,36 @@ ClickedSave: () => {
 // renderEntry callback that lays out each entry from its payload — the
 // component handles the <li> wrapper, hover-to-pause, and enter/leave
 // animations.
-Toast.view({
-  model: model.toast,
-  position: 'BottomRight',
-  toParentMessage: message => GotToastMessage({ message }),
-  renderEntry: (entry, handlers) =>
-    h.div(
-      [h.Class('flex items-start gap-3 rounded-lg border bg-white p-3 shadow')],
-      [
-        h.div(
-          [h.Class('flex-1')],
-          [
-            h.p([h.Class('font-semibold text-sm')], [entry.payload.bodyText]),
-            ...Option.match(entry.payload.maybeLink, {
-              onNone: () => [],
-              onSome: ({ href, text }) => [
-                h.a([h.Class('text-sm underline'), h.Href(href)], [text]),
-              ],
-            }),
-          ],
-        ),
-        h.button([h.OnClick(handlers.dismiss)], ['Close']),
-      ],
-    ),
-  entryClassName: 'w-80',
-})
+const view = () => {
+  const h = html<Message>()
+
+  return Toast.view({
+    model: model.toast,
+    position: 'BottomRight',
+    toParentMessage: message => GotToastMessage({ message }),
+    renderEntry: (entry, handlers) =>
+      h.div(
+        [
+          h.Class(
+            'flex items-start gap-3 rounded-lg border bg-white p-3 shadow',
+          ),
+        ],
+        [
+          h.div(
+            [h.Class('flex-1')],
+            [
+              h.p([h.Class('font-semibold text-sm')], [entry.payload.bodyText]),
+              ...Option.match(entry.payload.maybeLink, {
+                onNone: () => [],
+                onSome: ({ href, text }) => [
+                  h.a([h.Class('text-sm underline'), h.Href(href)], [text]),
+                ],
+              }),
+            ],
+          ),
+          h.button([h.OnClick(handlers.dismiss)], ['Close']),
+        ],
+      ),
+    entryClassName: 'w-80',
+  })
+}

@@ -36,8 +36,6 @@ import {
 import { ExampleDetailRoute, apiModuleRouter, homeRouter } from '../route'
 import { betaTag, iconLink } from './shared'
 
-const h = html<Message>()
-
 export const DOCS_SIDEBAR_NAV_ID = 'docs-sidebar-nav'
 
 const SCROLL_DEBOUNCE_DURATION = Duration.millis(150)
@@ -81,8 +79,10 @@ const sidebarGroup = (config: {
   readonly model: Ui.Disclosure.Model
   readonly toParentMessage: (message: Ui.Disclosure.Message) => Message
   readonly children: Html
-}): Html =>
-  h.li(
+}): Html => {
+  const h = html<Message>()
+
+  return h.li(
     [],
     [
       Ui.Disclosure.view({
@@ -122,6 +122,7 @@ const sidebarGroup = (config: {
       }),
     ],
   )
+}
 
 const computeNavLinks = (
   route: Model['route'],
@@ -137,6 +138,8 @@ const computeNavLinks = (
   aiGroup: Ui.Disclosure.Model,
   apiReferenceGroup: Ui.Disclosure.Model,
 ): Html => {
+  const h = html<Message>()
+
   const isOnApiModulePage = route._tag === 'ApiModule'
   const maybeExampleSlug = pipe(
     route,
@@ -281,6 +284,8 @@ const lazyDesktopNavLinks = createLazy()
 const lazyMobileNavLinks = createLazy()
 
 export const sidebarView = (model: Model): Html => {
+  const h = html<Message>()
+
   const desktopNavLinks = lazyDesktopNavLinks(computeNavLinks, [
     model.route,
     model.getStartedGroup,

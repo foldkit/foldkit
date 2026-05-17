@@ -13,96 +13,106 @@ import * as Snippets from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 import { comparisonTable } from '../view/table'
 
-const h = html<Message>()
+const plainCode = (text: string): Html => {
+  const h = html<Message>()
 
-const plainCode = (text: string): Html => h.code([h.Class('text-sm')], [text])
+  return h.code([h.Class('text-sm')], [text])
+}
 
-const commandSemanticsList: Html = h.ul(
-  [h.Class('list-disc mb-8 space-y-2 pl-6')],
-  [
-    h.li(
-      [],
-      [
-        'Pending Commands accumulate in the order ',
-        inlineCode('update'),
-        ' returns them, across as many steps as the test takes.',
-      ],
-    ),
-    h.li(
-      [],
-      [
-        'Resolving a Command feeds its result Message through ',
-        inlineCode('update'),
-        '; new Commands produced by that update join the pending list.',
-      ],
-    ),
-    h.li(
-      [],
-      [
-        inlineCode('Scene.Command.resolveAll'),
-        ' walks cascades within the batch. If resolving Command A produces Command B and B’s resolver is in the same call, B resolves without a separate step.',
-      ],
-    ),
-    h.li(
-      [],
-      [
-        'Interactions throw if there are unresolved Commands when they try to dispatch a Message.',
-      ],
-    ),
-    h.li(
-      [],
-      [
-        inlineCode('Scene.scene'),
-        ' throws at the end if any Command remains unresolved.',
-      ],
-    ),
-  ],
-)
+const commandSemanticsList = (): Html => {
+  const h = html<Message>()
 
-const mountSemanticsList: Html = h.ul(
-  [h.Class('list-disc mb-8 space-y-2 pl-6')],
-  [
-    h.li(
-      [],
-      [
-        'Pending mounts persist across re-renders. Resolving a mount does not re-pend it on the next render.',
-      ],
-    ),
-    h.li(
-      [],
-      [
-        'Every mount that fires and unmounts during a scene must be acknowledged with ',
-        inlineCode('Scene.Mount.expectEnded'),
-        ', even if it was already resolved. ',
-        inlineCode('resolve'),
-        ' handles a mount’s result Message; ',
-        inlineCode('expectEnded'),
-        ' handles its unmount. Unacknowledged unmounts throw at the end of the scene.',
-      ],
-    ),
-    h.li(
-      [],
-      [
-        'Same-named mounts in the tree are disambiguated by occurrence. ',
-        inlineCode('Scene.Mount.resolve'),
-        ' resolves the first pending occurrence; a second call resolves the next.',
-      ],
-    ),
-    h.li(
-      [],
-      [
-        'Interactions throw if there are unresolved mounts or unacknowledged unmounts when they try to dispatch a Message. Same contract as Commands.',
-      ],
-    ),
-    h.li(
-      [],
-      [
-        inlineCode('Scene.scene'),
-        ' throws at the end if any mount remains unresolved.',
-      ],
-    ),
-  ],
-)
+  return h.ul(
+    [h.Class('list-disc mb-8 space-y-2 pl-6')],
+    [
+      h.li(
+        [],
+        [
+          'Pending Commands accumulate in the order ',
+          inlineCode('update'),
+          ' returns them, across as many steps as the test takes.',
+        ],
+      ),
+      h.li(
+        [],
+        [
+          'Resolving a Command feeds its result Message through ',
+          inlineCode('update'),
+          '; new Commands produced by that update join the pending list.',
+        ],
+      ),
+      h.li(
+        [],
+        [
+          inlineCode('Scene.Command.resolveAll'),
+          ' walks cascades within the batch. If resolving Command A produces Command B and B’s resolver is in the same call, B resolves without a separate step.',
+        ],
+      ),
+      h.li(
+        [],
+        [
+          'Interactions throw if there are unresolved Commands when they try to dispatch a Message.',
+        ],
+      ),
+      h.li(
+        [],
+        [
+          inlineCode('Scene.scene'),
+          ' throws at the end if any Command remains unresolved.',
+        ],
+      ),
+    ],
+  )
+}
+
+const mountSemanticsList = (): Html => {
+  const h = html<Message>()
+
+  return h.ul(
+    [h.Class('list-disc mb-8 space-y-2 pl-6')],
+    [
+      h.li(
+        [],
+        [
+          'Pending mounts persist across re-renders. Resolving a mount does not re-pend it on the next render.',
+        ],
+      ),
+      h.li(
+        [],
+        [
+          'Every mount that fires and unmounts during a scene must be acknowledged with ',
+          inlineCode('Scene.Mount.expectEnded'),
+          ', even if it was already resolved. ',
+          inlineCode('resolve'),
+          ' handles a mount’s result Message; ',
+          inlineCode('expectEnded'),
+          ' handles its unmount. Unacknowledged unmounts throw at the end of the scene.',
+        ],
+      ),
+      h.li(
+        [],
+        [
+          'Same-named mounts in the tree are disambiguated by occurrence. ',
+          inlineCode('Scene.Mount.resolve'),
+          ' resolves the first pending occurrence; a second call resolves the next.',
+        ],
+      ),
+      h.li(
+        [],
+        [
+          'Interactions throw if there are unresolved mounts or unacknowledged unmounts when they try to dispatch a Message. Same contract as Commands.',
+        ],
+      ),
+      h.li(
+        [],
+        [
+          inlineCode('Scene.scene'),
+          ' throws at the end if any mount remains unresolved.',
+        ],
+      ),
+    ],
+  )
+}
 
 const whyHeader: TableOfContentsEntry = {
   level: 'h2',
@@ -184,8 +194,10 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   storyVsSceneHeader,
 ]
 
-export const view = (copiedSnippets: CopiedSnippets): Html =>
-  h.div(
+export const view = (copiedSnippets: CopiedSnippets): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       pageTitle('testing-scene', 'Scene'),
@@ -596,7 +608,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' declares the Command, the test declares its outcome.',
       ),
       para('Command tracking has a few semantics worth knowing:'),
-      commandSemanticsList,
+      commandSemanticsList(),
       highlightedCodeBlock(
         h.div(
           [
@@ -677,7 +689,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ' shows up in the VNode tree, and Scene treats it as a pending mount. Acknowledging it advances the test through the same path the user takes: the view renders, the mount fires, the result Message updates the Model.',
       ),
       para('Mount tracking has a few semantics worth knowing:'),
-      mountSemanticsList,
+      mountSemanticsList(),
       highlightedCodeBlock(
         h.div(
           [
@@ -770,3 +782,4 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
     ],
   )
+}

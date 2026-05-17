@@ -284,8 +284,6 @@ export const SubmitForm = Command.define(
 
 // VIEW
 
-const h = html<Message>()
-
 const LABEL_CLASS = 'text-sm font-medium text-gray-700'
 const DESCRIPTION_CLASS = 'text-sm mt-1'
 
@@ -305,8 +303,10 @@ const inputClassName = (field: Field): string =>
     borderClass(field),
   )
 
-const statusIndicator = (field: Field): Html =>
-  M.value(field).pipe(
+const statusIndicator = (field: Field): Html => {
+  const h = html<Message>()
+
+  return M.value(field).pipe(
     M.tagsExhaustive({
       NotValidated: () => h.empty,
       Validating: () =>
@@ -315,12 +315,15 @@ const statusIndicator = (field: Field): Html =>
       Invalid: () => h.empty,
     }),
   )
+}
 
 const descriptionView = (
   field: Field,
   descriptionAttributes: ReadonlyArray<Attribute<Message>>,
-): Html =>
-  M.value(field).pipe(
+): Html => {
+  const h = html<Message>()
+
+  return M.value(field).pipe(
     M.tagsExhaustive({
       NotValidated: () => h.empty,
       Validating: () =>
@@ -342,6 +345,7 @@ const descriptionView = (
         ),
     }),
   )
+}
 
 const inputFieldView = (
   id: string,
@@ -349,8 +353,10 @@ const inputFieldView = (
   field: Field,
   onUpdate: (value: string) => Message,
   type: string = 'text',
-): Html =>
-  Ui.Input.view({
+): Html => {
+  const h = html<Message>()
+
+  return Ui.Input.view({
     id,
     value: field.value,
     onInput: onUpdate,
@@ -372,14 +378,17 @@ const inputFieldView = (
         ],
       ),
   })
+}
 
 const textareaFieldView = (
   id: string,
   labelText: string,
   field: Field,
   onUpdate: (value: string) => Message,
-): Html =>
-  Ui.Textarea.view({
+): Html => {
+  const h = html<Message>()
+
+  return Ui.Textarea.view({
     id,
     value: field.value,
     onInput: onUpdate,
@@ -403,8 +412,11 @@ const textareaFieldView = (
         ],
       ),
   })
+}
 
 export const view = (model: Model): Document => {
+  const h = html<Message>()
+
   const canSubmit = isFormValid(model) && model.submission._tag !== 'Submitting'
 
   const body = h.div(

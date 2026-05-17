@@ -367,66 +367,70 @@ export const subscriptions = Subscription.makeSubscriptions(
 
 // VIEW
 
-const h = html<Message>()
+export const view = (model: Model): Document => {
+  const h = html<Message>()
 
-export const view = (model: Model): Document => ({
-  title: 'WebSocket Chat',
-  body: h.div(
-    [
-      h.Class(
-        'min-h-screen bg-gradient-to-br from-purple-100 to-blue-100 flex flex-col items-center justify-center p-6',
-      ),
-    ],
-    [
-      h.div(
-        [
-          h.Class(
-            'bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col h-[600px]',
-          ),
-        ],
-        [
-          h.div(
-            [
-              h.Class(
-                'p-6 border-b border-gray-200 flex items-center justify-between',
-              ),
-            ],
-            [
-              h.div(
-                [],
-                [
-                  h.div(
-                    [h.Class('text-2xl font-bold text-gray-800')],
-                    ['WebSocket Chat'],
-                  ),
-                  h.div(
-                    [h.Class('text-sm text-gray-500 mt-1')],
-                    ['Echo server demo'],
-                  ),
-                ],
-              ),
-              connectionStatusView(model.connection),
-            ],
-          ),
+  return {
+    title: 'WebSocket Chat',
+    body: h.div(
+      [
+        h.Class(
+          'min-h-screen bg-gradient-to-br from-purple-100 to-blue-100 flex flex-col items-center justify-center p-6',
+        ),
+      ],
+      [
+        h.div(
+          [
+            h.Class(
+              'bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col h-[600px]',
+            ),
+          ],
+          [
+            h.div(
+              [
+                h.Class(
+                  'p-6 border-b border-gray-200 flex items-center justify-between',
+                ),
+              ],
+              [
+                h.div(
+                  [],
+                  [
+                    h.div(
+                      [h.Class('text-2xl font-bold text-gray-800')],
+                      ['WebSocket Chat'],
+                    ),
+                    h.div(
+                      [h.Class('text-sm text-gray-500 mt-1')],
+                      ['Echo server demo'],
+                    ),
+                  ],
+                ),
+                connectionStatusView(model.connection),
+              ],
+            ),
 
-          messagesView(model.messages),
+            messagesView(model.messages),
 
-          M.value(model.connection).pipe(
-            M.tagsExhaustive({
-              ConnectionDisconnected: connectButtonView,
-              ConnectionConnecting: connectingView,
-              ConnectionConnected: () => messageInputView(model.messageInput),
-              ConnectionError: ({ error }) => errorView(error),
-            }),
-          ),
-        ],
-      ),
-    ],
-  ),
-})
+            M.value(model.connection).pipe(
+              M.tagsExhaustive({
+                ConnectionDisconnected: connectButtonView,
+                ConnectionConnecting: connectingView,
+                ConnectionConnected: () => messageInputView(model.messageInput),
+                ConnectionError: ({ error }) => errorView(error),
+              }),
+            ),
+          ],
+        ),
+      ],
+    ),
+  }
+}
 
-const connectionStatusView = (connection: ConnectionState): Html =>
-  h.div(
+const connectionStatusView = (connection: ConnectionState): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('flex items-center gap-2')],
     [
       M.value(connection).pipe(
@@ -458,9 +462,12 @@ const connectionStatusView = (connection: ConnectionState): Html =>
       ),
     ],
   )
+}
 
-const messagesView = (messages: ReadonlyArray<ChatMessage>): Html =>
-  Array.match(messages, {
+const messagesView = (messages: ReadonlyArray<ChatMessage>): Html => {
+  const h = html<Message>()
+
+  return Array.match(messages, {
     onEmpty: () =>
       h.div(
         [
@@ -527,9 +534,12 @@ const messagesView = (messages: ReadonlyArray<ChatMessage>): Html =>
         ],
       ),
   })
+}
 
-const connectButtonView = (): Html =>
-  h.div(
+const connectButtonView = (): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('p-6 border-t border-gray-200 flex items-center justify-center')],
     [
       h.button(
@@ -543,15 +553,21 @@ const connectButtonView = (): Html =>
       ),
     ],
   )
+}
 
-const connectingView = (): Html =>
-  h.div(
+const connectingView = (): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('p-6 border-t border-gray-200 flex items-center justify-center')],
     [h.div([h.Class('text-gray-600 font-semibold')], ['Connecting...'])],
   )
+}
 
-const messageInputView = (messageInput: string): Html =>
-  h.form(
+const messageInputView = (messageInput: string): Html => {
+  const h = html<Message>()
+
+  return h.form(
     [h.Class('p-6 border-t border-gray-200'), h.OnSubmit(SubmittedMessage())],
     [
       h.div(
@@ -580,9 +596,12 @@ const messageInputView = (messageInput: string): Html =>
       ),
     ],
   )
+}
 
-const errorView = (error: string): Html =>
-  h.div(
+const errorView = (error: string): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('p-6 border-t border-gray-200')],
     [
       h.div(
@@ -606,3 +625,4 @@ const errorView = (error: string): Html =>
       ),
     ],
   )
+}

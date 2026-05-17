@@ -1,9 +1,9 @@
 import { html } from 'foldkit/html'
 
-const h = html<Message>()
+const cartView = (model: Model): Html => {
+  const h = html<Message>()
 
-const cartView = (model: Model): Html =>
-  h.div(
+  return h.div(
     [],
     [
       h.keyed('div')('summary', [], [summaryView(model)]),
@@ -13,3 +13,4 @@ const cartView = (model: Model): Html =>
       h.keyed('div')('checkout', [], [checkoutView(model)]),
     ],
   )
+}

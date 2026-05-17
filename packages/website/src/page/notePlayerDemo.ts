@@ -24,8 +24,6 @@ import { Icon } from '../icon'
 import type { Message as ParentMessage } from '../message'
 import * as DemoView from './demoView'
 
-const h = html<ParentMessage>()
-
 // CONSTANTS
 
 const NOTE_FREQUENCIES: Record<Note, number> = {
@@ -548,6 +546,8 @@ const appPanel = (
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
+  const h = html<ParentMessage>()
+
   const isPlaying = model.playbackState._tag === 'Playing'
   const isPaused = model.playbackState._tag === 'Paused'
   const isInputLocked = isPlaying || isPaused
@@ -589,8 +589,10 @@ const noteInputView = (
   model: Model,
   isInputLocked: boolean,
   toParentMessage: (message: Message) => ParentMessage,
-): Html =>
-  Ui.Input.view<ParentMessage>({
+): Html => {
+  const h = html<ParentMessage>()
+
+  return Ui.Input.view<ParentMessage>({
     id: 'note-input',
     value: model.noteInput.value,
     onInput: value => toParentMessage(ChangedNoteInput({ value })),
@@ -653,6 +655,7 @@ const noteInputView = (
         ],
       ),
   })
+}
 
 const noteDurations: ReadonlyArray<NoteDuration> = ['Short', 'Medium', 'Long']
 
@@ -660,8 +663,10 @@ const durationSelectorView = (
   model: Model,
   isInputLocked: boolean,
   toParentMessage: (message: Message) => ParentMessage,
-): Html =>
-  h.div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [h.Class('flex flex-col gap-1.5')],
     [
       h.label(
@@ -700,12 +705,15 @@ const durationSelectorView = (
       }),
     ],
   )
+}
 
 const playbackControlView = (
   model: Model,
   canPlay: boolean,
   toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
+  const h = html<ParentMessage>()
+
   const isPlaying = model.playbackState._tag === 'Playing'
   const isActive = isPlaying || model.playbackState._tag === 'Paused'
 
@@ -777,22 +785,28 @@ const playbackControlView = (
   )
 }
 
-const placeholderVisualizerView: Html = h.div(
-  [h.Class('flex gap-2')],
-  Array.makeBy(MIN_NOTES, index =>
-    h.keyed('div')(
-      `placeholder-${index}`,
-      [
-        h.Class(
-          'flex-1 h-10 rounded-lg flex items-center justify-center text-sm font-bold bg-gray-200 dark:bg-gray-800 text-gray-300 dark:text-gray-600',
-        ),
-      ],
-      [h.span([], ['–'])],
+const placeholderVisualizerView = (): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
+    [h.Class('flex gap-2')],
+    Array.makeBy(MIN_NOTES, index =>
+      h.keyed('div')(
+        `placeholder-${index}`,
+        [
+          h.Class(
+            'flex-1 h-10 rounded-lg flex items-center justify-center text-sm font-bold bg-gray-200 dark:bg-gray-800 text-gray-300 dark:text-gray-600',
+          ),
+        ],
+        [h.span([], ['–'])],
+      ),
     ),
-  ),
-)
+  )
+}
 
 const noteSequenceView = (model: Model): Html => {
+  const h = html<ParentMessage>()
+
   const notes = parseNotes(model.noteInput.value)
 
   return h.div(
@@ -803,7 +817,7 @@ const noteSequenceView = (model: Model): Html => {
     ],
     [
       Array.match(notes, {
-        onEmpty: () => placeholderVisualizerView,
+        onEmpty: () => placeholderVisualizerView(),
         onNonEmpty: validNotes => noteVisualizerView(model, validNotes),
       }),
     ],
@@ -811,6 +825,8 @@ const noteSequenceView = (model: Model): Html => {
 }
 
 const noteVisualizerView = (model: Model, notes: ReadonlyArray<Note>): Html => {
+  const h = html<ParentMessage>()
+
   const maybeCurrentIndex = M.value(model.playbackState).pipe(
     M.tag('Playing', 'Paused', ({ currentNoteIndex }) =>
       Option.some(currentNoteIndex),

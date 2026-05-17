@@ -17,8 +17,6 @@ import demoCodeHtml from 'virtual:counter-demo-code'
 import type { Message as ParentMessage } from '../message'
 import * as DemoView from './demoView'
 
-const h = html<ParentMessage>()
-
 // CONSTANTS
 
 const PHASE_DURATION: Duration.Input = '300 millis'
@@ -314,8 +312,10 @@ export const view = (
 const appPanel = (
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
-): Html =>
-  h.div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [h.Class('relative')],
     [
       h.div(
@@ -336,6 +336,7 @@ const appPanel = (
       ),
     ],
   )
+}
 
 const MIN_RESET_DURATION = 1
 const MAX_RESET_DURATION = 5
@@ -354,8 +355,10 @@ const parseResetDuration = (value: string): number =>
 const viewAndControlsView = (
   model: Model,
   toParentMessage: (message: Message) => ParentMessage,
-): Html =>
-  h.div(
+): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [h.Class('flex flex-col gap-3')],
     [
       h.div(
@@ -504,6 +507,7 @@ const viewAndControlsView = (
       }),
     ],
   )
+}
 
 const phaseIndicatorView = (model: Model): Html => {
   const isCommand = model.phase === 'ResetCommand'
@@ -515,8 +519,10 @@ const phaseIndicatorView = (model: Model): Html => {
   )
 }
 
-const progressBarView = (model: Model, isCommand: boolean): Html =>
-  h.div(
+const progressBarView = (model: Model, isCommand: boolean): Html => {
+  const h = html<ParentMessage>()
+
+  return h.div(
     [
       h.AriaHidden(true),
       h.Class(
@@ -548,3 +554,4 @@ const progressBarView = (model: Model, isCommand: boolean): Html =>
       ),
     ],
   )
+}

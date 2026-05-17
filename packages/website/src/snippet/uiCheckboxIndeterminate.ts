@@ -7,8 +7,6 @@ import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-const h = html<Message>()
-
 // Add multiple Checkbox Submodels to your Model for the parent and children:
 const Model = S.Struct({
   optionA: Ui.Checkbox.Model,
@@ -62,22 +60,26 @@ const isIndeterminate =
   !isAllChecked && Array.some(checkboxes, ({ isChecked }) => isChecked)
 
 // Inside your view function, pass isIndeterminate to the parent checkbox:
-Ui.Checkbox.view({
-  model: { id: 'select-all', isChecked: isAllChecked },
-  isIndeterminate,
-  toParentMessage: message => GotSelectAllMessage({ message }),
-  toView: attributes =>
-    h.div(
-      [h.Class('flex items-center gap-2')],
-      [
-        h.button(
-          [...attributes.checkbox, h.Class('h-5 w-5 rounded border')],
-          isIndeterminate ? ['—'] : isAllChecked ? ['✓'] : [],
-        ),
-        h.label(
-          [...attributes.label, h.Class('text-sm')],
-          ['All notifications'],
-        ),
-      ],
-    ),
-})
+const view = () => {
+  const h = html<Message>()
+
+  return Ui.Checkbox.view({
+    model: { id: 'select-all', isChecked: isAllChecked },
+    isIndeterminate,
+    toParentMessage: message => GotSelectAllMessage({ message }),
+    toView: attributes =>
+      h.div(
+        [h.Class('flex items-center gap-2')],
+        [
+          h.button(
+            [...attributes.checkbox, h.Class('h-5 w-5 rounded border')],
+            isIndeterminate ? ['—'] : isAllChecked ? ['✓'] : [],
+          ),
+          h.label(
+            [...attributes.label, h.Class('text-sm')],
+            ['All notifications'],
+          ),
+        ],
+      ),
+  })
+}

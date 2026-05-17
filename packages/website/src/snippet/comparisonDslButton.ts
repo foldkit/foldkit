@@ -7,10 +7,11 @@ const ClickedSave = m('ClickedSave')
 const Message = S.Union([ClickedSave])
 type Message = typeof Message.Type
 
-const h = html<Message>()
+const saveButton = (isSaving: boolean) => {
+  const h = html<Message>()
 
-const saveButton = (isSaving: boolean) =>
-  h.button(
+  return h.button(
     [h.Type('button'), h.Disabled(isSaving), h.OnClick(ClickedSave())],
     ['Save'],
   )
+}

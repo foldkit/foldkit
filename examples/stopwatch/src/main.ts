@@ -160,8 +160,6 @@ export const subscriptions = Subscription.makeSubscriptions(
 
 // VIEW
 
-const h = html<Message>()
-
 const formatTime = (ms: number): string => {
   const minutes = pipe(Duration.millis(ms), Duration.toMinutes, floorAndPad)
 
@@ -183,39 +181,45 @@ const formatTime = (ms: number): string => {
 
 const floorAndPad = flow(Math.floor, v => v.toString(), String.padStart(2, '0'))
 
-export const view = (model: Model): Document => ({
-  title: `Stopwatch ${formatTime(model.elapsedMs)}`,
-  body: h.div(
-    [h.Class('min-h-screen bg-gray-200 flex items-center justify-center')],
-    [
-      h.div(
-        [h.Class('bg-white text-center')],
-        [
-          h.div(
-            [h.Class('text-6xl font-mono font-bold text-gray-800 p-8')],
-            [formatTime(model.elapsedMs)],
-          ),
-          h.div(
-            [h.Class('flex')],
-            [
-              h.button(
-                [
-                  h.OnClick(ClickedReset()),
-                  h.Class(buttonStyle + ' bg-gray-500 hover:bg-gray-600'),
-                ],
-                ['Reset'],
-              ),
-              startStopButton(model.isRunning),
-            ],
-          ),
-        ],
-      ),
-    ],
-  ),
-})
+export const view = (model: Model): Document => {
+  const h = html<Message>()
 
-const startStopButton = (isRunning: boolean): Html =>
-  isRunning
+  return {
+    title: `Stopwatch ${formatTime(model.elapsedMs)}`,
+    body: h.div(
+      [h.Class('min-h-screen bg-gray-200 flex items-center justify-center')],
+      [
+        h.div(
+          [h.Class('bg-white text-center')],
+          [
+            h.div(
+              [h.Class('text-6xl font-mono font-bold text-gray-800 p-8')],
+              [formatTime(model.elapsedMs)],
+            ),
+            h.div(
+              [h.Class('flex')],
+              [
+                h.button(
+                  [
+                    h.OnClick(ClickedReset()),
+                    h.Class(buttonStyle + ' bg-gray-500 hover:bg-gray-600'),
+                  ],
+                  ['Reset'],
+                ),
+                startStopButton(model.isRunning),
+              ],
+            ),
+          ],
+        ),
+      ],
+    ),
+  }
+}
+
+const startStopButton = (isRunning: boolean): Html => {
+  const h = html<Message>()
+
+  return isRunning
     ? h.button(
         [
           h.OnClick(ClickedStop()),
@@ -230,6 +234,7 @@ const startStopButton = (isRunning: boolean): Html =>
         ],
         ['Start'],
       )
+}
 
 // STYLE
 

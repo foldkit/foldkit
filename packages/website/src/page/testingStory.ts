@@ -14,8 +14,6 @@ import { coreCommandsRouter } from '../route'
 import * as Snippets from '../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../view/codeBlock'
 
-const h = html<Message>()
-
 const whyHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'testing-the-update-loop',
@@ -54,8 +52,10 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   commandEffectsHeader,
 ]
 
-export const view = (copiedSnippets: CopiedSnippets): Html =>
-  h.div(
+export const view = (copiedSnippets: CopiedSnippets): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       pageTitle('testing-story', 'Story'),
@@ -234,3 +234,4 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       ),
     ],
   )
+}

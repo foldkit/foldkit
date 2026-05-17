@@ -11,8 +11,6 @@ import {
   UpdatedDeliveryInstructions,
 } from '../main'
 
-const h = html<Message>()
-
 // VIEW
 
 export const view = (
@@ -22,6 +20,8 @@ export const view = (
   productsRouter: Route.Router<ProductsRoute>,
   cartRouter: Route.Router<CartRoute>,
 ): Html => {
+  const h = html<Message>()
+
   if (orderPlaced) {
     return h.div(
       [h.Class('max-w-4xl mx-auto px-4 text-center')],

@@ -187,9 +187,9 @@ export const update = (
 
 // VIEW
 
-const h = html<Message>()
-
 const navigationView = (currentRoute: AppRoute): Html => {
+  const h = html<Message>()
+
   const navLinkClassName = (isActive: boolean) =>
     `hover:bg-blue-600 font-medium px-3 py-1 rounded transition ${isActive ? 'bg-blue-700 bg-opacity-50' : ''}`
 
@@ -246,8 +246,10 @@ const navigationView = (currentRoute: AppRoute): Html => {
   )
 }
 
-const homeView = (): Html =>
-  h.div(
+const homeView = (): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
     [
       h.h1(
@@ -263,9 +265,12 @@ const homeView = (): Html =>
       h.p([h.Class('text-gray-600')], []),
     ],
   )
+}
 
-const nestedView = (): Html =>
-  h.div(
+const nestedView = (): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
     [
       h.h1(
@@ -278,8 +283,11 @@ const nestedView = (): Html =>
       ),
     ],
   )
+}
 
 const peopleView = (searchText: Option.Option<string>): Html => {
+  const h = html<Message>()
+
   const filteredPeople = Option.match(searchText, {
     onNone: () => people,
     onSome: query =>
@@ -353,6 +361,8 @@ const peopleView = (searchText: Option.Option<string>): Html => {
 }
 
 const personView = (personId: number): Html => {
+  const h = html<Message>()
+
   const person = findPerson(personId)
 
   return Option.match(person, {
@@ -449,8 +459,10 @@ const personView = (personId: number): Html => {
   })
 }
 
-const notFoundView = (path: string): Html =>
-  h.div(
+const notFoundView = (path: string): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
     [
       h.h1(
@@ -467,6 +479,7 @@ const notFoundView = (path: string): Html =>
       ),
     ],
   )
+}
 
 const routeTitle = (route: Model['route']): string =>
   M.value(route).pipe(
@@ -476,6 +489,8 @@ const routeTitle = (route: Model['route']): string =>
   )
 
 export const view = (model: Model): Document => {
+  const h = html<Message>()
+
   const routeContent = M.value(model.route).pipe(
     M.tagsExhaustive({
       Home: homeView,

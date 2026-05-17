@@ -4,8 +4,6 @@ import type { TableOfContentsEntry } from '../main'
 import type { Message } from '../message'
 import { pageTitle, para, tableOfContentsEntryToHeader } from '../prose'
 
-const h = html<Message>()
-
 const theArchitectureProblemHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'the-architecture-problem',
@@ -37,8 +35,10 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   buildYourProductHeader,
 ]
 
-export const view = (): Html =>
-  h.div(
+export const view = (): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [],
     [
       pageTitle('manifesto', 'Manifesto'),
@@ -96,3 +96,4 @@ export const view = (): Html =>
       ),
     ],
   )
+}

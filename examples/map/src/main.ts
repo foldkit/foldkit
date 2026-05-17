@@ -481,8 +481,6 @@ export const subscriptions = Subscription.makeSubscriptions(
 
 // VIEW
 
-const h = html<Message>()
-
 const HOST_ID = nextHostId()
 
 const filterLocations = (
@@ -502,19 +500,25 @@ const filterLocations = (
   }
 }
 
-export const view = (model: Model): Document => ({
-  title: 'Foldkit Map',
-  body: h.div(
-    [h.Class('h-screen w-screen flex bg-slate-100 text-slate-900')],
-    [
-      sidebarView(model),
-      mapPaneView(model),
-      geolocateOverlayView(model.geolocateState),
-    ],
-  ),
-})
+export const view = (model: Model): Document => {
+  const h = html<Message>()
+
+  return {
+    title: 'Foldkit Map',
+    body: h.div(
+      [h.Class('h-screen w-screen flex bg-slate-100 text-slate-900')],
+      [
+        sidebarView(model),
+        mapPaneView(model),
+        geolocateOverlayView(model.geolocateState),
+      ],
+    ),
+  }
+}
 
 const sidebarView = (model: Model): Html => {
+  const h = html<Message>()
+
   const visible = filterLocations(model.locations, model.searchQuery)
   return h.aside(
     [
@@ -566,8 +570,10 @@ const sidebarView = (model: Model): Html => {
   )
 }
 
-const emptySidebarView = (searchQuery: string): Html =>
-  h.li(
+const emptySidebarView = (searchQuery: string): Html => {
+  const h = html<Message>()
+
+  return h.li(
     [h.Class('px-5 py-6 text-sm text-slate-500')],
     [
       String.isEmpty(searchQuery.trim())
@@ -575,10 +581,13 @@ const emptySidebarView = (searchQuery: string): Html =>
         : `No locations match "${searchQuery.trim()}".`,
     ],
   )
+}
 
 const locationListItemView =
   (maybeSelectedId: Option.Option<string>) =>
   (location: Location): Html => {
+    const h = html<Message>()
+
     const isSelected = Option.exists(maybeSelectedId, Equal.equals(location.id))
     return h.li(
       [],
@@ -607,6 +616,8 @@ const locationListItemView =
   }
 
 const footerView = (model: Model): Html => {
+  const h = html<Message>()
+
   const isLocating = model.geolocateState._tag === 'GeolocateLocating'
   return h.div(
     [h.Class('border-t border-slate-200 px-5 py-3 space-y-2')],
@@ -634,8 +645,10 @@ const footerView = (model: Model): Html => {
   )
 }
 
-const mapPaneView = (model: Model): Html =>
-  h.main(
+const mapPaneView = (model: Model): Html => {
+  const h = html<Message>()
+
+  return h.main(
     [h.Class('flex-1 relative')],
     [
       h.div(
@@ -650,9 +663,12 @@ const mapPaneView = (model: Model): Html =>
       boundsBadgeView(model.maybeBounds),
     ],
   )
+}
 
-const mapErrorBannerView = (maybeReason: Option.Option<string>): Html =>
-  Option.match(maybeReason, {
+const mapErrorBannerView = (maybeReason: Option.Option<string>): Html => {
+  const h = html<Message>()
+
+  return Option.match(maybeReason, {
     onNone: () => h.empty,
     onSome: reason =>
       h.div(
@@ -668,9 +684,12 @@ const mapErrorBannerView = (maybeReason: Option.Option<string>): Html =>
         ],
       ),
   })
+}
 
-const boundsBadgeView = (maybeBounds: Option.Option<Bounds>): Html =>
-  Option.match(maybeBounds, {
+const boundsBadgeView = (maybeBounds: Option.Option<Bounds>): Html => {
+  const h = html<Message>()
+
+  return Option.match(maybeBounds, {
     onNone: () => h.empty,
     onSome: bounds =>
       h.div(
@@ -687,9 +706,12 @@ const boundsBadgeView = (maybeBounds: Option.Option<Bounds>): Html =>
         ],
       ),
   })
+}
 
-const geolocateOverlayView = (state: GeolocateState): Html =>
-  M.value(state).pipe(
+const geolocateOverlayView = (state: GeolocateState): Html => {
+  const h = html<Message>()
+
+  return M.value(state).pipe(
     M.tagsExhaustive({
       GeolocateIdle: () => h.empty,
       GeolocateLocating: () =>
@@ -698,9 +720,12 @@ const geolocateOverlayView = (state: GeolocateState): Html =>
         geolocateOverlayShellView(geolocateFailedContentView(reason)),
     }),
   )
+}
 
-const geolocateOverlayShellView = (content: Html): Html =>
-  h.keyed('div')(
+const geolocateOverlayShellView = (content: Html): Html => {
+  const h = html<Message>()
+
+  return h.keyed('div')(
     'Geolocate()-overlay',
     [
       h.Class(
@@ -710,9 +735,12 @@ const geolocateOverlayShellView = (content: Html): Html =>
     ],
     [content],
   )
+}
 
-const geolocateLocatingContentView = (): Html =>
-  h.keyed('article')(
+const geolocateLocatingContentView = (): Html => {
+  const h = html<Message>()
+
+  return h.keyed('article')(
     'Geolocate()-locating',
     [
       h.Class(
@@ -728,9 +756,12 @@ const geolocateLocatingContentView = (): Html =>
       spinnerView(),
     ],
   )
+}
 
-const geolocateFailedContentView = (reason: string): Html =>
-  h.keyed('article')(
+const geolocateFailedContentView = (reason: string): Html => {
+  const h = html<Message>()
+
+  return h.keyed('article')(
     'Geolocate()-failed',
     [
       h.Class(
@@ -755,9 +786,12 @@ const geolocateFailedContentView = (reason: string): Html =>
       ),
     ],
   )
+}
 
-const spinnerView = (): Html =>
-  h.div(
+const spinnerView = (): Html => {
+  const h = html<Message>()
+
+  return h.div(
     [h.Class('flex justify-center mt-4')],
     [
       h.span(
@@ -771,6 +805,7 @@ const spinnerView = (): Html =>
       ),
     ],
   )
+}
 
 // STYLE
 
