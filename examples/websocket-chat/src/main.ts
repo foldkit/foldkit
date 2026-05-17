@@ -241,12 +241,12 @@ export const SendMessage = Command.define(
 
 // MANAGED RESOURCE
 
-const ManagedResourceDeps = S.Struct({
+const ManagedResourceRequirements = S.Struct({
   chatSocket: S.Option(S.Null),
 })
 
 export const managedResources = ManagedResource.makeManagedResources(
-  ManagedResourceDeps,
+  ManagedResourceRequirements,
 )<Model, Message>({
   chatSocket: {
     resource: ChatSocket,
