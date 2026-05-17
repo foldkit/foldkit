@@ -51,6 +51,12 @@ const bannerHeader: TableOfContentsEntry = {
   text: 'banner',
 }
 
+const messageHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'message',
+  text: 'Message',
+}
+
 const excludeFromHistoryHeader: TableOfContentsEntry = {
   level: 'h3',
   id: 'exclude-from-history',
@@ -70,6 +76,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   positionHeader,
   modeHeader,
   bannerHeader,
+  messageHeader,
   excludeFromHistoryHeader,
   maxEntriesHeader,
 ]
@@ -81,10 +88,27 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       pageTitle('core/devtools', 'DevTools'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'Foldkit includes a built-in DevTools overlay that displays every Message flowing through your app and lets you inspect the Model, Message, and Commands at any point in time. It renders inside a shadow DOM so it won’t interfere with your styles or layout.',
+        'Foldkit includes a built-in DevTools overlay that displays every Message flowing through your app and lets you inspect the Model, Message, Commands, and Mounts at any point in time. It renders inside a shadow DOM so it won’t interfere with your styles or layout.',
       ),
       para(
         'You can see it in action right now. Look for the tab on the bottom right edge of this page.',
+      ),
+      para(
+        'Open the panel and you’ll see a scrolling list of every Message dispatched so far, newest at the bottom. Click any row to inspect it. Four tabs swap the inspector content: ',
+        inlineCode('Model'),
+        ' shows the full state tree (with changed paths highlighted), ',
+        inlineCode('Message'),
+        ' shows the payload, ',
+        inlineCode('Commands'),
+        ' lists the Commands returned by the update, and ',
+        inlineCode('Mounts'),
+        ' shows which Mounts started or torn down during that render. A ',
+        inlineCode('Live'),
+        ' badge tells you whether you’re looking at the latest state or a past snapshot; clicking a row in time-travel mode pauses the app and ',
+        inlineCode('Resume'),
+        ' returns to live. A ',
+        inlineCode('Clear'),
+        ' button drops history without restarting the app.',
       ),
       infoCallout(
         'AI agent integration',
@@ -173,6 +197,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       para(
         'An optional string displayed as a banner at the top of the panel. Useful for welcoming visitors or leaving a note for your team.',
       ),
+      tableOfContentsEntryToHeader(messageHeader),
+      para(
+        'The application’s ',
+        inlineCode('Message'),
+        ' Schema. Required only for AI agent integration: when set and the running app is connected to the ',
+        link(aiMcpRouter(), 'DevTools MCP'),
+        ' server, agents can dispatch Messages into the live runtime. The Schema decodes inbound dispatch payloads at the bridge boundary and rejects mismatches with a clean error. Omit this field to disable agent dispatch entirely.',
+      ),
       tableOfContentsEntryToHeader(excludeFromHistoryHeader),
       para(
         'A list of Message ',
@@ -185,6 +217,19 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         'When ',
         inlineCode('excludeFromHistory'),
         ' is set, DevTools also switches to a per-entry snapshot strategy so time-travel jumps to recorded entries reflect the real live state at the moment they were recorded. Without this, replay would walk only the kept Messages and miss any cumulative state the excluded ones would have produced. The "Live" model view stays in sync as well: excluded Messages still update the latest-model snapshot, they just don’t append a history entry or compute a diff.',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.devtoolsExcludeFromHistoryHighlighted),
+          ],
+          [],
+        ),
+        Snippets.devtoolsExcludeFromHistoryRaw,
+        'Excluding high-frequency Messages from history',
+        copiedSnippets,
+        'mb-8',
       ),
       tableOfContentsEntryToHeader(maxEntriesHeader),
       para(
@@ -204,12 +249,12 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         h.div(
           [
             h.Class('text-sm'),
-            h.InnerHTML(Snippets.devtoolsExcludeFromHistoryHighlighted),
+            h.InnerHTML(Snippets.devtoolsMaxEntriesHighlighted),
           ],
           [],
         ),
-        Snippets.devtoolsExcludeFromHistoryRaw,
-        'Excluding high-frequency Messages from history',
+        Snippets.devtoolsMaxEntriesRaw,
+        'Raising the DevTools history cap',
         copiedSnippets,
         'mb-8',
       ),

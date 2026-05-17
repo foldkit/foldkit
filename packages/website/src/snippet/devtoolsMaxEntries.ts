@@ -5,10 +5,9 @@ const program = Runtime.makeProgram({
   init,
   update,
   view,
-  subscriptions,
   container: document.getElementById('root'),
   devTools: {
-    excludeFromHistory: ['TickedFrame', 'MovedPointer'],
+    maxEntries: 250,
   },
 })
 
