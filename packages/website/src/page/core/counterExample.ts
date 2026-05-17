@@ -31,14 +31,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
       pageTitle('core/counter-example', 'A Simple Counter Example'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'Here’s a complete counter application. It has all the pieces from the ',
+        'Here’s a complete counter application. It wires up the core of the loop from the ',
         link(coreArchitectureRouter(), 'Architecture'),
-        ' page (a Model, Messages, update, init, and view) wired together and running.',
+        ' page (a Model, Messages, update, init, and view).',
       ),
       para(
         'A Foldkit app lives in two files. ',
         inlineCode('src/main.ts'),
-        ' holds the pure definitions: Model, Messages, update, init, and view. ',
+        ' holds the pure definitions: Model, Messages, update, init, view, etc. ',
         inlineCode('src/entry.ts'),
         ' imports them and boots the runtime. The split keeps ',
         inlineCode('main.ts'),

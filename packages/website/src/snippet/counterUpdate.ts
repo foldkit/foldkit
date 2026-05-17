@@ -3,8 +3,6 @@ import { Command } from 'foldkit'
 
 // UPDATE
 
-// Returns a tuple of [nextModel, commands].
-// commands are side effects like HTTP requests (none needed here)
 const update = (
   model: Model,
   message: Message,
