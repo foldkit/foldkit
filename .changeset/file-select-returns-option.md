@@ -30,4 +30,4 @@ File.select(['application/pdf']).pipe(
 )
 ```
 
-The `core/file` docs also gain a Components section that points readers at `Ui.FileDrop` (drop-zone Submodel with built-in drag state and OutMessage emission) and `Ui.Input` (labeled wrapper that pairs with `OnFileChange` for accessible inline file pickers).
+The `core/file` docs now point readers at `Ui.FileDrop` as the file UI component (drop zones and inline file pickers, with built-in drag state and OutMessage emission). The previous "Form event attributes" section is removed. The underlying `OnFileChange` / `OnDropFiles` attributes still exist in `foldkit/html` for advanced cases, but the recommended path is the component.
