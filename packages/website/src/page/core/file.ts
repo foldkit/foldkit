@@ -30,6 +30,12 @@ const selectionHeader: TableOfContentsEntry = {
   text: 'Selecting files',
 }
 
+const componentsHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'components',
+  text: 'Components',
+}
+
 const formEventsHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'form-event-attributes',
@@ -46,6 +52,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   metadataHeader,
   selectionHeader,
+  componentsHeader,
   formEventsHeader,
   testingHeader,
 ]
@@ -113,7 +120,15 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         inlineCode('File.select'),
         ' and ',
         inlineCode('File.selectMultiple'),
-        ' open the native file picker and resolve with the files the user chose. Both take a list of accepted MIME types or extensions and resolve with an empty array if the user cancels. Mirrors Elm’s ',
+        ' open the native file picker and resolve with what the user chose. Both take a list of accepted MIME types or extensions. ',
+        inlineCode('File.select'),
+        ' resolves with ',
+        inlineCode('Option.some(file)'),
+        ' on a pick or ',
+        inlineCode('Option.none()'),
+        ' on cancel; ',
+        inlineCode('File.selectMultiple'),
+        ' resolves with the array of chosen files, empty if the user cancels. Mirrors Elm’s ',
         inlineCode('File.Select.file'),
         ' and ',
         inlineCode('File.Select.files'),
@@ -133,6 +148,42 @@ export const view = (copiedSnippets: CopiedSnippets): Html =>
         ),
         Snippets.fileSelectRaw,
         'Copy file select example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
+      tableOfContentsEntryToHeader(componentsHeader),
+      para(
+        'For most apps, build file UI with the higher-level components in ',
+        inlineCode('foldkit/ui'),
+        '. ',
+        inlineCode('Ui.FileDrop'),
+        ' is a Submodel that wires a drop zone and a hidden ',
+        inlineCode('<input type="file">'),
+        ' together, tracks drag-over state, and emits a ',
+        inlineCode('ReceivedFiles'),
+        ' OutMessage when files arrive (whether dropped or picked through the input). ',
+        inlineCode('Ui.Input'),
+        ' wraps any input with label and description attribute groups for built-in accessibility. Pass ',
+        inlineCode("type: 'file'"),
+        ' and add ',
+        inlineCode('OnFileChange'),
+        ' to the ',
+        inlineCode('input'),
+        ' attribute group when you want a labeled inline file picker.',
+      ),
+      para(
+        'Both components compose the form-event attributes described below. Reach for the raw attributes only when the component shape does not fit.',
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [
+            h.Class('text-sm'),
+            h.InnerHTML(Snippets.uiFileDropBasicHighlighted),
+          ],
+          [],
+        ),
+        Snippets.uiFileDropBasicRaw,
+        'Copy Ui.FileDrop example to clipboard',
         copiedSnippets,
         'mb-8',
       ),

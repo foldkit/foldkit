@@ -1,4 +1,4 @@
-import { Array, Effect, Match as M, Option, Schema as S } from 'effect'
+import { Effect, Match as M, Option, Schema as S } from 'effect'
 
 import * as Command from '../../command/index.js'
 import * as File from '../../file/index.js'
@@ -20,7 +20,7 @@ export type Model = typeof Model.Type
 
 export const ClickedChooseResume = m('ClickedChooseResume')
 export const SelectedResume = m('SelectedResume', {
-  files: S.Array(File.File),
+  file: File.File,
 })
 export const CancelledSelectResume = m('CancelledSelectResume')
 export const SucceededReadPreview = m('SucceededReadPreview', {
@@ -48,9 +48,9 @@ export const SelectResume = Command.define(
 )(
   File.select(['application/pdf']).pipe(
     Effect.map(
-      Array.match({
-        onEmpty: () => CancelledSelectResume(),
-        onNonEmpty: files => SelectedResume({ files }),
+      Option.match({
+        onNone: () => CancelledSelectResume(),
+        onSome: file => SelectedResume({ file }),
       }),
     ),
   ),
@@ -85,18 +85,14 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     M.withReturnType<UpdateReturn>(),
     M.tagsExhaustive({
       ClickedChooseResume: () => [model, [SelectResume()]],
-      SelectedResume: ({ files }) =>
-        Option.match(Array.head(files), {
-          onNone: () => [model, []],
-          onSome: firstFile => [
-            evo(model, {
-              maybeResume: () => Option.some(firstFile),
-              maybePreviewDataUrl: () => Option.none(),
-              readStatus: () => 'Reading',
-            }),
-            [ReadResumePreview({ file: firstFile })],
-          ],
+      SelectedResume: ({ file }) => [
+        evo(model, {
+          maybeResume: () => Option.some(file),
+          maybePreviewDataUrl: () => Option.none(),
+          readStatus: () => 'Reading',
         }),
+        [ReadResumePreview({ file })],
+      ],
       CancelledSelectResume: () => [model, []],
       SucceededReadPreview: ({ dataUrl }) => [
         evo(model, {
