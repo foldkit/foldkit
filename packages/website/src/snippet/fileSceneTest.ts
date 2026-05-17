@@ -23,7 +23,7 @@ describe('resume upload flow', () => {
       Scene.with(initialModel),
       Scene.click(Scene.role('button', { name: 'Choose resume' })),
       Scene.Command.resolveAll(
-        [SelectResume, SelectedResume({ files: [resume] })],
+        [SelectResume, SelectedResume({ file: resume })],
         [ReadResumePreview, SucceededReadPreview({ dataUrl: previewDataUrl })],
       ),
       Scene.expect(Scene.role('img', { name: 'Resume preview' })).toExist(),
