@@ -49,7 +49,7 @@ export const tag =
     const get = Effect.gen(function* () {
       const ref = yield* serviceTag
       const maybeValue = yield* Ref.get(ref)
-      return yield* maybeValue
+      return yield* Effect.fromOption(maybeValue)
     }).pipe(
       Effect.catchTag('NoSuchElementError', () =>
         Effect.fail(new ResourceNotAvailable({ resource: key })),

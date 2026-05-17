@@ -55,7 +55,7 @@ export const calculateScoreboard = (
   progressByGamePlayer: ProgressByGamePlayer,
 ): Shared.Scoreboard =>
   Effect.gen(function* () {
-    const game = yield* room.maybeGame
+    const game = yield* Effect.fromOption(room.maybeGame)
 
     const scores = Array.map(room.players, player => {
       const gamePlayer = Shared.GamePlayer.make({

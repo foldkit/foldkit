@@ -9,11 +9,11 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.0.0-beta.64",
+    "@effect/platform-browser": "4.0.0-beta.66",
     "@shoelace-style/shoelace": "^2.20.1",
     "@tailwindcss/vite": "^4.2.4",
     "clsx": "^2.1.1",
-    "effect": "4.0.0-beta.64",
+    "effect": "4.0.0-beta.66",
     "foldkit": "workspace:*",
     "tailwindcss": "^4.2.4",
     "vanilla-colorful": "^0.7.2"

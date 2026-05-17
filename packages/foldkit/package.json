@@ -213,13 +213,13 @@
     "docs": "typedoc"
   },
   "peerDependencies": {
-    "@effect/platform-browser": "4.0.0-beta.64",
-    "effect": "4.0.0-beta.64"
+    "@effect/platform-browser": "4.0.0-beta.66",
+    "effect": "4.0.0-beta.66"
   },
   "devDependencies": {
-    "@effect/platform-browser": "4.0.0-beta.64",
-    "@effect/vitest": "4.0.0-beta.64",
-    "effect": "4.0.0-beta.64",
+    "@effect/platform-browser": "4.0.0-beta.66",
+    "@effect/vitest": "4.0.0-beta.66",
+    "effect": "4.0.0-beta.66",
     "happy-dom": "^20.9.0",
     "rimraf": "^6.1.3",
     "typedoc": "^0.28.19",
