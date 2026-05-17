@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.12.0
+
+### Minor Changes
+
+- f10dffc: Bump bundled Effect dependencies to `4.0.0-beta.66`. No user-facing changes. Newly scaffolded apps will get the updated pins from the example sources.
+
 ## 0.11.0
 
 ### Minor Changes

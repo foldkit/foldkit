@@ -1,5 +1,28 @@
 # foldkit
 
+## 0.99.0
+
+### Minor Changes
+
+- f10dffc: Bump Effect to `4.0.0-beta.66` (from `4.0.0-beta.64`). Foldkit's peer dependencies now require `effect@4.0.0-beta.66` and `@effect/platform-browser@4.0.0-beta.66`.
+
+  beta.66 tightened `Effect.gen`'s `Yieldable` constraint, so an internal call site in `ManagedResource.tag` that yielded a raw `Option` now bridges through `Effect.fromOption`. Behavior is unchanged.
+
+  Consumers should align their Effect packages to `4.0.0-beta.66` exactly during the v4 beta window:
+
+  ```bash
+  pnpm add effect@4.0.0-beta.66 @effect/platform-browser@4.0.0-beta.66
+  pnpm add -D @effect/vitest@4.0.0-beta.66
+  ```
+
+- b19c234: `Mount.define` and `Mount.defineStream` both require at least one declared result Message. The `Results` generic on every overload is now constrained to a non-empty tuple, so calling either constructor with no result schemas no longer typechecks.
+
+  This closes a loophole where a Mount factory could produce no Messages at all — `Effect.never` for `Mount.define`, `Stream<never>` or `Stream.empty` for `Mount.defineStream`. A Mount that runs DOM work for an element's lifetime without dispatching anything is invisible to DevTools history, can't be acknowledged by Scene tests, and can't be reasoned about during time-travel replay.
+
+  Fire-and-forget Mounts follow the same convention as fire-and-forget Commands: declare a `Completed*` result Message that `update` no-ops on. The side effect stays observable; `update` simply has nothing meaningful to do with the acknowledgment.
+
+  Existing in-repo call sites all declare result Messages, so no migration is needed. Downstream consumers who depended on the looser constraint will see a type error and can add a `Completed*` acknowledgment Message and dispatch it.
+
 ## 0.98.1
 
 ### Patch Changes
