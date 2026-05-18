@@ -633,7 +633,37 @@ describe('DevToolsStore', () => {
   })
 
   describe('clear', () => {
-    it('resets all state', () => {
+    it('resets all state when live', () => {
+      const { store } = makeStore()
+
+      run(
+        store.recordMessage(
+          clickedIncrement,
+          initialModel,
+          { count: 1 },
+          [],
+          true,
+        ),
+      )
+      run(
+        store.recordMessage(
+          clickedIncrement,
+          { count: 1 },
+          { count: 2 },
+          [],
+          true,
+        ),
+      )
+
+      run(store.clear)
+
+      const state = getState(store)
+      expect(state.entries.length).toBe(0)
+      expect(state.startIndex).toBe(0)
+      expect(state.isPaused).toBe(false)
+    })
+
+    it('is a no-op while paused', () => {
       const { store } = makeStore()
 
       run(
@@ -659,9 +689,9 @@ describe('DevToolsStore', () => {
       run(store.clear)
 
       const state = getState(store)
-      expect(state.entries.length).toBe(0)
-      expect(state.startIndex).toBe(0)
-      expect(state.isPaused).toBe(false)
+      expect(state.entries.length).toBe(2)
+      expect(state.isPaused).toBe(true)
+      expect(state.pausedAtIndex).toBe(0)
     })
   })
 

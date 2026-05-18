@@ -225,14 +225,14 @@ export const createDevToolsStore = (
       )
     }
 
-    const addKeyframeIfNeeded = (
-      keyframes: HashMap.HashMap<number, unknown>,
-      nextAbsoluteIndex: number,
-      modelAfterUpdate: unknown,
-    ): HashMap.HashMap<number, unknown> =>
-      nextAbsoluteIndex % keyframeInterval === 0
-        ? HashMap.set(keyframes, nextAbsoluteIndex, modelAfterUpdate)
-        : keyframes
+    const addKeyframeIfNeeded =
+      (nextAbsoluteIndex: number, modelAfterUpdate: unknown) =>
+      (
+        keyframes: HashMap.HashMap<number, unknown>,
+      ): HashMap.HashMap<number, unknown> =>
+        nextAbsoluteIndex % keyframeInterval === 0
+          ? HashMap.set(keyframes, nextAbsoluteIndex, modelAfterUpdate)
+          : keyframes
 
     const evictOldestSegment = (state: StoreState): StoreState => {
       const nextStartIndex = state.startIndex + keyframeInterval
@@ -240,13 +240,12 @@ export const createDevToolsStore = (
         state.pausedAtIndex >= nextStartIndex ||
         state.pausedAtIndex === INIT_INDEX
 
-      return {
-        ...state,
-        entries: Array.drop(state.entries, keyframeInterval),
-        keyframes: HashMap.remove(state.keyframes, state.startIndex),
-        startIndex: nextStartIndex,
-        isPaused: state.isPaused && isPausedAtRetainedIndex,
-      }
+      return evo(state, {
+        entries: Array.drop(keyframeInterval),
+        keyframes: HashMap.remove(state.startIndex),
+        startIndex: () => nextStartIndex,
+        isPaused: isPaused => isPaused && isPausedAtRetainedIndex,
+      })
     }
 
     const recordInit = (
@@ -254,14 +253,15 @@ export const createDevToolsStore = (
       commands: ReadonlyArray<CommandRecord>,
       mountStarts: ReadonlyArray<MountRecord> = [],
     ) =>
-      SubscriptionRef.update(stateRef, state => ({
-        ...state,
-        maybeInitModel: Option.some(model),
-        initCommands: commands,
-        initMountStarts: mountStarts,
-        keyframes: HashMap.set(state.keyframes, 0, model),
-        maybeLatestModel: Option.some(model),
-      }))
+      SubscriptionRef.update(stateRef, state =>
+        evo(state, {
+          maybeInitModel: () => Option.some(model),
+          initCommands: () => commands,
+          initMountStarts: () => mountStarts,
+          keyframes: HashMap.set(0, model),
+          maybeLatestModel: () => Option.some(model),
+        }),
+      )
 
     const recordMessage = (
       message: Readonly<{ _tag: string }>,
@@ -279,9 +279,8 @@ export const createDevToolsStore = (
 
         const hasChangedFields = HashSet.size(diff.changedPaths) > 0
 
-        const nextState: StoreState = {
-          ...state,
-          entries: Array.append(state.entries, {
+        const nextState = evo(state, {
+          entries: Array.append({
             tag: message._tag,
             message,
             commands,
@@ -291,13 +290,9 @@ export const createDevToolsStore = (
             isModelChanged: hasChangedFields,
             diff,
           }),
-          keyframes: addKeyframeIfNeeded(
-            state.keyframes,
-            absoluteIndex + 1,
-            modelAfterUpdate,
-          ),
-          maybeLatestModel: Option.some(modelAfterUpdate),
-        }
+          keyframes: addKeyframeIfNeeded(absoluteIndex + 1, modelAfterUpdate),
+          maybeLatestModel: () => Option.some(modelAfterUpdate),
+        })
 
         return nextState.entries.length > maxEntries
           ? evictOldestSegment(nextState)
@@ -327,24 +322,20 @@ export const createDevToolsStore = (
         }
 
         return Array.match(state.entries, {
-          onEmpty: () => ({
-            ...state,
-            initMountStarts: Array.appendAll(
-              state.initMountStarts,
-              mountStarts,
-            ),
-          }),
-          onNonEmpty: entries => ({
-            ...state,
-            entries: Array.modifyLastNonEmpty(
-              entries,
-              (last): HistoryEntry => ({
-                ...last,
-                mountStarts: Array.appendAll(last.mountStarts, mountStarts),
-                mountEnds: Array.appendAll(last.mountEnds, mountEnds),
-              }),
-            ),
-          }),
+          onEmpty: () =>
+            evo(state, {
+              initMountStarts: Array.appendAll(mountStarts),
+            }),
+          onNonEmpty: entries =>
+            evo(state, {
+              entries: () =>
+                Array.modifyLastNonEmpty(entries, last =>
+                  evo(last, {
+                    mountStarts: Array.appendAll(mountStarts),
+                    mountEnds: Array.appendAll(mountEnds),
+                  }),
+                ),
+            }),
         })
       })
 
@@ -392,33 +383,44 @@ export const createDevToolsStore = (
       Effect.gen(function* () {
         const state = yield* SubscriptionRef.get(stateRef)
         yield* bridge.render(resolveModel(state, index))
-        yield* SubscriptionRef.set(stateRef, {
-          ...state,
-          isPaused: true,
-          pausedAtIndex: index,
-        })
+        yield* SubscriptionRef.set(
+          stateRef,
+          evo(state, {
+            isPaused: () => true,
+            pausedAtIndex: () => index,
+          }),
+        )
       })
 
     const resume = Effect.gen(function* () {
-      yield* SubscriptionRef.update(stateRef, state => ({
-        ...state,
-        isPaused: false,
-      }))
+      yield* SubscriptionRef.update(stateRef, state =>
+        evo(state, {
+          isPaused: () => false,
+        }),
+      )
       yield* bridge.markRenderPending
     })
 
-    const clear = SubscriptionRef.update(stateRef, state => ({
-      ...emptyState,
-      maybeInitModel: state.maybeInitModel,
-      initCommands: state.initCommands,
-      initMountStarts: state.initMountStarts,
-      keyframes: Option.match(state.maybeInitModel, {
-        onNone: () => HashMap.empty(),
-        onSome: model =>
-          HashMap.set(HashMap.empty<number, unknown>(), 0, model),
-      }),
-      maybeLatestModel: state.maybeInitModel,
-    }))
+    // NOTE: the paused snapshot is replayed off the entries array, so wiping
+    // entries while paused strands the runtime on a historical state with no
+    // path back to live. Refuse the write until resume.
+    const clear = SubscriptionRef.update(stateRef, state => {
+      if (state.isPaused) {
+        return state
+      } else {
+        return evo(state, {
+          entries: () => [],
+          startIndex: () => 0,
+          pausedAtIndex: () => 0,
+          keyframes: () =>
+            Option.match(state.maybeInitModel, {
+              onNone: () => HashMap.empty(),
+              onSome: model => HashMap.make([0, model]),
+            }),
+          maybeLatestModel: () => state.maybeInitModel,
+        })
+      }
+    })
 
     const getDiffAtIndex = (index: number) =>
       Effect.gen(function* () {
