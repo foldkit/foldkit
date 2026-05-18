@@ -1,5 +1,12 @@
 # foldkit
 
+## 0.100.1
+
+### Patch Changes
+
+- e38c5e8: Disable clearing history while time-travel is paused. The devtools overlay hides the "Clear history" button until you resume, and the underlying store treats clear as a no-op when paused. Previously, clearing while paused wiped the message entries the paused snapshot was being replayed from, leaving the runtime stuck on a historical state with no path back to live.
+- 5338579: Update README and template docs to recommend binding `const h = html<Message>()` inside view functions instead of at module level. The function-level binding accepts the function's actual Message type parameter (including `<ParentMessage>` for child views), keeps view functions portable across files, and removes the need to decide where the binding lives. Behavior unchanged.
+
 ## 0.100.0
 
 ### Minor Changes
