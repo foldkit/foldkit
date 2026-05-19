@@ -245,46 +245,38 @@ export const GenerateApplePosition = Command.define(
 
 // SUBSCRIPTION
 
-const SubscriptionDependencies = S.Struct({
-  gameClock: S.Struct({
-    isPlaying: S.Boolean,
-    interval: S.Number,
-  }),
-  keyboard: S.Null,
-})
-
-export const subscriptions = Subscription.makeSubscriptions(
-  SubscriptionDependencies,
-)<Model, Message>({
-  gameClock: {
-    modelToDependencies: (model: Model) => ({
-      isPlaying: model.gameState === 'Playing',
-      interval: Math.max(
-        GAME_SPEED.MIN_INTERVAL,
-        GAME_SPEED.BASE_INTERVAL - model.points,
-      ),
-    }),
-    dependenciesToStream: (deps: { isPlaying: boolean; interval: number }) =>
-      Stream.when(
-        Stream.tick(Duration.millis(deps.interval)).pipe(
-          Stream.map(TickedClock),
+export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+  gameClock: entry(
+    {
+      isPlaying: S.Boolean,
+      interval: S.Number,
+    },
+    {
+      modelToDependencies: model => ({
+        isPlaying: model.gameState === 'Playing',
+        interval: Math.max(
+          GAME_SPEED.MIN_INTERVAL,
+          GAME_SPEED.BASE_INTERVAL - model.points,
         ),
-        Effect.sync(() => deps.isPlaying),
-      ),
-  },
+      }),
+      dependenciesToStream: ({ isPlaying, interval }) =>
+        Stream.when(
+          Stream.tick(Duration.millis(interval)).pipe(Stream.map(TickedClock)),
+          Effect.sync(() => isPlaying),
+        ),
+    },
+  ),
 
-  keyboard: {
-    modelToDependencies: () => null,
-    dependenciesToStream: () =>
-      Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
-        Stream.mapEffect(keyboardEvent =>
-          Effect.sync(() => keyboardEvent.preventDefault()).pipe(
-            Effect.as(PressedKey({ key: keyboardEvent.key })),
-          ),
+  keyboard: Subscription.persistent(
+    Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
+      Stream.mapEffect(keyboardEvent =>
+        Effect.sync(() => keyboardEvent.preventDefault()).pipe(
+          Effect.as(PressedKey({ key: keyboardEvent.key })),
         ),
       ),
-  },
-})
+    ),
+  ),
+}))
 
 // VIEW
 

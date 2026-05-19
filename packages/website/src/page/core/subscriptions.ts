@@ -14,6 +14,7 @@ import {
   coreManagedResourcesRouter,
   coreMountRouter,
   exampleDetailRouter,
+  patternsSubscriptionOrganizationRouter,
   uiDragAndDropRouter,
 } from '../../route'
 import * as Snippets from '../../snippet'
@@ -23,6 +24,12 @@ const overviewHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'overview',
   text: 'Overview',
+}
+
+const autoCounterHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'auto-counter-example',
+  text: 'Auto-Counter Example',
 }
 
 const animationFramesHeader: TableOfContentsEntry = {
@@ -51,6 +58,7 @@ const readDependenciesHeader: TableOfContentsEntry = {
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
+  autoCounterHeader,
   animationFramesHeader,
   advancedHeader,
   equivalenceHeader,
@@ -66,13 +74,57 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       pageTitle('core/subscriptions', 'Subscriptions'),
       tableOfContentsEntryToHeader(overviewHeader),
       para(
-        'A Subscription is a subscription to your Model. You name a slice of the Model via ',
+        'A Subscription binds a slice of your Model to a scoped Stream that may emit Messages. You name a slice of the Model via ',
         inlineCode('modelToDependencies'),
         ', and Foldkit runs the body of work in ',
         inlineCode('dependenciesToStream'),
         ' as a scoped Effect for exactly as long as that slice holds its dependency-equivalent value. When the slice changes, the scope closes (running any registered ',
         inlineCode('Effect.acquireRelease'),
         ' finalizers), and a fresh scope opens with the new dependencies.',
+      ),
+      h.pre(
+        [
+          h.Class(
+            'mb-4 mx-auto w-fit max-w-full text-[#403d4a] dark:text-[#E0DEE6] text-sm p-4 overflow-x-auto rounded-lg bg-gray-100 dark:bg-[#1c1a20] border border-gray-200 dark:border-gray-700/50',
+          ),
+        ],
+        [
+          '               Model\n' +
+            '                 |\n' +
+            '                 | modelToDependencies(model)\n' +
+            '                 ↓\n' +
+            '            Dependencies\n' +
+            '                 |\n' +
+            '                 | equivalence check vs. previous\n' +
+            '                 ↓\n' +
+            '            +----------+\n' +
+            '            | changed? |\n' +
+            '            +----+-----+\n' +
+            '                 |\n' +
+            '           +-----+------+\n' +
+            '           |            |\n' +
+            '          yes           no\n' +
+            '           |            |\n' +
+            '           ↓            ↓\n' +
+            '    close current   scope continues\n' +
+            '        scope        (no restart)\n' +
+            '   (finalizers run)\n' +
+            '           |\n' +
+            '           ↓\n' +
+            '   open fresh scope\n' +
+            '           |\n' +
+            '           ↓\n' +
+            '   +----------------------------+\n' +
+            '   |    dependenciesToStream    |\n' +
+            '   |  (deps, readDependencies)  |\n' +
+            '   +-------------+--------------+\n' +
+            '                 |\n' +
+            '                 ↓\n' +
+            '          Stream<Message>\n' +
+            '                 |\n' +
+            '                 ↓\n' +
+            '               update',
+        ],
       ),
       para(
         'This inverts the usual "subscribe to an event source" framing. The thing you are subscribed to is the Model, not the ',
@@ -121,6 +173,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('Stream.tap'),
         ' is the typical shape when the mutation is the entire point and no Message follows.',
       ),
+      tableOfContentsEntryToHeader(autoCounterHeader),
       para(
         'In the ',
         link(
@@ -152,9 +205,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'mb-8',
       ),
       para(
-        'The key concept is ',
-        inlineCode('SubscriptionDependencies'),
-        '. This schema defines what parts of the Model your Subscriptions depend on. Each Subscription has two functions:',
+        'Each entry is built by calling ',
+        inlineCode('entry'),
+        ' with two arguments. The first is a field map describing the dependency shape (the same shape you would pass to ',
+        inlineCode('S.Struct'),
+        '). The second is an object with two callbacks:',
       ),
       h.ul(
         [h.Class('list-disc mb-8 space-y-2')],
@@ -163,14 +218,14 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
             [],
             [
               inlineCode('modelToDependencies'),
-              ' extracts the relevant dependencies from the Model.',
+              ' extracts the dependencies from the Model.',
             ],
           ),
           h.li(
             [],
             [
               inlineCode('dependenciesToStream'),
-              ' creates a stream based on those dependencies.',
+              ' creates a Stream of Messages from those dependencies.',
             ],
           ),
         ],
@@ -215,13 +270,11 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         inlineCode('isActive'),
         ' gate returns ',
         inlineCode('false'),
-        '. The helper returns a Subscription field config, so it slots into ',
-        inlineCode('makeSubscriptions'),
-        ' alongside any other dependency. Pair with ',
-        inlineCode('S.Boolean'),
-        ' in your ',
-        inlineCode('SubscriptionDependencies'),
-        ' schema.',
+        '. The helper returns a complete Subscription entry (its dependencies are ',
+        inlineCode('{ isActive: boolean }'),
+        '), so it slots into ',
+        inlineCode('Subscription.make'),
+        ' as a single line alongside any other entries.',
       ),
       para(
         'Reach for it whenever you want smooth, time-based motion driven by Model updates: physics simulations, generative art, parallax scrolling, custom interpolations. The ',
@@ -295,10 +348,10 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
       tableOfContentsEntryToHeader(equivalenceHeader),
       para(
         'The ',
-        inlineCode('equivalence'),
+        inlineCode('keepAliveEquivalence'),
         ' field overrides the default structural comparison with an ',
         inlineCode('Equivalence'),
-        ' from Effect, letting you choose which fields trigger a restart. ',
+        ' from Effect, letting you choose which fields are allowed to change without restarting the stream. ',
         inlineCode('Equivalence.Struct({ isDragging: Equivalence.Boolean })'),
         ' means two snapshots are equal if they have the same ',
         inlineCode('isDragging'),
@@ -330,12 +383,22 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'In most Subscriptions, use the dependencies passed as the first argument directly. The stream restarts whenever they change, so they’re always current. ',
         inlineCode('readDependencies'),
         ' is for the case where ',
-        inlineCode('equivalence'),
+        inlineCode('keepAliveEquivalence'),
         ' has excluded fast-changing fields from the restart decision, and you need to read those fields inside a long-lived callback. For a real-world example, see the ',
         link(uiDragAndDropRouter(), 'Drag and Drop'),
         ' component and the ',
         link(exampleDetailRouter({ exampleSlug: 'kanban' }), 'Kanban example'),
         '.',
+      ),
+      para(
+        'When a parent Submodel embeds children that emit Subscriptions, the parent owns the wrap into its own Message type. ',
+        inlineCode('Subscription.lift'),
+        ' handles this composition in one call. See ',
+        link(
+          patternsSubscriptionOrganizationRouter(),
+          'Subscription Organization',
+        ),
+        ' for the full pattern.',
       ),
       para(
         'You’ve now seen how state changes flow through update, how one-off side effects work as Commands, how view code reaches the live DOM with Mount, and how ongoing streams are managed with Subscriptions. But where do the first Model and Commands come from? That’s ',

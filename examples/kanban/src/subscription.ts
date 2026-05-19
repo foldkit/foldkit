@@ -1,81 +1,15 @@
-import { Equivalence, Schema as S, Stream } from 'effect'
 import { Subscription, Ui } from 'foldkit'
 
 import { GotDragAndDropMessage } from './message'
 import type { Message } from './message'
 import type { Model } from './model'
 
-const dragAndDropFields = Ui.DragAndDrop.SubscriptionDependencies.fields
-
-export const SubscriptionDependencies = S.Struct({
-  dragPointer: dragAndDropFields['documentPointer'],
-  dragEscape: dragAndDropFields['documentEscape'],
-  dragKeyboard: dragAndDropFields['documentKeyboard'],
-  autoScroll: dragAndDropFields['autoScroll'],
-})
-
-const dragAndDropSubscriptions = Ui.DragAndDrop.subscriptions
-
-const mapDragStream = (stream: Stream.Stream<Ui.DragAndDrop.Message>) =>
-  stream.pipe(Stream.map(message => GotDragAndDropMessage({ message })))
-
-export const subscriptions = Subscription.makeSubscriptions(
-  SubscriptionDependencies,
-)<Model, Message>({
-  dragPointer: {
-    modelToDependencies: model =>
-      dragAndDropSubscriptions.documentPointer.modelToDependencies(
-        model.dragAndDrop,
-      ),
-    dependenciesToStream: (deps, readDependencies) =>
-      mapDragStream(
-        dragAndDropSubscriptions.documentPointer.dependenciesToStream(
-          deps,
-          readDependencies,
-        ),
-      ),
-  },
-
-  dragEscape: {
-    modelToDependencies: model =>
-      dragAndDropSubscriptions.documentEscape.modelToDependencies(
-        model.dragAndDrop,
-      ),
-    dependenciesToStream: (deps, readDependencies) =>
-      mapDragStream(
-        dragAndDropSubscriptions.documentEscape.dependenciesToStream(
-          deps,
-          readDependencies,
-        ),
-      ),
-  },
-
-  dragKeyboard: {
-    modelToDependencies: model =>
-      dragAndDropSubscriptions.documentKeyboard.modelToDependencies(
-        model.dragAndDrop,
-      ),
-    dependenciesToStream: (deps, readDependencies) =>
-      mapDragStream(
-        dragAndDropSubscriptions.documentKeyboard.dependenciesToStream(
-          deps,
-          readDependencies,
-        ),
-      ),
-  },
-
-  autoScroll: {
-    modelToDependencies: model =>
-      dragAndDropSubscriptions.autoScroll.modelToDependencies(
-        model.dragAndDrop,
-      ),
-    equivalence: Equivalence.Struct({ isDragging: Equivalence.Boolean }),
-    dependenciesToStream: (deps, readDependencies) =>
-      mapDragStream(
-        dragAndDropSubscriptions.autoScroll.dependenciesToStream(
-          deps,
-          readDependencies,
-        ),
-      ),
-  },
+export const subscriptions = Subscription.lift({
+  dragPointer: Ui.DragAndDrop.subscriptions.documentPointer,
+  dragEscape: Ui.DragAndDrop.subscriptions.documentEscape,
+  dragKeyboard: Ui.DragAndDrop.subscriptions.documentKeyboard,
+  autoScroll: Ui.DragAndDrop.subscriptions.autoScroll,
+})<Model, Message>({
+  toChildModel: model => model.dragAndDrop,
+  toParentMessage: message => GotDragAndDropMessage({ message }),
 })

@@ -34,7 +34,7 @@ import {
 import { m } from '../message/index.js'
 import { makeProgram } from '../runtime/runtime.js'
 import type { DevToolsMode, DevToolsPosition } from '../runtime/runtime.js'
-import { makeSubscriptions } from '../runtime/subscription.js'
+import * as Subscription from '../runtime/subscription.js'
 import { evo } from '../struct/index.js'
 import * as Listbox from '../ui/listbox/public.js'
 import * as Slider from '../ui/slider/public.js'
@@ -752,86 +752,57 @@ const makeUpdate = (
 
 // SUBSCRIPTION
 
-const ScrubberDragActivity = S.Literals(['Idle', 'Active'])
-
-const SubscriptionDependencies = S.Struct({
-  storeUpdates: S.Boolean,
-  mobileBreakpoint: S.Null,
-  scrubberPointer: S.Struct({
-    dragActivity: ScrubberDragActivity,
-    id: S.String,
-    min: S.Number,
-    max: S.Number,
-  }),
-  scrubberEscape: S.Struct({
-    dragActivity: ScrubberDragActivity,
-  }),
-})
-
 const makeOverlaySubscriptions = (store: DevToolsStore, shadow: ShadowRoot) => {
   const sliderSubscriptions = Slider.subscriptionsForRoot(() => shadow)
 
-  return makeSubscriptions(SubscriptionDependencies)<Model, Message>({
-    storeUpdates: {
-      modelToDependencies: () => true,
-      dependenciesToStream: () =>
-        Stream.concat(
-          Stream.fromEffect(
-            SubscriptionRef.get(store.stateRef).pipe(
-              Effect.map(state => ReceivedStoreUpdate(toDisplayState(state))),
-            ),
-          ),
-          Stream.map(SubscriptionRef.changes(store.stateRef), state =>
-            ReceivedStoreUpdate(toDisplayState(state)),
-          ),
-        ),
-    },
-    mobileBreakpoint: {
-      modelToDependencies: () => null,
-      dependenciesToStream: () =>
-        Stream.callback<Message>(queue =>
-          Effect.acquireRelease(
-            Effect.sync(() => {
-              const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT_QUERY)
-              const handler = (event: MediaQueryListEvent) => {
-                Queue.offerUnsafe(
-                  queue,
-                  CrossedMobileBreakpoint({ isMobile: event.matches }),
-                )
-              }
-              mediaQuery.addEventListener('change', handler)
-              return { mediaQuery, handler }
-            }),
-            ({ mediaQuery, handler }) =>
-              Effect.sync(() =>
-                mediaQuery.removeEventListener('change', handler),
-              ),
-          ).pipe(Effect.flatMap(() => Effect.never)),
-        ),
-    },
-    scrubberPointer: {
-      modelToDependencies: model =>
-        sliderSubscriptions.dragPointer.modelToDependencies(
-          model.scrubberSlider,
-        ),
-      dependenciesToStream: (deps, readDeps) =>
-        Stream.map(
-          sliderSubscriptions.dragPointer.dependenciesToStream(deps, readDeps),
-          message => GotScrubberSliderMessage({ message }),
-        ),
-    },
-    scrubberEscape: {
-      modelToDependencies: model =>
-        sliderSubscriptions.dragEscape.modelToDependencies(
-          model.scrubberSlider,
-        ),
-      dependenciesToStream: (deps, readDeps) =>
-        Stream.map(
-          sliderSubscriptions.dragEscape.dependenciesToStream(deps, readDeps),
-          message => GotScrubberSliderMessage({ message }),
-        ),
-    },
+  const scrubberSubscriptions = Subscription.lift({
+    scrubberPointer: sliderSubscriptions.dragPointer,
+    scrubberEscape: sliderSubscriptions.dragEscape,
+  })<Model, Message>({
+    toChildModel: model => model.scrubberSlider,
+    toParentMessage: message => GotScrubberSliderMessage({ message }),
   })
+
+  const ownSubscriptions = Subscription.make<Model, Message>()(_entry => ({
+    storeUpdates: Subscription.persistent(
+      Stream.concat(
+        Stream.fromEffect(
+          SubscriptionRef.get(store.stateRef).pipe(
+            Effect.map(state => ReceivedStoreUpdate(toDisplayState(state))),
+          ),
+        ),
+        Stream.map(SubscriptionRef.changes(store.stateRef), state =>
+          ReceivedStoreUpdate(toDisplayState(state)),
+        ),
+      ),
+    ),
+    mobileBreakpoint: Subscription.persistent(
+      Stream.callback<Message>(queue =>
+        Effect.acquireRelease(
+          Effect.sync(() => {
+            const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT_QUERY)
+            const handler = (event: MediaQueryListEvent) => {
+              Queue.offerUnsafe(
+                queue,
+                CrossedMobileBreakpoint({ isMobile: event.matches }),
+              )
+            }
+            mediaQuery.addEventListener('change', handler)
+            return { mediaQuery, handler }
+          }),
+          ({ mediaQuery, handler }) =>
+            Effect.sync(() =>
+              mediaQuery.removeEventListener('change', handler),
+            ),
+        ).pipe(Effect.flatMap(() => Effect.never)),
+      ),
+    ),
+  }))
+
+  return Subscription.aggregate<Model, Message>()(
+    ownSubscriptions,
+    scrubberSubscriptions,
+  )
 }
 
 // VIEW

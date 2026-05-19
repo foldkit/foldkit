@@ -3,7 +3,7 @@ import { Array } from 'effect'
 import { Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
-import * as Icon from '../icon'
+import * as Icon from '../../icon'
 import {
   GotComboboxDemoMessage,
   GotComboboxMultiDemoMessage,

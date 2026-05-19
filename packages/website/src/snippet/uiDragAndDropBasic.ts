@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt — fit them into your own Model, init, Message,
+// block below is an excerpt. Fit each into your own Model, init, Message,
 // update, subscriptions, and view definitions.
-import { Effect, Match as M, Option, Stream } from 'effect'
+import { Effect, Match as M, Option } from 'effect'
 import { Command, Subscription, Ui } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -77,55 +77,22 @@ GotDragAndDropMessage: ({ message: dragMessage }) => {
   })
 }
 
-// In your subscriptions, forward all four document-level listeners:
-const dragAndDropSubs = Ui.DragAndDrop.subscriptions
-
-const mapDragStream = stream =>
-  stream.pipe(Stream.map(message => GotDragAndDropMessage({ message })))
-
-const dragFields = Ui.DragAndDrop.SubscriptionDependencies.fields
-
-const SubscriptionDependencies = S.Struct({
-  dragPointer: dragFields['documentPointer'],
-  dragEscape: dragFields['documentEscape'],
-  dragKeyboard: dragFields['documentKeyboard'],
-  autoScroll: dragFields['autoScroll'],
+// In your subscriptions, lift all four document-level listeners through
+// Subscription.lift in one shot:
+const dragAndDropSubscriptions = Subscription.lift({
+  dragPointer: Ui.DragAndDrop.subscriptions.documentPointer,
+  dragEscape: Ui.DragAndDrop.subscriptions.documentEscape,
+  dragKeyboard: Ui.DragAndDrop.subscriptions.documentKeyboard,
+  autoScroll: Ui.DragAndDrop.subscriptions.autoScroll,
+})<Model, Message>({
+  toChildModel: model => model.dragAndDrop,
+  toParentMessage: message => GotDragAndDropMessage({ message }),
 })
 
-const subscriptions = Subscription.makeSubscriptions(SubscriptionDependencies)({
-  dragPointer: {
-    modelToDependencies: model =>
-      dragAndDropSubs.documentPointer.modelToDependencies(model.dragAndDrop),
-    dependenciesToStream: (deps, readDeps) =>
-      mapDragStream(
-        dragAndDropSubs.documentPointer.dependenciesToStream(deps, readDeps),
-      ),
-  },
-  dragEscape: {
-    modelToDependencies: model =>
-      dragAndDropSubs.documentEscape.modelToDependencies(model.dragAndDrop),
-    dependenciesToStream: (deps, readDeps) =>
-      mapDragStream(
-        dragAndDropSubs.documentEscape.dependenciesToStream(deps, readDeps),
-      ),
-  },
-  dragKeyboard: {
-    modelToDependencies: model =>
-      dragAndDropSubs.documentKeyboard.modelToDependencies(model.dragAndDrop),
-    dependenciesToStream: (deps, readDeps) =>
-      mapDragStream(
-        dragAndDropSubs.documentKeyboard.dependenciesToStream(deps, readDeps),
-      ),
-  },
-  autoScroll: {
-    modelToDependencies: model =>
-      dragAndDropSubs.autoScroll.modelToDependencies(model.dragAndDrop),
-    dependenciesToStream: (deps, readDeps) =>
-      mapDragStream(
-        dragAndDropSubs.autoScroll.dependenciesToStream(deps, readDeps),
-      ),
-  },
-})
+const subscriptions = Subscription.aggregate<Model, Message>()(
+  dragAndDropSubscriptions,
+  // ...your other subscription records
+)
 
 // Inside your view function, spread draggable() onto items and droppable()
 // onto containers:

@@ -21,16 +21,9 @@ type Model = typeof Model.Type
 
 // SUBSCRIPTION
 
-const SubscriptionDependencies = S.Struct({
-  frame: S.Boolean,
-})
-
-const subscriptions = Subscription.makeSubscriptions(SubscriptionDependencies)<
-  Model,
-  Message
->({
+const subscriptions = Subscription.make<Model, Message>()(_entry => ({
   frame: Subscription.animationFrame({
     isActive: model => model.isPlaying,
     toMessage: deltaTime => TickedFrame({ deltaTime }),
   }),
-})
+}))

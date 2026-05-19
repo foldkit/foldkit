@@ -1,7 +1,6 @@
 import { Calendar, Scene } from 'foldkit'
 import { describe, test } from 'vitest'
 
-import { uiInit } from './init'
 import {
   AnimationRoute,
   ButtonRoute,
@@ -19,6 +18,7 @@ import {
   update,
   view,
 } from './main'
+import { uiInit } from './ui/init'
 
 const today = Calendar.make(2026, 4, 16)
 const [initialUiModel] = uiInit(today)

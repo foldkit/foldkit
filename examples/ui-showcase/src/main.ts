@@ -1,12 +1,5 @@
 import clsx from 'clsx'
-import {
-  Effect,
-  Equivalence,
-  Match as M,
-  Schema as S,
-  Stream,
-  pipe,
-} from 'effect'
+import { Effect, Match as M, Schema as S, pipe } from 'effect'
 import { Calendar, Command, Route, Runtime, Subscription, Ui } from 'foldkit'
 import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -16,19 +9,12 @@ import { evo } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
 import * as Icon from './icon'
-import { uiInit } from './init'
-import {
-  GotDragAndDropDemoMessage,
-  GotMobileMenuDialogMessage,
-  GotSliderRatingDemoMessage,
-  GotSliderVolumeDemoMessage,
-  GotVirtualListDemoMessage,
-  GotVirtualListVariableDemoMessage,
-  UiMessage,
-} from './message'
-import { UiModel } from './model'
-import { uiUpdate } from './update'
-import * as View from './view'
+import { uiInit } from './ui/init'
+import { GotMobileMenuDialogMessage, UiMessage } from './ui/message'
+import { UiModel } from './ui/model'
+import * as UiSubscriptions from './ui/subscriptions'
+import { uiUpdate } from './ui/update'
+import * as View from './ui/view'
 
 // ROUTE
 
@@ -656,186 +642,10 @@ export const view = (model: Model): Document => {
 
 // SUBSCRIPTION
 
-const sliderFields = Ui.Slider.SubscriptionDependencies.fields
-const dragAndDropFields = Ui.DragAndDrop.SubscriptionDependencies.fields
-
-const SubscriptionDependencies = S.Struct({
-  sliderRatingPointer: sliderFields['dragPointer'],
-  sliderRatingEscape: sliderFields['dragEscape'],
-  sliderVolumePointer: sliderFields['dragPointer'],
-  sliderVolumeEscape: sliderFields['dragEscape'],
-  dragPointer: dragAndDropFields['documentPointer'],
-  dragEscape: dragAndDropFields['documentEscape'],
-  dragKeyboard: dragAndDropFields['documentKeyboard'],
-  autoScroll: dragAndDropFields['autoScroll'],
-  virtualListContainerEvents:
-    Ui.VirtualList.SubscriptionDependencies.fields['containerEvents'],
-  virtualListVariableContainerEvents:
-    Ui.VirtualList.SubscriptionDependencies.fields['containerEvents'],
-})
-
-const sliderSubscriptions = Ui.Slider.subscriptions
-const dragAndDropSubscriptions = Ui.DragAndDrop.subscriptions
-
-const mapRatingStream = (stream: Stream.Stream<Ui.Slider.Message>) =>
-  stream.pipe(
-    Stream.map(message =>
-      GotUiMessage({ message: GotSliderRatingDemoMessage({ message }) }),
-    ),
-  )
-
-const mapVolumeStream = (stream: Stream.Stream<Ui.Slider.Message>) =>
-  stream.pipe(
-    Stream.map(message =>
-      GotUiMessage({ message: GotSliderVolumeDemoMessage({ message }) }),
-    ),
-  )
-
-const mapDragStream = (stream: Stream.Stream<Ui.DragAndDrop.Message>) =>
-  stream.pipe(
-    Stream.map(message =>
-      GotUiMessage({ message: GotDragAndDropDemoMessage({ message }) }),
-    ),
-  )
-
-export const subscriptions = Subscription.makeSubscriptions(
-  SubscriptionDependencies,
-)<Model, Message>({
-  sliderRatingPointer: {
-    modelToDependencies: model =>
-      sliderSubscriptions.dragPointer.modelToDependencies(
-        model.uiModel.sliderRatingDemo,
-      ),
-    dependenciesToStream: (dependencies, readDependencies) =>
-      mapRatingStream(
-        sliderSubscriptions.dragPointer.dependenciesToStream(
-          dependencies,
-          readDependencies,
-        ),
-      ),
-  },
-  sliderRatingEscape: {
-    modelToDependencies: model =>
-      sliderSubscriptions.dragEscape.modelToDependencies(
-        model.uiModel.sliderRatingDemo,
-      ),
-    dependenciesToStream: (dependencies, readDependencies) =>
-      mapRatingStream(
-        sliderSubscriptions.dragEscape.dependenciesToStream(
-          dependencies,
-          readDependencies,
-        ),
-      ),
-  },
-  sliderVolumePointer: {
-    modelToDependencies: model =>
-      sliderSubscriptions.dragPointer.modelToDependencies(
-        model.uiModel.sliderVolumeDemo,
-      ),
-    dependenciesToStream: (dependencies, readDependencies) =>
-      mapVolumeStream(
-        sliderSubscriptions.dragPointer.dependenciesToStream(
-          dependencies,
-          readDependencies,
-        ),
-      ),
-  },
-  sliderVolumeEscape: {
-    modelToDependencies: model =>
-      sliderSubscriptions.dragEscape.modelToDependencies(
-        model.uiModel.sliderVolumeDemo,
-      ),
-    dependenciesToStream: (dependencies, readDependencies) =>
-      mapVolumeStream(
-        sliderSubscriptions.dragEscape.dependenciesToStream(
-          dependencies,
-          readDependencies,
-        ),
-      ),
-  },
-  dragPointer: {
-    modelToDependencies: model =>
-      dragAndDropSubscriptions.documentPointer.modelToDependencies(
-        model.uiModel.dragAndDropDemo,
-      ),
-    dependenciesToStream: (dependencies, readDependencies) =>
-      mapDragStream(
-        dragAndDropSubscriptions.documentPointer.dependenciesToStream(
-          dependencies,
-          readDependencies,
-        ),
-      ),
-  },
-  dragEscape: {
-    modelToDependencies: model =>
-      dragAndDropSubscriptions.documentEscape.modelToDependencies(
-        model.uiModel.dragAndDropDemo,
-      ),
-    dependenciesToStream: (dependencies, readDependencies) =>
-      mapDragStream(
-        dragAndDropSubscriptions.documentEscape.dependenciesToStream(
-          dependencies,
-          readDependencies,
-        ),
-      ),
-  },
-  dragKeyboard: {
-    modelToDependencies: model =>
-      dragAndDropSubscriptions.documentKeyboard.modelToDependencies(
-        model.uiModel.dragAndDropDemo,
-      ),
-    dependenciesToStream: (dependencies, readDependencies) =>
-      mapDragStream(
-        dragAndDropSubscriptions.documentKeyboard.dependenciesToStream(
-          dependencies,
-          readDependencies,
-        ),
-      ),
-  },
-  autoScroll: {
-    modelToDependencies: model =>
-      dragAndDropSubscriptions.autoScroll.modelToDependencies(
-        model.uiModel.dragAndDropDemo,
-      ),
-    equivalence: Equivalence.Struct({ isDragging: Equivalence.Boolean }),
-    dependenciesToStream: (dependencies, readDependencies) =>
-      mapDragStream(
-        dragAndDropSubscriptions.autoScroll.dependenciesToStream(
-          dependencies,
-          readDependencies,
-        ),
-      ),
-  },
-  virtualListContainerEvents: {
-    modelToDependencies: model =>
-      Ui.VirtualList.subscriptions.containerEvents.modelToDependencies(
-        model.uiModel.virtualListDemo,
-      ),
-    dependenciesToStream: (dependencies, readDependencies) =>
-      Ui.VirtualList.subscriptions.containerEvents
-        .dependenciesToStream(dependencies, readDependencies)
-        .pipe(
-          Stream.map(message =>
-            GotUiMessage({
-              message: GotVirtualListDemoMessage({ message }),
-            }),
-          ),
-        ),
-  },
-  virtualListVariableContainerEvents: {
-    modelToDependencies: model =>
-      Ui.VirtualList.subscriptions.containerEvents.modelToDependencies(
-        model.uiModel.virtualListVariableDemo,
-      ),
-    dependenciesToStream: (dependencies, readDependencies) =>
-      Ui.VirtualList.subscriptions.containerEvents
-        .dependenciesToStream(dependencies, readDependencies)
-        .pipe(
-          Stream.map(message =>
-            GotUiMessage({
-              message: GotVirtualListVariableDemoMessage({ message }),
-            }),
-          ),
-        ),
-  },
+export const subscriptions = Subscription.lift(UiSubscriptions.subscriptions)<
+  Model,
+  Message
+>({
+  toChildModel: model => model.uiModel,
+  toParentMessage: message => GotUiMessage({ message }),
 })

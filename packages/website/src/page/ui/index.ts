@@ -2,6 +2,7 @@ export { Model } from './model'
 export { Message } from './message'
 export { init } from './init'
 export { update } from './update'
+export { subscriptions } from './subscriptions'
 
 export * as OverviewPage from './overviewPage'
 export * as ButtonPage from './buttonPage'

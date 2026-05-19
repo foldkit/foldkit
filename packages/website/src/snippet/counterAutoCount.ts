@@ -22,24 +22,18 @@ type Model = typeof Model.Type
 
 // SUBSCRIPTION
 
-const SubscriptionDependencies = S.Struct({
-  tick: S.Struct({
-    isAutoCounting: S.Boolean,
-  }),
-})
-
-const subscriptions = Subscription.makeSubscriptions(SubscriptionDependencies)<
-  Model,
-  Message
->({
-  tick: {
-    modelToDependencies: model => ({
-      isAutoCounting: model.isAutoCounting,
-    }),
-    dependenciesToStream: ({ isAutoCounting }) =>
-      Stream.when(
-        Stream.tick(Duration.seconds(1)).pipe(Stream.map(Ticked)),
-        Effect.sync(() => isAutoCounting),
-      ),
-  },
-})
+const subscriptions = Subscription.make<Model, Message>()(entry => ({
+  tick: entry(
+    { isAutoCounting: S.Boolean },
+    {
+      modelToDependencies: model => ({
+        isAutoCounting: model.isAutoCounting,
+      }),
+      dependenciesToStream: ({ isAutoCounting }) =>
+        Stream.when(
+          Stream.tick(Duration.seconds(1)).pipe(Stream.map(Ticked)),
+          Effect.sync(() => isAutoCounting),
+        ),
+    },
+  ),
+}))

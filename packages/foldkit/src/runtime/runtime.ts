@@ -225,7 +225,6 @@ export type CrashConfig<Model, Message> = Readonly<{
 type RuntimeConfig<
   Model,
   Message,
-  StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
   Flags,
   Resources = never,
   ManagedResourceServices = never,
@@ -251,7 +250,6 @@ type RuntimeConfig<
   subscriptions?: Subscriptions<
     Model,
     Message,
-    StreamDepsMap,
     Resources | ManagedResourceServices
   >
   container: HTMLElement
@@ -294,7 +292,6 @@ type RuntimeConfig<
 type BaseProgramConfig<
   Model,
   Message,
-  StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
   Resources = never,
   ManagedResourceServices = never,
 > = Readonly<{
@@ -310,7 +307,6 @@ type BaseProgramConfig<
   subscriptions?: Subscriptions<
     Model,
     Message,
-    StreamDepsMap,
     Resources | ManagedResourceServices
   >
   container: HTMLElement | null
@@ -326,17 +322,10 @@ type BaseProgramConfig<
 export type RoutingProgramConfigWithFlags<
   Model,
   Message,
-  StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
   Flags,
   Resources = never,
   ManagedResourceServices = never,
-> = BaseProgramConfig<
-  Model,
-  Message,
-  StreamDepsMap,
-  Resources,
-  ManagedResourceServices
-> &
+> = BaseProgramConfig<Model, Message, Resources, ManagedResourceServices> &
   Readonly<{
     Flags: Schema.Codec<Flags, any, unknown, unknown>
     flags: Effect.Effect<Flags>
@@ -356,16 +345,9 @@ export type RoutingProgramConfigWithFlags<
 export type RoutingProgramConfig<
   Model,
   Message,
-  StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
   Resources = never,
   ManagedResourceServices = never,
-> = BaseProgramConfig<
-  Model,
-  Message,
-  StreamDepsMap,
-  Resources,
-  ManagedResourceServices
-> &
+> = BaseProgramConfig<Model, Message, Resources, ManagedResourceServices> &
   Readonly<{
     routing: RoutingConfig<Message>
     init: (
@@ -382,17 +364,10 @@ export type RoutingProgramConfig<
 export type ProgramConfigWithFlags<
   Model,
   Message,
-  StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
   Flags,
   Resources = never,
   ManagedResourceServices = never,
-> = BaseProgramConfig<
-  Model,
-  Message,
-  StreamDepsMap,
-  Resources,
-  ManagedResourceServices
-> &
+> = BaseProgramConfig<Model, Message, Resources, ManagedResourceServices> &
   Readonly<{
     Flags: Schema.Codec<Flags, any, unknown, unknown>
     flags: Effect.Effect<Flags>
@@ -410,16 +385,9 @@ export type ProgramConfigWithFlags<
 export type ProgramConfig<
   Model,
   Message,
-  StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
   Resources = never,
   ManagedResourceServices = never,
-> = BaseProgramConfig<
-  Model,
-  Message,
-  StreamDepsMap,
-  Resources,
-  ManagedResourceServices
-> &
+> = BaseProgramConfig<Model, Message, Resources, ManagedResourceServices> &
   Readonly<{
     init: () => readonly [
       Model,
@@ -487,7 +455,6 @@ export type MakeRuntimeReturn = Readonly<{
 const makeRuntime = <
   Model,
   Message,
-  StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
   Flags,
   Resources,
   ManagedResourceServices,
@@ -509,7 +476,6 @@ const makeRuntime = <
 }: RuntimeConfig<
   Model,
   Message,
-  StreamDepsMap,
   Flags,
   Resources,
   ManagedResourceServices
@@ -1103,9 +1069,9 @@ const makeRuntime = <
               ([
                 _key,
                 {
-                  schema,
+                  dependenciesSchema,
                   modelToDependencies,
-                  equivalence: customEquivalence,
+                  keepAliveEquivalence,
                   dependenciesToStream,
                 },
               ]) =>
@@ -1114,7 +1080,8 @@ const makeRuntime = <
                     modelToDependencies(initModel),
                   )
                   const equivalence =
-                    customEquivalence ?? Schema.toEquivalence(schema)
+                    keepAliveEquivalence ??
+                    Schema.toEquivalence(dependenciesSchema)
 
                   const modelStream = Stream.concat(
                     Stream.make(initModel),
@@ -1457,7 +1424,6 @@ const renderCrashView = <Model, Message>(
 export function makeProgram<
   Model,
   Message extends { _tag: string },
-  StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
   Flags,
   Resources = never,
   ManagedResourceServices = never,
@@ -1465,7 +1431,6 @@ export function makeProgram<
   config: RoutingProgramConfigWithFlags<
     Model,
     Message,
-    StreamDepsMap,
     Flags,
     Resources,
     ManagedResourceServices
@@ -1475,14 +1440,12 @@ export function makeProgram<
 export function makeProgram<
   Model,
   Message extends { _tag: string },
-  StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
   Resources = never,
   ManagedResourceServices = never,
 >(
   config: RoutingProgramConfig<
     Model,
     Message,
-    StreamDepsMap,
     Resources,
     ManagedResourceServices
   >,
@@ -1491,7 +1454,6 @@ export function makeProgram<
 export function makeProgram<
   Model,
   Message extends { _tag: string },
-  StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
   Flags,
   Resources = never,
   ManagedResourceServices = never,
@@ -1499,7 +1461,6 @@ export function makeProgram<
   config: ProgramConfigWithFlags<
     Model,
     Message,
-    StreamDepsMap,
     Flags,
     Resources,
     ManagedResourceServices
@@ -1509,23 +1470,15 @@ export function makeProgram<
 export function makeProgram<
   Model,
   Message extends { _tag: string },
-  StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
   Resources = never,
   ManagedResourceServices = never,
 >(
-  config: ProgramConfig<
-    Model,
-    Message,
-    StreamDepsMap,
-    Resources,
-    ManagedResourceServices
-  >,
+  config: ProgramConfig<Model, Message, Resources, ManagedResourceServices>,
 ): MakeRuntimeReturn
 
 export function makeProgram<
   Model,
   Message extends { _tag: string },
-  StreamDepsMap extends Schema.Struct<Schema.Struct.Fields>,
   Flags,
   Resources = never,
   ManagedResourceServices = never,
@@ -1534,33 +1487,19 @@ export function makeProgram<
     | RoutingProgramConfigWithFlags<
         Model,
         Message,
-        StreamDepsMap,
         Flags,
         Resources,
         ManagedResourceServices
       >
-    | RoutingProgramConfig<
-        Model,
-        Message,
-        StreamDepsMap,
-        Resources,
-        ManagedResourceServices
-      >
+    | RoutingProgramConfig<Model, Message, Resources, ManagedResourceServices>
     | ProgramConfigWithFlags<
         Model,
         Message,
-        StreamDepsMap,
         Flags,
         Resources,
         ManagedResourceServices
       >
-    | ProgramConfig<
-        Model,
-        Message,
-        StreamDepsMap,
-        Resources,
-        ManagedResourceServices
-      >,
+    | ProgramConfig<Model, Message, Resources, ManagedResourceServices>,
 ): MakeRuntimeReturn {
   const { container } = config
   if (container === null) {
@@ -1612,7 +1551,6 @@ export function makeProgram<
           config as RoutingProgramConfigWithFlags<
             Model,
             Message,
-            StreamDepsMap,
             Flags,
             Resources,
             ManagedResourceServices
@@ -1621,7 +1559,6 @@ export function makeProgram<
     } as RuntimeConfig<
       Model,
       Message,
-      StreamDepsMap,
       Flags,
       Resources,
       ManagedResourceServices
@@ -1636,7 +1573,6 @@ export function makeProgram<
           config as RoutingProgramConfig<
             Model,
             Message,
-            StreamDepsMap,
             Resources,
             ManagedResourceServices
           >
@@ -1644,7 +1580,6 @@ export function makeProgram<
     } as RuntimeConfig<
       Model,
       Message,
-      StreamDepsMap,
       void,
       Resources,
       ManagedResourceServices
@@ -1659,7 +1594,6 @@ export function makeProgram<
           config as ProgramConfigWithFlags<
             Model,
             Message,
-            StreamDepsMap,
             Flags,
             Resources,
             ManagedResourceServices
@@ -1668,7 +1602,6 @@ export function makeProgram<
     } as RuntimeConfig<
       Model,
       Message,
-      StreamDepsMap,
       Flags,
       Resources,
       ManagedResourceServices
@@ -1683,7 +1616,6 @@ export function makeProgram<
           config as ProgramConfig<
             Model,
             Message,
-            StreamDepsMap,
             Resources,
             ManagedResourceServices
           >
@@ -1691,7 +1623,6 @@ export function makeProgram<
     } as RuntimeConfig<
       Model,
       Message,
-      StreamDepsMap,
       void,
       Resources,
       ManagedResourceServices

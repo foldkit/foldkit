@@ -1,4 +1,4 @@
-import { Effect, Queue, Stream } from 'effect'
+import { Effect, Queue, Schema as S, Stream } from 'effect'
 
 /**
  * Configuration for the `animationFrame` Subscription helper.
@@ -12,16 +12,6 @@ import { Effect, Queue, Stream } from 'effect'
 export type AnimationFrameConfig<Model, Message> = Readonly<{
   isActive: (model: Model) => boolean
   toMessage: (deltaTime: number) => Message
-}>
-
-/**
- * The subscription record returned by `animationFrame`. Shape matches the
- * `{ modelToDependencies, dependenciesToStream }` form expected by
- * `Subscription.makeSubscriptions` field configs.
- */
-export type AnimationFrameSubscription<Model, Message> = Readonly<{
-  modelToDependencies: (model: Model) => boolean
-  dependenciesToStream: (isActive: boolean) => Stream.Stream<Message>
 }>
 
 const makeAnimationFrameStream = <Message>(
@@ -50,38 +40,37 @@ const makeAnimationFrameStream = <Message>(
   )
 
 /**
- * Build a Subscription field config that emits a Message on every
+ * Build a Subscription that emits a Message on every
  * `requestAnimationFrame` tick, with the inter-frame delta in milliseconds.
- *
- * Pair with `S.Boolean` in the `SubscriptionDependencies` schema:
  *
  * @example
  * ```typescript
- * const SubscriptionDependencies = S.Struct({
- *   frame: S.Boolean,
- * })
- *
- * const subscriptions = Subscription.makeSubscriptions(SubscriptionDependencies)<
- *   Model,
- *   Message
- * >({
+ * const subscriptions = Subscription.make<Model, Message>()(_entry => ({
  *   frame: Subscription.animationFrame({
  *     isActive: model => model.isPlaying,
  *     toMessage: deltaTime => Tick({ deltaTime }),
  *   }),
- * })
+ * }))
  * ```
  *
  * The browser pauses `requestAnimationFrame` when the tab is hidden, so
- * `deltaTime` may spike on the first frame after the tab regains focus.
- * Clamp it in the update function if your simulation is sensitive to large
- * jumps.
+ * `deltaTime` may spike to several seconds on the first frame after the
+ * tab regains focus. If your `update` function multiplies `deltaTime`
+ * against motion or physics, cap it to a reasonable maximum (32ms is
+ * typical) before using it. Otherwise a multi-second `deltaTime` can send
+ * moving objects flying across the screen in one frame.
+ *
+ * Returns an entry shape, not a branded Subscription. Pass it into
+ * `Subscription.make` as an entry value.
  */
 export const animationFrame = <Model, Message>(
   config: AnimationFrameConfig<Model, Message>,
-): AnimationFrameSubscription<Model, Message> => ({
-  modelToDependencies: model => config.isActive(model),
-  dependenciesToStream: isActive =>
+) => ({
+  dependenciesSchema: S.Struct({ isActive: S.Boolean }),
+  modelToDependencies: (model: Model) => ({
+    isActive: config.isActive(model),
+  }),
+  dependenciesToStream: ({ isActive }: { readonly isActive: boolean }) =>
     Stream.when(
       makeAnimationFrameStream(config.toMessage),
       Effect.sync(() => isActive),
