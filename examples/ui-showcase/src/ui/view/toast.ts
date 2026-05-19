@@ -2,7 +2,7 @@ import { Match as M, Option } from 'effect'
 import { Html, html } from 'foldkit/html'
 import type { EntryHandlers, Variant } from 'foldkit/ui/toast'
 
-import * as Icon from '../icon'
+import * as Icon from '../../icon'
 import {
   ClickedDismissAllToasts,
   ClickedShowErrorToast,

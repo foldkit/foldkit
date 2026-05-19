@@ -239,17 +239,17 @@ End with a summary diff: which findings were resolved, which were declined, whic
 
 When `$ARGUMENTS` narrows to a focus area, Phase 5 reduces to the relevant subagents and blind spots. The report still uses the BLOCKERS / QUALITY / NICE-TO-HAVE / VERDICT structure, just scoped.
 
-| Focus           | Subagents                                                                                                                           | Blind spots     |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- | --------------- |
-| `a11y`          | D                                                                                                                                   | #12, #13, #15   |
-| `effects`       | B                                                                                                                                   | #5, #6, #8, #17 |
-| `naming`        | C                                                                                                                                   | #7, #9, #20     |
-| `decomposition` | C                                                                                                                                   | #5, #6          |
-| `forms`         | D + form-specific (Ui.Input adoption, fieldValidation usage, label/input pairing)                                                   | #12, #13        |
-| `routing`       | A + routing-specific (bidirectional parser usage, keyed branches on `route._tag`, `urlToString` in `Internal` case)                 | #11             |
-| `subscriptions` | A + subscription-specific (`Subscription.makeSubscriptions` shape, `S.Null` for always-active, message mapping inside `Stream.map`) | none            |
-| `testing`       | E                                                                                                                                   | #14             |
-| `submodels`     | A + submodel-specific (Got\* wrapping, three-tuple update returns with OutMessage, parent ↔ child Message isolation)                | #19             |
-| `types`         | (inline) type-shape and aliasing                                                                                                    | #17, #18        |
+| Focus           | Subagents                                                                                                                    | Blind spots     |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| `a11y`          | D                                                                                                                            | #12, #13, #15   |
+| `effects`       | B                                                                                                                            | #5, #6, #8, #17 |
+| `naming`        | C                                                                                                                            | #7, #9, #20     |
+| `decomposition` | C                                                                                                                            | #5, #6          |
+| `forms`         | D + form-specific (Ui.Input adoption, fieldValidation usage, label/input pairing)                                            | #12, #13        |
+| `routing`       | A + routing-specific (bidirectional parser usage, keyed branches on `route._tag`, `urlToString` in `Internal` case)          | #11             |
+| `subscriptions` | A + subscription-specific (`Subscription.make` shape, `S.Struct({})` for always-active, message mapping inside `Stream.map`) | none            |
+| `testing`       | E                                                                                                                            | #14             |
+| `submodels`     | A + submodel-specific (Got\* wrapping, three-tuple update returns with OutMessage, parent ↔ child Message isolation)         | #19             |
+| `types`         | (inline) type-shape and aliasing                                                                                             | #17, #18        |
 
 For focused audits, skip Phase 4's full grep block and run only the greps relevant to the focus (e.g. for `a11y`, run `label without For`, `outline-none without focus-visible`, `_blank without Rel`).

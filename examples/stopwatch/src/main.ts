@@ -139,24 +139,21 @@ export const init: Runtime.ProgramInit<Model, Message> = () => [
 
 // SUBSCRIPTION
 
-const SubscriptionDependencies = S.Struct({
-  tick: S.Struct({
-    isRunning: S.Boolean,
-  }),
-})
-
-export const subscriptions = Subscription.makeSubscriptions(
-  SubscriptionDependencies,
-)<Model, Message>({
-  tick: {
-    modelToDependencies: (model: Model) => ({ isRunning: model.isRunning }),
-    dependenciesToStream: ({ isRunning }) =>
-      Stream.when(
-        Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(Stream.map(Ticked)),
-        Effect.sync(() => isRunning),
-      ),
-  },
-})
+export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+  tick: entry(
+    { isRunning: S.Boolean },
+    {
+      modelToDependencies: model => ({ isRunning: model.isRunning }),
+      dependenciesToStream: ({ isRunning }) =>
+        Stream.when(
+          Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
+            Stream.map(Ticked),
+          ),
+          Effect.sync(() => isRunning),
+        ),
+    },
+  ),
+}))
 
 // VIEW
 

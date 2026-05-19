@@ -397,10 +397,6 @@ export const MountMap = Mount.define(
 
 // SUBSCRIPTIONS
 
-const SubscriptionDependencies = S.Struct({
-  mapEvents: S.Option(S.String),
-})
-
 const boundsFromMap = (map: MapInstance): Bounds => {
   const bounds = map.getBounds()
   return {
@@ -411,21 +407,21 @@ const boundsFromMap = (map: MapInstance): Bounds => {
   }
 }
 
-export const subscriptions = Subscription.makeSubscriptions(
-  SubscriptionDependencies,
-)<Model, Message>({
-  mapEvents: {
-    modelToDependencies: model => model.maybeMapHostId,
-    dependenciesToStream: maybeHostId =>
-      Option.match(maybeHostId, {
-        onNone: () => Stream.empty,
-        onSome: hostId =>
-          Stream.callback<Message>(queue =>
-            Effect.acquireRelease(
-              Effect.sync(() =>
-                Option.match(getMap(hostId), {
-                  onNone: () => Option.none(),
-                  onSome: map => {
+export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+  mapEvents: entry(
+    { maybeMapHostId: S.Option(S.String) },
+    {
+      modelToDependencies: model => ({
+        maybeMapHostId: model.maybeMapHostId,
+      }),
+      dependenciesToStream: ({ maybeMapHostId }) =>
+        Option.match(maybeMapHostId, {
+          onNone: () => Stream.empty,
+          onSome: hostId =>
+            Stream.callback<Message>(queue =>
+              Effect.acquireRelease(
+                Effect.sync(() =>
+                  Option.map(getMap(hostId), map => {
                     const onMoveEnd = () => {
                       Queue.offerUnsafe(
                         queue,
@@ -457,27 +453,27 @@ export const subscriptions = Subscription.makeSubscriptions(
                       MovedMap({ bounds: boundsFromMap(map) }),
                     )
 
-                    return Option.some({ map, onMoveEnd, onContainerClick })
-                  },
-                }),
-              ),
-              maybeHandle =>
-                Effect.sync(() =>
-                  Option.match(maybeHandle, {
-                    onNone: Function.constVoid,
-                    onSome: ({ map, onMoveEnd, onContainerClick }) => {
-                      map.off('moveend', onMoveEnd)
-                      map
-                        .getContainer()
-                        .removeEventListener('click', onContainerClick)
-                    },
+                    return { map, onMoveEnd, onContainerClick }
                   }),
                 ),
-            ).pipe(Effect.flatMap(() => Effect.never)),
-          ),
-      }),
-  },
-})
+                maybeHandle =>
+                  Effect.sync(() =>
+                    Option.match(maybeHandle, {
+                      onNone: Function.constVoid,
+                      onSome: ({ map, onMoveEnd, onContainerClick }) => {
+                        map.off('moveend', onMoveEnd)
+                        map
+                          .getContainer()
+                          .removeEventListener('click', onContainerClick)
+                      },
+                    }),
+                  ),
+              ).pipe(Effect.flatMap(() => Effect.never)),
+            ),
+        }),
+    },
+  ),
+}))
 
 // VIEW
 

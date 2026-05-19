@@ -19,22 +19,16 @@ type Model = typeof Model.Type
 
 // SUBSCRIPTION
 
-const SubscriptionDependencies = S.Struct({
-  tick: S.Struct({
-    isRunning: S.Boolean,
-  }),
-})
-
-const subscriptions = Subscription.makeSubscriptions(SubscriptionDependencies)<
-  Model,
-  Message
->({
-  tick: {
-    modelToDependencies: model => ({ isRunning: model.isRunning }),
-    dependenciesToStream: ({ isRunning }) =>
-      Stream.when(
-        Stream.tick(Duration.millis(100)).pipe(Stream.map(Ticked)),
-        Effect.sync(() => isRunning),
-      ),
-  },
-})
+const subscriptions = Subscription.make<Model, Message>()(entry => ({
+  tick: entry(
+    { isRunning: S.Boolean },
+    {
+      modelToDependencies: model => ({ isRunning: model.isRunning }),
+      dependenciesToStream: ({ isRunning }) =>
+        Stream.when(
+          Stream.tick(Duration.millis(100)).pipe(Stream.map(Ticked)),
+          Effect.sync(() => isRunning),
+        ),
+    },
+  ),
+}))

@@ -1,7 +1,7 @@
 import { Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
-import * as Icon from '../icon'
+import * as Icon from '../../icon'
 import { type UiMessage, UpdatedSelectDemoValue } from '../message'
 import type { UiModel } from '../model'
 

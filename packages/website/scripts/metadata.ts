@@ -235,6 +235,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'OutMessage',
     'Communication between parent and child modules.',
   ),
+  PatternsSubscriptionOrganization: pattern(
+    'Subscription Organization',
+    'Canonical layout for subscription wiring across nested submodels.',
+  ),
   UiOverview: ui(
     'Foldkit UI',
     'Headless, accessible UI primitives for Foldkit: dialog, menu, tabs, listbox, and more. Built for The Elm Architecture with Effect-TS.',

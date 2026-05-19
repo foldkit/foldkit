@@ -175,18 +175,12 @@ export const update = (
 
 // SUBSCRIPTION
 
-const SubscriptionDependencies = S.Struct({
-  frame: S.Boolean,
-})
-
-export const subscriptions = Subscription.makeSubscriptions(
-  SubscriptionDependencies,
-)<Model, Message>({
+export const subscriptions = Subscription.make<Model, Message>()(_entry => ({
   frame: Subscription.animationFrame({
     isActive: model => model.isRunning,
     toMessage: deltaTime => TickedFrame({ deltaTime }),
   }),
-})
+}))
 
 // VIEW
 

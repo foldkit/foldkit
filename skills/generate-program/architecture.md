@@ -243,12 +243,13 @@ const view = <ParentMessage>(
 
 Subscriptions are model-driven streams. They automatically start and stop based on model state.
 
-Build them with `Subscription.makeSubscriptions(Deps)<Model, Message>(...)`. For each subscription, you provide:
+Build them with `Subscription.make<Model, Message>()(entry => ({ ... }))`. The builder callback receives an `entry(fields, callbacks)` helper. For each subscription, you provide:
 
-- A `modelToDependencies(model)` function that returns the parameters the stream needs, wrapped in `Option`. When it returns `Option.some(...)`, the Subscription is active. When it returns `Option.none()`, the Subscription stops. The runtime restarts the stream whenever the dependencies change.
-- A `dependenciesToStream(maybeDeps)` function that turns those parameters into a `Stream<Message>`. Errors should be mapped to a `Failed*` Message inside the stream rather than thrown.
+- A `fields` map (the bare field map passed as `entry`'s first argument) naming every dependency. The builder calls `S.Struct(fields)` internally and infers the dependency type from this map.
+- A `modelToDependencies(model)` function that returns the parameters the stream needs. Wrap an absent dependency in `Option` at the field level. The runtime restarts the stream whenever the dependencies change.
+- A `dependenciesToStream(dependencies)` function that turns those parameters into a `Stream<Message>`. Errors should be mapped to a `Failed*` Message inside the stream rather than thrown.
 
-For always-active Subscriptions (keyboard listeners, window resize, animation frame ticks), set the dependency type to `S.Null` and return `null` from `modelToDependencies`. The Subscription then never stops.
+For always-active Subscriptions (keyboard listeners, window resize, animation frame ticks), pass `{}` as the `entry` fields argument and return `{}` from `modelToDependencies`. The Subscription then never stops.
 
 Canonical live examples:
 

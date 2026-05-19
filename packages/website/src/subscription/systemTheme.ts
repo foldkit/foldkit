@@ -1,40 +1,43 @@
-import { Effect, Queue, Stream } from 'effect'
-import { Subscription } from 'foldkit/subscription'
+import { Effect, Queue, Schema as S, Stream } from 'effect'
+import { Subscription } from 'foldkit'
 
-import { type Model, type SubscriptionDependencies } from '../main'
-import { ChangedSystemTheme } from '../message'
+import { type Model } from '../main'
+import { ChangedSystemTheme, type Message } from '../message'
 
-export const systemTheme: Subscription<
-  Model,
-  typeof ChangedSystemTheme,
-  SubscriptionDependencies['systemTheme']
-> = {
-  modelToDependencies: (model: Model) => ({
-    isSystemPreference: model.themePreference === 'System',
-  }),
-  dependenciesToStream: ({ isSystemPreference }) =>
-    Stream.when(
-      Stream.callback<typeof ChangedSystemTheme.Type>(queue =>
-        Effect.acquireRelease(
-          Effect.sync(() => {
-            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-            const handler = (event: MediaQueryListEvent) => {
-              Queue.offerUnsafe(
-                queue,
-                ChangedSystemTheme({
-                  theme: event.matches ? 'Dark' : 'Light',
-                }),
-              )
-            }
-            mediaQuery.addEventListener('change', handler)
-            return { mediaQuery, handler }
-          }),
-          ({ mediaQuery, handler }) =>
-            Effect.sync(() =>
-              mediaQuery.removeEventListener('change', handler),
-            ),
-        ).pipe(Effect.flatMap(() => Effect.never)),
-      ),
-      Effect.sync(() => isSystemPreference),
-    ),
-}
+export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+  systemTheme: entry(
+    { isSystemPreference: S.Boolean },
+    {
+      modelToDependencies: model => ({
+        isSystemPreference: model.themePreference === 'System',
+      }),
+      dependenciesToStream: ({ isSystemPreference }) =>
+        Stream.when(
+          Stream.callback<typeof ChangedSystemTheme.Type>(queue =>
+            Effect.acquireRelease(
+              Effect.sync(() => {
+                const mediaQuery = window.matchMedia(
+                  '(prefers-color-scheme: dark)',
+                )
+                const handler = (event: MediaQueryListEvent) => {
+                  Queue.offerUnsafe(
+                    queue,
+                    ChangedSystemTheme({
+                      theme: event.matches ? 'Dark' : 'Light',
+                    }),
+                  )
+                }
+                mediaQuery.addEventListener('change', handler)
+                return { mediaQuery, handler }
+              }),
+              ({ mediaQuery, handler }) =>
+                Effect.sync(() =>
+                  mediaQuery.removeEventListener('change', handler),
+                ),
+            ).pipe(Effect.flatMap(() => Effect.never)),
+          ),
+          Effect.sync(() => isSystemPreference),
+        ),
+    },
+  ),
+}))

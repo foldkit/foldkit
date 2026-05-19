@@ -40,32 +40,26 @@ export const handleKeyboardEvent = (
     return Option.none()
   })
 
-export const SubscriptionDependencies = S.Struct({
-  keyboard: S.Null,
-  mouseRelease: S.Struct({ isDrawing: S.Boolean }),
-})
+export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+  keyboard: Subscription.persistent(
+    Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
+      Stream.mapEffect(handleKeyboardEvent),
+      Stream.filter(Option.isSome),
+      Stream.map(option => option.value),
+    ),
+  ),
 
-export const subscriptions = Subscription.makeSubscriptions(
-  SubscriptionDependencies,
-)<Model, Message>({
-  keyboard: {
-    modelToDependencies: () => null,
-    dependenciesToStream: () =>
-      Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
-        Stream.mapEffect(handleKeyboardEvent),
-        Stream.filter(Option.isSome),
-        Stream.map(option => option.value),
-      ),
-  },
-
-  mouseRelease: {
-    modelToDependencies: model => ({ isDrawing: model.isDrawing }),
-    dependenciesToStream: ({ isDrawing }) =>
-      Stream.when(
-        Stream.fromEventListener(document, 'mouseup').pipe(
-          Stream.map(() => ReleasedMouse()),
+  mouseRelease: entry(
+    { isDrawing: S.Boolean },
+    {
+      modelToDependencies: model => ({ isDrawing: model.isDrawing }),
+      dependenciesToStream: ({ isDrawing }) =>
+        Stream.when(
+          Stream.fromEventListener(document, 'mouseup').pipe(
+            Stream.map(() => ReleasedMouse()),
+          ),
+          Effect.sync(() => isDrawing),
         ),
-        Effect.sync(() => isDrawing),
-      ),
-  },
-})
+    },
+  ),
+}))
