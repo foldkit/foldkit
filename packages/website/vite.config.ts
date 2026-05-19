@@ -466,7 +466,7 @@ const ClickedIncrement = m('ClickedIncrement')
 const ChangedResetDuration = m('ChangedResetDuration', {
   seconds: S.Number,
 })
-const ClickedReset = m('ClickedReset')
+const ClickedResetAfterDelay = m('ClickedResetAfterDelay')
 const CompletedDelayReset = m('CompletedDelayReset')
 
 // COMMAND
@@ -492,7 +492,7 @@ M.tagsExhaustive({
     evo(model, { resetDuration: () => seconds }),
     [],
   ],
-  ClickedReset: () => [
+  ClickedResetAfterDelay: () => [
     evo(model, { isResetting: () => true }),
     [DelayReset({ seconds: model.resetDuration })],
   ],

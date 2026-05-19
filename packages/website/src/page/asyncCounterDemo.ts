@@ -144,7 +144,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             isResetting: () => true,
             phase: () => 'ResetMessage',
             generation: () => nextGeneration,
-            messageLog: prependToLog('ClickedReset'),
+            messageLog: prependToLog('ClickedResetAfterDelay'),
           }),
           [
             DelayAdvancePhase({
