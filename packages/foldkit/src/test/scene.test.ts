@@ -1,4 +1,4 @@
-import { Effect, Option, pipe } from 'effect'
+import { Option, pipe } from 'effect'
 import { h } from 'snabbdom'
 import type { VNode } from 'snabbdom'
 import { describe, expect, test } from 'vitest'
@@ -2797,7 +2797,7 @@ describe('scene mounts', () => {
           typeof mountInitialModel,
           ReadonlyArray<never>,
         ] => [mountInitialModel, []],
-        view: () => Effect.succeed(h('div', {}, [])),
+        view: () => h('div', {}, []),
       },
       Scene.with(mountInitialModel),
       Scene.Mount.expectNone(),

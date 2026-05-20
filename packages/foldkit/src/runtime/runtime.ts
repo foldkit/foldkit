@@ -32,7 +32,11 @@ import {
   createDevToolsStore,
 } from '../devTools/store.js'
 import { startWebSocketBridge } from '../devTools/webSocketBridge.js'
-import { Document } from '../html/index.js'
+import {
+  Document,
+  __clearRuntime as clearHtmlRuntime,
+  __setRuntime as setHtmlRuntime,
+} from '../html/index.js'
 import { MountTracker } from '../mount/index.js'
 import { UrlRequest } from '../navigation/urlRequest.js'
 import { Url, fromString as urlFromString } from '../url/index.js'
@@ -922,9 +926,16 @@ const makeRuntime = <
           dispatchService: typeof Dispatch.Service = dispatch,
         ) =>
           Effect.gen(function* () {
+            const runtimeContext = yield* Effect.context<never>()
             const viewStart = performance.now()
-            const nextDocument = view(model)
-            const nullableNextVNode = yield* nextDocument.body
+            setHtmlRuntime(dispatchService.dispatchSync, runtimeContext)
+            let nextDocument: Document
+            try {
+              nextDocument = view(model)
+            } finally {
+              clearHtmlRuntime()
+            }
+            const nullableNextVNode = nextDocument.body
             const viewDuration = performance.now() - viewStart
 
             Option.match(resolvedSlowView, {
@@ -1420,35 +1431,51 @@ const renderCrashView = <Model, Message>(
     }
   }
 
+  const crashContext = Context.make(Dispatch, noOpDispatch).pipe(
+    Context.add(MountTracker, {
+      started: () => {},
+      ended: () => {},
+    }),
+  )
+
   try {
-    const crashDocument = crash?.view
-      ? crash.view(context)
-      : defaultCrashView(context)
+    setHtmlRuntime(noOpDispatch.dispatchSync, crashContext)
+    let crashDocument: Document
+    try {
+      crashDocument = crash?.view
+        ? crash.view(context)
+        : defaultCrashView(context)
+    } finally {
+      clearHtmlRuntime()
+    }
 
     const maybeCurrentVNode = Effect.runSync(Ref.get(maybeCurrentVNodeRef))
-
-    const vnode = crashDocument.body.pipe(
-      Effect.provideService(Dispatch, noOpDispatch),
-      Effect.runSync,
+    const patchedVNode = patchVNode(
+      maybeCurrentVNode,
+      crashDocument.body,
+      container,
     )
-
-    const patchedVNode = patchVNode(maybeCurrentVNode, vnode, container)
     applyDocumentMetadata(crashDocument, patchedVNode.elm)
   } catch (viewError) {
     console.error('[foldkit] crash.view failed:', viewError)
 
-    const maybeCurrentVNode = Effect.runSync(Ref.get(maybeCurrentVNodeRef))
-
     const fallbackViewError =
       viewError instanceof Error ? viewError : new Error(String(viewError))
 
-    const fallbackDocument = defaultCrashView(context, fallbackViewError)
-    const vnode = fallbackDocument.body.pipe(
-      Effect.provideService(Dispatch, noOpDispatch),
-      Effect.runSync,
-    )
+    setHtmlRuntime(noOpDispatch.dispatchSync, crashContext)
+    let fallbackDocument: Document
+    try {
+      fallbackDocument = defaultCrashView(context, fallbackViewError)
+    } finally {
+      clearHtmlRuntime()
+    }
 
-    const patchedVNode = patchVNode(maybeCurrentVNode, vnode, container)
+    const maybeCurrentVNode = Effect.runSync(Ref.get(maybeCurrentVNodeRef))
+    const patchedVNode = patchVNode(
+      maybeCurrentVNode,
+      fallbackDocument.body,
+      container,
+    )
     applyDocumentMetadata(fallbackDocument, patchedVNode.elm)
   }
 }

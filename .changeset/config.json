@@ -37,6 +37,7 @@
     "web-components-example",
     "pixel-art-react-comparison",
     "@foldkit/performance-harness",
-    "@foldkit/examples-e2e"
+    "@foldkit/examples-e2e",
+    "@foldkit/lustre-benchmark"
   ]
 }

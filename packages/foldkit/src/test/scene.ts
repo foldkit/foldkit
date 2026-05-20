@@ -1,5 +1,6 @@
 import {
   Array,
+  Context,
   Effect,
   Function,
   Option,
@@ -12,8 +13,14 @@ import { dual } from 'effect/Function'
 import type { CommandDefinition } from '../command/index.js'
 import type { File } from '../file/index.js'
 import type { FoldkitMountMarker } from '../html/index.js'
-import { FOLDKIT_MOUNT_KEY, FileHandlerSymbol } from '../html/index.js'
+import {
+  FOLDKIT_MOUNT_KEY,
+  FileHandlerSymbol,
+  __clearRuntime as clearHtmlRuntime,
+  __setRuntime as setHtmlRuntime,
+} from '../html/index.js'
 import type { Document, Html, KeyboardModifiers } from '../html/index.js'
+import { MountTracker } from '../mount/index.js'
 import type { MountDefinition } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
 import type { VNode } from '../vdom.js'
@@ -388,13 +395,24 @@ const renderView = <Model>(
   model: Model,
   dispatch: DispatchService,
 ): VNode => {
-  const result = viewFn(model)
-  const body = Effect.isEffect(result) ? result : result.body
-  const maybeVNode = Effect.runSync(
-    Effect.provideService(body, Dispatch, dispatch),
+  const sceneContext = Context.make(Dispatch, dispatch).pipe(
+    Context.add(MountTracker, {
+      started: () => {},
+      ended: () => {},
+    }),
   )
 
-  if (Predicate.isNull(maybeVNode)) {
+  setHtmlRuntime(dispatch.dispatchSync, sceneContext)
+  let result: Html | Document
+  try {
+    result = viewFn(model)
+  } finally {
+    clearHtmlRuntime()
+  }
+
+  const vnode = isDocument(result) ? (result.body ?? null) : result
+
+  if (vnode === null) {
     throw new Error(
       'The view function returned null.\n\n' +
         'Scene tests require a non-null view. ' +
@@ -402,8 +420,11 @@ const renderView = <Model>(
     )
   }
 
-  return maybeVNode
+  return vnode
 }
+
+const isDocument = (value: Html | Document): value is Document =>
+  value !== null && 'body' in value
 
 // INTERACTION HELPERS
 
