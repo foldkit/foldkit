@@ -174,7 +174,7 @@ export const view = <ParentMessage>(
                           ],
                         ),
                     },
-                    wrapWith: ({ message }: { message: Ui.Checkbox.Message }) =>
+                    wrapWith: ({ message }) =>
                       toParentMessage(
                         GotFieldsetCheckboxDemoMessage({ message }),
                       ),
@@ -287,7 +287,7 @@ export const view = <ParentMessage>(
                           ],
                         ),
                     },
-                    wrapWith: ({ message }: { message: Ui.Checkbox.Message }) =>
+                    wrapWith: ({ message }) =>
                       toParentMessage(
                         GotFieldsetCheckboxDemoMessage({ message }),
                       ),

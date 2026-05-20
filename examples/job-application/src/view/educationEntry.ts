@@ -148,7 +148,7 @@ export const educationEntryView = <ParentMessage>(
               ],
             ),
         },
-        wrapWith: ({ message }: { message: Ui.Checkbox.Message }) =>
+        wrapWith: ({ message }) =>
           toParentMessage(
             Education.Entry.GotIsCurrentlyEnrolledMessage({ message }),
           ),

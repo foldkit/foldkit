@@ -6,5 +6,6 @@ export type {
   Html,
   KeyboardModifiers,
   SubmodelConfig,
+  SubmodelView,
   TagName,
 } from './index.js'

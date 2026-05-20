@@ -16,9 +16,11 @@ import {
   type ScopeRegistry,
   beginRender,
   createScopeRegistry,
-  pruneUnseenScopes,
 } from './scope.js'
-import { submodel } from './submodel.js'
+import {
+  type SubmodelView as SubmodelViewBranded,
+  submodel,
+} from './submodel.js'
 
 const setUpRuntime = (
   registry: ScopeRegistry,
@@ -83,7 +85,6 @@ describe('h.submodel', () => {
   })
 
   afterEach(() => {
-    pruneUnseenScopes(registry)
     clearRuntime()
   })
 
@@ -206,22 +207,80 @@ describe('h.submodel', () => {
     }
   })
 
-  it('prunes wraps for Submodels that did not render this pass', () => {
+  it('keeps wraps registered across renders when the Submodel is not re-called (h.list cache hit)', () => {
+    // Simulates what happens when h.list cache-hits a row: the entry view
+    // is not called, so h.submodel inside is not called, so registerScopeWrap
+    // is not invoked. The wrap from the previous render must remain so
+    // dispatches from the cached vnode continue to route correctly.
     submodel({
-      id: 'will-be-removed',
+      id: 'cached-row',
       view: childView,
       model: { value: 1 },
       wrapWith: GotChild,
-      wrapArgs: { entryId: 'will-be-removed' },
+      wrapArgs: { entryId: 'cached-row' },
     })
 
-    expect(registry.wraps.has('will-be-removed')).toBe(true)
+    expect(registry.wraps.has('cached-row')).toBe(true)
 
-    // Simulate a fresh render that does not re-register the Submodel.
+    // Begin a new render but never re-call submodel for this scope.
     beginRender(registry)
-    pruneUnseenScopes(registry)
 
-    expect(registry.wraps.has('will-be-removed')).toBe(false)
+    // The wrap must persist — the cached vnode in the DOM still needs it.
+    expect(registry.wraps.has('cached-row')).toBe(true)
+  })
+
+  it('deregisters the wrap when the returned vnode is destroyed by snabbdom', () => {
+    const result = submodel({
+      id: 'destroyable',
+      view: childView,
+      model: { value: 1 },
+      wrapWith: GotChild,
+      wrapArgs: { entryId: 'destroyable' },
+    })
+
+    expect(registry.wraps.has('destroyable')).toBe(true)
+
+    // Simulate snabbdom removing this vnode from the DOM tree.
+    const destroyHook = result?.data?.hook?.destroy
+    expect(destroyHook).toBeDefined()
+    destroyHook!(result!)
+
+    expect(registry.wraps.has('destroyable')).toBe(false)
+  })
+
+  it('composes the user-supplied destroy hook with the scope cleanup hook', () => {
+    let userDestroyCalled = false
+    const viewWithDestroy = (_: { value: number }) => {
+      const dispatch = requireDispatch()
+      return h('button', {
+        on: {
+          click: () =>
+            dispatch({
+              _tag: 'ChildClicked',
+              value: 0,
+            } satisfies ChildMessage),
+        },
+        hook: {
+          destroy: () => {
+            userDestroyCalled = true
+          },
+        },
+      })
+    }
+
+    const result = submodel({
+      id: 'with-user-destroy',
+      view: viewWithDestroy,
+      model: { value: 0 },
+      wrapWith: GotChild,
+      wrapArgs: { entryId: 'with-user-destroy' },
+    })
+
+    const destroyHook = result?.data?.hook?.destroy
+    destroyHook!(result!)
+
+    expect(userDestroyCalled).toBe(true)
+    expect(registry.wraps.has('with-user-destroy')).toBe(false)
   })
 
   it('returns a stable dispatch reference for the same scope', () => {
@@ -367,5 +426,134 @@ describe('h.submodel', () => {
         message: { _tag: 'Acknowledged' },
       },
     ])
+  })
+
+  it('throws when two h.submodel calls share the same id in the same parent scope', () => {
+    submodel({
+      id: 'shared',
+      view: childView,
+      model: { value: 1 },
+      wrapWith: GotChild,
+      wrapArgs: { entryId: 'shared' },
+    })
+
+    expect(() =>
+      submodel({
+        id: 'shared',
+        view: childView,
+        model: { value: 2 },
+        wrapWith: GotChild,
+        wrapArgs: { entryId: 'shared' },
+      }),
+    ).toThrow(/duplicate h\.submodel id "shared"/)
+  })
+
+  it('runs slot callbacks in the parent scope so handlers dispatch unwrapped', () => {
+    // The slot callback constructs a VNode with a handler that dispatches
+    // a parent-level Message directly. With slot-scope wrapping, that
+    // handler captures the OUTER (root) scope's dispatch, so the Message
+    // reaches outerDispatch unwrapped — NOT wrapped by the submodel's
+    // GotChild constructor.
+    type ParentDirect = Readonly<{ _tag: 'ParentDirect' }>
+
+    type CheckboxLikeInputs = Readonly<{
+      toView: (
+        attributes: ReadonlyArray<{
+          readonly _tag: string
+          readonly [key: string]: unknown
+        }>,
+      ) => unknown
+    }>
+
+    const fakeCheckboxView = (_model: object, inputs: CheckboxLikeInputs) => {
+      // Inside the Submodel scope: dispatch captured here goes through
+      // the Submodel's wrapWith.
+      const childDispatch = requireDispatch()
+      const internalButton = h('button', {
+        on: {
+          click: () =>
+            childDispatch({
+              _tag: 'ChildClicked',
+              value: 1,
+            } satisfies ChildMessage),
+        },
+      })
+      // Hand the inner button to the consumer's slot callback. The slot
+      // callback runs in the PARENT scope; any dispatch it constructs
+      // should reach outerDispatch unwrapped.
+      inputs.toView([])
+      return internalButton
+    }
+
+    let parentHandlerCalledDispatch: DispatchSync | null = null
+    submodel({
+      id: 'fake-checkbox',
+      view: fakeCheckboxView,
+      model: {},
+      inputs: {
+        toView: () => {
+          // This callback runs inside `view` but the runtime should have
+          // swapped back to the parent scope. Snapshot the dispatch the
+          // parent would use right here.
+          parentHandlerCalledDispatch = requireDispatch()
+          return undefined
+        },
+      },
+      wrapWith: GotChild,
+      wrapArgs: { entryId: 'fake-checkbox' },
+    })
+
+    expect(parentHandlerCalledDispatch).not.toBeNull()
+    // Dispatch a parent-level Message through the snapshot. It should
+    // reach `dispatched` without being wrapped by GotChild.
+    parentHandlerCalledDispatch!({
+      _tag: 'ParentDirect',
+    } satisfies ParentDirect)
+    expect(dispatched).toEqual([{ _tag: 'ParentDirect' }])
+  })
+
+  it('infers ChildMessage from the view brand so wrapWith destructures without annotation', () => {
+    // Compile-time check: by passing `selectingView` (which is branded
+    // with `Selected`), TS infers ChildMessage = Selected, so the
+    // wrapWith handler can destructure `{ message: { value } }` and TS
+    // knows `value` is a number.
+    type Selected = Readonly<{ _tag: 'Selected'; value: number }>
+    type SelectedOnly = Selected
+
+    const selectingView: SubmodelViewBranded<
+      { value: number },
+      SelectedOnly
+    > = (model: { value: number }) => {
+      const dispatch = requireDispatch()
+      return h('button', {
+        on: {
+          click: () =>
+            dispatch({
+              _tag: 'Selected',
+              value: model.value,
+            } satisfies Selected),
+        },
+      })
+    }
+
+    const result = submodel({
+      id: 'inference-check',
+      view: selectingView,
+      model: { value: 11 },
+      // No annotation on `{ message }`:
+      wrapWith: ({ message }) => ({
+        _tag: 'GotSelected' as const,
+        // TS sees `message.value` as number because ChildMessage is
+        // inferred as `Selected`.
+        plusOne: message.value + 1,
+      }),
+      wrapArgs: {},
+    })
+
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const onClick = result?.data?.on?.click as () => void
+    onClick()
+
+    expect(dispatched).toEqual([{ _tag: 'GotSelected', plusOne: 12 }])
   })
 })

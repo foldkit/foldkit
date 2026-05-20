@@ -46,11 +46,23 @@ const extractTag = (message: unknown): string | undefined => {
 }
 
 /** Per-runtime registry of Submodel wrapping descriptors. The runtime
- *  creates one of these in `start` and reuses it across renders. h.submodel
- *  writes into `wraps` each render; the dispatch path reads from it at
- *  event-fire time. `scopedDispatches` is a cache of the per-scope
- *  dispatcher closures so `requireDispatch` returns a stable reference
- *  across renders (necessary for `createLazy`'s dispatch-identity check). */
+ *  creates one of these in `start` and reuses it across renders.
+ *  `h.submodel` writes into `wraps` each render and attaches a snabbdom
+ *  `destroy` hook that calls `deregisterScopeWrap` when the corresponding
+ *  vnode is removed from the DOM tree. The dispatch path reads from
+ *  `wraps` at event-fire time.
+ *
+ *  `scopedDispatches` is a cache of per-scope dispatcher closures so
+ *  `requireDispatch` returns a stable reference across renders (necessary
+ *  for `createLazy`'s dispatch-identity check).
+ *
+ *  `seenThisRender` tracks scopes registered during the current render
+ *  for duplicate-id detection: two `h.submodel` calls inside the same
+ *  parent scope must use different `id`s. The set is cleared at the
+ *  start of each render via `beginRender`. It is NOT used for pruning —
+ *  pruning is driven by VNode destroy hooks instead, so wraps for
+ *  scopes whose vnodes survive (e.g. h.list cache hits) stay registered
+ *  even though `h.submodel` wasn't called for them this render. */
 export type ScopeRegistry = {
   readonly wraps: Map<ScopeId, WrapDescriptor>
   readonly scopedDispatches: Map<ScopeId, DispatchSync>
@@ -68,8 +80,29 @@ export const registerScopeWrap = (
   scopeId: ScopeId,
   descriptor: WrapDescriptor,
 ): void => {
+  if (registry.seenThisRender.has(scopeId)) {
+    const ownId = scopeId.includes(SCOPE_SEPARATOR)
+      ? scopeId.slice(scopeId.lastIndexOf(SCOPE_SEPARATOR) + 1)
+      : scopeId
+    throw new Error(
+      `Foldkit: duplicate h.submodel id "${ownId}" at scope "${scopeId}". ` +
+        `Each h.submodel call inside the same parent scope must use a ` +
+        `unique \`id\`. For lists, use a stable per-item identifier (the ` +
+        `same one you'd pass to h.list's getKey).`,
+    )
+  }
   registry.wraps.set(scopeId, descriptor)
   registry.seenThisRender.add(scopeId)
+}
+
+/** Removes a scope's wrap and cached dispatcher. Called by `h.submodel`'s
+ *  destroy hook when the corresponding vnode leaves the DOM. */
+export const deregisterScopeWrap = (
+  registry: ScopeRegistry,
+  scopeId: ScopeId,
+): void => {
+  registry.wraps.delete(scopeId)
+  registry.scopedDispatches.delete(scopeId)
 }
 
 /** Applies the wrapping chain for `scopeId` from innermost to outermost,
@@ -123,20 +156,11 @@ export const getOrCreateScopedDispatch = (
   return dispatch
 }
 
-/** Called at the start of each top-level render so the registry can track
- *  which scopes were re-registered this pass. */
+/** Called at the start of each top-level render. Clears the
+ *  per-render duplicate-id tracking set so siblings inside the same
+ *  parent scope can be re-validated. Does NOT touch `wraps` or
+ *  `scopedDispatches` — those persist across renders and are evicted by
+ *  vnode destroy hooks instead. */
 export const beginRender = (registry: ScopeRegistry): void => {
   registry.seenThisRender.clear()
-}
-
-/** Removes wrapping entries for scopes that were not re-registered during
- *  the latest render. Prevents unbounded growth when Submodel instances
- *  unmount (e.g. an entry is removed from a list). */
-export const pruneUnseenScopes = (registry: ScopeRegistry): void => {
-  for (const scopeId of Array.from(registry.wraps.keys())) {
-    if (!registry.seenThisRender.has(scopeId)) {
-      registry.wraps.delete(scopeId)
-      registry.scopedDispatches.delete(scopeId)
-    }
-  }
 }

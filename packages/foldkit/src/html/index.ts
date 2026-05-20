@@ -41,11 +41,10 @@ export { list } from './list.js'
 export {
   beginRender as __beginRender,
   createScopeRegistry as __createScopeRegistry,
-  pruneUnseenScopes as __pruneUnseenScopes,
 } from './scope.js'
 export type { ScopeRegistry } from './scope.js'
 export { submodel } from './submodel.js'
-export type { SubmodelConfig } from './submodel.js'
+export type { SubmodelConfig, SubmodelView } from './submodel.js'
 
 /** Pushes a dispatch and runtime context frame for the duration of a render.
  *  The runtime calls this immediately before invoking a user `view` and

@@ -38,7 +38,6 @@ import {
   __beginRender as beginHtmlRender,
   __clearRuntime as clearHtmlRuntime,
   __createScopeRegistry as createHtmlScopeRegistry,
-  __pruneUnseenScopes as pruneHtmlScopes,
   __setRuntime as setHtmlRuntime,
 } from '../html/index.js'
 import { MountTracker } from '../mount/index.js'
@@ -986,7 +985,6 @@ const makeRuntime = <
             } finally {
               clearHtmlRuntime()
             }
-            pruneHtmlScopes(scopeRegistry)
             const nullableNextVNode = nextDocument.body
             const viewDuration = performance.now() - viewStart
 

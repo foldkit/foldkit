@@ -1,7 +1,12 @@
 import { Match as M, Option, Schema as S } from 'effect'
 
 import type { Command } from '../../command/index.js'
-import { type Attribute, type Html, html } from '../../html/index.js'
+import {
+  type Attribute,
+  type Html,
+  type SubmodelView,
+  html,
+} from '../../html/index.js'
 import { m } from '../../message/index.js'
 import { evo } from '../../struct/index.js'
 
@@ -56,13 +61,28 @@ export const update = (
 
 /** Attribute groups the checkbox component provides to the consumer's
  *  `toView` callback. Typed as `Attribute<never>` so the consumer can
- *  spread the arrays directly into their own scope's elements
- *  (`h.div<ParentMessage>([...attributes.checkbox, h.Class(...)])`)
- *  regardless of the consumer's Message type. At runtime the OnClick
- *  handlers dispatch Checkbox's own `Toggled` Message, which the runtime
- *  translates via the `h.submodel` scope chain at event-fire time. The
- *  `never` typing is a compile-time accommodation for the data-form
- *  Submodel boundary; nothing is missing at runtime. */
+ *  spread the arrays directly into their own scope's elements:
+ *
+ *  ```ts
+ *  toView: attributes =>
+ *    h.div(
+ *      [...attributes.checkbox, h.Class('my-class'), h.OnClick(MyOwnMsg())],
+ *      [...],
+ *    )
+ *  ```
+ *
+ *  Because `h.submodel` runs the `toView` callback in the consumer's
+ *  outer scope (not Checkbox's child scope), `h.OnClick(MyOwnMsg())`
+ *  inside `toView` dispatches the consumer's Message directly through
+ *  the parent's wrapping chain, NOT wrapped as Checkbox's Toggled. The
+ *  Checkbox's own OnClick handlers (carried inside `attributes.checkbox`
+ *  etc.) still dispatch `Toggled`, translated via Checkbox's wrap at
+ *  event-fire time.
+ *
+ *  The `never` typing on the attribute arrays is what makes the spread
+ *  type-check against any consumer Message type. At runtime each event
+ *  handler routes to the correct dispatcher via its captured scope id;
+ *  the `never` is purely a compile-time accommodation. */
 export type CheckboxAttributes = Readonly<{
   checkbox: ReadonlyArray<Attribute<never>>
   label: ReadonlyArray<Attribute<never>>
@@ -91,8 +111,16 @@ const descriptionId = (id: string): string => `${id}-description`
  *  (`wrapWith: GotCheckboxMessage`, `wrapArgs: {}`) at the embed site, and
  *  this view dispatches its own `Toggled` Messages directly through the
  *  html factory. No `ParentMessage` callback — the wrapping is data,
- *  applied at event-fire time by the runtime's scope chain. */
-export const view = (model: Model, inputs: ViewInputs): Html => {
+ *  applied at event-fire time by the runtime's scope chain.
+ *
+ *  Typed as `SubmodelView<Model, Message, ViewInputs>` so `h.submodel`
+ *  infers `Toggled` as the child's Message type at the embed site, which
+ *  makes `wrapWith`'s `{ message }` destructure correctly typed without
+ *  manual annotation. */
+export const view: SubmodelView<Model, Message, ViewInputs> = (
+  model,
+  inputs,
+): Html => {
   const h = html<Message>()
 
   const { id, isChecked } = model

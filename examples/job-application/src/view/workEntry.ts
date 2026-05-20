@@ -146,7 +146,7 @@ export const workEntryView = <ParentMessage>(
         // Checkbox view still runs every parent render, same as it did
         // before this migration; the win is that Checkbox itself is no
         // longer parameterized over ParentMessage.
-        wrapWith: ({ message }: { message: Ui.Checkbox.Message }) =>
+        wrapWith: ({ message }) =>
           toParentMessage(
             WorkHistory.Entry.GotIsCurrentlyEmployedMessage({ message }),
           ),

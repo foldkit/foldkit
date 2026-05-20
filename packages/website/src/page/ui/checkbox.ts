@@ -79,7 +79,7 @@ export const basicDemo = <ParentMessage>(
             ],
           ),
       },
-      wrapWith: ({ message }: { message: Ui.Checkbox.Message }) =>
+      wrapWith: ({ message }) =>
         toParentMessage(GotCheckboxBasicDemoMessage({ message })),
       wrapArgs: {},
     }),
@@ -135,7 +135,7 @@ export const indeterminateDemo = <ParentMessage>(
                 ],
               ),
           },
-          wrapWith: ({ message }: { message: Ui.Checkbox.Message }) =>
+          wrapWith: ({ message }) =>
             toParentMessage(GotCheckboxAllDemoMessage({ message })),
           wrapArgs: {},
         }),
@@ -162,7 +162,7 @@ export const indeterminateDemo = <ParentMessage>(
                     ],
                   ),
               },
-              wrapWith: ({ message }: { message: Ui.Checkbox.Message }) =>
+              wrapWith: ({ message }) =>
                 toParentMessage(GotCheckboxOptionADemoMessage({ message })),
               wrapArgs: {},
             }),
@@ -186,7 +186,7 @@ export const indeterminateDemo = <ParentMessage>(
                     ],
                   ),
               },
-              wrapWith: ({ message }: { message: Ui.Checkbox.Message }) =>
+              wrapWith: ({ message }) =>
                 toParentMessage(GotCheckboxOptionBDemoMessage({ message })),
               wrapArgs: {},
             }),
