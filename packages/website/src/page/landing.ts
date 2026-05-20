@@ -575,7 +575,7 @@ const includedSection = (): Html => {
                 Icon.signal('w-6 h-6'),
                 'Subscriptions',
                 [
-                  'Declare which streams your app needs as a function of the Model. The runtime diffs and switches them when the Model changes.',
+                  'Bind a slice of the Model to a scoped Stream that may emit Messages. The runtime opens the scope while the slice holds its value and closes it when the slice changes.',
                 ],
                 {
                   href: coreSubscriptionsRouter(),

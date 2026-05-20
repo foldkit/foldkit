@@ -107,7 +107,7 @@ export const view = (): Html => {
             [],
             [
               h.strong([], ['Subscriptions:']),
-              ' a scoped Effect gated by a slice of your Model. You are subscribed to the Model, not to an external event source. The runtime keeps the Effect alive while the slice holds its value and starts a fresh scope when the slice changes. The body usually plugs an external source (timer ticks, keypresses, ',
+              ' a scoped Stream gated by a slice of your Model. You are subscribed to the Model, not to an external event source. The runtime keeps the Stream alive while the slice holds its value and starts a fresh scope when the slice changes. The body usually plugs an external source (timer ticks, keypresses, ',
               inlineCode('WebSocket'),
               ' frames, system theme changes) into a Stream that flows back through ',
               inlineCode('update'),
@@ -221,7 +221,7 @@ export const view = (): Html => {
           [
             ['Subscription'],
             [
-              'A scoped Effect gated by a slice of your Model. The runtime keeps it alive while the slice holds its value and starts a fresh scope when the slice changes. The body usually pipes external events back as Messages; some Subscriptions emit nothing and just maintain DOM state for the subscription’s lifetime.',
+              'A scoped Stream gated by a slice of your Model. The runtime keeps it alive while the slice holds its value and starts a fresh scope when the slice changes. The body usually pipes external events back as Messages; some Subscriptions emit nothing and just maintain DOM state for the subscription’s lifetime.',
             ],
           ],
           [

@@ -378,7 +378,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' finalizers (the canonical cleanup mechanism). Messages produced after interrupt are discarded; the Model never sees a mount Message for an element that no longer exists.',
       ),
       para(
-        'Mount binds work to an element’s lifetime in the rendered tree. For a scoped Effect gated by a slice of your Model instead, one that runs while the slice holds its value and may emit Messages while it does, Foldkit has ',
+        'Mount binds work to an element’s lifetime in the rendered tree. For a scoped Stream gated by a slice of your Model instead, one that runs while the slice holds its value and may emit Messages while it does, Foldkit has ',
         link(coreSubscriptionsRouter(), 'Subscriptions'),
         '.',
       ),
