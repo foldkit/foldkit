@@ -528,6 +528,40 @@ const headerButtonClass =
 
 const bodyCellClass = 'px-4 py-3 text-sm text-gray-700'
 
+const dinosaurRowView = (dinosaur: Dinosaur): Html => {
+  const h = html<Message>()
+  return h.tr(
+    [h.Class('border-b border-gray-100 hover:bg-gray-50 transition')],
+    [
+      h.td(
+        [h.Class(clsx(bodyCellClass, 'font-medium text-gray-900'))],
+        [dinosaur.name],
+      ),
+      h.td(
+        [h.Class(bodyCellClass)],
+        [
+          h.span(
+            [h.Class(periodBadgeClass(dinosaur.period))],
+            [dinosaur.period],
+          ),
+        ],
+      ),
+      h.td(
+        [h.Class(bodyCellClass)],
+        [h.span([h.Class(dietBadgeClass(dinosaur.diet))], [dinosaur.diet])],
+      ),
+      h.td(
+        [h.Class(clsx(bodyCellClass, 'text-right tabular-nums'))],
+        [dinosaur.lengthMeters.toString()],
+      ),
+      h.td(
+        [h.Class(clsx(bodyCellClass, 'text-right tabular-nums'))],
+        [dinosaur.weightKg.toLocaleString()],
+      ),
+    ],
+  )
+}
+
 const sortAriaLabel = (column: SortColumn, sorting: Sorting): string =>
   M.value(columnSortDirection(sorting, column)).pipe(
     M.when('Unsorted', () => `Sort by ${column}`),
@@ -797,62 +831,7 @@ const browseView = (model: Model, route: typeof BrowseRoute.Type): Html => {
                   ),
                   h.tbody(
                     [],
-                    Array.map(rows, dinosaur =>
-                      h.tr(
-                        [
-                          h.Class(
-                            'border-b border-gray-100 hover:bg-gray-50 transition',
-                          ),
-                        ],
-                        [
-                          h.td(
-                            [
-                              h.Class(
-                                clsx(
-                                  bodyCellClass,
-                                  'font-medium text-gray-900',
-                                ),
-                              ),
-                            ],
-                            [dinosaur.name],
-                          ),
-                          h.td(
-                            [h.Class(bodyCellClass)],
-                            [
-                              h.span(
-                                [h.Class(periodBadgeClass(dinosaur.period))],
-                                [dinosaur.period],
-                              ),
-                            ],
-                          ),
-                          h.td(
-                            [h.Class(bodyCellClass)],
-                            [
-                              h.span(
-                                [h.Class(dietBadgeClass(dinosaur.diet))],
-                                [dinosaur.diet],
-                              ),
-                            ],
-                          ),
-                          h.td(
-                            [
-                              h.Class(
-                                clsx(bodyCellClass, 'text-right tabular-nums'),
-                              ),
-                            ],
-                            [dinosaur.lengthMeters.toString()],
-                          ),
-                          h.td(
-                            [
-                              h.Class(
-                                clsx(bodyCellClass, 'text-right tabular-nums'),
-                              ),
-                            ],
-                            [dinosaur.weightKg.toLocaleString()],
-                          ),
-                        ],
-                      ),
-                    ),
+                    h.list(rows, dinosaur => dinosaur.name, dinosaurRowView),
                   ),
                 ],
               ),

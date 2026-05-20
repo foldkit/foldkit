@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { Array, Option } from 'effect'
 import { Ui } from 'foldkit'
-import { type Html, html } from 'foldkit/html'
+import { type Html, html, list } from 'foldkit/html'
 
 import { THUMBNAIL_CELL_SIZE, VISIBLE_HISTORY_COUNT } from '../constant'
 import {
@@ -103,30 +103,32 @@ export const historyPanelView = (
       h.div(
         [h.Class('flex flex-col gap-1.5 overflow-y-auto max-h-[420px] mt-3')],
         [
-          ...Array.map(redoStack, (entryGrid, index) =>
-            thumbnailEntry(
-              entryGrid,
+          ...list(
+            redoStack,
+            (_grid, index) => `redo-${index}`,
+            thumbnailEntry,
+            (_grid, index) => [
               gridSize,
               false,
               `Forward ${redoCount - index}`,
               Option.some(ClickedRedoStep({ stepIndex: index })),
               theme,
-            ),
+            ],
           ),
           thumbnailEntry(grid, gridSize, true, 'Current', Option.none(), theme),
-          ...Array.map(
+          ...list(
             Array.reverse(visibleUndoEntries),
-            (entryGrid, index) => {
-              const stepIndex = undoCount - 1 - index
-              return thumbnailEntry(
-                entryGrid,
-                gridSize,
-                false,
-                `Back ${index + 1}`,
-                Option.some(ClickedHistoryStep({ stepIndex })),
-                theme,
-              )
-            },
+            (_grid, index) => `undo-${index}`,
+            thumbnailEntry,
+            (_grid, index) => [
+              gridSize,
+              false,
+              `Back ${index + 1}`,
+              Option.some(
+                ClickedHistoryStep({ stepIndex: undoCount - 1 - index }),
+              ),
+              theme,
+            ],
           ),
           ...(hiddenUndoCount > 0
             ? [

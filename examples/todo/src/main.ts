@@ -334,18 +334,26 @@ export const SaveTodos = Command.define(
 
 // VIEW
 
-const todoItemView =
-  (model: Model) =>
-  (todo: Todo): Html =>
-    M.value(model.editing).pipe(
-      M.tagsExhaustive({
-        NotEditing: () => nonEditingTodoView(todo),
-        Editing: ({ id, text }) =>
-          id === todo.id
-            ? editingTodoView(todo, text)
-            : nonEditingTodoView(todo),
-      }),
-    )
+const editingTextFor = (
+  editing: EditingState,
+  todoId: string,
+): Option.Option<string> =>
+  M.value(editing).pipe(
+    M.tagsExhaustive({
+      NotEditing: () => Option.none(),
+      Editing: ({ id, text }) =>
+        id === todoId ? Option.some(text) : Option.none(),
+    }),
+  )
+
+const todoItemView = (
+  todo: Todo,
+  maybeEditingText: Option.Option<string>,
+): Html =>
+  Option.match(maybeEditingText, {
+    onNone: () => nonEditingTodoView(todo),
+    onSome: text => editingTodoView(todo, text),
+  })
 
 const editingTodoView = (todo: Todo, text: string): Html => {
   const h = html<Message>()
@@ -580,7 +588,12 @@ export const view = (model: Model): Document => {
             onNonEmpty: todos =>
               h.ul(
                 [h.Class('space-y-2 mb-6')],
-                Array.map(todos, todoItemView(model)),
+                h.list(
+                  todos,
+                  todo => todo.id,
+                  todoItemView,
+                  todo => [editingTextFor(model.editing, todo.id)],
+                ),
               ),
           }),
 
