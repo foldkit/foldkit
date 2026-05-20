@@ -571,13 +571,6 @@ const makeRuntime = <
   // setTimeout(0) is clamped to 4ms+; MessageChannel delivers in ~0.5ms.
   const FRAME_BUDGET_MS = 5
 
-  const yieldToBrowser: Effect.Effect<void> = Effect.callback<void>(resume => {
-    const channel = new MessageChannel()
-    channel.port2.onmessage = () => resume(Effect.void)
-    channel.port1.postMessage(null)
-    return Effect.sync(() => channel.port2.close())
-  })
-
   // NOTE: render coalescing relies on this firing once per frame. Multiple
   // Messages dispatched between frames all flag the renderLoop dirty; the
   // next rAF tick reads the latest model and renders once. Without this,
@@ -600,6 +593,42 @@ const makeRuntime = <
             ),
           )
         }
+
+        // NOTE: one persistent MessageChannel for the runtime lifetime,
+        // shared by every burst-budget yield. The queue-drain fiber is the
+        // sole consumer, so a single `pendingYieldResume` slot is sufficient.
+        // Re-allocating the channel on every yield (the previous shape) made
+        // the dispatch path pay a `new MessageChannel` + close on every burst
+        // that exceeded the frame budget.
+        const yieldChannel = yield* Effect.acquireRelease(
+          Effect.sync(() => new MessageChannel()),
+          channel =>
+            Effect.sync(() => {
+              channel.port1.close()
+              channel.port2.close()
+            }),
+        )
+        let pendingYieldResume: ((effect: Effect.Effect<void>) => void) | null =
+          null
+        yieldChannel.port2.onmessage = () => {
+          const resume = pendingYieldResume
+          pendingYieldResume = null
+          if (resume !== null) {
+            resume(Effect.void)
+          }
+        }
+        const yieldToBrowser: Effect.Effect<void> = Effect.callback<void>(
+          resume => {
+            pendingYieldResume = resume
+            yieldChannel.port1.postMessage(null)
+            return Effect.sync(() => {
+              if (pendingYieldResume === resume) {
+                pendingYieldResume = null
+              }
+            })
+          },
+        )
+
         const maybeResourceLayer = Option.fromNullishOr(resources)
 
         const managedResourceEntries: ReadonlyArray<
@@ -788,13 +817,20 @@ const makeRuntime = <
           Option.none(),
         )
 
-        const currentMessageRef = yield* Ref.make<Option.Option<Message>>(
-          Option.none(),
-        )
+        // NOTE: queue-drain-fiber-local state. Kept as plain closure
+        // variables instead of `Ref`s because nothing else reads or writes
+        // them concurrently, and JS's single-threaded model already orders
+        // writes against subsequent reads. `currentMessage` is read by the
+        // crash handler, which runs inside the same `forever` fiber via
+        // `Effect.catchCause`.
+        let currentMessage: Option.Option<Message> = Option.none()
+        let burstStartedAt = 0
 
-        const maybeDevToolsStoreRef = yield* Ref.make<
-          Option.Option<DevToolsStore>
-        >(Option.none())
+        // NOTE: the DevTools store is installed at most once during boot and
+        // never replaced. Caching it in a closure variable avoids a
+        // `Ref.get` on every message and on every render-loop tick (the
+        // store powers `isPausedEffect`).
+        let maybeDevToolsStore: Option.Option<DevToolsStore> = Option.none()
 
         const dispatchSync = (message: unknown): void => {
           /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -812,16 +848,15 @@ const makeRuntime = <
           Option.none(),
         )
 
-        const isPausedEffect: Effect.Effect<boolean> = Effect.gen(function* () {
-          const maybeStore = yield* Ref.get(maybeDevToolsStoreRef)
-          return yield* Option.match(maybeStore, {
+        const isPausedEffect: Effect.Effect<boolean> = Effect.suspend(() =>
+          Option.match(maybeDevToolsStore, {
             onNone: () => Effect.succeed(false),
             onSome: ({ stateRef }) =>
               SubscriptionRef.get(stateRef).pipe(
                 Effect.map(({ isPaused }) => isPaused),
               ),
-          })
-        })
+          }),
+        )
 
         const mountStartBuffer: Array<MountRecord> = []
         const mountEndBuffer: Array<MountRecord> = []
@@ -862,54 +897,53 @@ const makeRuntime = <
               yield* schedulePreserveModel(nextModel)
             }
 
-            yield* Effect.forEach(
-              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-              commands as ReadonlyArray<
-                AnyCommand<Message, never, Resources | ManagedResourceServices>
-              >,
-              command =>
-                Effect.forkDetach(
-                  command.effect.pipe(
-                    Effect.withSpan(command.name, {
-                      attributes: command.args ?? {},
-                    }),
-                    provideAllResources,
-                    Effect.flatMap(enqueueNormal),
+            if (!Array.isReadonlyArrayEmpty(commands)) {
+              yield* Effect.forEach(
+                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                commands as ReadonlyArray<
+                  AnyCommand<
+                    Message,
+                    never,
+                    Resources | ManagedResourceServices
+                  >
+                >,
+                command =>
+                  Effect.forkDetach(
+                    command.effect.pipe(
+                      Effect.withSpan(command.name, {
+                        attributes: command.args ?? {},
+                      }),
+                      provideAllResources,
+                      Effect.flatMap(enqueueNormal),
+                    ),
                   ),
-                ),
-            )
+              )
+            }
 
-            const maybeDevToolsStore = yield* Ref.get(maybeDevToolsStoreRef)
             /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
             const messageTag = (message as { _tag: string })._tag
             const isModelChanged = currentModel !== nextModel
             const isExcludedFromHistory = excludeFromHistoryTags.has(messageTag)
 
-            yield* Option.match(maybeDevToolsStore, {
-              onNone: () => Effect.void,
-              onSome: store => {
-                if (!isExcludedFromHistory) {
-                  return store.recordMessage(
+            if (Option.isSome(maybeDevToolsStore)) {
+              const store = maybeDevToolsStore.value
+              if (!isExcludedFromHistory) {
+                yield* store.recordMessage(
+                  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                  message as Message & { _tag: string },
+                  currentModel,
+                  nextModel,
+                  Array.map(
                     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                    message as Message & { _tag: string },
-                    currentModel,
-                    nextModel,
-                    Array.map(
-                      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                      commands as ReadonlyArray<AnyCommand<Message>>,
-                      toCommandRecord,
-                    ),
-                    isModelChanged,
-                  )
-                }
-
-                if (isModelChanged) {
-                  return store.updateLatestModel(nextModel)
-                }
-
-                return Effect.void
-              },
-            })
+                    commands as ReadonlyArray<AnyCommand<Message>>,
+                    toCommandRecord,
+                  ),
+                  isModelChanged,
+                )
+              } else if (isModelChanged) {
+                yield* store.updateLatestModel(nextModel)
+              }
+            }
           })
 
         // NOTE: `dispatchService` defaults to the live dispatch but is
@@ -1037,7 +1071,7 @@ const makeRuntime = <
               }),
             },
           )
-          yield* Ref.set(maybeDevToolsStoreRef, Option.some(devToolsStore))
+          maybeDevToolsStore = Option.some(devToolsStore)
           // The init render runs below; capture the events it produces. We
           // record init AFTER that render so the buffer reflects the mounts
           // that fired on the first paint.
@@ -1062,8 +1096,7 @@ const makeRuntime = <
         yield* render(initModel, Option.none())
 
         const initMountEvents = drainMountEvents()
-        const maybeStoreForInit = yield* Ref.get(maybeDevToolsStoreRef)
-        yield* Option.match(maybeStoreForInit, {
+        yield* Option.match(maybeDevToolsStore, {
           onNone: () => Effect.void,
           onSome: store =>
             store.recordInit(
@@ -1090,8 +1123,7 @@ const makeRuntime = <
             yield* render(model, maybeMessage)
 
             const mountEvents = drainMountEvents()
-            const maybeStore = yield* Ref.get(maybeDevToolsStoreRef)
-            yield* Option.match(maybeStore, {
+            yield* Option.match(maybeDevToolsStore, {
               onNone: () => Effect.void,
               onSome: store =>
                 store.attachRenderedMounts(
@@ -1254,20 +1286,17 @@ const makeRuntime = <
           },
         )
 
-        const burstStartedAtRef = yield* Ref.make(0)
-
         const processWithBudget = (message: Message): Effect.Effect<void> =>
           Effect.gen(function* () {
-            yield* Ref.set(currentMessageRef, Option.some(message))
+            currentMessage = Option.some(message)
             yield* processMessage(message)
 
-            const burstStartedAt = yield* Ref.get(burstStartedAtRef)
             if (performance.now() - burstStartedAt < FRAME_BUDGET_MS) {
               return
             }
 
             yield* yieldToBrowser
-            yield* Ref.set(burstStartedAtRef, performance.now())
+            burstStartedAt = performance.now()
           })
 
         const processBatch = (
@@ -1319,7 +1348,7 @@ const makeRuntime = <
                 onNone: () =>
                   Effect.gen(function* () {
                     const message = yield* Queue.take(messageQueue)
-                    yield* Ref.set(burstStartedAtRef, performance.now())
+                    burstStartedAt = performance.now()
                     return message
                   }),
                 onSome: Effect.succeed,
@@ -1338,10 +1367,7 @@ const makeRuntime = <
                   : new Error(String(squashed))
 
               const model = Effect.runSync(Ref.get(modelRef))
-              const message = Ref.get(currentMessageRef).pipe(
-                Effect.runSync,
-                Option.getOrThrow,
-              )
+              const message = Option.getOrThrow(currentMessage)
               renderCrashView(
                 { error: appError, model, message },
                 crash,
