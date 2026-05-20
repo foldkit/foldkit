@@ -12,17 +12,33 @@ import {
   update,
   view,
 } from './main'
+import { People } from './page'
 
-const home: Model = { route: HomeRoute() }
-const people = (searchText: Option.Option<string>): Model => ({
-  route: PeopleRoute({ searchText }),
+const initialPeoplePage: People.Model = {
+  searchInput: '',
+  searchHistory: [],
+}
+
+const peoplePageWith = (searchInput: string): People.Model => ({
+  searchInput,
+  searchHistory: searchInput === '' ? [] : [searchInput],
+})
+
+const home: Model = { route: HomeRoute(), peoplePage: initialPeoplePage }
+const people = (searchInput: string): Model => ({
+  route: PeopleRoute({
+    searchText: searchInput === '' ? Option.none() : Option.some(searchInput),
+  }),
+  peoplePage: peoplePageWith(searchInput),
 })
 const person = (personId: number): Model => ({
   route: PersonRoute({ personId }),
+  peoplePage: initialPeoplePage,
 })
-const nested: Model = { route: NestedRoute() }
+const nested: Model = { route: NestedRoute(), peoplePage: initialPeoplePage }
 const notFound = (path: string): Model => ({
   route: NotFoundRoute({ path }),
+  peoplePage: initialPeoplePage,
 })
 
 describe('scene', () => {
@@ -57,7 +73,7 @@ describe('scene', () => {
   test('the People route lists every person', () => {
     Scene.scene(
       { update, view },
-      Scene.with(people(Option.none())),
+      Scene.with(people('')),
       Scene.expect(Scene.text('Alice Johnson')).toExist(),
       Scene.expect(Scene.text('Bob Smith')).toExist(),
       Scene.expect(Scene.text('Carol Davis')).toExist(),
@@ -69,7 +85,7 @@ describe('scene', () => {
   test('a search filters People to matches by name or role', () => {
     Scene.scene(
       { update, view },
-      Scene.with(people(Option.some('designer'))),
+      Scene.with(people('designer')),
       Scene.expect(Scene.text('Alice Johnson')).toExist(),
       Scene.expect(Scene.text('Eva Brown')).toExist(),
       Scene.expect(Scene.text('Bob Smith')).toBeAbsent(),

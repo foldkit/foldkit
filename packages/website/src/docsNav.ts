@@ -40,6 +40,7 @@ import {
   manifestoRouter,
   onSsrRouter,
   patternsOutMessageRouter,
+  patternsRoutingSubmodelsRouter,
   patternsSubmodelsRouter,
   patternsSubscriptionOrganizationRouter,
   projectOrganizationRouter,
@@ -320,6 +321,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'PatternsOutMessage',
           href: patternsOutMessageRouter(),
           label: 'OutMessage',
+        },
+        {
+          _tag: 'PatternsRoutingSubmodels',
+          href: patternsRoutingSubmodelsRouter(),
+          label: 'Routing & Submodels',
         },
         {
           _tag: 'PatternsSubscriptionOrganization',

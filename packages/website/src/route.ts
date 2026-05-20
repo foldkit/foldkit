@@ -65,6 +65,7 @@ export const CoreViewMemoizationRoute = r('CoreViewMemoization')
 
 export const PatternsSubmodelsRoute = r('PatternsSubmodels')
 export const PatternsOutMessageRoute = r('PatternsOutMessage')
+export const PatternsRoutingSubmodelsRoute = r('PatternsRoutingSubmodels')
 export const PatternsSubscriptionOrganizationRoute = r(
   'PatternsSubscriptionOrganization',
 )
@@ -149,6 +150,7 @@ export const DocsRoute = S.Union([
   CoreViewMemoizationRoute,
   PatternsSubmodelsRoute,
   PatternsOutMessageRoute,
+  PatternsRoutingSubmodelsRoute,
   PatternsSubscriptionOrganizationRoute,
   UiOverviewRoute,
   UiButtonRoute,
@@ -402,6 +404,11 @@ export const patternsOutMessageRouter = pipe(
   slash(literal('out-message')),
   mapTo(PatternsOutMessageRoute),
 )
+export const patternsRoutingSubmodelsRouter = pipe(
+  literal('patterns'),
+  slash(literal('routing-submodels')),
+  mapTo(PatternsRoutingSubmodelsRoute),
+)
 export const patternsSubscriptionOrganizationRouter = pipe(
   literal('patterns'),
   slash(literal('subscription-organization')),
@@ -606,6 +613,7 @@ const coreParser = oneOf(
 const patternsParser = oneOf(
   patternsSubmodelsRouter,
   patternsOutMessageRouter,
+  patternsRoutingSubmodelsRouter,
   patternsSubscriptionOrganizationRouter,
 )
 

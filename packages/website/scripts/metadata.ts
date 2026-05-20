@@ -235,6 +235,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'OutMessage',
     'Communication between parent and child modules.',
   ),
+  PatternsRoutingSubmodels: pattern(
+    'Routing & Submodels',
+    'Forward URL changes into submodels so same-page navigation stays in sync.',
+  ),
   PatternsSubscriptionOrganization: pattern(
     'Subscription Organization',
     'Canonical layout for subscription wiring across nested submodels.',

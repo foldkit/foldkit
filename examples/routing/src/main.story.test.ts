@@ -4,17 +4,21 @@ import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
 import {
-  ChangedSearchInput,
   ChangedUrl,
-  CompletedNavigateInternal,
+  GotPeopleMessage,
   HomeRoute,
   type Model,
   PeopleRoute,
-  ReplaceSearchUrl,
   update,
 } from './main'
+import { People } from './page'
 
-const home: Model = { route: HomeRoute() }
+const initialPeoplePage: People.Model = {
+  searchInput: '',
+  searchHistory: [],
+}
+
+const home: Model = { route: HomeRoute(), peoplePage: initialPeoplePage }
 
 const urlOrThrow = (raw: string) =>
   Option.getOrThrowWith(
@@ -56,6 +60,22 @@ describe('update', () => {
           } else {
             throw new Error('Expected People route')
           }
+        }),
+      )
+    })
+
+    test('navigating to /people?searchText=foo syncs the submodel input', () => {
+      Story.story(
+        update,
+        Story.with(home),
+        Story.message(
+          ChangedUrl({
+            url: urlOrThrow('http://localhost/people?searchText=foo'),
+          }),
+        ),
+        Story.model(model => {
+          expect(model.peoplePage.searchInput).toBe('foo')
+          expect(model.peoplePage.searchHistory).toStrictEqual(['foo'])
         }),
       )
     })
@@ -110,26 +130,28 @@ describe('update', () => {
     })
   })
 
-  describe('ChangedSearchInput', () => {
+  describe('GotPeopleMessage', () => {
     test('typing search text fires a URL replacement command', () => {
       Story.story(
         update,
-        Story.with({ route: PeopleRoute({ searchText: Option.none() }) }),
-        Story.message(ChangedSearchInput({ value: 'designer' })),
-        Story.Command.expectHas(ReplaceSearchUrl),
-        Story.Command.resolve(ReplaceSearchUrl, CompletedNavigateInternal()),
-      )
-    })
-
-    test('clearing the search input still fires a URL replacement', () => {
-      Story.story(
-        update,
         Story.with({
-          route: PeopleRoute({ searchText: Option.some('foo') }),
+          route: PeopleRoute({ searchText: Option.none() }),
+          peoplePage: initialPeoplePage,
         }),
-        Story.message(ChangedSearchInput({ value: '' })),
-        Story.Command.expectHas(ReplaceSearchUrl),
-        Story.Command.resolve(ReplaceSearchUrl, CompletedNavigateInternal()),
+        Story.message(
+          GotPeopleMessage({
+            message: People.ChangedSearchInput({ value: 'designer' }),
+          }),
+        ),
+        Story.Command.expectHas(People.ReplaceSearchUrl),
+        Story.Command.resolve(
+          People.ReplaceSearchUrl,
+          People.CompletedReplaceUrl(),
+          message => GotPeopleMessage({ message }),
+        ),
+        Story.model(model => {
+          expect(model.peoplePage.searchInput).toBe('designer')
+        }),
       )
     })
   })
