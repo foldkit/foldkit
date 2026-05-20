@@ -19,7 +19,7 @@ h.ul(
 )
 ```
 
-Each rendered VNode has its `key` set from `getKey(item)` so the parent does not need `h.keyed`. The cache lives in a `WeakMap` keyed by the `view` function reference, so memoization works when `view` is declared at module scope (the recommended pattern) and falls back to "no cache" when `view` is inlined fresh per render — same semantics as `createLazy`.
+Each rendered VNode has its `key` set from `getKey(item, index)` so the parent does not need `h.keyed`. `getKey` and `getExtras` both receive `(item, index)`; pass the index into the key when items don't carry a stable identifier. The cache lives in a `WeakMap` keyed by the `view` function reference, so memoization works when `view` is declared at module scope (the recommended pattern) and falls back to "no cache" when `view` is inlined fresh per render — same semantics as `createLazy`.
 
 The optional fourth argument `getExtras` declares per-item dependencies beyond the item itself. Args are compared by reference equality, matching `createKeyedLazy`. Stale entries (keys not appearing in the current render) are pruned automatically so the cache does not grow unbounded.
 
@@ -29,4 +29,6 @@ Internal benchmark (`internal/lustre-benchmark`, optimised TodoMVC runbook of 10
 - Optimised with `createKeyedLazy`: 328 ms
 - Optimised with `h.list`: 334 ms (within 2% of `createKeyedLazy`)
 
-No existing API is removed or deprecated. `createKeyedLazy` remains available for cases that need a free-standing lazy cache (e.g. multiple memoized slots in one view, non-list memoization patterns).
+Existing call sites migrated to dogfood the new API: `packages/website/src/view/tableOfContents.ts` and `examples/pixel-art/src/view/canvas.ts`. The devtools overlay's tree-row and message-row caches remain on `createKeyedLazy` — their items are wrapper objects reconstructed per render, so they need the lower-level "explicit field-list memoization" semantics that `createKeyedLazy` provides; `h.list`'s `[item, ...extras]` comparison always misses on the unstable item.
+
+No existing API is removed or deprecated. `createKeyedLazy` remains available for cases like the overlay above, plus non-list memoization patterns (single tab content panels, free-standing lazy slots).

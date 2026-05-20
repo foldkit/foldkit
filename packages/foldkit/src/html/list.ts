@@ -52,11 +52,17 @@ const getOrCreateListCache = (view: Function): ListCache => {
  *    arrow on every parent render, the cache misses every time and `list`
  *    degrades to plain `Array.map` cost.
  * 2. Args must be `===` to the previous render's args. The default is
- *    `[item]`, so memoization works if `item` is referentially stable across
- *    renders (the usual case when the parent rebuilds the array via
- *    `Array.filter`/`Array.map` over a stable underlying todos array).
+ *    `[item]`, so memoization works when `item` is referentially stable
+ *    across renders (the usual case when the parent rebuilds the array via
+ *    `Array.filter`/`Array.map` over a stable underlying source). For
+ *    arrays whose items are reconstructed each render (e.g. a flattened
+ *    tree), the items will never `===`, so use `createKeyedLazy` directly
+ *    and feed it the primitive fields you care about.
  *
- * For outer-state-dependent views, pass `extras` to declare additional
+ * `getKey` receives `(item, index)`; pass `index` into the key string when
+ * items don't carry a stable identifier of their own.
+ *
+ * For outer-state-dependent views, pass `getExtras` to declare additional
  * dependencies. `view` then receives `(item, ...extras)`:
  *
  * @example
@@ -72,39 +78,40 @@ const getOrCreateListCache = (view: Function): ListCache => {
  * ```
  *
  * The returned VNode array carries a `key` on each element (set from
- * `getKey(item)`), so the parent does not need `h.keyed`. Snabbdom uses the
- * key for O(n) child diffing.
+ * `getKey(item, index)`), so the parent does not need `h.keyed`. Snabbdom
+ * uses the key for O(n) child diffing.
  *
  * Stale per-key entries are pruned after each call so the cache does not
  * grow unbounded for views with churning item identities.
  */
 export function list<Item>(
   items: ReadonlyArray<Item>,
-  getKey: (item: Item) => string,
+  getKey: (item: Item, index: number) => string,
   view: (item: Item) => VNode | null,
 ): Array<VNode | null>
 export function list<Item, Extras extends ReadonlyArray<unknown>>(
   items: ReadonlyArray<Item>,
-  getKey: (item: Item) => string,
+  getKey: (item: Item, index: number) => string,
   view: (item: Item, ...extras: Extras) => VNode | null,
-  getExtras: (item: Item) => readonly [...Extras],
+  getExtras: (item: Item, index: number) => readonly [...Extras],
 ): Array<VNode | null>
 export function list<Item>(
   items: ReadonlyArray<Item>,
-  getKey: (item: Item) => string,
+  getKey: (item: Item, index: number) => string,
   view: (item: Item, ...extras: ReadonlyArray<unknown>) => VNode | null,
-  getExtras?: (item: Item) => ReadonlyArray<unknown>,
+  getExtras?: (item: Item, index: number) => ReadonlyArray<unknown>,
 ): Array<VNode | null> {
   const cache = getOrCreateListCache(view)
   const dispatch = requireDispatch()
   const liveKeys = new Set<string>()
   const rendered: Array<VNode | null> = []
 
-  for (const item of items) {
-    const key = getKey(item)
+  for (let index = 0; index < items.length; index++) {
+    const item = items[index]!
+    const key = getKey(item, index)
     liveKeys.add(key)
 
-    const extras = getExtras ? getExtras(item) : EMPTY_EXTRAS
+    const extras = getExtras ? getExtras(item, index) : EMPTY_EXTRAS
     const args: ReadonlyArray<unknown> = [item, ...extras]
 
     const previous = cache.entries.get(key)
