@@ -27,6 +27,7 @@ import {
   processDragEnter,
   processDragLeave,
 } from './dragZoneTracking.js'
+import { list } from './list.js'
 import {
   clearRuntime,
   requireDispatch,
@@ -35,6 +36,7 @@ import {
 } from './runtimeSingleton.js'
 
 export { createKeyedLazy, createLazy } from './lazy.js'
+export { list } from './list.js'
 
 /** Pushes a dispatch and runtime context frame for the duration of a render.
  *  The runtime calls this immediately before invoking a user `view` and
@@ -3251,6 +3253,7 @@ const buildHtmlFactory = <Message>() => ({
   ...htmlAttributes<Message>(),
   empty: null,
   keyed: keyed<Message>(),
+  list,
 })
 
 const cachedHtmlFactory = buildHtmlFactory<unknown>()

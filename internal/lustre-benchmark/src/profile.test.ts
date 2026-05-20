@@ -1,4 +1,5 @@
 import { Effect } from 'effect'
+import { Document } from 'foldkit/html'
 import { makeProgram } from 'foldkit/runtime'
 import { describe, it } from 'vitest'
 
@@ -15,7 +16,9 @@ import {
   init,
 } from './main.js'
 import type { Todo } from './main.js'
-import { view as baseView } from './main.optimised.js'
+import { view as naiveView } from './main.js'
+import { view as optimisedListView } from './main.optimised-list.js'
+import { view as optimisedView } from './main.optimised.js'
 
 /**
  * Phase-level profile of the lustre-benchmark optimised TodoMVC runbook.
@@ -101,7 +104,9 @@ type Profile = Readonly<{
   inferredOtherMs: number
 }>
 
-const runProfile = async (): Promise<Profile> => {
+const runProfile = async (
+  baseView: (model: Model) => Document,
+): Promise<Profile> => {
   const container = document.createElement('section')
   container.id = `profile-${Math.random().toString(36).slice(2)}`
   container.className = 'todoapp'
@@ -212,30 +217,59 @@ const printRow = (
   )
 }
 
+const reportSlot = async (
+  label: string,
+  view: (model: Model) => Document,
+  warmupRuns: number,
+  measuredRuns: number,
+): Promise<Profile> => {
+  for (let index = 0; index < warmupRuns; index++) {
+    await runProfile(view)
+  }
+
+  const profiles: Array<Profile> = []
+  for (let index = 0; index < measuredRuns; index++) {
+    profiles.push(await runProfile(view))
+  }
+
+  const aggregate: Profile = {
+    totalMs: median(profiles.map(p => p.totalMs)),
+    viewMs: median(profiles.map(p => p.viewMs)),
+    viewCalls: profiles[0]!.viewCalls,
+    updateMs: median(profiles.map(p => p.updateMs)),
+    updateCalls: profiles[0]!.updateCalls,
+    inferredOtherMs: median(profiles.map(p => p.inferredOtherMs)),
+  }
+
+  /* eslint-disable no-console */
+  console.log('')
+  console.log(`--- ${label} ---`)
+  printRow('total wall-clock', aggregate.totalMs, aggregate.totalMs)
+  printRow('view (user)', aggregate.viewMs, aggregate.totalMs)
+  printRow('update (user)', aggregate.updateMs, aggregate.totalMs)
+  printRow(
+    'patch + dispatch + other',
+    aggregate.inferredOtherMs,
+    aggregate.totalMs,
+  )
+  console.log(
+    `  view calls:   ${aggregate.viewCalls.toString().padStart(4)}    avg view:   ${(aggregate.viewMs / aggregate.viewCalls).toFixed(3)}ms`,
+  )
+  console.log(
+    `  update calls: ${aggregate.updateCalls.toString().padStart(4)}    avg update: ${(aggregate.updateMs / aggregate.updateCalls).toFixed(3)}ms`,
+  )
+  /* eslint-enable no-console */
+
+  return aggregate
+}
+
 describe.skipIf(!isProfileEnabled)('lustre runbook phase profile', () => {
   it(
-    'reports per-phase time over the optimised runbook',
-    { timeout: 120_000 },
+    'compares naive, optimised, and optimised-with-list views',
+    { timeout: 300_000 },
     async () => {
       const WARMUP_RUNS = 1
       const MEASURED_RUNS = 5
-
-      for (let index = 0; index < WARMUP_RUNS; index++) {
-        await runProfile()
-      }
-
-      const profiles: Array<Profile> = []
-      for (let index = 0; index < MEASURED_RUNS; index++) {
-        profiles.push(await runProfile())
-      }
-
-      const total = median(profiles.map(p => p.totalMs))
-      const view = median(profiles.map(p => p.viewMs))
-      const updateTime = median(profiles.map(p => p.updateMs))
-      const other = median(profiles.map(p => p.inferredOtherMs))
-
-      const viewCalls = profiles[0]!.viewCalls
-      const updateCalls = profiles[0]!.updateCalls
 
       /* eslint-disable no-console */
       console.log('')
@@ -245,17 +279,34 @@ describe.skipIf(!isProfileEnabled)('lustre runbook phase profile', () => {
       console.log(
         `[lustre profile] median over ${MEASURED_RUNS} runs (warmup ${WARMUP_RUNS})`,
       )
-      console.log('')
-      printRow('total wall-clock', total, total)
-      printRow('view (user)', view, total)
-      printRow('update (user)', updateTime, total)
-      printRow('patch + dispatch + other', other, total)
-      console.log('')
-      console.log(
-        `  view calls:   ${viewCalls.toString().padStart(4)}    avg view:   ${(view / viewCalls).toFixed(3)}ms`,
+      /* eslint-enable no-console */
+
+      const naive = await reportSlot(
+        'naive (no memoization)',
+        naiveView,
+        WARMUP_RUNS,
+        MEASURED_RUNS,
       )
+      const optimised = await reportSlot(
+        'optimised (createKeyedLazy + createLazy)',
+        optimisedView,
+        WARMUP_RUNS,
+        MEASURED_RUNS,
+      )
+      const optimisedList = await reportSlot(
+        'optimised-list (h.list + createLazy)',
+        optimisedListView,
+        WARMUP_RUNS,
+        MEASURED_RUNS,
+      )
+
+      /* eslint-disable no-console */
+      console.log('')
+      console.log(`--- summary ---`)
+      console.log(`  naive             : ${naive.totalMs.toFixed(1)} ms`)
+      console.log(`  optimised         : ${optimised.totalMs.toFixed(1)} ms`)
       console.log(
-        `  update calls: ${updateCalls.toString().padStart(4)}    avg update: ${(updateTime / updateCalls).toFixed(3)}ms`,
+        `  optimised + h.list: ${optimisedList.totalMs.toFixed(1)} ms`,
       )
       console.log('')
       /* eslint-enable no-console */
