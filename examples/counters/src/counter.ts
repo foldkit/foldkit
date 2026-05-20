@@ -1,6 +1,6 @@
 import { Match as M, Schema as S } from 'effect'
 import { Command } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import { Html, defineSubmodelView, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 
 // MODEL
@@ -44,7 +44,7 @@ export const update = (
 // type. The wrapping happens at event-fire time, transparently to this
 // module.
 
-export const view = (model: Model): Html => {
+export const view = defineSubmodelView<Model, Message>((model): Html => {
   const h = html<Message>()
 
   return h.div(
@@ -62,7 +62,7 @@ export const view = (model: Model): Html => {
       h.button([h.OnClick(ClickedIncrement()), h.Class(buttonStyle)], ['+']),
     ],
   )
-}
+})
 
 const buttonStyle =
   'h-9 w-9 rounded bg-gray-900 text-white text-lg leading-none hover:bg-gray-700 transition cursor-pointer'

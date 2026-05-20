@@ -63,8 +63,20 @@ export const pushScope = (scopeId: ScopeId): void => {
 /** Pops the current frame, restoring whatever frame was previously active.
  *  Must be paired with a {@link setRuntime} or {@link pushScope} on the
  *  same call stack, including via `try`/`finally` so an exception inside
- *  view code does not leak the frame to subsequent renders. */
+ *  view code does not leak the frame to subsequent renders.
+ *
+ *  Throws when called on an empty stack. That signals an unmatched
+ *  push/pop pair somewhere upstream and would silently corrupt later
+ *  renders if it slid by. */
 export const clearRuntime = (): void => {
+  if (stack.length === 0) {
+    throw new Error(
+      'Foldkit: clearRuntime called on an empty runtime stack. This means ' +
+        'a `pushScope` or `setRuntime` was not paired with `clearRuntime` ' +
+        '(or vice versa) upstream. Likely a bug in a custom Submodel ' +
+        'integration or view-time helper.',
+    )
+  }
   stack.pop()
 }
 

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect } from 'vitest'
 
 import { MountTracker } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
+import { list } from './list.js'
 import {
   type DispatchSync,
   clearRuntime,
@@ -555,5 +556,169 @@ describe('h.submodel', () => {
     onClick()
 
     expect(dispatched).toEqual([{ _tag: 'GotSelected', plusOne: 12 }])
+  })
+
+  it('returns null and deregisters the wrap when the view returns null', () => {
+    const nullView: SubmodelViewBranded<{ value: number }, ChildMessage> = () =>
+      null
+
+    const result = submodel({
+      id: 'null-view',
+      view: nullView,
+      model: { value: 1 },
+      wrapWith: GotChild,
+      wrapArgs: { entryId: 'null-view' },
+    })
+
+    expect(result).toBeNull()
+    // No vnode means no destroy hook will ever fire, so the wrap must be
+    // deregistered eagerly to avoid a leak.
+    expect(registry.wraps.has('null-view')).toBe(false)
+  })
+
+  it('allows the same id under different parent scopes without throwing', () => {
+    // Two h.submodel calls share the literal id "child" but live under
+    // different parent scopes, so their composed scope ids differ. This
+    // must not trip the duplicate-id guard, which is intentionally per
+    // parent scope, not global.
+    expect(() => {
+      submodel({
+        id: 'parent-a',
+        view: () =>
+          submodel({
+            id: 'child',
+            view: childView,
+            model: { value: 1 },
+            wrapWith: GotChild,
+            wrapArgs: { entryId: 'a' },
+          }),
+        model: {},
+        wrapWith: ({ message }) => ({ _tag: 'GotA' as const, message }),
+        wrapArgs: {},
+      })
+
+      submodel({
+        id: 'parent-b',
+        view: () =>
+          submodel({
+            id: 'child',
+            view: childView,
+            model: { value: 2 },
+            wrapWith: GotChild,
+            wrapArgs: { entryId: 'b' },
+          }),
+        model: {},
+        wrapWith: ({ message }) => ({ _tag: 'GotB' as const, message }),
+        wrapArgs: {},
+      })
+    }).not.toThrow()
+
+    expect(registry.wraps.has('parent-a|child')).toBe(true)
+    expect(registry.wraps.has('parent-b|child')).toBe(true)
+  })
+
+  it('survives h.list reorder: cached entries keep their wraps registered', () => {
+    // Build a row view that calls h.submodel for an inner child. h.list
+    // memoizes per key, so reordering the items array reuses the same
+    // vnodes (and therefore the same registered wraps). The row view is
+    // not re-invoked, and the inner submodel is not re-called.
+    type Item = Readonly<{ id: string; value: number }>
+
+    const rowView = (item: Item): VNode | null =>
+      submodel({
+        id: item.id,
+        view: childView,
+        model: { value: item.value },
+        wrapWith: GotChild,
+        wrapArgs: { entryId: item.id },
+      })
+
+    const itemsForward: ReadonlyArray<Item> = [
+      { id: 'row-1', value: 10 },
+      { id: 'row-2', value: 20 },
+      { id: 'row-3', value: 30 },
+    ]
+
+    const firstRender = list(itemsForward, item => item.id, rowView)
+    expect(firstRender).toHaveLength(3)
+    expect(registry.wraps.has('row-1')).toBe(true)
+    expect(registry.wraps.has('row-2')).toBe(true)
+    expect(registry.wraps.has('row-3')).toBe(true)
+
+    // Start a new render and reverse the order. h.list cache-hits each
+    // row by key, so rowView is not called and submodel does not re-run.
+    beginRender(registry)
+    const itemsReversed: ReadonlyArray<Item> = [
+      itemsForward[2]!,
+      itemsForward[1]!,
+      itemsForward[0]!,
+    ]
+    const secondRender = list(itemsReversed, item => item.id, rowView)
+
+    expect(secondRender.map(vnode => vnode?.key)).toEqual([
+      'row-3',
+      'row-2',
+      'row-1',
+    ])
+    expect(registry.wraps.has('row-1')).toBe(true)
+    expect(registry.wraps.has('row-2')).toBe(true)
+    expect(registry.wraps.has('row-3')).toBe(true)
+
+    // Cached vnodes still dispatch through the live wraps.
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const onClickRow1 = secondRender[2]?.data?.on?.click as () => void
+    onClickRow1()
+    expect(dispatched).toEqual([
+      {
+        _tag: 'GotChild',
+        entryId: 'row-1',
+        message: { _tag: 'ChildClicked', value: 10 },
+      },
+    ])
+  })
+
+  it('nests h.submodel calls made inside a slot callback under the parent scope', () => {
+    // A consumer's slot callback can itself embed a Submodel via
+    // h.submodel. The slot runs in the PARENT scope (per
+    // wrapInputsForOuterScope), so the inner submodel's composed scope
+    // should hang off the parent, not the outer Submodel; and its
+    // dispatches should NOT be wrapped by the outer Submodel's wrapWith.
+    type ParentSlotMessage = Readonly<{
+      _tag: 'GotSlotChild'
+      message: ChildMessage
+    }>
+    const GotSlotChild = (args: {
+      message: ChildMessage
+    }): ParentSlotMessage => ({ _tag: 'GotSlotChild', ...args })
+
+    type ShellInputs = Readonly<{ slot: () => VNode | null }>
+    const shellView = (_: object, inputs: ShellInputs): VNode | null => {
+      const slotVNode = inputs.slot()
+      return h('div', {}, [slotVNode ?? h('span')])
+    }
+
+    submodel({
+      id: 'shell',
+      view: shellView,
+      model: {},
+      inputs: {
+        slot: () =>
+          submodel({
+            id: 'slot-child',
+            view: childView,
+            model: { value: 5 },
+            wrapWith: GotSlotChild,
+            wrapArgs: {},
+          }),
+      },
+      wrapWith: GotChild,
+      wrapArgs: { entryId: 'shell' },
+    })
+
+    // The slot's submodel registers under the parent (root) scope, NOT
+    // under "shell|slot-child", because the slot callback ran in the
+    // outer scope.
+    expect(registry.wraps.has('slot-child')).toBe(true)
+    expect(registry.wraps.has('shell|slot-child')).toBe(false)
   })
 })

@@ -1,4 +1,11 @@
-export { createKeyedLazy, createLazy, html, list, submodel } from './index.js'
+export {
+  createKeyedLazy,
+  createLazy,
+  defineSubmodelView,
+  html,
+  list,
+  submodel,
+} from './index.js'
 
 export type {
   Attribute,

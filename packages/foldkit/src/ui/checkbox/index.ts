@@ -4,7 +4,7 @@ import type { Command } from '../../command/index.js'
 import {
   type Attribute,
   type Html,
-  type SubmodelView,
+  defineSubmodelView,
   html,
 } from '../../html/index.js'
 import { m } from '../../message/index.js'
@@ -108,75 +108,74 @@ const descriptionId = (id: string): string => `${id}-description`
 /** Renders an accessible checkbox by building ARIA attribute groups and
  *  delegating layout to the consumer's `toView` callback. Designed to be
  *  embedded via `h.submodel`: the parent declares the wrapping
- *  (`wrapWith: GotCheckboxMessage`, `wrapArgs: {}`) at the embed site, and
- *  this view dispatches its own `Toggled` Messages directly through the
- *  html factory. No `ParentMessage` callback — the wrapping is data,
- *  applied at event-fire time by the runtime's scope chain.
+ *  (`wrapWith: GotCheckboxMessage`) at the embed site, and this view
+ *  dispatches its own `Toggled` Messages directly through the html
+ *  factory. No `ParentMessage` callback: the wrapping is data, applied
+ *  at event-fire time by the runtime's scope chain.
  *
- *  Typed as `SubmodelView<Model, Message, ViewInputs>` so `h.submodel`
- *  infers `Toggled` as the child's Message type at the embed site, which
- *  makes `wrapWith`'s `{ message }` destructure correctly typed without
- *  manual annotation. */
-export const view: SubmodelView<Model, Message, ViewInputs> = (
-  model,
-  inputs,
-): Html => {
-  const h = html<Message>()
+ *  Branded via `defineSubmodelView<Model, Message, ViewInputs>` so
+ *  `h.submodel` infers `Toggled` as the child's Message type at the
+ *  embed site, which makes `wrapWith`'s `{ message }` destructure
+ *  correctly typed without manual annotation. */
+export const view = defineSubmodelView<Model, Message, ViewInputs>(
+  (model, inputs): Html => {
+    const h = html<Message>()
 
-  const { id, isChecked } = model
-  const {
-    isDisabled = false,
-    isIndeterminate = false,
-    name,
-    value: formValue = 'on',
-  } = inputs
+    const { id, isChecked } = model
+    const {
+      isDisabled = false,
+      isIndeterminate = false,
+      name,
+      value: formValue = 'on',
+    } = inputs
 
-  const handleKeyUp = (key: string): Option.Option<Toggled> =>
-    M.value(key).pipe(
-      M.when(' ', () => Option.some(Toggled())),
-      M.orElse(() => Option.none()),
-    )
+    const handleKeyUp = (key: string): Option.Option<Toggled> =>
+      M.value(key).pipe(
+        M.when(' ', () => Option.some(Toggled())),
+        M.orElse(() => Option.none()),
+      )
 
-  const stateAttributes = isIndeterminate
-    ? [h.DataAttribute('indeterminate', '')]
-    : isChecked
-      ? [h.DataAttribute('checked', '')]
+    const stateAttributes = isIndeterminate
+      ? [h.DataAttribute('indeterminate', '')]
+      : isChecked
+        ? [h.DataAttribute('checked', '')]
+        : []
+
+    const disabledAttributes = isDisabled
+      ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
       : []
 
-  const disabledAttributes = isDisabled
-    ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
-    : []
+    const checkboxAttributes = [
+      h.Role('checkbox'),
+      h.AriaChecked(isIndeterminate ? 'mixed' : isChecked),
+      h.AriaLabelledBy(labelId(id)),
+      h.AriaDescribedBy(descriptionId(id)),
+      h.Tabindex(0),
+      ...stateAttributes,
+      ...disabledAttributes,
+      ...(isDisabled
+        ? []
+        : [h.OnClick(Toggled()), h.OnKeyUpPreventDefault(handleKeyUp)]),
+    ]
 
-  const checkboxAttributes = [
-    h.Role('checkbox'),
-    h.AriaChecked(isIndeterminate ? 'mixed' : isChecked),
-    h.AriaLabelledBy(labelId(id)),
-    h.AriaDescribedBy(descriptionId(id)),
-    h.Tabindex(0),
-    ...stateAttributes,
-    ...disabledAttributes,
-    ...(isDisabled
-      ? []
-      : [h.OnClick(Toggled()), h.OnKeyUpPreventDefault(handleKeyUp)]),
-  ]
+    const labelAttributes = [
+      h.Id(labelId(id)),
+      ...(isDisabled ? [] : [h.OnClick(Toggled())]),
+    ]
 
-  const labelAttributes = [
-    h.Id(labelId(id)),
-    ...(isDisabled ? [] : [h.OnClick(Toggled())]),
-  ]
+    const descriptionAttributes = [h.Id(descriptionId(id))]
 
-  const descriptionAttributes = [h.Id(descriptionId(id))]
+    const hiddenInputAttributes = name
+      ? [h.Type('hidden'), h.Name(name), h.Value(isChecked ? formValue : '')]
+      : []
 
-  const hiddenInputAttributes = name
-    ? [h.Type('hidden'), h.Name(name), h.Value(isChecked ? formValue : '')]
-    : []
-
-  /* eslint-disable @typescript-eslint/consistent-type-assertions */
-  return inputs.toView({
-    checkbox: checkboxAttributes as ReadonlyArray<Attribute<never>>,
-    label: labelAttributes as ReadonlyArray<Attribute<never>>,
-    description: descriptionAttributes as ReadonlyArray<Attribute<never>>,
-    hiddenInput: hiddenInputAttributes as ReadonlyArray<Attribute<never>>,
-  })
-  /* eslint-enable @typescript-eslint/consistent-type-assertions */
-}
+    /* eslint-disable @typescript-eslint/consistent-type-assertions */
+    return inputs.toView({
+      checkbox: checkboxAttributes as ReadonlyArray<Attribute<never>>,
+      label: labelAttributes as ReadonlyArray<Attribute<never>>,
+      description: descriptionAttributes as ReadonlyArray<Attribute<never>>,
+      hiddenInput: hiddenInputAttributes as ReadonlyArray<Attribute<never>>,
+    })
+    /* eslint-enable @typescript-eslint/consistent-type-assertions */
+  },
+)

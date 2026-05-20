@@ -43,7 +43,7 @@ export {
   createScopeRegistry as __createScopeRegistry,
 } from './scope.js'
 export type { ScopeRegistry } from './scope.js'
-export { submodel } from './submodel.js'
+export { defineSubmodelView, submodel } from './submodel.js'
 export type { SubmodelConfig, SubmodelView } from './submodel.js'
 
 /** Pushes a dispatch and runtime context frame for the duration of a render.
@@ -369,7 +369,17 @@ export type FoldkitMountMarker = Readonly<{
   args?: Record<string, unknown>
 }>
 
-/** Union of all HTML, SVG, and MathML attributes a virtual DOM element can carry. */
+/** Union of all HTML, SVG, and MathML attributes a virtual DOM element can carry.
+ *
+ *  IMPORTANT: every variant that references `Message` must keep `Message`
+ *  in a covariant position (e.g. `message: Message`, `f: (...) => Message`)
+ *  rather than contravariant (e.g. `compare: (m: Message) => boolean`).
+ *  `Attribute<never>` is used by `h.submodel`-embedded Ui primitives as the
+ *  slot-attribute type so the consumer can spread them into any
+ *  `h.div<ParentMessage>` regardless of the consumer's Message type;
+ *  that pattern relies on `Attribute<never>` being assignable to
+ *  `Attribute<X>` for every `X`, which holds only as long as `Message`
+ *  stays covariant. */
 export type Attribute<Message> = Data.TaggedEnum<{
   Key: { readonly value: string }
   Class: { readonly value: string }
