@@ -1,0 +1,31 @@
+{
+  "name": "counters-example",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@effect/platform-browser": "4.0.0-beta.66",
+    "@tailwindcss/vite": "^4.2.4",
+    "effect": "4.0.0-beta.66",
+    "foldkit": "workspace:*",
+    "tailwindcss": "^4.2.4"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@foldkit/vite-plugin": "workspace:*",
+    "@trivago/prettier-plugin-sort-imports": "^6.0.2",
+    "@typescript-eslint/eslint-plugin": "^8.59.2",
+    "@typescript-eslint/parser": "^8.59.2",
+    "eslint": "^10.3.0",
+    "happy-dom": "^20.9.0",
+    "prettier": "^3.8.3",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.10",
+    "vitest": "^4.1.5"
+  }
+}

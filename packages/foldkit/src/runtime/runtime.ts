@@ -34,7 +34,11 @@ import {
 import { startWebSocketBridge } from '../devTools/webSocketBridge.js'
 import {
   Document,
+  type ScopeRegistry,
+  __beginRender as beginHtmlRender,
   __clearRuntime as clearHtmlRuntime,
+  __createScopeRegistry as createHtmlScopeRegistry,
+  __pruneUnseenScopes as pruneHtmlScopes,
   __setRuntime as setHtmlRuntime,
 } from '../html/index.js'
 import { MountTracker } from '../mount/index.js'
@@ -631,6 +635,14 @@ const makeRuntime = <
 
         const maybeResourceLayer = Option.fromNullishOr(resources)
 
+        // NOTE: One scope registry per runtime instance, shared across
+        // renders so Submodel wrap descriptors registered by h.submodel
+        // persist between renders. The render function calls
+        // `beginHtmlRender` at the start of each pass and `pruneHtmlScopes`
+        // at the end so wraps for unmounted Submodels (e.g. an entry
+        // removed from a list) are dropped from the registry.
+        const scopeRegistry: ScopeRegistry = createHtmlScopeRegistry()
+
         const managedResourceEntries: ReadonlyArray<
           [string, ManagedResourceConfig<Model, Message>]
         > = managedResources
@@ -962,13 +974,19 @@ const makeRuntime = <
           Effect.gen(function* () {
             const runtimeContext = yield* Effect.context<never>()
             const viewStart = performance.now()
-            setHtmlRuntime(dispatchService.dispatchSync, runtimeContext)
+            beginHtmlRender(scopeRegistry)
+            setHtmlRuntime(
+              dispatchService.dispatchSync,
+              runtimeContext,
+              scopeRegistry,
+            )
             let nextDocument: Document
             try {
               nextDocument = view(model)
             } finally {
               clearHtmlRuntime()
             }
+            pruneHtmlScopes(scopeRegistry)
             const nullableNextVNode = nextDocument.body
             const viewDuration = performance.now() - viewStart
 
