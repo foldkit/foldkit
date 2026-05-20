@@ -8,6 +8,7 @@
     "build:naive": "vite build",
     "build:optimised": "BUILD_VARIANT=optimised vite build && mv dist/optimised/index.optimised.html dist/optimised/index.html",
     "dev": "vite",
+    "profile": "RUN_LUSTRE_PROFILE=1 vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -16,7 +17,9 @@
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
+    "happy-dom": "^20.9.0",
     "typescript": "^6.0.3",
-    "vite": "^8.0.10"
+    "vite": "^8.0.10",
+    "vitest": "^4.1.5"
   }
 }
