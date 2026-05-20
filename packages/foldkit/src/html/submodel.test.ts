@@ -238,4 +238,134 @@ describe('h.submodel', () => {
       wrapArgs: { entryId: 'child-1' },
     })
   })
+
+  it('applies emit handler instead of wrapWith for matching child message tags', () => {
+    type Selected = Readonly<{ _tag: 'Selected'; value: number }>
+    type EmitParentMessage = Readonly<{
+      _tag: 'AcknowledgedSelection'
+      value: number
+    }>
+
+    const selectingView = (model: { value: number }) => {
+      const dispatch = requireDispatch()
+      return h('button', {
+        on: {
+          click: () =>
+            dispatch({
+              _tag: 'Selected',
+              value: model.value,
+            } satisfies Selected),
+        },
+      })
+    }
+
+    const result = submodel({
+      id: 'selector',
+      view: selectingView,
+      model: { value: 42 },
+      wrapWith: GotChild,
+      wrapArgs: { entryId: 'selector' },
+      emit: {
+        Selected: ({ value }: Selected): EmitParentMessage => ({
+          _tag: 'AcknowledgedSelection',
+          value,
+        }),
+      },
+    })
+
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const onClick = result?.data?.on?.click as () => void
+    onClick()
+
+    expect(dispatched).toEqual([{ _tag: 'AcknowledgedSelection', value: 42 }])
+  })
+
+  it('falls back to wrapWith for child message tags not in emit', () => {
+    type Selected = Readonly<{ _tag: 'Selected'; value: number }>
+    type Other = Readonly<{ _tag: 'Other' }>
+
+    const dispatchingView = (_: object) => {
+      const dispatch = requireDispatch()
+      return h('button', {
+        on: {
+          click: () => dispatch({ _tag: 'Other' } satisfies Other),
+        },
+      })
+    }
+
+    const result = submodel({
+      id: 'mixed',
+      view: dispatchingView,
+      model: {},
+      wrapWith: GotChild,
+      wrapArgs: { entryId: 'mixed' },
+      emit: {
+        Selected: ({ value }: Selected) => ({
+          _tag: 'AcknowledgedSelection',
+          value,
+        }),
+      },
+    })
+
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const onClick = result?.data?.on?.click as () => void
+    onClick()
+
+    expect(dispatched).toEqual([
+      {
+        _tag: 'GotChild',
+        entryId: 'mixed',
+        message: { _tag: 'Other' },
+      },
+    ])
+  })
+
+  it('lets emit results continue up the outer wrap chain', () => {
+    type Saved = Readonly<{ _tag: 'Saved' }>
+    type OuterParentMessage = Readonly<{
+      _tag: 'GotOuter'
+      message: { readonly _tag: 'Acknowledged' }
+    }>
+    const GotOuter = (args: {
+      message: { readonly _tag: 'Acknowledged' }
+    }): OuterParentMessage => ({ _tag: 'GotOuter', ...args })
+
+    const savingView = (_: object) => {
+      const dispatch = requireDispatch()
+      return h('button', {
+        on: {
+          click: () => dispatch({ _tag: 'Saved' } satisfies Saved),
+        },
+      })
+    }
+
+    const result = submodel({
+      id: 'outer',
+      view: () =>
+        submodel({
+          id: 'inner',
+          view: savingView,
+          model: {},
+          wrapWith: GotChild,
+          wrapArgs: { entryId: 'inner' },
+          emit: {
+            Saved: (_: Saved) => ({ _tag: 'Acknowledged' as const }),
+          },
+        }),
+      model: {},
+      wrapWith: GotOuter,
+      wrapArgs: {},
+    })
+
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const onClick = result?.data?.on?.click as () => void
+    onClick()
+
+    expect(dispatched).toEqual([
+      {
+        _tag: 'GotOuter',
+        message: { _tag: 'Acknowledged' },
+      },
+    ])
+  })
 })

@@ -1,12 +1,7 @@
 import { Match as M, Option, Schema as S } from 'effect'
 
 import type { Command } from '../../command/index.js'
-import {
-  type Attribute,
-  type Html,
-  createLazy,
-  html,
-} from '../../html/index.js'
+import { type Attribute, type Html, html } from '../../html/index.js'
 import { m } from '../../message/index.js'
 import { evo } from '../../struct/index.js'
 
@@ -59,19 +54,28 @@ export const update = (
 
 // VIEW
 
-/** Attribute groups the checkbox component provides to the consumer's `toView` callback. */
-export type CheckboxAttributes<ParentMessage> = Readonly<{
-  checkbox: ReadonlyArray<Attribute<ParentMessage>>
-  label: ReadonlyArray<Attribute<ParentMessage>>
-  description: ReadonlyArray<Attribute<ParentMessage>>
-  hiddenInput: ReadonlyArray<Attribute<ParentMessage>>
+/** Attribute groups the checkbox component provides to the consumer's
+ *  `toView` callback. Typed as `Attribute<never>` so the consumer can
+ *  spread the arrays directly into their own scope's elements
+ *  (`h.div<ParentMessage>([...attributes.checkbox, h.Class(...)])`)
+ *  regardless of the consumer's Message type. At runtime the OnClick
+ *  handlers dispatch Checkbox's own `Toggled` Message, which the runtime
+ *  translates via the `h.submodel` scope chain at event-fire time. The
+ *  `never` typing is a compile-time accommodation for the data-form
+ *  Submodel boundary; nothing is missing at runtime. */
+export type CheckboxAttributes = Readonly<{
+  checkbox: ReadonlyArray<Attribute<never>>
+  label: ReadonlyArray<Attribute<never>>
+  description: ReadonlyArray<Attribute<never>>
+  hiddenInput: ReadonlyArray<Attribute<never>>
 }>
 
-/** Configuration for rendering a checkbox with `view`. */
-export type ViewConfig<ParentMessage> = Readonly<{
-  model: Model
-  toParentMessage: (message: Toggled) => ParentMessage
-  toView: (attributes: CheckboxAttributes<ParentMessage>) => Html
+/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field.
+ *  Slot content (`toView`) and behavioral flags live here; the parent
+ *  declares them at the embed site rather than threading them through the
+ *  Submodel as a generic-parameterized callback. */
+export type ViewInputs = Readonly<{
+  toView: (attributes: CheckboxAttributes) => Html
   isDisabled?: boolean
   isIndeterminate?: boolean
   name?: string
@@ -81,24 +85,27 @@ export type ViewConfig<ParentMessage> = Readonly<{
 const labelId = (id: string): string => `${id}-label`
 const descriptionId = (id: string): string => `${id}-description`
 
-/** Renders an accessible checkbox by building ARIA attribute groups and delegating layout to the consumer's `toView` callback. */
-export const view = <ParentMessage>(
-  config: ViewConfig<ParentMessage>,
-): Html => {
-  const h = html<ParentMessage>()
+/** Renders an accessible checkbox by building ARIA attribute groups and
+ *  delegating layout to the consumer's `toView` callback. Designed to be
+ *  embedded via `h.submodel`: the parent declares the wrapping
+ *  (`wrapWith: GotCheckboxMessage`, `wrapArgs: {}`) at the embed site, and
+ *  this view dispatches its own `Toggled` Messages directly through the
+ *  html factory. No `ParentMessage` callback — the wrapping is data,
+ *  applied at event-fire time by the runtime's scope chain. */
+export const view = (model: Model, inputs: ViewInputs): Html => {
+  const h = html<Message>()
 
+  const { id, isChecked } = model
   const {
-    model: { id, isChecked },
-    toParentMessage,
     isDisabled = false,
     isIndeterminate = false,
     name,
     value: formValue = 'on',
-  } = config
+  } = inputs
 
-  const handleKeyUp = (key: string): Option.Option<ParentMessage> =>
+  const handleKeyUp = (key: string): Option.Option<Toggled> =>
     M.value(key).pipe(
-      M.when(' ', () => Option.some(toParentMessage(Toggled()))),
+      M.when(' ', () => Option.some(Toggled())),
       M.orElse(() => Option.none()),
     )
 
@@ -122,15 +129,12 @@ export const view = <ParentMessage>(
     ...disabledAttributes,
     ...(isDisabled
       ? []
-      : [
-          h.OnClick(toParentMessage(Toggled())),
-          h.OnKeyUpPreventDefault(handleKeyUp),
-        ]),
+      : [h.OnClick(Toggled()), h.OnKeyUpPreventDefault(handleKeyUp)]),
   ]
 
   const labelAttributes = [
     h.Id(labelId(id)),
-    ...(isDisabled ? [] : [h.OnClick(toParentMessage(Toggled()))]),
+    ...(isDisabled ? [] : [h.OnClick(Toggled())]),
   ]
 
   const descriptionAttributes = [h.Id(descriptionId(id))]
@@ -139,35 +143,12 @@ export const view = <ParentMessage>(
     ? [h.Type('hidden'), h.Name(name), h.Value(isChecked ? formValue : '')]
     : []
 
-  return config.toView({
-    checkbox: checkboxAttributes,
-    label: labelAttributes,
-    description: descriptionAttributes,
-    hiddenInput: hiddenInputAttributes,
+  /* eslint-disable @typescript-eslint/consistent-type-assertions */
+  return inputs.toView({
+    checkbox: checkboxAttributes as ReadonlyArray<Attribute<never>>,
+    label: labelAttributes as ReadonlyArray<Attribute<never>>,
+    description: descriptionAttributes as ReadonlyArray<Attribute<never>>,
+    hiddenInput: hiddenInputAttributes as ReadonlyArray<Attribute<never>>,
   })
-}
-
-/** Creates a memoized checkbox view. Static config is captured in a closure;
- *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
-export const lazy = <ParentMessage>(
-  staticConfig: Omit<ViewConfig<ParentMessage>, 'model' | 'toParentMessage'>,
-): ((
-  model: Model,
-  toParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
-) => Html) => {
-  const lazyView = createLazy()
-
-  return (model, toParentMessage) =>
-    lazyView(
-      (
-        currentModel: Model,
-        currentToParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
-      ) =>
-        view({
-          ...staticConfig,
-          model: currentModel,
-          toParentMessage: currentToParentMessage,
-        }),
-      [model, toParentMessage],
-    )
+  /* eslint-enable @typescript-eslint/consistent-type-assertions */
 }

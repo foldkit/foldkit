@@ -1,8 +1,8 @@
-export { init, update, view, lazy, Model, Message } from './index.js'
+export { init, update, view, Model, Message } from './index.js'
 
 export type {
   Toggled,
   InitConfig,
-  ViewConfig,
+  ViewInputs,
   CheckboxAttributes,
 } from './index.js'

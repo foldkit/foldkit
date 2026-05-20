@@ -101,42 +101,56 @@ export const workEntryView = <ParentMessage>(
         [h.Class('grid grid-cols-2 gap-3')],
         [startDatePicker, ...(showEndDate ? [endDatePicker] : [])],
       ),
-      Ui.Checkbox.view({
+      h.submodel({
+        id: `${model.id}-currently-employed`,
+        view: Ui.Checkbox.view,
         model: model.isCurrentlyEmployed,
-        toParentMessage: message =>
+        inputs: {
+          toView: attributes =>
+            h.div(
+              [h.Class('flex items-center gap-2')],
+              [
+                h.div(
+                  [
+                    ...attributes.checkbox,
+                    h.Class(
+                      `flex h-4 w-4 items-center justify-center rounded border transition cursor-pointer ${
+                        model.isCurrentlyEmployed.isChecked
+                          ? 'border-indigo-600 bg-indigo-600'
+                          : 'border-gray-300'
+                      }`,
+                    ),
+                  ],
+                  [
+                    ...(model.isCurrentlyEmployed.isChecked
+                      ? [h.span([h.Class('text-white text-xs')], ['✓'])]
+                      : []),
+                  ],
+                ),
+                h.label(
+                  [
+                    ...attributes.label,
+                    h.Class('text-sm text-gray-700 select-none cursor-pointer'),
+                  ],
+                  ['I currently work here'],
+                ),
+              ],
+            ),
+        },
+        // NOTE: This wrapWith closure is constructed per render because
+        // workEntry itself still uses the callback-style Submodel pattern
+        // (it receives `toParentMessage` as an argument). When workEntry
+        // and its ancestors eventually migrate to `h.submodel`, this
+        // wrapWith becomes a referentially stable Message constructor and
+        // the Checkbox boundary will memoize end-to-end. For now the
+        // Checkbox view still runs every parent render, same as it did
+        // before this migration; the win is that Checkbox itself is no
+        // longer parameterized over ParentMessage.
+        wrapWith: ({ message }: { message: Ui.Checkbox.Message }) =>
           toParentMessage(
             WorkHistory.Entry.GotIsCurrentlyEmployedMessage({ message }),
           ),
-        toView: attributes =>
-          h.div(
-            [h.Class('flex items-center gap-2')],
-            [
-              h.div(
-                [
-                  ...attributes.checkbox,
-                  h.Class(
-                    `flex h-4 w-4 items-center justify-center rounded border transition cursor-pointer ${
-                      model.isCurrentlyEmployed.isChecked
-                        ? 'border-indigo-600 bg-indigo-600'
-                        : 'border-gray-300'
-                    }`,
-                  ),
-                ],
-                [
-                  ...(model.isCurrentlyEmployed.isChecked
-                    ? [h.span([h.Class('text-white text-xs')], ['✓'])]
-                    : []),
-                ],
-              ),
-              h.label(
-                [
-                  ...attributes.label,
-                  h.Class('text-sm text-gray-700 select-none cursor-pointer'),
-                ],
-                ['I currently work here'],
-              ),
-            ],
-          ),
+        wrapArgs: {},
       }),
       textareaField<ParentMessage>({
         id: `${model.id}-description`,

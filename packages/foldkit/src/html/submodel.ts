@@ -26,9 +26,18 @@ import {
  *    `Got*Message` variant defined at module scope.
  *  - `wrapArgs`: a primitive record of extra args spread into `wrapWith`
  *    alongside the child message. Use for per-instance identifiers
- *    (e.g. `{ entryId: entry.id }`). */
+ *    (e.g. `{ entryId: entry.id }`).
+ *  - `emit`: optional per-tag handler map. When the child dispatches a
+ *    message whose `_tag` matches a key in `emit`, the matching handler
+ *    runs INSTEAD of `wrapWith` for that message, producing a parent-scope
+ *    Message directly. Use this for high-level events the parent wants to
+ *    react to declaratively (e.g. `SelectedDate`, `Cancelled`) without
+ *    pattern-matching the child's full Message union inside its
+ *    `GotChildMessage` handler. Unmatched tags still flow through
+ *    `wrapWith`. */
 export type SubmodelConfig<
   Model,
+  ChildMessage,
   WrapArgs extends Readonly<Record<string, unknown>>,
   Inputs = void,
 > = Readonly<{
@@ -38,8 +47,15 @@ export type SubmodelConfig<
     : (model: Model, inputs: Inputs) => VNode | null
   model: Model
   inputs?: Inputs
-  wrapWith: (args: WrapArgs & { readonly message: any }) => unknown
+  wrapWith: (args: WrapArgs & { readonly message: ChildMessage }) => unknown
   wrapArgs: WrapArgs
+  emit?: ChildMessage extends { readonly _tag: string }
+    ? {
+        readonly [K in ChildMessage['_tag']]?: (
+          message: Extract<ChildMessage, { readonly _tag: K }>,
+        ) => unknown
+      }
+    : never
 }>
 
 /** Embeds a child Submodel at this position in the parent's view tree.
@@ -63,10 +79,11 @@ export type SubmodelConfig<
  *  through the user's wrapping chain, not the embedded Submodel's. */
 export const submodel = <
   Model,
+  ChildMessage,
   WrapArgs extends Readonly<Record<string, unknown>>,
   Inputs = void,
 >(
-  config: SubmodelConfig<Model, WrapArgs, Inputs>,
+  config: SubmodelConfig<Model, ChildMessage, WrapArgs, Inputs>,
 ): VNode | null => {
   const { registry, scopeId: parentScopeId } = requireScope()
   const childScopeId = composeScope(parentScopeId, config.id)
@@ -75,6 +92,10 @@ export const submodel = <
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     wrapWith: config.wrapWith as WrapDescriptor['wrapWith'],
     wrapArgs: config.wrapArgs,
+    ...(config.emit !== undefined && {
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      emit: config.emit as NonNullable<WrapDescriptor['emit']>,
+    }),
   })
 
   pushScope(childScopeId)

@@ -3,12 +3,21 @@ import type { DispatchSync } from './runtimeSingleton.js'
 /** Wrapping descriptor stored per Submodel boundary. Captured as data
  *  (constructor reference + primitive args) so memoization is preserved
  *  across renders: the registered descriptor changes only when the
- *  primitive args change, not on every parent render. */
+ *  primitive args change, not on every parent render.
+ *
+ *  `emit` is an optional per-tag handler map that takes precedence over
+ *  `wrapWith` for matching child message tags. It lets the parent declare
+ *  high-level event reactions (analogous to the old `onSelected*`
+ *  callback prop) without forcing it to pattern-match the child's full
+ *  Message union inside its `GotChildMessage` handler. The emit handler
+ *  for a matching tag REPLACES `wrapWith` at that boundary; its result
+ *  becomes the message that continues up the scope chain. */
 export type WrapDescriptor = Readonly<{
   wrapWith: (
     args: Readonly<Record<string, unknown> & { message: unknown }>,
   ) => unknown
   wrapArgs: Readonly<Record<string, unknown>>
+  emit?: Readonly<Record<string, (message: any) => unknown>>
 }>
 
 /** Scope id is a `|`-joined chain of Submodel ids. Empty string represents
@@ -24,6 +33,17 @@ export const composeScope = (parent: ScopeId, childId: string): ScopeId =>
 
 const splitScope = (scopeId: ScopeId): ReadonlyArray<string> =>
   scopeId === ROOT_SCOPE ? [] : scopeId.split(SCOPE_SEPARATOR)
+
+const extractTag = (message: unknown): string | undefined => {
+  if (typeof message !== 'object' || message === null) {
+    return undefined
+  }
+  if (!('_tag' in message)) {
+    return undefined
+  }
+  const tag = message._tag
+  return typeof tag === 'string' ? tag : undefined
+}
 
 /** Per-runtime registry of Submodel wrapping descriptors. The runtime
  *  creates one of these in `start` and reuses it across renders. h.submodel
@@ -67,7 +87,14 @@ const dispatchScoped = (
   for (let depth = parts.length; depth > 0; depth--) {
     const ancestorScope = parts.slice(0, depth).join(SCOPE_SEPARATOR)
     const descriptor = registry.wraps.get(ancestorScope)
-    if (descriptor !== undefined) {
+    if (descriptor === undefined) {
+      continue
+    }
+    const tag = extractTag(wrapped)
+    const emitHandler = tag !== undefined ? descriptor.emit?.[tag] : undefined
+    if (emitHandler !== undefined) {
+      wrapped = emitHandler(wrapped)
+    } else {
       wrapped = descriptor.wrapWith({
         ...descriptor.wrapArgs,
         message: wrapped,

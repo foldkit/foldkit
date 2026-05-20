@@ -112,42 +112,47 @@ export const educationEntryView = <ParentMessage>(
           toParentMessage(Education.Entry.UpdatedFieldOfStudy({ value })),
         placeholder: 'e.g. Computer Science',
       }),
-      Ui.Checkbox.view({
+      h.submodel({
+        id: `${model.id}-currently-enrolled`,
+        view: Ui.Checkbox.view,
         model: model.isCurrentlyEnrolled,
-        toParentMessage: message =>
+        inputs: {
+          toView: attributes =>
+            h.div(
+              [h.Class('flex items-center gap-2')],
+              [
+                h.div(
+                  [
+                    ...attributes.checkbox,
+                    h.Class(
+                      `flex h-4 w-4 items-center justify-center rounded border transition cursor-pointer ${
+                        model.isCurrentlyEnrolled.isChecked
+                          ? 'border-indigo-600 bg-indigo-600'
+                          : 'border-gray-300'
+                      }`,
+                    ),
+                  ],
+                  [
+                    ...(model.isCurrentlyEnrolled.isChecked
+                      ? [h.span([h.Class('text-white text-xs')], ['✓'])]
+                      : []),
+                  ],
+                ),
+                h.label(
+                  [
+                    ...attributes.label,
+                    h.Class('text-sm text-gray-700 select-none cursor-pointer'),
+                  ],
+                  ['I’m currently enrolled'],
+                ),
+              ],
+            ),
+        },
+        wrapWith: ({ message }: { message: Ui.Checkbox.Message }) =>
           toParentMessage(
             Education.Entry.GotIsCurrentlyEnrolledMessage({ message }),
           ),
-        toView: attributes =>
-          h.div(
-            [h.Class('flex items-center gap-2')],
-            [
-              h.div(
-                [
-                  ...attributes.checkbox,
-                  h.Class(
-                    `flex h-4 w-4 items-center justify-center rounded border transition cursor-pointer ${
-                      model.isCurrentlyEnrolled.isChecked
-                        ? 'border-indigo-600 bg-indigo-600'
-                        : 'border-gray-300'
-                    }`,
-                  ),
-                ],
-                [
-                  ...(model.isCurrentlyEnrolled.isChecked
-                    ? [h.span([h.Class('text-white text-xs')], ['✓'])]
-                    : []),
-                ],
-              ),
-              h.label(
-                [
-                  ...attributes.label,
-                  h.Class('text-sm text-gray-700 select-none cursor-pointer'),
-                ],
-                ['I’m currently enrolled'],
-              ),
-            ],
-          ),
+        wrapArgs: {},
       }),
       ...(showGraduationYear ? [graduationYearField] : []),
       h.div(
