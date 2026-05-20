@@ -343,9 +343,9 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 
 ## Subscriptions [T2+]
 
-- [ ] Subscriptions use `Subscription.makeSubscriptions(Deps)<Model, Message>` with a dedicated `Deps` Schema.
-- [ ] `modelToDependencies` extracts exactly the data the stream needs from Model, not the full Model. Returns `Option.none()` when the subscription should stop.
-- [ ] Always-active subscriptions use `S.Null` as the Deps type and return `null` from `modelToDependencies`.
+- [ ] Subscriptions use `Subscription.make<Model, Message>()(entry => ({ key: entry(fields, callbacks) }))`. Each `entry(...)` call takes the bare field map as its first argument (no `S.Struct` wrap) and the `{ modelToDependencies, dependenciesToStream, equivalence? }` callbacks as its second.
+- [ ] `modelToDependencies` extracts exactly the data the stream needs from Model, not the full Model. Wrap absent dependencies in `Option` at the field level when the subscription should stop.
+- [ ] Always-active subscriptions pass `{}` as the `entry` fields argument and return `{}` from `modelToDependencies`.
 - [ ] Message mapping happens inside `Stream.map(event => Effect.succeed(UpdatedX({ data: event })))`, not scattered through update.
 - [ ] Subscription files live at `src/subscription.ts` (or `src/subscription/` directory for multiple), never inline in `main.ts`.
 

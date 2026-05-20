@@ -19,7 +19,7 @@ import {
   html,
 } from '../../html/index.js'
 import { m } from '../../message/index.js'
-import { makeSubscriptions } from '../../runtime/subscription.js'
+import * as Subscription from '../../runtime/subscription.js'
 import { ts } from '../../schema/index.js'
 import { evo } from '../../struct/index.js'
 
@@ -401,13 +401,12 @@ export const visibleWindowVariable = <Item>(
 const containerElement = (id: string): Option.Option<HTMLElement> =>
   Option.fromNullishOr(document.getElementById(id))
 
-/** Schema describing the subscription dependencies for container scroll and
- *  resize tracking. */
-export const SubscriptionDependencies = S.Struct({
-  containerEvents: S.Struct({
-    id: S.String,
-  }),
-})
+type ContainerObserverState = {
+  scrollListener: (() => void) | null
+  resizeObserver: ResizeObserver | null
+  observedElement: HTMLElement | null
+  pendingFrame: number | null
+}
 
 /** Subscriptions that track the container's scroll position and size.
  *
@@ -422,122 +421,117 @@ export const SubscriptionDependencies = S.Struct({
  *  makes the subscription robust across SPA route changes: navigating to a
  *  page that mounts the list, away, and back all reattach correctly without
  *  the consumer having to teach the framework about navigation. */
-export const subscriptions = makeSubscriptions(SubscriptionDependencies)<
-  Model,
-  Message
->({
-  containerEvents: {
-    modelToDependencies: model => ({ id: model.id }),
-    dependenciesToStream: ({ id }) =>
-      Stream.callback<Message>(queue =>
-        Effect.acquireRelease(
-          Effect.sync(() => {
-            const state: {
-              scrollListener: (() => void) | null
-              resizeObserver: ResizeObserver | null
-              observedElement: HTMLElement | null
-              pendingFrame: number | null
-            } = {
-              scrollListener: null,
-              resizeObserver: null,
-              observedElement: null,
-              pendingFrame: null,
-            }
-
-            const detach = () => {
-              if (state.resizeObserver !== null) {
-                state.resizeObserver.disconnect()
-                state.resizeObserver = null
+export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+  containerEvents: entry(
+    { id: S.String },
+    {
+      modelToDependencies: model => ({ id: model.id }),
+      dependenciesToStream: ({ id }) =>
+        Stream.callback<Message>(queue =>
+          Effect.acquireRelease(
+            Effect.sync(() => {
+              const state: ContainerObserverState = {
+                scrollListener: null,
+                resizeObserver: null,
+                observedElement: null,
+                pendingFrame: null,
               }
-              if (
-                state.observedElement !== null &&
-                state.scrollListener !== null
-              ) {
-                state.observedElement.removeEventListener(
-                  'scroll',
-                  state.scrollListener,
-                )
-              }
-              state.observedElement = null
-              state.scrollListener = null
-            }
 
-            const attach = (element: HTMLElement) => {
-              const listener = () =>
-                Queue.offerUnsafe(
-                  queue,
-                  ScrolledContainer({ scrollTop: element.scrollTop }),
-                )
-              element.addEventListener('scroll', listener, { passive: true })
-              state.scrollListener = listener
-              state.observedElement = element
-
-              state.resizeObserver = new ResizeObserver(entries => {
-                const lastEntry = Array.last(entries)
-                if (Option.isSome(lastEntry)) {
-                  Queue.offerUnsafe(
-                    queue,
-                    MeasuredContainer({
-                      containerHeight: lastEntry.value.contentRect.height,
-                    }),
+              const detach = () => {
+                if (state.resizeObserver !== null) {
+                  state.resizeObserver.disconnect()
+                  state.resizeObserver = null
+                }
+                if (
+                  state.observedElement !== null &&
+                  state.scrollListener !== null
+                ) {
+                  state.observedElement.removeEventListener(
+                    'scroll',
+                    state.scrollListener,
                   )
                 }
-              })
-              state.resizeObserver.observe(element)
-            }
+                state.observedElement = null
+                state.scrollListener = null
+              }
 
-            const reconcile = () => {
-              const maybeElement = containerElement(id)
-              if (Option.isNone(maybeElement)) {
-                if (state.observedElement !== null) {
-                  detach()
+              const attach = (element: HTMLElement) => {
+                const listener = () =>
+                  Queue.offerUnsafe(
+                    queue,
+                    ScrolledContainer({ scrollTop: element.scrollTop }),
+                  )
+                element.addEventListener('scroll', listener, { passive: true })
+                state.scrollListener = listener
+                state.observedElement = element
+
+                state.resizeObserver = new ResizeObserver(entries => {
+                  const lastEntry = Array.last(entries)
+                  if (Option.isSome(lastEntry)) {
+                    Queue.offerUnsafe(
+                      queue,
+                      MeasuredContainer({
+                        containerHeight: lastEntry.value.contentRect.height,
+                      }),
+                    )
+                  }
+                })
+                state.resizeObserver.observe(element)
+              }
+
+              const reconcile = () => {
+                const maybeElement = containerElement(id)
+                if (Option.isNone(maybeElement)) {
+                  if (state.observedElement !== null) {
+                    detach()
+                  }
+                  return
                 }
-                return
+                if (state.observedElement === maybeElement.value) {
+                  return
+                }
+                detach()
+                attach(maybeElement.value)
               }
-              if (state.observedElement === maybeElement.value) {
-                return
-              }
-              detach()
-              attach(maybeElement.value)
-            }
 
-            reconcile()
+              reconcile()
 
-            // NOTE: observes the entire document subtree because the container
-            // can be inserted/removed by any parent the consumer chooses (route
-            // changes, conditional renders, modal mounts), and the framework
-            // has no way to know that hierarchy in advance. Reconcile is gated
-            // by rAF and short-circuits when the cached observedElement is
-            // still in the DOM, so per-mutation cost stays low even with
-            // subtree: true.
-            const mutationObserver = new MutationObserver(() => {
-              if (state.pendingFrame !== null) {
-                return
-              }
-              state.pendingFrame = requestAnimationFrame(() => {
-                state.pendingFrame = null
-                reconcile()
+              // NOTE: observes the entire document subtree because the container
+              // can be inserted/removed by any parent the consumer chooses (route
+              // changes, conditional renders, modal mounts), and the framework
+              // has no way to know that hierarchy in advance. Reconcile is gated
+              // by rAF and short-circuits when the cached observedElement is
+              // still in the DOM, so per-mutation cost stays low even with
+              // subtree: true.
+              const mutationObserver = new MutationObserver(() => {
+                if (state.pendingFrame !== null) {
+                  return
+                }
+                state.pendingFrame = requestAnimationFrame(() => {
+                  state.pendingFrame = null
+                  reconcile()
+                })
               })
-            })
-            mutationObserver.observe(document.body, {
-              childList: true,
-              subtree: true,
-            })
+              mutationObserver.observe(document.body, {
+                childList: true,
+                subtree: true,
+              })
 
-            return { state, detach, mutationObserver }
-          }),
-          ({ state, detach, mutationObserver }) =>
-            Effect.sync(() => {
-              mutationObserver.disconnect()
-              if (state.pendingFrame !== null) {
-                cancelAnimationFrame(state.pendingFrame)
-              }
-              detach()
+              return { state, detach, mutationObserver }
             }),
-        ).pipe(Effect.flatMap(() => Effect.never)),
-      ),
-  },
-})
+            ({ state, detach, mutationObserver }) =>
+              Effect.sync(() => {
+                mutationObserver.disconnect()
+                if (state.pendingFrame !== null) {
+                  cancelAnimationFrame(state.pendingFrame)
+                }
+                detach()
+              }),
+          ).pipe(Effect.flatMap(() => Effect.never)),
+        ),
+    },
+  ),
+}))
 
 // VIEW
 

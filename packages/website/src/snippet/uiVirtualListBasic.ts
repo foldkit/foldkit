@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, view, and subscription definitions.
-import { Effect, Schema as S, Stream } from 'effect'
+import { Effect, Schema as S } from 'effect'
 import { Command, Subscription, Ui } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -52,32 +52,19 @@ GotActivityListMessage: ({ message }) => {
 }
 
 // Wire the VirtualList container subscription into your app's
-// SubscriptionDependencies and subscriptions. This powers scroll tracking and
-// container resize observation:
-const virtualListFields = Ui.VirtualList.SubscriptionDependencies.fields
-
-const SubscriptionDependencies = S.Struct({
-  activityListEvents: virtualListFields['containerEvents'],
-  // ...your other subscription dependencies
+// subscriptions. This powers scroll tracking and container resize
+// observation:
+const activityListSubscriptions = Subscription.lift({
+  activityListEvents: Ui.VirtualList.subscriptions.containerEvents,
+})<Model, Message>({
+  toChildModel: model => model.activityList,
+  toParentMessage: message => GotActivityListMessage({ message }),
 })
 
-const virtualListSubscriptions = Ui.VirtualList.subscriptions
-
-const subscriptions = Subscription.makeSubscriptions(SubscriptionDependencies)<
-  Model,
-  Message
->({
-  activityListEvents: {
-    modelToDependencies: model =>
-      virtualListSubscriptions.containerEvents.modelToDependencies(
-        model.activityList,
-      ),
-    dependenciesToStream: (dependencies, readDependencies) =>
-      virtualListSubscriptions.containerEvents
-        .dependenciesToStream(dependencies, readDependencies)
-        .pipe(Stream.map(message => GotActivityListMessage({ message }))),
-  },
-})
+const subscriptions = Subscription.aggregate<Model, Message>()(
+  activityListSubscriptions,
+  // ...your other subscription records
+)
 
 // Inside your view, render the list. Pass `items` from your Model, key
 // each row by a stable identifier (the data id, not its array position),

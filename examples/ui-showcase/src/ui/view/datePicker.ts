@@ -3,7 +3,7 @@ import { Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import type { AnchorConfig } from 'foldkit/ui/popover'
 
-import * as Icon from '../icon'
+import * as Icon from '../../icon'
 import { GotDatePickerBasicDemoMessage, type UiMessage } from '../message'
 import type { UiModel } from '../model'
 

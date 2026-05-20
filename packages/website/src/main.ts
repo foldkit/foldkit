@@ -19,11 +19,18 @@ import {
   HttpClientRequest,
 } from 'effect/unstable/http'
 import { KeyValueStore } from 'effect/unstable/persistence'
-import { Calendar, Command, Dom, FieldValidation, Runtime, Ui } from 'foldkit'
+import {
+  Calendar,
+  Command,
+  Dom,
+  FieldValidation,
+  Runtime,
+  Subscription,
+  Ui,
+} from 'foldkit'
 import type { Document } from 'foldkit/html'
 import { load, pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
-import { makeSubscriptions } from 'foldkit/subscription'
 import { Url, toString as urlToString } from 'foldkit/url'
 
 import { allPages } from './docsNav'
@@ -85,7 +92,7 @@ import {
   SidebarState,
   SidebarStateJsonString,
 } from './sidebarStorage'
-import * as Subscription from './subscription'
+import * as Subscriptions from './subscription'
 import { docsView, landingView, newsletterView } from './view'
 
 export type { Message } from './message'
@@ -1293,68 +1300,23 @@ const routeTitle = (
 
 // SUBSCRIPTION
 
-const dragAndDropDemoFields =
-  Subscription.DragAndDropDemo.SubscriptionDependencies.fields
-
-const sliderDemoFields = Subscription.SliderDemo.SubscriptionDependencies.fields
-
-const virtualListDemoFields =
-  Subscription.VirtualListDemo.SubscriptionDependencies.fields
-
-const SubscriptionDependencies = S.Struct({
-  aiHeading: S.Struct({
-    isLandingPage: S.Boolean,
-  }),
-  activeSection: S.Struct({
-    pageId: S.String,
-    sections: S.Array(S.String),
-  }),
-  dragPointer: dragAndDropDemoFields['dragPointer'],
-  dragEscape: dragAndDropDemoFields['dragEscape'],
-  dragKeyboard: dragAndDropDemoFields['dragKeyboard'],
-  autoScroll: dragAndDropDemoFields['autoScroll'],
-  sliderRatingPointer: sliderDemoFields['ratingPointer'],
-  sliderRatingEscape: sliderDemoFields['ratingEscape'],
-  sliderVolumePointer: sliderDemoFields['volumePointer'],
-  sliderVolumeEscape: sliderDemoFields['volumeEscape'],
-  virtualListContainerEvents: virtualListDemoFields['containerEvents'],
-  virtualListVariableContainerEvents:
-    virtualListDemoFields['variableContainerEvents'],
-  exampleUrl: S.Option(S.String),
-  searchShortcut: S.Struct({
-    isDocsPage: S.Boolean,
-  }),
-  systemTheme: S.Struct({
-    isSystemPreference: S.Boolean,
-  }),
-  viewportWidth: S.Null,
-})
-
-export type SubscriptionDependencies = typeof SubscriptionDependencies.Type
-
-export const subscriptions = makeSubscriptions(SubscriptionDependencies)<
+const uiPagesSubscriptions = Subscription.lift(Page.UiPages.subscriptions)<
   Model,
   Message
 >({
-  aiHeading: Subscription.aiHeading,
-  activeSection: Subscription.activeSection,
-  dragPointer: Subscription.DragAndDropDemo.subscriptions.dragPointer,
-  dragEscape: Subscription.DragAndDropDemo.subscriptions.dragEscape,
-  dragKeyboard: Subscription.DragAndDropDemo.subscriptions.dragKeyboard,
-  autoScroll: Subscription.DragAndDropDemo.subscriptions.autoScroll,
-  sliderRatingPointer: Subscription.SliderDemo.subscriptions.ratingPointer,
-  sliderRatingEscape: Subscription.SliderDemo.subscriptions.ratingEscape,
-  sliderVolumePointer: Subscription.SliderDemo.subscriptions.volumePointer,
-  sliderVolumeEscape: Subscription.SliderDemo.subscriptions.volumeEscape,
-  virtualListContainerEvents:
-    Subscription.VirtualListDemo.subscriptions.containerEvents,
-  virtualListVariableContainerEvents:
-    Subscription.VirtualListDemo.subscriptions.variableContainerEvents,
-  exampleUrl: Subscription.exampleUrl,
-  searchShortcut: Subscription.searchShortcut,
-  systemTheme: Subscription.systemTheme,
-  viewportWidth: Subscription.viewportWidth,
+  toChildModel: model => model.uiPages,
+  toParentMessage: message => GotUiPageMessage({ message }),
 })
+
+export const subscriptions = Subscription.aggregate<Model, Message>()(
+  Subscriptions.AiHeading.subscriptions,
+  Subscriptions.ActiveSection.subscriptions,
+  uiPagesSubscriptions,
+  Subscriptions.ExampleUrl.subscriptions,
+  Subscriptions.SearchShortcut.subscriptions,
+  Subscriptions.SystemTheme.subscriptions,
+  Subscriptions.ViewportWidth.subscriptions,
+)
 
 // TRACER
 // NOTE: Custom dev tracer disabled pending Effect v4 beta Tracer/Layer API rewrite.

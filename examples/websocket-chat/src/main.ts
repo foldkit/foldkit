@@ -298,72 +298,72 @@ export const managedResources = ManagedResource.makeManagedResources(
 
 // SUBSCRIPTION
 
-const SubscriptionDependencies = S.Struct({
-  isConnected: S.Boolean,
-})
+export const subscriptions = Subscription.make<
+  Model,
+  Message,
+  ChatSocketService
+>()(entry => ({
+  isConnected: entry(
+    { isConnected: S.Boolean },
+    {
+      modelToDependencies: model => ({
+        isConnected: model.connection._tag === 'ConnectionConnected',
+      }),
+      dependenciesToStream: ({ isConnected }) =>
+        Stream.when(
+          Stream.unwrap(
+            ChatSocket.get.pipe(
+              Effect.map(socket =>
+                Stream.callback<
+                  | typeof ReceivedMessage.Type
+                  | typeof Disconnected.Type
+                  | typeof FailedConnect.Type
+                >(queue =>
+                  Effect.acquireRelease(
+                    Effect.sync(() => {
+                      const handleMessage = (event: MessageEvent) => {
+                        Queue.offerUnsafe(
+                          queue,
+                          ReceivedMessage({ text: event.data }),
+                        )
+                      }
+                      const handleClose = () => {
+                        Queue.offerUnsafe(queue, Disconnected())
+                        Queue.endUnsafe(queue)
+                      }
+                      const handleError = () => {
+                        Queue.offerUnsafe(
+                          queue,
+                          FailedConnect({ error: 'Connection error' }),
+                        )
+                        Queue.endUnsafe(queue)
+                      }
 
-export const subscriptions = Subscription.makeSubscriptions(
-  SubscriptionDependencies,
-)<Model, Message, ChatSocketService>({
-  isConnected: {
-    modelToDependencies: model =>
-      model.connection._tag === 'ConnectionConnected',
-    dependenciesToStream: isConnected => {
-      if (!isConnected) {
-        return Stream.empty
-      }
+                      socket.addEventListener('message', handleMessage)
+                      socket.addEventListener('close', handleClose)
+                      socket.addEventListener('error', handleError)
 
-      return Stream.unwrap(
-        ChatSocket.get.pipe(
-          Effect.map(socket =>
-            Stream.callback<
-              | typeof ReceivedMessage.Type
-              | typeof Disconnected.Type
-              | typeof FailedConnect.Type
-            >(queue =>
-              Effect.acquireRelease(
-                Effect.sync(() => {
-                  const handleMessage = (event: MessageEvent) => {
-                    Queue.offerUnsafe(
-                      queue,
-                      ReceivedMessage({ text: event.data }),
-                    )
-                  }
-                  const handleClose = () => {
-                    Queue.offerUnsafe(queue, Disconnected())
-                    Queue.endUnsafe(queue)
-                  }
-                  const handleError = () => {
-                    Queue.offerUnsafe(
-                      queue,
-                      FailedConnect({ error: 'Connection error' }),
-                    )
-                    Queue.endUnsafe(queue)
-                  }
-
-                  socket.addEventListener('message', handleMessage)
-                  socket.addEventListener('close', handleClose)
-                  socket.addEventListener('error', handleError)
-
-                  return { handleMessage, handleClose, handleError }
-                }),
-                ({ handleMessage, handleClose, handleError }) =>
-                  Effect.sync(() => {
-                    socket.removeEventListener('message', handleMessage)
-                    socket.removeEventListener('close', handleClose)
-                    socket.removeEventListener('error', handleError)
-                  }),
-              ).pipe(Effect.flatMap(() => Effect.never)),
+                      return { handleMessage, handleClose, handleError }
+                    }),
+                    ({ handleMessage, handleClose, handleError }) =>
+                      Effect.sync(() => {
+                        socket.removeEventListener('message', handleMessage)
+                        socket.removeEventListener('close', handleClose)
+                        socket.removeEventListener('error', handleError)
+                      }),
+                  ).pipe(Effect.flatMap(() => Effect.never)),
+                ),
+              ),
+              Effect.catchTag('ResourceNotAvailable', () =>
+                Effect.succeed(Stream.empty),
+              ),
             ),
           ),
-          Effect.catchTag('ResourceNotAvailable', () =>
-            Effect.succeed(Stream.empty),
-          ),
+          Effect.sync(() => isConnected),
         ),
-      )
     },
-  },
-})
+  ),
+}))
 
 // VIEW
 

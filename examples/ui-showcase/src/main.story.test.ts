@@ -3,9 +3,9 @@ import { Calendar, Story, Ui } from 'foldkit'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
-import { uiInit } from './init'
 import { ChangedUrl, GotUiMessage, HomeRoute, type Model, update } from './main'
-import { GotMobileMenuDialogMessage } from './message'
+import { uiInit } from './ui/init'
+import { GotMobileMenuDialogMessage } from './ui/message'
 
 const today = Calendar.make(2026, 4, 16)
 const [initialUiModel] = uiInit(today)

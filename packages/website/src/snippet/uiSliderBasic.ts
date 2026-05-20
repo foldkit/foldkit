@@ -1,7 +1,7 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
-// block below is an excerpt — fit them into your own Model, init, Message,
+// block below is an excerpt. Fit each into your own Model, init, Message,
 // update, view, and subscription definitions.
-import { Effect, Schema as S, Stream } from 'effect'
+import { Effect, Schema as S } from 'effect'
 import { Command, Subscription, Ui } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -51,37 +51,18 @@ GotSliderMessage: ({ message }) => {
 // NOTE: wire BOTH dragPointer and dragEscape. Without dragEscape, pressing
 // Escape during a drag won't cancel back to the origin value, but every
 // other drag mechanic still works. Silent partial breakage.
-const sliderFields = Ui.Slider.SubscriptionDependencies.fields
-
-const SubscriptionDependencies = S.Struct({
-  sliderPointer: sliderFields['dragPointer'],
-  sliderEscape: sliderFields['dragEscape'],
-  // ...your other subscription dependencies
+const sliderSubscriptions = Subscription.lift({
+  sliderPointer: Ui.Slider.subscriptions.dragPointer,
+  sliderEscape: Ui.Slider.subscriptions.dragEscape,
+})<Model, Message>({
+  toChildModel: model => model.ratingDemo,
+  toParentMessage: message => GotSliderMessage({ message }),
 })
 
-const sliderSubscriptions = Ui.Slider.subscriptions
-
-const subscriptions = Subscription.makeSubscriptions(SubscriptionDependencies)<
-  Model,
-  Message
->({
-  sliderPointer: {
-    modelToDependencies: model =>
-      sliderSubscriptions.dragPointer.modelToDependencies(model.ratingDemo),
-    dependenciesToStream: (dependencies, readDependencies) =>
-      sliderSubscriptions.dragPointer
-        .dependenciesToStream(dependencies, readDependencies)
-        .pipe(Stream.map(message => GotSliderMessage({ message }))),
-  },
-  sliderEscape: {
-    modelToDependencies: model =>
-      sliderSubscriptions.dragEscape.modelToDependencies(model.ratingDemo),
-    dependenciesToStream: (dependencies, readDependencies) =>
-      sliderSubscriptions.dragEscape
-        .dependenciesToStream(dependencies, readDependencies)
-        .pipe(Stream.map(message => GotSliderMessage({ message }))),
-  },
-})
+const subscriptions = Subscription.aggregate<Model, Message>()(
+  sliderSubscriptions,
+  // ...your other subscription records
+)
 
 // Inside your view function, render the slider. You control every element's
 // markup and classes through the `toView` callback. The `attributes` groups

@@ -317,7 +317,7 @@ For each Foldkit module you plan to use, read the `.d.ts` at the paths below. Re
 <project>/node_modules/foldkit/dist/dom/index.d.ts      # focus, advanceFocus, scrollIntoView, showModal, closeModal, clickElement, lockScroll, unlockScroll, inertOthers, restoreInert, detectElementMovement, waitForAnimationSettled. For time/random/uuid/delay use Effect's Clock, Random, Effect.uuid, Effect.sleep + Duration directly.
 
 # If using subscriptions
-<project>/node_modules/foldkit/dist/subscription/index.d.ts # Subscription.makeSubscriptions(Deps)<Model, Message>
+<project>/node_modules/foldkit/dist/subscription/index.d.ts # Subscription.make<Model, Message>, Subscription.lift, Subscription.aggregate
 
 # If using mount / managed-resource / custom-element
 <project>/node_modules/foldkit/dist/mount/index.d.ts             # Mount.define: for per-instance VNode lifecycle
@@ -543,11 +543,12 @@ For file uploads (resumes, images, attachments):
 
 ### Subscriptions (if real-time)
 
-- Define with `Subscription.makeSubscriptions(Deps)<Model, Message>`
+- Define with `Subscription.make<Model, Message>()(entry => ({ key: entry(fields, callbacks) }))`. The builder callback receives an `entry(fields, callbacks)` helper. `fields` is the bare field map (no `S.Struct` wrap), `callbacks` carries `modelToDependencies`, `dependenciesToStream`, and optional `equivalence`
 - `modelToDependencies` extracts Subscription parameters from Model
 - `dependenciesToStream` builds `Stream<Message>` from dependencies
 - Subscriptions auto-start/stop based on Model state. Never manually managed
-- For Subscriptions with no Model dependencies (always active), use `S.Null` as the dependency type and return `null` from `modelToDependencies`
+- For Subscriptions with no Model dependencies (always active), pass `{}` as the `entry` fields argument and return `{}` from `modelToDependencies`
+- To embed child Subscriptions, use `Subscription.lift(childRecord)<Parent, Parent>({ toChildModel, toParentMessage })`. To combine multiple records, use `Subscription.aggregate<Model, Message>()(...records)`
 
 ## Phase 4.5: Self-check before verification
 

@@ -1,17 +1,11 @@
-import { Schema as S } from 'effect'
 import { Canvas, Subscription } from 'foldkit'
 
-const SubscriptionDependencies = S.Struct({ frame: S.Boolean })
-
-const subscriptions = Subscription.makeSubscriptions(SubscriptionDependencies)<
-  Model,
-  Message
->({
+const subscriptions = Subscription.make<Model, Message>()(_entry => ({
   frame: Subscription.animationFrame({
     isActive: model => model.isPlaying,
     toMessage: deltaTime => TickedFrame({ deltaTime }),
   }),
-})
+}))
 
 const view = (model: Model): Html =>
   Canvas.view<Message>({

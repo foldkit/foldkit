@@ -15,7 +15,7 @@ import * as Command from '../../command/index.js'
 import * as Dom from '../../dom/index.js'
 import { type Attribute, html } from '../../html/index.js'
 import { m } from '../../message/index.js'
-import { makeSubscriptions } from '../../runtime/subscription.js'
+import * as Subscription from '../../runtime/subscription.js'
 import { ts } from '../../schema/index.js'
 import { evo } from '../../struct/index.js'
 
@@ -625,175 +625,181 @@ const keyboardDragActivityFromModel = (
     M.orElse(() => 'Idle'),
   )
 
-/** Schema describing the subscription dependencies for document-level drag tracking. */
-export const SubscriptionDependencies = S.Struct({
-  documentPointer: S.Struct({
-    dragActivity: PointerDragActivity,
-    orientation: Orientation,
-  }),
-  documentEscape: S.Struct({ dragActivity: DragActivity }),
-  documentKeyboard: S.Struct({ dragActivity: KeyboardDragActivity }),
-  autoScroll: S.Struct({
-    isDragging: S.Boolean,
-    clientY: S.Number,
-  }),
-})
-
 /** Document-level subscriptions for pointer and keyboard events during drag operations. */
-export const subscriptions = makeSubscriptions(SubscriptionDependencies)<
-  Model,
-  Message
->({
-  documentPointer: {
-    modelToDependencies: model => ({
-      dragActivity: pointerDragActivityFromModel(model),
-      orientation: model.orientation,
-    }),
-    dependenciesToStream: ({ dragActivity, orientation }) => {
-      const pointerEvents = Stream.merge(
-        Stream.fromEventListener<PointerEvent>(document, 'pointermove').pipe(
-          Stream.mapEffect(event =>
-            Effect.sync(() =>
-              MovedPointer({
-                screenX: event.screenX,
-                screenY: event.screenY,
-                clientX: event.clientX,
-                clientY: event.clientY,
-                maybeDropTarget: resolveDropTarget(
-                  event.clientX,
-                  event.clientY,
-                  orientation,
-                ),
-              }),
+export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+  documentPointer: entry(
+    {
+      dragActivity: PointerDragActivity,
+      orientation: Orientation,
+    },
+    {
+      modelToDependencies: model => ({
+        dragActivity: pointerDragActivityFromModel(model),
+        orientation: model.orientation,
+      }),
+      dependenciesToStream: ({ dragActivity, orientation }) => {
+        const pointerEvents = Stream.merge(
+          Stream.fromEventListener<PointerEvent>(document, 'pointermove').pipe(
+            Stream.mapEffect(event =>
+              Effect.sync(() =>
+                MovedPointer({
+                  screenX: event.screenX,
+                  screenY: event.screenY,
+                  clientX: event.clientX,
+                  clientY: event.clientY,
+                  maybeDropTarget: resolveDropTarget(
+                    event.clientX,
+                    event.clientY,
+                    orientation,
+                  ),
+                }),
+              ),
             ),
           ),
-        ),
-        Stream.fromEventListener<PointerEvent>(document, 'pointerup').pipe(
-          Stream.map(() => ReleasedPointer()),
-        ),
-      )
-
-      // NOTE: prevents text selection and locks cursor to grabbing during
-      // pointer drag. Uses a <style> element for cursor because inline styles
-      // on <html> don't override descendant elements' cursor values.
-      const documentDragStyles = Stream.callback<never>(() =>
-        Effect.acquireRelease(
-          Effect.sync(() => {
-            document.documentElement.style.setProperty('user-select', 'none')
-            document.documentElement.style.setProperty(
-              '-webkit-user-select',
-              'none',
-            )
-            const cursorStyle = document.createElement('style')
-            cursorStyle.textContent = '* { cursor: grabbing !important; }'
-            document.head.appendChild(cursorStyle)
-            return cursorStyle
-          }),
-          cursorStyle =>
-            Effect.sync(() => {
-              document.documentElement.style.removeProperty('user-select')
-              document.documentElement.style.removeProperty(
-                '-webkit-user-select',
-              )
-              cursorStyle.remove()
-            }),
-        ).pipe(Effect.flatMap(() => Effect.never)),
-      )
-
-      return Stream.when(
-        Stream.merge(pointerEvents, documentDragStyles),
-        Effect.sync(() => dragActivity === 'Active'),
-      )
-    },
-  },
-
-  documentEscape: {
-    modelToDependencies: model => ({
-      dragActivity: dragActivityFromModel(model),
-    }),
-    dependenciesToStream: ({ dragActivity }) =>
-      Stream.when(
-        Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
-          Stream.filter(({ key }) => key === 'Escape'),
-          Stream.map(() => CancelledDrag()),
-        ),
-        Effect.sync(() => dragActivity === 'Active'),
-      ),
-  },
-
-  documentKeyboard: {
-    modelToDependencies: model => ({
-      dragActivity: keyboardDragActivityFromModel(model),
-    }),
-    dependenciesToStream: ({ dragActivity }) =>
-      Stream.when(
-        Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
-          Stream.mapEffect(
-            (event): Effect.Effect<Option.Option<Message>> =>
-              Effect.sync(() => {
-                // NOTE: the draggable's OnKeyDownPreventDefault calls preventDefault on
-                // the Space that activates keyboard drag — skip it here so the same
-                // keypress doesn't also confirm the drop in the same tick.
-                if (event.defaultPrevented) {
-                  return Option.none()
-                }
-                if (event.key === 'Tab') {
-                  event.preventDefault()
-                  return Option.some(
-                    PressedArrowKey({
-                      direction: event.shiftKey
-                        ? 'PreviousContainer'
-                        : 'NextContainer',
-                    }),
-                  )
-                }
-                if (event.key === ' ' || event.key === 'Enter') {
-                  event.preventDefault()
-                  return Option.some(ConfirmedKeyboardDrop())
-                }
-                return Option.map(arrowKeyToDirection(event.key), direction => {
-                  event.preventDefault()
-                  return PressedArrowKey({ direction })
-                })
-              }),
+          Stream.fromEventListener<PointerEvent>(document, 'pointerup').pipe(
+            Stream.map(() => ReleasedPointer()),
           ),
-          Stream.filter(Option.isSome),
-          Stream.map(option => option.value),
-        ),
-        Effect.sync(() => dragActivity === 'Active'),
-      ),
-  },
+        )
 
-  autoScroll: {
-    modelToDependencies: model => ({
-      isDragging: model.dragState._tag === 'Dragging',
-      clientY:
-        model.dragState._tag === 'Dragging'
-          ? model.dragState.current.clientY
-          : 0,
-    }),
-    equivalence: Equivalence.Struct({ isDragging: Equivalence.Boolean }),
-    dependenciesToStream: ({ isDragging }, readDependencies) =>
-      Stream.when(
-        Stream.callback<typeof CompletedAutoScroll.Type>(queue =>
+        // NOTE: prevents text selection and locks cursor to grabbing during
+        // pointer drag. Uses a <style> element for cursor because inline styles
+        // on <html> don't override descendant elements' cursor values.
+        const documentDragStyles = Stream.callback<never>(() =>
           Effect.acquireRelease(
             Effect.sync(() => {
-              const ref = { id: 0 }
-              const step = () => {
-                autoScroll(readDependencies().clientY)
-                Queue.offerUnsafe(queue, CompletedAutoScroll())
-                ref.id = requestAnimationFrame(step)
-              }
-              ref.id = requestAnimationFrame(step)
-              return ref
+              document.documentElement.style.setProperty('user-select', 'none')
+              document.documentElement.style.setProperty(
+                '-webkit-user-select',
+                'none',
+              )
+              const cursorStyle = document.createElement('style')
+              cursorStyle.textContent = '* { cursor: grabbing !important; }'
+              document.head.appendChild(cursorStyle)
+              return cursorStyle
             }),
-            ref => Effect.sync(() => cancelAnimationFrame(ref.id)),
+            cursorStyle =>
+              Effect.sync(() => {
+                document.documentElement.style.removeProperty('user-select')
+                document.documentElement.style.removeProperty(
+                  '-webkit-user-select',
+                )
+                cursorStyle.remove()
+              }),
           ).pipe(Effect.flatMap(() => Effect.never)),
+        )
+
+        return Stream.when(
+          Stream.merge(pointerEvents, documentDragStyles),
+          Effect.sync(() => dragActivity === 'Active'),
+        )
+      },
+    },
+  ),
+
+  documentEscape: entry(
+    { dragActivity: DragActivity },
+    {
+      modelToDependencies: model => ({
+        dragActivity: dragActivityFromModel(model),
+      }),
+      dependenciesToStream: ({ dragActivity }) =>
+        Stream.when(
+          Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
+            Stream.filter(({ key }) => key === 'Escape'),
+            Stream.map(() => CancelledDrag()),
+          ),
+          Effect.sync(() => dragActivity === 'Active'),
         ),
-        Effect.sync(() => isDragging),
-      ),
-  },
-})
+    },
+  ),
+
+  documentKeyboard: entry(
+    { dragActivity: KeyboardDragActivity },
+    {
+      modelToDependencies: model => ({
+        dragActivity: keyboardDragActivityFromModel(model),
+      }),
+      dependenciesToStream: ({ dragActivity }) =>
+        Stream.when(
+          Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
+            Stream.mapEffect(
+              (event): Effect.Effect<Option.Option<Message>> =>
+                Effect.sync(() => {
+                  // NOTE: the draggable's OnKeyDownPreventDefault calls preventDefault on
+                  // the Space that activates keyboard drag — skip it here so the same
+                  // keypress doesn't also confirm the drop in the same tick.
+                  if (event.defaultPrevented) {
+                    return Option.none()
+                  }
+                  if (event.key === 'Tab') {
+                    event.preventDefault()
+                    return Option.some(
+                      PressedArrowKey({
+                        direction: event.shiftKey
+                          ? 'PreviousContainer'
+                          : 'NextContainer',
+                      }),
+                    )
+                  }
+                  if (event.key === ' ' || event.key === 'Enter') {
+                    event.preventDefault()
+                    return Option.some(ConfirmedKeyboardDrop())
+                  }
+                  return Option.map(
+                    arrowKeyToDirection(event.key),
+                    direction => {
+                      event.preventDefault()
+                      return PressedArrowKey({ direction })
+                    },
+                  )
+                }),
+            ),
+            Stream.filter(Option.isSome),
+            Stream.map(option => option.value),
+          ),
+          Effect.sync(() => dragActivity === 'Active'),
+        ),
+    },
+  ),
+
+  autoScroll: entry(
+    {
+      isDragging: S.Boolean,
+      clientY: S.Number,
+    },
+    {
+      modelToDependencies: model => ({
+        isDragging: model.dragState._tag === 'Dragging',
+        clientY:
+          model.dragState._tag === 'Dragging'
+            ? model.dragState.current.clientY
+            : 0,
+      }),
+      keepAliveEquivalence: Equivalence.Struct({
+        isDragging: Equivalence.Boolean,
+      }),
+      dependenciesToStream: ({ isDragging }, readDependencies) =>
+        Stream.when(
+          Stream.callback<typeof CompletedAutoScroll.Type>(queue =>
+            Effect.acquireRelease(
+              Effect.sync(() => {
+                const ref = { id: 0 }
+                const step = () => {
+                  autoScroll(readDependencies().clientY)
+                  Queue.offerUnsafe(queue, CompletedAutoScroll())
+                  ref.id = requestAnimationFrame(step)
+                }
+                ref.id = requestAnimationFrame(step)
+                return ref
+              }),
+              ref => Effect.sync(() => cancelAnimationFrame(ref.id)),
+            ).pipe(Effect.flatMap(() => Effect.never)),
+          ),
+          Effect.sync(() => isDragging),
+        ),
+    },
+  ),
+}))
 
 // VIEW
 
