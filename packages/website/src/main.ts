@@ -1100,7 +1100,7 @@ const ScrollToAnchor = Command.define(
   CompletedScrollToAnchor,
 )(({ hash }) =>
   Effect.gen(function* () {
-    const target = `#${hash}`
+    const target = `#${CSS.escape(hash)}`
     yield* Dom.scrollIntoViewAfterPaint(target, { block: 'start' })
     yield* Dom.focus(target, { preventScroll: true, makeFocusable: true })
   }).pipe(Effect.ignore, Effect.as(CompletedScrollToAnchor())),
