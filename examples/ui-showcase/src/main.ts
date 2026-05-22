@@ -1,6 +1,14 @@
 import clsx from 'clsx'
 import { Effect, Match as M, Schema as S, pipe } from 'effect'
-import { Calendar, Command, Route, Runtime, Subscription, Ui } from 'foldkit'
+import {
+  Calendar,
+  Command,
+  Route,
+  Runtime,
+  Submodel,
+  Subscription,
+  Ui,
+} from 'foldkit'
 import { Document, Html, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
@@ -215,9 +223,7 @@ export const init: Runtime.RoutingProgramInit<Model, Message, Flags> = (
       route: urlToAppRoute(url),
       uiModel: initialUiModel,
     },
-    uiCommands.map(
-      Command.mapEffect(Effect.map(message => GotUiMessage({ message }))),
-    ),
+    Command.mapMessages(uiCommands, message => GotUiMessage({ message })),
   ]
 }
 
@@ -273,10 +279,8 @@ export const update = (
                 mobileMenuDialog: () => closedDialog,
               }),
           }),
-          closeDialogCommands.map(
-            Command.mapEffect(
-              Effect.map(message => toMobileMenuDialogMessage(message)),
-            ),
+          Command.mapMessages(closeDialogCommands, message =>
+            toMobileMenuDialogMessage(message),
           ),
         ]
       },
@@ -286,9 +290,7 @@ export const update = (
 
         return [
           evo(model, { uiModel: () => nextUiModel }),
-          uiCommands.map(
-            Command.mapEffect(Effect.map(message => GotUiMessage({ message }))),
-          ),
+          Command.mapMessages(uiCommands, message => GotUiMessage({ message })),
         ]
       },
     }),
@@ -440,7 +442,7 @@ const mobileMenuContent = (currentRoute: AppRoute): Html => {
               h.AriaLabel('Close menu'),
               h.OnClick(toMobileMenuDialogMessage(Ui.Dialog.Closed())),
             ],
-            [Icon.xMark<Message>('w-6 h-6')],
+            [Icon.xMark('w-6 h-6')],
           ),
         ],
       ),
@@ -515,7 +517,7 @@ const mobileHeaderView = (model: Model): Html => {
           h.AriaLabel('Toggle menu'),
           h.OnClick(toMobileMenuDialogMessage(Ui.Dialog.Opened())),
         ],
-        [Icon.menu<Message>('w-6 h-6')],
+        [Icon.menu('w-6 h-6')],
       ),
     ],
   )
@@ -524,13 +526,29 @@ const mobileHeaderView = (model: Model): Html => {
 const mobileMenuView = (model: Model): Html => {
   const h = html<Message>()
 
-  return Ui.Dialog.view({
+  return h.submodel({
+    id: model.uiModel.mobileMenuDialog.id,
+    view: Ui.Dialog.view,
     model: model.uiModel.mobileMenuDialog,
-    toParentMessage: toMobileMenuDialogMessage,
-    panelContent: mobileMenuContent(model.route),
-    panelAttributes: [h.Class('fixed inset-0 z-[60] bg-white flex flex-col')],
-    backdropAttributes: [h.Class('fixed inset-0 z-[59]')],
-    attributes: [h.Class('md:hidden')],
+    inputs: {
+      toView: ({ dialog, backdrop, panel, isVisible }) =>
+        h.dialog(
+          [...dialog, h.Class('md:hidden')],
+          isVisible
+            ? [
+                h.div([...backdrop, h.Class('fixed inset-0 z-[59]')], []),
+                h.div(
+                  [
+                    ...panel,
+                    h.Class('fixed inset-0 z-[60] bg-white flex flex-col'),
+                  ],
+                  [mobileMenuContent(model.route)],
+                ),
+              ]
+            : [],
+        ),
+    },
+    toParentMessage: message => toMobileMenuDialogMessage(message),
   })
 }
 
@@ -582,37 +600,48 @@ const notFoundView = (path: string): Html => {
   )
 }
 
-const contentView = (model: Model): Html =>
-  M.value(model.route).pipe(
+const contentView = (model: Model): Html => {
+  const h = html<Message>()
+
+  const embedUi = (id: string, view: Submodel.View<UiModel, UiMessage>): Html =>
+    h.submodel({
+      id,
+      view,
+      model: model.uiModel,
+      toParentMessage: toUiMessage,
+    })
+
+  return M.value(model.route).pipe(
     M.tagsExhaustive({
       Home: homeView,
-      Button: () => View.button(model.uiModel, toUiMessage),
-      Calendar: () => View.calendar(model.uiModel, toUiMessage),
-      Checkbox: () => View.checkbox(model.uiModel, toUiMessage),
-      Combobox: () => View.combobox(model.uiModel, toUiMessage),
-      DatePicker: () => View.datePicker(model.uiModel, toUiMessage),
-      Dialog: () => View.dialog(model.uiModel, toUiMessage),
-      Disclosure: () => View.disclosure(model.uiModel, toUiMessage),
-      DragAndDrop: () => View.dragAndDrop(model.uiModel, toUiMessage),
-      Fieldset: () => View.fieldset(model.uiModel, toUiMessage),
-      FileDrop: () => View.fileDrop(model.uiModel, toUiMessage),
-      Input: () => View.input(model.uiModel, toUiMessage),
-      Listbox: () => View.listbox(model.uiModel, toUiMessage),
-      Menu: () => View.menu(model.uiModel, toUiMessage),
-      Popover: () => View.popover(model.uiModel, toUiMessage),
-      RadioGroup: () => View.radioGroup(model.uiModel, toUiMessage),
-      Select: () => View.select(model.uiModel, toUiMessage),
-      Slider: () => View.slider(model.uiModel, toUiMessage),
-      Switch: () => View.switch_(model.uiModel, toUiMessage),
-      Tabs: () => View.tabs(model.uiModel, toUiMessage),
-      Textarea: () => View.textarea(model.uiModel, toUiMessage),
-      Toast: () => View.toast(model.uiModel, toUiMessage),
-      Tooltip: () => View.tooltip(model.uiModel, toUiMessage),
-      Animation: () => View.animation(model.uiModel, toUiMessage),
-      VirtualList: () => View.virtualList(model.uiModel, toUiMessage),
+      Button: () => embedUi('ui-button', View.button),
+      Calendar: () => embedUi('ui-calendar', View.calendar),
+      Checkbox: () => embedUi('ui-checkbox', View.checkbox),
+      Combobox: () => embedUi('ui-combobox', View.combobox),
+      DatePicker: () => embedUi('ui-date-picker', View.datePicker),
+      Dialog: () => embedUi('ui-dialog', View.dialog),
+      Disclosure: () => embedUi('ui-disclosure', View.disclosure),
+      DragAndDrop: () => embedUi('ui-drag-and-drop', View.dragAndDrop),
+      Fieldset: () => embedUi('ui-fieldset', View.fieldset),
+      FileDrop: () => embedUi('ui-file-drop', View.fileDrop),
+      Input: () => embedUi('ui-input', View.input),
+      Listbox: () => embedUi('ui-listbox', View.listbox),
+      Menu: () => embedUi('ui-menu', View.menu),
+      Popover: () => embedUi('ui-popover', View.popover),
+      RadioGroup: () => embedUi('ui-radio-group', View.radioGroup),
+      Select: () => embedUi('ui-select', View.select),
+      Slider: () => embedUi('ui-slider', View.slider),
+      Switch: () => embedUi('ui-switch', View.switch_),
+      Tabs: () => embedUi('ui-tabs', View.tabs),
+      Textarea: () => embedUi('ui-textarea', View.textarea),
+      Toast: () => embedUi('ui-toast', View.toast),
+      Tooltip: () => embedUi('ui-tooltip', View.tooltip),
+      Animation: () => embedUi('ui-animation', View.animation),
+      VirtualList: () => embedUi('ui-virtual-list', View.virtualList),
       NotFound: ({ path }) => notFoundView(path),
     }),
   )
+}
 
 const routeTitle = (route: Model['route']): string =>
   M.value(route).pipe(

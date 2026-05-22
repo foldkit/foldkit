@@ -27,6 +27,7 @@ import {
   DEVTOOLS_HOST_ID,
   type Document,
   type Html,
+  boundaryAttributes,
   createKeyedLazy,
   createLazy,
   html,
@@ -53,6 +54,8 @@ import {
   extractSubmodelInfo,
   isTagged,
 } from './submodelPath.js'
+
+const SubmodelFilterListbox = Listbox.create<string>()
 
 // MODEL
 
@@ -87,6 +90,15 @@ const InspectorTabsModel = S.Struct({
   focusedIndex: S.Number,
   activationMode: S.Literals(['Automatic', 'Manual']),
 })
+
+type InspectorTab = 'Model' | 'Message' | 'Commands' | 'Mounts'
+const INSPECTOR_TABS: ReadonlyArray<InspectorTab> = [
+  'Model',
+  'Message',
+  'Commands',
+  'Mounts',
+]
+const InspectorTabs = Tabs.create<InspectorTab>()
 
 /**
  * `S.Unknown` whose equivalence is reference equality. Effect 4's default
@@ -185,9 +197,6 @@ const ReceivedStoreUpdate = m('ReceivedStoreUpdate', {
 const GotSubmodelFilterMessage = m('GotSubmodelFilterMessage', {
   message: Listbox.Message,
 })
-const SelectedSubmodelFilter = m('SelectedSubmodelFilter', {
-  tag: S.String,
-})
 // NOTE: suspend for the same init-order reason as scrubberSlider above.
 const GotScrubberSliderMessage = m('GotScrubberSliderMessage', {
   message: S.suspend((): typeof Slider.Message => Slider.Message),
@@ -213,7 +222,6 @@ const Message = S.Union([
   GotInspectorTabsMessage,
   ReceivedStoreUpdate,
   GotSubmodelFilterMessage,
-  SelectedSubmodelFilter,
   GotScrubberSliderMessage,
 ])
 type Message = typeof Message.Type
@@ -566,7 +574,7 @@ const makeUpdate = (
           [],
         ],
         GotInspectorTabsMessage: ({ message: tabsMessage }) => {
-          const [nextTabsModel, tabsCommands] = Tabs.update(
+          const [nextTabsModel, tabsCommands] = InspectorTabs.update(
             model.inspectorTabs,
             /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
             tabsMessage as Tabs.Message,
@@ -576,12 +584,8 @@ const makeUpdate = (
             evo(model, {
               inspectorTabs: () => nextTabsModel,
             }),
-            tabsCommands.map(
-              Command.mapEffect(
-                Effect.map(innerMessage =>
-                  GotInspectorTabsMessage({ message: innerMessage }),
-                ),
-              ),
+            Command.mapMessages(tabsCommands, innerMessage =>
+              GotInspectorTabsMessage({ message: innerMessage }),
             ),
           ]
         },
@@ -662,44 +666,40 @@ const makeUpdate = (
           ]
         },
         GotSubmodelFilterMessage: ({ message: listboxMessage }) => {
-          const [nextListboxModel, listboxCommands] = Listbox.update(
-            model.submodelFilterListbox,
-            listboxMessage,
+          const [nextListboxModel, listboxCommands, maybeOut] =
+            SubmodelFilterListbox.update(
+              model.submodelFilterListbox,
+              listboxMessage,
+            )
+          const mappedCommands = Command.mapMessages(
+            listboxCommands,
+            innerMessage => GotSubmodelFilterMessage({ message: innerMessage }),
           )
 
-          return [
-            evo(model, {
-              submodelFilterListbox: () => nextListboxModel,
-            }),
-            listboxCommands.map(
-              Command.mapEffect(
-                Effect.map(innerMessage =>
-                  GotSubmodelFilterMessage({ message: innerMessage }),
-                ),
-              ),
+          return Option.match(maybeOut, {
+            onNone: (): readonly [
+              Model,
+              ReadonlyArray<Command.Command<Message>>,
+            ] => [
+              evo(model, { submodelFilterListbox: () => nextListboxModel }),
+              mappedCommands,
+            ],
+            onSome: M.type<Listbox.OutMessage>().pipe(
+              M.withReturnType<
+                readonly [Model, ReadonlyArray<Command.Command<Message>>]
+              >(),
+              M.tagsExhaustive({
+                Selected: ({ item }) => [
+                  evo(model, {
+                    maybeSubmodelFilter: () =>
+                      Option.liftPredicate(item, String_.isNonEmpty),
+                    submodelFilterListbox: () => nextListboxModel,
+                  }),
+                  mappedCommands,
+                ],
+              }),
             ),
-          ]
-        },
-        SelectedSubmodelFilter: ({ tag }) => {
-          const [nextListbox, listboxCommands] = Listbox.selectItem(
-            model.submodelFilterListbox,
-            tag,
-          )
-
-          return [
-            evo(model, {
-              maybeSubmodelFilter: () =>
-                Option.liftPredicate(tag, String_.isNonEmpty),
-              submodelFilterListbox: () => nextListbox,
-            }),
-            listboxCommands.map(
-              Command.mapEffect(
-                Effect.map(innerMessage =>
-                  GotSubmodelFilterMessage({ message: innerMessage }),
-                ),
-              ),
-            ),
-          ]
+          })
         },
         GotScrubberSliderMessage: ({ message: sliderMessage }) => {
           const [nextSlider, sliderCommands, maybeOutMessage] = Slider.update(
@@ -707,12 +707,9 @@ const makeUpdate = (
             sliderMessage,
           )
 
-          const mappedSliderCommands = sliderCommands.map(
-            Command.mapEffect(
-              Effect.map(innerMessage =>
-                GotScrubberSliderMessage({ message: innerMessage }),
-              ),
-            ),
+          const mappedSliderCommands = Command.mapMessages(
+            sliderCommands,
+            innerMessage => GotScrubberSliderMessage({ message: innerMessage }),
           )
 
           const additionalCommands = Option.match(maybeOutMessage, {
@@ -1144,14 +1141,6 @@ const makeView = (
     ['Click a message to inspect'],
   )
 
-  type InspectorTab = 'Model' | 'Message' | 'Commands' | 'Mounts'
-  const INSPECTOR_TABS: ReadonlyArray<InspectorTab> = [
-    'Model',
-    'Message',
-    'Commands',
-    'Mounts',
-  ]
-
   const noMessageView: Html = h.div(
     [
       h.Class(
@@ -1514,32 +1503,63 @@ const makeView = (
         ),
       ],
       [
-        Tabs.view<Message, InspectorTab>({
+        h.submodel({
+          id: model.inspectorTabs.id,
+          view: InspectorTabs.view,
           model: model.inspectorTabs,
-          toParentMessage: tabsMessage =>
-            GotInspectorTabsMessage({ message: tabsMessage }),
-          tabs: INSPECTOR_TABS,
-          tabListAriaLabel: 'Inspector tabs',
-          persistPanels: true,
-          attributes: [h.Class('flex flex-col flex-1 min-h-0')],
-          tabListAttributes: [h.Class('flex border-b shrink-0')],
-          tabToConfig: (tab, { isActive }) => ({
-            buttonAttributes: [
-              h.Class(
-                clsx(
-                  'dt-tab-button cursor-pointer text-base font-mono px-3 py-1',
-                  isActive ? 'text-dt dt-tab-active' : 'text-dt-muted',
-                ),
+          inputs: {
+            tabs: INSPECTOR_TABS,
+            ariaLabel: 'Inspector tabs',
+            toView: ({ tablist, tabs, activeIndex }) =>
+              h.div(
+                [h.Class('flex flex-col flex-1 min-h-0')],
+                [
+                  h.div(
+                    [...tablist, h.Class('flex border-b shrink-0')],
+                    tabs.map(tab =>
+                      h.button(
+                        [
+                          ...tab.tab,
+                          h.Class(
+                            clsx(
+                              'dt-tab-button cursor-pointer text-base font-mono px-3 py-1',
+                              tab.isActive
+                                ? 'text-dt dt-tab-active'
+                                : 'text-dt-muted',
+                            ),
+                          ),
+                        ],
+                        [h.span([], [tab.value])],
+                      ),
+                    ),
+                  ),
+                  ...tabs.map(tab =>
+                    h.div(
+                      [
+                        ...tab.panel,
+                        h.Class('flex flex-col flex-1 min-h-0 min-w-0'),
+                        h.Hidden(tab.index !== activeIndex),
+                        ...(tab.index === activeIndex
+                          ? []
+                          : [h.Style({ display: 'none' })]),
+                      ],
+                      [
+                        Option.match(model.maybeInspectedModel, {
+                          onNone: () => emptyInspectorView,
+                          onSome: inspectedModel =>
+                            inspectorTabContent(
+                              model,
+                              tab.value,
+                              inspectedModel,
+                            ),
+                        }),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
-            buttonContent: h.span([], [tab]),
-            panelAttributes: [h.Class('flex flex-col flex-1 min-h-0 min-w-0')],
-            panelContent: Option.match(model.maybeInspectedModel, {
-              onNone: () => emptyInspectorView,
-              onSome: inspectedModel =>
-                inspectorTabContent(model, tab, inspectedModel),
-            }),
-          }),
+          },
+          toParentMessage: message => GotInspectorTabsMessage({ message }),
         }),
       ],
     )
@@ -1673,50 +1693,53 @@ const makeView = (
       onSome: submodelLabel,
     })
 
-    return Listbox.view<Message, string>({
+    return h.submodel({
+      id: 'submodel-filter',
+      view: SubmodelFilterListbox.view,
       model: model.submodelFilterListbox,
-      toParentMessage: message => GotSubmodelFilterMessage({ message }),
-      onSelectedItem: tag => SelectedSubmodelFilter({ tag }),
-      items: [ALL_MESSAGES_VALUE, ...model.submodelTags],
-      itemToConfig: item => ({
-        className: 'dt-filter-item',
-        content: h.div(
-          [h.Class('flex items-center gap-2')],
-          [checkIconView, h.span([], [filterItemLabel(item)])],
-        ),
-      }),
-      buttonContent: h.span(
-        [h.Class('flex flex-1 items-center justify-between')],
-        [
-          h.span([], [buttonLabel]),
-          h.svg(
-            [
-              h.AriaHidden(true),
-              h.Class('json-arrow shrink-0'),
-              h.Xmlns('http://www.w3.org/2000/h.svg'),
-              h.Fill('none'),
-              h.ViewBox('0 0 24 24'),
-              h.StrokeWidth('2'),
-              h.Stroke('currentColor'),
-            ],
-            [
-              h.path(
-                [
-                  h.D(CHEVRON_DOWN),
-                  h.StrokeLinecap('round'),
-                  h.StrokeLinejoin('round'),
-                ],
-                [],
-              ),
-            ],
+      inputs: {
+        items: [ALL_MESSAGES_VALUE, ...model.submodelTags],
+        itemToConfig: item => ({
+          className: 'dt-filter-item',
+          content: h.div(
+            [h.Class('flex items-center gap-2')],
+            [checkIconView, h.span([], [filterItemLabel(item)])],
           ),
-        ],
-      ),
-      buttonClassName: 'dt-filter-button',
-      itemsClassName: 'dt-filter-items',
-      className: 'dt-filter-wrapper',
-      attributes: [h.Key('submodel-filter')],
-      backdropClassName: 'dt-filter-backdrop',
+        }),
+        buttonContent: h.span(
+          [h.Class('flex flex-1 items-center justify-between')],
+          [
+            h.span([], [buttonLabel]),
+            h.svg(
+              [
+                h.AriaHidden(true),
+                h.Class('json-arrow shrink-0'),
+                h.Xmlns('http://www.w3.org/2000/h.svg'),
+                h.Fill('none'),
+                h.ViewBox('0 0 24 24'),
+                h.StrokeWidth('2'),
+                h.Stroke('currentColor'),
+              ],
+              [
+                h.path(
+                  [
+                    h.D(CHEVRON_DOWN),
+                    h.StrokeLinecap('round'),
+                    h.StrokeLinejoin('round'),
+                  ],
+                  [],
+                ),
+              ],
+            ),
+          ],
+        ),
+        buttonClassName: 'dt-filter-button',
+        itemsClassName: 'dt-filter-items',
+        className: 'dt-filter-wrapper',
+        attributes: boundaryAttributes([h.Key('submodel-filter')]),
+        backdropClassName: 'dt-filter-backdrop',
+      },
+      toParentMessage: message => GotSubmodelFilterMessage({ message }),
     })
   }
 
@@ -1975,51 +1998,59 @@ const makeView = (
   }
 
   const scrubberView = (model: Model): Html =>
-    Slider.view<Message>({
+    h.submodel({
+      id: model.scrubberSlider.id,
+      view: Slider.view,
       model: model.scrubberSlider,
+      inputs: {
+        ariaLabel: 'Session scrubber',
+        getTrackRoot: () => shadow,
+        formatValue: value =>
+          value === 0 ? 'init' : `Message ${String(value)}`,
+        toView: attributes =>
+          h.div(
+            [
+              h.Class(
+                'dt-scrubber-row flex items-center gap-3 px-3 py-2 border-t shrink-0',
+              ),
+            ],
+            [
+              h.div(
+                [
+                  ...attributes.root,
+                  h.Class('dt-scrubber-control flex-1 flex items-center'),
+                ],
+                [
+                  h.div(
+                    [...attributes.track, h.Class('dt-scrubber-track')],
+                    [
+                      h.div(
+                        [
+                          ...attributes.filledTrack,
+                          h.Class('dt-scrubber-fill'),
+                        ],
+                        [],
+                      ),
+                      h.div(
+                        [...attributes.thumb, h.Class('dt-scrubber-thumb')],
+                        [],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              h.span(
+                [
+                  h.Class(
+                    'dt-scrubber-position text-2xs text-dt-muted font-mono shrink-0 tabular-nums',
+                  ),
+                ],
+                [scrubberPositionLabel(model)],
+              ),
+            ],
+          ),
+      },
       toParentMessage: message => GotScrubberSliderMessage({ message }),
-      ariaLabel: 'Session scrubber',
-      getTrackRoot: () => shadow,
-      formatValue: value => (value === 0 ? 'init' : `Message ${String(value)}`),
-      toView: attributes =>
-        h.div(
-          [
-            h.Class(
-              'dt-scrubber-row flex items-center gap-3 px-3 py-2 border-t shrink-0',
-            ),
-          ],
-          [
-            h.div(
-              [
-                ...attributes.root,
-                h.Class('dt-scrubber-control flex-1 flex items-center'),
-              ],
-              [
-                h.div(
-                  [...attributes.track, h.Class('dt-scrubber-track')],
-                  [
-                    h.div(
-                      [...attributes.filledTrack, h.Class('dt-scrubber-fill')],
-                      [],
-                    ),
-                    h.div(
-                      [...attributes.thumb, h.Class('dt-scrubber-thumb')],
-                      [],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            h.span(
-              [
-                h.Class(
-                  'dt-scrubber-position text-2xs text-dt-muted font-mono shrink-0 tabular-nums',
-                ),
-              ],
-              [scrubberPositionLabel(model)],
-            ),
-          ],
-        ),
     })
 
   // PANEL

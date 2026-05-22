@@ -1,13 +1,32 @@
-import { type Html, html } from 'foldkit/html'
+import { Submodel } from 'foldkit'
+import type { CalendarDate } from 'foldkit/calendar'
+import { type Html, createKeyedLazy, html } from 'foldkit/html'
 
 import { Education } from '../step'
 import { educationEntryView } from './educationEntry'
 
-export const educationView = <ParentMessage>(
-  model: Education.Model,
-  toParentMessage: (message: Education.Message) => ParentMessage,
+const lazyEntry = createKeyedLazy()
+
+const renderEntry = (
+  entry: Education.Entry.Model,
+  today: CalendarDate,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Education.Message>()
+  return h.submodel({
+    id: entry.id,
+    view: educationEntryView,
+    model: entry,
+    inputs: { today },
+    toParentMessage: message =>
+      Education.GotEntryMessage({ entryId: entry.id, message }),
+  })
+}
+
+export const educationView = Submodel.defineView<
+  Education.Model,
+  Education.Message
+>((model): Html => {
+  const h = html<Education.Message>()
 
   return h.div(
     [h.Class('space-y-6')],
@@ -19,21 +38,13 @@ export const educationView = <ParentMessage>(
       h.div(
         [h.Class('divide-y divide-gray-200')],
         model.entries.map(entry =>
-          educationEntryView<ParentMessage>(
-            entry,
-            model.today,
-            message =>
-              toParentMessage(
-                Education.GotEntryMessage({ entryId: entry.id, message }),
-              ),
-            toParentMessage(Education.RemovedEntry({ entryId: entry.id })),
-          ),
+          lazyEntry(entry.id, renderEntry, [entry, model.today]),
         ),
       ),
       h.button(
         [
           h.Type('button'),
-          h.OnClick(toParentMessage(Education.ClickedAddEntry())),
+          h.OnClick(Education.ClickedAddEntry()),
           h.Class(
             'w-full rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 text-sm font-medium text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition cursor-pointer',
           ),
@@ -42,4 +53,4 @@ export const educationView = <ParentMessage>(
       ),
     ],
   )
-}
+})

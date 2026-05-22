@@ -2,9 +2,10 @@ import { Match as M, Option, Schema as S } from 'effect'
 
 import type { Command } from '../../command/index.js'
 import {
-  type Attribute,
+  type BoundaryAttribute,
   type Html,
-  createLazy,
+  boundaryAttributes,
+  defineView,
   html,
 } from '../../html/index.js'
 import { m } from '../../message/index.js'
@@ -59,19 +60,21 @@ export const update = (
 
 // VIEW
 
-/** Attribute groups the switch component provides to the consumer's `toView` callback. */
-export type SwitchAttributes<ParentMessage> = Readonly<{
-  button: ReadonlyArray<Attribute<ParentMessage>>
-  label: ReadonlyArray<Attribute<ParentMessage>>
-  description: ReadonlyArray<Attribute<ParentMessage>>
-  hiddenInput: ReadonlyArray<Attribute<ParentMessage>>
+/** Attribute groups the switch component provides to the consumer's
+ *  `toView` callback. Each group is a `ReadonlyArray<BoundaryAttribute>`
+ *  whose event handlers dispatch through the Switch's boundary at
+ *  event-fire time. See {@link Checkbox.CheckboxAttributes} for the full
+ *  routing model. */
+export type SwitchAttributes = Readonly<{
+  button: ReadonlyArray<BoundaryAttribute>
+  label: ReadonlyArray<BoundaryAttribute>
+  description: ReadonlyArray<BoundaryAttribute>
+  hiddenInput: ReadonlyArray<BoundaryAttribute>
 }>
 
-/** Configuration for rendering a switch with `view`. */
-export type ViewConfig<ParentMessage> = Readonly<{
-  model: Model
-  toParentMessage: (message: Toggled) => ParentMessage
-  toView: (attributes: SwitchAttributes<ParentMessage>) => Html
+/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field. */
+export type ViewInputs = Readonly<{
+  toView: (attributes: SwitchAttributes) => Html
   isDisabled?: boolean
   name?: string
   value?: string
@@ -80,88 +83,57 @@ export type ViewConfig<ParentMessage> = Readonly<{
 const labelId = (id: string): string => `${id}-label`
 const descriptionId = (id: string): string => `${id}-description`
 
-/** Renders an accessible switch toggle by building ARIA attribute groups and delegating layout to the consumer's `toView` callback. */
-export const view = <ParentMessage>(
-  config: ViewConfig<ParentMessage>,
-): Html => {
-  const h = html<ParentMessage>()
+/** Renders an accessible switch toggle by building ARIA attribute groups
+ *  and delegating layout to the consumer's `toView` callback. Designed
+ *  to be embedded via `h.submodel`. */
+export const view = defineView<Model, Message, ViewInputs>(
+  (model, inputs): Html => {
+    const h = html<Message>()
 
-  const {
-    model: { id, isChecked },
-    toParentMessage,
-    isDisabled = false,
-    name,
-    value: formValue = 'on',
-  } = config
+    const { id, isChecked } = model
+    const { isDisabled = false, name, value: formValue = 'on' } = inputs
 
-  const handleKeyUp = (key: string): Option.Option<ParentMessage> =>
-    M.value(key).pipe(
-      M.when(' ', () => Option.some(toParentMessage(Toggled()))),
-      M.orElse(() => Option.none()),
-    )
+    const handleKeyUp = (key: string): Option.Option<Toggled> =>
+      M.value(key).pipe(
+        M.when(' ', () => Option.some(Toggled())),
+        M.orElse(() => Option.none()),
+      )
 
-  const checkedAttributes = isChecked ? [h.DataAttribute('checked', '')] : []
+    const checkedAttributes = isChecked ? [h.DataAttribute('checked', '')] : []
 
-  const disabledAttributes = isDisabled
-    ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
-    : []
+    const disabledAttributes = isDisabled
+      ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
+      : []
 
-  const buttonAttributes = [
-    h.Role('switch'),
-    h.AriaChecked(isChecked),
-    h.AriaLabelledBy(labelId(id)),
-    h.AriaDescribedBy(descriptionId(id)),
-    h.Tabindex(0),
-    ...checkedAttributes,
-    ...disabledAttributes,
-    ...(isDisabled
-      ? []
-      : [
-          h.OnClick(toParentMessage(Toggled())),
-          h.OnKeyUpPreventDefault(handleKeyUp),
-        ]),
-  ]
+    const buttonAttributes = [
+      h.Role('switch'),
+      h.AriaChecked(isChecked),
+      h.AriaLabelledBy(labelId(id)),
+      h.AriaDescribedBy(descriptionId(id)),
+      h.Tabindex(0),
+      ...checkedAttributes,
+      ...disabledAttributes,
+      ...(isDisabled
+        ? []
+        : [h.OnClick(Toggled()), h.OnKeyUpPreventDefault(handleKeyUp)]),
+    ]
 
-  const labelAttributes = [
-    h.Id(labelId(id)),
-    ...(isDisabled ? [] : [h.OnClick(toParentMessage(Toggled()))]),
-  ]
+    const labelAttributes = [
+      h.Id(labelId(id)),
+      ...(isDisabled ? [] : [h.OnClick(Toggled())]),
+    ]
 
-  const descriptionAttributes = [h.Id(descriptionId(id))]
+    const descriptionAttributes = [h.Id(descriptionId(id))]
 
-  const hiddenInputAttributes = name
-    ? [h.Type('hidden'), h.Name(name), h.Value(isChecked ? formValue : '')]
-    : []
+    const hiddenInputAttributes = name
+      ? [h.Type('hidden'), h.Name(name), h.Value(isChecked ? formValue : '')]
+      : []
 
-  return config.toView({
-    button: buttonAttributes,
-    label: labelAttributes,
-    description: descriptionAttributes,
-    hiddenInput: hiddenInputAttributes,
-  })
-}
-
-/** Creates a memoized switch view. Static config is captured in a closure;
- *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
-export const lazy = <ParentMessage>(
-  staticConfig: Omit<ViewConfig<ParentMessage>, 'model' | 'toParentMessage'>,
-): ((
-  model: Model,
-  toParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
-) => Html) => {
-  const lazyView = createLazy()
-
-  return (model, toParentMessage) =>
-    lazyView(
-      (
-        currentModel: Model,
-        currentToParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
-      ) =>
-        view({
-          ...staticConfig,
-          model: currentModel,
-          toParentMessage: currentToParentMessage,
-        }),
-      [model, toParentMessage],
-    )
-}
+    return inputs.toView({
+      button: boundaryAttributes(buttonAttributes),
+      label: boundaryAttributes(labelAttributes),
+      description: boundaryAttributes(descriptionAttributes),
+      hiddenInput: boundaryAttributes(hiddenInputAttributes),
+    })
+  },
+)

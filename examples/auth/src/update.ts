@@ -1,4 +1,4 @@
-import { Array, Effect, Match as M, Option, Schema as S } from 'effect'
+import { Effect, Match as M, Option, Schema as S } from 'effect'
 import { Command } from 'foldkit'
 import { load, pushUrl, replaceUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
@@ -146,9 +146,8 @@ const handleGotLoggedOutMessage = (
     message,
   )
 
-  const mappedCommands = Array.map(
-    commands,
-    Command.mapEffect(Effect.map(message => GotLoggedOutMessage({ message }))),
+  const mappedCommands = Command.mapMessages(commands, message =>
+    GotLoggedOutMessage({ message }),
   )
 
   return Option.match(maybeOutMessage, {
@@ -180,9 +179,8 @@ const handleGotLoggedInMessage = (
 
   const [nextModel, commands, maybeOutMessage] = LoggedIn.update(model, message)
 
-  const mappedCommands = Array.map(
-    commands,
-    Command.mapEffect(Effect.map(message => GotLoggedInMessage({ message }))),
+  const mappedCommands = Command.mapMessages(commands, message =>
+    GotLoggedInMessage({ message }),
   )
 
   return Option.match(maybeOutMessage, {

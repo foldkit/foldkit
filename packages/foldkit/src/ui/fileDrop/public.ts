@@ -2,7 +2,6 @@ export {
   init,
   update,
   view,
-  lazy,
   Model,
   Message,
   OutMessage,
@@ -13,4 +12,4 @@ export {
   DroppedWithoutFiles,
 } from './index.js'
 
-export type { InitConfig, ViewConfig, FileDropAttributes } from './index.js'
+export type { InitConfig, ViewInputs, FileDropAttributes } from './index.js'

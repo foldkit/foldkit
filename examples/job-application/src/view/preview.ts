@@ -12,8 +12,8 @@ const COVER_LETTER_PREVIEW_MAX_CHARS = 200
 const truncate = (value: string, max: number): string =>
   value.length > max ? `${value.slice(0, max)}...` : value
 
-const sectionHeading = <ParentMessage>(title: string): Html => {
-  const h = html<ParentMessage>()
+const sectionHeading = (title: string): Html => {
+  const h = html()
 
   return h.h3(
     [
@@ -25,14 +25,14 @@ const sectionHeading = <ParentMessage>(title: string): Html => {
   )
 }
 
-const headerSection = <ParentMessage>(
+const headerSection = (
   fullName: string,
   pronounLabel: string,
   email: string,
   phone: string,
   portfolio: string,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html()
 
   const contacts = Array.filter([email, phone, portfolio], String.isNonEmpty)
   return h.div(
@@ -65,8 +65,8 @@ const headerSection = <ParentMessage>(
   )
 }
 
-const workEntryView = <ParentMessage>(entry: WorkHistory.Entry.Model): Html => {
-  const h = html<ParentMessage>()
+const workEntryView = (entry: WorkHistory.Entry.Model): Html => {
+  const h = html()
 
   return h.keyed('div')(
     `work-${entry.id}`,
@@ -105,29 +105,27 @@ const workEntryView = <ParentMessage>(entry: WorkHistory.Entry.Model): Html => {
   )
 }
 
-const experienceSection = <ParentMessage>(
-  workHistory: WorkHistory.Model,
-): Html => {
-  const h = html<ParentMessage>()
+const experienceSection = (workHistory: WorkHistory.Model): Html => {
+  const h = html()
 
   return h.section(
     [h.Class('mb-4')],
     [
-      sectionHeading<ParentMessage>('Experience'),
+      sectionHeading('Experience'),
       ...Array.filter(
         workHistory.entries,
         entry =>
           String.isNonEmpty(entry.company.value) ||
           String.isNonEmpty(entry.title.value),
-      ).map(entry => workEntryView<ParentMessage>(entry)),
+      ).map(entry => workEntryView(entry)),
     ],
   )
 }
 
-const educationTimelineLine = <ParentMessage>(
+const educationTimelineLine = (
   entry: Education.Entry.Model,
 ): ReadonlyArray<Html> => {
-  const h = html<ParentMessage>()
+  const h = html()
 
   if (entry.isCurrentlyEnrolled.isChecked) {
     return [
@@ -145,10 +143,8 @@ const educationTimelineLine = <ParentMessage>(
   return []
 }
 
-const educationEntryView = <ParentMessage>(
-  entry: Education.Entry.Model,
-): Html => {
-  const h = html<ParentMessage>()
+const educationEntryView = (entry: Education.Entry.Model): Html => {
+  const h = html()
 
   const degreeLine = Array.filter(
     [entry.degree.value, entry.fieldOfStudy.value],
@@ -164,21 +160,21 @@ const educationEntryView = <ParentMessage>(
       ...(String.isNonEmpty(entry.school.value)
         ? [h.p([h.Class('text-xs text-gray-600')], [entry.school.value])]
         : []),
-      ...educationTimelineLine<ParentMessage>(entry),
+      ...educationTimelineLine(entry),
     ],
   )
 }
 
-const educationSection = <ParentMessage>(education: Education.Model): Html => {
-  const h = html<ParentMessage>()
+const educationSection = (education: Education.Model): Html => {
+  const h = html()
 
   return h.section(
     [h.Class('mb-4')],
     [
-      sectionHeading<ParentMessage>('Education'),
+      sectionHeading('Education'),
       ...Array.filter(education.entries, entry =>
         String.isNonEmpty(entry.school.value),
-      ).map(entry => educationEntryView<ParentMessage>(entry)),
+      ).map(entry => educationEntryView(entry)),
     ],
   )
 }
@@ -218,10 +214,10 @@ const groupSkillsByProficiency = (
     })),
   )
 
-const skillGroupView = <ParentMessage>(
+const skillGroupView = (
   group: Readonly<{ level: string; names: ReadonlyArray<string> }>,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html()
 
   return h.p(
     [h.Class('text-xs text-gray-700 mb-1')],
@@ -232,26 +228,23 @@ const skillGroupView = <ParentMessage>(
   )
 }
 
-const skillsSection = <ParentMessage>(skills: Skills.Model): Html => {
-  const h = html<ParentMessage>()
+const skillsSection = (skills: Skills.Model): Html => {
+  const h = html()
 
   const grouped = groupSkillsByProficiency(skills.entries)
   return h.section(
     [h.Class('mb-4')],
-    [
-      sectionHeading<ParentMessage>('Skills'),
-      ...grouped.map(group => skillGroupView<ParentMessage>(group)),
-    ],
+    [sectionHeading('Skills'), ...grouped.map(group => skillGroupView(group))],
   )
 }
 
-const coverLetterSection = <ParentMessage>(content: string): Html => {
-  const h = html<ParentMessage>()
+const coverLetterSection = (content: string): Html => {
+  const h = html()
 
   return h.section(
     [],
     [
-      sectionHeading<ParentMessage>('Cover Letter'),
+      sectionHeading('Cover Letter'),
       h.p(
         [h.Class('text-xs text-gray-600 whitespace-pre-wrap')],
         [truncate(content, COVER_LETTER_PREVIEW_MAX_CHARS)],
@@ -260,7 +253,7 @@ const coverLetterSection = <ParentMessage>(content: string): Html => {
   )
 }
 
-export const preview = <ParentMessage>({
+export const preview = ({
   personalInfo: {
     firstName: { value: firstName },
     lastName: { value: lastName },
@@ -275,7 +268,7 @@ export const preview = <ParentMessage>({
   skills,
   coverLetter,
 }: Model): Html => {
-  const h = html<ParentMessage>()
+  const h = html()
 
   const fullName =
     String.isNonEmpty(firstName) || String.isNonEmpty(lastName)
@@ -303,18 +296,12 @@ export const preview = <ParentMessage>({
   return h.div(
     [h.Class('font-serif')],
     [
-      headerSection<ParentMessage>(
-        fullName,
-        pronounLabel,
-        email,
-        phone,
-        portfolio,
-      ),
-      ...(hasExperience ? [experienceSection<ParentMessage>(workHistory)] : []),
-      ...(hasEducation ? [educationSection<ParentMessage>(education)] : []),
-      ...(hasSkills ? [skillsSection<ParentMessage>(skills)] : []),
+      headerSection(fullName, pronounLabel, email, phone, portfolio),
+      ...(hasExperience ? [experienceSection(workHistory)] : []),
+      ...(hasEducation ? [educationSection(education)] : []),
+      ...(hasSkills ? [skillsSection(skills)] : []),
       ...(String.isNonEmpty(coverLetter.content)
-        ? [coverLetterSection<ParentMessage>(coverLetter.content)]
+        ? [coverLetterSection(coverLetter.content)]
         : []),
     ],
   )

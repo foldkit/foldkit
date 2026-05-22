@@ -211,20 +211,38 @@ const signaturesView = <ParentMessage>(
   })
 
   return maybeDisclosure !== undefined
-    ? Ui.Disclosure.view({
+    ? h.submodel({
+        id: maybeDisclosure.id,
+        view: Ui.Disclosure.view,
         model: maybeDisclosure,
+        inputs: {
+          toView: attributes =>
+            h.div(
+              [],
+              [
+                h.button(
+                  [...attributes.button, h.Class(disclosureButtonClassName)],
+                  [
+                    h.div(
+                      [h.Class('flex items-center justify-between w-full')],
+                      [
+                        h.span([], ['Show signature']),
+                        chevron<ParentMessage>(maybeDisclosure.isOpen),
+                      ],
+                    ),
+                  ],
+                ),
+                maybeDisclosure.isOpen
+                  ? h.div(
+                      [...attributes.panel, h.Class(disclosurePanelClassName)],
+                      [h.div([h.Class(wrapperClass)], content)],
+                    )
+                  : h.empty,
+              ],
+            ),
+        },
         toParentMessage: message =>
           toParentMessage(GotDisclosureMessage({ id: key, message })),
-        buttonAttributes: [h.Class(disclosureButtonClassName)],
-        buttonContent: h.div(
-          [h.Class('flex items-center justify-between w-full')],
-          [
-            h.span([], ['Show signature']),
-            chevron<ParentMessage>(maybeDisclosure.isOpen),
-          ],
-        ),
-        panelAttributes: [h.Class(disclosurePanelClassName)],
-        panelContent: h.div([h.Class(wrapperClass)], content),
       })
     : h.div([h.Class(wrapperClass)], content)
 }

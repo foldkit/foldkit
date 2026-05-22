@@ -1,4 +1,4 @@
-import { Effect, Match as M, Schema as S } from 'effect'
+import { Match as M, Option, Schema as S } from 'effect'
 import { Command, Ui } from 'foldkit'
 import {
   Field,
@@ -43,6 +43,8 @@ export const Model = S.Struct({
 })
 export type Model = typeof Model.Type
 
+const GraduationYearListbox = Ui.Listbox.create<string>()
+
 // MESSAGE
 
 export const UpdatedSchool = m('UpdatedSchool', { value: S.String })
@@ -62,6 +64,10 @@ export const GotIsCurrentlyEnrolledMessage = m(
   { message: Ui.Checkbox.Message },
 )
 export const UpdatedGpa = m('UpdatedGpa', { value: S.String })
+/** Sent when the user clicks the entry's "Remove" button. Triggers the
+ *  `Removed` OutMessage so the Education container can fire its own
+ *  `RemovedEntry({ entryId })`. */
+export const ClickedRemoveSelf = m('ClickedRemoveSelf')
 
 export const Message = S.Union([
   UpdatedSchool,
@@ -71,8 +77,21 @@ export const Message = S.Union([
   GotGraduationYearListboxMessage,
   GotIsCurrentlyEnrolledMessage,
   UpdatedGpa,
+  ClickedRemoveSelf,
 ])
 export type Message = typeof Message.Type
+
+// OUT MESSAGE
+
+/** Sent to the Education container when the user clicks "Remove" on this
+ *  entry. The container reacts by dispatching `RemovedEntry({ entryId })`
+ *  to drop the entry from its list. */
+export const Removed = m('Removed')
+
+export const OutMessage = S.Union([Removed])
+export type OutMessage = typeof OutMessage.Type
+
+export type Removed = typeof Removed.Type
 
 // INIT
 
@@ -91,15 +110,17 @@ export const init = (entryId: string): Model => ({
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = readonly [
+  Model,
+  ReadonlyArray<Command.Command<Message>>,
+  Option.Option<OutMessage>,
+]
 
 const mapGraduationYearListboxCommands = (
   commands: ReadonlyArray<Command.Command<Ui.Listbox.Message>>,
 ): ReadonlyArray<Command.Command<Message>> =>
-  commands.map(
-    Command.mapEffect(
-      Effect.map(message => GotGraduationYearListboxMessage({ message })),
-    ),
+  Command.mapMessages(commands, message =>
+    GotGraduationYearListboxMessage({ message }),
   )
 
 export const update = (model: Model, message: Message): UpdateReturn =>
@@ -109,20 +130,23 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       UpdatedSchool: ({ value }) => [
         evo(model, { school: () => validateSchool(value) }),
         [],
+        Option.none(),
       ],
 
       UpdatedDegree: ({ value }) => [
         evo(model, { degree: () => validateDegree(value) }),
         [],
+        Option.none(),
       ],
 
       UpdatedFieldOfStudy: ({ value }) => [
         evo(model, { fieldOfStudy: () => validateFieldOfStudy(value) }),
         [],
+        Option.none(),
       ],
 
       UpdatedGraduationYear: ({ value }) => {
-        const [nextListbox, commands] = Ui.Listbox.selectItem(
+        const [nextListbox, commands] = GraduationYearListbox.selectItem(
           model.graduationYearListbox,
           value,
         )
@@ -132,18 +156,37 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             graduationYearListbox: () => nextListbox,
           }),
           mapGraduationYearListboxCommands(commands),
+          Option.none(),
         ]
       },
 
       GotGraduationYearListboxMessage: ({ message: listboxMessage }) => {
-        const [nextListbox, commands] = Ui.Listbox.update(
+        const [nextListbox, commands, maybeOut] = GraduationYearListbox.update(
           model.graduationYearListbox,
           listboxMessage,
         )
-        return [
-          evo(model, { graduationYearListbox: () => nextListbox }),
-          mapGraduationYearListboxCommands(commands),
-        ]
+        const mappedCommands = mapGraduationYearListboxCommands(commands)
+
+        return Option.match(maybeOut, {
+          onNone: (): UpdateReturn => [
+            evo(model, { graduationYearListbox: () => nextListbox }),
+            mappedCommands,
+            Option.none(),
+          ],
+          onSome: M.type<Ui.Listbox.OutMessage>().pipe(
+            M.withReturnType<UpdateReturn>(),
+            M.tagsExhaustive({
+              Selected: ({ item }) => [
+                evo(model, {
+                  graduationYear: () => item,
+                  graduationYearListbox: () => nextListbox,
+                }),
+                mappedCommands,
+                Option.none(),
+              ],
+            }),
+          ),
+        })
       },
 
       GotIsCurrentlyEnrolledMessage: ({ message: checkboxMessage }) => {
@@ -151,10 +194,20 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           model.isCurrentlyEnrolled,
           checkboxMessage,
         )
-        return [evo(model, { isCurrentlyEnrolled: () => nextCheckbox }), []]
+        return [
+          evo(model, { isCurrentlyEnrolled: () => nextCheckbox }),
+          [],
+          Option.none(),
+        ]
       },
 
-      UpdatedGpa: ({ value }) => [evo(model, { gpa: () => value }), []],
+      UpdatedGpa: ({ value }) => [
+        evo(model, { gpa: () => value }),
+        [],
+        Option.none(),
+      ],
+
+      ClickedRemoveSelf: () => [model, [], Option.some(Removed())],
     }),
   )
 

@@ -2,7 +2,6 @@ export {
   init,
   update,
   view,
-  lazy,
   setShowDelay,
   Model,
   Message,
@@ -19,6 +18,6 @@ export {
   AnchorTooltip,
 } from './index.js'
 
-export type { InitConfig, ViewConfig } from './index.js'
+export type { InitConfig, ViewInputs, RenderInfo } from './index.js'
 
 export type { AnchorConfig } from '../anchor.js'

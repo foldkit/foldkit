@@ -1,4 +1,4 @@
-import { Ui } from 'foldkit'
+import { Submodel, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import {
@@ -11,6 +11,8 @@ import type { UiModel } from '../model'
 type Plan = 'Startup' | 'Business' | 'Enterprise'
 
 const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']
+
+export const PlanRadioGroup = Ui.RadioGroup.create<Plan>()
 
 const planDescriptions: Record<Plan, string> = {
   Startup: '12GB / 6 CPUs — Perfect for small projects',
@@ -40,8 +42,8 @@ const descriptionClassName = 'text-sm text-gray-600'
 
 const priceClassName = 'text-sm font-semibold text-accent-600'
 
-const checkIcon = <ParentMessage>(): Html => {
-  const h = html<ParentMessage>()
+const checkIcon = (): Html => {
+  const h = html()
 
   return h.svg(
     [h.ViewBox('0 0 24 24'), h.Fill('none'), h.Class('size-5 text-accent-600')],
@@ -60,17 +62,14 @@ const checkIcon = <ParentMessage>(): Html => {
   )
 }
 
-const checkPlaceholder = <ParentMessage>(): Html => {
-  const h = html<ParentMessage>()
+const checkPlaceholder = (): Html => {
+  const h = html()
 
   return h.div([h.Class('size-5')], [])
 }
 
-export const view = <ParentMessage>(
-  model: UiModel,
-  toParentMessage: (message: UiMessage) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
+  const h = html<UiMessage>()
 
   return h.div(
     [],
@@ -81,101 +80,117 @@ export const view = <ParentMessage>(
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Vertical'],
       ),
-      Ui.RadioGroup.view<ParentMessage, Plan>({
+      h.submodel({
+        id: 'vertical-radio-group-demo',
+        view: PlanRadioGroup.view,
         model: model.verticalRadioGroupDemo,
-        toParentMessage: message =>
-          toParentMessage(GotVerticalRadioGroupDemoMessage({ message })),
-        options: plans,
-        ariaLabel: 'Server plan',
-        optionToConfig: (plan, { isSelected }) => ({
-          value: plan,
-          content: attributes =>
+        inputs: {
+          options: plans,
+          ariaLabel: 'Server plan',
+          toView: ({ group, options }) =>
             h.div(
-              [...attributes.option, h.Class(verticalOptionClassName)],
-              [
-                h.div(
-                  [h.Class('flex w-full items-center justify-between')],
+              [...group, h.Class(verticalGroupClassName)],
+              options.map(option => {
+                const plan = option.value
+                return h.div(
+                  [...option.option, h.Class(verticalOptionClassName)],
                   [
                     h.div(
-                      [],
+                      [h.Class('flex w-full items-center justify-between')],
                       [
-                        h.span(
-                          [...attributes.label, h.Class(labelClassName)],
-                          [plan],
-                        ),
-                        h.p(
+                        h.div(
+                          [],
                           [
-                            ...attributes.description,
-                            h.Class(descriptionClassName),
+                            h.span(
+                              [...option.label, h.Class(labelClassName)],
+                              [plan],
+                            ),
+                            h.p(
+                              [
+                                ...option.description,
+                                h.Class(descriptionClassName),
+                              ],
+                              [planDescriptions[plan]],
+                            ),
                           ],
-                          [planDescriptions[plan]],
                         ),
-                      ],
-                    ),
-                    h.div(
-                      [h.Class('flex items-center gap-3')],
-                      [
-                        h.span([h.Class(priceClassName)], [planPrices[plan]]),
-                        isSelected
-                          ? checkIcon<ParentMessage>()
-                          : checkPlaceholder<ParentMessage>(),
+                        h.div(
+                          [h.Class('flex items-center gap-3')],
+                          [
+                            h.span(
+                              [h.Class(priceClassName)],
+                              [planPrices[plan]],
+                            ),
+                            option.isSelected
+                              ? checkIcon()
+                              : checkPlaceholder(),
+                          ],
+                        ),
                       ],
                     ),
                   ],
-                ),
-              ],
+                )
+              }),
             ),
-        }),
-        attributes: [h.Class(verticalGroupClassName)],
+        },
+        toParentMessage: message =>
+          GotVerticalRadioGroupDemoMessage({ message }),
       }),
 
       h.h3(
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Horizontal'],
       ),
-      Ui.RadioGroup.view<ParentMessage, Plan>({
+      h.submodel({
+        id: 'horizontal-radio-group-demo',
+        view: PlanRadioGroup.view,
         model: model.horizontalRadioGroupDemo,
-        toParentMessage: message =>
-          toParentMessage(GotHorizontalRadioGroupDemoMessage({ message })),
-        options: plans,
-        ariaLabel: 'Server plan',
-        optionToConfig: (plan, { isSelected }) => ({
-          value: plan,
-          content: attributes =>
+        inputs: {
+          options: plans,
+          ariaLabel: 'Server plan',
+          orientation: 'Horizontal',
+          toView: ({ group, options }) =>
             h.div(
-              [...attributes.option, h.Class(horizontalOptionClassName)],
-              [
-                h.div(
-                  [h.Class('flex w-full items-center justify-between')],
+              [...group, h.Class(horizontalGroupClassName)],
+              options.map(option => {
+                const plan = option.value
+                return h.div(
+                  [...option.option, h.Class(horizontalOptionClassName)],
                   [
                     h.div(
-                      [],
+                      [h.Class('flex w-full items-center justify-between')],
                       [
-                        h.span(
-                          [...attributes.label, h.Class(labelClassName)],
-                          [plan],
-                        ),
-                        h.p(
+                        h.div(
+                          [],
                           [
-                            ...attributes.description,
-                            h.Class(descriptionClassName),
+                            h.span(
+                              [...option.label, h.Class(labelClassName)],
+                              [plan],
+                            ),
+                            h.p(
+                              [
+                                ...option.description,
+                                h.Class(descriptionClassName),
+                              ],
+                              [planDescriptions[plan]],
+                            ),
                           ],
-                          [planDescriptions[plan]],
                         ),
+                        option.isSelected ? checkIcon() : checkPlaceholder(),
                       ],
                     ),
-                    isSelected
-                      ? checkIcon<ParentMessage>()
-                      : checkPlaceholder<ParentMessage>(),
+                    h.span(
+                      [h.Class(priceClassName + ' mt-2')],
+                      [planPrices[plan]],
+                    ),
                   ],
-                ),
-                h.span([h.Class(priceClassName + ' mt-2')], [planPrices[plan]]),
-              ],
+                )
+              }),
             ),
-        }),
-        orientation: 'Horizontal',
-        attributes: [h.Class(horizontalGroupClassName)],
+        },
+        toParentMessage: message =>
+          GotHorizontalRadioGroupDemoMessage({ message }),
       }),
     ],
   )
-}
+})

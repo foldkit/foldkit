@@ -1,5 +1,5 @@
 import { describe, it } from '@effect/vitest'
-import { Effect, Function, Queue, Stream } from 'effect'
+import { Context, Effect, Function, Queue, Stream } from 'effect'
 import {
   attributesModule,
   classModule,
@@ -14,11 +14,16 @@ import { afterEach, beforeEach, expect, vi } from 'vitest'
 import { m } from '../message/index.js'
 import * as Mount from '../mount/index.js'
 import type { MountAction } from '../mount/index.js'
+import { MountTracker } from '../mount/index.js'
 import { propsModule } from '../propsModule.js'
 import { noOpDispatch } from '../runtime/crashUI.js'
 import { Dispatch } from '../runtime/index.js'
 import type { VNode } from '../vdom.js'
-import { html } from './index.js'
+import {
+  __clearRuntime as clearHtmlRuntime,
+  html,
+  __setRuntime as setHtmlRuntime,
+} from './index.js'
 
 const patch = init([
   attributesModule,
@@ -72,16 +77,27 @@ const createCapturingDispatch = () => {
 }
 
 const renderView = (
-  view: Effect.Effect<VNode | null, never, Dispatch>,
+  buildView: () => VNode | null,
   dispatch: Dispatch['Type'],
 ): VNode => {
-  const maybeVNode = Effect.runSync(
-    Effect.provideService(view, Dispatch, dispatch),
+  const testContext = Context.make(Dispatch, dispatch).pipe(
+    Context.add(MountTracker, {
+      started: () => {},
+      ended: () => {},
+    }),
   )
-  if (maybeVNode === null) {
+
+  setHtmlRuntime(dispatch.dispatchSync, testContext)
+  let vnode: VNode | null
+  try {
+    vnode = buildView()
+  } finally {
+    clearHtmlRuntime()
+  }
+  if (vnode === null) {
     throw new Error('renderView received a null VNode')
   }
-  return maybeVNode
+  return vnode
 }
 
 const makeRootContainer = (): HTMLElement => document.createElement('div')
@@ -99,10 +115,8 @@ describe('OnMount', () => {
     const h = html<typeof MountedRoot.Type>()
     const { dispatch, dispatched } = createCapturingDispatch()
 
-    const view = h.div(
-      [],
-      [h.span([h.OnMount(makeMounted(() => oneShotStream()))], [])],
-    )
+    const view = () =>
+      h.div([], [h.span([h.OnMount(makeMounted(() => oneShotStream()))], [])])
     const vnode = renderView(view, dispatch)
 
     patch(toVNode(makeRootContainer()), vnode)
@@ -116,22 +130,23 @@ describe('OnMount', () => {
     const h = html<typeof MountedRoot.Type>()
     let streamRan = false
 
-    const view = h.div(
-      [],
-      [
-        h.span(
-          [
-            h.OnMount(
-              makeMounted(() => {
-                streamRan = true
-                return oneShotStream()
-              }),
-            ),
-          ],
-          [],
-        ),
-      ],
-    )
+    const view = () =>
+      h.div(
+        [],
+        [
+          h.span(
+            [
+              h.OnMount(
+                makeMounted(() => {
+                  streamRan = true
+                  return oneShotStream()
+                }),
+              ),
+            ],
+            [],
+          ),
+        ],
+      )
     const vnode = renderView(view, Dispatch.of(noOpDispatch))
 
     patch(toVNode(makeRootContainer()), vnode)
@@ -146,23 +161,24 @@ describe('OnMount', () => {
     const { dispatch, dispatched } = createCapturingDispatch()
     const seenIds: Array<string> = []
 
-    const view = h.div(
-      [],
-      [
-        h.span(
-          [
-            h.Id('mounted'),
-            h.OnMount(
-              makeMounted(element => {
-                seenIds.push(element.id)
-                return oneShotStream()
-              }),
-            ),
-          ],
-          [],
-        ),
-      ],
-    )
+    const view = () =>
+      h.div(
+        [],
+        [
+          h.span(
+            [
+              h.Id('mounted'),
+              h.OnMount(
+                makeMounted(element => {
+                  seenIds.push(element.id)
+                  return oneShotStream()
+                }),
+              ),
+            ],
+            [],
+          ),
+        ],
+      )
     const vnode = renderView(view, dispatch)
 
     patch(toVNode(makeRootContainer()), vnode)
@@ -177,25 +193,26 @@ describe('OnMount', () => {
     const h = html<typeof MountedRoot.Type>()
     const { dispatch, dispatched } = createCapturingDispatch()
 
-    const view = h.div(
-      [],
-      [
-        h.span(
-          [
-            h.OnMount(
-              makeMounted(() =>
-                Stream.fromIterable([
-                  MountedRoot(),
-                  MountedRoot(),
-                  MountedRoot(),
-                ]),
+    const view = () =>
+      h.div(
+        [],
+        [
+          h.span(
+            [
+              h.OnMount(
+                makeMounted(() =>
+                  Stream.fromIterable([
+                    MountedRoot(),
+                    MountedRoot(),
+                    MountedRoot(),
+                  ]),
+                ),
               ),
-            ),
-          ],
-          [],
-        ),
-      ],
-    )
+            ],
+            [],
+          ),
+        ],
+      )
     const vnode = renderView(view, dispatch)
 
     patch(toVNode(makeRootContainer()), vnode)
@@ -216,38 +233,39 @@ describe('OnMount', () => {
     let listenerDetached = false
     let externalEmit: () => void = Function.constVoid
 
-    const withChild = h.div(
-      [],
-      [
-        h.span(
-          [
-            h.OnMount(
-              makeMounted(() =>
-                Stream.callback<typeof MountedRoot.Type>(queue =>
-                  Effect.gen(function* () {
-                    yield* Effect.acquireRelease(
-                      Effect.sync(() => {
-                        listenerAttached = true
-                        externalEmit = () =>
-                          Queue.offerUnsafe(queue, MountedRoot())
-                      }),
-                      () =>
+    const withChild = () =>
+      h.div(
+        [],
+        [
+          h.span(
+            [
+              h.OnMount(
+                makeMounted(() =>
+                  Stream.callback<typeof MountedRoot.Type>(queue =>
+                    Effect.gen(function* () {
+                      yield* Effect.acquireRelease(
                         Effect.sync(() => {
-                          listenerDetached = true
-                          externalEmit = Function.constVoid
+                          listenerAttached = true
+                          externalEmit = () =>
+                            Queue.offerUnsafe(queue, MountedRoot())
                         }),
-                    )
-                    return yield* Effect.never
-                  }),
+                        () =>
+                          Effect.sync(() => {
+                            listenerDetached = true
+                            externalEmit = Function.constVoid
+                          }),
+                      )
+                      return yield* Effect.never
+                    }),
+                  ),
                 ),
               ),
-            ),
-          ],
-          [],
-        ),
-      ],
-    )
-    const withoutChild = h.div([], [])
+            ],
+            [],
+          ),
+        ],
+      )
+    const withoutChild = () => h.div([], [])
 
     const mounted = patch(
       toVNode(makeRootContainer()),
@@ -284,7 +302,7 @@ describe('OnMount', () => {
     const { dispatch, dispatched } = createCapturingDispatch()
     let cleanupCalls = 0
 
-    const buildView = (key: string) =>
+    const buildView = (key: string) => () =>
       h.div(
         [],
         [
@@ -325,24 +343,25 @@ describe('OnMount', () => {
     const { dispatch, dispatched } = createCapturingDispatch()
     let cleanupCalls = 0
 
-    const withChild = h.div(
-      [],
-      [
-        h.span(
-          [
-            h.OnMount(
-              makeMounted(() =>
-                oneShotStream(() => {
-                  cleanupCalls += 1
-                }),
+    const withChild = () =>
+      h.div(
+        [],
+        [
+          h.span(
+            [
+              h.OnMount(
+                makeMounted(() =>
+                  oneShotStream(() => {
+                    cleanupCalls += 1
+                  }),
+                ),
               ),
-            ),
-          ],
-          [],
-        ),
-      ],
-    )
-    const withoutChild = h.div([], [])
+            ],
+            [],
+          ),
+        ],
+      )
+    const withoutChild = () => h.div([], [])
 
     const mounted = patch(
       toVNode(makeRootContainer()),
@@ -364,21 +383,22 @@ describe('OnMount', () => {
     const h = html<typeof MountedRoot.Type>()
     const { dispatch, dispatched } = createCapturingDispatch()
 
-    const view = h.div(
-      [],
-      [
-        h.span(
-          [
-            h.OnMount(
-              makeMounted(() =>
-                Stream.fromEffect(Effect.fail(new Error('boom'))),
+    const view = () =>
+      h.div(
+        [],
+        [
+          h.span(
+            [
+              h.OnMount(
+                makeMounted(() =>
+                  Stream.fromEffect(Effect.fail(new Error('boom'))),
+                ),
               ),
-            ),
-          ],
-          [],
-        ),
-      ],
-    )
+            ],
+            [],
+          ),
+        ],
+      )
     const vnode = renderView(view, dispatch)
 
     patch(toVNode(makeRootContainer()), vnode)
@@ -398,7 +418,7 @@ describe('OnMount', () => {
     let streamRunCount = 0
     let cleanupRunCount = 0
 
-    const buildView = () =>
+    const buildView = () => () =>
       h.div(
         [],
         [
@@ -455,38 +475,39 @@ describe('OnMount', () => {
       resolveAcquire = resolve
     })
 
-    const withChild = h.div(
-      [],
-      [
-        h.span(
-          [
-            h.OnMount(
-              makeMounted(() =>
-                Stream.callback<typeof MountedRoot.Type>(queue =>
-                  Effect.gen(function* () {
-                    yield* Effect.acquireRelease(
-                      Effect.tryPromise(() => acquireGate).pipe(
-                        Effect.map(() => {
-                          acquireCompleted = true
-                          Queue.offerUnsafe(queue, MountedRoot())
-                        }),
-                      ),
-                      () =>
-                        Effect.sync(() => {
-                          cleanupCalls += 1
-                        }),
-                    )
-                    return yield* Effect.never
-                  }),
+    const withChild = () =>
+      h.div(
+        [],
+        [
+          h.span(
+            [
+              h.OnMount(
+                makeMounted(() =>
+                  Stream.callback<typeof MountedRoot.Type>(queue =>
+                    Effect.gen(function* () {
+                      yield* Effect.acquireRelease(
+                        Effect.tryPromise(() => acquireGate).pipe(
+                          Effect.map(() => {
+                            acquireCompleted = true
+                            Queue.offerUnsafe(queue, MountedRoot())
+                          }),
+                        ),
+                        () =>
+                          Effect.sync(() => {
+                            cleanupCalls += 1
+                          }),
+                      )
+                      return yield* Effect.never
+                    }),
+                  ),
                 ),
               ),
-            ),
-          ],
-          [],
-        ),
-      ],
-    )
-    const withoutChild = h.div([], [])
+            ],
+            [],
+          ),
+        ],
+      )
+    const withoutChild = () => h.div([], [])
 
     const mounted = patch(
       toVNode(makeRootContainer()),
@@ -529,8 +550,9 @@ describe('OnMount', () => {
       }),
     )
 
-    const withChild = h.div([], [h.span([h.OnMount(WrappedEffect())], [])])
-    const withoutChild = h.div([], [])
+    const withChild = () =>
+      h.div([], [h.span([h.OnMount(WrappedEffect())], [])])
+    const withoutChild = () => h.div([], [])
 
     const mounted = patch(
       toVNode(makeRootContainer()),
@@ -573,19 +595,19 @@ describe('OnMount', () => {
           ),
         ],
       )
-    const withoutChild = h.div([], [])
+    const withoutChild = () => h.div([], [])
 
     const mounted = patch(
       toVNode(makeRootContainer()),
-      renderView(withChild(), dispatch),
+      renderView(withChild, dispatch),
     )
 
     await vi.waitFor(() => {
       expect(dispatched).toHaveLength(1)
     })
 
-    const afterSecond = patch(mounted, renderView(withChild(), dispatch))
-    const afterThird = patch(afterSecond, renderView(withChild(), dispatch))
+    const afterSecond = patch(mounted, renderView(withChild, dispatch))
+    const afterThird = patch(afterSecond, renderView(withChild, dispatch))
 
     patch(afterThird, renderView(withoutChild, dispatch))
 

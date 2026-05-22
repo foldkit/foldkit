@@ -47,41 +47,62 @@ const stepHasErrors =
 const stepsWithErrors = (model: Model): HashSet.HashSet<Step.Step> =>
   pipe(Step.all, Array.filter(stepHasErrors(model)), HashSet.fromIterable)
 
-const stepContent = (model: Model): Html =>
-  M.value(model.currentStep).pipe(
+const stepContent = (model: Model): Html => {
+  const h = html<Message>()
+
+  return M.value(model.currentStep).pipe(
     M.when('PersonalInfo', () =>
-      personalInfoView<Message>(model.personalInfo, message =>
-        GotPersonalInfoMessage({ message }),
-      ),
+      h.submodel({
+        id: 'personal-info',
+        view: personalInfoView,
+        model: model.personalInfo,
+        toParentMessage: message => GotPersonalInfoMessage({ message }),
+      }),
     ),
     M.when('WorkHistory', () =>
-      workHistoryView<Message>(model.workHistory, message =>
-        GotWorkHistoryMessage({ message }),
-      ),
+      h.submodel({
+        id: 'work-history',
+        view: workHistoryView,
+        model: model.workHistory,
+        toParentMessage: message => GotWorkHistoryMessage({ message }),
+      }),
     ),
     M.when('Education', () =>
-      educationView<Message>(model.education, message =>
-        GotEducationMessage({ message }),
-      ),
+      h.submodel({
+        id: 'education',
+        view: educationView,
+        model: model.education,
+        toParentMessage: message => GotEducationMessage({ message }),
+      }),
     ),
     M.when('Skills', () =>
-      skillsView<Message>(model.skills, message =>
-        GotSkillsMessage({ message }),
-      ),
+      h.submodel({
+        id: 'skills',
+        view: skillsView,
+        model: model.skills,
+        toParentMessage: message => GotSkillsMessage({ message }),
+      }),
     ),
     M.when('CoverLetter', () =>
-      coverLetterView<Message>(model.coverLetter, message =>
-        GotCoverLetterMessage({ message }),
-      ),
+      h.submodel({
+        id: 'cover-letter',
+        view: coverLetterView,
+        model: model.coverLetter,
+        toParentMessage: message => GotCoverLetterMessage({ message }),
+      }),
     ),
     M.when('Attachments', () =>
-      attachmentsView<Message>(model.attachments, message =>
-        GotAttachmentsMessage({ message }),
-      ),
+      h.submodel({
+        id: 'attachments',
+        view: attachmentsView,
+        model: model.attachments,
+        toParentMessage: message => GotAttachmentsMessage({ message }),
+      }),
     ),
-    M.when('Review', () => review<Message>(model, SubmittedApplication())),
+    M.when('Review', () => review(model, SubmittedApplication())),
     M.exhaustive,
   )
+}
 
 const isFirstStep = (model: Model): boolean =>
   pipe(Step.all, Array.head, Option.exists(Equal.equals(model.currentStep)))
@@ -183,7 +204,7 @@ const desktopStepSidebar = (
       h.div(
         [h.Class('sticky top-8')],
         [
-          stepList<Message>(model.currentStep, errorSteps, step =>
+          stepList(model.currentStep, errorSteps, step =>
             NavigatedToStep({ step }),
           ),
         ],
@@ -217,7 +238,7 @@ const desktopPreviewSidebar = (model: Model): Html => {
                 'rounded-xl border border-gray-200 bg-white p-6 shadow-sm',
               ),
             ],
-            [preview<Message>(model)],
+            [preview(model)],
           ),
         ],
       ),
@@ -261,7 +282,7 @@ const mobilePreviewOverlay = (model: Model): Html => {
         'fixed inset-x-4 bottom-16 top-4 overflow-y-auto rounded-xl border border-gray-200 bg-white p-6 shadow-2xl xl:hidden',
       ),
     ],
-    [preview<Message>(model)],
+    [preview(model)],
   )
 }
 
@@ -279,11 +300,8 @@ export const view = (model: Model): Document => {
           h.div(
             [h.Class('mb-6 lg:hidden')],
             [
-              stepMenu<Message>(
-                model,
-                errorSteps,
-                message => GotStepMenuMessage({ message }),
-                step => NavigatedToStep({ step }),
+              stepMenu(model, errorSteps, message =>
+                GotStepMenuMessage({ message }),
               ),
             ],
           ),

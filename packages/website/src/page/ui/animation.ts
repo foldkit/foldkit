@@ -47,16 +47,22 @@ export const animationDemo = <ParentMessage>(
           ],
           [animationModel.isShowing ? 'Hide Content' : 'Show Content'],
         ),
-        Ui.Animation.view({
+        h.submodel({
+          id: animationModel.id,
+          view: Ui.Animation.view,
           model: animationModel,
-          className: contentClassName,
-          animateSize: true,
-          content: h.p(
-            [h.Class('text-accent-800 dark:text-accent-200')],
-            [
-              'This content fades in and out using CSS transitions coordinated by the Animation component. The data attributes (data-closed, data-enter, data-leave, data-transition) drive the animation via Tailwind selectors.',
-            ],
-          ),
+          inputs: {
+            className: contentClassName,
+            animateSize: true,
+            content: h.p(
+              [h.Class('text-accent-800 dark:text-accent-200')],
+              [
+                'This content fades in and out using CSS transitions coordinated by the Animation component. The data attributes (data-closed, data-enter, data-leave, data-transition) drive the animation via Tailwind selectors.',
+              ],
+            ),
+          },
+          toParentMessage: message =>
+            toParentMessage(GotAnimationDemoMessage({ message })),
         }),
       ],
     ),

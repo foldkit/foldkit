@@ -16,12 +16,12 @@ import {
 import type { Model } from '../model'
 import { cardView } from './card'
 
-const addCardForm = <ParentMessage>(
+const addCardForm = (
   model: Model,
   columnId: string,
-  toParentMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => Message,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   const isAddingToThisColumn = Option.exists(
     model.maybeNewCardColumnId,
@@ -33,7 +33,7 @@ const addCardForm = <ParentMessage>(
       'idle',
       [],
       [
-        Ui.Button.view({
+        Ui.Button.view<Message>({
           onClick: toParentMessage(ClickedAddCard({ columnId })),
           toView: attributes =>
             h.button(
@@ -64,7 +64,7 @@ const addCardForm = <ParentMessage>(
             [h.For(ADD_CARD_INPUT_ID), h.Class('sr-only')],
             ['New card title'],
           ),
-          Ui.Input.view({
+          Ui.Input.view<Message>({
             id: ADD_CARD_INPUT_ID,
             onInput: value => toParentMessage(ChangedNewCardTitle({ value })),
             value: model.newCardTitle,
@@ -86,7 +86,7 @@ const addCardForm = <ParentMessage>(
           h.div(
             [h.Class('flex gap-2 justify-end')],
             [
-              Ui.Button.view({
+              Ui.Button.view<Message>({
                 onClick: toParentMessage(CancelledNewCard()),
                 toView: attributes =>
                   h.button(
@@ -99,7 +99,7 @@ const addCardForm = <ParentMessage>(
                     ['Cancel'],
                   ),
               }),
-              Ui.Button.view<ParentMessage>({
+              Ui.Button.view<Message>({
                 type: 'submit',
                 toView: attributes =>
                   h.button(
@@ -120,8 +120,8 @@ const addCardForm = <ParentMessage>(
   )
 }
 
-const dropPlaceholder = <ParentMessage>(): Html => {
-  const h = html<ParentMessage>()
+const dropPlaceholder = (): Html => {
+  const h = html<Message>()
   return h.keyed('li')(
     'drop-placeholder',
     [
@@ -144,29 +144,28 @@ const findDraggedCard = (
     Array.findFirst(({ id }) => id === draggedId),
   )
 
-const defaultCardElements = <ParentMessage>(
+const defaultCardElements = (
   model: Model,
   column: Column.Column,
-  toParentMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => Message,
 ): ReadonlyArray<Html> =>
   Array.map(column.cards, (card, index) =>
-    cardView<ParentMessage>(model, card, column.id, index, message =>
+    cardView(model, card, column.id, index, message =>
       toParentMessage(GotDragAndDropMessage({ message })),
     ),
   )
 
-const previewCardElements = <ParentMessage>(
+const previewCardElements = (
   model: Model,
   column: Column.Column,
-  toParentMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => Message,
 ): ReadonlyArray<Html> => {
   if (!Ui.DragAndDrop.isDragging(model.dragAndDrop)) {
-    return defaultCardElements<ParentMessage>(model, column, toParentMessage)
+    return defaultCardElements(model, column, toParentMessage)
   }
 
   return Option.match(Ui.DragAndDrop.maybeDraggedItemId(model.dragAndDrop), {
-    onNone: () =>
-      defaultCardElements<ParentMessage>(model, column, toParentMessage),
+    onNone: () => defaultCardElements(model, column, toParentMessage),
     onSome: draggedId => {
       const maybeTarget = Ui.DragAndDrop.maybeDropTarget(model.dragAndDrop)
       const visibleCards = Array.filter(
@@ -174,7 +173,7 @@ const previewCardElements = <ParentMessage>(
         ({ id }) => id !== draggedId,
       )
       const cardElements = Array.map(visibleCards, (card, index) =>
-        cardView<ParentMessage>(model, card, column.id, index, message =>
+        cardView(model, card, column.id, index, message =>
           toParentMessage(GotDragAndDropMessage({ message })),
         ),
       )
@@ -195,16 +194,12 @@ const previewCardElements = <ParentMessage>(
 
       const isPointerDrag = model.dragAndDrop.dragState._tag === 'Dragging'
       const insertElement = isPointerDrag
-        ? dropPlaceholder<ParentMessage>()
+        ? dropPlaceholder()
         : Option.match(findDraggedCard(model, draggedId), {
-            onNone: () => dropPlaceholder<ParentMessage>(),
+            onNone: () => dropPlaceholder(),
             onSome: card =>
-              cardView<ParentMessage>(
-                model,
-                card,
-                column.id,
-                targetIndex,
-                message => toParentMessage(GotDragAndDropMessage({ message })),
+              cardView(model, card, column.id, targetIndex, message =>
+                toParentMessage(GotDragAndDropMessage({ message })),
               ),
           })
 
@@ -217,12 +212,12 @@ const previewCardElements = <ParentMessage>(
   })
 }
 
-export const columnView = <ParentMessage>(
+export const columnView = (
   model: Model,
   column: Column.Column,
-  toParentMessage: (message: Message) => ParentMessage,
+  toParentMessage: (message: Message) => Message,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   const maybeCurrentDropTarget = Ui.DragAndDrop.maybeDropTarget(
     model.dragAndDrop,
@@ -271,13 +266,13 @@ export const columnView = <ParentMessage>(
       h.ul(
         [
           h.Class('flex flex-col gap-2 flex-1 overflow-y-auto min-h-0'),
-          ...Ui.DragAndDrop.droppable<ParentMessage>(column.id, column.name),
+          ...Ui.DragAndDrop.droppable<Message>(column.id, column.name),
         ],
-        previewCardElements<ParentMessage>(model, column, toParentMessage),
+        previewCardElements(model, column, toParentMessage),
       ),
       h.div(
         [h.Class('mt-3 pt-2 border-t border-gray-200')],
-        [addCardForm<ParentMessage>(model, column.id, toParentMessage)],
+        [addCardForm(model, column.id, toParentMessage)],
       ),
     ],
   )

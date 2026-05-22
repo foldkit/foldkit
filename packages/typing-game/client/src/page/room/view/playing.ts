@@ -6,13 +6,12 @@ import { USER_GAME_TEXT_INPUT_ID } from '../../../constant'
 import { ChangedUserText } from '../message'
 import type { Message } from '../message'
 
-const typing = <ParentMessage>(
+const typing = (
   gameText: string,
   userGameText: string,
   maybeWrongCharIndex: Option.Option<number>,
-  toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return h.div(
     [h.Class('relative')],
@@ -22,46 +21,39 @@ const typing = <ParentMessage>(
           h.Id(USER_GAME_TEXT_INPUT_ID),
           h.Value(userGameText),
           h.Class('absolute inset-0 opacity-0 z-10 resize-none'),
-          h.OnInput(value => toParentMessage(ChangedUserText({ value }))),
+          h.OnInput(value => ChangedUserText({ value })),
           h.Spellcheck(false),
           h.Autocorrect('off'),
           h.Autocapitalize('none'),
         ],
         [],
       ),
-      gameTextWithProgress<ParentMessage>(
-        gameText,
-        userGameText,
-        maybeWrongCharIndex,
-      ),
+      gameTextWithProgress(gameText, userGameText, maybeWrongCharIndex),
     ],
   )
 }
 
-const gameTextWithProgress = <ParentMessage>(
+const gameTextWithProgress = (
   gameText: string,
   userGameText: string,
   maybeWrongCharIndex: Option.Option<number>,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return h.div(
     [h.Class('whitespace-pre-wrap')],
     pipe(
       gameText,
       Str.split(''),
-      Array.map(char<ParentMessage>(userGameText, maybeWrongCharIndex)),
+      Array.map(char(userGameText, maybeWrongCharIndex)),
     ),
   )
 }
 
 const char =
-  <ParentMessage>(
-    userGameText: string,
-    maybeWrongCharIndex: Option.Option<number>,
-  ) =>
+  (userGameText: string, maybeWrongCharIndex: Option.Option<number>) =>
   (char: string, index: number): Html => {
-    const h = html<ParentMessage>()
+    const h = html<Message>()
     const userGameTextLength = Str.length(userGameText)
     const hasNoInput = userGameTextLength === 0
     const isNext =
@@ -92,14 +84,13 @@ const char =
     return h.span([h.Class(charClassName)], [displayChar])
   }
 
-export const playing = <ParentMessage>(
+export const playing = (
   secondsLeft: number,
   maybeGameText: Option.Option<string>,
   userGameText: string,
   maybeWrongCharIndex: Option.Option<number>,
-  toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return h.div(
     [h.Class('space-y-6')],
@@ -112,13 +103,7 @@ export const playing = <ParentMessage>(
       ),
       Option.match(maybeGameText, {
         onNone: () => h.empty,
-        onSome: gameText =>
-          typing<ParentMessage>(
-            gameText,
-            userGameText,
-            maybeWrongCharIndex,
-            toParentMessage,
-          ),
+        onSome: gameText => typing(gameText, userGameText, maybeWrongCharIndex),
       }),
     ],
   )

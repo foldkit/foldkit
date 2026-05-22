@@ -1,16 +1,9 @@
-export {
-  init,
-  update,
-  open,
-  close,
-  selectItem,
-  view,
-  lazy,
-  Model,
-} from './single.js'
+export { init, create, Model } from './single.js'
 
 export {
   Message,
+  OutMessage,
+  Selected,
   Orientation,
   SelectedItem,
   CompletedLockScroll,
@@ -56,7 +49,7 @@ export type {
   GroupHeading,
 } from './shared.js'
 
-export type { InitConfig, ViewConfig } from './single.js'
+export type { InitConfig, ViewInputs } from './single.js'
 
 export type { AnchorConfig } from '../anchor.js'
 

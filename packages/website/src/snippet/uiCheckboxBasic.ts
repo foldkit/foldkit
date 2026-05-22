@@ -38,41 +38,43 @@ GotCheckboxMessage: ({ message }) => {
     // Merge the next state into your Model:
     evo(model, { checkboxDemo: () => nextCheckbox }),
     // Forward the Submodel's Commands through your parent Message:
-    commands.map(
-      Command.mapEffect(Effect.map(message => GotCheckboxMessage({ message }))),
-    ),
+    Command.mapMessages(commands, message => GotCheckboxMessage({ message })),
   ]
 }
 
-// Inside your view function, render the checkbox:
+// Inside your view function, render the checkbox via h.submodel:
 const view = () => {
   const h = html<Message>()
 
-  return Ui.Checkbox.view({
+  return h.submodel({
+    id: 'terms-checkbox',
+    view: Ui.Checkbox.view,
     model: model.checkboxDemo,
+    inputs: {
+      toView: attributes =>
+        h.div(
+          [h.Class('flex flex-col gap-1')],
+          [
+            h.div(
+              [h.Class('flex items-center gap-2')],
+              [
+                h.button(
+                  [...attributes.checkbox, h.Class('h-5 w-5 rounded border')],
+                  model.checkboxDemo.isChecked ? ['✓'] : [],
+                ),
+                h.label(
+                  [...attributes.label, h.Class('text-sm')],
+                  ['Accept terms and conditions'],
+                ),
+              ],
+            ),
+            h.p(
+              [...attributes.description, h.Class('text-sm text-gray-500')],
+              ['You agree to our Terms of Service.'],
+            ),
+          ],
+        ),
+    },
     toParentMessage: message => GotCheckboxMessage({ message }),
-    toView: attributes =>
-      h.div(
-        [h.Class('flex flex-col gap-1')],
-        [
-          h.div(
-            [h.Class('flex items-center gap-2')],
-            [
-              h.button(
-                [...attributes.checkbox, h.Class('h-5 w-5 rounded border')],
-                model.checkboxDemo.isChecked ? ['✓'] : [],
-              ),
-              h.label(
-                [...attributes.label, h.Class('text-sm')],
-                ['Accept terms and conditions'],
-              ),
-            ],
-          ),
-          h.p(
-            [...attributes.description, h.Class('text-sm text-gray-500')],
-            ['You agree to our Terms of Service.'],
-          ),
-        ],
-      ),
   })
 }

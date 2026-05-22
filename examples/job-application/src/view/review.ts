@@ -2,6 +2,7 @@ import { Match as M, Option } from 'effect'
 import { File } from 'foldkit'
 import { type Html, html } from 'foldkit/html'
 
+import type { Message } from '../message'
 import type { Model } from '../model'
 import * as Education from '../step/education'
 import * as PersonalInfo from '../step/personalInfo'
@@ -9,8 +10,8 @@ import * as Skills from '../step/skills'
 import * as WorkHistory from '../step/workHistory'
 import { employmentRange, pluralize } from './format'
 
-const reviewSection = <ParentMessage>(title: string, content: Html): Html => {
-  const h = html<ParentMessage>()
+const reviewSection = (title: string, content: Html): Html => {
+  const h = html<Message>()
 
   return h.section(
     [h.Class('rounded-lg border border-gray-200 p-4')],
@@ -21,8 +22,8 @@ const reviewSection = <ParentMessage>(title: string, content: Html): Html => {
   )
 }
 
-const fieldRow = <ParentMessage>(label: string, value: string): Html => {
-  const h = html<ParentMessage>()
+const fieldRow = (label: string, value: string): Html => {
+  const h = html<Message>()
 
   return value
     ? h.div(
@@ -35,34 +36,32 @@ const fieldRow = <ParentMessage>(label: string, value: string): Html => {
     : h.empty
 }
 
-const personalInfoSection = <ParentMessage>(
+const personalInfoSection = (
   personalInfo: Model['personalInfo'],
   pronounLabel: string,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
-  return reviewSection<ParentMessage>(
+  return reviewSection(
     'Personal Information',
     h.div(
       [h.Class('divide-y divide-gray-100')],
       [
-        fieldRow<ParentMessage>(
+        fieldRow(
           'Name',
           `${personalInfo.firstName.value} ${personalInfo.lastName.value}`.trim(),
         ),
-        fieldRow<ParentMessage>('Email', personalInfo.email.value),
-        fieldRow<ParentMessage>('Phone', personalInfo.phone.value),
-        fieldRow<ParentMessage>('Pronouns', pronounLabel),
-        fieldRow<ParentMessage>('Portfolio', personalInfo.portfolioUrl.value),
+        fieldRow('Email', personalInfo.email.value),
+        fieldRow('Phone', personalInfo.phone.value),
+        fieldRow('Pronouns', pronounLabel),
+        fieldRow('Portfolio', personalInfo.portfolioUrl.value),
       ],
     ),
   )
 }
 
-const workEntryReview = <ParentMessage>(
-  entry: WorkHistory.Entry.Model,
-): Html => {
-  const h = html<ParentMessage>()
+const workEntryReview = (entry: WorkHistory.Entry.Model): Html => {
+  const h = html<Message>()
 
   const title = entry.company.value
     ? `${entry.title.value} at ${entry.company.value}`
@@ -92,16 +91,14 @@ const workEntryReview = <ParentMessage>(
   )
 }
 
-const workHistorySection = <ParentMessage>(
-  workHistory: Model['workHistory'],
-): Html => {
-  const h = html<ParentMessage>()
+const workHistorySection = (workHistory: Model['workHistory']): Html => {
+  const h = html<Message>()
 
-  return reviewSection<ParentMessage>(
+  return reviewSection(
     `Work History (${pluralize(workHistory.entries.length, 'position', 'positions')})`,
     h.div(
       [h.Class('space-y-2')],
-      workHistory.entries.map(entry => workEntryReview<ParentMessage>(entry)),
+      workHistory.entries.map(entry => workEntryReview(entry)),
     ),
   )
 }
@@ -116,10 +113,8 @@ const educationTimeline = (entry: Education.Entry.Model): string => {
   return ''
 }
 
-const educationEntryReview = <ParentMessage>(
-  entry: Education.Entry.Model,
-): Html => {
-  const h = html<ParentMessage>()
+const educationEntryReview = (entry: Education.Entry.Model): Html => {
+  const h = html<Message>()
 
   const title = entry.fieldOfStudy.value
     ? `${entry.degree.value} in ${entry.fieldOfStudy.value}`
@@ -138,26 +133,22 @@ const educationEntryReview = <ParentMessage>(
   )
 }
 
-const educationSection = <ParentMessage>(
-  education: Model['education'],
-): Html => {
-  const h = html<ParentMessage>()
+const educationSection = (education: Model['education']): Html => {
+  const h = html<Message>()
 
-  return reviewSection<ParentMessage>(
+  return reviewSection(
     `Education (${pluralize(education.entries.length, 'entry', 'entries')})`,
     h.div(
       [h.Class('space-y-2')],
-      education.entries.map(entry =>
-        educationEntryReview<ParentMessage>(entry),
-      ),
+      education.entries.map(entry => educationEntryReview(entry)),
     ),
   )
 }
 
-const skillsSection = <ParentMessage>(skills: Model['skills']): Html => {
-  const h = html<ParentMessage>()
+const skillsSection = (skills: Model['skills']): Html => {
+  const h = html<Message>()
 
-  return reviewSection<ParentMessage>(
+  return reviewSection(
     `Skills (${skills.entries.length})`,
     h.div(
       [h.Class('flex flex-wrap gap-1.5')],
@@ -178,12 +169,10 @@ const skillsSection = <ParentMessage>(skills: Model['skills']): Html => {
   )
 }
 
-const coverLetterSection = <ParentMessage>(
-  coverLetter: Model['coverLetter'],
-): Html => {
-  const h = html<ParentMessage>()
+const coverLetterSection = (coverLetter: Model['coverLetter']): Html => {
+  const h = html<Message>()
 
-  return reviewSection<ParentMessage>(
+  return reviewSection(
     'Cover Letter',
     coverLetter.content
       ? h.p(
@@ -197,12 +186,10 @@ const coverLetterSection = <ParentMessage>(
   )
 }
 
-const attachmentsSection = <ParentMessage>(
-  attachments: Model['attachments'],
-): Html => {
-  const h = html<ParentMessage>()
+const attachmentsSection = (attachments: Model['attachments']): Html => {
+  const h = html<Message>()
 
-  return reviewSection<ParentMessage>(
+  return reviewSection(
     'Attachments',
     h.div(
       [h.Class('space-y-1')],
@@ -241,8 +228,8 @@ const submitButtonClass = (isEnabled: boolean): string =>
     ? 'w-full rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition cursor-pointer'
     : 'w-full rounded-lg bg-indigo-300 px-4 py-3 text-sm font-semibold text-white cursor-not-allowed'
 
-const blockedNotice = <ParentMessage>(): Html => {
-  const h = html<ParentMessage>()
+const blockedNotice = (): Html => {
+  const h = html<Message>()
 
   return h.keyed('p')(
     'blocked-notice',
@@ -251,12 +238,12 @@ const blockedNotice = <ParentMessage>(): Html => {
   )
 }
 
-const submissionSection = <ParentMessage>(
+const submissionSection = (
   submission: Model['submission'],
   isSubmittable: boolean,
-  onSubmit: ParentMessage,
+  onSubmit: Message,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return M.value(submission).pipe(
     M.tagsExhaustive({
@@ -265,7 +252,7 @@ const submissionSection = <ParentMessage>(
           'submit-idle',
           [h.Class('pt-4 space-y-2')],
           [
-            ...(isSubmittable ? [] : [blockedNotice<ParentMessage>()]),
+            ...(isSubmittable ? [] : [blockedNotice()]),
             h.keyed('button')(
               'submit',
               [
@@ -328,7 +315,7 @@ const submissionSection = <ParentMessage>(
               ],
               [error],
             ),
-            ...(isSubmittable ? [] : [blockedNotice<ParentMessage>()]),
+            ...(isSubmittable ? [] : [blockedNotice()]),
             h.keyed('button')(
               'submit',
               [
@@ -344,11 +331,8 @@ const submissionSection = <ParentMessage>(
   )
 }
 
-export const review = <ParentMessage>(
-  model: Model,
-  onSubmit: ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+export const review = (model: Model, onSubmit: Message): Html => {
+  const h = html<Message>()
 
   const pronounLabel = Option.match(
     model.personalInfo.pronouns.maybeSelectedItem,
@@ -362,13 +346,13 @@ export const review = <ParentMessage>(
   return h.div(
     [h.Class('space-y-4')],
     [
-      personalInfoSection<ParentMessage>(model.personalInfo, pronounLabel),
-      workHistorySection<ParentMessage>(model.workHistory),
-      educationSection<ParentMessage>(model.education),
-      skillsSection<ParentMessage>(model.skills),
-      coverLetterSection<ParentMessage>(model.coverLetter),
-      attachmentsSection<ParentMessage>(model.attachments),
-      submissionSection<ParentMessage>(
+      personalInfoSection(model.personalInfo, pronounLabel),
+      workHistorySection(model.workHistory),
+      educationSection(model.education),
+      skillsSection(model.skills),
+      coverLetterSection(model.coverLetter),
+      attachmentsSection(model.attachments),
+      submissionSection(
         model.submission,
         PersonalInfo.isComplete(model.personalInfo) &&
           WorkHistory.isComplete(model.workHistory) &&

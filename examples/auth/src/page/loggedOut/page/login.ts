@@ -9,7 +9,7 @@ import {
   String,
   pipe,
 } from 'effect'
-import { Command } from 'foldkit'
+import { Command, Submodel } from 'foldkit'
 import {
   Field,
   Invalid,
@@ -190,15 +190,15 @@ const fieldToBorderClass = (field: Field) =>
     }),
   )
 
-const fieldView = <ParentMessage>(
+const fieldView = (
   id: string,
   labelText: string,
   field: Field,
-  onUpdate: (value: string) => ParentMessage,
+  onUpdate: (value: string) => Message,
   type: 'text' | 'email' | 'password' = 'text',
   placeholder = '',
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   const inputClass = clsx(
     'w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
@@ -250,11 +250,8 @@ const fieldView = <ParentMessage>(
   )
 }
 
-export const view = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+export const view = Submodel.defineView<Model, Message>((model): Html => {
+  const h = html<Message>()
 
   const canSubmit = isFormValid(model) && !model.isSubmitting
 
@@ -278,24 +275,21 @@ export const view = <ParentMessage>(
             ],
           ),
           h.form(
+            [h.Class('space-y-6'), h.OnSubmit(SubmittedForm())],
             [
-              h.Class('space-y-6'),
-              h.OnSubmit(toParentMessage(SubmittedForm())),
-            ],
-            [
-              fieldView<ParentMessage>(
+              fieldView(
                 'email',
                 'Email',
                 model.email,
-                value => toParentMessage(ChangedEmail({ value })),
+                value => ChangedEmail({ value }),
                 'email',
                 'you@example.com',
               ),
-              fieldView<ParentMessage>(
+              fieldView(
                 'password',
                 'Password',
                 model.password,
-                value => toParentMessage(ChangedPassword({ value })),
+                value => ChangedPassword({ value }),
                 'password',
                 'Enter your password',
               ),
@@ -333,4 +327,4 @@ export const view = <ParentMessage>(
       ),
     ],
   )
-}
+})

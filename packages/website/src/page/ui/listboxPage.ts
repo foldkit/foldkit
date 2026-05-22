@@ -76,6 +76,12 @@ const viewConfigHeader: TableOfContentsEntry = {
   text: 'ViewConfig',
 }
 
+const outMessageHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'out-message',
+  text: 'OutMessage',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -88,6 +94,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   apiReferenceHeader,
   initConfigHeader,
   viewConfigHeader,
+  outMessageHeader,
 ]
 
 // SECTION DATA
@@ -154,12 +161,6 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
       'Content rendered inside the listbox button (typically the selected value).',
   },
   {
-    name: 'onSelectedItem',
-    type: '(value: string) => Message',
-    description:
-      'Alternative to Submodel delegation: fires your own Message on selection. Use with Listbox.selectItem() to update the Model while also handling domain logic.',
-  },
-  {
     name: 'itemToValue',
     type: '(item: Item) => string',
     description:
@@ -203,6 +204,15 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     type: 'boolean',
     default: 'false',
     description: 'Marks the listbox as invalid for validation styling.',
+  },
+]
+
+const outMessageProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'Selected',
+    type: '{ item: Item; wasAdded: boolean }',
+    description:
+      'Emitted when an item is committed. Single-select listboxes always emit `wasAdded: true`. Multi-select listboxes emit `wasAdded: true` when adding to the selection and `wasAdded: false` when toggling off. Pattern-match the third tuple element of Listbox.update in your GotListboxMessage handler to lift the item into domain state.',
   },
 ]
 
@@ -461,6 +471,19 @@ export const view = <ParentMessage>(
         '.',
       ),
       propTable(viewConfigProps),
+      heading(
+        outMessageHeader.level,
+        outMessageHeader.id,
+        outMessageHeader.text,
+      ),
+      para(
+        'Messages emitted to the parent through the third element of ',
+        inlineCode('[Model, Commands, Option<OutMessage>]'),
+        '. Pattern-match on the OutMessage in your update handler. The same shape applies to ',
+        inlineCode('Listbox.Multi.update'),
+        '.',
+      ),
+      propTable(outMessageProps),
     ],
   )
 }

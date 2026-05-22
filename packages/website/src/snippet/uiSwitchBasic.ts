@@ -35,55 +35,57 @@ GotSwitchMessage: ({ message }) => {
     // Merge the next state into your Model:
     evo(model, { switchDemo: () => nextSwitch }),
     // Forward the Submodel's Commands through your parent Message:
-    commands.map(
-      Command.mapEffect(Effect.map(message => GotSwitchMessage({ message }))),
-    ),
+    Command.mapMessages(commands, message => GotSwitchMessage({ message })),
   ]
 }
 
-// Inside your view function, render the switch:
+// Inside your view function, embed the Switch via h.submodel:
 const view = () => {
   const h = html<Message>()
 
-  return Ui.Switch.view({
+  return h.submodel({
+    id: 'switch-demo',
+    view: Ui.Switch.view,
     model: model.switchDemo,
+    inputs: {
+      toView: attributes =>
+        h.div(
+          [h.Class('flex items-center gap-3')],
+          [
+            h.button(
+              [
+                ...attributes.button,
+                h.Class(
+                  'relative h-6 w-11 rounded-full transition-colors data-[checked]:bg-blue-600 bg-gray-200',
+                ),
+              ],
+              [
+                h.div(
+                  [
+                    h.Class(
+                      'absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform',
+                    ),
+                  ],
+                  [],
+                ),
+              ],
+            ),
+            h.div(
+              [],
+              [
+                h.label(
+                  [...attributes.label, h.Class('text-sm font-medium')],
+                  ['Enable notifications'],
+                ),
+                h.p(
+                  [...attributes.description, h.Class('text-sm text-gray-500')],
+                  ['Get notified when something important happens.'],
+                ),
+              ],
+            ),
+          ],
+        ),
+    },
     toParentMessage: message => GotSwitchMessage({ message }),
-    toView: attributes =>
-      h.div(
-        [h.Class('flex items-center gap-3')],
-        [
-          h.button(
-            [
-              ...attributes.button,
-              h.Class(
-                'relative h-6 w-11 rounded-full transition-colors data-[checked]:bg-blue-600 bg-gray-200',
-              ),
-            ],
-            [
-              h.div(
-                [
-                  h.Class(
-                    'absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform',
-                  ),
-                ],
-                [],
-              ),
-            ],
-          ),
-          h.div(
-            [],
-            [
-              h.label(
-                [...attributes.label, h.Class('text-sm font-medium')],
-                ['Enable notifications'],
-              ),
-              h.p(
-                [...attributes.description, h.Class('text-sm text-gray-500')],
-                ['Get notified when something important happens.'],
-              ),
-            ],
-          ),
-        ],
-      ),
   })
 }

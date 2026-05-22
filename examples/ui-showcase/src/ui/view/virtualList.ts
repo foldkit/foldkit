@@ -1,10 +1,12 @@
 import { Array, Match as M, Option, pipe } from 'effect'
-import { Ui } from 'foldkit'
+import { Submodel, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import {
   ClickedVirtualListScrollToMiddle,
   ClickedVirtualListVariableScrollToMiddle,
+  GotVirtualListDemoMessage,
+  GotVirtualListVariableDemoMessage,
   type UiMessage,
 } from '../message'
 import type { UiModel } from '../model'
@@ -212,8 +214,8 @@ const variableArtifactClassName =
 
 const subsectionHeadingClassName = 'text-lg font-semibold text-gray-900 mt-2'
 
-const shortRow = <ParentMessage>(row: Activity): Html => {
-  const h = html<ParentMessage>()
+const shortRow = (row: Activity): Html => {
+  const h = html<UiMessage>()
 
   return h.div(
     [h.Class(rowClassName)],
@@ -234,8 +236,8 @@ const shortRow = <ParentMessage>(row: Activity): Html => {
   )
 }
 
-const tallRow = <ParentMessage>(row: Activity, summary: Summary): Html => {
-  const h = html<ParentMessage>()
+const tallRow = (row: Activity, summary: Summary): Html => {
+  const h = html<UiMessage>()
 
   return h.div(
     [h.Class(variableTallRowClassName)],
@@ -264,11 +266,8 @@ const tallRow = <ParentMessage>(row: Activity, summary: Summary): Html => {
   )
 }
 
-export const view = <ParentMessage>(
-  model: UiModel,
-  toParentMessage: (message: UiMessage) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
+  const h = html<UiMessage>()
 
   return h.div(
     [],
@@ -291,20 +290,24 @@ export const view = <ParentMessage>(
                   h.button(
                     [
                       h.Class(buttonClassName),
-                      h.OnClick(
-                        toParentMessage(ClickedVirtualListScrollToMiddle()),
-                      ),
+                      h.OnClick(ClickedVirtualListScrollToMiddle()),
                     ],
                     ['Jump to middle'],
                   ),
                 ],
               ),
-              Ui.VirtualList.view({
+              h.submodel({
+                id: model.virtualListDemo.id,
+                view: Ui.VirtualList.view<Activity>(),
                 model: model.virtualListDemo,
-                items: sampleActivities,
-                itemToKey: row => String(row.id),
-                itemToView: row => shortRow<ParentMessage>(row),
-                className: containerClassName,
+                inputs: {
+                  items: sampleActivities,
+                  itemToKey: row => String(row.id),
+                  itemToView: row => shortRow(row),
+                  containerClassName,
+                },
+                toParentMessage: message =>
+                  GotVirtualListDemoMessage({ message }),
               }),
             ],
           ),
@@ -325,26 +328,28 @@ export const view = <ParentMessage>(
                   h.button(
                     [
                       h.Class(buttonClassName),
-                      h.OnClick(
-                        toParentMessage(
-                          ClickedVirtualListVariableScrollToMiddle(),
-                        ),
-                      ),
+                      h.OnClick(ClickedVirtualListVariableScrollToMiddle()),
                     ],
                     ['Jump to middle'],
                   ),
                 ],
               ),
-              Ui.VirtualList.view({
+              h.submodel({
+                id: model.virtualListVariableDemo.id,
+                view: Ui.VirtualList.view<Activity>(),
                 model: model.virtualListVariableDemo,
-                items: variableActivities,
-                itemToKey: row => String(row.id),
-                itemToRowHeightPx: variableRowHeightPx,
-                itemToView: (row, index) =>
-                  row.hasSummary
-                    ? tallRow<ParentMessage>(row, summaryFor(index))
-                    : shortRow<ParentMessage>(row),
-                className: containerClassName,
+                inputs: {
+                  items: variableActivities,
+                  itemToKey: row => String(row.id),
+                  itemToRowHeightPx: variableRowHeightPx,
+                  itemToView: (row, index) =>
+                    row.hasSummary
+                      ? tallRow(row, summaryFor(index))
+                      : shortRow(row),
+                  containerClassName,
+                },
+                toParentMessage: message =>
+                  GotVirtualListVariableDemoMessage({ message }),
               }),
             ],
           ),
@@ -352,4 +357,4 @@ export const view = <ParentMessage>(
       ),
     ],
   )
-}
+})

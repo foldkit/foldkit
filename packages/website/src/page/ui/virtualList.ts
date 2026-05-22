@@ -6,6 +6,8 @@ import type { TableOfContentsEntry } from '../../main'
 import {
   ClickedVirtualListScrollToMiddle,
   ClickedVirtualListVariableScrollToMiddle,
+  GotVirtualListDemoMessage,
+  GotVirtualListVariableDemoMessage,
   type Message,
 } from './message'
 
@@ -178,32 +180,38 @@ export const virtualListDemo = <ParentMessage>(
             ),
           ],
         ),
-        Ui.VirtualList.view({
+        h.submodel({
+          id: model.id,
+          view: Ui.VirtualList.view<Activity>(),
           model,
-          items: sampleActivities,
-          itemToKey: row => String(row.id),
-          itemToView: row =>
-            h.div(
-              [h.Class(rowClassName)],
-              [
-                h.div(
-                  [h.Class(avatarClassName(row.colorClass))],
-                  [row.initial],
-                ),
-                h.div(
-                  [h.Class(activityTextClassName)],
-                  [
-                    h.span([h.Class(actorClassName)], [row.actor]),
-                    ' ',
-                    row.verb,
-                    ' ',
-                    h.span([h.Class(targetClassName)], [row.target]),
-                  ],
-                ),
-                h.div([h.Class(timeAgoClassName)], [row.timeAgo]),
-              ],
-            ),
-          className: containerClassName,
+          inputs: {
+            items: sampleActivities,
+            itemToKey: row => String(row.id),
+            itemToView: row =>
+              h.div(
+                [h.Class(rowClassName)],
+                [
+                  h.div(
+                    [h.Class(avatarClassName(row.colorClass))],
+                    [row.initial],
+                  ),
+                  h.div(
+                    [h.Class(activityTextClassName)],
+                    [
+                      h.span([h.Class(actorClassName)], [row.actor]),
+                      ' ',
+                      row.verb,
+                      ' ',
+                      h.span([h.Class(targetClassName)], [row.target]),
+                    ],
+                  ),
+                  h.div([h.Class(timeAgoClassName)], [row.timeAgo]),
+                ],
+              ),
+            containerClassName,
+          },
+          toParentMessage: message =>
+            toParentMessage(GotVirtualListDemoMessage({ message })),
         }),
       ],
     ),
@@ -355,16 +363,22 @@ export const virtualListVariableDemo = <ParentMessage>(
             ),
           ],
         ),
-        Ui.VirtualList.view({
+        h.submodel({
+          id: model.id,
+          view: Ui.VirtualList.view<Activity>(),
           model,
-          items: variableActivities,
-          itemToKey: row => String(row.id),
-          itemToRowHeightPx: variableRowHeightPx,
-          itemToView: (row, index) =>
-            row.hasSummary
-              ? variableTallRow(row, summaryFor(index))
-              : variableShortRow(row),
-          className: containerClassName,
+          inputs: {
+            items: variableActivities,
+            itemToKey: row => String(row.id),
+            itemToRowHeightPx: variableRowHeightPx,
+            itemToView: (row, index) =>
+              row.hasSummary
+                ? variableTallRow(row, summaryFor(index))
+                : variableShortRow(row),
+            containerClassName,
+          },
+          toParentMessage: message =>
+            toParentMessage(GotVirtualListVariableDemoMessage({ message })),
         }),
       ],
     ),

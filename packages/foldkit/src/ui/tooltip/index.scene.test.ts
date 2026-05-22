@@ -1,8 +1,8 @@
 import { describe, it } from '@effect/vitest'
-import { Effect } from 'effect'
 
+import { html, submodel } from '../../html/index.js'
 import * as Scene from '../../test/scene.js'
-import type { Message, Model, ViewConfig } from './index.js'
+import type { Message, Model } from './index.js'
 import {
   AnchorTooltip,
   CompletedAnchorTooltip,
@@ -18,24 +18,32 @@ const acknowledgeAnchor = Scene.Mount.resolve(
 )
 
 const sceneView =
-  (
-    overrides: Omit<
-      Partial<ViewConfig<Message>>,
-      'model' | 'toParentMessage'
-    > = {},
-  ) =>
-  (model: Model) =>
-    view({
-      anchor: { placement: 'top' },
-      triggerContent: Effect.succeed(null),
-      content: Effect.succeed(null),
-      ...overrides,
+  (overrides: { isDisabled?: boolean } = {}) =>
+  (model: Model) => {
+    const h = html<Message>()
+
+    return submodel({
+      id: 'test',
+      view,
       model,
+      inputs: {
+        anchor: { placement: 'top' },
+        isDisabled: overrides.isDisabled,
+        toView: ({ trigger, panel, isVisible }) =>
+          h.div(
+            [],
+            [
+              h.button([...trigger], []),
+              ...(isVisible ? [h.div([...panel], [])] : []),
+            ],
+          ),
+      },
       toParentMessage: message => message,
     })
+  }
 
-const trigger = Scene.selector('[key="test-trigger"]')
-const panel = Scene.selector('[key="test-panel"]')
+const trigger = Scene.selector('#test-trigger')
+const panel = Scene.selector('#test-panel')
 
 const hiddenModel = init({ id: 'test' })
 const [openModel] = update(init({ id: 'test' }), FocusedTrigger())

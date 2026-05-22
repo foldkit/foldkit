@@ -181,10 +181,8 @@ export const update = (
           evo(model, {
             productsPage: () => newProductsModel,
           }),
-          commands.map(
-            Command.mapEffect(
-              Effect.map(message => GotProductsMessage({ message })),
-            ),
+          Command.mapMessages(commands, message =>
+            GotProductsMessage({ message }),
           ),
         ]
       },
@@ -299,7 +297,7 @@ const navigationView = (currentRoute: AppRoute, cartCount: number): Html => {
 }
 
 const productsView = (model: Model): Html => {
-  return Products.view<Message>(
+  return Products.view(
     model.productsPage,
     model.cart,
     cartRouter,

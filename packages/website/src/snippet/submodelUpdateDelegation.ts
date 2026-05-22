@@ -1,4 +1,4 @@
-import { Array, Effect, Match as M } from 'effect'
+import { Match as M } from 'effect'
 import { Command } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
@@ -14,11 +14,8 @@ export const update = (
           message,
         )
 
-        const mappedCommands = Array.map(
-          commands,
-          Command.mapEffect(
-            Effect.map(message => GotSettingsMessage({ message })),
-          ),
+        const mappedCommands = Command.mapMessages(commands, message =>
+          GotSettingsMessage({ message }),
         )
 
         return [evo(model, { settings: () => nextSettings }), mappedCommands]

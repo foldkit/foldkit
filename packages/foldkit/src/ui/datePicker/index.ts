@@ -1,12 +1,12 @@
-import { Effect, Match as M, Option, Schema as S } from 'effect'
+import { Match as M, Option, Schema as S } from 'effect'
 
 import * as Calendar from '../../calendar/index.js'
 import type { CalendarDate } from '../../calendar/index.js'
 import * as Command from '../../command/index.js'
 import {
-  type Attribute,
+  type BoundaryAttribute,
   type Html,
-  createLazy,
+  defineView,
   html,
 } from '../../html/index.js'
 import { m } from '../../message/index.js'
@@ -79,11 +79,19 @@ export const ChangedViewMonth = m('ChangedViewMonth', {
   month: S.Int,
 })
 
-/** The date picker's OutMessage. Matches Calendar — only `ChangedViewMonth`.
- * Date selection goes through the `onSelectedDate` ViewConfig callback, not
- * OutMessage. */
-export const OutMessage = ChangedViewMonth
+/** Emitted when the user commits a date selection (propagated from the
+ * embedded Calendar). The popover has already closed; the parent reads the
+ * committed date and lifts it into domain state. */
+export const SelectedDateOut = m('SelectedDateOut', {
+  date: Calendar.CalendarDate,
+})
+
+/** Union of out-messages the date picker can produce. */
+export const OutMessage = S.Union([ChangedViewMonth, SelectedDateOut])
 export type OutMessage = typeof OutMessage.Type
+
+export type ChangedViewMonth = typeof ChangedViewMonth.Type
+export type SelectedDateOut = typeof SelectedDateOut.Type
 
 // INIT
 
@@ -142,29 +150,12 @@ const withUpdateReturn = M.withReturnType<UpdateReturn>()
 const mapCalendarCommands = (
   commands: ReadonlyArray<Command.Command<UiCalendar.Message>>,
 ): ReadonlyArray<Command.Command<Message>> =>
-  commands.map(
-    Command.mapEffect(Effect.map(message => GotCalendarMessage({ message }))),
-  )
+  Command.mapMessages(commands, message => GotCalendarMessage({ message }))
 
 const mapPopoverCommands = (
   commands: ReadonlyArray<Command.Command<Popover.Message>>,
 ): ReadonlyArray<Command.Command<Message>> =>
-  commands.map(
-    Command.mapEffect(Effect.map(message => GotPopoverMessage({ message }))),
-  )
-
-const mapCalendarOutMessage = (
-  maybeOutMessage: Option.Option<UiCalendar.OutMessage>,
-): Option.Option<OutMessage> =>
-  Option.map(
-    maybeOutMessage,
-    M.type<UiCalendar.OutMessage>().pipe(
-      M.tagsExhaustive({
-        ChangedViewMonth: ({ year, month }) =>
-          ChangedViewMonth({ year, month }),
-      }),
-    ),
-  )
+  Command.mapMessages(commands, message => GotPopoverMessage({ message }))
 
 const delegateToCalendar = (
   model: Model,
@@ -172,26 +163,78 @@ const delegateToCalendar = (
 ): UpdateReturn => {
   const [nextCalendar, calendarCommands, maybeCalendarOutMessage] =
     UiCalendar.update(model.calendar, calendarMessage)
-  return [
-    evo(model, { calendar: () => nextCalendar }),
-    mapCalendarCommands(calendarCommands),
-    mapCalendarOutMessage(maybeCalendarOutMessage),
-  ]
+
+  const modelWithCalendar = evo(model, { calendar: () => nextCalendar })
+
+  return Option.match(maybeCalendarOutMessage, {
+    onNone: (): UpdateReturn => [
+      modelWithCalendar,
+      mapCalendarCommands(calendarCommands),
+      Option.none(),
+    ],
+    onSome: M.type<UiCalendar.OutMessage>().pipe(
+      M.withReturnType<UpdateReturn>(),
+      M.tagsExhaustive({
+        ChangedViewMonth: ({ year, month }) => [
+          modelWithCalendar,
+          mapCalendarCommands(calendarCommands),
+          Option.some(ChangedViewMonth({ year, month })),
+        ],
+        SelectedDate: ({ date }) => {
+          const [nextPopover, popoverCommands] = Popover.close(model.popover)
+          return [
+            evo(modelWithCalendar, {
+              maybeSelectedDate: () => Option.some(date),
+              popover: () => nextPopover,
+            }),
+            [
+              ...mapCalendarCommands(calendarCommands),
+              ...mapPopoverCommands(popoverCommands),
+            ],
+            Option.some(SelectedDateOut({ date })),
+          ]
+        },
+      }),
+    ),
+  })
 }
 
 const delegateToPopover = (
   model: Model,
   popoverMessage: Popover.Message,
 ): UpdateReturn => {
-  const [nextPopover, popoverCommands] = Popover.update(
+  const [nextPopover, popoverCommands, maybePopoverOutMessage] = Popover.update(
     model.popover,
     popoverMessage,
   )
-  return [
-    evo(model, { popover: () => nextPopover }),
-    mapPopoverCommands(popoverCommands),
-    Option.none(),
-  ]
+  const modelWithPopover = evo(model, { popover: () => nextPopover })
+
+  return Option.match(maybePopoverOutMessage, {
+    onNone: (): UpdateReturn => [
+      modelWithPopover,
+      mapPopoverCommands(popoverCommands),
+      Option.none(),
+    ],
+    onSome: M.type<Popover.OutMessage>().pipe(
+      M.withReturnType<UpdateReturn>(),
+      M.tagsExhaustive({
+        OpenedPanel: () => [
+          evo(modelWithPopover, {
+            calendar: () => UiCalendar.dropToDays(modelWithPopover.calendar),
+          }),
+          mapPopoverCommands(popoverCommands),
+          Option.none(),
+        ],
+        ClosedPanel: () => [
+          evo(modelWithPopover, {
+            calendar: () => UiCalendar.dropToDays(modelWithPopover.calendar),
+          }),
+          mapPopoverCommands(popoverCommands),
+          Option.none(),
+        ],
+      }),
+    ),
+  })
 }
 
 /** Processes a date picker message and returns the next model, commands, and
@@ -354,39 +397,34 @@ const toModelAndCommands = (
 
 const encodeIsoDate = S.encodeSync(Calendar.CalendarDateFromIsoString)
 
-/** Configuration for rendering a date picker with `view`. */
-export type ViewConfig<ParentMessage> = Readonly<{
-  model: Model
-  toParentMessage: (message: Message) => ParentMessage
-  /** Optional controlled-mode callback invoked when the user commits a date.
-   * When provided, the view dispatches this directly (parent owns the event).
-   * When omitted, DatePicker manages its own selection state. In controlled
-   * mode, use `DatePicker.selectDate(model, date)` to write the selection
-   * back into the date picker's internal state. */
-  onSelectedDate?: (date: CalendarDate) => ParentMessage
+/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field.
+ *
+ *  The DatePicker emits a `SelectedDateOut({ date })` OutMessage when the
+ *  user commits a date. Consumers pattern-match this in their
+ *  `GotDatePickerMessage` handler (third tuple element of
+ *  `Ui.DatePicker.update`'s return) to lift the date into domain state. */
+export type ViewInputs = Readonly<{
   anchor: AnchorConfig
   /** Renders the trigger button's content (typically the formatted selected
    * date or a placeholder). Receives the current selection. */
   triggerContent: (maybeDate: Option.Option<CalendarDate>) => Html
-  /** Renders the calendar grid layout inside the popover panel. Mirrors
-   * `Calendar.ViewConfig['toView']` — the consumer lays out the attribute
-   * groups exactly as they would for an inline calendar. */
-  toCalendarView: (
-    attributes: UiCalendar.CalendarAttributes<ParentMessage>,
-  ) => Html
+  /** Renders the calendar grid layout inside the popover panel. The
+   * consumer lays out the attribute bundles exactly as they would for
+   * an inline calendar. */
+  toCalendarView: (attributes: UiCalendar.CalendarAttributes) => Html
   isDisabled?: boolean
   /** Name for the hidden form input. When provided, a hidden `<input>` is
    * rendered alongside the trigger so native form submission captures the
    * selected date as an ISO string (`YYYY-MM-DD`). */
   name?: string
   className?: string
-  attributes?: ReadonlyArray<Attribute<ParentMessage>>
+  attributes?: ReadonlyArray<BoundaryAttribute>
   triggerClassName?: string
-  triggerAttributes?: ReadonlyArray<Attribute<ParentMessage>>
+  triggerAttributes?: ReadonlyArray<BoundaryAttribute>
   panelClassName?: string
-  panelAttributes?: ReadonlyArray<Attribute<ParentMessage>>
+  panelAttributes?: ReadonlyArray<BoundaryAttribute>
   backdropClassName?: string
-  backdropAttributes?: ReadonlyArray<Attribute<ParentMessage>>
+  backdropAttributes?: ReadonlyArray<BoundaryAttribute>
 }>
 
 /** Renders an accessible date picker: a trigger button that opens a popover
@@ -394,102 +432,101 @@ export type ViewConfig<ParentMessage> = Readonly<{
  * embedded Calendar and Popover components into one flat API — consumers
  * provide the trigger face and the calendar grid layout, DatePicker handles
  * focus choreography, open/close state, and form submission. */
-export const view = <ParentMessage>(
-  config: ViewConfig<ParentMessage>,
-): Html => {
-  const h = html<ParentMessage>()
+export const view = defineView<Model, Message, ViewInputs>(
+  (model, inputs): Html => {
+    const h = html<Message>()
 
-  const {
-    model,
-    toParentMessage,
-    onSelectedDate,
-    anchor,
-    triggerContent,
-    toCalendarView,
-    isDisabled,
-    name,
-    className,
-    attributes = [],
-    triggerClassName,
-    triggerAttributes = [],
-    panelClassName,
-    panelAttributes = [],
-    backdropClassName,
-    backdropAttributes = [],
-  } = config
+    const {
+      anchor,
+      triggerContent,
+      toCalendarView,
+      isDisabled,
+      name,
+      className,
+      attributes = [],
+      triggerClassName,
+      triggerAttributes = [],
+      panelClassName,
+      panelAttributes = [],
+      backdropClassName,
+      backdropAttributes = [],
+    } = inputs
 
-  const dispatchSelectedDate = (date: CalendarDate): ParentMessage =>
-    onSelectedDate !== undefined
-      ? onSelectedDate(date)
-      : toParentMessage(SelectedDate({ date }))
+    const calendarVNode = h.submodel({
+      id: model.calendar.id,
+      view: UiCalendar.view,
+      model: model.calendar,
+      inputs: { toView: toCalendarView },
+      toParentMessage: message => GotCalendarMessage({ message }),
+    })
 
-  const calendarVNode = UiCalendar.view<ParentMessage>({
-    model: model.calendar,
-    toParentMessage: message =>
-      toParentMessage(GotCalendarMessage({ message })),
-    onSelectedDate: dispatchSelectedDate,
-    toView: toCalendarView,
-  })
+    const popoverVNode = h.submodel({
+      id: model.popover.id,
+      view: Popover.view,
+      model: model.popover,
+      inputs: {
+        anchor,
+        ...(isDisabled !== undefined && { isDisabled }),
+        focusSelector: `#${model.calendar.id}-grid`,
+        toView: ({ button, panel, backdrop, isVisible }) =>
+          h.div(
+            [],
+            [
+              h.button(
+                [
+                  ...button,
+                  ...(triggerClassName !== undefined
+                    ? [h.Class(triggerClassName)]
+                    : []),
+                  ...triggerAttributes,
+                ],
+                [triggerContent(model.maybeSelectedDate)],
+              ),
+              ...(isVisible
+                ? [
+                    h.div(
+                      [
+                        ...backdrop,
+                        ...(backdropClassName !== undefined
+                          ? [h.Class(backdropClassName)]
+                          : []),
+                        ...backdropAttributes,
+                      ],
+                      [],
+                    ),
+                    h.div(
+                      [
+                        ...panel,
+                        ...(panelClassName !== undefined
+                          ? [h.Class(panelClassName)]
+                          : []),
+                        ...panelAttributes,
+                      ],
+                      [calendarVNode],
+                    ),
+                  ]
+                : []),
+            ],
+          ),
+      },
+      toParentMessage: message => GotPopoverMessage({ message }),
+    })
 
-  const popoverVNode = Popover.view<ParentMessage>({
-    model: model.popover,
-    toParentMessage: message => toParentMessage(GotPopoverMessage({ message })),
-    onOpened: () => toParentMessage(Opened()),
-    onClosed: () => toParentMessage(Closed()),
-    anchor,
-    buttonContent: triggerContent(model.maybeSelectedDate),
-    panelContent: calendarVNode,
-    focusSelector: `#${model.calendar.id}-grid`,
-    ...(isDisabled !== undefined && { isDisabled }),
-    ...(triggerClassName !== undefined && {
-      buttonClassName: triggerClassName,
-    }),
-    buttonAttributes: triggerAttributes,
-    ...(panelClassName !== undefined && { panelClassName }),
-    panelAttributes,
-    ...(backdropClassName !== undefined && { backdropClassName }),
-    backdropAttributes,
-  })
+    const hiddenInputValue = Option.match(model.maybeSelectedDate, {
+      onNone: () => '',
+      onSome: encodeIsoDate,
+    })
 
-  const hiddenInputValue = Option.match(model.maybeSelectedDate, {
-    onNone: () => '',
-    onSome: encodeIsoDate,
-  })
+    const maybeHiddenInput: ReadonlyArray<Html> =
+      name !== undefined
+        ? [h.input([h.Type('hidden'), h.Name(name), h.Value(hiddenInputValue)])]
+        : []
 
-  const maybeHiddenInput: ReadonlyArray<Html> =
-    name !== undefined
-      ? [h.input([h.Type('hidden'), h.Name(name), h.Value(hiddenInputValue)])]
-      : []
+    const wrapperAttributes = [
+      ...(className !== undefined ? [h.Class(className)] : []),
+      ...attributes,
+    ]
 
-  const wrapperAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-    ...(className !== undefined ? [h.Class(className)] : []),
-    ...attributes,
-  ]
-
-  return h.div(wrapperAttributes, [popoverVNode, ...maybeHiddenInput])
-}
-
-/** Creates a memoized date picker view. Static config is captured in a closure;
- *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
-export const lazy = <ParentMessage>(
-  staticConfig: Omit<ViewConfig<ParentMessage>, 'model' | 'toParentMessage'>,
-): ((
-  model: Model,
-  toParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
-) => Html) => {
-  const lazyView = createLazy()
-
-  return (model, toParentMessage) =>
-    lazyView(
-      (
-        currentModel: Model,
-        currentToParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
-      ) =>
-        view({
-          ...staticConfig,
-          model: currentModel,
-          toParentMessage: currentToParentMessage,
-        }),
-      [model, toParentMessage],
-    )
-}
+    return h.div(wrapperAttributes, [popoverVNode, ...maybeHiddenInput])
+  },
+)

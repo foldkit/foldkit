@@ -4,7 +4,6 @@ export {
   scrollToIndex,
   scrollToIndexVariable,
   view,
-  lazy,
   subscriptions,
   visibleWindow,
   visibleWindowVariable,
@@ -15,4 +14,4 @@ export {
   CompletedApplyScroll,
 } from './index.js'
 
-export type { InitConfig, ViewConfig, VisibleWindow } from './index.js'
+export type { InitConfig, ViewInputs, VisibleWindow } from './index.js'

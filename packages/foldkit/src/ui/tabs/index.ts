@@ -11,10 +11,11 @@ import {
 import * as Command from '../../command/index.js'
 import * as Dom from '../../dom/index.js'
 import {
-  type Attribute,
+  type BoundaryAttribute,
   type Html,
-  type TagName,
-  createLazy,
+  type SubmodelView,
+  boundaryAttributes,
+  defineView,
   html,
 } from '../../html/index.js'
 import { m } from '../../message/index.js'
@@ -87,6 +88,8 @@ export const init = (config: InitConfig): Model => {
 
 const tabId = (id: string, index: number): string => `${id}-tab-${index}`
 
+const tabPanelId = (id: string, index: number): string => `${id}-panel-${index}`
+
 /** Moves focus to the tab at the given index. */
 export const FocusTab = Command.define(
   'FocusTab',
@@ -124,150 +127,149 @@ export const update = (
     }),
   )
 
-// VIEW
-
-/** Configuration for an individual tab's button and panel content. */
-export type TabConfig<ParentMessage = unknown> = Readonly<{
-  buttonClassName?: string
-  buttonAttributes?: ReadonlyArray<Attribute<ParentMessage>>
-  buttonContent: Html
-  panelClassName?: string
-  panelAttributes?: ReadonlyArray<Attribute<ParentMessage>>
-  panelContent: Html
-}>
-
-/** Configuration for rendering a tab group with `view`. */
-export type ViewConfig<ParentMessage, Tab extends string> = Readonly<{
-  model: Model
-  toParentMessage: (message: TabSelected | TabFocused) => ParentMessage
-  onTabSelected?: (index: number) => ParentMessage
-  tabs: ReadonlyArray<Tab>
-  tabToConfig: (
-    tab: Tab,
-    context: { isActive: boolean },
-  ) => TabConfig<ParentMessage>
-  isTabDisabled?: (tab: Tab, index: number) => boolean
-  persistPanels?: boolean
-  orientation?: Orientation
-  tabListElement?: TagName
-  tabElement?: TagName
-  panelElement?: TagName
-  className?: string
-  attributes?: ReadonlyArray<Attribute<ParentMessage>>
-  tabListClassName?: string
-  tabListAttributes?: ReadonlyArray<Attribute<ParentMessage>>
-  tabListAriaLabel: string
-}>
-
-const tabPanelId = (id: string, index: number): string => `${id}-panel-${index}`
-
-/** Programmatically selects a tab at the given index, updating the model and returning
- *  focus commands. Use this in domain-event handlers when the tab group uses `onTabSelected`. */
+/** Programmatically selects a tab at the given index. */
 export const selectTab = (
   model: Model,
   index: number,
 ): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
   update(model, TabSelected({ index }))
 
-/** Renders a headless tab group with accessible ARIA roles, roving tabindex, and keyboard navigation. */
-export const view = <ParentMessage, Tab extends string>(
-  config: ViewConfig<ParentMessage, Tab>,
-): Html => {
-  const h = html<ParentMessage>()
+// VIEW
 
-  const {
-    model,
-    model: { id, activationMode, focusedIndex },
-    toParentMessage,
-    onTabSelected,
-    tabs,
-    tabToConfig,
-    isTabDisabled,
-    persistPanels,
-    orientation = 'Horizontal',
-    tabListElement = 'div',
-    tabElement = 'button',
-    panelElement = 'div',
-    className,
-    attributes = [],
-    tabListClassName,
-    tabListAttributes = [],
-    tabListAriaLabel,
-  } = config
+/** Per-tab render info passed to the consumer's `toView`. Generic over
+ *  `Value extends string`: when `Ui.Tabs.create<MyUnion>()` is declared,
+ *  `tab.value` is typed `MyUnion` so the consumer can switch on it without
+ *  casting. */
+export type TabInfo<Value extends string = string> = Readonly<{
+  value: Value
+  index: number
+  isActive: boolean
+  isFocused: boolean
+  isDisabled: boolean
+  tab: ReadonlyArray<BoundaryAttribute>
+  panel: ReadonlyArray<BoundaryAttribute>
+}>
 
-  const dispatchTabSelected = (index: number): ParentMessage =>
-    onTabSelected
-      ? onTabSelected(index)
-      : toParentMessage(TabSelected({ index }))
+/** Render-time payload published to the consumer's `toView`.
+ *
+ *  - `tablist`: ARIA + role attributes for the wrapping tablist element.
+ *  - `tabs`: one entry per tab in `inputs.tabs`, in the same order, with
+ *    the tab button's attribute bundle, the panel's attribute bundle,
+ *    and derived state.
+ *  - `activeIndex`: the currently-active tab index, convenient when the
+ *    consumer wants to render only the active panel (vs all panels with
+ *    `Hidden` for transitions). */
+export type RenderInfo<Value extends string = string> = Readonly<{
+  tablist: ReadonlyArray<BoundaryAttribute>
+  tabs: ReadonlyArray<TabInfo<Value>>
+  activeIndex: number
+}>
 
-  const isDisabled = (index: number): boolean =>
-    !!isTabDisabled &&
-    pipe(
+/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field.
+ *  Generic over `Value extends string` so consumers using
+ *  `Ui.Tabs.create<MyUnion>()` receive `tab.value: MyUnion` in `toView`
+ *  and `(value: MyUnion, index) => boolean` in `isTabDisabled`, without
+ *  casting. */
+export type ViewInputs<Value extends string = string> = Readonly<{
+  tabs: ReadonlyArray<Value>
+  ariaLabel: string
+  toView: (render: RenderInfo<Value>) => Html
+  isTabDisabled?: (value: Value, index: number) => boolean
+  orientation?: Orientation
+}>
+
+const internalView = defineView<Model, Message, ViewInputs>(
+  (model, inputs): Html => {
+    const h = html<Message>()
+
+    const { id, activationMode, focusedIndex, activeIndex } = model
+    const {
       tabs,
-      Array.get(index),
-      Option.exists(tab => isTabDisabled(tab, index)),
-    )
+      ariaLabel,
+      toView,
+      isTabDisabled,
+      orientation = 'Horizontal',
+    } = inputs
 
-  const { nextKey, previousKey } = M.value(orientation).pipe(
-    M.when('Horizontal', () => ({
-      nextKey: 'ArrowRight',
-      previousKey: 'ArrowLeft',
-    })),
-    M.when('Vertical', () => ({
-      nextKey: 'ArrowDown',
-      previousKey: 'ArrowUp',
-    })),
-    M.exhaustive,
-  )
+    const isDisabled = (index: number): boolean =>
+      !!isTabDisabled &&
+      pipe(
+        tabs,
+        Array.get(index),
+        Option.exists(tab => isTabDisabled(tab, index)),
+      )
 
-  const resolveKeyIndex = keyToIndex(
-    nextKey,
-    previousKey,
-    tabs.length,
-    focusedIndex,
-    isDisabled,
-  )
-
-  const handleAutomaticKeyDown = (key: string): Option.Option<ParentMessage> =>
-    M.value(key).pipe(
-      M.whenOr(nextKey, previousKey, 'Home', 'End', 'PageUp', 'PageDown', () =>
-        Option.some(dispatchTabSelected(resolveKeyIndex(key))),
-      ),
-      M.whenOr('Enter', ' ', () =>
-        Option.some(dispatchTabSelected(focusedIndex)),
-      ),
-      M.orElse(() => Option.none()),
-    )
-
-  const handleManualKeyDown = (key: string): Option.Option<ParentMessage> =>
-    M.value(key).pipe(
-      M.whenOr(nextKey, previousKey, 'Home', 'End', 'PageUp', 'PageDown', () =>
-        Option.some(
-          toParentMessage(TabFocused({ index: resolveKeyIndex(key) })),
-        ),
-      ),
-      M.whenOr('Enter', ' ', () =>
-        Option.some(dispatchTabSelected(focusedIndex)),
-      ),
-      M.orElse(() => Option.none()),
-    )
-
-  const handleKeyDown = (key: string): Option.Option<ParentMessage> =>
-    M.value(activationMode).pipe(
-      M.when('Automatic', () => handleAutomaticKeyDown(key)),
-      M.when('Manual', () => handleManualKeyDown(key)),
+    const { nextKey, previousKey } = M.value(orientation).pipe(
+      M.when('Horizontal', () => ({
+        nextKey: 'ArrowRight',
+        previousKey: 'ArrowLeft',
+      })),
+      M.when('Vertical', () => ({
+        nextKey: 'ArrowDown',
+        previousKey: 'ArrowUp',
+      })),
       M.exhaustive,
     )
 
-  const tabButtons = Array.map(tabs, (tab, index) => {
-    const isActive = index === model.activeIndex
-    const isFocused = index === focusedIndex
-    const isTabDisabledAtIndex = isDisabled(index)
-    const tabConfig = tabToConfig(tab, { isActive })
+    const resolveKeyIndex = keyToIndex(
+      nextKey,
+      previousKey,
+      tabs.length,
+      focusedIndex,
+      isDisabled,
+    )
 
-    return h.keyed(tabElement)(
-      tabId(id, index),
-      [
+    const handleAutomaticKeyDown = (key: string): Option.Option<TabSelected> =>
+      M.value(key).pipe(
+        M.whenOr(
+          nextKey,
+          previousKey,
+          'Home',
+          'End',
+          'PageUp',
+          'PageDown',
+          () => Option.some(TabSelected({ index: resolveKeyIndex(key) })),
+        ),
+        M.whenOr('Enter', ' ', () =>
+          Option.some(TabSelected({ index: focusedIndex })),
+        ),
+        M.orElse(() => Option.none()),
+      )
+
+    const handleManualKeyDown = (
+      key: string,
+    ): Option.Option<TabSelected | TabFocused> =>
+      M.value(key).pipe(
+        M.whenOr(
+          nextKey,
+          previousKey,
+          'Home',
+          'End',
+          'PageUp',
+          'PageDown',
+          () => Option.some(TabFocused({ index: resolveKeyIndex(key) })),
+        ),
+        M.whenOr('Enter', ' ', () =>
+          Option.some(TabSelected({ index: focusedIndex })),
+        ),
+        M.orElse(() => Option.none()),
+      )
+
+    const handleKeyDown = (
+      key: string,
+    ): Option.Option<TabSelected | TabFocused> =>
+      M.value(activationMode).pipe(
+        M.when('Automatic', () => handleAutomaticKeyDown(key)),
+        M.when('Manual', () => handleManualKeyDown(key)),
+        M.exhaustive,
+      )
+
+    const tabInfos: ReadonlyArray<TabInfo> = Array.map(tabs, (value, index) => {
+      const isActive = index === activeIndex
+      const isFocused = index === focusedIndex
+      const isTabDisabledNow = isDisabled(index)
+
+      const tabAttributes = [
         h.Id(tabId(id, index)),
         h.Role('tab'),
         h.Type('button'),
@@ -275,123 +277,83 @@ export const view = <ParentMessage, Tab extends string>(
         h.AriaControls(tabPanelId(id, index)),
         h.Tabindex(isFocused ? 0 : -1),
         ...(isActive ? [h.DataAttribute('selected', '')] : []),
-        ...(isTabDisabledAtIndex
+        ...(isTabDisabledNow
           ? [
               h.Disabled(true),
               h.AriaDisabled(true),
               h.DataAttribute('disabled', ''),
             ]
-          : [h.OnClick(dispatchTabSelected(index))]),
+          : [h.OnClick(TabSelected({ index }))]),
         h.OnKeyDownPreventDefault(handleKeyDown),
-        ...(tabConfig.buttonClassName
-          ? [h.Class(tabConfig.buttonClassName)]
-          : []),
-        ...(tabConfig.buttonAttributes ?? []),
-      ],
-      [tabConfig.buttonContent],
-    )
-  })
+      ]
 
-  const allPanels = Array.map(tabs, (tab, index) => {
-    const isActive = index === model.activeIndex
-    const panelConfig = tabToConfig(tab, { isActive })
-
-    return h.keyed(panelElement)(
-      tabPanelId(id, index),
-      [
+      const panelAttributes = [
         h.Id(tabPanelId(id, index)),
         h.Role('tabpanel'),
         h.AriaLabelledBy(tabId(id, index)),
         h.Tabindex(isActive ? 0 : -1),
-        h.Hidden(!isActive),
         ...(isActive ? [h.DataAttribute('selected', '')] : []),
-        ...(panelConfig.panelClassName
-          ? [h.Class(panelConfig.panelClassName)]
-          : []),
-        ...(panelConfig.panelAttributes ?? []),
-        ...(isActive ? [] : [h.Style({ display: 'none' })]),
-      ],
-      [panelConfig.panelContent],
-    )
-  })
+      ]
 
-  const activePanelOnly = pipe(
-    tabs,
-    Array.get(model.activeIndex),
-    Option.match({
-      onNone: () => h.empty,
-      onSome: tab => {
-        const activeConfig = tabToConfig(tab, { isActive: true })
+      return {
+        value,
+        index,
+        isActive,
+        isFocused,
+        isDisabled: isTabDisabledNow,
+        tab: boundaryAttributes(tabAttributes),
+        panel: boundaryAttributes(panelAttributes),
+      }
+    })
 
-        return h.keyed(panelElement)(
-          tabPanelId(id, model.activeIndex),
-          [
-            h.Id(tabPanelId(id, model.activeIndex)),
-            h.Role('tabpanel'),
-            h.AriaLabelledBy(tabId(id, model.activeIndex)),
-            h.Tabindex(0),
-            h.DataAttribute('selected', ''),
-            ...(activeConfig.panelClassName
-              ? [h.Class(activeConfig.panelClassName)]
-              : []),
-            ...(activeConfig.panelAttributes ?? []),
-          ],
-          [activeConfig.panelContent],
-        )
-      },
-    }),
-  )
+    const tablistAttributes = [
+      h.Role('tablist'),
+      h.AriaOrientation(String.toLowerCase(orientation)),
+      h.AriaLabel(ariaLabel),
+    ]
 
-  const tabPanels = persistPanels ? allPanels : [activePanelOnly]
+    return toView({
+      tablist: boundaryAttributes(tablistAttributes),
+      tabs: tabInfos,
+      activeIndex,
+    })
+  },
+)
 
-  const resolvedTabListAttributes = [
-    h.Role('tablist'),
-    h.AriaOrientation(String.toLowerCase(orientation)),
-    h.AriaLabel(tabListAriaLabel),
-    ...(tabListClassName ? [h.Class(tabListClassName)] : []),
-    ...tabListAttributes,
-  ]
-
-  return h.div(
-    [...(className ? [h.Class(className)] : []), ...attributes],
-    [
-      h.keyed(tabListElement)(
-        `${id}-tablist`,
-        resolvedTabListAttributes,
-        tabButtons,
-      ),
-      ...tabPanels,
-    ],
-  )
-}
-
-/** Creates a memoized tabs view. Static config is captured in a closure;
- *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
-export const lazy = <ParentMessage, Tab extends string>(
-  staticConfig: Omit<
-    ViewConfig<ParentMessage, Tab>,
-    'model' | 'toParentMessage' | 'onTabSelected'
+/** Pairs the tabs `view`, `update`, and `selectTab` behind a single
+ *  Value-typed entry point. Declare once at module scope so consumers
+ *  receive `tab.value: Value` in `toView` without an `as` cast:
+ *
+ *  ```ts
+ *  const DemoTabs = Ui.Tabs.create<DemoTab>()
+ *
+ *  // In view:
+ *  h.submodel({ view: DemoTabs.view, ... })
+ *
+ *  // In update:
+ *  const [next, commands] = DemoTabs.update(model, message)
+ *  ```
+ *
+ *  The internal view stays typed `ReadonlyArray<string>`; consumers can
+ *  pass a `ReadonlyArray<MyUnion>` (assignable) and the fenced cast inside
+ *  `create` types `TabInfo.value` as `MyUnion`. */
+export const create = <Value extends string = string>(): Readonly<{
+  view: SubmodelView<Model, Message, ViewInputs<Value>>
+  update: (
+    model: Model,
+    message: Message,
+  ) => readonly [Model, ReadonlyArray<Command.Command<Message>>]
+  selectTab: (
+    model: Model,
+    index: number,
+  ) => readonly [Model, ReadonlyArray<Command.Command<Message>>]
+}> => ({
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  view: internalView as unknown as SubmodelView<
+    Model,
+    Message,
+    ViewInputs<Value>
   >,
-): ((
-  model: Model,
-  toParentMessage: ViewConfig<ParentMessage, Tab>['toParentMessage'],
-) => Html) => {
-  const lazyView = createLazy()
-
-  return (model, toParentMessage) =>
-    lazyView(
-      (
-        currentModel: Model,
-        currentToParentMessage: ViewConfig<
-          ParentMessage,
-          Tab
-        >['toParentMessage'],
-      ) =>
-        view({
-          ...staticConfig,
-          model: currentModel,
-          toParentMessage: currentToParentMessage,
-        }),
-      [model, toParentMessage],
-    )
-}
+  update,
+  selectTab,
+})

@@ -1,4 +1,4 @@
-import { Array, Effect, Match as M, Number, Option, pipe } from 'effect'
+import { Array, Match as M, Number, Option, pipe } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
@@ -43,6 +43,10 @@ import {
 } from './message'
 import type { DemoColumn, UiModel } from './model'
 import { Toast } from './toast'
+import { CityCombobox, CityMultiCombobox } from './view/combobox'
+import { CharacterListbox, ItemListbox, ItemMultiListbox } from './view/listbox'
+import { PlanRadioGroup } from './view/radioGroup'
+import { DemoTabs } from './view/tabs'
 import {
   ROW_COUNT as VIRTUAL_LIST_ROW_COUNT,
   variableActivities,
@@ -104,18 +108,16 @@ const delegateToAnimationDemo = (
   const toMessage = (animationMessage: Ui.Animation.Message): UiMessage =>
     GotAnimationDemoMessage({ message: animationMessage })
 
-  const mappedCommands = animationCommands.map(
-    Command.mapEffect(Effect.map(toMessage)),
-  )
+  const mappedCommands = Command.mapMessages(animationCommands, toMessage)
 
   const additionalCommands = Option.match(maybeOutMessage, {
     onNone: () => [],
     onSome: M.type<Ui.Animation.OutMessage>().pipe(
       M.tagsExhaustive({
         StartedLeaveAnimating: () => [
-          Command.mapEffect(
+          Command.mapMessage(
             Ui.Animation.defaultLeaveCommand(nextAnimation),
-            Effect.map(toMessage),
+            toMessage,
           ),
         ],
         TransitionedOut: () => [],
@@ -138,10 +140,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             mobileMenuDialog: () => nextMobileMenuDialog,
           }),
-          mobileMenuDialogCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotMobileMenuDialogMessage({ message })),
-            ),
+          Command.mapMessages(mobileMenuDialogCommands, message =>
+            GotMobileMenuDialogMessage({ message }),
           ),
         ]
       },
@@ -179,12 +179,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             fieldsetCheckboxDemo: () => nextFieldsetCheckboxDemo,
           }),
-          fieldsetCheckboxCommands.map(
-            Command.mapEffect(
-              Effect.map(message =>
-                GotFieldsetCheckboxDemoMessage({ message }),
-              ),
-            ),
+          Command.mapMessages(fieldsetCheckboxCommands, message =>
+            GotFieldsetCheckboxDemoMessage({ message }),
           ),
         ]
       },
@@ -204,10 +200,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             checkboxBasicDemo: () => nextCheckboxBasicDemo,
           }),
-          checkboxBasicCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotCheckboxBasicDemoMessage({ message })),
-            ),
+          Command.mapMessages(checkboxBasicCommands, message =>
+            GotCheckboxBasicDemoMessage({ message }),
           ),
         ]
       },
@@ -243,10 +237,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             checkboxOptionADemo: () => nextOptionA,
           }),
-          optionACommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotCheckboxOptionADemoMessage({ message })),
-            ),
+          Command.mapMessages(optionACommands, message =>
+            GotCheckboxOptionADemoMessage({ message }),
           ),
         ]
       },
@@ -261,16 +253,14 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             checkboxOptionBDemo: () => nextOptionB,
           }),
-          optionBCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotCheckboxOptionBDemoMessage({ message })),
-            ),
+          Command.mapMessages(optionBCommands, message =>
+            GotCheckboxOptionBDemoMessage({ message }),
           ),
         ]
       },
 
       GotComboboxDemoMessage: ({ message }) => {
-        const [nextComboboxDemo, comboboxCommands] = Ui.Combobox.update(
+        const [nextComboboxDemo, comboboxCommands] = CityCombobox.update(
           model.comboboxDemo,
           message,
         )
@@ -279,62 +269,50 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             comboboxDemo: () => nextComboboxDemo,
           }),
-          comboboxCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotComboboxDemoMessage({ message })),
-            ),
+          Command.mapMessages(comboboxCommands, message =>
+            GotComboboxDemoMessage({ message }),
           ),
         ]
       },
 
       GotComboboxNullableDemoMessage: ({ message }) => {
         const [nextComboboxNullableDemo, comboboxNullableCommands] =
-          Ui.Combobox.update(model.comboboxNullableDemo, message)
+          CityCombobox.update(model.comboboxNullableDemo, message)
 
         return [
           evo(model, {
             comboboxNullableDemo: () => nextComboboxNullableDemo,
           }),
-          comboboxNullableCommands.map(
-            Command.mapEffect(
-              Effect.map(message =>
-                GotComboboxNullableDemoMessage({ message }),
-              ),
-            ),
+          Command.mapMessages(comboboxNullableCommands, message =>
+            GotComboboxNullableDemoMessage({ message }),
           ),
         ]
       },
 
       GotComboboxMultiDemoMessage: ({ message }) => {
         const [nextComboboxMultiDemo, comboboxMultiCommands] =
-          Ui.Combobox.Multi.update(model.comboboxMultiDemo, message)
+          CityMultiCombobox.update(model.comboboxMultiDemo, message)
 
         return [
           evo(model, {
             comboboxMultiDemo: () => nextComboboxMultiDemo,
           }),
-          comboboxMultiCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotComboboxMultiDemoMessage({ message })),
-            ),
+          Command.mapMessages(comboboxMultiCommands, message =>
+            GotComboboxMultiDemoMessage({ message }),
           ),
         ]
       },
 
       GotComboboxSelectOnFocusDemoMessage: ({ message }) => {
         const [nextComboboxSelectOnFocusDemo, comboboxSelectOnFocusCommands] =
-          Ui.Combobox.update(model.comboboxSelectOnFocusDemo, message)
+          CityCombobox.update(model.comboboxSelectOnFocusDemo, message)
 
         return [
           evo(model, {
             comboboxSelectOnFocusDemo: () => nextComboboxSelectOnFocusDemo,
           }),
-          comboboxSelectOnFocusCommands.map(
-            Command.mapEffect(
-              Effect.map(message =>
-                GotComboboxSelectOnFocusDemoMessage({ message }),
-              ),
-            ),
+          Command.mapMessages(comboboxSelectOnFocusCommands, message =>
+            GotComboboxSelectOnFocusDemoMessage({ message }),
           ),
         ]
       },
@@ -349,10 +327,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             dialogDemo: () => nextDialogDemo,
           }),
-          dialogCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotDialogDemoMessage({ message })),
-            ),
+          Command.mapMessages(dialogCommands, message =>
+            GotDialogDemoMessage({ message }),
           ),
         ]
       },
@@ -365,10 +341,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             dialogAnimatedDemo: () => nextDialogAnimatedDemo,
           }),
-          dialogAnimatedCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotDialogAnimatedDemoMessage({ message })),
-            ),
+          Command.mapMessages(dialogAnimatedCommands, message =>
+            GotDialogAnimatedDemoMessage({ message }),
           ),
         ]
       },
@@ -383,10 +357,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             disclosureDemo: () => nextDisclosureDemo,
           }),
-          disclosureCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotDisclosureDemoMessage({ message })),
-            ),
+          Command.mapMessages(disclosureCommands, message =>
+            GotDisclosureDemoMessage({ message }),
           ),
         ]
       },
@@ -399,10 +371,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             calendarBasicDemo: () => nextCalendarBasicDemo,
           }),
-          calendarBasicCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotCalendarBasicDemoMessage({ message })),
-            ),
+          Command.mapMessages(calendarBasicCommands, message =>
+            GotCalendarBasicDemoMessage({ message }),
           ),
         ]
       },
@@ -415,10 +385,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             datePickerBasicDemo: () => nextDatePickerBasicDemo,
           }),
-          datePickerBasicCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotDatePickerBasicDemoMessage({ message })),
-            ),
+          Command.mapMessages(datePickerBasicCommands, message =>
+            GotDatePickerBasicDemoMessage({ message }),
           ),
         ]
       },
@@ -455,10 +423,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             dragAndDropDemo: () => nextDragAndDrop,
             dragAndDropDemoColumns: () => nextColumns,
           }),
-          dragAndDropCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotDragAndDropDemoMessage({ message })),
-            ),
+          Command.mapMessages(dragAndDropCommands, message =>
+            GotDragAndDropDemoMessage({ message }),
           ),
         ]
       },
@@ -485,10 +451,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
             fileDropBasicDemo: () => nextFileDrop,
             fileDropBasicDemoFiles: () => nextFiles,
           }),
-          fileDropCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotFileDropBasicDemoMessage({ message })),
-            ),
+          Command.mapMessages(fileDropCommands, message =>
+            GotFileDropBasicDemoMessage({ message }),
           ),
         ]
       },
@@ -502,7 +466,7 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
       ],
 
       GotListboxDemoMessage: ({ message }) => {
-        const [nextListboxDemo, listboxCommands] = Ui.Listbox.update(
+        const [nextListboxDemo, listboxCommands] = ItemListbox.update(
           model.listboxDemo,
           message,
         )
@@ -511,42 +475,36 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             listboxDemo: () => nextListboxDemo,
           }),
-          listboxCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotListboxDemoMessage({ message })),
-            ),
+          Command.mapMessages(listboxCommands, message =>
+            GotListboxDemoMessage({ message }),
           ),
         ]
       },
 
       GotListboxMultiDemoMessage: ({ message }) => {
         const [nextListboxMultiDemo, listboxMultiCommands] =
-          Ui.Listbox.Multi.update(model.listboxMultiDemo, message)
+          ItemMultiListbox.update(model.listboxMultiDemo, message)
 
         return [
           evo(model, {
             listboxMultiDemo: () => nextListboxMultiDemo,
           }),
-          listboxMultiCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotListboxMultiDemoMessage({ message })),
-            ),
+          Command.mapMessages(listboxMultiCommands, message =>
+            GotListboxMultiDemoMessage({ message }),
           ),
         ]
       },
 
       GotListboxGroupedDemoMessage: ({ message }) => {
         const [nextListboxGroupedDemo, listboxGroupedCommands] =
-          Ui.Listbox.update(model.listboxGroupedDemo, message)
+          CharacterListbox.update(model.listboxGroupedDemo, message)
 
         return [
           evo(model, {
             listboxGroupedDemo: () => nextListboxGroupedDemo,
           }),
-          listboxGroupedCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotListboxGroupedDemoMessage({ message })),
-            ),
+          Command.mapMessages(listboxGroupedCommands, message =>
+            GotListboxGroupedDemoMessage({ message }),
           ),
         ]
       },
@@ -561,10 +519,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             menuBasicDemo: () => nextMenuBasicDemo,
           }),
-          menuBasicCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotMenuBasicDemoMessage({ message })),
-            ),
+          Command.mapMessages(menuBasicCommands, message =>
+            GotMenuBasicDemoMessage({ message }),
           ),
         ]
       },
@@ -579,10 +535,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             menuAnimatedDemo: () => nextMenuAnimatedDemo,
           }),
-          menuAnimatedCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotMenuAnimatedDemoMessage({ message })),
-            ),
+          Command.mapMessages(menuAnimatedCommands, message =>
+            GotMenuAnimatedDemoMessage({ message }),
           ),
         ]
       },
@@ -597,10 +551,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             popoverBasicDemo: () => nextPopoverBasicDemo,
           }),
-          popoverBasicCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotPopoverBasicDemoMessage({ message })),
-            ),
+          Command.mapMessages(popoverBasicCommands, message =>
+            GotPopoverBasicDemoMessage({ message }),
           ),
         ]
       },
@@ -613,46 +565,36 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             popoverAnimatedDemo: () => nextPopoverAnimatedDemo,
           }),
-          popoverAnimatedCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotPopoverAnimatedDemoMessage({ message })),
-            ),
+          Command.mapMessages(popoverAnimatedCommands, message =>
+            GotPopoverAnimatedDemoMessage({ message }),
           ),
         ]
       },
 
       GotVerticalRadioGroupDemoMessage: ({ message }) => {
         const [nextVerticalRadioGroupDemo, verticalRadioGroupCommands] =
-          Ui.RadioGroup.update(model.verticalRadioGroupDemo, message)
+          PlanRadioGroup.update(model.verticalRadioGroupDemo, message)
 
         return [
           evo(model, {
             verticalRadioGroupDemo: () => nextVerticalRadioGroupDemo,
           }),
-          verticalRadioGroupCommands.map(
-            Command.mapEffect(
-              Effect.map(message =>
-                GotVerticalRadioGroupDemoMessage({ message }),
-              ),
-            ),
+          Command.mapMessages(verticalRadioGroupCommands, message =>
+            GotVerticalRadioGroupDemoMessage({ message }),
           ),
         ]
       },
 
       GotHorizontalRadioGroupDemoMessage: ({ message }) => {
         const [nextHorizontalRadioGroupDemo, horizontalRadioGroupCommands] =
-          Ui.RadioGroup.update(model.horizontalRadioGroupDemo, message)
+          PlanRadioGroup.update(model.horizontalRadioGroupDemo, message)
 
         return [
           evo(model, {
             horizontalRadioGroupDemo: () => nextHorizontalRadioGroupDemo,
           }),
-          horizontalRadioGroupCommands.map(
-            Command.mapEffect(
-              Effect.map(message =>
-                GotHorizontalRadioGroupDemoMessage({ message }),
-              ),
-            ),
+          Command.mapMessages(horizontalRadioGroupCommands, message =>
+            GotHorizontalRadioGroupDemoMessage({ message }),
           ),
         ]
       },
@@ -667,10 +609,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             sliderRatingDemo: () => nextSliderRatingDemo,
           }),
-          sliderRatingCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotSliderRatingDemoMessage({ message })),
-            ),
+          Command.mapMessages(sliderRatingCommands, message =>
+            GotSliderRatingDemoMessage({ message }),
           ),
         ]
       },
@@ -685,10 +625,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             sliderVolumeDemo: () => nextSliderVolumeDemo,
           }),
-          sliderVolumeCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotSliderVolumeDemoMessage({ message })),
-            ),
+          Command.mapMessages(sliderVolumeCommands, message =>
+            GotSliderVolumeDemoMessage({ message }),
           ),
         ]
       },
@@ -703,34 +641,28 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             switchDemo: () => nextSwitchDemo,
           }),
-          switchCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotSwitchDemoMessage({ message })),
-            ),
+          Command.mapMessages(switchCommands, message =>
+            GotSwitchDemoMessage({ message }),
           ),
         ]
       },
 
       GotHorizontalTabsDemoMessage: ({ message }) => {
-        const [nextHorizontalTabsDemo, horizontalTabsCommands] = Ui.Tabs.update(
-          model.horizontalTabsDemo,
-          message,
-        )
+        const [nextHorizontalTabsDemo, horizontalTabsCommands] =
+          DemoTabs.update(model.horizontalTabsDemo, message)
 
         return [
           evo(model, {
             horizontalTabsDemo: () => nextHorizontalTabsDemo,
           }),
-          horizontalTabsCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotHorizontalTabsDemoMessage({ message })),
-            ),
+          Command.mapMessages(horizontalTabsCommands, message =>
+            GotHorizontalTabsDemoMessage({ message }),
           ),
         ]
       },
 
       GotVerticalTabsDemoMessage: ({ message }) => {
-        const [nextVerticalTabsDemo, verticalTabsCommands] = Ui.Tabs.update(
+        const [nextVerticalTabsDemo, verticalTabsCommands] = DemoTabs.update(
           model.verticalTabsDemo,
           message,
         )
@@ -739,10 +671,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             verticalTabsDemo: () => nextVerticalTabsDemo,
           }),
-          verticalTabsCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotVerticalTabsDemoMessage({ message })),
-            ),
+          Command.mapMessages(verticalTabsCommands, message =>
+            GotVerticalTabsDemoMessage({ message }),
           ),
         ]
       },
@@ -755,10 +685,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
 
         return [
           evo(model, { toastDemo: () => nextToastDemo }),
-          toastCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotToastDemoMessage({ message })),
-            ),
+          Command.mapMessages(toastCommands, message =>
+            GotToastDemoMessage({ message }),
           ),
         ]
       },
@@ -776,10 +704,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
 
         return [
           evo(model, { toastDemo: () => nextToastDemo }),
-          toastCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotToastDemoMessage({ message })),
-            ),
+          Command.mapMessages(toastCommands, message =>
+            GotToastDemoMessage({ message }),
           ),
         ]
       },
@@ -795,10 +721,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
 
         return [
           evo(model, { toastDemo: () => nextToastDemo }),
-          toastCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotToastDemoMessage({ message })),
-            ),
+          Command.mapMessages(toastCommands, message =>
+            GotToastDemoMessage({ message }),
           ),
         ]
       },
@@ -816,10 +740,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
 
         return [
           evo(model, { toastDemo: () => nextToastDemo }),
-          toastCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotToastDemoMessage({ message })),
-            ),
+          Command.mapMessages(toastCommands, message =>
+            GotToastDemoMessage({ message }),
           ),
         ]
       },
@@ -837,10 +759,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
 
         return [
           evo(model, { toastDemo: () => nextToastDemo }),
-          toastCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotToastDemoMessage({ message })),
-            ),
+          Command.mapMessages(toastCommands, message =>
+            GotToastDemoMessage({ message }),
           ),
         ]
       },
@@ -859,10 +779,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
 
         return [
           evo(model, { toastDemo: () => nextToastDemo }),
-          toastCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotToastDemoMessage({ message })),
-            ),
+          Command.mapMessages(toastCommands, message =>
+            GotToastDemoMessage({ message }),
           ),
         ]
       },
@@ -872,10 +790,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
 
         return [
           evo(model, { toastDemo: () => nextToastDemo }),
-          toastCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotToastDemoMessage({ message })),
-            ),
+          Command.mapMessages(toastCommands, message =>
+            GotToastDemoMessage({ message }),
           ),
         ]
       },
@@ -890,10 +806,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             tooltipBasicDemo: () => nextTooltipBasicDemo,
           }),
-          tooltipBasicCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotTooltipBasicDemoMessage({ message })),
-            ),
+          Command.mapMessages(tooltipBasicCommands, message =>
+            GotTooltipBasicDemoMessage({ message }),
           ),
         ]
       },
@@ -906,10 +820,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             tooltipNoDelayDemo: () => nextTooltipNoDelayDemo,
           }),
-          tooltipNoDelayCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotTooltipNoDelayDemoMessage({ message })),
-            ),
+          Command.mapMessages(tooltipNoDelayCommands, message =>
+            GotTooltipNoDelayDemoMessage({ message }),
           ),
         ]
       },
@@ -948,10 +860,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
 
         return [
           evo(model, { virtualListDemo: () => nextVirtualListDemo }),
-          virtualListCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotVirtualListDemoMessage({ message })),
-            ),
+          Command.mapMessages(virtualListCommands, message =>
+            GotVirtualListDemoMessage({ message }),
           ),
         ]
       },
@@ -965,10 +875,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
 
         return [
           evo(model, { virtualListDemo: () => nextVirtualListDemo }),
-          virtualListCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotVirtualListDemoMessage({ message })),
-            ),
+          Command.mapMessages(virtualListCommands, message =>
+            GotVirtualListDemoMessage({ message }),
           ),
         ]
       },
@@ -981,12 +889,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             virtualListVariableDemo: () => nextVirtualListVariableDemo,
           }),
-          virtualListCommands.map(
-            Command.mapEffect(
-              Effect.map(message =>
-                GotVirtualListVariableDemoMessage({ message }),
-              ),
-            ),
+          Command.mapMessages(virtualListCommands, message =>
+            GotVirtualListVariableDemoMessage({ message }),
           ),
         ]
       },
@@ -1004,12 +908,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage): UiUpdateReturn =>
           evo(model, {
             virtualListVariableDemo: () => nextVirtualListVariableDemo,
           }),
-          virtualListCommands.map(
-            Command.mapEffect(
-              Effect.map(message =>
-                GotVirtualListVariableDemoMessage({ message }),
-              ),
-            ),
+          Command.mapMessages(virtualListCommands, message =>
+            GotVirtualListVariableDemoMessage({ message }),
           ),
         ]
       },

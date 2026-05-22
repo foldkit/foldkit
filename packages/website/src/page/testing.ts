@@ -10,7 +10,7 @@ import {
   tableOfContentsEntryToHeader,
 } from '../prose'
 import {
-  patternsSubmodelsRouter,
+  coreSubmodelRouter,
   testingSceneRouter,
   testingStoryRouter,
 } from '../route'
@@ -104,7 +104,7 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         ' and ',
         inlineCode('view'),
         '. In a ',
-        link(patternsSubmodelsRouter(), 'Submodel'),
+        link(coreSubmodelRouter(), 'Submodel'),
         ' app, only the root view has the ',
         inlineCode('(model) => Html'),
         ' signature that ',

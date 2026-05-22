@@ -57,10 +57,7 @@ export const demo = <ParentMessage>(
 ): ReadonlyArray<Html> => {
   const h = html<ParentMessage>()
 
-  const renderToastEntry = (
-    entry: Entry,
-    handlers: EntryHandlers<ParentMessage>,
-  ): Html =>
+  const renderToastEntry = (entry: Entry, handlers: EntryHandlers): Html =>
     h.div(
       [
         h.Class(
@@ -77,10 +74,10 @@ export const demo = <ParentMessage>(
         }),
         h.button(
           [
+            ...handlers.dismiss,
             h.Class(
               'absolute top-2 right-2 opacity-60 hover:opacity-100 cursor-pointer rounded-md p-1 transition-opacity',
             ),
-            h.OnClick(handlers.dismiss),
           ],
           [Icon.close('w-4 h-4')],
         ),
@@ -128,13 +125,17 @@ export const demo = <ParentMessage>(
         ),
       ],
     ),
-    Toast.view({
+    h.submodel({
+      id: toastModel.id,
+      view: Toast.view,
       model: toastModel,
-      position: 'BottomRight',
+      inputs: {
+        position: 'BottomRight',
+        renderEntry: renderToastEntry,
+        entryClassName,
+      },
       toParentMessage: message =>
         toParentMessage(GotToastDemoMessage({ message })),
-      renderEntry: renderToastEntry,
-      entryClassName,
     }),
   ]
 }

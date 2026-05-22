@@ -59,27 +59,31 @@ const isAllChecked = Array.every(checkboxes, ({ isChecked }) => isChecked)
 const isIndeterminate =
   !isAllChecked && Array.some(checkboxes, ({ isChecked }) => isChecked)
 
-// Inside your view function, pass isIndeterminate to the parent checkbox:
+// Inside your view function, pass isIndeterminate via h.submodel's inputs:
 const view = () => {
   const h = html<Message>()
 
-  return Ui.Checkbox.view({
+  return h.submodel({
+    id: 'select-all',
+    view: Ui.Checkbox.view,
     model: { id: 'select-all', isChecked: isAllChecked },
-    isIndeterminate,
+    inputs: {
+      isIndeterminate,
+      toView: attributes =>
+        h.div(
+          [h.Class('flex items-center gap-2')],
+          [
+            h.button(
+              [...attributes.checkbox, h.Class('h-5 w-5 rounded border')],
+              isIndeterminate ? ['—'] : isAllChecked ? ['✓'] : [],
+            ),
+            h.label(
+              [...attributes.label, h.Class('text-sm')],
+              ['All notifications'],
+            ),
+          ],
+        ),
+    },
     toParentMessage: message => GotSelectAllMessage({ message }),
-    toView: attributes =>
-      h.div(
-        [h.Class('flex items-center gap-2')],
-        [
-          h.button(
-            [...attributes.checkbox, h.Class('h-5 w-5 rounded border')],
-            isIndeterminate ? ['—'] : isAllChecked ? ['✓'] : [],
-          ),
-          h.label(
-            [...attributes.label, h.Class('text-sm')],
-            ['All notifications'],
-          ),
-        ],
-      ),
   })
 }

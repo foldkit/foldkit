@@ -1,9 +1,8 @@
-import { Array, Effect, Predicate, Record, String, pipe } from 'effect'
+import { Array, Predicate, Record, String, pipe } from 'effect'
 import { h } from 'snabbdom'
 import type { Classes, On, VNodeData } from 'snabbdom'
 
-import type { Html } from '../html/index.js'
-import { Dispatch } from '../runtime/index.js'
+import { type Html, __requireDispatch } from '../html/index.js'
 import { paintScene } from './paint.js'
 import type { Point, Shape } from './shape.js'
 
@@ -70,77 +69,76 @@ const classesFromClassName = (className: string): Classes =>
  * })
  * ```
  */
-export const view = <Message>(config: ViewConfig<Message>): Html =>
-  Effect.gen(function* () {
-    const { dispatchSync } = yield* Dispatch
+export const view = <Message>(config: ViewConfig<Message>): Html => {
+  const dispatchSync = __requireDispatch()
 
-    const {
-      width,
-      height,
-      shapes,
-      className,
-      onPointerDown,
-      onPointerMove,
-      onPointerUp,
-    } = config
+  const {
+    width,
+    height,
+    shapes,
+    className,
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+  } = config
 
-    const pointerListener =
-      (toMessage: (point: Point) => Message) =>
-      (event: PointerEvent): void => {
-        const target = event.currentTarget
-        if (target instanceof HTMLCanvasElement) {
-          dispatchSync(toMessage(toCanvasPoint(target, event)))
-        }
+  const pointerListener =
+    (toMessage: (point: Point) => Message) =>
+    (event: PointerEvent): void => {
+      const target = event.currentTarget
+      if (target instanceof HTMLCanvasElement) {
+        dispatchSync(toMessage(toCanvasPoint(target, event)))
       }
-
-    const listeners: On = {
-      ...(onPointerDown !== undefined && {
-        pointerdown: pointerListener(onPointerDown),
-      }),
-      ...(onPointerMove !== undefined && {
-        pointermove: pointerListener(onPointerMove),
-      }),
-      ...(onPointerUp !== undefined && {
-        pointerup: pointerListener(onPointerUp),
-      }),
     }
 
-    const data: VNodeData = {
-      props: { width, height },
-      on: listeners,
-      ...(className !== undefined && {
-        class: classesFromClassName(className),
-      }),
-      hook: {
-        insert: vnode => {
-          if (!(vnode.elm instanceof HTMLCanvasElement)) {
-            return
-          }
-          const canvas = vnode.elm
-          const nullableContext = canvas.getContext('2d')
-          if (Predicate.isNull(nullableContext)) {
-            return
-          }
-          contextStore.set(canvas, nullableContext)
-          paintScene(nullableContext, width, height, shapes)
-        },
-        postpatch: (_oldVnode, vnode) => {
-          if (!(vnode.elm instanceof HTMLCanvasElement)) {
-            return
-          }
-          const nullableContext = contextStore.get(vnode.elm)
-          if (nullableContext === undefined) {
-            return
-          }
-          paintScene(nullableContext, width, height, shapes)
-        },
-        destroy: vnode => {
-          if (vnode.elm instanceof HTMLCanvasElement) {
-            contextStore.delete(vnode.elm)
-          }
-        },
+  const listeners: On = {
+    ...(onPointerDown !== undefined && {
+      pointerdown: pointerListener(onPointerDown),
+    }),
+    ...(onPointerMove !== undefined && {
+      pointermove: pointerListener(onPointerMove),
+    }),
+    ...(onPointerUp !== undefined && {
+      pointerup: pointerListener(onPointerUp),
+    }),
+  }
+
+  const data: VNodeData = {
+    props: { width, height },
+    on: listeners,
+    ...(className !== undefined && {
+      class: classesFromClassName(className),
+    }),
+    hook: {
+      insert: vnode => {
+        if (!(vnode.elm instanceof HTMLCanvasElement)) {
+          return
+        }
+        const canvas = vnode.elm
+        const nullableContext = canvas.getContext('2d')
+        if (Predicate.isNull(nullableContext)) {
+          return
+        }
+        contextStore.set(canvas, nullableContext)
+        paintScene(nullableContext, width, height, shapes)
       },
-    }
+      postpatch: (_oldVnode, vnode) => {
+        if (!(vnode.elm instanceof HTMLCanvasElement)) {
+          return
+        }
+        const nullableContext = contextStore.get(vnode.elm)
+        if (nullableContext === undefined) {
+          return
+        }
+        paintScene(nullableContext, width, height, shapes)
+      },
+      destroy: vnode => {
+        if (vnode.elm instanceof HTMLCanvasElement) {
+          contextStore.delete(vnode.elm)
+        }
+      },
+    },
+  }
 
-    return h('canvas', data)
-  })
+  return h('canvas', data)
+}

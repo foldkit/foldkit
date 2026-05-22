@@ -77,6 +77,12 @@ const viewConfigHeader: TableOfContentsEntry = {
   text: 'ViewConfig',
 }
 
+const outMessageHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'out-message',
+  text: 'OutMessage',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -88,6 +94,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   apiReferenceHeader,
   initConfigHeader,
   viewConfigHeader,
+  outMessageHeader,
 ]
 
 // SECTION DATA
@@ -136,12 +143,6 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
       'Maps each item to its className and content. The context provides isActive and isDisabled.',
   },
   {
-    name: 'onSelectedItem',
-    type: '(value: string) => Message',
-    description:
-      'Fires your Message when an item is selected. Since Menu is fire-and-forget, this is the primary way to handle selection.',
-  },
-  {
     name: 'buttonContent',
     type: 'Html',
     description: 'Content rendered inside the trigger button.',
@@ -180,6 +181,15 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     name: 'backdropClassName',
     type: 'string',
     description: 'CSS class for the backdrop.',
+  },
+]
+
+const outMessageProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'Selected',
+    type: '{ index: number }',
+    description:
+      'Emitted when a menu item is selected. Carries the index into the items array supplied at view time. The menu has already closed when this fires; consumers no longer need to call `Menu.close` manually. Pattern-match the third tuple element of Menu.update in your GotMenuMessage handler to look up the item and dispatch the corresponding domain action.',
   },
 ]
 
@@ -263,9 +273,15 @@ export const view = <ParentMessage>(
         Menu.basicHeader.text,
       ),
       para(
-        'Use ',
-        inlineCode('onSelectedItem'),
-        ' to handle menu item selection. Menu closes automatically after selection.',
+        'Menu emits ',
+        inlineCode('Selected({ value })'),
+        ' through its ',
+        inlineCode('OutMessage'),
+        ' when an item is selected. Pattern-match the third tuple element of ',
+        inlineCode('Menu.update'),
+        '`s return in your ',
+        inlineCode('GotMenuMessage'),
+        ' handler to react. Menu closes automatically after selection.',
       ),
       demoContainer(...Menu.basicDemo(model.menuBasicDemo, toParentMessage)),
       highlightedCodeBlock(
@@ -367,6 +383,17 @@ export const view = <ParentMessage>(
       ),
       para('Configuration object passed to ', inlineCode('Menu.view()'), '.'),
       propTable(viewConfigProps),
+      heading(
+        outMessageHeader.level,
+        outMessageHeader.id,
+        outMessageHeader.text,
+      ),
+      para(
+        'Messages emitted to the parent through the third element of ',
+        inlineCode('[Model, Commands, Option<OutMessage>]'),
+        '. Pattern-match on the OutMessage in your update handler.',
+      ),
+      propTable(outMessageProps),
     ],
   )
 }

@@ -144,47 +144,51 @@ export const basicDemo = <ParentMessage>(
                       ],
                     ),
                 }),
-                Ui.Checkbox.view({
+                h.submodel({
+                  id: 'fieldset-checkbox-demo',
+                  view: Ui.Checkbox.view,
                   model: model.fieldsetCheckboxDemo,
+                  inputs: {
+                    toView: checkboxAttributes =>
+                      h.div(
+                        [h.Class('flex flex-col gap-1')],
+                        [
+                          h.div(
+                            [h.Class('flex items-center gap-2')],
+                            [
+                              h.button(
+                                [
+                                  ...checkboxAttributes.checkbox,
+                                  h.Class(checkboxClassName),
+                                ],
+                                model.fieldsetCheckboxDemo.isChecked
+                                  ? [checkmark]
+                                  : [],
+                              ),
+                              h.label(
+                                [
+                                  ...checkboxAttributes.label,
+                                  h.Class(checkboxLabelClassName),
+                                ],
+                                ['I agree to the terms and conditions'],
+                              ),
+                            ],
+                          ),
+                          h.p(
+                            [
+                              ...checkboxAttributes.description,
+                              h.Class(checkboxDescriptionClassName),
+                            ],
+                            [
+                              'You agree to our Terms of Service and Privacy Policy.',
+                            ],
+                          ),
+                        ],
+                      ),
+                  },
                   toParentMessage: message =>
                     toParentMessage(
                       GotFieldsetCheckboxDemoMessage({ message }),
-                    ),
-                  toView: checkboxAttributes =>
-                    h.div(
-                      [h.Class('flex flex-col gap-1')],
-                      [
-                        h.div(
-                          [h.Class('flex items-center gap-2')],
-                          [
-                            h.button(
-                              [
-                                ...checkboxAttributes.checkbox,
-                                h.Class(checkboxClassName),
-                              ],
-                              model.fieldsetCheckboxDemo.isChecked
-                                ? [checkmark]
-                                : [],
-                            ),
-                            h.label(
-                              [
-                                ...checkboxAttributes.label,
-                                h.Class(checkboxLabelClassName),
-                              ],
-                              ['I agree to the terms and conditions'],
-                            ),
-                          ],
-                        ),
-                        h.p(
-                          [
-                            ...checkboxAttributes.description,
-                            h.Class(checkboxDescriptionClassName),
-                          ],
-                          [
-                            'You agree to our Terms of Service and Privacy Policy.',
-                          ],
-                        ),
-                      ],
                     ),
                 }),
               ],
@@ -271,35 +275,39 @@ export const disabledDemo = <ParentMessage>(
                       ],
                     ),
                 }),
-                Ui.Checkbox.view({
+                h.submodel({
+                  id: 'fieldset-disabled-checkbox',
+                  view: Ui.Checkbox.view,
                   model: {
                     id: 'fieldset-disabled-checkbox',
                     isChecked: true,
                   },
-                  isDisabled: true,
+                  inputs: {
+                    isDisabled: true,
+                    toView: checkboxAttributes =>
+                      h.div(
+                        [h.Class('flex items-center gap-2')],
+                        [
+                          h.button(
+                            [
+                              ...checkboxAttributes.checkbox,
+                              h.Class(checkboxClassName),
+                            ],
+                            [checkmark],
+                          ),
+                          h.label(
+                            [
+                              ...checkboxAttributes.label,
+                              h.Class(checkboxLabelClassName),
+                            ],
+                            ['I agree to the terms and conditions'],
+                          ),
+                        ],
+                      ),
+                  },
                   toParentMessage: message =>
                     toParentMessage(
                       GotFieldsetCheckboxDemoMessage({ message }),
-                    ),
-                  toView: checkboxAttributes =>
-                    h.div(
-                      [h.Class('flex items-center gap-2')],
-                      [
-                        h.button(
-                          [
-                            ...checkboxAttributes.checkbox,
-                            h.Class(checkboxClassName),
-                          ],
-                          [checkmark],
-                        ),
-                        h.label(
-                          [
-                            ...checkboxAttributes.label,
-                            h.Class(checkboxLabelClassName),
-                          ],
-                          ['I agree to the terms and conditions'],
-                        ),
-                      ],
                     ),
                 }),
               ],

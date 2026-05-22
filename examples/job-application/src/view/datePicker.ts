@@ -14,11 +14,11 @@ export const panelClassName =
 
 export const backdropClassName = 'fixed inset-0'
 
-export const triggerContent = <ParentMessage>(
+export const triggerContent = (
   maybeDate: Option.Option<CalendarDate>,
   placeholder: string,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html()
 
   return h.div(
     [h.Class('flex w-full items-center justify-between gap-2')],
@@ -27,10 +27,7 @@ export const triggerContent = <ParentMessage>(
         onNone: () => h.span([h.Class('text-gray-400')], [placeholder]),
         onSome: date => h.span([], [fullDate(date)]),
       }),
-      h.span(
-        [h.Class('text-gray-400 shrink-0')],
-        [chevronDown<ParentMessage>()],
-      ),
+      h.span([h.Class('text-gray-400 shrink-0')], [chevronDown()]),
     ],
   )
 }
@@ -55,10 +52,10 @@ const monthYearGridClassName =
 const monthYearButtonClassName =
   'flex h-full w-full items-center justify-center rounded-md text-sm text-gray-900 tabular-nums cursor-pointer hover:bg-gray-100 group-data-[today]:ring-1 group-data-[today]:ring-gray-400 group-data-[selected]:bg-indigo-600 group-data-[selected]:text-white! group-data-[selected]:hover:bg-indigo-600 group-data-[focused]:outline-2 group-data-[focused]:outline-offset-2 group-data-[focused]:outline-indigo-500 group-data-[disabled]:cursor-not-allowed group-data-[disabled]:opacity-40'
 
-export const calendarView = <ParentMessage>(
-  attributes: Ui.Calendar.CalendarAttributes<ParentMessage>,
+export const calendarView = (
+  attributes: Ui.Calendar.CalendarAttributes,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html()
 
   return M.value(attributes).pipe(
     M.tagsExhaustive({
@@ -79,7 +76,7 @@ export const calendarView = <ParentMessage>(
                     ...days.headingButton,
                     h.Class(headingButtonClassName),
                   ],
-                  [days.heading.text, chevronDown<ParentMessage>('w-3 h-3')],
+                  [days.heading.text, chevronDown('w-3 h-3')],
                 ),
                 h.button(
                   [...days.nextMonthButton, h.Class(navButtonClassName)],
@@ -143,7 +140,7 @@ export const calendarView = <ParentMessage>(
                     ...months.headingButton,
                     h.Class(headingButtonClassName),
                   ],
-                  [months.heading.text, chevronDown<ParentMessage>('w-3 h-3')],
+                  [months.heading.text, chevronDown('w-3 h-3')],
                 ),
               ],
             ),

@@ -55,9 +55,7 @@ GotFileDropMessage: ({ message }) => {
       uploader: () => nextUploader,
       uploadedFiles: () => nextFiles,
     }),
-    commands.map(
-      Command.mapEffect(Effect.map(message => GotFileDropMessage({ message }))),
-    ),
+    Command.mapMessages(commands, message => GotFileDropMessage({ message })),
   ]
 }
 
@@ -68,24 +66,28 @@ GotFileDropMessage: ({ message }) => {
 const view = (model: Model) => {
   const h = html<Message>()
 
-  return Ui.FileDrop.view({
+  return h.submodel({
+    id: 'uploader',
+    view: Ui.FileDrop.view,
     model: model.uploader,
+    inputs: {
+      multiple: true,
+      accept: ['application/pdf', '.doc', '.docx'],
+      toView: attributes =>
+        h.label(
+          [
+            ...attributes.root,
+            h.Class(
+              'flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-gray-300 p-8 text-center hover:border-accent-400 data-[drag-over]:border-accent-500 data-[drag-over]:bg-accent-50',
+            ),
+          ],
+          [
+            h.p([], ['Drop files or click to browse']),
+            h.span([h.Class('text-sm text-gray-500')], ['PDF, DOC, or DOCX']),
+            h.input(attributes.input),
+          ],
+        ),
+    },
     toParentMessage: message => GotFileDropMessage({ message }),
-    multiple: true,
-    accept: ['application/pdf', '.doc', '.docx'],
-    toView: attributes =>
-      h.label(
-        [
-          ...attributes.root,
-          h.Class(
-            'flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-gray-300 p-8 text-center hover:border-accent-400 data-[drag-over]:border-accent-500 data-[drag-over]:bg-accent-50',
-          ),
-        ],
-        [
-          h.p([], ['Drop files or click to browse']),
-          h.span([h.Class('text-sm text-gray-500')], ['PDF, DOC, or DOCX']),
-          h.input(attributes.input),
-        ],
-      ),
   })
 }

@@ -7,7 +7,7 @@ import { replaceUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 
 import { Cart, Item } from '../domain'
-import type { AppRoute, CartRoute } from '../main'
+import type { Message as AppMessage, AppRoute, CartRoute } from '../main'
 
 // MODEL
 
@@ -72,15 +72,15 @@ export const update =
 
 // VIEW
 
-export const view = <ParentMessage>(
+export const view = (
   model: Model,
   cart: Cart.Cart,
   cartRouter: Route.Router<CartRoute>,
-  toParentMessage: (message: Message) => ParentMessage,
-  onAddToCart: (item: Item.Item) => ParentMessage,
-  onQuantityChange: (itemId: string, quantity: number) => ParentMessage,
+  toParentMessage: (message: Message) => AppMessage,
+  onAddToCart: (item: Item.Item) => AppMessage,
+  onQuantityChange: (itemId: string, quantity: number) => AppMessage,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<AppMessage>()
 
   const filteredProducts = model.searchText
     ? model.products.filter(product =>

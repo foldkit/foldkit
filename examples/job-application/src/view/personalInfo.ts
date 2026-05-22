@@ -1,7 +1,7 @@
 import { Equal, Option } from 'effect'
-import { Ui } from 'foldkit'
+import { Submodel, Ui } from 'foldkit'
 import { Valid } from 'foldkit/fieldValidation'
-import { type Html, html } from 'foldkit/html'
+import { type Html, boundaryAttributes, html } from 'foldkit/html'
 
 import { PronounOption } from '../domain'
 import { PersonalInfo } from '../step'
@@ -15,8 +15,15 @@ import {
 import { inputField } from './field'
 import { chevronDown } from './icon'
 
-export const personalInfoView = <ParentMessage>(
-  {
+const PronounsListbox = Ui.Listbox.create<string>()
+
+export const personalInfoView = Submodel.defineView<
+  PersonalInfo.Model,
+  PersonalInfo.Message
+>((model): Html => {
+  const h = html<PersonalInfo.Message>()
+
+  const {
     firstName,
     lastName,
     email,
@@ -25,10 +32,7 @@ export const personalInfoView = <ParentMessage>(
     customPronouns,
     portfolioUrl,
     availableDate,
-  }: PersonalInfo.Model,
-  toParentMessage: (message: PersonalInfo.Message) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+  } = model
 
   const isOtherSelected = Option.exists(
     pronouns.maybeSelectedItem,
@@ -46,37 +50,35 @@ export const personalInfoView = <ParentMessage>(
       h.div(
         [h.Class('grid grid-cols-2 gap-4')],
         [
-          inputField<ParentMessage>({
+          inputField<PersonalInfo.Message>({
             id: 'first-name',
             label: 'First Name',
             field: firstName,
-            onInput: value =>
-              toParentMessage(PersonalInfo.UpdatedFirstName({ value })),
+            onInput: value => PersonalInfo.UpdatedFirstName({ value }),
             placeholder: 'Jane',
           }),
-          inputField<ParentMessage>({
+          inputField<PersonalInfo.Message>({
             id: 'last-name',
             label: 'Last Name',
             field: lastName,
-            onInput: value =>
-              toParentMessage(PersonalInfo.UpdatedLastName({ value })),
+            onInput: value => PersonalInfo.UpdatedLastName({ value }),
             placeholder: 'Doe',
           }),
         ],
       ),
-      inputField<ParentMessage>({
+      inputField<PersonalInfo.Message>({
         id: 'email',
         label: 'Email',
         field: email,
-        onInput: value => toParentMessage(PersonalInfo.UpdatedEmail({ value })),
+        onInput: value => PersonalInfo.UpdatedEmail({ value }),
         type: 'email',
         placeholder: 'jane@example.com',
       }),
-      inputField<ParentMessage>({
+      inputField<PersonalInfo.Message>({
         id: 'phone',
         label: 'Phone (optional)',
         field: phone,
-        onInput: value => toParentMessage(PersonalInfo.UpdatedPhone({ value })),
+        onInput: value => PersonalInfo.UpdatedPhone({ value }),
         type: 'tel',
         placeholder: '+1 (555) 123-4567',
       }),
@@ -87,93 +89,91 @@ export const personalInfoView = <ParentMessage>(
             [h.Class('block text-sm font-medium text-gray-700')],
             ['Pronouns (optional)'],
           ),
-          Ui.Listbox.view({
+          h.submodel({
+            id: pronouns.id,
+            view: PronounsListbox.view,
             model: pronouns,
-            toParentMessage: message =>
-              toParentMessage(PersonalInfo.GotPronounsMessage({ message })),
-            anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
-            items: PronounOption.all,
-            itemToConfig: (pronoun, { isSelected }) => ({
-              className:
-                'px-3 py-2 text-sm cursor-pointer hover:bg-indigo-50 data-[active]:bg-indigo-50',
-              content: h.div(
-                [h.Class('flex items-center gap-2')],
+            inputs: {
+              anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+              items: PronounOption.all,
+              itemToConfig: (pronoun, { isSelected }) => ({
+                className:
+                  'px-3 py-2 text-sm cursor-pointer hover:bg-indigo-50 data-[active]:bg-indigo-50',
+                content: h.div(
+                  [h.Class('flex items-center gap-2')],
+                  [
+                    h.span(
+                      [
+                        h.Class(
+                          `w-4 text-indigo-600 ${isSelected ? 'visible' : 'invisible'}`,
+                        ),
+                      ],
+                      ['✓'],
+                    ),
+                    h.span([], [pronoun]),
+                  ],
+                ),
+              }),
+              buttonContent: h.div(
+                [h.Class('flex w-full items-center justify-between gap-2')],
                 [
                   h.span(
                     [
                       h.Class(
-                        `w-4 text-indigo-600 ${isSelected ? 'visible' : 'invisible'}`,
+                        Option.isSome(pronouns.maybeSelectedItem)
+                          ? 'text-gray-900'
+                          : 'text-gray-400',
                       ),
                     ],
-                    ['✓'],
+                    [selectedPronounLabel],
                   ),
-                  h.span([], [pronoun]),
+                  h.span([h.Class('text-gray-400')], [chevronDown('w-4 h-4')]),
                 ],
               ),
-            }),
-            buttonContent: h.div(
-              [h.Class('flex w-full items-center justify-between gap-2')],
-              [
-                h.span(
-                  [
-                    h.Class(
-                      Option.isSome(pronouns.maybeSelectedItem)
-                        ? 'text-gray-900'
-                        : 'text-gray-400',
-                    ),
-                  ],
-                  [selectedPronounLabel],
+              buttonAttributes: boundaryAttributes([
+                h.Class(
+                  'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-indigo-500',
                 ),
-                h.span(
-                  [h.Class('text-gray-400')],
-                  [chevronDown<ParentMessage>('w-4 h-4')],
+              ]),
+              itemsAttributes: boundaryAttributes([
+                h.Class(
+                  'w-(--button-width) rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden',
                 ),
-              ],
-            ),
-            buttonAttributes: [
-              h.Class(
-                'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-indigo-500',
-              ),
-            ],
-            itemsAttributes: [
-              h.Class(
-                'w-(--button-width) rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden',
-              ),
-            ],
-            backdropAttributes: [h.Class('fixed inset-0')],
+              ]),
+              backdropAttributes: boundaryAttributes([
+                h.Class('fixed inset-0'),
+              ]),
+            },
+            toParentMessage: message =>
+              PersonalInfo.GotPronounsMessage({ message }),
           }),
         ],
       ),
       ...(isOtherSelected
         ? [
-            inputField<ParentMessage>({
+            inputField<PersonalInfo.Message>({
               id: 'custom-pronouns',
               label: 'Custom Pronouns',
               field: Valid({ value: customPronouns }),
-              onInput: value =>
-                toParentMessage(PersonalInfo.UpdatedCustomPronouns({ value })),
+              onInput: value => PersonalInfo.UpdatedCustomPronouns({ value }),
               placeholder: 'Enter your pronouns',
             }),
           ]
         : []),
-      inputField<ParentMessage>({
+      inputField<PersonalInfo.Message>({
         id: 'portfolio-url',
         label: 'Portfolio URL (optional)',
         field: portfolioUrl,
-        onInput: value =>
-          toParentMessage(PersonalInfo.UpdatedPortfolioUrl({ value })),
+        onInput: value => PersonalInfo.UpdatedPortfolioUrl({ value }),
         type: 'url',
       }),
-      availableDatePicker<ParentMessage>(availableDate, toParentMessage),
+      availableDatePickerView(availableDate),
     ],
   )
-}
+})
 
-const availableDatePicker = <ParentMessage>(
-  model: Ui.DatePicker.Model,
-  toParentMessage: (message: PersonalInfo.Message) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+const availableDatePickerView = (model: Ui.DatePicker.Model): Html => {
+  const h = html<PersonalInfo.Message>()
 
   return h.div(
     [h.Class('space-y-1')],
@@ -182,17 +182,20 @@ const availableDatePicker = <ParentMessage>(
         [h.Class('block text-sm font-medium text-gray-700')],
         ['Available Start Date (optional)'],
       ),
-      Ui.DatePicker.view({
+      h.submodel({
+        id: model.id,
+        view: Ui.DatePicker.view,
         model,
+        inputs: {
+          anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+          triggerContent: maybeDate => triggerContent(maybeDate, 'Pick a date'),
+          triggerClassName,
+          panelClassName,
+          backdropClassName,
+          toCalendarView: calendarView,
+        },
         toParentMessage: message =>
-          toParentMessage(PersonalInfo.GotAvailableDateMessage({ message })),
-        anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
-        triggerContent: maybeDate =>
-          triggerContent<ParentMessage>(maybeDate, 'Pick a date'),
-        triggerClassName,
-        panelClassName,
-        backdropClassName,
-        toCalendarView: calendarView,
+          PersonalInfo.GotAvailableDateMessage({ message }),
       }),
     ],
   )

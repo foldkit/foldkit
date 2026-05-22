@@ -138,7 +138,6 @@ const inlineCodeClassName =
 
 export const inlineCode = (text: string, className?: string): Html => {
   const h = html<Message>()
-
   return h.code([h.Class(twMerge(inlineCodeClassName, className))], [text])
 }
 

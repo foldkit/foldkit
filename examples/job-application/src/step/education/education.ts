@@ -62,10 +62,8 @@ const mapEntryCommands = (
   entryId: string,
   commands: ReadonlyArray<Command.Command<Entry.Message>>,
 ): ReadonlyArray<Command.Command<Message>> =>
-  commands.map(
-    Command.mapEffect(
-      Effect.map(message => GotEntryMessage({ entryId, message })),
-    ),
+  Command.mapMessages(commands, message =>
+    GotEntryMessage({ entryId, message }),
   )
 
 export const update = (model: Model, message: Message): UpdateReturn =>
@@ -76,15 +74,14 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       AddedEntry: ({ entryId }) => [
         evo(model, {
-          entries: () => [...model.entries, Entry.init(entryId)],
+          entries: Array.append(Entry.init(entryId)),
         }),
         [],
       ],
 
       RemovedEntry: ({ entryId }) => [
         evo(model, {
-          entries: () =>
-            Array.filter(model.entries, entry => entry.id !== entryId),
+          entries: Array.filter(entry => entry.id !== entryId),
         }),
         [],
       ],
@@ -96,19 +93,30 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           Option.match({
             onNone: () => [model, []],
             onSome: matchedEntry => {
-              const [nextEntry, entryCommands] = Entry.update(
+              const [nextEntry, entryCommands, maybeOut] = Entry.update(
                 matchedEntry,
                 entryMessage,
               )
-              return [
-                evo(model, {
-                  entries: () =>
-                    Array.map(model.entries, entry =>
-                      entry.id === entryId ? nextEntry : entry,
-                    ),
-                }),
-                mapEntryCommands(entryId, entryCommands),
-              ]
+              const mappedCommands = mapEntryCommands(entryId, entryCommands)
+              const modelWithEntry = evo(model, {
+                entries: Array.map(entry =>
+                  entry.id === entryId ? nextEntry : entry,
+                ),
+              })
+              return Option.match(maybeOut, {
+                onNone: () => [modelWithEntry, mappedCommands],
+                onSome: M.type<Entry.OutMessage>().pipe(
+                  M.withReturnType<UpdateReturn>(),
+                  M.tagsExhaustive({
+                    Removed: () => [
+                      evo(modelWithEntry, {
+                        entries: Array.filter(entry => entry.id !== entryId),
+                      }),
+                      mappedCommands,
+                    ],
+                  }),
+                ),
+              })
             },
           }),
         ),

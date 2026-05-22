@@ -32,16 +32,33 @@ export const demo = <ParentMessage>(
     h.div(
       [h.Class('relative')],
       [
-        Ui.Tooltip.view({
+        h.submodel({
+          id: tooltipModel.id,
+          view: Ui.Tooltip.view,
           model: tooltipModel,
+          inputs: {
+            anchor: TOOLTIP_ANCHOR,
+            toView: ({ trigger, panel, isVisible }) =>
+              h.div(
+                [h.Class(wrapperClassName)],
+                [
+                  h.button(
+                    [...trigger, h.Class(triggerClassName)],
+                    [h.span([], ['Hover or focus me'])],
+                  ),
+                  ...(isVisible
+                    ? [
+                        h.div(
+                          [...panel, h.Class(panelClassName)],
+                          [h.span([], ['This is a tooltip'])],
+                        ),
+                      ]
+                    : []),
+                ],
+              ),
+          },
           toParentMessage: message =>
             toParentMessage(GotTooltipDemoMessage({ message })),
-          anchor: TOOLTIP_ANCHOR,
-          triggerContent: h.span([], ['Hover or focus me']),
-          triggerAttributes: [h.Class(triggerClassName)],
-          content: h.span([], ['This is a tooltip']),
-          panelAttributes: [h.Class(panelClassName)],
-          attributes: [h.Class(wrapperClassName)],
         }),
       ],
     ),

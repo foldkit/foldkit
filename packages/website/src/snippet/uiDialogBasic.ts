@@ -35,9 +35,7 @@ GotDialogMessage: ({ message }) => {
     // Merge the next state into your Model:
     evo(model, { dialog: () => nextDialog }),
     // Forward the Submodel's Commands through your parent Message:
-    commands.map(
-      Command.mapEffect(Effect.map(message => GotDialogMessage({ message }))),
-    ),
+    Command.mapMessages(commands, message => GotDialogMessage({ message })),
   ]
 }
 
@@ -57,25 +55,47 @@ const view = () => {
         [h.OnClick(dialogToParentMessage(Ui.Dialog.Opened()))],
         ['Open Dialog'],
       ),
-      Ui.Dialog.view({
+      h.submodel({
+        id: model.dialog.id,
+        view: Ui.Dialog.view,
         model: model.dialog,
-        toParentMessage: dialogToParentMessage,
-        backdropAttributes: [h.Class('fixed inset-0 bg-black/50')],
-        panelContent: h.div(
-          [],
-          [
-            h.h2([h.Id(Ui.Dialog.titleId(model.dialog))], ['Confirm Action']),
-            h.p([], ['Are you sure you want to proceed?']),
-            h.button(
-              [
-                h.OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
-                h.Class('px-4 py-2 rounded-lg border'),
-              ],
-              ['Close'],
+        inputs: {
+          toView: ({ dialog, backdrop, panel, isVisible }) =>
+            h.dialog(
+              [...dialog],
+              isVisible
+                ? [
+                    h.div(
+                      [...backdrop, h.Class('fixed inset-0 bg-black/50')],
+                      [],
+                    ),
+                    h.div(
+                      [
+                        ...panel,
+                        h.Class('rounded-lg p-6 max-w-md mx-auto shadow-xl'),
+                      ],
+                      [
+                        h.h2(
+                          [h.Id(Ui.Dialog.titleId(model.dialog))],
+                          ['Confirm Action'],
+                        ),
+                        h.p([], ['Are you sure you want to proceed?']),
+                        h.button(
+                          [
+                            h.OnClick(
+                              dialogToParentMessage(Ui.Dialog.Closed()),
+                            ),
+                            h.Class('px-4 py-2 rounded-lg border'),
+                          ],
+                          ['Close'],
+                        ),
+                      ],
+                    ),
+                  ]
+                : [],
             ),
-          ],
-        ),
-        panelAttributes: [h.Class('rounded-lg p-6 max-w-md mx-auto shadow-xl')],
+        },
+        toParentMessage: message => dialogToParentMessage(message),
       }),
     ],
   )

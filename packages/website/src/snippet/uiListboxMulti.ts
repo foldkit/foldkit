@@ -1,11 +1,14 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt — fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Array, Effect } from 'effect'
+import { Array, Effect, Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
+
+// Declare a typed multi-select Listbox once at module scope:
+const PeopleListbox = Ui.Listbox.Multi.create<string>()
 
 // Add a field to your Model for the Listbox.Multi Submodel, plus a field
 // for the selected values your app actually cares about:
@@ -25,86 +28,82 @@ const init = () => [
   [],
 ]
 
-// Embed the Listbox Message for keyboard/pointer events, plus your own
-// Message for the actual selection:
+// Wrap Listbox's Messages so they can flow through your update:
 const GotListboxMultiMessage = m('GotListboxMultiMessage', {
   message: Ui.Listbox.Message,
 })
-const ToggledPerson = m('ToggledPerson', { value: S.String })
 
-// Inside your update function's M.tagsExhaustive({...}), delegate keyboard
-// navigation, typeahead, and open/close to Listbox.Multi.update:
+// Delegate keyboard navigation, typeahead, and open/close to
+// PeopleListbox.update. The OutMessage's `Selected` carries the toggled
+// item and `wasAdded: boolean` indicating whether it was added or
+// removed:
 GotListboxMultiMessage: ({ message }) => {
-  const [nextListbox, commands] = Ui.Listbox.Multi.update(
+  const [nextListbox, commands, maybeOut] = PeopleListbox.update(
     model.listboxMulti,
     message,
   )
+  const mappedCommands = Command.mapMessages(commands, message =>
+    GotListboxMultiMessage({ message }),
+  )
 
-  return [
-    // Merge the next state into your Model:
-    evo(model, { listboxMulti: () => nextListbox }),
-    // Forward the Submodel's Commands through your parent Message:
-    commands.map(
-      Command.mapEffect(
-        Effect.map(message => GotListboxMultiMessage({ message })),
-      ),
+  return Option.match(maybeOut, {
+    onNone: () => [
+      evo(model, { listboxMulti: () => nextListbox }),
+      mappedCommands,
+    ],
+    onSome: M.type<Ui.Listbox.OutMessage>().pipe(
+      M.tagsExhaustive({
+        Selected: ({ item, wasAdded }) => [
+          evo(model, {
+            listboxMulti: () => nextListbox,
+            selectedPeople: () =>
+              wasAdded
+                ? Array.append(model.selectedPeople, item)
+                : Array.filter(model.selectedPeople, person => person !== item),
+          }),
+          mappedCommands,
+        ],
+      }),
     ),
-  ]
-}
-
-// Still inside your update function's M.tagsExhaustive({...}), handle your
-// own toggle Message:
-ToggledPerson: ({ value }) => {
-  // Ui.Listbox.Multi.selectItem gives you the next listbox state with the
-  // value toggled in or out of the selection. Multi-select stays open on
-  // selection, so the returned Commands are empty:
-  const [nextListbox] = Ui.Listbox.Multi.selectItem(model.listboxMulti, value)
-
-  return [
-    evo(model, {
-      selectedPeople: () =>
-        Array.contains(model.selectedPeople, value)
-          ? Array.filter(model.selectedPeople, person => person !== value)
-          : Array.append(model.selectedPeople, value),
-      listboxMulti: () => nextListbox,
-    }),
-    [],
-  ]
+  })
 }
 
 const people = ['Michael Bluth', 'Lindsay Funke', 'Tobias Funke']
 
-// Inside your view function, pass onSelectedItem to fire your ToggledPerson
-// Message on selection — selectedItems is an array:
+// Inside your view function, embed the Listbox via h.submodel. Multi-select
+// stays open on selection so the user can toggle several items:
 const view = (model: Model) => {
   const h = html<Message>()
 
-  return Ui.Listbox.Multi.view({
+  return h.submodel({
+    id: 'people',
+    view: PeopleListbox.view,
     model: model.listboxMulti,
-    toParentMessage: message => GotListboxMultiMessage({ message }),
-    onSelectedItem: value => ToggledPerson({ value }),
-    items: people,
-    buttonContent: h.span(
-      [],
-      [
-        Array.isReadonlyArrayNonEmpty(model.selectedPeople)
-          ? `${model.selectedPeople.length} selected`
-          : 'Select people',
-      ],
-    ),
-    buttonClassName: 'w-full rounded-lg border px-3 py-2 text-left',
-    itemsClassName: 'rounded-lg border shadow-lg',
-    itemToConfig: (person, { isSelected, isActive }) => ({
-      className: isActive ? 'bg-blue-100' : '',
-      content: h.div(
-        [h.Class('flex items-center gap-2 px-3 py-2')],
+    inputs: {
+      items: people,
+      buttonContent: h.span(
+        [],
         [
-          isSelected ? h.span([], ['✓']) : h.span([h.Class('w-4')], []),
-          h.span([], [person]),
+          Array.isReadonlyArrayNonEmpty(model.selectedPeople)
+            ? `${model.selectedPeople.length} selected`
+            : 'Select people',
         ],
       ),
-    }),
-    backdropClassName: 'fixed inset-0',
-    anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+      buttonClassName: 'w-full rounded-lg border px-3 py-2 text-left',
+      itemsClassName: 'rounded-lg border shadow-lg',
+      itemToConfig: (person, { isSelected, isActive }) => ({
+        className: isActive ? 'bg-blue-100' : '',
+        content: h.div(
+          [h.Class('flex items-center gap-2 px-3 py-2')],
+          [
+            isSelected ? h.span([], ['✓']) : h.span([h.Class('w-4')], []),
+            h.span([], [person]),
+          ],
+        ),
+      }),
+      backdropClassName: 'fixed inset-0',
+      anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+    },
+    toParentMessage: message => GotListboxMultiMessage({ message }),
   })
 }

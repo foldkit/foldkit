@@ -1,4 +1,4 @@
-import { Ui } from 'foldkit'
+import { Submodel, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import {
@@ -33,11 +33,11 @@ const cancelButtonClassName =
 const confirmButtonClassName =
   'px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg bg-accent-600 text-white hover:bg-accent-700'
 
-const dialogPanel = <ParentMessage>(
+const dialogPanel = (
   dialogModel: Ui.Dialog.Model,
-  toDialogMessage: (message: Ui.Dialog.Message) => ParentMessage,
+  toDialogMessage: (message: Ui.Dialog.Message) => UiMessage,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<UiMessage>()
 
   return h.div(
     [],
@@ -75,17 +75,14 @@ const dialogPanel = <ParentMessage>(
   )
 }
 
-export const view = <ParentMessage>(
-  model: UiModel,
-  toParentMessage: (message: UiMessage) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
+  const h = html<UiMessage>()
 
-  const toDialogMessage = (message: Ui.Dialog.Message) =>
-    toParentMessage(GotDialogDemoMessage({ message }))
+  const toDialogMessage = (message: Ui.Dialog.Message): UiMessage =>
+    GotDialogDemoMessage({ message })
 
-  const toAnimatedDialogMessage = (message: Ui.Dialog.Message) =>
-    toParentMessage(GotDialogAnimatedDemoMessage({ message }))
+  const toAnimatedDialogMessage = (message: Ui.Dialog.Message): UiMessage =>
+    GotDialogAnimatedDemoMessage({ message })
 
   return h.div(
     [],
@@ -108,16 +105,26 @@ export const view = <ParentMessage>(
           ),
         ],
       ),
-      Ui.Dialog.view({
+      h.submodel({
+        id: model.dialogDemo.id,
+        view: Ui.Dialog.view,
         model: model.dialogDemo,
-        toParentMessage: toDialogMessage,
-        panelContent: dialogPanel<ParentMessage>(
-          model.dialogDemo,
-          toDialogMessage,
-        ),
-        panelAttributes: [h.Class(panelClassName)],
-        backdropAttributes: [h.Class(backdropClassName)],
-        attributes: [h.Class(dialogClassName)],
+        inputs: {
+          toView: ({ dialog, backdrop, panel, isVisible }) =>
+            h.dialog(
+              [...dialog, h.Class(dialogClassName)],
+              isVisible
+                ? [
+                    h.div([...backdrop, h.Class(backdropClassName)], []),
+                    h.div(
+                      [...panel, h.Class(panelClassName)],
+                      [dialogPanel(model.dialogDemo, toDialogMessage)],
+                    ),
+                  ]
+                : [],
+            ),
+        },
+        toParentMessage: message => GotDialogDemoMessage({ message }),
       }),
 
       h.h3(
@@ -136,17 +143,35 @@ export const view = <ParentMessage>(
           ),
         ],
       ),
-      Ui.Dialog.view({
+      h.submodel({
+        id: model.dialogAnimatedDemo.id,
+        view: Ui.Dialog.view,
         model: model.dialogAnimatedDemo,
-        toParentMessage: toAnimatedDialogMessage,
-        panelContent: dialogPanel<ParentMessage>(
-          model.dialogAnimatedDemo,
-          toAnimatedDialogMessage,
-        ),
-        panelAttributes: [h.Class(animatedPanelClassName)],
-        backdropAttributes: [h.Class(animatedBackdropClassName)],
-        attributes: [h.Class(dialogClassName)],
+        inputs: {
+          toView: ({ dialog, backdrop, panel, isVisible }) =>
+            h.dialog(
+              [...dialog, h.Class(dialogClassName)],
+              isVisible
+                ? [
+                    h.div(
+                      [...backdrop, h.Class(animatedBackdropClassName)],
+                      [],
+                    ),
+                    h.div(
+                      [...panel, h.Class(animatedPanelClassName)],
+                      [
+                        dialogPanel(
+                          model.dialogAnimatedDemo,
+                          toAnimatedDialogMessage,
+                        ),
+                      ],
+                    ),
+                  ]
+                : [],
+            ),
+        },
+        toParentMessage: message => GotDialogAnimatedDemoMessage({ message }),
       }),
     ],
   )
-}
+})

@@ -77,6 +77,12 @@ const viewHelpersHeader: TableOfContentsEntry = {
   text: 'View Helpers',
 }
 
+const outMessageHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'out-message',
+  text: 'OutMessage',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -87,6 +93,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   apiReferenceHeader,
   initConfigHeader,
   viewHelpersHeader,
+  outMessageHeader,
 ]
 
 // SECTION DATA
@@ -151,6 +158,21 @@ const viewHelperProps: ReadonlyArray<PropEntry> = [
     name: 'maybeDropTarget(model)',
     type: 'Option<DropTarget>',
     description: 'The current drop target (containerId + index), if any.',
+  },
+]
+
+const outMessageProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'Reordered',
+    type: '{ itemId, fromContainerId, fromIndex, toContainerId, toIndex }',
+    description:
+      'Emitted when a drag completes with a valid drop target. The parent uses this to commit the reorder against its own data (move the item in the source array, splice it into the destination). Pattern-match the third tuple element of DragAndDrop.update in your GotDragAndDropMessage handler.',
+  },
+  {
+    name: 'Cancelled',
+    type: '{}',
+    description:
+      'Emitted when a drag is cancelled via Escape or a pointer release without a valid drop target. No reorder should be applied.',
   },
 ]
 
@@ -331,6 +353,17 @@ export const view = <ParentMessage>(
         'Functions for attaching drag-and-drop behavior to your elements and reading drag state.',
       ),
       propTable(viewHelperProps),
+      heading(
+        outMessageHeader.level,
+        outMessageHeader.id,
+        outMessageHeader.text,
+      ),
+      para(
+        'Messages emitted to the parent through the third element of ',
+        inlineCode('[Model, Commands, Option<OutMessage>]'),
+        '. Pattern-match on the OutMessage in your update handler.',
+      ),
+      propTable(outMessageProps),
     ],
   )
 }

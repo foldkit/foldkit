@@ -1,9 +1,10 @@
 import { Html, html } from 'foldkit/html'
 
 import { Session } from '../../../domain/session'
+import type { Message } from '../message'
 
-export const view = <ParentMessage>(session: Session): Html => {
-  const h = html<ParentMessage>()
+export const view = (session: Session): Html => {
+  const h = html<Message>()
 
   return h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
@@ -16,17 +17,17 @@ export const view = <ParentMessage>(session: Session): Html => {
       h.div(
         [h.Class('grid grid-cols-1 md:grid-cols-3 gap-6')],
         [
-          statCard<ParentMessage>('Total Sessions', '42'),
-          statCard<ParentMessage>('Active Projects', '7'),
-          statCard<ParentMessage>('Tasks Completed', '128'),
+          statCard('Total Sessions', '42'),
+          statCard('Active Projects', '7'),
+          statCard('Tasks Completed', '128'),
         ],
       ),
     ],
   )
 }
 
-const statCard = <ParentMessage>(title: string, value: string): Html => {
-  const h = html<ParentMessage>()
+const statCard = (title: string, value: string): Html => {
+  const h = html<Message>()
 
   return h.div(
     [h.Class('bg-white rounded-lg shadow-md p-6')],

@@ -1,5 +1,5 @@
 import { describe, it } from '@effect/vitest'
-import { Effect, Schema as S } from 'effect'
+import { Context, Effect, Schema as S } from 'effect'
 import {
   attributesModule,
   classModule,
@@ -11,8 +11,13 @@ import {
 } from 'snabbdom'
 import { expect } from 'vitest'
 
-import { html } from '../html/index.js'
+import {
+  __clearRuntime as clearHtmlRuntime,
+  html,
+  __setRuntime as setHtmlRuntime,
+} from '../html/index.js'
 import { m } from '../message/index.js'
+import { MountTracker } from '../mount/index.js'
 import { propsModule } from '../propsModule.js'
 import { Dispatch } from '../runtime/index.js'
 import type { VNode } from '../vdom.js'
@@ -59,16 +64,27 @@ const createCapturingDispatch = () => {
 }
 
 const renderView = (
-  view: Effect.Effect<VNode | null, never, Dispatch>,
+  build: () => VNode | null,
   dispatch: Dispatch['Type'],
 ): VNode => {
-  const maybeVNode = Effect.runSync(
-    Effect.provideService(view, Dispatch, dispatch),
+  const testContext = Context.make(Dispatch, dispatch).pipe(
+    Context.add(MountTracker, {
+      started: () => {},
+      ended: () => {},
+    }),
   )
-  if (maybeVNode === null) {
+
+  setHtmlRuntime(dispatch.dispatchSync, testContext)
+  let vnode: VNode | null
+  try {
+    vnode = build()
+  } finally {
+    clearHtmlRuntime()
+  }
+  if (vnode === null) {
     throw new Error('renderView received a null VNode')
   }
-  return maybeVNode
+  return vnode
 }
 
 const patchInto = (vnode: VNode): Element => {
@@ -84,7 +100,7 @@ describe('CustomElement.define', () => {
     const rating = emojiRating.withMessage<Message>()
     const { dispatch } = createCapturingDispatch()
 
-    const view = rating()
+    const view = () => rating()
     const element = patchInto(renderView(view, dispatch))
 
     expect(element.tagName).toBe('FK-EMOJI-RATING')
@@ -94,11 +110,12 @@ describe('CustomElement.define', () => {
     const rating = emojiRating.withMessage<Message>()
     const { dispatch } = createCapturingDispatch()
 
-    const view = rating([
-      rating.Value(4),
-      rating.Disabled(true),
-      rating.Label('Your rating'),
-    ])
+    const view = () =>
+      rating([
+        rating.Value(4),
+        rating.Disabled(true),
+        rating.Label('Your rating'),
+      ])
     const element = patchInto(renderView(view, dispatch))
 
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -116,10 +133,11 @@ describe('CustomElement.define', () => {
     const rating = emojiRating.withMessage<Message>()
     const { dispatch, dispatched } = createCapturingDispatch()
 
-    const view = rating([
-      rating.OnChangeRating(detail => RatingChanged({ value: detail.value })),
-      rating.OnClearRating(() => RatingCleared()),
-    ])
+    const view = () =>
+      rating([
+        rating.OnChangeRating(detail => RatingChanged({ value: detail.value })),
+        rating.OnClearRating(() => RatingCleared()),
+      ])
     const element = patchInto(renderView(view, dispatch))
 
     element.dispatchEvent(
@@ -138,7 +156,7 @@ describe('CustomElement.define', () => {
     const { dispatch } = createCapturingDispatch()
 
     const renderWithValue = (value: number): VNode =>
-      renderView(rating([rating.Value(value)]), dispatch)
+      renderView(() => rating([rating.Value(value)]), dispatch)
 
     const first = patch(
       toVNode(document.createElement('div')),
@@ -157,7 +175,7 @@ describe('CustomElement.define', () => {
     const h = html<Message>()
     const { dispatch } = createCapturingDispatch()
 
-    const view = rating([rating.Value(3), h.Class('block w-full')])
+    const view = () => rating([rating.Value(3), h.Class('block w-full')])
     const element = patchInto(renderView(view, dispatch))
 
     expect(element.classList.contains('block')).toBe(true)

@@ -1,4 +1,4 @@
-import { Effect, Match as M, Number, String } from 'effect'
+import { Match as M, Number, String } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
@@ -92,12 +92,9 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         const focusOnOpen =
           message._tag === 'Opened' ? [FocusSearchInput()] : []
 
-        const mappedDialogCommands = dialogCommands.map(
-          Command.mapEffect(
-            Effect.map(
-              (message): Message => GotSearchDialogMessage({ message }),
-            ),
-          ),
+        const mappedDialogCommands = Command.mapMessages(
+          dialogCommands,
+          (message): Message => GotSearchDialogMessage({ message }),
         )
 
         return [

@@ -76,6 +76,12 @@ const viewConfigHeader: TableOfContentsEntry = {
   text: 'ViewConfig',
 }
 
+const outMessageHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'out-message',
+  text: 'OutMessage',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -89,6 +95,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   apiReferenceHeader,
   initConfigHeader,
   viewConfigHeader,
+  outMessageHeader,
 ]
 
 // SECTION DATA
@@ -150,12 +157,6 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
       'Wraps Combobox Messages in your parent Message type for Submodel delegation.',
   },
   {
-    name: 'onSelectedItem',
-    type: '(value: string) => ParentMessage',
-    description:
-      'Alternative to Submodel delegation: fires your own Message on selection. Use with Combobox.selectItem() in your update handler to reflect the selection in the combobox state.',
-  },
-  {
     name: 'items',
     type: 'ReadonlyArray<Item>',
     description:
@@ -207,6 +208,15 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     name: 'anchor',
     type: 'AnchorConfig',
     description: 'Floating positioning config: placement, gap, and padding.',
+  },
+]
+
+const outMessageProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'Selected',
+    type: '{ item: Item; wasAdded: boolean }',
+    description:
+      'Emitted when an item is committed. Single-select comboboxes always emit `wasAdded: true`. Multi-select comboboxes emit `wasAdded: true` when adding to the selection and `wasAdded: false` when toggling off. Pattern-match the third tuple element of Combobox.update in your GotComboboxMessage handler to lift the item into domain state.',
   },
 ]
 
@@ -464,6 +474,19 @@ export const view = <ParentMessage>(
         '.',
       ),
       propTable(viewConfigProps),
+      heading(
+        outMessageHeader.level,
+        outMessageHeader.id,
+        outMessageHeader.text,
+      ),
+      para(
+        'Messages emitted to the parent through the third element of ',
+        inlineCode('[Model, Commands, Option<OutMessage>]'),
+        '. Pattern-match on the OutMessage in your update handler. The same shape applies to ',
+        inlineCode('Combobox.Multi.update'),
+        '.',
+      ),
+      propTable(outMessageProps),
     ],
   )
 }

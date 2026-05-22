@@ -45,9 +45,7 @@ GotToastMessage: ({ message }) => {
 
   return [
     evo(model, { toast: () => nextToasts }),
-    commands.map(
-      Command.mapEffect(Effect.map(message => GotToastMessage({ message }))),
-    ),
+    Command.mapMessages(commands, message => GotToastMessage({ message })),
   ]
 }
 
@@ -62,9 +60,7 @@ ClickedSave: () => {
 
   return [
     evo(model, { toast: () => nextToasts }),
-    commands.map(
-      Command.mapEffect(Effect.map(message => GotToastMessage({ message }))),
-    ),
+    Command.mapMessages(commands, message => GotToastMessage({ message })),
   ]
 }
 

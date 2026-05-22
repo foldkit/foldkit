@@ -4,8 +4,8 @@ import { Html, html } from 'foldkit/html'
 import type { TableOfContentsEntry } from '../../main'
 import { heading, link, pageTitle, para } from '../../prose'
 import {
+  coreSubmodelRouter,
   exampleDetailRouter,
-  patternsSubmodelsRouter,
   uiAnimationRouter,
   uiButtonRouter,
   uiCalendarRouter,
@@ -37,6 +37,12 @@ const whatIsFoldkitUiHeader: TableOfContentsEntry = {
   text: 'What is Foldkit UI?',
 }
 
+const twoCategoriesHeader: TableOfContentsEntry = {
+  level: 'h2',
+  id: 'two-categories',
+  text: 'Two categories',
+}
+
 const componentsHeader: TableOfContentsEntry = {
   level: 'h2',
   id: 'components',
@@ -51,15 +57,19 @@ const showcaseHeader: TableOfContentsEntry = {
 
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   whatIsFoldkitUiHeader,
+  twoCategoriesHeader,
   componentsHeader,
   showcaseHeader,
 ]
 
 // COMPONENT TABLE
 
+type ComponentKind = 'Submodel' | 'Helper'
+
 type ComponentEntry = Readonly<{
   name: string
   href: string
+  kind: ComponentKind
   category: string
   description: string
 }>
@@ -68,6 +78,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Button',
     href: uiButtonRouter(),
+    kind: 'Helper',
     category: 'Forms',
     description:
       'Accessible button with consistent ARIA attributes and data-attribute hooks for styling.',
@@ -75,6 +86,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Input',
     href: uiInputRouter(),
+    kind: 'Helper',
     category: 'Forms',
     description:
       'Text input with ARIA label/description linking and data-attribute hooks.',
@@ -82,6 +94,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Textarea',
     href: uiTextareaRouter(),
+    kind: 'Helper',
     category: 'Forms',
     description:
       'Multi-line text input with ARIA label/description linking and data-attribute hooks.',
@@ -89,6 +102,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Checkbox',
     href: uiCheckboxRouter(),
+    kind: 'Submodel',
     category: 'Forms',
     description:
       'Toggle with accessible labeling, keyboard support, indeterminate state, and optional form integration.',
@@ -96,6 +110,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Fieldset',
     href: uiFieldsetRouter(),
+    kind: 'Helper',
     category: 'Forms',
     description:
       'Groups related form controls with a legend and description. Disabled state propagates to all children.',
@@ -103,6 +118,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Radio Group',
     href: uiRadioGroupRouter(),
+    kind: 'Submodel',
     category: 'Forms',
     description:
       'Radio options with roving tabindex, keyboard navigation, and per-option label/description linking.',
@@ -110,6 +126,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Switch',
     href: uiSwitchRouter(),
+    kind: 'Submodel',
     category: 'Forms',
     description:
       'On/off toggle with accessible labeling, keyboard support, and optional form integration.',
@@ -117,6 +134,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Slider',
     href: uiSliderRouter(),
+    kind: 'Submodel',
     category: 'Forms',
     description:
       'Numeric range input with pointer drag, keyboard step / page / home / end navigation, and ARIA slider semantics.',
@@ -124,6 +142,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Select',
     href: uiSelectRouter(),
+    kind: 'Helper',
     category: 'Forms',
     description:
       'Native select wrapper with ARIA label/description linking and data-attribute hooks.',
@@ -131,6 +150,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Listbox',
     href: uiListboxRouter(),
+    kind: 'Submodel',
     category: 'Selection',
     description:
       'Custom select dropdown with persistent selection, keyboard navigation, and typeahead search.',
@@ -138,6 +158,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Combobox',
     href: uiComboboxRouter(),
+    kind: 'Submodel',
     category: 'Selection',
     description:
       'Autocomplete input with filtering, keyboard navigation, and custom rendering.',
@@ -145,6 +166,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Dialog',
     href: uiDialogRouter(),
+    kind: 'Submodel',
     category: 'Overlays',
     description:
       'Modal dialog using native <dialog> with focus trapping, backdrop, and scroll locking.',
@@ -152,6 +174,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Menu',
     href: uiMenuRouter(),
+    kind: 'Submodel',
     category: 'Overlays',
     description:
       'Dropdown menu with keyboard navigation, typeahead search, and aria-activedescendant focus.',
@@ -159,6 +182,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Popover',
     href: uiPopoverRouter(),
+    kind: 'Submodel',
     category: 'Overlays',
     description:
       'Floating panel with arbitrary content and natural Tab navigation.',
@@ -166,6 +190,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Disclosure',
     href: uiDisclosureRouter(),
+    kind: 'Submodel',
     category: 'Disclosure',
     description:
       'Show/hide toggle for building collapsible sections like FAQs and accordions.',
@@ -173,6 +198,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Tabs',
     href: uiTabsRouter(),
+    kind: 'Submodel',
     category: 'Disclosure',
     description:
       'Tabbed interface with keyboard navigation, Home/End support, and wrapping.',
@@ -180,6 +206,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Drag and Drop',
     href: uiDragAndDropRouter(),
+    kind: 'Submodel',
     category: 'Interaction',
     description:
       'Sortable lists and cross-container movement with pointer tracking, keyboard navigation, auto-scrolling, and screen reader announcements.',
@@ -187,6 +214,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'File Drop',
     href: uiFileDropRouter(),
+    kind: 'Submodel',
     category: 'Interaction',
     description:
       'File input with drag-and-drop support, configurable accept patterns, and multiple-file mode. Emits typed OutMessages for received files and non-file drops.',
@@ -194,6 +222,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Calendar',
     href: uiCalendarRouter(),
+    kind: 'Submodel',
     category: 'Date',
     description:
       'Inline calendar grid with 2D keyboard navigation, locale-aware headers, min/max constraints, and disabled-date support. Foundation for date pickers.',
@@ -201,6 +230,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Date Picker',
     href: uiDatePickerRouter(),
+    kind: 'Submodel',
     category: 'Date',
     description:
       'Input paired with a popover Calendar. Inherits the calendar’s constraint and keyboard-navigation support, with programmatic open/close and setters.',
@@ -208,6 +238,7 @@ const components: ReadonlyArray<ComponentEntry> = [
   {
     name: 'Animation',
     href: uiAnimationRouter(),
+    kind: 'Submodel',
     category: 'Animation',
     description:
       'Coordinates CSS enter/leave animations via a state machine and data attributes. Works with both CSS transitions and CSS keyframe animations. Sends an OutMessage when the leave animation completes.',
@@ -225,6 +256,11 @@ const headerCellClassName =
 export const view = <ParentMessage>(): Html => {
   const h = html<ParentMessage>()
 
+  const kindBadgeClassName = (kind: ComponentKind): string =>
+    kind === 'Submodel'
+      ? 'inline-block rounded px-2 py-0.5 text-xs font-medium bg-accent-100 dark:bg-accent-900/40 text-accent-700 dark:text-accent-300'
+      : 'inline-block rounded px-2 py-0.5 text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+
   const componentRow = (entry: ComponentEntry): Html =>
     h.tr(
       [h.Class('border-b border-gray-200 dark:border-gray-700/50')],
@@ -237,6 +273,10 @@ export const view = <ParentMessage>(): Html => {
               [entry.name],
             ),
           ],
+        ),
+        h.td(
+          [h.Class('py-2.5 pr-4 whitespace-nowrap align-top')],
+          [h.span([h.Class(kindBadgeClassName(entry.kind))], [entry.kind])],
         ),
         h.td(
           [h.Class('py-2.5 text-gray-600 dark:text-gray-400')],
@@ -258,6 +298,7 @@ export const view = <ParentMessage>(): Html => {
                 [],
                 [
                   h.th([h.Class(headerCellClassName)], ['Component']),
+                  h.th([h.Class(headerCellClassName)], ['Kind']),
                   h.th([h.Class(headerCellClassName)], ['Description']),
                 ],
               ),
@@ -279,12 +320,23 @@ export const view = <ParentMessage>(): Html => {
         whatIsFoldkitUiHeader.text,
       ),
       para(
-        'Foldkit UI is a set of headless, accessible UI components built for Foldkit. Each component manages its own state through The Elm Architecture (with a Model, Message, update, and view) and integrates into your app via the ',
-        link(patternsSubmodelsRouter(), 'Submodels'),
-        ' pattern.',
+        'Foldkit UI is a set of headless, accessible UI components. Each component is renderless. You provide the markup and styling through a toView callback, and Foldkit UI provides the accessibility attributes, keyboard navigation, and (where applicable) state management.',
+      ),
+      heading(
+        twoCategoriesHeader.level,
+        twoCategoriesHeader.id,
+        twoCategoriesHeader.text,
       ),
       para(
-        'Components are renderless. You provide the markup and styling through a toView callback, and Foldkit UI provides the accessibility attributes, keyboard navigation, and state management. This means full control over how your UI looks while getting correct ARIA roles, focus management, and keyboard interaction for free.',
+        'Foldkit UI components fall into two categories, distinguished by whether they carry state.',
+      ),
+      para(
+        'Stateful ',
+        link(coreSubmodelRouter(), 'Submodels'),
+        ' (Menu, Listbox, Combobox, Calendar, Disclosure, Dialog, Popover, and most others) manage their own Model, Message, update, and OutMessage. You embed them via h.submodel and handle their events by pattern-matching the OutMessage in your update.',
+      ),
+      para(
+        'Stateless render helpers (Button, Input, Textarea, Select, Fieldset) are called directly with a ViewConfig and return Html. They bundle ARIA and data attributes onto consumer-rendered DOM. No Model, no Message, no h.submodel wiring. The “Kind” column in the table below marks which is which.',
       ),
       heading(
         componentsHeader.level,

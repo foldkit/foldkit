@@ -43,33 +43,37 @@ export const switchDemo = <ParentMessage>(
     )
 
   return [
-    Ui.Switch.view({
+    h.submodel({
+      id: 'switch-demo',
+      view: Ui.Switch.view,
       model: switchModel,
+      inputs: {
+        toView: attributes =>
+          h.div(
+            [h.Class(wrapperClassName)],
+            [
+              h.button(
+                [...attributes.button, h.Class(buttonClassName)],
+                [knob(switchModel.isChecked)],
+              ),
+              h.div(
+                [],
+                [
+                  h.label(
+                    [...attributes.label, h.Class(labelClassName)],
+                    ['Enable notifications'],
+                  ),
+                  h.p(
+                    [...attributes.description, h.Class(descriptionClassName)],
+                    ['Get notified when something important happens.'],
+                  ),
+                ],
+              ),
+            ],
+          ),
+      },
       toParentMessage: message =>
         toParentMessage(GotSwitchDemoMessage({ message })),
-      toView: attributes =>
-        h.div(
-          [h.Class(wrapperClassName)],
-          [
-            h.button(
-              [...attributes.button, h.Class(buttonClassName)],
-              [knob(switchModel.isChecked)],
-            ),
-            h.div(
-              [],
-              [
-                h.label(
-                  [...attributes.label, h.Class(labelClassName)],
-                  ['Enable notifications'],
-                ),
-                h.p(
-                  [...attributes.description, h.Class(descriptionClassName)],
-                  ['Get notified when something important happens.'],
-                ),
-              ],
-            ),
-          ],
-        ),
     }),
   ]
 }

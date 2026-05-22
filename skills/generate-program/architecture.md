@@ -220,24 +220,25 @@ GotChildMessage: ({ message }) => {
 
 ### View Delegation
 
-Child views accept a `toParentMessage` function to wrap their messages for the parent:
+Child views are embedded via `h.submodel`. The child writes a pure `(model) => Html` view (no awareness of the parent); the parent declares the Message wrap as data at the embed site:
 
 ```ts
 // Parent view
-Child.view(model.child, message => GotChildMessage({ message }))
+h.submodel({
+  id: 'submit-section',
+  view: Child.view,
+  model: model.child,
+  toParentMessage: message => GotChildMessage({ message }),
+})
 
-// Child view signature
-const view = <ParentMessage>(
-  model: Model,
-  toParentMessage: (message: Message) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
-  return h.div(
-    [],
-    [h.button([h.OnClick(toParentMessage(ClickedSubmit()))], ['Submit'])],
-  )
-}
+// Child view, branded with Submodel.defineView
+export const view = Submodel.defineView<Model, Message>(model => {
+  const h = html<Message>()
+  return h.button([h.OnClick(ClickedSubmit())], ['Submit'])
+})
 ```
+
+The runtime resolves the `toParentMessage` wrap at event-fire time through a scope registry, so the child's view stays pure and dispatches in its own Message type. Brand the view with `Submodel.defineView<Model, Message>` so `h.submodel` can infer the child's Message type at the embed site.
 
 ## Subscriptions
 

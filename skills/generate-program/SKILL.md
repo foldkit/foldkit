@@ -329,8 +329,8 @@ For each Foldkit module you plan to use, read the `.d.ts` at the paths below. Re
 # Rule is [Predicate, RuleMessage], NOT {test, message}. Field.Invalid has `errors: NonEmptyArray<RuleMessage>`, not `error: string`.
 
 # If using any UI component
-<project>/node_modules/foldkit/dist/ui/<component>/public.d.ts  # Model, Message, init, update, view, ViewConfig
-# Check: does ViewConfig have the props you need? Does toView destructure label/input/description/button attribute groups?
+<project>/node_modules/foldkit/dist/ui/<component>/public.d.ts  # Model, Message, init, update, view (Submodel-shaped) or ViewConfig (render-helper-shaped), OutMessage when applicable
+# Check: is it a Submodel (Menu/Listbox/Combobox/Calendar/Disclosure/Dialog/Popover/etc.) embedded via h.submodel, or a stateless render helper (Button/Input/Textarea/Select/Fieldset) called directly with a ViewConfig? Submodels carry their own Model/Message/update/OutMessage; render helpers don't. Check ViewInputs (for Submodels) or ViewConfig (for helpers) for the slot callbacks (toView, itemToConfig, etc.).
 
 # If using dates
 <project>/node_modules/foldkit/dist/calendar/index.d.ts # CalendarDate, today.local (returns Effect<CalendarDate>); for raw millis use Clock.currentTimeMillis
@@ -512,7 +512,7 @@ For file uploads (resumes, images, attachments):
 
 ### View
 
-- Bind the html factory inside each view function (never at module level): `const h = html<Message>()` as the first line of the function body. Reach for elements, attributes, and event handlers off `h`: `h.div`, `h.Class`, `h.OnClick`. For child views generic over a parent's Message, take `<ParentMessage>` as a function generic and bind `const h = html<ParentMessage>()` inside the function body.
+- Bind the html factory inside each view function (never at module level): `const h = html<Message>()` as the first line of the function body. Reach for elements, attributes, and event handlers off `h`: `h.div`, `h.Class`, `h.OnClick`. For Submodel views (children embedded via `h.submodel`), brand with `Submodel.defineView<Model, Message>` and bind `const h = html<Message>()` inside the body — the child dispatches in its own Message type and the parent declares the wrap at the embed site via `toParentMessage`.
 - Use `h.Class(...)` for Tailwind classes
 - Use `clsx` from the `clsx` package for conditional class composition: `h.Class(clsx('base-classes', { 'active-class': isActive, 'bg-blue-500': variant === 'Primary' }))`. Use `clsx` whenever classes depend on model state, boolean flags, or discriminated union tags. Never string concatenation, template literals, or `&&` expressions.
 - Pattern match on model state: `M.value(model.state).pipe(M.tagsExhaustive({...}))`

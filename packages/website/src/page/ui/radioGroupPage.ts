@@ -82,6 +82,12 @@ const optionAttributesHeader: TableOfContentsEntry = {
   text: 'OptionAttributes',
 }
 
+const outMessageHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'out-message',
+  text: 'OutMessage',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -94,6 +100,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   initConfigHeader,
   viewConfigHeader,
   optionAttributesHeader,
+  outMessageHeader,
 ]
 
 // SECTION DATA
@@ -165,12 +172,6 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     description: 'Disables individual options.',
   },
   {
-    name: 'onSelected',
-    type: '(value, index) => Message',
-    description:
-      'Alternative to Submodel delegation: fires your own Message on selection instead of the internal SelectedOption. Use with RadioGroup.select() to update the Model.',
-  },
-  {
     name: 'name',
     type: 'string',
     description:
@@ -206,6 +207,15 @@ const optionAttributesProps: ReadonlyArray<PropEntry> = [
     type: 'ReadonlyArray<Attribute<Message>>',
     description:
       'Spread onto a description element. Includes an id for aria-describedby.',
+  },
+]
+
+const outMessageProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'Selected',
+    type: '{ value: Value; index: number }',
+    description:
+      'Emitted when an option is committed via click or keyboard. Pattern-match the third tuple element of RadioGroup.update in your GotRadioGroupMessage handler to lift the value into domain state. Programmatic `RadioGroup.select(model, value, options)` carries the same signal.',
   },
 ]
 
@@ -398,6 +408,17 @@ export const view = <ParentMessage>(
         ' callback.',
       ),
       propTable(optionAttributesProps),
+      heading(
+        outMessageHeader.level,
+        outMessageHeader.id,
+        outMessageHeader.text,
+      ),
+      para(
+        'Messages emitted to the parent through the third element of ',
+        inlineCode('[Model, Commands, Option<OutMessage>]'),
+        '. Pattern-match on the OutMessage in your update handler.',
+      ),
+      propTable(outMessageProps),
     ],
   )
 }

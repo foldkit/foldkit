@@ -62,14 +62,16 @@ export const CoreCrashViewRoute = r('CoreCrashView')
 export const CoreSlowViewRoute = r('CoreSlowView')
 export const CoreFreezeModelRoute = r('CoreFreezeModel')
 export const CoreViewMemoizationRoute = r('CoreViewMemoization')
+export const CoreSubmodelRoute = r('CoreSubmodel')
 
-export const PatternsSubmodelsRoute = r('PatternsSubmodels')
+export const PatternsBoundaryAttributesRoute = r('PatternsBoundaryAttributes')
 export const PatternsOutMessageRoute = r('PatternsOutMessage')
 export const PatternsSubscriptionOrganizationRoute = r(
   'PatternsSubscriptionOrganization',
 )
 
 export const UiOverviewRoute = r('UiOverview')
+export const UiTypedPrimitivesRoute = r('UiTypedPrimitives')
 export const UiButtonRoute = r('UiButton')
 export const UiCalendarRoute = r('UiCalendar')
 export const UiDatePickerRoute = r('UiDatePicker')
@@ -147,10 +149,12 @@ export const DocsRoute = S.Union([
   CoreSlowViewRoute,
   CoreFreezeModelRoute,
   CoreViewMemoizationRoute,
-  PatternsSubmodelsRoute,
+  CoreSubmodelRoute,
+  PatternsBoundaryAttributesRoute,
   PatternsOutMessageRoute,
   PatternsSubscriptionOrganizationRoute,
   UiOverviewRoute,
+  UiTypedPrimitivesRoute,
   UiButtonRoute,
   UiCalendarRoute,
   UiDatePickerRoute,
@@ -391,11 +395,16 @@ export const coreViewMemoizationRouter = pipe(
   slash(literal('view-memoization')),
   mapTo(CoreViewMemoizationRoute),
 )
+export const coreSubmodelRouter = pipe(
+  literal('core'),
+  slash(literal('submodel')),
+  mapTo(CoreSubmodelRoute),
+)
 
-export const patternsSubmodelsRouter = pipe(
+export const patternsBoundaryAttributesRouter = pipe(
   literal('patterns'),
-  slash(literal('submodels')),
-  mapTo(PatternsSubmodelsRoute),
+  slash(literal('boundary-attributes')),
+  mapTo(PatternsBoundaryAttributesRoute),
 )
 export const patternsOutMessageRouter = pipe(
   literal('patterns'),
@@ -412,6 +421,11 @@ export const uiOverviewRouter = pipe(
   literal('ui'),
   slash(literal('overview')),
   mapTo(UiOverviewRoute),
+)
+export const uiTypedPrimitivesRouter = pipe(
+  literal('ui'),
+  slash(literal('typed-primitives')),
+  mapTo(UiTypedPrimitivesRoute),
 )
 export const uiButtonRouter = pipe(
   literal('ui'),
@@ -601,16 +615,18 @@ const coreParser = oneOf(
   coreSlowViewRouter,
   coreFreezeModelRouter,
   coreViewMemoizationRouter,
+  coreSubmodelRouter,
 )
 
 const patternsParser = oneOf(
-  patternsSubmodelsRouter,
+  patternsBoundaryAttributesRouter,
   patternsOutMessageRouter,
   patternsSubscriptionOrganizationRouter,
 )
 
 const uiParser = oneOf(
   uiOverviewRouter,
+  uiTypedPrimitivesRouter,
   uiButtonRouter,
   uiCalendarRouter,
   uiDatePickerRouter,

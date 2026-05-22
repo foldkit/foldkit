@@ -1,13 +1,7 @@
 import { describe, test } from 'vitest'
 
 import * as Scene from '../scene.js'
-import {
-  initialModel,
-  update,
-  view,
-  viewWithDialog,
-  viewWithLazyDialog,
-} from './disabledButton.js'
+import { initialModel, update, view, viewWithDialog } from './disabledButton.js'
 
 describe('disabled button cleanup', () => {
   describe('plain button (no dialog)', () => {
@@ -36,19 +30,6 @@ describe('disabled button cleanup', () => {
     test('submit becomes clickable after toggle', () => {
       Scene.scene(
         { update, view: viewWithDialog },
-        Scene.with(initialModel),
-        Scene.expect(Scene.text('Submit')).toBeDisabled(),
-        Scene.click(Scene.text('Toggle')),
-        Scene.expect(Scene.text('Submit')).not.toBeDisabled(),
-        Scene.click(Scene.text('Submit')),
-      )
-    })
-  })
-
-  describe('button inside Dialog.lazy', () => {
-    test('submit becomes clickable after toggle', () => {
-      Scene.scene(
-        { update, view: viewWithLazyDialog },
         Scene.with(initialModel),
         Scene.expect(Scene.text('Submit')).toBeDisabled(),
         Scene.click(Scene.text('Toggle')),

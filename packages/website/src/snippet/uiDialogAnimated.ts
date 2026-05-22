@@ -35,9 +35,7 @@ GotDialogMessage: ({ message }) => {
     // Merge the next state into your Model:
     evo(model, { dialog: () => nextDialog }),
     // Forward the Submodel's Commands through your parent Message:
-    commands.map(
-      Command.mapEffect(Effect.map(message => GotDialogMessage({ message }))),
-    ),
+    Command.mapMessages(commands, message => GotDialogMessage({ message })),
   ]
 }
 
@@ -49,49 +47,74 @@ const dialogToParentMessage = (message: Ui.Dialog.Message): Message =>
 const view = (model: Model) => {
   const h = html<Message>()
 
-  return Ui.Dialog.view({
+  return h.submodel({
+    id: model.dialog.id,
+    view: Ui.Dialog.view,
     model: model.dialog,
-    toParentMessage: dialogToParentMessage,
-    backdropAttributes: [
-      h.Class(
-        'fixed inset-0 bg-black/50 transition duration-150 ease-out data-[closed]:opacity-0',
-      ),
-    ],
-    panelContent: h.div(
-      [],
-      [
-        h.h2([h.Id(Ui.Dialog.titleId(model.dialog))], ['Confirm Action']),
-        h.p([], ['Are you sure you want to proceed?']),
-        h.div(
-          [h.Class('flex gap-2 justify-end mt-4')],
+    inputs: {
+      toView: ({ dialog, backdrop, panel, isVisible }) =>
+        h.dialog(
           [
-            h.button(
-              [
-                h.OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
-                h.Class('px-4 py-2 rounded-lg border'),
-              ],
-              ['Cancel'],
-            ),
-            h.button(
-              [
-                h.OnClick(dialogToParentMessage(Ui.Dialog.Closed())),
-                h.Class('px-4 py-2 rounded-lg bg-blue-600 text-white'),
-              ],
-              ['Confirm'],
+            ...dialog,
+            h.Class(
+              'backdrop:bg-transparent bg-transparent p-0 open:flex items-center justify-center',
             ),
           ],
+          isVisible
+            ? [
+                h.div(
+                  [
+                    ...backdrop,
+                    h.Class(
+                      'fixed inset-0 bg-black/50 transition duration-150 ease-out data-[closed]:opacity-0',
+                    ),
+                  ],
+                  [],
+                ),
+                h.div(
+                  [
+                    ...panel,
+                    h.Class(
+                      'rounded-lg p-6 max-w-md mx-auto shadow-xl transition duration-150 ease-out data-[closed]:opacity-0 data-[closed]:scale-95',
+                    ),
+                  ],
+                  [
+                    h.h2(
+                      [h.Id(Ui.Dialog.titleId(model.dialog))],
+                      ['Confirm Action'],
+                    ),
+                    h.p([], ['Are you sure you want to proceed?']),
+                    h.div(
+                      [h.Class('flex gap-2 justify-end mt-4')],
+                      [
+                        h.button(
+                          [
+                            h.OnClick(
+                              dialogToParentMessage(Ui.Dialog.Closed()),
+                            ),
+                            h.Class('px-4 py-2 rounded-lg border'),
+                          ],
+                          ['Cancel'],
+                        ),
+                        h.button(
+                          [
+                            h.OnClick(
+                              dialogToParentMessage(Ui.Dialog.Closed()),
+                            ),
+                            h.Class(
+                              'px-4 py-2 rounded-lg bg-blue-600 text-white',
+                            ),
+                          ],
+                          ['Confirm'],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ]
+            : [],
         ),
-      ],
-    ),
-    panelAttributes: [
-      h.Class(
-        'rounded-lg p-6 max-w-md mx-auto shadow-xl transition duration-150 ease-out data-[closed]:opacity-0 data-[closed]:scale-95',
-      ),
-    ],
-    attributes: [
-      h.Class(
-        'backdrop:bg-transparent bg-transparent p-0 open:flex items-center justify-center',
-      ),
-    ],
+    },
+    toParentMessage: message => dialogToParentMessage(message),
   })
 }

@@ -2,7 +2,6 @@ export {
   init,
   update,
   view,
-  lazy,
   open,
   close,
   selectDate,
@@ -23,4 +22,4 @@ export {
   ChangedViewMonth,
 } from './index.js'
 
-export type { InitConfig, ViewConfig } from './index.js'
+export type { InitConfig, ViewInputs } from './index.js'

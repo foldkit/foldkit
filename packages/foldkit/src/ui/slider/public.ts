@@ -4,7 +4,6 @@ export {
   setRange,
   setValue,
   view,
-  lazy,
   subscriptions,
   subscriptionsForRoot,
   fractionOfValue,
@@ -15,7 +14,7 @@ export {
 
 export type {
   InitConfig,
-  ViewConfig,
+  ViewInputs,
   SliderAttributes,
   PressedThumb,
   PressedPointer,

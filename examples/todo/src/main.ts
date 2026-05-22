@@ -334,23 +334,32 @@ export const SaveTodos = Command.define(
 
 // VIEW
 
-const todoItemView =
-  (model: Model) =>
-  (todo: Todo): Html =>
-    M.value(model.editing).pipe(
-      M.tagsExhaustive({
-        NotEditing: () => nonEditingTodoView(todo),
-        Editing: ({ id, text }) =>
-          id === todo.id
-            ? editingTodoView(todo, text)
-            : nonEditingTodoView(todo),
-      }),
-    )
+const editingTextFor = (
+  editing: EditingState,
+  todoId: string,
+): Option.Option<string> =>
+  M.value(editing).pipe(
+    M.tagsExhaustive({
+      NotEditing: () => Option.none(),
+      Editing: ({ id, text }) =>
+        Option.liftPredicate(text, () => id === todoId),
+    }),
+  )
+
+const todoItemView = (
+  todo: Todo,
+  maybeEditingText: Option.Option<string>,
+): Html =>
+  Option.match(maybeEditingText, {
+    onNone: () => nonEditingTodoView(todo),
+    onSome: text => editingTodoView(todo, text),
+  })
 
 const editingTodoView = (todo: Todo, text: string): Html => {
   const h = html<Message>()
 
-  return h.li(
+  return h.keyed('li')(
+    todo.id,
     [h.Class('flex items-center gap-3 p-3 bg-gray-50 rounded-lg')],
     [
       h.input([
@@ -386,7 +395,8 @@ const editingTodoView = (todo: Todo, text: string): Html => {
 const nonEditingTodoView = (todo: Todo): Html => {
   const h = html<Message>()
 
-  return h.li(
+  return h.keyed('li')(
+    todo.id,
     [h.Class('flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg group')],
     [
       h.input([
@@ -580,7 +590,9 @@ export const view = (model: Model): Document => {
             onNonEmpty: todos =>
               h.ul(
                 [h.Class('space-y-2 mb-6')],
-                Array.map(todos, todoItemView(model)),
+                Array.map(todos, todo =>
+                  todoItemView(todo, editingTextFor(model.editing, todo.id)),
+                ),
               ),
           }),
 

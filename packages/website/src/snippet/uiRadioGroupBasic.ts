@@ -1,14 +1,22 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt — fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Effect } from 'effect'
+import { Effect, Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
-// Add a field to your Model for the RadioGroup Submodel:
+type Plan = 'Startup' | 'Business' | 'Enterprise'
+
+// Declare a typed RadioGroup once at module scope. `view` and `update`
+// are bound to the same value type:
+const PlanRadioGroup = Ui.RadioGroup.create<Plan>()
+
+// Add a field to your Model for the RadioGroup Submodel, plus a field
+// for the selected plan your app actually cares about:
 const Model = S.Struct({
+  maybePlan: S.Option(S.String),
   radioGroup: Ui.RadioGroup.Model,
   // ...your other fields
 })
@@ -16,6 +24,7 @@ const Model = S.Struct({
 // In your init function, initialize the RadioGroup Submodel with a unique id:
 const init = () => [
   {
+    maybePlan: Option.none(),
     radioGroup: Ui.RadioGroup.init({ id: 'plan' }),
     // ...your other fields
   },
@@ -27,26 +36,37 @@ const GotRadioGroupMessage = m('GotRadioGroupMessage', {
   message: Ui.RadioGroup.Message,
 })
 
-// Inside your update function's M.tagsExhaustive({...}), delegate to RadioGroup.update:
+// Inside your update function's M.tagsExhaustive({...}), delegate to
+// PlanRadioGroup.update. The OutMessage's `Selected` carries the chosen
+// value typed as `Plan` (the type param at the factory):
 GotRadioGroupMessage: ({ message }) => {
-  const [nextRadioGroup, commands] = Ui.RadioGroup.update(
+  const [nextRadioGroup, commands, maybeOut] = PlanRadioGroup.update(
     model.radioGroup,
     message,
   )
+  const mappedCommands = Command.mapMessages(commands, message =>
+    GotRadioGroupMessage({ message }),
+  )
 
-  return [
-    // Merge the next state into your Model:
-    evo(model, { radioGroup: () => nextRadioGroup }),
-    // Forward the Submodel's Commands through your parent Message:
-    commands.map(
-      Command.mapEffect(
-        Effect.map(message => GotRadioGroupMessage({ message })),
-      ),
+  return Option.match(maybeOut, {
+    onNone: () => [
+      evo(model, { radioGroup: () => nextRadioGroup }),
+      mappedCommands,
+    ],
+    onSome: M.type<Ui.RadioGroup.OutMessage<Plan>>().pipe(
+      M.tagsExhaustive({
+        Selected: ({ value }) => [
+          evo(model, {
+            radioGroup: () => nextRadioGroup,
+            maybePlan: () => Option.some(value),
+          }),
+          mappedCommands,
+        ],
+      }),
     ),
-  ]
+  })
 }
 
-type Plan = 'Startup' | 'Business' | 'Enterprise'
 const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']
 
 const descriptions: Record<Plan, string> = {
@@ -55,37 +75,43 @@ const descriptions: Record<Plan, string> = {
   Enterprise: '32GB / 12 CPUs — Dedicated infrastructure',
 }
 
-// Inside your view function, render the radio group:
+// Inside your view function, embed the radio group via h.submodel:
 const view = () => {
   const h = html<Message>()
 
-  return Ui.RadioGroup.view<Message, Plan>({
+  return h.submodel({
+    id: 'plan',
+    view: PlanRadioGroup.view,
     model: model.radioGroup,
-    toParentMessage: message => GotRadioGroupMessage({ message }),
-    options: plans,
-    ariaLabel: 'Server plan',
-    optionToConfig: (plan, { isSelected }) => ({
-      value: plan,
-      content: attributes =>
+    inputs: {
+      options: plans,
+      ariaLabel: 'Server plan',
+      toView: ({ group, options }) =>
         h.div(
-          [
-            ...attributes.option,
-            h.Class(
-              'rounded-lg border p-4 cursor-pointer data-[checked]:border-blue-600',
-            ),
-          ],
-          [
-            h.span(
-              [...attributes.label, h.Class('text-sm font-medium')],
-              [plan],
-            ),
-            h.p(
-              [...attributes.description, h.Class('text-sm text-gray-500')],
-              [descriptions[plan]],
-            ),
-          ],
+          [...group, h.Class('flex flex-col gap-3')],
+          options.map(option => {
+            const plan = option.value
+            return h.div(
+              [
+                ...option.option,
+                h.Class(
+                  'rounded-lg border p-4 cursor-pointer data-[checked]:border-blue-600',
+                ),
+              ],
+              [
+                h.span(
+                  [...option.label, h.Class('text-sm font-medium')],
+                  [plan],
+                ),
+                h.p(
+                  [...option.description, h.Class('text-sm text-gray-500')],
+                  [descriptions[plan]],
+                ),
+              ],
+            )
+          }),
         ),
-    }),
-    attributes: [h.Class('flex flex-col gap-3')],
+    },
+    toParentMessage: message => GotRadioGroupMessage({ message }),
   })
 }

@@ -40,10 +40,8 @@ GotDragAndDropMessage: ({ message: dragMessage }) => {
   const [nextDragAndDrop, dragCommands, maybeOutMessage] =
     Ui.DragAndDrop.update(model.dragAndDrop, dragMessage)
 
-  const mappedCommands = dragCommands.map(
-    Command.mapEffect(
-      Effect.map(message => GotDragAndDropMessage({ message })),
-    ),
+  const mappedCommands = Command.mapMessages(dragCommands, message =>
+    GotDragAndDropMessage({ message }),
   )
 
   return Option.match(maybeOutMessage, {

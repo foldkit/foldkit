@@ -1,4 +1,4 @@
-import { Ui } from 'foldkit'
+import { Submodel, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import {
@@ -30,11 +30,8 @@ const thumbClassName =
 const ratingFormatted = (value: number): string => `${value} of 10`
 const volumeFormatted = (value: number): string => `${Math.round(value * 100)}%`
 
-export const view = <ParentMessage>(
-  model: UiModel,
-  toParentMessage: (message: UiMessage) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
+  const h = html<UiMessage>()
 
   return h.div(
     [],
@@ -43,94 +40,106 @@ export const view = <ParentMessage>(
       h.div(
         [h.Class('flex flex-col gap-8 max-w-sm')],
         [
-          Ui.Slider.view({
+          h.submodel({
+            id: model.sliderRatingDemo.id,
+            view: Ui.Slider.view,
             model: model.sliderRatingDemo,
-            toParentMessage: message =>
-              toParentMessage(GotSliderRatingDemoMessage({ message })),
-            formatValue: value => `${value} of 10`,
-            toView: attributes =>
-              h.div(
-                [h.Class(rowClassName)],
-                [
-                  h.div(
-                    [h.Class(headerClassName)],
-                    [
-                      h.label(
-                        [...attributes.label, h.Class(labelClassName)],
-                        ['Rating'],
-                      ),
-                      h.span(
-                        [h.Class(valueClassName)],
-                        [ratingFormatted(model.sliderRatingDemo.value)],
-                      ),
-                    ],
-                  ),
-                  h.div(
-                    [...attributes.root, h.Class(rootClassName)],
-                    [
-                      h.div(
-                        [...attributes.track, h.Class(trackClassName)],
-                        [
-                          h.div(
-                            [
-                              ...attributes.filledTrack,
-                              h.Class(filledTrackClassName),
-                            ],
-                            [],
-                          ),
-                        ],
-                      ),
-                      h.div([...attributes.thumb, h.Class(thumbClassName)], []),
-                    ],
-                  ),
-                ],
-              ),
+            inputs: {
+              formatValue: value => `${value} of 10`,
+              toView: attributes =>
+                h.div(
+                  [h.Class(rowClassName)],
+                  [
+                    h.div(
+                      [h.Class(headerClassName)],
+                      [
+                        h.label(
+                          [...attributes.label, h.Class(labelClassName)],
+                          ['Rating'],
+                        ),
+                        h.span(
+                          [h.Class(valueClassName)],
+                          [ratingFormatted(model.sliderRatingDemo.value)],
+                        ),
+                      ],
+                    ),
+                    h.div(
+                      [...attributes.root, h.Class(rootClassName)],
+                      [
+                        h.div(
+                          [...attributes.track, h.Class(trackClassName)],
+                          [
+                            h.div(
+                              [
+                                ...attributes.filledTrack,
+                                h.Class(filledTrackClassName),
+                              ],
+                              [],
+                            ),
+                          ],
+                        ),
+                        h.div(
+                          [...attributes.thumb, h.Class(thumbClassName)],
+                          [],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+            },
+            toParentMessage: message => GotSliderRatingDemoMessage({ message }),
           }),
-          Ui.Slider.view({
+          h.submodel({
+            id: model.sliderVolumeDemo.id,
+            view: Ui.Slider.view,
             model: model.sliderVolumeDemo,
-            toParentMessage: message =>
-              toParentMessage(GotSliderVolumeDemoMessage({ message })),
-            formatValue: value => `${Math.round(value * 100)} percent`,
-            toView: attributes =>
-              h.div(
-                [h.Class(rowClassName)],
-                [
-                  h.div(
-                    [h.Class(headerClassName)],
-                    [
-                      h.label(
-                        [...attributes.label, h.Class(labelClassName)],
-                        ['Volume'],
-                      ),
-                      h.span(
-                        [h.Class(valueClassName)],
-                        [volumeFormatted(model.sliderVolumeDemo.value)],
-                      ),
-                    ],
-                  ),
-                  h.div(
-                    [...attributes.root, h.Class(rootClassName)],
-                    [
-                      h.div(
-                        [...attributes.track, h.Class(trackClassName)],
-                        [
-                          h.div(
-                            [
-                              ...attributes.filledTrack,
-                              h.Class(filledTrackClassName),
-                            ],
-                            [],
-                          ),
-                        ],
-                      ),
-                      h.div([...attributes.thumb, h.Class(thumbClassName)], []),
-                    ],
-                  ),
-                ],
-              ),
+            inputs: {
+              formatValue: value => `${Math.round(value * 100)} percent`,
+              toView: attributes =>
+                h.div(
+                  [h.Class(rowClassName)],
+                  [
+                    h.div(
+                      [h.Class(headerClassName)],
+                      [
+                        h.label(
+                          [...attributes.label, h.Class(labelClassName)],
+                          ['Volume'],
+                        ),
+                        h.span(
+                          [h.Class(valueClassName)],
+                          [volumeFormatted(model.sliderVolumeDemo.value)],
+                        ),
+                      ],
+                    ),
+                    h.div(
+                      [...attributes.root, h.Class(rootClassName)],
+                      [
+                        h.div(
+                          [...attributes.track, h.Class(trackClassName)],
+                          [
+                            h.div(
+                              [
+                                ...attributes.filledTrack,
+                                h.Class(filledTrackClassName),
+                              ],
+                              [],
+                            ),
+                          ],
+                        ),
+                        h.div(
+                          [...attributes.thumb, h.Class(thumbClassName)],
+                          [],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+            },
+            toParentMessage: message => GotSliderVolumeDemoMessage({ message }),
           }),
         ],
       ),
     ],
   )
-}
+})

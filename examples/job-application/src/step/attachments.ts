@@ -1,4 +1,4 @@
-import { Array, Effect, Match as M, Option, Schema as S, pipe } from 'effect'
+import { Array, Match as M, Option, Schema as S, pipe } from 'effect'
 import { Command, File, Ui } from 'foldkit'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
@@ -78,11 +78,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             resumeDrop: () => nextDrop,
             maybeResume: () => nextMaybeResume,
           }),
-          Array.map(
-            commands,
-            Command.mapEffect(
-              Effect.map(message => GotResumeDropMessage({ message })),
-            ),
+          Command.mapMessages(commands, message =>
+            GotResumeDropMessage({ message }),
           ),
         ]
       },
@@ -111,11 +108,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
             additionalFilesDrop: () => nextDrop,
             additionalFiles: () => nextAdditionalFiles,
           }),
-          Array.map(
-            commands,
-            Command.mapEffect(
-              Effect.map(message => GotAdditionalFilesDropMessage({ message })),
-            ),
+          Command.mapMessages(commands, message =>
+            GotAdditionalFilesDropMessage({ message }),
           ),
         ]
       },

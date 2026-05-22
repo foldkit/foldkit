@@ -15,10 +15,10 @@ import {
 } from '../../prose'
 import {
   coreCounterExampleRouter,
+  coreSubmodelRouter,
   exampleDetailRouter,
   fieldValidationRouter,
   gettingStartedRouter,
-  patternsSubmodelsRouter,
   routingAndNavigationRouter,
   testingSceneRouter,
   testingStoryRouter,
@@ -154,18 +154,38 @@ const faqItem = <ParentMessage>(
 
   return Option.match(Record.get(model, id), {
     onSome: disclosure =>
-      Ui.Disclosure.view({
+      h.submodel({
+        id: disclosure.id,
+        view: Ui.Disclosure.view,
         model: disclosure,
+        inputs: {
+          toView: attributes =>
+            h.div(
+              [h.Class('mb-2')],
+              [
+                h.button(
+                  [...attributes.button, h.Class(faqButtonClassName)],
+                  [
+                    h.div(
+                      [h.Class('flex items-center justify-between w-full')],
+                      [
+                        h.span([], [question]),
+                        chevron<ParentMessage>(disclosure.isOpen),
+                      ],
+                    ),
+                  ],
+                ),
+                disclosure.isOpen
+                  ? h.div(
+                      [...attributes.panel, h.Class(faqPanelClassName)],
+                      [h.div([], answerContent)],
+                    )
+                  : h.empty,
+              ],
+            ),
+        },
         toParentMessage: message =>
           toParentMessage(GotFaqDisclosureMessage({ id, message })),
-        buttonAttributes: [h.Class(faqButtonClassName)],
-        buttonContent: h.div(
-          [h.Class('flex items-center justify-between w-full')],
-          [h.span([], [question]), chevron<ParentMessage>(disclosure.isOpen)],
-        ),
-        panelAttributes: [h.Class(faqPanelClassName)],
-        panelContent: h.div([], answerContent),
-        attributes: [h.Class('mb-2')],
       }),
     onNone: () =>
       h.div([], [h.p([h.Class('font-bold')], [question]), ...answerContent]),
@@ -344,7 +364,7 @@ export const view = <ParentMessage>(
         [
           para(
             'Create functions that take parts of your Model and return Html. They’re not components in the React sense (they don’t have their own state or lifecycle), but they’re reusable view logic. For complex features that need their own state, use the ',
-            link(patternsSubmodelsRouter(), 'Submodels'),
+            link(coreSubmodelRouter(), 'Submodel'),
             ' pattern: the child module gets its own Model, Message, and update, and the parent embeds and delegates to it.',
           ),
         ],

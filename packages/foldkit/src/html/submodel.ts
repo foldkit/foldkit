@@ -1,0 +1,341 @@
+import { Predicate } from 'effect'
+
+import type { VNode } from '../vdom.js'
+import {
+  type BoundaryRegistry,
+  type WrapDescriptor,
+  composeBoundary,
+  deregisterBoundaryWrap,
+  registerBoundaryWrap,
+} from './boundary.js'
+import {
+  type Frame,
+  clearRuntime,
+  getCurrentFrame,
+  pushBoundary,
+  pushFrame,
+} from './runtimeSingleton.js'
+
+// NOTE: string key (not Symbol) so SubmodelView types from different
+// module instances (e.g. pnpm hoisting variations) stay structurally
+// compatible.
+const SUBMODEL_MESSAGE_BRAND = '__submodelMessage'
+
+/** A view function branded with the Message type it dispatches. The brand
+ *  (`__submodelMessage`) is a phantom field with no runtime value; it
+ *  exists purely so `h.submodel` can infer the child's Message type from
+ *  the view and propagate it into `toParentMessage`.
+ *
+ *  Submodel authors brand their view with the {@link defineView} helper:
+ *
+ *  ```ts
+ *  export const view = defineView<Counter.Model, Counter.Message>(
+ *    (model) => h.button([h.OnClick(Increment())], ['+']),
+ *  )
+ *  ```
+ *
+ *  When `Inputs` is provided, the view takes a second `inputs` argument:
+ *
+ *  ```ts
+ *  export const view = defineView<
+ *    Checkbox.Model,
+ *    Checkbox.Message,
+ *    ViewInputs
+ *  >((model, inputs) => inputs.toView({ checkbox: [...] }))
+ *  ```
+ *
+ *  The brand is required at the `h.submodel` call site (not optional) so
+ *  unbranded plain functions fail to type-check there with an explicit
+ *  error rather than silently inferring `Message = never`. */
+export type SubmodelView<Model, Message, Inputs = void> = (Inputs extends void
+  ? (model: Model) => VNode | null
+  : (model: Model, inputs: Inputs) => VNode | null) & {
+  readonly [SUBMODEL_MESSAGE_BRAND]: Message
+}
+
+/** Defines the view function of a Submodel — a child component embedded
+ *  via `h.submodel`. The runtime value is just the function you pass in;
+ *  the helper exists to attach a phantom Message brand at the type level
+ *  so `h.submodel` can infer the child's Message type from the view and
+ *  propagate it into `toParentMessage`.
+ *
+ *  Use this ONLY for views that will be embedded via `h.submodel`. Plain
+ *  view functions (page-level render functions that don't need a Submodel
+ *  boundary, helper render functions that compose Html, etc.) don't need
+ *  to be defined this way — write them as ordinary
+ *  `(model) => Html` functions.
+ *
+ *  Explicit type arguments are required because Message has no
+ *  inferable source on the function signature itself. */
+export const defineView = <Model, Message, Inputs = void>(
+  fn: Inputs extends void
+    ? (model: Model) => VNode | null
+    : (model: Model, inputs: Inputs) => VNode | null,
+): SubmodelView<Model, Message, Inputs> =>
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  fn as SubmodelView<Model, Message, Inputs>
+
+type AnySubmodelView = ((...args: ReadonlyArray<any>) => VNode | null) & {
+  readonly [SUBMODEL_MESSAGE_BRAND]: unknown
+}
+
+type ViewModelOf<View extends AnySubmodelView> = Parameters<View>[0]
+
+type ViewInputsOf<View extends AnySubmodelView> =
+  Parameters<View> extends [unknown, infer Inputs] ? Inputs : void
+
+type ViewMessageOf<View extends AnySubmodelView> = View extends {
+  readonly [SUBMODEL_MESSAGE_BRAND]: infer Message
+}
+  ? Message
+  : never
+
+/** Type-level mirror of the runtime `assertNoNestedFunctions` rule.
+ *  For each immediate field of an object that lives inside `inputs`,
+ *  flag function-typed entries as an error so submodel authors cannot
+ *  declare an input shape that the runtime would reject.
+ *
+ *  Only one level deep — matches the runtime walker (`walkForFunctions`),
+ *  which also descends one level into plain objects from the top of
+ *  `inputs`. Keeps the check from false-positiving on values whose
+ *  prototype carries function members (Html VNodes, Option, etc.). */
+type NoFunctionFields<T> = T extends Function
+  ? '[Foldkit] nested function in inputs; lift slot callbacks to the top level'
+  : T
+
+type ValidatedInputs<T> = T extends void
+  ? T
+  : {
+      readonly [K in keyof T]: T[K] extends Function
+        ? T[K]
+        : T[K] extends ReadonlyArray<unknown>
+          ? T[K]
+          : T[K] extends object
+            ? { readonly [K2 in keyof T[K]]: NoFunctionFields<T[K][K2]> }
+            : T[K]
+    }
+
+/** Configuration for embedding a child Submodel into a parent's view.
+ *
+ *  - `id`: **DOM-position identity, not model identity.** Unique
+ *    identifier for this Submodel instance under the current boundary.
+ *    Each `h.submodel` call inside the same parent boundary must use a
+ *    distinct id, even if two call sites embed the *same model*. If the
+ *    same model is rendered in two DOM positions (desktop + mobile,
+ *    master + detail, mirror layouts), each position needs its own id
+ *    (e.g. `'desktop-sidebar-group'`, `'mobile-sidebar-group'`). For
+ *    lists, use a stable per-item id (typically `entry.id`), not the
+ *    array index. Defaulting to `model.id` works for the common case of
+ *    "one model rendered in one DOM position" but silently collides as
+ *    soon as the model appears twice; the runtime catches this with a
+ *    duplicate-id throw at view-build time, but the convention is the
+ *    real footgun. Prefer explicit ids that name the position.
+ *  - `view`: the child's `SubmodelView`. Must be branded via
+ *    {@link defineView} so `h.submodel` can infer the child's Message
+ *    type. Unbranded plain functions fail to type-check here.
+ *  - `model`: the child's model, inferred from `view`'s first parameter.
+ *    Compared by `===` when the boundary is wrapped in a memoizing
+ *    helper such as `createKeyedLazy`.
+ *  - `inputs`: optional second-argument data passed to `view`, inferred
+ *    from `view`'s second parameter. Function values AT THE TOP LEVEL of
+ *    `inputs` (slot callbacks like `toView`) are auto-wrapped to execute
+ *    in the parent's boundary so handlers the consumer builds inside
+ *    them dispatch through the parent's wrapping chain. Function values
+ *    nested below the top level (e.g. `inputs: { config: { onSubmit } }`)
+ *    are rejected at view-build time. Keep slot callbacks at the top
+ *    level of `inputs`.
+ *  - `toParentMessage`: function that lifts a child message into the
+ *    current boundary's Message type. The argument is typed as the
+ *    child's Message via the view's brand, so destructuring is correctly
+ *    typed without annotation. For per-instance identifiers, capture
+ *    them in a closure
+ *    (`(message) => GotEntryMessage({ entryId: entry.id, message })`).
+ *
+ *  High-level events the parent wants to react to declaratively flow
+ *  through each Submodel's `OutMessage`. The parent's `GotChildMessage`
+ *  handler unpacks the third tuple element of the child's `update`
+ *  return and pattern-matches on `Option<OutMessage>`. See `Ui.Menu`,
+ *  `Ui.Listbox`, etc., for examples. */
+export type SubmodelConfig<View extends AnySubmodelView> = Readonly<{
+  id: string
+  view: View
+  model: ViewModelOf<View>
+  inputs?: ValidatedInputs<ViewInputsOf<View>>
+  toParentMessage: (message: ViewMessageOf<View>) => unknown
+}>
+
+const isPlainObject = (
+  value: unknown,
+): value is Readonly<Record<string, unknown>> =>
+  value !== null && typeof value === 'object' && !Array.isArray(value)
+
+/** Walks below the top level of `inputs` and throws if it finds a
+ *  function. Top-level functions are auto-scoped to the parent
+ *  boundary; functions nested inside an object value would silently
+ *  capture the child's boundary and dispatch through the child's
+ *  wrapping chain, which is almost certainly not what the consumer
+ *  meant. Failing loud at view-build time is cheaper than a confused
+ *  bug report from a misrouted Message. */
+const assertNoNestedFunctions = (
+  inputs: Readonly<Record<string, unknown>>,
+): void => {
+  for (const key of Object.keys(inputs)) {
+    const value = inputs[key]
+    if (isPlainObject(value)) {
+      walkForFunctions(value, [key])
+    }
+  }
+}
+
+const walkForFunctions = (
+  source: Readonly<Record<string, unknown>>,
+  path: ReadonlyArray<string>,
+): void => {
+  for (const key of Object.keys(source)) {
+    const value = source[key]
+    if (typeof value === 'function') {
+      throw new Error(
+        `Foldkit: h.submodel \`inputs\` may only contain functions at the ` +
+          `top level. Found a function at \`inputs.${[...path, key].join('.')}\`. ` +
+          `Lift it to the top level of \`inputs\` so it can be auto-scoped to ` +
+          `the parent boundary, or pass the value as primitive data.`,
+      )
+    }
+    if (isPlainObject(value)) {
+      walkForFunctions(value, [...path, key])
+    }
+  }
+}
+
+const wrapInputsForOuterBoundary = <Inputs>(
+  inputs: Inputs,
+  outerFrame: Frame,
+): Inputs => {
+  if (!isPlainObject(inputs)) {
+    return inputs
+  }
+  assertNoNestedFunctions(inputs)
+  const wrapped: Record<string, unknown> = {}
+  for (const key of Object.keys(inputs)) {
+    const value = inputs[key]
+    if (typeof value === 'function') {
+      // Capture the parent's full frame (dispatch, context, registry,
+      // boundaryId) at wrap time. The slot callback uses `pushFrame` to
+      // replay that exact frame on every invocation, regardless of what
+      // happens to be on the stack at call time. Without this, a
+      // callback invoked from a deferred context (setTimeout, stored
+      // callback) would inherit from whatever render's frame was active,
+      // silently mis-binding dispatch and registry.
+      wrapped[key] = (...args: ReadonlyArray<unknown>) => {
+        pushFrame(outerFrame)
+        try {
+          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+          return (value as (...args: ReadonlyArray<unknown>) => unknown)(
+            ...args,
+          )
+        } finally {
+          clearRuntime()
+        }
+      }
+    } else {
+      wrapped[key] = value
+    }
+  }
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  return wrapped as Inputs
+}
+
+/** Returns a copy of the vnode with a snabbdom `destroy` hook that
+ *  deregisters this Submodel's boundary when the DOM node is removed.
+ *  Composes with any existing destroy hook the user's view may have set.
+ *
+ *  Copies the vnode (rather than mutating in place) so module-level
+ *  cached vnodes a user might return from view are not contaminated with
+ *  a destroy hook bound to this boundary id.
+ *
+ *  This is what lets `h.submodel` survive cache hits from
+ *  `createKeyedLazy`. When a cached vnode is reused across renders,
+ *  snabbdom doesn't fire destroy, so the wrap stays registered and
+ *  dispatches continue to route correctly. When the vnode is actually
+ *  removed (entry deleted from a list, conditional render flips),
+ *  destroy fires and the wrap is evicted: bounded memory, no leaks.
+ *
+ *  See `submodel.test.ts` for the cache-hit-survival and
+ *  destroy-deregisters-wrap assertions. */
+const withBoundaryCleanup = (
+  vnode: VNode,
+  registry: BoundaryRegistry,
+  boundaryId: string,
+): VNode => {
+  const data = vnode.data ?? {}
+  const hook = data.hook ?? {}
+  const previousDestroy = hook.destroy
+  const compositeDestroy = (removed: VNode): void => {
+    deregisterBoundaryWrap(registry, boundaryId)
+    if (previousDestroy !== undefined) {
+      previousDestroy(removed)
+    }
+  }
+  return {
+    ...vnode,
+    data: { ...data, hook: { ...hook, destroy: compositeDestroy } },
+  }
+}
+
+export const submodel = <View extends AnySubmodelView>(
+  config: SubmodelConfig<View>,
+): VNode | null => {
+  // Snapshot the parent frame BEFORE pushing the child boundary. The
+  // snapshot is captured into slot-callback closures by
+  // `wrapInputsForOuterBoundary` so they can replay the parent's full
+  // frame when invoked.
+  const parentFrame = getCurrentFrame()
+  const registry = parentFrame.boundaryRegistry
+  const childBoundaryId = composeBoundary(parentFrame.boundaryId, config.id)
+
+  registerBoundaryWrap(registry, childBoundaryId, {
+    toParentMessage:
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      config.toParentMessage as WrapDescriptor['toParentMessage'],
+  })
+
+  let vnode: VNode | null
+  pushBoundary(childBoundaryId)
+  try {
+    try {
+      if (Predicate.isUndefined(config.inputs)) {
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        const view = config.view as (model: ViewModelOf<View>) => VNode | null
+        vnode = view(config.model)
+      } else {
+        const wrappedInputs = wrapInputsForOuterBoundary(
+          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+          config.inputs as ViewInputsOf<View>,
+          parentFrame,
+        )
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        const view = config.view as (
+          model: ViewModelOf<View>,
+          inputs: ViewInputsOf<View>,
+        ) => VNode | null
+        vnode = view(config.model, wrappedInputs)
+      }
+    } catch (error) {
+      // The view threw; the registered wrap would otherwise leak with
+      // no destroy hook ever firing. Drop it before propagating.
+      deregisterBoundaryWrap(registry, childBoundaryId)
+      throw error
+    }
+  } finally {
+    clearRuntime()
+  }
+
+  if (vnode === null) {
+    // No vnode means no destroy hook will ever fire; deregister now so
+    // the wrap doesn't leak.
+    deregisterBoundaryWrap(registry, childBoundaryId)
+    return null
+  }
+
+  return withBoundaryCleanup(vnode, registry, childBoundaryId)
+}

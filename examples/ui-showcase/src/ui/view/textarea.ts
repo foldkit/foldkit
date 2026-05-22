@@ -1,4 +1,4 @@
-import { Ui } from 'foldkit'
+import { Submodel, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { type UiMessage, UpdatedTextareaDemoValue } from '../message'
@@ -11,11 +11,8 @@ const labelClassName = 'block text-sm font-medium text-gray-700'
 
 const descriptionClassName = 'text-sm text-gray-500'
 
-export const view = <ParentMessage>(
-  model: UiModel,
-  toParentMessage: (message: UiMessage) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
+  const h = html<UiMessage>()
 
   return h.div(
     [],
@@ -29,11 +26,10 @@ export const view = <ParentMessage>(
       h.div(
         [h.Class('flex flex-col items-start gap-2 max-w-sm')],
         [
-          Ui.Textarea.view({
+          Ui.Textarea.view<UiMessage>({
             id: 'textarea-basic-demo',
             value: model.textareaDemoValue,
-            onInput: value =>
-              toParentMessage(UpdatedTextareaDemoValue({ value })),
+            onInput: value => UpdatedTextareaDemoValue({ value }),
             placeholder: 'Tell us about yourself...',
             rows: 4,
             toView: attributes =>
@@ -62,7 +58,7 @@ export const view = <ParentMessage>(
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Disabled'],
       ),
-      Ui.Textarea.view<ParentMessage>({
+      Ui.Textarea.view<UiMessage>({
         id: 'textarea-disabled-demo',
         isDisabled: true,
         value:
@@ -86,4 +82,4 @@ export const view = <ParentMessage>(
       }),
     ],
   )
-}
+})

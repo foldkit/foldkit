@@ -76,6 +76,12 @@ const viewConfigHeader: TableOfContentsEntry = {
   text: 'ViewConfig',
 }
 
+const outMessageHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'out-message',
+  text: 'OutMessage',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -85,6 +91,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   apiReferenceHeader,
   initConfigHeader,
   viewConfigHeader,
+  outMessageHeader,
 ]
 
 // SECTION DATA
@@ -159,12 +166,6 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
       'When true, keeps the panel in the DOM when closed (with the hidden attribute) instead of removing it.',
   },
   {
-    name: 'onToggled',
-    type: '() => Message',
-    description:
-      'Optional domain-event handler fired when toggled, as an alternative to Submodel delegation.',
-  },
-  {
     name: 'buttonElement',
     type: 'TagName',
     default: "'button'",
@@ -185,6 +186,15 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     name: 'attributes',
     type: 'ReadonlyArray<Attribute<Message>>',
     description: 'Additional attributes for the wrapper element.',
+  },
+]
+
+const outMessageProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'ToggledOpenState',
+    type: '{ isOpen: boolean }',
+    description:
+      'Emitted on each toggle, carrying the new open state. Pattern-match the third tuple element of Disclosure.update in your GotDisclosureMessage handler to react (e.g. analytics, lazy content loading, persisting open state).',
   },
 ]
 
@@ -322,6 +332,17 @@ export const view = <ParentMessage>(
         '.',
       ),
       propTable(viewConfigProps),
+      heading(
+        outMessageHeader.level,
+        outMessageHeader.id,
+        outMessageHeader.text,
+      ),
+      para(
+        'Messages emitted to the parent through the third element of ',
+        inlineCode('[Model, Commands, Option<OutMessage>]'),
+        '. Pattern-match on the OutMessage in your update handler.',
+      ),
+      propTable(outMessageProps),
     ],
   )
 }

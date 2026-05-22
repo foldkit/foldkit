@@ -6,7 +6,6 @@ const [nextLogin, commands, maybeOutMessage] = Login.update(
   message,
 )
 
-const mappedCommands = Array.map(
-  commands,
-  Command.mapEffect(Effect.map(message => GotLoginMessage({ message }))),
+const mappedCommands = Command.mapMessages(commands, message =>
+  GotLoginMessage({ message }),
 )

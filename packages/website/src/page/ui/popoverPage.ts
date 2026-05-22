@@ -77,6 +77,12 @@ const viewConfigHeader: TableOfContentsEntry = {
   text: 'ViewConfig',
 }
 
+const outMessageHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'out-message',
+  text: 'OutMessage',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -88,6 +94,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   apiReferenceHeader,
   initConfigHeader,
   viewConfigHeader,
+  outMessageHeader,
 ]
 
 // SECTION DATA
@@ -171,15 +178,20 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     default: 'false',
     description: 'Disables the trigger button.',
   },
+]
+
+const outMessageProps: ReadonlyArray<PropEntry> = [
   {
-    name: 'onOpened',
-    type: '() => Message',
-    description: 'Optional callback fired when the popover opens.',
+    name: 'OpenedPanel',
+    type: '{}',
+    description:
+      'Emitted once the popover has transitioned to open. Distinct from the internal Opened message (which is the request to open); this OutMessage fires after `update` has processed the request and `isOpen` reflects the new state.',
   },
   {
-    name: 'onClosed',
-    type: '() => Message',
-    description: 'Optional callback fired when the popover closes.',
+    name: 'ClosedPanel',
+    type: '{}',
+    description:
+      'Emitted once the popover has transitioned to closed. Programmatic `Popover.close` on an already-closed model is a no-op that does not re-emit.',
   },
 ]
 
@@ -339,6 +351,17 @@ export const view = <ParentMessage>(
         '.',
       ),
       propTable(viewConfigProps),
+      heading(
+        outMessageHeader.level,
+        outMessageHeader.id,
+        outMessageHeader.text,
+      ),
+      para(
+        'Messages emitted to the parent through the third element of ',
+        inlineCode('[Model, Commands, Option<OutMessage>]'),
+        '. Pattern-match on the OutMessage in your update handler.',
+      ),
+      propTable(outMessageProps),
     ],
   )
 }

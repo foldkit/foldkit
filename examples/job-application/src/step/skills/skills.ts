@@ -59,10 +59,8 @@ const mapEntryCommands = (
   entryId: string,
   commands: ReadonlyArray<Command.Command<Entry.Message>>,
 ): ReadonlyArray<Command.Command<Message>> =>
-  commands.map(
-    Command.mapEffect(
-      Effect.map(message => GotEntryMessage({ entryId, message })),
-    ),
+  Command.mapMessages(commands, message =>
+    GotEntryMessage({ entryId, message }),
   )
 
 export const update = (model: Model, message: Message): UpdateReturn =>
@@ -91,21 +89,37 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           model.entries,
           Array.findFirst(entry => entry.id === entryId),
           Option.match({
-            onNone: () => [model, []],
+            onNone: (): UpdateReturn => [model, []],
             onSome: matchedEntry => {
-              const [nextEntry, entryCommands] = Entry.update(
+              const [nextEntry, entryCommands, maybeOut] = Entry.update(
                 matchedEntry,
                 entryMessage,
               )
-              return [
-                evo(model, {
-                  entries: () =>
-                    Array.map(model.entries, entry =>
-                      entry.id === entryId ? nextEntry : entry,
-                    ),
-                }),
-                mapEntryCommands(entryId, entryCommands),
-              ]
+              const mappedCommands = mapEntryCommands(entryId, entryCommands)
+              const modelWithEntry = evo(model, {
+                entries: () =>
+                  Array.map(model.entries, entry =>
+                    entry.id === entryId ? nextEntry : entry,
+                  ),
+              })
+              return Option.match(maybeOut, {
+                onNone: (): UpdateReturn => [modelWithEntry, mappedCommands],
+                onSome: M.type<Entry.OutMessage>().pipe(
+                  M.withReturnType<UpdateReturn>(),
+                  M.tagsExhaustive({
+                    Removed: () => [
+                      evo(modelWithEntry, {
+                        entries: () =>
+                          Array.filter(
+                            modelWithEntry.entries,
+                            entry => entry.id !== entryId,
+                          ),
+                      }),
+                      mappedCommands,
+                    ],
+                  }),
+                ),
+              })
             },
           }),
         ),

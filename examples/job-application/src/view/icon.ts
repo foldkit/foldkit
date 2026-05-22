@@ -1,9 +1,7 @@
 import { type Html, html } from 'foldkit/html'
 
-export const chevronDown = <ParentMessage>(
-  className: string = 'w-4 h-4',
-): Html => {
-  const h = html<ParentMessage>()
+export const chevronDown = (className: string = 'w-4 h-4'): Html => {
+  const h = html()
 
   return h.svg(
     [

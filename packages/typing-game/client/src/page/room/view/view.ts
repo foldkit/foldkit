@@ -1,9 +1,9 @@
 import * as Shared from '@typing-game/shared'
 import { Match as M, Option } from 'effect'
+import { Submodel } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import { ROOM_PAGE_USERNAME_INPUT_ID } from '../../../constant'
-import { RoomRoute } from '../../../route'
 import { Icon } from '../../../view/icon'
 import {
   BlurredRoomPageUsernameInput,
@@ -20,13 +20,12 @@ import { getReady } from './getReady'
 import { playing } from './playing'
 import { waiting } from './waiting'
 
-export const view =
-  <ParentMessage>(
-    model: Model,
-    toParentMessage: (message: Message) => ParentMessage,
-  ) =>
-  ({ roomId }: RoomRoute): Html => {
-    const h = html<ParentMessage>()
+export type ViewInputs = Readonly<{ roomId: string }>
+
+export const view = Submodel.defineView<Model, Message, ViewInputs>(
+  (model, inputs): Html => {
+    const { roomId } = inputs
+    const h = html<Message>()
 
     const maybeError = M.value(model.roomRemoteData).pipe(
       M.tag('Error', ({ error }) => error),
@@ -56,9 +55,9 @@ export const view =
           'p-2 rounded hover:bg-terminal-green-dim hover:text-terminal-bg transition text-terminal-green',
         ),
         h.AriaLabel('Copy room ID'),
-        h.OnClick(toParentMessage(ClickedCopyRoomId({ roomId }))),
+        h.OnClick(ClickedCopyRoomId({ roomId })),
       ],
-      [Icon.copy<ParentMessage>()],
+      [Icon.copy()],
     )
 
     const isInLeavableState = M.value(model.roomRemoteData).pipe(
@@ -93,14 +92,15 @@ export const view =
               [h.Class('mb-12 flex items-center gap-2')],
               [h.span([], [roomId]), copyButton, copiedIndicator],
             ),
-            content<ParentMessage>(model, roomId, toParentMessage),
-            maybeErrorMessage<ParentMessage>(maybeError),
+            content(model, roomId),
+            maybeErrorMessage(maybeError),
           ],
         ),
         h.div([], [leaveRoomText]),
       ],
     )
-  }
+  },
+)
 
 const contentKey = (
   roomRemoteData: Model['roomRemoteData'],
@@ -111,12 +111,11 @@ const contentKey = (
     M.orElse(({ _tag }) => _tag.toLowerCase()),
   )
 
-const content = <ParentMessage>(
+const content = (
   { roomRemoteData, maybeSession, userGameText, username }: Model,
   roomId: string,
-  toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
 
   return h.keyed('div')(
     contentKey(roomRemoteData, maybeSession),
@@ -129,15 +128,8 @@ const content = <ParentMessage>(
           Error: () => h.empty,
           Ok: ({ data: room }) =>
             Option.match(maybeSession, {
-              onNone: () =>
-                joinForm<ParentMessage>(username, roomId, toParentMessage),
-              onSome: () =>
-                gameContent<ParentMessage>(
-                  room,
-                  maybeSession,
-                  userGameText,
-                  toParentMessage,
-                ),
+              onNone: () => joinForm(username, roomId),
+              onSome: () => gameContent(room, maybeSession, userGameText),
             }),
         }),
       ),
@@ -145,13 +137,12 @@ const content = <ParentMessage>(
   )
 }
 
-const gameContent = <ParentMessage>(
+const gameContent = (
   room: Shared.Room,
   maybeSession: Option.Option<RoomPlayerSession>,
   userGameText: string,
-  toParentMessage: (message: Message) => ParentMessage,
 ): Html => {
-  const h = html<ParentMessage>()
+  const h = html<Message>()
   const maybeGameText = Option.map(room.maybeGame, ({ text }) => text)
   const maybeWrongCharIndex = Option.flatMap(
     maybeGameText,
@@ -164,40 +155,29 @@ const gameContent = <ParentMessage>(
     [
       M.value(room.status).pipe(
         M.tagsExhaustive({
-          Waiting: () =>
-            waiting<ParentMessage>(room.players, room.hostId, maybeSession),
-          GetReady: () => getReady<ParentMessage>(maybeGameText),
-          Countdown: ({ secondsLeft }) =>
-            countdown<ParentMessage>(secondsLeft, maybeGameText),
+          Waiting: () => waiting(room.players, room.hostId, maybeSession),
+          GetReady: () => getReady(maybeGameText),
+          Countdown: ({ secondsLeft }) => countdown(secondsLeft, maybeGameText),
           Playing: ({ secondsLeft }) =>
-            playing<ParentMessage>(
+            playing(
               secondsLeft,
               maybeGameText,
               userGameText,
               maybeWrongCharIndex,
-              toParentMessage,
             ),
           Finished: () =>
-            finished<ParentMessage>(
-              room.maybeScoreboard,
-              room.hostId,
-              maybeSession,
-            ),
+            finished(room.maybeScoreboard, room.hostId, maybeSession),
         }),
       ),
     ],
   )
 }
 
-const joinForm = <ParentMessage>(
-  username: string,
-  roomId: string,
-  toParentMessage: (message: Message) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+const joinForm = (username: string, roomId: string): Html => {
+  const h = html<Message>()
 
   return h.form(
-    [h.OnSubmit(toParentMessage(SubmittedJoinRoomFromPage({ roomId })))],
+    [h.OnSubmit(SubmittedJoinRoomFromPage({ roomId }))],
     [
       h.div(
         [h.Class('flex items-center gap-2')],
@@ -213,10 +193,8 @@ const joinForm = <ParentMessage>(
                 h.Type('text'),
                 h.Value(username),
                 h.Class('bg-transparent px-0 py-2 outline-none w-full'),
-                h.OnInput(value =>
-                  toParentMessage(ChangedRoomPageUsername({ value })),
-                ),
-                h.OnBlur(toParentMessage(BlurredRoomPageUsernameInput())),
+                h.OnInput(value => ChangedRoomPageUsername({ value })),
+                h.OnBlur(BlurredRoomPageUsernameInput()),
                 h.Autocapitalize('none'),
                 h.Spellcheck(false),
                 h.Autocorrect('off'),
@@ -231,10 +209,8 @@ const joinForm = <ParentMessage>(
   )
 }
 
-const maybeErrorMessage = <ParentMessage>(
-  maybeRoomFormError: Option.Option<string>,
-) => {
-  const h = html<ParentMessage>()
+const maybeErrorMessage = (maybeRoomFormError: Option.Option<string>): Html => {
+  const h = html<Message>()
 
   return Option.match(maybeRoomFormError, {
     onNone: () => h.empty,

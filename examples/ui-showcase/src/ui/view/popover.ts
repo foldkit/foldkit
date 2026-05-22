@@ -1,4 +1,4 @@
-import { Ui } from 'foldkit'
+import { Submodel, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import {
@@ -27,13 +27,10 @@ const POPOVER_ANCHOR = {
   padding: 8,
 }
 
-export const view = <ParentMessage>(
-  model: UiModel,
-  toParentMessage: (message: UiMessage) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+const popoverPanelContent = (): Html => {
+  const h = html()
 
-  const panelContent = h.div(
+  return h.div(
     [],
     [
       h.p([h.Class('text-sm font-semibold text-gray-900 mb-2')], ['Analytics']),
@@ -43,16 +40,48 @@ export const view = <ParentMessage>(
       ),
     ],
   )
+}
 
-  const popoverViewConfig = (panelClassNameValue: string) => ({
-    anchor: POPOVER_ANCHOR,
-    buttonContent: h.span([], ['Solutions']),
-    buttonAttributes: [h.Class(triggerClassName)],
-    panelContent,
-    panelAttributes: [h.Class(panelClassNameValue)],
-    backdropAttributes: [h.Class(backdropClassName)],
-    attributes: [h.Class(wrapperClassName)],
+const popoverDemo = (
+  id: string,
+  popoverModel: Ui.Popover.Model,
+  toParentMessage: (message: Ui.Popover.Message) => UiMessage,
+  panelClassNameValue: string,
+): Html => {
+  const h = html<UiMessage>()
+
+  return h.submodel({
+    id,
+    view: Ui.Popover.view,
+    model: popoverModel,
+    inputs: {
+      anchor: POPOVER_ANCHOR,
+      toView: ({ button, panel, backdrop, isVisible }) =>
+        h.div(
+          [h.Class(wrapperClassName)],
+          [
+            h.button(
+              [...button, h.Class(triggerClassName)],
+              [h.span([], ['Solutions'])],
+            ),
+            ...(isVisible
+              ? [
+                  h.div([...backdrop, h.Class(backdropClassName)], []),
+                  h.div(
+                    [...panel, h.Class(panelClassNameValue)],
+                    [popoverPanelContent()],
+                  ),
+                ]
+              : []),
+          ],
+        ),
+    },
+    toParentMessage,
   })
+}
+
+export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
+  const h = html<UiMessage>()
 
   return h.div(
     [],
@@ -66,12 +95,12 @@ export const view = <ParentMessage>(
       h.div(
         [h.Class('relative')],
         [
-          Ui.Popover.view({
-            model: model.popoverBasicDemo,
-            toParentMessage: message =>
-              toParentMessage(GotPopoverBasicDemoMessage({ message })),
-            ...popoverViewConfig(basicPanelClassName),
-          }),
+          popoverDemo(
+            model.popoverBasicDemo.id,
+            model.popoverBasicDemo,
+            message => GotPopoverBasicDemoMessage({ message }),
+            basicPanelClassName,
+          ),
         ],
       ),
 
@@ -82,14 +111,14 @@ export const view = <ParentMessage>(
       h.div(
         [h.Class('relative')],
         [
-          Ui.Popover.view({
-            model: model.popoverAnimatedDemo,
-            toParentMessage: message =>
-              toParentMessage(GotPopoverAnimatedDemoMessage({ message })),
-            ...popoverViewConfig(animatedPanelClassName),
-          }),
+          popoverDemo(
+            model.popoverAnimatedDemo.id,
+            model.popoverAnimatedDemo,
+            message => GotPopoverAnimatedDemoMessage({ message }),
+            animatedPanelClassName,
+          ),
         ],
       ),
     ],
   )
-}
+})

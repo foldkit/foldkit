@@ -4,7 +4,7 @@ import { Match as M } from 'effect'
 import * as Calendar from '../../calendar/index.js'
 import { html } from '../../html/index.js'
 import * as Scene from '../../test/scene.js'
-import type { CalendarAttributes, Message, Model, ViewConfig } from './index.js'
+import type { CalendarAttributes, Message, Model, ViewInputs } from './index.js'
 import { CompletedFocusGrid, FocusGrid, init, update, view } from './index.js'
 
 const resolveFocusGrid = Scene.Command.resolve(FocusGrid, CompletedFocusGrid())
@@ -14,7 +14,7 @@ const today = Calendar.make(2026, 4, 13)
 /** Wires Calendar attribute groups into actual HTML elements so the scene
  * can query them. Pattern-matches on `_tag` so each viewMode renders the
  * appropriate grid (days, months, years). */
-const testToView = (attrs: CalendarAttributes<Message>) => {
+const testToView = (attrs: CalendarAttributes) => {
   const h = html<Message>()
 
   return M.value(attrs).pipe(
@@ -95,11 +95,9 @@ const testToView = (attrs: CalendarAttributes<Message>) => {
 }
 
 const sceneView =
-  (overrides: Partial<ViewConfig<Message>> = {}) =>
+  (overrides: Omit<Partial<ViewInputs>, 'toView'> = {}) =>
   (model: Model) =>
-    view({
-      model,
-      toParentMessage: message => message,
+    view(model, {
       toView: testToView,
       ...overrides,
     })

@@ -156,12 +156,6 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     description: 'Additional attributes for the backdrop.',
   },
   {
-    name: 'onClosed',
-    type: '() => Message',
-    description:
-      'Optional callback fired when the dialog closes, as an alternative to Submodel delegation.',
-  },
-  {
     name: 'className',
     type: 'string',
     description: 'CSS class for the native <dialog> element.',

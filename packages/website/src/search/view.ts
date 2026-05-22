@@ -279,33 +279,56 @@ const resultCountAnnouncement = (model: Model): Html => {
 export const view = (model: Model, toParentMessage: ToMessage): Html => {
   const h = html<ParentMessage>()
 
-  return Ui.Dialog.view({
+  return h.submodel({
+    id: model.dialog.id,
+    view: Ui.Dialog.view,
     model: model.dialog,
+    inputs: {
+      toView: ({ dialog, backdrop, panel, isVisible }) =>
+        h.dialog(
+          [...dialog],
+          isVisible
+            ? [
+                h.div(
+                  [
+                    ...backdrop,
+                    h.Class(
+                      'fixed inset-0 z-[59] bg-black/50 dark:bg-black/70',
+                    ),
+                  ],
+                  [],
+                ),
+                h.div(
+                  [
+                    ...panel,
+                    h.Class(
+                      'fixed inset-0 z-[60] overflow-y-auto px-4 sm:px-6 pointer-events-none [&>*]:pointer-events-auto',
+                    ),
+                  ],
+                  [
+                    h.div(
+                      [
+                        h.Class(
+                          'w-full max-w-xl mx-auto mt-[15vh] bg-white dark:bg-gray-900 rounded-xl shadow-2xl dark:shadow-black/50 border border-gray-200 dark:border-gray-700 overflow-hidden',
+                        ),
+                      ],
+                      [
+                        h.span(
+                          [h.Id('search-dialog-title'), h.Class('sr-only')],
+                          ['Search documentation'],
+                        ),
+                        searchInputView(model, toParentMessage),
+                        resultsListView(model, toParentMessage),
+                        resultCountAnnouncement(model),
+                      ],
+                    ),
+                  ],
+                ),
+              ]
+            : [],
+        ),
+    },
     toParentMessage: message =>
       toParentMessage(GotSearchDialogMessage({ message })),
-    panelContent: h.div(
-      [
-        h.Class(
-          'w-full max-w-xl mx-auto mt-[15vh] bg-white dark:bg-gray-900 rounded-xl shadow-2xl dark:shadow-black/50 border border-gray-200 dark:border-gray-700 overflow-hidden',
-        ),
-      ],
-      [
-        h.span(
-          [h.Id('search-dialog-title'), h.Class('sr-only')],
-          ['Search documentation'],
-        ),
-        searchInputView(model, toParentMessage),
-        resultsListView(model, toParentMessage),
-        resultCountAnnouncement(model),
-      ],
-    ),
-    panelAttributes: [
-      h.Class(
-        'fixed inset-0 z-[60] overflow-y-auto px-4 sm:px-6 pointer-events-none [&>*]:pointer-events-auto',
-      ),
-    ],
-    backdropAttributes: [
-      h.Class('fixed inset-0 z-[59] bg-black/50 dark:bg-black/70'),
-    ],
   })
 }

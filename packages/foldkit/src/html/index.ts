@@ -9,7 +9,6 @@ import {
   Option,
   Predicate,
   Record,
-  Ref,
   Stream,
   String,
   pipe,
@@ -20,8 +19,11 @@ import type { Attrs, On, Props, VNodeData } from 'snabbdom'
 import type { File } from '../file/index.js'
 import type { MountAction } from '../mount/index.js'
 import { MountTracker } from '../mount/index.js'
-import { Dispatch } from '../runtime/index.js'
 import { VNode } from '../vdom.js'
+import {
+  type BoundaryAttribute,
+  isBoundaryAttribute,
+} from './boundaryAttribute.js'
 import {
   checkScheduledLeave,
   clearDragZoneAfterDrop,
@@ -29,8 +31,44 @@ import {
   processDragEnter,
   processDragLeave,
 } from './dragZoneTracking.js'
+import {
+  type DispatchSync,
+  clearRuntime,
+  requireDispatch,
+  requireRuntimeContext,
+  setRuntime,
+} from './runtimeSingleton.js'
+import { submodel } from './submodel.js'
 
 export { createKeyedLazy, createLazy } from './lazy.js'
+export {
+  beginRender as __beginRender,
+  createBoundaryRegistry as __createBoundaryRegistry,
+} from './boundary.js'
+export type { BoundaryRegistry } from './boundary.js'
+export { boundaryAttributes } from './boundaryAttribute.js'
+export type { BoundaryAttribute } from './boundaryAttribute.js'
+export { defineView, submodel } from './submodel.js'
+export type { SubmodelConfig, SubmodelView } from './submodel.js'
+
+/** Pushes a dispatch and runtime context frame for the duration of a render.
+ *  The runtime calls this immediately before invoking a user `view` and
+ *  matches it with {@link __clearRuntime} in a `finally` so an exception
+ *  inside view code does not leak the frame to the next render. Test
+ *  scaffolding that builds VNodes outside of a real program (Scene, Canvas
+ *  view-only tests, Mount tests) uses the same pair. Nested frames are
+ *  supported via an internal stack. */
+export const __setRuntime = setRuntime
+
+/** Pops the current dispatch and runtime context frame. Must be paired with a
+ *  prior {@link __setRuntime} on the same call stack. */
+export const __clearRuntime = clearRuntime
+
+/** Returns the current dispatch function. Foldkit's `Canvas.view` reads this
+ *  to build its synchronous pointer handlers, since it builds VNodes directly
+ *  rather than going through the html factory. Most application code never
+ *  needs to call this. */
+export const __requireDispatch = requireDispatch
 
 /**
  * The `id` of the DOM element that hosts the Foldkit DevTools shadow root.
@@ -79,8 +117,10 @@ const keyboardModifiers = (event: KeyboardEvent): KeyboardModifiers => ({
   metaKey: event.metaKey,
 })
 
-/** A virtual DOM element represented as an `Effect` that produces a `VNode`. */
-export type Html = Effect.Effect<VNode | null, never, Dispatch>
+/** A virtual DOM element. Constructed synchronously by the element factories
+ *  returned from {@link html}. The runtime patches a `VNode` (or `null` to
+ *  render nothing) into the application container. */
+export type Html = VNode | null
 export type Child = Html | string
 
 /** A view's complete output for the runtime: title, body, and optional document
@@ -334,7 +374,15 @@ export type FoldkitMountMarker = Readonly<{
   args?: Record<string, unknown>
 }>
 
-/** Union of all HTML, SVG, and MathML attributes a virtual DOM element can carry. */
+/** Union of all HTML, SVG, and MathML attributes a virtual DOM element can carry.
+ *
+ *  When a Submodel publishes attribute groups to a consumer's `toView`
+ *  slot, those attributes are wrapped via {@link boundaryAttributes} into
+ *  {@link BoundaryAttribute}, a distinct type that carries the Submodel's
+ *  own dispatcher. Element constructors accept the union
+ *  `ReadonlyArray<Attribute<Message> | BoundaryAttribute>`, so consumers
+ *  can spread published bundles directly into their own attribute
+ *  arrays. */
 export type Attribute<Message> = Data.TaggedEnum<{
   Key: { readonly value: string }
   Class: { readonly value: string }
@@ -872,785 +920,862 @@ const {
 export { Prop, OnCustomEvent }
 
 const buildVNodeData = <Message>(
-  attributes: ReadonlyArray<Attribute<Message>>,
-): Effect.Effect<VNodeData, never, Dispatch> =>
-  Effect.gen(function* () {
-    const { dispatchSync } = yield* Dispatch
-    const capturedContext = yield* Effect.context<never>()
-    const dataRef = yield* Ref.make<VNodeData>({})
+  attributes: ReadonlyArray<Attribute<Message> | BoundaryAttribute>,
+): VNodeData => {
+  // Capture lazily, and tolerate the absence of a runtime frame. Static
+  // elements (`h.code([h.Class('x')], ['text'])`) and prose fragments built
+  // at module top level (`const fragment = inlineCode('foo')` at import
+  // time) must construct without an active render frame. They never invoke
+  // the fallback dispatcher because they have no event handlers; event-
+  // bearing Html constructed outside a render reaches the fallback only at
+  // event-fire time, which surfaces a clear error rather than failing at
+  // import time.
+  let cachedCurrentDispatch: DispatchSync | undefined
+  const getCurrentDispatch = (): DispatchSync => {
+    if (cachedCurrentDispatch === undefined) {
+      try {
+        cachedCurrentDispatch = requireDispatch()
+      } catch {
+        cachedCurrentDispatch = () => {
+          throw new Error(
+            'Foldkit: an event-bearing Html attribute fired without an ' +
+              'active runtime frame. This typically means an Html element ' +
+              'with event handlers (OnClick, OnInput, etc.) was constructed ' +
+              'at module top level outside of a view function.',
+          )
+        }
+      }
+    }
+    return cachedCurrentDispatch
+  }
+  let cachedCapturedContext: Context.Context<never> | undefined
+  const getCapturedContext = (): Context.Context<never> => {
+    if (cachedCapturedContext === undefined) {
+      try {
+        cachedCapturedContext = requireRuntimeContext()
+      } catch {
+        cachedCapturedContext = Context.empty()
+      }
+    }
+    return cachedCapturedContext
+  }
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const data = {} as VNodeData
+  const postpatchProps: Array<Readonly<{ propName: string; value: unknown }>> =
+    []
 
-    const setData = <K extends keyof VNodeData>(key: K, value: VNodeData[K]) =>
-      Ref.update(dataRef, data => ({ ...data, [key]: value }))
+  const setData = <K extends keyof VNodeData>(
+    key: K,
+    value: VNodeData[K],
+  ): void => {
+    data[key] = value
+  }
 
-    const updateData = <K extends keyof VNodeData>(
-      key: K,
-      value: Partial<VNodeData[K]>,
-    ) =>
-      Ref.update(dataRef, data => ({
-        ...data,
-        [key]: { ...data[key], ...value },
-      }))
+  const updateData = <K extends keyof VNodeData>(
+    key: K,
+    value: Partial<VNodeData[K]>,
+  ): void => {
+    const existing = data[key]
+    if (existing === undefined) {
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      data[key] = value as VNodeData[K]
+    } else {
+      Object.assign(existing, value)
+    }
+  }
 
-    const updateDataProps = (props: Props) => updateData('props', props)
-    const updateDataOn = (on: On) => updateData('on', on)
-    const updateDataAttrs = (attrs: Attrs) => updateData('attrs', attrs)
+  const updateDataProps = (props: Props): void => updateData('props', props)
+  const updateDataAttrs = (attrs: Attrs): void => updateData('attrs', attrs)
 
-    const postpatchPropsRef = yield* Ref.make<
-      Array<Readonly<{ propName: string; value: unknown }>>
-    >([])
+  // Event handlers chain per DOM event in spread order. Without this,
+  // `Object.assign` would silently drop earlier handlers for the same
+  // event when a consumer spreads published BoundaryAttributes alongside
+  // their own (e.g. `[...attributes.checkbox, h.OnClick(MyMsg())]` would
+  // drop one of the two click handlers depending on order). Each chained
+  // handler is invoked synchronously in registration order; if an
+  // earlier handler throws, later handlers do not run (mirroring native
+  // exception propagation, not silently swallowing bugs).
+  const updateDataOn = (on: On): void => {
+    if (data.on === undefined) {
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      data.on = on as On
+      return
+    }
+    const existing = data.on
+    for (const key of Object.keys(on)) {
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      const existingHandler = (existing as Record<string, unknown>)[key] as
+        | ((...args: ReadonlyArray<unknown>) => void)
+        | undefined
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      const newHandler = (on as Record<string, unknown>)[key] as (
+        ...args: ReadonlyArray<unknown>
+      ) => void
+      if (existingHandler === undefined) {
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        ;(existing as Record<string, unknown>)[key] = newHandler
+      } else {
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        ;(existing as Record<string, unknown>)[key] = (
+          ...args: ReadonlyArray<unknown>
+        ) => {
+          existingHandler(...args)
+          newHandler(...args)
+        }
+      }
+    }
+  }
 
-    const updatePropsWithPostpatch = <K extends string>(
-      propName: K,
-      value: unknown,
-    ) =>
-      Effect.all([
-        Ref.update(dataRef, data => ({
-          ...data,
-          props: {
-            ...data.props,
-            [propName]: value,
-          },
-        })),
-        Ref.update(postpatchPropsRef, entries => [
-          ...entries,
-          { propName, value },
-        ]),
-      ])
+  const updatePropsWithPostpatch = <K extends string>(
+    propName: K,
+    value: unknown,
+  ): void => {
+    updateDataProps({ [propName]: value })
+    postpatchProps.push({ propName, value })
+  }
 
-    yield* Effect.forEach(attributes, attr =>
-      Match.value(attr).pipe(
-        Match.tagsExhaustive({
-          Key: ({ value }) => setData('key', value),
-          Class: ({ value }) =>
-            Effect.gen(function* () {
-              const classObject = pipe(
-                value,
-                String.split(/\s+/),
-                Array.filter(String.isNonEmpty),
-                Array.reduce({}, (acc, className) => ({
-                  ...acc,
-                  [className]: true,
-                })),
+  const makeMatchAttribute = (dispatch: DispatchSync) =>
+    Match.type<Attribute<Message>>().pipe(
+      Match.tagsExhaustive({
+        Key: ({ value }) => setData('key', value),
+        Class: ({ value }) => {
+          const classObject = pipe(
+            value,
+            String.split(/\s+/),
+            Array.filter(String.isNonEmpty),
+            Array.reduce({}, (acc, className) => ({
+              ...acc,
+              [className]: true,
+            })),
+          )
+          setData('class', classObject)
+        },
+        Id: ({ value }) => updateDataProps({ id: value }),
+        Title: ({ value }) => updateDataProps({ title: value }),
+        Lang: ({ value }) => updateDataProps({ lang: value }),
+        Dir: ({ value }) => updateDataProps({ dir: value }),
+        Tabindex: ({ value }) => updateDataProps({ tabIndex: value }),
+        Hidden: ({ value }) => updateDataProps({ hidden: value }),
+        Contenteditable: ({ value }) =>
+          updateDataAttrs({ contenteditable: value }),
+        Draggable: ({ value }) => updateDataProps({ draggable: value }),
+        Accesskey: ({ value }) => updateDataAttrs({ accesskey: value }),
+        Translate: ({ value }) => updateDataAttrs({ translate: value }),
+        Inert: ({ value }) => updateDataProps({ inert: value }),
+        Popover: ({ value }) => updateDataAttrs({ popover: value }),
+        Popovertarget: ({ value }) => updateDataAttrs({ popovertarget: value }),
+        Popovertargetaction: ({ value }) =>
+          updateDataAttrs({ popovertargetaction: value }),
+        OnClick: ({ message }) =>
+          updateDataOn({
+            click: () => dispatch(message),
+          }),
+        OnDoubleClick: ({ message }) =>
+          updateDataOn({
+            dblclick: () => dispatch(message),
+          }),
+        OnMouseDown: ({ message }) =>
+          updateDataOn({
+            mousedown: () => dispatch(message),
+          }),
+        OnMouseUp: ({ message }) =>
+          updateDataOn({
+            mouseup: () => dispatch(message),
+          }),
+        OnMouseEnter: ({ message }) =>
+          updateDataOn({
+            mouseenter: () => dispatch(message),
+          }),
+        OnMouseLeave: ({ message }) =>
+          updateDataOn({
+            mouseleave: () => dispatch(message),
+          }),
+        OnMouseOver: ({ message }) =>
+          updateDataOn({
+            mouseover: () => dispatch(message),
+          }),
+        OnMouseOut: ({ message }) =>
+          updateDataOn({
+            mouseout: () => dispatch(message),
+          }),
+        OnMouseMove: ({ message }) =>
+          updateDataOn({
+            mousemove: () => dispatch(message),
+          }),
+        OnPointerMove: ({ f }) =>
+          updateDataOn({
+            pointermove: (event: PointerEvent) => {
+              const maybeMessage = f(
+                event.screenX,
+                event.screenY,
+                event.pointerType,
               )
-              yield* setData('class', classObject)
-            }),
-          Id: ({ value }) => updateDataProps({ id: value }),
-          Title: ({ value }) => updateDataProps({ title: value }),
-          Lang: ({ value }) => updateDataProps({ lang: value }),
-          Dir: ({ value }) => updateDataProps({ dir: value }),
-          Tabindex: ({ value }) => updateDataProps({ tabIndex: value }),
-          Hidden: ({ value }) => updateDataProps({ hidden: value }),
-          Contenteditable: ({ value }) =>
-            updateDataAttrs({ contenteditable: value }),
-          Draggable: ({ value }) => updateDataProps({ draggable: value }),
-          Accesskey: ({ value }) => updateDataAttrs({ accesskey: value }),
-          Translate: ({ value }) => updateDataAttrs({ translate: value }),
-          Inert: ({ value }) => updateDataProps({ inert: value }),
-          Popover: ({ value }) => updateDataAttrs({ popover: value }),
-          Popovertarget: ({ value }) =>
-            updateDataAttrs({ popovertarget: value }),
-          Popovertargetaction: ({ value }) =>
-            updateDataAttrs({ popovertargetaction: value }),
-          OnClick: ({ message }) =>
-            updateDataOn({
-              click: () => dispatchSync(message),
-            }),
-          OnDoubleClick: ({ message }) =>
-            updateDataOn({
-              dblclick: () => dispatchSync(message),
-            }),
-          OnMouseDown: ({ message }) =>
-            updateDataOn({
-              mousedown: () => dispatchSync(message),
-            }),
-          OnMouseUp: ({ message }) =>
-            updateDataOn({
-              mouseup: () => dispatchSync(message),
-            }),
-          OnMouseEnter: ({ message }) =>
-            updateDataOn({
-              mouseenter: () => dispatchSync(message),
-            }),
-          OnMouseLeave: ({ message }) =>
-            updateDataOn({
-              mouseleave: () => dispatchSync(message),
-            }),
-          OnMouseOver: ({ message }) =>
-            updateDataOn({
-              mouseover: () => dispatchSync(message),
-            }),
-          OnMouseOut: ({ message }) =>
-            updateDataOn({
-              mouseout: () => dispatchSync(message),
-            }),
-          OnMouseMove: ({ message }) =>
-            updateDataOn({
-              mousemove: () => dispatchSync(message),
-            }),
-          OnPointerMove: ({ f }) =>
-            updateDataOn({
-              pointermove: (event: PointerEvent) => {
-                const maybeMessage = f(
-                  event.screenX,
-                  event.screenY,
-                  event.pointerType,
-                )
-                if (Option.isSome(maybeMessage)) {
-                  dispatchSync(maybeMessage.value)
-                }
-              },
-            }),
-          OnPointerLeave: ({ f }) =>
-            updateDataOn({
-              pointerleave: (event: PointerEvent) => {
-                const maybeMessage = f(event.pointerType)
-                if (Option.isSome(maybeMessage)) {
-                  dispatchSync(maybeMessage.value)
-                }
-              },
-            }),
-          OnPointerDown: ({ f }) =>
-            updateDataOn({
-              pointerdown: (event: PointerEvent) => {
-                const maybeMessage = f(
-                  event.pointerType,
-                  event.button,
-                  event.screenX,
-                  event.screenY,
-                  event.timeStamp,
-                  event.clientX,
-                  event.clientY,
-                )
-                if (Option.isSome(maybeMessage)) {
-                  dispatchSync(maybeMessage.value)
-                }
-              },
-            }),
-          OnPointerUp: ({ f }) =>
-            updateDataOn({
-              pointerup: (event: PointerEvent) => {
-                const maybeMessage = f(
-                  event.screenX,
-                  event.screenY,
-                  event.pointerType,
-                  event.timeStamp,
-                )
-                if (Option.isSome(maybeMessage)) {
-                  dispatchSync(maybeMessage.value)
-                }
-              },
-            }),
-          OnKeyDown: ({ f }) =>
-            updateDataOn({
-              keydown: (event: KeyboardEvent) =>
-                dispatchSync(f(event.key, keyboardModifiers(event))),
-            }),
-          OnKeyDownPreventDefault: ({ f }) =>
-            updateDataOn({
-              keydown: (event: KeyboardEvent) => {
-                const maybeMessage = f(event.key, keyboardModifiers(event))
-                if (Option.isSome(maybeMessage)) {
-                  event.preventDefault()
-                  dispatchSync(maybeMessage.value)
-                }
-              },
-            }),
-          OnKeyUp: ({ f }) =>
-            updateDataOn({
-              keyup: (event: KeyboardEvent) =>
-                dispatchSync(f(event.key, keyboardModifiers(event))),
-            }),
-          OnKeyUpPreventDefault: ({ f }) =>
-            updateDataOn({
-              keyup: (event: KeyboardEvent) => {
-                const maybeMessage = f(event.key, keyboardModifiers(event))
-                if (Option.isSome(maybeMessage)) {
-                  event.preventDefault()
-                  dispatchSync(maybeMessage.value)
-                }
-              },
-            }),
-          OnKeyPress: ({ f }) =>
-            updateDataOn({
-              keypress: (event: KeyboardEvent) =>
-                dispatchSync(f(event.key, keyboardModifiers(event))),
-            }),
-          OnFocus: ({ message }) =>
-            updateDataOn({
-              focus: () => dispatchSync(message),
-            }),
-          OnBlur: ({ message }) =>
-            updateDataOn({
-              blur: (event: FocusEvent) => {
-                if (
-                  event.relatedTarget instanceof Element &&
-                  event.relatedTarget.id === DEVTOOLS_HOST_ID
-                ) {
-                  return
-                }
-                dispatchSync(message)
-              },
-            }),
-          OnInput: ({ f }) =>
-            updateDataOn({
-              input: (event: Event) =>
-                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                dispatchSync(f((event.target as HTMLInputElement).value)),
-            }),
-          OnChange: ({ f }) =>
-            updateDataOn({
-              change: (event: Event) =>
-                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                dispatchSync(f((event.target as HTMLInputElement).value)),
-            }),
-          OnFileChange: ({ f }) =>
-            updateDataOn({
-              change: tagAsFileHandler((event: Event) => {
-                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                const target = event.target as HTMLInputElement
-                const files: ReadonlyArray<File> = target.files
-                  ? Array.fromIterable(target.files)
-                  : Array.empty()
-                target.value = ''
-                dispatchSync(f(files))
-              }, 'OnFileChange'),
-            }),
-          OnSubmit: ({ message }) =>
-            updateDataOn({
-              submit: (event: Event) => {
+              if (Option.isSome(maybeMessage)) {
+                dispatch(maybeMessage.value)
+              }
+            },
+          }),
+        OnPointerLeave: ({ f }) =>
+          updateDataOn({
+            pointerleave: (event: PointerEvent) => {
+              const maybeMessage = f(event.pointerType)
+              if (Option.isSome(maybeMessage)) {
+                dispatch(maybeMessage.value)
+              }
+            },
+          }),
+        OnPointerDown: ({ f }) =>
+          updateDataOn({
+            pointerdown: (event: PointerEvent) => {
+              const maybeMessage = f(
+                event.pointerType,
+                event.button,
+                event.screenX,
+                event.screenY,
+                event.timeStamp,
+                event.clientX,
+                event.clientY,
+              )
+              if (Option.isSome(maybeMessage)) {
+                dispatch(maybeMessage.value)
+              }
+            },
+          }),
+        OnPointerUp: ({ f }) =>
+          updateDataOn({
+            pointerup: (event: PointerEvent) => {
+              const maybeMessage = f(
+                event.screenX,
+                event.screenY,
+                event.pointerType,
+                event.timeStamp,
+              )
+              if (Option.isSome(maybeMessage)) {
+                dispatch(maybeMessage.value)
+              }
+            },
+          }),
+        OnKeyDown: ({ f }) =>
+          updateDataOn({
+            keydown: (event: KeyboardEvent) =>
+              dispatch(f(event.key, keyboardModifiers(event))),
+          }),
+        OnKeyDownPreventDefault: ({ f }) =>
+          updateDataOn({
+            keydown: (event: KeyboardEvent) => {
+              const maybeMessage = f(event.key, keyboardModifiers(event))
+              if (Option.isSome(maybeMessage)) {
                 event.preventDefault()
-                dispatchSync(message)
-              },
-            }),
-          OnReset: ({ message }) =>
-            updateDataOn({
-              reset: () => dispatchSync(message),
-            }),
-          OnScroll: ({ f }) =>
-            updateDataOn({
-              scroll: (event: Event) =>
-                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                dispatchSync(f((event.target as HTMLElement).scrollTop)),
-            }),
-          OnWheel: ({ message }) =>
-            updateDataOn({
-              wheel: () => dispatchSync(message),
-            }),
-          OnCopy: ({ message }) =>
-            updateDataOn({
-              copy: () => dispatchSync(message),
-            }),
-          OnCut: ({ message }) =>
-            updateDataOn({
-              cut: () => dispatchSync(message),
-            }),
-          OnPaste: ({ message }) =>
-            updateDataOn({
-              paste: () => dispatchSync(message),
-            }),
-          OnCancel: ({ message }) =>
-            updateDataOn({
-              cancel: (event: Event) => {
+                dispatch(maybeMessage.value)
+              }
+            },
+          }),
+        OnKeyUp: ({ f }) =>
+          updateDataOn({
+            keyup: (event: KeyboardEvent) =>
+              dispatch(f(event.key, keyboardModifiers(event))),
+          }),
+        OnKeyUpPreventDefault: ({ f }) =>
+          updateDataOn({
+            keyup: (event: KeyboardEvent) => {
+              const maybeMessage = f(event.key, keyboardModifiers(event))
+              if (Option.isSome(maybeMessage)) {
                 event.preventDefault()
-                dispatchSync(message)
-              },
-            }),
-          OnToggle: ({ f }) =>
-            updateDataOn({
-              toggle: event =>
-                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                dispatchSync(f((event.target as HTMLDetailsElement).open)),
-            }),
-          OnContextMenu: ({ message }) =>
-            updateDataOn({
-              contextmenu: (event: Event) => {
-                event.preventDefault()
-                dispatchSync(message)
-              },
-            }),
-          OnDragStart: ({ message }) =>
-            updateDataOn({
-              dragstart: () => dispatchSync(message),
-            }),
-          OnDrag: ({ message }) =>
-            updateDataOn({
-              drag: () => dispatchSync(message),
-            }),
-          OnDragEnd: ({ message }) =>
-            updateDataOn({
-              dragend: () => dispatchSync(message),
-            }),
-          OnDragEnter: ({ message }) =>
-            updateDataOn({
-              dragenter: (event: Event) => {
-                event.preventDefault()
-                const zone = event.currentTarget
-                if (!(zone instanceof Element)) {
-                  dispatchSync(message)
-                  return
-                }
-                const state = getDragZoneState(zone)
-                if (processDragEnter(state, zone, event.target)) {
-                  dispatchSync(message)
-                }
-              },
-            }),
-          OnDragLeave: ({ message }) =>
-            updateDataOn({
-              dragleave: (event: Event) => {
-                const zone = event.currentTarget
-                if (!(zone instanceof Element)) {
-                  dispatchSync(message)
-                  return
-                }
-                const state = getDragZoneState(zone)
-                if (
-                  processDragLeave(state, zone, event.target) === 'schedule'
-                ) {
-                  queueMicrotask(() => {
-                    if (checkScheduledLeave(state)) {
-                      dispatchSync(message)
-                    }
-                  })
-                }
-              },
-            }),
-          OnDragOver: ({ message }) =>
-            updateDataOn({
-              dragover: (event: Event) => {
-                event.preventDefault()
-                dispatchSync(message)
-              },
-            }),
-          AllowDrop: () =>
-            updateDataOn({
-              dragover: (event: Event) => {
-                event.preventDefault()
-              },
-            }),
-          OnDrop: ({ message }) =>
-            updateDataOn({
-              drop: (event: Event) => {
-                event.preventDefault()
-                const zone = event.currentTarget
-                if (zone instanceof Element) {
-                  clearDragZoneAfterDrop(zone)
-                }
-                dispatchSync(message)
-              },
-            }),
-          OnDropFiles: ({ f }) =>
-            updateDataOn({
-              drop: tagAsFileHandler((event: Event) => {
-                event.preventDefault()
-                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                const dragEvent = event as DragEvent
-                const zone = dragEvent.currentTarget
-                if (zone instanceof Element) {
-                  clearDragZoneAfterDrop(zone)
-                }
-                const files: ReadonlyArray<File> = dragEvent.dataTransfer?.files
-                  ? Array.fromIterable(dragEvent.dataTransfer.files)
-                  : Array.empty()
-                dispatchSync(f(files))
-              }, 'OnDropFiles'),
-            }),
-          OnTouchStart: ({ message }) =>
-            updateDataOn({
-              touchstart: () => dispatchSync(message),
-            }),
-          OnTouchEnd: ({ message }) =>
-            updateDataOn({
-              touchend: () => dispatchSync(message),
-            }),
-          OnTouchMove: ({ message }) =>
-            updateDataOn({
-              touchmove: () => dispatchSync(message),
-            }),
-          OnTouchCancel: ({ message }) =>
-            updateDataOn({
-              touchcancel: () => dispatchSync(message),
-            }),
-          OnAnimationStart: ({ message }) =>
-            updateDataOn({
-              animationstart: () => dispatchSync(message),
-            }),
-          OnAnimationEnd: ({ message }) =>
-            updateDataOn({
-              animationend: () => dispatchSync(message),
-            }),
-          OnAnimationIteration: ({ message }) =>
-            updateDataOn({
-              animationiteration: () => dispatchSync(message),
-            }),
-          OnTransitionEnd: ({ message }) =>
-            updateDataOn({
-              transitionend: () => dispatchSync(message),
-            }),
-          OnLoad: ({ message }) =>
-            updateDataOn({
-              load: () => dispatchSync(message),
-            }),
-          OnError: ({ message }) =>
-            updateDataOn({
-              error: () => dispatchSync(message),
-            }),
-          OnPlay: ({ message }) =>
-            updateDataOn({
-              play: () => dispatchSync(message),
-            }),
-          OnPause: ({ message }) =>
-            updateDataOn({
-              pause: () => dispatchSync(message),
-            }),
-          OnEnded: ({ message }) =>
-            updateDataOn({
-              ended: () => dispatchSync(message),
-            }),
-          OnTimeUpdate: ({ message }) =>
-            updateDataOn({
-              timeupdate: () => dispatchSync(message),
-            }),
-          OnVolumeChange: ({ message }) =>
-            updateDataOn({
-              volumechange: () => dispatchSync(message),
-            }),
-          OnSelect: ({ message }) =>
-            updateDataOn({
-              select: () => dispatchSync(message),
-            }),
-          Value: ({ value }) => updatePropsWithPostpatch('value', value),
-          Checked: ({ value }) => updatePropsWithPostpatch('checked', value),
-          Selected: ({ value }) => updatePropsWithPostpatch('selected', value),
-          Open: ({ value }) => updatePropsWithPostpatch('open', value),
-          Placeholder: ({ value }) => updateDataProps({ placeholder: value }),
-          Name: ({ value }) => updateDataProps({ name: value }),
-          Disabled: ({ value }) => updateDataProps({ disabled: value }),
-          Readonly: ({ value }) => updateDataProps({ readOnly: value }),
-          Required: ({ value }) => updateDataProps({ required: value }),
-          Autofocus: ({ value }) => updateDataProps({ autofocus: value }),
-          Spellcheck: ({ value }) =>
-            updateDataAttrs({ spellcheck: value.toString() }),
-          Autocorrect: ({ value }) => updateDataAttrs({ autocorrect: value }),
-          Autocapitalize: ({ value }) =>
-            updateDataAttrs({ autocapitalize: value }),
-          InputMode: ({ value }) => updateDataAttrs({ inputmode: value }),
-          EnterKeyHint: ({ value }) => updateDataAttrs({ enterkeyhint: value }),
-          Multiple: ({ value }) => updateDataProps({ multiple: value }),
-          Type: ({ value }) => updateDataProps({ type: value }),
-          Accept: ({ value }) => updateDataProps({ accept: value }),
-          Autocomplete: ({ value }) => updateDataProps({ autocomplete: value }),
-          Pattern: ({ value }) => updateDataProps({ pattern: value }),
-          Maxlength: ({ value }) => updateDataProps({ maxLength: value }),
-          Minlength: ({ value }) => updateDataProps({ minLength: value }),
-          Size: ({ value }) => updateDataProps({ size: value }),
-          Cols: ({ value }) => updateDataProps({ cols: value }),
-          Rows: ({ value }) => updateDataProps({ rows: value }),
-          Max: ({ value }) => updateDataProps({ max: value }),
-          Min: ({ value }) => updateDataProps({ min: value }),
-          Step: ({ value }) => updateDataProps({ step: value }),
-          For: ({ value }) => updateDataProps({ htmlFor: value }),
-          Href: ({ value }) => updateDataProps({ href: value }),
-          Src: ({ value }) => updateDataProps({ src: value }),
-          Alt: ({ value }) => updateDataProps({ alt: value }),
-          Target: ({ value }) => updateDataProps({ target: value }),
-          Rel: ({ value }) => updateDataProps({ rel: value }),
-          Download: ({ value }) => updateDataProps({ download: value }),
-          Action: ({ value }) => updateDataProps({ action: value }),
-          Method: ({ value }) => updateDataProps({ method: value }),
-          Enctype: ({ value }) => updateDataProps({ enctype: value }),
-          Novalidate: ({ value }) => updateDataProps({ noValidate: value }),
-          Formaction: ({ value }) => updateDataProps({ formAction: value }),
-          Formmethod: ({ value }) => updateDataProps({ formMethod: value }),
-          Formnovalidate: ({ value }) =>
-            updateDataProps({ formNoValidate: value }),
-          Formtarget: ({ value }) => updateDataProps({ formTarget: value }),
-          Formenctype: ({ value }) => updateDataProps({ formEnctype: value }),
-          Colspan: ({ value }) => updateDataProps({ colSpan: value }),
-          Rowspan: ({ value }) => updateDataProps({ rowSpan: value }),
-          Scope: ({ value }) => updateDataAttrs({ scope: value }),
-          Headers: ({ value }) => updateDataAttrs({ headers: value }),
-          Span: ({ value }) => updateDataProps({ span: value }),
-          Start: ({ value }) => updateDataProps({ start: value }),
-          Reversed: ({ value }) => updateDataProps({ reversed: value }),
-          CiteAttr: ({ value }) => updateDataProps({ cite: value }),
-          Datetime: ({ value }) => updateDataProps({ dateTime: value }),
-          Wrap: ({ value }) => updateDataProps({ wrap: value }),
-          List: ({ value }) => updateDataAttrs({ list: value }),
-          FormAttr: ({ value }) => updateDataAttrs({ form: value }),
-          LabelAttr: ({ value }) => updateDataProps({ label: value }),
-          ContentAttr: ({ value }) => updateDataAttrs({ content: value }),
-          Charset: ({ value }) => updateDataAttrs({ charset: value }),
-          HttpEquiv: ({ value }) => updateDataAttrs({ 'http-equiv': value }),
-          Srcset: ({ value }) => updateDataAttrs({ srcset: value }),
-          Sizes: ({ value }) => updateDataAttrs({ sizes: value }),
-          Loading: ({ value }) => updateDataAttrs({ loading: value }),
-          Decoding: ({ value }) => updateDataAttrs({ decoding: value }),
-          Fetchpriority: ({ value }) =>
-            updateDataAttrs({ fetchpriority: value }),
-          Crossorigin: ({ value }) => updateDataAttrs({ crossorigin: value }),
-          Referrerpolicy: ({ value }) =>
-            updateDataAttrs({ referrerpolicy: value }),
-          Integrity: ({ value }) => updateDataAttrs({ integrity: value }),
-          Hreflang: ({ value }) => updateDataAttrs({ hreflang: value }),
-          Ping: ({ value }) => updateDataAttrs({ ping: value }),
-          Sandbox: ({ value }) => updateDataAttrs({ sandbox: value }),
-          Allow: ({ value }) => updateDataAttrs({ allow: value }),
-          Srcdoc: ({ value }) => updateDataAttrs({ srcdoc: value }),
-          Autoplay: ({ value }) => updateDataProps({ autoplay: value }),
-          Controls: ({ value }) => updateDataProps({ controls: value }),
-          Loop: ({ value }) => updateDataProps({ loop: value }),
-          Muted: ({ value }) => updatePropsWithPostpatch('muted', value),
-          Poster: ({ value }) => updateDataProps({ poster: value }),
-          Preload: ({ value }) => updateDataProps({ preload: value }),
-          Playsinline: ({ value }) => updateDataProps({ playsInline: value }),
-          High: ({ value }) => updateDataProps({ high: value }),
-          Low: ({ value }) => updateDataProps({ low: value }),
-          Optimum: ({ value }) => updateDataProps({ optimum: value }),
-          Usemap: ({ value }) => updateDataAttrs({ usemap: value }),
-          Ismap: ({ value }) => updateDataProps({ isMap: value }),
-          Role: ({ value }) => updateDataAttrs({ role: value }),
-          AriaLabel: ({ value }) => updateDataAttrs({ 'aria-label': value }),
-          AriaLabelledBy: ({ value }) =>
-            updateDataAttrs({ 'aria-labelledby': value }),
-          AriaDescribedBy: ({ value }) =>
-            updateDataAttrs({ 'aria-describedby': value }),
-          AriaHidden: ({ value }) =>
-            updateDataAttrs({ 'aria-hidden': value.toString() }),
-          AriaExpanded: ({ value }) =>
-            updateDataAttrs({ 'aria-expanded': value.toString() }),
-          AriaSelected: ({ value }) =>
-            updateDataAttrs({ 'aria-selected': value.toString() }),
-          AriaChecked: ({ value }) =>
-            updateDataAttrs({ 'aria-checked': value.toString() }),
-          AriaDisabled: ({ value }) =>
-            updateDataAttrs({ 'aria-disabled': value.toString() }),
-          AriaRequired: ({ value }) =>
-            updateDataAttrs({ 'aria-required': value.toString() }),
-          AriaInvalid: ({ value }) =>
-            updateDataAttrs({ 'aria-invalid': value.toString() }),
-          AriaLive: ({ value }) => updateDataAttrs({ 'aria-live': value }),
-          AriaControls: ({ value }) =>
-            updateDataAttrs({ 'aria-controls': value }),
-          AriaCurrent: ({ value }) =>
-            updateDataAttrs({ 'aria-current': value }),
-          AriaOrientation: ({ value }) =>
-            updateDataAttrs({ 'aria-orientation': value }),
-          AriaPressed: ({ value }) =>
-            updateDataAttrs({ 'aria-pressed': value }),
-          AriaHasPopup: ({ value }) =>
-            updateDataAttrs({ 'aria-haspopup': value }),
-          AriaActiveDescendant: ({ value }) =>
-            updateDataAttrs({ 'aria-activedescendant': value }),
-          AriaSort: ({ value }) => updateDataAttrs({ 'aria-sort': value }),
-          AriaMultiSelectable: ({ value }) =>
-            updateDataAttrs({ 'aria-multiselectable': value.toString() }),
-          AriaModal: ({ value }) =>
-            updateDataAttrs({ 'aria-modal': value.toString() }),
-          AriaBusy: ({ value }) =>
-            updateDataAttrs({ 'aria-busy': value.toString() }),
-          AriaErrorMessage: ({ value }) =>
-            updateDataAttrs({ 'aria-errormessage': value }),
-          AriaRoleDescription: ({ value }) =>
-            updateDataAttrs({ 'aria-roledescription': value }),
-          AriaAtomic: ({ value }) =>
-            updateDataAttrs({ 'aria-atomic': value.toString() }),
-          AriaAutocomplete: ({ value }) =>
-            updateDataAttrs({ 'aria-autocomplete': value }),
-          AriaColcount: ({ value }) =>
-            updateDataAttrs({ 'aria-colcount': value.toString() }),
-          AriaColindex: ({ value }) =>
-            updateDataAttrs({ 'aria-colindex': value.toString() }),
-          AriaColspan: ({ value }) =>
-            updateDataAttrs({ 'aria-colspan': value.toString() }),
-          AriaDescription: ({ value }) =>
-            updateDataAttrs({ 'aria-description': value }),
-          AriaDetails: ({ value }) =>
-            updateDataAttrs({ 'aria-details': value }),
-          AriaFlowto: ({ value }) => updateDataAttrs({ 'aria-flowto': value }),
-          AriaKeyshortcuts: ({ value }) =>
-            updateDataAttrs({ 'aria-keyshortcuts': value }),
-          AriaLevel: ({ value }) =>
-            updateDataAttrs({ 'aria-level': value.toString() }),
-          AriaOwns: ({ value }) => updateDataAttrs({ 'aria-owns': value }),
-          AriaPlaceholder: ({ value }) =>
-            updateDataAttrs({ 'aria-placeholder': value }),
-          AriaPosinset: ({ value }) =>
-            updateDataAttrs({ 'aria-posinset': value.toString() }),
-          AriaReadonly: ({ value }) =>
-            updateDataAttrs({ 'aria-readonly': value.toString() }),
-          AriaRelevant: ({ value }) =>
-            updateDataAttrs({ 'aria-relevant': value }),
-          AriaRowcount: ({ value }) =>
-            updateDataAttrs({ 'aria-rowcount': value.toString() }),
-          AriaRowindex: ({ value }) =>
-            updateDataAttrs({ 'aria-rowindex': value.toString() }),
-          AriaRowspan: ({ value }) =>
-            updateDataAttrs({ 'aria-rowspan': value.toString() }),
-          AriaSetsize: ({ value }) =>
-            updateDataAttrs({ 'aria-setsize': value.toString() }),
-          AriaValuemax: ({ value }) =>
-            updateDataAttrs({ 'aria-valuemax': value.toString() }),
-          AriaValuemin: ({ value }) =>
-            updateDataAttrs({ 'aria-valuemin': value.toString() }),
-          AriaValuenow: ({ value }) =>
-            updateDataAttrs({ 'aria-valuenow': value.toString() }),
-          AriaValuetext: ({ value }) =>
-            updateDataAttrs({ 'aria-valuetext': value }),
-          Attribute: ({ key, value }) => updateDataAttrs({ [key]: value }),
-          DataAttribute: ({ key, value }) =>
-            updateDataAttrs({ [`data-${key}`]: value }),
-          Style: ({ value }) => setData('style', value),
-          InnerHTML: ({ value }) => updateDataProps({ innerHTML: value }),
-          ViewBox: ({ value }) => updateDataAttrs({ viewBox: value }),
-          Xmlns: ({ value }) => updateDataAttrs({ xmlns: value }),
-          Fill: ({ value }) => updateDataAttrs({ fill: value }),
-          FillRule: ({ value }) => updateDataAttrs({ 'fill-rule': value }),
-          ClipRule: ({ value }) => updateDataAttrs({ 'clip-rule': value }),
-          Stroke: ({ value }) => updateDataAttrs({ stroke: value }),
-          StrokeWidth: ({ value }) =>
-            updateDataAttrs({ 'stroke-width': value }),
-          StrokeLinecap: ({ value }) =>
-            updateDataAttrs({ 'stroke-linecap': value }),
-          StrokeLinejoin: ({ value }) =>
-            updateDataAttrs({ 'stroke-linejoin': value }),
-          D: ({ value }) => updateDataAttrs({ d: value }),
-          Cx: ({ value }) => updateDataAttrs({ cx: value }),
-          Cy: ({ value }) => updateDataAttrs({ cy: value }),
-          R: ({ value }) => updateDataAttrs({ r: value }),
-          X: ({ value }) => updateDataAttrs({ x: value }),
-          Y: ({ value }) => updateDataAttrs({ y: value }),
-          Width: ({ value }) => updateDataAttrs({ width: value }),
-          Height: ({ value }) => updateDataAttrs({ height: value }),
-          X1: ({ value }) => updateDataAttrs({ x1: value }),
-          Y1: ({ value }) => updateDataAttrs({ y1: value }),
-          X2: ({ value }) => updateDataAttrs({ x2: value }),
-          Y2: ({ value }) => updateDataAttrs({ y2: value }),
-          Points: ({ value }) => updateDataAttrs({ points: value }),
-          Transform: ({ value }) => updateDataAttrs({ transform: value }),
-          Opacity: ({ value }) => updateDataAttrs({ opacity: value }),
-          StrokeDasharray: ({ value }) =>
-            updateDataAttrs({ 'stroke-dasharray': value }),
-          StrokeDashoffset: ({ value }) =>
-            updateDataAttrs({ 'stroke-dashoffset': value }),
-          Prop: ({ key, value }) => updateDataProps({ [key]: value }),
-          OnCustomEvent: ({ name, f }) =>
-            updateDataOn({
-              [name]: (event: Event) => {
-                if (event instanceof CustomEvent) {
-                  dispatchSync(f(event))
-                }
-              },
-            }),
-          OnMount: ({ action }) => {
-            const maybeTracker = Context.getOption(
-              capturedContext,
-              MountTracker,
-            )
-            const notifyStarted = Option.isSome(maybeTracker)
-              ? () => maybeTracker.value.started(action.name, action.args)
-              : Function.constVoid
-            const notifyEnded = Option.isSome(maybeTracker)
-              ? () => maybeTracker.value.ended(action.name, action.args)
-              : Function.constVoid
-            const marker: FoldkitMountMarker =
-              action.args === undefined
-                ? { name: action.name }
-                : { name: action.name, args: action.args }
-            return Ref.update(dataRef, data => ({
-              ...data,
-              [FOLDKIT_MOUNT_KEY]: marker,
-              hook: {
-                ...data.hook,
-                insert: vnode => {
-                  if (vnode.elm instanceof Element) {
-                    const element = vnode.elm
-                    notifyStarted()
-                    const fiber = Effect.runForkWith(capturedContext)(
-                      Stream.runForEach(action.f(element), message =>
-                        Effect.sync(() => dispatchSync(message)),
-                      ).pipe(
-                        Effect.catchCause(cause =>
-                          Effect.sync(() => {
-                            console.error(
-                              `[OnMount ${action.name}] unhandled failure`,
-                              cause,
-                            )
-                          }),
-                        ),
-                      ),
-                    )
-                    onMountStates.set(element, { fiber })
+                dispatch(maybeMessage.value)
+              }
+            },
+          }),
+        OnKeyPress: ({ f }) =>
+          updateDataOn({
+            keypress: (event: KeyboardEvent) =>
+              dispatch(f(event.key, keyboardModifiers(event))),
+          }),
+        OnFocus: ({ message }) =>
+          updateDataOn({
+            focus: () => dispatch(message),
+          }),
+        OnBlur: ({ message }) =>
+          updateDataOn({
+            blur: (event: FocusEvent) => {
+              if (
+                event.relatedTarget instanceof Element &&
+                event.relatedTarget.id === DEVTOOLS_HOST_ID
+              ) {
+                return
+              }
+              dispatch(message)
+            },
+          }),
+        OnInput: ({ f }) =>
+          updateDataOn({
+            input: (event: Event) =>
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              dispatch(f((event.target as HTMLInputElement).value)),
+          }),
+        OnChange: ({ f }) =>
+          updateDataOn({
+            change: (event: Event) =>
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              dispatch(f((event.target as HTMLInputElement).value)),
+          }),
+        OnFileChange: ({ f }) =>
+          updateDataOn({
+            change: tagAsFileHandler((event: Event) => {
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              const target = event.target as HTMLInputElement
+              const files: ReadonlyArray<File> = target.files
+                ? Array.fromIterable(target.files)
+                : Array.empty()
+              target.value = ''
+              dispatch(f(files))
+            }, 'OnFileChange'),
+          }),
+        OnSubmit: ({ message }) =>
+          updateDataOn({
+            submit: (event: Event) => {
+              event.preventDefault()
+              dispatch(message)
+            },
+          }),
+        OnReset: ({ message }) =>
+          updateDataOn({
+            reset: () => dispatch(message),
+          }),
+        OnScroll: ({ f }) =>
+          updateDataOn({
+            scroll: (event: Event) =>
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              dispatch(f((event.target as HTMLElement).scrollTop)),
+          }),
+        OnWheel: ({ message }) =>
+          updateDataOn({
+            wheel: () => dispatch(message),
+          }),
+        OnCopy: ({ message }) =>
+          updateDataOn({
+            copy: () => dispatch(message),
+          }),
+        OnCut: ({ message }) =>
+          updateDataOn({
+            cut: () => dispatch(message),
+          }),
+        OnPaste: ({ message }) =>
+          updateDataOn({
+            paste: () => dispatch(message),
+          }),
+        OnCancel: ({ message }) =>
+          updateDataOn({
+            cancel: (event: Event) => {
+              event.preventDefault()
+              dispatch(message)
+            },
+          }),
+        OnToggle: ({ f }) =>
+          updateDataOn({
+            toggle: event =>
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              dispatch(f((event.target as HTMLDetailsElement).open)),
+          }),
+        OnContextMenu: ({ message }) =>
+          updateDataOn({
+            contextmenu: (event: Event) => {
+              event.preventDefault()
+              dispatch(message)
+            },
+          }),
+        OnDragStart: ({ message }) =>
+          updateDataOn({
+            dragstart: () => dispatch(message),
+          }),
+        OnDrag: ({ message }) =>
+          updateDataOn({
+            drag: () => dispatch(message),
+          }),
+        OnDragEnd: ({ message }) =>
+          updateDataOn({
+            dragend: () => dispatch(message),
+          }),
+        OnDragEnter: ({ message }) =>
+          updateDataOn({
+            dragenter: (event: Event) => {
+              event.preventDefault()
+              const zone = event.currentTarget
+              if (!(zone instanceof Element)) {
+                dispatch(message)
+                return
+              }
+              const state = getDragZoneState(zone)
+              if (processDragEnter(state, zone, event.target)) {
+                dispatch(message)
+              }
+            },
+          }),
+        OnDragLeave: ({ message }) =>
+          updateDataOn({
+            dragleave: (event: Event) => {
+              const zone = event.currentTarget
+              if (!(zone instanceof Element)) {
+                dispatch(message)
+                return
+              }
+              const state = getDragZoneState(zone)
+              if (processDragLeave(state, zone, event.target) === 'schedule') {
+                queueMicrotask(() => {
+                  if (checkScheduledLeave(state)) {
+                    dispatch(message)
                   }
-                },
-                destroy: vnode => {
-                  if (vnode.elm instanceof Element) {
-                    const state = onMountStates.get(vnode.elm)
-                    if (state) {
-                      Effect.runFork(Fiber.interrupt(state.fiber))
-                      onMountStates.delete(vnode.elm)
-                      notifyEnded()
-                    }
-                  }
-                },
-              },
-            }))
-          },
-        }),
-      ),
+                })
+              }
+            },
+          }),
+        OnDragOver: ({ message }) =>
+          updateDataOn({
+            dragover: (event: Event) => {
+              event.preventDefault()
+              dispatch(message)
+            },
+          }),
+        AllowDrop: () =>
+          updateDataOn({
+            dragover: (event: Event) => {
+              event.preventDefault()
+            },
+          }),
+        OnDrop: ({ message }) =>
+          updateDataOn({
+            drop: (event: Event) => {
+              event.preventDefault()
+              const zone = event.currentTarget
+              if (zone instanceof Element) {
+                clearDragZoneAfterDrop(zone)
+              }
+              dispatch(message)
+            },
+          }),
+        OnDropFiles: ({ f }) =>
+          updateDataOn({
+            drop: tagAsFileHandler((event: Event) => {
+              event.preventDefault()
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              const dragEvent = event as DragEvent
+              const zone = dragEvent.currentTarget
+              if (zone instanceof Element) {
+                clearDragZoneAfterDrop(zone)
+              }
+              const files: ReadonlyArray<File> = dragEvent.dataTransfer?.files
+                ? Array.fromIterable(dragEvent.dataTransfer.files)
+                : Array.empty()
+              dispatch(f(files))
+            }, 'OnDropFiles'),
+          }),
+        OnTouchStart: ({ message }) =>
+          updateDataOn({
+            touchstart: () => dispatch(message),
+          }),
+        OnTouchEnd: ({ message }) =>
+          updateDataOn({
+            touchend: () => dispatch(message),
+          }),
+        OnTouchMove: ({ message }) =>
+          updateDataOn({
+            touchmove: () => dispatch(message),
+          }),
+        OnTouchCancel: ({ message }) =>
+          updateDataOn({
+            touchcancel: () => dispatch(message),
+          }),
+        OnAnimationStart: ({ message }) =>
+          updateDataOn({
+            animationstart: () => dispatch(message),
+          }),
+        OnAnimationEnd: ({ message }) =>
+          updateDataOn({
+            animationend: () => dispatch(message),
+          }),
+        OnAnimationIteration: ({ message }) =>
+          updateDataOn({
+            animationiteration: () => dispatch(message),
+          }),
+        OnTransitionEnd: ({ message }) =>
+          updateDataOn({
+            transitionend: () => dispatch(message),
+          }),
+        OnLoad: ({ message }) =>
+          updateDataOn({
+            load: () => dispatch(message),
+          }),
+        OnError: ({ message }) =>
+          updateDataOn({
+            error: () => dispatch(message),
+          }),
+        OnPlay: ({ message }) =>
+          updateDataOn({
+            play: () => dispatch(message),
+          }),
+        OnPause: ({ message }) =>
+          updateDataOn({
+            pause: () => dispatch(message),
+          }),
+        OnEnded: ({ message }) =>
+          updateDataOn({
+            ended: () => dispatch(message),
+          }),
+        OnTimeUpdate: ({ message }) =>
+          updateDataOn({
+            timeupdate: () => dispatch(message),
+          }),
+        OnVolumeChange: ({ message }) =>
+          updateDataOn({
+            volumechange: () => dispatch(message),
+          }),
+        OnSelect: ({ message }) =>
+          updateDataOn({
+            select: () => dispatch(message),
+          }),
+        Value: ({ value }) => updatePropsWithPostpatch('value', value),
+        Checked: ({ value }) => updatePropsWithPostpatch('checked', value),
+        Selected: ({ value }) => updatePropsWithPostpatch('selected', value),
+        Open: ({ value }) => updatePropsWithPostpatch('open', value),
+        Placeholder: ({ value }) => updateDataProps({ placeholder: value }),
+        Name: ({ value }) => updateDataProps({ name: value }),
+        Disabled: ({ value }) => updateDataProps({ disabled: value }),
+        Readonly: ({ value }) => updateDataProps({ readOnly: value }),
+        Required: ({ value }) => updateDataProps({ required: value }),
+        Autofocus: ({ value }) => updateDataProps({ autofocus: value }),
+        Spellcheck: ({ value }) =>
+          updateDataAttrs({ spellcheck: value.toString() }),
+        Autocorrect: ({ value }) => updateDataAttrs({ autocorrect: value }),
+        Autocapitalize: ({ value }) =>
+          updateDataAttrs({ autocapitalize: value }),
+        InputMode: ({ value }) => updateDataAttrs({ inputmode: value }),
+        EnterKeyHint: ({ value }) => updateDataAttrs({ enterkeyhint: value }),
+        Multiple: ({ value }) => updateDataProps({ multiple: value }),
+        Type: ({ value }) => updateDataProps({ type: value }),
+        Accept: ({ value }) => updateDataProps({ accept: value }),
+        Autocomplete: ({ value }) => updateDataProps({ autocomplete: value }),
+        Pattern: ({ value }) => updateDataProps({ pattern: value }),
+        Maxlength: ({ value }) => updateDataProps({ maxLength: value }),
+        Minlength: ({ value }) => updateDataProps({ minLength: value }),
+        Size: ({ value }) => updateDataProps({ size: value }),
+        Cols: ({ value }) => updateDataProps({ cols: value }),
+        Rows: ({ value }) => updateDataProps({ rows: value }),
+        Max: ({ value }) => updateDataProps({ max: value }),
+        Min: ({ value }) => updateDataProps({ min: value }),
+        Step: ({ value }) => updateDataProps({ step: value }),
+        For: ({ value }) => updateDataProps({ htmlFor: value }),
+        Href: ({ value }) => updateDataProps({ href: value }),
+        Src: ({ value }) => updateDataProps({ src: value }),
+        Alt: ({ value }) => updateDataProps({ alt: value }),
+        Target: ({ value }) => updateDataProps({ target: value }),
+        Rel: ({ value }) => updateDataProps({ rel: value }),
+        Download: ({ value }) => updateDataProps({ download: value }),
+        Action: ({ value }) => updateDataProps({ action: value }),
+        Method: ({ value }) => updateDataProps({ method: value }),
+        Enctype: ({ value }) => updateDataProps({ enctype: value }),
+        Novalidate: ({ value }) => updateDataProps({ noValidate: value }),
+        Formaction: ({ value }) => updateDataProps({ formAction: value }),
+        Formmethod: ({ value }) => updateDataProps({ formMethod: value }),
+        Formnovalidate: ({ value }) =>
+          updateDataProps({ formNoValidate: value }),
+        Formtarget: ({ value }) => updateDataProps({ formTarget: value }),
+        Formenctype: ({ value }) => updateDataProps({ formEnctype: value }),
+        Colspan: ({ value }) => updateDataProps({ colSpan: value }),
+        Rowspan: ({ value }) => updateDataProps({ rowSpan: value }),
+        Scope: ({ value }) => updateDataAttrs({ scope: value }),
+        Headers: ({ value }) => updateDataAttrs({ headers: value }),
+        Span: ({ value }) => updateDataProps({ span: value }),
+        Start: ({ value }) => updateDataProps({ start: value }),
+        Reversed: ({ value }) => updateDataProps({ reversed: value }),
+        CiteAttr: ({ value }) => updateDataProps({ cite: value }),
+        Datetime: ({ value }) => updateDataProps({ dateTime: value }),
+        Wrap: ({ value }) => updateDataProps({ wrap: value }),
+        List: ({ value }) => updateDataAttrs({ list: value }),
+        FormAttr: ({ value }) => updateDataAttrs({ form: value }),
+        LabelAttr: ({ value }) => updateDataProps({ label: value }),
+        ContentAttr: ({ value }) => updateDataAttrs({ content: value }),
+        Charset: ({ value }) => updateDataAttrs({ charset: value }),
+        HttpEquiv: ({ value }) => updateDataAttrs({ 'http-equiv': value }),
+        Srcset: ({ value }) => updateDataAttrs({ srcset: value }),
+        Sizes: ({ value }) => updateDataAttrs({ sizes: value }),
+        Loading: ({ value }) => updateDataAttrs({ loading: value }),
+        Decoding: ({ value }) => updateDataAttrs({ decoding: value }),
+        Fetchpriority: ({ value }) => updateDataAttrs({ fetchpriority: value }),
+        Crossorigin: ({ value }) => updateDataAttrs({ crossorigin: value }),
+        Referrerpolicy: ({ value }) =>
+          updateDataAttrs({ referrerpolicy: value }),
+        Integrity: ({ value }) => updateDataAttrs({ integrity: value }),
+        Hreflang: ({ value }) => updateDataAttrs({ hreflang: value }),
+        Ping: ({ value }) => updateDataAttrs({ ping: value }),
+        Sandbox: ({ value }) => updateDataAttrs({ sandbox: value }),
+        Allow: ({ value }) => updateDataAttrs({ allow: value }),
+        Srcdoc: ({ value }) => updateDataAttrs({ srcdoc: value }),
+        Autoplay: ({ value }) => updateDataProps({ autoplay: value }),
+        Controls: ({ value }) => updateDataProps({ controls: value }),
+        Loop: ({ value }) => updateDataProps({ loop: value }),
+        Muted: ({ value }) => updatePropsWithPostpatch('muted', value),
+        Poster: ({ value }) => updateDataProps({ poster: value }),
+        Preload: ({ value }) => updateDataProps({ preload: value }),
+        Playsinline: ({ value }) => updateDataProps({ playsInline: value }),
+        High: ({ value }) => updateDataProps({ high: value }),
+        Low: ({ value }) => updateDataProps({ low: value }),
+        Optimum: ({ value }) => updateDataProps({ optimum: value }),
+        Usemap: ({ value }) => updateDataAttrs({ usemap: value }),
+        Ismap: ({ value }) => updateDataProps({ isMap: value }),
+        Role: ({ value }) => updateDataAttrs({ role: value }),
+        AriaLabel: ({ value }) => updateDataAttrs({ 'aria-label': value }),
+        AriaLabelledBy: ({ value }) =>
+          updateDataAttrs({ 'aria-labelledby': value }),
+        AriaDescribedBy: ({ value }) =>
+          updateDataAttrs({ 'aria-describedby': value }),
+        AriaHidden: ({ value }) =>
+          updateDataAttrs({ 'aria-hidden': value.toString() }),
+        AriaExpanded: ({ value }) =>
+          updateDataAttrs({ 'aria-expanded': value.toString() }),
+        AriaSelected: ({ value }) =>
+          updateDataAttrs({ 'aria-selected': value.toString() }),
+        AriaChecked: ({ value }) =>
+          updateDataAttrs({ 'aria-checked': value.toString() }),
+        AriaDisabled: ({ value }) =>
+          updateDataAttrs({ 'aria-disabled': value.toString() }),
+        AriaRequired: ({ value }) =>
+          updateDataAttrs({ 'aria-required': value.toString() }),
+        AriaInvalid: ({ value }) =>
+          updateDataAttrs({ 'aria-invalid': value.toString() }),
+        AriaLive: ({ value }) => updateDataAttrs({ 'aria-live': value }),
+        AriaControls: ({ value }) =>
+          updateDataAttrs({ 'aria-controls': value }),
+        AriaCurrent: ({ value }) => updateDataAttrs({ 'aria-current': value }),
+        AriaOrientation: ({ value }) =>
+          updateDataAttrs({ 'aria-orientation': value }),
+        AriaPressed: ({ value }) => updateDataAttrs({ 'aria-pressed': value }),
+        AriaHasPopup: ({ value }) =>
+          updateDataAttrs({ 'aria-haspopup': value }),
+        AriaActiveDescendant: ({ value }) =>
+          updateDataAttrs({ 'aria-activedescendant': value }),
+        AriaSort: ({ value }) => updateDataAttrs({ 'aria-sort': value }),
+        AriaMultiSelectable: ({ value }) =>
+          updateDataAttrs({ 'aria-multiselectable': value.toString() }),
+        AriaModal: ({ value }) =>
+          updateDataAttrs({ 'aria-modal': value.toString() }),
+        AriaBusy: ({ value }) =>
+          updateDataAttrs({ 'aria-busy': value.toString() }),
+        AriaErrorMessage: ({ value }) =>
+          updateDataAttrs({ 'aria-errormessage': value }),
+        AriaRoleDescription: ({ value }) =>
+          updateDataAttrs({ 'aria-roledescription': value }),
+        AriaAtomic: ({ value }) =>
+          updateDataAttrs({ 'aria-atomic': value.toString() }),
+        AriaAutocomplete: ({ value }) =>
+          updateDataAttrs({ 'aria-autocomplete': value }),
+        AriaColcount: ({ value }) =>
+          updateDataAttrs({ 'aria-colcount': value.toString() }),
+        AriaColindex: ({ value }) =>
+          updateDataAttrs({ 'aria-colindex': value.toString() }),
+        AriaColspan: ({ value }) =>
+          updateDataAttrs({ 'aria-colspan': value.toString() }),
+        AriaDescription: ({ value }) =>
+          updateDataAttrs({ 'aria-description': value }),
+        AriaDetails: ({ value }) => updateDataAttrs({ 'aria-details': value }),
+        AriaFlowto: ({ value }) => updateDataAttrs({ 'aria-flowto': value }),
+        AriaKeyshortcuts: ({ value }) =>
+          updateDataAttrs({ 'aria-keyshortcuts': value }),
+        AriaLevel: ({ value }) =>
+          updateDataAttrs({ 'aria-level': value.toString() }),
+        AriaOwns: ({ value }) => updateDataAttrs({ 'aria-owns': value }),
+        AriaPlaceholder: ({ value }) =>
+          updateDataAttrs({ 'aria-placeholder': value }),
+        AriaPosinset: ({ value }) =>
+          updateDataAttrs({ 'aria-posinset': value.toString() }),
+        AriaReadonly: ({ value }) =>
+          updateDataAttrs({ 'aria-readonly': value.toString() }),
+        AriaRelevant: ({ value }) =>
+          updateDataAttrs({ 'aria-relevant': value }),
+        AriaRowcount: ({ value }) =>
+          updateDataAttrs({ 'aria-rowcount': value.toString() }),
+        AriaRowindex: ({ value }) =>
+          updateDataAttrs({ 'aria-rowindex': value.toString() }),
+        AriaRowspan: ({ value }) =>
+          updateDataAttrs({ 'aria-rowspan': value.toString() }),
+        AriaSetsize: ({ value }) =>
+          updateDataAttrs({ 'aria-setsize': value.toString() }),
+        AriaValuemax: ({ value }) =>
+          updateDataAttrs({ 'aria-valuemax': value.toString() }),
+        AriaValuemin: ({ value }) =>
+          updateDataAttrs({ 'aria-valuemin': value.toString() }),
+        AriaValuenow: ({ value }) =>
+          updateDataAttrs({ 'aria-valuenow': value.toString() }),
+        AriaValuetext: ({ value }) =>
+          updateDataAttrs({ 'aria-valuetext': value }),
+        Attribute: ({ key, value }) => updateDataAttrs({ [key]: value }),
+        DataAttribute: ({ key, value }) =>
+          updateDataAttrs({ [`data-${key}`]: value }),
+        Style: ({ value }) => setData('style', value),
+        InnerHTML: ({ value }) => updateDataProps({ innerHTML: value }),
+        ViewBox: ({ value }) => updateDataAttrs({ viewBox: value }),
+        Xmlns: ({ value }) => updateDataAttrs({ xmlns: value }),
+        Fill: ({ value }) => updateDataAttrs({ fill: value }),
+        FillRule: ({ value }) => updateDataAttrs({ 'fill-rule': value }),
+        ClipRule: ({ value }) => updateDataAttrs({ 'clip-rule': value }),
+        Stroke: ({ value }) => updateDataAttrs({ stroke: value }),
+        StrokeWidth: ({ value }) => updateDataAttrs({ 'stroke-width': value }),
+        StrokeLinecap: ({ value }) =>
+          updateDataAttrs({ 'stroke-linecap': value }),
+        StrokeLinejoin: ({ value }) =>
+          updateDataAttrs({ 'stroke-linejoin': value }),
+        D: ({ value }) => updateDataAttrs({ d: value }),
+        Cx: ({ value }) => updateDataAttrs({ cx: value }),
+        Cy: ({ value }) => updateDataAttrs({ cy: value }),
+        R: ({ value }) => updateDataAttrs({ r: value }),
+        X: ({ value }) => updateDataAttrs({ x: value }),
+        Y: ({ value }) => updateDataAttrs({ y: value }),
+        Width: ({ value }) => updateDataAttrs({ width: value }),
+        Height: ({ value }) => updateDataAttrs({ height: value }),
+        X1: ({ value }) => updateDataAttrs({ x1: value }),
+        Y1: ({ value }) => updateDataAttrs({ y1: value }),
+        X2: ({ value }) => updateDataAttrs({ x2: value }),
+        Y2: ({ value }) => updateDataAttrs({ y2: value }),
+        Points: ({ value }) => updateDataAttrs({ points: value }),
+        Transform: ({ value }) => updateDataAttrs({ transform: value }),
+        Opacity: ({ value }) => updateDataAttrs({ opacity: value }),
+        StrokeDasharray: ({ value }) =>
+          updateDataAttrs({ 'stroke-dasharray': value }),
+        StrokeDashoffset: ({ value }) =>
+          updateDataAttrs({ 'stroke-dashoffset': value }),
+        Prop: ({ key, value }) => updateDataProps({ [key]: value }),
+        OnCustomEvent: ({ name, f }) =>
+          updateDataOn({
+            [name]: (event: Event) => {
+              if (event instanceof CustomEvent) {
+                dispatch(f(event))
+              }
+            },
+          }),
+        OnMount: ({ action }) => {
+          const capturedContext = getCapturedContext()
+          const maybeTracker = Context.getOption(capturedContext, MountTracker)
+          const notifyStarted = Option.isSome(maybeTracker)
+            ? () => maybeTracker.value.started(action.name, action.args)
+            : Function.constVoid
+          const notifyEnded = Option.isSome(maybeTracker)
+            ? () => maybeTracker.value.ended(action.name, action.args)
+            : Function.constVoid
+          const marker: FoldkitMountMarker =
+            action.args === undefined
+              ? { name: action.name }
+              : { name: action.name, args: action.args }
+          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+          ;(data as Record<string, unknown>)[FOLDKIT_MOUNT_KEY] = marker
+          data.hook = {
+            ...data.hook,
+            insert: vnode => {
+              if (vnode.elm instanceof Element) {
+                const element = vnode.elm
+                notifyStarted()
+                const fiber = Effect.runForkWith(capturedContext)(
+                  Stream.runForEach(action.f(element), message =>
+                    Effect.sync(() => dispatch(message)),
+                  ).pipe(
+                    Effect.catchCause(cause =>
+                      Effect.sync(() => {
+                        console.error(
+                          `[OnMount ${action.name}] unhandled failure`,
+                          cause,
+                        )
+                      }),
+                    ),
+                  ),
+                )
+                onMountStates.set(element, { fiber })
+              }
+            },
+            destroy: vnode => {
+              if (vnode.elm instanceof Element) {
+                const state = onMountStates.get(vnode.elm)
+                if (state) {
+                  Effect.runFork(Fiber.interrupt(state.fiber))
+                  onMountStates.delete(vnode.elm)
+                  notifyEnded()
+                }
+              }
+            },
+          }
+        },
+      }),
     )
 
-    const postpatchProps = yield* Ref.get(postpatchPropsRef)
+  // Most attributes route through the current frame's dispatch. BoundaryAttribute
+  // items carry a different dispatcher (captured by `boundaryAttributes`
+  // in a Submodel's own boundary), so they need a Match closed over
+  // their own dispatch. We cache per unique dispatch within this call
+  // so the same boundary's attributes only build the Match once.
+  // The current matcher is built lazily — static-only attribute arrays
+  // (Class, Id, etc. with no event handlers) skip `requireDispatch`
+  // entirely so Html can be constructed at module top level.
+  let currentMatchAttribute: ReturnType<typeof makeMatchAttribute> | undefined
+  const matchByDispatch = new Map<
+    DispatchSync,
+    ReturnType<typeof makeMatchAttribute>
+  >()
 
-    if (Array.isReadonlyArrayNonEmpty(postpatchProps)) {
-      yield* Ref.update(dataRef, data => ({
-        ...data,
-        hook: {
-          ...data.hook,
-          postpatch: (_oldVnode, vnode) => {
-            if (vnode.elm) {
-              Array.forEach(postpatchProps, ({ propName, value }) => {
-                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                if ((vnode.elm as any)[propName] !== value) {
-                  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                  ;(vnode.elm as any)[propName] = value
-                }
-              })
-            }
-          },
-        },
-      }))
+  for (const item of attributes) {
+    if (isBoundaryAttribute(item)) {
+      let cached = matchByDispatch.get(item.dispatch)
+      if (cached === undefined) {
+        cached = makeMatchAttribute(item.dispatch)
+        matchByDispatch.set(item.dispatch, cached)
+      }
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      cached(item.attribute as Attribute<Message>)
+    } else {
+      if (currentMatchAttribute === undefined) {
+        const dispatch = getCurrentDispatch()
+        currentMatchAttribute = makeMatchAttribute(dispatch)
+        matchByDispatch.set(dispatch, currentMatchAttribute)
+      }
+      currentMatchAttribute(item)
     }
+  }
 
-    return yield* Ref.get(dataRef)
-  })
+  if (Array.isReadonlyArrayNonEmpty(postpatchProps)) {
+    data.hook = {
+      ...data.hook,
+      postpatch: (_oldVnode, vnode) => {
+        if (vnode.elm) {
+          Array.forEach(postpatchProps, ({ propName, value }) => {
+            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+            if ((vnode.elm as any)[propName] !== value) {
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              ;(vnode.elm as any)[propName] = value
+            }
+          })
+        }
+      },
+    }
+  }
+
+  return data
+}
 
 const processVNodeChildren = (
   children: ReadonlyArray<Child>,
-): Effect.Effect<ReadonlyArray<VNode | string>, never, Dispatch> =>
-  Effect.forEach(
-    children,
-    (child): Effect.Effect<VNode | string | null, never, Dispatch> =>
-      Predicate.isString(child) ? Effect.succeed(child) : child,
-  ).pipe(Effect.map(Array.filter(Predicate.isNotNull)))
+): ReadonlyArray<VNode | string> => Array.filter(children, Predicate.isNotNull)
 
 const createElement = <Message>(
   tagName: string,
-  attributes: ReadonlyArray<Attribute<Message>> = [],
+  attributes: ReadonlyArray<Attribute<Message> | BoundaryAttribute> = [],
   children: ReadonlyArray<Child> = [],
 ): Html =>
-  Effect.gen(function* () {
-    const vnodeData = yield* buildVNodeData(attributes)
-    const vnodeChildren = yield* processVNodeChildren(children)
-
-    return h(tagName, vnodeData, Array.fromIterable(vnodeChildren))
-  })
+  h(
+    tagName,
+    buildVNodeData(attributes),
+    Array.fromIterable(processVNodeChildren(children)),
+  )
 
 const element =
   <Message>() =>
   (tagName: TagName) =>
   (
-    attributes: ReadonlyArray<Attribute<Message>> = [],
+    attributes: ReadonlyArray<Attribute<Message> | BoundaryAttribute> = [],
     children: ReadonlyArray<Child> = [],
   ): Html =>
     createElement(tagName, attributes, children)
@@ -1659,7 +1784,7 @@ export const customElement =
   <Message>() =>
   (tagName: string) =>
   (
-    attributes: ReadonlyArray<Attribute<Message>> = [],
+    attributes: ReadonlyArray<Attribute<Message> | BoundaryAttribute> = [],
     children: ReadonlyArray<Child> = [],
   ): Html =>
     createElement(tagName, attributes, children)
@@ -1667,7 +1792,9 @@ export const customElement =
 const voidElement =
   <Message>() =>
   (tagName: TagName) =>
-  (attributes: ReadonlyArray<Attribute<Message>> = []): Html =>
+  (
+    attributes: ReadonlyArray<Attribute<Message> | BoundaryAttribute> = [],
+  ): Html =>
     createElement(tagName, attributes, [])
 
 const keyed =
@@ -1675,18 +1802,18 @@ const keyed =
   (tagName: TagName) =>
   (
     key: string,
-    attributes: ReadonlyArray<Attribute<Message>> = [],
+    attributes: ReadonlyArray<Attribute<Message> | BoundaryAttribute> = [],
     children: ReadonlyArray<Child> = [],
   ): Html =>
     element<Message>()(tagName)([...attributes, Key({ value: key })], children)
 
 type ElementFunction<Message> = (
-  attributes: ReadonlyArray<Attribute<Message>>,
+  attributes: ReadonlyArray<Attribute<Message> | BoundaryAttribute>,
   children: ReadonlyArray<Child>,
 ) => Html
 
 type VoidElementFunction<Message> = (
-  attributes: ReadonlyArray<Attribute<Message>>,
+  attributes: ReadonlyArray<Attribute<Message> | BoundaryAttribute>,
 ) => Html
 
 type HtmlElements<Message> = {
@@ -3254,16 +3381,29 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   OnMount: (action: MountAction<Message, any>) => OnMount({ action }),
 })
 
+const buildHtmlFactory = <Message>() => ({
+  ...htmlElements<Message>(),
+  ...htmlAttributes<Message>(),
+  empty: null,
+  keyed: keyed<Message>(),
+  submodel,
+})
+
+const cachedHtmlFactory = buildHtmlFactory<unknown>()
+
 /**
- * Factory that returns all HTML, SVG, and MathML element constructors,
- * attribute constructors, a `keyed` helper for keyed elements, and `empty`
- * for rendering nothing.
+ * Returns all HTML, SVG, and MathML element constructors, attribute
+ * constructors, a `keyed` helper for keyed elements, and `empty` for
+ * rendering nothing.
+ *
+ * The returned object is a process-wide singleton. The `Message` type
+ * parameter is erased at runtime, and the element and attribute constructors
+ * carry no per-program state (dispatch is read from the runtime singleton at
+ * call time), so calling `html()` repeatedly from inside view functions does
+ * not allocate a fresh object.
  */
-export const html = <Message = never>() => {
-  return {
-    ...htmlElements<Message>(),
-    ...htmlAttributes<Message>(),
-    empty: Effect.succeed(null),
-    keyed: keyed<Message>(),
-  }
-}
+export const html = <Message = never>(): ReturnType<
+  typeof buildHtmlFactory<Message>
+> =>
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  cachedHtmlFactory as ReturnType<typeof buildHtmlFactory<Message>>

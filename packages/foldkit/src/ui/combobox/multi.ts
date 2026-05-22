@@ -1,16 +1,18 @@
 import { Array, Option, Schema as S } from 'effect'
 
 import type * as Command from '../../command/index.js'
-import { type Html, createLazy } from '../../html/index.js'
+import type { SubmodelView } from '../../html/index.js'
 import { evo } from '../../struct/index.js'
 import {
   type BaseInitConfig,
   BaseModel,
-  type BaseViewConfig,
+  type BaseViewInputs,
   Closed,
   type Message,
   Opened,
+  type OutMessage,
   SelectedItem,
+  Selected as SharedSelected,
   baseInit,
   closedBaseModel,
   makeUpdate,
@@ -69,9 +71,16 @@ export const update = makeUpdate<Model>({
   },
 
   handleSelectedItem: (model, item) => {
-    const nextSelectedItems = toggleItem(model.selectedItems, item)
+    const wasAdded = !Array.contains(model.selectedItems, item)
+    const nextSelectedItems = wasAdded
+      ? Array.append(model.selectedItems, item)
+      : Array.filter(model.selectedItems, selected => selected !== item)
 
-    return [evo(model, { selectedItems: () => nextSelectedItems }), []]
+    return [
+      evo(model, { selectedItems: () => nextSelectedItems }),
+      [],
+      Option.some(SharedSelected({ item, wasAdded })),
+    ]
   },
 
   handleImmediateActivation: (model, item) =>
@@ -80,75 +89,72 @@ export const update = makeUpdate<Model>({
     }),
 })
 
+type UpdateReturn = ReturnType<typeof update>
+
 /** Programmatically opens the combobox, updating the model and returning
  *  focus and modal commands. Use this in domain-event handlers to open the combobox. */
-export const open = (
-  model: Model,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+export const open = (model: Model): UpdateReturn =>
   update(model, Opened({ maybeActiveItemIndex: Option.none() }))
 
 /** Programmatically closes the combobox, updating the model and returning
  *  focus and modal commands. Use this in domain-event handlers to close the combobox. */
-export const close = (
-  model: Model,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  update(model, Closed())
+export const close = (model: Model): UpdateReturn => update(model, Closed())
 
-/** Programmatically toggles an item in the multi-select combobox. Use this in domain-event handlers when the combobox uses `onSelectedItem`. */
-export const selectItem = (
-  model: Model,
-  item: string,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+/** Programmatically toggles an item in the multi-select combobox. Emits `Selected({ item, wasAdded })`. */
+export const selectItem = (model: Model, item: string): UpdateReturn =>
   update(model, SelectedItem({ item, displayText: item }))
 
 // VIEW
 
-/** Configuration for rendering a multi-select combobox with `view`. */
-export type ViewConfig<ParentMessage, Item extends string> = BaseViewConfig<
-  ParentMessage,
-  Item,
-  Model
->
+/** Per-render inputs passed to the view via `h.submodel`'s `inputs` field. */
+export type ViewInputs<Item extends string> = BaseViewInputs<Item>
 
-/** Renders a headless multi-select combobox with keyboard navigation, selection tracking, and aria-activedescendant focus management. */
-export const view = makeView<Model>({
+const internalView = makeView<Model>({
   isItemSelected: (model, itemValue) =>
     Array.contains(model.selectedItems, itemValue),
   ariaMultiSelectable: true,
 })
 
-/** Creates a memoized multi-select combobox view. Static config is captured in a closure;
- *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
-export const lazy = <ParentMessage, Item extends string>(
-  staticConfig: Omit<
-    ViewConfig<ParentMessage, Item>,
-    'model' | 'toParentMessage' | 'onSelectedItem'
-  >,
-): ((
-  model: Model,
-  toParentMessage: BaseViewConfig<
-    ParentMessage,
-    Item,
-    Model
-  >['toParentMessage'],
-) => Html) => {
-  const lazyView = createLazy()
-
-  return (model, toParentMessage) =>
-    lazyView(
-      (
-        currentModel: Model,
-        currentToParentMessage: BaseViewConfig<
-          ParentMessage,
-          Item,
-          Model
-        >['toParentMessage'],
-      ) =>
-        view({
-          ...staticConfig,
-          model: currentModel,
-          toParentMessage: currentToParentMessage,
-        }),
-      [model, toParentMessage],
-    )
-}
+/** Pairs the multi-select combobox's `view` and `update` (and programmatic
+ *  helpers) behind a single Item-typed entry point. */
+export const create = <Item extends string = string>(): Readonly<{
+  view: SubmodelView<Model, Message, BaseViewInputs<Item>>
+  update: (
+    model: Model,
+    message: Message,
+  ) => readonly [
+    Model,
+    ReadonlyArray<Command.Command<Message>>,
+    Option.Option<OutMessage<Item>>,
+  ]
+  selectItem: (
+    model: Model,
+    item: Item,
+  ) => readonly [
+    Model,
+    ReadonlyArray<Command.Command<Message>>,
+    Option.Option<OutMessage<Item>>,
+  ]
+  open: (
+    model: Model,
+  ) => readonly [
+    Model,
+    ReadonlyArray<Command.Command<Message>>,
+    Option.Option<OutMessage<Item>>,
+  ]
+  close: (
+    model: Model,
+  ) => readonly [
+    Model,
+    ReadonlyArray<Command.Command<Message>>,
+    Option.Option<OutMessage<Item>>,
+  ]
+}> => ({
+  view: internalView<Item>(),
+  update: (model, message) => update<Item>(model, message),
+  selectItem: (model, item) =>
+    update<Item>(model, SelectedItem({ item, displayText: item })),
+  open: model =>
+    update<Item>(model, Opened({ maybeActiveItemIndex: Option.none() })),
+  close: model => update<Item>(model, Closed()),
+})

@@ -1,4 +1,12 @@
-import { Array, Effect, Match as M, Option, Schema as S, pipe } from 'effect'
+import {
+  Array,
+  Effect,
+  Match as M,
+  Number,
+  Option,
+  Schema as S,
+  pipe,
+} from 'effect'
 
 import * as Calendar from '../../calendar/index.js'
 import type { CalendarDate } from '../../calendar/index.js'
@@ -6,9 +14,10 @@ import * as Command from '../../command/index.js'
 import * as Dom from '../../dom/index.js'
 import { OptionExt } from '../../effectExtensions/index.js'
 import {
-  type Attribute,
+  type BoundaryAttribute,
   type Html,
-  createLazy,
+  boundaryAttributes,
+  defineView,
   html,
 } from '../../html/index.js'
 import { m } from '../../message/index.js'
@@ -102,25 +111,36 @@ export const Message = S.Union([
 ])
 export type Message = typeof Message.Type
 
+export type ClickedDay = typeof ClickedDay.Type
+export type PressedKeyOnGrid = typeof PressedKeyOnGrid.Type
+export type SelectedMonth = typeof SelectedMonth.Type
+export type SelectedYear = typeof SelectedYear.Type
+
 // OUT MESSAGE
 
 /** Emitted when the visible month changes due to navigation. Consumers of an
  * inline calendar may use this to load month-scoped data (holidays, events).
- *
- * Date selection does NOT use OutMessage — consumers subscribe via the
- * `onSelectedDate` callback in `ViewConfig`, matching the Listbox/Popover
- * controlled-component pattern. Use `Calendar.selectDate(model, date)` to
- * write back when handling the callback. */
+ * A click that commits a date in a different month emits `SelectedDate`, not
+ * `ChangedViewMonth` — the parent infers the month change from the date. */
 export const ChangedViewMonth = m('ChangedViewMonth', {
   year: S.Int,
   month: S.Int,
 })
 
-/** The calendar's OutMessage. Only one variant — `ChangedViewMonth` — which
- * fires when navigation shifts the visible month. Date selection goes through
- * the `onSelectedDate` ViewConfig callback, not OutMessage. */
-export const OutMessage = ChangedViewMonth
+/** Emitted when the user commits a date selection via click or keyboard. The
+ * calendar's internal state already reflects the new selection by the time
+ * this fires; consumers react by lifting the date into their domain state
+ * (closing a popover, advancing a form step, etc.). */
+export const SelectedDate = m('SelectedDate', {
+  date: Calendar.CalendarDate,
+})
+
+/** Union of the calendar's OutMessages. */
+export const OutMessage = S.Union([ChangedViewMonth, SelectedDate])
 export type OutMessage = typeof OutMessage.Type
+
+export type ChangedViewMonth = typeof ChangedViewMonth.Type
+export type SelectedDate = typeof SelectedDate.Type
 
 // INIT
 
@@ -343,25 +363,20 @@ const currentOrFallbackFocus = (model: Model): CalendarDate =>
 
 /** Applies a date selection to the model: commits the selection, moves the
  * cursor onto the date, and syncs the view month if the selection crosses a
- * month boundary. Emits `ChangedViewMonth` only when the commit crosses a
- * month boundary. */
+ * month boundary. Always emits `SelectedDate` carrying the committed date;
+ * the parent infers month transitions from the date itself rather than from
+ * a separate `ChangedViewMonth` signal that would race with the selection. */
 const commitSelection = (
   model: Model,
   date: CalendarDate,
 ): readonly [Model, Option.Option<OutMessage>] => {
-  const crossedMonth =
-    date.year !== model.viewYear || date.month !== model.viewMonth
   const nextModel = evo(model, {
     maybeSelectedDate: () => Option.some(date),
     maybeFocusedDate: () => Option.some(date),
     viewYear: () => date.year,
     viewMonth: () => date.month,
   })
-  const maybeOutMessage = OptionExt.when(
-    crossedMonth,
-    ChangedViewMonth({ year: date.year, month: date.month }),
-  )
-  return [nextModel, maybeOutMessage]
+  return [nextModel, Option.some(SelectedDate({ date }))]
 }
 
 /** Applies a focus move to the model, clamping to the allowed range and
@@ -733,11 +748,11 @@ const buildGrid = (
 }
 
 /** Information about a single day cell in the rendered calendar grid. */
-export type DayCell<ParentMessage> = Readonly<{
+export type DayCell = Readonly<{
   date: CalendarDate
   label: string
-  cellAttributes: ReadonlyArray<Attribute<ParentMessage>>
-  buttonAttributes: ReadonlyArray<Attribute<ParentMessage>>
+  cellAttributes: ReadonlyArray<BoundaryAttribute>
+  buttonAttributes: ReadonlyArray<BoundaryAttribute>
   isSelected: boolean
   isFocused: boolean
   isToday: boolean
@@ -746,16 +761,16 @@ export type DayCell<ParentMessage> = Readonly<{
 }>
 
 /** A column header for the day grid's first row (day-of-week labels). */
-export type ColumnHeader<ParentMessage> = Readonly<{
+export type ColumnHeader = Readonly<{
   name: string
-  attributes: ReadonlyArray<Attribute<ParentMessage>>
+  attributes: ReadonlyArray<BoundaryAttribute>
 }>
 
 /** A single week row in the day grid, carrying its own row attributes (role,
  * aria-rowindex) alongside its 7 day cells. */
-export type Week<ParentMessage> = Readonly<{
-  attributes: ReadonlyArray<Attribute<ParentMessage>>
-  cells: ReadonlyArray<DayCell<ParentMessage>>
+export type Week = Readonly<{
+  attributes: ReadonlyArray<BoundaryAttribute>
+  cells: ReadonlyArray<DayCell>
 }>
 
 /** Information about a single month cell in the rendered months grid.
@@ -763,12 +778,12 @@ export type Week<ParentMessage> = Readonly<{
  * is the locale-aware abbreviation (e.g. "Sep"). Render whichever fits the
  * cell — never substring `label` to abbreviate, since that's not safe across
  * locales. */
-export type MonthCell<ParentMessage> = Readonly<{
+export type MonthCell = Readonly<{
   month: number
   label: string
   shortLabel: string
-  cellAttributes: ReadonlyArray<Attribute<ParentMessage>>
-  buttonAttributes: ReadonlyArray<Attribute<ParentMessage>>
+  cellAttributes: ReadonlyArray<BoundaryAttribute>
+  buttonAttributes: ReadonlyArray<BoundaryAttribute>
   isSelected: boolean
   isFocused: boolean
   isCurrentMonth: boolean
@@ -776,11 +791,11 @@ export type MonthCell<ParentMessage> = Readonly<{
 }>
 
 /** Information about a single year cell in the rendered years grid. */
-export type YearCell<ParentMessage> = Readonly<{
+export type YearCell = Readonly<{
   year: number
   label: string
-  cellAttributes: ReadonlyArray<Attribute<ParentMessage>>
-  buttonAttributes: ReadonlyArray<Attribute<ParentMessage>>
+  cellAttributes: ReadonlyArray<BoundaryAttribute>
+  buttonAttributes: ReadonlyArray<BoundaryAttribute>
   isSelected: boolean
   isFocused: boolean
   isCurrentYear: boolean
@@ -788,64 +803,60 @@ export type YearCell<ParentMessage> = Readonly<{
 }>
 
 /** Attributes provided to the consumer when rendering the day grid. */
-export type DaysModeAttributes<ParentMessage> = Readonly<{
+export type DaysModeAttributes = Readonly<{
   _tag: 'Days'
-  root: ReadonlyArray<Attribute<ParentMessage>>
-  previousMonthButton: ReadonlyArray<Attribute<ParentMessage>>
-  nextMonthButton: ReadonlyArray<Attribute<ParentMessage>>
-  headingButton: ReadonlyArray<Attribute<ParentMessage>>
+  root: ReadonlyArray<BoundaryAttribute>
+  previousMonthButton: ReadonlyArray<BoundaryAttribute>
+  nextMonthButton: ReadonlyArray<BoundaryAttribute>
+  headingButton: ReadonlyArray<BoundaryAttribute>
   heading: Readonly<{ id: string; text: string }>
-  grid: ReadonlyArray<Attribute<ParentMessage>>
-  headerRow: ReadonlyArray<Attribute<ParentMessage>>
-  columnHeaders: ReadonlyArray<ColumnHeader<ParentMessage>>
-  weeks: ReadonlyArray<Week<ParentMessage>>
+  grid: ReadonlyArray<BoundaryAttribute>
+  headerRow: ReadonlyArray<BoundaryAttribute>
+  columnHeaders: ReadonlyArray<ColumnHeader>
+  weeks: ReadonlyArray<Week>
 }>
 
 /** Attributes provided to the consumer when rendering the months grid. The
  * 12 cells are pre-built in calendar (locale-ordered) — the consumer arranges
  * them in whatever grid layout they prefer (3×4 is the typical choice). */
-export type MonthsModeAttributes<ParentMessage> = Readonly<{
+export type MonthsModeAttributes = Readonly<{
   _tag: 'Months'
-  root: ReadonlyArray<Attribute<ParentMessage>>
-  headingButton: ReadonlyArray<Attribute<ParentMessage>>
+  root: ReadonlyArray<BoundaryAttribute>
+  headingButton: ReadonlyArray<BoundaryAttribute>
   heading: Readonly<{ id: string; text: string }>
-  grid: ReadonlyArray<Attribute<ParentMessage>>
-  cells: ReadonlyArray<MonthCell<ParentMessage>>
+  grid: ReadonlyArray<BoundaryAttribute>
+  cells: ReadonlyArray<MonthCell>
 }>
 
 /** Attributes provided to the consumer when rendering the years grid. The
  * 12 cells span one paged window; prev/next buttons page by 12 years. */
-export type YearsModeAttributes<ParentMessage> = Readonly<{
+export type YearsModeAttributes = Readonly<{
   _tag: 'Years'
-  root: ReadonlyArray<Attribute<ParentMessage>>
-  previousPageButton: ReadonlyArray<Attribute<ParentMessage>>
-  nextPageButton: ReadonlyArray<Attribute<ParentMessage>>
+  root: ReadonlyArray<BoundaryAttribute>
+  previousPageButton: ReadonlyArray<BoundaryAttribute>
+  nextPageButton: ReadonlyArray<BoundaryAttribute>
   heading: Readonly<{ id: string; text: string }>
-  grid: ReadonlyArray<Attribute<ParentMessage>>
-  cells: ReadonlyArray<YearCell<ParentMessage>>
+  grid: ReadonlyArray<BoundaryAttribute>
+  cells: ReadonlyArray<YearCell>
 }>
 
 /** Discriminated union of attribute groups and derived data the calendar
  * component provides to the consumer's `toView` callback. The variant
  * matches `model.viewMode` — pattern-match on `_tag` with `M.tagsExhaustive`
  * to render each mode. */
-export type CalendarAttributes<ParentMessage> =
-  | DaysModeAttributes<ParentMessage>
-  | MonthsModeAttributes<ParentMessage>
-  | YearsModeAttributes<ParentMessage>
+export type CalendarAttributes =
+  | DaysModeAttributes
+  | MonthsModeAttributes
+  | YearsModeAttributes
 
-/** Configuration for rendering a calendar with `view`. */
-export type ViewConfig<ParentMessage> = Readonly<{
-  model: Model
-  toParentMessage: (message: Message) => ParentMessage
-  toView: (attributes: CalendarAttributes<ParentMessage>) => Html
-  /** Optional callback invoked when the user commits a date via click, Enter,
-   * or Space. When provided, the view dispatches the callback directly (the
-   * controlled pattern — parent owns the event). When omitted, the calendar
-   * manages its own `maybeSelectedDate` state automatically (uncontrolled).
-   * In controlled mode, use `Calendar.selectDate(model, date)` to write the
-   * selection back to the calendar's internal state. */
-  onSelectedDate?: (date: CalendarDate) => ParentMessage
+/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field.
+ *
+ *  The Calendar dispatches its own `ClickedDay` message on date commit
+ *  and emits a `SelectedDate` OutMessage. Consumers react to date
+ *  selection by pattern-matching the OutMessage in their
+ *  `GotCalendarMessage` handler. */
+export type ViewInputs = Readonly<{
+  toView: (attributes: CalendarAttributes) => Html
   previousMonthLabel?: string
   nextMonthLabel?: string
   previousYearsPageLabel?: string
@@ -898,12 +909,12 @@ const isYearDisabled = (model: Model, year: number): boolean =>
   Option.exists(model.maybeMinDate, min => year < min.year) ||
   Option.exists(model.maybeMaxDate, max => year > max.year)
 
-const buildDaysAttributes = <ParentMessage>(
-  config: ViewConfig<ParentMessage>,
-): DaysModeAttributes<ParentMessage> => {
-  const h = html<ParentMessage>()
+const buildDaysAttributes = (
+  model: Model,
+  inputs: ViewInputs,
+): DaysModeAttributes => {
+  const h = html<Message>()
 
-  const { model, toParentMessage, onSelectedDate } = config
   const {
     id,
     viewYear,
@@ -915,15 +926,10 @@ const buildDaysAttributes = <ParentMessage>(
     isGridFocused,
   } = model
 
-  const dispatchSelectedDate = (date: CalendarDate): ParentMessage =>
-    onSelectedDate !== undefined
-      ? onSelectedDate(date)
-      : toParentMessage(ClickedDay({ date }))
-
-  const previousMonthLabel = config.previousMonthLabel ?? 'Previous month'
-  const nextMonthLabel = config.nextMonthLabel ?? 'Next month'
+  const previousMonthLabel = inputs.previousMonthLabel ?? 'Previous month'
+  const nextMonthLabel = inputs.nextMonthLabel ?? 'Next month'
   const headingButtonLabel =
-    config.daysHeadingButtonLabel ?? 'Switch to month picker'
+    inputs.daysHeadingButtonLabel ?? 'Switch to month picker'
 
   const headingText = `${locale.monthNames[viewMonth - 1]} ${viewYear}`
 
@@ -942,129 +948,106 @@ const buildDaysAttributes = <ParentMessage>(
     locale.firstDayOfWeek,
   )
 
-  const rootAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-    h.Id(id),
-    h.Key('Days'),
-  ]
+  const rootAttributes = [h.Id(id), h.Key('Days')]
 
-  const previousMonthButton: ReadonlyArray<Attribute<ParentMessage>> = [
+  const previousMonthButton = [
     h.Type('button'),
     h.AriaLabel(previousMonthLabel),
-    h.OnClick(toParentMessage(ClickedPreviousMonthButton())),
+    h.OnClick(ClickedPreviousMonthButton()),
   ]
 
-  const nextMonthButton: ReadonlyArray<Attribute<ParentMessage>> = [
+  const nextMonthButton = [
     h.Type('button'),
     h.AriaLabel(nextMonthLabel),
-    h.OnClick(toParentMessage(ClickedNextMonthButton())),
+    h.OnClick(ClickedNextMonthButton()),
   ]
 
-  const headingButton: ReadonlyArray<Attribute<ParentMessage>> = [
+  const headingButton = [
     h.Type('button'),
     h.AriaLabel(headingButtonLabel),
-    h.OnClick(toParentMessage(ClickedHeading())),
+    h.OnClick(ClickedHeading()),
   ]
 
   const handleKeyDown = (
     key: string,
     modifiers: { readonly shiftKey: boolean },
-  ): Option.Option<ParentMessage> => {
+  ): Option.Option<ClickedDay | PressedKeyOnGrid> => {
     if (!NAV_KEYS.has(key)) {
       return Option.none()
     }
-    if (isCommitKey(key) && onSelectedDate !== undefined) {
-      return pipe(
+    if (isCommitKey(key)) {
+      const maybeCommit = pipe(
         maybeFocusedDate,
         Option.filter(date => !isDateDisabled(model, date)),
-        Option.map(onSelectedDate),
+        Option.map(date => ClickedDay({ date })),
       )
+      if (Option.isSome(maybeCommit)) {
+        return maybeCommit
+      }
     }
-    return Option.some(
-      toParentMessage(PressedKeyOnGrid({ key, isShift: modifiers.shiftKey })),
-    )
+    return Option.some(PressedKeyOnGrid({ key, isShift: modifiers.shiftKey }))
   }
 
-  const activeDescendantAttributes: ReadonlyArray<Attribute<ParentMessage>> =
-    pipe(
-      maybeFocusedDate,
-      Option.map(date => h.AriaActiveDescendant(dayCellId(id, date))),
-      Option.toArray,
-    )
+  const activeDescendantAttributes = pipe(
+    maybeFocusedDate,
+    Option.map(date => h.AriaActiveDescendant(dayCellId(id, date))),
+    Option.toArray,
+  )
 
-  const gridAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
+  const gridAttributes = [
     h.Id(gridId(id)),
     h.Role('grid'),
     h.AriaLabel(`Calendar, ${headingText}`),
-    h.AriaRowcount(WEEKS_IN_GRID + 1),
+    h.AriaRowcount(Number.increment(WEEKS_IN_GRID)),
     h.AriaColcount(DAYS_IN_WEEK),
     h.Tabindex(0),
-    h.OnFocus(toParentMessage(FocusedGrid())),
-    h.OnBlur(toParentMessage(BlurredGrid())),
+    h.OnFocus(FocusedGrid()),
+    h.OnBlur(BlurredGrid()),
     h.OnKeyDownPreventDefault(handleKeyDown),
     ...activeDescendantAttributes,
   ]
 
-  const headerRowAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-    h.Role('row'),
-    h.AriaRowindex(1),
-  ]
+  const headerRowAttributes = [h.Role('row'), h.AriaRowindex(1)]
 
-  const columnHeaders: ReadonlyArray<ColumnHeader<ParentMessage>> =
-    Array.zipWith(rotatedShortDayNames, rotatedDayNames, (name, fullName) => ({
-      name,
-      fullName,
-    })).map(({ name, fullName }, columnIndex) => ({
-      name,
-      attributes: [
-        h.Role('columnheader'),
-        h.AriaLabel(fullName),
-        h.AriaColindex(columnIndex + 1),
-      ],
-    }))
-
-  const buildDayCell = (
-    date: CalendarDate,
-    columnIndex: number,
-  ): DayCell<ParentMessage> => {
+  const buildDayCell = (date: CalendarDate, columnIndex: number): DayCell => {
     const isSelected = Option.exists(maybeSelectedDate, Calendar.isEqual(date))
     const isFocused = Option.exists(maybeFocusedDate, Calendar.isEqual(date))
     const isToday = Calendar.isEqual(today, date)
     const isInViewMonth = date.month === viewMonth && date.year === viewYear
     const isDisabled = isDateDisabled(model, date)
 
-    const stateDataAttributes: ReadonlyArray<Attribute<ParentMessage>> =
-      Array.getSomes([
-        OptionExt.when(isToday, h.DataAttribute('today', '')),
-        OptionExt.when(isSelected, h.DataAttribute('selected', '')),
-        OptionExt.when(
-          isFocused && isGridFocused,
-          h.DataAttribute('focused', ''),
-        ),
-        OptionExt.when(!isInViewMonth, h.DataAttribute('outside-month', '')),
-        OptionExt.when(isDisabled, h.DataAttribute('disabled', '')),
-      ])
+    const stateDataAttributes = Array.getSomes([
+      OptionExt.when(isToday, h.DataAttribute('today', '')),
+      OptionExt.when(isSelected, h.DataAttribute('selected', '')),
+      OptionExt.when(
+        isFocused && isGridFocused,
+        h.DataAttribute('focused', ''),
+      ),
+      OptionExt.when(!isInViewMonth, h.DataAttribute('outside-month', '')),
+      OptionExt.when(isDisabled, h.DataAttribute('disabled', '')),
+    ])
 
-    const cellAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
+    const cellAttributes = [
       h.Id(dayCellId(id, date)),
       h.Role('gridcell'),
       h.AriaSelected(isSelected),
-      h.AriaColindex(columnIndex + 1),
+      h.AriaColindex(Number.increment(columnIndex)),
       ...stateDataAttributes,
     ]
 
-    const buttonAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
+    const buttonAttributes = [
       h.Type('button'),
       h.Tabindex(-1),
       h.AriaLabel(Calendar.formatAriaLabel(date, locale)),
       h.AriaDisabled(isDisabled),
-      ...(isDisabled ? [] : [h.OnClick(dispatchSelectedDate(date))]),
+      ...(isDisabled ? [] : [h.OnClick(ClickedDay({ date }))]),
     ]
 
     return {
       date,
       label: String(date.day),
-      cellAttributes,
-      buttonAttributes,
+      cellAttributes: boundaryAttributes(cellAttributes),
+      buttonAttributes: boundaryAttributes(buttonAttributes),
       isSelected,
       isFocused: isFocused && isGridFocused,
       isToday,
@@ -1073,40 +1056,51 @@ const buildDaysAttributes = <ParentMessage>(
     }
   }
 
-  const weeks: ReadonlyArray<Week<ParentMessage>> = weeksDates.map(
-    (weekDates, weekIndex) => {
-      const weekStart = Calendar.addDays(gridStart, weekIndex * DAYS_IN_WEEK)
-      return {
-        attributes: [
-          h.Role('row'),
-          h.AriaRowindex(weekIndex + 2),
-          h.AriaLabel(`Week of ${Calendar.formatLong(weekStart, locale)}`),
-        ],
-        cells: weekDates.map(buildDayCell),
-      }
-    },
-  )
+  const weeks: ReadonlyArray<Week> = weeksDates.map((weekDates, weekIndex) => {
+    const weekStart = Calendar.addDays(gridStart, weekIndex * DAYS_IN_WEEK)
+    return {
+      attributes: boundaryAttributes([
+        h.Role('row'),
+        h.AriaRowindex(weekIndex + 2),
+        h.AriaLabel(`Week of ${Calendar.formatLong(weekStart, locale)}`),
+      ]),
+      cells: weekDates.map(buildDayCell),
+    }
+  })
+
+  const wrappedColumnHeaders: ReadonlyArray<ColumnHeader> = Array.zipWith(
+    rotatedShortDayNames,
+    rotatedDayNames,
+    (name, fullName) => ({ name, fullName }),
+  ).map(({ name, fullName }, columnIndex) => ({
+    name,
+    attributes: boundaryAttributes([
+      h.Role('columnheader'),
+      h.AriaLabel(fullName),
+      h.AriaColindex(Number.increment(columnIndex)),
+    ]),
+  }))
 
   return {
     _tag: 'Days',
-    root: rootAttributes,
-    previousMonthButton,
-    nextMonthButton,
-    headingButton,
+    root: boundaryAttributes(rootAttributes),
+    previousMonthButton: boundaryAttributes(previousMonthButton),
+    nextMonthButton: boundaryAttributes(nextMonthButton),
+    headingButton: boundaryAttributes(headingButton),
     heading: { id: headingId(id), text: headingText },
-    grid: gridAttributes,
-    headerRow: headerRowAttributes,
-    columnHeaders,
+    grid: boundaryAttributes(gridAttributes),
+    headerRow: boundaryAttributes(headerRowAttributes),
+    columnHeaders: wrappedColumnHeaders,
     weeks,
   }
 }
 
-const buildMonthsAttributes = <ParentMessage>(
-  config: ViewConfig<ParentMessage>,
-): MonthsModeAttributes<ParentMessage> => {
-  const h = html<ParentMessage>()
+const buildMonthsAttributes = (
+  model: Model,
+  inputs: ViewInputs,
+): MonthsModeAttributes => {
+  const h = html<Message>()
 
-  const { model, toParentMessage } = config
   const {
     id,
     viewYear,
@@ -1118,19 +1112,16 @@ const buildMonthsAttributes = <ParentMessage>(
   } = model
 
   const headingButtonLabel =
-    config.monthsHeadingButtonLabel ?? 'Switch to year picker'
+    inputs.monthsHeadingButtonLabel ?? 'Switch to year picker'
 
   const headingText = `${viewYear}`
 
-  const rootAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-    h.Id(id),
-    h.Key('Months'),
-  ]
+  const rootAttributes = [h.Id(id), h.Key('Months')]
 
-  const headingButton: ReadonlyArray<Attribute<ParentMessage>> = [
+  const headingButton = [
     h.Type('button'),
     h.AriaLabel(headingButtonLabel),
-    h.OnClick(toParentMessage(ClickedHeading())),
+    h.OnClick(ClickedHeading()),
   ]
 
   const focusedMonth = Option.match(maybeFocusedDate, {
@@ -1141,37 +1132,35 @@ const buildMonthsAttributes = <ParentMessage>(
   const handleKeyDown = (
     key: string,
     modifiers: { readonly shiftKey: boolean },
-  ): Option.Option<ParentMessage> => {
+  ): Option.Option<SelectedMonth | PressedKeyOnGrid> => {
     if (!NAV_KEYS.has(key)) {
       return Option.none()
     } else if (isCommitKey(key)) {
       return OptionExt.when(
         !isMonthDisabled(model, viewYear, focusedMonth),
-        toParentMessage(SelectedMonth({ month: focusedMonth })),
+        SelectedMonth({ month: focusedMonth }),
       )
     } else {
-      return Option.some(
-        toParentMessage(PressedKeyOnGrid({ key, isShift: modifiers.shiftKey })),
-      )
+      return Option.some(PressedKeyOnGrid({ key, isShift: modifiers.shiftKey }))
     }
   }
 
-  const activeDescendantAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
+  const activeDescendantAttributes = [
     h.AriaActiveDescendant(monthCellId(id, focusedMonth)),
   ]
 
-  const gridAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
+  const gridAttributes = [
     h.Id(gridId(id)),
     h.Role('grid'),
     h.AriaLabel(`Month picker, ${headingText}`),
     h.Tabindex(0),
-    h.OnFocus(toParentMessage(FocusedGrid())),
-    h.OnBlur(toParentMessage(BlurredGrid())),
+    h.OnFocus(FocusedGrid()),
+    h.OnBlur(BlurredGrid()),
     h.OnKeyDownPreventDefault(handleKeyDown),
     ...activeDescendantAttributes,
   ]
 
-  const buildMonthCell = (month: number): MonthCell<ParentMessage> => {
+  const buildMonthCell = (month: number): MonthCell => {
     const label = locale.monthNames[month - 1] ?? String(month)
     const shortLabel = locale.shortMonthNames[month - 1] ?? label
     const isSelected = month === viewMonth
@@ -1179,40 +1168,37 @@ const buildMonthsAttributes = <ParentMessage>(
     const isCurrentMonth = today.year === viewYear && today.month === month
     const isDisabled = isMonthDisabled(model, viewYear, month)
 
-    const stateDataAttributes: ReadonlyArray<Attribute<ParentMessage>> =
-      Array.getSomes([
-        OptionExt.when(isCurrentMonth, h.DataAttribute('today', '')),
-        OptionExt.when(isSelected, h.DataAttribute('selected', '')),
-        OptionExt.when(
-          isFocused && isGridFocused,
-          h.DataAttribute('focused', ''),
-        ),
-        OptionExt.when(isDisabled, h.DataAttribute('disabled', '')),
-      ])
+    const stateDataAttributes = Array.getSomes([
+      OptionExt.when(isCurrentMonth, h.DataAttribute('today', '')),
+      OptionExt.when(isSelected, h.DataAttribute('selected', '')),
+      OptionExt.when(
+        isFocused && isGridFocused,
+        h.DataAttribute('focused', ''),
+      ),
+      OptionExt.when(isDisabled, h.DataAttribute('disabled', '')),
+    ])
 
-    const cellAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
+    const cellAttributes = [
       h.Id(monthCellId(id, month)),
       h.Role('gridcell'),
       h.AriaSelected(isSelected),
       ...stateDataAttributes,
     ]
 
-    const buttonAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
+    const buttonAttributes = [
       h.Type('button'),
       h.Tabindex(-1),
       h.AriaLabel(`${label} ${viewYear}`),
       h.AriaDisabled(isDisabled),
-      ...(isDisabled
-        ? []
-        : [h.OnClick(toParentMessage(SelectedMonth({ month })))]),
+      ...(isDisabled ? [] : [h.OnClick(SelectedMonth({ month }))]),
     ]
 
     return {
       month,
       label,
       shortLabel,
-      cellAttributes,
-      buttonAttributes,
+      cellAttributes: boundaryAttributes(cellAttributes),
+      buttonAttributes: boundaryAttributes(buttonAttributes),
       isSelected,
       isFocused: isFocused && isGridFocused,
       isCurrentMonth,
@@ -1221,30 +1207,30 @@ const buildMonthsAttributes = <ParentMessage>(
   }
 
   const cells = Array.makeBy(MONTHS_IN_YEAR, monthIndex =>
-    buildMonthCell(monthIndex + 1),
+    buildMonthCell(Number.increment(monthIndex)),
   )
 
   return {
     _tag: 'Months',
-    root: rootAttributes,
-    headingButton,
+    root: boundaryAttributes(rootAttributes),
+    headingButton: boundaryAttributes(headingButton),
     heading: { id: headingId(id), text: headingText },
-    grid: gridAttributes,
+    grid: boundaryAttributes(gridAttributes),
     cells,
   }
 }
 
-const buildYearsAttributes = <ParentMessage>(
-  config: ViewConfig<ParentMessage>,
-): YearsModeAttributes<ParentMessage> => {
-  const h = html<ParentMessage>()
+const buildYearsAttributes = (
+  model: Model,
+  inputs: ViewInputs,
+): YearsModeAttributes => {
+  const h = html<Message>()
 
-  const { model, toParentMessage } = config
   const { id, viewYear, maybeFocusedDate, today, isGridFocused } = model
 
   const previousYearsPageLabel =
-    config.previousYearsPageLabel ?? 'Previous 12 years'
-  const nextYearsPageLabel = config.nextYearsPageLabel ?? 'Next 12 years'
+    inputs.previousYearsPageLabel ?? 'Previous 12 years'
+  const nextYearsPageLabel = inputs.nextYearsPageLabel ?? 'Next 12 years'
 
   const cursorYear = Option.match(maybeFocusedDate, {
     onNone: () => viewYear,
@@ -1254,21 +1240,18 @@ const buildYearsAttributes = <ParentMessage>(
   const pageEnd = pageStart + YEARS_PAGE_SIZE - 1
   const headingText = `${pageStart}–${pageEnd}`
 
-  const rootAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-    h.Id(id),
-    h.Key('Years'),
-  ]
+  const rootAttributes = [h.Id(id), h.Key('Years')]
 
-  const previousPageButton: ReadonlyArray<Attribute<ParentMessage>> = [
+  const previousPageButton = [
     h.Type('button'),
     h.AriaLabel(previousYearsPageLabel),
-    h.OnClick(toParentMessage(PagedYears({ direction: -1 }))),
+    h.OnClick(PagedYears({ direction: -1 })),
   ]
 
-  const nextPageButton: ReadonlyArray<Attribute<ParentMessage>> = [
+  const nextPageButton = [
     h.Type('button'),
     h.AriaLabel(nextYearsPageLabel),
-    h.OnClick(toParentMessage(PagedYears({ direction: 1 }))),
+    h.OnClick(PagedYears({ direction: 1 })),
   ]
 
   const focusedYear = cursorYear
@@ -1276,76 +1259,71 @@ const buildYearsAttributes = <ParentMessage>(
   const handleKeyDown = (
     key: string,
     modifiers: { readonly shiftKey: boolean },
-  ): Option.Option<ParentMessage> => {
+  ): Option.Option<SelectedYear | PressedKeyOnGrid> => {
     if (!NAV_KEYS.has(key)) {
       return Option.none()
     } else if (isCommitKey(key)) {
       return OptionExt.when(
         !isYearDisabled(model, focusedYear),
-        toParentMessage(SelectedYear({ year: focusedYear })),
+        SelectedYear({ year: focusedYear }),
       )
     } else {
-      return Option.some(
-        toParentMessage(PressedKeyOnGrid({ key, isShift: modifiers.shiftKey })),
-      )
+      return Option.some(PressedKeyOnGrid({ key, isShift: modifiers.shiftKey }))
     }
   }
 
-  const activeDescendantAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
+  const activeDescendantAttributes = [
     h.AriaActiveDescendant(yearCellId(id, focusedYear)),
   ]
 
-  const gridAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
+  const gridAttributes = [
     h.Id(gridId(id)),
     h.Role('grid'),
     h.AriaLabel(`Year picker, ${headingText}`),
     h.Tabindex(0),
-    h.OnFocus(toParentMessage(FocusedGrid())),
-    h.OnBlur(toParentMessage(BlurredGrid())),
+    h.OnFocus(FocusedGrid()),
+    h.OnBlur(BlurredGrid()),
     h.OnKeyDownPreventDefault(handleKeyDown),
     ...activeDescendantAttributes,
   ]
 
-  const buildYearCell = (year: number): YearCell<ParentMessage> => {
+  const buildYearCell = (year: number): YearCell => {
     const label = String(year)
     const isSelected = year === viewYear
     const isFocused = year === focusedYear
     const isCurrentYear = today.year === year
     const isDisabled = isYearDisabled(model, year)
 
-    const stateDataAttributes: ReadonlyArray<Attribute<ParentMessage>> =
-      Array.getSomes([
-        OptionExt.when(isCurrentYear, h.DataAttribute('today', '')),
-        OptionExt.when(isSelected, h.DataAttribute('selected', '')),
-        OptionExt.when(
-          isFocused && isGridFocused,
-          h.DataAttribute('focused', ''),
-        ),
-        OptionExt.when(isDisabled, h.DataAttribute('disabled', '')),
-      ])
+    const stateDataAttributes = Array.getSomes([
+      OptionExt.when(isCurrentYear, h.DataAttribute('today', '')),
+      OptionExt.when(isSelected, h.DataAttribute('selected', '')),
+      OptionExt.when(
+        isFocused && isGridFocused,
+        h.DataAttribute('focused', ''),
+      ),
+      OptionExt.when(isDisabled, h.DataAttribute('disabled', '')),
+    ])
 
-    const cellAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
+    const cellAttributes = [
       h.Id(yearCellId(id, year)),
       h.Role('gridcell'),
       h.AriaSelected(isSelected),
       ...stateDataAttributes,
     ]
 
-    const buttonAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
+    const buttonAttributes = [
       h.Type('button'),
       h.Tabindex(-1),
       h.AriaLabel(label),
       h.AriaDisabled(isDisabled),
-      ...(isDisabled
-        ? []
-        : [h.OnClick(toParentMessage(SelectedYear({ year })))]),
+      ...(isDisabled ? [] : [h.OnClick(SelectedYear({ year }))]),
     ]
 
     return {
       year,
       label,
-      cellAttributes,
-      buttonAttributes,
+      cellAttributes: boundaryAttributes(cellAttributes),
+      buttonAttributes: boundaryAttributes(buttonAttributes),
       isSelected,
       isFocused: isFocused && isGridFocused,
       isCurrentYear,
@@ -1359,51 +1337,28 @@ const buildYearsAttributes = <ParentMessage>(
 
   return {
     _tag: 'Years',
-    root: rootAttributes,
-    previousPageButton,
-    nextPageButton,
+    root: boundaryAttributes(rootAttributes),
+    previousPageButton: boundaryAttributes(previousPageButton),
+    nextPageButton: boundaryAttributes(nextPageButton),
     heading: { id: headingId(id), text: headingText },
-    grid: gridAttributes,
+    grid: boundaryAttributes(gridAttributes),
     cells,
   }
 }
 
-/** Renders an accessible calendar. Builds mode-specific ARIA attribute
- * groups and derived cell data, then delegates layout to the consumer's
- * `toView` callback. The variant of `CalendarAttributes` passed to `toView`
- * matches `model.viewMode`. */
-export const view = <ParentMessage>(config: ViewConfig<ParentMessage>): Html =>
-  config.toView(
-    M.value(config.model.viewMode).pipe(
-      M.withReturnType<CalendarAttributes<ParentMessage>>(),
-      M.when('Days', () => buildDaysAttributes(config)),
-      M.when('Months', () => buildMonthsAttributes(config)),
-      M.when('Years', () => buildYearsAttributes(config)),
-      M.exhaustive,
+/** Renders an accessible calendar. Publishes mode-specific ARIA attribute
+ *  bundles + derived cell data, then delegates layout to the consumer's
+ *  `toView` callback. The variant of `CalendarAttributes` passed to
+ *  `toView` matches `model.viewMode`. */
+export const view = defineView<Model, Message, ViewInputs>(
+  (model, inputs): Html =>
+    inputs.toView(
+      M.value(model.viewMode).pipe(
+        M.withReturnType<CalendarAttributes>(),
+        M.when('Days', () => buildDaysAttributes(model, inputs)),
+        M.when('Months', () => buildMonthsAttributes(model, inputs)),
+        M.when('Years', () => buildYearsAttributes(model, inputs)),
+        M.exhaustive,
+      ),
     ),
-  )
-
-/** Creates a memoized calendar view. Static config is captured in a closure;
- *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
-export const lazy = <ParentMessage>(
-  staticConfig: Omit<ViewConfig<ParentMessage>, 'model' | 'toParentMessage'>,
-): ((
-  model: Model,
-  toParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
-) => Html) => {
-  const lazyView = createLazy()
-
-  return (model, toParentMessage) =>
-    lazyView(
-      (
-        currentModel: Model,
-        currentToParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
-      ) =>
-        view({
-          ...staticConfig,
-          model: currentModel,
-          toParentMessage: currentToParentMessage,
-        }),
-      [model, toParentMessage],
-    )
-}
+)

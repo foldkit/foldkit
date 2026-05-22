@@ -1,4 +1,4 @@
-import { Array, Effect, Match as M, Option } from 'effect'
+import { Array, Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
@@ -24,13 +24,20 @@ import {
   GotToolRadioGroupMessage,
   type Message,
 } from './message'
-import type { MirrorMode, Model, Tool } from './model'
+import type { MirrorMode, Model, PaletteIndex, Tool } from './model'
 import { PALETTE_THEMES, currentPaletteTheme } from './palette'
+import {
+  GridSizeRadioGroup,
+  PaletteRadioGroup,
+  ThemeListbox,
+  ToolRadioGroup,
+} from './view/toolbar'
 
 const TOOLS: ReadonlyArray<Tool> = ['Brush', 'Fill', 'Eraser']
 
-const withUpdateReturn =
-  M.withReturnType<readonly [Model, ReadonlyArray<Command.Command<Message>>]>()
+type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+
+const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
 const applyEraser = (model: Model, x: number, y: number) => {
   const positions = getMirroredPositions(x, y, model.gridSize, model.mirrorMode)
@@ -49,10 +56,7 @@ const applyFill = (model: Model, x: number, y: number) => {
   )
 }
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
+export const update = (model: Model, message: Message): UpdateReturn =>
   M.value(message).pipe(
     withUpdateReturn,
     M.tagsExhaustive({
@@ -121,11 +125,12 @@ export const update = (
         const paletteIndexStrings = currentPaletteTheme(model).colors.map(
           (_, index) => index.toString(),
         )
-        const [nextPaletteRadioGroup, paletteCommands] = Ui.RadioGroup.select(
-          model.paletteRadioGroup,
-          colorIndex.toString(),
-          paletteIndexStrings,
-        )
+        const [nextPaletteRadioGroup, paletteCommands] =
+          PaletteRadioGroup.select(
+            model.paletteRadioGroup,
+            colorIndex.toString(),
+            paletteIndexStrings,
+          )
         const nextModel = evo(model, {
           selectedColorIndex: () => colorIndex,
           paletteRadioGroup: () => nextPaletteRadioGroup,
@@ -133,12 +138,8 @@ export const update = (
         return [
           nextModel,
           [
-            ...paletteCommands.map(
-              Command.mapEffect(
-                Effect.map(radioMessage =>
-                  GotPaletteRadioGroupMessage({ message: radioMessage }),
-                ),
-              ),
+            ...Command.mapMessages(paletteCommands, radioMessage =>
+              GotPaletteRadioGroupMessage({ message: radioMessage }),
             ),
             saveCanvas(nextModel),
           ],
@@ -146,7 +147,7 @@ export const update = (
       },
 
       SelectedTool: ({ tool }) => {
-        const [nextToolRadioGroup, toolCommands] = Ui.RadioGroup.select(
+        const [nextToolRadioGroup, toolCommands] = ToolRadioGroup.select(
           model.toolRadioGroup,
           tool,
           TOOLS,
@@ -156,12 +157,8 @@ export const update = (
             tool: () => tool,
             toolRadioGroup: () => nextToolRadioGroup,
           }),
-          toolCommands.map(
-            Command.mapEffect(
-              Effect.map(radioMessage =>
-                GotToolRadioGroupMessage({ message: radioMessage }),
-              ),
-            ),
+          Command.mapMessages(toolCommands, radioMessage =>
+            GotToolRadioGroupMessage({ message: radioMessage }),
           ),
         ]
       },
@@ -296,15 +293,13 @@ export const update = (
         const paletteIndexStrings = nextTheme.colors.map((_, index) =>
           index.toString(),
         )
-        const [nextPaletteRadioGroup] = Ui.RadioGroup.select(
+        const [nextPaletteRadioGroup] = PaletteRadioGroup.select(
           model.paletteRadioGroup,
           DEFAULT_COLOR_INDEX.toString(),
           paletteIndexStrings,
         )
-        const [nextThemeListbox, themeListboxCommands] = Ui.Listbox.selectItem(
-          model.themeListbox,
-          themeIndex.toString(),
-        )
+        const [nextThemeListbox, themeListboxCommands] =
+          ThemeListbox.selectItem(model.themeListbox, themeIndex.toString())
         const nextModel = evo(model, {
           paletteThemeIndex: () => themeIndex,
           selectedColorIndex: () => DEFAULT_COLOR_INDEX,
@@ -314,12 +309,8 @@ export const update = (
         return [
           nextModel,
           [
-            ...themeListboxCommands.map(
-              Command.mapEffect(
-                Effect.map(listboxMessage =>
-                  GotThemeListboxMessage({ message: listboxMessage }),
-                ),
-              ),
+            ...Command.mapMessages(themeListboxCommands, listboxMessage =>
+              GotThemeListboxMessage({ message: listboxMessage }),
             ),
             saveCanvas(nextModel),
           ],
@@ -351,12 +342,8 @@ export const update = (
             maybeExportError: () => Option.some(error),
             errorDialog: () => nextErrorDialog,
           }),
-          errorDialogCommands.map(
-            Command.mapEffect(
-              Effect.map(dialogMessage =>
-                GotErrorDialogMessage({ message: dialogMessage }),
-              ),
-            ),
+          Command.mapMessages(errorDialogCommands, dialogMessage =>
+            GotErrorDialogMessage({ message: dialogMessage }),
           ),
         ]
       },
@@ -368,12 +355,8 @@ export const update = (
             errorDialog: () => nextDialog,
             maybeExportError: () => Option.none(),
           }),
-          dialogCommands.map(
-            Command.mapEffect(
-              Effect.map(dialogMessage =>
-                GotErrorDialogMessage({ message: dialogMessage }),
-              ),
-            ),
+          Command.mapMessages(dialogCommands, dialogMessage =>
+            GotErrorDialogMessage({ message: dialogMessage }),
           ),
         ]
       },
@@ -385,65 +368,98 @@ export const update = (
         )
         return [
           evo(model, { errorDialog: () => nextErrorDialog }),
-          errorDialogCommands.map(
-            Command.mapEffect(
-              Effect.map(dialogMessage =>
-                GotErrorDialogMessage({ message: dialogMessage }),
-              ),
-            ),
+          Command.mapMessages(errorDialogCommands, dialogMessage =>
+            GotErrorDialogMessage({ message: dialogMessage }),
           ),
         ]
       },
 
       GotToolRadioGroupMessage: ({ message }) => {
-        const [nextToolRadioGroup, toolCommands] = Ui.RadioGroup.update(
-          model.toolRadioGroup,
-          message,
+        const [nextToolRadioGroup, toolCommands, maybeOut] =
+          ToolRadioGroup.update(model.toolRadioGroup, message)
+        const mappedCommands = Command.mapMessages(toolCommands, radioMessage =>
+          GotToolRadioGroupMessage({ message: radioMessage }),
         )
-        return [
-          evo(model, { toolRadioGroup: () => nextToolRadioGroup }),
-          toolCommands.map(
-            Command.mapEffect(
-              Effect.map(radioMessage =>
-                GotToolRadioGroupMessage({ message: radioMessage }),
-              ),
-            ),
+        return Option.match(maybeOut, {
+          onNone: (): UpdateReturn => [
+            evo(model, { toolRadioGroup: () => nextToolRadioGroup }),
+            mappedCommands,
+          ],
+          onSome: M.type<Ui.RadioGroup.OutMessage<Tool>>().pipe(
+            M.withReturnType<UpdateReturn>(),
+            M.tagsExhaustive({
+              Selected: ({ value }) => [
+                evo(model, {
+                  tool: () => value,
+                  toolRadioGroup: () => nextToolRadioGroup,
+                }),
+                mappedCommands,
+              ],
+            }),
           ),
-        ]
+        })
       },
 
       GotGridSizeRadioGroupMessage: ({ message }) => {
-        const [nextGridSizeRadioGroup, gridSizeCommands] = Ui.RadioGroup.update(
-          model.gridSizeRadioGroup,
-          message,
+        const [nextGridSizeRadioGroup, gridSizeCommands, maybeOut] =
+          GridSizeRadioGroup.update(model.gridSizeRadioGroup, message)
+        const mappedCommands = Command.mapMessages(
+          gridSizeCommands,
+          radioMessage =>
+            GotGridSizeRadioGroupMessage({ message: radioMessage }),
         )
-        return [
-          evo(model, { gridSizeRadioGroup: () => nextGridSizeRadioGroup }),
-          gridSizeCommands.map(
-            Command.mapEffect(
-              Effect.map(radioMessage =>
-                GotGridSizeRadioGroupMessage({ message: radioMessage }),
-              ),
-            ),
+        return Option.match(maybeOut, {
+          onNone: (): UpdateReturn => [
+            evo(model, { gridSizeRadioGroup: () => nextGridSizeRadioGroup }),
+            mappedCommands,
+          ],
+          onSome: M.type<Ui.RadioGroup.OutMessage>().pipe(
+            M.withReturnType<UpdateReturn>(),
+            M.tagsExhaustive({
+              Selected: ({ value }) => {
+                const [modelAfterResize, resizeCommands] =
+                  requestGridSizeChange(
+                    evo(model, {
+                      gridSizeRadioGroup: () => nextGridSizeRadioGroup,
+                    }),
+                    Number(value),
+                  )
+                return [
+                  modelAfterResize,
+                  [...mappedCommands, ...resizeCommands],
+                ]
+              },
+            }),
           ),
-        ]
+        })
       },
 
       GotPaletteRadioGroupMessage: ({ message }) => {
-        const [nextPaletteRadioGroup, paletteCommands] = Ui.RadioGroup.update(
-          model.paletteRadioGroup,
-          message,
+        const [nextPaletteRadioGroup, paletteCommands, maybeOut] =
+          PaletteRadioGroup.update(model.paletteRadioGroup, message)
+        const mappedCommands = Command.mapMessages(
+          paletteCommands,
+          radioMessage =>
+            GotPaletteRadioGroupMessage({ message: radioMessage }),
         )
-        return [
-          evo(model, { paletteRadioGroup: () => nextPaletteRadioGroup }),
-          paletteCommands.map(
-            Command.mapEffect(
-              Effect.map(radioMessage =>
-                GotPaletteRadioGroupMessage({ message: radioMessage }),
-              ),
-            ),
+        return Option.match(maybeOut, {
+          onNone: (): UpdateReturn => [
+            evo(model, { paletteRadioGroup: () => nextPaletteRadioGroup }),
+            mappedCommands,
+          ],
+          onSome: M.type<Ui.RadioGroup.OutMessage>().pipe(
+            M.withReturnType<UpdateReturn>(),
+            M.tagsExhaustive({
+              Selected: ({ value }) => {
+                const nextModel = evo(model, {
+                  selectedColorIndex: () => Number(value) as PaletteIndex,
+                  paletteRadioGroup: () => nextPaletteRadioGroup,
+                })
+                return [nextModel, [...mappedCommands, saveCanvas(nextModel)]]
+              },
+            }),
           ),
-        ]
+        })
       },
 
       GotMirrorHorizontalSwitchMessage: ({ message }) => {
@@ -466,12 +482,8 @@ export const update = (
             mirrorHorizontalSwitch: () => nextSwitch,
             mirrorMode: () => nextMirrorMode,
           }),
-          switchCommands.map(
-            Command.mapEffect(
-              Effect.map(switchMessage =>
-                GotMirrorHorizontalSwitchMessage({ message: switchMessage }),
-              ),
-            ),
+          Command.mapMessages(switchCommands, switchMessage =>
+            GotMirrorHorizontalSwitchMessage({ message: switchMessage }),
           ),
         ]
       },
@@ -496,31 +508,55 @@ export const update = (
             mirrorVerticalSwitch: () => nextSwitch,
             mirrorMode: () => nextMirrorMode,
           }),
-          switchCommands.map(
-            Command.mapEffect(
-              Effect.map(switchMessage =>
-                GotMirrorVerticalSwitchMessage({ message: switchMessage }),
-              ),
-            ),
+          Command.mapMessages(switchCommands, switchMessage =>
+            GotMirrorVerticalSwitchMessage({ message: switchMessage }),
           ),
         ]
       },
 
       GotThemeListboxMessage: ({ message }) => {
-        const [nextThemeListbox, themeListboxCommands] = Ui.Listbox.update(
-          model.themeListbox,
-          message,
+        const [nextThemeListbox, themeListboxCommands, maybeOut] =
+          ThemeListbox.update(model.themeListbox, message)
+        const mappedCommands = Command.mapMessages(
+          themeListboxCommands,
+          listboxMessage => GotThemeListboxMessage({ message: listboxMessage }),
         )
-        return [
-          evo(model, { themeListbox: () => nextThemeListbox }),
-          themeListboxCommands.map(
-            Command.mapEffect(
-              Effect.map(listboxMessage =>
-                GotThemeListboxMessage({ message: listboxMessage }),
-              ),
-            ),
+        return Option.match(maybeOut, {
+          onNone: (): UpdateReturn => [
+            evo(model, { themeListbox: () => nextThemeListbox }),
+            mappedCommands,
+          ],
+          onSome: M.type<Ui.Listbox.OutMessage>().pipe(
+            M.withReturnType<UpdateReturn>(),
+            M.tagsExhaustive({
+              Selected: ({ item }) => {
+                const themeIndex = Number(item)
+                const nextTheme = PALETTE_THEMES[themeIndex]
+                if (nextTheme === undefined) {
+                  return [
+                    evo(model, { themeListbox: () => nextThemeListbox }),
+                    mappedCommands,
+                  ]
+                }
+                const paletteIndexStrings = nextTheme.colors.map((_, index) =>
+                  index.toString(),
+                )
+                const [nextPaletteRadioGroup] = PaletteRadioGroup.select(
+                  model.paletteRadioGroup,
+                  DEFAULT_COLOR_INDEX.toString(),
+                  paletteIndexStrings,
+                )
+                const nextModel = evo(model, {
+                  paletteThemeIndex: () => themeIndex,
+                  selectedColorIndex: () => DEFAULT_COLOR_INDEX,
+                  paletteRadioGroup: () => nextPaletteRadioGroup,
+                  themeListbox: () => nextThemeListbox,
+                })
+                return [nextModel, [...mappedCommands, saveCanvas(nextModel)]]
+              },
+            }),
           ),
-        ]
+        })
       },
 
       ConfirmedGridSizeChange: () =>
@@ -531,14 +567,12 @@ export const update = (
               model.gridSizeConfirmDialog,
               Ui.Dialog.Closed(),
             )
-            const mappedDialogCommands = dialogCommands.map(
-              Command.mapEffect(
-                Effect.map(dialogMessage =>
-                  GotGridSizeConfirmDialogMessage({
-                    message: dialogMessage,
-                  }),
-                ),
-              ),
+            const mappedDialogCommands = Command.mapMessages(
+              dialogCommands,
+              dialogMessage =>
+                GotGridSizeConfirmDialogMessage({
+                  message: dialogMessage,
+                }),
             )
             const [resizedModel] = applyGridSizeChange(model, pendingSize)
             const nextModel = evo(resizedModel, {
@@ -562,12 +596,8 @@ export const update = (
             maybePendingGridSize: () => Option.none(),
             gridSizeRadioGroup: () => nextGridSizeRadioGroup,
           }),
-          dialogCommands.map(
-            Command.mapEffect(
-              Effect.map(dialogMessage =>
-                GotGridSizeConfirmDialogMessage({ message: dialogMessage }),
-              ),
-            ),
+          Command.mapMessages(dialogCommands, dialogMessage =>
+            GotGridSizeConfirmDialogMessage({ message: dialogMessage }),
           ),
         ]
       },
@@ -579,23 +609,16 @@ export const update = (
         )
         return [
           evo(model, { gridSizeConfirmDialog: () => nextDialog }),
-          dialogCommands.map(
-            Command.mapEffect(
-              Effect.map(dialogMessage =>
-                GotGridSizeConfirmDialogMessage({ message: dialogMessage }),
-              ),
-            ),
+          Command.mapMessages(dialogCommands, dialogMessage =>
+            GotGridSizeConfirmDialogMessage({ message: dialogMessage }),
           ),
         ]
       },
     }),
   )
 
-const applyGridSizeChange = (
-  model: Model,
-  size: number,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
-  const [nextGridSizeRadioGroup, radioCommands] = Ui.RadioGroup.select(
+const applyGridSizeChange = (model: Model, size: number): UpdateReturn => {
+  const [nextGridSizeRadioGroup, radioCommands] = GridSizeRadioGroup.select(
     model.gridSizeRadioGroup,
     size.toString(),
     GRID_SIZE_STRINGS,
@@ -610,20 +633,13 @@ const applyGridSizeChange = (
       maybeHoveredCell: () => Option.none(),
       gridSizeRadioGroup: () => nextGridSizeRadioGroup,
     }),
-    radioCommands.map(
-      Command.mapEffect(
-        Effect.map(radioMessage =>
-          GotGridSizeRadioGroupMessage({ message: radioMessage }),
-        ),
-      ),
+    Command.mapMessages(radioCommands, radioMessage =>
+      GotGridSizeRadioGroupMessage({ message: radioMessage }),
     ),
   ]
 }
 
-const requestGridSizeChange = (
-  model: Model,
-  size: number,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
+const requestGridSizeChange = (model: Model, size: number): UpdateReturn => {
   if (size === model.gridSize) {
     return [model, []]
   }
@@ -640,12 +656,8 @@ const requestGridSizeChange = (
       maybePendingGridSize: () => Option.some(size),
       gridSizeConfirmDialog: () => nextDialog,
     }),
-    dialogCommands.map(
-      Command.mapEffect(
-        Effect.map(dialogMessage =>
-          GotGridSizeConfirmDialogMessage({ message: dialogMessage }),
-        ),
-      ),
+    Command.mapMessages(dialogCommands, dialogMessage =>
+      GotGridSizeConfirmDialogMessage({ message: dialogMessage }),
     ),
   ]
 }

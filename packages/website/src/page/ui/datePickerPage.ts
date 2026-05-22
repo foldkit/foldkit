@@ -213,12 +213,6 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
       'Wraps DatePicker Messages in your parent Message type for Submodel delegation.',
   },
   {
-    name: 'onSelectedDate',
-    type: '(date: CalendarDate) => ParentMessage',
-    description:
-      'Optional. When provided, click / Enter / Space on a day dispatches this callback directly (controlled mode: parent owns the event). When omitted, DatePicker manages its own maybeSelectedDate automatically (uncontrolled mode). In controlled mode, use DatePicker.selectDate(model, date) to write the selection back to internal state.',
-  },
-  {
     name: 'anchor',
     type: 'AnchorConfig',
     description:
@@ -271,10 +265,16 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
 
 const outMessagesProps: ReadonlyArray<PropEntry> = [
   {
+    name: 'SelectedDateOut',
+    type: '{ date: CalendarDate }',
+    description:
+      'Emitted when the user commits a date (click / Enter / Space). Pattern-match the third tuple element of DatePicker.update in your GotDatePickerMessage handler to lift the date into domain state.',
+  },
+  {
     name: 'ChangedViewMonth',
     type: '{ year: number; month: number }',
     description:
-      'Emitted when navigation changes the visible month inside the calendar grid. Date selection goes through the onSelectedDate ViewConfig callback, not OutMessage.',
+      'Emitted when navigation changes the visible month inside the calendar grid.',
   },
 ]
 
@@ -283,7 +283,7 @@ const programmaticHelpersProps: ReadonlyArray<PropEntry> = [
     name: 'selectDate',
     type: '(model: Model, date: CalendarDate) => [Model, Commands]',
     description:
-      'Commits the given date and closes the popover. Use in controlled mode (when ViewConfig provides onSelectedDate) to write the selection back to the date picker.',
+      'Commits the given date and closes the popover. Use from your update handler when the date should be set in response to something other than a user click (e.g. clearing the selection, restoring from storage).',
   },
   {
     name: 'clear',
@@ -433,11 +433,15 @@ export const view = <ParentMessage>(
         inlineCode('[Model, Commands, Option<OutMessage>]'),
         '. The ',
         link(patternsOutMessageRouter(), 'OutMessage'),
-        " forwards the embedded calendar's ",
+        ' carries ',
+        inlineCode('SelectedDateOut({ date })'),
+        ' when the user commits a date and ',
         inlineCode('ChangedViewMonth'),
-        ' so consumers can react to month-scoped data needs. Date selection goes through the ',
-        inlineCode('onSelectedDate'),
-        ' ViewConfig callback, not OutMessage. For programmatic control in update functions, use ',
+        ' when navigation shifts the visible month. Pattern-match the third tuple element of ',
+        inlineCode('DatePicker.update'),
+        ' in your ',
+        inlineCode('GotDatePickerMessage'),
+        ' handler to react. For programmatic control in update functions, use ',
         inlineCode('DatePicker.open(model)'),
         ' and ',
         inlineCode('DatePicker.close(model)'),

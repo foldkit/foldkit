@@ -1,4 +1,4 @@
-import { Ui } from 'foldkit'
+import { Submodel, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 import type { AnchorConfig } from 'foldkit/ui/tooltip'
 
@@ -23,11 +23,8 @@ const TOOLTIP_ANCHOR: AnchorConfig = {
   padding: 8,
 }
 
-export const view = <ParentMessage>(
-  model: UiModel,
-  toParentMessage: (message: UiMessage) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
+  const h = html<UiMessage>()
 
   return h.div(
     [],
@@ -41,16 +38,32 @@ export const view = <ParentMessage>(
       h.div(
         [h.Class('relative')],
         [
-          Ui.Tooltip.view({
+          h.submodel({
+            id: model.tooltipBasicDemo.id,
+            view: Ui.Tooltip.view,
             model: model.tooltipBasicDemo,
-            toParentMessage: message =>
-              toParentMessage(GotTooltipBasicDemoMessage({ message })),
-            anchor: TOOLTIP_ANCHOR,
-            triggerContent: h.span([], ['Hover or focus me']),
-            triggerAttributes: [h.Class(triggerClassName)],
-            content: h.span([], ['This is a tooltip']),
-            panelAttributes: [h.Class(panelClassName)],
-            attributes: [h.Class(wrapperClassName)],
+            inputs: {
+              anchor: TOOLTIP_ANCHOR,
+              toView: ({ trigger, panel, isVisible }) =>
+                h.div(
+                  [h.Class(wrapperClassName)],
+                  [
+                    h.button(
+                      [...trigger, h.Class(triggerClassName)],
+                      [h.span([], ['Hover or focus me'])],
+                    ),
+                    ...(isVisible
+                      ? [
+                          h.div(
+                            [...panel, h.Class(panelClassName)],
+                            [h.span([], ['This is a tooltip'])],
+                          ),
+                        ]
+                      : []),
+                  ],
+                ),
+            },
+            toParentMessage: message => GotTooltipBasicDemoMessage({ message }),
           }),
         ],
       ),
@@ -62,19 +75,36 @@ export const view = <ParentMessage>(
       h.div(
         [h.Class('relative')],
         [
-          Ui.Tooltip.view({
+          h.submodel({
+            id: model.tooltipNoDelayDemo.id,
+            view: Ui.Tooltip.view,
             model: model.tooltipNoDelayDemo,
+            inputs: {
+              anchor: TOOLTIP_ANCHOR,
+              toView: ({ trigger, panel, isVisible }) =>
+                h.div(
+                  [h.Class(wrapperClassName)],
+                  [
+                    h.button(
+                      [...trigger, h.Class(triggerClassName)],
+                      [h.span([], ['No delay'])],
+                    ),
+                    ...(isVisible
+                      ? [
+                          h.div(
+                            [...panel, h.Class(panelClassName)],
+                            [h.span([], ['Shows immediately'])],
+                          ),
+                        ]
+                      : []),
+                  ],
+                ),
+            },
             toParentMessage: message =>
-              toParentMessage(GotTooltipNoDelayDemoMessage({ message })),
-            anchor: TOOLTIP_ANCHOR,
-            triggerContent: h.span([], ['No delay']),
-            triggerAttributes: [h.Class(triggerClassName)],
-            content: h.span([], ['Shows immediately']),
-            panelAttributes: [h.Class(panelClassName)],
-            attributes: [h.Class(wrapperClassName)],
+              GotTooltipNoDelayDemoMessage({ message }),
           }),
         ],
       ),
     ],
   )
-}
+})

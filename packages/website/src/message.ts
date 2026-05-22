@@ -5,7 +5,6 @@ import { UrlRequest } from 'foldkit/navigation'
 import { Url } from 'foldkit/url'
 
 import * as Page from './page'
-import { ExampleSlug } from './page/example/meta'
 import * as Search from './search'
 
 // THEME
@@ -84,9 +83,6 @@ export const GotDemoTabsMessage = m('GotDemoTabsMessage', {
 })
 export const GotPlaygroundMenuMessage = m('GotPlaygroundMenuMessage', {
   message: Ui.Menu.Message,
-})
-export const SelectedPlaygroundExample = m('SelectedPlaygroundExample', {
-  slug: ExampleSlug,
 })
 export const { SucceededPlaygroundEmbed, FailedPlaygroundEmbed } =
   Page.Playground
@@ -183,7 +179,6 @@ export const Message = S.Union([
   ToggledAiHeading,
   GotDemoTabsMessage,
   GotPlaygroundMenuMessage,
-  SelectedPlaygroundExample,
   SucceededPlaygroundEmbed,
   FailedPlaygroundEmbed,
   GotAsyncCounterDemoMessage,

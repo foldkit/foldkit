@@ -1,7 +1,7 @@
 import { clsx } from 'clsx'
-import { Array, Match as M, Option } from 'effect'
+import { Match as M, Option } from 'effect'
 import { Ui } from 'foldkit'
-import { Html, createLazy, html } from 'foldkit/html'
+import { Html, boundaryAttributes, createLazy, html } from 'foldkit/html'
 
 import { Icon } from '../icon'
 import { Link } from '../link'
@@ -12,7 +12,6 @@ import {
   GotNotePlayerDemoMessage,
   GotPlaygroundMenuMessage,
   type Message,
-  SelectedPlaygroundExample,
 } from '../message'
 import * as Page from '../page'
 import {
@@ -119,6 +118,8 @@ type DemoTab = 'Architecture' | 'Note Player'
 
 const demoTabs: ReadonlyArray<DemoTab> = ['Architecture', 'Note Player']
 
+export const DemoTabs = Ui.Tabs.create<DemoTab>()
+
 const demoTabButtonClassName =
   'px-3 py-2 text-sm font-normal cursor-pointer transition border border-gray-300 dark:border-gray-800 bg-cream dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-t-lg lg:rounded-t-none lg:rounded-l-lg lg:border-r-0 mb-[-1px] lg:mb-0 lg:mr-[-1px] data-[selected]:relative data-[selected]:z-10 data-[selected]:bg-cream data-[selected]:dark:bg-gray-900 data-[selected]:text-gray-900 data-[selected]:dark:text-white data-[selected]:border-b-0 lg:data-[selected]:border-b lg:data-[selected]:border-r-0'
 
@@ -202,45 +203,51 @@ const playgroundMenuView = (
 ): Html => {
   const h = html<Message>()
 
-  return Ui.Menu.view<Message, ExampleSlug>({
+  return h.submodel({
+    id: menuModel.id,
+    view: Ui.Menu.view<ExampleSlug>(),
     model: menuModel,
-    toParentMessage: message => GotPlaygroundMenuMessage({ message }),
-    onSelectedItem: index =>
-      SelectedPlaygroundExample({ slug: Array.getUnsafe(slugs, index) }),
-    anchor: PLAYGROUND_MENU_ANCHOR,
-    items: slugs,
-    itemToConfig: slug => ({
-      className: playgroundItemClassName,
-      content: Option.match(findBySlug(slug), {
-        onNone: () => h.span([], [slug]),
-        onSome: playgroundItemContent,
+    inputs: {
+      anchor: PLAYGROUND_MENU_ANCHOR,
+      items: slugs,
+      itemToConfig: slug => ({
+        className: playgroundItemClassName,
+        content: Option.match(findBySlug(slug), {
+          onNone: () => h.span([], [slug]),
+          onSome: playgroundItemContent,
+        }),
       }),
-    }),
-    isItemDisabled: () => false,
-    itemGroupKey: () => 'examples',
-    groupToHeading: () => ({
-      className:
-        'px-4 pt-3 pb-2 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800 leading-snug',
-      content: h.span(
-        [],
-        [
-          'Run an example ',
-          h.span(
-            [h.Class('text-gray-700 dark:text-gray-200 font-medium')],
-            ['live in your browser'],
-          ),
-          '. No install.',
-        ],
+      isItemDisabled: () => false,
+      itemGroupKey: () => 'examples',
+      groupToHeading: () => ({
+        className:
+          'px-4 pt-3 pb-2 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800 leading-snug',
+        content: h.span(
+          [],
+          [
+            'Run an example ',
+            h.span(
+              [h.Class('text-gray-700 dark:text-gray-200 font-medium')],
+              ['live in your browser'],
+            ),
+            '. No install.',
+          ],
+        ),
+      }),
+      buttonContent: h.span(
+        [h.Class('inline-flex items-center gap-2')],
+        [Icon.bolt('w-5 h-5'), 'Launch Playground'],
       ),
-    }),
-    buttonContent: h.span(
-      [h.Class('inline-flex items-center gap-2')],
-      [Icon.bolt('w-5 h-5'), 'Launch Playground'],
-    ),
-    buttonAttributes: [h.Class(playgroundButtonClassName)],
-    itemsAttributes: [h.Class(playgroundItemsClassName)],
-    backdropAttributes: [h.Class(playgroundBackdropClassName)],
-    attributes: [h.Class('relative inline-block')],
+      buttonAttributes: boundaryAttributes([
+        h.Class(playgroundButtonClassName),
+      ]),
+      itemsAttributes: boundaryAttributes([h.Class(playgroundItemsClassName)]),
+      backdropAttributes: boundaryAttributes([
+        h.Class(playgroundBackdropClassName),
+      ]),
+      attributes: boundaryAttributes([h.Class('relative inline-block')]),
+    },
+    toParentMessage: message => GotPlaygroundMenuMessage({ message }),
   })
 }
 
@@ -272,30 +279,53 @@ export const landingView = (model: Model) => {
     model.isChromium,
   )
 
-  const demoTabsView = Ui.Tabs.view<Message, DemoTab>({
+  const buttonLabelFor = (tab: DemoTab): string =>
+    M.value(tab).pipe(
+      M.when('Architecture', () => 'Async Counter'),
+      M.when('Note Player', () => 'Note Player'),
+      M.exhaustive,
+    )
+
+  const panelFor = (tab: DemoTab) =>
+    M.value(tab).pipe(
+      M.when('Architecture', () => asyncCounterDemoView),
+      M.when('Note Player', () => notePlayerDemoView),
+      M.exhaustive,
+    )
+
+  const demoTabsView = h.submodel({
+    id: model.demoTabs.id,
+    view: DemoTabs.view,
     model: model.demoTabs,
+    inputs: {
+      tabs: demoTabs,
+      ariaLabel: 'Demo tabs',
+      orientation: model.isNarrowViewport ? 'Horizontal' : 'Vertical',
+      toView: ({ tablist, tabs, activeIndex }) =>
+        h.div(
+          [h.Class('lg:flex')],
+          [
+            h.div(
+              [...tablist, h.Class('flex lg:flex-col gap-1')],
+              tabs.map(tab =>
+                h.button(
+                  [...tab.tab, h.Class(demoTabButtonClassName)],
+                  [h.span([], [buttonLabelFor(tab.value)])],
+                ),
+              ),
+            ),
+            ...tabs
+              .filter(tab => tab.index === activeIndex)
+              .map(tab =>
+                h.div(
+                  [...tab.panel, h.Class(demoTabPanelClassName)],
+                  [panelFor(tab.value)],
+                ),
+              ),
+          ],
+        ),
+    },
     toParentMessage: message => GotDemoTabsMessage({ message }),
-    tabs: demoTabs,
-    tabToConfig: tab =>
-      M.value(tab).pipe(
-        M.when('Architecture', () => ({
-          buttonClassName: demoTabButtonClassName,
-          buttonContent: h.span([], ['Async Counter']),
-          panelClassName: demoTabPanelClassName,
-          panelContent: asyncCounterDemoView,
-        })),
-        M.when('Note Player', () => ({
-          buttonClassName: demoTabButtonClassName,
-          buttonContent: h.span([], ['Note Player']),
-          panelClassName: demoTabPanelClassName,
-          panelContent: notePlayerDemoView,
-        })),
-        M.exhaustive,
-      ),
-    orientation: model.isNarrowViewport ? 'Horizontal' : 'Vertical',
-    attributes: [h.Class('lg:flex')],
-    tabListAttributes: [h.Class('flex lg:flex-col gap-1')],
-    tabListAriaLabel: 'Demo tabs',
   })
 
   return h.keyed('div')(

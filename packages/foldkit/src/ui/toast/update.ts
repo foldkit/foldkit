@@ -147,9 +147,7 @@ export const makeRuntime = <A, I>(payloadSchema: S.Codec<A, I>) => {
         const toMessage = (message: AnimationMessage): Message =>
           GotAnimationMessage({ entryId, message })
 
-        const mappedCommands = animationCommands.map(
-          Command.mapEffect(Effect.map(toMessage)),
-        )
+        const mappedCommands = Command.mapMessages(animationCommands, toMessage)
 
         const nextEntry: Entry = evo(entry, {
           animation: () => nextAnimation,
@@ -167,9 +165,9 @@ export const makeRuntime = <A, I>(payloadSchema: S.Codec<A, I>) => {
                 updateEntry(model, entryId, () => nextEntry),
                 [
                   ...mappedCommands,
-                  Command.mapEffect(
+                  Command.mapMessage(
                     animationDefaultLeaveCommand(nextAnimation),
-                    Effect.map(toMessage),
+                    toMessage,
                   ),
                 ],
               ],

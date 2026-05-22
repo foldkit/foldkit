@@ -11,9 +11,10 @@ import {
 
 import type { Command } from '../../command/index.js'
 import {
-  type Attribute,
+  type BoundaryAttribute,
   type Html,
-  createLazy,
+  boundaryAttributes,
+  defineView,
   html,
 } from '../../html/index.js'
 import { m } from '../../message/index.js'
@@ -514,29 +515,21 @@ const percentString = (fraction: number): string =>
   `${Math.round(fraction * 10000) / 100}%`
 
 /** Attribute groups the slider component provides to the consumer's `toView`
- *  callback. */
-export type SliderAttributes<ParentMessage> = Readonly<{
-  root: ReadonlyArray<Attribute<ParentMessage>>
-  track: ReadonlyArray<Attribute<ParentMessage>>
-  filledTrack: ReadonlyArray<Attribute<ParentMessage>>
-  thumb: ReadonlyArray<Attribute<ParentMessage>>
-  label: ReadonlyArray<Attribute<ParentMessage>>
-  hiddenInput: ReadonlyArray<Attribute<ParentMessage>>
+ *  callback. Each bundle carries the boundary's captured dispatch, so the
+ *  consumer can spread it directly into element attributes without manual
+ *  Message wrapping. */
+export type SliderAttributes = Readonly<{
+  root: ReadonlyArray<BoundaryAttribute>
+  track: ReadonlyArray<BoundaryAttribute>
+  filledTrack: ReadonlyArray<BoundaryAttribute>
+  thumb: ReadonlyArray<BoundaryAttribute>
+  label: ReadonlyArray<BoundaryAttribute>
+  hiddenInput: ReadonlyArray<BoundaryAttribute>
 }>
 
-/** Configuration for rendering a slider with `view`. */
-export type ViewConfig<ParentMessage> = Readonly<{
-  model: Model
-  toParentMessage: (
-    message:
-      | PressedThumb
-      | PressedPointer
-      | MovedDragPointer
-      | ReleasedDragPointer
-      | CancelledDrag
-      | PressedKeyboardNavigation,
-  ) => ParentMessage
-  toView: (attributes: SliderAttributes<ParentMessage>) => Html
+/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field. */
+export type ViewInputs = Readonly<{
+  toView: (attributes: SliderAttributes) => Html
   ariaLabel?: string
   ariaLabelledBy?: string
   formatValue?: (value: number) => string
@@ -554,175 +547,146 @@ export type ViewConfig<ParentMessage> = Readonly<{
  *  WAI-ARIA slider pattern — role="slider" on the thumb, aria-valuemin /
  *  aria-valuemax / aria-valuenow, keyboard navigation by step / page / home /
  *  end. Pointer drag is handled by the component's drag subscriptions. */
-export const view = <ParentMessage>(
-  config: ViewConfig<ParentMessage>,
-): Html => {
-  const h = html<ParentMessage>()
+export const view = defineView<Model, Message, ViewInputs>(
+  (model, inputs): Html => {
+    const h = html<Message>()
 
-  const {
-    model,
-    toParentMessage,
-    formatValue,
-    isDisabled = false,
-    name,
-    getTrackRoot = () => document,
-  } = config
-  const { id, value, min, max } = model
-  const isDragging = model.dragState._tag === 'Dragging'
-  const fraction = fractionOfValue(model)
+    const {
+      formatValue,
+      isDisabled = false,
+      name,
+      getTrackRoot = () => document,
+    } = inputs
+    const { id, value, min, max } = model
+    const isDragging = model.dragState._tag === 'Dragging'
+    const fraction = fractionOfValue(model)
 
-  const handleKeyDown = (key: string): Option.Option<ParentMessage> =>
-    Option.map(keyToDirection(key), direction =>
-      toParentMessage(PressedKeyboardNavigation({ direction })),
-    )
+    const handleKeyDown = (key: string): Option.Option<Message> =>
+      Option.map(keyToDirection(key), direction =>
+        PressedKeyboardNavigation({ direction }),
+      )
 
-  const pointerAtClientX = (clientX: number): Option.Option<ParentMessage> =>
-    Option.map(trackElement(id, getTrackRoot()), element =>
-      toParentMessage(
+    const pointerAtClientX = (clientX: number): Option.Option<Message> =>
+      Option.map(trackElement(id, getTrackRoot()), element =>
         PressedPointer({
           value: valueFromClientX(clientX, element, min, max),
         }),
-      ),
-    )
+      )
 
-  const trackPointerHandler = (
-    _pointerType: string,
-    button: number,
-    _screenX: number,
-    _screenY: number,
-    _timeStamp: number,
-    clientX: number,
-  ): Option.Option<ParentMessage> =>
-    pipe(
-      button,
-      Option.liftPredicate(Equal.equals(LEFT_MOUSE_BUTTON)),
-      Option.flatMap(() => pointerAtClientX(clientX)),
-    )
+    const trackPointerHandler = (
+      _pointerType: string,
+      button: number,
+      _screenX: number,
+      _screenY: number,
+      _timeStamp: number,
+      clientX: number,
+    ): Option.Option<Message> =>
+      pipe(
+        button,
+        Option.liftPredicate(Equal.equals(LEFT_MOUSE_BUTTON)),
+        Option.flatMap(() => pointerAtClientX(clientX)),
+      )
 
-  const thumbPointerHandler = (
-    _pointerType: string,
-    button: number,
-  ): Option.Option<ParentMessage> =>
-    pipe(
-      button,
-      Option.liftPredicate(Equal.equals(LEFT_MOUSE_BUTTON)),
-      Option.map(() => toParentMessage(PressedThumb())),
-    )
+    const thumbPointerHandler = (
+      _pointerType: string,
+      button: number,
+    ): Option.Option<Message> =>
+      pipe(
+        button,
+        Option.liftPredicate(Equal.equals(LEFT_MOUSE_BUTTON)),
+        Option.map(() => PressedThumb()),
+      )
 
-  const stateAttributes = [
-    ...(isDragging ? [h.DataAttribute('dragging', '')] : []),
-    ...(isDisabled ? [h.DataAttribute('disabled', '')] : []),
-  ]
+    const stateAttributes = [
+      ...(isDragging ? [h.DataAttribute('dragging', '')] : []),
+      ...(isDisabled ? [h.DataAttribute('disabled', '')] : []),
+    ]
 
-  const rootAttributes = [
-    h.DataAttribute('slider-id', id),
-    h.DataAttribute('orientation', 'horizontal'),
-    ...stateAttributes,
-  ]
+    const rootAttributes = [
+      h.DataAttribute('slider-id', id),
+      h.DataAttribute('orientation', 'horizontal'),
+      ...stateAttributes,
+    ]
 
-  const trackInteractionAttributes = isDisabled
-    ? []
-    : [h.OnPointerDown(trackPointerHandler)]
+    const trackInteractionAttributes = isDisabled
+      ? []
+      : [h.OnPointerDown(trackPointerHandler)]
 
-  const trackAttributes = [
-    h.DataAttribute('slider-track-id', id),
-    h.Style({ position: 'relative', 'touch-action': 'none' }),
-    ...stateAttributes,
-    ...trackInteractionAttributes,
-  ]
+    const trackAttributes = [
+      h.DataAttribute('slider-track-id', id),
+      h.Style({ position: 'relative', 'touch-action': 'none' }),
+      ...stateAttributes,
+      ...trackInteractionAttributes,
+    ]
 
-  const filledTrackAttributes = [
-    h.Style({
-      position: 'absolute',
-      left: '0',
-      top: '0',
-      bottom: '0',
-      width: percentString(fraction),
-      'pointer-events': 'none',
-    }),
-    ...stateAttributes,
-  ]
+    const filledTrackAttributes = [
+      h.Style({
+        position: 'absolute',
+        left: '0',
+        top: '0',
+        bottom: '0',
+        width: percentString(fraction),
+        'pointer-events': 'none',
+      }),
+      ...stateAttributes,
+    ]
 
-  const resolveThumbLabel = (): ReadonlyArray<Attribute<ParentMessage>> => {
-    if (config.ariaLabel !== undefined) {
-      return [h.AriaLabel(config.ariaLabel)]
-    } else if (config.ariaLabelledBy !== undefined) {
-      return [h.AriaLabelledBy(config.ariaLabelledBy)]
-    } else {
-      return [h.AriaLabelledBy(labelId(id))]
+    const resolveThumbLabel = () => {
+      if (inputs.ariaLabel !== undefined) {
+        return [h.AriaLabel(inputs.ariaLabel)]
+      } else if (inputs.ariaLabelledBy !== undefined) {
+        return [h.AriaLabelledBy(inputs.ariaLabelledBy)]
+      } else {
+        return [h.AriaLabelledBy(labelId(id))]
+      }
     }
-  }
 
-  const thumbLabelAttributes = resolveThumbLabel()
-  const maybeAriaValuetext =
-    formatValue !== undefined ? [h.AriaValuetext(formatValue(value))] : []
+    const thumbLabelAttributes = resolveThumbLabel()
+    const maybeAriaValuetext =
+      formatValue !== undefined ? [h.AriaValuetext(formatValue(value))] : []
 
-  const thumbInteractionAttributes = isDisabled
-    ? []
-    : [
-        h.OnPointerDown(thumbPointerHandler),
-        h.OnKeyDownPreventDefault(handleKeyDown),
-      ]
+    const thumbInteractionAttributes = isDisabled
+      ? []
+      : [
+          h.OnPointerDown(thumbPointerHandler),
+          h.OnKeyDownPreventDefault(handleKeyDown),
+        ]
 
-  const thumbAttributes = [
-    h.Id(`${id}-thumb`),
-    h.Role('slider'),
-    h.Tabindex(0),
-    h.AriaOrientation('horizontal'),
-    h.AriaValuemin(min),
-    h.AriaValuemax(max),
-    h.AriaValuenow(value),
-    ...maybeAriaValuetext,
-    ...thumbLabelAttributes,
-    ...(isDisabled ? [h.AriaDisabled(true)] : []),
-    h.Style({
-      position: 'absolute',
-      left: percentString(fraction),
-      transform: 'translateX(-50%)',
-      'touch-action': 'none',
-    }),
-    ...stateAttributes,
-    ...thumbInteractionAttributes,
-  ]
+    const thumbAttributes = [
+      h.Id(`${id}-thumb`),
+      h.Role('slider'),
+      h.Tabindex(0),
+      h.AriaOrientation('horizontal'),
+      h.AriaValuemin(min),
+      h.AriaValuemax(max),
+      h.AriaValuenow(value),
+      ...maybeAriaValuetext,
+      ...thumbLabelAttributes,
+      ...(isDisabled ? [h.AriaDisabled(true)] : []),
+      h.Style({
+        position: 'absolute',
+        left: percentString(fraction),
+        transform: 'translateX(-50%)',
+        'touch-action': 'none',
+      }),
+      ...stateAttributes,
+      ...thumbInteractionAttributes,
+    ]
 
-  const labelAttributes = [h.Id(labelId(id))]
+    const labelAttributes = [h.Id(labelId(id))]
 
-  const hiddenInputAttributes =
-    name !== undefined
-      ? [h.Type('hidden'), h.Name(name), h.Value(value.toString())]
-      : []
+    const hiddenInputAttributes =
+      name !== undefined
+        ? [h.Type('hidden'), h.Name(name), h.Value(value.toString())]
+        : []
 
-  return config.toView({
-    root: rootAttributes,
-    track: trackAttributes,
-    filledTrack: filledTrackAttributes,
-    thumb: thumbAttributes,
-    label: labelAttributes,
-    hiddenInput: hiddenInputAttributes,
-  })
-}
-
-/** Creates a memoized slider view. Static config is captured in a closure;
- *  only `model` and `toParentMessage` are compared per render via `createLazy`. */
-export const lazy = <ParentMessage>(
-  staticConfig: Omit<ViewConfig<ParentMessage>, 'model' | 'toParentMessage'>,
-): ((
-  model: Model,
-  toParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
-) => Html) => {
-  const lazyView = createLazy()
-
-  return (model, toParentMessage) =>
-    lazyView(
-      (
-        currentModel: Model,
-        currentToParentMessage: ViewConfig<ParentMessage>['toParentMessage'],
-      ) =>
-        view({
-          ...staticConfig,
-          model: currentModel,
-          toParentMessage: currentToParentMessage,
-        }),
-      [model, toParentMessage],
-    )
-}
+    return inputs.toView({
+      root: boundaryAttributes(rootAttributes),
+      track: boundaryAttributes(trackAttributes),
+      filledTrack: boundaryAttributes(filledTrackAttributes),
+      thumb: boundaryAttributes(thumbAttributes),
+      label: boundaryAttributes(labelAttributes),
+      hiddenInput: boundaryAttributes(hiddenInputAttributes),
+    })
+  },
+)

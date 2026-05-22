@@ -66,8 +66,8 @@ export const update = (
           message,
         )
 
-        const mappedCommands = homeCommands.map(
-          Command.mapEffect(Effect.map(message => GotHomeMessage({ message }))),
+        const mappedCommands = Command.mapMessages(homeCommands, message =>
+          GotHomeMessage({ message }),
         )
 
         return Option.match(maybeOutMessage, {
@@ -107,10 +107,8 @@ export const update = (
           evo(model, {
             room: () => nextRoomModel,
           }),
-          roomCommands.map(
-            Command.mapEffect(
-              Effect.map(message => GotRoomMessage({ message })),
-            ),
+          Command.mapMessages(roomCommands, message =>
+            GotRoomMessage({ message }),
           ),
         ]
       },
@@ -141,8 +139,8 @@ const handleRoomJoined = (
     evo(model, { room: () => nextRoomModel }),
     [
       NavigateToRoom({ roomId }),
-      ...roomCommands.map(
-        Command.mapEffect(Effect.map(message => GotRoomMessage({ message }))),
+      ...Command.mapMessages(roomCommands, message =>
+        GotRoomMessage({ message }),
       ),
     ],
   ]

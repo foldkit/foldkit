@@ -1,11 +1,24 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt — fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Effect, Option } from 'effect'
+import { Effect, Match as M, Option } from 'effect'
 import { Command, Ui } from 'foldkit'
-import { html } from 'foldkit/html'
+import { boundaryAttributes, html } from 'foldkit/html'
 import { m } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
+
+type Character = Readonly<{
+  firstName: string
+  lastName: string
+}>
+
+const characterName = (character: Character): string =>
+  `${character.firstName} ${character.lastName}`
+
+// Declare the Listbox once at module scope, typed for the source item
+// (`Character`). `view`'s `items` are typed as `ReadonlyArray<Character>`;
+// the OutMessage carries the string returned by `itemToValue`:
+const CharacterListbox = Ui.Listbox.create<Character>()
 
 // Add a field to your Model for the Listbox Submodel, plus a field for
 // the selected value your app actually cares about:
@@ -25,54 +38,40 @@ const init = () => [
   [],
 ]
 
-// Embed the Listbox Message for keyboard/pointer events, plus your own
-// Message for the actual selection:
+// Wrap Listbox's Messages so they can flow through your update:
 const GotListboxMessage = m('GotListboxMessage', {
   message: Ui.Listbox.Message,
 })
-const SelectedCharacter = m('SelectedCharacter', { value: S.String })
 
-// Inside your update function's M.tagsExhaustive({...}), delegate keyboard
-// navigation, typeahead, and open/close to Listbox.update:
+// Inside your update function's M.tagsExhaustive({...}), delegate
+// keyboard navigation, typeahead, and open/close to
+// CharacterListbox.update. On selection, the OutMessage's `Selected`
+// variant carries the chosen item's string value (the result of
+// `itemToValue`):
 GotListboxMessage: ({ message }) => {
-  const [nextListbox, commands] = Ui.Listbox.update(model.listbox, message)
+  const [nextListbox, commands, maybeOut] = CharacterListbox.update(
+    model.listbox,
+    message,
+  )
+  const mappedCommands = Command.mapMessages(commands, message =>
+    GotListboxMessage({ message }),
+  )
 
-  return [
-    // Merge the next state into your Model:
-    evo(model, { listbox: () => nextListbox }),
-    // Forward the Submodel's Commands through your parent Message:
-    commands.map(
-      Command.mapEffect(Effect.map(message => GotListboxMessage({ message }))),
+  return Option.match(maybeOut, {
+    onNone: () => [evo(model, { listbox: () => nextListbox }), mappedCommands],
+    onSome: M.type<Ui.Listbox.OutMessage>().pipe(
+      M.tagsExhaustive({
+        Selected: ({ item }) => [
+          evo(model, {
+            listbox: () => nextListbox,
+            maybeCharacter: () => Option.some(item),
+          }),
+          mappedCommands,
+        ],
+      }),
     ),
-  ]
+  })
 }
-
-// Still inside your update function's M.tagsExhaustive({...}), handle your
-// own selection Message:
-SelectedCharacter: ({ value }) => {
-  // Ui.Listbox.selectItem gives you the next listbox state with the
-  // selection reflected, plus the Commands that close the dropdown
-  // and return focus to the button:
-  const [nextListbox, commands] = Ui.Listbox.selectItem(model.listbox, value)
-
-  return [
-    evo(model, {
-      maybeCharacter: () => Option.some(value),
-      listbox: () => nextListbox,
-    }),
-    commands.map(
-      Command.mapEffect(Effect.map(message => GotListboxMessage({ message }))),
-    ),
-  ]
-}
-
-type Character = Readonly<{
-  firstName: string
-  lastName: string
-}>
-
-const characterName = (character: Character): string =>
-  `${character.firstName} ${character.lastName}`
 
 const characters: ReadonlyArray<Character> = [
   { firstName: 'Michael', lastName: 'Bluth' },
@@ -89,36 +88,39 @@ const characters: ReadonlyArray<Character> = [
 const view = (model: Model) => {
   const h = html<Message>()
 
-  return Ui.Listbox.view({
+  return h.submodel({
+    id: 'character',
+    view: CharacterListbox.view,
     model: model.listbox,
-    toParentMessage: message => GotListboxMessage({ message }),
-    onSelectedItem: value => SelectedCharacter({ value }),
-    items: characters,
-    itemToValue: characterName,
-    // Group contiguous items by a shared key:
-    itemGroupKey: character => character.lastName,
-    // Render a heading for each group:
-    groupToHeading: lastName => ({
-      content: h.span([], [`${lastName}s`]),
-      className: 'px-3 py-1 text-xs font-semibold uppercase text-gray-500',
-    }),
-    // Optional separator between groups:
-    separatorAttributes: [h.Class('my-1 border-t')],
-    itemToConfig: character => ({
-      className:
-        'px-3 py-2 cursor-pointer data-[active]:bg-blue-100 data-[selected]:font-semibold',
-      content: h.div(
-        [h.Class('flex items-center gap-2')],
-        [h.span([], [characterName(character)])],
+    inputs: {
+      items: characters,
+      itemToValue: characterName,
+      // Group contiguous items by a shared key:
+      itemGroupKey: character => character.lastName,
+      // Render a heading for each group:
+      groupToHeading: lastName => ({
+        content: h.span([], [`${lastName}s`]),
+        className: 'px-3 py-1 text-xs font-semibold uppercase text-gray-500',
+      }),
+      // Optional separator between groups:
+      separatorAttributes: boundaryAttributes([h.Class('my-1 border-t')]),
+      itemToConfig: character => ({
+        className:
+          'px-3 py-2 cursor-pointer data-[active]:bg-blue-100 data-[selected]:font-semibold',
+        content: h.div(
+          [h.Class('flex items-center gap-2')],
+          [h.span([], [characterName(character)])],
+        ),
+      }),
+      buttonContent: h.span(
+        [],
+        [Option.getOrElse(model.maybeCharacter, () => 'Select a character')],
       ),
-    }),
-    buttonContent: h.span(
-      [],
-      [Option.getOrElse(model.maybeCharacter, () => 'Select a character')],
-    ),
-    buttonClassName: 'w-full rounded-lg border px-3 py-2 text-left',
-    itemsClassName: 'rounded-lg border shadow-lg',
-    backdropClassName: 'fixed inset-0',
-    anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+      buttonClassName: 'w-full rounded-lg border px-3 py-2 text-left',
+      itemsClassName: 'rounded-lg border shadow-lg',
+      backdropClassName: 'fixed inset-0',
+      anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+    },
+    toParentMessage: message => GotListboxMessage({ message }),
   })
 }

@@ -12,10 +12,12 @@ import {
 
 import * as Command from '../../command/index.js'
 import {
-  type Attribute,
+  type BoundaryAttribute,
   type Html,
+  type SubmodelView,
   type TagName,
-  createLazy,
+  boundaryAttributes,
+  defineView,
   html,
 } from '../../html/index.js'
 import { m } from '../../message/index.js'
@@ -537,157 +539,132 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
 
 const DEFAULT_OVERSCAN = 5
 
-/** Configuration for rendering a virtual list with `view`.
+/** Per-render inputs passed to `view` via `h.submodel`'s `inputs` field.
  *
- *  VirtualList does not take a `toParentMessage` callback. All input
+ *  VirtualList does not surface event handlers in the view. All input
  *  (scroll events and resize observations) flows through the
- *  `containerEvents` Subscription, not through view-bound handlers.
- *  Consumers wrap the subscription's stream into their parent Message in
- *  their own `subscriptions` definition. */
-export type ViewConfig<ParentMessage, Item> = Readonly<{
-  model: Model
+ *  `containerEvents` Subscription. The consumer wraps that
+ *  Subscription's stream into their parent Message in their own
+ *  `subscriptions` definition. */
+export type ViewInputs<Item> = Readonly<{
   items: ReadonlyArray<Item>
   itemToKey: (item: Item, index: number) => string
   itemToView: (item: Item, index: number) => Html
-  /** Optional per-item row height in pixels. When provided, the list renders
-   *  with variable-height rows: each row's wrapper takes the height returned
-   *  by this callback, and scroll math walks the items to compute the visible
-   *  slice and spacers. When absent, all rows use `model.rowHeightPx`. Use
-   *  this for tables with wrapping cells, taller detail rows, or any list
-   *  where rows differ. Prefer the uniform `rowHeightPx` path when row
-   *  heights are stable: it avoids the per-render walk over `items`. */
   itemToRowHeightPx?: (item: Item, index: number) => number
-  /** Number of rows rendered above and below the visible viewport. Higher
-   *  values smooth out fast scroll at the cost of mounting more DOM. Default
-   *  is 5; react-window uses 1 and react-virtualized uses 3. Pick a value
-   *  that suits the row's mount cost. */
   overscan?: number
   rowElement?: TagName
-  className?: string
-  attributes?: ReadonlyArray<Attribute<ParentMessage>>
+  containerClassName?: string
+  containerAttributes?: ReadonlyArray<BoundaryAttribute>
 }>
 
 /** Renders a virtualized list. Only items inside the viewport (plus an
- *  overscan buffer) are mounted; spacer elements above and below the slice
- *  keep the scrollbar's apparent total height correct.
+ *  overscan buffer) are mounted; spacer elements above and below the
+ *  slice keep the scrollbar's apparent total height correct.
  *
- *  Items must be keyed via `itemToKey` so the VDOM matches `row 150` to
- *  `row 150` after the slice shifts during scroll, rather than matching by
- *  position and producing stale DOM.
- *
- *  Each row wrapper is rendered with `display: grid` so the consumer's
- *  `itemToView` content fills the configured `rowHeightPx` and the full row
- *  width. Use flex/grid with `align-items: center` inside `itemToView` to
- *  vertically center content within the row.
- *
- *  Each row carries `aria-setsize` (total item count) and `aria-posinset`
- *  (1-based logical row index) so screen readers announce the full list
- *  size and each row's position within it, rather than the much smaller
- *  count of currently mounted rows. */
-export const view = <ParentMessage, Item>(
-  config: ViewConfig<ParentMessage, Item>,
-): Html => {
-  const h = html<ParentMessage>()
+ *  Generic over `Item`: call as `Ui.VirtualList.view<MyItem>()` at the
+ *  embed site to get a `SubmodelView` typed for your item type. The
+ *  underlying view implementation is shared; the call only narrows the
+ *  type. */
+type ViewForItem<Item> = SubmodelView<Model, Message, ViewInputs<Item>>
 
-  const {
-    model,
-    items,
-    itemToKey,
-    itemToView,
-    itemToRowHeightPx,
-    overscan = DEFAULT_OVERSCAN,
-    rowElement = 'li',
-    className,
-    attributes = [],
-  } = config
+export const view = <Item>() =>
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  viewImpl as unknown as ViewForItem<Item>
 
-  const containerAttributes: ReadonlyArray<Attribute<ParentMessage>> = [
-    h.Id(model.id),
-    h.Role('list'),
-    h.DataAttribute('virtual-list-id', model.id),
-    h.Style({
-      overflow: 'auto',
-      'list-style': 'none',
-      margin: '0',
-      padding: '0',
-    }),
-    ...(className !== undefined ? [h.Class(className)] : []),
-    ...attributes,
-  ]
+const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
+  (model, inputs) => {
+    const h = html<Message>()
 
-  const renderContainer = (children: ReadonlyArray<Html>): Html =>
-    h.keyed('ul')(model.id, containerAttributes, children)
+    const {
+      items,
+      itemToKey,
+      itemToView,
+      itemToRowHeightPx,
+      overscan = DEFAULT_OVERSCAN,
+      rowElement = 'li',
+      containerClassName,
+      containerAttributes = [],
+    } = inputs
 
-  const maybeWindow =
-    itemToRowHeightPx !== undefined
-      ? visibleWindowVariable(model, items, itemToRowHeightPx, overscan)
-      : visibleWindow(model, items.length, overscan)
+    const baseContainerAttributes = [
+      h.Id(model.id),
+      h.Role('list'),
+      h.DataAttribute('virtual-list-id', model.id),
+      h.Style({
+        overflow: 'auto',
+        'list-style': 'none',
+        margin: '0',
+        padding: '0',
+      }),
+      ...(containerClassName !== undefined
+        ? [h.Class(containerClassName)]
+        : []),
+    ]
 
-  const rowHeightFor = (item: Item, dataIndex: number): number =>
-    itemToRowHeightPx !== undefined
-      ? itemToRowHeightPx(item, dataIndex)
-      : model.rowHeightPx
+    const allContainerAttributes = [
+      ...boundaryAttributes(baseContainerAttributes),
+      ...containerAttributes,
+    ]
 
-  return Option.match(maybeWindow, {
-    onNone: () => renderContainer([]),
+    const renderContainer = (children: ReadonlyArray<Html>): Html =>
+      h.keyed('ul')(model.id, allContainerAttributes, children)
 
-    onSome: ({ startIndex, endIndex, topSpacerHeight, bottomSpacerHeight }) => {
-      const visibleItems = items.slice(startIndex, endIndex)
+    const maybeWindow =
+      itemToRowHeightPx !== undefined
+        ? visibleWindowVariable(model, items, itemToRowHeightPx, overscan)
+        : visibleWindow(model, items.length, overscan)
 
-      const topSpacer = h.keyed('li')(
-        `${model.id}-top-spacer`,
-        [h.Role('presentation'), h.Style({ height: `${topSpacerHeight}px` })],
-        [],
-      )
+    const rowHeightFor = (item: unknown, dataIndex: number): number =>
+      itemToRowHeightPx !== undefined
+        ? itemToRowHeightPx(item, dataIndex)
+        : model.rowHeightPx
 
-      const bottomSpacer = h.keyed('li')(
-        `${model.id}-bottom-spacer`,
-        [
-          h.Role('presentation'),
-          h.Style({ height: `${bottomSpacerHeight}px` }),
-        ],
-        [],
-      )
+    return Option.match(maybeWindow, {
+      onNone: () => renderContainer([]),
 
-      const renderedRows = Array.map(visibleItems, (item, sliceIndex) => {
-        const dataIndex = startIndex + sliceIndex
-        return h.keyed(rowElement)(
-          itemToKey(item, dataIndex),
-          [
-            h.Role('listitem'),
-            h.DataAttribute('virtual-list-item-index', String(dataIndex)),
-            h.AriaSetsize(items.length),
-            h.AriaPosinset(dataIndex + 1),
-            h.Style({
-              height: `${rowHeightFor(item, dataIndex)}px`,
-              display: 'grid',
-            }),
-          ],
-          [itemToView(item, dataIndex)],
+      onSome: ({
+        startIndex,
+        endIndex,
+        topSpacerHeight,
+        bottomSpacerHeight,
+      }) => {
+        const visibleItems = items.slice(startIndex, endIndex)
+
+        const topSpacer = h.keyed('li')(
+          `${model.id}-top-spacer`,
+          [h.Role('presentation'), h.Style({ height: `${topSpacerHeight}px` })],
+          [],
         )
-      })
 
-      return renderContainer([topSpacer, ...renderedRows, bottomSpacer])
-    },
-  })
-}
+        const bottomSpacer = h.keyed('li')(
+          `${model.id}-bottom-spacer`,
+          [
+            h.Role('presentation'),
+            h.Style({ height: `${bottomSpacerHeight}px` }),
+          ],
+          [],
+        )
 
-/** Creates a memoized virtual list view. Static config is captured in a
- *  closure; only `model` and `items` are compared per render via
- *  `createLazy`. */
-export const lazy = <ParentMessage, Item>(
-  staticConfig: Omit<ViewConfig<ParentMessage, Item>, 'model' | 'items'>,
-): ((model: Model, items: ReadonlyArray<Item>) => Html) => {
-  const lazyView = createLazy()
+        const renderedRows = Array.map(visibleItems, (item, sliceIndex) => {
+          const dataIndex = startIndex + sliceIndex
+          return h.keyed(rowElement)(
+            itemToKey(item, dataIndex),
+            [
+              h.Role('listitem'),
+              h.DataAttribute('virtual-list-item-index', String(dataIndex)),
+              h.AriaSetsize(items.length),
+              h.AriaPosinset(dataIndex + 1),
+              h.Style({
+                height: `${rowHeightFor(item, dataIndex)}px`,
+                display: 'grid',
+              }),
+            ],
+            [itemToView(item, dataIndex)],
+          )
+        })
 
-  return (model, items) =>
-    lazyView(
-      (currentModel: Model, currentItems: ReadonlyArray<Item>) =>
-        view({
-          ...staticConfig,
-          model: currentModel,
-          items: currentItems,
-        }),
-      [model, items],
-    )
-}
+        return renderContainer([topSpacer, ...renderedRows, bottomSpacer])
+      },
+    })
+  },
+)

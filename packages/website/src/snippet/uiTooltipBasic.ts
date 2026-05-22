@@ -35,24 +35,47 @@ GotTooltipMessage: ({ message }) => {
     // Merge the next state into your Model:
     evo(model, { tooltip: () => nextTooltip }),
     // Forward the Submodel's Commands through your parent Message:
-    commands.map(
-      Command.mapEffect(Effect.map(message => GotTooltipMessage({ message }))),
-    ),
+    Command.mapMessages(commands, message => GotTooltipMessage({ message })),
   ]
 }
 
-// Inside your view function, render the tooltip:
+// Inside your view function, embed the tooltip via h.submodel:
 const view = () => {
   const h = html<Message>()
 
-  return Ui.Tooltip.view({
+  return h.submodel({
+    id: 'save-button',
+    view: Ui.Tooltip.view,
     model: model.tooltip,
+    inputs: {
+      anchor: { placement: 'top', gap: 6, padding: 8 },
+      toView: ({ trigger, panel, isVisible }) =>
+        h.div(
+          [h.Class('relative inline-block')],
+          [
+            h.button(
+              [
+                ...trigger,
+                h.Class('rounded-lg border px-3 py-2 cursor-pointer'),
+              ],
+              [h.span([], ['Save'])],
+            ),
+            ...(isVisible
+              ? [
+                  h.div(
+                    [
+                      ...panel,
+                      h.Class(
+                        'rounded-md bg-gray-900 px-3 py-1.5 text-sm text-white shadow-lg',
+                      ),
+                    ],
+                    [h.span([], ['Save your changes (⌘S)'])],
+                  ),
+                ]
+              : []),
+          ],
+        ),
+    },
     toParentMessage: message => GotTooltipMessage({ message }),
-    anchor: { placement: 'top', gap: 6, padding: 8 },
-    triggerContent: h.span([], ['Save']),
-    triggerClassName: 'rounded-lg border px-3 py-2 cursor-pointer',
-    content: h.span([], ['Save your changes (⌘S)']),
-    panelClassName:
-      'rounded-md bg-gray-900 px-3 py-1.5 text-sm text-white shadow-lg',
   })
 }

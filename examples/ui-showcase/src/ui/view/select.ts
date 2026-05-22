@@ -1,4 +1,4 @@
-import { Ui } from 'foldkit'
+import { Submodel, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import * as Icon from '../../icon'
@@ -17,11 +17,8 @@ const labelClassName = 'block text-sm font-medium text-gray-700'
 
 const descriptionClassName = 'text-sm text-gray-500'
 
-export const view = <ParentMessage>(
-  model: UiModel,
-  toParentMessage: (message: UiMessage) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
+  const h = html<UiMessage>()
 
   return h.div(
     [],
@@ -35,11 +32,10 @@ export const view = <ParentMessage>(
       h.div(
         [h.Class('flex flex-col items-start gap-2 max-w-sm')],
         [
-          Ui.Select.view({
+          Ui.Select.view<UiMessage>({
             id: 'select-basic-demo',
             value: model.selectDemoValue,
-            onChange: value =>
-              toParentMessage(UpdatedSelectDemoValue({ value })),
+            onChange: value => UpdatedSelectDemoValue({ value }),
             toView: attributes =>
               h.div(
                 [h.Class('flex flex-col gap-1.5 w-full')],
@@ -62,7 +58,7 @@ export const view = <ParentMessage>(
                       ),
                       h.span(
                         [h.Class(chevronClassName)],
-                        [Icon.chevronDown<ParentMessage>('w-4 h-4')],
+                        [Icon.chevronDown('w-4 h-4')],
                       ),
                     ],
                   ),
@@ -80,7 +76,7 @@ export const view = <ParentMessage>(
         [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
         ['Disabled'],
       ),
-      Ui.Select.view<ParentMessage>({
+      Ui.Select.view<UiMessage>({
         id: 'select-disabled-demo',
         isDisabled: true,
         value: 'us',
@@ -106,7 +102,7 @@ export const view = <ParentMessage>(
                   ),
                   h.span(
                     [h.Class(chevronClassName)],
-                    [Icon.chevronDown<ParentMessage>('w-4 h-4')],
+                    [Icon.chevronDown('w-4 h-4')],
                   ),
                 ],
               ),
@@ -119,4 +115,4 @@ export const view = <ParentMessage>(
       }),
     ],
   )
-}
+})

@@ -17,6 +17,7 @@ import {
   PagedYears,
   PressedKeyOnGrid,
   RefreshedToday,
+  SelectedDate,
   SelectedMonth,
   SelectedYear,
   dropToDays,
@@ -74,7 +75,7 @@ describe('Calendar', () => {
 
   describe('update', () => {
     describe('ClickedDay', () => {
-      it('commits the clicked date to internal state', () => {
+      it('commits the clicked date to internal state and emits SelectedDate', () => {
         const target = Calendar.make(2026, 4, 20)
         Story.story(
           update,
@@ -84,11 +85,11 @@ describe('Calendar', () => {
             expect(model.maybeSelectedDate).toStrictEqual(Option.some(target))
             expect(model.maybeFocusedDate).toStrictEqual(Option.some(target))
           }),
-          Story.expectNoOutMessage(),
+          Story.expectOutMessage(SelectedDate({ date: target })),
         )
       })
 
-      it('emits ChangedViewMonth when clicking into a different month', () => {
+      it('syncs view month and emits SelectedDate when clicking into a different month', () => {
         const target = Calendar.make(2026, 6, 5)
         Story.story(
           update,
@@ -99,7 +100,7 @@ describe('Calendar', () => {
             expect(model.viewMonth).toBe(6)
             expect(model.maybeSelectedDate).toStrictEqual(Option.some(target))
           }),
-          Story.expectOutMessage(ChangedViewMonth({ year: 2026, month: 6 })),
+          Story.expectOutMessage(SelectedDate({ date: target })),
         )
       })
 
@@ -255,7 +256,7 @@ describe('Calendar', () => {
         )
       })
 
-      it('Enter commits the focused date to internal state', () => {
+      it('Enter commits the focused date and emits SelectedDate', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test', today })),
@@ -263,11 +264,11 @@ describe('Calendar', () => {
           Story.model(model => {
             expect(model.maybeSelectedDate).toStrictEqual(Option.some(today))
           }),
-          Story.expectNoOutMessage(),
+          Story.expectOutMessage(SelectedDate({ date: today })),
         )
       })
 
-      it('Space commits the focused date to internal state', () => {
+      it('Space commits the focused date and emits SelectedDate', () => {
         Story.story(
           update,
           Story.with(init({ id: 'test', today })),
@@ -275,7 +276,7 @@ describe('Calendar', () => {
           Story.model(model => {
             expect(model.maybeSelectedDate).toStrictEqual(Option.some(today))
           }),
-          Story.expectNoOutMessage(),
+          Story.expectOutMessage(SelectedDate({ date: today })),
         )
       })
 

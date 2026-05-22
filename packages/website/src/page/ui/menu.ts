@@ -1,6 +1,6 @@
 import { Match as M } from 'effect'
 import { Ui } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import { Html, boundaryAttributes, html } from 'foldkit/html'
 import type { AnchorConfig } from 'foldkit/ui/menu'
 
 import { Icon } from '../../icon'
@@ -117,10 +117,10 @@ const menuViewConfig = <ParentMessage>(itemsClassName: string) => {
       [h.Class('flex items-center gap-4')],
       [h.span([], ['Actions']), Icon.chevronDown('w-4 h-4')],
     ),
-    buttonAttributes: [h.Class(triggerClassName)],
-    itemsAttributes: [h.Class(itemsClassName)],
-    backdropAttributes: [h.Class(backdropClassName)],
-    attributes: [h.Class(wrapperClassName)],
+    buttonAttributes: boundaryAttributes([h.Class(triggerClassName)]),
+    itemsAttributes: boundaryAttributes([h.Class(itemsClassName)]),
+    backdropAttributes: boundaryAttributes([h.Class(backdropClassName)]),
+    attributes: boundaryAttributes([h.Class(wrapperClassName)]),
     itemGroupKey,
     groupToHeading,
   }
@@ -136,11 +136,13 @@ export const basicDemo = <ParentMessage>(
     h.div(
       [h.Class('relative')],
       [
-        Ui.Menu.view({
+        h.submodel({
+          id: menuModel.id,
+          view: Ui.Menu.view<MenuItem>(),
           model: menuModel,
+          inputs: menuViewConfig<ParentMessage>(basicItemsClassName),
           toParentMessage: message =>
             toParentMessage(GotMenuBasicDemoMessage({ message })),
-          ...menuViewConfig<ParentMessage>(basicItemsClassName),
         }),
       ],
     ),
@@ -157,11 +159,13 @@ export const animatedDemo = <ParentMessage>(
     h.div(
       [h.Class('relative')],
       [
-        Ui.Menu.view({
+        h.submodel({
+          id: menuModel.id,
+          view: Ui.Menu.view<MenuItem>(),
           model: menuModel,
+          inputs: menuViewConfig<ParentMessage>(animatedItemsClassName),
           toParentMessage: message =>
             toParentMessage(GotMenuAnimatedDemoMessage({ message })),
-          ...menuViewConfig<ParentMessage>(animatedItemsClassName),
         }),
       ],
     ),

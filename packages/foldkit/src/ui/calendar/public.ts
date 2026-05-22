@@ -2,7 +2,6 @@ export {
   init,
   update,
   view,
-  lazy,
   selectDate,
   setMinDate,
   setMaxDate,
@@ -31,7 +30,7 @@ export {
 
 export type {
   InitConfig,
-  ViewConfig,
+  ViewInputs,
   CalendarAttributes,
   DaysModeAttributes,
   MonthsModeAttributes,

@@ -4,9 +4,11 @@ export {
   open,
   close,
   view,
-  lazy,
   Model,
   Message,
+  OutMessage,
+  OpenedPanel,
+  ClosedPanel,
   Opened,
   Closed,
   CompletedFocusPanel,
@@ -35,7 +37,8 @@ export type {
   IgnoredMouseClick,
   SuppressedSpaceScroll,
   InitConfig,
-  ViewConfig,
+  ViewInputs,
+  RenderInfo,
 } from './index.js'
 
 export type { AnchorConfig } from '../anchor.js'

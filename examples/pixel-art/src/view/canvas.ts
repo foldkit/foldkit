@@ -1,4 +1,4 @@
-import { Array, Equal, Option, Result, pipe } from 'effect'
+import { Array, Equal, Option, pipe } from 'effect'
 import { type Html, createKeyedLazy, html } from 'foldkit/html'
 
 import { EMPTY_COLOR } from '../constant'
@@ -10,7 +10,7 @@ import { type PaletteTheme, resolveColor } from '../palette'
 const { div, Class, OnMouseDown, OnMouseEnter, OnMouseLeave, Style } =
   html<Message>()
 
-export const lazyRow = createKeyedLazy()
+const lazyRow = createKeyedLazy()
 
 export const EMPTY_PREVIEW_POSITIONS: ReadonlyArray<readonly [number, number]> =
   []
@@ -55,6 +55,10 @@ export const computeFillPreview = (
 
 export const canvasView = (model: Model, theme: PaletteTheme): Html => {
   const previewPositions = computePreviewPositions(model)
+  const previewColor =
+    model.tool === 'Eraser'
+      ? EMPTY_COLOR
+      : (theme.colors[model.selectedColorIndex] ?? EMPTY_COLOR)
 
   return div(
     [
@@ -76,34 +80,23 @@ export const canvasView = (model: Model, theme: PaletteTheme): Html => {
                 backgroundColor: '#ffffff',
               }),
             ],
-            Array.filterMap(
-              Array.makeBy(model.gridSize, y => y),
-              y => {
-                const row = model.grid[y]
-                if (row === undefined) {
-                  return Result.failVoid
-                }
-                const rowPreviewPositions = pipe(
-                  previewPositions,
-                  Array.filter(([, positionY]) => positionY === y),
-                  Array.match({
-                    onEmpty: () => EMPTY_PREVIEW_POSITIONS,
-                    onNonEmpty: filtered => filtered,
-                  }),
-                )
-                return Result.succeed(
-                  lazyRow(`${y}`, rowView, [
-                    row,
-                    y,
-                    model.tool === 'Eraser'
-                      ? EMPTY_COLOR
-                      : (theme.colors[model.selectedColorIndex] ?? EMPTY_COLOR),
-                    rowPreviewPositions,
-                    theme,
-                  ]),
-                )
-              },
-            ),
+            Array.map(model.grid, (row, y) => {
+              const rowPreviewPositions = pipe(
+                previewPositions,
+                Array.filter(([, positionY]) => positionY === y),
+                Array.match({
+                  onEmpty: () => EMPTY_PREVIEW_POSITIONS,
+                  onNonEmpty: filtered => filtered,
+                }),
+              )
+              return lazyRow(`${y}`, rowView, [
+                row,
+                y,
+                previewColor,
+                rowPreviewPositions,
+                theme,
+              ])
+            }),
           ),
         ],
       ),

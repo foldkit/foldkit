@@ -55,26 +55,30 @@ export const basicDemo = <ParentMessage>(
     h.div(
       [h.Class('flex flex-col gap-3 w-full max-w-md')],
       [
-        Ui.FileDrop.view({
+        h.submodel({
+          id: model.fileDropBasicDemo.id,
+          view: Ui.FileDrop.view,
           model: model.fileDropBasicDemo,
+          inputs: {
+            multiple: true,
+            toView: attributes =>
+              h.label(
+                [...attributes.root, h.Class(dropZoneClassName)],
+                [
+                  h.p(
+                    [h.Class(primaryTextClassName)],
+                    ['Drop files or click to browse'],
+                  ),
+                  h.p(
+                    [h.Class(secondaryTextClassName)],
+                    ['Any file type. This demo just lists them.'],
+                  ),
+                  h.input(attributes.input),
+                ],
+              ),
+          },
           toParentMessage: message =>
             toParentMessage(GotFileDropBasicDemoMessage({ message })),
-          multiple: true,
-          toView: attributes =>
-            h.label(
-              [...attributes.root, h.Class(dropZoneClassName)],
-              [
-                h.p(
-                  [h.Class(primaryTextClassName)],
-                  ['Drop files or click to browse'],
-                ),
-                h.p(
-                  [h.Class(secondaryTextClassName)],
-                  ['Any file type. This demo just lists them.'],
-                ),
-                h.input(attributes.input),
-              ],
-            ),
         }),
         ...Array.match(model.fileDropBasicDemoFiles, {
           onEmpty: () => [],

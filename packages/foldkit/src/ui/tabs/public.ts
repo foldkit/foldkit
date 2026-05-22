@@ -1,9 +1,6 @@
 export {
   init,
-  update,
-  selectTab,
-  view,
-  lazy,
+  create,
   Model,
   Message,
   TabSelected,
@@ -16,6 +13,7 @@ export type {
   Orientation,
   ActivationMode,
   InitConfig,
-  ViewConfig,
-  TabConfig,
+  ViewInputs,
+  RenderInfo,
+  TabInfo,
 } from './index.js'

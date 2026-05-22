@@ -246,12 +246,6 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
       'Wraps Calendar Messages in your parent Message type for Submodel delegation (navigation, keyboard, picker-mode transitions).',
   },
   {
-    name: 'onSelectedDate',
-    type: '(date: CalendarDate) => ParentMessage',
-    description:
-      'Optional. When provided, click / Enter / Space on a day dispatches this callback directly (controlled mode: parent owns the event). When omitted, the calendar manages its own maybeSelectedDate automatically (uncontrolled mode). In controlled mode, use Calendar.selectDate(model, date) to write the selection back to internal state.',
-  },
-  {
     name: 'toView',
     type: '(attributes: CalendarAttributes) => Html',
     description:
@@ -365,10 +359,16 @@ const calendarAttributesProps: ReadonlyArray<PropEntry> = [
 
 const outMessagesProps: ReadonlyArray<PropEntry> = [
   {
+    name: 'SelectedDate',
+    type: '{ date: CalendarDate }',
+    description:
+      'Emitted when the user commits a date (click / Enter / Space). Pattern-match the third tuple element of Calendar.update in your GotCalendarMessage handler to lift the date into domain state.',
+  },
+  {
     name: 'ChangedViewMonth',
     type: '{ year: number; month: number }',
     description:
-      'Emitted when navigation changes the visible month (prev/next buttons, heading-drill selection of a different month, or arrow keys crossing a month boundary, or a commit that crosses a month). Useful for inline-calendar consumers loading month-scoped data like holidays or availability. Note: date selection does NOT go through OutMessage. Consumers subscribe via the onSelectedDate ViewConfig callback (see above).',
+      'Emitted when navigation changes the visible month (prev/next buttons, heading-drill selection of a different month, arrow keys crossing a month boundary, or a commit that crosses a month). Useful for inline-calendar consumers loading month-scoped data like holidays or availability.',
   },
 ]
 
@@ -377,7 +377,7 @@ const programmaticHelpersProps: ReadonlyArray<PropEntry> = [
     name: 'selectDate',
     type: '(model: Model, date: CalendarDate) => [Model, Commands, Option<OutMessage>]',
     description:
-      'Commits the given date and moves the cursor onto it. Use in controlled mode (when ViewConfig provides onSelectedDate) to write the selection back to the calendar.',
+      'Commits the given date and moves the cursor onto it. Use from your update handler when the date should be set in response to something other than a user click (e.g. restoring from storage, clearing the selection).',
   },
   {
     name: 'focusGrid',

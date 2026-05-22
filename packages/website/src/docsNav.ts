@@ -29,6 +29,7 @@ import {
   coreResourcesRouter,
   coreRuntimeRouter,
   coreSlowViewRouter,
+  coreSubmodelRouter,
   coreSubscriptionsRouter,
   coreUpdateRouter,
   coreViewMemoizationRouter,
@@ -39,8 +40,8 @@ import {
   gettingStartedRouter,
   manifestoRouter,
   onSsrRouter,
+  patternsBoundaryAttributesRouter,
   patternsOutMessageRouter,
-  patternsSubmodelsRouter,
   patternsSubscriptionOrganizationRouter,
   projectOrganizationRouter,
   reactComparisonRouter,
@@ -73,6 +74,7 @@ import {
   uiTextareaRouter,
   uiToastRouter,
   uiTooltipRouter,
+  uiTypedPrimitivesRouter,
   uiVirtualListRouter,
   whyNoJsxRouter,
 } from './route'
@@ -188,6 +190,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'CoreInitAndFlags',
           href: coreInitAndFlagsRouter(),
           label: 'Init & Flags',
+        },
+        {
+          _tag: 'CoreSubmodel',
+          href: coreSubmodelRouter(),
+          label: 'Submodel',
         },
         {
           _tag: 'CoreRuntime',
@@ -312,9 +319,9 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           label: 'Project Organization',
         },
         {
-          _tag: 'PatternsSubmodels',
-          href: patternsSubmodelsRouter(),
-          label: 'Submodels',
+          _tag: 'PatternsBoundaryAttributes',
+          href: patternsBoundaryAttributesRouter(),
+          label: 'boundaryAttributes',
         },
         {
           _tag: 'PatternsOutMessage',
@@ -430,6 +437,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'UiOverview',
           href: uiOverviewRouter(),
           label: 'Overview',
+        },
+        {
+          _tag: 'UiTypedPrimitives',
+          href: uiTypedPrimitivesRouter(),
+          label: 'Typed Primitives',
         },
       ],
       [

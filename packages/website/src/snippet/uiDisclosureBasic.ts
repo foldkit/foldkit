@@ -38,25 +38,44 @@ GotDisclosureMessage: ({ message }) => {
     // Merge the next state into your Model:
     evo(model, { disclosure: () => nextDisclosure }),
     // Forward the Submodel's Commands through your parent Message:
-    commands.map(
-      Command.mapEffect(
-        Effect.map(message => GotDisclosureMessage({ message })),
-      ),
-    ),
+    Command.mapMessages(commands, message => GotDisclosureMessage({ message })),
   ]
 }
 
-// Inside your view function, render the disclosure:
+// Inside your view function, embed the disclosure via h.submodel:
 const view = (model: Model) => {
   const h = html<Message>()
 
-  return Ui.Disclosure.view({
+  return h.submodel({
+    id: 'faq-1',
+    view: Ui.Disclosure.view,
     model: model.disclosure,
+    inputs: {
+      toView: attributes =>
+        h.div(
+          [],
+          [
+            h.button(
+              [
+                ...attributes.button,
+                h.Class(
+                  'flex items-center justify-between w-full p-4 border rounded-lg data-[open]:rounded-b-none',
+                ),
+              ],
+              [h.span([], ['What is Foldkit?'])],
+            ),
+            model.disclosure.isOpen
+              ? h.div(
+                  [
+                    ...attributes.panel,
+                    h.Class('p-4 border-x border-b rounded-b-lg'),
+                  ],
+                  [h.p([], ['A functional UI framework built on Effect-TS.'])],
+                )
+              : h.empty,
+          ],
+        ),
+    },
     toParentMessage: message => GotDisclosureMessage({ message }),
-    buttonContent: h.span([], ['What is Foldkit?']),
-    panelContent: h.p([], ['A functional UI framework built on Effect-TS.']),
-    buttonClassName:
-      'flex items-center justify-between w-full p-4 border rounded-lg data-[open]:rounded-b-none',
-    panelClassName: 'p-4 border-x border-b rounded-b-lg',
   })
 }

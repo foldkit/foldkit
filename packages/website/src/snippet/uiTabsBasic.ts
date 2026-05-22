@@ -27,21 +27,12 @@ const GotTabsMessage = m('GotTabsMessage', {
   message: Ui.Tabs.Message,
 })
 
-// Inside your update function's M.tagsExhaustive({...}), delegate to Tabs.update:
-GotTabsMessage: ({ message }) => {
-  const [nextTabs, commands] = Ui.Tabs.update(model.tabs, message)
-
-  return [
-    // Merge the next state into your Model:
-    evo(model, { tabs: () => nextTabs }),
-    // Forward the Submodel's Commands through your parent Message:
-    commands.map(
-      Command.mapEffect(Effect.map(message => GotTabsMessage({ message }))),
-    ),
-  ]
-}
-
+// Declare a typed Tabs factory once at module scope. The Value generic
+// types tab.value in toView so the consumer can switch on it without
+// casting:
 type Framework = 'Foldkit' | 'React' | 'Elm'
+const FrameworkTabs = Ui.Tabs.create<Framework>()
+
 const frameworks: ReadonlyArray<Framework> = ['Foldkit', 'React', 'Elm']
 
 const descriptions: Record<Framework, string> = {
@@ -50,22 +41,58 @@ const descriptions: Record<Framework, string> = {
   Elm: 'The original MVU architecture.',
 }
 
-// Inside your view function, render the tabs:
+// Inside your update function's M.tagsExhaustive({...}), delegate to FrameworkTabs.update:
+GotTabsMessage: ({ message }) => {
+  const [nextTabs, commands] = FrameworkTabs.update(model.tabs, message)
+
+  return [
+    // Merge the next state into your Model:
+    evo(model, { tabs: () => nextTabs }),
+    // Forward the Submodel's Commands through your parent Message:
+    Command.mapMessages(commands, message => GotTabsMessage({ message })),
+  ]
+}
+
+// Inside your view function, embed the tabs via h.submodel:
 const view = () => {
   const h = html<Message>()
 
-  return Ui.Tabs.view<Message, Framework>({
+  return h.submodel({
+    id: 'framework-tabs',
+    view: FrameworkTabs.view,
     model: model.tabs,
+    inputs: {
+      tabs: frameworks,
+      ariaLabel: 'Framework comparison',
+      toView: ({ tablist, tabs, activeIndex }) =>
+        h.div(
+          [],
+          [
+            h.div(
+              [...tablist, h.Class('flex')],
+              tabs.map(tab =>
+                h.button(
+                  [
+                    ...tab.tab,
+                    h.Class(
+                      'px-4 py-2 rounded-t-lg border data-[selected]:bg-white data-[selected]:border-b-0',
+                    ),
+                  ],
+                  [h.span([], [tab.value])],
+                ),
+              ),
+            ),
+            ...tabs
+              .filter(tab => tab.index === activeIndex)
+              .map(tab =>
+                h.div(
+                  [...tab.panel, h.Class('p-6 border rounded-b-lg')],
+                  [h.p([], [descriptions[tab.value]])],
+                ),
+              ),
+          ],
+        ),
+    },
     toParentMessage: message => GotTabsMessage({ message }),
-    tabs: frameworks,
-    tabListAriaLabel: 'Framework comparison',
-    tabToConfig: (tab, { isActive }) => ({
-      buttonClassName:
-        'px-4 py-2 rounded-t-lg border data-[selected]:bg-white data-[selected]:border-b-0',
-      buttonContent: h.span([], [tab]),
-      panelClassName: 'p-6 border rounded-b-lg',
-      panelContent: h.p([], [descriptions[tab]]),
-    }),
-    tabListAttributes: [h.Class('flex')],
   })
 }

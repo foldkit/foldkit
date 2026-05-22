@@ -8,7 +8,7 @@ import {
   para,
   tableOfContentsEntryToHeader,
 } from '../../prose'
-import { coreRuntimeRouter } from '../../route'
+import { coreSubmodelRouter } from '../../route'
 import * as Snippets from '../../snippet'
 import { type CopiedSnippets, highlightedCodeBlock } from '../../view/codeBlock'
 
@@ -97,9 +97,9 @@ export const view = (copiedSnippets: CopiedSnippets): Html => {
         'mb-8',
       ),
       para(
-        'The next page covers the ',
-        link(coreRuntimeRouter(), 'Runtime'),
-        ': the engine that executes Commands, runs Subscriptions, manages Mount and ManagedResource lifecycles, and routes Messages back into update.',
+        'Once your app outgrows a single Model, Message, and update, the next step is to decompose it into ',
+        link(coreSubmodelRouter(), 'Submodels'),
+        ': self-contained modules with their own state, Messages, and update, embedded under a parent.',
       ),
     ],
   )

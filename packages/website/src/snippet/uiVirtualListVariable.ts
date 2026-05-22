@@ -28,43 +28,53 @@ const init = () => [
 const view = () => {
   const h = html<Message>()
 
-  return Ui.VirtualList.view({
+  return h.submodel({
+    id: 'activity-list',
+    view: Ui.VirtualList.view<Activity>(),
     model: model.activityList,
-    items: model.activities,
-    itemToKey: activity => String(activity.id),
-    itemToRowHeightPx: (activity, index) => (activity.hasSummary ? 104 : 56),
-    itemToView: activity =>
-      activity.hasSummary
-        ? h.div(
-            [
-              h.Class(
-                'grid grid-cols-[2rem_1fr_5rem] items-start gap-3 px-4 py-3',
-              ),
-            ],
-            [
-              h.div([h.Class('h-7 w-7 rounded-full')], [activity.initial]),
-              h.div(
-                [],
-                [
-                  h.span([], [activity.label]),
-                  h.div(
-                    [h.Class('mt-1 text-xs text-gray-500')],
-                    [activity.summary],
-                  ),
-                ],
-              ),
-              h.span([h.Class('text-right text-xs')], [activity.timeAgo]),
-            ],
-          )
-        : h.div(
-            [h.Class('grid grid-cols-[2rem_1fr_5rem] items-center gap-3 px-4')],
-            [
-              h.div([h.Class('h-7 w-7 rounded-full')], [activity.initial]),
-              h.span([], [activity.label]),
-              h.span([h.Class('text-right text-xs')], [activity.timeAgo]),
-            ],
-          ),
-    className: 'h-96 w-full rounded-lg bg-white ring-1 ring-gray-200',
+    inputs: {
+      items: model.activities,
+      itemToKey: activity => String(activity.id),
+      itemToRowHeightPx: (activity, index) => (activity.hasSummary ? 104 : 56),
+      itemToView: activity =>
+        activity.hasSummary
+          ? h.div(
+              [
+                h.Class(
+                  'grid grid-cols-[2rem_1fr_5rem] items-start gap-3 px-4 py-3',
+                ),
+              ],
+              [
+                h.div([h.Class('h-7 w-7 rounded-full')], [activity.initial]),
+                h.div(
+                  [],
+                  [
+                    h.span([], [activity.label]),
+                    h.div(
+                      [h.Class('mt-1 text-xs text-gray-500')],
+                      [activity.summary],
+                    ),
+                  ],
+                ),
+                h.span([h.Class('text-right text-xs')], [activity.timeAgo]),
+              ],
+            )
+          : h.div(
+              [
+                h.Class(
+                  'grid grid-cols-[2rem_1fr_5rem] items-center gap-3 px-4',
+                ),
+              ],
+              [
+                h.div([h.Class('h-7 w-7 rounded-full')], [activity.initial]),
+                h.span([], [activity.label]),
+                h.span([h.Class('text-right text-xs')], [activity.timeAgo]),
+              ],
+            ),
+      containerClassName:
+        'h-96 w-full rounded-lg bg-white ring-1 ring-gray-200',
+    },
+    toParentMessage: message => GotActivityListMessage({ message }),
   })
 }
 

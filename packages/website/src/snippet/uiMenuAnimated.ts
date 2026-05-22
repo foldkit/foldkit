@@ -25,20 +25,23 @@ const GotMenuMessage = m('GotMenuMessage', {
 const view = () => {
   const h = html<Message>()
 
-  return Ui.Menu.view({
+  return h.submodel({
+    id: 'menu',
+    view: Ui.Menu.view<Action>(),
     model: model.menu,
+    inputs: {
+      items: actions,
+      buttonContent: h.span([], ['Options']),
+      buttonClassName: 'rounded-lg border px-3 py-2 cursor-pointer',
+      itemsClassName:
+        'rounded-lg border shadow-lg transition duration-150 ease-out data-[closed]:opacity-0 data-[closed]:scale-95',
+      itemToConfig: (action, { isActive }) => ({
+        className: isActive ? 'bg-blue-100' : '',
+        content: h.div([h.Class('px-3 py-2')], [action]),
+      }),
+      backdropClassName: 'fixed inset-0',
+      anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+    },
     toParentMessage: message => GotMenuMessage({ message }),
-    items: actions,
-    onSelectedItem: value => SelectedAction({ value }),
-    buttonContent: h.span([], ['Options']),
-    buttonClassName: 'rounded-lg border px-3 py-2 cursor-pointer',
-    itemsClassName:
-      'rounded-lg border shadow-lg transition duration-150 ease-out data-[closed]:opacity-0 data-[closed]:scale-95',
-    itemToConfig: (action, { isActive }) => ({
-      className: isActive ? 'bg-blue-100' : '',
-      content: h.div([h.Class('px-3 py-2')], [action]),
-    }),
-    backdropClassName: 'fixed inset-0',
-    anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
   })
 }

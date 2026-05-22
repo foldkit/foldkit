@@ -641,10 +641,17 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
           lazyDocsContent(Page.Core.FreezeModel.view, []),
           Page.Core.FreezeModel.tableOfContents,
         ),
-      PatternsSubmodels: () =>
+      CoreSubmodel: () =>
         withTableOfContents(
-          lazyDocsContent(Page.Patterns.Submodels.view, [model.copiedSnippets]),
-          Page.Patterns.Submodels.tableOfContents,
+          lazyDocsContent(Page.Core.Submodel.view, [model.copiedSnippets]),
+          Page.Core.Submodel.tableOfContents,
+        ),
+      PatternsBoundaryAttributes: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.Patterns.BoundaryAttributes.view, [
+            model.copiedSnippets,
+          ]),
+          Page.Patterns.BoundaryAttributes.tableOfContents,
         ),
       PatternsOutMessage: () =>
         withTableOfContents(
@@ -671,6 +678,13 @@ export const docsView = (model: Model, docsRoute: DocsRoute) => {
         withTableOfContents(
           Page.UiPages.OverviewPage.view(),
           Page.UiPages.OverviewPage.tableOfContents,
+        ),
+      UiTypedPrimitives: () =>
+        withTableOfContents(
+          lazyDocsContent(Page.UiPages.TypedPrimitivesPage.view, [
+            model.copiedSnippets,
+          ]),
+          Page.UiPages.TypedPrimitivesPage.tableOfContents,
         ),
       UiButton: () =>
         withTableOfContents(

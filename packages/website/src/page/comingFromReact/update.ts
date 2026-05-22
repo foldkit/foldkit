@@ -1,4 +1,4 @@
-import { Effect, Match as M, Option, Record } from 'effect'
+import { Match as M, Option, Record } from 'effect'
 import { Command, Ui } from 'foldkit'
 
 import { GotFaqDisclosureMessage, type Message } from './message'
@@ -25,12 +25,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
             return [
               Record.set(model, id, nextDisclosure),
-              commands.map(
-                Command.mapEffect(
-                  Effect.map(message =>
-                    GotFaqDisclosureMessage({ id, message }),
-                  ),
-                ),
+              Command.mapMessages(commands, message =>
+                GotFaqDisclosureMessage({ id, message }),
               ),
             ]
           },

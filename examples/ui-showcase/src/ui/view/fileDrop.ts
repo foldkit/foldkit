@@ -1,5 +1,5 @@
 import { Array, Match as M, Number } from 'effect'
-import { File, Ui } from 'foldkit'
+import { File, Submodel, Ui } from 'foldkit'
 import { Html, html } from 'foldkit/html'
 
 import {
@@ -42,11 +42,8 @@ const formatFileSize = (bytes: number): string =>
 const fileKey = (file: File.File): string =>
   `${File.name(file)}:${File.size(file)}:${file.lastModified}`
 
-export const view = <ParentMessage>(
-  model: UiModel,
-  toParentMessage: (message: UiMessage) => ParentMessage,
-): Html => {
-  const h = html<ParentMessage>()
+export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
+  const h = html<UiMessage>()
 
   return h.div(
     [],
@@ -55,26 +52,30 @@ export const view = <ParentMessage>(
       h.div(
         [h.Class('flex flex-col gap-3 w-full max-w-md')],
         [
-          Ui.FileDrop.view({
+          h.submodel({
+            id: model.fileDropBasicDemo.id,
+            view: Ui.FileDrop.view,
             model: model.fileDropBasicDemo,
+            inputs: {
+              multiple: true,
+              toView: attributes =>
+                h.label(
+                  [...attributes.root, h.Class(dropZoneClassName)],
+                  [
+                    h.p(
+                      [h.Class(primaryTextClassName)],
+                      ['Drop files or click to browse'],
+                    ),
+                    h.p(
+                      [h.Class(secondaryTextClassName)],
+                      ['Any file type. This demo just lists them.'],
+                    ),
+                    h.input(attributes.input),
+                  ],
+                ),
+            },
             toParentMessage: message =>
-              toParentMessage(GotFileDropBasicDemoMessage({ message })),
-            multiple: true,
-            toView: attributes =>
-              h.label(
-                [...attributes.root, h.Class(dropZoneClassName)],
-                [
-                  h.p(
-                    [h.Class(primaryTextClassName)],
-                    ['Drop files or click to browse'],
-                  ),
-                  h.p(
-                    [h.Class(secondaryTextClassName)],
-                    ['Any file type. This demo just lists them.'],
-                  ),
-                  h.input(attributes.input),
-                ],
-              ),
+              GotFileDropBasicDemoMessage({ message }),
           }),
           ...Array.match(model.fileDropBasicDemoFiles, {
             onEmpty: () => [],
@@ -97,11 +98,7 @@ export const view = <ParentMessage>(
                     h.button(
                       [
                         h.Type('button'),
-                        h.OnClick(
-                          toParentMessage(
-                            ClickedRemoveFileDropDemoFile({ fileIndex }),
-                          ),
-                        ),
+                        h.OnClick(ClickedRemoveFileDropDemoFile({ fileIndex })),
                         h.Class(removeButtonClassName),
                       ],
                       ['Remove'],
@@ -114,4 +111,4 @@ export const view = <ParentMessage>(
       ),
     ],
   )
-}
+})
