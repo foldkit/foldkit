@@ -33,7 +33,7 @@ import { load, pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
-import { allPages } from './docsNav'
+import { DOCS_SIDEBAR_NAV_ID, allPages, findActiveSectionKey } from './docsNav'
 import {
   CompletedApplyTheme,
   CompletedInjectAnalytics,
@@ -42,6 +42,7 @@ import {
   CompletedNavigateInternal,
   CompletedSaveSidebarState,
   CompletedSaveThemePreference,
+  CompletedScrollSidebarActiveLinkIntoView,
   CompletedScrollToAnchor,
   CompletedScrollToTop,
   FailedCopyLink,
@@ -57,6 +58,7 @@ import {
   GotDemoTabsMessage,
   GotExampleDetailMessage,
   GotExamplesGroupMessage,
+  GotFaqGroupMessage,
   GotFoldkitUiGroupMessage,
   GotForReactDevelopersGroupMessage,
   GotGetStartedGroupMessage,
@@ -87,7 +89,6 @@ import * as Search from './search'
 import {
   DEFAULT_OPEN_GROUPS,
   type GroupKey,
-  INITIAL_SIDEBAR_SCROLL,
   SIDEBAR_STORAGE_KEY,
   SidebarState,
   SidebarStateJsonString,
@@ -240,6 +241,7 @@ export const Model = S.Struct({
   coreConceptsGroup: Ui.Disclosure.Model,
   forReactDevelopersGroup: Ui.Disclosure.Model,
   guidesGroup: Ui.Disclosure.Model,
+  faqGroup: Ui.Disclosure.Model,
   testingGroup: Ui.Disclosure.Model,
   bestPracticesGroup: Ui.Disclosure.Model,
   patternsGroup: Ui.Disclosure.Model,
@@ -247,7 +249,6 @@ export const Model = S.Struct({
   aiGroup: Ui.Disclosure.Model,
   examplesGroup: Ui.Disclosure.Model,
   apiReferenceGroup: Ui.Disclosure.Model,
-  sidebarScroll: S.Number,
   aiHeadingToggleCount: S.Number,
   themePreference: ThemePreference,
   systemTheme: ResolvedTheme,
@@ -273,12 +274,21 @@ type AppResources =
 
 const isGroupOpenOnBoot = (
   maybeSidebarState: Option.Option<SidebarState>,
+  maybeActiveSectionKey: Option.Option<GroupKey>,
   key: GroupKey,
-): boolean =>
-  Option.match(maybeSidebarState, {
+): boolean => {
+  const isActiveSection = Option.match(maybeActiveSectionKey, {
+    onNone: () => false,
+    onSome: activeKey => activeKey === key,
+  })
+  if (isActiveSection) {
+    return true
+  }
+  return Option.match(maybeSidebarState, {
     onNone: () => Array.contains(DEFAULT_OPEN_GROUPS, key),
     onSome: ({ open }) => open[key] ?? false,
   })
+}
 
 export const init: Runtime.RoutingProgramInit<
   Model,
@@ -318,6 +328,11 @@ export const init: Runtime.RoutingProgramInit<
   )
   const [exampleDetail, exampleDetailCommands] =
     Page.Example.ExampleDetail.boot(maybeInitialExampleSlug)
+
+  const maybeInitialActiveSectionKey = findActiveSectionKey(
+    initialRoute._tag,
+    maybeInitialExampleSlug,
+  )
 
   const mappedAsyncCounterDemoCommands = asyncCounterDemoCommands.map(
     Command.mapEffect(
@@ -371,54 +386,99 @@ export const init: Runtime.RoutingProgramInit<
       playgroundError: Option.none(),
       getStartedGroup: Ui.Disclosure.init({
         id: 'get-started-group',
-        isOpen: isGroupOpenOnBoot(flags.maybeSidebarState, 'getStarted'),
+        isOpen: isGroupOpenOnBoot(
+          flags.maybeSidebarState,
+          maybeInitialActiveSectionKey,
+          'getStarted',
+        ),
       }),
       coreConceptsGroup: Ui.Disclosure.init({
         id: 'core-concepts-group',
-        isOpen: isGroupOpenOnBoot(flags.maybeSidebarState, 'coreConcepts'),
+        isOpen: isGroupOpenOnBoot(
+          flags.maybeSidebarState,
+          maybeInitialActiveSectionKey,
+          'coreConcepts',
+        ),
       }),
       forReactDevelopersGroup: Ui.Disclosure.init({
         id: 'for-react-developers-group',
         isOpen: isGroupOpenOnBoot(
           flags.maybeSidebarState,
+          maybeInitialActiveSectionKey,
           'forReactDevelopers',
         ),
       }),
       guidesGroup: Ui.Disclosure.init({
         id: 'guides-group',
-        isOpen: isGroupOpenOnBoot(flags.maybeSidebarState, 'guides'),
+        isOpen: isGroupOpenOnBoot(
+          flags.maybeSidebarState,
+          maybeInitialActiveSectionKey,
+          'guides',
+        ),
+      }),
+      faqGroup: Ui.Disclosure.init({
+        id: 'faq-group',
+        isOpen: isGroupOpenOnBoot(
+          flags.maybeSidebarState,
+          maybeInitialActiveSectionKey,
+          'faq',
+        ),
       }),
       testingGroup: Ui.Disclosure.init({
         id: 'testing-group',
-        isOpen: isGroupOpenOnBoot(flags.maybeSidebarState, 'testing'),
+        isOpen: isGroupOpenOnBoot(
+          flags.maybeSidebarState,
+          maybeInitialActiveSectionKey,
+          'testing',
+        ),
       }),
       bestPracticesGroup: Ui.Disclosure.init({
         id: 'best-practices-group',
-        isOpen: isGroupOpenOnBoot(flags.maybeSidebarState, 'bestPractices'),
+        isOpen: isGroupOpenOnBoot(
+          flags.maybeSidebarState,
+          maybeInitialActiveSectionKey,
+          'bestPractices',
+        ),
       }),
       patternsGroup: Ui.Disclosure.init({
         id: 'patterns-group',
-        isOpen: isGroupOpenOnBoot(flags.maybeSidebarState, 'patterns'),
+        isOpen: isGroupOpenOnBoot(
+          flags.maybeSidebarState,
+          maybeInitialActiveSectionKey,
+          'patterns',
+        ),
       }),
       foldkitUiGroup: Ui.Disclosure.init({
         id: 'foldkit-ui-group',
-        isOpen: isGroupOpenOnBoot(flags.maybeSidebarState, 'foldkitUi'),
+        isOpen: isGroupOpenOnBoot(
+          flags.maybeSidebarState,
+          maybeInitialActiveSectionKey,
+          'foldkitUi',
+        ),
       }),
       aiGroup: Ui.Disclosure.init({
         id: 'ai-group',
-        isOpen: isGroupOpenOnBoot(flags.maybeSidebarState, 'ai'),
+        isOpen: isGroupOpenOnBoot(
+          flags.maybeSidebarState,
+          maybeInitialActiveSectionKey,
+          'ai',
+        ),
       }),
       examplesGroup: Ui.Disclosure.init({
         id: 'examples-group',
-        isOpen: isGroupOpenOnBoot(flags.maybeSidebarState, 'examples'),
+        isOpen: isGroupOpenOnBoot(
+          flags.maybeSidebarState,
+          maybeInitialActiveSectionKey,
+          'examples',
+        ),
       }),
       apiReferenceGroup: Ui.Disclosure.init({
         id: 'api-reference-group',
-        isOpen: isGroupOpenOnBoot(flags.maybeSidebarState, 'apiReference'),
-      }),
-      sidebarScroll: Option.match(flags.maybeSidebarState, {
-        onNone: () => INITIAL_SIDEBAR_SCROLL,
-        onSome: ({ scroll }) => scroll,
+        isOpen: isGroupOpenOnBoot(
+          flags.maybeSidebarState,
+          maybeInitialActiveSectionKey,
+          'apiReference',
+        ),
       }),
       themePreference,
       systemTheme,
@@ -443,6 +503,7 @@ export const init: Runtime.RoutingProgramInit<
       ...mappedComingFromReactCommands,
       ...mappedApiReferenceCommands,
       ...mappedExampleDetailCommands,
+      ScrollSidebarActiveLinkIntoView(),
       ...Option.match(url.hash, {
         onNone: () => [],
         onSome: hash => [ScrollToAnchor({ hash })],
@@ -508,6 +569,23 @@ export const update = (
 
       ChangedUrl: ({ url }) => {
         const nextRoute = urlToAppRoute(url)
+        const maybeNextExampleSlug = pipe(
+          nextRoute,
+          Option.liftPredicate(route => route._tag === 'ExampleDetail'),
+          Option.map(({ exampleSlug }) => exampleSlug),
+        )
+        const maybeNextActiveSectionKey = findActiveSectionKey(
+          nextRoute._tag,
+          maybeNextExampleSlug,
+        )
+        const expandIfActive =
+          (key: GroupKey) =>
+          (group: Ui.Disclosure.Model): Ui.Disclosure.Model =>
+            Option.match(maybeNextActiveSectionKey, {
+              onNone: () => group,
+              onSome: activeKey =>
+                activeKey === key ? { ...group, isOpen: true } : group,
+            })
         const [closedMobileMenu, closeMobileMenuCommands] = Ui.Dialog.update(
           model.mobileMenuDialog,
           Ui.Dialog.Closed(),
@@ -560,10 +638,18 @@ export const update = (
             }),
             isLandingHeaderVisible: () =>
               isLandingHeaderAlwaysVisible(nextRoute),
-            apiReferenceGroup: apiReferenceGroup =>
-              nextRoute._tag === 'ApiModule'
-                ? { ...apiReferenceGroup, isOpen: true }
-                : apiReferenceGroup,
+            getStartedGroup: expandIfActive('getStarted'),
+            coreConceptsGroup: expandIfActive('coreConcepts'),
+            forReactDevelopersGroup: expandIfActive('forReactDevelopers'),
+            guidesGroup: expandIfActive('guides'),
+            faqGroup: expandIfActive('faq'),
+            testingGroup: expandIfActive('testing'),
+            bestPracticesGroup: expandIfActive('bestPractices'),
+            patternsGroup: expandIfActive('patterns'),
+            foldkitUiGroup: expandIfActive('foldkitUi'),
+            aiGroup: expandIfActive('ai'),
+            examplesGroup: expandIfActive('examples'),
+            apiReferenceGroup: expandIfActive('apiReference'),
           }),
           [
             ...closeMobileMenuCommands.map(
@@ -594,6 +680,7 @@ export const update = (
                 ),
               ),
             ),
+            ScrollSidebarActiveLinkIntoView(),
             ...Option.match(url.hash, {
               onNone: () => [ScrollToTop()],
               onSome: hash => [ScrollToAnchor({ hash })],
@@ -909,6 +996,14 @@ export const update = (
           message => GotGuidesGroupMessage({ message }),
         ),
 
+      GotFaqGroupMessage: ({ message }) =>
+        handleSidebarGroup(
+          model.faqGroup,
+          message,
+          next => evo(model, { faqGroup: () => next }),
+          message => GotFaqGroupMessage({ message }),
+        ),
+
       GotTestingGroupMessage: ({ message }) =>
         handleSidebarGroup(
           model.testingGroup,
@@ -965,11 +1060,6 @@ export const update = (
           message => GotApiReferenceGroupMessage({ message }),
         ),
 
-      ScrolledSidebar: ({ scroll }) => {
-        const nextModel = evo(model, { sidebarScroll: () => scroll })
-        return [nextModel, [saveSidebarState(nextModel)]]
-      },
-
       GotExampleDetailMessage: ({ message }) => {
         const [nextExampleDetail, exampleDetailCommands] =
           Page.Example.ExampleDetail.update(model.exampleDetail, message)
@@ -1014,6 +1104,7 @@ export const update = (
       'CompletedInjectSpeedInsights',
       'CompletedScrollToTop',
       'CompletedScrollToAnchor',
+      'CompletedScrollSidebarActiveLinkIntoView',
       'CompletedApplyTheme',
       'CompletedSaveThemePreference',
       'CompletedSaveSidebarState',
@@ -1106,6 +1197,16 @@ const ScrollToAnchor = Command.define(
   }).pipe(Effect.ignore, Effect.as(CompletedScrollToAnchor())),
 )
 
+const ScrollSidebarActiveLinkIntoView = Command.define(
+  'ScrollSidebarActiveLinkIntoView',
+  CompletedScrollSidebarActiveLinkIntoView,
+)(
+  Dom.scrollIntoViewAfterPaint(
+    `#${DOCS_SIDEBAR_NAV_ID} [aria-current="page"]`,
+    { block: 'center' },
+  ).pipe(Effect.ignore, Effect.as(CompletedScrollSidebarActiveLinkIntoView())),
+)
+
 const ApplyTheme = Command.define(
   'ApplyTheme',
   { theme: ResolvedTheme },
@@ -1188,6 +1289,7 @@ const modelToSidebarState = (model: Model): SidebarState => ({
     coreConcepts: model.coreConceptsGroup.isOpen,
     forReactDevelopers: model.forReactDevelopersGroup.isOpen,
     guides: model.guidesGroup.isOpen,
+    faq: model.faqGroup.isOpen,
     testing: model.testingGroup.isOpen,
     bestPractices: model.bestPracticesGroup.isOpen,
     patterns: model.patternsGroup.isOpen,
@@ -1196,7 +1298,6 @@ const modelToSidebarState = (model: Model): SidebarState => ({
     examples: model.examplesGroup.isOpen,
     apiReference: model.apiReferenceGroup.isOpen,
   } satisfies Record<GroupKey, boolean>,
-  scroll: model.sidebarScroll,
 })
 
 const saveSidebarState = (model: Model) =>
