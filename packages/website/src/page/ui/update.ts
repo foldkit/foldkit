@@ -28,6 +28,8 @@ import {
   GotMenuBasicDemoMessage,
   GotPopoverAnimatedDemoMessage,
   GotPopoverBasicDemoMessage,
+  GotPopoverNestedChildDemoMessage,
+  GotPopoverNestedParentDemoMessage,
   GotSliderRatingDemoMessage,
   GotSliderVolumeDemoMessage,
   GotSwitchDemoMessage,
@@ -523,6 +525,42 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           popoverAnimatedCommands.map(
             Command.mapEffect(
               Effect.map(message => GotPopoverAnimatedDemoMessage({ message })),
+            ),
+          ),
+        ]
+      },
+
+      GotPopoverNestedParentDemoMessage: ({ message }) => {
+        const [nextPopoverNestedParentDemo, popoverNestedParentCommands] =
+          Ui.Popover.update(model.popoverNestedParentDemo, message)
+
+        return [
+          evo(model, {
+            popoverNestedParentDemo: () => nextPopoverNestedParentDemo,
+          }),
+          popoverNestedParentCommands.map(
+            Command.mapEffect(
+              Effect.map(message =>
+                GotPopoverNestedParentDemoMessage({ message }),
+              ),
+            ),
+          ),
+        ]
+      },
+
+      GotPopoverNestedChildDemoMessage: ({ message }) => {
+        const [nextPopoverNestedChildDemo, popoverNestedChildCommands] =
+          Ui.Popover.update(model.popoverNestedChildDemo, message)
+
+        return [
+          evo(model, {
+            popoverNestedChildDemo: () => nextPopoverNestedChildDemo,
+          }),
+          popoverNestedChildCommands.map(
+            Command.mapEffect(
+              Effect.map(message =>
+                GotPopoverNestedChildDemoMessage({ message }),
+              ),
             ),
           ),
         ]

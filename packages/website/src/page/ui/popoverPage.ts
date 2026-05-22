@@ -82,6 +82,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   examplesHeader,
   Popover.basicHeader,
   Popover.animatedHeader,
+  Popover.nestedHeader,
   stylingHeader,
   keyboardInteractionHeader,
   accessibilityHeader,
@@ -109,6 +110,13 @@ const initConfigProps: ReadonlyArray<PropEntry> = [
     type: 'boolean',
     default: 'false',
     description: 'Locks page scroll and marks other elements inert when open.',
+  },
+  {
+    name: 'contentFocus',
+    type: 'boolean',
+    default: 'false',
+    description:
+      'Hands focus ownership to the panel content. The panel is not focusable and does not close itself on blur.',
   },
 ]
 
@@ -139,6 +147,12 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
     type: 'AnchorConfig',
     description:
       'Floating positioning config: placement, gap, and padding. Required.',
+  },
+  {
+    name: 'focusSelector',
+    type: 'string',
+    description:
+      'Optional selector for the element to focus after the panel is positioned.',
   },
   {
     name: 'buttonClassName',
@@ -204,7 +218,7 @@ const keyboardEntries: ReadonlyArray<KeyboardEntry> = [
   {
     key: 'Tab',
     description:
-      'Navigates within the panel. Closes the popover when focus leaves.',
+      'Navigates within the panel. By default, closes the popover when focus leaves.',
   },
 ]
 
@@ -277,6 +291,35 @@ export const view = <ParentMessage>(
       demoContainer(
         ...Popover.animatedDemo(model.popoverAnimatedDemo, toParentMessage),
       ),
+      heading(
+        Popover.nestedHeader.level,
+        Popover.nestedHeader.id,
+        Popover.nestedHeader.text,
+      ),
+      para(
+        'Use a separate Popover Model for each level. For a parent panel that opens onto another Popover trigger, pass ',
+        inlineCode('contentFocus: true'),
+        ' at init and ',
+        inlineCode('focusSelector'),
+        ' in the view so focus lands on the nested trigger.',
+      ),
+      demoContainer(
+        ...Popover.nestedDemo(
+          model.popoverNestedParentDemo,
+          model.popoverNestedChildDemo,
+          toParentMessage,
+        ),
+      ),
+      highlightedCodeBlock(
+        h.div(
+          [h.Class('text-sm'), h.InnerHTML(Snippet.uiPopoverNestedHighlighted)],
+          [],
+        ),
+        Snippet.uiPopoverNestedRaw,
+        'Copy nested popovers example to clipboard',
+        copiedSnippets,
+        'mb-8',
+      ),
       heading(stylingHeader.level, stylingHeader.id, stylingHeader.text),
       para(
         'Popover is headless. Button and panel styling is controlled through className and attribute props.',
@@ -295,7 +338,7 @@ export const view = <ParentMessage>(
         keyboardInteractionHeader.text,
       ),
       para(
-        'The panel receives ',
+        'By default, the panel receives ',
         inlineCode('tabindex="0"'),
         ' so it can receive focus. Tab navigates naturally through the panel content. Escape closes and returns focus to the button.',
       ),

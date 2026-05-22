@@ -6,6 +6,8 @@ import type { TableOfContentsEntry } from '../../main'
 import {
   GotPopoverAnimatedDemoMessage,
   GotPopoverBasicDemoMessage,
+  GotPopoverNestedChildDemoMessage,
+  GotPopoverNestedParentDemoMessage,
   type Message,
 } from './message'
 
@@ -29,6 +31,12 @@ export const animatedHeader: TableOfContentsEntry = {
   text: 'Animated',
 }
 
+export const nestedHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'nested-popovers',
+  text: 'Nested',
+}
+
 // DEMO CONTENT
 
 const triggerClassName =
@@ -44,11 +52,19 @@ const backdropClassName = 'fixed inset-0 z-0'
 
 const wrapperClassName = 'relative inline-block'
 
+const nestedChildButtonSelector = '#popover-nested-child-demo-button'
+
 // VIEW
 
 const POPOVER_ANCHOR: AnchorConfig = {
   placement: 'bottom-start',
   gap: 4,
+  padding: 8,
+}
+
+const NESTED_POPOVER_ANCHOR: AnchorConfig = {
+  placement: 'right-start',
+  gap: 8,
   padding: 8,
 }
 
@@ -116,6 +132,69 @@ export const animatedDemo = <ParentMessage>(
           toParentMessage: message =>
             toParentMessage(GotPopoverAnimatedDemoMessage({ message })),
           ...popoverViewConfig<ParentMessage>(animatedPanelClassName),
+        }),
+      ],
+    ),
+  ]
+}
+
+export const nestedDemo = <ParentMessage>(
+  parentPopoverModel: Ui.Popover.Model,
+  childPopoverModel: Ui.Popover.Model,
+  toParentMessage: (message: Message) => ParentMessage,
+) => {
+  const h = html<ParentMessage>()
+
+  const childPopover = Ui.Popover.view({
+    model: childPopoverModel,
+    toParentMessage: message =>
+      toParentMessage(GotPopoverNestedChildDemoMessage({ message })),
+    anchor: NESTED_POPOVER_ANCHOR,
+    buttonContent: h.span([], ['Advanced settings']),
+    buttonAttributes: [h.Class(triggerClassName)],
+    panelContent: h.div(
+      [],
+      [
+        h.p(
+          [h.Class('text-sm font-semibold text-gray-900 dark:text-white mb-2')],
+          ['Permissions'],
+        ),
+        h.p(
+          [h.Class('text-sm text-gray-600 dark:text-gray-400')],
+          ['Review who can change billing, members, and integrations.'],
+        ),
+      ],
+    ),
+    panelAttributes: [h.Class(basicPanelClassName)],
+    backdropAttributes: [h.Class(backdropClassName)],
+    attributes: [h.Class(wrapperClassName)],
+  })
+
+  return [
+    h.div(
+      [h.Class('relative')],
+      [
+        Ui.Popover.view({
+          model: parentPopoverModel,
+          toParentMessage: message =>
+            toParentMessage(GotPopoverNestedParentDemoMessage({ message })),
+          anchor: POPOVER_ANCHOR,
+          focusSelector: nestedChildButtonSelector,
+          buttonContent: h.span([], ['Account']),
+          buttonAttributes: [h.Class(triggerClassName)],
+          panelContent: h.div(
+            [h.Class('flex flex-col gap-4')],
+            [
+              h.p(
+                [h.Class('text-sm text-gray-600 dark:text-gray-400')],
+                ['Manage account settings without leaving this panel.'],
+              ),
+              childPopover,
+            ],
+          ),
+          panelAttributes: [h.Class(basicPanelClassName)],
+          backdropAttributes: [h.Class(backdropClassName)],
+          attributes: [h.Class(wrapperClassName)],
         }),
       ],
     ),
