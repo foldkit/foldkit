@@ -289,16 +289,6 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           href: reactComparisonRouter(),
           label: 'Foldkit vs React: Side by Side',
         },
-        {
-          _tag: 'WhyNoJsx',
-          href: whyNoJsxRouter(),
-          label: 'Why no JSX?',
-        },
-        {
-          _tag: 'OnSsr',
-          href: onSsrRouter(),
-          label: 'On SSR',
-        },
       ],
     ],
   },
@@ -325,6 +315,23 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'PatternsSubscriptionOrganization',
           href: patternsSubscriptionOrganizationRouter(),
           label: 'Subscription Organization',
+        },
+      ],
+    ],
+  },
+  {
+    label: 'FAQ',
+    pageGroups: [
+      [
+        {
+          _tag: 'WhyNoJsx',
+          href: whyNoJsxRouter(),
+          label: 'Why no JSX?',
+        },
+        {
+          _tag: 'OnSsr',
+          href: onSsrRouter(),
+          label: 'On SSR',
         },
       ],
     ],
