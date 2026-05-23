@@ -113,6 +113,17 @@ export const makeMessage = <A, I>(payloadSchema: S.Codec<A, I>) =>
     GotAnimationMessage,
   ])
 
+/** Factory for `DismissedToast`, the OutMessage emitted once an entry has
+ *  finished dismissing (leave-animation `TransitionedOut`). Carries the
+ *  payload so consumers can lift the dismissal into a domain Message
+ *  without looking the entry up from a stale model. */
+export const makeDismissedToast = <A, I>(payloadSchema: S.Codec<A, I>) =>
+  m('DismissedToast', { payload: payloadSchema })
+
+/** Factory for the union of out-messages the toast component can produce. */
+export const makeOutMessage = <A, I>(payloadSchema: S.Codec<A, I>) =>
+  S.Union([makeDismissedToast(payloadSchema)])
+
 // INIT
 
 /** Configuration for creating a toast container model. `defaultDuration` is

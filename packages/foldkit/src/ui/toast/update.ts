@@ -31,9 +31,11 @@ import {
   type InitConfig,
   type Variant,
   makeAdded,
+  makeDismissedToast,
   makeEntry,
   makeMessage,
   makeModel,
+  makeOutMessage,
 } from './schema.js'
 
 // Factory-level ShowInput. The consumer supplies the full payload.
@@ -77,13 +79,20 @@ export const makeRuntime = <A, I>(payloadSchema: S.Codec<A, I>) => {
   const EntrySchema = makeEntry(payloadSchema)
   const ModelSchema = makeModel(payloadSchema)
   const MessageSchema = makeMessage(payloadSchema)
+  const OutMessageSchema = makeOutMessage(payloadSchema)
   const Added = makeAdded(payloadSchema)
+  const DismissedToast = makeDismissedToast(payloadSchema)
 
   type Entry = typeof EntrySchema.Type
   type Model = typeof ModelSchema.Type
   type Message = typeof MessageSchema.Type
+  type OutMessage = typeof OutMessageSchema.Type
 
-  type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+  type UpdateReturn = readonly [
+    Model,
+    ReadonlyArray<Command.Command<Message>>,
+    Option.Option<OutMessage>,
+  ]
   const withUpdateReturn = M.withReturnType<UpdateReturn>()
 
   const updateEntry = (
@@ -139,7 +148,7 @@ export const makeRuntime = <A, I>(payloadSchema: S.Codec<A, I>) => {
     )
 
     return Option.match(maybeEntry, {
-      onNone: () => [model, []],
+      onNone: (): UpdateReturn => [model, [], Option.none()],
       onSome: entry => {
         const [nextAnimation, animationCommands, maybeOutMessage] =
           animationUpdate(entry.animation, animationMessage)
@@ -154,9 +163,10 @@ export const makeRuntime = <A, I>(payloadSchema: S.Codec<A, I>) => {
         })
 
         return Option.match(maybeOutMessage, {
-          onNone: () => [
+          onNone: (): UpdateReturn => [
             updateEntry(model, entryId, () => nextEntry),
             mappedCommands,
+            Option.none(),
           ],
           onSome: M.type<AnimationOutMessage>().pipe(
             withUpdateReturn,
@@ -170,10 +180,12 @@ export const makeRuntime = <A, I>(payloadSchema: S.Codec<A, I>) => {
                     toMessage,
                   ),
                 ],
+                Option.none(),
               ],
               TransitionedOut: () => [
                 removeEntry(model, entryId),
                 mappedCommands,
+                Option.some(DismissedToast({ payload: entry.payload })),
               ],
             }),
           ),
@@ -214,7 +226,9 @@ export const makeRuntime = <A, I>(payloadSchema: S.Codec<A, I>) => {
     nextEntryKey: 0,
   })
 
-  /** Processes a toast message and returns the next model and commands. */
+  /** Processes a toast message and returns the next model, commands, and
+   *  an optional `DismissedToast` OutMessage emitted once an entry has
+   *  finished its leave animation. */
   const update = (model: Model, message: Message): UpdateReturn =>
     M.value(message).pipe(
       withUpdateReturn,
@@ -241,7 +255,11 @@ export const makeRuntime = <A, I>(payloadSchema: S.Codec<A, I>) => {
             onSome: rescheduleDismissCommands,
           })
 
-          return [modelAfterShow, [...showCommands, ...dismissCommands]]
+          return [
+            modelAfterShow,
+            [...showCommands, ...dismissCommands],
+            Option.none(),
+          ]
         },
 
         Dismissed: ({ entryId }) => {
@@ -251,10 +269,10 @@ export const makeRuntime = <A, I>(payloadSchema: S.Codec<A, I>) => {
           )
 
           return Option.match(maybeEntry, {
-            onNone: () => [model, []],
+            onNone: (): UpdateReturn => [model, [], Option.none()],
             onSome: entry => {
               if (isEntryLeaving(entry)) {
-                return [model, []]
+                return [model, [], Option.none()]
               } else {
                 return delegateToEntryAnimation(model, entryId, AnimationHid())
               }
@@ -265,17 +283,21 @@ export const makeRuntime = <A, I>(payloadSchema: S.Codec<A, I>) => {
         DismissedAll: () =>
           Array.reduce<Entry, UpdateReturn>(
             model.entries,
-            [model, []],
-            ([currentModel, currentCommands], entry) => {
+            [model, [], Option.none()],
+            ([currentModel, currentCommands, currentOut], entry) => {
               if (isEntryLeaving(entry)) {
-                return [currentModel, currentCommands]
+                return [currentModel, currentCommands, currentOut]
               }
               const [nextModel, nextCommands] = delegateToEntryAnimation(
                 currentModel,
                 entry.id,
                 AnimationHid(),
               )
-              return [nextModel, [...currentCommands, ...nextCommands]]
+              return [
+                nextModel,
+                [...currentCommands, ...nextCommands],
+                currentOut,
+              ]
             },
           ),
 
@@ -286,11 +308,11 @@ export const makeRuntime = <A, I>(payloadSchema: S.Codec<A, I>) => {
           )
 
           return Option.match(maybeEntry, {
-            onNone: () => [model, []],
+            onNone: (): UpdateReturn => [model, [], Option.none()],
             onSome: entry => {
               const isStale = version !== entry.pendingDismissVersion
               if (isStale || isEntryLeaving(entry)) {
-                return [model, []]
+                return [model, [], Option.none()]
               } else {
                 return delegateToEntryAnimation(model, entryId, AnimationHid())
               }
@@ -306,6 +328,7 @@ export const makeRuntime = <A, I>(payloadSchema: S.Codec<A, I>) => {
             }),
           ),
           [],
+          Option.none(),
         ],
 
         LeftEntry: ({ entryId }) => {
@@ -315,7 +338,7 @@ export const makeRuntime = <A, I>(payloadSchema: S.Codec<A, I>) => {
           )
 
           return Option.match(maybeEntry, {
-            onNone: () => [model, []],
+            onNone: (): UpdateReturn => [model, [], Option.none()],
             onSome: entry => {
               const nextEntry: Entry = evo(entry, {
                 isHovered: () => false,
@@ -324,6 +347,7 @@ export const makeRuntime = <A, I>(payloadSchema: S.Codec<A, I>) => {
               return [
                 updateEntry(model, entryId, () => nextEntry),
                 rescheduleDismissCommands(nextEntry),
+                Option.none(),
               ]
             },
           })
@@ -350,7 +374,9 @@ export const makeRuntime = <A, I>(payloadSchema: S.Codec<A, I>) => {
     Entry: EntrySchema,
     Model: ModelSchema,
     Message: MessageSchema,
+    OutMessage: OutMessageSchema,
     Added,
+    DismissedToast,
     init,
     update,
     show,

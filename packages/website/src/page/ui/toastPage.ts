@@ -81,6 +81,12 @@ const programmaticHelpersHeader: TableOfContentsEntry = {
   text: 'Programmatic Helpers',
 }
 
+const outMessageHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'out-message',
+  text: 'OutMessage',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -91,6 +97,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   showInputHeader,
   viewConfigHeader,
   programmaticHelpersHeader,
+  outMessageHeader,
 ]
 
 // SECTION DATA
@@ -197,6 +204,15 @@ const programmaticHelpers: ReadonlyArray<PropEntry> = [
     name: 'dismissAll',
     type: '(model: Model) => [Model, Commands]',
     description: 'Begins dismissing every currently-visible entry.',
+  },
+]
+
+const outMessageProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'DismissedToast',
+    type: '{ payload: Payload }',
+    description:
+      'Emitted once an entry has finished its leave animation and is being removed from the model. Carries the toast’s payload typed as your `Payload` schema. Pattern-match the third tuple element of Toast.update in your GotToastMessage handler to lift the dismissal into a domain Message — e.g., resolving a pending action or firing analytics. Only fires after `TransitionedOut`, so it represents the actual removal, not the initial dismiss request.',
   },
 ]
 
@@ -347,6 +363,17 @@ export const view = <ParentMessage>(
         '.',
       ),
       propTable(programmaticHelpers),
+      heading(
+        outMessageHeader.level,
+        outMessageHeader.id,
+        outMessageHeader.text,
+      ),
+      para(
+        'Messages emitted to the parent through the third element of ',
+        inlineCode('[Model, Commands, Option<OutMessage>]'),
+        '. Pattern-match on the OutMessage in your update handler.',
+      ),
+      propTable(outMessageProps),
     ],
   )
 }
