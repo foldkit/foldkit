@@ -82,6 +82,12 @@ const switchAttributesHeader: TableOfContentsEntry = {
   text: 'SwitchAttributes',
 }
 
+const outMessageHeader: TableOfContentsEntry = {
+  level: 'h3',
+  id: 'out-message',
+  text: 'OutMessage',
+}
+
 export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   overviewHeader,
   examplesHeader,
@@ -92,6 +98,7 @@ export const tableOfContents: ReadonlyArray<TableOfContentsEntry> = [
   initConfigHeader,
   viewConfigHeader,
   switchAttributesHeader,
+  outMessageHeader,
 ]
 
 // SECTION DATA
@@ -172,6 +179,15 @@ const switchAttributesProps: ReadonlyArray<PropEntry> = [
     type: 'ReadonlyArray<Attribute<Message>>',
     description:
       'Spread onto a hidden <input> for form submission. Only needed when the name prop is set.',
+  },
+]
+
+const outMessageProps: ReadonlyArray<PropEntry> = [
+  {
+    name: 'ToggledChecked',
+    type: '{ isChecked: boolean }',
+    description:
+      'Emitted each time the switch toggles. Carries the new checked state. Pattern-match the third tuple element of Switch.update in your GotSwitchMessage handler to lift the toggle into a domain Message — e.g., persisting the setting or dispatching a sync command.',
   },
 ]
 
@@ -298,6 +314,17 @@ export const view = <ParentMessage>(
         ' callback.',
       ),
       propTable(switchAttributesProps),
+      heading(
+        outMessageHeader.level,
+        outMessageHeader.id,
+        outMessageHeader.text,
+      ),
+      para(
+        'Messages emitted to the parent through the third element of ',
+        inlineCode('[Model, Commands, Option<OutMessage>]'),
+        '. Pattern-match on the OutMessage in your update handler.',
+      ),
+      propTable(outMessageProps),
     ],
   )
 }

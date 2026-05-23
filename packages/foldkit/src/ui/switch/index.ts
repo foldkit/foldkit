@@ -33,6 +33,22 @@ export type Toggled = typeof Toggled.Type
 
 export type Message = typeof Message.Type
 
+// OUT MESSAGE
+
+/** Sent to the parent each time the switch toggles. Carries the new
+ *  checked state. Consumers pattern-match this in their `GotSwitchMessage`
+ *  handler to lift the toggle into a domain Message (e.g., persisting the
+ *  setting, dispatching a sync command). */
+export const ToggledChecked = m('ToggledChecked', { isChecked: S.Boolean })
+
+/** Union of out-messages the switch component can produce. Surfaced as
+ *  the third element of `update`'s return tuple and pattern-matched by
+ *  the parent. */
+export const OutMessage = S.Union([ToggledChecked])
+
+export type ToggledChecked = typeof ToggledChecked.Type
+export type OutMessage = typeof OutMessage.Type
+
 // INIT
 
 /** Configuration for creating a switch model with `init`. */
@@ -49,14 +65,23 @@ export const init = (config: InitConfig): Model => ({
 
 // UPDATE
 
-/** Processes a switch message and returns the next model and commands. */
+/** Processes a switch message and returns the next model, commands, and
+ *  a `ToggledChecked` OutMessage carrying the new checked state. */
 export const update = (
   model: Model,
   _message: Message,
-): readonly [Model, ReadonlyArray<Command<Message>>] => [
-  evo(model, { isChecked: isChecked => !isChecked }),
-  [],
-]
+): readonly [
+  Model,
+  ReadonlyArray<Command<Message>>,
+  Option.Option<OutMessage>,
+] => {
+  const nextIsChecked = !model.isChecked
+  return [
+    evo(model, { isChecked: () => nextIsChecked }),
+    [],
+    Option.some(ToggledChecked({ isChecked: nextIsChecked })),
+  ]
+}
 
 // VIEW
 
