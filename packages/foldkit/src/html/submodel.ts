@@ -91,14 +91,14 @@ type ViewMessageOf<View extends AnySubmodelView> = View extends {
   : never
 
 /** Type-level mirror of the runtime `assertNoNestedFunctions` rule.
- *  For each immediate field of an object that lives inside `inputs`,
- *  flag function-typed entries as an error so submodel authors cannot
- *  declare an input shape that the runtime would reject.
+ *  For each immediate field of an object or element of an array that
+ *  lives inside `inputs`, flag function-typed entries as an error so
+ *  submodel authors cannot declare an input shape that the runtime
+ *  would reject.
  *
- *  Only one level deep — matches the runtime walker (`walkForFunctions`),
- *  which also descends one level into plain objects from the top of
- *  `inputs`. Keeps the check from false-positiving on values whose
- *  prototype carries function members (Html VNodes, Option, etc.). */
+ *  Walks one level deep into both objects and arrays from each top-level
+ *  field of `inputs`. Matches the runtime walker, which iterates array
+ *  elements and descends into plain objects. */
 type NoFunctionFields<T> = T extends Function
   ? '[Foldkit] nested function in inputs; lift slot callbacks to the top level'
   : T
@@ -108,8 +108,12 @@ type ValidatedInputs<T> = T extends void
   : {
       readonly [K in keyof T]: T[K] extends Function
         ? T[K]
-        : T[K] extends ReadonlyArray<unknown>
-          ? T[K]
+        : T[K] extends ReadonlyArray<infer Element>
+          ? [Element] extends [object]
+            ? ReadonlyArray<{
+                readonly [K2 in keyof Element]: NoFunctionFields<Element[K2]>
+              }>
+            : ReadonlyArray<NoFunctionFields<Element>>
           : T[K] extends object
             ? { readonly [K2 in keyof T[K]]: NoFunctionFields<T[K][K2]> }
             : T[K]
@@ -171,38 +175,46 @@ const isPlainObject = (
 
 /** Walks below the top level of `inputs` and throws if it finds a
  *  function. Top-level functions are auto-scoped to the parent
- *  boundary; functions nested inside an object value would silently
- *  capture the child's boundary and dispatch through the child's
- *  wrapping chain, which is almost certainly not what the consumer
- *  meant. Failing loud at view-build time is cheaper than a confused
- *  bug report from a misrouted Message. */
+ *  boundary; functions nested inside an object value or array element
+ *  would silently capture the child's boundary and dispatch through
+ *  the child's wrapping chain, which is almost certainly not what the
+ *  consumer meant. Failing loud at view-build time is cheaper than a
+ *  confused bug report from a misrouted Message. */
 const assertNoNestedFunctions = (
   inputs: Readonly<Record<string, unknown>>,
 ): void => {
   for (const key of Object.keys(inputs)) {
     const value = inputs[key]
-    if (isPlainObject(value)) {
+    if (isPlainObject(value) || Array.isArray(value)) {
       walkForFunctions(value, [key])
     }
   }
 }
 
 const walkForFunctions = (
-  source: Readonly<Record<string, unknown>>,
+  source: Readonly<Record<string, unknown>> | ReadonlyArray<unknown>,
   path: ReadonlyArray<string>,
 ): void => {
-  for (const key of Object.keys(source)) {
-    const value = source[key]
+  const visit = (value: unknown, segment: string): void => {
+    const nextPath = [...path, segment]
     if (typeof value === 'function') {
       throw new Error(
         `Foldkit: h.submodel \`inputs\` may only contain functions at the ` +
-          `top level. Found a function at \`inputs.${[...path, key].join('.')}\`. ` +
+          `top level. Found a function at \`inputs.${nextPath.join('.')}\`. ` +
           `Lift it to the top level of \`inputs\` so it can be auto-scoped to ` +
           `the parent boundary, or pass the value as primitive data.`,
       )
     }
-    if (isPlainObject(value)) {
-      walkForFunctions(value, [...path, key])
+    if (isPlainObject(value) || Array.isArray(value)) {
+      walkForFunctions(value, nextPath)
+    }
+  }
+
+  if (Array.isArray(source)) {
+    source.forEach((element, index) => visit(element, `[${index}]`))
+  } else if (isPlainObject(source)) {
+    for (const key of Object.keys(source)) {
+      visit(source[key], key)
     }
   }
 }

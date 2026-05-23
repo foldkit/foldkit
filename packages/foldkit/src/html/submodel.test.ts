@@ -658,4 +658,52 @@ describe('h.submodel', () => {
       }),
     ).toThrow(/inputs\.config\.onSubmit/)
   })
+
+  it('throws when a function value is nested inside an array element of `inputs`', () => {
+    // A natural list-shaped API (`inputs: { items: [{ onSelect: ... }] }`)
+    // is the most common way to accidentally smuggle a function below the
+    // top level. The walker iterates arrays and descends into element
+    // objects, so the error surfaces at view-build time.
+    type ItemsInputs = Readonly<{
+      items: ReadonlyArray<Readonly<{ onSelect: () => unknown }>>
+    }>
+    const viewWithItems = (_model: object, _inputs: ItemsInputs) => h('div')
+
+    expect(() =>
+      submodel({
+        id: 'items-fn',
+        view: viewWithItems,
+        model: {},
+        inputs: {
+          items: [{ onSelect: () => undefined }],
+        },
+        toParentMessage: message => GotChild({ entryId: 'items-fn', message }),
+      }),
+    ).toThrow(/inputs\.items\.\[0\]\.onSelect/)
+  })
+
+  it('rejects functions in array-element fields at the type level (compile-time check)', () => {
+    type ItemsTypeTestInputs = Readonly<{
+      items: ReadonlyArray<Readonly<{ onSelect: () => unknown }>>
+    }>
+    const brandedView = defineView<
+      { value: number },
+      Readonly<{ _tag: 'TypeCheckNoop' }>,
+      ItemsTypeTestInputs
+    >((_model, _inputs) => h('div'))
+
+    expect(() =>
+      submodel({
+        id: 'array-type-check',
+        view: brandedView,
+        model: { value: 0 },
+        inputs: {
+          // @ts-expect-error — ValidatedInputs<ItemsTypeTestInputs>
+          // forbids functions inside elements of an array under `inputs`.
+          items: [{ onSelect: () => undefined }],
+        },
+        toParentMessage: () => ({ _tag: 'TypeCheckNoop' }) as const,
+      }),
+    ).toThrow(/inputs\.items\.\[0\]\.onSelect/)
+  })
 })
