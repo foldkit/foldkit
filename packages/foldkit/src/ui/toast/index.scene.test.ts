@@ -33,7 +33,7 @@ const defaultRenderEntry = (entry: Entry, _handlers: EntryHandlers) => {
 }
 
 type ViewOverrides = {
-  renderEntry?: (entry: Entry, handlers: EntryHandlers) => Html
+  entryToView?: (entry: Entry, handlers: EntryHandlers) => Html
   ariaLabel?: string
   containerClassName?: string
   entryClassName?: string
@@ -43,7 +43,7 @@ const sceneView =
   (overrides: ViewOverrides = {}) =>
   (model: Model) =>
     Toast.view(model, {
-      renderEntry: defaultRenderEntry,
+      entryToView: defaultRenderEntry,
       position: 'BottomRight',
       ...overrides,
     })

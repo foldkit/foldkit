@@ -150,7 +150,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
         model: model.toastDemo,
         inputs: {
           position: 'BottomRight',
-          renderEntry: (entry, handlers) => renderToastEntry(entry, handlers),
+          entryToView: (entry, handlers) => renderToastEntry(entry, handlers),
           entryClassName,
         },
         toParentMessage: message => GotToastDemoMessage({ message }),

@@ -122,7 +122,7 @@ const showInputProps: ReadonlyArray<PropEntry> = [
     name: 'payload',
     type: 'A (your payload type)',
     description:
-      'Content for this entry, in whatever shape you supplied to Toast.make(). The component never reads it; it flows through to your renderEntry callback.',
+      'Content for this entry, in whatever shape you supplied to Toast.make(). The component never reads it; it flows through to your entryToView callback.',
   },
   {
     name: 'variant',
@@ -164,7 +164,7 @@ const viewConfigProps: ReadonlyArray<PropEntry> = [
       'Wraps the subset of Toast Messages that fire from DOM events in your parent Message type.',
   },
   {
-    name: 'renderEntry',
+    name: 'entryToView',
     type: '(entry: typeof Toast.Entry.Type, handlers: { dismiss: ParentMessage }) => Html',
     description:
       "Renders each entry from its lifecycle fields (id, variant, transition) and its payload (your shape). The component wraps the return in an <li> with role, lifecycle handlers, and transition data attributes. Wire handlers.dismiss to a close button's OnClick.",
@@ -262,7 +262,7 @@ export const view = <ParentMessage>(
       ),
       para(
         'Toast is parameterized on a user-provided payload schema. The component owns only lifecycle and a11y fields: id, variant (drives ARIA role), transition, dismiss timer, hover state. Everything else lives in your payload and is rendered by your ',
-        inlineCode('renderEntry'),
+        inlineCode('entryToView'),
         ' callback. ',
         inlineCode('Ui.Toast.make(PayloadSchema)'),
         ' returns a module with ',
@@ -307,7 +307,7 @@ export const view = <ParentMessage>(
         ' and flex-column layout from the component (so entries stack correctly for each ',
         inlineCode('position'),
         '); every other visual decision lives in your ',
-        inlineCode('renderEntry'),
+        inlineCode('entryToView'),
         ' callback and your ',
         inlineCode('entryClassName'),
         '. Use ',

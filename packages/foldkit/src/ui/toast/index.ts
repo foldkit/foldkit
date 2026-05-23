@@ -106,7 +106,7 @@ const positionToContainerStyle = (
   )
 }
 
-/** Handlers passed to `renderEntry`. Spread `dismiss` onto a close
+/** Handlers passed to `entryToView`. Spread `dismiss` onto a close
  *  button's attribute array (typically inside `h.button([...dismiss])`)
  *  to let users dismiss the entry manually. The attribute carries the
  *  Toast's dismiss handler bound to this entry's id; it routes through
@@ -123,7 +123,7 @@ const DEFAULT_ARIA_LABEL = 'Notifications'
  *  `dismiss` / `dismissAll` helpers, and the headless `view`.
  *
  *  The payload is whatever content shape the consumer supplies via Schema.
- *  The component never reads it — it flows through to `renderEntry`. The
+ *  The component never reads it — it flows through to `entryToView`. The
  *  component itself owns only lifecycle and a11y fields (id, variant,
  *  animation, dismiss timer, hover state).
  *
@@ -157,7 +157,7 @@ export const make = <A, I>(payloadSchema: S.Codec<A, I>) => {
    *  field. */
   type ViewInputs = Readonly<{
     position: Position
-    renderEntry: (entry: Entry, handlers: EntryHandlers) => Html
+    entryToView: (entry: Entry, handlers: EntryHandlers) => Html
     ariaLabel?: string
     containerClassName?: string
     entryClassName?: string
@@ -176,7 +176,7 @@ export const make = <A, I>(payloadSchema: S.Codec<A, I>) => {
       const { id, entries } = model
       const {
         position,
-        renderEntry,
+        entryToView,
         ariaLabel = DEFAULT_ARIA_LABEL,
         containerClassName,
         entryClassName,
@@ -235,7 +235,7 @@ export const make = <A, I>(payloadSchema: S.Codec<A, I>) => {
         }
 
         return h.keyed('li')(entry.id, itemAttributes, [
-          renderEntry(entry, handlers),
+          entryToView(entry, handlers),
         ])
       }
 
